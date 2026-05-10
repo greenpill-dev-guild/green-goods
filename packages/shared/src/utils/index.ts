@@ -185,13 +185,18 @@ export {
 // CONTRACTS (ABIs & clients)
 // ============================================================================
 export {
+  assertMarketplaceReady,
   ActionRegistryABI,
   createClients,
+  deriveMarketplaceReadiness,
+  formatMarketplaceReadinessError,
   GardenAccountABI,
   GardenTokenABI,
   GreenGoodsENSABI,
+  getMarketplaceReadiness,
   getNetworkContracts,
   HatsABI,
+  MARKETPLACE_READINESS_REQUIRED_FIELDS,
 } from "./blockchain/contracts";
 export type {
   ResolveEnsAddressOptions,

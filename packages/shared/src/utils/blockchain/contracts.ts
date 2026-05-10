@@ -7,7 +7,13 @@
 
 import { type Abi, type Address, createPublicClient, http } from "viem";
 import { getChain as getChainFromConfig } from "../../config/chains";
-import type { NetworkContracts } from "../../types/contracts";
+import type {
+  MarketplaceContractAddresses,
+  MarketplaceReadinessAvailable,
+  MarketplaceReadinessField,
+  MarketplaceReadinessState,
+  NetworkContracts,
+} from "../../types/contracts";
 import { getNetworkName, getRpcUrl } from "./chain-registry";
 
 // Re-export chain utilities from config
@@ -68,7 +74,16 @@ const DEPLOYMENT_CONFIGS: Record<string, DeploymentConfig> = {
   "11155111": deployment11155111 as DeploymentConfig,
 };
 
-import { ZERO_ADDRESS } from "./address";
+import { isValidAddressFormat, isZeroAddress, ZERO_ADDRESS } from "./address";
+
+export const MARKETPLACE_READINESS_REQUIRED_FIELDS = [
+  "marketplaceAdapter",
+  "hypercertsModule",
+  "hypercertExchange",
+  "hypercertMinter",
+  "transferManager",
+  "strategyHypercertFractionOffer",
+] as const satisfies readonly MarketplaceReadinessField[];
 
 function asAddress(value: unknown): Address {
   return typeof value === "string" ? (value as Address) : ZERO_ADDRESS;
@@ -112,6 +127,72 @@ export function getNetworkContracts(chainId: number): NetworkContracts {
     // GreenWill
     greenWill: asAddress(deployment.greenWill),
   };
+}
+
+function getMarketplaceContractAddresses(
+  contracts: NetworkContracts
+): MarketplaceContractAddresses {
+  return {
+    marketplaceAdapter: contracts.marketplaceAdapter,
+    hypercertsModule: contracts.hypercertsModule,
+    hypercertExchange: contracts.hypercertExchange,
+    hypercertMinter: contracts.hypercertMinter,
+    transferManager: contracts.transferManager,
+    strategyHypercertFractionOffer: contracts.strategyHypercertFractionOffer,
+  };
+}
+
+function isConfiguredAddress(address: Address | undefined): boolean {
+  return isValidAddressFormat(address) && !isZeroAddress(address);
+}
+
+export function deriveMarketplaceReadiness(
+  chainId: number,
+  contracts: NetworkContracts
+): MarketplaceReadinessState {
+  const addresses = getMarketplaceContractAddresses(contracts);
+  const missingFields = MARKETPLACE_READINESS_REQUIRED_FIELDS.filter(
+    (field) => !isConfiguredAddress(addresses[field])
+  );
+
+  if (missingFields.length > 0) {
+    return {
+      status: "unavailable",
+      available: false,
+      chainId,
+      addresses,
+      missingFields,
+      reason: `missing_required_marketplace_addresses:${missingFields.join(",")}`,
+    };
+  }
+
+  return {
+    status: "available",
+    available: true,
+    chainId,
+    addresses,
+    missingFields: [],
+    reason: "all_required_addresses_configured",
+  };
+}
+
+export function getMarketplaceReadiness(chainId: number): MarketplaceReadinessState {
+  return deriveMarketplaceReadiness(chainId, getNetworkContracts(chainId));
+}
+
+export function formatMarketplaceReadinessError(readiness: MarketplaceReadinessState): string {
+  if (readiness.available) {
+    return "";
+  }
+  return `Marketplace configuration incomplete on chain ${readiness.chainId}: missing ${readiness.missingFields.join(", ")}`;
+}
+
+export function assertMarketplaceReady(chainId: number): MarketplaceReadinessAvailable {
+  const readiness = getMarketplaceReadiness(chainId);
+  if (!readiness.available) {
+    throw new Error(formatMarketplaceReadinessError(readiness));
+  }
+  return readiness;
 }
 
 export function createClients(chainId: number) {

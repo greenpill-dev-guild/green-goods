@@ -48,6 +48,9 @@ const mockBuildMakerAsk = vi.fn();
 const mockGetOrderNonces = vi.fn();
 const mockSignMakerAsk = vi.fn();
 const mockValidateOrder = vi.fn();
+const mockAssertMarketplaceReady = vi.fn();
+const mockInvalidateQueries = vi.fn();
+const mockSendTransaction = vi.fn();
 
 vi.mock("../../../modules/marketplace", () => ({
   buildMakerAsk: (...args: unknown[]) => mockBuildMakerAsk(...args),
@@ -61,6 +64,7 @@ vi.mock("../../../utils/blockchain/hypercert-abis", () => ({
 }));
 
 vi.mock("../../../utils/blockchain/contracts", () => ({
+  assertMarketplaceReady: (...args: unknown[]) => mockAssertMarketplaceReady(...args),
   getNetworkContracts: () => ({
     hypercertsModule: "0x3333333333333333333333333333333333333333",
   }),
@@ -76,7 +80,7 @@ vi.mock("../../../config", () => ({
 vi.mock("wagmi", () => ({
   useWalletClient: () => ({
     data: {
-      sendTransaction: vi.fn().mockResolvedValue("0xtxhash"),
+      sendTransaction: (...args: unknown[]) => mockSendTransaction(...args),
     },
   }),
 }));
@@ -96,9 +100,22 @@ vi.mock("../../../stores/useAdminStore", () => ({
 
 vi.mock("../../../config/query-keys", () => ({
   queryInvalidation: {
-    onMarketplaceListingChanged: () => [["greengoods", "marketplace"]],
+    onMarketplaceListingChanged: () => [
+      ["greengoods", "marketplace", "orders"],
+      ["greengoods", "marketplace"],
+    ],
   },
 }));
+
+vi.mock("@tanstack/react-query", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@tanstack/react-query")>();
+  return {
+    ...actual,
+    useQueryClient: () => ({
+      invalidateQueries: mockInvalidateQueries,
+    }),
+  };
+});
 
 // Mock viem's encodeFunctionData
 vi.mock("viem", () => ({
@@ -129,6 +146,35 @@ describe("useCreateListing", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     queryClient = createQueryClient();
+    mockAssertMarketplaceReady.mockReturnValue({
+      available: true,
+      status: "available",
+      missingFields: [],
+      addresses: {
+        hypercertsModule: TEST_MODULE,
+      },
+    });
+    mockGetOrderNonces.mockResolvedValue({ globalNonce: 0n, orderNonce: 1n });
+    mockBuildMakerAsk.mockReturnValue({
+      quoteType: 1,
+      globalNonce: 0n,
+      subsetNonce: 0n,
+      orderNonce: 1n,
+      strategyId: 1n,
+      collectionType: 2,
+      collection: TEST_MODULE,
+      currency: "0x0000000000000000000000000000000000000000",
+      signer: TEST_SIGNER,
+      startTime: 1n,
+      endTime: 2n,
+      price: 1000n,
+      itemIds: [1n],
+      amounts: [1n],
+      additionalParameters: "0x",
+    });
+    mockValidateOrder.mockReturnValue({ valid: true, errors: [] });
+    mockSignMakerAsk.mockResolvedValue("0xsignature");
+    mockSendTransaction.mockResolvedValue("0xtxhash");
   });
 
   describe("initial state", () => {
@@ -177,6 +223,70 @@ describe("useCreateListing", () => {
       });
 
       expect(result.current.error?.message).toBe("Garden address required");
+    });
+
+    it("refuses incomplete marketplace config before signing or writing", async () => {
+      mockAssertMarketplaceReady.mockImplementation(() => {
+        throw new Error("Marketplace configuration incomplete: hypercertExchange");
+      });
+      const { result } = renderHook(() => useCreateListing(TEST_GARDEN), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await act(async () => {
+        try {
+          await result.current.createListing({
+            hypercertId: 1n,
+            fractionId: 1n,
+            currency: "0x0000000000000000000000000000000000000000",
+            pricePerUnit: 1000n,
+            minUnitAmount: 1n,
+            maxUnitAmount: 1000n,
+            minUnitsToKeep: 0n,
+            sellLeftover: false,
+            durationDays: 30,
+          });
+        } catch {
+          // Expected
+        }
+      });
+
+      expect(result.current.error?.message).toContain("Marketplace configuration incomplete");
+      expect(mockGetOrderNonces).not.toHaveBeenCalled();
+      expect(mockBuildMakerAsk).not.toHaveBeenCalled();
+      expect(mockSignMakerAsk).not.toHaveBeenCalled();
+      expect(mockSendTransaction).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("invalidation", () => {
+    it("keeps marketplace listing invalidation after a successful listing", async () => {
+      const { result } = renderHook(() => useCreateListing(TEST_GARDEN), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await act(async () => {
+        await result.current.createListing({
+          hypercertId: 1n,
+          fractionId: 1n,
+          currency: "0x0000000000000000000000000000000000000000",
+          pricePerUnit: 1000n,
+          minUnitAmount: 1n,
+          maxUnitAmount: 1000n,
+          minUnitsToKeep: 0n,
+          sellLeftover: false,
+          durationDays: 30,
+        });
+      });
+
+      await waitFor(() => {
+        expect(mockInvalidateQueries).toHaveBeenCalledWith({
+          queryKey: ["greengoods", "marketplace", "orders"],
+        });
+        expect(mockInvalidateQueries).toHaveBeenCalledWith({
+          queryKey: ["greengoods", "marketplace"],
+        });
+      });
     });
   });
 

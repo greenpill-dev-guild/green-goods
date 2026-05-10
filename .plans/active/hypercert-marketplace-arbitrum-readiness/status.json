@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-05-02T05:17:58.384Z",
-    "updated_at": "2026-05-03T19:17:16.238Z",
+    "updated_at": "2026-05-10T23:28:50.518Z",
     "target_date": null
   },
   "links": {
@@ -32,7 +32,7 @@
   "lanes": {
     "ui": {
       "owner": "claude",
-      "status": "blocked",
+      "status": "ready",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "claude/ui/hypercert-marketplace-arbitrum-readiness",
@@ -56,7 +56,7 @@
     },
     "state_api": {
       "owner": "codex",
-      "status": "blocked",
+      "status": "completed",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "codex/state-api/hypercert-marketplace-arbitrum-readiness",
@@ -65,22 +65,22 @@
       "handoff_note": "Shared marketplace readiness helpers, deployment-artifact contract mapping, approval/listing guards, and query invalidation. Hooks stay in shared and fail closed when config is incomplete.",
       "tdd": {
         "mode": "required",
-        "status": "pending",
+        "status": "green_recorded",
         "red": {
-          "command": "",
-          "evidence": ""
+          "command": "cd packages/shared && bun run test -- src/__tests__/utils/marketplace-readiness.test.ts src/__tests__/modules/marketplace/approvals.test.ts src/__tests__/modules/marketplace/signing.test.ts src/__tests__/hooks/hypercerts/useCreateListing.test.ts src/__tests__/hooks/hypercerts/useBatchListForYield.test.ts src/__tests__/hooks/query-keys.test.ts; follow-up red: cd packages/shared && bun run test -- src/__tests__/hooks/hypercerts/useCancelListing.test.ts",
+          "evidence": "Initial RED failed before implementation: readiness exports were missing; approvals read/built zero-address calls; signing used SDK addresses; create/batch listing hooks did not gate before signing/writing. Follow-up RED failed before the cancel-listing fix because useCancelListing did not throw marketplace-readiness errors and could continue toward encoding/writing when config was incomplete."
         },
         "green": {
-          "command": "",
-          "evidence": ""
+          "command": "cd packages/shared && bun run test -- src/__tests__/public-contracts.test.ts src/__tests__/utils/marketplace-readiness.test.ts src/__tests__/modules/marketplace src/__tests__/hooks/hypercerts/useMarketplaceApprovals.test.ts src/__tests__/hooks/hypercerts/useCreateListing.test.ts src/__tests__/hooks/hypercerts/useBatchListForYield.test.ts src/__tests__/hooks/hypercerts/useCancelListing.test.ts src/__tests__/hooks/hypercerts/useHypercertListings.test.ts src/__tests__/hooks/hypercerts/useTradeHistory.test.ts src/__tests__/hooks/query-keys.test.ts",
+          "evidence": "Passed after the cancel-listing guard: 12 files and 103 tests passed. Separate cd packages/shared && bun run typecheck passed."
         },
-        "note": ""
+        "note": "Follow-up review finding addressed: cancel listing now uses shared marketplace readiness before encoding or writing, with invalidation coverage preserved."
       },
       "skill_tags": ["react", "tanstack-query", "data-layer", "testing"]
     },
     "contracts": {
       "owner": "codex",
-      "status": "ready",
+      "status": "completed",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "codex/contracts/hypercert-marketplace-arbitrum-readiness",
@@ -89,14 +89,14 @@
       "handoff_note": "Deployment JSON marketplace fields, Arbitrum status/configure scripts, post-deploy verifier hardening, and indexer-verifier policy. No broadcast without explicit operator approval.",
       "tdd": {
         "mode": "required",
-        "status": "pending",
+        "status": "green_recorded",
         "red": {
-          "command": "",
-          "evidence": ""
+          "command": "cd packages/contracts && bun run test:script -- script/utils/marketplace-readiness.test.ts",
+          "evidence": "Failed before implementation because script/utils/marketplace-readiness.test.ts imported missing module ./marketplace-readiness; RED cases cover zero/missing Hypercert config, adapter/module minter mismatch, paused adapter, owner mismatch, unauthorized module, wrong transfer manager, strategy id, configure-call planning, and indexer policy."
         },
         "green": {
-          "command": "",
-          "evidence": ""
+          "command": "cd packages/contracts && bun run test:script -- script/utils/marketplace-readiness.test.ts",
+          "evidence": "Passed after implementation; current wrapper also passes cd packages/contracts && bun run test:script with 2 files and 16 tests."
         },
         "note": ""
       },
@@ -158,6 +158,54 @@
       "status": "review_findings_addressed",
       "branch": null,
       "note": "Aligned brief indexer policy with the decision-complete verifier scope and added paused/owner/authorized-module cases to the top-level contracts RED checklist."
+    },
+    {
+      "timestamp": "2026-05-10T20:29:21.683Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "tdd_recorded",
+      "branch": "codex/contracts/hypercert-marketplace-arbitrum-readiness",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-05-10T20:29:25.214Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "blocked",
+      "branch": "codex/contracts/hypercert-marketplace-arbitrum-readiness",
+      "note": "Contracts verifier/status/dry-run are implemented and deterministic script tests are green, but live Arbitrum post-deploy remains red until an operator approves and broadcasts the three marketplace configuration calls. No broadcast was run."
+    },
+    {
+      "timestamp": "2026-05-10T23:18:21.645Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "completed",
+      "branch": "codex/contracts/hypercert-marketplace-arbitrum-readiness",
+      "note": "Contracts lane reconciled after operator broadcast using direct viem JSON-RPC evidence supplied on 2026-05-10: adapter exchange and minter, module minter and adapter, authorized module, owner, transfer manager, and strategy 1 all match deployment artifact truth; old blocked state was stale."
+    },
+    {
+      "timestamp": "2026-05-10T23:18:28.619Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "codex/state-api/hypercert-marketplace-arbitrum-readiness",
+      "note": "Shared marketplace readiness helpers and fail-closed approval/listing guards are proven."
+    },
+    {
+      "timestamp": "2026-05-10T23:18:33.852Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "completed",
+      "branch": "codex/state-api/hypercert-marketplace-arbitrum-readiness",
+      "note": "Completed shared state/API lane: deployment-artifact marketplace readiness API, fail-closed approval/listing guards, artifact-backed signing/nonces, and preserved marketplace invalidation tests."
+    },
+    {
+      "timestamp": "2026-05-10T23:28:50.534Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "codex/state-api/hypercert-marketplace-arbitrum-readiness",
+      "note": "Follow-up review finding addressed: cancel listing now uses shared marketplace readiness before encoding or writing, with invalidation coverage preserved."
     }
   ],
   "taxonomy": {

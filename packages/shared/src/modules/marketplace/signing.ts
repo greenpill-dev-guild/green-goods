@@ -11,8 +11,8 @@
 import { type Address, encodeAbiParameters, type Hex, type WalletClient } from "viem";
 
 import type { CreateListingParams } from "../../types/hypercerts";
+import { assertMarketplaceReady, getMarketplaceReadiness } from "../../utils/blockchain/contracts";
 import { createLogger } from "../app/logger";
-import { getMarketplaceAddresses } from "./client";
 
 const log = createLogger({ source: "marketplace/signing" });
 
@@ -97,10 +97,7 @@ export function buildMakerAsk(
   chainId: number,
   nonces?: { globalNonce?: bigint; subsetNonce?: bigint; orderNonce?: bigint }
 ): MakerAskOrder {
-  const addresses = getMarketplaceAddresses(chainId);
-  if (!addresses) {
-    throw new Error(`Marketplace not supported on chain ${chainId}`);
-  }
+  const readiness = assertMarketplaceReady(chainId);
 
   const now = BigInt(Math.floor(Date.now() / 1000));
   const durationSeconds = BigInt(params.durationDays) * 86400n;
@@ -119,7 +116,7 @@ export function buildMakerAsk(
     orderNonce: nonces?.orderNonce ?? 0n,
     strategyId: 1n, // hypercertFractionOffer
     collectionType: 2, // Hypercert
-    collection: addresses.MINTER as Address,
+    collection: readiness.addresses.hypercertMinter,
     currency: params.currency,
     signer,
     startTime: now,
@@ -149,16 +146,13 @@ export async function signMakerAsk(
   walletClient: WalletClient,
   chainId: number
 ): Promise<Hex> {
-  const addresses = getMarketplaceAddresses(chainId);
-  if (!addresses) {
-    throw new Error(`Marketplace not supported on chain ${chainId}`);
-  }
+  const readiness = assertMarketplaceReady(chainId);
 
   const domain = {
     name: DOMAIN_NAME,
     version: DOMAIN_VERSION,
     chainId,
-    verifyingContract: addresses.EXCHANGE_V2 as Address,
+    verifyingContract: readiness.addresses.hypercertExchange,
   };
 
   log.debug("Signing maker ask order", {
@@ -231,10 +225,14 @@ export function validateOrder(makerAsk: MakerAskOrder, chainId: number): Validat
     errors.push("itemIds must not be empty");
   }
 
-  const addresses = getMarketplaceAddresses(chainId);
-  if (addresses && makerAsk.collection.toLowerCase() !== addresses.MINTER.toLowerCase()) {
+  const readiness = getMarketplaceReadiness(chainId);
+  if (!readiness.available) {
+    errors.push(`marketplace configuration incomplete: ${readiness.missingFields.join(", ")}`);
+  } else if (
+    makerAsk.collection.toLowerCase() !== readiness.addresses.hypercertMinter.toLowerCase()
+  ) {
     errors.push(
-      `collection must be HypercertMinter (${addresses.MINTER}), got ${makerAsk.collection}`
+      `collection must be HypercertMinter (${readiness.addresses.hypercertMinter}), got ${makerAsk.collection}`
     );
   }
 

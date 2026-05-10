@@ -29,10 +29,14 @@
   "guardian": "0x05F486E3161F895Ad99f041065224F78bDf580a7",
   "hatsModule": "0x5b943088ecdDBF8E4ae387348A88A654aC5F7266",
   "hypercertsModule": "0x9CB6300cb0DD64dfe577944d7a8AF70799Fe3ef0",
+  "hypercertExchange": "0xcE8fa09562f07c23B9C21b5d0A29a293F8a8BC83",
+  "hypercertMinter": "0x822F17A9A5EeCFd66dBAFf7946a8071C265D1d07",
   "karmaGAPModule": "0x0FC2bE8D57595b16af0953CB2d711118F34563FE",
   "marketplaceAdapter": "0xE396137ef12c30075fd0B8509C6e389750f36159",
   "octantFactory": "0x84bc88EdEB7d8C74683890070761bA225B65B74a",
   "octantModule": "0x70b25a2bAAA4f2Ae477bab315a87A03cfe89CEe9",
+  "transferManager": "0x658c1695DCb298E57e6144F6dA3e83DdCF5e2BaB",
+  "strategyHypercertFractionOffer": "0xecab24cade0261fc6513ca13bb3d10f760af3da8",
   "rootGarden": {
     "address": "0xf401f34378384713222d1d21f63359cc4E8a858a",
     "tokenId": 1

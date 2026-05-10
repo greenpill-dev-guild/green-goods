@@ -32,6 +32,38 @@ export interface NetworkContracts {
   greenWill: Address;
 }
 
+export type MarketplaceReadinessField =
+  | "marketplaceAdapter"
+  | "hypercertsModule"
+  | "hypercertExchange"
+  | "hypercertMinter"
+  | "transferManager"
+  | "strategyHypercertFractionOffer";
+
+export type MarketplaceContractAddresses = Pick<NetworkContracts, MarketplaceReadinessField>;
+
+export interface MarketplaceReadinessAvailable {
+  status: "available";
+  available: true;
+  chainId: number;
+  addresses: MarketplaceContractAddresses;
+  missingFields: [];
+  reason: "all_required_addresses_configured";
+}
+
+export interface MarketplaceReadinessUnavailable {
+  status: "unavailable";
+  available: false;
+  chainId: number;
+  addresses: Partial<MarketplaceContractAddresses>;
+  missingFields: MarketplaceReadinessField[];
+  reason: string;
+}
+
+export type MarketplaceReadinessState =
+  | MarketplaceReadinessAvailable
+  | MarketplaceReadinessUnavailable;
+
 // Garden creation parameters — must match GardenToken.GardenConfig struct
 export interface CreateGardenParams {
   name: string;

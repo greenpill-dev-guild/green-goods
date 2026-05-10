@@ -13,7 +13,6 @@ import { useWalletClient } from "wagmi";
 
 import { createPublicClientForChain, DEFAULT_CHAIN_ID } from "../../config";
 import { logger } from "../../modules/app/logger";
-import { isZeroAddress } from "../../utils/blockchain/address";
 import {
   buildMakerAsk,
   type MakerAskOrder,
@@ -22,7 +21,7 @@ import {
 } from "../../modules/marketplace";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import type { CreateListingParams } from "../../types/hypercerts";
-import { getNetworkContracts } from "../../utils/blockchain/contracts";
+import { assertMarketplaceReady } from "../../utils/blockchain/contracts";
 import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { useAuth } from "../auth/useAuth";
 import { queryInvalidation } from "../../config/query-keys";
@@ -60,11 +59,8 @@ export function useBatchListForYield(gardenAddress?: Address): UseBatchListForYi
       if (!signer) throw new Error("Connect a wallet first");
       if (!walletClient) throw new Error("Wallet client not available for signing");
 
-      const contracts = getNetworkContracts(chainId);
-      const moduleAddress = contracts.hypercertsModule;
-      if (isZeroAddress(moduleAddress)) {
-        throw new Error("HypercertsModule not deployed on this chain");
-      }
+      const readiness = assertMarketplaceReady(chainId);
+      const moduleAddress = readiness.addresses.hypercertsModule;
 
       setProgress({ total: listings.length, signed: 0, status: "signing" });
 

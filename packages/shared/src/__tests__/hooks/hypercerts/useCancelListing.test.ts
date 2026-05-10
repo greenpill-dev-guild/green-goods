@@ -14,6 +14,11 @@ const TEST_CHAIN_ID = 11155111;
 const TEST_GARDEN = "0x1111111111111111111111111111111111111111" as `0x${string}`;
 const TEST_SIGNER = "0x2222222222222222222222222222222222222222" as `0x${string}`;
 const TEST_MODULE = "0x3333333333333333333333333333333333333333" as `0x${string}`;
+const mockAssertMarketplaceReady = vi.fn();
+const mockEncodeFunctionData = vi.fn();
+const mockInvalidateQueries = vi.fn();
+const mockSendTransaction = vi.fn();
+const mockWaitForTransactionReceipt = vi.fn();
 
 // ============================================
 // Mocks
@@ -28,6 +33,7 @@ vi.mock("../../../utils/blockchain/hypercert-abis", () => ({
 }));
 
 vi.mock("../../../utils/blockchain/contracts", () => ({
+  assertMarketplaceReady: (...args: unknown[]) => mockAssertMarketplaceReady(...args),
   getNetworkContracts: () => ({
     hypercertsModule: "0x3333333333333333333333333333333333333333",
   }),
@@ -36,14 +42,14 @@ vi.mock("../../../utils/blockchain/contracts", () => ({
 vi.mock("../../../config", () => ({
   DEFAULT_CHAIN_ID: 11155111,
   createPublicClientForChain: () => ({
-    waitForTransactionReceipt: vi.fn().mockResolvedValue({}),
+    waitForTransactionReceipt: (...args: unknown[]) => mockWaitForTransactionReceipt(...args),
   }),
 }));
 
 vi.mock("wagmi", () => ({
   useWalletClient: () => ({
     data: {
-      sendTransaction: vi.fn().mockResolvedValue("0xtxhash"),
+      sendTransaction: (...args: unknown[]) => mockSendTransaction(...args),
     },
   }),
 }));
@@ -63,12 +69,25 @@ vi.mock("../../../stores/useAdminStore", () => ({
 
 vi.mock("../../../config/query-keys", () => ({
   queryInvalidation: {
-    onMarketplaceListingChanged: () => [["greengoods", "marketplace"]],
+    onMarketplaceListingChanged: () => [
+      ["greengoods", "marketplace", "orders"],
+      ["greengoods", "marketplace"],
+    ],
   },
 }));
 
+vi.mock("@tanstack/react-query", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@tanstack/react-query")>();
+  return {
+    ...actual,
+    useQueryClient: () => ({
+      invalidateQueries: mockInvalidateQueries,
+    }),
+  };
+});
+
 vi.mock("viem", () => ({
-  encodeFunctionData: vi.fn().mockReturnValue("0xencoded"),
+  encodeFunctionData: (...args: unknown[]) => mockEncodeFunctionData(...args),
 }));
 
 import { useCancelListing } from "../../../hooks/hypercerts/useCancelListing";
@@ -95,6 +114,17 @@ describe("useCancelListing", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     queryClient = createQueryClient();
+    mockAssertMarketplaceReady.mockReturnValue({
+      available: true,
+      status: "available",
+      missingFields: [],
+      addresses: {
+        hypercertsModule: TEST_MODULE,
+      },
+    });
+    mockEncodeFunctionData.mockReturnValue("0xencoded");
+    mockSendTransaction.mockResolvedValue("0xtxhash");
+    mockWaitForTransactionReceipt.mockResolvedValue({});
   });
 
   it("starts with idle state and no error", () => {
@@ -148,5 +178,45 @@ describe("useCancelListing", () => {
     });
 
     expect(result.current.isCancelling).toBe(false);
+  });
+
+  it("refuses incomplete marketplace config before encoding or writing", async () => {
+    mockAssertMarketplaceReady.mockImplementation(() => {
+      throw new Error("Marketplace configuration incomplete: transferManager");
+    });
+
+    const { result } = renderHook(() => useCancelListing(TEST_GARDEN), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    let thrownError: Error | undefined;
+    await act(async () => {
+      try {
+        await result.current.cancelListing(42);
+      } catch (error) {
+        thrownError = error as Error;
+      }
+    });
+
+    expect(thrownError?.message ?? "").toContain("Marketplace configuration incomplete");
+    expect(mockEncodeFunctionData).not.toHaveBeenCalled();
+    expect(mockSendTransaction).not.toHaveBeenCalled();
+  });
+
+  it("keeps marketplace listing invalidation after a successful cancel", async () => {
+    const { result } = renderHook(() => useCancelListing(TEST_GARDEN), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await act(async () => {
+      await result.current.cancelListing(42);
+    });
+
+    expect(mockInvalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["greengoods", "marketplace", "orders"],
+    });
+    expect(mockInvalidateQueries).toHaveBeenCalledWith({
+      queryKey: ["greengoods", "marketplace"],
+    });
   });
 });
