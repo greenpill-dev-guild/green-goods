@@ -69,8 +69,9 @@ The admin uses the same root `.env` as all other packages:
 | `VITE_CHAIN_ID` | Target chain for deployment artifacts and RPC config |
 | `VITE_WALLETCONNECT_PROJECT_ID` | WalletConnect for wallet connection |
 | `VITE_ENVIO_INDEXER_URL` | Envio GraphQL endpoint for data queries |
+| `VITE_POSTHOG_ADMIN_KEY` | Admin PostHog project token for browser analytics |
 
-Additional admin-specific variables may include API keys for services like Hypercerts marketplace or PostHog analytics.
+Additional admin-specific variables may include API keys for services like Hypercerts marketplace. Vercel must use `VITE_POSTHOG_ADMIN_KEY` for Admin analytics; `VITE_PUBLIC_POSTHOG_KEY` is not read by the app, and Admin intentionally does not fall back to the client `VITE_POSTHOG_KEY`.
 
 ### Testing
 

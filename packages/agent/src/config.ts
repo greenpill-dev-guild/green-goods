@@ -312,7 +312,7 @@ export function validateConfig(config: Config): void {
   }
 
   // Log analytics status
-  if (config.analyticsEnabled) {
+  if (config.analyticsEnabled && config.posthogApiKey) {
     logger.info("Analytics enabled");
   }
 }

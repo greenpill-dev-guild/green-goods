@@ -10,6 +10,12 @@ import * as db from "../services/db";
 import { classifyError } from "../services/errors";
 import { loggers } from "../services/logger";
 import { type RateLimitType, rateLimiter } from "../services/rate-limiter";
+import {
+  responseHasButtons,
+  trackAgentMessageFailed,
+  trackAgentMessageHandled,
+  trackAgentMessageReceived,
+} from "../services/analytics";
 
 const log = loggers.handlers;
 
@@ -78,28 +84,42 @@ export function setHandlerContext(ctx: HandlerContext): void {
  * Main entry point for all messages. Platform adapters call this.
  */
 export async function handleMessage(message: InboundMessage): Promise<OutboundResponse> {
+  const startedAt = Date.now();
   const { platform, sender, content } = message;
 
-  const user = await db.getUser(platform, sender.platformId);
-  let response: OutboundResponse;
+  await trackAgentMessageReceived(message);
 
-  if (isCommandContent(content)) {
-    response = await handleCommand(message, user);
-  } else if (isCallbackContent(content)) {
-    response = await handleCallback(message, user);
-  } else if (isVoiceContent(content)) {
-    response = await handleVoice(message, user);
-  } else if (isImageContent(content)) {
-    response = await handlePhoto(message, user);
-  } else if (isTextContent(content)) {
-    response = await handleText(message, user);
-  } else {
-    response = textResponse("❌ Unsupported message type.");
+  try {
+    const user = await db.getUser(platform, sender.platformId);
+    let response: OutboundResponse;
+
+    if (isCommandContent(content)) {
+      response = await handleCommand(message, user);
+    } else if (isCallbackContent(content)) {
+      response = await handleCallback(message, user);
+    } else if (isVoiceContent(content)) {
+      response = await handleVoice(message, user);
+    } else if (isImageContent(content)) {
+      response = await handlePhoto(message, user);
+    } else if (isTextContent(content)) {
+      response = await handleText(message, user);
+    } else {
+      response = textResponse("❌ Unsupported message type.");
+    }
+
+    validateOutboundContent(response);
+    await trackAgentMessageHandled(message, {
+      durationMs: Date.now() - startedAt,
+      responseHasButtons: responseHasButtons(response),
+    });
+
+    return response;
+  } catch (error) {
+    await trackAgentMessageFailed(message, error, {
+      durationMs: Date.now() - startedAt,
+    });
+    throw error;
   }
-
-  validateOutboundContent(response);
-
-  return response;
 }
 
 /**

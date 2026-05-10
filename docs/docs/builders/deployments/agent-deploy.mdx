@@ -76,7 +76,7 @@ Key variables used by the current agent runtime:
 | `DB_PATH` | Optional | SQLite database path; defaults to `data/agent.db`. |
 | `POSTHOG_AGENT_KEY` | Optional production analytics | Enables agent analytics when production analytics are enabled. |
 
-The agent loads environment variables from the root `.env` file.
+The agent loads environment variables from the root `.env` file. Deployed Fly secrets should use the server-side `POSTHOG_AGENT_KEY` name; `VITE_POSTHOG_AGENT_KEY` is not read by the Node runtime.
 Browser upload flows call the agent for short-lived Pinata signed upload URLs. Set `PINATA_JWT` on the agent host so the signer can create those URLs; keep `VITE_API_BASE_URL` pointed at the deployed agent from browser apps. Script and server uploads can still use `PINATA_JWT` directly. The current agent config does not load `DEPLOYER_PRIVATE_KEY` or `VITE_PIMLICO_API_KEY` as required service variables.
 
 ### API Key Management

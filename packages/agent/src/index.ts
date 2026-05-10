@@ -20,6 +20,11 @@ import {
   registerSlashCommands,
 } from "./platforms/telegram";
 import { initAI, isAIModelLoaded } from "./services/ai";
+import {
+  initAgentAnalytics,
+  shutdownAgentAnalytics,
+  trackAgentRuntimeStarted,
+} from "./services/analytics";
 import { clearBlockchainCache, initBlockchain } from "./services/blockchain";
 import { closeDB, initDB } from "./services/db";
 import { resolveAgentRpcUrl } from "./services/agent-rpc";
@@ -35,6 +40,10 @@ import { createShutdownHandler } from "./runtime/shutdown";
 
 async function main(): Promise<void> {
   const config = getConfig();
+  initAgentAnalytics({
+    apiKey: config.posthogApiKey,
+    enabled: config.analyticsEnabled,
+  });
 
   logger.info(
     {
@@ -46,6 +55,11 @@ async function main(): Promise<void> {
     },
     "🌿 Green Goods Agent starting"
   );
+  await trackAgentRuntimeStarted({
+    mode: config.mode,
+    chainId: config.chainId,
+    nodeEnv: config.nodeEnv,
+  });
 
   // Initialize services
   initDB(config.dbPath);
@@ -156,7 +170,12 @@ async function main(): Promise<void> {
   const shutdown = createShutdownHandler({
     bot,
     botMode: config.mode,
-    cleanupTasks: [() => rateLimiter.destroy(), () => clearBlockchainCache(), closeDB],
+    cleanupTasks: [
+      () => rateLimiter.destroy(),
+      () => clearBlockchainCache(),
+      closeDB,
+      shutdownAgentAnalytics,
+    ],
     exit: (code) => process.exit(code),
     logger,
     server,

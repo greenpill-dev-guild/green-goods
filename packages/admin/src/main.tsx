@@ -72,7 +72,10 @@ export const Root = () => (
       >
         {/* AuthGate: uses DevAuthProvider when ?mockAuth= param is present in dev, else real AuthProvider */}
         <AuthGate>
-          <AppProvider posthogKey={import.meta.env.VITE_POSTHOG_ADMIN_KEY}>
+          <AppProvider
+            posthogKey={import.meta.env.VITE_POSTHOG_ADMIN_KEY}
+            allowPosthogKeyFallback={false}
+          >
             <App />
           </AppProvider>
         </AuthGate>

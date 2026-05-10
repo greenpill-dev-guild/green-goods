@@ -7,7 +7,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { loadCaptureTopicsFromEnv, parseTopicEnvVar } from "../config";
+import { loadCaptureTopicsFromEnv, loadConfig, parseTopicEnvVar } from "../config";
 
 describe("parseTopicEnvVar", () => {
   it("returns undefined for unset / blank values", () => {
@@ -102,5 +102,47 @@ describe("loadCaptureTopicsFromEnv", () => {
     expect(loadCaptureTopicsFromEnv()).toEqual([
       { chatId: "-1002847752257", threadId: "312", inferredType: "idea" },
     ]);
+  });
+});
+
+describe("loadConfig analytics env", () => {
+  const ORIGINAL_NODE_ENV = process.env.NODE_ENV;
+  const ORIGINAL_ANALYTICS_ENABLED = process.env.ANALYTICS_ENABLED;
+  const ORIGINAL_POSTHOG_AGENT_KEY = process.env.POSTHOG_AGENT_KEY;
+  const ORIGINAL_VITE_POSTHOG_AGENT_KEY = process.env.VITE_POSTHOG_AGENT_KEY;
+
+  afterEach(() => {
+    if (ORIGINAL_NODE_ENV === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = ORIGINAL_NODE_ENV;
+    if (ORIGINAL_ANALYTICS_ENABLED === undefined) delete process.env.ANALYTICS_ENABLED;
+    else process.env.ANALYTICS_ENABLED = ORIGINAL_ANALYTICS_ENABLED;
+    if (ORIGINAL_POSTHOG_AGENT_KEY === undefined) delete process.env.POSTHOG_AGENT_KEY;
+    else process.env.POSTHOG_AGENT_KEY = ORIGINAL_POSTHOG_AGENT_KEY;
+    if (ORIGINAL_VITE_POSTHOG_AGENT_KEY === undefined) delete process.env.VITE_POSTHOG_AGENT_KEY;
+    else process.env.VITE_POSTHOG_AGENT_KEY = ORIGINAL_VITE_POSTHOG_AGENT_KEY;
+  });
+
+  it("uses POSTHOG_AGENT_KEY as the only agent analytics token", () => {
+    process.env.NODE_ENV = "production";
+    process.env.ANALYTICS_ENABLED = "true";
+    process.env.POSTHOG_AGENT_KEY = "server-agent-token";
+    process.env.VITE_POSTHOG_AGENT_KEY = "browser-style-token";
+
+    const config = loadConfig();
+
+    expect(config.analyticsEnabled).toBe(true);
+    expect(config.posthogApiKey).toBe("server-agent-token");
+  });
+
+  it("ignores VITE_POSTHOG_AGENT_KEY when POSTHOG_AGENT_KEY is absent", () => {
+    process.env.NODE_ENV = "production";
+    process.env.ANALYTICS_ENABLED = "true";
+    delete process.env.POSTHOG_AGENT_KEY;
+    process.env.VITE_POSTHOG_AGENT_KEY = "browser-style-token";
+
+    const config = loadConfig();
+
+    expect(config.analyticsEnabled).toBe(true);
+    expect(config.posthogApiKey).toBeUndefined();
   });
 });

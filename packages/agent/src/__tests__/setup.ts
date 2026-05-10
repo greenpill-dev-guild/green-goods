@@ -653,7 +653,9 @@ vi.mock("pino", () => ({
 }));
 
 vi.mock("posthog-node", () => ({
-  PostHog: vi.fn().mockImplementation(() => mockPostHog),
+  PostHog: vi.fn().mockImplementation(function PostHogMock() {
+    return mockPostHog;
+  }),
 }));
 
 // Mock Telegram bot API

@@ -12,7 +12,8 @@
 #       TELEGRAM_BOT_TOKEN=<botfather-token> \
 #       ENCRYPTION_SECRET=<32+-char-secret> \
 #       TELEGRAM_WEBHOOK_SECRET=<secret> \
-#       BOT_API_TOKEN=<routine-auth-bearer-token>
+#       BOT_API_TOKEN=<routine-auth-bearer-token> \
+#       POSTHOG_AGENT_KEY=<agent-project-token>
 #   flyctl deploy
 #
 # Health model:

@@ -183,6 +183,8 @@ PINATA_JWT=...                # Required for POST /api/uploads/sign
 AGENT_ALLOWED_ORIGINS=...     # Comma-separated browser origins allowed to request upload signatures
 ```
 
+Use `POSTHOG_AGENT_KEY` for Fly secrets. `VITE_POSTHOG_AGENT_KEY` is a browser-style name and is ignored by the Node agent runtime.
+
 ## Commands
 
 | Command | Description |
@@ -293,5 +295,5 @@ See [agent.md](/.claude/context/agent.md) for detailed architecture documentatio
 - [ ] Configure webhook URL with TLS
 - [ ] Consider HSM/KMS for key storage
 - [ ] Set up monitoring for `/health` endpoint
-- [ ] Configure `POSTHOG_AGENT_KEY` for analytics
+- [ ] Configure `POSTHOG_AGENT_KEY` for analytics (`VITE_POSTHOG_AGENT_KEY` is ignored)
 - [ ] Review analytics events in PostHog dashboard
