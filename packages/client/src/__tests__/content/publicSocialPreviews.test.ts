@@ -5,7 +5,10 @@ import {
   publicSocialPreviews,
   resolvePublicSocialPreview,
 } from "../../content/publicSocialPreviews";
-import { renderPublicSocialPreviewHtml } from "../../../vite/social-preview";
+import {
+  renderSocialCardTextPaths,
+  renderPublicSocialPreviewHtml,
+} from "../../../vite/social-preview";
 
 describe("public social previews", () => {
   it("covers exactly the approved editorial route previews", () => {
@@ -64,5 +67,34 @@ describe("public social previews", () => {
     expect(result).toContain(`content="${publicSocialPreviews.fund.socialImageUrl}"`);
     expect(result).toContain('<div id="root"></div>');
     expect(result).toContain('<script type="module" src="/src/main.tsx"></script>');
+  });
+
+  it("renders social card text as font-derived paths instead of host font lookups", () => {
+    const fakeFont = (label: string) => ({
+      ascender: 1000,
+      unitsPerEm: 1000,
+      charToGlyph: (char: string) => ({
+        advanceWidth: 10,
+        getPath: (x: number, y: number, fontSize: number) => ({
+          toPathData: () => `${label}:${char}:${x}:${y}:${fontSize}`,
+        }),
+      }),
+      getKerningValue: () => 0,
+    });
+
+    const result = renderSocialCardTextPaths(publicSocialPreviews.fund, {
+      frauncesNormal: fakeFont("normal"),
+      frauncesItalic: fakeFont("italic"),
+      interNormal: fakeFont("inter"),
+    });
+
+    expect(result).toContain("<path");
+    expect(result).toContain("normal:A");
+    expect(result).toContain("italic:g");
+    expect(result).toContain("inter:D");
+    expect(result).not.toContain("<text");
+    expect(result).not.toContain("font-family");
+    expect(result).not.toContain("Georgia");
+    expect(result).not.toContain("Arial");
   });
 });

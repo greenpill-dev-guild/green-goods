@@ -1,5 +1,7 @@
+import { createRequire } from "node:module";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, isAbsolute, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { Plugin, ResolvedConfig } from "vite";
 import {
   PUBLIC_SOCIAL_PREVIEW_ROUTE_KEYS,
@@ -56,6 +58,41 @@ const HERO_CARD_FILL = "#f7f0e4";
 const HERO_CARD_TITLE_COLOR = "#221f18";
 const HERO_CARD_ACCENT_COLOR = "#167947";
 const HERO_CARD_LEDE_COLOR = "#514a3d";
+const SOCIAL_CARD_FONT_DIR = join(
+  dirname(fileURLToPath(import.meta.url)),
+  "assets/fonts/social"
+);
+const SOCIAL_CARD_FONT_FILES = {
+  frauncesNormal: "fraunces-normal-400.ttf",
+  frauncesItalic: "fraunces-italic-400.ttf",
+  interNormal: "inter-normal-400.ttf",
+} as const;
+
+type SocialCardFontKey = keyof typeof SOCIAL_CARD_FONT_FILES;
+type SocialCardFontPath = {
+  toPathData(decimalPlaces?: number): string;
+};
+type SocialCardGlyph = {
+  advanceWidth: number;
+  getPath(
+    x: number,
+    y: number,
+    fontSize: number,
+    options?: Record<string, never>,
+    font?: SocialCardFont
+  ): SocialCardFontPath;
+};
+export type SocialCardFont = {
+  ascender: number;
+  unitsPerEm: number;
+  charToGlyph(char: string): SocialCardGlyph;
+  getKerningValue(leftGlyph: SocialCardGlyph, rightGlyph: SocialCardGlyph): number;
+};
+type SocialCardFonts = Record<SocialCardFontKey, SocialCardFont>;
+const require = createRequire(import.meta.url);
+const opentype = require("opentype.js") as {
+  parse(buffer: ArrayBuffer): SocialCardFont;
+};
 
 function escapeHtml(value: string): string {
   return value
@@ -65,77 +102,241 @@ function escapeHtml(value: string): string {
     .replace(/>/g, "&gt;");
 }
 
-function renderLineWithAccent(line: string, accent?: string): string {
-  if (!accent) return escapeHtml(line);
+function toArrayBuffer(buffer: Buffer): ArrayBuffer {
+  return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength) as ArrayBuffer;
+}
 
-  const accentStart = line.indexOf(accent);
-  if (accentStart !== -1) {
-    const before = line.slice(0, accentStart);
-    const after = line.slice(accentStart + accent.length);
+async function readSocialCardFonts(): Promise<SocialCardFonts> {
+  const entries = await Promise.all(
+    Object.entries(SOCIAL_CARD_FONT_FILES).map(async ([key, fileName]) => {
+      const file = await readFile(join(SOCIAL_CARD_FONT_DIR, fileName));
+      return [key, opentype.parse(toArrayBuffer(file))] as const;
+    })
+  );
+
+  return Object.fromEntries(entries) as SocialCardFonts;
+}
+
+function textTopToBaseline(font: SocialCardFont, top: number, fontSize: number): number {
+  return top + (font.ascender / font.unitsPerEm) * fontSize;
+}
+
+function getTextPathData(
+  font: SocialCardFont,
+  text: string,
+  x: number,
+  baseline: number,
+  fontSize: number
+): string {
+  const scale = fontSize / font.unitsPerEm;
+  const paths: string[] = [];
+  let currentX = x;
+  let previousGlyph: SocialCardGlyph | null = null;
+
+  for (const char of Array.from(text)) {
+    const glyph = font.charToGlyph(char);
+    if (previousGlyph) {
+      currentX += font.getKerningValue(previousGlyph, glyph) * scale;
+    }
+    paths.push(
+      glyph.getPath(Math.round(currentX), Math.round(baseline), fontSize, {}, font).toPathData(2)
+    );
+    currentX += glyph.advanceWidth * scale;
+    previousGlyph = glyph;
+  }
+
+  return paths.join(" ");
+}
+
+function getTextAdvanceWidth(font: SocialCardFont, text: string, fontSize: number): number {
+  const scale = fontSize / font.unitsPerEm;
+  let width = 0;
+  let previousGlyph: SocialCardGlyph | null = null;
+
+  for (const char of Array.from(text)) {
+    const glyph = font.charToGlyph(char);
+    if (previousGlyph) {
+      width += font.getKerningValue(previousGlyph, glyph) * scale;
+    }
+    width += glyph.advanceWidth * scale;
+    previousGlyph = glyph;
+  }
+
+  return width;
+}
+
+function renderFontPath({
+  font,
+  text,
+  x,
+  top,
+  fontSize,
+  fill,
+}: {
+  font: SocialCardFont;
+  text: string;
+  x: number;
+  top: number;
+  fontSize: number;
+  fill: string;
+}): string {
+  if (!text) return "";
+
+  const baseline = textTopToBaseline(font, top, fontSize);
+  const pathData = getTextPathData(font, text, x, baseline, fontSize);
+  if (pathData.includes("NaN")) {
+    throw new Error(`Social preview font path generation failed for text: ${text}`);
+  }
+  return `<path d="${escapeHtml(pathData)}" fill="${fill}"/>`;
+}
+
+function renderTitleLinePath(
+  line: string,
+  {
+    x,
+    top,
+    fonts,
+    accent,
+  }: { x: number; top: number; fonts: SocialCardFonts; accent?: string }
+): string {
+  if (!accent) {
+    return renderFontPath({
+      font: fonts.frauncesNormal,
+      text: line,
+      x,
+      top,
+      fontSize: HERO_TITLE_SIZE,
+      fill: HERO_CARD_TITLE_COLOR,
+    });
+  }
+
+  const exactAccentStart = line.indexOf(accent);
+  if (exactAccentStart !== -1) {
+    const before = line.slice(0, exactAccentStart);
+    const after = line.slice(exactAccentStart + accent.length);
+    const accentX = x + getTextAdvanceWidth(fonts.frauncesNormal, before, HERO_TITLE_SIZE);
+    const afterX = accentX + getTextAdvanceWidth(fonts.frauncesItalic, accent, HERO_TITLE_SIZE);
 
     return [
-      escapeHtml(before),
-      `<tspan fill="${HERO_CARD_ACCENT_COLOR}" font-style="italic">`,
-      escapeHtml(accent),
-      "</tspan>",
-      escapeHtml(after),
+      renderFontPath({
+        font: fonts.frauncesNormal,
+        text: before,
+        x,
+        top,
+        fontSize: HERO_TITLE_SIZE,
+        fill: HERO_CARD_TITLE_COLOR,
+      }),
+      renderFontPath({
+        font: fonts.frauncesItalic,
+        text: accent,
+        x: accentX,
+        top,
+        fontSize: HERO_TITLE_SIZE,
+        fill: HERO_CARD_ACCENT_COLOR,
+      }),
+      renderFontPath({
+        font: fonts.frauncesNormal,
+        text: after,
+        x: afterX,
+        top,
+        fontSize: HERO_TITLE_SIZE,
+        fill: HERO_CARD_TITLE_COLOR,
+      }),
     ].join("");
   }
 
   const accentWords = accent.split(/\s+/).filter(Boolean);
-  if (accentWords.length <= 1) return escapeHtml(line);
+  if (accentWords.length <= 1) {
+    return renderFontPath({
+      font: fonts.frauncesNormal,
+      text: line,
+      x,
+      top,
+      fontSize: HERO_TITLE_SIZE,
+      fill: HERO_CARD_TITLE_COLOR,
+    });
+  }
 
   const pattern = new RegExp(
     `\\b(${accentWords.map((word) => word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})\\b`,
     "g"
   );
-  const parts: string[] = [];
+  const paths: string[] = [];
+  let currentX = x;
   let lastIndex = 0;
+
   for (const match of line.matchAll(pattern)) {
     if (match.index === undefined) continue;
-    parts.push(escapeHtml(line.slice(lastIndex, match.index)));
-    parts.push(
-      `<tspan fill="${HERO_CARD_ACCENT_COLOR}" font-style="italic">${escapeHtml(match[0])}</tspan>`
+
+    const before = line.slice(lastIndex, match.index);
+    paths.push(
+      renderFontPath({
+        font: fonts.frauncesNormal,
+        text: before,
+        x: currentX,
+        top,
+        fontSize: HERO_TITLE_SIZE,
+        fill: HERO_CARD_TITLE_COLOR,
+      })
     );
+    currentX += getTextAdvanceWidth(fonts.frauncesNormal, before, HERO_TITLE_SIZE);
+
+    paths.push(
+      renderFontPath({
+        font: fonts.frauncesItalic,
+        text: match[0],
+        x: currentX,
+        top,
+        fontSize: HERO_TITLE_SIZE,
+        fill: HERO_CARD_ACCENT_COLOR,
+      })
+    );
+    currentX += getTextAdvanceWidth(fonts.frauncesItalic, match[0], HERO_TITLE_SIZE);
     lastIndex = match.index + match[0].length;
   }
-  parts.push(escapeHtml(line.slice(lastIndex)));
 
-  return parts.join("");
+  const after = line.slice(lastIndex);
+  paths.push(
+    renderFontPath({
+      font: fonts.frauncesNormal,
+      text: after,
+      x: currentX,
+      top,
+      fontSize: HERO_TITLE_SIZE,
+      fill: HERO_CARD_TITLE_COLOR,
+    })
+  );
+
+  return paths.join("");
 }
 
-function renderSvgLines(
-  lines: readonly string[],
-  {
-    x,
-    y,
-    fontSize,
-    lineHeight,
-    fill,
-    fontFamily,
-    letterSpacing,
-    accent,
-  }: {
-    x: number;
-    y: number;
-    fontSize: number;
-    lineHeight: number;
-    fill: string;
-    fontFamily: string;
-    letterSpacing?: number;
-    accent?: string;
-  }
+export function renderSocialCardTextPaths(
+  preview: PublicSocialPreview,
+  fonts: SocialCardFonts
 ): string {
-  return lines
-    .map((line, index) => {
-      const lineY = y + index * lineHeight;
-      const spacing = letterSpacing === undefined ? "" : ` letter-spacing="${letterSpacing}"`;
-      return `<text x="${x}" y="${lineY}" font-family="${fontFamily}" font-size="${fontSize}" font-weight="400"${spacing} fill="${fill}" dominant-baseline="hanging" xml:space="preserve">${renderLineWithAccent(
-        line,
-        accent
-      )}</text>`;
-    })
-    .join("");
+  const titleLines = preview.cardTitleLines ?? [preview.cardTitle];
+  const ledeLines = preview.cardLedeLines ?? [preview.cardLede];
+
+  return [
+    ...titleLines.map((line, index) =>
+      renderTitleLinePath(line, {
+        x: HERO_TITLE_X,
+        top: HERO_TITLE_Y + index * HERO_TITLE_LINE_HEIGHT,
+        fonts,
+        accent: preview.cardTitleAccent,
+      })
+    ),
+    ...ledeLines.map((line, index) =>
+      renderFontPath({
+        font: fonts.interNormal,
+        text: line,
+        x: HERO_TITLE_X,
+        top: HERO_LEDE_Y + index * HERO_LEDE_LINE_HEIGHT,
+        fontSize: HERO_LEDE_SIZE,
+        fill: HERO_CARD_LEDE_COLOR,
+      })
+    ),
+  ].join("");
 }
 
 function removeSocialMetadata(html: string): string {
@@ -196,10 +397,7 @@ export function renderPublicSocialPreviewHtml(
   return withoutSocialMetadata.replace(/\s*<\/head>/i, `\n${tags}\n  </head>`);
 }
 
-function createSocialCardFrameSvg(preview: PublicSocialPreview): string {
-  const titleLines = preview.cardTitleLines ?? [preview.cardTitle];
-  const ledeLines = preview.cardLedeLines ?? [preview.cardLede];
-
+function createSocialCardFrameSvg(preview: PublicSocialPreview, fonts: SocialCardFonts): string {
   return `<svg width="${SOCIAL_CARD_WIDTH}" height="${SOCIAL_CARD_HEIGHT}" viewBox="0 0 ${SOCIAL_CARD_WIDTH} ${SOCIAL_CARD_HEIGHT}" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="heroShade" x1="0" y1="0" x2="0" y2="1">
@@ -213,31 +411,15 @@ function createSocialCardFrameSvg(preview: PublicSocialPreview): string {
   </defs>
   <rect width="${SOCIAL_CARD_WIDTH}" height="${SOCIAL_CARD_HEIGHT}" fill="url(#heroShade)"/>
   <rect x="${HERO_CARD_X}" y="${HERO_CARD_Y}" width="${HERO_CARD_WIDTH}" height="${HERO_CARD_HEIGHT}" fill="${HERO_CARD_FILL}" filter="url(#panelShadow)"/>
-  ${renderSvgLines(titleLines, {
-    x: HERO_TITLE_X,
-    y: HERO_TITLE_Y,
-    fontSize: HERO_TITLE_SIZE,
-    lineHeight: HERO_TITLE_LINE_HEIGHT,
-    fill: HERO_CARD_TITLE_COLOR,
-    fontFamily: "Fraunces, Georgia, Cambria, Times New Roman, serif",
-    letterSpacing: -1.08,
-    accent: preview.cardTitleAccent,
-  })}
-  ${renderSvgLines(ledeLines, {
-    x: HERO_TITLE_X,
-    y: HERO_LEDE_Y,
-    fontSize: HERO_LEDE_SIZE,
-    lineHeight: HERO_LEDE_LINE_HEIGHT,
-    fill: HERO_CARD_LEDE_COLOR,
-    fontFamily: "Inter, Arial, Helvetica, sans-serif",
-  })}
+  ${renderSocialCardTextPaths(preview, fonts)}
 </svg>`;
 }
 
 async function generateSocialCard(
   preview: PublicSocialPreview,
   publicDir: string,
-  outputDir: string
+  outputDir: string,
+  fonts: SocialCardFonts
 ): Promise<void> {
   const { default: sharp } = await import("sharp");
   const heroPath = join(publicDir, preview.heroImagePath.replace(/^\//, ""));
@@ -250,7 +432,7 @@ async function generateSocialCard(
   await sharp(heroPath)
     .resize(SOCIAL_CARD_WIDTH, SOCIAL_CARD_HEIGHT, { fit: "cover" })
     .composite([
-      { input: Buffer.from(createSocialCardFrameSvg(preview)), left: 0, top: 0 },
+      { input: Buffer.from(createSocialCardFrameSvg(preview, fonts)), left: 0, top: 0 },
       { input: logoLayer, left: 40, top: 15 },
     ])
     .png()
@@ -294,10 +476,11 @@ export function createPublicSocialPreviewPlugin(isIPFSBuild: boolean): Plugin {
 
       const outputDir = resolveOutputDir(resolvedConfig);
       const publicDir = join(resolvedConfig.root, "public");
+      const socialCardFonts = await readSocialCardFonts();
 
       await Promise.all(
         GENERATED_CARD_KEYS.map((key) =>
-          generateSocialCard(publicSocialPreviews[key], publicDir, outputDir)
+          generateSocialCard(publicSocialPreviews[key], publicDir, outputDir, socialCardFonts)
         )
       );
       await writeRouteShells(outputDir);

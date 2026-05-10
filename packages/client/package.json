@@ -54,9 +54,10 @@
   "devDependencies": {
     "@formatjs/cli": "^6.7.1",
     "@reown/appkit": "^1.8.14",
-    "tailwindcss": "^4.1.11",
     "@vitejs/plugin-react": "^5.1.2",
     "babel-plugin-react-compiler": "^1.0.0",
+    "opentype.js": "^2.0.0",
+    "tailwindcss": "^4.1.11",
     "typescript": "^5.9.3",
     "vite": "^7.3.0",
     "vite-plugin-mkcert": "^1.17.8",
