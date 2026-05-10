@@ -7,10 +7,10 @@
     "stage": "active"
   },
   "workflow": {
-    "overall_status": "active",
+    "overall_status": "done",
     "priority": "p1",
     "created_at": "2026-05-08T00:00:00.000Z",
-    "updated_at": "2026-05-09T23:50:16.865Z"
+    "updated_at": "2026-05-10T00:59:21.597Z"
   },
   "links": {
     "brief": "brief.md",
@@ -112,7 +112,7 @@
     },
     "qa_pass_2": {
       "owner": "codex",
-      "status": "failed",
+      "status": "passed",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "codex/qa-pass-2/website-ux-flow-optimization",
@@ -171,6 +171,14 @@
       "status": "failed",
       "branch": "codex/qa-pass-2/website-ux-flow-optimization",
       "note": "qa_pass_2 failed: instructed root targeted test command exits 1 due workspace-wide unmatched filters; diff 28768a18..a20ee68d also includes unrelated PWA/shared native-feel work."
+    },
+    {
+      "timestamp": "2026-05-10T00:59:21.597Z",
+      "actor": "codex",
+      "lane": "qa_pass_2",
+      "status": "passed",
+      "branch": "codex/qa-pass-2/website-ux-flow-optimization",
+      "note": "Corrected qa_pass_2 rerun: client-local targeted tests and guards green; plan-owned diff scoped to public-browser tests/views/i18n/editorial CSS. Verdict pass-with-followups."
     }
   ]
 }
