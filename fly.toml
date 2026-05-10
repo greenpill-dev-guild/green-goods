@@ -14,6 +14,12 @@
 #       TELEGRAM_WEBHOOK_SECRET=<secret> \
 #       BOT_API_TOKEN=<routine-auth-bearer-token>
 #   flyctl deploy
+#
+# Health model:
+# - Fly checks use /health. /ready also includes optional voice-model readiness
+#   and can return 503 while the webhook/API are still usable.
+# - Keep auto_stop_machines off and min_machines_running at 1 unless the agent
+#   is intentionally being scaled down.
 
 app = 'green-goods'
 primary_region = 'ams'

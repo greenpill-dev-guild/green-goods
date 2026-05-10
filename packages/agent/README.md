@@ -20,6 +20,7 @@ bun run build && bun run start
 ## Deploy to Fly.io (recommended)
 
 > Production deployment. Webhook mode. Routines consume the deployed URL as `BOT_API_URL`.
+> The active Fly config is the repo-root `fly.toml`, not a package-local config file.
 
 **Prereqs**
 - Telegram token (`TELEGRAM_BOT_TOKEN`) from BotFather
@@ -27,7 +28,7 @@ bun run build && bun run start
 - 32+ char `BOT_API_TOKEN` (bearer token that routines use to call `/api/feedback` and `/api/notify`)
 - Pinata JWT (`PINATA_JWT`) when the deployed agent should sign browser upload URLs
 - [`flyctl`](https://fly.io/docs/flyctl/install/) installed and authenticated
-- Config file: `packages/agent/fly.toml` (co-located with the package; invoke flyctl from **repo root** so the Docker build context includes the workspace's root `package.json`, `bun.lock`, `packages/`, `docs/`, `scripts/`)
+- Config file: `fly.toml` at the repo root. Keep it there so the Docker build context includes the workspace root `package.json`, `bun.lock`, `packages/`, `docs/`, and `scripts/`.
 
 **One-time setup**
 
@@ -35,13 +36,13 @@ Run from the repo root:
 
 ```bash
 # Create the app without deploying (allows secrets + volume first)
-flyctl launch --no-deploy --config packages/agent/fly.toml --dockerfile packages/agent/Dockerfile
+flyctl launch --no-deploy --config fly.toml --dockerfile packages/agent/Dockerfile
 
 # Persistent volume for the SQLite database
-flyctl volumes create agent_data --config packages/agent/fly.toml --region iad --size 1
+flyctl volumes create agent_data --config fly.toml --region ams --size 1
 
-# Secrets (these never land in packages/agent/fly.toml)
-flyctl secrets set --config packages/agent/fly.toml \
+# Secrets (these never land in fly.toml)
+flyctl secrets set --config fly.toml \
   TELEGRAM_BOT_TOKEN=<botfather-token> \
   ENCRYPTION_SECRET=<32+-char-secret> \
   BOT_API_TOKEN=<routine-auth-bearer-token> \
@@ -51,34 +52,75 @@ flyctl secrets set --config packages/agent/fly.toml \
   TELEGRAM_WEBHOOK_SECRET=<random-string>
 
 # First deploy
-flyctl deploy --config packages/agent/fly.toml
+flyctl deploy --config fly.toml
 ```
 
 **After first deploy**
 
 ```bash
 # Confirm the URL
-flyctl status --config packages/agent/fly.toml
+flyctl status --config fly.toml
 
-# Set the webhook URL now that we know the hostname
-flyctl secrets set --config packages/agent/fly.toml \
-  WEBHOOK_URL=https://green-goods-agent.fly.dev/webhook/telegram
+# Custom domain is configured in fly.toml:
+# WEBHOOK_URL=https://agent.greengoods.app
 
-# Re-deploy to pick up the webhook URL
-flyctl deploy --config packages/agent/fly.toml
+# Re-deploy after changing fly.toml env or Docker build inputs
+flyctl deploy --config fly.toml
 
 # Verify health
-curl https://green-goods-agent.fly.dev/health
+curl https://agent.greengoods.app/health
 
 # Talk to the bot in Telegram (/start, /status)
 ```
+
+**Health contract**
+
+- `/health` is the Fly machine health endpoint. It should return HTTP 200 with `status: "ok"`.
+- `/ready` is stricter and currently includes the optional voice transcription model. It can return HTTP 503 with `AI model is still loading` while the bot, webhook, and routine API are still usable.
+- Fly checks must use `/health`, not `/ready`, until voice processing is required for launch readiness.
+
+**Prevent suspended or crashed state**
+
+The production config intentionally keeps one machine warm:
+
+- `auto_stop_machines = 'off'`
+- `auto_start_machines = true`
+- `min_machines_running = 1`
+
+Do not change those values unless intentionally scaling the agent down. After every deploy or secret change, wait for this exact shape before calling the deployment healthy:
+
+```bash
+flyctl status --config fly.toml
+flyctl checks list --app green-goods
+curl -fsS https://agent.greengoods.app/health
+```
+
+Expected result: one `app` machine in `started`, checks `1 total, 1 passing`, and `/health` returning HTTP 200. If the Fly UI shows a grey icon, confirm whether the machine is briefly `starting` or `replacing` during deploy:
+
+```bash
+flyctl machines list --app green-goods
+flyctl releases --app green-goods --image
+flyctl logs --app green-goods --no-tail
+```
+
+If the state stays `stopped`, `crashed`, `replacing`, or `0/1` checks after the deploy window, treat it as degraded. Inspect logs before restarting or rolling back so the failure reason is not lost.
+
+**Telegram webhook check**
+
+Run from inside the Fly machine when you need to verify Telegram delivery without printing the bot token:
+
+```bash
+flyctl ssh console --app green-goods -C 'bun -e "const token=process.env.TELEGRAM_BOT_TOKEN;if(!token)throw new Error(\"missing token\");const res=await fetch(\"https://api.telegram.org/bot\"+token+\"/getWebhookInfo\");const body=await res.json();const info=body.result||{};console.log(JSON.stringify({ok:body.ok,url:info.url,pending_update_count:info.pending_update_count,last_error_date:info.last_error_date,last_error_message:info.last_error_message,max_connections:info.max_connections},null,2));"'
+```
+
+Expected result: `ok: true`, `url: "https://agent.greengoods.app/webhook/telegram"`, and `pending_update_count: 0`.
 
 **Plug into routines**
 
 In `claude.ai/code/routines` under the `green-goods-routines-extended` environment, set:
 
 ```
-BOT_API_URL = https://green-goods-agent.fly.dev
+BOT_API_URL = https://agent.greengoods.app
 BOT_API_TOKEN = <same value as the deployed secret>
 ```
 
@@ -106,7 +148,7 @@ The Green Goods `bug-intake` routine consumes `/bug` and `/idea` reports from `/
    - `DB_PATH=/data/agent.db`
    - Optional for webhook: `WEBHOOK_URL=https://your-domain.com/telegram/webhook`, `PORT=3000`, `TELEGRAM_WEBHOOK_SECRET=...`
 4) Deploy: Railway will run `bun run start` from `packages/agent` (see Dockerfile).
-5) Verify health: `curl https://<railway-url>/health` (or `/health/ready`).
+5) Verify health: `curl https://<railway-url>/health` (or `/ready` if voice-model readiness matters).
 6) Talk to the bot in Telegram (`/start`, `/status`) to confirm.
 
 Notes:

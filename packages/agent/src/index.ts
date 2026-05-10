@@ -26,6 +26,7 @@ import { createSqliteFundingIntentStore } from "./services/funding-intents";
 import { logger } from "./services/logger";
 import { createLumaClient } from "./services/luma";
 import { rateLimiter } from "./services/rate-limiter";
+import { createShutdownHandler } from "./runtime/shutdown";
 
 // ============================================================================
 // INITIALIZATION
@@ -146,25 +147,21 @@ async function main(): Promise<void> {
   // GRACEFUL SHUTDOWN
   // ============================================================================
 
-  async function shutdown(signal: string): Promise<void> {
-    logger.info({ signal }, "📴 Shutting down gracefully");
+  const shutdown = createShutdownHandler({
+    bot,
+    botMode: config.mode,
+    cleanupTasks: [() => rateLimiter.destroy(), () => clearBlockchainCache(), closeDB],
+    exit: (code) => process.exit(code),
+    logger,
+    server,
+  });
 
-    bot.stop(signal);
-    await server.close();
-    rateLimiter.destroy();
-    clearBlockchainCache();
-    await closeDB();
-
-    logger.info("👋 Agent shutdown complete");
-    process.exit(0);
-  }
-
-  process.once("SIGINT", () => shutdown("SIGINT"));
-  process.once("SIGTERM", () => shutdown("SIGTERM"));
+  process.once("SIGINT", () => void shutdown("SIGINT"));
+  process.once("SIGTERM", () => void shutdown("SIGTERM"));
 
   process.on("uncaughtException", (error) => {
     logger.fatal({ err: error }, "Uncaught exception");
-    shutdown("uncaughtException");
+    void shutdown("uncaughtException", 1);
   });
 
   process.on("unhandledRejection", (reason, promise) => {
