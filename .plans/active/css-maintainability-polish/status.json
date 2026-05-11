@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-04-28T00:00:00.000Z",
-    "updated_at": "2026-05-10T23:13:14.000Z"
+    "updated_at": "2026-05-11T02:05:00.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -19,37 +19,39 @@
     "eval": "eval.md"
   },
   "notes": [
-    "Backlog follow-up for final cross-frontend CSS maintainability polish after public browser, PWA, and design-alignment plans stabilize.",
+    "Active post-release polish hub for cross-frontend CSS maintainability before docs freshness and design-system alignment review.",
     "Do not use this hub to redesign public browser, installed PWA, or admin surfaces.",
-    "Read-only inventory and guardrail design may start earlier; broad source cleanup waits for current UI/design plans to stabilize.",
+    "Runtime cleanup should stay low-friction while main carries active QA work: refresh inventory first, then make only source-grounded CSS ownership/token fixes.",
     "Consume the protected PWA baseline census and implementation-scope updates from client-pwa-design-system-transition instead of duplicating that work.",
     "Primary focus: CSS ownership, undefined custom properties, global selector scope, raw-value/token drift, flexible CSS patterns, and lightweight guardrails.",
     "Public browser components stay client-local and component-authored; installed PWA and admin dialects remain separate.",
     "Contracts lane is n/a; state_api owns only durable scripts/checks, not runtime data/API behavior.",
     "client-pwa-gardener-audit prerequisite completed and archived; CSS maintainability polish is now active as post-release design-system cleanup.",
     "state_api complete on main: scripts/design/check-css-custom-properties.{mjs,test.mjs}, scripts/data/css-custom-property-baseline.tsv (64 audited unresolved entries), and check-tokens.sh wiring. Broad CSS source cleanup and visual QA remain owned by the ui and qa lanes.",
-    "2026-05-10 direction: run CSS maintainability before docs freshness and before the broader design-system alignment review."
+    "2026-05-10 direction: run CSS maintainability before docs freshness and before the broader design-system alignment review.",
+    "2026-05-11 ui lane low-friction pass on main: 4 mechanical alias renames (admin DistributionChart info → information; shared toast primary-strong → primary-dark and text-subtle-600 → text-sub-600) + baseline prune. Audited unresolved entries 64 → 60. Typography.css legacy text tokens (57 entries) and 3 audited font-family-sans/mono entries (5 source-line refs across typography.css + storybook.css) deferred to design judgment; see handoffs/claude-ui.md § Deferred. Pre-existing unrelated check failures recorded: docs/builders/packages/client-pwa-token-audit.generated.md stale (eb41bc8d), packages/client/vite/social-preview.ts raw colors (802bda74, 236aa367).",
+    "2026-05-11 ui lane refreshed: re-validated against main HEAD 05abc7b3 plus uncommitted admin chrome / sheet positioning work in working tree. plan-hub validate now reports 19 hubs (hypercert-marketplace-arbitrum-readiness archived in 05abc7b3). CSS guard: 2986 var refs / 1003 defs / 60 audited unresolved. Targeted shared toast tests: 13/13 still pass. My 4 source fixes intact. New --admin-sheet-* / --admin-nav-* token family introduced by parallel agent uses explicit fallbacks throughout; guard accepts them."
   ],
   "lanes": {
     "ui": {
       "owner": "claude",
-      "status": "ready",
+      "status": "completed",
       "branch": "claude/ui/css-maintainability-polish",
       "depends_on": [],
       "handoff": "handoffs/claude-ui.md",
       "skill_tags": ["ui", "design", "css", "review"],
       "tdd": {
-        "mode": "required",
-        "status": "pending",
+        "mode": "proof_limit",
+        "status": "green_recorded",
         "red": {
-          "command": "",
-          "evidence": ""
+          "command": "node scripts/design/check-css-custom-properties.mjs (pre-pass)",
+          "evidence": "Guard reported 64 audited unresolved entries with 4 entries pointing at packages/admin/src/components/Hypercerts/DistributionChart.tsx (--color-info-base/dark) and packages/shared/src/components/Toast/toast.service.tsx (--color-primary-strong, --color-text-subtle-600)."
         },
         "green": {
-          "command": "",
-          "evidence": ""
+          "command": "node scripts/design/check-css-custom-properties.mjs",
+          "evidence": "CSS custom property guard passed: 2939 var() references, 993 definitions, 60 audited unresolved entries. Drop of 4 confirms source edits + baseline prune are coherent; stale-baseline detection in the script (line 274) would have failed if they drifted."
         },
-        "note": ""
+        "note": "Mechanical alias renames against tokens already defined in packages/shared/src/styles/theme.css (lines 1386, 1424, 1453-1454). No behavior change, no new tokens. Targeted shared toast tests: 13/13 pass (bunx vitest run src/__tests__/components/toast-registry.test.ts src/__tests__/hooks/useToastAction.test.ts). Plan-hub validate: 20 hubs. Vocab lint: passes. Proof limit: no visual evidence captured; visual proof on installed-PWA, admin Hypercerts chart, and Storybook left to QA pass 1. Pre-existing unrelated blockers: bun run check:design-generated fails on stale docs/builders/packages/client-pwa-token-audit.generated.md (eb41bc8d); bun run check:design-tokens fails on raw colors in packages/client/vite/social-preview.ts (802bda74, 236aa367). Both surfaced in handoff and need their owners to land."
       }
     },
     "state_api": {
@@ -189,6 +191,22 @@
       "status": "plan_refreshed",
       "branch": "main",
       "note": "Updated active plan truth: CSS maintainability runs before docs freshness and design-system alignment review."
+    },
+    {
+      "timestamp": "2026-05-11T00:30:00.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "completed",
+      "branch": "main",
+      "note": "UI lane low-friction pass on main: 4 mechanical alias renames + baseline prune. Audited unresolved entries 64 → 60 via check-css-custom-properties.mjs. Plan-hub validate (20 hubs), lint:vocab, targeted shared toast tests (13/13) all pass. check:design-generated and check:design-tokens blocked by unrelated pre-existing failures (stale generated docs + social-preview raw colors); surfaced in handoff. Typography.css 59-token drift and 3 font-family-sans/mono refs deferred to design judgment, see handoffs/claude-ui.md."
+    },
+    {
+      "timestamp": "2026-05-11T02:05:00.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "refreshed",
+      "branch": "main",
+      "note": "Lane re-validated after parallel agent activity: 3 new commits on main (af7f40cd i18n coverage, 6cfa6fb3 hypercert marketplace guards, 05abc7b3 admin marketplace gate) plus uncommitted admin chrome / sheet positioning work in working tree. plan-hub validate now 19 hubs (hypercert-marketplace archived). CSS guard still passes at 60 audited unresolved (2986 var refs, 1003 defs). My 4 source fixes confirmed intact (git diff). Targeted toast tests 13/13 still pass. Handoff updated with refreshed line numbers (storybook.css 629/634 → 651/656), refreshed baseline math (60 = 57 --text-* + 2 --font-family-* in typography.css + 1 --font-family-sans in storybook.css), and a parallel-agent activity log."
     }
   ],
   "taxonomy": {

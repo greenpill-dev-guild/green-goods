@@ -2,15 +2,15 @@
 
 **Feature Slug**: `css-maintainability-polish`
 **Stage**: `active`
-**Status**: `ACTIVE — state_api COMPLETED on main, ui READY, qa BLOCKED`
+**Status**: `ACTIVE — state_api COMPLETED on main, ui COMPLETED on main (low-friction pass), qa BLOCKED until QA pass 1 starts`
 **Created**: `2026-04-28`
-**Last Updated**: `2026-05-10`
+**Last Updated**: `2026-05-11`
 
 ## Decision Log
 
 | # | Decision | Rationale |
 |---|---|---|
-| 1 | Create a new backlog hub instead of expanding `client-pwa-design-system-transition` | The PWA hub owns installed-client migration; this hub owns later cross-frontend CSS architecture polish. |
+| 1 | Keep this as a standalone hub instead of expanding `client-pwa-design-system-transition` | The PWA hub owns installed-client migration; this hub owns cross-frontend CSS architecture polish. |
 | 2 | Run this before the broader design-system alignment review | The alignment review should evaluate the cleaner post-release CSS surface rather than known stale drift. |
 | 3 | Allow read-only inventory and guardrail design before broad cleanup | Inventory can reduce risk without forcing source edits too early. |
 | 4 | Mark contracts `n/a` | This is frontend CSS/tooling work, not Solidity or deployment-adjacent behavior. |
@@ -25,7 +25,7 @@
 - [x] Choose validation commands future implementation must run.
 - [x] Confirm prerequisite PWA QA is complete (`client-pwa-gardener-audit` archived)
 - [ ] Refresh CSS inventory now that this hub is active.
-- [ ] Reconfirm current active UI/design plan state before source cleanup.
+- [x] Reconfirm current active UI/design plan state before source cleanup.
 
 ## Requirements Coverage
 
@@ -33,7 +33,7 @@
 |---|---|---|---|
 | Inventory CSS ownership | `ui` | Phase 1 | Planned |
 | Define global selector boundaries | `ui` | Phases 1 and 4 | Planned |
-| Detect undefined custom properties | `state_api` | Phase 2 | Planned |
+| Detect undefined custom properties | `state_api` | Phase 2 | Done |
 | Clean verified token/raw-value drift | `ui` | Phase 3 | Planned |
 | Preserve browser/PWA/admin dialects | `ui`, `qa_pass_1` | Phases 3 and 5 | Planned |
 | Validate guardrails and regression risk | `qa_pass_2` | Phase 5 | Blocked on QA pass 1 |
@@ -43,7 +43,7 @@
 - [x] Confirm `public-read-side-journal` is archived (`.plans/archive/public-read-side-journal/`).
 - [x] Confirm `client-pwa-gardener-audit` has completed QA and moved to archive.
 - [x] Confirm `design-system-alignment-review` remains downstream of this cleanup.
-- [x] State/API lane: re-run `node scripts/harness/plan-hub.mjs validate` (passes; 22 hubs).
+- [x] State/API lane: re-run `node scripts/harness/plan-hub.mjs validate` (passes; 20 hubs).
 - [ ] UI lane: re-run `node scripts/harness/plan-hub.mjs validate` before starting source changes.
 
 ## Phase 1 - CSS ownership inventory
@@ -98,11 +98,11 @@ Still required after UI source cleanup:
 
 ### UI (`claude/ui/css-maintainability-polish`)
 
-- [ ] Refresh source-grounded CSS ownership inventory.
-- [ ] Implement only source-grounded CSS cleanup.
-- [ ] Preserve public browser, installed PWA, and admin dialect boundaries.
-- [ ] Add i18n for any new user-facing strings.
-- [ ] Write `handoffs/claude-ui.md`.
+- [x] Refresh source-grounded CSS ownership inventory (`handoffs/claude-ui.md` § CSS Ownership Inventory).
+- [x] Implement only source-grounded CSS cleanup (4 mechanical alias renames: admin DistributionChart `info → information`; shared toast `primary-strong → primary-dark`, `text-subtle-600 → text-sub-600`; baseline pruned 64 → 60).
+- [x] Preserve public browser, installed PWA, and admin dialect boundaries (no shell or entrypoint CSS touched; admin/client/shared/Storybook surfaces stayed in their own dialects).
+- [x] Add i18n for any new user-facing strings (no new strings introduced).
+- [x] Write `handoffs/claude-ui.md`.
 
 ### State / API (`codex/state-api/css-maintainability-polish`)
 
