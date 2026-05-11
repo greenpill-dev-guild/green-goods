@@ -6,7 +6,7 @@ import {
   formatAddress,
   logger,
   MethodSelector,
-  parseContractError,
+  parseAndFormatError,
   Textarea,
   toastService,
   uploadFileToIPFS,
@@ -152,7 +152,7 @@ export function ReviewForm({
 
       onSuccess?.();
     } catch (error) {
-      const parsed = parseContractError(error);
+      const { message, parsed } = parseAndFormatError(error);
 
       logger.error("Work approval submission failed", {
         error,
@@ -162,7 +162,7 @@ export function ReviewForm({
       toastService.error({
         title: formatMessage({ id: "app.toast.approval.errorDecision.title" }),
         message: parsed.isKnown
-          ? parsed.message
+          ? message
           : formatMessage({ id: "app.toast.approval.errorWallet.message" }),
       });
     } finally {

@@ -5,7 +5,7 @@ import {
   formatAddress,
   type GardenRole,
   logger,
-  parseContractError,
+  parseAndFormatError,
   resolveEnsAddress,
   TextInput,
   useEnsAddress,
@@ -80,8 +80,8 @@ export function AddMemberModal({
       setAddress("");
       onClose();
     } catch (error) {
-      const parsed = parseContractError(error);
-      const safeMessage = parsed.isKnown ? parsed.message : null;
+      const { message, parsed } = parseAndFormatError(error);
+      const safeMessage = parsed.isKnown ? message : null;
       setError(safeMessage ?? formatMessage({ id: "app.admin.roles.error.addFailed" }));
     }
   };

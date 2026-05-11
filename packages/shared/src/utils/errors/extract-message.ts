@@ -2,8 +2,8 @@
  * Error Message Extraction Utility
  *
  * Provides a consistent way to extract error messages from various error types.
- * Consolidates error message extraction logic that was duplicated across
- * contract-errors.ts and user-messages.ts.
+ * Used by parseContractError and the wallet-submission boundary modules to
+ * preserve raw error text before downstream classification.
  *
  * @module utils/errors/extract-message
  */
