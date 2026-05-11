@@ -107,6 +107,26 @@ Linear (workspace `greenpill-dev-guild`) is the durable backlog as of 2026-05-09
 
 **Privacy boundary** (PostHog evidence in Linear bodies): error message + hash + counts OK; replay URLs, session IDs, distinct IDs, wallet addresses, and reporter identifiers stay out.
 
+## PostHog
+
+PostHog hosts **three separate projects**. The connector defaults to one project at session start (often the wrong one), so every PostHog tool call defaults to silently querying the wrong telemetry — returning zero results without flagging that there's a project mismatch. This has cost real debugging time. **Always call `switch-project` before any PostHog query, every time.**
+
+Inference table (pick the project based on what surface the issue lives in):
+
+| Surface in the bug report | Project | ID | When to pick |
+|---|---|---|---|
+| PWA, installed app, client, website, editorial, `/home/*`, `/gardens`, `/actions`, `/fund`, `/impact`, `/cookies`, `/glossary` | **App** | `163591` | Default for end-user / gardener / operator reports. |
+| Admin cockpit, `Admin*` components, `Hub`, `MainSheet`, `LeftSheet`, `RightSheet`, `/dashboard`, operator-facing tooling | **Admin** | `262122` | When the user mentions admin routes/components. |
+| Telegram bot, WhatsApp, SMS, agent/messaging runtime | **Agent** | `262124` | When the report names a chat channel or `packages/agent/**`. |
+
+Rule, in order:
+1. Read the user's report. Classify the surface (App / Admin / Agent). If ambiguous, **ask** before querying.
+2. Call `switch-project` with the matching ID.
+3. Run the PostHog query.
+4. If the first project returns nothing relevant, try the next likely project — do not assume "no data" until you've checked the surface the user actually described.
+
+Authoritative source for these IDs and the surface mapping: [docs/routines/README.md § PostHog projects](docs/routines/README.md). Curated-question library + privacy boundaries: [.claude/skills/posthog-questions/SKILL.md](.claude/skills/posthog-questions/SKILL.md).
+
 ## Key Patterns
 
 **Hook Boundary**: ALL hooks in `@green-goods/shared`. Client/admin only have components and views.
