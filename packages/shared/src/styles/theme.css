@@ -508,6 +508,21 @@
 	  --spring-effects-fast: var(--spring-effects-fast-easing) var(--spring-effects-fast-duration);
 	  --spring-effects-slow: var(--spring-effects-slow-easing) var(--spring-effects-slow-duration);
 
+	/* PWA sheet motion — dedicated rhythm for the installed-PWA bottom sheet.
+	 * Decoupled from --spring-spatial-* (canvas-tuned) so the admin operator
+	 * cockpit can re-tune its sheet motion without dragging the PWA sheet
+	 * with it. Values match the pre-PwaSheet era (Jan–May 2026) when the
+	 * client modal slide had a 2% overshoot keyframe + 400ms enter / 300ms
+	 * exit cadence — the motion the client team and operators remember as
+	 * "right." Pairs with @keyframes pwaSheetEnter/pwaSheetExit in
+	 * shared/styles/utilities.css. */
+	  --spring-pwa-sheet-enter-easing: cubic-bezier(0.16, 1, 0.3, 1);
+	  --spring-pwa-sheet-enter-duration: 400ms;
+	  --spring-pwa-sheet-exit-easing: cubic-bezier(0.16, 1, 0.3, 1);
+	  --spring-pwa-sheet-exit-duration: 300ms;
+	  --spring-pwa-sheet-scrim-easing: cubic-bezier(0.2, 0, 0, 1);
+	  --spring-pwa-sheet-scrim-duration: 200ms;
+
   /* Material 3 role aliases - documentation layer only
    * Green Goods semantic tokens remain canonical for component authors.
    * These aliases make the Material relationship explicit for admin governance.

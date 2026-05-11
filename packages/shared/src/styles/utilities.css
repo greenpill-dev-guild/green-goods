@@ -458,6 +458,94 @@
   }
 }
 
+/* ── PwaSheet motion ──
+ * Bottom-sheet enter/exit keyframes for the installed-PWA sheet primitive.
+ * The 60% overshoot waypoint on enter is what gives the sheet its
+ * spring-like feel without invoking a physics engine — a plain
+ * cubic-bezier on a 2-point translate doesn't and can't produce that
+ * character. Exit is a clean 2-point translate-down; the overshoot only
+ * belongs on entrance.
+ *
+ * Why CSS attribute selectors instead of Tailwind animate-in classes:
+ * Tailwind's `slide-in-from-bottom` keyframe is a linear 2-point
+ * interpolation with no inner waypoint, so applying it with any easing
+ * curve loses the spring character. Owning the keyframe here lets us
+ * keep the overshoot.
+ *
+ * Pairs with --spring-pwa-sheet-* tokens in theme.css. */
+@keyframes pwaSheetEnter {
+  from {
+    transform: translate3d(0, 100%, 0);
+    opacity: 0.8;
+  }
+  60% {
+    transform: translate3d(0, -2%, 0);
+    opacity: 1;
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+  }
+}
+
+@keyframes pwaSheetExit {
+  from {
+    transform: translate3d(0, 0, 0);
+    opacity: 1;
+  }
+  to {
+    transform: translate3d(0, 100%, 0);
+    opacity: 0.85;
+  }
+}
+
+@keyframes pwaSheetScrimEnter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pwaSheetScrimExit {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+[data-component="PwaSheet"][data-slot="surface"][data-state="open"] {
+  animation: pwaSheetEnter var(--spring-pwa-sheet-enter-duration)
+    var(--spring-pwa-sheet-enter-easing) both;
+}
+
+[data-component="PwaSheet"][data-slot="surface"][data-state="closed"] {
+  animation: pwaSheetExit var(--spring-pwa-sheet-exit-duration)
+    var(--spring-pwa-sheet-exit-easing) both;
+}
+
+[data-component="PwaSheet"][data-slot="scrim"][data-state="open"] {
+  animation: pwaSheetScrimEnter var(--spring-pwa-sheet-scrim-duration)
+    var(--spring-pwa-sheet-scrim-easing) both;
+}
+
+[data-component="PwaSheet"][data-slot="scrim"][data-state="closed"] {
+  animation: pwaSheetScrimExit var(--spring-pwa-sheet-scrim-duration)
+    var(--spring-pwa-sheet-scrim-easing) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-component="PwaSheet"][data-slot="surface"][data-state="open"],
+  [data-component="PwaSheet"][data-slot="surface"][data-state="closed"],
+  [data-component="PwaSheet"][data-slot="scrim"][data-state="open"],
+  [data-component="PwaSheet"][data-slot="scrim"][data-state="closed"] {
+    animation-duration: 0ms;
+  }
+}
+
 /* ── Dialog surface radius ──
  * Tailwind v4 doesn't scan packages/shared/src/ from admin/client builds, so
  * bare utilities like `rounded-t-xl` / `sm:rounded-xl` applied to JSX inside

@@ -1,11 +1,18 @@
 /**
  * PwaSheet — gesture-capable bottom sheet for the installed Green Goods PWA.
  *
- * Open/close uses Tailwind CSS keyframe animations (`animate-in slide-in-from-bottom`
- * for opening, `animate-out slide-out-to-bottom` for closing) driven by the
- * `data-state="open"|"closed"` attribute. CSS keyframes run on the browser's
- * compositor and don't depend on requestAnimationFrame, so the animation works
- * even in backgrounded/hidden tabs where RAF is throttled.
+ * Open/close uses named CSS keyframes (`pwaSheetEnter` / `pwaSheetExit` for the
+ * panel, `pwaSheetScrimEnter` / `pwaSheetScrimExit` for the scrim) applied via
+ * attribute selectors on `data-state="open"|"closed"`. Both keyframes and the
+ * driving `--spring-pwa-sheet-*` tokens live in shared (utilities.css +
+ * theme.css). The enter keyframe carries a 2% overshoot waypoint at 60% —
+ * that's where the spring feel comes from. A linear 2-point translate with
+ * any easing curve cannot reproduce the same character, which is why we own
+ * the keyframe instead of relying on Tailwind's `slide-in-from-bottom`.
+ *
+ * CSS keyframes run on the browser's compositor and don't depend on
+ * requestAnimationFrame, so the animation works even in backgrounded/hidden
+ * tabs where RAF is throttled.
  *
  * Drag-to-dismiss uses use-gesture + React state to write an inline transform
  * that overrides the keyframe-set transform while the finger is down.
@@ -115,7 +122,7 @@ export function PwaSheet({
       setMounted(false);
       return;
     }
-    const duration = readCssDurationMs("--spring-spatial-duration");
+    const duration = readCssDurationMs("--spring-pwa-sheet-exit-duration");
     const timer = window.setTimeout(() => setMounted(false), duration + 40);
     return () => window.clearTimeout(timer);
   }, [open, prefersReducedMotion]);
@@ -209,18 +216,11 @@ export function PwaSheet({
     >
       <div
         aria-hidden="true"
+        data-component="PwaSheet"
+        data-slot="scrim"
         data-state={sheetState}
-        className={cn(
-          "absolute inset-0",
-          "data-[state=open]:animate-in data-[state=open]:fade-in-0",
-          "data-[state=closed]:animate-out data-[state=closed]:fade-out-0"
-        )}
-        style={{
-          backgroundColor: PWA_SHEET_OVERLAY_BG,
-          animationDuration: prefersReducedMotion ? "0ms" : "var(--spring-effects-duration)",
-          animationTimingFunction: "var(--spring-effects-easing)",
-          animationFillMode: "both",
-        }}
+        className="absolute inset-0"
+        style={{ backgroundColor: PWA_SHEET_OVERLAY_BG }}
       />
       <div
         ref={dialogRef}
@@ -238,15 +238,10 @@ export function PwaSheet({
           "border border-stroke-soft-200 border-b-0",
           "flex flex-col h-modal",
           "will-change-transform",
-          "data-[state=open]:animate-in data-[state=open]:slide-in-from-bottom",
-          "data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom",
           panelClassName
         )}
         style={{
           paddingBottom: "env(safe-area-inset-bottom)",
-          animationDuration: prefersReducedMotion ? "0ms" : "var(--spring-spatial-duration)",
-          animationTimingFunction: "var(--spring-spatial-easing)",
-          animationFillMode: "both",
           ...dragStyle,
           ...panelStyle,
         }}
