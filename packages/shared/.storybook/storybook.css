@@ -17,6 +17,12 @@
 /* Import unified theme from shared package (CSS variables + @theme block) */
 @import "../src/styles/theme.css";
 
+/* Import shared utilities — keyframes + attribute-selector animation rules
+ * for PwaSheet, DialogShell, ConfirmDialog, and ImagePreviewDialog all live
+ * here. Without this import, dialog primitive stories render without their
+ * production open/close motion. */
+@import "../src/styles/utilities.css";
+
 /* Import admin-only M3 utilities used by Admin/* stories. */
 @import "../../admin/src/styles/admin-m3-tokens.css";
 @import "../../admin/src/styles/admin-m3-overrides.css";
