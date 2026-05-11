@@ -54,18 +54,14 @@ const dialogShellSizeClasses: Record<NonNullable<DialogShellProps["size"]>, stri
   "2xl": "sm:max-w-4xl lg:max-w-5xl",
 };
 
-const dialogOverlayClassName =
-  "fixed inset-0 z-overlay data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0";
+const dialogOverlayClassName = "fixed inset-0 z-overlay";
 
 const dialogOverlayStyle = {
-  backgroundColor: "var(--color-overlay)",
-  animationDuration: "var(--spring-effects-fast-duration)",
-  animationTimingFunction: "var(--spring-effects-fast-easing)",
+  backgroundColor: "var(--color-scrim)",
 } satisfies CSSProperties;
 
 const dialogSurfaceStyle = {
-  animationDuration: "var(--spring-spatial-duration)",
-  animationTimingFunction: "var(--spring-spatial-easing)",
+  paddingBottom: "env(safe-area-inset-bottom)",
 } satisfies CSSProperties;
 
 export function DialogShell({
@@ -98,7 +94,7 @@ export function DialogShell({
           data-component="DialogShell"
           data-slot="surface"
           className={cn(
-            "fixed z-modal w-full max-w-[calc(100vw-2rem)] max-h-[90vh] overflow-hidden bg-[var(--color-material-solid)] border border-stroke-soft-200 shadow-[var(--shadow-float)] focus:outline-none bottom-0 left-1/2 -translate-x-1/2 sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom sm:data-[state=closed]:slide-out-to-bottom-0 sm:data-[state=open]:slide-in-from-bottom-0 sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95",
+            "fixed z-modal w-full max-w-[calc(100vw-2rem)] max-h-[90vh] overflow-hidden bg-[var(--color-material-solid)] border border-stroke-soft-200 shadow-[var(--shadow-float)] focus:outline-none bottom-0 left-1/2 -translate-x-1/2 sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2",
             dialogShellSizeClasses[size],
             className
           )}
@@ -153,10 +149,6 @@ export function DialogShell({
 
           <div className={cn("max-h-[calc(90vh-80px)] overflow-y-auto p-4 sm:p-6", bodyClassName)}>
             {children}
-          </div>
-
-          <div className="flex justify-center pb-2 pt-1 sm:hidden" aria-hidden="true">
-            <div className="h-1 w-12 rounded-full bg-stroke-sub" />
           </div>
         </Dialog.Content>
       </Dialog.Portal>
@@ -268,7 +260,7 @@ export function ConfirmDialog({
           data-component="ConfirmDialog"
           data-slot="surface"
           role={isDestructive ? "alertdialog" : undefined}
-          className="fixed z-modal w-full max-w-[calc(100vw-2rem)] sm:max-w-md overflow-hidden bg-[var(--color-material-solid)] border border-stroke-soft-200 shadow-[var(--shadow-float)] focus:outline-none bottom-0 left-1/2 -translate-x-1/2 sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom sm:data-[state=closed]:slide-out-to-bottom-0 sm:data-[state=open]:slide-in-from-bottom-0 sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95"
+          className="fixed z-modal w-full max-w-[calc(100vw-2rem)] sm:max-w-md overflow-hidden bg-[var(--color-material-solid)] border border-stroke-soft-200 shadow-[var(--shadow-float)] focus:outline-none bottom-0 left-1/2 -translate-x-1/2 sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2"
           style={dialogSurfaceStyle}
           data-testid="confirm-dialog"
           onPointerDownOutside={(e: Event) => {
@@ -339,11 +331,6 @@ export function ConfirmDialog({
               {isLoading && <RiLoader4Line className="h-4 w-4 animate-spin" />}
               {resolvedConfirmLabel}
             </button>
-          </div>
-
-          {/* Mobile drag indicator */}
-          <div className="flex justify-center pb-2 pt-1 sm:hidden">
-            <div className="h-1 w-12 rounded-full bg-stroke-sub" />
           </div>
         </Dialog.Content>
       </Dialog.Portal>

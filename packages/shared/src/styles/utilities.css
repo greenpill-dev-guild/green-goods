@@ -458,91 +458,95 @@
   }
 }
 
-/* ── PwaSheet motion ──
- * Bottom-sheet enter/exit keyframes for the installed-PWA sheet primitive.
- * The 60% overshoot waypoint on enter is what gives the sheet its
- * spring-like feel without invoking a physics engine — a plain
- * cubic-bezier on a 2-point translate doesn't and can't produce that
- * character. Exit is a clean 2-point translate-down; the overshoot only
- * belongs on entrance.
- *
- * Why CSS attribute selectors instead of Tailwind animate-in classes:
- * Tailwind's `slide-in-from-bottom` keyframe is a linear 2-point
- * interpolation with no inner waypoint, so applying it with any easing
- * curve loses the spring character. Owning the keyframe here lets us
- * keep the overshoot.
- *
- * Pairs with --spring-pwa-sheet-* tokens in theme.css. */
-@keyframes pwaSheetEnter {
-  from {
-    transform: translate3d(0, 100%, 0);
-    opacity: 0.8;
+/* Dialog motion — shared across every PWA dialog primitive (PwaSheet,
+ * DialogShell, ConfirmDialog, ImagePreviewDialog). Bottom-anchored mobile
+ * sheets use dialogSlideIn/Out with a 60% overshoot waypoint that
+ * supplies the spring feel. Centered modals (DialogShell/ConfirmDialog at
+ * >= 640px) use dialogZoomIn/Out — a subtle scale, no overshoot, because
+ * centered modals shouldn't bounce. ImagePreviewDialog uses dialogFadeIn/
+ * Out for a clean image-viewer entrance. All driven from
+ * --spring-spatial-* tokens (no new dialog-specific token family). */
+@keyframes dialogSlideInFromBottom {
+  from { transform: translate3d(0, 100%, 0); opacity: 0.8; }
+  60%  { transform: translate3d(0, -2%, 0); opacity: 1; }
+  to   { transform: translate3d(0, 0, 0); opacity: 1; }
+}
+
+@keyframes dialogSlideOutToBottom {
+  from { transform: translate3d(0, 0, 0); opacity: 1; }
+  to   { transform: translate3d(0, 100%, 0); opacity: 0.85; }
+}
+
+@keyframes dialogZoomIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes dialogZoomOut {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(0.96); }
+}
+
+@keyframes scrimFadeIn  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes scrimFadeOut { from { opacity: 1; } to { opacity: 0; } }
+
+/* Bottom-anchored mobile sheet enter/exit — PwaSheet + DialogShell mobile
+ * + ConfirmDialog mobile */
+[data-component="PwaSheet"][data-slot="surface"][data-state="open"],
+[data-component="DialogShell"][data-slot="surface"][data-state="open"],
+[data-component="ConfirmDialog"][data-slot="surface"][data-state="open"] {
+  animation: dialogSlideInFromBottom var(--spring-spatial-slow-duration)
+    var(--spring-spatial-slow-easing) both;
+}
+
+[data-component="PwaSheet"][data-slot="surface"][data-state="closed"],
+[data-component="DialogShell"][data-slot="surface"][data-state="closed"],
+[data-component="ConfirmDialog"][data-slot="surface"][data-state="closed"] {
+  animation: dialogSlideOutToBottom var(--spring-spatial-duration)
+    var(--spring-spatial-easing) both;
+}
+
+/* Centered modal variant (DialogShell + ConfirmDialog at >= 640px) */
+@media (min-width: 640px) {
+  [data-component="DialogShell"][data-slot="surface"][data-state="open"],
+  [data-component="ConfirmDialog"][data-slot="surface"][data-state="open"] {
+    animation: dialogZoomIn var(--spring-spatial-slow-duration)
+      var(--spring-spatial-slow-easing) both;
   }
-  60% {
-    transform: translate3d(0, -2%, 0);
-    opacity: 1;
-  }
-  to {
-    transform: translate3d(0, 0, 0);
-    opacity: 1;
+  [data-component="DialogShell"][data-slot="surface"][data-state="closed"],
+  [data-component="ConfirmDialog"][data-slot="surface"][data-state="closed"] {
+    animation: dialogZoomOut var(--spring-spatial-duration)
+      var(--spring-spatial-easing) both;
   }
 }
 
-@keyframes pwaSheetExit {
-  from {
-    transform: translate3d(0, 0, 0);
-    opacity: 1;
-  }
-  to {
-    transform: translate3d(0, 100%, 0);
-    opacity: 0.85;
-  }
+/* Image viewer — pure fade */
+[data-component="ImagePreviewDialog"][data-slot="overlay"][data-state="open"] {
+  animation: scrimFadeIn var(--spring-effects-duration) var(--spring-effects-easing) both;
+}
+[data-component="ImagePreviewDialog"][data-slot="overlay"][data-state="closed"] {
+  animation: scrimFadeOut var(--spring-effects-fast-duration) var(--spring-effects-fast-easing) both;
 }
 
-@keyframes pwaSheetScrimEnter {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+/* All scrims — fade with the dialog */
+[data-component="PwaSheet"][data-slot="scrim"][data-state="open"],
+[data-component="DialogShell"][data-slot="overlay"][data-state="open"],
+[data-component="ConfirmDialog"][data-slot="overlay"][data-state="open"] {
+  animation: scrimFadeIn var(--spring-effects-duration) var(--spring-effects-easing) both;
 }
 
-@keyframes pwaSheetScrimExit {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
-}
-
-[data-component="PwaSheet"][data-slot="surface"][data-state="open"] {
-  animation: pwaSheetEnter var(--spring-pwa-sheet-enter-duration)
-    var(--spring-pwa-sheet-enter-easing) both;
-}
-
-[data-component="PwaSheet"][data-slot="surface"][data-state="closed"] {
-  animation: pwaSheetExit var(--spring-pwa-sheet-exit-duration)
-    var(--spring-pwa-sheet-exit-easing) both;
-}
-
-[data-component="PwaSheet"][data-slot="scrim"][data-state="open"] {
-  animation: pwaSheetScrimEnter var(--spring-pwa-sheet-scrim-duration)
-    var(--spring-pwa-sheet-scrim-easing) both;
-}
-
-[data-component="PwaSheet"][data-slot="scrim"][data-state="closed"] {
-  animation: pwaSheetScrimExit var(--spring-pwa-sheet-scrim-duration)
-    var(--spring-pwa-sheet-scrim-easing) both;
+[data-component="PwaSheet"][data-slot="scrim"][data-state="closed"],
+[data-component="DialogShell"][data-slot="overlay"][data-state="closed"],
+[data-component="ConfirmDialog"][data-slot="overlay"][data-state="closed"] {
+  animation: scrimFadeOut var(--spring-effects-fast-duration) var(--spring-effects-fast-easing) both;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  [data-component="PwaSheet"][data-slot="surface"][data-state="open"],
-  [data-component="PwaSheet"][data-slot="surface"][data-state="closed"],
-  [data-component="PwaSheet"][data-slot="scrim"][data-state="open"],
-  [data-component="PwaSheet"][data-slot="scrim"][data-state="closed"] {
-    animation-duration: 0ms;
+  [data-component="PwaSheet"][data-slot],
+  [data-component="DialogShell"][data-slot],
+  [data-component="ConfirmDialog"][data-slot],
+  [data-component="ImagePreviewDialog"][data-slot] {
+    animation-duration: 0ms !important;
   }
 }
 

@@ -1,14 +1,19 @@
 /**
  * PwaSheet — gesture-capable bottom sheet for the installed Green Goods PWA.
  *
- * Open/close uses named CSS keyframes (`pwaSheetEnter` / `pwaSheetExit` for the
- * panel, `pwaSheetScrimEnter` / `pwaSheetScrimExit` for the scrim) applied via
- * attribute selectors on `data-state="open"|"closed"`. Both keyframes and the
- * driving `--spring-pwa-sheet-*` tokens live in shared (utilities.css +
- * theme.css). The enter keyframe carries a 2% overshoot waypoint at 60% —
- * that's where the spring feel comes from. A linear 2-point translate with
- * any easing curve cannot reproduce the same character, which is why we own
- * the keyframe instead of relying on Tailwind's `slide-in-from-bottom`.
+ * Open/close uses named CSS keyframes (`dialogSlideInFromBottom` /
+ * `dialogSlideOutToBottom` for the panel, `scrimFadeIn` / `scrimFadeOut` for
+ * the scrim) applied via attribute selectors on `data-state="open"|"closed"`.
+ * Both keyframes and the driving `--spring-spatial-*` / `--spring-effects-*`
+ * tokens live in shared (utilities.css + theme.css). The enter keyframe
+ * carries a 2% overshoot waypoint at 60% — that's where the spring feel
+ * comes from. A linear 2-point translate with any easing curve cannot
+ * reproduce the same character, which is why we own the keyframe instead
+ * of relying on Tailwind's `slide-in-from-bottom`.
+ *
+ * Keyframes are shared with DialogShell + ConfirmDialog (mobile variant) and
+ * ImagePreviewDialog (overlay fade), so all PWA dialog surfaces move with
+ * the same rhythm.
  *
  * CSS keyframes run on the browser's compositor and don't depend on
  * requestAnimationFrame, so the animation works even in backgrounded/hidden
@@ -42,7 +47,6 @@ import { DISMISS_VELOCITY_THRESHOLD } from "../Canvas/springConfig";
 
 const DRAG_DISMISS_DISTANCE_PX = 120;
 const DRAG_PULL_RESISTANCE_FACTOR = 0.86;
-const PWA_SHEET_OVERLAY_BG = "rgb(var(--m3-on-surface, 10 10 10) / 0.18)";
 const DEFAULT_CLOSE_DURATION_MS = 300;
 
 export interface PwaSheetProps {
@@ -122,7 +126,7 @@ export function PwaSheet({
       setMounted(false);
       return;
     }
-    const duration = readCssDurationMs("--spring-pwa-sheet-exit-duration");
+    const duration = readCssDurationMs("--spring-spatial-duration");
     const timer = window.setTimeout(() => setMounted(false), duration + 40);
     return () => window.clearTimeout(timer);
   }, [open, prefersReducedMotion]);
@@ -220,7 +224,7 @@ export function PwaSheet({
         data-slot="scrim"
         data-state={sheetState}
         className="absolute inset-0"
-        style={{ backgroundColor: PWA_SHEET_OVERLAY_BG }}
+        style={{ backgroundColor: "var(--color-scrim)" }}
       />
       <div
         ref={dialogRef}
