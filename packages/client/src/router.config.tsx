@@ -1,5 +1,6 @@
 import { ensureBaseLists, HydrationFallback } from "@green-goods/shared";
 import { type LoaderFunctionArgs, type RouteObject, redirect } from "react-router-dom";
+import { RouteErrorBoundary } from "@/components/Errors";
 import {
   requirePwaPresentationLoader,
   requireWebsitePresentationLoader,
@@ -48,6 +49,13 @@ export const appRoutes = [
     id: CLIENT_ROUTE_IDS.root,
     lazy: async () => ({ Component: (await import("@/routes/Root")).default }),
     hydrateFallbackElement: <HydrationFallback appName="Green Goods" />,
+    // Catch loader / lazy-chunk / route-render throws here so users never see
+    // React Router's default "Unexpected Application Error!" screen with raw
+    // "Minified React error #..." text. RouteErrorBoundary auto-reloads on
+    // chunk-load failures (the dominant post-SW-update failure mode), surfaces
+    // friendly copy for everything else, and reports the exception to PostHog
+    // (which Router's default UI does not).
+    errorElement: <RouteErrorBoundary />,
     children: [
       // Public routes (no auth required).
       {
