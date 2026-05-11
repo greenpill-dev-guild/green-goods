@@ -159,13 +159,20 @@ export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
           )}
         >
           <div className="flex flex-col gap-2 flex-1">
-            {/* Selection highlight overlay */}
+            {/*
+             * Selection highlight overlay. Must match the OUTER Wrapper's
+             * border-radius (rounded-2xl, 24px in our theme) — anything tighter
+             * (e.g. rounded-lg = 16px) leaves an 8px curvature gap at the
+             * corners that overflow-clip on the Wrapper then chops, producing
+             * the "border cut off at the edges" regression. Matches ActionCard's
+             * 3px primary border for visual parity.
+             */}
             <div
+              aria-hidden="true"
               className={cn(
-                "absolute top-0 left-0 right-0 bottom-0 w-full h-full border-2 rounded-lg opacity-0 transition-opacity duration-[var(--spring-effects-duration)] ease-[var(--spring-effects-easing)] z-10 pointer-events-none",
+                "absolute inset-0 rounded-2xl border-[3px] border-primary opacity-0 transition-opacity duration-[var(--spring-effects-duration)] ease-[var(--spring-effects-easing)] z-10 pointer-events-none",
                 selected && "opacity-100"
               )}
-              style={{ borderColor: "var(--color-primary)" }}
             />
 
             {/* Garden name */}

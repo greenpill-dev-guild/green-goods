@@ -56,7 +56,13 @@ describe("components/Cards/GardenCard", () => {
     const selectedOverlay = card.querySelector(".opacity-100");
     expect(container.querySelector("[data-selected='true']")).toBeInTheDocument();
     expect(card).toHaveStyle({ width: "100%" });
-    expect(selectedOverlay?.getAttribute("style")).toContain("--color-primary");
+    // Overlay border now comes from the `border-primary` class so it shares the
+    // token system with the rest of the design system. Its border-radius must
+    // also match the wrapper's rounded-2xl — anything tighter gets clipped at
+    // the corners by the wrapper's overflow:clip.
+    expect(selectedOverlay?.className).toContain("border-primary");
+    expect(selectedOverlay?.className).toContain("rounded-2xl");
+    expect(selectedOverlay?.className).toContain("border-[3px]");
     await user.click(screen.getByText("Community Garden"));
     expect(handleClick).toHaveBeenCalledTimes(1);
   });
