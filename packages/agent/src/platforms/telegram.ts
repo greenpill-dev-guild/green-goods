@@ -16,6 +16,7 @@ import os from "os";
 import path from "path";
 import { type Context, session, Telegraf } from "telegraf";
 import { message } from "telegraf/filters";
+import { agentMessage, type AgentLocale, type AgentMessageKey } from "../i18n";
 import { loggers } from "../services/logger";
 import type {
   ChatType,
@@ -492,7 +493,7 @@ export function createTelegramBot(
   bot.on("callback_query", async (ctx) => {
     const inbound = toInboundMessage(ctx);
     if (!inbound) {
-      await ctx.answerCbQuery("Error processing request");
+      await ctx.answerCbQuery(agentMessage(ctx.from?.language_code, "error.internal"));
       return;
     }
 
@@ -542,7 +543,7 @@ export function createTelegramBot(
   bot.catch((err, ctx) => {
     log.error({ err, chatId: ctx.chat?.id, chatType: ctx.chat?.type }, "Bot error");
     if (ctx.chat?.type !== "private") return;
-    ctx.reply("❌ An error occurred. Please try again.").catch((replyErr) => {
+    ctx.reply(`❌ ${agentMessage(ctx.from?.language_code, "error.internal")}`).catch((replyErr) => {
       log.warn({ replyErr, chatId: ctx.chat?.id }, "Failed to send error message to user");
     });
   });
@@ -555,19 +556,33 @@ export function createTelegramBot(
  * groups stays empty so reporters discover the topic-based capture path
  * instead of looking for `/bug` and `/idea` commands that no longer exist.
  */
-const PRIVATE_DM_COMMANDS: Array<{ command: string; description: string }> = [
-  { command: "start", description: "Create wallet and get started" },
-  { command: "join", description: "Join a garden by contract address" },
-  { command: "status", description: "View your current status and wallet" },
-  { command: "pending", description: "(Operators) View pending work submissions" },
-  { command: "approve", description: "(Operators) Approve a work submission" },
-  { command: "reject", description: "(Operators) Reject a work submission" },
-  { command: "help", description: "Show available commands" },
+const PRIVATE_DM_COMMANDS: Array<{ command: string; descriptionKey: AgentMessageKey }> = [
+  { command: "start", descriptionKey: "command.start" },
+  { command: "join", descriptionKey: "command.join" },
+  { command: "status", descriptionKey: "command.status" },
+  { command: "pending", descriptionKey: "command.pending" },
+  { command: "approve", descriptionKey: "command.approve" },
+  { command: "reject", descriptionKey: "command.reject" },
+  { command: "help", descriptionKey: "command.help" },
 ];
 
+function privateDmCommands(locale: AgentLocale): Array<{ command: string; description: string }> {
+  return PRIVATE_DM_COMMANDS.map(({ command, descriptionKey }) => ({
+    command,
+    description: agentMessage(locale, descriptionKey),
+  }));
+}
+
 export async function registerSlashCommands(bot: Telegraf): Promise<void> {
-  await bot.telegram.setMyCommands(PRIVATE_DM_COMMANDS, {
-    scope: { type: "all_private_chats" },
+  const privateScope = { type: "all_private_chats" } as const;
+  await bot.telegram.setMyCommands(privateDmCommands("en"), { scope: privateScope });
+  await bot.telegram.setMyCommands(privateDmCommands("es"), {
+    scope: privateScope,
+    language_code: "es",
+  });
+  await bot.telegram.setMyCommands(privateDmCommands("pt"), {
+    scope: privateScope,
+    language_code: "pt",
   });
   // Explicitly clear the group autocomplete menu so retired /bug + /idea
   // commands and any historical state are removed.

@@ -173,6 +173,7 @@ export interface User {
   address: string;
   currentGarden?: string;
   role?: "gardener" | "operator";
+  locale?: string;
   createdAt: number;
 }
 
@@ -183,6 +184,7 @@ export interface CreateUserInput {
   address: string;
   currentGarden?: string;
   role?: "gardener" | "operator";
+  locale?: string;
 }
 
 export interface Session {

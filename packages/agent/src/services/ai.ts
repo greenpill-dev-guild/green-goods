@@ -84,6 +84,8 @@ class AI {
       /planted?\s*(\d+)\s*trees?/i,
       /(\d+)\s*trees?\s*planted/i,
       /(\d+)\s*trees?/i,
+      /plant(?:é|e|ei|ou|ado|ada|ados|adas)?\s*(\d+)\s*(?:árboles|arboles|árvores|arvores)/iu,
+      /(\d+)\s*(?:árboles|arboles|árvores|arvores)\s*plant(?:ados?|adas?)?/iu,
     ];
 
     for (const pattern of treePatterns) {
@@ -103,6 +105,8 @@ class AI {
       /(\d+)\s*(kg|lbs?|pounds?)?\s*(?:of\s*)?weeds?/i,
       /weeded?\s*(\d+)\s*(kg|lbs?|pounds?)?/i,
       /removed?\s*(\d+)\s*(kg|lbs?|pounds?)?\s*(?:of\s*)?weeds?/i,
+      /(\d+)\s*(kg|lbs?|pounds?|libras?)?\s*(?:de\s*)?(?:maleza|hierbas?|ervas?\s+daninhas|daninhas)/iu,
+      /(?:retir(?:é|e|ei|ou)|remov(?:í|i|ei|eu)|saqu(?:é|e|ei|ou))\s*(\d+)\s*(kg|lbs?|pounds?|libras?)?\s*(?:de\s*)?(?:maleza|hierbas?|ervas?\s+daninhas|daninhas)/iu,
     ];
 
     for (const pattern of weedPatterns) {
@@ -119,7 +123,9 @@ class AI {
     }
 
     // General plant patterns
-    const plantMatch = lower.match(/planted?\s*(\d+)\s*(\w+)/i);
+    const plantMatch =
+      lower.match(/planted?\s*(\d+)\s*(\w+)/i) ??
+      lower.match(/plant(?:é|e|ei|ou|ado|ada|ados|adas)?\s*(\d+)\s*([\p{L}\p{M}-]+)/iu);
     if (plantMatch && !tasks.some((t) => t.type === "planting")) {
       tasks.push({
         type: "planting",
@@ -139,6 +145,7 @@ class AI {
     if (!unit) return "kg";
     const lower = unit.toLowerCase();
     if (lower.startsWith("lb") || lower === "pounds") return "lbs";
+    if (lower.startsWith("libra")) return "lbs";
     return "kg";
   }
 

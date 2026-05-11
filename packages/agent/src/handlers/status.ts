@@ -2,6 +2,7 @@
  * Status Handler - Show current user status
  */
 
+import { agentMessage, agentRoleLabel, agentSessionLabel } from "../i18n";
 import * as db from "../services/db";
 import type { HandlerResult, InboundMessage, User } from "../types";
 import { formatAddress } from "./utils";
@@ -23,13 +24,16 @@ export async function handleStatus(
 
   return {
     response: {
-      text:
-        `📊 *Your Status*\n\n` +
-        `*Wallet:* \`${user.address}\`\n` +
-        `*Role:* ${user.role || "gardener"}\n` +
-        `*Garden:* ${user.currentGarden ? `\`${formatAddress(user.currentGarden)}\`` : "_Not joined_"}\n` +
-        `*Session:* ${session?.step || "idle"}\n` +
-        `*Submissions remaining:* ${rateLimitStats.remaining}/${rateLimitStats.limit}`,
+      text: agentMessage(message.locale, "status.title", {
+        wallet: user.address,
+        role: agentRoleLabel(message.locale, user.role),
+        garden: user.currentGarden
+          ? `\`${formatAddress(user.currentGarden)}\``
+          : agentMessage(message.locale, "start.notJoined"),
+        session: agentSessionLabel(message.locale, session?.step),
+        remaining: rateLimitStats.remaining,
+        limit: rateLimitStats.limit,
+      }),
       parseMode: "markdown",
     },
   };

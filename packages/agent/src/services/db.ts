@@ -263,6 +263,7 @@ class DB {
         address TEXT NOT NULL,
         currentGarden TEXT,
         role TEXT DEFAULT 'gardener',
+        locale TEXT,
         createdAt INTEGER DEFAULT (strftime('%s', 'now') * 1000),
         PRIMARY KEY (platform, platformId)
       )
@@ -418,6 +419,7 @@ class DB {
     this.ensureColumn("funding_intents", "providerSessionId", "TEXT");
     this.ensureColumn("funding_intents", "providerPaymentId", "TEXT");
     this.ensureColumn("funding_intent_events", "providerEventId", "TEXT");
+    this.ensureColumn("users", "locale", "TEXT");
 
     this.db.run(
       `CREATE UNIQUE INDEX IF NOT EXISTS idx_funding_intents_funding_tx_hash
@@ -443,11 +445,11 @@ class DB {
       `CREATE INDEX IF NOT EXISTS idx_funding_intent_events_intent
        ON funding_intent_events(intentId, createdAt)`
     );
-    this.db.run("PRAGMA user_version = 2");
+    this.db.run("PRAGMA user_version = 3");
   }
 
   private ensureColumn(
-    table: "funding_intents" | "funding_intent_events",
+    table: "funding_intents" | "funding_intent_events" | "users",
     column: string,
     definition: string
   ): void {
@@ -471,6 +473,7 @@ class DB {
       address: string;
       currentGarden: string | null;
       role: string | null;
+      locale: string | null;
       createdAt: number;
     } | null;
 
@@ -488,6 +491,7 @@ class DB {
       address: row.address,
       currentGarden: row.currentGarden ?? undefined,
       role: row.role as User["role"],
+      locale: row.locale ?? undefined,
       createdAt: row.createdAt,
     };
   }
@@ -517,8 +521,8 @@ class DB {
 
     this.db
       .query(
-        `INSERT INTO users (platform, platformId, privateKey, address, currentGarden, role, createdAt)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO users (platform, platformId, privateKey, address, currentGarden, role, locale, createdAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(
         input.platform,
@@ -527,6 +531,7 @@ class DB {
         input.address,
         input.currentGarden ?? null,
         input.role ?? "gardener",
+        input.locale ?? null,
         createdAt
       );
 
@@ -537,6 +542,7 @@ class DB {
       address: input.address,
       currentGarden: input.currentGarden,
       role: input.role ?? "gardener",
+      locale: input.locale,
       createdAt,
     };
   }
@@ -544,7 +550,7 @@ class DB {
   async updateUser(
     platform: Platform,
     platformId: string,
-    update: Partial<Pick<User, "currentGarden" | "role">>
+    update: Partial<Pick<User, "currentGarden" | "role" | "locale">>
   ): Promise<void> {
     const setClauses: string[] = [];
     const values: (string | null)[] = [];
@@ -556,6 +562,10 @@ class DB {
     if (update.role !== undefined) {
       setClauses.push("role = ?");
       values.push(update.role ?? null);
+    }
+    if (update.locale !== undefined) {
+      setClauses.push("locale = ?");
+      values.push(update.locale ?? null);
     }
 
     if (setClauses.length === 0) return;
@@ -575,6 +585,7 @@ class DB {
       address: string;
       currentGarden: string | null;
       role: string | null;
+      locale: string | null;
       createdAt: number;
     } | null;
 
@@ -588,6 +599,7 @@ class DB {
       address: row.address,
       currentGarden: row.currentGarden ?? undefined,
       role: row.role as User["role"],
+      locale: row.locale ?? undefined,
       createdAt: row.createdAt,
     };
   }
@@ -1159,7 +1171,7 @@ export const createUser = (input: CreateUserInput) => getDB().createUser(input);
 export const updateUser = (
   platform: Platform,
   platformId: string,
-  update: Partial<Pick<User, "currentGarden" | "role">>
+  update: Partial<Pick<User, "currentGarden" | "role" | "locale">>
 ) => getDB().updateUser(platform, platformId, update);
 export const getOperatorForGarden = (gardenAddress: string) =>
   getDB().getOperatorForGarden(gardenAddress);

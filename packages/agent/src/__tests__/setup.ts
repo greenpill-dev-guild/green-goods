@@ -315,7 +315,7 @@ class InMemoryDatabase {
 
           // Expected params count for validation
           const EXPECTED_PARAMS: Record<string, number> = {
-            users: 7,
+            users: 8,
             sessions: 5,
             pending_works: 7,
             idempotency_keys: 9,
@@ -341,7 +341,8 @@ class InMemoryDatabase {
               address: params[3],
               currentGarden: params[4],
               role: params[5],
-              createdAt: params[6],
+              locale: params[6],
+              createdAt: params[7],
             };
           } else if (tableName === "sessions") {
             if (params.length !== EXPECTED_PARAMS.sessions) {
@@ -509,18 +510,13 @@ class InMemoryDatabase {
 
             const existingRow = table.get(key);
             if (existingRow) {
-              // Update fields based on SET clause
               const setFields = params.slice(0, -2);
-              if (sql.includes("currentGarden = ?") && sql.includes("role = ?")) {
-                existingRow.currentGarden = setFields[0];
-                existingRow.role = setFields[1];
-              } else if (sql.includes("currentGarden = ?")) {
-                existingRow.currentGarden = setFields[0];
-              } else if (sql.includes("role = ?")) {
-                existingRow.role = setFields[0];
-              } else if (sql.includes("privateKey = ?")) {
-                existingRow.privateKey = setFields[0];
-              }
+              const assignments = Array.from(sql.matchAll(/(\w+)\s*=\s*\?/g)).map(
+                (match) => match[1]
+              );
+              assignments.forEach((field, index) => {
+                existingRow[field] = setFields[index];
+              });
               table.set(key, existingRow);
             }
           }

@@ -3,6 +3,7 @@
  */
 
 import type { Hex } from "viem";
+import { agentMessage } from "../i18n";
 import * as blockchain from "../services/blockchain";
 import * as db from "../services/db";
 import { classifyError } from "../services/errors";
@@ -16,6 +17,8 @@ import {
 } from "./idempotency";
 
 const log = loggers.handlers;
+const PROTOCOL_WORK_ACTION_TITLE = "Work Submission";
+const PROTOCOL_APPROVAL_FEEDBACK = "Approved via bot";
 
 export interface ApproveDeps {
   notifyGardener?: (platform: string, platformId: string, message: string) => Promise<void>;
@@ -35,7 +38,7 @@ export async function handleApprove(
   if (!workId) {
     return {
       response: {
-        text: "📍 *Usage:* `/approve <WorkID>`\n\nExample: `/approve abc123`",
+        text: agentMessage(message.locale, "approve.usage"),
         parseMode: "markdown",
       },
     };
@@ -44,9 +47,7 @@ export async function handleApprove(
   if (user.role !== "operator") {
     return {
       response: {
-        text:
-          `❌ *Permission Denied*\n\n` +
-          `Only registered operators can approve work for this garden.`,
+        text: agentMessage(message.locale, "approve.permission"),
         parseMode: "markdown",
       },
     };
@@ -61,7 +62,7 @@ export async function handleApprove(
   if (!pendingWork) {
     return {
       response: {
-        text: "❌ Work not found or already processed.",
+        text: agentMessage(message.locale, "work.notFound"),
       },
     };
   }
@@ -70,7 +71,7 @@ export async function handleApprove(
   if (!gardenAddress) {
     return {
       response: {
-        text: "❌ Cannot determine garden for this work.",
+        text: agentMessage(message.locale, "work.cannotDetermineGarden"),
       },
     };
   }
@@ -79,9 +80,9 @@ export async function handleApprove(
   if (!verification.verified) {
     return {
       response: {
-        text:
-          `❌ *Permission Denied*\n\n${verification.reason}\n\n` +
-          `Only registered operators can approve work for this garden.`,
+        text: agentMessage(message.locale, "approve.permissionWithReason", {
+          reason: verification.reason,
+        }),
         parseMode: "markdown",
       },
     };
@@ -97,7 +98,7 @@ export async function handleApprove(
   if (!gardenerUser) {
     return {
       response: {
-        text: "❌ Gardener account not found. They may need to run /start first.",
+        text: agentMessage(message.locale, "approve.gardenerMissing"),
       },
     };
   }
@@ -106,7 +107,7 @@ export async function handleApprove(
     const claimed = await claimMessageIdempotency("approve", message);
     if (!claimed) {
       return {
-        response: idempotencyInProgressResponse("approval"),
+        response: idempotencyInProgressResponse("approval", message.locale),
       };
     }
 
@@ -116,7 +117,7 @@ export async function handleApprove(
       privateKey: gardenerUser.privateKey as Hex,
       gardenAddress,
       actionUID: pendingWork.actionUID,
-      actionTitle: "Work Submission",
+      actionTitle: PROTOCOL_WORK_ACTION_TITLE,
       workData: {
         title: pendingWork.data.title,
         plantSelection: pendingWork.data.plantSelection,
@@ -132,7 +133,7 @@ export async function handleApprove(
       actionUID: pendingWork.actionUID,
       workUID: workId, // Local work ID for reference
       approved: true,
-      feedback: "Approved via bot",
+      feedback: PROTOCOL_APPROVAL_FEEDBACK,
     });
 
     await db.removePendingWork(workId);
@@ -155,16 +156,13 @@ export async function handleApprove(
       await notifyGardener(
         pendingWork.gardenerPlatform,
         pendingWork.gardenerPlatformId,
-        `🎉 *Your work has been approved!*\n\nID: \`${workId}\`\nWork Tx: \`${workTx}\``
+        agentMessage(gardenerUser.locale, "notification.approved", { workId, workTx })
       );
     }
 
     const result = {
       response: {
-        text:
-          `✅ *Work approved and attested!*\n\n` +
-          `Work Tx: \`${workTx}\`\n` +
-          `Approval Tx: \`${approvalTx}\``,
+        text: agentMessage(message.locale, "approve.success", { workTx, approvalTx }),
         parseMode: "markdown" as const,
       },
     };
@@ -173,7 +171,7 @@ export async function handleApprove(
 
     return result;
   } catch (error) {
-    const { category, userMessage } = classifyError(error);
+    const { category, userMessage } = classifyError(error, message.locale);
     log.error({ err: error, category, workId }, "Approval error");
 
     const result = {

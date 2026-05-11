@@ -56,6 +56,7 @@ describe("User Management", () => {
       privateKey: "0x" + "a".repeat(64),
       address: "0x" + "1".repeat(40),
       role: "gardener",
+      locale: "es-MX",
     };
 
     const created = await db.createUser(input);
@@ -63,11 +64,13 @@ describe("User Management", () => {
     expect(created.platform).toBe("telegram");
     expect(created.platformId).toBe(platformId);
     expect(created.address).toBe(input.address);
+    expect(created.locale).toBe("es-MX");
 
     const retrieved = await db.getUser("telegram", platformId);
 
     expect(retrieved).toBeDefined();
     expect(retrieved?.address).toBe(input.address);
+    expect(retrieved?.locale).toBe("es-MX");
   });
 
   it("returns undefined for non-existent user", async () => {
@@ -97,6 +100,28 @@ describe("User Management", () => {
     const updated = await db.getUser("telegram", platformId);
     expect(updated?.currentGarden).toBe(gardenAddress);
     expect(updated?.role).toBe("operator");
+  });
+
+  it("updates a user's last known locale independently of role and garden", async () => {
+    const db = getDB();
+    const platformId = `locale-user-${Date.now()}`;
+
+    await db.createUser({
+      platform: "telegram",
+      platformId,
+      privateKey: "0x" + "c".repeat(64),
+      address: "0x" + "4".repeat(40),
+      role: "gardener",
+      locale: "en",
+    });
+
+    await db.updateUser("telegram", platformId, {
+      locale: "pt-BR",
+    });
+
+    const updated = await db.getUser("telegram", platformId);
+    expect(updated?.locale).toBe("pt-BR");
+    expect(updated?.role).toBe("gardener");
   });
 });
 

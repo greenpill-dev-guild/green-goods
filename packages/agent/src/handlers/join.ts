@@ -2,6 +2,7 @@
  * Join Handler - Join a garden by address
  */
 
+import { agentMessage } from "../i18n";
 import * as blockchain from "../services/blockchain";
 import * as db from "../services/db";
 import { classifyError } from "../services/errors";
@@ -29,7 +30,7 @@ export async function handleJoin(
   if (!gardenAddress) {
     return {
       response: {
-        text: "📍 *Usage:* `/join <GardenAddress>`\n\nExample: `/join 0x1234...abcd`",
+        text: agentMessage(message.locale, "join.usage"),
         parseMode: "markdown",
       },
     };
@@ -38,9 +39,7 @@ export async function handleJoin(
   if (!isValidAddress(gardenAddress)) {
     return {
       response: {
-        text:
-          "❌ Invalid address format.\n\n" +
-          "Please provide a valid Ethereum address (0x followed by 40 hex characters).",
+        text: agentMessage(message.locale, "join.invalidAddress"),
       },
     };
   }
@@ -51,10 +50,7 @@ export async function handleJoin(
     if (!gardenInfo?.exists) {
       return {
         response: {
-          text:
-            "❌ *Garden not found*\n\n" +
-            "This address doesn't appear to be a valid Green Goods garden contract.\n\n" +
-            "Please verify the address and try again.",
+          text: agentMessage(message.locale, "join.notFound"),
           parseMode: "markdown",
         },
       };
@@ -64,16 +60,15 @@ export async function handleJoin(
 
     return {
       response: {
-        text:
-          `✅ *Joined garden successfully!*\n\n` +
-          `Garden: ${gardenInfo.name ? `*${gardenInfo.name}*` : ""}\n` +
-          `Address: \`${formatAddress(gardenAddress)}\`\n\n` +
-          `You can now submit work by sending me a text or voice message.`,
+        text: agentMessage(message.locale, "join.success", {
+          gardenName: gardenInfo.name ? `*${gardenInfo.name}*` : "",
+          gardenAddress: formatAddress(gardenAddress),
+        }),
         parseMode: "markdown",
       },
     };
   } catch (error) {
-    const { category, userMessage } = classifyError(error);
+    const { category, userMessage } = classifyError(error, message.locale);
     log.error({ err: error, category, gardenAddress }, "Garden join lookup error");
 
     return {
