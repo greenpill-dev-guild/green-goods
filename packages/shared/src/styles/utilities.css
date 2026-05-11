@@ -457,3 +457,24 @@
     animation-duration: 2.5s;
   }
 }
+
+/* ── Dialog surface radius ──
+ * Tailwind v4 doesn't scan packages/shared/src/ from admin/client builds, so
+ * bare utilities like `rounded-t-xl` / `sm:rounded-xl` applied to JSX inside
+ * shared dialog primitives silently fail to generate. Drive the radius from
+ * the attribute selector so it works regardless of scan coverage. Mobile keeps
+ * top-only rounding (sheet anchored to viewport bottom); sm+ rounds all
+ * corners (centered modal). */
+[data-component="DialogShell"][data-slot="surface"],
+[data-component="ConfirmDialog"][data-slot="surface"] {
+  border-top-left-radius: var(--radius-lg);
+  border-top-right-radius: var(--radius-lg);
+}
+
+@media (min-width: 640px) {
+  [data-component="DialogShell"][data-slot="surface"],
+  [data-component="ConfirmDialog"][data-slot="surface"] {
+    border-bottom-left-radius: var(--radius-lg);
+    border-bottom-right-radius: var(--radius-lg);
+  }
+}
