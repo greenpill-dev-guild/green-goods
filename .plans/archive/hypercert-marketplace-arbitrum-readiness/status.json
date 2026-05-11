@@ -4,13 +4,13 @@
     "slug": "hypercert-marketplace-arbitrum-readiness",
     "title": "Hypercert Marketplace Arbitrum Readiness",
     "kind": "feature",
-    "stage": "active"
+    "stage": "archive"
   },
   "workflow": {
-    "overall_status": "active",
+    "overall_status": "done",
     "priority": "p1",
     "created_at": "2026-05-02T05:17:58.384Z",
-    "updated_at": "2026-05-10T23:28:50.518Z",
+    "updated_at": "2026-05-11T00:45:26.513Z",
     "target_date": null
   },
   "links": {
@@ -32,7 +32,7 @@
   "lanes": {
     "ui": {
       "owner": "claude",
-      "status": "ready",
+      "status": "completed",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "claude/ui/hypercert-marketplace-arbitrum-readiness",
@@ -41,16 +41,16 @@
       "handoff_note": "Full admin marketplace UX pass: unavailable, needs-approval, ready, pending, success, and failure states. Use existing Admin* wrappers, localize en/es/pt strings, and record Storybook/browser evidence.",
       "tdd": {
         "mode": "required",
-        "status": "pending",
+        "status": "green_recorded",
         "red": {
-          "command": "",
-          "evidence": ""
+          "command": "cd packages/admin && bun run test src/__tests__/components/hypercerts/MarketplaceApprovalGate.test.tsx",
+          "evidence": "Failed before implementation: 2 of 8 tests failed. (1) state: unavailable > renders an unavailable alert and does NOT render children or approval CTA when readiness is unavailable — expected getMarketplaceReadiness to be called with 11155111, got zero calls. (2) state: unavailable > never calls useMarketplaceApprovals when readiness is unavailable (no unsafe approval reads) — expected zero calls, got one. The original gate did not consult readiness and unconditionally invoked the approvals hook even when the active chain's deployment artifact was missing required marketplace addresses."
         },
         "green": {
-          "command": "",
-          "evidence": ""
+          "command": "cd packages/admin && bun run test src/__tests__/components/hypercerts/MarketplaceApprovalGate.test.tsx && bun run test src/__tests__/components/hypercerts/",
+          "evidence": "Passed after implementation. MarketplaceApprovalGate.test.tsx: 8 of 8 tests pass; covers unavailable (alert + no approval reads), checking, needs-approval (with grantApprovals dispatch), ready, pending (disabled CTA), and failure (error inline, CTA retainable). Full hypercerts directory regression: 7 files, 153 tests passed. Locale coverage: 12 tests passed. Vocab lint: clean. Storybook check:stories: PASS. Admin build (VITE_CHAIN_ID=11155111): built in 2m 6s. Plan-hub validate: 20 feature hubs ok."
         },
-        "note": ""
+        "note": "Admin marketplace UX state matrix now backed by shared getMarketplaceReadiness + useMarketplaceApprovals; no duplicated readiness logic in admin or client."
       },
       "skill_tags": ["ui", "frontend-design", "react", "testing"]
     },
@@ -104,7 +104,7 @@
     },
     "qa_pass_1": {
       "owner": "claude",
-      "status": "blocked",
+      "status": "completed",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "claude/qa-pass-1/hypercert-marketplace-arbitrum-readiness",
@@ -115,7 +115,7 @@
     },
     "qa_pass_2": {
       "owner": "codex",
-      "status": "blocked",
+      "status": "passed",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "codex/qa-pass-2/hypercert-marketplace-arbitrum-readiness",
@@ -206,6 +206,62 @@
       "status": "tdd_recorded",
       "branch": "codex/state-api/hypercert-marketplace-arbitrum-readiness",
       "note": "Follow-up review finding addressed: cancel listing now uses shared marketplace readiness before encoding or writing, with invalidation coverage preserved."
+    },
+    {
+      "timestamp": "2026-05-11T00:05:45.562Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "claude/ui/hypercert-marketplace-arbitrum-readiness",
+      "note": "Admin marketplace UX state matrix now backed by shared getMarketplaceReadiness + useMarketplaceApprovals; no duplicated readiness logic in admin or client."
+    },
+    {
+      "timestamp": "2026-05-11T00:06:12.516Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "completed",
+      "branch": "claude/ui/hypercert-marketplace-arbitrum-readiness",
+      "note": "UI lane shipped on main: MarketplaceApprovalGate now backed by shared getMarketplaceReadiness; state matrix covered by tests + Storybook."
+    },
+    {
+      "timestamp": "2026-05-11T00:08:42.770Z",
+      "actor": "claude",
+      "lane": "qa_pass_1",
+      "status": "in_progress",
+      "branch": "claude/qa-pass-1/hypercert-marketplace-arbitrum-readiness",
+      "note": "Begin QA pass 1 review of UI lane: UX, design principles, copy, i18n, missing states."
+    },
+    {
+      "timestamp": "2026-05-11T00:15:06.914Z",
+      "actor": "claude",
+      "lane": "qa_pass_1",
+      "status": "completed",
+      "branch": "claude/qa-pass-1/hypercert-marketplace-arbitrum-readiness",
+      "note": "QA pass 1 passed: UI state matrix, operator clarity, restrained design, i18n + vocab, no client claims. 4 non-blocking observations documented."
+    },
+    {
+      "timestamp": "2026-05-11T00:28:41.001Z",
+      "actor": "codex",
+      "lane": "qa_pass_2",
+      "status": "in_progress",
+      "branch": "codex/qa-pass-2/hypercert-marketplace-arbitrum-readiness",
+      "note": "Operator authorized direct in_progress; staying on main."
+    },
+    {
+      "timestamp": "2026-05-11T00:35:09.371Z",
+      "actor": "codex",
+      "lane": "qa_pass_2",
+      "status": "passed",
+      "branch": "codex/qa-pass-2/hypercert-marketplace-arbitrum-readiness",
+      "note": "QA pass 2 passed: regression validated, plan-hub clean, no unauthorized broadcast, post-tx evidence recorded."
+    },
+    {
+      "timestamp": "2026-05-11T00:45:26.513Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "moved_to_archive",
+      "branch": null,
+      "note": "Moved feature hub from active to archive"
     }
   ],
   "taxonomy": {

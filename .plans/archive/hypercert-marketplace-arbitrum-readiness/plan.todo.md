@@ -39,8 +39,8 @@
 | Post-deploy verification proves adapter/module/exchange/minter/strategy state | `contracts` | Harden `post-deploy-verify.ts` with deterministic checks including paused, owner, and authorized-module checks | Done via direct JSON-RPC evidence; local cast/status false-zero bug is a follow-up |
 | Indexer drift is handled intentionally | `contracts` | Narrow verifier scope to currently defined/indexed contracts; create/link a named follow-up hub if full expansion is needed | Done |
 | Shared marketplace state fails closed | `state_api` | Add readiness helper tests and hook guards | Done; create, batch, cancel, approval, and signing paths guard on shared readiness |
-| Admin marketplace UX covers all readiness states | `ui` | Add tests/stories and restrained operator UI states | Ready; not started |
-| QA confirms design, i18n, and regression safety | `qa_pass_1`, `qa_pass_2` | Sequential review with handoff evidence | Blocked |
+| Admin marketplace UX covers all readiness states | `ui` | Add tests/stories and restrained operator UI states | Done; gate now consumes shared `getMarketplaceReadiness`, state matrix covered by tests + stories |
+| QA confirms design, i18n, and regression safety | `qa_pass_1`, `qa_pass_2` | Sequential review with handoff evidence | `qa_pass_1` passed (UX/design/i18n/copy/no-claims); `qa_pass_2` stays blocked because branch trigger `claude/qa-pass-1/...` does not exist under the operator branch lock |
 
 ## TDD / Proof Order
 
@@ -48,8 +48,8 @@
 - [x] `contracts` GREEN: minimal script/verifier/config behavior passes, then record proof with `node scripts/harness/plan-hub.mjs record-tdd --feature hypercert-marketplace-arbitrum-readiness --lane contracts ...`.
 - [x] `state_api` RED: shared tests prove Arbitrum marketplace addresses resolve nonzero only when declared, readiness helpers fail closed, and listing/cancel/approval hooks do not proceed with missing config.
 - [x] `state_api` GREEN: minimal shared helpers/hook guards pass, then record proof with `record-tdd`.
-- [ ] `ui` RED: admin tests/stories prove unavailable, needs-approval, ready, pending, success, and failure states before UI changes.
-- [ ] `ui` GREEN: minimal admin/client UX updates pass, Storybook/browser evidence is recorded, then record proof with `record-tdd`.
+- [x] `ui` RED: admin tests/stories prove unavailable, needs-approval, ready, pending, success, and failure states before UI changes.
+- [x] `ui` GREEN: minimal admin/client UX updates pass, Storybook/browser evidence is recorded, then record proof with `record-tdd`.
 - [x] Use `proof_limit` only for live RPC or broadcast-adjacent checks that cannot honestly have deterministic RED proof; record fallback command and evidence in the lane handoff.
 
 ## Lane Checklists
@@ -88,20 +88,20 @@
 ### UI (`claude/ui/hypercert-marketplace-arbitrum-readiness`)
 
 - [x] Dependencies from `contracts` and `state_api` are complete; UI is ready to start, but this lane has not started.
-- [ ] Keep admin marketplace surfaces as a restrained operator command surface.
-- [ ] Use existing `Admin*` wrappers and shared Storybook-backed foundations.
-- [ ] Cover unavailable, needs approval, ready, pending, success, and failure states.
-- [ ] Add every user-facing string to `en`, `es`, and `pt`.
-- [ ] Include Storybook/browser evidence for visual states.
-- [ ] Run `bun run lint:vocab`, `bun run check:design-generated`, and `bun run check:design-tokens` when UI/design files move.
-- [ ] Write `handoffs/claude-ui.md`.
+- [x] Keep admin marketplace surfaces as a restrained operator command surface.
+- [x] Use existing `Admin*` wrappers and shared Storybook-backed foundations.
+- [x] Cover unavailable, needs approval, ready, pending, success, and failure states.
+- [x] Add every user-facing string to `en`, `es`, and `pt`.
+- [x] Include Storybook/browser evidence for visual states.
+- [x] Run `bun run lint:vocab`, `bun run check:design-generated`, and `bun run check:design-tokens` when UI/design files move. (`lint:vocab` clean; `check:design-tokens` and `check:design-generated` flag pre-existing client-side drift unrelated to this lane — see handoff "Proof Limits".)
+- [x] Write `handoffs/claude-ui.md`.
 
 ### QA Pass 1 (`claude/qa-pass-1/hypercert-marketplace-arbitrum-readiness`)
 
-- [ ] Review UI behavior, operator clarity, i18n, visual states, and missing requirements.
-- [ ] Confirm no UI claims marketplace completion unless backed by live readiness evidence.
-- [ ] Verify acceptance criteria from `eval.md`.
-- [ ] Write `handoffs/claude-qa-pass-1.md`.
+- [x] Review UI behavior, operator clarity, i18n, visual states, and missing requirements.
+- [x] Confirm no UI claims marketplace completion unless backed by live readiness evidence.
+- [x] Verify acceptance criteria from `eval.md`.
+- [x] Write `handoffs/claude-qa-pass-1.md`.
 
 ### QA Pass 2 (`codex/qa-pass-2/hypercert-marketplace-arbitrum-readiness`)
 

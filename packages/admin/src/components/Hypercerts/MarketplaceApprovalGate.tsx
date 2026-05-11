@@ -1,18 +1,70 @@
-import { useMarketplaceApprovals } from "@green-goods/shared";
+import { Alert, getMarketplaceReadiness, useMarketplaceApprovals } from "@green-goods/shared";
 import { RiAlertLine, RiCheckLine, RiLoader4Line, RiShieldCheckLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "../AdminButton";
 
 interface MarketplaceApprovalGateProps {
+  /** Active chain id; readiness is derived from deployment artifacts. */
+  chainId: number;
   children: React.ReactNode;
 }
 
 /**
- * Gates marketplace features behind required one-time approvals.
- * Shows approval UI if either exchange or minter approval is missing.
- * Renders children when fully approved.
+ * Gates marketplace features behind deployment-artifact readiness AND
+ * one-time operator approvals. State matrix:
+ *
+ * - unavailable: deployment-artifact marketplace addresses are missing/zero
+ *                on the active chain. Renders a warning alert and refuses
+ *                to read approvals or render children, preventing any
+ *                unsafe write paths from being exposed.
+ * - checking:    readiness available, approvals query is loading.
+ * - needs-approval: readiness available, one or both approvals missing.
+ * - ready:       readiness available, both approvals granted. Renders children.
+ * - pending:     grantApprovals mutation in flight.
+ * - failure:     approval mutation surfaced a recoverable error.
  */
-export function MarketplaceApprovalGate({ children }: MarketplaceApprovalGateProps) {
+export function MarketplaceApprovalGate({ chainId, children }: MarketplaceApprovalGateProps) {
+  const { formatMessage } = useIntl();
+  const readiness = getMarketplaceReadiness(chainId);
+
+  if (!readiness.available) {
+    return (
+      <Alert
+        variant="warning"
+        title={formatMessage({
+          id: "app.marketplace.unavailable.title",
+          defaultMessage: "Marketplace not available on this network",
+        })}
+      >
+        <p>
+          {formatMessage(
+            {
+              id: "app.marketplace.unavailable.description",
+              defaultMessage:
+                "Marketplace addresses are not configured for chain {chainId}. Listing actions stay disabled until configuration is broadcast.",
+            },
+            { chainId: readiness.chainId }
+          )}
+        </p>
+        {readiness.missingFields.length > 0 && (
+          <p className="mt-2 text-xs">
+            {formatMessage(
+              {
+                id: "app.marketplace.unavailable.missingFields",
+                defaultMessage: "Missing addresses: {fields}",
+              },
+              { fields: readiness.missingFields.join(", ") }
+            )}
+          </p>
+        )}
+      </Alert>
+    );
+  }
+
+  return <ApprovalGateInner>{children}</ApprovalGateInner>;
+}
+
+function ApprovalGateInner({ children }: { children: React.ReactNode }) {
   const { formatMessage } = useIntl();
   const { approvals, isFullyApproved, isLoading, grantApprovals, isGranting, error } =
     useMarketplaceApprovals();
@@ -39,7 +91,7 @@ export function MarketplaceApprovalGate({ children }: MarketplaceApprovalGatePro
     <div className="rounded-lg border border-warning-base/30 bg-warning-lighter p-6">
       <div className="flex items-start gap-3">
         <RiAlertLine className="mt-0.5 h-5 w-5 shrink-0 text-warning-dark" />
-        <div className="flex-1">
+        <div className="min-w-0 flex-1">
           <h3 className="text-sm font-semibold text-text-strong">
             {formatMessage({
               id: "app.marketplace.setupRequired",
@@ -115,15 +167,15 @@ function ApprovalStep({
   approved: boolean;
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-md bg-bg-white/60 px-3 py-2">
+    <div className="flex items-start gap-3 rounded-md bg-bg-white/60 px-3 py-2">
       <div
-        className={`flex h-5 w-5 items-center justify-center rounded-full border-2 ${
+        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${
           approved ? "border-success-base bg-success-lighter" : "border-stroke-soft bg-bg-white"
         }`}
       >
         {approved && <RiCheckLine className="h-3 w-3 text-success-base" aria-hidden />}
       </div>
-      <div>
+      <div className="min-w-0">
         <span
           className={`text-sm font-medium ${approved ? "text-text-soft line-through" : "text-text-strong"}`}
         >
