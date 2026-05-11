@@ -104,14 +104,29 @@ function getPendingJoins(): Record<string, { address: string; timestamp: number 
 function addPendingJoin(gardenId: string, userAddress: string) {
   if (typeof window === "undefined") return;
   const pending = getPendingJoins();
+  const existing = pending[gardenId];
+  if (
+    existing &&
+    existing.address.toLowerCase() === userAddress.toLowerCase() &&
+    Date.now() - existing.timestamp < PENDING_JOIN_TTL
+  ) {
+    return;
+  }
   pending[gardenId] = { address: userAddress, timestamp: Date.now() };
   localStorage.setItem(PENDING_JOINS_KEY, JSON.stringify(pending));
   notifyPendingJoinsChanged();
 }
 
+// Idempotent: must not notify when nothing changed. `isGardenMember` (a render-
+// path predicate) calls this to clean up confirmed/expired pendings, and an
+// unconditional notify would re-trigger any memo subscribed via
+// `usePendingJoinsVersion`, producing an infinite render loop the moment the
+// indexer-confirmed gardener list and the local pending-join overlap (e.g.
+// immediately post-login on the auto-join-community-garden flow).
 function removePendingJoin(gardenId: string) {
   if (typeof window === "undefined") return;
   const pending = getPendingJoins();
+  if (!(gardenId in pending)) return;
   delete pending[gardenId];
   localStorage.setItem(PENDING_JOINS_KEY, JSON.stringify(pending));
   notifyPendingJoinsChanged();
