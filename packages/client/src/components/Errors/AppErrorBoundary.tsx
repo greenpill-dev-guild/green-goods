@@ -1,6 +1,8 @@
 import { en, es, logger, pt, trackErrorBoundary } from "@green-goods/shared";
 import {
   RiBugLine,
+  RiCheckLine,
+  RiClipboardLine,
   RiErrorWarningLine,
   RiHomeLine,
   RiRefreshLine,
@@ -96,6 +98,8 @@ interface Props {
   children: ReactNode;
 }
 
+type CopyState = "idle" | "copied" | "fallback";
+
 interface State {
   hasError: boolean;
   error: Error | null;
@@ -104,6 +108,7 @@ interface State {
   category: ErrorCategory;
   showDetails: boolean;
   isAutoRecovering: boolean;
+  copyState: CopyState;
 }
 
 export class AppErrorBoundary extends Component<Props, State> {
@@ -117,8 +122,112 @@ export class AppErrorBoundary extends Component<Props, State> {
       category: "unknown",
       showDetails: false,
       isAutoRecovering: false,
+      copyState: "idle",
     };
   }
+
+  private copyResetTimer: number | null = null;
+
+  componentWillUnmount() {
+    if (this.copyResetTimer !== null) {
+      window.clearTimeout(this.copyResetTimer);
+      this.copyResetTimer = null;
+    }
+  }
+
+  private buildBugReport(): string {
+    const { error, errorInfo, category, locale } = this.state;
+    const route =
+      typeof window !== "undefined"
+        ? `${window.location.pathname}${window.location.search}`
+        : "(unknown)";
+    const userAgent = typeof navigator !== "undefined" ? navigator.userAgent : "(unknown)";
+    const version =
+      typeof import.meta !== "undefined" && import.meta.env?.VITE_APP_VERSION
+        ? String(import.meta.env.VITE_APP_VERSION)
+        : "(unknown)";
+    const standalone =
+      typeof window !== "undefined" && window.matchMedia?.("(display-mode: standalone)").matches
+        ? "yes (installed PWA)"
+        : "no (browser tab)";
+
+    return [
+      "## Green Goods bug report",
+      "",
+      `**Error:** ${error?.message || error?.name || "Unknown error"}`,
+      `**Category:** ${category}`,
+      `**Route:** ${route}`,
+      `**Time:** ${new Date().toISOString()}`,
+      `**Version:** ${version}`,
+      `**Locale:** ${locale}`,
+      `**Installed PWA:** ${standalone}`,
+      `**User agent:** ${userAgent}`,
+      "",
+      "### Stack",
+      "```",
+      error?.stack || "(no stack)",
+      "```",
+      "",
+      "### Component stack",
+      "```",
+      errorInfo?.componentStack?.trim() || "(no component stack)",
+      "```",
+    ].join("\n");
+  }
+
+  handleCopyDetails = async () => {
+    if (!this.state.error) return;
+    const text = this.buildBugReport();
+
+    const writeViaClipboardApi = async (): Promise<boolean> => {
+      try {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(text);
+          return true;
+        }
+      } catch (err) {
+        logger.warn("[AppErrorBoundary] Clipboard API write failed", { err });
+      }
+      return false;
+    };
+
+    const writeViaSelection = (): boolean => {
+      // Legacy fallback for browsers without async Clipboard API (rare; older iOS).
+      try {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "fixed";
+        textarea.style.top = "-1000px";
+        document.body.appendChild(textarea);
+        textarea.select();
+        // execCommand is deprecated but still the only fallback that works without user-gesture-bound clipboard permissions.
+        const ok = document.execCommand?.("copy") ?? false;
+        document.body.removeChild(textarea);
+        return ok;
+      } catch (err) {
+        logger.warn("[AppErrorBoundary] Selection-based copy failed", { err });
+        return false;
+      }
+    };
+
+    const copied = (await writeViaClipboardApi()) || writeViaSelection();
+
+    if (copied) {
+      this.setState({ copyState: "copied" });
+    } else {
+      // Final fallback: surface the details so the user can long-press / select manually.
+      this.setState({ copyState: "fallback", showDetails: true });
+    }
+
+    if (this.copyResetTimer !== null) {
+      window.clearTimeout(this.copyResetTimer);
+    }
+    this.copyResetTimer = window.setTimeout(() => {
+      this.setState({ copyState: "idle" });
+      this.copyResetTimer = null;
+    }, 2500);
+  };
 
   private t(key: keyof Messages): string {
     return messages[this.state.locale][key] || messages.en[key] || String(key);
@@ -231,7 +340,7 @@ export class AppErrorBoundary extends Component<Props, State> {
       );
     }
 
-    const { category, error, errorInfo, showDetails } = this.state;
+    const { category, error, showDetails } = this.state;
     const isLoopBug = category === "loop";
     const isOfflineOrNetwork = category === "offline" || category === "network";
 
@@ -355,32 +464,50 @@ export class AppErrorBoundary extends Component<Props, State> {
               </div>
 
               {/*
-               * Diagnostic details: hidden by default so production users never see a raw
-               * "Minified React error #301" string. Expandable for users sharing a bug report
-               * or debugging on-device — and tracked to PostHog regardless.
+               * Diagnostic details: copy-for-support is the headline action. The raw
+               * "Minified React error #301" text stays hidden behind a toggle so production
+               * users never see it unless they ask — but copying to clipboard produces a
+               * markdown-formatted bug report ready to paste into Discord/Telegram/Slack.
+               * PostHog still receives the full error+stack regardless.
                */}
               {error && (
                 <div className="mt-8 w-full">
-                  <button
-                    type="button"
-                    onClick={this.toggleDetails}
-                    className="text-xs text-text-sub-600 underline hover:text-text-strong-950 transition-colors"
-                  >
-                    {showDetails
-                      ? this.t("app.error.boundary.devMode.hide")
-                      : this.t("app.error.boundary.devMode.show")}
-                  </button>
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      variant="neutral"
+                      mode="stroke"
+                      size="small"
+                      onClick={this.handleCopyDetails}
+                      label={
+                        this.state.copyState === "copied"
+                          ? this.t("app.error.boundary.action.copied")
+                          : this.state.copyState === "fallback"
+                            ? this.t("app.error.boundary.action.copyManual")
+                            : this.t("app.error.boundary.action.copyDetails")
+                      }
+                      leadingIcon={
+                        this.state.copyState === "copied" ? (
+                          <RiCheckLine className="h-4 w-4" />
+                        ) : (
+                          <RiClipboardLine className="h-4 w-4" />
+                        )
+                      }
+                      className="w-full"
+                    />
+                    <button
+                      type="button"
+                      onClick={this.toggleDetails}
+                      className="text-xs text-text-sub-600 underline hover:text-text-strong-950 transition-colors"
+                    >
+                      {showDetails
+                        ? this.t("app.error.boundary.devMode.hide")
+                        : this.t("app.error.boundary.devMode.show")}
+                    </button>
+                  </div>
                   {showDetails && (
                     <div className="mt-3 text-left bg-bg-soft-200 border border-stroke-soft-200 rounded-lg p-4">
-                      <pre className="text-xs text-text-strong-950 overflow-auto max-h-48 whitespace-pre-wrap">
-                        <strong>Error:</strong> {error.toString()}
-                        {errorInfo?.componentStack && (
-                          <>
-                            {"\n\n"}
-                            <strong>Component Stack:</strong>
-                            {errorInfo.componentStack}
-                          </>
-                        )}
+                      <pre className="text-xs text-text-strong-950 overflow-auto max-h-48 whitespace-pre-wrap select-all">
+                        {this.buildBugReport()}
                       </pre>
                     </div>
                   )}
