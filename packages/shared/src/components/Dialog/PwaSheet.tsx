@@ -1,20 +1,24 @@
 /**
  * PwaSheet — gesture-capable bottom sheet for the installed Green Goods PWA.
  *
- * Reuses the same react-spring + use-gesture machinery as the admin canvas
- * `BottomSheet`, but ships the PWA's glass/thick chrome and is portal-free
- * (mounted at document.body so it always sits above the bottom `AppBar`).
+ * Open/close uses Tailwind CSS keyframe animations (`animate-in slide-in-from-bottom`
+ * for opening, `animate-out slide-out-to-bottom` for closing) driven by the
+ * `data-state="open"|"closed"` attribute. CSS keyframes run on the browser's
+ * compositor and don't depend on requestAnimationFrame, so the animation works
+ * even in backgrounded/hidden tabs where RAF is throttled.
  *
- * Intentional behavior:
- * - Drag down past 120px or above the velocity threshold dismisses.
- * - `prefers-reduced-motion: reduce` skips JS timers entirely (`immediate: true`).
- * - Backdrop click and Escape close, both routed through `onClose`.
- * - Focus trap and scroll-lock follow the same idioms used by the existing
- *   client `ModalDrawer`, so consumers can swap the implementation in place.
+ * Drag-to-dismiss uses use-gesture + React state to write an inline transform
+ * that overrides the keyframe-set transform while the finger is down.
+ *
+ * History: an earlier implementation used react-spring with an imperative
+ * api.start in a useEffect. In the `ModalDrawer` consumer pattern (component
+ * always mounted, `isOpen` toggles) the api.start raced the conditional
+ * `return null` — animated.divs were not in the DOM when api.start fired,
+ * so the spring stayed at its initial `y=100`. CSS keyframes sidestep the
+ * race entirely.
  *
  * @module components/Dialog/PwaSheet
  */
-import { animated, useSpring } from "@react-spring/web";
 import { useDrag } from "@use-gesture/react";
 import {
   type CSSProperties,
@@ -27,11 +31,12 @@ import {
 import { useMediaQuery } from "../../hooks/ui/useMediaQuery";
 import { useFocusTrap } from "../../hooks/utils/useFocusTrap";
 import { cn } from "../../utils/styles/cn";
-import { DISMISS_VELOCITY_THRESHOLD, SPRING_CONFIGS } from "../Canvas/springConfig";
+import { DISMISS_VELOCITY_THRESHOLD } from "../Canvas/springConfig";
 
 const DRAG_DISMISS_DISTANCE_PX = 120;
 const DRAG_PULL_RESISTANCE_FACTOR = 0.86;
 const PWA_SHEET_OVERLAY_BG = "rgb(var(--m3-on-surface, 10 10 10) / 0.18)";
+const DEFAULT_CLOSE_DURATION_MS = 300;
 
 export interface PwaSheetProps {
   /** Whether the sheet is open. */
@@ -58,10 +63,22 @@ export interface PwaSheetProps {
   dragToDismiss?: boolean;
 }
 
+function readCssDurationMs(varName: string): number {
+  if (typeof window === "undefined" || typeof document === "undefined") {
+    return DEFAULT_CLOSE_DURATION_MS;
+  }
+  const value = window.getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+  const numeric = Number.parseFloat(value);
+  if (!Number.isFinite(numeric)) return DEFAULT_CLOSE_DURATION_MS;
+  if (value.endsWith("ms")) return numeric;
+  if (value.endsWith("s")) return numeric * 1000;
+  return numeric || DEFAULT_CLOSE_DURATION_MS;
+}
+
 /**
  * Render-prop sheet primitive. Consumers compose their own header / tabs /
  * footer inside `children` and call `onClose` from any surface that triggers
- * dismissal — the sheet animates out then unmounts the panel.
+ * dismissal.
  */
 export function PwaSheet({
   open,
@@ -78,47 +95,32 @@ export function PwaSheet({
 }: PwaSheetProps) {
   const prefersReducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   const [mounted, setMounted] = useState(open);
+  // Active drag offset in percent (0 = at rest, 100 = fully off-screen below).
+  // null means "not actively dragging" — CSS keyframe drives the transform.
+  const [dragOffset, setDragOffset] = useState<number | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
-  const latestOpenRef = useRef(open);
+
   const sheetState = open ? "open" : "closed";
 
   useFocusTrap(dialogRef, { enabled: mounted && open, autoFocusSelector });
 
-  useEffect(() => {
-    latestOpenRef.current = open;
-  }, [open]);
-
-  const [springs, api] = useSpring(() => ({
-    y: open ? 0 : 100,
-    overlay: open ? 1 : 0,
-    config: SPRING_CONFIGS.sheet,
-    immediate: prefersReducedMotion,
-    onRest: (result) => {
-      if (!latestOpenRef.current && result.finished && result.value.y >= 99) {
-        setMounted(false);
-      }
-    },
-  }));
-
+  // Mount on open, keep mounted during the close keyframe so the slide-out
+  // animation can play, then unmount after the animation completes.
   useEffect(() => {
     if (open) {
       setMounted(true);
-      api.start({ y: 0, overlay: 1, immediate: prefersReducedMotion });
       return;
     }
-    api.start({ y: 100, overlay: 0, immediate: prefersReducedMotion });
     if (prefersReducedMotion) {
-      // Reduced-motion users get an instant unmount instead of waiting on a
-      // JS timer that mirrors the now-zeroed CSS duration. Fixes the bug
-      // where `getPwaDrawerCloseDelayMs()` still resolved to 300ms even when
-      // the global `*` rule had snapped every transition to 0.01ms.
       setMounted(false);
+      return;
     }
-  }, [open, api, prefersReducedMotion]);
+    const duration = readCssDurationMs("--spring-spatial-duration");
+    const timer = window.setTimeout(() => setMounted(false), duration + 40);
+    return () => window.clearTimeout(timer);
+  }, [open, prefersReducedMotion]);
 
-  // Body scroll lock while open — matches existing `modal-open` idiom so
-  // shared CSS continues to work without changes.
+  // Body scroll lock while open.
   useEffect(() => {
     if (!mounted) return;
     document.documentElement.classList.add("modal-open");
@@ -127,7 +129,7 @@ export function PwaSheet({
     };
   }, [mounted]);
 
-  // Escape closes
+  // Escape closes.
   useEffect(() => {
     if (!mounted || !open) return;
     const handleKey = (event: KeyboardEvent) => {
@@ -156,20 +158,24 @@ export function PwaSheet({
       }
       if (last) {
         if (dy > 0 && vy > DISMISS_VELOCITY_THRESHOLD) {
+          setDragOffset(null);
           onClose();
           return;
         }
         if (my > DRAG_DISMISS_DISTANCE_PX) {
+          setDragOffset(null);
           onClose();
           return;
         }
-        api.start({ y: 0, immediate: prefersReducedMotion });
+        // Snap back — clearing `dragOffset` removes the inline transform so
+        // the keyframe's final state (translateY(0)) re-applies.
+        setDragOffset(null);
         return;
       }
       if (prefersReducedMotion) return;
-      const sheetHeight = contentRef.current?.offsetHeight ?? 400;
+      const sheetHeight = dialogRef.current?.offsetHeight ?? 400;
       const pct = Math.max(0, (my / sheetHeight) * 100 * DRAG_PULL_RESISTANCE_FACTOR);
-      api.start({ y: pct, immediate: true });
+      setDragOffset(pct);
     },
     {
       from: () => [0, 0],
@@ -181,6 +187,11 @@ export function PwaSheet({
 
   if (!mounted) return null;
 
+  // Inline transform during drag overrides the keyframe transform. When
+  // not dragging, leave it unset so the keyframe's final state applies.
+  const dragStyle: CSSProperties =
+    dragOffset !== null ? { transform: `translateY(${dragOffset}%)` } : {};
+
   return (
     <div
       role="presentation"
@@ -188,10 +199,7 @@ export function PwaSheet({
       data-slot="overlay"
       data-state={sheetState}
       data-testid={`${testId}-overlay`}
-      className={cn(
-        "fixed inset-0 z-modal flex items-end justify-center backdrop-blur-[var(--blur-material-thick)]",
-        overlayClassName
-      )}
+      className={cn("fixed inset-0 z-modal flex items-end justify-center", overlayClassName)}
       style={{ pointerEvents: "auto" }}
       onClick={handleOverlayClick}
       onKeyDown={(event) => {
@@ -199,19 +207,23 @@ export function PwaSheet({
       }}
       tabIndex={-1}
     >
-      <animated.div
+      <div
         aria-hidden="true"
-        className="absolute inset-0"
+        data-state={sheetState}
+        className={cn(
+          "absolute inset-0",
+          "data-[state=open]:animate-in data-[state=open]:fade-in-0",
+          "data-[state=closed]:animate-out data-[state=closed]:fade-out-0"
+        )}
         style={{
-          opacity: springs.overlay,
           backgroundColor: PWA_SHEET_OVERLAY_BG,
+          animationDuration: prefersReducedMotion ? "0ms" : "var(--spring-effects-duration)",
+          animationTimingFunction: "var(--spring-effects-easing)",
+          animationFillMode: "both",
         }}
       />
-      <animated.div
-        ref={(node) => {
-          dialogRef.current = node;
-          contentRef.current = node;
-        }}
+      <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label={ariaLabel}
@@ -221,16 +233,21 @@ export function PwaSheet({
         data-testid={testId}
         className={cn(
           "relative w-full overflow-hidden",
-          "bg-[var(--color-material-thick)] backdrop-blur-[var(--blur-material-thick)]",
+          "bg-[var(--color-material-solid)]",
           "rounded-t-[var(--radius-lg)] shadow-[var(--shadow-float)]",
           "border border-stroke-soft-200 border-b-0",
           "flex flex-col h-modal",
           "will-change-transform",
+          "data-[state=open]:animate-in data-[state=open]:slide-in-from-bottom",
+          "data-[state=closed]:animate-out data-[state=closed]:slide-out-to-bottom",
           panelClassName
         )}
         style={{
           paddingBottom: "env(safe-area-inset-bottom)",
-          transform: springs.y.to((y) => `translateY(${y}%)`),
+          animationDuration: prefersReducedMotion ? "0ms" : "var(--spring-spatial-duration)",
+          animationTimingFunction: "var(--spring-spatial-easing)",
+          animationFillMode: "both",
+          ...dragStyle,
           ...panelStyle,
         }}
         onClick={(event) => event.stopPropagation()}
@@ -248,7 +265,7 @@ export function PwaSheet({
           </div>
         )}
         {children}
-      </animated.div>
+      </div>
     </div>
   );
 }

@@ -364,7 +364,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
         triggerClassName="text-xs"
       />
 
-      <div className="flex-1 min-h-0 overflow-y-auto">{renderTabContent()}</div>
+      <div className="flex-1 min-h-0">{renderTabContent()}</div>
     </PwaSheet>
   );
 };
