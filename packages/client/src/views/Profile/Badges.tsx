@@ -71,7 +71,7 @@ function badgeDescription(intl: ReturnType<typeof useIntl>, slug: string) {
     case "first-work":
       return intl.formatMessage({
         id: "app.profile.badges.firstWork.description",
-        defaultMessage: "Awarded after your first piece of approved work.",
+        defaultMessage: "Awarded after your first submitted work.",
       });
     case "first-support":
       return intl.formatMessage({
@@ -130,12 +130,21 @@ export const ProfileBadges: React.FC = () => {
     ? formatAddress(primaryAddress, { ensName: preferredEnsName ?? undefined })
     : null;
   const firstWorkUid = works[0]?.id as `0x${string}` | undefined;
-  const firstSupportPosition = deposits[0] ?? null;
+  const firstSupportPosition = deposits.find((deposit) => (deposit.shares ?? 0n) > 0n) ?? null;
 
   const earned = useMemo(() => sortBadges(earnedBadges), [earnedBadges]);
   const available = useMemo(
-    () => sortBadges(badges.filter((badge) => badge.claimableNow)),
-    [badges]
+    () =>
+      sortBadges(
+        badges.filter((badge) => {
+          if (!badge.claimableNow) return false;
+          if (badge.slug === "genesis") return isProtocolMember;
+          if (badge.slug === "first-work") return Boolean(firstWorkUid);
+          if (badge.slug === "first-support") return Boolean(firstSupportPosition);
+          return false;
+        })
+      ),
+    [badges, firstSupportPosition, firstWorkUid, isProtocolMember]
   );
   const displayBadges = useMemo<ProfileBadgeDisplay[]>(
     () => [
