@@ -4,6 +4,7 @@ import {
   findActionByUID,
   type Garden,
   logger,
+  mediaResourceManager,
   toastService,
   track,
   useActionTranslation,
@@ -189,6 +190,26 @@ const Work: React.FC = () => {
       setGardenAddressStable(navigationState.gardenId);
     }
   }, [location.state, gardens.length, setGardenAddressStable]);
+
+  // Blob-URL cleanup for the entire Work flow.
+  //
+  // Cleanup MUST live at this level, not inside WorkMedia. When the user
+  // navigates Media → Review, Media unmounts in the same commit that mounts
+  // Review. Review's useMemo runs during render and hands back the cached
+  // blob URL; React then mutates the DOM (Review's <img src=cachedUrl>);
+  // then passive effects fire and Media's old cleanup would revoke that
+  // same URL, breaking the in-flight blob fetch and producing the
+  // "image disappears on Review" regression — most visibly on gallery
+  // uploads, where the larger payload loses the race that camera captures
+  // sometimes win. Letting cleanup follow the parent Work component means
+  // blob URLs stay valid for the lifetime of the submission flow and are
+  // only revoked when the user truly exits.
+  useEffect(() => {
+    return () => {
+      mediaResourceManager.cleanupUrls("work-draft");
+      mediaResourceManager.cleanupUrls("work-draft-video");
+    };
+  }, []);
 
   const handleStartFresh = async () => {
     await clearDraft();

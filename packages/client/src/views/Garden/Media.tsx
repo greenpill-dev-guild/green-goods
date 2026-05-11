@@ -23,7 +23,6 @@ import { Books } from "@/components/Features";
 import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
 
 const WORK_DRAFT_TRACKING_ID = "work-draft";
-const AUDIO_TRACKING_ID = "work-draft-audio";
 const VIDEO_TRACKING_ID = "work-draft-video";
 
 /** Max video duration in seconds (Decision #28) */
@@ -149,13 +148,12 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
     return entries;
   }, [images, mediaUrls]);
 
-  useEffect(() => {
-    return () => {
-      mediaResourceManager.cleanupUrls(WORK_DRAFT_TRACKING_ID);
-      mediaResourceManager.cleanupUrls(AUDIO_TRACKING_ID);
-      mediaResourceManager.cleanupUrls(VIDEO_TRACKING_ID);
-    };
-  }, []);
+  // Note: blob-URL cleanup lives on the parent Work component (Garden/index.tsx),
+  // not here. Cleaning up on this component's unmount races with Review's
+  // useMemo — Review obtains the cached URL during render, then this cleanup
+  // revokes it during the same commit's passive-effect phase, breaking the
+  // browser's in-flight blob fetch and producing the "no image in Review"
+  // and "back-back-next error" regressions for gallery uploads.
 
   const handleUploadClick = useCallback((source: "gallery" | "camera") => {
     uploadSourceRef.current = source;

@@ -148,6 +148,15 @@ vi.mock("@green-goods/shared", () => ({
   toastService: { success: vi.fn(), error: vi.fn() },
   // modules
   logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn(), debug: vi.fn() },
+  mediaResourceManager: {
+    cleanupUrls: vi.fn(),
+    cleanupAll: vi.fn(),
+    getOrCreateUrl: vi.fn(),
+    createUrl: vi.fn(),
+    createUrls: vi.fn(),
+    cleanupUrl: vi.fn(),
+    getStats: vi.fn(() => ({ totalUrls: 0, trackedIds: 0 })),
+  },
 }));
 
 // Mock child components to simplify
