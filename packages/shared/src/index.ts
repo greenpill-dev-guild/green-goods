@@ -1203,7 +1203,6 @@ export {
   toSafeDate,
   toMs,
   truncateAddress,
-  USER_FRIENDLY_ERRORS,
   validateDecimalInput,
   validateSlug,
   ZERO_ADDRESS,

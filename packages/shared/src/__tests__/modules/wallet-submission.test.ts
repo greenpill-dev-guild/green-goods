@@ -199,67 +199,79 @@ describe("wallet-submission", () => {
       ).rejects.toThrow("Wallet not connected");
     });
 
-    it("should handle user rejection error", async () => {
-      // Setup mocks
+    // The wallet-submission boundary module preserves the raw error message and
+    // attaches the original via `cause`. Classification into user-friendly copy
+    // now happens downstream in useWorkMutation.onError via parseContractError —
+    // this avoids the dead-work pattern where pre-formatted messages were
+    // discarded by the unwrap+reclassify in the mutation.
+    it("should preserve user rejection error message and cause", async () => {
       mock(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);
       mock(encoders.encodeWorkData).mockResolvedValue("0xEncodedWorkData" as `0x${string}`);
-      mock(mockWalletClient.sendTransaction!).mockRejectedValue(
-        new Error("User rejected the request")
-      );
+      const original = new Error("User rejected the request");
+      mock(mockWalletClient.sendTransaction!).mockRejectedValue(original);
 
-      // Execute & Verify
-      await expect(
-        submitWorkDirectly(
+      try {
+        await submitWorkDirectly(
           mockWorkDraft,
           "0xGardenAddress",
           123,
           "Test Action",
           mockChainId,
           mockImages
-        )
-      ).rejects.toThrow("Transaction cancelled by user");
+        );
+        expect.fail("Should have thrown");
+      } catch (error) {
+        expect(error).toBeInstanceOf(WorkSubmissionError);
+        expect((error as WorkSubmissionError).phase).toBe("transaction");
+        expect((error as Error).message).toBe("User rejected the request");
+        expect((error as Error).cause).toBe(original);
+      }
     });
 
-    it("should handle insufficient funds error", async () => {
-      // Setup mocks
+    it("should preserve insufficient funds error message and cause", async () => {
       mock(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);
       mock(encoders.encodeWorkData).mockResolvedValue("0xEncodedWorkData" as `0x${string}`);
-      mock(mockWalletClient.sendTransaction!).mockRejectedValue(
-        new Error("insufficient funds for gas")
-      );
+      const original = new Error("insufficient funds for gas");
+      mock(mockWalletClient.sendTransaction!).mockRejectedValue(original);
 
-      // Execute & Verify
-      await expect(
-        submitWorkDirectly(
+      try {
+        await submitWorkDirectly(
           mockWorkDraft,
           "0xGardenAddress",
           123,
           "Test Action",
           mockChainId,
           mockImages
-        )
-      ).rejects.toThrow("Insufficient funds for gas");
+        );
+        expect.fail("Should have thrown");
+      } catch (error) {
+        expect((error as Error).message).toBe("insufficient funds for gas");
+        expect((error as Error).cause).toBe(original);
+      }
     });
 
-    it("should handle network error during transaction phase", async () => {
-      // Setup mocks
+    it("should preserve network error message during transaction phase", async () => {
       mock(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);
       mock(encoders.encodeWorkData).mockResolvedValue("0xEncodedWorkData" as `0x${string}`);
-      mock(mockWalletClient.sendTransaction!).mockRejectedValue(
-        new Error("network connection failed")
-      );
+      const original = new Error("network connection failed");
+      mock(mockWalletClient.sendTransaction!).mockRejectedValue(original);
 
-      // Execute & Verify — transaction-phase errors have phase: "transaction"
-      await expect(
-        submitWorkDirectly(
+      try {
+        await submitWorkDirectly(
           mockWorkDraft,
           "0xGardenAddress",
           123,
           "Test Action",
           mockChainId,
           mockImages
-        )
-      ).rejects.toThrow("Network error");
+        );
+        expect.fail("Should have thrown");
+      } catch (error) {
+        expect(error).toBeInstanceOf(WorkSubmissionError);
+        expect((error as WorkSubmissionError).phase).toBe("transaction");
+        expect((error as Error).message).toBe("network connection failed");
+        expect((error as Error).cause).toBe(original);
+      }
     });
 
     it("should wrap IPFS upload failure with phase 'upload'", async () => {
@@ -288,23 +300,26 @@ describe("wallet-submission", () => {
       }
     });
 
-    it("should handle nonce conflict error", async () => {
-      // Setup mocks
+    it("should preserve nonce conflict error message and cause", async () => {
       mock(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);
       mock(encoders.encodeWorkData).mockResolvedValue("0xEncodedWorkData" as `0x${string}`);
-      mock(mockWalletClient.sendTransaction!).mockRejectedValue(new Error("nonce too low"));
+      const original = new Error("nonce too low");
+      mock(mockWalletClient.sendTransaction!).mockRejectedValue(original);
 
-      // Execute & Verify
-      await expect(
-        submitWorkDirectly(
+      try {
+        await submitWorkDirectly(
           mockWorkDraft,
           "0xGardenAddress",
           123,
           "Test Action",
           mockChainId,
           mockImages
-        )
-      ).rejects.toThrow("Transaction conflict - please try again");
+        );
+        expect.fail("Should have thrown");
+      } catch (error) {
+        expect((error as Error).message).toBe("nonce too low");
+        expect((error as Error).cause).toBe(original);
+      }
     });
   });
 
@@ -368,25 +383,26 @@ describe("wallet-submission", () => {
       ).rejects.toThrow("Wallet not connected");
     });
 
-    it("should handle user rejection error for approval", async () => {
-      // Setup mocks
+    it("should preserve user rejection error message and cause for approval", async () => {
       mock(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);
       mock(encoders.encodeWorkApprovalData).mockReturnValue(
         "0xEncodedApprovalData" as `0x${string}`
       );
-      mock(mockWalletClient.sendTransaction!).mockRejectedValue(
-        new Error("User rejected the request")
-      );
+      const original = new Error("User rejected the request");
+      mock(mockWalletClient.sendTransaction!).mockRejectedValue(original);
 
-      // Execute & Verify
-      await expect(
-        submitApprovalDirectly(
+      try {
+        await submitApprovalDirectly(
           mockApprovalDraft,
           "0xGardenAddress",
           "0xGardenerAddress",
           mockChainId
-        )
-      ).rejects.toThrow("Transaction cancelled by user");
+        );
+        expect.fail("Should have thrown");
+      } catch (error) {
+        expect((error as Error).message).toBe("User rejected the request");
+        expect((error as Error).cause).toBe(original);
+      }
     });
   });
 });

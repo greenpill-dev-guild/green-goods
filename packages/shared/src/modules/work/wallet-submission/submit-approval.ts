@@ -12,7 +12,7 @@ import { logger } from "../../app/logger";
 import { DEBUG_ENABLED, debugError, debugLog } from "../../../utils/debug";
 import { encodeWorkApprovalData } from "../../../utils/eas/encoders";
 import { buildApprovalAttestTx } from "../../../utils/eas/transaction-builder";
-import { formatWalletError } from "../../../utils/errors/user-messages";
+import { extractErrorMessage } from "../../../utils/errors/extract-message";
 import { pollQueriesAfterTransaction } from "../../../utils/blockchain/polling";
 import { simulateApprovalSubmission } from "../simulate";
 import type { WalletSubmissionOptions } from "./types";
@@ -146,6 +146,12 @@ export async function submitApprovalDirectly(
       logger.error(logMessage, { error: err });
     }
 
-    throw new Error(formatWalletError(err));
+    // Re-throw preserving the original error so downstream parseContractError
+    // sees the canonical message. `Error.cause` keeps the original for tracking.
+    const wrapped = new Error(extractErrorMessage(err));
+    if (err instanceof Error) {
+      (wrapped as Error & { cause?: unknown }).cause = err;
+    }
+    throw wrapped;
   }
 }

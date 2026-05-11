@@ -90,7 +90,10 @@ export function createQueueToasts(formatMessage: FormatMessageFn) {
 
     jobFailed: (kind: "work" | "approval", detail?: string) =>
       toastService.error({
-        id: `job-failed-${kind}`,
+        // Share the id with the owning mutation's loading toast so the inline-process
+        // path collapses to a single slot. In the background-flush path no mutation
+        // is active, so this toast still renders alone.
+        id: kind === "work" ? "work-upload" : "approval-submit",
         title: formatMessage({
           id: toastMessageIds.queue.jobFailed.title,
           defaultMessage: queueDefaults.jobFailed.title,
@@ -187,7 +190,7 @@ export const queueToasts = {
     const bound = localized();
     if (bound) return bound.jobFailed(kind, detail);
     return toastService.error({
-      id: `job-failed-${kind}`,
+      id: kind === "work" ? "work-upload" : "approval-submit",
       title: queueDefaults.jobFailed.title,
       message:
         detail ??

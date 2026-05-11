@@ -29,11 +29,11 @@ vi.mock("../../modules/work/passkey-submission", () => ({
 
 import { jobQueue } from "../../modules/job-queue";
 import {
-  formatJobError,
   submitApprovalToQueue,
   submitWorkToQueue,
   validateWorkSubmissionContext,
 } from "../../modules/work/work-submission";
+import { parseContractError } from "../../utils/errors/contract-errors";
 
 // Test user address for scoped queue operations
 const TEST_USER_ADDRESS = "0xTestUser123";
@@ -162,8 +162,11 @@ describe("modules/work-submission", () => {
     expect(result.txHash.startsWith("0xoffline_")).toBe(true);
   });
 
-  it("formats job errors", () => {
-    expect(formatJobError("permission denied").toLowerCase()).toContain("permission");
-    expect(formatJobError("unknown")).toBe("unknown");
+  it("classifies job errors via parseContractError", () => {
+    // formatJobError was deleted in 2026-05-11 when user-messages.ts was
+    // collapsed into the single parseContractError classifier. Job-error
+    // formatting now goes through the same path as every other error.
+    expect(parseContractError("permission denied").message.toLowerCase()).toContain("authorized");
+    expect(parseContractError("unknown").isKnown).toBe(false);
   });
 });

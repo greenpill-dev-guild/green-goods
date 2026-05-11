@@ -433,9 +433,10 @@ describe("workflows/createGardenMachine", () => {
         expect(actor.getSnapshot().value).toBe("error");
       });
 
-      // formatUserError maps "Gas estimation failed" → gas estimation pattern
+      // parseContractError classifies "Gas estimation failed" as GasEstimationFailed
+      // (canonical phrasing chosen during user-messages.ts consolidation in 2026-05-11).
       expect(actor.getSnapshot().context.error).toBe(
-        "Transaction would fail - please check your inputs and try again"
+        "Couldn't estimate gas. Check your inputs and try again."
       );
       expect(actor.getSnapshot().context.retryCount).toBe(1);
 

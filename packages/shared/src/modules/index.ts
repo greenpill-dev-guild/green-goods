@@ -311,7 +311,6 @@ export { submitWorkDirectly } from "./work/wallet-submission";
 // WORK / WORK SUBMISSION
 // ============================================================================
 export {
-  formatJobError,
   getSubmissionStatusText,
   validateApprovalDraft,
 } from "./work/work-submission";

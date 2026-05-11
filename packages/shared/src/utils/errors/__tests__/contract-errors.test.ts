@@ -89,6 +89,165 @@ describe("parseContractError", () => {
     expect(result.isKnown).toBe(false);
     expect(result.name).toBe("UnknownError");
   });
+
+  // ============================================================================
+  // Consolidated post-signature pattern tests (folded in from formatWalletError
+  // and formatUserError when user-messages.ts was deleted in 2026-05-11).
+  // ============================================================================
+
+  describe("user rejection patterns", () => {
+    it("classifies 'user rejected the transaction'", () => {
+      const result = parseContractError("user rejected the transaction");
+      expect(result.name).toBe("UserRejected");
+      expect(result.isKnown).toBe(true);
+      expect(result.recoverable).toBe(true);
+      expect(result.message).toBe("Transaction cancelled. Try again when you're ready.");
+    });
+
+    it("classifies 'user denied the signature'", () => {
+      const result = parseContractError("user denied the signature");
+      expect(result.name).toBe("UserRejected");
+    });
+
+    it("classifies 'rejected the request' (passkey/EIP-1193 phrasing)", () => {
+      const result = parseContractError("MetaMask rejected the request");
+      expect(result.name).toBe("UserRejected");
+    });
+
+    it("classifies regardless of case", () => {
+      const result = parseContractError("USER REJECTED the request");
+      expect(result.name).toBe("UserRejected");
+    });
+  });
+
+  describe("wallet balance / gas patterns", () => {
+    it("classifies insufficient funds", () => {
+      const result = parseContractError("insufficient funds for gas");
+      expect(result.name).toBe("InsufficientFunds");
+      expect(result.message).toContain("Not enough funds");
+      expect(result.recoverable).toBe(false);
+    });
+
+    it("classifies nonce conflict", () => {
+      const result = parseContractError("nonce too low");
+      expect(result.name).toBe("NonceConflict");
+      expect(result.recoverable).toBe(true);
+    });
+
+    it("classifies gas estimation failure", () => {
+      const result = parseContractError("gas estimation failed");
+      expect(result.name).toBe("GasEstimationFailed");
+    });
+  });
+
+  describe("upload patterns", () => {
+    it("classifies 'media upload not initialized' as service-unavailable", () => {
+      const result = parseContractError("media upload not initialized");
+      expect(result.name).toBe("UploadServiceUnavailable");
+      expect(result.message).toContain("unavailable");
+    });
+
+    it("classifies generic IPFS failures", () => {
+      const result = parseContractError("ipfs gateway timeout");
+      // 'timeout' would match the timeout pattern, but 'ipfs' is checked first.
+      expect(result.name).toBe("UploadError");
+      expect(result.recoverable).toBe(true);
+    });
+
+    it("classifies 'failed to upload'", () => {
+      const result = parseContractError("failed to upload media");
+      expect(result.name).toBe("UploadError");
+    });
+  });
+
+  describe("storage patterns", () => {
+    it("classifies storage quota exceeded", () => {
+      const result = parseContractError("Quota exceeded on IndexedDB");
+      // Note: signature loop matches 'StorageError' pattern indirectly; ensure quota wins.
+      expect(result.name).toBe("StorageQuotaExceeded");
+      expect(result.recoverable).toBe(false);
+    });
+
+    it("classifies generic storage error", () => {
+      const result = parseContractError("indexeddb write failed");
+      expect(result.name).toBe("StorageError");
+    });
+  });
+
+  describe("network and connectivity patterns", () => {
+    it("classifies offline before generic network", () => {
+      const result = parseContractError("Device is offline");
+      expect(result.name).toBe("Offline");
+    });
+
+    it("classifies timeout", () => {
+      const result = parseContractError("Request timed out");
+      expect(result.name).toBe("TimeoutError");
+    });
+
+    it("classifies generic network", () => {
+      const result = parseContractError("network error");
+      expect(result.name).toBe("NetworkError");
+    });
+
+    it("classifies 'failed to fetch' as network", () => {
+      const result = parseContractError("Failed to fetch");
+      expect(result.name).toBe("NetworkError");
+    });
+  });
+
+  describe("permission patterns", () => {
+    it("classifies generic unauthorized", () => {
+      const result = parseContractError("Unauthorized: missing credentials");
+      expect(result.name).toBe("Unauthorized");
+      expect(result.recoverable).toBe(false);
+    });
+
+    it("classifies permission denied", () => {
+      const result = parseContractError("permission denied");
+      expect(result.name).toBe("Unauthorized");
+    });
+  });
+
+  describe("revert and validation patterns", () => {
+    it("classifies execution reverted without reason", () => {
+      const result = parseContractError("execution reverted");
+      expect(result.name).toBe("ExecutionReverted");
+      expect(result.message).toContain("Transaction would fail");
+    });
+
+    it("prefers known signature when error string contains a known contract error name", () => {
+      // The signature/name loop runs before the post-signature patterns,
+      // so a wrapped revert with a known name wins over the generic revert.
+      const result = parseContractError("execution reverted with reason: NotGardenMember");
+      expect(result.name).toBe("NotGardenMember");
+      expect(result.action).toContain("Please join the garden");
+    });
+
+    it("classifies 'Validation failed' as ValidationError with original message", () => {
+      const result = parseContractError("Validation failed: missing field");
+      expect(result.name).toBe("ValidationError");
+      expect(result.message).toContain("missing field");
+    });
+
+    it("classifies generic invalid input as ValidationError", () => {
+      const result = parseContractError("Invalid input data");
+      expect(result.name).toBe("ValidationError");
+    });
+  });
+
+  describe("error wrapping", () => {
+    it("classifies an Error instance with user rejection message", () => {
+      const err = new Error("User rejected the request.");
+      const result = parseContractError(err);
+      expect(result.name).toBe("UserRejected");
+    });
+
+    it("classifies a plain object with user rejection message", () => {
+      const result = parseContractError({ message: "user denied transaction signature" });
+      expect(result.name).toBe("UserRejected");
+    });
+  });
 });
 
 describe("isNotGardenMemberError", () => {

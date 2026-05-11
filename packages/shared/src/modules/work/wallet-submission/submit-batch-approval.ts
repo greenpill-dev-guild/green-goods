@@ -12,7 +12,7 @@ import { logger } from "../../app/logger";
 import { DEBUG_ENABLED, debugError, debugLog } from "../../../utils/debug";
 import { encodeWorkApprovalData } from "../../../utils/eas/encoders";
 import { buildBatchApprovalAttestTx } from "../../../utils/eas/transaction-builder";
-import { formatWalletError } from "../../../utils/errors/user-messages";
+import { extractErrorMessage } from "../../../utils/errors/extract-message";
 import {
   pollQueriesAfterTransaction,
   TX_RECEIPT_TIMEOUT_MS,
@@ -163,6 +163,10 @@ export async function submitBatchApprovalsDirectly(
     } else {
       logger.error(logMessage, { error: err });
     }
-    throw new Error(formatWalletError(err));
+    const wrapped = new Error(extractErrorMessage(err));
+    if (err instanceof Error) {
+      (wrapped as Error & { cause?: unknown }).cause = err;
+    }
+    throw wrapped;
   }
 }

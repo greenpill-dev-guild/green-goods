@@ -5,7 +5,6 @@ import { toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import { logger } from "../../modules/app/logger";
 import { parseContractError } from "../../utils/errors/contract-errors";
-import { USER_FRIENDLY_ERRORS } from "../../utils/errors/user-messages";
 import { useAuth } from "../auth/useAuth";
 import { queryKeys } from "../../config/query-keys";
 
@@ -242,11 +241,9 @@ export function useGardenerProfile() {
     },
     onError: (error: Error) => {
       const parsed = parseContractError(error);
-      const safeName = typeof parsed?.name === "string" ? parsed.name.toLowerCase() : "";
-      const userFriendlyMsg = USER_FRIENDLY_ERRORS[safeName] || config.errorMessage;
       toastService.error({
         title: config.errorTitle,
-        message: userFriendlyMsg,
+        message: parsed.isKnown ? parsed.message : config.errorMessage,
         context: "profile update",
         error: parsed,
       });

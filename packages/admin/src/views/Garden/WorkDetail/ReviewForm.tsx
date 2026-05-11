@@ -9,7 +9,6 @@ import {
   parseContractError,
   Textarea,
   toastService,
-  USER_FRIENDLY_ERRORS,
   uploadFileToIPFS,
   uploadJSONToIPFS,
   useWorkApproval,
@@ -154,13 +153,6 @@ export function ReviewForm({
       onSuccess?.();
     } catch (error) {
       const parsed = parseContractError(error);
-      const normalizedName = parsed.name.toLowerCase();
-      const knownMessage =
-        USER_FRIENDLY_ERRORS[normalizedName] ??
-        Object.entries(USER_FRIENDLY_ERRORS).find(([pattern]) => {
-          const lowerMessage = parsed.message.toLowerCase();
-          return normalizedName.includes(pattern) || lowerMessage.includes(pattern);
-        })?.[1];
 
       logger.error("Work approval submission failed", {
         error,
@@ -169,11 +161,9 @@ export function ReviewForm({
 
       toastService.error({
         title: formatMessage({ id: "app.toast.approval.errorDecision.title" }),
-        message:
-          knownMessage ??
-          (parsed.isKnown
-            ? parsed.message
-            : formatMessage({ id: "app.toast.approval.errorWallet.message" })),
+        message: parsed.isKnown
+          ? parsed.message
+          : formatMessage({ id: "app.toast.approval.errorWallet.message" }),
       });
     } finally {
       setIsSubmitting(false);

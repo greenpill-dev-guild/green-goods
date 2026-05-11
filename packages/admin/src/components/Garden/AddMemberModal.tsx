@@ -8,7 +8,6 @@ import {
   parseContractError,
   resolveEnsAddress,
   TextInput,
-  USER_FRIENDLY_ERRORS,
   useEnsAddress,
 } from "@green-goods/shared";
 import { RiClipboardLine } from "@remixicon/react";
@@ -82,15 +81,7 @@ export function AddMemberModal({
       onClose();
     } catch (error) {
       const parsed = parseContractError(error);
-      const normalizedName = parsed.name.toLowerCase();
-      const knownMessage =
-        USER_FRIENDLY_ERRORS[normalizedName] ??
-        Object.entries(USER_FRIENDLY_ERRORS).find(([pattern]) => {
-          const lowerMessage = parsed.message.toLowerCase();
-          return normalizedName.includes(pattern) || lowerMessage.includes(pattern);
-        })?.[1];
-
-      const safeMessage = knownMessage ?? (parsed.isKnown ? parsed.message : null);
+      const safeMessage = parsed.isKnown ? parsed.message : null;
       setError(safeMessage ?? formatMessage({ id: "app.admin.roles.error.addFailed" }));
     }
   };

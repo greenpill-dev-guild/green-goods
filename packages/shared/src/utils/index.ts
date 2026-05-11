@@ -353,12 +353,6 @@ export {
   isCancelledTxError,
   isMeaningfulTxErrorMessage,
 } from "./errors/tx-error-classifier";
-export {
-  formatJobError,
-  formatUserError,
-  formatWalletError,
-  USER_FRIENDLY_ERRORS,
-} from "./errors/user-messages";
 export { ValidationError } from "./errors/validation-error";
 export {
   formatTimeSpent,
