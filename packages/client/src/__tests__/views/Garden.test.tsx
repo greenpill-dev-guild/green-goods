@@ -11,25 +11,30 @@ import { IntlProvider } from "react-intl";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock form state (referenced in the barrel mock below)
+// Mock form state (referenced in the barrel mock below).
+// Must mirror WorkFormValue from packages/shared/src/providers/Work.tsx — adding
+// fields that live on WorkSelectionValue (actionUID, gardenAddress, their setters)
+// here is what hid the Jan 2026 context-split regression for 4 months.
 const mockForm = {
   state: { isSubmitting: false, isValid: true },
   images: [],
   setImages: vi.fn(),
-  actionUID: null,
-  setActionUID: vi.fn(),
-  gardenAddress: null,
-  setGardenAddress: vi.fn(),
   register: vi.fn(),
   control: {},
   setValue: vi.fn(),
   uploadWork: vi.fn().mockResolvedValue(true),
   feedback: "",
   timeSpentMinutes: undefined,
-  plantSelection: [],
-  plantCount: undefined,
   values: {},
   reset: vi.fn(),
+  validationErrors: [] as string[],
+};
+
+const mockSelection = {
+  actionUID: null as number | null,
+  setActionUID: vi.fn(),
+  gardenAddress: null as string | null,
+  setGardenAddress: vi.fn(),
 };
 
 const mockWorkFlowState = {
@@ -111,6 +116,10 @@ vi.mock("@green-goods/shared", () => ({
     setActiveTab: mockSetActiveTab,
     selectedDomain: null,
     setSelectedDomain: mockSetSelectedDomain,
+    actionUID: mockSelection.actionUID,
+    setActionUID: mockSelection.setActionUID,
+    gardenAddress: mockSelection.gardenAddress,
+    setGardenAddress: mockSelection.setGardenAddress,
   }),
   WorkTab: {
     Intro: "Intro",
@@ -239,8 +248,8 @@ const renderWithProviders = (initialRoute = "/home/garden") => {
 describe("Garden (Work) View", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockForm.actionUID = null;
-    mockForm.gardenAddress = null;
+    mockSelection.actionUID = null;
+    mockSelection.gardenAddress = null;
   });
 
   afterEach(() => {

@@ -105,6 +105,10 @@ const Work: React.FC = () => {
     setActiveTab,
     selectedDomain,
     setSelectedDomain,
+    actionUID,
+    setActionUID,
+    gardenAddress,
+    setGardenAddress,
   } = useWorkSelection();
   const form = useWorkFormContext();
   const { workMutation } = form;
@@ -144,10 +148,6 @@ const Work: React.FC = () => {
     state,
     images,
     setImages,
-    actionUID,
-    setActionUID,
-    gardenAddress,
-    setGardenAddress,
     register,
     control,
     setValue,
