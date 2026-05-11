@@ -323,6 +323,18 @@
     transparent 100%
   );
   --admin-appbar-height: 3.5rem;
+  --admin-nav-offset-desktop: 20px;
+  --admin-nav-height-desktop: 3.5rem;
+  --admin-nav-height-mobile: calc(5rem + env(safe-area-inset-bottom));
+  --admin-sheet-top-gap: 0.5rem;
+  --admin-sheet-bottom-gap-desktop: 1.5rem;
+  --admin-sheet-bottom-gap-mobile: 1rem;
+  --admin-sheet-side-inset: 1rem;
+  --admin-sheet-mobile-side-inset: 0.75rem;
+  --admin-sheet-top: calc(var(--admin-appbar-height, 3.5rem) + var(--admin-sheet-top-gap, 0.5rem));
+  --admin-sheet-bottom: calc(
+    var(--admin-nav-offset-desktop, 20px) + var(--admin-nav-height-desktop, 3.5rem) + var(--admin-sheet-bottom-gap-desktop, 1.5rem)
+  );
   --admin-main-bottom-clearance-desktop: 6.25rem;
   --admin-main-bottom-clearance-mobile: calc(env(safe-area-inset-bottom) + 9.5rem);
   --admin-main-content-min-height: calc(
@@ -1553,6 +1565,10 @@
 
 @media (max-width: 599px) {
   :root {
+    --admin-sheet-side-inset: var(--admin-sheet-mobile-side-inset, 0.75rem);
+    --admin-sheet-bottom: calc(
+      var(--admin-nav-height-mobile, calc(5rem + env(safe-area-inset-bottom))) + var(--admin-sheet-bottom-gap-mobile, 1rem)
+    );
     --admin-main-content-min-height: calc(
       100dvh - var(--admin-appbar-height, 3.5rem) - var(--admin-main-bottom-clearance-mobile)
     );
@@ -1731,18 +1747,18 @@
 
 /* Dark mode default = subtle (per audit §5.4.3) */
 [data-theme="dark"]                                  { --tone-strength: 0.5; }
-[data-theme="dark"][data-tone-strength="off"]        { --tone-strength: 0; }
-[data-theme="dark"][data-tone-strength="default"]    { --tone-strength: 1; }
+:is([data-theme="dark"][data-tone-strength="off"], [data-theme="dark"] [data-tone-strength="off"])         { --tone-strength: 0; }
+:is([data-theme="dark"][data-tone-strength="default"], [data-theme="dark"] [data-tone-strength="default"]) { --tone-strength: 1; }
 
 [data-tone="hub"]       { --tone-canvas: oklch(96.5% calc(0.008 * var(--tone-strength)) 240); }
 [data-tone="garden"]    { --tone-canvas: oklch(96.5% calc(0.008 * var(--tone-strength)) 145); }
 [data-tone="community"] { --tone-canvas: oklch(96.5% calc(0.008 * var(--tone-strength)) 50);  }
 [data-tone="actions"]   { --tone-canvas: oklch(96.5% calc(0.008 * var(--tone-strength)) 30);  }
 
-[data-theme="dark"][data-tone="hub"]       { --tone-canvas: oklch(20% calc(0.012 * var(--tone-strength)) 240); }
-[data-theme="dark"][data-tone="garden"]    { --tone-canvas: oklch(20% calc(0.012 * var(--tone-strength)) 145); }
-[data-theme="dark"][data-tone="community"] { --tone-canvas: oklch(20% calc(0.012 * var(--tone-strength)) 50);  }
-[data-theme="dark"][data-tone="actions"]   { --tone-canvas: oklch(20% calc(0.012 * var(--tone-strength)) 30);  }
+:is([data-theme="dark"][data-tone="hub"], [data-theme="dark"] [data-tone="hub"])             { --tone-canvas: oklch(20% calc(0.012 * var(--tone-strength)) 240); }
+:is([data-theme="dark"][data-tone="garden"], [data-theme="dark"] [data-tone="garden"])       { --tone-canvas: oklch(20% calc(0.012 * var(--tone-strength)) 145); }
+:is([data-theme="dark"][data-tone="community"], [data-theme="dark"] [data-tone="community"]) { --tone-canvas: oklch(20% calc(0.012 * var(--tone-strength)) 50);  }
+:is([data-theme="dark"][data-tone="actions"], [data-theme="dark"] [data-tone="actions"])     { --tone-canvas: oklch(20% calc(0.012 * var(--tone-strength)) 30);  }
 
 /* ============================================================================
  * STATUS PALETTE REMAP (Tier 1b — admin-scoped global remap)

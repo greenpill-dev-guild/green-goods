@@ -134,9 +134,9 @@ Source: `prompt_vocabulary_admin_banned` in [`banned-vocabulary.json`](https://g
 |--------|-----------|-----------|
 | `hero moment` | admin only | Hero moments are reserved for celebratory client PWA flows (garden creation, first work submission, Hypercert mint). The admin cockpit stays restrained. |
 | `gallery` | admin only | Marketing-page framing. Admin shows workbench rows, lists, and inspectors — not curated visual galleries. |
-| `decorative gradient` | admin only | Decoration without function. Admin uses solid surfaces; only the admin AppBar uses material treatment. |
+| `decorative gradient` | admin only | Decoration without function. Admin uses solid surfaces; material treatment is reserved for Navigation/FAB and sheet shells. |
 | `marketing banner` | admin only | Promotional surface framing. Admin is operator-internal — no banners, no landing-page energy. |
-| `glass outside admin AppBar` | admin only | Liquid / frosted material treatment is restricted to the admin AppBar. Dense data surfaces must be solid for legibility and operator focus. |
+| `AppBar glass` / `glass outside Navigation/FAB and sheet shells` | admin only | The admin AppBar root stays transparent over the workspace canvas. Liquid / frosted material treatment is restricted to Navigation/FAB and sheet shells; dense data surfaces must be solid for legibility and operator focus. |
 
 The full prompt-vocabulary admin ban list (including `hero section`, `celebration`, `masonry gallery`, `ambient gradient wash`, `promo band`, `landing-page`, `dashboard card mosaic`, `feature cards`, `floating stats`, `stat chips floating above content`, `liquid`, `frosted`) lives in `prompt_vocabulary_admin_banned` of the JSON sidecar — they expand the categories above.
 

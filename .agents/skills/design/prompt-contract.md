@@ -15,7 +15,7 @@ Paste this sentence (or a trimmed version) into every AI design prompt for admin
 The admin cockpit and the client PWA are both Warm Earth. The difference is expressiveness, not foundation:
 
 - **Shared baseline**: concentric geometry, spring motion tokens, role hierarchy (canvas/ink/stone/green accent), 4 disclosure layers, 5 Z-layers, material system.
-- **Admin subset**: Standard motion scheme (never Expressive), glass restricted to the admin `AppBar`, capsule shape only for primary CTAs/FABs, solid surfaces over blur everywhere else, no organic/hero shapes, no decorative color.
+- **Admin subset**: Standard motion scheme (never Expressive), glass restricted to Navigation/FAB and sheet shells, transparent admin `AppBar` root over the workspace canvas, capsule shape only for primary CTAs/FABs, solid surfaces over blur everywhere else, no organic/hero shapes, no decorative color.
 - **Why**: operators scanning a queue need motion that aids, not entertains. The cockpit inherits warmth; it does not perform it.
 
 If you would not ship a move on Linear, GitHub, or Stripe Dashboard, it does not belong in the cockpit — regardless of what the Warm Earth language permits in client flows.
@@ -64,13 +64,13 @@ The categories below are contract-specific framing — *why* admin output should
 - **Marketing / promo framing** — admin is operator-internal; no banners, no landing-page energy.
 - **Gallery / mosaic / floating-stats framing** — admin shows workbench rows and inspectors, not curated visual layouts.
 - **Decorative gradient framing** — decoration without function; admin uses solid surfaces.
-- **Glass / liquid / frosted outside the admin `AppBar`** — material treatment is restricted to the AppBar; dense surfaces must be solid.
+- **Glass / liquid / frosted outside Navigation/FAB and sheet shells** — the AppBar root remains transparent; dense surfaces must be solid.
 
 ## Materials & Motion (admin)
 
 - **M3 strict anatomy** (v0.192) — exact dimensions, state layers (8%/12%/12%/16%), shapes, color roles.
 - **Spring motion** — the single permitted deviation from M3 standard easing. Uses `--spring-*` tokens.
-- **Glass is restricted** to the admin `AppBar` only.
+- **Glass is restricted** to Navigation/FAB and sheet shells. The admin `AppBar` root remains transparent.
 - **Typography** — Plus Jakarta Sans across the cockpit.
 
 ## Copy Voice
@@ -98,7 +98,7 @@ AI design tools MUST map generated output to these existing exports. Do not inve
 | Component | Role |
 |-----------|------|
 | `CanvasLayout` | CSS Grid root — named areas: `canvas-area-top`, `canvas-area-bottom`, inner cells |
-| `AppBar` | Admin top context bar, Z3 — garden context, search, settings, avatar; **only** surface permitted glass/blur |
+| `AppBar` | Admin top context bar, Z3 — garden context, search, settings, avatar; transparent root over the workspace canvas |
 | `MainSheet` | Z2 — dominant workspace; `isReceded` prop triggers canvas recession on sheet open |
 | `LeftSheet` | Creation flows (submit work, create assessment, mint) |
 | `RightSheet` | Config, alerts, profile, settings, notifications |

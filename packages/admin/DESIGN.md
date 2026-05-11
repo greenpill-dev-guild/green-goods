@@ -54,7 +54,7 @@ The admin uses Material Design 3 v0.192 as its **strict structural backbone** �
 - Shape scale: none (0px), xs (4px), sm (8px), md (12px), lg (16px), xl (28px), full (9999px). Use admin-prefixed `--admin-radius-*` tokens for these M3-only shapes; shared `--radius-*` aliases remain the DesignMD-generated Warm Earth runtime scale.
 - M3 elevation scale (0-5) with specific shadow values
 - **Spring motion (`--spring-*`) is the sole permitted deviation** from M3 standard easing
-- **Controlled Chrome Liquid Glass** — subtle glass is allowed only on AppBar, Navigation/FAB, and sheet shells; route cards, forms, tables, lists, and dense content stay solid.
+- **Controlled Chrome Liquid Glass** — subtle glass is allowed only on Navigation/FAB and sheet shells; the AppBar root stays transparent so the canvas tone reads behind it. Route cards, forms, tables, lists, and dense content stay solid.
 - **Admin motion roles** are tokenized through runtime aliases: route content uses `--admin-motion-route-content-*`, canvas tone changes use `--admin-motion-canvas-tone-*`, FAB menus use `--admin-motion-fab-menu`, and interactive state changes use `--admin-motion-state`.
 
 **Why strict:** M3+unbounded glass produced inconsistent UI. Strict M3 provides discipline; Controlled Chrome gives spatial depth to persistent shell surfaces without making operational content translucent.
@@ -127,7 +127,7 @@ Components: AdminButton, AdminCard, AdminCheckbox, AdminDialog, AdminFab, AdminL
 - **NavigationBar** (bottom, Z3): Workspace tabs — Hub, Garden, Community, Actions. Symbol-first. Role-adaptive visibility via permissions.
 - **AdminFab**: Per-workspace primary action, capsule shape. Integrated into NavigationBar via FabProvider.
 - **Desktop profile**: On desktop, Profile redirects to Hub and opens RightSheet with profile content.
-- **Controlled Chrome**: AppBar, NavigationBar/FAB, and Left/Right/Bottom sheet shells use subtle liquid material. Page content, tables, forms, and route cards do not.
+- **Controlled Chrome**: NavigationBar/FAB and Left/Right/Bottom sheet shells use subtle liquid material. The AppBar root is transparent while child controls can carry their own solid/hover states. Page content, tables, forms, and route cards do not use glass.
 
 ---
 

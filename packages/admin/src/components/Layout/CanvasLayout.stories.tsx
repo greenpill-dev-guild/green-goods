@@ -10,7 +10,7 @@ import { RiAppsLine, RiHammerLine, RiSeedlingLine, RiTeamLine } from "@remixicon
 import type { Meta, StoryObj } from "@storybook/react";
 import { useMemo, useState } from "react";
 import { Route, Routes } from "react-router-dom";
-import { expect, fn, userEvent, within } from "storybook/test";
+import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import { STORYBOOK_ADMIN_SHELL_SEEDS } from "../../../../shared/.storybook/adminFixtures";
 import {
   withAdminIdentity,
@@ -161,6 +161,52 @@ function RealCanvasLayoutStory() {
 }
 
 type CanvasLayoutStoryArgs = MockCanvasLayoutProps;
+type AdminWorkspaceTone = "hub" | "garden" | "community" | "actions";
+
+const DARK_TONE_HUES: Record<AdminWorkspaceTone, string> = {
+  hub: "240",
+  garden: "145",
+  community: "50",
+  actions: "30",
+};
+
+function getCanvasLayoutRoot(canvasElement: HTMLElement): HTMLElement {
+  const root = canvasElement.querySelector<HTMLElement>('[data-component="CanvasLayout"]');
+  expect(root).not.toBeNull();
+  return root as HTMLElement;
+}
+
+function expectDarkCanvasTone(root: HTMLElement, tone: AdminWorkspaceTone) {
+  const toneCanvas = window.getComputedStyle(root).getPropertyValue("--tone-canvas").trim();
+
+  expect(root).toHaveAttribute("data-tone", tone);
+  expect(toneCanvas).toContain("oklch(20%");
+  expect(toneCanvas).toContain(DARK_TONE_HUES[tone]);
+}
+
+async function withTemporaryDocumentTheme(theme: "light" | "dark", callback: () => Promise<void>) {
+  const previousHtmlTheme = document.documentElement.getAttribute("data-theme");
+  const previousBodyTheme = document.body.getAttribute("data-theme");
+
+  document.documentElement.setAttribute("data-theme", theme);
+  document.body.setAttribute("data-theme", theme);
+
+  try {
+    await callback();
+  } finally {
+    if (previousHtmlTheme === null) {
+      document.documentElement.removeAttribute("data-theme");
+    } else {
+      document.documentElement.setAttribute("data-theme", previousHtmlTheme);
+    }
+
+    if (previousBodyTheme === null) {
+      document.body.removeAttribute("data-theme");
+    } else {
+      document.body.setAttribute("data-theme", previousBodyTheme);
+    }
+  }
+}
 
 const meta: Meta<CanvasLayoutStoryArgs> = {
   title: "Admin/Shell/CanvasLayout",
@@ -239,6 +285,49 @@ export const RealProviderShell: Story = {
     await expect(rightSheet).toHaveAttribute("data-component", "RightSheet");
     await expect(within(rightSheet).getByRole("heading", { name: "Settings" })).toBeVisible();
     await userEvent.click(within(rightSheet).getByRole("button", { name: "Close" }));
+  },
+};
+
+export const DarkRouteToneContract: Story = {
+  tags: ["storybook-ci"],
+  render: () => <RealCanvasLayoutStory />,
+  decorators: [
+    withAdminIdentity,
+    withSeededQueryClient(STORYBOOK_ADMIN_SHELL_SEEDS),
+    withRouter(["/hub"]),
+    withCanvasFrame({
+      className: "p-0",
+      heightClassName: "h-[760px]",
+      workspace: "hub",
+    }),
+  ],
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Browser-level dark canvas tone contract for the canonical admin routes. Proves document-level [data-theme='dark'] still reaches the CanvasLayout [data-tone] root.",
+      },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    await withTemporaryDocumentTheme("dark", async () => {
+      const canvas = within(canvasElement);
+      const root = getCanvasLayoutRoot(canvasElement);
+
+      await waitFor(() => expectDarkCanvasTone(root, "hub"));
+
+      const routeCases = [
+        { label: "Garden", tone: "garden" },
+        { label: "Community", tone: "community" },
+        { label: "Actions", tone: "actions" },
+        { label: "Hub", tone: "hub" },
+      ] as const;
+
+      for (const route of routeCases) {
+        await userEvent.click(canvas.getByRole("button", { name: route.label }));
+        await waitFor(() => expectDarkCanvasTone(root, route.tone));
+      }
+    });
   },
 };
 

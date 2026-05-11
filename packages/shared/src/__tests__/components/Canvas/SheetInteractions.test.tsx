@@ -257,3 +257,39 @@ describe.each(sheetCases)("$name", (sheet) => {
     expect(onClose).toHaveBeenCalled();
   });
 });
+
+describe("BottomSheet bounded geometry", () => {
+  beforeEach(() => {
+    installPointerPolyfills();
+  });
+
+  it("uses the canvas sheet bounds and nav-safe mobile inset", () => {
+    const portalContainer = document.createElement("div");
+    document.body.appendChild(portalContainer);
+
+    renderWithIntl(
+      <BottomSheet open onClose={vi.fn()} title="Mobile inspector" container={portalContainer}>
+        <p>Sheet content</p>
+      </BottomSheet>
+    );
+
+    const dialog = screen.getByTestId("bottom-sheet-dialog");
+    const surface = screen.getByTestId("bottom-sheet");
+
+    expect(portalContainer).toContainElement(dialog);
+    expect(dialog).toHaveStyle({
+      height: "auto",
+      inset:
+        "var(--admin-sheet-top, calc(var(--admin-appbar-height, 3.5rem) + 0.5rem)) 0 var(--admin-sheet-bottom, 6.25rem) 0",
+      position: "absolute",
+      width: "auto",
+    });
+    expect(surface).toHaveStyle({
+      borderRadius: "var(--radius-sheet, 24px)",
+      left: "var(--admin-sheet-mobile-side-inset, 0.75rem)",
+      maxHeight: "min(85%, 100%)",
+      right: "var(--admin-sheet-mobile-side-inset, 0.75rem)",
+      width: "auto",
+    });
+  });
+});

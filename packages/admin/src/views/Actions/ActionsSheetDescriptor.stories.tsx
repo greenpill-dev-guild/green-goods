@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { DEFAULT_CHAIN_ID, queryKeys, type Action } from "@green-goods/shared";
-import { expect, within } from "storybook/test";
+import { expect, waitFor, within } from "storybook/test";
 import {
   STORYBOOK_ADMIN_ACTIONS,
   STORYBOOK_ADMIN_DEPLOYER_SEEDS,
@@ -65,6 +65,32 @@ function actionsDescriptorDecorators() {
   ];
 }
 
+function expectDesktopSheetClearance({
+  appBar,
+  canvasElement,
+  dialog,
+  navigation,
+  sheet,
+}: {
+  appBar: HTMLElement;
+  canvasElement: HTMLElement;
+  dialog: HTMLElement;
+  navigation: HTMLElement;
+  sheet: HTMLElement;
+}) {
+  const appBarRect = appBar.getBoundingClientRect();
+  const canvasRect = canvasElement.getBoundingClientRect();
+  const dialogRect = dialog.getBoundingClientRect();
+  const navigationRect = navigation.getBoundingClientRect();
+  const sheetRect = sheet.getBoundingClientRect();
+
+  expect(dialogRect.top).toBeGreaterThanOrEqual(appBarRect.bottom);
+  expect(dialogRect.bottom).toBeLessThanOrEqual(navigationRect.top);
+  expect(sheetRect.left).toBeGreaterThanOrEqual(canvasRect.left);
+  expect(sheetRect.top).toBeGreaterThanOrEqual(appBarRect.bottom);
+  expect(sheetRect.bottom).toBeLessThanOrEqual(navigationRect.top);
+}
+
 export const RouteBackedDetail: Story = {
   tags: ["storybook-ci"],
   args: { initialPath: "/actions/action-canopy-baseline?sort=recent" },
@@ -77,6 +103,7 @@ export const RouteBackedDetail: Story = {
       ADMIN_ROUTE_STORY_QUERY_OPTIONS
     );
     await expect(leftSheet).toHaveAttribute("data-component", "LeftSheet");
+    await expect(leftSheet).toHaveAttribute("data-width", "default");
     await expect(
       await within(leftSheet).findByText(
         "Canopy baseline",
@@ -88,6 +115,7 @@ export const RouteBackedDetail: Story = {
 };
 
 export const RouteBackedCreate: Story = {
+  tags: ["storybook-ci"],
   args: { initialPath: "/actions/create?sort=recent" },
   decorators: actionsDescriptorDecorators(),
   play: async ({ canvasElement }) => {
@@ -98,6 +126,16 @@ export const RouteBackedCreate: Story = {
       ADMIN_ROUTE_STORY_QUERY_OPTIONS
     );
     await expect(leftSheet).toHaveAttribute("data-component", "LeftSheet");
+    await expect(leftSheet).toHaveAttribute("data-width", "wide");
+    await waitFor(() =>
+      expectDesktopSheetClearance({
+        appBar: canvas.getByRole("banner"),
+        canvasElement,
+        dialog: canvas.getByTestId("left-sheet-dialog"),
+        navigation: canvas.getByRole("navigation"),
+        sheet: leftSheet,
+      })
+    );
     await expect(
       await within(leftSheet).findByRole(
         "heading",
@@ -109,6 +147,7 @@ export const RouteBackedCreate: Story = {
 };
 
 export const RouteBackedEdit: Story = {
+  tags: ["storybook-ci"],
   args: { initialPath: "/actions/action-canopy-baseline/edit?sort=recent" },
   decorators: actionsDescriptorDecorators(),
   play: async ({ canvasElement }) => {
@@ -119,6 +158,7 @@ export const RouteBackedEdit: Story = {
       ADMIN_ROUTE_STORY_QUERY_OPTIONS
     );
     await expect(leftSheet).toHaveAttribute("data-component", "LeftSheet");
+    await expect(leftSheet).toHaveAttribute("data-width", "wide");
     await expect(
       await within(leftSheet).findByText(
         "Edit Canopy baseline",

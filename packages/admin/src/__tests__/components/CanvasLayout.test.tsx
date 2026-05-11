@@ -507,7 +507,7 @@ describe("CanvasLayout", () => {
     expect(main?.getAttribute("style")).toContain("padding-bottom");
   });
 
-  it("bounds the mobile bottom sheet to the MainSheet overlay root", async () => {
+  it("bounds the mobile bottom sheet to the canvas sheet layer", async () => {
     mockRouteLeftSheetConfig.current = {
       title: "Mobile inspector",
       content: <div>Inspector content</div>,
@@ -520,11 +520,11 @@ describe("CanvasLayout", () => {
       </MemoryRouter>
     );
 
-    const overlayRoot = await screen.findByTestId("main-sheet-overlay-root");
+    const sheetLayer = await screen.findByTestId("canvas-sheet-layer");
     const dialog = await screen.findByTestId("bottom-sheet-dialog");
 
     expect(dialog).toHaveAttribute("data-boundary", "bounded");
-    expect(overlayRoot).toContainElement(dialog);
+    expect(sheetLayer).toContainElement(dialog);
   });
 });
 

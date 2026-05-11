@@ -3,10 +3,12 @@ import {
   GardenChip,
   MainSheet,
   NavigationBar,
+  RightSheet,
   type ToolbarSlot,
 } from "@green-goods/shared";
 import { RiAddLine, RiAppsLine, RiHammerLine, RiSeedlingLine, RiTeamLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
+import { useState } from "react";
 import { expect, fn, within } from "storybook/test";
 import { withCanvasFrame } from "../../../../shared/.storybook/decorators";
 
@@ -52,12 +54,26 @@ const slots: ToolbarSlot[] = [
 function chromeBackdropValue(element: Element): string {
   const styles = window.getComputedStyle(element);
   return (
-    styles.getPropertyValue("backdrop-filter") || styles.getPropertyValue("-webkit-backdrop-filter")
+    styles.getPropertyValue("backdrop-filter") ||
+    styles.getPropertyValue("-webkit-backdrop-filter") ||
+    "none"
   );
+}
+
+function expectTransparentAppBar(element: Element) {
+  const styles = window.getComputedStyle(element);
+  expect(styles.backgroundImage).toBe("none");
+  expect(styles.backgroundColor === "transparent" || styles.backgroundColor.endsWith(", 0)")).toBe(
+    true
+  );
+  expect(styles.borderBottomWidth).toBe("0px");
+  expect(styles.boxShadow).toBe("none");
+  expect(chromeBackdropValue(element)).toBe("none");
 }
 
 function ControlledChromeContract({ theme }: ControlledChromeContractProps) {
   const garden = { id: "rio", name: "Rio Rainforest Lab" };
+  const [sheetLayer, setSheetLayer] = useState<HTMLDivElement | null>(null);
 
   return (
     <div
@@ -136,6 +152,18 @@ function ControlledChromeContract({ theme }: ControlledChromeContractProps) {
           }}
         />
       </div>
+
+      <div
+        ref={setSheetLayer}
+        className="admin-canvas-sheet-layer pointer-events-none absolute inset-0 z-raised overflow-hidden"
+        data-component="CanvasLayout"
+        data-slot="sheet-layer"
+      />
+      {sheetLayer ? (
+        <RightSheet open onClose={fn()} title="Settings" container={sheetLayer}>
+          <div className="p-4 text-body-sm text-text-sub">Sheet shell material boundary</div>
+        </RightSheet>
+      ) : null}
     </div>
   );
 }
@@ -158,7 +186,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Executable admin material contract: AppBar and Navigation/FAB carry Controlled Chrome while dense route content stays solid in light and dark themes.",
+          "Executable admin material contract: AppBar root stays transparent, Navigation/FAB and sheet shells carry Controlled Chrome, and dense route content stays solid in light and dark themes.",
       },
     },
   },
@@ -179,10 +207,14 @@ export const LightContract: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const appBar = await canvas.findByRole("banner");
+    const nav = await canvas.findByRole("navigation");
+    const sheet = await canvas.findByTestId("right-sheet");
     const content = await canvas.findByTestId("solid-content");
 
     await expect(appBar).toHaveAttribute("data-component", "AppBar");
-    expect(chromeBackdropValue(appBar)).toContain("blur");
+    expectTransparentAppBar(appBar);
+    expect(chromeBackdropValue(nav)).toContain("blur");
+    expect(chromeBackdropValue(sheet)).toContain("blur");
     expect(chromeBackdropValue(content)).toBe("none");
     expect(content.className).not.toMatch(/glass|backdrop/i);
   },
@@ -196,10 +228,14 @@ export const DarkContract: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const appBar = await canvas.findByRole("banner");
+    const nav = await canvas.findByRole("navigation");
+    const sheet = await canvas.findByTestId("right-sheet");
     const content = await canvas.findByTestId("solid-content");
 
     await expect(appBar).toHaveAttribute("data-component", "AppBar");
-    expect(chromeBackdropValue(appBar)).toContain("blur");
+    expectTransparentAppBar(appBar);
+    expect(chromeBackdropValue(nav)).toContain("blur");
+    expect(chromeBackdropValue(sheet)).toContain("blur");
     expect(chromeBackdropValue(content)).toBe("none");
     expect(content.className).not.toMatch(/glass|backdrop/i);
   },

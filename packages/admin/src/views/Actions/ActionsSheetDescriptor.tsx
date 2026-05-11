@@ -37,6 +37,7 @@ export function ActionsSheetDescriptor({
           defaultMessage: "Create action",
         }),
         content: <CreateAction layout="sheet" />,
+        width: "wide" as const,
       };
     }
 
@@ -86,6 +87,7 @@ export function ActionsSheetDescriptor({
             onEdit={() => undefined}
           />
         ),
+        width: "wide" as const,
       };
     }
 
@@ -99,6 +101,7 @@ export function ActionsSheetDescriptor({
             title: sheetDescriptor.title,
             content: sheetDescriptor.content,
             closeTo: routeState.closeTo,
+            width: sheetDescriptor.width,
           }
         : null,
     [routeState.closeTo, routeState.contentId, sheetDescriptor]

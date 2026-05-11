@@ -20,11 +20,11 @@
 }
 
 .admin-m3 [data-component="AppBar"][data-slot="root"] {
-  background: var(--admin-chrome-bg);
-  border-bottom: 1px solid var(--admin-chrome-border);
-  box-shadow: var(--admin-appbar-shadow);
-  backdrop-filter: blur(var(--admin-chrome-blur)) saturate(1.14);
-  -webkit-backdrop-filter: blur(var(--admin-chrome-blur)) saturate(1.14);
+  background: transparent;
+  border-bottom: 0;
+  box-shadow: none;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
 }
 
 .admin-m3 [data-slot="fab-button"] {
@@ -220,7 +220,8 @@
 
 /* ============================================================================
  * D1: Controlled Chrome
- * Liquid material is reserved for AppBar, Navigation/FAB, and sheet shells.
+ * Liquid material is reserved for Navigation/FAB and sheet shells. The AppBar
+ * root stays transparent so the canvas tone reads continuously behind it.
  * Route cards, lists, forms, tables, and dense content stay solid M3 colors.
  * ============================================================================ */
 
@@ -267,7 +268,6 @@ body:has(.admin-m3) [data-component="ConfirmDialog"][data-slot="surface"].glass-
 }
 
 @media (prefers-contrast: more) {
-  .admin-m3 [data-component="AppBar"][data-slot="root"],
   .admin-m3 .canvas-navigation-bar,
   .admin-m3 [data-component="RightSheet"][data-slot="surface"].glass-floating,
   .admin-m3 [data-component="LeftSheet"][data-slot="surface"].glass-floating,

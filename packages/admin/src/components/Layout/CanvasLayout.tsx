@@ -80,13 +80,11 @@ export function CanvasLayout() {
   // Sheet orchestrator — manages pane-scoped sheets + main-sheet recession
   const orchestrator = useSheetOrchestrator();
   const { activeContentId, activeSheet, closeSheet, isReceded, openSheet } = orchestrator;
-  // State-driven overlay root: sheets need to re-render once MainSheet mounts
-  // its overlay container so `container` flips from null to the bounded div.
-  // A plain ref wouldn't trigger re-renders, leaving sheets in unbounded mode
-  // on first open (covering AppBar + NavigationBar).
-  const [overlayRoot, setOverlayRoot] = useState<HTMLDivElement | null>(null);
-  const overlayRootRef = useCallback((node: HTMLDivElement | null) => {
-    setOverlayRoot(node);
+  // State-driven sheet layer: sheets need to re-render once the canvas-level
+  // portal root mounts so they stay bounded between AppBar and NavigationBar.
+  const [sheetLayerRoot, setSheetLayerRoot] = useState<HTMLDivElement | null>(null);
+  const sheetLayerRef = useCallback((node: HTMLDivElement | null) => {
+    setSheetLayerRoot(node);
   }, []);
   const pendingDesktopAccountTabRef = useRef<AccountSheetTab | null>(null);
   const openRightSheetContent = useCallback(
@@ -312,7 +310,7 @@ export function CanvasLayout() {
             </div>
 
             {/* ── Body 2: MainSheet — Content Zone (Z2) ── */}
-            <MainSheet isReceded={isReceded} overlayRef={overlayRootRef}>
+            <MainSheet isReceded={isReceded}>
               <main
                 id="main-content"
                 data-region="main-scroll-area"
@@ -346,19 +344,30 @@ export function CanvasLayout() {
               )}
             </div>
 
+            <div
+              ref={sheetLayerRef}
+              className="admin-canvas-sheet-layer pointer-events-none absolute inset-0 z-raised overflow-hidden"
+              data-component="CanvasLayout"
+              data-slot="sheet-layer"
+              data-state={activeSheet ?? "idle"}
+              data-testid="canvas-sheet-layer"
+            />
+
             {/* Pane-scoped right sheet — content driven by orchestrator contentId */}
-            <RightSheet
-              open={activeSheet === "right" && rightSheetDescriptor !== null}
-              onClose={() => closeSheet()}
-              title={rightSheetDescriptor?.title}
-              container={overlayRoot}
-              width={rightSheetDescriptor?.width ?? "default"}
-            >
-              {rightSheetDescriptor?.content}
-            </RightSheet>
+            {sheetLayerRoot ? (
+              <RightSheet
+                open={activeSheet === "right" && rightSheetDescriptor !== null}
+                onClose={() => closeSheet()}
+                title={rightSheetDescriptor?.title}
+                container={sheetLayerRoot}
+                width={rightSheetDescriptor?.width ?? "default"}
+              >
+                {rightSheetDescriptor?.content}
+              </RightSheet>
+            ) : null}
 
             {/* Persistent left/bottom sheet — content declared by views via useLeftSheetConfig */}
-            <CanvasLeftSheet isDesktop={isDesktop} overlayRoot={overlayRoot} />
+            <CanvasLeftSheet isDesktop={isDesktop} overlayRoot={sheetLayerRoot} />
 
             <CommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
           </div>
@@ -490,6 +499,10 @@ function CanvasLeftSheet({
 }) {
   const config = useLeftSheetConfigValue();
   const isOpen = config !== null;
+
+  if (isOpen && !overlayRoot) {
+    return null;
+  }
 
   if (isDesktop) {
     return (

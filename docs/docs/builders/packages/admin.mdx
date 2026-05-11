@@ -49,7 +49,7 @@ The admin package is the Green Goods operator canvas. This page is the single UI
 - The shell is `AppBar + .workspace-canvas + MainSheet + NavigationBar`.
 - `AppBar` is the sticky `z-sticky h-14` context region with `GardenChip` on the left and search, settings, notifications, and profile controls on the right.
 - `NavigationBar` is navigation only. The canonical items are `Hub`, `Garden`, `Community`, and `Actions`.
-- Controlled Chrome is the admin material boundary: subtle liquid glass is permitted on AppBar, NavigationBar/FAB, and sheet shells. Route cards, forms, tables, lists, and dense content stay solid.
+- Controlled Chrome is the admin material boundary: subtle liquid glass is permitted on NavigationBar/FAB and sheet shells. The AppBar root stays transparent so the workspace canvas tone reads behind it. Route cards, forms, tables, lists, and dense content stay solid.
 - `ConnectShell` is the disconnected full-screen state with a centered connect prompt and no navigation.
 - Admin owns `CanvasLayout`, `CommandPalette`, `AccountProfilePanel`, `AccountSettingsPanel`, `AccountSurface`, `UserAvatar`, `UserMenu`, `ConnectShell`, and `PageHeader`.
 - Desktop account sheets render `AccountProfilePanel` and `AccountSettingsPanel` as separate right-sheet contents. `AccountSurface` remains the route-level tabbed account surface for mobile profile navigation.
@@ -92,7 +92,7 @@ The admin package is the Green Goods operator canvas. This page is the single UI
 - Cards and elevated surfaces are for discrete records, action targets, and bounded interaction zones. They are not the default page structure.
 - Prefer one dominant workspace surface per route and plain layout within it. Avoid nested stacks of rounded bordered panels.
 - Avoid hero sections, decorative promo callouts, and decorative gradients behind routine product UI.
-- Use route-tint atmosphere, Controlled Chrome depth, and high-contrast state accents to establish hierarchy without turning the UI into a promo surface.
+- Use route-tint atmosphere, transparent AppBar continuity, Controlled Chrome depth on navigation/sheets, and high-contrast state accents to establish hierarchy without turning the UI into a promo surface.
 - Use `/hub` as the reference implementation for canvas composition and interaction density.
 - `bun run check:design-tokens` enforces the material boundary: admin source must not add glass, backdrop blur, or decorative gradients outside `packages/admin/src/index.css` and `admin-m3-overrides.css`.
 - Route content, canvas tone changes, FAB menus, sheets, and interaction state use the admin motion role aliases (`--admin-motion-*`) layered on top of the canonical `--spring-*` tokens.

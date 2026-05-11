@@ -192,9 +192,11 @@ export function BottomSheet({
       )}
       style={{
         position: isBounded ? "absolute" : "fixed",
-        inset: 0,
-        width: "100%",
-        height: "100%",
+        inset: isBounded
+          ? "var(--admin-sheet-top, calc(var(--admin-appbar-height, 3.5rem) + 0.5rem)) 0 var(--admin-sheet-bottom, 6.25rem) 0"
+          : 0,
+        width: isBounded ? "auto" : "100%",
+        height: isBounded ? "auto" : "100%",
         maxWidth: "none",
         maxHeight: "none",
         margin: 0,
@@ -232,10 +234,16 @@ export function BottomSheet({
           "focus:outline-none will-change-transform"
         )}
         style={{
-          maxHeight: isBounded ? `${maxHeight}%` : `${maxHeight}dvh`,
+          left: isBounded ? "var(--admin-sheet-mobile-side-inset, 0.75rem)" : 0,
+          right: isBounded ? "var(--admin-sheet-mobile-side-inset, 0.75rem)" : 0,
+          width: isBounded ? "auto" : "100%",
+          maxHeight: isBounded ? `min(${maxHeight}%, 100%)` : `${maxHeight}dvh`,
           paddingBottom: isBounded ? undefined : "env(safe-area-inset-bottom)",
           boxShadow: "var(--m3-elevation-4, var(--elevation-4))",
           transform: springs.y.to((y) => `translateY(${y}%)`),
+          borderRadius: isBounded
+            ? "var(--radius-sheet, 24px)"
+            : "var(--radius-sheet, 16px) var(--radius-sheet, 16px) 0 0",
           zIndex: isBounded ? 46 : 51,
         }}
         data-component="BottomSheet"

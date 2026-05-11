@@ -215,9 +215,11 @@ export function RightSheet({
       )}
       style={{
         position: isBounded ? "absolute" : "fixed",
-        inset: 0,
-        width: "100%",
-        height: "100%",
+        inset: isBounded
+          ? "var(--admin-sheet-top, calc(var(--admin-appbar-height, 3.5rem) + 0.5rem)) 0 var(--admin-sheet-bottom, 6.25rem) 0"
+          : 0,
+        width: isBounded ? "auto" : "100%",
+        height: isBounded ? "auto" : "100%",
         maxWidth: "none",
         maxHeight: "none",
         margin: 0,
@@ -258,13 +260,21 @@ export function RightSheet({
           "glass-floating"
         )}
         style={{
-          width: "100%",
-          maxWidth: widthVar,
+          right: isBounded ? "var(--admin-sheet-side-inset, 1rem)" : 0,
+          bottom: isBounded ? 0 : undefined,
+          width: isBounded
+            ? `min(${widthVar}, calc(100% - (var(--admin-sheet-side-inset, 1rem) * 2)))`
+            : "100%",
+          maxWidth: isBounded ? undefined : widthVar,
+          height: isBounded ? "auto" : "100%",
+          maxHeight: isBounded ? "100%" : undefined,
           paddingBottom: isBounded ? undefined : "env(safe-area-inset-bottom)",
           touchAction: "none",
           // Handoff: closed sits at translateX(calc(100% + 24px)); open at translateX(0)
           transform: springs.x.to((x) => `translateX(calc(${x}% + ${(x / 100) * 24}px))`),
-          borderRadius: "var(--radius-sheet, 16px) 0 0 var(--radius-sheet, 16px)",
+          borderRadius: isBounded
+            ? "var(--radius-sheet, 24px)"
+            : "var(--radius-sheet, 16px) 0 0 var(--radius-sheet, 16px)",
           zIndex: isBounded ? 46 : 51,
         }}
         data-component="RightSheet"
