@@ -42,6 +42,10 @@ export interface ToastDescriptor {
   icon?: ReactNode;
   /** Whether the toast can be dismissed by tapping on it. Defaults to true for success/info/error, false for loading. */
   dismissible?: boolean;
+  /** Whether to render an explicit close (X) button. Defaults to false. */
+  closable?: boolean;
+  /** Callback invoked when the toast is dismissed (via tap, X button, or programmatic dismiss). */
+  onDismiss?: () => void;
 }
 
 export interface ToastTranslator {
@@ -63,6 +67,8 @@ interface ResolvedToastDescriptor {
   suppressLogging?: boolean;
   icon?: ReactNode;
   dismissible: boolean;
+  closable: boolean;
+  onDismiss?: () => void;
 }
 
 interface ToastMessageProps {
@@ -80,6 +86,8 @@ interface ToastMessageProps {
   copySuccess?: boolean;
   /** Whether the toast can be dismissed by tapping */
   dismissible?: boolean;
+  /** Whether to render an explicit close (X) button */
+  closable?: boolean;
   /** Callback to dismiss the toast */
   onDismiss?: () => void;
 }
@@ -178,6 +186,8 @@ function normalizeDescriptor(descriptor: ToastDescriptor): ResolvedToastDescript
     suppressLogging,
     icon,
     dismissible,
+    closable,
+    onDismiss,
   } = descriptor;
 
   const normalizedMessage = message ?? buildDefaultMessage(status, context);
@@ -200,6 +210,8 @@ function normalizeDescriptor(descriptor: ToastDescriptor): ResolvedToastDescript
     suppressLogging,
     icon,
     dismissible: normalizedDismissible,
+    closable: closable ?? false,
+    onDismiss,
   };
 }
 
@@ -382,6 +394,7 @@ function ToastMessage({
   onCopyError,
   copySuccess,
   dismissible,
+  closable,
   onDismiss,
 }: ToastMessageProps) {
   const buttonLabel = action?.label ?? "";
@@ -400,12 +413,48 @@ function ToastMessage({
     }
   };
 
+  // Explicit close button dismisses regardless of `dismissible`; also notifies caller.
+  const handleClose = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (toastId) {
+      toast.dismiss(toastId);
+    }
+    onDismiss?.();
+  };
+
+  const closeButton = closable ? (
+    <button
+      type="button"
+      onClick={handleClose}
+      aria-label="Dismiss notification"
+      data-testid="toast-close-button"
+      className="absolute right-0 top-0 inline-flex h-6 w-6 items-center justify-center rounded-full text-[color:var(--color-text-sub-600)] transition-colors hover:bg-[color:var(--color-bg-weak-50)] hover:text-[color:var(--color-text-strong-950)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary-base)]"
+    >
+      <svg
+        width="12"
+        height="12"
+        viewBox="0 0 12 12"
+        fill="none"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <path
+          d="M2 2L10 10M10 2L2 10"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+      </svg>
+    </button>
+  ) : null;
+
   const ariaLabel = title ? `${title}: ${message}` : undefined;
 
   const containerClassName = cn(
-    "flex w-full flex-col gap-1 text-[color:var(--color-text-strong-950)] text-left rounded",
+    "relative flex w-full flex-col gap-1 text-[color:var(--color-text-strong-950)] text-left rounded",
     status === "loading" && "animate-pulse",
     dismissible && "cursor-pointer",
+    closable && "pr-6",
     "focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-primary-base)] focus-visible:ring-offset-2"
   );
 
@@ -438,6 +487,7 @@ function ToastMessage({
         onClick={handleContainerClick}
         onKeyDown={handleKeyDown}
       >
+        {closeButton}
         {title ? <p className="text-sm font-semibold leading-tight">{title}</p> : null}
         <p className="text-sm leading-snug">{message}</p>
         {description ? (
@@ -486,6 +536,7 @@ function ToastMessage({
 
   return (
     <div className={containerClassName} aria-label={ariaLabel}>
+      {closeButton}
       {title ? <p className="text-sm font-semibold leading-tight">{title}</p> : null}
       <p className="text-sm leading-snug">{message}</p>
       {description ? (
@@ -574,6 +625,7 @@ function DebugToastMessage({
       onCopyError={handleCopyError}
       copySuccess={copySuccess}
       dismissible={resolved.dismissible}
+      closable={resolved.closable}
       onDismiss={onDismiss}
     />
   );
@@ -608,7 +660,10 @@ function showToast(descriptor: ToastDescriptor) {
   );
 
   const toastId = toastFn((toastState: HotToast) => {
-    const handleDismiss = () => toast.dismiss(toastState.id);
+    const handleDismiss = () => {
+      toast.dismiss(toastState.id);
+      resolved.onDismiss?.();
+    };
 
     // Use debug component with copy functionality for errors in debug mode
     if (isDebug && isError) {
@@ -632,6 +687,7 @@ function showToast(descriptor: ToastDescriptor) {
         status={resolved.status}
         toastId={toastState.id}
         dismissible={resolved.dismissible}
+        closable={resolved.closable}
         onDismiss={handleDismiss}
       />
     );

@@ -25,7 +25,7 @@ const updateDefaults = {
  */
 export function createUpdateToasts(formatMessage: FormatMessageFn) {
   return {
-    available: (onUpdate: () => void) =>
+    available: (onUpdate: () => void, onDismiss?: () => void) =>
       toastService.info({
         id: "app-update",
         title: formatMessage({
@@ -47,6 +47,8 @@ export function createUpdateToasts(formatMessage: FormatMessageFn) {
           dismissOnClick: false,
           testId: "update-now-button",
         },
+        closable: true,
+        onDismiss,
         suppressLogging: true,
       }),
 
@@ -74,9 +76,9 @@ function localized() {
 }
 
 export const updateToasts = {
-  available: (onUpdate: () => void) => {
+  available: (onUpdate: () => void, onDismiss?: () => void) => {
     const bound = localized();
-    if (bound) return bound.available(onUpdate);
+    if (bound) return bound.available(onUpdate, onDismiss);
     return toastService.info({
       id: "app-update",
       title: updateDefaults.available.title,
@@ -89,6 +91,8 @@ export const updateToasts = {
         dismissOnClick: false,
         testId: "update-now-button",
       },
+      closable: true,
+      onDismiss,
       suppressLogging: true,
     });
   },

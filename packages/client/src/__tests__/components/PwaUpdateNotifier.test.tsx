@@ -8,6 +8,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const sharedMocks = vi.hoisted(() => ({
   applyUpdate: vi.fn(),
+  dismissUpdate: vi.fn(),
   updateAvailable: vi.fn(),
   updating: vi.fn(),
   useApp: vi.fn(),
@@ -33,6 +34,7 @@ describe("PwaUpdateNotifier", () => {
       updateAvailable: false,
       isUpdating: false,
       applyUpdate: sharedMocks.applyUpdate,
+      dismissUpdate: sharedMocks.dismissUpdate,
     });
   });
 
@@ -51,12 +53,16 @@ describe("PwaUpdateNotifier", () => {
       updateAvailable: true,
       isUpdating: false,
       applyUpdate: sharedMocks.applyUpdate,
+      dismissUpdate: sharedMocks.dismissUpdate,
     });
 
     render(createElement(PwaUpdateNotifier));
 
     expect(sharedMocks.useServiceWorkerUpdate).toHaveBeenCalledTimes(1);
-    expect(sharedMocks.updateAvailable).toHaveBeenCalledWith(sharedMocks.applyUpdate);
+    expect(sharedMocks.updateAvailable).toHaveBeenCalledWith(
+      sharedMocks.applyUpdate,
+      sharedMocks.dismissUpdate
+    );
   });
 
   it("shows the updating toast in PWA presentation", () => {
@@ -64,6 +70,7 @@ describe("PwaUpdateNotifier", () => {
       updateAvailable: false,
       isUpdating: true,
       applyUpdate: sharedMocks.applyUpdate,
+      dismissUpdate: sharedMocks.dismissUpdate,
     });
 
     render(createElement(PwaUpdateNotifier));
