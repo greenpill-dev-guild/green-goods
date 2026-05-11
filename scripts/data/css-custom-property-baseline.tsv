@@ -1,8 +1,4 @@
 # variable	path	category	owner	expires	note
---color-info-base	packages/admin/src/components/Hypercerts/DistributionChart.tsx	migration-debt	codex	2026-09-30	Admin chart uses old info alias; map to information token in UI cleanup.
---color-info-dark	packages/admin/src/components/Hypercerts/DistributionChart.tsx	migration-debt	codex	2026-09-30	Admin chart uses old info alias; map to information token in UI cleanup.
---color-primary-strong	packages/shared/src/components/Toast/toast.service.tsx	migration-debt	codex	2026-09-30	Toast class references stale primary hover token; map to live token in UI cleanup.
---color-text-subtle-600	packages/shared/src/components/Toast/toast.service.tsx	migration-debt	codex	2026-09-30	Toast class references stale text token; map to live semantic text token in UI cleanup.
 --font-family-mono	packages/client/src/styles/typography.css	migration-debt	codex	2026-09-30	Client typography uses old font token; map to current Tailwind theme token in UI cleanup.
 --font-family-sans	packages/client/src/styles/typography.css	migration-debt	codex	2026-09-30	Client typography uses old font token; map to current Tailwind theme token in UI cleanup.
 --font-family-sans	packages/shared/.storybook/storybook.css	migration-debt	codex	2026-09-30	Storybook chrome uses old font token; map to current Tailwind theme token in UI cleanup.

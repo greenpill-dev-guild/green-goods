@@ -110,7 +110,7 @@ const STATUS_ARIA_ROLE: Record<ToastStatus, "status" | "alert"> = {
 };
 
 const ACTION_BUTTON_BASE =
-  "inline-flex items-center text-xs font-medium text-[var(--color-primary-base)] hover:text-[var(--color-primary-strong)] focus:outline-none focus:underline focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary-base)] rounded transition-colors";
+  "inline-flex items-center text-xs font-medium text-[var(--color-primary-base)] hover:text-[var(--color-primary-dark)] focus:outline-none focus:underline focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary-base)] rounded transition-colors";
 
 const fallbackTitles: Record<ToastStatus, string> = {
   success: "Success",
@@ -441,7 +441,7 @@ function ToastMessage({
         {title ? <p className="text-sm font-semibold leading-tight">{title}</p> : null}
         <p className="text-sm leading-snug">{message}</p>
         {description ? (
-          <p className="text-xs leading-snug text-[color:var(--color-text-subtle-600)]">
+          <p className="text-xs leading-snug text-[color:var(--color-text-sub-600)]">
             {description}
           </p>
         ) : null}
@@ -489,9 +489,7 @@ function ToastMessage({
       {title ? <p className="text-sm font-semibold leading-tight">{title}</p> : null}
       <p className="text-sm leading-snug">{message}</p>
       {description ? (
-        <p className="text-xs leading-snug text-[color:var(--color-text-subtle-600)]">
-          {description}
-        </p>
+        <p className="text-xs leading-snug text-[color:var(--color-text-sub-600)]">{description}</p>
       ) : null}
       {/* Debug mode: show verbose error info */}
       {debugDescription ? (
