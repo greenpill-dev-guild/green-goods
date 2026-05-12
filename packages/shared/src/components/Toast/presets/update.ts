@@ -1,22 +1,48 @@
 import { toastService } from "../toast.service";
-import { getLocalizedToastFamily } from "./registry";
 import { type FormatMessageFn, toastMessageIdsUpdate } from "./types";
-
-const updateActionMessageIds = {
-  updateNow: "app.toast.update.action.updateNow",
-} as const;
 
 /** Default (English) fallback messages for app update toasts */
 const updateDefaults = {
   available: {
     title: "Update available",
     message: "A new version of Green Goods is ready.",
-    actionLabel: "Update now",
   },
   updating: {
     title: "Updating...",
     message: "Refreshing to the latest version.",
   },
+};
+
+export const updateToasts = {
+  /** Show info when an update is available with action to refresh */
+  available: (onUpdate: () => void) =>
+    toastService.info({
+      id: "app-update",
+      title: updateDefaults.available.title,
+      message: updateDefaults.available.message,
+      context: "app update",
+      duration: Infinity, // Stay visible until user acts or toast is replaced
+      action: {
+        label: "Update now",
+        onClick: onUpdate,
+        dismissOnClick: false,
+        testId: "update-now-button",
+      },
+      suppressLogging: true,
+    }),
+
+  /** Show loading state when update is being applied */
+  updating: () =>
+    toastService.loading({
+      id: "app-update",
+      title: updateDefaults.updating.title,
+      message: updateDefaults.updating.message,
+      context: "app update",
+      suppressLogging: true,
+    }),
+
+  /** Dismiss the update toast */
+  dismiss: () => toastService.dismiss("app-update"),
 };
 
 /**
@@ -39,10 +65,7 @@ export function createUpdateToasts(formatMessage: FormatMessageFn) {
         context: "app update",
         duration: Infinity,
         action: {
-          label: formatMessage({
-            id: updateActionMessageIds.updateNow,
-            defaultMessage: updateDefaults.available.actionLabel,
-          }),
+          label: "Update now",
           onClick: onUpdate,
           dismissOnClick: false,
           testId: "update-now-button",
@@ -70,44 +93,3 @@ export function createUpdateToasts(formatMessage: FormatMessageFn) {
     dismiss: () => toastService.dismiss("app-update"),
   };
 }
-
-function localized() {
-  return getLocalizedToastFamily("update", createUpdateToasts);
-}
-
-export const updateToasts = {
-  available: (onUpdate: () => void, onDismiss?: () => void) => {
-    const bound = localized();
-    if (bound) return bound.available(onUpdate, onDismiss);
-    return toastService.info({
-      id: "app-update",
-      title: updateDefaults.available.title,
-      message: updateDefaults.available.message,
-      context: "app update",
-      duration: Infinity,
-      action: {
-        label: updateDefaults.available.actionLabel,
-        onClick: onUpdate,
-        dismissOnClick: false,
-        testId: "update-now-button",
-      },
-      closable: true,
-      onDismiss,
-      suppressLogging: true,
-    });
-  },
-
-  updating: () => {
-    const bound = localized();
-    if (bound) return bound.updating();
-    return toastService.loading({
-      id: "app-update",
-      title: updateDefaults.updating.title,
-      message: updateDefaults.updating.message,
-      context: "app update",
-      suppressLogging: true,
-    });
-  },
-
-  dismiss: () => toastService.dismiss("app-update"),
-};

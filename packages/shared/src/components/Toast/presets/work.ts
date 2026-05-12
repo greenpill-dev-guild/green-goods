@@ -1,5 +1,4 @@
 import { toastService } from "../toast.service";
-import { getLocalizedToastFamily } from "./registry";
 import { type FormatMessageFn, toastMessageIds } from "./types";
 
 /** Default (English) fallback messages for work toasts */
@@ -10,9 +9,55 @@ const workDefaults = {
   error: { title: "Work submission failed" },
 };
 
+export const workToasts = {
+  /** Show loading state when submitting work */
+  submitting: () =>
+    toastService.loading({
+      id: "work-upload",
+      title: workDefaults.submitting.title,
+      message: workDefaults.submitting.message,
+      context: "work upload",
+      suppressLogging: true,
+    }),
+
+  /** Show success state when work is submitted online */
+  success: () =>
+    toastService.success({
+      id: "work-upload",
+      title: workDefaults.success.title,
+      message: workDefaults.success.message,
+      context: "work upload",
+      suppressLogging: true,
+    }),
+
+  /** Show info state when work is saved offline */
+  savedOffline: () =>
+    toastService.info({
+      id: "work-upload",
+      title: workDefaults.savedOffline.title,
+      message: workDefaults.savedOffline.message,
+      context: "work upload",
+      duration: 2000,
+      suppressLogging: true,
+    }),
+
+  /** Show error state for work submission failure */
+  error: (message: string, description?: string) =>
+    toastService.error({
+      id: "work-upload",
+      title: workDefaults.error.title,
+      message,
+      context: "work upload",
+      description,
+    }),
+
+  /** Dismiss the work upload toast */
+  dismiss: () => toastService.dismiss("work-upload"),
+};
+
 /**
- * i18n-aware factory. Used directly by tests and by the registry-backed
- * static facade exported below.
+ * Create i18n-aware work toasts
+ * @param formatMessage - react-intl formatMessage function
  */
 export function createWorkToasts(formatMessage: FormatMessageFn) {
   return {
@@ -77,66 +122,3 @@ export function createWorkToasts(formatMessage: FormatMessageFn) {
     dismiss: () => toastService.dismiss("work-upload"),
   };
 }
-
-/** Resolve a localized factory if a formatter is bound; otherwise undefined. */
-function localized() {
-  return getLocalizedToastFamily("work", createWorkToasts);
-}
-
-/**
- * Static facade that routes through the localized registry when available.
- * PWA callsites keep their existing import (`workToasts.submitting()`); the
- * runtime locale follows whatever `LocalizedToastsBridge` last set.
- */
-export const workToasts = {
-  submitting: () => {
-    const bound = localized();
-    if (bound) return bound.submitting();
-    return toastService.loading({
-      id: "work-upload",
-      title: workDefaults.submitting.title,
-      message: workDefaults.submitting.message,
-      context: "work upload",
-      suppressLogging: true,
-    });
-  },
-
-  success: () => {
-    const bound = localized();
-    if (bound) return bound.success();
-    return toastService.success({
-      id: "work-upload",
-      title: workDefaults.success.title,
-      message: workDefaults.success.message,
-      context: "work upload",
-      suppressLogging: true,
-    });
-  },
-
-  savedOffline: () => {
-    const bound = localized();
-    if (bound) return bound.savedOffline();
-    return toastService.info({
-      id: "work-upload",
-      title: workDefaults.savedOffline.title,
-      message: workDefaults.savedOffline.message,
-      context: "work upload",
-      duration: 2000,
-      suppressLogging: true,
-    });
-  },
-
-  error: (message: string, description?: string) => {
-    const bound = localized();
-    if (bound) return bound.error(message, description);
-    return toastService.error({
-      id: "work-upload",
-      title: workDefaults.error.title,
-      message,
-      context: "work upload",
-      description,
-    });
-  },
-
-  dismiss: () => toastService.dismiss("work-upload"),
-};

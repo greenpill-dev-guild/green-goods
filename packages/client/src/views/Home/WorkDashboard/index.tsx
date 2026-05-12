@@ -5,16 +5,17 @@ import {
   filterByTimeRange,
   hapticLight,
   logger,
-  PwaSheet,
   queryKeys,
   STALE_TIME_MEDIUM,
   isUserAddress as sharedIsUserAddress,
   type TimeFilter,
   toastService,
   useDrafts,
+  useFocusTrap,
   useMyWorks,
   useReviewerGardenIds,
   useReviewerWorks,
+  useTimeout,
   useUser,
   useWorkApprovals,
   type Work,
@@ -22,11 +23,11 @@ import {
 } from "@green-goods/shared";
 import { RiCheckLine, RiCloseLine, RiDraftLine, RiTaskLine } from "@remixicon/react";
 import { useQuery } from "@tanstack/react-query";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { type StandardTab, StandardTabs } from "@/components/Navigation";
-import { pwaDrawerStyles } from "@/styles/pwaDrawerStyles";
+import { getPwaDrawerCloseDelayMs, pwaDrawerStyles } from "@/styles/pwaDrawerStyles";
 import { CompletedTab } from "./CompletedTab";
 import { DraftsTab } from "./Drafts";
 import { PendingTab } from "./PendingTab";
@@ -67,8 +68,12 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   // Get draft count for badge
   const { draftCount } = useDrafts();
 
+  // Timer for close animation (auto-cleared on unmount)
+  const { set: scheduleTimeout } = useTimeout();
+
   // State management
   const [activeTab, setActiveTab] = useState<"drafts" | "pending" | "completed">("pending");
+  const [isClosing, setIsClosing] = useState(false);
   const [pendingFilter, setPendingFilter] = useState<"all" | "needsReview" | "mySubmissions">(
     "all"
   );
@@ -76,6 +81,20 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     "reviewedByYou"
   );
   const [timeFilter, setTimeFilter] = useState<TimeFilter>("month");
+
+  // Ref for focus trap on the dialog panel
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  // Prevent background scrolling when modal is open
+  useEffect(() => {
+    document.documentElement.classList.add("modal-open");
+    return () => {
+      document.documentElement.classList.remove("modal-open");
+    };
+  }, []);
+
+  // Focus trap: keep Tab/Shift+Tab cycling within the dialog
+  useFocusTrap(dialogRef);
 
   // Use shared hooks for reviewer garden detection and works fetching
   const { reviewerGardenIds } = useReviewerGardenIds(activeAddress);
@@ -263,7 +282,10 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   ];
 
   const handleClose = () => {
-    onClose?.();
+    setIsClosing(true);
+    scheduleTimeout(() => {
+      onClose?.();
+    }, getPwaDrawerCloseDelayMs());
   };
 
   const renderTabContent = () => {
@@ -311,60 +333,86 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   };
 
   return (
-    <PwaSheet
-      open
-      onClose={handleClose}
-      ariaLabel={intl.formatMessage({
-        id: "app.workDashboard.title",
-        defaultMessage: "Work Dashboard",
-      })}
-      panelClassName={cn(pwaDrawerStyles.panel, className)}
-      autoFocusSelector='[data-testid="modal-drawer-close"]'
-      testId="modal-drawer"
-      showDragHandle
+    <div
+      role="presentation"
+      className={cn(
+        pwaDrawerStyles.overlay,
+        isClosing ? "modal-backdrop-exit" : "modal-backdrop-enter"
+      )}
+      data-testid="modal-drawer-overlay"
+      onClick={(e) => {
+        // Only close if clicking directly on backdrop, not from propagated events
+        if (e.target === e.currentTarget) {
+          handleClose();
+        }
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") {
+          handleClose();
+        }
+      }}
+      tabIndex={-1}
     >
-      <div className={pwaDrawerStyles.header}>
-        <div className="flex-1 min-w-0">
-          <h2 className="title-section truncate">
-            {intl.formatMessage({
-              id: "app.workDashboard.title",
-              defaultMessage: "Work Dashboard",
-            })}
-          </h2>
-          <p className="text-sm text-text-sub-600 truncate">
-            {intl.formatMessage({
-              id: "app.workDashboard.description",
-              defaultMessage: "Track work submissions and reviews",
-            })}
-          </p>
+      <div
+        ref={dialogRef}
+        className={cn(
+          pwaDrawerStyles.panel,
+          isClosing ? "modal-slide-exit" : "modal-slide-enter",
+          className
+        )}
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => {
+          e.stopPropagation();
+        }}
+        role="dialog"
+        aria-modal="true"
+        data-testid="modal-drawer"
+      >
+        {/* Header */}
+        <div className={pwaDrawerStyles.header}>
+          <div className="flex-1 min-w-0">
+            <h2 className="title-section truncate">
+              {intl.formatMessage({
+                id: "app.workDashboard.title",
+                defaultMessage: "Work Dashboard",
+              })}
+            </h2>
+            <p className="text-sm text-text-sub-600 truncate">
+              {intl.formatMessage({
+                id: "app.workDashboard.description",
+                defaultMessage: "Track work submissions and reviews",
+              })}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 ml-4">
+            <button
+              onClick={handleClose}
+              className={cn(
+                "min-h-11 min-w-11 flex items-center justify-center",
+                pwaDrawerStyles.closeButtonBase
+              )}
+              data-testid="modal-drawer-close"
+              aria-label={intl.formatMessage({
+                id: "app.workDashboard.closeModal",
+                defaultMessage: "Close modal",
+              })}
+            >
+              <RiCloseLine className={cn("w-5 h-5", pwaDrawerStyles.closeIcon)} />
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-2 ml-4">
-          <button
-            type="button"
-            onClick={handleClose}
-            className={cn(
-              "min-h-11 min-w-11 flex items-center justify-center",
-              pwaDrawerStyles.closeButtonBase
-            )}
-            data-testid="modal-drawer-close"
-            aria-label={intl.formatMessage({
-              id: "app.workDashboard.closeModal",
-              defaultMessage: "Close modal",
-            })}
-          >
-            <RiCloseLine className={cn("w-5 h-5", pwaDrawerStyles.closeIcon)} />
-          </button>
-        </div>
+
+        {/* Standardized Tabs */}
+        <StandardTabs
+          tabs={tabs}
+          activeTab={activeTab}
+          onTabChange={(tabId: string) => setActiveTab(tabId as "drafts" | "pending" | "completed")}
+          triggerClassName="text-xs"
+        />
+
+        {/* Content */}
+        <div className="flex-1 min-h-0 overflow-y-auto">{renderTabContent()}</div>
       </div>
-
-      <StandardTabs
-        tabs={tabs}
-        activeTab={activeTab}
-        onTabChange={(tabId: string) => setActiveTab(tabId as "drafts" | "pending" | "completed")}
-        triggerClassName="text-xs"
-      />
-
-      <div className="flex-1 min-h-0">{renderTabContent()}</div>
-    </PwaSheet>
+    </div>
   );
 };

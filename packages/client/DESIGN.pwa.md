@@ -19,7 +19,7 @@ dialect: installed-pwa
 
 **Hard rule:** Installed PWA = app. Use bottom `AppBar`; never show the browser `SiteHeader` or hamburger chrome.
 
-**Routing:** `requirePwaPresentationLoader` (in [`packages/client/src/routes/presentation-mode.ts`](src/routes/presentation-mode.ts)) is a route loader that calls `getClientPresentationMode(request.url)` from `@green-goods/shared/utils` and redirects to `/` (website mode) when the active client is not in PWA presentation. PWA routes live under `/home` and are protected by this loader plus `requireWebsitePresentationLoader` on the public side. Detection comes from `display-mode: standalone`, an explicit `?presentation=...` override, or the cached per-tab sessionStorage value — there is no `PlatformRouter` component.
+**Routing:** `PlatformRouter` checks `isInstalled`. Installed PWA routes live under `/home`.
 
 ---
 

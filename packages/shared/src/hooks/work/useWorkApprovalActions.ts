@@ -23,7 +23,6 @@ import { useJobQueueEvents } from "../../modules/job-queue";
 import { useTimeout } from "../utils/useTimeout";
 import { useWorkApproval } from "./useWorkApproval";
 import { queryKeys } from "../../config/query-keys";
-import { hapticHeavy, hapticWarning } from "../../utils/app/haptics";
 
 export interface UseWorkApprovalActionsParams {
   work: Work | undefined;
@@ -71,10 +70,7 @@ export function useWorkApprovalActions({
   // --- Approval feedback handlers ---
 
   const handleApprovePress = () => {
-    // Heavy tap to acknowledge a confidence-required action; routes through the
-    // shared haptics preference so users who disabled haptics in Profile stay
-    // disabled.
-    hapticHeavy();
+    if (navigator.vibrate) navigator.vibrate([50]);
     setFeedbackMode("approve");
     setConfidence(Confidence.MEDIUM);
     scheduleTimeout(() => {
@@ -83,8 +79,7 @@ export function useWorkApprovalActions({
   };
 
   const handleRejectPress = () => {
-    // Warning pattern keeps the rejection action distinct from approve.
-    hapticWarning();
+    if (navigator.vibrate) navigator.vibrate([30, 10, 30]);
     setFeedbackMode("reject");
     setConfidence(Confidence.NONE);
     scheduleTimeout(() => {

@@ -66,10 +66,7 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
             className={`${baseBarClasses} bg-bg-strong-950/95 text-text-white-0 pointer-events-auto`}
             role="status"
             aria-live="polite"
-            aria-label={formatMessage({
-              id: "app.offline.ariaLabel.offlineMode",
-              defaultMessage: "App is in offline mode",
-            })}
+            aria-label="App is in offline mode"
           >
             <RiCloudOffLine size={8} aria-hidden="true" />
             <span>{formatMessage({ id: "app.offline.mode", defaultMessage: "Offline Mode" })}</span>
@@ -82,10 +79,7 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({
             className={`${baseBarClasses} bg-primary/95 text-primary-accent-foreground pointer-events-auto pulse-success`}
             role="status"
             aria-live="polite"
-            aria-label={formatMessage({
-              id: "app.offline.ariaLabel.backOnline",
-              defaultMessage: "App is back online",
-            })}
+            aria-label="App is back online"
           >
             <RiCheckLine size={10} aria-hidden="true" />
             <span>

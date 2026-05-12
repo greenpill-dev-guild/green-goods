@@ -1,8 +1,5 @@
 import { toastService } from "../toast.service";
-import { getLocalizedToastFamily, getLocalizedToastsFormatter } from "./registry";
 import { type FormatMessageFn, toastMessageIds } from "./types";
-
-const currentFormatter = (): FormatMessageFn | null => getLocalizedToastsFormatter();
 
 /** Default (English) fallback messages for wallet progress toasts */
 const walletDefaults = {
@@ -16,6 +13,84 @@ const walletDefaults = {
     title: "Taking longer than usual",
     message: "Your transaction is still processing. Check your wallet for status.",
   },
+};
+
+/**
+ * Progressive feedback toasts for wallet-based work submissions.
+ * Provides real-time stage updates to reduce perceived wait time.
+ */
+export const walletProgressToasts = {
+  /** Show validating state */
+  validating: () =>
+    toastService.loading({
+      id: "wallet-submission",
+      title: walletDefaults.validating.title,
+      message: walletDefaults.validating.message,
+      context: "wallet submission",
+      suppressLogging: true,
+    }),
+
+  /** Show uploading media state */
+  uploading: () =>
+    toastService.loading({
+      id: "wallet-submission",
+      title: walletDefaults.uploading.title,
+      message: walletDefaults.uploading.message,
+      context: "wallet submission",
+      suppressLogging: true,
+    }),
+
+  /** Show wallet confirmation state */
+  confirming: () =>
+    toastService.loading({
+      id: "wallet-submission",
+      title: walletDefaults.confirming.title,
+      message: walletDefaults.confirming.message,
+      context: "wallet submission",
+      suppressLogging: true,
+    }),
+
+  /** Show syncing state */
+  syncing: () =>
+    toastService.loading({
+      id: "wallet-submission",
+      title: walletDefaults.syncing.title,
+      message: walletDefaults.syncing.message,
+      context: "wallet submission",
+      suppressLogging: true,
+    }),
+
+  /** Show success state */
+  success: () =>
+    toastService.success({
+      id: "wallet-submission",
+      title: walletDefaults.success.title,
+      message: walletDefaults.success.message,
+      context: "wallet submission",
+      suppressLogging: true,
+    }),
+
+  /** Show error state with recoverable info */
+  error: (message: string, recoverable: boolean = false) =>
+    toastService.error({
+      id: "wallet-submission",
+      title: walletDefaults.error.title,
+      message,
+      context: "wallet submission",
+      description: recoverable ? walletDefaults.error.recoverable : undefined,
+    }),
+
+  /** Show timeout warning (transaction may still succeed) */
+  timeout: () =>
+    toastService.info({
+      id: "wallet-submission",
+      title: walletDefaults.timeout.title,
+      message: walletDefaults.timeout.message,
+      context: "wallet submission",
+    }),
+
+  /** Dismiss the wallet submission toast */
+  dismiss: () => toastService.dismiss("wallet-submission"),
 };
 
 /**
@@ -134,101 +209,6 @@ export function createWalletProgressToasts(formatMessage: FormatMessageFn) {
   };
 }
 
-function localized() {
-  return getLocalizedToastFamily("wallet", createWalletProgressToasts);
-}
-
-/**
- * Progressive feedback toasts for wallet-based work submissions.
- * Routes through the localized registry when bound.
- */
-export const walletProgressToasts = {
-  validating: () => {
-    const bound = localized();
-    if (bound) return bound.validating();
-    return toastService.loading({
-      id: "wallet-submission",
-      title: walletDefaults.validating.title,
-      message: walletDefaults.validating.message,
-      context: "wallet submission",
-      suppressLogging: true,
-    });
-  },
-
-  uploading: () => {
-    const bound = localized();
-    if (bound) return bound.uploading();
-    return toastService.loading({
-      id: "wallet-submission",
-      title: walletDefaults.uploading.title,
-      message: walletDefaults.uploading.message,
-      context: "wallet submission",
-      suppressLogging: true,
-    });
-  },
-
-  confirming: () => {
-    const bound = localized();
-    if (bound) return bound.confirming();
-    return toastService.loading({
-      id: "wallet-submission",
-      title: walletDefaults.confirming.title,
-      message: walletDefaults.confirming.message,
-      context: "wallet submission",
-      suppressLogging: true,
-    });
-  },
-
-  syncing: () => {
-    const bound = localized();
-    if (bound) return bound.syncing();
-    return toastService.loading({
-      id: "wallet-submission",
-      title: walletDefaults.syncing.title,
-      message: walletDefaults.syncing.message,
-      context: "wallet submission",
-      suppressLogging: true,
-    });
-  },
-
-  success: () => {
-    const bound = localized();
-    if (bound) return bound.success();
-    return toastService.success({
-      id: "wallet-submission",
-      title: walletDefaults.success.title,
-      message: walletDefaults.success.message,
-      context: "wallet submission",
-      suppressLogging: true,
-    });
-  },
-
-  error: (message: string, recoverable: boolean = false) => {
-    const bound = localized();
-    if (bound) return bound.error(message, recoverable);
-    return toastService.error({
-      id: "wallet-submission",
-      title: walletDefaults.error.title,
-      message,
-      context: "wallet submission",
-      description: recoverable ? walletDefaults.error.recoverable : undefined,
-    });
-  },
-
-  timeout: () => {
-    const bound = localized();
-    if (bound) return bound.timeout();
-    return toastService.info({
-      id: "wallet-submission",
-      title: walletDefaults.timeout.title,
-      message: walletDefaults.timeout.message,
-      context: "wallet submission",
-    });
-  },
-
-  dismiss: () => toastService.dismiss("wallet-submission"),
-};
-
 /**
  * Helper to show progressive wallet submission feedback
  * @param stage - Current submission stage
@@ -238,18 +218,9 @@ export function showWalletProgress(
   message?: string
 ): void {
   if (stage === "uploading" && message) {
-    // Localize the title via formatMessage when bound; use the caller-provided
-    // message in place of the default static message.
-    const formatter = currentFormatter();
-    const title = formatter
-      ? formatter({
-          id: toastMessageIds.wallet.uploading.title,
-          defaultMessage: walletDefaults.uploading.title,
-        })
-      : walletDefaults.uploading.title;
     toastService.loading({
       id: "wallet-submission",
-      title,
+      title: walletDefaults.uploading.title,
       message,
       context: "wallet submission",
       suppressLogging: true,

@@ -11,23 +11,18 @@ import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock shared barrel (TopNav imports cn, useOffline, Garden, Work from @green-goods/shared)
-vi.mock("@green-goods/shared", async () => {
-  const React = await import("react");
-  return {
-    useOffline: vi.fn(() => ({
-      syncStatus: "idle",
-      isOnline: true,
-    })),
-    cn: (...args: any[]) => args.filter(Boolean).join(" "),
-    useFocusTrap: vi.fn(),
-    useTimeout: vi.fn(() => ({
-      set: vi.fn(),
-      clear: vi.fn(),
-    })),
-    PwaSheet: ({ open, children }: { open: boolean; children: any }) =>
-      open ? React.createElement("div", { "data-testid": "pwa-sheet" }, children) : null,
-  };
-});
+vi.mock("@green-goods/shared", () => ({
+  useOffline: vi.fn(() => ({
+    syncStatus: "idle",
+    isOnline: true,
+  })),
+  cn: (...args: any[]) => args.filter(Boolean).join(" "),
+  useFocusTrap: vi.fn(),
+  useTimeout: vi.fn(() => ({
+    set: vi.fn(),
+    clear: vi.fn(),
+  })),
+}));
 
 // Mock the GardenNotifications component
 vi.mock("@/views/Home/Garden/Notifications", async () => {
