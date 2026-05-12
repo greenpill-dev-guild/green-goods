@@ -263,6 +263,7 @@ collect_usage_hits() {
     | grep -Ev 'cubic-bezier\([^)]*var\(' \
     | grep -Ev 'duration-\[var\(' \
     | grep -Ev 'rounded-\[var\(' \
+    | grep -Evi 'react error #[0-9]{3,8}' \
     | sed -E 's#^([^:]+):[0-9]+:[[:space:]]*#\1	#' \
     | sed -E 's#[[:space:]]+# #g; s#[[:space:]]+$##' \
     | sort -u
