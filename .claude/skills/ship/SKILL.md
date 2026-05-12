@@ -127,7 +127,7 @@ git log origin/main..HEAD --format='%s'
 
 Each subject line must match conventional commits with a Green Goods scope:
 - Types: `feat`, `fix`, `refactor`, `chore`, `docs`, `test`, `perf`, `ci`
-- Scopes: `contracts`, `indexer`, `shared`, `client`, `admin`, `agent`, `claude`
+- Scopes: `contracts`, `indexer`, `shared`, `client`, `admin`, `agent`
 - Format: `type(scope): description` or `type(scope,scope): description`
 
 Flag any that don't match. Offer to amend via `git commit --amend` (only if the offending commit is the HEAD commit; for earlier commits, suggest a rebase but don't auto-run it).

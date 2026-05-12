@@ -74,6 +74,9 @@ Always gather the smallest high-signal set:
    - obvious failing continuity artifacts
    - blocked lanes in matching `status.json`
    - lightweight health pulse on touched packages only when it is cheap enough
+6. Linear context (single MCP call, skip on `--quick`):
+   - if branch matches the Linear convention `<user>/<team-key>-<id>-<slug>` (e.g., `afo/prd-370-...`, `afo/resr-3-...`), pull the linked Issue's title, status, and current cycle via Linear MCP — that is the work this branch is doing
+   - if no parseable Linear ID, skip silently — do not query the workspace for "everything assigned to me" here (that belongs in a daily-brief flow, not branch-scoped status)
 
 Prefer touched-package type checks over repo-wide validation. Do not turn `status` into `review`, `audit`, or `ship`.
 
@@ -87,9 +90,10 @@ Keep the output scannable. Use short bullets and tables where helpful.
 2. **Current Branch** — branch, recent activity, commit distance
 3. **Working Tree** — modified files, untracked files, diff size
 4. **Continuity** — session state, matching plan, or "no continuity artifacts found"
-5. **Blockers** — only if something is actually blocking progress
-6. **Next 1-3 Moves** — concrete next actions, not generic advice
-7. **Delta** — optional, only when there is a meaningful since-last-time change to call out
+5. **Linear Issue** — only when the branch parses to a Linear ID; show title, status, cycle. Omit the section entirely otherwise.
+6. **Blockers** — only if something is actually blocking progress
+7. **Next 1-3 Moves** — concrete next actions, not generic advice
+8. **Delta** — optional, only when there is a meaningful since-last-time change to call out
 
 ### Example Shape
 

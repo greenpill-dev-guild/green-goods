@@ -75,7 +75,7 @@ feature/hats-protocol-v2    feat/passkey-login    bug/admin-build-fix
 
 # Commit format: type(scope): description
 # Types: feat, fix, refactor, chore, docs, test, perf, ci
-# Scopes: contracts, indexer, shared, client, admin, agent, claude
+# Scopes: contracts, indexer, shared, client, admin, agent
 feat(contracts): add Hats Protocol v2 module
 fix(client): resolve offline sync race condition
 ```

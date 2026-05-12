@@ -16,8 +16,8 @@ Audit the Green Goods `design` + `ui` skill stack itself (meta-review, not PR re
 This audit covers **only** the following surfaces. Anything outside is out of scope and must not appear in findings, even when genuinely broken — route those to `/audit`, `/principles`, or the relevant skill's own review.
 
 **In scope:**
-- `.claude/skills/design/**` (every sub-file)
-- `.claude/skills/ui/**` (every sub-file)
+- `.agents/skills/design/**` (every sub-file)
+- `.agents/skills/ui/**` (every sub-file)
 - The `design` and `ui` entries in `.claude/registry/skills.json` (frontmatter coupling, `sub_files` ↔ disk parity, `token_version` ↔ `design_token_version`)
 - Warm Earth token implementation in `packages/shared/src/styles/theme.css` and generated DesignMD artifacts
 - Root `DESIGN.md` plus `packages/admin/DESIGN.md`, `packages/client/DESIGN.pwa.md`, `packages/client/DESIGN.browser.md`, and `docs/DESIGN.md` dialect briefs
@@ -27,7 +27,7 @@ This audit covers **only** the following surfaces. Anything outside is out of sc
 - Other skills' health (`ship`, `plan`, `debug`, `review`, `audit`, `clean`, `principles`, `status`, etc.) — not our stack.
 - Registry-wide shape: `canonical_commands`, aliases, bundles, `listed_in_index`, `user_invocable` consistency — belongs to `/audit` or `check:claude-guidance`.
 - `check-skill-frontmatter.js` behaviour (it governs all skills, not the design stack).
-- `.claude/skills/index.md` structure beyond whether `design` / `ui` rows are accurate.
+- `.agents/skills/index.md` structure beyond whether `design` / `ui` rows are accurate.
 - Anything in `packages/*/src/**` that isn't a design token, prompt contract, or palette reference.
 
 Say so explicitly if the most broken thing you found is out of scope — the refusal condition at the bottom of this file is the right exit.
@@ -48,7 +48,7 @@ HARD CONSTRAINTS — read before producing any finding.
    ```
    If both pass, "token drift" and "vocabulary drift" are not real findings. Verify the registry matches the directory:
    ```bash
-   ls .claude/skills/design .claude/skills/ui
+   ls .agents/skills/design .agents/skills/ui
    ```
    against the `sub_files` arrays in `.claude/registry/skills.json` (only the `design` and `ui` entries — not the rest).
 

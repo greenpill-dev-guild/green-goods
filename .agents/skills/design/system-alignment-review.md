@@ -26,8 +26,8 @@ Canonical authorities, ordered by precedence:
 2. Surface `DESIGN.md` / `DESIGN.pwa.md` / `DESIGN.browser.md` / `docs/DESIGN.md` dialect briefs — extend root.
 3. `packages/shared/src/styles/theme.css` — runtime projection consumed by all three frontends.
 4. `packages/shared/src/styles/design-md.generated.{css,json}` — generated artifacts from root DesignMD.
-5. `.claude/skills/design/language.md` — implementation guide projected from root DesignMD.
-6. `.claude/skills/design/prompt-contract.md` / `client-prompt-contract.md` — AI-tool vocabulary.
+5. `.agents/skills/design/language.md` — implementation guide projected from root DesignMD.
+6. `.agents/skills/design/prompt-contract.md` / `client-prompt-contract.md` — AI-tool vocabulary.
 
 If prose disagrees with a higher-precedence source, the prose is the drift, not the source.
 
@@ -36,15 +36,15 @@ If prose disagrees with a higher-precedence source, the prose is the drift, not 
 **In scope:**
 
 1. **DesignMD sources** — root `DESIGN.md` front matter vs surface dialects (`packages/admin/DESIGN.md`, `packages/client/DESIGN.md`, `packages/client/DESIGN.pwa.md`, `packages/client/DESIGN.browser.md`, `docs/DESIGN.md`).
-2. **Warm Earth design language** — `.claude/skills/design/language.md`, `quick-reference.md`, `materials.md`, `spatial.md`, prompt contracts.
+2. **Warm Earth design language** — `.agents/skills/design/language.md`, `quick-reference.md`, `materials.md`, `spatial.md`, prompt contracts.
 3. **Runtime tokens** — `packages/shared/src/styles/theme.css`, `design-md.generated.css`, `design-md.generated.json`, `packages/client/src/styles/*.css`.
 4. **Storybook** — `packages/shared/.storybook/**`, `packages/shared/src/components/Tokens/**`, cross-package story coverage.
 5. **Admin surface** — `packages/admin/DESIGN.md`, `packages/admin/AGENTS.md`, `Admin*` wrappers, `docs/docs/builders/packages/admin.mdx`.
 6. **Client PWA surface** — `packages/client/DESIGN.pwa.md`, `packages/client/AGENTS.md`, installed-PWA shell, bottom `AppBar`, `PlatformRouter`.
 7. **Client public browser surface** — `packages/client/DESIGN.browser.md`, landing/browser views, `SiteHeader`.
 8. **Docs UI** — `docs/DESIGN.md`, `docs/src/**`, Docusaurus identity, role accents.
-9. **Agentic design-development guidance** — `.claude/skills/design/**`, `.claude/skills/ui/**`, prompt contracts, defect grammar.
-10. **Claude and Codex repo instructions** — `CLAUDE.md`, `AGENTS.md`, `packages/*/AGENTS.md` — the Design-System / Design-Language sections that agents load by default.
+9. **Agentic design-development guidance** — `.agents/skills/design/**`, `.agents/skills/ui/**`, prompt contracts, defect grammar.
+10. **Claude and Codex repo instructions** — `AGENTS.md`, `AGENTS.md`, `packages/*/AGENTS.md` — the Design-System / Design-Language sections that agents load by default.
 
 **Out of scope — do not produce findings here:**
 
@@ -145,4 +145,4 @@ If nothing in Section 1 meets all constraints, say so. "Design system is aligned
 - `scripts/design/check-tokens.sh`, `scripts/design/check-vocab.sh`, `scripts/design/md-generate.mjs` — validators and generator
 - `packages/shared/.storybook/**`, `packages/shared/src/components/Tokens/**` — Storybook surface for the design system
 - `docs/docs/builders/packages/admin.mdx`, `docs/docs/builders/testing/storybook.mdx` — live UI and Storybook contracts
-- `CLAUDE.md`, `AGENTS.md`, `packages/*/AGENTS.md` — Design-System / Design-Language sections agents load by default
+- `AGENTS.md`, `AGENTS.md`, `packages/*/AGENTS.md` — Design-System / Design-Language sections agents load by default

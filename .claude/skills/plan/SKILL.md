@@ -1,14 +1,14 @@
 ---
 name: plan
 user-invocable: false
-description: Planning & Execution — fires passively when the user describes planning or orchestration intent. Creates structured implementation plans, checks progress, executes in batches, manages lifecycle, and coordinates mixed Claude+Codex agent teams. Fire when the user says 'plan this', 'break down X', 'orchestrate', 'coordinate a team', 'parallel lanes', 'spawn teammates', 'fire off agents', 'mixed codex and claude', or describes cross-package / multi-lane implementation work.
+description: Planning & Execution — fires passively when the user describes planning or orchestration intent. Creates structured implementation plans, checks progress, executes in batches, manages lifecycle, and coordinates mixed Claude+Codex agent teams. Fire when the user says 'plan this', 'break down X', 'orchestrate', 'coordinate a team', 'parallel lanes', 'spawn teammates', 'fire off agents', 'mixed agent team', or describes cross-package / multi-lane implementation work.
 argument-hint: "[feature-name]"
-version: "1.2.2"
+version: "1.2.3"
 status: active
 packages: ["all"]
 dependencies: []
-last_updated: "2026-05-09"
-last_verified: "2026-05-09"
+last_updated: "2026-05-10"
+last_verified: "2026-05-10"
 ---
 
 # Plan Skill
@@ -94,6 +94,14 @@ Minimum files:
 - `handoffs/`
 
 `status.json` is the machine-readable contract for automations. The Markdown files stay optimized for humans.
+Implementation lanes (`ui`, `state_api`, `contracts`) are proof-gated for behavior-changing work.
+
+- Use the `testing` skill as the RED/GREEN source of truth.
+- Record detailed RED/GREEN proof in the lane handoff.
+- Record machine-readable proof with `node scripts/harness/plan-hub.mjs record-tdd`.
+- If no behavior changed, set the lane TDD mode to `not_applicable` with a concrete note.
+- If TDD cannot honestly apply, set `proof_limit` with fallback validation evidence and a concrete note.
+- Do not mark a behavior-changing implementation lane `passed` or `completed` until its TDD proof is recorded.
 
 ```markdown
 # [Feature Name] Plan
@@ -187,7 +195,7 @@ Implementation steps must be granular enough for agents to execute reliably. Fol
 
 **Ordering**:
 - Follow dependency order: contracts → indexer → shared → client/admin → agent
-- Within a package: types/interfaces first, then implementation, then tests, then wiring
+- Within a package: behavior boundary + RED proof first, then types/interfaces, implementation, GREEN proof, then wiring
 - Infrastructure steps (new files, new exports) before behavior steps (logic, handlers)
 
 **When to decompose further**:
@@ -214,6 +222,25 @@ Implementation steps must be granular enough for agents to execute reliably. Fol
 ---
 
 ## Part 3: Execute Plan
+
+### Implementation Start Gate
+
+For active implementation work, Linear sync is the default first step before code changes or
+agent dispatch.
+
+1. Run `node scripts/harness/plan-hub.mjs linear-sync --feature <feature-slug> --json`.
+2. If the manifest shows a missing parent or actionable lane issue, create or update the Linear
+   mirror before work begins. Parent and lane issues must carry `source:plans` and
+   `protocol:green-goods`; use Linear only for visibility, prioritization, and coordination.
+3. Record the canonical identifiers back to the hub with
+   `node scripts/harness/plan-hub.mjs record-linear --feature <feature-slug> --parent PRD-123 --lane ui=PRD-124 --actor <agent>`.
+4. Keep `.plans/<stage>/<feature-slug>/status.json` as execution truth. Lane status, TDD proof,
+   handoffs, and validation evidence belong in `.plans` first.
+
+Any prompt for an agent starting active implementation work should begin with the same
+`linear-sync` gate and require `record-linear` once Linear IDs exist. Backlog and idea hubs only
+need this when they are promoted, accepted for execution, or need cross-functional research
+tracking.
 
 ### Batch Execution
 

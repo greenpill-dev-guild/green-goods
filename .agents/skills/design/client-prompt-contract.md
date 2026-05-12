@@ -108,7 +108,7 @@ AI design tools MUST map generated output to these existing exports. Do not inve
 
 **Hero moment amplification** (garden creation, first work submission, hypercert mint, vault deposit, seasonal transitions, assessment completion, role milestone):
 - Apply full Warm Earth amplification: expressive shape × full chroma × Expressive motion scheme × display typography × dramatic material.
-- Spec and list: `.claude/skills/design/language.md § Hero Moments`.
+- Spec and list: `.agents/skills/design/language.md § Hero Moments`.
 - **Never appear in admin** — see `prompt-contract.md § Hero Moments Live in the Client, Not the Cockpit`.
 
 **Reference composition**: browser `/gardens` marketplace, PWA `/home` Work/Garden/Profile tabs. Model new client surfaces on them.

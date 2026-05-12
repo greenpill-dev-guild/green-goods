@@ -1,7 +1,7 @@
 ---
 name: plan
 user-invocable: false
-description: Planning & Execution — fires passively when the user describes planning or orchestration intent. Creates structured implementation plans, checks progress, executes in batches, manages lifecycle, and coordinates mixed Codex+Codex agent teams. Fire when the user says 'plan this', 'break down X', 'orchestrate', 'coordinate a team', 'parallel lanes', 'spawn teammates', 'fire off agents', 'mixed codex and Codex', or describes cross-package / multi-lane implementation work.
+description: Planning & Execution — fires passively when the user describes planning or orchestration intent. Creates structured implementation plans, checks progress, executes in batches, manages lifecycle, and coordinates mixed Claude+Codex agent teams. Fire when the user says 'plan this', 'break down X', 'orchestrate', 'coordinate a team', 'parallel lanes', 'spawn teammates', 'fire off agents', 'mixed agent team', or describes cross-package / multi-lane implementation work.
 argument-hint: "[feature-name]"
 version: "1.2.3"
 status: active
@@ -30,12 +30,12 @@ This skill is **passive-only**. There is no `/plan` slash command. Fire automati
 Any of these route directly to [teams.md](./teams.md):
 
 - Words/phrases: `orchestrate`, `coordinate a team`, `team of agents`, `spawn teammates`, `parallel lanes`, `fire off agents`, `multi-agent`, `run this in parallel`
-- "mixed codex and Codex" / "Codex team agents plus codex" / "some lanes with codex"
+- "mixed codex and claude" / "claude team agents plus codex" / "some lanes with codex"
 - Cross-package work spanning 3+ packages (contracts + shared + client/admin)
 - Competing hypotheses to investigate in parallel
 - New module with independent pieces buildable concurrently
 
-Action: run `bash .claude/scripts/check-agent-teams-readiness.sh` → compose team → assign lanes → spawn teammates (Codex-only or codex-driving per [teams.md § Part 11](./teams.md#part-11-codex-lanes--teammates-that-dispatch-codex)).
+Action: run `bash .claude/scripts/check-agent-teams-readiness.sh` → compose team → assign lanes → spawn teammates (Claude-only or codex-driving per [teams.md § Part 11](./teams.md#part-11-codex-lanes--teammates-that-dispatch-codex)).
 
 ### Standard planning signals → Default mode
 
@@ -169,10 +169,10 @@ Machine-readable lane state belongs in `.plans/active/<feature-slug>/status.json
 {
   "feature": { "slug": "feature-slug", "stage": "active" },
   "lanes": {
-    "ui": { "owner": "Codex", "status": "ready", "branch": "Codex/ui/feature-slug" },
+    "ui": { "owner": "claude", "status": "ready", "branch": "claude/ui/feature-slug" },
     "state_api": { "owner": "codex", "status": "ready", "branch": "codex/state-api/feature-slug" },
     "contracts": { "owner": "codex", "status": "n/a", "branch": "codex/contracts/feature-slug" },
-    "qa_pass_1": { "owner": "Codex", "status": "blocked", "depends_on": ["ui", "state_api", "contracts"] },
+    "qa_pass_1": { "owner": "claude", "status": "blocked", "depends_on": ["ui", "state_api", "contracts"] },
     "qa_pass_2": { "owner": "codex", "status": "blocked", "depends_on": ["qa_pass_1"] }
   }
 }
@@ -379,7 +379,7 @@ The numbered decision table with rationale is the most effective planning patter
 | 2 | Manual harvest only (Phase 1) | Simpler to build and debug |
 ```
 
-This gives Codex and future contributors unambiguous constraints without reading 200 lines of prose.
+This gives Claude and future contributors unambiguous constraints without reading 200 lines of prose.
 
 ---
 

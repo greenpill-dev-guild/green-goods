@@ -125,6 +125,59 @@ Canvas recession on sheet open: `scale(0.97) + opacity(0.85) + blur(2px)`. No da
 
 ---
 
+## Sheet Slot Anatomy
+
+Sheets compose three optional slots inside a `flex flex-col` body container. `<SheetBody>` is the only one that scrolls; `<SheetFooter>` pins via `flex-shrink: 0` so it stays visible while long forms scroll above.
+
+```tsx
+<RightSheet open onClose={...} title="Account">
+  <SheetBody padded={true}>
+    {sections}
+    <SheetDivider />
+    {moreSections}
+  </SheetBody>
+  <SheetFooter>
+    <Button>Cancel</Button>
+    <div style={{ flex: 1 }} />
+    <Button form="my-form" type="submit">Save</Button>
+  </SheetFooter>
+</RightSheet>
+```
+
+| Slot | Anatomy |
+|---|---|
+| `SheetBody` | `flex: 1`, hidden scrollbar, `padded={true}` adds `20px 16px`, `padded={false}` for edge-to-edge lists |
+| `SheetFooter` | `padding: 12px 16px`, hairline top border, `display: flex; gap: 8px`, raised bg, pins via `flex-shrink: 0` |
+| `SheetDivider` | 1px hairline with `16px 0` margin, `role="separator"` |
+
+Sheet shell tokens: `--radius-sheet: 24px` (LeftSheet/RightSheet outer), `--canvas-blur-sheet-open: 6px` (MainSheet filter when any sheet open), `--e-float` (sheet elevation). MainSheet exposes `data-sheet-open="true|false"` for downstream styling.
+
+## Tabs (segmented-card)
+
+`AdminTabRail` ships handoff `.rv-tabs` anatomy — segmented cards in a grid container. **No sliding underline.**
+
+| Property | Value |
+|---|---|
+| Container | `display: grid; gap: 6px; padding: 6px; border-radius: 14px; background: var(--surface-quiet)` |
+| Tab button | `height: 40px; border-radius: 10px; font: 600 14px/1; letter-spacing: -0.005em` |
+| Active tab | `background: var(--surface-raised)` + `box-shadow: var(--e1)` + 6% tone wash via `linear-gradient(rgb(var(--tone-action,…) / 0.06), …)` |
+| Count chip | 22×20 pill — inactive `var(--surface-raised)` + 1px outline; active `var(--g-action)` with white text |
+| Keyboard | Roving tabindex; ArrowLeft/ArrowRight cycle, Home/End jump (skip disabled tabs) |
+
+## Tone Consumption Rule
+
+`var(--tone-action, var(--green-800))` — `--tone-action` is a **raw RGB triplet** inside admin's `[data-tone]` scopes (e.g. `51 92 255` for Hub). The fallback must also be a raw triplet so `rgb(var(...) / 0.06)` alpha-blending stays valid:
+
+```css
+/* OK — both raw triplets */
+background: rgb(var(--tone-action, 26 117 68) / 0.06);
+
+/* BROKEN — fallback wraps `--g-action` which is itself rgb(...) */
+background: rgb(var(--tone-action, var(--g-action)) / 0.06);
+```
+
+For non-blended use, either form works.
+
 ## Anti-Patterns (the 13 sins)
 
 1. Dashboard-itis — everything on one flat surface

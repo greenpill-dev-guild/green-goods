@@ -151,6 +151,7 @@ When you see a layout bug that "looks like" a missing class, first check: was th
 ## Validation Ladder
 
 - Codex drift check: `node scripts/quality/check-codex-docs.js`
+- Skill mirror check: `bun run check:skills`
 - Quick repo verification: `node scripts/dev/ci-local.js --quick`
 - Test-quality guardrail: `bash scripts/quality/check-test-quality.sh`
 - Lint check: `bun run format:check && bun lint`
@@ -182,6 +183,15 @@ When Codex is running unattended maintenance work:
 - Project config: `.codex/config.toml`
 - Environment and actions: `.codex/environments/environment.toml`
 - Reference doc: `docs/docs/builders/agentic/codex.mdx`
+
+## Shared Skill Surface
+
+`.claude/skills` is the canonical repo skill source. `.agents/skills` is a generated Codex-visible mirror, not a hand-edited tree.
+
+- Update `.claude/skills` first when changing shared skills.
+- Run `bun run skills:sync` after skill edits to regenerate `.agents/skills`.
+- Run `bun run check:skills` before claiming the skill surface is aligned.
+- Do not replace `.agents/skills` with a symlink. A symlink hides drift, but it also lets accidental Codex skill imports write directly into the canonical Claude tree.
 
 ## Scripts
 

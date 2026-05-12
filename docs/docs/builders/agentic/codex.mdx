@@ -4,7 +4,7 @@ sidebar_label: Codex
 slug: /builders/agentic/codex
 audience: developer
 owner: docs
-last_verified: 2026-04-23
+last_verified: 2026-05-11
 feature_status: Live
 source_of_truth:
   - AGENTS.md
@@ -32,6 +32,7 @@ graph TB
     Config --> Sandbox
 
     AGENTS["AGENTS.md"] -->|context| Sandbox
+    Skills[".agents/skills\nGenerated mirror"] -->|skills| Sandbox
 
     Sandbox -->|output| PR["Draft PR\nmax 20 files"]
 ```
@@ -107,9 +108,16 @@ When running automated maintenance tasks via Codex (or any automated agent), con
 
 ## Skills Discovery
 
-Codex discovers skills from its standard locations (`$HOME/.agents/skills`, bundled, and admin paths). The repo no longer mirrors `.claude/skills` into a repo-scoped `.agents/skills` — Claude Code's project skills under `.claude/skills/` are intentionally not surfaced to Codex.
+Codex discovers skills from its standard locations (`$HOME/.agents/skills`, bundled, admin paths, and the repo-scoped `.agents/skills` tree when present). Green Goods keeps Claude and Codex on the same shared skill surface through a generated mirror:
 
-For design-system work, Codex should still follow the repo design source path explicitly: start with `AGENTS.md`, then read the root `DESIGN.md`, the affected surface `DESIGN.md`, `.claude/skills/design/ARCHITECTURE.md`, and the relevant Storybook or package builder doc before editing UI. Treat those files as repository documentation, not as auto-loaded Codex skills.
+- Canonical source: `.claude/skills`
+- Codex-visible mirror: `.agents/skills`
+- Regenerate mirror: `bun run skills:sync`
+- Check mirror drift: `bun run check:skills`
+
+Do not hand-edit `.agents/skills`; changes there will be overwritten by the sync script. Do not replace `.agents/skills` with a symlink. A symlink would remove copy drift, but it also means accidental Codex skill imports or experiments under `.agents/skills` can mutate the canonical Claude tree directly.
+
+For design-system work, Codex should still follow the repo design source path explicitly: start with `AGENTS.md`, then read the root `DESIGN.md`, the affected surface `DESIGN.md`, `.agents/skills/design/ARCHITECTURE.md`, and the relevant Storybook or package builder doc before editing UI.
 
 ## Relationship to Claude Code
 

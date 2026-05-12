@@ -55,7 +55,7 @@ Each question has:
   ```
   Run question `funnel.onboarding` (window 30d) via the PostHog connector's
   query-run, using the HogQL block defined under that name in
-  .claude/skills/posthog-questions/SKILL.md. Privacy mode: public.
+  .agents/skills/posthog-questions/SKILL.md. Privacy mode: public.
   ```
 - **Local/Codex/non-Claude fallback only**: product/quality questions that match a script command (`errors.recent` → `errors`, `errors.detail` → `error-detail`, `errors.recurring` → `recurring`, `errors.match-bug-report` → `match-bug-report`, `replay.user-sessions` → `user-sessions`) may use `scripts/agents/posthog-query.ts` when the connector is unavailable and the local environment explicitly provides `POSTHOG_PROJECT_API_KEY`, single-project `POSTHOG_PROJECT_ID`, and `POSTHOG_HOST`.
   ```bash

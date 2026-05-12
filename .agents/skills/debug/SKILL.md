@@ -1,7 +1,7 @@
 ---
 name: debug
 user-invocable: false
-description: Debugging & Troubleshooting — fires passively when the user describes a bug, pastes an error or stack trace, reports unexpected behavior, mentions failing tests or builds, or signals an incident. Routes to incident_hotfix mode on urgency signals, tdd_bugfix on red-test signals, default on general bug reports.
+description: Debugging & Troubleshooting — fires passively when the user describes a bug, pastes an error or stack trace, reports unexpected behavior, mentions failing tests or builds, or signals an incident. Routes to user_bug_triage when an external party (user / gardener / operator / customer / team member / partner) reports broken product behavior, incident_hotfix on urgency signals, tdd_bugfix on red-test signals, default on general bug reports.
 argument-hint: "[error-description]"
 version: "1.1.2"
 status: active
@@ -44,6 +44,18 @@ This skill is **passive-only**. There is no `/debug` slash command. Fire automat
 - "write a failing test for X then fix it"
 - Focus: test-first loop — reproduce in a test, then fix
 
+### External-party report signals → user_bug_triage mode
+
+Fires when any external party reports broken product behavior — regardless of phrasing, role, or
+channel. Pattern-match semantically, not lexically: `a gardener said`, `the Hypercert team can't`,
+`Afolabi got an error`, `operator reports`, `someone is hitting`, `a user said`, forwarded support
+message, attached user screenshot, paraphrased complaint — they all engage this mode.
+
+- Focus: reproduce locally first, identify the failing layer, probe the boundary with the user's
+  exact inputs, disambiguate opaque errors, then confirm scale with PostHog (never the other way).
+- See the User-Facing Bug Triage Protocol in Part 1 — it gates the choice between UI Regression
+  and Data/API/Contract protocols.
+
 ### Verification signals
 
 - "verify this works", "prove completion", "evidence this is done"
@@ -84,8 +96,49 @@ Use **TodoWrite** when available. If unavailable, keep a Markdown checklist in t
 2. **Reproduce consistently** — exact steps
 3. **Check recent changes**: `git log --oneline -20`
 4. **Choose the right entrypoint**:
+   - External-party bug report: run the **User-Facing Bug Triage Protocol** first — it's the gating frame that decides which deeper protocol applies.
    - User-visible UI regression: inspect the rendered component first (DOM, geometry, computed styles, event target, state change).
    - Data/API/contract symptom: trace data flow backward from the failing output.
+
+### User-Facing Bug Triage Protocol
+
+Fires for `user_bug_triage` mode. Use this as the gating frame whenever any external party
+(user, gardener, operator, customer, team member, partner) reports broken product behavior —
+regardless of phrasing or role. Apply this BEFORE choosing UI Regression or Data/API/Contract
+protocols; this decides which one fits.
+
+1. **Reproduce, with the user's exact inputs.** Drive the real surface (Chrome MCP against
+   `localhost` or prod, real auth mode, real garden, real entry path). Target: trigger the failure
+   yourself within 5 minutes. Do not open PostHog yet. If reproducing is impossible, document why
+   and proceed with explicit caveat.
+2. **Identify the failing layer** before going deeper: UI render, fetch boundary, server response,
+   contract call, indexer drift, deployment artifact. Pick by where the symptom surfaces, not
+   where you suspect.
+3. **Probe the boundary with the user's exact inputs.** For a fetch boundary failure, send the
+   actual HTTP request with the user's `Origin`/auth/headers; read raw status, headers, and body.
+   For UI, inspect the rendered DOM at the failing moment. For contract, `cast call` against the
+   deployed address. One round-trip beats a hundred metric reads.
+4. **Treat opaque runtime errors as categories, not causes.** `TypeError: Failed to fetch`,
+   `NotReadableError`, `DOMException`, `Error: Network error` — disambiguate before committing:
+     - `Failed to fetch` → one `fetch('/health', {mode:'no-cors'})` against the same host.
+       Succeeds → it's CORS or app-layer. Fails → real connectivity.
+     - `NotReadableError` on a `File` → File handle invalidated (mobile background/foreground
+       cycle); test with a fresh pick.
+     - `DOMException` from React reconciliation → check for stale chunk / SW version skew
+       (cross-bundle callback going undefined) before chasing component logic.
+5. **State ONE hypothesis in one sentence.** If you can't, you don't have one — go back to (3).
+6. **Run the cheapest test that would *falsify* the hypothesis.** Not the test that confirms it.
+   If you can't refute it cheaply, the hypothesis is too vague.
+7. **Only now use PostHog** — to measure scale, version range, regional distribution. PostHog
+   answers "how many users", "which versions", "where geographically". Never "what's broken".
+8. **Anti-patterns to refuse:**
+   - Conflating multiple user sessions with similar symptoms as the same bug without independent
+     proof — different sessions are separate threads until evidence ties them.
+   - Building a narrative from telemetry before reproducing the failure.
+   - Discounting user firsthand observation in favor of a single metric (downlink, geoip, etc.).
+   - Accepting an opaque category (`Failed to fetch`, etc.) as a diagnosis.
+9. **After fix, if the symptom→cause mapping is reusable**, persist it as a project memory
+   (e.g., `project_<subsystem>_known_failures.md`) so the next session resolves it faster.
 
 ### User-Observed UI Regression Protocol
 
@@ -428,8 +481,19 @@ After debugging provide:
 ## Reference Files
 
 - **[monitoring.md](./monitoring.md)** -- Production monitoring: transaction tracking, job queue health, on-chain verification
-- **[posthog.md](./posthog.md)** -- PostHog setup, event tracking, error tracking integration, feature flags
+- **[posthog.md](./posthog.md)** -- PostHog setup, event tracking, error tracking integration, feature flags. Also covers Linear routing for accepted bugs (Customer Need for raw signal, Issue for accepted work) and the PostHog↔Linear privacy boundary.
 - **[health-diagnostics.md](./health-diagnostics.md)** -- Service worker health, storage quotas, indexer sync lag, Web Vitals, error boundaries
+
+## Linear Routing
+
+This skill is read-only on Linear. After a bug is reproduced and root-caused:
+
+- Raw user/telemetry signal → Linear **Customer Need** (Product team) using the structured body shape (Source / Customer type / Need statement / Evidence / Disposition).
+- Accepted fixes, QA follow-ups, or product investigations → Linear **Issue** (Product team), labels: `activity:qa` + relevant `package:*` + `protocol:*`.
+- Accepted research questions or evidence-gathering → Linear **Issue** (Research team), labels: `activity:research`.
+- If the bug originated in a `.plans` item, link it and label the Linear record `source:plans`.
+- Detailed routing rules + PostHog↔Linear privacy boundary live in [posthog.md](./posthog.md).
+- Always prompt the user before creating any Linear record — never auto-write.
 
 ## Anti-Patterns
 
