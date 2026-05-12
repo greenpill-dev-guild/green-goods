@@ -29,7 +29,7 @@
   "lanes": {
     "ui": {
       "owner": "claude",
-      "status": "completed",
+      "status": "ready",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "claude/ui/client-pwa-audit",
@@ -38,16 +38,16 @@
       "handoff_note": "Implement localized PWA toasts, shared gesture-capable sheet API, drawer/dialog migration, route motion, haptics preference, aria-label i18n, and DESIGN.pwa.md routing correction.",
       "tdd": {
         "mode": "required",
-        "status": "green_recorded",
+        "status": "pending",
         "red": {
-          "command": "grep -rn 'createLocalizedToasts' packages/",
-          "evidence": "/tmp/red-proof-pwa-ui.txt: createLocalizedToasts exported but never imported outside its own module; PWA toast callsites use static (English-only) presets in JobQueue, Work, useWorkMutation, useBatchWorkSync, mutation-error-handler, PwaUpdateNotifier; ModalDrawer/WorkDashboard have no @use-gesture/@react-spring imports (no drag-to-dismiss); getPwaDrawerCloseDelayMs ignores prefers-reduced-motion; aria-label hardcoded English in OfflineIndicator/TopNav/DraftDialog/Gardeners; navigator.vibrate direct in useWorkApprovalActions; DESIGN.pwa.md references non-existent PlatformRouter."
+          "command": "",
+          "evidence": ""
         },
         "green": {
-          "command": "cd packages/shared && bun run test src/__tests__/components/PwaSheet.test.tsx src/__tests__/components/toast-registry.test.ts src/__tests__/i18n/locale-coverage.test.ts && cd ../client && bun run test src/__tests__/components/DraftDialog.test.tsx src/__tests__/components/OfflineIndicator.test.tsx src/__tests__/components/TopNav.test.tsx src/__tests__/styles/pwaDrawerStyles.test.ts src/__tests__/views/AppSettings.test.tsx src/__tests__/views/WorkDashboard.test.tsx && cd ../.. && bun run check:design-generated && bun run check:design-tokens && bun run lint:vocab && cd packages/shared && bun run check:stories && bun run check:story-quality",
-          "evidence": "Shared: 25/25 PwaSheet+toast-registry+locale-coverage tests pass. Client: 33/33 targeted tests pass. Full client suite: 276/276 assertion tests pass (18 pre-existing uint8arrays/WalletConnect resolution file failures unrelated to lane). check:design-generated, check:design-tokens, lint:vocab green. Storybook: 143 stories pass quality gates after registering LocalizedToastsBridge as side-effect-only. plan-hub validate: 23 hubs validated."
+          "command": "",
+          "evidence": ""
         },
-        "note": ""
+        "note": "Behavior-changing UI/shared work must record RED/GREEN proof before lane completion."
       },
       "skill_tags": ["ui", "react", "testing", "design"]
     },
