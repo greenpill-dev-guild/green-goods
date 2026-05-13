@@ -65,6 +65,8 @@
   --admin-motion-fab-menu: var(--spring-spatial-fast);
   --admin-motion-sheet: var(--spring-spatial-fast);
   --admin-motion-state: var(--spring-effects-fast);
+  --surface-raised: rgb(var(--neutral-0));
+  --outline: rgb(var(--neutral-800) / 0.10);
 }
 
 @media (max-width: 599px) {
@@ -86,6 +88,54 @@
   --admin-appbar-shadow: 0 1px 0 rgb(var(--neutral-50) / 0.08);
   --admin-sheet-bg: rgb(var(--neutral-900) / 0.86);
   --admin-speed-dial-shadow: 0 16px 30px rgb(var(--static-black) / 0.42), var(--edge-rest);
+}
+
+:is(.admin-m3[data-theme="dark"], [data-theme="dark"] .admin-m3) {
+  --surface-raised: rgb(var(--neutral-900));
+  --outline: rgb(var(--neutral-50) / 0.10);
+  --color-text-strong: rgb(var(--text-strong-950));
+  --color-text-sub: rgb(var(--text-sub-600));
+  --color-text-soft: rgb(var(--text-soft-400));
+  --color-text-disabled: rgb(var(--text-disabled-300));
+  --primary-base: var(--green-300);
+  --primary-dark: var(--green-300);
+  --primary-darker: var(--green-200);
+  --color-primary-base: rgb(var(--primary-base));
+  --color-primary-dark: rgb(var(--primary-dark));
+  --color-primary-darker: rgb(var(--primary-darker));
+  --domain-solar-rgb: var(--yellow-300);
+  --domain-solar-soft-rgb: var(--yellow-alpha-16);
+  --domain-agro-rgb: var(--green-300);
+  --domain-agro-soft-rgb: var(--green-alpha-16);
+  --domain-education-rgb: var(--blue-300);
+  --domain-education-soft-rgb: var(--blue-alpha-16);
+  --domain-waste-rgb: var(--orange-300);
+  --domain-waste-soft-rgb: var(--orange-alpha-16);
+  --color-domain-solar: rgb(var(--domain-solar-rgb));
+  --color-domain-solar-soft: rgb(var(--domain-solar-soft-rgb));
+  --color-domain-agro: rgb(var(--domain-agro-rgb));
+  --color-domain-agro-soft: rgb(var(--domain-agro-soft-rgb));
+  --color-domain-education: rgb(var(--domain-education-rgb));
+  --color-domain-education-soft: rgb(var(--domain-education-soft-rgb));
+  --color-domain-waste: rgb(var(--domain-waste-rgb));
+  --color-domain-waste-soft: rgb(var(--domain-waste-soft-rgb));
+}
+
+:is(.admin-m3[data-theme="dark"], [data-theme="dark"] .admin-m3) :where(.text-primary-base) {
+  color: rgb(var(--green-300));
+}
+
+:is(.admin-m3[data-theme="dark"], [data-theme="dark"] .admin-m3) :where(.text-primary-dark) {
+  color: rgb(var(--green-300));
+}
+
+:is(.admin-m3[data-theme="dark"], [data-theme="dark"] .admin-m3) :where(.text-primary-darker) {
+  color: rgb(var(--green-200));
+}
+
+:is(.admin-m3[data-theme="dark"], [data-theme="dark"] .admin-m3)
+  :where(.hover\:text-primary-darker:hover) {
+  color: rgb(var(--green-200));
 }
 
 [data-tone="hub"] {

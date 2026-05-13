@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { expect, within } from "storybook/test";
+import { expect, waitFor, within } from "storybook/test";
 import {
   STORYBOOK_ADMIN_DEPLOYER_SEEDS,
   STORYBOOK_PRIMARY_ADMIN_GARDEN,
@@ -14,6 +14,11 @@ import {
   ADMIN_ROUTE_STORY_QUERY_OPTIONS,
   StorybookAdminCanvasRoute,
 } from "../storybookCanvasHarness";
+import {
+  expectAdminShellDarkPalette,
+  expectAllVisibleSelectorContrast,
+  withTemporaryDocumentTheme,
+} from "../storybookPaletteAssertions";
 
 interface ActionsCanvasStoryProps {
   initialPath?: string;
@@ -55,9 +60,23 @@ function actionsDecorators() {
 }
 
 export const Registry: Story = {
-  tags: ["visual-harness"],
+  tags: ["storybook-ci"],
   args: { initialPath: "/actions?sort=recent&lifecycle=active" },
   decorators: actionsDecorators(),
+  play: async ({ canvasElement }) => {
+    await withTemporaryDocumentTheme("dark", async () => {
+      const canvas = within(canvasElement);
+      await expect(
+        await canvas.findByRole("heading", { name: "Actions" }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
+      ).toBeVisible();
+      await waitFor(() => expectAdminShellDarkPalette(canvasElement));
+      await waitFor(() =>
+        expectAllVisibleSelectorContrast(canvasElement, '[class*="text-domain-"]', {
+          label: "Actions domain chip text",
+        })
+      );
+    });
+  },
 };
 
 export const DetailInspector: Story = {

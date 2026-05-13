@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { expect, within } from "storybook/test";
+import { expect, waitFor, within } from "storybook/test";
 import {
   STORYBOOK_ADMIN_SHELL_SEEDS,
   STORYBOOK_PRIMARY_ADMIN_GARDEN,
@@ -14,6 +14,11 @@ import {
   ADMIN_ROUTE_STORY_QUERY_OPTIONS,
   StorybookAdminCanvasRoute,
 } from "../storybookCanvasHarness";
+import {
+  expectAdminShellDarkPalette,
+  expectAllVisibleSelectorContrast,
+  withTemporaryDocumentTheme,
+} from "../storybookPaletteAssertions";
 
 interface CommunityCanvasStoryProps {
   initialPath?: string;
@@ -59,14 +64,32 @@ export const Treasury: Story = {
   args: { initialPath: "/community/treasury" },
   decorators: communityDecorators(),
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    await expect(
-      await canvas.findByRole("heading", { name: "Community" }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
-    ).toBeVisible();
-    await expect(
-      (await canvas.findAllByText("Rio Rainforest Lab", undefined, ADMIN_ROUTE_STORY_QUERY_OPTIONS))
-        .length
-    ).toBeGreaterThan(0);
+    await withTemporaryDocumentTheme("dark", async () => {
+      const canvas = within(canvasElement);
+      await expect(
+        await canvas.findByRole("heading", { name: "Community" }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
+      ).toBeVisible();
+      await expect(
+        (
+          await canvas.findAllByText(
+            "Rio Rainforest Lab",
+            undefined,
+            ADMIN_ROUTE_STORY_QUERY_OPTIONS
+          )
+        ).length
+      ).toBeGreaterThan(0);
+      await waitFor(() => expectAdminShellDarkPalette(canvasElement));
+      await waitFor(() =>
+        expectAllVisibleSelectorContrast(canvasElement, ".text-primary-base", {
+          label: "Community primary action links",
+        })
+      );
+      await waitFor(() =>
+        expectAllVisibleSelectorContrast(canvasElement, ".bg-success-lighter .text-success-dark", {
+          label: "Community success status text",
+        })
+      );
+    });
   },
 };
 

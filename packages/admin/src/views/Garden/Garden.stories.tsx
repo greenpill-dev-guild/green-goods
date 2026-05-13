@@ -6,7 +6,7 @@ import {
   type Address,
   type Garden as SharedGarden,
 } from "@green-goods/shared";
-import { expect, within } from "storybook/test";
+import { expect, waitFor, within } from "storybook/test";
 import {
   STORYBOOK_ADMIN_GARDENS,
   STORYBOOK_ADMIN_SHELL_SEEDS,
@@ -23,6 +23,11 @@ import {
   ADMIN_ROUTE_STORY_QUERY_OPTIONS,
   StorybookAdminCanvasRoute,
 } from "../storybookCanvasHarness";
+import {
+  expectAdminShellDarkPalette,
+  expectAllVisibleSelectorContrast,
+  withTemporaryDocumentTheme,
+} from "../storybookPaletteAssertions";
 
 interface GardenCanvasStoryProps {
   initialPath?: string;
@@ -98,14 +103,27 @@ export const Overview: Story = {
   args: { initialPath: "/garden/overview" },
   decorators: gardenDecorators(),
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    await expect(
-      await canvas.findByRole("heading", { name: "Garden" }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
-    ).toBeVisible();
-    await expect(
-      (await canvas.findAllByText("Rio Rainforest Lab", undefined, ADMIN_ROUTE_STORY_QUERY_OPTIONS))
-        .length
-    ).toBeGreaterThan(0);
+    await withTemporaryDocumentTheme("dark", async () => {
+      const canvas = within(canvasElement);
+      await expect(
+        await canvas.findByRole("heading", { name: "Garden" }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
+      ).toBeVisible();
+      await expect(
+        (
+          await canvas.findAllByText(
+            "Rio Rainforest Lab",
+            undefined,
+            ADMIN_ROUTE_STORY_QUERY_OPTIONS
+          )
+        ).length
+      ).toBeGreaterThan(0);
+      await waitFor(() => expectAdminShellDarkPalette(canvasElement));
+      await waitFor(() =>
+        expectAllVisibleSelectorContrast(canvasElement, ".text-primary-base", {
+          label: "Garden primary action links",
+        })
+      );
+    });
   },
 };
 

@@ -11,6 +11,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { expect, fn, within } from "storybook/test";
 import { withCanvasFrame } from "../../../../shared/.storybook/decorators";
+import { expectAdminShellDarkPalette } from "../../views/storybookPaletteAssertions";
 
 interface ControlledChromeContractProps {
   theme: "light" | "dark";
@@ -213,6 +214,7 @@ export const LightContract: Story = {
 
     await expect(appBar).toHaveAttribute("data-component", "AppBar");
     expectTransparentAppBar(appBar);
+    expectAdminShellDarkPalette(canvasElement);
     expect(chromeBackdropValue(nav)).toContain("blur");
     expect(chromeBackdropValue(sheet)).toContain("blur");
     expect(chromeBackdropValue(content)).toBe("none");
@@ -234,6 +236,7 @@ export const DarkContract: Story = {
 
     await expect(appBar).toHaveAttribute("data-component", "AppBar");
     expectTransparentAppBar(appBar);
+    expectAdminShellDarkPalette(canvasElement);
     expect(chromeBackdropValue(nav)).toContain("blur");
     expect(chromeBackdropValue(sheet)).toContain("blur");
     expect(chromeBackdropValue(content)).toBe("none");

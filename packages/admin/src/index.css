@@ -278,8 +278,9 @@
   --warm-shadow: 133 109 70;
   --warm-shadow-deep: 38 28 18;
 
-  /* Controlled Chrome — subtle liquid material reserved for AppBar,
-   * Navigation/FAB, and sheet shells. Dense route content stays solid. */
+  /* Controlled Chrome — subtle liquid material reserved for Navigation/FAB
+   * and sheet shells. The AppBar root stays transparent; child controls may
+   * carry their own material surfaces. Dense route content stays solid. */
   --admin-chrome-bg: linear-gradient(
     180deg,
     rgb(var(--admin-surface-0) / 0.78) 0%,
@@ -1722,6 +1723,58 @@
   --e2: 0 4px 12px rgba(0, 0, 0, 0.45);
   --e3: 0 8px 20px rgba(0, 0, 0, 0.55);
   --e-float: 0 16px 36px rgba(0, 0, 0, 0.6);
+}
+
+:is(.admin-m3[data-theme="dark"], [data-theme="dark"] .admin-m3) {
+  --color-text-strong: rgb(var(--text-strong-950));
+  --color-text-sub: rgb(var(--text-sub-600));
+  --color-text-soft: rgb(var(--text-soft-400));
+  --color-text-disabled: rgb(var(--text-disabled-300));
+
+  /* Admin link/action foregrounds must read on the dark canvas. Keep these
+   * scoped so client/shared surfaces retain their own primary semantics. */
+  --primary-base: var(--green-300);
+  --primary-dark: var(--green-300);
+  --primary-darker: var(--green-200);
+  --color-primary-base: rgb(var(--primary-base));
+  --color-primary-dark: rgb(var(--primary-dark));
+  --color-primary-darker: rgb(var(--primary-darker));
+
+  /* Domain chips use the shared utility names, but admin needs brighter ink
+   * and translucent soft fills on dark operator surfaces. */
+  --domain-solar-rgb: var(--yellow-300);
+  --domain-solar-soft-rgb: var(--yellow-alpha-16);
+  --domain-agro-rgb: var(--green-300);
+  --domain-agro-soft-rgb: var(--green-alpha-16);
+  --domain-education-rgb: var(--blue-300);
+  --domain-education-soft-rgb: var(--blue-alpha-16);
+  --domain-waste-rgb: var(--orange-300);
+  --domain-waste-soft-rgb: var(--orange-alpha-16);
+  --color-domain-solar: rgb(var(--domain-solar-rgb));
+  --color-domain-solar-soft: rgb(var(--domain-solar-soft-rgb));
+  --color-domain-agro: rgb(var(--domain-agro-rgb));
+  --color-domain-agro-soft: rgb(var(--domain-agro-soft-rgb));
+  --color-domain-education: rgb(var(--domain-education-rgb));
+  --color-domain-education-soft: rgb(var(--domain-education-soft-rgb));
+  --color-domain-waste: rgb(var(--domain-waste-rgb));
+  --color-domain-waste-soft: rgb(var(--domain-waste-soft-rgb));
+}
+
+:is(.admin-m3[data-theme="dark"], [data-theme="dark"] .admin-m3) :where(.text-primary-base) {
+  color: rgb(var(--green-300));
+}
+
+:is(.admin-m3[data-theme="dark"], [data-theme="dark"] .admin-m3) :where(.text-primary-dark) {
+  color: rgb(var(--green-300));
+}
+
+:is(.admin-m3[data-theme="dark"], [data-theme="dark"] .admin-m3) :where(.text-primary-darker) {
+  color: rgb(var(--green-200));
+}
+
+:is(.admin-m3[data-theme="dark"], [data-theme="dark"] .admin-m3)
+  :where(.hover\:text-primary-darker:hover) {
+  color: rgb(var(--green-200));
 }
 
 /* ============================================================================

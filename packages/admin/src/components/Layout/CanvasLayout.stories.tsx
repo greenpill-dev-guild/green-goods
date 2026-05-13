@@ -11,13 +11,21 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { useMemo, useState } from "react";
 import { Route, Routes } from "react-router-dom";
 import { expect, fn, userEvent, waitFor, within } from "storybook/test";
-import { STORYBOOK_ADMIN_SHELL_SEEDS } from "../../../../shared/.storybook/adminFixtures";
+import {
+  STORYBOOK_ADMIN_DEPLOYER_SEEDS,
+  STORYBOOK_ADMIN_SHELL_SEEDS,
+} from "../../../../shared/.storybook/adminFixtures";
 import {
   withAdminIdentity,
+  withAdminIdentityRole,
   withCanvasFrame,
   withRouter,
   withSeededQueryClient,
 } from "../../../../shared/.storybook/decorators";
+import {
+  expectAdminShellDarkPalette,
+  withTemporaryDocumentTheme,
+} from "../../views/storybookPaletteAssertions";
 import { CanvasLayout } from "./CanvasLayout";
 
 const gardens = [
@@ -184,30 +192,6 @@ function expectDarkCanvasTone(root: HTMLElement, tone: AdminWorkspaceTone) {
   expect(toneCanvas).toContain(DARK_TONE_HUES[tone]);
 }
 
-async function withTemporaryDocumentTheme(theme: "light" | "dark", callback: () => Promise<void>) {
-  const previousHtmlTheme = document.documentElement.getAttribute("data-theme");
-  const previousBodyTheme = document.body.getAttribute("data-theme");
-
-  document.documentElement.setAttribute("data-theme", theme);
-  document.body.setAttribute("data-theme", theme);
-
-  try {
-    await callback();
-  } finally {
-    if (previousHtmlTheme === null) {
-      document.documentElement.removeAttribute("data-theme");
-    } else {
-      document.documentElement.setAttribute("data-theme", previousHtmlTheme);
-    }
-
-    if (previousBodyTheme === null) {
-      document.body.removeAttribute("data-theme");
-    } else {
-      document.body.setAttribute("data-theme", previousBodyTheme);
-    }
-  }
-}
-
 const meta: Meta<CanvasLayoutStoryArgs> = {
   title: "Admin/Shell/CanvasLayout",
   component: CanvasLayout,
@@ -292,8 +276,8 @@ export const DarkRouteToneContract: Story = {
   tags: ["storybook-ci"],
   render: () => <RealCanvasLayoutStory />,
   decorators: [
-    withAdminIdentity,
-    withSeededQueryClient(STORYBOOK_ADMIN_SHELL_SEEDS),
+    withAdminIdentityRole("deployer"),
+    withSeededQueryClient(STORYBOOK_ADMIN_DEPLOYER_SEEDS),
     withRouter(["/hub"]),
     withCanvasFrame({
       className: "p-0",
@@ -310,11 +294,13 @@ export const DarkRouteToneContract: Story = {
     },
   },
   play: async ({ canvasElement }) => {
-    await withTemporaryDocumentTheme("dark", async () => {
-      const canvas = within(canvasElement);
-      const root = getCanvasLayoutRoot(canvasElement);
+    const canvas = within(canvasElement);
+    await canvas.findByRole("banner");
+    const root = getCanvasLayoutRoot(canvasElement);
 
+    await withTemporaryDocumentTheme("dark", async () => {
       await waitFor(() => expectDarkCanvasTone(root, "hub"));
+      await waitFor(() => expectAdminShellDarkPalette(canvasElement));
 
       const routeCases = [
         { label: "Garden", tone: "garden" },
@@ -326,6 +312,7 @@ export const DarkRouteToneContract: Story = {
       for (const route of routeCases) {
         await userEvent.click(canvas.getByRole("button", { name: route.label }));
         await waitFor(() => expectDarkCanvasTone(root, route.tone));
+        await waitFor(() => expectAdminShellDarkPalette(canvasElement));
       }
     });
   },
