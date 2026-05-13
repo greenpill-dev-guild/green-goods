@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import type { ActivityEvent } from "@green-goods/shared";
+import { expect, within } from "storybook/test";
 import { hoursAgo as hoursAgoTs } from "../../../../../shared/.storybook/fixtures";
 import { HubHistoryInspector } from "./HubHistoryInspector";
 
@@ -31,7 +32,7 @@ const meta: Meta<typeof HubHistoryInspector> = {
     docs: {
       description: {
         component:
-          "Right-sheet inspector for a selected history event. Shows category pill, title, description, and — when present — an Open-linked-view CTA.",
+          "Sheet inspector for a selected history event. Shows category pill, title, description, and — when present — a pinned Open-linked-view CTA.",
       },
     },
   },
@@ -48,6 +49,7 @@ export default meta;
 type Story = StoryObj<typeof HubHistoryInspector>;
 
 export const WorkEventWithLink: Story = {
+  tags: ["storybook-ci"],
   args: {
     event: event(
       "w-1",
@@ -58,6 +60,15 @@ export const WorkEventWithLink: Story = {
       "/hub/work/work-1",
       "work-1"
     ),
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const body = canvasElement.querySelector('[data-component="SheetBody"]');
+    const footer = canvasElement.querySelector('[data-component="SheetFooter"]');
+
+    await expect(body).not.toBeNull();
+    await expect(footer).not.toBeNull();
+    await expect(await canvas.findByRole("link", { name: "Open linked view" })).toBeVisible();
   },
 };
 

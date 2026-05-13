@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { fn } from "storybook/test";
+import { expect, fn, within } from "storybook/test";
 import { daysAgo } from "../../../../../shared/.storybook/fixtures";
 import { HubCertificationInspector } from "./HubCertificationInspector";
 
@@ -11,7 +11,7 @@ const meta: Meta<typeof HubCertificationInspector> = {
     docs: {
       description: {
         component:
-          "Right-sheet inspector for a selected certification. Contains the assessment summary and — when `canMint` is true — the CTA into the mint flow.",
+          "Sheet inspector for a selected certification. Contains the assessment summary and — when `canMint` is true — the pinned CTA into the mint flow.",
       },
     },
   },
@@ -31,6 +31,7 @@ export default meta;
 type Story = StoryObj<typeof HubCertificationInspector>;
 
 export const Mintable: Story = {
+  tags: ["storybook-ci"],
   args: {
     canMint: true,
     assessment: {
@@ -40,6 +41,15 @@ export const Mintable: Story = {
       assessmentType: "impact",
       createdAt: daysAgo(2),
     },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const body = canvasElement.querySelector('[data-component="SheetBody"]');
+    const footer = canvasElement.querySelector('[data-component="SheetFooter"]');
+
+    await expect(body).not.toBeNull();
+    await expect(footer).not.toBeNull();
+    await expect(await canvas.findByRole("button", { name: "Open mint flow" })).toBeVisible();
   },
 };
 

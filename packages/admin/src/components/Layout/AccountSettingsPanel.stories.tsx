@@ -1,6 +1,7 @@
 import { RiComputerLine, RiLogoutBoxLine, RiMoonLine, RiSunLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
+import { expect, within } from "storybook/test";
 import { withAdminIdentity } from "../../../../shared/.storybook/decorators";
 import { AccountSettingsPanel } from "./AccountSettingsPanel";
 
@@ -96,7 +97,19 @@ const meta: Meta<typeof AccountSettingsPanel> = {
 export default meta;
 type Story = StoryObj<typeof AccountSettingsPanel>;
 
-export const Default: Story = {};
+export const Default: Story = {
+  tags: ["storybook-ci"],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const body = canvasElement.querySelector('[data-component="SheetBody"]');
+    const footer = canvasElement.querySelector('[data-component="SheetFooter"]');
+
+    await expect(body).not.toBeNull();
+    await expect(footer).not.toBeNull();
+    await expect(await canvas.findByRole("heading", { name: "Theme" })).toBeVisible();
+    await expect(await canvas.findByRole("heading", { name: "Network" })).toBeVisible();
+  },
+};
 
 export const DarkSelected: Story = {
   tags: ["visual-harness"],

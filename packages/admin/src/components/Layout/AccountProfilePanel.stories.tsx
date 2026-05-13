@@ -1,17 +1,18 @@
 import { RiWallet3Line } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
+import { expect, within } from "storybook/test";
 import { STORYBOOK_ADMIN_SHELL_SEEDS } from "../../../../shared/.storybook/adminFixtures";
 import { withAdminIdentity, withSeededQueryClient } from "../../../../shared/.storybook/decorators";
 import { AccountProfilePanel } from "./AccountProfilePanel";
 
 interface MockAccountProfilePanelProps {
-  role: "deployer" | "operator" | "user";
+  userRole: "deployer" | "operator" | "user";
   displayName?: string;
   wallet?: string;
 }
 
 function MockAccountProfilePanel({
-  role,
+  userRole,
   displayName = "garden.eth",
   wallet = "0x2aa6...35e",
 }: MockAccountProfilePanelProps) {
@@ -21,14 +22,12 @@ function MockAccountProfilePanel({
     <div className="flex max-w-md flex-col gap-4">
       <section className="space-y-4 rounded-xl bg-bg-white p-4 shadow-[var(--edge-rest),var(--elevation-1)]">
         <div className="flex items-center gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary-alpha-10 text-sm font-semibold tracking-[0.08em] text-primary-dark">
+          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-primary-alpha-10 text-sm font-semibold text-primary-dark">
             {initials}
           </div>
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-soft">
-              Profile
-            </p>
-            <p className="text-base font-semibold capitalize text-text-strong">{role}</p>
+            <p className="text-xs font-semibold text-text-soft">Profile</p>
+            <p className="text-base font-semibold capitalize text-text-strong">{userRole}</p>
             <p className="mt-1 text-sm text-text-sub">{displayName}</p>
           </div>
         </div>
@@ -76,11 +75,20 @@ const meta: Meta<typeof AccountProfilePanel> = {
 export default meta;
 type Story = StoryObj<typeof AccountProfilePanel>;
 
-export const Operator: Story = {};
+export const Operator: Story = {
+  tags: ["storybook-ci"],
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const body = canvasElement.querySelector('[data-component="SheetBody"]');
+
+    await expect(body).not.toBeNull();
+    await expect(await canvas.findByText("Profile")).toBeVisible();
+  },
+};
 
 export const Deployer: Story = {
   tags: ["visual-harness"],
-  render: () => <MockAccountProfilePanel role="deployer" displayName="deployer.eth" />,
+  render: () => <MockAccountProfilePanel userRole="deployer" displayName="deployer.eth" />,
   parameters: {
     docs: {
       description: {
@@ -93,7 +101,9 @@ export const Deployer: Story = {
 
 export const NoEnsName: Story = {
   tags: ["visual-harness"],
-  render: () => <MockAccountProfilePanel role="user" displayName="Wallet" wallet="0x04D6...2503" />,
+  render: () => (
+    <MockAccountProfilePanel userRole="user" displayName="Wallet" wallet="0x04D6...2503" />
+  ),
   parameters: {
     docs: {
       description: {
