@@ -85,7 +85,7 @@ Default mode is read-only. Only switch into a fix flow when the user explicitly 
 ## What This Skill Owns
 
 - diff-scoped correctness review
-- repo-invariant checks against `AGENTS.md` and `AGENTS.md`
+- repo-invariant checks against `CLAUDE.md` and `AGENTS.md`
 - judgment routing: automatic fix candidates vs human call-outs
 - verification recommendations proportional to blast radius
 

@@ -43,11 +43,58 @@ function walkFiles(dir, baseDir = dir) {
   return files.sort();
 }
 
+const semanticMirrorChecks = [
+  {
+    message: "duplicated AGENTS.md reference after CLAUDE.md transform",
+    pattern: /`AGENTS\.md`\s*(?:,|and)\s*`AGENTS\.md`/,
+  },
+  {
+    message: "canonical skill source points at generated mirror",
+    pattern: /canonical[^`]*`\.agents\/skills\//i,
+  },
+  {
+    message: "mirror source and target both point at .agents/skills",
+    pattern: /`\.agents\/skills\/[^`]+`\s*\(mirrored at `\.agents\/skills\//,
+  },
+];
+
+function transformLineForCodex(line) {
+  let transformed = line;
+
+  if (!transformed.includes("AGENTS.md")) {
+    transformed = transformed.replaceAll("CLAUDE.md", "AGENTS.md");
+  }
+
+  if (!transformed.includes(".agents/skills")) {
+    transformed = transformed
+      .replaceAll(".claude/skills/", ".agents/skills/")
+      .replaceAll(".claude/skills", ".agents/skills");
+  }
+
+  return transformed;
+}
+
 function transformForCodex(content) {
-  return content
-    .replaceAll("CLAUDE.md", "AGENTS.md")
-    .replaceAll(".claude/skills/", ".agents/skills/")
-    .replaceAll(".claude/skills", ".agents/skills");
+  return content.split("\n").map(transformLineForCodex).join("\n");
+}
+
+function collectSemanticFailures(expected) {
+  const semanticFailures = [];
+
+  for (const [relPath, content] of expected) {
+    const lines = content.split("\n");
+    for (let index = 0; index < lines.length; index += 1) {
+      for (const check of semanticMirrorChecks) {
+        if (check.pattern.test(lines[index])) {
+          semanticFailures.push(
+            `${path.join(".agents/skills", relPath)}:${index + 1}: ${check.message}`,
+          );
+        }
+      }
+    }
+  }
+
+  return semanticFailures;
 }
 
 function read(relPath, rootDir) {
@@ -93,6 +140,13 @@ if (fs.existsSync(targetDir) && fs.lstatSync(targetDir).isSymbolicLink()) {
 const expected = new Map();
 for (const relPath of walkFiles(sourceDir)) {
   expected.set(relPath, transformForCodex(read(relPath, sourceDir)));
+}
+
+const semanticFailures = collectSemanticFailures(expected);
+if (semanticFailures.length > 0) {
+  console.error("Skill mirror semantic check failed:");
+  for (const failure of semanticFailures) console.error(`  - ${failure}`);
+  process.exit(1);
 }
 
 const actualFiles = new Set(walkFiles(targetDir));
