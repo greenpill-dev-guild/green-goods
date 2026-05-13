@@ -101,7 +101,7 @@ Linear (workspace `greenpill-dev-guild`) is the durable backlog as of 2026-05-09
 
 **Canonical label families** (only these): `protocol:* / package:* / activity:* / task:* / source:* / agent:* / funding:*`. Retired and not to be reintroduced: `area:*`, `work:*`, `automation:*`, `health:*`, `grant:*`. The `agent:*` family distinguishes `agent:claude` (interactive Claude Code) from `agent:routine` (cron'd routine writes) — they are not synonymous.
 
-**Cloud routines that write Linear** (cron'd at [claude.ai/code/routines](https://claude.ai/code/routines), per-routine docs in [`docs/routines/`](docs/routines/README.md)): `bug-intake`, `health-watch`, `growth-pulse`. **Local skills aware of Linear**: `/audit`, `/clean`, `/principles`, `/plan`, `/debug` — all prompt before creating Linear records.
+**Cloud routines that write Linear** (cron'd at [claude.ai/code/routines](https://claude.ai/code/routines), per-routine docs in [`docs/routines/`](docs/routines/README.md)): `bug-intake`, `health-watch`, `growth-pulse`. **Local skills aware of Linear**: `/audit`, `/clean`, `/principles`, `/plan`, `/debug`, `/drift` — all prompt before creating Linear records.
 
 **Linear MCP** is wired into the Claude Code harness globally (~40 tools). No project `.mcp.json` config needed. Use it for read/query, triage/promote, state transitions, and branch-context loading.
 
@@ -293,10 +293,11 @@ Don't reach for `which codex` or attempt to install it globally — the app-bund
 
 When the working tree is heavy (changes spanning packages, drift across docs/code/tests, "feels off"), don't pile broad sweeps on top of unaudited changes. Run in this order:
 
-1. **`/audit-then-ship`** — surgical pass with a built-in scope-lock gate. Phase 1 picks a lens (audit/review/principles/architecture/design) and produces numbered findings; Phase 2 you pick which to fix; Phase 3 fixes only those; Phase 4 ships. The Phase 2 gate is the pause between investigation and action — that's the feedback checkpoint.
-2. **`/clean`** — broad 8-subagent sweep (dedup, dead code, type strengthening, defensive code, legacy, AI slop). Run only after `/audit-then-ship` clears the surgical drift, because its scope isn't number-pickable and would otherwise muddy a review.
-3. **`/simplify`** — focused refinement of recently changed code. Skip if `/clean` already touched the same surface.
-4. **`/ship`** — final gate. Already runs at the end of `/audit-then-ship`; re-run here only if `/clean` or `/simplify` modified anything afterward.
+1. **`/drift`** — read-only classifier for guidance, plan, design, docs, quality, and cleanup drift. It routes findings before anything mutates.
+2. **`/audit-then-ship`** — surgical pass with a built-in scope-lock gate. Phase 1 picks a lens (audit/review/principles/architecture/design) and produces numbered findings; Phase 2 you pick which to fix; Phase 3 fixes only those; Phase 4 ships. The Phase 2 gate is the pause between investigation and action — that's the feedback checkpoint.
+3. **`/clean`** — broad 8-subagent sweep (dedup, dead code, type strengthening, defensive code, legacy, AI slop). Run only after `/drift` or `/audit-then-ship` proves cleanup is the right tool, because its scope isn't number-pickable and would otherwise muddy a review.
+4. **`/simplify`** — focused refinement of recently changed code. Skip if `/clean` already touched the same surface.
+5. **`/ship`** — final gate. Already runs at the end of `/audit-then-ship`; re-run here only if `/clean` or `/simplify` modified anything afterward.
 
 Skip the ritual entirely for: single-file edits, doc-only changes, bug fixes with a known fix path. It's earned only by multi-issue, ambiguous-scope, cross-package work.
 

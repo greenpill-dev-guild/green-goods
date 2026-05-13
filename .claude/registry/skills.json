@@ -3,6 +3,7 @@
   "canonical_commands": [
     "plan",
     "debug",
+    "drift",
     "audit-then-ship",
     "review",
     "status",
@@ -63,6 +64,27 @@
       ],
       "dependencies": [],
       "sub_files": ["monitoring.md", "posthog.md", "health-diagnostics.md"]
+    },
+    {
+      "name": "drift",
+      "status": "active",
+      "listed_in_index": true,
+      "default_mode": "interactive",
+      "user_invocable": true,
+      "intent": "Read-only drift classifier for guidance, plan truth, design-system, docs, quality, cleanup readiness, and runtime-risk routing. Produces numbered findings and delegates to existing skills instead of fixing by default.",
+      "entry_file": ".claude/skills/drift/SKILL.md",
+      "owned_skills": ["audit", "audit-then-ship", "clean", "debug", "design", "plan", "review"],
+      "modes": ["check", "clean", "guidance", "plans", "design", "docs", "cleanup", "quality"],
+      "triggers": [
+        "/drift",
+        "drift check",
+        "repo drift",
+        "stale guidance",
+        "stale plans",
+        "should we clean",
+        "cleanup readiness"
+      ],
+      "dependencies": ["audit", "audit-then-ship", "clean", "debug", "design", "plan", "review"]
     },
     {
       "name": "audit-then-ship",

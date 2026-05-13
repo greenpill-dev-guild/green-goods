@@ -268,6 +268,7 @@ for (const [name, info] of skillMeta.entries()) {
 const expectedCanonicalCommands = new Set([
   "plan",
   "debug",
+  "drift",
   "audit-then-ship",
   "review",
   "status",
