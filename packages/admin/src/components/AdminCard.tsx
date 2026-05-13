@@ -93,12 +93,9 @@ export function AdminCard({
   style,
   ...props
 }: AdminCardProps) {
-  // Handoff DESIGN_NOTES § Tone system: per-view canvas wash extends to cards
-  // as a barely-perceptible tint (~3%) layered on top of the M3 surface. The
-  // tint paint moved to a `::before` layer in `admin-m3-overrides.css` so
-  // pages with hundreds of cards (Hub queues, action templates) don't pay a
-  // per-element `background-image` paint. The `relative` here makes the
-  // pseudo's `inset:0` resolve against the card box.
+  // Controlled Chrome contract: route cards stay solid M3 surfaces. Workspace
+  // tone belongs to the canvas, PageHeader hairline, active state, sheets, nav,
+  // and FAB rather than a per-card tint layer.
   return (
     <div
       data-component="AdminCard"

@@ -218,7 +218,10 @@ describe("BottomSheet", () => {
       pointerEvents: "auto",
       position: "absolute",
     });
-    expect(content.style.maxHeight).toBe("85%");
+    expect(content.style.width).toBe("auto");
+    expect(content.style.left).toBe("var(--admin-sheet-mobile-side-inset, 0.75rem)");
+    expect(content.style.right).toBe("var(--admin-sheet-mobile-side-inset, 0.75rem)");
+    expect(content.getAttribute("style")).toContain("border-radius: var(--radius-sheet, 24px)");
     expect(content.style.zIndex).toBe("46");
   });
 

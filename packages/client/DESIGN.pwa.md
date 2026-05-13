@@ -19,7 +19,7 @@ dialect: installed-pwa
 
 **Hard rule:** Installed PWA = app. Use bottom `AppBar`; never show the browser `SiteHeader` or hamburger chrome.
 
-**Routing:** `PlatformRouter` checks `isInstalled`. Installed PWA routes live under `/home`.
+**Routing:** presentation-mode loaders gate browser vs PWA entry. Installed/authenticated PWA routes live under `/home` and render through `PwaRuntime` + `AppShell` with the bottom `AppBar`.
 
 ---
 

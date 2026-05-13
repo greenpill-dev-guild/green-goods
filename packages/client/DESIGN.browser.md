@@ -21,11 +21,10 @@ dialect: public-browser
 
 ## Routing
 
-- **Browser `/`** renders the editorial homepage under `PublicShell` (the new `Home` view).
-  - Inside `Home`, `useApp().isInstalled` decides: installed PWA users redirect to `/home` (preserving `?redirectTo=`), browser users see the editorial gateway.
-- **Installed PWA `/`** continues to route to `/home` via the same `Home` check.
+- **Browser `/`** renders the editorial homepage under `PublicShell`.
+- **Installed PWA entry** is `/home`; presentation-mode loaders redirect app-mode visits away from the public shell before the PWA runtime renders.
 - **`/landing`** is a legacy compatibility redirect that loads back to `/`.
-- Public route table: `/`, `/gardens`, `/gardens/:id`, `/impact`, `/fund`, `/actions`. No new public route families.
+- Public route table: `/`, `/gardens`, `/gardens/:id`, `/impact`, `/fund`, `/actions`, `/cookies`, `/glossary`. No new public route families beyond this list.
 - Garden identifiers in URLs accept both raw `id`/`address` and the deterministic slug from `publicGardenHelpers.deriveSlug`. Stale, missing, zero-match, or ambiguous slugs render the normal page with a localized non-blocking message — never a hard 404 on `/fund?garden=…`.
 
 ## SiteHeader

@@ -152,6 +152,9 @@ const NON_VISUAL_ADMIN_VIEWS = new Set<string>([
 ]);
 
 const NON_VISUAL_SHARED_COMPONENTS = new Set([
+  // Internal Canvas sheet lifecycle/header/drag helpers. Visual coverage stays
+  // on LeftSheet, RightSheet, BottomSheet, MainSheet, and CanvasLayout stories.
+  "Canvas/CanvasSheetInternals.tsx",
   "Canvas/LeftSheetContext.tsx",
 ]);
 

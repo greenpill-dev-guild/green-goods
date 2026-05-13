@@ -40,11 +40,11 @@ If prose disagrees with a higher-precedence source, the prose is the drift, not 
 3. **Runtime tokens** — `packages/shared/src/styles/theme.css`, `design-md.generated.css`, `design-md.generated.json`, `packages/client/src/styles/*.css`.
 4. **Storybook** — `packages/shared/.storybook/**`, `packages/shared/src/components/Tokens/**`, cross-package story coverage.
 5. **Admin surface** — `packages/admin/DESIGN.md`, `packages/admin/AGENTS.md`, `Admin*` wrappers, `docs/docs/builders/packages/admin.mdx`.
-6. **Client PWA surface** — `packages/client/DESIGN.pwa.md`, `packages/client/AGENTS.md`, installed-PWA shell, bottom `AppBar`, `PlatformRouter`.
+6. **Client PWA surface** — `packages/client/DESIGN.pwa.md`, `packages/client/AGENTS.md`, presentation-mode loaders, installed-PWA shell, `PwaRuntime` / `AppShell`, bottom `AppBar`.
 7. **Client public browser surface** — `packages/client/DESIGN.browser.md`, landing/browser views, `SiteHeader`.
 8. **Docs UI** — `docs/DESIGN.md`, `docs/src/**`, Docusaurus identity, role accents.
 9. **Agentic design-development guidance** — `.agents/skills/design/**`, `.agents/skills/ui/**`, prompt contracts, defect grammar.
-10. **Claude and Codex repo instructions** — `AGENTS.md`, `AGENTS.md`, `packages/*/AGENTS.md` — the Design-System / Design-Language sections that agents load by default.
+10. **Claude and Codex repo instructions** — `CLAUDE.md`, `AGENTS.md`, `packages/*/AGENTS.md` — the Design-System / Design-Language sections that agents load by default.
 
 **Out of scope — do not produce findings here:**
 
@@ -145,4 +145,4 @@ If nothing in Section 1 meets all constraints, say so. "Design system is aligned
 - `scripts/design/check-tokens.sh`, `scripts/design/check-vocab.sh`, `scripts/design/md-generate.mjs` — validators and generator
 - `packages/shared/.storybook/**`, `packages/shared/src/components/Tokens/**` — Storybook surface for the design system
 - `docs/docs/builders/packages/admin.mdx`, `docs/docs/builders/testing/storybook.mdx` — live UI and Storybook contracts
-- `AGENTS.md`, `AGENTS.md`, `packages/*/AGENTS.md` — Design-System / Design-Language sections agents load by default
+- `CLAUDE.md`, `AGENTS.md`, `packages/*/AGENTS.md` — Design-System / Design-Language sections agents load by default

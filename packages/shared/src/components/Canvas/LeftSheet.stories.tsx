@@ -110,6 +110,7 @@ function BoundedLeftSheetStory(args: ComponentProps<typeof LeftSheet>) {
     <div
       ref={setContainer}
       data-tone="hub"
+      data-testid="left-sheet-bounded-container"
       className="storybook-canvas-frame relative h-[520px] overflow-hidden rounded-xl p-6"
     >
       <div className="text-sm font-semibold text-text-sub">Canvas overlay root</div>
@@ -122,4 +123,15 @@ function BoundedLeftSheetStory(args: ComponentProps<typeof LeftSheet>) {
 
 export const BoundedCanvas: Story = {
   render: (args) => <BoundedLeftSheetStory {...args} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const container = await canvas.findByTestId("left-sheet-bounded-container");
+    const dialog = await canvas.findByTestId("left-sheet-dialog");
+    const sheet = await canvas.findByTestId("left-sheet");
+
+    await expect(container).toContainElement(dialog);
+    await expect(dialog).toHaveAttribute("data-boundary", "bounded");
+    await expect(sheet).toHaveAttribute("data-boundary", "bounded");
+    await expect(sheet.getAttribute("style")).toContain("border-radius: var(--radius-sheet, 24px)");
+  },
 };

@@ -78,7 +78,7 @@ The 4 places where people interact with Green Goods. Each has a canonical identi
 
 | Term | Type | Allowed surfaces | Definition |
 |------|------|------------------|------------|
-| **Admin** | surface | self | Operator cockpit. `packages/admin`. Restrained M3 v0.192 anatomy, Plus Jakarta Sans, glass only on the admin AppBar, solid surfaces everywhere else. Litmus: appropriate for Linear / GitHub / Stripe Dashboard. |
+| **Admin** | surface | self | Operator cockpit. `packages/admin`. Restrained M3 v0.192 anatomy, Plus Jakarta Sans, transparent admin AppBar root, Controlled Chrome glass only on Navigation/FAB and sheet shells, solid dense surfaces everywhere else. Litmus: appropriate for Linear / GitHub / Stripe Dashboard. |
 | **Client PWA** | surface | self | Gardener-facing app. `packages/client`. Warm Earth garden-journal feel, Inter typography, bottom AppBar (installed PWA) or SiteHeader hamburger (browser). Hero moments live here, never in admin. |
 | **Agent** | surface | self | Conversational gardener interface — telegram, SMS, WhatsApp. `packages/agent`. Natural-language Work submission, status pings, garden updates. No visual chrome. |
 | **Public browser** | surface | self | Public-facing web for funders / community members. Editorial typography (Fraunces / Lora / Newsreader for headlines, Inter for body). Garden discovery, impact pages, funding flows. Never appears in installed PWA. |
@@ -93,7 +93,7 @@ This section is the anchor target for [`prompt-contract.md`](https://github.com/
 - **Personas** (Gardener, Operator, Evaluator, Funder, Community Member) — see [Personas](#personas).
 - **Surfaces** (Admin, Client PWA, Agent, Public browser) — see [Surfaces](#surfaces).
 
-Surface-specific component vocabulary (e.g. `CanvasLayout`, `MainSheet`, `RightSheet`, `AdminFab`, `PlatformRouter`, `SiteHeader`) lives in the prompt-contracts themselves — those are admin / client component palettes, not cross-surface domain terms.
+Surface-specific component vocabulary (e.g. `CanvasLayout`, `MainSheet`, `RightSheet`, `AdminFab`, presentation-mode loaders, `PublicShell`, `AppShell`, `SiteHeader`) lives in the prompt-contracts themselves — those are admin / client component palettes, not cross-surface domain terms.
 
 The voice and tone framework (Grounded · Inviting · Honest · Active) lives in [`DESIGN.md § Voice & Copy`](https://github.com/greenpill-dev-guild/green-goods/blob/main/DESIGN.md) — the positive expression of this glossary.
 

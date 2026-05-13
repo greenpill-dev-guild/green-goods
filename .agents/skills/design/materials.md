@@ -94,7 +94,7 @@ Each material metaphor from `SKILL.md` uses materials differently:
 
 These material behaviors are specified once in [language.md](./language.md) — this file uses them without re-specifying:
 
-- **Material Focus Variation** — browsing / engaged / deep-focus / parallel-task states, dimming-vs-separation rule, canvas recession (`scale(0.97) + opacity(0.85) + blur(2px)`). See [language.md § Material Behaviors](./language.md#material-behaviors).
+- **Material Focus Variation** — browsing / engaged / deep-focus / parallel-task states, dimming-vs-separation rule, and bounded admin canvas recession (`translateY + opacity + blur`). See [language.md § Material Behaviors](./language.md#material-behaviors).
 - **Functional Glass Layers** — Layer 1 Environment / Layer 2 Content / Layer 3 Glass Controls, and how they map to the Z-layer model in [spatial.md](./spatial.md). See [language.md § Functional Glass Layers](./language.md#functional-glass-layers).
 
 ---

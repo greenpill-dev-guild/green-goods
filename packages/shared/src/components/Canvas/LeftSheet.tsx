@@ -1,15 +1,22 @@
-// packages/shared/src/components/Canvas/LeftSheet.tsx
-import { RiCloseLine } from "@remixicon/react";
 import { animated, useSpring } from "@react-spring/web";
 import { useDrag } from "@use-gesture/react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useIntl } from "react-intl";
 import { useMediaQuery } from "../../hooks/ui/useMediaQuery";
-import { useFocusTrap } from "../../hooks/utils/useFocusTrap";
 import { cn } from "../../utils";
-import { SheetErrorBoundary } from "./SheetErrorBoundary";
-import { SPRING_CONFIGS, DISMISS_VELOCITY_THRESHOLD } from "./springConfig";
+import {
+  CanvasSheetBody,
+  CanvasSheetHeader,
+  getCanvasSheetDialogClassName,
+  getCanvasSheetDialogStyle,
+  getCanvasSheetDragIntent,
+  getCanvasSheetTransform,
+  useCanvasSheetContentSnapshot,
+  useCanvasSheetLifecycle,
+  useCanvasSheetMount,
+} from "./CanvasSheetInternals";
+import { SPRING_CONFIGS } from "./springConfig";
 
 export type LeftSheetWidth = "default" | "wide";
 
@@ -55,25 +62,12 @@ export function LeftSheet({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const prefersReducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
-  const latestOpenRef = useRef(open);
-  const latestContentRef = useRef({ title, description, children });
-
-  // Track whether the sheet should be rendered (stays true during close animation)
-  const [mounted, setMounted] = useState(open);
-  useFocusTrap(dialogRef, {
-    enabled: isBounded && mounted && open,
-    autoFocusSelector: '[data-testid="left-sheet-close"]',
-  });
-
-  useEffect(() => {
-    latestOpenRef.current = open;
-  }, [open]);
-
-  useEffect(() => {
-    if (open) {
-      latestContentRef.current = { title, description, children };
-    }
-  }, [children, description, open, title]);
+  const { mounted, setMounted, latestOpenRef } = useCanvasSheetMount(open);
+  const {
+    title: renderedTitle,
+    description: renderedDescription,
+    children: renderedChildren,
+  } = useCanvasSheetContentSnapshot(open, { title, description, children });
 
   // Spring: x=0 fully open, x=-100 fully offscreen left
   const [springs, api] = useSpring(() => ({
@@ -99,71 +93,49 @@ export function LeftSheet({
       setMounted(false);
       dialogRef.current?.close();
     }
-  }, [open, api, mounted, prefersReducedMotion]);
+  }, [open, api, mounted, prefersReducedMotion, setMounted]);
 
-  // Show native dialog when mounted
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-
-    if (isBounded) {
-      return;
-    }
-
-    if (mounted && open) {
-      if (!dialog.open) {
-        dialog.showModal();
-      }
-    }
-  }, [isBounded, mounted, open]);
-
-  // Handle native dialog cancel (Escape key)
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-
-    const handleCancel = (e: Event) => {
-      e.preventDefault();
-      onClose();
-    };
-
-    dialog.addEventListener("cancel", handleCancel);
-    return () => dialog.removeEventListener("cancel", handleCancel);
-  }, [onClose]);
-
-  useEffect(() => {
-    if (!isBounded || !mounted || !open) return;
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onClose();
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isBounded, mounted, onClose, open]);
+  useCanvasSheetLifecycle({
+    dialogRef,
+    open,
+    mounted,
+    isBounded,
+    onClose,
+    autoFocusSelector: '[data-testid="left-sheet-close"]',
+  });
 
   // Drag dismiss gesture — drag left to dismiss
   const bind = useDrag(
-    ({ movement: [mx], velocity: [vx], direction: [dx], cancel }) => {
-      if (mx > 20) {
+    ({ movement: [mx], velocity: [vx], direction: [dx], cancel, last }) => {
+      const intent = getCanvasSheetDragIntent({
+        edge: "left",
+        movementX: mx,
+        movementY: 0,
+        velocityX: vx,
+        velocityY: 0,
+        directionX: dx,
+        directionY: 0,
+        sizePx: contentRef.current?.offsetWidth ?? 360,
+        last,
+        prefersReducedMotion,
+      });
+
+      if (intent.kind === "cancel") {
         cancel();
+        api.start({ x: 0, immediate: false });
         return;
       }
-      if (dx < 0 && vx > DISMISS_VELOCITY_THRESHOLD) {
+      if (intent.kind === "dismiss") {
         onClose();
         return;
       }
-      if (mx < -120) {
-        onClose();
+      if (intent.kind === "snap") {
+        api.start({ x: 0, immediate: false });
         return;
       }
-      if (prefersReducedMotion) return;
-      const sheetWidth = contentRef.current?.offsetWidth ?? 360;
-      const pct = Math.min(0, (mx / sheetWidth) * 100 * 0.6);
-      api.start({ x: pct, immediate: true });
+      if (intent.kind === "drag") {
+        api.start({ x: intent.offset, immediate: true });
+      }
     },
     {
       from: () => [0, 0],
@@ -172,20 +144,7 @@ export function LeftSheet({
     }
   );
 
-  const handleOverlayClick = useCallback(
-    (e: React.MouseEvent) => {
-      if (e.target === e.currentTarget) {
-        onClose();
-      }
-    },
-    [onClose]
-  );
-
   if (!mounted) return null;
-
-  const renderedTitle = open ? title : latestContentRef.current.title;
-  const renderedDescription = open ? description : latestContentRef.current.description;
-  const renderedChildren = open ? children : latestContentRef.current.children;
 
   const dialogElement = (
     <dialog
@@ -194,25 +153,8 @@ export function LeftSheet({
       aria-modal="true"
       open={isBounded ? mounted : undefined}
       tabIndex={-1}
-      className={cn(
-        "fixed inset-0 m-0 h-full w-full max-h-full max-w-full",
-        "bg-transparent p-0 outline-none",
-        "backdrop:bg-transparent backdrop:backdrop-filter-none",
-        isBounded && "absolute"
-      )}
-      style={{
-        position: isBounded ? "absolute" : "fixed",
-        inset: isBounded
-          ? "var(--admin-sheet-top, calc(var(--admin-appbar-height, 3.5rem) + 0.5rem)) 0 var(--admin-sheet-bottom, 6.25rem) 0"
-          : 0,
-        width: isBounded ? "auto" : "100%",
-        height: isBounded ? "auto" : "100%",
-        maxWidth: "none",
-        maxHeight: "none",
-        margin: 0,
-        pointerEvents: "auto",
-        zIndex: isBounded ? 45 : 50,
-      }}
+      className={getCanvasSheetDialogClassName(isBounded)}
+      style={getCanvasSheetDialogStyle(isBounded)}
       data-component="LeftSheet"
       data-slot="dialog"
       data-state={sheetState}
@@ -230,7 +172,9 @@ export function LeftSheet({
           backdropFilter: isBounded ? undefined : "blur(2px)",
           WebkitBackdropFilter: isBounded ? undefined : "blur(2px)",
         }}
-        onClick={handleOverlayClick}
+        onClick={(event) => {
+          if (event.target === event.currentTarget) onClose();
+        }}
         data-component="LeftSheet"
         data-slot="overlay"
         data-state={sheetState}
@@ -256,8 +200,7 @@ export function LeftSheet({
           maxHeight: isBounded ? "100%" : undefined,
           paddingBottom: isBounded ? undefined : "env(safe-area-inset-bottom)",
           touchAction: "none",
-          // Handoff: closed sits at translateX(calc(-100% - 24px)); open at translateX(0)
-          transform: springs.x.to((x) => `translateX(calc(${x}% + ${(x / 100) * 24}px))`),
+          transform: springs.x.to((x) => getCanvasSheetTransform("left", x)),
           borderRadius: isBounded
             ? "var(--radius-sheet, 24px)"
             : "0 var(--radius-sheet, 16px) var(--radius-sheet, 16px) 0",
@@ -271,72 +214,13 @@ export function LeftSheet({
         data-testid="left-sheet"
         {...bind()}
       >
-        {/* Header — title on left, close on right (handoff sheet-system anatomy) */}
-        {renderedTitle ? (
-          <div
-            className="flex items-center justify-between"
-            style={{
-              padding: "16px 16px 14px",
-              borderBottom: "1px solid var(--hairline, rgb(var(--m3-outline-variant) / 0.6))",
-              flexShrink: 0,
-            }}
-            data-slot="header"
-          >
-            <h2
-              data-slot="title"
-              style={{
-                fontSize: "15px",
-                lineHeight: "1.2",
-                fontWeight: 700,
-                letterSpacing: "-0.01em",
-                color: "var(--ink, rgb(var(--m3-on-surface)))",
-                margin: 0,
-              }}
-            >
-              {renderedTitle}
-            </h2>
-            <button
-              type="button"
-              onClick={onClose}
-              className={cn(
-                "flex h-9 w-9 items-center justify-center rounded-lg",
-                "text-text-soft transition-colors hover:bg-bg-soft",
-                "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2"
-              )}
-              aria-label={closeLabel}
-              data-slot="close-button"
-              data-testid="left-sheet-close"
-            >
-              <RiCloseLine className="h-[18px] w-[18px]" />
-            </button>
-          </div>
-        ) : (
-          <>
-            <h2 className="sr-only">{closeLabel}</h2>
-            <div className="flex justify-end" style={{ padding: "16px 16px 0" }} data-slot="header">
-              <button
-                type="button"
-                onClick={onClose}
-                className={cn(
-                  "flex h-9 w-9 items-center justify-center rounded-lg",
-                  "text-text-soft transition-colors hover:bg-bg-soft",
-                  "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2"
-                )}
-                aria-label={closeLabel}
-                data-slot="close-button"
-                data-testid="left-sheet-close"
-              >
-                <RiCloseLine className="h-[18px] w-[18px]" />
-              </button>
-            </div>
-          </>
-        )}
-
-        {/* Body container — flex column lets consumers compose `<SheetBody>`
-            with optional `<SheetFooter>`. See RightSheet for full anatomy. */}
-        <div className="flex min-h-0 flex-1 flex-col" data-slot="body">
-          <SheetErrorBoundary onClose={onClose}>{renderedChildren}</SheetErrorBoundary>
-        </div>
+        <CanvasSheetHeader
+          title={renderedTitle}
+          closeLabel={closeLabel}
+          closeTestId="left-sheet-close"
+          onClose={onClose}
+        />
+        <CanvasSheetBody onClose={onClose}>{renderedChildren}</CanvasSheetBody>
       </animated.div>
     </dialog>
   );

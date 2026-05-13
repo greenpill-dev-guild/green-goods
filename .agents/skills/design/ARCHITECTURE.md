@@ -86,7 +86,7 @@ AI design tools should map output to these exports. Full palette lives in the pr
 - M3 wrappers (13): `AdminBadge`, `AdminButton`, `AdminCard`, `AdminCheckbox`, `AdminDialog`, `AdminFab`, `AdminFilterChip`, `AdminLinearProgress`, `AdminListItem`, `AdminSearchToolbar`, `AdminTabRail`, `AdminTextField`, `AdminTooltip`
 
 **Client / shared** (`packages/shared/src/components/`, exported from `@green-goods/shared`):
-- Shell: `SiteHeader` (browser), `AppBar` (installed PWA), `PlatformRouter`
+- Shell: presentation-mode loaders, `PublicShell` (browser), `PwaRuntime` / `AppShell` (installed PWA), `SiteHeader` (browser), `AppBar` (installed PWA)
 - Dialogs: `DialogShell` (default across client + admin)
 - Cards / status: `Card`, `StatCard`, `StatusBadge`, `Alert`
 - Primitives: `Button`, `Skeleton`, `Spinner`, `FileUploadField`, `ListPrimitives`, `Surface`, `SyncStatusBar`, `AddressDisplay`, `DomainBadge`
@@ -97,7 +97,7 @@ Full palettes with file paths live in `prompt-contract.md` and `client-prompt-co
 
 ## Always-loaded context
 
-The highest-frequency rules are mirrored in root `AGENTS.md` and `AGENTS.md` under "Design System" / "Design Language" so trivial edits (padding, copy, a single component touch) don't require a full skill load. The full spec is this file + `language.md` + the prompt contracts.
+The highest-frequency rules are mirrored in root `CLAUDE.md` and `AGENTS.md` under "Design System" / "Design Language" so trivial edits (padding, copy, a single component touch) don't require a full skill load. The full spec is this file + `language.md` + the prompt contracts.
 
 If you're editing more than one component, changing layout composition, creating a new view, or reviewing a PR → **explicitly load `design` + `ui`**.
 

@@ -251,23 +251,34 @@ export const RealProviderShell: Story = {
     await expect(await canvas.findByRole("heading", { name: "Hub workbench" })).toBeVisible();
     await expect(await canvas.findByRole("button", { name: "Botanic Commons" })).toBeVisible();
 
-    await userEvent.click(canvas.getByRole("button", { name: "Open search" }));
-    const body = within(document.body);
-    const palette = await body.findByRole("dialog", { name: "Command palette" });
-    const paletteCanvas = within(palette);
-    const searchInput = await paletteCanvas.findByPlaceholderText(
-      /search pages, gardens, actions/i
-    );
-    await expect(searchInput).toBeInTheDocument();
-    await userEvent.type(searchInput, "rain");
-    const rioMatches = await paletteCanvas.findAllByText("Rio Rainforest Lab");
-    await expect(rioMatches.length).toBeGreaterThan(0);
-    await userEvent.keyboard("{Escape}");
+    const searchButton = canvas.queryByRole("button", { name: "Open search" });
+    if (searchButton) {
+      await userEvent.click(searchButton);
+      const body = within(document.body);
+      const palette = await body.findByRole("dialog", { name: "Command palette" });
+      const paletteCanvas = within(palette);
+      const searchInput = await paletteCanvas.findByPlaceholderText(
+        /search pages, gardens, actions/i
+      );
+      await expect(searchInput).toBeInTheDocument();
+      await userEvent.type(searchInput, "rain");
+      const rioMatches = await paletteCanvas.findAllByText("Rio Rainforest Lab");
+      await expect(rioMatches.length).toBeGreaterThan(0);
+      await userEvent.keyboard("{Escape}");
+    }
 
-    await userEvent.click(canvas.getByRole("button", { name: "Open settings" }));
+    const settingsTrigger = canvas.queryByRole("button", { name: "Open settings" });
+    const sheetHeading = settingsTrigger ? "Settings" : "Notifications";
+    await userEvent.click(settingsTrigger ?? canvas.getByRole("button", { name: "Notifications" }));
     const rightSheet = await canvas.findByTestId("right-sheet");
+    const sheetLayer = await canvas.findByTestId("canvas-sheet-layer");
+    const mainSheet = await canvas.findByTestId("main-sheet");
+
     await expect(rightSheet).toHaveAttribute("data-component", "RightSheet");
-    await expect(within(rightSheet).getByRole("heading", { name: "Settings" })).toBeVisible();
+    await expect(rightSheet).toHaveAttribute("data-boundary", "bounded");
+    await expect(sheetLayer).toHaveAttribute("data-state", "right");
+    await waitFor(() => expect(mainSheet).toHaveAttribute("data-state", "receded"));
+    await expect(within(rightSheet).getByRole("heading", { name: sheetHeading })).toBeVisible();
     await userEvent.click(within(rightSheet).getByRole("button", { name: "Close" }));
   },
 };

@@ -115,6 +115,7 @@ function BoundedBottomSheetStory(args: ComponentProps<typeof BottomSheet>) {
     <div
       ref={setContainer}
       data-tone="hub"
+      data-testid="bottom-sheet-bounded-container"
       className="storybook-canvas-frame relative h-[520px] overflow-hidden rounded-xl p-6"
     >
       <div className="text-sm font-semibold text-text-sub">Canvas overlay root</div>
@@ -134,6 +135,18 @@ export const BoundedCanvas: Story = {
     maxHeight: 70,
   },
   render: (args) => <BoundedBottomSheetStory {...args} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const container = await canvas.findByTestId("bottom-sheet-bounded-container");
+    const dialog = await canvas.findByTestId("bottom-sheet-dialog");
+    const sheet = await canvas.findByTestId("bottom-sheet");
+
+    await expect(container).toContainElement(dialog);
+    await expect(dialog).toHaveAttribute("data-boundary", "bounded");
+    await expect(sheet).toHaveAttribute("data-boundary", "bounded");
+    await expect(sheet.getAttribute("style")).toContain("border-radius: var(--radius-sheet, 24px)");
+    await expect(sheet.getAttribute("style")).toContain("max-height: min(70%, 100%)");
+  },
 };
 
 /** Agent state catalog for the mobile sheet anatomy. */

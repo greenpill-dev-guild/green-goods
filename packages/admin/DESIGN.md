@@ -99,7 +99,7 @@ CSS Grid with named areas:
 
 ## Workspace Tinting
 
-Existing tokens (`--ws-primary`, `--ws-on-primary`, `--ws-action`, `--ws-on-action`) support per-workspace color atmosphere and contrast-safe actions:
+Runtime tone tokens (`--tone-primary`, `--tone-on-primary`, `--tone-action`, `--tone-on-action`) support per-workspace color atmosphere and contrast-safe actions:
 
 | Workspace | Tint Color | Action Color | Purpose |
 |-----------|------------|--------------|---------|
@@ -109,7 +109,7 @@ Existing tokens (`--ws-primary`, `--ws-on-primary`, `--ws-action`, `--ws-on-acti
 | Actions | Red (`--red-500`) | Deep red (`--red-700`) | Action configuration, templates |
 | Home | Stone/Neutral (`120 113 108`) | Deep stone (`68 64 60`) | Unauthenticated landing |
 
-The tint is environmental — barely perceptible warmth in the canvas, not a colored header bar. Filled text-bearing actions use the action color so white text passes contrast.
+Storybook may still expose legacy `--ws-*` aliases inside isolated admin frames, but runtime admin surfaces use `--tone-*`. The tint is environmental — barely perceptible warmth in the canvas, not a colored header bar. Filled text-bearing actions use the action color so white text passes contrast.
 
 ---
 

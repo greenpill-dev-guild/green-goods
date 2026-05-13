@@ -121,7 +121,7 @@ Z1: Ground        page background                 — (no blur)
 Z0: Substrate     environment / wallpaper         — (never styled)
 ```
 
-Canvas recession on sheet open: `scale(0.97) + opacity(0.85) + blur(2px)`. No dark scrim.
+Admin canvas recession on bounded sheet open: `translateY(var(--canvas-recede-y, 8px)) + opacity(var(--canvas-opacity-receded, 0.95)) + blur(var(--canvas-blur-receded, 1.5px))`. Avoid dark scrims for parallel admin sheets; viewport dialogs and PWA sheets may use the shared scrim token.
 
 ---
 

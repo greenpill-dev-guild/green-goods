@@ -49,6 +49,23 @@ export const Receded: Story = {
     isReceded: true,
   },
   render: Default.render,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const root = canvas.getByTestId("main-sheet");
+    const content = canvas.getByTestId("main-sheet-content");
+
+    await expect(root).toHaveAttribute("data-state", "receded");
+    await expect(root).toHaveAttribute("data-sheet-open", "false");
+    await expect(content.getAttribute("style")).toContain(
+      "transform: translateY(var(--canvas-recede-y, 8px))"
+    );
+    await expect(content.getAttribute("style")).toContain(
+      "opacity: var(--canvas-opacity-receded, 0.95)"
+    );
+    await expect(content.getAttribute("style")).toContain(
+      "filter: blur(var(--canvas-blur-receded, 1.5px))"
+    );
+  },
 };
 
 export const StateCatalog: Story = {
