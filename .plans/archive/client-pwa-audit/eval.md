@@ -41,4 +41,3 @@ Record browser or device evidence in the QA handoff for:
 - Haptic hardware feedback cannot be fully proven on unsupported iOS Safari or desktop browsers; record support state explicitly.
 - Perceived "native feel" requires human visual/touch signoff after automated proof passes.
 - Live mobile safe-area behavior should not be claimed from desktop-only tests.
-

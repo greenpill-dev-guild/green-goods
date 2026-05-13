@@ -1,8 +1,8 @@
 # QA pass 2 — animation-polish-editorial-browser
 
-**Owner**: codex (qa_pass_2)  
-**Closing turn**: 2026-05-09  
-**Working branch**: `main` (no worktree, direct-to-main)  
+**Owner**: codex (qa_pass_2)
+**Closing turn**: 2026-05-09
+**Working branch**: `main` (no worktree, direct-to-main)
 **Verdict**: `pass`
 
 ## Scope
@@ -71,7 +71,7 @@ Current local browser evidence loaded the client at `https://127.0.0.1:3001/` an
 
 ## Defects found and fixed
 
-1. **H5 image lifecycle regression on cached IPFS images**  
+1. **H5 image lifecycle regression on cached IPFS images**
    Browser evidence showed the dialog hero image was loaded (`naturalWidth: 1127`) but still
    sampled at opacity `0` during the card→dialog morph. Cause: `ImageWithFallback` replayed
    `image-reveal` on cache-hit remounts, so the View Transitions snapshot could capture the
@@ -80,7 +80,7 @@ Current local browser evidence loaded the client at `https://127.0.0.1:3001/` an
    - Code: `packages/shared/src/components/Display/ImageWithFallback.tsx:148`
    - Test: `packages/shared/src/__tests__/components/ImageWithFallback.test.tsx:154`
 
-2. **Dialog close focus return missed the originating card**  
+2. **Dialog close focus return missed the originating card**
    Escape and reduced-motion close could leave focus on `body` because the focus attempt ran while
    Radix still had the background inert or before the route had remounted the Garden link. Fix:
    close navigation now retries focus on the exact originating `/gardens/:slug` link through the
@@ -88,14 +88,14 @@ Current local browser evidence loaded the client at `https://127.0.0.1:3001/` an
    - Code: `packages/client/src/views/Public/GardenDialog.tsx:33`
    - Test: `packages/client/src/__tests__/views/PublicGardenDialog.test.tsx:129`
 
-3. **Reduced-motion open focus was not immediate**  
+3. **Reduced-motion open focus was not immediate**
    The 350ms focus delay was bypassed in code, but the real reduced-motion browser path still did
    not reliably focus the close button at open. Fix: reduced-motion open now focuses the close
    button via layout effect and zero-delay fallback.
    - Code: `packages/client/src/views/Public/GardenDialog.tsx:86`
    - Test: `packages/client/src/__tests__/views/PublicGardenDialog.test.tsx:172`
 
-4. **Mobile dialog hero collapsed to 0px**  
+4. **Mobile dialog hero collapsed to 0px**
    In the full-screen mobile flex column, the hero flex item could shrink to `0px` even though the
    `aspect-[16/9]` utility was present. Fix: the real and skeleton hero wrappers are `shrink-0`.
    - Code: `packages/client/src/views/Public/GardenDialog.tsx:217`

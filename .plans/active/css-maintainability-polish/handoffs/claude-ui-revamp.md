@@ -1,10 +1,10 @@
 # CSS Maintainability Polish - Revamped UI Lane Handoff
 
-**Lane**: `ui`  
-**Owner**: `claude`  
-**Status**: ready  
-**Branch target**: `claude/ui/css-maintainability-polish`  
-**Previous UI handoff**: `handoffs/claude-ui.md`  
+**Lane**: `ui`
+**Owner**: `claude`
+**Status**: ready
+**Branch target**: `claude/ui/css-maintainability-polish`
+**Previous UI handoff**: `handoffs/claude-ui.md`
 **Mode**: audit first, then human scope lock, then targeted cleanup only.
 
 ## Current Truth

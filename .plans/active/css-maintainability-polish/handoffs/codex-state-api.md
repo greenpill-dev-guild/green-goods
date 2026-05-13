@@ -1,7 +1,7 @@
 # CSS Maintainability Polish - State/API Handoff
 
-**Lane**: `state_api`  
-**Branch used**: `main` (ported from a prior `release/1.1.0` worktree pass; see Provenance below)  
+**Lane**: `state_api`
+**Branch used**: `main` (ported from a prior `release/1.1.0` worktree pass; see Provenance below)
 **Scope**: tooling and inventory only; no runtime data/API behavior and no UI cleanup.
 
 ## Provenance

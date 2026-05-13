@@ -79,4 +79,3 @@ Migrate `DraftDialog` and Gardeners member detail away from raw Radix into the c
 - Public browser editorial animation polish.
 - Admin UI surfaces, except shared primitives that must remain safe for admin consumers.
 - Route redesign or auth behavior changes.
-

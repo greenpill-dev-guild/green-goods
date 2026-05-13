@@ -47,4 +47,3 @@ Implement the locked native installed-PWA remediation slice:
 ## Proof Limits
 
 Native feel requires mobile/browser proof after tests pass. Record drag feel, AppBar safe-area spacing, route transition direction, haptics support state, and reduced-motion behavior in the QA handoff.
-

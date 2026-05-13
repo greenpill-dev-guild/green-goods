@@ -11,4 +11,3 @@ Every implementation or QA lane handoff must record:
 - Remaining risks or follow-up work.
 
 Do not use this hub to broaden into full translation-content cleanup, public browser editorial motion polish, admin UI cleanup, or broad theme RFCs.
-

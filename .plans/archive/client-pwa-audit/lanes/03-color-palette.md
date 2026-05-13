@@ -163,7 +163,7 @@ This is documented heavily in `theme.css:40-46, 1126-1130` and `design-md.genera
 ### D4. Status tones have shadowed `dark` variants but `--color-domain-*` does not
 
 - **`--success-*`, `--warning-*`, `--error-*`, `--information-*`** all have full dark-mode overrides (`theme.css:631-650`). Their alpha variants too.
-- **`--domain-*-rgb`** does not (D2). 
+- **`--domain-*-rgb`** does not (D2).
 - **`--editorial-*`** does (`editorial.css:30-35`).
 - **Verdict:** Domain tokens are the only chromatic family without dark-mode awareness. This is intentional per the comment, but is the only place the rule is broken — worth confirming.
 

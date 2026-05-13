@@ -1,9 +1,9 @@
 # CSS Maintainability Polish - QA Pass 1 Handoff
 
-**Lane**: `qa_pass_1`  
-**Owner**: `claude`  
-**Status**: blocked until the revamped UI lane completes or explicitly defers with evidence  
-**Branch target**: `claude/qa-pass-1/css-maintainability-polish`  
+**Lane**: `qa_pass_1`
+**Owner**: `claude`
+**Status**: blocked until the revamped UI lane completes or explicitly defers with evidence
+**Branch target**: `claude/qa-pass-1/css-maintainability-polish`
 **Do not**: redesign public browser, installed PWA, or admin surfaces; do not start QA until `handoffs/claude-ui-revamp.md` has produced a scope-locked UI result.
 
 ## Current Truth

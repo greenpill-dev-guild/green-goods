@@ -40,4 +40,3 @@ This hub is now the source of truth for the next locked remediation slice: make 
 - Remaining hardcoded PWA aria labels are lifted into `en`, `es`, and `pt`.
 - `DESIGN.pwa.md` reflects the live presentation-mode routing contract.
 - Mobile proof captures drag feel, safe-area spacing, AppBar overlap, and route transition direction before the lane is closed.
-

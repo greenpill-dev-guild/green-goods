@@ -1,7 +1,7 @@
 # v1.1.0 Release Readiness Status
 
-**Branch**: `release/1.1.0`  
-**Last updated**: 2026-05-06  
+**Branch**: `release/1.1.0`
+**Last updated**: 2026-05-06
 **Mode**: core-only release gate, safe live reads only
 
 ## Current Verdict
