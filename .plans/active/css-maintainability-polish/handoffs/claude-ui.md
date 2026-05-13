@@ -10,6 +10,25 @@
 - This pass picks up after that, refreshes the inventory against current source, and applies only the 4 mechanical alias renames that are clearly low-risk.
 - Re-validated against current `main` HEAD `05abc7b3` plus the working-tree changes other agents have staged (admin chrome / sheet positioning work — see Parallel agent activity below). My fixes are intact, the guard is still GREEN, and the deferred items remain deferred.
 
+## 2026-05-12 Post-Churn Reassessment
+
+This handoff remains valid as the historical first UI pass, but it no longer represents the current closure state for the hub. Current `main` is `430fb41a`, and later admin chrome/sheet, Storybook parity, PWA dialog, and token-scan changes have landed. Do not close the hub from this handoff alone.
+
+Current static proof from the reassessment:
+
+- `node scripts/harness/plan-hub.mjs validate` -> `Validated 19 feature hubs.`
+- `node scripts/design/check-css-custom-properties.mjs` -> `CSS custom property guard passed: 3065 var() references, 1005 definitions, 60 audited unresolved entries.`
+- `bun run check:design-tokens` -> passes, including the custom-property, raw-token, admin Controlled Chrome, and token-version guards.
+- `bun run check:design-generated` -> exits 0 but mutates generated/guidance files in this checkout; resolve that side effect before implementation.
+
+Stale items in this handoff:
+
+- The old `check:design-generated` stale-doc and `check:design-tokens` social-preview raw-color failures are no longer current gate blockers.
+- The admin chrome/sheet work described below as "uncommitted" has since landed; it now needs browser/Storybook proof, not another low-friction alias pass.
+- PWA dialog ownership changed after this pass when local PWA dialog primitives were inlined; QA pass 1 must classify that against the shared scrim/dialog-motion contract.
+
+Next lane: `handoffs/claude-ui-revamp.md` supersedes this file as the active UI lane for the full CSS maintainability surface. `handoffs/claude-qa-pass-1.md` starts only after that revamped UI lane completes or explicitly defers with evidence.
+
 ## CSS Ownership Inventory (refreshed)
 
 ### Global CSS entrypoints
@@ -135,10 +154,10 @@ Recorded so QA pass 1 doesn't mistake it for in-lane scope creep:
 - `bunx vitest run src/__tests__/components/toast-registry.test.ts src/__tests__/hooks/useToastAction.test.ts` (from `packages/shared`) → `2 test files, 13 tests, all pass`. ✅
 - Full `bun run --filter @green-goods/shared test` → 241/242 test files pass, 2933 tests pass, 1 skipped, 1 failed. The single failure is `src/__tests__/i18n/locale-coverage.test.ts > Source usage coverage` timing out at 10s — unrelated to this lane (locale-coverage is in other agents' WIP diff at session start, modified for marketplace i18n expansion). My changes touched only `toast.service.tsx`; no toast-related tests failed.
 
-**Pre-existing blockers (NOT caused by this lane) — surfaced for the team:**
+**Historical blockers from this lane (stale as current gate blockers):**
 
-- `bun run check:design-generated` → fails because `docs/docs/builders/packages/client-pwa-token-audit.generated.md` is stale. Last touched in `eb41bc8d` (PWA token audit refresh by another agent). Not in this lane's diff; needs a separate `bun run design:generate` from whoever owns the docs lane.
-- `bun run check:design-tokens` → fails on raw color/shadow literals in `packages/client/vite/social-preview.ts` introduced by commits `802bda74` (`feat(client): add static social preview shells`) and `236aa367` (`fix(client): make social preview cards deterministic`). Eight raw values flagged: `#000000` flood/stop colors, `#167947`, `#f7f0e4`, `#514a3d`, `#221f18`. Not in this lane's diff; the social-preview owner needs to either token-replace or add audited baseline entries to `scripts/data/design-token-usage-baseline.tsv`.
+- At the time of this lane, `bun run check:design-generated` failed because `docs/docs/builders/packages/client-pwa-token-audit.generated.md` was stale. Current reassessment: the command exits 0 but mutates generated/guidance files in this checkout, so that side effect still needs owner resolution before implementation.
+- At the time of this lane, `bun run check:design-tokens` failed on raw color/shadow literals in `packages/client/vite/social-preview.ts`. Current reassessment: `check:design-tokens` passes; social-preview remains audited generated-media debt rather than a current gate blocker.
 
 Per `brief.md`: "If full `format:check` is blocked by unrelated dirty files, record the exact blocker and do not format unrelated work." Same policy applied to the two design checks above.
 
@@ -167,4 +186,4 @@ Unrelated dirty work left untouched: marketplace/agent/i18n WIP across `packages
 2. Verify toast action button hover (any error toast with an action callback, or a `loading → success` flow) renders the darker green on hover; description text in dismissible toasts renders the sub-600 ink, not falling back to inherited.
 3. Decide whether to schedule typography.css 59-token semantic mapping into this hub or push to `client-pwa-design-system-transition`.
 4. Decide whether to clean up the 3 redundant `var(--font-family-sans)` / `var(--font-family-mono)` references (remove no-op rules; replace the `code` rule with an explicit mono stack).
-5. Confirm pre-existing blockers (docs freshness + social-preview raw colors) are owned and routed.
+5. Confirm current generated/guidance dirt from `check:design-generated` is owned and routed before CSS implementation.

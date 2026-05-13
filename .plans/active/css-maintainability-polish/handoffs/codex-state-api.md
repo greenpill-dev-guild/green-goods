@@ -24,6 +24,10 @@ The undefined CSS custom property guard, baseline, focused tests, and `check:des
 - Added `scripts/data/css-custom-property-baseline.tsv` for current audited migration debt and `scripts/design/check-css-custom-properties.test.mjs` for the checker.
 - Updated `scripts/README.md` with the new durable script and baseline data file.
 
+## 2026-05-12 Status Note
+
+This handoff remains the source of truth for the completed state/API guardrail lane, but its follow-up counts are historical. The current reassessment on `main` `430fb41a` leaves the guard passing with 3065 `var()` references, 1005 definitions, and 60 audited unresolved entries after the first UI alias pass. The hub remains active because later CSS/admin/client/shared churn needs a second maintainability review and browser/Storybook proof before closure.
+
 ## Existing Coverage Decision
 
 Existing checks covered:
@@ -129,7 +133,7 @@ Evidence:
 ## Follow-Up For UI Lane
 
 - Do not do broad CSS cleanup in this state/API lane.
-- Start UI cleanup from the 64-entry baseline on `main`, especially client typography and the remaining stale admin chart / shared toast aliases.
+- Historical UI cleanup started from the 64-entry baseline on `main`; the current post-churn reassessment starts from 60 audited unresolved entries after the first UI alias pass.
 - Keep public browser/editorial CSS local to `packages/client/src/styles/editorial.css`.
 - Keep admin cockpit CSS in the admin M3 and override surfaces; avoid moving admin-only rules into shared unless shared primitives truly own the behavior.
-- The overall feature is still active: `state_api` is complete, `ui` remains ready, and QA lanes remain blocked until UI cleanup lands.
+- The overall feature is still active: `state_api` and the first low-friction `ui` pass are complete; the revamped `ui` lane now owns full maintainability audit/scope-lock work before `qa_pass_1` starts.
