@@ -7,7 +7,7 @@ import {
   resolveIPFSUrl,
   type Work,
 } from "@green-goods/shared";
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { useIntl } from "react-intl";
 import { adminCardVariants } from "@/components/AdminCard";
 
@@ -67,19 +67,20 @@ function ImageCell({
 // DomainGradientFallback — shown when no images or image load fails
 // ---------------------------------------------------------------------------
 
+const DOMAIN_FALLBACK_SLUGS = ["solar", "agro", "education", "waste"] as const;
+
 function DomainGradientFallback({ domain, className }: { domain?: Domain; className?: string }) {
   const config = domain !== undefined ? DOMAIN_CONFIG[domain] : undefined;
-  const gradientClasses = config
-    ? `${config.gradient.from} ${config.gradient.to}`
-    : "from-gray-100 to-gray-50";
+  const slug = domain !== undefined ? DOMAIN_FALLBACK_SLUGS[domain] : undefined;
+  const fallbackStyle = {
+    "--domain-fallback-soft-rgb": slug ? `var(--domain-${slug}-soft-rgb)` : undefined,
+    "--domain-fallback-ink-rgb": slug ? `var(--domain-${slug}-rgb)` : undefined,
+  } as CSSProperties;
 
   return (
     <div
-      className={cn(
-        "flex items-center justify-center bg-gradient-to-br",
-        gradientClasses,
-        className
-      )}
+      className={cn("domain-gradient-fallback flex items-center justify-center", className)}
+      style={fallbackStyle}
     >
       {config && <config.icon className="h-8 w-8 opacity-30" />}
     </div>
@@ -174,7 +175,7 @@ export function HubWorkCard({
           </div>
         )}
 
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/8 via-transparent to-white/10 opacity-80" />
+        <div className="admin-media-readability-overlay pointer-events-none absolute inset-0" />
 
         {actionDomain !== undefined && (
           <DomainBadge domain={actionDomain} size="sm" className="absolute bottom-2 left-2" />

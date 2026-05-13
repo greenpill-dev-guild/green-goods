@@ -15,6 +15,12 @@ const TEST_CHAIN_ID = 11155111;
 const TEST_GARDEN = "0x1111111111111111111111111111111111111111" as `0x${string}`;
 const TEST_SIGNER = "0x2222222222222222222222222222222222222222" as `0x${string}`;
 const TEST_MODULE = "0x3333333333333333333333333333333333333333" as `0x${string}`;
+const mockAssertMarketplaceReady = vi.fn();
+const mockBuildMakerAsk = vi.fn();
+const mockSignMakerAsk = vi.fn();
+const mockValidateOrder = vi.fn();
+const mockInvalidateQueries = vi.fn();
+const mockSendTransaction = vi.fn();
 
 // ============================================
 // Mocks
@@ -25,25 +31,9 @@ vi.mock("../../../modules/app/logger", () => ({
 }));
 
 vi.mock("../../../modules/marketplace", () => ({
-  buildMakerAsk: vi.fn().mockReturnValue({
-    quoteType: 0,
-    globalNonce: 0n,
-    subsetNonce: 0n,
-    orderNonce: 0n,
-    strategyId: 0n,
-    collectionType: 0,
-    collection: "0x0000000000000000000000000000000000000000",
-    currency: "0x0000000000000000000000000000000000000000",
-    signer: "0x2222222222222222222222222222222222222222",
-    startTime: 0n,
-    endTime: 0n,
-    price: 0n,
-    itemIds: [0n],
-    amounts: [1n],
-    additionalParameters: "0x",
-  }),
-  signMakerAsk: vi.fn().mockResolvedValue("0xsignature"),
-  validateOrder: vi.fn().mockReturnValue({ valid: true, errors: [] }),
+  buildMakerAsk: (...args: unknown[]) => mockBuildMakerAsk(...args),
+  signMakerAsk: (...args: unknown[]) => mockSignMakerAsk(...args),
+  validateOrder: (...args: unknown[]) => mockValidateOrder(...args),
 }));
 
 vi.mock("../../../utils/blockchain/hypercert-abis", () => ({
@@ -51,6 +41,7 @@ vi.mock("../../../utils/blockchain/hypercert-abis", () => ({
 }));
 
 vi.mock("../../../utils/blockchain/contracts", () => ({
+  assertMarketplaceReady: (...args: unknown[]) => mockAssertMarketplaceReady(...args),
   getNetworkContracts: () => ({
     hypercertsModule: "0x3333333333333333333333333333333333333333",
   }),
@@ -66,7 +57,7 @@ vi.mock("../../../config", () => ({
 vi.mock("wagmi", () => ({
   useWalletClient: () => ({
     data: {
-      sendTransaction: vi.fn().mockResolvedValue("0xtxhash"),
+      sendTransaction: (...args: unknown[]) => mockSendTransaction(...args),
     },
   }),
 }));
@@ -86,9 +77,22 @@ vi.mock("../../../stores/useAdminStore", () => ({
 
 vi.mock("../../../config/query-keys", () => ({
   queryInvalidation: {
-    onMarketplaceListingChanged: () => [["greengoods", "marketplace"]],
+    onMarketplaceListingChanged: () => [
+      ["greengoods", "marketplace", "orders"],
+      ["greengoods", "marketplace"],
+    ],
   },
 }));
+
+vi.mock("@tanstack/react-query", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@tanstack/react-query")>();
+  return {
+    ...actual,
+    useQueryClient: () => ({
+      invalidateQueries: mockInvalidateQueries,
+    }),
+  };
+});
 
 vi.mock("viem", () => ({
   encodeFunctionData: vi.fn().mockReturnValue("0xencoded"),
@@ -121,6 +125,34 @@ describe("useBatchListForYield", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     queryClient = createQueryClient();
+    mockAssertMarketplaceReady.mockReturnValue({
+      available: true,
+      status: "available",
+      missingFields: [],
+      addresses: {
+        hypercertsModule: TEST_MODULE,
+      },
+    });
+    mockBuildMakerAsk.mockReturnValue({
+      quoteType: 1,
+      globalNonce: 0n,
+      subsetNonce: 0n,
+      orderNonce: 1n,
+      strategyId: 1n,
+      collectionType: 2,
+      collection: TEST_MODULE,
+      currency: "0x0000000000000000000000000000000000000000",
+      signer: TEST_SIGNER,
+      startTime: 1n,
+      endTime: 2n,
+      price: 1000n,
+      itemIds: [1n],
+      amounts: [1n],
+      additionalParameters: "0x",
+    });
+    mockSignMakerAsk.mockResolvedValue("0xsignature");
+    mockValidateOrder.mockReturnValue({ valid: true, errors: [] });
+    mockSendTransaction.mockResolvedValue("0xtxhash");
   });
 
   describe("initial state", () => {
@@ -191,6 +223,71 @@ describe("useBatchListForYield", () => {
       });
 
       expect(result.current.error?.message).toBe("No listings to create");
+    });
+
+    it("refuses incomplete marketplace config before signing or writing", async () => {
+      mockAssertMarketplaceReady.mockImplementation(() => {
+        throw new Error("Marketplace configuration incomplete: marketplaceAdapter");
+      });
+      const { result } = renderHook(() => useBatchListForYield(TEST_GARDEN), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await act(async () => {
+        try {
+          await result.current.batchList([
+            {
+              hypercertId: 1n,
+              fractionId: 1n,
+              currency: "0x0000000000000000000000000000000000000000",
+              pricePerUnit: 1000n,
+              minUnitAmount: 1n,
+              maxUnitAmount: 1000n,
+              minUnitsToKeep: 0n,
+              sellLeftover: false,
+              durationDays: 30,
+            },
+          ]);
+        } catch {
+          // Expected
+        }
+      });
+
+      expect(result.current.error?.message).toContain("Marketplace configuration incomplete");
+      expect(mockBuildMakerAsk).not.toHaveBeenCalled();
+      expect(mockSignMakerAsk).not.toHaveBeenCalled();
+      expect(mockSendTransaction).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("invalidation", () => {
+    it("keeps marketplace listing invalidation after a successful batch listing", async () => {
+      const { result } = renderHook(() => useBatchListForYield(TEST_GARDEN), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await act(async () => {
+        await result.current.batchList([
+          {
+            hypercertId: 1n,
+            fractionId: 1n,
+            currency: "0x0000000000000000000000000000000000000000",
+            pricePerUnit: 1000n,
+            minUnitAmount: 1n,
+            maxUnitAmount: 1000n,
+            minUnitsToKeep: 0n,
+            sellLeftover: false,
+            durationDays: 30,
+          },
+        ]);
+      });
+
+      expect(mockInvalidateQueries).toHaveBeenCalledWith({
+        queryKey: ["greengoods", "marketplace", "orders"],
+      });
+      expect(mockInvalidateQueries).toHaveBeenCalledWith({
+        queryKey: ["greengoods", "marketplace"],
+      });
     });
   });
 

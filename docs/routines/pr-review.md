@@ -12,7 +12,8 @@ repos:
   - green-goods
 environment: green-goods-routines
 network-access: trusted
-connectors: []
+connectors:
+  - vercel
 model: claude-opus-4-7[1m]
 ---
 
@@ -69,6 +70,18 @@ If the PR diff touches any `.sol` file under `packages/contracts/src/`, verify t
 
 GitHub Actions should stay to the eight lane files: `contracts.yml`, `indexer.yml`, `shared.yml`, `client.yml`, `admin.yml`, `agent.yml`, `design.yml`, and `docs.yml`. Flag any new standalone workflow, composite action, write-capable issue automation, or reintroduced meta/advisory workflow unless the PR explicitly explains why it cannot live in a package lane, routine, Copilot automatic review, or GitHub native review.
 
+## Vercel preview deployment (when applicable)
+
+If the PR touches frontend code (`packages/client/`, `packages/admin/`, or `packages/shared/` files used by either app), look up the Vercel preview deployment for this PR via the Vercel connector.
+
+Pull from Vercel:
+- **Preview state**: `READY` / `BUILDING` / `ERROR` / `BUILD_FAILED`.
+- **Preview URL** when state is `READY`.
+- **Build log URL** when state is `ERROR` or `BUILD_FAILED` (so the author can click into the failure).
+- **Lighthouse delta vs `main`** if the project's Vercel config exposes Lighthouse scores. Flag any regression > 10 points on Performance / Accessibility / Best Practices / SEO.
+
+This is **review commentary**, not an invariant. Don't `REQUEST_CHANGES` based on Vercel state — just surface the link + status so the human reviewer can click and test on a real device.
+
 ## Summary comment format
 
 At the end, post one summary comment:
@@ -79,6 +92,9 @@ At the end, post one summary comment:
 **Invariants checked:** 9 from CLAUDE.md / AGENTS.md
 **Inline flags:** N (see comments above)
 **Verdict:** [APPROVE | REQUEST_CHANGES | COMMENT_ONLY]
+
+{if frontend touched: "**Preview deploy:** ✅ ready · {preview_url}   _OR_   ❌ failed · {build_log_url}   _OR_   🟡 building"}
+{if lighthouse delta available: "**Lighthouse vs `main`:** Performance {±N}, Accessibility {±N}, Best Practices {±N}, SEO {±N}"}
 
 Notes: …
 ```

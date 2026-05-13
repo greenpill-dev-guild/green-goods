@@ -403,25 +403,12 @@ function MarketplaceSection({
   return (
     <>
       <section className="surface-inset p-6">
-        <div className="flex items-center justify-between">
-          <h3 className="flex items-center gap-2 text-sm font-semibold text-text-strong">
-            <RiExchangeDollarLine className="h-4 w-4 text-primary-base" />
-            {formatMessage({ id: "app.hypercerts.marketplace.title" })}
-          </h3>
-          {!activeListing && (
-            <AdminButton
-              type="button"
-              variant="filled"
-              size="sm"
-              onClick={() => setListingDialogOpen(true)}
-              leadingIcon={<RiExchangeDollarLine />}
-            >
-              {formatMessage({ id: "app.hypercerts.marketplace.listForYield" })}
-            </AdminButton>
-          )}
-        </div>
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-text-strong">
+          <RiExchangeDollarLine className="h-4 w-4 text-primary-base" />
+          {formatMessage({ id: "app.hypercerts.marketplace.title" })}
+        </h3>
 
-        <MarketplaceApprovalGate>
+        <MarketplaceApprovalGate chainId={chainId}>
           {activeListing ? (
             <div className="mt-4 space-y-3">
               <div className="flex items-center gap-2">
@@ -468,9 +455,20 @@ function MarketplaceSection({
               </div>
             </div>
           ) : (
-            <p className="mt-3 text-sm text-text-soft">
-              {formatMessage({ id: "app.hypercerts.marketplace.notListed" })}
-            </p>
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm text-text-soft">
+                {formatMessage({ id: "app.hypercerts.marketplace.notListed" })}
+              </p>
+              <AdminButton
+                type="button"
+                variant="filled"
+                size="sm"
+                onClick={() => setListingDialogOpen(true)}
+                leadingIcon={<RiExchangeDollarLine />}
+              >
+                {formatMessage({ id: "app.hypercerts.marketplace.listForYield" })}
+              </AdminButton>
+            </div>
           )}
         </MarketplaceApprovalGate>
       </section>

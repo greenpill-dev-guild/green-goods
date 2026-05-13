@@ -15,10 +15,14 @@ bun run dev                  # Alias for dev:full
 bun run dev:stop             # Stop all services
 bun format && bun lint       # Format and lint workspace
 bun run test                 # Run all tests (CRITICAL: not `bun test`)
+bun run test:fast            # Same scope, but cache-aware via Turborepo (skips packages with unchanged inputs)
+bun run test:fast:force      # Same as test:fast but bypasses cache (use when debugging a stale cache hit)
 bun build                    # Build everything (respects dependency order)
 ```
 
 > **`bun test` vs `bun run test`**: `bun test` uses bun's built-in runner (ignores vitest config). `bun run test` runs the package.json script (vitest with proper environment). Always use `bun run test`.
+
+> **`test` vs `test:fast`**: `bun run test` always runs every package via `bun --filter`. `bun run test:fast` runs the same scope through Turborepo, which caches passing test runs by input hash. Cache invalidates automatically when a package's source, its workspace dependencies' source (shared/contracts), `.env`, `biome.json`, or root tsconfigs change. **Failing tests are never cached** — fix the test, not the cache. To force a fresh run, use `bun run test:fast:force` or `rm -rf .turbo`.
 
 Per-package: `bun run test`, `bun build`, `bun lint` (check each package.json for available scripts).
 
@@ -85,6 +89,44 @@ The `docs/` directory contains a Docusaurus site with product documentation, use
 
 Package-specific context files (`.claude/context/*.md`) include additional documentation references relevant to each package.
 
+## Linear Workspace
+
+Linear (workspace `greenpill-dev-guild`) is the durable backlog as of 2026-05-09. GitHub is for PRs and code review only — never open GitHub Issues for backlog work. Routine and label-scheme details: [`docs/routines/README.md`](docs/routines/README.md). Live workspace state (active initiatives, projects, customers, cycle status) — query the Linear MCP at the time you need it; do not hardcode it here, it drifts.
+
+**Teams**: Product (`PRD`) and Research (`RESR`). Their workflow states are asymmetric — Product has `QA` and `Ready` as backlog states (no Triage); Research has a `Triage` state (no QA/Ready). Matters when filtering or transitioning issues.
+
+**Records**: `Customer Need` (raw signal, structured body) → `Issue` (accepted work). `.plans/` remains execution truth for agent implementation; Linear mirrors carry the `source:plans` label.
+
+**Project routing**: new Issues default unprojected on the Product team. Graduate into a bounded active project only when one already exists for the work; never route new work into a project whose status is Completed.
+
+**Canonical label families** (only these): `protocol:* / package:* / activity:* / task:* / source:* / agent:* / funding:*`. Retired and not to be reintroduced: `area:*`, `work:*`, `automation:*`, `health:*`, `grant:*`. The `agent:*` family distinguishes `agent:claude` (interactive Claude Code) from `agent:routine` (cron'd routine writes) — they are not synonymous.
+
+**Cloud routines that write Linear** (cron'd at [claude.ai/code/routines](https://claude.ai/code/routines), per-routine docs in [`docs/routines/`](docs/routines/README.md)): `bug-intake`, `health-watch`, `growth-pulse`. **Local skills aware of Linear**: `/audit`, `/clean`, `/principles`, `/plan`, `/debug`, `/drift` — all prompt before creating Linear records.
+
+**Linear MCP** is wired into the Claude Code harness globally (~40 tools). No project `.mcp.json` config needed. Use it for read/query, triage/promote, state transitions, and branch-context loading.
+
+**Privacy boundary** (PostHog evidence in Linear bodies): error message + hash + counts OK; replay URLs, session IDs, distinct IDs, wallet addresses, and reporter identifiers stay out.
+
+## PostHog
+
+PostHog hosts **three separate projects**. The connector defaults to one project at session start (often the wrong one), so every PostHog tool call defaults to silently querying the wrong telemetry — returning zero results without flagging that there's a project mismatch. This has cost real debugging time. **Always call `switch-project` before any PostHog query, every time.**
+
+Inference table (pick the project based on what surface the issue lives in):
+
+| Surface in the bug report | Project | ID | When to pick |
+|---|---|---|---|
+| PWA, installed app, client, website, editorial, `/home/*`, `/gardens`, `/actions`, `/fund`, `/impact`, `/cookies`, `/glossary` | **App** | `163591` | Default for end-user / gardener / operator reports. |
+| Admin cockpit, `Admin*` components, `Hub`, `MainSheet`, `LeftSheet`, `RightSheet`, `/dashboard`, operator-facing tooling | **Admin** | `262122` | When the user mentions admin routes/components. |
+| Telegram bot, WhatsApp, SMS, agent/messaging runtime | **Agent** | `262124` | When the report names a chat channel or `packages/agent/**`. |
+
+Rule, in order:
+1. Read the user's report. Classify the surface (App / Admin / Agent). If ambiguous, **ask** before querying.
+2. Call `switch-project` with the matching ID.
+3. Run the PostHog query.
+4. If the first project returns nothing relevant, try the next likely project — do not assume "no data" until you've checked the surface the user actually described.
+
+Authoritative source for these IDs and the surface mapping: [docs/routines/README.md § PostHog projects](docs/routines/README.md). Curated-question library + privacy boundaries: [.claude/skills/posthog-questions/SKILL.md](.claude/skills/posthog-questions/SKILL.md).
+
 ## Key Patterns
 
 **Hook Boundary**: ALL hooks in `@green-goods/shared`. Client/admin only have components and views.
@@ -115,6 +157,8 @@ import deployment from '../../../contracts/deployments/11155111-latest.json';
 
 **Verify Before Claiming Success**: Before reporting that a fix works, a setting takes effect, or a behavior holds, produce evidence in the same turn — the command output, the passing test, the rendered DOM via Chrome MCP, the re-read file showing the change. "Should work", "probably fixed", and unrun commands are not evidence. If a CLI flag is unfamiliar, read `--help` or the source before invoking it; do not invent flags. If you cannot verify (no test, no live DOM, no observable signal), say "I can't verify this without X" and stop rather than declaring success. Untested fixes and hallucinated commands have produced more reverts in this repo than any other failure mode.
 
+**User-Observed UI Regression Debugging**: Bug reports trigger the debug skill automatically. When the reported symptom is something the user can see or touch — cannot click, cannot select, missing selected border/state, collapsed or blank cards, invisible content, broken scroll/refresh, visible-but-unusable controls — start from the rendered surface before tracing data flow. First reproduce or simulate the exact visible/clickable symptom with the real component path, inspect DOM geometry and computed styles (bounding rect, width/height, opacity, display, pointer-events, z-index, overflow, disabled state, selected classes, border/ring), verify whether click/tap changes state, trace visible element → card/button/input → wrapper/carousel/sheet/dialog → state setter, and check recent component commits with `git log --follow` or focused `git show`. Only move into providers, query hooks, auth, or indexer/data explanations after proving the rendered surface is intact. If text/data exists in the DOM but the control is collapsed, invisible, untappable, or lacks selected visual state, treat it as a component/CSS regression until browser or DOM evidence proves otherwise.
+
 **Research, Plan, Implement**: For ambiguous, multi-package, or high-risk work, research first, record evidence, plan the smallest implementation path, surface human judgment points, then edit. If the session goes down the wrong path, summarize only the useful findings and restart with clean context instead of carrying contaminated assumptions forward.
 
 **Subagent Discipline**: Spawn teammates when tasks can run in parallel, require isolated context, or involve independent workstreams. Work directly (no subagent) for single-file edits, sequential operations, tasks sharing state across steps, or any task needing fewer than 10 tool calls. Prefer the simplest approach that completes the task.
@@ -126,7 +170,7 @@ Full skills: `design` (direction) + `ui` (implementation). Load explicitly when 
 **Language**: Warm Earth — M3 Expressive × Liquid Glass. Canonical spec: `.claude/skills/design/language.md`. Scannable cheat sheet: `.claude/skills/design/quick-reference.md`. Ecosystem map: `.claude/skills/design/ARCHITECTURE.md`.
 
 **Surface identities (never mix)**:
-- **Admin** (`packages/admin`) — restrained operator cockpit. M3 strict anatomy (v0.192), Plus Jakarta Sans, glass only on the admin `AppBar`, solid surfaces everywhere else. Use `Admin*` wrappers. Litmus: appropriate for Linear / GitHub / Stripe Dashboard?
+- **Admin** (`packages/admin`) — restrained operator cockpit. M3 strict anatomy (v0.192), Plus Jakarta Sans, transparent admin `AppBar` root, Controlled Chrome glass only on Navigation/FAB and sheet shells, solid dense surfaces everywhere else. Use `Admin*` wrappers. Litmus: appropriate for Linear / GitHub / Stripe Dashboard?
 - **Client PWA** (`packages/client`) — warm garden-journal feel. Full Warm Earth expression. Inter typography. Bottom `AppBar` (installed PWA) / `SiteHeader` hamburger (browser). Hero moments live here, never in admin.
 - **Shared** (`packages/shared`) — primitives + tokens in `src/styles/theme.css`. All React hooks live here (`@green-goods/shared`).
 
@@ -136,12 +180,12 @@ Full skills: `design` (direction) + `ui` (implementation). Load explicitly when 
 
 **Banned vocabulary** (enforced by `bun run lint:vocab` on i18n strings; canonical source: [`docs/docs/reference/glossary-community.md § Banned Vocabulary`](docs/docs/reference/glossary-community.md), machine-readable sidecar: [`docs/docs/reference/banned-vocabulary.json`](docs/docs/reference/banned-vocabulary.json)):
 - Any surface: `streak`, `countdown`, `leaderboard`, `FOMO`, growth-hacking language (`urgent`, `limited time`, `re-engagement`, `retention hook`).
-- Admin only: `hero moment`, `gallery`, `decorative gradient`, `marketing banner`, glass outside the admin `AppBar`.
+- Admin only: `hero moment`, `gallery`, `decorative gradient`, `marketing banner`, AppBar glass, glass outside Navigation/FAB and sheet shells.
 - Client only: `operator cockpit`, `utility copy`, `KPI tile`, `dashboard`, `Plus Jakarta Sans`.
 
 **Component palettes** (do not invent component names — flag missing primitives instead):
 - Admin: 13 `Admin*` wrappers + `CanvasLayout` / `AppBar` / `MainSheet` / `LeftSheet` / `RightSheet` / `BottomSheet` / `NavigationBar` / `AdminFab`. Full list: `.claude/skills/design/prompt-contract.md § Canonical Component Palette`.
-- Client: `@green-goods/shared` primitives + `PlatformRouter` / `SiteHeader` / `AppBar`. Full list: `.claude/skills/design/client-prompt-contract.md § Canonical Component Palette`.
+- Client: `@green-goods/shared` primitives + presentation-mode loaders / `PublicShell` / `PwaRuntime` / `AppShell` / `SiteHeader` / `AppBar`. Full list: `.claude/skills/design/client-prompt-contract.md § Canonical Component Palette`.
 
 **Validation**: `bun run check:design-tokens` (spec ↔ theme.css drift + version coupling) · `bun run lint:vocab` (banned terms).
 
@@ -186,7 +230,7 @@ Single `.env` at root (never create package-specific .env). `VITE_CHAIN_ID` sets
 
 ## Local services (PM2)
 
-`bun run dev:web` and `bun run dev:full` start services via PM2 (`ecosystem.config.cjs`). Canonical service → port mapping:
+`bun run dev` (full), `bun run dev:web` (web), `bun run dev:full`, and `bun run dev <app...>` (custom subset, e.g. `bun run dev client admin tunnel`) start services via PM2 (`ecosystem.config.cjs`). When the stack is up, `[stack] all N services ready in Xs` is printed once every port-binding service responds. Canonical service → port mapping:
 
 - **client** — `https://localhost:3001/` (HTTPS in dev; not HTTP)
 - **admin** — `https://localhost:3002/`
@@ -197,6 +241,12 @@ Single `.env` at root (never create package-specific .env). `VITE_CHAIN_ID` sets
 - **envio indexer runtime** — `localhost:9898`
 
 Use `npx pm2 list` to see live status, `npx pm2 logs <name> --nostream` to inspect a single service. The full-stack indexer requires Docker — without it, `/api/graphql` proxy returns no data and PWA pages render empty states.
+
+**Indexer hot-reload (Docker)**: the PM2 `indexer` app runs `docker compose -f docker-compose.indexer.yaml up --build --watch`. The compose file declares `develop.watch` rules so edits to `packages/indexer/src/**` and `config.yaml` sync into the container and trigger a fast envio restart (~1-2s); `schema.graphql`, `Dockerfile`, and `package.json` changes trigger a full image rebuild. Test handler files (`*.test.ts`, `__tests__/**`) are excluded from the sync. If the watch loop misbehaves, `bun run dev:indexer` runs the native `envio dev` path (faster but can hit the macOS `system-configuration` crate panic in older Rust toolchains).
+
+**Tunnel for mobile QA**: PM2's `tunnel` app spawns one `cloudflared` tunnel per port — by default both client (3001) and admin (3002) — and writes per-port URL files (`.tunnel-url` for client, `.tunnel-url-admin` for admin). Each Vite dev server exposes its tunnel URL at `/__dev/tunnel` for the in-page QR overlay, so admin reviews work on real devices the same way client PWA reviews do. Standalone single-port use still works: `bun run dev:tunnel -- --port 3001`.
+
+**Client presentation mode (PWA vs website)**: the client renders different chrome depending on whether it's running as an installed PWA or a regular browser tab — bottom `AppBar` + `/home` entry for PWA, hamburger `SiteHeader` + `/` entry for website. On localhost, append `?presentation=pwa`, `?presentation=website`, or `?presentation=auto` to override the auto-detected mode; the choice is cached in **per-tab** sessionStorage so each tab keeps its own mode after redirects. The dev stack opens both modes in adjacent tabs by default. Source: `packages/shared/src/utils/app/pwa.ts:getClientPresentationMode`.
 
 ## Scope Discipline
 - When instructions say "output in chat" or "just tell me", do NOT edit files
@@ -243,10 +293,11 @@ Don't reach for `which codex` or attempt to install it globally — the app-bund
 
 When the working tree is heavy (changes spanning packages, drift across docs/code/tests, "feels off"), don't pile broad sweeps on top of unaudited changes. Run in this order:
 
-1. **`/audit-then-ship`** — surgical pass with a built-in scope-lock gate. Phase 1 picks a lens (audit/review/principles/architecture/design) and produces numbered findings; Phase 2 you pick which to fix; Phase 3 fixes only those; Phase 4 ships. The Phase 2 gate is the pause between investigation and action — that's the feedback checkpoint.
-2. **`/clean`** — broad 8-subagent sweep (dedup, dead code, type strengthening, defensive code, legacy, AI slop). Run only after `/audit-then-ship` clears the surgical drift, because its scope isn't number-pickable and would otherwise muddy a review.
-3. **`/simplify`** — focused refinement of recently changed code. Skip if `/clean` already touched the same surface.
-4. **`/ship`** — final gate. Already runs at the end of `/audit-then-ship`; re-run here only if `/clean` or `/simplify` modified anything afterward.
+1. **`/drift`** — read-only classifier for guidance, plan, design, docs, quality, and cleanup drift. It routes findings before anything mutates.
+2. **`/audit-then-ship`** — surgical pass with a built-in scope-lock gate. Phase 1 picks a lens (audit/review/principles/architecture/design) and produces numbered findings; Phase 2 you pick which to fix; Phase 3 fixes only those; Phase 4 ships. The Phase 2 gate is the pause between investigation and action — that's the feedback checkpoint.
+3. **`/clean`** — broad 8-subagent sweep (dedup, dead code, type strengthening, defensive code, legacy, AI slop). Run only after `/drift` or `/audit-then-ship` proves cleanup is the right tool, because its scope isn't number-pickable and would otherwise muddy a review.
+4. **`/simplify`** — focused refinement of recently changed code. Skip if `/clean` already touched the same surface.
+5. **`/ship`** — final gate. Already runs at the end of `/audit-then-ship`; re-run here only if `/clean` or `/simplify` modified anything afterward.
 
 Skip the ritual entirely for: single-file edits, doc-only changes, bug fixes with a known fix path. It's earned only by multi-issue, ambiguous-scope, cross-package work.
 

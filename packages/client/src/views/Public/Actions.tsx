@@ -1,4 +1,4 @@
-import { type Action, cn, useActions } from "@green-goods/shared";
+import { type Action, cn, useActions, useInViewReveal } from "@green-goods/shared";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import {
@@ -6,6 +6,7 @@ import {
   EditorialDomainChip,
   EditorialHeading,
   EditorialKicker,
+  EditorialLede,
   EditorialNumeral,
   EditorialTitleAccent,
 } from "@/components/Public/atoms";
@@ -48,6 +49,88 @@ interface DomainExplainer {
   /** Tailwind utility for the numeral tint; uses domain ink tokens. */
   numeralClass: string;
 }
+
+interface CapitalEntry {
+  id:
+    | "living"
+    | "material"
+    | "social"
+    | "financial"
+    | "intellectual"
+    | "experiential"
+    | "cultural"
+    | "spiritual";
+  labelId: string;
+  defaultLabel: string;
+  bodyId: string;
+  defaultBody: string;
+}
+
+/**
+ * Eight forms of value. Surfaced on /actions so visitors know the work is
+ * measured across a wider lens than dollars or carbon. Order chosen so the
+ * grid reads outward from the most material (Living, Material) toward the
+ * most felt (Cultural, Spiritual). Mirrors the Capital enum in
+ * `packages/shared/src/types/domain.ts`.
+ */
+const CAPITALS: readonly CapitalEntry[] = [
+  {
+    id: "living",
+    labelId: "public.actions.capitals.living.label",
+    defaultLabel: "Living",
+    bodyId: "public.actions.capitals.living.body",
+    defaultBody: "Soil, water, biodiversity, ecological health.",
+  },
+  {
+    id: "material",
+    labelId: "public.actions.capitals.material.label",
+    defaultLabel: "Material",
+    bodyId: "public.actions.capitals.material.body",
+    defaultBody: "Physical infrastructure, tools, built things.",
+  },
+  {
+    id: "social",
+    labelId: "public.actions.capitals.social.label",
+    defaultLabel: "Social",
+    bodyId: "public.actions.capitals.social.body",
+    defaultBody: "Relationships, networks, trust between people.",
+  },
+  {
+    id: "financial",
+    labelId: "public.actions.capitals.financial.label",
+    defaultLabel: "Financial",
+    bodyId: "public.actions.capitals.financial.body",
+    defaultBody: "Money, currency, capital flowing.",
+  },
+  {
+    id: "intellectual",
+    labelId: "public.actions.capitals.intellectual.label",
+    defaultLabel: "Intellectual",
+    bodyId: "public.actions.capitals.intellectual.body",
+    defaultBody: "Knowledge, methods, documented practice.",
+  },
+  {
+    id: "experiential",
+    labelId: "public.actions.capitals.experiential.label",
+    defaultLabel: "Experiential",
+    bodyId: "public.actions.capitals.experiential.body",
+    defaultBody: "Felt knowledge, embodied skill, what hands learn.",
+  },
+  {
+    id: "cultural",
+    labelId: "public.actions.capitals.cultural.label",
+    defaultLabel: "Cultural",
+    bodyId: "public.actions.capitals.cultural.body",
+    defaultBody: "Tradition, story, place identity, art.",
+  },
+  {
+    id: "spiritual",
+    labelId: "public.actions.capitals.spiritual.label",
+    defaultLabel: "Spiritual",
+    bodyId: "public.actions.capitals.spiritual.body",
+    defaultBody: "Meaning, purpose, ceremony, sacred connection.",
+  },
+] as const;
 
 const DOMAIN_EXPLAINERS: readonly DomainExplainer[] = [
   {
@@ -111,6 +194,9 @@ export default function ActionsGallery() {
   const { data: actions = [], isLoading } = useActions();
   const [domain, setDomain] = useState<EditorialDomain>("all");
   const [activeAction, setActiveAction] = useState<Action | null>(null);
+  const { ref: domainsRef, revealed: domainsRevealed } = useInViewReveal<HTMLElement>();
+  const { ref: capitalsRef, revealed: capitalsRevealed } = useInViewReveal<HTMLElement>();
+  const { ref: guideRef, revealed: guideRevealed } = useInViewReveal<HTMLElement>();
 
   const filtered = useMemo(() => {
     if (domain === "all") return actions;
@@ -154,10 +240,12 @@ export default function ActionsGallery() {
 
       {/* § 01 — Four domains explainer */}
       <section
-        className="bg-bg-weak-50 px-6 pt-32 pb-12 sm:px-10 sm:pt-36 md:pt-40 md:pb-16"
+        ref={domainsRef}
+        data-revealed={domainsRevealed}
+        className="editorial-section-reveal bg-bg-weak-50 px-6 pt-32 pb-12 sm:px-10 sm:pt-36 md:pt-40 md:pb-16"
         aria-labelledby="public-actions-domains-title"
       >
-        <div className="mx-auto max-w-7xl">
+        <div className="editorial-cascade mx-auto max-w-7xl">
           <header className="border-b border-stroke-soft-200 pb-6">
             <EditorialKicker className="mb-3">
               {formatMessage({
@@ -208,17 +296,64 @@ export default function ActionsGallery() {
         </div>
       </section>
 
-      {/* § 02 — Field guide */}
+      {/* § 02 — Eight forms of value */}
       <section
-        className="bg-bg-weak-50 px-6 pt-12 pb-16 sm:px-10 md:pt-16 md:pb-20"
-        aria-labelledby="public-actions-grid-title"
+        ref={capitalsRef}
+        data-revealed={capitalsRevealed}
+        className="editorial-section-reveal bg-bg-weak-50 px-6 pt-12 pb-12 sm:px-10 md:pt-16 md:pb-16"
+        aria-labelledby="public-actions-capitals-title"
       >
-        <div className="mx-auto max-w-7xl">
+        <div className="editorial-cascade mx-auto max-w-7xl">
           <header className="border-b border-stroke-soft-200 pb-6">
             <EditorialKicker className="mb-3">
               {formatMessage({
-                id: "public.actions.kicker",
-                defaultMessage: "§ 02 — Field guide",
+                id: "public.actions.capitals.kicker",
+                defaultMessage: "§ 02 — Eight forms of value",
+              })}
+            </EditorialKicker>
+            <EditorialHeading id="public-actions-capitals-title">
+              {formatMessage({
+                id: "public.actions.capitals.title",
+                defaultMessage: "What we measure when work happens.",
+              })}
+            </EditorialHeading>
+            <EditorialLede className="mt-4 max-w-2xl">
+              {formatMessage({
+                id: "public.actions.capitals.lede",
+                defaultMessage:
+                  "Beneath each domain, work creates value across eight capitals — not just dollars or carbon, but the felt fabric of healthy places.",
+              })}
+            </EditorialLede>
+          </header>
+
+          <dl className="mt-12 grid grid-cols-1 gap-x-12 gap-y-8 md:grid-cols-2">
+            {CAPITALS.map((capital) => (
+              <div key={capital.id} className="flex flex-col gap-1.5">
+                <dt className="font-serif text-xl font-normal leading-[1.15] tracking-[-0.012em] text-text-strong-950">
+                  {formatMessage({ id: capital.labelId, defaultMessage: capital.defaultLabel })}
+                </dt>
+                <dd className="text-sm leading-[1.55] text-text-sub-600">
+                  {formatMessage({ id: capital.bodyId, defaultMessage: capital.defaultBody })}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </section>
+
+      {/* § 03 — Field guide */}
+      <section
+        ref={guideRef}
+        data-revealed={guideRevealed}
+        className="editorial-section-reveal bg-bg-weak-50 px-6 pt-12 pb-16 sm:px-10 md:pt-16 md:pb-20"
+        aria-labelledby="public-actions-grid-title"
+      >
+        <div className="editorial-cascade mx-auto max-w-7xl">
+          <header className="border-b border-stroke-soft-200 pb-6">
+            <EditorialKicker className="mb-3">
+              {formatMessage({
+                id: "public.actions.fieldGuide.kicker",
+                defaultMessage: "§ 03 — Field guide",
               })}
             </EditorialKicker>
             <EditorialHeading id="public-actions-grid-title">

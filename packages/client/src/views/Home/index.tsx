@@ -20,6 +20,7 @@ import { useIntl } from "react-intl";
 import { Outlet, useLocation, useMatch } from "react-router-dom";
 
 import { PullToRefresh } from "@/components/Inputs";
+import { APP_ROUTES } from "@/config/pwa-routing";
 import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
 import { type GardenFiltersState, GardensFilterDrawer } from "./GardenFilters";
 import { GardenList } from "./GardenList";
@@ -88,14 +89,14 @@ const Home: React.FC = () => {
 
   // Reset loading state when navigating back to home
   useEffect(() => {
-    if (location.pathname === "/home") {
+    if (location.pathname === APP_ROUTES.home) {
       resetLoadingState();
     }
   }, [location.pathname, resetLoadingState]);
 
   // Close filter drawer when navigating away
   useEffect(() => {
-    if (location.pathname !== "/home") {
+    if (location.pathname !== APP_ROUTES.home) {
       closeGardenFilter();
     }
   }, [location.pathname, closeGardenFilter]);
@@ -103,7 +104,7 @@ const Home: React.FC = () => {
   // Show welcome message once for new users - points them to profile for garden discovery
   useEffect(() => {
     if (!isAuthenticated || hasShownWelcomeRef.current) return;
-    if (location.pathname !== "/home") return;
+    if (location.pathname !== APP_ROUTES.home) return;
 
     // Check localStorage - only show once per device
     const hasBeenShown = localStorage.getItem(WELCOME_SHOWN_KEY) === "true";
@@ -133,7 +134,7 @@ const Home: React.FC = () => {
             id: "app.home.welcome.action",
             defaultMessage: "Go to Profile",
           }),
-          onClick: () => navigate("/profile"),
+          onClick: () => navigate(APP_ROUTES.profile),
           dismissOnClick: true,
         },
         suppressLogging: true,
@@ -176,7 +177,7 @@ const Home: React.FC = () => {
 
   return (
     <article ref={articleRef} className="mb-6">
-      {location.pathname === "/home" && (
+      {location.pathname === APP_ROUTES.home && (
         <PullToRefresh
           onRefresh={handlePullToRefresh}
           isRefreshing={isFetching && !isPending}

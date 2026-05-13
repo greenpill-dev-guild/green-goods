@@ -11,6 +11,7 @@ import {
 import { RiLoader4Line } from "@remixicon/react";
 import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
+import { AdminButton } from "../AdminButton";
 
 const DOMAINS = [
   {
@@ -155,23 +156,24 @@ export function GardenDomainModal({ isOpen, onClose, gardenAddress }: GardenDoma
       </div>
 
       <div className="flex gap-3 border-t border-stroke-soft p-4">
-        <button
+        <AdminButton
           type="button"
           disabled={isPending}
           onClick={handleCancel}
-          className="flex-1 rounded-lg bg-bg-weak px-4 py-3 text-sm font-medium text-text-strong transition hover:bg-bg-soft disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2"
+          variant="tonal"
+          className="flex-1"
         >
           {formatMessage({ id: "app.common.cancel" })}
-        </button>
-        <button
+        </AdminButton>
+        <AdminButton
           type="button"
           onClick={handleSave}
           disabled={isPending || !hasChanges || selected.length === 0}
-          className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-[rgb(var(--tone-action,var(--primary-action)))] px-4 py-3 text-sm font-medium text-[rgb(var(--tone-on-action,var(--primary-action-foreground)))] transition hover:bg-[rgb(var(--tone-action-hover,var(--primary-action-hover)))] disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-action,var(--primary-action)))] focus-visible:ring-offset-2"
+          loading={isPending}
+          className="flex-1"
         >
-          {isPending && <RiLoader4Line className="h-4 w-4 animate-spin" />}
           {formatMessage({ id: "app.garden.domains.save", defaultMessage: "Save domains" })}
-        </button>
+        </AdminButton>
       </div>
     </DialogShell>
   );

@@ -1,6 +1,6 @@
 {
   "installCommand": "bun install --frozen-lockfile",
-  "buildCommand": "bun run build:deploy",
+  "buildCommand": "bun run build",
   "outputDirectory": "dist",
   "framework": "vite",
   "headers": [
@@ -10,6 +10,10 @@
         {
           "key": "Cache-Control",
           "value": "no-cache, no-store, must-revalidate"
+        },
+        {
+          "key": "Clear-Site-Data",
+          "value": "\"cache\""
         }
       ]
     },
@@ -41,6 +45,105 @@
       ]
     },
     {
+      "source": "/login",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/home",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/home/:path*",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/home/login",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/home/garden",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/home/profile",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/login/:path*",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/garden",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/garden/:path*",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/profile",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/profile/:path*",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
+    },
+    {
       "source": "/assets/:path*",
       "headers": [
         {
@@ -51,6 +154,30 @@
     }
   ],
   "rewrites": [
+    {
+      "source": "/fund",
+      "destination": "/fund/index.html"
+    },
+    {
+      "source": "/impact",
+      "destination": "/impact/index.html"
+    },
+    {
+      "source": "/actions",
+      "destination": "/actions/index.html"
+    },
+    {
+      "source": "/gardens",
+      "destination": "/gardens/index.html"
+    },
+    {
+      "source": "/gardens/:path*",
+      "destination": "/gardens/index.html"
+    },
+    {
+      "source": "/cookies",
+      "destination": "/cookies/index.html"
+    },
     {
       "source": "/(.*)",
       "destination": "/index.html"

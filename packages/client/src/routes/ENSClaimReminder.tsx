@@ -10,6 +10,7 @@ import { useEffect, useRef } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { isAddress } from "viem";
+import { APP_ROUTES } from "@/config/pwa-routing";
 
 const ENS_CLAIM_REMINDER_KEY_PREFIX = "greengoods_ens_claim_reminder_shown";
 
@@ -71,7 +72,7 @@ export function ENSClaimReminder() {
             id: "app.toast.ensClaimReminder.action",
             defaultMessage: "Claim username",
           }),
-          onClick: () => navigate("/profile"),
+          onClick: () => navigate(APP_ROUTES.profile),
           dismissOnClick: true,
         },
         suppressLogging: true,

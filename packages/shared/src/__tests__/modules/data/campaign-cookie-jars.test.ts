@@ -63,6 +63,9 @@ function campaignMetadata(slug: string, title: string) {
     version: 1,
     slug,
     title,
+    description: `${title} public campaign details`,
+    image: `https://cdn.greengoods.app/campaigns/${slug}.webp`,
+    externalUrl: `https://greengoods.app/cookies?campaign=${slug}`,
     sourceGardens: [],
     operatorPolicy: "one-operator-per-garden",
     extraAllowlist: [],
@@ -158,6 +161,11 @@ describe("modules/data/campaign-cookie-jars", () => {
     const campaigns = await getCampaignCookieJarCampaigns(11155111);
 
     expect(campaigns.map((campaign) => campaign.jarAddress)).toEqual([TRUSTED_JAR]);
+    expect(campaigns[0]?.metadata).toMatchObject({
+      description: "Earth Week Cookie Jar public campaign details",
+      image: "https://cdn.greengoods.app/campaigns/earth-week.webp",
+      externalUrl: "https://greengoods.app/cookies?campaign=earth-week",
+    });
     expect(mockIndexerQuery).toHaveBeenCalledWith(
       expect.stringContaining("creator: { _in: $creators }"),
       {

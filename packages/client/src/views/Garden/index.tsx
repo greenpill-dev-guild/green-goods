@@ -4,6 +4,7 @@ import {
   findActionByUID,
   type Garden,
   logger,
+  mediaResourceManager,
   toastService,
   track,
   useActionTranslation,
@@ -37,6 +38,7 @@ import { FormProgress } from "@/components/Communication";
 import { DraftDialog } from "@/components/Dialogs";
 import { WorkViewSkeleton } from "@/components/Features/Work";
 import { TopNav } from "@/components/Navigation";
+import { APP_ROUTES } from "@/config/pwa-routing";
 import { WorkDetails } from "./Details";
 import { WorkIntro } from "./Intro";
 import { WorkMedia } from "./Media";
@@ -104,6 +106,10 @@ const Work: React.FC = () => {
     setActiveTab,
     selectedDomain,
     setSelectedDomain,
+    actionUID,
+    setActionUID,
+    gardenAddress,
+    setGardenAddress,
   } = useWorkSelection();
   const form = useWorkFormContext();
   const { workMutation } = form;
@@ -143,10 +149,6 @@ const Work: React.FC = () => {
     state,
     images,
     setImages,
-    actionUID,
-    setActionUID,
-    gardenAddress,
-    setGardenAddress,
     register,
     control,
     setValue,
@@ -189,6 +191,26 @@ const Work: React.FC = () => {
     }
   }, [location.state, gardens.length, setGardenAddressStable]);
 
+  // Blob-URL cleanup for the entire Work flow.
+  //
+  // Cleanup MUST live at this level, not inside WorkMedia. When the user
+  // navigates Media → Review, Media unmounts in the same commit that mounts
+  // Review. Review's useMemo runs during render and hands back the cached
+  // blob URL; React then mutates the DOM (Review's <img src=cachedUrl>);
+  // then passive effects fire and Media's old cleanup would revoke that
+  // same URL, breaking the in-flight blob fetch and producing the
+  // "image disappears on Review" regression — most visibly on gallery
+  // uploads, where the larger payload loses the race that camera captures
+  // sometimes win. Letting cleanup follow the parent Work component means
+  // blob URLs stay valid for the lifetime of the submission flow and are
+  // only revoked when the user truly exits.
+  useEffect(() => {
+    return () => {
+      mediaResourceManager.cleanupUrls("work-draft");
+      mediaResourceManager.cleanupUrls("work-draft-video");
+    };
+  }, []);
+
   const handleStartFresh = async () => {
     await clearDraft();
     useWorkFlowStore.getState().reset();
@@ -205,7 +227,7 @@ const Work: React.FC = () => {
     });
 
     const cancelNavigation = scheduleNavigation(() => {
-      navigate("/home", { replace: true, viewTransition: true });
+      navigate(APP_ROUTES.home, { replace: true, viewTransition: true });
       requestAnimationFrame(() => {
         useWorkFlowStore.getState().reset();
         form.reset();
@@ -427,7 +449,7 @@ const Work: React.FC = () => {
             id: "app.profile",
             defaultMessage: "Profile",
           }),
-          onClick: () => navigate("/profile"),
+          onClick: () => navigate(APP_ROUTES.profile),
           dismissOnClick: true,
         },
       });
@@ -442,7 +464,7 @@ const Work: React.FC = () => {
   // Handle exit from garden flow - save draft if there's meaningful progress
   const handleExitFlow = async () => {
     await saveOnExit();
-    navigate("/home", { viewTransition: true });
+    navigate(APP_ROUTES.home, { viewTransition: true });
   };
 
   // Tab configuration
@@ -475,7 +497,7 @@ const Work: React.FC = () => {
               }
             }}
             label=""
-            className="w-10 px-0 shrink-0"
+            className="min-w-11 w-11 px-0 shrink-0"
             variant="neutral"
             type="button"
             shape="regular"
@@ -491,7 +513,7 @@ const Work: React.FC = () => {
               }
             }}
             label=""
-            className="w-10 px-0 shrink-0"
+            className="min-w-11 w-11 px-0 shrink-0"
             variant="neutral"
             type="button"
             shape="regular"
@@ -501,7 +523,7 @@ const Work: React.FC = () => {
           <Button
             onClick={toggleAudioRecording}
             label=""
-            className="w-10 px-0 shrink-0"
+            className="min-w-11 w-11 px-0 shrink-0"
             variant={isRecording ? "error" : "neutral"}
             type="button"
             shape="regular"

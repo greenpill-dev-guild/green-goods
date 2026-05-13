@@ -1,5 +1,5 @@
-import { Button } from "@green-goods/shared";
 import { useIntl } from "react-intl";
+import { AdminButton } from "@/components/AdminButton";
 import { SeedlingIllustration } from "./SeedlingIllustration";
 
 interface CanvasGardenAccessStateProps {
@@ -36,12 +36,12 @@ export function CanvasGardenAccessState({
         })}
       </p>
       {canCreateGarden && (
-        <Button className="mt-6" onClick={onCreateGarden}>
+        <AdminButton className="mt-6" onClick={onCreateGarden}>
           {formatMessage({
             id: "cockpit.workspace.createGarden",
             defaultMessage: "Create Garden",
           })}
-        </Button>
+        </AdminButton>
       )}
     </section>
   );

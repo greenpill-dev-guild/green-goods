@@ -7,6 +7,7 @@ import {
   EditorialLede,
   EditorialLinkArrow,
   EditorialNumeral,
+  EditorialReadDeeper,
 } from "./atoms";
 
 /**
@@ -26,7 +27,7 @@ export function PublicFundingBridge() {
       aria-labelledby="public-funding-bridge-title"
     >
       <div className="mx-auto max-w-7xl">
-        <div className="grid gap-12 lg:grid-cols-[1fr_1.45fr] lg:gap-24">
+        <div className="editorial-cascade grid gap-12 lg:grid-cols-[1fr_1.45fr] lg:gap-24">
           <div>
             <EditorialKicker className="mb-5">
               {formatMessage({
@@ -115,6 +116,20 @@ export function PublicFundingBridge() {
             </div>
           </div>
         </div>
+
+        <EditorialReadDeeper
+          className="max-w-3xl"
+          community={{
+            labelId: "public.home.funding.readDeeper.community",
+            defaultLabel: "How funding flows",
+            href: "https://docs.greengoods.app/community/funder-guide",
+          }}
+          builder={{
+            labelId: "public.home.funding.readDeeper.builder",
+            defaultLabel: "Build with our funding contracts",
+            href: "https://docs.greengoods.app/builders/architecture",
+          }}
+        />
       </div>
     </section>
   );

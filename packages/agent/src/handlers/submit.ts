@@ -1,4 +1,5 @@
 import { parseWorkText } from "../services/ai";
+import { agentMessage } from "../i18n";
 import * as db from "../services/db";
 import { classifyError } from "../services/errors";
 import { loggers } from "../services/logger";
@@ -19,6 +20,7 @@ import {
 } from "./idempotency";
 
 const log = loggers.handlers;
+const PROTOCOL_WORK_TITLE = "Submission";
 
 export interface SubmitDeps {
   generateId: () => string;
@@ -31,7 +33,7 @@ export async function handleTextSubmission(
   _deps: SubmitDeps
 ): Promise<HandlerResult> {
   if (!canSubmitWork(user)) {
-    return gardenerOnlyResponse();
+    return gardenerOnlyResponse(message.locale);
   }
 
   const { content } = message;
@@ -42,17 +44,12 @@ export async function handleTextSubmission(
   if (workData.tasks.length === 0) {
     return {
       response: {
-        text:
-          "🤔 I couldn't identify any work tasks from your message.\n\n" +
-          "Try something like:\n" +
-          '• "I planted 5 trees today"\n' +
-          '• "Removed 10kg of weeds"\n' +
-          '• "Planted 20 tomato seedlings"',
+        text: agentMessage(message.locale, "submit.noTasks"),
       },
     };
   }
 
-  return showConfirmation(workData);
+  return showConfirmation(workData, message.locale);
 }
 
 export async function handleVoiceSubmission(
@@ -62,7 +59,7 @@ export async function handleVoiceSubmission(
   _deps: SubmitDeps
 ): Promise<HandlerResult> {
   if (!canSubmitWork(user)) {
-    return gardenerOnlyResponse();
+    return gardenerOnlyResponse(message.locale);
   }
 
   const workData = parseWorkText(transcribedText, message.locale);
@@ -70,20 +67,15 @@ export async function handleVoiceSubmission(
   if (workData.tasks.length === 0) {
     return {
       response: {
-        text:
-          `📝 I heard: "${transcribedText}"\n\n` +
-          "🤔 I couldn't identify any work tasks from your message.\n\n" +
-          "Try saying something like:\n" +
-          '• "I planted 5 trees today"\n' +
-          '• "Removed 10kg of weeds"',
+        text: agentMessage(message.locale, "submit.voiceNoTasks", { transcribedText }),
       },
     };
   }
 
-  return showConfirmation(workData);
+  return showConfirmation(workData, message.locale);
 }
 
-function showConfirmation(workData: ParsedWorkData): HandlerResult {
+function showConfirmation(workData: ParsedWorkData, locale?: string): HandlerResult {
   const tasksSummary = workData.tasks
     .map((t) => {
       if (t.count) return `• ${t.type}: ${t.count} ${t.species}`;
@@ -94,15 +86,15 @@ function showConfirmation(workData: ParsedWorkData): HandlerResult {
 
   return {
     response: {
-      text:
-        `📋 *Confirm your submission:*\n\n` +
-        `*Tasks:*\n${tasksSummary}\n\n` +
-        `*Notes:* ${workData.notes}\n` +
-        `*Date:* ${workData.date}`,
+      text: agentMessage(locale, "submit.confirm", {
+        tasks: tasksSummary,
+        notes: workData.notes,
+        date: workData.date,
+      }),
       parseMode: "markdown",
       buttons: [
-        { label: "✅ Submit", callbackData: "confirm_submission" },
-        { label: "❌ Cancel", callbackData: "cancel_submission" },
+        { label: agentMessage(locale, "submit.submitButton"), callbackData: "confirm_submission" },
+        { label: agentMessage(locale, "submit.cancelButton"), callbackData: "cancel_submission" },
       ],
     },
     updateSession: {
@@ -123,7 +115,7 @@ export async function handleConfirmSubmission(
   const { generateId, notifyOperator } = deps;
 
   if (!canSubmitWork(user)) {
-    return gardenerOnlyResponse();
+    return gardenerOnlyResponse(message.locale);
   }
 
   const idempotencyResponse = await getExistingIdempotencyResponse(
@@ -141,7 +133,7 @@ export async function handleConfirmSubmission(
   if (!session.draft || !user.currentGarden) {
     return {
       response: {
-        text: "Session expired or invalid. Please submit your work again.",
+        text: agentMessage(message.locale, "sessionExpired.submitInvalid"),
       },
       clearSession: true,
     };
@@ -153,14 +145,14 @@ export async function handleConfirmSubmission(
     const claimed = await claimMessageIdempotency("submit-confirm", message);
     if (!claimed) {
       return {
-        response: idempotencyInProgressResponse("submission"),
+        response: idempotencyInProgressResponse("submission", message.locale),
         clearSession: true,
       };
     }
 
     const draft: WorkDraftData = {
       actionUID: 0,
-      title: "Submission",
+      title: PROTOCOL_WORK_TITLE,
       plantSelection: workData.tasks.filter((t) => t.species).map((t) => t.species),
       plantCount: workData.tasks.reduce((acc, t) => acc + (t.count || t.amount || 0), 0),
       feedback: workData.notes,
@@ -186,21 +178,18 @@ export async function handleConfirmSubmission(
       if (operator) {
         await notifyOperator(
           operator.platformId,
-          `🔔 *New Work Submission*\n\n` +
-            `From: \`${user.address.slice(0, 6)}...${user.address.slice(-4)}\`\n` +
-            `ID: \`${pendingId}\`\n\n` +
-            `${workData.notes}\n\n` +
-            `Reply with \`/approve ${pendingId}\` to approve.`
+          agentMessage(operator.locale, "notification.newSubmission", {
+            address: `${user.address.slice(0, 6)}...${user.address.slice(-4)}`,
+            workId: pendingId,
+            notes: workData.notes,
+          })
         );
       }
     }
 
     const result = {
       response: {
-        text:
-          `✅ *Work submitted for approval!*\n\n` +
-          `ID: \`${pendingId}\`\n\n` +
-          `An operator will review your submission soon.`,
+        text: agentMessage(message.locale, "submit.success", { workId: pendingId }),
         parseMode: "markdown" as const,
       },
       clearSession: true,
@@ -210,7 +199,7 @@ export async function handleConfirmSubmission(
 
     return result;
   } catch (error) {
-    const { category, userMessage } = classifyError(error);
+    const { category, userMessage } = classifyError(error, message.locale);
     log.error(
       { err: error, category, handler: "submit", externalMessageId: message.id },
       "Submission confirmation error"
@@ -238,7 +227,7 @@ export async function handleCancelSubmission(
 
   return {
     response: {
-      text: "❌ Submission cancelled.",
+      text: agentMessage(message.locale, "submit.cancelled"),
     },
     clearSession: true,
   };
@@ -248,10 +237,10 @@ function canSubmitWork(user: User): boolean {
   return user.role === undefined || user.role === "gardener";
 }
 
-function gardenerOnlyResponse(): HandlerResult {
+function gardenerOnlyResponse(locale?: string): HandlerResult {
   return {
     response: {
-      text: "This action is only available for gardeners.",
+      text: agentMessage(locale, "submit.gardenerOnly"),
     },
   };
 }

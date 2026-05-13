@@ -1,6 +1,6 @@
 {
   "name": "@green-goods/contracts",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "Contracts for Green Goods Protocol",
   "exports": {
@@ -26,6 +26,7 @@
     "build:fresh": "bun run clean:artifacts && forge build",
     "build:core": "forge build --skip test --skip script",
     "test": "FOUNDRY_PROFILE=test forge test --no-match-contract 'E2E' --no-match-path 'test/fork/**'",
+    "test:script": "node ../../scripts/dev/node-cli.js vitest run script/**/*.test.ts",
     "test:fast": "FOUNDRY_PROFILE=test forge test --no-match-contract 'E2E|Fork'",
     "test:lite": "FOUNDRY_PROFILE=test forge test --no-match-path 'test/integration/Garden*|test/unit/GardenAccount*|test/unit/GardenToken*|test/E2E*|test/Fuzz*|test/Gas*|test/Storage*|test/Upgrade*|test/fork/e2e/*|test/fork/eas/*|test/fork/gardens/*'",
     "test:gas": "forge test --gas-report --no-match-contract 'E2E'",
@@ -90,6 +91,10 @@
     "verify:etherscan:sepolia": "bun script/utils/post-deploy-verify.ts --network sepolia --check-etherscan --skip-indexer",
     "verify:etherscan:arbitrum": "bun script/utils/post-deploy-verify.ts --network arbitrum --check-etherscan --skip-indexer",
     "verify:etherscan:celo": "bun script/utils/post-deploy-verify.ts --network celo --check-etherscan --skip-indexer",
+    "marketplace:status": "bun script/marketplace-readiness.ts status",
+    "marketplace:status:arbitrum": "bun script/marketplace-readiness.ts status --network arbitrum",
+    "marketplace:configure:dry:arbitrum": "bun script/marketplace-readiness.ts configure --network arbitrum --dry-run",
+    "marketplace:configure:arbitrum": "bun script/marketplace-readiness.ts configure --network arbitrum --broadcast",
     "migrate:action-instructions:v2": "bun script/migrate-action-instructions-v2.ts",
     "migrate:action-instructions:v2:dry:arbitrum": "bun script/migrate-action-instructions-v2.ts --network arbitrum --dry-run",
     "migrate:action-instructions:v2:preflight:arbitrum": "bun script/migrate-action-instructions-v2.ts --network arbitrum --preflight-only",

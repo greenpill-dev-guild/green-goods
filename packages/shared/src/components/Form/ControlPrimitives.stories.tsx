@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
+import { expect, userEvent, within } from "storybook/test";
 import { withAdminPrimitiveFrame } from "../../../.storybook/decorators";
 import { FormField } from "./FormFieldWrapper";
 import { NativeSelect, Switch, Textarea, TextInput } from "./ControlPrimitives";
@@ -129,3 +130,41 @@ export default meta;
 type Story = StoryObj<typeof ControlPrimitiveCatalog>;
 
 export const StateCatalog: Story = {};
+
+export const FocusedTopInputMobile: Story = {
+  parameters: {
+    viewport: { defaultViewport: "mobile1" },
+  },
+  render: () => (
+    <section className="w-[320px] max-w-full space-y-4 rounded-[var(--m3-shape-md)] border border-[rgb(var(--m3-outline-variant))] p-3">
+      <FormField
+        label="Long campaign amount label that still wraps cleanly"
+        htmlFor="focused-top-input"
+        hint="This field sits at the top of a dense route section."
+      >
+        <TextInput id="focused-top-input" surface="admin" defaultValue="0.25" />
+      </FormField>
+      <FormField
+        label="Manual allowlist review note"
+        htmlFor="focused-top-textarea"
+        error="Enter at least one valid operator address."
+      >
+        <Textarea
+          id="focused-top-textarea"
+          surface="admin"
+          invalid
+          defaultValue="0x0000"
+          rows={3}
+        />
+      </FormField>
+    </section>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const input = await canvas.findByLabelText(
+      "Long campaign amount label that still wraps cleanly"
+    );
+    await userEvent.click(input);
+    await expect(input).toHaveFocus();
+  },
+};

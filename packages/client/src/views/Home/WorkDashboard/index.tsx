@@ -371,7 +371,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
         {/* Header */}
         <div className={pwaDrawerStyles.header}>
           <div className="flex-1 min-w-0">
-            <h2 className="text-lg font-semibold truncate">
+            <h2 className="title-section truncate">
               {intl.formatMessage({
                 id: "app.workDashboard.title",
                 defaultMessage: "Work Dashboard",
@@ -387,7 +387,10 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
           <div className="flex items-center gap-2 ml-4">
             <button
               onClick={handleClose}
-              className={cn("p-2", pwaDrawerStyles.closeButtonBase)}
+              className={cn(
+                "min-h-11 min-w-11 flex items-center justify-center",
+                pwaDrawerStyles.closeButtonBase
+              )}
               data-testid="modal-drawer-close"
               aria-label={intl.formatMessage({
                 id: "app.workDashboard.closeModal",

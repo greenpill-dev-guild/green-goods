@@ -69,8 +69,9 @@ The admin uses the same root `.env` as all other packages:
 | `VITE_CHAIN_ID` | Target chain for deployment artifacts and RPC config |
 | `VITE_WALLETCONNECT_PROJECT_ID` | WalletConnect for wallet connection |
 | `VITE_ENVIO_INDEXER_URL` | Envio GraphQL endpoint for data queries |
+| `VITE_POSTHOG_ADMIN_KEY` | Admin PostHog project token for browser analytics |
 
-Additional admin-specific variables may include API keys for services like Hypercerts marketplace or PostHog analytics.
+Additional admin-specific variables may include API keys for services like Hypercerts marketplace. Vercel must use `VITE_POSTHOG_ADMIN_KEY` for Admin analytics; `VITE_PUBLIC_POSTHOG_KEY` is not read by the app, and Admin intentionally does not fall back to the client `VITE_POSTHOG_KEY`.
 
 ### Testing
 
@@ -133,16 +134,16 @@ This starts the unified Storybook that includes stories from all three UI packag
 
 ### Source Maps
 
-Vercel runs `bun run build:deploy`, which builds `packages/admin/dist/` and then runs `scripts/ops/upload-sourcemaps.js --app admin --deploy` before Vercel publishes the artifact. This keeps PostHog source-map metadata tied to the actual deployed admin bundle.
+Vercel runs `bun run build` only. Source-map generation and PostHog upload run from the GitHub Actions `admin.yml` lane on trusted `main` pushes, where `GG_ENABLE_SOURCEMAPS=true` enables map output for the upload job.
 
-Set these variables in the admin Vercel project:
+Set these variables as GitHub repository secrets:
 
 | Variable | Purpose |
 |----------|---------|
 | `POSTHOG_ADMIN_ENV_ID` | PostHog environment ID for the admin app |
 | `POSTHOG_CLI_TOKEN` | PostHog token with source-map upload permissions |
 
-Production deploys fail closed if the PostHog source-map variables are missing. Preview and staging deploys skip source-map upload when those variables are not configured.
+Production Vercel deploys do not require these variables. The GitHub Actions source-map upload job fails closed if the PostHog source-map variables are missing.
 
 ## Resources
 

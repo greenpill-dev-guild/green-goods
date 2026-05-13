@@ -1,5 +1,4 @@
 import {
-  Button,
   Domain,
   DOMAIN_CONFIG,
   DOMAIN_FILTER_OPTIONS,
@@ -12,38 +11,42 @@ import {
   NativeSelect,
   Surface,
   useActionsController,
+  useMediaQuery,
+  useRefreshAction,
   WorkbenchList,
   WorkbenchRow,
 } from "@green-goods/shared";
 import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
 import { AdminTabRail } from "@/components/AdminTabRail";
+import { AdminViewActions } from "@/components/AdminViewActions";
 import { CanvasRouteContent, CanvasRouteFrame } from "@/components/Layout/CanvasRouteFrame";
 import { PageHeader } from "@/components/Layout/PageHeader";
-import { RiFileListLine, RiRefreshLine } from "@remixicon/react";
+import { RiFileListLine } from "@remixicon/react";
+import { useCallback } from "react";
 import { useIntl } from "react-intl";
 import { ActionsSheetDescriptor } from "./ActionsSheetDescriptor";
 
 const ACTION_DOMAIN_CHIP_CLASSNAMES: Record<Domain, { selected: string; idle: string }> = {
   [Domain.SOLAR]: {
     selected:
-      "border-warning-light bg-warning-lighter text-warning-dark [--state-layer-color:var(--warning-dark)]",
-    idle: "border-warning-light text-warning-dark [--state-layer-color:var(--warning-dark)]",
+      "border-domain-solar/30 bg-domain-solar-soft text-domain-solar [--state-layer-color:var(--domain-solar-rgb)]",
+    idle: "border-domain-solar/30 text-domain-solar [--state-layer-color:var(--domain-solar-rgb)]",
   },
   [Domain.AGRO]: {
     selected:
-      "border-success-light bg-success-lighter text-success-dark [--state-layer-color:var(--success-dark)]",
-    idle: "border-success-light text-success-dark [--state-layer-color:var(--success-dark)]",
+      "border-domain-agro/30 bg-domain-agro-soft text-domain-agro [--state-layer-color:var(--domain-agro-rgb)]",
+    idle: "border-domain-agro/30 text-domain-agro [--state-layer-color:var(--domain-agro-rgb)]",
   },
   [Domain.EDU]: {
     selected:
-      "border-information-light bg-information-lighter text-information-dark [--state-layer-color:var(--information-dark)]",
-    idle: "border-information-light text-information-dark [--state-layer-color:var(--information-dark)]",
+      "border-domain-education/30 bg-domain-education-soft text-domain-education [--state-layer-color:var(--domain-education-rgb)]",
+    idle: "border-domain-education/30 text-domain-education [--state-layer-color:var(--domain-education-rgb)]",
   },
   [Domain.WASTE]: {
     selected:
-      "border-warning-light bg-warning-lighter text-warning-dark [--state-layer-color:var(--warning-dark)]",
-    idle: "border-warning-light text-warning-dark [--state-layer-color:var(--warning-dark)]",
+      "border-domain-waste/30 bg-domain-waste-soft text-domain-waste [--state-layer-color:var(--domain-waste-rgb)]",
+    idle: "border-domain-waste/30 text-domain-waste [--state-layer-color:var(--domain-waste-rgb)]",
   },
 };
 
@@ -55,6 +58,14 @@ function getActionDomainChipClassName(domain: Domain, selected: boolean) {
 export default function Actions() {
   const intl = useIntl();
   const actions = useActionsController();
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
+  const handleRefresh = useCallback(() => {
+    void actions.refetch();
+  }, [actions]);
+  // Mobile/tablet: refresh elevates to the AppBar next to notifications.
+  useRefreshAction(
+    !isDesktop ? { onRefresh: handleRefresh, isFetching: actions.isRefreshing } : null
+  );
 
   return (
     <CanvasRouteFrame data-component="ActionsWorkspace" data-region="workspace-actions">
@@ -64,11 +75,7 @@ export default function Actions() {
         isLoading={actions.isLoading}
         canManageActions={actions.canManageActions}
       />
-      <CanvasRouteContent
-        data-region="workspace-actions-content"
-        maxWidthClassName="max-w-[1400px]"
-        className="flex flex-col gap-4"
-      >
+      <CanvasRouteContent data-region="workspace-actions-content" className="flex flex-col gap-4">
         <PageHeader
           title={intl.formatMessage({ id: "app.admin.nav.actions", defaultMessage: "Actions" })}
           description={intl.formatMessage({
@@ -76,30 +83,12 @@ export default function Actions() {
             defaultMessage:
               "Scan the registry, review lifecycle status, and maintain submission requirements.",
           })}
-          eyebrow={intl.formatMessage({
-            id: "cockpit.actions.eyebrow",
-            defaultMessage: "Catalog",
-          })}
           variant="canvas"
           sticky
           actions={
-            <Button
-              size="sm"
-              variant="secondary"
-              loading={actions.isRefreshing}
-              onClick={() => {
-                void actions.refetch();
-              }}
-              title={intl.formatMessage({
-                id: actions.isRefreshing ? "app.common.refreshing" : "app.common.refresh",
-              })}
-              aria-label={intl.formatMessage({
-                id: actions.isRefreshing ? "app.common.refreshing" : "app.common.refresh",
-              })}
-              className="h-10 min-h-10 w-10 rounded-full p-0"
-            >
-              {!actions.isRefreshing && <RiRefreshLine className="h-4 w-4" />}
-            </Button>
+            isDesktop && actions.desktopActions.length > 0 ? (
+              <AdminViewActions items={actions.desktopActions} />
+            ) : undefined
           }
           toolbar={
             actions.showToolbar ? (

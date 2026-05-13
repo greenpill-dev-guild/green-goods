@@ -297,6 +297,9 @@ describe("campaign cookie jar factory handlers", () => {
       version: 1,
       slug: "earth-week",
       title: "Earth Week Cookie Jar",
+      description: "Garden operator rewards for Earth Week.",
+      image: "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzd",
+      externalUrl: "https://greengoods.app/cookies?campaign=earth-week",
       sourceGardens: [addr(54)],
       operatorPolicy: "one-operator-per-garden",
       extraAllowlist: [addr(55)],
@@ -322,6 +325,9 @@ describe("campaign cookie jar factory handlers", () => {
     assert.equal(jar.creator, creator.toLowerCase());
     assert.equal(jar.slug, "earth-week");
     assert.equal(jar.title, "Earth Week Cookie Jar");
+    assert.equal(jar.description, "Garden operator rewards for Earth Week.");
+    assert.equal(jar.image, "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzd");
+    assert.equal(jar.externalUrl, "https://greengoods.app/cookies?campaign=earth-week");
     assert.equal(jar.isValidCampaign, true);
     assert.equal(jar.rawMetadata, metadata);
     assert.equal(jar.metadataUpdatedAt, 40_000);
@@ -359,6 +365,9 @@ describe("campaign cookie jar factory handlers", () => {
       version: 1,
       slug: "earth-week",
       title: "Earth Week Cookie Jar",
+      description: "Garden operator rewards for Earth Week.",
+      image: "https://cdn.greengoods.app/campaigns/earth-week.webp",
+      externalUrl: "https://greengoods.app/cookies?campaign=earth-week",
       sourceGardens: [addr(54), addr(54)],
       operatorPolicy: "one-operator-per-garden",
       extraAllowlist: [addr(55)],
@@ -381,6 +390,9 @@ describe("campaign cookie jar factory handlers", () => {
     assert.ok(jar);
     assert.equal(jar.slug, "earth-week");
     assert.equal(jar.title, "Earth Week Cookie Jar");
+    assert.equal(jar.description, "Garden operator rewards for Earth Week.");
+    assert.equal(jar.image, "https://cdn.greengoods.app/campaigns/earth-week.webp");
+    assert.equal(jar.externalUrl, "https://greengoods.app/cookies?campaign=earth-week");
     assert.equal(jar.metadataKind, "green-goods.campaign-cookie-jar");
     assert.equal(jar.metadataVersion, 1);
     assert.equal(jar.isValidCampaign, true);

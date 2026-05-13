@@ -19,74 +19,6 @@ const queueDefaults = {
   queueClear: { title: "Queue is clear", message: "No pending jobs to sync." },
 };
 
-export const queueToasts = {
-  /** Show success when job completed */
-  jobCompleted: (kind: "work" | "approval") =>
-    toastService.success({
-      id: `job-processing`,
-      title:
-        kind === "work" ? queueDefaults.workCompleted.title : queueDefaults.approvalCompleted.title,
-      message:
-        kind === "work"
-          ? queueDefaults.workCompleted.message
-          : queueDefaults.approvalCompleted.message,
-      context: kind === "work" ? "work upload" : "approval submission",
-      suppressLogging: true,
-    }),
-
-  /** Show success when queue flush completes */
-  syncSuccess: (processed: number) =>
-    toastService.success({
-      id: "job-queue-flush",
-      title: queueDefaults.syncSuccess.title,
-      message: `Processed ${processed} item${processed === 1 ? "" : "s"}.`,
-      context: "job queue",
-      suppressLogging: true,
-    }),
-
-  /** Show error when sync fails */
-  syncError: () =>
-    toastService.error({
-      id: "job-queue-flush",
-      title: queueDefaults.syncError.title,
-      message: queueDefaults.syncError.message,
-      context: "job queue",
-    }),
-
-  /** Show error when an individual queued job fails */
-  jobFailed: (kind: "work" | "approval", detail?: string) =>
-    toastService.error({
-      id: `job-failed-${kind}`,
-      title: queueDefaults.jobFailed.title,
-      message:
-        detail ??
-        (kind === "work"
-          ? queueDefaults.jobFailed.workMessage
-          : queueDefaults.jobFailed.approvalMessage),
-      context: "job queue",
-    }),
-
-  /** Show info when jobs are still queued */
-  stillQueued: (reason: string) =>
-    toastService.info({
-      id: "job-queue-flush",
-      title: queueDefaults.stillQueued.title,
-      message: reason,
-      context: "job queue",
-      suppressLogging: true,
-    }),
-
-  /** Show info when queue is empty */
-  queueClear: () =>
-    toastService.info({
-      id: "job-queue-flush",
-      title: queueDefaults.queueClear.title,
-      message: queueDefaults.queueClear.message,
-      context: "job queue",
-      suppressLogging: true,
-    }),
-};
-
 /**
  * Create i18n-aware queue toasts
  * @param formatMessage - react-intl formatMessage function
@@ -157,7 +89,10 @@ export function createQueueToasts(formatMessage: FormatMessageFn) {
 
     jobFailed: (kind: "work" | "approval", detail?: string) =>
       toastService.error({
-        id: `job-failed-${kind}`,
+        // Share the id with the owning mutation's loading toast so the inline-process
+        // path collapses to a single slot. In the background-flush path no mutation
+        // is active, so this toast still renders alone.
+        id: kind === "work" ? "work-upload" : "approval-submit",
         title: formatMessage({
           id: toastMessageIds.queue.jobFailed.title,
           defaultMessage: queueDefaults.jobFailed.title,
@@ -205,3 +140,65 @@ export function createQueueToasts(formatMessage: FormatMessageFn) {
       }),
   };
 }
+
+export const queueToasts = {
+  jobCompleted: (kind: "work" | "approval") =>
+    toastService.success({
+      id: `job-processing`,
+      title:
+        kind === "work" ? queueDefaults.workCompleted.title : queueDefaults.approvalCompleted.title,
+      message:
+        kind === "work"
+          ? queueDefaults.workCompleted.message
+          : queueDefaults.approvalCompleted.message,
+      context: kind === "work" ? "work upload" : "approval submission",
+      suppressLogging: true,
+    }),
+
+  syncSuccess: (processed: number) =>
+    toastService.success({
+      id: "job-queue-flush",
+      title: queueDefaults.syncSuccess.title,
+      message: `Processed ${processed} item${processed === 1 ? "" : "s"}.`,
+      context: "job queue",
+      suppressLogging: true,
+    }),
+
+  syncError: () =>
+    toastService.error({
+      id: "job-queue-flush",
+      title: queueDefaults.syncError.title,
+      message: queueDefaults.syncError.message,
+      context: "job queue",
+    }),
+
+  jobFailed: (kind: "work" | "approval", detail?: string) =>
+    toastService.error({
+      id: kind === "work" ? "work-upload" : "approval-submit",
+      title: queueDefaults.jobFailed.title,
+      message:
+        detail ??
+        (kind === "work"
+          ? queueDefaults.jobFailed.workMessage
+          : queueDefaults.jobFailed.approvalMessage),
+      context: "job queue",
+    }),
+
+  stillQueued: (reason: string) =>
+    toastService.info({
+      id: "job-queue-flush",
+      title: queueDefaults.stillQueued.title,
+      message: reason,
+      context: "job queue",
+      suppressLogging: true,
+    }),
+
+  queueClear: () =>
+    toastService.info({
+      id: "job-queue-flush",
+      title: queueDefaults.queueClear.title,
+      message: queueDefaults.queueClear.message,
+      context: "job queue",
+      suppressLogging: true,
+    }),
+};

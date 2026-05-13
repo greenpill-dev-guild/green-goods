@@ -16,7 +16,7 @@ import { type Address, encodeFunctionData, type Hex } from "viem";
 
 import { createPublicClientForChain } from "../../config";
 import { TRANSFER_MANAGER_ABI } from "../../utils/blockchain/hypercert-abis";
-import { getNetworkContracts } from "../../utils/blockchain/contracts";
+import { assertMarketplaceReady } from "../../utils/blockchain/contracts";
 import { createLogger } from "../app/logger";
 
 const log = createLogger({ source: "marketplace/approvals" });
@@ -75,12 +75,12 @@ export async function checkMarketplaceApprovals(
   operator: Address,
   chainId: number
 ): Promise<MarketplaceApprovals> {
-  const contracts = getNetworkContracts(chainId);
+  const readiness = assertMarketplaceReady(chainId);
   const publicClient = createPublicClientForChain(chainId);
 
-  const exchangeAddress = contracts.hypercertExchange;
-  const transferManagerAddress = contracts.transferManager;
-  const minterAddress = contracts.hypercertMinter;
+  const exchangeAddress = readiness.addresses.hypercertExchange;
+  const transferManagerAddress = readiness.addresses.transferManager;
+  const minterAddress = readiness.addresses.hypercertMinter;
 
   log.debug("Checking marketplace approvals", {
     operator,
@@ -139,10 +139,10 @@ export async function buildApprovalTransactions(
 }> {
   const { exchangeApproved, minterApproved } = await checkMarketplaceApprovals(operator, chainId);
 
-  const contracts = getNetworkContracts(chainId);
-  const exchangeAddress = contracts.hypercertExchange;
-  const transferManagerAddress = contracts.transferManager;
-  const minterAddress = contracts.hypercertMinter;
+  const readiness = assertMarketplaceReady(chainId);
+  const exchangeAddress = readiness.addresses.hypercertExchange;
+  const transferManagerAddress = readiness.addresses.transferManager;
+  const minterAddress = readiness.addresses.hypercertMinter;
 
   const result: {
     grantExchange?: EncodedApprovalCall;

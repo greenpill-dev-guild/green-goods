@@ -33,27 +33,34 @@ export interface ConvictionDerivationInput {
 }
 
 const PERCENT_BASIS = 10_000n;
-// TODO: source from chain-config; Arbitrum has ~0.25s block time but conviction
-// pools usually quote in days. Using the conservative ~12s "EVM standard" until
-// verified.
+// Cleanup B3 (deferred): Arbitrum block time is ~0.25s, so 7_200 blocks/day is
+// off by ~48× on the deployment chain. Switch to a chain-aware constant when
+// the active chain id is plumbed through the conviction adapter. The
+// "EVM standard" 12s value is preserved here so the existing accrual numbers
+// don't shift unexpectedly until the swap is intentional.
 const BLOCKS_PER_DAY = 7_200n;
-// TODO: pull from contract; the prototype's UI Review § 03 uses ~75% as the
-// canonical illustrative threshold.
+// Cleanup B3 (deferred): the live HypercertSignalPool ABI exposes neither
+// `threshold()` nor `minThresholdPoints()`. The vendor CVStrategy contract
+// computes threshold from minThresholdPoints + maxRatio + decay; either
+// extend HYPERCERT_SIGNAL_POOL_ABI to surface those reads or port the formula
+// once the vendor source is consumed inside the repo. Until then the UI
+// renders a fixed 75% so it can ship without silently regressing. See B3 in
+// .plans/active/admin-design-revamp/handoffs/claude-cleanup.md.
 const DEFAULT_THRESHOLD_PERCENT = 75;
 
 /**
  * Derive the conviction threshold for a hypercert as a 0–100 percent.
  * The threshold represents the conviction level at which the proposal passes.
  *
- * Approximation: a fixed 75% of theoretical maximum until the contract math
- * is reverse-engineered. The function takes weight + pool config so a future
- * refactor can switch to a per-hypercert formula without breaking callers.
+ * Approximation: fixed DEFAULT_THRESHOLD_PERCENT until the vendor CVStrategy
+ * formula or new ABI getters land (see B3 note on the constant). Function
+ * signature accepts weight + pool config so a future per-hypercert formula
+ * can drop in without changing call sites.
  */
 export function deriveThreshold(
   _poolConfig: ConvictionPoolConfig,
   _weight: ConvictionWeight
 ): number {
-  // TODO: replace with HypercertSignalPool's actual threshold formula.
   return DEFAULT_THRESHOLD_PERCENT;
 }
 

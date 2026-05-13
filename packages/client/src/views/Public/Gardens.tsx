@@ -1,4 +1,4 @@
-import { type PublicGardenSummary, usePublicGardens } from "@green-goods/shared";
+import { type PublicGardenSummary, useInViewReveal, usePublicGardens } from "@green-goods/shared";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Outlet, useMatch } from "react-router-dom";
@@ -27,6 +27,7 @@ export default function GardensGallery() {
   const { data: gardens = [], isLoading } = usePublicGardens();
   const [query, setQuery] = useState("");
   const dialogRouteActive = Boolean(useMatch("/gardens/:id"));
+  const { ref: archiveRef, revealed: archiveRevealed } = useInViewReveal<HTMLElement>();
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -67,11 +68,13 @@ export default function GardensGallery() {
 
       <section
         id="archive"
-        className="bg-bg-weak-50 px-6 pt-32 pb-16 sm:px-10 sm:pt-36 md:pt-40 md:pb-20"
+        ref={archiveRef}
+        data-revealed={archiveRevealed}
+        className="editorial-section-reveal bg-bg-weak-50 px-6 pt-32 pb-16 sm:px-10 sm:pt-36 md:pt-40 md:pb-20"
         aria-labelledby="public-gardens-archive-title"
       >
         <div className="mx-auto max-w-7xl">
-          <header className="flex flex-col gap-6 border-b border-stroke-soft-200 pb-6 sm:flex-row sm:items-end sm:justify-between sm:gap-8">
+          <header className="editorial-cascade flex flex-col gap-6 border-b border-stroke-soft-200 pb-6 sm:flex-row sm:items-end sm:justify-between sm:gap-8">
             <div>
               <EditorialKicker className="mb-3">
                 {formatMessage({ id: "public.gardens.kicker", defaultMessage: "Living Archive" })}
@@ -98,7 +101,7 @@ export default function GardensGallery() {
                   id: "public.gardens.searchPlaceholder",
                   defaultMessage: "Search Gardens…",
                 })}
-                className="w-full border-b border-stroke-soft-200 bg-transparent px-1 pb-2 font-serif text-lg text-text-strong-950 placeholder-text-soft-400 focus:border-primary-action focus:outline-none"
+                className="w-full border-b border-stroke-soft-200 bg-transparent px-1 pb-2 font-serif text-lg text-text-strong-950 placeholder-text-soft-400 transition-colors duration-[var(--spring-effects-duration)] ease-[var(--spring-effects-easing)] focus:border-primary-action focus:outline-none"
               />
             </label>
           </header>

@@ -5,9 +5,11 @@
 **Outcome Milestone**: [Outcome: Badges live across 3+ pilot gardens](https://github.com/greenpill-dev-guild/green-goods/milestone/16) (#16)
 **Spec**: [spec.md](./spec.md)
 **Groundwork Issue**: [#457 — feat(greenwill): async badge issuer service](https://github.com/greenpill-dev-guild/green-goods/issues/457)
+**Linear Issue**: `PRD-455`
+**Linear Source**: `source:plans`
 **Status**: `BACKLOG`
 **Created**: `2026-04-17`
-**Last Updated**: `2026-04-27`
+**Last Updated**: `2026-05-10`
 **Hard Deadline**: Lock + schema deploy **2026-04-25**; pilot rollout **2026-06-30**
 **Branch Strategy**: `feature/reputation-badging` with phase commits for independent rollback
 
@@ -16,6 +18,8 @@
 > 2026-04-25 cleanup note, updated after deployment-readiness review: this backlog hub owns the later portable badge expansion and shared `GreenGoodsBadge` EAS schema. The initial GreenWill launch is only Genesis, First Work, and First Support, and does not require this schema.
 
 > 2026-04-27 scope update: moved to backlog. The April 28 presentation/release scope is only the existing three initial GreenWill badges (`genesis`, `first-work`, `first-support`). This hub is the later six-badge portable reputation expansion and should not block the current closeout.
+
+> 2026-05-10 Linear sync update: `PRD-455` is the current `source:plans` mirror for this later six-badge portable expansion. The old `PRD-292` epic is completed GitHub-migration context, not the active plan mirror.
 
 ## Decision Log
 

@@ -25,7 +25,7 @@ test.use({
 test.describe("#468 C — iPhone 16 Pro bottom gap", () => {
   test("measure layout box vs viewport on login page (public route)", async ({ page }) => {
     // The gap is a LAYOUT problem — any fixed-bottom element on iOS PWA
-    // would show it. No auth needed; we can measure on /login too.
+    // would show it. No auth needed; we can measure on /home/login too.
 
     // Force display-mode: standalone BEFORE the app mounts
     await page.addInitScript(() => {
@@ -49,7 +49,7 @@ test.describe("#468 C — iPhone 16 Pro bottom gap", () => {
       };
     });
 
-    await page.goto("/login", { waitUntil: "domcontentloaded" });
+    await page.goto("/home/login?presentation=pwa", { waitUntil: "domcontentloaded" });
     await page.waitForTimeout(1500);
 
     const layout = await page.evaluate(() => {

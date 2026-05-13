@@ -4,10 +4,7 @@ export {
   type PublicEvidenceDialogProps,
 } from "./PublicEvidenceDialog";
 export { PublicFeaturedGardens } from "./PublicFeaturedGardens";
-export {
-  PublicFundingMethodSelector,
-  type PublicFundingMethodSelectorProps,
-} from "./PublicFundingMethodSelector";
+export { PublicFundingCard } from "./PublicFundingCard";
 export {
   PublicFundingReceipt,
   type PublicFundingReceiptProps,

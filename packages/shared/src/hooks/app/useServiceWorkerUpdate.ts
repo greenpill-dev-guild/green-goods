@@ -29,6 +29,15 @@ export interface ServiceWorkerUpdateState {
 const WAITING_WORKER_TIMEOUT_MS = 10_000;
 
 /**
+ * Minimum gap between automatic update checks triggered by `focus` /
+ * `visibilitychange`. Prevents the toast from re-firing every time the user
+ * brings the PWA to the foreground in a high-deploy-cadence environment.
+ * Manual `checkForUpdate()` calls and the initial mount check are not
+ * throttled.
+ */
+const MIN_AUTO_CHECK_INTERVAL_MS = 15 * 60 * 1000;
+
+/**
  * Hook to manage service worker updates with user control.
  *
  * Instead of silently reloading when a new SW is available,
@@ -61,6 +70,9 @@ export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
   const registrationRef = useRef<ServiceWorkerRegistration | null>(null);
   const installingWorkerRef = useRef<ServiceWorker | null>(null);
   const waitingWorkerRef = useRef<ServiceWorker | null>(null);
+  // Timestamp of the last auto-check (focus/visibility-triggered). Used to
+  // throttle network update checks; manual checks bypass this.
+  const lastAutoCheckRef = useRef(0);
 
   // Check if SW is enabled - memoized to avoid recomputation
   const isEnabled = useMemo(() => {
@@ -126,8 +138,15 @@ export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
           registration.removeEventListener("updatefound", handleUpdateFound);
         });
 
-        // Proactively check for updates
-        const checkForUpdates = async () => {
+        // Proactively check for updates. `force` skips the throttle so the
+        // initial-load check always runs; focus/visibility paths respect the
+        // MIN_AUTO_CHECK_INTERVAL_MS gap.
+        const checkForUpdates = async (force = false) => {
+          if (!force) {
+            const elapsed = Date.now() - lastAutoCheckRef.current;
+            if (elapsed < MIN_AUTO_CHECK_INTERVAL_MS) return;
+          }
+          lastAutoCheckRef.current = Date.now();
           try {
             await registration.update();
           } catch {
@@ -135,10 +154,10 @@ export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
           }
         };
 
-        // Check on initial load
-        void checkForUpdates();
+        // Check on initial load (always — no throttle)
+        void checkForUpdates(true);
 
-        // Check when app comes to foreground
+        // Check when app comes to foreground (throttled)
         const handleVisibilityChange = () => {
           if (document.visibilityState === "visible") {
             void checkForUpdates();
@@ -260,6 +279,7 @@ export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
         return true;
       }
 
+      lastAutoCheckRef.current = Date.now();
       await registration.update();
 
       const waiting = await waitForWaitingWorker(registration);

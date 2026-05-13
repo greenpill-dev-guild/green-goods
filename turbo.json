@@ -1,0 +1,77 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "ui": "stream",
+  "globalDependencies": [
+    ".env",
+    ".env.schema",
+    "biome.json",
+    "tsconfig.base.json",
+    "tsconfig.json",
+    "package.json",
+    "bun.lock"
+  ],
+  "globalEnv": ["NODE_ENV", "APP_ENV", "CI"],
+  "tasks": {
+    "test": {
+      "outputs": [],
+      "env": ["VITE_*", "RUN_LIVE_RPC_TESTS", "FOUNDRY_PROFILE", "RUN_FORK_TESTS"]
+    },
+    "@green-goods/shared#test": {
+      "outputs": [],
+      "env": ["VITE_*", "RUN_LIVE_RPC_TESTS"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "../contracts/abis/**",
+        "../contracts/deployments/**",
+        "../contracts/.generated/**"
+      ]
+    },
+    "@green-goods/client#test": {
+      "outputs": [],
+      "env": ["VITE_*"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "../shared/src/**",
+        "../shared/package.json",
+        "../contracts/abis/**",
+        "../contracts/deployments/**"
+      ]
+    },
+    "@green-goods/admin#test": {
+      "outputs": [],
+      "env": ["VITE_*"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "../shared/src/**",
+        "../shared/package.json",
+        "../contracts/abis/**",
+        "../contracts/deployments/**"
+      ]
+    },
+    "@green-goods/agent#test": {
+      "outputs": [],
+      "env": ["VITE_*"],
+      "inputs": ["$TURBO_DEFAULT$", "../shared/src/**", "../shared/package.json"]
+    },
+    "@green-goods/indexer#test": {
+      "outputs": [],
+      "inputs": ["$TURBO_DEFAULT$", "../contracts/abis/**"]
+    },
+    "@green-goods/contracts#test": {
+      "outputs": [],
+      "env": ["FOUNDRY_PROFILE", "RUN_FORK_TESTS"]
+    },
+    "lint": {
+      "outputs": []
+    },
+    "typecheck": {
+      "outputs": [],
+      "dependsOn": ["^build"]
+    },
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", "build/**", ".next/**", "abis/**", "deployments/**"],
+      "env": ["VITE_*", "APP_ENV"]
+    }
+  }
+}

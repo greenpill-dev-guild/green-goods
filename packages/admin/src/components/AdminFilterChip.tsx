@@ -72,7 +72,7 @@ export function AdminFilterChip({
               // Unselected: transparent fill with outline
               "border border-[rgb(var(--m3-outline))]",
               "bg-transparent",
-              "text-[rgb(var(--m3-on-surface))]",
+              "text-[rgb(var(--m3-on-surface-variant))]",
               "[--state-layer-color:var(--m3-on-surface-variant)]",
             ],
         className

@@ -37,10 +37,10 @@ describe("hooks/app/useNavigateToTop", () => {
     document.body.appendChild(scrollEl);
 
     act(() => {
-      result.current("/garden");
+      result.current("/home/garden");
     });
 
-    expect(mockNavigate).toHaveBeenCalledWith("/garden", {
+    expect(mockNavigate).toHaveBeenCalledWith("/home/garden", {
       viewTransition: true,
     });
 
@@ -78,13 +78,13 @@ describe("hooks/app/useNavigateToTop", () => {
     const { result } = renderHook(() => useNavigateToTop());
 
     act(() => {
-      result.current("/garden", {
+      result.current("/home/garden", {
         state: { from: "home" },
         replace: true,
       });
     });
 
-    expect(mockNavigate).toHaveBeenCalledWith("/garden", {
+    expect(mockNavigate).toHaveBeenCalledWith("/home/garden", {
       state: { from: "home" },
       replace: true,
       viewTransition: true,

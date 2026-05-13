@@ -75,7 +75,7 @@ export const HomeActive: Story = {
 };
 
 export const HiddenOnGardenRoute: Story = {
-  decorators: [withRouter(["/garden"])],
+  decorators: [withRouter(["/home/garden"])],
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const nav = canvas.getByTestId("authenticated-nav");
@@ -84,7 +84,7 @@ export const HiddenOnGardenRoute: Story = {
 };
 
 export const ProfileActive: Story = {
-  decorators: [withRouter(["/profile"])],
+  decorators: [withRouter(["/home/profile"])],
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     const nav = canvas.getByTestId("authenticated-nav");
@@ -165,7 +165,7 @@ export const StateCatalog: Story = {
 
       <div>
         <p className="text-xs text-text-sub-600 font-medium mb-2 px-4">Garden tab active</p>
-        <MemoryRouter initialEntries={["/garden/list"]}>
+        <MemoryRouter initialEntries={["/home/garden"]}>
           <div className="relative h-[80px] border border-stroke-soft-200 rounded-lg overflow-hidden">
             <AppBar />
           </div>
@@ -174,7 +174,7 @@ export const StateCatalog: Story = {
 
       <div>
         <p className="text-xs text-text-sub-600 font-medium mb-2 px-4">Profile tab active</p>
-        <MemoryRouter initialEntries={["/profile"]}>
+        <MemoryRouter initialEntries={["/home/profile"]}>
           <div className="relative h-[80px] border border-stroke-soft-200 rounded-lg overflow-hidden">
             <AppBar />
           </div>

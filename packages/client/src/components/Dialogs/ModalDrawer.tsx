@@ -113,16 +113,19 @@ export const ModalDrawer: React.FC<ModalDrawerProps> = ({
         {/* Header */}
         <div className={pwaDrawerStyles.header}>
           <div className="flex-1 min-w-0">
-            <h2 className="text-lg font-semibold truncate">{header.title}</h2>
+            <h2 className="title-section truncate">{header.title}</h2>
             {header.description && (
-              <p className="text-sm text-text-sub-600 truncate">{header.description}</p>
+              <p className="body-sm-regular truncate text-text-sub-600">{header.description}</p>
             )}
           </div>
           <div className="flex items-center gap-2 ml-4">
             {header.actions}
             <button
               onClick={handleClose}
-              className={cn("p-2", pwaDrawerStyles.closeButtonBase)}
+              className={cn(
+                "min-h-11 min-w-11 flex items-center justify-center",
+                pwaDrawerStyles.closeButtonBase
+              )}
               data-testid="modal-drawer-close"
               aria-label={formatMessage({ id: "app.common.close" })}
             >

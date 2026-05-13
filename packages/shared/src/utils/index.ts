@@ -49,13 +49,22 @@ export {
   aggregateCampaignCookieJarOperators,
   buildCampaignCookieJarCampaigns,
   buildCampaignCookieJarMetadata,
+  CAMPAIGN_COOKIE_JAR_PAYOUT_ASSET_IDS,
   CAMPAIGN_COOKIE_JAR_METADATA_KIND,
   deriveCampaignCookieJarClaimState,
   diffCampaignCookieJarAllowlist,
+  getCampaignCookieJarPayoutAsset,
+  getCampaignCookieJarPayoutAssets,
+  getDefaultCampaignCookieJarPayoutAsset,
   normalizeCampaignAddress,
+  normalizeCampaignMetadataUrl,
   parseCampaignAddressList,
   parseCampaignCookieJarFallbacks,
   parseCampaignCookieJarMetadata,
+} from "./cookie-jar-campaign";
+export type {
+  CampaignCookieJarPayoutAsset,
+  CampaignCookieJarPayoutAssetId,
 } from "./cookie-jar-campaign";
 export type {
   AdminCommunityRouteContext,
@@ -168,13 +177,18 @@ export {
 // CONTRACTS (ABIs & clients)
 // ============================================================================
 export {
+  assertMarketplaceReady,
   ActionRegistryABI,
   createClients,
+  deriveMarketplaceReadiness,
+  formatMarketplaceReadinessError,
   GardenAccountABI,
   GardenTokenABI,
   GreenGoodsENSABI,
+  getMarketplaceReadiness,
   getNetworkContracts,
   HatsABI,
+  MARKETPLACE_READINESS_REQUIRED_FIELDS,
 } from "./blockchain/contracts";
 export type {
   ResolveEnsAddressOptions,
@@ -226,6 +240,15 @@ export {
   MAX_UINT256,
   validateDecimalInput,
 } from "./blockchain/vaults";
+export {
+  formatUsdCents,
+  formatUsdPrice,
+  getEthUsdFeedAddress,
+  parseUsdToCents,
+  PRICE_FEED_DECIMALS,
+  PRICE_FEED_STALE_THRESHOLD_S,
+  usdCentsToWei,
+} from "./blockchain/price-feeds";
 // ============================================================================
 // COMPRESSION (Native Compression Streams API)
 // ============================================================================
@@ -322,12 +345,6 @@ export {
   isCancelledTxError,
   isMeaningfulTxErrorMessage,
 } from "./errors/tx-error-classifier";
-export {
-  formatJobError,
-  formatUserError,
-  formatWalletError,
-  USER_FRIENDLY_ERRORS,
-} from "./errors/user-messages";
 export { ValidationError } from "./errors/validation-error";
 export {
   formatTimeSpent,

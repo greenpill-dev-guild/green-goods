@@ -41,7 +41,7 @@
       "glass",
       "frosted"
     ],
-    "rationale": "Admin is a restrained operator cockpit. Hero moments are reserved for celebratory client PWA flows. Glass/liquid/frosted treatments are restricted to the admin AppBar only — dense surfaces must be solid. Source: .claude/skills/design/prompt-contract.md § Never Use."
+    "rationale": "Admin is a restrained operator cockpit. Hero moments are reserved for celebratory client PWA flows. Glass/liquid/frosted treatments are restricted to Navigation/FAB and sheet shells; the admin AppBar root stays transparent over the workspace canvas. Dense surfaces must be solid. Source: .claude/skills/design/prompt-contract.md § Never Use."
   },
   "prompt_vocabulary_client_banned": {
     "scope": "AI-prompt vocabulary when generating client PWA screens — NOT a runtime check, documentation only",

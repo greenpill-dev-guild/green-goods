@@ -71,7 +71,7 @@ function badgeDescription(intl: ReturnType<typeof useIntl>, slug: string) {
     case "first-work":
       return intl.formatMessage({
         id: "app.profile.badges.firstWork.description",
-        defaultMessage: "Awarded after your first piece of approved work.",
+        defaultMessage: "Awarded after your first submitted work.",
       });
     case "first-support":
       return intl.formatMessage({
@@ -130,12 +130,21 @@ export const ProfileBadges: React.FC = () => {
     ? formatAddress(primaryAddress, { ensName: preferredEnsName ?? undefined })
     : null;
   const firstWorkUid = works[0]?.id as `0x${string}` | undefined;
-  const firstSupportPosition = deposits[0] ?? null;
+  const firstSupportPosition = deposits.find((deposit) => (deposit.shares ?? 0n) > 0n) ?? null;
 
   const earned = useMemo(() => sortBadges(earnedBadges), [earnedBadges]);
   const available = useMemo(
-    () => sortBadges(badges.filter((badge) => badge.claimableNow)),
-    [badges]
+    () =>
+      sortBadges(
+        badges.filter((badge) => {
+          if (!badge.claimableNow) return false;
+          if (badge.slug === "genesis") return isProtocolMember;
+          if (badge.slug === "first-work") return Boolean(firstWorkUid);
+          if (badge.slug === "first-support") return Boolean(firstSupportPosition);
+          return false;
+        })
+      ),
+    [badges, firstSupportPosition, firstWorkUid, isProtocolMember]
   );
   const displayBadges = useMemo<ProfileBadgeDisplay[]>(
     () => [
@@ -353,7 +362,7 @@ export const ProfileBadges: React.FC = () => {
               key={`${badge.profileStatus}-${badge.badgeId}`}
               type="button"
               onClick={() => setSelectedBadge(badge)}
-              className="flex min-h-[9.75rem] flex-col items-start justify-between rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-3 text-left shadow-xs transition active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+              className="flex min-h-[9.75rem] flex-col items-start justify-between rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-3 text-left shadow-xs transition duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
               aria-label={intl.formatMessage(
                 {
                   id: "app.profile.badges.viewDetails",

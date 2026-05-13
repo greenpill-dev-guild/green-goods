@@ -41,6 +41,7 @@ interface WindowWithExtensions extends Window {
  *
  * Detects:
  * - display-mode: standalone (Chrome, Firefox, Edge PWA)
+ * - display-mode: window-controls-overlay (desktop installed PWA)
  * - display-mode: fullscreen (Fullscreen PWA mode)
  * - navigator.standalone (iOS Safari "Add to Home Screen")
  *
@@ -54,6 +55,7 @@ export function isStandaloneMode(): boolean {
     typeof window.matchMedia === "function" && window.matchMedia(query).matches;
 
   return (
+    matchesDisplayMode("(display-mode: window-controls-overlay)") ||
     matchesDisplayMode("(display-mode: standalone)") ||
     matchesDisplayMode("(display-mode: fullscreen)") ||
     nav.standalone === true

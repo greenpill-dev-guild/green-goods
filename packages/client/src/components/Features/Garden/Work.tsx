@@ -173,7 +173,7 @@ export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(
                 <button
                   onClick={onRefresh}
                   disabled={isFetching}
-                  className="flex items-center gap-2 rounded-[var(--radius-md)] bg-primary-action px-4 py-2 text-sm font-medium text-primary-action-foreground transition-colors hover:bg-primary-action-hover disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex items-center gap-2 rounded-[var(--radius-md)] bg-primary-action px-4 py-2 text-sm font-medium text-primary-action-foreground transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:bg-primary-action-hover disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isFetching ? (
                     <>
@@ -210,7 +210,7 @@ export const GardenWork = forwardRef<HTMLUListElement, GardenWorkProps>(
                 <button
                   onClick={onRefresh}
                   disabled={isFetching}
-                  className="flex items-center gap-1.5 rounded-[var(--radius-md)] border border-stroke-soft-200 px-3 py-1.5 text-xs font-medium text-text-sub-600 transition-colors hover:bg-bg-weak-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex items-center gap-1.5 rounded-[var(--radius-md)] border border-stroke-soft-200 px-3 py-1.5 text-xs font-medium text-text-sub-600 transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:bg-bg-weak-50 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {isFetching ? (
                     <>

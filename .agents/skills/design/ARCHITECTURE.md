@@ -86,7 +86,7 @@ AI design tools should map output to these exports. Full palette lives in the pr
 - M3 wrappers (13): `AdminBadge`, `AdminButton`, `AdminCard`, `AdminCheckbox`, `AdminDialog`, `AdminFab`, `AdminFilterChip`, `AdminLinearProgress`, `AdminListItem`, `AdminSearchToolbar`, `AdminTabRail`, `AdminTextField`, `AdminTooltip`
 
 **Client / shared** (`packages/shared/src/components/`, exported from `@green-goods/shared`):
-- Shell: `SiteHeader` (browser), `AppBar` (installed PWA), `PlatformRouter`
+- Shell: presentation-mode loaders, `PublicShell` (browser), `PwaRuntime` / `AppShell` (installed PWA), `SiteHeader` (browser), `AppBar` (installed PWA)
 - Dialogs: `DialogShell` (default across client + admin)
 - Cards / status: `Card`, `StatCard`, `StatusBadge`, `Alert`
 - Primitives: `Button`, `Skeleton`, `Spinner`, `FileUploadField`, `ListPrimitives`, `Surface`, `SyncStatusBar`, `AddressDisplay`, `DomainBadge`

@@ -146,7 +146,7 @@ vi.mock("@/components/Layout", () => ({
 // Import after mocks
 import { Login } from "../../views/Login";
 
-const renderWithRouter = (initialRoute = "/login") => {
+const renderWithRouter = (initialRoute = "/home/login") => {
   return render(
     createElement(
       IntlProvider,
@@ -160,7 +160,7 @@ const renderWithRouter = (initialRoute = "/login") => {
           createElement(
             Routes,
             null,
-            createElement(Route, { path: "/login/*", element: createElement(Login) }),
+            createElement(Route, { path: "/home/login/*", element: createElement(Login) }),
             createElement(Route, {
               path: "/home",
               element: createElement("div", null, "Home Page"),

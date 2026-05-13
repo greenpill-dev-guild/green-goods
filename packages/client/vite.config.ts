@@ -7,6 +7,8 @@ import { resolve } from "path";
 import { defineConfig, loadEnv, type Plugin } from "vite";
 import mkcert from "vite-plugin-mkcert";
 import { VitePWA, type VitePWAOptions } from "vite-plugin-pwa";
+import { APP_ROUTES, createPwaRoutingConfig } from "./src/config/pwa-routing";
+import { createPublicSocialPreviewPlugin } from "./vite/social-preview";
 
 export default defineConfig(async ({ command, mode }) => {
   const rootDir = resolve(__dirname, "../../");
@@ -52,8 +54,18 @@ export default defineConfig(async ({ command, mode }) => {
 
   // Use relative paths for IPFS builds
   const isIPFSBuild = process.env.VITE_USE_HASH_ROUTER === "true";
-  const appBasePath = isIPFSBuild ? "./" : "/";
-  const shortcutUrl = (path: string) => (isIPFSBuild ? `./#${path}` : path);
+  const pwaRouting = createPwaRoutingConfig(isIPFSBuild);
+  const appVersion =
+    process.env.VITE_APP_VERSION ||
+    process.env.VERCEL_GIT_COMMIT_SHA ||
+    process.env.GITHUB_SHA ||
+    "dev";
+  const shortAppVersion = appVersion.slice(0, 12);
+  const versionedUrl = (url: string) =>
+    shortAppVersion && shortAppVersion !== "dev"
+      ? `${url}${url.includes("?") ? "&" : "?"}gg_v=${encodeURIComponent(shortAppVersion)}`
+      : url;
+  const pwaStartUrl = versionedUrl(pwaRouting.startUrl);
 
   // Skip mkcert in devcontainer, CI, or when SKIP_MKCERT is set
   // SKIP_MKCERT is useful when sudo is broken (e.g., "you do not exist in passwd database")
@@ -61,6 +73,8 @@ export default defineConfig(async ({ command, mode }) => {
   const isCI = process.env.CI === "true";
   const skipMkcert = process.env.SKIP_MKCERT === "true";
   const nodeEnv = command === "build" ? "production" : "development";
+  const enableSourceMaps = process.env.GG_ENABLE_SOURCEMAPS === "true";
+  const isBunRuntime = "bun" in process.versions;
   if (command === "build") {
     process.env.NODE_ENV = "production";
   }
@@ -106,6 +120,7 @@ export default defineConfig(async ({ command, mode }) => {
         plugins: [["babel-plugin-react-compiler", {}]],
       },
     }),
+    createPublicSocialPreviewPlugin(isIPFSBuild),
     VitePWA({
       includeAssets: [
         "favicon.ico",
@@ -127,12 +142,32 @@ export default defineConfig(async ({ command, mode }) => {
         "images/ms-icon-144x144.png",
         "images/ms-icon-310x310.png",
       ],
-      injectRegister: "auto",
+      injectRegister: false,
       registerType: "prompt",
       workbox: {
+        // Workbox's Rollup/Terser pass can exit early under Bun while writing the
+        // generated service worker. Keep the app build in production mode, but
+        // avoid SW minification on Bun so `bun run build` remains deterministic.
+        mode: isBunRuntime ? "development" : nodeEnv,
+        disableDevLogs: true,
         maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
         globPatterns: ["**/*.{html,js,css,ico,png,svg}"],
         cleanupOutdatedCaches: true,
+        clientsClaim: true,
+        skipWaiting: true,
+        // The browser-origin worker is scoped to /home, so the app shell fallback
+        // only owns installed-app routes while public/editorial routes stay in the browser.
+        navigateFallback: "index.html",
+        navigateFallbackDenylist: [
+          /^\/$/,
+          /^\/actions(?:[?#].*)?$/,
+          /^\/cookies(?:[?#].*)?$/,
+          /^\/fund(?:[?#].*)?$/,
+          /^\/gardens(?:\/.*)?(?:[?#].*)?$/,
+          /^\/glossary(?:[?#].*)?$/,
+          /^\/impact(?:[?#].*)?$/,
+        ],
+        sourcemap: false,
         importScripts: ["sw-custom.js"],
         runtimeCaching: [
           {
@@ -216,7 +251,7 @@ export default defineConfig(async ({ command, mode }) => {
         ],
       },
       manifest: {
-        id: appBasePath,
+        id: pwaRouting.manifestId,
         name: "Green Goods",
         short_name: "Green Goods",
         // Window Controls Overlay: Native desktop app feel (removes browser titlebar)
@@ -234,8 +269,8 @@ export default defineConfig(async ({ command, mode }) => {
             purpose: "maskable",
           },
         ],
-        start_url: appBasePath,
-        scope: appBasePath,
+        start_url: pwaStartUrl,
+        scope: pwaRouting.manifestScope,
         display: "standalone",
         orientation: "portrait-primary",
         theme_color: "#fff",
@@ -244,19 +279,19 @@ export default defineConfig(async ({ command, mode }) => {
           {
             name: "Home",
             description: "View Gardens",
-            url: shortcutUrl("/home"),
+            url: pwaRouting.shortcutUrl(APP_ROUTES.home),
             icons: [{ src: "icon-192.png", sizes: "192x192", type: "image/png" }],
           },
           {
             name: "Garden",
             description: "Upload your work",
-            url: shortcutUrl("/garden"),
+            url: pwaRouting.shortcutUrl(APP_ROUTES.garden),
             icons: [{ src: "icon-192.png", sizes: "192x192", type: "image/png" }],
           },
           {
             name: "Profile",
             description: "View your profile",
-            url: shortcutUrl("/profile"),
+            url: pwaRouting.shortcutUrl(APP_ROUTES.profile),
             icons: [{ src: "icon-192.png", sizes: "192x192", type: "image/png" }],
           },
         ],
@@ -268,16 +303,17 @@ export default defineConfig(async ({ command, mode }) => {
 
   return {
     root: __dirname,
-    base: appBasePath,
+    base: pwaRouting.assetBasePath,
     envDir: rootDir,
     envPrefix: ["VITE_", "SKIP_"],
     build: {
-      sourcemap: true,
+      sourcemap: enableSourceMaps,
       chunkSizeWarningLimit: 2000,
     },
     define: {
       "import.meta.env.DEV": JSON.stringify(nodeEnv !== "production"),
       "import.meta.env.PROD": JSON.stringify(nodeEnv === "production"),
+      "import.meta.env.VITE_APP_VERSION": JSON.stringify(shortAppVersion),
       "process.env.NODE_ENV": JSON.stringify(nodeEnv),
     },
     esbuild: {
@@ -329,7 +365,11 @@ export default defineConfig(async ({ command, mode }) => {
       host: true,
       open: false,
       hmr: { overlay: true },
-      watch: { usePolling: true, interval: 100 },
+      // Polling is only required on Docker bind mounts and some network filesystems.
+      // On macOS native FSEvents the default watcher is much cheaper than polling
+      // every 100ms across hundreds of files. Opt in with VITE_USE_POLLING=true.
+      watch:
+        process.env.VITE_USE_POLLING === "true" ? { usePolling: true, interval: 100 } : undefined,
       proxy: {
         "/api/graphql": {
           target:

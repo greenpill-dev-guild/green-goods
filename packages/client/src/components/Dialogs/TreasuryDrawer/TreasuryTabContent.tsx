@@ -79,7 +79,7 @@ export function TreasuryTabContent({
               <button
                 type="button"
                 onClick={() => refetchVaults()}
-                className="rounded-[var(--radius-md)] bg-primary-action px-4 py-2.5 text-sm font-medium text-primary-action-foreground transition-colors hover:bg-primary-action-hover active:scale-95"
+                className="rounded-[var(--radius-md)] bg-primary-action px-4 py-2.5 text-sm font-medium text-primary-action-foreground transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:bg-primary-action-hover active:scale-95"
               >
                 {formatMessage({ id: "app.common.tryAgain" })}
               </button>
@@ -89,15 +89,15 @@ export function TreasuryTabContent({
       )}
 
       <section>
-        <h3 className="text-sm font-semibold text-text-strong">
+        <h3 className="text-sm font-semibold text-text-strong-950">
           {formatMessage({ id: "app.treasury.overview" })}
         </h3>
         {vaultsLoading && (
           <div className="mt-2 space-y-2.5 animate-pulse">
             {Array.from({ length: 2 }, (_, i) => (
               <div key={i} className="flex items-center gap-3">
-                <div className="h-3 flex-1 rounded bg-bg-weak" />
-                <div className="h-3 w-16 rounded bg-bg-weak" />
+                <div className="h-3 flex-1 rounded bg-bg-weak-50" />
+                <div className="h-3 w-16 rounded bg-bg-weak-50" />
               </div>
             ))}
           </div>
@@ -116,17 +116,17 @@ export function TreasuryTabContent({
               return (
                 <div
                   key={vault.id}
-                  className="rounded-lg border border-stroke-soft bg-bg-white p-3"
+                  className="rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-3"
                 >
                   <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-text-strong">
+                    <p className="text-sm font-medium text-text-strong-950">
                       {getVaultAssetSymbol(vault.asset, vault.chainId)}
                     </p>
-                    <p className="text-xs text-text-sub">
+                    <p className="text-xs text-text-sub-600">
                       {formatMessage({ id: "app.treasury.depositorCount" })}: {vault.depositorCount}
                     </p>
                   </div>
-                  <p className="mt-1 text-xs text-text-sub">
+                  <p className="mt-1 text-xs text-text-sub-600">
                     {formatMessage({ id: "app.treasury.netDeposited" })}:{" "}
                     {formatTokenAmount(
                       getNetDeposited(vault.totalDeposited, vault.totalWithdrawn),
@@ -141,11 +141,11 @@ export function TreasuryTabContent({
       </section>
 
       <section>
-        <h3 className="text-sm font-semibold text-text-strong">
+        <h3 className="text-sm font-semibold text-text-strong-950">
           {formatMessage({ id: "app.treasury.activeDeposits" })}
         </h3>
         {myDeposits.length === 0 && (
-          <p className="mt-2 text-sm text-text-soft">
+          <p className="mt-2 text-sm text-text-soft-400">
             {formatMessage({ id: "app.treasury.supportGardenCta" })}
           </p>
         )}
@@ -172,12 +172,12 @@ export function TreasuryTabContent({
       </section>
 
       <section>
-        <h3 className="text-sm font-semibold text-text-strong">
+        <h3 className="text-sm font-semibold text-text-strong-950">
           {formatMessage({ id: "app.treasury.deposit" })}
         </h3>
 
         {!primaryAddress ? (
-          <p className="mt-2 text-sm text-text-soft">
+          <p className="mt-2 text-sm text-text-soft-400">
             {formatMessage({ id: "app.treasury.connectToDeposit" })}
           </p>
         ) : (
@@ -204,10 +204,10 @@ export function TreasuryTabContent({
                   placeholder={formatMessage({ id: "app.treasury.depositAmount" })}
                   aria-label={formatMessage({ id: "app.treasury.depositAmount" })}
                   aria-invalid={Boolean(inputError)}
-                  className={`w-full rounded-md border px-3 py-2.5 text-sm text-text-strong focus:outline-none focus:ring-2 focus:ring-primary-base/20 ${
+                  className={`w-full rounded-md border px-3 py-2.5 text-sm text-text-strong-950 focus:outline-none focus:ring-2 focus:ring-primary-base/20 ${
                     inputError
                       ? "border-error-base focus:border-error-base"
-                      : "border-stroke-sub bg-bg-white focus:border-primary-base"
+                      : "border-stroke-sub-300 bg-bg-white-0 focus:border-primary-base"
                   }`}
                 />
                 <button
@@ -216,7 +216,7 @@ export function TreasuryTabContent({
                     if (!balance) return;
                     onAmountChange(formatUnits(balance.value, balance.decimals));
                   }}
-                  className="min-h-11 min-w-11 rounded-md border border-stroke-sub bg-bg-white px-3 py-2.5 text-xs font-medium text-text-sub hover:bg-bg-weak"
+                  className="min-h-11 min-w-11 rounded-md border border-stroke-sub-300 bg-bg-white-0 px-3 py-2.5 text-xs font-medium text-text-sub-600 hover:bg-bg-weak-50"
                 >
                   {formatMessage({ id: "app.treasury.max" })}
                 </button>
@@ -227,13 +227,13 @@ export function TreasuryTabContent({
                   {formatMessage({ id: inputError })}
                 </p>
               )}
-              <p className="text-xs text-text-soft">
+              <p className="text-xs text-text-soft-400">
                 {formatMessage({ id: "app.treasury.walletBalance" })}:{" "}
                 {balance
                   ? `${formatTokenAmount(balance.value, balance.decimals)} ${balance.symbol}`
                   : "--"}
               </p>
-              <p className="text-xs text-text-soft">
+              <p className="text-xs text-text-soft-400">
                 {formatMessage({ id: "app.treasury.estimatedShares" })}:{" "}
                 {previewShares !== undefined ? formatTokenAmount(previewShares, 18) : "--"}
               </p>

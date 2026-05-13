@@ -1,11 +1,90 @@
 import { logger } from "./logger";
 import { track } from "./posthog";
 import { serviceWorkerManager } from "./service-worker";
+import { isStandaloneMode } from "../../utils/app/pwa";
 
-type ServiceWorkerEnv = Partial<Pick<ImportMetaEnv, "DEV" | "PROD" | "VITE_ENABLE_SW_DEV">> &
+type ServiceWorkerEnv = Partial<
+  Pick<ImportMetaEnv, "DEV" | "PROD" | "VITE_ENABLE_SW_DEV" | "VITE_APP_VERSION">
+> &
   Record<string, unknown>;
 
-async function clearDevelopmentServiceWorkers(): Promise<void> {
+export interface ServiceWorkerRegistrationConfig {
+  scriptUrl?: string;
+  scope?: string;
+  legacyScopes?: string[];
+}
+
+export interface ResolvedServiceWorkerRegistrationConfig {
+  scriptUrl: string;
+  options: RegistrationOptions;
+  legacyScopes: string[];
+}
+
+const BROWSER_CACHE_BUST_STORAGE_KEY = "gg-browser-cache-bust-version";
+const DEFAULT_SERVICE_WORKER_SCOPE = "/";
+
+function getVersion(value: unknown): string {
+  return typeof value === "string" ? value.trim().slice(0, 48) : "";
+}
+
+function normalizeScopePath(value: string): string {
+  try {
+    const base =
+      typeof window !== "undefined" && window.location?.origin
+        ? window.location.origin
+        : "https://greengoods.local";
+    const pathname = new URL(value, base).pathname.replace(/\/+$/, "");
+    return pathname || "/";
+  } catch {
+    const pathname = value.replace(/\/+$/, "");
+    return pathname || "/";
+  }
+}
+
+export function createServiceWorkerRegistrationConfig(
+  version: string,
+  config: ServiceWorkerRegistrationConfig = {}
+): ResolvedServiceWorkerRegistrationConfig {
+  const serviceWorkerScriptUrl = config.scriptUrl ?? "/sw.js";
+  const querySeparator = serviceWorkerScriptUrl.includes("?") ? "&" : "?";
+  const scriptUrl =
+    version && version !== "dev"
+      ? `${serviceWorkerScriptUrl}${querySeparator}gg_v=${encodeURIComponent(version)}`
+      : serviceWorkerScriptUrl;
+
+  return {
+    scriptUrl,
+    options: {
+      scope: config.scope ?? DEFAULT_SERVICE_WORKER_SCOPE,
+      updateViaCache: "none",
+    },
+    legacyScopes: config.legacyScopes ?? [],
+  };
+}
+
+export function isLegacyServiceWorkerRegistration(
+  registrationScope: string,
+  currentScope: string,
+  legacyScopes: string[]
+): boolean {
+  const registrationPath = normalizeScopePath(registrationScope);
+  const currentPath = normalizeScopePath(currentScope);
+  const legacyPaths = legacyScopes.map(normalizeScopePath);
+
+  return registrationPath !== currentPath && legacyPaths.includes(registrationPath);
+}
+
+function getSessionStorage(): Storage | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    return window.sessionStorage ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function clearServiceWorkersAndCaches(): Promise<void> {
   if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
     try {
       const registrations = await navigator.serviceWorker.getRegistrations();
@@ -15,28 +94,117 @@ async function clearDevelopmentServiceWorkers(): Promise<void> {
     }
   }
 
-  if (typeof window !== "undefined" && "caches" in window) {
-    try {
-      const keys = await caches.keys();
-      await Promise.all(keys.map((key) => caches.delete(key)));
-    } catch (error) {
-      logger.warn("[ServiceWorker] Failed to clear caches", { error });
-    }
+  await clearBrowserCaches();
+}
+
+async function clearBrowserCaches(): Promise<void> {
+  if (typeof window === "undefined" || !("caches" in window)) return;
+
+  try {
+    const keys = await caches.keys();
+    await Promise.all(keys.map((key) => caches.delete(key)));
+  } catch (error) {
+    logger.warn("[ServiceWorker] Failed to clear caches", { error });
   }
 }
 
-async function registerServiceWorker(): Promise<boolean> {
+async function clearDevelopmentServiceWorkers(): Promise<void> {
+  await clearServiceWorkersAndCaches();
+}
+
+async function clearLegacyServiceWorkers(
+  config: ResolvedServiceWorkerRegistrationConfig
+): Promise<void> {
+  if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
+  if (config.legacyScopes.length === 0) return;
+
+  try {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(
+      registrations
+        .filter((registration) =>
+          isLegacyServiceWorkerRegistration(
+            registration.scope,
+            config.options.scope ?? DEFAULT_SERVICE_WORKER_SCOPE,
+            config.legacyScopes
+          )
+        )
+        .map((registration) => registration.unregister())
+    );
+  } catch (error) {
+    logger.warn("[ServiceWorker] Failed to unregister legacy workers", { error });
+  }
+}
+
+async function clearBrowserServiceWorkerForDeployment(
+  version: string,
+  registrationConfig: ServiceWorkerRegistrationConfig = {}
+): Promise<boolean> {
+  if (
+    !version ||
+    version === "dev" ||
+    typeof window === "undefined" ||
+    typeof navigator === "undefined" ||
+    !("serviceWorker" in navigator) ||
+    isStandaloneMode()
+  ) {
+    return false;
+  }
+
+  try {
+    const config = createServiceWorkerRegistrationConfig(version, registrationConfig);
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    const legacyRegistrations = registrations.filter((registration) =>
+      isLegacyServiceWorkerRegistration(
+        registration.scope,
+        config.options.scope ?? DEFAULT_SERVICE_WORKER_SCOPE,
+        config.legacyScopes
+      )
+    );
+    if (legacyRegistrations.length === 0) return false;
+
+    const storage = getSessionStorage();
+    if (storage?.getItem(BROWSER_CACHE_BUST_STORAGE_KEY) === version) return false;
+    storage?.setItem(BROWSER_CACHE_BUST_STORAGE_KEY, version);
+
+    await Promise.all(legacyRegistrations.map((registration) => registration.unregister()));
+    await clearBrowserCaches();
+
+    const url = new URL(window.location.href);
+    url.searchParams.set("gg_cache_bust", version);
+    window.location.replace(url.toString());
+    return true;
+  } catch (error) {
+    logger.warn("[ServiceWorker] Browser cache bust failed", { error });
+    return false;
+  }
+}
+
+async function registerServiceWorker(
+  version: string,
+  registrationConfig: ServiceWorkerRegistrationConfig = {}
+): Promise<boolean> {
+  const config = createServiceWorkerRegistrationConfig(version, registrationConfig);
+  await clearLegacyServiceWorkers(config);
+
   if (!serviceWorkerManager.canRegister()) {
     logger.warn("[ServiceWorker] Service Worker or Background Sync not supported");
     return false;
   }
 
   try {
-    const registration = await navigator.serviceWorker.register("/sw.js", {
-      scope: "/",
-    });
+    const registration = await navigator.serviceWorker.register(config.scriptUrl, config.options);
+
+    try {
+      await registration.update();
+    } catch (error) {
+      logger.warn("[ServiceWorker] Failed to check for service worker update", { error });
+    }
 
     serviceWorkerManager.attachRegistration(registration);
+    void registration.update().catch((error) => {
+      logger.warn("[ServiceWorker] Update check failed", { error });
+    });
     await navigator.serviceWorker.ready;
 
     track("service_worker_registered", {
@@ -55,10 +223,12 @@ async function registerServiceWorker(): Promise<boolean> {
 }
 
 export async function registerServiceWorkerFromEnv(
-  env: ServiceWorkerEnv = import.meta.env
+  env: ServiceWorkerEnv = import.meta.env,
+  registrationConfig: ServiceWorkerRegistrationConfig = {}
 ): Promise<boolean> {
   if (typeof window === "undefined") return false;
 
+  const version = getVersion(env.VITE_APP_VERSION);
   const enableDevServiceWorker = env.VITE_ENABLE_SW_DEV === "true";
   const isStorybook = Boolean(env.STORYBOOK);
   if (isStorybook) return false;
@@ -70,5 +240,10 @@ export async function registerServiceWorkerFromEnv(
 
   if (!env.PROD && !enableDevServiceWorker) return false;
 
-  return registerServiceWorker();
+  if (env.PROD && !isStandaloneMode()) {
+    await clearBrowserServiceWorkerForDeployment(version, registrationConfig);
+    return false;
+  }
+
+  return registerServiceWorker(version, registrationConfig);
 }

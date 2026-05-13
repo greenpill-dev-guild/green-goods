@@ -250,7 +250,7 @@ describe("ProfileBadges", () => {
       isPending: false,
     });
     sharedMocks.useMyVaultDeposits.mockReturnValue({
-      deposits: [{ garden: TEST_GARDEN, asset: TEST_ASSET }],
+      deposits: [{ garden: TEST_GARDEN, asset: TEST_ASSET, shares: 1n }],
       isLoading: false,
     });
     sharedMocks.useMyOnlineWorks.mockReturnValue({
@@ -391,6 +391,139 @@ describe("ProfileBadges", () => {
     expect(mockGenesisClaim).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps globally claimable badges hidden when the user is not locally eligible", () => {
+    sharedMocks.useGreenWillBadges.mockReturnValueOnce({
+      badges: [
+        {
+          id: "def-genesis",
+          chainId: 42161,
+          badgeId: GREENWILL_BADGE_IDS.GENESIS,
+          slug: "genesis",
+          metadataURI: "ipfs://genesis",
+          validator: "0x0000000000000000000000000000000000000001",
+          authorizedIssuer: "0x0000000000000000000000000000000000000002",
+          unlockLock: "0x0000000000000000000000000000000000000003",
+          claimable: true,
+          active: true,
+          holderCount: 4,
+          grantCount: 4,
+          updatedAt: 1710000000,
+          owned: false,
+          claimableNow: true,
+          ownership: null,
+        },
+        {
+          id: "def-first-work",
+          chainId: 42161,
+          badgeId: GREENWILL_BADGE_IDS.FIRST_WORK,
+          slug: "first-work",
+          metadataURI: "ipfs://first-work",
+          validator: "0x0000000000000000000000000000000000000001",
+          authorizedIssuer: "0x0000000000000000000000000000000000000002",
+          unlockLock: "0x0000000000000000000000000000000000000003",
+          claimable: true,
+          active: true,
+          holderCount: 0,
+          grantCount: 0,
+          updatedAt: 1710001000,
+          owned: false,
+          claimableNow: true,
+          ownership: null,
+        },
+        {
+          id: "def-first-support",
+          chainId: 42161,
+          badgeId: GREENWILL_BADGE_IDS.FIRST_SUPPORT,
+          slug: "first-support",
+          metadataURI: "ipfs://first-support",
+          validator: "0x0000000000000000000000000000000000000001",
+          authorizedIssuer: "0x0000000000000000000000000000000000000002",
+          unlockLock: "0x0000000000000000000000000000000000000003",
+          claimable: true,
+          active: true,
+          holderCount: 0,
+          grantCount: 0,
+          updatedAt: 1710002000,
+          owned: false,
+          claimableNow: true,
+          ownership: null,
+        },
+      ],
+      earnedBadges: [],
+      claimableBadges: [],
+      isLoading: false,
+      isError: false,
+      error: null,
+    });
+    sharedMocks.useProtocolMemberStatus.mockReturnValueOnce({ data: false, isLoading: false });
+    sharedMocks.useMyOnlineWorks.mockReturnValueOnce({ data: [], isLoading: false });
+    sharedMocks.useMyVaultDeposits.mockReturnValueOnce({
+      deposits: [{ garden: TEST_GARDEN, asset: TEST_ASSET, shares: 0n }],
+      isLoading: false,
+    });
+
+    render(wrap(createElement(ProfileBadges)));
+
+    expect(screen.getByText("No badges yet")).toBeInTheDocument();
+    expect(screen.queryByText("Ready to claim")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "View Genesis badge" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "View First Work badge" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "View First Support badge" })
+    ).not.toBeInTheDocument();
+  });
+
+  it("keeps genesis out of the claimable grid when the user is not a protocol member", () => {
+    sharedMocks.useGreenWillBadges.mockReturnValueOnce({
+      badges: [
+        {
+          id: "def-genesis",
+          chainId: 42161,
+          badgeId: GREENWILL_BADGE_IDS.GENESIS,
+          slug: "genesis",
+          metadataURI: "ipfs://genesis",
+          validator: "0x0000000000000000000000000000000000000001",
+          authorizedIssuer: "0x0000000000000000000000000000000000000002",
+          unlockLock: "0x0000000000000000000000000000000000000003",
+          claimable: true,
+          active: true,
+          holderCount: 4,
+          grantCount: 4,
+          updatedAt: 1710000000,
+          owned: false,
+          claimableNow: true,
+          ownership: null,
+        },
+      ],
+      earnedBadges: [],
+      claimableBadges: [],
+      isLoading: false,
+      isError: false,
+      error: null,
+    });
+    sharedMocks.useProtocolMemberStatus.mockReturnValueOnce({ data: false, isLoading: false });
+
+    render(wrap(createElement(ProfileBadges)));
+
+    expect(screen.getByText("No badges yet")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "View Genesis badge" })).not.toBeInTheDocument();
+  });
+
+  it("renders earned badges even when the user lacks claim eligibility signals", () => {
+    sharedMocks.useProtocolMemberStatus.mockReturnValueOnce({ data: false, isLoading: false });
+    sharedMocks.useMyOnlineWorks.mockReturnValueOnce({ data: [], isLoading: false });
+    sharedMocks.useMyVaultDeposits.mockReturnValueOnce({
+      deposits: [{ garden: TEST_GARDEN, asset: TEST_ASSET, shares: 0n }],
+      isLoading: false,
+    });
+
+    render(wrap(createElement(ProfileBadges)));
+
+    expect(screen.getByRole("button", { name: "View Genesis badge" })).toBeInTheDocument();
+    expect(screen.getByText("Earned")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "View First Work badge" })).not.toBeInTheDocument();
+  });
+
   it("allows claiming the first work badge with the first work uid", async () => {
     const user = userEvent.setup();
     render(wrap(createElement(ProfileBadges)));
@@ -451,6 +584,10 @@ describe("ProfileBadges", () => {
       isError: false,
       error: null,
     });
+    sharedMocks.useMyVaultDeposits.mockReturnValueOnce({
+      deposits: [{ garden: TEST_GARDEN, asset: TEST_ASSET, shares: 1n }],
+      isLoading: false,
+    });
 
     render(wrap(createElement(ProfileBadges)));
 
@@ -460,6 +597,56 @@ describe("ProfileBadges", () => {
     expect(mockFirstSupportClaim).toHaveBeenCalledWith({
       gardenAddress: TEST_GARDEN,
       assetAddress: TEST_ASSET,
+    });
+  });
+
+  it("uses the first positive-share vault position for first support claims", async () => {
+    const user = userEvent.setup();
+    const positiveGarden = "0x00000000000000000000000000000000000000c3";
+    const positiveAsset = "0x00000000000000000000000000000000000000d4";
+    sharedMocks.useGreenWillBadges.mockReturnValueOnce({
+      badges: [
+        {
+          id: "def-first-support",
+          chainId: 42161,
+          badgeId: GREENWILL_BADGE_IDS.FIRST_SUPPORT,
+          slug: "first-support",
+          metadataURI: "ipfs://first-support",
+          validator: "0x0000000000000000000000000000000000000001",
+          authorizedIssuer: "0x0000000000000000000000000000000000000002",
+          unlockLock: "0x0000000000000000000000000000000000000003",
+          claimable: true,
+          active: true,
+          holderCount: 1,
+          grantCount: 1,
+          updatedAt: 1710002000,
+          owned: false,
+          claimableNow: true,
+          ownership: null,
+        },
+      ],
+      earnedBadges: [],
+      claimableBadges: [],
+      isLoading: false,
+      isError: false,
+      error: null,
+    });
+    sharedMocks.useMyVaultDeposits.mockReturnValue({
+      deposits: [
+        { garden: TEST_GARDEN, asset: TEST_ASSET, shares: 0n },
+        { garden: positiveGarden, asset: positiveAsset, shares: 2n },
+      ],
+      isLoading: false,
+    });
+
+    render(wrap(createElement(ProfileBadges)));
+
+    await user.click(screen.getByRole("button", { name: "View First Support badge" }));
+    await user.click(screen.getByRole("button", { name: "Claim First Support" }));
+
+    expect(mockFirstSupportClaim).toHaveBeenCalledWith({
+      gardenAddress: positiveGarden,
+      assetAddress: positiveAsset,
     });
   });
 });

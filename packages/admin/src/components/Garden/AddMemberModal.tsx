@@ -1,21 +1,20 @@
 import {
   type Address,
-  cn,
   DialogShell,
   FormField,
   formatAddress,
   type GardenRole,
   logger,
-  parseContractError,
+  parseAndFormatError,
   resolveEnsAddress,
   TextInput,
-  USER_FRIENDLY_ERRORS,
   useEnsAddress,
 } from "@green-goods/shared";
 import { RiClipboardLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { isAddress } from "viem";
+import { AdminButton } from "../AdminButton";
 
 interface AddMemberModalProps {
   isOpen: boolean;
@@ -81,16 +80,8 @@ export function AddMemberModal({
       setAddress("");
       onClose();
     } catch (error) {
-      const parsed = parseContractError(error);
-      const normalizedName = parsed.name.toLowerCase();
-      const knownMessage =
-        USER_FRIENDLY_ERRORS[normalizedName] ??
-        Object.entries(USER_FRIENDLY_ERRORS).find(([pattern]) => {
-          const lowerMessage = parsed.message.toLowerCase();
-          return normalizedName.includes(pattern) || lowerMessage.includes(pattern);
-        })?.[1];
-
-      const safeMessage = knownMessage ?? (parsed.isKnown ? parsed.message : null);
+      const { message, parsed } = parseAndFormatError(error);
+      const safeMessage = parsed.isKnown ? message : null;
       setError(safeMessage ?? formatMessage({ id: "app.admin.roles.error.addFailed" }));
     }
   };
@@ -184,28 +175,18 @@ export function AddMemberModal({
         </FormField>
 
         <div className="flex items-center justify-end space-x-3 pt-6 border-t border-stroke-soft">
-          <button
-            type="button"
-            onClick={handleClose}
-            disabled={isLoading}
-            className="px-4 py-2 border border-stroke-sub text-sm font-medium rounded-lg text-text-sub bg-bg-white hover:bg-bg-weak focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-base disabled:opacity-50"
-          >
+          <AdminButton type="button" onClick={handleClose} disabled={isLoading} variant="outlined">
             {formatMessage({ id: "admin.common.cancel", defaultMessage: "Cancel" })}
-          </button>
-          <button
+          </AdminButton>
+          <AdminButton
             type="submit"
             disabled={isLoading || !trimmed || (shouldResolveEns && resolvingEns)}
-            className={cn(
-              "px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-[rgb(var(--tone-on-action,var(--primary-action-foreground)))] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[rgb(var(--tone-action,var(--primary-action)))] disabled:text-text-soft disabled:opacity-50",
-              isLoading || !trimmed || (shouldResolveEns && resolvingEns)
-                ? "bg-bg-surface cursor-not-allowed"
-                : "bg-[rgb(var(--tone-action,var(--primary-action)))] hover:bg-[rgb(var(--tone-action-hover,var(--primary-action-hover)))]"
-            )}
+            loading={isLoading}
           >
             {isLoading
               ? formatMessage({ id: "admin.addMember.adding", defaultMessage: "Adding..." })
               : formatMessage({ id: "app.admin.roles.add" }, { role: roleLabel })}
-          </button>
+          </AdminButton>
         </div>
       </form>
     </DialogShell>

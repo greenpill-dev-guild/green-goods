@@ -50,6 +50,17 @@
  *   3. Directional slide (forwards / back) — when explicitly typed
  * ============================================================================ */
 
+/*
+ * Shared-element group sizing — browser default is ~250ms, which made
+ * Garden card → dialog morphs feel snappy compared with the editorial page
+ * transitions. Use the spatial slow token so dynamic per-Garden names inherit
+ * the same 400ms cadence without needing per-id CSS.
+ */
+::view-transition-group(*) {
+  animation-duration: var(--spring-spatial-slow-duration);
+  animation-timing-function: var(--spring-spatial-easing);
+}
+
 /* Page cross-fade group sizing — slowed so the size morph reads, not snaps. */
 ::view-transition-group(main) {
   animation-duration: var(--spring-spatial-slow-duration);

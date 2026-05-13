@@ -1,0 +1,194 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "animation-polish-editorial-browser",
+    "title": "Animation & Interaction Polish — Editorial Browser + Garden Detail",
+    "kind": "feature",
+    "stage": "archive"
+  },
+  "workflow": {
+    "overall_status": "done",
+    "priority": "p2",
+    "created_at": "2026-05-03T00:00:00.000Z",
+    "updated_at": "2026-05-09T22:09:59.174Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "taxonomy": {
+    "initiative": "public-experience",
+    "tracks": ["client-browser", "client", "shared"],
+    "work_types": ["implementation", "qa"],
+    "surfaces": ["packages/client", "packages/shared"],
+    "depends_on_features": []
+  },
+  "notes": [
+    "Promoted 2026-05-04 — Afo asked to resume motion polish; reading (a) perceived richness, working on release/1.1.0.",
+    "Branch update 2026-05-07 — release/1.1.0 fully merged into main and main is 20+ commits ahead; UI lane closed on main while a parallel agent works elsewhere.",
+    "Use browser evidence for animation quality and record proof limits honestly.",
+    "status.json is authoritative; Markdown keeps the detailed execution context."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "completed",
+      "branch": "claude/ui/animation-polish-editorial-browser",
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "required",
+        "status": "green_recorded",
+        "red": {
+          "command": "bun run test -- --run src/__tests__/views/PublicGardenDialog.test.tsx (in packages/client)",
+          "evidence": "Test 'defers navigate by the close-stagger window after clicking close' asserts navigateSpy is NOT called immediately after click and NOT called at CLOSE_STAGGER_DURATION_MS - 1; would fail under the previous synchronous close handler."
+        },
+        "green": {
+          "command": "bun run test -- --run src/__tests__/views/PublicGardenDialog.test.tsx (in packages/client)",
+          "evidence": "Same test passes after wiring the closing-state machine; vi.advanceTimersByTime(CLOSE_STAGGER_DURATION_MS) triggers navigateSpy with ['/gardens', { viewTransition: true }]. Reduced-motion test confirms the JS path bypasses the stagger and navigates synchronously when matchMedia('(prefers-reduced-motion: reduce)').matches is true. 38/38 Public-route tests still pass; tsc --noEmit clean; format:check clean; lint clean (3 pre-existing warnings unrelated)."
+        },
+        "note": "proof_limit: visual quality of the reverse stagger, real card→dialog morph with garden image data, reduced-motion end-to-end visual confirmation, and Phase C2/C3 aspect/duration verdicts all require live Brave session — dev client process is online but not serving (parse error in shared bundle from a parallel agent's WIP). qa_pass_1 to capture browser evidence."
+      },
+      "skill_tags": ["ui", "frontend-design", "react"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "codex/state-api/animation-polish-editorial-browser",
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No state/API lane is planned; this backlog hub is scoped to public browser animation and interaction polish."
+      },
+      "skill_tags": ["react", "tanstack-query", "data-layer"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "codex/contracts/animation-polish-editorial-browser",
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No contract lane is planned; this backlog hub is scoped to public browser UI polish."
+      },
+      "skill_tags": ["contracts"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "completed",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "claude/qa-pass-1/animation-polish-editorial-browser",
+      "depends_on": ["ui"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "completed",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "codex/qa-pass-2/animation-polish-editorial-browser",
+      "branch_trigger": "claude/qa-pass-1/animation-polish-editorial-browser",
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-05-03T00:00:00.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "formalized",
+      "branch": null,
+      "note": "Formalized a loose backlog note so it participates in plan-hub taxonomy and summary grouping without promoting it to active work."
+    },
+    {
+      "timestamp": "2026-05-04T00:00:00.000Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "promoted",
+      "branch": "release/1.1.0",
+      "note": "Afo confirmed reading (a) perceived richness and to stay on release/1.1.0. Promoted backlog → active. Added image-lifecycle hypothesis to Phase A diagnosis (ImageWithFallback opacity-0 reset on dialog mount captures grey wrapper bg in the new view-transition snapshot)."
+    },
+    {
+      "timestamp": "2026-05-07T00:00:00.000Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "completed",
+      "branch": "main",
+      "note": "Phase B (close choreography) + Phase F (reduced-motion + a11y sweep) shipped on main while a parallel agent works elsewhere. Phase C2 (aspect ratio) + C3 (per-card morph duration) deferred with proof_limit until visual signoff against real garden image data. New unit tests in PublicGardenDialog.test.tsx capture RED+GREEN; visual quality remains a proof_limit for qa_pass_1."
+    },
+    {
+      "timestamp": "2026-05-07T00:00:00.001Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "completed",
+      "branch": "main",
+      "note": "Phase C closing verdict — C2 + C3 explicitly closed as deferred. C3 retest: synthetic harness in storybook iframe could not isolate wildcard-rule freeze risk (control test aborts identically); shipping wildcard blind would risk freezing all view-transitions site-wide. C2: minimal fix (drop sm:aspect-[3/1]) is aesthetic-judgment-heavy without Afo's visual pass — the 3/1 desktop hero may be intentional editorial drama. Verification plan's automated bullet (lint:vocab + format + lint + test + build) all green; visual items remain qa_pass_1 scope."
+    },
+    {
+      "timestamp": "2026-05-09T20:49:15.548Z",
+      "actor": "claude",
+      "lane": "qa_pass_1",
+      "status": "completed",
+      "branch": "claude/qa-pass-1/animation-polish-editorial-browser",
+      "note": "QA pass 1 — pass-with-followups. Code on disk matches UI handoff; lint:vocab + format:check + plan-hub validate green. Targeted dialog tests + client build blocked by env-gated node_modules symlink issue at main repo (off-by-one .bun store path); browser visual evidence inherits the lane handoff's proof_limit. No defects found. Followups: bun install refresh, then qa_pass_2 captures browser evidence and re-runs validation ladder."
+    },
+    {
+      "timestamp": "2026-05-09T21:14:16.678Z",
+      "actor": "codex",
+      "lane": "qa_pass_2",
+      "status": "blocked",
+      "branch": "codex/qa-pass-2/animation-polish-editorial-browser",
+      "note": "QA pass 2 blocked at repo-health gate: bun install completed but root node_modules symlinks still resolve one level too far up; no browser or validation ladder per stop instruction."
+    },
+    {
+      "timestamp": "2026-05-09T21:55:02.414Z",
+      "actor": "codex",
+      "lane": "qa_pass_2",
+      "status": "completed",
+      "branch": "codex/qa-pass-2/animation-polish-editorial-browser",
+      "note": "QA pass 2 pass-with-followups: dependency layout fixed, browser evidence captured, H5/focus/mobile defects fixed; validation ladder clean, C3 duration awaits Afo approval."
+    },
+    {
+      "timestamp": "2026-05-09T22:09:48.885Z",
+      "actor": "codex",
+      "lane": "qa_pass_2",
+      "status": "completed",
+      "branch": "codex/qa-pass-2/animation-polish-editorial-browser",
+      "note": "C3 wildcard duration shipped with Afo approval; qa_pass_2 verdict upgraded to pass before archive."
+    },
+    {
+      "timestamp": "2026-05-09T22:09:59.174Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "moved_to_archive",
+      "branch": null,
+      "note": "Moved feature hub from active to archive"
+    }
+  ]
+}

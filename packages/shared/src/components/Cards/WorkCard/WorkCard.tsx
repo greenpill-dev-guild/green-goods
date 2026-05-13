@@ -223,7 +223,10 @@ export const WorkCard: React.FC<WorkCardProps> = ({
 
         <div className={cn("flex min-w-0 flex-1 flex-col", isCompact ? "px-3 py-2" : "px-3 py-3")}>
           <div className="flex items-start justify-between gap-2">
-            <h4 className="truncate pr-2 text-sm font-medium text-text-strong-950">
+            <h4
+              className="truncate pr-2 text-label-md font-medium text-text-strong-950"
+              title={work.title || labels.untitledWork}
+            >
               {work.title || labels.untitledWork}
             </h4>
             <span
@@ -236,7 +239,12 @@ export const WorkCard: React.FC<WorkCardProps> = ({
             </span>
           </div>
 
-          <div className="mt-0.5 truncate text-xs text-text-sub-600">
+          <div
+            className="mt-0.5 truncate text-xs text-text-sub-600"
+            title={[showGardener && work.gardenerDisplayName, timeAgo, work.gardenName]
+              .filter(Boolean)
+              .join(" • ")}
+          >
             {showGardener && work.gardenerDisplayName && (
               <>
                 {work.gardenerDisplayName}

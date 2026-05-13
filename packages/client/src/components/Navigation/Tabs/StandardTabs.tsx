@@ -137,22 +137,6 @@ export const StandardTabs: React.FC<StandardTabsProps> = ({
           )}
         </button>
       ))}
-
-      {/* CSS for loading animation */}
-      <style>{`
-        @keyframes standardTabLoading {
-          0% {
-            width: 0%;
-          }
-          50% {
-            width: 100%;
-          }
-          100% {
-            width: 0%;
-            margin-left: 100%;
-          }
-        }
-      `}</style>
     </div>
   );
 };

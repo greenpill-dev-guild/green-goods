@@ -65,10 +65,22 @@ describe("RightSheet", () => {
     expect(portalContainer).toContainElement(dialog);
     expect(dialog).toHaveAttribute("open");
     expect(dialog).toHaveStyle({
+      height: "auto",
+      inset:
+        "var(--admin-sheet-top, calc(var(--admin-appbar-height, 3.5rem) + 0.5rem)) 0 var(--admin-sheet-bottom, 6.25rem) 0",
       maxHeight: "none",
       maxWidth: "none",
       pointerEvents: "auto",
       position: "absolute",
+      width: "auto",
+    });
+
+    expect(screen.getByTestId("right-sheet")).toHaveStyle({
+      borderRadius: "var(--radius-sheet, 24px)",
+      bottom: "0px",
+      height: "auto",
+      maxHeight: "100%",
+      right: "var(--admin-sheet-side-inset, 1rem)",
     });
   });
 

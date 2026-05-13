@@ -4,7 +4,7 @@ sidebar_label: Admin
 slug: /builders/packages/admin
 audience: developer
 owner: docs
-last_verified: 2026-04-25
+last_verified: 2026-05-07
 feature_status: Live
 source_of_truth:
   - AGENTS.md
@@ -49,8 +49,10 @@ The admin package is the Green Goods operator canvas. This page is the single UI
 - The shell is `AppBar + .workspace-canvas + MainSheet + NavigationBar`.
 - `AppBar` is the sticky `z-sticky h-14` context region with `GardenChip` on the left and search, settings, notifications, and profile controls on the right.
 - `NavigationBar` is navigation only. The canonical items are `Hub`, `Garden`, `Community`, and `Actions`.
+- Controlled Chrome is the admin material boundary: subtle liquid glass is permitted on NavigationBar/FAB and sheet shells. The AppBar root stays transparent so the workspace canvas tone reads behind it. Route cards, forms, tables, lists, and dense content stay solid.
 - `ConnectShell` is the disconnected full-screen state with a centered connect prompt and no navigation.
 - Admin owns `CanvasLayout`, `CommandPalette`, `AccountProfilePanel`, `AccountSettingsPanel`, `AccountSurface`, `UserAvatar`, `UserMenu`, `ConnectShell`, and `PageHeader`.
+- Desktop account sheets render `AccountProfilePanel` and `AccountSettingsPanel` as separate right-sheet contents. `AccountSurface` remains the route-level tabbed account surface for mobile profile navigation.
 - Shared owns `AppBar`, `NavigationBar`, `GardenChip`, `MainSheet`, `LeftSheet`, `RightSheet`, `BottomSheet`, and `SheetErrorBoundary`.
 
 ## Preferred Primitives
@@ -90,8 +92,10 @@ The admin package is the Green Goods operator canvas. This page is the single UI
 - Cards and elevated surfaces are for discrete records, action targets, and bounded interaction zones. They are not the default page structure.
 - Prefer one dominant workspace surface per route and plain layout within it. Avoid nested stacks of rounded bordered panels.
 - Avoid hero sections, decorative promo callouts, and decorative gradients behind routine product UI.
-- Use route-tint atmosphere, dock depth, and high-contrast state accents to establish hierarchy without turning the UI into a promo surface.
+- Use route-tint atmosphere, transparent AppBar continuity, Controlled Chrome depth on navigation/sheets, and high-contrast state accents to establish hierarchy without turning the UI into a promo surface.
 - Use `/hub` as the reference implementation for canvas composition and interaction density.
+- `bun run check:design-tokens` enforces the material boundary: admin source must not add glass, backdrop blur, or decorative gradients outside `packages/admin/src/index.css` and `admin-m3-overrides.css`.
+- Route content, canvas tone changes, FAB menus, sheets, and interaction state use the admin motion role aliases (`--admin-motion-*`) layered on top of the canonical `--spring-*` tokens.
 
 ## Unified Canvas Route Contract
 
@@ -100,12 +104,14 @@ The admin package is the Green Goods operator canvas. This page is the single UI
 - Default page anatomy is `PageHeader` -> one dominant workspace canvas -> optional secondary inspector (`LeftSheet`, `RightSheet`, `BottomSheet`, or a single rail).
 - Use one control grammar per route. Choose one of: stage tabs, view tabs, or a list toolbar. Do not stack multiple competing switchers and banners above the workspace.
 - Use at most one strong CTA in the header. If a FAB exists for the route, the header should not duplicate the same creation action.
+- View-level actions must flow through `ViewAction` + `AdminViewActions` on desktop and the same action set through `useViewActions` for tablet/mobile FAB speed dial. Do not add separate inline edit buttons inside route bodies for the same action.
 - Summary metrics are optional and should appear only when they improve decisions. Cap summary strips at three items for operational routes.
 - Prefer layout, rows, and sections over card mosaics. Use cards only for discrete records, bounded workflows, or detail modules that need separation.
 - Default detail behavior is an inspector or secondary pane, not a new pile of inline cards.
 - Use utility copy. Titles identify the workspace. Descriptions explain scope, freshness, or what the operator can do next.
 - Keep imagery subordinate to status, title, and actions unless the operator is explicitly reviewing media itself.
 - Reduced-motion support is mandatory. Stage changes, row selection, and sheet open/close must retain state clarity without relying on travel or spring lift.
+- Route and tab changes should animate only the named route content group. AppBar, Navigation/FAB, and the canvas root stay visually stationary.
 
 ## Route Roles
 

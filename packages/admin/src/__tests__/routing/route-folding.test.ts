@@ -102,7 +102,9 @@ describe("route folding", () => {
     expect(sheetRegistry).toContain("notifications");
     expect(canvasLayout).toContain("useAdminRightSheetDescriptor");
     expect(canvasLayout).not.toContain("RIGHT_SHEET_TITLES");
-    expect(canvasLayout).toContain("AccountSurface");
+    expect(canvasLayout).toContain("AccountProfilePanel");
+    expect(canvasLayout).toContain("AccountSettingsPanel");
+    expect(rightSheetDescriptor).not.toContain("renderAccountSurface");
     expect(rightSheetDescriptor).toContain("NotificationPanel");
   });
 

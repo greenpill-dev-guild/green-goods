@@ -1,9 +1,10 @@
 {
   "name": "@green-goods/docs",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "scripts": {
     "docusaurus": "docusaurus",
+    "predev": "lsof -t -iTCP:3003 -sTCP:LISTEN | xargs kill -9 2>/dev/null || true",
     "dev": "node ../scripts/dev/node-cli.js docusaurus start --port 3003 --no-open",
     "start": "node ../scripts/dev/node-cli.js docusaurus start --port 3003 --no-open",
     "test": "bun test",

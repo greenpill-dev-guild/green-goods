@@ -48,8 +48,18 @@ function createIDBPersister({
         }
       },
       restoreClient: async (): Promise<PersistedClient | undefined> => {
+        // Fail fast if the IDB read hangs (e.g. blocked transaction from a
+        // concurrent connection). Without a timeout, PersistQueryClientProvider
+        // stays in `isRestoring=true` forever and pauses every query observer,
+        // leaving every useQuery stuck in `pending` with the page rendering
+        // empty-state placeholders.
         try {
-          return (await idbGet(QUERY_PERSISTENCE_KEY, store)) as PersistedClient | undefined;
+          return (await Promise.race([
+            idbGet(QUERY_PERSISTENCE_KEY, store),
+            new Promise<undefined>((_, reject) =>
+              setTimeout(() => reject(new Error("idb-restore-timeout")), 1500)
+            ),
+          ])) as PersistedClient | undefined;
         } catch (error) {
           debugWarn("[Persister] Failed to restore client from IndexedDB:", { error });
           return undefined;

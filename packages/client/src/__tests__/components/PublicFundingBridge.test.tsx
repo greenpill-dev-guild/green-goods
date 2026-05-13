@@ -24,17 +24,17 @@ import { PublicFundingBridge } from "../../components/Public/PublicFundingBridge
 
 const messages: Record<string, string> = {
   "public.home.funding.body":
-    "Green Goods gives funders two protocol paths: direct support for verified Work, or a Vault position designed so yield can keep supporting a Garden over time.",
+    "Two paths for a Garden's community and funders alike: direct support for the Work today, or a deposit whose yield keeps supporting the Garden over time.",
   "public.home.funding.cta": "Support Gardens",
   "public.home.funding.donateBody":
-    "Send direct support through a Garden's Cookie Jar for verified regenerative Work.",
+    "Send direct support to a Garden's shared fund for verified Work.",
   "public.home.funding.donateTitle": "Donate",
   "public.home.funding.endowBody":
-    "Deposit into a Garden Vault designed to preserve principal while yield supports the Garden.",
+    "Make a long-term deposit. The principal stays; the yield supports the Garden's Work.",
   "public.home.funding.endowTitle": "Endow",
   "public.home.funding.kicker": "§ 04: Support Gardens",
   "public.home.funding.note":
-    "Donate and Endow support the Garden directly. They are not tax-deductible, charitable, or nonprofit-backed unless separately configured. Vaults also carry smart contract, token, yield, provider, and wallet recovery risk.",
+    "Both paths support the Garden directly. They are not tax-deductible, charitable, or nonprofit-backed unless separately configured. Long-term deposits depend on the underlying token and provider, so values and access can vary.",
   "public.home.funding.notePrefix": "note",
   "public.home.funding.title": "Direct support today. Endowment support over time.",
 };
@@ -50,7 +50,7 @@ function renderBridge() {
 }
 
 describe("PublicFundingBridge", () => {
-  it("explains Donate and Endow in protocol terms", () => {
+  it("explains Donate and Endow in plain editorial language", () => {
     renderBridge();
 
     const heading = screen.getByRole("heading", {
@@ -59,10 +59,18 @@ describe("PublicFundingBridge", () => {
     expect(heading).toBeInTheDocument();
     expect(heading.closest("section")).toHaveClass("bg-editorial-warm");
     expect(screen.getByRole("heading", { name: "Donate" })).toBeInTheDocument();
-    expect(screen.getByText(/Garden's Cookie Jar/i)).toBeInTheDocument();
+    expect(screen.getByText(/shared fund/i)).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Endow" })).toBeInTheDocument();
-    expect(screen.getByText(/Garden Vault/i)).toBeInTheDocument();
-    expect(screen.getByText(/smart contract, token, yield/i)).toBeInTheDocument();
+    expect(screen.getByText(/the principal stays/i)).toBeInTheDocument();
+
+    // Trust note: tax-status is honest; risk language is the same plain-English
+    // sentence used across the funding decision moments. The test fixture
+    // doubles as a regression guard against the old technical risk vocabulary.
+    const note = screen.getByText(/not tax-deductible/i);
+    expect(note).toBeInTheDocument();
+    expect(note).toHaveTextContent(/values and access can vary/i);
+    expect(note.textContent ?? "").not.toMatch(/smart contract/i);
+    expect(note.textContent ?? "").not.toMatch(/wallet recovery/i);
   });
 
   it("uses standard numbers for the support paths", () => {

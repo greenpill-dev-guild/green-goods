@@ -10,6 +10,7 @@ import {
   adminRoutes,
   type useGardenDerivedState,
 } from "@green-goods/shared";
+import type { ViewAction } from "../../../components/Canvas/viewActions.types";
 import { resolveAdminWorkspaceSectionRoute } from "../navigation/workspaceNavigation";
 
 // ============================================================================
@@ -176,69 +177,51 @@ export function resolveOpenSectionRoute(
 }
 
 // ============================================================================
-// FAB Config
+// View Actions — Hub
 // ============================================================================
+//
+// Hub exposes a fixed action set across all stages (Work / Assess / Certify /
+// History). The active stage chooses which action is "primary" (filled, FAB
+// main button); the others render as outlined siblings on desktop and
+// speed-dial children on mobile.
 
-export function buildHubFabConfig(
+export function buildHubViewActions(
   stage: HubPipelineStage,
   canManage: boolean,
   canReview: boolean,
   navigate: (path: string) => void,
   hubContext: AdminHubRouteContext
-) {
-  if (stage === "work" && canManage) {
-    return {
-      icon: RiAddLine,
+): ViewAction[] {
+  return [
+    {
+      id: "submit-work",
       label: "Submit Work",
-      actions: [
-        {
-          id: "submit-work",
-          icon: RiAddLine,
-          label: "Submit Work",
-          labelId: "cockpit.hub.fab.submitWork",
-        },
-      ],
-      onAction: (actionId: string) => {
-        if (actionId === "submit-work") navigate(adminRoutes.hubWorkSubmit(hubContext));
-      },
-    };
-  }
-
-  if (stage === "assess" && canReview) {
-    return {
+      labelId: "cockpit.hub.action.submitWork",
       icon: RiAddLine,
+      onClick: () => navigate(adminRoutes.hubWorkSubmit(hubContext)),
+      variant: "primary",
+      visible: canManage,
+      primary: stage === "work",
+    },
+    {
+      id: "create-assessment",
       label: "Create Assessment",
-      actions: [
-        {
-          id: "create-assessment",
-          icon: RiAddLine,
-          label: "Create Assessment",
-          labelId: "cockpit.hub.fab.createAssessment",
-        },
-      ],
-      onAction: (actionId: string) => {
-        if (actionId === "create-assessment") navigate(adminRoutes.hubAssessCreate(hubContext));
-      },
-    };
-  }
-
-  if (stage === "certify" && canManage) {
-    return {
-      icon: RiAddLine,
-      label: "Mint Hypercert",
-      actions: [
-        {
-          id: "mint-hypercert",
-          icon: RiAddLine,
-          label: "Mint Hypercert",
-          labelId: "cockpit.hub.fab.mintHypercert",
-        },
-      ],
-      onAction: (actionId: string) => {
-        if (actionId === "mint-hypercert") navigate(adminRoutes.hubCertifyCreate(hubContext));
-      },
-    };
-  }
-
-  return null;
+      labelId: "cockpit.hub.action.createAssessment",
+      icon: RiCheckLine,
+      onClick: () => navigate(adminRoutes.hubAssessCreate(hubContext)),
+      variant: stage === "assess" ? "primary" : "secondary",
+      visible: canReview,
+      primary: stage === "assess",
+    },
+    {
+      id: "create-hypercert",
+      label: "Create Hypercert",
+      labelId: "cockpit.hub.action.createHypercert",
+      icon: RiMedalLine,
+      onClick: () => navigate(adminRoutes.hubCertifyCreate(hubContext)),
+      variant: stage === "certify" ? "primary" : "secondary",
+      visible: canManage,
+      primary: stage === "certify",
+    },
+  ];
 }

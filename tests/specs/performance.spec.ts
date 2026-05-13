@@ -162,7 +162,7 @@ test.describe("Performance Tests", () => {
 
       // Navigate around a few times
       for (let i = 0; i < 5; i++) {
-        await page.goto(`${TEST_URLS.client}/login`);
+        await page.goto(`${TEST_URLS.client}/home/login?presentation=pwa`);
         await page.waitForLoadState("domcontentloaded");
         await page.goto(TEST_URLS.client);
         await page.waitForLoadState("domcontentloaded");

@@ -1,6 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { useEffect, useMemo, useRef, type ReactNode } from "react";
-import { createMemoryRouter, RouterProvider } from "react-router-dom";
+import { useEffect, useRef, type ReactNode } from "react";
 import { expect, within } from "storybook/test";
 import {
   STORYBOOK_ADMIN_SHELL_SEEDS,
@@ -12,8 +11,10 @@ import {
   withSeededQueryClient,
   withSelectedAdminGarden,
 } from "../../../../shared/.storybook/decorators";
-import { CanvasLayout } from "@/components/Layout/CanvasLayout";
-import { adminCanvasRoutes } from "@/routes/views";
+import {
+  ADMIN_ROUTE_STORY_QUERY_OPTIONS,
+  StorybookAdminCanvasRoute,
+} from "../storybookCanvasHarness";
 
 function mobileQueryList(query: string): MediaQueryList {
   const matches = query.includes("min-width: 600px") ? false : query.includes("max-width");
@@ -53,23 +54,9 @@ interface ProfileCanvasStoryProps {
 }
 
 function ProfileCanvasStory({ initialPath = "/profile" }: ProfileCanvasStoryProps) {
-  const router = useMemo(
-    () =>
-      createMemoryRouter(
-        [
-          {
-            element: <CanvasLayout />,
-            children: adminCanvasRoutes,
-          },
-        ],
-        { initialEntries: [initialPath] }
-      ),
-    [initialPath]
-  );
-
   return (
     <MobileProfileMedia>
-      <RouterProvider router={router} />
+      <StorybookAdminCanvasRoute initialPath={initialPath} />
     </MobileProfileMedia>
   );
 }
@@ -111,11 +98,12 @@ export const ProfileRoute: Story = {
   decorators: profileDecorators(),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(await canvas.findByRole("heading", { name: "Account" })).toBeVisible();
-    await expect(await canvas.findByRole("tab", { name: "Profile" })).toHaveAttribute(
-      "aria-selected",
-      "true"
-    );
+    await expect(
+      await canvas.findByRole("heading", { name: "Account" }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
+    ).toBeVisible();
+    await expect(
+      await canvas.findByRole("tab", { name: "Profile" }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
+    ).toHaveAttribute("aria-selected", "true");
   },
 };
 
@@ -124,11 +112,14 @@ export const SettingsRoute: Story = {
   decorators: profileDecorators(),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(await canvas.findByRole("heading", { name: "Account" })).toBeVisible();
-    await expect(await canvas.findByRole("tab", { name: "Settings" })).toHaveAttribute(
-      "aria-selected",
-      "true"
-    );
-    await expect(await canvas.findByRole("heading", { name: "Theme" })).toBeVisible();
+    await expect(
+      await canvas.findByRole("heading", { name: "Account" }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
+    ).toBeVisible();
+    await expect(
+      await canvas.findByRole("tab", { name: "Settings" }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
+    ).toHaveAttribute("aria-selected", "true");
+    await expect(
+      await canvas.findByRole("heading", { name: "Theme" }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
+    ).toBeVisible();
   },
 };

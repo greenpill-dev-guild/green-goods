@@ -11,14 +11,20 @@
 import { createServer, startServer } from "./api/server";
 import { parseAllowedOrigins } from "./api/public-protection";
 import { getConfig } from "./config";
-import { handleMessage, setHandlerContext } from "./handlers";
+import { createGroupCaptureHandler, handleMessage, setHandlerContext } from "./handlers";
 import {
   createNotifier,
   createPhotoProcessor,
   createTelegramBot,
   createVoiceProcessor,
+  registerSlashCommands,
 } from "./platforms/telegram";
 import { initAI, isAIModelLoaded } from "./services/ai";
+import {
+  initAgentAnalytics,
+  shutdownAgentAnalytics,
+  trackAgentRuntimeStarted,
+} from "./services/analytics";
 import { clearBlockchainCache, initBlockchain } from "./services/blockchain";
 import { closeDB, initDB } from "./services/db";
 import { resolveAgentRpcUrl } from "./services/agent-rpc";
@@ -26,6 +32,7 @@ import { createSqliteFundingIntentStore } from "./services/funding-intents";
 import { logger } from "./services/logger";
 import { createLumaClient } from "./services/luma";
 import { rateLimiter } from "./services/rate-limiter";
+import { createShutdownHandler } from "./runtime/shutdown";
 
 // ============================================================================
 // INITIALIZATION
@@ -33,6 +40,10 @@ import { rateLimiter } from "./services/rate-limiter";
 
 async function main(): Promise<void> {
   const config = getConfig();
+  initAgentAnalytics({
+    apiKey: config.posthogApiKey,
+    enabled: config.analyticsEnabled,
+  });
 
   logger.info(
     {
@@ -44,6 +55,11 @@ async function main(): Promise<void> {
     },
     "🌿 Green Goods Agent starting"
   );
+  await trackAgentRuntimeStarted({
+    mode: config.mode,
+    chainId: config.chainId,
+    nodeEnv: config.nodeEnv,
+  });
 
   // Initialize services
   initDB(config.dbPath);
@@ -56,12 +72,17 @@ async function main(): Promise<void> {
     tagName: config.lumaGreenGoodsTagName,
   });
 
-  const bot = createTelegramBot({ token: config.telegramToken }, handleMessage);
+  const groupCapture = createGroupCaptureHandler(config.captureTopics);
+  const bot = createTelegramBot({ token: config.telegramToken }, handleMessage, groupCapture);
 
   const voiceProcessor = createVoiceProcessor(bot, (audioPath) => ai.transcribe(audioPath));
   const photoProcessor = createPhotoProcessor(bot);
   const notifier = createNotifier(bot);
   setHandlerContext({ voiceProcessor, photoProcessor, notifier });
+
+  await registerSlashCommands(bot).catch((err) => {
+    logger.warn({ err }, "Failed to register slash commands; continuing");
+  });
 
   // ============================================================================
   // LAUNCH
@@ -71,7 +92,7 @@ async function main(): Promise<void> {
   const server = createServer({
     isAIReady: isAIModelLoaded,
     botApiToken: config.botApiToken,
-    notifier,
+    telegramBot: bot,
     lumaClient,
     fundingIntents: createSqliteFundingIntentStore(),
     allowedOrigins: parseAllowedOrigins(config.publicAllowedOrigins),
@@ -146,25 +167,26 @@ async function main(): Promise<void> {
   // GRACEFUL SHUTDOWN
   // ============================================================================
 
-  async function shutdown(signal: string): Promise<void> {
-    logger.info({ signal }, "📴 Shutting down gracefully");
+  const shutdown = createShutdownHandler({
+    bot,
+    botMode: config.mode,
+    cleanupTasks: [
+      () => rateLimiter.destroy(),
+      () => clearBlockchainCache(),
+      closeDB,
+      shutdownAgentAnalytics,
+    ],
+    exit: (code) => process.exit(code),
+    logger,
+    server,
+  });
 
-    bot.stop(signal);
-    await server.close();
-    rateLimiter.destroy();
-    clearBlockchainCache();
-    await closeDB();
-
-    logger.info("👋 Agent shutdown complete");
-    process.exit(0);
-  }
-
-  process.once("SIGINT", () => shutdown("SIGINT"));
-  process.once("SIGTERM", () => shutdown("SIGTERM"));
+  process.once("SIGINT", () => void shutdown("SIGINT"));
+  process.once("SIGTERM", () => void shutdown("SIGTERM"));
 
   process.on("uncaughtException", (error) => {
     logger.fatal({ err: error }, "Uncaught exception");
-    shutdown("uncaughtException");
+    void shutdown("uncaughtException", 1);
   });
 
   process.on("unhandledRejection", (reason, promise) => {

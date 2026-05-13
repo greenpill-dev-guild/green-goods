@@ -5,7 +5,6 @@ import {
   type SortOption,
   useActions,
   useAdminGardenWorkspaceSelection,
-  useCanvasResponsiveFab,
   useCanvasSearchParams,
   useDebouncedValue,
   useGardenDerivedState,
@@ -13,7 +12,9 @@ import {
   useGardenPermissions,
   useGardenStateStore,
   useMediaQuery,
+  useRefreshAction,
   useSheetOrchestrator,
+  useViewActions,
 } from "@green-goods/shared";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
@@ -22,7 +23,7 @@ import {
   type ActivityEvent,
   type HubPipelineStage,
   type SortDirection,
-  buildHubFabConfig,
+  buildHubViewActions,
   getSearchPlaceholder,
   getStageDescription,
   getStageTitle,
@@ -367,17 +368,24 @@ export function useHubWorkbenchController() {
     void Promise.resolve(refreshWorks()).finally(() => setLastRefreshAt(Date.now()));
   }, [refreshWorks]);
 
-  const navFabConfig = useMemo(
+  const viewActions = useMemo(
     () =>
-      selectedGarden ? buildHubFabConfig(stage, canManage, canReview, navigate, hubContext) : null,
+      selectedGarden ? buildHubViewActions(stage, canManage, canReview, navigate, hubContext) : [],
     [canManage, canReview, hubContext, navigate, selectedGarden, stage]
   );
 
-  useCanvasResponsiveFab({
-    fab: navFabConfig,
+  const { desktopActions } = useViewActions({
+    actions: viewActions,
     isDesktop,
     blocked: hasOpenHubInspector,
   });
+
+  // Mobile/tablet: refresh icon in the AppBar (next to notifications). Desktop
+  // keeps refresh implicit — the action set in the page header is the only
+  // chrome the operator needs.
+  useRefreshAction(
+    selectedGarden && !isDesktop ? { onRefresh: handleRefresh, isFetching: worksFetching } : null
+  );
 
   const resultCount = getHubResultCount(stage, {
     pendingWorks: pendingWorks.length,
@@ -441,6 +449,7 @@ export function useHubWorkbenchController() {
     canManage,
     certificationQueue,
     debouncedSearch,
+    desktopActions,
     fetchingAssessments,
     gardenOptions,
     handleClearSearch,

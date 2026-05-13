@@ -7,6 +7,7 @@ import { usePrimaryAddress } from "../hooks/auth/usePrimaryAddress";
 import { useTransactionSender } from "../hooks/blockchain/useTransactionSender";
 import { queryInvalidation, queryKeys } from "../config/query-keys";
 import { jobQueue, jobQueueEventBus } from "../modules/job-queue";
+import { logger } from "../modules/app/logger";
 import { useUIStore } from "../stores/useUIStore";
 import type {
   ApprovalJobPayload,
@@ -111,8 +112,9 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
           areQueueStatsEqual(previousStats, newStats) ? previousStats : newStats
         );
         setOfflineBannerVisibleIfChanged(newStats.pending > 0 || newStats.failed > 0);
-      } catch {
+      } catch (error) {
         if (signal?.aborted) return;
+        logger.warn("[JobQueueProvider] refreshStats failed", { error });
       }
     },
     [currentUserAddress, setOfflineBannerVisibleIfChanged]

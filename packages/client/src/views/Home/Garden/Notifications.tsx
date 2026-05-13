@@ -11,6 +11,7 @@ import type React from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { EmptyState } from "@/components/Communication";
+import { APP_ROUTES } from "@/config/pwa-routing";
 import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
 
 interface GardenNotificationsProps {
@@ -47,15 +48,20 @@ function GardenNotificationItem({ garden, work }: { garden: Garden; work: Work }
           })}
         </span>
       </div>
-      <p className="text-sm text-text-strong-950">
-        <span className="font-medium">
+      <p className="text-sm text-text-strong-950 break-words">
+        <span
+          className="font-medium"
+          title={formatAddress(work.gardenerAddress, { ensName: gardenerEnsName, variant: "card" })}
+        >
           {formatAddress(work.gardenerAddress, { ensName: gardenerEnsName, variant: "card" })}
         </span>{" "}
         {intl.formatMessage({
           id: "app.home.notifications.completedWorkApproval",
           defaultMessage: "completed work on",
         })}{" "}
-        <span className="font-medium">{garden.name}</span>
+        <span className="font-medium" title={garden.name}>
+          {garden.name}
+        </span>
       </p>
     </Link>
   );
@@ -88,7 +94,7 @@ export const GardenNotifications: React.FC<GardenNotificationsProps> = ({
             <button
               onClick={() => {
                 onClose?.();
-                navigate("/garden", { state: { gardenId: garden.id } });
+                navigate(APP_ROUTES.garden, { state: { gardenId: garden.id } });
               }}
               className="inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-primary-action px-4 py-2 text-sm font-medium text-primary-action-foreground transition-[background-color,box-shadow,transform] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] active:scale-95 focus:outline-none focus-visible:shadow-button-primary-focus"
             >

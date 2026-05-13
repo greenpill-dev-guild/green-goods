@@ -17,6 +17,7 @@ import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { DraftCard } from "@/components/Cards";
 import { EmptyState } from "@/components/Communication";
+import { APP_ROUTES } from "@/config/pwa-routing";
 import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
 
 export interface DraftsTabProps {
@@ -52,7 +53,7 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent }) => {
   };
 
   const handleResume = (draft: DraftWithImages) => {
-    navigate(`/garden?draftId=${draft.id}`, { viewTransition: true });
+    navigate(`${APP_ROUTES.garden}?draftId=${draft.id}`, { viewTransition: true });
   };
 
   const handleDeleteClick = (draft: DraftWithImages) => {
@@ -116,7 +117,7 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent }) => {
             {headerContent}
             <button
               onClick={() => refetchDrafts()}
-              className="p-2 hover:bg-bg-weak-50 rounded-lg transition-colors"
+              className="p-2 hover:bg-bg-weak-50 rounded-lg tap-target-lg transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]"
               aria-label={intl.formatMessage({
                 id: "app.drafts.refresh",
                 defaultMessage: "Refresh drafts",
@@ -157,7 +158,7 @@ export const DraftsTab: React.FC<DraftsTabProps> = ({ headerContent }) => {
         </div>
         <button
           onClick={() => refetchDrafts()}
-          className="p-2 hover:bg-bg-weak-50 rounded-lg transition-colors"
+          className="p-2 hover:bg-bg-weak-50 rounded-lg tap-target-lg transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]"
           aria-label={intl.formatMessage({
             id: "app.drafts.refresh",
             defaultMessage: "Refresh drafts",

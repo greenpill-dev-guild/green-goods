@@ -2,6 +2,7 @@
  * Reject Handler - Reject a pending work submission (operator only)
  */
 
+import { agentMessage } from "../i18n";
 import * as blockchain from "../services/blockchain";
 import * as db from "../services/db";
 import { classifyError } from "../services/errors";
@@ -30,14 +31,13 @@ export async function handleReject(
 
   const commandContent = content as CommandContent;
   const workId = commandContent.args[0];
-  const reason = commandContent.args.slice(1).join(" ") || "No reason provided";
+  const reason =
+    commandContent.args.slice(1).join(" ") || agentMessage(message.locale, "reject.defaultReason");
 
   if (!workId) {
     return {
       response: {
-        text:
-          "📍 *Usage:* `/reject <WorkID> [reason]`\n\n" +
-          "Example: `/reject abc123 Insufficient documentation`",
+        text: agentMessage(message.locale, "reject.usage"),
         parseMode: "markdown",
       },
     };
@@ -46,9 +46,7 @@ export async function handleReject(
   if (user.role !== "operator") {
     return {
       response: {
-        text:
-          `❌ *Permission Denied*\n\n` +
-          `Only registered operators can reject work for this garden.`,
+        text: agentMessage(message.locale, "reject.permission"),
         parseMode: "markdown",
       },
     };
@@ -63,7 +61,7 @@ export async function handleReject(
   if (!pendingWork) {
     return {
       response: {
-        text: "❌ Work not found or already processed.",
+        text: agentMessage(message.locale, "work.notFound"),
       },
     };
   }
@@ -72,7 +70,7 @@ export async function handleReject(
   if (!gardenAddress) {
     return {
       response: {
-        text: "❌ Cannot determine garden for this work.",
+        text: agentMessage(message.locale, "work.cannotDetermineGarden"),
       },
     };
   }
@@ -81,9 +79,9 @@ export async function handleReject(
   if (!verification.verified) {
     return {
       response: {
-        text:
-          `❌ *Permission Denied*\n\n${verification.reason}\n\n` +
-          `Only registered operators can reject work for this garden.`,
+        text: agentMessage(message.locale, "reject.permissionWithReason", {
+          reason: verification.reason,
+        }),
         parseMode: "markdown",
       },
     };
@@ -93,9 +91,13 @@ export async function handleReject(
     const claimed = await claimMessageIdempotency("reject", message);
     if (!claimed) {
       return {
-        response: idempotencyInProgressResponse("rejection"),
+        response: idempotencyInProgressResponse("rejection", message.locale),
       };
     }
+
+    const gardenerUser = notifyGardener
+      ? await db.getUser(pendingWork.gardenerPlatform, pendingWork.gardenerPlatformId)
+      : undefined;
 
     await db.removePendingWork(workId);
 
@@ -116,16 +118,13 @@ export async function handleReject(
       await notifyGardener(
         pendingWork.gardenerPlatform,
         pendingWork.gardenerPlatformId,
-        `❌ *Your work has been rejected*\n\n` +
-          `ID: \`${workId}\`\n` +
-          `Reason: ${reason}\n\n` +
-          `Please try again with more details or photos.`
+        agentMessage(gardenerUser?.locale, "reject.notify", { workId, reason })
       );
     }
 
     const result = {
       response: {
-        text: `❌ Work ${workId} rejected.\n\nReason: ${reason}`,
+        text: agentMessage(message.locale, "reject.success", { workId, reason }),
       },
     };
 
@@ -133,7 +132,7 @@ export async function handleReject(
 
     return result;
   } catch (error) {
-    const { category, userMessage } = classifyError(error);
+    const { category, userMessage } = classifyError(error, message.locale);
     log.error({ err: error, category, workId }, "Rejection error");
 
     const result = {

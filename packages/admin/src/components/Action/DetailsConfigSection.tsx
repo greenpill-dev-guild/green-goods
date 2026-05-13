@@ -1,6 +1,5 @@
 import {
   type ActionInstructionConfig,
-  Button,
   FormField,
   NativeSelect,
   Textarea,
@@ -16,6 +15,7 @@ import {
 } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
+import { AdminButton } from "../AdminButton";
 import { AdminCheckbox } from "../AdminCheckbox";
 
 interface DetailsConfigSectionProps {
@@ -139,18 +139,12 @@ export function DetailsConfigSection({ config, onChange }: DetailsConfigSectionP
               defaultMessage: "Form Inputs",
             })}
           </h3>
-          <Button
-            type="button"
-            size="sm"
-            onClick={addInput}
-            className="px-3 py-1.5 bg-[rgb(var(--tone-action,var(--primary-action)))] text-[rgb(var(--tone-on-action,var(--primary-action-foreground)))] rounded-md hover:bg-[rgb(var(--tone-action-hover,var(--primary-action-hover)))] text-sm flex items-center gap-1"
-          >
-            <RiAddLine className="h-4 w-4" />
+          <AdminButton type="button" size="sm" onClick={addInput} leadingIcon={<RiAddLine />}>
             {formatMessage({
               id: "app.admin.actions.detailsConfig.addInput",
               defaultMessage: "Add Input",
             })}
-          </Button>
+          </AdminButton>
         </div>
 
         <div className="space-y-4">
@@ -174,18 +168,18 @@ export function DetailsConfigSection({ config, onChange }: DetailsConfigSectionP
                   defaultMessage: "No form inputs yet",
                 })}
               </p>
-              <Button
+              <AdminButton
                 type="button"
-                variant="ghost"
+                variant="text"
                 size="sm"
                 onClick={addInput}
-                className="h-auto min-w-0 text-primary-base hover:text-primary-darker text-sm"
+                className="h-auto min-w-0 text-sm"
               >
                 {formatMessage({
                   id: "app.admin.actions.detailsConfig.addFirstInput",
                   defaultMessage: "Add your first input field",
                 })}
-              </Button>
+              </AdminButton>
             </div>
           )}
         </div>
@@ -239,47 +233,47 @@ function InputFieldEditor({
           </span>
         </div>
         <div className="flex items-center gap-1">
-          <Button
+          <AdminButton
             type="button"
-            variant="ghost"
+            variant="text"
             size="sm"
             onClick={() => onMove("up")}
             disabled={index === 0}
-            className="h-auto min-w-0 p-1 text-text-soft hover:text-text-strong disabled:opacity-30"
+            className="h-8 w-8 min-w-0 px-0 text-text-soft hover:text-text-strong disabled:opacity-30"
             title={formatMessage({
               id: "app.admin.actions.detailsConfig.moveUp",
               defaultMessage: "Move up",
             })}
           >
             <RiArrowUpLine className="h-4 w-4" />
-          </Button>
-          <Button
+          </AdminButton>
+          <AdminButton
             type="button"
-            variant="ghost"
+            variant="text"
             size="sm"
             onClick={() => onMove("down")}
             disabled={index === totalInputs - 1}
-            className="h-auto min-w-0 p-1 text-text-soft hover:text-text-strong disabled:opacity-30"
+            className="h-8 w-8 min-w-0 px-0 text-text-soft hover:text-text-strong disabled:opacity-30"
             title={formatMessage({
               id: "app.admin.actions.detailsConfig.moveDown",
               defaultMessage: "Move down",
             })}
           >
             <RiArrowDownLine className="h-4 w-4" />
-          </Button>
-          <Button
+          </AdminButton>
+          <AdminButton
             type="button"
-            variant="ghost"
+            variant="text"
             size="sm"
             onClick={onRemove}
-            className="ml-2 h-auto min-w-0 rounded p-1 text-error-base hover:bg-error-lighter"
+            className="ml-2 h-8 w-8 min-w-0 px-0 text-error-base hover:bg-error-lighter"
             title={formatMessage({
               id: "app.admin.actions.detailsConfig.delete",
               defaultMessage: "Delete",
             })}
           >
             <RiDeleteBinLine className="h-4 w-4" />
-          </Button>
+          </AdminButton>
         </div>
       </div>
 
@@ -430,15 +424,15 @@ function InputFieldEditor({
                     }}
                     className="flex-1 rounded-md border border-stroke-soft px-2 py-1 text-sm"
                   />
-                  <Button
+                  <AdminButton
                     type="button"
-                    variant="ghost"
+                    variant="text"
                     size="sm"
                     onClick={() => removeOption(optIndex)}
-                    className="h-auto min-w-0 rounded p-1 text-error-base hover:bg-error-lighter"
+                    className="h-8 w-8 min-w-0 px-0 text-error-base hover:bg-error-lighter"
                   >
                     <RiCloseLine className="h-4 w-4" />
-                  </Button>
+                  </AdminButton>
                 </div>
               ))}
               <div className="flex gap-2">
@@ -459,14 +453,18 @@ function InputFieldEditor({
                   })}
                   className="flex-1 rounded-md border border-stroke-soft px-2 py-1 text-sm"
                 />
-                <Button
+                <AdminButton
                   type="button"
                   size="sm"
                   onClick={addOption}
-                  className="px-2 py-1 bg-[rgb(var(--tone-action,var(--primary-action)))] text-[rgb(var(--tone-on-action,var(--primary-action-foreground)))] rounded-md hover:bg-[rgb(var(--tone-action-hover,var(--primary-action-hover)))] text-xs"
+                  className="h-8 w-8 px-0"
+                  aria-label={formatMessage({
+                    id: "app.admin.actions.detailsConfig.addOptionPlaceholder",
+                    defaultMessage: "Add option...",
+                  })}
                 >
                   <RiAddLine className="h-3.5 w-3.5" />
-                </Button>
+                </AdminButton>
               </div>
             </div>
           </FormField>

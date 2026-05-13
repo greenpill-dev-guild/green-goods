@@ -144,12 +144,13 @@ describe("ImpactPage", () => {
     expect(screen.getByText("30")).toBeInTheDocument();
   });
 
-  it("renders evidence cards with the View source / Source pending labels", () => {
+  it("renders evidence cards with their titles in an image-forward grid", () => {
     renderView();
     expect(screen.getByText("Q3 Soil Renewal")).toBeInTheDocument();
     expect(screen.getByText("Composting Pilot")).toBeInTheDocument();
-    expect(screen.getByText("View source")).toBeInTheDocument();
-    expect(screen.getByText("Source pending")).toBeInTheDocument();
+    // Each card is an accessible button labelled by record.title.
+    expect(screen.getByRole("button", { name: "Q3 Soil Renewal" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Composting Pilot" })).toBeInTheDocument();
   });
 
   it("shows loading skeletons while evidence is loading", () => {
@@ -178,7 +179,13 @@ describe("ImpactPage", () => {
 
   it("surfaces partialData and sourceLimitReached banners", () => {
     mockUsePublicImpactEvidence.mockReturnValue({
-      data: { ...mockSliceReady, partialData: true, sourceLimitReached: true, status: "partial" },
+      data: {
+        ...mockSliceReady,
+        partialData: true,
+        sourceLimitReached: true,
+        status: "partial",
+        totalFetchedRecords: 100,
+      },
       isLoading: false,
     });
     renderView();

@@ -8,6 +8,10 @@ import type { ReactElement } from "react";
 import { IntlProvider } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { BottomSheet } from "../../../components/Canvas/BottomSheet";
+import {
+  getCanvasSheetDragIntent,
+  getCanvasSheetTransform,
+} from "../../../components/Canvas/CanvasSheetInternals";
 import { LeftSheet } from "../../../components/Canvas/LeftSheet";
 import { RightSheet } from "../../../components/Canvas/RightSheet";
 
@@ -255,5 +259,83 @@ describe.each(sheetCases)("$name", (sheet) => {
     sheet.dragPastThreshold(screen.getByTestId(sheet.dragTargetTestId));
 
     expect(onClose).toHaveBeenCalled();
+  });
+});
+
+describe("BottomSheet bounded geometry", () => {
+  beforeEach(() => {
+    installPointerPolyfills();
+  });
+
+  it("uses the canvas sheet bounds and nav-safe mobile inset", () => {
+    const portalContainer = document.createElement("div");
+    document.body.appendChild(portalContainer);
+
+    renderWithIntl(
+      <BottomSheet open onClose={vi.fn()} title="Mobile inspector" container={portalContainer}>
+        <p>Sheet content</p>
+      </BottomSheet>
+    );
+
+    const dialog = screen.getByTestId("bottom-sheet-dialog");
+    const surface = screen.getByTestId("bottom-sheet");
+
+    expect(portalContainer).toContainElement(dialog);
+    expect(dialog).toHaveStyle({
+      height: "auto",
+      inset:
+        "var(--admin-sheet-top, calc(var(--admin-appbar-height, 3.5rem) + 0.5rem)) 0 var(--admin-sheet-bottom, 6.25rem) 0",
+      position: "absolute",
+      width: "auto",
+    });
+    expect(surface).toHaveStyle({
+      borderRadius: "var(--radius-sheet, 24px)",
+      left: "var(--admin-sheet-mobile-side-inset, 0.75rem)",
+      maxHeight: "min(85%, 100%)",
+      right: "var(--admin-sheet-mobile-side-inset, 0.75rem)",
+      width: "auto",
+    });
+  });
+});
+
+describe("Canvas sheet drag motion", () => {
+  it("snaps back when a side-sheet drag ends below the dismiss threshold", () => {
+    expect(
+      getCanvasSheetDragIntent({
+        edge: "right",
+        movementX: 48,
+        movementY: 0,
+        velocityX: 0.1,
+        velocityY: 0,
+        directionX: 1,
+        directionY: 0,
+        sizePx: 400,
+        last: true,
+        prefersReducedMotion: false,
+      })
+    ).toEqual({ kind: "snap" });
+  });
+
+  it("dismisses only after the active drag crosses the configured threshold", () => {
+    expect(
+      getCanvasSheetDragIntent({
+        edge: "bottom",
+        movementX: 0,
+        movementY: 132,
+        velocityX: 0,
+        velocityY: 0.1,
+        directionX: 0,
+        directionY: 1,
+        sizePx: 420,
+        last: true,
+        prefersReducedMotion: false,
+      })
+    ).toEqual({ kind: "dismiss" });
+  });
+
+  it("keeps the side-sheet close handoff distance centralized", () => {
+    expect(getCanvasSheetTransform("left", -100)).toBe("translateX(calc(-100% - 24px))");
+    expect(getCanvasSheetTransform("right", 100)).toBe("translateX(calc(100% + 24px))");
+    expect(getCanvasSheetTransform("bottom", 100)).toBe("translateY(100%)");
   });
 });

@@ -88,11 +88,16 @@ export const useApp = () => {
 interface AppProviderProps {
   children: React.ReactNode;
   posthogKey?: string;
+  allowPosthogKeyFallback?: boolean;
 }
 
-export const AppProvider = ({ children, posthogKey }: AppProviderProps) => {
+export const AppProvider = ({
+  children,
+  posthogKey,
+  allowPosthogKeyFallback = true,
+}: AppProviderProps) => {
   // Use provided key or fall back to default client key
-  const apiKey = posthogKey || import.meta.env.VITE_POSTHOG_KEY;
+  const apiKey = posthogKey || (allowPosthogKeyFallback ? import.meta.env.VITE_POSTHOG_KEY : "");
   const defaultLocale = localStorage.getItem("gg-language")
     ? (localStorage.getItem("gg-language") as Locale)
     : (getBrowserLocale(supportedLanguages, "en") as Locale); // Use helper instead of browserLang

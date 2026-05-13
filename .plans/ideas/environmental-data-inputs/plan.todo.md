@@ -2,9 +2,15 @@
 
 **Feature Slug**: `environmental-data-inputs`
 **Stage**: `ideas`
+**Linear Issue**: `RESR-10`
+**Linear Source**: `source:plans`
 **Status**: `IDEA`
 **Created**: `2026-05-03`
-**Last Updated**: `2026-05-03`
+**Last Updated**: `2026-05-10`
+
+## Linear Sync Update — 2026-05-10
+
+`RESR-10` is the consolidated Research parent. `RESR-1` (Locale Energy IoT Data Inputs) and `RESR-2` (Sylvie Environmental Data Inputs) are provider-specific children/references, not separate top-level plan mirrors.
 
 ## Decision Log
 

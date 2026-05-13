@@ -84,7 +84,7 @@ If the user's description can't be mapped to a canonical `Admin*` wrapper or reg
 | `typography` | Wrong role (`label-sm` vs `label-lg`), weight, line-height, font (Plus Jakarta vs Inter). | Role token in `theme.css`. |
 | `responsive` | Breaks at a specific width/container size, overflow, missing truncation. | Container queries (`@[Npx]:`), Rule 11 breakpoints. |
 | `a11y` | Missing `aria-label`, role, focus trap, keyboard trap, missing `prefers-reduced-motion`. | StatusBadge + FormField + Alert components. |
-| `token-drift` | Raw color/radius/duration used where a token should be. Surfaced by `bun run check:design-tokens` / `bun run lint:vocab`. | `CLAUDE.md § Design System` banned vocabulary. |
+| `token-drift` | Raw color/radius/duration used where a token should be. Surfaced by `bun run check:design-tokens` / `bun run lint:vocab`. | `AGENTS.md § Design System` banned vocabulary. |
 | `surface-identity` | Admin has glass outside the admin `AppBar`, or client copy leaks into admin, or vice versa. | `prompt-contract.md § Never Use`. |
 | `missing-primitive` | A composition that SHOULD use a canonical `Admin*` wrapper uses raw HTML instead. | 13 `Admin*` wrappers in `prompt-contract.md`. |
 

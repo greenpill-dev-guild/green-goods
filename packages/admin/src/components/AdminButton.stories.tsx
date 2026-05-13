@@ -87,3 +87,54 @@ export const StateCatalog: Story = {
     </div>
   ),
 };
+
+const WORKSPACE_TONES = [
+  ["hub", "Hub"],
+  ["garden", "Garden"],
+  ["community", "Community"],
+  ["actions", "Actions"],
+] as const;
+
+const ButtonToneMatrix = ({ theme }: { theme: "light" | "dark" }) => (
+  <section
+    data-theme={theme}
+    className="admin-m3 rounded-[var(--m3-shape-lg)] bg-[rgb(var(--m3-surface))] p-4"
+  >
+    <div className="mb-3 text-label-md font-semibold uppercase text-[rgb(var(--m3-on-surface-variant))]">
+      {theme}
+    </div>
+    <div className="grid gap-3 md:grid-cols-2">
+      {WORKSPACE_TONES.map(([tone, label]) => (
+        <div
+          key={`${theme}-${tone}`}
+          data-tone={tone}
+          className="rounded-[var(--m3-shape-md)] border border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface-container-low))] p-3"
+        >
+          <div className="mb-2 text-label-md font-medium text-[rgb(var(--m3-on-surface-variant))]">
+            {label}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <AdminButton variant="filled" size="sm" leadingIcon={<RiSave3Line />}>
+              Filled
+            </AdminButton>
+            <AdminButton variant="tonal" size="sm">
+              Tonal
+            </AdminButton>
+            <AdminButton variant="outlined" size="sm">
+              Outlined
+            </AdminButton>
+          </div>
+        </div>
+      ))}
+    </div>
+  </section>
+);
+
+export const WorkspaceToneMatrix: Story = {
+  render: () => (
+    <div className="space-y-4">
+      <ButtonToneMatrix theme="light" />
+      <ButtonToneMatrix theme="dark" />
+    </div>
+  ),
+};

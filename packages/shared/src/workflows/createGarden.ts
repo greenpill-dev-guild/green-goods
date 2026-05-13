@@ -9,7 +9,8 @@
 
 import { assign, fromPromise, setup } from "xstate";
 
-import { formatUserError } from "../utils/errors/user-messages";
+import { parseContractError } from "../utils/errors/contract-errors";
+import { extractErrorMessage } from "../utils/errors/extract-message";
 
 /**
  * Form validation status passed to the machine through events
@@ -74,11 +75,14 @@ const createGardenSetup = setup({
       // XState v5 invoke-error events carry `error` (v4 used `error.platform.*` type strings)
       const error = "error" in event ? event.error : undefined;
       if (error === undefined) return {};
-      const message = formatUserError(error);
-      // formatUserError falls through to String() for non-Error/non-string types,
-      // producing unhelpful output like "[object Object]". Replace with a fallback.
-      const isHelpful = message.length > 0 && !message.startsWith("[object ");
-      return { error: isHelpful ? message : "Failed to create garden" };
+      // Prefer the classified message when the parser recognized the error; for
+      // unknown errors fall back to the raw extracted message (more useful here
+      // than the generic "Transaction failed" copy parseContractError returns).
+      const parsed = parseContractError(error);
+      const candidate = parsed.isKnown ? parsed.message : extractErrorMessage(error);
+      const isHelpful =
+        candidate.length > 0 && !candidate.startsWith("[object ") && candidate !== "undefined";
+      return { error: isHelpful ? candidate : "Failed to create garden" };
     }),
     incrementRetry: assign({
       retryCount: ({ context }) => context.retryCount + 1,

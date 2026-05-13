@@ -1,5 +1,5 @@
-import { Button } from "@green-goods/shared";
 import { useIntl } from "react-intl";
+import { AdminButton } from "@/components/AdminButton";
 import { SeedlingIllustration } from "./SeedlingIllustration";
 
 interface CanvasIndexerErrorStateProps {
@@ -36,9 +36,9 @@ export function CanvasIndexerErrorState({ onRetry }: CanvasIndexerErrorStateProp
             "We couldn't load gardens from the indexer. This is usually temporary — try again in a moment.",
         })}
       </p>
-      <Button className="mt-6" onClick={onRetry}>
+      <AdminButton className="mt-6" onClick={onRetry}>
         {formatMessage({ id: "cockpit.access.indexerErrorRetry", defaultMessage: "Try again" })}
-      </Button>
+      </AdminButton>
     </section>
   );
 }

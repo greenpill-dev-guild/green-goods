@@ -63,11 +63,14 @@ describe("AppBar", () => {
     expect(header).toHaveAttribute("data-state", "default");
   });
 
-  it("has h-16 height class (handoff: 64px AppBar)", () => {
-    render(<AppBar gardenChip={<span>Chip</span>} />);
+  it("has h-14 height class (handoff: 56px compact AppBar)", () => {
+    const { container } = render(<AppBar gardenChip={<span>Chip</span>} />);
 
-    const header = screen.getByRole("banner");
-    expect(header.className).toContain("h-16");
+    // Height lives on the inner max-w-[1400px] row so AppBar text aligns with
+    // canvas content width at large viewports. 56px (h-14) is more compact
+    // than the prior 64px while still meeting M3 minimum tap targets.
+    const row = container.querySelector('[data-slot="row"]');
+    expect(row?.className).toContain("h-14");
   });
 
   // --------------------------------------------------------------------------

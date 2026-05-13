@@ -130,7 +130,7 @@ export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
         )}
         onClick={interactive ? onClick : undefined}
         type={interactive ? "button" : undefined}
-        style={{ textAlign: "left" }}
+        style={{ textAlign: "left", width: "100%" }}
       >
         {showBanner && (
           <div
@@ -159,10 +159,18 @@ export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
           )}
         >
           <div className="flex flex-col gap-2 flex-1">
-            {/* Selection highlight overlay */}
+            {/*
+             * Selection highlight overlay. Must match the OUTER Wrapper's
+             * border-radius (rounded-2xl, 24px in our theme) — anything tighter
+             * (e.g. rounded-lg = 16px) leaves an 8px curvature gap at the
+             * corners that overflow-clip on the Wrapper then chops, producing
+             * the "border cut off at the edges" regression. Matches ActionCard's
+             * 3px primary border for visual parity.
+             */}
             <div
+              aria-hidden="true"
               className={cn(
-                "absolute top-0 left-0 right-0 bottom-0 w-full h-full border-2 border-primary/50 rounded-lg opacity-0 transition-opacity duration-[var(--spring-effects-duration)] ease-[var(--spring-effects-easing)] z-10 pointer-events-none",
+                "absolute inset-0 rounded-2xl border-[3px] border-primary opacity-0 transition-opacity duration-[var(--spring-effects-duration)] ease-[var(--spring-effects-easing)] z-10 pointer-events-none",
                 selected && "opacity-100"
               )}
             />
@@ -175,6 +183,7 @@ export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
                   : "flex items-center text-lg font-semibold transition-colors line-clamp-1",
                 selected && "text-primary"
               )}
+              title={garden.name}
             >
               {garden.name}
             </h5>
@@ -209,7 +218,9 @@ export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
                     className="border-0 p-0 text-xs font-medium leading-tight"
                   >
                     <RiMapPinFill className="h-4 w-4 text-primary" />
-                    {garden.location}
+                    <span className="max-w-[12rem] truncate" title={garden.location}>
+                      {garden.location}
+                    </span>
                   </Badge>
                 )}
               </div>
@@ -223,18 +234,26 @@ export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
                   <span>{labels.operatorHeading}</span>
                 </div>
                 <div className="flex flex-wrap items-center gap-1 text-xs text-text-sub-600">
-                  {operatorAddresses.slice(0, 2).map((operator) => (
-                    <Badge
-                      key={operator}
-                      variant="outline"
-                      tint="none"
-                      className="border-0 p-0 text-xs font-medium leading-tight"
-                    >
-                      {renderOperatorName
-                        ? renderOperatorName(operator)
-                        : formatAddress(operator, { variant: "card" })}
-                    </Badge>
-                  ))}
+                  {operatorAddresses.slice(0, 2).map((operator) => {
+                    const operatorLabel = renderOperatorName
+                      ? renderOperatorName(operator)
+                      : formatAddress(operator, { variant: "card" });
+                    return (
+                      <Badge
+                        key={operator}
+                        variant="outline"
+                        tint="none"
+                        className="border-0 p-0 text-xs font-medium leading-tight"
+                      >
+                        <span
+                          className="max-w-[10rem] truncate"
+                          title={typeof operatorLabel === "string" ? operatorLabel : operator}
+                        >
+                          {operatorLabel}
+                        </span>
+                      </Badge>
+                    );
+                  })}
                   {operatorAddresses.length > 2 && (
                     <span className="text-xs text-text-sub-600">
                       {labels.andOthers.replace("{count}", String(operatorAddresses.length - 2))}
@@ -251,6 +270,7 @@ export const GardenCard = React.forwardRef<HTMLDivElement, GardenCardProps>(
                   "text-sm text-text-sub-600 line-clamp-3",
                   isMinimalSelection ? "h-[3.75rem] leading-5" : "flex-1"
                 )}
+                title={garden.description}
               >
                 {garden.description}
               </p>

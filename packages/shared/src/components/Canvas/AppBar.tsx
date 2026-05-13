@@ -1,6 +1,7 @@
 import {
   RiArrowLeftLine,
   RiNotification3Line,
+  RiRefreshLine,
   RiSearchLine,
   RiSettings3Line,
   RiUserLine,
@@ -8,7 +9,9 @@ import {
 import * as Popover from "@radix-ui/react-popover";
 import type React from "react";
 import { useIntl } from "react-intl";
+import { useMediaQuery } from "../../hooks/ui/useMediaQuery";
 import { cn } from "../../utils/styles/cn";
+import { useRefreshActionValue } from "./RefreshActionContext";
 
 // ----------------------------------------------------------------------------
 // Shared icon button styles — consistent across all right-side icons
@@ -105,135 +108,160 @@ export function AppBar({
   onOpenProfile,
 }: AppBarProps) {
   const { formatMessage } = useIntl();
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
+  const refreshAction = useRefreshActionValue();
+  const showRefresh = !isDesktop && Boolean(refreshAction?.onRefresh);
 
   return (
     <header
-      className={cn(
-        "sticky top-0 z-sticky flex h-16 w-full items-center justify-between",
-        "bg-transparent"
-      )}
-      style={{ paddingInline: "20px" }}
+      className={cn("sticky top-0 z-sticky w-full", "bg-transparent")}
       data-component="AppBar"
       data-slot="root"
       data-state={sheetContext ? "sheet-context" : "default"}
     >
-      {/* Left side */}
       <div
-        className="flex min-w-0 items-center gap-2"
-        data-slot="leading"
-        data-state={sheetContext ? "sheet-context" : "garden-context"}
+        className="mx-auto flex h-14 w-full max-w-[1400px] items-center justify-between"
+        style={{ paddingInline: "20px" }}
+        data-slot="row"
       >
-        {sheetContext ? (
-          <>
-            <button
-              type="button"
-              onClick={sheetContext.onBack}
-              aria-label={formatMessage({ id: "cockpit.topBar.back" })}
-              className={ICON_BTN}
-              data-component="AppBar"
-              data-slot="back-button"
-            >
-              <RiArrowLeftLine className="h-5 w-5" />
-            </button>
-            <span className="truncate text-title-md text-text-main" data-slot="sheet-label">
-              {sheetContext.label}
-            </span>
-          </>
-        ) : (
-          gardenChip
-        )}
-      </div>
-
-      {/* Right side — all icons share ICON_BTN styling via TopBarIconButton */}
-      <div className="flex items-center gap-1" data-slot="actions">
-        {/* Search — hidden on mobile */}
-        {onOpenSearch && (
-          <TopBarIconButton
-            slot="search-button"
-            tooltip={formatMessage({ id: "cockpit.topBar.openSearch", defaultMessage: "Search" })}
-            onClick={onOpenSearch}
-            className="hidden min-[600px]:flex"
-          >
-            <RiSearchLine className="h-5 w-5" />
-          </TopBarIconButton>
-        )}
-
-        {/* Notification bell — desktop: opens right sheet, mobile: popover fallback */}
-        {onOpenNotifications ? (
-          <TopBarIconButton
-            slot="notifications-button"
-            tooltip={formatMessage({
-              id: "cockpit.topBar.notifications",
-              defaultMessage: "Notifications",
-            })}
-            onClick={onOpenNotifications}
-          >
-            <RiNotification3Line className="h-5 w-5" />
-          </TopBarIconButton>
-        ) : (
-          <Popover.Root>
-            <Popover.Trigger asChild>
+        {/* Left side */}
+        <div
+          className="flex min-w-0 items-center gap-2"
+          data-slot="leading"
+          data-state={sheetContext ? "sheet-context" : "garden-context"}
+        >
+          {sheetContext ? (
+            <>
               <button
                 type="button"
-                aria-label={formatMessage({
-                  id: "cockpit.topBar.notifications",
-                  defaultMessage: "Notifications",
-                })}
+                onClick={sheetContext.onBack}
+                aria-label={formatMessage({ id: "cockpit.topBar.back" })}
                 className={ICON_BTN}
                 data-component="AppBar"
-                data-slot="notifications-button"
+                data-slot="back-button"
               >
-                <RiNotification3Line className="h-5 w-5" />
+                <RiArrowLeftLine className="h-5 w-5" />
               </button>
-            </Popover.Trigger>
-            <Popover.Portal>
-              <Popover.Content
-                side="bottom"
-                align="end"
-                sideOffset={4}
-                className={cn(
-                  "z-overlay rounded-xl bg-bg-white px-4 py-3 shadow-elevation-3",
-                  "text-sm text-text-sub",
-                  "animate-in fade-in-0 zoom-in-95 data-[side=bottom]:slide-in-from-top-2",
-                  "duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]"
-                )}
-                style={{ boxShadow: "var(--edge-rest), var(--elevation-3)" }}
-                data-component="AppBar"
-                data-slot="notifications-popover"
-              >
-                {formatMessage({
-                  id: "cockpit.topBar.noNotifications",
-                  defaultMessage: "No notifications yet",
-                })}
-              </Popover.Content>
-            </Popover.Portal>
-          </Popover.Root>
-        )}
+              <span className="truncate text-title-md text-text-main" data-slot="sheet-label">
+                {sheetContext.label}
+              </span>
+            </>
+          ) : (
+            gardenChip
+          )}
+        </div>
 
-        {/* Settings */}
-        {onOpenSettings && (
-          <TopBarIconButton
-            slot="settings-button"
-            tooltip={formatMessage({
-              id: "cockpit.topBar.openSettings",
-              defaultMessage: "Settings",
-            })}
-            onClick={onOpenSettings}
-          >
-            <RiSettings3Line className="h-5 w-5" />
-          </TopBarIconButton>
-        )}
+        {/* Right side — all icons share ICON_BTN styling via TopBarIconButton */}
+        <div className="flex items-center gap-1" data-slot="actions">
+          {/* Refresh — mobile/tablet only, registered via useRefreshAction by the
+            active view. Desktop uses inline header actions instead. */}
+          {showRefresh && refreshAction ? (
+            <TopBarIconButton
+              slot="refresh-button"
+              tooltip={formatMessage({
+                id: "cockpit.topBar.refresh",
+                defaultMessage: "Refresh",
+              })}
+              onClick={refreshAction.onRefresh}
+            >
+              <RiRefreshLine
+                className={cn("h-5 w-5", refreshAction.isFetching && "animate-spin")}
+              />
+            </TopBarIconButton>
+          ) : null}
 
-        {/* Profile */}
-        {onOpenProfile && (
-          <TopBarIconButton
-            slot="profile-button"
-            tooltip={formatMessage({ id: "cockpit.topBar.openProfile", defaultMessage: "Profile" })}
-            onClick={onOpenProfile}
-          >
-            <RiUserLine className="h-5 w-5" />
-          </TopBarIconButton>
-        )}
+          {/* Search — hidden on mobile */}
+          {onOpenSearch && (
+            <TopBarIconButton
+              slot="search-button"
+              tooltip={formatMessage({ id: "cockpit.topBar.openSearch", defaultMessage: "Search" })}
+              onClick={onOpenSearch}
+              className="hidden min-[600px]:flex"
+            >
+              <RiSearchLine className="h-5 w-5" />
+            </TopBarIconButton>
+          )}
+
+          {/* Notification bell — desktop: opens right sheet, mobile: popover fallback */}
+          {onOpenNotifications ? (
+            <TopBarIconButton
+              slot="notifications-button"
+              tooltip={formatMessage({
+                id: "cockpit.topBar.notifications",
+                defaultMessage: "Notifications",
+              })}
+              onClick={onOpenNotifications}
+            >
+              <RiNotification3Line className="h-5 w-5" />
+            </TopBarIconButton>
+          ) : (
+            <Popover.Root>
+              <Popover.Trigger asChild>
+                <button
+                  type="button"
+                  aria-label={formatMessage({
+                    id: "cockpit.topBar.notifications",
+                    defaultMessage: "Notifications",
+                  })}
+                  className={ICON_BTN}
+                  data-component="AppBar"
+                  data-slot="notifications-button"
+                >
+                  <RiNotification3Line className="h-5 w-5" />
+                </button>
+              </Popover.Trigger>
+              <Popover.Portal>
+                <Popover.Content
+                  side="bottom"
+                  align="end"
+                  sideOffset={4}
+                  className={cn(
+                    "z-overlay rounded-xl bg-bg-white px-4 py-3 shadow-elevation-3",
+                    "text-sm text-text-sub",
+                    "animate-in fade-in-0 zoom-in-95 data-[side=bottom]:slide-in-from-top-2",
+                    "duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]"
+                  )}
+                  style={{ boxShadow: "var(--edge-rest), var(--elevation-3)" }}
+                  data-component="AppBar"
+                  data-slot="notifications-popover"
+                >
+                  {formatMessage({
+                    id: "cockpit.topBar.noNotifications",
+                    defaultMessage: "No notifications yet",
+                  })}
+                </Popover.Content>
+              </Popover.Portal>
+            </Popover.Root>
+          )}
+
+          {/* Settings */}
+          {onOpenSettings && (
+            <TopBarIconButton
+              slot="settings-button"
+              tooltip={formatMessage({
+                id: "cockpit.topBar.openSettings",
+                defaultMessage: "Settings",
+              })}
+              onClick={onOpenSettings}
+            >
+              <RiSettings3Line className="h-5 w-5" />
+            </TopBarIconButton>
+          )}
+
+          {/* Profile */}
+          {onOpenProfile && (
+            <TopBarIconButton
+              slot="profile-button"
+              tooltip={formatMessage({
+                id: "cockpit.topBar.openProfile",
+                defaultMessage: "Profile",
+              })}
+              onClick={onOpenProfile}
+            >
+              <RiUserLine className="h-5 w-5" />
+            </TopBarIconButton>
+          )}
+        </div>
       </div>
     </header>
   );

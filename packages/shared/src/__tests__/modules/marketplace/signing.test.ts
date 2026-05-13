@@ -10,6 +10,22 @@ import type { Address, Hex, WalletClient } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { buildMakerAsk, signMakerAsk, validateOrder } from "../../../modules/marketplace/signing";
 import type { CreateListingParams } from "../../../types/hypercerts";
+import { ZERO_ADDRESS } from "../../../utils/blockchain/address";
+
+const mockReadiness = vi.hoisted(() => ({
+  available: true,
+  status: "available",
+  chainId: 11155111,
+  missingFields: [] as string[],
+  addresses: {
+    hypercertExchange: "0x1111111111111111111111111111111111111111" as Address,
+    hypercertMinter: "0x4444444444444444444444444444444444444444" as Address,
+    transferManager: "0x2222222222222222222222222222222222222222" as Address,
+    marketplaceAdapter: "0x5555555555555555555555555555555555555555" as Address,
+    hypercertsModule: "0x6666666666666666666666666666666666666666" as Address,
+    strategyHypercertFractionOffer: "0x7777777777777777777777777777777777777777" as Address,
+  },
+}));
 
 // Mock the marketplace SDK
 vi.mock("@hypercerts-org/marketplace-sdk", () => ({
@@ -50,6 +66,16 @@ vi.mock("../../../modules/marketplace/client", () => ({
   isMarketplaceSupported: vi.fn().mockReturnValue(true),
 }));
 
+vi.mock("../../../utils/blockchain/contracts", () => ({
+  assertMarketplaceReady: vi.fn(() => {
+    if (!mockReadiness.available) {
+      throw new Error(`Marketplace configuration incomplete: ${mockReadiness.missingFields[0]}`);
+    }
+    return mockReadiness;
+  }),
+  getMarketplaceReadiness: vi.fn(() => mockReadiness),
+}));
+
 const TEST_SIGNER = "0xDeaDbeefdEAdbeefdEadbEEFdeadbeEFdEaDbeeF" as Address;
 const CHAIN_ID = 11155111;
 
@@ -70,6 +96,19 @@ function makeTestParams(overrides?: Partial<CreateListingParams>): CreateListing
 }
 
 describe("marketplace/signing", () => {
+  beforeEach(() => {
+    mockReadiness.available = true;
+    mockReadiness.status = "available";
+    mockReadiness.missingFields = [];
+    mockReadiness.addresses.hypercertExchange = "0x1111111111111111111111111111111111111111";
+    mockReadiness.addresses.hypercertMinter = "0x4444444444444444444444444444444444444444";
+    mockReadiness.addresses.transferManager = "0x2222222222222222222222222222222222222222";
+    mockReadiness.addresses.marketplaceAdapter = "0x5555555555555555555555555555555555555555";
+    mockReadiness.addresses.hypercertsModule = "0x6666666666666666666666666666666666666666";
+    mockReadiness.addresses.strategyHypercertFractionOffer =
+      "0x7777777777777777777777777777777777777777";
+  });
+
   describe("buildMakerAsk", () => {
     it("builds a valid MakerAskOrder from CreateListingParams", () => {
       const params = makeTestParams();
@@ -84,6 +123,26 @@ describe("marketplace/signing", () => {
       expect(order.amounts).toEqual([1n]);
       expect(order.collectionType).toBe(2); // HYPERCERT
       expect(order.strategyId).toBe(1n); // hypercertFractionOffer
+    });
+
+    it("uses deployment artifact readiness for the HypercertMinter collection", () => {
+      mockReadiness.addresses.hypercertMinter =
+        "0x8888888888888888888888888888888888888888" as Address;
+
+      const order = buildMakerAsk(makeTestParams(), TEST_SIGNER, CHAIN_ID);
+
+      expect(order.collection).toBe("0x8888888888888888888888888888888888888888");
+    });
+
+    it("refuses to build an order when marketplace readiness is incomplete", () => {
+      mockReadiness.available = false;
+      mockReadiness.status = "unavailable";
+      mockReadiness.missingFields = ["hypercertMinter"];
+      mockReadiness.addresses.hypercertMinter = ZERO_ADDRESS;
+
+      expect(() => buildMakerAsk(makeTestParams(), TEST_SIGNER, CHAIN_ID)).toThrow(
+        "Marketplace configuration incomplete"
+      );
     });
 
     it("sets correct start and end times", () => {
@@ -147,6 +206,23 @@ describe("marketplace/signing", () => {
       expect(callArgs.domain.version).toBe("2");
       expect(callArgs.domain.chainId).toBe(CHAIN_ID);
       expect(callArgs.domain.verifyingContract).toBe("0x1111111111111111111111111111111111111111");
+    });
+
+    it("refuses to sign an order when marketplace readiness is incomplete", async () => {
+      const params = makeTestParams();
+      const order = buildMakerAsk(params, TEST_SIGNER, CHAIN_ID);
+      mockReadiness.available = false;
+      mockReadiness.status = "unavailable";
+      mockReadiness.missingFields = ["hypercertExchange"];
+      mockReadiness.addresses.hypercertExchange = ZERO_ADDRESS;
+      const mockWalletClient = {
+        signTypedData: vi.fn(),
+      } as unknown as WalletClient;
+
+      await expect(signMakerAsk(order, mockWalletClient, CHAIN_ID)).rejects.toThrow(
+        "Marketplace configuration incomplete"
+      );
+      expect(mockWalletClient.signTypedData).not.toHaveBeenCalled();
     });
   });
 

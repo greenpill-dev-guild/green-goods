@@ -1,7 +1,9 @@
 import * as db from "../services/db";
+import { agentActionLabel, agentMessage } from "../i18n";
 import type { InboundMessage, OutboundResponse } from "../types";
 
 export type IdempotentHandler = "approve" | "reject" | "submit-confirm";
+export type IdempotentAction = "approval" | "rejection" | "submission";
 
 export function messageIdempotencyKey(handler: IdempotentHandler, message: InboundMessage): string {
   return `${handler}:${message.platform}:${message.sender.platformId}:${message.id}`;
@@ -18,7 +20,7 @@ export async function getCompletedIdempotencyResponse(
 export async function getExistingIdempotencyResponse(
   handler: IdempotentHandler,
   message: InboundMessage,
-  action: string
+  action: IdempotentAction
 ): Promise<OutboundResponse | undefined> {
   const record = await db.getIdempotencyRecord(messageIdempotencyKey(handler, message));
   if (!record) {
@@ -27,7 +29,7 @@ export async function getExistingIdempotencyResponse(
 
   return record.status === "completed" && record.response
     ? record.response
-    : idempotencyInProgressResponse(action);
+    : idempotencyInProgressResponse(action, message.locale);
 }
 
 export async function claimMessageIdempotency(
@@ -51,8 +53,13 @@ export async function completeMessageIdempotency(
   await db.completeIdempotencyKey(messageIdempotencyKey(handler, message), response);
 }
 
-export function idempotencyInProgressResponse(action: string): OutboundResponse {
+export function idempotencyInProgressResponse(
+  action: IdempotentAction,
+  locale?: string
+): OutboundResponse {
   return {
-    text: `⏳ This ${action} is already being processed. Please wait a moment.`,
+    text: agentMessage(locale, "idempotency.inProgress", {
+      action: agentActionLabel(locale, action),
+    }),
   };
 }

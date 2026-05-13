@@ -39,7 +39,10 @@ describe("contract error recovery fields", () => {
       const result = parseContractError(new Error("Request timeout"));
       expect(result.recoverable).toBe(true);
       expect(result.suggestedAction).toBe("retry");
-      expect(result.name).toBe("NetworkError");
+      // Timeout was previously bundled into NetworkError; the consolidated
+      // classifier splits it out so callers can distinguish (e.g. timeout-
+      // specific UX like "still processing" vs network "lost connection").
+      expect(result.name).toBe("TimeoutError");
     });
 
     it("should mark user rejection as recoverable", () => {
@@ -149,7 +152,7 @@ describe("contract error recovery fields", () => {
   describe("validation errors", () => {
     it("should handle validation failed errors", () => {
       const result = parseContractError("Validation failed: Invalid input");
-      expect(result.name).toBe("Validation Error");
+      expect(result.name).toBe("ValidationError");
       expect(result.isKnown).toBe(true);
       expect(result.recoverable).toBe(false);
       expect(result.suggestedAction).toBe("contact-support");

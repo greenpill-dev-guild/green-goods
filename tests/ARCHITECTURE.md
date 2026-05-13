@@ -201,7 +201,7 @@ class ClientTestHelper {
     → Returns authenticatorId for cleanup
 
   async createPasskeyAccount(username: string): Promise<string>
-    → Navigates to /login
+    → Navigates to /home/login?presentation=pwa
     → Fills username input
     → Triggers WebAuthn (auto-approved by virtual authenticator)
     → Waits for redirect to /home
@@ -611,7 +611,7 @@ test("feature works on all platforms", async ({ page }, testInfo) => {
   // Authenticate appropriately
   if (ios) {
     await helper.injectWalletAuth();
-    await page.goto("/feature");
+    await page.goto("/home");
   } else {
     await helper.setupPasskeyAuth();
     await helper.createPasskeyAccount();

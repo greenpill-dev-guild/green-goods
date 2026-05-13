@@ -99,6 +99,7 @@ function BoundedRightSheetStory(args: ComponentProps<typeof RightSheet>) {
     <div
       ref={setContainer}
       data-tone="profile"
+      data-testid="right-sheet-bounded-container"
       className="storybook-canvas-frame relative h-[520px] overflow-hidden rounded-xl p-6"
     >
       <div className="text-sm font-semibold text-text-sub">Canvas overlay root</div>
@@ -111,34 +112,62 @@ function BoundedRightSheetStory(args: ComponentProps<typeof RightSheet>) {
 
 export const BoundedCanvas: Story = {
   render: (args) => <BoundedRightSheetStory {...args} />,
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const container = await canvas.findByTestId("right-sheet-bounded-container");
+    const dialog = await canvas.findByTestId("right-sheet-dialog");
+    const sheet = await canvas.findByTestId("right-sheet");
+
+    await expect(container).toContainElement(dialog);
+    await expect(dialog).toHaveAttribute("data-boundary", "bounded");
+    await expect(sheet).toHaveAttribute("data-boundary", "bounded");
+    await expect(sheet.getAttribute("style")).toContain("border-radius: var(--radius-sheet, 24px)");
+  },
 };
 
 /**
- * Focus trap + Escape — verifies the native `<dialog>` keeps focus inside the
- * sheet and Escape calls `onClose`. Per WAI-ARIA modal pattern.
+ * Focus trap + Escape — verifies the bounded sheet keeps focus inside and
+ * Escape calls `onClose`. Bounded mode wires Escape via a document keydown
+ * listener (`useFocusTrap` + RightSheet's bounded path), which is reliably
+ * triggered by `userEvent.keyboard` across test runners. The unbounded
+ * native `<dialog>` cancel event is exercised by browser testing.
  */
+function FocusTrapAndEscapeStory(args: ComponentProps<typeof RightSheet>) {
+  const [container, setContainer] = useState<HTMLDivElement | null>(null);
+  return (
+    <div
+      ref={setContainer}
+      data-tone="profile"
+      className="storybook-canvas-frame relative h-[520px] overflow-hidden rounded-xl p-6"
+    >
+      <div className="text-sm font-semibold text-text-sub">Canvas overlay root</div>
+      <RightSheet {...args} container={container}>
+        <div className="flex flex-col gap-3 p-4">
+          <button
+            type="button"
+            className="rounded border border-stroke-soft px-3 py-2 text-sm"
+            data-testid="first-action"
+          >
+            First action
+          </button>
+          <button
+            type="button"
+            className="rounded border border-stroke-soft px-3 py-2 text-sm"
+            data-testid="second-action"
+          >
+            Second action
+          </button>
+        </div>
+      </RightSheet>
+    </div>
+  );
+}
+
 export const FocusTrapAndEscape: Story = {
   args: {
     title: "Account",
-    children: (
-      <div className="flex flex-col gap-3 p-4">
-        <button
-          type="button"
-          className="rounded border border-stroke-soft px-3 py-2 text-sm"
-          data-testid="first-action"
-        >
-          First action
-        </button>
-        <button
-          type="button"
-          className="rounded border border-stroke-soft px-3 py-2 text-sm"
-          data-testid="second-action"
-        >
-          Second action
-        </button>
-      </div>
-    ),
   },
+  render: (args) => <FocusTrapAndEscapeStory {...args} />,
   parameters: {
     a11y: {
       config: {
@@ -152,9 +181,6 @@ export const FocusTrapAndEscape: Story = {
   play: async ({ args, canvasElement }) => {
     const canvas = within(canvasElement);
 
-    // Close button is the auto-focused element when the bounded dialog mounts
-    // (per `useFocusTrap` autoFocusSelector). The two action buttons should
-    // both be tabbable inside the dialog.
     const close = await canvas.findByTestId("right-sheet-close");
     await expect(close).toBeVisible();
 
@@ -163,7 +189,7 @@ export const FocusTrapAndEscape: Story = {
     await expect(first).toBeVisible();
     await expect(second).toBeVisible();
 
-    // Escape dismisses the sheet via the `cancel` event handler.
+    close.focus();
     await userEvent.keyboard("{Escape}");
     await expect(args.onClose).toHaveBeenCalled();
   },

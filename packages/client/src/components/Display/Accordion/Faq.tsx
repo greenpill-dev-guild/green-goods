@@ -49,8 +49,10 @@ const FaqTrigger = React.forwardRef<
     )}
     {...props}
   >
-    <RiQuestionLine className="w-6 h-6 shrink-0 text-primary transition-all" />
-    <div className="flex grow faq-title transition-colors">{children}</div>
+    <RiQuestionLine className="w-6 h-6 shrink-0 text-primary transition-all duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]" />
+    <div className="flex grow faq-title transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]">
+      {children}
+    </div>
     <RiAddLine className="faq-toggle flex h-5 w-5 shrink-0 text-right text-text-soft-400 transition-transform duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]" />
   </AccordionPrimitive.Trigger>
 ));

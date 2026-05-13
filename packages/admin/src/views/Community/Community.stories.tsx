@@ -1,7 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { useMemo } from "react";
-import { createMemoryRouter, RouterProvider } from "react-router-dom";
-import { expect, within } from "storybook/test";
+import { expect, waitFor, within } from "storybook/test";
 import {
   STORYBOOK_ADMIN_SHELL_SEEDS,
   STORYBOOK_PRIMARY_ADMIN_GARDEN,
@@ -12,29 +10,22 @@ import {
   withSeededQueryClient,
   withSelectedAdminGarden,
 } from "../../../../shared/.storybook/decorators";
-import { CanvasLayout } from "@/components/Layout/CanvasLayout";
-import { adminCanvasRoutes } from "@/routes/views";
+import {
+  ADMIN_ROUTE_STORY_QUERY_OPTIONS,
+  StorybookAdminCanvasRoute,
+} from "../storybookCanvasHarness";
+import {
+  expectAdminShellDarkPalette,
+  expectAllVisibleSelectorContrast,
+  withTemporaryDocumentTheme,
+} from "../storybookPaletteAssertions";
 
 interface CommunityCanvasStoryProps {
   initialPath?: string;
 }
 
 function CommunityCanvasStory({ initialPath = "/community/treasury" }: CommunityCanvasStoryProps) {
-  const router = useMemo(
-    () =>
-      createMemoryRouter(
-        [
-          {
-            element: <CanvasLayout />,
-            children: adminCanvasRoutes,
-          },
-        ],
-        { initialEntries: [initialPath] }
-      ),
-    [initialPath]
-  );
-
-  return <RouterProvider router={router} />;
+  return <StorybookAdminCanvasRoute initialPath={initialPath} />;
 }
 
 const meta: Meta<typeof CommunityCanvasStory> = {
@@ -73,9 +64,32 @@ export const Treasury: Story = {
   args: { initialPath: "/community/treasury" },
   decorators: communityDecorators(),
   play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    await expect(await canvas.findByRole("heading", { name: "Community" })).toBeVisible();
-    await expect((await canvas.findAllByText("Rio Rainforest Lab")).length).toBeGreaterThan(0);
+    await withTemporaryDocumentTheme("dark", async () => {
+      const canvas = within(canvasElement);
+      await expect(
+        await canvas.findByRole("heading", { name: "Community" }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
+      ).toBeVisible();
+      await expect(
+        (
+          await canvas.findAllByText(
+            "Rio Rainforest Lab",
+            undefined,
+            ADMIN_ROUTE_STORY_QUERY_OPTIONS
+          )
+        ).length
+      ).toBeGreaterThan(0);
+      await waitFor(() => expectAdminShellDarkPalette(canvasElement));
+      await waitFor(() =>
+        expectAllVisibleSelectorContrast(canvasElement, ".text-primary-base", {
+          label: "Community primary action links",
+        })
+      );
+      await waitFor(() =>
+        expectAllVisibleSelectorContrast(canvasElement, ".bg-success-lighter .text-success-dark", {
+          label: "Community success status text",
+        })
+      );
+    });
   },
 };
 
@@ -96,9 +110,19 @@ export const GovernanceStrategiesInspector: Story = {
   decorators: communityDecorators(),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const leftSheet = await canvas.findByTestId("left-sheet");
+    const leftSheet = await canvas.findByTestId(
+      "left-sheet",
+      undefined,
+      ADMIN_ROUTE_STORY_QUERY_OPTIONS
+    );
     await expect(leftSheet).toHaveAttribute("data-component", "LeftSheet");
-    await expect(await within(leftSheet).findByText("Conviction Voting")).toBeVisible();
+    await expect(
+      await within(leftSheet).findByText(
+        "Conviction Voting",
+        undefined,
+        ADMIN_ROUTE_STORY_QUERY_OPTIONS
+      )
+    ).toBeVisible();
   },
 };
 

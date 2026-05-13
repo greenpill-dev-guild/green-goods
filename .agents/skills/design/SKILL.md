@@ -10,7 +10,7 @@ dependencies: []
 last_updated: "2026-04-24"
 last_verified: "2026-04-24"
 changelog:
-  - "2.4.0 — Removed `stitch` (project) and `stitch-design` (user-level) skills. AI-design platforms change too fast to encode per-platform; the durable contract is platform-agnostic and now lives in this file under § Working with AI Design Tools. ARCHITECTURE.md collapsed from a four-skill stack to a two-skill stack. Prompt contracts already mention multiple AI tools (Stitch, Codex Design, Figma Make, Antigravity); no edits needed there. `.stitch/config.json` retained for its surface map (filename is legacy, content is platform-agnostic)."
+  - "2.4.0 — Removed `stitch` (project) and `stitch-design` (user-level) skills. AI-design platforms change too fast to encode per-platform; the durable contract is platform-agnostic and now lives in this file under § Working with AI Design Tools. ARCHITECTURE.md collapsed from a four-skill stack to a two-skill stack. Prompt contracts already mention multiple AI tools (Stitch, Claude Design, Figma Make, Antigravity); no edits needed there. `.stitch/config.json` retained for its surface map (filename is legacy, content is platform-agnostic)."
   - "2.3.3 — Added stack-review.md (design-system self-audit protocol, scoped strictly to design/ + ui/). ARCHITECTURE.md synced: version label bumped to 2.3.3, stack-review.md added to the Where-to-look table and Related section. stack-review.md hardened with an explicit scope fence (out-of-scope list: other skills, registry canonical_commands, check-guidance-consistency, ship/plan/debug) after a first-run drift into non-design findings."
   - "2.3.2 — review-checklist.md § Closing the Loop rewritten to mark each lens's automation as Wired / Partial / Proposed, with evidence. Dropped two broken commands from the Quick wiring reference (`bun --filter @green-goods/shared test-storybook --failOnA11yIssues` and `bun --filter @green-goods/shared chromatic` — neither script exists in `packages/shared/package.json`). Added a Roadmap subsection listing what's needed to move each Proposed row to Wired. No token changes."
   - "2.3.1 — Spring motion tokens shipped to packages/shared/src/styles/theme.css (previously spec'd as aspirational in language.md; AI tools can now safely emit var(--spring-*)). prompt-contract.md clarifies admin = restrained Warm Earth (not raw M3) and that hero moments are client-only. materials.md stale 'not yet in theme.css' note removed. review-checklist.md references new scripts bun run lint:vocab and bun run check:design-tokens instead of the unwritten biome rule. Registry token_version synced to 2.3.0 (was drifted at 2.2.0)."
@@ -30,7 +30,7 @@ Design philosophy and visual direction for building spatial-ready, AI-driven int
 
 - You need an at-a-glance map of this skill stack (which file owns which question) → [ARCHITECTURE.md](./ARCHITECTURE.md).
 - You need implementation detail (Tailwind tokens, Radix composition, a11y checks, Storybook, i18n) → **`ui`** skill.
-- You are about to feed a design to an AI tool (Stitch, Codex Design, Figma Make, Antigravity, etc.) → § Working with AI Design Tools below + the matching prompt contract.
+- You are about to feed a design to an AI tool (Stitch, Claude Design, Figma Make, Antigravity, etc.) → § Working with AI Design Tools below + the matching prompt contract.
 - You need the **admin** AI prompt contract (stable core, vocabulary, never-use list) → [prompt-contract.md](./prompt-contract.md).
 - You need the **client** AI prompt contract → [client-prompt-contract.md](./client-prompt-contract.md).
 - You need to **report a UI defect** on an admin surface (grammar, component identifiers, browser workflow) → [defect-grammar.md](./defect-grammar.md).
@@ -55,7 +55,7 @@ If the two versions drift, you have a token consistency bug: the design says one
 |--------|-------------------|----------|
 | **Skill Map** | where does X live, skill stack, routing, architecture overview | [ARCHITECTURE.md](./ARCHITECTURE.md) |
 | **Design Language** | Warm Earth language, shape system, motion tokens, color direction, components, hero moments | [language.md](./language.md) |
-| **Admin Prompt Contract** | admin stable core, banned terms, workspace vocabulary for Stitch / Antigravity / Codex Design | [prompt-contract.md](./prompt-contract.md) |
+| **Admin Prompt Contract** | admin stable core, banned terms, workspace vocabulary for Stitch / Antigravity / Claude Design | [prompt-contract.md](./prompt-contract.md) |
 | **Client Prompt Contract** | client stable core, banned terms, PWA shell vocabulary | [client-prompt-contract.md](./client-prompt-contract.md) |
 | **Defect Grammar** | "this looks broken", describe UI bug, component identifier lookup, defect types, browser inspect workflow | [defect-grammar.md](./defect-grammar.md) |
 | **Quick Reference** | cheat sheet, radii, springs, colors, materials, paradigms at a glance | [quick-reference.md](./quick-reference.md) |
@@ -156,7 +156,7 @@ For `packages/admin` and operator dashboards, do not treat the Warm Earth langua
 
 ## Working with AI Design Tools
 
-The platforms come and go (Stitch, Codex Design, Figma Make, Antigravity, whatever ships next quarter). The contract is platform-agnostic:
+The platforms come and go (Stitch, Claude Design, Figma Make, Antigravity, whatever ships next quarter). The contract is platform-agnostic:
 
 1. **Feed the right context** — root `DESIGN.md` + the matching surface DESIGN.md (`packages/admin/DESIGN.md`, `packages/client/DESIGN.pwa.md`, `packages/client/DESIGN.browser.md`, or `docs/DESIGN.md`) + the matching prompt contract when one exists (`prompt-contract.md` admin / `client-prompt-contract.md` client).
 2. **One screen per pass** — quality degrades when multiple screens get bundled into a single prompt.

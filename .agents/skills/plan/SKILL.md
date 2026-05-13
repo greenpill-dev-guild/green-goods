@@ -1,14 +1,14 @@
 ---
 name: plan
 user-invocable: false
-description: Planning & Execution — fires passively when the user describes planning or orchestration intent. Creates structured implementation plans, checks progress, executes in batches, manages lifecycle, and coordinates mixed Codex+Codex agent teams. Fire when the user says 'plan this', 'break down X', 'orchestrate', 'coordinate a team', 'parallel lanes', 'spawn teammates', 'fire off agents', 'mixed codex and Codex', or describes cross-package / multi-lane implementation work.
+description: Planning & Execution — fires passively when the user describes planning or orchestration intent. Creates structured implementation plans, checks progress, executes in batches, manages lifecycle, and coordinates mixed Claude+Codex agent teams. Fire when the user says 'plan this', 'break down X', 'orchestrate', 'coordinate a team', 'parallel lanes', 'spawn teammates', 'fire off agents', 'mixed agent team', or describes cross-package / multi-lane implementation work.
 argument-hint: "[feature-name]"
-version: "1.2.1"
+version: "1.2.3"
 status: active
 packages: ["all"]
 dependencies: []
-last_updated: "2026-05-01"
-last_verified: "2026-05-01"
+last_updated: "2026-05-10"
+last_verified: "2026-05-10"
 ---
 
 # Plan Skill
@@ -30,12 +30,12 @@ This skill is **passive-only**. There is no `/plan` slash command. Fire automati
 Any of these route directly to [teams.md](./teams.md):
 
 - Words/phrases: `orchestrate`, `coordinate a team`, `team of agents`, `spawn teammates`, `parallel lanes`, `fire off agents`, `multi-agent`, `run this in parallel`
-- "mixed codex and Codex" / "Codex team agents plus codex" / "some lanes with codex"
+- "mixed codex and claude" / "claude team agents plus codex" / "some lanes with codex"
 - Cross-package work spanning 3+ packages (contracts + shared + client/admin)
 - Competing hypotheses to investigate in parallel
 - New module with independent pieces buildable concurrently
 
-Action: run `bash .claude/scripts/check-agent-teams-readiness.sh` → compose team → assign lanes → spawn teammates (Codex-only or codex-driving per [teams.md § Part 11](./teams.md#part-11-codex-lanes--teammates-that-dispatch-codex)).
+Action: run `bash .claude/scripts/check-agent-teams-readiness.sh` → compose team → assign lanes → spawn teammates (Claude-only or codex-driving per [teams.md § Part 11](./teams.md#part-11-codex-lanes--teammates-that-dispatch-codex)).
 
 ### Standard planning signals → Default mode
 
@@ -94,7 +94,7 @@ Minimum files:
 - `handoffs/`
 
 `status.json` is the machine-readable contract for automations. The Markdown files stay optimized for humans.
-Implementation lanes (`ui`, `state_api`, `contracts`) are proof-gated for behavior work:
+Implementation lanes (`ui`, `state_api`, `contracts`) are proof-gated for behavior-changing work.
 
 - Use the `testing` skill as the RED/GREEN source of truth.
 - Record detailed RED/GREEN proof in the lane handoff.
@@ -106,7 +106,9 @@ Implementation lanes (`ui`, `state_api`, `contracts`) are proof-gated for behavi
 ```markdown
 # [Feature Name] Plan
 
-**GitHub Issue**: #[number]
+**Linear Issue**: PRD-### (optional)
+**Linear Project**: [bounded project name] (optional)
+**Linear Source**: source:plans (only when mirrored to Linear)
 **Feature Slug**: `feature-slug`
 **Status**: ACTIVE | BLOCKED | IMPLEMENTED | SUPERSEDED
 **Supersedes**: [link to old plan if applicable]
@@ -155,16 +157,22 @@ Implementation lanes (`ui`, `state_api`, `contracts`) are proof-gated for behavi
 - [ ] Build succeeds
 ```
 
+Linear metadata is optional. Do not create or require a Linear issue for every plan. Add
+`Linear Issue`, `Linear Project`, and `Linear Source` only when the `.plans` item needs
+roadmap visibility, cross-functional coordination, stakeholder tracking, or accepted
+execution/research tracking. When a `.plans` item is mirrored to Linear, the Linear record
+must use `source:plans`.
+
 Machine-readable lane state belongs in `.plans/active/<feature-slug>/status.json`, for example:
 
 ```json
 {
   "feature": { "slug": "feature-slug", "stage": "active" },
   "lanes": {
-    "ui": { "owner": "Codex", "status": "ready", "branch": "Codex/ui/feature-slug" },
+    "ui": { "owner": "claude", "status": "ready", "branch": "claude/ui/feature-slug" },
     "state_api": { "owner": "codex", "status": "ready", "branch": "codex/state-api/feature-slug" },
     "contracts": { "owner": "codex", "status": "n/a", "branch": "codex/contracts/feature-slug" },
-    "qa_pass_1": { "owner": "Codex", "status": "blocked", "depends_on": ["ui", "state_api", "contracts"] },
+    "qa_pass_1": { "owner": "claude", "status": "blocked", "depends_on": ["ui", "state_api", "contracts"] },
     "qa_pass_2": { "owner": "codex", "status": "blocked", "depends_on": ["qa_pass_1"] }
   }
 }
@@ -215,6 +223,25 @@ Implementation steps must be granular enough for agents to execute reliably. Fol
 
 ## Part 3: Execute Plan
 
+### Implementation Start Gate
+
+For active implementation work, Linear sync is the default first step before code changes or
+agent dispatch.
+
+1. Run `node scripts/harness/plan-hub.mjs linear-sync --feature <feature-slug> --json`.
+2. If the manifest shows a missing parent or actionable lane issue, create or update the Linear
+   mirror before work begins. Parent and lane issues must carry `source:plans` and
+   `protocol:green-goods`; use Linear only for visibility, prioritization, and coordination.
+3. Record the canonical identifiers back to the hub with
+   `node scripts/harness/plan-hub.mjs record-linear --feature <feature-slug> --parent PRD-123 --lane ui=PRD-124 --actor <agent>`.
+4. Keep `.plans/<stage>/<feature-slug>/status.json` as execution truth. Lane status, TDD proof,
+   handoffs, and validation evidence belong in `.plans` first.
+
+Any prompt for an agent starting active implementation work should begin with the same
+`linear-sync` gate and require `record-linear` once Linear IDs exist. Backlog and idea hubs only
+need this when they are promoted, accepted for execution, or need cross-functional research
+tracking.
+
 ### Batch Execution
 
 **Default batch size**: 3 tasks
@@ -246,27 +273,55 @@ LOAD → EXECUTE BATCH → REPORT → PAUSE → CONTINUE/FINISH
 
 ---
 
-## Part 4: GitHub Integration
+## Part 4: Linear and PR Integration
 
-### Link Issue to Plan
+`.plans` remains the Green Goods execution truth. Linear is a visibility and coordination mirror,
+not a replacement for the feature hub. Do not use GitHub's issue tracker for backlog work; GitHub
+PRs remain valid for code review and implementation discussion.
+
+### When to Mirror a Plan to Linear
+
+Mirror only when the work needs one or more of:
+
+- roadmap visibility
+- cross-functional coordination
+- stakeholder tracking
+- accepted execution tracking
+- accepted research tracking
+
+Do not mirror small local fixes, exploratory notes, or implementation details that can live only
+in `.plans`.
+
+### Linear Metadata
 
 ```markdown
 # Plan Header
-**GitHub Issue**: #123
-**Closes**: #123
+**Linear Issue**: PRD-123
+**Linear Project**: GreenWill Reputation & Identity
+**Linear Source**: source:plans
 ```
 
-### Update Progress
+Rules:
 
-```bash
-gh issue comment [NUMBER] --body "## Progress: Steps 1-3 complete"
-```
+- Use `source:plans` whenever the Linear record mirrors a `.plans` item.
+- Attach a bounded active Linear project only when the plan scope clearly matches it.
+- Do not route new work into completed/staging umbrella projects such as `Green Goods`,
+  `Coop`, `Network Website`, or `Cookie Jar`.
+- If no active bounded project clearly matches, leave the Linear issue unprojected and correctly
+  labeled.
+- Use only these label namespaces: `protocol:*`, `package:*`, `activity:*`, `task:*`,
+  `funding:*`, `source:*`, `agent:*`.
 
-### On Completion
+### Progress Updates
 
-```bash
-gh issue close [NUMBER] --comment "All steps complete, PR ready"
-```
+Update `.plans/.../status.json` and the plan files first. If a Linear issue exists, mirror only
+the safe, stakeholder-relevant status. Do not paste private identifiers, debugging links, replay
+URLs, wallet addresses, or sensitive security detail into public Linear bodies or comments.
+
+### PR Linkage
+
+PR descriptions may link the `.plans` hub and the Linear issue. Use neutral references such as
+`Refs PRD-123` or a Links section. Do not use issue-closing footers for backlog closure.
 
 ---
 
@@ -295,9 +350,9 @@ BLOCKED → ACTIVE        (dependency resolved)
 
 5. **Stale plan cleanup**: Periodically audit `.plans/` — any plan untouched for 14+ days should be reviewed. Either update its status, confirm it's still active, or delete it.
 
-6. **No meeting notes in `.plans/`**: Raw transcripts and meeting notes go in `notes/` or issue comments, not `.plans/`. Plans must be actionable specs.
+6. **No meeting notes in `.plans/`**: Raw transcripts and meeting notes go in `notes/`, Customer Needs, or safe comments on linked Linear/PR records, not `.plans/`. Plans must be actionable specs.
 
-7. **No audit reports in `.plans/`**: Point-in-time audit findings go in issue comments or a separate `audits/` directory if needed for record-keeping, not mixed with implementation plans.
+7. **No audit reports in implementation hubs**: Point-in-time audit findings go in `.plans/audits/` or accepted Linear records after approval, not mixed with feature implementation plans.
 
 ### Scope Discipline
 
@@ -305,7 +360,7 @@ Plans with >15 locked decisions likely need splitting. Separate **vision/archite
 
 | Document Type | Decision Count | Location |
 |---------------|---------------|----------|
-| Architecture spec | Unlimited | `docs/specs/` or issue |
+| Architecture spec | Unlimited | `docs/specs/` or Linear project/issue document |
 | Implementation plan | 5-15 decisions | `.plans/active/<feature-slug>/plan.todo.md` |
 | Task checklist | 0 decisions | `.plans/active/<feature-slug>/plan.todo.md` |
 | Evaluation plan | 0-10 gates | `.plans/active/<feature-slug>/eval.md` |
@@ -324,7 +379,7 @@ The numbered decision table with rationale is the most effective planning patter
 | 2 | Manual harvest only (Phase 1) | Simpler to build and debug |
 ```
 
-This gives Codex and future contributors unambiguous constraints without reading 200 lines of prose.
+This gives Claude and future contributors unambiguous constraints without reading 200 lines of prose.
 
 ---
 

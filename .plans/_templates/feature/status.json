@@ -18,6 +18,14 @@
     "plan": "plan.todo.md",
     "eval": "eval.md"
   },
+  "linear": {
+    "parentIssue": null,
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": null,
+    "lanes": {}
+  },
   "taxonomy": {
     "initiative": "engineering-quality",
     "tracks": [],

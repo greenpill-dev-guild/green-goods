@@ -1,31 +1,17 @@
 /* ============================================================================
  * Editorial tokens — browser dialect only.
  *
- * Adds the public-browser editorial palette on top of the shared Warm Earth
- * role tokens (canvas / ink / stone / accent green). Imported only by
+ * Adds editorial-specific surfaces (proof-band linen, walnut Get-In-Touch)
+ * on top of the shared Warm Earth role tokens. Imported only by
  * packages/client/src/index.css; admin and the installed PWA never see these.
  *
- * Two layers:
- *   1. Domain palette — per-domain ink + soft surface for filter chips and
- *      editorial plates on /actions, /impact, /gardens. Reserves the green
- *      accent for CTAs by giving each domain its own color identity.
- *   2. Editorial surfaces — warm linen (proof band) and walnut (Get In
- *      Touch). Browser editorial only; admin keeps solid surfaces.
+ * The action domain palette (solar / agro / education / waste) lives in
+ * packages/shared/src/styles/theme.css now, so admin work filters and the
+ * client PWA reach for the same per-domain ink + soft surfaces as these
+ * editorial pages do.
  * ============================================================================ */
 
 :root {
-  /* === Domain palette (RGB triplets) ===
-   * Used as foreground ink and as soft surface backgrounds for chips,
-   * plates, and accent rules. */
-  --domain-solar-rgb: 160 90 44; /* warm umber */
-  --domain-solar-soft-rgb: 248 237 224; /* pale amber */
-  --domain-agro-rgb: 62 85 50; /* deep moss */
-  --domain-agro-soft-rgb: 234 239 226; /* pale sage */
-  --domain-education-rgb: 74 69 100; /* slate violet */
-  --domain-education-soft-rgb: 235 232 240; /* pale violet */
-  --domain-waste-rgb: 46 79 107; /* harbour blue */
-  --domain-waste-soft-rgb: 226 234 240; /* pale harbour */
-
   /* === Editorial surfaces (RGB triplets) === */
   --editorial-warm-rgb: 241 236 226; /* proof band linen */
   --editorial-deep-rgb: 45 33 24; /* walnut */
@@ -49,19 +35,9 @@
 }
 
 @theme {
-  /* === Domain palette (Tailwind utilities) ===
-   * Generates: bg-domain-solar, text-domain-solar, border-domain-solar,
-   * bg-domain-solar-soft, etc., for each of solar / agro / education / waste. */
-  --color-domain-solar: rgb(var(--domain-solar-rgb));
-  --color-domain-solar-soft: rgb(var(--domain-solar-soft-rgb));
-  --color-domain-agro: rgb(var(--domain-agro-rgb));
-  --color-domain-agro-soft: rgb(var(--domain-agro-soft-rgb));
-  --color-domain-education: rgb(var(--domain-education-rgb));
-  --color-domain-education-soft: rgb(var(--domain-education-soft-rgb));
-  --color-domain-waste: rgb(var(--domain-waste-rgb));
-  --color-domain-waste-soft: rgb(var(--domain-waste-soft-rgb));
-
-  /* === Editorial surfaces (Tailwind utilities) === */
+  /* === Editorial surfaces (Tailwind utilities) ===
+   * The domain palette utilities (bg-domain-solar, etc.) come from the
+   * shared theme.css @theme block — see the comment at the top of the file. */
   --color-editorial-warm: rgb(var(--editorial-warm-rgb));
   --color-editorial-deep: rgb(var(--editorial-deep-rgb));
   --color-editorial-deep-fg: rgb(var(--editorial-deep-fg-rgb));
@@ -93,6 +69,19 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+/*
+ * No `from` keyframe — when a close starts mid-open, the animation picks up
+ * from the children's current computed opacity / translate so they don't
+ * snap to opacity:1 before fading. CSS spec: an omitted 0% keyframe is
+ * synthesized from the element's current computed values.
+ */
+@keyframes editorial-fade-down {
+  to {
+    opacity: 0;
+    transform: translateY(8px);
   }
 }
 
@@ -210,6 +199,61 @@
   }
 
   /*
+   * Inner cascade — direct children of `.editorial-cascade` fade up in
+   * sequence once an ancestor `[data-revealed="true"]` is present. Pair with
+   * `.editorial-section-reveal` on the section root: the section block rises
+   * first (300ms), then its `.editorial-cascade` children settle in 80ms
+   * apart so the eye reads top-to-bottom rather than the whole block
+   * appearing at once. Apply `.editorial-cascade` to whatever wrapper holds
+   * the children you want to cascade — typically the section's content grid
+   * or its `<header>`.
+   *
+   * Cadence note — 80ms intra-cascade delay is intentionally slower than
+   * the dialog body stagger's 70ms (`.public-garden-dialog-stagger` below).
+   * The dialog opens in response to a deliberate click and benefits from a
+   * tighter, more responsive unfold. Editorial reveals fire on scroll —
+   * ambient, not user-triggered — so an extra 10ms reads as more cinematic
+   * and less rushed. Don't unify these unless one of the surfaces' contexts
+   * changes.
+   *
+   * Child-count cap — if a cascade wrapper grows past 6 direct children,
+   * the `nth-child(n + 7)` fallback bunches everything 7+ at 480ms delay.
+   * For ≤6 it's a clean 0/80/160/240/320/400 ms cascade. Today no cascade
+   * surface exceeds 3 children, so the cap is comfortable headroom.
+   *
+   * Reduced motion is handled at the bottom of the file.
+   */
+  .editorial-cascade > * {
+    opacity: 0;
+  }
+
+  [data-revealed="true"] .editorial-cascade > * {
+    animation: editorial-fade-up var(--spring-spatial-duration, 300ms)
+      var(--spring-spatial-easing, ease-out) both;
+  }
+  [data-revealed="true"] .editorial-cascade > *:nth-child(1) {
+    animation-delay: 0ms;
+  }
+  [data-revealed="true"] .editorial-cascade > *:nth-child(2) {
+    animation-delay: 80ms;
+  }
+  [data-revealed="true"] .editorial-cascade > *:nth-child(3) {
+    animation-delay: 160ms;
+  }
+  [data-revealed="true"] .editorial-cascade > *:nth-child(4) {
+    animation-delay: 240ms;
+  }
+  [data-revealed="true"] .editorial-cascade > *:nth-child(5) {
+    animation-delay: 320ms;
+  }
+  [data-revealed="true"] .editorial-cascade > *:nth-child(6) {
+    animation-delay: 400ms;
+  }
+  [data-revealed="true"] .editorial-cascade > *:nth-child(n + 7) {
+    animation-delay: 480ms;
+  }
+
+  /*
    * Public Garden dialog — Radix Dialog rendered as a modal route over the
    * Gardens index. The hero image inside carries a per-garden
    * `view-transition-name` matching the clicked card; PublicGardenCard
@@ -255,7 +299,6 @@
       transform: translate(-50%, -50%);
       width: min(calc(100vw - 4rem), 56rem);
       max-height: calc(100vh - 4rem);
-      border-radius: 0.5rem;
       overflow: hidden;
       box-shadow: var(--shadow-editorial-panel, 0 24px 64px rgba(0, 0, 0, 0.18));
     }
@@ -274,7 +317,24 @@
    * `both` fill so the children stay invisible during their delay window
    * (otherwise React renders them at full opacity for a frame before the
    * animation kicks in — the stutter Afo flagged).
+   *
+   * Cadence note — 70ms is intentionally tighter than the editorial scroll
+   * cascade's 80ms (`.editorial-cascade` above). The dialog opens in
+   * response to a deliberate click; a snappier unfold reads as responsive
+   * to the user's action. The scroll cascade is ambient, so 80ms reads as
+   * more cinematic. Don't unify unless the trigger context changes.
+   *
+   * Belt-and-braces: also default the children to `opacity: 0` regardless
+   * of whether the `[data-state="open"]` parent selector has matched yet.
+   * Without this, there's a one-frame race where Radix attaches
+   * `data-state="open"` and the matching animation rule applies, but the
+   * browser may have already painted the children at default opacity 1.
+   * The reduced-motion block below restores `opacity: 1 !important`.
    */
+  .public-garden-dialog-stagger > * {
+    opacity: 0;
+  }
+
   .public-garden-dialog[data-state="open"] .public-garden-dialog-stagger > * {
     animation: editorial-fade-up var(--spring-spatial-duration, 300ms)
       var(--spring-spatial-easing, ease-out) both;
@@ -299,6 +359,48 @@
   }
   .public-garden-dialog[data-state="open"] .public-garden-dialog-stagger > *:nth-child(n + 7) {
     animation-delay: 620ms;
+  }
+
+  /*
+   * Close choreography — driven by GardenDialog setting `data-closing="true"`
+   * on the Content while we wait for body content to evacuate before
+   * navigating (route change + reverse view-transition). Reverses stagger
+   * direction (bottom-up) so the action row leaves first and the title
+   * settles out last; faster cadence (50ms) and shorter per-child duration
+   * (180ms via `--spring-effects-fast-duration`) so the close reads as
+   * snappier than the deliberate open. Same specificity as the open rules
+   * above — these MUST stay below them so cascade order applies.
+   *
+   * Worst-case total = `:nth-last-child(n+7)` delay + duration =
+   * 300 + 180 = 480ms. `CLOSE_STAGGER_DURATION_MS` in `GardenDialog.tsx`
+   * mirrors that and must stay in sync.
+   */
+  .public-garden-dialog[data-closing="true"] .public-garden-dialog-stagger > * {
+    animation: editorial-fade-down var(--spring-effects-fast-duration, 180ms)
+      var(--spring-effects-fast-easing, ease-in) both;
+  }
+  .public-garden-dialog[data-closing="true"] .public-garden-dialog-stagger > *:nth-last-child(1) {
+    animation-delay: 0ms;
+  }
+  .public-garden-dialog[data-closing="true"] .public-garden-dialog-stagger > *:nth-last-child(2) {
+    animation-delay: 50ms;
+  }
+  .public-garden-dialog[data-closing="true"] .public-garden-dialog-stagger > *:nth-last-child(3) {
+    animation-delay: 100ms;
+  }
+  .public-garden-dialog[data-closing="true"] .public-garden-dialog-stagger > *:nth-last-child(4) {
+    animation-delay: 150ms;
+  }
+  .public-garden-dialog[data-closing="true"] .public-garden-dialog-stagger > *:nth-last-child(5) {
+    animation-delay: 200ms;
+  }
+  .public-garden-dialog[data-closing="true"] .public-garden-dialog-stagger > *:nth-last-child(6) {
+    animation-delay: 250ms;
+  }
+  .public-garden-dialog[data-closing="true"]
+    .public-garden-dialog-stagger
+    > *:nth-last-child(n + 7) {
+    animation-delay: 300ms;
   }
 
   .public-install-overlay[data-state="open"] {
@@ -337,7 +439,8 @@
     .editorial-fade-up-2,
     .editorial-fade-up-3,
     .public-install-overlay[data-state],
-    .public-install-sheet[data-state] {
+    .public-install-sheet[data-state],
+    .public-garden-dialog-overlay[data-state] {
       animation: none;
       opacity: 1;
     }
@@ -346,6 +449,13 @@
       opacity: 1;
       transform: none;
       transition: none;
+    }
+
+    .editorial-cascade > *,
+    [data-revealed="true"] .editorial-cascade > * {
+      animation: none !important;
+      opacity: 1 !important;
+      transform: none !important;
     }
 
     .public-garden-dialog .public-garden-dialog-stagger > * {

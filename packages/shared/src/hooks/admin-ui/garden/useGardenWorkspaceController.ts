@@ -5,11 +5,12 @@ import {
   parseGardenRange,
   useAdminGardenWorkspaceSelection,
   useCanvasSearchParams,
-  useFabConfig,
   useGardenDerivedState,
   useGardenDetailData,
   useGardenStateStore,
+  useMediaQuery,
   useSheetWidth,
+  useViewActions,
 } from "@green-goods/shared";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
@@ -18,7 +19,7 @@ import {
   resolveAdminWorkspaceSectionRoute,
   type AdminWorkspaceSectionTab,
 } from "../navigation/workspaceNavigation";
-import { buildGardenFabConfig, resolveGardenView } from "./garden.utils";
+import { buildGardenViewActions, resolveGardenView } from "./garden.utils";
 import {
   bindCanvasScrollPositionPersistence,
   restoreCanvasScrollPosition,
@@ -44,6 +45,7 @@ export function useGardenWorkspaceController() {
   const setGardenWorkspaceState = useGardenStateStore((state) => state.setGardenWorkspaceState);
   const lastHydratedGardenStateKeyRef = useRef<string | null>(null);
   const [activityFilter, setActivityFilterState] = useState<ActivityFilter>("all");
+  const [domainEditorOpen, setDomainEditorOpen] = useState(false);
 
   const view = resolveGardenView(location.pathname);
   const range = parseGardenRange(searchParams.get("range"));
@@ -105,15 +107,27 @@ export function useGardenWorkspaceController() {
     roleMembers,
   } = useGardenDetailData(selectedGarden?.id);
 
-  useFabConfig(
-    useMemo(
-      () =>
-        buildGardenFabConfig(view, canManage, Boolean(selectedGarden), navigate, {
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
+  const openDomainEditor = useCallback(() => setDomainEditorOpen(true), []);
+  const closeDomainEditor = useCallback(() => setDomainEditorOpen(false), []);
+  const viewActions = useMemo(
+    () =>
+      buildGardenViewActions(
+        view,
+        canManage,
+        Boolean(selectedGarden),
+        navigate,
+        {
           gardenAddress: selectedGardenAddress,
-        }),
-      [canManage, navigate, selectedGarden, selectedGardenAddress, view]
-    )
+        },
+        openDomainEditor
+      ),
+    [canManage, navigate, openDomainEditor, selectedGarden, selectedGardenAddress, view]
   );
+  const { desktopActions } = useViewActions({
+    actions: viewActions,
+    isDesktop,
+  });
 
   const openSection = useCallback(
     (tab: AdminWorkspaceSectionTab, nextSection: string, itemId?: string) => {
@@ -256,6 +270,8 @@ export function useGardenWorkspaceController() {
     community,
     containerRef,
     derived,
+    desktopActions,
+    domainEditorOpen,
     error,
     fetching,
     fetchingAssessments,
@@ -267,6 +283,8 @@ export function useGardenWorkspaceController() {
     hypercertId,
     hypercerts,
     isOwner,
+    closeDomainEditor,
+    openDomainEditor,
     openSection,
     range,
     section,

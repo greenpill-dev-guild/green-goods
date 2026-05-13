@@ -116,10 +116,7 @@ export function DevAuthProvider({
       switchToPasskey: noopSync,
       retry: noopSync,
       dismissError: noopSync,
-      signInWithPasskey: noop,
-      createPasskey: noop,
       clearPasskey: noopSync,
-      connectWallet: noopSync,
       disconnectWallet: async () => {
         persistMockRole("disconnected");
         const url = new URL(window.location.href);

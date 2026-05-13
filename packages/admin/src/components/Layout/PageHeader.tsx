@@ -65,7 +65,7 @@ export function PageHeader({
             ),
         sticky &&
           (isCanvas
-            ? "sticky top-14 z-sticky bg-bg-weak shadow-[var(--edge-rest)]"
+            ? "sticky top-14 z-sticky bg-[rgb(var(--admin-surface-0))]"
             : "sticky top-14 z-sticky"),
         className
       )}
@@ -89,21 +89,21 @@ export function PageHeader({
           </AdminTooltip>
         ) : null}
 
-        <div
-          className={cn("min-w-0 flex-1", isCanvas ? "space-y-1.5" : "space-y-0.5 sm:space-y-1")}
-        >
+        <div className={cn("min-w-0 flex-1", isCanvas ? "space-y-1" : "space-y-0.5 sm:space-y-1")}>
           {eyebrow ? (
             <div
               data-region="route-header-eyebrow"
-              className="text-[0.6875rem] font-semibold uppercase tracking-[0.06em] text-text-soft"
+              className="text-[0.6875rem] font-semibold uppercase tracking-[0.08em] text-text-soft"
             >
               {eyebrow}
             </div>
           ) : null}
           <h1
             className={cn(
-              "truncate text-headline-lg font-semibold text-text-strong",
-              !isCanvas && "text-lg sm:text-2xl"
+              "truncate text-text-strong",
+              isCanvas
+                ? "text-[1.625rem] font-bold leading-tight tracking-[-0.01em] sm:text-[2rem] lg:text-[2.25rem]"
+                : "text-lg font-semibold sm:text-2xl"
             )}
             title={typeof title === "string" ? title : undefined}
           >
@@ -112,8 +112,8 @@ export function PageHeader({
           {description ? (
             <p
               className={cn(
-                "line-clamp-2",
-                isCanvas ? "text-body-lg text-text-sub" : "text-xs text-text-sub sm:text-sm"
+                "line-clamp-2 text-text-sub",
+                isCanvas ? "text-sm sm:text-[0.9375rem]" : "text-xs sm:text-sm"
               )}
               title={typeof description === "string" ? description : undefined}
             >

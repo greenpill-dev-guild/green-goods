@@ -239,7 +239,7 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
                       key={option}
                       type="button"
                       onClick={() => toggleMultiSelectOption(key, option)}
-                      className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors border ${
+                      className={`min-h-11 px-3 py-2.5 rounded-full text-sm font-medium transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] border ${
                         isSelected
                           ? "bg-primary-base text-primary-accent-foreground border-primary-base"
                           : "bg-bg-weak-50 text-text-sub-600 border-stroke-sub-300 hover:bg-bg-soft-200"
@@ -333,12 +333,12 @@ export const WorkDetails: React.FC<WorkDetailsProps> = ({
           aria-checked={locationEnabled}
           onClick={handleLocationToggle}
           disabled={locationStatus === "loading"}
-          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base ${
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base ${
             locationEnabled ? "bg-primary-base" : "bg-bg-soft-200"
           }`}
         >
           <span
-            className={`inline-block h-4 w-4 rounded-full bg-static-white transition-transform ${
+            className={`inline-block h-4 w-4 rounded-full bg-static-white transition-transform duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] ${
               locationEnabled ? "translate-x-6" : "translate-x-1"
             }`}
           />

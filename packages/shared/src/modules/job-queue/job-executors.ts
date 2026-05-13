@@ -36,12 +36,10 @@ export async function executeWorkJob(
       feedback: payload.feedback,
       media: mediaFiles,
       details: payload.details ?? {},
-      ...(typeof payload.timeSpentMinutes === "number"
-        ? { timeSpentMinutes: payload.timeSpentMinutes }
-        : {}),
+      timeSpentMinutes: payload.timeSpentMinutes ?? 0,
       ...(payload.tags ? { tags: payload.tags } : {}),
       ...(audioFiles.length > 0 ? { audioNotes: audioFiles } : {}),
-    } as any,
+    },
     gardenAddress: payload.gardenAddress,
     actionUID: payload.actionUID,
     actionTitle,
@@ -59,12 +57,10 @@ export async function executeWorkJob(
       feedback: payload.feedback,
       media: mediaFiles,
       details: payload.details ?? {},
-      ...(typeof payload.timeSpentMinutes === "number"
-        ? { timeSpentMinutes: payload.timeSpentMinutes }
-        : {}),
+      timeSpentMinutes: payload.timeSpentMinutes ?? 0,
       ...(payload.tags ? { tags: payload.tags } : {}),
       ...(audioFiles.length > 0 ? { audioNotes: audioFiles } : {}),
-    } as any,
+    },
     chainId,
     {
       gardenAddress: payload.gardenAddress,

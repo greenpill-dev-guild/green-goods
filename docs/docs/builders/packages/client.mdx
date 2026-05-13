@@ -9,8 +9,10 @@ feature_status: Live
 source_of_truth:
   - packages/client/AGENTS.md
   - packages/client/package.json
-  - packages/client/src/router.tsx
+  - packages/client/src/router.config.tsx
+  - packages/client/src/config/pwa-routing.ts
   - packages/client/vite.config.ts
+  - packages/shared/src/modules/app/service-worker-registration.ts
 ---
 
 import {NextBestAction, StatusBadge} from "@site/src/components/docs";
@@ -56,6 +58,20 @@ The client package is the end-user Green Goods web app. It owns browser/public r
 - Use shared auth APIs and app defaults; do not treat wallet chain state as the app source of truth.
 - Manage media object URLs through shared media utilities so preview blobs are cleaned up.
 - Add any user-facing string to `en`, `es`, and `pt`.
+
+## Route ownership
+
+The browser-facing editorial site and the installed app intentionally share the same origin, but not the same route ownership boundary.
+
+- Public/browser routes stay on the public shell: `/`, `/gardens`, `/gardens/:id`, `/fund`, `/impact`, `/actions`, `/cookies`, `/glossary`.
+- Installed PWA routes are canonical under `/home`: `/home`, `/home/login`, `/home/garden`, `/home/profile`, plus garden detail routes under `/home/:id`.
+- Legacy app routes `/login`, `/garden`, and `/profile` are compatibility redirects in PWA presentation mode; browser presentation redirects them back to `/`.
+- The browser-origin manifest keeps `id: "/"` for install migration safety, but scopes the installed PWA to `/home`.
+- IPFS/static builds keep relative assets and hash routing, so the same app routes are represented as `./#/home`, `./#/home/garden`, and `./#/home/profile`.
+
+For production browser-origin builds, the service worker registers at `/home`, preserves the Workbox precache,
+serves the app shell for offline `/home` navigations, and performs a one-time cleanup of legacy root-scoped Green
+Goods service workers.
 
 ## Commands
 

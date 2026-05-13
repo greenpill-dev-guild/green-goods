@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useReadContract } from "wagmi";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import type { Address } from "../../types/domain";
-import { AAVE_V3_POOL_ABI, rayToApy } from "../../utils/blockchain/aave";
+import { AAVE_V3_POOL_ABI, rayToApr, rayToApy } from "../../utils/blockchain/aave";
 import { AAVE_V3_POOL } from "../../utils/blockchain/vaults";
 import { STALE_TIME_SLOW } from "../../config/query-keys";
 
@@ -36,17 +36,18 @@ export function useStrategyRate(assetAddress?: Address, options: UseStrategyRate
   });
 
   const result = useMemo(() => {
-    if (!query.data) return { apy: undefined, liquidityRate: undefined };
+    if (!query.data) return { apr: undefined, apy: undefined, liquidityRate: undefined };
 
     const liquidityRate = query.data.currentLiquidityRate;
+    const apr = rayToApr(liquidityRate);
     const apy = rayToApy(liquidityRate);
 
     // Guard against NaN from unexpected values
-    if (!Number.isFinite(apy)) {
-      return { apy: undefined, liquidityRate };
+    if (!Number.isFinite(apr) || !Number.isFinite(apy)) {
+      return { apr: undefined, apy: undefined, liquidityRate };
     }
 
-    return { apy, liquidityRate };
+    return { apr, apy, liquidityRate };
   }, [query.data]);
 
   return {

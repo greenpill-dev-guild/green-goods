@@ -9,6 +9,7 @@ import { getDefaultChain } from "@green-goods/shared";
 import type { Chain } from "viem";
 import { arbitrum, celo, optimism, sepolia } from "viem/chains";
 import { logger } from "./services/logger";
+import type { CaptureType, TopicAllowlistEntry } from "./types";
 
 // Map chain IDs to viem Chain objects
 const CHAIN_MAP: Record<number, Chain> = {
@@ -28,6 +29,7 @@ export interface Config {
   // Telegram configuration
   telegramToken: string;
   telegramWebhookSecret?: string;
+  captureTopics: TopicAllowlistEntry[];
 
   // Server configuration
   port: number;
@@ -106,6 +108,7 @@ export function loadConfig(): Config {
     // Telegram
     telegramToken,
     telegramWebhookSecret: process.env.TELEGRAM_WEBHOOK_SECRET,
+    captureTopics: loadCaptureTopicsFromEnv(),
 
     // Server
     port: parseInt(process.env.PORT || "3000", 10),
@@ -160,6 +163,78 @@ function parsePositiveInteger(value: string | undefined): number | undefined {
   if (!value?.trim()) return undefined;
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : undefined;
+}
+
+/**
+ * Map of `CaptureType` → env var name. Each env var holds a single topic
+ * identifier in `<chat_id>_<thread_id>` form (matching Telegram's deep-link
+ * convention), e.g. `-1002847752257_311`. The agent's mapping from env-var
+ * name to `inferredType` lives only here.
+ *
+ * Adding a new topic type is two lines: extend `CaptureType` and add an
+ * entry below.
+ */
+const CAPTURE_TYPE_ENV_VARS: Record<CaptureType, string> = {
+  bug: "TELEGRAM_BUGS_TOPIC",
+  idea: "TELEGRAM_IDEAS_TOPIC",
+};
+
+/**
+ * Parse a single topic env var value (`<chat_id>_<thread_id>`) into a
+ * `TopicAllowlistEntry`. Returns `undefined` for unset / malformed values
+ * with a warn log.
+ */
+export function parseTopicEnvVar(
+  envVar: string,
+  rawValue: string | undefined,
+  inferredType: CaptureType
+): TopicAllowlistEntry | undefined {
+  if (!rawValue?.trim()) return undefined;
+  const value = rawValue.trim();
+  const lastUnderscore = value.lastIndexOf("_");
+  if (lastUnderscore <= 0 || lastUnderscore === value.length - 1) {
+    logger.warn(
+      { envVar, value },
+      "Skipping malformed topic env var (expected <chat_id>_<thread_id>)"
+    );
+    return undefined;
+  }
+  const chatId = value.slice(0, lastUnderscore);
+  const threadId = value.slice(lastUnderscore + 1);
+  if (!chatId || !threadId) {
+    logger.warn({ envVar, value }, "Skipping topic env var with empty chat_id or thread_id");
+    return undefined;
+  }
+  return { chatId, threadId, inferredType };
+}
+
+/**
+ * Build the topic allowlist by reading one env var per `CaptureType`.
+ * An unset env var disables capture for that type silently — the bot stays
+ * silent in groups for messages from that topic even with privacy mode off.
+ */
+export function loadCaptureTopicsFromEnv(): TopicAllowlistEntry[] {
+  const entries: TopicAllowlistEntry[] = [];
+  const seen = new Set<string>();
+
+  for (const [type, envVar] of Object.entries(CAPTURE_TYPE_ENV_VARS) as Array<
+    [CaptureType, string]
+  >) {
+    const entry = parseTopicEnvVar(envVar, process.env[envVar], type);
+    if (!entry) continue;
+    const key = `${entry.chatId}:${entry.threadId}`;
+    if (seen.has(key)) {
+      logger.warn(
+        { envVar, value: process.env[envVar] },
+        "Two topic env vars point at the same chat+thread — keeping the first"
+      );
+      continue;
+    }
+    seen.add(key);
+    entries.push(entry);
+  }
+
+  return entries;
 }
 
 function parseCsv(value: string | undefined): string[] | undefined {
@@ -237,7 +312,7 @@ export function validateConfig(config: Config): void {
   }
 
   // Log analytics status
-  if (config.analyticsEnabled) {
+  if (config.analyticsEnabled && config.posthogApiKey) {
     logger.info("Analytics enabled");
   }
 }

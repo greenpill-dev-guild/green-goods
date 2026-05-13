@@ -4,7 +4,7 @@
 
 ## Progress Tracking (REQUIRED)
 
-Use **TodoWrite** when available. If unavailable, keep a Markdown checklist in the response. See `CLAUDE.md` → Session Continuity.
+Use **TodoWrite** when available. If unavailable, keep a Markdown checklist in the response. See `AGENTS.md` → Session Continuity.
 
 ---
 

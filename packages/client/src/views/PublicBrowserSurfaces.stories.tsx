@@ -160,8 +160,15 @@ export const HomeRoute: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(await canvas.findByRole("navigation", { name: "Main navigation" })).toBeVisible();
-    await expect(await canvas.findByRole("link", { name: /green goods logo/i })).toBeVisible();
-    await expect(await canvas.findByRole("heading", { name: "Green Goods" })).toBeVisible();
+    // SiteHeader renders the logo link twice (desktop + mobile drawer), so use
+    // findAllByRole and assert at least one is visible.
+    const logoLinks = await canvas.findAllByRole("link", { name: "Green Goods" });
+    expect(logoLinks.length).toBeGreaterThan(0);
+    await expect(logoLinks[0]).toBeVisible();
+    // Editorial hero title — the lede is part of the rich-formatted H1.
+    await expect(
+      await canvas.findByRole("heading", { name: /good.*intentions.*green.*outcomes/i })
+    ).toBeVisible();
     expect(canvas.queryByTestId("authenticated-nav")).not.toBeInTheDocument();
   },
 };
@@ -181,7 +188,7 @@ export const CookiesRouteShell: Story = {
     const canvas = within(canvasElement);
     await expect(await canvas.findByRole("navigation", { name: "Main navigation" })).toBeVisible();
     await expect(
-      await canvas.findByRole("heading", { name: "Campaign cookie jars" })
+      await canvas.findByRole("heading", { name: /shared.*cookie jars.*seasonal campaign work/i })
     ).toBeVisible();
     expect(canvas.queryByTestId("authenticated-nav")).not.toBeInTheDocument();
   },

@@ -8,6 +8,7 @@ import { GardenCoverFallback } from "./GardenCoverFallback";
 export interface PublicGardenCardProps {
   garden: PublicGardenSummary;
   variant?: "lead" | "default";
+  onImageError?: () => void;
 }
 
 /**
@@ -18,7 +19,11 @@ export interface PublicGardenCardProps {
  * corners, and no shadow. Hover scales the image gently and underlines the
  * link affordance — restraint over flash.
  */
-export function PublicGardenCard({ garden, variant = "default" }: PublicGardenCardProps) {
+export function PublicGardenCard({
+  garden,
+  variant = "default",
+  onImageError,
+}: PublicGardenCardProps) {
   const { formatMessage } = useIntl();
   const isLead = variant === "lead";
   const match = useMatch("/gardens/:id");
@@ -73,6 +78,7 @@ export function PublicGardenCard({ garden, variant = "default" }: PublicGardenCa
           alt={garden.name}
           className="h-full w-full object-cover transition-transform duration-[var(--spring-effects-slow-duration)] ease-[var(--spring-effects-slow-easing)] group-hover:scale-[1.03]"
           backgroundFallback={<GardenCoverFallback name={garden.name} slug={garden.slug} />}
+          onErrorCallback={onImageError}
         />
       </div>
 
@@ -82,7 +88,7 @@ export function PublicGardenCard({ garden, variant = "default" }: PublicGardenCa
 
       <h3
         className={cn(
-          "font-serif font-normal leading-[1.1] tracking-[-0.012em] text-text-strong-950 group-hover:text-primary-action",
+          "font-serif font-normal leading-[1.1] tracking-[-0.012em] text-text-strong-950 transition-[color,transform] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] group-hover:text-primary-action motion-safe:group-hover:-translate-y-px",
           isLead ? "text-2xl md:text-3xl" : "text-xl"
         )}
         title={garden.name}

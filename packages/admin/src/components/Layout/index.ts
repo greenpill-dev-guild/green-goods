@@ -3,7 +3,6 @@ export {
   CanvasRouteContent,
   CanvasRouteFrame,
   CanvasRouteHeader,
-  DEFAULT_CANVAS_ROUTE_HEADER_WIDTH,
 } from "./CanvasRouteFrame";
 export {
   CanvasRouteErrorState,

@@ -8,7 +8,7 @@ parent: plan
 
 Coordinate multiple Claude Code instances working together. One session leads, teammates work independently with their own context, and they communicate directly with each other via a shared task list and messaging.
 
-**References**: [Claude Code Agent Teams docs](https://code.claude.com/docs/agent-teams), `CLAUDE.md`, `.claude/settings.json` (canonical Claude Code settings and hooks surface).
+**References**: [Claude Code Agent Teams docs](https://code.claude.com/docs/agent-teams), `AGENTS.md`, `.claude/settings.json` (canonical Claude Code settings and hooks surface).
 
 > **Experimental feature** — requires `CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS: "1"` in `.claude/settings.json` (already configured for this project).
 
@@ -121,7 +121,7 @@ If the lead starts implementing instead of waiting:
 
 ## Part 4: Spawning Teammates with Context
 
-**Critical**: teammates do NOT inherit the lead's conversation history. They load CLAUDE.md and project context, but task-specific details must be in the spawn prompt.
+**Critical**: teammates do NOT inherit the lead's conversation history. They load AGENTS.md and project context, but task-specific details must be in the spawn prompt.
 
 Good spawn prompt:
 ```
@@ -189,7 +189,7 @@ Tasks can depend on other tasks — a pending task with unresolved dependencies 
 
 ## Part 7: Quality Gates (Hooks)
 
-Two hook types enforce quality when teammates finish work:
+Two hook types enforce quality when teammates finish their assigned work.
 
 ### TeammateIdle Hook
 Runs when a teammate is about to go idle. Exit code 2 sends feedback and keeps them working.

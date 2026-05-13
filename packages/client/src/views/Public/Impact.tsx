@@ -1,25 +1,29 @@
 import {
+  PUBLIC_IMPACT_RECORD_FETCH_CAP,
   type PublicGardenSummary,
   type PublicImpactEvidenceKind,
   type PublicImpactEvidenceRecord,
+  useInViewReveal,
   usePublicGardens,
   usePublicImpactEvidence,
   usePublicStats,
 } from "@green-goods/shared";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import {
   type EditorialDomain,
   EditorialDomainChip,
   EditorialHeading,
   EditorialKicker,
+  EditorialSelect,
+  type EditorialSelectOption,
   EditorialTitleAccent,
 } from "@/components/Public/atoms";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
-import { PublicEvidenceLedgerRow } from "@/components/Public/PublicEvidenceLedgerRow";
+import { PublicEvidenceCard } from "@/components/Public/PublicEvidenceCard";
+import { PublicEvidenceDialog } from "@/components/Public/PublicEvidenceDialog";
 import { PublicEvidencePipeline } from "@/components/Public/PublicEvidencePipeline";
 import { PublicFooter } from "@/components/Public/PublicFooter";
-import { PublicEvidenceDialog } from "@/components/Public/PublicEvidenceDialog";
 import { getPublicHeroImage, publicCuration } from "@/content/publicCuration";
 
 type KindFilter = "all" | PublicImpactEvidenceKind;
@@ -113,7 +117,7 @@ function ProofMarkers({ markers }: { markers: readonly ProofMarker[] }) {
               </span>
             ) : null}
           </dd>
-          <p className="max-w-[18rem] text-xs leading-[1.55] text-text-sub-600">
+          <p className="max-w-[22rem] text-sm leading-[1.55] text-text-sub-600 md:text-base">
             {formatMessage({ id: noteId, defaultMessage: defaultNote })}
           </p>
         </div>
@@ -128,32 +132,34 @@ function ProofMarkers({ markers }: { markers: readonly ProofMarker[] }) {
  * Editorial recomposition:
  *   Hero ("See how Garden work becomes evidence.") → § 01 Proof markers →
  *   § 02 evidence pipeline (Assessment → Work → Impact Certificate) → § 03
- *   evidence ledger with combined Kind + Domain filter row → optional source
- *   dialog → Footer.
+ *   image-forward evidence grid with combined Kind + Domain filter row +
+ *   Prev / Next pagination → optional source dialog → Footer.
  *
  * Cycle order on the pipeline figure follows the user's correction:
  * Assessment first, then Work, then Impact Certificate, with the cycle
  * looping back to a new Assessment.
  */
+
 /**
- * Page size used when the visitor expands the ledger past its default
- * window. The hook still respects the upstream source cap
- * (PUBLIC_IMPACT_RECORD_FETCH_CAP — 100 records per kind today), so this
- * lifts the *page* slice but not the source slice.
+ * Visible cards per page in the evidence grid. 12 fills 4×3 desktop /
+ * 6×2 tablet / 12×1 mobile uniformly.
  */
-const EXPANDED_LEDGER_PAGE_SIZE = 200;
+const LEDGER_PAGE_SIZE = 12;
 
 export default function ImpactPage() {
   const { formatMessage } = useIntl();
   const stats = usePublicStats();
-  const [isLedgerExpanded, setIsLedgerExpanded] = useState(false);
-  const evidence = usePublicImpactEvidence(
-    isLedgerExpanded ? { pageSize: EXPANDED_LEDGER_PAGE_SIZE } : {}
-  );
+  // Pull the full fetched window in one query so kind/domain filtering and
+  // pagination are pure client-side concerns over a stable dataset.
+  const evidence = usePublicImpactEvidence({ pageSize: PUBLIC_IMPACT_RECORD_FETCH_CAP });
   const { data: gardens = [] } = usePublicGardens();
   const [activeRecord, setActiveRecord] = useState<PublicImpactEvidenceRecord | null>(null);
   const [kindFilter, setKindFilter] = useState<KindFilter>("all");
   const [domainFilter, setDomainFilter] = useState<EditorialDomain>("all");
+  const [gardenFilter, setGardenFilter] = useState<string>("all");
+  const [page, setPage] = useState(1);
+  const { ref: proofRef, revealed: proofRevealed } = useInViewReveal<HTMLElement>();
+  const { ref: ledgerRef, revealed: ledgerRevealed } = useInViewReveal<HTMLElement>();
 
   const gardensById = useMemo(() => {
     const map = new Map<string, PublicGardenSummary>();
@@ -176,7 +182,7 @@ export default function ImpactPage() {
   // Combine derived stats into one useMemo so the upstream `records` array
   // doesn't trigger redundant recomputation across separate hooks (Rule 9 in
   // CLAUDE.md — never chain useMemos on the same source).
-  const { counted, filteredRecords } = useMemo(() => {
+  const { counted, filteredRecords, pageRecords, totalPages } = useMemo(() => {
     const records = slice?.records ?? [];
     const byKind: Record<KindFilter, number> = {
       all: records.length,
@@ -188,18 +194,74 @@ export default function ImpactPage() {
       byKind[record.kind] += 1;
     }
     const domainEntry = DOMAIN_FILTERS.find((d) => d.id === domainFilter);
+    const gardenFilterLower = gardenFilter === "all" ? null : gardenFilter.toLowerCase();
     const filtered = records.filter((record) => {
       if (kindFilter !== "all" && record.kind !== kindFilter) return false;
       if (domainEntry && domainEntry.filterId !== "all") {
         if (!recordMatchesDomain(record, domainEntry.filterId)) return false;
       }
+      if (gardenFilterLower && record.gardenId.toLowerCase() !== gardenFilterLower) return false;
       return true;
     });
+    const pages = Math.max(1, Math.ceil(filtered.length / LEDGER_PAGE_SIZE));
+    const safePage = Math.min(Math.max(1, page), pages);
+    const start = (safePage - 1) * LEDGER_PAGE_SIZE;
     return {
       counted: byKind,
       filteredRecords: filtered,
+      pageRecords: filtered.slice(start, start + LEDGER_PAGE_SIZE),
+      totalPages: pages,
     };
-  }, [slice?.records, kindFilter, domainFilter]);
+  }, [slice?.records, kindFilter, domainFilter, gardenFilter, page]);
+
+  // If filters drop the result set below the current page, clamp page back
+  // into range. Pure UI concern — don't reset to 1 on every filter change so
+  // the user keeps their place when results don't shrink.
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
+  const handleKindFilter = (next: KindFilter) => {
+    setKindFilter(next);
+    setPage(1);
+  };
+  const handleDomainFilter = (next: EditorialDomain) => {
+    setDomainFilter(next);
+    setPage(1);
+  };
+  const handleGardenFilter = (next: string) => {
+    setGardenFilter(next);
+    setPage(1);
+  };
+  const resetFilters = () => {
+    setKindFilter("all");
+    setDomainFilter("all");
+    setGardenFilter("all");
+    setPage(1);
+  };
+
+  // Sort gardens alphabetically for the dropdown so the visitor scans
+  // predictably; the data itself comes back in latest-activity order.
+  const gardenOptions = useMemo(
+    () => [...gardens].sort((a, b) => a.name.localeCompare(b.name)),
+    [gardens]
+  );
+  const gardenSelectOptions = useMemo<EditorialSelectOption[]>(
+    () => [
+      {
+        value: "all",
+        label: formatMessage({
+          id: "public.impact.filters.gardenAll",
+          defaultMessage: "All Gardens",
+        }),
+      },
+      ...gardenOptions.map((garden) => ({ value: garden.id, label: garden.name })),
+    ],
+    [gardenOptions, formatMessage]
+  );
+
+  const canPrev = page > 1;
+  const canNext = page < totalPages;
 
   return (
     <>
@@ -226,10 +288,12 @@ export default function ImpactPage() {
       />
 
       <section
-        className="bg-bg-weak-50 px-6 pt-32 pb-16 sm:px-10 sm:pt-36 md:pt-40 md:pb-20"
+        ref={proofRef}
+        data-revealed={proofRevealed}
+        className="editorial-section-reveal bg-bg-weak-50 px-6 pt-32 pb-16 sm:px-10 sm:pt-36 md:pt-40 md:pb-20"
         aria-labelledby="public-impact-proof-title"
       >
-        <div className="mx-auto max-w-7xl">
+        <div className="editorial-cascade mx-auto max-w-7xl">
           <header className="mb-10 border-b border-stroke-soft-200 pb-6">
             <EditorialKicker className="mb-3">
               {formatMessage({
@@ -301,10 +365,12 @@ export default function ImpactPage() {
       />
 
       <section
-        className="bg-editorial-warm px-6 py-20 sm:px-10 md:py-28"
+        ref={ledgerRef}
+        data-revealed={ledgerRevealed}
+        className="editorial-section-reveal bg-editorial-warm px-6 py-20 sm:px-10 md:py-28"
         aria-labelledby="public-impact-ledger-title"
       >
-        <div className="mx-auto max-w-7xl">
+        <div className="editorial-cascade mx-auto max-w-7xl">
           <header className="border-b border-stroke-soft-200 pb-6">
             <EditorialKicker className="mb-3">
               {formatMessage({
@@ -322,16 +388,16 @@ export default function ImpactPage() {
               {formatMessage({
                 id: "public.impact.ledger.intro",
                 defaultMessage:
-                  "Filter by record kind or domain. Each row links to the source: the full assessment, work entry, or certificate behind the line.",
+                  "Filter by record kind or domain. Each card opens its source: the full assessment, work entry, or certificate behind the line.",
               })}
             </p>
           </header>
 
           <nav
-            className="mt-8 flex flex-wrap items-center gap-2"
+            className="mt-8 flex flex-wrap items-center gap-x-2 gap-y-4"
             aria-label={formatMessage({
               id: "public.impact.filters.label",
-              defaultMessage: "Filter evidence by record kind and domain",
+              defaultMessage: "Filter evidence by record kind, domain, and Garden",
             })}
           >
             {KIND_FILTERS.map((entry) => (
@@ -340,40 +406,80 @@ export default function ImpactPage() {
                 domain={entry.domain}
                 active={kindFilter === entry.id}
                 count={counted[entry.id]}
-                onClick={() => setKindFilter(entry.id)}
+                onClick={() => handleKindFilter(entry.id)}
               >
                 {formatMessage({ id: entry.labelId, defaultMessage: entry.defaultLabel })}
               </EditorialDomainChip>
             ))}
-            <span aria-hidden="true" className="mx-2 h-4 w-px bg-stroke-soft-200" />
+            <span aria-hidden="true" className="mx-2 h-4 w-px bg-text-strong-950" />
             {DOMAIN_FILTERS.map((entry) => (
               <EditorialDomainChip
                 key={`domain-${entry.id}`}
                 domain={entry.id}
                 active={domainFilter === entry.id}
-                onClick={() => setDomainFilter(entry.id)}
+                onClick={() => handleDomainFilter(entry.id)}
               >
                 {formatMessage({ id: entry.labelId, defaultMessage: entry.defaultLabel })}
               </EditorialDomainChip>
             ))}
+            <span aria-hidden="true" className="mx-2 h-4 w-px bg-text-strong-950" />
+            <span className="inline-flex items-center gap-2">
+              <span className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-text-soft-400">
+                {formatMessage({
+                  id: "public.impact.filters.garden",
+                  defaultMessage: "Garden",
+                })}
+              </span>
+              {/* Mobile: native picker for OS-level usability + bigger tap
+                  targets. Desktop: editorial-styled dropdown matching the
+                  rest of the dialect. Both wired to the same state. */}
+              <label className="md:hidden">
+                <span className="sr-only">
+                  {formatMessage({
+                    id: "public.impact.filters.garden",
+                    defaultMessage: "Garden",
+                  })}
+                </span>
+                <select
+                  value={gardenFilter}
+                  onChange={(event) => handleGardenFilter(event.target.value)}
+                  className="cursor-pointer border-b border-stroke-soft-200 bg-transparent pb-1 font-serif text-sm text-text-strong-950 transition-colors duration-[var(--spring-effects-duration)] ease-[var(--spring-effects-easing)] focus:border-primary-action focus:outline-none"
+                >
+                  {gardenSelectOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <span className="hidden md:inline-flex">
+                <EditorialSelect
+                  value={gardenFilter}
+                  onValueChange={handleGardenFilter}
+                  options={gardenSelectOptions}
+                  ariaLabel={formatMessage({
+                    id: "public.impact.filters.garden",
+                    defaultMessage: "Garden",
+                  })}
+                />
+              </span>
+            </span>
           </nav>
 
           {evidence.isLoading ? (
-            <ul className="mt-12 flex flex-col" aria-hidden="true">
-              {[0, 1, 2].map((i) => (
-                <li
-                  key={i}
-                  className="flex items-stretch gap-4 border-b border-stroke-soft-200 py-5 last:border-b-0 sm:gap-6 sm:py-6"
-                >
-                  <div className="h-20 w-20 shrink-0 animate-pulse bg-editorial-warm sm:h-28 sm:w-28" />
-                  <div className="flex flex-1 flex-col gap-3 py-1">
-                    <div className="h-3 w-24 animate-pulse bg-stroke-soft-200/60" />
-                    <div className="h-5 w-3/4 animate-pulse bg-stroke-soft-200/60" />
-                    <div className="h-3 w-1/2 animate-pulse bg-stroke-soft-200/40" />
-                  </div>
-                </li>
+            <div
+              className="mt-12 grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3"
+              aria-hidden="true"
+            >
+              {[0, 1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="flex flex-col gap-4">
+                  <div className="aspect-[3/2] w-full animate-pulse bg-bg-weak-50" />
+                  <div className="h-3 w-24 animate-pulse bg-stroke-soft-200/60" />
+                  <div className="h-5 w-3/4 animate-pulse bg-stroke-soft-200/60" />
+                  <div className="h-3 w-1/2 animate-pulse bg-stroke-soft-200/40" />
+                </div>
               ))}
-            </ul>
+            </div>
           ) : slice && slice.status === "error" ? (
             <p className="mt-12 max-w-2xl border-l-2 border-text-soft-400 bg-bg-white-0 px-4 py-3 text-sm text-text-sub-600">
               {formatMessage({
@@ -405,11 +511,8 @@ export default function ImpactPage() {
                 <div className="mt-5">
                   <button
                     type="button"
-                    onClick={() => {
-                      setKindFilter("all");
-                      setDomainFilter("all");
-                    }}
-                    className="inline-flex items-center gap-2 border-b border-primary-action/35 pb-0.5 text-sm font-medium text-primary-action transition-colors hover:border-primary-action-hover hover:text-primary-action-hover"
+                    onClick={resetFilters}
+                    className="inline-flex cursor-pointer items-center gap-2 border-b border-primary-action/35 pb-0.5 text-sm font-medium text-primary-action transition-colors hover:border-primary-action-hover hover:text-primary-action-hover"
                   >
                     {formatMessage({
                       id: "public.impact.evidence.resetFilters",
@@ -421,20 +524,66 @@ export default function ImpactPage() {
               ) : null}
             </div>
           ) : (
-            <ul className="mt-8">
-              {filteredRecords.map((record) => {
-                const garden = gardensById.get(record.gardenId.toLowerCase());
-                return (
-                  <PublicEvidenceLedgerRow
-                    key={record.id}
-                    record={record}
-                    gardenImage={garden?.bannerImage}
-                    gardenLocation={garden?.location}
-                    onOpen={setActiveRecord}
-                  />
-                );
-              })}
-            </ul>
+            <>
+              <div className="mt-12 grid grid-cols-1 gap-12 sm:grid-cols-2 lg:grid-cols-3">
+                {pageRecords.map((record) => {
+                  const garden = gardensById.get(record.gardenId.toLowerCase());
+                  return (
+                    <PublicEvidenceCard
+                      key={record.id}
+                      record={record}
+                      gardenImage={garden?.bannerImage}
+                      gardenLocation={garden?.location}
+                      onOpen={setActiveRecord}
+                    />
+                  );
+                })}
+              </div>
+
+              {totalPages > 1 ? (
+                <nav
+                  className="mt-12 flex items-center justify-between gap-4 border-t border-stroke-soft-200 pt-6"
+                  aria-label={formatMessage({
+                    id: "public.impact.pagination.label",
+                    defaultMessage: "Evidence ledger pagination",
+                  })}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={!canPrev}
+                    className="inline-flex cursor-pointer items-center gap-2 border-b border-primary-action/35 pb-0.5 text-sm font-medium text-primary-action transition-colors hover:border-primary-action-hover hover:text-primary-action-hover disabled:cursor-not-allowed disabled:border-stroke-soft-200 disabled:text-text-soft-400 disabled:hover:border-stroke-soft-200 disabled:hover:text-text-soft-400"
+                  >
+                    <span aria-hidden="true">←</span>
+                    {formatMessage({
+                      id: "public.impact.pagination.prev",
+                      defaultMessage: "Prev",
+                    })}
+                  </button>
+                  <p className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-text-soft-400">
+                    {formatMessage(
+                      {
+                        id: "public.impact.pagination.pageOf",
+                        defaultMessage: "Page {page} of {total}",
+                      },
+                      { page, total: totalPages }
+                    )}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={!canNext}
+                    className="inline-flex cursor-pointer items-center gap-2 border-b border-primary-action/35 pb-0.5 text-sm font-medium text-primary-action transition-colors hover:border-primary-action-hover hover:text-primary-action-hover disabled:cursor-not-allowed disabled:border-stroke-soft-200 disabled:text-text-soft-400 disabled:hover:border-stroke-soft-200 disabled:hover:text-text-soft-400"
+                  >
+                    {formatMessage({
+                      id: "public.impact.pagination.next",
+                      defaultMessage: "Next",
+                    })}
+                    <span aria-hidden="true">→</span>
+                  </button>
+                </nav>
+              ) : null}
+            </>
           )}
 
           {slice?.partialData ? (
@@ -455,37 +604,20 @@ export default function ImpactPage() {
             </div>
           ) : null}
           {slice?.sourceLimitReached ? (
-            <div className="mt-6 border-t border-stroke-soft-200 pt-6">
-              <div className="flex flex-wrap items-end justify-between gap-4">
-                <div className="max-w-2xl">
-                  <p className="font-mono text-[10.5px] font-medium uppercase tracking-[0.18em] text-text-soft-400">
-                    {formatMessage({
-                      id: "public.impact.evidence.sourceLimitKicker",
-                      defaultMessage: "Source limit reached",
-                    })}
-                  </p>
-                  <p className="mt-2 font-serif text-base italic leading-[1.55] text-text-sub-600 md:text-lg">
-                    {formatMessage({
-                      id: "public.impact.evidence.sourceLimitReached",
-                      defaultMessage:
-                        "We're showing a capped slice for v1; deeper history will arrive as aggregation matures.",
-                    })}
-                  </p>
-                </div>
-                {!isLedgerExpanded ? (
-                  <button
-                    type="button"
-                    onClick={() => setIsLedgerExpanded(true)}
-                    className="inline-flex items-center gap-2 border-b border-domain-agro/40 pb-0.5 text-sm font-medium text-domain-agro transition-colors hover:border-domain-agro"
-                  >
-                    {formatMessage({
-                      id: "public.impact.evidence.viewArchive",
-                      defaultMessage: "Show all loaded entries",
-                    })}
-                    <span aria-hidden="true">→</span>
-                  </button>
-                ) : null}
-              </div>
+            <div className="mt-6 max-w-2xl border-t border-stroke-soft-200 pt-6">
+              <p className="font-mono text-[10.5px] font-medium uppercase tracking-[0.18em] text-text-soft-400">
+                {formatMessage({
+                  id: "public.impact.evidence.sourceLimitKicker",
+                  defaultMessage: "Source limit reached",
+                })}
+              </p>
+              <p className="mt-2 font-serif text-base italic leading-[1.55] text-text-sub-600 md:text-lg">
+                {formatMessage({
+                  id: "public.impact.evidence.sourceLimitReached",
+                  defaultMessage:
+                    "We're showing a capped slice for v1; deeper history will arrive as aggregation matures.",
+                })}
+              </p>
             </div>
           ) : null}
         </div>

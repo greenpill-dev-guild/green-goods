@@ -457,3 +457,116 @@
     animation-duration: 2.5s;
   }
 }
+
+/* Dialog motion — shared across every PWA dialog primitive (PwaSheet,
+ * DialogShell, ConfirmDialog, ImagePreviewDialog). Bottom-anchored mobile
+ * sheets use dialogSlideIn/Out with a 60% overshoot waypoint that
+ * supplies the spring feel. Centered modals (DialogShell/ConfirmDialog at
+ * >= 640px) use dialogZoomIn/Out — a subtle scale, no overshoot, because
+ * centered modals shouldn't bounce. ImagePreviewDialog uses dialogFadeIn/
+ * Out for a clean image-viewer entrance. All driven from
+ * --spring-spatial-* tokens (no new dialog-specific token family). */
+@keyframes dialogSlideInFromBottom {
+  from { transform: translate3d(0, 100%, 0); opacity: 0.8; }
+  60%  { transform: translate3d(0, -2%, 0); opacity: 1; }
+  to   { transform: translate3d(0, 0, 0); opacity: 1; }
+}
+
+@keyframes dialogSlideOutToBottom {
+  from { transform: translate3d(0, 0, 0); opacity: 1; }
+  to   { transform: translate3d(0, 100%, 0); opacity: 0.85; }
+}
+
+@keyframes dialogZoomIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes dialogZoomOut {
+  from { opacity: 1; transform: scale(1); }
+  to   { opacity: 0; transform: scale(0.96); }
+}
+
+@keyframes scrimFadeIn  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes scrimFadeOut { from { opacity: 1; } to { opacity: 0; } }
+
+/* Bottom-anchored mobile sheet enter/exit — PwaSheet + DialogShell mobile
+ * + ConfirmDialog mobile */
+[data-component="PwaSheet"][data-slot="surface"][data-state="open"],
+[data-component="DialogShell"][data-slot="surface"][data-state="open"],
+[data-component="ConfirmDialog"][data-slot="surface"][data-state="open"] {
+  animation: dialogSlideInFromBottom var(--spring-spatial-slow-duration)
+    var(--spring-spatial-slow-easing) both;
+}
+
+[data-component="PwaSheet"][data-slot="surface"][data-state="closed"],
+[data-component="DialogShell"][data-slot="surface"][data-state="closed"],
+[data-component="ConfirmDialog"][data-slot="surface"][data-state="closed"] {
+  animation: dialogSlideOutToBottom var(--spring-spatial-duration)
+    var(--spring-spatial-easing) both;
+}
+
+/* Centered modal variant (DialogShell + ConfirmDialog at >= 640px) */
+@media (min-width: 640px) {
+  [data-component="DialogShell"][data-slot="surface"][data-state="open"],
+  [data-component="ConfirmDialog"][data-slot="surface"][data-state="open"] {
+    animation: dialogZoomIn var(--spring-spatial-slow-duration)
+      var(--spring-spatial-slow-easing) both;
+  }
+  [data-component="DialogShell"][data-slot="surface"][data-state="closed"],
+  [data-component="ConfirmDialog"][data-slot="surface"][data-state="closed"] {
+    animation: dialogZoomOut var(--spring-spatial-duration)
+      var(--spring-spatial-easing) both;
+  }
+}
+
+/* Image viewer — pure fade */
+[data-component="ImagePreviewDialog"][data-slot="overlay"][data-state="open"] {
+  animation: scrimFadeIn var(--spring-effects-duration) var(--spring-effects-easing) both;
+}
+[data-component="ImagePreviewDialog"][data-slot="overlay"][data-state="closed"] {
+  animation: scrimFadeOut var(--spring-effects-fast-duration) var(--spring-effects-fast-easing) both;
+}
+
+/* All scrims — fade with the dialog */
+[data-component="PwaSheet"][data-slot="scrim"][data-state="open"],
+[data-component="DialogShell"][data-slot="overlay"][data-state="open"],
+[data-component="ConfirmDialog"][data-slot="overlay"][data-state="open"] {
+  animation: scrimFadeIn var(--spring-effects-duration) var(--spring-effects-easing) both;
+}
+
+[data-component="PwaSheet"][data-slot="scrim"][data-state="closed"],
+[data-component="DialogShell"][data-slot="overlay"][data-state="closed"],
+[data-component="ConfirmDialog"][data-slot="overlay"][data-state="closed"] {
+  animation: scrimFadeOut var(--spring-effects-fast-duration) var(--spring-effects-fast-easing) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-component="PwaSheet"][data-slot],
+  [data-component="DialogShell"][data-slot],
+  [data-component="ConfirmDialog"][data-slot],
+  [data-component="ImagePreviewDialog"][data-slot] {
+    animation-duration: 0ms !important;
+  }
+}
+
+/* ── Dialog surface radius ──
+ * Tailwind v4 doesn't scan packages/shared/src/ from admin/client builds, so
+ * bare utilities like `rounded-t-xl` / `sm:rounded-xl` applied to JSX inside
+ * shared dialog primitives silently fail to generate. Drive the radius from
+ * the attribute selector so it works regardless of scan coverage. Mobile keeps
+ * top-only rounding (sheet anchored to viewport bottom); sm+ rounds all
+ * corners (centered modal). */
+[data-component="DialogShell"][data-slot="surface"],
+[data-component="ConfirmDialog"][data-slot="surface"] {
+  border-top-left-radius: var(--radius-lg);
+  border-top-right-radius: var(--radius-lg);
+}
+
+@media (min-width: 640px) {
+  [data-component="DialogShell"][data-slot="surface"],
+  [data-component="ConfirmDialog"][data-slot="surface"] {
+    border-bottom-left-radius: var(--radius-lg);
+    border-bottom-right-radius: var(--radius-lg);
+  }
+}

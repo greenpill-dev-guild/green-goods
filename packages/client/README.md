@@ -312,14 +312,16 @@ The application uses a comprehensive design system built with:
 - **Custom components**: Button, Card variants (ActionCard, GardenCard, WorkCard), Form components, Navigation, etc.
 
 ### Progressive Web App (PWA)
-- **Offline Support**: Service worker for offline functionality
+- **Offline Support**: `/home`-scoped service worker with app-shell fallback for installed-app routes
 - **Mobile Optimization**: Responsive design with mobile-first approach
-- **Installation**: Can be installed as a native app on mobile devices
+- **Installation**: Can be installed as a native app on mobile devices without capturing public/editorial routes
 - **HTTPS Required**: Development server uses mkcert for HTTPS
 
 ### Routing & Navigation
 - **React Router**: Client-side routing with lazy-loaded components
-- **Dynamic routing**: `/home`, `/garden/:id`, `/profile`, `/login`
+- **Public routing**: `/`, `/gardens`, `/gardens/:id`, `/fund`, `/impact`, `/actions`, `/cookies`, `/glossary`
+- **PWA routing**: `/home`, `/home/login`, `/home/garden`, `/home/profile`, `/home/:id`, `/home/:id/work/:workId`
+- **Compatibility redirects**: `/login`, `/garden`, and `/profile` redirect to canonical `/home/*` routes in PWA mode
 - **Navigation hooks**: Custom `useNavigateToTop` for smooth navigation
 
 ### Work Flow Management

@@ -93,7 +93,7 @@ test.describe("Passkey Authentication (Mocked)", () => {
 
       try {
         // Navigate to login
-        await page.goto("/login");
+        await page.goto("/home/login?presentation=pwa");
         await page.waitForLoadState("domcontentloaded");
         await page.waitForTimeout(2000);
 
@@ -144,7 +144,7 @@ test.describe("Passkey Authentication (Mocked)", () => {
 
           // The flow might:
           // 1. Navigate to /home (success)
-          // 2. Stay on /login with error
+          // 2. Stay on /home/login with error
           // 3. Show loading state
           if (currentUrl.includes("/home")) {
             console.log("✅ Passkey registration succeeded!");
@@ -174,7 +174,7 @@ test.describe("Passkey Authentication (Mocked)", () => {
 
       try {
         // Navigate to login
-        await page.goto("/login");
+        await page.goto("/home/login?presentation=pwa");
         await page.waitForLoadState("domcontentloaded");
         await page.waitForTimeout(1500);
 
@@ -194,7 +194,7 @@ test.describe("Passkey Authentication (Mocked)", () => {
 
   test.describe("Login Flow", () => {
     test("login page renders with passkey option", async ({ page }) => {
-      await page.goto("/login");
+      await page.goto("/home/login?presentation=pwa");
       await page.waitForLoadState("domcontentloaded");
       await page.waitForTimeout(1500);
 
@@ -209,7 +209,7 @@ test.describe("Passkey Authentication (Mocked)", () => {
     });
 
     test("shows wallet fallback option", async ({ page }) => {
-      await page.goto("/login");
+      await page.goto("/home/login?presentation=pwa");
       await page.waitForLoadState("domcontentloaded");
       await page.waitForTimeout(1500);
 

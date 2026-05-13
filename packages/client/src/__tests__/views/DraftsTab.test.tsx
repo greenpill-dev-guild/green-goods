@@ -181,7 +181,7 @@ describe("DraftsTab", () => {
     render(wrap(createElement(DraftsTab)));
 
     await user.click(screen.getByTestId("resume-d1"));
-    expect(mockNavigate).toHaveBeenCalledWith("/garden?draftId=d1", { viewTransition: true });
+    expect(mockNavigate).toHaveBeenCalledWith("/home/garden?draftId=d1", { viewTransition: true });
   });
 
   it("shows confirm dialog on delete and confirms", async () => {

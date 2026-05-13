@@ -1,6 +1,6 @@
 # Skills Quick Reference
 
-> Start with one of five verbs, or just describe planning / orchestration intent and `plan` will fire passively.
+> Start with a command skill when the workflow is explicit, or just describe planning/debugging intent and the passive skills will fire.
 
 ---
 
@@ -9,6 +9,7 @@
 | Skill | Invoke With | Use For |
 |-------|-------------|---------|
 | **review** | `/review [package|PR|file]` | Before merge: inspect the diff, separate must-fix items from human call-outs. Positional arg scopes the review (`/review admin`, `/review #123`, `/review packages/shared/...`) |
+| **drift** | `/drift [check|clean] [scope]` | Read-only drift classifier for guidance, plans, design, docs, cleanup readiness, and quality guardrails. Routes findings to the right skill; gates `/clean` behind dry-run approval. |
 | **audit-then-ship** | `/audit-then-ship [scope]` | The user's default rhythm: investigate (read-only) → explicit scope-lock gate → fix only locked items → ship pipeline. Use when scope is ambiguous or multi-issue. |
 | **status** | `/status` | Resume and orient: branch state, blockers, continuity, and the next 1-3 moves |
 | **clean** | `/clean` | After findings are accepted: dispatch 8 parallel cleanup agents (use `--dry-run`, `--scope`, `--agents`) |
@@ -40,6 +41,18 @@ These are still available, but they are not the default starting points anymore.
 
 ---
 
+## Linear Awareness
+
+Linear is the durable backlog (see `CLAUDE.md` § Linear Workspace). Skills that interact with Linear:
+
+- **status, review, ship** — read Linear context when the branch matches `<user>/<team-key>-<id>-<slug>` (e.g., `afo/prd-370-...`). They do not write.
+- **audit, principles, architecture, clean, debug, drift, plan** — route accepted findings to Linear Issues with the user's explicit OK. They prompt before writing; they never auto-write.
+- All other skills — Linear-agnostic.
+
+Privacy boundary applies on every Linear write: replay URLs, session IDs, distinct IDs, wallet addresses, and reporter identifiers stay out of Linear bodies.
+
+---
+
 ## Defaults
 
 If you are unsure where to start:
@@ -47,6 +60,7 @@ If you are unsure where to start:
 - planning a change -> just describe the intent ("plan this", "break down X")
 - orchestrating a multi-lane build -> describe orchestration intent ("coordinate a team across contracts + shared + admin")
 - investigating a bug -> describe the bug or paste the error (no slash)
+- checking repo drift -> `/drift check [scope]`
 - judging a change -> `/review [package|PR|file]` (or describe it in words)
 - picking up work -> `/status --resume`
 

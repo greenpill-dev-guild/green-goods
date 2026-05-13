@@ -1,0 +1,183 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "client-pwa-audit",
+    "title": "Client PWA Native Feel Remediation",
+    "kind": "hardening",
+    "stage": "archive"
+  },
+  "workflow": {
+    "overall_status": "done",
+    "priority": "p1",
+    "created_at": "2026-05-07T22:23:47Z",
+    "updated_at": "2026-05-10T00:34:58.377Z",
+    "target_date": null
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "notes": [
+    "Existing findings.md and lanes/ remain the audit source of truth.",
+    "Wave 1 mechanical sweeps are complete; this hub now locks the next native installed-PWA remediation slice.",
+    "Afo chose plan-hub-only packaging first, with stacked implementation slices later.",
+    "Architecture decision: migrate PWA drawer behavior toward one shared gesture-capable sheet contract.",
+    "Do not expand this slice into full Wave 3 translation content or broad Wave 4 theme RFCs."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "ready",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "claude/ui/client-pwa-audit",
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "handoff_note": "Implement localized PWA toasts, shared gesture-capable sheet API, drawer/dialog migration, route motion, haptics preference, aria-label i18n, and DESIGN.pwa.md routing correction.",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "Behavior-changing UI/shared work must record RED/GREEN proof before lane completion."
+      },
+      "skill_tags": ["ui", "react", "testing", "design"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "n/a",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "codex/state-api/client-pwa-audit",
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "handoff_note": "No separate state/API lane is planned. Reopen only if implementation discovers shared state contract changes beyond localized toast/haptics helpers.",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "Native PWA remediation is scoped to UI/shared component behavior, localization, and docs; no state/API lane is planned."
+      },
+      "skill_tags": ["react", "data-layer"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "codex/contracts/client-pwa-audit",
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "handoff_note": "No contract work is planned for this remediation slice.",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No contracts change is planned."
+      },
+      "skill_tags": ["contracts"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "completed",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "claude/qa-pass-1/client-pwa-audit",
+      "depends_on": ["ui"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "handoff_note": "Review localization, accessibility, native-feel behavior, design-system fit, and browser/mobile proof.",
+      "skill_tags": ["testing", "review", "ui"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "completed",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "codex/qa-pass-2/client-pwa-audit",
+      "branch_trigger": "claude/qa-pass-1/client-pwa-audit",
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "handoff_note": "Re-run targeted validation, confirm plan-hub proof, and record remaining proof limits before closeout.",
+      "skill_tags": ["testing", "review", "ui"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-05-07T22:23:47Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "formalized",
+      "branch": null,
+      "note": "Formalized the existing client PWA audit findings into a standard active plan hub for native installed-PWA remediation. No runtime code changes in this update."
+    },
+    {
+      "timestamp": "2026-05-09T21:09:58.205Z",
+      "actor": "human",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "claude/ui/client-pwa-audit",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-05-09T21:10:45.071Z",
+      "actor": "claude",
+      "lane": "ui",
+      "status": "completed",
+      "branch": "claude/ui/client-pwa-audit",
+      "note": "UI implementation complete on worktree branch claude/gracious-gates-393542. Shared registry+bridge for localized toasts; shared PwaSheet with drag-dismiss + reduced-motion immediate close; ModalDrawer + WorkDashboard migrated; DraftDialog + Gardeners on DialogShell; navigateWithTransition typed helper; haptics via shared helpers + Profile setting; PWA aria labels localized; DESIGN.pwa.md routing corrected. Targeted shared+client tests + design gates green; mobile/device proof deferred to QA Pass 1."
+    },
+    {
+      "timestamp": "2026-05-10T00:31:37.355Z",
+      "actor": "human",
+      "lane": "qa_pass_1",
+      "status": "completed",
+      "branch": "claude/qa-pass-1/client-pwa-audit",
+      "note": "Human confirmed QA Pass 1 was already complete before Codex QA Pass 2; current closeout proof and remaining proof limits are recorded in handoffs/codex-qa-pass-2.md."
+    },
+    {
+      "timestamp": "2026-05-10T00:31:41.483Z",
+      "actor": "codex",
+      "lane": "qa_pass_2",
+      "status": "completed",
+      "branch": "codex/qa-pass-2/client-pwa-audit",
+      "note": "QA Pass 2 closeout completed on main: validation ladder rerun, scoped source proof checked, no blocker defects found, remaining proof limits recorded in handoff."
+    },
+    {
+      "timestamp": "2026-05-10T00:34:58.377Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "moved_to_archive",
+      "branch": null,
+      "note": "Moved feature hub from active to archive"
+    }
+  ],
+  "taxonomy": {
+    "initiative": "design-system",
+    "tracks": ["client-pwa", "client", "shared"],
+    "work_types": ["hardening", "implementation", "qa"],
+    "surfaces": ["packages/client", "packages/shared", "packages/client/DESIGN.pwa.md"],
+    "depends_on_features": []
+  }
+}

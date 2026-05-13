@@ -24,11 +24,12 @@ const meta: Meta<typeof MarketplaceApprovalGate> = {
     docs: {
       description: {
         component:
-          "Real `MarketplaceApprovalGate`. Seeds `useMarketplaceApprovals` with fixture approval state; the `grantApprovals` mutation is wired but inert against the mock wagmi transport.",
+          "Real `MarketplaceApprovalGate`. Readiness comes from deployment-artifact lookups; approvals are seeded into the React Query cache. The `grantApprovals` mutation is wired but inert against the mock wagmi transport.",
       },
     },
   },
   args: {
+    chainId: DEFAULT_CHAIN_ID,
     children: CHILDREN,
   },
   decorators: [
@@ -43,6 +44,25 @@ const meta: Meta<typeof MarketplaceApprovalGate> = {
 
 export default meta;
 type Story = StoryObj<typeof MarketplaceApprovalGate>;
+
+export const Unavailable: Story = {
+  args: {
+    // Sepolia deployment artifact intentionally omits hypercertExchange,
+    // hypercertMinter, transferManager, and strategyHypercertFractionOffer.
+    // `getMarketplaceReadiness(11155111)` reports those fields missing and
+    // the gate short-circuits to the warning alert without invoking
+    // useMarketplaceApprovals or rendering children.
+    chainId: 11155111,
+  },
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Readiness reports missing/zero marketplace addresses for the active chain. The gate renders a warning alert listing the missing fields and refuses to expose approval CTAs or the listing surface.",
+      },
+    },
+  },
+};
 
 export const NeedsBoth: Story = {
   decorators: [

@@ -1,7 +1,8 @@
-import { Alert, Button, Card, adminRoutes } from "@green-goods/shared";
+import { Alert, Card, adminRoutes } from "@green-goods/shared";
 import { RiArrowRightSLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
+import { AdminButton } from "@/components/AdminButton";
 import { SeedlingIllustration } from "./SeedlingIllustration";
 
 // Paradigm: Ritual — single-purpose garden selection, focused attention.
@@ -27,7 +28,7 @@ export function CanvasWorkspaceSelectionState({
 
   if (gardens.length === 0) {
     return (
-      <div className="px-4 py-8 sm:px-6">
+      <div className="py-8">
         <Card className="mx-auto max-w-xl">
           <Card.Body className="flex flex-col items-center py-12 text-center">
             <SeedlingIllustration className="h-24 w-24" />
@@ -43,14 +44,14 @@ export function CanvasWorkspaceSelectionState({
                 defaultMessage: "Create your first garden to start using the canvas workspaces.",
               })}
             </p>
-            <Button className="mt-6" asChild>
+            <AdminButton className="mt-6" asChild>
               <Link to={adminRoutes.gardenCreate()}>
                 {formatMessage({
                   id: "cockpit.workspace.createGarden",
                   defaultMessage: "Create Garden",
                 })}
               </Link>
-            </Button>
+            </AdminButton>
           </Card.Body>
         </Card>
       </div>

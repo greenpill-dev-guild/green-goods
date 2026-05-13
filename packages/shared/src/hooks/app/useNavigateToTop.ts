@@ -20,7 +20,7 @@ export interface NavigateToTopOptions extends NavigateOptions {
  * navigate('/home', { viewTransition: false });
  *
  * // Navigate with state
- * navigate('/garden', { state: { from: 'home' } });
+ * navigate('/home/garden', { state: { from: 'home' } });
  * ```
  */
 export const useNavigateToTop = () => {

@@ -43,7 +43,16 @@ export type { ChainId, DeploymentConfig } from "./blockchain";
 // ============================================
 // Contract Types
 // ============================================
-export type { CreateGardenParams, DeploymentParams, NetworkContracts } from "./contracts";
+export type {
+  CreateGardenParams,
+  DeploymentParams,
+  MarketplaceContractAddresses,
+  MarketplaceReadinessAvailable,
+  MarketplaceReadinessField,
+  MarketplaceReadinessState,
+  MarketplaceReadinessUnavailable,
+  NetworkContracts,
+} from "./contracts";
 // ============================================
 // Conviction Types
 // ============================================

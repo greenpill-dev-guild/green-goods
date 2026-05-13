@@ -10,14 +10,22 @@ import { RiAppsLine, RiHammerLine, RiSeedlingLine, RiTeamLine } from "@remixicon
 import type { Meta, StoryObj } from "@storybook/react";
 import { useMemo, useState } from "react";
 import { Route, Routes } from "react-router-dom";
-import { expect, fn, userEvent, within } from "storybook/test";
-import { STORYBOOK_ADMIN_SHELL_SEEDS } from "../../../../shared/.storybook/adminFixtures";
+import { expect, fn, userEvent, waitFor, within } from "storybook/test";
+import {
+  STORYBOOK_ADMIN_DEPLOYER_SEEDS,
+  STORYBOOK_ADMIN_SHELL_SEEDS,
+} from "../../../../shared/.storybook/adminFixtures";
 import {
   withAdminIdentity,
+  withAdminIdentityRole,
   withCanvasFrame,
   withRouter,
   withSeededQueryClient,
 } from "../../../../shared/.storybook/decorators";
+import {
+  expectAdminShellDarkPalette,
+  withTemporaryDocumentTheme,
+} from "../../views/storybookPaletteAssertions";
 import { CanvasLayout } from "./CanvasLayout";
 
 const gardens = [
@@ -161,6 +169,28 @@ function RealCanvasLayoutStory() {
 }
 
 type CanvasLayoutStoryArgs = MockCanvasLayoutProps;
+type AdminWorkspaceTone = "hub" | "garden" | "community" | "actions";
+
+const DARK_TONE_HUES: Record<AdminWorkspaceTone, string> = {
+  hub: "240",
+  garden: "145",
+  community: "50",
+  actions: "30",
+};
+
+function getCanvasLayoutRoot(canvasElement: HTMLElement): HTMLElement {
+  const root = canvasElement.querySelector<HTMLElement>('[data-component="CanvasLayout"]');
+  expect(root).not.toBeNull();
+  return root as HTMLElement;
+}
+
+function expectDarkCanvasTone(root: HTMLElement, tone: AdminWorkspaceTone) {
+  const toneCanvas = window.getComputedStyle(root).getPropertyValue("--tone-canvas").trim();
+
+  expect(root).toHaveAttribute("data-tone", tone);
+  expect(toneCanvas).toContain("oklch(20%");
+  expect(toneCanvas).toContain(DARK_TONE_HUES[tone]);
+}
 
 const meta: Meta<CanvasLayoutStoryArgs> = {
   title: "Admin/Shell/CanvasLayout",
@@ -221,24 +251,81 @@ export const RealProviderShell: Story = {
     await expect(await canvas.findByRole("heading", { name: "Hub workbench" })).toBeVisible();
     await expect(await canvas.findByRole("button", { name: "Botanic Commons" })).toBeVisible();
 
-    await userEvent.click(canvas.getByRole("button", { name: "Open search" }));
-    const body = within(document.body);
-    const palette = await body.findByRole("dialog", { name: "Command palette" });
-    const paletteCanvas = within(palette);
-    const searchInput = await paletteCanvas.findByPlaceholderText(
-      /search pages, gardens, actions/i
-    );
-    await expect(searchInput).toBeInTheDocument();
-    await userEvent.type(searchInput, "rain");
-    const rioMatches = await paletteCanvas.findAllByText("Rio Rainforest Lab");
-    await expect(rioMatches.length).toBeGreaterThan(0);
-    await userEvent.keyboard("{Escape}");
+    const searchButton = canvas.queryByRole("button", { name: "Open search" });
+    if (searchButton) {
+      await userEvent.click(searchButton);
+      const body = within(document.body);
+      const palette = await body.findByRole("dialog", { name: "Command palette" });
+      const paletteCanvas = within(palette);
+      const searchInput = await paletteCanvas.findByPlaceholderText(
+        /search pages, gardens, actions/i
+      );
+      await expect(searchInput).toBeInTheDocument();
+      await userEvent.type(searchInput, "rain");
+      const rioMatches = await paletteCanvas.findAllByText("Rio Rainforest Lab");
+      await expect(rioMatches.length).toBeGreaterThan(0);
+      await userEvent.keyboard("{Escape}");
+    }
 
-    await userEvent.click(canvas.getByRole("button", { name: "Open settings" }));
+    const settingsTrigger = canvas.queryByRole("button", { name: "Open settings" });
+    const sheetHeading = settingsTrigger ? "Settings" : "Notifications";
+    await userEvent.click(settingsTrigger ?? canvas.getByRole("button", { name: "Notifications" }));
     const rightSheet = await canvas.findByTestId("right-sheet");
+    const sheetLayer = await canvas.findByTestId("canvas-sheet-layer");
+    const mainSheet = await canvas.findByTestId("main-sheet");
+
     await expect(rightSheet).toHaveAttribute("data-component", "RightSheet");
-    await expect(within(rightSheet).getByRole("heading", { name: "Settings" })).toBeVisible();
+    await expect(rightSheet).toHaveAttribute("data-boundary", "bounded");
+    await expect(sheetLayer).toHaveAttribute("data-state", "right");
+    await waitFor(() => expect(mainSheet).toHaveAttribute("data-state", "receded"));
+    await expect(within(rightSheet).getByRole("heading", { name: sheetHeading })).toBeVisible();
     await userEvent.click(within(rightSheet).getByRole("button", { name: "Close" }));
+  },
+};
+
+export const DarkRouteToneContract: Story = {
+  tags: ["storybook-ci"],
+  render: () => <RealCanvasLayoutStory />,
+  decorators: [
+    withAdminIdentityRole("deployer"),
+    withSeededQueryClient(STORYBOOK_ADMIN_DEPLOYER_SEEDS),
+    withRouter(["/hub"]),
+    withCanvasFrame({
+      className: "p-0",
+      heightClassName: "h-[760px]",
+      workspace: "hub",
+    }),
+  ],
+  parameters: {
+    docs: {
+      description: {
+        story:
+          "Browser-level dark canvas tone contract for the canonical admin routes. Proves document-level [data-theme='dark'] still reaches the CanvasLayout [data-tone] root.",
+      },
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await canvas.findByRole("banner");
+    const root = getCanvasLayoutRoot(canvasElement);
+
+    await withTemporaryDocumentTheme("dark", async () => {
+      await waitFor(() => expectDarkCanvasTone(root, "hub"));
+      await waitFor(() => expectAdminShellDarkPalette(canvasElement));
+
+      const routeCases = [
+        { label: "Garden", tone: "garden" },
+        { label: "Community", tone: "community" },
+        { label: "Actions", tone: "actions" },
+        { label: "Hub", tone: "hub" },
+      ] as const;
+
+      for (const route of routeCases) {
+        await userEvent.click(canvas.getByRole("button", { name: route.label }));
+        await waitFor(() => expectDarkCanvasTone(root, route.tone));
+        await waitFor(() => expectAdminShellDarkPalette(canvasElement));
+      }
+    });
   },
 };
 

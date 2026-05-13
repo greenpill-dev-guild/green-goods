@@ -7,16 +7,23 @@
 #
 # Deploy (from repo root):
 #
-#   flyctl volumes create agent_data --region ams --size 1
+#   flyctl volumes create agent_data --region jnb --size 1
 #   flyctl secrets set \
 #       TELEGRAM_BOT_TOKEN=<botfather-token> \
 #       ENCRYPTION_SECRET=<32+-char-secret> \
 #       TELEGRAM_WEBHOOK_SECRET=<secret> \
-#       BOT_API_TOKEN=<routine-auth-bearer-token>
+#       BOT_API_TOKEN=<routine-auth-bearer-token> \
+#       POSTHOG_AGENT_KEY=<agent-project-token>
 #   flyctl deploy
+#
+# Health model:
+# - Fly checks use /health. /ready also includes optional voice-model readiness
+#   and can return 503 while the webhook/API are still usable.
+# - Keep auto_stop_machines off and min_machines_running at 1 unless the agent
+#   is intentionally being scaled down.
 
 app = 'green-goods'
-primary_region = 'ams'
+primary_region = 'jnb'
 kill_signal = 'SIGTERM'
 kill_timeout = '30s'
 

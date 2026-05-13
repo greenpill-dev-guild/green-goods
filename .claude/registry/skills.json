@@ -1,6 +1,15 @@
 {
   "source": ".claude/skills/*/SKILL.md",
-  "canonical_commands": ["plan", "debug", "review", "status", "clean", "doc-feedback"],
+  "canonical_commands": [
+    "plan",
+    "debug",
+    "drift",
+    "audit-then-ship",
+    "review",
+    "status",
+    "clean",
+    "doc-feedback"
+  ],
   "skills": [
     {
       "name": "plan",
@@ -55,6 +64,65 @@
       ],
       "dependencies": [],
       "sub_files": ["monitoring.md", "posthog.md", "health-diagnostics.md"]
+    },
+    {
+      "name": "drift",
+      "status": "active",
+      "listed_in_index": true,
+      "default_mode": "interactive",
+      "user_invocable": true,
+      "intent": "Read-only drift classifier for guidance, plan truth, design-system, docs, quality, cleanup readiness, and runtime-risk routing. Produces numbered findings and delegates to existing skills instead of fixing by default.",
+      "entry_file": ".claude/skills/drift/SKILL.md",
+      "owned_skills": ["audit", "audit-then-ship", "clean", "debug", "design", "plan", "review"],
+      "modes": ["check", "clean", "guidance", "plans", "design", "docs", "cleanup", "quality"],
+      "triggers": [
+        "/drift",
+        "drift check",
+        "repo drift",
+        "stale guidance",
+        "stale plans",
+        "should we clean",
+        "cleanup readiness"
+      ],
+      "dependencies": ["audit", "audit-then-ship", "clean", "debug", "design", "plan", "review"]
+    },
+    {
+      "name": "audit-then-ship",
+      "status": "active",
+      "listed_in_index": true,
+      "default_mode": "interactive",
+      "user_invocable": true,
+      "intent": "Two-phase scope-locked workflow that investigates read-only, records user-approved findings, fixes only the locked scope, and runs the ship pipeline with evidence.",
+      "entry_file": ".claude/skills/audit-then-ship/SKILL.md",
+      "owned_skills": ["audit", "review", "principles", "architecture", "ship"],
+      "modes": ["default", "audit", "review", "principles", "architecture", "design", "no-ship"],
+      "triggers": [
+        "/audit-then-ship",
+        "audit then ship",
+        "audit X then fix Y",
+        "review X and apply",
+        "scope-lock"
+      ],
+      "dependencies": ["audit", "review", "principles", "architecture", "ship"]
+    },
+    {
+      "name": "posthog-questions",
+      "status": "active",
+      "listed_in_index": false,
+      "default_mode": "passive",
+      "user_invocable": false,
+      "intent": "Canonical curated-question library for PostHog reads across Green Goods routines and debugging skills, including privacy boundaries and concrete invocation paths",
+      "entry_file": ".claude/skills/posthog-questions/SKILL.md",
+      "owned_skills": [],
+      "triggers": [
+        "PostHog question",
+        "PostHog routine",
+        "curated question",
+        "HogQL",
+        "routine PostHog",
+        "privacy boundary"
+      ],
+      "dependencies": ["debug", "ops"]
     },
     {
       "name": "review",

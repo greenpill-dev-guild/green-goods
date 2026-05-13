@@ -30,7 +30,7 @@ export function AccountSettingsPanel({ className }: AccountSettingsPanelProps) {
   return (
     <>
       <SheetBody padded={true} className={cn("flex flex-col gap-4", className)}>
-        <Surface elevation="raised" padding="default" className="space-y-4">
+        <Surface elevation="solid-raised" padding="default" className="space-y-4">
           <div>
             <h2 className="text-sm font-semibold text-text-strong">
               {formatMessage({ id: "cockpit.settings.theme", defaultMessage: "Theme" })}
@@ -52,12 +52,11 @@ export function AccountSettingsPanel({ className }: AccountSettingsPanelProps) {
                   key={value}
                   type="button"
                   onClick={() => setTheme(value)}
+                  data-state={isActive ? "active" : "inactive"}
                   className={cn(
-                    "flex items-center justify-between rounded-2xl px-4 py-3 text-left transition-all duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]",
-                    "shadow-[var(--edge-rest),0_10px_20px_rgba(15,23,42,0.06)] hover:-translate-y-0.5 motion-reduce:hover:translate-y-0",
-                    isActive
-                      ? "bg-[rgb(var(--tone-tint,59_130_246)/0.14)] text-[rgb(var(--tone-accent,37_99_235))] shadow-[inset_0_0_0_1px_rgb(var(--tone-tint,59_130_246)/0.18),0_18px_32px_rgb(var(--tone-tint,59_130_246)/0.18)]"
-                      : "bg-bg-white text-text-sub hover:bg-[rgb(var(--tone-tint,59_130_246)/0.06)]"
+                    "account-theme-option",
+                    "flex min-h-11 items-center justify-between rounded-[var(--radius-md)] px-4 py-3 text-left transition-[background-color,box-shadow,color] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]",
+                    isActive ? "text-[rgb(var(--tone-accent,37_99_235))]" : "text-text-sub"
                   )}
                 >
                   <span className="text-sm font-medium">{formatMessage({ id: labelId })}</span>
@@ -70,13 +69,13 @@ export function AccountSettingsPanel({ className }: AccountSettingsPanelProps) {
 
         <SheetDivider />
 
-        <Surface elevation="raised" padding="default" className="space-y-3">
+        <Surface elevation="solid-raised" padding="default" className="space-y-3">
           <h2 className="text-sm font-semibold text-text-strong">
             {formatMessage({ id: "cockpit.settings.chainInfo", defaultMessage: "Network" })}
           </h2>
-          <div className="rounded-2xl bg-bg-soft/80 px-4 py-3 shadow-[inset_0_0_0_1px_rgb(0_0_0_/_0.04)]">
+          <Surface elevation="solid-ground" padding="compact" radius="md">
             <p className="text-sm font-medium text-text-strong">{getChainName(DEFAULT_CHAIN_ID)}</p>
-          </div>
+          </Surface>
         </Surface>
       </SheetBody>
 
@@ -85,7 +84,7 @@ export function AccountSettingsPanel({ className }: AccountSettingsPanelProps) {
           type="button"
           onClick={() => signOut()}
           className={cn(
-            "flex w-full items-center justify-between rounded-full px-4 py-2",
+            "flex min-h-11 w-full items-center justify-between rounded-full px-4 py-3",
             "text-sm font-medium text-error-base transition-colors hover:bg-error-lighter"
           )}
         >

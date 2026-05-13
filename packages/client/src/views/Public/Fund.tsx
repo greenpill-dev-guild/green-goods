@@ -1,13 +1,15 @@
 import {
-  type Address,
+  formatApy,
+  formatTokenAmount,
+  type PublicGardenVaultSummary,
   type PublicGardenSummary,
-  publicGardenHelpers,
+  type PublicVaultSummary,
+  type PublicVaultSummaryAsset,
+  useInViewReveal,
   usePublicGardens,
+  usePublicVaultSummary,
 } from "@green-goods/shared";
-import type {
-  PublicFundingAvailability,
-  PublicFundingIntentKind,
-} from "@green-goods/shared/public-contracts";
+import type { PublicFundingIntentKind } from "@green-goods/shared/public-contracts";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useSearchParams } from "react-router-dom";
@@ -23,62 +25,14 @@ import { PublicFooter } from "@/components/Public/PublicFooter";
 import { PublicFundingReceipt } from "@/components/Public/PublicFundingReceipt";
 import { PublicGardenRow } from "@/components/Public/PublicGardenRow";
 import { getPublicHeroImage, publicCuration } from "@/content/publicCuration";
+import WalletRuntimeProviders from "@/routes/WalletRuntimeProviders";
+import { resolveGardenQuery } from "@/views/Public/garden-query-resolution";
 
-const WalletRuntimeProviders = lazy(() => import("@/routes/WalletRuntimeProviders"));
-const PublicFundingMethodSelector = lazy(() =>
-  import("@/components/Public/PublicFundingMethodSelector").then((module) => ({
-    default: module.PublicFundingMethodSelector,
+const PublicFundingCard = lazy(() =>
+  import("@/components/Public/PublicFundingCard").then((module) => ({
+    default: module.PublicFundingCard,
   }))
 );
-const CookieJarDepositDialog = lazy(() =>
-  import("@/components/Dialogs/CookieJarDepositDialog").then((module) => ({
-    default: module.CookieJarDepositDialog,
-  }))
-);
-const VaultDepositDialog = lazy(() =>
-  import("@/components/Dialogs/VaultDepositDialog").then((module) => ({
-    default: module.VaultDepositDialog,
-  }))
-);
-
-type ResolutionStatus = "absent" | "match" | "stale" | "ambiguous";
-
-interface ResolvedGarden {
-  status: ResolutionStatus;
-  garden?: PublicGardenSummary;
-  rawQuery?: string;
-}
-
-function resolveGardenQuery(
-  rawQuery: string | null,
-  gardens: readonly PublicGardenSummary[]
-): ResolvedGarden {
-  if (!rawQuery) return { status: "absent" };
-  const trimmed = rawQuery.trim();
-  if (trimmed.length === 0) return { status: "absent" };
-
-  const lower = trimmed.toLowerCase();
-  const exact = gardens.find(
-    (garden) => garden.id.toLowerCase() === lower || garden.address.toLowerCase() === lower
-  );
-  if (exact) return { status: "match", garden: exact, rawQuery: trimmed };
-
-  const slugMatches = gardens.filter(
-    (garden) => publicGardenHelpers.deriveSlug(garden.name, garden.id) === lower
-  );
-  if (slugMatches.length === 1) {
-    return { status: "match", garden: slugMatches[0], rawQuery: trimmed };
-  }
-  if (slugMatches.length > 1) {
-    return { status: "ambiguous", rawQuery: trimmed };
-  }
-  return { status: "stale", rawQuery: trimmed };
-}
-
-interface ActiveWalletDialog {
-  intent: PublicFundingIntentKind;
-  garden: PublicGardenSummary;
-}
 
 interface SupportPathProps {
   numeral: string;
@@ -90,6 +44,9 @@ interface SupportPathProps {
   defaultRoutes: string;
   bestForId: string;
   defaultBestFor: string;
+  learnMoreId: string;
+  defaultLearnMore: string;
+  learnMoreHref: string;
 }
 
 function SupportPath({
@@ -102,6 +59,9 @@ function SupportPath({
   defaultRoutes,
   bestForId,
   defaultBestFor,
+  learnMoreId,
+  defaultLearnMore,
+  learnMoreHref,
 }: SupportPathProps) {
   const { formatMessage } = useIntl();
   return (
@@ -129,7 +89,201 @@ function SupportPath({
           </dd>
         </div>
       </dl>
+      <div>
+        <EditorialLinkArrow to={learnMoreHref} external>
+          {formatMessage({ id: learnMoreId, defaultMessage: defaultLearnMore })}
+        </EditorialLinkArrow>
+      </div>
     </article>
+  );
+}
+
+function VaultAggregationSection({ summary }: { summary: PublicVaultSummary }) {
+  const { formatMessage } = useIntl();
+  const { ref: sectionRef, revealed } = useInViewReveal<HTMLElement>();
+  if (!summary.hasVaults && !summary.isLoading) return null;
+
+  const assets = summary.assets;
+
+  return (
+    <section
+      ref={sectionRef}
+      data-revealed={revealed}
+      className="editorial-section-reveal bg-bg-weak-50 px-6 pt-32 pb-16 sm:px-10 sm:pt-36 md:pt-40 md:pb-20"
+      aria-labelledby="public-fund-vaults-title"
+    >
+      <div className="editorial-cascade mx-auto max-w-7xl">
+        <header className="border-b border-stroke-soft-200 pb-6">
+          <EditorialKicker className="mb-3">
+            {formatMessage({
+              id: "public.fund.vaults.kicker",
+              defaultMessage: "§ 01 — Endowment engine",
+            })}
+          </EditorialKicker>
+          <EditorialHeading id="public-fund-vaults-title">
+            {formatMessage({
+              id: "public.fund.vaults.title",
+              defaultMessage: "Endowment capital already supporting Gardens.",
+            })}
+          </EditorialHeading>
+          <p className="mt-5 max-w-2xl text-base leading-[1.6] text-text-sub-600 md:text-lg">
+            {formatMessage({
+              id: "public.fund.vaults.lede",
+              defaultMessage:
+                "Endow adds long-term capital to these vaults; Donate sends support directly to a Garden's Cookie Jar.",
+            })}
+          </p>
+        </header>
+
+        {assets.length > 0 ? (
+          <div className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-2">
+            {assets.map((asset) => (
+              <VaultAssetCard key={`${asset.chainId}:${asset.asset}`} asset={asset} />
+            ))}
+          </div>
+        ) : (
+          <div className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-2" aria-hidden="true">
+            {[0, 1].map((index) => (
+              <div
+                key={index}
+                className="border border-stroke-soft-200 bg-bg-white-0 p-5 shadow-[var(--shadow-editorial-card)]"
+              >
+                <div className="h-3 w-28 animate-pulse bg-stroke-soft-200/60" />
+                <div className="mt-4 h-8 w-36 animate-pulse bg-stroke-soft-200/60" />
+                <div className="mt-5 grid grid-cols-2 gap-3">
+                  <div className="h-4 animate-pulse bg-stroke-soft-200/40" />
+                  <div className="h-4 animate-pulse bg-stroke-soft-200/40" />
+                  <div className="h-4 animate-pulse bg-stroke-soft-200/40" />
+                  <div className="h-4 animate-pulse bg-stroke-soft-200/40" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function VaultAssetCard({ asset }: { asset: PublicVaultSummaryAsset }) {
+  const { formatMessage } = useIntl();
+  const aprValue =
+    typeof asset.apr === "number"
+      ? formatApy(asset.apr)
+      : formatMessage({
+          id: "public.fund.vaults.aprUnavailable",
+          defaultMessage: "APR unavailable",
+        });
+  const readyToHarvestValue =
+    asset.accruingYield !== undefined
+      ? formatVaultAssetAmount(asset.accruingYield, asset)
+      : formatMessage({
+          id: "public.fund.vaults.liveYieldUnavailable",
+          defaultMessage: "Live yield unavailable",
+        });
+  const routedValue =
+    asset.allocatedYield !== undefined
+      ? formatVaultAssetAmount(asset.allocatedYield, asset)
+      : formatMessage({
+          id: "public.fund.vaults.routedUnavailable",
+          defaultMessage: "Routed data unavailable",
+        });
+
+  return (
+    <article className="border border-stroke-soft-200 bg-bg-white-0 p-5 shadow-[var(--shadow-editorial-card)]">
+      <p className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-text-soft-400">
+        {formatMessage(
+          {
+            id: "public.fund.vaults.assetTitle",
+            defaultMessage: "{asset} endowment balance",
+          },
+          { asset: asset.symbol }
+        )}
+      </p>
+      <div className="mt-5">
+        <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
+          {formatMessage({
+            id: "public.fund.vaults.currentBalance",
+            defaultMessage: "Current balance",
+          })}
+        </p>
+        <p className="mt-2 font-serif text-3xl font-normal leading-none tracking-[-0.018em] text-text-strong-950 md:text-4xl">
+          {formatVaultAssetAmount(asset.currentValue, asset)}
+        </p>
+      </div>
+      <dl className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <VaultMetric
+          label={formatMessage({ id: "public.fund.vaults.apr", defaultMessage: "APR" })}
+          value={aprValue}
+        />
+        <VaultMetric
+          label={formatMessage({
+            id: "public.fund.vaults.readyToHarvest",
+            defaultMessage: "Ready to harvest",
+          })}
+          value={readyToHarvestValue}
+        />
+        <VaultMetric
+          label={formatMessage({
+            id: "public.fund.vaults.routed",
+            defaultMessage: "Routed to Gardens",
+          })}
+          value={routedValue}
+        />
+        <VaultMetric
+          label={formatMessage({
+            id: "public.fund.vaults.vaultCountLabel",
+            defaultMessage: "Vaults",
+          })}
+          value={formatMessage(
+            {
+              id: "public.fund.vaults.vaultCount",
+              defaultMessage: "{count, plural, one {# vault} other {# vaults}}",
+            },
+            { count: asset.vaultCount }
+          )}
+        />
+        <VaultMetric
+          label={formatMessage({
+            id: "public.fund.vaults.fundingPositionsLabel",
+            defaultMessage: "Funding positions",
+          })}
+          value={formatMessage(
+            {
+              id: "public.fund.vaults.fundingPositions",
+              defaultMessage:
+                "{count, plural, one {# funding position} other {# funding positions}}",
+            },
+            { count: asset.depositorCount }
+          )}
+        />
+      </dl>
+    </article>
+  );
+}
+
+function VaultMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="border-t border-stroke-soft-200 pt-3">
+      <dt className="font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
+        {label}
+      </dt>
+      <dd className="mt-1 text-sm leading-[1.5] text-text-sub-600">{value}</dd>
+    </div>
+  );
+}
+
+function formatVaultAssetAmount(value: bigint, asset: PublicVaultSummaryAsset): string {
+  return `${formatTokenAmount(value, asset.decimals, 4, undefined, true)} ${asset.symbol}`;
+}
+
+function getGardenVaultSummary(
+  summary: PublicVaultSummary,
+  garden: PublicGardenSummary
+): PublicGardenVaultSummary | undefined {
+  return (
+    summary.gardensByAddress[garden.id.toLowerCase()] ??
+    summary.gardensByAddress[garden.address.toLowerCase()]
   );
 }
 
@@ -137,27 +291,24 @@ function SupportPath({
  * Fund — public garden funding gateway.
  *
  * Editorial recomposition:
- *   Hero (with calm disclaimer) → § 01 Donate vs Endow explanatory diptych
- *   → § 02 Garden list with single "Support" CTA per row → optional
- *   receipt / stale-link banner → Footer.
+ *   Hero → § 01 Donate vs Endow explanatory diptych with always-visible
+ *   tax / risk disclosures → § 02 Compact garden grid with per-card Donate
+ *   and Endow CTAs → optional receipt / stale-link banner → Footer.
  *
- * Behavior preserved from the prior view:
+ * Behavior contract:
  * - `?intent=<id>` triggers receipt mode (reads X-GG-Receipt-Token from session).
  * - `?garden=<id-or-slug>` resolves via `publicGardenHelpers.deriveSlug`. Stale,
  *   missing, zero-match, or ambiguous queries fall back to the regular Fund
  *   layout with a localized non-blocking message.
- * - Support CTA opens `PublicFundingMethodSelector`. Wallet path uses the
- *   existing CookieJarDepositDialog / VaultDepositDialog (Reown/wagmi). Card
- *   path is hidden unless `publicProviderProofRegistry` marks the tuple `live`.
+ * - Each Garden row exposes Donate + Endow CTAs that open PublicFundingCard
+ *   (single editorial card with amount-first input, visual token picker, and
+ *   inline wallet-connect through the smart submit button).
  * - No public withdrawal or admin controls (support-only).
- *
- * Voice (per chat 8 user feedback): Donate / Endow as terminology (not
- * Direct/Endowment), single "Support" button per garden, hero copy "A small
- * gesture today, growing over many seasons."
  */
-export default function FundPage() {
+function FundPageContent() {
   const { formatMessage } = useIntl();
   const { data: gardens = [], isLoading } = usePublicGardens();
+  const vaultSummary = usePublicVaultSummary();
   const [searchParams] = useSearchParams();
 
   const intentId = searchParams.get("intent");
@@ -171,9 +322,13 @@ export default function FundPage() {
     return [match, ...gardens.filter((g) => g.id !== match.id)];
   }, [gardens, resolved]);
 
-  const [selectorGarden, setSelectorGarden] = useState<PublicGardenSummary | null>(null);
-  const [walletDialog, setWalletDialog] = useState<ActiveWalletDialog | null>(null);
-  const hasWalletRuntime = Boolean(selectorGarden || walletDialog);
+  const [selectorState, setSelectorState] = useState<{
+    garden: PublicGardenSummary;
+    intent: PublicFundingIntentKind;
+  } | null>(null);
+  const hasWalletRuntime = Boolean(selectorState);
+  const { ref: pathsRef, revealed: pathsRevealed } = useInViewReveal<HTMLElement>();
+  const { ref: gardensRef, revealed: gardensRevealed } = useInViewReveal<HTMLElement>();
 
   const matchHighlightRef = useRef<HTMLDivElement | null>(null);
   const matchedGardenId = resolved.status === "match" ? resolved.garden?.id : undefined;
@@ -190,21 +345,11 @@ export default function FundPage() {
     return () => cancelAnimationFrame(handle);
   }, [matchedGardenId]);
 
-  const closeSelector = useCallback(() => setSelectorGarden(null), []);
-  const closeWalletDialog = useCallback(() => setWalletDialog(null), []);
+  const closeSelector = useCallback(() => setSelectorState(null), []);
 
-  const handleWalletSelected = useCallback(
-    (intent: PublicFundingIntentKind) => {
-      if (!selectorGarden) return;
-      setWalletDialog({ intent, garden: selectorGarden });
-    },
-    [selectorGarden]
-  );
-
-  const handleCardSelected = useCallback(
-    (_intent: PublicFundingIntentKind, _availability: PublicFundingAvailability) => {
-      // Card flow lights up only when the provider proof registry has a `live`
-      // entry for the exact tuple. Until that lands, this branch is unreachable.
+  const handleSupport = useCallback(
+    (garden: PublicGardenSummary, intent: PublicFundingIntentKind) => {
+      setSelectorState({ garden, intent });
     },
     []
   );
@@ -232,6 +377,8 @@ export default function FundPage() {
             "Donate to a Garden's immediate Work, or Endow a Vault so yield supports the Garden over many seasons. Every contribution lands with a Garden, not a platform.",
         })}
       />
+
+      <VaultAggregationSection summary={vaultSummary} />
 
       {intentId ? (
         <section className="bg-bg-weak-50 px-6 pt-32 pb-8 sm:px-10 sm:pt-36 md:pt-40">
@@ -268,19 +415,25 @@ export default function FundPage() {
 
       {/* § 01 — Donate vs Endow editorial diptych */}
       <section
+        ref={pathsRef}
+        data-revealed={pathsRevealed}
         className={
-          intentId || resolved.status === "stale" || resolved.status === "ambiguous"
-            ? "bg-bg-weak-50 px-6 pb-16 sm:px-10 md:pb-20"
-            : "bg-bg-weak-50 px-6 pt-32 pb-16 sm:px-10 sm:pt-36 md:pt-40 md:pb-20"
+          vaultSummary.hasVaults ||
+          vaultSummary.isLoading ||
+          intentId ||
+          resolved.status === "stale" ||
+          resolved.status === "ambiguous"
+            ? "editorial-section-reveal bg-bg-weak-50 px-6 pb-16 sm:px-10 md:pb-20"
+            : "editorial-section-reveal bg-bg-weak-50 px-6 pt-32 pb-16 sm:px-10 sm:pt-36 md:pt-40 md:pb-20"
         }
         aria-labelledby="public-fund-paths-title"
       >
-        <div className="mx-auto max-w-7xl">
+        <div className="editorial-cascade mx-auto max-w-7xl">
           <header className="border-b border-stroke-soft-200 pb-6">
             <EditorialKicker className="mb-3">
               {formatMessage({
                 id: "public.fund.paths.kicker",
-                defaultMessage: "§ 01 — Two paths of support",
+                defaultMessage: "§ 02 — Ways to support",
               })}
             </EditorialKicker>
             <EditorialHeading id="public-fund-paths-title">
@@ -297,11 +450,14 @@ export default function FundPage() {
               titleId="public.fund.paths.donateTitle"
               defaultTitle="Donate"
               ledeId="public.fund.paths.donateLede"
-              defaultLede="Direct support reaching a Garden's Cookie Jar today, funding the work right in front of them."
+              defaultLede="Direct support reaching a Garden's Cookie Jar today — a shared, allowlist-gated pool that funds the work right in front of them."
               routesId="public.fund.paths.donateRoutes"
               defaultRoutes="Goes to the Garden's Cookie Jar."
               bestForId="public.fund.paths.donateBestFor"
               defaultBestFor="Immediate needs and near-term work."
+              learnMoreId="public.fund.paths.donateLearnMore"
+              defaultLearnMore="Learn about Cookie Jar V3"
+              learnMoreHref="https://www.cookiejar.wtf/"
             />
             <SupportPath
               numeral="2."
@@ -313,22 +469,57 @@ export default function FundPage() {
               defaultRoutes="Stays in the Garden's Vault."
               bestForId="public.fund.paths.endowBestFor"
               defaultBestFor="Long-term support that compounds."
+              learnMoreId="public.fund.paths.endowLearnMore"
+              defaultLearnMore="Learn about Octant V2 vaults"
+              learnMoreHref="https://octant.build"
             />
           </div>
+
+          <aside
+            className="mt-10 border-t border-stroke-soft-200 pt-6 text-xs leading-[1.6] text-text-soft-400"
+            aria-label={formatMessage({
+              id: "public.fund.paths.disclosures",
+              defaultMessage: "Important disclosures",
+            })}
+          >
+            <p>
+              {formatMessage({
+                id: "public.fund.dialog.taxDisclaimer",
+                defaultMessage:
+                  "Both paths support the Garden directly. They are not tax-deductible, charitable, or nonprofit-backed unless separately configured.",
+              })}
+            </p>
+            <p className="mt-2">
+              <span className="font-mono uppercase tracking-[0.16em] text-text-soft-400">
+                {formatMessage({
+                  id: "public.fund.paths.endowRiskLabel",
+                  defaultMessage: "On Endow",
+                })}
+                {" — "}
+              </span>
+              {formatMessage({
+                id: "public.fund.dialog.endow.risk",
+                defaultMessage:
+                  "Heads up: long-term deposits depend on the underlying token and provider, so values and access can vary.",
+              })}
+            </p>
+          </aside>
         </div>
       </section>
 
       {/* § 02 — Choose a Garden to support */}
       <section
-        className="bg-bg-weak-50 px-6 pb-24 sm:px-10 md:pb-32"
+        ref={gardensRef}
+        data-revealed={gardensRevealed}
+        className="editorial-section-reveal bg-bg-weak-50 px-6 pb-24 sm:px-10 md:pb-32"
         aria-labelledby="public-fund-gardens-title"
       >
-        <div className="mx-auto max-w-7xl">
+        <div className="editorial-cascade mx-auto max-w-7xl">
           <header className="border-b border-stroke-soft-200 pb-6">
             <EditorialKicker className="mb-3">
               {formatMessage({
                 id: "public.fund.gardens.kicker",
-                defaultMessage: "§ 02 — Choose where to apply your support",
+                defaultMessage: "§ 03 — Choose where to apply your support",
               })}
             </EditorialKicker>
             <EditorialHeading id="public-fund-gardens-title">
@@ -340,21 +531,25 @@ export default function FundPage() {
           </header>
 
           {isLoading ? (
-            <ul className="mt-8" aria-hidden="true">
-              {[0, 1, 2].map((i) => (
-                <li
-                  key={i}
-                  className="flex items-stretch gap-4 border-b border-stroke-soft-200 py-5 last:border-b-0 sm:gap-6 sm:py-6"
-                >
-                  <div className="h-20 w-20 shrink-0 animate-pulse bg-editorial-warm sm:h-24 sm:w-24" />
+            <div
+              className="mt-8 grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-2 2xl:grid-cols-3"
+              aria-hidden="true"
+            >
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} className="flex items-stretch gap-4 py-4 sm:gap-5">
+                  <div className="h-20 w-20 shrink-0 animate-pulse bg-editorial-warm" />
                   <div className="flex flex-1 flex-col justify-center gap-2">
                     <div className="h-3 w-24 animate-pulse bg-stroke-soft-200/60" />
                     <div className="h-5 w-3/4 animate-pulse bg-stroke-soft-200/60" />
                     <div className="h-3 w-1/2 animate-pulse bg-stroke-soft-200/40" />
                   </div>
-                </li>
+                  <div className="flex shrink-0 flex-col justify-center gap-2">
+                    <div className="h-9 w-20 animate-pulse rounded-full bg-stroke-soft-200/60" />
+                    <div className="h-9 w-20 animate-pulse rounded-full bg-stroke-soft-200/40" />
+                  </div>
+                </div>
               ))}
-            </ul>
+            </div>
           ) : orderedGardens.length === 0 ? (
             <div className="mt-12 max-w-md">
               <p className="font-serif text-xl italic text-text-soft-400">
@@ -379,7 +574,7 @@ export default function FundPage() {
               </div>
             </div>
           ) : (
-            <ul className="mt-8">
+            <div className="mt-8 grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-2 2xl:grid-cols-3">
               {orderedGardens.map((garden) => {
                 const isMatchedHighlight =
                   resolved.status === "match" && resolved.garden?.id === garden.id;
@@ -393,11 +588,15 @@ export default function FundPage() {
                         : undefined
                     }
                   >
-                    <PublicGardenRow garden={garden} onSupport={setSelectorGarden} />
+                    <PublicGardenRow
+                      garden={garden}
+                      vaultSummary={getGardenVaultSummary(vaultSummary, garden)}
+                      onSupport={handleSupport}
+                    />
                   </div>
                 );
               })}
-            </ul>
+            </div>
           )}
 
           <div className="mt-12 border-t border-stroke-soft-200 pt-6">
@@ -445,36 +644,24 @@ export default function FundPage() {
             </div>
           }
         >
-          <WalletRuntimeProviders>
-            {selectorGarden ? (
-              <PublicFundingMethodSelector
-                open
-                garden={selectorGarden}
-                onClose={closeSelector}
-                onWalletSelected={handleWalletSelected}
-                onCardSelected={handleCardSelected}
-              />
-            ) : null}
-
-            {walletDialog?.intent === "donate" ? (
-              <CookieJarDepositDialog
-                isOpen
-                onClose={closeWalletDialog}
-                gardenAddress={walletDialog.garden.id as Address}
-                gardenName={walletDialog.garden.name}
-              />
-            ) : null}
-            {walletDialog?.intent === "endow" ? (
-              <VaultDepositDialog
-                isOpen
-                onClose={closeWalletDialog}
-                gardenAddress={walletDialog.garden.id as Address}
-                gardenName={walletDialog.garden.name}
-              />
-            ) : null}
-          </WalletRuntimeProviders>
+          {selectorState ? (
+            <PublicFundingCard
+              open
+              garden={selectorState.garden}
+              intent={selectorState.intent}
+              onClose={closeSelector}
+            />
+          ) : null}
         </Suspense>
       ) : null}
     </>
+  );
+}
+
+export default function FundPage() {
+  return (
+    <WalletRuntimeProviders>
+      <FundPageContent />
+    </WalletRuntimeProviders>
   );
 }

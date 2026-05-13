@@ -9,6 +9,8 @@ export {
   type CanvasMobilePrimaryAction,
   type UseCanvasResponsiveFabOptions,
 } from "./useCanvasResponsiveFab";
+export { useViewActions } from "./useViewActions";
+export type { ViewAction, ViewActionsConfig } from "./viewActions.types";
 export { WorkbenchList } from "./WorkbenchList";
 export {
   WorkbenchRow,
@@ -16,6 +18,12 @@ export {
   type WorkbenchTone,
 } from "./WorkbenchRow";
 export { FabProvider, useFabConfig, useFabConfigValue } from "./FabContext";
+export {
+  RefreshActionProvider,
+  useRefreshAction,
+  useRefreshActionValue,
+  type RefreshActionConfig,
+} from "./RefreshActionContext";
 export {
   LeftSheetProvider,
   useLeftSheetConfig,

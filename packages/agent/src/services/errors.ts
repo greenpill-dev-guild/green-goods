@@ -5,6 +5,8 @@
  * Enables differentiated logging, status codes, and user-facing messages.
  */
 
+import { agentMessage } from "../i18n";
+
 /** User input that fails validation (e.g., invalid address, missing fields). */
 export class ValidationError extends Error {
   override readonly name = "ValidationError";
@@ -38,7 +40,10 @@ export class ExternalServiceError extends Error {
  * Returns a category string and safe user message. The original error
  * is always preserved for logging — only the user message is sanitized.
  */
-export function classifyError(error: unknown): {
+export function classifyError(
+  error: unknown,
+  locale?: string
+): {
   category: "validation" | "authorization" | "external_service" | "internal";
   userMessage: string;
   statusCode: number;
@@ -54,7 +59,7 @@ export function classifyError(error: unknown): {
   if (error instanceof AuthorizationError) {
     return {
       category: "authorization",
-      userMessage: "You don't have permission for this action.",
+      userMessage: agentMessage(locale, "error.authorization"),
       statusCode: 403,
     };
   }
@@ -62,14 +67,14 @@ export function classifyError(error: unknown): {
   if (error instanceof ExternalServiceError) {
     return {
       category: "external_service",
-      userMessage: `Service temporarily unavailable (${error.service}). Please try again later.`,
+      userMessage: agentMessage(locale, "error.externalService", { service: error.service }),
       statusCode: 502,
     };
   }
 
   return {
     category: "internal",
-    userMessage: "An unexpected error occurred. Please try again.",
+    userMessage: agentMessage(locale, "error.internal"),
     statusCode: 500,
   };
 }

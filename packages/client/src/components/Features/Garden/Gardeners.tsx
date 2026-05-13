@@ -107,9 +107,15 @@ const GardenMemberItem = memo(function GardenMemberItem({
           </>
         )}
       </Avatar>
-      <div className="flex flex-col pr-14">
-        <span className="font-semibold">{displayName}</span>
-        {subline ? <span className="text-xs text-text-sub-600">{subline}</span> : null}
+      <div className="flex flex-col pr-14 min-w-0">
+        <span className="truncate font-semibold" title={displayName}>
+          {displayName}
+        </span>
+        {subline ? (
+          <span className="truncate text-xs text-text-sub-600" title={subline}>
+            {subline}
+          </span>
+        ) : null}
         <span className="text-xs text-text-sub-600 flex items-center gap-1">
           <RiCalendarEventFill className="w-3.5 h-3.5 text-primary" />
           {intl.formatMessage({ id: "app.garden.gardeners.registered", description: "Registered" })}
@@ -216,7 +222,9 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
               )}
             >
               <div className="flex items-center justify-between mb-3">
-                <Dialog.Title className="text-base font-semibold truncate">{title}</Dialog.Title>
+                <Dialog.Title className="text-base font-semibold truncate" title={title}>
+                  {title}
+                </Dialog.Title>
                 <Dialog.Close asChild>
                   <button
                     className={cn("p-1", pwaDrawerStyles.closeButtonBase)}
@@ -233,9 +241,14 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
                     (selectedPreferredEnsName ? (
                       <>
                         <div className="flex items-center justify-between gap-2">
-                          <div className="flex items-center gap-2 text-sm">
+                          <div className="flex min-w-0 items-center gap-2 text-sm">
                             <RiUserLine className="w-4 h-4 text-primary" />
-                            <span className="font-semibold">{selectedPreferredEnsName}</span>
+                            <span
+                              className="truncate font-semibold"
+                              title={selectedPreferredEnsName}
+                            >
+                              {selectedPreferredEnsName}
+                            </span>
                           </div>
                           <Button
                             variant="neutral"
@@ -278,9 +291,11 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
                     ))}
                   {selected.email && (
                     <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 text-sm">
+                      <div className="flex min-w-0 items-center gap-2 text-sm">
                         <RiMailFill className="w-4 h-4 text-primary" />
-                        <span>{selected.email}</span>
+                        <span className="truncate" title={selected.email}>
+                          {selected.email}
+                        </span>
                       </div>
                       <Button
                         variant="neutral"
@@ -297,9 +312,11 @@ export const GardenGardeners = forwardRef<HTMLUListElement, GardenGardenersProps
                   )}
                   {selected.phone && (
                     <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2 text-sm">
+                      <div className="flex min-w-0 items-center gap-2 text-sm">
                         <RiPhoneLine className="w-4 h-4 text-primary" />
-                        <span>{selected.phone}</span>
+                        <span className="truncate" title={selected.phone}>
+                          {selected.phone}
+                        </span>
                       </div>
                       <Button
                         variant="neutral"

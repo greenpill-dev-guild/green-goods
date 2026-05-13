@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import { Test } from "forge-std/Test.sol";
+import { Test, Vm } from "forge-std/Test.sol";
 import { ERC1967Proxy } from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import { Attestation } from "@eas/IEAS.sol";
 
@@ -11,6 +11,7 @@ import { MockHats } from "../../src/mocks/Hats.sol";
 import { MockEAS } from "../../src/mocks/EAS.sol";
 import { MockOctantVault } from "../../src/mocks/Octant.sol";
 import { MockPublicLock } from "../../src/mocks/Unlock.sol";
+import { IPublicLock } from "../../src/interfaces/IUnlock.sol";
 
 contract MockGreenWillVaultResolver {
     mapping(address garden => mapping(address asset => address vault)) internal vaults;
@@ -465,5 +466,380 @@ contract GreenWillV2 is GreenWill {
 
     function setV2StorageMarker(uint256 marker) external onlyOwner {
         v2StorageMarker = marker;
+    }
+}
+
+// =============================================================================
+// Reentrancy helpers and tests for GreenWill._issueBadge CEI compliance
+// =============================================================================
+
+/// @notice Malicious IPublicLock that calls an arbitrary callback during grantKeys.
+/// @dev Simulates a re-entrant unlockLock that triggers re-entry into GreenWill during badge issuance.
+// solhint-disable-next-line one-contract-per-file
+contract MaliciousGreenWillLock is IPublicLock {
+    address public callbackTarget;
+    bytes4 public callbackSelector;
+    bool public lastCallbackSucceeded;
+    uint256 public nextTokenId = 1;
+    uint256 internal _supply;
+
+    function setCallback(address target, bytes4 selector) external {
+        // Access control intentionally omitted — this is a test-only mock.
+        callbackTarget = target;
+        callbackSelector = selector;
+    }
+
+    function grantKeys(
+        address[] calldata _recipients,
+        uint256[] calldata,
+        address[] calldata
+    )
+        external
+        override
+        returns (uint256[] memory tokenIds)
+    {
+        tokenIds = new uint256[](_recipients.length);
+        for (uint256 i = 0; i < _recipients.length; i++) {
+            tokenIds[i] = nextTokenId++;
+            _supply++;
+        }
+        // Trigger re-entry attempt; outcome intentionally discarded in this test mock.
+        if (callbackTarget != address(0)) {
+            // solhint-disable-next-line avoid-low-level-calls
+            (lastCallbackSucceeded,) = callbackTarget.call(abi.encodeWithSelector(callbackSelector));
+        }
+    }
+
+    function totalSupply() external view override returns (uint256) {
+        return _supply;
+    }
+
+    function initialize(address, uint256, address, uint256, uint256, string calldata) external override { }
+
+    function getHasValidKey(address) external pure override returns (bool) {
+        return false;
+    }
+
+    function keyExpirationTimestampFor(address) external pure override returns (uint256) {
+        return 0;
+    }
+
+    function addLockManager(address) external override { }
+    function grantRole(bytes32, address) external override { }
+
+    function hasRole(bytes32, address) external pure override returns (bool) {
+        return false;
+    }
+
+    function updateTransferFee(uint256) external override { }
+
+    function isLockManager(address) external pure override returns (bool) {
+        return false;
+    }
+
+    function renounceLockManager() external override { }
+
+    function name() external pure override returns (string memory) {
+        return "MaliciousLock";
+    }
+
+    function symbol() external pure override returns (string memory) {
+        return "MLOCK";
+    }
+
+    function maxNumberOfKeys() external pure override returns (uint256) {
+        return type(uint256).max;
+    }
+
+    function expirationDuration() external pure override returns (uint256) {
+        return 0;
+    }
+}
+
+/// @notice Attacker contract that initiates claimBadge and re-enters it from the malicious lock callback.
+// solhint-disable-next-line one-contract-per-file
+contract ReentrantClaimBadgeAttacker {
+    GreenWill public greenWill;
+    bytes32 public badgeId;
+    bool public attackActive;
+    bool public reentryBlocked;
+    bool public reentrySucceeded;
+
+    constructor(address _greenWill, bytes32 _badgeId) {
+        greenWill = GreenWill(_greenWill);
+        badgeId = _badgeId;
+    }
+
+    function attack() external {
+        attackActive = true;
+        greenWill.claimBadge(badgeId, "");
+        attackActive = false;
+    }
+
+    /// @dev Called by MaliciousGreenWillLock.grantKeys during the attack.
+    function onGrantKeys() external {
+        if (attackActive) {
+            try greenWill.claimBadge(badgeId, "") {
+                reentrySucceeded = true;
+            } catch {
+                reentryBlocked = true;
+            }
+        }
+    }
+}
+
+/// @notice Authorized issuer that re-enters issueByAuthorizedIssuer from the malicious lock callback.
+// solhint-disable-next-line one-contract-per-file
+contract ReentrantAuthorizedIssuer {
+    GreenWill public greenWill;
+    bytes32 public badgeId;
+    address public account;
+    bytes32 public sourceRef;
+    bool public attackActive;
+    bool public reentryBlocked;
+    bool public reentrySucceeded;
+
+    constructor(address _greenWill) {
+        greenWill = GreenWill(_greenWill);
+    }
+
+    function configureAttack(bytes32 _badgeId, address _account, bytes32 _sourceRef) external {
+        badgeId = _badgeId;
+        account = _account;
+        sourceRef = _sourceRef;
+    }
+
+    function attack() external returns (uint256 tokenId) {
+        attackActive = true;
+        tokenId = greenWill.issueByAuthorizedIssuer(badgeId, account, sourceRef);
+        attackActive = false;
+    }
+
+    /// @dev Called by MaliciousGreenWillLock.grantKeys during the attack.
+    function onGrantKeys() external {
+        if (attackActive) {
+            try greenWill.issueByAuthorizedIssuer(badgeId, account, sourceRef) {
+                reentrySucceeded = true;
+            } catch {
+                reentryBlocked = true;
+            }
+        }
+    }
+}
+
+/// @notice GreenWill owner that re-enters batchIssueEligible from the malicious lock callback.
+// solhint-disable-next-line one-contract-per-file
+contract ReentrantBatchIssuer {
+    GreenWill public greenWill;
+    bytes32 public badgeId;
+    address[] public accounts;
+    bytes[] public claimData;
+    bool public attackActive;
+    bool public reentryBlocked;
+    uint256 public reentryIssuedCount;
+    bool public reentryReturnedZero;
+
+    constructor(address _greenWill) {
+        greenWill = GreenWill(_greenWill);
+    }
+
+    function configureAttack(bytes32 _badgeId, address[] calldata _accounts, bytes[] calldata _claimData) external {
+        badgeId = _badgeId;
+        delete accounts;
+        for (uint256 i = 0; i < _accounts.length; i++) {
+            accounts.push(_accounts[i]);
+        }
+        delete claimData;
+        for (uint256 i = 0; i < _claimData.length; i++) {
+            claimData.push(_claimData[i]);
+        }
+    }
+
+    function attack() external returns (uint256 issuedCount) {
+        attackActive = true;
+        issuedCount = greenWill.batchIssueEligible(badgeId, accounts, claimData);
+        attackActive = false;
+    }
+
+    /// @dev Called by MaliciousGreenWillLock.grantKeys during the attack.
+    function onGrantKeys() external {
+        if (attackActive) {
+            try greenWill.batchIssueEligible(badgeId, accounts, claimData) returns (uint256 count) {
+                reentryIssuedCount = count;
+                reentryReturnedZero = (count == 0);
+            } catch {
+                reentryBlocked = true;
+            }
+        }
+    }
+}
+
+/// @title GreenWillReentrancyTest
+/// @notice Verifies that the CEI-compliant _issueBadge correctly blocks re-entrant duplicate claims.
+/// @dev Covers claimBadge, issueByAuthorizedIssuer, batchIssueEligible, and the no-lock/happy-path regressions.
+contract GreenWillReentrancyTest is Test {
+    GreenWill internal greenWill;
+    MockHats internal hats;
+    MaliciousGreenWillLock internal maliciousLock;
+
+    bytes32 internal constant CLAIM_BADGE = keccak256("CLAIM_REENTRANCY_BADGE");
+    bytes32 internal constant AUTH_BADGE = keccak256("AUTH_REENTRANCY_BADGE");
+    bytes32 internal constant BATCH_BADGE = keccak256("BATCH_REENTRANCY_BADGE");
+    bytes32 internal constant NO_LOCK_BADGE = keccak256("NO_LOCK_BADGE");
+    uint256 internal constant HAT_ID = 99;
+
+    address internal constant ALICE = address(0xA11CE);
+
+    function setUp() public {
+        hats = new MockHats();
+        hats.setHatActive(HAT_ID, true);
+        maliciousLock = new MaliciousGreenWillLock();
+
+        GreenWill implementation = new GreenWill();
+        greenWill = GreenWill(
+            address(
+                new ERC1967Proxy(
+                    address(implementation), abi.encodeWithSelector(GreenWill.initialize.selector, address(this))
+                )
+            )
+        );
+    }
+
+    // =========================================================================
+    // Re-entry via claimBadge: mints exactly one badge
+    // =========================================================================
+
+    function test_claimBadge_blocksReentrantDuplicateClaim() public {
+        ReentrantClaimBadgeAttacker attacker = new ReentrantClaimBadgeAttacker(address(greenWill), CLAIM_BADGE);
+        hats.setWearer(HAT_ID, address(attacker), true);
+        greenWill.configureBadgeClass(
+            CLAIM_BADGE, "claim-reent", "ipfs://claim-reent", address(hats), address(0), address(maliciousLock), true, true
+        );
+        greenWill.configureBadgeRule(CLAIM_BADGE, GreenWill.BadgeRule.Hat, bytes32(HAT_ID), 0);
+        maliciousLock.setCallback(address(attacker), ReentrantClaimBadgeAttacker.onGrantKeys.selector);
+
+        vm.recordLogs();
+        attacker.attack();
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+
+        assertEq(_countBadgeIssuedEvents(logs), 1, "exactly one BadgeIssued event should be emitted");
+        assertTrue(attacker.reentryBlocked(), "re-entry claimBadge should revert with BadgeAlreadyOwned");
+        assertFalse(attacker.reentrySucceeded(), "re-entry should not have minted a second badge");
+        assertTrue(greenWill.hasBadge(CLAIM_BADGE, address(attacker)), "badge should be issued exactly once");
+        assertEq(maliciousLock.totalSupply(), 1, "only one unlock key should be minted");
+        GreenWill.BadgeRecord memory record = greenWill.getBadgeRecord(CLAIM_BADGE, address(attacker));
+        assertEq(record.unlockTokenId, 1, "unlockTokenId should be patched after the external call returns");
+    }
+
+    // =========================================================================
+    // Re-entry via issueByAuthorizedIssuer: mints exactly one badge
+    // =========================================================================
+
+    function test_issueByAuthorizedIssuer_blocksReentrantDuplicateClaim() public {
+        ReentrantAuthorizedIssuer issuer = new ReentrantAuthorizedIssuer(address(greenWill));
+        bytes32 sourceRef = keccak256("manual-source");
+        greenWill.configureBadgeClass(
+            AUTH_BADGE, "auth-reent", "ipfs://auth-reent", address(0), address(issuer), address(maliciousLock), false, true
+        );
+        issuer.configureAttack(AUTH_BADGE, ALICE, sourceRef);
+        maliciousLock.setCallback(address(issuer), ReentrantAuthorizedIssuer.onGrantKeys.selector);
+
+        vm.recordLogs();
+        issuer.attack();
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+
+        assertEq(_countBadgeIssuedEvents(logs), 1, "exactly one BadgeIssued event should be emitted");
+        assertTrue(issuer.reentryBlocked(), "re-entry issueByAuthorizedIssuer should revert with BadgeAlreadyOwned");
+        assertFalse(issuer.reentrySucceeded(), "re-entry should not have issued a second badge for ALICE");
+        assertTrue(greenWill.hasBadge(AUTH_BADGE, ALICE), "badge should be issued exactly once to ALICE");
+        assertEq(maliciousLock.totalSupply(), 1, "only one unlock key should be minted");
+    }
+
+    // =========================================================================
+    // Re-entry via batchIssueEligible: issuedCount stays correct
+    // =========================================================================
+
+    function test_batchIssueEligible_blocksReentrantDuplicateClaim() public {
+        // Configure badge before transferring ownership (requires onlyOwner).
+        greenWill.configureBadgeClass(
+            BATCH_BADGE, "batch-reent", "ipfs://batch-reent", address(hats), address(0), address(maliciousLock), true, true
+        );
+        greenWill.configureBadgeRule(BATCH_BADGE, GreenWill.BadgeRule.Hat, bytes32(HAT_ID), 0);
+        hats.setWearer(HAT_ID, ALICE, true);
+
+        // Transfer ownership to the re-entrant batch issuer so it can call batchIssueEligible.
+        ReentrantBatchIssuer batchIssuer = new ReentrantBatchIssuer(address(greenWill));
+        greenWill.transferOwnership(address(batchIssuer));
+
+        address[] memory batchAccounts = new address[](1);
+        batchAccounts[0] = ALICE;
+        bytes[] memory batchClaimData = new bytes[](1);
+        batchClaimData[0] = "";
+        batchIssuer.configureAttack(BATCH_BADGE, batchAccounts, batchClaimData);
+        maliciousLock.setCallback(address(batchIssuer), ReentrantBatchIssuer.onGrantKeys.selector);
+
+        vm.recordLogs();
+        uint256 issuedCount = batchIssuer.attack();
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+
+        assertEq(issuedCount, 1, "original batch should have issued exactly one badge");
+        assertEq(_countBadgeIssuedEvents(logs), 1, "exactly one BadgeIssued event should be emitted");
+        assertTrue(batchIssuer.reentryReturnedZero(), "re-entry batch should issue zero badges (ALICE already issued)");
+        assertFalse(batchIssuer.reentryBlocked(), "re-entry batchIssueEligible should not revert; it silently skips");
+        assertTrue(greenWill.hasBadge(BATCH_BADGE, ALICE), "badge should be issued exactly once to ALICE");
+        assertEq(maliciousLock.totalSupply(), 1, "only one unlock key should be minted");
+    }
+
+    // =========================================================================
+    // No-lock path: badge record written with zero tokenId
+    // =========================================================================
+
+    function test_issueBadge_noLockPath_recordWrittenWithZeroTokenId() public {
+        greenWill.configureBadgeClass(
+            NO_LOCK_BADGE, "no-lock", "ipfs://no-lock", address(hats), address(0), address(0), true, true
+        );
+        greenWill.configureBadgeRule(NO_LOCK_BADGE, GreenWill.BadgeRule.Hat, bytes32(HAT_ID), 0);
+        hats.setWearer(HAT_ID, ALICE, true);
+
+        vm.prank(ALICE);
+        uint256 tokenId = greenWill.claimBadge(NO_LOCK_BADGE, "");
+
+        GreenWill.BadgeRecord memory record = greenWill.getBadgeRecord(NO_LOCK_BADGE, ALICE);
+        assertEq(tokenId, 0, "no-lock badge should return tokenId of zero");
+        assertTrue(record.issued, "badge record should be written");
+        assertEq(record.unlockTokenId, 0, "unlockTokenId should be zero for no-lock badge");
+    }
+
+    // =========================================================================
+    // Happy path with lock: tokenId correctly populated after external call
+    // =========================================================================
+
+    function test_issueBadge_happyPathWithLock_tokenIdPopulatedCorrectly() public {
+        MockPublicLock realLock = new MockPublicLock();
+        greenWill.configureBadgeClass(
+            CLAIM_BADGE, "happy-lock", "ipfs://happy-lock", address(hats), address(0), address(realLock), true, true
+        );
+        greenWill.configureBadgeRule(CLAIM_BADGE, GreenWill.BadgeRule.Hat, bytes32(HAT_ID), 0);
+        hats.setWearer(HAT_ID, ALICE, true);
+
+        vm.prank(ALICE);
+        uint256 tokenId = greenWill.claimBadge(CLAIM_BADGE, "");
+
+        GreenWill.BadgeRecord memory record = greenWill.getBadgeRecord(CLAIM_BADGE, ALICE);
+        assertEq(tokenId, 1, "tokenId should match what grantKeys returns");
+        assertTrue(record.issued, "badge record should be written");
+        assertEq(record.unlockTokenId, 1, "unlockTokenId should be patched after the external call");
+        assertTrue(realLock.getHasValidKey(ALICE), "unlock key should be minted on the real lock");
+    }
+
+    // =========================================================================
+    // Internal helper
+    // =========================================================================
+
+    function _countBadgeIssuedEvents(Vm.Log[] memory logs) internal pure returns (uint256 count) {
+        bytes32 eventSig = keccak256("BadgeIssued(bytes32,address,bytes32,address,uint256)");
+        for (uint256 i = 0; i < logs.length; i++) {
+            if (logs[i].topics[0] == eventSig) count++;
+        }
     }
 }

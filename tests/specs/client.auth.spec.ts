@@ -32,7 +32,7 @@ test.describe("Client Authentication Flows", () => {
 
     test("handles passkey registration cancellation", async ({ page }) => {
       // This test doesn't actually use passkey auth - just verifies UI
-      await page.goto("/login");
+      await page.goto("/home/login?presentation=pwa");
       await page.waitForLoadState("domcontentloaded");
       await page.waitForTimeout(1000);
 
@@ -49,7 +49,7 @@ test.describe("Client Authentication Flows", () => {
       const hasUsernameInput = await usernameInput.isVisible({ timeout: 3000 }).catch(() => false);
 
       // Either username input appears or we're still on login page
-      expect(hasUsernameInput || page.url().includes("/login")).toBeTruthy();
+      expect(hasUsernameInput || page.url().includes("/home/login")).toBeTruthy();
     });
 
     test.fixme(
@@ -75,7 +75,7 @@ test.describe("Client Authentication Flows", () => {
         const authenticatedElements = [
           '[data-testid="authenticated-nav"]',
           '[data-testid="work-dashboard-button"]',
-          'nav:has(a[href="/profile"])',
+          'nav:has(a[href="/home/profile"])',
           'button[aria-label="Menu"]',
         ];
 
@@ -98,7 +98,7 @@ test.describe("Client Authentication Flows", () => {
     });
 
     test("shows wallet connection modal", async ({ page }) => {
-      await page.goto("/login");
+      await page.goto("/home/login?presentation=pwa");
       await page.waitForLoadState("domcontentloaded");
       await page.waitForTimeout(1000);
 
@@ -138,7 +138,7 @@ test.describe("Client Authentication Flows", () => {
         }
 
         // Accept either modal showing or still on login page
-        expect(modalFound || page.url().includes("/login")).toBeTruthy();
+        expect(modalFound || page.url().includes("/home/login")).toBeTruthy();
       } else {
         // If no wallet link visible, the login button should still be functional
         await expect(loginButton).toBeEnabled();
@@ -146,7 +146,7 @@ test.describe("Client Authentication Flows", () => {
     });
 
     test("handles wallet connection rejection", async ({ page }) => {
-      await page.goto("/login");
+      await page.goto("/home/login?presentation=pwa");
       await page.waitForLoadState("domcontentloaded");
       await page.waitForTimeout(1000);
 
@@ -194,7 +194,7 @@ test.describe("Client Authentication Flows", () => {
       }
 
       // Should remain on login page
-      expect(page.url()).toContain("/login");
+      expect(page.url()).toContain("/home/login");
       await expect(loginButton).toBeVisible();
     });
   });
@@ -222,7 +222,7 @@ test.describe("Client Authentication Flows", () => {
       await helper.waitForPageLoad();
 
       const url = page.url();
-      if (url.includes("/login")) {
+      if (url.includes("/home/login")) {
         console.log("Auth injection not persisted - skipping persistence test");
         return;
       }
@@ -234,7 +234,7 @@ test.describe("Client Authentication Flows", () => {
       // Should still be authenticated (if storage persisted)
       const newUrl = page.url();
       // Either still on home (auth persisted) or redirected to login (storage cleared on reload)
-      expect(newUrl.includes("/home") || newUrl.includes("/login")).toBeTruthy();
+      expect(newUrl.includes("/home") || newUrl.includes("/home/login")).toBeTruthy();
     });
   });
 
@@ -261,7 +261,7 @@ test.describe("Client Authentication Flows", () => {
       await helper.waitForPageLoad();
 
       const url = page.url();
-      if (url.includes("/login")) {
+      if (url.includes("/home/login")) {
         console.log("Auth injection not persisted - skipping sign out test");
         return;
       }
@@ -289,7 +289,7 @@ test.describe("Client Authentication Flows", () => {
         await page.waitForTimeout(2000);
 
         // Should redirect to login
-        expect(page.url()).toContain("/login");
+        expect(page.url()).toContain("/home/login");
       } else {
         // Sign out button may be hidden in menu - test passes if page loaded
         console.log("Sign out button not immediately visible - may be in menu");
@@ -300,7 +300,7 @@ test.describe("Client Authentication Flows", () => {
 
   test.describe("Auth Error Handling", () => {
     test("shows error message on authentication failure", async ({ page }) => {
-      await page.goto("/login");
+      await page.goto("/home/login?presentation=pwa");
       await page.waitForLoadState("domcontentloaded");
 
       // TODO: Simulate authentication failure
@@ -308,7 +308,7 @@ test.describe("Client Authentication Flows", () => {
     });
 
     test("allows retry after authentication error", async ({ page }) => {
-      await page.goto("/login");
+      await page.goto("/home/login?presentation=pwa");
       await page.waitForLoadState("domcontentloaded");
 
       // TODO: Simulate error and retry

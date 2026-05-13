@@ -37,7 +37,7 @@ const meta = {
           "**GardenChip** — garden context selector in the canvas AppBar. Anatomy aligned",
           "to handoff `screens/review.css` `.rv-pill`:",
           "",
-          "- Flat `var(--surface-raised)` background, 1px `var(--outline)/0.10` border",
+          "- Flat `var(--surface-raised)` background, 1px `var(--outline)` border",
           "- No shadow (drops `glass-raised` from earlier rounds — keeps the AppBar quiet)",
           "- Tone-tinted leaf icon — `var(--tone-action)` resolves per `[data-tone]` ancestor",
           "- Selected dot mirrors the leaf color so context reads at a glance",

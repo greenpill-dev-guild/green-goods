@@ -250,6 +250,18 @@ describe("queryInvalidation", () => {
     expect(queryInvalidation.invalidateMarketplace()).toEqual([queryKeys.marketplace.all]);
   });
 
+  it("keeps marketplace mutation invalidation covering approvals, orders, and trade history", () => {
+    expect(queryInvalidation.invalidateMarketplace()).toEqual([queryKeys.marketplace.all]);
+    expect(queryInvalidation.onMarketplaceListingChanged(TEST_GARDEN, TEST_CHAIN_ID)).toEqual([
+      queryKeys.marketplace.orders(TEST_GARDEN, TEST_CHAIN_ID),
+      queryKeys.marketplace.all,
+    ]);
+    expect(queryInvalidation.onFractionPurchased(TEST_HYPERCERT_ID, TEST_CHAIN_ID)).toEqual([
+      queryKeys.marketplace.tradeHistory(TEST_HYPERCERT_ID, TEST_CHAIN_ID),
+      queryKeys.marketplace.all,
+    ]);
+  });
+
   it("builds ENS registration invalidation from the provided inputs", () => {
     expect(queryInvalidation.invalidateEnsRegistration("my-garden", TEST_USER)).toEqual(
       expect.arrayContaining([

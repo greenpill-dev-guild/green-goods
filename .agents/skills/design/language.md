@@ -339,7 +339,7 @@ Detail surfaces that slide from the edge, anchored to their trigger (source-anch
 | **Side sheet** (desktop) | `translateX(±100%→0)` with `--spring-spatial` | Work review, settings, garden context, member management |
 | **Bottom sheet** (mobile) | `translateY(100%→0)` with `--spring-spatial` | Same content, adapted for vertical screen |
 
-Canvas recedes when a sheet opens: `scale(0.97) + opacity(0.85) + blur(2px)`. No dark scrim — depth separation through transform + opacity + blur + sheet shadow (see [spatial.md](./spatial.md) and spatial architecture).
+Admin canvas recedes when a bounded sheet opens: `translateY(var(--canvas-recede-y, 8px)) + opacity(var(--canvas-opacity-receded, 0.95)) + blur(var(--canvas-blur-receded, 1.5px))`. Parallel admin sheets avoid dark scrims; viewport dialogs and installed-PWA sheets may use the shared scrim token when they interrupt the main flow.
 
 ### Navigation
 
@@ -386,7 +386,7 @@ Glass material shifts as user engagement deepens. This replaces the binary "tran
 - **Dimming layer** for modal interruption: sheet opens, canvas dims behind it. The user's attention is redirected.
 - **Glass separation** for parallel tasks: panel slides in, canvas recedes slightly but stays visible. The user maintains awareness of both contexts.
 
-This maps to the spatial architecture's canvas recession states: `scale(0.97) + opacity(0.85) + blur(2px)` for sheet-active, full restoration on dismiss.
+This maps to the spatial architecture's canvas recession states: bounded admin sheet-active uses `translateY(var(--canvas-recede-y, 8px)) + opacity(var(--canvas-opacity-receded, 0.95)) + blur(var(--canvas-blur-receded, 1.5px))`, with full restoration on dismiss.
 
 ### Source-Anchored Interactions
 

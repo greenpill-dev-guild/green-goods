@@ -4,8 +4,7 @@ import { encodeFunctionData } from "viem";
 import { toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import { logger } from "../../modules/app/logger";
-import { parseContractError } from "../../utils/errors/contract-errors";
-import { USER_FRIENDLY_ERRORS } from "../../utils/errors/user-messages";
+import { parseAndFormatError } from "../../utils/errors/contract-errors";
 import { useAuth } from "../auth/useAuth";
 import { queryKeys } from "../../config/query-keys";
 
@@ -241,12 +240,13 @@ export function useGardenerProfile() {
       });
     },
     onError: (error: Error) => {
-      const parsed = parseContractError(error);
-      const safeName = typeof parsed?.name === "string" ? parsed.name.toLowerCase() : "";
-      const userFriendlyMsg = USER_FRIENDLY_ERRORS[safeName] || config.errorMessage;
+      const { message, parsed } = parseAndFormatError(error);
       toastService.error({
         title: config.errorTitle,
-        message: userFriendlyMsg,
+        // parseAndFormatError appends parsed.action to the message when known,
+        // preserving the post-classification "Please join from your profile"-style
+        // guidance the legacy USER_FRIENDLY_ERRORS lookup used to bake in.
+        message: parsed.isKnown ? message : config.errorMessage,
         context: "profile update",
         error: parsed,
       });

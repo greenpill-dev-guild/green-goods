@@ -12,12 +12,21 @@ import {
   buildApprovalTransactions,
   checkMarketplaceApprovals,
 } from "../../../modules/marketplace/approvals";
+import { ZERO_ADDRESS } from "../../../utils/blockchain/address";
 
 const TEST_OPERATOR = "0xDeaDbeefdEAdbeefdEadbEEFdeadbeEFdEaDbeeF" as Address;
 const CHAIN_ID = 11155111;
 
 // Mock createPublicClientForChain
 const mockReadContract = vi.fn();
+const mockContracts = vi.hoisted(() => ({
+  hypercertExchange: "0x1111111111111111111111111111111111111111" as Address,
+  hypercertMinter: "0x4444444444444444444444444444444444444444" as Address,
+  transferManager: "0x2222222222222222222222222222222222222222" as Address,
+  marketplaceAdapter: "0x5555555555555555555555555555555555555555" as Address,
+  hypercertsModule: "0x6666666666666666666666666666666666666666" as Address,
+  strategyHypercertFractionOffer: "0x7777777777777777777777777777777777777777" as Address,
+}));
 vi.mock("../../../config", () => ({
   createPublicClientForChain: vi.fn().mockReturnValue({
     readContract: (...args: unknown[]) => mockReadContract(...args),
@@ -26,11 +35,21 @@ vi.mock("../../../config", () => ({
 
 // Mock getNetworkContracts
 vi.mock("../../../utils/blockchain/contracts", () => ({
-  getNetworkContracts: vi.fn().mockReturnValue({
-    hypercertExchange: "0x1111111111111111111111111111111111111111",
-    hypercertMinter: "0x4444444444444444444444444444444444444444",
-    transferManager: "0x2222222222222222222222222222222222222222",
-    marketplaceAdapter: "0x5555555555555555555555555555555555555555",
+  getNetworkContracts: vi.fn(() => mockContracts),
+  assertMarketplaceReady: vi.fn(() => {
+    const missingFields = Object.entries(mockContracts)
+      .filter(([, value]) => value === ZERO_ADDRESS)
+      .map(([field]) => field);
+    if (missingFields.length > 0) {
+      throw new Error(`Marketplace configuration incomplete: ${missingFields.join(", ")}`);
+    }
+    return {
+      available: true,
+      status: "available",
+      chainId: 11155111,
+      missingFields: [],
+      addresses: mockContracts,
+    };
   }),
 }));
 
@@ -55,6 +74,12 @@ vi.mock("@hypercerts-org/marketplace-sdk", () => ({
 describe("marketplace/approvals", () => {
   beforeEach(() => {
     mockReadContract.mockReset();
+    mockContracts.hypercertExchange = "0x1111111111111111111111111111111111111111";
+    mockContracts.hypercertMinter = "0x4444444444444444444444444444444444444444";
+    mockContracts.transferManager = "0x2222222222222222222222222222222222222222";
+    mockContracts.marketplaceAdapter = "0x5555555555555555555555555555555555555555";
+    mockContracts.hypercertsModule = "0x6666666666666666666666666666666666666666";
+    mockContracts.strategyHypercertFractionOffer = "0x7777777777777777777777777777777777777777";
   });
 
   describe("checkMarketplaceApprovals", () => {
@@ -122,6 +147,15 @@ describe("marketplace/approvals", () => {
         })
       );
     });
+
+    it("refuses to read approvals when marketplace readiness is incomplete", async () => {
+      mockContracts.transferManager = ZERO_ADDRESS;
+
+      await expect(checkMarketplaceApprovals(TEST_OPERATOR, CHAIN_ID)).rejects.toThrow(
+        "Marketplace configuration incomplete"
+      );
+      expect(mockReadContract).not.toHaveBeenCalled();
+    });
   });
 
   describe("buildApprovalTransactions", () => {
@@ -168,6 +202,15 @@ describe("marketplace/approvals", () => {
 
       expect(result.grantExchange).toBeUndefined();
       expect(result.approveMinter).toBeUndefined();
+    });
+
+    it("refuses to build approval transactions when marketplace readiness is incomplete", async () => {
+      mockContracts.hypercertMinter = ZERO_ADDRESS;
+
+      await expect(buildApprovalTransactions(TEST_OPERATOR, CHAIN_ID)).rejects.toThrow(
+        "Marketplace configuration incomplete"
+      );
+      expect(mockReadContract).not.toHaveBeenCalled();
     });
   });
 });

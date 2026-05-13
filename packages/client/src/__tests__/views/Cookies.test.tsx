@@ -4,9 +4,9 @@
  * @vitest-environment jsdom
  */
 
-import { renderWithProviders as render, screen, userEvent } from "../test-utils";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { renderWithProviders as render, screen, userEvent, waitFor, within } from "../test-utils";
 
 const TEST_JAR = "0x1111111111111111111111111111111111111111" as const;
 const TEST_TOKEN = "0x2222222222222222222222222222222222222222" as const;
@@ -19,6 +19,7 @@ const mockClaimReset = vi.fn();
 const mockDepositReset = vi.fn();
 const mockUseCampaignCookieJar = vi.fn();
 const mockUseCampaignCookieJarCampaigns = vi.fn();
+const mockUsePublicGardens = vi.fn();
 const mockUseUser = vi.fn();
 let claimError: Error | null = null;
 let depositError: Error | null = null;
@@ -46,6 +47,9 @@ const eligibleJar = {
   metadata: {
     title: "Earth Week Cookie Jar",
     slug: "earth-week",
+    description: "Garden operator rewards for Earth Week.",
+    image: "https://cdn.greengoods.app/campaigns/earth-week.webp",
+    externalUrl: "https://greengoods.app/cookies?campaign=earth-week",
   },
 };
 
@@ -95,6 +99,7 @@ vi.mock("@green-goods/shared", async () => {
       error: claimError,
       reset: mockClaimReset,
     }),
+    usePublicGardens: () => mockUsePublicGardens(),
     useUser: () => mockUseUser(),
   };
 });
@@ -116,6 +121,7 @@ describe("CookiesPage", () => {
     claimError = null;
     depositError = null;
     mockUseUser.mockReturnValue({ primaryAddress: TEST_WALLET });
+    mockUsePublicGardens.mockReturnValue({ data: [], isLoading: false });
     mockUseCampaignCookieJarCampaigns.mockReturnValue({
       campaigns: [
         {
@@ -150,12 +156,18 @@ describe("CookiesPage", () => {
 
     renderPage();
 
-    // Heading was renamed in the editorial public refresh.
     expect(
-      screen.getByRole("heading", { name: /Shared jars for campaign funds/i, level: 1 })
+      screen.getByRole("heading", {
+        name: /Shared cookie jars for seasonal campaign work/i,
+        level: 1,
+      })
     ).toBeInTheDocument();
-    expect(await screen.findByText("Connect your wallet to check the jar and take a cookie."));
-    expect(screen.getByRole("button", { name: "Connect wallet" }));
+    expect(
+      await screen.findByText(/Connect a wallet to check claim access and add funds/i)
+    ).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Connect wallet" }).length).toBeGreaterThanOrEqual(
+      1
+    );
   });
 
   it("claims a fixed cookie amount for an eligible wallet", async () => {
@@ -169,10 +181,11 @@ describe("CookiesPage", () => {
       {
         jarAddress: TEST_JAR,
         amount: 10000000000000000000n,
-        purpose: "Campaign cookie claim",
+        purpose: "Green Goods campaign cookie claim",
       },
       expect.any(Object)
     );
+    expect(mockClaimMutate.mock.calls[0]?.[0].purpose.length).toBeGreaterThanOrEqual(27);
   });
 
   it("resolves campaign aliases from the indexed campaign list", async () => {
@@ -180,18 +193,35 @@ describe("CookiesPage", () => {
 
     expect((await screen.findAllByText("Earth Week Cookie Jar")).length).toBeGreaterThan(0);
     expect(mockUseCampaignCookieJar).toHaveBeenCalledWith(TEST_JAR);
+    await waitFor(() =>
+      expect(screen.getByRole("article", { name: "Earth Week Cookie Jar" })).toHaveFocus()
+    );
   });
 
-  it("opens configured campaign jars in an in-page dialog", async () => {
-    const user = userEvent.setup();
+  it("renders campaign image and description metadata", async () => {
+    renderPage();
 
+    expect(
+      (await screen.findAllByText("Garden operator rewards for Earth Week.")).length
+    ).toBeGreaterThan(0);
+    expect(
+      screen.getByRole("img", { name: "Earth Week Cookie Jar campaign artwork" })
+    ).toHaveAttribute("src", "https://cdn.greengoods.app/campaigns/earth-week.webp");
+    expect(screen.getByRole("link", { name: "Campaign page" })).toHaveAttribute(
+      "href",
+      "https://greengoods.app/cookies?campaign=earth-week"
+    );
+  });
+
+  it("renders configured campaign jars with inline actions instead of a dialog", async () => {
     renderPage("/cookies");
 
-    expect(await screen.findByText("Configured jars"));
-    await user.click(await screen.findByRole("button", { name: "Open Earth Week Cookie Jar" }));
+    expect(await screen.findByRole("heading", { name: /Seasonal jars/i }));
+    const card = await screen.findByRole("article", { name: "Earth Week Cookie Jar" });
 
-    expect(await screen.findByRole("dialog", { name: "Earth Week" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Claim cookie" })).toBeInTheDocument();
+    expect(within(card).getByRole("button", { name: "Claim cookie" })).toBeInTheDocument();
+    expect(within(card).getByRole("button", { name: "Deposit" })).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("submits a smaller variable claim when the jar balance is below max withdrawal", async () => {
@@ -219,10 +249,11 @@ describe("CookiesPage", () => {
       {
         jarAddress: TEST_JAR,
         amount: 3000000000000000000n,
-        purpose: "Campaign cookie claim",
+        purpose: "Green Goods campaign cookie claim",
       },
       expect.any(Object)
     );
+    expect(mockClaimMutate.mock.calls[0]?.[0].purpose.length).toBeGreaterThanOrEqual(27);
   });
 
   it("keeps the claim action disabled for an ineligible wallet", async () => {
@@ -244,9 +275,8 @@ describe("CookiesPage", () => {
 
     renderPage();
 
-    await user.click(await screen.findByRole("button", { name: "Deposit" }));
     await user.type(await screen.findByLabelText("Deposit amount"), "2.5");
-    await user.click(screen.getByRole("button", { name: "Feed the jar" }));
+    await user.click(screen.getByRole("button", { name: "Deposit" }));
 
     expect(mockDepositMutate).toHaveBeenCalledWith(
       {
@@ -264,5 +294,37 @@ describe("CookiesPage", () => {
     renderPage();
 
     expect(await screen.findByRole("alert")).toHaveTextContent("No cookies today");
+  });
+
+  it("keeps empty jars in the main grid as needs funding", async () => {
+    mockUseCampaignCookieJar.mockReturnValue({
+      jar: { ...eligibleJar, balance: 0n, canClaimNow: false },
+      isLoading: false,
+      error: null,
+      hasDetailReadFailure: false,
+    });
+
+    renderPage("/cookies");
+
+    const card = await screen.findByRole("article", { name: "Earth Week Cookie Jar" });
+    expect(within(card).getByText("Needs funding")).toBeInTheDocument();
+    expect(within(card).getByRole("button", { name: "Deposit" })).toBeInTheDocument();
+    expect(screen.queryByText(/Closed drops/i)).not.toBeInTheDocument();
+  });
+
+  it("keeps paused jars in the main grid as claims paused", async () => {
+    mockUseCampaignCookieJar.mockReturnValue({
+      jar: { ...eligibleJar, isPaused: true, canClaimNow: false },
+      isLoading: false,
+      error: null,
+      hasDetailReadFailure: false,
+    });
+
+    renderPage("/cookies");
+
+    const card = await screen.findByRole("article", { name: "Earth Week Cookie Jar" });
+    expect(within(card).getByText("Claims paused")).toBeInTheDocument();
+    expect(within(card).getByRole("button", { name: "Deposit" })).toBeInTheDocument();
+    expect(screen.queryByText(/Closed drops/i)).not.toBeInTheDocument();
   });
 });

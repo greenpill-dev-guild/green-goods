@@ -121,6 +121,10 @@ const NON_VISUAL_ADMIN_VIEWS = new Set<string>([
   "NotFound.tsx",
   "Profile/index.tsx",
 
+  // Storybook-only helper that wraps real admin canvas routes with a
+  // HydrateFallback so lazy route stories do not render blank under CI load.
+  "storybookCanvasHarness.tsx",
+
   // WorkDetail route shell. Exports `WorkDetailPanel` but is essentially
   // a router+auth+store composition around `ReviewForm` and
   // `SubmissionDetails` (both of which have dedicated stories).
@@ -148,6 +152,9 @@ const NON_VISUAL_ADMIN_VIEWS = new Set<string>([
 ]);
 
 const NON_VISUAL_SHARED_COMPONENTS = new Set([
+  // Internal Canvas sheet lifecycle/header/drag helpers. Visual coverage stays
+  // on LeftSheet, RightSheet, BottomSheet, MainSheet, and CanvasLayout stories.
+  "Canvas/CanvasSheetInternals.tsx",
   "Canvas/LeftSheetContext.tsx",
 ]);
 

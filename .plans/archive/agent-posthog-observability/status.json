@@ -1,0 +1,171 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "agent-posthog-observability",
+    "title": "Agent PostHog Observability",
+    "kind": "feature",
+    "stage": "archive"
+  },
+  "workflow": {
+    "overall_status": "done",
+    "priority": "p2",
+    "created_at": "2026-04-25T00:00:00.000Z",
+    "updated_at": "2026-05-10T06:37:51.000Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "taxonomy": {
+    "initiative": "agent-platform",
+    "tracks": ["agent", "ops"],
+    "work_types": ["observability", "implementation"],
+    "surfaces": ["docs/routines", ".claude/skills/debug", ".agents/skills/debug", "scripts/agents"],
+    "depends_on_features": []
+  },
+  "notes": [
+    "Formalized from an active loose plan during the validated-taxonomy cleanup.",
+    "Replay links remain private-context evidence and must not be placed in public Linear bodies.",
+    "2026-05-06 revision: Claude Code PostHog and Linear connectors are the primary path; the script is fallback-only and PostHog MCP is explicitly out of scope.",
+    "2026-05-10 archive: implementation and connector-first guidance are complete; live routine connector verification remains an operational follow-up, not active product implementation."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "n/a",
+      "branch": "claude/ui/agent-posthog-observability",
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No UI lane is planned for the PostHog read-side query surface."
+      },
+      "skill_tags": ["agent", "ops"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "completed",
+      "branch": "codex/state-api/agent-posthog-observability",
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "tdd": {
+        "mode": "required",
+        "status": "green_recorded",
+        "red": {
+          "command": "bunx vitest run scripts/agents/posthog-query.test.ts",
+          "evidence": ".plans/archive/agent-posthog-observability/handoffs/codex-state-api.md#red"
+        },
+        "green": {
+          "command": "bunx vitest run scripts/agents/posthog-query.test.ts",
+          "evidence": ".plans/archive/agent-posthog-observability/handoffs/codex-state-api.md#green"
+        },
+        "note": ""
+      },
+      "skill_tags": ["agent", "ops", "testing"],
+      "manual_blocked": false
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "codex/contracts/agent-posthog-observability",
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No contract lane is planned for observability query access."
+      },
+      "skill_tags": ["agent"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "skipped",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "claude/qa-pass-1/agent-posthog-observability",
+      "depends_on": ["state_api"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "skipped",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "codex/qa-pass-2/agent-posthog-observability",
+      "branch_trigger": "claude/qa-pass-1/agent-posthog-observability",
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-05-03T00:00:00.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "formalized",
+      "branch": null,
+      "note": "Formalized active loose plan with validated taxonomy and state/API TDD gate."
+    },
+    {
+      "timestamp": "2026-05-04T22:34:24.762Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "codex/state-api/agent-posthog-observability",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-05-04T22:34:43.887Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": "codex/state-api/agent-posthog-observability",
+      "note": "Durable PostHog query script, cache, env schema, docs entry, and TDD proof recorded; bug-intake/debug consumer wiring remains open."
+    },
+    {
+      "timestamp": "2026-05-06T17:00:02.000Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "plan_revised",
+      "branch": "codex/state-api/agent-posthog-observability",
+      "note": "Revised plan to connector-first PostHog and Linear usage through Claude Code; script is fallback-only and PostHog MCP is out of scope."
+    },
+    {
+      "timestamp": "2026-05-07T00:00:00.000Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "guidance_shipped",
+      "branch": "main",
+      "note": "Connector-first repo guidance landed on bug-intake routine, debug skill (.claude + .agents), and plan checklist. Recurring-pattern roll-up added as Phase 4 with >=50-session threshold. Privacy boundary made explicit with allowlist, runtime privacy grep in Phase 5, and read-side hard rule in /debug. Real-bug verification and cloud connector wiring confirmation remain blockers; see handoffs/codex-state-api.md."
+    },
+    {
+      "timestamp": "2026-05-10T06:37:51.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "archived",
+      "branch": "main",
+      "note": "Archived after connector-first routine guidance and fallback PostHog query script were completed. Remaining live connector/routine verification is tracked as operational follow-up rather than active implementation."
+    }
+  ]
+}

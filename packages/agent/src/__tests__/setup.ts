@@ -157,10 +157,11 @@ afterAll(() => {
  */
 class InMemoryDatabase {
   private tables: Map<string, Map<string, Record<string, unknown>>> = new Map();
+  private transactionSnapshot: Map<string, Map<string, Record<string, unknown>>> | null = null;
   private createTableRegex = /CREATE TABLE IF NOT EXISTS (\w+)/i;
   private insertRegex = /INSERT(?: OR REPLACE| OR IGNORE)? INTO (\w+)/i;
-  private selectRegex = /SELECT \* FROM (\w+) WHERE/i;
-  private updateRegex = /UPDATE (\w+) SET/i;
+  private selectRegex = /SELECT (?:\*|id) FROM (\w+)(?:\s+WHERE|\s+ORDER|\s+LIMIT|\s*$)/i;
+  private updateRegex = /UPDATE\s+(\w+)\s+SET/i;
   private deleteRegex = /DELETE FROM (\w+) WHERE/i;
   private createIndexRegex = /CREATE INDEX/i;
 
@@ -170,6 +171,23 @@ class InMemoryDatabase {
   }
 
   run(sql: string): void {
+    const normalized = sql.trim().toUpperCase();
+    if (normalized === "BEGIN") {
+      this.transactionSnapshot = this.cloneTables();
+      return;
+    }
+    if (normalized === "COMMIT") {
+      this.transactionSnapshot = null;
+      return;
+    }
+    if (normalized === "ROLLBACK") {
+      if (this.transactionSnapshot) {
+        this.tables = this.transactionSnapshot;
+        this.transactionSnapshot = null;
+      }
+      return;
+    }
+
     // Handle CREATE TABLE
     const createMatch = sql.match(this.createTableRegex);
     if (createMatch) {
@@ -186,12 +204,40 @@ class InMemoryDatabase {
 
     return {
       get(...params: unknown[]): unknown {
+        // SELECT COUNT(*) FROM chat_messages WHERE status = 'new' AND postedAt < ?
+        if (/SELECT COUNT\(\*\).*FROM chat_messages/i.test(sql)) {
+          const table = self.tables.get("chat_messages");
+          if (!table) return { count: 0 };
+          const cutoff = params[0] as number;
+          const count = Array.from(table.values()).filter((row) => {
+            if (/status\s*=\s*'processing'/i.test(sql)) {
+              return row.status === "processing" && (row.updatedAt as number) < cutoff;
+            }
+            return row.status === "new" && (row.postedAt as number) < cutoff;
+          }).length;
+          return { count };
+        }
+
+        // SELECT * FROM chat_message_attachments WHERE chatMessageId = ? AND ordinal = ?
+        if (/FROM chat_message_attachments/i.test(sql)) {
+          const table = self.tables.get("chat_message_attachments");
+          if (!table) return null;
+          const key = `${params[0]}:${params[1]}`;
+          return table.get(key) ?? null;
+        }
+
         // Handle SELECT
         const selectMatch = sql.match(self.selectRegex);
         if (selectMatch) {
           const tableName = selectMatch[1];
           const table = self.tables.get(tableName);
           if (!table) return null;
+
+          // SELECT * FROM chat_messages WHERE id = ?
+          if (tableName === "chat_messages") {
+            const key = String(params[0]);
+            return table.get(key) ?? null;
+          }
 
           // Simple key lookup based on first two params (platform, platformId) or single param (id)
           const key = params.length >= 2 ? `${params[0]}:${params[1]}` : String(params[0]);
@@ -208,18 +254,42 @@ class InMemoryDatabase {
           const table = self.tables.get(tableName);
           if (!table) return [];
 
-          if (tableName === "feedback") {
-            // Feedback queries: WHERE status = 'new' AND createdAt >= ? [AND type = ?]
+          if (tableName === "chat_messages") {
+            // Reverse-engineer the dynamic WHERE clause from the SQL so the
+            // mock follows the real query even if clause order changes.
             let rows = Array.from(table.values());
-            rows = rows.filter((row) => row.status === "new");
-            if (params.length >= 1) {
-              const since = params[0] as number;
-              rows = rows.filter((row) => (row.createdAt as number) >= since);
+            const whereMatch = sql.match(/\sWHERE\s+(.+?)(?:\s+ORDER BY|\s+LIMIT|\s*$)/i);
+            const conditions = whereMatch?.[1]?.split(/\s+AND\s+/i) ?? [];
+            for (const condition of conditions) {
+              const value = condition.includes("?") ? params.shift() : undefined;
+              if (/^status\s*=\s*\?/i.test(condition)) {
+                rows = rows.filter((row) => row.status === value);
+              } else if (/^chatId\s*=\s*\?/i.test(condition)) {
+                rows = rows.filter((row) => row.chatId === value);
+              } else if (/^threadId\s*=\s*\?/i.test(condition)) {
+                rows = rows.filter((row) => row.threadId === value);
+              } else if (/^inferredType\s*=\s*\?/i.test(condition)) {
+                rows = rows.filter((row) => row.inferredType === value);
+              } else if (/^postedAt\s*>=\s*\?/i.test(condition)) {
+                rows = rows.filter((row) => (row.postedAt as number) >= (value as number));
+              } else if (/^status\s+IN\s+\('triaged',\s*'rejected'\)/i.test(condition)) {
+                rows = rows.filter((row) => row.status === "triaged" || row.status === "rejected");
+              } else if (/^postedAt\s*<\s*\?/i.test(condition)) {
+                rows = rows.filter((row) => (row.postedAt as number) < (value as number));
+              }
             }
-            if (params.length >= 2) {
-              rows = rows.filter((row) => row.type === params[1]);
-            }
+            const limit = params.shift() as number | undefined;
+            rows = rows.sort((a, b) => (a.postedAt as number) - (b.postedAt as number));
+            if (typeof limit === "number") rows = rows.slice(0, limit);
             return rows;
+          }
+
+          if (tableName === "chat_message_attachments") {
+            // SELECT * FROM chat_message_attachments WHERE chatMessageId IN (?, ?, …)
+            const messageIds = new Set(params.map((p) => String(p)));
+            return Array.from(table.values()).filter((row) =>
+              messageIds.has(String(row.chatMessageId))
+            );
           }
 
           // Filter by gardenAddress if present
@@ -245,11 +315,12 @@ class InMemoryDatabase {
 
           // Expected params count for validation
           const EXPECTED_PARAMS: Record<string, number> = {
-            users: 7,
+            users: 8,
             sessions: 5,
             pending_works: 7,
             idempotency_keys: 9,
-            feedback: 10,
+            chat_messages: 12,
+            chat_message_attachments: 11,
           };
 
           // Determine key based on table
@@ -270,7 +341,8 @@ class InMemoryDatabase {
               address: params[3],
               currentGarden: params[4],
               role: params[5],
-              createdAt: params[6],
+              locale: params[6],
+              createdAt: params[7],
             };
           } else if (tableName === "sessions") {
             if (params.length !== EXPECTED_PARAMS.sessions) {
@@ -327,24 +399,53 @@ class InMemoryDatabase {
               createdAt: params[7],
               updatedAt: params[8],
             };
-          } else if (tableName === "feedback") {
-            if (params.length !== EXPECTED_PARAMS.feedback) {
+          } else if (tableName === "chat_messages") {
+            if (params.length !== EXPECTED_PARAMS.chat_messages) {
               throw new Error(
-                `Mock DB: Expected ${EXPECTED_PARAMS.feedback} params for feedback, got ${params.length}`
+                `Mock DB: Expected ${EXPECTED_PARAMS.chat_messages} params for chat_messages, got ${params.length}`
               );
             }
             key = String(params[0]);
+            if (table.has(key)) {
+              throw new Error("UNIQUE constraint failed: chat_messages.id");
+            }
             row = {
               id: params[0],
-              type: params[1],
-              status: params[2],
-              text: params[3],
-              platform: params[4],
-              platformId: params[5],
-              displayName: params[6],
-              gardenAddress: params[7],
-              createdAt: params[8],
-              updatedAt: params[9],
+              platform: params[1],
+              chatId: params[2],
+              threadId: params[3],
+              messageId: params[4],
+              senderPlatformId: params[5],
+              senderDisplayName: params[6],
+              text: params[7],
+              replyToMessageId: params[8],
+              inferredType: params[9],
+              status: "new",
+              postedAt: params[10],
+              updatedAt: params[11],
+            };
+          } else if (tableName === "chat_message_attachments") {
+            if (params.length !== EXPECTED_PARAMS.chat_message_attachments) {
+              throw new Error(
+                `Mock DB: Expected ${EXPECTED_PARAMS.chat_message_attachments} params for chat_message_attachments, got ${params.length}`
+              );
+            }
+            key = String(params[0]);
+            if (table.has(key)) {
+              throw new Error("UNIQUE constraint failed: chat_message_attachments.id");
+            }
+            row = {
+              id: params[0],
+              chatMessageId: params[1],
+              ordinal: params[2],
+              kind: params[3],
+              telegramFileId: params[4],
+              mimeType: params[5],
+              fileSize: params[6],
+              duration: params[7],
+              width: params[8],
+              height: params[9],
+              createdAt: params[10],
             };
           } else {
             key = String(params[0]);
@@ -371,8 +472,26 @@ class InMemoryDatabase {
               existingRow.updatedAt = params[2];
               table.set(key, existingRow);
             }
-          } else if (tableName === "feedback") {
-            // Feedback UPDATE: SET status = ?, updatedAt = ? WHERE id = ?
+          } else if (tableName === "chat_messages") {
+            // UPDATE chat_messages SET status = ?, updatedAt = ? WHERE id = ?
+            if (/status\s*=\s*'processing'/i.test(sql)) {
+              const now = params[0];
+              const id = String(params[1]);
+              const staleBefore = params[2] as number;
+              const existingRow = table.get(id);
+              if (
+                existingRow &&
+                (existingRow.status === "new" ||
+                  (existingRow.status === "processing" &&
+                    (existingRow.updatedAt as number) < staleBefore))
+              ) {
+                existingRow.status = "processing";
+                existingRow.updatedAt = now;
+                table.set(id, existingRow);
+                return { changes: 1, lastInsertRowid: 0 };
+              }
+              return { changes: 0, lastInsertRowid: 0 };
+            }
             const id = params[params.length - 1];
             const key = String(id);
             const existingRow = table.get(key);
@@ -380,7 +499,9 @@ class InMemoryDatabase {
               existingRow.status = params[0];
               existingRow.updatedAt = params[1];
               table.set(key, existingRow);
+              return { changes: 1, lastInsertRowid: 0 };
             }
+            return { changes: 0, lastInsertRowid: 0 };
           } else {
             // Other tables: last two params are platform, platformId for WHERE clause
             const platform = params[params.length - 2];
@@ -389,18 +510,13 @@ class InMemoryDatabase {
 
             const existingRow = table.get(key);
             if (existingRow) {
-              // Update fields based on SET clause
               const setFields = params.slice(0, -2);
-              if (sql.includes("currentGarden = ?") && sql.includes("role = ?")) {
-                existingRow.currentGarden = setFields[0];
-                existingRow.role = setFields[1];
-              } else if (sql.includes("currentGarden = ?")) {
-                existingRow.currentGarden = setFields[0];
-              } else if (sql.includes("role = ?")) {
-                existingRow.role = setFields[0];
-              } else if (sql.includes("privateKey = ?")) {
-                existingRow.privateKey = setFields[0];
-              }
+              const assignments = Array.from(sql.matchAll(/(\w+)\s*=\s*\?/g)).map(
+                (match) => match[1]
+              );
+              assignments.forEach((field, index) => {
+                existingRow[field] = setFields[index];
+              });
               table.set(key, existingRow);
             }
           }
@@ -412,7 +528,35 @@ class InMemoryDatabase {
         if (deleteMatch) {
           const tableName = deleteMatch[1];
           const table = self.tables.get(tableName);
-          if (!table) return;
+          if (!table) return { changes: 0, lastInsertRowid: 0 };
+
+          // DELETE FROM chat_messages WHERE status IN ('triaged', 'rejected') AND postedAt < ?
+          if (
+            tableName === "chat_messages" &&
+            /status\s+IN\s+\('triaged',\s*'rejected'\).*postedAt\s*<\s*\?/i.test(sql)
+          ) {
+            const cutoff = params[0] as number;
+            let pruned = 0;
+            for (const [key, row] of table.entries()) {
+              if (
+                (row.status === "triaged" || row.status === "rejected") &&
+                (row.postedAt as number) < cutoff
+              ) {
+                table.delete(key);
+                pruned += 1;
+                // Cascade delete attachments
+                const attachments = self.tables.get("chat_message_attachments");
+                if (attachments) {
+                  for (const [attachKey, attachRow] of attachments.entries()) {
+                    if (attachRow.chatMessageId === row.id) {
+                      attachments.delete(attachKey);
+                    }
+                  }
+                }
+              }
+            }
+            return { changes: pruned, lastInsertRowid: 0 };
+          }
 
           const key = params.length >= 2 ? `${params[0]}:${params[1]}` : String(params[0]);
           table.delete(key);
@@ -423,6 +567,17 @@ class InMemoryDatabase {
 
   close(): void {
     this.tables.clear();
+  }
+
+  private cloneTables(): Map<string, Map<string, Record<string, unknown>>> {
+    const clone = new Map<string, Map<string, Record<string, unknown>>>();
+    for (const [tableName, table] of this.tables.entries()) {
+      clone.set(
+        tableName,
+        new Map(Array.from(table.entries()).map(([key, value]) => [key, { ...value }]))
+      );
+    }
+    return clone;
   }
 }
 
@@ -494,7 +649,9 @@ vi.mock("pino", () => ({
 }));
 
 vi.mock("posthog-node", () => ({
-  PostHog: vi.fn().mockImplementation(() => mockPostHog),
+  PostHog: vi.fn().mockImplementation(function PostHogMock() {
+    return mockPostHog;
+  }),
 }));
 
 // Mock Telegram bot API

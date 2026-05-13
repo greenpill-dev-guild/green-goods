@@ -51,7 +51,7 @@ export const updateToasts = {
  */
 export function createUpdateToasts(formatMessage: FormatMessageFn) {
   return {
-    available: (onUpdate: () => void) =>
+    available: (onUpdate: () => void, onDismiss?: () => void) =>
       toastService.info({
         id: "app-update",
         title: formatMessage({
@@ -70,6 +70,8 @@ export function createUpdateToasts(formatMessage: FormatMessageFn) {
           dismissOnClick: false,
           testId: "update-now-button",
         },
+        closable: true,
+        onDismiss,
         suppressLogging: true,
       }),
 

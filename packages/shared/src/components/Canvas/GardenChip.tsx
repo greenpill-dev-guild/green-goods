@@ -44,19 +44,19 @@ export function GardenChip({
   const hasMultiple = gardens.length >= 2;
 
   // Static chip when only 1 garden — handoff `.rv-pill`: flat surface-raised
-  // background + 1px outline, no elevation shadow. The Warm-Earth pill reads as
-  // a discrete affordance without competing with the floating NavBar pill.
+  // background + 1px outline, no elevation shadow. `--surface-raised` and
+  // `--outline` are complete CSS colors so admin can scope them per theme.
   if (!hasMultiple) {
     return (
       <span
         className={cn(
           "inline-flex max-w-sm items-center gap-1.5 rounded-full",
           "px-3 py-1.5",
-          "text-label-lg font-medium text-text-main"
+          "text-label-lg font-medium text-text-strong"
         )}
         style={{
-          background: "rgb(var(--surface-raised, 255 255 255))",
-          border: "1px solid rgb(var(--outline, 41 37 36) / 0.10)",
+          background: "var(--surface-raised, rgb(var(--bg-white-0)))",
+          border: "1px solid var(--outline, rgb(var(--neutral-800) / 0.10))",
         }}
         data-component="GardenChip"
         data-slot="root"
@@ -95,15 +95,15 @@ export function GardenChip({
           className={cn(
             "inline-flex max-w-sm cursor-pointer items-center gap-1.5 rounded-full",
             "px-3 py-1.5",
-            "text-label-lg font-medium text-text-main",
+            "text-label-lg font-medium text-text-strong",
             "transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
             "motion-reduce:transition-none",
             "hover:bg-bg-weak",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-action,var(--green-800)))]"
           )}
           style={{
-            background: "rgb(var(--surface-raised, 255 255 255))",
-            border: "1px solid rgb(var(--outline, 41 37 36) / 0.10)",
+            background: "var(--surface-raised, rgb(var(--bg-white-0)))",
+            border: "1px solid var(--outline, rgb(var(--neutral-800) / 0.10))",
           }}
           data-component="GardenChip"
           data-slot="trigger"

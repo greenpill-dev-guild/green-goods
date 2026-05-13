@@ -10,6 +10,9 @@ const ADDRESS_PATTERN = /^0x[a-fA-F0-9]{40}$/;
 const CREATE_COOKIE_JAR_SELECTOR = "0x203d4c12";
 const ABI_WORD_HEX_LENGTH = 64;
 const JAR_CONFIG_METADATA_SLOT = 14;
+const MAX_CAMPAIGN_DESCRIPTION_LENGTH = 480;
+const MAX_CAMPAIGN_METADATA_URL_LENGTH = 2048;
+const ALLOWED_CAMPAIGN_METADATA_PROTOCOLS = new Set(["http:", "https:", "ipfs:"]);
 
 interface JarCreatedArgs {
   jarAddress: string;
@@ -27,6 +30,9 @@ interface ParsedCampaignMetadata {
   metadataVersion?: number;
   slug?: string;
   title?: string;
+  description?: string;
+  image?: string;
+  externalUrl?: string;
   sourceGardens: string[];
   operatorPolicy?: string;
   extraAllowlist: string[];
@@ -49,6 +55,27 @@ function normalizeAddressList(value: unknown): string[] {
   return addresses;
 }
 
+function normalizeOptionalMetadataText(value: unknown, maxLength: number): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  return trimmed.slice(0, maxLength);
+}
+
+function normalizeMetadataUrl(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.length > MAX_CAMPAIGN_METADATA_URL_LENGTH) return undefined;
+  if (trimmed.startsWith("/") && !trimmed.startsWith("//")) return trimmed;
+
+  try {
+    const parsed = new URL(trimmed);
+    return ALLOWED_CAMPAIGN_METADATA_PROTOCOLS.has(parsed.protocol) ? trimmed : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function parseCampaignMetadata(rawMetadata: string): ParsedCampaignMetadata {
   try {
     const parsed = JSON.parse(rawMetadata) as Record<string, unknown>;
@@ -59,6 +86,13 @@ function parseCampaignMetadata(rawMetadata: string): ParsedCampaignMetadata {
         : undefined;
     const slug = typeof parsed.slug === "string" ? parsed.slug.trim() : undefined;
     const title = typeof parsed.title === "string" ? parsed.title.trim() : undefined;
+    const description = normalizeOptionalMetadataText(
+      parsed.description,
+      MAX_CAMPAIGN_DESCRIPTION_LENGTH
+    );
+    const image = normalizeMetadataUrl(parsed.image);
+    const externalUrl =
+      normalizeMetadataUrl(parsed.externalUrl) ?? normalizeMetadataUrl(parsed.external_url);
     const sourceGardens = normalizeAddressList(parsed.sourceGardens);
     const operatorPolicy =
       parsed.operatorPolicy === "one-operator-per-garden" ? "one-operator-per-garden" : undefined;
@@ -75,6 +109,9 @@ function parseCampaignMetadata(rawMetadata: string): ParsedCampaignMetadata {
       metadataVersion,
       slug,
       title,
+      description,
+      image,
+      externalUrl,
       sourceGardens,
       operatorPolicy,
       extraAllowlist,
@@ -166,6 +203,9 @@ function buildCampaignCookieJarCandidate(params: {
     metadataVersion: metadata?.metadataVersion ?? existing?.metadataVersion,
     slug: metadata?.slug ?? existing?.slug,
     title: metadata?.title ?? existing?.title,
+    description: metadata?.description ?? existing?.description,
+    image: metadata?.image ?? existing?.image,
+    externalUrl: metadata?.externalUrl ?? existing?.externalUrl,
     sourceGardens: metadata?.sourceGardens ?? existing?.sourceGardens ?? [],
     operatorPolicy: metadata?.operatorPolicy ?? existing?.operatorPolicy,
     extraAllowlist: metadata?.extraAllowlist ?? existing?.extraAllowlist ?? [],

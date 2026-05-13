@@ -13,7 +13,6 @@ import { type Address, encodeFunctionData } from "viem";
 import { useWalletClient } from "wagmi";
 import { toastService } from "../../components/Toast/toast.service";
 import { createPublicClientForChain, DEFAULT_CHAIN_ID } from "../../config";
-import { isZeroAddress } from "../../utils/blockchain/address";
 import { trackContractError } from "../../modules/app/error-tracking";
 import { logger } from "../../modules/app/logger";
 import {
@@ -24,7 +23,7 @@ import {
 } from "../../modules/marketplace";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import type { CreateListingParams } from "../../types/hypercerts";
-import { getNetworkContracts } from "../../utils/blockchain/contracts";
+import { assertMarketplaceReady } from "../../utils/blockchain/contracts";
 import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { parseAndFormatError } from "../../utils/errors/contract-errors";
 import { useAuth } from "../auth/useAuth";
@@ -61,11 +60,8 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
       const signer = (smartAccountAddress || eoaAddress) as Address;
       if (!signer) throw new Error("Connect a wallet first");
 
-      const contracts = getNetworkContracts(chainId);
-      const moduleAddress = contracts.hypercertsModule;
-      if (isZeroAddress(moduleAddress)) {
-        throw new Error("HypercertsModule not deployed on this chain");
-      }
+      const readiness = assertMarketplaceReady(chainId);
+      const moduleAddress = readiness.addresses.hypercertsModule;
 
       // Step 1: Build the maker ask order (with on-chain nonces)
       setStep("building");

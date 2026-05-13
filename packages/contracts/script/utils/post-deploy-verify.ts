@@ -4,6 +4,11 @@ import path from "node:path";
 import dotenv from "dotenv";
 import * as yaml from "js-yaml";
 
+import {
+  readMarketplaceLiveState,
+  validateIndexerDeploymentCoverage,
+  validateMarketplaceReadiness,
+} from "./marketplace-readiness";
 import { CHAIN_ID_MAP, NetworkManager } from "./network";
 
 type NetworkName = "sepolia" | "arbitrum" | "celo" | "mainnet" | "localhost";
@@ -37,6 +42,10 @@ interface DeploymentRecord {
   greenGoodsENS?: string;
   octantFactory?: string;
   marketplaceAdapter?: string;
+  hypercertExchange?: string;
+  hypercertMinter?: string;
+  transferManager?: string;
+  strategyHypercertFractionOffer?: string;
   unifiedPowerRegistry?: string;
   yieldSplitter?: string;
   hatsModule?: string;
@@ -64,6 +73,7 @@ interface IndexerNetwork {
 }
 
 interface IndexerConfig {
+  contracts: Array<{ name: string }>;
   networks: IndexerNetwork[];
 }
 
@@ -253,6 +263,19 @@ function castCall(rpcUrl: string, to: string, signature: string, args: string[] 
   }
 }
 
+function hasContractCode(rpcUrl: string, address: string): boolean {
+  if (isZeroAddress(address)) return false;
+  try {
+    const output = execFileSync("cast", ["code", address, "--rpc-url", rpcUrl], {
+      encoding: "utf8",
+      stdio: ["pipe", "pipe", "pipe"],
+    }).trim();
+    return output !== "" && output !== "0x";
+  } catch {
+    return false;
+  }
+}
+
 function parseAddress(output: string): string {
   const match = output.match(/0x[a-fA-F0-9]{40}/);
   return match ? match[0] : ZERO_ADDRESS;
@@ -417,42 +440,13 @@ function validateIndexerConfig(chainId: string, deployment: DeploymentRecord, fa
     return;
   }
 
-  const byName = new Map<string, string>();
-  for (const contract of network.contracts) {
-    byName.set(contract.name, contract.address);
-  }
+  const coverage = validateIndexerDeploymentCoverage(chainId, parsed, deployment);
+  failures.push(...coverage.failures);
 
-  const mappings: Array<{ deploymentKey: keyof DeploymentRecord; indexerName: string }> = [
-    { deploymentKey: "actionRegistry", indexerName: "ActionRegistry" },
-    { deploymentKey: "gardenToken", indexerName: "GardenToken" },
-    { deploymentKey: "gardenAccountImpl", indexerName: "GardenAccount" },
-    { deploymentKey: "hatsModule", indexerName: "HatsModule" },
-    { deploymentKey: "octantModule", indexerName: "OctantModule" },
-    { deploymentKey: "gardensModule", indexerName: "GardensModule" },
-    { deploymentKey: "yieldSplitter", indexerName: "YieldSplitter" },
-    { deploymentKey: "cookieJarModule", indexerName: "CookieJarModule" },
-    { deploymentKey: "marketplaceAdapter", indexerName: "HypercertMarketplaceAdapter" },
-    { deploymentKey: "unifiedPowerRegistry", indexerName: "UnifiedPowerRegistry" },
-    { deploymentKey: "greenGoodsENS", indexerName: "GreenGoodsENS" },
-  ];
-
-  for (const mapping of mappings) {
-    const deploymentAddress = deployment[mapping.deploymentKey] as string | undefined;
-    if (isZeroAddress(deploymentAddress)) continue;
-
-    const indexedAddress = byName.get(mapping.indexerName);
-    assert(
-      !!indexedAddress && !isZeroAddress(indexedAddress),
-      `Indexer address missing for ${mapping.indexerName}`,
-      failures,
+  if (coverage.skipped.length > 0) {
+    console.log(
+      `  indexer policy: skipped deployed contracts without Envio definitions: ${coverage.skipped.join(", ")}`,
     );
-    if (indexedAddress) {
-      assert(
-        indexedAddress.toLowerCase() === deploymentAddress?.toLowerCase(),
-        `Indexer mismatch for ${mapping.indexerName}: expected ${deploymentAddress}, got ${indexedAddress}`,
-        failures,
-      );
-    }
   }
 }
 
@@ -1032,15 +1026,20 @@ async function main(): Promise<void> {
 
   // HypercertMarketplaceAdapter checks
   if (!isZeroAddress(deployment.marketplaceAdapter) && failures.length === 0) {
-    const adapter = deployment.marketplaceAdapter as string;
-    const paused = parseBool(castCall(options.rpcUrl, adapter, "paused()(bool)"));
-    assert(!paused, "marketplaceAdapter is paused", failures);
-
-    const exchange = parseAddress(castCall(options.rpcUrl, adapter, "exchange()(address)"));
-    assert(!isZeroAddress(exchange), "marketplaceAdapter.exchange is zero", failures);
-
-    const hypercertMinter = parseAddress(castCall(options.rpcUrl, adapter, "hypercertMinter()(address)"));
-    assert(!isZeroAddress(hypercertMinter), "marketplaceAdapter.hypercertMinter is zero", failures);
+    const marketplaceState = readMarketplaceLiveState(deployment, {
+      call: (to, signature, args = []) => {
+        try {
+          return castCall(options.rpcUrl, to, signature, args);
+        } catch {
+          return null;
+        }
+      },
+      hasCode: (address) => hasContractCode(options.rpcUrl, address),
+    });
+    const marketplace = validateMarketplaceReadiness(deployment, marketplaceState, {
+      expectedOwner: process.env.MARKETPLACE_EXPECTED_OWNER || process.env.HYPERCERT_MARKETPLACE_EXPECTED_OWNER,
+    });
+    failures.push(...marketplace.failures);
   }
 
   // YieldResolver checks

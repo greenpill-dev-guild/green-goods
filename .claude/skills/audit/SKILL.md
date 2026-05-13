@@ -5,12 +5,12 @@ description: Internal repo-health lens for Green Goods — dead code detection, 
 argument-hint: "[package-name] [--full] [--team]"
 context: fork
 effort: high
-version: "2.1.0"
+version: "2.1.1"
 status: active
 packages: ["all"]
 dependencies: ["review", "contracts"]
-last_updated: "2026-04-18"
-last_verified: "2026-04-18"
+last_updated: "2026-05-09"
+last_verified: "2026-05-09"
 ---
 
 # Audit Skill
@@ -28,6 +28,10 @@ Prefer `/review` or `/status` first. This skill is for broader repo-health drift
 ## Scope Lock
 
 This skill is strictly read-only.
+
+Audit/report work stays read-only by default. Do not create or mutate Linear records during
+analysis. After the user approves specific findings for tracking, route accepted findings into
+Linear Issues, not GitHub's issue tracker.
 
 ## What This Skill Owns
 
@@ -73,7 +77,7 @@ Use **TodoWrite** when available, otherwise Markdown checklist. See `CLAUDE.md` 
 
 ## Part 0: Previous Findings Verification
 
-**REQUIRED before new analysis.** Check whether previous Critical/High issues are still open.
+**REQUIRED before new analysis.** Check whether previous Critical/High findings are still open.
 
 1. Find the most recent audit report: `ls -t .plans/audits/*-audit.md | head -1`
 2. Extract all Critical and High findings with file:line references
@@ -341,14 +345,42 @@ After the report, group findings by actionability:
 
 | Category | Criteria | Output |
 |----------|----------|--------|
-| **Fix Now** | Critical/High, risk > 8.0 | Individual GitHub issue per finding |
-| **Fix Soon** | Medium, risk 4.0-8.0 | Batch into 1 issue per package |
+| **Fix Now** | Critical/High, risk > 8.0 | Individual Linear issue per accepted finding |
+| **Fix Soon** | Medium, risk 4.0-8.0 | Batch into 1 Linear issue per package when accepted |
 | **Track** | Low or MONITORED | Update Known Issues Registry only |
 | **Accept** | ACCEPTED/DEFERRED | No action |
 
-Prompt user before creating any issues: "Found N issues to create. Create them? [y/n]"
+Prompt user before creating any Linear issues: "Found N findings that are ready to track in
+Linear. Create Product/Research issues for these accepted findings? [y/n]"
 
 Update Known Issues Registry: add findings at 5+ cycles or MONITORED, update dates, move resolved to Resolved table.
+
+### Linear Issue Routing
+
+Use the Greenpill Linear template library structure:
+
+- **Accepted Product Work**: implementation, QA, maintenance, product bug fixes, cleanup work
+  with an accepted delivery outcome. Team: Product.
+- **Accepted Research Task**: research questions, evidence gathering, recommendations, or
+  decision support before product scope is accepted. Team: Research.
+
+Issue bodies should include the relevant template sections: Outcome or Research question,
+Protocol context, Scope boundary or Evidence to gather, Acceptance criteria or Expected output,
+Validation or Routing recommendation, Privacy note when applicable, and Links.
+
+Routing rules:
+
+- `.plans` remains the execution truth. If an accepted audit finding is mirrored from
+  `.plans/audits/`, include the `.plans` link and label `source:plans`.
+- Do not route new work into completed/staging umbrella projects such as `Green Goods`, `Coop`,
+  `Network Website`, or `Cookie Jar`.
+- Attach to an active bounded project only when the scope clearly matches. Otherwise leave the
+  issue unprojected and correctly labeled.
+- Use only these label namespaces: `protocol:*`, `package:*`, `activity:*`, `task:*`,
+  `funding:*`, `source:*`, `agent:*`.
+- Keep private, security-sensitive, exploit-enabling, replay, session, wallet, email, or
+  user-identifying details out of public Linear issue bodies. Store sensitive context only in the
+  private audit notes or handoff the user explicitly approves.
 
 ---
 
@@ -384,7 +416,7 @@ When `--loop` is passed: audit -> fix -> re-audit cycle.
 | Report 24+ god object rows | Top 10 by risk score; rest in Known Issues Registry |
 | Count intentional catch-with-fallback as bare catch | Classify per Part 2; only report dangerous ones |
 | Skip security skill for contracts | Part 2 requires explicit security invocation |
-| Create GitHub issues without prompting | Part 9 requires user confirmation |
+| Create Linear issues without prompting | Part 9 requires user confirmation |
 | Run full analysis on unchanged packages | Part 0.5 gates analysis to changed packages |
 | Fix more than 3 findings per loop iteration | Prevents context exhaustion |
 | Fix design-level problems via `/audit --loop` | Design fixes belong to `/principles fix` |
@@ -398,7 +430,7 @@ When `--loop` is passed: audit -> fix -> re-audit cycle.
 - **Read-only** -- don't edit during audit
 - **Evidence-based** -- every finding needs file:line and risk score
 - **Risk-weighted** -- escalation uses impact x likelihood x staleness
-- **Prompt before issues** -- ask user before creating GitHub issues
+- **Prompt before issues** -- ask user before creating Linear issues
 - **Registry-backed** -- chronic findings live in Known Issues Registry
 
 ## Audit vs Principles Boundary

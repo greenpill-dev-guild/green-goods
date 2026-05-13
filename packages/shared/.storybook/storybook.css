@@ -17,9 +17,355 @@
 /* Import unified theme from shared package (CSS variables + @theme block) */
 @import "../src/styles/theme.css";
 
+/* Import shared utilities — keyframes + attribute-selector animation rules
+ * for PwaSheet, DialogShell, ConfirmDialog, and ImagePreviewDialog all live
+ * here. Without this import, dialog primitive stories render without their
+ * production open/close motion. */
+@import "../src/styles/utilities.css";
+
 /* Import admin-only M3 utilities used by Admin/* stories. */
 @import "../../admin/src/styles/admin-m3-tokens.css";
 @import "../../admin/src/styles/admin-m3-overrides.css";
+
+/* Admin Storybook parity subset. The shared Storybook preview intentionally
+ * avoids importing the full admin app entrypoint because that file owns
+ * document-level shell resets. Keep the route tone/material roles here aligned
+ * with packages/admin/src/index.css so admin stories exercise the same color
+ * contract as the runtime app. */
+:root {
+  --admin-surface-0: 255 255 255;
+  --admin-surface-50: 251 249 244;
+  --admin-chrome-bg: rgb(var(--admin-surface-0) / 0.78);
+  --admin-chrome-border: rgb(var(--neutral-800) / 0.08);
+  --admin-chrome-shadow: 0 18px 44px rgb(var(--warm-shadow, 133 109 70) / 0.12), var(--edge-rest);
+  --admin-chrome-blur: var(--blur-material-regular, 12px);
+  --admin-appbar-shadow: 0 1px 0 rgb(var(--neutral-800) / 0.06);
+  --admin-sheet-bg: rgb(var(--admin-surface-0) / 0.86);
+  --admin-appbar-height: 3.5rem;
+  --admin-nav-offset-desktop: 20px;
+  --admin-nav-height-desktop: 3.5rem;
+  --admin-nav-height-mobile: calc(5rem + env(safe-area-inset-bottom));
+  --admin-sheet-top-gap: 0.5rem;
+  --admin-sheet-bottom-gap-desktop: 1.5rem;
+  --admin-sheet-bottom-gap-mobile: 1rem;
+  --admin-sheet-side-inset: 1rem;
+  --admin-sheet-mobile-side-inset: 0.75rem;
+  --admin-sheet-top: calc(var(--admin-appbar-height, 3.5rem) + var(--admin-sheet-top-gap, 0.5rem));
+  --admin-sheet-bottom: calc(
+    var(--admin-nav-offset-desktop, 20px) + var(--admin-nav-height-desktop, 3.5rem) + var(--admin-sheet-bottom-gap-desktop, 1.5rem)
+  );
+  --admin-speed-dial-bg: var(--admin-chrome-bg);
+  --admin-speed-dial-border: var(--admin-chrome-border);
+  --admin-speed-dial-shadow: 0 16px 30px rgb(var(--warm-shadow, 133 109 70) / 0.14), var(--edge-rest);
+  --admin-motion-route-content-duration: var(--spring-effects-fast-duration);
+  --admin-motion-route-content-easing: var(--spring-effects-fast-easing);
+  --admin-motion-route-content-offset: 4px;
+  --admin-motion-canvas-tone-duration: var(--spring-spatial-slow-duration);
+  --admin-motion-canvas-tone-easing: var(--spring-spatial-slow-easing);
+  --admin-motion-fab-menu: var(--spring-spatial-fast);
+  --admin-motion-sheet: var(--spring-spatial-fast);
+  --admin-motion-state: var(--spring-effects-fast);
+  --surface-raised: rgb(var(--neutral-0));
+  --outline: rgb(var(--neutral-800) / 0.10);
+}
+
+@media (max-width: 599px) {
+  :root {
+    --admin-sheet-side-inset: var(--admin-sheet-mobile-side-inset, 0.75rem);
+    --admin-sheet-bottom: calc(
+      var(--admin-nav-height-mobile, calc(5rem + env(safe-area-inset-bottom))) + var(--admin-sheet-bottom-gap-mobile, 1rem)
+    );
+  }
+}
+
+:root[data-theme="dark"],
+[data-theme="dark"] {
+  --admin-surface-0: 22 25 33;
+  --admin-surface-50: 17 19 27;
+  --admin-chrome-bg: rgb(var(--neutral-925) / 0.82);
+  --admin-chrome-border: rgb(var(--neutral-50) / 0.1);
+  --admin-chrome-shadow: 0 20px 48px rgb(var(--static-black) / 0.44), var(--edge-rest);
+  --admin-appbar-shadow: 0 1px 0 rgb(var(--neutral-50) / 0.08);
+  --admin-sheet-bg: rgb(var(--neutral-900) / 0.86);
+  --admin-speed-dial-shadow: 0 16px 30px rgb(var(--static-black) / 0.42), var(--edge-rest);
+}
+
+:is(.admin-m3[data-theme="dark"], [data-theme="dark"] .admin-m3) {
+  --surface-raised: rgb(var(--neutral-900));
+  --outline: rgb(var(--neutral-50) / 0.10);
+  --color-text-strong: rgb(var(--text-strong-950));
+  --color-text-sub: rgb(var(--text-sub-600));
+  --color-text-soft: rgb(var(--text-soft-400));
+  --color-text-disabled: rgb(var(--text-disabled-300));
+  --primary-base: var(--green-300);
+  --primary-dark: var(--green-300);
+  --primary-darker: var(--green-200);
+  --color-primary-base: rgb(var(--primary-base));
+  --color-primary-dark: rgb(var(--primary-dark));
+  --color-primary-darker: rgb(var(--primary-darker));
+  --domain-solar-rgb: var(--yellow-300);
+  --domain-solar-soft-rgb: var(--yellow-alpha-16);
+  --domain-agro-rgb: var(--green-300);
+  --domain-agro-soft-rgb: var(--green-alpha-16);
+  --domain-education-rgb: var(--blue-300);
+  --domain-education-soft-rgb: var(--blue-alpha-16);
+  --domain-waste-rgb: var(--orange-300);
+  --domain-waste-soft-rgb: var(--orange-alpha-16);
+  --color-domain-solar: rgb(var(--domain-solar-rgb));
+  --color-domain-solar-soft: rgb(var(--domain-solar-soft-rgb));
+  --color-domain-agro: rgb(var(--domain-agro-rgb));
+  --color-domain-agro-soft: rgb(var(--domain-agro-soft-rgb));
+  --color-domain-education: rgb(var(--domain-education-rgb));
+  --color-domain-education-soft: rgb(var(--domain-education-soft-rgb));
+  --color-domain-waste: rgb(var(--domain-waste-rgb));
+  --color-domain-waste-soft: rgb(var(--domain-waste-soft-rgb));
+}
+
+:is(.admin-m3[data-theme="dark"], [data-theme="dark"] .admin-m3) :where(.text-primary-base) {
+  color: rgb(var(--green-300));
+}
+
+:is(.admin-m3[data-theme="dark"], [data-theme="dark"] .admin-m3) :where(.text-primary-dark) {
+  color: rgb(var(--green-300));
+}
+
+:is(.admin-m3[data-theme="dark"], [data-theme="dark"] .admin-m3) :where(.text-primary-darker) {
+  color: rgb(var(--green-200));
+}
+
+:is(.admin-m3[data-theme="dark"], [data-theme="dark"] .admin-m3)
+  :where(.hover\:text-primary-darker:hover) {
+  color: rgb(var(--green-200));
+}
+
+[data-tone="hub"] {
+  --tone-primary: var(--blue-600);
+  --tone-on-primary: 255 255 255;
+  --tone-action: var(--blue-700);
+  --tone-action-hover: var(--blue-800);
+  --tone-on-action: 255 255 255;
+  --tone-primary-container: var(--blue-100);
+  --tone-on-primary-container: var(--blue-900);
+  --tone-secondary: var(--blue-300);
+  --tone-surface-tint: var(--blue-600) / 8%;
+  --tone-outline: var(--blue-200);
+  --tone-surface-variant: var(--blue-50);
+  --tone-surface-tint-color: rgb(var(--blue-600) / 8%);
+}
+
+[data-tone="garden"] {
+  --tone-primary: var(--green-600);
+  --tone-on-primary: 255 255 255;
+  --tone-action: var(--green-700);
+  --tone-action-hover: var(--green-800);
+  --tone-on-action: 255 255 255;
+  --tone-primary-container: var(--green-100);
+  --tone-on-primary-container: var(--green-900);
+  --tone-secondary: var(--green-300);
+  --tone-surface-tint: var(--green-600) / 8%;
+  --tone-outline: var(--green-200);
+  --tone-surface-variant: var(--green-50);
+  --tone-surface-tint-color: rgb(var(--green-600) / 8%);
+}
+
+[data-tone="community"] {
+  --tone-primary: var(--orange-600);
+  --tone-on-primary: 255 255 255;
+  --tone-action: var(--orange-700);
+  --tone-action-hover: var(--orange-800);
+  --tone-on-action: 255 255 255;
+  --tone-primary-container: var(--orange-100);
+  --tone-on-primary-container: var(--orange-900);
+  --tone-secondary: var(--orange-300);
+  --tone-surface-tint: var(--orange-600) / 8%;
+  --tone-outline: var(--orange-200);
+  --tone-surface-variant: var(--orange-50);
+  --tone-surface-tint-color: rgb(var(--orange-600) / 8%);
+}
+
+[data-tone="actions"] {
+  --tone-primary: var(--red-500);
+  --tone-on-primary: 255 255 255;
+  --tone-action: var(--red-700);
+  --tone-action-hover: var(--red-800);
+  --tone-on-action: 255 255 255;
+  --tone-primary-container: var(--red-100);
+  --tone-on-primary-container: var(--red-900);
+  --tone-secondary: var(--red-300);
+  --tone-surface-tint: var(--red-500) / 8%;
+  --tone-outline: var(--red-200);
+  --tone-surface-variant: var(--red-50);
+  --tone-surface-tint-color: rgb(var(--red-500) / 8%);
+}
+
+[data-tone="home"] {
+  --tone-primary: 120 113 108;
+  --tone-on-primary: 255 255 255;
+  --tone-action: 68 64 60;
+  --tone-action-hover: 41 37 36;
+  --tone-on-action: 255 255 255;
+  --tone-primary-container: 231 229 228;
+  --tone-on-primary-container: 41 37 36;
+  --tone-secondary: 168 162 158;
+  --tone-surface-tint: 120 113 108 / 8%;
+  --tone-outline: 214 211 209;
+  --tone-surface-variant: 245 245 244;
+  --tone-surface-tint-color: rgb(120 113 108 / 8%);
+}
+
+[data-theme="dark"] [data-tone="hub"] {
+  --tone-primary: var(--blue-200);
+  --tone-on-primary: var(--blue-900);
+  --tone-action: var(--blue-700);
+  --tone-action-hover: var(--blue-600);
+  --tone-on-action: 255 255 255;
+  --tone-primary-container: var(--blue-900);
+  --tone-on-primary-container: var(--blue-100);
+  --tone-secondary: var(--blue-400);
+  --tone-surface-tint: var(--blue-200) / 10%;
+  --tone-outline: var(--blue-700);
+  --tone-surface-variant: var(--blue-900);
+  --tone-surface-tint-color: rgb(var(--blue-200) / 10%);
+}
+
+[data-theme="dark"] [data-tone="garden"] {
+  --tone-primary: var(--green-200);
+  --tone-on-primary: var(--green-900);
+  --tone-action: var(--green-800);
+  --tone-action-hover: var(--green-700);
+  --tone-on-action: 255 255 255;
+  --tone-primary-container: var(--green-900);
+  --tone-on-primary-container: var(--green-100);
+  --tone-secondary: var(--green-400);
+  --tone-surface-tint: var(--green-200) / 10%;
+  --tone-outline: var(--green-700);
+  --tone-surface-variant: var(--green-900);
+  --tone-surface-tint-color: rgb(var(--green-200) / 10%);
+}
+
+[data-theme="dark"] [data-tone="community"] {
+  --tone-primary: var(--orange-200);
+  --tone-on-primary: var(--orange-900);
+  --tone-action: var(--orange-800);
+  --tone-action-hover: var(--orange-700);
+  --tone-on-action: 255 255 255;
+  --tone-primary-container: var(--orange-900);
+  --tone-on-primary-container: var(--orange-100);
+  --tone-secondary: var(--orange-400);
+  --tone-surface-tint: var(--orange-200) / 10%;
+  --tone-outline: var(--orange-700);
+  --tone-surface-variant: var(--orange-900);
+  --tone-surface-tint-color: rgb(var(--orange-200) / 10%);
+}
+
+[data-theme="dark"] [data-tone="actions"] {
+  --tone-primary: var(--red-200);
+  --tone-on-primary: var(--red-900);
+  --tone-action: var(--red-700);
+  --tone-action-hover: var(--red-600);
+  --tone-on-action: 255 255 255;
+  --tone-primary-container: var(--red-900);
+  --tone-on-primary-container: var(--red-100);
+  --tone-secondary: var(--red-400);
+  --tone-surface-tint: var(--red-200) / 10%;
+  --tone-outline: var(--red-700);
+  --tone-surface-variant: var(--red-900);
+  --tone-surface-tint-color: rgb(var(--red-200) / 10%);
+}
+
+[data-theme="dark"] [data-tone="home"] {
+  --tone-primary: 214 211 209;
+  --tone-on-primary: 41 37 36;
+  --tone-action: 68 64 60;
+  --tone-action-hover: 87 83 78;
+  --tone-on-action: 255 255 255;
+  --tone-primary-container: 68 64 60;
+  --tone-on-primary-container: 231 229 228;
+  --tone-secondary: 168 162 158;
+  --tone-surface-tint: 214 211 209 / 10%;
+  --tone-outline: 87 83 78;
+  --tone-surface-variant: 68 64 60;
+  --tone-surface-tint-color: rgb(214 211 209 / 10%);
+}
+
+:root {
+  --tone-strength: 1;
+}
+
+[data-tone-strength="off"] {
+  --tone-strength: 0;
+}
+
+[data-tone-strength="subtle"] {
+  --tone-strength: 0.5;
+}
+
+[data-tone-strength="default"] {
+  --tone-strength: 1;
+}
+
+[data-theme="dark"] {
+  --tone-strength: 0.5;
+}
+
+:is([data-theme="dark"][data-tone-strength="off"], [data-theme="dark"] [data-tone-strength="off"]) {
+  --tone-strength: 0;
+}
+
+:is([data-theme="dark"][data-tone-strength="default"], [data-theme="dark"] [data-tone-strength="default"]) {
+  --tone-strength: 1;
+}
+
+[data-tone="hub"] {
+  --tone-canvas: oklch(96.5% calc(0.008 * var(--tone-strength)) 240);
+}
+
+[data-tone="garden"] {
+  --tone-canvas: oklch(96.5% calc(0.008 * var(--tone-strength)) 145);
+}
+
+[data-tone="community"] {
+  --tone-canvas: oklch(96.5% calc(0.008 * var(--tone-strength)) 50);
+}
+
+[data-tone="actions"] {
+  --tone-canvas: oklch(96.5% calc(0.008 * var(--tone-strength)) 30);
+}
+
+:is([data-theme="dark"][data-tone="hub"], [data-theme="dark"] [data-tone="hub"]) {
+  --tone-canvas: oklch(20% calc(0.012 * var(--tone-strength)) 240);
+}
+
+:is([data-theme="dark"][data-tone="garden"], [data-theme="dark"] [data-tone="garden"]) {
+  --tone-canvas: oklch(20% calc(0.012 * var(--tone-strength)) 145);
+}
+
+:is([data-theme="dark"][data-tone="community"], [data-theme="dark"] [data-tone="community"]) {
+  --tone-canvas: oklch(20% calc(0.012 * var(--tone-strength)) 50);
+}
+
+:is([data-theme="dark"][data-tone="actions"], [data-theme="dark"] [data-tone="actions"]) {
+  --tone-canvas: oklch(20% calc(0.012 * var(--tone-strength)) 30);
+}
+
+.storybook-browser-preview .workspace-canvas {
+  background: var(--tone-canvas, rgb(var(--m3-surface-container-lowest)));
+}
+
+[data-theme="dark"] .storybook-browser-preview .workspace-canvas {
+  background: var(--tone-canvas, rgb(var(--m3-surface-dim)));
+}
+
+.storybook-browser-preview .canvas-route-card,
+.storybook-browser-preview .surface-section {
+  background: rgb(var(--admin-surface-0));
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.storybook-browser-preview .canvas-stage-tab-rail-tint {
+  background: rgb(var(--m3-surface-container-low));
+}
 
 /* ============================================================================
  * ROOT STYLES

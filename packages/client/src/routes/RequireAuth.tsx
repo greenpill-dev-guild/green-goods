@@ -1,5 +1,6 @@
 import { useAuthState } from "@green-goods/shared";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { APP_ROUTES } from "@/config/pwa-routing";
 import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
 
 export default function RequireAuth() {
@@ -21,7 +22,7 @@ export default function RequireAuth() {
   // Check if user has valid credentials (either passkey or wallet)
   if (!isAuthenticated) {
     const redirectTo = encodeURIComponent(location.pathname + location.search + location.hash);
-    return <Navigate to={`/login?redirectTo=${redirectTo}`} replace />;
+    return <Navigate to={`${APP_ROUTES.login}?redirectTo=${redirectTo}`} replace />;
   }
 
   return <Outlet />;

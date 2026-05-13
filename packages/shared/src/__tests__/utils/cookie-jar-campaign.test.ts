@@ -5,6 +5,8 @@ import {
   buildCampaignCookieJarMetadata,
   deriveCampaignCookieJarClaimState,
   diffCampaignCookieJarAllowlist,
+  getCampaignCookieJarPayoutAssets,
+  getDefaultCampaignCookieJarPayoutAsset,
   parseCampaignAddressList,
   parseCampaignCookieJarFallbacks,
   parseCampaignCookieJarMetadata,
@@ -49,6 +51,38 @@ function indexedJar(overrides: Partial<IndexedCampaignCookieJar> = {}): IndexedC
 }
 
 describe("cookie jar campaign utilities", () => {
+  it("prefers GoodDollar for campaign payouts when the current chain supports it", () => {
+    const options = getCampaignCookieJarPayoutAssets(42220);
+    const defaultAsset = getDefaultCampaignCookieJarPayoutAsset(42220);
+
+    expect(options.map((asset) => asset.id)).toEqual(["gooddollar", "usdc", "dai", "weth"]);
+    expect(defaultAsset).toMatchObject({
+      id: "gooddollar",
+      symbol: "G$",
+      decimals: 18,
+      address: "0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A",
+      supported: true,
+    });
+  });
+
+  it("falls back to USDC when GoodDollar is unavailable on the current chain", () => {
+    const options = getCampaignCookieJarPayoutAssets(42161);
+    const defaultAsset = getDefaultCampaignCookieJarPayoutAsset(42161);
+
+    expect(options[0]).toMatchObject({
+      id: "gooddollar",
+      supported: false,
+      disabledReason: "Unavailable on this network",
+    });
+    expect(defaultAsset).toMatchObject({
+      id: "usdc",
+      symbol: "USDC",
+      decimals: 6,
+      address: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+      supported: true,
+    });
+  });
+
   it("parses comma, whitespace, and CSV-style address lists with invalid tokens", () => {
     const result = parseCampaignAddressList(`${OPERATOR_A}, ${OPERATOR_A}\n${EXTRA}; nope`);
 
@@ -89,6 +123,9 @@ describe("cookie jar campaign utilities", () => {
     const metadata = buildCampaignCookieJarMetadata({
       title: "Earth Week",
       slug: "earth-week",
+      description: "A seasonal campaign for garden operator rewards.",
+      image: "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzd",
+      externalUrl: "https://greengoods.app/cookies?campaign=earth-week",
       sourceGardens: [GARDEN_A, GARDEN_A, GARDEN_B],
       extraAllowlist: [EXTRA],
       chainId: 11155111,
@@ -96,10 +133,33 @@ describe("cookie jar campaign utilities", () => {
     });
 
     expect(metadata.sourceGardens).toEqual([GARDEN_A, GARDEN_B]);
+    expect(metadata.description).toBe("A seasonal campaign for garden operator rewards.");
+    expect(metadata.image).toBe(
+      "ipfs://bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzd"
+    );
+    expect(metadata.externalUrl).toBe("https://greengoods.app/cookies?campaign=earth-week");
     expect(parseCampaignCookieJarMetadata(JSON.stringify(metadata))).toEqual(metadata);
     expect(
       parseCampaignCookieJarMetadata(JSON.stringify({ ...metadata, kind: "other" }))
     ).toBeNull();
+  });
+
+  it("drops unsafe optional metadata URLs", () => {
+    const metadata = buildCampaignCookieJarMetadata({
+      title: "Earth Week",
+      slug: "earth-week",
+      description: "Launch<script>alert('x')</script>",
+      image: "javascript:alert(1)",
+      externalUrl: "ftp://example.com/campaign",
+      sourceGardens: [GARDEN_A],
+      extraAllowlist: [],
+      chainId: 11155111,
+      createdAt: 1770000000,
+    });
+
+    expect(metadata.description).toBe("Launch<script>alert('x')</script>");
+    expect(metadata.image).toBeUndefined();
+    expect(metadata.externalUrl).toBeUndefined();
   });
 
   it("lists only jars from trusted creators with valid campaign metadata", () => {

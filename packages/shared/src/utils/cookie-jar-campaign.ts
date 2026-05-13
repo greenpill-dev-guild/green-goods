@@ -11,6 +11,146 @@ import type {
 } from "../types/cookie-jar";
 
 export const CAMPAIGN_COOKIE_JAR_METADATA_KIND = "green-goods.campaign-cookie-jar";
+const MAX_CAMPAIGN_DESCRIPTION_LENGTH = 480;
+const MAX_CAMPAIGN_METADATA_URL_LENGTH = 2048;
+const ALLOWED_CAMPAIGN_METADATA_PROTOCOLS = new Set(["http:", "https:", "ipfs:"]);
+export const CAMPAIGN_COOKIE_JAR_PAYOUT_ASSET_IDS = ["gooddollar", "usdc", "dai", "weth"] as const;
+
+export type CampaignCookieJarPayoutAssetId = (typeof CAMPAIGN_COOKIE_JAR_PAYOUT_ASSET_IDS)[number];
+
+export interface CampaignCookieJarPayoutAsset {
+  id: CampaignCookieJarPayoutAssetId;
+  label: string;
+  symbol: string;
+  decimals: number;
+  supported: boolean;
+  address?: Address;
+  disabledReason?: string;
+  sourceLabel: string;
+}
+
+type CampaignCookieJarPayoutAssetDefinition = Omit<
+  CampaignCookieJarPayoutAsset,
+  "address" | "supported" | "disabledReason" | "sourceLabel"
+> & {
+  fallbackSourceLabel: string;
+};
+
+const CAMPAIGN_COOKIE_JAR_PAYOUT_ASSET_DEFINITIONS: Record<
+  CampaignCookieJarPayoutAssetId,
+  CampaignCookieJarPayoutAssetDefinition
+> = {
+  gooddollar: {
+    id: "gooddollar",
+    label: "GoodDollar",
+    symbol: "G$",
+    decimals: 18,
+    fallbackSourceLabel: "GoodDollar docs",
+  },
+  usdc: {
+    id: "usdc",
+    label: "USDC",
+    symbol: "USDC",
+    decimals: 6,
+    fallbackSourceLabel: "Circle USDC contract addresses",
+  },
+  dai: {
+    id: "dai",
+    label: "DAI",
+    symbol: "DAI",
+    decimals: 18,
+    fallbackSourceLabel: "Green Goods vault registry",
+  },
+  weth: {
+    id: "weth",
+    label: "WETH",
+    symbol: "WETH",
+    decimals: 18,
+    fallbackSourceLabel: "Green Goods vault registry",
+  },
+};
+
+const CAMPAIGN_COOKIE_JAR_PAYOUT_ASSETS_BY_CHAIN: Record<
+  number,
+  Partial<Record<CampaignCookieJarPayoutAssetId, { address: Address; sourceLabel?: string }>>
+> = {
+  42161: {
+    usdc: {
+      address: "0xaf88d065e77c8cC2239327C5EDb3A432268e5831" as Address,
+      sourceLabel: "Circle USDC contract addresses",
+    },
+    dai: {
+      address: "0xda10009cbd5d07dd0cecc66161fc93d7c9000da1" as Address,
+    },
+    weth: {
+      address: "0x82af49447d8a07e3bd95bd0d56f35241523fbab1" as Address,
+    },
+  },
+  11155111: {
+    usdc: {
+      address: "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238" as Address,
+      sourceLabel: "Circle USDC contract addresses",
+    },
+    dai: {
+      address: "0x68194a729c2450ad26072b3d33adacbcef39d574" as Address,
+    },
+    weth: {
+      address: "0x7b79995e5f793a07bc00c21412e50ecae098e7f9" as Address,
+    },
+  },
+  42220: {
+    gooddollar: {
+      address: "0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A" as Address,
+      sourceLabel: "GoodDollar docs",
+    },
+    usdc: {
+      address: "0xcebA9300f2b948710d2653dD7B07f33A8B32118C" as Address,
+      sourceLabel: "Circle USDC contract addresses",
+    },
+    dai: {
+      address: "0xe4fe50cdd716ef9e15b9ddd5e5e946b23fc4f9e4" as Address,
+    },
+    weth: {
+      address: "0x122013fd7df1c6f636a5bb8f03108e876548b455" as Address,
+    },
+  },
+};
+
+export function getCampaignCookieJarPayoutAssets(chainId: number): CampaignCookieJarPayoutAsset[] {
+  const chainAssets = CAMPAIGN_COOKIE_JAR_PAYOUT_ASSETS_BY_CHAIN[chainId] ?? {};
+  return CAMPAIGN_COOKIE_JAR_PAYOUT_ASSET_IDS.map((id) => {
+    const definition = CAMPAIGN_COOKIE_JAR_PAYOUT_ASSET_DEFINITIONS[id];
+    const chainAsset = chainAssets[id];
+    if (!chainAsset) {
+      return {
+        ...definition,
+        supported: false,
+        disabledReason: "Unavailable on this network",
+        sourceLabel: definition.fallbackSourceLabel,
+      };
+    }
+
+    return {
+      ...definition,
+      address: chainAsset.address,
+      supported: true,
+      sourceLabel: chainAsset.sourceLabel ?? definition.fallbackSourceLabel,
+    };
+  });
+}
+
+export function getDefaultCampaignCookieJarPayoutAsset(
+  chainId: number
+): CampaignCookieJarPayoutAsset | null {
+  return getCampaignCookieJarPayoutAssets(chainId).find((asset) => asset.supported) ?? null;
+}
+
+export function getCampaignCookieJarPayoutAsset(
+  chainId: number,
+  assetId: CampaignCookieJarPayoutAssetId
+): CampaignCookieJarPayoutAsset | null {
+  return getCampaignCookieJarPayoutAssets(chainId).find((asset) => asset.id === assetId) ?? null;
+}
 
 export function normalizeCampaignAddress(value: string): Address | null {
   const trimmed = value.trim();
@@ -57,6 +197,30 @@ function dedupeAddresses(addresses: readonly Address[]): Address[] {
     result.push(normalized);
   }
   return result;
+}
+
+function normalizeOptionalMetadataText(value: unknown, maxLength: number): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  return trimmed.slice(0, maxLength);
+}
+
+export function normalizeCampaignMetadataUrl(value: unknown): string | undefined {
+  if (typeof value !== "string") return undefined;
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.length > MAX_CAMPAIGN_METADATA_URL_LENGTH) return undefined;
+
+  if (trimmed.startsWith("/") && !trimmed.startsWith("//")) {
+    return trimmed;
+  }
+
+  try {
+    const parsed = new URL(trimmed);
+    return ALLOWED_CAMPAIGN_METADATA_PROTOCOLS.has(parsed.protocol) ? trimmed : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 export interface CampaignGardenOperatorInput {
@@ -107,16 +271,29 @@ export function aggregateCampaignCookieJarOperators({
 export function buildCampaignCookieJarMetadata(params: {
   title: string;
   slug: string;
+  description?: string;
+  image?: string;
+  externalUrl?: string;
   sourceGardens: readonly Address[];
   extraAllowlist: readonly Address[];
   chainId: number;
   createdAt?: number;
 }): CampaignCookieJarMetadata {
+  const description = normalizeOptionalMetadataText(
+    params.description,
+    MAX_CAMPAIGN_DESCRIPTION_LENGTH
+  );
+  const image = normalizeCampaignMetadataUrl(params.image);
+  const externalUrl = normalizeCampaignMetadataUrl(params.externalUrl);
+
   return {
     kind: CAMPAIGN_COOKIE_JAR_METADATA_KIND,
     version: 1,
     title: params.title.trim(),
     slug: params.slug.trim(),
+    ...(description ? { description } : {}),
+    ...(image ? { image } : {}),
+    ...(externalUrl ? { externalUrl } : {}),
     sourceGardens: dedupeAddresses(params.sourceGardens),
     operatorPolicy: "one-operator-per-garden",
     extraAllowlist: dedupeAddresses(params.extraAllowlist),
@@ -169,7 +346,9 @@ export function parseCampaignCookieJarMetadata(
 ): CampaignCookieJarMetadata | null {
   if (!raw) return null;
   try {
-    const parsed = JSON.parse(raw) as Partial<CampaignCookieJarMetadata>;
+    const parsed = JSON.parse(raw) as Partial<CampaignCookieJarMetadata> & {
+      external_url?: unknown;
+    };
     if (
       parsed.kind !== CAMPAIGN_COOKIE_JAR_METADATA_KIND ||
       parsed.version !== 1 ||
@@ -181,12 +360,23 @@ export function parseCampaignCookieJarMetadata(
     const slug = parsed.slug.trim();
     const title = parsed.title.trim();
     if (!slug || !title) return null;
+    const description = normalizeOptionalMetadataText(
+      parsed.description,
+      MAX_CAMPAIGN_DESCRIPTION_LENGTH
+    );
+    const image = normalizeCampaignMetadataUrl(parsed.image);
+    const externalUrl =
+      normalizeCampaignMetadataUrl(parsed.externalUrl) ??
+      normalizeCampaignMetadataUrl(parsed.external_url);
 
     return {
       kind: CAMPAIGN_COOKIE_JAR_METADATA_KIND,
       version: 1,
       slug,
       title,
+      ...(description ? { description } : {}),
+      ...(image ? { image } : {}),
+      ...(externalUrl ? { externalUrl } : {}),
       sourceGardens: dedupeAddresses((parsed.sourceGardens ?? []) as Address[]),
       operatorPolicy: "one-operator-per-garden",
       extraAllowlist: dedupeAddresses((parsed.extraAllowlist ?? []) as Address[]),

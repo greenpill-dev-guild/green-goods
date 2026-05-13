@@ -58,7 +58,7 @@ describe("useGardenInvites", () => {
     const link = result.current.generateInviteLink(code);
 
     expect(code).toMatch(/^0x/);
-    expect(link).toContain(`/garden/join?invite=${code}`);
+    expect(link).toContain(`/home/garden?invite=${code}`);
     expect(link).toContain(`&garden=${GARDEN_ADDRESS}`);
   });
 
@@ -70,7 +70,7 @@ describe("useGardenInvites", () => {
       inviteLink = await result.current.createInvite();
     });
 
-    expect(inviteLink).toContain("/garden/join?invite=");
+    expect(inviteLink).toContain("/home/garden?invite=");
     expect(result.current.invites).toHaveLength(1);
     expect(result.current.invites[0]).toMatchObject({
       garden: GARDEN_ADDRESS,

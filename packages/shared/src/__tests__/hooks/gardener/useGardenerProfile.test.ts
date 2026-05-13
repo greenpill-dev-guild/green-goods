@@ -49,14 +49,17 @@ vi.mock("../../../components/toast", () => ({
 }));
 
 vi.mock("../../../utils/errors/contract-errors", () => ({
-  parseContractError: (error: unknown) => ({
-    name: "Unknown",
+  parseAndFormatError: (error: unknown) => ({
+    title: "Unknown",
     message: error instanceof Error ? error.message : "Unknown error",
+    parsed: {
+      raw: error instanceof Error ? error.message : "Unknown error",
+      name: "Unknown",
+      message: error instanceof Error ? error.message : "Unknown error",
+      isKnown: false,
+      recoverable: true,
+    },
   }),
-}));
-
-vi.mock("../../../utils/errors/user-messages", () => ({
-  USER_FRIENDLY_ERRORS: {} as Record<string, string>,
 }));
 
 vi.mock("../../../config/query-keys", () => ({

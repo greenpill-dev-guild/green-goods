@@ -1,5 +1,12 @@
-import { useCommunityWorkspaceController } from "@green-goods/shared";
+import {
+  buildCommunityHeaderStats,
+  MetaStrip,
+  useCommunityWorkspaceController,
+  useMediaQuery,
+} from "@green-goods/shared";
+import { useMemo } from "react";
 import { AdminTabRail } from "@/components/AdminTabRail";
+import { AdminViewActions } from "@/components/AdminViewActions";
 import { CanvasRouteFrame, CanvasRouteHeader } from "@/components/Layout/CanvasRouteFrame";
 import { CommunitySheetDescriptor } from "./components/CommunitySheetDescriptor";
 import { CommunityWorkspaceContent } from "./components/CommunityWorkspaceContent";
@@ -8,7 +15,26 @@ import { useIntl } from "react-intl";
 export default function CommunityView() {
   const { formatMessage } = useIntl();
   const community = useCommunityWorkspaceController();
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
   const totalPeople = community.derived.directoryEntries.length;
+
+  const headerStats = useMemo(
+    () =>
+      buildCommunityHeaderStats({
+        hasSelectedGarden: Boolean(community.selectedGarden),
+        peopleCount: totalPeople,
+        poolCount: community.pools.length,
+        vaultNetDeposited: community.vaultNetDeposited,
+        formatMessage,
+      }),
+    [
+      community.selectedGarden,
+      totalPeople,
+      community.pools.length,
+      community.vaultNetDeposited,
+      formatMessage,
+    ]
+  );
 
   return (
     <CanvasRouteFrame
@@ -25,16 +51,19 @@ export default function CommunityView() {
       />
 
       <CanvasRouteHeader
-        maxWidthClassName="max-w-[1400px]"
         title={formatMessage({ id: "cockpit.community.title", defaultMessage: "Community" })}
         description={formatMessage({
           id: "cockpit.community.description",
           defaultMessage: "Treasury, governance, payouts, and the people around the garden.",
         })}
-        eyebrow={formatMessage({
-          id: "cockpit.community.eyebrow",
-          defaultMessage: "Engagement",
-        })}
+        metadata={
+          headerStats.length > 0 ? <MetaStrip items={headerStats} density="inline" /> : undefined
+        }
+        actions={
+          isDesktop && community.desktopActions.length > 0 ? (
+            <AdminViewActions items={community.desktopActions} />
+          ) : undefined
+        }
         variant="canvas"
         sticky
       >

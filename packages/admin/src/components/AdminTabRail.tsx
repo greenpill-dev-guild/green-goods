@@ -156,13 +156,7 @@ export function AdminTabRail({
               backgroundColor: active
                 ? "var(--surface-raised, rgb(var(--m3-surface-container-highest)))"
                 : "transparent",
-              // Handoff DESIGN_NOTES § Tone system: active tab picks up a
-              // barely-perceptible tone wash (~6%) layered on the raised surface.
-              // Fallback uses `--green-800` (raw RGB triplet) because `--g-action`
-              // is already rgb-wrapped and can't be alpha-blended.
-              backgroundImage: active
-                ? "linear-gradient(rgb(var(--tone-action, var(--green-800)) / 0.06), rgb(var(--tone-action, var(--green-800)) / 0.06))"
-                : "none",
+              backgroundImage: "none",
               color: active
                 ? "var(--ink, rgb(var(--m3-on-surface)))"
                 : "var(--on-surface-muted, rgb(var(--m3-on-surface-variant)))",
@@ -202,10 +196,10 @@ export function AdminTabRail({
                   flexShrink: 0,
                   transition: "background-color 150ms, color 150ms, border-color 150ms",
                   background: active
-                    ? "var(--g-action, rgb(var(--m3-primary)))"
+                    ? "rgb(var(--m3-secondary-container))"
                     : "var(--surface-raised, rgb(var(--m3-surface-container-highest)))",
                   color: active
-                    ? "var(--g-on-action, rgb(var(--m3-on-primary)))"
+                    ? "rgb(var(--m3-on-secondary-container))"
                     : "var(--on-surface-muted, rgb(var(--m3-on-surface-variant)))",
                   border: active
                     ? "1px solid transparent"

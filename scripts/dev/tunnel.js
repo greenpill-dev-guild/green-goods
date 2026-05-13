@@ -1,17 +1,22 @@
 #!/usr/bin/env node
 
 /**
- * PWA Device Testing Tunnel
+ * PWA + admin device-testing tunnel(s).
  *
- * Creates a cloudflared tunnel to the local dev client server,
- * giving you a public HTTPS URL for testing on real mobile devices.
+ * Spawns one cloudflared quick-tunnel per port. Each tunnel's URL is written
+ * to a deterministic file the matching Vite dev server exposes via
+ * `/__dev/tunnel` so the in-page QR overlay can render it.
  *
- * When a tunnel URL is obtained, it's written to `.tunnel-url` so the
- * Vite dev server can expose it to the DevTunnel overlay (QR code).
+ * URL files:
+ *   port 3001 (client)  → .tunnel-url           (legacy filename, kept for back-compat)
+ *   port 3002 (admin)   → .tunnel-url-admin
+ *   any other port      → .tunnel-url-<port>
  *
  * Usage:
- *   bun run dev:tunnel              # Tunnel to client (port 3001)
- *   bun run dev:tunnel -- --port 3002  # Tunnel to admin (port 3002)
+ *   bun run dev:tunnel                              # default: client (3001) + admin (3002)
+ *   bun run dev:tunnel -- --port 3001               # client only
+ *   bun run dev:tunnel -- --port 3001 --port 3002   # both, explicit
+ *   bun run dev:tunnel -- --ports 3001,3002         # both, shorthand
  *
  * Prerequisites:
  *   brew install cloudflared
@@ -21,16 +26,67 @@ import { execSync, spawn } from "node:child_process";
 import { existsSync, unlinkSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-const args = process.argv.slice(2);
-const portIndex = args.indexOf("--port");
-const port = portIndex !== -1 ? args[portIndex + 1] : "3001";
-
 const ROOT = resolve(import.meta.dirname, "../..");
-const URL_FILE = resolve(ROOT, ".tunnel-url");
 
-// -- Preflight checks --------------------------------------------------------
+const DEFAULT_PORTS = ["3001", "3002"];
 
-// Check cloudflared is installed
+function parsePorts(argv) {
+  const ports = [];
+
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg === "--port") {
+      const value = argv[i + 1];
+      if (value) {
+        ports.push(value);
+        i++;
+      }
+      continue;
+    }
+    if (arg === "--ports") {
+      const value = argv[i + 1];
+      if (value) {
+        for (const p of value.split(",")) {
+          const trimmed = p.trim();
+          if (trimmed) ports.push(trimmed);
+        }
+        i++;
+      }
+      continue;
+    }
+    if (arg.startsWith("--port=")) {
+      ports.push(arg.slice("--port=".length));
+      continue;
+    }
+    if (arg.startsWith("--ports=")) {
+      for (const p of arg.slice("--ports=".length).split(",")) {
+        const trimmed = p.trim();
+        if (trimmed) ports.push(trimmed);
+      }
+      continue;
+    }
+  }
+
+  if (ports.length === 0) return [...DEFAULT_PORTS];
+
+  // De-duplicate while preserving order.
+  return Array.from(new Set(ports));
+}
+
+function urlFileFor(port) {
+  if (port === "3001") return resolve(ROOT, ".tunnel-url");
+  if (port === "3002") return resolve(ROOT, ".tunnel-url-admin");
+  return resolve(ROOT, `.tunnel-url-${port}`);
+}
+
+function labelFor(port) {
+  if (port === "3001") return "client";
+  if (port === "3002") return "admin";
+  return `port-${port}`;
+}
+
+// -- Preflight ---------------------------------------------------------------
+
 try {
   execSync("which cloudflared", { stdio: "ignore" });
 } catch {
@@ -40,7 +96,8 @@ try {
   process.exit(1);
 }
 
-// Wait for the dev server to be ready (up to 60s)
+const ports = parsePorts(process.argv.slice(2));
+
 async function waitForPort(targetPort, timeoutMs = 60_000) {
   const start = Date.now();
   while (Date.now() - start < timeoutMs) {
@@ -54,13 +111,27 @@ async function waitForPort(targetPort, timeoutMs = 60_000) {
   return false;
 }
 
-// -- Cleanup ------------------------------------------------------------------
+// -- Cleanup -----------------------------------------------------------------
+
+const urlFiles = ports.map((port) => urlFileFor(port));
+const tunnels = [];
 
 function cleanup() {
-  try {
-    if (existsSync(URL_FILE)) unlinkSync(URL_FILE);
-  } catch {
-    // best-effort
+  for (const file of urlFiles) {
+    try {
+      if (existsSync(file)) unlinkSync(file);
+    } catch {
+      // best-effort
+    }
+  }
+  for (const child of tunnels) {
+    if (!child.killed) {
+      try {
+        child.kill("SIGTERM");
+      } catch {
+        // best-effort
+      }
+    }
   }
 }
 
@@ -71,42 +142,58 @@ for (const signal of ["exit", "SIGINT", "SIGTERM"]) {
   });
 }
 
-// -- Main ---------------------------------------------------------------------
+// -- Spawn one tunnel per ready port -----------------------------------------
 
-const ready = await waitForPort(port);
-if (!ready) {
-  console.error(
-    `\x1b[31m✗ No server running on port ${port} after 60s.\x1b[0m Start it first:\n\n  bun run dev:web\n\nFor the full stack, use:\n\n  bun run dev:full\n`
+async function startTunnel(port) {
+  const ready = await waitForPort(port);
+  const label = labelFor(port);
+
+  if (!ready) {
+    console.error(
+      `\x1b[33m⚠ ${label}:${port} did not come up within 60s; skipping its tunnel.\x1b[0m`
+    );
+    return;
+  }
+
+  console.log(
+    `\x1b[36m⟳ Starting ${label} tunnel to https://localhost:${port}...\x1b[0m`
   );
-  process.exit(1);
+
+  const child = spawn("cloudflared", ["tunnel", "--url", `https://localhost:${port}`], {
+    stdio: ["ignore", "inherit", "pipe"],
+  });
+  tunnels.push(child);
+
+  const file = urlFileFor(port);
+  child.stderr.on("data", (chunk) => {
+    const text = chunk.toString();
+    process.stderr.write(text);
+
+    const match = text.match(/https:\/\/[a-z0-9-]+\.trycloudflare\.com/);
+    if (match) {
+      writeFileSync(file, match[0], "utf-8");
+      console.log(`\n\x1b[32m✓ ${label} tunnel ready:\x1b[0m ${match[0]}`);
+    }
+  });
+
+  child.on("error", (err) => {
+    console.error(`\x1b[31m✗ ${label} tunnel failed: ${err.message}\x1b[0m`);
+  });
+
+  child.on("close", (code) => {
+    try {
+      if (existsSync(file)) unlinkSync(file);
+    } catch {
+      // best-effort
+    }
+    // Don't exit the process — other tunnels may still be live. Track exit codes.
+    if (code && code !== 0) {
+      console.error(`\x1b[31m✗ ${label} tunnel exited with code ${code}\x1b[0m`);
+    }
+  });
 }
 
-console.log(`\x1b[36m⟳ Starting tunnel to https://localhost:${port}...\x1b[0m\n`);
+await Promise.all(ports.map((port) => startTunnel(port)));
 
-const tunnel = spawn("cloudflared", ["tunnel", "--url", `https://localhost:${port}`], {
-  stdio: ["ignore", "inherit", "pipe"],
-});
-
-// Parse cloudflared stderr for the tunnel URL
-tunnel.stderr.on("data", (chunk) => {
-  const text = chunk.toString();
-  process.stderr.write(text);
-
-  const match = text.match(/https:\/\/[a-z0-9-]+\.trycloudflare\.com/);
-  if (match) {
-    writeFileSync(URL_FILE, match[0], "utf-8");
-    console.log(`\n\x1b[32m✓ Tunnel ready:\x1b[0m ${match[0]}`);
-    console.log(`  Open the dev client to see the QR code.\n`);
-  }
-});
-
-tunnel.on("error", (err) => {
-  console.error(`\x1b[31m✗ Failed to start tunnel: ${err.message}\x1b[0m`);
-  cleanup();
-  process.exit(1);
-});
-
-tunnel.on("close", (code) => {
-  cleanup();
-  process.exit(code ?? 0);
-});
+// Hold the process open while tunnel children are running.
+await new Promise(() => {});

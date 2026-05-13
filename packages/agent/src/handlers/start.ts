@@ -3,6 +3,7 @@
  */
 
 import { privateKeyToAccount } from "viem/accounts";
+import { agentMessage } from "../i18n";
 import * as db from "../services/db";
 import type { HandlerResult, InboundMessage } from "../types";
 import { formatAddress } from "./utils";
@@ -30,31 +31,30 @@ export async function handleStart(
       privateKey,
       address: account.address,
       role: "gardener",
+      locale: message.locale,
     });
 
     return {
       response: {
-        text:
-          `🌿 *Welcome to Green Goods!*\n\n` +
-          `I've created a wallet for you:\n` +
-          `\`${user.address}\`\n\n` +
-          `*Commands:*\n` +
-          `/join <address> - Join a garden\n` +
-          `/status - Check your current status\n` +
-          `/help - Show all commands\n\n` +
-          `_Send me a text or voice message to submit work!_`,
+        text: agentMessage(message.locale, "start.welcomeNew", { address: user.address }),
         parseMode: "markdown",
       },
     };
   }
 
+  if (message.locale && user.locale !== message.locale) {
+    await db.updateUser(platform, sender.platformId, { locale: message.locale });
+    user = { ...user, locale: message.locale };
+  }
+
   return {
     response: {
-      text:
-        `🌿 *Welcome back!*\n\n` +
-        `Wallet: \`${formatAddress(user.address)}\`\n` +
-        `Garden: ${user.currentGarden ? `\`${formatAddress(user.currentGarden)}\`` : "_Not joined_"}\n\n` +
-        `_Send me a message to submit work or use /help for commands._`,
+      text: agentMessage(message.locale, "start.welcomeBack", {
+        wallet: formatAddress(user.address),
+        garden: user.currentGarden
+          ? `\`${formatAddress(user.currentGarden)}\``
+          : agentMessage(message.locale, "start.notJoined"),
+      }),
       parseMode: "markdown",
     },
   };

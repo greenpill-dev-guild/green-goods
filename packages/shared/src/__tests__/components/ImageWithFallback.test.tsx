@@ -150,6 +150,39 @@ describe("ImageWithFallback — parallel gateway race", () => {
         expect(screen.queryByTestId("bg-fallback")).not.toBeInTheDocument();
       });
     });
+
+    it("does not replay image reveal on cached IPFS mounts", async () => {
+      const cid = "QmCachedNoReveal789";
+
+      const { unmount } = render(
+        createElement(ImageWithFallback, {
+          src: `https://gateway-a.link/ipfs/${cid}`,
+          alt: "cached-img",
+        })
+      );
+
+      await waitFor(() => {
+        expect(screen.getByAltText("cached-img")).toBeInTheDocument();
+      });
+      fireEvent.load(screen.getByAltText("cached-img"));
+
+      await waitFor(() => {
+        expect(screen.getByAltText("cached-img")).toHaveClass("image-reveal");
+      });
+
+      unmount();
+
+      render(
+        createElement(ImageWithFallback, {
+          src: `https://gateway-a.link/ipfs/${cid}`,
+          alt: "cached-img",
+        })
+      );
+
+      const cachedImg = screen.getByAltText("cached-img");
+      expect(cachedImg).not.toHaveClass("opacity-0");
+      expect(cachedImg).not.toHaveClass("image-reveal");
+    });
   });
 
   describe("non-IPFS URLs (direct load)", () => {

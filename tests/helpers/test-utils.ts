@@ -216,7 +216,7 @@ export class ClientTestHelper {
   async createPasskeyAccount(username: string = `test_${Date.now()}`) {
     console.log(`🔐 Creating passkey account: ${username}`);
 
-    await this.page.goto("/login");
+    await this.page.goto("/home/login?presentation=pwa");
     await this.page.waitForLoadState("domcontentloaded");
 
     // Wait for React app to fully mount and handle any errors
@@ -364,7 +364,7 @@ export class ClientTestHelper {
   async loginWithPasskey(username?: string) {
     console.log(`🔐 Logging in with passkey${username ? `: ${username}` : " (stored)"}`);
 
-    await this.page.goto("/login");
+    await this.page.goto("/home/login?presentation=pwa");
     await this.page.waitForLoadState("domcontentloaded");
 
     // Wait for React app to fully mount
@@ -443,8 +443,10 @@ export class ClientTestHelper {
    * Check if we're on an authenticated page.
    */
   async isAuthenticated(): Promise<boolean> {
-    const url = this.page.url();
-    return url.includes("/home") || url.includes("/profile") || url.includes("/garden");
+    const { pathname } = new URL(this.page.url());
+    return (
+      pathname === "/home" || (pathname.startsWith("/home/") && !pathname.startsWith("/home/login"))
+    );
   }
 
   /**

@@ -17,6 +17,7 @@ import {
 import { JsonRpcProvider } from "ethers";
 import type { Address, PublicClient } from "viem";
 
+import { assertMarketplaceReady } from "../../utils/blockchain/contracts";
 import { createLogger } from "../app/logger";
 
 const log = createLogger({ source: "marketplace/client" });
@@ -154,11 +155,10 @@ export async function getOrderNonces(
   chainId: number,
   publicClient: PublicClient
 ): Promise<{ globalNonce: bigint; orderNonce: bigint }> {
-  const addresses = getMarketplaceAddresses(chainId);
-  if (!addresses) throw new Error(`Marketplace not supported on chain ${chainId}`);
+  const readiness = assertMarketplaceReady(chainId);
 
   const [bidNonce, askNonce] = (await publicClient.readContract({
-    address: addresses.EXCHANGE_V2 as Address,
+    address: readiness.addresses.hypercertExchange,
     abi: USER_BID_ASK_NONCES_ABI,
     functionName: "userBidAskNonces",
     args: [signer],

@@ -15,6 +15,7 @@ on:
       - "packages/contracts/src/**"
       - "packages/contracts/abis/**"
       - "packages/contracts/deployments/**"
+      - "scripts/ops/upload-sourcemaps.js"
       - ".github/workflows/client.yml"
   pull_request:
     branches: [main, develop]
@@ -30,6 +31,7 @@ on:
       - "packages/contracts/src/**"
       - "packages/contracts/abis/**"
       - "packages/contracts/deployments/**"
+      - "scripts/ops/upload-sourcemaps.js"
       - ".github/workflows/client.yml"
   workflow_dispatch:
     inputs:
@@ -118,6 +120,42 @@ jobs:
           VITE_PINATA_GATEWAY_URL: ${{ vars.VITE_PINATA_GATEWAY_URL || 'https://greengoods.mypinata.cloud' }}
           VITE_PINATA_API_URL: ${{ vars.VITE_PINATA_API_URL || 'https://api.pinata.cloud' }}
 
+  sourcemaps:
+    name: Upload Client Source Maps
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: lint-build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Upload client source maps
+        run: node scripts/ops/upload-sourcemaps.js --app client --env production --version "${{ github.sha }}"
+        env:
+          CI: true
+          POSTHOG_CLI_TOKEN: ${{ secrets.POSTHOG_CLI_TOKEN }}
+          POSTHOG_CLIENT_ENV_ID: ${{ secrets.POSTHOG_CLIENT_ENV_ID }}
+          VITE_USE_HASH_ROUTER: "false"
+          VITE_CHAIN_ID: "42161"
+          VITE_WALLETCONNECT_PROJECT_ID: ${{ secrets.VITE_WALLETCONNECT_PROJECT_ID || 'test' }}
+          VITE_PIMLICO_API_KEY: ${{ secrets.VITE_PIMLICO_API_KEY || 'test' }}
+          VITE_ENVIO_INDEXER_URL: ${{ secrets.VITE_ENVIO_INDEXER_URL || 'http://localhost:8080/v1/graphql' }}
+          VITE_PINATA_GATEWAY_URL: ${{ vars.VITE_PINATA_GATEWAY_URL || 'https://greengoods.mypinata.cloud' }}
+          VITE_PINATA_API_URL: ${{ vars.VITE_PINATA_API_URL || 'https://api.pinata.cloud' }}
+
   e2e:
     name: Playwright Client CI
     if: github.event_name != 'workflow_dispatch' || inputs.operation == 'ci' || inputs.operation == 'all'
@@ -158,6 +196,13 @@ jobs:
         run: PLAYWRIGHT_APP=client APP_ENV=test bunx playwright test --project=client-ci
         env:
           CI: true
+          SKIP_INDEXER: "true"
+          VITE_CHAIN_ID: "11155111"
+          VITE_WALLETCONNECT_PROJECT_ID: ${{ secrets.VITE_WALLETCONNECT_PROJECT_ID || 'test' }}
+          VITE_PIMLICO_API_KEY: ${{ secrets.VITE_PIMLICO_API_KEY || 'test' }}
+          VITE_ENVIO_INDEXER_URL: ${{ secrets.VITE_ENVIO_INDEXER_URL || 'http://localhost:8080/v1/graphql' }}
+          VITE_PINATA_GATEWAY_URL: ${{ vars.VITE_PINATA_GATEWAY_URL || 'https://greengoods.mypinata.cloud' }}
+          VITE_PINATA_API_URL: ${{ vars.VITE_PINATA_API_URL || 'https://api.pinata.cloud' }}
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v7

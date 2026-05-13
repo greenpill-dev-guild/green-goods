@@ -11,7 +11,7 @@ import { logger } from "../../app/logger";
 import { DEBUG_ENABLED, debugError, debugLog } from "../../../utils/debug";
 import { encodeWorkData } from "../../../utils/eas/encoders";
 import { buildWorkAttestTx } from "../../../utils/eas/transaction-builder";
-import { formatWalletError } from "../../../utils/errors/user-messages";
+import { extractErrorMessage } from "../../../utils/errors/extract-message";
 import {
   pollQueriesAfterTransaction,
   TX_RECEIPT_TIMEOUT_MS,
@@ -98,7 +98,10 @@ export async function submitWorkDirectly(
     );
   } catch (err: unknown) {
     debugError("[WalletSubmission] Upload phase failed", err);
-    throw new WorkSubmissionError(formatWalletError(err), "upload", uploadBatchId, err);
+    // Preserve the original error via `cause`. Downstream (useWorkMutation.onError)
+    // unwraps and classifies via parseContractError — wrapping with a pre-formatted
+    // message here would be discarded.
+    throw new WorkSubmissionError(extractErrorMessage(err), "upload", uploadBatchId, err);
   }
 
   // ── Phase 2: Build and send the transaction ────────────────────────
@@ -119,7 +122,7 @@ export async function submitWorkDirectly(
     debugLog("[WalletSubmission] Transaction sent", { hash });
   } catch (err: unknown) {
     debugError("[WalletSubmission] Transaction phase failed", err);
-    throw new WorkSubmissionError(formatWalletError(err), "transaction", uploadBatchId, err);
+    throw new WorkSubmissionError(extractErrorMessage(err), "transaction", uploadBatchId, err);
   }
 
   // ── Phase 3: Receipt, cache, and sync (non-critical) ───────────────

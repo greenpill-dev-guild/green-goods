@@ -60,6 +60,11 @@ export function rayToApy(liquidityRate: bigint): number {
   return apy * 100;
 }
 
+/** Converts an AAVE V3 liquidity rate (ray, 1e27) to a non-compounded APR percentage. */
+export function rayToApr(liquidityRate: bigint): number {
+  return (Number(liquidityRate) / Number(RAY)) * 100;
+}
+
 /** Formats an APY value to 2 decimal places with "%" suffix. */
 export function formatApy(apy: number): string {
   return `${apy.toFixed(2)}%`;

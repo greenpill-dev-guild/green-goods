@@ -1,15 +1,22 @@
-// packages/shared/src/components/Canvas/BottomSheet.tsx
-import { RiCloseLine } from "@remixicon/react";
 import { animated, useSpring } from "@react-spring/web";
 import { useDrag } from "@use-gesture/react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useIntl } from "react-intl";
 import { useMediaQuery } from "../../hooks/ui/useMediaQuery";
-import { useFocusTrap } from "../../hooks/utils/useFocusTrap";
 import { cn } from "../../utils";
-import { SheetErrorBoundary } from "./SheetErrorBoundary";
-import { SPRING_CONFIGS, DISMISS_VELOCITY_THRESHOLD } from "./springConfig";
+import {
+  CanvasSheetBody,
+  CanvasSheetHeader,
+  getCanvasSheetDialogClassName,
+  getCanvasSheetDialogStyle,
+  getCanvasSheetDragIntent,
+  getCanvasSheetTransform,
+  useCanvasSheetContentSnapshot,
+  useCanvasSheetLifecycle,
+  useCanvasSheetMount,
+} from "./CanvasSheetInternals";
+import { SPRING_CONFIGS } from "./springConfig";
 
 export interface BottomSheetProps {
   open: boolean;
@@ -49,24 +56,11 @@ export function BottomSheet({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const prefersReducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
-  const latestOpenRef = useRef(open);
-  const latestContentRef = useRef({ title, children });
-
-  const [mounted, setMounted] = useState(open);
-  useFocusTrap(dialogRef, {
-    enabled: isBounded && mounted && open,
-    autoFocusSelector: '[data-testid="bottom-sheet-close"]',
+  const { mounted, setMounted, latestOpenRef } = useCanvasSheetMount(open);
+  const { title: renderedTitle, children: renderedChildren } = useCanvasSheetContentSnapshot(open, {
+    title,
+    children,
   });
-
-  useEffect(() => {
-    latestOpenRef.current = open;
-  }, [open]);
-
-  useEffect(() => {
-    if (open) {
-      latestContentRef.current = { title, children };
-    }
-  }, [children, open, title]);
 
   // Spring: y=0 fully open, y=100 fully offscreen bottom (percentage)
   const [springs, api] = useSpring(() => ({
@@ -91,70 +85,49 @@ export function BottomSheet({
       setMounted(false);
       dialogRef.current?.close();
     }
-  }, [open, api, mounted, prefersReducedMotion]);
+  }, [open, api, mounted, prefersReducedMotion, setMounted]);
 
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-
-    if (isBounded) {
-      return;
-    }
-
-    if (mounted && open) {
-      if (!dialog.open) {
-        dialog.showModal();
-      }
-    }
-  }, [isBounded, mounted, open]);
-
-  useEffect(() => {
-    const dialog = dialogRef.current;
-    if (!dialog) return;
-
-    const handleCancel = (e: Event) => {
-      e.preventDefault();
-      onClose();
-    };
-
-    dialog.addEventListener("cancel", handleCancel);
-    return () => dialog.removeEventListener("cancel", handleCancel);
-  }, [onClose]);
-
-  useEffect(() => {
-    if (!isBounded || !mounted || !open) return;
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onClose();
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [isBounded, mounted, onClose, open]);
+  useCanvasSheetLifecycle({
+    dialogRef,
+    open,
+    mounted,
+    isBounded,
+    onClose,
+    autoFocusSelector: '[data-testid="bottom-sheet-close"]',
+  });
 
   // Drag dismiss gesture — drag down to dismiss
   const bind = useDrag(
-    ({ movement: [, my], velocity: [, vy], direction: [, dy], cancel }) => {
-      // Only allow dragging down (positive y)
-      if (my < -20) {
+    ({ movement: [, my], velocity: [, vy], direction: [, dy], cancel, last }) => {
+      const intent = getCanvasSheetDragIntent({
+        edge: "bottom",
+        movementX: 0,
+        movementY: my,
+        velocityX: 0,
+        velocityY: vy,
+        directionX: 0,
+        directionY: dy,
+        sizePx: contentRef.current?.offsetHeight ?? 400,
+        last,
+        prefersReducedMotion,
+      });
+
+      if (intent.kind === "cancel") {
         cancel();
+        api.start({ y: 0, immediate: false });
         return;
       }
-      if (dy > 0 && vy > DISMISS_VELOCITY_THRESHOLD) {
+      if (intent.kind === "dismiss") {
         onClose();
         return;
       }
-      if (my > 120) {
-        onClose();
+      if (intent.kind === "snap") {
+        api.start({ y: 0, immediate: false });
         return;
       }
-      if (prefersReducedMotion) return;
-      const sheetHeight = contentRef.current?.offsetHeight ?? 400;
-      const pct = Math.max(0, (my / sheetHeight) * 100 * 0.86);
-      api.start({ y: pct, immediate: true });
+      if (intent.kind === "drag") {
+        api.start({ y: intent.offset, immediate: true });
+      }
     },
     {
       from: () => [0, 0],
@@ -163,19 +136,7 @@ export function BottomSheet({
     }
   );
 
-  const handleOverlayClick = useCallback(
-    (e: React.MouseEvent) => {
-      if (e.target === e.currentTarget) {
-        onClose();
-      }
-    },
-    [onClose]
-  );
-
   if (!mounted) return null;
-
-  const renderedTitle = open ? title : latestContentRef.current.title;
-  const renderedChildren = open ? children : latestContentRef.current.children;
 
   const dialogElement = (
     <dialog
@@ -184,23 +145,8 @@ export function BottomSheet({
       aria-modal="true"
       open={isBounded ? mounted : undefined}
       tabIndex={-1}
-      className={cn(
-        "fixed inset-0 m-0 h-full w-full max-h-full max-w-full",
-        "bg-transparent p-0 outline-none",
-        "backdrop:bg-transparent backdrop:backdrop-filter-none",
-        isBounded && "absolute"
-      )}
-      style={{
-        position: isBounded ? "absolute" : "fixed",
-        inset: 0,
-        width: "100%",
-        height: "100%",
-        maxWidth: "none",
-        maxHeight: "none",
-        margin: 0,
-        pointerEvents: "auto",
-        zIndex: isBounded ? 45 : 50,
-      }}
+      className={getCanvasSheetDialogClassName(isBounded)}
+      style={getCanvasSheetDialogStyle(isBounded)}
       data-component="BottomSheet"
       data-slot="dialog"
       data-state={sheetState}
@@ -216,7 +162,9 @@ export function BottomSheet({
           backdropFilter: isBounded ? undefined : "blur(2px)",
           WebkitBackdropFilter: isBounded ? undefined : "blur(2px)",
         }}
-        onClick={handleOverlayClick}
+        onClick={(event) => {
+          if (event.target === event.currentTarget) onClose();
+        }}
         data-component="BottomSheet"
         data-slot="overlay"
         data-state={sheetState}
@@ -232,10 +180,16 @@ export function BottomSheet({
           "focus:outline-none will-change-transform"
         )}
         style={{
-          maxHeight: isBounded ? `${maxHeight}%` : `${maxHeight}dvh`,
+          left: isBounded ? "var(--admin-sheet-mobile-side-inset, 0.75rem)" : 0,
+          right: isBounded ? "var(--admin-sheet-mobile-side-inset, 0.75rem)" : 0,
+          width: isBounded ? "auto" : "100%",
+          maxHeight: isBounded ? `min(${maxHeight}%, 100%)` : `${maxHeight}dvh`,
           paddingBottom: isBounded ? undefined : "env(safe-area-inset-bottom)",
           boxShadow: "var(--m3-elevation-4, var(--elevation-4))",
-          transform: springs.y.to((y) => `translateY(${y}%)`),
+          transform: springs.y.to((y) => getCanvasSheetTransform("bottom", y)),
+          borderRadius: isBounded
+            ? "var(--radius-sheet, 24px)"
+            : "var(--radius-sheet, 16px) var(--radius-sheet, 16px) 0 0",
           zIndex: isBounded ? 46 : 51,
         }}
         data-component="BottomSheet"
@@ -256,38 +210,16 @@ export function BottomSheet({
           <div className="h-1.5 w-10 rounded-full bg-[rgb(var(--tone-primary,var(--primary-base))/0.32)]" />
         </div>
 
-        {/* Header */}
-        {renderedTitle ? (
-          <div
-            className="flex items-center justify-between border-b border-stroke-soft/80 px-4 pb-3"
-            data-slot="header"
-          >
-            <h2 className="text-lg font-semibold text-text-strong" data-slot="title">
-              {renderedTitle}
-            </h2>
-            <button
-              type="button"
-              onClick={onClose}
-              className={cn(
-                "flex h-10 w-10 items-center justify-center rounded-lg",
-                "text-text-soft transition-colors hover:bg-bg-soft",
-                "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2"
-              )}
-              aria-label={closeLabel}
-              data-slot="close-button"
-              data-testid="bottom-sheet-close"
-            >
-              <RiCloseLine className="h-5 w-5" />
-            </button>
-          </div>
-        ) : (
-          <h2 className="sr-only">{closeLabel}</h2>
-        )}
-
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto" data-slot="body">
-          <SheetErrorBoundary onClose={onClose}>{renderedChildren}</SheetErrorBoundary>
-        </div>
+        <CanvasSheetHeader
+          title={renderedTitle}
+          closeLabel={closeLabel}
+          closeTestId="bottom-sheet-close"
+          onClose={onClose}
+          showCloseWhenUntitled={false}
+        />
+        <CanvasSheetBody onClose={onClose} scrollable>
+          {renderedChildren}
+        </CanvasSheetBody>
       </animated.div>
     </dialog>
   );

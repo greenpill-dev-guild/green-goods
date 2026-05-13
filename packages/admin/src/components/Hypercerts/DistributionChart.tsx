@@ -16,11 +16,11 @@ const CHART_COLORS = [
   "var(--color-primary-base)",
   "var(--color-success-base)",
   "var(--color-warning-base)",
-  "var(--color-info-base)",
+  "var(--color-information-base)",
   "var(--color-primary-dark)",
   "var(--color-success-dark)",
   "var(--color-warning-dark)",
-  "var(--color-info-dark)",
+  "var(--color-information-dark)",
 ];
 
 /** Color for the "Others" grouped segment */

@@ -100,7 +100,7 @@ describe("OfflineIndicator", () => {
       );
 
       await user.click(screen.getByText("Profile"));
-      expect(mockNavigate).toHaveBeenCalledWith("/profile", { viewTransition: true });
+      expect(mockNavigate).toHaveBeenCalledWith("/home/profile", { viewTransition: true });
     });
 
     it("dismiss button hides the install nudge", async () => {

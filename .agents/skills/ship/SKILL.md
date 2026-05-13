@@ -67,6 +67,11 @@ git diff --stat origin/main...HEAD | tail -5  # Size of the change
 - Staged file larger than 5MB → warn, ask user to confirm (likely unintended binary)
 - No commits ahead of `origin/main` and no staged changes → nothing to ship; exit
 
+**Linear linkage check** (note, do not abort):
+- If branch matches `<user>/<team-key>-<id>-<slug>` (e.g., `afo/prd-370-...`, `afo/resr-3-...`), Linear's GitHub integration will auto-link the PR to the Issue and auto-transition status (Backlog → In Progress on PR open, → Done on merge). No manual linking needed.
+- If branch does NOT match the convention (e.g., `chore/...`, `codex/...`, `fix/...`), Linear will surface the PR but will not auto-link to an Issue. In PR-creation mode, prompt the user for the related Linear ID and include `Refs PRD-NNN` (or `Refs RESR-NNN`) on its own line in the PR body — Linear's mention-detection picks it up.
+- If the user declines a Linear ID for a non-matching branch, accept and proceed — some branches (chore, dependabot, infra) legitimately have no Linear Issue.
+
 ### 2. Format
 
 ```bash

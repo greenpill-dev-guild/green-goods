@@ -125,7 +125,7 @@ export const GardenYieldCard: React.FC<GardenYieldCardProps> = ({
           <p className="mt-1 font-heading text-xl font-semibold tabular-nums text-success-dark">
             {formatTokenAmount(cumulative.totalYield)}
           </p>
-          <div className="mt-2 grid grid-cols-3 gap-2 text-xs text-text-sub">
+          <div className="mt-2 grid grid-cols-3 gap-2 text-xs text-success-dark">
             <span>
               {formatMessage({ id: "app.yield.cookieJar" })}:{" "}
               {formatTokenAmount(cumulative.totalCookieJar)}

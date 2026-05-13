@@ -132,4 +132,36 @@ describe("PublicGetInTouch", () => {
     const scheduleLink = screen.getByRole("link", { name: /schedule a call/i });
     expect(scheduleLink.closest(".rounded-3xl")).toBeNull();
   });
+
+  it("clears the email field after a successful subscribe", async () => {
+    renderGetInTouch();
+
+    const email = screen.getByLabelText("Your email") as HTMLInputElement;
+    fireEvent.change(email, { target: { value: "person@example.org" } });
+    expect(email.value).toBe("person@example.org");
+
+    fireEvent.click(screen.getByRole("button", { name: "Subscribe" }));
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(mockToastSuccess).toHaveBeenCalled());
+
+    expect(email.value).toBe("");
+  });
+
+  it("stacks the email input above the submit button on mobile", () => {
+    renderGetInTouch();
+
+    const email = screen.getByLabelText("Your email");
+    const wrapper = email.parentElement as HTMLElement;
+
+    // Mobile baseline is `flex-col`; the row layout only kicks in at `sm:`.
+    expect(wrapper.className).toMatch(/\bflex-col\b/);
+    expect(wrapper.className).toMatch(/\bsm:flex-row\b/);
+
+    const submitButton = screen.getByRole("button", { name: "Subscribe" });
+    // Submit button must span the full width on mobile to avoid the
+    // 375px placeholder-truncation regression called out in the plan.
+    expect(submitButton.className).toMatch(/\bw-full\b/);
+    expect(submitButton.className).toMatch(/\bsm:w-auto\b/);
+  });
 });

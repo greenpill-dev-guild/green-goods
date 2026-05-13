@@ -185,7 +185,7 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
   // Filter gardens to only show ones user is a member of.
   // Use isGardenMember (not raw isAddressInList) so a fresh join is reflected
   // immediately via pending-joins localStorage, before the indexer catches up
-  // — matches the membership view in /profile so the wizard and profile agree.
+  // — matches the membership view in /home/profile so the wizard and profile agree.
   // pendingJoinsVersion subscribes to in-tab pending-join changes so this
   // memo retriggers when a join confirms or expires.
   const pendingJoinsVersion = usePendingJoinsVersion();

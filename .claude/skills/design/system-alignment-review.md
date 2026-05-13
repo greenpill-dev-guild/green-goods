@@ -40,7 +40,7 @@ If prose disagrees with a higher-precedence source, the prose is the drift, not 
 3. **Runtime tokens** — `packages/shared/src/styles/theme.css`, `design-md.generated.css`, `design-md.generated.json`, `packages/client/src/styles/*.css`.
 4. **Storybook** — `packages/shared/.storybook/**`, `packages/shared/src/components/Tokens/**`, cross-package story coverage.
 5. **Admin surface** — `packages/admin/DESIGN.md`, `packages/admin/AGENTS.md`, `Admin*` wrappers, `docs/docs/builders/packages/admin.mdx`.
-6. **Client PWA surface** — `packages/client/DESIGN.pwa.md`, `packages/client/AGENTS.md`, installed-PWA shell, bottom `AppBar`, `PlatformRouter`.
+6. **Client PWA surface** — `packages/client/DESIGN.pwa.md`, `packages/client/AGENTS.md`, presentation-mode loaders, installed-PWA shell, `PwaRuntime` / `AppShell`, bottom `AppBar`.
 7. **Client public browser surface** — `packages/client/DESIGN.browser.md`, landing/browser views, `SiteHeader`.
 8. **Docs UI** — `docs/DESIGN.md`, `docs/src/**`, Docusaurus identity, role accents.
 9. **Agentic design-development guidance** — `.claude/skills/design/**`, `.claude/skills/ui/**`, prompt contracts, defect grammar.

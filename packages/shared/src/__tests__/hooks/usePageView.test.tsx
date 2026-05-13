@@ -80,13 +80,13 @@ describe("usePageView", () => {
 
     // Navigate to a new page
     act(() => {
-      result.current.navigate("/garden");
+      result.current.navigate("/home/garden");
     });
 
     expect(mockTrack).toHaveBeenCalledTimes(1);
     expect(mockTrack).toHaveBeenCalledWith("page_view", {
       app: "client",
-      path: "/garden",
+      path: "/home/garden",
       search: undefined,
       hash: undefined,
       referrer: undefined, // Not initial, so no referrer
@@ -114,13 +114,13 @@ describe("usePageView", () => {
 
     // Navigate to non-excluded path
     act(() => {
-      result.current.navigate("/profile");
+      result.current.navigate("/home/profile");
     });
 
     expect(mockTrack).toHaveBeenCalledTimes(1);
     expect(mockTrack).toHaveBeenCalledWith(
       "page_view",
-      expect.objectContaining({ path: "/profile" })
+      expect.objectContaining({ path: "/home/profile" })
     );
   });
 
@@ -223,18 +223,18 @@ describe("usePageView", () => {
 
     // Navigate through multiple pages
     act(() => {
-      result.current.navigate("/garden");
+      result.current.navigate("/home/garden");
     });
     act(() => {
-      result.current.navigate("/profile");
+      result.current.navigate("/home/profile");
     });
     act(() => {
-      result.current.navigate("/garden/123");
+      result.current.navigate("/home/123");
     });
 
     expect(mockTrack).toHaveBeenCalledTimes(3);
 
     const calls = mockTrack.mock.calls.map((call) => call[1].path);
-    expect(calls).toEqual(["/garden", "/profile", "/garden/123"]);
+    expect(calls).toEqual(["/home/garden", "/home/profile", "/home/123"]);
   });
 });

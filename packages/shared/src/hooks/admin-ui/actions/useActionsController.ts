@@ -6,12 +6,14 @@ import {
   DEFAULT_CHAIN_ID,
   Domain,
   useActions,
-  useFabConfig,
   useFilteredActions,
   useGardenStateStore,
+  useMediaQuery,
   useRole,
   useSheetOrchestrator,
   useUrlFilters,
+  useViewActions,
+  type ViewAction,
 } from "@green-goods/shared";
 import { RiAddLine } from "@remixicon/react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
@@ -57,28 +59,26 @@ export function useActionsController() {
     [location.pathname, location.search]
   );
 
-  useFabConfig(
-    useMemo(() => {
-      if (!canManageActions) return null;
-      return {
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
+  const viewActions = useMemo<ViewAction[]>(
+    () => [
+      {
+        id: "create-action",
+        label: "Create action",
+        labelId: "cockpit.actions.action.createAction",
         icon: RiAddLine,
-        label: "Create Action",
-        actions: [
-          {
-            id: "create-action",
-            icon: RiAddLine,
-            label: "Create Action",
-            labelId: "cockpit.actions.fab.createAction",
-          },
-        ],
-        onAction: (actionId: string) => {
-          if (actionId === "create-action") {
-            navigate(createActionHref);
-          }
-        },
-      };
-    }, [canManageActions, createActionHref, navigate])
+        onClick: () => navigate(createActionHref),
+        variant: "primary",
+        visible: canManageActions,
+        primary: true,
+      },
+    ],
+    [canManageActions, createActionHref, navigate]
   );
+  const { desktopActions } = useViewActions({
+    actions: viewActions,
+    isDesktop,
+  });
 
   const { filters: urlFilters, setFilter, resetFilters } = useUrlFilters(ACTION_FILTER_DEFAULTS);
   const filters: ActionFiltersState = {
@@ -175,6 +175,7 @@ export function useActionsController() {
     actionsListHref,
     canManageActions,
     createActionHref,
+    desktopActions,
     filters,
     isLoading,
     isRefreshing,

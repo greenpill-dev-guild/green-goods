@@ -7,8 +7,14 @@ import { getWagmiConfig } from "../../config/appkit";
 import type { Address } from "../../types/domain";
 import type { WithdrawParams } from "../../types/vaults";
 import { OCTANT_VAULT_ABI } from "../../utils/blockchain/abis";
-import { VAULT_MAX_BPS } from "../../utils/blockchain/vaults";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
+
+/**
+ * Default max-loss slippage in basis points (1%). Audit finding #2 —
+ * the prior default of 10000n (100%) accepted arbitrary loss; under
+ * vault degradation a withdrawal could silently haircut to zero.
+ */
+const DEFAULT_WITHDRAW_MAX_LOSS_BPS = 100n;
 import { useUser } from "../auth/useUser";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
@@ -56,13 +62,14 @@ export function useVaultWithdraw(options: VaultMutationOptions = {}) {
 
       const receiver = (params.receiver ?? primaryAddress) as Address;
       const owner = (params.owner ?? primaryAddress) as Address;
+      const maxLossBps = params.maxLossBps ?? DEFAULT_WITHDRAW_MAX_LOSS_BPS;
 
-      // Pre-check: verify amount doesn't exceed withdrawable limit
+      // Pre-check: verify amount doesn't exceed withdrawable limit at this slippage
       const maxWithdrawResult = await readContract(getWagmiConfig(), {
         address: params.vaultAddress,
         abi: OCTANT_VAULT_ABI,
         functionName: "maxWithdraw",
-        args: [owner, VAULT_MAX_BPS, []],
+        args: [owner, maxLossBps, []],
       });
       const maxWithdrawable = typeof maxWithdrawResult === "bigint" ? maxWithdrawResult : 0n;
 
@@ -77,7 +84,7 @@ export function useVaultWithdraw(options: VaultMutationOptions = {}) {
         address: params.vaultAddress,
         abi: OCTANT_VAULT_ABI,
         functionName: "withdraw",
-        args: [params.amount, receiver, owner, VAULT_MAX_BPS, []],
+        args: [params.amount, receiver, owner, maxLossBps, []],
       });
       return result.hash;
     },

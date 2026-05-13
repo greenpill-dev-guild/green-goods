@@ -21,6 +21,7 @@ import { Button } from "@/components/Actions";
 import { Card } from "@/components/Cards";
 import { Avatar } from "@/components/Display";
 import { AddressCopy } from "@/components/Inputs";
+import { APP_ROUTES } from "@/config/pwa-routing";
 
 export const AccountInfo: React.FC = () => {
   const { authMode, credential, walletAddress, embeddedAddress } = useAuthState();
@@ -34,7 +35,11 @@ export const AccountInfo: React.FC = () => {
     hapticLight();
     try {
       await signOut();
-      navigate("/login", { replace: true, state: { fromLogout: true }, viewTransition: true });
+      navigate(APP_ROUTES.login, {
+        replace: true,
+        state: { fromLogout: true },
+        viewTransition: true,
+      });
       toastService.success({
         title: intl.formatMessage({
           id: "app.account.sessionClosed",
@@ -81,7 +86,7 @@ export const AccountInfo: React.FC = () => {
             </div>
           </Avatar>
           <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-            <div className="text-sm font-medium truncate">
+            <div className="truncate text-label-md font-medium">
               {authMode === "passkey"
                 ? intl.formatMessage({
                     id: "app.account.passkey",
@@ -119,7 +124,7 @@ export const AccountInfo: React.FC = () => {
               </div>
             </Avatar>
             <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-              <div className="text-sm font-medium truncate">
+              <div className="truncate text-label-md font-medium">
                 {intl.formatMessage({
                   id: "app.account.address",
                   defaultMessage: "Address",

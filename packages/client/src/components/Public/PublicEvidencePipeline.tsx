@@ -5,6 +5,7 @@ import {
   type EditorialDomain,
   EditorialKicker,
   EditorialNumeral,
+  EditorialReadDeeper,
   EditorialTermTooltip,
 } from "./atoms";
 
@@ -144,7 +145,7 @@ export function PublicEvidencePipeline({
                   definition="A bundle of the season's approved Work, evaluator-verified and anchored to a public blockchain so the record stays readable beyond any one platform."
                 />
               }
-              description="When the evidence is strong enough, the season's work is bundled into an Impact Certificate. This is the highest proof layer, public, verifiable, and recorded on a blockchain so the record outlasts any one platform."
+              description="When the evidence is strong enough, the season's Work bundles into an Impact Certificate — evaluator-verified and recorded on a blockchain so the record outlasts any one platform."
               closesCycle
             />
           </ol>
@@ -155,6 +156,20 @@ export function PublicEvidencePipeline({
             {footnote}
           </p>
         ) : null}
+
+        <EditorialReadDeeper
+          className="max-w-3xl"
+          community={{
+            labelId: "public.impact.pipeline.readDeeper.community",
+            defaultLabel: "How proof works",
+            href: "https://docs.greengoods.app/community/how-it-works",
+          }}
+          builder={{
+            labelId: "public.impact.pipeline.readDeeper.builder",
+            defaultLabel: "Why on-chain",
+            href: "https://docs.greengoods.app/builders/architecture",
+          }}
+        />
       </div>
     </section>
   );

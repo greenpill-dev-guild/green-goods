@@ -51,16 +51,20 @@ const services = [
 function usage(exitCode = 0) {
   const stream = exitCode === 0 ? process.stdout : process.stderr;
   stream.write(
-    "Usage: node scripts/dev/smoke-web.js [--json] [--skip-doctor] [--skip-hmr] [--timeout seconds]\n"
+    "Usage: node scripts/dev/smoke-web.js [--json] [--skip-doctor] [--check-hmr] [--skip-hmr] [--timeout seconds]\n" +
+      "  --check-hmr   Run the Playwright HMR probe (off by default; ~3-5s per service).\n" +
+      "  --skip-hmr    Explicitly skip HMR probe (no-op since skip is the default).\n"
   );
   process.exit(exitCode);
 }
 
 function parseArgs(argv) {
+  // HMR check is off by default. Routine smoke runs care about reachability,
+  // not Vite-WebSocket connection. Pass --check-hmr to opt into the deeper probe.
   const options = {
     json: false,
     skipDoctor: false,
-    skipHmr: false,
+    skipHmr: true,
     timeoutMs: 60_000,
   };
 
@@ -78,6 +82,10 @@ function parseArgs(argv) {
     }
     if (arg === "--skip-hmr") {
       options.skipHmr = true;
+      continue;
+    }
+    if (arg === "--check-hmr") {
+      options.skipHmr = false;
       continue;
     }
     if (arg === "--timeout") {

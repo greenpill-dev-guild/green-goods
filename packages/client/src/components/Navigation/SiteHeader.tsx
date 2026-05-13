@@ -161,7 +161,7 @@ export const SiteHeader = () => {
                         to={path}
                         viewTransition
                         className={cn(
-                          "rounded-lg px-3 py-2 text-base font-medium transition-colors",
+                          "rounded-lg px-3 py-2 text-xl font-medium transition-colors",
                           isActive
                             ? "text-static-white"
                             : "text-static-white/90 hover:text-static-white"

@@ -1,7 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { useMemo } from "react";
-import { createMemoryRouter, RouterProvider } from "react-router-dom";
-import { expect, within } from "storybook/test";
+import { expect, waitFor, within } from "storybook/test";
 import {
   STORYBOOK_ADMIN_DEPLOYER_SEEDS,
   STORYBOOK_PRIMARY_ADMIN_GARDEN,
@@ -12,29 +10,22 @@ import {
   withSeededQueryClient,
   withSelectedAdminGarden,
 } from "../../../../shared/.storybook/decorators";
-import { CanvasLayout } from "@/components/Layout/CanvasLayout";
-import { adminCanvasRoutes } from "@/routes/views";
+import {
+  ADMIN_ROUTE_STORY_QUERY_OPTIONS,
+  StorybookAdminCanvasRoute,
+} from "../storybookCanvasHarness";
+import {
+  expectAdminShellDarkPalette,
+  expectAllVisibleSelectorContrast,
+  withTemporaryDocumentTheme,
+} from "../storybookPaletteAssertions";
 
 interface ActionsCanvasStoryProps {
   initialPath?: string;
 }
 
 function ActionsCanvasStory({ initialPath = "/actions" }: ActionsCanvasStoryProps) {
-  const router = useMemo(
-    () =>
-      createMemoryRouter(
-        [
-          {
-            element: <CanvasLayout />,
-            children: adminCanvasRoutes,
-          },
-        ],
-        { initialEntries: [initialPath] }
-      ),
-    [initialPath]
-  );
-
-  return <RouterProvider router={router} />;
+  return <StorybookAdminCanvasRoute initialPath={initialPath} />;
 }
 
 const meta: Meta<typeof ActionsCanvasStory> = {
@@ -69,9 +60,23 @@ function actionsDecorators() {
 }
 
 export const Registry: Story = {
-  tags: ["visual-harness"],
+  tags: ["storybook-ci"],
   args: { initialPath: "/actions?sort=recent&lifecycle=active" },
   decorators: actionsDecorators(),
+  play: async ({ canvasElement }) => {
+    await withTemporaryDocumentTheme("dark", async () => {
+      const canvas = within(canvasElement);
+      await expect(
+        await canvas.findByRole("heading", { name: "Actions" }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
+      ).toBeVisible();
+      await waitFor(() => expectAdminShellDarkPalette(canvasElement));
+      await waitFor(() =>
+        expectAllVisibleSelectorContrast(canvasElement, '[class*="text-domain-"]', {
+          label: "Actions domain chip text",
+        })
+      );
+    });
+  },
 };
 
 export const DetailInspector: Story = {
@@ -80,10 +85,22 @@ export const DetailInspector: Story = {
   decorators: actionsDecorators(),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(await canvas.findByRole("heading", { name: "Actions" })).toBeVisible();
-    const leftSheet = await canvas.findByTestId("left-sheet");
+    await expect(
+      await canvas.findByRole("heading", { name: "Actions" }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
+    ).toBeVisible();
+    const leftSheet = await canvas.findByTestId(
+      "left-sheet",
+      undefined,
+      ADMIN_ROUTE_STORY_QUERY_OPTIONS
+    );
     await expect(leftSheet).toHaveAttribute("data-component", "LeftSheet");
-    await expect(await within(leftSheet).findByText("Canopy baseline")).toBeVisible();
+    await expect(
+      await within(leftSheet).findByText(
+        "Canopy baseline",
+        undefined,
+        ADMIN_ROUTE_STORY_QUERY_OPTIONS
+      )
+    ).toBeVisible();
   },
 };
 

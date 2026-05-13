@@ -6,10 +6,17 @@
 
 import { checkMessageContent } from "../services/content-filter";
 import { generateSecureId, generateSecurePrivateKey, isValidAddress } from "../services/crypto";
+import { agentMessage, agentRateLimitMessage, formatAgentWaitTime } from "../i18n";
 import * as db from "../services/db";
 import { classifyError } from "../services/errors";
 import { loggers } from "../services/logger";
 import { type RateLimitType, rateLimiter } from "../services/rate-limiter";
+import {
+  responseHasButtons,
+  trackAgentMessageFailed,
+  trackAgentMessageHandled,
+  trackAgentMessageReceived,
+} from "../services/analytics";
 
 const log = loggers.handlers;
 
@@ -30,7 +37,6 @@ import {
   type VoiceContent,
 } from "../types";
 import { handleApprove } from "./approve";
-import { handleFeedback } from "./feedback";
 import { handleHelp } from "./help";
 import { getExistingIdempotencyResponse } from "./idempotency";
 import { handleJoin } from "./join";
@@ -79,28 +85,47 @@ export function setHandlerContext(ctx: HandlerContext): void {
  * Main entry point for all messages. Platform adapters call this.
  */
 export async function handleMessage(message: InboundMessage): Promise<OutboundResponse> {
+  const startedAt = Date.now();
   const { platform, sender, content } = message;
 
-  const user = await db.getUser(platform, sender.platformId);
-  let response: OutboundResponse;
+  await trackAgentMessageReceived(message);
 
-  if (isCommandContent(content)) {
-    response = await handleCommand(message, user);
-  } else if (isCallbackContent(content)) {
-    response = await handleCallback(message, user);
-  } else if (isVoiceContent(content)) {
-    response = await handleVoice(message, user);
-  } else if (isImageContent(content)) {
-    response = await handlePhoto(message, user);
-  } else if (isTextContent(content)) {
-    response = await handleText(message, user);
-  } else {
-    response = textResponse("❌ Unsupported message type.");
+  try {
+    let user = await db.getUser(platform, sender.platformId);
+    if (user && message.locale && user.locale !== message.locale) {
+      await db.updateUser(platform, sender.platformId, { locale: message.locale });
+      user = { ...user, locale: message.locale };
+    }
+
+    let response: OutboundResponse;
+
+    if (isCommandContent(content)) {
+      response = await handleCommand(message, user);
+    } else if (isCallbackContent(content)) {
+      response = await handleCallback(message, user);
+    } else if (isVoiceContent(content)) {
+      response = await handleVoice(message, user);
+    } else if (isImageContent(content)) {
+      response = await handlePhoto(message, user);
+    } else if (isTextContent(content)) {
+      response = await handleText(message, user);
+    } else {
+      response = textResponse(agentMessage(message.locale, "common.unsupportedMessageType"));
+    }
+
+    validateOutboundContent(response);
+    await trackAgentMessageHandled(message, {
+      durationMs: Date.now() - startedAt,
+      responseHasButtons: responseHasButtons(response),
+    });
+
+    return response;
+  } catch (error) {
+    await trackAgentMessageFailed(message, error, {
+      durationMs: Date.now() - startedAt,
+    });
+    throw error;
   }
-
-  validateOutboundContent(response);
-
-  return response;
 }
 
 /**
@@ -130,7 +155,7 @@ async function handleCommand(
 
   // Commands that don't require user
   if (command === "start") {
-    const rateCheck = checkRateLimit(sender.platformId, "wallet");
+    const rateCheck = checkRateLimit(sender.platformId, "wallet", message.locale);
     if (rateCheck) return rateCheck;
 
     const result = await handleStart(message, { generatePrivateKey: generateSecurePrivateKey });
@@ -144,12 +169,12 @@ async function handleCommand(
 
   // All other commands require user
   if (!user) {
-    return textResponse("Please run /start first to create your wallet.");
+    return textResponse(agentMessage(message.locale, "common.startFirst"));
   }
 
   switch (command) {
     case "join": {
-      const joinRateCheck = checkRateLimit(sender.platformId, "join");
+      const joinRateCheck = checkRateLimit(sender.platformId, "join", message.locale);
       if (joinRateCheck) return joinRateCheck;
 
       const result = await handleJoin(message, user, { isValidAddress });
@@ -170,7 +195,7 @@ async function handleCommand(
     }
 
     case "approve": {
-      const approvalRateCheck = checkRateLimit(sender.platformId, "approval");
+      const approvalRateCheck = checkRateLimit(sender.platformId, "approval", message.locale);
       if (approvalRateCheck) return approvalRateCheck;
 
       const result = await handleApprove(message, user, {
@@ -180,7 +205,7 @@ async function handleCommand(
     }
 
     case "reject": {
-      const approvalRateCheck = checkRateLimit(sender.platformId, "approval");
+      const approvalRateCheck = checkRateLimit(sender.platformId, "approval", message.locale);
       if (approvalRateCheck) return approvalRateCheck;
 
       const result = await handleReject(message, user, {
@@ -189,28 +214,8 @@ async function handleCommand(
       return result.response;
     }
 
-    case "bug": {
-      const feedbackRateCheck = checkRateLimit(sender.platformId, "feedback");
-      if (feedbackRateCheck) return feedbackRateCheck;
-
-      const result = await handleFeedback(message, user, "bug", {
-        generateId: generateSecureId,
-      });
-      return result.response;
-    }
-
-    case "idea": {
-      const feedbackRateCheck = checkRateLimit(sender.platformId, "feedback");
-      if (feedbackRateCheck) return feedbackRateCheck;
-
-      const result = await handleFeedback(message, user, "idea", {
-        generateId: generateSecureId,
-      });
-      return result.response;
-    }
-
     default:
-      return textResponse(`Unknown command: /${command}`);
+      return textResponse(agentMessage(message.locale, "common.unknownCommand", { command }));
   }
 }
 
@@ -226,7 +231,7 @@ async function handleCallback(
   const callbackData = (content as CallbackContent).data;
 
   if (!user) {
-    return textResponse("Session expired. Please start again with /start");
+    return textResponse(agentMessage(message.locale, "sessionExpired.start"));
   }
 
   switch (callbackData) {
@@ -240,10 +245,10 @@ async function handleCallback(
 
       const session = await db.getSession(platform, sender.platformId);
       if (!session) {
-        return textResponse("Session expired. Please submit your work again.");
+        return textResponse(agentMessage(message.locale, "sessionExpired.submit"));
       }
 
-      const rateCheck = checkRateLimit(sender.platformId, "submission");
+      const rateCheck = checkRateLimit(sender.platformId, "submission", message.locale);
       if (rateCheck) return rateCheck;
 
       const result = await handleConfirmSubmission(message, user, session, {
@@ -268,7 +273,7 @@ async function handleCallback(
     }
 
     default:
-      return textResponse("Unknown action.");
+      return textResponse(agentMessage(message.locale, "common.unknownAction"));
   }
 }
 
@@ -283,18 +288,18 @@ async function handleVoice(
   const { platform, sender, content } = message;
 
   if (!user) {
-    return textResponse("Please run /start first to create your wallet.");
+    return textResponse(agentMessage(message.locale, "common.startFirst"));
   }
 
   if (!user.currentGarden) {
-    return textResponse("Please join a garden first with `/join <GardenAddress>`");
+    return textResponse(agentMessage(message.locale, "common.joinFirst"));
   }
 
-  const rateCheck = checkRateLimit(sender.platformId, "voice");
+  const rateCheck = checkRateLimit(sender.platformId, "voice", message.locale);
   if (rateCheck) return rateCheck;
 
   if (!_context.voiceProcessor) {
-    return textResponse("Voice processing is not available. Please send a text message instead.");
+    return textResponse(agentMessage(message.locale, "voice.unavailable"));
   }
 
   try {
@@ -310,13 +315,9 @@ async function handleVoice(
     await applySessionUpdates(platform, sender.platformId, result);
     return result.response;
   } catch (error) {
-    const { category, userMessage } = classifyError(error);
+    const { category, userMessage } = classifyError(error, message.locale);
     log.error({ err: error, category }, "Voice processing error");
-    return textResponse(
-      `❌ Sorry, I couldn't process that audio.\n\n` +
-        `${userMessage}\n\n` +
-        `Try sending a text message instead.`
-    );
+    return textResponse(agentMessage(message.locale, "voice.error", { userMessage }));
   }
 }
 
@@ -331,14 +332,14 @@ async function handleText(
   const { platform, sender } = message;
 
   if (!user) {
-    return textResponse("Please run /start first to create your wallet.");
+    return textResponse(agentMessage(message.locale, "common.startFirst"));
   }
 
   if (!user.currentGarden) {
-    return textResponse("Please join a garden first with `/join <GardenAddress>`");
+    return textResponse(agentMessage(message.locale, "common.joinFirst"));
   }
 
-  const rateCheck = checkRateLimit(sender.platformId, "message");
+  const rateCheck = checkRateLimit(sender.platformId, "message", message.locale);
   if (rateCheck) return rateCheck;
 
   try {
@@ -347,7 +348,7 @@ async function handleText(
     await applySessionUpdates(platform, sender.platformId, result);
     return result.response;
   } catch (error) {
-    const { category, userMessage } = classifyError(error);
+    const { category, userMessage } = classifyError(error, message.locale);
     log.error({ err: error, category }, "Text processing error");
     return textResponse(`❌ ${userMessage}`);
   }
@@ -364,21 +365,18 @@ async function handlePhoto(
   const { platform, sender, content } = message;
 
   if (!user) {
-    return textResponse("Please run /start first to create your wallet.");
+    return textResponse(agentMessage(message.locale, "common.startFirst"));
   }
 
   if (!user.currentGarden) {
-    return textResponse("Please join a garden first with `/join <GardenAddress>`");
+    return textResponse(agentMessage(message.locale, "common.joinFirst"));
   }
 
-  const rateCheck = checkRateLimit(sender.platformId, "message");
+  const rateCheck = checkRateLimit(sender.platformId, "message", message.locale);
   if (rateCheck) return rateCheck;
 
   if (!_context.photoProcessor) {
-    return textResponse(
-      "📷 Photo processing is not available.\n\n" +
-        "Please describe your work in a text message instead."
-    );
+    return textResponse(agentMessage(message.locale, "photo.unavailable"));
   }
 
   try {
@@ -405,8 +403,7 @@ async function handlePhoto(
 
       const photoCount = existingPhotos.length + 1;
       return textResponse(
-        `📷 Photo ${photoCount} received!\n\n` +
-          `Send another photo or tap *Confirm* when ready to submit.`,
+        agentMessage(message.locale, "photo.receivedAttached", { count: photoCount }),
         "markdown"
       );
     }
@@ -428,20 +425,15 @@ async function handlePhoto(
     });
 
     return textResponse(
-      `📷 *Photo received!*\n\n` +
-        (caption ? `Caption: "${caption}"\n\n` : "") +
-        `Please describe what work you did. For example:\n` +
-        `_"Planted 5 oak trees in the community garden"_`,
+      agentMessage(message.locale, "photo.newReceived", {
+        captionLine: caption ? agentMessage(message.locale, "photo.caption", { caption }) : "",
+      }),
       "markdown"
     );
   } catch (error) {
-    const { category, userMessage } = classifyError(error);
+    const { category, userMessage } = classifyError(error, message.locale);
     log.error({ err: error, category }, "Photo processing error");
-    return textResponse(
-      `❌ Sorry, I couldn't process that photo.\n\n` +
-        `${userMessage}\n\n` +
-        `Please try again or send a text message.`
-    );
+    return textResponse(agentMessage(message.locale, "photo.error", { userMessage }));
   }
 }
 
@@ -449,20 +441,22 @@ async function handlePhoto(
 // UTILITIES
 // ============================================================================
 
-function checkRateLimit(platformId: string, type: string): OutboundResponse | undefined {
+function checkRateLimit(
+  platformId: string,
+  type: RateLimitType,
+  locale?: string
+): OutboundResponse | undefined {
   const result = rateLimiter.check(platformId, type as RateLimitType);
   if (!result.allowed) {
-    const waitTime = formatWaitTime(result.resetIn);
-    return textResponse(`⏳ ${result.message}\n\nPlease wait ${waitTime} before trying again.`);
+    const waitTime = formatAgentWaitTime(locale, result.resetIn);
+    return textResponse(
+      agentMessage(locale, "rate.retry", {
+        message: agentRateLimitMessage(locale, type),
+        waitTime,
+      })
+    );
   }
   return undefined;
-}
-
-function formatWaitTime(ms: number): string {
-  const seconds = Math.ceil(ms / 1000);
-  if (seconds < 60) return `${seconds} second${seconds !== 1 ? "s" : ""}`;
-  const minutes = Math.ceil(seconds / 60);
-  return `${minutes} minute${minutes !== 1 ? "s" : ""}`;
 }
 
 async function applySessionUpdates(
@@ -488,7 +482,8 @@ async function applySessionUpdates(
 // ============================================================================
 
 export { handleApprove } from "./approve";
-export { handleFeedback } from "./feedback";
+export { createGroupCaptureHandler } from "./group-capture";
+export type { GroupCaptureHandler } from "./group-capture";
 export { handleHelp } from "./help";
 export { handleJoin } from "./join";
 export { handlePending } from "./pending";

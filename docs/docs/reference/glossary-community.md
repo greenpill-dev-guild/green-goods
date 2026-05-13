@@ -78,7 +78,7 @@ The 4 places where people interact with Green Goods. Each has a canonical identi
 
 | Term | Type | Allowed surfaces | Definition |
 |------|------|------------------|------------|
-| **Admin** | surface | self | Operator cockpit. `packages/admin`. Restrained M3 v0.192 anatomy, Plus Jakarta Sans, glass only on the admin AppBar, solid surfaces everywhere else. Litmus: appropriate for Linear / GitHub / Stripe Dashboard. |
+| **Admin** | surface | self | Operator cockpit. `packages/admin`. Restrained M3 v0.192 anatomy, Plus Jakarta Sans, transparent admin AppBar root, Controlled Chrome glass only on Navigation/FAB and sheet shells, solid dense surfaces everywhere else. Litmus: appropriate for Linear / GitHub / Stripe Dashboard. |
 | **Client PWA** | surface | self | Gardener-facing app. `packages/client`. Warm Earth garden-journal feel, Inter typography, bottom AppBar (installed PWA) or SiteHeader hamburger (browser). Hero moments live here, never in admin. |
 | **Agent** | surface | self | Conversational gardener interface — telegram, SMS, WhatsApp. `packages/agent`. Natural-language Work submission, status pings, garden updates. No visual chrome. |
 | **Public browser** | surface | self | Public-facing web for funders / community members. Editorial typography (Fraunces / Lora / Newsreader for headlines, Inter for body). Garden discovery, impact pages, funding flows. Never appears in installed PWA. |
@@ -93,7 +93,7 @@ This section is the anchor target for [`prompt-contract.md`](https://github.com/
 - **Personas** (Gardener, Operator, Evaluator, Funder, Community Member) — see [Personas](#personas).
 - **Surfaces** (Admin, Client PWA, Agent, Public browser) — see [Surfaces](#surfaces).
 
-Surface-specific component vocabulary (e.g. `CanvasLayout`, `MainSheet`, `RightSheet`, `AdminFab`, `PlatformRouter`, `SiteHeader`) lives in the prompt-contracts themselves — those are admin / client component palettes, not cross-surface domain terms.
+Surface-specific component vocabulary (e.g. `CanvasLayout`, `MainSheet`, `RightSheet`, `AdminFab`, presentation-mode loaders, `PublicShell`, `AppShell`, `SiteHeader`) lives in the prompt-contracts themselves — those are admin / client component palettes, not cross-surface domain terms.
 
 The voice and tone framework (Grounded · Inviting · Honest · Active) lives in [`DESIGN.md § Voice & Copy`](https://github.com/greenpill-dev-guild/green-goods/blob/main/DESIGN.md) — the positive expression of this glossary.
 
@@ -134,9 +134,9 @@ Source: `prompt_vocabulary_admin_banned` in [`banned-vocabulary.json`](https://g
 |--------|-----------|-----------|
 | `hero moment` | admin only | Hero moments are reserved for celebratory client PWA flows (garden creation, first work submission, Hypercert mint). The admin cockpit stays restrained. |
 | `gallery` | admin only | Marketing-page framing. Admin shows workbench rows, lists, and inspectors — not curated visual galleries. |
-| `decorative gradient` | admin only | Decoration without function. Admin uses solid surfaces; only the admin AppBar uses material treatment. |
+| `decorative gradient` | admin only | Decoration without function. Admin uses solid surfaces; material treatment is reserved for Navigation/FAB and sheet shells. |
 | `marketing banner` | admin only | Promotional surface framing. Admin is operator-internal — no banners, no landing-page energy. |
-| `glass outside admin AppBar` | admin only | Liquid / frosted material treatment is restricted to the admin AppBar. Dense data surfaces must be solid for legibility and operator focus. |
+| `AppBar glass` / `glass outside Navigation/FAB and sheet shells` | admin only | The admin AppBar root stays transparent over the workspace canvas. Liquid / frosted material treatment is restricted to Navigation/FAB and sheet shells; dense data surfaces must be solid for legibility and operator focus. |
 
 The full prompt-vocabulary admin ban list (including `hero section`, `celebration`, `masonry gallery`, `ambient gradient wash`, `promo band`, `landing-page`, `dashboard card mosaic`, `feature cards`, `floating stats`, `stat chips floating above content`, `liquid`, `frosted`) lives in `prompt_vocabulary_admin_banned` of the JSON sidecar — they expand the categories above.
 

@@ -111,7 +111,7 @@ function getExpectedTokenData(design) {
       actionRole:
         "DesignMD colors.tertiary-action is reserved for filled text actions that need white foreground contrast.",
       shellFreeze:
-        "Token generation must not change AppShell height, bottom AppBar behavior, safe-area padding, or /garden and /work/:id AppBar hiding.",
+        "Token generation must not change AppShell height, bottom AppBar behavior, safe-area padding, or /home/garden and /home/:id/work/:workId AppBar hiding.",
     },
   };
 }

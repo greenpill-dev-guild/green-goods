@@ -1,4 +1,44 @@
 const GREEN_GOODS_SYNC_TAG = "green-goods-sync";
+const PUBLIC_WEBSITE_PATHS = new Set([
+  "/",
+  "/actions",
+  "/cookies",
+  "/fund",
+  "/gardens",
+  "/glossary",
+  "/impact",
+  "/landing",
+]);
+const PUBLIC_WEBSITE_PREFIXES = ["/gardens/"];
+const STALE_RUNTIME_CACHES = ["js-cache", "indexer-cache", "graphql-cache"];
+
+function normalizePathname(pathname) {
+  const normalized = pathname.replace(/\/+$/, "");
+  return normalized || "/";
+}
+
+function isPublicWebsiteUrl(urlString) {
+  try {
+    const url = new URL(urlString);
+    const pathname = normalizePathname(url.pathname);
+    return (
+      PUBLIC_WEBSITE_PATHS.has(pathname) ||
+      PUBLIC_WEBSITE_PREFIXES.some((prefix) => pathname.startsWith(prefix))
+    );
+  } catch {
+    return false;
+  }
+}
+
+function isNavigationRequest(request) {
+  if (request.method && request.method !== "GET") return false;
+
+  const acceptsHtml =
+    typeof request.headers?.get === "function" &&
+    request.headers.get("accept")?.includes("text/html");
+
+  return request.mode === "navigate" || request.destination === "document" || acceptsHtml;
+}
 
 async function notifyClients(payload) {
   const windowClients = await self.clients.matchAll({
@@ -17,18 +57,69 @@ async function notifyClients(payload) {
   });
 }
 
-// Clear stale runtime caches on activation to prevent serving old JS/data after update
-self.addEventListener("activate", (event) => {
-  const STALE_CACHES = ["js-cache", "indexer-cache", "graphql-cache"];
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys
-          .filter((key) => STALE_CACHES.includes(key))
-          .map((key) => caches.delete(key))
-      )
-    )
+async function clearStaleRuntimeCaches() {
+  const keys = await caches.keys();
+  await Promise.all(
+    keys
+      .filter((key) => STALE_RUNTIME_CACHES.includes(key))
+      .map((key) => caches.delete(key))
   );
+}
+
+async function claimClients() {
+  if (typeof self.clients.claim === "function") {
+    await self.clients.claim();
+  }
+}
+
+async function refreshPublicWebsiteClients() {
+  const windowClients = await self.clients.matchAll({
+    type: "window",
+    includeUncontrolled: true,
+  });
+
+  await Promise.all(
+    windowClients.map((client) => {
+      if (!isPublicWebsiteUrl(client.url)) return Promise.resolve();
+
+      if (typeof client.navigate === "function") {
+        return client.navigate(client.url);
+      }
+
+      client.postMessage?.({ type: "PUBLIC_WEBSITE_CACHE_REFRESH" });
+      return Promise.resolve();
+    })
+  );
+}
+
+async function fetchPublicNavigationFromNetwork(request) {
+  try {
+    return await fetch(request, { cache: "reload" });
+  } catch {
+    return (await caches.match(request)) || caches.match("/index.html") || Response.error();
+  }
+}
+
+async function activateServiceWorker() {
+  await claimClients();
+  await Promise.all([clearStaleRuntimeCaches(), refreshPublicWebsiteClients()]);
+}
+
+// Public website navigations must never be fulfilled from an old app-shell cache.
+self.addEventListener("fetch", (event) => {
+  if (!isNavigationRequest(event.request) || !isPublicWebsiteUrl(event.request.url)) return;
+
+  event.respondWith(fetchPublicNavigationFromNetwork(event.request));
+  event.stopImmediatePropagation?.();
+});
+
+self.addEventListener("install", () => {
+  self.skipWaiting();
+});
+
+// Clear stale runtime caches and refresh public website tabs when a new worker activates.
+self.addEventListener("activate", (event) => {
+  event.waitUntil(activateServiceWorker());
 });
 
 self.addEventListener("message", (event) => {
@@ -63,7 +154,7 @@ self.addEventListener("message", (event) => {
         icon: "/icon-192.png",
         badge: "/images/android-icon-72x72.png",
         tag: `ens-complete-${slug}`,
-        data: { url: "/profile", slug },
+        data: { url: "/home/profile", slug },
       })
     );
   }
@@ -71,7 +162,7 @@ self.addEventListener("message", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const url = event.notification.data?.url || "/";
+  const url = event.notification.data?.url || "/home";
   event.waitUntil(
     self.clients.matchAll({ type: "window" }).then((windowClients) => {
       // Focus existing window if available

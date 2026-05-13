@@ -1,6 +1,6 @@
 {
   "name": "green-goods",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
   "private": true,
   "keywords": [
@@ -28,8 +28,11 @@
     "env:bootstrap": "node scripts/dev/env-bootstrap.js",
     "env:check": "node scripts/dev/env-check.js",
     "env:validate": "node scripts/dev/env-check.js",
-    "check:codex-guidance": "node scripts/quality/check-codex-docs.js",
-    "check:claude-guidance": "node .claude/scripts/check-skill-frontmatter.js",
+    "skills:sync": "node scripts/harness/sync-agent-skills.mjs",
+    "check:skills": "node scripts/harness/sync-agent-skills.mjs --check",
+    "check:codex-guidance": "node scripts/quality/check-codex-docs.js && bun run check:skills",
+    "check:claude-guidance": "node .claude/scripts/check-skill-frontmatter.js && bun run check:skills",
+    "drift:check": "node scripts/quality/drift-check.mjs",
     "design:generate": "node scripts/design/md-generate.mjs",
     "check:design-generated": "node scripts/design/md-generate.mjs --check",
     "check:design-tokens": "bash scripts/design/check-tokens.sh",
@@ -47,8 +50,9 @@
     "format:check": "bunx @biomejs/biome format .",
     "lint": "bun --bun run oxlint packages/client/src packages/admin/src packages/shared/src packages/indexer/src packages/agent/src packages/contracts/script && cd packages/contracts && bun run lint",
     "lint:check": "bun --bun run oxlint packages/client/src packages/admin/src packages/shared/src packages/indexer/src packages/agent/src packages/contracts/script && cd packages/contracts && bun run lint:check",
-    "dev": "node scripts/dev/stack.js full",
+    "dev": "node scripts/dev/stack.js",
     "dev:web": "node scripts/dev/stack.js web",
+    "dev:full": "node scripts/dev/stack.js full",
     "dev:stop": "node scripts/dev/stack.js stop",
     "dev:smoke:web": "node scripts/dev/smoke-web.js",
     "dev:docs": "cd docs && bun start",
@@ -64,7 +68,9 @@
     "indexer:db:down": "cd packages/indexer && bun run db:down",
     "indexer:reset": "cd packages/indexer && bun run reset",
     "dev:contracts": "cd packages/contracts && bun run dev",
-    "test": "bun run test:shared && bun run test:client && bun run test:admin && bun run test:indexer && bun run test:contracts && bun run test:agent",
+    "test": "bun --filter='@green-goods/*' run test",
+    "test:fast": "node ./node_modules/.bin/turbo run test",
+    "test:fast:force": "node ./node_modules/.bin/turbo run test --force",
     "test:e2e": "APP_ENV=testnode scripts/dev/test-e2e.js",
     "test:e2e:smoke": "APP_ENV=testnode scripts/dev/test-e2e.js smoke",
     "test:e2e:ui": "APP_ENV=test SKIP_WEBSERVER=true SKIP_HEALTH_CHECK=trueplaywright test --ui",
@@ -116,7 +122,10 @@
     "contracts:repair:octant-assets:arbitrum": "APP_ENV=developmentsh -lc 'cd packages/contracts && bun run repair:octant-assets:arbitrum'",
     "contracts:migrate:vaults:dry:arbitrum": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer sh -lc 'cd packages/contracts && bun run migrate:vaults:dry:arbitrum'",
     "contracts:migrate:vaults:arbitrum": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer sh -lc 'cd packages/contracts && bun run migrate:vaults:arbitrum'",
-    "contracts:verify:post-deploy:arbitrum": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer sh -lc 'cd packages/contracts && bun run verify:post-deploy:arbitrum'",
+    "contracts:marketplace:status:arbitrum": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer MARKETPLACE_EXPECTED_OWNER=0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6 sh -lc 'cd packages/contracts && bun run marketplace:status:arbitrum'",
+    "contracts:marketplace:configure:dry:arbitrum": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer MARKETPLACE_EXPECTED_OWNER=0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6 sh -lc 'cd packages/contracts && bun run marketplace:configure:dry:arbitrum'",
+    "contracts:marketplace:configure:arbitrum": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer MARKETPLACE_EXPECTED_OWNER=0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6 sh -lc 'cd packages/contracts && bun run marketplace:configure:arbitrum'",
+    "contracts:verify:post-deploy:arbitrum": "APP_ENV=development FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer MARKETPLACE_EXPECTED_OWNER=0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6 sh -lc 'cd packages/contracts && bun run verify:post-deploy:arbitrum'",
     "contracts:ens:deploy:mainnet": "APP_ENV=developmentbun --cwd packages/contracts script/upgrade-ens-receiver.ts deploy-mainnet --network mainnet",
     "contracts:ens:deploy:mainnet:broadcast": "APP_ENV=developmentbun --cwd packages/contracts script/upgrade-ens-receiver.ts deploy-mainnet --network mainnet --broadcast",
     "contracts:ens:update:l1-receiver": "APP_ENV=developmentbun --cwd packages/contracts script/upgrade-ens-receiver.ts update-l1-receiver --network arbitrum",
@@ -188,6 +197,7 @@
     "tailwindcss": "^4.1.18",
     "tailwindcss-animate": "^1.0.7",
     "tsx": "^4.21.0",
+    "turbo": "^2.9.9",
     "typescript": "^5.9.3",
     "vite": "^7.3.1",
     "vite-plugin-mkcert": "^1.17.9",
@@ -195,9 +205,10 @@
     "wait-port": "1.1.0"
   },
   "engines": {
-    "node": ">=22.x",
+    "node": ">=22.12.0 <23",
     "bun": ">=1.x"
   },
+  "packageManager": "bun@1.3.10",
   "lint-staged": {
     "*.{js,jsx,ts,tsx,json}": [
       "bash -c 'files=\"$@\"; filtered=$(echo \"$files\" | tr \" \" \"\\n\" | grep -Ev \"packages/contracts/(\\\\.generated|out)/\"); [ -n \"$filtered\" ] && echo \"$filtered\" | xargs bunx @biomejs/biome format --write || true' --"

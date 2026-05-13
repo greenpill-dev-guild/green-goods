@@ -60,9 +60,9 @@ export function AccountProfilePanel({ className }: AccountProfilePanelProps) {
 
   return (
     <SheetBody padded={true} className={cn("flex flex-col gap-4", className)}>
-      <Surface elevation="raised" padding="default" className="space-y-4">
+      <Surface elevation="solid-raised" padding="default" className="space-y-4">
         <div className="flex items-center gap-4">
-          <div className="relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-[1.1rem] bg-[linear-gradient(135deg,rgba(var(--tone-tint,124_58_237),0.2),rgba(var(--tone-accent,124_58_237),0.36))] text-[rgb(var(--tone-accent,124_58_237))] shadow-[inset_0_0_0_1px_rgba(255,255,255,0.5),0_18px_32px_rgba(15,23,42,0.16)]">
+          <div className="account-avatar-tile relative flex h-14 w-14 items-center justify-center overflow-hidden">
             {avatarUrl ? (
               <img
                 src={avatarUrl}
@@ -73,11 +73,11 @@ export function AccountProfilePanel({ className }: AccountProfilePanelProps) {
                 className="h-full w-full object-cover"
               />
             ) : (
-              <span className="text-sm font-semibold tracking-[0.08em]">{avatarFallback}</span>
+              <span className="text-sm font-semibold">{avatarFallback}</span>
             )}
           </div>
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-soft">
+            <p className="text-xs font-semibold text-text-soft">
               {formatMessage({ id: "cockpit.settings.userProfile", defaultMessage: "Profile" })}
             </p>
             <p className="text-base font-semibold capitalize text-text-strong">{roleLabel}</p>
@@ -101,7 +101,7 @@ export function AccountProfilePanel({ className }: AccountProfilePanelProps) {
       {eoaAddress ? (
         <>
           <SheetDivider />
-          <Surface elevation="raised" padding="default" className="space-y-3">
+          <Surface elevation="solid-raised" padding="default" className="space-y-3">
             <div className="flex items-center gap-2">
               <RiWallet3Line className="h-4 w-4 text-text-soft" />
               <h2 className="text-sm font-semibold text-text-strong">
@@ -109,9 +109,9 @@ export function AccountProfilePanel({ className }: AccountProfilePanelProps) {
               </h2>
             </div>
 
-            <div className="rounded-2xl bg-bg-soft/80 p-3 shadow-[inset_0_0_0_1px_rgb(0_0_0_/_0.04)]">
+            <Surface elevation="solid-ground" padding="compact" radius="md">
               <AddressDisplay address={eoaAddress} showCopyButton />
-            </div>
+            </Surface>
           </Surface>
         </>
       ) : null}

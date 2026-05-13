@@ -11,7 +11,7 @@
  * Strategy:
  * - Mock the indexer GraphQL endpoint with minimal garden + action data so
  *   the journey can run without Docker / blockchain / live data.
- * - Inject wallet auth so /home doesn't bounce to /login.
+ * - Inject wallet auth so /home doesn't bounce to /home/login.
  * - Soft-skip when auth injection doesn't persist (CI realities); the
  *   piece-wise specs cover those paths.
  *
@@ -89,8 +89,8 @@ async function authOrSkip(
   skipReason: string
 ) {
   await helper.waitForPageLoad();
-  if (page.url().includes("/login")) {
-    // SKIP: auth injection unstable in headless CI; piece-wise specs cover.
+  if (page.url().includes("/home/login")) {
+    // SKIP: #312 owner:afo expiry:2026-06-01 — auth injection unstable in headless CI; piece-wise specs cover.
     test.skip(true, skipReason);
   }
 }
@@ -114,9 +114,9 @@ test.describe("Client happy path", () => {
   test("walks Login → Home → Garden detail → Wizard → Profile without crashing", async ({
     page,
   }) => {
-    // 1. Unauthenticated /home redirects to /login
-    await page.goto("/home");
-    await page.waitForURL(/\/login/, { timeout: 15000 });
+    // 1. Unauthenticated /home redirects to /home/login
+    await page.goto("/home?presentation=pwa");
+    await page.waitForURL(/\/home\/login/, { timeout: 15000 });
     await expect(page.getByTestId("login-button")).toBeVisible({ timeout: 10000 });
     await expectNoAppError(page);
 
@@ -137,16 +137,16 @@ test.describe("Client happy path", () => {
     expect(page.url()).toMatch(new RegExp(`/home/${MOCK_GARDEN.id}`));
     await expectNoAppError(page);
 
-    // 4. Wizard at /garden — verify it renders without crash
-    await page.goto("/garden");
+    // 4. Wizard at /home/garden — verify it renders without crash
+    await page.goto("/home/garden");
     await helper.waitForPageLoad();
-    expect(page.url()).toMatch(/\/garden/);
+    expect(page.url()).toMatch(/\/home\/garden/);
     await expectNoAppError(page);
 
     // 5. Profile — verify it renders without crash
-    await page.goto("/profile");
+    await page.goto("/home/profile");
     await helper.waitForPageLoad();
-    expect(page.url()).toMatch(/\/profile/);
+    expect(page.url()).toMatch(/\/home\/profile/);
     await expectNoAppError(page);
   });
 });

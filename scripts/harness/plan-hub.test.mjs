@@ -255,6 +255,37 @@ test("summary filters hubs by initiative and track", () =>
     );
   }));
 
+test("summary preserves stage status for research-only hubs with no implementation lanes", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "research-only", "--stage", "backlog"]).status, 0);
+    const status = readStatus(root, "backlog", "research-only");
+    status.taxonomy = {
+      initiative: "environmental-data",
+      tracks: ["docs"],
+      work_types: ["research"],
+      surfaces: [],
+      depends_on_features: [],
+    };
+    for (const laneName of ["ui", "state_api", "contracts"]) {
+      status.lanes[laneName].status = "n/a";
+      status.lanes[laneName].tdd = {
+        mode: "not_applicable",
+        status: "pending",
+        red: { command: "", evidence: "" },
+        green: { command: "", evidence: "" },
+        note: "Research-only hub with no behavior-changing implementation lane.",
+      };
+    }
+    status.lanes.qa_pass_1.status = "n/a";
+    status.lanes.qa_pass_2.status = "n/a";
+    writeStatus(root, "backlog", "research-only", status);
+
+    const summary = runPlanHub(root, ["summary", "--json"]);
+    assert.equal(summary.status, 0, summary.stderr);
+    const item = JSON.parse(summary.stdout).find((entry) => entry.slug === "research-only");
+    assert.equal(item.overall_status, "backlog");
+  }));
+
 test("archive hubs do not require taxonomy", () =>
   withFixture((root) => {
     assert.equal(runPlanHub(root, ["scaffold", "archived-hub", "--stage", "active"]).status, 0);
@@ -273,4 +304,311 @@ test("archive hubs do not require taxonomy", () =>
     );
 
     assert.equal(runPlanHub(root, ["validate"]).status, 0);
+  }));
+
+test("linear-sync manifest creates a parent and actionable implementation lane issues", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "linear-fixture", "--stage", "backlog"]).status, 0);
+    const status = readStatus(root, "backlog", "linear-fixture");
+    status.taxonomy = {
+      initiative: "yield-to-impact",
+      tracks: ["client", "shared"],
+      work_types: ["implementation", "qa"],
+      surfaces: ["packages/client", "packages/shared"],
+      depends_on_features: [],
+    };
+    status.lanes.contracts.status = "n/a";
+    writeStatus(root, "backlog", "linear-fixture", status);
+
+    const result = runPlanHub(root, ["linear-sync", "--feature", "linear-fixture", "--json"]);
+    assert.equal(result.status, 0, result.stderr);
+
+    const manifest = JSON.parse(result.stdout);
+    assert.equal(manifest.feature.slug, "linear-fixture");
+    assert.equal(manifest.feature.path, ".plans/backlog/linear-fixture/");
+    assert.equal(manifest.parent.action, "create");
+    assert.equal(manifest.parent.title, "plan: Linear Fixture");
+    assert.deepEqual(manifest.parent.labels, [
+      "activity:architecture",
+      "package:client",
+      "protocol:green-goods",
+      "source:plans",
+      "task:funding-pathway",
+    ]);
+    assert.deepEqual(
+      manifest.lanes.map((lane) => [lane.lane, lane.action, lane.title, lane.state]),
+      [
+        ["ui", "create", "UI: Linear Fixture", "Backlog"],
+        ["state_api", "create", "State/API: Linear Fixture", "Backlog"],
+      ],
+    );
+    assert.deepEqual(manifest.lanes[0].labels, [
+      "activity:build",
+      "package:client",
+      "protocol:green-goods",
+      "source:plans",
+      "task:funding-pathway",
+    ]);
+    assert.deepEqual(manifest.lanes[1].labels, [
+      "activity:build",
+      "package:shared",
+      "protocol:green-goods",
+      "source:plans",
+      "task:funding-pathway",
+    ]);
+    assert.match(manifest.warnings.join("\n"), /missing Linear parent issue/);
+    assert.match(manifest.warnings.join("\n"), /missing Linear issue for lane ui/);
+    assert.match(manifest.warnings.join("\n"), /unprojected/);
+  }));
+
+test("linear-sync chooses package labels by lane for cross-package plans", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "lane-label-fixture", "--stage", "backlog"]).status, 0);
+    const status = readStatus(root, "backlog", "lane-label-fixture");
+    status.taxonomy = {
+      initiative: "agent-platform",
+      tracks: ["agent", "client", "contracts", "shared"],
+      work_types: ["implementation", "qa"],
+      surfaces: ["packages/agent", "packages/client", "packages/contracts", "packages/shared"],
+      depends_on_features: [],
+    };
+    writeStatus(root, "backlog", "lane-label-fixture", status);
+
+    const result = runPlanHub(root, ["linear-sync", "--feature", "lane-label-fixture", "--json"]);
+    assert.equal(result.status, 0, result.stderr);
+    const manifest = JSON.parse(result.stdout);
+    assert.deepEqual(manifest.parent.labels, [
+      "activity:architecture",
+      "package:agent",
+      "protocol:green-goods",
+      "source:plans",
+    ]);
+    assert.deepEqual(
+      Object.fromEntries(
+        manifest.lanes.map((lane) => [lane.lane, lane.labels.find((label) => label.startsWith("package:"))]),
+      ),
+      {
+        ui: "package:client",
+        state_api: "package:shared",
+        contracts: "package:contracts",
+      },
+    );
+  }));
+
+test("linear-sync labels docs-owned state lanes as docs work", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "docs-lane-fixture", "--stage", "active"]).status, 0);
+    const status = readStatus(root, "active", "docs-lane-fixture");
+    status.taxonomy = {
+      initiative: "public-experience",
+      tracks: ["docs", "admin", "client"],
+      work_types: ["maintenance", "review"],
+      surfaces: ["docs", "packages/admin", "packages/client"],
+      depends_on_features: [],
+    };
+    status.lanes.ui.status = "n/a";
+    status.lanes.ui.tdd = {
+      mode: "not_applicable",
+      status: "pending",
+      red: { command: "", evidence: "" },
+      green: { command: "", evidence: "" },
+      note: "Docs lane fixture has no UI lane.",
+    };
+    status.lanes.contracts.status = "n/a";
+    status.lanes.contracts.tdd = {
+      mode: "not_applicable",
+      status: "pending",
+      red: { command: "", evidence: "" },
+      green: { command: "", evidence: "" },
+      note: "Docs lane fixture has no contracts lane.",
+    };
+    writeStatus(root, "active", "docs-lane-fixture", status);
+
+    const result = runPlanHub(root, ["linear-sync", "--feature", "docs-lane-fixture", "--json"]);
+    assert.equal(result.status, 0, result.stderr);
+    const manifest = JSON.parse(result.stdout);
+    assert.equal(manifest.lanes[0].lane, "state_api");
+    assert.equal(manifest.lanes[0].labels.find((label) => label.startsWith("package:")), "package:docs");
+  }));
+
+test("linear-sync excludes QA lanes until dependencies are done or manually blocked", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "qa-linear-fixture", "--stage", "active"]).status, 0);
+    let status = readStatus(root, "active", "qa-linear-fixture");
+    status.lanes.ui.tdd = {
+      mode: "not_applicable",
+      status: "pending",
+      red: { command: "", evidence: "" },
+      green: { command: "", evidence: "" },
+      note: "Fixture lane not needed.",
+    };
+    status.lanes.ui.status = "n/a";
+    status.lanes.state_api.tdd = {
+      mode: "not_applicable",
+      status: "pending",
+      red: { command: "", evidence: "" },
+      green: { command: "", evidence: "" },
+      note: "Fixture lane not needed.",
+    };
+    status.lanes.state_api.status = "n/a";
+    status.lanes.contracts.status = "todo";
+    writeStatus(root, "active", "qa-linear-fixture", status);
+
+    let result = runPlanHub(root, ["linear-sync", "--feature", "qa-linear-fixture", "--json"]);
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(
+      JSON.parse(result.stdout).lanes.map((lane) => lane.lane),
+      ["contracts"],
+    );
+
+    status = readStatus(root, "active", "qa-linear-fixture");
+    status.lanes.contracts.tdd = {
+      mode: "not_applicable",
+      status: "pending",
+      red: { command: "", evidence: "" },
+      green: { command: "", evidence: "" },
+      note: "Fixture lane not needed.",
+    };
+    status.lanes.contracts.status = "n/a";
+    status.lanes.qa_pass_1.status = "blocked";
+    status.lanes.qa_pass_1.manual_blocked = true;
+    writeStatus(root, "active", "qa-linear-fixture", status);
+
+    result = runPlanHub(root, ["linear-sync", "--feature", "qa-linear-fixture", "--json"]);
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(
+      JSON.parse(result.stdout).lanes.map((lane) => lane.lane),
+      ["qa_pass_1"],
+    );
+  }));
+
+test("linear-sync treats legacy linear.issue as the parent issue", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "legacy-linear", "--stage", "backlog"]).status, 0);
+    const status = readStatus(root, "backlog", "legacy-linear");
+    status.linear = {
+      issue: "PRD-351",
+      project: "completed-umbrella-project",
+      syncDirection: "plans_to_linear_visibility",
+      lastSyncedAt: "2026-05-03T01:35:00.000Z",
+    };
+    writeStatus(root, "backlog", "legacy-linear", status);
+
+    const result = runPlanHub(root, ["linear-sync", "--feature", "legacy-linear", "--json"]);
+    assert.equal(result.status, 0, result.stderr);
+    const manifest = JSON.parse(result.stdout);
+    assert.equal(manifest.parent.action, "update");
+    assert.equal(manifest.parent.issue, "PRD-351");
+    assert.equal(manifest.routing.project, null);
+    assert.match(manifest.warnings.join("\n"), /legacy linear.issue/);
+    assert.match(manifest.warnings.join("\n"), /Legacy linear.project ignored/);
+  }));
+
+test("ready-lane list exposes linear sync warnings before implementation handoff", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "list-linear-warning", "--stage", "active"]).status, 0);
+
+    const result = runPlanHub(root, [
+      "list",
+      "--agent",
+      "codex",
+      "--lane",
+      "state-api",
+      "--stage",
+      "active",
+      "--json",
+    ]);
+    assert.equal(result.status, 0, result.stderr);
+
+    const [item] = JSON.parse(result.stdout);
+    assert.equal(item.slug, "list-linear-warning");
+    assert.match(item.linear_sync_warnings.join("\n"), /missing Linear parent issue/);
+    assert.match(item.linear_sync_warnings.join("\n"), /missing Linear issue for lane state_api/);
+  }));
+
+test("record-linear writes parent and lane issue ids into status.json", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "record-linear-fixture", "--stage", "backlog"]).status, 0);
+
+    const result = runPlanHub(root, [
+      "record-linear",
+      "--feature",
+      "record-linear-fixture",
+      "--parent",
+      "PRD-500",
+      "--lane",
+      "ui=PRD-501",
+      "--lane",
+      "state-api=PRD-502",
+    ]);
+    assert.equal(result.status, 0, result.stderr);
+
+    const status = readStatus(root, "backlog", "record-linear-fixture");
+    assert.equal(status.linear.parentIssue, "PRD-500");
+    assert.equal(status.linear.syncDirection, "plans_to_linear_visibility");
+    assert.equal(status.linear.lanes.ui.issue, "PRD-501");
+    assert.equal(status.linear.lanes.state_api.issue, "PRD-502");
+    assert.equal(status.history.at(-1).status, "linear_recorded");
+    assert.equal(runPlanHub(root, ["validate"]).status, 0);
+  }));
+
+test("record-linear backfills parentIssue from legacy linear.issue when only lanes are recorded", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "legacy-record-linear", "--stage", "backlog"]).status, 0);
+    const status = readStatus(root, "backlog", "legacy-record-linear");
+    status.linear = {
+      issue: "PRD-700",
+      syncDirection: "plans_to_linear_visibility",
+      lastSyncedAt: "2026-05-03T01:35:00.000Z",
+    };
+    writeStatus(root, "backlog", "legacy-record-linear", status);
+
+    const result = runPlanHub(root, [
+      "record-linear",
+      "--feature",
+      "legacy-record-linear",
+      "--lane",
+      "ui=PRD-701",
+    ]);
+    assert.equal(result.status, 0, result.stderr);
+
+    const updated = readStatus(root, "backlog", "legacy-record-linear");
+    assert.equal(updated.linear.issue, "PRD-700");
+    assert.equal(updated.linear.parentIssue, "PRD-700");
+    assert.equal(updated.linear.lanes.ui.issue, "PRD-701");
+  }));
+
+test("record-linear clears legacy project when backfilling parentIssue without an explicit project", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "legacy-project-record-linear", "--stage", "backlog"]).status, 0);
+    const status = readStatus(root, "backlog", "legacy-project-record-linear");
+    status.linear = {
+      issue: "PRD-800",
+      project: "completed-umbrella-project",
+      syncDirection: "plans_to_linear_visibility",
+      lastSyncedAt: "2026-05-03T01:35:00.000Z",
+    };
+    writeStatus(root, "backlog", "legacy-project-record-linear", status);
+
+    const result = runPlanHub(root, [
+      "record-linear",
+      "--feature",
+      "legacy-project-record-linear",
+      "--lane",
+      "ui=PRD-801",
+    ]);
+    assert.equal(result.status, 0, result.stderr);
+
+    const updated = readStatus(root, "backlog", "legacy-project-record-linear");
+    assert.equal(updated.linear.issue, "PRD-800");
+    assert.equal(updated.linear.parentIssue, "PRD-800");
+    assert.equal(updated.linear.project, undefined);
+    assert.equal(updated.linear.lanes.ui.issue, "PRD-801");
+
+    const sync = runPlanHub(root, ["linear-sync", "--feature", "legacy-project-record-linear", "--json"]);
+    assert.equal(sync.status, 0, sync.stderr);
+    const manifest = JSON.parse(sync.stdout);
+    assert.equal(manifest.parent.issue, "PRD-800");
+    assert.equal(manifest.routing.project, null);
+    assert.match(manifest.warnings.join("\n"), /No explicit linear.project/);
   }));

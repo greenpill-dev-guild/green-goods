@@ -2,15 +2,15 @@
 /**
  * scripts/ops/upload-sourcemaps.js - Upload source maps to PostHog
  *
- * This script runs in the actual Vercel deploy build after Vite emits `dist/`.
- * It injects PostHog source-map metadata into the bundle that Vercel will
- * publish, uploads the maps, then removes the map files before publish.
+ * This script runs in GitHub Actions or manually after Vite emits `dist/`.
+ * It injects PostHog source-map metadata into the bundle, uploads the maps,
+ * then removes the map files.
  *
  * It also supports local/manual uploads through the root sourcemaps scripts.
  *
  * Usage: node scripts/ops/upload-sourcemaps.js [options]
  *   --app <client|admin|both>  Which app to upload (default: both)
- *   --deploy                   Deploy-build mode; infer Vercel env/SHA and skip build
+ *   --deploy                   Deploy-build mode; infer provider env/SHA and skip build
  *   --skip-build               Skip build step (use existing dist)
  *   --dry-run                  Show what would be done without uploading
  *   --keep-maps                Don't delete source maps after upload
@@ -18,7 +18,7 @@
  *   --env <staging|production> Environment (default: staging)
  *   --help, -h                 Show this help message
  *
- * Required for production deploys and local uploads:
+ * Required for source-map uploads:
  *   POSTHOG_CLI_TOKEN          API token with error-tracking:write scope
  *   POSTHOG_CLIENT_ENV_ID      PostHog environment ID for client uploads
  *   POSTHOG_ADMIN_ENV_ID       PostHog environment ID for admin uploads
@@ -180,7 +180,7 @@ function getDeploySha() {
 }
 
 /**
- * Map Vercel's deployment environment to the app's release environment labels
+ * Map deployment-provider environment names to the app's release labels
  */
 function getDeployEnvironment() {
   return process.env.VERCEL_ENV === "production" ? "production" : "staging";
@@ -298,7 +298,7 @@ function showHelp() {
   console.log("");
   console.log("Options:");
   console.log("  --app <app>        Which app to upload: client, admin, or both (default: both)");
-  console.log("  --deploy           Deploy-build mode; infer Vercel env/SHA and skip build");
+  console.log("  --deploy           Deploy-build mode; infer provider env/SHA and skip build");
   console.log("  --skip-build       Skip build step, use existing dist folder");
   console.log("  --dry-run          Show what would be done without actually uploading");
   console.log("  --keep-maps        Don't delete source maps after upload");
@@ -307,14 +307,13 @@ function showHelp() {
   console.log("  --help, -h         Show this help message");
   console.log("");
   console.log("Environment variables:");
-  console.log("  POSTHOG_CLI_TOKEN       Required for production deploys and local uploads");
-  console.log("  POSTHOG_CLIENT_ENV_ID   Required for client production deploys and uploads");
-  console.log("  POSTHOG_ADMIN_ENV_ID    Required for admin production deploys and uploads");
+  console.log("  POSTHOG_CLI_TOKEN       Required for source-map uploads");
+  console.log("  POSTHOG_CLIENT_ENV_ID   Required for client source-map uploads");
+  console.log("  POSTHOG_ADMIN_ENV_ID    Required for admin source-map uploads");
   console.log("");
   console.log("Examples:");
-  console.log("  node scripts/ops/upload-sourcemaps.js --app client --deploy  # Vercel deploy build");
-  console.log("  node scripts/ops/upload-sourcemaps.js                         # Upload both apps");
   console.log("  node scripts/ops/upload-sourcemaps.js --app client            # Upload client only");
+  console.log("  node scripts/ops/upload-sourcemaps.js                         # Upload both apps");
   console.log("  node scripts/ops/upload-sourcemaps.js --skip-build            # Use existing build");
   console.log("  node scripts/ops/upload-sourcemaps.js --dry-run               # Test without uploading");
   console.log("");
@@ -519,14 +518,14 @@ async function main() {
   if (missingPosthogEnv.length > 0) {
     if (config.deploy && !isProductionDeploy()) {
       printWarning(`Skipping source-map upload for non-production deploy; missing ${missingPosthogEnv.join(", ")}`);
-      printInfo("Configure PostHog source-map variables in Vercel to enable preview/staging uploads.");
+      printInfo("Configure PostHog source-map variables in GitHub Actions to enable preview/staging uploads.");
       process.exit(0);
     }
 
     if (!config.dryRun) {
       printError(`Missing required PostHog environment variable(s): ${missingPosthogEnv.join(", ")}`);
       printInfo("Set POSTHOG_CLI_TOKEN and the selected app's POSTHOG_*_ENV_ID before uploading source maps.");
-      printInfo("Production deploy builds fail closed so Vercel cannot publish an unprocessed production bundle.");
+      printInfo("Manual source-map uploads fail closed so missing credentials are not ignored.");
       process.exit(1);
     }
 
@@ -567,6 +566,7 @@ async function main() {
 
       const buildEnv = {
         NODE_ENV: "production",
+        GG_ENABLE_SOURCEMAPS: "true",
         VITE_USE_HASH_ROUTER: "false",
         VITE_CHAIN_ID: chainId,
       };

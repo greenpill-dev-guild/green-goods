@@ -460,13 +460,83 @@ export function parseContractError(error: unknown): ParsedContractError {
     }
   }
 
-  // Check for manual validation errors (from simulation)
+  // ============================================================================
+  // Post-signature pattern checks (single source of truth — was previously
+  // split across user-messages.ts: formatUserError, formatWalletError, and
+  // USER_FRIENDLY_ERRORS. Order matters: the first matching pattern wins, so
+  // specific patterns precede generic ones.)
+  // ============================================================================
+
+  const lowerStr = errorStr.toLowerCase();
+
+  // 1. User cancellation (wallet rejection or passkey biometric cancel) —
+  //    checked first so a wallet-layer user-rejection wrapping a generic
+  //    "execution reverted" message still classifies as cancellation.
+  if (
+    lowerStr.includes("user rejected") ||
+    lowerStr.includes("user denied") ||
+    lowerStr.includes("user cancelled") ||
+    lowerStr.includes("rejected the request")
+  ) {
+    return {
+      raw: signature ?? errorStr,
+      name: "UserRejected",
+      message: "Transaction cancelled. Try again when you're ready.",
+      isKnown: true,
+      recoverable: true,
+      suggestedAction: "retry",
+    };
+  }
+
+  // 2. Wallet balance / gas errors
+  if (
+    lowerStr.includes("insufficient funds") ||
+    lowerStr.includes("insufficient balance") ||
+    lowerStr.includes("exceeds balance")
+  ) {
+    return {
+      raw: signature ?? errorStr,
+      name: "InsufficientFunds",
+      message: "Not enough funds to cover gas. Top up your wallet and try again.",
+      isKnown: true,
+      recoverable: false,
+      suggestedAction: "check-wallet",
+    };
+  }
+
+  if (
+    lowerStr.includes("nonce too low") ||
+    lowerStr.includes("nonce too high") ||
+    lowerStr.includes("replacement transaction")
+  ) {
+    return {
+      raw: signature ?? errorStr,
+      name: "NonceConflict",
+      message: "Transaction conflict. Try again.",
+      isKnown: true,
+      recoverable: true,
+      suggestedAction: "retry",
+    };
+  }
+
+  if (lowerStr.includes("gas estimation") || lowerStr.includes("cannot estimate gas")) {
+    return {
+      raw: signature ?? errorStr,
+      name: "GasEstimationFailed",
+      message: "Couldn't estimate gas. Check your inputs and try again.",
+      isKnown: true,
+      recoverable: true,
+      suggestedAction: "retry",
+    };
+  }
+
+  // 3. Manual validation errors (from simulation layer) — must precede the
+  //    generic "validation" word match below.
   if (errorStr.includes("Validation failed")) {
-    // Clean up the message (remove "Error: " prefix if present)
     const cleanMessage = errorStr.replace(/^Error:\s*/, "");
     return {
       raw: signature ?? errorStr,
-      name: "Validation Error",
+      name: "ValidationError",
       message: cleanMessage,
       isKnown: true,
       recoverable: false,
@@ -474,8 +544,23 @@ export function parseContractError(error: unknown): ParsedContractError {
     };
   }
 
-  // Check for IPFS/upload errors (recoverable)
-  const lowerStr = errorStr.toLowerCase();
+  // 4. Media upload service unconfigured (specific — must precede generic IPFS).
+  if (
+    lowerStr.includes("media upload not initialized") ||
+    lowerStr.includes("ipfs upload service is not configured") ||
+    lowerStr.includes("pinata jwt is not configured")
+  ) {
+    return {
+      raw: signature ?? errorStr,
+      name: "UploadServiceUnavailable",
+      message: "Media upload service unavailable. Reload the app and try again.",
+      isKnown: true,
+      recoverable: true,
+      suggestedAction: "retry",
+    };
+  }
+
+  // 5. IPFS / media upload failures (recoverable)
   if (
     lowerStr.includes("ipfs") ||
     lowerStr.includes("failed to upload") ||
@@ -484,41 +569,123 @@ export function parseContractError(error: unknown): ParsedContractError {
     return {
       raw: signature ?? errorStr,
       name: "UploadError",
-      message: "Media upload failed. Please check your connection and try again.",
+      message: "Media upload failed. Check your connection and try again.",
       isKnown: true,
       recoverable: true,
       suggestedAction: "retry",
     };
   }
 
-  // Check for network/timeout errors (recoverable)
+  // 6. Storage errors (quota first — more specific message)
+  if (lowerStr.includes("quota")) {
+    return {
+      raw: signature ?? errorStr,
+      name: "StorageQuotaExceeded",
+      message: "Storage is full. Free up space on your device and try again.",
+      isKnown: true,
+      recoverable: false,
+      suggestedAction: "contact-support",
+    };
+  }
+
+  if (lowerStr.includes("storage") || lowerStr.includes("indexeddb")) {
+    return {
+      raw: signature ?? errorStr,
+      name: "StorageError",
+      message: "Storage error. Try again.",
+      isKnown: true,
+      recoverable: true,
+      suggestedAction: "retry",
+    };
+  }
+
+  // 7. Offline (specific) before generic network
+  if (lowerStr.includes("offline") || lowerStr.includes("you are offline")) {
+    return {
+      raw: signature ?? errorStr,
+      name: "Offline",
+      message: "You're offline. Your work is saved and will sync when you reconnect.",
+      isKnown: true,
+      recoverable: true,
+      suggestedAction: "retry",
+    };
+  }
+
+  // 8. Network / timeout (recoverable)
+  if (lowerStr.includes("timeout") || lowerStr.includes("timed out")) {
+    return {
+      raw: signature ?? errorStr,
+      name: "TimeoutError",
+      message: "Request timed out. Check your connection and try again.",
+      isKnown: true,
+      recoverable: true,
+      suggestedAction: "retry",
+    };
+  }
+
   if (
-    lowerStr.includes("timeout") ||
     lowerStr.includes("network") ||
-    lowerStr.includes("connection")
+    lowerStr.includes("connection") ||
+    lowerStr.includes("failed to fetch") ||
+    lowerStr.includes("net::err")
   ) {
     return {
       raw: signature ?? errorStr,
       name: "NetworkError",
-      message: "Network error occurred. Please check your connection and try again.",
+      message: "Network error. Check your connection and try again.",
       isKnown: true,
       recoverable: true,
       suggestedAction: "retry",
     };
   }
 
-  // Check for user rejection (not recoverable in the traditional sense)
+  // 9. Permission / authorization (generic — specific contract reverts like
+  //    NotGardenMember are caught by the signature/name loop above).
   if (
-    errorStr.toLowerCase().includes("user rejected") ||
-    errorStr.toLowerCase().includes("user denied") ||
-    errorStr.toLowerCase().includes("rejected the request")
+    lowerStr.includes("unauthorized") ||
+    lowerStr.includes("forbidden") ||
+    lowerStr.includes("not allowed") ||
+    lowerStr.includes("permission denied") ||
+    lowerStr.includes("access denied")
   ) {
     return {
       raw: signature ?? errorStr,
-      name: "UserRejected",
-      message: "Transaction was rejected. Please try again when ready.",
+      name: "Unauthorized",
+      message: "You're not authorized to perform this action.",
       isKnown: true,
-      recoverable: true,
+      recoverable: false,
+      suggestedAction: "contact-support",
+    };
+  }
+
+  // 10. Generic execution reverted with no specific reason — last because
+  //     "reverted" is broad and signature-based reverts above carry richer copy.
+  if (
+    lowerStr.includes("execution reverted") ||
+    (lowerStr.includes("reverted") && !lowerStr.includes("reason"))
+  ) {
+    return {
+      raw: signature ?? errorStr,
+      name: "ExecutionReverted",
+      message: "Transaction would fail. Make sure you're a member of the selected garden.",
+      isKnown: true,
+      recoverable: false,
+      suggestedAction: "check-wallet",
+    };
+  }
+
+  // 11. Generic validation fallback (after the more-specific "Validation failed" above)
+  if (
+    lowerStr.includes("required field") ||
+    lowerStr.includes("invalid format") ||
+    lowerStr.includes("invalid input")
+  ) {
+    return {
+      raw: signature ?? errorStr,
+      name: "ValidationError",
+      message: "Check your submission and try again.",
+      isKnown: true,
+      recoverable: false,
       suggestedAction: "retry",
     };
   }

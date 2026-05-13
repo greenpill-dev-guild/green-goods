@@ -2,6 +2,7 @@ import {
   Alert,
   type AdminHubRouteContext,
   adminRoutes,
+  SheetBody,
   SUBMIT_WORK_CONTENT_ID,
   useRouteBackedLeftSheetConfig,
   type ActivityEvent,
@@ -51,19 +52,21 @@ function SheetResolutionState({
 }) {
   if (isResolving) {
     return (
-      <div className="space-y-4 p-1" aria-busy="true" role="status">
-        <span className="sr-only">{loadingLabel}</span>
-        <div className="h-32 rounded-[var(--radius-lg)] bg-bg-soft skeleton-shimmer" />
-        <div className="h-20 rounded-[var(--radius-lg)] bg-bg-soft skeleton-shimmer" />
-        <div className="h-40 rounded-[var(--radius-lg)] bg-bg-soft skeleton-shimmer" />
-      </div>
+      <SheetBody padded={true}>
+        <div className="space-y-4" aria-busy="true" role="status">
+          <span className="sr-only">{loadingLabel}</span>
+          <div className="h-32 rounded-[var(--radius-lg)] bg-bg-soft skeleton-shimmer" />
+          <div className="h-20 rounded-[var(--radius-lg)] bg-bg-soft skeleton-shimmer" />
+          <div className="h-40 rounded-[var(--radius-lg)] bg-bg-soft skeleton-shimmer" />
+        </div>
+      </SheetBody>
     );
   }
 
   return (
-    <div className="p-1">
+    <SheetBody padded={true}>
       <Alert variant="warning">{message}</Alert>
-    </div>
+    </SheetBody>
   );
 }
 

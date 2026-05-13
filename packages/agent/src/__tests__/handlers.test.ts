@@ -67,6 +67,7 @@ function createMockMessage(overrides: Partial<InboundMessage> = {}): InboundMess
   return {
     id: "msg-123",
     platform: "telegram",
+    chat: { id: "chat-private", type: "private" },
     sender: { platformId: "user-123", displayName: "Test User" },
     content: { type: "text", text: "test message" },
     locale: "en",
@@ -144,6 +145,25 @@ describe("handleStart", () => {
     expect(result.response.text).toContain("created a wallet");
   });
 
+  it("localizes first-time onboarding when Telegram provides Spanish locale", async () => {
+    const message = createMockMessage({
+      sender: { platformId: `new-user-es-${Date.now()}` },
+      content: { type: "command", name: "start", args: [] },
+      locale: "es-MX",
+    });
+
+    const deps: StartDeps = {
+      generatePrivateKey: () => `0x${"b".repeat(64)}` as `0x${string}`,
+    };
+
+    const result = await handleStart(message, deps);
+
+    expect(result.response.text).toContain("Bienvenido a Green Goods");
+    expect(result.response.text).not.toContain("Welcome to Green Goods");
+    const user = await db.getUser(message.platform, message.sender.platformId);
+    expect(user?.locale).toBe("es-MX");
+  });
+
   it("welcomes back existing users", async () => {
     // First create the user
     const platformId = `existing-user-${Date.now()}`;
@@ -167,6 +187,32 @@ describe("handleStart", () => {
     const result = await handleStart(message, deps);
 
     expect(result.response.text).toContain("Welcome back");
+  });
+
+  it("updates the stored locale when a returning user starts from another language", async () => {
+    const platformId = `returning-locale-${Date.now()}`;
+    await db.createUser({
+      platform: "telegram",
+      platformId,
+      privateKey: "0x" + "d".repeat(64),
+      address: "0x" + "5".repeat(40),
+      role: "gardener",
+      locale: "en",
+    });
+
+    const message = createMockMessage({
+      sender: { platformId },
+      content: { type: "command", name: "start", args: [] },
+      locale: "pt-BR",
+    });
+
+    const result = await handleStart(message, {
+      generatePrivateKey: () => `0x${"e".repeat(64)}` as `0x${string}`,
+    });
+
+    expect(result.response.text).toContain("Boas-vindas de volta");
+    const user = await db.getUser("telegram", platformId);
+    expect(user?.locale).toBe("pt-BR");
   });
 });
 
@@ -292,6 +338,35 @@ describe("handleTextSubmission", () => {
     expect(result.response.text).toContain("couldn't identify");
   });
 
+  it("parses the localized Spanish and Portuguese examples shown to users", async () => {
+    const user = createMockUser({ currentGarden: "0x" + "3".repeat(40) });
+    const deps: SubmitDeps = {
+      generateId: () => "test-id-123",
+    };
+
+    const spanish = await handleTextSubmission(
+      createMockMessage({
+        content: { type: "text", text: "Hoy planté 5 árboles" },
+        locale: "es-MX",
+      }),
+      user,
+      deps
+    );
+    const portuguese = await handleTextSubmission(
+      createMockMessage({
+        content: { type: "text", text: "Removi 10 kg de ervas daninhas" },
+        locale: "pt-BR",
+      }),
+      user,
+      deps
+    );
+
+    expect(spanish.response.text).toContain("Confirma tu envío");
+    expect(spanish.updateSession).toBeDefined();
+    expect(portuguese.response.text).toContain("Confirme seu envio");
+    expect(portuguese.updateSession).toBeDefined();
+  });
+
   it("blocks operator accounts from starting gardener work submissions", async () => {
     const message = createMockMessage({
       content: { type: "text", text: "I planted 5 trees today" },
@@ -351,6 +426,52 @@ describe("handleConfirmSubmission", () => {
     expect(second.response.text).toBe(first.response.text);
     expect(addPendingWork).toHaveBeenCalledTimes(1);
     expect(generateId).toHaveBeenCalledTimes(1);
+  });
+
+  it("notifies operators in the operator's stored locale", async () => {
+    const gardenAddress = "0x" + "6".repeat(40);
+    const operatorPlatformId = `operator-locale-${Date.now()}`;
+    vi.spyOn(db, "getOperatorForGarden").mockResolvedValueOnce(
+      createMockUser({
+        platformId: operatorPlatformId,
+        address: "0x" + "7".repeat(40),
+        currentGarden: gardenAddress,
+        role: "operator",
+        locale: "pt-BR",
+      })
+    );
+
+    const message = createMockMessage({
+      id: "confirm-recipient-locale-1",
+      content: { type: "callback", data: "confirm_submission" },
+      locale: "es-MX",
+    });
+    const gardener = createMockUser({
+      currentGarden: gardenAddress,
+    });
+    const session = createSubmissionSession();
+    const notifyOperator = vi.fn<(operatorPlatformId: string, message: string) => Promise<void>>(
+      async () => undefined
+    );
+    const addPendingWork = vi.spyOn(db, "addPendingWork");
+
+    await handleConfirmSubmission(message, gardener, session, {
+      generateId: () => "pending-recipient-locale",
+      notifyOperator,
+    });
+
+    expect(addPendingWork).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          title: "Submission",
+        }),
+      })
+    );
+    expect(notifyOperator).toHaveBeenCalledWith(
+      operatorPlatformId,
+      expect.stringContaining("Novo envio de trabalho")
+    );
+    expect(notifyOperator.mock.calls[0]?.[1]).not.toContain("Nuevo envío de trabajo");
   });
 
   it("returns in-progress for duplicate confirm callbacks before session lookup", async () => {
@@ -528,6 +649,55 @@ describe("handleApprove", () => {
     expect(submitApproval).toHaveBeenCalledTimes(1);
   });
 
+  it("keeps protocol metadata canonical and notifies gardeners in their stored locale", async () => {
+    const workId = "work-locale-protocol";
+    const pendingWork = createPendingWork({ id: workId });
+    const message = createMockMessage({
+      id: "approve-locale-protocol-1",
+      content: { type: "command", name: "approve", args: [workId] },
+      locale: "es-MX",
+    });
+    const operator = createMockUser({
+      role: "operator",
+      currentGarden: pendingWork.gardenAddress,
+      locale: "es-MX",
+    });
+    const gardener = createMockUser({
+      platformId: pendingWork.gardenerPlatformId,
+      privateKey: "0x" + "b".repeat(64),
+      address: pendingWork.gardenerAddress,
+      locale: "pt-BR",
+    });
+    const submitWork = vi.spyOn(blockchain, "submitWork").mockResolvedValue(`0x${"c".repeat(64)}`);
+    const submitApproval = vi
+      .spyOn(blockchain, "submitApproval")
+      .mockResolvedValue(`0x${"d".repeat(64)}`);
+    const notifyGardener = vi.fn<
+      (platform: string, platformId: string, message: string) => Promise<void>
+    >(async () => undefined);
+
+    vi.spyOn(db, "getPendingWork").mockResolvedValueOnce(pendingWork);
+    vi.spyOn(db, "getUser").mockResolvedValueOnce(gardener);
+    vi.spyOn(blockchain, "isOperator").mockResolvedValueOnce({ verified: true });
+    vi.spyOn(db, "removePendingWork").mockResolvedValueOnce();
+
+    const result = await handleApprove(message, operator, { notifyGardener });
+
+    expect(result.response.text).toContain("Trabajo aprobado y atestiguado");
+    expect(submitWork).toHaveBeenCalledWith(
+      expect.objectContaining({ actionTitle: "Work Submission" })
+    );
+    expect(submitApproval).toHaveBeenCalledWith(
+      expect.objectContaining({ feedback: "Approved via bot" })
+    );
+    expect(notifyGardener).toHaveBeenCalledWith(
+      pendingWork.gardenerPlatform,
+      pendingWork.gardenerPlatformId,
+      expect.stringContaining("Seu trabalho foi aprovado")
+    );
+    expect(notifyGardener.mock.calls[0]?.[2]).not.toContain("Tu trabajo fue aprobado");
+  });
+
   it("returns in-progress for duplicate approvals before pending-work lookup", async () => {
     const workId = "work-in-progress";
     const message = createMockMessage({
@@ -610,6 +780,43 @@ describe("handleReject", () => {
       "Rejection error"
     );
   });
+
+  it("notifies rejected gardeners in their stored locale", async () => {
+    const pendingWork = createPendingWork({ id: "work-reject-locale" });
+    const message = createMockMessage({
+      id: "reject-recipient-locale-1",
+      content: { type: "command", name: "reject", args: [pendingWork.id, "needs photos"] },
+      locale: "es-MX",
+    });
+    const operator = createMockUser({
+      role: "operator",
+      currentGarden: pendingWork.gardenAddress,
+      locale: "es-MX",
+    });
+    const gardener = createMockUser({
+      platformId: pendingWork.gardenerPlatformId,
+      address: pendingWork.gardenerAddress,
+      locale: "pt-BR",
+    });
+    const notifyGardener = vi.fn<
+      (platform: string, platformId: string, message: string) => Promise<void>
+    >(async () => undefined);
+
+    vi.spyOn(db, "getPendingWork").mockResolvedValueOnce(pendingWork);
+    vi.spyOn(blockchain, "isOperator").mockResolvedValueOnce({ verified: true });
+    vi.spyOn(db, "removePendingWork").mockResolvedValueOnce();
+    vi.spyOn(db, "getUser").mockResolvedValueOnce(gardener);
+
+    const result = await handleReject(message, operator, { notifyGardener });
+
+    expect(result.response.text).toContain("Trabajo");
+    expect(notifyGardener).toHaveBeenCalledWith(
+      pendingWork.gardenerPlatform,
+      pendingWork.gardenerPlatformId,
+      expect.stringContaining("Seu trabalho foi rejeitado")
+    );
+    expect(notifyGardener.mock.calls[0]?.[2]).not.toContain("Tu trabajo fue rechazado");
+  });
 });
 
 // ============================================================================
@@ -617,6 +824,27 @@ describe("handleReject", () => {
 // ============================================================================
 
 describe("handleMessage rate-limit boundaries", () => {
+  it("stores the latest inbound locale for existing users before routing", async () => {
+    const platformId = `router-locale-${Date.now()}`;
+    const user = createMockUser({
+      platformId,
+      currentGarden: "0x" + "3".repeat(40),
+      locale: "en",
+    });
+    await db.createUser(user);
+
+    await handleMessage(
+      createMockMessage({
+        sender: { platformId },
+        content: { type: "command", name: "status", args: [] },
+        locale: "pt-BR",
+      })
+    );
+
+    const updated = await db.getUser("telegram", platformId);
+    expect(updated?.locale).toBe("pt-BR");
+  });
+
   it("keeps status and pending commands available after command-rate exhaustion", async () => {
     const user = createMockUser({
       platformId: "operator-123",

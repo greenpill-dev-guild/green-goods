@@ -8,10 +8,14 @@ import { Database } from "bun:sqlite";
 import fs from "fs";
 import path from "path";
 import type {
+  AttachmentKind,
+  CaptureType,
+  ChatMessage,
+  ChatMessageAttachment,
+  ChatMessageStatus,
   CreateUserInput,
-  Feedback,
-  FeedbackStatus,
-  FeedbackType,
+  NewChatMessageAttachmentInput,
+  NewChatMessageInput,
   OutboundResponse,
   PendingWork,
   Platform,
@@ -125,6 +129,74 @@ function serializeFundingIntentForUpdate(record: FundingIntentRecord): SqlValue[
   return [...withoutId, record.id];
 }
 
+interface ChatMessageRow {
+  id: string;
+  platform: string;
+  chatId: string;
+  threadId: string | null;
+  messageId: string;
+  senderPlatformId: string;
+  senderDisplayName: string | null;
+  text: string;
+  replyToMessageId: string | null;
+  inferredType: string;
+  status: string;
+  postedAt: number;
+  updatedAt: number;
+}
+
+interface ChatMessageAttachmentRow {
+  id: string;
+  chatMessageId: string;
+  ordinal: number;
+  kind: string;
+  telegramFileId: string;
+  mimeType: string | null;
+  fileSize: number | null;
+  duration: number | null;
+  width: number | null;
+  height: number | null;
+  createdAt: number;
+}
+
+function deserializeChatMessage(
+  row: ChatMessageRow,
+  attachments: ChatMessageAttachment[]
+): ChatMessage {
+  return {
+    id: row.id,
+    platform: row.platform as Platform,
+    chatId: row.chatId,
+    threadId: row.threadId ?? undefined,
+    messageId: row.messageId,
+    senderPlatformId: row.senderPlatformId,
+    senderDisplayName: row.senderDisplayName ?? undefined,
+    text: row.text,
+    replyToMessageId: row.replyToMessageId ?? undefined,
+    inferredType: row.inferredType as CaptureType,
+    status: row.status as ChatMessageStatus,
+    postedAt: row.postedAt,
+    updatedAt: row.updatedAt,
+    attachments,
+  };
+}
+
+function deserializeChatMessageAttachment(row: ChatMessageAttachmentRow): ChatMessageAttachment {
+  return {
+    id: row.id,
+    chatMessageId: row.chatMessageId,
+    ordinal: row.ordinal,
+    kind: row.kind as AttachmentKind,
+    telegramFileId: row.telegramFileId,
+    mimeType: row.mimeType ?? undefined,
+    fileSize: row.fileSize ?? undefined,
+    duration: row.duration ?? undefined,
+    width: row.width ?? undefined,
+    height: row.height ?? undefined,
+    createdAt: row.createdAt,
+  };
+}
+
 function deserializeFundingIntent(row: FundingIntentRow): FundingIntentRecord {
   return {
     id: row.id,
@@ -175,6 +247,10 @@ class DB {
       fs.mkdirSync(dir, { recursive: true });
     }
     this.db = new Database(dbPath);
+    // SQLite defaults FK enforcement off, which silently breaks
+    // ON DELETE CASCADE for chat_message_attachments. Turn it on per
+    // connection — there's no persistent setting.
+    this.db.run("PRAGMA foreign_keys = ON");
     this.initSchema();
   }
 
@@ -187,6 +263,7 @@ class DB {
         address TEXT NOT NULL,
         currentGarden TEXT,
         role TEXT DEFAULT 'gardener',
+        locale TEXT,
         createdAt INTEGER DEFAULT (strftime('%s', 'now') * 1000),
         PRIMARY KEY (platform, platformId)
       )
@@ -231,17 +308,36 @@ class DB {
     `);
 
     this.db.run(`
-      CREATE TABLE IF NOT EXISTS feedback (
+      CREATE TABLE IF NOT EXISTS chat_messages (
         id TEXT PRIMARY KEY,
-        type TEXT NOT NULL,
-        status TEXT NOT NULL DEFAULT 'new',
-        text TEXT NOT NULL,
         platform TEXT NOT NULL,
-        platformId TEXT NOT NULL,
-        displayName TEXT,
-        gardenAddress TEXT,
-        createdAt INTEGER DEFAULT (strftime('%s', 'now') * 1000),
-        updatedAt INTEGER DEFAULT (strftime('%s', 'now') * 1000)
+        chatId TEXT NOT NULL,
+        threadId TEXT,
+        messageId TEXT NOT NULL,
+        senderPlatformId TEXT NOT NULL,
+        senderDisplayName TEXT,
+        text TEXT NOT NULL DEFAULT '',
+        replyToMessageId TEXT,
+        inferredType TEXT NOT NULL,
+        status TEXT NOT NULL DEFAULT 'new',
+        postedAt INTEGER NOT NULL,
+        updatedAt INTEGER NOT NULL
+      )
+    `);
+
+    this.db.run(`
+      CREATE TABLE IF NOT EXISTS chat_message_attachments (
+        id TEXT PRIMARY KEY,
+        chatMessageId TEXT NOT NULL REFERENCES chat_messages(id) ON DELETE CASCADE,
+        ordinal INTEGER NOT NULL,
+        kind TEXT NOT NULL,
+        telegramFileId TEXT NOT NULL,
+        mimeType TEXT,
+        fileSize INTEGER,
+        duration INTEGER,
+        width INTEGER,
+        height INTEGER,
+        createdAt INTEGER NOT NULL
       )
     `);
 
@@ -259,10 +355,16 @@ class DB {
       `CREATE INDEX IF NOT EXISTS idx_users_role_garden ON users(role, currentGarden) WHERE role = 'operator'`
     );
     this.db.run(
-      `CREATE INDEX IF NOT EXISTS idx_feedback_status_created ON feedback(status, createdAt)`
+      `CREATE INDEX IF NOT EXISTS idx_chat_messages_status
+       ON chat_messages(chatId, threadId, status, postedAt)`
     );
     this.db.run(
-      `CREATE INDEX IF NOT EXISTS idx_feedback_platform ON feedback(platform, platformId)`
+      `CREATE INDEX IF NOT EXISTS idx_chat_messages_platform_message
+       ON chat_messages(platform, chatId, messageId)`
+    );
+    this.db.run(
+      `CREATE INDEX IF NOT EXISTS idx_chat_message_attachments_message
+       ON chat_message_attachments(chatMessageId, ordinal)`
     );
 
     this.db.run(`
@@ -317,6 +419,7 @@ class DB {
     this.ensureColumn("funding_intents", "providerSessionId", "TEXT");
     this.ensureColumn("funding_intents", "providerPaymentId", "TEXT");
     this.ensureColumn("funding_intent_events", "providerEventId", "TEXT");
+    this.ensureColumn("users", "locale", "TEXT");
 
     this.db.run(
       `CREATE UNIQUE INDEX IF NOT EXISTS idx_funding_intents_funding_tx_hash
@@ -342,11 +445,11 @@ class DB {
       `CREATE INDEX IF NOT EXISTS idx_funding_intent_events_intent
        ON funding_intent_events(intentId, createdAt)`
     );
-    this.db.run("PRAGMA user_version = 2");
+    this.db.run("PRAGMA user_version = 3");
   }
 
   private ensureColumn(
-    table: "funding_intents" | "funding_intent_events",
+    table: "funding_intents" | "funding_intent_events" | "users",
     column: string,
     definition: string
   ): void {
@@ -370,6 +473,7 @@ class DB {
       address: string;
       currentGarden: string | null;
       role: string | null;
+      locale: string | null;
       createdAt: number;
     } | null;
 
@@ -387,6 +491,7 @@ class DB {
       address: row.address,
       currentGarden: row.currentGarden ?? undefined,
       role: row.role as User["role"],
+      locale: row.locale ?? undefined,
       createdAt: row.createdAt,
     };
   }
@@ -416,8 +521,8 @@ class DB {
 
     this.db
       .query(
-        `INSERT INTO users (platform, platformId, privateKey, address, currentGarden, role, createdAt)
-         VALUES (?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO users (platform, platformId, privateKey, address, currentGarden, role, locale, createdAt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(
         input.platform,
@@ -426,6 +531,7 @@ class DB {
         input.address,
         input.currentGarden ?? null,
         input.role ?? "gardener",
+        input.locale ?? null,
         createdAt
       );
 
@@ -436,6 +542,7 @@ class DB {
       address: input.address,
       currentGarden: input.currentGarden,
       role: input.role ?? "gardener",
+      locale: input.locale,
       createdAt,
     };
   }
@@ -443,7 +550,7 @@ class DB {
   async updateUser(
     platform: Platform,
     platformId: string,
-    update: Partial<Pick<User, "currentGarden" | "role">>
+    update: Partial<Pick<User, "currentGarden" | "role" | "locale">>
   ): Promise<void> {
     const setClauses: string[] = [];
     const values: (string | null)[] = [];
@@ -455,6 +562,10 @@ class DB {
     if (update.role !== undefined) {
       setClauses.push("role = ?");
       values.push(update.role ?? null);
+    }
+    if (update.locale !== undefined) {
+      setClauses.push("locale = ?");
+      values.push(update.locale ?? null);
     }
 
     if (setClauses.length === 0) return;
@@ -474,6 +585,7 @@ class DB {
       address: string;
       currentGarden: string | null;
       role: string | null;
+      locale: string | null;
       createdAt: number;
     } | null;
 
@@ -487,6 +599,7 @@ class DB {
       address: row.address,
       currentGarden: row.currentGarden ?? undefined,
       role: row.role as User["role"],
+      locale: row.locale ?? undefined,
       createdAt: row.createdAt,
     };
   }
@@ -689,107 +802,251 @@ class DB {
   }
 
   // ==========================================================================
-  // FEEDBACK
+  // CHAT MESSAGES (silent topic capture)
   // ==========================================================================
 
-  async addFeedback(feedback: Omit<Feedback, "createdAt" | "updatedAt">): Promise<Feedback> {
+  async addChatMessage(
+    input: NewChatMessageInput,
+    attachments: NewChatMessageAttachmentInput[] = []
+  ): Promise<ChatMessage> {
     const now = Date.now();
-    this.db
-      .query(
-        `INSERT INTO feedback (id, type, status, text, platform, platformId, displayName, gardenAddress, createdAt, updatedAt)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-      )
-      .run(
-        feedback.id,
-        feedback.type,
-        feedback.status,
-        feedback.text,
-        feedback.platform,
-        feedback.platformId,
-        feedback.displayName ?? null,
-        feedback.gardenAddress ?? null,
-        now,
-        now
-      );
+    const persistedAttachments: ChatMessageAttachment[] = [];
 
-    return { ...feedback, createdAt: now, updatedAt: now };
-  }
+    try {
+      this.db.run("BEGIN");
 
-  async getFeedback(id: string): Promise<Feedback | undefined> {
-    const row = this.db.query("SELECT * FROM feedback WHERE id = ?").get(id) as {
-      id: string;
-      type: string;
-      status: string;
-      text: string;
-      platform: string;
-      platformId: string;
-      displayName: string | null;
-      gardenAddress: string | null;
-      createdAt: number;
-      updatedAt: number;
-    } | null;
+      this.db
+        .query(
+          `INSERT INTO chat_messages (
+             id, platform, chatId, threadId, messageId, senderPlatformId, senderDisplayName,
+             text, replyToMessageId, inferredType, status, postedAt, updatedAt
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'new', ?, ?)`
+        )
+        .run(
+          input.id,
+          input.platform,
+          input.chatId,
+          input.threadId ?? null,
+          input.messageId,
+          input.senderPlatformId,
+          input.senderDisplayName ?? null,
+          input.text,
+          input.replyToMessageId ?? null,
+          input.inferredType,
+          input.postedAt,
+          now
+        );
 
-    if (!row) return undefined;
+      for (const att of attachments) {
+        const attachmentId = `${input.id}:${att.ordinal}`;
+        this.db
+          .query(
+            `INSERT INTO chat_message_attachments (
+               id, chatMessageId, ordinal, kind, telegramFileId, mimeType,
+               fileSize, duration, width, height, createdAt
+             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+          )
+          .run(
+            attachmentId,
+            input.id,
+            att.ordinal,
+            att.kind,
+            att.telegramFileId,
+            att.mimeType ?? null,
+            att.fileSize ?? null,
+            att.duration ?? null,
+            att.width ?? null,
+            att.height ?? null,
+            now
+          );
+        persistedAttachments.push({
+          id: attachmentId,
+          chatMessageId: input.id,
+          ordinal: att.ordinal,
+          kind: att.kind,
+          telegramFileId: att.telegramFileId,
+          mimeType: att.mimeType,
+          fileSize: att.fileSize,
+          duration: att.duration,
+          width: att.width,
+          height: att.height,
+          createdAt: now,
+        });
+      }
+
+      this.db.run("COMMIT");
+    } catch (error) {
+      try {
+        this.db.run("ROLLBACK");
+      } catch {
+        // Ignore rollback failure; preserve the original insert error.
+      }
+      throw error;
+    }
 
     return {
-      id: row.id,
-      type: row.type as FeedbackType,
-      status: row.status as FeedbackStatus,
-      text: row.text,
-      platform: row.platform as Platform,
-      platformId: row.platformId,
-      displayName: row.displayName ?? undefined,
-      gardenAddress: row.gardenAddress ?? undefined,
-      createdAt: row.createdAt,
-      updatedAt: row.updatedAt,
+      id: input.id,
+      platform: input.platform,
+      chatId: input.chatId,
+      threadId: input.threadId,
+      messageId: input.messageId,
+      senderPlatformId: input.senderPlatformId,
+      senderDisplayName: input.senderDisplayName,
+      text: input.text,
+      replyToMessageId: input.replyToMessageId,
+      inferredType: input.inferredType,
+      status: "new",
+      postedAt: input.postedAt,
+      updatedAt: now,
+      attachments: persistedAttachments,
     };
   }
 
-  async getNewFeedback(since?: number, type?: FeedbackType): Promise<Feedback[]> {
-    const defaultSince = Date.now() - 24 * 60 * 60 * 1000;
-    const sinceMs = since ?? defaultSince;
-
-    let query = "SELECT * FROM feedback WHERE status = 'new' AND createdAt >= ?";
-    const params: (string | number)[] = [sinceMs];
-
-    if (type) {
-      query += " AND type = ?";
-      params.push(type);
-    }
-
-    query += " ORDER BY createdAt ASC";
-
-    const rows = this.db.query(query).all(...params) as Array<{
-      id: string;
-      type: string;
-      status: string;
-      text: string;
-      platform: string;
-      platformId: string;
-      displayName: string | null;
-      gardenAddress: string | null;
-      createdAt: number;
-      updatedAt: number;
-    }>;
-
-    return rows.map((row) => ({
-      id: row.id,
-      type: row.type as FeedbackType,
-      status: row.status as FeedbackStatus,
-      text: row.text,
-      platform: row.platform as Platform,
-      platformId: row.platformId,
-      displayName: row.displayName ?? undefined,
-      gardenAddress: row.gardenAddress ?? undefined,
-      createdAt: row.createdAt,
-      updatedAt: row.updatedAt,
-    }));
+  async getChatMessage(id: string): Promise<ChatMessage | undefined> {
+    const row = this.db
+      .query("SELECT * FROM chat_messages WHERE id = ?")
+      .get(id) as ChatMessageRow | null;
+    if (!row) return undefined;
+    const attachments = this.queryAttachmentsFor([row.id]);
+    return deserializeChatMessage(row, attachments.get(row.id) ?? []);
   }
 
-  async updateFeedbackStatus(id: string, status: FeedbackStatus): Promise<void> {
+  async getNewChatMessages(filter: {
+    chatId?: string;
+    threadId?: string;
+    since?: number;
+    status?: ChatMessageStatus | "all";
+    inferredType?: CaptureType;
+    limit?: number;
+  }): Promise<ChatMessage[]> {
+    const status = filter.status ?? "new";
+    const limit = Math.min(Math.max(filter.limit ?? 100, 1), 500);
+
+    const clauses: string[] = [];
+    const params: (string | number)[] = [];
+
+    if (status !== "all") {
+      clauses.push("status = ?");
+      params.push(status);
+    }
+    if (filter.chatId) {
+      clauses.push("chatId = ?");
+      params.push(filter.chatId);
+    }
+    if (filter.threadId) {
+      clauses.push("threadId = ?");
+      params.push(filter.threadId);
+    }
+    if (filter.inferredType) {
+      clauses.push("inferredType = ?");
+      params.push(filter.inferredType);
+    }
+    if (filter.since !== undefined) {
+      clauses.push("postedAt >= ?");
+      params.push(filter.since);
+    }
+
+    const where = clauses.length > 0 ? ` WHERE ${clauses.join(" AND ")}` : "";
+    const sql = `SELECT * FROM chat_messages${where} ORDER BY postedAt ASC LIMIT ?`;
+    params.push(limit);
+
+    const rows = this.db.query(sql).all(...params) as ChatMessageRow[];
+    if (rows.length === 0) return [];
+
+    const attachments = this.queryAttachmentsFor(rows.map((r) => r.id));
+    return rows.map((row) => deserializeChatMessage(row, attachments.get(row.id) ?? []));
+  }
+
+  async updateChatMessageStatus(id: string, status: ChatMessageStatus): Promise<void> {
     this.db
-      .query("UPDATE feedback SET status = ?, updatedAt = ? WHERE id = ?")
+      .query("UPDATE chat_messages SET status = ?, updatedAt = ? WHERE id = ?")
       .run(status, Date.now(), id);
+  }
+
+  async claimChatMessage(
+    id: string,
+    staleProcessingBefore: number,
+    now = Date.now()
+  ): Promise<boolean> {
+    const result = this.db
+      .query(
+        `UPDATE chat_messages
+         SET status = 'processing', updatedAt = ?
+         WHERE id = ? AND (status = 'new' OR (status = 'processing' AND updatedAt < ?))`
+      )
+      .run(now, id, staleProcessingBefore);
+
+    return result.changes > 0;
+  }
+
+  async getChatMessageAttachment(
+    chatMessageId: string,
+    ordinal: number
+  ): Promise<ChatMessageAttachment | undefined> {
+    const row = this.db
+      .query("SELECT * FROM chat_message_attachments WHERE chatMessageId = ? AND ordinal = ?")
+      .get(chatMessageId, ordinal) as ChatMessageAttachmentRow | null;
+    if (!row) return undefined;
+    return deserializeChatMessageAttachment(row);
+  }
+
+  /**
+   * Delete terminal chat_messages rows older than `cutoffMs`.
+   * Cascade deletes attachments via the FK constraint.
+   *
+   * Stale `new` rows signal a routine outage. Stale `processing` rows signal a
+   * crashed run and can be reclaimed by PATCHing `processing` after the lock
+   * timeout.
+   */
+  async sweepStaleChatMessages(cutoffMs: number): Promise<{
+    pruned: number;
+    staleNew: number;
+    staleProcessing: number;
+  }> {
+    const prunableRows = this.db
+      .query(
+        "SELECT id FROM chat_messages WHERE status IN ('triaged', 'rejected') AND postedAt < ?"
+      )
+      .all(cutoffMs) as Array<{ id: string }>;
+
+    this.db
+      .query("DELETE FROM chat_messages WHERE status IN ('triaged', 'rejected') AND postedAt < ?")
+      .run(cutoffMs);
+
+    const staleNewRow = this.db
+      .query("SELECT COUNT(*) AS count FROM chat_messages WHERE status = 'new' AND postedAt < ?")
+      .get(cutoffMs) as { count: number } | null;
+
+    const staleProcessingRow = this.db
+      .query(
+        "SELECT COUNT(*) AS count FROM chat_messages WHERE status = 'processing' AND updatedAt < ?"
+      )
+      .get(cutoffMs) as { count: number } | null;
+
+    return {
+      pruned: prunableRows.length,
+      staleNew: staleNewRow?.count ?? 0,
+      staleProcessing: staleProcessingRow?.count ?? 0,
+    };
+  }
+
+  private queryAttachmentsFor(messageIds: string[]): Map<string, ChatMessageAttachment[]> {
+    const byMessage = new Map<string, ChatMessageAttachment[]>();
+    if (messageIds.length === 0) return byMessage;
+
+    const placeholders = messageIds.map(() => "?").join(", ");
+    const rows = this.db
+      .query(
+        `SELECT * FROM chat_message_attachments WHERE chatMessageId IN (${placeholders}) ORDER BY chatMessageId, ordinal ASC`
+      )
+      .all(...messageIds) as ChatMessageAttachmentRow[];
+
+    for (const row of rows) {
+      const list = byMessage.get(row.chatMessageId) ?? [];
+      list.push(deserializeChatMessageAttachment(row));
+      byMessage.set(row.chatMessageId, list);
+    }
+    return byMessage;
   }
 
   // ==========================================================================
@@ -914,7 +1171,7 @@ export const createUser = (input: CreateUserInput) => getDB().createUser(input);
 export const updateUser = (
   platform: Platform,
   platformId: string,
-  update: Partial<Pick<User, "currentGarden" | "role">>
+  update: Partial<Pick<User, "currentGarden" | "role" | "locale">>
 ) => getDB().updateUser(platform, platformId, update);
 export const getOperatorForGarden = (gardenAddress: string) =>
   getDB().getOperatorForGarden(gardenAddress);
@@ -938,13 +1195,21 @@ export const claimIdempotencyKey = (input: ClaimIdempotencyInput) =>
 export const completeIdempotencyKey = (key: string, response: OutboundResponse) =>
   getDB().completeIdempotencyKey(key, response);
 
-export const addFeedback = (feedback: Omit<Feedback, "createdAt" | "updatedAt">) =>
-  getDB().addFeedback(feedback);
-export const getFeedback = (id: string) => getDB().getFeedback(id);
-export const getNewFeedback = (since?: number, type?: FeedbackType) =>
-  getDB().getNewFeedback(since, type);
-export const updateFeedbackStatus = (id: string, status: FeedbackStatus) =>
-  getDB().updateFeedbackStatus(id, status);
+export const addChatMessage = (
+  input: NewChatMessageInput,
+  attachments?: NewChatMessageAttachmentInput[]
+) => getDB().addChatMessage(input, attachments);
+export const getChatMessage = (id: string) => getDB().getChatMessage(id);
+export const getNewChatMessages = (filter: Parameters<DB["getNewChatMessages"]>[0]) =>
+  getDB().getNewChatMessages(filter);
+export const updateChatMessageStatus = (id: string, status: ChatMessageStatus) =>
+  getDB().updateChatMessageStatus(id, status);
+export const claimChatMessage = (id: string, staleProcessingBefore: number, now?: number) =>
+  getDB().claimChatMessage(id, staleProcessingBefore, now);
+export const getChatMessageAttachment = (chatMessageId: string, ordinal: number) =>
+  getDB().getChatMessageAttachment(chatMessageId, ordinal);
+export const sweepStaleChatMessages = (cutoffMs: number) =>
+  getDB().sweepStaleChatMessages(cutoffMs);
 
 export const createFundingIntent = (record: FundingIntentRecord) =>
   getDB().createFundingIntent(record);

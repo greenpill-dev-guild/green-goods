@@ -13,14 +13,22 @@ type CanvasRouteHeaderProps = ComponentProps<typeof PageHeader> & {
   wrapperClassName?: string;
 };
 
-export const DEFAULT_CANVAS_ROUTE_HEADER_WIDTH = "max-w-6xl";
-
+// Canonical canvas gutter and max-width live on `<main className="main-scroll-area">`
+// in CanvasLayout. CanvasRouteFrame renders the per-view outer card (`canvas-route-card`)
+// that wraps PageHeader + content with reference-spec internal padding (16/28/40px).
+// CanvasRouteContent renders flush inside the card; pass `maxWidthClassName` only when
+// a view wants to narrow inward (e.g. forms at `max-w-6xl`).
 export const CanvasRouteFrame = forwardRef<HTMLDivElement, CanvasRouteFrameProps>(
   (
     { children, className, "data-component": dataComponent = "CanvasRouteFrame", ...frameProps },
     ref
   ) => (
-    <div ref={ref} data-component={dataComponent} {...frameProps} className={cn("pb-6", className)}>
+    <div
+      ref={ref}
+      data-component={dataComponent}
+      {...frameProps}
+      className={cn("canvas-route-card", className)}
+    >
       {children}
     </div>
   )
@@ -33,7 +41,7 @@ export function CanvasRouteContent({
   className,
   "data-component": dataComponent = "CanvasRouteContent",
   "data-region": dataRegion = "route-content",
-  maxWidthClassName = DEFAULT_CANVAS_ROUTE_HEADER_WIDTH,
+  maxWidthClassName,
   ...contentProps
 }: CanvasRouteContentProps) {
   return (
@@ -41,7 +49,12 @@ export function CanvasRouteContent({
       data-component={dataComponent}
       data-region={dataRegion}
       {...contentProps}
-      className={cn("mx-auto w-full px-4 sm:px-6", maxWidthClassName, className)}
+      className={cn(
+        "w-full",
+        maxWidthClassName ? "mx-auto" : undefined,
+        maxWidthClassName,
+        className
+      )}
     >
       {children}
     </div>
@@ -49,7 +62,7 @@ export function CanvasRouteContent({
 }
 
 export function CanvasRouteHeader({
-  maxWidthClassName = DEFAULT_CANVAS_ROUTE_HEADER_WIDTH,
+  maxWidthClassName,
   wrapperClassName,
   ...headerProps
 }: CanvasRouteHeaderProps) {

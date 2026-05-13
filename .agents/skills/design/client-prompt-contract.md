@@ -48,7 +48,7 @@ The categories below are contract-specific framing — *why* client output shoul
 ## Materials & Motion (client)
 
 - **Full Warm Earth expression** is permitted — capsule + squircle + concentric shapes, spring motion, hero moments, expressive color.
-- **Glass material is allowed across client surfaces**, unlike admin where glass is restricted to the admin `AppBar`. Match thickness to content density (see [materials.md](./materials.md)).
+- **Glass material is allowed across client surfaces**, unlike admin where glass is restricted to Navigation/FAB and sheet shells while the admin `AppBar` root stays transparent. Match thickness to content density (see [materials.md](./materials.md)).
 - **Spring motion is the default easing** — never hardcoded cubic-bezier or duration values.
 - **Typography** — Inter across the PWA. Editorial serif (Fraunces/Lora/Newsreader) only on the public browser site, never in the installed PWA.
 - **Succession-aware** — pioneer gardens get simple hero moments, climax gardens get full expression.
@@ -81,13 +81,15 @@ The client speaks **to the community, about the work**. The admin speaks **about
 
 AI design tools MUST map generated output to these existing exports. Do not invent component names — flag missing primitives instead.
 
-**Shell** (`packages/client/src/components/`):
+**Shell routes and components** (`packages/client/src/routes/`, `packages/client/src/components/`):
 
 | Component | Role |
 |-----------|------|
-| `PlatformRouter` | `isInstalled` detection — PWA → `/home`, browser → `/gardens` |
-| `SiteHeader` | Browser mode — hamburger (mobile) + horizontal links (desktop), sticky, backdrop blur |
-| `AppBar` | Installed PWA — bottom nav (Home / Garden / Profile), hides on `/garden` and `/work/:id` |
+| `requireWebsitePresentationLoader` / `requirePwaPresentationLoader` | Presentation-mode route guards — browser stays on public routes, PWA routes to `/home` |
+| `PublicShell` | Browser mode route shell — `SiteHeader` + public route outlet |
+| `PwaRuntime` / `AppShell` | Installed/authenticated PWA runtime — providers, update notifier, scroll root, bottom `AppBar` |
+| `SiteHeader` | Browser mode — hamburger (mobile) + horizontal links (desktop), fixed transparent header that fades out on scroll; no backdrop blur |
+| `AppBar` | Installed PWA — bottom nav (Home / Garden / Profile), hides on `/home/garden` and `/home/:id/work/:workId` |
 | `SyncStatusBar` | Positioned above `AppBar`, reflects offline queue state |
 
 **Shared primitives** (import from `@green-goods/shared`):
@@ -108,7 +110,7 @@ AI design tools MUST map generated output to these existing exports. Do not inve
 
 **Hero moment amplification** (garden creation, first work submission, hypercert mint, vault deposit, seasonal transitions, assessment completion, role milestone):
 - Apply full Warm Earth amplification: expressive shape × full chroma × Expressive motion scheme × display typography × dramatic material.
-- Spec and list: `.claude/skills/design/language.md § Hero Moments`.
+- Spec and list: `.agents/skills/design/language.md § Hero Moments`.
 - **Never appear in admin** — see `prompt-contract.md § Hero Moments Live in the Client, Not the Cockpit`.
 
 **Reference composition**: browser `/gardens` marketplace, PWA `/home` Work/Garden/Profile tabs. Model new client surfaces on them.

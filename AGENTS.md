@@ -28,6 +28,24 @@ their subtree.
 - Any new user-facing string must be added to `en`, `es`, and `pt`.
 - Respect build dependency order: contracts -> shared -> indexer -> client/admin/agent.
 
+## Linear Workspace
+
+Linear (workspace `greenpill-dev-guild`) is the durable backlog as of 2026-05-09. GitHub is for PRs and code review only — never open GitHub Issues for backlog work. Routine and label-scheme details: `docs/routines/README.md`. Live workspace state (active initiatives, projects, customers, cycle status) — query the Linear MCP at the time you need it; do not hardcode it here, it drifts.
+
+**Teams**: Product (`PRD`) and Research (`RESR`). Workflow states are asymmetric — Product has `QA` and `Ready` as backlog states (no Triage); Research has a `Triage` state (no QA/Ready). Matters when filtering or transitioning issues.
+
+**Records**: `Customer Need` (raw signal, structured body) → `Issue` (accepted work). `.plans/` remains execution truth for agent implementation; Linear mirrors carry the `source:plans` label.
+
+**Project routing**: new Issues default unprojected on the Product team. Graduate into a bounded active project only when one already exists for the work; never route new work into a project whose status is Completed.
+
+**Canonical label families** (only these): `protocol:* / package:* / activity:* / task:* / source:* / agent:* / funding:*`. Retired and not to be reintroduced: `area:*`, `work:*`, `automation:*`, `health:*`, `grant:*`. The `agent:*` family distinguishes `agent:claude` (interactive Claude Code), `agent:codex` (Codex), and `agent:routine` (cron'd routine writes) — they are not synonymous.
+
+**Cloud routines that write Linear** (cron'd at claude.ai/code/routines, per-routine docs in `docs/routines/`): `bug-intake`, `health-watch`, `growth-pulse`. Codex does not run these — they are Claude Code routines. Codex consumes the Linear surface they produce.
+
+**Linear MCP** is wired into the Codex environment; it is the same Linear MCP that Claude Code uses. No project `.mcp.json` config needed. Use it for read/query, triage/promote, state transitions, and branch-context loading.
+
+**Privacy boundary** (PostHog evidence in Linear bodies): error message + hash + counts OK; replay URLs, session IDs, distinct IDs, wallet addresses, and reporter identifiers stay out.
+
 ## Codex Workflow
 
 1. Read the nearest `AGENTS.md`.
@@ -70,6 +88,28 @@ This repo runs multiple concurrent Codex/Claude sessions on the same tree and `d
 
 Before reporting that a fix works, a setting takes effect, or a behavior holds, produce evidence in the same turn — the command output, the passing test, the rendered DOM, the re-read file showing the change. "Should work", "probably fixed", and unrun commands are not evidence. If a CLI flag is unfamiliar, read `--help` or the source before invoking it; do not invent flags. If you cannot verify (no test, no live DOM, no observable signal), say "I can't verify this without X" and stop rather than declaring success. Untested fixes and hallucinated commands have produced more reverts in this repo than any other failure mode.
 
+## User-Observed UI Regression Debugging
+
+Bug reports trigger the repo debug skill automatically. When the reported symptom is something the
+user can see or touch — cannot click, cannot select, missing selected border/state, collapsed or
+blank cards, invisible content, broken scroll/refresh, visible-but-unusable controls — start from
+the rendered surface before tracing data flow.
+
+Required first pass:
+
+1. Reproduce or simulate the exact visible/clickable symptom using the real component path.
+2. Inspect DOM geometry and computed styles: bounding rect, width/height, opacity, display,
+   pointer-events, z-index, overflow, disabled state, selected classes, and border/ring styles.
+3. Verify whether the interaction changes state after click/tap.
+4. Trace visible element → card/button/input → wrapper/carousel/sheet/dialog → state setter.
+5. Check recent commits for the affected component and wrapper with `git log --follow` or focused
+   `git show`.
+
+Only move into providers, query hooks, auth, or indexer/data explanations after proving the
+rendered surface is intact. If text/data exists in the DOM but the control is collapsed,
+invisible, untappable, or lacks selected visual state, treat it as a component/CSS regression until
+browser or DOM evidence proves otherwise.
+
 ## Admin UI Defaults
 
 - For `packages/admin`, read `docs/docs/builders/packages/admin.mdx` alongside `packages/admin/AGENTS.md`; it is the active UI contract.
@@ -80,9 +120,9 @@ Before reporting that a fix works, a setting takes effect, or a behavior holds, 
 
 ## Design Language (Warm Earth)
 
-Single design language across all frontend packages, two dialects. Full detail in `.claude/skills/design/`. One-page map: `.claude/skills/design/ARCHITECTURE.md`.
+Single design language across frontend packages, with distinct admin, installed PWA, public browser, and docs surfaces. Full detail in `.claude/skills/design/`. One-page map: `.claude/skills/design/ARCHITECTURE.md`.
 
-**Admin** (`packages/admin`) — restrained operator cockpit. M3 strict anatomy (v0.192). Plus Jakarta Sans. Glass only on the admin `AppBar`. Use `Admin*` wrappers from `packages/admin/src/components/Admin*.tsx` (13 total: `AdminBadge`, `AdminButton`, `AdminCard`, `AdminCheckbox`, `AdminDialog`, `AdminFab`, `AdminFilterChip`, `AdminLinearProgress`, `AdminListItem`, `AdminSearchToolbar`, `AdminTabRail`, `AdminTextField`, `AdminTooltip`). Litmus: Linear / GitHub / Stripe-appropriate?
+**Admin** (`packages/admin`) — restrained operator cockpit. M3 strict anatomy (v0.192). Plus Jakarta Sans. The admin `AppBar` root stays transparent over the workspace canvas; glass is reserved for Navigation/FAB and sheet shells. Use `Admin*` wrappers from `packages/admin/src/components/Admin*.tsx` (13 total: `AdminBadge`, `AdminButton`, `AdminCard`, `AdminCheckbox`, `AdminDialog`, `AdminFab`, `AdminFilterChip`, `AdminLinearProgress`, `AdminListItem`, `AdminSearchToolbar`, `AdminTabRail`, `AdminTextField`, `AdminTooltip`). Litmus: Linear / GitHub / Stripe-appropriate?
 
 **Client** (`packages/client`) — adaptive shell. Browser = `SiteHeader` + hamburger. Installed PWA = bottom `AppBar` (Home / Garden / Profile). Never mix. Inter across PWA; editorial serif only on public browser site. Hero moments (garden creation, first submission, hypercert mint, vault deposit, seasonal transitions, assessment completion, role milestone) live here, never in admin.
 
@@ -90,7 +130,7 @@ Single design language across all frontend packages, two dialects. Full detail i
 
 **Banned vocabulary** (enforced in i18n by `bun run lint:vocab`):
 - Any surface: `streak`, `countdown`, `leaderboard`, `FOMO`.
-- Admin only: `hero moment`, `gallery`, `decorative gradient`, glass outside the admin `AppBar`.
+- Admin only: `hero moment`, `gallery`, `decorative gradient`, AppBar glass, glass outside Navigation/FAB and sheet shells.
 - Client only: `operator cockpit`, `utility copy`, `Plus Jakarta Sans`, `KPI tile`, `dashboard`.
 
 **Additional validation steps**: `bun run check:design-generated` (root DesignMD ↔ generated artifacts), `bun run check:design-tokens` (runtime projection guard + version coupling), `bun run lint:vocab`. Add these to the Validation Ladder for frontend work.
@@ -111,12 +151,13 @@ When you see a layout bug that "looks like" a missing class, first check: was th
 ## Validation Ladder
 
 - Codex drift check: `node scripts/quality/check-codex-docs.js`
+- Skill mirror check: `bun run check:skills`
 - Quick repo verification: `node scripts/dev/ci-local.js --quick`
 - Test-quality guardrail: `bash scripts/quality/check-test-quality.sh`
 - Lint check: `bun run format:check && bun lint`
 - Lint fix: `bun format && bun lint`
 - Full tests: `bun run test`
-- Full build: `VITE_CHAIN_ID=11155111 bun run build` _(Sepolia is the deterministic validation chain — overrides whatever is in your local `.env` so the build is reproducible across machines without requiring Arbitrum-specific deployment artifacts)_
+- Full build: `VITE_CHAIN_ID=11155111 bun run build` _(Sepolia is the deterministic validation chain — overrides local environment files so the build is reproducible across machines without requiring Arbitrum-specific deployment artifacts)_
 
 ## Package Guides
 
@@ -142,6 +183,15 @@ When Codex is running unattended maintenance work:
 - Project config: `.codex/config.toml`
 - Environment and actions: `.codex/environments/environment.toml`
 - Reference doc: `docs/docs/builders/agentic/codex.mdx`
+
+## Shared Skill Surface
+
+`.claude/skills` is the canonical repo skill source. `.agents/skills` is a generated Codex-visible mirror, not a hand-edited tree.
+
+- Update `.claude/skills` first when changing shared skills.
+- Run `bun run skills:sync` after skill edits to regenerate `.agents/skills`.
+- Run `bun run check:skills` before claiming the skill surface is aligned.
+- Do not replace `.agents/skills` with a symlink. A symlink hides drift, but it also lets accidental Codex skill imports write directly into the canonical Claude tree.
 
 ## Scripts
 

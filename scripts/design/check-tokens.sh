@@ -15,6 +15,7 @@ cd "$REPO_ROOT"
 CANONICAL_DESIGN="DESIGN.md"
 GENERATED_CSS="packages/shared/src/styles/design-md.generated.css"
 IMPL="packages/shared/src/styles/theme.css"
+ADMIN_M3_TOKENS="packages/admin/src/styles/admin-m3-tokens.css"
 USAGE_BASELINE="scripts/data/design-token-usage-baseline.tsv"
 BASELINE_EXPIRY_MAX_DAYS=250
 
@@ -28,6 +29,10 @@ if [[ ! -f "$GENERATED_CSS" ]]; then
 fi
 if [[ ! -f "$IMPL" ]]; then
   echo "❌ Impl not found: $IMPL"
+  exit 2
+fi
+if [[ ! -f "$ADMIN_M3_TOKENS" ]]; then
+  echo "❌ Admin M3 token source not found: $ADMIN_M3_TOKENS"
   exit 2
 fi
 
@@ -99,6 +104,48 @@ if [[ ${#MISSING_GENERATED[@]} -gt 0 ]]; then
   printf '  %s\n' "${MISSING_GENERATED[@]}"
   echo
   echo "Update root $CANONICAL_DESIGN and run bun run design:generate."
+  exit 1
+fi
+
+# Admin M3 semantic variables must be defined before component code can consume
+# them. Otherwise Tailwind arbitrary values such as `bg-[rgb(var(--m3-...))]`
+# silently drop in the browser and can produce dark-on-dark admin surfaces.
+collect_m3_var_usages() {
+  grep -RohE --include='*.ts' --include='*.tsx' --include='*.css' \
+    --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=build \
+    --exclude-dir=storybook-static --exclude-dir=coverage \
+    'var\(--m3-[A-Za-z0-9_-]+' packages/admin/src packages/shared/src 2>/dev/null \
+    | sed -E 's/var\((--m3-[A-Za-z0-9_-]+)/\1/' \
+    | sort -u
+}
+
+M3_DEFINITION_FILES=(
+  "$IMPL"
+  "$ADMIN_M3_TOKENS"
+  "packages/admin/src/index.css"
+  "packages/admin/src/styles/admin-m3-overrides.css"
+)
+
+MISSING_M3_DEFS=()
+while IFS= read -r token; do
+  [[ -z "$token" ]] && continue
+  defined=false
+  for definition_file in "${M3_DEFINITION_FILES[@]}"; do
+    if grep -q "^[[:space:]]*${token}:" "$definition_file"; then
+      defined=true
+      break
+    fi
+  done
+  if [[ "$defined" == false ]]; then
+    MISSING_M3_DEFS+=("$token")
+  fi
+done < <(collect_m3_var_usages)
+
+if [[ ${#MISSING_M3_DEFS[@]} -gt 0 ]]; then
+  echo "❌ Admin M3 variables are used but not defined:"
+  printf '  %s\n' "${MISSING_M3_DEFS[@]}"
+  echo
+  echo "Define admin M3 roles in $ADMIN_M3_TOKENS or remove the undefined usage."
   exit 1
 fi
 
@@ -216,6 +263,7 @@ collect_usage_hits() {
     | grep -Ev 'cubic-bezier\([^)]*var\(' \
     | grep -Ev 'duration-\[var\(' \
     | grep -Ev 'rounded-\[var\(' \
+    | grep -Evi 'react error #[0-9]{3,8}' \
     | sed -E 's#^([^:]+):[0-9]+:[[:space:]]*#\1	#' \
     | sed -E 's#[[:space:]]+# #g; s#[[:space:]]+$##' \
     | sort -u
@@ -255,7 +303,37 @@ if [[ -n "$STALE_BASELINE" ]]; then
   exit 1
 fi
 
+ADMIN_CHROME_ALLOWLIST_REGEX='(packages/admin/src/index\.css|packages/admin/src/styles/admin-m3-overrides\.css|packages/admin/src/styles/admin-m3-tokens\.css)'
+ADMIN_CHROME_PATTERN='glass-(ground|raised|floating|overlay|surface)|backdrop-blur|backdrop-filter|linear-gradient\('
+
+collect_admin_chrome_violations() {
+  grep -RInE --include='*.ts' --include='*.tsx' --include='*.css' \
+    --exclude='*.stories.tsx' --exclude='*.stories.ts' \
+    --exclude='*.test.tsx' --exclude='*.test.ts' \
+    --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=build \
+    --exclude-dir=storybook-static --exclude-dir=.next --exclude-dir=coverage \
+    "$ADMIN_CHROME_PATTERN" packages/admin/src 2>/dev/null \
+    | grep -Ev "$ADMIN_CHROME_ALLOWLIST_REGEX" \
+    | sed -E 's#^([^:]+):[0-9]+:[[:space:]]*#\1	#' \
+    | sed -E 's#[[:space:]]+# #g; s#[[:space:]]+$##' \
+    | sort -u
+}
+
+ADMIN_CHROME_VIOLATIONS="$(collect_admin_chrome_violations || true)"
+if [[ -n "$ADMIN_CHROME_VIOLATIONS" ]]; then
+  echo "❌ Admin Controlled Chrome violation found:"
+  echo "$ADMIN_CHROME_VIOLATIONS" | sed 's/^/  /'
+  echo
+  echo "Admin glass/backdrop blur and decorative gradients must stay in the approved chrome contract: Navigation/FAB and sheet shells via packages/admin/src/index.css or admin-m3-overrides.css; the AppBar root stays transparent."
+  echo "Route cards, forms, tables, records, and dense content must use solid semantic surfaces."
+  exit 1
+fi
+
+node scripts/design/check-css-custom-properties.mjs
+
 echo "✅ check-design-tokens: ${#EXPECTED_TOKENS[@]} runtime tokens present in theme.css."
 echo "✅ DesignMD radius outputs present in $GENERATED_CSS."
+echo "✅ admin M3 variable usages resolve to defined tokens."
 echo "✅ no new raw cubic-bezier, duration, color, radius literals, or primitive palette utilities outside token-definition or audited baseline files."
+echo "✅ admin Controlled Chrome guard passed: glass/blur/gradients stay in approved shell CSS."
 echo "✅ token_version coupled across design skill, ui skill, and registry (${DESIGN_VER})."

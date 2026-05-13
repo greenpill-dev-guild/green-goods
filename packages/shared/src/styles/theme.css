@@ -83,6 +83,23 @@
   initial-value: rgba(51, 51, 51, 0.24);
 }
 
+/* Scrim — dim layer behind any modal/sheet/dialog. The single source of
+ * truth for PWA dialog backdrops. --color-scrim is the standard;
+ * --color-scrim-obscure is for full-attention surfaces (image viewers).
+ * Registered via @property so Tailwind's @theme tree-shaking can't prune
+ * them — the consumers reference these via inline styles, which Tailwind
+ * does not scan. */
+@property --color-scrim {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: rgba(12, 10, 9, 0.22);
+}
+@property --color-scrim-obscure {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: rgb(12, 10, 9);
+}
+
 /* CSS Cascade Layers - ensures predictable specificity order
  * theme < base < components < utilities
  * This prevents specificity wars with Radix UI and other libraries
@@ -393,6 +410,22 @@
   --success-base: var(--green-500);
   --success-light: var(--green-200);
   --success-lighter: var(--green-50);
+
+  /* Action domain palette (RGB triplets).
+   * Per-domain ink + soft surface backgrounds for chips, plates, and accent
+   * rules across public editorial, client PWA, and admin work filters. Mode-
+   * agnostic on purpose — the soft pastels read fine on either light or dark
+   * mode and we don't want a parallel dark ladder. The @theme block below
+   * exposes these as Tailwind utilities (bg-domain-solar, text-domain-waste,
+   * border-domain-education, bg-domain-agro-soft, etc.). */
+  --domain-solar-rgb: 200 148 31; /* golden amber */
+  --domain-solar-soft-rgb: 248 237 224; /* pale amber */
+  --domain-agro-rgb: 62 85 50; /* deep moss */
+  --domain-agro-soft-rgb: 234 239 226; /* pale sage */
+  --domain-education-rgb: 46 79 107; /* harbour blue */
+  --domain-education-soft-rgb: 226 234 240; /* pale harbour */
+  --domain-waste-rgb: 155 60 45; /* terracotta */
+  --domain-waste-soft-rgb: 244 232 226; /* pale terracotta */
 
   --away-dark: var(--yellow-950);
   --away-base: var(--yellow-500);
@@ -1390,7 +1423,12 @@
   --color-bg-soft-200: rgb(var(--bg-soft-200));
   --color-bg-weak-50: rgb(var(--bg-weak-50));
   --color-bg-white-0: rgb(var(--bg-white-0));
-  /* Semantic aliases (unsuffixed) */
+  /* Semantic aliases (unsuffixed). DEPRECATED for new code — prefer the
+   * suffixed forms above (e.g. `bg-bg-white-0`). Kept for back-compat with
+   * admin consumers; will be removed in the next theme rev. Audit
+   * 2026-05-05 found that mixing dialects in the same file made review
+   * noise high without changing pixels — see
+   * `.plans/active/client-pwa-audit/lanes/03-color-palette.md` C1. */
   --color-bg-strong: var(--color-bg-strong-950);
   --color-bg-surface: var(--color-bg-surface-800);
   --color-bg-sub: var(--color-bg-sub-300);
@@ -1404,7 +1442,7 @@
   --color-text-soft-400: rgb(var(--text-soft-400));
   --color-text-disabled-300: rgb(var(--text-disabled-300));
   --color-text-white-0: rgb(var(--text-white-0));
-  /* Semantic aliases (unsuffixed) */
+  /* Semantic aliases (unsuffixed) — DEPRECATED, see note above. */
   --color-text-strong: var(--color-text-strong-950);
   --color-text-sub: var(--color-text-sub-600);
   --color-text-soft: var(--color-text-soft-400);
@@ -1416,7 +1454,7 @@
   --color-stroke-sub-300: rgb(var(--stroke-sub-300));
   --color-stroke-soft-200: rgb(var(--stroke-soft-200));
   --color-stroke-white-0: rgb(var(--stroke-white-0));
-  /* Semantic aliases (unsuffixed) */
+  /* Semantic aliases (unsuffixed) — DEPRECATED, see note above. */
   --color-stroke-strong: var(--color-stroke-strong-950);
   --color-stroke-sub: var(--color-stroke-sub-300);
   --color-stroke-soft: var(--color-stroke-soft-200);
@@ -1451,6 +1489,19 @@
   --color-success-base: rgb(var(--success-base));
   --color-success-light: rgb(var(--success-light));
   --color-success-lighter: rgb(var(--success-lighter));
+
+  /* Action domain palette — Tailwind utilities for solar / agro / education /
+   * waste. Backed by --domain-*-rgb / --domain-*-soft-rgb tokens above.
+   * Generates: bg-domain-solar, text-domain-solar, border-domain-solar,
+   * bg-domain-solar-soft, etc., for each of the four domains. */
+  --color-domain-solar: rgb(var(--domain-solar-rgb));
+  --color-domain-solar-soft: rgb(var(--domain-solar-soft-rgb));
+  --color-domain-agro: rgb(var(--domain-agro-rgb));
+  --color-domain-agro-soft: rgb(var(--domain-agro-soft-rgb));
+  --color-domain-education: rgb(var(--domain-education-rgb));
+  --color-domain-education-soft: rgb(var(--domain-education-soft-rgb));
+  --color-domain-waste: rgb(var(--domain-waste-rgb));
+  --color-domain-waste-soft: rgb(var(--domain-waste-soft-rgb));
 
   /* Away */
   --color-away-dark: rgb(var(--away-dark));
@@ -1688,6 +1739,8 @@
   .workspace-canvas-grid {
     --canvas-right-sheet-width: clamp(320px, 28vw, 480px);
     --canvas-right-sheet-width-wide: clamp(420px, 36vw, 640px);
+    --canvas-left-sheet-width: clamp(320px, 28vw, 480px);
+    --canvas-left-sheet-width-wide: clamp(420px, 36vw, 640px);
     display: grid;
     grid-template-areas:
       "top    top    top"
