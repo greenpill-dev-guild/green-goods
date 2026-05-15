@@ -28,7 +28,7 @@ Mirror [`docs/routines/bug-intake.md`](../../docs/routines/bug-intake.md) for th
 | `/qa-triage … --dry-run` | Print payloads instead of writing to Linear; still emit Sheet CSVs |
 | `/qa-triage … --no-codex` | Skip the Codex parallel pass (default is automatic dispatch) |
 | `/qa-triage … --no-sheet` | Skip the QA-sheet write branch entirely |
-| `/qa-triage … --fixture` | Use the synthetic fixture at `.claude/skills/qa-triage/fixtures/example-product-sync.md` as the source notes; pairs with `--dry-run` to validate the full phase flow without a real sync. **Never promote a `--fixture` run to a real write** — the fixture's Drive URL is synthetic and would leak the placeholder into Linear bodies. Fixture mode is validation-only. |
+| `/qa-triage … --fixture` | Use the synthetic fixture at `.agents/skills/qa-triage/fixtures/example-product-sync.md` as the source notes; pairs with `--dry-run` to validate the full phase flow without a real sync. **Never promote a `--fixture` run to a real write** — the fixture's Drive URL is synthetic and would leak the placeholder into Linear bodies. Fixture mode is validation-only. |
 
 ## Required surfaces
 
@@ -37,7 +37,7 @@ Mirror [`docs/routines/bug-intake.md`](../../docs/routines/bug-intake.md) for th
   - App `163591` for client PWA + editorial website
   - Admin `262122` for admin cockpit
   - Agent `262124` — not used by this skill
-  - Always call `switch-project` before any PostHog tool call (see [CLAUDE.md § PostHog](../../CLAUDE.md))
+  - Always call `switch-project` before any PostHog tool call (see [AGENTS.md § PostHog](../../AGENTS.md))
 - **Google Drive MCP** — `search_files`, `read_file_content`, `get_file_metadata`, `get_file_permissions` against the team Drive containing the Gemini-generated notes and the **Green Goods v1.1 QA** Sheet (file id `1IiviDIqwFM7gcD3oV48LwHNW5poCE-HmSCLtsLt3xBo`).
 - **Vercel MCP** — used for deploy correlation in Phase 3a-bis, gated on PostHog matches. Optional but recommended; without it, items lose the "this bug appeared with commit X by author Y" context.
 - **Codex CLI** at `/Applications/Codex.app/Contents/Resources/codex` — automatic background dispatch on every run unless `--no-codex` is set.

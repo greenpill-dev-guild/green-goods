@@ -8,7 +8,8 @@
     "review",
     "status",
     "clean",
-    "doc-feedback"
+    "doc-feedback",
+    "qa-triage"
   ],
   "skills": [
     {
@@ -123,6 +124,27 @@
         "privacy boundary"
       ],
       "dependencies": ["debug", "ops"]
+    },
+    {
+      "name": "qa-triage",
+      "status": "active",
+      "listed_in_index": true,
+      "default_mode": "interactive",
+      "user_invocable": true,
+      "intent": "Process Product Sync QA notes into scoped Linear Customer Need + Issue records and QA-sheet rows with PostHog, Linear, and Sheet cross-reference before writes",
+      "entry_file": ".claude/skills/qa-triage/SKILL.md",
+      "owned_skills": [],
+      "modes": ["default", "dry-run", "resume", "fixture"],
+      "triggers": [
+        "/qa-triage",
+        "QA sync",
+        "product sync QA",
+        "triage the QA bugs",
+        "file the bugs from the call",
+        "extract bugs from the sync notes",
+        "update the QA sheet with bugs"
+      ],
+      "dependencies": ["posthog-questions", "doc-feedback", "debug", "audit-then-ship"]
     },
     {
       "name": "review",
