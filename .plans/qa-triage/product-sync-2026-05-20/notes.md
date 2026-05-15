@@ -1,0 +1,1 @@
+/Users/afo/Code/greenpill/green-goods/.claude/skills/qa-triage/fixtures/example-product-sync.md

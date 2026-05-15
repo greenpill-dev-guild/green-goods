@@ -1,0 +1,18 @@
+{
+  "qa_sheet": {
+    "file_id": "1IiviDIqwFM7gcD3oV48LwHNW5poCE-HmSCLtsLt3xBo",
+    "title": "Green Goods v1.1 QA",
+    "tabs": [
+      "Guide",
+      "Summary",
+      "Public Website",
+      "PWA iOS",
+      "PWA Android",
+      "Admin Dashboard",
+      "Cross Surface",
+      "Defects"
+    ],
+    "defects_bootstrap_columns_present": true,
+    "last_permission_check": "2026-05-14T00:00:00Z"
+  }
+}

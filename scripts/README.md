@@ -82,6 +82,8 @@ scripts/
 | Script | Caller | Purpose |
 |---|---|---|
 | `posthog-query.ts` | `bug-intake` routine / debug skill | Read-only PostHog HogQL query surface for recent errors, error details, user sessions, recurring patterns, and bug-report matching; writes JSON to stdout and keeps replay links/user identifiers out of public issue evidence |
+| `qa-sheet-append.ts` | `qa-triage` skill (Phase 6 write path) | Thin client that POSTs Defects rows + Test-tab Defect Link backfills + column bootstrap to an Apps Script Web App deployed on the Green Goods v1.1 QA workbook. No Google Cloud Console, no OAuth, no service account — the Apps Script writes under the user's Google identity. Webhook URL + secrets cached at `~/.config/qa-triage/{webhook,webhook-secret,webhook-admin-secret}.txt`. Canonical Apps Script source at `~/.config/qa-triage/setup.md` (chmod 600, never in git); repo-side pointer: [`qa-sheet-webhook-setup.md`](agents/qa-sheet-webhook-setup.md) |
+| `qa-sheet-webhook-setup.md` | n/a | Repo-side pointer: tells you how to recreate `~/.config/qa-triage/setup.md` on a fresh machine. The canonical Apps Script source + both secrets live in that local file, never in git |
 
 ### `harness/` — skill and planning helpers
 | Script | Caller | Purpose |
