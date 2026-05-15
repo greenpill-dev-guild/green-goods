@@ -240,6 +240,14 @@ async function main(): Promise<void> {
     return;
   }
 
+  if (!args.dryRun && !payload.secret) {
+    throw new Error(
+      `Webhook shared secret missing at ${SECRET_PATH}. ` +
+        `Refusing to POST private QA rows without the constrained-op secret. ` +
+        `Create ${SECRET_PATH} from ~/.config/qa-triage/setup.md or pass --dry-run to inspect the payload locally.`,
+    );
+  }
+
   if (args.dryRun) {
     console.log("[dry-run] POST", url);
     console.log("[dry-run] body:");

@@ -14,6 +14,7 @@
 | **status** | `/status` | Resume and orient: branch state, blockers, continuity, and the next 1-3 moves |
 | **clean** | `/clean` | After findings are accepted: dispatch 8 parallel cleanup agents (use `--dry-run`, `--scope`, `--agents`) |
 | **doc-feedback** | `/doc-feedback [<docx-path>] [--mode in-repo\|out-of-repo]` | Process Google Doc review feedback for any GG doc (`docs/` drafts, research, grant proposals, product feedback) — parses comments + tracked-changes from a `.docx` export, triage gate locks scope, addresses items in-repo (edit repo files) or out-of-repo (write paste-ready `responses.md`); mode auto-inferred from title/filename |
+| **qa-triage** | `/qa-triage [notes-path\|slug\|qa-sync:YYYY-MM-DD] [--dry-run] [--no-codex] [--no-sheet] [--fixture]` | Process Product Sync QA notes into triaged Linear records and QA-sheet rows. Pulls notes from Drive or Downloads, cross-references PostHog/Linear/Sheet state, scope-locks filing decisions, then writes Customer Needs + Issues and appends Defects rows. |
 
 ---
 

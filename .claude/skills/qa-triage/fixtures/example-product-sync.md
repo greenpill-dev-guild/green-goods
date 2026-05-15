@@ -85,7 +85,7 @@ Afo floated letting operators duplicate a previous successful action as a templa
 - [ ] File the radio-button selected-state bug (Cross Surface, related to XPLAT-001)
 - [ ] File the glossary typo (Docs)
 - [ ] File the member-display bug (Cross-surface admin + indexer)
-- [ ] Capture the action-template duplication idea as an attach-Issue + Customer Need
+- [ ] Capture the action-template duplication idea as a track-only Issue + Customer Need
 
 ## Next sync
 

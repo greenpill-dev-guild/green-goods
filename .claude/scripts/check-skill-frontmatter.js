@@ -274,6 +274,7 @@ const expectedCanonicalCommands = new Set([
   "status",
   "clean",
   "doc-feedback",
+  "qa-triage",
 ]);
 let canonicalCommandNames = new Set();
 
