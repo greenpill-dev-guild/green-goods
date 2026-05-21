@@ -3,7 +3,6 @@ import {
   Confidence,
   ConfidenceSelector,
   ErrorBoundary,
-  formatAddress,
   logger,
   MethodSelector,
   parseAndFormatError,
@@ -11,6 +10,7 @@ import {
   toastService,
   uploadFileToIPFS,
   uploadJSONToIPFS,
+  useEnsName,
   useWorkApproval,
   type Work,
   type WorkApprovalDraft,
@@ -19,6 +19,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useIntl } from "react-intl";
+import { formatEnsAddressName } from "@/components/EnsAddressText";
 import {
   getDefaultMethodForDomain,
   ReviewSummary,
@@ -50,6 +51,8 @@ export function ReviewForm({
   onSuccess,
 }: ReviewFormProps) {
   const { formatMessage } = useIntl();
+  const { data: gardenerEnsName } = useEnsName(work.gardenerAddress);
+  const gardenerDisplayName = formatEnsAddressName(work.gardenerAddress, gardenerEnsName);
 
   const defaultMethod = getDefaultMethodForDomain(actionSlug);
   const isActionExpired = typeof actionEndTime === "number" && actionEndTime < Date.now();
@@ -351,7 +354,7 @@ export function ReviewForm({
                           "{gardener} will see this decision. This counts toward {garden}'s impact record.",
                       },
                       {
-                        gardener: formatAddress(work.gardenerAddress, { variant: "card" }),
+                        gardener: gardenerDisplayName,
                         garden: gardenName,
                       }
                     )}

@@ -1,13 +1,8 @@
-import {
-  type Address,
-  Alert,
-  DEFAULT_CHAIN_ID,
-  getNetworkConfig,
-  useTradeHistory,
-} from "@green-goods/shared";
+import { Alert, DEFAULT_CHAIN_ID, getNetworkConfig, useTradeHistory } from "@green-goods/shared";
 import { RiExternalLinkLine, RiHistoryLine, RiLoader4Line } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { formatEther } from "viem";
+import { EnsAddressWithCopy } from "@/components/EnsAddressText";
 
 interface TradeHistoryTableProps {
   hypercertId: bigint;
@@ -28,10 +23,6 @@ function formatTimestamp(timestamp: number): string {
     day: "numeric",
     year: "numeric",
   });
-}
-
-function truncateAddress(address: Address): string {
-  return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
 /**
@@ -128,8 +119,8 @@ export function TradeHistoryTable({
                 {formatUnits(trade.units)}
               </td>
               <td className="px-4 py-2.5 text-text-sub">{formatEther(trade.payment)} ETH</td>
-              <td className="px-4 py-2.5 text-text-soft font-mono text-xs">
-                {truncateAddress(trade.recipient)}
+              <td className="px-4 py-2.5 text-text-soft">
+                <EnsAddressWithCopy address={trade.recipient} labelClassName="text-xs" />
               </td>
               <td className="px-4 py-2.5 text-right">
                 {explorerUrl && trade.txHash ? (

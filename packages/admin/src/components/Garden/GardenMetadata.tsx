@@ -3,7 +3,6 @@ import {
   cn,
   getNetworkConfig,
   toastService,
-  truncateAddress,
   useCopyToClipboard,
 } from "@green-goods/shared";
 import {
@@ -14,6 +13,7 @@ import {
   RiWallet3Line,
 } from "@remixicon/react";
 import { useIntl } from "react-intl";
+import { EnsAddressText } from "@/components/EnsAddressText";
 
 interface GardenMetadataProps {
   gardenId: Address; // Garden smart account address
@@ -94,10 +94,8 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
           </span>
         </div>
         <div className="flex items-center gap-1.5 min-w-0">
-          <code className="flex-1 truncate text-xs font-mono text-text-strong sm:text-sm">
-            <span className="inline sm:hidden">{truncateAddress(gardenId)}</span>
-            <span className="hidden sm:inline md:hidden">{truncateAddress(gardenId, 10, 8)}</span>
-            <span className="hidden md:inline">{gardenId}</span>
+          <code className="flex-1 truncate text-xs text-text-strong sm:text-sm">
+            <EnsAddressText address={gardenId} />
           </code>
           <button
             onClick={() => copyGarden(gardenId)}
@@ -148,16 +146,8 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
           </span>
         </div>
         <div className="flex items-center gap-1.5 min-w-0">
-          <code className="flex-1 truncate text-xs font-mono text-text-strong sm:text-sm">
-            <span className="inline sm:hidden">
-              {truncateAddress(tokenAddress)} #{tokenId.toString()}
-            </span>
-            <span className="hidden sm:inline md:hidden">
-              {truncateAddress(tokenAddress, 10, 8)} #{tokenId.toString()}
-            </span>
-            <span className="hidden md:inline">
-              {tokenAddress} #{tokenId.toString()}
-            </span>
+          <code className="flex-1 truncate text-xs text-text-strong sm:text-sm">
+            <EnsAddressText address={tokenAddress} /> #{tokenId.toString()}
           </code>
           <button
             onClick={() => copyToken(`${tokenAddress}/${tokenId}`)}

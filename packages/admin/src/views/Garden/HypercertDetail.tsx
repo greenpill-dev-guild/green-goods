@@ -32,6 +32,7 @@ import {
   CanvasRouteFrame,
   CanvasRouteHeader,
 } from "@/components/Layout/CanvasRouteFrame";
+import { EnsAddressText } from "@/components/EnsAddressText";
 
 const HYPERCERTS_APP_BASE_URL = "https://app.hypercerts.org/hypercerts";
 
@@ -298,7 +299,10 @@ export default function HypercertDetail({
                   >
                     <div className="font-medium text-text-strong">{attestation.title}</div>
                     <div className="text-text-sub">
-                      {attestation.gardenerName ?? attestation.gardenerAddress}
+                      <EnsAddressText
+                        address={attestation.gardenerAddress}
+                        fallbackName={attestation.gardenerName}
+                      />
                     </div>
                   </div>
                 ))}
@@ -323,7 +327,7 @@ export default function HypercertDetail({
                       key={claim.id}
                       className="grid grid-cols-[2fr_1fr_1fr] gap-2 px-4 py-3 text-xs text-text-sub"
                     >
-                      <span className="text-text-strong">{claim.claimant}</span>
+                      <EnsAddressText address={claim.claimant} className="text-text-strong" />
                       <span>{claim.units.toLocaleString()}</span>
                       <span>
                         {claim.claimedAt

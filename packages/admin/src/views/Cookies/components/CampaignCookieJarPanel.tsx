@@ -7,7 +7,6 @@ import {
   extractErrorMessage,
   FileUploadField,
   FormField,
-  formatAddress,
   formatTokenAmount,
   getCampaignCookieJarPayoutAssets,
   getDefaultCampaignCookieJarPayoutAsset,
@@ -28,6 +27,7 @@ import {
   useCookieJarFactoryAddress,
   useCreateCampaignCookieJar,
   useCurrentChain,
+  useEnsName,
   useGardens,
   useRole,
   useSyncCampaignCookieJarAllowlist,
@@ -51,6 +51,7 @@ import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
 import { AdminCheckbox } from "@/components/AdminCheckbox";
 import { AdminDialog } from "@/components/AdminDialog";
+import { EnsAddressText, formatEnsAddressName } from "@/components/EnsAddressText";
 import {
   buildCampaignCookieJarCreatePayload,
   canCreateCampaignCookieJar,
@@ -120,6 +121,35 @@ function formatSourceGardens(
   if (names.length === 1) return names[0];
   if (names.length === 2) return `${names[0]} and ${names[1]}`;
   return `${names[0]} and ${names.length - 1} more`;
+}
+
+function GardenSelectorCheckbox({
+  garden,
+  selected,
+  onToggle,
+}: {
+  garden: Garden;
+  selected: boolean;
+  onToggle: (gardenId: string) => void;
+}) {
+  const { formatMessage } = useIntl();
+  const { data: ensName } = useEnsName(garden.id as Address);
+  const addressLabel = formatEnsAddressName(garden.id as Address, ensName);
+
+  return (
+    <AdminCheckbox
+      checked={selected}
+      onChange={() => onToggle(garden.id)}
+      label={garden.name}
+      description={formatMessage(
+        {
+          id: "cockpit.community.cookies.operatorCount",
+          defaultMessage: "{count, plural, one {# operator} other {# operators}} - {address}",
+        },
+        { count: garden.operators.length, address: addressLabel }
+      )}
+    />
+  );
 }
 
 function GardenSelector({
@@ -231,18 +261,10 @@ function GardenSelector({
               key={garden.id}
               className="flex cursor-pointer items-start gap-3 border-b border-[rgb(var(--m3-outline-variant))] px-3 py-2.5 last:border-b-0"
             >
-              <AdminCheckbox
-                checked={selectedSet.has(garden.id.toLowerCase())}
-                onChange={() => onToggle(garden.id)}
-                label={garden.name}
-                description={formatMessage(
-                  {
-                    id: "cockpit.community.cookies.operatorCount",
-                    defaultMessage:
-                      "{count, plural, one {# operator} other {# operators}} - {address}",
-                  },
-                  { count: garden.operators.length, address: formatAddress(garden.id) }
-                )}
+              <GardenSelectorCheckbox
+                garden={garden}
+                selected={selectedSet.has(garden.id.toLowerCase())}
+                onToggle={onToggle}
               />
             </div>
           ))
@@ -477,7 +499,9 @@ function CampaignJarListRow({
           </p>
         ) : null}
         <p className="flex flex-wrap gap-x-2 gap-y-1 text-label-sm text-[rgb(var(--m3-on-surface-variant))]">
-          <span>{formatAddress(campaign.address)}</span>
+          <span>
+            <EnsAddressText address={campaign.address} />
+          </span>
           {sourceLabel ? <span>{sourceLabel}</span> : null}
           {dateLabel ? <span>{dateLabel}</span> : null}
         </p>
@@ -553,15 +577,17 @@ function CampaignCookieJarAssetPicker({
               ) : null}
             </span>
             <span className="mt-3 block break-all text-label-sm text-[rgb(var(--m3-on-surface-variant))]">
-              {asset.supported
-                ? asset.address
-                : formatMessage(
-                    {
-                      id: "cockpit.community.cookies.assetUnavailable",
-                      defaultMessage: "{asset} is not available on this network yet.",
-                    },
-                    { asset: asset.label }
-                  )}
+              {asset.supported ? (
+                <EnsAddressText address={asset.address} />
+              ) : (
+                formatMessage(
+                  {
+                    id: "cockpit.community.cookies.assetUnavailable",
+                    defaultMessage: "{asset} is not available on this network yet.",
+                  },
+                  { asset: asset.label }
+                )
+              )}
             </span>
           </button>
         );
@@ -633,7 +659,7 @@ function CampaignCookieJarCreatedState({
               })}
             </p>
             <p className="mt-1 break-all text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
-              {jarAddress}
+              <EnsAddressText address={jarAddress} />
             </p>
             <a
               href={publicUrl}
@@ -1955,7 +1981,7 @@ export function CampaignCookieJarPanel() {
                 })}
               </p>
               <p className="mt-1 break-all text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
-                {selectedCampaign.address}
+                <EnsAddressText address={selectedCampaign.address} />
               </p>
               <a
                 href={publicJarLink(selectedCampaign.address)}

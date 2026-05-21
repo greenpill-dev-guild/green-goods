@@ -5,12 +5,16 @@
  * Covers mode selection, allowlist editing, validation, and accessibility.
  */
 
-import type { AllowlistEntry, DistributionMode } from "@green-goods/shared";
+import type { Address, AllowlistEntry, DistributionMode } from "@green-goods/shared";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders as render } from "../../test-utils";
+
+const { mockUseEnsName } = vi.hoisted(() => ({
+  mockUseEnsName: vi.fn(),
+}));
 
 // Mock dependencies — use importOriginal to preserve `cn` and other utilities
 vi.mock("@green-goods/shared", async (importOriginal) => {
@@ -19,6 +23,7 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
     ...actual,
     TOTAL_UNITS: 100000000n,
     copyToClipboard: vi.fn().mockResolvedValue(true),
+    useEnsName: (address: Address | null | undefined) => mockUseEnsName(address),
     // Mock FormInput for address editing
     // Workaround for vitest hoisting: vi.mock calls are hoisted above imports,
     // so top-level `import React from 'react'` isn't available in the mock factory.
@@ -99,6 +104,7 @@ describe("components/Hypercerts/DistributionConfig", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseEnsName.mockReturnValue({ data: null });
   });
 
   describe("rendering", () => {
@@ -137,8 +143,25 @@ describe("components/Hypercerts/DistributionConfig", () => {
     it("displays truncated addresses", () => {
       render(createElement(DistributionConfig, defaultProps));
 
-      // Should show truncated address format (0x1234...7890)
-      expect(screen.getByText(/0x1234.*7890/)).toBeInTheDocument();
+      // Should show the card-length address fallback when ENS is unavailable.
+      expect(screen.getByText("0x12...890")).toBeInTheDocument();
+    });
+
+    it("displays resolved ENS names for unlabeled recipients", () => {
+      const address = "0x1234567890123456789012345678901234567890" as Address;
+      mockUseEnsName.mockImplementation((lookupAddress: Address | null | undefined) => ({
+        data: lookupAddress === address ? "river.greengoods.eth" : null,
+      }));
+
+      render(
+        createElement(DistributionConfig, {
+          ...defaultProps,
+          allowlist: [{ address, units: TOTAL_UNITS }],
+        })
+      );
+
+      expect(screen.getByText("river")).toBeInTheDocument();
+      expect(screen.queryByText(/0x1234.*7890/)).not.toBeInTheDocument();
     });
 
     it("displays percentage for each entry", () => {
@@ -514,17 +537,20 @@ describe("components/Hypercerts/DistributionConfig", () => {
     });
 
     it("has accessible labels for remove buttons", () => {
+      const address = "0x1234567890123456789012345678901234567890" as Address;
+      mockUseEnsName.mockImplementation((lookupAddress: Address | null | undefined) => ({
+        data: lookupAddress === address ? "river.greengoods.eth" : null,
+      }));
+
       render(
         createElement(DistributionConfig, {
           ...defaultProps,
           mode: "custom",
+          allowlist: [{ address, units: TOTAL_UNITS }],
         })
       );
 
-      const removeButtons = screen.getAllByRole("button", { name: /remove/i });
-      removeButtons.forEach((button) => {
-        expect(button).toHaveAccessibleName();
-      });
+      expect(screen.getByRole("button", { name: /remove.*river/i })).toHaveAccessibleName();
     });
 
     it("indicates invalid state with aria-invalid", () => {

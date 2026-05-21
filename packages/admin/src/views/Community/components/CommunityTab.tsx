@@ -5,7 +5,6 @@ import {
   Card,
   EmptyState,
   ErrorBoundary,
-  formatAddress,
   formatTokenAmount,
   type GardenDetailTab,
   type GardenRole,
@@ -21,6 +20,7 @@ import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
 import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { AdminTextField } from "@/components/AdminTextField";
+import { EnsAddressText } from "@/components/EnsAddressText";
 import { GardenCommunityCard } from "@/components/Garden/GardenCommunityCard";
 import { GardenYieldCard } from "@/components/Garden/GardenYieldCard";
 import { getRoleLabel } from "@/components/Garden/gardenUtils";
@@ -218,7 +218,7 @@ export function CommunityTab({
                               className="mt-1 h-auto min-w-0 rounded p-0 text-xs"
                               onClick={() => openMembersModal(entry.role)}
                             >
-                              {formatAddress(entry.firstMember)}
+                              <EnsAddressText address={entry.firstMember} />
                             </AdminButton>
                           ) : (
                             <p className="mt-1 body-xs text-text-soft">

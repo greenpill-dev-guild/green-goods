@@ -5,12 +5,16 @@
  * Covers metadata display, minting states, and navigation.
  */
 
-import type { AllowlistEntry, HypercertMetadata, MintingState } from "@green-goods/shared";
+import type { Address, AllowlistEntry, HypercertMetadata, MintingState } from "@green-goods/shared";
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders as render } from "../../test-utils";
+
+const { mockUseEnsName } = vi.hoisted(() => ({
+  mockUseEnsName: vi.fn(),
+}));
 
 // Mock dependencies
 vi.mock("@green-goods/shared/utils", () => ({
@@ -26,6 +30,21 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       blockExplorer: "https://sepolia.etherscan.io",
     }),
     copyToClipboard: vi.fn().mockResolvedValue(true),
+    formatAddress: (
+      address: string,
+      options: { ensName?: string | null; variant?: "default" | "card" | "long" } = {}
+    ) => {
+      const ensName = options.ensName?.trim();
+      if (ensName?.toLowerCase().endsWith(".greengoods.eth")) {
+        return ensName.slice(0, -".greengoods.eth".length);
+      }
+      if (ensName) return ensName;
+
+      const start = options.variant === "default" ? 6 : options.variant === "long" ? 8 : 4;
+      const end = options.variant === "default" ? 4 : options.variant === "long" ? 6 : 3;
+      return `${address.slice(0, start)}...${address.slice(-end)}`;
+    },
+    useEnsName: (address: Address | null | undefined) => mockUseEnsName(address),
     ImageWithFallback: ({
       src,
       alt,
@@ -148,6 +167,7 @@ describe("components/Hypercerts/HypercertPreview", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUseEnsName.mockReturnValue({ data: null });
   });
 
   describe("preview rendering", () => {
@@ -432,8 +452,25 @@ describe("components/Hypercerts/HypercertPreview", () => {
     it("shows truncated addresses", () => {
       render(createElement(HypercertPreview, defaultProps));
 
-      // Should show truncated format (0x1234...7890)
-      expect(screen.getByText(/0x1234.*7890/)).toBeInTheDocument();
+      // Should show the card-length address fallback when ENS is unavailable.
+      expect(screen.getByText("0x12...890")).toBeInTheDocument();
+    });
+
+    it("shows ENS names for unlabeled allowlist addresses", () => {
+      const address = "0x1234567890123456789012345678901234567890" as Address;
+      mockUseEnsName.mockImplementation((lookupAddress: Address | null | undefined) => ({
+        data: lookupAddress === address ? "river.greengoods.eth" : null,
+      }));
+
+      render(
+        createElement(HypercertPreview, {
+          ...defaultProps,
+          allowlist: [{ address, units: TOTAL_UNITS }],
+        })
+      );
+
+      expect(screen.getByText("river")).toBeInTheDocument();
+      expect(screen.queryByText(/0x1234.*7890/)).not.toBeInTheDocument();
     });
 
     it("has copy buttons for addresses", () => {

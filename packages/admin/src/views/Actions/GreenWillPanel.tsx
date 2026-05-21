@@ -1,9 +1,10 @@
 import {
+  type Address,
   DEFAULT_CHAIN_ID,
   FormInput,
-  formatAddress,
   formatDate,
   Surface,
+  useEnsName,
   useGreenWillBadgeDefinitions,
   useGreenWillBadges,
   useGreenWillRecentGrants,
@@ -12,6 +13,7 @@ import { RiAwardLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { isAddress } from "viem";
+import { EnsAddressText, formatEnsAddressName } from "@/components/EnsAddressText";
 
 function badgeTitle(intl: ReturnType<typeof useIntl>, slug: string) {
   switch (slug) {
@@ -43,6 +45,11 @@ export function GreenWillPanel() {
   const isLookupAddressValid = hasLookupInput && isAddress(lookupAddress);
   const lookupAddressInvalid = hasLookupInput && !isLookupAddressValid;
   const lookupEnabled = isLookupAddressValid;
+  const lookupEnsAddress = isLookupAddressValid ? (lookupAddress as Address) : null;
+  const { data: lookupEnsName } = useEnsName(lookupEnsAddress);
+  const lookupDisplayAddress = lookupEnsAddress
+    ? formatEnsAddressName(lookupEnsAddress, lookupEnsName)
+    : lookupAddress;
 
   const {
     badgeDefinitions,
@@ -126,7 +133,7 @@ export function GreenWillPanel() {
           id: "admin.greenWill.lookupResult",
           defaultMessage: "{count} badge {count, plural, one {found} other {found}} for {address}",
         },
-        { count: earnedBadges.length, address: lookupAddress }
+        { count: earnedBadges.length, address: lookupDisplayAddress }
       ),
       role: "status" as const,
       tone: "sub" as const,
@@ -262,7 +269,7 @@ export function GreenWillPanel() {
                   className="rounded-lg border border-stroke-soft-200 bg-bg-white-0 px-3 py-2"
                 >
                   <p className="text-sm font-medium text-text-strong-950">
-                    {formatAddress(grant.owner, { variant: "card" })}
+                    <EnsAddressText address={grant.owner as Address} />
                   </p>
                   <p className="text-xs text-text-sub-600">
                     {badgeTitle(

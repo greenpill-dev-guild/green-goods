@@ -2,8 +2,8 @@ import {
   type AdminHubRouteContext,
   type EASWork,
   adminRoutes,
-  formatAddress,
   resolveIPFSUrl,
+  useEnsName,
   WorkCardComponent as SharedWorkCard,
   type WorkCardData,
 } from "@green-goods/shared";
@@ -11,6 +11,7 @@ import { RiCheckboxCircleLine, RiCloseLine } from "@remixicon/react";
 import type React from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
+import { formatEnsAddressName } from "@/components/EnsAddressText";
 
 interface WorkCardProps {
   work: EASWork & { status?: "pending" | "approved" | "rejected" };
@@ -25,6 +26,8 @@ export const WorkCard: React.FC<WorkCardProps> = ({ work, canReview, hubContext 
     sort: hubContext?.sort,
   };
   const workDetailHref = adminRoutes.hubWorkDetail(work.id, workHubContext);
+  const { data: ensName } = useEnsName(work.gardenerAddress);
+  const gardenerDisplayName = formatEnsAddressName(work.gardenerAddress, ensName);
 
   const workData: WorkCardData = {
     id: work.id,
@@ -35,7 +38,7 @@ export const WorkCard: React.FC<WorkCardProps> = ({ work, canReview, hubContext 
     createdAt: work.createdAt,
     mediaPreview: work.media?.map((m) => resolveIPFSUrl(m)),
     gardenerAddress: work.gardenerAddress,
-    gardenerDisplayName: formatAddress(work.gardenerAddress, { variant: "card" }),
+    gardenerDisplayName,
     gardenAddress: work.gardenAddress,
     imageCount: work.media?.length,
     feedback: work.feedback,

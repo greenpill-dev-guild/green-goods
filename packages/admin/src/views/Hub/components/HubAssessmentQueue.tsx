@@ -2,15 +2,16 @@ import {
   Alert,
   EmptyState,
   EmptyStateShell,
-  formatAddress,
   formatRelativeTime,
   resolveIPFSUrl,
   type Work,
+  useEnsName,
   WorkbenchList,
   WorkbenchRow,
 } from "@green-goods/shared";
 import { RiFileList3Line } from "@remixicon/react";
 import { useIntl } from "react-intl";
+import { formatEnsAddressName } from "@/components/EnsAddressText";
 import { HubWorkbenchSkeletonRows } from "./HubWorkbenchSkeletonRows";
 
 interface HubAssessmentQueueProps {
@@ -20,6 +21,52 @@ interface HubAssessmentQueueProps {
   actionsMap: Map<number, { title: string }>;
   selectedWorkId: string | undefined;
   onOpenWorkDetail: (workId: string) => void;
+}
+
+interface HubAssessmentQueueItemProps {
+  work: Work;
+  actionTitle?: string;
+  selected: boolean;
+  onOpenWorkDetail: (workId: string) => void;
+}
+
+function HubAssessmentQueueItem({
+  work,
+  actionTitle,
+  selected,
+  onOpenWorkDetail,
+}: HubAssessmentQueueItemProps) {
+  const { formatMessage } = useIntl();
+  const { data: ensName } = useEnsName(work.gardenerAddress);
+  const gardenerDisplayName = formatEnsAddressName(work.gardenerAddress, ensName);
+
+  return (
+    <WorkbenchRow
+      eyebrow={formatMessage({ id: "cockpit.hub.tab.assess", defaultMessage: "Assess" })}
+      title={
+        work.title ||
+        formatMessage({
+          id: "app.admin.work.untitledWork",
+          defaultMessage: "Untitled Work",
+        })
+      }
+      description={actionTitle ? `${actionTitle} · ${gardenerDisplayName}` : gardenerDisplayName}
+      // Garden name removed from meta — chrome already shows it (Rule 17).
+      meta={[
+        formatMessage({ id: "app.admin.work.filter.approved", defaultMessage: "Approved" }),
+        formatRelativeTime(work.createdAt),
+      ]}
+      statusLabel={formatMessage({
+        id: "app.admin.work.filter.approved",
+        defaultMessage: "Approved",
+      })}
+      statusTone="approved"
+      leadingIcon={RiFileList3Line}
+      thumbnailSrc={work.media[0] ? `${resolveIPFSUrl(work.media[0])}?w=160&h=160` : null}
+      selected={selected}
+      onClick={() => onOpenWorkDetail(work.id)}
+    />
+  );
 }
 
 export function HubAssessmentQueue({
@@ -72,35 +119,12 @@ export function HubAssessmentQueue({
       {items.map((work) => {
         const actionTitle = actionsMap.get(work.actionUID)?.title;
         return (
-          <WorkbenchRow
+          <HubAssessmentQueueItem
             key={work.id}
-            eyebrow={formatMessage({ id: "cockpit.hub.tab.assess", defaultMessage: "Assess" })}
-            title={
-              work.title ||
-              formatMessage({
-                id: "app.admin.work.untitledWork",
-                defaultMessage: "Untitled Work",
-              })
-            }
-            description={
-              actionTitle
-                ? `${actionTitle} · ${formatAddress(work.gardenerAddress, { variant: "card" })}`
-                : formatAddress(work.gardenerAddress, { variant: "card" })
-            }
-            // Garden name removed from meta — chrome already shows it (Rule 17).
-            meta={[
-              formatMessage({ id: "app.admin.work.filter.approved", defaultMessage: "Approved" }),
-              formatRelativeTime(work.createdAt),
-            ]}
-            statusLabel={formatMessage({
-              id: "app.admin.work.filter.approved",
-              defaultMessage: "Approved",
-            })}
-            statusTone="approved"
-            leadingIcon={RiFileList3Line}
-            thumbnailSrc={work.media[0] ? `${resolveIPFSUrl(work.media[0])}?w=160&h=160` : null}
+            work={work}
+            actionTitle={actionTitle}
             selected={selectedWorkId === work.id}
-            onClick={() => onOpenWorkDetail(work.id)}
+            onOpenWorkDetail={onOpenWorkDetail}
           />
         );
       })}

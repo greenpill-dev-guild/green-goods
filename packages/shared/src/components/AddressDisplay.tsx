@@ -1,7 +1,8 @@
 import { RiCheckLine, RiFileCopyLine } from "@remixicon/react";
 import { useId, useState } from "react";
 import { useIntl } from "react-intl";
-import { useTimeout } from "../hooks";
+import { useEnsName } from "../hooks/blockchain/useEnsName";
+import { useTimeout } from "../hooks/utils/useTimeout";
 import { logger } from "../modules";
 import type { Address } from "../types";
 import { cn, copyToClipboard, formatAddress } from "../utils";
@@ -16,8 +17,7 @@ export function AddressDisplay({ address, className, showCopyButton = true }: Ad
   const intl = useIntl();
   const [copied, setCopied] = useState(false);
   const tooltipId = useId();
-  // ENS temporarily disabled to fix QueryClient initialization
-  const ensName = null;
+  const { data: ensName } = useEnsName(address);
   const display = formatAddress(address, {
     ensName,
     variant: ensName ? "default" : "card",

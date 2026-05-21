@@ -1,12 +1,8 @@
-import {
-  type Address,
-  type AllowlistEntry,
-  TOTAL_UNITS,
-  truncateAddress,
-} from "@green-goods/shared";
+import { type Address, type AllowlistEntry, TOTAL_UNITS, useEnsName } from "@green-goods/shared";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
+import { formatEnsAddressName } from "@/components/EnsAddressText";
 
 /** Threshold percentage below which segments are grouped into "Others" */
 const OTHERS_THRESHOLD = 5;
@@ -27,11 +23,19 @@ const CHART_COLORS = [
 const OTHERS_COLOR = "var(--color-bg-soft)";
 
 interface ChartDataItem {
-  name: string;
+  name?: string;
   value: number;
   percentage: number;
   address?: Address;
   isOthers?: boolean;
+}
+
+function DistributionTooltipTitle({ data }: { data: ChartDataItem }) {
+  const { data: ensName } = useEnsName(data.name ? null : data.address);
+
+  if (data.name) return <>{data.name}</>;
+  if (data.address) return <>{formatEnsAddressName(data.address, ensName)}</>;
+  return null;
 }
 
 interface DistributionChartProps {
@@ -59,7 +63,7 @@ export function DistributionChart({
     const entries: ChartDataItem[] = allowlist.map((entry) => {
       const percentage = Number((entry.units * 10000n) / totalUnits) / 100;
       return {
-        name: entry.label || truncateAddress(entry.address),
+        name: entry.label || undefined,
         value: Number(entry.units),
         percentage,
         address: entry.address,
@@ -120,7 +124,9 @@ export function DistributionChart({
               const data = payload[0].payload as ChartDataItem;
               return (
                 <div className="rounded-lg border border-stroke-soft bg-bg-white p-2 shadow-md">
-                  <p className="text-sm font-medium text-text-strong">{data.name}</p>
+                  <p className="text-sm font-medium text-text-strong">
+                    <DistributionTooltipTitle data={data} />
+                  </p>
                   <p className="text-xs text-text-sub">
                     {data.value.toLocaleString()}{" "}
                     {formatMessage({ id: "app.hypercerts.distribution.table.units" })} (

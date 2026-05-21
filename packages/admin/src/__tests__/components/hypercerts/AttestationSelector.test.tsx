@@ -15,7 +15,24 @@ import { renderWithProviders as render } from "../../test-utils";
 // Mock dependencies
 vi.mock("@green-goods/shared", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
+  formatAddress: (
+    address: string,
+    options: { ensName?: string | null; variant?: "default" | "card" | "long" } = {}
+  ) => {
+    const ensName = options.ensName?.trim();
+    if (ensName?.toLowerCase().endsWith(".greengoods.eth")) {
+      return ensName.slice(0, -".greengoods.eth".length);
+    }
+    if (ensName) return ensName;
+
+    const start = options.variant === "default" ? 6 : options.variant === "long" ? 8 : 4;
+    const end = options.variant === "default" ? 4 : options.variant === "long" ? 6 : 3;
+    return `${address.slice(0, start)}...${address.slice(-end)}`;
+  },
   formatDateTime: (timestamp: number) => new Date(timestamp).toLocaleDateString(),
+  useEnsName: (address: string | null | undefined) => ({
+    data: address ? "river.greengoods.eth" : null,
+  }),
   ACTION_DOMAINS: ["biodiversity", "water", "soil", "carbon"],
   filterAttestationsByAssessment: (attestations: any[]) => attestations,
   Alert: ({ children }: { children?: React.ReactNode }) => {
@@ -196,6 +213,22 @@ describe("components/Hypercerts/AttestationSelector", () => {
       expect(screen.getByText("Bob")).toBeInTheDocument();
       expect(screen.getByText("Charlie")).toBeInTheDocument();
       expect(screen.getByText("Diana")).toBeInTheDocument();
+    });
+
+    it("shows ENS names when an attestation has no stored gardener name", () => {
+      render(
+        createElement(AttestationSelector, {
+          ...defaultProps,
+          attestations: [
+            createMockAttestation({
+              id: "0xens",
+              gardenerName: undefined,
+            }),
+          ],
+        })
+      );
+
+      expect(screen.getByText("river")).toBeInTheDocument();
     });
 
     it("displays domain badges", () => {

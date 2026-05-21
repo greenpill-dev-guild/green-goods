@@ -11,6 +11,7 @@ import {
 } from "@green-goods/shared";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
+import { EnsAddressText } from "@/components/EnsAddressText";
 
 interface VaultEventHistoryProps {
   gardenAddress: Address;
@@ -98,7 +99,7 @@ export function VaultEventHistory({ gardenAddress }: VaultEventHistoryProps) {
                         : formatMessage({ id: "app.treasury.none" })}
                     </td>
                     <td className="py-2 pr-4">
-                      {formatAddress(event.actor, { variant: "default" })}
+                      <EnsAddressText address={event.actor} variant="default" />
                     </td>
                     <td className="py-2 pr-4">
                       {blockExplorer ? (
@@ -164,7 +165,7 @@ export function VaultEventHistory({ gardenAddress }: VaultEventHistoryProps) {
                       {formatMessage({ id: "app.treasury.actor" })}
                     </span>
                     <span className="text-text-strong">
-                      {formatAddress(event.actor, { variant: "card" })}
+                      <EnsAddressText address={event.actor} />
                     </span>
                   </div>
                   {blockExplorer && (

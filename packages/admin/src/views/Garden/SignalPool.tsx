@@ -3,7 +3,6 @@ import {
   Alert,
   adminRoutes,
   ConfirmDialog,
-  formatAddress,
   PoolType,
   useAdminGardenWorkspaceSelection,
   useDeregisterHypercert,
@@ -19,6 +18,7 @@ import { useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate, useParams } from "react-router-dom";
 import { AdminButton } from "@/components/AdminButton";
+import { EnsAddressText } from "@/components/EnsAddressText";
 import { AdminLinearProgress } from "@/components/AdminLinearProgress";
 import { AdminTabRail } from "@/components/AdminTabRail";
 import { AdminTextField } from "@/components/AdminTextField";
@@ -240,8 +240,8 @@ export default function GardenSignalPoolView({ layout = "page" }: GardenSignalPo
               <p className="text-xs text-text-soft">
                 {formatMessage({ id: "app.conviction.poolAddress" })}
               </p>
-              <p className="mt-1 font-mono text-sm font-medium text-text-strong">
-                {formatAddress(poolAddress, { variant: "card" })}
+              <p className="mt-1 text-sm font-medium text-text-strong">
+                <EnsAddressText address={poolAddress} />
               </p>
             </div>
             <div className="surface-inset">

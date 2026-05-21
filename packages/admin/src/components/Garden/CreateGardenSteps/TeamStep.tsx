@@ -1,12 +1,13 @@
 import {
+  type Address,
   Button,
-  formatAddress,
   TextInput,
   useAddressInput,
   useCreateGardenStore,
 } from "@green-goods/shared";
 import { RiAddLine, RiDeleteBinLine } from "@remixicon/react";
-import { useIntl } from "react-intl";
+import { FormattedMessage, useIntl } from "react-intl";
+import { EnsAddressText } from "@/components/EnsAddressText";
 
 export function TeamStep() {
   const form = useCreateGardenStore((s) => s.form);
@@ -80,23 +81,25 @@ export function TeamStep() {
         </div>
         {operatorInput.shouldResolveEns && (
           <p className="mt-2 text-xs text-text-soft">
-            {operatorInput.resolvingEns
-              ? formatMessage({
-                  id: "app.admin.garden.create.resolvingEns",
-                  defaultMessage: "Resolving ENS name...",
-                })
-              : operatorInput.resolvedAddress
-                ? formatMessage(
-                    {
-                      id: "app.admin.garden.create.ensResolved",
-                      defaultMessage: "Resolves to {address}",
-                    },
-                    { address: formatAddress(operatorInput.resolvedAddress) }
-                  )
-                : formatMessage({
-                    id: "app.admin.garden.create.enterValidAddress",
-                    defaultMessage: "Enter a valid ENS name or 0x address.",
-                  })}
+            {operatorInput.resolvingEns ? (
+              formatMessage({
+                id: "app.admin.garden.create.resolvingEns",
+                defaultMessage: "Resolving ENS name...",
+              })
+            ) : operatorInput.resolvedAddress ? (
+              <FormattedMessage
+                id="app.admin.garden.create.ensResolved"
+                defaultMessage="Resolves to {address}"
+                values={{
+                  address: <EnsAddressText address={operatorInput.resolvedAddress as Address} />,
+                }}
+              />
+            ) : (
+              formatMessage({
+                id: "app.admin.garden.create.enterValidAddress",
+                defaultMessage: "Enter a valid ENS name or 0x address.",
+              })
+            )}
           </p>
         )}
         {/* Always render to reserve space and prevent layout shift */}
@@ -113,7 +116,7 @@ export function TeamStep() {
               key={operator}
               className="flex items-center justify-between rounded-lg border border-stroke-soft bg-bg-white px-3 py-2.5 text-xs font-mono text-text-sub"
             >
-              <span>{operator}</span>
+              <EnsAddressText address={operator as Address} />
               <button
                 type="button"
                 onClick={() => removeOperator(form.operators.indexOf(operator))}
@@ -162,23 +165,25 @@ export function TeamStep() {
         </div>
         {gardenerInput.shouldResolveEns && (
           <p className="mt-2 text-xs text-text-soft">
-            {gardenerInput.resolvingEns
-              ? formatMessage({
-                  id: "app.admin.garden.create.resolvingEns",
-                  defaultMessage: "Resolving ENS name...",
-                })
-              : gardenerInput.resolvedAddress
-                ? formatMessage(
-                    {
-                      id: "app.admin.garden.create.ensResolved",
-                      defaultMessage: "Resolves to {address}",
-                    },
-                    { address: formatAddress(gardenerInput.resolvedAddress) }
-                  )
-                : formatMessage({
-                    id: "app.admin.garden.create.enterValidAddress",
-                    defaultMessage: "Enter a valid ENS name or 0x address.",
-                  })}
+            {gardenerInput.resolvingEns ? (
+              formatMessage({
+                id: "app.admin.garden.create.resolvingEns",
+                defaultMessage: "Resolving ENS name...",
+              })
+            ) : gardenerInput.resolvedAddress ? (
+              <FormattedMessage
+                id="app.admin.garden.create.ensResolved"
+                defaultMessage="Resolves to {address}"
+                values={{
+                  address: <EnsAddressText address={gardenerInput.resolvedAddress as Address} />,
+                }}
+              />
+            ) : (
+              formatMessage({
+                id: "app.admin.garden.create.enterValidAddress",
+                defaultMessage: "Enter a valid ENS name or 0x address.",
+              })
+            )}
           </p>
         )}
         {/* Always render to reserve space and prevent layout shift */}
@@ -195,7 +200,7 @@ export function TeamStep() {
               key={gardener}
               className="flex items-center justify-between rounded-lg border border-stroke-soft bg-bg-white px-3 py-2.5 text-xs font-mono text-text-sub"
             >
-              <span>{gardener}</span>
+              <EnsAddressText address={gardener as Address} />
               <button
                 type="button"
                 onClick={() => removeGardener(form.gardeners.indexOf(gardener))}

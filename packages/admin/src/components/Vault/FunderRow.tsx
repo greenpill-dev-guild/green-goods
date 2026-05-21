@@ -1,12 +1,12 @@
 import {
   type Address,
   type FunderLeaderboardEntry,
-  formatAddress,
   formatTokenAmount,
   useEnsName,
 } from "@green-goods/shared";
 import { RiLeafLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
+import { formatEnsAddressName } from "@/components/EnsAddressText";
 
 interface FunderRowProps {
   funder: FunderLeaderboardEntry;
@@ -17,7 +17,7 @@ interface FunderRowProps {
 export function FunderRow({ funder, maxYield }: FunderRowProps) {
   const { formatMessage } = useIntl();
   const { data: ensName } = useEnsName(funder.address as Address);
-  const displayName = ensName || formatAddress(funder.address, { variant: "card" });
+  const displayName = formatEnsAddressName(funder.address as Address, ensName);
 
   const hasYield = funder.totalYieldGenerated > 0n;
   const barWidth =
@@ -27,7 +27,7 @@ export function FunderRow({ funder, maxYield }: FunderRowProps) {
     <div className="flex items-center gap-3 rounded-lg border border-stroke-soft bg-bg-weak px-3 py-2.5">
       {/* Avatar placeholder */}
       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-lighter text-xs font-semibold text-primary-dark">
-        {(ensName ?? funder.address).charAt(0).toUpperCase()}
+        {displayName.charAt(0).toUpperCase()}
       </div>
 
       {/* Name + yield bar */}

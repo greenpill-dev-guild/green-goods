@@ -2,7 +2,6 @@ import {
   type Address,
   DialogShell,
   FormField,
-  formatAddress,
   type GardenRole,
   logger,
   parseAndFormatError,
@@ -12,8 +11,9 @@ import {
 } from "@green-goods/shared";
 import { RiClipboardLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
-import { useIntl } from "react-intl";
+import { FormattedMessage, useIntl } from "react-intl";
 import { isAddress } from "viem";
+import { EnsAddressText } from "@/components/EnsAddressText";
 import { AdminButton } from "../AdminButton";
 
 interface AddMemberModalProps {
@@ -153,23 +153,25 @@ export function AddMemberModal({
           </div>
           {shouldResolveEns && (
             <p className="mt-2 text-xs text-text-soft">
-              {resolvingEns
-                ? formatMessage({
-                    id: "admin.addMember.resolvingEns",
-                    defaultMessage: "Resolving ENS name...",
-                  })
-                : resolvedEnsAddress
-                  ? formatMessage(
-                      {
-                        id: "admin.addMember.ensResolved",
-                        defaultMessage: "Resolves to {address}",
-                      },
-                      { address: formatAddress(resolvedEnsAddress) }
-                    )
-                  : formatMessage({
-                      id: "admin.addMember.enterValidAddress",
-                      defaultMessage: "Enter a valid ENS name or 0x address.",
-                    })}
+              {resolvingEns ? (
+                formatMessage({
+                  id: "admin.addMember.resolvingEns",
+                  defaultMessage: "Resolving ENS name...",
+                })
+              ) : resolvedEnsAddress ? (
+                <FormattedMessage
+                  id="admin.addMember.ensResolved"
+                  defaultMessage="Resolves to {address}"
+                  values={{
+                    address: <EnsAddressText address={resolvedEnsAddress} />,
+                  }}
+                />
+              ) : (
+                formatMessage({
+                  id: "admin.addMember.enterValidAddress",
+                  defaultMessage: "Enter a valid ENS name or 0x address.",
+                })
+              )}
             </p>
           )}
         </FormField>

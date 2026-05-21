@@ -1,5 +1,6 @@
-import { DOMAIN_COLORS, Domain, useCreateGardenStore } from "@green-goods/shared";
+import { type Address, DOMAIN_COLORS, Domain, useCreateGardenStore } from "@green-goods/shared";
 import { useIntl } from "react-intl";
+import { EnsAddressText } from "@/components/EnsAddressText";
 
 const DOMAIN_LABELS: Record<Domain, { id: string; defaultMessage: string }> = {
   [Domain.SOLAR]: { id: "app.garden.create.domain.solar", defaultMessage: "Solar" },
@@ -127,8 +128,8 @@ export function ReviewStep() {
               ) : (
                 <ul className="mt-2 space-y-1">
                   {form.gardeners.map((gardener) => (
-                    <li key={gardener} className="font-mono text-xs text-text-strong">
-                      {gardener}
+                    <li key={gardener} className="text-xs text-text-strong">
+                      <EnsAddressText address={gardener as Address} />
                     </li>
                   ))}
                 </ul>
@@ -153,8 +154,8 @@ export function ReviewStep() {
               ) : (
                 <ul className="mt-2 space-y-1">
                   {form.operators.map((operator) => (
-                    <li key={operator} className="font-mono text-xs text-text-strong">
-                      {operator}
+                    <li key={operator} className="text-xs text-text-strong">
+                      <EnsAddressText address={operator as Address} />
                     </li>
                   ))}
                 </ul>

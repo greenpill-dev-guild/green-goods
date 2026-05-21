@@ -1,5 +1,4 @@
 import {
-  type Address,
   Alert,
   Button,
   type AllowlistEntry,
@@ -8,42 +7,13 @@ import {
   sumUnits,
   TextInput,
   TOTAL_UNITS,
-  useCopyToClipboard,
+  useEnsName,
 } from "@green-goods/shared";
-import { RiCheckLine, RiCloseLine, RiFileCopyLine } from "@remixicon/react";
+import { RiCloseLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { isAddress, zeroAddress } from "viem";
+import { EnsAddressWithCopy, formatEnsAddressName } from "@/components/EnsAddressText";
 import { DistributionChart } from "../DistributionChart";
-
-/** Displays truncated Ethereum address with copy button */
-function TruncatedAddress({ address }: { address: Address }) {
-  const { formatMessage } = useIntl();
-  const { copied, copy } = useCopyToClipboard();
-
-  const truncated = `${address.slice(0, 6)}...${address.slice(-4)}`;
-
-  return (
-    <span className="inline-flex items-center gap-1">
-      <span title={address} className="font-mono text-xs">
-        {truncated}
-      </span>
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        onClick={() => copy(address)}
-        className="h-auto min-w-0 rounded p-0.5 text-text-sub transition hover:bg-bg-weak hover:text-text-strong focus:outline-none focus:ring-1 focus:ring-primary-light"
-        aria-label={formatMessage({ id: "app.common.copyAddress" })}
-      >
-        {copied ? (
-          <RiCheckLine className="h-3 w-3 text-success-base" />
-        ) : (
-          <RiFileCopyLine className="h-3 w-3" />
-        )}
-      </Button>
-    </span>
-  );
-}
 
 interface DistributionConfigProps {
   mode: DistributionMode;
@@ -59,6 +29,33 @@ const MODE_OPTIONS: Array<{ value: DistributionMode; labelId: string }> = [
   { value: "value", labelId: "app.hypercerts.distribution.mode.value" },
   { value: "custom", labelId: "app.hypercerts.distribution.mode.custom" },
 ];
+
+interface RemoveRecipientButtonProps {
+  entry: AllowlistEntry;
+  onRemove: () => void;
+}
+
+function RemoveRecipientButton({ entry, onRemove }: RemoveRecipientButtonProps) {
+  const { formatMessage } = useIntl();
+  const { data: ensName } = useEnsName(entry.label ? null : entry.address);
+  const recipientLabel = entry.label || formatEnsAddressName(entry.address, ensName);
+
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="sm"
+      onClick={onRemove}
+      aria-label={formatMessage(
+        { id: "app.hypercerts.distribution.removeRecipient" },
+        { address: recipientLabel }
+      )}
+      className="h-auto min-w-0 rounded p-1 text-text-sub transition hover:bg-error-lighter hover:text-error-dark focus:outline-none focus:ring-2 focus:ring-error-light"
+    >
+      <RiCloseLine className="h-4 w-4" />
+    </Button>
+  );
+}
 
 export function DistributionConfig({
   mode,
@@ -211,7 +208,7 @@ export function DistributionConfig({
                       )}
                     />
                   ) : (
-                    <TruncatedAddress address={entry.address} />
+                    <EnsAddressWithCopy address={entry.address} labelClassName="text-xs" />
                   )}
                   {!addressValid && mode === "custom" && (
                     <span id={errorId} className="text-xs text-error-dark">
@@ -233,19 +230,10 @@ export function DistributionConfig({
                 />
                 <span className="text-xs text-text-sub">{percent.toFixed(2)}%</span>
                 {mode === "custom" && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleRemoveRecipient(index)}
-                    aria-label={formatMessage(
-                      { id: "app.hypercerts.distribution.removeRecipient" },
-                      { address: entry.label || entry.address }
-                    )}
-                    className="h-auto min-w-0 rounded p-1 text-text-sub transition hover:bg-error-lighter hover:text-error-dark focus:outline-none focus:ring-2 focus:ring-error-light"
-                  >
-                    <RiCloseLine className="h-4 w-4" />
-                  </Button>
+                  <RemoveRecipientButton
+                    entry={entry}
+                    onRemove={() => handleRemoveRecipient(index)}
+                  />
                 )}
               </div>
             );

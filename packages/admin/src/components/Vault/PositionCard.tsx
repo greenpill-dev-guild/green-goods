@@ -2,7 +2,6 @@ import {
   type Address,
   Card,
   ConfirmDialog,
-  formatAddress,
   formatTokenAmount,
   type GardenVault,
   getBlockExplorerAddressUrl,
@@ -22,6 +21,7 @@ import { useState } from "react";
 import { useIntl } from "react-intl";
 import { useReadContracts } from "wagmi";
 import { AdminButton } from "@/components/AdminButton";
+import { EnsAddressText } from "@/components/EnsAddressText";
 
 interface PositionCardProps {
   gardenAddress: Address;
@@ -137,7 +137,7 @@ export function PositionCard({
           className="mt-1 inline-block text-xs text-primary-base hover:underline"
         >
           {formatMessage({ id: "app.explorer.viewVault" })}:{" "}
-          {formatAddress(vault.vaultAddress, { variant: "card" })}
+          <EnsAddressText address={vault.vaultAddress} />
         </a>
       </div>
 

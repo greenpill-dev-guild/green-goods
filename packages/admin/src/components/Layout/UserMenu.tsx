@@ -1,9 +1,11 @@
 import {
+  type Address,
   cn,
   DEFAULT_CHAIN_ID,
   getChainName,
   useAuthActions,
   useAuthState,
+  useEnsName,
   useRole,
   useTheme,
 } from "@green-goods/shared";
@@ -18,6 +20,7 @@ import {
 } from "@remixicon/react";
 import { useCallback, useState } from "react";
 import { useIntl } from "react-intl";
+import { formatEnsAddressName } from "@/components/EnsAddressText";
 
 interface UserMenuProps {
   /** Opens the account sheet on the settings tab */
@@ -36,6 +39,7 @@ export function UserMenu({ onOpenSettings }: UserMenuProps) {
   const { signOut } = useAuthActions();
   const { role } = useRole();
   const { theme, setTheme } = useTheme();
+  const { data: ensName } = useEnsName(eoaAddress as Address | null | undefined);
   const [copied, setCopied] = useState(false);
 
   const roleInitial = role === "deployer" ? "D" : role === "operator" ? "O" : "U";
@@ -48,8 +52,8 @@ export function UserMenu({ onOpenSettings }: UserMenuProps) {
     }
   }, [eoaAddress]);
 
-  const truncatedAddress = eoaAddress
-    ? `${eoaAddress.slice(0, 6)}...${eoaAddress.slice(-4)}`
+  const walletDisplayName = eoaAddress
+    ? formatEnsAddressName(eoaAddress as Address, ensName)
     : null;
 
   return (
@@ -91,7 +95,7 @@ export function UserMenu({ onOpenSettings }: UserMenuProps) {
             </div>
             <div className="flex-1 min-w-0">
               <div className="text-sm font-medium text-text-strong capitalize">{role}</div>
-              {truncatedAddress && (
+              {walletDisplayName && (
                 <button
                   type="button"
                   onClick={handleCopyAddress}
@@ -101,7 +105,7 @@ export function UserMenu({ onOpenSettings }: UserMenuProps) {
                   <span>
                     {copied
                       ? formatMessage({ id: "app.toast.copied", defaultMessage: "Copied" })
-                      : truncatedAddress}
+                      : walletDisplayName}
                   </span>
                   <RiFileCopyLine className="h-3 w-3" />
                 </button>

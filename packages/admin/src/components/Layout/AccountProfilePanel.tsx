@@ -13,6 +13,7 @@ import {
 } from "@green-goods/shared";
 import { RiWallet3Line } from "@remixicon/react";
 import { useIntl } from "react-intl";
+import { formatEnsAddressName } from "@/components/EnsAddressText";
 
 const ROLE_LABEL_MESSAGES: Record<UserRole, { defaultMessage: string; id: string }> = {
   deployer: {
@@ -56,7 +57,9 @@ export function AccountProfilePanel({ className }: AccountProfilePanelProps) {
   const { data: ensName } = useEnsName(eoaAddress as Address | null | undefined);
   const { data: avatarUrl } = useEnsAvatar(eoaAddress as Address | null | undefined);
   const roleLabel = formatMessage(ROLE_LABEL_MESSAGES[role]);
-  const avatarFallback = getInitials(ensName ?? eoaAddress ?? roleLabel);
+  const ensDisplayName =
+    eoaAddress && ensName ? formatEnsAddressName(eoaAddress as Address, ensName) : null;
+  const avatarFallback = getInitials(ensDisplayName ?? eoaAddress ?? roleLabel);
 
   return (
     <SheetBody padded={true} className={cn("flex flex-col gap-4", className)}>
@@ -82,7 +85,7 @@ export function AccountProfilePanel({ className }: AccountProfilePanelProps) {
             </p>
             <p className="text-base font-semibold capitalize text-text-strong">{roleLabel}</p>
             <p className="mt-1 text-sm text-text-sub">
-              {ensName ??
+              {ensDisplayName ??
                 (eoaAddress
                   ? formatMessage({ id: "app.account.wallet", defaultMessage: "Wallet" })
                   : "")}

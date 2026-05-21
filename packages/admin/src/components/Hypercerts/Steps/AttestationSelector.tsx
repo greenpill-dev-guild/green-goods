@@ -14,6 +14,7 @@ import {
 import { RiCheckboxCircleLine, RiCheckboxMultipleLine, RiCloseCircleLine } from "@remixicon/react";
 import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
+import { EnsAddressText } from "@/components/EnsAddressText";
 
 interface AttestationSelectorProps {
   attestations: HypercertAttestation[];
@@ -324,7 +325,10 @@ export function AttestationSelector({
                 <div className="space-y-1">
                   <h3 className="text-sm font-semibold text-text-strong">{attestation.title}</h3>
                   <p className="text-xs text-text-sub">
-                    {attestation.gardenerName ?? attestation.gardenerAddress}
+                    <EnsAddressText
+                      address={attestation.gardenerAddress}
+                      fallbackName={attestation.gardenerName}
+                    />
                   </p>
                 </div>
                 <span

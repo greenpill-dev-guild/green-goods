@@ -2,15 +2,16 @@ import {
   Alert,
   EmptyState,
   EmptyStateShell,
-  formatAddress,
   formatRelativeTime,
   resolveIPFSUrl,
   type Work,
+  useEnsName,
   WorkbenchList,
   WorkbenchRow,
 } from "@green-goods/shared";
 import { RiCheckboxCircleLine, RiInboxLine, RiSearchLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
+import { formatEnsAddressName } from "@/components/EnsAddressText";
 import { HubWorkbenchSkeletonRows } from "./HubWorkbenchSkeletonRows";
 
 interface HubWorkQueueProps {
@@ -23,6 +24,54 @@ interface HubWorkQueueProps {
   selectedWorkId: string | undefined;
   onOpenWorkDetail: (workId: string) => void;
   onClearSearch: () => void;
+}
+
+interface HubWorkQueueItemProps {
+  work: Work;
+  actionTitle?: string;
+  selected: boolean;
+  onOpenWorkDetail: (workId: string) => void;
+}
+
+function HubWorkQueueItem({
+  work,
+  actionTitle,
+  selected,
+  onOpenWorkDetail,
+}: HubWorkQueueItemProps) {
+  const { formatMessage } = useIntl();
+  const { data: ensName } = useEnsName(work.gardenerAddress);
+  const gardenerDisplayName = formatEnsAddressName(work.gardenerAddress, ensName);
+
+  return (
+    <WorkbenchRow
+      // Eyebrow names the stage, not the garden — chrome (AppBar GardenChip)
+      // already declares the garden context. See Rule 17.
+      eyebrow={formatMessage({ id: "cockpit.hub.tab.review", defaultMessage: "Review" })}
+      title={
+        work.title ||
+        formatMessage({
+          id: "app.admin.work.untitledWork",
+          defaultMessage: "Untitled Work",
+        })
+      }
+      description={actionTitle ? `${actionTitle} · ${gardenerDisplayName}` : gardenerDisplayName}
+      meta={[
+        formatMessage({ id: "app.admin.work.filter.pending", defaultMessage: "Pending" }),
+        formatRelativeTime(work.createdAt),
+        `${work.media.length} media`,
+      ]}
+      statusLabel={formatMessage({
+        id: "app.admin.work.filter.pending",
+        defaultMessage: "Pending",
+      })}
+      statusTone="pending"
+      leadingIcon={RiInboxLine}
+      thumbnailSrc={work.media[0] ? `${resolveIPFSUrl(work.media[0])}?w=160&h=160` : null}
+      selected={selected}
+      onClick={() => onOpenWorkDetail(work.id)}
+    />
+  );
 }
 
 export function HubWorkQueue({
@@ -103,37 +152,13 @@ export function HubWorkQueue({
     <WorkbenchList>
       {items.map((work) => {
         const actionTitle = actionsMap.get(work.actionUID)?.title;
-        const gardenerDisplayName = formatAddress(work.gardenerAddress, { variant: "card" });
         return (
-          <WorkbenchRow
+          <HubWorkQueueItem
             key={work.id}
-            // Eyebrow names the stage, not the garden — chrome (AppBar GardenChip)
-            // already declares the garden context. See Rule 17.
-            eyebrow={formatMessage({ id: "cockpit.hub.tab.review", defaultMessage: "Review" })}
-            title={
-              work.title ||
-              formatMessage({
-                id: "app.admin.work.untitledWork",
-                defaultMessage: "Untitled Work",
-              })
-            }
-            description={
-              actionTitle ? `${actionTitle} · ${gardenerDisplayName}` : gardenerDisplayName
-            }
-            meta={[
-              formatMessage({ id: "app.admin.work.filter.pending", defaultMessage: "Pending" }),
-              formatRelativeTime(work.createdAt),
-              `${work.media.length} media`,
-            ]}
-            statusLabel={formatMessage({
-              id: "app.admin.work.filter.pending",
-              defaultMessage: "Pending",
-            })}
-            statusTone="pending"
-            leadingIcon={RiInboxLine}
-            thumbnailSrc={work.media[0] ? `${resolveIPFSUrl(work.media[0])}?w=160&h=160` : null}
+            work={work}
+            actionTitle={actionTitle}
             selected={selectedWorkId === work.id}
-            onClick={() => onOpenWorkDetail(work.id)}
+            onOpenWorkDetail={onOpenWorkDetail}
           />
         );
       })}

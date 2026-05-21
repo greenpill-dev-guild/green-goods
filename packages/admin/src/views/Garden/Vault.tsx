@@ -3,7 +3,6 @@ import {
   type Address,
   Alert,
   adminRoutes,
-  formatAddress,
   formatTokenAmount,
   getBlockExplorerAddressUrl,
   getNetDeposited,
@@ -24,6 +23,7 @@ import { useIntl } from "react-intl";
 import { useLocation, useParams } from "react-router-dom";
 import { useReadContract } from "wagmi";
 import { AdminButton } from "@/components/AdminButton";
+import { EnsAddressText } from "@/components/EnsAddressText";
 import {
   CanvasRouteContent,
   CanvasRouteFrame,
@@ -286,7 +286,7 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
                   rel="noreferrer"
                   className="inline-flex items-center gap-1 body-xs text-primary-base hover:underline"
                 >
-                  {formatAddress(vault.vaultAddress, { variant: "card" })}
+                  <EnsAddressText address={vault.vaultAddress} />
                   <RiExternalLinkLine className="h-3 w-3" />
                 </a>
               </div>
@@ -302,7 +302,7 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
                   rel="noreferrer"
                   className="inline-flex items-center gap-1 body-xs text-primary-base hover:underline"
                 >
-                  {formatAddress(octantModuleAddress, { variant: "card" })}
+                  <EnsAddressText address={octantModuleAddress} />
                   <RiExternalLinkLine className="h-3 w-3" />
                 </a>
               </div>
@@ -318,7 +318,7 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
                   rel="noreferrer"
                   className="inline-flex items-center gap-1 body-xs text-primary-base hover:underline"
                 >
-                  {formatAddress(AAVE_V3_POOL[chainId], { variant: "card" })}
+                  <EnsAddressText address={AAVE_V3_POOL[chainId]} />
                   <RiExternalLinkLine className="h-3 w-3" />
                 </a>
               </div>
