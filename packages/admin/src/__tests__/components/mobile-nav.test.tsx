@@ -67,7 +67,16 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
     }),
     useEligibleAdminGardens: () => mockEligibleAdminGardens.current,
     useEffectiveToolbarPermissions: mockUseEffectiveToolbarPermissions,
-    useGardenUrlSync: vi.fn(),
+    useGardenUrlSync: () => ({
+      gardenId: null,
+      tab: null,
+      item: null,
+      setGarden: vi.fn(),
+      setTab: vi.fn(),
+      setFilter: vi.fn(),
+      openItem: vi.fn(),
+      closeItem: vi.fn(),
+    }),
     useStaleGardenGuard: vi.fn(),
   };
 });

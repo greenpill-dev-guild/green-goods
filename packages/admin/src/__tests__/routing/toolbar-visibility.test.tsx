@@ -127,6 +127,16 @@ describe("Toolbar Visibility", () => {
       showActions: true,
       isLoading: false,
     };
+    mockUseGardenUrlSync.mockReturnValue({
+      gardenId: null,
+      tab: null,
+      item: null,
+      setGarden: vi.fn(),
+      setTab: vi.fn(),
+      setFilter: vi.fn(),
+      openItem: vi.fn(),
+      closeItem: vi.fn(),
+    });
   });
 
   it("renders the fail-open toolbar while permissions are still loading", () => {

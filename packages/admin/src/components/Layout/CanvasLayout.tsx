@@ -70,11 +70,10 @@ export function CanvasLayout() {
   const { eligibleGardens, isLoaded: eligibleGardensLoaded } = useEligibleAdminGardens();
 
   const selectedGarden = useAdminStore((s) => s.selectedGarden);
-  const setSelectedGarden = useAdminStore((s) => s.setSelectedGarden);
   const [searchOpen, setSearchOpen] = useState(false);
   const isDesktop = useMediaQuery("(min-width: 600px)");
   const permissions = useEffectiveToolbarPermissions();
-  useGardenUrlSync();
+  const { setGarden } = useGardenUrlSync();
   useStaleGardenGuard();
 
   // Sheet orchestrator — manages pane-scoped sheets + main-sheet recession
@@ -267,9 +266,9 @@ export function CanvasLayout() {
       onSelectGarden={(g) => {
         if (g) {
           const fullGarden = eligibleGardens.find((garden) => garden.id === g.id);
-          setSelectedGarden(fullGarden ?? null);
+          setGarden(fullGarden ?? null);
         } else {
-          setSelectedGarden(null);
+          setGarden(null);
         }
       }}
       onCreateGarden={() => navigate(adminRoutes.gardenCreate())}

@@ -5,9 +5,9 @@
  * Tests URL <-> store synchronization for the canvas garden navigation.
  */
 
-import { renderHook, act } from "@testing-library/react";
-import { createElement, type ReactNode } from "react";
-import { MemoryRouter } from "react-router-dom";
+import { renderHook, act, waitFor } from "@testing-library/react";
+import { createElement, Fragment, type ReactNode } from "react";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createMockGarden, createTestQueryClient } from "../../test-utils";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -21,6 +21,7 @@ const mockSelectedGardenId = { current: null as string | null };
 const mockSelectedGarden = { current: null as any };
 const mockResolvedDefaultGarden = { current: null as any };
 const mockEligibleGardens = { current: [] as any[] };
+const mockLocationSearch = { current: "" };
 const mockScopeKey = {
   current: "11155111:0x1111111111111111111111111111111111111111" as string | null,
 };
@@ -52,6 +53,12 @@ import { useGardenUrlSync } from "../../../hooks/navigation/useGardenUrlSync";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
+function LocationRecorder() {
+  const location = useLocation();
+  mockLocationSearch.current = location.search;
+  return null;
+}
+
 function createRouterWrapper(initialEntries: string[]) {
   const queryClient = createTestQueryClient();
 
@@ -62,7 +69,11 @@ function createRouterWrapper(initialEntries: string[]) {
       createElement(
         QueryClientProvider,
         { client: queryClient },
-        createElement(IntlProvider, { locale: "en", messages: {} }, children)
+        createElement(
+          IntlProvider,
+          { locale: "en", messages: {} },
+          createElement(Fragment, null, createElement(LocationRecorder), children)
+        )
       )
     );
   };
@@ -81,6 +92,7 @@ describe("useGardenUrlSync", () => {
     mockSelectedGarden.current = null;
     mockResolvedDefaultGarden.current = null;
     mockEligibleGardens.current = [];
+    mockLocationSearch.current = "";
     mockScopeKey.current = "11155111:0x1111111111111111111111111111111111111111";
     mockIsLoaded.current = true;
   });
@@ -121,6 +133,39 @@ describe("useGardenUrlSync", () => {
 
     // After setting tab, the hook should reflect the new tab value
     expect(result.current.tab).toBe("actions");
+  });
+
+  it("setGarden replaces a stale gardenAddress while preserving unrelated search params", async () => {
+    const greenGarden = createMockGarden({
+      id: "garden-green",
+      name: "Green Goods Community Garden",
+      tokenAddress: "0xaaa0000000000000000000000000000000000aaa",
+    });
+    const growGarden = createMockGarden({
+      id: "garden-grow",
+      name: "Grow Ecosystem",
+      tokenAddress: "0xbbb0000000000000000000000000000000000bbb",
+    });
+    mockEligibleGardens.current = [greenGarden, growGarden];
+    mockSelectedGarden.current = greenGarden;
+    mockSelectedGardenId.current = greenGarden.id;
+
+    const wrapper = createRouterWrapper([
+      `/hub/work?gardenAddress=${greenGarden.tokenAddress}&sort=oldest`,
+    ]);
+    const { result } = renderHook(() => useGardenUrlSync(), { wrapper });
+
+    act(() => {
+      result.current.setGarden(growGarden);
+    });
+
+    await waitFor(() => {
+      expect(result.current.gardenId).toBe(growGarden.id);
+    });
+
+    expect(mockSetSelectedGarden).toHaveBeenLastCalledWith(growGarden);
+    expect(mockLocationSearch.current).toContain(`gardenAddress=${growGarden.tokenAddress}`);
+    expect(mockLocationSearch.current).toContain("sort=oldest");
   });
 
   it("openItem adds ?item= param to URL for non-Hub canvas filters", () => {

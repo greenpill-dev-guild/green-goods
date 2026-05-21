@@ -14,7 +14,9 @@ const {
   mockUseGardenUrlSync,
   mockUseStaleGardenGuard,
   mockEnsureBaseLists,
+  mockSetUrlGarden,
   mockSetSelectedGarden,
+  mockGardenChipProps,
   mockAppBarProps,
   mockAuthState,
   mockEligibleAdminGardens,
@@ -24,7 +26,9 @@ const {
   mockUseGardenUrlSync: vi.fn(),
   mockUseStaleGardenGuard: vi.fn(),
   mockEnsureBaseLists: vi.fn(),
+  mockSetUrlGarden: vi.fn(),
   mockSetSelectedGarden: vi.fn(),
+  mockGardenChipProps: vi.fn(),
   mockAppBarProps: vi.fn(),
   mockRouteLeftSheetConfig: {
     current: null as null | {
@@ -84,7 +88,26 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
         </ul>
       </div>
     ),
-    GardenChip: () => <div>Garden Chip</div>,
+    GardenChip: (props: {
+      gardens: Array<{ id: string; name: string }>;
+      selectedGarden: { id: string; name: string } | null;
+      onSelectGarden: (garden: { id: string; name: string } | null) => void;
+    }) => {
+      mockGardenChipProps(props);
+      return (
+        <div>
+          <div>Garden Chip</div>
+          {props.gardens.map((garden) => (
+            <button key={garden.id} type="button" onClick={() => props.onSelectGarden(garden)}>
+              Select {garden.name}
+            </button>
+          ))}
+          <button type="button" onClick={() => props.onSelectGarden(null)}>
+            Select All Gardens
+          </button>
+        </div>
+      );
+    },
     AppBar: (props: {
       gardenChip: React.ReactNode;
       onOpenSearch?: () => void;
@@ -279,6 +302,16 @@ describe("CanvasLayout", () => {
       canCreateGarden: true,
       isLoaded: true,
     };
+    mockUseGardenUrlSync.mockReturnValue({
+      gardenId: null,
+      tab: null,
+      item: null,
+      setGarden: mockSetUrlGarden,
+      setTab: vi.fn(),
+      setFilter: vi.fn(),
+      openItem: vi.fn(),
+      closeItem: vi.fn(),
+    });
     mockRouteLeftSheetConfig.current = null;
     useSheetOrchestratorStore.setState({
       activeSheet: null,
@@ -327,12 +360,54 @@ describe("CanvasLayout", () => {
     expect(screen.getByTestId("top-context-bar")).toBeInTheDocument();
     expect(screen.getByTestId("top-context-garden")).toHaveTextContent("Garden Chip");
     expect(screen.getByTestId("navigation-bar")).toBeInTheDocument();
+    expect(mockGardenChipProps).toHaveBeenCalledWith(
+      expect.objectContaining({
+        gardens: [{ id: "garden-1", name: "Garden One" }],
+      })
+    );
     expect(mockAppBarProps.mock.calls[0]?.[0]).toEqual(
       expect.objectContaining({
         onOpenSearch: expect.any(Function),
         onOpenNotifications: expect.any(Function),
       })
     );
+  });
+
+  it("switches gardens through the URL-aware selector", async () => {
+    const user = userEvent.setup();
+    const gardenOne = {
+      id: "garden-1",
+      tokenAddress: "0x1111111111111111111111111111111111111111",
+      name: "Garden One",
+      location: "Quito",
+    };
+    const gardenTwo = {
+      id: "garden-2",
+      tokenAddress: "0x2222222222222222222222222222222222222222",
+      name: "Garden Two",
+      location: "Lisbon",
+    };
+    mockEligibleAdminGardens.current = {
+      eligibleGardens: [gardenOne, gardenTwo],
+      resolvedDefaultGarden: gardenOne,
+      persistedGardenId: null,
+      scopeKey: "0x123:10",
+      canCreateGarden: true,
+      isLoaded: true,
+    };
+
+    renderWithProviders(
+      <MemoryRouter
+        initialEntries={["/hub/work?gardenAddress=0x1111111111111111111111111111111111111111"]}
+      >
+        <CanvasLayout />
+      </MemoryRouter>
+    );
+
+    await user.click(screen.getByRole("button", { name: "Select Garden Two" }));
+
+    expect(mockSetUrlGarden).toHaveBeenCalledWith(gardenTwo);
+    expect(mockSetSelectedGarden).not.toHaveBeenCalledWith(gardenTwo);
   });
 
   it("passes onOpenProfile to AppBar on desktop", () => {
