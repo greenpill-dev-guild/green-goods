@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Green Goods · 5-minute deck</title>
+
+<!-- Fonts: loads from Google Fonts when online; falls back to warm system serif / system sans offline. -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..600&display=swap" rel="stylesheet" />
+
+<style>
+  :root{
+    /* Warm Earth palette (from packages/shared/src/styles/theme.css) */
+    --linen:#FAF8F5; --linen-band:#F1ECDA; --paper:#FFFFFF;
+    --ink:#292524; --ink-soft:#57534E; --stone:#78716C; --soft:#A8A29E;
+    --green:#1FC16B; --green-deep:#16A35A;
+    --walnut:#2D2118; --walnut-fg:#F5F0E8;
+    --solar:#C8941F; --agro:#3E5532; --edu:#2E4F6B; --waste:#9B3C2D;
+
+    --font-serif:"Fraunces","Hoefler Text",Georgia,"Times New Roman",ui-serif,serif;
+    --font-sans:"Inter",-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",system-ui,sans-serif;
+    --spring:cubic-bezier(0.16,1,0.3,1);
+    --radius-card:16px; --radius-panel:20px;
+    --shadow-panel:0 30px 80px -30px rgb(45 33 24 / .35);
+    --shadow-card:0 16px 38px -28px rgb(45 33 24 / .42), 0 1px 0 rgb(41 37 36 / .03);
+
+    /* Projection type scale (anchored so ~1920px wide hits the target px) */
+    --t-display:clamp(3rem,5.1vw,6.4rem);
+    --t-section:clamp(2.45rem,4vw,4.9rem);
+    --t-stat:clamp(3.4rem,6vw,7.7rem);
+    --t-lede:clamp(1.3rem,2.05vw,2.45rem);
+    --t-body:clamp(1.08rem,1.42vw,1.75rem);
+    --t-kicker:clamp(0.86rem,1.05vw,1.25rem);
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:var(--font-sans);
+    background:#0c0a09; color:var(--ink);
+    overflow:hidden; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+  }
+
+  .deck{position:fixed;inset:0}
+  .slide{
+    position:absolute;inset:0;
+    display:flex;flex-direction:column;justify-content:center;
+    padding:clamp(2.2rem,5.2vw,5.6rem);
+    background:var(--linen);
+    opacity:0;visibility:hidden;
+    transition:opacity .45s var(--spring);
+    overflow:hidden;
+  }
+  .slide.is-active{opacity:1;visibility:visible}
+  .inner{width:100%;max-width:1800px;margin:0 auto}
+
+  /* ---- type primitives ---- */
+  .kicker{
+    font-size:var(--t-kicker);text-transform:uppercase;letter-spacing:.18em;
+    font-weight:600;color:var(--stone);display:flex;align-items:center;gap:.7em;
+  }
+  .kicker .mark{color:var(--green);font-weight:700}
+  .headline{
+    font-family:var(--font-serif);font-weight:600;
+    font-size:var(--t-display);line-height:1.03;letter-spacing:-.021em;
+    color:var(--ink);margin-top:.42em;text-wrap:balance;
+  }
+  .headline.section{font-size:var(--t-section)}
+  .accent{color:var(--green)}
+  .lede{
+    font-size:var(--t-lede);line-height:1.42;color:var(--ink-soft);
+    margin-top:.85em;max-width:38ch;font-weight:400;
+  }
+
+  /* ---- generic grid + card ---- */
+  .grid{display:grid;gap:clamp(.85rem,1.4vw,1.45rem);margin-top:clamp(1.5rem,2.6vw,2.6rem)}
+  .g2{grid-template-columns:repeat(2,1fr)}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .g4{grid-template-columns:repeat(4,1fr)}
+  .g5{grid-template-columns:repeat(5,1fr)}
+  .card{
+    background:var(--paper);border:1px solid rgb(41 37 36 / .07);
+    border-radius:var(--radius-card);padding:clamp(1.05rem,1.6vw,1.7rem);
+    box-shadow:var(--shadow-card);
+  }
+  .card .t{font-weight:600;font-size:clamp(1rem,1.25vw,1.55rem);letter-spacing:-.01em;color:var(--ink)}
+  .card .d{font-size:clamp(.85rem,1.04vw,1.22rem);color:var(--ink-soft);line-height:1.4;margin-top:.4em}
+
+  /* ---- loop steps ---- */
+  .step .n{font-family:var(--font-serif);font-weight:600;font-style:italic;
+    font-size:clamp(1.6rem,2.5vw,3rem);line-height:1;color:var(--green)}
+  .step .t{margin-top:.45em}
+  .chips{display:flex;flex-wrap:wrap;gap:.65rem;margin-top:clamp(1.1rem,2vw,1.9rem)}
+  .chip{display:inline-flex;align-items:center;gap:.55em;font-size:clamp(.82rem,1.02vw,1.18rem);
+    font-weight:500;color:var(--ink);padding:.42em .95em;border-radius:9999px;
+    background:var(--paper);border:1px solid rgb(41 37 36 / .1)}
+  .chip .dot{width:.72em;height:.72em;border-radius:50%}
+
+  /* ---- personas ---- */
+  .persona .t{font-family:var(--font-serif);font-weight:600;font-size:clamp(1.05rem,1.35vw,1.7rem);color:var(--ink)}
+  .persona .d{font-size:clamp(.83rem,1.02vw,1.18rem);color:var(--ink-soft);line-height:1.38;margin-top:.45em}
+
+  /* ---- stack (mirrors the loop) ---- */
+  .built-lead{font-size:clamp(.95rem,1.18vw,1.45rem);color:var(--ink-soft);line-height:1.42;margin-top:.7em;max-width:64ch}
+  .built-lead b{color:var(--ink);font-weight:600}
+  .stack{margin-top:clamp(1.1rem,1.9vw,1.8rem)}
+  .row{
+    display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,2.5fr);
+    gap:clamp(1rem,2.4vw,2.6rem);align-items:baseline;
+    padding:clamp(.66rem,1.05vw,1.05rem) 0;border-top:1px solid rgb(41 37 36 / .12);
+  }
+  .row .step-name{font-family:var(--font-serif);font-weight:600;font-size:clamp(1.1rem,1.55vw,1.95rem);color:var(--ink)}
+  .row .step-name b{color:var(--green);font-style:italic;margin-right:.35em}
+  .row .tools{font-size:clamp(.95rem,1.18vw,1.45rem);color:var(--ink-soft);line-height:1.45}
+  .row .tools b{color:var(--ink);font-weight:600}
+  .row.sub{border-top:1px dashed rgb(41 37 36 / .26)}
+  .row.sub .step-name{color:var(--stone);font-style:italic;font-size:clamp(.95rem,1.25vw,1.5rem)}
+
+  /* ---- proof stats ---- */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(1.1rem,2.4vw,2.4rem);margin-top:clamp(1.7rem,3vw,2.8rem)}
+  .stat .n{font-family:var(--font-serif);font-weight:600;font-size:var(--t-stat);line-height:1;color:var(--ink);font-variant-numeric:tabular-nums}
+  .stat .l{font-size:clamp(.86rem,1.06vw,1.25rem);color:var(--stone);font-weight:500;margin-top:.5em;line-height:1.3}
+  .stat .rule{width:2.4rem;height:3px;background:var(--green);border-radius:2px;margin-top:.7em}
+  .note{font-size:clamp(.82rem,1vw,1.15rem);color:var(--stone);margin-top:clamp(1.4rem,2.4vw,2.2rem)}
+
+  /* ---- pillars ---- */
+  .pillar{background:var(--paper);border:1px solid rgb(41 37 36 / .08);border-radius:var(--radius-panel);
+    padding:clamp(1.3rem,2.1vw,2.2rem);box-shadow:var(--shadow-card)}
+  .pillar .t{font-family:var(--font-serif);font-weight:600;font-size:clamp(1.15rem,1.6vw,2rem);color:var(--ink);line-height:1.1}
+  .pillar .d{font-size:clamp(.92rem,1.14vw,1.4rem);color:var(--ink-soft);line-height:1.42;margin-top:.6em}
+  .pillar .tag{font-size:clamp(.78rem,.9vw,1.02rem);text-transform:uppercase;letter-spacing:.14em;color:var(--green-deep);font-weight:600;margin-top:.9em;display:block}
+
+  /* ---- milestone row (TAS) ---- */
+  .miles{display:flex;flex-wrap:wrap;align-items:center;gap:.55em .35em;margin-top:.4em}
+  .miles .m{font-size:clamp(.82rem,1.02vw,1.2rem);font-weight:600;color:var(--ink);background:rgb(200 148 31 / .14);
+    border:1px solid rgb(200 148 31 / .35);padding:.34em .8em;border-radius:9999px;white-space:nowrap}
+  .miles .arr{color:var(--solar);font-weight:700}
+
+  /* ---- hero slides ---- */
+  .slide--hero{padding:0;justify-content:center}
+  .slide--hero .bg{position:absolute;inset:0;background-size:cover;background-position:center}
+  .slide--hero .scrim{position:absolute;inset:0;
+    background:linear-gradient(to bottom, rgba(0,0,0,.58), rgba(0,0,0,.10) 42%, rgba(0,0,0,.66))}
+  .hero-card{
+    position:relative;margin:clamp(2rem,4.6vw,5rem);
+    max-width:min(64%,1020px);background:var(--linen);border-radius:var(--radius-panel);
+    padding:clamp(1.6rem,2.7vw,3rem) clamp(1.8rem,3vw,3.4rem);box-shadow:var(--shadow-panel);
+  }
+  .hero-card .lede{max-width:46ch}
+
+  /* ---- close ---- */
+  .slide--close{background:var(--walnut);color:var(--walnut-fg);justify-content:center;align-items:center;text-align:center}
+  .slide--close .wordmark{font-family:var(--font-serif);font-weight:600;font-size:clamp(2.4rem,4vw,5rem);letter-spacing:-.02em}
+  .slide--close .tagline{font-family:var(--font-serif);font-style:italic;font-weight:500;font-size:clamp(1.4rem,2.3vw,2.9rem);color:var(--walnut-fg);margin-top:.5em;opacity:.96}
+  .slide--close .sub{font-size:var(--t-lede);color:rgb(245 240 232 / .72);margin-top:1.1em}
+  .slide--close .foot{font-size:clamp(.8rem,.98vw,1.12rem);letter-spacing:.06em;color:rgb(245 240 232 / .55);margin-top:2.4em;text-transform:uppercase}
+
+  /* ---- demo cue pill ---- */
+  .cue{display:inline-flex;align-items:center;gap:.55em;margin-top:clamp(1.3rem,2.2vw,2rem);
+    font-size:clamp(.82rem,1vw,1.15rem);font-weight:600;letter-spacing:.02em;
+    color:var(--green-deep);text-decoration:none;
+    background:rgb(31 193 107 / .12);border:1px solid rgb(31 193 107 / .4);
+    padding:.5em 1.05em;border-radius:9999px;transition:transform .2s var(--spring),background .2s var(--spring)}
+  .cue:hover{transform:scale(1.03);background:rgb(31 193 107 / .2)}
+  .cue .live{width:.6em;height:.6em;border-radius:50%;background:var(--green);box-shadow:0 0 0 0 rgb(31 193 107 / .6);animation:pulse 1.8s var(--spring) infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgb(31 193 107 / .55)}70%{box-shadow:0 0 0 .7em rgb(31 193 107 / 0)}100%{box-shadow:0 0 0 0 rgb(31 193 107 / 0)}}
+  .hero-card .cue{margin-top:1.2rem}
+
+  /* ---- reveal animation ---- */
+  .reveal{opacity:0;transform:translateY(18px)}
+  .is-active .reveal{animation:rise .62s var(--spring) forwards}
+  .is-active .reveal-2{animation-delay:.08s}
+  .is-active .reveal-3{animation-delay:.16s}
+  .is-active .reveal-4{animation-delay:.24s}
+  .is-active .reveal-5{animation-delay:.32s}
+  .is-active .reveal-6{animation-delay:.40s}
+  @keyframes rise{to{opacity:1;transform:none}}
+
+  /* ---- hud + progress ---- */
+  .hud{position:fixed;bottom:1.35rem;right:1.6rem;z-index:60;font-size:.85rem;letter-spacing:.12em;
+    color:var(--soft);font-variant-numeric:tabular-nums;mix-blend-mode:difference}
+  .progress{position:fixed;top:0;left:0;height:3px;width:0;background:var(--green);z-index:60;transition:width .45s var(--spring)}
+
+  @media (prefers-reduced-motion: reduce){
+    .reveal,.is-active .reveal{animation:none!important;opacity:1;transform:none}
+    .slide{transition:none}.cue .live{animation:none}.progress{transition:none}
+  }
+
+  /* ---- print / PDF (one slide per landscape page) ---- */
+  @media print{
+    @page{size:13.333in 7.5in;margin:0}
+    *{animation:none!important;transition:none!important}
+    html,body{overflow:visible;background:#fff}
+    .deck{position:static}
+    .hud,.progress{display:none}
+    .slide{position:relative;inset:auto;width:13.333in;height:7.5in;opacity:1!important;visibility:visible!important;
+      page-break-after:always;break-after:page;transition:none}
+    .reveal{opacity:1!important;transform:none!important;animation:none!important}
+  }
+
+  /* ---- fill pass v2: use more of the canvas + larger text (2026-05-22 feedback) ---- */
+  .grid{gap:clamp(1.2rem,2vw,2.2rem);margin-top:clamp(2.4rem,3.9vw,4.4rem)}
+  .card{padding:clamp(1.7rem,2.5vw,2.8rem)}
+  .card .t{font-size:clamp(1.18rem,1.55vw,2rem)}
+  .card .d{font-size:clamp(1rem,1.28vw,1.55rem)}
+  .step .n{font-size:clamp(2rem,3.2vw,4rem)}
+  .chips{gap:.8rem;margin-top:clamp(2.1rem,3.4vw,3.5rem)}
+  .chip{font-size:clamp(.95rem,1.22vw,1.42rem);padding:.6em 1.2em}
+  .persona .t{font-size:clamp(1.4rem,1.85vw,2.35rem)}
+  .persona .d{font-size:clamp(1.12rem,1.45vw,1.7rem);line-height:1.46;margin-top:.55em}
+  .g5{margin-top:clamp(3.2rem,5vw,5.4rem)}
+  .g5 .card{padding:clamp(2rem,2.9vw,3.2rem) clamp(1.5rem,2.1vw,2.3rem);display:flex;flex-direction:column;justify-content:flex-start}
+  .built-lead{font-size:clamp(1.08rem,1.35vw,1.7rem)}
+  .stack{margin-top:clamp(1.7rem,2.6vw,2.7rem)}
+  .row{padding:clamp(.9rem,1.3vw,1.45rem) 0}
+  .row .step-name{font-size:clamp(1.22rem,1.72vw,2.2rem)}
+  .row .tools{font-size:clamp(1.08rem,1.35vw,1.7rem)}
+  .stats{margin-top:clamp(2.7rem,4.4vw,4.6rem)}
+  .stat .l{font-size:clamp(1.02rem,1.3vw,1.55rem)}
+  .note{font-size:clamp(.95rem,1.18vw,1.35rem);margin-top:clamp(2.2rem,3.3vw,3.3rem)}
+  .pillar{padding:clamp(2.2rem,3.2vw,3.6rem)}
+  .pillar .t{font-size:clamp(1.45rem,2vw,2.5rem)}
+  .pillar .d{font-size:clamp(1.1rem,1.38vw,1.7rem)}
+  .miles .m{font-size:clamp(.95rem,1.22vw,1.45rem)}
+  .slide--close .wordmark{font-size:clamp(2.8rem,4.6vw,5.8rem)}
+  .slide--close .tagline{font-size:clamp(1.6rem,2.7vw,3.4rem)}
+  .slide--close .foot{font-size:clamp(.88rem,1.1vw,1.25rem)}
+  /* brand logo (cover + close) */
+  .brand-logo{height:clamp(40px,3.4vw,62px);width:auto;display:block}
+  .hero-card .brand-logo{margin-bottom:clamp(.7rem,1.3vw,1.3rem)}
+  .slide--close .brand-logo--close{height:clamp(66px,7vw,120px);margin:0 auto clamp(1rem,2vw,1.9rem)}
+</style>
+</head>
+<body>
+<div class="deck">
+
+  <!-- 1 · COVER / THE GAP -->
+  <section class="slide slide--hero is-active">
+    <div class="bg" style="background-image:url('assets/hero-home.webp')"></div>
+    <div class="scrim"></div>
+    <div class="hero-card">
+      <img class="brand-logo reveal" src="assets/logo.png" alt="Green Goods" />
+      <div class="kicker reveal">Green Goods <span class="mark">·</span> Built by the GreenPill Dev Guild</div>
+      <h1 class="headline reveal reveal-2">Regenerative work goes <span class="accent">undocumented</span>, <span class="accent">unverified</span>, and <span class="accent">unfunded</span>.</h1>
+      <p class="lede reveal reveal-3">Green Goods makes impact reporting accessible, then legible, verified, and fundable, onchain.</p>
+    </div>
+  </section>
+
+  <!-- 2 · THE REGENERATIVE WORK LOOP -->
+  <section class="slide">
+    <div class="inner">
+      <div class="kicker reveal"><span class="mark">§ 01</span> · The regenerative work loop</div>
+      <h2 class="headline section reveal reveal-2">Four steps. Repeated, season after season.</h2>
+      <div class="grid g4">
+        <div class="card step reveal reveal-3"><div class="n">1</div><div class="t">Assess the place</div></div>
+        <div class="card step reveal reveal-3"><div class="n">2</div><div class="t">Do the work</div></div>
+        <div class="card step reveal reveal-4"><div class="n">3</div><div class="t">Verify impact</div></div>
+        <div class="card step reveal reveal-4"><div class="n">4</div><div class="t">Fund what grows</div></div>
+      </div>
+      <div class="chips reveal reveal-5">
+        <span class="chip"><span class="dot" style="background:var(--solar)"></span>Solar</span>
+        <span class="chip"><span class="dot" style="background:var(--agro)"></span>Agroforestry</span>
+        <span class="chip"><span class="dot" style="background:var(--edu)"></span>Education</span>
+        <span class="chip"><span class="dot" style="background:var(--waste)"></span>Waste</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 · WHO TENDS A GARDEN -->
+  <section class="slide">
+    <div class="inner">
+      <div class="kicker reveal"><span class="mark">§ 02</span> · Who tends a garden</div>
+      <h2 class="headline section reveal reveal-2">It takes more than gardeners.</h2>
+      <div class="grid g5">
+        <div class="card persona reveal reveal-3"><div class="t">Gardeners</div><div class="d">Do the regenerative work and document it from the field.</div></div>
+        <div class="card persona reveal reveal-3"><div class="t">Operators</div><div class="d">Run the garden, set the roles, and confirm the work.</div></div>
+        <div class="card persona reveal reveal-4"><div class="t">Evaluators</div><div class="d">Verify the record and judge what the impact is worth.</div></div>
+        <div class="card persona reveal reveal-4"><div class="t">Funders</div><div class="d">Resource the work and back the gardens worth growing.</div></div>
+        <div class="card persona reveal reveal-5"><div class="t">Community</div><div class="d">Complete the cycle, accounting for impact where the garden lives.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 · WHAT WE BUILT (mirrors the loop) -->
+  <section class="slide">
+    <div class="inner">
+      <div class="kicker reveal"><span class="mark">§ 03</span> · What we built</div>
+      <h2 class="headline section reveal reveal-2">We don't rebuild the stack. We compose it.</h2>
+      <p class="built-lead reveal reveal-2">The front door is an <b>offline-first PWA</b> today, with agentic text and voice coming. Underneath, the stack it runs on:</p>
+      <div class="stack">
+        <div class="row reveal reveal-3">
+          <div class="step-name"><b>1</b>Assess</div>
+          <div class="tools"><b>Hats Protocol</b> sets roles and permissions: who can do what.</div>
+        </div>
+        <div class="row reveal reveal-3">
+          <div class="step-name"><b>2</b>Do the work</div>
+          <div class="tools"><b>EAS Attestations</b> capture the Work; the Operator approves.</div>
+        </div>
+        <div class="row reveal reveal-4">
+          <div class="step-name"><b>3</b>Verify</div>
+          <div class="tools"><b>EAS Assessment</b> by an Evaluator, minted as a <b>Hypercert</b>.</div>
+        </div>
+        <div class="row reveal reveal-4">
+          <div class="step-name"><b>4</b>Fund</div>
+          <div class="tools"><b>Octant-style Vaults</b> turn yield into buyback. <b>Karma GAP</b> reports to funders.</div>
+        </div>
+        <div class="row sub reveal reveal-5">
+          <div class="step-name">Substrate</div>
+          <div class="tools"><b>Gardens V2</b> conviction voting across cycles, <b>ENS</b> identity, account abstraction for gasless use.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 · A LIVING PUBLIC RECORD (proof) -->
+  <section class="slide" style="background:var(--linen-band)">
+    <div class="inner">
+      <div class="kicker reveal"><span class="mark">§ 04</span> · A living public record</div>
+      <h2 class="headline section reveal reveal-2">This isn't a dashboard. It's proof.</h2>
+      <!-- Live snapshot pulled from greengoods.app indexer + EAS (Arbitrum) on 2026-05-21. Refresh before presenting if desired. -->
+      <div class="stats">
+        <div class="stat reveal reveal-3"><div class="n" data-stat="gardens">18</div><div class="rule"></div><div class="l">Gardens attended</div></div>
+        <div class="stat reveal reveal-3"><div class="n" data-stat="hands">63</div><div class="rule"></div><div class="l">Hands at work</div></div>
+        <div class="stat reveal reveal-4"><div class="n" data-stat="entries">45</div><div class="rule"></div><div class="l">Entries logged</div></div>
+        <div class="stat reveal reveal-4"><div class="n" data-stat="verified">31</div><div class="rule"></div><div class="l">Work verified</div></div>
+      </div>
+      <p class="note reveal reveal-5">Public, verifiable. Each address counted once.</p>
+      <a class="cue reveal reveal-6" href="https://greengoods.app/impact" target="_blank" rel="noopener"><span class="live"></span> Live · greengoods.app/impact</a>
+    </div>
+  </section>
+
+  <!-- 6 · TECH AND THE SUN -->
+  <section class="slide slide--hero">
+    <div class="bg" style="background-image:url('assets/hero-garden.webp')"></div>
+    <div class="scrim"></div>
+    <div class="hero-card">
+      <div class="kicker reveal"><span class="mark">§ 05</span> · In the field</div>
+      <h2 class="headline section reveal reveal-2">Tech and the Sun: building hubs across Nigeria.</h2>
+      <div class="miles reveal reveal-3">
+        <span class="m">Site</span><span class="arr">→</span>
+        <span class="m">Container</span><span class="arr">→</span>
+        <span class="m">Solar install</span><span class="arr">→</span>
+        <span class="m">Connectivity</span><span class="arr">→</span>
+        <span class="m">Node · ETH staking</span><span class="arr">→</span>
+        <span class="m">Hub launch</span>
+      </div>
+      <p class="lede reveal reveal-4">Every milestone, captured as verifiable work.</p>
+      <!-- Tech and the Sun = the "TAS HUB" garden (account 0xA2DF…D5E3) on greengoods.app. Click once before the talk to confirm it loads. -->
+      <a class="cue reveal reveal-5" href="https://greengoods.app/gardens/0xA2DF8Eb73444A3f3cf9b8E3749313C7471d7D5E3" target="_blank" rel="noopener"><span class="live"></span> Live · the TAS HUB garden</a>
+    </div>
+  </section>
+
+  <!-- 7 · WHERE WE'RE HEADED -->
+  <section class="slide">
+    <div class="inner">
+      <div class="kicker reveal"><span class="mark">§ 06</span> · Where we're headed</div>
+      <h2 class="headline section reveal reveal-2">Transparent evaluations. Stronger community signal.</h2>
+      <div class="grid g2">
+        <div class="pillar reveal reveal-3">
+          <div class="t">Make evaluations transparent.</div>
+          <div class="d">So impact is legible and legitimate to the funders who back it.</div>
+          <span class="tag">GreenPill Impact Framework · clear indicators</span>
+        </div>
+        <div class="pillar reveal reveal-4">
+          <div class="t">Grow community signal.</div>
+          <div class="d">So a garden's positive effect on the place it lives is visible to everyone.</div>
+          <span class="tag">Attestations · conviction voting</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8 · CLOSE -->
+  <section class="slide slide--close">
+    <div class="inner" style="max-width:none">
+      <img class="brand-logo brand-logo--close reveal" src="assets/logo.png" alt="Green Goods" />
+      <div class="wordmark reveal">Green Goods</div>
+      <div class="tagline reveal reveal-2">From good intentions to green outcomes.</div>
+      <div class="sub reveal reveal-3">Make regenerative work legible, and fundable.</div>
+      <div class="foot reveal reveal-4">greengoods.app</div>
+    </div>
+  </section>
+
+</div>
+
+<div class="progress"></div>
+<div class="hud"><span class="hud__num">1</span> / 8</div>
+
+<script>
+  const slides=[...document.querySelectorAll('.slide')];
+  const hud=document.querySelector('.hud__num');
+  const prog=document.querySelector('.progress');
+  let i=0;
+  function show(n){
+    i=Math.max(0,Math.min(slides.length-1,n));
+    slides.forEach((s,k)=>s.classList.toggle('is-active',k===i));
+    hud.textContent=i+1;
+    prog.style.width=(i/(slides.length-1)*100)+'%';
+  }
+  function next(){show(i+1)}
+  function prev(){show(i-1)}
+  document.addEventListener('keydown',e=>{
+    if(['ArrowRight','PageDown',' '].includes(e.key)){e.preventDefault();next();}
+    else if(['ArrowLeft','PageUp'].includes(e.key)){e.preventDefault();prev();}
+    else if(e.key==='Home'){show(0);}
+    else if(e.key==='End'){show(slides.length-1);}
+    else if(e.key==='f'||e.key==='F'){
+      if(!document.fullscreenElement){document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen();}
+      else{document.exitFullscreen&&document.exitFullscreen();}
+    }
+  });
+  // click advances; right-click goes back; links (demo cues) are not hijacked
+  document.addEventListener('click',e=>{if(e.target.closest('a'))return;next();});
+  document.addEventListener('contextmenu',e=>{e.preventDefault();prev();});
+  show(0);
+</script>
+</body>
+</html>
