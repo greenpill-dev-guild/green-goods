@@ -139,6 +139,22 @@ describe("buildGardenViewActions", () => {
 
     expect(actions.find((action) => action.id === "edit-domains")?.visible).toBe(false);
   });
+
+  it("keeps the settings Domains editor on the inline settings row", () => {
+    const editDomains = vi.fn();
+    const actions = buildGardenViewActions(
+      "settings",
+      true,
+      true,
+      vi.fn(),
+      {
+        gardenAddress: GARDEN,
+      },
+      editDomains
+    );
+
+    expect(actions.find((action) => action.id === "edit-domains")?.visible).toBe(false);
+  });
 });
 
 describe("buildCommunityFabConfig", () => {

@@ -245,15 +245,98 @@
   border-color: var(--admin-chrome-border);
 }
 
-/* DialogShell / ConfirmDialog render via Radix portal outside .admin-m3.
- * The shared primitives now ship solid surfaces by default (bg-bg-white-0 +
- * shadow-float), so admin only needs to remap the background + shadow onto
- * its strict M3 tokens. Backdrop-filter no longer applies; the class-based
- * `.glass-floating` selector is gone with it. */
+/* Dialog portals render outside .admin-m3. Keep portal surfaces mapped to
+ * strict M3 tokens, with legacy selectors retained for any shared/non-admin
+ * dialog that is mounted from an admin route. */
+body:has(.admin-m3) [data-component="AdminDialog"][data-slot="surface"],
 body:has(.admin-m3) [data-component="DialogShell"][data-slot="surface"],
 body:has(.admin-m3) [data-component="ConfirmDialog"][data-slot="surface"] {
   background: rgb(var(--m3-surface-container-high));
   box-shadow: var(--m3-elevation-3);
+}
+
+/* ============================================================================
+ * AdminDialog motion — admin-owned enter/exit animation
+ *
+ * AdminDialog portals to <body> (outside .admin-m3), so these rules use bare
+ * [data-component="AdminDialog"] selectors keyed off Radix's data-state — the
+ * same convention the shared dialog primitives use in utilities.css. Token-
+ * driven (--spring-*) so there are no raw duration/easing literals.
+ *
+ * These keyframes animate ONLY the motion delta (slide on Y, or scale) via the
+ * `transform` property. AdminDialog.tsx centers the surface with Tailwind v4
+ * translate utilities ("-translate-x-1/2"; plus "sm:-translate-y-1/2" >= 640px),
+ * which compile to the independent `translate` CSS property — NOT `transform`.
+ * Because `translate` and `transform` compose, the centering is preserved
+ * automatically and these keyframes must NOT re-bake translate(-50%, …) into
+ * `transform`, or the surface would translate twice and land off-center.
+ *
+ * Replaces the prior dead Tailwind animate-*/slide-in-*/zoom-* classes
+ * (tailwindcss-animate is not loaded in this build, so they emitted no CSS).
+ * ============================================================================ */
+
+/* Mobile bottom sheet — slide up from below, 2% overshoot for spring feel.
+ * X centering comes from the Tailwind `translate` property; we only move Y. */
+@keyframes adminDialogSheetIn {
+  from { transform: translateY(100%); opacity: 0.85; }
+  60%  { transform: translateY(-2%); opacity: 1; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+@keyframes adminDialogSheetOut {
+  from { transform: translateY(0); opacity: 1; }
+  to   { transform: translateY(100%); opacity: 0.85; }
+}
+
+/* Desktop centered modal — subtle scale, no overshoot. Centering comes from the
+ * Tailwind `translate` property; scale is about the surface center. */
+@keyframes adminDialogModalIn {
+  from { transform: scale(0.96); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+@keyframes adminDialogModalOut {
+  from { transform: scale(1); opacity: 1; }
+  to   { transform: scale(0.96); opacity: 0; }
+}
+
+/* Scrim — reuses the shared scrimFadeIn/scrimFadeOut keyframes (utilities.css,
+ * imported by both admin index.css and the Storybook preview). No transform on
+ * the overlay, so no centering conflict. */
+[data-component="AdminDialog"][data-slot="overlay"][data-state="open"] {
+  animation: scrimFadeIn var(--spring-effects-duration) var(--spring-effects-easing) both;
+}
+[data-component="AdminDialog"][data-slot="overlay"][data-state="closed"] {
+  animation: scrimFadeOut var(--spring-effects-fast-duration) var(--spring-effects-fast-easing) both;
+}
+
+/* Surface — mobile bottom-sheet slide is the default; >= 640px swaps to the
+ * centered-modal zoom (matching the sm: breakpoint AdminDialog.tsx uses). */
+[data-component="AdminDialog"][data-slot="surface"][data-state="open"] {
+  animation: adminDialogSheetIn var(--spring-spatial-slow-duration)
+    var(--spring-spatial-slow-easing) both;
+}
+[data-component="AdminDialog"][data-slot="surface"][data-state="closed"] {
+  animation: adminDialogSheetOut var(--spring-spatial-duration)
+    var(--spring-spatial-easing) both;
+}
+
+@media (min-width: 640px) {
+  [data-component="AdminDialog"][data-slot="surface"][data-state="open"] {
+    animation: adminDialogModalIn var(--spring-spatial-slow-duration)
+      var(--spring-spatial-slow-easing) both;
+  }
+  [data-component="AdminDialog"][data-slot="surface"][data-state="closed"] {
+    animation: adminDialogModalOut var(--spring-spatial-duration)
+      var(--spring-spatial-easing) both;
+  }
+}
+
+/* Reduced motion — disable the enter/exit animation (mirrors the shared
+ * dialog block in utilities.css). The `to`/forwards fill still resolves the
+ * resting transform, so the surface lands centered, just without motion. */
+@media (prefers-reduced-motion: reduce) {
+  [data-component="AdminDialog"][data-slot] {
+    animation-duration: 0ms !important;
+  }
 }
 
 /* Content lists/cards within MainSheet — solid surface-container-low */

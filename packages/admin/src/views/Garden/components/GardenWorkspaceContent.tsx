@@ -60,7 +60,11 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
 
   return (
     <div className="mt-4 space-y-4">
-      <GardenDomainSummaryRow domainMask={workspace.garden.domainMask} />
+      <GardenDomainSummaryRow
+        domainMask={workspace.garden.domainMask}
+        canManage={workspace.canManage}
+        onEditDomains={workspace.openDomainEditor}
+      />
       {workspace.view === "overview" ? (
         <OverviewTab
           section={workspace.section}

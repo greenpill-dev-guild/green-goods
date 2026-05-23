@@ -1,8 +1,10 @@
-import { cn, DialogShell, DOMAIN_COLORS, Domain } from "@green-goods/shared";
+import { cn, DOMAIN_COLORS, Domain } from "@green-goods/shared";
 import { RiLoader4Line } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { fn } from "storybook/test";
+import { AdminButton } from "../AdminButton";
+import { AdminDialog } from "../AdminDialog";
 
 // ⚠ VISUAL HARNESS — not the real GardenDomainEditor.
 // The real component reads current domains via `useReadContract`
@@ -65,70 +67,64 @@ function GardenDomainEditorHarness({
   };
 
   return (
-    <DialogShell
+    <AdminDialog
       open={isOpen}
       onOpenChange={(open) => !open && onClose()}
+      size="lg"
       title="Edit garden domains"
       description="Domains determine which actions a garden can track."
       preventClose={isPending}
-      bodyClassName="p-0"
+      actions={
+        <>
+          <AdminButton type="button" disabled={isPending} variant="text">
+            Cancel
+          </AdminButton>
+          <AdminButton
+            type="button"
+            disabled={isPending || selected.length === 0}
+            loading={isPending}
+          >
+            Save domains
+          </AdminButton>
+        </>
+      }
     >
-      <div className="p-4">
-        {isLoadingDomains ? (
-          <div className="flex items-center justify-center py-8">
-            <RiLoader4Line className="h-6 w-6 animate-spin text-text-soft" />
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            {DOMAINS.map(({ value, label, description }) => {
-              const isSelected = selected.includes(value);
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  disabled={isPending}
-                  onClick={() => toggleDomain(value)}
-                  className={cn(
-                    "flex flex-col items-start gap-1 rounded-lg border px-3 py-2.5 text-sm transition-colors text-left",
-                    isSelected
-                      ? "border-primary-base bg-primary-alpha-10 text-text-strong"
-                      : "border-stroke-soft bg-bg-white text-text-sub hover:border-stroke-strong",
-                    isPending && "cursor-not-allowed opacity-50"
-                  )}
-                >
-                  <span className="flex items-center gap-2">
-                    <span
-                      className="h-3 w-3 shrink-0 rounded-full"
-                      style={{ backgroundColor: DOMAIN_COLORS[value] }}
-                    />
-                    {label}
-                  </span>
-                  <span className="pl-5 text-xs text-text-soft">{description}</span>
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      <div className="flex gap-3 border-t border-stroke-soft p-4">
-        <button
-          type="button"
-          disabled={isPending}
-          className="flex-1 rounded-lg bg-bg-weak px-4 py-3 text-sm font-medium text-text-strong transition hover:bg-bg-soft disabled:opacity-50"
-        >
-          Cancel
-        </button>
-        <button
-          type="button"
-          disabled={isPending || selected.length === 0}
-          className="flex flex-1 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-3 text-sm font-medium text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50"
-        >
-          {isPending && <RiLoader4Line className="h-4 w-4 animate-spin" />}
-          Save domains
-        </button>
-      </div>
-    </DialogShell>
+      {isLoadingDomains ? (
+        <div className="flex items-center justify-center py-8">
+          <RiLoader4Line className="h-6 w-6 animate-spin text-text-soft" />
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          {DOMAINS.map(({ value, label, description }) => {
+            const isSelected = selected.includes(value);
+            return (
+              <button
+                key={value}
+                type="button"
+                disabled={isPending}
+                onClick={() => toggleDomain(value)}
+                className={cn(
+                  "flex flex-col items-start gap-1 rounded-lg border px-3 py-2.5 text-sm transition-colors text-left",
+                  isSelected
+                    ? "border-primary-base bg-primary-alpha-10 text-text-strong"
+                    : "border-stroke-soft bg-bg-white text-text-sub hover:border-stroke-strong",
+                  isPending && "cursor-not-allowed opacity-50"
+                )}
+              >
+                <span className="flex items-center gap-2">
+                  <span
+                    className="h-3 w-3 shrink-0 rounded-full"
+                    style={{ backgroundColor: DOMAIN_COLORS[value] }}
+                  />
+                  {label}
+                </span>
+                <span className="pl-5 text-xs text-text-soft">{description}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </AdminDialog>
   );
 }
 

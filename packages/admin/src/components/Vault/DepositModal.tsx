@@ -2,7 +2,6 @@ import {
   type Address,
   AssetSelector,
   Button,
-  DialogShell,
   FormField,
   formatTokenAmount,
   type GardenVault,
@@ -23,6 +22,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { encodeFunctionData, formatUnits } from "viem";
 import { useBalance, useEstimateGas, useGasPrice } from "wagmi";
+import { AdminButton } from "@/components/AdminButton";
+import { AdminDialog } from "@/components/AdminDialog";
 import { ConnectButton } from "@/components/ConnectButton";
 
 const VAULT_DEPOSIT_ABI = [
@@ -170,13 +171,45 @@ export function DepositModal({
   };
 
   return (
-    <DialogShell
+    <AdminDialog
       open={isOpen}
       onOpenChange={(open) => !open && onClose()}
       size="lg"
       title={formatMessage({ id: "app.treasury.deposit" })}
       description={formatMessage({ id: "app.treasury.depositDescription" })}
       preventClose={depositMutation.isPending}
+      actions={
+        primaryAddress ? (
+          <>
+            <AdminButton
+              type="button"
+              variant="text"
+              onClick={onClose}
+              disabled={depositMutation.isPending}
+            >
+              {formatMessage({ id: "app.common.cancel" })}
+            </AdminButton>
+            <AdminButton
+              type="button"
+              onClick={onSubmit}
+              disabled={
+                !selectedVault ||
+                !primaryAddress ||
+                amountBigInt <= 0n ||
+                hasBlockingError ||
+                !decimalsReady ||
+                !vaultAcceptingDeposits ||
+                depositMutation.isPending
+              }
+              loading={depositMutation.isPending}
+            >
+              {depositMutation.isPending
+                ? formatMessage({ id: "app.treasury.depositing" })
+                : formatMessage({ id: "app.treasury.deposit" })}
+            </AdminButton>
+          </>
+        ) : null
+      }
     >
       {!primaryAddress ? (
         <div className="space-y-4 py-6 text-center">
@@ -320,26 +353,8 @@ export function DepositModal({
             message={txError.message}
             reserveClassName="min-h-[5.5rem]"
           />
-          <Button
-            className="w-full"
-            onClick={onSubmit}
-            disabled={
-              !selectedVault ||
-              !primaryAddress ||
-              amountBigInt <= 0n ||
-              hasBlockingError ||
-              !decimalsReady ||
-              !vaultAcceptingDeposits ||
-              depositMutation.isPending
-            }
-            loading={depositMutation.isPending}
-          >
-            {depositMutation.isPending
-              ? formatMessage({ id: "app.treasury.depositing" })
-              : formatMessage({ id: "app.treasury.deposit" })}
-          </Button>
         </div>
       )}
-    </DialogShell>
+    </AdminDialog>
   );
 }

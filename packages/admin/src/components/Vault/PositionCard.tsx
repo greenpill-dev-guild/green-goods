@@ -1,7 +1,6 @@
 import {
   type Address,
   Card,
-  ConfirmDialog,
   formatTokenAmount,
   type GardenVault,
   getBlockExplorerAddressUrl,
@@ -21,6 +20,7 @@ import { useState } from "react";
 import { useIntl } from "react-intl";
 import { useReadContracts } from "wagmi";
 import { AdminButton } from "@/components/AdminButton";
+import { AdminConfirmDialog } from "@/components/AdminDialog";
 import { EnsAddressText } from "@/components/EnsAddressText";
 
 interface PositionCardProps {
@@ -246,7 +246,7 @@ export function PositionCard({
         </div>
       )}
 
-      <ConfirmDialog
+      <AdminConfirmDialog
         isOpen={confirmPauseOpen}
         onClose={() => setConfirmPauseOpen(false)}
         onConfirm={onConfirmPause}

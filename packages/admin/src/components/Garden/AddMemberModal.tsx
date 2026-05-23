@@ -1,6 +1,5 @@
 import {
   type Address,
-  DialogShell,
   FormField,
   type GardenRole,
   logger,
@@ -14,6 +13,7 @@ import { useMemo, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { isAddress } from "viem";
 import { EnsAddressText } from "@/components/EnsAddressText";
+import { AdminDialog } from "../AdminDialog";
 import { AdminButton } from "../AdminButton";
 
 interface AddMemberModalProps {
@@ -52,6 +52,7 @@ export function AddMemberModal({
     community: formatMessage({ id: "app.roles.community" }),
   };
   const roleLabel = roleLabelMap[memberType];
+  const formId = `admin-add-member-${memberType}`;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -106,13 +107,30 @@ export function AddMemberModal({
   };
 
   return (
-    <DialogShell
+    <AdminDialog
       open={isOpen}
       onOpenChange={(open) => !open && handleClose()}
       title={formatMessage({ id: "app.admin.roles.add" }, { role: roleLabel })}
       preventClose={isLoading}
+      actions={
+        <>
+          <AdminButton type="button" onClick={handleClose} disabled={isLoading} variant="text">
+            {formatMessage({ id: "admin.common.cancel", defaultMessage: "Cancel" })}
+          </AdminButton>
+          <AdminButton
+            type="submit"
+            form={formId}
+            disabled={isLoading || !trimmed || (shouldResolveEns && resolvingEns)}
+            loading={isLoading}
+          >
+            {isLoading
+              ? formatMessage({ id: "admin.addMember.adding", defaultMessage: "Adding..." })
+              : formatMessage({ id: "app.admin.roles.add" }, { role: roleLabel })}
+          </AdminButton>
+        </>
+      }
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form id={formId} onSubmit={handleSubmit} className="space-y-4">
         <FormField
           label={formatMessage({ id: "app.admin.roles.addressLabel" })}
           htmlFor="member-address"
@@ -175,22 +193,7 @@ export function AddMemberModal({
             </p>
           )}
         </FormField>
-
-        <div className="flex items-center justify-end space-x-3 pt-6 border-t border-stroke-soft">
-          <AdminButton type="button" onClick={handleClose} disabled={isLoading} variant="outlined">
-            {formatMessage({ id: "admin.common.cancel", defaultMessage: "Cancel" })}
-          </AdminButton>
-          <AdminButton
-            type="submit"
-            disabled={isLoading || !trimmed || (shouldResolveEns && resolvingEns)}
-            loading={isLoading}
-          >
-            {isLoading
-              ? formatMessage({ id: "admin.addMember.adding", defaultMessage: "Adding..." })
-              : formatMessage({ id: "app.admin.roles.add" }, { role: roleLabel })}
-          </AdminButton>
-        </div>
       </form>
-    </DialogShell>
+    </AdminDialog>
   );
 }

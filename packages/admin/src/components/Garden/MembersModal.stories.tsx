@@ -18,7 +18,7 @@ const meta: Meta<typeof MembersModal> = {
     docs: {
       description: {
         component:
-          "Scrollable member list inside a DialogShell. Supports optional remove action and six color schemes (info, success, warning, feature, primary, neutral).",
+          "Scrollable member list inside an AdminDialog. Supports optional remove action and six color schemes (info, success, warning, feature, primary, neutral).",
       },
     },
   },

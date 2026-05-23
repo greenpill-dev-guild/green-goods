@@ -1,7 +1,8 @@
-import { AddressDisplay, DialogShell, EmptyState } from "@green-goods/shared";
+import { AddressDisplay, EmptyState } from "@green-goods/shared";
 import { RiDeleteBinLine, RiUserLine } from "@remixicon/react";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
+import { AdminDialog } from "../AdminDialog";
 
 type MembersModalProps = {
   isOpen: boolean;
@@ -57,7 +58,7 @@ export function MembersModal({
   const colors = COLOR_CLASSES[colorScheme];
 
   return (
-    <DialogShell
+    <AdminDialog
       open={isOpen}
       onOpenChange={(open) => !open && onClose()}
       size="xl"
@@ -67,7 +68,6 @@ export function MembersModal({
         { count: members.length }
       )}
       icon={icon}
-      iconContainerClassName={`${colors.iconBg} ${colors.iconText}`}
       preventClose={isLoading}
     >
       {members.length === 0 ? (
@@ -109,6 +109,6 @@ export function MembersModal({
           ))}
         </div>
       )}
-    </DialogShell>
+    </AdminDialog>
   );
 }

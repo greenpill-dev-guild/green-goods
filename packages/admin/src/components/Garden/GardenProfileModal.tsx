@@ -1,5 +1,6 @@
-import { DialogShell, type Address } from "@green-goods/shared";
+import { type Address } from "@green-goods/shared";
 import { useIntl } from "react-intl";
+import { AdminDialog } from "../AdminDialog";
 import { GardenMetadata } from "./GardenMetadata";
 import { GardenSettingsEditor } from "./GardenSettingsEditor";
 
@@ -34,7 +35,7 @@ export function GardenProfileModal({
   const { formatMessage } = useIntl();
 
   return (
-    <DialogShell
+    <AdminDialog
       open={isOpen}
       onOpenChange={(open) => !open && onClose()}
       size="xl"
@@ -46,7 +47,7 @@ export function GardenProfileModal({
         id: "app.garden.profile.modal.description",
         defaultMessage: "Update settings, metadata, and on-chain identifiers",
       })}
-      bodyClassName="max-h-[calc(90vh-80px)] space-y-4 overflow-y-auto p-4 sm:p-6"
+      bodyClassName="space-y-4"
     >
       <GardenSettingsEditor
         gardenAddress={gardenAddress}
@@ -60,6 +61,6 @@ export function GardenProfileModal({
         tokenId={garden.tokenID}
         chainId={garden.chainId}
       />
-    </DialogShell>
+    </AdminDialog>
   );
 }

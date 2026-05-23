@@ -2,7 +2,6 @@ import {
   type Address,
   Alert,
   adminRoutes,
-  ConfirmDialog,
   PoolType,
   useAdminGardenWorkspaceSelection,
   useDeregisterHypercert,
@@ -18,6 +17,7 @@ import { useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate, useParams } from "react-router-dom";
 import { AdminButton } from "@/components/AdminButton";
+import { AdminConfirmDialog } from "@/components/AdminDialog";
 import { EnsAddressText } from "@/components/EnsAddressText";
 import { AdminLinearProgress } from "@/components/AdminLinearProgress";
 import { AdminTabRail } from "@/components/AdminTabRail";
@@ -374,7 +374,7 @@ export default function GardenSignalPoolView({ layout = "page" }: GardenSignalPo
   );
 
   const dialog = (
-    <ConfirmDialog
+    <AdminConfirmDialog
       isOpen={confirmDeregister !== null}
       onClose={() => setConfirmDeregister(null)}
       title={formatMessage({ id: confirmDeregisterKey })}

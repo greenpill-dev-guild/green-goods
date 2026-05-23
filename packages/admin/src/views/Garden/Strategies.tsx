@@ -3,7 +3,6 @@ import {
   AddressDisplay,
   Alert,
   adminRoutes,
-  ConfirmDialog,
   useAdminGardenWorkspaceSelection,
   useConvictionStrategies,
   useGardenPermissions,
@@ -15,6 +14,7 @@ import { useState } from "react";
 import { useIntl } from "react-intl";
 import { isAddress } from "viem";
 import { AdminButton } from "@/components/AdminButton";
+import { AdminConfirmDialog } from "@/components/AdminDialog";
 import { AdminTextField } from "@/components/AdminTextField";
 import {
   CanvasRouteContent,
@@ -216,7 +216,7 @@ export default function GardenStrategiesView({ layout = "page" }: GardenStrategi
   );
 
   const dialog = (
-    <ConfirmDialog
+    <AdminConfirmDialog
       isOpen={confirmRemoveIndex !== null}
       onClose={() => setConfirmRemoveIndex(null)}
       title={formatMessage({ id: "app.conviction.confirmRemoveStrategy" })}

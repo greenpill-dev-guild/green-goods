@@ -1,5 +1,6 @@
-import { DEFAULT_CHAIN_ID, DialogShell, type MintingState } from "@green-goods/shared";
+import { DEFAULT_CHAIN_ID, type MintingState } from "@green-goods/shared";
 import { useIntl } from "react-intl";
+import { AdminDialog } from "../AdminDialog";
 import { AdminButton } from "../AdminButton";
 import { MintProgress } from "./Steps/MintProgress";
 
@@ -27,7 +28,7 @@ export function MintingDialog({
   const isInProgress = isActive && !isFailed && mintingState.status !== "confirmed";
 
   return (
-    <DialogShell
+    <AdminDialog
       open={isActive}
       onOpenChange={(open) => {
         if (!open && isFailed && onCancel) onCancel();
@@ -36,23 +37,24 @@ export function MintingDialog({
       title={formatMessage({ id: "app.hypercerts.mint.dialog.title" })}
       preventClose={isInProgress}
       hideCloseButton={!isFailed}
+      actions={
+        isFailed ? (
+          <>
+            {onCancel && (
+              <AdminButton type="button" onClick={onCancel} variant="text">
+                {formatMessage({ id: "app.common.cancel" })}
+              </AdminButton>
+            )}
+            {onRetry && (
+              <AdminButton type="button" onClick={onRetry}>
+                {formatMessage({ id: "app.hypercerts.mint.retry" })}
+              </AdminButton>
+            )}
+          </>
+        ) : null
+      }
     >
       <MintProgress state={mintingState} chainId={chainId} />
-
-      {isFailed && (
-        <div className="flex gap-3 border-t border-stroke-soft pt-4 mt-4">
-          {onCancel && (
-            <AdminButton type="button" onClick={onCancel} variant="tonal" className="flex-1">
-              {formatMessage({ id: "app.common.cancel" })}
-            </AdminButton>
-          )}
-          {onRetry && (
-            <AdminButton type="button" onClick={onRetry} className="flex-1">
-              {formatMessage({ id: "app.hypercerts.mint.retry" })}
-            </AdminButton>
-          )}
-        </div>
-      )}
-    </DialogShell>
+    </AdminDialog>
   );
 }

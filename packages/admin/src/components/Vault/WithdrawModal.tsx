@@ -3,7 +3,6 @@ import {
   Alert,
   AssetSelector,
   Button,
-  DialogShell,
   FormField,
   formatTokenAmount,
   type GardenVault,
@@ -22,6 +21,8 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits, parseUnits } from "viem";
+import { AdminButton } from "@/components/AdminButton";
+import { AdminDialog } from "@/components/AdminDialog";
 
 interface WithdrawModalProps {
   isOpen: boolean;
@@ -132,13 +133,37 @@ export function WithdrawModal({
   };
 
   return (
-    <DialogShell
+    <AdminDialog
       open={isOpen}
       onOpenChange={(open) => !open && onClose()}
       size="lg"
       title={formatMessage({ id: "app.treasury.withdraw" })}
       description={formatMessage({ id: "app.treasury.withdrawDescription" })}
       preventClose={withdrawMutation.isPending}
+      actions={
+        <>
+          <AdminButton
+            type="button"
+            variant="text"
+            onClick={onClose}
+            disabled={withdrawMutation.isPending}
+          >
+            {formatMessage({ id: "app.common.cancel" })}
+          </AdminButton>
+          <AdminButton
+            type="button"
+            onClick={onSubmit}
+            disabled={
+              Boolean(amountError) || amount <= 0n || depositsError || withdrawMutation.isPending
+            }
+            loading={withdrawMutation.isPending}
+          >
+            {withdrawMutation.isPending
+              ? formatMessage({ id: "app.treasury.withdrawing" })
+              : formatMessage({ id: "app.treasury.withdraw" })}
+          </AdminButton>
+        </>
+      }
     >
       <div className="space-y-4">
         <AssetSelector
@@ -244,20 +269,7 @@ export function WithdrawModal({
           message={txError.message}
           reserveClassName="min-h-[5.5rem]"
         />
-
-        <Button
-          className="w-full"
-          onClick={onSubmit}
-          disabled={
-            Boolean(amountError) || amount <= 0n || depositsError || withdrawMutation.isPending
-          }
-          loading={withdrawMutation.isPending}
-        >
-          {withdrawMutation.isPending
-            ? formatMessage({ id: "app.treasury.withdrawing" })
-            : formatMessage({ id: "app.treasury.withdraw" })}
-        </Button>
       </div>
-    </DialogShell>
+    </AdminDialog>
   );
 }

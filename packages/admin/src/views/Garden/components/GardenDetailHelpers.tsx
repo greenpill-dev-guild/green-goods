@@ -167,11 +167,18 @@ export function GardenHeroBanner({
 
 interface GardenDomainSummaryRowProps {
   domainMask?: number;
+  canManage?: boolean;
+  onEditDomains?: () => void;
 }
 
-export function GardenDomainSummaryRow({ domainMask }: GardenDomainSummaryRowProps) {
+export function GardenDomainSummaryRow({
+  domainMask,
+  canManage = false,
+  onEditDomains,
+}: GardenDomainSummaryRowProps) {
   const { formatMessage } = useIntl();
   const domains: Domain[] = typeof domainMask === "number" ? expandDomainMask(domainMask) : [];
+  const canEditDomains = canManage && Boolean(onEditDomains);
 
   return (
     <div className="flex flex-col gap-3 border-b border-stroke-soft px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
@@ -200,6 +207,11 @@ export function GardenDomainSummaryRow({ domainMask }: GardenDomainSummaryRowPro
           )}
         </div>
       </div>
+      {canEditDomains ? (
+        <AdminButton type="button" variant="outlined" size="sm" onClick={onEditDomains}>
+          {formatMessage({ id: "app.garden.detail.editDomains" })}
+        </AdminButton>
+      ) : null}
     </div>
   );
 }

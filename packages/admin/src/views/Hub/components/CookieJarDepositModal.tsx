@@ -90,6 +90,22 @@ export function CookieJarDepositModal({
     parsedDepositAmount < selectedDepositJar.minDeposit;
 
   const isPending = depositMutation.isPending;
+  const handleDeposit = () => {
+    if (!selectedDepositJar || parsedDepositAmount <= 0n) return;
+    depositMutation.mutate(
+      {
+        jarAddress: selectedDepositJar.jarAddress,
+        amount: parsedDepositAmount,
+        assetAddress: selectedDepositJar.assetAddress,
+      },
+      {
+        onSuccess: () => {
+          setDepositAmount("");
+          onClose();
+        },
+      }
+    );
+  };
 
   return (
     <AdminDialog
@@ -99,6 +115,27 @@ export function CookieJarDepositModal({
         id: "app.cookieJar.depositModal.title",
         defaultMessage: "Fund Cookie Jar",
       })}
+      preventClose={isPending}
+      actions={
+        <>
+          <AdminButton type="button" variant="text" onClick={onClose} disabled={isPending}>
+            {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
+          </AdminButton>
+          <AdminButton
+            type="button"
+            loading={isPending}
+            disabled={!selectedDepositJar || parsedDepositAmount <= 0n || Boolean(belowMinDeposit)}
+            onClick={handleDeposit}
+          >
+            {isPending
+              ? formatMessage({
+                  id: "app.cookieJar.depositing",
+                  defaultMessage: "Depositing...",
+                })
+              : formatMessage({ id: "app.cookieJar.deposit", defaultMessage: "Deposit" })}
+          </AdminButton>
+        </>
+      }
     >
       <div className="space-y-4">
         {/* Jar select */}
@@ -193,37 +230,6 @@ export function CookieJarDepositModal({
             </p>
           )}
         </div>
-
-        {/* Submit */}
-        <AdminButton
-          variant="tonal"
-          className="w-full"
-          loading={isPending}
-          disabled={!selectedDepositJar || parsedDepositAmount <= 0n || Boolean(belowMinDeposit)}
-          onClick={() => {
-            if (!selectedDepositJar || parsedDepositAmount <= 0n) return;
-            depositMutation.mutate(
-              {
-                jarAddress: selectedDepositJar.jarAddress,
-                amount: parsedDepositAmount,
-                assetAddress: selectedDepositJar.assetAddress,
-              },
-              {
-                onSuccess: () => {
-                  setDepositAmount("");
-                  onClose();
-                },
-              }
-            );
-          }}
-        >
-          {isPending
-            ? formatMessage({
-                id: "app.cookieJar.depositing",
-                defaultMessage: "Depositing...",
-              })
-            : formatMessage({ id: "app.cookieJar.deposit", defaultMessage: "Deposit" })}
-        </AdminButton>
 
         {/* Error feedback */}
         <TxInlineFeedback

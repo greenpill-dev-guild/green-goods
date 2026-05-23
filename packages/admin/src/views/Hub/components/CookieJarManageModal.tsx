@@ -1,6 +1,5 @@
 import {
   type Address,
-  ConfirmDialog,
   type CookieJar,
   formatTokenAmount,
   getVaultAssetSymbol,
@@ -16,7 +15,7 @@ import {
 import { RiCheckLine, RiCloseLine, RiPencilLine } from "@remixicon/react";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
-import { AdminDialog } from "@/components/AdminDialog";
+import { AdminConfirmDialog, AdminDialog } from "@/components/AdminDialog";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits, parseUnits } from "viem";
@@ -357,7 +356,7 @@ export function CookieJarManageModal({
       </AdminDialog>
 
       {/* Emergency Withdraw Confirm Dialog (nested) */}
-      <ConfirmDialog
+      <AdminConfirmDialog
         isOpen={emergencyJar !== null}
         onClose={() => setEmergencyJar(null)}
         title={formatMessage({

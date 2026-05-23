@@ -140,8 +140,7 @@ export function buildGardenViewActions(
       icon: RiPencilLine,
       onClick: () => onEditDomains?.(),
       variant: "secondary",
-      visible: hasSelectedGarden && canManage && Boolean(onEditDomains),
-      primary: view === "settings",
+      visible: hasSelectedGarden && canManage && Boolean(onEditDomains) && view !== "settings",
     },
     {
       id: "invite-gardener",

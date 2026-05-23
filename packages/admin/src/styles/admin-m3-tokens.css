@@ -107,34 +107,47 @@
  * Adds an ::after pseudo-element for hover/focus/pressed state overlays.
  * Usage: add class="m3-state-layer" to any interactive element.
  * Override --state-layer-color to change the overlay tint.
+ *
+ * Scoped to `@layer components` (NOT unlayered) on purpose. This file is
+ * @import-ed after `@import "tailwindcss"`, whose utilities live in
+ * `@layer utilities`. An UNLAYERED rule beats every layered rule regardless of
+ * source order or specificity, so an unlayered `position: relative` here would
+ * silently override a Tailwind `absolute`/`fixed`/`sticky` placed on the same
+ * element (e.g. the AdminDialog close button), pinning it `relative` and
+ * breaking its placement. Inside `@layer components` (components < utilities),
+ * a position utility on the element wins, while elements WITHOUT one still
+ * resolve to `relative`, so the state layer keeps working everywhere.
+ * Do not move these rules out of the layer.
  * -------------------------------------------------------------------------- */
-.m3-state-layer {
-  position: relative;
-  overflow: hidden;
-}
+@layer components {
+  .m3-state-layer {
+    position: relative;
+    overflow: hidden;
+  }
 
-.m3-state-layer::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  border-radius: inherit;
-  background-color: rgb(var(--state-layer-color, var(--m3-on-surface)));
-  opacity: 0;
-  transition:
-    opacity var(--spring-effects-fast-duration, 150ms) var(--spring-effects-fast-easing, cubic-bezier(0.2, 0, 0, 1));
-}
+  .m3-state-layer::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    background-color: rgb(var(--state-layer-color, var(--m3-on-surface)));
+    opacity: 0;
+    transition:
+      opacity var(--spring-effects-fast-duration, 150ms) var(--spring-effects-fast-easing, cubic-bezier(0.2, 0, 0, 1));
+  }
 
-.m3-state-layer:hover::after {
-  opacity: var(--m3-state-hover);
-}
+  .m3-state-layer:hover::after {
+    opacity: var(--m3-state-hover);
+  }
 
-.m3-state-layer:focus-visible::after {
-  opacity: var(--m3-state-focus);
-}
+  .m3-state-layer:focus-visible::after {
+    opacity: var(--m3-state-focus);
+  }
 
-.m3-state-layer:active::after {
-  opacity: var(--m3-state-pressed);
+  .m3-state-layer:active::after {
+    opacity: var(--m3-state-pressed);
+  }
 }
 
 /* --------------------------------------------------------------------------

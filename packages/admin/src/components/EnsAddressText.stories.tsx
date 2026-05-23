@@ -26,6 +26,7 @@ function EnsAddressTextHarness() {
 
 const meta: Meta<typeof EnsAddressTextHarness> = {
   title: "Admin/Components/EnsAddressText",
+  // storybook-quality-allow state-harness: composes the real EnsAddressText and EnsAddressWithCopy with deterministic fallback names so the story does not depend on live RPC.
   component: EnsAddressTextHarness,
   tags: ["autodocs"],
   parameters: {

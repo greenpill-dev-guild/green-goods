@@ -2,7 +2,6 @@ import {
   type Address,
   Alert,
   type CreateListingParams,
-  DialogShell,
   LISTING_DEFAULTS,
   type ListingStep,
   logger,
@@ -13,6 +12,7 @@ import {
 import { RiCheckLine, RiExchangeDollarLine, RiLoader4Line } from "@remixicon/react";
 import { AdminButton } from "../AdminButton";
 import { AdminCheckbox } from "../AdminCheckbox";
+import { AdminDialog } from "../AdminDialog";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useIntl } from "react-intl";
@@ -125,22 +125,59 @@ export function CreateListingDialog({
   const sellLeftoverRegistration = register("sellLeftover");
   const visibleError = error ?? submissionError;
   const isErrorState = step === "error" || visibleError !== null;
+  const formId = "admin-create-listing-form";
 
   return (
-    <DialogShell
+    <AdminDialog
       open={open}
       onOpenChange={(next) => {
         if (!next) handleClose();
       }}
       size="lg"
       title={formatMessage({ id: "app.listing.title", defaultMessage: "List for Yield" })}
-      icon={<RiExchangeDollarLine className="h-5 w-5 text-primary-base" />}
-      iconContainerClassName="bg-primary-alpha-10"
+      icon={<RiExchangeDollarLine className="h-6 w-6 text-[rgb(var(--m3-primary))]" />}
       preventClose={isCreating}
       hideCloseButton={isCreating}
+      actions={
+        phase === "configure" ? (
+          <>
+            <AdminButton type="button" variant="text" onClick={handleClose}>
+              {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
+            </AdminButton>
+            <AdminButton type="submit" form={formId}>
+              {formatMessage({
+                id: "app.listing.signAndList",
+                defaultMessage: "Sign & List",
+              })}
+            </AdminButton>
+          </>
+        ) : (
+          <>
+            {(step === "done" || isErrorState) && (
+              <AdminButton type="button" variant="text" onClick={handleClose}>
+                {step === "done"
+                  ? formatMessage({ id: "app.common.done", defaultMessage: "Done" })
+                  : formatMessage({ id: "app.common.close", defaultMessage: "Close" })}
+              </AdminButton>
+            )}
+            {isErrorState && (
+              <AdminButton
+                type="button"
+                onClick={() => {
+                  setSubmissionError(null);
+                  reset();
+                  setPhase("configure");
+                }}
+              >
+                {formatMessage({ id: "app.common.tryAgain", defaultMessage: "Try Again" })}
+              </AdminButton>
+            )}
+          </>
+        )
+      }
     >
       {phase === "configure" ? (
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form id={formId} onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           {/* Price per unit */}
           <div>
             <label className="block text-sm font-medium text-text-strong mb-1">
@@ -226,18 +263,6 @@ export function CreateListingDialog({
             })}
             className="[&>span:nth-child(2)>span]:text-sm [&>span:nth-child(2)>span]:text-text-sub"
           />
-
-          <div className="flex justify-end gap-2 pt-2 border-t border-stroke-soft">
-            <AdminButton type="button" variant="text" onClick={handleClose}>
-              {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-            </AdminButton>
-            <AdminButton type="submit">
-              {formatMessage({
-                id: "app.listing.signAndList",
-                defaultMessage: "Sign & List",
-              })}
-            </AdminButton>
-          </div>
         </form>
       ) : (
         <div className="space-y-4">
@@ -253,31 +278,9 @@ export function CreateListingDialog({
               })}
             </Alert>
           )}
-
-          <div className="flex justify-end gap-2 pt-2 border-t border-stroke-soft">
-            {(step === "done" || isErrorState) && (
-              <AdminButton type="button" variant="text" onClick={handleClose}>
-                {step === "done"
-                  ? formatMessage({ id: "app.common.done", defaultMessage: "Done" })
-                  : formatMessage({ id: "app.common.close", defaultMessage: "Close" })}
-              </AdminButton>
-            )}
-            {isErrorState && (
-              <AdminButton
-                type="button"
-                onClick={() => {
-                  setSubmissionError(null);
-                  reset();
-                  setPhase("configure");
-                }}
-              >
-                {formatMessage({ id: "app.common.tryAgain", defaultMessage: "Try Again" })}
-              </AdminButton>
-            )}
-          </div>
         </div>
       )}
-    </DialogShell>
+    </AdminDialog>
   );
 }
 

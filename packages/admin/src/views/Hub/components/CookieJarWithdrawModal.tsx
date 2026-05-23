@@ -79,6 +79,23 @@ export function CookieJarWithdrawModal({
 
   const activeJars = jars.filter((j) => !j.isPaused);
   const isPending = withdrawMutation.isPending;
+  const handleWithdraw = () => {
+    if (!selectedWithdrawJar || parsedWithdrawAmount <= 0n) return;
+    withdrawMutation.mutate(
+      {
+        jarAddress: selectedWithdrawJar.jarAddress,
+        amount: parsedWithdrawAmount,
+        purpose: withdrawPurpose,
+      },
+      {
+        onSuccess: () => {
+          setWithdrawAmount("");
+          setWithdrawPurpose("");
+          onClose();
+        },
+      }
+    );
+  };
 
   return (
     <AdminDialog
@@ -88,6 +105,27 @@ export function CookieJarWithdrawModal({
         id: "app.cookieJar.withdrawModal.title",
         defaultMessage: "Cookie Jar Withdrawal",
       })}
+      preventClose={isPending}
+      actions={
+        <>
+          <AdminButton type="button" variant="text" onClick={onClose} disabled={isPending}>
+            {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
+          </AdminButton>
+          <AdminButton
+            type="button"
+            loading={isPending}
+            disabled={!selectedWithdrawJar || parsedWithdrawAmount <= 0n}
+            onClick={handleWithdraw}
+          >
+            {isPending
+              ? formatMessage({
+                  id: "app.cookieJar.withdrawing",
+                  defaultMessage: "Withdrawing...",
+                })
+              : formatMessage({ id: "app.cookieJar.withdraw", defaultMessage: "Withdraw" })}
+          </AdminButton>
+        </>
+      }
     >
       <div className="space-y-4">
         {/* Jar select */}
@@ -176,38 +214,6 @@ export function CookieJarWithdrawModal({
             rows={2}
           />
         </div>
-
-        {/* Submit */}
-        <AdminButton
-          variant="filled"
-          className="w-full"
-          loading={isPending}
-          disabled={!selectedWithdrawJar || parsedWithdrawAmount <= 0n}
-          onClick={() => {
-            if (!selectedWithdrawJar || parsedWithdrawAmount <= 0n) return;
-            withdrawMutation.mutate(
-              {
-                jarAddress: selectedWithdrawJar.jarAddress,
-                amount: parsedWithdrawAmount,
-                purpose: withdrawPurpose,
-              },
-              {
-                onSuccess: () => {
-                  setWithdrawAmount("");
-                  setWithdrawPurpose("");
-                  onClose();
-                },
-              }
-            );
-          }}
-        >
-          {isPending
-            ? formatMessage({
-                id: "app.cookieJar.withdrawing",
-                defaultMessage: "Withdrawing...",
-              })
-            : formatMessage({ id: "app.cookieJar.withdraw", defaultMessage: "Withdraw" })}
-        </AdminButton>
 
         {/* Error feedback */}
         <TxInlineFeedback

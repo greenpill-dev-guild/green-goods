@@ -1,6 +1,5 @@
 import {
   Button,
-  ConfirmDialog,
   ErrorBoundary,
   logger,
   TOTAL_UNITS,
@@ -10,6 +9,7 @@ import {
   type HypercertWizardProps,
 } from "@green-goods/shared";
 import { useIntl } from "react-intl";
+import { AdminConfirmDialog } from "@/components/AdminDialog";
 import { MintingDialog } from "@/components/Hypercerts/MintingDialog";
 import { AttestationSelector } from "@/components/Hypercerts/Steps/AttestationSelector";
 import { DistributionConfig } from "@/components/Hypercerts/Steps/DistributionConfig";
@@ -93,7 +93,7 @@ export function HypercertWizard({
 
   return (
     <>
-      <ConfirmDialog
+      <AdminConfirmDialog
         isOpen={wizard.showLeaveConfirm}
         onClose={wizard.handleCancelLeave}
         onConfirm={wizard.handleConfirmLeave}
@@ -103,7 +103,7 @@ export function HypercertWizard({
         cancelLabel={formatMessage({ id: "app.hypercerts.wizard.leaveConfirm.cancel" })}
         variant="warning"
       />
-      <ConfirmDialog
+      <AdminConfirmDialog
         isOpen={wizard.showRestoreDraft}
         onClose={() => wizard.setShowRestoreDraft(false)}
         onConfirm={async () => {

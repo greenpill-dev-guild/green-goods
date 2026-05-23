@@ -21,7 +21,7 @@ foundations.
 - Treat `DashboardLayout`, `Sidebar`, and `Header` as legacy migration code for new admin work.
 - Prefer the primitives below before composing raw `rounded border bg shadow` layouts.
 - Use `.surface-section`, `.surface-inset`, `.surface-card`, and `.workspace-canvas` before inventing one-off shell or page surface wrappers.
-- Use `AccountSurface` inside the admin `RightSheet` registry for authenticated account/profile/settings flows; otherwise prefer `LeftSheet`, `RightSheet`, `BottomSheet`, or `DialogShell`.
+- Use `AccountSurface` inside the admin `RightSheet` registry for authenticated account/profile/settings flows; otherwise prefer `LeftSheet`, `RightSheet`, `BottomSheet`, `AdminDialog`, or `AdminConfirmDialog`.
 
 ## Cockpit UI Mode
 
@@ -56,7 +56,8 @@ foundations.
 - `Alert`
 - `StatusBadge`
 - `FormField`
-- `DialogShell`
+- `AdminDialog`
+- `AdminConfirmDialog`
 
 ## Commands
 
@@ -72,7 +73,7 @@ foundations.
 - Every privileged action must flow through permission checks such as `useRole` or
   `useGardenPermissions`.
 - Wrap user-visible write actions in the shared toast workflow instead of ad-hoc transaction UI.
-- Use `DialogShell`, `RightSheet`, `LeftSheet`, or `BottomSheet` for modal and sheet flows instead of ad-hoc shells.
+- Use `AdminDialog` / `AdminConfirmDialog`, `RightSheet`, `LeftSheet`, or `BottomSheet` for modal and sheet flows instead of ad-hoc shells. `DialogShell` remains available for shared or non-admin surfaces, but admin dashboard dialogs should use the admin wrappers.
 - New user-facing strings must be translated in all three locale files.
 - New or changed admin UI components/views must add or update Storybook stories in the same change. Run `bun run --filter @green-goods/shared check:stories`; run `bun run --filter @green-goods/shared test:stories:ci` when adding `storybook-ci` stories; run `bun run --filter @green-goods/shared build-storybook` for Storybook-impacting changes.
 

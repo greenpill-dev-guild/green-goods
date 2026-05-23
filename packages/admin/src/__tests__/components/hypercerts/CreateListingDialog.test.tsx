@@ -1,4 +1,4 @@
-import { screen, waitFor } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement, type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -15,15 +15,6 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
     ...actual,
     Alert: ({ children }: { children: ReactNode }) =>
       createElement("div", { role: "alert" }, children),
-    DialogShell: ({
-      open,
-      title,
-      children,
-    }: {
-      open: boolean;
-      title: string;
-      children: ReactNode;
-    }) => (open ? createElement("div", null, createElement("h1", null, title), children) : null),
     LISTING_DEFAULTS: {
       durationDays: 30,
       sellLeftover: false,
@@ -74,7 +65,9 @@ describe("components/Hypercerts/CreateListingDialog", () => {
     });
 
     expect(screen.getByRole("button", { name: /try again/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /close/i })).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId("admin-dialog-actions")).getByRole("button", { name: /close/i })
+    ).toBeInTheDocument();
     expect(mockLoggerError).toHaveBeenCalledWith("Failed to create listing", {
       error: expect.any(Error),
     });

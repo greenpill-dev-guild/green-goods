@@ -24,7 +24,7 @@ const meta: Meta<typeof ManageRolesModal> = {
     docs: {
       description: {
         component:
-          "DialogShell wrapper that hosts the full GardenRolesPanel grid. Opens from the garden profile/settings flow.",
+          "AdminDialog wrapper that hosts the full GardenRolesPanel grid. Opens from the garden profile/settings flow.",
       },
     },
   },

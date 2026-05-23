@@ -1,5 +1,6 @@
-import { DialogShell, type Address, type GardenRole } from "@green-goods/shared";
+import { type Address, type GardenRole } from "@green-goods/shared";
 import { useIntl } from "react-intl";
+import { AdminDialog } from "../AdminDialog";
 import { GardenRolesPanel } from "./GardenRolesPanel";
 
 interface ManageRolesModalProps {
@@ -28,7 +29,7 @@ export function ManageRolesModal({
   const totalMembers = Object.values(roleMembers).reduce((sum, m) => sum + m.length, 0);
 
   return (
-    <DialogShell
+    <AdminDialog
       open={isOpen}
       onOpenChange={(open) => !open && onClose()}
       size="2xl"
@@ -52,6 +53,6 @@ export function ManageRolesModal({
         onOpenMembersModal={onOpenMembersModal}
         onRemoveMember={onRemoveMember}
       />
-    </DialogShell>
+    </AdminDialog>
   );
 }

@@ -28,7 +28,7 @@ const meta: Meta<typeof GardenProfileModal> = {
     docs: {
       description: {
         component:
-          "Real `GardenProfileModal`. Composes `GardenSettingsEditor` (wagmi mutations inert) and `GardenMetadata` inside a `DialogShell`. Review individual editor states under `Admin/Workflows/Garden/GardenSettingsEditor`.",
+          "Real `GardenProfileModal`. Composes `GardenSettingsEditor` (wagmi mutations inert) and `GardenMetadata` inside an `AdminDialog`. Review individual editor states under `Admin/Workflows/Garden/GardenSettingsEditor`.",
       },
     },
   },

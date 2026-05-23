@@ -1676,7 +1676,7 @@
   "app.hypercerts.distribution.mode.equal": "Igual",
   "app.hypercerts.distribution.mode.value": "Proporcional (valor)",
   "app.hypercerts.distribution.recipient.new": "Nuevo destinatario",
-  "app.hypercerts.distribution.removeRecipient": "Eliminar destinatario",
+  "app.hypercerts.distribution.removeRecipient": "Eliminar {address}",
   "app.hypercerts.distribution.subtitle": "Configura cómo se asignan las unidades entre los contribuyentes.",
   "app.hypercerts.distribution.table.percent": "Porcentaje",
   "app.hypercerts.distribution.table.recipient": "Destinatario",
