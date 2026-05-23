@@ -8,6 +8,8 @@ export { ZERO_ADDRESS };
 
 /** Octant vault MAX_BPS (10000 = 100%). Used as maxLoss for permissive withdraw/redeem queries. */
 export const VAULT_MAX_BPS = 10000n;
+/** Default max-loss slippage in basis points (1%) for user-facing withdrawals. */
+export const DEFAULT_WITHDRAW_MAX_LOSS_BPS = 100n;
 /** Canonical uint256 max value returned by contracts to signal "unlimited". */
 export const MAX_UINT256 = (1n << 256n) - 1n;
 

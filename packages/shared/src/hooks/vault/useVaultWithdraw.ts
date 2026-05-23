@@ -7,14 +7,8 @@ import { getWagmiConfig } from "../../config/appkit";
 import type { Address } from "../../types/domain";
 import type { WithdrawParams } from "../../types/vaults";
 import { OCTANT_VAULT_ABI } from "../../utils/blockchain/abis";
+import { DEFAULT_WITHDRAW_MAX_LOSS_BPS } from "../../utils/blockchain/vaults";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
-
-/**
- * Default max-loss slippage in basis points (1%). Audit finding #2 —
- * the prior default of 10000n (100%) accepted arbitrary loss; under
- * vault degradation a withdrawal could silently haircut to zero.
- */
-const DEFAULT_WITHDRAW_MAX_LOSS_BPS = 100n;
 import { useUser } from "../auth/useUser";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useTransactionSender } from "../blockchain/useTransactionSender";

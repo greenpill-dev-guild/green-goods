@@ -60,7 +60,8 @@ const messages: Record<string, string> = {
   "public.fund.receipt.intent.donate": "Donate",
   "public.fund.receipt.status.confirmed_onchain": "Confirmed",
   "public.fund.receipt.endowRecovery":
-    "Your Endow position lives in a recoverable wallet. Install the app to manage Vault shares and recovery options.",
+    "Your Endow position stays with your wallet. You can review endowments from the Fund page whenever you need them.",
+  "public.fund.receipt.manageEndowments": "Manage Endowments",
   "public.fund.receipt.supportAnother": "Support another Garden",
   "public.fund.receipt.viewImpact": "View public evidence",
 };
@@ -77,6 +78,8 @@ const baseReceipt = {
     chainId: 42161,
   },
   updatedAt: "2026-05-08T00:00:00.000Z",
+  appManagementCta: "manage_endowments",
+  managementUrl: "/fund?manage=endowments",
 };
 
 let fetchMock: ReturnType<typeof vi.fn>;
@@ -134,6 +137,16 @@ describe("PublicFundingReceipt success state", () => {
     expect(viewImpact).toHaveAttribute("href", "/impact");
 
     expect(fetchMock).toHaveBeenCalled();
+  });
+
+  it("routes Endow receipts to Manage Endowments without app install handoff", async () => {
+    renderReceipt();
+
+    const manage = await screen.findByRole("link", { name: /manage endowments/i });
+
+    expect(manage).toHaveAttribute("href", "/fund?manage=endowments");
+    expect(manage).toHaveAttribute("data-app-cta", "manage_endowments");
+    expect(screen.queryByRole("link", { name: /open app/i })).toBeNull();
   });
 
   it("renders a Try again button on network error and re-fires the fetch when clicked", async () => {

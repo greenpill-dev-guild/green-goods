@@ -15,11 +15,13 @@ import { useIntl } from "react-intl";
 import { useSearchParams } from "react-router-dom";
 import {
   EditorialHeading,
+  EditorialGhostLink,
   EditorialKicker,
   EditorialLinkArrow,
   EditorialNumeral,
   EditorialTitleAccent,
 } from "@/components/Public/atoms";
+import { PublicEndowmentPanel } from "@/components/Public/PublicEndowmentPanel";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
 import { PublicFooter } from "@/components/Public/PublicFooter";
 import { PublicFundingReceipt } from "@/components/Public/PublicFundingReceipt";
@@ -291,9 +293,10 @@ function getGardenVaultSummary(
  * Fund — public garden funding gateway.
  *
  * Editorial recomposition:
- *   Hero → § 01 Donate vs Endow explanatory diptych with always-visible
- *   tax / risk disclosures → § 02 Compact garden grid with per-card Donate
- *   and Endow CTAs → optional receipt / stale-link banner → Footer.
+ *   Hero → § 01 Vault overview → § 02 Donate vs Endow explanatory diptych
+ *   with always-visible tax / risk disclosures → § 03 Compact garden grid
+ *   with per-card Donate / Endow CTAs and the wallet-owned Manage Endowments
+ *   panel entry → optional receipt / stale-link banner → Footer.
  *
  * Behavior contract:
  * - `?intent=<id>` triggers receipt mode (reads X-GG-Receipt-Token from session).
@@ -303,16 +306,18 @@ function getGardenVaultSummary(
  * - Each Garden row exposes Donate + Endow CTAs that open PublicFundingCard
  *   (single editorial card with amount-first input, visual token picker, and
  *   inline wallet-connect through the smart submit button).
- * - No public withdrawal or admin controls (support-only).
+ * - `?manage=endowments` opens the wallet-owned public endowment panel.
+ * - No public address lookup or admin controls.
  */
 function FundPageContent() {
   const { formatMessage } = useIntl();
   const { data: gardens = [], isLoading } = usePublicGardens();
   const vaultSummary = usePublicVaultSummary();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const intentId = searchParams.get("intent");
   const gardenQuery = searchParams.get("garden");
+  const manageQuery = searchParams.get("manage");
 
   const resolved = useMemo(() => resolveGardenQuery(gardenQuery, gardens), [gardenQuery, gardens]);
 
@@ -326,6 +331,7 @@ function FundPageContent() {
     garden: PublicGardenSummary;
     intent: PublicFundingIntentKind;
   } | null>(null);
+  const [isEndowmentPanelOpen, setEndowmentPanelOpen] = useState(false);
   const hasWalletRuntime = Boolean(selectorState);
   const { ref: pathsRef, revealed: pathsRevealed } = useInViewReveal<HTMLElement>();
   const { ref: gardensRef, revealed: gardensRevealed } = useInViewReveal<HTMLElement>();
@@ -345,7 +351,34 @@ function FundPageContent() {
     return () => cancelAnimationFrame(handle);
   }, [matchedGardenId]);
 
+  useEffect(() => {
+    if (manageQuery === "endowments") {
+      setEndowmentPanelOpen(true);
+    }
+  }, [manageQuery]);
+
   const closeSelector = useCallback(() => setSelectorState(null), []);
+
+  const manageEndowmentsTo = useMemo(() => {
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.set("manage", "endowments");
+    return {
+      pathname: "/fund",
+      search: `?${nextParams.toString()}`,
+    };
+  }, [searchParams]);
+
+  const handleEndowmentPanelOpenChange = useCallback(
+    (open: boolean) => {
+      setEndowmentPanelOpen(open);
+      if (!open && searchParams.get("manage") === "endowments") {
+        const nextParams = new URLSearchParams(searchParams);
+        nextParams.delete("manage");
+        setSearchParams(nextParams, { replace: true });
+      }
+    },
+    [searchParams, setSearchParams]
+  );
 
   const handleSupport = useCallback(
     (garden: PublicGardenSummary, intent: PublicFundingIntentKind) => {
@@ -507,7 +540,7 @@ function FundPageContent() {
         </div>
       </section>
 
-      {/* § 02 — Choose a Garden to support */}
+      {/* § 03 — Choose a Garden to support */}
       <section
         ref={gardensRef}
         data-revealed={gardensRevealed}
@@ -516,18 +549,32 @@ function FundPageContent() {
       >
         <div className="editorial-cascade mx-auto max-w-7xl">
           <header className="border-b border-stroke-soft-200 pb-6">
-            <EditorialKicker className="mb-3">
-              {formatMessage({
-                id: "public.fund.gardens.kicker",
-                defaultMessage: "§ 03 — Choose where to apply your support",
-              })}
-            </EditorialKicker>
-            <EditorialHeading id="public-fund-gardens-title">
-              {formatMessage({
-                id: "public.fund.gardens.title",
-                defaultMessage: "Gardens accepting support this season.",
-              })}
-            </EditorialHeading>
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
+                <EditorialKicker className="mb-3">
+                  {formatMessage({
+                    id: "public.fund.gardens.kicker",
+                    defaultMessage: "§ 03 — Choose where to apply your support",
+                  })}
+                </EditorialKicker>
+                <EditorialHeading id="public-fund-gardens-title">
+                  {formatMessage({
+                    id: "public.fund.gardens.title",
+                    defaultMessage: "Gardens accepting support this season.",
+                  })}
+                </EditorialHeading>
+              </div>
+              <EditorialGhostLink
+                to={manageEndowmentsTo}
+                variant="warm"
+                className="w-full px-5 py-2.5 text-sm sm:w-auto"
+              >
+                {formatMessage({
+                  id: "public.fund.manageEndowments.cta",
+                  defaultMessage: "Manage Endowments",
+                })}
+              </EditorialGhostLink>
+            </div>
           </header>
 
           {isLoading ? (
@@ -654,6 +701,11 @@ function FundPageContent() {
           ) : null}
         </Suspense>
       ) : null}
+
+      <PublicEndowmentPanel
+        open={isEndowmentPanelOpen}
+        onOpenChange={handleEndowmentPanelOpenChange}
+      />
     </>
   );
 }

@@ -10,7 +10,7 @@ import {
   RECEIPT_TOKEN_SESSION_KEY,
   scrubReceiptTokenFragmentFromLocation,
 } from "@/routes/receipt-token";
-import { EditorialLinkArrow } from "./atoms";
+import { EditorialGhostLink, EditorialLinkArrow } from "./atoms";
 import { PublicInstallAction } from "./PublicInstallAction";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
@@ -82,7 +82,7 @@ export function PublicFundingReceipt({ intentId }: PublicFundingReceiptProps) {
 
   if (state.status === "loading") {
     return (
-      <section className="mx-auto max-w-2xl border border-stroke-soft-200 bg-bg-white-0 p-8 shadow-[var(--shadow-editorial-panel)]">
+      <section className="mx-auto max-w-2xl rounded-3xl border border-stroke-soft-200 bg-bg-white-0 p-8 shadow-sm">
         <p className="text-sm text-text-sub-600">
           {formatMessage({
             id: "public.fund.receipt.loading",
@@ -95,7 +95,7 @@ export function PublicFundingReceipt({ intentId }: PublicFundingReceiptProps) {
 
   if (state.status === "error") {
     return (
-      <section className="mx-auto max-w-2xl border border-stroke-soft-200 bg-bg-white-0 p-8 shadow-[var(--shadow-editorial-panel)]">
+      <section className="mx-auto max-w-2xl rounded-3xl border border-stroke-soft-200 bg-bg-white-0 p-8 shadow-sm">
         <h2 className="font-serif text-2xl text-text-strong-950">
           {formatMessage({
             id: "public.fund.receipt.errorTitle",
@@ -136,16 +136,17 @@ export function PublicFundingReceipt({ intentId }: PublicFundingReceiptProps) {
   }
 
   const { receipt } = state;
-  const showAppCta = receipt.appManagementCta !== undefined && receipt.appManagementCta !== null;
-  return <ReceiptBody receipt={receipt} showAppCta={showAppCta} />;
+  const showManagementCta =
+    receipt.appManagementCta !== undefined && receipt.appManagementCta !== null;
+  return <ReceiptBody receipt={receipt} showManagementCta={showManagementCta} />;
 }
 
 function ReceiptBody({
   receipt,
-  showAppCta,
+  showManagementCta,
 }: {
   receipt: PublicFundingReceiptShape;
-  showAppCta: boolean;
+  showManagementCta: boolean;
 }) {
   const { formatMessage } = useIntl();
   const formatStatus = useCallback(
@@ -241,26 +242,40 @@ function ReceiptBody({
           {formatMessage({
             id: "public.fund.receipt.endowRecovery",
             defaultMessage:
-              "Your Endow position lives in a recoverable wallet. Install the app to manage Vault shares and recovery options.",
+              "Your Endow position stays with your wallet. You can review endowments from the Fund page whenever you need them.",
           })}
         </p>
       ) : null}
 
-      {showAppCta ? (
+      {showManagementCta ? (
         <div className="mt-6 flex flex-wrap gap-3">
-          <PublicInstallAction forceOpenApp={receipt.appManagementCta === "open_app"}>
-            {({ label, href, onClick, dataInstallAction }) => (
-              <a
-                href={href}
-                onClick={onClick}
-                data-app-cta={receipt.appManagementCta}
-                data-install-action={dataInstallAction}
-                className="cursor-pointer rounded-full bg-primary-action px-5 py-2.5 text-sm font-semibold text-primary-action-foreground hover:bg-primary-action-hover"
-              >
-                {label}
-              </a>
-            )}
-          </PublicInstallAction>
+          {receipt.appManagementCta === "manage_endowments" ? (
+            <EditorialGhostLink
+              to={receipt.managementUrl ?? "/fund?manage=endowments"}
+              variant="warm"
+              data-app-cta={receipt.appManagementCta}
+              className="px-5 py-2.5 text-sm"
+            >
+              {formatMessage({
+                id: "public.fund.receipt.manageEndowments",
+                defaultMessage: "Manage Endowments",
+              })}
+            </EditorialGhostLink>
+          ) : (
+            <PublicInstallAction forceOpenApp={receipt.appManagementCta === "open_app"}>
+              {({ label, href, onClick, dataInstallAction }) => (
+                <a
+                  href={href}
+                  onClick={onClick}
+                  data-app-cta={receipt.appManagementCta}
+                  data-install-action={dataInstallAction}
+                  className="cursor-pointer rounded-full bg-primary-action px-5 py-2.5 text-sm font-semibold text-primary-action-foreground hover:bg-primary-action-hover"
+                >
+                  {label}
+                </a>
+              )}
+            </PublicInstallAction>
+          )}
         </div>
       ) : null}
 

@@ -3,7 +3,7 @@ import { useReadContracts } from "wagmi";
 import type { Address } from "../../types/domain";
 import type { VaultPreview } from "../../types/vaults";
 import { OCTANT_VAULT_ABI } from "../../utils/blockchain/abis";
-import { VAULT_MAX_BPS, ZERO_ADDRESS } from "../../utils/blockchain/vaults";
+import { DEFAULT_WITHDRAW_MAX_LOSS_BPS, ZERO_ADDRESS } from "../../utils/blockchain/vaults";
 
 interface UseVaultPreviewOptions {
   vaultAddress?: Address;
@@ -11,6 +11,7 @@ interface UseVaultPreviewOptions {
   shares?: bigint;
   userAddress?: Address;
   chainId?: number;
+  maxLossBps?: bigint;
   enabled?: boolean;
 }
 
@@ -21,6 +22,7 @@ export function useVaultPreview(options: UseVaultPreviewOptions = {}) {
   const shares = options.shares ?? 0n;
   const userAddress = options.userAddress ?? (ZERO_ADDRESS as Address);
   const chainId = options.chainId;
+  const maxLossBps = options.maxLossBps ?? DEFAULT_WITHDRAW_MAX_LOSS_BPS;
 
   const contracts = useMemo(() => {
     if (!vaultAddress) return [];
@@ -31,10 +33,10 @@ export function useVaultPreview(options: UseVaultPreviewOptions = {}) {
       { ...base, functionName: "maxDeposit", args: [userAddress] },
       { ...base, functionName: "balanceOf", args: [userAddress] },
       { ...base, functionName: "totalAssets", args: [] },
-      { ...base, functionName: "maxWithdraw", args: [userAddress, VAULT_MAX_BPS, []] },
+      { ...base, functionName: "maxWithdraw", args: [userAddress, maxLossBps, []] },
       { ...base, functionName: "previewWithdraw", args: [amount] },
     ] as const;
-  }, [vaultAddress, amount, shares, userAddress, chainId]);
+  }, [vaultAddress, amount, shares, userAddress, chainId, maxLossBps]);
 
   const query = useReadContracts({
     contracts: contracts as any,

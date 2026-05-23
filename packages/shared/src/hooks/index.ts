@@ -327,6 +327,17 @@ export { usePublicGardenDetail } from "./public/usePublicGardenDetail";
 export type { PublicGardenSummary } from "./public/usePublicGardens";
 export { publicGardenHelpers, usePublicGardens } from "./public/usePublicGardens";
 export type {
+  PublicEndowmentAssetTotal,
+  PublicEndowmentGardenGroup,
+  PublicEndowmentInput,
+  PublicEndowmentPortfolio,
+  PublicEndowmentPosition,
+} from "./public/usePublicEndowmentPositions";
+export {
+  buildPublicEndowmentPortfolio,
+  usePublicEndowmentPositions,
+} from "./public/usePublicEndowmentPositions";
+export type {
   PublicFieldNotesPage,
   UsePublicFieldNotesOptions,
 } from "./public/usePublicFieldNotes";

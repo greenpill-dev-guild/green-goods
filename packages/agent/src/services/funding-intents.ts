@@ -229,7 +229,8 @@ export function redactFundingReceipt(record: FundingIntentRecord): PublicFunding
     receiverAddress: record.receiverAddress,
     quoteExpiresAt: record.quoteExpiresAt,
     updatedAt: record.updatedAt,
-    appManagementCta: record.fundingIntent === "endow" ? "install_app" : undefined,
+    appManagementCta: record.fundingIntent === "endow" ? "manage_endowments" : undefined,
+    managementUrl: record.fundingIntent === "endow" ? "/fund?manage=endowments" : undefined,
     failureCode: record.failureCode,
   };
 }

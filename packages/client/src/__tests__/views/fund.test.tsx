@@ -6,12 +6,12 @@
  * - Tapping Donate or Endow opens PublicFundingCard with the matching intent.
  * - `?intent=` mounts the receipt UI.
  * - `?garden=` stale resolution renders a non-blocking message.
- * - The page stays support-only (no withdraw / admin controls).
+ * - The Garden section exposes the public Manage Endowments panel link.
  *
  * @vitest-environment jsdom
  */
 
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
@@ -97,6 +97,23 @@ vi.mock("@/components/Public/PublicFundingReceipt", () => ({
   PublicFundingReceipt: ({ intentId }: { intentId: string }) => (
     <div data-testid="public-funding-receipt">{intentId}</div>
   ),
+}));
+
+vi.mock("@/components/Public/PublicEndowmentPanel", () => ({
+  PublicEndowmentPanel: ({
+    open,
+    onOpenChange,
+  }: {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+  }) =>
+    open ? (
+      <div role="dialog" aria-label="Your Endowments" data-testid="public-endowment-panel">
+        <button type="button" onClick={() => onOpenChange(false)}>
+          Close endowments
+        </button>
+      </div>
+    ) : null,
 }));
 
 vi.mock("@/routes/WalletRuntimeProviders", () => ({
@@ -263,10 +280,34 @@ describe("FundPage", () => {
     expect(screen.getByText(/Garden matching "missing"/)).toBeInTheDocument();
   });
 
-  it("keeps the page support-only — no withdraw / admin controls", () => {
+  it("places Manage Endowments as a link button in the Garden selection section", () => {
     renderView();
-    expect(screen.queryByRole("button", { name: /withdraw/i })).toBeNull();
-    expect(screen.queryByText(/withdraw/i)).toBeNull();
+    const gardenSection = screen
+      .getByRole("heading", { name: /Gardens accepting support/i })
+      .closest("section");
+
+    expect(gardenSection).not.toBeNull();
+    const manageLink = within(gardenSection as HTMLElement).getByRole("link", {
+      name: "Manage Endowments",
+    });
+
+    expect(manageLink).toBeInTheDocument();
+    expect(manageLink).toHaveAttribute("href", "/fund?manage=endowments");
+  });
+
+  it("opens the endowment panel from the Garden section link button", async () => {
+    const user = userEvent.setup();
+    renderView();
+
+    await user.click(screen.getByRole("link", { name: "Manage Endowments" }));
+
+    expect(screen.getByTestId("public-endowment-panel")).toBeInTheDocument();
+  });
+
+  it("opens the endowment panel from /fund?manage=endowments", () => {
+    renderView(["/fund?manage=endowments"]);
+
+    expect(screen.getByTestId("public-endowment-panel")).toBeInTheDocument();
   });
 
   it("renders the standalone vault section between the hero and Donate/Endow context", () => {

@@ -230,6 +230,7 @@ export { simulateJoinGarden, simulateTransaction } from "./blockchain/simulation
 export {
   formatTokenAmount,
   AAVE_V3_POOL,
+  DEFAULT_WITHDRAW_MAX_LOSS_BPS,
   getDepositLimitLabel,
   getNetDeposited,
   getVaultAssetDecimals,

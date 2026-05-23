@@ -23,6 +23,7 @@ vi.mock("../../../utils/blockchain/abis", () => ({
 
 vi.mock("../../../utils/blockchain/vaults", () => ({
   ZERO_ADDRESS: "0x0000000000000000000000000000000000000000",
+  DEFAULT_WITHDRAW_MAX_LOSS_BPS: 100n,
   VAULT_MAX_BPS: 10000n,
 }));
 
@@ -227,5 +228,40 @@ describe("useVaultPreview", () => {
     for (const contract of call.contracts) {
       expect(contract.chainId).toBe(42161);
     }
+  });
+
+  it("uses the safe withdraw max-loss basis by default", () => {
+    mockUseReadContracts.mockReturnValue({ data: undefined, isLoading: false });
+
+    renderHook(
+      () =>
+        useVaultPreview({
+          vaultAddress: TEST_VAULT as `0x${string}`,
+          userAddress: TEST_USER as `0x${string}`,
+        }),
+      { wrapper: createWrapper(queryClient) }
+    );
+
+    const call = mockUseReadContracts.mock.calls[0][0];
+    const maxWithdrawContract = call.contracts[5];
+    expect(maxWithdrawContract.args).toEqual([TEST_USER, 100n, []]);
+  });
+
+  it("threads caller-provided maxLossBps into maxWithdraw", () => {
+    mockUseReadContracts.mockReturnValue({ data: undefined, isLoading: false });
+
+    renderHook(
+      () =>
+        useVaultPreview({
+          vaultAddress: TEST_VAULT as `0x${string}`,
+          userAddress: TEST_USER as `0x${string}`,
+          maxLossBps: 50n,
+        }),
+      { wrapper: createWrapper(queryClient) }
+    );
+
+    const call = mockUseReadContracts.mock.calls[0][0];
+    const maxWithdrawContract = call.contracts[5];
+    expect(maxWithdrawContract.args).toEqual([TEST_USER, 50n, []]);
   });
 });

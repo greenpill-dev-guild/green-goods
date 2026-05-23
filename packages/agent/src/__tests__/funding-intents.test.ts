@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   type FundingIntentRecord,
   MemoryFundingIntentStore,
+  redactFundingReceipt,
   sweepFundingIntents,
 } from "../services/funding-intents";
 
@@ -58,5 +59,25 @@ describe("funding intent sweep", () => {
         expect.objectContaining({ intentId: "fi_pending", status: "expired" }),
       ])
     );
+  });
+});
+
+describe("redactFundingReceipt", () => {
+  it("routes Endow receipts to public endowment management", () => {
+    const receipt = redactFundingReceipt({
+      ...baseRecord,
+      destinationType: "vault",
+      fundingIntent: "endow",
+    });
+
+    expect(receipt.appManagementCta).toBe("manage_endowments");
+    expect(receipt.managementUrl).toBe("/fund?manage=endowments");
+  });
+
+  it("does not add a management CTA for Donate receipts", () => {
+    const receipt = redactFundingReceipt(baseRecord);
+
+    expect(receipt.appManagementCta).toBeUndefined();
+    expect(receipt.managementUrl).toBeUndefined();
   });
 });

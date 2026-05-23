@@ -87,10 +87,11 @@ Stacks gracefully on mobile. Schedule-a-Call lives in `PublicGetInTouch` above t
 
 ## `/fund`
 
-- Editorial header with support-only language and a tax/charity disclaimer (Donate is **not** tax-deductible, charitable, or nonprofit-backed unless separately configured).
-- `?intent=<id>` mounts `PublicFundingReceipt` above the Garden grid. Receipt UI reads the in-memory token (already scrubbed by Root) and only renders redacted public fields: Garden, intent, amount, status, `fundingTxHash`, receiver wallet (Card Endow), and the Install/Open App CTA.
+- Editorial header with Donate / Endow language and a tax/charity disclaimer (Donate is **not** tax-deductible, charitable, or nonprofit-backed unless separately configured).
+- `?intent=<id>` mounts `PublicFundingReceipt` above the Garden grid. Receipt UI reads the in-memory token (already scrubbed by Root) and only renders redacted public fields: Garden, intent, amount, status, `fundingTxHash`, receiver wallet (Card Endow), and the management CTA when the receipt is an Endow receipt.
+- `?manage=endowments` opens `PublicEndowmentPanel`; the URL never carries wallet addresses, account ids, or receipt tokens.
 - `?garden=<id-or-slug>` resolves exact id/address first, then unique-slug match via `publicGardenHelpers.deriveSlug`. Stale / missing / zero-match / ambiguous queries render the regular Fund page with a localized non-blocking message and the matched Garden (if any) scrolls into view with a soft ring highlight.
-- Garden grid uses `PublicGardenCard` with a `Support this Garden` CTA → opens `PublicFundingMethodSelector`.
+- Garden grid uses public Garden rows with Donate and Endow CTAs. Section 3 also carries an always-visible `Manage Endowments` secondary warm capsule aligned to the section header on desktop and stacked under the title on mobile.
 
 ### Funding UX
 
@@ -101,7 +102,7 @@ Two-step dialog driven by `PublicFundingMethodSelector`:
 
 Wallet selection routes to the existing `CookieJarDepositDialog` (Donate) or `VaultDepositDialog` (Endow). Card flow lights up only when the proof registry has a `live` entry.
 
-`/fund` stays support-only: no public withdrawals, no admin Vault management, no auto-buy claims, no public treasury custody claims.
+Manage Endowments is the only public withdrawal surface in v1. It is wallet-owned only, opens a right-side panel on desktop and a bottom sheet on mobile, leads with what the funder has supported, groups positions by Garden, and expands each asset row inline for Withdraw / Max / confirm / pending / error / success. It does not include public address lookup, admin Vault management, auto-buy claims, custody claims, Card Donate, or Card Endow.
 
 ## `/actions`
 
@@ -149,8 +150,8 @@ Pairing rule: keep Inter as the sans companion; **never** pair two serifs on the
 
 - **Route transitions:** soft fades (no morphs).
 - **Section reveals:** light stagger.
-- **Source dialogs** (`PublicSourceDialog`, `PublicFundingMethodSelector`, `PublicFundingReceipt`):
-  - Desktop: centered, rounded sheet on `bg-static-black/40` overlay.
+- **Source dialogs** (`PublicSourceDialog`, `PublicFundingMethodSelector`, `PublicFundingReceipt`, `PublicEndowmentPanel`):
+  - Desktop: centered, rounded sheet on `bg-static-black/40` overlay; `PublicEndowmentPanel` is the exception and opens as a right-side public panel.
   - Mobile: bottom sheet with rounded top corners.
   - Labelled title (`aria-labelledby` → `<h2>` id), Escape close, overlay click close, focus moved to the close button on mount.
   - Mobile-safe width: `max-w-[calc(100vw-2rem)]` clamps the dialog under 375px viewports.
@@ -170,6 +171,7 @@ Pairing rule: keep Inter as the sans companion; **never** pair two serifs on the
 - Root pre-pageview bootstrap moves the token from the URL fragment into short-lived session state and calls `history.replaceState` before initial analytics fires.
 - `usePageView` redacts sensitive hash keys (including `receiptToken`) so `page_view.hash` never carries the token even if a downstream view re-introduces a hash.
 - Public receipt reads call `GET /public/funding-intents/:id` with `X-GG-Receipt-Token` only — never query params or JSON body. Receipt UI never shows payer email, provider ids, raw failure detail, webhook payloads, or the raw token itself.
+- Endow receipts route to `/fund?manage=endowments`; no wallet/account identifier is placed in the receipt URL or management URL.
 
 ## Do's and Don'ts
 

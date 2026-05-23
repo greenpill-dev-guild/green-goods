@@ -48,3 +48,7 @@ vi.mock("@reown/appkit", () => ({
 // JSDOM does not implement scrollTo, but several client views call it during
 // interaction flows. Stub it once here so package-wide test runs stay quiet.
 window.scrollTo = vi.fn();
+
+// JSDOM likewise does not implement scrollIntoView; the public endowment panel
+// nudges a freshly expanded withdrawal row into view. Stub it on the prototype.
+window.HTMLElement.prototype.scrollIntoView = vi.fn();

@@ -144,7 +144,8 @@ export type PublicFundingReceipt = {
   receiverAddress?: Address;
   quoteExpiresAt?: string;
   updatedAt: string;
-  appManagementCta?: "install_app" | "open_app";
+  appManagementCta?: "install_app" | "open_app" | "manage_endowments";
+  managementUrl?: "/fund?manage=endowments";
   failureCode?: "expired" | "provider_failed" | "onchain_failed" | "reconciliation_failed";
 };
 

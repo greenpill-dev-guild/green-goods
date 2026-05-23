@@ -336,6 +336,11 @@ export function EditorialPrimaryLink({
 export interface EditorialGhostLinkProps extends LinkProps {
   children: ReactNode;
   tone?: Tone;
+  /**
+   * Visual variant. Mirrors `EditorialGhostButton` so route-backed secondary
+   * CTAs can keep the same editorial treatment as button-backed controls.
+   */
+  variant?: EditorialGhostVariant;
 }
 
 /** Capsule transparent secondary action that routes via React Router Link. */
@@ -343,16 +348,16 @@ export function EditorialGhostLink({
   children,
   className,
   tone = "default",
+  variant = "ghost",
   viewTransition = true,
   ...rest
 }: EditorialGhostLinkProps) {
+  const baseClasses =
+    variant === "warm" ? GHOST_WARM_CLASSES : tone === "dark" ? GHOST_DARK_CLASSES : GHOST_CLASSES;
+
   return (
     <Link
-      className={cn(
-        tone === "dark" ? GHOST_DARK_CLASSES : GHOST_CLASSES,
-        ACTION_MOTION_CLASSES,
-        className
-      )}
+      className={cn(baseClasses, ACTION_MOTION_CLASSES, className)}
       viewTransition={viewTransition}
       {...rest}
     >

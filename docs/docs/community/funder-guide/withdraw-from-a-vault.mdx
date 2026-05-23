@@ -2,10 +2,10 @@
 title: Remove an Endowment
 sidebar_label: Remove an Endowment
 slug: /community/funder-guide/withdraw-from-a-vault
-description: "Remove part or all of an existing garden vault endowment from the authenticated Treasury drawer."
+description: "Remove part or all of an existing garden vault endowment from the public Fund page."
 audience: funder
 owner: docs
-last_verified: 2026-05-01
+last_verified: 2026-05-21
 feature_status: Live
 image: /img/social/withdraw-from-a-vault.webp
 goal: "Walk a funder through removing some or all of their existing endowment from a garden vault."
@@ -15,6 +15,9 @@ prereqs: "Connected wallet with an existing endowment position in the garden's v
 next_steps: "./funding-a-garden"
 persona_context: "Funders pulling principal back out of a garden vault when they need it."
 source_of_truth:
+  - packages/client/src/components/Public/PublicEndowmentPanel.tsx
+  - packages/client/src/views/Public/Fund.tsx
+  - packages/shared/src/hooks/public/usePublicEndowmentPositions.ts
   - packages/client/src/components/Dialogs/TreasuryDrawer/index.tsx
   - packages/client/src/components/Dialogs/TreasuryDrawer/TreasuryTabContent.tsx
   - packages/client/src/components/Dialogs/TreasuryDrawer/MyDepositRow.tsx
@@ -45,65 +48,67 @@ import {GuideOpener, NextBestAction, StatusBadge} from "@site/src/components/doc
 
 ## What this helps you do
 
-Remove part or all of your existing garden endowment from the authenticated Treasury drawer. The UI calls this action **Withdraw** because it withdraws principal from the vault back to your wallet.
+Remove part or all of your existing garden endowment from the public `/fund` page. The UI calls this action **Withdraw** because it withdraws principal from the vault back to your wallet.
 
-The public `/fund` page supports Donate and Endow only. To remove an endowment, sign in to the app and open the garden's Treasury drawer.
+The primary path is **Manage Endowments** on `/fund`. The authenticated app Treasury drawer can still show the same kind of position for signed-in app users, but funders do not need to find the old admin surface to recover an endowment.
 
 ## Before you start
 
-- Use the same wallet or passkey account that holds the vault shares.
-- Confirm you have an active endowment in this garden.
+- Use the same wallet that holds the vault shares.
+- Confirm you have an active endowment in at least one Garden vault.
 - Make sure you are online.
 - Keep a little Arbitrum gas available if you use an external wallet. Passkey or smart-account actions may be sponsored when that support is configured.
 
 :::tip
-The available balance shown in the drawer is the amount you can remove now. It may differ slightly from the original deposit because the vault preview uses the current share-to-asset rate.
+The available balance shown in Manage Endowments is the amount you can remove now. It may differ from the original deposit because the vault preview uses the current share-to-asset rate.
 :::
 
 ## Step-by-step flow
 
-### Step 1: Open the Treasury drawer
+### Step 1: Open Manage Endowments
 
-1. Sign in to the Green Goods app.
-2. Open **Home**, then open the garden you endowed.
-3. Tap **Treasury** in the top bar.
-4. Stay on the **Endowments** tab.
+1. Open `/fund`.
+2. Scroll to **Gardens accepting support this season**.
+3. Select **Manage Endowments**.
+4. Connect the same wallet you used to endow.
 
 ### Step 2: Find your active endowment
 
-1. Scroll to **Active deposits**.
-2. Find the asset row you want to remove from.
-3. Check **Available balance** and **My shares**.
-4. If **Active deposits** is empty, this wallet does not currently hold a position in this garden's vault.
+1. Review the totals under **What you've supported**.
+2. Find the Garden group you want.
+3. Open the asset row you want to remove from.
+4. Check **Endowed**, **Shares**, and **Available if needed**.
+5. If the panel is empty, this wallet does not currently hold an indexed endowment position.
 
 ### Step 3: Enter the amount
 
 1. Type the amount to remove.
 2. Tap **Max** if you want to remove the full available balance.
 3. Fix any decimal or balance error shown under the field.
-4. The **Withdraw** button enables once the amount is valid.
+4. The review button enables once the amount is valid.
 
 ### Step 4: Confirm and sign
 
-1. Tap **Withdraw**.
-2. Read the confirmation dialog.
+1. Select **Review withdrawal**.
+2. Read the inline confirmation.
 3. Confirm and sign in your wallet.
 4. Wait for the transaction to finish.
 
 ## How to know it worked
 
 - The amount input clears after success.
-- The row's **Available balance** drops by the amount you removed.
-- If you removed the full balance, the row disappears from **Active deposits** after refresh.
+- The panel refreshes after success.
+- The row's available amount drops by the amount you removed.
+- If you removed the full balance, the row disappears after refresh.
 - Your wallet history shows the withdrawal transaction on Arbitrum.
 - The asset returns to your wallet on Arbitrum.
 
 ## If something goes wrong
 
-- **Active deposits is empty.** You may have already removed the endowment, used a different wallet, or opened the wrong garden.
+- **No endowments appear.** You may have already removed the endowment, used a different wallet, or the indexer may still be syncing.
 - **Offline warning.** Reconnect and retry.
-- **Withdraw button stays disabled.** The amount is zero, exceeds available balance, or has a decimal error.
-- **Confirmation dialog is open.** Finish the wallet signature flow or close the dialog and retry.
+- **Review withdrawal stays disabled.** The amount is zero, exceeds the available amount, or has a decimal error.
+- **Inline confirmation is open.** Finish the wallet signature flow or cancel and retry.
 - **Transaction cancelled.** Nothing was removed. Try again when ready.
 - **Transaction failed.** Check the wallet error, chain, gas, and whether the vault can satisfy the requested amount. Try a smaller amount if needed.
 - **Still stuck.** Use the Green Goods Telegram support link in the docs footer.

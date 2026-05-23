@@ -64,9 +64,13 @@ export interface PublicGardenSummary {
  */
 const deriveSlug = derivePublicGardenSlug;
 
-export function usePublicGardens(chainId: number = DEFAULT_CHAIN_ID) {
+export function usePublicGardens(
+  chainId: number = DEFAULT_CHAIN_ID,
+  options: { enabled?: boolean } = {}
+) {
   return useQuery({
     queryKey: queryKeys.public.gardens(chainId),
+    enabled: options.enabled ?? true,
     queryFn: async (): Promise<PublicGardenSummary[]> => {
       const gardens = await getGardens();
       // Filter placeholder gardens. The indexer's `Garden.initialized` flag is
