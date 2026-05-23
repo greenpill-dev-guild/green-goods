@@ -5,5 +5,10 @@
 # Disable Bun's implicit .env loading and let Varlock handle env loading/validation.
 env = false
 
+
+[install]
+# Only resolve package versions published at least 3 days ago.
+minimumReleaseAge = 259200
+
 [run]
 bun = true

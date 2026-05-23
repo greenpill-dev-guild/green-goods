@@ -1,0 +1,52 @@
+name: Supply Chain Guardrails
+
+on:
+  pull_request:
+    paths:
+      - "package.json"
+      - "**/package.json"
+      - "bun.lock"
+      - "bun.lockb"
+      - "package-lock.json"
+      - "pnpm-lock.yaml"
+      - "yarn.lock"
+      - "bunfig.toml"
+      - ".npmrc"
+      - "pnpm-workspace.yaml"
+      - ".yarnrc.yml"
+      - ".github/workflows/**"
+      - "AGENTS.md"
+      - "CLAUDE.md"
+      - ".codex/**"
+      - ".claude/**"
+  push:
+    branches: [main, develop]
+    paths:
+      - "package.json"
+      - "**/package.json"
+      - "bun.lock"
+      - "bun.lockb"
+      - "package-lock.json"
+      - "pnpm-lock.yaml"
+      - "yarn.lock"
+      - "bunfig.toml"
+      - ".npmrc"
+      - "pnpm-workspace.yaml"
+      - ".yarnrc.yml"
+      - ".github/workflows/**"
+      - "AGENTS.md"
+      - "CLAUDE.md"
+      - ".codex/**"
+      - ".claude/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    uses: greenpill-dev-guild/.github/.github/workflows/supply-chain-guardrails.yml@main
+    with:
+      mode: ci
+      fail-on-warning: false
+      working-directory: "."

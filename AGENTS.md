@@ -201,3 +201,10 @@ A script earns a place in `scripts/` only if it has a durable caller: root `pack
 - Every new script in `scripts/` gets a one-line entry in [`scripts/README.md`](scripts/README.md) under the right caller-bucket, in the same PR.
 - Do not create a script when a `package.json` script + an existing CLI already does the job.
 - Data files (baselines, fixtures consumed by scripts) belong in `scripts/data/`, not at the root of `scripts/`.
+
+## Supply-chain and agent safety
+
+- Do not install or upgrade npm, Python, or package-manager dependencies unless the user explicitly approves that install in the current task.
+- Prefer existing repo tooling, checked-in lockfiles, and standard library options over adding new packages.
+- Treat `package.json`, lockfiles, package-manager config, `.github/workflows/**`, `AGENTS.md`, `CLAUDE.md`, `.codex/**`, and `.claude/**` as security-sensitive surfaces. Call out any changes to them in final summaries.
+- Keep dependency installs on the checked-in lockfile path and preserve the repo's release-age gate configuration.

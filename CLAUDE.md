@@ -336,3 +336,10 @@ If a new script doesn't fit any of those, it doesn't belong here.
 ## Cleanup
 
 If you create temporary files, scripts, or helpers during iteration, remove them before reporting task completion.
+
+## Supply-chain and agent safety
+
+- Do not install or upgrade npm, Python, or package-manager dependencies unless the user explicitly approves that install in the current task.
+- Prefer existing repo tooling, checked-in lockfiles, and standard library options over adding new packages.
+- Treat `package.json`, lockfiles, package-manager config, `.github/workflows/**`, `AGENTS.md`, `CLAUDE.md`, `.codex/**`, and `.claude/**` as security-sensitive surfaces. Call out any changes to them in final summaries.
+- Keep dependency installs on the checked-in lockfile path and preserve the repo's release-age gate configuration.
