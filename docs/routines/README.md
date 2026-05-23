@@ -8,12 +8,13 @@ Guild-level routines live in [`greenpill-dev-guild/.github/routines/claude/`](ht
 
 | File | Status | Cadence | Channel | Issue surface |
 |---|---|---|---|---|
-| `bug-intake.md` | active | M/W/F 04:00 | `#bugs` (per-capture acks for bug-source) + `#product` (idea-source acks + daily summary) | Linear Customer Needs (raw signal); accepted bugs become unprojected Linear Product Issues |
+| `bug-intake.md` | active | M/W/F 04:00 | `#bug-report` (per-capture acks for bug-source) + `#product` (idea-source acks + daily summary) | Linear Customer Needs (raw signal); accepted bugs become unprojected Linear Product Issues |
 | `health-watch.md` | active | Daily M-F 07:30 | `#product` (red only) | Linear Product Issues for accepted operational health work (unprojected) |
 | `growth-pulse.md` | active | Mon 09:00 weekly | `#product` + `#funding` cross-post | Linear Product Issues for accepted anomalies (unprojected) + `develop` digest PR |
+| `qa-triage-pulse.md` | active | Wed 21:00 UTC = 13:00 PST / 14:00 PDT (3h after the 10am PST Product Sync start) | `#product` (Discord summary, @mention when there's something to triage) | Linear Customer Needs only (pre-staged, label `source:qa-triage-pulse` + `qa-sync:<date>`); `/qa-triage` promotes them to Issues + QA-sheet rows interactively. Routine id: `trig_01GSagDiEV9Y8QTBzKeZsPSw` |
 | `pr-review.md` | active | event-driven (PR open) | inline on PR | n/a |
 
-That's it — three scheduled cadences plus one event-driven. Anything else previously in this folder (engineering-pulse, plan-executor, hotfix, drift-watch, metrics) has been removed: cut from the portfolio or converted to Claude Code skills (`/plan`, `/debug`).
+That's it — four scheduled cadences plus one event-driven, all cloud routines hosted at [claude.ai/code/routines](https://claude.ai/code/routines). Anything else previously in this folder (engineering-pulse, plan-executor, hotfix, drift-watch, metrics) has been removed: cut from the portfolio or converted to Claude Code skills (`/plan`, `/debug`).
 
 ## Connector Matrix
 
@@ -22,6 +23,7 @@ That's it — three scheduled cadences plus one event-driven. Anything else prev
 | `bug-intake` | Google Drive, Linear, PostHog, Vercel | Drive = meeting-note intake · Linear = Customer Need (raw signal) + accepted-bug Issue surface · PostHog = telemetry enrichment for bug correlation · Vercel = deploy correlation (commit + diff that shipped within 48h before each report) |
 | `health-watch` | Google Drive, Google Calendar, Linear, PostHog, Vercel | Drive/Calendar = context that adjusts severity · Linear = accepted operational health Issues (unprojected Product) · PostHog = error spike correlation · Vercel = deploy/runtime/web-vitals signal feeding `activity:qa` Issues |
 | `growth-pulse` | Google Calendar, Linear, PostHog | Calendar = WoW context · Linear = accepted-anomaly Issue surface (unprojected Product) · PostHog = product/growth metrics via curated questions. Drive and Miro are intentionally not wired here; Vercel is also intentionally not wired because Vercel Web Analytics overlaps with PostHog and would create dual-source drift. |
+| `qa-triage-pulse` | Google Drive, Linear, PostHog, Vercel | Drive = the Wed Product Sync's Gemini notes · Linear = Customer Need pre-stage surface (raw signal, unprojected) · PostHog = per-surface telemetry cross-reference · Vercel = deploy correlation gated on PostHog-matched items only (anchored to `first_seen`, skipped for items without telemetry signal). |
 | `pr-review` | Vercel | Preview deployment status + Lighthouse delta. Inline review commentary, not a hard invariant. |
 
 Gmail is intentionally NOT wired on any GG routine (personal-inbox pollution risk).
@@ -30,8 +32,8 @@ Gmail is intentionally NOT wired on any GG routine (personal-inbox pollution ris
 
 | Channel | Used by | Why |
 |---|---|---|
-| `#bugs` (DISCORD_BUGS_CHANNEL_ID) | bug-intake (Phase 1 ingest source + per-capture acks for bug-source records) | dedicated bug-report feed; reporter ack surface for Telegram bug-topic captures |
-| `#product` (DISCORD_PRODUCT_CHANNEL_ID) | bug-intake (idea-source per-capture acks + daily summary), health-watch (red only), growth-pulse | user-facing concerns + ideas |
+| `#bug-report` (DISCORD_BUGS_CHANNEL_ID) | bug-intake (Phase 1 ingest source + per-capture acks for bug-source records) | dedicated bug-report feed; reporter ack surface for Telegram bug-topic captures |
+| `#product` (DISCORD_PRODUCT_CHANNEL_ID) | bug-intake (idea-source per-capture acks + daily summary), health-watch (red only), growth-pulse, qa-triage-pulse (Wed pre-stage summary) | user-facing concerns + ideas |
 | `#funding` (DISCORD_FUNDING_CHANNEL_ID) | growth-pulse cross-post (when grant-relevant) | grant relevance only |
 | inline on PR | pr-review | review surface |
 
@@ -44,6 +46,7 @@ Routines @mention Afo only when his action is required (via `DISCORD_USER_ID_AFO
 - `bug-intake` — when unlinked/unreviewed Linear Customer Needs plus linked Issues exceed 3, or when a Linear setup failure (missing project, missing label, auth error) needs attention
 - `health-watch` — on real (🔴) anomalies only
 - `growth-pulse` — when an anomaly is opened in Linear OR a setup failure needs attention
+- `qa-triage-pulse` — when ≥1 Customer Need was pre-staged from the Wednesday Product Sync (signal that `/qa-triage` is ready to run) OR a Linear/Drive setup failure needs attention. Silent on quiet weeks.
 
 `pr-review` posts inline on the PR; the GitHub mention surface is already explicit and no Discord ping is needed. Healthy weekly heartbeats with zero anomalies = no @mention.
 
@@ -56,7 +59,7 @@ Routines @mention Afo only when his action is required (via `DISCORD_USER_ID_AFO
 
 ## Scope discipline
 
-`bug-intake` is the only Green Goods routine that reads Google Drive. It carries an explicit folder allow-list and rejects docs outside it — content keywords alone are too loose. Drive is enrichment, not a substitute when the primary on-chain or Discord source is quiet. `growth-pulse` intentionally does not read Drive (calendar enrichment alone is enough; meeting notes are owned by `guild-weekly-synthesis`).
+Two GG routines read Google Drive: `bug-intake` (meeting-note enrichment across all team docs, with a folder allow-list and content-rejection list) and `qa-triage-pulse` (single-purpose — only the Wednesday Product Sync's Gemini notes, narrower title-pattern match). `growth-pulse` intentionally does not read Drive (calendar enrichment alone is enough; broader meeting notes are owned by `guild-weekly-synthesis`).
 
 Every Discord post in a routine is preceded by a `Channel guard` that pins the post target to one env-var-driven channel. If the env var is unset, the routine logs and skips that post — it does not pick an alternate channel.
 
@@ -86,7 +89,7 @@ Routines that consume Telegram captures need the agent API surface only:
 | `BOT_API_URL` | Public URL of the Green Goods agent (e.g., `https://agent.greengoods.app`) |
 | `BOT_API_TOKEN` | Bearer token for authenticating API requests to the agent |
 
-Used by: `bug-intake` (read + claim + status updates via `/api/messages?inferred_type=bug|idea`; no Telegram-side ack — reporters get acknowledged via the per-capture Discord post in `#bugs` or `#product`). `health-watch` is read-only against `/api/messages?inferred_type=bug&status=all` for clustering; it must never PATCH captures.
+Used by: `bug-intake` (read + claim + status updates via `/api/messages?inferred_type=bug|idea`; no Telegram-side ack — reporters get acknowledged via the per-capture Discord post in `#bug-report` or `#product`). `health-watch` is read-only against `/api/messages?inferred_type=bug&status=all` for clustering; it must never PATCH captures.
 
 Capture scope is **agent-side only** (two Fly.io secrets — one per topic type):
 
@@ -103,8 +106,8 @@ Green Goods uses three PostHog projects (org-level connector scope, switch-proje
 
 | Project | ID | Surfaces | Used by |
 |---|---|---|---|
-| **App** | `163591` | Client + PWA + editorial website (single ingest target — editorial-to-PWA lineage stays a within-project query) | `growth-pulse` (primary), `bug-intake` (primary), `health-watch` (errors) |
-| **Admin** | `262122` | Operator cockpit / admin web app | `growth-pulse` (`actions.template-creation-rate` only), `bug-intake` (admin-route reports) |
+| **App** | `163591` | Client + PWA + editorial website (single ingest target — editorial-to-PWA lineage stays a within-project query) | `growth-pulse` (primary), `bug-intake` (primary), `qa-triage-pulse` (PWA/website-surface items), `health-watch` (errors) |
+| **Admin** | `262122` | Operator cockpit / admin web app | `growth-pulse` (`actions.template-creation-rate` only), `bug-intake` (admin-route reports), `qa-triage-pulse` (admin-surface items) |
 | **Agent** | `262124` | Bot/messaging runtime (Telegram + future WhatsApp/SMS) | `bug-intake` (Telegram-source reports) |
 
 The PostHog connector is the primary access path. The connector key has a project scope set per-project at OAuth time — confirm with `switch-project` + a 1-event test query before assuming a routine can read a given project. A routine that returns zero events on a known-busy project (e.g., App over 30d) should treat the result as a wiring failure (out-of-scope or wrong project ID), not a real anomaly.
@@ -126,6 +129,7 @@ Three routines write to Linear:
 - `bug-intake` writes **Customer Needs** (raw signal — every validated user/community report) and creates linked **Issues** only when the report is accepted as committed product work.
 - `growth-pulse` writes **Issues** for accepted growth/strategy anomalies (funnel, retention, dormancy) once they cross the anomaly threshold.
 - `health-watch` writes **Issues** for accepted operational health work (indexer, CI, Vercel deploy/runtime, contracts) once a 🔴 anomaly is confirmed.
+- `qa-triage-pulse` writes **Customer Needs only** (pre-stage from Wednesday Product Sync notes, label `source:qa-triage-pulse` + `qa-sync:<YYYY-MM-DD>`). Never creates Issues. The interactive `/qa-triage` skill promotes them to Issues with human judgment in the loop.
 
 ### Project routing
 

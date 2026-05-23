@@ -128,7 +128,7 @@ TELEGRAM_IDEAS_TOPIC = <chat_id>_<thread_id>     # e.g. -1002847752257_312
 
 The agent's mapping from env-var name to `inferredType` lives in `CAPTURE_TYPE_ENV_VARS` in [`config.ts`](src/config.ts). The routine reads `/api/messages?inferred_type=bug|idea`, claims each row with `PATCH { "status": "processing" }`, then marks it `triaged` or `rejected` — it never hardcodes chat or thread ids. Adding a new topic type later is a one-line code change in the agent + a new Fly secret.
 
-The Green Goods `bug-intake` routine consumes captured topic messages from `/api/messages`, creates Linear Customer Needs for validated signals (with attachments uploaded to Linear via the `/api/messages/:id/attachments/:ordinal` proxy), and acknowledges each accepted record by posting in Discord — `#bugs` for bug-source captures, `#product` for idea-source captures. The bot stays silent in the Green Goods chat itself: no DMs, no group replies, no reactions on capture.
+The Green Goods `bug-intake` routine consumes captured topic messages from `/api/messages`, creates Linear Customer Needs for validated signals (with attachments uploaded to Linear via the `/api/messages/:id/attachments/:ordinal` proxy), and acknowledges each accepted record by posting in Discord — `#bug-report` for bug-source captures, `#product` for idea-source captures. The bot stays silent in the Green Goods chat itself: no DMs, no group replies, no reactions on capture.
 
 Deploys: pushing to `main` ships the agent via Fly's GitHub integration. The `flyctl deploy` command above is for the cold-start / disconnected setup path, not the day-to-day flow.
 
