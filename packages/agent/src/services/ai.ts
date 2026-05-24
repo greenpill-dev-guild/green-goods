@@ -8,6 +8,7 @@
  */
 
 import { execFile } from "child_process";
+import { readFileSync } from "fs";
 import { promisify } from "util";
 import type { ParsedTask, ParsedWorkData } from "../types";
 import { loggers } from "./logger";
@@ -15,7 +16,7 @@ import { loggers } from "./logger";
 const execFileAsync = promisify(execFile);
 const log = loggers.ai;
 
-type TranscriberPipeline = (audio: string) => Promise<{ text: string }>;
+type TranscriberPipeline = (audio: string | Float32Array) => Promise<{ text: string }>;
 
 // ============================================================================
 // AI CLASS
@@ -57,7 +58,10 @@ class AI {
       }
     }
 
-    const result = await transcriber(processedPath);
+    const audioInput = processedPath.endsWith(".wav")
+      ? readPcm16WavAsFloat32(processedPath)
+      : processedPath;
+    const result = await transcriber(audioInput);
     return result.text;
   }
 
@@ -202,3 +206,54 @@ export function getAI(): AI {
 export const transcribe = (audioPath: string) => getAI().transcribe(audioPath);
 export const parseWorkText = (text: string, locale?: string) => getAI().parseWorkText(text, locale);
 export const isAIModelLoaded = () => _ai?.isModelLoaded() ?? false;
+
+function readPcm16WavAsFloat32(filePath: string): Float32Array {
+  const buffer = readFileSync(filePath);
+  if (buffer.toString("ascii", 0, 4) !== "RIFF" || buffer.toString("ascii", 8, 12) !== "WAVE") {
+    throw new Error("Unsupported audio format: expected RIFF/WAVE PCM");
+  }
+
+  let audioFormat: number | null = null;
+  let channels: number | null = null;
+  let sampleRate: number | null = null;
+  let bitsPerSample: number | null = null;
+  let dataStart = 0;
+  let dataSize = 0;
+
+  let offset = 12;
+  while (offset + 8 <= buffer.length) {
+    const chunkId = buffer.toString("ascii", offset, offset + 4);
+    const chunkSize = buffer.readUInt32LE(offset + 4);
+    const chunkStart = offset + 8;
+
+    if (chunkStart + chunkSize > buffer.length) {
+      throw new Error("Invalid WAV file: chunk exceeds file size");
+    }
+
+    if (chunkId === "fmt ") {
+      audioFormat = buffer.readUInt16LE(chunkStart);
+      channels = buffer.readUInt16LE(chunkStart + 2);
+      sampleRate = buffer.readUInt32LE(chunkStart + 4);
+      bitsPerSample = buffer.readUInt16LE(chunkStart + 14);
+    } else if (chunkId === "data") {
+      dataStart = chunkStart;
+      dataSize = chunkSize;
+    }
+
+    offset = chunkStart + chunkSize + (chunkSize % 2);
+  }
+
+  if (audioFormat !== 1 || channels !== 1 || sampleRate !== 16000 || bitsPerSample !== 16) {
+    throw new Error("Unsupported WAV encoding: expected mono 16 kHz PCM16 audio");
+  }
+  if (dataStart === 0 || dataSize === 0) {
+    throw new Error("Invalid WAV file: missing audio data");
+  }
+
+  const sampleCount = Math.floor(dataSize / 2);
+  const samples = new Float32Array(sampleCount);
+  for (let index = 0; index < sampleCount; index += 1) {
+    samples[index] = buffer.readInt16LE(dataStart + index * 2) / 32768;
+  }
+  return samples;
+}

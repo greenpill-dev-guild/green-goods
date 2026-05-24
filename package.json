@@ -154,7 +154,8 @@
     "multiformats": "^13.4.2",
     "uint8arrays": "^5.1.0",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "protobufjs": "7.5.9"
   },
   "resolutions": {
     "uint8arrays": "^5.1.0"
