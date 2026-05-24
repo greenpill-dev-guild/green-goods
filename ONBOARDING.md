@@ -60,7 +60,7 @@ Loaded by context (you usually don't pick these manually):
 
 These complement (not duplicate) `CLAUDE.md` — they're things that aren't already encoded in the project rules.
 
-- **Run admin in Brave (or Chrome) with the Claude browser extension installed.** That's why you'll see ~942 `claude-in-chrome` calls a month — Claude reads `data-component`/`data-region`/`data-workspace` off the live admin DOM during UI review. Without it, every admin UI change becomes guesswork.
+- **Run admin in Brave first, or Chrome/Chromium as a fallback, with the Claude browser extension installed.** That's why you'll see ~942 `claude-in-chrome` calls a month — Claude reads `data-component`/`data-region`/`data-workspace` off the live admin DOM during UI review. Without it, every admin UI change becomes guesswork.
 - **Commit in scoped groups, not one mega-diff.** Working trees here often accumulate multiple unrelated changes; split them by package or concern using Conventional Commits (`feat(admin): ...`, `refactor(shared): ...`). Use `git add -p` if you need to slice a file.
 - **For multi-lane work, dispatch Codex from Claude via `codex exec --full-auto`.** Claude stays the orchestrator. Codex is strong as a plan-follower and code reviewer, weak at visual polish — never delegate UI design work to it.
 - **Don't make Claude "wait" — use `/loop` or `/schedule`.** `/loop <interval> <command>` for active polling; `/schedule` for cron-style remote routines (deploy checks, weekly sweeps, scheduled cleanup PRs).
