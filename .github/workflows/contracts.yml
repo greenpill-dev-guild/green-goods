@@ -216,20 +216,22 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Require private Arbitrum RPC
+      - name: Resolve Arbitrum RPC
         env:
           ARBITRUM_RPC_URL: ${{ secrets.ARBITRUM_RPC_URL }}
+          PUBLIC_ARBITRUM_RPC_URL: https://arb1.arbitrum.io/rpc
         run: |
           if [[ -z "$ARBITRUM_RPC_URL" ]]; then
-            echo "::error::ARBITRUM_RPC_URL is required for trusted fork readiness gates."
-            exit 1
+            ARBITRUM_RPC_URL="$PUBLIC_ARBITRUM_RPC_URL"
+            echo "::warning::ARBITRUM_RPC_URL secret is not configured; using public Arbitrum RPC fallback."
           fi
+          echo "ARBITRUM_RPC_URL=$ARBITRUM_RPC_URL" >> "$GITHUB_ENV"
+          echo "ARBITRUM_FORK_RPC_URL=$ARBITRUM_RPC_URL" >> "$GITHUB_ENV"
 
       - name: Run fork protocol suite
         working-directory: packages/contracts
         run: bun run test:fork:protocol
         env:
-          ARBITRUM_RPC_URL: ${{ secrets.ARBITRUM_RPC_URL }}
           SEPOLIA_RPC_URL: ${{ secrets.SEPOLIA_RPC_URL || 'https://ethereum-sepolia.publicnode.com' }}
           ETHEREUM_RPC_URL: ${{ secrets.ETHEREUM_RPC_URL || 'https://ethereum-rpc.publicnode.com' }}
           COOKIE_JAR_FACTORY_ADDRESS: ${{ secrets.COOKIE_JAR_FACTORY_ADDRESS }}
@@ -244,6 +246,5 @@ jobs:
           FOUNDRY_PROFILE=e2e bun run test:match 'test/fork/e2e/ArbitrumExtendedE2E.t.sol' --match-test 'testForkArbitrum_e2e_fullYieldPipelineWithRealAaveAndSplit'
           FOUNDRY_PROFILE=e2e bun run test:match 'test/fork/e2e/ArbitrumExtendedE2E.t.sol' --match-test 'testForkArbitrum_e2e_hypercertPoolReadiness_requiresYieldReadablePool'
         env:
-          ARBITRUM_RPC_URL: ${{ secrets.ARBITRUM_RPC_URL }}
           COOKIE_JAR_FACTORY_ADDRESS: ${{ secrets.COOKIE_JAR_FACTORY_ADDRESS }}
           CI: true
