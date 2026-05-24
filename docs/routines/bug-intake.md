@@ -78,7 +78,7 @@ Issues created from Customer Needs (whether accepted bugs or lightweight trackin
 | `package:*` | `package:client`, `package:admin`, `package:shared`, `package:contracts`, `package:indexer`, `package:agent`, `package:docs` | **yes** | Issue. One value only. Pick primary surface; note secondary in body. Omit if surface is genuinely unknown. |
 | `activity:*` | `activity:qa` for confirmed bugs / behavioral defects; `activity:maintenance` for cleanup/polish/ideas/unactionable feedback that still warrants a tracking Issue | **yes** | Issue. One value only. |
 | `task:*` | `task:evidence`, `task:funding-pathway`, `task:access-participation` | yes | Issue, only when the bug clearly falls inside one of these task pathways; otherwise omit. |
-| `source:*` | `source:discord`, `source:telegram`, `source:drive` | n/a (multi-value family — used as provenance flags) | Issue when the originating provenance still matters for triage |
+| `source:*` | `source:discord`, `source:telegram`, `source:drive` | n/a (multi-value family — used as provenance flags) | **Always** on every Issue this routine creates, one per origin (Discord→`source:discord`, Telegram→`source:telegram`, Drive→`source:drive`). This stamp is what scopes the Phase 7 triage count to this routine's own writes, so it is non-optional. Never on the Customer Need — Needs carry no labels. |
 | `agent:*` | `agent:routine` (this routine's only value) | **yes** | Issue. Always `agent:routine` for this routine. The interactive `/qa-triage` skill swaps to `agent:claude` or `agent:codex` during human promotion. |
 
 ### Workflow state
@@ -274,7 +274,7 @@ Source: the dedicated `#bug-report` channel (`DISCORD_BUGS_CHANNEL_ID`). The ret
    {one sentence Afo can paste into a public update without exposing PII; no usernames, garden addresses, replay URLs, session IDs, distinct IDs, wallet addresses, or identifying screenshots}
    ```
 
-   Associate the Customer Need with the customer/garden when known. Customer Needs live unprojected on the Product team — do not associate with the retired `Green Goods` umbrella project or any other staging/completed project. Apply only `protocol:green-goods`, the relevant `source:*` provenance label, and `agent:routine`; keep source and triage metadata in the body. Before saving the record, re-check the body against the privacy boundary table in `## PostHog telemetry enrichment`; if any forbidden field slipped in, drop it.
+   Associate the Customer Need with the customer/garden when known. Customer Needs live unprojected on the Product team — do not associate with the retired `Green Goods` umbrella project or any other staging/completed project. The Customer Need carries **no labels** — `save_customer_need` has no `labels` field; provenance and triage metadata live in the body, and the canonical labels go on the linked Issue created in step 6. Before saving the record, re-check the body against the privacy boundary table in `## PostHog telemetry enrichment`; if any forbidden field slipped in, drop it.
 
 6. **Create accepted-bug Issue** only when the report is actionable per the table above. Issue title is a concise verb-led summary. Body:
 
@@ -313,6 +313,15 @@ Source: the dedicated `#bug-report` channel (`DISCORD_BUGS_CHANNEL_ID`). The ret
 ## Phase 2: Telegram capture topics
 
 If `BOT_API_URL` is not configured, skip this phase silently.
+
+**Preflight (run once, before the per-type loop).** The routine authenticates with `Authorization: Bearer ${BOT_API_TOKEN}`, which must exactly match the agent's `BOT_API_TOKEN` Fly secret (app `green-goods`). Make one probe call — `GET ${BOT_API_URL}/api/messages?inferred_type=bug&status=new&limit=1` with that header — and branch on the status. An auth failure is never a silent skip:
+
+- **200** → proceed to the per-type loop below.
+- **401** → the agent has a token but the routine's Bearer didn't match: a `BOT_API_TOKEN` **mismatch / secret drift**. Skip Telegram for this run and record in Phase 7's `⚠ Failures this run` block: `Telegram intake blocked: BOT_API_TOKEN mismatch — re-sync the token between the claude.ai routine env (green-goods) and the agent's Fly secret (app green-goods).`
+- **503** (`API authentication not configured`) → the agent itself has no `BOT_API_TOKEN` set. Skip and record: `Telegram intake blocked: agent has no BOT_API_TOKEN — set the Fly secret on app green-goods.`
+- **network error / host unreachable** (with `BOT_API_URL` set) → skip and record: `Telegram intake blocked: agent unreachable at BOT_API_URL.`
+
+Only an unset `BOT_API_URL` is a silent skip; a configured-but-failing endpoint always surfaces in the Phase 7 summary so the wiring can be fixed. Telegram-side reporters have no other acknowledgement surface, so a dark intake path is high-priority signal, not a quiet no-op.
 
 The agent persists every freeform message posted in allowlisted forum topics into its `chat_messages` table, tagging each row with `inferredType` derived from which Fly secret (`TELEGRAM_BUGS_TOPIC` → `bug`, `TELEGRAM_IDEAS_TOPIC` → `idea`) matched the message's chat+thread. The bot stays silent in the Green Goods chat — it never replies, reacts, or DMs reporters. Acknowledgement happens entirely via the per-capture Discord post in Phase 6 below; **do NOT call any `/api/notify`-style endpoint**, and do NOT reply in the Telegram topic.
 
@@ -367,7 +376,7 @@ Run the sub-flow below twice — once with `inferred_type=bug` (ack target `#bug
    {Linear-hosted attachment URLs from step 6, or "none provided"}
    ```
 
-   Apply labels: `protocol:green-goods` + `source:telegram` + `agent:routine`. Customer Needs do not carry `activity:*` or `task:*`.
+   The Customer Need carries **no labels** — `save_customer_need` has no `labels` field. Provenance lives in the body; the canonical labels (`protocol:green-goods` + `source:telegram` + `agent:routine` + `activity:*`) go on the linked Issue created in step 8.
 
 8. **Create the linked Issue**. When the report is actionable per the same acceptance bar as Phase 1 step 6, create an accepted-bug Issue. Idea-source captures get a lightweight `activity:maintenance` + `Backlog` tracking Issue. Apply the same canonical labels for Issues (`protocol:green-goods` + `activity:qa` or `activity:maintenance` + `package:<inferred>` + `source:telegram` + `agent:routine` + relevant `task:*`) and privacy boundary.
 
@@ -508,21 +517,27 @@ Post one summary message to `#product`:
 POST https://discord.com/api/v10/channels/${DISCORD_PRODUCT_CHANNEL_ID}/messages
 ```
 
-Determine if @mention is needed: count Customer Needs on the Product team that carry `protocol:green-goods`, still have no linked accepted-bug Issue, and no human follow-up in the last 7 days, plus accepted-bug Issues still in `Backlog` or `Todo` that need human triage.
+Determine if @mention is needed by counting **this routine's own** open Issues awaiting triage. Every accepted item this routine creates is a Customer Need linked to an Issue (Linear API constraint 3), so the addressable triage signal lives on the Issues — never on the label-less Customer Needs, and there is no team-wide "list Customer Needs" query. Scope the count to bug-intake's writes with the compound filter — `agent:routine` **plus** a `source:{discord|telegram|drive}` origin label **plus** an `activity:{qa|maintenance}` label. That compound is what excludes sibling routines: grant-scout is `activity:research` (so the activity clause drops it even though it also stamps `source:discord`/`source:drive`); health-watch carries no `source:` origin label; qa-triage-pulse uses `source:qa-triage-pulse`, not the three origins.
 
 ```
-needs_triage_count = Linear query: team=Product, type=Customer Need,
-                     label protocol:green-goods, no linked Issue,
-                     no human follow-up in 7d
-issue_triage_count = Linear query: team=Product, type=Issue,
-                     label protocol:green-goods + agent:routine,
+# list_issues' `label` param is single-value: query by agent:routine, then narrow
+# on each result's labels[] for the source-origin and activity clauses below.
+raw_signal_count = count Issues on team=Product where:
+                     labels include agent:routine AND activity:maintenance, AND
+                     labels include at least one of source:discord / source:telegram / source:drive, AND
+                     state == Backlog
+                   # raw signals captured as tracking Issues, awaiting a promotion decision
+accepted_count   = count Issues on team=Product where:
+                     labels include agent:routine AND activity:qa, AND
+                     labels include at least one of source:discord / source:telegram / source:drive, AND
                      state in [Backlog, Todo]
+                   # accepted bugs awaiting work
 ```
 
 Message format:
 
 ```
-{if needs_triage_count > 3 OR any_failure: "<@${DISCORD_USER_ID_AFO}> "}**Bug Intake — {YYYY-MM-DD}**
+{if raw_signal_count + accepted_count > 3 OR any_failure: "<@${DISCORD_USER_ID_AFO}> "}**Bug Intake — {YYYY-MM-DD}**
 
 📥 **New today (Linear)**
 • Discord #bug-report: {N} reports → {M} Customer Needs, {I} linked Issues, {K} duplicates merged
@@ -532,8 +547,8 @@ Message format:
 • Discord per-capture acks posted: {B} to #bug-report, {D} to #product
 • PostHog enrichment: {E} reports matched, {P} recurring-pattern parents created or refreshed
 
-📋 **Triage queue**: {needs_triage_count} Customer Needs need review · {issue_triage_count} accepted-bug Issues are in `Backlog`/`Todo`
-{if needs_triage_count + issue_triage_count > 3: "→ open the Linear Product team's unprojected `protocol:green-goods` view, decide which Customer Needs are worth committing as accepted bugs, and review the open Issues."}
+📋 **Triage queue**: {raw_signal_count} raw signals awaiting promotion · {accepted_count} accepted bugs in `Backlog`/`Todo`
+{if raw_signal_count + accepted_count > 3: "→ open the Linear Product team's unprojected `protocol:green-goods` view, decide which raw-signal tracking Issues are worth promoting to accepted bugs, and review the open accepted-bug Issues."}
 
 🆕 Top new Customer Needs:
 1. [{title}]({customer_need_url}) — {source} · {area}
@@ -562,4 +577,4 @@ The @mention only fires when triage is piling up OR a setup failure needs human 
 - **1-hour runtime cap.** Intake is lightweight. If the run takes longer than an hour, something is wrong.
 - **Project routing discipline.** Customer Needs and accepted-bug Issues live unprojected on the Product team. Never route into the retired `Green Goods`, `Coop`, `Network Website`, `Cookie Jar`, or `Story Board` projects. Graduate to a bounded active project only when one already exists for this work.
 - **Acknowledge every accepted record via the Phase 6 Discord post.** Discord-source bug reports also get the inline `Tracked → ${linear_url}` reply + ✅ reaction in `#bug-report` (Phase 1 step 7). Telegram reporters get NO Telegram-side ack — no DM, no group reply — by design; Phase 6's per-capture Discord post is their only acknowledgement. Drive-only signals are surfaced via Phase 6 too.
-- **Fail loud, not silent.** A missing Linear project, a missing label, or a 401 from Linear must appear in the Discord summary so the user can fix the wiring. Do not skip records to keep the run "green."
+- **Fail loud, not silent.** A missing Linear project, a missing label, a 401 from Linear, or a 401/503 from the agent messages API (`${BOT_API_URL}/api/messages`, per the Phase 2 preflight) must appear in the Discord summary so the user can fix the wiring. Do not skip records to keep the run "green."

@@ -21,7 +21,7 @@ That's it — four scheduled cadences plus one event-driven, all cloud routines 
 | Routine | Connectors | Why each |
 |---|---|---|
 | `bug-intake` | Google Drive, Linear, PostHog, Vercel | Drive = meeting-note intake · Linear = Customer Need (raw signal) + accepted-bug Issue surface · PostHog = telemetry enrichment for bug correlation · Vercel = deploy correlation (commit + diff that shipped within 48h before each report) |
-| `health-watch` | Google Drive, Google Calendar, Linear, PostHog, Vercel | Drive/Calendar = context that adjusts severity · Linear = accepted operational health Issues (unprojected Product) · PostHog = error spike correlation · Vercel = deploy/runtime/web-vitals signal feeding `activity:qa` Issues |
+| `health-watch` | Google Calendar, Linear, PostHog, Vercel | Calendar = context that adjusts severity · Linear = accepted operational health Issues (unprojected Product) · PostHog = client-side `$exception` spike detection + error correlation · Vercel = deploy/runtime/web-vitals signal feeding `activity:qa` Issues. Also probes the agent's unauthenticated `/health` via `BOT_API_URL` (env var, not a connector). |
 | `growth-pulse` | Google Calendar, Linear, PostHog | Calendar = WoW context · Linear = accepted-anomaly Issue surface (unprojected Product) · PostHog = product/growth metrics via curated questions. Drive and Miro are intentionally not wired here; Vercel is also intentionally not wired because Vercel Web Analytics overlaps with PostHog and would create dual-source drift. |
 | `qa-triage-pulse` | Google Drive, Linear, PostHog, Vercel | Drive = the Wed Product Sync's Gemini notes · Linear = Customer Need pre-stage surface (raw signal, unprojected) · PostHog = per-surface telemetry cross-reference · Vercel = deploy correlation gated on PostHog-matched items only (anchored to `first_seen`, skipped for items without telemetry signal). |
 | `pr-review` | Vercel | Preview deployment status + Lighthouse delta. Inline review commentary, not a hard invariant. |
@@ -43,7 +43,7 @@ Gmail is intentionally NOT wired on any GG routine (personal-inbox pollution ris
 
 Routines @mention Afo only when his action is required (via `DISCORD_USER_ID_AFO` env var):
 
-- `bug-intake` — when unlinked/unreviewed Linear Customer Needs plus linked Issues exceed 3, or when a Linear setup failure (missing project, missing label, auth error) needs attention
+- `bug-intake` — when its own bug-intake-sourced Issues awaiting triage (raw-signal tracking + accepted bugs) exceed 3, or when a setup failure (missing Linear project/label, Linear auth error, or a Telegram intake auth failure) needs attention
 - `health-watch` — on real (🔴) anomalies only
 - `growth-pulse` — when an anomaly is opened in Linear OR a setup failure needs attention
 - `qa-triage-pulse` — when ≥1 Customer Need was pre-staged from the Wednesday Product Sync (signal that `/qa-triage` is ready to run) OR a Linear/Drive setup failure needs attention. Silent on quiet weeks.
@@ -89,7 +89,7 @@ Routines that consume Telegram captures need the agent API surface only:
 | `BOT_API_URL` | Public URL of the Green Goods agent (e.g., `https://agent.greengoods.app`) |
 | `BOT_API_TOKEN` | Bearer token for authenticating API requests to the agent |
 
-Used by: `bug-intake` (read + claim + status updates via `/api/messages?inferred_type=bug|idea`; no Telegram-side ack — reporters get acknowledged via the per-capture Discord post in `#bug-report` or `#product`). `health-watch` is read-only against `/api/messages?inferred_type=bug&status=all` for clustering; it must never PATCH captures.
+Used by: `bug-intake` (read + claim + status updates via `/api/messages?inferred_type=bug|idea` — needs `BOT_API_TOKEN`; no Telegram-side ack, reporters get acknowledged via the per-capture Discord post in `#bug-report` or `#product`). `health-watch` uses **only** the unauthenticated `/health` + `/ready` endpoints for an uptime probe — no token, never `/api/*`.
 
 Capture scope is **agent-side only** (two Fly.io secrets — one per topic type):
 
@@ -128,7 +128,7 @@ Three routines write to Linear:
 
 - `bug-intake` writes **Customer Needs** (raw signal — every validated user/community report) and creates linked **Issues** only when the report is accepted as committed product work.
 - `growth-pulse` writes **Issues** for accepted growth/strategy anomalies (funnel, retention, dormancy) once they cross the anomaly threshold.
-- `health-watch` writes **Issues** for accepted operational health work (indexer, CI, Vercel deploy/runtime, contracts) once a 🔴 anomaly is confirmed.
+- `health-watch` writes **Issues** for accepted operational health work (indexer, Vercel deploy/runtime, contracts) once a 🔴 anomaly is confirmed.
 - `qa-triage-pulse` writes **Customer Needs only** (pre-stage from Wednesday Product Sync notes, label `source:qa-triage-pulse` + `qa-sync:<YYYY-MM-DD>`). Never creates Issues. The interactive `/qa-triage` skill promotes them to Issues with human judgment in the loop.
 
 ### Project routing
