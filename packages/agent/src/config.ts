@@ -29,6 +29,7 @@ export interface Config {
   // Telegram configuration
   telegramToken: string;
   telegramWebhookSecret?: string;
+  telegramRuntimeDisabled: boolean;
   captureTopics: TopicAllowlistEntry[];
 
   // Server configuration
@@ -82,8 +83,9 @@ export function loadConfig(): Config {
   const networkConfig = getDefaultChain();
   const chain = CHAIN_MAP[networkConfig.chainId] || sepolia;
 
-  // Required: Telegram bot token
-  const telegramToken = process.env.TELEGRAM_BOT_TOKEN;
+  const telegramRuntimeDisabled = process.env.AGENT_DISABLE_TELEGRAM_RUNTIME === "true";
+  const telegramToken =
+    process.env.TELEGRAM_BOT_TOKEN ?? (telegramRuntimeDisabled ? "0:LOCAL-DEV-TOKEN" : undefined);
   if (!telegramToken) {
     throw new Error("TELEGRAM_BOT_TOKEN environment variable is required");
   }
@@ -108,6 +110,7 @@ export function loadConfig(): Config {
     // Telegram
     telegramToken,
     telegramWebhookSecret: process.env.TELEGRAM_WEBHOOK_SECRET,
+    telegramRuntimeDisabled,
     captureTopics: loadCaptureTopicsFromEnv(),
 
     // Server

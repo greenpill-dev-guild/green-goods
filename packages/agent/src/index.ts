@@ -48,7 +48,7 @@ async function main(): Promise<void> {
   logger.info(
     {
       environment: config.nodeEnv,
-      mode: config.mode,
+      mode: config.telegramRuntimeDisabled ? "api-only" : config.mode,
       chain: config.chain.name,
       chainId: config.chainId,
       database: config.dbPath,
@@ -80,9 +80,13 @@ async function main(): Promise<void> {
   const notifier = createNotifier(bot);
   setHandlerContext({ voiceProcessor, photoProcessor, notifier });
 
-  await registerSlashCommands(bot).catch((err) => {
-    logger.warn({ err }, "Failed to register slash commands; continuing");
-  });
+  if (config.telegramRuntimeDisabled) {
+    logger.info("Telegram runtime disabled; starting local HTTP API only");
+  } else {
+    await registerSlashCommands(bot).catch((err) => {
+      logger.warn({ err }, "Failed to register slash commands; continuing");
+    });
+  }
 
   // ============================================================================
   // LAUNCH
@@ -113,7 +117,9 @@ async function main(): Promise<void> {
     thirdwebClientId: config.thirdwebClientId,
   });
 
-  if (config.mode === "webhook") {
+  if (config.telegramRuntimeDisabled) {
+    logger.info("Telegram webhook/polling launch skipped for local API-only mode");
+  } else if (config.mode === "webhook") {
     const webhookPath = `/webhook/telegram`;
     await bot.telegram.setWebhook(`${process.env.WEBHOOK_URL}${webhookPath}`, {
       secret_token: config.telegramWebhookSecret,
@@ -153,10 +159,10 @@ async function main(): Promise<void> {
 
   logger.info(
     {
-      mode: config.mode,
+      mode: config.telegramRuntimeDisabled ? "api-only" : config.mode,
       health: `http://${config.host}:${config.port}/health`,
       api: config.botApiToken ? "enabled" : "disabled (no BOT_API_TOKEN)",
-      ...(config.mode === "webhook"
+      ...(config.mode === "webhook" && !config.telegramRuntimeDisabled
         ? { webhook: `${process.env.WEBHOOK_URL}/webhook/telegram` }
         : {}),
     },
@@ -169,7 +175,7 @@ async function main(): Promise<void> {
 
   const shutdown = createShutdownHandler({
     bot,
-    botMode: config.mode,
+    botMode: config.telegramRuntimeDisabled ? "webhook" : config.mode,
     cleanupTasks: [
       () => rateLimiter.destroy(),
       () => clearBlockchainCache(),

@@ -6,6 +6,7 @@
   "main": "src/index.ts",
   "scripts": {
     "dev": "APP_ENV=development bun --env-file=../../.env --watch src/index.ts",
+    "intake:smoke": "APP_ENV=development bun --env-file=../../.env scripts/intake-smoke.ts",
     "build": "tsc",
     "start": "APP_ENV=production bun --env-file=../../.env dist/index.js",
     "lint": "bun --bun run oxlint src",

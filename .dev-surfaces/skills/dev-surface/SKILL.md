@@ -31,6 +31,7 @@ Stable fallback path: `/Users/afo/Code/dev-surfaces/bin/dev-surfaces.js`.
 
 - Open `green-goods:client` for both PWA and editorial website review URLs.
 - Storybook lives in `packages/shared` and aggregates shared, admin, and client stories.
+- The workbench starts `agent` in local HTTP API-only mode on `3005`; it does not register Telegram webhooks or start polling.
 - `indexer-service` and `indexer-postgres` are provided by `indexer-graphql`; start `green-goods:indexer-graphql` when the indexer stack is needed.
 - Use `dev-surfaces down green-goods` for cleanup instead of killing ports.
 - After changing local port docs or dev scripts, run `dev-surfaces doctor`.

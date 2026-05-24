@@ -18,6 +18,7 @@ declare namespace NodeJS {
     HOST?: string;
     BOT_MODE?: "polling" | "webhook";
     WEBHOOK_URL?: string;
+    AGENT_DISABLE_TELEGRAM_RUNTIME?: string;
 
     // Telegram
     TELEGRAM_WEBHOOK_SECRET?: string;

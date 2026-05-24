@@ -72,9 +72,17 @@
       "ports": [3005],
       "command": ["bun", "run", "dev:agent"],
       "env": {
-        "PORT": "3005"
+        "PORT": "3005",
+        "HOST": "127.0.0.1",
+        "AGENT_DISABLE_TELEGRAM_RUNTIME": "true"
       },
-      "urls": []
+      "urls": ["http://localhost:3005/health"],
+      "health": [
+        {
+          "type": "http",
+          "url": "http://localhost:3005/health"
+        }
+      ]
     },
     {
       "id": "indexer-graphql",
