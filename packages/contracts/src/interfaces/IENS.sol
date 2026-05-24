@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-// Import from @ensdomains/ens-contracts npm package
-import { ENS } from "@ens/registry/ENS.sol";
-
-// Re-export ENS registry interface
-interface IENS is ENS { }
+/// @title IENS
+/// @notice Minimal ENS registry interface for Green Goods usage.
+interface IENS {
+    function setApprovalForAll(address operator, bool approved) external;
+    function setSubnodeOwner(bytes32 node, bytes32 label, address owner) external returns (bytes32);
+    function setResolver(bytes32 node, address resolver) external;
+}
 
 /// @title INameWrapper
 /// @notice Minimal ENS NameWrapper interface for wrapped subdomain management

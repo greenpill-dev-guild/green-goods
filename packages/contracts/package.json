@@ -129,7 +129,6 @@
   },
   "dependencies": {
     "@chainlink/contracts-ccip": "^1.6.4",
-    "@ensdomains/ens-contracts": "^1.6.2",
     "@ethereum-attestation-service/eas-contracts": "^1.8.0",
     "@openzeppelin/contracts-4.8.3": "npm:@openzeppelin/contracts@4.8.3",
     "@openzeppelin/contracts-5.0.2": "npm:@openzeppelin/contracts@5.0.2",

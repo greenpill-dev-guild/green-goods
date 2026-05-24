@@ -155,7 +155,8 @@
     "uint8arrays": "^5.1.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "protobufjs": "7.5.9"
+    "protobufjs": "7.5.9",
+    "basic-ftp": "5.2.0"
   },
   "resolutions": {
     "uint8arrays": "^5.1.0"
