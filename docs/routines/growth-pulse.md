@@ -60,7 +60,7 @@ Green Goods uses **three PostHog projects**, partitioned by product surface:
 | Project | ID | Surfaces emitting | Used by this routine |
 |---|---|---|---|
 | **App** | `163591` | Client app + PWA + editorial website (single ingest target — editorial-to-PWA lineage is a within-project query, not cross-project) | **Primary** — funnel, retention, gardens, errors |
-| **Admin** | `262122` | Operator cockpit (admin web app) | `actions.template-creation-rate` and admin-side anomalies only |
+| **Admin** | `262122` | Operator cockpit (admin web app) | Admin-side anomalies (`failures.conversion-kill` work_approval segment). **`actions.template-creation-rate` is BLOCKED** — the admin template signal now reads from the indexer `Action` entity, not PostHog; see Phase 1 step 8. |
 | **Agent** | `262124` | Bot/messaging runtime (Telegram, future WhatsApp/SMS) | Future agent-channel adoption metrics |
 
 Switch projects with the connector's `switch-project`, using the routine env project IDs as the source of truth. When the connector is bound to one project at a time, use `switch-project` between phases:
@@ -68,7 +68,7 @@ Switch projects with the connector's `switch-project`, using the routine env pro
 | Phase | Project ID | Why |
 |---|---|---|
 | Phase 1 questions: `funnel.onboarding`, `funnel.work-repeat`, `failures.conversion-kill`, `gardens.engagement-summary`, `gardens.dormant`, `gardens.operator-activity` | `${POSTHOG_PROJECT_ID_APP}` (App, currently `163591`) | Consumer events fire here. `failures.conversion-kill` runs against App for `garden_join`, `work_submission`, `auth_passkey_register` failures. |
-| Phase 1 question: `failures.conversion-kill` (work_approval segment) + `actions.template-creation-rate` | `${POSTHOG_PROJECT_ID_ADMIN}` (Admin, currently `262122`) | `admin_action_create_success` and the bulk of `work_approval_success` fire on admin. Run `failures.conversion-kill` against Admin too and merge the work_approval segment with the App-side counts; the App project sees `work_approval_failed` but not most successes. |
+| Phase 1 question: `failures.conversion-kill` (work_approval segment) — ~~`actions.template-creation-rate`~~ (BLOCKED, see Phase 1 step 8) | `${POSTHOG_PROJECT_ID_ADMIN}` (Admin, currently `262122`) | The bulk of `work_approval_success` fires on admin. Run `failures.conversion-kill` against Admin too and merge the work_approval segment with the App-side counts; the App project sees `work_approval_failed` but not most successes. (`admin_action_create_success` is unwired and never fires — the action-template signal comes from the indexer, not PostHog.) |
 
 If a query against the App project returns zero events for a 30d window, that's a **wiring failure, not a real anomaly** — emit `⚠ Failures this run: App PostHog project returned zero events — wiring suspect, anomaly thresholds skipped`. Real production zero days at GG's volume are vanishingly rare; treat them as setup drift and surface for the human, do not fire false-positive anomaly Issues.
 
@@ -91,9 +91,9 @@ This routine references the following curated questions from `.claude/skills/pos
 - `gardens.engagement-summary` — per-garden 7d active members + 7d work submitted/approved. Drives the per-garden table.
 - `gardens.dormant` — gardens with zero work in 7d/14d/30d. Drives the dormancy alert and any anomaly Linear Issues.
 - `gardens.operator-activity` — work approvals per operator per week, aggregated. Drives the operator-load section.
-- `actions.template-creation-rate` — `admin_action_create_success` over time. Drives the action-template trend.
+- ~~`actions.template-creation-rate`~~ — **BLOCKED (do not run):** its event `admin_action_create_success` is defined but unwired (no tracker, no call site) and never fires. The action-template trend now comes from the **indexer** `Action` entity (`createdAt`); see Phase 1 step 8. (Marked BLOCKED in `posthog-questions/SKILL.md` v1.2.0.)
 
-All seven are public-safe-default. The digest, the `develop` PR body, the Discord posts, and the Linear anomaly bodies receive only allowlisted fields per the SKILL's privacy boundary table — never replay URLs, session IDs, distinct IDs, wallet addresses, or reporter identifiers.
+All seven are public-safe-default. (As of 2026-W21 `actions.template-creation-rate` is **BLOCKED** and not consumed — the action-template signal comes from the indexer; see Phase 1 step 8.) The digest, the `develop` PR body, the Discord posts, and the Linear anomaly bodies receive only allowlisted fields per the SKILL's privacy boundary table — never replay URLs, session IDs, distinct IDs, wallet addresses, or reporter identifiers.
 
 **Concrete invocation**: there is no `posthog.run_question(name, vars)` RPC yet. For each question above, paste the HogQL block from `posthog-questions/SKILL.md` for that question into the PostHog connector's `query-run` call with privacy mode `public`. Reference the question by name in the routine's reasoning ("running `funnel.onboarding` over a 30d window"); reference the actual HogQL block by its location in the SKILL file. The HogQL must match verbatim — any divergence is a `routine-self-audit` violation.
 
@@ -104,7 +104,7 @@ If the PostHog connector is unavailable or the expected project ID env vars are 
 ### Discord post to `#product` (primary)
 
 ```
-{if any_anomaly_red OR any_failure: "<@${DISCORD_USER_ID_AFO}> "}**Growth Pulse — Week {YYYY-WW}**
+{if any_anomaly_red OR any_novel_failure: "<@${DISCORD_USER_ID_AFO}> "}**Growth Pulse — Week {YYYY-WW}**
 
 📈 **Onboarding funnel ({window})**
 • Registered: {N} ({±N% WoW})
@@ -120,20 +120,27 @@ If the PostHog connector is unavailable or the expected project ID env vars are 
 • Top 3 by work submitted: {garden_name} ({N work}), …
 • Dormant ≥ 7d: {D7}, ≥ 14d: {D14}, ≥ 30d: {D30}
 
-🛠 **Action templates**
+🛠 **Action templates** (on-chain · indexer `Action`)
 • Created last week: {N}
 • 4-week trend: {↑ / → / ↓}
+{if newest Action.createdAt ≥ 21d ago: "• ⚠ no new template in {weeks}w (last: {YYYY-MM-DD})"}
+
+⚠ **Conversion-kill failures (7d)**
+• {step}: {failure_pct}% ({failed_count}/{total_attempts})
+• … (top 3 by failure_pct)
 
 📋 **Anomalies (Linear)**
-• {anomaly_count} new this run, {open_count} open in `Green Goods`
+• {anomaly_count} new this run, {open_count} open on the Product team (`activity:qa` + `protocol:green-goods`)
 {bullets — at most 3 — for new anomalies with Linear URL}
+
+{if funnel_thin AND open_p0_qa: "🔎 **Funnel context**: {step(s)} thin — {N} open P0 `activity:qa` defect(s) on {surface} ({PRD-ids}) likely suppress conversion before instrumented steps."}
 
 📄 **Digest PR**: {pr_url}
 
 {if any_failure: "⚠ Failures this run: {short list}"}
 ```
 
-Caps: 3 anomaly bullets, 3 top-garden bullets. Prose paragraphs forbidden — bulleted only.
+Caps: 3 anomaly bullets, 3 top-garden bullets, 3 conversion-kill bullets. Prose paragraphs forbidden — bulleted only.
 
 ### Cross-post to `#funding` (only when grant-relevant)
 
@@ -152,7 +159,7 @@ Branch `claude/growth-pulse/YYYY-WW`. File `docs/metrics/growth-YYYY-WW.md`. Bod
 # Week YYYY-WW growth digest
 
 ## Onboarding funnel ({window})
-{table with prior-week comparison}
+{table with prior-week comparison; mark "(bootstrapped baseline)" when Phase 0 had no true prior week}
 
 ## Retention
 {D1/D7/D30 by cohort week if available, plus the 7d-repeat number}
@@ -163,14 +170,23 @@ Branch `claude/growth-pulse/YYYY-WW`. File `docs/metrics/growth-YYYY-WW.md`. Bod
 ## Dormancy
 {table from gardens.dormant grouped by 7d / 14d / 30d band}
 
-## Action template trend
-{12-week sparkline data from actions.template-creation-rate}
+## Action template trend (on-chain)
+{12-week per-week count of indexer `Action` entities by `createdAt`. `actions.template-creation-rate` (PostHog) is BLOCKED — the event never fires; the indexer `Action` entity is the source of truth.}
+
+## Conversion-kill failures
+{per-step failure_pct from `failures.conversion-kill` (App + Admin merged), worst-first}
+
+## Funnel health context
+{when the funnel is thin or a step is near zero: the open P0 `activity:qa` defects (PRD ids + surface) that plausibly suppress conversion before instrumented steps; otherwise "no open P0 defects implicated this week"}
 
 ## Anomalies opened this run
 {bullet list with Linear URLs}
 
 ## Calendar context
 {demos, grant milestones, holidays from this week}
+
+## Known setup failures
+{persistent environment/wiring gaps already flagged in prior runs, carried forward so the mention rule can tell novel from known — e.g. "PostHog connector not provisioned in green-goods-routines-extended; bridged via direct API (since 2026-W21)". New gaps this run are added here AND trigger the @mention.}
 
 ## Notes
 {any plain-English observations the routine wants to surface — at most 3 sentences}
@@ -208,6 +224,16 @@ When a growth-side metric crosses an anomaly threshold, the anomaly is **accepte
 
 The Issue body **never** carries replay URLs, session IDs, distinct IDs, wallet addresses, or any other field marked private in `posthog-questions/SKILL.md`. The privacy grep in Phase 4 catches violations before the body is saved.
 
+## Phase 0: Load prior baseline
+
+Before pulling fresh numbers, establish the comparison baseline so the delta-based anomaly thresholds (funnel breakage, retention cliff, dormant-garden surge) have a reference instead of reporting "no baseline":
+
+1. Read the most recent `docs/metrics/growth-*.md` on the current `develop` checkout (digests merge to `develop` before the next Monday run). Extract last week's funnel / retention / dormancy numbers and its `## Known setup failures` list.
+2. If no prior digest exists, or the most recent is more than 2 weeks stale (a run was skipped), **bootstrap** rather than declaring "no baseline": run the curated growth questions over the *prior* window (e.g. `funnel.onboarding` for the 30d ending one week ago) to synthesize a reference, and label any bootstrapped comparison "(bootstrapped baseline)" in the digest.
+3. Never fabricate a baseline. If neither a prior digest nor a bootstrap window is available, mark the delta-based thresholds **advisory** for this run (see Phase 2) and surface observations in the digest without filing Issues.
+
+Carry the prior numbers + the known-failures list into Phase 2 (anomaly deltas + the mention-novelty check) and Phase 3 (the PR comparison tables and the `## Known setup failures` section).
+
 ## Phase 1: Pull the curated questions
 
 Switch to project `163591` (App) first, run the consumer questions, then switch to `262122` (Admin) for the admin-side queries:
@@ -222,7 +248,7 @@ Switch to project `163591` (App) first, run the consumer questions, then switch 
 
 **Switch to Admin (262122):**
 7. `failures.conversion-kill` — `{ window: "7d" }`. Merge the `work_approval` row with the App-side row (App typically sees the `_failed` events, Admin sees the `_success` events) before applying anomaly thresholds.
-8. `actions.template-creation-rate` — no bind variables.
+8. ~~`actions.template-creation-rate`~~ — **BLOCKED, do not run.** The required event `admin_action_create_success` is unwired (no tracker, no call site; the whole `admin_action_*` family is orphaned constants — see `posthog-questions/SKILL.md` v1.2.0), so it returns zero forever. Instead read the **indexer** `Action` entity (epoch field `createdAt`, id `${chainId}-${n}`) for the action-template signal: (a) count of `Action` with `createdAt` in the last 7d (Discord "created last week"), (b) per-week counts over 12 weeks (PR trend), (c) the max `createdAt` across all `Action` entities (Phase 2 stall check). This is on-chain truth and sidesteps the emit-side gap.
 
 Cache the JSON outputs for the run; pass the same data into Phase 2 (digest), Phase 3 (PR body), and Phase 4 (anomaly detection).
 
@@ -230,17 +256,29 @@ Cache the JSON outputs for the run; pass the same data into Phase 2 (digest), Ph
 
 Apply these thresholds to the question outputs:
 
+**Baseline (Phase 0):** use the prior-digest numbers loaded in Phase 0 for every WoW/MoM comparison below. When the baseline is **bootstrapped or absent** (first run, or a skipped week), the three delta-based thresholds (funnel breakage, retention cliff, dormant-garden surge) are **advisory only** — surface them in the digest body and the Discord `Funnel context` line, but do **not** file Linear Issues. This is what keeps a first or post-gap run from firing false positives.
+
 - **Conversion-kill failure (PRIMARY signal — replaces the old success-only funnel breakage threshold)**: any step in `failures.conversion-kill` with `failure_pct > 50%` AND `failed_count >= 5` over the 7d window opens one Linear anomaly Issue per failing step. `failure_pct >= 100%` with `failed_count >= 5` is P2/urgent. This is the threshold that catches real product breakage; the success-only funnel can show flat numbers while the failure rate is exploding.
 - **Funnel breakage (secondary, success-side)**: `register_to_join_pct` drops > 25% absolute WoW OR `join_to_first_work_pct` drops > 25% absolute WoW. Before filing, **verify against raw counts** — `funnel.onboarding` legitimately reports 0% when the new-user cohort within the window hasn't completed the next step yet, even though returning users are doing fine. If the raw `garden_join_success` count is non-zero but the funnel pct is zero, the signal is "new-user cohort hasn't progressed yet" not "product is broken" — surface in the digest commentary, do not file an Issue.
 - **Retention cliff**: `repeat_pct` drops > 15% absolute MoM. Use the 30-day window comparison; opens one Linear anomaly.
 - **Dormant-garden surge**: number of gardens in the `30d+` dormancy band increases by ≥ 3 since last week. Opens one Linear anomaly summarizing the affected gardens.
-- **Action template stall**: zero `admin_action_create_success` events in the last 14 days. Opens one Linear anomaly tagged `package:admin`. (Query on Admin project 262122.)
+- **Action template stall** (on-chain): the most recent indexer `Action.createdAt` is older than **21 days**. Opens one Linear anomaly tagged `package:admin`. The PostHog event `admin_action_create_success` is **BLOCKED/unwired** (never fires) — use the indexer `Action` entity as the source of truth, not the dead PostHog event.
 
 For each anomaly:
 
 1. **Dedupe** against existing open Linear Customer Needs/Issues on the Product team filtered by `protocol:green-goods` + `activity:qa`. Match by `## Anomaly type` + affected scope. If a duplicate exists, **append a comment** with the new numbers and refresh the date — do not create a parallel Issue.
 2. **Create** the Linear Issue per the body schema above, **unprojected** on the Product team. Status: `Backlog` (exploratory) or `Todo` (well-scoped, e.g., funnel breakage with a clear culprit step).
 3. **Cap**: at most **3 new Linear Issues per run**. If more anomalies exist, surface them in the digest body and let the human triage which to escalate next week.
+
+## Phase 2b: Funnel-to-backlog correlation
+
+The success-only funnel and the conversion-kill rates go quiet when volume is low or when users drop off *before* reaching an instrumented step. Cross-reference against the open `activity:qa` + `protocol:green-goods` Issues on the Product team — the same set the Phase 2 dedupe and the Discord `open_count` already require, so fetch it once and reuse (this runs even when there are zero anomalies, which is exactly when the correlation matters most):
+
+1. When any funnel step is thin (low N) or near 0%, scan the open `activity:qa` + `protocol:green-goods` Issues on the Product team for **P0/urgent** defects (Linear `priority` 1 = Urgent, or 2 = High — priority is a field, not a label) on the implicated surface (auth, PWA/onboarding, work submission).
+2. If open P0 defects plausibly explain the weakness, state the linkage explicitly — "{step} is thin; {N} open P0 defects on {surface} ({PRD-ids}) plausibly suppress it before instrumented steps." Reference existing PRD ids; this is **commentary, not an anomaly** — do not file a new Issue for the correlation itself.
+3. Render the linkage in the digest's `## Funnel health context` section and the Discord `🔎 Funnel context` line.
+
+PRD ids are public Linear identifiers and safe to include; never add a reporter handle, distinct id, or wallet.
 
 ## Phase 3: Digest PR
 
@@ -263,7 +301,7 @@ Before posting:
 
 Post the primary message to `#product` per the schema. If grant-relevance criteria are met, post the cross-post to `#funding`. Channel guard at every post: if the env var is unset, log and skip; never pick an alternate channel.
 
-`<@${DISCORD_USER_ID_AFO}>` mention only when an anomaly is red OR a setup failure needs attention. Healthy weeks post without mention.
+`<@${DISCORD_USER_ID_AFO}>` mention only on (a) a **red/P2 anomaly**, or (b) a **novel** setup failure — one not already listed in the prior digest's `## Known setup failures` (loaded in Phase 0). A known, persistent gap (e.g. an unprovisioned connector already flagged in a prior run) is listed in `⚠ Failures this run` **without** a ping, to avoid weekly alert fatigue. Healthy weeks post without mention.
 
 ## Caps and guardrails
 
@@ -275,7 +313,7 @@ Post the primary message to `#product` per the schema. If grant-relevance criter
 - **No ad hoc HogQL** in the routine prompt. Every PostHog read goes through a curated question name and the canonical HogQL block in `.claude/skills/posthog-questions/SKILL.md`. Adding a new question requires editing that library first.
 - **Privacy boundary is non-negotiable**. See `posthog-questions/SKILL.md` allowlist. If unsure, treat as private.
 - **Channel guards** at every Discord post. Fail loud, never silently substitute.
-- **Mention rule**: `<@${DISCORD_USER_ID_AFO}>` only on red anomalies or setup failures.
+- **Mention rule**: `<@${DISCORD_USER_ID_AFO}>` only on red/P2 anomalies or **novel** setup failures (not gaps already in the prior digest's `## Known setup failures`).
 - **Acknowledge dependencies**: if PostHog, Dune, the indexer, chain RPC, Calendar, or Linear is unavailable, growth-pulse can still run but must note the missing context in the digest instead of filling gaps with guesses.
 
 ## Failure modes
