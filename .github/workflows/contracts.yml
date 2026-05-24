@@ -241,7 +241,7 @@ jobs:
 
       - name: Run fork protocol suite
         working-directory: packages/contracts
-        run: bun run test:fork:protocol
+        run: bun run test:fork:protocol:ci
         env:
           SEPOLIA_RPC_URL: ${{ secrets.SEPOLIA_RPC_URL || 'https://ethereum-sepolia.publicnode.com' }}
           ETHEREUM_RPC_URL: ${{ secrets.ETHEREUM_RPC_URL || 'https://ethereum-rpc.publicnode.com' }}
