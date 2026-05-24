@@ -132,10 +132,13 @@ Still required after revamped UI lane scope lock:
 - [ ] Start from `reports/modern-web-ui-follow-up-2026-05-24.md`.
 - [ ] Add a feature-readiness ladder to the UI lane scope-lock report: production-ready primitives, progressive pilots, and research-only APIs.
 - [ ] Audit text-scale readiness before adding `<meta name="text-scale" content="scale">` to client or admin HTML.
+- [ ] Normalize CWV/soft-navigation planning before any runtime analytics changes: capture LCP, INP, CLS, route label, `navigationType`, reduced-motion state, and view-transition or route context using existing Lighthouse, Vercel, PostHog, and browser-proof surfaces where available.
+- [ ] Use isolated or non-default Chrome DevTools MCP proof only when the existing browser-proof, Storybook, or Lighthouse lanes cannot explain a rendered issue. Do not attach MCP to authenticated wallet/admin/browser profiles.
 - [ ] Identify one isolated admin candidate for an element-scoped View Transition pilot; defer if browser support or proof cost is not acceptable.
 - [ ] Identify long-form public/admin surfaces where CSS scroll spy could improve guided navigation without app-state coupling.
 - [ ] Identify dense admin table/grid surfaces where gap decorations could be a progressive enhancement under `@supports`.
 - [ ] Inventory native dialog/popover opportunities, including `closedby="any"` only where fallback behavior, focus, escape, and reduced motion remain proven.
+- [ ] Keep runtime WebMCP frozen. Any future public read-only tool candidate needs an approval spec covering candidate visible tools, forbidden tools, confirmation rules, privacy boundary, schema tests, wrong-tool/wrong-argument evals, and proof commands.
 - [ ] Keep overscroll gestures, HTML-in-Canvas, CSS `@function`, CSS `if()`, broad style-query architecture, `corner-shape`, `shape()`, `border-shape`, and `fit-text` out of production scope.
 - [ ] Do not run `bun run check:design-generated` during this plan-only follow-up until its dirty-tree side effect is resolved.
 
