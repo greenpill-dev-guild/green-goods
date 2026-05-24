@@ -29,6 +29,14 @@ import { setStoredCredential, setStoredRpId } from "../modules/auth/session";
 export const PASSKEY_RP_ID = "greengoods.app";
 export const PASSKEY_RP_NAME = "Green Goods";
 
+type PasskeyServerEnv = {
+  VITE_PASSKEY_SERVER_ENABLED?: string;
+};
+
+export function isPasskeyServerEnabled(env: PasskeyServerEnv = import.meta.env): boolean {
+  return env.VITE_PASSKEY_SERVER_ENABLED === "true";
+}
+
 /**
  * Get the RP ID for passkey operations.
  * Uses hardcoded production domain for consistency.

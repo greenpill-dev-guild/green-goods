@@ -1,0 +1,225 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "account-recovery-hardening",
+    "title": "Account Recovery Hardening",
+    "kind": "feature",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "active",
+    "priority": "p1",
+    "created_at": "2026-05-24T04:21:07.501Z",
+    "updated_at": "2026-05-24T04:59:58Z",
+    "target_date": "2026-06-10"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": "PRD-521",
+    "project": "Green Goods QA & Release Hardening",
+    "initiative": "Green Goods Protocol Hardening & Polish",
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": "2026-05-24T05:02:28Z",
+    "lanes": {
+      "state_api": {
+        "issue": "PRD-537"
+      },
+      "ui": {
+        "issue": "PRD-538"
+      },
+      "qa_pass_1": {
+        "issue": "PRD-540"
+      },
+      "qa_pass_2": {
+        "issue": "PRD-541"
+      }
+    }
+  },
+  "taxonomy": {
+    "initiative": "identity-wallet",
+    "tracks": ["shared", "client"],
+    "work_types": ["implementation", "qa", "research"],
+    "surfaces": [
+      "packages/shared/src/config/passkeyServer.ts",
+      "packages/shared/src/workflows/authServices.ts",
+      "packages/shared/src/workflows/authMachine.ts",
+      ".env.schema",
+      "packages/client",
+      "docs/docs/builders/specs/passkey-server-hardening-and-recovery-ready-auth-2026-03.md",
+      "docs/docs/builders/architecture/sequence-diagrams.mdx",
+      "docs/docs/builders/journeys/onboarding.mdx",
+      "docs/docs/builders/integrations/passkey.mdx"
+    ],
+    "depends_on_features": ["ens-l2-sender-admin-recovery"]
+  },
+  "notes": [
+    "June 10 scope is synced-passkey continuity through Pimlico hosted passkey server, not full lost-passkey same-address recovery.",
+    "Do not introduce a Green Goods-owned passkey API or credential database for this release.",
+    "Keep localStorage as a cache and legacy same-device fallback, not the recovery source of truth.",
+    "Gap closure decision: add VITE_PASSKEY_SERVER_ENABLED=false by default and enable the server-backed path in staging before production.",
+    "Gap closure decision: when local credential cache is missing, use a username/ENS-handle recovery prompt before server lookup.",
+    "Gap closure decision: existing local-only users are fallback-only until a proof shows their credentials can be safely migrated/imported into the hosted passkey server.",
+    "Gap closure decision: failed recovery must not push users into account creation without explicit separate-address confirmation.",
+    "Production readiness decision: production enablement requires canonical RP/origin evidence, staging/prod passkey-server isolation, same-address continuity proof, privacy-safe telemetry, rollback instructions, and stale docs cleanup.",
+    "Kernel guardian recovery and ENS L2 sender admin recovery are linked follow-ups, not contract work in this hub.",
+    "Linear sync completed on 2026-05-24: parent PRD-521; lanes state_api=PRD-537, ui=PRD-538, qa_pass_1=PRD-540, qa_pass_2=PRD-541; research spike PRD-539 and acceptance cases PRD-505/PRD-507 are parented under PRD-521.",
+    "status.json is authoritative; branch names are automation signals."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "ready",
+      "branch": "claude/ui/account-recovery-hardening",
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "UI lane should prove recovery/fallback copy and i18n; provider-sync behavior may require manual QA evidence."
+      },
+      "skill_tags": ["ui", "auth", "i18n", "recovery"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "ready",
+      "branch": "codex/state-api/account-recovery-hardening",
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "Target authServices/authMachine tests for server-backed register/login, legacy fallback, and failure-safe storage."
+      },
+      "skill_tags": ["react", "xstate", "permissionless", "pimlico", "passkey"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "codex/contracts/account-recovery-hardening",
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No contract work in this release hub. ENS L2 sender recovery stays in .plans/backlog/ens-l2-sender-admin-recovery/."
+      },
+      "skill_tags": ["contracts", "not-applicable"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "claude/qa-pass-1/account-recovery-hardening",
+      "depends_on": ["ui", "state_api"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "qa", "passkey", "pwa"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "codex/qa-pass-2/account-recovery-hardening",
+      "branch_trigger": "claude/qa-pass-1/account-recovery-hardening",
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "regression", "passkey", "release-gate"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-05-24T04:21:07.504Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in backlog"
+    },
+    {
+      "timestamp": "2026-05-24T04:35:00Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "planned",
+      "branch": null,
+      "note": "Filled June 10 passkey-server-first account recovery hardening plan and marked contracts n/a for this release hub."
+    },
+    {
+      "timestamp": "2026-05-24T04:45:00Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "moved_to_active",
+      "branch": null,
+      "note": "Moved feature hub from backlog to active"
+    },
+    {
+      "timestamp": "2026-05-24T04:50:00Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_synced",
+      "branch": null,
+      "note": "Updated PRD-521 as parent tracker, created PRD-537 through PRD-541, and parented PRD-505/PRD-507 as acceptance cases."
+    },
+    {
+      "timestamp": "2026-05-24T04:51:28Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "gap_closure_planned",
+      "branch": null,
+      "note": "Recorded gap closure decisions for rollout flag, username recovery prompt, legacy fallback-only scope, privacy constraints, and guarded new-account UX."
+    },
+    {
+      "timestamp": "2026-05-24T04:54:01Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_synced",
+      "branch": null,
+      "note": "Updated PRD-521, PRD-537, PRD-538, and PRD-540 with the gap closure decisions."
+    },
+    {
+      "timestamp": "2026-05-24T04:59:58Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "production_readiness_reviewed",
+      "branch": null,
+      "note": "Added production readiness gates for RP/origin posture, installed permissionless API proof, same-address continuity, privacy-safe telemetry, rollback, browser-context negatives, and stale docs cleanup."
+    },
+    {
+      "timestamp": "2026-05-24T05:02:28Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_synced",
+      "branch": null,
+      "note": "Updated PRD-521, PRD-537, PRD-538, PRD-540, and PRD-541 with production readiness gates."
+    }
+  ]
+}
