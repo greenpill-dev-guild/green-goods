@@ -69,6 +69,18 @@ components:
     backgroundColor: "{colors.tertiary}"
     textColor: "{colors.on-tertiary}"
     rounded: "{rounded.full}"
+  warning-badge:
+    backgroundColor: "{colors.amber}"
+    textColor: "{colors.neutral-dark}"
+    typography: "{typography.label-md}"
+    padding: "{spacing.sm}"
+    rounded: "{rounded.full}"
+  info-badge:
+    backgroundColor: "{colors.sky}"
+    textColor: "{colors.neutral-dark}"
+    typography: "{typography.label-md}"
+    padding: "{spacing.sm}"
+    rounded: "{rounded.full}"
   button-primary:
     backgroundColor: "{colors.tertiary-action}"
     textColor: "{colors.on-tertiary-action}"
