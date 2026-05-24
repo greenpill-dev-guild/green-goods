@@ -69,6 +69,7 @@ vi.mock("@green-goods/shared", async () => {
     }) => React.createElement(Component, { className, ...props }, children),
     formatAddress: (address: string) => address,
     formatDate: (timestamp: number) => String(timestamp),
+    useEnsName: vi.fn(() => ({ data: null })),
     useGreenWillBadgeDefinitions: greenWillMocks.mockUseGreenWillBadgeDefinitions,
     useGreenWillBadges: greenWillMocks.mockUseGreenWillBadges,
     useGreenWillRecentGrants: greenWillMocks.mockUseGreenWillRecentGrants,

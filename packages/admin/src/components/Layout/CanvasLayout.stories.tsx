@@ -265,6 +265,7 @@ export const RealProviderShell: Story = {
       const rioMatches = await paletteCanvas.findAllByText("Rio Rainforest Lab");
       await expect(rioMatches.length).toBeGreaterThan(0);
       await userEvent.keyboard("{Escape}");
+      await waitFor(() => expect(canvasElement).not.toHaveAttribute("aria-hidden"));
     }
 
     const settingsTrigger = canvas.queryByRole("button", { name: "Open settings" });
