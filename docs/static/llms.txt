@@ -1,0 +1,16 @@
+# Green Goods Docs
+
+Green Goods documents regenerative work, gardens, protocol concepts, builders, public product guidance, and developer reference material for the Green Goods protocol.
+
+Public surfaces:
+- Documentation pages built from `docs/`.
+- Public protocol, builder, glossary, and concept references.
+- Public product and onboarding explanations.
+
+Agent guidance:
+- Use this docs surface for public educational, builder, and protocol context.
+- Prefer public docs over private repo internals when answering end-user or builder questions.
+- Respect the Baseline Widely Available target and the Warm Earth design system when reasoning about frontend examples.
+
+Do not infer or expose:
+- Private telemetry, Linear details, replay/session identifiers, unpublished operational plans, deployment secrets, admin-only runbooks, or wallet/user identifiers not present in public docs.

@@ -1,0 +1,16 @@
+# Green Goods App
+
+Green Goods is a progressive web app for documenting regenerative work, garden participation, attestations, vaults, and public impact activity.
+
+Public surfaces:
+- Public browser presentation routes in the client package.
+- User-facing app routes that are intentionally visible without private admin access.
+- Public protocol and garden context rendered by the client.
+
+Agent guidance:
+- Treat this as a user-facing app surface, not an operator console.
+- Respect offline-first behavior, semantic HTML, accessible controls, reduced-motion behavior, and Baseline Widely Available support.
+- Prefer public app state and documented protocol concepts; ask the user to authenticate or use the UI for private actions.
+
+Do not infer or expose:
+- Private wallet details, session identifiers, local offline data, pending submissions, admin state, replay URLs, telemetry identifiers, secrets, or onchain actions that require explicit user confirmation.

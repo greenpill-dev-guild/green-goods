@@ -195,6 +195,13 @@ Full skills: `design` (direction) + `ui` (implementation). Load explicitly when 
 
 **PR review**: 4-lens checklist at `.claude/skills/design/review-checklist.md` — Regenerative → Spatial → Ecosystem → Compliance. Quick pass = Lenses 1 + 4. Full pass (new view) = all four.
 
+## Agentic Modern Web Standard
+
+- Baseline target: Baseline Widely Available. Before frontend, UI, CSS, accessibility, browser proof, or web-design changes, use Chrome Modern Web Guidance search/retrieve through the global Codex skill or Claude Code plugin, then apply Warm Earth and the package-level design rules.
+- Prefer semantic HTML, native controls, platform CSS, and browser primitives before custom JavaScript. Keep headings, landmarks, form labels, accessible names, focus order, visible focus, touch targets, loading/error/empty states, and reduced-motion behavior legible to humans, assistive tech, and browser agents.
+- Run `bun run agentic:check` as the advisory front door for design docs, token drift, agent guidance, and shared Storybook story quality. Use `bun run agentic:verify` for Storybook-backed component proof, and `bun run agentic:browser-proof` for built-route proof across client, admin, and docs when layout, interaction, motion, or public routes change. The route proof writes screenshots, accessibility summaries, `/llms.txt` status, reduced-motion state, console/page errors, overflow checks, and WebMCP discovery to `.codex-artifacts/agentic-browser-proof/`; run `bun run lighthouse` when the heavier Lighthouse lane is needed.
+- WebMCP is strategy-only in v1. Do not ship runtime WebMCP tools unless explicitly requested; future tools must be visible, user-confirmable, public-safe, and must not expose secrets, private data, hidden admin actions, onchain writes, destructive operations, or background-only actions.
+
 **Admin UI defect resolution**: When the user reports anything off on an admin surface — however casually ("the card on Hub feels tight", "that thing at the top", "the tabs look weird on mobile") — do **not** guess and do **not** ask them to formalize the report. Resolve to a canonical `Admin*` wrapper or canvas region first, then edit. Escalate in order:
 
 1. **Chrome MCP live DOM** — if an admin tab is open (`mcp__claude-in-chrome__tabs_context_mcp`), use `javascript_tool` or `read_page` to read `data-component` / `data-variant` / `data-region` / `data-workspace` on the rendered page. This is the preferred path because the user already runs admin in Brave with Chrome MCP for UI review.
