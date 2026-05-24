@@ -1,0 +1,145 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "envio-hyperindex-v3-migration",
+    "title": "Envio HyperIndex v3 Migration",
+    "kind": "maintenance",
+    "stage": "backlog"
+  },
+  "workflow": {
+    "overall_status": "backlog",
+    "priority": "p2",
+    "created_at": "2026-05-24T22:48:40.215Z",
+    "updated_at": "2026-05-24T23:00:09.721Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md",
+    "implementationPrompt": "handoffs/implementation-prompt.md"
+  },
+  "linear": {
+    "parentIssue": "PRD-557",
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": "2026-05-24T22:48:40.215Z",
+    "lanes": {}
+  },
+  "taxonomy": {
+    "initiative": "engineering-quality",
+    "tracks": ["indexer", "docs", "ops"],
+    "work_types": ["maintenance", "ops"],
+    "surfaces": ["packages/indexer", "docs", "agent-guidance", "ci"],
+    "depends_on_features": []
+  },
+  "notes": [
+    "Backlog hub only; do not start dependency or lockfile changes until this plan is promoted or explicitly dispatched.",
+    "status.json is authoritative; Linear PRD-557 is roadmap visibility.",
+    "Current baseline from 2026-05-24: indexer boundary check, build, and tests passed with 186 passing tests.",
+    "Contracts, client UI, admin UI, and shared hooks are out of scope unless the v3 GraphQL output changes.",
+    "Production-quality review refinements require local runtime smoke, env/ESM/Docker/CI specificity, docs build/audit proof, and a hosted rollout decision note before archive."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "n/a",
+      "branch": "claude/ui/envio-hyperindex-v3-migration",
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": { "command": "", "evidence": "" },
+        "green": { "command": "", "evidence": "" },
+        "note": "No UI work is planned unless v3 changes GraphQL output and creates a separate consumer follow-up."
+      },
+      "skill_tags": ["ui", "frontend-design", "react"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "todo",
+      "branch": "codex/state-api/envio-hyperindex-v3-migration",
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": { "command": "", "evidence": "" },
+        "green": { "command": "", "evidence": "" },
+        "note": "The state/API lane owns both Envio 2.32.6 preload prep and v3 migration subphases; focused handler tests should provide RED/GREEN proof where behavior changes, with package validation and runtime smoke as final local gates."
+      },
+      "skill_tags": ["indexer", "ops", "testing"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "codex/contracts/envio-hyperindex-v3-migration",
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": { "command": "", "evidence": "" },
+        "green": { "command": "", "evidence": "" },
+        "note": "No contract work is planned for this dependency/runtime migration."
+      },
+      "skill_tags": ["contracts"]
+    },
+    "docs_guidance": {
+      "owner": "codex",
+      "status": "blocked",
+      "branch": "codex/docs-guidance/envio-hyperindex-v3-migration",
+      "depends_on": ["state_api"],
+      "handoff": "handoffs/codex-docs-guidance.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": { "command": "", "evidence": "" },
+        "green": { "command": "", "evidence": "" },
+        "note": "Docs and guidance lane is verified through docs/guidance checks, source grep, skill sync, docs build, and docs audit."
+      },
+      "skill_tags": ["indexer", "docs", "ops"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "claude/qa-pass-1/envio-hyperindex-v3-migration",
+      "depends_on": ["state_api", "docs_guidance"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review", "indexer"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "codex/qa-pass-2/envio-hyperindex-v3-migration",
+      "branch_trigger": "claude/qa-pass-1/envio-hyperindex-v3-migration",
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review", "indexer"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-05-24T22:48:40.215Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded backlog feature hub and mirrored to Linear PRD-557."
+    },
+    {
+      "timestamp": "2026-05-24T23:00:09.721Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "refined",
+      "branch": null,
+      "note": "Addressed production-quality review findings: runtime smoke, ESM/env specificity, canonical lane alignment, rollout decisions, docs validation, and concise implementation prompt."
+    }
+  ]
+}
