@@ -10,8 +10,9 @@ RUN apt-get update && apt-get install -y \
     netcat-openbsd \
     && rm -rf /var/lib/apt/lists/*
 
-# Install pnpm
-RUN npm install -g pnpm@latest
+# Keep this pinned to a Node 20-compatible pnpm major. pnpm 11 requires newer
+# Node built-ins such as node:sqlite and breaks this image at build time.
+RUN npm install -g pnpm@10
 
 # Set working directory
 WORKDIR /app
