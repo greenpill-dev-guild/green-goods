@@ -37,9 +37,12 @@
 Minimum validation:
 
 - `node scripts/harness/plan-hub.mjs validate`
-- `bun run check:design-generated`
 - `bun run check:design-tokens`
 - `bun run lint:vocab`
+
+Temporary non-gate:
+
+- Do not rely on `bun run check:design-generated` as clean evidence until its known dirty-tree side effect is resolved.
 
 Add surface-specific validation:
 
@@ -84,3 +87,19 @@ This hub can move to `.plans/archive/` only after:
 - Relying on Tailwind utility classes authored in `packages/shared/src/` for consumer app layout.
 - Claiming coverage from validators that do not inspect the changed files.
 - Treating Chromium-first CSS features as baseline production requirements without `@supports`, feature detection, or static fallback proof.
+
+## 2026-05-24 UI Lane Evidence
+
+Approved runtime batch: installed-PWA drawer/dialog overlays in `packages/client/src/styles/pwaDrawerStyles.ts` now use `--color-scrim`; public editorial overlays, admin chrome, shared Canvas geometry, Storybook frames, and the 60 audited typography/font entries were not changed.
+
+Recorded proof:
+
+- `node scripts/harness/plan-hub.mjs validate`
+- `node scripts/design/check-css-custom-properties.mjs`
+- `bun run check:design-tokens`
+- `bun run lint:vocab`
+- `bun run --filter @green-goods/shared check:stories`
+- `bun run --filter @green-goods/shared check:story-quality`
+- Client package-wrapper Vitest for `src/__tests__/styles/pwaDrawerStyles.test.ts`
+- `bun run build:client`
+- Browser screenshots and computed-style proof under `output/playwright/`

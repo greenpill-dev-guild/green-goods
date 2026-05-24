@@ -2,9 +2,9 @@
 
 **Feature Slug**: `css-maintainability-polish`
 **Stage**: `active`
-**Status**: `ACTIVE — state_api completed; ui reopened as a full CSS maintainability lane; qa blocked until revamped ui completes`
+**Status**: `ACTIVE — state_api completed; revamped ui completed; qa_pass_1 ready`
 **Created**: `2026-04-28`
-**Last Updated**: `2026-05-12`
+**Last Updated**: `2026-05-24`
 
 ## Decision Log
 
@@ -28,19 +28,19 @@
 - [x] Confirm prerequisite PWA QA is complete (`client-pwa-gardener-audit` archived)
 - [x] Refresh CSS inventory now that this hub is active (first UI inventory plus 2026-05-12 post-churn reassessment).
 - [x] Reconfirm current active UI/design plan state before source cleanup.
-- [ ] Refresh the CSS inventory against `430fb41a` plus any current dirty generated/docs changes before implementation.
-- [ ] Separate guardrail-pass proof from visual/browser proof; do not close on static gates alone.
+- [x] Refresh the CSS inventory against current `main` (`06a8108c`) plus current dirty docs/routines work before implementation.
+- [x] Separate guardrail-pass proof from visual/browser proof; do not close on static gates alone.
 
 ## Requirements Coverage
 
 | Requirement | Lane | Planned Step | Status |
 |---|---|---|---|
-| Inventory CSS ownership | `ui` | Phases 1 and 6 | Reopened for full coverage |
-| Define global selector boundaries | `ui` | Phases 1, 4, and 6 | Reopened for full coverage |
+| Inventory CSS ownership | `ui` | Phases 1 and 6 | Done in `handoffs/claude-ui-revamp.md` |
+| Define global selector boundaries | `ui` | Phases 1, 4, and 6 | Done; broad rewrites deferred |
 | Detect undefined custom properties | `state_api` | Phase 2 | Done |
-| Clean verified token/raw-value drift | `ui` | Phases 3 and 6 | Partial - first low-friction pass done; expanded cleanup pending scope lock |
-| Preserve browser/PWA/admin dialects | `ui`, `qa_pass_1` | Phases 3, 5, and 6 | UI proof plan required before QA |
-| Validate guardrails and regression risk | `qa_pass_1`, `qa_pass_2` | Phases 5 and 6 | QA blocked until revamped UI lane completes |
+| Clean verified token/raw-value drift | `ui` | Phases 3 and 6 | Done for approved micro-batch; remaining design decisions deferred |
+| Preserve browser/PWA/admin dialects | `ui`, `qa_pass_1` | Phases 3, 5, and 6 | UI proof recorded; QA pass 1 ready |
+| Validate guardrails and regression risk | `qa_pass_1`, `qa_pass_2` | Phases 5 and 6 | UI validation recorded; QA pass 1 ready |
 
 ## Phase 0 - Preconditions
 
@@ -53,14 +53,14 @@
 
 ## Phase 1 - CSS ownership inventory
 
-- [ ] Inventory global CSS imports and the surfaces that consume them.
-- [ ] Inventory shared component CSS, CSS modules, component-level custom properties, and Tailwind v4 shared-source scan risks.
-- [ ] Inventory client browser/editorial CSS versus installed PWA CSS, including PWA drawer/dialog style modules and `typography.css`.
-- [ ] Inventory admin CSS overrides, M3 token files, CanvasLayout, AppBar/canvas layering, Navigation/FAB/sheet glass boundaries, and shared primitive dependencies.
-- [ ] Inventory Storybook parity CSS and stale story coverage risk, including any `PwaSheet` story drift after shared primitive removal.
-- [ ] Identify selector groups that are global by design, global by accident, and legacy by migration backlog.
-- [ ] Identify token families that are canonical, package-local, bridge aliases, stale aliases, or baselined debt.
-- [ ] Capture the inventory under `handoffs/` or a durable docs page referenced by this plan.
+- [x] Inventory global CSS imports and the surfaces that consume them.
+- [x] Inventory shared component CSS, CSS modules, component-level custom properties, and Tailwind v4 shared-source scan risks.
+- [x] Inventory client browser/editorial CSS versus installed PWA CSS, including PWA drawer/dialog style modules and `typography.css`.
+- [x] Inventory admin CSS overrides, M3 token files, CanvasLayout, AppBar/canvas layering, Navigation/FAB/sheet glass boundaries, and shared primitive dependencies.
+- [x] Inventory Storybook parity CSS and stale story coverage risk, including any `PwaSheet` story drift after shared primitive removal.
+- [x] Identify selector groups that are global by design, global by accident, and legacy by migration backlog.
+- [x] Identify token families that are canonical, package-local, bridge aliases, stale aliases, or baselined debt.
+- [x] Capture the inventory under `handoffs/` or a durable docs page referenced by this plan.
 
 ## Phase 2 - Guardrail design
 
@@ -71,23 +71,23 @@
 
 ## Phase 3 - Cleanup implementation
 
-- [ ] Produce numbered UI findings and get human scope lock before runtime CSS edits.
-- [ ] Replace verified stale or undefined CSS variables with live runtime aliases.
+- [x] Produce numbered UI findings and get human scope lock before runtime CSS edits.
+- [x] Replace verified stale or undefined CSS variables with live runtime aliases.
 - [ ] Collapse repeated raw values into existing tokens or local component variables where intent is clear.
 - [ ] Move accidental globals into component/package ownership where safe.
 - [ ] Remove legacy PWA typography/style leftovers only after the PWA transition plan owns the screen-level migration.
 - [ ] Resolve stale Storybook coverage only after confirming the primitive/component was actually removed or moved.
-- [ ] Standardize overlay/scrim naming only after deciding whether the owner is shared dialog utilities or client-local PWA drawer styles.
-- [ ] Preserve shared Canvas/admin sheet behavior unless a scope-locked bridge or rename has browser/Storybook proof.
-- [ ] Keep public browser editorial styling local to browser-facing components.
-- [ ] Keep admin cleanup aligned with the admin wrapper and override strategy.
+- [x] Standardize overlay/scrim naming only after deciding whether the owner is shared dialog utilities or client-local PWA drawer styles.
+- [x] Preserve shared Canvas/admin sheet behavior unless a scope-locked bridge or rename has browser/Storybook proof.
+- [x] Keep public browser editorial styling local to browser-facing components.
+- [x] Keep admin cleanup aligned with the admin wrapper and override strategy.
 
 ## Phase 4 - Durable guidance
 
-- [ ] Update the smallest relevant guidance surface for CSS ownership rules.
+- [x] Update the smallest relevant guidance surface for CSS ownership rules.
 - [ ] Record examples of approved component variable patterns.
 - [ ] Record examples of global selector categories and disallowed leakage.
-- [ ] Add validation commands to the plan handoff for future implementers.
+- [x] Add validation commands to the plan handoff for future implementers.
 
 ## Phase 5 - Regression proof
 
@@ -106,26 +106,45 @@ Current static gates (2026-05-12 reassessment):
 - [x] `bun run check:design-tokens` -> passes, including the custom-property guard, admin Controlled Chrome guard, raw-token baseline, and token version coupling.
 - [x] `bun run check:design-generated` -> exits 0, but mutates generated/guidance files in this checkout; treat that dirty-tree side effect as a blocker to resolve before implementation.
 
-Still required after revamped UI lane scope lock:
+Current scope-lock audit (2026-05-24 Codex pass):
 
-- [ ] Targeted tests for touched shared/client/admin surfaces.
-- [ ] Build or smoke-test client/admin where CSS changes affect runtime surfaces.
-- [ ] Capture before/after visual evidence for representative browser, installed PWA, admin, and Storybook surfaces.
+- [x] `git status --short` -> pre-existing dirty docs/routines files preserved; no runtime CSS dirt introduced.
+- [x] `node scripts/harness/plan-hub.mjs validate` -> `Validated 21 feature hubs.`
+- [x] `node scripts/design/check-css-custom-properties.mjs` -> `CSS custom property guard passed: 3094 var() references, 1005 definitions, 60 audited unresolved entries.`
+- [x] `bun run check:design-tokens` -> passes, including custom-property, raw-token, admin Controlled Chrome, and token-version guards.
+- [x] `bun run --filter @green-goods/shared check:stories` -> `174/174 required Storybook surfaces have stories (100%)`.
+- [x] `bun run --filter @green-goods/shared check:story-quality` -> checked 148 story files, pass.
+- [x] Package-wrapper Vitest targeted tests -> client `pwaDrawerStyles` 3/3, shared `RightSheet` + `BottomSheet` 21/21, admin `AdminDialog` + `CanvasLayout` 28/28.
+- [x] Human scope lock for the proposed installed-PWA overlay token micro-batch.
+
+Approved UI micro-batch proof (2026-05-24):
+
+- [x] `node scripts/harness/plan-hub.mjs validate` -> `Validated 21 feature hubs.`
+- [x] `node scripts/design/check-css-custom-properties.mjs` -> `CSS custom property guard passed: 3096 var() references, 1005 definitions, 60 audited unresolved entries.`
+- [x] `bun run check:design-tokens` -> passes with 3096 var refs / 1005 definitions / 60 audited unresolved.
+- [x] `bun run lint:vocab` -> passes.
+- [x] `bun run --filter @green-goods/shared check:stories` -> `174/174 required Storybook surfaces have stories (100%)`.
+- [x] `bun run --filter @green-goods/shared check:story-quality` -> checked 148 story files, pass.
+- [x] Client package-wrapper Vitest for `pwaDrawerStyles` -> 4/4 tests pass, including the new scrim-token assertion.
+- [x] `bun run build:client` -> passes; built CSS includes `background-color:var(--color-scrim)`.
+- [x] Storybook browser proof captured `output/playwright/css-maintainability-pwa-modaldrawer-scrim.png`: ModalDrawer overlay class uses `bg-[var(--color-scrim)]`, computed backdrop is `rgba(12, 10, 9, 0.22)`, overlay covers 390x844, z-index is 50, drawer uses `modalSlideIn`, close target is 44x44, and scroll width equals viewport width.
+- [x] Storybook parity proof captured `output/playwright/css-maintainability-shared-pwasheet-scrim.png`: shared `PwaSheet` scrim style is `background-color: var(--color-scrim)`, computed backdrop is `rgba(12, 10, 9, 0.22)`, overlay covers 390x844, and scroll width equals viewport width.
+- [x] Client PWA dev URL smoke captured `output/playwright/pwa-home-smoke.png`; the unseeded local runtime remained at the loading spinner, so full installed-PWA route proof is left to QA pass 1 rather than claimed here.
 
 ## Phase 6 - Revamped UI Lane: Full CSS Maintainability
 
-- [ ] Start from `handoffs/claude-ui-revamp.md`.
-- [ ] Reconcile plan/status/handoffs to current validation: 19 hubs, 3065 var refs / 1005 definitions / 60 audited unresolved, `check:design-tokens` passing, and `check:design-generated` mutating generated/guidance files despite exit 0 in this checkout.
-- [ ] Classify recent admin chrome/sheet changes as accepted local fixes, token-source debt, token naming drift, or visual-QA blockers.
-- [ ] Classify global CSS entrypoints, broad selectors, and package import boundaries for maintainability risk.
-- [ ] Classify client PWA dialog inlining against the shared scrim/dialog-motion contract; decide whether `--color-overlay` vs `--color-scrim` is intentional.
-- [ ] Decide ownership for the 60 audited unresolved typography/font entries before source changes.
-- [ ] Review Storybook parity CSS against admin runtime tokens and resolve any stale/untracked `PwaSheet` story drift before relying on Storybook gates.
-- [ ] Review raw-token and custom-property baselines for owner/category/expiry quality and stale entries.
-- [ ] Check shared Canvas component CSS variable fallbacks against admin runtime behavior and Tailwind v4 shared-source constraints.
-- [ ] Produce a scope-lock report with numbered findings before any runtime CSS edits.
-- [ ] Implement only approved targeted cleanup, or explicitly defer cleanup with evidence.
-- [ ] Capture browser/Storybook proof for admin shell, sheets, client drawers, representative typography, chart/toast token fixes, and Storybook parity before handing to QA.
+- [x] Start from `handoffs/claude-ui-revamp.md`.
+- [x] Reconcile plan/status/handoffs to current validation: 21 hubs, 3094 var refs / 1005 definitions / 60 audited unresolved, `check:design-tokens` passing, and `check:design-generated` still excluded as a clean gate because of the known dirty-tree side effect.
+- [x] Classify recent admin chrome/sheet changes as accepted local fixes, token-source debt, token naming drift, or visual-QA blockers.
+- [x] Classify global CSS entrypoints, broad selectors, and package import boundaries for maintainability risk.
+- [x] Classify client PWA dialog inlining against the shared scrim/dialog-motion contract; decide whether `--color-overlay` vs `--color-scrim` is intentional.
+- [x] Decide ownership for the 60 audited unresolved typography/font entries before source changes.
+- [x] Review Storybook parity CSS against admin runtime tokens and resolve any stale/untracked `PwaSheet` story drift before relying on Storybook gates.
+- [x] Review raw-token and custom-property baselines for owner/category/expiry quality and stale entries.
+- [x] Check shared Canvas component CSS variable fallbacks against admin runtime behavior and Tailwind v4 shared-source constraints.
+- [x] Produce a scope-lock report with numbered findings before any runtime CSS edits.
+- [x] Implement only approved targeted cleanup, or explicitly defer cleanup with evidence.
+- [x] Capture browser/Storybook proof for touched client drawer and shared scrim parity; untouched admin shell, sheets, typography, chart/toast, public browser, and Storybook frame surfaces are deferred to QA with static/test evidence and no runtime diff in this batch.
 
 ## Phase 7 - Modern Web UI Primitive Follow-Up
 
@@ -156,13 +175,13 @@ First low-friction pass completed:
 
 Revamped full maintainability pass:
 
-- [ ] Start from `handoffs/claude-ui-revamp.md`.
-- [ ] Audit all CSS maintainability surfaces: entrypoints, shared utilities, admin M3 overrides, Canvas/sheets/navigation, client typography/PWA drawers, Storybook parity, baselines, raw tokens, and Tailwind v4 shared-source risks.
-- [ ] Fold the modern Web UI follow-up report into the scope-lock recommendations without turning the pass into redesign.
-- [ ] Classify findings into real regression, acceptable local fix, global styling drift, token naming drift, documented technical debt, or visual proof required.
-- [ ] Present a numbered scope-lock report before runtime CSS edits.
-- [ ] Implement only approved targeted cleanup, preserving dialect boundaries and avoiding redesign.
-- [ ] Update plan/status/handoffs with evidence, blockers, and validation.
+- [x] Start from `handoffs/claude-ui-revamp.md`.
+- [x] Audit all CSS maintainability surfaces: entrypoints, shared utilities, admin M3 overrides, Canvas/sheets/navigation, client typography/PWA drawers, Storybook parity, baselines, raw tokens, and Tailwind v4 shared-source risks.
+- [x] Fold the modern Web UI follow-up report into the scope-lock recommendations without turning the pass into redesign.
+- [x] Classify findings into real regression, acceptable local fix, global styling drift, token naming drift, documented technical debt, or visual proof required.
+- [x] Present a numbered scope-lock report before runtime CSS edits.
+- [x] Implement only approved targeted cleanup, preserving dialect boundaries and avoiding redesign.
+- [x] Update plan/status/handoffs with evidence, blockers, and validation.
 
 ### State / API (`codex/state-api/css-maintainability-polish`)
 
@@ -209,8 +228,8 @@ Current reassessment completed:
 - [x] `node scripts/design/check-css-custom-properties.mjs`
 - [x] `bun run check:design-tokens`
 
-Still required after revamped UI lane and QA scope lock:
+Revamped UI lane completed; still required for QA/archive:
 
-- [ ] Targeted tests for touched shared/client/admin surfaces
-- [ ] Client/admin build or smoke test when runtime CSS changes
-- [ ] Before/after visual evidence for representative browser, installed PWA, admin, and Storybook surfaces
+- [x] Targeted tests for touched shared/client/admin surfaces
+- [x] Client/admin build or smoke test when runtime CSS changes
+- [ ] QA pass 1: review the recorded UI lane proof, run any seeded installed-PWA route proof needed beyond Storybook, and record visual evidence paths in `handoffs/claude-qa-pass-1.md`.

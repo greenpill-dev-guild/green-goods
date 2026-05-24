@@ -24,8 +24,8 @@ export interface PwaDrawerStyle {
 }
 
 export const pwaDrawerStyles = {
-  overlay: "fixed inset-0 z-modal flex items-end justify-center bg-[var(--color-overlay)]",
-  dialogOverlay: "fixed inset-0 z-overlay bg-[var(--color-overlay)]",
+  overlay: "fixed inset-0 z-modal flex items-end justify-center bg-[var(--color-scrim)]",
+  dialogOverlay: "fixed inset-0 z-overlay bg-[var(--color-scrim)]",
   overlayTransition:
     "transition-opacity duration-[var(--spring-effects-duration)] ease-[var(--spring-effects-easing)]",
   panel:

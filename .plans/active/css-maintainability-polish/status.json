@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-04-28T00:00:00.000Z",
-    "updated_at": "2026-05-24T00:00:00.000Z"
+    "updated_at": "2026-05-24T22:23:51.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -34,18 +34,20 @@
     "2026-05-12 reassessment: keep this hub active and reopen it for a second post-churn maintainability pass. Current main HEAD 430fb41a includes later admin chrome/sheet, Storybook parity, PWA dialog, and token-scan changes. Static gates pass: plan-hub validates 19 hubs; CSS guard passes with 3065 var refs / 1005 definitions / 60 audited unresolved; check:design-tokens passes including custom-property, raw-token, Controlled Chrome, and token-version guards. Old blockers about stale generated PWA audit docs and social-preview raw colors are stale as gate blockers, though social-preview remains audited generated-media debt. check:design-generated exits 0 but currently mutates generated/guidance files in this checkout; resolve that dirty-tree side effect before implementation.",
     "2026-05-12 UI lane revamp: previous ui pass remains completed historical work, but the active ui lane is reopened to cover the full CSS maintainability surface before QA. The revamped lane owns source-grounded audit and scoped cleanup decisions across global entrypoints, admin/client/shared/Storybook dialect boundaries, token naming and raw-value drift, custom-property cascade reachability, typography debt, shared Canvas/admin sheet ownership, PWA dialog/scrim ownership, Storybook parity, Tailwind v4 shared-class gotchas, baseline governance, and visual proof requirements.",
     "2026-05-24 modern Web UI follow-up: added reports/modern-web-ui-follow-up-2026-05-24.md and a backlog-style Phase 7 for text-scale readiness, scoped View Transition pilot evaluation, CSS scroll spy, gap decorations, and native dialog/popover consolidation. Lane statuses are unchanged; this is plan truth only.",
-    "2026-05-24 Chrome platform operationalization: expanded Phase 7 with CWV/soft-navigation evidence fields, isolated DevTools MCP proof boundaries, and frozen WebMCP approval-spec requirements. Lane statuses are unchanged."
+    "2026-05-24 Chrome platform operationalization: expanded Phase 7 with CWV/soft-navigation evidence fields, isolated DevTools MCP proof boundaries, and frozen WebMCP approval-spec requirements. Lane statuses are unchanged.",
+    "2026-05-24 Codex scope-lock audit on main 06a8108c: runtime CSS stayed read-only. plan-hub validates 21 hubs; CSS guard passes with 3094 var refs / 1005 definitions / 60 audited unresolved; check:design-tokens passes; shared Storybook coverage/quality gates pass; targeted client PWA drawer, shared Canvas sheet, and admin Canvas/Dialog tests pass through package Vitest wrappers. Runtime micro-batch proposed but not approved or implemented.",
+    "2026-05-24 approved UI micro-batch completed: installed-PWA drawer/dialog overlays in packages/client/src/styles/pwaDrawerStyles.ts now use --color-scrim; public editorial overlays, admin chrome, shared Canvas geometry, Storybook frames, and the 60 audited typography/font entries were not changed. Proof: plan-hub validates 21 hubs; CSS guard passes with 3096 var refs / 1005 definitions / 60 audited unresolved; check:design-tokens passes; lint:vocab passes; shared Storybook coverage/quality gates pass; client pwaDrawerStyles Vitest 4/4 passes; build:client passes; built CSS emits background-color:var(--color-scrim); Storybook browser proof confirms ModalDrawer overlay rgba(12, 10, 9, 0.22), full viewport coverage, z-index 50, modalSlideIn, 44px close target, and no horizontal overflow."
   ],
   "lanes": {
     "ui": {
       "owner": "claude",
-      "status": "ready",
+      "status": "completed",
       "branch": "claude/ui/css-maintainability-polish",
       "depends_on": [],
       "handoff": "handoffs/claude-ui-revamp.md",
       "previous_handoff": "handoffs/claude-ui.md",
       "skill_tags": ["ui", "design", "css", "review", "visual-qa", "maintainability"],
-      "scope_status": "first_low_friction_pass_completed_full_maintainability_pass_ready",
+      "scope_status": "approved_micro_batch_implemented_validated",
       "requires_scope_lock_before_runtime_css_edits": true,
       "maintainability_surface": [
         "global_css_entrypoints_and_import_boundaries",
@@ -120,7 +122,7 @@
     },
     "qa_pass_1": {
       "owner": "claude",
-      "status": "blocked",
+      "status": "ready",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "claude/qa-pass-1/css-maintainability-polish",
@@ -260,6 +262,22 @@
       "status": "planned",
       "branch": "main",
       "note": "Operationalized Chrome platform follow-up requirements in Phase 7: CWV/soft-navigation evidence fields, isolated DevTools MCP boundaries, and frozen runtime WebMCP approval-spec requirements. No lane status changed."
+    },
+    {
+      "timestamp": "2026-05-24T20:33:00.000Z",
+      "actor": "codex",
+      "lane": "ui",
+      "status": "scope_lock_report_recorded",
+      "branch": "main",
+      "note": "Completed read-only scope-lock audit for the revamped UI lane. Current proof: 21 feature hubs, CSS guard 3094 var refs / 1005 definitions / 60 audited unresolved, check:design-tokens pass, shared Storybook coverage/quality pass, and targeted client/shared/admin package tests pass. Proposed runtime cleanup is limited to installed-PWA overlay token alignment and is waiting for human approval."
+    },
+    {
+      "timestamp": "2026-05-24T22:23:51.000Z",
+      "actor": "codex",
+      "lane": "ui",
+      "status": "completed",
+      "branch": "main",
+      "note": "Implemented the human-approved runtime micro-batch only: client PWA drawer/dialog backdrop classes now use --color-scrim, with a focused pwaDrawerStyles regression assertion. Validation passed: plan-hub, CSS custom-property guard (3096 refs / 1005 definitions / 60 audited unresolved), check:design-tokens, lint:vocab, shared Storybook coverage/quality, client pwaDrawerStyles Vitest 4/4, and build:client. Browser proof captured Storybook ModalDrawer and shared PwaSheet scrims at rgba(12, 10, 9, 0.22) with full mobile viewport coverage and no horizontal overflow. QA pass 1 is ready for review."
     }
   ],
   "taxonomy": {

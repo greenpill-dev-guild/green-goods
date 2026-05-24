@@ -43,6 +43,13 @@ describe("pwaDrawerStyles", () => {
     }
   });
 
+  it("uses the PWA scrim token for modal backdrops", () => {
+    expect(pwaDrawerStyles.overlay).toContain("bg-[var(--color-scrim)]");
+    expect(pwaDrawerStyles.dialogOverlay).toContain("bg-[var(--color-scrim)]");
+    expect(pwaDrawerStyles.overlay).not.toContain("--color-overlay");
+    expect(pwaDrawerStyles.dialogOverlay).not.toContain("--color-overlay");
+  });
+
   it("keeps close timing tied to the spring token contract", () => {
     expect(PWA_DRAWER_CLOSE_DURATION_VAR).toBe("--spring-spatial-duration");
     expect(parsePwaCssDurationToMs("300ms")).toBe(300);
