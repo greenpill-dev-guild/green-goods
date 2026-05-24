@@ -219,12 +219,23 @@ jobs:
       - name: Resolve Arbitrum RPC
         env:
           ARBITRUM_RPC_URL: ${{ secrets.ARBITRUM_RPC_URL }}
+          ALCHEMY_API_KEY: ${{ secrets.ALCHEMY_API_KEY }}
+          ALCHEMY_KEY: ${{ secrets.ALCHEMY_KEY }}
+          VITE_ALCHEMY_API_KEY: ${{ secrets.VITE_ALCHEMY_API_KEY }}
           PUBLIC_ARBITRUM_RPC_URL: https://arb1.arbitrum.io/rpc
         run: |
           if [[ -z "$ARBITRUM_RPC_URL" ]]; then
-            ARBITRUM_RPC_URL="$PUBLIC_ARBITRUM_RPC_URL"
-            echo "::warning::ARBITRUM_RPC_URL secret is not configured; using public Arbitrum RPC fallback."
+            ALCHEMY_KEY_VALUE="${ALCHEMY_API_KEY:-$ALCHEMY_KEY}"
+            ALCHEMY_KEY_VALUE="${ALCHEMY_KEY_VALUE:-$VITE_ALCHEMY_API_KEY}"
+            if [[ -n "$ALCHEMY_KEY_VALUE" ]]; then
+              ARBITRUM_RPC_URL="https://arb-mainnet.g.alchemy.com/v2/$ALCHEMY_KEY_VALUE"
+              echo "::notice::ARBITRUM_RPC_URL secret is not configured; using derived Alchemy Arbitrum RPC from existing key secret."
+            else
+              ARBITRUM_RPC_URL="$PUBLIC_ARBITRUM_RPC_URL"
+              echo "::warning::ARBITRUM_RPC_URL secret is not configured; using public Arbitrum RPC fallback."
+            fi
           fi
+          echo "::add-mask::$ARBITRUM_RPC_URL"
           echo "ARBITRUM_RPC_URL=$ARBITRUM_RPC_URL" >> "$GITHUB_ENV"
           echo "ARBITRUM_FORK_RPC_URL=$ARBITRUM_RPC_URL" >> "$GITHUB_ENV"
 

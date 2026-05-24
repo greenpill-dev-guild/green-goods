@@ -202,7 +202,7 @@ export class NetworkManager {
       // and all its subdomains (e.g. ethereum-sepolia.publicnode.com)
       const parts = hostname.toLowerCase().split(".");
       const domain = parts.length >= 2 ? parts.slice(-2).join(".") : hostname;
-      return domain === "publicnode.com";
+      return domain === "publicnode.com" || domain === "arbitrum.io";
     } catch {
       return false;
     }
