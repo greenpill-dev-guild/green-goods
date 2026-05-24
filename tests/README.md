@@ -217,7 +217,7 @@ projects: [
 ]
 
 webServer: [
-  { command: "bun dev:indexer", port: 8080 },
+  { command: "bun dev:indexer", port: 3006 },
   { command: "bun dev:client", port: 3001 },
   { command: "bun dev:admin", port: 3002 },
 ]
@@ -226,7 +226,7 @@ webServer: [
 **Environment variables** (set in `global-setup.ts`):
 - `TEST_CLIENT_URL` → https://localhost:3001
 - `TEST_ADMIN_URL` → https://localhost:3002
-- `TEST_INDEXER_URL` → http://localhost:8080/v1/graphql
+- `TEST_INDEXER_URL` -> http://localhost:3006/v1/graphql
 - `TEST_CHAIN_ID` → 11155111 (Sepolia)
 
 ## CI/CD

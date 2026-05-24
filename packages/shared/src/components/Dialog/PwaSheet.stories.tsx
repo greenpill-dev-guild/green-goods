@@ -1,20 +1,67 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { RiCloseLine } from "@remixicon/react";
-import { expect, fn, userEvent, within } from "storybook/test";
+import { expect, fn, userEvent, waitFor, within } from "storybook/test";
 import { PwaSheet, type PwaSheetProps } from "./PwaSheet";
 
 type PwaSheetStoryArgs = Omit<PwaSheetProps, "children"> & {
   eyebrow: string;
   title: string;
   description: string;
+  sections?: string[];
 };
+
+const DEFAULT_SHEET_SECTIONS = ["Photo evidence", "Garden context", "Draft notes"];
+const LONG_SHEET_SECTIONS = Array.from({ length: 14 }, (_, index) => `Review section ${index + 1}`);
+
+const CENTER_TOLERANCE_PX = 2;
+const VIEWPORT_EDGE_TOLERANCE_PX = 1;
+const MIN_TOUCH_TARGET_PX = 44;
+
+async function waitForSurfaceSettled(surface: HTMLElement) {
+  await Promise.all(
+    (surface.getAnimations?.() ?? []).map((animation) => animation.finished.catch(() => undefined))
+  );
+}
+
+async function expectRealEnterAnimation(surface: HTMLElement, keyframe: RegExp) {
+  const style = getComputedStyle(surface);
+  await expect(style.animationName).toMatch(keyframe);
+  if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    await expect(style.animationDuration).not.toBe("0s");
+  }
+}
+
+async function expectTouchTarget(element: HTMLElement) {
+  const rect = element.getBoundingClientRect();
+  await expect(rect.width).toBeGreaterThanOrEqual(MIN_TOUCH_TARGET_PX);
+  await expect(rect.height).toBeGreaterThanOrEqual(MIN_TOUCH_TARGET_PX);
+}
+
+function hasReducedMotionRule(componentName: string): boolean {
+  return Array.from(document.styleSheets).some((sheet) => {
+    let rules: CSSRule[];
+    try {
+      rules = Array.from(sheet.cssRules ?? []);
+    } catch {
+      return false;
+    }
+    return rules.some(
+      (rule) =>
+        rule instanceof CSSMediaRule &&
+        rule.conditionText.includes("prefers-reduced-motion") &&
+        rule.cssText.includes(`[data-component="${componentName}"]`) &&
+        /animation-duration:\s*0/.test(rule.cssText)
+    );
+  });
+}
 
 function SheetBody({
   eyebrow,
   title,
   description,
+  sections = DEFAULT_SHEET_SECTIONS,
   onClose,
-}: Pick<PwaSheetStoryArgs, "eyebrow" | "title" | "description" | "onClose">) {
+}: Pick<PwaSheetStoryArgs, "eyebrow" | "title" | "description" | "sections" | "onClose">) {
   return (
     <>
       <header className="border-b border-stroke-soft-200 px-5 pb-4 pt-2">
@@ -28,15 +75,18 @@ function SheetBody({
             type="button"
             data-testid="pwa-sheet-close"
             onClick={onClose}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-bg-soft-200 text-text-sub-600 transition-colors hover:bg-bg-sub-300 hover:text-text-strong-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base"
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-bg-soft-200 text-text-sub-600 transition-colors hover:bg-bg-sub-300 hover:text-text-strong-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base"
             aria-label="Close sheet"
           >
             <RiCloseLine className="h-5 w-5" aria-hidden />
           </button>
         </div>
       </header>
-      <div className="flex flex-1 flex-col gap-3 overflow-y-auto px-5 py-4">
-        {["Photo evidence", "Garden context", "Draft notes"].map((label) => (
+      <div
+        data-testid="pwa-sheet-body"
+        className="flex flex-1 flex-col gap-3 overflow-y-auto px-5 py-4"
+      >
+        {sections.map((label) => (
           <div
             key={label}
             className="rounded-[var(--radius-lg)] border border-stroke-soft-200 bg-bg-weak-50 p-4"
@@ -48,7 +98,7 @@ function SheetBody({
           </div>
         ))}
       </div>
-      <footer className="border-t border-stroke-soft-200 px-5 py-4">
+      <footer data-testid="pwa-sheet-footer" className="border-t border-stroke-soft-200 px-5 py-4">
         <button
           type="button"
           className="h-11 w-full rounded-full bg-primary-action px-4 text-label-lg font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action"
@@ -73,6 +123,7 @@ function PwaSheetFixture(args: PwaSheetStoryArgs) {
           eyebrow={args.eyebrow}
           title={args.title}
           description={args.description}
+          sections={args.sections}
           onClose={args.onClose}
         />
       </PwaSheet>
@@ -112,6 +163,7 @@ const meta = {
     panelClassName: { control: false },
     panelStyle: { control: false },
     overlayClassName: { control: false },
+    sections: { control: false },
     onClose: { action: "onClose" },
   },
 } satisfies Meta<typeof PwaSheetFixture>;
@@ -134,16 +186,31 @@ export const Default: Story = {
     await expect(canvas.getByTestId("pwa-sheet-drag-handle")).toBeVisible();
     await expect(scrim).not.toBeNull();
     await expect(scrim?.getAttribute("style")).toContain("--color-scrim");
+    await expectRealEnterAnimation(surface, /dialogSlideInFromBottom/);
+    await waitForSurfaceSettled(surface);
 
-    const rect = surface.getBoundingClientRect();
-    await expect(rect.bottom).toBeGreaterThanOrEqual(window.innerHeight - 2);
-    await expect(rect.width).toBeLessThanOrEqual(window.innerWidth);
+    await waitFor(async () => {
+      const rect = surface.getBoundingClientRect();
+      await expect(rect.width).toBeGreaterThan(0);
+      await expect(rect.height).toBeGreaterThan(0);
+      await expect(Math.abs(rect.bottom - window.innerHeight)).toBeLessThanOrEqual(
+        CENTER_TOLERANCE_PX
+      );
+      await expect(rect.left).toBeGreaterThanOrEqual(-VIEWPORT_EDGE_TOLERANCE_PX);
+      await expect(rect.right).toBeLessThanOrEqual(window.innerWidth + VIEWPORT_EDGE_TOLERANCE_PX);
+    });
+
+    await expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(
+      window.innerWidth + VIEWPORT_EDGE_TOLERANCE_PX
+    );
+    await expectTouchTarget(canvas.getByRole("button", { name: "Close sheet" }));
 
     await userEvent.click(canvas.getByRole("button", { name: "Close sheet" }));
     await expect(args.onClose).toHaveBeenCalled();
   },
 };
 
+// storybook-quality-allow dark-mode: verifies dark token inheritance for the fixed sheet surface.
 export const DarkMode: Story = {
   decorators: [
     (Story) => (
@@ -158,6 +225,55 @@ export const DarkMode: Story = {
 
     await expect(surface).toHaveAttribute("data-state", "open");
     await expect(surface.className).toContain("bg-[var(--color-material-solid)]");
+  },
+};
+
+export const LongContentGeometry: Story = {
+  args: {
+    title: "Review a long work draft",
+    description: "Long mobile sheet content stays inside the fixed surface.",
+    sections: LONG_SHEET_SECTIONS,
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const surface = await canvas.findByTestId("pwa-sheet");
+    await waitForSurfaceSettled(surface);
+
+    await waitFor(async () => {
+      const rect = surface.getBoundingClientRect();
+      await expect(rect.height).toBeLessThanOrEqual(
+        window.innerHeight + VIEWPORT_EDGE_TOLERANCE_PX
+      );
+      await expect(Math.abs(rect.bottom - window.innerHeight)).toBeLessThanOrEqual(
+        CENTER_TOLERANCE_PX
+      );
+      await expect(rect.left).toBeGreaterThanOrEqual(-VIEWPORT_EDGE_TOLERANCE_PX);
+      await expect(rect.right).toBeLessThanOrEqual(window.innerWidth + VIEWPORT_EDGE_TOLERANCE_PX);
+    });
+
+    const body = canvas.getByTestId("pwa-sheet-body");
+    await expect(body.scrollHeight).toBeGreaterThan(body.clientHeight);
+    await expect(body.scrollWidth).toBeLessThanOrEqual(
+      body.clientWidth + VIEWPORT_EDGE_TOLERANCE_PX
+    );
+
+    const footer = canvas.getByTestId("pwa-sheet-footer");
+    await expect(footer).toBeVisible();
+    await expect(footer.getBoundingClientRect().bottom).toBeLessThanOrEqual(
+      surface.getBoundingClientRect().bottom + VIEWPORT_EDGE_TOLERANCE_PX
+    );
+  },
+};
+
+export const ReducedMotionContract: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const surface = await canvas.findByTestId("pwa-sheet");
+
+    await waitFor(async () => {
+      await expect(getComputedStyle(surface).animationName).toMatch(/dialogSlideInFromBottom/);
+    });
+    await expect(hasReducedMotionRule("PwaSheet")).toBe(true);
   },
 };
 

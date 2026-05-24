@@ -1,7 +1,77 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { ModalDrawer, type ModalDrawerProps } from "./ModalDrawer";
+
+const MODAL_DRAWER_MOBILE_VIEWPORT = {
+  modalDrawerMobile390x844: {
+    name: "Modal drawer mobile 390 x 844",
+    styles: { width: "390px", height: "844px" },
+    type: "mobile",
+  },
+} as const;
+
+const SM_BREAKPOINT_PX = 640;
+const CENTER_TOLERANCE_PX = 2;
+const VIEWPORT_EDGE_TOLERANCE_PX = 1;
+const MIN_TOUCH_TARGET_PX = 44;
+const ACTIVITY_LOG_TIMES = [
+  "09:00",
+  "08:00",
+  "07:00",
+  "06:00",
+  "05:00",
+  "04:00",
+  "03:00",
+  "02:00",
+  "01:00",
+  "00:00",
+];
+
+async function waitForSurfaceSettled(surface: HTMLElement) {
+  await Promise.all(
+    (surface.getAnimations?.() ?? []).map((animation) => animation.finished.catch(() => undefined))
+  );
+}
+
+async function expectRealEnterAnimation(surface: HTMLElement, keyframe: RegExp) {
+  const style = getComputedStyle(surface);
+  await expect(style.animationName).toMatch(keyframe);
+  if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    await expect(style.animationDuration).not.toBe("0s");
+  }
+}
+
+async function expectViewportCoveringElement(element: HTMLElement) {
+  const rect = element.getBoundingClientRect();
+  await expect(rect.left).toBeLessThanOrEqual(VIEWPORT_EDGE_TOLERANCE_PX);
+  await expect(rect.top).toBeLessThanOrEqual(VIEWPORT_EDGE_TOLERANCE_PX);
+  await expect(rect.right).toBeGreaterThanOrEqual(window.innerWidth - VIEWPORT_EDGE_TOLERANCE_PX);
+  await expect(rect.bottom).toBeGreaterThanOrEqual(window.innerHeight - VIEWPORT_EDGE_TOLERANCE_PX);
+}
+
+async function expectTouchTarget(element: HTMLElement) {
+  const rect = element.getBoundingClientRect();
+  await expect(rect.width).toBeGreaterThanOrEqual(MIN_TOUCH_TARGET_PX);
+  await expect(rect.height).toBeGreaterThanOrEqual(MIN_TOUCH_TARGET_PX);
+}
+
+function hasReducedMotionRule(): boolean {
+  return Array.from(document.styleSheets).some((sheet) => {
+    let rules: CSSRule[];
+    try {
+      rules = Array.from(sheet.cssRules ?? []);
+    } catch {
+      return false;
+    }
+    return rules.some(
+      (rule) =>
+        rule instanceof CSSMediaRule &&
+        rule.conditionText.includes("prefers-reduced-motion") &&
+        rule.cssText.includes("animation-duration: 0.01ms")
+    );
+  });
+}
 
 /**
  * Interactive wrapper that manages open/close state for ModalDrawer stories.
@@ -202,7 +272,7 @@ export const LongContent: Story = {
       <div className="space-y-3 overflow-y-auto">
         {Array.from({ length: 20 }, (_, i) => (
           <div key={i} className="p-3 rounded-lg bg-bg-weak-50 text-sm">
-            Activity item {i + 1} - {new Date(Date.now() - i * 3600000).toLocaleTimeString()}
+            Activity item {i + 1} - {ACTIVITY_LOG_TIMES[i % ACTIVITY_LOG_TIMES.length]}
           </div>
         ))}
       </div>
@@ -210,6 +280,7 @@ export const LongContent: Story = {
   ),
 };
 
+// storybook-quality-allow dark-mode: verifies drawer token contrast inside the real dark theme scope.
 export const DarkMode: Story = {
   render: () => (
     <div data-theme="dark" className="bg-bg-white-0 min-h-screen">
@@ -224,7 +295,7 @@ export const DarkMode: Story = {
   ),
 };
 
-export const Gallery: Story = {
+export const StateCatalog: Story = {
   render: () => (
     <div className="flex flex-col gap-6 p-4">
       <p className="text-sm text-text-sub-600">
@@ -267,6 +338,73 @@ export const Interactive: Story = {
     // Verify the open button is still present (drawer has closed)
     const openButton = canvas.getByTestId("open-drawer");
     await expect(openButton).toBeVisible();
+  },
+};
+
+export const MobileGeometry: Story = {
+  tags: ["storybook-ci"],
+  parameters: {
+    viewport: {
+      defaultViewport: "modalDrawerMobile390x844",
+      viewports: MODAL_DRAWER_MOBILE_VIEWPORT,
+    },
+  },
+  render: () => (
+    <ModalDrawerDemo
+      header={{ title: "Mobile drawer geometry", description: "Full-width bottom sheet" }}
+    >
+      <div className="space-y-3">
+        <div className="p-4 rounded-lg bg-bg-weak-50">
+          <p className="text-sm">Drawer content optimized for mobile geometry checks.</p>
+        </div>
+      </div>
+    </ModalDrawerDemo>
+  ),
+  play: async ({ canvasElement }) => {
+    await expect(window.innerWidth).toBeLessThan(SM_BREAKPOINT_PX);
+
+    const canvas = within(canvasElement);
+    await canvas.findByText("Mobile drawer geometry");
+    const overlay = canvas.getByTestId("modal-drawer-overlay");
+    const surface = canvas.getByTestId("modal-drawer");
+
+    await expectViewportCoveringElement(overlay);
+    await expectRealEnterAnimation(surface, /modalSlideIn/);
+    await waitForSurfaceSettled(surface);
+
+    await waitFor(async () => {
+      const rect = surface.getBoundingClientRect();
+      await expect(rect.width).toBeGreaterThan(0);
+      await expect(rect.height).toBeGreaterThan(0);
+      await expect(Math.abs(rect.bottom - window.innerHeight)).toBeLessThanOrEqual(
+        CENTER_TOLERANCE_PX
+      );
+      await expect(rect.left).toBeGreaterThanOrEqual(-VIEWPORT_EDGE_TOLERANCE_PX);
+      await expect(rect.right).toBeLessThanOrEqual(window.innerWidth + VIEWPORT_EDGE_TOLERANCE_PX);
+    });
+
+    await expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(
+      window.innerWidth + VIEWPORT_EDGE_TOLERANCE_PX
+    );
+    await expectTouchTarget(canvas.getByTestId("modal-drawer-close"));
+  },
+};
+
+export const ReducedMotionContract: Story = {
+  tags: ["storybook-ci"],
+  render: () => (
+    <ModalDrawerDemo header={{ title: "Drawer reduced motion", description: "Motion guard" }}>
+      <p className="text-sm text-text-sub-600">Reduced motion dampens drawer keyframes.</p>
+    </ModalDrawerDemo>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const surface = await canvas.findByTestId("modal-drawer");
+
+    await waitFor(async () => {
+      await expect(getComputedStyle(surface).animationName).toMatch(/modalSlideIn/);
+    });
+    await expect(hasReducedMotionRule()).toBe(true);
   },
 };
 

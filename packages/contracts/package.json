@@ -8,8 +8,8 @@
     "./abis/*.json": "./abis/*.json"
   },
   "scripts": {
-    "predev": "lsof -ti:8545 | xargs kill -9 2>/dev/null || true",
-    "dev": "mkdir -p .generated/runtime && anvil --config-out .generated/runtime/localhost.json",
+    "predev": "node ../../scripts/dev/check-port.js ${ANVIL_PORT:-3009} anvil",
+    "dev": "mkdir -p .generated/runtime && anvil --port ${ANVIL_PORT:-3009} --config-out .generated/runtime/localhost.json",
     "format": "forge fmt",
     "format:check": "forge fmt --check",
     "lint": "forge fmt && solhint --config ./.solhint.json 'src/**/*.sol' --ignore-path .solhintignore",

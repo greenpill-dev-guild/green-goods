@@ -6,7 +6,7 @@ const chain = {
   id: 11155111,
   name: "Sepolia",
   nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
-  rpcUrls: { default: { http: ["http://localhost:8545"] } },
+  rpcUrls: { default: { http: ["http://localhost:3009"] } },
 } as const;
 
 const transferEvent = parseAbiItem(

@@ -109,6 +109,20 @@ Durable guidance should answer:
 - what raw values are banned or discouraged;
 - what validation commands prove the touched surface.
 
+### 8. Track modern Web UI primitive adoption
+
+Use `reports/modern-web-ui-follow-up-2026-05-24.md` as the source-grounded follow-up from the Google I/O 2026 Web UI audit. This hub may evaluate modern CSS primitives when they reduce CSS drift, improve accessibility, or make interaction behavior easier to prove.
+
+The follow-up must stay inside this hub's maintainability boundary:
+
+- text-scale readiness before adding `<meta name="text-scale" content="scale">`;
+- scoped View Transition pilots for isolated admin interactions only;
+- CSS scroll spy, scroll-state, and scroll-triggered animation only as progressive enhancements;
+- gap decorations only under `@supports` and never as the only separation affordance;
+- native dialog/popover consolidation only where focus, escape, reduced motion, and fallback behavior remain proven.
+
+Do not use this requirement to introduce runtime redesign work, broad CSS rewrites, or research-only APIs as production dependencies.
+
 ## Non-Functional Constraints
 
 - Package boundaries: keep shared primitives in `packages/shared`, client-specific CSS in `packages/client`, and admin-specific overrides in `packages/admin`.
@@ -117,6 +131,7 @@ Durable guidance should answer:
 - Accessibility: cleanup must preserve focus states, contrast, reduced-motion behavior, and non-color status indicators.
 - Localization: any new user-facing string must be added to `en`, `es`, and `pt`.
 - Tooling: new checks must be cheap enough for the existing validation ladder or clearly documented as pre-merge/scheduled gates.
+- Browser support: newly shipped or Chromium-first primitives must be guarded by feature detection, `@supports`, or a static fallback.
 
 ## Package / Lane Mapping
 
@@ -134,6 +149,7 @@ Durable guidance should answer:
 - Whether a global selector should remain global because it is reset/base behavior or move into a package/component boundary.
 - Whether guardrail false positives should be allowlisted, deferred, or fixed through source cleanup.
 - Whether visual QA shows a token-correct change that should still be reverted for product quality.
+- Whether a modern primitive is mature enough for production, belongs behind progressive enhancement, or should remain research-only.
 
 ## Risks
 

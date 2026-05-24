@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "predev": "lsof -t -iTCP:3001 -sTCP:LISTEN | xargs kill -9 2>/dev/null || true",
+    "predev": "node ../../scripts/dev/check-port.js 3001 client",
     "dev": "APP_ENV=development node ../../scripts/dev/node-cli.js vite",
     "test": "APP_ENV=test node ../../scripts/dev/node-cli.js vitest run",
     "test:watch": "APP_ENV=test vitest --standalone",

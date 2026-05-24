@@ -19,7 +19,7 @@ async function globalSetup(config: FullConfig) {
   const protocol = isCI ? "http" : "https";
 
   // Set test environment variables
-  process.env.TEST_INDEXER_URL = "http://localhost:8080/v1/graphql";
+  process.env.TEST_INDEXER_URL = "http://localhost:3006/v1/graphql";
   process.env.TEST_CLIENT_URL = `${protocol}://localhost:3001`;
   process.env.TEST_ADMIN_URL = `${protocol}://localhost:3002`;
   process.env.TEST_CHAIN_ID = "11155111"; // Sepolia
@@ -48,19 +48,19 @@ async function globalSetup(config: FullConfig) {
 
     // Check indexer
     try {
-      const indexerResponse = await page.request.post("http://localhost:8080/v1/graphql", {
+      const indexerResponse = await page.request.post("http://localhost:3006/v1/graphql", {
         data: { query: `query { __schema { types { name } } }` },
         headers: { "Content-Type": "application/json" },
         timeout: 5000,
       });
 
       if (indexerResponse.ok()) {
-        console.log("  ✅ Indexer (port 8080) - available");
+        console.log("  ✅ Indexer (port 3006) - available");
       } else {
-        console.log("  ⚠️  Indexer (port 8080) - responded with error");
+        console.log("  ⚠️  Indexer (port 3006) - responded with error");
       }
     } catch {
-      console.log("  ⚠️  Indexer (port 8080) - not available (will be started by webServer)");
+      console.log("  ⚠️  Indexer (port 3006) - not available (will be started by webServer)");
     }
 
     // Check client

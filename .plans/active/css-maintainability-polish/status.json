@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-04-28T00:00:00.000Z",
-    "updated_at": "2026-05-13T01:05:46.000Z"
+    "updated_at": "2026-05-24T00:00:00.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -32,7 +32,8 @@
     "2026-05-11 ui lane low-friction pass on main: 4 mechanical alias renames (admin DistributionChart info → information; shared toast primary-strong → primary-dark and text-subtle-600 → text-sub-600) + baseline prune. Audited unresolved entries 64 → 60. Typography.css legacy text tokens (57 entries) and 3 audited font-family-sans/mono entries (5 source-line refs across typography.css + storybook.css) deferred to design judgment; see handoffs/claude-ui.md § Deferred. Pre-existing unrelated check failures recorded: docs/builders/packages/client-pwa-token-audit.generated.md stale (eb41bc8d), packages/client/vite/social-preview.ts raw colors (802bda74, 236aa367).",
     "2026-05-11 ui lane refreshed: re-validated against main HEAD 05abc7b3 plus uncommitted admin chrome / sheet positioning work in working tree. plan-hub validate now reports 19 hubs (hypercert-marketplace-arbitrum-readiness archived in 05abc7b3). CSS guard: 2986 var refs / 1003 defs / 60 audited unresolved. Targeted shared toast tests: 13/13 still pass. My 4 source fixes intact. New --admin-sheet-* / --admin-nav-* token family introduced by parallel agent uses explicit fallbacks throughout; guard accepts them.",
     "2026-05-12 reassessment: keep this hub active and reopen it for a second post-churn maintainability pass. Current main HEAD 430fb41a includes later admin chrome/sheet, Storybook parity, PWA dialog, and token-scan changes. Static gates pass: plan-hub validates 19 hubs; CSS guard passes with 3065 var refs / 1005 definitions / 60 audited unresolved; check:design-tokens passes including custom-property, raw-token, Controlled Chrome, and token-version guards. Old blockers about stale generated PWA audit docs and social-preview raw colors are stale as gate blockers, though social-preview remains audited generated-media debt. check:design-generated exits 0 but currently mutates generated/guidance files in this checkout; resolve that dirty-tree side effect before implementation.",
-    "2026-05-12 UI lane revamp: previous ui pass remains completed historical work, but the active ui lane is reopened to cover the full CSS maintainability surface before QA. The revamped lane owns source-grounded audit and scoped cleanup decisions across global entrypoints, admin/client/shared/Storybook dialect boundaries, token naming and raw-value drift, custom-property cascade reachability, typography debt, shared Canvas/admin sheet ownership, PWA dialog/scrim ownership, Storybook parity, Tailwind v4 shared-class gotchas, baseline governance, and visual proof requirements."
+    "2026-05-12 UI lane revamp: previous ui pass remains completed historical work, but the active ui lane is reopened to cover the full CSS maintainability surface before QA. The revamped lane owns source-grounded audit and scoped cleanup decisions across global entrypoints, admin/client/shared/Storybook dialect boundaries, token naming and raw-value drift, custom-property cascade reachability, typography debt, shared Canvas/admin sheet ownership, PWA dialog/scrim ownership, Storybook parity, Tailwind v4 shared-class gotchas, baseline governance, and visual proof requirements.",
+    "2026-05-24 modern Web UI follow-up: added reports/modern-web-ui-follow-up-2026-05-24.md and a backlog-style Phase 7 for text-scale readiness, scoped View Transition pilot evaluation, CSS scroll spy, gap decorations, and native dialog/popover consolidation. Lane statuses are unchanged; this is plan truth only."
   ],
   "lanes": {
     "ui": {
@@ -242,6 +243,14 @@
       "status": "revamped_ready",
       "branch": "main",
       "note": "Reopened the UI lane as the active full CSS maintainability lane instead of treating the first low-friction alias pass as sufficient. New handoff: handoffs/claude-ui-revamp.md. QA pass 1 is blocked again until the revamped UI lane produces a scope-locked audit, any approved targeted cleanup, and visual/browser proof expectations."
+    },
+    {
+      "timestamp": "2026-05-24T00:00:00.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "modern_web_ui_followup_recorded",
+      "branch": "main",
+      "note": "Recorded the cross-repo modern CSS/Web UI audit follow-up inside this existing hub without changing lane status or authorizing runtime CSS edits."
     }
   ],
   "taxonomy": {

@@ -114,7 +114,7 @@ const TOKENBOUND_SALT = "0x65516551655165516551655165516551655165516551655165516
 function maskRpcApiKey(value: string): string {
   return value.replace(/(\/v\d+\/)[^\s/]+/g, "$1***");
 }
-const DEFAULT_LOCAL_INDEXER_ENDPOINT = "http://localhost:8080/v1/graphql";
+const DEFAULT_LOCAL_INDEXER_ENDPOINT = "http://localhost:3006/v1/graphql";
 const RUNTIME_INDEXER_QUERY = `
   query PostDeployIndexerRuntime($chainId: Int!, $limit: Int!) {
     Garden(where: { chainId: { _eq: $chainId } }, limit: $limit, order_by: { createdAt: desc }) {

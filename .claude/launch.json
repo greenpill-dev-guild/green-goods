@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "deck",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "4599",
+        "--directory",
+        "/Users/afo/Code/greenpill/green-goods/presentations/red-coop-2026-05-22"
+      ],
+      "port": 4599
+    }
+  ]
+}

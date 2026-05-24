@@ -215,11 +215,11 @@ exclude_lints = [
 # ALL tests — not just fork tests. Fork tests load RPC URLs via vm.envString() instead.
 # Deploy scripts use profile-specific eth_rpc_url (see [profile.*] sections below).
 [rpc_endpoints]
-localhost = "http://localhost:8545"
+localhost = "http://localhost:3009"
 
 # Network-specific profiles
 [profile.local]
-eth_rpc_url = "http://localhost:8545"
+eth_rpc_url = "http://localhost:3009"
 
 [profile.arbitrum]
 eth_rpc_url = "${ARBITRUM_RPC_URL}"

@@ -55,7 +55,7 @@ export class AnvilManager {
         const req = http.request(
           {
             hostname: "localhost",
-            port: 8545,
+            port: 3009,
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -100,7 +100,7 @@ export class AnvilManager {
   async ensureAnvilRunning(forkNetwork: string | null = null): Promise<void> {
     // Check if anvil is already running
     if (await this.isAnvilRunning()) {
-      console.log("✅ Anvil is already running on localhost:8545");
+      console.log("✅ Anvil is already running on localhost:3009");
       return;
     }
 
@@ -115,7 +115,7 @@ export class AnvilManager {
     // Start anvil in background
     const anvil = spawn(
       "anvil",
-      ["--accounts", "10", "--balance", "10000", "--block-time", "1", "--port", "8545", "--silent"],
+      ["--accounts", "10", "--balance", "10000", "--block-time", "1", "--port", "3009", "--silent"],
       {
         stdio: "pipe",
         detached: true,
@@ -167,7 +167,7 @@ export class AnvilManager {
       "--block-time",
       "1",
       "--port",
-      "8545",
+      "3009",
     ];
 
     if (background) {

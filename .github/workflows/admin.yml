@@ -115,7 +115,7 @@ jobs:
           VITE_CHAIN_ID: "11155111"
           VITE_WALLETCONNECT_PROJECT_ID: ${{ secrets.VITE_WALLETCONNECT_PROJECT_ID || 'test' }}
           VITE_PIMLICO_API_KEY: ${{ secrets.VITE_PIMLICO_API_KEY || 'test' }}
-          VITE_ENVIO_INDEXER_URL: ${{ secrets.VITE_ENVIO_INDEXER_URL || 'http://localhost:8080/v1/graphql' }}
+          VITE_ENVIO_INDEXER_URL: ${{ secrets.VITE_ENVIO_INDEXER_URL || 'http://localhost:3006/v1/graphql' }}
           VITE_PINATA_GATEWAY_URL: ${{ vars.VITE_PINATA_GATEWAY_URL || 'https://greengoods.mypinata.cloud' }}
           VITE_PINATA_API_URL: ${{ vars.VITE_PINATA_API_URL || 'https://api.pinata.cloud' }}
 
@@ -150,7 +150,7 @@ jobs:
           VITE_CHAIN_ID: "42161"
           VITE_WALLETCONNECT_PROJECT_ID: ${{ secrets.VITE_WALLETCONNECT_PROJECT_ID || 'test' }}
           VITE_PIMLICO_API_KEY: ${{ secrets.VITE_PIMLICO_API_KEY || 'test' }}
-          VITE_ENVIO_INDEXER_URL: ${{ secrets.VITE_ENVIO_INDEXER_URL || 'http://localhost:8080/v1/graphql' }}
+          VITE_ENVIO_INDEXER_URL: ${{ secrets.VITE_ENVIO_INDEXER_URL || 'http://localhost:3006/v1/graphql' }}
           VITE_PINATA_GATEWAY_URL: ${{ vars.VITE_PINATA_GATEWAY_URL || 'https://greengoods.mypinata.cloud' }}
           VITE_PINATA_API_URL: ${{ vars.VITE_PINATA_API_URL || 'https://api.pinata.cloud' }}
 
@@ -198,7 +198,7 @@ jobs:
           VITE_CHAIN_ID: "11155111"
           VITE_WALLETCONNECT_PROJECT_ID: ${{ secrets.VITE_WALLETCONNECT_PROJECT_ID || 'test' }}
           VITE_PIMLICO_API_KEY: ${{ secrets.VITE_PIMLICO_API_KEY || 'test' }}
-          VITE_ENVIO_INDEXER_URL: ${{ secrets.VITE_ENVIO_INDEXER_URL || 'http://localhost:8080/v1/graphql' }}
+          VITE_ENVIO_INDEXER_URL: ${{ secrets.VITE_ENVIO_INDEXER_URL || 'http://localhost:3006/v1/graphql' }}
           VITE_PINATA_GATEWAY_URL: ${{ vars.VITE_PINATA_GATEWAY_URL || 'https://greengoods.mypinata.cloud' }}
           VITE_PINATA_API_URL: ${{ vars.VITE_PINATA_API_URL || 'https://api.pinata.cloud' }}
 
@@ -247,7 +247,7 @@ jobs:
           VITE_CHAIN_ID: "11155111"
           VITE_WALLETCONNECT_PROJECT_ID: ${{ secrets.VITE_WALLETCONNECT_PROJECT_ID || 'test' }}
           VITE_PIMLICO_API_KEY: ${{ secrets.VITE_PIMLICO_API_KEY || 'test' }}
-          VITE_ENVIO_INDEXER_URL: ${{ secrets.VITE_ENVIO_INDEXER_URL || 'http://localhost:8080/v1/graphql' }}
+          VITE_ENVIO_INDEXER_URL: ${{ secrets.VITE_ENVIO_INDEXER_URL || 'http://localhost:3006/v1/graphql' }}
           VITE_PINATA_GATEWAY_URL: ${{ vars.VITE_PINATA_GATEWAY_URL || 'https://greengoods.mypinata.cloud' }}
           VITE_PINATA_API_URL: ${{ vars.VITE_PINATA_API_URL || 'https://api.pinata.cloud' }}
           LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}

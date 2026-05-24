@@ -13,9 +13,9 @@
 # rescript-build step runs in the image build.
 #
 # This runs:
-#   - PostgreSQL (port 5433)
-#   - Hasura GraphQL Engine (port 8080)
-#   - Green Goods Indexer (port 9898)
+#   - PostgreSQL (port 3008)
+#   - Hasura GraphQL Engine (port 3006)
+#   - Green Goods Indexer (port 3007)
 
 services:
   # PostgreSQL database
@@ -23,7 +23,7 @@ services:
     image: postgres:17.5
     restart: always
     ports:
-      - "${ENVIO_PG_PORT:-5433}:5432"
+      - "${ENVIO_PG_PORT:-3008}:5432"
     volumes:
       - indexer_db_data:/var/lib/postgresql/data
     environment:
@@ -42,7 +42,7 @@ services:
   graphql-engine:
     image: hasura/graphql-engine:v2.43.0
     ports:
-      - "${HASURA_EXTERNAL_PORT:-8080}:8080"
+      - "${HASURA_EXTERNAL_PORT:-3006}:8080"
     user: "1001:1001"
     depends_on:
       envio-postgres:
@@ -72,7 +72,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "9898:9898"
+      - "${INDEXER_EXTERNAL_PORT:-3007}:9898"
     depends_on:
       graphql-engine:
         condition: service_healthy

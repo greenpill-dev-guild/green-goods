@@ -1,0 +1,132 @@
+{
+  "version": 1,
+  "project": {
+    "id": "green-goods",
+    "name": "Green Goods",
+    "root": "/Users/afo/Code/greenpill/green-goods"
+  },
+  "surfaces": [
+    {
+      "id": "client",
+      "name": "client PWA + editorial website",
+      "kind": "ui",
+      "ports": [3001],
+      "command": ["bun", "run", "dev:client"],
+      "urls": [
+        "https://localhost:3001/?presentation=pwa",
+        "https://localhost:3001/?presentation=website"
+      ],
+      "health": [
+        {
+          "type": "http",
+          "url": "https://localhost:3001/?presentation=pwa"
+        }
+      ]
+    },
+    {
+      "id": "admin",
+      "name": "admin UI",
+      "kind": "ui",
+      "ports": [3002],
+      "command": ["bun", "run", "dev:admin"],
+      "urls": ["https://localhost:3002/"],
+      "health": [
+        {
+          "type": "http",
+          "url": "https://localhost:3002/"
+        }
+      ]
+    },
+    {
+      "id": "docs",
+      "name": "docs",
+      "kind": "docs",
+      "ports": [3003],
+      "command": ["bun", "run", "dev:docs"],
+      "urls": ["http://localhost:3003/"],
+      "health": [
+        {
+          "type": "http",
+          "url": "http://localhost:3003/"
+        }
+      ]
+    },
+    {
+      "id": "storybook",
+      "name": "Storybook",
+      "kind": "docs-ui",
+      "ports": [3004],
+      "command": ["bun", "run", "--cwd", "packages/shared", "storybook"],
+      "urls": ["http://localhost:3004/"],
+      "health": [
+        {
+          "type": "http",
+          "url": "http://localhost:3004/"
+        }
+      ]
+    },
+    {
+      "id": "agent",
+      "name": "agent/API",
+      "kind": "api",
+      "ports": [3005],
+      "command": ["bun", "run", "dev:agent"],
+      "env": {
+        "PORT": "3005"
+      },
+      "urls": []
+    },
+    {
+      "id": "indexer-graphql",
+      "name": "indexer GraphQL/Hasura",
+      "kind": "backend",
+      "ports": [3006, 3007, 3008],
+      "command": [
+        "docker",
+        "compose",
+        "-f",
+        "docker-compose.indexer.yaml",
+        "up",
+        "--build",
+        "--watch"
+      ],
+      "cwd": "packages/indexer",
+      "env": {
+        "HASURA_EXTERNAL_PORT": "3006",
+        "INDEXER_EXTERNAL_PORT": "3007",
+        "ENVIO_PG_PORT": "3008"
+      },
+      "downCommand": ["docker", "compose", "-f", "docker-compose.indexer.yaml", "down"],
+      "urls": ["http://localhost:3006/v1/graphql"]
+    },
+    {
+      "id": "indexer-service",
+      "name": "indexer service",
+      "kind": "backend",
+      "ports": [3007],
+      "providedBy": "indexer-graphql",
+      "autostart": false,
+      "urls": ["http://localhost:3007/"]
+    },
+    {
+      "id": "indexer-postgres",
+      "name": "indexer Postgres",
+      "kind": "database",
+      "ports": [3008],
+      "providedBy": "indexer-graphql",
+      "autostart": false,
+      "urls": []
+    },
+    {
+      "id": "anvil",
+      "name": "Anvil/local chain",
+      "kind": "chain",
+      "ports": [3009],
+      "command": ["bun", "run", "dev:contracts"],
+      "env": {
+        "ANVIL_PORT": "3009"
+      },
+      "urls": ["http://localhost:3009/"]
+    }
+  ]
+}

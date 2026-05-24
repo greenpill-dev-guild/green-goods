@@ -32,16 +32,16 @@ const profilePorts = {
     { port: 3001, label: "client" },
     { port: 3002, label: "admin" },
     { port: 3003, label: "docs" },
-    { port: 6006, label: "storybook" },
+    { port: 3004, label: "storybook" },
   ],
   full: [
     { port: 3001, label: "client" },
     { port: 3002, label: "admin" },
     { port: 3003, label: "docs" },
-    { port: 5433, label: "indexer postgres" },
-    { port: 6006, label: "storybook" },
-    { port: 8080, label: "indexer graphql" },
-    { port: 9898, label: "envio indexer" },
+    { port: 3008, label: "indexer postgres" },
+    { port: 3004, label: "storybook" },
+    { port: 3006, label: "indexer graphql" },
+    { port: 3007, label: "envio indexer" },
   ],
   contracts: [],
   upload: [
@@ -471,8 +471,8 @@ function checkEnv() {
 
   if (options.profile === "web" || options.profile === "full" || options.profile === "upload") {
     const indexerUrl = valueFor(envFile, "VITE_ENVIO_INDEXER_URL") || schema.VITE_ENVIO_INDEXER_URL || "";
-    if (indexerUrl.includes("localhost:8080")) {
-      add("pass", "Indexer URL points to local GraphQL", "http://localhost:8080/v1/graphql", "", {
+    if (indexerUrl.includes("localhost:3006")) {
+      add("pass", "Indexer URL points to local GraphQL", "http://localhost:3006/v1/graphql", "", {
         check: "env:indexer-url",
       });
     } else if (indexerUrl) {
@@ -625,7 +625,7 @@ function printText() {
   }
 
   console.log("\nRole readiness");
-  console.log("- Frontend QA: Node.js, Bun, Git, root .env, ports 3001/3002/3003/6006.");
+  console.log("- Frontend QA: Node.js, Bun, Git, root .env, ports 3001/3002/3003/3004.");
   console.log("- Full-stack/indexer: frontend QA plus Docker and packages/indexer/generated.");
   console.log("- Contracts: frontend QA plus Foundry.");
   console.log("- Upload-capable QA: frontend QA plus VITE_API_BASE_URL and PINATA_JWT.");

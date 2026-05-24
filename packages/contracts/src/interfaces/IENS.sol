@@ -2,10 +2,16 @@
 pragma solidity ^0.8.25;
 
 /// @title IENS
-/// @notice Minimal ENS registry interface for Green Goods usage.
+/// @notice Minimal ENS Registry interface for Green Goods usage
+/// @dev Keeps the contracts package independent from the npm-published ENS contracts package.
 interface IENS {
+    /// @notice Set approval for an operator to manage all records for msg.sender.
     function setApprovalForAll(address operator, bool approved) external;
+
+    /// @notice Set the owner of a subnode.
     function setSubnodeOwner(bytes32 node, bytes32 label, address owner) external returns (bytes32);
+
+    /// @notice Set the resolver for a node.
     function setResolver(bytes32 node, address resolver) external;
 }
 

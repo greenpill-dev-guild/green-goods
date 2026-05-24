@@ -27,6 +27,8 @@
 - List of accidental globals, legacy selectors, and deferred items.
 - Guardrail output or documented blocker for undefined custom properties.
 - Diff summary for any raw-value/token cleanup.
+- Feature-readiness classification for any modern CSS/Web UI primitive proposed for adoption.
+- Text-scale, reduced-motion, and fallback proof before enabling any Chrome-first or progressive primitive in runtime.
 - Validation command output.
 - Visual proof for representative surfaces affected by the cleanup.
 
@@ -81,3 +83,4 @@ This hub can move to `.plans/archive/` only after:
 - Creating component variables that simply mirror every CSS property without design intent.
 - Relying on Tailwind utility classes authored in `packages/shared/src/` for consumer app layout.
 - Claiming coverage from validators that do not inspect the changed files.
+- Treating Chromium-first CSS features as baseline production requirements without `@supports`, feature detection, or static fallback proof.

@@ -1,6 +1,14 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { expect, fn, userEvent, within } from "storybook/test";
-import { ConfirmDialog, DialogShell } from "./ConfirmDialog";
+import { useState } from "react";
+import { IntlProvider } from "react-intl";
+import { expect, fn, userEvent, waitFor, within } from "storybook/test";
+import { ConfirmDialog, type ConfirmDialogProps, DialogShell } from "./ConfirmDialog";
+
+const DIALOG_MESSAGES = {
+  "app.common.cancel": "Cancel",
+  "app.common.close": "Close",
+  "app.common.confirm": "Confirm",
+};
 
 const meta: Meta<typeof ConfirmDialog> = {
   title: "Shared/Feedback/ConfirmDialog",
@@ -53,10 +61,97 @@ const meta: Meta<typeof ConfirmDialog> = {
     onClose: fn(),
     onConfirm: fn(),
   },
+  decorators: [
+    (Story) => (
+      <IntlProvider locale="en" messages={DIALOG_MESSAGES}>
+        <Story />
+      </IntlProvider>
+    ),
+  ],
 };
 
 export default meta;
 type Story = StoryObj<typeof ConfirmDialog>;
+
+const CONFIRM_MOBILE_VIEWPORT = {
+  confirmMobile390x844: {
+    name: "Confirm mobile 390 x 844",
+    styles: { width: "390px", height: "844px" },
+    type: "mobile",
+  },
+} as const;
+
+const SM_BREAKPOINT_PX = 640;
+const CENTER_TOLERANCE_PX = 2;
+const VIEWPORT_EDGE_TOLERANCE_PX = 1;
+const MIN_TOUCH_TARGET_PX = 44;
+
+type ConfirmDialogHarnessProps = Omit<ConfirmDialogProps, "isOpen" | "onClose"> & {
+  onClose?: () => void;
+};
+
+function ConfirmDialogHarness({ onClose, ...props }: ConfirmDialogHarnessProps) {
+  const [isOpen, setIsOpen] = useState(true);
+
+  return (
+    <ConfirmDialog
+      {...props}
+      isOpen={isOpen}
+      onClose={() => {
+        onClose?.();
+        setIsOpen(false);
+      }}
+    />
+  );
+}
+
+async function waitForSurfaceSettled(surface: HTMLElement) {
+  await Promise.all(
+    (surface.getAnimations?.() ?? []).map((animation) => animation.finished.catch(() => undefined))
+  );
+}
+
+async function expectRealEnterAnimation(surface: HTMLElement, keyframe: RegExp) {
+  const style = getComputedStyle(surface);
+  await expect(style.animationName).toMatch(keyframe);
+  if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    await expect(style.animationDuration).not.toBe("0s");
+  }
+}
+
+async function expectViewportCoveringElement(element: HTMLElement | null) {
+  await expect(element).not.toBeNull();
+  if (!element) return;
+  const rect = element.getBoundingClientRect();
+  await expect(rect.left).toBeLessThanOrEqual(VIEWPORT_EDGE_TOLERANCE_PX);
+  await expect(rect.top).toBeLessThanOrEqual(VIEWPORT_EDGE_TOLERANCE_PX);
+  await expect(rect.right).toBeGreaterThanOrEqual(window.innerWidth - VIEWPORT_EDGE_TOLERANCE_PX);
+  await expect(rect.bottom).toBeGreaterThanOrEqual(window.innerHeight - VIEWPORT_EDGE_TOLERANCE_PX);
+}
+
+async function expectTouchTarget(element: HTMLElement) {
+  const rect = element.getBoundingClientRect();
+  await expect(rect.width).toBeGreaterThanOrEqual(MIN_TOUCH_TARGET_PX);
+  await expect(rect.height).toBeGreaterThanOrEqual(MIN_TOUCH_TARGET_PX);
+}
+
+function hasReducedMotionRule(componentName: string): boolean {
+  return Array.from(document.styleSheets).some((sheet) => {
+    let rules: CSSRule[];
+    try {
+      rules = Array.from(sheet.cssRules ?? []);
+    } catch {
+      return false;
+    }
+    return rules.some(
+      (rule) =>
+        rule instanceof CSSMediaRule &&
+        rule.conditionText.includes("prefers-reduced-motion") &&
+        rule.cssText.includes(`[data-component="${componentName}"]`) &&
+        /animation-duration:\s*0/.test(rule.cssText)
+    );
+  });
+}
 
 export const Default: Story = {
   args: {
@@ -107,6 +202,7 @@ export const NoDescription: Story = {
   },
 };
 
+// storybook-quality-allow dark-mode: verifies component-specific dark token contrast inside the real dialog chrome.
 export const DarkMode: Story = {
   decorators: [
     (Story) => (
@@ -125,7 +221,7 @@ export const DarkMode: Story = {
   },
 };
 
-export const Gallery: Story = {
+export const StateCatalog: Story = {
   render: () => (
     <div className="flex flex-col gap-8">
       <div>
@@ -144,9 +240,171 @@ export const Gallery: Story = {
     docs: {
       description: {
         story:
-          "Gallery shows one dialog at a time since Radix Portal renders overlapping overlays. Use individual stories to see each variant.",
+          "State catalog shows one dialog at a time since Radix Portal renders overlapping overlays. Use individual stories to see each variant.",
       },
     },
+  },
+};
+
+export const DesktopGeometry: Story = {
+  tags: ["storybook-ci"],
+  // storybook-quality-allow state-harness: renders the real ConfirmDialog while allowing play to close the controlled Radix portal.
+  render: () => (
+    <ConfirmDialogHarness
+      onClose={fn()}
+      onConfirm={fn()}
+      title="Centered desktop confirmation"
+      description="Desktop centers this confirmation dialog in the viewport."
+      confirmLabel="Confirm"
+      cancelLabel="Cancel"
+    />
+  ),
+  play: async () => {
+    await expect(window.innerWidth).toBeGreaterThanOrEqual(SM_BREAKPOINT_PX);
+
+    const dialog = within(document.body);
+    const surface = await dialog.findByRole(
+      "dialog",
+      {
+        name: /centered desktop confirmation/i,
+      },
+      { timeout: 5_000 }
+    );
+    const scrim = document.body.querySelector<HTMLElement>(
+      '[data-component="ConfirmDialog"][data-slot="overlay"]'
+    );
+
+    await expectViewportCoveringElement(scrim);
+    await expectRealEnterAnimation(surface, /dialogZoomIn/);
+    await waitForSurfaceSettled(surface);
+
+    await waitFor(async () => {
+      const rect = surface.getBoundingClientRect();
+      await expect(rect.width).toBeGreaterThan(0);
+      await expect(rect.height).toBeGreaterThan(0);
+
+      const centerX = (rect.left + rect.right) / 2;
+      const centerY = (rect.top + rect.bottom) / 2;
+      await expect(Math.abs(centerX - window.innerWidth / 2)).toBeLessThanOrEqual(
+        CENTER_TOLERANCE_PX
+      );
+      await expect(Math.abs(centerY - window.innerHeight / 2)).toBeLessThanOrEqual(
+        CENTER_TOLERANCE_PX
+      );
+
+      await expect(rect.left).toBeGreaterThanOrEqual(-VIEWPORT_EDGE_TOLERANCE_PX);
+      await expect(rect.top).toBeGreaterThanOrEqual(-VIEWPORT_EDGE_TOLERANCE_PX);
+      await expect(rect.right).toBeLessThanOrEqual(window.innerWidth + VIEWPORT_EDGE_TOLERANCE_PX);
+      await expect(rect.bottom).toBeLessThanOrEqual(
+        window.innerHeight + VIEWPORT_EDGE_TOLERANCE_PX
+      );
+    });
+
+    const closeButton = dialog.getByTestId("confirm-dialog-close");
+    await expectTouchTarget(closeButton);
+    await userEvent.click(closeButton);
+    await waitFor(async () => {
+      await expect(dialog.queryByTestId("confirm-dialog")).not.toBeInTheDocument();
+    });
+  },
+};
+
+export const MobileSheetGeometry: Story = {
+  tags: ["storybook-ci"],
+  parameters: {
+    viewport: {
+      defaultViewport: "confirmMobile390x844",
+      viewports: CONFIRM_MOBILE_VIEWPORT,
+    },
+  },
+  // storybook-quality-allow state-harness: renders the real ConfirmDialog while allowing play to close the controlled Radix portal.
+  render: () => (
+    <ConfirmDialogHarness
+      onClose={fn()}
+      onConfirm={fn()}
+      title="Mobile confirmation sheet"
+      description="Mobile anchors this confirmation dialog to the viewport bottom."
+      confirmLabel="Confirm"
+      cancelLabel="Cancel"
+    />
+  ),
+  play: async () => {
+    await expect(window.innerWidth).toBeLessThan(SM_BREAKPOINT_PX);
+
+    const dialog = within(document.body);
+    const surface = await dialog.findByRole(
+      "dialog",
+      {
+        name: /mobile confirmation sheet/i,
+      },
+      { timeout: 5_000 }
+    );
+    const scrim = document.body.querySelector<HTMLElement>(
+      '[data-component="ConfirmDialog"][data-slot="overlay"]'
+    );
+
+    await expectViewportCoveringElement(scrim);
+    await expectRealEnterAnimation(surface, /dialogSlideInFromBottom/);
+    await waitForSurfaceSettled(surface);
+
+    await waitFor(async () => {
+      const rect = surface.getBoundingClientRect();
+      await expect(rect.width).toBeGreaterThan(0);
+      await expect(rect.height).toBeGreaterThan(0);
+      await expect(Math.abs(rect.bottom - window.innerHeight)).toBeLessThanOrEqual(
+        CENTER_TOLERANCE_PX
+      );
+
+      const centerX = (rect.left + rect.right) / 2;
+      await expect(Math.abs(centerX - window.innerWidth / 2)).toBeLessThanOrEqual(
+        CENTER_TOLERANCE_PX
+      );
+      await expect(rect.left).toBeGreaterThanOrEqual(-VIEWPORT_EDGE_TOLERANCE_PX);
+      await expect(rect.right).toBeLessThanOrEqual(window.innerWidth + VIEWPORT_EDGE_TOLERANCE_PX);
+    });
+
+    await expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(
+      window.innerWidth + VIEWPORT_EDGE_TOLERANCE_PX
+    );
+    const closeButton = dialog.getByTestId("confirm-dialog-close");
+    await expectTouchTarget(closeButton);
+    await userEvent.click(closeButton);
+    await waitFor(async () => {
+      await expect(dialog.queryByTestId("confirm-dialog")).not.toBeInTheDocument();
+    });
+  },
+};
+
+export const ReducedMotionContract: Story = {
+  tags: ["storybook-ci"],
+  // storybook-quality-allow state-harness: renders the real ConfirmDialog while allowing play to close the controlled Radix portal.
+  render: () => (
+    <ConfirmDialogHarness
+      onClose={fn()}
+      onConfirm={fn()}
+      title="Confirm reduced motion contract"
+      description="Reduced motion zeroes shared dialog animation duration."
+    />
+  ),
+  play: async () => {
+    const surface = await within(document.body).findByRole(
+      "dialog",
+      {
+        name: /confirm reduced motion contract/i,
+      },
+      { timeout: 5_000 }
+    );
+
+    await waitFor(async () => {
+      await expect(getComputedStyle(surface).animationName).toMatch(
+        /dialog(SlideInFromBottom|ZoomIn)/
+      );
+    });
+    await expect(hasReducedMotionRule("ConfirmDialog")).toBe(true);
+    await userEvent.click(within(document.body).getByTestId("confirm-dialog-close"));
+    await waitFor(async () => {
+      await expect(within(document.body).queryByTestId("confirm-dialog")).not.toBeInTheDocument();
+    });
   },
 };
 

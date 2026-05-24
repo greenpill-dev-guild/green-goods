@@ -37,7 +37,7 @@
       "schemas": [
         {
           "name": "Indexer",
-          "schema": "http://localhost:8080/v1/graphql",
+          "schema": "http://localhost:3006/v1/graphql",
           "tadaOutputLocation": "./src/types/indexer.d.ts"
         },
         {

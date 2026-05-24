@@ -1,0 +1,152 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "ai-native-dev-workflow",
+    "title": "AI-Native Developer Workflow",
+    "kind": "quality",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "active",
+    "priority": "p1",
+    "created_at": "2026-05-24",
+    "updated_at": "2026-05-24"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": null,
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": null,
+    "lanes": {}
+  },
+  "taxonomy": {
+    "initiative": "engineering-quality",
+    "tracks": ["agent", "docs", "ops"],
+    "work_types": ["observability", "qa", "review"],
+    "surfaces": [
+      ".plans/active/ai-native-dev-workflow",
+      "AGENTS.md",
+      "CLAUDE.md",
+      ".claude/skills",
+      "scripts/harness/plan-hub.mjs"
+    ],
+    "depends_on_features": []
+  },
+  "notes": [
+    "status.json is authoritative for this hub.",
+    "This hub improves the existing .plans workflow; it must not create a parallel memory or execution truth surface.",
+    "Week-one scaffold is plan/process only and does not touch runtime code."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "blocked",
+      "manual_blocked": true,
+      "branch": "claude/ui/ai-native-dev-workflow",
+      "depends_on": ["state_api"],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No UI lane is ready for this scaffold-hardening pass. Unblock only when a later adoption step intentionally changes user-facing workflow or guidance."
+      },
+      "skill_tags": ["review", "principles", "ui"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "completed",
+      "branch": "codex/state-api/ai-native-dev-workflow",
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "tdd": {
+        "mode": "proof_limit",
+        "status": "green_recorded",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "node scripts/harness/plan-hub.mjs validate",
+          "evidence": "Plan hub validation passed for 21 feature hubs after scaffold hardening."
+        },
+        "note": "This is process-infrastructure work inside .plans, so a traditional RED/GREEN code test is not applicable. The fallback proof is the repo plan validator plus filled ledger, scorecard, adversarial review, and closeout evidence."
+      },
+      "skill_tags": ["plan", "review", "ops"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "codex/contracts/ai-native-dev-workflow",
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "No Solidity or deployment contract work is planned for this operating-system hub."
+      },
+      "skill_tags": ["contracts"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "claude/qa-pass-1/ai-native-dev-workflow",
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "codex/qa-pass-2/ai-native-dev-workflow",
+      "branch_trigger": "claude/qa-pass-1/ai-native-dev-workflow",
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-05-24",
+      "actor": "codex",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Created the AI-native developer workflow hub for the six-week cross-repo uplift."
+    },
+    {
+      "timestamp": "2026-05-24",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "completed",
+      "branch": "codex/state-api/ai-native-dev-workflow",
+      "note": "Closed the scaffold-hardening lane with filled ledger, scorecard, adversarial review, closeout gate, and copy-runnable validation command evidence. UI remains manually blocked until a future adoption step intentionally scopes UI or guidance work."
+    }
+  ]
+}

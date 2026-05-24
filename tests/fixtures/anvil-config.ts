@@ -20,7 +20,7 @@ export const FORK_CONFIG = {
   chainId: 31337,
 
   /** Anvil RPC port */
-  port: Number(process.env.ANVIL_PORT) || 8545,
+  port: Number(process.env.ANVIL_PORT) || 3009,
 
   /** Anvil RPC URL */
   get rpcEndpoint() {

@@ -439,17 +439,24 @@ export class EnvioIntegration {
     try {
       const indexerDir = path.join(__dirname, "../../../indexer");
 
-      // Stop any existing indexer processes
+      // Do not kill broad "envio dev" matches here. The shared workbench owns
+      // cleanup for launcher-started processes, and unknown listeners should be
+      // inspected by the developer.
       try {
-        execSync("pkill -f 'envio dev' || true", { stdio: "pipe" });
-        console.log("🛑 Stopped existing indexer processes");
+        const existing = execSync("pgrep -f 'envio dev'", {
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "ignore"],
+        }).trim();
+        if (existing) {
+          throw new Error(
+            `Existing Envio process(es) detected: ${existing}. Stop them explicitly or run dev-surfaces down green-goods:indexer-graphql.`,
+          );
+        }
       } catch (error) {
-        const reason = error instanceof Error ? error.message : String(error);
-        console.warn(`⚠️  pkill failed (non-critical): ${reason}`);
+        if (error instanceof Error && error.message.includes("Existing Envio process")) {
+          throw error;
+        }
       }
-
-      // Wait for processes to clean up
-      await new Promise((resolve) => setTimeout(resolve, 2000));
 
       // Regenerate code with updated config
       console.log("🔧 Regenerating Envio code...");
@@ -475,7 +482,7 @@ export class EnvioIntegration {
       await new Promise((resolve) => setTimeout(resolve, 5000));
 
       console.log("✅ Indexer started successfully!");
-      console.log("   GraphQL endpoint: http://localhost:8080");
+      console.log("   GraphQL endpoint: http://localhost:3006");
       console.log("   Development console: https://envio.dev/console");
 
       return indexerProcess;

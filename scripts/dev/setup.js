@@ -289,7 +289,7 @@ if (!isCloud) {
 
 ${c.dim}Individual packages:${c.reset}
   • bun run dev:client    - React PWA (port 3001)
-  • bun run dev:indexer   - Blockchain indexer (port 8080)
+  • bun run dev:indexer   - Blockchain indexer GraphQL (port 3006)
   • bun run dev:contracts - Local blockchain (Anvil)
 `);
 }

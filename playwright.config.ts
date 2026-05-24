@@ -9,7 +9,7 @@ const environments = {
   local: {
     client: `${protocol}://localhost:3001`,
     admin: `${protocol}://localhost:3002`,
-    indexer: "http://localhost:8080/v1/graphql",
+    indexer: "http://localhost:3006/v1/graphql",
     chain: "sepolia",
   },
 };
@@ -36,7 +36,7 @@ const webServers = [
     : [
         {
           command: "bun dev:indexer",
-          port: 8080,
+          port: 3006,
           reuseExistingServer: !process.env.CI,
           timeout: 60000,
           env: { NODE_ENV: "test" },

@@ -51,13 +51,13 @@ const ciEnv = {
   // Agent tests
   ENCRYPTION_SECRET: "test-secret-for-ci-encryption-32chars",
   TELEGRAM_BOT_TOKEN: "test-bot-token",
-  VITE_RPC_URL_11155111: "http://localhost:8545",
+  VITE_RPC_URL_11155111: "http://localhost:3009",
   // Client/Admin builds
   VITE_USE_HASH_ROUTER: "false",
   VITE_CHAIN_ID: "11155111",
   VITE_WALLETCONNECT_PROJECT_ID: "test",
   VITE_PIMLICO_API_KEY: "test",
-  VITE_ENVIO_INDEXER_URL: "http://localhost:8080",
+  VITE_ENVIO_INDEXER_URL: "http://localhost:3006",
 };
 
 // Configuration

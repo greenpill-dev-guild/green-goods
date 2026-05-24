@@ -246,8 +246,8 @@ Single `.env` at root (never create package-specific .env). `VITE_CHAIN_ID` sets
 - **client** — `https://localhost:3001/` (HTTPS in dev; not HTTP)
 - **admin** — `https://localhost:3002/`
 - **docs** — `http://localhost:3003/`
-- **storybook** — `http://localhost:6006/`
-- **indexer GraphQL** — `http://localhost:8080/v1/graphql` (requires Docker stack up)
+- **storybook** — `http://localhost:3004/`
+- **indexer GraphQL** — `http://localhost:3006/v1/graphql` (requires Docker stack up)
 - **indexer postgres** — `localhost:5433`
 - **envio indexer runtime** — `localhost:9898`
 

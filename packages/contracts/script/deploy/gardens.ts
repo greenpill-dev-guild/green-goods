@@ -93,7 +93,7 @@ export class GardenDeployer {
       args.push("--rpc-url", rpcUrl);
       args.push("--chain-id", networkConfig.chainId.toString());
     } else {
-      args.push("--rpc-url", "http://localhost:8545");
+      args.push("--rpc-url", "http://localhost:3009");
     }
 
     if (options.broadcast) {

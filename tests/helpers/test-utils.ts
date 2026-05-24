@@ -24,7 +24,7 @@ const protocol = isCI ? "http" : "https";
 export const TEST_URLS = {
   client: process.env.TEST_CLIENT_URL ?? `${protocol}://localhost:3001`,
   admin: process.env.TEST_ADMIN_URL ?? `${protocol}://localhost:3002`,
-  indexer: process.env.TEST_INDEXER_URL ?? "http://localhost:8080/v1/graphql",
+  indexer: process.env.TEST_INDEXER_URL ?? "http://localhost:3006/v1/graphql",
 };
 
 // Storage keys used by Green Goods auth (from shared/src/modules/auth/session.ts)

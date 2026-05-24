@@ -341,7 +341,7 @@ Tests use these env vars (set in `global-setup.ts`):
 ```typescript
 process.env.TEST_CLIENT_URL = "https://localhost:3001";
 process.env.TEST_ADMIN_URL = "https://localhost:3002";
-process.env.TEST_INDEXER_URL = "http://localhost:8080/v1/graphql";
+process.env.TEST_INDEXER_URL = "http://localhost:3006/v1/graphql";
 process.env.TEST_CHAIN_ID = "11155111";  // Sepolia
 ```
 

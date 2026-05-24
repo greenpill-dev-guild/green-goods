@@ -62,7 +62,7 @@
     "localhost": {
       "chainId": 31337,
       "name": "Localhost",
-      "rpcUrl": "http://localhost:8545",
+      "rpcUrl": "http://localhost:3009",
       "nativeCurrency": {
         "name": "Ethereum",
         "symbol": "ETH",

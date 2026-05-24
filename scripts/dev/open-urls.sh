@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-ports=(3001 3002 3003 6006)
+ports=(3001 3002 3003 3004)
 # Client opens twice on port 3001: ?presentation=pwa forces installed-PWA chrome
 # (bottom AppBar, /home entry), ?presentation=website forces the marketing site
 # (SiteHeader hamburger, / entry). The override is read on localhost only, then
@@ -13,7 +13,7 @@ urls=(
   "https://localhost:3001/?presentation=website"
   "https://localhost:3002"
   "http://localhost:3003"
-  "http://localhost:6006"
+  "http://localhost:3004"
 )
 
 # Wait up to 60s per port, in parallel. `wait-port -t` returns non-zero on

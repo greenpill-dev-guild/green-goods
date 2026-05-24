@@ -42,8 +42,8 @@ const services = [
   },
   {
     name: "storybook",
-    port: 6006,
-    urls: ["http://localhost:6006"],
+    port: 3004,
+    urls: ["http://localhost:3004"],
     hmr: "vite",
   },
 ];

@@ -75,9 +75,9 @@ export const CHAIN_REGISTRY: Record<number, ChainConfig> = {
   31337: {
     name: "localhost",
     easName: "localhost",
-    blockExplorer: "http://localhost:8545",
-    rpcTemplate: "http://localhost:8545",
-    publicRpcUrl: "http://localhost:8545",
+    blockExplorer: "http://localhost:3009",
+    rpcTemplate: "http://localhost:3009",
+    publicRpcUrl: "http://localhost:3009",
   },
 } as const;
 

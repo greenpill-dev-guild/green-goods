@@ -15,7 +15,7 @@
     "dev:docker:down": "docker compose -f docker-compose.indexer.yaml down",
     "dev:manual": "envio dev",
     "start": "envio start",
-    "stop": "pkill -f 'envio dev' || true && lsof -ti:9898 -ti:8080 2>/dev/null | xargs kill -9 2>/dev/null || true",
+    "stop": "docker compose -f docker-compose.indexer.yaml down",
     "doctor": "./scripts/doctor.sh",
     "doctor:fix": "./scripts/doctor.sh --fix",
     "check:indexing-boundary": "node scripts/check-indexing-boundary.mjs",

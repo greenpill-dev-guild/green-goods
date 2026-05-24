@@ -52,7 +52,7 @@ This command:
 4. Builds the ReScript code
 5. Starts the indexer
 
-Visit http://localhost:8080 for the GraphQL Playground (password: `testing`).
+Visit http://localhost:3006 for the GraphQL Playground (password: `testing`).
 
 ---
 
@@ -147,7 +147,7 @@ The root `.env` is automatically loaded by the indexer's Docker Compose setup an
 
 ### Client Configuration
 
-- Default dev endpoint: `http://localhost:8080/v1/graphql`
+- Default dev endpoint: `http://localhost:3006/v1/graphql`
 - Override in client via `VITE_ENVIO_INDEXER_URL`
 
 ## Troubleshooting

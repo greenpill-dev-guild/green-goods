@@ -43,8 +43,8 @@ const portByApp = {
   client: 3001,
   admin: 3002,
   docs: 3003,
-  storybook: 6006,
-  indexer: 8080,
+  storybook: 3004,
+  indexer: 3006,
 };
 
 function parseArgs(argv) {
@@ -103,10 +103,16 @@ function disconnect() {
   }
 }
 
-function deleteAll() {
-  return new Promise((resolve) => {
-    pm2.delete("all", () => resolve());
-  });
+function deleteApps(names) {
+  const uniqueNames = [...new Set(names)];
+  return Promise.all(
+    uniqueNames.map(
+      (name) =>
+        new Promise((resolve) => {
+          pm2.delete(name, () => resolve());
+        })
+    )
+  );
 }
 
 function startApps(apps) {
@@ -195,8 +201,8 @@ async function reportReadiness(apps) {
   );
 }
 
-async function stopAndExit(exitCode = 0) {
-  await deleteAll();
+async function stopAndExit(names, exitCode = 0) {
+  await deleteApps(names);
   disconnect();
   process.exit(exitCode);
 }
@@ -220,7 +226,7 @@ async function main() {
 
   if (parsed.mode === "stop") {
     await connect();
-    await deleteAll();
+    await deleteApps(allApps.map((app) => app.name));
     disconnect();
     console.log("Stopped Green Goods dev services.");
     return;
@@ -232,7 +238,7 @@ async function main() {
   }
 
   await connect();
-  await deleteAll();
+  await deleteApps(apps.map((app) => app.name));
   await startApps(apps);
 
   const label = parsed.mode === "group" ? `${parsed.group} stack` : "custom stack";
@@ -248,10 +254,10 @@ async function main() {
   });
 
   process.on("SIGINT", () => {
-    stopAndExit(0);
+    stopAndExit(apps.map((app) => app.name), 0);
   });
   process.on("SIGTERM", () => {
-    stopAndExit(0);
+    stopAndExit(apps.map((app) => app.name), 0);
   });
 
   // Run readiness probe in the background so logs flow uninterrupted.

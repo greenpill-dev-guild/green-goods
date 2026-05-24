@@ -11,8 +11,8 @@ vi.mock("../../config", () => ({
   getEASConfig: () => ({
     WORK_APPROVAL: { uid: "0xWorkApprovalUID", schema: "schema" },
   }),
-  getIndexerUrl: () => "http://localhost:8080/v1/graphql",
-  getEasGraphqlUrl: () => "http://localhost:8080/eas",
+  getIndexerUrl: () => "http://localhost:3006/v1/graphql",
+  getEasGraphqlUrl: () => "http://localhost:3006/eas",
 }));
 
 describe("Work Approval Flow", () => {

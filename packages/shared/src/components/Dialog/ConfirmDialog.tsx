@@ -259,7 +259,7 @@ export function ConfirmDialog({
         <Dialog.Content
           data-component="ConfirmDialog"
           data-slot="surface"
-          role={isDestructive ? "alertdialog" : undefined}
+          role={isDestructive ? "alertdialog" : "dialog"}
           className="fixed z-modal w-full max-w-[calc(100vw-2rem)] sm:max-w-md overflow-hidden bg-[var(--color-material-solid)] border border-stroke-soft-200 shadow-[var(--shadow-float)] focus:outline-none bottom-0 left-1/2 -translate-x-1/2 sm:bottom-auto sm:top-1/2 sm:-translate-y-1/2"
           style={dialogSurfaceStyle}
           data-testid="confirm-dialog"

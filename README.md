@@ -109,9 +109,9 @@ Client and admin can start with generated defaults. Live data, uploads, authenti
 | Client | <https://localhost:3001> | `bun run dev:web` or `bun run dev` |
 | Admin | <https://localhost:3002> | `bun run dev:web` or `bun run dev` |
 | Docs | <http://localhost:3003> | `bun run dev:web` or `bun run dev` |
-| Storybook | <http://localhost:6006> | `bun run dev:web` or `bun run dev` |
+| Storybook | <http://localhost:3004> | `bun run dev:web` or `bun run dev` |
 | Agent | <http://localhost:3000/health> | `bun run dev` with configured agent env |
-| Indexer | <http://localhost:8080/v1/graphql> | `bun run dev` with Docker running |
+| Indexer | <http://localhost:3006/v1/graphql> | `bun run dev` with Docker running |
 
 ### Dev Commands
 

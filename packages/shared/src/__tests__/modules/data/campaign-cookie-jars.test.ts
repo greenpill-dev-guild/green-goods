@@ -9,7 +9,7 @@ const { mockGetNetworkContracts, mockIndexerQuery, mockReadContract } = vi.hoist
 
 vi.mock("../../../config/blockchain", () => ({
   DEFAULT_CHAIN_ID: 11155111,
-  getNetworkConfig: () => ({ rpcUrl: "http://localhost:8545" }),
+  getNetworkConfig: () => ({ rpcUrl: "http://localhost:3009" }),
 }));
 
 vi.mock("../../../modules/data/graphql-client", () => ({

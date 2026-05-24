@@ -82,7 +82,7 @@ describe("detectBlockchainError", () => {
       "Client disconnected",
       "RPC endpoint unavailable",
       "Could not connect to provider",
-      "ECONNREFUSED 127.0.0.1:8545",
+      "ECONNREFUSED 127.0.0.1:3009",
     ];
 
     it.each(networkMessages)('detects "%s" as network', (msg) => {

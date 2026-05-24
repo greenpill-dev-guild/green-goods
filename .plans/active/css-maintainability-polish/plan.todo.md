@@ -127,6 +127,18 @@ Still required after revamped UI lane scope lock:
 - [ ] Implement only approved targeted cleanup, or explicitly defer cleanup with evidence.
 - [ ] Capture browser/Storybook proof for admin shell, sheets, client drawers, representative typography, chart/toast token fixes, and Storybook parity before handing to QA.
 
+## Phase 7 - Modern Web UI Primitive Follow-Up
+
+- [ ] Start from `reports/modern-web-ui-follow-up-2026-05-24.md`.
+- [ ] Add a feature-readiness ladder to the UI lane scope-lock report: production-ready primitives, progressive pilots, and research-only APIs.
+- [ ] Audit text-scale readiness before adding `<meta name="text-scale" content="scale">` to client or admin HTML.
+- [ ] Identify one isolated admin candidate for an element-scoped View Transition pilot; defer if browser support or proof cost is not acceptable.
+- [ ] Identify long-form public/admin surfaces where CSS scroll spy could improve guided navigation without app-state coupling.
+- [ ] Identify dense admin table/grid surfaces where gap decorations could be a progressive enhancement under `@supports`.
+- [ ] Inventory native dialog/popover opportunities, including `closedby="any"` only where fallback behavior, focus, escape, and reduced motion remain proven.
+- [ ] Keep overscroll gestures, HTML-in-Canvas, CSS `@function`, CSS `if()`, broad style-query architecture, `corner-shape`, `shape()`, `border-shape`, and `fit-text` out of production scope.
+- [ ] Do not run `bun run check:design-generated` during this plan-only follow-up until its dirty-tree side effect is resolved.
+
 ## Lane Checklists
 
 ### UI (`claude/ui/css-maintainability-polish`)
@@ -143,6 +155,7 @@ Revamped full maintainability pass:
 
 - [ ] Start from `handoffs/claude-ui-revamp.md`.
 - [ ] Audit all CSS maintainability surfaces: entrypoints, shared utilities, admin M3 overrides, Canvas/sheets/navigation, client typography/PWA drawers, Storybook parity, baselines, raw tokens, and Tailwind v4 shared-source risks.
+- [ ] Fold the modern Web UI follow-up report into the scope-lock recommendations without turning the pass into redesign.
 - [ ] Classify findings into real regression, acceptable local fix, global styling drift, token naming drift, documented technical debt, or visual proof required.
 - [ ] Present a numbered scope-lock report before runtime CSS edits.
 - [ ] Implement only approved targeted cleanup, preserving dialect boundaries and avoiding redesign.

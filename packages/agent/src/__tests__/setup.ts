@@ -136,7 +136,7 @@ const originalEnv = {
 process.env.NODE_ENV = "test";
 process.env.ENCRYPTION_SECRET = "test-secret-key-for-encryption-32chars!";
 process.env.TELEGRAM_BOT_TOKEN = "123456:ABC-TEST-TOKEN";
-process.env.VITE_RPC_URL_11155111 = "http://localhost:8545";
+process.env.VITE_RPC_URL_11155111 = "http://localhost:3009";
 
 afterAll(() => {
   // Restore original env values

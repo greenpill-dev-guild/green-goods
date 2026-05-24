@@ -32,7 +32,7 @@ fi
 echo "🔍 Checking database connection..."
 DB_READY=false
 for i in 1 2 3 4 5; do
-  if nc -z localhost 5433 2>/dev/null; then
+  if nc -z localhost 3008 2>/dev/null; then
     DB_READY=true
     break
   fi
@@ -42,7 +42,7 @@ done
 
 if [ "$DB_READY" = false ]; then
   echo ""
-  echo "❌ PostgreSQL is not accessible on port 5433."
+  echo "❌ PostgreSQL is not accessible on port 3008."
   echo ""
   echo "To fix:"
   echo "  cd packages/indexer/generated && docker compose up -d"
@@ -52,14 +52,10 @@ fi
 echo "✅ Database connection OK"
 
 # Check if indexer is already running
-if pgrep -f "envio dev" > /dev/null 2>&1 || lsof -ti:9898 > /dev/null 2>&1; then
-  echo "⚠️  Stopping existing indexer..."
-  pkill -f "envio dev" 2>/dev/null || true
-  pkill -f "ts-node.*Index.res.js" 2>/dev/null || true
-  lsof -ti:9898 | xargs kill -9 2>/dev/null || true
-  lsof -ti:8080 | xargs kill -9 2>/dev/null || true
-  sleep 2
-  echo "✅ Stopped existing indexer"
+if pgrep -f "envio dev" > /dev/null 2>&1 || lsof -ti:3007 > /dev/null 2>&1; then
+  echo "⚠️  Existing indexer process detected on the local dev surface."
+  echo "Stop it explicitly, or use: dev-surfaces down green-goods:indexer-graphql"
+  exit 1
 fi
 
 # Check if generated folder exists

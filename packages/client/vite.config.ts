@@ -211,7 +211,7 @@ export default defineConfig(async ({ command, mode }) => {
           },
           {
             // Indexer API - show cached immediately, revalidate in background
-            urlPattern: /indexer\.hyperindex\.xyz|localhost:8080/,
+            urlPattern: /indexer\.hyperindex\.xyz|localhost:3006/,
             handler: "StaleWhileRevalidate",
             options: {
               cacheName: "indexer-cache",
@@ -374,7 +374,7 @@ export default defineConfig(async ({ command, mode }) => {
         "/api/graphql": {
           target:
             process.env.NODE_ENV === "development"
-              ? "http://localhost:8080/v1/graphql"
+              ? "http://localhost:3006/v1/graphql"
               : (process.env.VITE_ENVIO_INDEXER_URL ??
                 "https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql"),
           changeOrigin: true,

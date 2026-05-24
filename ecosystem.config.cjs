@@ -1,5 +1,5 @@
-// Each Vite/Storybook/docs app handles its own port collision via its package's
-// `predev` / `prestorybook` script. PM2 just runs the package script directly.
+// Each Vite/Storybook/docs app now performs read-only port checks before start.
+// dev-surfaces owns cleanup for processes it started; PM2 just runs scripts directly.
 
 module.exports = {
   apps: [
@@ -62,6 +62,7 @@ module.exports = {
       cwd: ".",
       env: {
         NODE_ENV: "development",
+        PORT: "3005",
       },
       merge_logs: true,
       autorestart: true,
@@ -85,6 +86,9 @@ module.exports = {
       cwd: ".",
       env: {
         NODE_ENV: "development",
+        HASURA_EXTERNAL_PORT: "3006",
+        INDEXER_EXTERNAL_PORT: "3007",
+        ENVIO_PG_PORT: "3008",
       },
       merge_logs: true,
       autorestart: false, // Docker Compose handles its own restarts

@@ -23,8 +23,8 @@ describe("getRpcUrl", () => {
   });
 
   it("keeps localhost on the local RPC URL", () => {
-    expect(getRpcUrl(31337)).toBe("http://localhost:8545");
-    expect(getRpcUrl(31337, "demo")).toBe("http://localhost:8545");
+    expect(getRpcUrl(31337)).toBe("http://localhost:3009");
+    expect(getRpcUrl(31337, "demo")).toBe("http://localhost:3009");
   });
 
   it("falls back unknown chains to Sepolia public RPC without a provider key", () => {
