@@ -135,7 +135,7 @@ If the PostHog connector is unavailable or the expected project ID env vars are 
 
 {if funnel_thin AND open_p0_qa: "🔎 **Funnel context**: {step(s)} thin — {N} open P0 `activity:qa` defect(s) on {surface} ({PRD-ids}) likely suppress conversion before instrumented steps."}
 
-📄 **Digest**: {linear_status_update_url}
+📄 **Full digest (Linear)**: {linear_status_update_url}
 
 {if any_failure: "⚠ Failures this run: {short list}"}
 ```
@@ -301,7 +301,7 @@ Before posting:
 
 ## Phase 5: Discord post + cross-post
 
-Post the primary message to `#product` per the schema. If grant-relevance criteria are met, post the cross-post to `#funding`. Channel guard at every post: if the env var is unset, log and skip; never pick an alternate channel.
+Post the primary message to `#product` per the schema — it carries the week's **highlights inline** (funnel, retention, garden engagement, action templates, conversion-kill, anomalies) **and** the `📄 Full digest (Linear)` line linking the Phase 3 status-update URL. Never reduce the post to a bare link, and never drop the link — highlights live in Discord, the full digest lives in the linked Linear status update. If grant-relevance criteria are met, post the cross-post to `#funding`. Channel guard at every post: if the env var is unset, log and skip; never pick an alternate channel.
 
 `<@${DISCORD_USER_ID_AFO}>` mention only on (a) a **red/P2 anomaly**, or (b) a **novel** setup failure — one not already listed in the prior digest's `## Known setup failures` (loaded in Phase 0). A known, persistent gap (e.g. an unprovisioned connector already flagged in a prior run) is listed in `⚠ Failures this run` **without** a ping, to avoid weekly alert fatigue. Healthy weeks post without mention.
 
