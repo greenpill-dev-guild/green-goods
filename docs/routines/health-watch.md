@@ -10,7 +10,7 @@ env-vars:
   - ARBITRUM_RPC_URL
   - ENVIO_INDEXER_URL
   - DISCORD_BOT_TOKEN
-  - DISCORD_PRODUCT_CHANNEL_ID
+  - DISCORD_ENGINEERING_CHANNEL_ID
   - DISCORD_USER_ID_AFO
   - BOT_API_URL
   - POSTHOG_PROJECT_ID_APP
@@ -191,25 +191,25 @@ Use the Calendar connector as optional enrichment, but never fail on it.
 
 Add a `### Context` subsection to issue bodies when connector data changes interpretation.
 
-## Discord integration (#product channel)
+## Discord integration (#engineering channel)
 
-`DISCORD_BOT_TOKEN` and `DISCORD_PRODUCT_CHANNEL_ID` are in the environment.
+`DISCORD_BOT_TOKEN` and `DISCORD_ENGINEERING_CHANNEL_ID` are in the environment. If `DISCORD_ENGINEERING_CHANNEL_ID` is unset or invalid, skip the Discord post and note `discord: channel unset` in the one-line summary — never substitute another channel (Linear Issues remain the primary output).
 
 ### Read: coordination context
 
-Before checks, scan last 24h of `#product` for operator reports, planned maintenance, known issues. Use to **adjust severity** (e.g., "indexer redeploy planned tonight" downgrades a 🔴 indexer signal to 🟡).
+Before checks, scan last 24h of `#engineering` for operator reports, planned maintenance, known issues. Use to **adjust severity** (e.g., "indexer redeploy planned tonight" downgrades a 🔴 indexer signal to 🟡).
 
 ```
-GET https://discord.com/api/v10/channels/${DISCORD_PRODUCT_CHANNEL_ID}/messages?limit=50
+GET https://discord.com/api/v10/channels/${DISCORD_ENGINEERING_CHANNEL_ID}/messages?limit=50
 Authorization: Bot ${DISCORD_BOT_TOKEN}
 ```
 
 ### Write: morning health summary
 
-After all checks, post to `#product`:
+After all checks, post to `#engineering`:
 
 ```
-POST https://discord.com/api/v10/channels/${DISCORD_PRODUCT_CHANNEL_ID}/messages
+POST https://discord.com/api/v10/channels/${DISCORD_ENGINEERING_CHANNEL_ID}/messages
 ```
 
 Message format:

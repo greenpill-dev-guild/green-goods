@@ -9,7 +9,7 @@ Guild-level routines live in [`greenpill-dev-guild/.github/routines/claude/`](ht
 | File | Status | Cadence | Channel | Issue surface |
 |---|---|---|---|---|
 | `bug-intake.md` | active | M/W/F 04:00 | `#bug-report` (per-capture acks for bug-source) + `#product` (idea-source acks + daily summary) | Linear Customer Needs (raw signal); accepted bugs become unprojected Linear Product Issues |
-| `health-watch.md` | active | Daily M-F 07:30 | `#product` (red only) | Linear Product Issues for accepted operational health work (unprojected) |
+| `health-watch.md` | active | Daily M-F 07:30 | `#engineering` (red only) | Linear Product Issues for accepted operational health work (unprojected) |
 | `growth-pulse.md` | active | Mon 09:00 weekly | `#product` + `#funding` cross-post | Linear Product Issues for accepted anomalies (unprojected) + `develop` digest PR |
 | `qa-triage-pulse.md` | active | Wed 21:00 UTC = 13:00 PST / 14:00 PDT (3h after the 10am PST Product Sync start) | `#product` (Discord summary, @mention when there's something to triage) | Linear Customer Needs only (pre-staged, label `source:qa-triage-pulse` + `qa-sync:<date>`); `/qa-triage` promotes them to Issues + QA-sheet rows interactively. Routine id: `trig_01GSagDiEV9Y8QTBzKeZsPSw` |
 | `pr-review.md` | active | event-driven (PR open) | inline on PR | n/a |
@@ -33,11 +33,12 @@ Gmail is intentionally NOT wired on any GG routine (personal-inbox pollution ris
 | Channel | Used by | Why |
 |---|---|---|
 | `#bug-report` (DISCORD_BUGS_CHANNEL_ID) | bug-intake (Phase 1 ingest source + per-capture acks for bug-source records) | dedicated bug-report feed; reporter ack surface for Telegram bug-topic captures |
-| `#product` (DISCORD_PRODUCT_CHANNEL_ID) | bug-intake (idea-source per-capture acks + daily summary), health-watch (red only), growth-pulse, qa-triage-pulse (Wed pre-stage summary) | user-facing concerns + ideas |
+| `#product` (DISCORD_PRODUCT_CHANNEL_ID) | bug-intake (idea-source per-capture acks + daily summary), growth-pulse, qa-triage-pulse (Wed pre-stage summary) | user-facing concerns + ideas |
+| `#engineering` (DISCORD_ENGINEERING_CHANNEL_ID) | health-watch (red only) | operational health status — engineering-focused (indexer / Vercel / contracts / agent uptime / client errors) |
 | `#funding` (DISCORD_FUNDING_CHANNEL_ID) | growth-pulse cross-post (when grant-relevant) | grant relevance only |
 | inline on PR | pr-review | review surface |
 
-`#engineering` is not used by any Green Goods routine. Code-local engineering signals come from the user reading PRs and Linear, not from a routine.
+`#engineering` is health-watch's home channel (operational health status — indexer / Vercel / contracts / agent uptime / client errors). Other code-local engineering signals still come from the user reading PRs and Linear, not from a routine.
 
 ## Notification policy
 
@@ -147,7 +148,7 @@ All three routines share the same auth surface. The cloud routine env exposes Li
 | Linear connector | Native Linear connector wired into the cloud routine environment |
 | Linear MCP | Linear MCP server exposed to the routine |
 
-Whichever surface is wired up, the routine resolves team/label/status IDs by name at the start of every run — IDs are never hardcoded in the prompt. If the lookup fails, the routine surfaces the failure in the daily `#product` summary instead of skipping records silently.
+Whichever surface is wired up, the routine resolves team/label/status IDs by name at the start of every run — IDs are never hardcoded in the prompt. If the lookup fails, the routine surfaces the failure in its daily Discord summary instead of skipping records silently.
 
 ## Rebuilding a routine
 
