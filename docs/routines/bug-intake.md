@@ -198,11 +198,12 @@ If no production deploys hit the window, omit the correlation block entirely. Do
 
 Source: the dedicated `#bug-report` channel (`DISCORD_BUGS_CHANNEL_ID`). The retired pattern of reading `#product` for bug reports is replaced — `#product` is now reserved for ideas, daily summaries, and product discussion, and Phase 1 ignores it.
 
-1. **Fetch messages** — last 24h from `#bug-report`:
+1. **Fetch messages** — look back far enough to cover the gap since the last run. This routine runs **Mon/Wed/Fri**, so consecutive runs are up to **72h** apart (Fri→Mon); fetch the last **96h** (4 days) so nothing posted between runs is missed. The wider-than-cadence window is deliberate and safe: already-processed messages carry the bot's ✅ reaction (skipped in step 2) and every record stores its source message URL (deduped in step 3), so re-fetching the overlap never re-files anything.
    ```
    GET https://discord.com/api/v10/channels/${DISCORD_BUGS_CHANNEL_ID}/messages?limit=100
    Authorization: Bot ${DISCORD_BOT_TOKEN}
    ```
+   `limit=100` covers a normal 96h window for this low-traffic channel. If exactly 100 come back (a busy window or a large cross-post backfill), paginate with `before=<oldest-id>` until you pass the 96h cutoff so nothing in the window is dropped. Per-run caps (§ Caps and guardrails) still apply, so a large backlog drains across successive runs — the ✅-reaction skip and Linear dedup keep that duplicate-free.
 
 2. **Filter actionable reports** — skip:
    - Bot messages (including yours)
