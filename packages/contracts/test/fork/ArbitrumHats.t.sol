@@ -15,7 +15,7 @@ contract ArbitrumHatsForkTest is Test {
         string memory rpcUrl = _getRpc("ARBITRUM_RPC_URL");
         if (bytes(rpcUrl).length == 0) return;
 
-        vm.createSelectFork(rpcUrl);
+        _selectArbitrumFork(rpcUrl);
 
         IHats hats = IHats(HatsLib.getHatsProtocol());
         uint256 communityHat = HatsLib.getCommunityHatId();
@@ -41,7 +41,7 @@ contract ArbitrumHatsForkTest is Test {
         string memory rpcUrl = _getRpc("ARBITRUM_RPC_URL");
         if (bytes(rpcUrl).length == 0) return;
 
-        vm.createSelectFork(rpcUrl);
+        _selectArbitrumFork(rpcUrl);
 
         IHats hats = IHats(HatsLib.getHatsProtocol());
         uint256 gardensHat = HatsLib.getGardensHatId();
@@ -61,7 +61,7 @@ contract ArbitrumHatsForkTest is Test {
         string memory rpcUrl = _getRpc("ARBITRUM_RPC_URL");
         if (bytes(rpcUrl).length == 0) return;
 
-        vm.createSelectFork(rpcUrl);
+        _selectArbitrumFork(rpcUrl);
 
         IHats hats = IHats(HatsLib.getHatsProtocol());
         uint256 communityHat = HatsLib.getCommunityHatId();
@@ -85,7 +85,7 @@ contract ArbitrumHatsForkTest is Test {
         string memory rpcUrl = _getRpc("ARBITRUM_RPC_URL");
         if (bytes(rpcUrl).length == 0) return;
 
-        vm.createSelectFork(rpcUrl);
+        _selectArbitrumFork(rpcUrl);
 
         IHats hats = IHats(HatsLib.getHatsProtocol());
 
@@ -100,5 +100,23 @@ contract ArbitrumHatsForkTest is Test {
         } catch {
             return "";
         }
+    }
+
+    function _selectArbitrumFork(string memory rpcUrl) internal returns (uint256 forkId) {
+        uint256 forkBlock = _getArbitrumForkBlock();
+        if (forkBlock == 0) return vm.createSelectFork(rpcUrl);
+        return vm.createSelectFork(rpcUrl, forkBlock);
+    }
+
+    function _getArbitrumForkBlock() internal view returns (uint256 forkBlock) {
+        try vm.envUint("ARBITRUM_FORK_BLOCK_NUMBER") returns (uint256 value) {
+            if (value > 0) return value;
+        } catch { }
+
+        try vm.envUint("ARBITRUM_BLOCK_NUMBER") returns (uint256 value) {
+            if (value > 0) return value;
+        } catch { }
+
+        return 0;
     }
 }

@@ -246,7 +246,24 @@ contract ArbitrumLiveGardenSignalPoolRepairForkTest is Test {
             return false;
         }
 
-        vm.createSelectFork(rpcUrl);
+        uint256 forkBlock = _getArbitrumForkBlock();
+        if (forkBlock == 0) {
+            vm.createSelectFork(rpcUrl);
+        } else {
+            vm.createSelectFork(rpcUrl, forkBlock);
+        }
         return true;
+    }
+
+    function _getArbitrumForkBlock() internal view returns (uint256 forkBlock) {
+        try vm.envUint("ARBITRUM_FORK_BLOCK_NUMBER") returns (uint256 value) {
+            if (value > 0) return value;
+        } catch { }
+
+        try vm.envUint("ARBITRUM_BLOCK_NUMBER") returns (uint256 value) {
+            if (value > 0) return value;
+        } catch { }
+
+        return 0;
     }
 }

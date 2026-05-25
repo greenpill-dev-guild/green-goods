@@ -34,7 +34,7 @@ contract ArbitrumKarmaGAPForkTest is Test {
             return;
         }
 
-        vm.createSelectFork(rpcUrl);
+        _selectArbitrumFork(rpcUrl);
         assertEq(block.chainid, 42_161, "Expected Arbitrum fork");
 
         _deployModule();
@@ -91,7 +91,7 @@ contract ArbitrumKarmaGAPForkTest is Test {
             return;
         }
 
-        vm.createSelectFork(rpcUrl);
+        _selectArbitrumFork(rpcUrl);
         assertEq(block.chainid, 42_161, "Expected Arbitrum fork");
 
         assertEq(KarmaLib.getGapContract(), 0x6dC1D6b864e8BEf815806f9e4677123496e12026, "Arbitrum GAP contract mismatch");
@@ -123,7 +123,7 @@ contract ArbitrumKarmaGAPForkTest is Test {
             return;
         }
 
-        vm.createSelectFork(rpcUrl);
+        _selectArbitrumFork(rpcUrl);
 
         _deployModule();
 
@@ -153,7 +153,7 @@ contract ArbitrumKarmaGAPForkTest is Test {
             return;
         }
 
-        vm.createSelectFork(rpcUrl);
+        _selectArbitrumFork(rpcUrl);
 
         _deployModule();
 
@@ -184,5 +184,23 @@ contract ArbitrumKarmaGAPForkTest is Test {
         } catch {
             return "";
         }
+    }
+
+    function _selectArbitrumFork(string memory rpcUrl) internal returns (uint256 forkId) {
+        uint256 forkBlock = _getArbitrumForkBlock();
+        if (forkBlock == 0) return vm.createSelectFork(rpcUrl);
+        return vm.createSelectFork(rpcUrl, forkBlock);
+    }
+
+    function _getArbitrumForkBlock() internal view returns (uint256 forkBlock) {
+        try vm.envUint("ARBITRUM_FORK_BLOCK_NUMBER") returns (uint256 value) {
+            if (value > 0) return value;
+        } catch { }
+
+        try vm.envUint("ARBITRUM_BLOCK_NUMBER") returns (uint256 value) {
+            if (value > 0) return value;
+        } catch { }
+
+        return 0;
     }
 }

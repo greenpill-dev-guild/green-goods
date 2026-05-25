@@ -92,9 +92,24 @@ contract CrossChainENSForkTest is Test {
         }
         if (bytes(ethRpc).length == 0) return false;
 
-        arbForkId = vm.createFork(arbRpc);
-        ethForkId = vm.createFork(ethRpc);
+        uint256 arbForkBlock = _resolveForkBlockNumber("ARBITRUM");
+        uint256 ethForkBlock = _resolveForkBlockNumber("ETHEREUM");
+
+        arbForkId = arbForkBlock == 0 ? vm.createFork(arbRpc) : vm.createFork(arbRpc, arbForkBlock);
+        ethForkId = ethForkBlock == 0 ? vm.createFork(ethRpc) : vm.createFork(ethRpc, ethForkBlock);
         return true;
+    }
+
+    function _resolveForkBlockNumber(string memory envPrefix) internal view returns (uint256 forkBlock) {
+        try vm.envUint(string.concat(envPrefix, "_FORK_BLOCK_NUMBER")) returns (uint256 value) {
+            if (value > 0) return value;
+        } catch { }
+
+        try vm.envUint(string.concat(envPrefix, "_BLOCK_NUMBER")) returns (uint256 value) {
+            if (value > 0) return value;
+        } catch { }
+
+        return 0;
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
