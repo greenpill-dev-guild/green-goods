@@ -28,7 +28,7 @@ contract SepoliaKarmaGAPForkTest is Test {
             return;
         }
 
-        vm.createSelectFork(rpcUrl);
+        _createSepoliaFork(rpcUrl);
         assertEq(block.chainid, 11_155_111, "Expected Sepolia fork");
 
         KarmaGAPModule implementation = new KarmaGAPModule();
@@ -84,7 +84,7 @@ contract SepoliaKarmaGAPForkTest is Test {
             return;
         }
 
-        vm.createSelectFork(rpcUrl);
+        _createSepoliaFork(rpcUrl);
 
         assertEq(KarmaLib.getGapContract(), 0x9E5560f5b084c227Dc40672f48F59DA617eeFA28, "Sepolia GAP contract mismatch");
         assertEq(
@@ -128,5 +128,23 @@ contract SepoliaKarmaGAPForkTest is Test {
         } catch {
             return "";
         }
+    }
+
+    function _createSepoliaFork(string memory rpcUrl) internal returns (uint256) {
+        uint256 forkBlock = _getForkBlock("SEPOLIA");
+        if (forkBlock == 0) return vm.createSelectFork(rpcUrl);
+        return vm.createSelectFork(rpcUrl, forkBlock);
+    }
+
+    function _getForkBlock(string memory envPrefix) internal view returns (uint256) {
+        try vm.envUint(string.concat(envPrefix, "_FORK_BLOCK_NUMBER")) returns (uint256 value) {
+            if (value > 0) return value;
+        } catch { }
+
+        try vm.envUint(string.concat(envPrefix, "_BLOCK_NUMBER")) returns (uint256 value) {
+            if (value > 0) return value;
+        } catch { }
+
+        return 0;
     }
 }

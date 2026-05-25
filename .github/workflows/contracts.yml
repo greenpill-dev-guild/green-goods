@@ -188,10 +188,29 @@ jobs:
           retention-days: 14
 
   fork-readiness:
-    name: Fork Readiness
+    name: Fork Readiness / ${{ matrix.label }}
     if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.operation == 'fork-readiness' || inputs.operation == 'all')
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - shard: arbitrum
+            label: Arbitrum
+            script: test:fork:arbitrum:ci
+          - shard: sepolia
+            label: Sepolia
+            script: test:fork:sepolia:ci
+          - shard: ethereum
+            label: Ethereum ENS
+            script: test:fork:ethereum:ci
+          - shard: gardens
+            label: Gardens And Deployment
+            script: test:fork:gardens:ci
+          - shard: octant
+            label: Octant Readiness
+            script: test:fork:octant:ci
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -216,15 +235,21 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Resolve Arbitrum RPC
+      - name: Resolve fork RPCs and block pins
         env:
           ARBITRUM_RPC_URL: ${{ secrets.ARBITRUM_RPC_URL }}
           ARBITRUM_FORK_BLOCK_NUMBER: ${{ vars.ARBITRUM_FORK_BLOCK_NUMBER || '466388412' }}
+          SEPOLIA_RPC_URL: ${{ secrets.SEPOLIA_RPC_URL || 'https://sepolia.drpc.org' }}
+          SEPOLIA_FORK_BLOCK_NUMBER: ${{ vars.SEPOLIA_FORK_BLOCK_NUMBER || '10917257' }}
+          ETHEREUM_RPC_URL: ${{ secrets.ETHEREUM_RPC_URL || 'https://ethereum-rpc.publicnode.com' }}
+          ETHEREUM_FORK_BLOCK_NUMBER: ${{ vars.ETHEREUM_FORK_BLOCK_NUMBER || '25170563' }}
           ALCHEMY_API_KEY: ${{ secrets.ALCHEMY_API_KEY }}
           ALCHEMY_KEY: ${{ secrets.ALCHEMY_KEY }}
           VITE_ALCHEMY_API_KEY: ${{ secrets.VITE_ALCHEMY_API_KEY }}
-          PUBLIC_ARBITRUM_RPC_URL: https://arb1.arbitrum.io/rpc
+          PUBLIC_ARBITRUM_RPC_URL: https://arbitrum-one.public.blastapi.io
         run: |
+          set -euo pipefail
+
           if [[ -z "$ARBITRUM_RPC_URL" ]]; then
             ALCHEMY_KEY_VALUE="${ALCHEMY_API_KEY:-$ALCHEMY_KEY}"
             ALCHEMY_KEY_VALUE="${ALCHEMY_KEY_VALUE:-$VITE_ALCHEMY_API_KEY}"
@@ -236,28 +261,26 @@ jobs:
               echo "::warning::ARBITRUM_RPC_URL secret is not configured; using public Arbitrum RPC fallback."
             fi
           fi
+
           echo "::add-mask::$ARBITRUM_RPC_URL"
+          echo "::add-mask::$SEPOLIA_RPC_URL"
+          echo "::add-mask::$ETHEREUM_RPC_URL"
           echo "ARBITRUM_RPC_URL=$ARBITRUM_RPC_URL" >> "$GITHUB_ENV"
           echo "ARBITRUM_FORK_RPC_URL=$ARBITRUM_RPC_URL" >> "$GITHUB_ENV"
           echo "ARBITRUM_FORK_BLOCK_NUMBER=$ARBITRUM_FORK_BLOCK_NUMBER" >> "$GITHUB_ENV"
+          echo "SEPOLIA_RPC_URL=$SEPOLIA_RPC_URL" >> "$GITHUB_ENV"
+          echo "SEPOLIA_FORK_RPC_URL=$SEPOLIA_RPC_URL" >> "$GITHUB_ENV"
+          echo "SEPOLIA_FORK_BLOCK_NUMBER=$SEPOLIA_FORK_BLOCK_NUMBER" >> "$GITHUB_ENV"
+          echo "ETHEREUM_RPC_URL=$ETHEREUM_RPC_URL" >> "$GITHUB_ENV"
+          echo "ETHEREUM_FORK_RPC_URL=$ETHEREUM_RPC_URL" >> "$GITHUB_ENV"
+          echo "MAINNET_RPC_URL=$ETHEREUM_RPC_URL" >> "$GITHUB_ENV"
+          echo "ETHEREUM_FORK_BLOCK_NUMBER=$ETHEREUM_FORK_BLOCK_NUMBER" >> "$GITHUB_ENV"
+          echo "MAINNET_FORK_BLOCK_NUMBER=$ETHEREUM_FORK_BLOCK_NUMBER" >> "$GITHUB_ENV"
+          echo "::notice::Fork shard=${{ matrix.shard }} blocks: arbitrum=$ARBITRUM_FORK_BLOCK_NUMBER sepolia=$SEPOLIA_FORK_BLOCK_NUMBER ethereum=$ETHEREUM_FORK_BLOCK_NUMBER"
 
-      - name: Run fork protocol suite
+      - name: Run ${{ matrix.label }} fork shard
         working-directory: packages/contracts
-        run: bun run test:fork:protocol:ci
-        env:
-          SEPOLIA_RPC_URL: ${{ secrets.SEPOLIA_RPC_URL || 'https://ethereum-sepolia.publicnode.com' }}
-          ETHEREUM_RPC_URL: ${{ secrets.ETHEREUM_RPC_URL || 'https://ethereum-rpc.publicnode.com' }}
-          COOKIE_JAR_FACTORY_ADDRESS: ${{ secrets.COOKIE_JAR_FACTORY_ADDRESS }}
-          CI: true
-
-      - name: Run Octant readiness fork gates
-        working-directory: packages/contracts
-        run: |
-          FOUNDRY_PROFILE=fork bun run test:match 'test/fork/ArbitrumOctantVault.t.sol'
-          FOUNDRY_PROFILE=fork bun run test:match 'test/fork/ArbitrumYieldSplitterCore.t.sol'
-          FOUNDRY_PROFILE=e2e bun run test:match 'test/fork/e2e/ArbitrumExtendedE2E.t.sol' --match-test 'testForkArbitrum_e2e_octantVaultCreatedOnGardenMint'
-          FOUNDRY_PROFILE=e2e bun run test:match 'test/fork/e2e/ArbitrumExtendedE2E.t.sol' --match-test 'testForkArbitrum_e2e_fullYieldPipelineWithRealAaveAndSplit'
-          FOUNDRY_PROFILE=e2e bun run test:match 'test/fork/e2e/ArbitrumExtendedE2E.t.sol' --match-test 'testForkArbitrum_e2e_hypercertPoolReadiness_requiresYieldReadablePool'
+        run: bun run ${{ matrix.script }}
         env:
           COOKIE_JAR_FACTORY_ADDRESS: ${{ secrets.COOKIE_JAR_FACTORY_ADDRESS }}
           CI: true

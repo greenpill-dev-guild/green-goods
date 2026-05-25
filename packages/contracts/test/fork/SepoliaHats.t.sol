@@ -10,7 +10,7 @@ contract SepoliaHatsForkTest is Test {
         string memory rpcUrl = _getRpc("SEPOLIA_RPC_URL");
         if (bytes(rpcUrl).length == 0) return;
 
-        vm.createSelectFork(rpcUrl);
+        _createSepoliaFork(rpcUrl);
 
         IHats hats = IHats(HatsLib.getHatsProtocol());
         uint256 communityHat = HatsLib.getCommunityHatId();
@@ -36,7 +36,7 @@ contract SepoliaHatsForkTest is Test {
         string memory rpcUrl = _getRpc("SEPOLIA_RPC_URL");
         if (bytes(rpcUrl).length == 0) return;
 
-        vm.createSelectFork(rpcUrl);
+        _createSepoliaFork(rpcUrl);
 
         IHats hats = IHats(HatsLib.getHatsProtocol());
         uint256 gardensHat = HatsLib.getGardensHatId();
@@ -55,7 +55,7 @@ contract SepoliaHatsForkTest is Test {
         string memory rpcUrl = _getRpc("SEPOLIA_RPC_URL");
         if (bytes(rpcUrl).length == 0) return;
 
-        vm.createSelectFork(rpcUrl);
+        _createSepoliaFork(rpcUrl);
 
         IHats hats = IHats(HatsLib.getHatsProtocol());
         uint256 communityHat = HatsLib.getCommunityHatId();
@@ -76,7 +76,7 @@ contract SepoliaHatsForkTest is Test {
         string memory rpcUrl = _getRpc("SEPOLIA_RPC_URL");
         if (bytes(rpcUrl).length == 0) return;
 
-        vm.createSelectFork(rpcUrl);
+        _createSepoliaFork(rpcUrl);
 
         IHats hats = IHats(HatsLib.getHatsProtocol());
 
@@ -91,5 +91,23 @@ contract SepoliaHatsForkTest is Test {
         } catch {
             return "";
         }
+    }
+
+    function _createSepoliaFork(string memory rpcUrl) internal returns (uint256) {
+        uint256 forkBlock = _getForkBlock("SEPOLIA");
+        if (forkBlock == 0) return vm.createSelectFork(rpcUrl);
+        return vm.createSelectFork(rpcUrl, forkBlock);
+    }
+
+    function _getForkBlock(string memory envPrefix) internal view returns (uint256) {
+        try vm.envUint(string.concat(envPrefix, "_FORK_BLOCK_NUMBER")) returns (uint256 value) {
+            if (value > 0) return value;
+        } catch { }
+
+        try vm.envUint(string.concat(envPrefix, "_BLOCK_NUMBER")) returns (uint256 value) {
+            if (value > 0) return value;
+        } catch { }
+
+        return 0;
     }
 }

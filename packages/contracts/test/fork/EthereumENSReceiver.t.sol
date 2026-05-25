@@ -51,9 +51,30 @@ contract EthereumENSReceiverForkTest is Test {
         }
         if (bytes(rpc).length == 0) return false;
 
-        uint256 forkId = vm.createFork(rpc);
+        uint256 forkBlock = _getForkBlock();
+        uint256 forkId = forkBlock == 0 ? vm.createFork(rpc) : vm.createFork(rpc, forkBlock);
         vm.selectFork(forkId);
         return true;
+    }
+
+    function _getForkBlock() internal view returns (uint256) {
+        try vm.envUint("ETHEREUM_FORK_BLOCK_NUMBER") returns (uint256 value) {
+            if (value > 0) return value;
+        } catch { }
+
+        try vm.envUint("MAINNET_FORK_BLOCK_NUMBER") returns (uint256 value) {
+            if (value > 0) return value;
+        } catch { }
+
+        try vm.envUint("ETHEREUM_BLOCK_NUMBER") returns (uint256 value) {
+            if (value > 0) return value;
+        } catch { }
+
+        try vm.envUint("MAINNET_BLOCK_NUMBER") returns (uint256 value) {
+            if (value > 0) return value;
+        } catch { }
+
+        return 0;
     }
 
     // ═══════════════════════════════════════════════════════════════════════════
