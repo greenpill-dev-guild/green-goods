@@ -60,8 +60,8 @@ const RPC_ENV_ALIASES: Record<string, string[]> = {
 };
 
 const RPC_ENV_DEFAULTS: Record<string, string> = {
-  ETHEREUM_RPC_URL: "https://ethereum-rpc.publicnode.com",
-  MAINNET_RPC_URL: "https://ethereum-rpc.publicnode.com",
+  ETHEREUM_RPC_URL: "https://ethereum.drpc.org",
+  MAINNET_RPC_URL: "https://ethereum.drpc.org",
   ARBITRUM_RPC_URL: "https://arbitrum-one.public.blastapi.io",
   SEPOLIA_RPC_URL: "https://sepolia.drpc.org",
   CELO_RPC_URL: "https://forno.celo.org",

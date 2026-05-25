@@ -12,7 +12,7 @@ const DEFAULTS = {
   ARBITRUM_FORK_BLOCK_NUMBER: "466388412",
   SEPOLIA_RPC_URL: "https://sepolia.drpc.org",
   SEPOLIA_FORK_BLOCK_NUMBER: "10917257",
-  ETHEREUM_RPC_URL: "https://ethereum-rpc.publicnode.com",
+  ETHEREUM_RPC_URL: "https://ethereum.drpc.org",
   ETHEREUM_FORK_BLOCK_NUMBER: "25170563",
 };
 
@@ -60,6 +60,11 @@ function loadEnv() {
 
 function forgeEnv(profile = "fork") {
   const env = { ...process.env, FOUNDRY_PROFILE: profile };
+  const alchemyKey = env.ALCHEMY_API_KEY || env.ALCHEMY_KEY || env.VITE_ALCHEMY_API_KEY;
+
+  if (alchemyKey) {
+    env.ARBITRUM_RPC_URL ||= `https://arb-mainnet.g.alchemy.com/v2/${alchemyKey}`;
+  }
 
   for (const [key, value] of Object.entries(DEFAULTS)) {
     if (!env[key]) env[key] = value;
