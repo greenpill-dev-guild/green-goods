@@ -1,11 +1,8 @@
-# Weekly metrics digests
+# Weekly metrics digests — moved to Linear (2026-05-25)
 
-Written automatically by the `growth-pulse` routine (see `docs/routines/growth-pulse.md`).
+The `growth-pulse` routine no longer writes weekly digests as files in this directory or as `develop` PRs. Growth digests now live in **Linear** as **initiative status updates** on the **Sustainability & Monetization** initiative (append-only, one per ISO week). Accepted anomalies remain unprojected Linear Product Issues (`protocol:green-goods` + `activity:qa`).
 
-Filename convention: `growth-YYYY-WW.md` where `WW` is the ISO week number (1–53).
+- Routine definition: [`../routines/growth-pulse.md`](../routines/growth-pulse.md)
+- Weekly digests (status-update feed): <https://linear.app/greenpill-dev-guild/initiative/sustainability-and-monetization-f1f24d02f585/activity>
 
-Example: `growth-2026-21.md` = week 21 of 2026 (late May).
-
-Each digest is opened as a PR from `claude/growth-pulse/YYYY-WW` → `develop`, labeled `automated/claude`. Review, merge to `develop`, then include in the next `develop → main` batch promotion.
-
-The merged digests are also the routine's week-over-week baseline: `growth-pulse` reads the most recent `growth-*.md` on `develop` at the start of each run (see the routine's Phase 0).
+No `growth-YYYY-WW.md` files are produced here anymore. The routine's week-over-week baseline (Phase 0) now reads the most recent status update on that initiative, not a file in this directory. This README is retained only as a pointer to where the record moved.

@@ -10,7 +10,7 @@ Guild-level routines live in [`greenpill-dev-guild/.github/routines/claude/`](ht
 |---|---|---|---|---|
 | `bug-intake.md` | active | M/W/F 04:00 | `#bug-report` (per-capture acks for bug-source) + `#product` (idea-source acks + daily summary) | Linear Customer Needs (raw signal); accepted bugs become unprojected Linear Product Issues |
 | `health-watch.md` | active | Daily M-F 07:30 | `#engineering` (red only) | Linear Product Issues for accepted operational health work (unprojected) |
-| `growth-pulse.md` | active | Mon 09:00 weekly | `#product` + `#funding` cross-post | Linear Product Issues for accepted anomalies (unprojected) + `develop` digest PR |
+| `growth-pulse.md` | active | Mon 09:00 weekly | `#product` + `#funding` cross-post | Linear Product Issues for accepted anomalies (unprojected) + weekly digest as a Linear initiative status update (Sustainability & Monetization) |
 | `qa-triage-pulse.md` | active | Wed 21:00 UTC = 13:00 PST / 14:00 PDT (3h after the 10am PST Product Sync start) | `#product` (Discord summary, @mention when there's something to triage) | Linear Customer Needs only (pre-staged, label `source:qa-triage-pulse` + `qa-sync:<date>`); `/qa-triage` promotes them to Issues + QA-sheet rows interactively. Routine id: `trig_01GSagDiEV9Y8QTBzKeZsPSw` |
 | `pr-review.md` | active | event-driven (PR open) | inline on PR | n/a |
 
