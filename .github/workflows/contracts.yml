@@ -241,14 +241,6 @@ jobs:
           echo "ARBITRUM_FORK_RPC_URL=$ARBITRUM_RPC_URL" >> "$GITHUB_ENV"
           echo "ARBITRUM_FORK_BLOCK_NUMBER=$ARBITRUM_FORK_BLOCK_NUMBER" >> "$GITHUB_ENV"
 
-      - name: Restore Foundry RPC cache
-        uses: actions/cache@v4
-        with:
-          path: ~/.foundry/cache/rpc
-          key: foundry-rpc-${{ runner.os }}-arbitrum-${{ env.ARBITRUM_FORK_BLOCK_NUMBER }}-v1
-          restore-keys: |
-            foundry-rpc-${{ runner.os }}-arbitrum-
-
       - name: Run fork protocol suite
         working-directory: packages/contracts
         run: bun run test:fork:protocol:ci
