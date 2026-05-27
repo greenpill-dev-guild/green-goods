@@ -31,6 +31,7 @@ scripts/
 | `env-bootstrap.js` | `bun run env:bootstrap` | Append `.env.schema` defaults to `.env` for keys missing there (one-shot post-varlock-removal) |
 | `env-check.js` | `bun run env:check`, called from `doctor.js` | Validate `.env` has all required `.env.schema` keys non-empty |
 | `node-cli.js` | `packages/client dev`, `packages/admin dev`, `packages/shared storybook`, `docs dev` | Run local JS dev CLIs under real system Node instead of Bun's injected `node` shim |
+| `remove-public-sourcemaps.js` | `packages/client build`, `packages/admin build` | Remove emitted `.map` files after Sentry upload so Vercel does not publish browser source maps |
 | `stack.js` | `bun run dev:stack` / `dev:web` / `dev:full` / `dev:prod` / `dev:prod:mirror` / `dev:stack:stop` | Start/stop PM2 app groups from `ecosystem.config.cjs` |
 | `smoke-web.js` | `bun run dev:smoke:web` | Verify client/admin/docs/storybook respond on local ports |
 | `smoke-full.js` | `bun run dev:smoke:full` | Verify the default full-local stack: browser surfaces, local agent, local indexer/Hasura/Postgres, Anvil chain id `42161`, deployed bytecode, and funded Anvil accounts |
