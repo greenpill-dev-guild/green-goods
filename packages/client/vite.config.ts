@@ -1,8 +1,8 @@
 /// <reference types="vitest" />
 
+import { sentryVitePlugin } from "@sentry/vite-plugin";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
-import { sentryVitePlugin } from "@sentry/vite-plugin";
 import { existsSync, readFileSync } from "fs";
 import { resolve } from "path";
 import { defineConfig, loadEnv, type Plugin } from "vite";
@@ -12,6 +12,24 @@ import { APP_ROUTES, createPwaRoutingConfig } from "./src/config/pwa-routing";
 import { createPublicSocialPreviewPlugin } from "./vite/social-preview";
 
 const DEFAULT_INDEXER_URL = "https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql";
+const GREEN_GOODS_CLIENT_VERCEL_PROJECT_ID = "prj_AFl9rmdB5VJFKcpK4Art9had9DmG";
+
+function envValue(key: string): string | undefined {
+  const value = process.env[key]?.trim();
+  return value ? value : undefined;
+}
+
+function resolveClientSentryDsn(): string | undefined {
+  const explicitDsn = envValue("VITE_SENTRY_CLIENT_DSN") || envValue("SENTRY_CLIENT_DSN");
+  if (explicitDsn) return explicitDsn;
+
+  const vercelProjectId = envValue("VITE_VERCEL_PROJECT_ID") || envValue("VERCEL_PROJECT_ID");
+  if (vercelProjectId === GREEN_GOODS_CLIENT_VERCEL_PROJECT_ID) {
+    return envValue("SENTRY_DSN");
+  }
+
+  return undefined;
+}
 
 export default defineConfig(async ({ command, mode }) => {
   const rootDir = resolve(__dirname, "../../");
@@ -78,8 +96,14 @@ export default defineConfig(async ({ command, mode }) => {
   const nodeEnv = command === "build" ? "production" : "development";
   const shouldUploadSentrySourceMaps =
     command === "build" && Boolean(process.env.SENTRY_AUTH_TOKEN);
-  const enableSourceMaps =
-    process.env.GG_ENABLE_SOURCEMAPS === "true" || shouldUploadSentrySourceMaps;
+  const requestedSourceMaps = process.env.GG_ENABLE_SOURCEMAPS === "true";
+  if (command === "build" && requestedSourceMaps && !shouldUploadSentrySourceMaps) {
+    console.warn(
+      "GG_ENABLE_SOURCEMAPS was ignored because SENTRY_AUTH_TOKEN is missing; production source maps are only emitted for Sentry upload."
+    );
+  }
+  const enableSourceMaps = shouldUploadSentrySourceMaps;
+  const sentryDsn = resolveClientSentryDsn();
   const sentryRelease = `green-goods-client@${shortAppVersion}`;
   const indexerProxyTarget =
     process.env.VITE_ENVIO_INDEXER_URL?.trim() ||
@@ -340,6 +364,7 @@ export default defineConfig(async ({ command, mode }) => {
       "import.meta.env.DEV": JSON.stringify(nodeEnv !== "production"),
       "import.meta.env.PROD": JSON.stringify(nodeEnv === "production"),
       "import.meta.env.VITE_APP_VERSION": JSON.stringify(shortAppVersion),
+      "import.meta.env.VITE_SENTRY_CLIENT_DSN": JSON.stringify(sentryDsn ?? ""),
       "process.env.NODE_ENV": JSON.stringify(nodeEnv),
     },
     esbuild: {

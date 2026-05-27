@@ -9,6 +9,24 @@ import { defineConfig, loadEnv, type Plugin, type ProxyOptions, type UserConfig 
 import mkcert from "vite-plugin-mkcert";
 
 const DEFAULT_INDEXER_URL = "https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql";
+const GREEN_GOODS_ADMIN_VERCEL_PROJECT_ID = "prj_t2gwwFBMLKM22eYKxtA0yGRBfigg";
+
+function envValue(key: string): string | undefined {
+  const value = process.env[key]?.trim();
+  return value ? value : undefined;
+}
+
+function resolveAdminSentryDsn(): string | undefined {
+  const explicitDsn = envValue("VITE_SENTRY_ADMIN_DSN") || envValue("SENTRY_ADMIN_DSN");
+  if (explicitDsn) return explicitDsn;
+
+  const vercelProjectId = envValue("VITE_VERCEL_PROJECT_ID") || envValue("VERCEL_PROJECT_ID");
+  if (vercelProjectId === GREEN_GOODS_ADMIN_VERCEL_PROJECT_ID) {
+    return envValue("SENTRY_DSN");
+  }
+
+  return undefined;
+}
 
 export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
   const rootDir = resolve(__dirname, "../../");
@@ -39,7 +57,14 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
   const shortAppVersion = appVersion.slice(0, 12);
   const shouldUploadSentrySourceMaps =
     command === "build" && Boolean(process.env.SENTRY_AUTH_TOKEN);
-  const enableSourceMaps = process.env.GG_ENABLE_SOURCEMAPS === "true" || shouldUploadSentrySourceMaps;
+  const requestedSourceMaps = process.env.GG_ENABLE_SOURCEMAPS === "true";
+  if (command === "build" && requestedSourceMaps && !shouldUploadSentrySourceMaps) {
+    console.warn(
+      "GG_ENABLE_SOURCEMAPS was ignored because SENTRY_AUTH_TOKEN is missing; production source maps are only emitted for Sentry upload."
+    );
+  }
+  const enableSourceMaps = shouldUploadSentrySourceMaps;
+  const sentryDsn = resolveAdminSentryDsn();
   const sentryRelease = `green-goods-admin@${shortAppVersion}`;
 
   // Dev-only plugin: serves admin's tunnel URL at /__dev/tunnel for QR-code testing
@@ -120,6 +145,7 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
     build: { sourcemap: enableSourceMaps, chunkSizeWarningLimit: 2000 },
     define: {
       "import.meta.env.VITE_APP_VERSION": JSON.stringify(shortAppVersion),
+      "import.meta.env.VITE_SENTRY_ADMIN_DSN": JSON.stringify(sentryDsn ?? ""),
     },
     plugins,
     // Deduplicate React, PostHog, and Sentry to prevent multiple instances
