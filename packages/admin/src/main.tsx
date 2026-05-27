@@ -11,7 +11,6 @@ import {
   initTheme,
   PERSIST_MAX_AGE,
   queryClient,
-  trackErrorBoundary,
 } from "@green-goods/shared";
 import { initBrowserSentry } from "@green-goods/shared/sentry";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
@@ -62,15 +61,7 @@ export const Root = () => (
       dehydrateOptions: { shouldDehydrateQuery },
     }}
   >
-    <ErrorBoundary
-      context="AdminApp"
-      onError={(error, errorInfo) =>
-        trackErrorBoundary(error, {
-          componentStack: errorInfo.componentStack,
-          boundaryName: "AdminApp",
-        })
-      }
-    >
+    <ErrorBoundary context="AdminApp">
       <AppKitProvider
         projectId={import.meta.env.VITE_WALLETCONNECT_PROJECT_ID}
         metadata={{

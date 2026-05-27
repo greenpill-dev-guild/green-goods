@@ -118,6 +118,9 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
     envDir: rootDir,
     envPrefix: ["VITE_", "SKIP_"],
     build: { sourcemap: enableSourceMaps, chunkSizeWarningLimit: 2000 },
+    define: {
+      "import.meta.env.VITE_APP_VERSION": JSON.stringify(shortAppVersion),
+    },
     plugins,
     // Deduplicate React, PostHog, and Sentry to prevent multiple instances
     resolve: {

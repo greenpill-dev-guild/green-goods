@@ -1,5 +1,6 @@
 import { RiAlertLine, RiRefreshLine } from "@remixicon/react";
 import { Component, type ErrorInfo, type ReactNode } from "react";
+import { trackErrorBoundary } from "../../modules/app/error-events";
 import { logger } from "../../modules/app/logger";
 import { cn } from "../../utils";
 
@@ -7,7 +8,7 @@ export interface ErrorBoundaryProps {
   children: ReactNode;
   /** Optional fallback component to render on error. If not provided, uses default UI. */
   fallback?: ReactNode | ((error: Error, reset: () => void) => ReactNode);
-  /** Called when an error is caught. Use for logging or reporting. */
+  /** Called after the default error tracking runs. Use for fallback side effects. */
   onError?: (error: Error, errorInfo: ErrorInfo) => void;
   /** Optional context label for logging (e.g., "HypercertWizard") */
   context?: string;
@@ -26,7 +27,7 @@ interface ErrorBoundaryState {
  *
  * @example
  * ```tsx
- * <ErrorBoundary context="PaymentForm" onError={reportToSentry}>
+ * <ErrorBoundary context="PaymentForm" onError={showRecoveryToast}>
  *   <PaymentForm />
  * </ErrorBoundary>
  * ```
@@ -62,6 +63,11 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       message: error.message,
       stack: error.stack,
       componentStack: errorInfo.componentStack,
+    });
+
+    trackErrorBoundary(error, {
+      componentStack: errorInfo.componentStack,
+      boundaryName: context,
     });
 
     onError?.(error, errorInfo);
