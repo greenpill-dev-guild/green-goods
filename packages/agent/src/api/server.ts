@@ -19,10 +19,10 @@ import {
   PUBLIC_AGENT_ROUTES,
   type PublicApiError,
   type PublicSubscribeRequest,
-  type PublicUploadSignCategory,
   type PublicUploadSignRequest,
   publicProviderProofRegistry,
   type ThirdwebNormalizedFundingEvent,
+  validatePublicUploadSignRequest,
 } from "@green-goods/shared/public-contracts";
 import { type Context, Hono, type MiddlewareHandler } from "hono";
 import type { Telegraf } from "telegraf";
@@ -169,10 +169,6 @@ const WEBHOOK_BODY_LIMIT_BYTES = 256 * 1024;
 const UPLOAD_SIGN_BODY_LIMIT_BYTES = 8 * 1024;
 const MAX_UPLOAD_SIGN_TTL_SECONDS = 10 * 60;
 const MAX_UPLOAD_SIGN_SIZE_BYTES = 100 * 1024 * 1024;
-const UPLOAD_SIGN_ALLOWED_CATEGORIES = new Set<PublicUploadSignCategory>([
-  "file_upload",
-  "json_upload",
-]);
 
 type BodyReadResult<T> =
   | { ok: true; value: T | undefined }
@@ -436,106 +432,6 @@ function clampPositiveInteger(value: number | undefined, fallback: number, max: 
 
 function positiveInteger(value: number | undefined): number | undefined {
   return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : undefined;
-}
-
-function isMimeAllowed(mimeType: string, allowedMimeTypes: string[]): boolean {
-  return allowedMimeTypes.some((allowed) => {
-    const normalized = allowed.trim().toLowerCase();
-    if (!normalized) return false;
-    if (normalized.endsWith("/*")) {
-      return mimeType.startsWith(normalized.slice(0, -1));
-    }
-    return mimeType === normalized;
-  });
-}
-
-function isValidUploadFilename(value: unknown): value is string {
-  if (typeof value !== "string") return false;
-  const filename = value.trim();
-  return (
-    filename.length > 0 &&
-    filename.length <= 255 &&
-    filename !== "." &&
-    filename !== ".." &&
-    !hasUnsafeFilenameCharacter(filename)
-  );
-}
-
-function hasUnsafeFilenameCharacter(value: string): boolean {
-  for (const character of value) {
-    const code = character.charCodeAt(0);
-    if (character === "/" || character === "\\" || code <= 31 || code === 127) {
-      return true;
-    }
-  }
-  return false;
-}
-
-function normalizeOptionalUploadString(value: unknown, maxLength: number): string | undefined {
-  if (typeof value !== "string") return undefined;
-  const trimmed = value.trim();
-  if (!trimmed || trimmed.length > maxLength) return undefined;
-  return trimmed;
-}
-
-function validateUploadSignRequest(
-  body: unknown,
-  config: ReturnType<typeof getUploadSigningConfig>
-): PublicUploadSignRequest | PublicApiError {
-  const candidate = body as Partial<PublicUploadSignRequest> | undefined;
-  if (!candidate || typeof candidate !== "object") {
-    return safeError("invalid_request", "Invalid request body.");
-  }
-
-  const filename = candidate.filename;
-  if (!isValidUploadFilename(filename)) {
-    return safeError("invalid_request", "Invalid upload filename.", {
-      fieldErrors: { filename: "Invalid filename" },
-    });
-  }
-
-  const mimeType =
-    typeof candidate.mimeType === "string" ? candidate.mimeType.trim().toLowerCase() : "";
-  if (!mimeType || !isMimeAllowed(mimeType, config.allowedMimeTypes)) {
-    return safeError("invalid_request", "This file type is not supported.", {
-      fieldErrors: { mimeType: "Unsupported MIME type" },
-    });
-  }
-
-  const size = candidate.size;
-  if (typeof size !== "number" || !Number.isInteger(size) || size <= 0) {
-    return safeError("invalid_request", "Invalid upload size.", {
-      fieldErrors: { size: "Size must be a positive integer" },
-    });
-  }
-
-  if (size > config.maxFileSize) {
-    return safeError("invalid_request", "This file is too large.", {
-      fieldErrors: { size: "File exceeds the upload limit" },
-      params: { maxFileSize: config.maxFileSize },
-    });
-  }
-
-  if (candidate.category && !UPLOAD_SIGN_ALLOWED_CATEGORIES.has(candidate.category)) {
-    return safeError("invalid_request", "Invalid upload category.", {
-      fieldErrors: { category: "Invalid upload category" },
-    });
-  }
-
-  if (candidate.gardenAddress !== undefined && !isAddress(candidate.gardenAddress)) {
-    return safeError("invalid_request", "Invalid garden address.", {
-      fieldErrors: { gardenAddress: "Invalid address" },
-    });
-  }
-
-  return {
-    filename: filename.trim(),
-    mimeType,
-    size,
-    source: normalizeOptionalUploadString(candidate.source, 80),
-    category: candidate.category,
-    gardenAddress: candidate.gardenAddress,
-  };
 }
 
 function setUploadCorsHeaders(c: Context, deps: ServerDeps): void {
@@ -946,8 +842,13 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
     const bodyResult = await readLimitedJsonBody<unknown>(c.req.raw, UPLOAD_SIGN_BODY_LIMIT_BYTES);
     if (!bodyResult.ok) return uploadCorsResponse(c, deps, bodyResult.error, bodyResult.status);
 
-    const request = validateUploadSignRequest(bodyResult.value, config);
-    if (isPublicApiError(request)) return uploadCorsResponse(c, deps, request, 400);
+    const validation = validatePublicUploadSignRequest(bodyResult.value, {
+      allowedMimeTypes: config.allowedMimeTypes,
+      maxFileSize: config.maxFileSize,
+      isAddress,
+    });
+    if (!validation.ok) return uploadCorsResponse(c, deps, validation.error, 400);
+    const { request } = validation;
 
     const rateError = checkRateLimitWithPolicy(
       c,

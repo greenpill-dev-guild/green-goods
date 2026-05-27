@@ -1,6 +1,15 @@
-// Framework-free public route and state contracts for the browser read side.
-// This subpath must stay type/data only: no UI frameworks, browser globals, styles,
+// Framework-free public route, state, and validation contracts for the browser read side.
+// This subpath must stay dependency-light: no UI frameworks, browser globals, styles,
 // providers, hooks, or package-root imports.
+
+export {
+  PUBLIC_UPLOAD_SIGN_ALLOWED_CATEGORIES,
+  validatePublicUploadSignRequest,
+} from "./upload-signing";
+export type {
+  PublicUploadSignValidationConfig,
+  PublicUploadSignValidationResult,
+} from "./upload-signing";
 
 export type PublicLocale = "en" | "es" | "pt";
 export type Address = `0x${string}`;

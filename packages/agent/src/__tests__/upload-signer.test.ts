@@ -101,7 +101,7 @@ describe("upload signing API", () => {
     });
   });
 
-  it("rejects invalid MIME type, oversized files, and unsafe filenames before signing", async () => {
+  it("rejects invalid upload contract fields before signing", async () => {
     const fetchMock = vi.fn<typeof fetch>();
     const app = createServer(
       {
@@ -122,6 +122,8 @@ describe("upload signing API", () => {
       validRequest({ mimeType: "text/html" }),
       validRequest({ size: 101, mimeType: "application/json" }),
       validRequest({ filename: "../metadata.json", mimeType: "application/json", size: 10 }),
+      validRequest({ category: "avatar_upload" }),
+      validRequest({ gardenAddress: "not-an-address" }),
     ]) {
       const response = await app.request(PUBLIC_AGENT_ROUTES.uploadSign, {
         method: "POST",
