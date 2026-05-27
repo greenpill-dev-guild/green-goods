@@ -4,7 +4,7 @@ sidebar_label: Admin
 slug: /builders/deployments/admin-deploy
 audience: developer
 owner: docs
-last_verified: 2026-04-08
+last_verified: 2026-05-27
 feature_status: Live
 source_of_truth:
   - packages/admin/package.json
@@ -70,8 +70,10 @@ The admin uses the same root `.env` as all other packages:
 | `VITE_WALLETCONNECT_PROJECT_ID` | WalletConnect for wallet connection |
 | `VITE_ENVIO_INDEXER_URL` | Envio GraphQL endpoint for data queries |
 | `VITE_POSTHOG_ADMIN_KEY` | Admin PostHog project token for browser analytics |
+| `VITE_API_BASE_URL` | Agent API origin for public API calls and signed upload URLs |
+| `VITE_ALCHEMY_API_KEY` | Optional RPC provider key for higher-capacity reads |
 
-Additional admin-specific variables may include API keys for services like Hypercerts marketplace. Vercel must use `VITE_POSTHOG_ADMIN_KEY` for Admin analytics; `VITE_PUBLIC_POSTHOG_KEY` is not read by the app, and Admin intentionally does not fall back to the client `VITE_POSTHOG_KEY`.
+Additional admin-specific variables may include API keys for services like Hypercerts marketplace. Vercel must use `VITE_POSTHOG_ADMIN_KEY` for Admin analytics; `VITE_PUBLIC_POSTHOG_KEY` is not read by the app, and Admin intentionally does not fall back to the client `VITE_POSTHOG_KEY`. The admin Vercel project is a static Vite app and does not need database variables such as `DATABASE_URL`, `POSTGRES_*`, `PG*`, or `NEON_PROJECT_ID`.
 
 ### Testing
 
@@ -134,7 +136,7 @@ This starts the unified Storybook that includes stories from all three UI packag
 
 ### Source Maps
 
-Vercel runs `bun run build` only. Source-map generation and PostHog upload run from the GitHub Actions `admin.yml` lane on trusted `main` pushes, where `GG_ENABLE_SOURCEMAPS=true` enables map output for the upload job.
+Vercel runs `bun run build` only. PostHog source-map upload runs from the GitHub Actions `admin.yml` lane on trusted `main` pushes; its upload credentials are GitHub repository secrets, not Vercel project variables. The admin Vercel project should not carry `GG_ENABLE_SOURCEMAPS` by itself because the current Vite config emits maps only when the Sentry upload path is active.
 
 Set these variables as GitHub repository secrets:
 
@@ -143,7 +145,7 @@ Set these variables as GitHub repository secrets:
 | `POSTHOG_ADMIN_ENV_ID` | PostHog environment ID for the admin app |
 | `POSTHOG_CLI_TOKEN` | PostHog token with source-map upload permissions |
 
-Production Vercel deploys do not require these variables. The GitHub Actions source-map upload job fails closed if the PostHog source-map variables are missing.
+Production Vercel deploys do not require these PostHog variables. The GitHub Actions source-map upload job fails closed if the PostHog source-map variables are missing.
 
 ## Resources
 

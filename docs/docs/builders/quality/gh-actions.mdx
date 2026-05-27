@@ -4,7 +4,7 @@ sidebar_label: GitHub Actions
 slug: /builders/quality/gh-actions
 audience: developer
 owner: docs
-last_verified: 2026-04-27
+last_verified: 2026-05-27
 feature_status: Live
 source_of_truth:
   - .github/workflows
@@ -138,7 +138,7 @@ The Storybook/design gate runs `check:design-md`, `check:design-generated`, `che
 
 Storybook publication is deliberately outside GitHub Actions. `design.yml` validates and uploads the Storybook artifact for PR review; the standalone public site is deployed by the Vercel project rooted at `packages/shared`, using `packages/shared/vercel.json` to build `@green-goods/shared` and serve `packages/shared/storybook-static`.
 
-Client and admin source maps are handled by GitHub Actions, not Vercel. The `client.yml` and `admin.yml` workflows upload source maps to the app-specific PostHog environment on trusted `main` pushes. Vercel runs plain package builds only, and Vite emits source maps only when `GG_ENABLE_SOURCEMAPS=true` is set by the upload workflow.
+Client and admin PostHog source maps are handled by GitHub Actions, not Vercel project environment variables. The `client.yml` and `admin.yml` workflows upload source maps to the app-specific PostHog environment on trusted `main` pushes using GitHub secrets such as `POSTHOG_CLI_TOKEN` and the app environment ID. Vercel runs plain package builds only. `GG_ENABLE_SOURCEMAPS` is an upload-lane flag, not a durable frontend Vercel setting; current Vite source-map emission remains coupled to `SENTRY_AUTH_TOKEN` until the build config is decoupled.
 
 ## Running & Troubleshooting
 

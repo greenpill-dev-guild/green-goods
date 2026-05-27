@@ -139,15 +139,20 @@ Sentry complements PostHog; it does not replace it. PostHog remains the product/
 | `SENTRY_ADMIN_DSN` | Supported Vercel/Sentry integration fallback for admin |
 | `SENTRY_DSN` | Supported Vercel project-scoped fallback for client/admin builds and agent runtime fallback |
 | `SENTRY_AGENT_DSN` | Preferred server-only agent/API DSN |
-| `SENTRY_AUTH_TOKEN` | Build-time sourcemap upload token; never exposed to browser runtime |
+| `SENTRY_AUTH_TOKEN` | Build-time Sentry source-map upload token; required only for the current Sentry upload path and never exposed to browser runtime |
 
 Browser builds never expose `SENTRY_AUTH_TOKEN`. The client and admin Vite configs read
 generic Sentry integration DSNs only at build time and inject them into the existing
 `VITE_SENTRY_*` runtime keys. Generic `SENTRY_DSN` is accepted only when the Vercel project ID
 or Vercel deployment hostname matches the known Green Goods client or admin project, so a
-repo-root secret cannot accidentally cross-wire the two browser apps. Production source maps are
-emitted only when `SENTRY_AUTH_TOKEN` is present, uploaded to Sentry, and then deleted from the
-Vite output directory before deploy.
+repo-root secret cannot accidentally cross-wire the two browser apps.
+
+Frontend source-map ownership is split today: PostHog source-map uploads run from GitHub
+Actions with `POSTHOG_CLI_TOKEN` plus the app-specific PostHog environment ID, while Vite
+currently emits maps only when `SENTRY_AUTH_TOKEN` is present. `GG_ENABLE_SOURCEMAPS` is an
+upload-lane flag, not a durable Vercel project variable. Keep client Sentry integration
+variables only where Sentry upload or log-drain integration is intentionally enabled, and do
+not keep orphaned source-map flags on admin.
 
 Active routines are Sentry-ready, not Sentry-dependent: when a Sentry connector/API surface is available, include Sentry safe-summary evidence beside PostHog evidence. When it is unavailable, continue without it. Do not add Sentry MCP entries or routine API-key fallbacks unless the user explicitly asks.
 

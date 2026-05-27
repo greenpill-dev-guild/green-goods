@@ -4,7 +4,7 @@ sidebar_label: Client PWA
 slug: /builders/deployments/client-deploy
 audience: developer
 owner: docs
-last_verified: 2026-05-08
+last_verified: 2026-05-27
 feature_status: Live
 source_of_truth:
   - packages/client/package.json
@@ -77,6 +77,12 @@ All environment variables come from the root `.env` file (never package-specific
 | `VITE_WALLETCONNECT_PROJECT_ID` | WalletConnect authentication |
 | `VITE_PIMLICO_API_KEY` | Pimlico bundler/paymaster for account abstraction |
 | `VITE_ENVIO_INDEXER_URL` | Envio GraphQL endpoint |
+| `VITE_API_BASE_URL` | Agent API origin for public API calls and signed upload URLs |
+| `VITE_POSTHOG_KEY` | Client/PostHog browser analytics token |
+| `VITE_ALCHEMY_API_KEY` | Optional RPC provider key for higher-capacity reads |
+| `VITE_GOOGLE_APPOINTMENT_URL` | Optional public appointment booking URL |
+
+The client Vercel project is a static Vite app. Do not provision database variables such as `DATABASE_URL`, `POSTGRES_*`, `PG*`, or `NEON_PROJECT_ID` there; browser and public API flows go through `VITE_API_BASE_URL` and the deployed agent. The PostHog host is fixed in shared runtime config, so `VITE_POSTHOG_HOST` is not read by the app. The client build also does not read `VITE_THIRDWEB_CLIENT_ID`; thirdweb checkout configuration belongs to the agent runtime.
 
 ### Single-Chain Build
 
@@ -161,7 +167,7 @@ The `client.yml` lane has a manual Lighthouse advisory job checking:
 
 ### Source Maps
 
-The client Vercel project runs only `bun run build`. The trusted `client.yml` workflow owns source-map generation and PostHog upload on `main`, setting `GG_ENABLE_SOURCEMAPS=true` only for that upload lane.
+The client Vercel project runs only `bun run build`. The trusted `client.yml` workflow owns PostHog source-map upload on `main`; its upload credentials are GitHub repository secrets, not Vercel project variables.
 
 Set these variables as GitHub repository secrets:
 
@@ -170,7 +176,7 @@ Set these variables as GitHub repository secrets:
 | `POSTHOG_CLIENT_ENV_ID` | PostHog environment ID for the client app |
 | `POSTHOG_CLI_TOKEN` | PostHog token with source-map upload permissions |
 
-Production Vercel deploys do not require these variables. The GitHub Actions source-map upload job fails closed if the PostHog source-map variables are missing.
+Production Vercel deploys do not require these PostHog variables. The GitHub Actions source-map upload job fails closed if the PostHog source-map variables are missing. `GG_ENABLE_SOURCEMAPS` is an upload-lane flag, not a durable frontend Vercel setting; current Vite source-map emission is still coupled to `SENTRY_AUTH_TOKEN`, so keep client Sentry integration variables only where Sentry upload or log-drain integration is intentionally enabled.
 
 ## Resources
 
