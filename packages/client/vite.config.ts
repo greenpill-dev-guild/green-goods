@@ -3,7 +3,7 @@
 import { sentryVitePlugin } from "@sentry/vite-plugin";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
-import { existsSync, readFileSync } from "fs";
+import { existsSync, readdirSync, readFileSync, rmSync } from "fs";
 import { resolve } from "path";
 import { defineConfig, loadEnv, type Plugin } from "vite";
 import mkcert from "vite-plugin-mkcert";
@@ -53,6 +53,30 @@ function resolveClientSentryDsn(): string | undefined {
   }
 
   return undefined;
+}
+
+function deleteSourceMapsInDirectory(directory: string): void {
+  if (!existsSync(directory)) return;
+
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    const path = resolve(directory, entry.name);
+    if (entry.isDirectory()) {
+      deleteSourceMapsInDirectory(path);
+    } else if (entry.isFile() && entry.name.endsWith(".map")) {
+      rmSync(path, { force: true });
+    }
+  }
+}
+
+function deleteSentrySourceMapsPlugin(outDir: string): Plugin {
+  return {
+    name: "green-goods-delete-sentry-source-maps",
+    apply: "build",
+    enforce: "post",
+    closeBundle() {
+      deleteSourceMapsInDirectory(outDir);
+    },
+  };
 }
 
 export default defineConfig(async ({ command, mode }) => {
@@ -359,8 +383,11 @@ export default defineConfig(async ({ command, mode }) => {
     }),
     ...(shouldUploadSentrySourceMaps
       ? [
-          sentryVitePlugin({
+          ...sentryVitePlugin({
             authToken: process.env.SENTRY_AUTH_TOKEN,
+            errorHandler(error) {
+              throw error;
+            },
             org: process.env.SENTRY_ORG || "greenpill",
             project: process.env.SENTRY_CLIENT_PROJECT || "green-goods-client",
             release: {
@@ -371,6 +398,7 @@ export default defineConfig(async ({ command, mode }) => {
             },
             telemetry: false,
           }),
+          deleteSentrySourceMapsPlugin(resolve(__dirname, "dist")),
         ]
       : []),
   ];

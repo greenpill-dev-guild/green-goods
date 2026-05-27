@@ -3,7 +3,7 @@
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { sentryVitePlugin } from "@sentry/vite-plugin";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
 import { defineConfig, loadEnv, type Plugin, type ProxyOptions, type UserConfig } from "vite";
 import mkcert from "vite-plugin-mkcert";
@@ -50,6 +50,30 @@ function resolveAdminSentryDsn(): string | undefined {
   }
 
   return undefined;
+}
+
+function deleteSourceMapsInDirectory(directory: string): void {
+  if (!existsSync(directory)) return;
+
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    const path = resolve(directory, entry.name);
+    if (entry.isDirectory()) {
+      deleteSourceMapsInDirectory(path);
+    } else if (entry.isFile() && entry.name.endsWith(".map")) {
+      rmSync(path, { force: true });
+    }
+  }
+}
+
+function deleteSentrySourceMapsPlugin(outDir: string): Plugin {
+  return {
+    name: "green-goods-delete-sentry-source-maps",
+    apply: "build",
+    enforce: "post",
+    closeBundle() {
+      deleteSourceMapsInDirectory(outDir);
+    },
+  };
 }
 
 export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
@@ -136,8 +160,11 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
     }),
     ...(shouldUploadSentrySourceMaps
       ? [
-          sentryVitePlugin({
+          ...sentryVitePlugin({
             authToken: process.env.SENTRY_AUTH_TOKEN,
+            errorHandler(error) {
+              throw error;
+            },
             org: process.env.SENTRY_ORG || "greenpill",
             project: process.env.SENTRY_ADMIN_PROJECT || "green-goods-admin",
             release: {
@@ -148,6 +175,7 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
             },
             telemetry: false,
           }),
+          deleteSentrySourceMapsPlugin(resolve(__dirname, "dist")),
         ]
       : []),
   ];
