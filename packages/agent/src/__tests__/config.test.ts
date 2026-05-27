@@ -110,6 +110,11 @@ describe("loadConfig analytics env", () => {
   const ORIGINAL_ANALYTICS_ENABLED = process.env.ANALYTICS_ENABLED;
   const ORIGINAL_POSTHOG_AGENT_KEY = process.env.POSTHOG_AGENT_KEY;
   const ORIGINAL_VITE_POSTHOG_AGENT_KEY = process.env.VITE_POSTHOG_AGENT_KEY;
+  const ORIGINAL_SENTRY_AGENT_DSN = process.env.SENTRY_AGENT_DSN;
+  const ORIGINAL_SENTRY_DSN = process.env.SENTRY_DSN;
+  const ORIGINAL_SENTRY_ENABLED = process.env.SENTRY_ENABLED;
+  const ORIGINAL_SENTRY_TRACES_SAMPLE_RATE = process.env.SENTRY_TRACES_SAMPLE_RATE;
+  const ORIGINAL_SENTRY_RELEASE = process.env.SENTRY_RELEASE;
 
   afterEach(() => {
     if (ORIGINAL_NODE_ENV === undefined) delete process.env.NODE_ENV;
@@ -120,6 +125,19 @@ describe("loadConfig analytics env", () => {
     else process.env.POSTHOG_AGENT_KEY = ORIGINAL_POSTHOG_AGENT_KEY;
     if (ORIGINAL_VITE_POSTHOG_AGENT_KEY === undefined) delete process.env.VITE_POSTHOG_AGENT_KEY;
     else process.env.VITE_POSTHOG_AGENT_KEY = ORIGINAL_VITE_POSTHOG_AGENT_KEY;
+    if (ORIGINAL_SENTRY_AGENT_DSN === undefined) delete process.env.SENTRY_AGENT_DSN;
+    else process.env.SENTRY_AGENT_DSN = ORIGINAL_SENTRY_AGENT_DSN;
+    if (ORIGINAL_SENTRY_DSN === undefined) delete process.env.SENTRY_DSN;
+    else process.env.SENTRY_DSN = ORIGINAL_SENTRY_DSN;
+    if (ORIGINAL_SENTRY_ENABLED === undefined) delete process.env.SENTRY_ENABLED;
+    else process.env.SENTRY_ENABLED = ORIGINAL_SENTRY_ENABLED;
+    if (ORIGINAL_SENTRY_TRACES_SAMPLE_RATE === undefined) {
+      delete process.env.SENTRY_TRACES_SAMPLE_RATE;
+    } else {
+      process.env.SENTRY_TRACES_SAMPLE_RATE = ORIGINAL_SENTRY_TRACES_SAMPLE_RATE;
+    }
+    if (ORIGINAL_SENTRY_RELEASE === undefined) delete process.env.SENTRY_RELEASE;
+    else process.env.SENTRY_RELEASE = ORIGINAL_SENTRY_RELEASE;
   });
 
   it("uses POSTHOG_AGENT_KEY as the only agent analytics token", () => {
@@ -144,5 +162,29 @@ describe("loadConfig analytics env", () => {
 
     expect(config.analyticsEnabled).toBe(true);
     expect(config.posthogApiKey).toBeUndefined();
+  });
+
+  it("loads agent Sentry config from server-only env vars", () => {
+    process.env.NODE_ENV = "production";
+    process.env.SENTRY_AGENT_DSN = "https://agent@sentry.io/1";
+    process.env.SENTRY_TRACES_SAMPLE_RATE = "0.25";
+    process.env.SENTRY_RELEASE = "green-goods-agent@test";
+
+    const config = loadConfig();
+
+    expect(config.sentryEnabled).toBe(true);
+    expect(config.sentryDsn).toBe("https://agent@sentry.io/1");
+    expect(config.sentryTracesSampleRate).toBe(0.25);
+    expect(config.sentryRelease).toBe("green-goods-agent@test");
+  });
+
+  it("falls back to the standard SENTRY_DSN when SENTRY_AGENT_DSN is absent", () => {
+    process.env.NODE_ENV = "production";
+    delete process.env.SENTRY_AGENT_DSN;
+    process.env.SENTRY_DSN = "https://standard@sentry.io/1";
+
+    const config = loadConfig();
+
+    expect(config.sentryDsn).toBe("https://standard@sentry.io/1");
   });
 });

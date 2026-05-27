@@ -2,6 +2,7 @@
 
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
+import { sentryVitePlugin } from "@sentry/vite-plugin";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { defineConfig, loadEnv, type Plugin, type ProxyOptions, type UserConfig } from "vite";
@@ -9,7 +10,7 @@ import mkcert from "vite-plugin-mkcert";
 
 const DEFAULT_INDEXER_URL = "https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql";
 
-export default defineConfig(async ({ mode }): Promise<UserConfig> => {
+export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
   const rootDir = resolve(__dirname, "../../");
   // Resolve .env from monorepo root even when this package script runs with a package cwd.
   process.chdir(rootDir);
@@ -30,7 +31,16 @@ export default defineConfig(async ({ mode }): Promise<UserConfig> => {
   const isCI = process.env.CI === "true";
   const skipMkcert = process.env.SKIP_MKCERT === "true";
   const indexerProxyTarget = process.env.VITE_ENVIO_INDEXER_URL ?? DEFAULT_INDEXER_URL;
-  const enableSourceMaps = process.env.GG_ENABLE_SOURCEMAPS === "true";
+  const appVersion =
+    process.env.VITE_APP_VERSION ||
+    process.env.VERCEL_GIT_COMMIT_SHA ||
+    process.env.GITHUB_SHA ||
+    "dev";
+  const shortAppVersion = appVersion.slice(0, 12);
+  const shouldUploadSentrySourceMaps =
+    command === "build" && Boolean(process.env.SENTRY_AUTH_TOKEN);
+  const enableSourceMaps = process.env.GG_ENABLE_SOURCEMAPS === "true" || shouldUploadSentrySourceMaps;
+  const sentryRelease = `green-goods-admin@${shortAppVersion}`;
 
   // Dev-only plugin: serves admin's tunnel URL at /__dev/tunnel for QR-code testing
   // on real mobile devices. Mirrors the client-side plugin; reads .tunnel-url-admin
@@ -75,6 +85,22 @@ export default defineConfig(async ({ mode }): Promise<UserConfig> => {
         plugins: [["babel-plugin-react-compiler", {}]],
       },
     }),
+    ...(shouldUploadSentrySourceMaps
+      ? [
+          sentryVitePlugin({
+            authToken: process.env.SENTRY_AUTH_TOKEN,
+            org: process.env.SENTRY_ORG || "greenpill",
+            project: process.env.SENTRY_ADMIN_PROJECT || "green-goods-admin",
+            release: {
+              name: sentryRelease,
+            },
+            sourcemaps: {
+              filesToDeleteAfterUpload: ["dist/**/*.map"],
+            },
+            telemetry: false,
+          }),
+        ]
+      : []),
   ];
 
   const graphqlProxy: ProxyOptions = {
@@ -93,12 +119,16 @@ export default defineConfig(async ({ mode }): Promise<UserConfig> => {
     envPrefix: ["VITE_", "SKIP_"],
     build: { sourcemap: enableSourceMaps, chunkSizeWarningLimit: 2000 },
     plugins,
-    // Deduplicate React and PostHog to prevent multiple instances
+    // Deduplicate React, PostHog, and Sentry to prevent multiple instances
     resolve: {
-      dedupe: ["react", "react-dom", "posthog-js"],
+      dedupe: ["react", "react-dom", "posthog-js", "@sentry/react"],
       conditions: ["import", "module", "browser", "default"],
       alias: {
         "@": resolve(__dirname, "./src"),
+        "@green-goods/shared/sentry": resolve(
+          __dirname,
+          "../shared/src/modules/app/sentry.ts"
+        ),
         "@green-goods/shared": resolve(__dirname, "../shared/src"),
         "@green-goods/shared/hooks": resolve(__dirname, "../shared/src/hooks"),
         "@green-goods/shared/providers": resolve(__dirname, "../shared/src/providers"),
@@ -117,7 +147,7 @@ export default defineConfig(async ({ mode }): Promise<UserConfig> => {
     },
     // Optimize dependency pre-bundling
     optimizeDeps: {
-      include: ["react", "react-dom", "posthog-js", "multiformats"],
+      include: ["react", "react-dom", "posthog-js", "@sentry/react", "multiformats"],
       exclude: ["@green-goods/shared"],
     },
     // Fix CommonJS resolution for ESM packages

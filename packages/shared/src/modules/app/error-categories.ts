@@ -13,6 +13,7 @@ import { type ParsedContractError, parseContractError } from "../../utils/errors
 import { logger } from "./logger";
 import { getAppContext } from "./posthog";
 import { getBreadcrumbs } from "./error-breadcrumbs";
+import { captureExternalError } from "./external-error-reporters";
 
 const IS_DEV = import.meta.env.DEV;
 const IS_DEBUG = import.meta.env.VITE_POSTHOG_DEBUG === "true";
@@ -259,6 +260,24 @@ export function trackError(error: unknown, context: ErrorContext = {}): void {
     // Additional metadata
     ...metadata,
   };
+
+  const fingerprint = String(properties.error_fingerprint);
+
+  if (source !== "window.onerror" && source !== "unhandledrejection") {
+    captureExternalError(normalizedError, {
+      severity,
+      category,
+      source,
+      userAction,
+      gardenAddress,
+      txHash,
+      authMode,
+      isOffline,
+      recoverable: recoverable ?? parsedContractError?.recoverable,
+      fingerprint,
+      metadata: properties,
+    });
+  }
 
   if (IS_DEBUG) {
     logger.info(`[ErrorTracking] ${severity.toUpperCase()}: ${normalizedError.message}`, {

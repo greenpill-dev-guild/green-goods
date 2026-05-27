@@ -68,6 +68,11 @@ export interface Config {
   // Analytics
   posthogApiKey?: string;
   analyticsEnabled: boolean;
+  sentryDsn?: string;
+  sentryEnabled: boolean;
+  sentryTracesSampleRate: number;
+  sentryRelease?: string;
+  sentryDebug: boolean;
 
   // Environment
   nodeEnv: string;
@@ -101,6 +106,11 @@ export function loadConfig(): Config {
   // Analytics configuration
   const posthogApiKey = process.env.POSTHOG_AGENT_KEY;
   const analyticsEnabled = process.env.ANALYTICS_ENABLED !== "false" && nodeEnv === "production";
+  const sentryDsn = process.env.SENTRY_AGENT_DSN || process.env.SENTRY_DSN;
+  const sentryEnabled = process.env.SENTRY_ENABLED !== "false" && nodeEnv === "production";
+  const sentryTracesSampleRate = parseSampleRate(process.env.SENTRY_TRACES_SAMPLE_RATE, 0.05);
+  const sentryRelease =
+    process.env.SENTRY_RELEASE || process.env.VERCEL_GIT_COMMIT_SHA || process.env.GITHUB_SHA;
 
   return {
     // Chain
@@ -154,6 +164,11 @@ export function loadConfig(): Config {
     // Analytics
     posthogApiKey,
     analyticsEnabled,
+    sentryDsn,
+    sentryEnabled,
+    sentryTracesSampleRate,
+    sentryRelease,
+    sentryDebug: process.env.SENTRY_DEBUG === "true",
 
     // Environment
     nodeEnv,
@@ -166,6 +181,12 @@ function parsePositiveInteger(value: string | undefined): number | undefined {
   if (!value?.trim()) return undefined;
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : undefined;
+}
+
+function parseSampleRate(value: string | undefined, fallback: number): number {
+  if (!value?.trim()) return fallback;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 && parsed <= 1 ? parsed : fallback;
 }
 
 /**
@@ -299,6 +320,10 @@ export function validateConfig(config: Config): void {
     warnings.push("POSTHOG_AGENT_KEY not set. Analytics will be disabled.");
   }
 
+  if (config.isProduction && config.sentryEnabled && !config.sentryDsn) {
+    warnings.push("SENTRY_AGENT_DSN not set. Sentry error reporting will be disabled.");
+  }
+
   // Throw on critical errors in production
   if (errors.length > 0) {
     for (const error of errors) {
@@ -317,6 +342,9 @@ export function validateConfig(config: Config): void {
   // Log analytics status
   if (config.analyticsEnabled && config.posthogApiKey) {
     logger.info("Analytics enabled");
+  }
+  if (config.sentryEnabled && config.sentryDsn) {
+    logger.info("Sentry error reporting enabled");
   }
 }
 

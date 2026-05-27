@@ -16,10 +16,13 @@
     "test:ui": "APP_ENV=test node ../../scripts/dev/node-cli.js vitest --ui",
     "format": "biome format --write src",
     "format:check": "biome format src",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "sentry:sourcemaps": "sentry-cli sourcemaps inject --org ${SENTRY_ORG:-greenpill} --project ${SENTRY_AGENT_PROJECT:-green-goods-agent} ./dist && sentry-cli sourcemaps upload --org ${SENTRY_ORG:-greenpill} --project ${SENTRY_AGENT_PROJECT:-green-goods-agent} ./dist"
   },
   "dependencies": {
     "@green-goods/shared": "workspace:*",
+    "@sentry/bun": "^10.53.1",
+    "@sentry/cli": "^2",
     "@xenova/transformers": "^2.17.1",
     "hono": "^4.11.3",
     "pino": "^10.1.0",

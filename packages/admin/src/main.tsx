@@ -13,6 +13,7 @@ import {
   queryClient,
   trackErrorBoundary,
 } from "@green-goods/shared";
+import { initBrowserSentry } from "@green-goods/shared/sentry";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
@@ -36,7 +37,17 @@ declare global {
 // Initialize theme system
 const cleanupTheme = initTheme();
 
-// Initialize global error handlers for PostHog exception tracking
+initBrowserSentry({
+  dsn: import.meta.env.VITE_SENTRY_ADMIN_DSN,
+  environment: import.meta.env.MODE,
+  release: import.meta.env.VITE_APP_VERSION
+    ? `green-goods-admin@${import.meta.env.VITE_APP_VERSION}`
+    : undefined,
+  surface: "admin",
+  debug: import.meta.env.VITE_SENTRY_DEBUG === "true",
+});
+
+// Initialize global error handlers for PostHog/Sentry exception tracking
 // Catches unhandled errors and promise rejections that escape Error Boundaries
 initGlobalErrorHandlers();
 

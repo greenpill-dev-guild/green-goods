@@ -2,6 +2,7 @@
 
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
+import { sentryVitePlugin } from "@sentry/vite-plugin";
 import { existsSync, readFileSync } from "fs";
 import { resolve } from "path";
 import { defineConfig, loadEnv, type Plugin } from "vite";
@@ -9,6 +10,8 @@ import mkcert from "vite-plugin-mkcert";
 import { VitePWA, type VitePWAOptions } from "vite-plugin-pwa";
 import { APP_ROUTES, createPwaRoutingConfig } from "./src/config/pwa-routing";
 import { createPublicSocialPreviewPlugin } from "./vite/social-preview";
+
+const DEFAULT_INDEXER_URL = "https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql";
 
 export default defineConfig(async ({ command, mode }) => {
   const rootDir = resolve(__dirname, "../../");
@@ -73,7 +76,14 @@ export default defineConfig(async ({ command, mode }) => {
   const isCI = process.env.CI === "true";
   const skipMkcert = process.env.SKIP_MKCERT === "true";
   const nodeEnv = command === "build" ? "production" : "development";
-  const enableSourceMaps = process.env.GG_ENABLE_SOURCEMAPS === "true";
+  const shouldUploadSentrySourceMaps =
+    command === "build" && Boolean(process.env.SENTRY_AUTH_TOKEN);
+  const enableSourceMaps =
+    process.env.GG_ENABLE_SOURCEMAPS === "true" || shouldUploadSentrySourceMaps;
+  const sentryRelease = `green-goods-client@${shortAppVersion}`;
+  const indexerProxyTarget =
+    process.env.VITE_ENVIO_INDEXER_URL?.trim() ||
+    (nodeEnv === "development" ? "http://localhost:3006/v1/graphql" : DEFAULT_INDEXER_URL);
   const isBunRuntime = "bun" in process.versions;
   if (command === "build") {
     process.env.NODE_ENV = "production";
@@ -299,6 +309,22 @@ export default defineConfig(async ({ command, mode }) => {
       },
       devOptions: { enabled: process.env.VITE_ENABLE_SW_DEV === "true" },
     }),
+    ...(shouldUploadSentrySourceMaps
+      ? [
+          sentryVitePlugin({
+            authToken: process.env.SENTRY_AUTH_TOKEN,
+            org: process.env.SENTRY_ORG || "greenpill",
+            project: process.env.SENTRY_CLIENT_PROJECT || "green-goods-client",
+            release: {
+              name: sentryRelease,
+            },
+            sourcemaps: {
+              filesToDeleteAfterUpload: ["dist/**/*.map"],
+            },
+            telemetry: false,
+          }),
+        ]
+      : []),
   ];
 
   return {
@@ -320,11 +346,12 @@ export default defineConfig(async ({ command, mode }) => {
       jsxDev: command !== "build",
     },
     plugins,
-    // Deduplicate React and PostHog to prevent multiple instances
+    // Deduplicate React, PostHog, and Sentry to prevent multiple instances
     resolve: {
-      dedupe: ["react", "react-dom", "posthog-js"],
+      dedupe: ["react", "react-dom", "posthog-js", "@sentry/react"],
       alias: {
         "@": resolve(__dirname, "./src"),
+        "@green-goods/shared/sentry": resolve(__dirname, "../shared/src/modules/app/sentry.ts"),
         "@green-goods/shared/service-worker": resolve(
           __dirname,
           "../shared/src/modules/app/service-worker-registration.ts"
@@ -355,7 +382,13 @@ export default defineConfig(async ({ command, mode }) => {
     // Optimize dependency pre-bundling
     optimizeDeps: {
       // Include CJS packages that need named exports extracted
-      include: ["react", "react-dom", "posthog-js", "@ethereum-attestation-service/eas-sdk"],
+      include: [
+        "react",
+        "react-dom",
+        "posthog-js",
+        "@sentry/react",
+        "@ethereum-attestation-service/eas-sdk",
+      ],
       // Exclude local packages and ESM-only packages
       exclude: ["@green-goods/shared"],
     },
@@ -372,11 +405,7 @@ export default defineConfig(async ({ command, mode }) => {
         process.env.VITE_USE_POLLING === "true" ? { usePolling: true, interval: 100 } : undefined,
       proxy: {
         "/api/graphql": {
-          target:
-            process.env.NODE_ENV === "development"
-              ? "http://localhost:3006/v1/graphql"
-              : (process.env.VITE_ENVIO_INDEXER_URL ??
-                "https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql"),
+          target: indexerProxyTarget,
           changeOrigin: true,
           secure: false,
           rewrite: (path) => path.replace(/^\/api\/graphql/, ""),

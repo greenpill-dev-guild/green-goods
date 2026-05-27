@@ -32,6 +32,7 @@ import { createSqliteFundingIntentStore } from "./services/funding-intents";
 import { logger } from "./services/logger";
 import { createLumaClient } from "./services/luma";
 import { rateLimiter } from "./services/rate-limiter";
+import { captureAgentException, initAgentSentry, shutdownAgentSentry } from "./services/sentry";
 import { createShutdownHandler } from "./runtime/shutdown";
 
 // ============================================================================
@@ -40,6 +41,14 @@ import { createShutdownHandler } from "./runtime/shutdown";
 
 async function main(): Promise<void> {
   const config = getConfig();
+  initAgentSentry({
+    dsn: config.sentryDsn,
+    enabled: config.sentryEnabled,
+    environment: config.nodeEnv,
+    release: config.sentryRelease,
+    tracesSampleRate: config.sentryTracesSampleRate,
+    debug: config.sentryDebug,
+  });
   initAgentAnalytics({
     apiKey: config.posthogApiKey,
     enabled: config.analyticsEnabled,
@@ -181,6 +190,7 @@ async function main(): Promise<void> {
       () => clearBlockchainCache(),
       closeDB,
       shutdownAgentAnalytics,
+      shutdownAgentSentry,
     ],
     exit: (code) => process.exit(code),
     logger,
@@ -192,15 +202,18 @@ async function main(): Promise<void> {
 
   process.on("uncaughtException", (error) => {
     logger.fatal({ err: error }, "Uncaught exception");
+    captureAgentException(error, { source: "process.uncaughtException", surface: "runtime" });
     void shutdown("uncaughtException", 1);
   });
 
   process.on("unhandledRejection", (reason, promise) => {
     logger.error({ reason, promise }, "Unhandled rejection");
+    captureAgentException(reason, { source: "process.unhandledRejection", surface: "runtime" });
   });
 }
 
 main().catch((error) => {
   logger.fatal({ err: error }, "Failed to start agent");
+  captureAgentException(error, { source: "startup", surface: "runtime" });
   process.exit(1);
 });

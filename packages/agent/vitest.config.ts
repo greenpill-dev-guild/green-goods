@@ -44,6 +44,10 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "@green-goods/shared/sentry-redaction": path.resolve(
+        __dirname,
+        "../shared/src/modules/app/sentry-redaction.ts"
+      ),
       "@green-goods/shared": path.resolve(__dirname, "../shared/src"),
       "node:diagnostics_channel": path.resolve(
         __dirname,

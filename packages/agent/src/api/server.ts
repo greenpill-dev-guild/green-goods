@@ -60,6 +60,7 @@ import {
   PinataUploadSignerConfigError,
   type PinataUploadSignerConfig,
 } from "../services/pinata-upload-signer";
+import { captureAgentException } from "../services/sentry";
 import type { ChatMessageStatus } from "../types";
 import {
   InMemoryPublicRateLimiter,
@@ -725,6 +726,19 @@ const defaultPublicRateLimiter = new InMemoryPublicRateLimiter();
  */
 export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>): AgentServer {
   const app = new Hono() as AgentServer;
+
+  app.onError((err, c) => {
+    log.error({ err, route: c.req.path, method: c.req.method }, "Unhandled API error");
+    captureAgentException(err, {
+      source: "hono.onError",
+      surface: "api",
+      route: c.req.path,
+      method: c.req.method,
+      status: 500,
+    });
+    return c.json({ error: "Internal server error" }, 500);
+  });
+
   const fundingIntents = deps.fundingIntents ?? new MemoryFundingIntentStore();
   const providerProofRegistry = deps.providerProofRegistry ?? publicProviderProofRegistry;
 

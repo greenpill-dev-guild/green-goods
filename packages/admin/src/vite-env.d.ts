@@ -17,6 +17,9 @@ interface ImportMetaEnv {
   readonly VITE_MOCK_PWA_INSTALLED?: string;
   readonly VITE_API_BASE_URL?: string;
   readonly VITE_PINATA_GATEWAY_URL?: string;
+  readonly VITE_APP_VERSION?: string;
+  readonly VITE_SENTRY_ADMIN_DSN?: string;
+  readonly VITE_SENTRY_DEBUG?: string;
 }
 
 interface ImportMeta {

@@ -75,6 +75,21 @@ export const mockPostHog = {
   shutdown: vi.fn(),
 };
 
+export const mockSentryScope = {
+  setContext: vi.fn(),
+  setTag: vi.fn(),
+};
+
+export const mockSentry = {
+  captureException: vi.fn(),
+  flush: vi.fn().mockResolvedValue(true),
+  init: vi.fn(),
+  setTag: vi.fn(),
+  withScope: vi.fn((callback: (scope: typeof mockSentryScope) => void) =>
+    callback(mockSentryScope)
+  ),
+};
+
 /**
  * Exported Telegram mock instance for per-test customization.
  */
@@ -110,6 +125,13 @@ export function resetMocks(): void {
   mockPostHog.identify.mockClear();
   mockPostHog.capture.mockClear();
   mockPostHog.shutdown.mockClear();
+  mockSentry.captureException.mockClear();
+  mockSentry.flush.mockClear();
+  mockSentry.init.mockClear();
+  mockSentry.setTag.mockClear();
+  mockSentry.withScope.mockClear();
+  mockSentryScope.setContext.mockClear();
+  mockSentryScope.setTag.mockClear();
   mockTelegram.launch.mockClear();
   mockTelegram.stop.mockClear();
   mockTelegram.sendMessage.mockClear();
@@ -653,6 +675,8 @@ vi.mock("posthog-node", () => ({
     return mockPostHog;
   }),
 }));
+
+vi.mock("@sentry/bun", () => mockSentry);
 
 // Mock Telegram bot API
 vi.mock("telegraf", () => ({

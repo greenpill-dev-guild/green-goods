@@ -389,3 +389,9 @@ keystore/
 # API keys file
 secrets.json
 credentials.json
+
+# Sentry CLI auth (NEVER commit). .sentryclirc holds an org auth token and
+# .env.sentry-build-plugin holds SENTRY_AUTH_TOKEN — provide the token via the
+# environment / a build secret, not a committed file.
+.sentryclirc
+.env.sentry-build-plugin

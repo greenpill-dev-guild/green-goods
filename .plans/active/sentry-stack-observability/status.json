@@ -1,0 +1,88 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "sentry-stack-observability",
+    "title": "Sentry Stack Observability",
+    "kind": "feature",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "in_review",
+    "priority": "p2",
+    "created_at": "2026-05-27T00:00:00.000Z",
+    "updated_at": "2026-05-27T00:00:00.000Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": null,
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": null,
+    "lanes": {}
+  },
+  "taxonomy": {
+    "initiative": "engineering-quality",
+    "tracks": ["ops", "agent", "client", "admin"],
+    "work_types": ["observability", "implementation"],
+    "surfaces": [
+      "packages/shared",
+      "packages/client",
+      "packages/admin",
+      "packages/agent",
+      "docs/routines",
+      ".claude/skills",
+      ".agents/skills"
+    ],
+    "depends_on_features": ["agent-posthog-observability"]
+  },
+  "notes": [
+    "Sentry is root-cause/release evidence; PostHog remains product-impact/session evidence.",
+    "No Sentry MCP or routine API-key fallback in v1.",
+    "Runtime ingestion still requires deployed DSNs and first-event verification."
+  ],
+  "lanes": {
+    "observability": {
+      "owner": "codex",
+      "status": "completed",
+      "branch": null,
+      "depends_on": [],
+      "tdd": {
+        "mode": "targeted",
+        "status": "green_recorded",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "bun run --cwd packages/shared test src/__tests__/modules/app/sentry-redaction.test.ts && bun run --cwd packages/agent test src/__tests__/sentry.test.ts src/__tests__/config.test.ts",
+          "evidence": "eval.md"
+        },
+        "note": "Focused privacy/config/capture tests cover the Sentry-specific behavior."
+      },
+      "skill_tags": ["observability", "sentry", "posthog", "agent"]
+    },
+    "runtime_verification": {
+      "owner": "human",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["observability"],
+      "skill_tags": ["deploy", "ops"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-05-27T00:00:00.000Z",
+      "actor": "codex",
+      "lane": "observability",
+      "status": "implemented",
+      "branch": null,
+      "note": "Completed code integration, docs, and focused validation. Runtime DSN verification remains."
+    }
+  ]
+}

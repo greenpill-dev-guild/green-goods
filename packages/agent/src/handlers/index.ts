@@ -17,6 +17,7 @@ import {
   trackAgentMessageHandled,
   trackAgentMessageReceived,
 } from "../services/analytics";
+import { captureAgentException } from "../services/sentry";
 
 const log = loggers.handlers;
 
@@ -121,8 +122,17 @@ export async function handleMessage(message: InboundMessage): Promise<OutboundRe
 
     return response;
   } catch (error) {
+    const durationMs = Date.now() - startedAt;
     await trackAgentMessageFailed(message, error, {
-      durationMs: Date.now() - startedAt,
+      durationMs,
+    });
+    captureAgentException(error, {
+      source: "handleMessage",
+      surface: "handler",
+      platform,
+      contentType: content.type,
+      commandName: isCommandContent(content) ? content.name.toLowerCase() : undefined,
+      durationMs,
     });
     throw error;
   }
