@@ -87,6 +87,10 @@ services:
       # Hasura connection
       HASURA_GRAPHQL_ENDPOINT: http://graphql-engine:8080
       HASURA_GRAPHQL_ADMIN_SECRET: ${HASURA_GRAPHQL_ADMIN_SECRET:-testing}
+      # Envio HyperSync API token. Required for reliable live Arbitrum catch-up.
+      ENVIO_API_TOKEN: ${ENVIO_API_TOKEN:-}
+      ENVIO_HYPERSYNC_CLIENT_TIMEOUT_MILLIS: ${ENVIO_HYPERSYNC_CLIENT_TIMEOUT_MILLIS:-120000}
+      ENVIO_HYPERSYNC_CLIENT_MAX_RETRIES: ${ENVIO_HYPERSYNC_CLIENT_MAX_RETRIES:-0}
     volumes:
       # Mount source for read access without rebuild. `develop.watch` below
       # owns the change-detection + restart loop; the mounts give graceful

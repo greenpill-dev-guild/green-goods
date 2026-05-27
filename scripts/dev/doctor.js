@@ -18,13 +18,15 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, "../..");
 
-const validProfiles = new Set(["web", "full", "contracts", "upload"]);
+const validProfiles = new Set(["web", "full", "contracts", "upload", "prod", "prod-mirror"]);
 
 const profileLabels = {
   web: "Frontend QA",
   full: "Full-stack/indexer",
   contracts: "Contracts",
   upload: "Upload-capable QA",
+  prod: "Production-backed local dev",
+  "prod-mirror": "Production-backed local dev with local indexer mirror",
 };
 
 const profilePorts = {
@@ -51,6 +53,21 @@ const profilePorts = {
     { port: 3002, label: "admin" },
     { port: 3003, label: "docs" },
   ],
+  prod: [
+    { port: 3001, label: "client" },
+    { port: 3002, label: "admin" },
+    { port: 3003, label: "docs" },
+    { port: 3004, label: "storybook" },
+  ],
+  "prod-mirror": [
+    { port: 3001, label: "client" },
+    { port: 3002, label: "admin" },
+    { port: 3003, label: "docs" },
+    { port: 3004, label: "storybook" },
+    { port: 3006, label: "indexer graphql" },
+    { port: 3007, label: "envio indexer" },
+    { port: 3008, label: "indexer postgres" },
+  ],
 };
 
 const requiredTools = [
@@ -71,7 +88,9 @@ let opReady = null;
 
 function usage(exitCode = 0) {
   const stream = exitCode === 0 ? process.stdout : process.stderr;
-  stream.write(`Usage: node scripts/dev/doctor.js [--profile web|full|contracts|upload] [--json]\n`);
+  stream.write(
+    `Usage: node scripts/dev/doctor.js [--profile web|full|contracts|upload|prod|prod-mirror] [--json]\n`
+  );
   process.exit(exitCode);
 }
 
@@ -242,7 +261,7 @@ function checkTools() {
     add("pass", `${tool.label} available`, version, "", { check: `tool:${tool.cmd}` });
   }
 
-  if (options.profile === "full") {
+  if (options.profile === "full" || options.profile === "prod-mirror") {
     if (!commandExists("docker")) {
       add("fail", "Docker not found", "Required for full-stack/indexer work.", "Install Docker Desktop or Docker Engine.", {
         check: "tool:docker",
@@ -276,7 +295,7 @@ function checkTools() {
 }
 
 function checkDocker() {
-  if (options.profile !== "full" || !commandExists("docker")) return;
+  if ((options.profile !== "full" && options.profile !== "prod-mirror") || !commandExists("docker")) return;
 
   const result = spawnSync("docker", ["ps"], { stdio: "ignore" });
   if (result.status === 0) {
@@ -372,7 +391,7 @@ function checkEnv() {
     });
   } else {
     add(
-      requiredLevel(["web", "full", "upload"]),
+      requiredLevel(["web", "full", "upload", "prod", "prod-mirror"]),
       "Root .env is missing",
       "",
       "Run bun run setup from a fresh clone.",
@@ -399,10 +418,15 @@ function checkEnv() {
   const vitePinataJwt = valueFor(envFile, "VITE_PINATA_JWT");
   const pinataJwtOpRef = valueFor(envFile, "PINATA_JWT_OP_REF");
   const pinataJwt = valueFor(envFile, "PINATA_JWT");
+  const envioApiToken = valueFor(envFile, "ENVIO_API_TOKEN");
+  const envioApiTokenOpRef = valueFor(envFile, "ENVIO_API_TOKEN_OP_REF");
   const apiBaseUrl = valueFor(envFile, "VITE_API_BASE_URL") || schema.VITE_API_BASE_URL;
   const hasPinataOpRef = hasOpRef(pinataJwtOpRef);
   const hasPinataServer =
     hasUsableValue(pinataJwt) || (options.profile === "upload" && hasPinataOpRef && opReady);
+  const hasEnvioApiToken =
+    (hasUsableValue(envioApiToken) && !hasOpRef(envioApiToken)) ||
+    (hasOpRef(envioApiTokenOpRef) && opReady);
 
   if (vitePinataJwt.trim()) {
     add(
@@ -448,6 +472,38 @@ function checkEnv() {
     );
   }
 
+  if (options.profile === "prod-mirror") {
+    if (hasEnvioApiToken) {
+      add(
+        "pass",
+        "Envio API token configured",
+        "Token value was detected but not printed.",
+        "",
+        { check: "env:envio-api-token" }
+      );
+    } else {
+      add(
+        "fail",
+        "Envio API token missing for live-indexer mirror",
+        "The local mirror can start without it, but live Arbitrum catch-up may stall or lag beyond the smoke threshold.",
+        "Set ENVIO_API_TOKEN in root .env, or set ENVIO_API_TOKEN_OP_REF in .env.template and run `bun run env:sync`.",
+        { check: "env:envio-api-token" }
+      );
+    }
+  } else if (options.profile === "full") {
+    add(
+      hasEnvioApiToken ? "pass" : "info",
+      hasEnvioApiToken ? "Envio API token configured" : "Envio API token not configured",
+      hasEnvioApiToken
+        ? "Token value was detected but not printed."
+        : "Not required for the default Anvil-backed full-local stack; required for the prod-mirror live-indexer path.",
+      hasEnvioApiToken
+        ? ""
+        : "Set ENVIO_API_TOKEN only when you need `bun run dev:prod:mirror` to keep up with live Arbitrum.",
+      { check: "env:envio-api-token" }
+    );
+  }
+
   const rpId = valueFor(envFile, "VITE_PASSKEY_RP_ID") || schema.VITE_PASSKEY_RP_ID || "";
   if (!rpId) {
     add("pass", "Passkey RP ID uses runtime fallback", "localhost in dev, greengoods.app otherwise.", "", {
@@ -471,7 +527,37 @@ function checkEnv() {
     });
   }
 
-  if (options.profile === "web" || options.profile === "full" || options.profile === "upload") {
+  if (options.profile === "prod" || options.profile === "prod-mirror") {
+    add(
+      "pass",
+      "Production agent API selected by stack overlay",
+      "VITE_API_BASE_URL=https://agent.greengoods.app",
+      "",
+      { check: "env:prod-agent-api" }
+    );
+  }
+
+  if (options.profile === "prod") {
+    add(
+      "pass",
+      "Hosted production indexer selected by stack overlay",
+      "VITE_ENVIO_INDEXER_URL=https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql",
+      "",
+      { check: "env:indexer-url" }
+    );
+  } else if (options.profile === "prod-mirror") {
+    add(
+      "pass",
+      "Local live-indexer mirror selected by stack overlay",
+      "VITE_ENVIO_INDEXER_URL=http://localhost:3006/v1/graphql",
+      "",
+      { check: "env:indexer-url" }
+    );
+  } else if (
+    options.profile === "web" ||
+    options.profile === "full" ||
+    options.profile === "upload"
+  ) {
     const indexerUrl = valueFor(envFile, "VITE_ENVIO_INDEXER_URL") || schema.VITE_ENVIO_INDEXER_URL || "";
     if (indexerUrl.includes("localhost:3006")) {
       add("pass", "Indexer URL points to local GraphQL", "http://localhost:3006/v1/graphql", "", {
@@ -491,7 +577,23 @@ function checkEnv() {
   // VITE_CHAIN_ID drives chain selection at build time. Without it, the client
   // falls back to FALLBACK_CHAIN_ID (currently 42161 / Arbitrum mainnet) — a
   // chain-id semantic change that's easy to miss in CI / local dev.
-  if (options.profile === "web" || options.profile === "full") {
+  if (options.profile === "prod" || options.profile === "prod-mirror") {
+    add(
+      "pass",
+      "Production dev profile targets Arbitrum One",
+      "The stack overlays VITE_CHAIN_ID=42161 and disables local fork mode.",
+      "",
+      { check: "env:chain-id" }
+    );
+  } else if (options.profile === "full") {
+    add(
+      "pass",
+      "Full-local stack targets an Arbitrum fork",
+      "The stack overlays VITE_DEV_CHAIN_MODE=arbitrum_fork, VITE_CHAIN_ID=42161, VITE_LOCAL_FORK_RPC_URL=http://127.0.0.1:3009, and VITE_ENABLE_ANVIL_WALLETS=true. Wallet writes mine in local Anvil state only.",
+      "",
+      { check: "env:chain-id" }
+    );
+  } else if (options.profile === "web") {
     const chainId = valueFor(envFile, "VITE_CHAIN_ID") || schema.VITE_CHAIN_ID || "";
     const knownChains = {
       "42161": "Arbitrum One (mainnet — real funds)",
@@ -528,7 +630,7 @@ function checkEnv() {
 }
 
 function checkIndexerGenerated() {
-  if (options.profile !== "full") return;
+  if (options.profile !== "full" && options.profile !== "prod-mirror") return;
 
   const generatedDir = path.join(projectRoot, "packages/indexer/generated");
   const generatedSrc = path.join(generatedDir, "src");
@@ -611,6 +713,11 @@ function printJson() {
       webStack: "bun run dev:web",
       webSmoke: "bun run dev:smoke:web",
       fullStack: "bun run dev",
+      productionStack: "bun run dev:prod",
+      productionHealth: "bun run dev:prod:health",
+      productionMirrorStack: "bun run dev:prod:mirror",
+      productionMirrorHealth: "bun run dev:prod:mirror:health",
+      productionSmoke: "bun run dev:prod:smoke",
       stop: "bun run dev:stack:stop",
     },
   };
@@ -631,6 +738,8 @@ function printText() {
   console.log("- Full-stack/indexer: frontend QA plus Docker and packages/indexer/generated.");
   console.log("- Contracts: frontend QA plus Foundry.");
   console.log("- Upload-capable QA: frontend QA plus VITE_API_BASE_URL and PINATA_JWT.");
+  console.log("- Production-backed local dev: frontend QA against Arbitrum 42161 and production APIs.");
+  console.log("- Production local mirror: production-backed local dev plus Docker and indexer generated files.");
 
   console.log("\nSecret policy");
   console.log("- `.env` is materialized from `.env.template` via `bun run env:sync` (runs `op inject`).");
@@ -641,6 +750,9 @@ function printText() {
   console.log("- First clone: bun run setup");
   console.log("- Doctor profile: bun run dev:doctor -- --profile web");
   console.log("- Full local environment: bun run dev");
+  console.log("- Production-backed local environment: bun run dev:prod");
+  console.log("- Production local indexer mirror: bun run dev:prod:mirror");
+  console.log("- Production smoke: bun run dev:prod:smoke");
   console.log("- PM2 fallback frontend stack: bun run dev:web");
   console.log("- Web smoke: bun run dev:smoke:web");
   console.log("- Stop repo-owned services: bun run dev:stop");

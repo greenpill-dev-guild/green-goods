@@ -107,9 +107,13 @@ does not sign transactions.
 
 ```bash
 bun run dev:smoke:web
+bun run dev:smoke:full
 ```
 
-Run this after the browser stack is starting.
+Run `bun run dev:smoke:web` after the browser stack is starting. Run
+`bun run dev:smoke:full` after `bun run dev` when you need proof that the
+browser surfaces, local agent, local indexer/Hasura/Postgres, and Arbitrum fork
+are all responding.
 
 ## Tech Stack
 
@@ -198,6 +202,112 @@ bun run dev
 Use the full stack for Docker/indexer, agent, or local transaction work. Run the
 full doctor first; some services need workflow-specific env or secrets before
 they are useful.
+
+After the stack is up, run the non-mutating full-local smoke:
+
+```bash
+bun run dev:smoke:full
+```
+
+This proves both client presentations, admin, docs, Storybook, local agent
+health, Anvil chain id `42161`, deployed Arbitrum bytecode on the fork, funded
+Anvil accounts, local Envio/Hasura GraphQL, local indexer service health, and
+the Postgres TCP listener. It does not submit transactions.
+
+#### Start production-backed local stack
+
+Green Goods has three local-development modes. Use the production-backed modes
+only when you intentionally want local browser surfaces to talk to live
+infrastructure.
+
+| Mode | Command | Chain target | Indexer | Agent/API | Writes |
+| --- | --- | --- | --- | --- | --- |
+| Fully local default | `bun run dev` | Arbitrum fork on `http://127.0.0.1:3009` with chain id `42161` | Local Docker-backed Envio/Hasura on `3006`-`3008` | Local agent on `3005` | Wallet writes are mined only in local Anvil state |
+| Hosted production-backed | `bun run dev:prod` | Arbitrum One `42161` | Hosted production indexer | `https://agent.greengoods.app` | Wallet-confirmed writes are real Arbitrum transactions |
+| Local live-indexer mirror | `bun run dev:prod:mirror` | Arbitrum One `42161` | Local Docker-backed Envio/Hasura indexing live Arbitrum | `https://agent.greengoods.app` | Wallet-confirmed writes are real Arbitrum transactions |
+
+Start hosted production-backed mode from the repo root:
+
+```bash
+bun run dev:prod
+```
+
+`bun run dev:prod` starts the client, admin, docs, and Storybook locally. It
+does not start local Anvil, the local indexer, the local agent, or a public
+tunnel. The stack overlays Arbitrum One (`VITE_CHAIN_ID=42161`), the hosted
+production indexer, and `https://agent.greengoods.app`, then runs a read-only
+production smoke after the local ports are ready.
+
+Live wallet writes are allowed in production-backed modes. If you connect a
+wallet on Arbitrum One and confirm a transaction, it is a real production
+transaction and can spend funds. The automatic smoke never submits transactions.
+
+The production smoke proves:
+
+| Check | What it proves |
+| --- | --- |
+| Local browser ports | Client `3001`, admin `3002`, docs `3003`, and Storybook `3004` respond |
+| RPC chain id | The configured Arbitrum RPC returns `eth_chainId=42161` |
+| Contract bytecode | At least one deployed Arbitrum contract address from `packages/contracts/deployments/42161-latest.json` has bytecode |
+| Production agent health | `https://agent.greengoods.app/health` returns HTTP 200 with `status: "ok"` |
+| Indexer GraphQL | Hosted production indexer, or the local mirror in mirror mode, returns Arbitrum chain metadata |
+| Indexer lag | Indexed block is within the smoke threshold of Arbitrum head; override with `--max-indexer-lag-blocks <blocks>` when debugging |
+| Local-service boundary | `dev:prod` skips local indexer services; `dev:prod:mirror` expects local indexer services |
+
+The production smoke does not prove a full click-through, wallet confirmation,
+or production transaction broadcast. Use this manual live-write checklist when
+you need that proof:
+
+1. Use a dedicated QA wallet with only the funds you intend to risk.
+2. Select Arbitrum One in the wallet.
+3. Start `bun run dev:prod` or `bun run dev:prod:mirror`.
+4. Navigate to the action you need to validate and stop at wallet confirmation
+   if you only need reachability proof.
+5. Broadcast only when the test intentionally mutates production state.
+6. Record the route, wallet network, expected contract/action, and transaction
+   hash if a broadcast is intentionally submitted.
+
+The hosted production agent has two health surfaces: `/health` and `/ready`.
+The local production smoke intentionally uses `/health`. `/ready` is stricter
+and can return 503 while optional AI/voice model readiness is still loading,
+even when the agent, webhook, and routine API are usable.
+
+For local indexer development against live Arbitrum, use the mirror mode:
+
+```bash
+bun run dev:prod:mirror:health
+bun run dev:prod:mirror
+```
+
+This starts the same browser surfaces plus the local Docker-backed
+Postgres/Hasura/Envio stack on ports `3006`-`3008`, while still targeting
+Arbitrum One rather than the local fork. The mirror smoke checks local GraphQL,
+the local indexer service, and indexer lag against live Arbitrum head; if it
+fails lag, the mirror is reachable but not caught up enough to trust for
+production-data review.
+
+`bun run dev:prod:mirror:health` requires `ENVIO_API_TOKEN` for reliable
+HyperSync catch-up. Without it, the containers can still become healthy, but
+the live mirror may stall or receive `429 Too Many Requests` from HyperSync and
+the mirror smoke should fail on indexer lag. Set `ENVIO_API_TOKEN` directly in
+the root `.env`, or set `ENVIO_API_TOKEN_OP_REF` in `.env.template` and run
+`bun run env:sync`.
+
+Run the production checks on demand:
+
+```bash
+bun run dev:prod:health -- --json
+bun run dev:prod:mirror:health -- --json
+bun run dev:prod:smoke
+bun run dev:prod:smoke -- --mode mirror
+bun run dev:prod:smoke -- --max-indexer-lag-blocks 5000
+```
+
+Expected production-backed port boundary:
+
+- `dev:prod`: `3001`-`3004` listening; `3005`-`3009` free.
+- `dev:prod:mirror`: `3001`-`3004` and `3006`-`3008` listening; `3005` and
+  `3009` free.
 
 `bun run dev:web`, `bun run dev:stack`, and `bun run dev:stack:stop` remain
 available for focused PM2 debugging. Day-to-day agent and developer work should

@@ -120,6 +120,11 @@ module.exports = {
         ENVIO_PG_PORT: "3008",
         GREEN_GOODS_DEV_CHAIN_MODE: "arbitrum_fork",
         ARBITRUM_RPC_URL: "http://host.docker.internal:3009",
+        ENVIO_API_TOKEN: process.env.ENVIO_API_TOKEN || "",
+        ENVIO_HYPERSYNC_CLIENT_TIMEOUT_MILLIS:
+          process.env.ENVIO_HYPERSYNC_CLIENT_TIMEOUT_MILLIS || "120000",
+        ENVIO_HYPERSYNC_CLIENT_MAX_RETRIES:
+          process.env.ENVIO_HYPERSYNC_CLIENT_MAX_RETRIES || "0",
       },
       merge_logs: true,
       autorestart: false, // Docker Compose handles its own restarts

@@ -13,6 +13,7 @@
 
 import net from "node:net";
 import path from "node:path";
+import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 
@@ -27,6 +28,11 @@ const ecosystem = require(path.join(projectRoot, "ecosystem.config.cjs"));
 const allApps = ecosystem.apps || [];
 const validNames = new Set(allApps.map((app) => app.name));
 
+const PRODUCTION_INDEXER_URL = "https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql";
+const PRODUCTION_AGENT_URL = "https://agent.greengoods.app";
+const LOCAL_INDEXER_URL = "http://localhost:3006/v1/graphql";
+const ARBITRUM_PUBLIC_RPC_URL = "https://arb1.arbitrum.io/rpc";
+
 const groups = {
   // `browser` waits on ports and opens tabs (PWA + website + admin + docs +
   // storybook). `tunnel` is a best-effort cloudflared launcher for both the
@@ -35,7 +41,11 @@ const groups = {
   // prerequisites (Brave / cloudflared) aren't installed.
   web: ["docs", "admin", "client", "storybook", "browser", "tunnel"],
   full: allApps.map((app) => app.name),
+  prod: ["docs", "admin", "client", "storybook", "browser"],
+  "prod-mirror": ["docs", "admin", "client", "indexer", "storybook", "browser"],
 };
+
+const exclusiveGroups = new Set(["prod", "prod-mirror"]);
 
 // Apps that bind to a TCP port we can probe for readiness. Other apps (tunnel,
 // browser) finish their work without listening on a deterministic port.
@@ -82,8 +92,7 @@ function usage(stream = process.stdout) {
       "Usage: node scripts/dev/stack.js [<group>|<app>...|stop]",
       "",
       "Groups:",
-      `  web   ${groups.web.join(", ")}`,
-      `  full  ${groups.full.join(", ")}`,
+      ...Object.entries(groups).map(([name, apps]) => `  ${name.padEnd(11)} ${apps.join(", ")}`),
       "",
       `Apps: ${allApps.map((app) => app.name).join(", ")}`,
       "",
@@ -158,10 +167,11 @@ function probePort(port, host = "127.0.0.1") {
   });
 }
 
-async function waitForPort(port, timeoutMs) {
+async function waitForPort(port, timeoutMs, hosts = ["127.0.0.1", "::1"]) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
-    if (await probePort(port)) return true;
+    const checks = await Promise.all(hosts.map((host) => probePort(port, host)));
+    if (checks.some(Boolean)) return true;
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
   return false;
@@ -174,7 +184,7 @@ async function reportReadiness(apps) {
 
   if (probed.length === 0) {
     console.log("[stack] no port-binding apps in this group; skipping readiness probe.");
-    return;
+    return true;
   }
 
   const start = Date.now();
@@ -193,7 +203,7 @@ async function reportReadiness(apps) {
 
   if (failed.length === 0) {
     console.log(`[stack] all ${ready.length} services ready in ${elapsed}s.`);
-    return;
+    return true;
   }
 
   console.log(
@@ -201,6 +211,103 @@ async function reportReadiness(apps) {
       .map((item) => `${item.name}:${item.port}`)
       .join(", ")}`
   );
+  return false;
+}
+
+function productionProfileEnv(group, appName) {
+  if (group !== "prod" && group !== "prod-mirror") return {};
+
+  if (group === "prod-mirror" && appName === "indexer") {
+    return {
+      NODE_ENV: "development",
+      GREEN_GOODS_STACK_PROFILE: group,
+      GREEN_GOODS_DEV_CHAIN_MODE: "",
+      ARBITRUM_RPC_URL: process.env.ARBITRUM_RPC_URL || ARBITRUM_PUBLIC_RPC_URL,
+    };
+  }
+
+  return {
+    APP_ENV: "development",
+    NODE_ENV: "development",
+    GREEN_GOODS_STACK_PROFILE: group,
+    VITE_CHAIN_ID: "42161",
+    VITE_DEV_CHAIN_MODE: "",
+    VITE_LOCAL_FORK_RPC_URL: "",
+    VITE_ENABLE_ANVIL_WALLETS: "false",
+    VITE_ENVIO_INDEXER_URL:
+      group === "prod-mirror" ? LOCAL_INDEXER_URL : PRODUCTION_INDEXER_URL,
+    VITE_API_BASE_URL: PRODUCTION_AGENT_URL,
+  };
+}
+
+function applyGroupEnvironment(app, group) {
+  const env = productionProfileEnv(group, app.name);
+  if (Object.keys(env).length === 0) return app;
+  return {
+    ...app,
+    env: {
+      ...(app.env || {}),
+      ...env,
+    },
+  };
+}
+
+function printProductionModeNotice(group) {
+  if (group !== "prod" && group !== "prod-mirror") return;
+
+  const indexerMode =
+    group === "prod-mirror"
+      ? "local live-indexer mirror on localhost:3006"
+      : "hosted production indexer";
+
+  console.log("");
+  console.log("[stack] Production-backed Green Goods dev mode is active.");
+  console.log(`[stack] Chain: Arbitrum One (42161); indexer: ${indexerMode}.`);
+  console.log(`[stack] Agent API: ${PRODUCTION_AGENT_URL}.`);
+  console.log(
+    "[stack] Connected wallet transactions are real Arbitrum writes and can spend funds."
+  );
+  console.log("[stack] The automatic smoke is read-only and never submits transactions.");
+  console.log("");
+}
+
+function smokeModeForGroup(group) {
+  if (group === "prod") return "prod";
+  if (group === "prod-mirror") return "mirror";
+  return "";
+}
+
+function runProductionSmoke(group) {
+  const smokeMode = smokeModeForGroup(group);
+  if (!smokeMode) return Promise.resolve();
+
+  const scriptPath = path.join(projectRoot, "scripts/dev/smoke-prod.js");
+  return new Promise((resolve) => {
+    console.log(`[stack] running production smoke (${smokeMode})...`);
+    const child = spawn(process.execPath, [scriptPath, "--mode", smokeMode], {
+      cwd: projectRoot,
+      env: {
+        ...process.env,
+        ...productionProfileEnv(group, "smoke"),
+      },
+      stdio: "inherit",
+    });
+
+    child.on("error", (error) => {
+      console.error(`[stack] production smoke failed to start: ${error.message}`);
+      resolve();
+    });
+    child.on("exit", (code, signal) => {
+      if (code === 0) {
+        console.log("[stack] production smoke passed.");
+      } else {
+        console.error(
+          `[stack] production smoke failed (${signal ? `signal ${signal}` : `exit ${code}`}); stack remains running.`
+        );
+      }
+      resolve();
+    });
+  });
 }
 
 async function stopAndExit(names, exitCode = 0) {
@@ -234,17 +341,25 @@ async function main() {
     return;
   }
 
-  const apps = allApps.filter((app) => parsed.names.includes(app.name));
+  const group = parsed.mode === "group" ? parsed.group : "";
+  const apps = allApps
+    .filter((app) => parsed.names.includes(app.name))
+    .map((app) => applyGroupEnvironment(app, group));
   if (apps.length === 0) {
     throw new Error(`No PM2 apps matched: ${parsed.names.join(", ")}`);
   }
 
   await connect();
-  await deleteApps(apps.map((app) => app.name));
+  const namesToDelete =
+    parsed.mode === "group" && exclusiveGroups.has(parsed.group)
+      ? allApps.map((app) => app.name)
+      : apps.map((app) => app.name);
+  await deleteApps(namesToDelete);
   await startApps(apps);
 
   const label = parsed.mode === "group" ? `${parsed.group} stack` : "custom stack";
   console.log(`Started Green Goods ${label}: ${apps.map((app) => app.name).join(", ")}`);
+  printProductionModeNotice(group);
   console.log("Press Ctrl+C to stop services.\n");
 
   const bus = await launchBus();
@@ -263,7 +378,9 @@ async function main() {
   });
 
   // Run readiness probe in the background so logs flow uninterrupted.
-  reportReadiness(apps).catch((error) => {
+  reportReadiness(apps).then(async (ready) => {
+    if (ready) await runProductionSmoke(group);
+  }).catch((error) => {
     console.error(`[stack] readiness probe failed: ${error.message}`);
   });
 

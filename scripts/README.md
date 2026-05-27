@@ -7,6 +7,7 @@ Repo-level scripts, organized by purpose. Each one has a durable caller — root
 ```
 scripts/
 ├── dev/            local dev workflow (setup, doctor, stack, smoke, e2e, seed)
+├── mcp/            project-scoped MCP server launchers
 ├── quality/        CI gates / consistency checks
 ├── design/         design system enforcement
 ├── contracts/      contract audits + deploy verification
@@ -24,19 +25,26 @@ scripts/
 | Script | Caller | Purpose |
 |---|---|---|
 | `setup.js` | `bun run setup` | First-clone setup; checks deps, installs, configures env |
-| `doctor.js` | `bun run dev:doctor` / `setup:doctor` | Non-mutating readiness check (ports, tools, env, profiles) |
+| `doctor.js` | `bun run dev:doctor` / `setup:doctor` / `dev:prod:health` / `dev:prod:mirror:health` | Non-mutating readiness check (ports, tools, env, profiles) |
 | `env-template-init.js` | `bun run env:template:init` | Generate `.env.template` skeleton from `.env.schema` (one-shot) |
 | `env-sync.js` | `bun run env:sync` | Run `op inject` against `.env.template` to materialize `.env` |
 | `env-bootstrap.js` | `bun run env:bootstrap` | Append `.env.schema` defaults to `.env` for keys missing there (one-shot post-varlock-removal) |
 | `env-check.js` | `bun run env:check`, called from `doctor.js` | Validate `.env` has all required `.env.schema` keys non-empty |
 | `node-cli.js` | `packages/client dev`, `packages/admin dev`, `packages/shared storybook`, `docs dev` | Run local JS dev CLIs under real system Node instead of Bun's injected `node` shim |
-| `stack.js` | `bun run dev:stack` / `dev:web` / `dev:full` / `dev:stack:stop` | Start/stop PM2 app groups from `ecosystem.config.cjs` |
+| `stack.js` | `bun run dev:stack` / `dev:web` / `dev:full` / `dev:prod` / `dev:prod:mirror` / `dev:stack:stop` | Start/stop PM2 app groups from `ecosystem.config.cjs` |
 | `smoke-web.js` | `bun run dev:smoke:web` | Verify client/admin/docs/storybook respond on local ports |
+| `smoke-full.js` | `bun run dev:smoke:full` | Verify the default full-local stack: browser surfaces, local agent, local indexer/Hasura/Postgres, Anvil chain id `42161`, deployed bytecode, and funded Anvil accounts |
+| `smoke-prod.js` | `bun run dev:prod:smoke`; auto-run by `bun run dev:prod` and `bun run dev:prod:mirror` | Verify local browser surfaces plus read-only production agent health, Arbitrum RPC, contract bytecode, production/local indexer health, and indexer lag |
 | `tunnel.js` | `bun run dev:tunnel`, `ecosystem.config.cjs` | Cloudflared tunnel(s) for client + admin device testing. Spawns one tunnel per `--port` arg (defaults to client 3001 + admin 3002); writes `.tunnel-url` (client) and `.tunnel-url-admin` (admin) |
 | `open-urls.sh` | `ecosystem.config.cjs` (PM2 app) | Wait on dev ports, open Brave to localhost URLs |
 | `test-e2e.js` | `bun run test:e2e[:smoke]` | Boot the web stack (client + admin + docs + storybook) via `bun run dev:web`, wait on health, run Playwright, stop the PM2 stack via `bun run dev:stack:stop` |
 | `seed-test-data.ts` | `bun run seed:test` / `seed:anvil` | Seed local/anvil chain with test fixtures |
 | `ci-local.js` | `bun run ci:local` | Local mirror of the CI gates |
+
+### `mcp/` — project-scoped MCP server launchers
+| Script | Caller | Purpose |
+|---|---|---|
+| `brave-devtools.mjs` | `.mcp.json` (`brave-devtools`) | Start the upstream DevTools MCP package against Brave only, with the repo's Node 22 toolchain, isolated browser profile, stable viewport, page-id routing, structured output, redacted network headers, localhost HTTPS support, WebMCP debugging category, WebMCP testing flags, external telemetry/CrUX opt-outs, and explicit rejection of Google Chrome, Chrome for Testing, Chromium, or Edge executable paths |
 
 ### `quality/` — CI gates and consistency
 | Script | Caller | Purpose |
@@ -101,7 +109,7 @@ scripts/
 
 ### `lib/`
 - `ipfs-hybrid.ts` — Pinata client helpers used by `ops/ipfs-repin.ts` and `ops/upload-action-images.ts`.
-- `dev-shared.js` — `commandExists` / `commandVersion` / `majorVersion` helpers shared by `dev/setup.js` and `dev/doctor.js`.
+- `dev-shared.js` — shared dev-script helpers, including tool/version probes, Bun-to-Node re-exec with the repo's Node 22 toolchain, and loopback URL probes for local smoke checks.
 
 ### `data/`
 - `design-token-usage-baseline.tsv` — audited baseline of legacy token references; consumed by `design/check-tokens.sh`.

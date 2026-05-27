@@ -130,11 +130,14 @@ The indexer automatically loads configuration from:
 
 **Indexer-relevant environment variables:**
 ```bash
-# Optional - only needed if indexer requires specific API keys or overrides
-# Most configuration is handled via config.yaml
+# Required for reliable live Arbitrum catch-up in prod-mirror mode.
+ENVIO_API_TOKEN=
 ```
 
 The root `.env` is automatically loaded by the indexer's Docker Compose setup and development scripts.
+Without `ENVIO_API_TOKEN`, the local mirror can start, but HyperSync may return
+`429 Too Many Requests` and the production mirror smoke should fail on indexer
+lag instead of pretending the mirror is current.
 
 ### Entities (from `schema.graphql`)
 

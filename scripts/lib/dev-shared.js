@@ -9,7 +9,8 @@
 import http from "node:http";
 import https from "node:https";
 import path from "node:path";
-import { accessSync, constants } from "node:fs";
+import { homedir } from "node:os";
+import { accessSync, constants, readdirSync, realpathSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 
 /**
@@ -22,21 +23,83 @@ import { spawnSync } from "node:child_process";
  * Returns the absolute path to the first non-bun node on PATH, or an empty
  * string if none is found.
  */
-export function findSystemNode() {
+function executableExists(candidate) {
+  try {
+    accessSync(candidate, constants.X_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function probeNodeVersion(candidate) {
+  const result = spawnSync(
+    candidate,
+    ["-p", "process.versions.bun ? `bun:${process.versions.bun}` : process.versions.node"],
+    {
+      encoding: "utf8",
+      timeout: 2_000,
+    }
+  );
+  return (result.stdout || "").trim();
+}
+
+function isSupportedSystemNode(version) {
+  const major = majorVersion(version);
+  return major !== null && major >= 22;
+}
+
+function nodeCandidates() {
   const executable = process.platform === "win32" ? "node.exe" : "node";
+  const candidates = [];
+  if (process.env.NODE) candidates.push(process.env.NODE);
+
   const pathEntries = (process.env.PATH || "").split(path.delimiter);
   for (const entry of pathEntries) {
     if (!entry || entry.includes("bun-node") || entry.includes(`${path.sep}.bun${path.sep}bin`)) {
       continue;
     }
-    const candidate = path.join(entry, executable);
-    try {
-      accessSync(candidate, constants.X_OK);
-      return candidate;
-    } catch {
-      // Keep scanning PATH.
-    }
+    candidates.push(path.join(entry, executable));
   }
+
+  candidates.push(path.join(homedir(), ".local/share/mise/shims", executable));
+
+  const miseNodeRoot = path.join(homedir(), ".local/share/mise/installs/node");
+  try {
+    for (const version of readdirSync(miseNodeRoot).sort().reverse()) {
+      candidates.push(path.join(miseNodeRoot, version, "bin", executable));
+    }
+  } catch {
+    // mise is optional; PATH candidates above are enough on most machines.
+  }
+
+  return candidates;
+}
+
+export function findSystemNode() {
+  const probed = [];
+  const seen = new Set();
+
+  for (const candidate of nodeCandidates()) {
+    if (!executableExists(candidate)) continue;
+
+    let key = candidate;
+    try {
+      key = `${candidate}:${realpathSync(candidate)}`;
+    } catch {
+      // Fall back to the literal candidate path.
+    }
+    if (seen.has(key)) continue;
+    seen.add(key);
+
+    const version = probeNodeVersion(candidate);
+    if (!version || version.startsWith("bun:")) continue;
+    const entry = { candidate, version };
+    probed.push(entry);
+    if (isSupportedSystemNode(version)) return candidate;
+  }
+
+  if (probed.length > 0) return probed[0].candidate;
   return "";
 }
 
@@ -125,7 +188,7 @@ export function requestUrl(url, timeoutMs = 2500) {
     const requestOptions = {
       hostname: parsed.hostname,
       port: parsed.port,
-      path: parsed.pathname || "/",
+      path: `${parsed.pathname || "/"}${parsed.search || ""}`,
     };
     if (isHttps) {
       // Loopback-only by the guard above. Dev servers (vite-plugin-mkcert)

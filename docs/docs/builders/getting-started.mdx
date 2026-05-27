@@ -79,6 +79,11 @@ bun run dev                           # starts the full repo-native local stack
 bun run dev:smoke:web                 # confirms browser surfaces respond locally
 ```
 
+When you intentionally need local browser apps against live production
+infrastructure, use `bun run dev:prod` instead of `bun run dev`. That mode is
+documented below because wallet-confirmed writes are real Arbitrum
+transactions.
+
 `bun run env:sync` requires the [1Password CLI](https://developer.1password.com/docs/cli/) signed in with desktop app integration on. If you are not on the team and do not have vault access, copy `.env.template` to `.env` and fill local values directly (see [Required Secrets & Variables](#required-secrets--variables)).
 
 `npm run setup` is the only npm entrypoint in the normal workflow. It exists because a fresh machine may not have Bun installed yet. After setup, use `bun run ...` for package operations and repo scripts.
@@ -101,8 +106,10 @@ Environment files are materialized separately by `bun run env:sync` (which runs 
 | Full-stack / indexer | Frontend QA plus Docker, `packages/indexer/generated`, and generated dependencies | `bun run dev:doctor -- --profile full` |
 | Contracts | Frontend QA plus Foundry | `bun run dev:doctor -- --profile contracts` |
 | Upload-capable QA | Frontend QA plus `VITE_API_BASE_URL` and `PINATA_JWT_OP_REF=op://...` or `PINATA_JWT` in root `.env` | `bun run dev:doctor -- --profile upload` |
+| Production-backed local review | Frontend QA plus production Arbitrum/indexer/agent env overlay | `bun run dev:prod:health` |
+| Production local indexer mirror | Production-backed review plus Docker and `packages/indexer/generated` | `bun run dev:prod:mirror:health` |
 
-Run `bun run dev:doctor -- --profile web|full|contracts|upload` any time you need a non-mutating check of the current machine. It reports missing tools, Docker state, Pinata readiness, passkey RP ID posture, indexer generated state, stale environment keys, and port conflicts without printing secret values. Add `--json` for machine-readable output in CI, containers, or agent workflows.
+Run `bun run dev:doctor -- --profile web|full|contracts|upload|prod|prod-mirror` any time you need a non-mutating check of the current machine. It reports missing tools, Docker state, Pinata readiness, passkey RP ID posture, indexer generated state, stale environment keys, and port conflicts without printing secret values. Add `--json` for machine-readable output in CI, containers, or agent workflows.
 
 ---
 
@@ -217,6 +224,67 @@ repo command under workbench ownership.
 
 Stop everything with `bun run dev:stop`.
 
+### Production-backed local stack
+
+Use this only when you intentionally want local browser surfaces to read from
+production infrastructure instead of the local Arbitrum fork.
+
+| Mode | Command | Chain target | Indexer | Agent/API | Writes |
+| --- | --- | --- | --- | --- | --- |
+| Fully local default | `bun run dev` | Arbitrum fork on `http://127.0.0.1:3009` with chain id `42161` | Local Docker-backed Envio/Hasura on `3006`-`3008` | Local agent on `3005` | Wallet writes stay in local Anvil state |
+| Hosted production-backed | `bun run dev:prod` | Arbitrum One `42161` | Hosted production indexer | `https://agent.greengoods.app` | Wallet-confirmed writes are real Arbitrum transactions |
+| Local live-indexer mirror | `bun run dev:prod:mirror` | Arbitrum One `42161` | Local Docker-backed Envio/Hasura indexing live Arbitrum | `https://agent.greengoods.app` | Wallet-confirmed writes are real Arbitrum transactions |
+
+Hosted production-backed mode:
+
+```bash
+bun run dev:prod:health
+bun run dev:prod
+```
+
+`bun run dev:prod` starts only the local client, admin, docs, Storybook, and
+browser helper. It does not start local Anvil, the local indexer, the local
+agent, or a tunnel. After ports are ready, it automatically runs a read-only
+production smoke.
+
+Local live-indexer mirror mode:
+
+```bash
+bun run dev:prod:mirror:health
+bun run dev:prod:mirror
+```
+
+This keeps the browser apps pointed at Arbitrum One while running the local
+Docker-backed Postgres/Hasura/Envio stack on ports `3006`-`3008`.
+
+The production smoke proves the local surfaces respond, RPC chain id is
+`42161`, a deployed Arbitrum contract has bytecode, production agent `/health`
+returns `status: "ok"`, indexer GraphQL returns Arbitrum chain metadata, and
+the indexer is within the configured lag threshold of Arbitrum head. Repeat it
+on demand:
+
+```bash
+bun run dev:prod:smoke
+bun run dev:prod:smoke -- --mode mirror
+bun run dev:prod:smoke -- --max-indexer-lag-blocks 5000
+```
+
+The smoke never submits transactions. A real live-write proof is manual:
+
+1. Use a dedicated QA wallet with only the funds you intend to risk.
+2. Select Arbitrum One in the wallet.
+3. Start `bun run dev:prod` or `bun run dev:prod:mirror`.
+4. Navigate to the production action and stop at wallet confirmation if you
+   only need reachability proof.
+5. Broadcast only when the test intentionally mutates production state.
+6. Record the route, expected contract/action, wallet network, and transaction
+   hash if a broadcast is intentionally submitted.
+
+The production agent has two health endpoints. `/health` is the Fly machine
+health contract used by the smoke. `/ready` is stricter and can return 503 while
+optional AI/voice model readiness is still loading, even when the agent,
+webhook, and routine API are usable.
+
 ### Individual packages
 
 You can also run packages directly without PM2:
@@ -262,6 +330,7 @@ Then navigate to `https://localhost:3001` on Android Chrome. Since `localhost` i
     {title: "Check role readiness", detail: "Run `bun run dev:doctor -- --profile web` before debugging setup. It does not mutate files or start services."},
     {title: "Start services", detail: "Run `bun run dev` for the fork-backed repo-native local stack."},
     {title: "Smoke the web stack", detail: "Run `bun run dev:smoke:web` once client/admin/docs/Storybook are starting. It verifies local HTTP/HTTPS reachability."},
+    {title: "Use production deliberately", detail: "Run `bun run dev:prod` only when you want local apps against production Arbitrum, indexer, and agent APIs. The automatic smoke is read-only; wallet-confirmed writes are real."},
     {title: "Run the quality gate", detail: "Run `bun run format:check`, `bun run lint`, `bun run test`, and `bun run build` before pushing changes."},
   ]}
 />
@@ -301,6 +370,9 @@ bun run format
 | `Pinata forbidden` or upload fails | Missing signer or Pinata server credential | Confirm `VITE_API_BASE_URL` points at the agent and add `PINATA_JWT` to root `.env` (or set it via 1Password ref in `.env.template` and re-run `bun run env:sync`), then rerun `bun run dev:doctor -- --profile upload` |
 | Client PM2 process is online but `localhost:3001` does not respond | Vite failed to read env | Run `bun run dev:doctor -- --profile web` and `bun run env:check`. For 1Password-resolved env, ensure `op` CLI is signed in via desktop integration, then `bun run env:sync`. |
 | `bun run dev:smoke:web` fails before checking ports | Web doctor failed | Fix the doctor failures first; smoke only probes services after the web profile is ready. |
+| `bun run dev:prod:smoke` fails `production-agent-health` | Hosted agent `/health` is not returning OK | Check `https://agent.greengoods.app/health`. Do not use `/ready` as the production health contract unless voice-model readiness is the thing being tested. |
+| `bun run dev:prod:smoke` fails indexer lag | Hosted indexer or local mirror is reachable but behind Arbitrum head beyond the smoke threshold | Wait for catch-up and rerun, or pass `--max-indexer-lag-blocks <blocks>` when intentionally debugging a stale mirror. |
+| `bun run dev:prod` starts local Anvil or local agent | Wrong command or stale process was already running | Run `dev status green-goods`; production-backed mode should leave `3005`-`3009` free except mirror mode uses `3006`-`3008`. Stop only owned PM2/workbench processes. |
 | Passkey registration fails on localhost | RP ID mismatch | Leave `VITE_PASSKEY_RP_ID` blank for fallback behavior, or set `VITE_PASSKEY_RP_ID=localhost` for local passkey QA |
 | Port 3001/3002 in use | Another dev server running | Run `dev status green-goods`. If the surface is owned, reuse it or stop it with `dev stop green-goods:<surface>`. If the PID is unknown, inspect it and do not kill it from an agent without explicit direction. |
 | `bun install` hangs | Stale dependency state | Delete `node_modules`, then `bun install` |

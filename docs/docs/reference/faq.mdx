@@ -157,10 +157,13 @@ Yes. Repository: [greenpill-dev-guild/green-goods](https://github.com/greenpill-
 git clone https://github.com/greenpill-dev-guild/green-goods.git
 cd green-goods
 npm run setup
-bun run dev:doctor -- --profile web
-bun run dev:web
+bun run dev:health
+bun run dev
 bun run dev:smoke:web
 ```
+
+Use `bun run dev:prod` only when you intentionally want local browser surfaces
+against production Arbitrum, hosted indexer, and hosted agent APIs.
 
 See [Developer Getting Started](../builders/getting-started).
 
