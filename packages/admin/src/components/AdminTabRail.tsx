@@ -151,8 +151,7 @@ export function AdminTabRail({
               fontWeight: 600,
               letterSpacing: "-0.005em",
               cursor: tab.disabled ? "not-allowed" : "pointer",
-              transition:
-                "background-color 150ms, background-image 150ms, color 150ms, box-shadow 150ms",
+              transition: "none",
               backgroundColor: active
                 ? "var(--surface-raised, rgb(var(--m3-surface-container-highest)))"
                 : "transparent",
@@ -194,7 +193,7 @@ export function AdminTabRail({
                   pointerEvents: "none",
                   userSelect: "none",
                   flexShrink: 0,
-                  transition: "background-color 150ms, color 150ms, border-color 150ms",
+                  transition: "none",
                   background: active
                     ? "rgb(var(--m3-secondary-container))"
                     : "var(--surface-raised, rgb(var(--m3-surface-container-highest)))",

@@ -6,7 +6,7 @@
 import type React from "react";
 import { createMemoryRouter, MemoryRouter, RouterProvider } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { renderWithProviders, screen, waitFor } from "../test-utils";
+import { act, renderWithProviders, screen, waitFor } from "../test-utils";
 import userEvent from "@testing-library/user-event";
 import { useSheetOrchestratorStore } from "@green-goods/shared";
 
@@ -18,6 +18,7 @@ const {
   mockSetSelectedGarden,
   mockGardenChipProps,
   mockAppBarProps,
+  mockNavigationBarProps,
   mockAuthState,
   mockEligibleAdminGardens,
   mockAdminAccessState,
@@ -30,6 +31,7 @@ const {
   mockSetSelectedGarden: vi.fn(),
   mockGardenChipProps: vi.fn(),
   mockAppBarProps: vi.fn(),
+  mockNavigationBarProps: vi.fn(),
   mockRouteLeftSheetConfig: {
     current: null as null | {
       title: string;
@@ -73,21 +75,26 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
     NavigationBar: ({
       slots,
       activePath,
+      onNavigate,
     }: {
       slots: Array<{ id: string; label: string; visible: boolean; path: string }>;
       activePath: string;
-    }) => (
-      <div data-testid="navigation-bar">
-        <div data-testid="active-path">{activePath}</div>
-        <ul>
-          {slots
-            .filter((slot) => slot.visible)
-            .map((slot) => (
-              <li key={slot.id}>{slot.label}</li>
-            ))}
-        </ul>
-      </div>
-    ),
+      onNavigate: (path: string) => void;
+    }) => {
+      mockNavigationBarProps({ slots, activePath, onNavigate });
+      return (
+        <div data-testid="navigation-bar">
+          <div data-testid="active-path">{activePath}</div>
+          <ul>
+            {slots
+              .filter((slot) => slot.visible)
+              .map((slot) => (
+                <li key={slot.id}>{slot.label}</li>
+              ))}
+          </ul>
+        </div>
+      );
+    },
     GardenChip: (props: {
       gardens: Array<{ id: string; name: string }>;
       selectedGarden: { id: string; name: string } | null;
@@ -348,6 +355,34 @@ describe("CanvasLayout", () => {
     );
 
     expect(screen.getByTestId("active-path")).toHaveTextContent(expectedActivePath);
+  });
+
+  it("keeps NavigationBar props stable across Hub tab route changes", async () => {
+    const router = createMemoryRouter([{ path: "*", element: <CanvasLayout /> }], {
+      initialEntries: ["/hub/work"],
+    });
+
+    renderWithProviders(<RouterProvider router={router} />);
+
+    expect(screen.getByTestId("active-path")).toHaveTextContent("/hub");
+    expect(mockNavigationBarProps).toHaveBeenCalledTimes(1);
+    const firstProps = mockNavigationBarProps.mock.calls[0]?.[0];
+
+    await act(async () => {
+      await router.navigate("/hub/assess");
+    });
+    await act(async () => {
+      await router.navigate("/hub/certify");
+    });
+    await act(async () => {
+      await router.navigate("/hub/history");
+    });
+
+    expect(screen.getByTestId("active-path")).toHaveTextContent("/hub");
+    expect(mockNavigationBarProps).toHaveBeenCalledTimes(1);
+    expect(mockNavigationBarProps.mock.calls[0]?.[0].slots).toBe(firstProps.slots);
+    expect(mockNavigationBarProps.mock.calls[0]?.[0].activePath).toBe("/hub");
+    expect(mockNavigationBarProps.mock.calls[0]?.[0].onNavigate).toBe(firstProps.onNavigate);
   });
 
   it("renders AppBar above the main workspace and keeps NavigationBar pure", () => {

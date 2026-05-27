@@ -331,12 +331,38 @@ describe("PageTransition", () => {
   it("keeps route transition animation scoped to named content", () => {
     const css = readFileSync(resolve(__dirname, "../../index.css"), "utf-8");
 
+    expect(css).toContain("view-transition-name: none");
     expect(css).toContain("view-transition-name: gg-route-content");
     expect(css).toContain("::view-transition-old(root)");
+    expect(css).toContain("opacity: 0 !important");
     expect(css).toContain("animation: none !important");
     expect(css).toContain("::view-transition-new(gg-route-content)");
     expect(css).toContain("--admin-motion-route-content-duration");
     expect(css).toContain("--admin-motion-route-content-easing");
+    expect(css).not.toContain("view-transition-name: gg-canvas-bottom");
+  });
+
+  it("keeps Hub stage tab pane changes motionless", () => {
+    const css = readFileSync(resolve(__dirname, "../../index.css"), "utf-8");
+
+    expect(css).toMatch(
+      /\.hub-results-pane\s*{[^}]*animation:\s*none;[^}]*transition:\s*none;[^}]*transform:\s*none;/s
+    );
+    expect(css).not.toContain("hub-fade-in");
+  });
+
+  it("keeps persistent navigation active-state changes motionless", () => {
+    const css = readFileSync(resolve(__dirname, "../../styles/admin-m3-overrides.css"), "utf-8");
+
+    expect(css).toMatch(/\.admin-m3 \.canvas-navigation-bar button\s*{[^}]*transition:\s*none;/s);
+    expect(css).toMatch(/\.admin-m3 \.canvas-navigation-bar\s*{[^}]*transition:\s*none;/s);
+    expect(css).not.toMatch(/\.admin-m3 \.canvas-navigation-bar\s*{[^}]*transition:\s*all/s);
+    expect(css).toMatch(
+      /\.admin-m3 \.canvas-navigation-bar button > span:first-child\s*{[^}]*transition:\s*none;/s
+    );
+    expect(css).toMatch(
+      /\.admin-m3 \.canvas-navigation-bar button > span:last-child\s*{[^}]*transition:\s*none;/s
+    );
   });
 
   it("does not fire transition when pathname stays the same", async () => {

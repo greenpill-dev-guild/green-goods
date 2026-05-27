@@ -241,6 +241,16 @@ describe("NavigationBar", () => {
     }
   });
 
+  it("does not apply an entrance animation to persistent nav chrome", () => {
+    render(<NavigationBar slots={createSlots()} activePath="/dashboard" onNavigate={() => {}} />);
+
+    for (const nav of getNavs()) {
+      expect(nav.className).not.toContain("nav-bar-enter");
+      expect(nav.className).not.toContain("animate-");
+      expect(nav.className).not.toContain("transition-all");
+    }
+  });
+
   it("keeps nav surfaces solid instead of glass-backed", () => {
     render(<NavigationBar slots={createSlots()} activePath="/dashboard" onNavigate={() => {}} />);
 

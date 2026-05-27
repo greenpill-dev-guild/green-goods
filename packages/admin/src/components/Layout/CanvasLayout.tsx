@@ -40,18 +40,135 @@ import {
   type AccountSheetTab,
   type AdminRightSheetContentId,
   type AdminWorkspaceSectionTab,
+  type NavigationBarProps,
   type NotificationPanelItem,
   type OpenAccountSheetEventDetail,
   type ToolbarSlot,
 } from "@green-goods/shared";
 import { RiUserLine } from "@remixicon/react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AccountProfilePanel } from "./AccountProfilePanel";
 import { AccountSettingsPanel } from "./AccountSettingsPanel";
 import { CommandPalette } from "./CommandPalette";
 import { PageTransition } from "./PageTransition";
+
+type CanvasChromeProbeComponent = "CanvasLayout" | "FabAwareNavigationBar" | "NavigationBar";
+type CanvasChromeProbePhase = "render" | "mount" | "update" | "unmount";
+
+interface CanvasChromeProbeStats {
+  renders: number;
+  mounts: number;
+  updates: number;
+  unmounts: number;
+  lastDetail?: unknown;
+}
+
+interface CanvasChromeProbeEvent {
+  sequence: number;
+  component: CanvasChromeProbeComponent;
+  phase: CanvasChromeProbePhase;
+  detail?: unknown;
+}
+
+interface CanvasChromeProbeState {
+  sequence: number;
+  components: Partial<Record<CanvasChromeProbeComponent, CanvasChromeProbeStats>>;
+  events: CanvasChromeProbeEvent[];
+}
+
+declare global {
+  interface Window {
+    __GG_CANVAS_CHROME_DEBUG__?: CanvasChromeProbeState;
+  }
+}
+
+const StableAppBar = memo(AppBar);
+StableAppBar.displayName = "StableAppBar";
+
+const StableNavigationBar = memo(NavigationBar);
+StableNavigationBar.displayName = "StableNavigationBar";
+
+function recordCanvasChromeProbe(
+  component: CanvasChromeProbeComponent,
+  phase: CanvasChromeProbePhase,
+  detail?: unknown
+) {
+  if (typeof window === "undefined" || !isLocalCanvasChromeProbeHost(window.location.hostname)) {
+    return;
+  }
+
+  const probe = (window.__GG_CANVAS_CHROME_DEBUG__ ??= {
+    sequence: 0,
+    components: {},
+    events: [],
+  });
+  const stats = (probe.components[component] ??= {
+    renders: 0,
+    mounts: 0,
+    updates: 0,
+    unmounts: 0,
+  });
+
+  if (phase === "render") stats.renders += 1;
+  if (phase === "mount") stats.mounts += 1;
+  if (phase === "update") stats.updates += 1;
+  if (phase === "unmount") stats.unmounts += 1;
+  stats.lastDetail = detail;
+
+  probe.sequence += 1;
+  probe.events.push({ sequence: probe.sequence, component, phase, detail });
+  if (probe.events.length > 200) {
+    probe.events.splice(0, probe.events.length - 200);
+  }
+  reflectCanvasChromeProbeToDom(component, stats, probe.sequence);
+}
+
+function isLocalCanvasChromeProbeHost(hostname: string) {
+  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
+}
+
+function reflectCanvasChromeProbeToDom(
+  component: CanvasChromeProbeComponent,
+  stats: CanvasChromeProbeStats,
+  sequence: number
+) {
+  const key = component.replace(/([a-z])([A-Z])/g, "$1-$2").toLowerCase();
+  const root = document.documentElement;
+
+  root.setAttribute("data-gg-canvas-chrome-sequence", String(sequence));
+  root.setAttribute(`data-gg-canvas-chrome-${key}-renders`, String(stats.renders));
+  root.setAttribute(`data-gg-canvas-chrome-${key}-mounts`, String(stats.mounts));
+  root.setAttribute(`data-gg-canvas-chrome-${key}-updates`, String(stats.updates));
+  root.setAttribute(`data-gg-canvas-chrome-${key}-unmounts`, String(stats.unmounts));
+}
+
+function useCanvasChromeProbe(component: CanvasChromeProbeComponent, detail?: unknown) {
+  recordCanvasChromeProbe(component, "render", detail);
+
+  useEffect(() => {
+    recordCanvasChromeProbe(component, "mount", detail);
+    return () => recordCanvasChromeProbe(component, "unmount", detail);
+    // Mount/unmount identity is component-scoped. Render detail is recorded above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [component]);
+}
+
+const ProfiledNavigationBar = memo(function ProfiledNavigationBar(props: NavigationBarProps) {
+  const profileDetail = useMemo(
+    () => ({
+      activePath: props.activePath,
+      slotIds: props.slots.map((slot) => slot.id),
+      hasFab: Boolean(props.fab),
+    }),
+    [props.activePath, props.fab, props.slots]
+  );
+  useCanvasChromeProbe("NavigationBar", profileDetail);
+
+  return <StableNavigationBar {...props} />;
+});
+ProfiledNavigationBar.displayName = "ProfiledNavigationBar";
 
 /**
  * Canvas layout — top context bar above the main sheet and floating navigation below.
@@ -72,7 +189,9 @@ export function CanvasLayout() {
   const selectedGarden = useAdminStore((s) => s.selectedGarden);
   const [searchOpen, setSearchOpen] = useState(false);
   const isDesktop = useMediaQuery("(min-width: 600px)");
+  const usesFloatingFabNavigation = useMediaQuery("(max-width: 1023px)");
   const permissions = useEffectiveToolbarPermissions();
+  const { showWork, showGarden, showCommunity, showActions } = permissions;
   const { setGarden } = useGardenUrlSync();
   useStaleGardenGuard();
 
@@ -147,6 +266,10 @@ export function CanvasLayout() {
     () => toggleRightSheetContent(NOTIFICATIONS_SHEET_CONTENT_ID),
     [toggleRightSheetContent]
   );
+  const toolbarVisibility = useMemo(
+    () => ({ showWork, showGarden, showCommunity, showActions }),
+    [showActions, showCommunity, showGarden, showWork]
+  );
 
   // Build toolbar slots — visibility driven by role-adaptive permissions
   const slots: ToolbarSlot[] = useMemo(
@@ -157,7 +280,7 @@ export function CanvasLayout() {
         labelId: view.labelId,
         icon: view.icon,
         path: view.rootPath,
-        visible: permissions[view.permission],
+        visible: toolbarVisibility[view.permission],
       })),
       {
         id: "profile",
@@ -169,7 +292,7 @@ export function CanvasLayout() {
         mobileOnly: true,
       },
     ],
-    [permissions]
+    [toolbarVisibility]
   );
 
   // Determine active path and workspace identity from current route
@@ -188,6 +311,49 @@ export function CanvasLayout() {
   const isCoreWorkspace =
     activePath === "/hub" || activePath === "/garden" || activePath === "/community";
   const noEligibleGardens = eligibleGardens.length === 0;
+  const visibleSlotCount = useMemo(() => slots.filter((slot) => slot.visible).length, [slots]);
+  const handleNavigate = useCallback((path: string) => navigate(path), [navigate]);
+  const gardenList = useMemo(
+    () => eligibleGardens.map((garden) => ({ id: garden.id, name: garden.name })),
+    [eligibleGardens]
+  );
+  const chipGarden = useMemo(
+    () => (selectedGarden ? { id: selectedGarden.id, name: selectedGarden.name } : null),
+    [selectedGarden]
+  );
+  const handleSelectGarden = useCallback(
+    (garden: { id: string; name: string } | null) => {
+      if (garden) {
+        const fullGarden = eligibleGardens.find(
+          (eligibleGarden) => eligibleGarden.id === garden.id
+        );
+        setGarden(fullGarden ?? null);
+      } else {
+        setGarden(null);
+      }
+    },
+    [eligibleGardens, setGarden]
+  );
+  const handleCreateGarden = useCallback(() => navigate(adminRoutes.gardenCreate()), [navigate]);
+  const gardenChipNode = useMemo(
+    () => (
+      <GardenChip
+        gardens={gardenList}
+        selectedGarden={chipGarden}
+        onSelectGarden={handleSelectGarden}
+        onCreateGarden={handleCreateGarden}
+      />
+    ),
+    [chipGarden, gardenList, handleCreateGarden, handleSelectGarden]
+  );
+
+  useCanvasChromeProbe("CanvasLayout", {
+    activePath,
+    pathname: location.pathname,
+    usesFloatingFabNavigation,
+    visibleSlotCount,
+    workspaceId,
+  });
 
   useEffect(() => {
     if (!isDesktop || rawWorkspaceId !== "profile") {
@@ -255,28 +421,6 @@ export function CanvasLayout() {
     );
   }
 
-  // GardenChip only needs the selector shape, not full domain objects.
-  const gardenList = eligibleGardens.map((garden) => ({ id: garden.id, name: garden.name }));
-  const chipGarden = selectedGarden ? { id: selectedGarden.id, name: selectedGarden.name } : null;
-
-  const gardenChipNode = (
-    <GardenChip
-      gardens={gardenList}
-      selectedGarden={chipGarden}
-      onSelectGarden={(g) => {
-        if (g) {
-          const fullGarden = eligibleGardens.find((garden) => garden.id === g.id);
-          setGarden(fullGarden ?? null);
-        } else {
-          setGarden(null);
-        }
-      }}
-      onCreateGarden={() => navigate(adminRoutes.gardenCreate())}
-    />
-  );
-
-  const visibleSlotCount = slots.filter((slot) => slot.visible).length;
-
   return (
     <FabProvider>
       <RefreshActionProvider>
@@ -299,7 +443,7 @@ export function CanvasLayout() {
 
             {/* ── Body 1: Persistent Chrome — Top Axis (Z3) ── */}
             <div data-region="canvas-area-top" className="canvas-area-top">
-              <AppBar
+              <StableAppBar
                 gardenChip={gardenChipNode}
                 onOpenSearch={handleOpenSearch}
                 onOpenSettings={isDesktop ? openSettings : undefined}
@@ -335,11 +479,21 @@ export function CanvasLayout() {
              defaults in useEffectiveToolbarPermissions. */}
             <div data-region="canvas-area-bottom" className="canvas-area-bottom">
               {visibleSlotCount > 0 && (
-                <FabAwareNavigationBar
-                  slots={slots}
-                  activePath={activePath}
-                  onNavigate={(path) => navigate(path)}
-                />
+                <>
+                  {usesFloatingFabNavigation ? (
+                    <FabAwareNavigationBar
+                      slots={slots}
+                      activePath={activePath}
+                      onNavigate={handleNavigate}
+                    />
+                  ) : (
+                    <ProfiledNavigationBar
+                      slots={slots}
+                      activePath={activePath}
+                      onNavigate={handleNavigate}
+                    />
+                  )}
+                </>
               )}
             </div>
 
@@ -475,14 +629,21 @@ function AdminNotificationPanel({ onCloseSheet }: { onCloseSheet: () => void }) 
 }
 
 /** Bridge: reads FAB config from FabContext and passes to NavigationBar */
-function FabAwareNavigationBar(props: {
+const FabAwareNavigationBar = memo(function FabAwareNavigationBar(props: {
   slots: ToolbarSlot[];
   activePath: string;
   onNavigate: (path: string) => void;
 }) {
   const fabConfig = useFabConfigValue();
-  return <NavigationBar {...props} fab={fabConfig} />;
-}
+  useCanvasChromeProbe("FabAwareNavigationBar", {
+    activePath: props.activePath,
+    hasFab: Boolean(fabConfig),
+    slotIds: props.slots.map((slot) => slot.id),
+  });
+
+  return <ProfiledNavigationBar {...props} fab={fabConfig} />;
+});
+FabAwareNavigationBar.displayName = "FabAwareNavigationBar";
 
 /**
  * Bridge: reads left sheet config from LeftSheetContext and renders

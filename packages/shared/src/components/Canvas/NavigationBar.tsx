@@ -65,7 +65,7 @@ function NavItem({ slot, isActive, onNavigate, label, mobile = false }: NavItemP
         mobile
           ? "min-h-[3.75rem] min-w-0 flex-1 flex-col rounded-[1.15rem] px-1.5 py-2"
           : "min-w-[4.25rem] rounded-[1.1rem] px-3 py-2",
-        "transition-all duration-[var(--spring-effects-duration)] ease-[var(--spring-effects-easing)]",
+        "transition-[background-color,color,box-shadow] duration-[var(--spring-effects-duration)] ease-[var(--spring-effects-easing)]",
         "motion-reduce:transition-none",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-tint,59_130_246))]",
         isActive
@@ -273,7 +273,7 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
   const [isLargeDesktop, setIsLargeDesktop] = useState(
     () => typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches
   );
-  const visibleSlots = slots.filter((s) => s.visible);
+  const visibleSlots = useMemo(() => slots.filter((s) => s.visible), [slots]);
   const desktopSlots = useMemo(
     () => visibleSlots.filter((slot) => !slot.mobileOnly),
     [visibleSlots]
@@ -379,9 +379,7 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
           className={cn(
             "canvas-navigation-bar flex w-max items-center",
             "gap-1.5 rounded-2xl px-2.5 py-2",
-            "border border-stroke-soft-200 bg-bg-white-0 shadow-[var(--edge-rest),_var(--elevation-2)]",
-            "animate-[nav-bar-enter_var(--spring-spatial)_both]",
-            "motion-reduce:animate-none"
+            "border border-stroke-soft-200 bg-bg-white-0 shadow-[var(--edge-rest),_var(--elevation-2)]"
           )}
         >
           {desktopSlots.map((slot) => (
@@ -409,9 +407,7 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
           data-state="visible"
           className={cn(
             "canvas-navigation-bar fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-nav flex items-start gap-1.5 rounded-2xl px-2 py-2",
-            "border border-stroke-soft-200 bg-bg-white-0 shadow-[var(--edge-rest),_var(--elevation-3)]",
-            "animate-[nav-bar-enter_var(--spring-spatial)_both]",
-            "motion-reduce:animate-none"
+            "border border-stroke-soft-200 bg-bg-white-0 shadow-[var(--edge-rest),_var(--elevation-3)]"
           )}
         >
           {mobileSlots.map((slot) => (

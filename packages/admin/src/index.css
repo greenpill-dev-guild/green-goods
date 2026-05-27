@@ -191,14 +191,15 @@
   ::view-transition-old(root),
   ::view-transition-new(root) {
     animation: none;
+    opacity: 0;
   }
 
   ::view-transition-old(root) {
-    opacity: 1;
+    opacity: 0;
   }
 
   ::view-transition-new(root) {
-    opacity: 1;
+    opacity: 0;
   }
 
   ::view-transition-old(gg-route-content) {
@@ -211,16 +212,10 @@
 }
 
 @keyframes route-content-fade-out {
-  to { opacity: 0; transform: translateY(var(--admin-motion-route-content-offset)); }
+  to { opacity: 0; }
 }
 @keyframes route-content-fade-in {
-  from { opacity: 0; transform: translateY(var(--admin-motion-route-content-offset)); }
-}
-
-/* Hub pipeline tab crossfade */
-@keyframes hub-fade-in {
   from { opacity: 0; }
-  to { opacity: 1; }
 }
 
 /* Speed dial items — stagger upward from FAB position */
@@ -244,11 +239,6 @@
   /* Disable speed dial stagger */
   @keyframes speed-dial-in {
     from { opacity: 1; transform: none; }
-  }
-
-  /* Disable hub tab crossfade */
-  @keyframes hub-fade-in {
-    from { opacity: 1; }
   }
 }
 
@@ -343,7 +333,6 @@
   );
   --admin-motion-route-content-duration: var(--spring-effects-fast-duration);
   --admin-motion-route-content-easing: var(--spring-effects-fast-easing);
-  --admin-motion-route-content-offset: 4px;
   --admin-motion-canvas-tone-duration: var(--spring-spatial-slow-duration);
   --admin-motion-canvas-tone-easing: var(--spring-spatial-slow-easing);
   --admin-motion-fab-menu: var(--spring-spatial-fast);
@@ -1000,22 +989,6 @@
   }
 }
 
-/* Nav bar entrance animation — pure vertical slide + fade.
-   Centering is handled in the component via `inset-x-0 mx-auto`, not a transform,
-   so the animation ends at `transform: none` without clobbering horizontal position.
-   The shared animation is safe for both the centered desktop nav and the
-   corner-docked FAB (which uses fixed right/bottom positioning, also transform-free). */
-@keyframes nav-bar-enter {
-  from {
-    opacity: 0;
-    transform: translateY(1rem);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
 @keyframes confirmedShimmer {
   0% {
     box-shadow: 0 0 0 0 rgb(var(--success-base) / 0);
@@ -1454,10 +1427,9 @@
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-    animation: hub-fade-in var(--spring-effects-fast-duration) var(--spring-effects-fast-easing) both;
-    transition:
-      opacity var(--spring-effects-fast),
-      transform var(--spring-spatial-fast-duration) var(--spring-spatial-fast-easing);
+    animation: none;
+    transition: none;
+    transform: none;
   }
 
   /* `.hub-route-shell` mobile padding: now owned by `.canvas-route-card`. */
@@ -1473,28 +1445,15 @@
  * VIEW TRANSITIONS — scope cross-fade to content only
  *
  * `PageTransition` uses the View Transitions API on every route change. By
- * default the API snapshots the entire viewport, so the AppBar and floating
- * NavigationBar cross-fade along with the content — it looks like the chrome
- * is "moving" when only a tab switched. Naming each chrome region as its own
- * transition group with no animation keeps them visually stationary while the
- * content area gets a short named cross-fade.
+ * default the API snapshots the entire viewport. Opt the root snapshot out so
+ * persistent chrome stays live and stationary while the content area gets a
+ * short named cross-fade.
  * ============================================================================ */
-.canvas-area-top {
-  view-transition-name: gg-canvas-top;
-}
-.canvas-area-bottom {
-  view-transition-name: gg-canvas-bottom;
+:root {
+  view-transition-name: none;
 }
 .canvas-route-card {
   view-transition-name: gg-route-content;
-}
-::view-transition-group(gg-canvas-top),
-::view-transition-old(gg-canvas-top),
-::view-transition-new(gg-canvas-top),
-::view-transition-group(gg-canvas-bottom),
-::view-transition-old(gg-canvas-bottom),
-::view-transition-new(gg-canvas-bottom) {
-  animation: none !important;
 }
 
 /* Root snapshots are disabled so AppBar, navigation, and canvas do not cross-fade
@@ -1502,6 +1461,7 @@
 ::view-transition-old(root),
 ::view-transition-new(root) {
   animation: none !important;
+  opacity: 0 !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
