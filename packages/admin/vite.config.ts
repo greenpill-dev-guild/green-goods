@@ -16,12 +16,36 @@ function envValue(key: string): string | undefined {
   return value ? value : undefined;
 }
 
+function vercelHostname(): string | undefined {
+  const value = envValue("VITE_VERCEL_URL") || envValue("VERCEL_URL");
+  if (!value) return undefined;
+
+  try {
+    return new URL(value.startsWith("http") ? value : `https://${value}`).hostname.toLowerCase();
+  } catch {
+    return value.toLowerCase();
+  }
+}
+
+function isAdminVercelProject(): boolean {
+  const vercelProjectId = envValue("VITE_VERCEL_PROJECT_ID") || envValue("VERCEL_PROJECT_ID");
+  if (vercelProjectId === GREEN_GOODS_ADMIN_VERCEL_PROJECT_ID) return true;
+
+  const hostname = vercelHostname();
+  if (!hostname) return false;
+
+  return (
+    hostname === "admin.greengoods.app" ||
+    hostname === "dashboard.greengoods.app" ||
+    hostname.startsWith("green-goods-admin-")
+  );
+}
+
 function resolveAdminSentryDsn(): string | undefined {
   const explicitDsn = envValue("VITE_SENTRY_ADMIN_DSN") || envValue("SENTRY_ADMIN_DSN");
   if (explicitDsn) return explicitDsn;
 
-  const vercelProjectId = envValue("VITE_VERCEL_PROJECT_ID") || envValue("VERCEL_PROJECT_ID");
-  if (vercelProjectId === GREEN_GOODS_ADMIN_VERCEL_PROJECT_ID) {
+  if (isAdminVercelProject()) {
     return envValue("SENTRY_DSN");
   }
 
@@ -120,7 +144,7 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
               name: sentryRelease,
             },
             sourcemaps: {
-              filesToDeleteAfterUpload: ["dist/**/*.map"],
+              filesToDeleteAfterUpload: [resolve(__dirname, "dist/**/*.map")],
             },
             telemetry: false,
           }),
