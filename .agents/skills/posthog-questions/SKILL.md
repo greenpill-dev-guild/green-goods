@@ -2,12 +2,12 @@
 name: posthog-questions
 user-invocable: false
 description: Canonical curated-question library for PostHog reads across Green Goods routines and skills. Two lenses (product/quality, growth/BD), one privacy boundary, one shared answer per question. Routines reference questions by name; the connector or fallback script resolves them.
-version: "1.1.0"
+version: "1.2.0"
 status: active
 packages: ["all"]
 dependencies: []
-last_updated: "2026-05-09"
-last_verified: "2026-05-09"
+last_updated: "2026-05-24"
+last_verified: "2026-05-24"
 ---
 
 # PostHog Curated Questions
@@ -547,6 +547,8 @@ Public-safe-default. Aggregates only — never names a single user.
 
 ### `actions.template-creation-rate`
 
+> 🚫 **BLOCKED (2026-05-24)** — do not consume. Its required event `admin_action_create_success` is defined at `packages/shared/src/modules/app/analytics-events.ts:111` but has **no tracker factory and no call site** (the entire `admin_action_*` constant family is orphaned), so it has never fired and the HogQL returns zero forever. Consumers (e.g. `growth-pulse`) must **not** run this question or fire an "action template stall" threshold from it. Unblock by either wiring `trackAdminActionCreateSuccess` (a `createTracker` factory) + calling it in `packages/admin/src/views/Actions/CreateAction.tsx`, **or** repointing the signal at the Envio indexer `Action` entity (`createdAt`), the on-chain source of truth. `growth-pulse` uses the indexer substitute as of 2026-W21.
+
 - **Lens**: growth-bd
 - **Default privacy**: public-safe
 - **What it answers**: action-template creation rate over time — the signal behind `#473` (zero new action templates in 23 days).
@@ -640,7 +642,11 @@ The following questions would expand coverage but require events that don't exis
 - `funnel.invite-acceptance` — needs `garden_invite_sent` and `garden_invite_accepted`. The current `garden_join_success` and `garden_auto_join_success` events fire after the invite link is followed, but the invite-creation step itself isn't tracked. Add via `createTracker<T>` in `packages/shared/src/modules/app/analytics-events.ts` if invitation conversion becomes a key metric.
 - `funnel.first-work-from-invite` — depends on the same invitation events plus a stable `first_work` derivation. The derivation is computable from `work_submission_success` (`min(timestamp) per distinct_id`), so no new event is strictly required, but a `first_work_submitted` event would let cohort joins be cheaper.
 
-Do not write a question for these until the underlying events ship — referencing a `blocked` question from a routine is still a `routine-self-audit` violation.
+Do not write a question for these until the underlying events ship. **Consuming** (running the HogQL of) a `blocked` question from a routine is a `routine-self-audit` violation; **documenting** a question's blocked/deprecated status in routine prose (as `growth-pulse` now does for `actions.template-creation-rate`) is expected and not a violation.
+
+**Blocked in place (written, but the required event never fires):**
+
+- `actions.template-creation-rate` — depends on `admin_action_create_success`, which is defined but unwired (no tracker, no call site; the whole `admin_action_*` family is orphaned constants). Marked 🚫 BLOCKED in its entry above (2026-05-24). Wire the event (`trackAdminActionCreateSuccess` + a call in `CreateAction.tsx`) or repoint the question at the indexer `Action` entity before any consumer uses it again.
 
 ## Routine integration checklist
 

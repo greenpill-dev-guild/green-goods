@@ -29,6 +29,7 @@
 
 ## Week 6 - Retrospective
 
-- [ ] Compare scorecards across the selected feature and baseline feature.
-- [ ] Update only the guidance that proved useful.
-- [ ] Record what should not become process.
+- [ ] Compare scorecards across scaffold hardening, CSS maintainability, and the agent-max readiness pilot.
+- [ ] Keep only readiness steps that caught real drift or reduced review cost.
+- [ ] Record what should not become process, including any checklist fields that stayed ceremonial.
+- [ ] Decide whether the pre-agent checklist, data-contract map, or route/access matrix deserve promotion beyond this hub.

@@ -161,7 +161,7 @@ The `client.yml` lane has a manual Lighthouse advisory job checking:
 
 ### Source Maps
 
-Vercel runs `bun run build` only. Source-map generation and PostHog upload run from the GitHub Actions `client.yml` lane on trusted `main` pushes, where `GG_ENABLE_SOURCEMAPS=true` enables map output for the upload job.
+The client Vercel project runs only `bun run build`. The trusted `client.yml` workflow owns source-map generation and PostHog upload on `main`, setting `GG_ENABLE_SOURCEMAPS=true` only for that upload lane.
 
 Set these variables as GitHub repository secrets:
 

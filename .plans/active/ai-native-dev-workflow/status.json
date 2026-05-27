@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-05-24",
-    "updated_at": "2026-05-24"
+    "updated_at": "2026-05-26"
   },
   "links": {
     "brief": "brief.md",
@@ -42,7 +42,8 @@
   "notes": [
     "status.json is authoritative for this hub.",
     "This hub improves the existing .plans workflow; it must not create a parallel memory or execution truth surface.",
-    "Week-one scaffold is plan/process only and does not touch runtime code."
+    "Week-one scaffold is plan/process only and does not touch runtime code.",
+    "Agent-max readiness adoption starts in this hub first; promote to global guidance only after retrospective evidence."
   ],
   "lanes": {
     "ui": {
@@ -82,7 +83,7 @@
         },
         "green": {
           "command": "node scripts/harness/plan-hub.mjs validate",
-          "evidence": "Plan hub validation passed for 21 feature hubs after scaffold hardening."
+          "evidence": "Plan hub validation passed after scaffold hardening; the 2026-05-26 readiness pilot starts from a checkout where the validator reports 22 feature hubs."
         },
         "note": "This is process-infrastructure work inside .plans, so a traditional RED/GREEN code test is not applicable. The fallback proof is the repo plan validator plus filled ledger, scorecard, adversarial review, and closeout evidence."
       },
@@ -147,6 +148,22 @@
       "status": "completed",
       "branch": "codex/state-api/ai-native-dev-workflow",
       "note": "Closed the scaffold-hardening lane with filled ledger, scorecard, adversarial review, closeout gate, and copy-runnable validation command evidence. UI remains manually blocked until a future adoption step intentionally scopes UI or guidance work."
+    },
+    {
+      "timestamp": "2026-05-26",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": "codex/agent-max-readiness",
+      "note": "Started the agent-max readiness hardening pilot: pre-agent checklist, data-contract map, route/access matrix, and upload-signing public API validation contract."
+    },
+    {
+      "timestamp": "2026-05-26",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "completed_with_proof_limit",
+      "branch": "codex/agent-max-readiness",
+      "note": "Completed the readiness pilot with passing plan hub, skill mirror, docs audit, shared tests, agent tests, agent build, and design-generated check. Full drift remains blocked by source-structure on existing oversized touched files and warn-only React pattern findings in the broader dirty tree."
     }
   ]
 }

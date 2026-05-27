@@ -5,7 +5,7 @@ sidebar_label: DRS 2026 Paper
 audience: developer
 owner: docs
 last_verified: 2026-04-02
-feature_status: Draft
+feature_status: Planned
 ---
 
 # Toward a Regenerative Digital Design Framework: Principles and Practice from Green Goods

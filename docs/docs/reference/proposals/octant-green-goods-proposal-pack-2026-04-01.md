@@ -1,10 +1,23 @@
+---
+title: "Octant x Green Goods Proposal Pack"
+slug: /reference/proposals/octant-green-goods-proposal-pack-2026-04-01
+sidebar_label: Octant Proposal Pack
+audience: developer
+owner: docs
+last_verified: 2026-04-01
+feature_status: Planned
+source_of_truth:
+  - docs/src/data/endpoints.ts
+  - packages/indexer/schema.graphql
+---
+
 # Octant x Green Goods Proposal Pack
 
 Date: 2026-04-01
 
 ## Current Live Data Snapshot
 
-Source of live garden data: production Green Goods indexer at `https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql`, queried on 2026-04-01.
+Source of live garden data: production Green Goods indexer from `docs/src/data/endpoints.ts`, queried on 2026-04-01.
 
 Current indexed garden state:
 
@@ -134,4 +147,3 @@ The right ask is for Octant to fund Green Goods as a regenerative compliance and
 - If the audience is Eugene or an Octant product-strategy stakeholder, emphasize modular infrastructure, funder clarity, and measurable learning loops.
 - If the audience is more ecosystem-facing, emphasize Ethereum adoption through education, real-world stewardship, and local-first trust.
 - If the audience is traditional impact or climate-adjacent, emphasize compliance, evaluator methods, and reduced administrative burden.
-

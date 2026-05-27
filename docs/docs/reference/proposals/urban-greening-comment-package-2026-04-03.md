@@ -1,3 +1,13 @@
+---
+title: "Green Goods x Omo Yoruba Urban Greening Comment Package"
+slug: /reference/proposals/urban-greening-comment-package-2026-04-03
+sidebar_label: Urban Greening Comment
+audience: developer
+owner: docs
+last_verified: 2026-04-03
+feature_status: Planned
+---
+
 # Green Goods x Omo Yoruba Urban Greening Comment Package
 
 Date: 2026-04-03

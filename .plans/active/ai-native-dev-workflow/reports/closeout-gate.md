@@ -37,3 +37,20 @@ The first product/runtime adoption pass has now been recorded through `css-maint
 | Visual proof | `output/playwright/css-maintainability-pwa-modaldrawer-scrim.png`, `output/playwright/css-maintainability-shared-pwasheet-scrim.png` | completed for Storybook component proof; seeded installed-PWA route proof deferred to QA |
 
 Agreement check: the CSS hub status, plan checklist, eval notes, UI handoff, ledger, and scorecard all agree that the revamped UI lane completed only the approved installed-PWA scrim-token micro-batch. QA pass 1 remains the next review gate before archive.
+
+## Agent-Max Readiness Pilot Update
+
+This pass adopts a narrow subset of agent-max readiness practices inside this hub before any global guidance change:
+
+| Required Evidence | Location | Status |
+|---|---|---|
+| Pre-agent dispatch checklist | `artifacts/pre-agent-max-checklist.md` | filled |
+| Data contract map | `artifacts/data-contract-map.md` | filled for upload signing |
+| Route/access matrix | `artifacts/route-access-matrix.md` | filled; route changes marked `N/A` |
+| Shared runtime contract | `packages/shared/src/public-contracts/upload-signing.ts` | implemented |
+| Agent handler adoption | `packages/agent/src/api/server.ts` | implemented |
+| Focused tests | `packages/shared/src/__tests__/public-contracts/upload-signing.test.ts`, `packages/agent/src/__tests__/upload-signer.test.ts` | passed via `bun run test:shared` and `bun run test:agent` |
+| Agent build | `bun run build:agent` | passed |
+| Drift closeout | `bun run drift:check -- --scope all --json` | guidance, plans, docs, design generated/tokens, vocab, docs parity, and test quality pass; source-structure fails on already-oversized touched files; React pattern lint remains warn-only on broader dirty-tree findings |
+
+Agreement check: the checklist, data-contract map, route/access matrix, eval notes, ledger, and scorecard all agree that upload signing is the only runtime validation pilot in this pass. Funding intents, route behavior, global guidance, broad schema refactors, and large-file extraction remain out of scope.

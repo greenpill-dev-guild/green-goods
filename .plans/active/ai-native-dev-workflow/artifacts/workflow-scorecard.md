@@ -81,3 +81,21 @@ Use this to measure whether AI-native workflow changes reduce cognitive debt ins
 | Rework caused by tool/model failure | Medium-low: Modern Web Guidance retrieval failed, sandboxed Vite temp writes failed until approved reruns, and the unseeded client PWA route stayed on a loading spinner. |
 | Rule updates created | `None` for repeated agent failures; keep route-level visual proof separate from component Storybook proof when seeded runtime state is unavailable. |
 | Net judgment | Green: the workflow kept the runtime diff to the approved two-slot token change, added regression coverage, preserved unrelated dirty work, and recorded proof limits for QA. |
+
+### 2026-05-26 - Agent-Max Readiness Pilot
+
+| Metric | Value |
+|---|---|
+| Date | 2026-05-26 |
+| Repo | Green Goods |
+| Feature or lane | `agent-max-readiness` / AI-native workflow hardening pilot |
+| Cycle time | One scoped implementation pass after plan-mode approval. |
+| Agent runs | 1 Codex implementation/proof pass. |
+| Human review findings | Human selected workflow-plus-pilot depth, upload signing as the public API validation pilot, and `.plans` as the first guidance home. |
+| Tests added or updated | Shared upload-signing contract unit tests and agent upload-signing invalid-field coverage. |
+| Validation commands | `node scripts/harness/plan-hub.mjs validate`; `bun run check:skills`; `bun run docs:audit:ci`; `bun run lint:rules`; `bun run test:shared`; `bun run test:agent`; `bun run build:agent`; `bun run drift:check -- --scope all --json`. |
+| Regressions caught before merge | Starting drift check caught skill mirror drift, docs source/frontmatter drift, README command drift, and inline alert-style blocks before broad agent dispatch. |
+| Rework caused by unclear intent | Low: implementation boundaries were decision-complete before edits. |
+| Rework caused by tool/model failure | Medium: sandbox blocked Git ref and generated mirror writes until approved reruns; source-structure guard cannot pass on uncommitted edits to existing oversized files without broad extraction. |
+| Rule updates created | None in global guidance; local readiness artifacts added for retrospective. |
+| Net judgment | Yellow: the readiness gate caught and cleared guidance/docs/design drift and proved upload-signing validation, but the source-structure guard exposes an unresolved structural debt in already-oversized touched files. |

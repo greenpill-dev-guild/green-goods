@@ -83,3 +83,22 @@ The first measured lane is the `ai-native-dev-workflow` scaffold-hardening pass.
 | Human judgment callouts | The cleanup intentionally does not touch public browser/editorial dialogs, admin chrome, shared Canvas geometry, Storybook frames, or the 60 audited typography/font entries. QA should decide whether seeded installed-PWA route proof is needed before archive. |
 | Follow-up rule updates | `None` for repeated agent failures. Keep `check:design-generated` excluded as clean evidence until its dirty-tree side effect is fixed. |
 | Outcome | completed; revamped UI lane ready for QA pass 1 |
+
+### 2026-05-26 - Agent-Max Readiness Pilot
+
+| Field | Value |
+|---|---|
+| Date | 2026-05-26 |
+| Feature | `agent-max-readiness` within `ai-native-dev-workflow` |
+| Repo | Green Goods |
+| Agent role | Codex implementation and validation agent |
+| Human goal | Adopt the useful parts of the Syntax/Synrax agent-max checklist inside the existing `.plans` workflow and prove one shared public API runtime contract. |
+| Context packet | User-approved agent-max readiness plan, root and package `AGENTS.md`, baseline `bun run drift:check -- --scope all --json`, upload-signing handler/tests, docs-audit output, inline alert lint output. |
+| Assigned scope | `.plans/active/ai-native-dev-workflow`, generated `.agents/skills` mirror, docs-audit warning fixes, client inline alert lint fixes, shared public-contract upload-signing validation, agent upload-signing handler/tests. |
+| Files touched | `.plans/active/ai-native-dev-workflow/**`; generated `.agents/skills/posthog-questions/SKILL.md`; selected docs trust files; selected client alert sites; `packages/shared/src/public-contracts/**`; `packages/shared/src/__tests__/public-contracts/upload-signing.test.ts`; `packages/agent/src/api/server.ts`; `packages/agent/src/__tests__/upload-signer.test.ts`. |
+| Commands run | `git status --short --branch`; `bun run drift:check -- --scope all --json`; `bun run skills:sync`; `node scripts/harness/plan-hub.mjs validate`; `bun run check:skills`; `bun run docs:audit:ci`; `bun run lint:rules`; `bun run test:shared`; `bun run test:agent`; `bun run build:agent`; `bun run design:generate`; `bun run check:design-generated`. |
+| Failures or retries | Branch creation and skill sync needed approved reruns because sandbox permissions blocked Git refs and generated skill mirror writes. Final drift remains blocked on source-structure because this pass touched existing oversized files; resolving that would require a broader extraction or committing before the guard runs against the working tree. |
+| Verification cost | One full drift baseline, one final drift closeout, plan-hub validation, skill check, docs audit, React pattern lint, shared package test suite, agent package test suite, agent build, and DesignMD regeneration/check. |
+| Human judgment callouts | Keep the new readiness guidance in this hub first; no global guidance edits until retrospective proves it reduced review cost. |
+| Follow-up rule updates | No global rule update in this pass. Retrospective should decide whether the checklist/map/matrix move beyond this hub. |
+| Outcome | completed with source-structure proof limit |

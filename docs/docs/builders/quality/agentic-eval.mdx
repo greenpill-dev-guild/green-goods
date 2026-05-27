@@ -10,7 +10,7 @@ source_of_truth:
   - AGENTS.md
   - CLAUDE.md
   - docs/routines/pr-review.md
-  - docs/routines/drift-watch.md
+  - docs/routines/health-watch.md
   - scripts/quality/check-codex-docs.js
   - scripts/dev/ci-local.js
 keywords: [agentic evaluation, acceptance cases, guidance guardrails, inner loop, test generation]
@@ -42,7 +42,7 @@ flowchart LR
 |-------|---------|--------|
 | `.claude/evals/acceptance/` | Product acceptance cases and workflow-level checks | Live |
 | `node .claude/scripts/check-skill-frontmatter.js` | Skill registry/frontmatter, command route, bundle, and retired-surface checks | Live |
-| `docs/routines/pr-review.md` / `docs/routines/drift-watch.md` | Routine/native-review checks for repo guidance, retired workflow drift, and invariant violations | Live |
+| `docs/routines/pr-review.md` / `docs/routines/health-watch.md` | Routine/native-review checks for repo guidance, production health drift, and invariant violations | Live |
 
 The only live eval directory under `.claude/evals/` today is `acceptance/`. Automated benchmark packs for `triage`, `code-reviewer`, `oracle`, and `cracked-coder` are retired. Drift around that retirement state is now handled by Claude routines, Copilot automatic review, and human review instead of a dedicated eval workflow. The committed agent surface is currently `cracked-coder` plus `oracle`; specialization otherwise routes through skills and plan-hub lanes.
 
