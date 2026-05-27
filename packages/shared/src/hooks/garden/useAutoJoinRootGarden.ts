@@ -20,6 +20,7 @@ import { getWagmiConfig } from "../../config/appkit";
 import { DEFAULT_CHAIN_ID, getDefaultChain } from "../../config/blockchain";
 import { trackNetworkError } from "../../modules/app/error-tracking";
 import { logger } from "../../modules/app/logger";
+import { ensureAppKitWalletChain } from "../../modules/transactions/chain-guard";
 import {
   assertLocalArbitrumForkSmartAccountsDisabled,
   assertLocalArbitrumForkWallet,
@@ -160,6 +161,7 @@ export function useAutoJoinRootGarden() {
         });
       } else {
         // Wallet user - pays gas
+        await ensureAppKitWalletChain(chainId);
         await assertLocalArbitrumForkWallet();
 
         txHash = await writeContractAsync({
@@ -167,12 +169,13 @@ export function useAutoJoinRootGarden() {
           abi: GardenAccountABI,
           functionName: "joinGarden",
           args: [],
+          chainId,
         });
       }
 
       return txHash;
     },
-    [primaryAddress, smartAccountClient, rootGarden?.address, writeContractAsync]
+    [primaryAddress, smartAccountClient, rootGarden?.address, writeContractAsync, chainId]
   );
 
   /**

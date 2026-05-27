@@ -22,6 +22,7 @@ import {
   trackAdminGardenCreateSuccess,
 } from "../../modules/app/analytics-events";
 import { logger } from "../../modules/app/logger";
+import { ensureAppKitWalletChain } from "../../modules/transactions/chain-guard";
 import { assertLocalArbitrumForkWallet } from "../../modules/transactions/local-fork-safety";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import { useCreateGardenStore } from "../../stores/useCreateGardenStore";
@@ -234,6 +235,7 @@ export function useCreateGardenWorkflow() {
               }
 
               // Execute the transaction (payable -- includes CCIP fee for ENS)
+              await ensureAppKitWalletChain(currentChainId);
               await assertLocalArbitrumForkWallet();
 
               const txHash = await currentWalletClient.writeContract({

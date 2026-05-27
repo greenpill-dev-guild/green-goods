@@ -12,6 +12,7 @@ import { type Address, encodeFunctionData, type Hex } from "viem";
 import { useWalletClient } from "wagmi";
 
 import { createPublicClientForChain, DEFAULT_CHAIN_ID } from "../../config";
+import { getChain } from "../../config/chains";
 import { logger } from "../../modules/app/logger";
 import {
   buildMakerAsk,
@@ -23,6 +24,7 @@ import {
   assertLocalArbitrumForkSmartAccountsDisabled,
   assertLocalArbitrumForkWallet,
 } from "../../modules/transactions/local-fork-safety";
+import { ensureAppKitWalletChain } from "../../modules/transactions/chain-guard";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import type { CreateListingParams } from "../../types/hypercerts";
 import { assertMarketplaceReady } from "../../utils/blockchain/contracts";
@@ -62,6 +64,7 @@ export function useBatchListForYield(gardenAddress?: Address): UseBatchListForYi
       const signer = (smartAccountAddress || eoaAddress) as Address;
       if (!signer) throw new Error("Connect a wallet first");
       if (!walletClient) throw new Error("Wallet client not available for signing");
+      await ensureAppKitWalletChain(chainId);
 
       const readiness = assertMarketplaceReady(chainId);
       const moduleAddress = readiness.addresses.hypercertsModule;
@@ -150,12 +153,14 @@ export function useBatchListForYield(gardenAddress?: Address): UseBatchListForYi
         await smartAccountClient.getUserOperationReceipt({ hash });
       } else {
         const publicClient = createPublicClientForChain(chainId);
+        await ensureAppKitWalletChain(chainId);
         await assertLocalArbitrumForkWallet();
 
         const txHash = await walletClient.sendTransaction({
           to: moduleAddress,
           data: callData,
           account: signer,
+          chain: getChain(chainId),
         });
         await publicClient.waitForTransactionReceipt({
           hash: txHash,

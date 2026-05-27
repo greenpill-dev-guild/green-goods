@@ -1,6 +1,6 @@
 import { extractErrorMessage } from "./extract-message";
 
-export type TxErrorKind = "cancelled" | "reverted" | "rpc" | "network" | "unknown";
+export type TxErrorKind = "cancelled" | "wrongChain" | "reverted" | "rpc" | "network" | "unknown";
 export type TxErrorSeverity = "warning" | "error";
 
 export interface TxErrorView {
@@ -32,6 +32,23 @@ const NETWORK_PATTERNS = [
   "failed to fetch",
   "econnrefused",
   "disconnected",
+];
+
+const WRONG_CHAIN_PATTERNS = [
+  "walletchainmismatch",
+  "chainmismatch",
+  "chain mismatch",
+  "connectorchainmismatch",
+  "wrong chain",
+  "wrong network",
+  "wallet network",
+  "switch your wallet",
+  "switch wallet",
+  "switch network",
+  "unsupported chain",
+  "chain not configured",
+  "network switch rejected",
+  "network switch already pending",
 ];
 
 const TIMEOUT_PATTERNS = ["timeout", "timed out", "deadline exceeded"];
@@ -123,6 +140,16 @@ export function classifyTxError(error: unknown): TxErrorView {
       severity: "error",
       titleKey: "app.txFeedback.failed.title",
       messageKey: "app.errors.blockchain.insufficientFunds.message",
+      rawMessage,
+    };
+  }
+
+  if (includesAny(normalizedMessage, WRONG_CHAIN_PATTERNS)) {
+    return {
+      kind: "wrongChain",
+      severity: "error",
+      titleKey: "app.txFeedback.failed.title",
+      messageKey: "app.errors.blockchain.wrongChain.message",
       rawMessage,
     };
   }

@@ -14,6 +14,8 @@
 import { waitForTransactionReceipt as defaultWaitForReceipt, type Config } from "@wagmi/core";
 import type { Hex } from "viem";
 import { logger } from "../app/logger";
+import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { ensureWagmiWalletChain } from "./chain-guard";
 import { assertLocalArbitrumForkWallet } from "./local-fork-safety";
 import type { ContractCall, TransactionSender, TxResult } from "./types";
 
@@ -27,8 +29,12 @@ function isCanonicalTxHash(hash: string): hash is `0x${string}` {
 
 /** Injectable dependency for testability */
 export interface WalletSenderDeps {
-  waitForTransactionReceipt: (config: Config, params: { hash: Hex }) => Promise<{ status: string }>;
+  waitForTransactionReceipt: (
+    config: Config,
+    params: { hash: Hex; chainId?: number }
+  ) => Promise<{ status: string }>;
   assertWriteSafety?: () => Promise<void>;
+  ensureWalletChain?: (chainId: number) => Promise<void>;
 }
 
 export class WalletSender implements TransactionSender {
@@ -42,6 +48,8 @@ export class WalletSender implements TransactionSender {
     abi: readonly unknown[];
     functionName: string;
     args: readonly unknown[];
+    chainId?: number;
+    value?: bigint;
   }) => Promise<`0x${string}`>;
   private erc7677ProxyUrl?: string;
   private deps: WalletSenderDeps;
@@ -53,6 +61,8 @@ export class WalletSender implements TransactionSender {
       abi: readonly unknown[];
       functionName: string;
       args: readonly unknown[];
+      chainId?: number;
+      value?: bigint;
     }) => Promise<`0x${string}`>,
     erc7677ProxyUrl?: string,
     deps?: WalletSenderDeps
@@ -64,8 +74,11 @@ export class WalletSender implements TransactionSender {
       waitForTransactionReceipt:
         defaultWaitForReceipt as unknown as WalletSenderDeps["waitForTransactionReceipt"],
       assertWriteSafety: assertLocalArbitrumForkWallet,
+      ensureWalletChain: (chainId: number) => ensureWagmiWalletChain(this.config, chainId),
     };
     this.deps.assertWriteSafety ??= assertLocalArbitrumForkWallet;
+    this.deps.ensureWalletChain ??= (chainId: number) =>
+      ensureWagmiWalletChain(this.config, chainId);
   }
 
   async sendContractCall(call: ContractCall): Promise<TxResult> {
@@ -74,6 +87,8 @@ export class WalletSender implements TransactionSender {
 
     // Cast to string to allow non-canonical hash detection (Safe wallets
     // can return identifiers that don't match `0x${string}` at runtime).
+    const chainId = call.chainId ?? DEFAULT_CHAIN_ID;
+    await this.deps.ensureWalletChain?.(chainId);
     await this.deps.assertWriteSafety?.();
 
     const hash: string = await this.writeContractAsync({
@@ -81,6 +96,8 @@ export class WalletSender implements TransactionSender {
       abi: call.abi as readonly unknown[],
       functionName: call.functionName,
       args: call.args,
+      chainId,
+      ...(call.value !== null && call.value !== undefined ? { value: call.value } : {}),
     });
 
     // Some Safe-style wallets return a non-canonical hash-like identifier.
@@ -99,7 +116,7 @@ export class WalletSender implements TransactionSender {
     }
 
     // Wait for on-chain confirmation and verify the tx was not reverted
-    const receipt = await this.deps.waitForTransactionReceipt(this.config, { hash });
+    const receipt = await this.deps.waitForTransactionReceipt(this.config, { hash, chainId });
     if (receipt.status === "reverted") {
       throw new Error("Transaction reverted on-chain");
     }

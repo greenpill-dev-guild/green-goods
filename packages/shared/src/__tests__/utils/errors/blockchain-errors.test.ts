@@ -203,6 +203,7 @@ describe("detectBlockchainError", () => {
   describe("i18n key prefixes", () => {
     const expectedPrefixes: Record<BlockchainErrorType, string> = {
       userRejected: "app.errors.blockchain.userRejected",
+      wrongChain: "app.errors.blockchain.wrongChain",
       insufficientFunds: "app.errors.blockchain.insufficientFunds",
       network: "app.errors.blockchain.network",
       timeout: "app.errors.blockchain.timeout",
@@ -215,6 +216,7 @@ describe("detectBlockchainError", () => {
       // Find a sample message for each type
       const samples: Record<string, string> = {
         userRejected: "user rejected",
+        wrongChain: "wallet chain mismatch",
         insufficientFunds: "insufficient funds",
         network: "connection error",
         timeout: "timeout",
@@ -281,6 +283,10 @@ describe("isRecoverableBlockchainError", () => {
     expect(isRecoverableBlockchainError("connection failed")).toBe(true);
   });
 
+  it("returns true for wrong-chain errors (recoverable)", () => {
+    expect(isRecoverableBlockchainError("ChainMismatchError: current chain 1")).toBe(true);
+  });
+
   it("returns true for timeout errors (recoverable)", () => {
     expect(isRecoverableBlockchainError("timed out")).toBe(true);
   });
@@ -317,6 +323,10 @@ describe("getBlockchainErrorAction", () => {
 
   it("returns waitAndRetry for network error", () => {
     expect(getBlockchainErrorAction("failed to fetch")).toBe("waitAndRetry");
+  });
+
+  it("returns switchChain for wrong-chain errors", () => {
+    expect(getBlockchainErrorAction("ConnectorChainMismatchError")).toBe("switchChain");
   });
 
   it("returns retry for timeout", () => {

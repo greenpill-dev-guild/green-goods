@@ -12,8 +12,10 @@ import { getWalletClient, waitForTransactionReceipt } from "@wagmi/core";
 import { queueToasts } from "../../components/toast";
 import { getWagmiConfig } from "../../config/appkit";
 import { DEFAULT_CHAIN_ID, getEASConfig } from "../../config/blockchain";
+import { getChain } from "../../config/chains";
 import { trackContractError } from "../../modules/app/error-tracking";
 import { logger } from "../../modules/app/logger";
+import { ensureWagmiWalletChain } from "../../modules/transactions/chain-guard";
 import { jobQueue, jobQueueDB, jobQueueEventBus } from "../../modules/job-queue";
 import { assertLocalArbitrumForkWallet } from "../../modules/transactions/local-fork-safety";
 import type { WorkDraft } from "../../types/domain";
@@ -79,7 +81,9 @@ export function useBatchWorkSync() {
         return { count: 0, gardens: [] };
       }
 
-      const walletClient = await getWalletClient(getWagmiConfig(), { chainId });
+      const wagmiConfig = getWagmiConfig();
+      await ensureWagmiWalletChain(wagmiConfig, chainId);
+      const walletClient = await getWalletClient(wagmiConfig, { chainId });
       if (!walletClient?.account) {
         throw new Error("Wallet not connected. Please connect your wallet and try again.");
       }
@@ -116,11 +120,11 @@ export function useBatchWorkSync() {
 
       const hash = await walletClient.sendTransaction({
         ...txParams,
-        chain: walletClient.chain,
+        chain: getChain(chainId),
         account: walletClient.account,
       });
 
-      await waitForTransactionReceipt(getWagmiConfig(), {
+      await waitForTransactionReceipt(wagmiConfig, {
         hash,
         chainId,
         timeout: TX_RECEIPT_TIMEOUT_MS,

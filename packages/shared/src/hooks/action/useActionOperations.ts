@@ -10,6 +10,8 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef, useState } from "react";
 import type { Abi, WalletClient } from "viem";
 import { useAccount, useWalletClient } from "wagmi";
+import { getChain } from "../../config/chains";
+import { ensureAppKitWalletChain } from "../../modules/transactions/chain-guard";
 import { toastService } from "../../components/toast";
 import { assertLocalArbitrumForkWallet } from "../../modules/transactions/local-fork-safety";
 import { Capital, Domain } from "../../types/domain";
@@ -56,6 +58,7 @@ interface ActionOpDeps {
   address: `0x${string}`;
   executeWithToast: <T>(action: () => Promise<T>, options: ToastActionOptions) => Promise<T>;
   scheduleBackgroundRefetch: () => void;
+  chainId: number;
 }
 
 /**
@@ -72,7 +75,8 @@ async function executeActionOperation(
     deps.abi,
     config.functionName,
     config.args,
-    deps.address
+    deps.address,
+    deps.chainId
   );
 
   if (!simulation.success) {
@@ -87,6 +91,7 @@ async function executeActionOperation(
   // Step 2: Execute the actual transaction
   const hash = await deps.executeWithToast(
     async () => {
+      await ensureAppKitWalletChain(deps.chainId);
       await assertLocalArbitrumForkWallet();
 
       return deps.walletClient.writeContract({
@@ -95,7 +100,7 @@ async function executeActionOperation(
         functionName: config.functionName,
         account: deps.address,
         args: config.args,
-        chain: deps.walletClient.chain,
+        chain: getChain(deps.chainId),
       });
     },
     {
@@ -162,6 +167,7 @@ export function useActionOperations(chainId: number) {
       address: address as `0x${string}`,
       executeWithToast,
       scheduleBackgroundRefetch,
+      chainId,
     };
 
     try {

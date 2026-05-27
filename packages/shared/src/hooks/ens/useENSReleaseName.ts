@@ -13,8 +13,10 @@ import { useAccount, useWalletClient } from "wagmi";
 
 import { toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { getChain } from "../../config/chains";
 import { queryKeys } from "../../config/query-keys";
 import { logger } from "../../modules/app/logger";
+import { ensureAppKitWalletChain } from "../../modules/transactions/chain-guard";
 import {
   assertLocalArbitrumForkSmartAccountsDisabled,
   assertLocalArbitrumForkWallet,
@@ -162,6 +164,7 @@ export function useENSReleaseName() {
           functionName: "getReleaseFee",
           args: [slug],
         });
+        await ensureAppKitWalletChain(DEFAULT_CHAIN_ID);
         await assertLocalArbitrumForkWallet();
 
         txHash = await walletClient.writeContract({
@@ -169,6 +172,7 @@ export function useENSReleaseName() {
           abi: GreenGoodsENSABI,
           functionName: "releaseName",
           value: fee as bigint,
+          chain: getChain(DEFAULT_CHAIN_ID),
         });
       } else {
         throw new Error("No connected account");

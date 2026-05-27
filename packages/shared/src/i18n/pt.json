@@ -1030,6 +1030,7 @@
   "app.errors.blockchain.timeout.message": "Tempo esgotado. Por favor, verifique o status da transação na sua carteira.",
   "app.errors.blockchain.unknown.message": "Erro inesperado. Por favor, tente novamente.",
   "app.errors.blockchain.userRejected.message": "Transação cancelada. Por favor, tente novamente quando estiver pronto.",
+  "app.errors.blockchain.wrongChain.message": "Sua carteira está na rede incorreta. Mude para a rede Green Goods e tente novamente.",
   "app.errors.network": "Erro de rede. Por favor, verifique sua conexão.",
   "app.errors.permission": "Você não tem permissão para esta ação.",
   "app.errors.storage": "O armazenamento IPFS não está disponível. Verifique a configuração.",

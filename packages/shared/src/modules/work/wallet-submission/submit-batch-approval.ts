@@ -4,10 +4,12 @@ import type { WorkApprovalDraft } from "../../../types/domain";
 import type { EASWorkApproval } from "../../../types/eas-responses";
 import { getWagmiConfig } from "../../../config/appkit";
 import { getEASConfig } from "../../../config/blockchain";
+import { getChain } from "../../../config/chains";
 import { queryClient } from "../../../config/react-query";
 import { queryKeys } from "../../../config/query-keys";
 import { ANALYTICS_EVENTS } from "../../../modules/app/analytics-events";
 import { track } from "../../../modules/app/posthog";
+import { ensureWagmiWalletChain } from "../../../modules/transactions/chain-guard";
 import { assertLocalArbitrumForkWallet } from "../../../modules/transactions/local-fork-safety";
 import { logger } from "../../app/logger";
 import { DEBUG_ENABLED, debugError, debugLog } from "../../../utils/debug";
@@ -50,7 +52,9 @@ export async function submitBatchApprovalsDirectly(
   });
   onProgress?.("validating", `Preparing ${approvals.length} approvals...`);
 
-  const walletClient = await getWalletClient(getWagmiConfig(), { chainId });
+  const wagmiConfig = getWagmiConfig();
+  await ensureWagmiWalletChain(wagmiConfig, chainId);
+  const walletClient = await getWalletClient(wagmiConfig, { chainId });
   if (!walletClient) {
     throw new Error("Wallet not connected. Please connect your wallet and try again.");
   }
@@ -88,7 +92,7 @@ export async function submitBatchApprovalsDirectly(
 
     const hash = await walletClient.sendTransaction({
       ...txParams,
-      chain: walletClient.chain,
+      chain: getChain(chainId),
       account: walletClient.account,
     });
 

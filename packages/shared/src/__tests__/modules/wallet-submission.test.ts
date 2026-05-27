@@ -25,6 +25,20 @@ vi.mock("../../config/blockchain", () => ({
   }),
 }));
 
+vi.mock("../../config/chains", () => ({
+  getChain: (chainId: number) => ({ id: chainId, name: "Test Chain" }),
+}));
+
+const mockEnsureWagmiWalletChain = vi.fn();
+vi.mock("../../modules/transactions/chain-guard", () => ({
+  ensureWagmiWalletChain: (...args: unknown[]) => mockEnsureWagmiWalletChain(...args),
+}));
+
+const mockAssertLocalArbitrumForkWallet = vi.fn();
+vi.mock("../../modules/transactions/local-fork-safety", () => ({
+  assertLocalArbitrumForkWallet: () => mockAssertLocalArbitrumForkWallet(),
+}));
+
 vi.mock("../../utils/eas/encoders", () => ({
   encodeWorkData: vi.fn(),
   encodeWorkApprovalData: vi.fn(),
@@ -40,6 +54,11 @@ vi.mock("../../utils/eas/transaction-builder", () => ({
   buildApprovalAttestTx: vi.fn(() => ({
     to: "0xEASAddress" as `0x${string}`,
     data: "0xApprovalTxData" as `0x${string}`,
+    value: 0n,
+  })),
+  buildBatchApprovalAttestTx: vi.fn(() => ({
+    to: "0xEASAddress" as `0x${string}`,
+    data: "0xBatchApprovalTxData" as `0x${string}`,
     value: 0n,
   })),
 }));
@@ -99,7 +118,11 @@ vi.mock("../../config/query-keys", () => ({
 import * as wagmiCore from "@wagmi/core";
 import type { WalletClient } from "viem";
 
-import { submitApprovalDirectly, submitWorkDirectly } from "../../modules/work/wallet-submission";
+import {
+  submitApprovalDirectly,
+  submitBatchApprovalsDirectly,
+  submitWorkDirectly,
+} from "../../modules/work/wallet-submission";
 import { WorkSubmissionError } from "../../modules/work/wallet-submission/types";
 import * as encoders from "../../utils/eas/encoders";
 import { mock } from "../test-utils";
@@ -115,6 +138,8 @@ describe("wallet-submission", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockEnsureWagmiWalletChain.mockResolvedValue(undefined);
+    mockAssertLocalArbitrumForkWallet.mockResolvedValue(undefined);
   });
 
   afterEach(() => {
@@ -158,6 +183,7 @@ describe("wallet-submission", () => {
       // Verify
       expect(result).toBe("0xTransactionHash");
       expect(wagmiCore.getWalletClient).toHaveBeenCalledWith({}, { chainId: mockChainId });
+      expect(mockEnsureWagmiWalletChain).toHaveBeenCalledWith({}, mockChainId);
       expect(encoders.encodeWorkData).toHaveBeenCalledWith(
         expect.objectContaining({
           feedback: "Test feedback",
@@ -174,6 +200,7 @@ describe("wallet-submission", () => {
         expect.objectContaining({
           to: "0xEASAddress",
           value: 0n,
+          chain: expect.objectContaining({ id: mockChainId }),
         })
       );
       expect(wagmiCore.waitForTransactionReceipt).toHaveBeenCalledWith(
@@ -355,11 +382,13 @@ describe("wallet-submission", () => {
       // Verify
       expect(result).toBe("0xApprovalTxHash");
       expect(wagmiCore.getWalletClient).toHaveBeenCalledWith({}, { chainId: mockChainId });
+      expect(mockEnsureWagmiWalletChain).toHaveBeenCalledWith({}, mockChainId);
       expect(encoders.encodeWorkApprovalData).toHaveBeenCalledWith(mockApprovalDraft, mockChainId);
       expect(mockWalletClient.sendTransaction).toHaveBeenCalledWith(
         expect.objectContaining({
           to: "0xEASAddress",
           value: 0n,
+          chain: expect.objectContaining({ id: mockChainId }),
         })
       );
       expect(wagmiCore.waitForTransactionReceipt).toHaveBeenCalledWith(
@@ -403,6 +432,50 @@ describe("wallet-submission", () => {
         expect((error as Error).message).toBe("User rejected the request");
         expect((error as Error).cause).toBe(original);
       }
+    });
+  });
+
+  describe("submitBatchApprovalsDirectly", () => {
+    const mockApprovalDraft: WorkApprovalDraft = {
+      workUID: "0xWorkUID",
+      actionUID: 456,
+      approved: true,
+      feedback: "Great work!",
+      confidence: 2,
+      verificationMethod: 1,
+    };
+
+    it("switches to the target chain and submits with the target chain", async () => {
+      mock(wagmiCore.getWalletClient).mockResolvedValue(mockWalletClient as WalletClient);
+      mock(encoders.encodeWorkApprovalData).mockReturnValue(
+        "0xEncodedApprovalData" as `0x${string}`
+      );
+      mock(mockWalletClient.sendTransaction!).mockResolvedValue(
+        "0xBatchApprovalTxHash" as `0x${string}`
+      );
+      mock(wagmiCore.waitForTransactionReceipt).mockResolvedValue({} as any);
+
+      const result = await submitBatchApprovalsDirectly(
+        [
+          {
+            draft: mockApprovalDraft,
+            gardenAddress: "0xGardenAddress",
+            gardenerAddress: "0xGardenerAddress",
+          },
+        ],
+        mockChainId
+      );
+
+      expect(result).toBe("0xBatchApprovalTxHash");
+      expect(mockEnsureWagmiWalletChain).toHaveBeenCalledWith({}, mockChainId);
+      expect(wagmiCore.getWalletClient).toHaveBeenCalledWith({}, { chainId: mockChainId });
+      expect(mockWalletClient.sendTransaction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          to: "0xEASAddress",
+          value: 0n,
+          chain: expect.objectContaining({ id: mockChainId }),
+        })
+      );
     });
   });
 });

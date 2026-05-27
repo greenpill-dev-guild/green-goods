@@ -4,9 +4,11 @@ import type { WorkDraft } from "../../../types/domain";
 import type { EASWork } from "../../../types/eas-responses";
 import { getWagmiConfig } from "../../../config/appkit";
 import { getEASConfig } from "../../../config/blockchain";
+import { getChain } from "../../../config/chains";
 import { queryClient } from "../../../config/react-query";
 import { queryKeys } from "../../../config/query-keys";
 import { trackWalletSubmissionTiming } from "../../../modules/app/analytics-events";
+import { ensureWagmiWalletChain } from "../../../modules/transactions/chain-guard";
 import { assertLocalArbitrumForkWallet } from "../../../modules/transactions/local-fork-safety";
 import { logger } from "../../app/logger";
 import { DEBUG_ENABLED, debugError, debugLog } from "../../../utils/debug";
@@ -41,7 +43,9 @@ export async function submitWorkDirectly(
   });
   onProgress?.("validating", "Checking garden membership...");
 
-  const walletClient = await getWalletClient(getWagmiConfig(), { chainId });
+  const wagmiConfig = getWagmiConfig();
+  await ensureWagmiWalletChain(wagmiConfig, chainId);
+  const walletClient = await getWalletClient(wagmiConfig, { chainId });
   if (!walletClient) {
     const message = "[WalletSubmission] Wallet client not available";
     if (DEBUG_ENABLED) {
@@ -117,7 +121,7 @@ export async function submitWorkDirectly(
 
     hash = await walletClient.sendTransaction({
       ...txParams,
-      chain: walletClient.chain,
+      chain: getChain(chainId),
       account: walletClient.account,
     });
 

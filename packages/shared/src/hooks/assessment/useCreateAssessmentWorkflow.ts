@@ -15,6 +15,7 @@ import {
 } from "../../modules/app/analytics-events";
 import { logger } from "../../modules/app/logger";
 import { getIpfsInitStatus, uploadFileToIPFS, uploadJSONToIPFS } from "../../modules/data/ipfs";
+import { ensureAppKitWalletChain } from "../../modules/transactions/chain-guard";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import type { Address } from "../../types/domain";
 import { getNetworkContracts } from "../../utils/blockchain/contracts";
@@ -143,18 +144,7 @@ export function useCreateAssessmentWorkflow(options: UseCreateAssessmentWorkflow
                 throw new Error("No wallet client available");
               }
 
-              if (
-                typeof currentWalletClient.chain?.id === "number" &&
-                currentWalletClient.chain.id !== currentChainId
-              ) {
-                throw new Error(
-                  formatMessageRef.current({
-                    id: "app.assessment.chainMismatch",
-                    defaultMessage:
-                      "Switch your wallet network to the selected chain before submitting this assessment.",
-                  })
-                );
-              }
+              await ensureAppKitWalletChain(currentChainId);
 
               trackAdminAssessmentCreateStarted({
                 gardenId: params.gardenId,

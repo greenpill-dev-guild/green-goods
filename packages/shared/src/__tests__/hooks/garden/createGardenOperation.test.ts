@@ -22,6 +22,16 @@ vi.mock("../../../utils/blockchain/simulation", () => ({
   simulateTransaction: (...args: unknown[]) => mockSimulateTransaction(...args),
 }));
 
+const mockEnsureAppKitWalletChain = vi.fn();
+vi.mock("../../../modules/transactions/chain-guard", () => ({
+  ensureAppKitWalletChain: (...args: unknown[]) => mockEnsureAppKitWalletChain(...args),
+}));
+
+const mockAssertLocalArbitrumForkWallet = vi.fn();
+vi.mock("../../../modules/transactions/local-fork-safety", () => ({
+  assertLocalArbitrumForkWallet: () => mockAssertLocalArbitrumForkWallet(),
+}));
+
 const mockParseContractError = vi.fn();
 vi.mock("../../../utils/errors/contract-errors", () => ({
   parseContractError: (error: unknown) => mockParseContractError(error),
@@ -76,6 +86,7 @@ const GARDEN_ID = "0x1111111111111111111111111111111111111111" as Address;
 const TARGET_ADDRESS = "0x2222222222222222222222222222222222222222" as Address;
 const HATS_MODULE = "0x3333333333333333333333333333333333333333";
 const USER_ADDRESS = "0x4444444444444444444444444444444444444444" as `0x${string}`;
+const CHAIN_ID = 11155111;
 const TX_HASH = "0xabcdef" as `0x${string}`;
 
 function createConfig(overrides: Partial<GardenOperationConfig> = {}): GardenOperationConfig {
@@ -115,6 +126,8 @@ describe("createGardenOperation", () => {
     vi.clearAllMocks();
     mockFetchHatsModuleAddress.mockResolvedValue(HATS_MODULE);
     mockSimulateTransaction.mockResolvedValue({ success: true });
+    mockEnsureAppKitWalletChain.mockResolvedValue(undefined);
+    mockAssertLocalArbitrumForkWallet.mockResolvedValue(undefined);
     mockParseContractError.mockReturnValue({
       name: "ContractError",
       message: "Something went wrong",
@@ -137,6 +150,7 @@ describe("createGardenOperation", () => {
         config,
         walletClient,
         USER_ADDRESS,
+        CHAIN_ID,
         executeWithToast,
         mockSetIsLoading
       );
@@ -156,6 +170,7 @@ describe("createGardenOperation", () => {
         createConfig(),
         walletClient,
         USER_ADDRESS,
+        CHAIN_ID,
         executeWithToast,
         mockSetIsLoading
       );
@@ -167,7 +182,32 @@ describe("createGardenOperation", () => {
         expect.any(Array),
         "grantRole",
         [GARDEN_ID, TARGET_ADDRESS, 1n],
-        USER_ADDRESS
+        USER_ADDRESS,
+        CHAIN_ID
+      );
+    });
+
+    it("switches to the target chain before writing", async () => {
+      const walletClient = createMockWalletClient();
+      const executeWithToast = createMockExecuteWithToast();
+
+      const operation = createGardenOperation(
+        GARDEN_ID,
+        createConfig(),
+        walletClient,
+        USER_ADDRESS,
+        CHAIN_ID,
+        executeWithToast,
+        mockSetIsLoading
+      );
+
+      await operation(TARGET_ADDRESS);
+
+      expect(mockEnsureAppKitWalletChain).toHaveBeenCalledWith(CHAIN_ID);
+      expect(walletClient.writeContract).toHaveBeenCalledWith(
+        expect.objectContaining({
+          chain: expect.objectContaining({ id: CHAIN_ID }),
+        })
       );
     });
 
@@ -180,6 +220,7 @@ describe("createGardenOperation", () => {
         createConfig(),
         walletClient,
         USER_ADDRESS,
+        CHAIN_ID,
         executeWithToast,
         mockSetIsLoading
       );
@@ -201,6 +242,7 @@ describe("createGardenOperation", () => {
         createConfig(),
         walletClient,
         USER_ADDRESS,
+        CHAIN_ID,
         executeWithToast,
         mockSetIsLoading,
         onOptimisticUpdate
@@ -224,6 +266,7 @@ describe("createGardenOperation", () => {
         createConfig({ operationType: "remove" }),
         walletClient,
         USER_ADDRESS,
+        CHAIN_ID,
         executeWithToast,
         mockSetIsLoading
       );
@@ -235,7 +278,8 @@ describe("createGardenOperation", () => {
         expect.any(Array),
         "revokeRole",
         expect.any(Array),
-        USER_ADDRESS
+        USER_ADDRESS,
+        CHAIN_ID
       );
     });
   });
@@ -251,6 +295,7 @@ describe("createGardenOperation", () => {
         createConfig(),
         null as any,
         undefined as any,
+        CHAIN_ID,
         vi.fn(),
         mockSetIsLoading
       );
@@ -269,6 +314,7 @@ describe("createGardenOperation", () => {
         createConfig(),
         createMockWalletClient(),
         USER_ADDRESS,
+        CHAIN_ID,
         createMockExecuteWithToast(),
         mockSetIsLoading
       );
@@ -290,6 +336,7 @@ describe("createGardenOperation", () => {
         createConfig(),
         createMockWalletClient(),
         USER_ADDRESS,
+        CHAIN_ID,
         createMockExecuteWithToast(),
         mockSetIsLoading
       );
@@ -313,6 +360,7 @@ describe("createGardenOperation", () => {
         createConfig(),
         walletClient,
         USER_ADDRESS,
+        CHAIN_ID,
         executeWithToast,
         mockSetIsLoading
       );

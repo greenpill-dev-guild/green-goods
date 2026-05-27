@@ -1030,6 +1030,7 @@
   "app.errors.blockchain.timeout.message": "Transaction timed out. Please check your wallet for the transaction status.",
   "app.errors.blockchain.unknown.message": "An unexpected error occurred. Please try again.",
   "app.errors.blockchain.userRejected.message": "Transaction was cancelled. Please try again when ready.",
+  "app.errors.blockchain.wrongChain.message": "Your wallet is on the wrong network. Switch to the Green Goods network and try again.",
   "app.errors.network": "Network error. Please check your connection.",
   "app.errors.permission": "You don't have permission for this action.",
   "app.errors.storage": "IPFS storage is not available. Please check the configuration.",

@@ -8,6 +8,7 @@
 
 import type { Abi, WalletClient } from "viem";
 import { toastService } from "../../components/toast";
+import { getChain } from "../../config/chains";
 import {
   trackAdminMemberAddFailed,
   trackAdminMemberAddStarted,
@@ -16,6 +17,7 @@ import {
   trackAdminMemberRemoveStarted,
   trackAdminMemberRemoveSuccess,
 } from "../../modules/app/analytics-events";
+import { ensureAppKitWalletChain } from "../../modules/transactions/chain-guard";
 import { assertLocalArbitrumForkWallet } from "../../modules/transactions/local-fork-safety";
 import type { Address } from "../../types/domain";
 import { HATS_MODULE_ABI } from "../../utils/blockchain/abis";
@@ -193,6 +195,7 @@ export function createGardenOperation(
   config: GardenOperationConfig,
   walletClient: WalletClient,
   address: `0x${string}`,
+  chainId: number,
   executeWithToast: ExecuteWithToast,
   setIsLoading: (loading: boolean) => void,
   onOptimisticUpdate?: OptimisticUpdateCallback
@@ -214,7 +217,6 @@ export function createGardenOperation(
     setIsLoading(true);
 
     try {
-      const chainId = walletClient.chain?.id;
       const hatsModuleAddress = await fetchHatsModuleAddress(gardenId, chainId);
       if (!hatsModuleAddress) {
         setIsLoading(false);
@@ -240,7 +242,8 @@ export function createGardenOperation(
         targetAbi,
         targetFunctionName,
         targetArgs,
-        address
+        address,
+        chainId
       );
 
       if (!simulation.success) {
@@ -281,6 +284,7 @@ export function createGardenOperation(
       // Step 3: Execute the actual transaction
       const hash = await executeWithToast(
         async () => {
+          await ensureAppKitWalletChain(chainId);
           await assertLocalArbitrumForkWallet();
 
           return await walletClient.writeContract({
@@ -289,7 +293,7 @@ export function createGardenOperation(
             functionName: targetFunctionName,
             account: address,
             args: targetArgs,
-            chain: walletClient.chain,
+            chain: getChain(chainId),
           });
         },
         {

@@ -28,6 +28,7 @@ import {
   trackNetworkError,
 } from "../../modules/app/error-tracking";
 import { logger } from "../../modules/app/logger";
+import { ensureAppKitWalletChain } from "../../modules/transactions/chain-guard";
 import {
   assertLocalArbitrumForkSmartAccountsDisabled,
   assertLocalArbitrumForkWallet,
@@ -301,7 +302,9 @@ export function useJoinGarden() {
           // Simulate first to catch errors before user pays gas
           const simulation = await simulateJoinGarden(
             gardenAddress as `0x${string}`,
-            targetAddress as `0x${string}`
+            targetAddress as `0x${string}`,
+            undefined,
+            chainId
           );
 
           if (!simulation.success) {
@@ -313,6 +316,7 @@ export function useJoinGarden() {
             throw new Error("Transaction simulation failed. Please try again.");
           }
 
+          await ensureAppKitWalletChain(chainId);
           await assertLocalArbitrumForkWallet();
 
           txHash = await writeContractAsync({
@@ -320,6 +324,7 @@ export function useJoinGarden() {
             abi: GardenAccountABI,
             functionName: "joinGarden",
             args: [],
+            chainId,
           });
         }
 

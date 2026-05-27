@@ -16,6 +16,7 @@ export interface ContractCall {
   abi: Abi;
   functionName: string;
   args: readonly unknown[];
+  chainId?: number;
   value?: bigint;
 }
 

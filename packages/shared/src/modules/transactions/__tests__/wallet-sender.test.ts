@@ -39,6 +39,7 @@ const TEST_CALL: ContractCall = {
   abi: TEST_ABI,
   functionName: "transfer",
   args: [VALID_RECIPIENT, 1000n],
+  chainId: 42161,
 };
 
 const MOCK_WAGMI_CONFIG = {} as any;
@@ -58,6 +59,7 @@ describe("WalletSender", () => {
     mockDeps = {
       waitForTransactionReceipt: vi.fn().mockResolvedValue({ status: "success" }),
       assertWriteSafety: vi.fn().mockResolvedValue(undefined),
+      ensureWalletChain: vi.fn().mockResolvedValue(undefined),
     };
     sender = new WalletSender(MOCK_WAGMI_CONFIG, mockWriteContractAsync, undefined, mockDeps);
   });
@@ -94,6 +96,27 @@ describe("WalletSender", () => {
         abi: TEST_CALL.abi,
         functionName: TEST_CALL.functionName,
         args: TEST_CALL.args,
+        chainId: TEST_CALL.chainId,
+      });
+    });
+
+    it("switches to the target chain before sending", async () => {
+      await sender.sendContractCall(TEST_CALL);
+
+      expect(mockDeps.ensureWalletChain).toHaveBeenCalledWith(TEST_CALL.chainId);
+      expect(mockWriteContractAsync).toHaveBeenCalledOnce();
+    });
+
+    it("passes payable value when specified in call", async () => {
+      await sender.sendContractCall({ ...TEST_CALL, value: 123n });
+
+      expect(mockWriteContractAsync).toHaveBeenCalledWith({
+        address: TEST_CALL.address,
+        abi: TEST_CALL.abi,
+        functionName: TEST_CALL.functionName,
+        args: TEST_CALL.args,
+        chainId: TEST_CALL.chainId,
+        value: 123n,
       });
     });
 
@@ -104,6 +127,7 @@ describe("WalletSender", () => {
       expect(mockDeps.waitForTransactionReceipt).toHaveBeenCalledOnce();
       expect(mockDeps.waitForTransactionReceipt).toHaveBeenCalledWith(MOCK_WAGMI_CONFIG, {
         hash: MOCK_TX_HASH,
+        chainId: TEST_CALL.chainId,
       });
     });
 

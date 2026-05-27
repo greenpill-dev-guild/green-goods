@@ -1,5 +1,6 @@
 import type { Abi } from "viem";
 import type { Address } from "../../types/domain";
+import { useCurrentChain } from "./useChainConfig";
 import { useTransactionSender } from "./useTransactionSender";
 
 export interface SendContractTxRequest {
@@ -7,6 +8,8 @@ export interface SendContractTxRequest {
   abi: Abi;
   functionName: string;
   args: readonly unknown[];
+  chainId?: number;
+  value?: bigint;
 }
 
 /**
@@ -18,6 +21,7 @@ export interface SendContractTxRequest {
  */
 export function useContractTxSender() {
   const sender = useTransactionSender();
+  const chainId = useCurrentChain();
 
   return async (request: SendContractTxRequest): Promise<`0x${string}`> => {
     if (!sender) {
@@ -29,6 +33,8 @@ export function useContractTxSender() {
       abi: request.abi,
       functionName: request.functionName,
       args: request.args,
+      chainId: request.chainId ?? chainId,
+      value: request.value,
     });
 
     return result.hash;

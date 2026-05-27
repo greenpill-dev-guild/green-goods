@@ -32,6 +32,10 @@ vi.mock("../../utils/blockchain/simulation", () => ({
   simulateTransaction: vi.fn(),
 }));
 
+vi.mock("../../modules/transactions/chain-guard", () => ({
+  ensureAppKitWalletChain: vi.fn(() => Promise.resolve()),
+}));
+
 // Mock error parsing
 vi.mock("../../utils/errors/contract-errors", () => ({
   parseContractError: vi.fn((error) => ({
@@ -67,6 +71,7 @@ vi.mock("@tanstack/react-query", () => ({
 
 import { useAccount, useWalletClient } from "wagmi";
 import { useToastAction } from "../../hooks/app/useToastAction";
+import { ensureAppKitWalletChain } from "../../modules/transactions/chain-guard";
 import { simulateTransaction } from "../../utils/blockchain/simulation";
 
 async function runInAct<T>(callback: () => Promise<T>): Promise<T> {
@@ -155,7 +160,8 @@ describe("useActionOperations", () => {
         expect.any(Array),
         "updateActionTitle",
         [BigInt(1), "New Title"],
-        "0xUserAddress123"
+        "0xUserAddress123",
+        11155111
       );
     });
 
@@ -231,8 +237,22 @@ describe("useActionOperations", () => {
           ["bafy-media-cid"],
           3,
         ],
-        "0xUserAddress123"
+        "0xUserAddress123",
+        11155111
       );
+    });
+
+    it("switches to the selected chain before executing wallet writes", async () => {
+      vi.mocked(simulateTransaction).mockResolvedValue({
+        success: true,
+        result: undefined,
+      });
+
+      const { result } = renderHook(() => useActionOperations(11155111));
+
+      await runInAct(() => result.current.updateActionTitle("1", "Updated Title"));
+
+      expect(ensureAppKitWalletChain).toHaveBeenCalledWith(11155111);
     });
 
     it("handles contract errors during execution", async () => {

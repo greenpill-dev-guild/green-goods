@@ -1030,6 +1030,7 @@
   "app.errors.blockchain.timeout.message": "Tiempo de espera agotado. Por favor, verifica el estado de la transacción en tu billetera.",
   "app.errors.blockchain.unknown.message": "Error inesperado. Por favor, inténtalo de nuevo.",
   "app.errors.blockchain.userRejected.message": "Transacción cancelada. Por favor, inténtalo de nuevo cuando estés listo.",
+  "app.errors.blockchain.wrongChain.message": "Tu billetera está en la red incorrecta. Cambia a la red de Green Goods e inténtalo de nuevo.",
   "app.errors.network": "Error de red. Verifica tu conexión.",
   "app.errors.permission": "No tienes permiso para esta acción.",
   "app.errors.storage": "El almacenamiento IPFS no está disponible. Verifica la configuración.",

@@ -21,14 +21,20 @@ import {
 } from "@wagmi/core";
 import type { Hex } from "viem";
 import { logger } from "../app/logger";
+import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
+import { ensureWagmiWalletChain } from "./chain-guard";
 import { assertLocalArbitrumForkWallet } from "./local-fork-safety";
 import type { ContractCall, TransactionSender, TxResult } from "./types";
 
 /** Injectable wagmi functions for testability */
 export interface EmbeddedSenderDeps {
   writeContract: (config: Config, params: Record<string, unknown>) => Promise<Hex>;
-  waitForTransactionReceipt: (config: Config, params: { hash: Hex }) => Promise<{ status: string }>;
+  waitForTransactionReceipt: (
+    config: Config,
+    params: { hash: Hex; chainId?: number }
+  ) => Promise<{ status: string }>;
   assertWriteSafety?: () => Promise<void>;
+  ensureWalletChain?: (chainId: number) => Promise<void>;
 }
 
 export class EmbeddedSender implements TransactionSender {
@@ -48,12 +54,17 @@ export class EmbeddedSender implements TransactionSender {
       waitForTransactionReceipt:
         defaultWaitForReceipt as unknown as EmbeddedSenderDeps["waitForTransactionReceipt"],
       assertWriteSafety: assertLocalArbitrumForkWallet,
+      ensureWalletChain: (chainId: number) => ensureWagmiWalletChain(this.config, chainId),
     };
     this.deps.assertWriteSafety ??= assertLocalArbitrumForkWallet;
+    this.deps.ensureWalletChain ??= (chainId: number) =>
+      ensureWagmiWalletChain(this.config, chainId);
   }
 
   async sendContractCall(call: ContractCall): Promise<TxResult> {
     // TODO: Replace with EIP-5792 sendCalls + paymasterService once @wagmi/core/experimental is stable.
+    const chainId = call.chainId ?? DEFAULT_CHAIN_ID;
+    await this.deps.ensureWalletChain?.(chainId);
     await this.deps.assertWriteSafety?.();
 
     const hash = await this.deps.writeContract(this.config, {
@@ -61,10 +72,11 @@ export class EmbeddedSender implements TransactionSender {
       abi: call.abi,
       functionName: call.functionName,
       args: call.args as unknown[],
+      chainId,
       ...(call.value !== null && call.value !== undefined ? { value: call.value } : {}),
     });
 
-    const receipt = await this.deps.waitForTransactionReceipt(this.config, { hash });
+    const receipt = await this.deps.waitForTransactionReceipt(this.config, { hash, chainId });
     if (receipt.status === "reverted") {
       throw new Error("Transaction reverted on-chain");
     }

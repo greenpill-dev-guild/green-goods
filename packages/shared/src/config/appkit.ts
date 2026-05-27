@@ -133,7 +133,7 @@ export function ensureAppKit(options?: AppKitInitOptions) {
     networks,
     projectId,
     metadata,
-    enableNetworkSwitch: false,
+    enableNetworkSwitch: true,
     defaultNetwork: getChain(
       options?.defaultChainId ?? DEFAULT_CHAIN_ID
     ) as (typeof networks)[number],

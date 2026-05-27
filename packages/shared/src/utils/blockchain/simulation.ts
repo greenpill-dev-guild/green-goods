@@ -110,7 +110,8 @@ export async function simulateTransaction(
 export async function simulateJoinGarden(
   gardenAddress: Address,
   userAddress: Address,
-  abi?: Abi
+  abi?: Abi,
+  chainId?: number
 ): Promise<SimulationResult> {
   // Import GardenAccountABI dynamically to avoid circular deps
   const { GardenAccountABI } = await import("./contracts");
@@ -120,6 +121,7 @@ export async function simulateJoinGarden(
     abi || (GardenAccountABI as Abi),
     "joinGarden",
     [],
-    userAddress
+    userAddress,
+    chainId
   );
 }

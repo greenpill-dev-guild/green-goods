@@ -13,6 +13,7 @@ import { type Address, encodeFunctionData } from "viem";
 import { useWalletClient } from "wagmi";
 import { toastService } from "../../components/Toast/toast.service";
 import { createPublicClientForChain, DEFAULT_CHAIN_ID } from "../../config";
+import { getChain } from "../../config/chains";
 import { trackContractError } from "../../modules/app/error-tracking";
 import { logger } from "../../modules/app/logger";
 import {
@@ -25,6 +26,7 @@ import {
   assertLocalArbitrumForkSmartAccountsDisabled,
   assertLocalArbitrumForkWallet,
 } from "../../modules/transactions/local-fork-safety";
+import { ensureAppKitWalletChain } from "../../modules/transactions/chain-guard";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import type { CreateListingParams } from "../../types/hypercerts";
 import { assertMarketplaceReady } from "../../utils/blockchain/contracts";
@@ -92,6 +94,7 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
       if (!walletClient) {
         throw new Error("Wallet client not available for signing");
       }
+      await ensureAppKitWalletChain(chainId);
       const signature = await signMakerAsk(makerAsk, walletClient, chainId);
 
       // Step 3: Register on-chain via HypercertsModule.listForYield()
@@ -138,12 +141,14 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
         });
         await smartAccountClient.getUserOperationReceipt({ hash });
       } else if (walletClient) {
+        await ensureAppKitWalletChain(chainId);
         await assertLocalArbitrumForkWallet();
 
         const txHash = await walletClient.sendTransaction({
           to: moduleAddress,
           data: callData,
           account: signer,
+          chain: getChain(chainId),
         });
         await publicClient.waitForTransactionReceipt({
           hash: txHash,

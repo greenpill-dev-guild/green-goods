@@ -15,6 +15,7 @@ import {
   assertLocalArbitrumForkSmartAccountsDisabled,
   assertLocalArbitrumForkWallet,
 } from "../../../modules/transactions/local-fork-safety";
+import { ensureAppKitWalletChain } from "../../../modules/transactions/chain-guard";
 import type { Address } from "../../../types/domain";
 import type { MintHypercertSigningInput } from "../../../workflows/mintHypercert";
 import { CREATE_ALLOWLIST_ABI } from "../../../utils/blockchain/hypercert-abis";
@@ -72,6 +73,7 @@ export function createBuildAndSignActor(deps: MintServiceDeps) {
       throw new Error("Connect a wallet to mint the hypercert");
     }
 
+    await ensureAppKitWalletChain(currentChainId);
     await assertLocalArbitrumForkWallet();
 
     const txHash = await currentWalletClient.writeContract({

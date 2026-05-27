@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { type Address, type Hex, keccak256 } from "viem";
 import { useAccount, useWalletClient } from "wagmi";
+import { getChain } from "../../config/chains";
+import { ensureAppKitWalletChain } from "../../modules/transactions/chain-guard";
 import { assertLocalArbitrumForkWallet } from "../../modules/transactions/local-fork-safety";
 import { GardenAccountABI } from "../../utils/blockchain/contracts";
 import { useToastAction } from "../app/useToastAction";
@@ -65,6 +67,7 @@ export function useGardenInvites(gardenAddress: Address) {
 
       await executeWithToast(
         async () => {
+          await ensureAppKitWalletChain(chainId);
           await assertLocalArbitrumForkWallet();
 
           const hash = await walletClient.writeContract({
@@ -73,6 +76,7 @@ export function useGardenInvites(gardenAddress: Address) {
             functionName: "createInviteCode",
             account: address,
             args: [inviteCode, BigInt(expiry)],
+            chain: getChain(chainId),
           });
 
           return hash;
@@ -118,6 +122,7 @@ export function useGardenInvites(gardenAddress: Address) {
     try {
       await executeWithToast(
         async () => {
+          await ensureAppKitWalletChain(chainId);
           await assertLocalArbitrumForkWallet();
 
           const hash = await walletClient.writeContract({
@@ -126,6 +131,7 @@ export function useGardenInvites(gardenAddress: Address) {
             functionName: "revokeInvite",
             account: address,
             args: [inviteCode as Hex],
+            chain: getChain(chainId),
           });
 
           return hash;

@@ -10,11 +10,13 @@ import { type Address, encodeFunctionData } from "viem";
 import { useWalletClient } from "wagmi";
 
 import { createPublicClientForChain, DEFAULT_CHAIN_ID } from "../../config";
+import { getChain } from "../../config/chains";
 import { logger } from "../../modules/app/logger";
 import {
   assertLocalArbitrumForkSmartAccountsDisabled,
   assertLocalArbitrumForkWallet,
 } from "../../modules/transactions/local-fork-safety";
+import { ensureAppKitWalletChain } from "../../modules/transactions/chain-guard";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import { assertMarketplaceReady } from "../../utils/blockchain/contracts";
 import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
@@ -65,12 +67,14 @@ export function useCancelListing(gardenAddress?: Address): UseCancelListingResul
         await smartAccountClient.getUserOperationReceipt({ hash });
       } else if (walletClient) {
         const publicClient = createPublicClientForChain(chainId);
+        await ensureAppKitWalletChain(chainId);
         await assertLocalArbitrumForkWallet();
 
         const txHash = await walletClient.sendTransaction({
           to: moduleAddress,
           data: callData,
           account: signer,
+          chain: getChain(chainId),
         });
         await publicClient.waitForTransactionReceipt({
           hash: txHash,

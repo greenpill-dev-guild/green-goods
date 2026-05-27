@@ -17,6 +17,7 @@ import {
   assertLocalArbitrumForkSmartAccountsDisabled,
   assertLocalArbitrumForkWallet,
 } from "../../../modules/transactions/local-fork-safety";
+import { ensureAppKitWalletChain } from "../../../modules/transactions/chain-guard";
 import type { Address } from "../../../types/domain";
 import { isZeroAddress } from "../../../utils/blockchain/address";
 import { GARDENS_MODULE_ABI, HYPERCERT_SIGNAL_POOL_ABI } from "../../../utils/blockchain/abis";
@@ -107,6 +108,7 @@ export function createRegisterInSignalPoolActor(deps: MintServiceDeps) {
         "Signal pool registration"
       );
     } else if (currentWalletClient && currentEoaAddress) {
+      await ensureAppKitWalletChain(currentChainId);
       await assertLocalArbitrumForkWallet();
 
       const regTxHash = await currentWalletClient.writeContract({

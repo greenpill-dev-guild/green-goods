@@ -62,6 +62,20 @@ vi.mock("../../../config/blockchain", () => ({
   }),
 }));
 
+vi.mock("../../../config/chains", () => ({
+  getChain: (chainId: number) => ({ id: chainId, name: "Test Chain" }),
+}));
+
+const mockEnsureWagmiWalletChain = vi.fn();
+vi.mock("../../../modules/transactions/chain-guard", () => ({
+  ensureWagmiWalletChain: (...args: unknown[]) => mockEnsureWagmiWalletChain(...args),
+}));
+
+const mockAssertLocalArbitrumForkWallet = vi.fn();
+vi.mock("../../../modules/transactions/local-fork-safety", () => ({
+  assertLocalArbitrumForkWallet: () => mockAssertLocalArbitrumForkWallet(),
+}));
+
 let mockAuthMode: "wallet" | "passkey" | "embedded" | null = "wallet";
 let mockPrimaryAddress: string | null = MOCK_ADDRESSES.user;
 
@@ -159,6 +173,8 @@ describe("useBatchWorkSync", () => {
       data: "0xTxData",
       value: 0n,
     });
+    mockEnsureWagmiWalletChain.mockResolvedValue(undefined);
+    mockAssertLocalArbitrumForkWallet.mockResolvedValue(undefined);
     mockGetWalletClient.mockResolvedValue({
       account: { address: MOCK_ADDRESSES.user },
       chain: { id: 11155111 },
@@ -281,6 +297,12 @@ describe("useBatchWorkSync", () => {
       expect(mockEncodeWorkData).toHaveBeenCalledTimes(2);
       expect(mockBuildBatchWorkAttestTx).toHaveBeenCalledOnce();
       expect(mockWalletClient.sendTransaction).toHaveBeenCalledOnce();
+      expect(mockEnsureWagmiWalletChain).toHaveBeenCalledWith({}, 11155111);
+      expect(mockWalletClient.sendTransaction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          chain: expect.objectContaining({ id: 11155111 }),
+        })
+      );
     });
 
     it("deduplicates garden addresses in result", async () => {
@@ -432,6 +454,54 @@ describe("useBatchWorkSync", () => {
         }
       });
 
+      expect(queueToasts.syncError).toHaveBeenCalled();
+    });
+
+    it("leaves queued jobs untouched when chain switching fails", async () => {
+      mockGetJobsWithImages.mockResolvedValue([createMockPendingJob("job-1")]);
+      mockEnsureWagmiWalletChain.mockRejectedValue(new Error("Network switch rejected"));
+
+      const { result } = renderHook(() => useBatchWorkSync(), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await act(async () => {
+        try {
+          await result.current.mutateAsync();
+        } catch {
+          // Expected
+        }
+      });
+
+      expect(mockGetWalletClient).not.toHaveBeenCalled();
+      expect(jobQueueDB.markJobSynced).not.toHaveBeenCalled();
+      expect(jobQueueDB.deleteJob).not.toHaveBeenCalled();
+      expect(queueToasts.syncError).toHaveBeenCalled();
+    });
+
+    it("leaves queued jobs retryable when transaction submission fails", async () => {
+      mockGetJobsWithImages.mockResolvedValue([createMockPendingJob("job-1")]);
+      const mockWalletClient = {
+        account: { address: MOCK_ADDRESSES.user },
+        chain: { id: 11155111 },
+        sendTransaction: vi.fn().mockRejectedValue(new Error("User rejected the request")),
+      };
+      mockGetWalletClient.mockResolvedValue(mockWalletClient);
+
+      const { result } = renderHook(() => useBatchWorkSync(), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await act(async () => {
+        try {
+          await result.current.mutateAsync();
+        } catch {
+          // Expected
+        }
+      });
+
+      expect(jobQueueDB.markJobSynced).not.toHaveBeenCalled();
+      expect(jobQueueDB.deleteJob).not.toHaveBeenCalled();
       expect(queueToasts.syncError).toHaveBeenCalled();
     });
 

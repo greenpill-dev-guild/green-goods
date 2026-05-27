@@ -23,6 +23,8 @@ export interface TransactionSenderOptions {
     abi: readonly unknown[];
     functionName: string;
     args: readonly unknown[];
+    chainId?: number;
+    value?: bigint;
   }) => Promise<`0x${string}`>;
   erc7677ProxyUrl?: string;
 }

@@ -7,6 +7,7 @@
 import { skipToken, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useWalletClient } from "wagmi";
 import { createPublicClientForChain, DEFAULT_CHAIN_ID } from "../../config";
+import { getChain } from "../../config/chains";
 import { logger } from "../../modules/app/logger";
 import {
   buildApprovalTransactions,
@@ -17,6 +18,7 @@ import {
   assertLocalArbitrumForkSmartAccountsDisabled,
   assertLocalArbitrumForkWallet,
 } from "../../modules/transactions/local-fork-safety";
+import { ensureAppKitWalletChain } from "../../modules/transactions/chain-guard";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import type { Address } from "../../types/domain";
 import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
@@ -73,12 +75,14 @@ export function useMarketplaceApprovals(): UseMarketplaceApprovalsResult {
           });
           await smartAccountClient.getUserOperationReceipt({ hash });
         } else if (walletClient) {
+          await ensureAppKitWalletChain(chainId);
           await assertLocalArbitrumForkWallet();
 
           const hash = await walletClient.sendTransaction({
             to: txs.grantExchange.to,
             data: txs.grantExchange.data,
             account: operator,
+            chain: getChain(chainId),
           });
           await publicClient.waitForTransactionReceipt({ hash, timeout: TX_RECEIPT_TIMEOUT_MS });
         }
@@ -95,12 +99,14 @@ export function useMarketplaceApprovals(): UseMarketplaceApprovalsResult {
           });
           await smartAccountClient.getUserOperationReceipt({ hash });
         } else if (walletClient) {
+          await ensureAppKitWalletChain(chainId);
           await assertLocalArbitrumForkWallet();
 
           const hash = await walletClient.sendTransaction({
             to: txs.approveMinter.to,
             data: txs.approveMinter.data,
             account: operator,
+            chain: getChain(chainId),
           });
           await publicClient.waitForTransactionReceipt({ hash, timeout: TX_RECEIPT_TIMEOUT_MS });
         }

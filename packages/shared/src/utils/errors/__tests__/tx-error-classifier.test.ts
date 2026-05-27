@@ -34,6 +34,12 @@ describe("tx-error-classifier", () => {
     expect(result.messageKey).toBe("app.errors.blockchain.timeout.message");
   });
 
+  it("classifies chain mismatch as wrongChain", () => {
+    const result = classifyTxError("ChainMismatchError: The current chain does not match");
+    expect(result.kind).toBe("wrongChain");
+    expect(result.messageKey).toBe("app.errors.blockchain.wrongChain.message");
+  });
+
   it("classifies nonce issues as rpc", () => {
     const result = classifyTxError("nonce too low");
     expect(result.kind).toBe("rpc");

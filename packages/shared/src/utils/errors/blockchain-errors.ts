@@ -7,6 +7,7 @@
 
 export type BlockchainErrorType =
   | "userRejected"
+  | "wrongChain"
   | "insufficientFunds"
   | "network"
   | "gasEstimation"
@@ -21,7 +22,7 @@ export interface BlockchainErrorInfo {
   /** Whether this error is potentially recoverable by retry */
   recoverable: boolean;
   /** Suggested user action */
-  suggestedAction: "retry" | "addFunds" | "waitAndRetry" | "contact" | "none";
+  suggestedAction: "retry" | "addFunds" | "switchChain" | "waitAndRetry" | "contact" | "none";
 }
 
 /**
@@ -63,6 +64,30 @@ const ERROR_PATTERNS: Array<{
       i18nKeyPrefix: "app.errors.blockchain.insufficientFunds",
       recoverable: false,
       suggestedAction: "addFunds",
+    },
+  },
+  {
+    patterns: [
+      "walletchainmismatch",
+      "chainmismatch",
+      "chain mismatch",
+      "connectorchainmismatch",
+      "wrong chain",
+      "wrong network",
+      "wallet network",
+      "switch your wallet",
+      "switch wallet",
+      "switch network",
+      "unsupported chain",
+      "chain not configured",
+      "network switch rejected",
+      "network switch already pending",
+    ],
+    info: {
+      type: "wrongChain",
+      i18nKeyPrefix: "app.errors.blockchain.wrongChain",
+      recoverable: true,
+      suggestedAction: "switchChain",
     },
   },
   {

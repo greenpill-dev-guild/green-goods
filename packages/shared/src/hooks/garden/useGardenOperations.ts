@@ -71,6 +71,7 @@ function applyOptimisticUpdate(
 }
 
 export function useGardenOperations(gardenId: string) {
+  const chainId = DEFAULT_CHAIN_ID;
   const [isLoading, setIsLoading] = useState(false);
   const { executeWithToast } = useToastAction();
   const { address } = useAccount();
@@ -115,7 +116,7 @@ export function useGardenOperations(gardenId: string) {
   // Create optimistic update callback that modifies the cache
   const createOptimisticCallback = useCallback(
     (): OptimisticUpdateCallback => (update) => {
-      const queryKey = queryKeys.gardens.byChain(DEFAULT_CHAIN_ID);
+      const queryKey = queryKeys.gardens.byChain(chainId);
 
       // Get current cache data
       const previousData = queryClient.getQueryData<Garden[]>(queryKey);
@@ -133,13 +134,13 @@ export function useGardenOperations(gardenId: string) {
       // Update cache optimistically
       queryClient.setQueryData(queryKey, optimisticData);
     },
-    [gardenId, queryClient]
+    [gardenId, queryClient, chainId]
   );
 
   // Rollback optimistic update on failure
   const rollbackOptimisticUpdate = useCallback(
     (memberType: GardenRole, operationType: "add" | "remove", targetAddress: string) => {
-      const queryKey = queryKeys.gardens.byChain(DEFAULT_CHAIN_ID);
+      const queryKey = queryKeys.gardens.byChain(chainId);
       const currentData = queryClient.getQueryData<Garden[]>(queryKey);
       if (!currentData) return;
 
@@ -155,7 +156,7 @@ export function useGardenOperations(gardenId: string) {
 
       queryClient.setQueryData(queryKey, rolledBackData);
     },
-    [gardenId, queryClient]
+    [gardenId, queryClient, chainId]
   );
 
   // Wrapper to handle operation result and potential rollback
@@ -219,6 +220,7 @@ export function useGardenOperations(gardenId: string) {
           },
           walletClient,
           narrowedAddress,
+          chainId,
           executeWithToast,
           setIsLoading,
           optimisticCallback
@@ -235,6 +237,7 @@ export function useGardenOperations(gardenId: string) {
           },
           walletClient,
           narrowedAddress,
+          chainId,
           executeWithToast,
           setIsLoading,
           optimisticCallback
@@ -251,6 +254,7 @@ export function useGardenOperations(gardenId: string) {
           },
           walletClient,
           narrowedAddress,
+          chainId,
           executeWithToast,
           setIsLoading,
           optimisticCallback
@@ -267,6 +271,7 @@ export function useGardenOperations(gardenId: string) {
           },
           walletClient,
           narrowedAddress,
+          chainId,
           executeWithToast,
           setIsLoading,
           optimisticCallback
@@ -283,6 +288,7 @@ export function useGardenOperations(gardenId: string) {
           },
           walletClient,
           narrowedAddress,
+          chainId,
           executeWithToast,
           setIsLoading,
           optimisticCallback
@@ -299,6 +305,7 @@ export function useGardenOperations(gardenId: string) {
           },
           walletClient,
           narrowedAddress,
+          chainId,
           executeWithToast,
           setIsLoading,
           optimisticCallback
@@ -315,6 +322,7 @@ export function useGardenOperations(gardenId: string) {
           },
           walletClient,
           narrowedAddress,
+          chainId,
           executeWithToast,
           setIsLoading,
           optimisticCallback
@@ -331,6 +339,7 @@ export function useGardenOperations(gardenId: string) {
           },
           walletClient,
           narrowedAddress,
+          chainId,
           executeWithToast,
           setIsLoading,
           optimisticCallback
@@ -347,6 +356,7 @@ export function useGardenOperations(gardenId: string) {
           },
           walletClient,
           narrowedAddress,
+          chainId,
           executeWithToast,
           setIsLoading,
           optimisticCallback
@@ -363,6 +373,7 @@ export function useGardenOperations(gardenId: string) {
           },
           walletClient,
           narrowedAddress,
+          chainId,
           executeWithToast,
           setIsLoading,
           optimisticCallback
@@ -379,6 +390,7 @@ export function useGardenOperations(gardenId: string) {
           },
           walletClient,
           narrowedAddress,
+          chainId,
           executeWithToast,
           setIsLoading,
           optimisticCallback
@@ -395,6 +407,7 @@ export function useGardenOperations(gardenId: string) {
           },
           walletClient,
           narrowedAddress,
+          chainId,
           executeWithToast,
           setIsLoading,
           optimisticCallback
@@ -411,6 +424,7 @@ export function useGardenOperations(gardenId: string) {
     createOptimisticCallback,
     createOperationWrapper,
     buildMessages,
+    chainId,
   ]);
 
   return {

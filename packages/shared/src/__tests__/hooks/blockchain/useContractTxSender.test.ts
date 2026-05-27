@@ -49,6 +49,11 @@ vi.mock("wagmi", () => ({
 // Mock @wagmi/core (waitForTransactionReceipt used in wallet mode)
 vi.mock("@wagmi/core", () => ({
   waitForTransactionReceipt: (...args: unknown[]) => mockWaitForTransactionReceipt(...args),
+  getAccount: () => ({
+    chainId: 42161,
+    isConnected: true,
+  }),
+  switchChain: vi.fn().mockResolvedValue({ id: 42161, name: "Arbitrum One" }),
 }));
 
 // Mock appkit config (needed by wagmi internals)
@@ -213,6 +218,7 @@ describe("useContractTxSender", () => {
         abi: TEST_REQUEST.abi,
         functionName: TEST_REQUEST.functionName,
         args: TEST_REQUEST.args,
+        chainId: 42161,
       });
     });
 
@@ -226,7 +232,10 @@ describe("useContractTxSender", () => {
       });
 
       expect(mockWaitForTransactionReceipt).toHaveBeenCalledOnce();
-      expect(mockWaitForTransactionReceipt).toHaveBeenCalledWith({}, { hash: MOCK_TX_HASH });
+      expect(mockWaitForTransactionReceipt).toHaveBeenCalledWith(
+        {},
+        { hash: MOCK_TX_HASH, chainId: 42161 }
+      );
     });
 
     it("skips receipt wait for non-canonical hash (Safe-style hash)", async () => {
