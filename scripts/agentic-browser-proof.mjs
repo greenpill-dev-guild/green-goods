@@ -73,16 +73,16 @@ function existsExecutable(candidate) {
   }
 }
 
-function isBraveExecutablePath(candidate) {
-  return /brave/i.test(path.basename(candidate || "")) || /Brave Browser/i.test(candidate || "");
+function isStableBraveExecutablePath(candidate) {
+  return path.basename(candidate || "") === "Brave Browser" && !/beta|nightly|dev|chrome|chromium|edge/i.test(candidate || "");
 }
 
 function findBraveBinary() {
   for (const envName of ["BRAVE_BIN", "GREEN_GOODS_BRAVE_BIN"]) {
     const explicit = process.env[envName];
-    if (explicit && !isBraveExecutablePath(explicit)) {
+    if (explicit && !isStableBraveExecutablePath(explicit)) {
       throw new Error(
-        `${envName} must point to Brave. Google Chrome, Chrome for Testing, Chromium, and Edge are not valid Green Goods browser-proof targets.`,
+        `${envName} must point to stable Brave Browser. Brave Beta, Brave Nightly, Google Chrome, Chrome for Testing, Chromium, and Edge are not valid Green Goods browser-proof targets.`,
       );
     }
   }
@@ -90,10 +90,9 @@ function findBraveBinary() {
   const candidates = [
     process.env.BRAVE_BIN,
     process.env.GREEN_GOODS_BRAVE_BIN,
-    "/Applications/Brave Browser Beta.app/Contents/MacOS/Brave Browser Beta",
     "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
   ].filter(Boolean);
-  return candidates.find((candidate) => existsExecutable(candidate) && isBraveExecutablePath(candidate)) || "";
+  return candidates.find((candidate) => existsExecutable(candidate) && isStableBraveExecutablePath(candidate)) || "";
 }
 
 function ensureBuildOutputs() {

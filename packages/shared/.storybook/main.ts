@@ -8,6 +8,16 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const isStaticBuild = process.env.STORYBOOK_STATIC_BUILD === "true";
+const addons: NonNullable<StorybookConfig["addons"]> = [
+  "@storybook/addon-a11y",
+  "@storybook/addon-docs",
+  "@storybook/addon-vitest",
+  "@storybook/addon-mcp",
+];
+
+if (!isStaticBuild) {
+  addons.push("@chromatic-com/storybook");
+}
 
 /**
  * Custom Vite plugin to resolve `@/` imports based on the importing file's package.
@@ -52,13 +62,7 @@ const config: StorybookConfig = {
     "../../../packages/admin/src/**/*.stories.@(ts|tsx)",
     "../../../packages/client/src/**/*.stories.@(ts|tsx)",
   ],
-  addons: [
-    "@storybook/addon-a11y",
-    "@storybook/addon-docs",
-    "@storybook/addon-vitest",
-    "@storybook/addon-mcp",
-    "@chromatic-com/storybook",
-  ],
+  addons,
   docs: {
     autodocs: "tag",
   },
