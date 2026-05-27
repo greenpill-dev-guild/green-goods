@@ -50,25 +50,45 @@ function formatSimpleTokenAmount(value: bigint, decimals = 18): string {
   return `${whole}.${fraction.toString().padStart(decimals, "0").replace(/0+$/, "")}`;
 }
 
-vi.mock("@green-goods/shared", () => ({
-  DEFAULT_WITHDRAW_MAX_LOSS_BPS: 100n,
-  cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
-  formatTokenAmount: (value: bigint, decimals = 18) => formatSimpleTokenAmount(value, decimals),
-  truncateAddress: (address: string) => `${address.slice(0, 6)}...${address.slice(-4)}`,
-  useAppKit: () => ({ open: mockOpenWallet }),
-  useDebouncedValue: (value: unknown) => value,
-  usePublicEndowmentPositions: (...args: unknown[]) => mockUsePublicEndowmentPositions(...args),
-  useTxErrorMessages: (error: unknown) => ({
-    view: { severity: "error" },
-    title: error ? "Transaction failed" : "",
-    message: error instanceof Error ? error.message : "Something went wrong.",
-  }),
-  useUser: () => ({ primaryAddress: mockPrimaryAddress.current }),
-  useVaultPreview: (...args: unknown[]) => mockUseVaultPreview(...args),
-  useVaultWithdraw: (...args: unknown[]) => mockUseVaultWithdraw(...args),
-  validateDecimalInput: (input: string) =>
-    input.trim() && !/^\d+(?:\.\d*)?$/.test(input.trim()) ? "app.treasury.invalidAmount" : null,
-}));
+vi.mock("@green-goods/shared", async () => {
+  const React = await import("react");
+
+  return {
+    DEFAULT_WITHDRAW_MAX_LOSS_BPS: 100n,
+    Alert: ({
+      children,
+      title,
+      variant,
+      ...props
+    }: {
+      children?: unknown;
+      title?: unknown;
+      variant?: string;
+    } & Record<string, unknown>) =>
+      React.createElement(
+        "div",
+        { role: variant === "error" ? "alert" : "status", ...props },
+        title ? React.createElement("strong", { key: "title" }, title) : null,
+        children
+      ),
+    cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
+    formatTokenAmount: (value: bigint, decimals = 18) => formatSimpleTokenAmount(value, decimals),
+    truncateAddress: (address: string) => `${address.slice(0, 6)}...${address.slice(-4)}`,
+    useAppKit: () => ({ open: mockOpenWallet }),
+    useDebouncedValue: (value: unknown) => value,
+    usePublicEndowmentPositions: (...args: unknown[]) => mockUsePublicEndowmentPositions(...args),
+    useTxErrorMessages: (error: unknown) => ({
+      view: { severity: "error" },
+      title: error ? "Transaction failed" : "",
+      message: error instanceof Error ? error.message : "Something went wrong.",
+    }),
+    useUser: () => ({ primaryAddress: mockPrimaryAddress.current }),
+    useVaultPreview: (...args: unknown[]) => mockUseVaultPreview(...args),
+    useVaultWithdraw: (...args: unknown[]) => mockUseVaultWithdraw(...args),
+    validateDecimalInput: (input: string) =>
+      input.trim() && !/^\d+(?:\.\d*)?$/.test(input.trim()) ? "app.treasury.invalidAmount" : null,
+  };
+});
 
 import { PublicEndowmentPanel } from "../../components/Public/PublicEndowmentPanel";
 
