@@ -6,13 +6,12 @@ import {
   existsSync,
   mkdirSync,
   readFileSync,
-  readdirSync,
   rmSync,
   statSync,
   writeFileSync,
 } from "node:fs";
 import http from "node:http";
-import { homedir, tmpdir } from "node:os";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -74,65 +73,27 @@ function existsExecutable(candidate) {
   }
 }
 
-function discoverCachedChromium() {
-  const found = [];
-  const tryGlob = (base, leaf) => {
-    try {
-      for (const entry of readdirSync(base)) {
-        const candidate = leaf(entry);
-        if (existsExecutable(candidate)) found.push(candidate);
-      }
-    } catch {
-      // Cache directory may not exist on this machine.
-    }
-  };
-
-  const home = homedir();
-  const playwright = path.join(home, "Library/Caches/ms-playwright");
-  tryGlob(playwright, (entry) => path.join(playwright, entry, "chrome-headless-shell-mac-arm64/chrome-headless-shell"));
-  tryGlob(playwright, (entry) => path.join(playwright, entry, "chrome-headless-shell-mac-x64/chrome-headless-shell"));
-  tryGlob(playwright, (entry) => path.join(playwright, entry, "chrome-mac/Chromium.app/Contents/MacOS/Chromium"));
-
-  const puppeteer = path.join(home, ".cache/puppeteer/chrome");
-  tryGlob(puppeteer, (entry) =>
-    path.join(
-      puppeteer,
-      entry,
-      "chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
-    ),
-  );
-
-  const chromeForTesting = path.join(home, ".cache/chrome-for-testing/chrome");
-  tryGlob(chromeForTesting, (entry) =>
-    path.join(
-      chromeForTesting,
-      entry,
-      "chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
-    ),
-  );
-  tryGlob(chromeForTesting, (entry) =>
-    path.join(
-      chromeForTesting,
-      entry,
-      "chrome-mac-x64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
-    ),
-  );
-
-  return found;
+function isBraveExecutablePath(candidate) {
+  return /brave/i.test(path.basename(candidate || "")) || /Brave Browser/i.test(candidate || "");
 }
 
-function findChromeBinary() {
+function findBraveBinary() {
+  for (const envName of ["BRAVE_BIN", "GREEN_GOODS_BRAVE_BIN"]) {
+    const explicit = process.env[envName];
+    if (explicit && !isBraveExecutablePath(explicit)) {
+      throw new Error(
+        `${envName} must point to Brave. Google Chrome, Chrome for Testing, Chromium, and Edge are not valid Green Goods browser-proof targets.`,
+      );
+    }
+  }
+
   const candidates = [
-    process.env.CHROME_BIN,
-    process.env.CHROMIUM_BIN,
-    "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-    "/Applications/Chromium.app/Contents/MacOS/Chromium",
-    "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
-    "/usr/bin/google-chrome",
-    "/usr/bin/chromium",
-    ...discoverCachedChromium(),
+    process.env.BRAVE_BIN,
+    process.env.GREEN_GOODS_BRAVE_BIN,
+    "/Applications/Brave Browser Beta.app/Contents/MacOS/Brave Browser Beta",
+    "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser",
   ].filter(Boolean);
-  return candidates.find(existsExecutable) || "";
+  return candidates.find((candidate) => existsExecutable(candidate) && isBraveExecutablePath(candidate)) || "";
 }
 
 function ensureBuildOutputs() {
@@ -240,17 +201,20 @@ async function auditLlmsTxt(surface) {
   }
 }
 
-async function launchChrome() {
-  const chromeBinary = findChromeBinary();
-  if (!chromeBinary) throw new Error("No Chrome or Chromium binary found for browser proof.");
+async function launchBrave() {
+  const braveBinary = findBraveBinary();
+  if (!braveBinary) {
+    throw new Error("No Brave binary found for browser proof. Install Brave or set GREEN_GOODS_BRAVE_BIN.");
+  }
 
   const userDataDir = path.join(tmpdir(), `green-goods-agentic-browser-proof-${process.pid}`);
-  const child = spawn(chromeBinary, [
+  const child = spawn(braveBinary, [
     "--headless=new",
     "--disable-gpu",
     "--disable-dev-shm-usage",
     "--disable-background-networking",
     "--disable-extensions",
+    "--enable-features=WebMCPTesting,DevToolsWebMCPSupport",
     "--no-first-run",
     "--no-default-browser-check",
     "--remote-debugging-port=0",
@@ -259,7 +223,7 @@ async function launchChrome() {
   ], { stdio: ["ignore", "ignore", "pipe"] });
 
   const wsUrl = await new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => reject(new Error("Timed out waiting for Chrome DevTools endpoint.")), 15000);
+    const timeout = setTimeout(() => reject(new Error("Timed out waiting for Brave DevTools endpoint.")), 15000);
     child.stderr.on("data", (chunk) => {
       const match = chunk.toString().match(/DevTools listening on (ws:\/\/\S+)/);
       if (match) {
@@ -269,7 +233,7 @@ async function launchChrome() {
     });
     child.once("exit", (code) => {
       clearTimeout(timeout);
-      reject(new Error(`Chrome exited before DevTools endpoint was ready: ${code}`));
+      reject(new Error(`Brave exited before DevTools endpoint was ready: ${code}`));
     });
   });
 
@@ -380,7 +344,30 @@ async function verifyRoute(client, surface, route, width) {
     await client.send("Accessibility.enable", {}, sessionId);
     await client.send("Page.addScriptToEvaluateOnNewDocument", {
       source: `
-        window.__agenticProof = { consoleErrors: [], pageErrors: [] };
+        const hasNativeModelContext = 'modelContext' in navigator;
+        window.__agenticProof = {
+          consoleErrors: [],
+          pageErrors: [],
+          webMcp: {
+            mode: hasNativeModelContext ? 'native' : 'injected-model-context',
+            registeredTools: []
+          }
+        };
+        if (!hasNativeModelContext) {
+          Object.defineProperty(navigator, 'modelContext', {
+            configurable: true,
+            value: {
+              registerTool(tool) {
+                window.__agenticProof.webMcp.registeredTools.push({
+                  name: tool?.name || '',
+                  description: tool?.description || '',
+                  inputSchema: tool?.inputSchema || null,
+                  annotations: tool?.annotations || null
+                });
+              }
+            }
+          });
+        }
         const originalConsoleError = console.error;
         console.error = (...args) => {
           window.__agenticProof.consoleErrors.push(args.map(String).join(' '));
@@ -410,13 +397,27 @@ async function verifyRoute(client, surface, route, width) {
     await new Promise((resolve) => setTimeout(resolve, 350));
 
     const runtime = await evaluate(client, sessionId, `
-      (() => {
+      (async () => {
         const proof = window.__agenticProof || { consoleErrors: [], pageErrors: [] };
         const modelContext = 'modelContext' in navigator ? navigator.modelContext : undefined;
+        const registeredPublicTools = Array.isArray(window.__GREEN_GOODS_WEBMCP_PUBLIC_TOOLS__)
+          ? window.__GREEN_GOODS_WEBMCP_PUBLIC_TOOLS__
+          : [];
+        const proofWebMcp = proof.webMcp || { mode: 'unknown', registeredTools: [] };
+        const nativeTools = typeof modelContext?.getTools === 'function'
+          ? await modelContext.getTools()
+              .then((tools) => tools.map((tool) => ({
+                name: tool?.name || '',
+                description: tool?.description || '',
+                origin: tool?.origin || ''
+              })))
+              .catch((error) => [{ error: String(error?.message || error) }])
+          : [];
         const declarativeTools = [...document.querySelectorAll('form[toolname], form[tooldescription]')].map((form) => ({
           name: form.getAttribute('toolname') || '',
           description: form.getAttribute('tooldescription') || ''
         }));
+        const hasRegisteredTools = registeredPublicTools.length > 0 || proofWebMcp.registeredTools.length > 0 || nativeTools.length > 0;
         const overflowElements = [...document.querySelectorAll('body *')]
           .map((element) => {
             const rect = element.getBoundingClientRect();
@@ -443,9 +444,21 @@ async function verifyRoute(client, surface, route, width) {
           consoleErrors: proof.consoleErrors,
           pageErrors: proof.pageErrors,
           webMcp: {
-            status: Boolean(modelContext) || declarativeTools.length > 0 ? 'detected' : 'not_configured',
+            status: hasRegisteredTools
+              ? proofWebMcp.mode === 'injected-model-context'
+                ? 'registered_with_injected_model_context'
+                : 'detected'
+              : proofWebMcp.mode === 'injected-model-context'
+                ? 'no_tools_registered_with_injected_model_context'
+              : Boolean(modelContext) || declarativeTools.length > 0
+                ? 'detected'
+                : 'not_supported',
+            proofMode: proofWebMcp.mode,
             navigatorModelContext: Boolean(modelContext),
             registerToolType: typeof modelContext?.registerTool,
+            registeredPublicTools,
+            registeredTools: proofWebMcp.registeredTools,
+            nativeTools,
             declarativeTools
           }
         };
@@ -504,8 +517,8 @@ async function main() {
   mkdirSync(artifactDir, { recursive: true });
 
   const servedSurfaces = [];
-  const chrome = await launchChrome();
-  const client = new CdpClient(chrome.wsUrl);
+  const browser = await launchBrave();
+  const client = new CdpClient(browser.wsUrl);
   const results = [];
   const llmsTxt = {};
 
@@ -557,7 +570,7 @@ async function main() {
     if (hardCount > 0 || llmsFailures.length > 0) process.exitCode = 1;
   } finally {
     client.close();
-    await chrome.close();
+    await browser.close();
     await Promise.all(servedSurfaces.map((surface) => surface.close()));
   }
 }

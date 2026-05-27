@@ -1,5 +1,22 @@
 {
-  "mcpServers": {},
+  "mcpServers": {
+    "brave-devtools": {
+      "command": "node",
+      "args": ["scripts/mcp/brave-devtools.mjs"]
+    }
+  },
   "servers": {},
-  "agentAccess": {}
+  "agentAccess": {
+    "brave-devtools": {
+      "allowed": true,
+      "scope": "local-browser-debugging",
+      "surfaces": ["client", "admin", "docs", "storybook"],
+      "notes": [
+        "Green Goods browser proof is Brave-only. Do not use Google Chrome, Chrome for Testing, Chromium, or Edge as a fallback.",
+        "The wrapper calls the upstream chrome-devtools-mcp package because that is the protocol package name; the browser executable must still be Brave.",
+        "Use isolated/non-default browser profiles for authenticated admin or wallet-adjacent proof.",
+        "Do not expose secrets, wallet state, passkeys, local storage, private garden data, telemetry identifiers, or hidden admin actions in prompts or reports."
+      ]
+    }
+  }
 }

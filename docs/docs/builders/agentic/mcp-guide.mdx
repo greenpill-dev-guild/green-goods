@@ -3,7 +3,7 @@ title: Agent and MCP Guide
 slug: /builders/agentic/mcp-guide
 audience: developer
 owner: docs
-last_verified: 2026-03-26
+last_verified: 2026-05-26
 feature_status: Live
 goal: "Understand current MCP server configuration and safe usage boundaries."
 difficulty: "advanced"
@@ -22,30 +22,44 @@ import {NextBestAction, QuickAnswer, StatusBadge} from "@site/src/components/doc
 
 <StatusBadge status="Live" />
 
-Status aligned to `.mcp.json` as of **2026-03-26**.
+Status aligned to `.mcp.json` as of **2026-05-26**.
 
 ## Configured servers
 
-No project-scoped MCP servers are currently declared in `.mcp.json`.
+`.mcp.json` declares the `brave-devtools` MCP server:
+
+```json
+{
+  "mcpServers": {
+    "brave-devtools": {
+      "command": "node",
+      "args": ["scripts/mcp/brave-devtools.mjs"]
+    }
+  }
+}
+```
+
+The wrapper starts the upstream `chrome-devtools-mcp@latest` package from a compatible Node 22 toolchain, outside the repo package root so npm does not read workspace overrides, against Brave only. The upstream package name is the protocol package name; it is not permission to use Google Chrome, Chrome for Testing, Chromium, or Edge. The wrapper rejects non-Brave executable paths. It uses an isolated browser profile, stable viewport, page-id routing for concurrent agent sessions, structured output, redacted network headers, localhost HTTPS support, WebMCP debugging enabled, WebMCP testing flags, and external usage/CrUX calls disabled.
+
+Use it for local browser debugging, rendered DOM proof, console/network/performance inspection, screenshots, performance traces, and WebMCP discovery.
 
 ## Agent access model
 
-No project-scoped agent access overrides are currently declared in `.mcp.json`.
+`.mcp.json` allows `brave-devtools` for local browser debugging across client, admin, docs, and Storybook surfaces. Use isolated or non-default Brave profiles for authenticated admin, wallet-adjacent, or private-data proof.
+
+Native WebMCP discovery requires a Brave build that exposes `navigator.modelContext`. The repo wrapper passes the WebMCP testing flags, but native WebMCP will remain unavailable until the installed Brave build supports it. To force a specific Brave binary, set `GREEN_GOODS_MCP_BRAVE_BIN`; to connect to an already-running debuggable Brave session, set `GREEN_GOODS_MCP_BRAVE_BROWSER_URL` or `GREEN_GOODS_MCP_BRAVE_WS_ENDPOINT`.
 
 ## Consistency note
 
-The repository guidance still points to `.mcp.json` as the source of truth, but the file is currently empty:
-
-- `mcpServers` is empty
-- `servers` is empty
-
-Any MCP servers you may see in a local Codex or Claude install are user-level configuration, not portable project configuration. Treat that as environment-local state until the repo adds explicit server entries here.
+The repository guidance points to `.mcp.json` as the source of truth. User-level MCP servers can still exist in Codex, Claude, Cursor, or another client, but project claims must match this file.
 
 ## Safe usage policy
 
 - Prefer local tooling (`bun`, `forge`, `cast`) for small scoped tasks.
-- Use MCP when cross-system automation is required.
+- Use Brave DevTools MCP when live browser state, rendered DOM, console/network/performance data, screenshots, or WebMCP discovery are required.
+- Never use Google Chrome, Chrome for Testing, Chromium, or Edge as a Green Goods browser-proof fallback.
 - Avoid exposing secrets in logs or docs examples.
+- Do not expose wallet state, passkeys, private garden data, cookies, local storage, telemetry identifiers, hidden admin actions, or onchain/write actions through MCP prompts or reports.
 
 <QuickAnswer question="Which source wins if docs and config disagree?" openByDefault>
   `.mcp.json` is the source of truth. Update docs in the same PR that changes MCP config.
