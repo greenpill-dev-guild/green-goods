@@ -49,6 +49,7 @@ const mockGetOrderNonces = vi.fn();
 const mockSignMakerAsk = vi.fn();
 const mockValidateOrder = vi.fn();
 const mockAssertMarketplaceReady = vi.fn();
+const mockEnsureAppKitWalletChain = vi.fn();
 const mockInvalidateQueries = vi.fn();
 const mockSendTransaction = vi.fn();
 
@@ -68,6 +69,10 @@ vi.mock("../../../utils/blockchain/contracts", () => ({
   getNetworkContracts: () => ({
     hypercertsModule: "0x3333333333333333333333333333333333333333",
   }),
+}));
+
+vi.mock("../../../modules/transactions/chain-guard", () => ({
+  ensureAppKitWalletChain: (...args: unknown[]) => mockEnsureAppKitWalletChain(...args),
 }));
 
 vi.mock("../../../config", () => ({

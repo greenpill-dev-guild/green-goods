@@ -15,6 +15,7 @@ const TEST_GARDEN = "0x1111111111111111111111111111111111111111" as `0x${string}
 const TEST_SIGNER = "0x2222222222222222222222222222222222222222" as `0x${string}`;
 const TEST_MODULE = "0x3333333333333333333333333333333333333333" as `0x${string}`;
 const mockAssertMarketplaceReady = vi.fn();
+const mockEnsureAppKitWalletChain = vi.fn();
 const mockEncodeFunctionData = vi.fn();
 const mockInvalidateQueries = vi.fn();
 const mockSendTransaction = vi.fn();
@@ -37,6 +38,10 @@ vi.mock("../../../utils/blockchain/contracts", () => ({
   getNetworkContracts: () => ({
     hypercertsModule: "0x3333333333333333333333333333333333333333",
   }),
+}));
+
+vi.mock("../../../modules/transactions/chain-guard", () => ({
+  ensureAppKitWalletChain: (...args: unknown[]) => mockEnsureAppKitWalletChain(...args),
 }));
 
 vi.mock("../../../config", () => ({

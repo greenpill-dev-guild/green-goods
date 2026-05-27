@@ -15,6 +15,7 @@ const mockWriteContract = vi.fn();
 const mockReadContract = vi.fn();
 const mockGetBalance = vi.fn();
 const mockWaitForTransactionReceipt = vi.fn();
+const mockEnsureAppKitWalletChain = vi.fn();
 
 let mockAuthMode: "passkey" | "wallet" | "embedded" | null = null;
 let mockWalletAddress: string | undefined = "0x1234567890123456789012345678901234567890";
@@ -95,6 +96,10 @@ vi.mock("../../../utils/errors/contract-errors", () => ({
     name: error.message,
     message: error.message,
   })),
+}));
+
+vi.mock("../../../modules/transactions/chain-guard", () => ({
+  ensureAppKitWalletChain: (...args: unknown[]) => mockEnsureAppKitWalletChain(...args),
 }));
 
 import { toastService } from "../../../components/toast";

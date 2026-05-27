@@ -7,6 +7,7 @@ import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockAddress = vi.fn();
+const mockEnsureAppKitWalletChain = vi.fn();
 const mockWriteContract = vi.fn();
 
 vi.mock("wagmi", () => ({
@@ -26,6 +27,10 @@ vi.mock("viem", () => ({
 
 vi.mock("../../../hooks/blockchain/useChainConfig", () => ({
   useCurrentChain: () => 11155111,
+}));
+
+vi.mock("../../../modules/transactions/chain-guard", () => ({
+  ensureAppKitWalletChain: (...args: unknown[]) => mockEnsureAppKitWalletChain(...args),
 }));
 
 vi.mock("../../../utils/blockchain/contracts", () => ({
