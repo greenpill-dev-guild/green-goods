@@ -15,6 +15,7 @@ import { DEFAULT_CHAIN_ID, getEASConfig } from "../../config/blockchain";
 import { trackContractError } from "../../modules/app/error-tracking";
 import { logger } from "../../modules/app/logger";
 import { jobQueue, jobQueueDB, jobQueueEventBus } from "../../modules/job-queue";
+import { assertLocalArbitrumForkWallet } from "../../modules/transactions/local-fork-safety";
 import type { WorkDraft } from "../../types/domain";
 import type { Job, WorkJobPayload } from "../../types/job-queue";
 import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
@@ -110,6 +111,8 @@ export function useBatchWorkSync() {
           attestationData,
         }))
       );
+
+      await assertLocalArbitrumForkWallet();
 
       const hash = await walletClient.sendTransaction({
         ...txParams,

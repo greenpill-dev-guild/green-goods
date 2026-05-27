@@ -3,19 +3,27 @@
  * @vitest-environment jsdom
  */
 
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { mockCreateAppKit, mockHttp, mockSetThemeMode, mockWagmiAdapter } = vi.hoisted(() => ({
-  mockCreateAppKit: vi.fn(() => ({ setThemeMode: mockSetThemeMode })),
-  mockHttp: vi.fn((url: string) => ({ kind: "http", url })),
-  mockSetThemeMode: vi.fn(),
-  mockWagmiAdapter: vi.fn(function WagmiAdapterMock(
-    this: { wagmiConfig: unknown },
-    config: unknown
-  ) {
-    this.wagmiConfig = { kind: "wagmi-config", config };
-  }),
-}));
+const { mockCreateAppKit, mockEnv, mockHttp, mockSetThemeMode, mockWagmiAdapter } = vi.hoisted(
+  () => ({
+    mockCreateAppKit: vi.fn(() => ({ setThemeMode: mockSetThemeMode })),
+    mockEnv: {
+      VITE_ALCHEMY_API_KEY: "",
+      VITE_WALLETCONNECT_PROJECT_ID: "env-project",
+      VITE_DEV_CHAIN_MODE: undefined as string | undefined,
+      VITE_LOCAL_FORK_RPC_URL: undefined as string | undefined,
+    },
+    mockHttp: vi.fn((url: string) => ({ kind: "http", url })),
+    mockSetThemeMode: vi.fn(),
+    mockWagmiAdapter: vi.fn(function WagmiAdapterMock(
+      this: { wagmiConfig: unknown },
+      config: unknown
+    ) {
+      this.wagmiConfig = { kind: "wagmi-config", config };
+    }),
+  })
+);
 
 vi.mock("viem", () => ({
   http: (url: string) => mockHttp(url),
@@ -30,10 +38,7 @@ vi.mock("@reown/appkit-adapter-wagmi", () => ({
 }));
 
 vi.mock("../../lib/env", () => ({
-  ENV: {
-    VITE_ALCHEMY_API_KEY: "",
-    VITE_WALLETCONNECT_PROJECT_ID: "env-project",
-  },
+  ENV: mockEnv,
 }));
 
 vi.mock("../../modules/app/logger", () => ({
@@ -49,6 +54,16 @@ vi.mock("../../utils/styles/theme", () => ({
 const { createAppKitTransports, ensureAppKit } = await import("../../config/appkit");
 
 describe("AppKit config", () => {
+  beforeEach(() => {
+    mockEnv.VITE_ALCHEMY_API_KEY = "";
+    mockEnv.VITE_WALLETCONNECT_PROJECT_ID = "env-project";
+    mockEnv.VITE_DEV_CHAIN_MODE = undefined;
+    mockEnv.VITE_LOCAL_FORK_RPC_URL = undefined;
+    mockHttp.mockClear();
+    mockCreateAppKit.mockClear();
+    mockWagmiAdapter.mockClear();
+  });
+
   it("builds explicit HTTP transports for every supported chain", () => {
     const transports = createAppKitTransports();
 
@@ -60,6 +75,19 @@ describe("AppKit config", () => {
 
     const urls = mockHttp.mock.calls.map(([url]) => url);
     expect(urls.join(" ")).not.toContain("rpc.walletconnect.org");
+  });
+
+  it("points the Arbitrum transport at the local fork RPC in fork mode", () => {
+    mockEnv.VITE_DEV_CHAIN_MODE = "arbitrum_fork";
+    mockEnv.VITE_LOCAL_FORK_RPC_URL = "http://127.0.0.1:3009";
+
+    const transports = createAppKitTransports();
+
+    expect(transports).toMatchObject({
+      42161: { kind: "http", url: "http://127.0.0.1:3009" },
+      11155111: { kind: "http", url: "https://ethereum-sepolia.publicnode.com" },
+      42220: { kind: "http", url: "https://forno.celo.org" },
+    });
   });
 
   it("passes explicit transports into the Wagmi adapter", () => {

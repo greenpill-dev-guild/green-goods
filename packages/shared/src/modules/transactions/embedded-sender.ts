@@ -21,12 +21,14 @@ import {
 } from "@wagmi/core";
 import type { Hex } from "viem";
 import { logger } from "../app/logger";
+import { assertLocalArbitrumForkWallet } from "./local-fork-safety";
 import type { ContractCall, TransactionSender, TxResult } from "./types";
 
 /** Injectable wagmi functions for testability */
 export interface EmbeddedSenderDeps {
   writeContract: (config: Config, params: Record<string, unknown>) => Promise<Hex>;
   waitForTransactionReceipt: (config: Config, params: { hash: Hex }) => Promise<{ status: string }>;
+  assertWriteSafety?: () => Promise<void>;
 }
 
 export class EmbeddedSender implements TransactionSender {
@@ -45,11 +47,15 @@ export class EmbeddedSender implements TransactionSender {
       writeContract: defaultWriteContract as unknown as EmbeddedSenderDeps["writeContract"],
       waitForTransactionReceipt:
         defaultWaitForReceipt as unknown as EmbeddedSenderDeps["waitForTransactionReceipt"],
+      assertWriteSafety: assertLocalArbitrumForkWallet,
     };
+    this.deps.assertWriteSafety ??= assertLocalArbitrumForkWallet;
   }
 
   async sendContractCall(call: ContractCall): Promise<TxResult> {
     // TODO: Replace with EIP-5792 sendCalls + paymasterService once @wagmi/core/experimental is stable.
+    await this.deps.assertWriteSafety?.();
+
     const hash = await this.deps.writeContract(this.config, {
       address: call.address,
       abi: call.abi,

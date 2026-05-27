@@ -7,6 +7,7 @@ import { getEASConfig } from "../../../config/blockchain";
 import { queryClient } from "../../../config/react-query";
 import { queryKeys } from "../../../config/query-keys";
 import { trackWalletSubmissionTiming } from "../../../modules/app/analytics-events";
+import { assertLocalArbitrumForkWallet } from "../../../modules/transactions/local-fork-safety";
 import { logger } from "../../app/logger";
 import { DEBUG_ENABLED, debugError, debugLog } from "../../../utils/debug";
 import { encodeWorkData } from "../../../utils/eas/encoders";
@@ -112,6 +113,7 @@ export async function submitWorkDirectly(
     const txParams = buildWorkAttestTx(easConfig, gardenAddress as `0x${string}`, attestationData);
 
     debugLog("[WalletSubmission] Sending transaction", { to: txParams.to });
+    await assertLocalArbitrumForkWallet();
 
     hash = await walletClient.sendTransaction({
       ...txParams,

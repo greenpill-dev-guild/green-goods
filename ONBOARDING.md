@@ -31,7 +31,7 @@ Top MCP Servers:
 - [ ] greenpill-dev-guild/.github — https://github.com/greenpill-dev-guild/.github (org-wide community defaults; only clone if you'll touch guild routines)
 
 ### Local Setup
-- [ ] Follow the [Developer Getting Started guide](https://docs.greengoods.app/builders/getting-started) (`npm run setup`, then `bun run dev:web`).
+- [ ] Follow the [Developer Getting Started guide](https://docs.greengoods.app/builders/getting-started) (`npm run setup`, then `bun run dev`).
 - [ ] Read `CLAUDE.md` and `AGENTS.md` at the repo root before pairing with Claude — they encode invariants Claude will assume you know.
 - [ ] Skim `.claude/context/<package>/` for whichever package you'll touch first.
 
@@ -71,7 +71,7 @@ These complement (not duplicate) `CLAUDE.md` — they're things that aren't alre
 
 Your starter task: **set the repo up end-to-end and report back on the experience.** Onboarding feedback is the only way the next person's path gets smoother.
 
-1. Run through **Local Setup** above: `npm run setup` → `bun run dev:doctor -- --profile web` → `bun run dev:web` → confirm client (`:3001`), admin (`:3002`), and docs (`:3003`) all respond.
+1. Run through **Local Setup** above: `npm run setup` → `bun run dev:health` → `bun run dev` → confirm client (`:3001`), admin (`:3002`), docs (`:3003`), Storybook (`:3004`), and local fork (`:3009`) are healthy.
 2. Note every paper cut as you go — broken links, unclear steps, missing prereqs, env vars that weren't obvious, anything that made you pause.
 3. Drop the feedback into Telegram or open an issue tagged `onboarding`. Concrete observations beat vague ones (`docs/builders/getting-started step 3 didn't mention X` > `setup was confusing`).
 

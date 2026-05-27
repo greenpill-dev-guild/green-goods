@@ -40,8 +40,10 @@ const profilePorts = {
     { port: 3003, label: "docs" },
     { port: 3008, label: "indexer postgres" },
     { port: 3004, label: "storybook" },
+    { port: 3005, label: "agent" },
     { port: 3006, label: "indexer graphql" },
     { port: 3007, label: "envio indexer" },
+    { port: 3009, label: "anvil arbitrum fork" },
   ],
   contracts: [],
   upload: [
@@ -578,7 +580,7 @@ async function checkPorts() {
         "warn",
         `Port ${item.port} already in use`,
         item.label,
-        "Run bun run dev:stop, or stop the conflicting process before starting services.",
+        "Run bun run dev:stack:stop for PM2 services, or stop the conflicting process before starting services.",
         { check: `port:${item.port}` }
       );
     }
@@ -609,7 +611,7 @@ function printJson() {
       webStack: "bun run dev:web",
       webSmoke: "bun run dev:smoke:web",
       fullStack: "bun run dev",
-      stop: "bun run dev:stop",
+      stop: "bun run dev:stack:stop",
     },
   };
 
@@ -638,10 +640,11 @@ function printText() {
   console.log("\nRecommended entrypoints");
   console.log("- First clone: bun run setup");
   console.log("- Doctor profile: bun run dev:doctor -- --profile web");
-  console.log("- Frontend stack: bun run dev:web");
+  console.log("- Full local environment: bun run dev");
+  console.log("- PM2 fallback frontend stack: bun run dev:web");
   console.log("- Web smoke: bun run dev:smoke:web");
-  console.log("- Full stack: bun run dev");
-  console.log("- Stop PM2 services: bun run dev:stop");
+  console.log("- Stop repo-owned services: bun run dev:stop");
+  console.log("- Stop PM2 services directly: bun run dev:stack:stop");
 
   const currentSummary = summary();
   if (!currentSummary.ready) {

@@ -730,7 +730,7 @@ export async function requireServices(
   for (const service of services) {
     if (!status[service]) {
       throw new Error(
-        `Required service "${service}" is not available. Start with: bun dev:${service}`
+        `Required service "${service}" is not available. Start with: bun run dev:${service}`
       );
     }
   }

@@ -21,6 +21,10 @@ import {
   signMakerAsk,
   validateOrder,
 } from "../../modules/marketplace";
+import {
+  assertLocalArbitrumForkSmartAccountsDisabled,
+  assertLocalArbitrumForkWallet,
+} from "../../modules/transactions/local-fork-safety";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import type { CreateListingParams } from "../../types/hypercerts";
 import { assertMarketplaceReady } from "../../utils/blockchain/contracts";
@@ -126,12 +130,16 @@ export function useCreateListing(gardenAddress?: Address): UseCreateListingResul
       setStep("confirming");
 
       if (smartAccountClient) {
+        assertLocalArbitrumForkSmartAccountsDisabled();
+
         const hash = await smartAccountClient.sendUserOperation({
           account: smartAccountClient.account,
           calls: [{ to: moduleAddress, data: callData, value: 0n }],
         });
         await smartAccountClient.getUserOperationReceipt({ hash });
       } else if (walletClient) {
+        await assertLocalArbitrumForkWallet();
+
         const txHash = await walletClient.sendTransaction({
           to: moduleAddress,
           data: callData,

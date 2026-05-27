@@ -57,6 +57,7 @@ describe("WalletSender", () => {
     mockWriteContractAsync = vi.fn().mockResolvedValue(MOCK_TX_HASH);
     mockDeps = {
       waitForTransactionReceipt: vi.fn().mockResolvedValue({ status: "success" }),
+      assertWriteSafety: vi.fn().mockResolvedValue(undefined),
     };
     sender = new WalletSender(MOCK_WAGMI_CONFIG, mockWriteContractAsync, undefined, mockDeps);
   });
@@ -82,6 +83,7 @@ describe("WalletSender", () => {
       expect(result.hash).toBe(MOCK_TX_HASH);
       expect(result.sponsored).toBe(false);
       expect(mockWriteContractAsync).toHaveBeenCalledOnce();
+      expect(mockDeps.assertWriteSafety).toHaveBeenCalledOnce();
     });
 
     it("passes correct parameters to writeContractAsync", async () => {
@@ -130,6 +132,15 @@ describe("WalletSender", () => {
       mockWriteContractAsync.mockRejectedValueOnce(new Error("User rejected the request"));
 
       await expect(sender.sendContractCall(TEST_CALL)).rejects.toThrow("User rejected the request");
+    });
+
+    it("blocks writes when the local fork safety guard rejects", async () => {
+      (mockDeps.assertWriteSafety as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
+        new Error("wrong wallet RPC")
+      );
+
+      await expect(sender.sendContractCall(TEST_CALL)).rejects.toThrow("wrong wallet RPC");
+      expect(mockWriteContractAsync).not.toHaveBeenCalled();
     });
   });
 

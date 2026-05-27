@@ -5,6 +5,7 @@ import deployment11155111 from "@green-goods/contracts/deployments/11155111-late
 import networksConfig from "@green-goods/contracts/deployments/networks.json";
 import { ENV } from "../lib/env";
 import { logger } from "../modules/app/logger";
+import { getLocalArbitrumForkRpcUrl, shouldUseLocalArbitrumForkRpc } from "./local-fork";
 
 // Export types
 export interface EASConfig {
@@ -192,11 +193,14 @@ export function getNetworkConfig(chainId?: number | string, alchemyKey = "demo")
   const chain = resolveChainId(chainId);
   const networkConfig = getNetworkConfigFromNetworksJson(chain);
   const deployment = getDeploymentConfig(chain);
+  const rpcUrl = shouldUseLocalArbitrumForkRpc(chain)
+    ? getLocalArbitrumForkRpcUrl()
+    : buildRpcUrl(networkConfig.rpcUrl, alchemyKey);
 
   return {
     chainId: chain,
     name: networkConfig.name,
-    rpcUrl: buildRpcUrl(networkConfig.rpcUrl, alchemyKey),
+    rpcUrl,
     blockExplorer: networkConfig.blockExplorer,
     nativeCurrency: networkConfig.nativeCurrency,
     contracts: {

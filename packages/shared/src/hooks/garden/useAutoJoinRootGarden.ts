@@ -20,6 +20,10 @@ import { getWagmiConfig } from "../../config/appkit";
 import { DEFAULT_CHAIN_ID, getDefaultChain } from "../../config/blockchain";
 import { trackNetworkError } from "../../modules/app/error-tracking";
 import { logger } from "../../modules/app/logger";
+import {
+  assertLocalArbitrumForkSmartAccountsDisabled,
+  assertLocalArbitrumForkWallet,
+} from "../../modules/transactions/local-fork-safety";
 import { GardenAccountABI } from "../../utils/blockchain/contracts";
 import { isAlreadyGardenerError } from "../../utils/errors/contract-errors";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
@@ -140,6 +144,8 @@ export function useAutoJoinRootGarden() {
       let txHash: string;
 
       if (client?.account) {
+        assertLocalArbitrumForkSmartAccountsDisabled();
+
         // Passkey user - sponsored transaction
         txHash = await client.sendTransaction({
           account: client.account,
@@ -154,6 +160,8 @@ export function useAutoJoinRootGarden() {
         });
       } else {
         // Wallet user - pays gas
+        await assertLocalArbitrumForkWallet();
+
         txHash = await writeContractAsync({
           address: rootGarden.address,
           abi: GardenAccountABI,

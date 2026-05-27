@@ -11,6 +11,7 @@ import { useCallback, useRef, useState } from "react";
 import type { Abi, WalletClient } from "viem";
 import { useAccount, useWalletClient } from "wagmi";
 import { toastService } from "../../components/toast";
+import { assertLocalArbitrumForkWallet } from "../../modules/transactions/local-fork-safety";
 import { Capital, Domain } from "../../types/domain";
 import { ActionRegistryABI, getNetworkContracts } from "../../utils/blockchain/contracts";
 import { simulateTransaction } from "../../utils/blockchain/simulation";
@@ -85,15 +86,18 @@ async function executeActionOperation(
 
   // Step 2: Execute the actual transaction
   const hash = await deps.executeWithToast(
-    async () =>
-      deps.walletClient.writeContract({
+    async () => {
+      await assertLocalArbitrumForkWallet();
+
+      return deps.walletClient.writeContract({
         address: deps.contractAddress,
         abi: deps.abi,
         functionName: config.functionName,
         account: deps.address,
         args: config.args,
         chain: deps.walletClient.chain,
-      }),
+      });
+    },
     {
       loadingMessage: config.messages.loading,
       successMessage: config.messages.success,

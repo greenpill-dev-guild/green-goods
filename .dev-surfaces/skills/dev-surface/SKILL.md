@@ -1,39 +1,52 @@
 ---
-name: dev-surface
-description: Use when working in Green Goods and needing to start, reuse, open, inspect, validate, or clean up this repo's local development surfaces through the shared dev-surfaces workbench.
+name: green-goods-dev-surface
+description: Use when working in Green Goods and needing the local client, admin, docs, Storybook, agent, indexer, or Anvil Arbitrum fork.
 ---
 
 # Green Goods Dev Surface
 
-Use the global workbench CLI instead of starting duplicate servers manually:
+Inside this repo, use the repo-native command:
 
 ```sh
-dev-surfaces status
-dev-surfaces up green-goods
-dev-surfaces open green-goods
-dev-surfaces logs green-goods:<surface>
-dev-surfaces down green-goods
+bun install
+# configure .env from .env.template/.env.schema
+bun run dev
 ```
 
-Stable fallback path: `/Users/afo/Code/dev-surfaces/bin/dev-surfaces.js`.
+`bun run dev` runs `node scripts/dev/stack.js full`. It starts the full PM2-backed local stack, streams logs in the foreground, opens review URLs through the repo browser helper, and cleans up PM2 services on Ctrl-C.
 
-## Surfaces
+Expected ports:
 
-- `client`: client PWA + editorial website on `3001`
-- `admin`: admin UI on `3002`
-- `docs`: docs on `3003`
-- `storybook`: Storybook on `3004`
-- `agent`: agent/API on `3005`
-- `indexer-graphql`: indexer GraphQL/Hasura plus service/Postgres on `3006`, `3007`, `3008`
-- `anvil`: Anvil/local chain on `3009`
+- `3001`: client PWA and editorial website
+- `3002`: admin UI
+- `3003`: docs
+- `3004`: Storybook
+- `3005`: agent/API
+- `3006`: indexer GraphQL/Hasura
+- `3007`: indexer service
+- `3008`: indexer Postgres
+- `3009`: Anvil Arbitrum fork
 
-## Validation Notes
+Local chain mode defaults to Arbitrum fork mode. For transaction QA, add RPC `http://127.0.0.1:3009` with chain id `42161` to a dedicated dev browser wallet and use an Anvil-funded private key from the Anvil logs. Mock-auth URLs do not sign transactions.
 
-- Open `green-goods:client` for both PWA and editorial website review URLs.
-- Storybook lives in `packages/shared` and aggregates shared, admin, and client stories.
-- The workbench starts `agent` in local HTTP API-only mode on `3005`; it does not register Telegram webhooks or start polling.
-- `indexer-service` and `indexer-postgres` are provided by `indexer-graphql`; start `green-goods:indexer-graphql` when the indexer stack is needed.
-- Use `dev-surfaces down green-goods` for cleanup instead of killing ports.
-- After changing local port docs or dev scripts, run `dev-surfaces doctor`.
+Useful native commands:
 
-Never kill unknown port occupants. If a port is busy and not owned by dev-surfaces, report the PID/command and ask for direction.
+```sh
+bun run dev
+bun run dev:web
+bun run dev:health
+bun run dev:stop
+bun run dev:contracts:arbitrum-fork
+```
+
+For cross-repo orchestration from anywhere, use the global workbench:
+
+```sh
+dev launch green-goods
+dev launch green-goods:client
+dev status green-goods
+dev health green-goods
+dev stop green-goods
+```
+
+Do not call `.dev-surfaces/run.mjs`; this repo should not have that wrapper.

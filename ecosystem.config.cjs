@@ -1,8 +1,24 @@
 // Each Vite/Storybook/docs app now performs read-only port checks before start.
-// dev-surfaces owns cleanup for processes it started; PM2 just runs scripts directly.
+// This repo-owned PM2 stack owns cleanup for root `bun run dev`.
 
 module.exports = {
   apps: [
+    {
+      name: "anvil-arbitrum",
+      script: "sh",
+      args: '-c "cd packages/contracts && bun run dev:arbitrum-fork"',
+      cwd: ".",
+      env: {
+        NODE_ENV: "development",
+        ANVIL_PORT: "3009",
+      },
+      merge_logs: true,
+      autorestart: false,
+      max_restarts: 0,
+      min_uptime: "5s",
+      kill_timeout: 5000,
+      treekill: true,
+    },
     {
       name: "docs",
       script: "sh",
@@ -10,6 +26,10 @@ module.exports = {
       cwd: ".",
       env: {
         NODE_ENV: "development",
+        VITE_DEV_CHAIN_MODE: "arbitrum_fork",
+        VITE_CHAIN_ID: "42161",
+        VITE_LOCAL_FORK_RPC_URL: "http://127.0.0.1:3009",
+        VITE_ENABLE_ANVIL_WALLETS: "true",
       },
       merge_logs: true,
       autorestart: true,
@@ -26,6 +46,10 @@ module.exports = {
       cwd: ".",
       env: {
         NODE_ENV: "development",
+        VITE_DEV_CHAIN_MODE: "arbitrum_fork",
+        VITE_CHAIN_ID: "42161",
+        VITE_LOCAL_FORK_RPC_URL: "http://127.0.0.1:3009",
+        VITE_ENABLE_ANVIL_WALLETS: "true",
       },
       merge_logs: true,
       autorestart: true,
@@ -43,6 +67,10 @@ module.exports = {
       env: {
         NODE_ENV: "development",
         VITE_ENABLE_SW_DEV: "false",
+        VITE_DEV_CHAIN_MODE: "arbitrum_fork",
+        VITE_CHAIN_ID: "42161",
+        VITE_LOCAL_FORK_RPC_URL: "http://127.0.0.1:3009",
+        VITE_ENABLE_ANVIL_WALLETS: "true",
       },
       merge_logs: true,
       autorestart: true,
@@ -55,18 +83,19 @@ module.exports = {
     {
       name: "agent",
       script: "sh",
-      // Disabled path exits 78 so PM2 stops restarting (see stop_exit_codes
-      // below). Enabled path runs the bot and gets normal autorestart on crash.
-      args:
-        '-c "cd packages/agent && if grep -qE \'^TELEGRAM_BOT_TOKEN=.+\' ../../.env 2>/dev/null; then bun run dev; else echo \'Agent disabled — set TELEGRAM_BOT_TOKEN in .env to enable. PM2 will not restart this process.\'; exit 78; fi"',
+      args: '-c "cd packages/agent && bun run dev"',
       cwd: ".",
       env: {
         NODE_ENV: "development",
         PORT: "3005",
+        HOST: "127.0.0.1",
+        AGENT_DISABLE_TELEGRAM_RUNTIME: "true",
+        VITE_DEV_CHAIN_MODE: "arbitrum_fork",
+        VITE_CHAIN_ID: "42161",
+        VITE_LOCAL_FORK_RPC_URL: "http://127.0.0.1:3009",
       },
       merge_logs: true,
       autorestart: true,
-      stop_exit_codes: [78],
       max_restarts: 3,
       min_uptime: "10s",
       restart_delay: 3000,
@@ -89,6 +118,8 @@ module.exports = {
         HASURA_EXTERNAL_PORT: "3006",
         INDEXER_EXTERNAL_PORT: "3007",
         ENVIO_PG_PORT: "3008",
+        GREEN_GOODS_DEV_CHAIN_MODE: "arbitrum_fork",
+        ARBITRUM_RPC_URL: "http://host.docker.internal:3009",
       },
       merge_logs: true,
       autorestart: false, // Docker Compose handles its own restarts

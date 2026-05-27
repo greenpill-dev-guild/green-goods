@@ -28,6 +28,10 @@ import {
   trackNetworkError,
 } from "../../modules/app/error-tracking";
 import { logger } from "../../modules/app/logger";
+import {
+  assertLocalArbitrumForkSmartAccountsDisabled,
+  assertLocalArbitrumForkWallet,
+} from "../../modules/transactions/local-fork-safety";
 import type { Garden } from "../../types/domain";
 import { isAddressInList } from "../../utils/blockchain/address";
 
@@ -278,6 +282,8 @@ export function useJoinGarden() {
         let txHash: string;
 
         if (client?.account) {
+          assertLocalArbitrumForkSmartAccountsDisabled();
+
           // Use smart account for passkey authentication (sponsored transaction)
           txHash = await client.sendTransaction({
             account: client.account,
@@ -306,6 +312,8 @@ export function useJoinGarden() {
             }
             throw new Error("Transaction simulation failed. Please try again.");
           }
+
+          await assertLocalArbitrumForkWallet();
 
           txHash = await writeContractAsync({
             address: gardenAddress as `0x${string}`,

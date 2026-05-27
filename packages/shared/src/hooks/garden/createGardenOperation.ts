@@ -16,6 +16,7 @@ import {
   trackAdminMemberRemoveStarted,
   trackAdminMemberRemoveSuccess,
 } from "../../modules/app/analytics-events";
+import { assertLocalArbitrumForkWallet } from "../../modules/transactions/local-fork-safety";
 import type { Address } from "../../types/domain";
 import { HATS_MODULE_ABI } from "../../utils/blockchain/abis";
 import { fetchHatsModuleAddress } from "../../utils/blockchain/garden-hats";
@@ -280,6 +281,8 @@ export function createGardenOperation(
       // Step 3: Execute the actual transaction
       const hash = await executeWithToast(
         async () => {
+          await assertLocalArbitrumForkWallet();
+
           return await walletClient.writeContract({
             address: targetContract,
             abi: targetAbi,

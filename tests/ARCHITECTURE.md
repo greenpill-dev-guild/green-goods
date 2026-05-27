@@ -362,7 +362,7 @@ e2e-smoke:
   runs-on: ubuntu-latest
   steps:
     - name: Start services
-      run: bun dev &
+      run: bun run dev:web &
     
     - name: Run smoke tests
       run: bun test:e2e:smoke  # Chromium only
@@ -469,9 +469,9 @@ T+0s    global-setup.ts runs
         └─ Health check (optional)
 
 T+5s    webServer starts (parallel)
-        ├─ bun dev:indexer → port 8080 ready
-        ├─ bun dev:client  → port 3001 ready (60-120s)
-        └─ bun dev:admin   → port 3002 ready (60-120s)
+        ├─ bun run dev:indexer -> port 3006 ready
+        ├─ bun run dev:client  -> port 3001 ready (60-120s)
+        └─ bun run dev:admin   -> port 3002 ready (60-120s)
 
 T+60s   Tests begin (after webServer ready)
         ├─ Chromium tests (parallel workers)
@@ -522,7 +522,7 @@ Total:  ~90-120s for full suite
 
 ```typescript
 webServer: [{
-  command: "bun dev:client",
+  command: "bun run dev:client",
   port: 3001,
   timeout: 120000,  // 2 minutes for Vite cold start
   reuseExistingServer: !process.env.CI,  // Reuse local dev server
@@ -717,7 +717,7 @@ jobs:
 
 **Development workflow:**
 ```bash
-bun dev                 # Terminal 1 - services
+bun run dev:web         # Terminal 1 - services
 bun test:e2e:ui        # Terminal 2 - tests
 ```
 

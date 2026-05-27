@@ -11,6 +11,10 @@ import { fromPromise } from "xstate";
 
 import { getChain } from "../../../config/chains";
 import { encodeCreateAllowlist, TransferRestrictions } from "../../../lib/hypercerts";
+import {
+  assertLocalArbitrumForkSmartAccountsDisabled,
+  assertLocalArbitrumForkWallet,
+} from "../../../modules/transactions/local-fork-safety";
 import type { Address } from "../../../types/domain";
 import type { MintHypercertSigningInput } from "../../../workflows/mintHypercert";
 import { CREATE_ALLOWLIST_ABI } from "../../../utils/blockchain/hypercert-abis";
@@ -48,6 +52,8 @@ export function createBuildAndSignActor(deps: MintServiceDeps) {
     });
 
     if (currentSmartAccountClient) {
+      assertLocalArbitrumForkSmartAccountsDisabled();
+
       const userOpHash = await currentSmartAccountClient.sendUserOperation({
         account: currentSmartAccountClient.account,
         calls: [
@@ -65,6 +71,8 @@ export function createBuildAndSignActor(deps: MintServiceDeps) {
     if (!currentWalletClient || !currentEoaAddress) {
       throw new Error("Connect a wallet to mint the hypercert");
     }
+
+    await assertLocalArbitrumForkWallet();
 
     const txHash = await currentWalletClient.writeContract({
       address: contracts.hypercertMinter,

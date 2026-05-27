@@ -17,7 +17,7 @@ bun test:e2e:ui
 
 ### `scripts/dev/test-e2e.js`
 
-1. ✅ Starts `bun dev` in background
+1. Starts the PM2 web fallback with `bun run dev:web` in background
 2. ✅ Waits for services (client:3001, admin:3002)
 3. ✅ Runs Playwright tests
 4. ✅ Auto-cleanup on exit/interrupt

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { type Address, type Hex, keccak256 } from "viem";
 import { useAccount, useWalletClient } from "wagmi";
+import { assertLocalArbitrumForkWallet } from "../../modules/transactions/local-fork-safety";
 import { GardenAccountABI } from "../../utils/blockchain/contracts";
 import { useToastAction } from "../app/useToastAction";
 import { useCurrentChain } from "../blockchain/useChainConfig";
@@ -64,6 +65,8 @@ export function useGardenInvites(gardenAddress: Address) {
 
       await executeWithToast(
         async () => {
+          await assertLocalArbitrumForkWallet();
+
           const hash = await walletClient.writeContract({
             address: gardenAddress as `0x${string}`,
             abi: GardenAccountABI,
@@ -115,6 +118,8 @@ export function useGardenInvites(gardenAddress: Address) {
     try {
       await executeWithToast(
         async () => {
+          await assertLocalArbitrumForkWallet();
+
           const hash = await walletClient.writeContract({
             address: gardenAddress as `0x${string}`,
             abi: GardenAccountABI,

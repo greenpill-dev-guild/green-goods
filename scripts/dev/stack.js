@@ -37,13 +37,15 @@ const groups = {
   full: allApps.map((app) => app.name),
 };
 
-// Apps that bind to a TCP port we can probe for readiness. Other apps (agent,
-// tunnel, browser) finish their work without listening on a deterministic port.
+// Apps that bind to a TCP port we can probe for readiness. Other apps (tunnel,
+// browser) finish their work without listening on a deterministic port.
 const portByApp = {
+  "anvil-arbitrum": 3009,
   client: 3001,
   admin: 3002,
   docs: 3003,
   storybook: 3004,
+  agent: 3005,
   indexer: 3006,
 };
 

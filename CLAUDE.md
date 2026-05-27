@@ -8,11 +8,13 @@ This file provides guidance to Claude Code when working with this repository.
 npm run setup                # First-clone setup bridge before Bun is available
 bun run setup                # Setup after Bun is available
 bun run dev:doctor -- --profile web   # Non-mutating local environment readiness check
-bun run dev:web              # Start client, admin, and docs via PM2
+bun run dev                  # Start the full local environment with the repo-native PM2 stack
+bun run dev:health           # Check readiness for the full local environment
+bun run dev:stop             # Stop repo-owned Green Goods dev services
+bun run dev:web              # Start client, admin, docs, Storybook, browser helper, and tunnel
 bun run dev:smoke:web        # Check web doctor plus client/admin/docs health
-bun run dev:full             # Start all services via PM2
-bun run dev                  # Alias for dev:full
-bun run dev:stop             # Stop all services
+bun run dev:full             # Start all PM2 services
+bun run dev:stack:stop       # Stop all PM2 services
 bun format && bun lint       # Format and lint workspace
 bun run test                 # Run all tests (CRITICAL: not `bun test`)
 bun run test:fast            # Same scope, but cache-aware via Turborepo (skips packages with unchanged inputs)
@@ -240,17 +242,19 @@ Single `.env` at root (never create package-specific .env). `VITE_CHAIN_ID` sets
 
 **Chain selection**: `VITE_CHAIN_ID` is required for predictable behavior. Without it, `FALLBACK_CHAIN_ID` in `packages/shared/src/config/blockchain.ts` decides — currently `42161` (Arbitrum mainnet, real funds). The client logs a `[blockchain]` warning at module init when fallback is used; `bun run dev:doctor -- --profile web` flags the same gap. Common values: `42161` Arbitrum, `11155111` Sepolia, `42220` Celo.
 
-## Local services (PM2)
+## Local services
 
-`bun run dev` (full), `bun run dev:web` (web), `bun run dev:full`, and `bun run dev <app...>` (custom subset, e.g. `bun run dev client admin tunnel`) start services via PM2 (`ecosystem.config.cjs`). When the stack is up, `[stack] all N services ready in Xs` is printed once every port-binding service responds. Canonical service → port mapping:
+`bun run dev` is the canonical full local environment command. It runs the repo-native PM2 stack (`scripts/dev/stack.js full`), starts the Arbitrum fork, client, admin, docs, Storybook, agent, indexer, browser helper, and tunnel helper, streams logs in the foreground, opens the PWA/editorial/admin/docs/Storybook review URLs, and cleans up on Ctrl-C. Use the shared `dev` workbench only for cross-repo orchestration or narrow `project:target` launches.
+
+The repo-native PM2 fallback commands are `bun run dev:web` (web), `bun run dev:full`, `bun run dev:stack`, and `bun run dev:stack:stop`. Use those only for focused PM2 debugging. Canonical service → port mapping:
 
 - **client** — `https://localhost:3001/` (HTTPS in dev; not HTTP)
 - **admin** — `https://localhost:3002/`
 - **docs** — `http://localhost:3003/`
 - **storybook** — `http://localhost:3004/`
 - **indexer GraphQL** — `http://localhost:3006/v1/graphql` (requires Docker stack up)
-- **indexer postgres** — `localhost:5433`
-- **envio indexer runtime** — `localhost:9898`
+- **indexer postgres** — `localhost:3008`
+- **envio indexer runtime** — `http://localhost:3007/`
 
 Use `npx pm2 list` to see live status, `npx pm2 logs <name> --nostream` to inspect a single service. The full-stack indexer requires Docker — without it, `/api/graphql` proxy returns no data and PWA pages render empty states.
 

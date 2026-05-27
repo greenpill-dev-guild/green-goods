@@ -220,8 +220,8 @@ if [ $ISSUES_FOUND -eq 0 ]; then
   echo -e "${GREEN}✅ All checks passed! Indexer should work correctly.${NC}"
   echo ""
   echo "To start the indexer:"
-  echo "  bun dev:indexer      (from repo root)"
-  echo "  bun dev              (from packages/indexer)"
+  echo "  bun run dev:indexer  (from repo root)"
+  echo "  bun run dev          (from packages/indexer)"
 else
   if [ "$FIX_MODE" = true ]; then
     echo -e "${YELLOW}Found $ISSUES_FOUND issue(s), fixed $FIXED.${NC}"

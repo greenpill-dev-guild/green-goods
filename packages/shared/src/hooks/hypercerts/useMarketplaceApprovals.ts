@@ -13,6 +13,10 @@ import {
   checkMarketplaceApprovals,
   type MarketplaceApprovals,
 } from "../../modules/marketplace";
+import {
+  assertLocalArbitrumForkSmartAccountsDisabled,
+  assertLocalArbitrumForkWallet,
+} from "../../modules/transactions/local-fork-safety";
 import { type AdminState, useAdminStore } from "../../stores/useAdminStore";
 import type { Address } from "../../types/domain";
 import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
@@ -61,12 +65,16 @@ export function useMarketplaceApprovals(): UseMarketplaceApprovalsResult {
       if (txs.grantExchange) {
         logger.info("[useMarketplaceApprovals] Granting exchange approval", { operator, chainId });
         if (smartAccountClient) {
+          assertLocalArbitrumForkSmartAccountsDisabled();
+
           const hash = await smartAccountClient.sendUserOperation({
             account: smartAccountClient.account,
             calls: [{ to: txs.grantExchange.to, data: txs.grantExchange.data, value: 0n }],
           });
           await smartAccountClient.getUserOperationReceipt({ hash });
         } else if (walletClient) {
+          await assertLocalArbitrumForkWallet();
+
           const hash = await walletClient.sendTransaction({
             to: txs.grantExchange.to,
             data: txs.grantExchange.data,
@@ -79,12 +87,16 @@ export function useMarketplaceApprovals(): UseMarketplaceApprovalsResult {
       if (txs.approveMinter) {
         logger.info("[useMarketplaceApprovals] Granting minter approval", { operator, chainId });
         if (smartAccountClient) {
+          assertLocalArbitrumForkSmartAccountsDisabled();
+
           const hash = await smartAccountClient.sendUserOperation({
             account: smartAccountClient.account,
             calls: [{ to: txs.approveMinter.to, data: txs.approveMinter.data, value: 0n }],
           });
           await smartAccountClient.getUserOperationReceipt({ hash });
         } else if (walletClient) {
+          await assertLocalArbitrumForkWallet();
+
           const hash = await walletClient.sendTransaction({
             to: txs.approveMinter.to,
             data: txs.approveMinter.data,

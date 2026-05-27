@@ -10,8 +10,8 @@ Install Node.js 22+ and Git first. Install Docker Desktop if you plan to run the
 git clone https://github.com/greenpill-dev-guild/green-goods.git
 cd green-goods
 npm run setup
-bun run dev:doctor -- --profile web
-bun run dev:web
+bun run dev:health
+bun run dev
 ```
 
 `npm run setup` is the only normal npm entrypoint. It installs Bun if needed, installs workspace dependencies, and creates the root `.env` from `.env.schema`. After setup, use `bun run ...` for repo scripts.

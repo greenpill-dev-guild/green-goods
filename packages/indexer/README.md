@@ -26,11 +26,11 @@ bun run dev:docker:down
 ```
 
 This runs:
-- **PostgreSQL**: Port 5433
-- **Hasura GraphQL**: Port 8080 (password: `testing`)
-- **Envio Indexer**: Port 9898
+- **PostgreSQL**: Port 3008
+- **Hasura GraphQL**: Port 3006 (password: `testing`)
+- **Envio Indexer**: Port 3007
 
-> **Note**: When running `bun dev` from the monorepo root, PM2 automatically uses the Docker-based indexer on macOS.
+> **Note**: When running `bun run dev` from the monorepo root, the repo-native PM2 stack uses the Docker-based indexer on macOS.
 
 #### Option B: Native (Linux or Dev Container)
 
@@ -42,7 +42,7 @@ open -a Docker  # macOS
 # Wait 30 seconds
 
 # Start the native indexer
-bun dev
+bun run dev
 ```
 
 This command:
@@ -94,7 +94,7 @@ bun run dev:docker:logs   # Stream logs
 bun run dev:docker:down   # Stop and remove containers
 
 # Native development
-bun dev                   # Start with auto-setup
+bun run dev               # Start with auto-setup
 bun run dev:manual        # Start without setup (assumes already configured)
 bun stop                  # Stop indexer
 
@@ -186,7 +186,7 @@ Or directly run:
    # Prune Docker system
    docker system prune -f
    ```
-4. Start fresh: `bun dev`
+4. Start fresh: `bun run dev`
 
 ### ReScript Compilation Errors
 
@@ -194,7 +194,7 @@ If you encounter `Error: Cannot find module 'rescript-envsafe/src/EnvSafe.res.js
 
 **Solution:**
 
-The `bun dev` command now automatically handles this. If you still encounter issues:
+The `bun run dev` command now automatically handles this through the repo-native stack. If you still encounter issues:
 
 ```bash
 # Reset and setup

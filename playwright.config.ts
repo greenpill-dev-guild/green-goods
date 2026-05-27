@@ -35,7 +35,7 @@ const webServers = [
     ? []
     : [
         {
-          command: "bun dev:indexer",
+          command: "bun run dev:indexer",
           port: 3006,
           reuseExistingServer: !process.env.CI,
           timeout: 60000,
@@ -48,7 +48,7 @@ const webServers = [
   ...(shouldStartClient
     ? [
         {
-          command: "bun dev:client",
+          command: "bun run dev:client",
           url: `${protocol}://localhost:3001`,
           reuseExistingServer: !process.env.CI,
           timeout: 120000,
@@ -64,7 +64,7 @@ const webServers = [
   ...(shouldStartAdmin
     ? [
         {
-          command: "bun dev:admin",
+          command: "bun run dev:admin",
           url: `${protocol}://localhost:3002`,
           reuseExistingServer: !process.env.CI,
           timeout: 120000,

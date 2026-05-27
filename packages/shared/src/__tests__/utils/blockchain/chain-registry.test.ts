@@ -10,6 +10,18 @@ describe("getRpcUrl", () => {
     expect(getRpcUrl(42220, "real-key")).toBe("https://celo-mainnet.g.alchemy.com/v2/real-key");
   });
 
+  it("uses the local fork RPC for Arbitrum only when fork mode is active", () => {
+    const env = {
+      VITE_DEV_CHAIN_MODE: "arbitrum_fork",
+      VITE_LOCAL_FORK_RPC_URL: "http://127.0.0.1:3009",
+    };
+
+    expect(getRpcUrl(42161, "real-key", env)).toBe("http://127.0.0.1:3009");
+    expect(getRpcUrl(11155111, "real-key", env)).toBe(
+      "https://eth-sepolia.g.alchemy.com/v2/real-key"
+    );
+  });
+
   it("uses public fallbacks when the provider key is missing or demo-only", () => {
     expect(getRpcUrl(1)).toBe("https://ethereum-rpc.publicnode.com");
     expect(getRpcUrl(1, "")).toBe("https://ethereum-rpc.publicnode.com");

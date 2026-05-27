@@ -14,6 +14,7 @@
 import { waitForTransactionReceipt as defaultWaitForReceipt, type Config } from "@wagmi/core";
 import type { Hex } from "viem";
 import { logger } from "../app/logger";
+import { assertLocalArbitrumForkWallet } from "./local-fork-safety";
 import type { ContractCall, TransactionSender, TxResult } from "./types";
 
 /**
@@ -27,6 +28,7 @@ function isCanonicalTxHash(hash: string): hash is `0x${string}` {
 /** Injectable dependency for testability */
 export interface WalletSenderDeps {
   waitForTransactionReceipt: (config: Config, params: { hash: Hex }) => Promise<{ status: string }>;
+  assertWriteSafety?: () => Promise<void>;
 }
 
 export class WalletSender implements TransactionSender {
@@ -61,7 +63,9 @@ export class WalletSender implements TransactionSender {
     this.deps = deps ?? {
       waitForTransactionReceipt:
         defaultWaitForReceipt as unknown as WalletSenderDeps["waitForTransactionReceipt"],
+      assertWriteSafety: assertLocalArbitrumForkWallet,
     };
+    this.deps.assertWriteSafety ??= assertLocalArbitrumForkWallet;
   }
 
   async sendContractCall(call: ContractCall): Promise<TxResult> {
@@ -70,6 +74,8 @@ export class WalletSender implements TransactionSender {
 
     // Cast to string to allow non-canonical hash detection (Safe wallets
     // can return identifiers that don't match `0x${string}` at runtime).
+    await this.deps.assertWriteSafety?.();
+
     const hash: string = await this.writeContractAsync({
       address: call.address as `0x${string}`,
       abi: call.abi as readonly unknown[],

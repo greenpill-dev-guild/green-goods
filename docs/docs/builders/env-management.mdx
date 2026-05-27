@@ -7,6 +7,12 @@ audience: developer
 owner: docs
 last_verified: 2026-05-04
 feature_status: Live
+source_of_truth:
+  - .env.schema
+  - .env.template
+  - scripts/dev/env-template-init.js
+  - scripts/dev/env-sync.js
+  - scripts/dev/env-check.js
 goal: "Resolve, validate, and rotate Green Goods environment variables via the .env.template + 1Password pipeline."
 difficulty: "standard"
 estimated_time: "5-10 minutes."
@@ -68,7 +74,7 @@ The script reads `.env.schema`, queries `op item list --vault GreenGoods`, and w
 
 - Schema keys whose name matches a 1Password item title → `op://GreenGoods/<KEY>/credential` reference
 - Schema keys with a `$OTHER_KEY` substitution that resolves to a vault item → ref to the resolved item
-- Schema keys with a `if(...)` conditional or other unresolvable expression → empty value with a `# TODO:` comment
+- Schema keys with a `if(...)` conditional or other unresolvable expression → empty value with an action-needed comment from the init script
 - Schema keys with a sensitive name pattern but no vault item → `op://YOUR_VAULT/<KEY>/credential` placeholder you must edit
 - Schema keys ending in `_OP_REF` → skipped entirely (legacy varlock plumbing)
 - Other schema keys → carried through with their default value

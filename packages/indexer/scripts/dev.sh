@@ -15,7 +15,7 @@ if ! docker ps > /dev/null 2>&1; then
   echo "To fix:"
   echo "  1. Open Docker Desktop: open -a Docker"
   echo "  2. Wait 30 seconds for it to start"
-  echo "  3. Run: bun dev"
+  echo "  3. Run: bun run dev"
   echo ""
   exit 1
 fi
@@ -54,7 +54,7 @@ echo "✅ Database connection OK"
 # Check if indexer is already running
 if pgrep -f "envio dev" > /dev/null 2>&1 || lsof -ti:3007 > /dev/null 2>&1; then
   echo "⚠️  Existing indexer process detected on the local dev surface."
-  echo "Stop it explicitly, or use: dev-surfaces down green-goods:indexer-graphql"
+  echo "Stop it explicitly, or use: dev stop green-goods:indexer-graphql"
   exit 1
 fi
 

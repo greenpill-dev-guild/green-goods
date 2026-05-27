@@ -16,6 +16,10 @@ import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import { queryKeys } from "../../config/query-keys";
 import { logger } from "../../modules/app/logger";
 import {
+  assertLocalArbitrumForkSmartAccountsDisabled,
+  assertLocalArbitrumForkWallet,
+} from "../../modules/transactions/local-fork-safety";
+import {
   createClients,
   GreenGoodsENSABI,
   getNetworkContracts,
@@ -134,6 +138,8 @@ export function useENSReleaseName() {
           abi: GreenGoodsENSABI,
           functionName: "releaseNameSponsored",
         });
+        assertLocalArbitrumForkSmartAccountsDisabled();
+
         txHash = await smartAccountClient.sendTransaction({
           account: smartAccountClient.account,
           chain: smartAccountClient.chain,
@@ -156,6 +162,8 @@ export function useENSReleaseName() {
           functionName: "getReleaseFee",
           args: [slug],
         });
+        await assertLocalArbitrumForkWallet();
+
         txHash = await walletClient.writeContract({
           address: ensAddress,
           abi: GreenGoodsENSABI,

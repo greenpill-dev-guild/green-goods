@@ -18,7 +18,7 @@ bun test:e2e:ui
 ```
 
 **What happens:**
-1. Script starts `bun dev` in background
+1. Script starts the PM2 web fallback with `bun run dev:web` in background
 2. Waits for client (3001) and admin (3002) to be ready
 3. Runs Playwright tests
 4. Cleans up PM2 processes automatically
@@ -217,9 +217,9 @@ projects: [
 ]
 
 webServer: [
-  { command: "bun dev:indexer", port: 3006 },
-  { command: "bun dev:client", port: 3001 },
-  { command: "bun dev:admin", port: 3002 },
+  { command: "bun run dev:indexer", port: 3006 },
+  { command: "bun run dev:client", port: 3001 },
+  { command: "bun run dev:admin", port: 3002 },
 ]
 ```
 
@@ -236,7 +236,7 @@ Smoke tests run automatically on push:
 ```yaml
 # .github/workflows/e2e-tests.yml
 - run: |
-    bun dev &
+    bun run dev:web &
     sleep 30
     bun test:e2e:smoke  # Chromium only in CI
 ```

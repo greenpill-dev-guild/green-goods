@@ -11,6 +11,7 @@
 import type { SmartAccountClient } from "permissionless";
 import { encodeFunctionData } from "viem";
 import { logger } from "../app/logger";
+import { assertLocalArbitrumForkSmartAccountsDisabled } from "./local-fork-safety";
 import type { ContractCall, TransactionSender, TxResult } from "./types";
 
 export class PasskeySender implements TransactionSender {
@@ -25,6 +26,8 @@ export class PasskeySender implements TransactionSender {
   }
 
   async sendContractCall(call: ContractCall): Promise<TxResult> {
+    assertLocalArbitrumForkSmartAccountsDisabled();
+
     const data = encodeFunctionData({
       abi: call.abi,
       functionName: call.functionName,

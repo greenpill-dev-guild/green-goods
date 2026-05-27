@@ -79,4 +79,4 @@ const existing = fs.existsSync(envPath) ? fs.readFileSync(envPath, "utf8").repla
 fs.writeFileSync(envPath, `${existing}\n${block.join("\n")}\n`);
 
 console.log(`env-bootstrap: appended ${additions.length} schema defaults to .env.`);
-console.log("Restart any running dev servers: `bun run dev:stop && bun run dev:web`.");
+console.log("Restart any running dev servers: `bun run dev:stop && bun run dev`.");

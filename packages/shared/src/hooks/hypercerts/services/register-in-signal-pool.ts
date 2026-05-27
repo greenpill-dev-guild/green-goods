@@ -13,6 +13,10 @@ import { fromPromise } from "xstate";
 import { createPublicClientForChain } from "../../../config";
 import { getChain } from "../../../config/chains";
 import { logger } from "../../../modules/app/logger";
+import {
+  assertLocalArbitrumForkSmartAccountsDisabled,
+  assertLocalArbitrumForkWallet,
+} from "../../../modules/transactions/local-fork-safety";
 import type { Address } from "../../../types/domain";
 import { isZeroAddress } from "../../../utils/blockchain/address";
 import { GARDENS_MODULE_ABI, HYPERCERT_SIGNAL_POOL_ABI } from "../../../utils/blockchain/abis";
@@ -79,6 +83,8 @@ export function createRegisterInSignalPoolActor(deps: MintServiceDeps) {
 
     // Send registration transaction
     if (currentSmartAccountClient) {
+      assertLocalArbitrumForkSmartAccountsDisabled();
+
       const regOpHash = await currentSmartAccountClient.sendUserOperation({
         account: currentSmartAccountClient.account,
         calls: [
@@ -101,6 +107,8 @@ export function createRegisterInSignalPoolActor(deps: MintServiceDeps) {
         "Signal pool registration"
       );
     } else if (currentWalletClient && currentEoaAddress) {
+      await assertLocalArbitrumForkWallet();
+
       const regTxHash = await currentWalletClient.writeContract({
         address: hypercertPoolAddress,
         abi: HYPERCERT_SIGNAL_POOL_ABI,

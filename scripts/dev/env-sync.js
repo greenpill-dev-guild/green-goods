@@ -65,4 +65,4 @@ if (inject.status !== 0) {
 
 console.log("");
 console.log("Wrote .env from .env.template.");
-console.log("Restart any running dev servers so they pick up the new env: `bun run dev:stop && bun run dev:web`.");
+console.log("Restart any running dev servers so they pick up the new env: `bun run dev:stop && bun run dev`.");

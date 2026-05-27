@@ -39,6 +39,16 @@ export {
   isChainSupported,
   SUPPORTED_CHAINS,
 } from "./chains";
+// From local-fork.ts
+export type { LocalForkEnv } from "./local-fork";
+export {
+  DEFAULT_LOCAL_ARBITRUM_FORK_RPC_URL,
+  getLocalArbitrumForkRpcUrl,
+  isLocalArbitrumForkMode,
+  LOCAL_ARBITRUM_FORK_CHAIN_ID,
+  LOCAL_ARBITRUM_FORK_MODE,
+  shouldUseLocalArbitrumForkRpc,
+} from "./local-fork";
 // From gardens-subgraph.ts
 export { getGardensSubgraphUrl } from "./gardens-subgraph";
 

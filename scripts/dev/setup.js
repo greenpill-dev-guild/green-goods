@@ -281,9 +281,10 @@ if (!isCloud) {
   console.log(`${c.cyan}Next steps:${c.reset}
   1. Materialize .env from 1Password: bun run env:sync
      (First time? Run \`bun run env:template:init\` first to scaffold .env.template.)
-  2. Check role readiness: bun run dev:doctor -- --profile web
-  3. Start frontend services: bun run dev:web
-     • Full stack with Docker/indexer/agent: bun run dev
+  2. Check environment readiness: bun run dev:health
+     • PM2-only fallback check: bun run dev:doctor -- --profile web
+  3. Start the full local environment: bun run dev
+     • PM2-only fallback frontend services: bun run dev:web
   4. Smoke frontend services: bun run dev:smoke:web
   5. Run tests: bun run test
 

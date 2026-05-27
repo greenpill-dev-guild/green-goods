@@ -18,4 +18,4 @@ rm -rf generated/persisted_state.envio.json .envio 2>/dev/null || true
 echo "🧹 Running Docker cleanup..."
 docker system prune -f
 
-echo "✅ Reset complete! Now run: bun dev"
+echo "✅ Reset complete! Now run: bun run dev"

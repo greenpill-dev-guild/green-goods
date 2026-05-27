@@ -49,9 +49,9 @@ let devProcess = null;
 
 function stopStack() {
   try {
-    execSync("bun run dev:stop", { stdio: "ignore" });
+    execSync("bun run dev:stack:stop", { stdio: "ignore" });
   } catch {
-    // dev:stop is idempotent; PM2 may already be down
+    // dev:stack:stop is idempotent; PM2 may already be down
   }
 }
 

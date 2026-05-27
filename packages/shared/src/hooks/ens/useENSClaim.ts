@@ -17,6 +17,10 @@ import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import { queryKeys } from "../../config/query-keys";
 import { logger } from "../../modules/app/logger";
 import {
+  assertLocalArbitrumForkSmartAccountsDisabled,
+  assertLocalArbitrumForkWallet,
+} from "../../modules/transactions/local-fork-safety";
+import {
   createClients,
   GreenGoodsENSABI,
   getNetworkContracts,
@@ -123,6 +127,8 @@ export function useENSClaim() {
           functionName: "claimNameSponsored",
           args: [slug],
         });
+        assertLocalArbitrumForkSmartAccountsDisabled();
+
         txHash = await smartAccountClient.sendTransaction({
           account: smartAccountClient.account,
           chain: smartAccountClient.chain,
@@ -137,6 +143,8 @@ export function useENSClaim() {
           functionName: "getRegistrationFee",
           args: [slug, walletAddress, 0], // 0 = Gardener NameType
         });
+        await assertLocalArbitrumForkWallet();
+
         txHash = await walletClient.writeContract({
           address: ensAddress,
           abi: GreenGoodsENSABI,

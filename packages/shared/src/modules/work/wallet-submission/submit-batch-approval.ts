@@ -8,6 +8,7 @@ import { queryClient } from "../../../config/react-query";
 import { queryKeys } from "../../../config/query-keys";
 import { ANALYTICS_EVENTS } from "../../../modules/app/analytics-events";
 import { track } from "../../../modules/app/posthog";
+import { assertLocalArbitrumForkWallet } from "../../../modules/transactions/local-fork-safety";
 import { logger } from "../../app/logger";
 import { DEBUG_ENABLED, debugError, debugLog } from "../../../utils/debug";
 import { encodeWorkApprovalData } from "../../../utils/eas/encoders";
@@ -83,6 +84,7 @@ export async function submitBatchApprovalsDirectly(
       to: txParams.to,
       count: approvals.length,
     });
+    await assertLocalArbitrumForkWallet();
 
     const hash = await walletClient.sendTransaction({
       ...txParams,

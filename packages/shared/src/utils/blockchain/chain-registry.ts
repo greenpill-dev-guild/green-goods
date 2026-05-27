@@ -8,6 +8,12 @@
  * @module utils/blockchain/chain-registry
  */
 
+import {
+  getLocalArbitrumForkRpcUrl,
+  shouldUseLocalArbitrumForkRpc,
+  type LocalForkEnv,
+} from "../../config/local-fork";
+
 export interface ChainConfig {
   /** Network name for deployment configs (e.g., "arbitrum", "sepolia") */
   name: string;
@@ -116,7 +122,11 @@ export function getBlockExplorer(chainId: number): string {
  * @param alchemyKey - Alchemy API key to substitute in the template
  * @returns RPC URL with the provider key substituted, or a public fallback
  */
-export function getRpcUrl(chainId: number, alchemyKey?: string): string {
+export function getRpcUrl(chainId: number, alchemyKey?: string, env?: LocalForkEnv): string {
+  if (shouldUseLocalArbitrumForkRpc(chainId, env)) {
+    return getLocalArbitrumForkRpcUrl(env);
+  }
+
   const config = getChainConfig(chainId);
   const template = config.rpcTemplate;
   if (!template) {

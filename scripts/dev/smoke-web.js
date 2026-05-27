@@ -373,7 +373,7 @@ const payload = {
     start: "bun run dev:web",
     smoke: "bun run dev:smoke:web",
     doctor: "bun run dev:doctor -- --profile web",
-    stop: "bun run dev:stop",
+    stop: "bun run dev:stack:stop",
   },
 };
 

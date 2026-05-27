@@ -75,7 +75,7 @@ cd green-goods
 npm run setup                         # first-clone bridge: deps and workspace install
 bun run env:sync                      # materializes .env from .env.template via 1Password (op inject)
 bun run dev:doctor -- --profile web   # non-mutating web readiness check
-bun run dev:web                       # starts client, admin, docs, and Storybook
+bun run dev                           # starts the full repo-native local stack
 bun run dev:smoke:web                 # confirms browser surfaces respond locally
 ```
 
@@ -97,7 +97,7 @@ Environment files are materialized separately by `bun run env:sync` (which runs 
 
 | Role | Required local state | First command |
 | --- | --- | --- |
-| Frontend QA | Node.js, Git, Bun from setup, root `.env`, ports 3001/3002/3003/6006 available | `bun run dev:doctor -- --profile web` |
+| Frontend QA | Node.js, Git, Bun from setup, root `.env`, ports 3001/3002/3003/3004 available | `bun run dev:doctor -- --profile web` |
 | Full-stack / indexer | Frontend QA plus Docker, `packages/indexer/generated`, and generated dependencies | `bun run dev:doctor -- --profile full` |
 | Contracts | Frontend QA plus Foundry | `bun run dev:doctor -- --profile contracts` |
 | Upload-capable QA | Frontend QA plus `VITE_API_BASE_URL` and `PINATA_JWT_OP_REF=op://...` or `PINATA_JWT` in root `.env` | `bun run dev:doctor -- --profile upload` |
@@ -123,6 +123,9 @@ For details on regenerating the template (e.g. after a new key lands in `.env.sc
 | --- | --- |
 | `APP_ENV` | Environment selector (`development`, `test`, `staging`, `production`) |
 | `VITE_CHAIN_ID` | Sets the target chain at build time (`42161` for Arbitrum, `11155111` for Sepolia) |
+| `VITE_DEV_CHAIN_MODE` | Optional dev override. `bun run dev` sets `arbitrum_fork`; keep blank in shared env files. |
+| `VITE_LOCAL_FORK_RPC_URL` | Optional local fork RPC. The Green Goods dev stack sets `http://127.0.0.1:3009`. |
+| `VITE_ENABLE_ANVIL_WALLETS` | Optional local-development marker for disposable Anvil-funded wallets. |
 | `VITE_PASSKEY_RP_ID` | Optional passkey relying-party override. Leave blank for localhost development fallback; set `localhost` for explicit local passkey QA. |
 | `VITE_API_BASE_URL` | Browser API origin. Upload-capable flows call the agent for short-lived Pinata signed upload URLs. |
 | `PINATA_JWT` | Server/script Pinata JWT used by the agent upload signer and maintenance scripts. Not embedded in browser bundles. |
@@ -135,35 +138,82 @@ For personal local-only credentials, put direct values in root `.env`. For share
 
 ## Running services
 
-### Frontend stack
+### Repo-native local stack
 
-`bun run dev:web` launches the frontend developer stack through PM2:
+Prefer the repo-native stack for day-to-day single-repo development:
+
+```bash
+bun run dev
+```
+
+The repo-native PM2 stack starts the Arbitrum fork on port `3009` by default,
+then starts the client/admin surfaces with `VITE_DEV_CHAIN_MODE=arbitrum_fork`,
+`VITE_CHAIN_ID=42161`, and `VITE_LOCAL_FORK_RPC_URL=http://127.0.0.1:3009`.
+It streams logs in the foreground, opens the review URLs, and cleans up on
+Ctrl-C.
+
+`green-goods:client` opens both review presentations:
+
+| Presentation | URL |
+| --- | --- |
+| PWA | `https://localhost:3001/?presentation=pwa` |
+| Editorial website | `https://localhost:3001/?presentation=website` |
+
+For fork-mode transaction testing, use wallet auth with a disposable Anvil
+account:
+
+1. Start the stack with `bun run dev`.
+2. Open a dedicated dev browser profile.
+3. Add a custom wallet network named `Green Goods Local Arbitrum Fork`.
+4. Set RPC URL `http://127.0.0.1:3009`, chain id `42161`, and currency symbol
+   `ETH`.
+5. Import one Anvil-funded account from the Anvil log output.
+6. Connect that wallet in the app and sign transactions normally.
+
+The fork uses the real Arbitrum deployment artifact, but every write is mined
+only in local Anvil state. Restarting the fork resets local chain state.
+Passkey and smart-account writes are intentionally blocked in fork mode until
+local account-abstraction infrastructure exists. `?mockAuth=operator` only
+changes UI auth state; it does not sign transactions and cannot replace the
+wallet step.
+
+`bun run dev:web` is still available as a repo-native PM2 fallback:
 
 | PM2 process | Package | Default port |
 | --- | --- | --- |
 | `client` | `packages/client` | 3001 |
 | `admin` | `packages/admin` | 3002 |
 | `docs` | `docs` | 3003 |
-| `storybook` | `packages/shared` | 6006 |
+| `storybook` | `packages/shared` | 3004 |
 
-This is the recommended first target for onboarding and frontend QA because it avoids Docker, indexer generated-code setup, and agent credentials.
-
-After the processes are up, run `bun run dev:smoke:web` in another terminal. It reruns the web doctor, then checks that the client, admin, docs, and Storybook respond on their local ports.
+Use this focused PM2 path when you only want the browser surfaces. After those
+surfaces are up, run
+`bun run dev:smoke:web` in another terminal. It reruns the web doctor, then
+checks that the client, admin, docs, and Storybook respond on their local ports.
 
 ### Full stack
 
-`bun run dev` launches every service through PM2:
+The repo-native full local stack starts with:
+
+```bash
+bun run dev
+```
+
+That includes the fork-backed app surfaces, agent, and Docker-backed indexer.
+For cross-repo orchestration, `dev launch green-goods` calls this same native
+repo command under workbench ownership.
 
 | PM2 process | Package | Default port |
 | --- | --- | --- |
 | `client` | `packages/client` | 3001 |
 | `admin` | `packages/admin` | 3002 |
 | `docs` | `docs` | 3003 |
-| `indexer` | `packages/indexer` (Docker / GraphQL) | 8080 |
-| `agent` | `packages/agent` | -- |
+| `indexer` | `packages/indexer` (Docker / GraphQL) | 3006 |
+| `agent` | `packages/agent` | 3005 |
 | `tunnel` | cloudflared HTTPS tunnel | -- |
 | `browser` | local URL opener | -- |
-| `storybook` | `packages/shared` | 6006 |
+| `storybook` | `packages/shared` | 3004 |
+| `anvil-arbitrum` | `packages/contracts` | 3009 |
 
 Stop everything with `bun run dev:stop`.
 
@@ -210,7 +260,7 @@ Then navigate to `https://localhost:3001` on Android Chrome. Since `localhost` i
     {title: "Read project rules", detail: "Start with `AGENTS.md`, `CLAUDE.md`, and `.claude/context/*` for conventions."},
     {title: "Configure env bootstrap", detail: "Keep the generated root `.env` for baseline web dev. Add direct personal values only when needed; use 1Password refs for shared team, deploy, upload, or CI secrets. Never add package-level env files."},
     {title: "Check role readiness", detail: "Run `bun run dev:doctor -- --profile web` before debugging setup. It does not mutate files or start services."},
-    {title: "Start services", detail: "Run `bun run dev:web` for frontend QA or `bun run dev` for the full Docker-backed stack."},
+    {title: "Start services", detail: "Run `bun run dev` for the fork-backed repo-native local stack."},
     {title: "Smoke the web stack", detail: "Run `bun run dev:smoke:web` once client/admin/docs/Storybook are starting. It verifies local HTTP/HTTPS reachability."},
     {title: "Run the quality gate", detail: "Run `bun run format:check`, `bun run lint`, `bun run test`, and `bun run build` before pushing changes."},
   ]}
@@ -246,13 +296,13 @@ bun run format
 | Symptom | Cause | Fix |
 | --- | --- | --- |
 | `forge: command not found` | Foundry not installed | `curl -L https://foundry.paradigm.xyz \| bash && foundryup` |
-| Indexer fails to start | Docker not running | Start Docker Desktop, then retry `bun run dev:indexer` |
+| Indexer fails to start | Docker not running | Start Docker or OrbStack, then retry `bun run dev` or the narrow workbench target `dev launch green-goods:indexer-graphql` |
 | `VITE_CHAIN_ID is undefined` | Missing `.env` | Run `bun run env:sync`, or copy `.env.template` to `.env` and fill values manually |
 | `Pinata forbidden` or upload fails | Missing signer or Pinata server credential | Confirm `VITE_API_BASE_URL` points at the agent and add `PINATA_JWT` to root `.env` (or set it via 1Password ref in `.env.template` and re-run `bun run env:sync`), then rerun `bun run dev:doctor -- --profile upload` |
 | Client PM2 process is online but `localhost:3001` does not respond | Vite failed to read env | Run `bun run dev:doctor -- --profile web` and `bun run env:check`. For 1Password-resolved env, ensure `op` CLI is signed in via desktop integration, then `bun run env:sync`. |
 | `bun run dev:smoke:web` fails before checking ports | Web doctor failed | Fix the doctor failures first; smoke only probes services after the web profile is ready. |
 | Passkey registration fails on localhost | RP ID mismatch | Leave `VITE_PASSKEY_RP_ID` blank for fallback behavior, or set `VITE_PASSKEY_RP_ID=localhost` for local passkey QA |
-| Port 3001/3002 in use | Another dev server running | Kill the process or change the port in the package's Vite config |
+| Port 3001/3002 in use | Another dev server running | Run `dev status green-goods`. If the surface is owned, reuse it or stop it with `dev stop green-goods:<surface>`. If the PID is unknown, inspect it and do not kill it from an agent without explicit direction. |
 | `bun install` hangs | Stale dependency state | Delete `node_modules`, then `bun install` |
 | No QR code on landing page | cloudflared not installed | `brew install cloudflared`, then restart `bun run dev` |
 | Tunnel URL not appearing | Client not ready yet | The tunnel waits up to 60s for port 3001 — check PM2 logs with `bunx pm2 logs tunnel` |

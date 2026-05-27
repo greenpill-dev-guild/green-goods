@@ -4,6 +4,7 @@ import { encodeFunctionData } from "viem";
 import { toastService } from "../../components/toast";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import { logger } from "../../modules/app/logger";
+import { assertLocalArbitrumForkSmartAccountsDisabled } from "../../modules/transactions/local-fork-safety";
 import { parseAndFormatError } from "../../utils/errors/contract-errors";
 import { useAuth } from "../auth/useAuth";
 import { queryKeys } from "../../config/query-keys";
@@ -159,6 +160,8 @@ export function useGardenerProfile() {
       if (!smartAccountClient.account) {
         throw new Error("Smart account not initialized");
       }
+      assertLocalArbitrumForkSmartAccountsDisabled();
+
       const txHash = await smartAccountClient.sendTransaction({
         account: smartAccountClient.account,
         chain: null,
@@ -222,6 +225,8 @@ export function useGardenerProfile() {
       if (!smartAccountClient.account) {
         throw new Error("Smart account not initialized");
       }
+      assertLocalArbitrumForkSmartAccountsDisabled();
+
       return await smartAccountClient.sendTransaction({
         account: smartAccountClient.account,
         chain: null,

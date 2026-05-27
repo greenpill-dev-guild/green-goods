@@ -82,7 +82,7 @@ Perfect for rapid iteration and testing:
 
 ```bash
 # Terminal 1: Start local blockchain
-bun dev
+bun run dev
 
 # Terminal 2: Deploy contracts (uses default deploy script)
 bun deploy
@@ -181,7 +181,7 @@ bun build:target -- src/registries/ENS.sol  # Compile a specific Solidity target
 bun build:fast          # Compile src only (skip Foundry test/script)
 bun build:full          # Full compile incl. tests/scripts (CI/deploy)
 bun lint                # Format and lint
-bun dev                 # Start local blockchain
+bun run dev             # Start local blockchain
 ```
 
 ---
@@ -549,7 +549,7 @@ bun format
 bun lint
 
 # Start local blockchain
-bun dev
+bun run dev
 ```
 
 **Contract Development:**
@@ -573,7 +573,7 @@ bun run test --watch
 **Local Development:**
 ```bash
 # Start Anvil local blockchain
-bun dev
+bun run dev
 
 # Deploy contracts to local network
 bun deploy

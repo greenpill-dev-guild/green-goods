@@ -44,7 +44,7 @@ The root `.env` file is automatically loaded by:
 2. Get your WalletConnect Project ID from [cloud.reown.com](https://cloud.reown.com/)
 3. Get your Pimlico API key from [pimlico.io](https://pimlico.io)
 4. Add the required values to root `.env` (or to `.env.template` as `op://Vault/Item/field` for team-shared secrets)
-5. Variables are automatically loaded by Vite when running `bun dev` from root or package directory
+5. Variables are automatically loaded by Vite when running `bun run dev` from the repo root or `bun run dev` in this package directory
 
 **Authentication Setup:**
 Green Goods uses a dual authentication strategy:

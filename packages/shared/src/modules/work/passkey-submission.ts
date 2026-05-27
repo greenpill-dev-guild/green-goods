@@ -1,5 +1,6 @@
 import type { SmartAccountClient } from "permissionless";
 import { getEASConfig } from "../../config/blockchain";
+import { assertLocalArbitrumForkSmartAccountsDisabled } from "../transactions/local-fork-safety";
 import type { WorkApprovalDraft, WorkDraft } from "../../types/domain";
 import { debugError, debugLog } from "../../utils/debug";
 import { encodeWorkApprovalData, encodeWorkData } from "../../utils/eas/encoders";
@@ -91,6 +92,8 @@ export async function submitWorkWithPasskey({
 
   const txParams = buildWorkAttestTx(easConfig, gardenAddress as `0x${string}`, attestationData);
 
+  assertLocalArbitrumForkSmartAccountsDisabled();
+
   const hash = await smartClient.sendTransaction({
     account: smartAccount,
     chain: smartClient.chain,
@@ -134,6 +137,8 @@ export async function submitApprovalWithPasskey({
     gardenAddress as `0x${string}`,
     attestationData
   );
+
+  assertLocalArbitrumForkSmartAccountsDisabled();
 
   const hash = await smartClient.sendTransaction({
     account: smartClient.account!,
@@ -210,6 +215,8 @@ export async function submitBatchApprovalsWithPasskey({
   if (signal?.aborted) {
     throw new DOMException("Batch approval aborted", "AbortError");
   }
+
+  assertLocalArbitrumForkSmartAccountsDisabled();
 
   const hash = await smartClient.sendTransaction({
     account: smartClient.account!,
