@@ -80,6 +80,7 @@ function deleteSentrySourceMapsPlugin(outDir: string): Plugin {
       if (registeredExitCleanup) return;
       registeredExitCleanup = true;
       process.once("beforeExit", cleanup);
+      process.once("exit", cleanup);
     },
     writeBundle() {
       cleanup();
