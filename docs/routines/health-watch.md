@@ -16,6 +16,10 @@ env-vars:
   - POSTHOG_PROJECT_ID_APP
   - POSTHOG_PROJECT_ID_ADMIN
   - POSTHOG_PROJECT_ID_AGENT
+  - SENTRY_ORG
+  - SENTRY_CLIENT_PROJECT
+  - SENTRY_ADMIN_PROJECT
+  - SENTRY_AGENT_PROJECT
 connectors:
   - google-calendar
   - linear
@@ -44,7 +48,7 @@ The previous spec used a 50-block indexer threshold (~12.5s at Arbitrum's 250ms 
 - **Vault deltas** — only flag drift >30% in 24h AND indexer is healthy.
 - **Vercel** — flag any failed production deploy in last 24h OR runtime-error spike (>50% increase vs prior 24h baseline) on a guild-deployed Vercel project.
 - **Agent uptime** — flag if the agent service (`BOT_API_URL`) `/health` is unreachable or returns non-200.
-- **Client error spike** — flag a `$exception` surge in PostHog above the calibrated absolute floor (App ≥30/24h, Admin ≥15/24h). Below the floor is informational (🟡) or green.
+- **Client error spike** — flag a `$exception` surge in PostHog above the calibrated absolute floor (App ≥30/24h, Admin ≥15/24h). Below the floor is informational (🟡) or green. When Sentry access is available, use it to attach release/stack context, not as a replacement for the PostHog spike threshold.
 
 ## Categories and checks
 
@@ -135,6 +139,17 @@ Thresholds are **absolute count floors** calibrated from 30-day observed volume 
 **Degraded-payload caveat**: `$exception_type` and `$exception_message` have been null since 2026-05-13 (the `qa-triage-pulse` "M1" finding). This check **counts** events and groups them by URL — it cannot categorize the error type yet. Carry this caveat into the Issue body: report the count, the top offending URLs, and the window; do not assert *which* error spiked. Revisit promoting this to a per-error-type check once the payload is repaired.
 
 **Issue body**: per-project 24h count, the top `$current_url` paths (strip query strings, IDs, and addresses — privacy), and the degraded-payload note. Carry `package:client` (App surge) or `package:admin` (Admin surge).
+
+### 6. Sentry release regression context (optional)
+
+If a Sentry connector/API surface is available, query Sentry after the PostHog/Vercel/agent checks above. This check is evidence enrichment first, alerting second:
+
+1. Query `SENTRY_CLIENT_PROJECT`, `SENTRY_ADMIN_PROJECT`, and `SENTRY_AGENT_PROJECT` for new or regressed unresolved issues in the last 24h.
+2. Treat Sentry as 🔴 only when it shows a new/regressed issue with a clear production release correlation and meaningful volume (for example, repeated events/users across the same release), or when the Agent project shows repeated crashes/API failures while `/health` still returns 200.
+3. For existing PostHog or Vercel anomalies, add Sentry evidence as root-cause context: issue ID/shortlink, title, normalized top in-app frame, release, first/last seen, event/user count.
+4. Keep private Sentry fields out of Linear/Discord: event IDs, trace IDs, request headers, breadcrumbs, user identifiers, IP/geo, query strings, replay/session links, raw tags, local variables, and full stacks.
+
+If Sentry is unavailable, note `Sentry: skipped — connector unavailable` in private run notes only unless every other check is green and the missing connector is the only setup gap. Do not add `.mcp.json` entries or Sentry API secrets from this routine.
 
 ## Auto-close on recovery (Linear Issue status)
 

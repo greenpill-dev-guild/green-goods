@@ -21,8 +21,8 @@ Top Skills & Commands:
   /architecture     █░░░░░░░░░░░░░░░░░░░   4x/month
   /usage            █░░░░░░░░░░░░░░░░░░░   4x/month
 
-Top MCP Servers:
-  claude-in-chrome  ████████████████████  942 calls
+Top Browser MCP Usage:
+  brave-browser-mcp  ████████████████████  942 calls
 
 ## Your Setup Checklist
 
@@ -36,7 +36,7 @@ Top MCP Servers:
 - [ ] Skim `.claude/context/<package>/` for whichever package you'll touch first.
 
 ### MCP Servers to Activate
-- [ ] **claude-in-chrome** — Chrome/Brave extension that lets Claude read and drive a live browser tab. Heavy use here for admin UI review: reading rendered `data-component`/`data-region`/`data-workspace` attributes on the running admin app (see `.claude/skills/design/defect-grammar.md` for the workflow). Install the Claude browser extension, sign in, and grant tab access. Note: this is configured at the user level — the repo's `.mcp.json` is intentionally empty (see `docs/docs/builders/agentic/mcp-guide.mdx`).
+- [ ] **brave-browser-mcp** — Brave-only browser MCP / extension access that lets Claude read and drive a live Brave tab. Heavy use here for admin UI review: reading rendered `data-component`/`data-region`/`data-workspace` attributes on the running admin app (see `.claude/skills/design/defect-grammar.md` for the workflow). Install the Claude browser extension in Brave, sign in, grant tab access, and use the project `.mcp.json` Brave DevTools MCP entry when live browser debugging is needed. Do not use Google Chrome, Chrome for Testing, Chromium, or Edge for Green Goods browser proof.
 
 ### Skills to Know About
 Slash-invokable (type the command):
@@ -60,7 +60,7 @@ Loaded by context (you usually don't pick these manually):
 
 These complement (not duplicate) `CLAUDE.md` — they're things that aren't already encoded in the project rules.
 
-- **Run admin in Brave first, or Chrome/Chromium as a fallback, with the Claude browser extension installed.** That's why you'll see ~942 `claude-in-chrome` calls a month — Claude reads `data-component`/`data-region`/`data-workspace` off the live admin DOM during UI review. Without it, every admin UI change becomes guesswork.
+- **Run admin in Brave only, with the Claude browser extension installed.** There is no Google Chrome, Chrome for Testing, Chromium, or Edge fallback for Green Goods browser proof. Claude reads `data-component`/`data-region`/`data-workspace` off the live admin DOM during UI review; without Brave-backed DOM proof, every admin UI change becomes guesswork.
 - **Commit in scoped groups, not one mega-diff.** Working trees here often accumulate multiple unrelated changes; split them by package or concern using Conventional Commits (`feat(admin): ...`, `refactor(shared): ...`). Use `git add -p` if you need to slice a file.
 - **For multi-lane work, dispatch Codex from Claude via `codex exec --full-auto`.** Claude stays the orchestrator. Codex is strong as a plan-follower and code reviewer, weak at visual polish — never delegate UI design work to it.
 - **Don't make Claude "wait" — use `/loop` or `/schedule`.** `/loop <interval> <command>` for active polling; `/schedule` for cron-style remote routines (deploy checks, weekly sweeps, scheduled cleanup PRs).
@@ -71,7 +71,7 @@ These complement (not duplicate) `CLAUDE.md` — they're things that aren't alre
 
 Your starter task: **set the repo up end-to-end and report back on the experience.** Onboarding feedback is the only way the next person's path gets smoother.
 
-1. Run through **Local Setup** above: `npm run setup` → `bun run dev:health` → `bun run dev` → confirm client (`:3001`), admin (`:3002`), docs (`:3003`), Storybook (`:3004`), and local fork (`:3009`) are healthy.
+1. Run through **Local Setup** above: `npm run setup` → `bun run dev:health` → `bun run dev` → `bun run dev:smoke:full`. That confirms client (`:3001`), admin (`:3002`), docs (`:3003`), Storybook (`:3004`), agent (`:3005`), local indexer/Hasura/Postgres (`:3006`-`:3008`), and the local Arbitrum fork (`:3009`) are healthy without submitting transactions. If the task intentionally needs production infrastructure, use `bun run dev:prod` instead; it keeps local browser surfaces on `:3001`-`:3004`, targets Arbitrum One and hosted production APIs, runs a read-only smoke, and allows real wallet-confirmed Arbitrum writes.
 2. Note every paper cut as you go — broken links, unclear steps, missing prereqs, env vars that weren't obvious, anything that made you pause.
 3. Drop the feedback into Telegram or open an issue tagged `onboarding`. Concrete observations beat vague ones (`docs/builders/getting-started step 3 didn't mention X` > `setup was confusing`).
 

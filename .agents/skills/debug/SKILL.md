@@ -52,7 +52,7 @@ channel. Pattern-match semantically, not lexically: `a gardener said`, `the Hype
 message, attached user screenshot, paraphrased complaint — they all engage this mode.
 
 - Focus: reproduce locally first, identify the failing layer, probe the boundary with the user's
-  exact inputs, disambiguate opaque errors, then confirm scale with PostHog (never the other way).
+  exact inputs, disambiguate opaque errors, then confirm scale/root-cause context with PostHog/Sentry (never the other way).
 - See the User-Facing Bug Triage Protocol in Part 1 — it gates the choice between UI Regression
   and Data/API/Contract protocols.
 
@@ -107,9 +107,9 @@ Fires for `user_bug_triage` mode. Use this as the gating frame whenever any exte
 regardless of phrasing or role. Apply this BEFORE choosing UI Regression or Data/API/Contract
 protocols; this decides which one fits.
 
-1. **Reproduce, with the user's exact inputs.** Drive the real surface (Chrome MCP against
-   `localhost` or prod, real auth mode, real garden, real entry path). Target: trigger the failure
-   yourself within 5 minutes. Do not open PostHog yet. If reproducing is impossible, document why
+1. **Reproduce, with the user's exact inputs.** Drive the real surface (Brave-backed browser MCP against
+   `localhost` or prod in Brave, real auth mode, real garden, real entry path). Target: trigger the failure
+   yourself within 5 minutes. Do not open PostHog or Sentry yet. If reproducing is impossible, document why
    and proceed with explicit caveat.
 2. **Identify the failing layer** before going deeper: UI render, fetch boundary, server response,
    contract call, indexer drift, deployment artifact. Pick by where the symptom surfaces, not
@@ -129,8 +129,7 @@ protocols; this decides which one fits.
 5. **State ONE hypothesis in one sentence.** If you can't, you don't have one — go back to (3).
 6. **Run the cheapest test that would *falsify* the hypothesis.** Not the test that confirms it.
    If you can't refute it cheaply, the hypothesis is too vague.
-7. **Only now use PostHog** — to measure scale, version range, regional distribution. PostHog
-   answers "how many users", "which versions", "where geographically". Never "what's broken".
+7. **Only now use PostHog/Sentry** — PostHog measures scale, version range, regional distribution, and session patterns. Sentry supplies stack, release, and suspect-code context. Neither replaces the boundary proof above.
 8. **Anti-patterns to refuse:**
    - Conflating multiple user sessions with similar symptoms as the same bug without independent
      proof — different sessions are separate threads until evidence ties them.
@@ -249,8 +248,8 @@ If you say these, STOP and verify first:
 
 ### Offline Sync Issues
 - Check `useJobQueue` for stuck jobs
-- IndexedDB: Chrome DevTools > Application > IndexedDB > `jobQueueDB`
-- Service Worker registration: Chrome DevTools > Application > Service Workers
+- IndexedDB: Brave DevTools > Application > IndexedDB > `jobQueueDB`
+- Service Worker registration: Brave DevTools > Application > Service Workers
 - Job queue stats: `jobQueue.getStats(userAddress)` in console
 - Event bus monitoring: subscribe to `"job:failed"` events
 
@@ -285,7 +284,7 @@ cast call <contract> "functionName()" --rpc-url $RPC
 | **TanStack Query DevTools** | Query cache, stale state, refetch triggers | Auto-included in dev mode |
 | **Redux DevTools** | Zustand store inspection (with `devtools` middleware) | Browser extension |
 | **Vite Debug** | Build issues, dependency resolution | `DEBUG=vite:* bun dev` |
-| **Network tab** | GraphQL queries, IPFS uploads, RPC calls | Chrome DevTools → Network |
+| **Network tab** | GraphQL queries, IPFS uploads, RPC calls | Brave DevTools → Network |
 
 ### Indexer Debugging
 
@@ -354,7 +353,7 @@ IndexedDB Draft → Job Queue → IPFS Upload → Contract Call → Indexer Even
 
 ```bash
 # Check IndexedDB for stuck drafts
-# Chrome DevTools > Application > IndexedDB > green-goods-drafts
+# Brave DevTools > Application > IndexedDB > green-goods-drafts
 
 # Check job queue state
 # Console: jobQueue.getStats(userAddress)
@@ -481,7 +480,7 @@ After debugging provide:
 ## Reference Files
 
 - **[monitoring.md](./monitoring.md)** -- Production monitoring: transaction tracking, job queue health, on-chain verification
-- **[posthog.md](./posthog.md)** -- PostHog setup, event tracking, error tracking integration, feature flags. Also covers Linear routing for accepted bugs (Customer Need for raw signal, Issue for accepted work) and the PostHog↔Linear privacy boundary.
+- **[posthog.md](./posthog.md)** -- PostHog + Sentry setup, event/error tracking integration, feature flags. Also covers Linear routing for accepted bugs (Customer Need for raw signal, Issue for accepted work) and the PostHog/Sentry↔Linear privacy boundary.
 - **[health-diagnostics.md](./health-diagnostics.md)** -- Service worker health, storage quotas, indexer sync lag, Web Vitals, error boundaries
 
 ## Linear Routing
@@ -492,7 +491,7 @@ This skill is read-only on Linear. After a bug is reproduced and root-caused:
 - Accepted fixes, QA follow-ups, or product investigations → Linear **Issue** (Product team), labels: `activity:qa` + relevant `package:*` + `protocol:*`.
 - Accepted research questions or evidence-gathering → Linear **Issue** (Research team), labels: `activity:research`.
 - If the bug originated in a `.plans` item, link it and label the Linear record `source:plans`.
-- Detailed routing rules + PostHog↔Linear privacy boundary live in [posthog.md](./posthog.md).
+- Detailed routing rules + PostHog/Sentry↔Linear privacy boundary live in [posthog.md](./posthog.md).
 - Always prompt the user before creating any Linear record — never auto-write.
 
 ## Anti-Patterns

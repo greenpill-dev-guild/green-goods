@@ -17,6 +17,10 @@ env-vars:
   - POSTHOG_PROJECT_ID_APP
   - POSTHOG_PROJECT_ID_ADMIN
   - POSTHOG_PROJECT_ID_AGENT
+  - SENTRY_ORG
+  - SENTRY_CLIENT_PROJECT
+  - SENTRY_ADMIN_PROJECT
+  - SENTRY_AGENT_PROJECT
   - LINEAR_API_KEY  # personal API key OR Linear MCP/connector access; cloud env wires whichever the harness exposes
 connectors:
   - google-drive
@@ -179,6 +183,40 @@ Replay URLs, session IDs, and distinct IDs are useful for the human triaging the
 
 If the PostHog connector is unavailable, log `posthog: connector unreachable` in the Discord summary's `⚠ Failures this run` block and continue without enrichment — never invent telemetry. The local fallback script (`scripts/agents/posthog-query.ts`) remains available for Codex/non-Claude/debug runs that explicitly provide `POSTHOG_PROJECT_API_KEY`, single-project `POSTHOG_PROJECT_ID`, and `POSTHOG_HOST`; those API-key vars are not part of the normal Claude routine env.
 
+## Sentry root-cause enrichment
+
+Sentry is the companion root-cause surface for the same three product areas. Use it when the routine has a Sentry connector/API surface available; otherwise log `sentry: connector unavailable` in private run notes and continue with PostHog-only enrichment. Do not add a Sentry MCP server or API-key fallback to the routine unless the user explicitly asks.
+
+| Sentry project | Env var | Surfaces |
+|---|---|---|
+| **Client** | `SENTRY_CLIENT_PROJECT` (`green-goods-client`) | Browser/PWA/editorial runtime errors and React boundary crashes |
+| **Admin** | `SENTRY_ADMIN_PROJECT` (`green-goods-admin`) | Operator cockpit runtime errors and React boundary crashes |
+| **Agent** | `SENTRY_AGENT_PROJECT` (`green-goods-agent`) | Bot/API crashes, webhook failures, upload-signing/card-funding server errors |
+
+### How Sentry complements PostHog
+
+- Use **Sentry** for the code-root-cause slice: issue title/message, normalized top in-app stack frame, release, environment, first/last seen, event/user counts, suspect commit/release if available.
+- Use **PostHog** for product-impact and session-pattern evidence: affected sessions, recurring pattern, funnel/action context, replay/session lookup when private access is appropriate.
+- Do not sum PostHog and Sentry counts. Their ingestion models differ; if both are present, write them as two separate evidence lines with timestamps/windows.
+- If Sentry finds a stack/release match but PostHog has no matching sessions, keep the Sentry evidence as root-cause context and mark product impact `unknown`.
+- If PostHog shows a spike but Sentry has no matching issue, keep the PostHog evidence and note `sentry_match: none`; do not downgrade the report solely because Sentry is quiet.
+
+### Sentry privacy boundary
+
+| Field | Allowed in Linear Customer Need / Issue body | Stays in private routine context only |
+|---|---|---|
+| Sentry issue ID / shortlink | ✅ | |
+| Issue title / top-line error message | ✅ | |
+| Normalized top in-app stack frame | ✅ | |
+| Release/environment | ✅ | |
+| First seen / last seen (UTC) | ✅ | |
+| Event count / affected-user count | ✅ | |
+| Suspect commit SHA or deploy correlation | ✅ | |
+| Event ID, trace ID, replay URL, session URL | | ✅ |
+| Request URL with query string, headers, cookies, auth tokens | | ✅ |
+| Breadcrumbs, local variables, full stack, raw tags | | ✅ |
+| User identifiers, IP, geo, email, wallet/smart-account address | | ✅ |
+
 ## Vercel deploy correlation (per-report enrichment)
 
 For every report being turned into a Customer Need, query Vercel for production deploys that completed within **48 hours before the report timestamp**. The goal is to surface obvious deploy↔bug correlation so triage starts with a plausible cause already identified.
@@ -219,10 +257,11 @@ Source: the dedicated `#bug-report` channel (`DISCORD_BUGS_CHANNEL_ID`). The ret
 
    When a duplicate exists, add a Linear comment on the existing record with the safe display name (or `anonymous`), message URL, and a one-sentence quote. Do not include Discord usernames, handles, or IDs in the Linear comment. Acknowledge the reporter on Discord with a link to the existing Linear record. Do not create a new record.
 
-4. **Enrich with PostHog (private context)** — for every report that survives dedupe and is enrichable per `## PostHog telemetry enrichment`, run the curated questions through the PostHog connector. Carry the results forward as private context for step 5 and step 6:
+4. **Enrich with PostHog + optional Sentry (private context)** — for every report that survives dedupe and is enrichable per `## PostHog telemetry enrichment`, run the curated questions through the PostHog connector. If a Sentry connector/API surface is available, also run the `## Sentry root-cause enrichment` match for the inferred project. Carry the results forward as private context for step 5 and step 6:
    - The error hash, affected-session count, affected-user count, first/last seen, and app surface go into the Linear Customer Need body's `## PostHog evidence (safe summary)` block.
+   - The Sentry issue ID/shortlink, top-line message, normalized in-app frame, release, first/last seen, and event/user counts go into a separate `## Sentry evidence (safe summary)` block when present.
    - The replay URL, session IDs, distinct ID, and any other identifier listed in the "private" column stay out of the body. Hand them off via the private surface described in `## PostHog telemetry enrichment` only.
-   - When the PostHog connector returns no match, record `confidence: low` and skip the evidence block — never invent fields.
+   - When PostHog or Sentry returns no match, record that surface as `confidence: low` and skip that evidence block — never invent fields.
 
 5. **Create Customer Need** for every validated unique report. Body template:
 
@@ -261,6 +300,16 @@ Source: the dedicated `#bug-report` channel (`DISCORD_BUGS_CHANNEL_ID`). The ret
    - App surface: {client | admin}
    - Recurring pattern: {yes ({S} sessions / 30d) | no}
    - Confidence: {high | medium | low}
+
+   ## Sentry evidence (safe summary)
+   {only emit this block when step 4 returned a match; otherwise omit entirely}
+   - Issue: `{sentry-issue-id-or-shortlink}`
+   - Top-line message: `{redacted-error-message}`
+   - Top stack frame: `{normalized-in-app-frame-without-query-or-paths}`
+   - Release/environment: `{release}` / `{environment}`
+   - Events/users: {N} / {M}
+   - First seen: {YYYY-MM-DDTHH:MM:SSZ}
+   - Last seen: {YYYY-MM-DDTHH:MM:SSZ}
 
    ## Deploy correlation
    {only emit this block when the Vercel correlation step found a production deploy within 48h before the report; otherwise omit entirely}
@@ -352,7 +401,7 @@ Run the sub-flow below twice — once with `inferred_type=bug` (ack target `#bug
 
 4. **Dedupe against Linear** — list open Customer Needs on the Product team that carry `protocol:green-goods` + `source:telegram`, match on `chat_messages.id`, the message-id segment of it, garden context, and described behavior. When a duplicate exists, comment on the existing record with the safe display name (or `anonymous`), source message reference, and one-sentence quote; do not include `senderPlatformId`, Telegram handles, or numeric IDs. Do not create a new Customer Need. Carry the existing Customer Need URL forward to Phase 6 so the duplicate capture still gets a Discord acknowledgement.
 
-5. **Enrich with PostHog (private context)** — same procedure as Phase 1 step 4. Treat `senderPlatformId` as private. `senderDisplayName` is allowed only in the Customer Need `## Source` block and the Phase 6 per-capture Discord post; do not use it in the PostHog evidence block or telemetry lookup unless the reporter explicitly consented.
+5. **Enrich with PostHog + optional Sentry (private context)** — same procedure as Phase 1 step 4. Treat `senderPlatformId` as private. `senderDisplayName` is allowed only in the Customer Need `## Source` block and the Phase 6 per-capture Discord post; do not use it in the PostHog or Sentry evidence block or telemetry lookup unless the reporter explicitly consented.
 
 6. **Upload media to Linear (when present)** — for each attachment in `message.attachments`, fetch:
    ```
@@ -423,7 +472,7 @@ The `google-drive` connector exposes only `title`, `fullText`, `mimeType`, `modi
 
 4. **Dedupe against Linear** — list open Customer Needs across all sources on the Product team that carry `protocol:green-goods`. Match on described behavior + affected surface.
 
-5. **Enrich with PostHog (private context, fuzzy only)** — Drive notes rarely contain stack traces, so use only the free-text fuzzy match (curated question 5 in `## PostHog telemetry enrichment`) against verbatim quotes. If a high-confidence match comes back, include the safe-summary block in the Customer Need body. Skip the reporter session lookup — meeting attendees are not consenting telemetry subjects.
+5. **Enrich with PostHog + optional Sentry (private context, fuzzy only)** — Drive notes rarely contain stack traces, so use only the free-text fuzzy match (curated question 5 in `## PostHog telemetry enrichment`) against verbatim quotes, plus Sentry message/title search when the connector is available. If a high-confidence match comes back, include the safe-summary block in the Customer Need body. Skip reporter session/user lookup — meeting attendees are not consenting telemetry subjects.
 
 6. **Create Customer Need** unprojected on the Product team, associated with the customer/garden when known. Body uses the same template (including the `## PostHog evidence (safe summary)` block when step 5 returned a match), with `## Source` set to:
 
@@ -444,7 +493,7 @@ The `google-drive` connector exposes only `title`, `fullText`, `mimeType`, `modi
 
 ## Phase 4: Recurring-pattern roll-up
 
-After Phases 1–3, before the umbrella check, fold every PostHog match collected this run (across Discord, Telegram, and Drive) into one set keyed by error hash. For each unique hash:
+After Phases 1–3, before the umbrella check, fold every PostHog match collected this run (across Discord, Telegram, and Drive) into one set keyed by error hash. Fold Sentry matches into a separate set keyed by issue ID. For each unique hash:
 
 1. **Re-run the recurring-pattern probe** (curated question 4 in `## PostHog telemetry enrichment`) over the last 30 days, including matches from before this run.
 2. **Threshold gate**: a hash is a recurring pattern when its 30-day distinct-session count is **≥ 50**. Below threshold, the per-report Customer Needs from Phases 1–3 stand on their own. Do not aggregate.
@@ -469,6 +518,7 @@ After Phases 1–3, before the umbrella check, fold every PostHog match collecte
 
    - If a parent Issue already exists, append any new Customer Need URLs to its `## Linked Customer Needs` list and refresh the safe-summary numbers in place.
 4. **Backlink** every contributing Customer Need to the parent Issue via Linear's relation surface (`relates to` or the parent's linked-issues field). The Customer Needs themselves are not edited beyond adding the relation.
+5. **Attach Sentry matches as root-cause context** when they point at the same top-line message/surface/release. Sentry issue IDs enrich the parent Issue body or comment with release and stack context; they do not replace the PostHog distinct-session threshold because Sentry event counts and PostHog session counts are not comparable.
 5. **Cap**: at most **2 new parent Issues per run** to keep human triage from drowning. Carry overflow into the next run.
 
 The parent Issue body never carries replay URLs, session IDs, distinct IDs, wallet addresses, or reporter identifiers. The same privacy boundary that governs Customer Needs governs the recurring-pattern parent.
@@ -547,6 +597,7 @@ Message format:
 • Drive notes: {N} docs reviewed, {M} Customer Needs, {I} linked Issues, {R} rejected (out-of-scope)
 • Discord per-capture acks posted: {B} to #bug-report, {D} to #product
 • PostHog enrichment: {E} reports matched, {P} recurring-pattern parents created or refreshed
+• Sentry enrichment: {S} reports matched, {U} issue links added (if connector available)
 
 📋 **Triage queue**: {raw_signal_count} raw signals awaiting promotion · {accepted_count} accepted bugs in `Backlog`/`Todo`
 {if raw_signal_count + accepted_count > 3: "→ open the Linear Product team's unprojected `protocol:green-goods` view, decide which raw-signal tracking Issues are worth promoting to accepted bugs, and review the open accepted-bug Issues."}
@@ -570,6 +621,7 @@ The @mention only fires when triage is piling up OR a setup failure needs human 
 - **PostHog connector is read-only.** Never call any mutating PostHog endpoint (cohorts, dashboards, feature flags) from this routine. Telemetry queries only.
 - **Privacy boundary is non-negotiable.** Replay URLs, session IDs, distinct IDs, wallet/user identifiers, and reporter identifiers never appear in any Linear body, the public Discord summary, GitHub, or any other shared surface. If you cannot tell whether a field is safe, treat it as private.
 - **No PostHog MCP or API-key routine wiring.** Do not add PostHog entries to `.mcp.json`, stand up a PostHog MCP server, or add API-key fallback vars to the active Claude routine just to make telemetry work. Connector access is the path; the script in `scripts/agents/posthog-query.ts` is for explicit local/non-Claude fallback runs only.
+- **No Sentry MCP in v1.** Sentry enrichment is connector/API-surface-ready only. If the connector is not available, continue without it rather than adding `.mcp.json` entries or secrets during the routine.
 - **Read-only on the codebase.** Do not edit files, do not open PRs, do not branch.
 - **No GitHub writes.** GitHub is for PRs and code review only — never a backlog. The retired `Bug Board #18`, GitHub Project #4, and the legacy `polish` / `source:*` GitHub labels are out of scope.
 - **No code audit.** If you notice something while reading docs that looks like a code issue, do NOT create a Customer Need.

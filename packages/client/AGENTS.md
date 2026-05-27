@@ -40,8 +40,9 @@ should come from `@green-goods/shared`.
 - Client changes commonly depend on shared hooks and providers. If the change reaches into
   `@green-goods/shared`, validate from the repo root, not only from this package.
 - Route and rendering changes should always get a build, not only tests.
-- For local human/agent browser walkthroughs, prefer Brave with an isolated/non-default profile;
-  keep package and repo proof commands Chrome/Chromium-compatible for contributors and CI.
+- For local human/agent browser walkthroughs and visual debugging, use Brave with an
+  isolated/non-default profile; do not silently fall back to any non-Brave browser for Green Goods
+  browser proof.
 
 ## Validation
 

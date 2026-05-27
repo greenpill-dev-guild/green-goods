@@ -1,4 +1,4 @@
-# PostHog Analytics & Error Tracking
+# PostHog Analytics, Sentry, and Error Tracking
 
 > Sub-file of the [debug skill](./SKILL.md).
 
@@ -41,6 +41,14 @@ Exports:
 - **Admin** (`packages/admin/src/main.tsx`): passes `VITE_POSTHOG_ADMIN_KEY`
 - Both `Root.tsx` files call `useAnalyticsIdentity()` and `usePageView()`
 
+### Sentry Companion Sink
+
+**`packages/shared/src/modules/app/sentry.ts`** registers Sentry for client/admin through the `@green-goods/shared/sentry` subpath. It is deliberately not exported from the main shared barrel so the Node agent does not load React/browser Sentry.
+
+**`packages/shared/src/modules/app/error-categories.ts`** remains the browser error funnel. It still sends `error_tracked` to PostHog and now also calls registered external reporters for categorized errors and React boundary crashes. Native `window.onerror` and `unhandledrejection` stay with Sentry's global handlers to avoid duplicate capture.
+
+**`packages/agent/src/services/sentry.ts`** initializes `@sentry/bun` with `sendDefaultPii: false`, safe tags, sanitized context, and flush-on-shutdown. Agent capture points are startup/runtime failures, Hono `onError`, and `handleMessage` failures.
+
 ## Event Tracking Patterns
 
 Track meaningful business events, not UI clicks:
@@ -73,6 +81,10 @@ track("sync_completed", { jobs_synced: count, duration_ms: elapsed });
 | `VITE_POSTHOG_ADMIN_KEY` | Admin |
 | `VITE_POSTHOG_HOST` | Both (defaults to US cloud) |
 | `VITE_POSTHOG_DEBUG` | Both (enables debug logging) |
+| `VITE_SENTRY_CLIENT_DSN` | Client Sentry project |
+| `VITE_SENTRY_ADMIN_DSN` | Admin Sentry project |
+| `SENTRY_AGENT_DSN` | Agent/API Sentry project |
+| `SENTRY_AUTH_TOKEN` | Build-time sourcemap upload only |
 
 ## Best Practices
 
@@ -83,6 +95,8 @@ track("sync_completed", { jobs_synced: count, duration_ms: elapsed });
 | **Track outcomes, not clicks** | `work_submitted` not `submit_button_clicked` |
 | **Don't track in dev** | Module gates on production environment |
 | **Use the shared module** | Never import `posthog-js` directly — use `track()` from shared |
+| **Use Sentry for root cause** | Stack, release, suspect commit, and server crash context belong in Sentry |
+| **Use PostHog for impact** | Session count, replay, funnels, and user journey context belong in PostHog |
 
 ---
 
@@ -90,7 +104,7 @@ track("sync_completed", { jobs_synced: count, duration_ms: elapsed });
 
 > **Question library**: the canonical curated-question library lives at `.claude/skills/posthog-questions/SKILL.md` (mirrored at `.agents/skills/posthog-questions/SKILL.md`). It covers both the product/quality lens used here and the growth/BD lens used by `growth-pulse`. Reference questions by name (`errors.recent`, `errors.detail`, `errors.recurring`, `errors.match-bug-report`, `replay.user-sessions`) — never inline raw HogQL.
 
-When you start work on a reported bug, query PostHog for matching telemetry **before** forming a hypothesis. Production replay and error data is the cheapest "did the user actually hit the path I think they did?" check available, and PostHog has it for both client and admin.
+When you start work on a reported bug, reproduce or probe the failing boundary first, then use PostHog and Sentry for evidence. PostHog answers "how many users/sessions and what path?" Sentry answers "which stack, release, and suspected code path?"
 
 ### When to query
 
@@ -100,7 +114,7 @@ When you start work on a reported bug, query PostHog for matching telemetry **be
 
 Skip the lookup for: pure code-quality bugs, lint failures, build errors, anything reproducible by reading source.
 
-### Primary path: Claude Code PostHog connector
+### Primary path: Claude Code PostHog connector + optional Sentry
 
 The Claude Code PostHog connector is the primary surface. Use it directly — do not stand up a custom PostHog MCP server. Curated questions (mirrored from `docs/routines/bug-intake.md`):
 
@@ -109,6 +123,14 @@ The Claude Code PostHog connector is the primary surface. Use it directly — do
 3. Reporter session lookup — only when the reporter identifier is known and consented.
 4. Recurring-pattern probe — distinct-session count for an error hash over 30 days.
 5. Free-text fuzzy match against recent error messages and event names from the table above.
+
+When Sentry connector/API access exists, pair the PostHog result with Sentry issue lookup against the matching project:
+
+- `green-goods-client` for browser/PWA/editorial issues
+- `green-goods-admin` for admin cockpit issues
+- `green-goods-agent` for bot/API issues
+
+Allowed shared Sentry evidence: issue ID/shortlink, title/top-line message, normalized top in-app frame, release/environment, first/last seen, event count, affected-user count, and suspect commit SHA. Private Sentry context stays private: event IDs, trace IDs, request headers, breadcrumbs, local variables, replay/session URLs, raw tags, full stacks, IP/geo, emails, wallets, and user identifiers.
 
 Replay URLs, session IDs, distinct IDs, wallet/user identifiers, and reporter identifiers are **private debugging context** — useful to you while triaging, never pasted into a Linear body, Customer Need, PR description, commit message, Discord summary, or any other shared surface. If you need to share evidence with another agent or a human reviewer, share the **PostHog error hash** and the safe-summary fields (error message, affected-session count, first/last seen, app surface, confidence). Anyone with PostHog access can re-fetch the private fields from the hash.
 
@@ -151,6 +173,8 @@ bun scripts/agents/posthog-query.ts match-bug-report --error-snippet "stack fram
 `--privacy public` suppresses the `private_context` block entirely, leaving only the same allowlist that crosses into Linear bodies. Use it whenever the script's output may flow into a shared surface (a PR description, a `#product` post, a doc).
 
 Do not extend this script to add features that exist in the connector — the connector is the primary surface and the script is fallback-only.
+
+Do not add Sentry MCP or API-key fallback wiring during debugging unless Afo explicitly asks. The codebase is Sentry-ready; connector availability is an environment concern.
 
 ### Privacy hard rule
 

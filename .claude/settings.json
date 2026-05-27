@@ -4,7 +4,7 @@
     "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
   },
   "permissions": {
-    "allow": ["mcp__claude-in-chrome__tabs_context_mcp", "Bash(bunx knip *)"]
+    "allow": ["Bash(bunx knip *)"]
   },
   "hooks": {
     "PreToolUse": [

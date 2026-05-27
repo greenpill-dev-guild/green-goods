@@ -19,9 +19,15 @@
        v                   v                   v
 +------------------------------------------------------+
 |                    Logger Service                     |
-|  Structured logs -> Error tracking -> Metrics         |
+|  Structured logs -> Sentry errors -> PostHog metrics  |
 +------------------------------------------------------+
 ```
+
+Sentry and PostHog are complementary:
+
+- Sentry: stack traces, releases, sourcemaps, suspect commits, agent/API crash context.
+- PostHog: product events, affected sessions, replay/session patterns, funnels, growth/usage metrics.
+- Do not merge counts across the two tools; cite their windows and sources separately.
 
 ### Log Levels
 
@@ -122,6 +128,7 @@ async function verifyTransaction(hash: `0x${string}`) {
 ### Setting Up Monitoring for a New Feature
 
 - [ ] Error cases log via `logger.error()` with context
+- [ ] Crash-worthy errors reach Sentry via the shared browser funnel or agent `captureAgentException`
 - [ ] Business events log via `logger.info()`
 - [ ] Storage-heavy features check quota
 - [ ] Transaction features track job queue events

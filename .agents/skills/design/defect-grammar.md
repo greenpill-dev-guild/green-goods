@@ -8,12 +8,12 @@ How Claude (and subagents) resolve casual admin-UI defect reports to an exact DO
 
 When the user reports anything off on an admin surface, the agent MUST resolve to a canonical `Admin*` wrapper or canvas region before proposing an edit. Never guess. Escalate in this order:
 
-### Tier 1 — Live DOM via Chrome MCP (preferred)
+### Tier 1 — Live DOM via Brave-Backed Browser MCP (preferred)
 
-If an admin tab is open in the user's browser (check `mcp__claude-in-chrome__tabs_context_mcp`), read the rendered DOM to locate the target:
+If an admin tab is open in Brave through a Brave-backed browser MCP, read the rendered DOM to locate the target:
 
 ```js
-// Via mcp__claude-in-chrome__javascript_tool
+// Via the available Brave-backed browser MCP JavaScript tool
 Array.from(document.querySelectorAll('[data-component], [data-region]')).map(el => ({
   component: el.dataset.component,
   variant: el.dataset.variant,
@@ -45,7 +45,7 @@ Narrow candidates by:
 | "the tooltip" | `data-component="AdminTooltip"` |
 | "the badge" / "notification dot" | `data-component="AdminBadge"` |
 
-### Tier 2 — Static grep (Chrome MCP unavailable, or page not open)
+### Tier 2 — Static grep (Brave-backed browser MCP unavailable, or page not open)
 
 ```bash
 grep -rn 'data-component="Admin<X>"' packages/admin/src/views/<workspace>/
@@ -104,7 +104,7 @@ The left column is what the user says. The right column is the internal statemen
 
 Design-system updates do not automatically propagate to casual issue reports. Before `data-component` / `data-region` / `data-workspace`, a description like "the thing looks off" forced the agent to guess between 5+ candidate components; guesses miss, which is how "updates to the design system don't seem to address identified issues" happens.
 
-The data attributes make the DOM self-identifying. This file tells the agent to **read them** (via Chrome MCP or grep) **before editing**, so casual user input maps to exact canonical targets. The grammar is a tool the agent uses on itself, not a vocabulary imposed on the user.
+The data attributes make the DOM self-identifying. This file tells the agent to **read them** (via Brave-backed browser MCP or grep) **before editing**, so casual user input maps to exact canonical targets. The grammar is a tool the agent uses on itself, not a vocabulary imposed on the user.
 
 ## Related
 
@@ -113,4 +113,4 @@ The data attributes make the DOM self-identifying. This file tells the agent to 
 - [language.md](./language.md) — full Warm Earth token + motion spec
 - Project rules: `.claude/rules/frontend-design.md`
 - Tooling: `bun run check:design-tokens`, `bun run lint:vocab`
-- Chrome MCP tools: `mcp__claude-in-chrome__tabs_context_mcp`, `mcp__claude-in-chrome__javascript_tool`, `mcp__claude-in-chrome__read_page`
+- Brave-backed browser MCP tools: use the project `.mcp.json` `brave-devtools` server or a Brave-attached Claude browser extension. Never use Google Chrome, Chrome for Testing, Chromium, or Edge for Green Goods browser proof.

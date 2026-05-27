@@ -85,9 +85,9 @@ foundations.
 - The default admin Vitest run excludes `src/__tests__/views/**` and a few heavy tests. Treat `bun run build` as a required validation step for route and view work until a dedicated view test runner exists.
 - Permission and role changes often originate in shared code; use the root quick verification
   loop when shared contracts or shared hooks move.
-- For local human/agent browser walkthroughs and live DOM review, prefer Brave with an
-  isolated/non-default profile; keep package and repo proof commands Chrome/Chromium-compatible
-  for contributors and CI.
+- For local human/agent browser walkthroughs and live DOM review, use Brave with an
+  isolated/non-default profile; do not silently fall back to any non-Brave browser for Green Goods
+  browser proof.
 - **Tailwind v4 gotcha**: admin's content scan does not reach `packages/shared/src/`, so a shared component that uses utility classes in its JSX may render off-center, missing padding, or wrong width in admin even when it looks fine in Storybook. Before debugging the shared component, check root `AGENTS.md` → "Known Gotchas" — the fix usually lives in `packages/admin/src/styles/admin-m3-overrides.css` or in inline styles inside the shared component, not in the JSX.
 
 ## Validation

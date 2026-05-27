@@ -20,8 +20,8 @@ That's it — four scheduled cadences plus one event-driven, all cloud routines 
 
 | Routine | Connectors | Why each |
 |---|---|---|
-| `bug-intake` | Google Drive, Linear, PostHog, Vercel | Drive = meeting-note intake · Linear = Customer Need (raw signal) + accepted-bug Issue surface · PostHog = telemetry enrichment for bug correlation · Vercel = deploy correlation (commit + diff that shipped within 48h before each report) |
-| `health-watch` | Google Calendar, Linear, PostHog, Vercel | Calendar = context that adjusts severity · Linear = accepted operational health Issues (unprojected Product) · PostHog = client-side `$exception` spike detection + error correlation · Vercel = deploy/runtime/web-vitals signal feeding `activity:qa` Issues. Also probes the agent's unauthenticated `/health` via `BOT_API_URL` (env var, not a connector). |
+| `bug-intake` | Google Drive, Linear, PostHog, Vercel; Sentry-ready when connector/API access exists | Drive = meeting-note intake · Linear = Customer Need (raw signal) + accepted-bug Issue surface · PostHog = telemetry/product-impact enrichment · Sentry = stack/release/root-cause enrichment · Vercel = deploy correlation (commit + diff that shipped within 48h before each report) |
+| `health-watch` | Google Calendar, Linear, PostHog, Vercel; Sentry-ready when connector/API access exists | Calendar = context that adjusts severity · Linear = accepted operational health Issues (unprojected Product) · PostHog = client-side `$exception` spike detection + error correlation · Sentry = release regression and agent/API crash context · Vercel = deploy/runtime/web-vitals signal feeding `activity:qa` Issues. Also probes the agent's unauthenticated `/health` via `BOT_API_URL` (env var, not a connector). |
 | `growth-pulse` | Google Calendar, Linear, PostHog | Calendar = WoW context · Linear = accepted-anomaly Issue surface (unprojected Product) · PostHog = product/growth metrics via curated questions. Drive and Miro are intentionally not wired here; Vercel is also intentionally not wired because Vercel Web Analytics overlaps with PostHog and would create dual-source drift. |
 | `qa-triage-pulse` | Google Drive, Linear, PostHog, Vercel | Drive = the Wed Product Sync's Gemini notes · Linear = Customer Need pre-stage surface (raw signal, unprojected) · PostHog = per-surface telemetry cross-reference · Vercel = deploy correlation gated on PostHog-matched items only (anchored to `first_seen`, skipped for items without telemetry signal). |
 | `pr-review` | Vercel | Preview deployment status + Lighthouse delta. Inline review commentary, not a hard invariant. |
@@ -122,6 +122,23 @@ Cloud routines set the project ID env vars below and reference the right one per
 | `POSTHOG_PROJECT_ID_AGENT` | `262124` | Agent/bot-channel queries |
 
 Do not add `POSTHOG_PROJECT_API_KEY`, single-project `POSTHOG_PROJECT_ID`, or `POSTHOG_HOST` to the active Claude routine env unless you are deliberately enabling the local fallback script. Those variables belong to `scripts/agents/posthog-query.ts` for non-Claude/Codex/local fallback reads; connector-backed routines should only need the connector plus the three project IDs above.
+
+## Sentry environment
+
+Sentry complements PostHog; it does not replace it. PostHog remains the product/session/replay impact surface. Sentry is for stack traces, release regression, suspect commits, and server-side agent/API crashes. The browser apps initialize Sentry from public DSNs, while the agent uses a server-only DSN.
+
+| Variable | Value / purpose |
+|---|---|
+| `SENTRY_ORG` | Sentry org slug, default `greenpill` |
+| `SENTRY_CLIENT_PROJECT` | `green-goods-client` |
+| `SENTRY_ADMIN_PROJECT` | `green-goods-admin` |
+| `SENTRY_AGENT_PROJECT` | `green-goods-agent` |
+| `VITE_SENTRY_CLIENT_DSN` | Public browser DSN for the client/PWA |
+| `VITE_SENTRY_ADMIN_DSN` | Public browser DSN for admin |
+| `SENTRY_AGENT_DSN` | Server-only agent/API DSN |
+| `SENTRY_AUTH_TOKEN` | Build-time sourcemap upload token; never exposed to browser runtime |
+
+Active routines are Sentry-ready, not Sentry-dependent: when a Sentry connector/API surface is available, include Sentry safe-summary evidence beside PostHog evidence. When it is unavailable, continue without it. Do not add Sentry MCP entries or routine API-key fallbacks unless the user explicitly asks.
 
 ## Linear environment
 
