@@ -3,7 +3,7 @@ project_doc_fallback_filenames = ["CLAUDE.md"]
 project_doc_max_bytes = 40960
 
 [features]
-codex_hooks = false
+hooks = true
 
 [sandbox_workspace_write]
 network_access = false
