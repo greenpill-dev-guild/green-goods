@@ -352,9 +352,7 @@ function FundPageContent() {
   }, [matchedGardenId]);
 
   useEffect(() => {
-    if (manageQuery === "endowments") {
-      setEndowmentPanelOpen(true);
-    }
+    setEndowmentPanelOpen(manageQuery === "endowments");
   }, [manageQuery]);
 
   const closeSelector = useCallback(() => setSelectorState(null), []);

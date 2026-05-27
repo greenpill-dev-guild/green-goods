@@ -11,11 +11,11 @@
  * @vitest-environment jsdom
  */
 
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createElement, type ReactNode } from "react";
+import { createElement, Fragment, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useNavigate } from "react-router-dom";
 import type { Address } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -131,12 +131,28 @@ const messages: Record<string, string> = {
   "public.fund.dialog.endow.title": "Endow",
 };
 
-function renderView(initialEntries: string[] = ["/fund"]) {
+function HistoryBackButton() {
+  const navigate = useNavigate();
+  return (
+    <button type="button" onClick={() => navigate(-1)}>
+      History back
+    </button>
+  );
+}
+
+function renderView(
+  initialEntries: string[] = ["/fund"],
+  options: { initialIndex?: number; extra?: ReactNode } = {}
+) {
   return render(
     createElement(
       MemoryRouter,
-      { initialEntries },
-      createElement(IntlProvider, { locale: "en", messages }, createElement(FundPage))
+      { initialEntries, initialIndex: options.initialIndex },
+      createElement(
+        IntlProvider,
+        { locale: "en", messages },
+        createElement(Fragment, null, options.extra, createElement(FundPage))
+      )
     )
   );
 }
@@ -308,6 +324,22 @@ describe("FundPage", () => {
     renderView(["/fund?manage=endowments"]);
 
     expect(screen.getByTestId("public-endowment-panel")).toBeInTheDocument();
+  });
+
+  it("closes the endowment panel when navigation removes the manage query", async () => {
+    const user = userEvent.setup();
+    renderView(["/fund", "/fund?manage=endowments"], {
+      initialIndex: 1,
+      extra: createElement(HistoryBackButton),
+    });
+
+    expect(screen.getByTestId("public-endowment-panel")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "History back" }));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("public-endowment-panel")).toBeNull();
+    });
   });
 
   it("renders the standalone vault section between the hero and Donate/Endow context", () => {

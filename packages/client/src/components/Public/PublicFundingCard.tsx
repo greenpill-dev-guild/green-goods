@@ -82,6 +82,10 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
   const cookieJarMutation = useCookieJarDeposit(garden.id as Address, { errorMode: "inline" });
   const vaultMutation = useVaultDeposit({ errorMode: "inline" });
   const activeMutation = isDonate ? cookieJarMutation : vaultMutation;
+  const activeMutationError = activeMutation.error;
+  const resetActiveMutation = activeMutation.reset;
+  const activeMutationErrorRef = useRef(activeMutationError);
+  const resetActiveMutationRef = useRef(resetActiveMutation);
 
   // Normalize the two data shapes (CookieJar vs GardenVault) into a single
   // FundingOption[] so the rendering code doesn't branch on intent.
@@ -183,10 +187,18 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
   const belowMin =
     isDonate && selected?.minDeposit && tokenAmountWei > 0n && tokenAmountWei < selected.minDeposit;
 
-  // Cleared error on input change so users see fresh state when retrying.
   useEffect(() => {
-    if (activeMutation.error) activeMutation.reset();
-  }, [usdInput, selectedAddress, activeMutation]);
+    activeMutationErrorRef.current = activeMutationError;
+    resetActiveMutationRef.current = resetActiveMutation;
+  }, [activeMutationError, resetActiveMutation]);
+
+  // Clear an existing error only when the user changes the amount or token.
+  // `activeMutation` is a wrapper object and can change identity between
+  // renders; depending on it here clears fresh inline errors before users can
+  // read why a transaction did not reach their wallet.
+  useEffect(() => {
+    if (activeMutationErrorRef.current) resetActiveMutationRef.current();
+  }, [usdInput, selectedAddress]);
 
   const txErrorView = useMemo(() => classifyTxError(activeMutation.error), [activeMutation.error]);
 
