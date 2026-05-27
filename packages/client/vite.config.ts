@@ -69,12 +69,23 @@ function deleteSourceMapsInDirectory(directory: string): void {
 }
 
 function deleteSentrySourceMapsPlugin(outDir: string): Plugin {
+  let registeredExitCleanup = false;
+  const cleanup = () => deleteSourceMapsInDirectory(outDir);
+
   return {
     name: "green-goods-delete-sentry-source-maps",
     apply: "build",
     enforce: "post",
+    buildStart() {
+      if (registeredExitCleanup) return;
+      registeredExitCleanup = true;
+      process.once("beforeExit", cleanup);
+    },
+    writeBundle() {
+      cleanup();
+    },
     closeBundle() {
-      deleteSourceMapsInDirectory(outDir);
+      cleanup();
     },
   };
 }
