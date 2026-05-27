@@ -1,6 +1,7 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import {
   type Address,
+  Alert,
   cn,
   DEFAULT_WITHDRAW_MAX_LOSS_BPS,
   formatTokenAmount,
@@ -130,16 +131,14 @@ export function PublicEndowmentPanel({ open, onOpenChange }: PublicEndowmentPane
                 <div className="h-32 animate-pulse rounded-2xl bg-bg-white-0" />
               </div>
             ) : portfolio.isError ? (
-              <div
-                role="alert"
-                className="rounded-2xl border border-error-light bg-error-lighter/30 p-5"
+              <Alert
+                variant="error"
+                className="rounded-2xl bg-error-lighter/30 p-5"
+                title={formatMessage({
+                  id: "public.fund.endowments.error.title",
+                  defaultMessage: "We could not load these endowments",
+                })}
               >
-                <h3 className="font-serif text-xl font-normal text-text-strong-950">
-                  {formatMessage({
-                    id: "public.fund.endowments.error.title",
-                    defaultMessage: "We could not load these endowments",
-                  })}
-                </h3>
                 <p className="mt-3 text-sm leading-[1.6] text-text-sub-600">
                   {formatMessage({
                     id: "public.fund.endowments.error.body",
@@ -155,7 +154,7 @@ export function PublicEndowmentPanel({ open, onOpenChange }: PublicEndowmentPane
                     defaultMessage: "Refresh",
                   })}
                 </EditorialGhostButton>
-              </div>
+              </Alert>
             ) : !portfolio.hasPositions ? (
               <div className="rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-5">
                 <h3 className="font-serif text-xl font-normal text-text-strong-950">
@@ -634,22 +633,19 @@ function EndowmentAssetRow({ position, ownerAddress, onRefresh }: EndowmentAsset
           )}
 
           {withdrawMutation.error ? (
-            <div
-              role="alert"
-              className="mt-4 rounded-2xl border border-error-light bg-error-lighter/30 p-3"
+            <Alert
+              variant="error"
+              className="mt-4 rounded-2xl bg-error-lighter/30 p-3"
+              title={txError.title}
             >
-              <p className="text-sm font-medium text-text-strong-950">{txError.title}</p>
               <p className="mt-1 text-xs leading-[1.5] text-text-sub-600">{txError.message}</p>
-            </div>
+            </Alert>
           ) : null}
 
           {successMessage ? (
-            <p
-              role="status"
-              className="mt-4 rounded-2xl border border-success-light bg-success-lighter/30 p-3 text-sm text-text-sub-600"
-            >
+            <Alert variant="success" className="mt-4 rounded-2xl bg-success-lighter/30 p-3">
               {successMessage}
-            </p>
+            </Alert>
           ) : null}
         </div>
       ) : null}

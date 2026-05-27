@@ -1,4 +1,5 @@
 import {
+  Alert,
   ConfidenceSelector,
   cn,
   DEFAULT_CHAIN_ID,
@@ -305,7 +306,10 @@ export const GardenWork: React.FC = () => {
   // Retry footer for offline work
   const retryFooter =
     isOfflineWork && viewingMode === "gardener" ? (
-      <div className="fixed left-0 right-0 bottom-0 bg-warning-lighter border-t border-warning-light rounded-t-[var(--radius-lg)] overflow-hidden p-4 pb-6 z-sticky">
+      <Alert
+        variant="warning"
+        className="fixed left-0 right-0 bottom-0 z-sticky overflow-hidden rounded-t-[var(--radius-lg)] border-t p-4 pb-6"
+      >
         <div className="max-w-screen-sm mx-auto">
           <p className="text-sm text-warning-dark mb-3 flex items-center gap-2">
             <RiErrorWarningLine className="w-4 h-4 flex-shrink-0" />
@@ -350,7 +354,7 @@ export const GardenWork: React.FC = () => {
             </p>
           )}
         </div>
-      </div>
+      </Alert>
     ) : null;
 
   const approvalFooter =

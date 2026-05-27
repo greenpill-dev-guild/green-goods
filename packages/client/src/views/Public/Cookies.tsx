@@ -1,4 +1,5 @@
 import {
+  Alert,
   type Address,
   type CampaignCookieJarCampaign,
   truncateAddress,
@@ -278,7 +279,7 @@ function CookiesCampaignSurface() {
       ))}
 
       {invalidJar ? (
-        <div className="mb-8 max-w-2xl rounded-lg border border-error-light bg-error-lighter p-5 text-sm text-error-dark">
+        <Alert variant="error" className="mb-8 max-w-2xl p-5">
           {formatMessage(
             {
               id: "public.cookies.invalidJar",
@@ -286,7 +287,7 @@ function CookiesCampaignSurface() {
             },
             { jar: invalidJar }
           )}
-        </div>
+        </Alert>
       ) : campaignSlug && !jarAddress && !isCampaignListLoading ? (
         <div className="mb-8 max-w-2xl rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-5 text-sm text-text-sub-600">
           {formatMessage(

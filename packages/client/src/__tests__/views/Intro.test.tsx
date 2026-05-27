@@ -84,8 +84,15 @@ vi.mock("@/components/Display", () => ({
     createElement("div", { "data-testid": "carousel" }, children),
   CarouselContent: ({ children }: { children: React.ReactNode }) =>
     createElement("div", { "data-testid": "carousel-content" }, children),
-  CarouselItem: ({ children, onClick }: { children: React.ReactNode; onClick?: () => void }) =>
-    createElement("div", { "data-testid": "carousel-item", onClick }, children),
+  CarouselItem: ({
+    children,
+    className,
+    onClick,
+  }: {
+    children: React.ReactNode;
+    className?: string;
+    onClick?: () => void;
+  }) => createElement("div", { "data-testid": "carousel-item", className, onClick }, children),
 }));
 
 vi.mock("@/components/Navigation", () => ({
@@ -135,6 +142,7 @@ const messages: Record<string, string> = {
   "app.garden.communityOnramp.title": "Join the Community Garden",
   "app.domain.tab.solar": "Solar",
   "app.domain.tab.agro": "Agro",
+  "app.domain.tab.waste": "Waste",
 };
 
 const now = Date.now();
@@ -234,6 +242,22 @@ describe("WorkIntro", () => {
 
     expect(screen.getByTestId("action-card-Active Action")).toBeInTheDocument();
     expect(screen.queryByTestId("action-card-Expired Action")).not.toBeInTheDocument();
+  });
+
+  it("reserves selection-card space when a selected domain has no active actions", () => {
+    const actions = [makeAction({ id: "action-1", title: "Repair Event", domain: Domain.WASTE })];
+    const gardens = [
+      makeGarden({
+        id: "0xGarden" as Address,
+        domainMask: (1 << Domain.SOLAR) | (1 << Domain.WASTE),
+      }),
+    ];
+
+    renderIntro({ actions, gardens, selectedDomain: Domain.SOLAR });
+
+    const emptyState = screen.getByText("No active actions at this time.");
+    expect(emptyState.className).toContain("h-[13.25rem]");
+    expect(emptyState.closest("[data-testid='carousel-item']")?.className).toContain("basis-full");
   });
 
   it("fires setActionUID when an action card is clicked", () => {

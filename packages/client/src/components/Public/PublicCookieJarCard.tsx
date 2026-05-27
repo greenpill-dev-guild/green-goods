@@ -1,5 +1,6 @@
 import {
   type Address,
+  Alert,
   Button,
   type CampaignCookieJarCampaign,
   classifyTxError,
@@ -742,12 +743,12 @@ function ClaimEligibilityNote({
 
   if (jar.isPaused) {
     return (
-      <p className="rounded-lg border border-warning-light bg-warning-lighter p-3 text-sm text-warning-dark">
+      <Alert variant="warning" className="p-3">
         {formatMessage({
           id: "public.cookies.paused",
           defaultMessage: "Claims are paused for this jar.",
         })}
-      </p>
+      </Alert>
     );
   }
   if (!jar.isEligible) {
@@ -795,11 +796,11 @@ function ClaimEligibilityNote({
     );
   }
   return (
-    <p className="rounded-lg border border-success-light bg-success-lighter p-3 text-sm text-success-dark">
+    <Alert variant="success" className="p-3">
       {formatMessage({
         id: "public.cookies.ready",
         defaultMessage: "You are on the list. Claim when you are ready.",
       })}
-    </p>
+    </Alert>
   );
 }

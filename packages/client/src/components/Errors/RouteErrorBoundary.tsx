@@ -26,7 +26,7 @@
  * `lazy:` import, and route component throws into here instead of into Router's
  * default UI.
  */
-import { en, es, logger, pt, trackErrorBoundary } from "@green-goods/shared";
+import { Alert, en, es, logger, pt, trackErrorBoundary } from "@green-goods/shared";
 import {
   RiBugLine,
   RiCheckLine,
@@ -425,11 +425,11 @@ export const RouteErrorBoundary: React.FC = () => {
               </p>
 
               {isOfflineOrNetwork && (
-                <div className="bg-success-lighter border border-success-light rounded-lg p-3">
+                <Alert variant="success" className="p-3">
                   <p className="text-sm text-success-dark font-medium">
                     {t("app.error.boundary.protection.message")}
                   </p>
-                </div>
+                </Alert>
               )}
             </div>
 

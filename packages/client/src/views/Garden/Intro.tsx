@@ -180,21 +180,25 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
             ))}
 
           {actions.length === 0 && actionsStatus === "success" && (
-            <div className="p-4 text-sm text-text-sub-600">
-              {intl.formatMessage({
-                id: "app.garden.noActionsConfigured",
-                defaultMessage: "No actions have been configured for this garden yet.",
-              })}
-            </div>
+            <CarouselItem className="basis-full max-w-full">
+              <div className="flex h-[13.25rem] w-full items-center rounded-lg border border-dashed border-stroke-soft-200 bg-bg-weak-50 p-4 text-sm leading-5 text-text-sub-600">
+                {intl.formatMessage({
+                  id: "app.garden.noActionsConfigured",
+                  defaultMessage: "No actions have been configured for this garden yet.",
+                })}
+              </div>
+            </CarouselItem>
           )}
 
           {actionsStatus === "success" && actions.length > 0 && filteredActions.length === 0 && (
-            <div className="p-4 text-sm text-text-sub-600">
-              {intl.formatMessage({
-                id: "app.garden.noActiveActions",
-                defaultMessage: "No active actions at this time.",
-              })}
-            </div>
+            <CarouselItem className="basis-full max-w-full">
+              <div className="flex h-[13.25rem] w-full items-center rounded-lg border border-dashed border-stroke-soft-200 bg-bg-weak-50 p-4 text-sm leading-5 text-text-sub-600">
+                {intl.formatMessage({
+                  id: "app.garden.noActiveActions",
+                  defaultMessage: "No active actions at this time.",
+                })}
+              </div>
+            </CarouselItem>
           )}
 
           {filteredActions.length > 0 &&
