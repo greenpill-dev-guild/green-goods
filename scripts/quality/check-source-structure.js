@@ -98,8 +98,23 @@ function countLines(text) {
   return text.endsWith("\n") ? newlineCount : newlineCount + 1;
 }
 
+function isPackageSourcePath(filePath) {
+  return /^packages\/[^/]+\/src\//.test(filePath);
+}
+
+function isGeneratedOrVendoredPath(filePath) {
+  return /(^|\/)(node_modules|generated|lib|vendor)(\/|$)/.test(filePath);
+}
+
+function isTestOrStoryPath(filePath) {
+  return (
+    /(^|\/)(__tests__|test|tests)(\/|$)/.test(filePath) ||
+    /\.(test|spec|stories)\.(js|jsx|ts|tsx)$/.test(filePath)
+  );
+}
+
 function isRelevantSourceFile(filePath) {
-  if (!/^packages\/[^/]+\/src\//.test(filePath)) {
+  if (!isPackageSourcePath(filePath)) {
     return false;
   }
 
@@ -107,15 +122,31 @@ function isRelevantSourceFile(filePath) {
     return false;
   }
 
-  if (/(^|\/)(node_modules|generated|lib|vendor)(\/|$)/.test(filePath)) {
+  if (isGeneratedOrVendoredPath(filePath)) {
     return false;
   }
 
-  if (/(^|\/)(__tests__|test|tests)(\/|$)/.test(filePath)) {
+  if (isTestOrStoryPath(filePath)) {
     return false;
   }
 
-  if (/\.(test|spec|stories)\.(ts|tsx)$/.test(filePath)) {
+  return true;
+}
+
+function isDisallowedJavaScriptSourceFile(filePath) {
+  if (!isPackageSourcePath(filePath)) {
+    return false;
+  }
+
+  if (!/\.(js|jsx)$/.test(filePath)) {
+    return false;
+  }
+
+  if (isGeneratedOrVendoredPath(filePath)) {
+    return false;
+  }
+
+  if (isTestOrStoryPath(filePath)) {
     return false;
   }
 
@@ -179,9 +210,28 @@ function printFailure(messageLines) {
   process.exit(1);
 }
 
+function printDisallowedJavaScriptFailure(filePaths) {
+  console.error("❌ check-source-structure found JavaScript in production package source:");
+  for (const filePath of filePaths) {
+    console.error(`- ${filePath}`);
+  }
+  console.error("");
+  console.error(
+    "Remediation: use .ts or .tsx for production package source. Keep JavaScript limited to tool-required config/scripts, generated/vendor files, or explicit test/story surfaces.",
+  );
+  process.exit(1);
+}
+
 const { base } = parseArgs(process.argv.slice(2));
 const { changed, added } = resolveChangedFiles(base);
+const disallowedJavaScriptFiles = changed
+  .filter(isDisallowedJavaScriptSourceFile)
+  .filter((filePath) => existsSync(resolve(repoRoot, filePath)));
 const relevantFiles = changed.filter(isRelevantSourceFile).filter((filePath) => existsSync(resolve(repoRoot, filePath)));
+
+if (disallowedJavaScriptFiles.length > 0) {
+  printDisallowedJavaScriptFailure(disallowedJavaScriptFiles);
+}
 
 if (relevantFiles.length === 0) {
   console.log("✅ check-source-structure: no changed non-test source files in scope.");
