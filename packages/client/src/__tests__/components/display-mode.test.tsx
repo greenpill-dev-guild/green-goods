@@ -25,6 +25,7 @@ const mockUseUIStore = vi.fn();
 
 vi.mock("@green-goods/shared", () => ({
   cn: (...args: any[]) => args.filter(Boolean).join(" "),
+  useTunnelUrl: () => null,
   SyncStatusBar: ({ className }: { className?: string }) =>
     createElement("div", { "data-testid": "sync-status-bar", className }),
   useApp: () => mockUseApp(),

@@ -3,14 +3,12 @@ import {
   useApp,
   useInstallGuidance,
   usePublicInstallHandler,
+  useTunnelUrl,
 } from "@green-goods/shared";
-import { type MouseEventHandler, type ReactNode, useCallback, useState } from "react";
+import { type MouseEventHandler, type ReactNode, useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import {
-  PUBLIC_PWA_LAUNCH_URL,
-  PublicInstallDialog,
-  type PublicInstallDialogMode,
-} from "./PublicInstallDialog";
+import { APP_ROUTES, PUBLIC_PWA_LAUNCH_URL } from "@/config/pwa-routing";
+import { PublicInstallDialog, type PublicInstallDialogMode } from "./PublicInstallDialog";
 
 export interface PublicInstallActionRenderProps {
   label: string;
@@ -26,13 +24,14 @@ export interface PublicInstallActionProps {
   forceOpenApp?: boolean;
 }
 
-function launchInstalledApp() {
-  if (typeof window === "undefined") return;
-  window.location.assign(PUBLIC_PWA_LAUNCH_URL);
-}
-
 export function PublicInstallAction({ children, forceOpenApp = false }: PublicInstallActionProps) {
   const { formatMessage } = useIntl();
+  const tunnelUrl = useTunnelUrl();
+  const launchUrl = useMemo(() => {
+    if (import.meta.env.MODE !== "development") return PUBLIC_PWA_LAUNCH_URL;
+    const origin = tunnelUrl ?? window.location.origin;
+    return new URL(APP_ROUTES.home, origin).toString();
+  }, [tunnelUrl]);
   const { isMobile, platform, isInstalled, wasInstalled, deferredPrompt, promptInstall } = useApp();
   const guidance = useInstallGuidance(
     platform,
@@ -60,7 +59,9 @@ export function PublicInstallAction({ children, forceOpenApp = false }: PublicIn
       event.preventDefault();
 
       if (isOpenApp) {
-        launchInstalledApp();
+        if (typeof window !== "undefined") {
+          window.location.assign(launchUrl);
+        }
         return;
       }
 
@@ -76,7 +77,7 @@ export function PublicInstallAction({ children, forceOpenApp = false }: PublicIn
 
       setDialogMode("mobileSteps");
     },
-    [dispatchInstallAction, guidance.primaryAction.type, isMobile, isOpenApp]
+    [dispatchInstallAction, guidance.primaryAction.type, isMobile, isOpenApp, launchUrl]
   );
 
   const handleDialogPrimaryAction = useCallback<MouseEventHandler<HTMLButtonElement>>(
@@ -93,7 +94,7 @@ export function PublicInstallAction({ children, forceOpenApp = false }: PublicIn
     <>
       {children({
         label,
-        href: isOpenApp ? PUBLIC_PWA_LAUNCH_URL : "#install",
+        href: isOpenApp ? launchUrl : "#install",
         isOpenApp,
         dataInstallAction,
         onClick: handleClick,
@@ -101,6 +102,7 @@ export function PublicInstallAction({ children, forceOpenApp = false }: PublicIn
       <PublicInstallDialog
         open={dialogMode !== null}
         mode={dialogMode ?? "desktopQr"}
+        launchUrl={launchUrl}
         guidance={guidance}
         onOpenChange={(open) => {
           if (!open) setDialogMode(null);

@@ -23,6 +23,7 @@ const mockOpenWalletModal = vi.fn();
 vi.mock("@green-goods/shared", () => ({
   APP_NAME: "Green Goods",
   cn: (...args: any[]) => args.filter(Boolean).join(" "),
+  useTunnelUrl: () => null,
   useAppKit: () => ({ open: mockOpenWalletModal }),
   useApp: () => ({
     isMobile: false,

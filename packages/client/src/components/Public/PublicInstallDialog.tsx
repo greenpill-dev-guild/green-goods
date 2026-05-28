@@ -4,14 +4,11 @@ import { RiCloseLine } from "@remixicon/react";
 import { QRCodeSVG } from "qrcode.react";
 import type { MouseEventHandler } from "react";
 import { useIntl } from "react-intl";
-import { PUBLIC_PWA_LAUNCH_URL } from "@/config/pwa-routing";
-
 export type PublicInstallDialogMode = "desktopQr" | "mobileSteps";
-export { PUBLIC_PWA_LAUNCH_URL };
-
 export interface PublicInstallDialogProps {
   open: boolean;
   mode: PublicInstallDialogMode;
+  launchUrl: string;
   guidance: InstallGuidance;
   onOpenChange: (open: boolean) => void;
   onPrimaryAction?: MouseEventHandler<HTMLButtonElement>;
@@ -30,6 +27,7 @@ function hasMobilePrimaryAction(guidance: InstallGuidance): boolean {
 export function PublicInstallDialog({
   open,
   mode,
+  launchUrl,
   guidance,
   onOpenChange,
   onPrimaryAction,
@@ -99,7 +97,7 @@ export function PublicInstallDialog({
               <div className="mt-7 grid gap-6 sm:grid-cols-[13.5rem_1fr] sm:items-start">
                 <figure className="mx-auto w-full max-w-[13.5rem] border border-stroke-soft-200 bg-static-white p-4 text-static-black shadow-[var(--shadow-editorial-card)] sm:mx-0">
                   <QRCodeSVG
-                    value={PUBLIC_PWA_LAUNCH_URL}
+                    value={launchUrl}
                     size={192}
                     marginSize={4}
                     bgColor="var(--color-static-white)"
@@ -220,7 +218,7 @@ export function PublicInstallDialog({
                   </button>
                 ) : manualSteps.length === 0 ? (
                   <a
-                    href={PUBLIC_PWA_LAUNCH_URL}
+                    href={launchUrl}
                     target="_blank"
                     rel="noreferrer noopener"
                     className="inline-flex min-h-11 w-full cursor-pointer items-center justify-center rounded-full bg-primary-action px-5 py-3 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 sm:w-fit"

@@ -42,6 +42,7 @@ export type {
 } from "./app/useInstallGuidance";
 export { useInstallGuidance } from "./app/useInstallGuidance";
 export { usePublicInstallHandler } from "./app/usePublicInstallHandler";
+export { useTunnelUrl } from "./app/useTunnelUrl";
 export type {
   UseLoadingWithMinDurationOptions,
   UseLoadingWithMinDurationResult,
