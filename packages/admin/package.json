@@ -17,7 +17,7 @@
     "format": "biome format --write .",
     "format:check": "biome format .",
     "lint": "bun --bun run oxlint src",
-    "build": "cd ../.. && export VITE_SENTRY_ADMIN_DSN=\"${VITE_SENTRY_ADMIN_DSN:-${SENTRY_ADMIN_DSN:-${SENTRY_DSN:-}}}\" && APP_ENV=production tsc --noEmit -p packages/admin/tsconfig.json && APP_ENV=production bun --bun vite build --config packages/admin/vite.config.ts && node scripts/dev/remove-public-sourcemaps.js packages/admin/dist && node packages/admin/scripts/sentry-proof-build.mjs",
+    "build": "cd ../.. && export VITE_SENTRY_ADMIN_DSN=\"${VITE_SENTRY_ADMIN_DSN:-${SENTRY_ADMIN_DSN:-${SENTRY_DSN:-}}}\" && APP_ENV=production tsc --noEmit -p packages/admin/tsconfig.json && APP_ENV=production bun --bun vite build --config packages/admin/vite.config.ts && node scripts/dev/remove-public-sourcemaps.js packages/admin/dist",
     "build:deploy": "bun run build",
     "preview": "cd ../.. && APP_ENV=production bun --bun vite preview --config packages/admin/vite.config.ts"
   },
