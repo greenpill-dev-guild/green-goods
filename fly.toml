@@ -14,7 +14,7 @@
 #       TELEGRAM_WEBHOOK_SECRET=<secret> \
 #       BOT_API_TOKEN=<routine-auth-bearer-token> \
 #       POSTHOG_AGENT_KEY=<agent-project-token>
-#   flyctl deploy
+#   flyctl deploy --build-secret SENTRY_AUTH_TOKEN=<sentry-auth-token>
 #
 # Health model:
 # - Fly checks use /health. /ready also includes optional voice-model readiness

@@ -110,7 +110,10 @@ export function loadConfig(): Config {
   const sentryEnabled = process.env.SENTRY_ENABLED !== "false" && nodeEnv === "production";
   const sentryTracesSampleRate = parseSampleRate(process.env.SENTRY_TRACES_SAMPLE_RATE, 0.05);
   const sentryRelease =
-    process.env.SENTRY_RELEASE || process.env.VERCEL_GIT_COMMIT_SHA || process.env.GITHUB_SHA;
+    process.env.SENTRY_RELEASE ||
+    process.env.FLY_MACHINE_VERSION ||
+    process.env.VERCEL_GIT_COMMIT_SHA ||
+    process.env.GITHUB_SHA;
 
   return {
     // Chain

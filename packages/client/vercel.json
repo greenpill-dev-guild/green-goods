@@ -3,6 +3,12 @@
   "buildCommand": "bun run build",
   "outputDirectory": "dist",
   "framework": "vite",
+  "routes": [
+    {
+      "src": "/assets/(.*)\\.map",
+      "status": 404
+    }
+  ],
   "headers": [
     {
       "source": "/sw.js",

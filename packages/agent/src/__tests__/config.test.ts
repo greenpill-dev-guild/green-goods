@@ -115,6 +115,7 @@ describe("loadConfig analytics env", () => {
   const ORIGINAL_SENTRY_ENABLED = process.env.SENTRY_ENABLED;
   const ORIGINAL_SENTRY_TRACES_SAMPLE_RATE = process.env.SENTRY_TRACES_SAMPLE_RATE;
   const ORIGINAL_SENTRY_RELEASE = process.env.SENTRY_RELEASE;
+  const ORIGINAL_FLY_MACHINE_VERSION = process.env.FLY_MACHINE_VERSION;
 
   afterEach(() => {
     if (ORIGINAL_NODE_ENV === undefined) delete process.env.NODE_ENV;
@@ -138,6 +139,8 @@ describe("loadConfig analytics env", () => {
     }
     if (ORIGINAL_SENTRY_RELEASE === undefined) delete process.env.SENTRY_RELEASE;
     else process.env.SENTRY_RELEASE = ORIGINAL_SENTRY_RELEASE;
+    if (ORIGINAL_FLY_MACHINE_VERSION === undefined) delete process.env.FLY_MACHINE_VERSION;
+    else process.env.FLY_MACHINE_VERSION = ORIGINAL_FLY_MACHINE_VERSION;
   });
 
   it("uses POSTHOG_AGENT_KEY as the only agent analytics token", () => {
@@ -176,6 +179,17 @@ describe("loadConfig analytics env", () => {
     expect(config.sentryDsn).toBe("https://agent@sentry.io/1");
     expect(config.sentryTracesSampleRate).toBe(0.25);
     expect(config.sentryRelease).toBe("green-goods-agent@test");
+  });
+
+  it("uses the Fly machine version as the agent Sentry release fallback", () => {
+    process.env.NODE_ENV = "production";
+    process.env.SENTRY_AGENT_DSN = "https://agent@sentry.io/1";
+    delete process.env.SENTRY_RELEASE;
+    process.env.FLY_MACHINE_VERSION = "fly-version-123";
+
+    const config = loadConfig();
+
+    expect(config.sentryRelease).toBe("fly-version-123");
   });
 
   it("falls back to the standard SENTRY_DSN when SENTRY_AGENT_DSN is absent", () => {
