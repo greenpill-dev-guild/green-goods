@@ -12,47 +12,31 @@ import { APP_ROUTES, createPwaRoutingConfig } from "./src/config/pwa-routing";
 import { createPublicSocialPreviewPlugin } from "./vite/social-preview";
 
 const DEFAULT_INDEXER_URL = "https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql";
-const GREEN_GOODS_CLIENT_VERCEL_PROJECT_ID = "prj_AFl9rmdB5VJFKcpK4Art9had9DmG";
+const CLIENT_VERCEL_PROJECT_ID = "prj_AFl9rmdB5VJFKcpK4Art9had9DmG";
 
 function envValue(key: string): string | undefined {
   const value = process.env[key]?.trim();
   return value ? value : undefined;
 }
 
-function vercelHostname(): string | undefined {
-  const value = envValue("VITE_VERCEL_URL") || envValue("VERCEL_URL");
-  if (!value) return undefined;
+function projectScopedSentryDsn(vercelProjectId: string): string | undefined {
+  const sentryDsn = envValue("SENTRY_DSN");
+  if (!sentryDsn) return undefined;
 
-  try {
-    return new URL(value.startsWith("http") ? value : `https://${value}`).hostname.toLowerCase();
-  } catch {
-    return value.toLowerCase();
-  }
-}
-
-function isClientVercelProject(): boolean {
-  const vercelProjectId = envValue("VITE_VERCEL_PROJECT_ID") || envValue("VERCEL_PROJECT_ID");
-  if (vercelProjectId === GREEN_GOODS_CLIENT_VERCEL_PROJECT_ID) return true;
-
-  const hostname = vercelHostname();
-  if (!hostname) return false;
-
-  return (
-    hostname === "www.greengoods.app" ||
-    hostname === "greengoods.app" ||
-    (hostname.startsWith("green-goods-") && !hostname.startsWith("green-goods-admin-"))
-  );
+  return envValue("VERCEL_PROJECT_ID") === vercelProjectId ? sentryDsn : undefined;
 }
 
 function resolveClientSentryDsn(): string | undefined {
-  const explicitDsn = envValue("VITE_SENTRY_CLIENT_DSN") || envValue("SENTRY_CLIENT_DSN");
-  if (explicitDsn) return explicitDsn;
-
-  if (isClientVercelProject()) {
-    return envValue("SENTRY_DSN");
-  }
-
-  return undefined;
+  return (
+    envValue("VITE_SENTRY_CLIENT_DSN") ||
+    envValue("VITE_SENTRY_DSN") ||
+    envValue("SENTRY_CLIENT_DSN") ||
+    envValue("NEXT_PUBLIC_SENTRY_CLIENT_DSN") ||
+    envValue("NEXT_PUBLIC_SENTRY_DSN") ||
+    envValue("PUBLIC_SENTRY_CLIENT_DSN") ||
+    envValue("PUBLIC_SENTRY_DSN") ||
+    projectScopedSentryDsn(CLIENT_VERCEL_PROJECT_ID)
+  );
 }
 
 function deleteSourceMapsInDirectory(directory: string): void {
@@ -154,8 +138,8 @@ export default defineConfig(async ({ command, mode }) => {
   const isCI = process.env.CI === "true";
   const skipMkcert = process.env.SKIP_MKCERT === "true";
   const nodeEnv = command === "build" ? "production" : "development";
-  const shouldUploadSentrySourceMaps =
-    command === "build" && Boolean(process.env.SENTRY_AUTH_TOKEN);
+  const sentryAuthToken = envValue("SENTRY_AUTH_TOKEN");
+  const shouldUploadSentrySourceMaps = command === "build" && Boolean(sentryAuthToken);
   const requestedSourceMaps = process.env.GG_ENABLE_SOURCEMAPS === "true";
   if (command === "build" && requestedSourceMaps && !shouldUploadSentrySourceMaps) {
     console.warn(
@@ -396,12 +380,15 @@ export default defineConfig(async ({ command, mode }) => {
     ...(shouldUploadSentrySourceMaps
       ? [
           ...sentryVitePlugin({
-            authToken: process.env.SENTRY_AUTH_TOKEN,
+            authToken: sentryAuthToken,
             errorHandler(error) {
               throw error;
             },
             org: process.env.SENTRY_ORG || "greenpill",
-            project: process.env.SENTRY_CLIENT_PROJECT || "green-goods-client",
+            project:
+              process.env.SENTRY_CLIENT_PROJECT ||
+              process.env.SENTRY_PROJECT ||
+              "green-goods-client",
             release: {
               name: sentryRelease,
             },
