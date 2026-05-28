@@ -15,7 +15,9 @@ export const LEGACY_APP_ROUTES = {
   profile: "/profile",
 } as const;
 
-export const PUBLIC_PWA_LAUNCH_URL = `https://www.greengoods.app${APP_ROUTES.home}`;
+export const PUBLIC_PWA_ORIGIN = "https://www.greengoods.app";
+
+export const PUBLIC_PWA_LAUNCH_URL = `${PUBLIC_PWA_ORIGIN}${APP_ROUTES.home}`;
 
 export interface PwaRoutingConfig {
   assetBasePath: "/" | "./";

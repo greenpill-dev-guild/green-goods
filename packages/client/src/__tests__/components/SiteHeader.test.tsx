@@ -30,6 +30,7 @@ vi.mock("@green-goods/shared", () => ({
   useApp: mockUseApp,
   useInstallGuidance: mockUseInstallGuidance,
   usePublicInstallHandler: mockUsePublicInstallHandler,
+  useTunnelUrl: () => null,
   useEventListener: vi.fn(),
 }));
 
