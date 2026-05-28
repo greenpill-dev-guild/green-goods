@@ -9,47 +9,22 @@ import { defineConfig, loadEnv, type Plugin, type ProxyOptions, type UserConfig 
 import mkcert from "vite-plugin-mkcert";
 
 const DEFAULT_INDEXER_URL = "https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql";
-const GREEN_GOODS_ADMIN_VERCEL_PROJECT_ID = "prj_t2gwwFBMLKM22eYKxtA0yGRBfigg";
-
 function envValue(key: string): string | undefined {
   const value = process.env[key]?.trim();
   return value ? value : undefined;
 }
 
-function vercelHostname(): string | undefined {
-  const value = envValue("VITE_VERCEL_URL") || envValue("VERCEL_URL");
-  if (!value) return undefined;
-
-  try {
-    return new URL(value.startsWith("http") ? value : `https://${value}`).hostname.toLowerCase();
-  } catch {
-    return value.toLowerCase();
-  }
-}
-
-function isAdminVercelProject(): boolean {
-  const vercelProjectId = envValue("VITE_VERCEL_PROJECT_ID") || envValue("VERCEL_PROJECT_ID");
-  if (vercelProjectId === GREEN_GOODS_ADMIN_VERCEL_PROJECT_ID) return true;
-
-  const hostname = vercelHostname();
-  if (!hostname) return false;
-
-  return (
-    hostname === "admin.greengoods.app" ||
-    hostname === "dashboard.greengoods.app" ||
-    hostname.startsWith("green-goods-admin-")
-  );
-}
-
 function resolveAdminSentryDsn(): string | undefined {
-  const explicitDsn = envValue("VITE_SENTRY_ADMIN_DSN") || envValue("SENTRY_ADMIN_DSN");
-  if (explicitDsn) return explicitDsn;
-
-  if (isAdminVercelProject()) {
-    return envValue("SENTRY_DSN");
-  }
-
-  return undefined;
+  return (
+    envValue("VITE_SENTRY_ADMIN_DSN") ||
+    envValue("VITE_SENTRY_DSN") ||
+    envValue("NEXT_PUBLIC_SENTRY_ADMIN_DSN") ||
+    envValue("NEXT_PUBLIC_SENTRY_DSN") ||
+    envValue("PUBLIC_SENTRY_ADMIN_DSN") ||
+    envValue("PUBLIC_SENTRY_DSN") ||
+    envValue("SENTRY_ADMIN_DSN") ||
+    envValue("SENTRY_DSN")
+  );
 }
 
 function deleteSourceMapsInDirectory(directory: string): void {
@@ -115,8 +90,8 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
     process.env.GITHUB_SHA ||
     "dev";
   const shortAppVersion = appVersion.slice(0, 12);
-  const shouldUploadSentrySourceMaps =
-    command === "build" && Boolean(process.env.SENTRY_AUTH_TOKEN);
+  const sentryAuthToken = envValue("SENTRY_AUTH_TOKEN");
+  const shouldUploadSentrySourceMaps = command === "build" && Boolean(sentryAuthToken);
   const requestedSourceMaps = process.env.GG_ENABLE_SOURCEMAPS === "true";
   if (command === "build" && requestedSourceMaps && !shouldUploadSentrySourceMaps) {
     console.warn(
@@ -173,12 +148,15 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
     ...(shouldUploadSentrySourceMaps
       ? [
           ...sentryVitePlugin({
-            authToken: process.env.SENTRY_AUTH_TOKEN,
+            authToken: sentryAuthToken,
             errorHandler(error) {
               throw error;
             },
             org: process.env.SENTRY_ORG || "greenpill",
-            project: process.env.SENTRY_ADMIN_PROJECT || "green-goods-admin",
+            project:
+              process.env.SENTRY_ADMIN_PROJECT ||
+              process.env.SENTRY_PROJECT ||
+              "green-goods-admin",
             release: {
               name: sentryRelease,
             },
