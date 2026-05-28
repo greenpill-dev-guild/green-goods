@@ -9,21 +9,30 @@ import { defineConfig, loadEnv, type Plugin, type ProxyOptions, type UserConfig 
 import mkcert from "vite-plugin-mkcert";
 
 const DEFAULT_INDEXER_URL = "https://indexer.hyperindex.xyz/0bf0e0f/v1/graphql";
+const ADMIN_VERCEL_PROJECT_ID = "prj_t2gwwFBMLKM22eYKxtA0yGRBfigg";
+
 function envValue(key: string): string | undefined {
   const value = process.env[key]?.trim();
   return value ? value : undefined;
+}
+
+function projectScopedSentryDsn(vercelProjectId: string): string | undefined {
+  const sentryDsn = envValue("SENTRY_DSN");
+  if (!sentryDsn) return undefined;
+
+  return envValue("VERCEL_PROJECT_ID") === vercelProjectId ? sentryDsn : undefined;
 }
 
 function resolveAdminSentryDsn(): string | undefined {
   return (
     envValue("VITE_SENTRY_ADMIN_DSN") ||
     envValue("VITE_SENTRY_DSN") ||
+    envValue("SENTRY_ADMIN_DSN") ||
     envValue("NEXT_PUBLIC_SENTRY_ADMIN_DSN") ||
     envValue("NEXT_PUBLIC_SENTRY_DSN") ||
     envValue("PUBLIC_SENTRY_ADMIN_DSN") ||
     envValue("PUBLIC_SENTRY_DSN") ||
-    envValue("SENTRY_ADMIN_DSN") ||
-    envValue("SENTRY_DSN")
+    projectScopedSentryDsn(ADMIN_VERCEL_PROJECT_ID)
   );
 }
 
