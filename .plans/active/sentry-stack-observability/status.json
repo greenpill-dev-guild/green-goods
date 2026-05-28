@@ -10,7 +10,7 @@
     "overall_status": "in_review",
     "priority": "p2",
     "created_at": "2026-05-27T00:00:00.000Z",
-    "updated_at": "2026-05-27T14:00:00.000Z"
+    "updated_at": "2026-05-28T06:03:31.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -44,7 +44,8 @@
   "notes": [
     "Sentry is root-cause/release evidence; PostHog remains product-impact/session evidence.",
     "No Sentry MCP or routine API-key fallback in v1.",
-    "Runtime ingestion still requires deployed DSNs and first-event verification."
+    "Runtime ingestion still requires deployed DSNs and first-event verification.",
+    "Admin Vercel integration was configured after the latest production deployment; a fresh production redeploy is required before bundle/runtime verification can pass."
   ],
   "lanes": {
     "observability": {
@@ -69,7 +70,7 @@
     },
     "runtime_verification": {
       "owner": "human",
-      "status": "todo",
+      "status": "in_progress",
       "branch": null,
       "depends_on": ["observability"],
       "skill_tags": ["deploy", "ops"]
@@ -91,6 +92,14 @@
       "status": "reviewed",
       "branch": null,
       "note": "Deep review closed shared ErrorBoundary Sentry coverage and admin release matching gaps. Agent source-map auto-upload remains an explicit deploy decision."
+    },
+    {
+      "timestamp": "2026-05-28T06:03:31.000Z",
+      "actor": "codex",
+      "lane": "runtime_verification",
+      "status": "redeploy_requested",
+      "branch": null,
+      "note": "Admin Vercel project settings changed after deployment dpl_5m14URvdVsinE5LACBc6f2ULLw1i; trigger a fresh production build to pick up Sentry DSN/auth-token integration before first-event and source-map verification."
     }
   ]
 }
