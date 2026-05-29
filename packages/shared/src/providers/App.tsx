@@ -5,14 +5,18 @@ import { IntlProvider } from "react-intl";
 import enMessages from "../i18n/en.json";
 import esMessages from "../i18n/es.json";
 import ptMessages from "../i18n/pt.json";
-import { registerGlobalProperties, track } from "../modules/app/posthog";
 import {
+  registerGlobalProperties,
+  restoreExceptionTopLevelProps,
+  track,
+} from "../modules/app/posthog";
+import {
+  type ClientPresentationMode,
   getClientPresentationMode,
   getMobileOperatingSystem,
   isAppInstalled,
   isMobilePlatform,
   isStandaloneMode,
-  type ClientPresentationMode,
   type Platform,
 } from "../utils/app/pwa";
 
@@ -274,6 +278,10 @@ export const AppProvider = ({
         options={{
           api_host: POSTHOG_API_HOST,
           capture_exceptions: true,
+          // Restore legacy top-level $exception_type/$exception_message that
+          // posthog-js >= 1.3xx moved into $exception_list — downstream routines
+          // and the posthog-questions HogQL still query the top-level fields.
+          before_send: restoreExceptionTopLevelProps,
           debug: import.meta.env.VITE_POSTHOG_DEBUG === "true",
         }}
       >

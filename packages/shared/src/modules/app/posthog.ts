@@ -14,12 +14,55 @@
  * - identifyWithProperties() to set identity + person properties
  */
 
-import { posthog } from "posthog-js";
+import { type CaptureResult, posthog } from "posthog-js";
 
 import { logger } from "./logger";
 
 const IS_DEV = import.meta.env.DEV;
 const IS_DEBUG = import.meta.env.VITE_POSTHOG_DEBUG === "true";
+
+// ============================================================================
+// EXCEPTION PAYLOAD COMPATIBILITY
+// ============================================================================
+
+/**
+ * posthog-js >= 1.3xx emits exception-autocapture data in `$exception_list` (an
+ * array of `{ type, value, ... }`) and no longer sets the legacy top-level
+ * `$exception_type` / `$exception_message` properties on the `$exception` event.
+ *
+ * Downstream consumers still read those top-level fields: the `qa-triage-pulse`,
+ * `health-watch`, and `bug-intake` cloud routines and the `posthog-questions`
+ * HogQL library group/filter on `properties.$exception_type` and
+ * `properties.$exception_message`. Since the posthog-js upgrade those queries have
+ * returned null types/messages (the "M1 finding", first observed 2026-05-13) — the
+ * data isn't lost, it just moved to `$exception_list`.
+ *
+ * This `before_send` handler mirrors `$exception_list[0]`'s `type`/`value` back up
+ * to the legacy top-level fields when they're absent, restoring those queries (and
+ * server-side grouping) without disturbing the richer `$exception_list` payload the
+ * PostHog Error Tracking UI consumes. It is a no-op for non-exception events and
+ * when the top-level fields are already present, so it is safe across posthog-js
+ * versions that do still populate them.
+ */
+export function restoreExceptionTopLevelProps(event: CaptureResult | null): CaptureResult | null {
+  if (!event || event.event !== "$exception" || !event.properties) return event;
+
+  const list = event.properties.$exception_list;
+  const first = Array.isArray(list)
+    ? (list[0] as { type?: unknown; value?: unknown } | undefined)
+    : undefined;
+  if (!first || typeof first !== "object") return event;
+
+  // `??=` fills only when the top-level field is absent (null/undefined), so an
+  // existing value set by a future posthog-js version is never clobbered.
+  if (typeof first.type === "string") {
+    event.properties.$exception_type ??= first.type;
+  }
+  if (typeof first.value === "string") {
+    event.properties.$exception_message ??= first.value;
+  }
+  return event;
+}
 
 // ============================================================================
 // APP VERSION AND ENVIRONMENT
