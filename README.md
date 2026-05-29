@@ -11,7 +11,7 @@ Green Goods is an offline-first platform for documenting ecological and social w
 
 ### Prerequisites
 
-Install **Node.js 22+** and **Git**. Install **Docker Desktop** if you plan to run the full stack or indexer locally. Node includes `npm`, and `npm run setup` installs Bun automatically if it is missing.
+Install **Node.js 22+** and **Git**. Install **OrbStack or Docker Desktop** if you plan to run the full stack or indexer locally. Node includes `npm`, and `npm run setup` installs Bun automatically if it is missing.
 
 **Optional tools:** Foundry is needed for contract work. `cloudflared` is useful for mobile-device PWA testing. macOS and Linux are supported natively; use WSL2 or a dev container on Windows.
 
@@ -97,11 +97,13 @@ dev launch green-goods:anvil
 ```
 
 For fork-mode transaction testing, use a dedicated dev browser profile and a
-disposable wallet. Import an Anvil-funded account from
-`dev logs green-goods:anvil-arbitrum`, configure that wallet to use
-`http://127.0.0.1:3009` on chain `42161`, and never use a real everyday wallet
-profile with Anvil keys. `?mockAuth=operator` is only a UI state override; it
-does not sign transactions.
+disposable wallet. The Arbitrum fork launcher keeps Anvil startup output quiet
+so fork RPC credentials do not appear in logs; local test-account details are
+written to `packages/contracts/.generated/runtime/arbitrum-fork.json` with the
+fork endpoint redacted. Import one of those local-only accounts, configure that
+wallet to use `http://127.0.0.1:3009` on chain `42161`, and never use a real
+everyday wallet profile with Anvil keys. `?mockAuth=operator` is only a UI state
+override; it does not sign transactions.
 
 ### Testing
 
@@ -113,7 +115,10 @@ bun run dev:smoke:full
 Run `bun run dev:smoke:web` after the browser stack is starting. Run
 `bun run dev:smoke:full` after `bun run dev` when you need proof that the
 browser surfaces, local agent, local indexer/Hasura/Postgres, and Arbitrum fork
-are all responding.
+are all responding. The local indexer stack mirrors the configured live
+networks into local Docker services, so reliable lag proof requires
+`ENVIO_API_TOKEN`; without it, HyperSync can rate-limit and the full smoke
+should fail on indexer lag instead of pretending the local mirror is current.
 
 ## Tech Stack
 
@@ -176,7 +181,8 @@ Fork-mode transaction testing uses wallet auth, not mock auth:
 3. Add a wallet network named `Green Goods Local Arbitrum Fork` with RPC
    `http://127.0.0.1:3009`, chain id `42161`, and currency symbol `ETH`.
 4. Import one disposable Anvil-funded account from
-   `dev logs green-goods:anvil-arbitrum`.
+   `packages/contracts/.generated/runtime/arbitrum-fork.json`; the fork
+   endpoint is redacted in that generated file.
 5. Connect that wallet in the app and sign normally.
 
 The fork uses the real Arbitrum deployment artifact, but writes are mined only
@@ -212,7 +218,10 @@ bun run dev:smoke:full
 This proves both client presentations, admin, docs, Storybook, local agent
 health, Anvil chain id `42161`, deployed Arbitrum bytecode on the fork, funded
 Anvil accounts, local Envio/Hasura GraphQL, local indexer service health, and
-the Postgres TCP listener. It does not submit transactions.
+the Postgres TCP listener. The indexer lag check proves the local read model is
+close enough to live configured chain state for review; set `ENVIO_API_TOKEN` in
+the root `.env` for reliable HyperSync catch-up. It does not submit
+transactions.
 
 #### Start production-backed local stack
 
@@ -286,12 +295,12 @@ the local indexer service, and indexer lag against live Arbitrum head; if it
 fails lag, the mirror is reachable but not caught up enough to trust for
 production-data review.
 
-`bun run dev:prod:mirror:health` requires `ENVIO_API_TOKEN` for reliable
-HyperSync catch-up. Without it, the containers can still become healthy, but
-the live mirror may stall or receive `429 Too Many Requests` from HyperSync and
-the mirror smoke should fail on indexer lag. Set `ENVIO_API_TOKEN` directly in
-the root `.env`, or set `ENVIO_API_TOKEN_OP_REF` in `.env.template` and run
-`bun run env:sync`.
+`bun run dev:health` and `bun run dev:prod:mirror:health` warn or fail clearly
+when `ENVIO_API_TOKEN` is missing for reliable HyperSync catch-up. Without it,
+the containers can still become healthy, but the local mirror may stall or
+receive `429 Too Many Requests` from HyperSync and smoke should fail on indexer
+lag. Set `ENVIO_API_TOKEN` directly in the root `.env`, or set
+`ENVIO_API_TOKEN_OP_REF` in `.env.template` and run `bun run env:sync`.
 
 Run the production checks on demand:
 

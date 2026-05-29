@@ -27,13 +27,18 @@ Expected ports:
 - `3008`: indexer Postgres
 - `3009`: Anvil Arbitrum fork
 
-Local chain mode defaults to Arbitrum fork mode. For transaction QA, add RPC `http://127.0.0.1:3009` with chain id `42161` to a dedicated dev browser wallet and use an Anvil-funded private key from the Anvil logs. Mock-auth URLs do not sign transactions.
+Local chain mode defaults to Arbitrum fork mode. For transaction QA, add RPC `http://127.0.0.1:3009` with chain id `42161` to a dedicated dev browser wallet and use an Anvil-funded private key from `packages/contracts/.generated/runtime/arbitrum-fork.json`. The launcher silences Anvil startup output and redacts the fork endpoint in that generated file so provider credentials do not appear in logs. Mock-auth URLs do not sign transactions.
 
 After `bun run dev` is up, run `bun run dev:smoke:full` for a current
 full-local proof. It checks both client presentations, admin, docs, Storybook,
 local agent `/health`, Anvil chain id `42161`, deployed Arbitrum bytecode on the
 fork, funded Anvil accounts, local Envio/Hasura GraphQL, local indexer service
-health, and the Postgres TCP listener. It never submits transactions.
+health, and the Postgres TCP listener. The Docker indexer is local
+infrastructure, but it mirrors the configured live networks; set
+`ENVIO_API_TOKEN` in the root `.env` when you need fresh catch-up and a passing
+indexer-lag proof. Without it, HyperSync can return `429 Too Many Requests` and
+the smoke should fail on lag instead of claiming the local mirror is current. It
+never submits transactions.
 
 For production-backed local review, use `bun run dev:prod` from the repo root.
 It starts the local client, admin, docs, and Storybook against Arbitrum One, the

@@ -31,6 +31,7 @@ const LOCAL_INDEXER_SERVICE_HEALTH_URL = "http://127.0.0.1:3007/healthz";
 const LOCAL_POSTGRES_HOST = "127.0.0.1";
 const LOCAL_POSTGRES_PORT = 3008;
 const DEFAULT_MAX_INDEXER_LAG_BLOCKS = 2_000;
+const rootEnv = parseRootEnv();
 
 const services = [
   {
@@ -131,6 +132,34 @@ function parseArgs(argv) {
 }
 
 const options = parseArgs(process.argv.slice(2));
+
+function parseRootEnv() {
+  const envPath = path.join(projectRoot, ".env");
+  if (!fs.existsSync(envPath)) return {};
+
+  const env = {};
+  for (const rawLine of fs.readFileSync(envPath, "utf8").split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) continue;
+
+    const match = line.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
+    if (!match) continue;
+
+    let value = match[2].trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+    env[match[1]] = value;
+  }
+  return env;
+}
+
+function hasEnvioApiToken() {
+  return Boolean((process.env.ENVIO_API_TOKEN || rootEnv.ENVIO_API_TOKEN || "").trim());
+}
 
 async function waitForService(service, deadlineMs) {
   const attempts = [];
@@ -399,11 +428,14 @@ function checkIndexerLag(indexerResult) {
 
   const lagBlocks = Math.max(0, indexerResult.sourceBlock - indexerResult.progressBlock);
   if (lagBlocks > options.maxIndexerLagBlocks) {
+    const tokenHint = hasEnvioApiToken()
+      ? ""
+      : "; ENVIO_API_TOKEN is not configured, so HyperSync may rate-limit local catch-up";
     return {
       name: "local-indexer-lag",
       level: "fail",
       ready: false,
-      detail: `lag=${lagBlocks} blocks exceeds max=${options.maxIndexerLagBlocks}; source=${indexerResult.sourceBlock}; indexed=${indexerResult.progressBlock}`,
+      detail: `lag=${lagBlocks} blocks exceeds max=${options.maxIndexerLagBlocks}; source=${indexerResult.sourceBlock}; indexed=${indexerResult.progressBlock}${tokenHint}`,
     };
   }
 
@@ -415,24 +447,37 @@ function checkIndexerLag(indexerResult) {
   };
 }
 
-async function checkLocalIndexerService() {
-  const attempt = await requestUrl(LOCAL_INDEXER_SERVICE_HEALTH_URL, 5000);
-  if (attempt.ok) {
-    return {
-      name: "local-indexer-service",
-      level: "pass",
-      ready: true,
-      url: attempt.url,
-      statusCode: attempt.statusCode,
-    };
+async function checkLocalIndexerService(timeoutMs = options.timeoutMs) {
+  const deadlineMs = Date.now() + timeoutMs;
+  const attempts = [];
+
+  while (Date.now() < deadlineMs) {
+    const attempt = await requestUrl(LOCAL_INDEXER_SERVICE_HEALTH_URL, 5000);
+    attempts.push(attempt);
+    if (attempt.ok) {
+      return {
+        name: "local-indexer-service",
+        level: "pass",
+        ready: true,
+        url: attempt.url,
+        statusCode: attempt.statusCode,
+      };
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 1000));
   }
 
+  const lastAttempt = attempts.at(-1);
   return {
     name: "local-indexer-service",
     level: "fail",
     ready: false,
-    url: attempt.url,
-    detail: attempt.error || `HTTP ${attempt.statusCode}`,
+    url: lastAttempt?.url || LOCAL_INDEXER_SERVICE_HEALTH_URL,
+    detail: lastAttempt?.error || `HTTP ${lastAttempt?.statusCode || "unknown"}`,
+    attempts: attempts.slice(-3).map((attempt) => ({
+      url: attempt.url,
+      error: attempt.error || `HTTP ${attempt.statusCode}`,
+    })),
   };
 }
 

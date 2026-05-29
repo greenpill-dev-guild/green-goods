@@ -1,6 +1,39 @@
 // Each Vite/Storybook/docs app now performs read-only port checks before start.
 // This repo-owned PM2 stack owns cleanup for root `bun run dev`.
 
+const fs = require("node:fs");
+const path = require("node:path");
+
+const rootEnv = parseRootEnv();
+
+function parseRootEnv() {
+  const envPath = path.join(__dirname, ".env");
+  if (!fs.existsSync(envPath)) return {};
+
+  const env = {};
+  for (const rawLine of fs.readFileSync(envPath, "utf8").split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) continue;
+
+    const match = line.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
+    if (!match) continue;
+
+    let value = match[2].trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+    env[match[1]] = value;
+  }
+  return env;
+}
+
+function envValue(key, fallback = "") {
+  return process.env[key] || rootEnv[key] || fallback;
+}
+
 module.exports = {
   apps: [
     {
@@ -120,11 +153,11 @@ module.exports = {
         ENVIO_PG_PORT: "3008",
         GREEN_GOODS_DEV_CHAIN_MODE: "arbitrum_fork",
         ARBITRUM_RPC_URL: "http://host.docker.internal:3009",
-        ENVIO_API_TOKEN: process.env.ENVIO_API_TOKEN || "",
+        ENVIO_API_TOKEN: envValue("ENVIO_API_TOKEN"),
         ENVIO_HYPERSYNC_CLIENT_TIMEOUT_MILLIS:
-          process.env.ENVIO_HYPERSYNC_CLIENT_TIMEOUT_MILLIS || "120000",
+          envValue("ENVIO_HYPERSYNC_CLIENT_TIMEOUT_MILLIS", "120000"),
         ENVIO_HYPERSYNC_CLIENT_MAX_RETRIES:
-          process.env.ENVIO_HYPERSYNC_CLIENT_MAX_RETRIES || "0",
+          envValue("ENVIO_HYPERSYNC_CLIENT_MAX_RETRIES", "0"),
       },
       merge_logs: true,
       autorestart: false, // Docker Compose handles its own restarts

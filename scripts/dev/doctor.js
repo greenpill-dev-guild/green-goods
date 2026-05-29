@@ -263,7 +263,7 @@ function checkTools() {
 
   if (options.profile === "full" || options.profile === "prod-mirror") {
     if (!commandExists("docker")) {
-      add("fail", "Docker not found", "Required for full-stack/indexer work.", "Install Docker Desktop or Docker Engine.", {
+      add("fail", "Docker not found", "Required for full-stack/indexer work.", "Install OrbStack, Docker Desktop, or Docker Engine.", {
         check: "tool:docker",
       });
     } else {
@@ -307,7 +307,7 @@ function checkDocker() {
       "fail",
       "Docker daemon is not running",
       "Full-stack/indexer work needs Docker.",
-      process.platform === "darwin" ? "Open Docker Desktop, then rerun bun run dev:doctor -- --profile full." : "",
+      process.platform === "darwin" ? "Open OrbStack or Docker Desktop, then rerun bun run dev:doctor -- --profile full." : "",
       { check: "docker-daemon" }
     );
   }
@@ -492,14 +492,14 @@ function checkEnv() {
     }
   } else if (options.profile === "full") {
     add(
-      hasEnvioApiToken ? "pass" : "info",
+      hasEnvioApiToken ? "pass" : "warn",
       hasEnvioApiToken ? "Envio API token configured" : "Envio API token not configured",
       hasEnvioApiToken
         ? "Token value was detected but not printed."
-        : "Not required for the default Anvil-backed full-local stack; required for the prod-mirror live-indexer path.",
+        : "The default stack can start without it, but the local Docker indexer mirrors live configured networks and may fall behind or receive HyperSync 429s without a token.",
       hasEnvioApiToken
         ? ""
-        : "Set ENVIO_API_TOKEN only when you need `bun run dev:prod:mirror` to keep up with live Arbitrum.",
+        : "Set ENVIO_API_TOKEN in root .env when you need `bun run dev:smoke:full` or `bun run dev:prod:mirror` to prove fresh indexer catch-up.",
       { check: "env:envio-api-token" }
     );
   }
