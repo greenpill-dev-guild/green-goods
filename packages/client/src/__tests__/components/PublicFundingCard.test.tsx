@@ -17,14 +17,23 @@ const TEST_COOKIE_JAR = "0x2222222222222222222222222222222222222222" as Address;
 const TEST_VAULT = "0x3333333333333333333333333333333333333333" as Address;
 const TEST_OWNER = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as Address;
 
-const { mockCookieJarMutate, mockCookieJarReset, mockVaultMutate, mockVaultReset } = vi.hoisted(
-  () => ({
-    mockCookieJarMutate: vi.fn(),
-    mockCookieJarReset: vi.fn(),
-    mockVaultMutate: vi.fn(),
-    mockVaultReset: vi.fn(),
-  })
-);
+const {
+  mockCookieJarMutate,
+  mockCookieJarReset,
+  mockVaultMutate,
+  mockVaultReset,
+  mockLoginWithWallet,
+  authState,
+} = vi.hoisted(() => ({
+  mockCookieJarMutate: vi.fn(),
+  mockCookieJarReset: vi.fn(),
+  mockVaultMutate: vi.fn(),
+  mockVaultReset: vi.fn(),
+  mockLoginWithWallet: vi.fn(),
+  authState: {
+    primaryAddress: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as string | null,
+  },
+}));
 
 type MockMutationOptions = {
   onError?: (error: Error) => void;
@@ -65,6 +74,7 @@ vi.mock("@green-goods/shared", async () => {
     },
     truncateAddress: (address: string) => `${address.slice(0, 6)}...${address.slice(-4)}`,
     useAppKit: () => ({ open: vi.fn() }),
+    useAuth: () => ({ loginWithWallet: mockLoginWithWallet }),
     useCookieJarDeposit: () => {
       const [error, setError] = React.useState<Error | null>(null);
       return {
@@ -110,7 +120,7 @@ vi.mock("@green-goods/shared", async () => {
         },
       ],
     }),
-    useUser: () => ({ primaryAddress: TEST_OWNER }),
+    useUser: () => ({ primaryAddress: authState.primaryAddress }),
     useVaultDeposit: () => {
       const [error, setError] = React.useState<Error | null>(null);
       return {
@@ -170,6 +180,18 @@ function renderCard(intent: "donate" | "endow") {
 describe("PublicFundingCard", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    authState.primaryAddress = TEST_OWNER;
+  });
+
+  it("connects via wallet auth (loginWithWallet), not the bare AppKit modal, when no wallet is connected (PRD-497)", async () => {
+    authState.primaryAddress = null;
+    const user = userEvent.setup();
+    renderCard("endow");
+
+    const connect = await screen.findByRole("button", { name: "Connect Wallet" });
+    await user.click(connect);
+
+    expect(mockLoginWithWallet).toHaveBeenCalledTimes(1);
   });
 
   it.each([
