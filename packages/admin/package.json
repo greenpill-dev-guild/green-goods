@@ -17,7 +17,7 @@
     "format": "biome format --write .",
     "format:check": "biome format .",
     "lint": "bun --bun run oxlint src",
-    "build": "cd ../.. && APP_ENV=production tsc --noEmit -p packages/admin/tsconfig.json && APP_ENV=production bun --bun vite build --config packages/admin/vite.config.ts && node scripts/dev/remove-public-sourcemaps.js packages/admin/dist",
+    "build": "cd ../.. && APP_ENV=production tsc --noEmit -p packages/admin/tsconfig.json && APP_ENV=production node scripts/dev/node-cli.js vite build --config packages/admin/vite.config.ts && node scripts/dev/remove-public-sourcemaps.js packages/admin/dist",
     "build:deploy": "bun run build",
     "preview": "cd ../.. && APP_ENV=production bun --bun vite preview --config packages/admin/vite.config.ts"
   },
