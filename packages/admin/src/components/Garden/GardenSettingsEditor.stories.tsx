@@ -1,6 +1,7 @@
 import type { Address } from "@green-goods/shared";
 import type { Meta, StoryObj } from "@storybook/react";
 import { withAdminIdentity } from "../../../../shared/.storybook/decorators";
+import { FIXTURE_IMAGE_BANNER } from "../../../../shared/.storybook/fixtures";
 import { GardenSettingsEditor } from "./GardenSettingsEditor";
 
 const GARDEN_ADDRESS = "0x1234567890123456789012345678901234567890" as Address;
@@ -30,7 +31,7 @@ const meta: Meta<typeof GardenSettingsEditor> = {
     docs: {
       description: {
         component:
-          "Real `GardenSettingsEditor` rendered against the Storybook mock wagmi connector and `DevAuthProvider`. The six underlying update mutations (`useUpdateGardenName`, `useUpdateGarden{Description,Location,BannerImage}`, `useSetOpenJoining`, `useSetMaxGardeners`) are wired but inert — clicking Save triggers the real mutation which fails silently against the mock transport. Render states (view / edit / read-only) reflect the live component.",
+          "Real `GardenSettingsEditor` rendered against the Storybook mock wagmi connector and `DevAuthProvider`. The banner field is an upload-to-IPFS control with a live preview (PRD-513); the other fields use inline `EditableField` save. The underlying update mutations (`useUpdateGardenName`, `useUpdateGarden{Description,Location,BannerImage}`, `useSetOpenJoining`, `useSetMaxGardeners`) are wired but inert — actions trigger the real mutation which fails silently against the mock transport. Render states (view / edit / read-only) reflect the live component.",
       },
     },
   },
@@ -71,5 +72,13 @@ export const EmptyFields: Story = {
       openJoining: false,
       maxGardeners: 0,
     },
+  },
+};
+
+// PRD-513: a saved banner renders as a live preview above the uploader, not as
+// a bare URL link. Read-only operators see the preview without the upload control.
+export const WithBannerImage: Story = {
+  args: {
+    garden: { ...POPULATED_GARDEN, bannerImage: FIXTURE_IMAGE_BANNER },
   },
 };
