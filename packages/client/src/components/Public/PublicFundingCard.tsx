@@ -10,7 +10,6 @@ import {
   type PublicGardenSummary,
   truncateAddress,
   useAppKit,
-  useAuth,
   useCookieJarDeposit,
   useEthUsdPrice,
   useGardenCookieJars,
@@ -69,11 +68,7 @@ type Status = "loading" | "idle" | "submitting" | "success" | "error";
 export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundingCardProps) {
   const { formatMessage } = useIntl();
   const { primaryAddress } = useUser();
-  // Public funding connect must establish wallet auth (sets "wallet" intent so
-  // the auth machine logs in), not just open the AppKit modal. Opening the modal
-  // alone only tracks EXTERNAL_WALLET_CONNECTED, leaving primaryAddress null and
-  // the CTA stuck on "Connect Wallet" (PRD-497).
-  const { loginWithWallet } = useAuth();
+  const { open: openWalletModal } = useAppKit();
 
   const isDonate = intent === "donate";
 
@@ -209,7 +204,7 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
 
   const handleSubmit = useCallback(() => {
     if (!primaryAddress) {
-      loginWithWallet();
+      openWalletModal();
       return;
     }
     if (!selected || tokenAmountWei <= 0n || belowMin || conversionUnavailable) return;
@@ -243,7 +238,7 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
     );
   }, [
     primaryAddress,
-    loginWithWallet,
+    openWalletModal,
     selected,
     tokenAmountWei,
     belowMin,

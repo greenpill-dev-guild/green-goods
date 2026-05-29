@@ -160,7 +160,7 @@ export async function getHypercertFromSdkApi(
 // =============================================================================
 
 const GARDEN_HYPERCERTS_QUERY = /* GraphQL */ `
-  query GardenHypercerts($gardenId: String!, $chainId: Int!, $limit: Int!) {
+  query GardenHypercerts($gardenId: ID!, $chainId: Int!, $limit: Int!) {
     Hypercert(
       where: { garden: { _eq: $gardenId }, chainId: { _eq: $chainId } }
       order_by: { mintedAt: desc }

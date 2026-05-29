@@ -132,7 +132,7 @@ function VaultAggregationSection({ summary }: { summary: PublicVaultSummary }) {
             {formatMessage({
               id: "public.fund.vaults.lede",
               defaultMessage:
-                "Endow adds long-term capital to these vaults; Donate sends support directly to a Garden's shared fund.",
+                "Endow adds long-term capital to these vaults; Donate sends support directly to a Garden's Cookie Jar.",
             })}
           </p>
         </header>
@@ -481,14 +481,14 @@ function FundPageContent() {
               titleId="public.fund.paths.donateTitle"
               defaultTitle="Donate"
               ledeId="public.fund.paths.donateLede"
-              defaultLede="Direct support reaching a Garden's shared fund today — funding the work right in front of them."
+              defaultLede="Direct support reaching a Garden's Cookie Jar today — a shared, allowlist-gated pool that funds the work right in front of them."
               routesId="public.fund.paths.donateRoutes"
-              defaultRoutes="Goes to the Garden's shared fund."
+              defaultRoutes="Goes to the Garden's Cookie Jar."
               bestForId="public.fund.paths.donateBestFor"
               defaultBestFor="Immediate needs and near-term work."
               learnMoreId="public.fund.paths.donateLearnMore"
-              defaultLearnMore="How direct support works"
-              learnMoreHref="https://docs.greengoods.app/community/funder-guide"
+              defaultLearnMore="Learn about Cookie Jar V3"
+              learnMoreHref="https://www.cookiejar.wtf/"
             />
             <SupportPath
               numeral="2."
@@ -643,6 +643,30 @@ function FundPageContent() {
               })}
             </div>
           )}
+
+          <div className="mt-12 border-t border-stroke-soft-200 pt-6">
+            <p className="font-mono text-[10.5px] font-medium uppercase tracking-[0.18em] text-text-soft-400">
+              {formatMessage({
+                id: "public.fund.cookieJars.kicker",
+                defaultMessage: "Looking for community campaigns?",
+              })}
+            </p>
+            <p className="mt-3 max-w-2xl font-serif text-lg italic leading-snug text-text-sub-600">
+              {formatMessage({
+                id: "public.fund.cookieJars.body",
+                defaultMessage:
+                  "Cookie Jar campaigns pool funds across Gardens for shared seasonal goals.",
+              })}
+            </p>
+            <div className="mt-4">
+              <EditorialLinkArrow to="/cookies">
+                {formatMessage({
+                  id: "public.fund.cookieJars.cta",
+                  defaultMessage: "Browse Cookie Jar campaigns",
+                })}
+              </EditorialLinkArrow>
+            </div>
+          </div>
         </div>
       </section>
 
