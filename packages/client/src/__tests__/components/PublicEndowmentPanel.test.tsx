@@ -22,6 +22,7 @@ const TEST_VAULT = "0x4444444444444444444444444444444444444444" as Address;
 
 const {
   mockOpenWallet,
+  mockLoginWithWallet,
   mockPrimaryAddress,
   mockUsePublicEndowmentPositions,
   mockUseVaultPreview,
@@ -32,6 +33,7 @@ const {
   mockRefetchPreview,
 } = vi.hoisted(() => ({
   mockOpenWallet: vi.fn(),
+  mockLoginWithWallet: vi.fn(),
   mockPrimaryAddress: { current: null as Address | null },
   mockUsePublicEndowmentPositions: vi.fn(),
   mockUseVaultPreview: vi.fn(),
@@ -75,6 +77,7 @@ vi.mock("@green-goods/shared", async () => {
     formatTokenAmount: (value: bigint, decimals = 18) => formatSimpleTokenAmount(value, decimals),
     truncateAddress: (address: string) => `${address.slice(0, 6)}...${address.slice(-4)}`,
     useAppKit: () => ({ open: mockOpenWallet }),
+    useAuth: () => ({ loginWithWallet: mockLoginWithWallet }),
     useDebouncedValue: (value: unknown) => value,
     usePublicEndowmentPositions: (...args: unknown[]) => mockUsePublicEndowmentPositions(...args),
     useTxErrorMessages: (error: unknown) => ({
@@ -210,7 +213,7 @@ describe("PublicEndowmentPanel", () => {
 
     await user.click(screen.getByRole("button", { name: "Connect Wallet" }));
 
-    expect(mockOpenWallet).toHaveBeenCalled();
+    expect(mockLoginWithWallet).toHaveBeenCalled();
   });
 
   it("explains the empty state for a connected wallet without endowments", () => {
