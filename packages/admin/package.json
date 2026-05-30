@@ -3,6 +3,9 @@
   "version": "1.1.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22.12.0 <23"
+  },
   "scripts": {
     "predev": "node ../../scripts/dev/check-port.js 3002 admin",
     "dev": "APP_ENV=development node ../../scripts/dev/node-cli.js vite",
