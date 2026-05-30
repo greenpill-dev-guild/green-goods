@@ -133,8 +133,11 @@ Sentry complements PostHog; it does not replace it. PostHog remains the product/
 | `SENTRY_CLIENT_PROJECT` | `green-goods-client` |
 | `SENTRY_ADMIN_PROJECT` | `green-goods-admin` |
 | `SENTRY_AGENT_PROJECT` | `green-goods-agent` |
+| `SENTRY_PROJECT` | Supported Sentry/Vercel integration project slug fallback; app-specific project vars win |
 | `VITE_SENTRY_CLIENT_DSN` | Preferred public browser DSN for the client/PWA |
 | `VITE_SENTRY_ADMIN_DSN` | Preferred public browser DSN for admin |
+| `VITE_SENTRY_DSN` | Supported generic Vite/browser DSN fallback |
+| `NEXT_PUBLIC_SENTRY_DSN` / `PUBLIC_SENTRY_DSN` | Supported compatibility aliases for Sentry/Vercel or framework-shaped public DSNs |
 | `SENTRY_CLIENT_DSN` | Supported Vercel/Sentry integration fallback for the client/PWA |
 | `SENTRY_ADMIN_DSN` | Supported Vercel/Sentry integration fallback for admin |
 | `SENTRY_DSN` | Supported Vercel project-scoped fallback for client/admin builds and agent runtime fallback |
@@ -143,9 +146,11 @@ Sentry complements PostHog; it does not replace it. PostHog remains the product/
 
 Browser builds never expose `SENTRY_AUTH_TOKEN`. The client and admin Vite configs read
 generic Sentry integration DSNs only at build time and inject them into the existing
-`VITE_SENTRY_*` runtime keys. Generic `SENTRY_DSN` is accepted only when the Vercel project ID
-or Vercel deployment hostname matches the known Green Goods client or admin project, so a
-repo-root secret cannot accidentally cross-wire the two browser apps.
+`VITE_SENTRY_*` runtime keys. The Vercel/Sentry integration's generic `SENTRY_DSN`
+is accepted by each package-specific Vite config only as a last-resort fallback, and only
+when `VERCEL_PROJECT_ID` matches that app's known Green Goods project — so a linked Vercel
+project picks up its DSN without duplicate `VITE_` variables, while a repo-root `SENTRY_DSN`
+cannot cross-wire the two browser apps.
 
 Frontend source-map ownership is split today: PostHog source-map uploads run from GitHub
 Actions with `POSTHOG_CLI_TOKEN` plus the app-specific PostHog environment ID, while Vite
