@@ -147,8 +147,10 @@ Sentry complements PostHog; it does not replace it. PostHog remains the product/
 Browser builds never expose `SENTRY_AUTH_TOKEN`. The client and admin Vite configs read
 generic Sentry integration DSNs only at build time and inject them into the existing
 `VITE_SENTRY_*` runtime keys. The Vercel/Sentry integration's generic `SENTRY_DSN`
-is accepted directly by each package-specific Vite config, so linked Vercel projects do not
-need duplicate `VITE_` variables.
+is accepted by each package-specific Vite config only as a last-resort fallback, and only
+when `VERCEL_PROJECT_ID` matches that app's known Green Goods project — so a linked Vercel
+project picks up its DSN without duplicate `VITE_` variables, while a repo-root `SENTRY_DSN`
+cannot cross-wire the two browser apps.
 
 Frontend source-map ownership is split today: PostHog source-map uploads run from GitHub
 Actions with `POSTHOG_CLI_TOKEN` plus the app-specific PostHog environment ID, while Vite
