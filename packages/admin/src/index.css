@@ -1522,6 +1522,34 @@
 .main-scroll-area {
   overflow-x: hidden;
   min-block-size: min(100%, var(--admin-main-content-min-height));
+  /* PRD-511: the primary content scroller must expose a draggable scrollbar.
+     The global `* { scrollbar-width: none }` + `*::-webkit-scrollbar { display: none }`
+     in @layer base intentionally strips scrollbar chrome from rails and sheets;
+     these unlayered rules win over @layer base and re-enable a thin, styled bar
+     here — including on webkit/Brave, where `scrollbar-width` has no effect. */
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--neutral-400) / 0.6) transparent;
+}
+
+.main-scroll-area::-webkit-scrollbar {
+  width: 0.625rem;
+  height: 0.625rem;
+  display: block;
+}
+
+.main-scroll-area::-webkit-scrollbar-thumb {
+  background-color: rgb(var(--neutral-400) / 0.55);
+  background-clip: padding-box;
+  border: 2px solid transparent;
+  border-radius: 9999px;
+}
+
+.main-scroll-area::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(var(--neutral-400) / 0.8);
+}
+
+.main-scroll-area::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 @media (max-width: 599px) {

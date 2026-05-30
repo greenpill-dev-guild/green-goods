@@ -3,10 +3,18 @@ import {
   Button,
   Card,
   cn,
+  FileUploadField,
   GARDEN_NAME_MAX_LENGTH,
+  GardenBannerFallback,
+  ImageWithFallback,
+  imageCompressor,
+  logger,
+  resolveIPFSUrl,
   Switch,
   Textarea,
   TextInput,
+  toastService,
+  uploadFileToIPFS,
   useSetMaxGardeners,
   useSetOpenJoining,
   useUpdateGardenBannerImage,
@@ -14,7 +22,7 @@ import {
   useUpdateGardenLocation,
   useUpdateGardenName,
 } from "@green-goods/shared";
-import { RiEditLine, RiLoader4Line, RiSaveLine } from "@remixicon/react";
+import { RiCloseLine, RiEditLine, RiLoader4Line, RiSaveLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 
@@ -158,6 +166,142 @@ function EditableField({
   );
 }
 
+/**
+ * Banner image field with upload-to-IPFS + live preview (PRD-513).
+ *
+ * Replaces the prior text-only URL field, which rendered the saved value as a
+ * bare link with no preview, leaving operators unable to see the image they
+ * uploaded. Mirrors the create-flow uploader (`DetailsStep.handleBannerUpload`)
+ * and routes the on-chain write through `useUpdateGardenBannerImage`, which owns
+ * the loading/success toast and cache invalidation.
+ */
+function BannerImageField({
+  gardenAddress,
+  bannerImage,
+  gardenName,
+  canEdit,
+}: {
+  gardenAddress: Address;
+  bannerImage: string;
+  gardenName: string;
+  canEdit: boolean;
+}) {
+  const { formatMessage } = useIntl();
+  const updateBannerImage = useUpdateGardenBannerImage();
+  const [isUploading, setIsUploading] = useState(false);
+  // Optimistic preview: resolved URL of the image we just uploaded, shown
+  // immediately while the on-chain update confirms and re-indexes.
+  const [pendingPreview, setPendingPreview] = useState<string | null>(null);
+
+  const resolvedCurrent = bannerImage ? resolveIPFSUrl(bannerImage) : "";
+  const previewSrc = pendingPreview ?? resolvedCurrent;
+  const isPending = isUploading || updateBannerImage.isPending;
+
+  const handleUpload = async (files: File[]) => {
+    let file = files[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      if (imageCompressor.shouldCompress(file, 1024)) {
+        const result = await imageCompressor.compressImage(file, {
+          maxSizeMB: 0.8,
+          maxWidthOrHeight: 2048,
+        });
+        file = result.file;
+      }
+
+      const uploadResult = await uploadFileToIPFS(file);
+      const ipfsUrl = resolveIPFSUrl(uploadResult.cid);
+
+      setPendingPreview(ipfsUrl);
+      // Roll the optimistic preview back if the on-chain write fails, so the UI
+      // never contradicts the mutation's own error toast (sensitive write surface).
+      updateBannerImage.mutate(
+        { gardenAddress, value: ipfsUrl },
+        { onError: () => setPendingPreview(null) }
+      );
+    } catch (error) {
+      logger.error("Banner upload failed", { error, source: "GardenSettingsEditor" });
+      toastService.error({
+        title: formatMessage({
+          id: "app.garden.create.uploadFailed",
+          defaultMessage: "Upload failed",
+        }),
+        message: formatMessage({
+          id: "app.garden.create.uploadFailedMessage",
+          defaultMessage: "Could not upload banner image. Please try again.",
+        }),
+        context: "banner upload",
+        error,
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleRemove = () => {
+    setPendingPreview(null);
+    updateBannerImage.mutate({ gardenAddress, value: "" });
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-2">
+        <p className="label-xs text-text-soft">
+          {formatMessage({
+            id: "app.garden.create.bannerImageLabel",
+            defaultMessage: "Banner image",
+          })}
+        </p>
+        {canEdit && previewSrc ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={handleRemove}
+            disabled={isPending}
+            className="h-auto min-w-0 shrink-0 rounded-md px-1.5 py-1 text-text-soft hover:bg-bg-weak hover:text-text-strong"
+          >
+            {isPending ? (
+              <RiLoader4Line className="mr-1 h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <RiCloseLine className="mr-1 h-3.5 w-3.5" />
+            )}
+            {formatMessage({ id: "app.common.remove", defaultMessage: "Remove" })}
+          </Button>
+        ) : null}
+      </div>
+
+      <div className="h-28 w-full overflow-hidden rounded-lg">
+        {previewSrc ? (
+          <ImageWithFallback
+            src={previewSrc}
+            alt={formatMessage({ id: "app.garden.detail.bannerAlt" }, { name: gardenName })}
+            className="h-28 w-full object-cover"
+            backgroundFallback={<GardenBannerFallback name={gardenName} />}
+          />
+        ) : (
+          <GardenBannerFallback name={gardenName} />
+        )}
+      </div>
+
+      {canEdit ? (
+        <FileUploadField
+          accept="image/*"
+          showPreview={false}
+          disabled={isPending}
+          helpText={formatMessage({
+            id: "app.garden.create.bannerImageHelp",
+            defaultMessage: "Upload a hero image showcasing the garden (optional)",
+          })}
+          onFilesChange={handleUpload}
+        />
+      ) : null}
+    </div>
+  );
+}
+
 export function GardenSettingsEditor({
   gardenAddress,
   garden,
@@ -169,7 +313,6 @@ export function GardenSettingsEditor({
   const updateName = useUpdateGardenName();
   const updateDescription = useUpdateGardenDescription();
   const updateLocation = useUpdateGardenLocation();
-  const updateBannerImage = useUpdateGardenBannerImage();
   const setOpenJoining = useSetOpenJoining();
   const setMaxGardeners = useSetMaxGardeners();
 
@@ -227,14 +370,10 @@ export function GardenSettingsEditor({
 
         <div className="border-t border-stroke-soft" />
 
-        <EditableField
-          label={formatMessage({
-            id: "app.garden.settings.bannerImage",
-            defaultMessage: "Banner Image URL",
-          })}
-          value={garden.bannerImage}
-          onSave={(v) => updateBannerImage.mutate({ gardenAddress, value: v })}
-          isPending={updateBannerImage.isPending}
+        <BannerImageField
+          gardenAddress={gardenAddress}
+          bannerImage={garden.bannerImage}
+          gardenName={garden.name}
           canEdit={canManage}
         />
 
