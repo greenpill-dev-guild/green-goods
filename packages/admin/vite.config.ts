@@ -72,6 +72,42 @@ function deleteSentrySourceMapsPlugin(outDir: string): Plugin {
   };
 }
 
+/**
+ * Split large eager vendor dependencies into coarse, cacheable chunks so the
+ * admin entry is not one multi-MB monolith (the un-split build emits a single
+ * ~8.4 MB chunk and trips Vite's chunkSizeWarningLimit).
+ *
+ * Deliberately coarse:
+ * - React core (react / react-dom / scheduler / react-is) stays in ONE chunk.
+ *   Splitting it — or separating a hook-using lib from React — causes
+ *   duplicate-React / "Invalid hook call" at runtime.
+ * - The web3 stack (wagmi/viem/ox/...) is the heaviest cluster, so it gets its
+ *   own chunk; observability (Sentry/PostHog) likewise.
+ * - Everything else stays in a single `vendor` chunk to avoid a request
+ *   waterfall from fine-grained per-package splits.
+ *
+ * Perf/caching only. This does NOT address the Bun-baseline `SIGILL` seen on
+ * some Vercel build VMs — that is a Bun bundler/CPU issue tracked separately.
+ */
+function splitAdminVendorChunks(id: string): string | undefined {
+  if (!id.includes("node_modules")) return undefined;
+  // Only carve out the heavy, relatively self-contained clusters. React core
+  // and everything else stay in the default entry chunking — forcing them into
+  // separate manual chunks creates circular inter-chunk imports that fail at
+  // runtime with "Cannot access X before initialization" (TDZ).
+  if (
+    /[\\/]node_modules[\\/](?:wagmi|viem|permissionless|ox|abitype|@wagmi|@walletconnect|@reown|@web3modal|@coinbase)[\\/]/.test(
+      id
+    )
+  ) {
+    return "vendor-web3";
+  }
+  if (/[\\/]node_modules[\\/](?:@sentry|posthog-js)[\\/]/.test(id)) {
+    return "vendor-observability";
+  }
+  return undefined;
+}
+
 export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
   const rootDir = resolve(__dirname, "../../");
   // Resolve .env from monorepo root even when this package script runs with a package cwd.
@@ -193,7 +229,11 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
     base: isIPFSBuild ? "./" : "/",
     envDir: rootDir,
     envPrefix: ["VITE_", "SKIP_"],
-    build: { sourcemap: enableSourceMaps, chunkSizeWarningLimit: 2000 },
+    build: {
+      sourcemap: enableSourceMaps,
+      chunkSizeWarningLimit: 2000,
+      rollupOptions: { output: { manualChunks: splitAdminVendorChunks } },
+    },
     define: {
       "import.meta.env.VITE_APP_VERSION": JSON.stringify(shortAppVersion),
       "import.meta.env.VITE_SENTRY_ADMIN_DSN": JSON.stringify(sentryDsn ?? ""),
