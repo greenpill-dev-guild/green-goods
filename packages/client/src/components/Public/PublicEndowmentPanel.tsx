@@ -9,7 +9,7 @@ import {
   type PublicEndowmentGardenGroup,
   type PublicEndowmentPosition,
   truncateAddress,
-  useAppKit,
+  useAuth,
   useDebouncedValue,
   usePublicEndowmentPositions,
   useTxErrorMessages,
@@ -36,7 +36,11 @@ function formatDisplayAmount(value: bigint, decimals: number, symbol: string): s
 export function PublicEndowmentPanel({ open, onOpenChange }: PublicEndowmentPanelProps) {
   const { formatMessage } = useIntl();
   const { primaryAddress } = useUser();
-  const { open: openWalletModal } = useAppKit();
+  // Connect via wallet auth (stores "wallet" intent so the auth machine logs in
+  // and primaryAddress resolves) rather than only opening the AppKit modal —
+  // otherwise endowment positions stay unreachable for a freshly-connected
+  // public wallet (shared root cause with PRD-497).
+  const { loginWithWallet } = useAuth();
   const portfolio = usePublicEndowmentPositions(primaryAddress as Address | undefined, {
     enabled: open && Boolean(primaryAddress),
   });
@@ -116,7 +120,7 @@ export function PublicEndowmentPanel({ open, onOpenChange }: PublicEndowmentPane
                 <EditorialGhostButton
                   variant="warm"
                   className="mt-5 w-full px-5 py-2.5 text-sm"
-                  onClick={() => openWalletModal()}
+                  onClick={() => loginWithWallet()}
                 >
                   {formatMessage({
                     id: "public.fund.endowments.connect.cta",
