@@ -200,12 +200,7 @@ async function auditLlmsTxt(surface) {
   }
 }
 
-async function launchBrave() {
-  const braveBinary = findBraveBinary();
-  if (!braveBinary) {
-    throw new Error("No Brave binary found for browser proof. Install Brave or set GREEN_GOODS_BRAVE_BIN.");
-  }
-
+async function launchBrave(braveBinary) {
   const userDataDir = path.join(tmpdir(), `green-goods-agentic-browser-proof-${process.pid}`);
   const child = spawn(braveBinary, [
     "--headless=new",
@@ -512,11 +507,15 @@ async function verifyRoute(client, surface, route, width) {
 
 async function main() {
   ensureBuildOutputs();
+  const braveBinary = findBraveBinary();
+  if (!braveBinary) {
+    throw new Error("No Brave binary found for browser proof. Install Brave or set GREEN_GOODS_BRAVE_BIN.");
+  }
   rmSync(artifactDir, { recursive: true, force: true });
   mkdirSync(artifactDir, { recursive: true });
 
   const servedSurfaces = [];
-  const browser = await launchBrave();
+  const browser = await launchBrave(braveBinary);
   const client = new CdpClient(browser.wsUrl);
   const results = [];
   const llmsTxt = {};

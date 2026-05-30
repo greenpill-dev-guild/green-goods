@@ -42,7 +42,7 @@ Before cloning, install the tools the setup script cannot reliably provide:
 | --- | --- | --- | --- |
 | **Node.js** | 22+ | Running `npm run setup` and repo tooling | [nodejs.org](https://nodejs.org) |
 | **Git** | any | Cloning and contributing | [git-scm.com](https://git-scm.com) |
-| **Docker Desktop** | current stable | Full-stack and indexer development | [docker.com](https://www.docker.com/get-started/) |
+| **OrbStack or Docker Desktop** | current stable | Full-stack and indexer development | [orbstack.dev](https://orbstack.dev/) / [docker.com](https://www.docker.com/get-started/) |
 
 Node includes `npm`, which is enough to run the first setup command. `npm run setup` installs Bun automatically if it is missing, installs workspace dependencies, and prints the env-bootstrap commands to run next.
 
@@ -174,7 +174,10 @@ account:
 3. Add a custom wallet network named `Green Goods Local Arbitrum Fork`.
 4. Set RPC URL `http://127.0.0.1:3009`, chain id `42161`, and currency symbol
    `ETH`.
-5. Import one Anvil-funded account from the Anvil log output.
+5. Import one Anvil-funded account from
+   `packages/contracts/.generated/runtime/arbitrum-fork.json`. The launcher
+   keeps Anvil startup output quiet and redacts the fork endpoint in that file
+   so provider credentials do not appear in logs.
 6. Connect that wallet in the app and sign transactions normally.
 
 The fork uses the real Arbitrum deployment artifact, but every write is mined
@@ -209,6 +212,12 @@ bun run dev
 That includes the fork-backed app surfaces, agent, and Docker-backed indexer.
 For cross-repo orchestration, `dev launch green-goods` calls this same native
 repo command under workbench ownership.
+
+The Docker-backed indexer is local infrastructure, but it mirrors the configured
+live networks into local Postgres/Hasura. Set `ENVIO_API_TOKEN` in the root
+`.env` when you need reliable catch-up and a passing `bun run dev:smoke:full`
+indexer-lag proof; without it, HyperSync can return `429 Too Many Requests` and
+the smoke should fail rather than claim the local mirror is current.
 
 | PM2 process | Package | Default port |
 | --- | --- | --- |

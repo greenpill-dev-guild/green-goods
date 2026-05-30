@@ -37,8 +37,9 @@ This runs:
 If you're on Linux or using the VS Code Dev Container:
 
 ```bash
-# Ensure Docker Desktop is running first
-open -a Docker  # macOS
+# Ensure OrbStack or Docker Desktop is running first
+open -a OrbStack  # macOS, if using OrbStack
+# or open -a Docker
 # Wait 30 seconds
 
 # Start the native indexer
@@ -118,7 +119,7 @@ After codegen, run `bun run setup-generated` to rebuild ReScript.
 
 - [Node.js (use v20 or newer)](https://nodejs.org/en/download/current)
 - [bun (use v1 or newer)](https://bun.sh)
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) - **Required** (script auto-starts it)
+- [OrbStack](https://orbstack.dev/) or [Docker Desktop](https://www.docker.com/products/docker-desktop/) - **Required** for the local indexer containers
 
 ### Environment Variables
 
@@ -130,14 +131,17 @@ The indexer automatically loads configuration from:
 
 **Indexer-relevant environment variables:**
 ```bash
-# Required for reliable live Arbitrum catch-up in prod-mirror mode.
+# Required for reliable live Arbitrum catch-up in default full-local and
+# prod-mirror mode.
 ENVIO_API_TOKEN=
 ```
 
-The root `.env` is automatically loaded by the indexer's Docker Compose setup and development scripts.
-Without `ENVIO_API_TOKEN`, the local mirror can start, but HyperSync may return
-`429 Too Many Requests` and the production mirror smoke should fail on indexer
-lag instead of pretending the mirror is current.
+The root `bun run dev` and `bun run dev:prod:mirror` scripts pass the root
+`.env` value into Docker Compose. If you run Docker Compose directly from this
+package, export `ENVIO_API_TOKEN` in that shell first. Without
+`ENVIO_API_TOKEN`, the local mirror can start, but HyperSync may return `429 Too
+Many Requests` and the full-local or production mirror smoke should fail on
+indexer lag instead of pretending the mirror is current.
 
 ### Entities (from `schema.graphql`)
 
@@ -170,8 +174,8 @@ Or directly run:
 ```
 
 **Manual Reset:**
-1. Restart Docker Desktop completely (Quit → Reopen)
-2. Wait for Docker to fully start (check menu bar icon)
+1. Restart OrbStack or Docker Desktop completely (Quit → Reopen)
+2. Wait for the Docker daemon to fully start (check the menu bar icon)
 3. Run the reset script or manually clean up:
    ```bash
    # Stop containers and remove volumes
@@ -220,5 +224,5 @@ bun run dev:manual
 ### Other Common Issues
 
 - **Port 8080 already in use**: Stop other services using port 8080 or change the port in Envio config
-- **Database connection issues**: Ensure Docker Desktop is running and containers are healthy
+- **Database connection issues**: Ensure OrbStack or Docker Desktop is running and containers are healthy
 - **Code generation failures**: Run `bun codegen` to regenerate after schema changes
