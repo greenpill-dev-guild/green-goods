@@ -55,12 +55,14 @@ jobs:
           echo "Grace period (45s) so triggered workflows register their check-runs..."
           sleep 45
 
+          # Match on the base job name: GitHub appends " / <workflow>" to some
+          # check-run names (e.g. "audit / Supply-chain guardrails"), so strip it.
           for attempt in $(seq 1 75); do
             runs="$(gh api --paginate "repos/${REPO}/commits/${HEAD_SHA}/check-runs" \
               --jq '.check_runs[] | {name, status, conclusion}')"
 
             pending="$(printf '%s\n' "${runs}" | jq -s --argjson req "${REQUIRED}" \
-              '[.[] | select((.name as $n | $req | index($n)) != null) | select(.status != "completed")]')"
+              '[.[] | select(((.name | split(" / ") | .[0]) as $n | $req | index($n)) != null) | select(.status != "completed")]')"
             pending_count="$(printf '%s' "${pending}" | jq 'length')"
 
             if [ "${pending_count}" -gt 0 ]; then
@@ -71,7 +73,7 @@ jobs:
             fi
 
             present="$(printf '%s\n' "${runs}" | jq -s --argjson req "${REQUIRED}" \
-              '[.[] | select((.name as $n | $req | index($n)) != null)]')"
+              '[.[] | select(((.name | split(" / ") | .[0]) as $n | $req | index($n)) != null)]')"
             present_count="$(printf '%s' "${present}" | jq 'length')"
             bad="$(printf '%s' "${present}" | jq \
               '[.[] | select(.conclusion as $c | ($c != "success" and $c != "skipped" and $c != "neutral"))]')"
