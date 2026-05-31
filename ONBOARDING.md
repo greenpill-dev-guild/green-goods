@@ -67,6 +67,17 @@ These complement (not duplicate) `CLAUDE.md` — they're things that aren't alre
 - **Sibling repos live in `~/Code/greenpill/`** — `coop`, `gardens`, `network-website`, `cookie-jar`, etc. They share identity/chain/attestation infra with green-goods. Pull them down if your work crosses those boundaries.
 - **Real-time coordination happens in [Telegram](https://t.me/+N3o3_43iRec1Y2Jh).** Drop in if you're stuck or pairing.
 
+## Working with agents here
+
+Green Goods runs at agentic velocity; these few habits keep that safe. They were validated over the May AI-native-workflow pilot (templates in `.plans/archive/ai-native-dev-workflow/`) and complement — not duplicate — `CLAUDE.md`.
+
+- **Run `bun run drift:check` before broad or parallel agent dispatch.** It repeatedly caught skill-mirror / docs / README / lint drift before it compounded. Don't fan out agents while guidance drift is unresolved.
+- **Scope-lock before runtime edits.** For audits and cleanups, agree the exact change set with a human first and preserve unrelated dirty work — this prevents over-broad redesigns.
+- **Get an adversarial review before you commit to an approach,** not after. A second, stronger perspective catches theater and wrong assumptions more cheaply than a passing self-test.
+- **Evidence, not assertion.** Record copy-runnable validation commands and explicit proof limits. "Should work" is not proof.
+- **Fill a data-contract map** when a change touches schemas / public contracts / persistent stores / shared types / API shapes, and a **route/access matrix** when it touches routes / auth / role gates / shells (templates in the archived hub). Skip both when the change touches neither — don't add ceremony.
+- **Match process to scope.** Broad or parallel agent work earns the pre-agent checklist; single-file, sequential work just proceeds (see `CLAUDE.md` § Subagent Discipline).
+
 ## Get Started
 
 Your starter task: **set the repo up end-to-end and report back on the experience.** Onboarding feedback is the only way the next person's path gets smoother.
