@@ -1,0 +1,96 @@
+name: CI Gate
+
+# Single required-status aggregator for branch protection (June maturation, PRD-563 §0.2).
+#
+# Why this exists: the per-package workflows (client / admin / shared / agent /
+# contracts / indexer / design / docs / supply-chain) are path-filtered, so each
+# only runs when its package changes. That means they cannot be set as
+# branch-protection required checks directly — an unrelated PR would block
+# forever on a check that never reports.
+#
+# This gate always runs (no path filter) and verifies that every CI check which
+# DID run on the PR succeeded. Point the branch ruleset's required_status_checks
+# at the single "CI Gate" check. Checks that never appear (their workflow was not
+# triggered for this PR) are simply not required.
+#
+# Approach: after a short grace period (so triggered workflows register their
+# check-runs), poll the PR head SHA's check-runs until every *present* required
+# check has completed, then fail if any concluded as anything other than
+# success / skipped / neutral. Fails closed on API error.
+#
+# Maintenance: keep REQUIRED below in sync with the per-package workflow job
+# `name:` values. Adding a name that some PRs never trigger is safe (absent =
+# not required); a typo just means that check is never enforced.
+
+on:
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+  checks: read
+
+concurrency:
+  group: ci-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    name: CI Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Verify all triggered CI checks pass
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          # CI check (job) names this gate enforces. A name absent on the PR head
+          # SHA = its path-filtered workflow did not trigger = not required here.
+          REQUIRED='["Test","Lint And Build","Lint And Typecheck","Lint Typecheck And Build","Detect Shared Impact","Unit Tests","Test Realism Audit","Playwright Client CI","Playwright Admin CI","Design Guardrails","Storybook","Build Docs","audit"]'
+
+          echo "Grace period (45s) so triggered workflows register their check-runs..."
+          sleep 45
+
+          # Match on the base job name: GitHub appends " / <workflow>" to some
+          # check-run names (e.g. "audit / Supply-chain guardrails"), so strip it.
+          for attempt in $(seq 1 75); do
+            runs="$(gh api --paginate "repos/${REPO}/commits/${HEAD_SHA}/check-runs" \
+              --jq '.check_runs[] | {name, status, conclusion}')"
+
+            pending="$(printf '%s\n' "${runs}" | jq -s --argjson req "${REQUIRED}" \
+              '[.[] | select(((.name | split(" / ") | .[0]) as $n | $req | index($n)) != null) | select(.status != "completed")]')"
+            pending_count="$(printf '%s' "${pending}" | jq 'length')"
+
+            if [ "${pending_count}" -gt 0 ]; then
+              echo "Attempt ${attempt}: waiting on ${pending_count} required check(s)..."
+              printf '%s' "${pending}" | jq -r '.[] | "  - \(.name) [\(.status)]"'
+              sleep 20
+              continue
+            fi
+
+            present="$(printf '%s\n' "${runs}" | jq -s --argjson req "${REQUIRED}" \
+              '[.[] | select(((.name | split(" / ") | .[0]) as $n | $req | index($n)) != null)]')"
+            present_count="$(printf '%s' "${present}" | jq 'length')"
+            bad="$(printf '%s' "${present}" | jq \
+              '[.[] | select(.conclusion as $c | ($c != "success" and $c != "skipped" and $c != "neutral"))]')"
+            bad_count="$(printf '%s' "${bad}" | jq 'length')"
+
+            echo "All ${present_count} required check(s) present have completed:"
+            printf '%s' "${present}" | jq -r '.[] | "  - \(.name): \(.conclusion)"'
+
+            if [ "${bad_count}" -gt 0 ]; then
+              echo "::error::CI Gate failed - required checks did not pass:"
+              printf '%s' "${bad}" | jq -r '.[] | "  x \(.name): \(.conclusion)"'
+              exit 1
+            fi
+
+            echo "CI Gate passed - every triggered required check succeeded."
+            exit 0
+          done
+
+          echo "::error::CI Gate timed out waiting for required checks to complete."
+          exit 1
