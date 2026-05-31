@@ -6,7 +6,7 @@
  *
  * Strategy:
  * - Mock GraphQL responses via page.route() to provide garden/action data
- * - Use wallet auth injection for authenticated state
+ * - Use the dev mock-auth seam (DevAuthProvider) for authenticated state
  * - Test form rendering, validation, and navigation — not actual transactions
  *
  * For full infrastructure tests, use: npx playwright test --project=client-full
@@ -43,7 +43,9 @@ const MOCK_ACTION = {
  */
 async function setupMockedEnvironment(page: import("@playwright/test").Page) {
   const helper = new ClientTestHelper(page);
-  await helper.injectWalletAuth();
+  // Dev mock-auth seam (DevAuthProvider) — reliable in the Vite dev server the
+  // Playwright webServer runs, unlike the legacy wagmi-storage injection.
+  await helper.enableMockAuth("user");
 
   // Intercept GraphQL requests to the indexer and return mock data
   await page.route("**/v1/graphql", async (route) => {
@@ -106,14 +108,9 @@ test.describe("Work Submission CI Tests", () => {
       await page.goto("/home");
       await helper.waitForPageLoad();
 
-      const url = page.url();
-      if (url.includes("/home/login")) {
-        // Auth injection may not persist in all environments
-        // This is expected in CI without real wallet extension
-        // SKIP: #312 owner:afo expiry:2026-06-01 — auth injection unstable in headless CI
-        test.skip(true, "Auth injection did not persist — expected in headless CI");
-        return;
-      }
+      // Dev mock-auth (DevAuthProvider) authenticates synchronously in the Vite
+      // dev server, so /home must not redirect to login (PRD-564).
+      expect(page.url()).not.toContain("/home/login");
 
       // Home page loaded — verify no critical errors
       const hasAppError = await page
@@ -140,12 +137,9 @@ test.describe("Work Submission CI Tests", () => {
       await page.goto("/home");
       await helper.waitForPageLoad();
 
-      const url = page.url();
-      if (url.includes("/home/login")) {
-        // SKIP: #312 owner:afo expiry:2026-06-01 — auth injection unstable in headless CI
-        test.skip(true, "Auth injection did not persist — expected in headless CI");
-        return;
-      }
+      // Dev mock-auth (DevAuthProvider) authenticates synchronously; no login
+      // redirect expected (PRD-564). Downstream skips below are data-shape gaps.
+      expect(page.url()).not.toContain("/home/login");
 
       // Navigate to a garden if garden cards are visible
       const gardenCard = page.locator('[data-testid="garden-card"], a[href*="/home/"]').first();
