@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p0",
     "created_at": "2026-05-09T21:35:46.781Z",
-    "updated_at": "2026-05-31T05:08:01Z"
+    "updated_at": "2026-05-31T05:52:01Z"
   },
   "links": {
     "brief": "brief.md",
@@ -25,12 +25,129 @@
     "surfaces": ["packages/client", "packages/shared", "packages/agent", "docs/docs"],
     "depends_on_features": []
   },
+  "phasePlan": {
+    "purpose": "June 1 Green Goods public demo for two deployed NYC Ethereum Octant vaults, followed by reusable skill planning after demo validation.",
+    "phases": [
+      {
+        "number": 1,
+        "name": "Scope/plan lock + Linear sync",
+        "status": "completed",
+        "checkInRequiredAfter": false,
+        "exitCriteria": [
+          "brief/spec/plan/eval/status align on Wallet Endow + Thirdweb Card Endow demo scope",
+          "Donate and Card Donate remain deferred",
+          "Linear issues PRD-435, PRD-436, PRD-440, PRD-442, PRD-443, PRD-444, PRD-487, and PRD-569 through PRD-573 carry the corrected tracking note"
+        ]
+      },
+      {
+        "number": 2,
+        "name": "Wallet Endow public demo path",
+        "status": "pending",
+        "checkInRequiredAfter": true,
+        "exitCriteria": [
+          "Shareable public /fund demo path presents the two deployed NYC Ethereum Octant vaults",
+          "Wallet Endow deposits to the connected wallet receiver for both vaults",
+          "Receipt/success path returns to /fund?manage=endowments"
+        ]
+      },
+      {
+        "number": 3,
+        "name": "Thirdweb Card Endow demo path",
+        "status": "pending",
+        "checkInRequiredAfter": true,
+        "exitCriteria": [
+          "Thirdweb Card Endow checkout is wired for the same two vaults",
+          "Card Endow uses a recovered user wallet receiverAddress",
+          "No provider-owned custody path can receive vault shares"
+        ]
+      },
+      {
+        "number": 4,
+        "name": "Ownership/share verification gate",
+        "status": "pending",
+        "checkInRequiredAfter": false,
+        "exitCriteria": [
+          "Vault shares are verified for the user/recovered wallet",
+          "share_verification proof is recorded or the owner-scoped deposit read proves the same postcondition",
+          "Card Endow remains hidden until this gate passes"
+        ]
+      },
+      {
+        "number": 5,
+        "name": "Public Manage Endowments / withdrawal proof",
+        "status": "pending",
+        "checkInRequiredAfter": true,
+        "exitCriteria": [
+          "/fund?manage=endowments shows owned wallet and card-funded endowment positions",
+          "Withdrawal proof succeeds for the owning wallet/account",
+          "Management URL contains no receipt tokens, wallet addresses, emails, or provider identifiers"
+        ]
+      },
+      {
+        "number": 6,
+        "name": "Demo QA pass",
+        "status": "pending",
+        "checkInRequiredAfter": true,
+        "exitCriteria": [
+          "Desktop and mobile browser proof covers final public /fund demo",
+          "Wallet Endow, Thirdweb Card Endow, ownership/share proof, Manage Endowments, Donate absence, and privacy are verified",
+          "Targeted shared/client/agent tests pass or blockers are recorded"
+        ]
+      },
+      {
+        "number": 7,
+        "name": "Reusable skill planning handoff after demo validation",
+        "status": "pending",
+        "checkInRequiredAfter": false,
+        "exitCriteria": [
+          "Green Goods demo validation is complete",
+          "Reusable skill starts with frontend UI for existing Ethereum Octant vaults using standard RPC plus wallet connection",
+          "Advanced backend/API modules cover Thirdweb-first card providers, future Stripe/Coinbase adapters, and optional create-vault via Octant factory/API path"
+        ]
+      }
+    ],
+    "checkInGates": [2, 3, 5, 6]
+  },
+  "validationExpectations": {
+    "planMetadata": [
+      "status.json parses",
+      "node scripts/harness/plan-hub.mjs linear-sync --feature public-endowment-withdrawal-recovery --json returns zero warnings",
+      "node scripts/harness/plan-hub.mjs validate may remain blocked by unrelated sentry-stack-observability hub schema drift unless that drift is fixed"
+    ],
+    "implementationAgents": {
+      "shared": [
+        "public endowment-position hook",
+        "existing-vault manifest and receiver typing selected for the demo path",
+        "safe max-loss preview parity with withdraw mutation",
+        "Card Endow proof-key separation and required receiver semantics"
+      ],
+      "client": [
+        "two-vault public /fund demo path",
+        "connected empty and active positions",
+        "/fund?manage=endowments",
+        "Max, confirm, failure, success refresh, receipt CTA, and no admin controls",
+        "sprint visibility: Wallet Endow and Manage Endowments visible, Donate absent, Card Endow hidden until proof, Card Donate proof never reveals Card Endow"
+      ],
+      "agent": [
+        "exact provider proof gating",
+        "strict tuple verification",
+        "redacted logs",
+        "recovered-owner share verification",
+        "Card Endow rejection without receiverAddress"
+      ],
+      "browser": [
+        "final public /fund demo proof required on desktop and mobile"
+      ]
+    }
+  },
   "notes": [
     "Promoted to active on 2026-05-10; scope locked on 2026-05-31 to the NYC vault/endow sprint.",
+    "June 1 Green Goods demo is a shareable public /fund link for two deployed NYC Ethereum Octant vaults with Wallet Endow and Thirdweb Card Endow.",
     "Public withdrawal is the first implementation slice; do not let deferred Donate recovery block the /fund management fix.",
     "Wallet Endow remains visible while the public /fund management panel is built.",
     "Public Donate and Card Donate are deferred to separate future non-Cookie-Jar scope; do not expose Donate on /fund for this sprint.",
-    "Card Endow remains in scope but hidden until recovered-wallet ownership, vault-share verification, public visibility, and successful withdrawal proof pass.",
+    "Thirdweb Card Endow is sprint-critical for the demo, but remains hidden until recovered-wallet ownership, vault-share verification, public visibility, and successful withdrawal proof pass.",
+    "Card Endow vault shares must belong to the user/recovered wallet, not a provider-owned account.",
     "Funding lane matrix is explicit: Wallet Endow remains wallet-owned; Manage Endowments is public account-gated; Donate is deferred; Card Endow is ownership/share/withdrawal-gated.",
     "Low-level Cookie Jar hooks/contracts are preserved in this pass; only the public /fund sprint surface hides Donate.",
     "Provider proof entries must be exact by intent, Garden destination, token, chain, and method; Card Donate proof never unlocks Card Endow.",
@@ -39,10 +156,13 @@
     "Public withdraw preview must use the same 1% max-loss default as the withdraw mutation.",
     "No existing-position migration, public address lookup, fiat off-ramp, contract work, or indexer schema work is planned.",
     "Local validation on 2026-05-31 passed git diff whitespace check, JSON parsing, lint:vocab, and check:design-tokens; package tests, check:design-generated, and ci-local remain blocked in this worktree because dependencies are not installed.",
-    "Reusable vault crowdfunding UI skill work is tracked from this hub as related planning metadata, not as a new active automation lane.",
-    "Green Goods / NYC vaults are the first reusable-skill fixture; the future skill must remain portable for Octant and other public-goods vault communities.",
+    "Reusable vault crowdfunding UI skill work is tracked from this hub as related planning metadata after Green Goods demo validation, not as a new active automation lane.",
+    "Green Goods / NYC vaults are the first reusable-skill fixture; the future skill must remain portable for Octant and other public-goods vault communities and must not hardcode NYC as the default.",
+    "The simplest reusable skill output is frontend UI for existing Ethereum Octant vaults using standard RPC plus wallet connection.",
+    "Advanced reusable-skill modules are backend/API concerns: Thirdweb-first card providers, future Stripe/Coinbase adapters, optional create-vault via Octant factory/API path, secrets, provider setup, webhook verification, receipt policy, and redacted logs.",
     "Skill tracking parent PRD-569 and children PRD-570 through PRD-573 cover inputs, DesignMD fixture/template, wallet-first vault runtime, and provider/create-vault extension boundaries.",
     "Skill tracking validation on 2026-05-31 passed status JSON parse, public-endowment linear-sync manifest with zero warnings, and Linear read-back; full plan-hub validate is blocked by unrelated sentry-stack-observability schema drift.",
+    "Check-in gates are required after phases 2, 3, 5, and 6.",
     "status.json is authoritative; branch names are automation signals.",
     ".plans/ is the durable repo truth; any tool-local or .claude/agent-memory surface stays environment-local until freshness and ownership rules exist."
   ],
@@ -53,7 +173,7 @@
       "branch": "claude/ui/public-endowment-withdrawal-recovery",
       "depends_on": [],
       "handoff": "handoffs/claude-ui.md",
-      "handoff_note": "Implement and verify /fund My Endowments UI without waiting on deferred Donate recovery. Keep visibility account-gated, wire /fund?manage=endowments, keep Donate absent from /fund, and add i18n.",
+      "handoff_note": "Implement and verify the public /fund demo for two deployed NYC Ethereum Octant vaults: Wallet Endow, My Endowments, /fund?manage=endowments, Donate absent, and Thirdweb Card Endow exposure only after recovered-wallet custody/share/withdrawal proof. Add i18n.",
       "tdd": {
         "mode": "required",
         "status": "pending",
@@ -75,7 +195,7 @@
       "branch": "codex/state-api/public-endowment-withdrawal-recovery",
       "depends_on": [],
       "handoff": "handoffs/codex-state-api.md",
-      "handoff_note": "Own the shared public endowment-position hook/type, safe max-loss preview parity, public withdraw reuse boundaries, exact provider-proof separation, and Card Endow receiver-address/share-verification gates. Donate is deferred out of this sprint.",
+      "handoff_note": "Own shared public endowment-position data, existing-vault/receiver typing for the two-vault demo path, safe max-loss preview parity, public withdraw reuse boundaries, exact provider-proof separation, and Thirdweb Card Endow receiver-address/share-verification gates. Donate is deferred out of this sprint.",
       "tdd": {
         "mode": "required",
         "status": "pending",
@@ -121,7 +241,7 @@
       "branch": "claude/qa-pass-1/public-endowment-withdrawal-recovery",
       "depends_on": ["ui", "state_api"],
       "handoff": "handoffs/claude-qa-pass-1.md",
-      "handoff_note": "Review public /fund withdrawal UX, account-gated visibility, /fund?manage=endowments receipt return path, mobile layout, i18n, and Card Endow hidden state.",
+      "handoff_note": "Review the final public /fund demo for the two deployed NYC Ethereum Octant vaults: Wallet Endow, Thirdweb Card Endow custody/share proof, account-gated visibility, /fund?manage=endowments receipt return path, mobile layout, i18n, Donate absence, and Card Endow hidden-until-proof behavior.",
       "skill_tags": ["testing", "review", "ui"]
     },
     "qa_pass_2": {
@@ -133,7 +253,7 @@
       "branch_trigger": "claude/qa-pass-1/public-endowment-withdrawal-recovery",
       "depends_on": ["qa_pass_1"],
       "handoff": "handoffs/codex-qa-pass-2.md",
-      "handoff_note": "Re-run targeted validation, inspect provider proof gates, and confirm no unrelated funding/PWA/admin work was pulled in.",
+      "handoff_note": "Re-run targeted shared/client/agent validation, inspect Thirdweb provider proof and recovered-owner share gates, require browser proof for the final public /fund demo, and confirm no unrelated funding/PWA/admin work was pulled in.",
       "skill_tags": ["testing", "review"]
     }
   },
@@ -241,11 +361,27 @@
       "status": "skill_tracking_validated",
       "branch": null,
       "note": "Status JSON parsed, public-endowment linear-sync manifest returned zero warnings, and Linear read-back confirmed PRD-569 children and PRD-435/PRD-487 comments. Full plan-hub validate remains blocked by unrelated sentry-stack-observability hub schema drift."
+    },
+    {
+      "timestamp": "2026-05-31T05:45:01Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "phase_sequence_locked",
+      "branch": null,
+      "note": "Locked corrected implementation sequence: Wallet Endow and Thirdweb Card Endow for two deployed NYC Ethereum Octant vaults, check-ins after phases 2/3/5/6, Donate/Card Donate deferred, reusable skill planning after demo validation."
+    },
+    {
+      "timestamp": "2026-05-31T05:52:01Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_phase_lock_comments_recorded",
+      "branch": null,
+      "note": "Commented PRD-435, PRD-436, PRD-440, PRD-442, PRD-443, PRD-444, PRD-487, and PRD-569 through PRD-573 with the corrected June 1 demo, check-in, validation, and reusable-skill boundaries."
     }
   ],
   "linear": {
     "syncDirection": "plans_to_linear_visibility",
-    "lastSyncedAt": "2026-05-31T05:06:38Z",
+    "lastSyncedAt": "2026-05-31T05:52:01Z",
     "projectDocument": "https://linear.app/greenpill-dev-guild/document/green-goods-x-octant-vault-scope-lock-1fc3d1676fb1",
     "parentIssue": "PRD-435",
     "lanes": {
@@ -304,6 +440,20 @@
         "delivery_parent": "13a5208c-38d0-4c1c-9f98-ff7706cc5d83",
         "grant_tracker": "76d60a26-904c-419d-b832-2aa0ec652711"
       }
+    },
+    "phaseLockComments": {
+      "delivery_parent": "ade66509-d124-460c-a46f-ccfeadf91acc",
+      "scope_lock": "80211702-9826-40f1-aa3c-9b3978f43b0a",
+      "card_endow_gate": "8973abb8-1bd7-4b27-8ffb-a4aff0d6f228",
+      "card_endow_shared": "2e9d9028-1352-4c38-a54b-9694e7553d5a",
+      "card_endow_agent": "eb571b9a-3a1e-4d2f-bcb8-70c7dff16c34",
+      "card_endow_client": "f9f1db78-a556-4646-93f5-de18b8155dc4",
+      "brief_source": "6a323af9-fab5-4cb6-bdc3-b5ce15b8e9fb",
+      "skill_parent": "22c4cf2a-2693-4cff-b742-9a3d33d7f697",
+      "skill_input_schema": "205be1ca-f614-4705-a7ea-dee65f3920d0",
+      "skill_fixture": "71cf4501-55c7-4f7b-b4fc-b7740c362e9e",
+      "skill_wallet_runtime": "b38e3ea8-6fe7-4444-974b-56f6478200ba",
+      "skill_provider_boundaries": "8ca4251f-a36a-4cde-ae38-93745edbb542"
     },
     "project": "NYC Vault Crowdfunding"
   }

@@ -2,9 +2,9 @@
 
 **Feature Slug**: `public-endowment-withdrawal-recovery`
 **Stage**: `active`
-**Status**: `ACTIVE — scope locked to vault/endow; ui/state_api IN_PROGRESS, qa BLOCKED`
+**Status**: `ACTIVE — June 1 demo sequence locked; ui/state_api IN_PROGRESS, qa BLOCKED`
 **Created**: `2026-05-09T21:35:46.781Z`
-**Last Updated**: `2026-05-31T05:08:01Z`
+**Last Updated**: `2026-05-31T05:45:01Z`
 
 ## Decision Log
 
@@ -23,6 +23,9 @@
 | 11 | Reusable skill work is tracked from this crowdfunding UI hub. | Green Goods is the demo fixture, but the long-term goal is a portable vault crowdfunding UI skill for Octant and other public-goods communities. |
 | 12 | Skill tracking is not a new active automation lane in this pass. | The plan-hub validator syncs only standard lanes; skill issue IDs belong in related tracking metadata until implementation starts. |
 | 13 | Card providers are adapter slots for the skill v1 tracking scope. | Wallet-first vault funding stays the default; Stripe, Coinbase, and Thirdweb require future server-backed implementation before live use. |
+| 14 | June 1 demo is Wallet Endow + Thirdweb Card Endow for two deployed NYC Ethereum Octant vaults. | Card Endow is sprint-critical for Green Goods after custody/share proof, not only future reusable-skill work. |
+| 15 | Public Donate and Card Donate remain deferred. | The sprint must not drift back into Donate or Card Donate while proving the vault/endow demo. |
+| 16 | Reusable skill starts after Green Goods demo validation. | The portable skill begins with existing Ethereum Octant vault UI over standard RPC + wallet connection; advanced card/create-vault modules are later backend/API work. |
 
 ## Research / Plan Gate
 
@@ -39,6 +42,9 @@
 |---|---|---|---|
 | Public funders can see owned endowments on `/fund`. | `state_api`, `ui` | Build shared public endowment-position data and render the account panel. | ⏳ |
 | Public funders can withdraw from `/fund`. | `ui`, `state_api` | Reuse shared withdraw mutation with amount, Max, confirmation, lifecycle, and refresh. | ⏳ |
+| Shareable June 1 demo link supports two deployed NYC Ethereum Octant vaults. | `ui`, `state_api` | Configure the public `/fund` demo path around the two deployed vaults, with no private URL data. | ⏳ |
+| Wallet Endow works for the two deployed NYC vaults. | `ui`, `state_api` | Keep connected-wallet receiver semantics and public receipt return path for both vaults. | ⏳ |
+| Thirdweb Card Endow works for the two deployed NYC vaults after proof. | `ui`, `state_api` | Build the recovered-wallet receiver checkout path, share verification, visibility, and withdrawal proof before exposure. | ⏳ |
 | Endow receipts return users to management. | `ui` | Update success and receipt CTAs to point back to `/fund` management. | ⏳ |
 | Public Donate is hidden on `/fund` during this sprint. | `ui` | Remove Donate CTAs and public Donate explanatory copy while preserving lower-level Cookie Jar code. | ✅ code updated; validation pending |
 | Card Donate is deferred. | `state_api`, `ui` | Do not route PRD-439 into NYC sprint acceptance; future Donate must be separate non-Cookie-Jar scope. | ✅ deferred |
@@ -48,32 +54,37 @@
 | Product docs stop claiming PWA-only withdrawal. | `ui` | Update funder docs and browser design truth. | ⏳ |
 | Current public funding tests stop asserting support-only withdrawal. | `ui` | Replace the "no withdraw controls" assertion with account-gated withdrawal and no-admin-control tests. | ⏳ |
 | No Solidity or indexer schema work. | `contracts` | Keep contracts lane `n/a`. | ✅ |
-| Reusable skill work is coherently tracked. | `system` | Add skill input/output boundaries to this plan and create Linear parent/child tracking issues under NYC Vault Crowdfunding. | ✅ local plan + Linear tracking recorded |
+| Reusable skill work is coherently tracked. | `system` | Keep the reusable skill after demo validation, with simplest output = existing Ethereum Octant vault frontend over standard RPC + wallet connection and advanced card/create-vault modules deferred to backend/API planning. | ✅ local plan + Linear tracking recorded |
 
-## Implementation Slices
+## Implementation Phases
 
-1. **Public data first**: add/export the shared public endowment-position hook and safe withdrawable
-   limit. This is the only state/API prerequisite for `/fund` UI.
-2. **Public `/fund` management**: add `/fund?manage=endowments`, connected empty/active states,
-   withdrawal controls, endow-only public sprint copy, receipt return path, privacy-safe deeplinks,
-   i18n, and docs/design truth cleanup.
-3. **Card Endow gate**: add/verify receiver-address ownership types, but keep Card Endow unavailable
-   until a recovered email wallet owns share-verified vault shares that are visible and withdrawable
-   from `/fund`.
-4. **Donate deferral**: keep low-level Cookie Jar hooks/contracts intact, hide Donate from `/fund`,
-   and move future Donate work to separate non-Cookie-Jar Linear scope.
-5. **Reusable skill tracking**: record the future vault crowdfunding UI skill as local plan metadata
-   and Linear parent/child issues. Do not create a new active lane or build the skill/template in this
-   pass.
+1. **Scope/plan lock + Linear sync**: align `.plans` and Linear around the corrected demo sequence,
+   deferred Donate scope, and reusable-skill-after-demo boundary.
+2. **Wallet Endow public demo path**: make the shareable public `/fund` demo path support Wallet
+   Endow for the two deployed NYC Ethereum Octant vaults. **Check in after this phase.**
+3. **Thirdweb Card Endow demo path**: make the same two vaults support Thirdweb Card Endow through a
+   recovered-wallet receiver, preserving user custody. **Check in after this phase.**
+4. **Ownership/share verification gate**: prove the vault shares belong to the user/recovered wallet,
+   not a provider-owned account, before Card Endow exposure.
+5. **Public Manage Endowments / withdrawal proof**: prove wallet-funded and card-funded endowment
+   positions appear and can withdraw through `/fund?manage=endowments`. **Check in after this phase.**
+6. **Demo QA pass**: verify the complete public demo on desktop/mobile with wallet, card, ownership,
+   manage, privacy, and regression checks. **Check in after this phase.**
+7. **Reusable skill planning handoff**: only after Green Goods demo validation, plan the portable skill
+   with existing Ethereum Octant vault frontend UI first and backend/API card/create-vault modules as
+   advanced follow-on work.
 
 ## Reusable Skill Tracking Checklist
 
 - [x] Record DesignMD-required input, campaign context, existing-vault manifest, runtime module, and
   Vercel deployment assumptions in `spec.md`
 - [x] Keep Green Goods / NYC vaults framed as the fixture, not the skill boundary
-- [x] Keep wallet-first vault funding as v1 runtime assumption
-- [x] Track Stripe, Coinbase, and Thirdweb as provider adapter slots only
-- [x] Track optional create-vault support as operator setup scaffolding only
+- [x] Keep wallet-first existing Ethereum Octant vault funding over standard RPC + wallet connection as
+  the simplest skill runtime assumption
+- [x] Track Thirdweb-first, future Stripe/Coinbase card providers as backend/API adapter modules after
+  Green Goods demo validation
+- [x] Track optional create-vault support through an Octant factory/API path as operator setup
+  scaffolding only
 - [x] Create Linear parent issue for reusable vault crowdfunding UI skill work: PRD-569
 - [x] Create Linear child issue for skill input schema and validation contract: PRD-570
 - [x] Create Linear child issue for DesignMD campaign template and Green Goods fixture: PRD-571
@@ -97,6 +108,9 @@
 ### UI (`claude/ui/public-endowment-withdrawal-recovery`)
 
 - [ ] Add `/fund` "My Endowments" account panel, connected empty state, active positions, and withdraw controls
+- [ ] Add the shareable public demo path for the two deployed NYC Ethereum Octant vaults
+- [ ] Keep Wallet Endow visible and working for both deployed NYC vaults
+- [ ] Expose Thirdweb Card Endow only after the recovered-wallet custody, share-verification, and withdrawal proof gates pass
 - [ ] Hide/remove Donate choices and Donate CTAs from the public `/fund` sprint surface
 - [ ] Make the `/fund` funding lane matrix explicit in UI state: Wallet Endow, Manage Endowments, Card Endow hidden, Donate deferred
 - [ ] Add `/fund?manage=endowments` focus/scroll behavior and receipt/success wayfinding back to that panel
@@ -115,7 +129,7 @@
 - [ ] Reuse the existing shared vault withdrawal path for public withdraws
 - [ ] Extend public receipt/intent contracts for public management CTA and Card Endow receiver ownership
 - [ ] Reject Card Endow sessions without recovered-wallet `receiverAddress`
-- [ ] Deposit Card Endow vault shares to the recovered owner and verify shares before funded/share-verified state
+- [ ] Deposit Thirdweb Card Endow vault shares to the recovered owner and verify shares before funded/share-verified state
 - [ ] Require exact provider-proof availability keys by intent, Garden destination, token, chain, and method
 - [ ] Preserve strict onchain tuple verification before marking provider intents funded
 - [ ] For Card Endow, verify recovered email/social wallet ownership, vault-share receipt, `share_verification`, and `/fund` withdrawal proof before exposure
@@ -132,6 +146,7 @@
 ### QA Pass 1 (`claude/qa-pass-1/public-endowment-withdrawal-recovery`)
 
 - [ ] Review wallet-connected `/fund` management UX on desktop and mobile
+- [ ] Verify the shareable public demo link covers both deployed NYC Ethereum Octant vaults
 - [ ] Verify account-gated visibility, withdraw flow clarity, receipt return path, and i18n
 - [ ] Verify funding lane availability is understandable, Donate is absent from `/fund`, and card rails do not appear without exact proof
 - [ ] Verify Card Endow remains hidden until ownership/withdrawal proof exists
@@ -148,8 +163,10 @@
 ## Validation
 
 - [ ] Targeted shared hook tests for public endowment-position data
+- [ ] Targeted shared tests for existing-vault manifest/receiver typing that implementation agents choose for the demo path
 - [ ] Targeted shared tests for safe max-loss preview parity with the withdraw mutation
 - [ ] Targeted client `/fund` tests for connected empty, active position, `/fund?manage=endowments`, Max, confirm, failure, success refresh, receipt CTA, and no admin controls
+- [ ] Targeted client `/fund` tests for the two-vault public demo path and final browser proof on `/fund`
 - [ ] Targeted client tests for sprint visibility: Endow and Manage Endowments visible, Donate absent, Card Endow hidden until ownership/share/withdraw proof, and Card Donate proof never reveals Card Endow
 - [ ] Targeted shared tests for Card Endow proof-key separation and required receiver semantics
 - [ ] Targeted agent tests for exact provider proof gating, strict tuple verification, redacted logs, recovered-owner share verification, and Card Endow rejection without `receiverAddress`
@@ -157,7 +174,8 @@
 - [ ] `bun run check:design-generated`
 - [ ] `bun run check:design-tokens`
 - [ ] `node scripts/dev/ci-local.js --quick`
-- [x] Status JSON parses after skill tracking metadata update
-- [x] `node scripts/harness/plan-hub.mjs linear-sync --feature public-endowment-withdrawal-recovery --json` reports no warnings
-- [ ] `node scripts/harness/plan-hub.mjs validate` (blocked by unrelated `sentry-stack-observability` hub schema drift)
+- [x] Status JSON parses after NYC demo phase update
+- [x] `node scripts/harness/plan-hub.mjs linear-sync --feature public-endowment-withdrawal-recovery --json` returns zero warnings
+- [ ] `node scripts/harness/plan-hub.mjs validate` (may remain blocked by unrelated `sentry-stack-observability` hub schema drift unless that drift is fixed)
 - [x] Linear read-back confirms the skill parent/children exist and are linked to this plan
+- [x] Linear comments recorded on PRD-435, PRD-436, PRD-440, PRD-442, PRD-443, PRD-444, PRD-487, and PRD-569 through PRD-573
