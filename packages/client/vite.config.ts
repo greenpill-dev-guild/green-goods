@@ -148,6 +148,23 @@ export default defineConfig(async ({ command, mode }) => {
   }
   const enableSourceMaps = shouldUploadSentrySourceMaps;
   const sentryDsn = resolveClientSentryDsn();
+  // Env-parity gate (PRD-567): a production deploy must ship with a resolvable
+  // Sentry DSN, or error tracking silently no-ops — the May Sentry thrash. This
+  // reuses the value resolved above, so it only fires when Sentry would truly be
+  // dead. Fail closed on production; warn on other Vercel builds so staging
+  // surfaces the same gap without blocking non-prod deploys.
+  if (command === "build" && !sentryDsn) {
+    const detail =
+      "Sentry DSN did not resolve from any known alias (VITE_SENTRY_CLIENT_DSN, VITE_SENTRY_DSN, SENTRY_DSN via the Vercel integration, ...); error tracking would be disabled in this build.";
+    if (process.env.VERCEL_ENV === "production") {
+      throw new Error(`[env-parity] ${detail} Refusing to ship a production build without it.`);
+    }
+    if (process.env.VERCEL) {
+      console.warn(
+        `[env-parity] ${detail} Staging should mirror production — set the DSN for this environment.`
+      );
+    }
+  }
   const sentryRelease = `green-goods-client@${shortAppVersion}`;
   const indexerProxyTarget =
     process.env.VITE_ENVIO_INDEXER_URL?.trim() ||
