@@ -135,9 +135,7 @@
         "recovered-owner share verification",
         "Card Endow rejection without receiverAddress"
       ],
-      "browser": [
-        "final public /fund demo proof required on desktop and mobile"
-      ]
+      "browser": ["final public /fund demo proof required on desktop and mobile"]
     }
   },
   "notes": [

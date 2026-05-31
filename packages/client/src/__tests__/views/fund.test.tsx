@@ -125,8 +125,7 @@ import FundPage from "../../views/Public/Fund";
 const messages: Record<string, string> = {
   "public.fund.title": "Fund",
   "public.fund.heroTitle": "A small gesture today, growing over many seasons.",
-  "public.fund.heroLede":
-    "Endow a Garden Vault so yield can support the Garden over many seasons.",
+  "public.fund.heroLede": "Endow a Garden Vault so yield can support the Garden over many seasons.",
   "public.fund.dialog.donate.title": "Donate",
   "public.fund.dialog.endow.title": "Endow",
 };
