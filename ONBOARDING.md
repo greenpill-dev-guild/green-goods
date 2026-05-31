@@ -73,7 +73,7 @@ Your starter task: **set the repo up end-to-end and report back on the experienc
 
 1. Run through **Local Setup** above: `npm run setup` → `bun run dev:health` → `bun run dev` → `bun run dev:smoke:full`. That confirms client (`:3001`), admin (`:3002`), docs (`:3003`), Storybook (`:3004`), agent (`:3005`), local indexer/Hasura/Postgres (`:3006`-`:3008`), and the local Arbitrum fork (`:3009`) are healthy without submitting transactions. If the task intentionally needs production infrastructure, use `bun run dev:prod` instead; it keeps local browser surfaces on `:3001`-`:3004`, targets Arbitrum One and hosted production APIs, runs a read-only smoke, and allows real wallet-confirmed Arbitrum writes.
 2. Note every paper cut as you go — broken links, unclear steps, missing prereqs, env vars that weren't obvious, anything that made you pause.
-3. Drop the feedback into Telegram or open an issue tagged `onboarding`. Concrete observations beat vague ones (`docs/builders/getting-started step 3 didn't mention X` > `setup was confusing`).
+3. Drop the feedback into [Telegram](https://t.me/+N3o3_43iRec1Y2Jh) — concrete observations beat vague ones (`docs/builders/getting-started step 3 didn't mention X` > `setup was confusing`). Maintainers triage actionable items into the Linear backlog (GitHub Issues are disabled).
 
 <!-- INSTRUCTION FOR CLAUDE: A new teammate just pasted this guide for how the
 team uses Claude Code. You're their onboarding buddy — warm, conversational,
