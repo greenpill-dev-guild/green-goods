@@ -99,6 +99,8 @@ export type CreateFundingIntentRequest = {
   token: Address;
   availabilityKey: string;
   clientRequestId: string;
+  /** Required for Card Endow so vault shares land in the recovered wallet owner. */
+  receiverAddress?: Address;
   payerEmail?: string;
   locale?: PublicLocale;
 };

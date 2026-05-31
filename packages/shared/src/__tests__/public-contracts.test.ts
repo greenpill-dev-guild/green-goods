@@ -69,6 +69,25 @@ describe("@green-goods/shared/public-contracts", () => {
     ).toBe("hidden");
   });
 
+  it("keeps Card Donate proof from unlocking Card Endow", () => {
+    const registry = createProviderProofRegistry([
+      {
+        ...baseAvailabilityInput,
+        state: "live",
+        proofReference: "spike:cookie-jar-donate-sepolia-2026-04-27",
+      },
+    ]);
+
+    expect(registry.resolve(baseAvailabilityInput).state).toBe("live");
+    expect(
+      registry.resolve({
+        ...baseAvailabilityInput,
+        destinationType: "vault",
+        fundingIntent: "endow",
+      }).state
+    ).toBe("hidden");
+  });
+
   it("derives slugs with punctuation normalization and address fallback", () => {
     expect(derivePublicGardenSlug("Solar, Community Garden!", gardenA)).toBe(
       "solar-community-garden"

@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p0",
     "created_at": "2026-05-09T21:35:46.781Z",
-    "updated_at": "2026-05-10T23:16:43.672Z"
+    "updated_at": "2026-05-31T05:08:01Z"
   },
   "links": {
     "brief": "brief.md",
@@ -26,28 +26,34 @@
     "depends_on_features": []
   },
   "notes": [
-    "Promoted to active on 2026-05-10; start with public position data and /fund management before card recovery work.",
-    "Public withdrawal is the first implementation slice; do not let Card Donate recovery block the /fund management fix.",
+    "Promoted to active on 2026-05-10; scope locked on 2026-05-31 to the NYC vault/endow sprint.",
+    "Public withdrawal is the first implementation slice; do not let deferred Donate recovery block the /fund management fix.",
     "Wallet Endow remains visible while the public /fund management panel is built.",
-    "Card Donate may recover first after real checkout and webhook proof; Card Endow remains gated until email-wallet ownership plus public withdrawal are proven.",
-    "Funding lane matrix is explicit: Wallet Donate and Wallet Endow remain wallet-owned; Manage Endowments is public account-gated; Card Donate is proof-gated; Card Endow is ownership/share/withdrawal-gated.",
-    "Card Donate proof must verify the Garden Cookie Jar support path or postcondition, not only provider success or a generic token transfer.",
+    "Public Donate and Card Donate are deferred to separate future non-Cookie-Jar scope; do not expose Donate on /fund for this sprint.",
+    "Card Endow remains in scope but hidden until recovered-wallet ownership, vault-share verification, public visibility, and successful withdrawal proof pass.",
+    "Funding lane matrix is explicit: Wallet Endow remains wallet-owned; Manage Endowments is public account-gated; Donate is deferred; Card Endow is ownership/share/withdrawal-gated.",
+    "Low-level Cookie Jar hooks/contracts are preserved in this pass; only the public /fund sprint surface hides Donate.",
     "Provider proof entries must be exact by intent, Garden destination, token, chain, and method; Card Donate proof never unlocks Card Endow.",
     "/fund?manage=endowments must not carry receipt tokens, wallet addresses, emails, or provider identifiers.",
     "Endowment management deeplink is /fund?manage=endowments.",
     "Public withdraw preview must use the same 1% max-loss default as the withdraw mutation.",
     "No existing-position migration, public address lookup, fiat off-ramp, contract work, or indexer schema work is planned.",
+    "Local validation on 2026-05-31 passed git diff whitespace check, JSON parsing, lint:vocab, and check:design-tokens; package tests, check:design-generated, and ci-local remain blocked in this worktree because dependencies are not installed.",
+    "Reusable vault crowdfunding UI skill work is tracked from this hub as related planning metadata, not as a new active automation lane.",
+    "Green Goods / NYC vaults are the first reusable-skill fixture; the future skill must remain portable for Octant and other public-goods vault communities.",
+    "Skill tracking parent PRD-569 and children PRD-570 through PRD-573 cover inputs, DesignMD fixture/template, wallet-first vault runtime, and provider/create-vault extension boundaries.",
+    "Skill tracking validation on 2026-05-31 passed status JSON parse, public-endowment linear-sync manifest with zero warnings, and Linear read-back; full plan-hub validate is blocked by unrelated sentry-stack-observability schema drift.",
     "status.json is authoritative; branch names are automation signals.",
     ".plans/ is the durable repo truth; any tool-local or .claude/agent-memory surface stays environment-local until freshness and ownership rules exist."
   ],
   "lanes": {
     "ui": {
       "owner": "claude",
-      "status": "ready",
+      "status": "in_progress",
       "branch": "claude/ui/public-endowment-withdrawal-recovery",
       "depends_on": [],
       "handoff": "handoffs/claude-ui.md",
-      "handoff_note": "Implement /fund My Endowments UI after the public position hook shape is agreed. Do not wait on Card Donate recovery. Keep visibility account-gated, wire /fund?manage=endowments, and add i18n.",
+      "handoff_note": "Implement and verify /fund My Endowments UI without waiting on deferred Donate recovery. Keep visibility account-gated, wire /fund?manage=endowments, keep Donate absent from /fund, and add i18n.",
       "tdd": {
         "mode": "required",
         "status": "pending",
@@ -65,11 +71,11 @@
     },
     "state_api": {
       "owner": "codex",
-      "status": "ready",
+      "status": "in_progress",
       "branch": "codex/state-api/public-endowment-withdrawal-recovery",
       "depends_on": [],
       "handoff": "handoffs/codex-state-api.md",
-      "handoff_note": "Own the shared public endowment-position hook/type, safe max-loss preview parity, public withdraw reuse boundaries, Thirdweb/card Donate proof path, and Card Endow receiver-address gate.",
+      "handoff_note": "Own the shared public endowment-position hook/type, safe max-loss preview parity, public withdraw reuse boundaries, exact provider-proof separation, and Card Endow receiver-address/share-verification gates. Donate is deferred out of this sprint.",
       "tdd": {
         "mode": "required",
         "status": "pending",
@@ -203,11 +209,44 @@
       "status": "linear_recorded",
       "branch": null,
       "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-05-31T04:21:01Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "scope_locked",
+      "branch": null,
+      "note": "Locked NYC sprint to Wallet Endow, public Manage Endowments, and hidden-gated Card Endow; deferred Donate to separate future non-Cookie-Jar scope."
+    },
+    {
+      "timestamp": "2026-05-31T04:31:00Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "validation_partial",
+      "branch": null,
+      "note": "Passed diff whitespace, JSON parse, lint:vocab, and check:design-tokens; package tests and ci-local blocked by missing node_modules/vitest/js-yaml/tool binaries."
+    },
+    {
+      "timestamp": "2026-05-31T05:06:38Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "skill_tracking_recorded",
+      "branch": null,
+      "note": "Recorded reusable vault crowdfunding UI skill tracking in local plan metadata and Linear parent/child issues PRD-569 through PRD-573."
+    },
+    {
+      "timestamp": "2026-05-31T05:08:01Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "skill_tracking_validated",
+      "branch": null,
+      "note": "Status JSON parsed, public-endowment linear-sync manifest returned zero warnings, and Linear read-back confirmed PRD-569 children and PRD-435/PRD-487 comments. Full plan-hub validate remains blocked by unrelated sentry-stack-observability hub schema drift."
     }
   ],
   "linear": {
     "syncDirection": "plans_to_linear_visibility",
-    "lastSyncedAt": "2026-05-10T23:16:43.672Z",
+    "lastSyncedAt": "2026-05-31T05:06:38Z",
+    "projectDocument": "https://linear.app/greenpill-dev-guild/document/green-goods-x-octant-vault-scope-lock-1fc3d1676fb1",
     "parentIssue": "PRD-435",
     "lanes": {
       "state_api": {
@@ -218,6 +257,52 @@
       },
       "qa_pass_1": {
         "issue": "PRD-441"
+      }
+    },
+    "relatedIssues": {
+      "scope_lock": {
+        "issue": "PRD-436"
+      },
+      "deferred_donate": {
+        "issue": "PRD-439",
+        "status": "backlog_deferred_out_of_nyc_scope"
+      },
+      "card_endow_gate": {
+        "issue": "PRD-440"
+      },
+      "card_endow_shared": {
+        "issue": "PRD-442"
+      },
+      "card_endow_agent": {
+        "issue": "PRD-443"
+      },
+      "card_endow_client": {
+        "issue": "PRD-444"
+      },
+      "brief_source": {
+        "issue": "PRD-487"
+      }
+    },
+    "skillTrack": {
+      "parentIssue": "PRD-569",
+      "status": "backlog_tracking",
+      "children": {
+        "input_schema": {
+          "issue": "PRD-570"
+        },
+        "designmd_template_fixture": {
+          "issue": "PRD-571"
+        },
+        "wallet_first_vault_runtime": {
+          "issue": "PRD-572"
+        },
+        "provider_and_create_vault_boundaries": {
+          "issue": "PRD-573"
+        }
+      },
+      "comments": {
+        "delivery_parent": "13a5208c-38d0-4c1c-9f98-ff7706cc5d83",
+        "grant_tracker": "76d60a26-904c-419d-b832-2aa0ec652711"
       }
     },
     "project": "NYC Vault Crowdfunding"

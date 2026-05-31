@@ -2,8 +2,8 @@
  * Fund view behavior tests for the editorial public browser refresh.
  *
  * Locks the public-only contract:
- * - Each Garden row exposes Donate + Endow CTAs (no intermediate intent picker).
- * - Tapping Donate or Endow opens PublicFundingCard with the matching intent.
+ * - Each Garden row exposes Endow CTAs only for the NYC vault/endow sprint.
+ * - Tapping Endow opens PublicFundingCard with the endow intent.
  * - `?intent=` mounts the receipt UI.
  * - `?garden=` stale resolution renders a non-blocking message.
  * - The Garden section exposes the public Manage Endowments panel link.
@@ -126,7 +126,7 @@ const messages: Record<string, string> = {
   "public.fund.title": "Fund",
   "public.fund.heroTitle": "A small gesture today, growing over many seasons.",
   "public.fund.heroLede":
-    "Donate to support a Garden's immediate work, or Endow a Vault designed so yield helps the Garden over time.",
+    "Endow a Garden Vault so yield can support the Garden over many seasons.",
   "public.fund.dialog.donate.title": "Donate",
   "public.fund.dialog.endow.title": "Endow",
 };
@@ -259,22 +259,12 @@ describe("FundPage", () => {
     );
   });
 
-  it("each Garden row exposes Donate + Endow CTAs (no intermediate picker)", () => {
+  it("each Garden row exposes Endow CTAs and no Donate CTAs", () => {
     renderView();
-    const donateButtons = screen.getAllByRole("button", { name: "Donate" });
     const endowButtons = screen.getAllByRole("button", { name: "Endow" });
-    expect(donateButtons).toHaveLength(2);
     expect(endowButtons).toHaveLength(2);
+    expect(screen.queryByRole("button", { name: "Donate" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Support" })).toBeNull();
-  });
-
-  it("clicking Donate opens PublicFundingCard with intent=donate", async () => {
-    const user = userEvent.setup();
-    renderView();
-    await user.click(screen.getAllByRole("button", { name: "Donate" })[0]);
-    const card = await screen.findByTestId("public-funding-card");
-    expect(card).toHaveAttribute("data-intent", "donate");
-    expect(card).toHaveTextContent("Solar Community Garden");
   });
 
   it("clicking Endow opens PublicFundingCard with intent=endow", async () => {
@@ -299,7 +289,7 @@ describe("FundPage", () => {
   it("places Manage Endowments as a link button in the Garden selection section", () => {
     renderView();
     const gardenSection = screen
-      .getByRole("heading", { name: /Gardens accepting support/i })
+      .getByRole("heading", { name: /Gardens accepting endowments/i })
       .closest("section");
 
     expect(gardenSection).not.toBeNull();
@@ -342,22 +332,22 @@ describe("FundPage", () => {
     });
   });
 
-  it("renders the standalone vault section between the hero and Donate/Endow context", () => {
+  it("renders the standalone vault section between the hero and Endow context", () => {
     renderView();
 
     const hero = screen.getByRole("heading", { level: 1 });
     const vaults = screen.getByRole("heading", {
       name: /Endowment capital already supporting Gardens/i,
     });
-    const paths = screen.getByRole("heading", { name: /Donate now, or Endow/i });
-    const gardens = screen.getByRole("heading", { name: /Gardens accepting support/i });
+    const paths = screen.getByRole("heading", { name: /Endow for many seasons/i });
+    const gardens = screen.getByRole("heading", { name: /Gardens accepting endowments/i });
 
     expect(hero.compareDocumentPosition(vaults) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(vaults.compareDocumentPosition(paths) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(paths.compareDocumentPosition(gardens) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(screen.getByText("§ 01 — Endowment engine")).toBeInTheDocument();
-    expect(screen.getByText("§ 02 — Ways to support")).toBeInTheDocument();
-    expect(screen.getByText("§ 03 — Choose where to apply your support")).toBeInTheDocument();
+    expect(screen.getByText("§ 02 — Endowment path")).toBeInTheDocument();
+    expect(screen.getByText("§ 03 — Choose where to endow")).toBeInTheDocument();
   });
 
   it("wires the vault stats section into the reveal lifecycle", () => {
@@ -423,7 +413,7 @@ describe("FundPage", () => {
     renderView();
 
     const gardenCard = screen.getByRole("group", {
-      name: "Solar Community Garden funding options",
+      name: "Solar Community Garden endowment option",
     });
     expect(gardenCard).toHaveTextContent("2,005 DAI · 1.25 ETH");
     expect(gardenCard).toHaveTextContent("Yield accrued 25 DAI / 0.15 ETH");

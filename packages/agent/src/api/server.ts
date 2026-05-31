@@ -483,6 +483,12 @@ function validateFundingIntentRequest(body: unknown): CreateFundingIntentRequest
   if (candidate.fundingIntent !== "donate" && candidate.fundingIntent !== "endow") {
     return safeError("invalid_request", "Invalid funding intent.");
   }
+  if (candidate.fundingIntent === "donate" && candidate.destinationType !== "cookieJar") {
+    return safeError("invalid_request", "Donate card intents must target a Cookie Jar.");
+  }
+  if (candidate.fundingIntent === "endow" && candidate.destinationType !== "vault") {
+    return safeError("invalid_request", "Endow card intents must target a Vault.");
+  }
   if (!isAddress(candidate.destinationAddress)) {
     return safeError("invalid_request", "Invalid destination address.", {
       fieldErrors: { destinationAddress: "Invalid address" },
@@ -491,6 +497,16 @@ function validateFundingIntentRequest(body: unknown): CreateFundingIntentRequest
   if (!isAddress(candidate.token)) {
     return safeError("invalid_request", "Invalid token address.", {
       fieldErrors: { token: "Invalid address" },
+    });
+  }
+  if (candidate.receiverAddress !== undefined && !isAddress(candidate.receiverAddress)) {
+    return safeError("invalid_request", "Invalid receiver address.", {
+      fieldErrors: { receiverAddress: "Invalid address" },
+    });
+  }
+  if (candidate.fundingIntent === "endow" && !candidate.receiverAddress) {
+    return safeError("invalid_request", "Card Endow requires a recovered receiver wallet.", {
+      fieldErrors: { receiverAddress: "Receiver wallet is required for Card Endow" },
     });
   }
 
@@ -518,6 +534,7 @@ function validateFundingIntentRequest(body: unknown): CreateFundingIntentRequest
     token: candidate.token,
     availabilityKey: candidate.availabilityKey,
     clientRequestId: candidate.clientRequestId,
+    receiverAddress: candidate.receiverAddress,
     payerEmail: candidate.payerEmail,
     locale: candidate.locale,
   };
@@ -556,7 +573,7 @@ function createFundingIntentRecord(input: {
     receiptTokenHash: input.receiptTokenHash,
     quoteExpiresAt,
     checkoutExpiresAt: input.checkout.checkoutExpiresAt ?? input.checkout.checkoutSession.expiresAt,
-    receiverAddress: input.checkout.receiverAddress,
+    receiverAddress: input.request.receiverAddress ?? input.checkout.receiverAddress,
     quotedAssetAmount: input.checkout.quotedAssetAmount,
     minAssetAmount: input.checkout.minAssetAmount,
     checkoutSession: input.checkout.checkoutSession,
@@ -1250,6 +1267,17 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
       !checkout.providerSessionId ||
       parseBaseUnitAmount(checkout.quotedAssetAmount) === undefined ||
       parseBaseUnitAmount(checkout.minAssetAmount) === undefined
+    ) {
+      return c.json(
+        safeError("provider_unavailable", "This funding provider is unavailable right now."),
+        503
+      );
+    }
+    const checkoutReceiverAddress =
+      checkout.receiverAddress ?? checkout.checkoutSession.checkoutPayload?.receiverAddress;
+    if (
+      request.fundingIntent === "endow" &&
+      normalizeAddress(checkoutReceiverAddress) !== normalizeAddress(request.receiverAddress)
     ) {
       return c.json(
         safeError("provider_unavailable", "This funding provider is unavailable right now."),

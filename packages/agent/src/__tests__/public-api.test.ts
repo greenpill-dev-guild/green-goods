@@ -18,6 +18,7 @@ import { type FundingIntentRecord, MemoryFundingIntentStore } from "../services/
 const ORIGIN = "https://greengoods.app";
 const gardenId = "0x1111111111111111111111111111111111111111";
 const destinationAddress = "0x2222222222222222222222222222222222222222";
+const receiverAddress = "0x3333333333333333333333333333333333333333";
 const token = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
 const availabilityInput = {
@@ -44,6 +45,36 @@ const createFundingRequest = (): CreateFundingIntentRequest => ({
   clientRequestId: "client-request-1",
   payerEmail: "supporter@example.org",
   locale: "en",
+});
+
+const cardEndowAvailabilityInput = {
+  gardenKey: gardenId,
+  destinationType: "vault" as const,
+  destinationAddress,
+  fundingIntent: "endow" as const,
+  paymentMethod: "card" as const,
+  chainId: 11155111,
+  token,
+  provider: "thirdweb" as const,
+};
+
+const createCardEndowFundingRequest = (
+  overrides: Partial<CreateFundingIntentRequest> = {}
+): CreateFundingIntentRequest => ({
+  gardenId,
+  destinationType: "vault",
+  destinationAddress,
+  fundingIntent: "endow",
+  paymentMethod: "card",
+  amountUsd: "25.00",
+  chainId: 11155111,
+  token,
+  availabilityKey: buildPublicFundingAvailabilityKey(cardEndowAvailabilityInput),
+  clientRequestId: "client-request-endow-1",
+  receiverAddress,
+  payerEmail: "supporter@example.org",
+  locale: "en",
+  ...overrides,
 });
 
 function jsonHeaders(extra: Record<string, string> = {}) {
@@ -284,6 +315,171 @@ describe("public funding intent API", () => {
 
     expect(response.status).toBe(503);
     expect((await response.json()).errorCode).toBe("provider_unavailable");
+  });
+
+  it("rejects Card Endow creation without a recovered receiver wallet", async () => {
+    const thirdwebCheckout: ThirdwebCheckoutClient = {
+      createSession: vi.fn(),
+    };
+    const app = createServer(
+      {
+        isAIReady: () => true,
+        allowedOrigins: new Set([ORIGIN]),
+        publicRateLimiter: new InMemoryPublicRateLimiter(),
+        providerProofRegistry: createProviderProofRegistry([
+          {
+            ...cardEndowAvailabilityInput,
+            state: "live",
+            proofReference: "spike:card-endow-recovered-wallet-sepolia-2026-05-30",
+          },
+        ]),
+        thirdwebClientId: "thirdweb-client",
+        thirdwebCheckout,
+      },
+      { logger: false }
+    );
+
+    const response = await app.request(PUBLIC_AGENT_ROUTES.fundingIntents, {
+      method: "POST",
+      headers: jsonHeaders(),
+      body: JSON.stringify(createCardEndowFundingRequest({ receiverAddress: undefined })),
+    });
+
+    expect(response.status).toBe(400);
+    expect((await response.json()).fieldErrors).toEqual({
+      receiverAddress: "Receiver wallet is required for Card Endow",
+    });
+    expect(thirdwebCheckout.createSession).not.toHaveBeenCalled();
+  });
+
+  it("requires Card Endow checkout sessions to target the recovered receiver wallet", async () => {
+    const thirdwebCheckout: ThirdwebCheckoutClient = {
+      createSession: vi.fn(async ({ fundingIntentId, request, quoteExpiresAt }) => ({
+        providerSessionId: `thirdweb_${fundingIntentId}`,
+        checkoutSession: {
+          provider: "thirdweb" as const,
+          mode: "widget" as const,
+          expiresAt: quoteExpiresAt,
+          clientToken: `checkout_${fundingIntentId}`,
+          checkoutPayload: {
+            provider: "thirdweb" as const,
+            clientId: "thirdweb-client",
+            chainId: request.chainId,
+            destinationAddress: request.destinationAddress,
+            token: request.token,
+            amountUsd: request.amountUsd,
+            minAssetAmount: "25000000",
+            transaction: {
+              to: request.destinationAddress,
+              data: "0x1234" as `0x${string}`,
+              value: "0",
+            },
+            metadata: {
+              gardenId: request.gardenId,
+              destinationType: request.destinationType,
+              fundingIntent: request.fundingIntent,
+            },
+          },
+        },
+        quotedAssetAmount: "25000000",
+        minAssetAmount: "25000000",
+      })),
+    };
+    const app = createServer(
+      {
+        isAIReady: () => true,
+        allowedOrigins: new Set([ORIGIN]),
+        fundingIntents: new MemoryFundingIntentStore(),
+        publicRateLimiter: new InMemoryPublicRateLimiter(),
+        providerProofRegistry: createProviderProofRegistry([
+          {
+            ...cardEndowAvailabilityInput,
+            state: "live",
+            proofReference: "spike:card-endow-recovered-wallet-sepolia-2026-05-30",
+          },
+        ]),
+        thirdwebClientId: "thirdweb-client",
+        thirdwebCheckout,
+      },
+      { logger: false }
+    );
+
+    const response = await app.request(PUBLIC_AGENT_ROUTES.fundingIntents, {
+      method: "POST",
+      headers: jsonHeaders(),
+      body: JSON.stringify(createCardEndowFundingRequest()),
+    });
+
+    expect(response.status).toBe(503);
+    expect((await response.json()).errorCode).toBe("provider_unavailable");
+  });
+
+  it("records Card Endow receiver semantics on receipts and checkout payloads", async () => {
+    const thirdwebCheckout: ThirdwebCheckoutClient = {
+      createSession: vi.fn(async ({ fundingIntentId, request, quoteExpiresAt }) => ({
+        providerSessionId: `thirdweb_${fundingIntentId}`,
+        checkoutSession: {
+          provider: "thirdweb" as const,
+          mode: "widget" as const,
+          expiresAt: quoteExpiresAt,
+          clientToken: `checkout_${fundingIntentId}`,
+          checkoutPayload: {
+            provider: "thirdweb" as const,
+            clientId: "thirdweb-client",
+            chainId: request.chainId,
+            destinationAddress: request.destinationAddress,
+            receiverAddress: request.receiverAddress,
+            token: request.token,
+            amountUsd: request.amountUsd,
+            minAssetAmount: "25000000",
+            transaction: {
+              to: request.destinationAddress,
+              data: "0x1234" as `0x${string}`,
+              value: "0",
+            },
+            metadata: {
+              gardenId: request.gardenId,
+              destinationType: request.destinationType,
+              fundingIntent: request.fundingIntent,
+            },
+          },
+        },
+        receiverAddress: request.receiverAddress,
+        quotedAssetAmount: "25000000",
+        minAssetAmount: "25000000",
+      })),
+    };
+    const app = createServer(
+      {
+        isAIReady: () => true,
+        allowedOrigins: new Set([ORIGIN]),
+        fundingIntents: new MemoryFundingIntentStore(),
+        publicRateLimiter: new InMemoryPublicRateLimiter(),
+        providerProofRegistry: createProviderProofRegistry([
+          {
+            ...cardEndowAvailabilityInput,
+            state: "live",
+            proofReference: "spike:card-endow-recovered-wallet-sepolia-2026-05-30",
+          },
+        ]),
+        thirdwebClientId: "thirdweb-client",
+        thirdwebCheckout,
+      },
+      { logger: false }
+    );
+
+    const response = await app.request(PUBLIC_AGENT_ROUTES.fundingIntents, {
+      method: "POST",
+      headers: jsonHeaders(),
+      body: JSON.stringify(createCardEndowFundingRequest()),
+    });
+
+    const body = await response.json();
+    expect(response.status).toBe(200);
+    expect(body.publicReceipt.receiverAddress).toBe(receiverAddress);
+    expect(body.publicReceipt.appManagementCta).toBe("manage_endowments");
+    expect(body.publicReceipt.managementUrl).toBe("/fund?manage=endowments");
+    expect(body.checkoutSession.checkoutPayload.receiverAddress).toBe(receiverAddress);
   });
 
   it("creates a card-only intent with fragment receipt URL and no-store headers", async () => {

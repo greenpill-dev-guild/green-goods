@@ -197,6 +197,7 @@ export function createIdempotencyFingerprint(
     request.token.trim().toLowerCase(),
     request.availabilityKey,
     provider,
+    request.receiverAddress?.trim().toLowerCase() ?? "",
     normalizeEmailHash(request.payerEmail) ?? "",
   ];
 

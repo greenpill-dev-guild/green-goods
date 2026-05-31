@@ -5,7 +5,9 @@
 Make `/fund` the public account surface for endowed vault positions. Wallet users own wallet-funded
 endowments with the connected wallet. Card users must own card-funded endowments through a recovered
 email/social embedded wallet before Card Endow can launch. Withdrawals return tokens to the owning
-wallet/account first; fiat off-ramp is outside this recovery plan.
+wallet/account first; fiat off-ramp is outside this recovery plan. As of the NYC scope lock, the June
+1 sprint is vault/endow only. Public Donate and Card Donate are deferred to separate future
+non-Cookie-Jar scope.
 
 ## Users
 
@@ -28,15 +30,15 @@ wallet/account first; fiat off-ramp is outside this recovery plan.
    v1.
 6. Wallet Endow remains visible during implementation.
 7. `/fund` must make the funding lane matrix explicit:
-   - Wallet Donate: current direct wallet Cookie Jar support path.
-   - Wallet Endow: current direct wallet Vault deposit path plus public withdrawal management.
+   - Wallet Endow: direct wallet Vault deposit path plus public withdrawal management.
    - Manage Endowments: account-gated public panel on `/fund`.
-   - Card Donate: hidden until exact checkout, webhook, and onchain proof is live.
-   - Card Endow: hidden until email/social wallet ownership, vault-share proof, and public withdrawal
-     proof are live.
-8. Card Donate can relaunch only after real checkout and webhook proof is wired and tested. Provider
-   success or a generic token transfer is insufficient; the proof must validate the intended Cookie
-   Jar funding transaction or final Cookie Jar deposit effect for the selected Garden.
+   - Card Endow: in scope but hidden until email/social wallet ownership, vault-share proof, public
+     visibility, and public withdrawal proof are live.
+   - Donate: deferred to separate future non-Cookie-Jar scope; do not expose public Donate on `/fund`
+     during this sprint.
+8. Card Donate is not an active implementation lane for this sprint. Any future Donate scope must be
+   separate from this NYC vault/endow work and must not rely on the removed Cookie Jar/Card Donate
+   acceptance path.
 9. Card Endow must remain hidden until the checkout request includes a user-owned `receiverAddress`
    for the recovered email/social wallet, deposits vault shares to that receiver, records/validates a
    share-verification step, and proves the resulting shares are visible and withdrawable from `/fund`.
@@ -55,14 +57,42 @@ wallet/account first; fiat off-ramp is outside this recovery plan.
   defaults to today (`100n`, 1%). Do not copy the current permissive `VAULT_MAX_BPS` preview value
   into the public Max button.
 - Card availability must be keyed to the exact provider-proof tuple: intent, chain, Garden
-  destination, token, amount/minimum amount behavior, and payment method. Card Donate proof never
-  unlocks Card Endow.
-- Card Donate checkout/session construction must target the app-approved Cookie Jar support path for
-  the Garden. Webhook handling must verify receiver, destination chain, token, amount, transaction
-  hash, and the Cookie Jar postcondition before marking the intent funded.
+  destination, token, amount/minimum amount behavior, and payment method. Deferred Card Donate proof
+  never unlocks Card Endow.
 - Card Endow checkout/session construction must target a vault deposit to the recovered user
   `receiverAddress`, then verify vault shares through `share_verification` and/or the owner-scoped
   deposit read before any public Card Endow availability is enabled.
+
+## Reusable Skill Tracking Requirements
+
+This hub also tracks the future reusable vault crowdfunding UI skill as follow-on work. This pass only
+updates repo and Linear tracking; it does not build the skill, template, or deploy surface.
+
+Required skill inputs to track:
+
+- DesignMD input path for the community or campaign. Generation must fail closed if the input is
+  missing rather than inventing a visual system from prose.
+- Campaign context: community name, campaign goal, vault story, impact framing, CTA labels, risk
+  notes, and any upstream brief link that is safe to reference.
+- Existing vault manifest: chain ID, vault address, asset address, asset symbol, decimals, display
+  name, explorer link, and optional indexer/position support.
+- Runtime modules: wallet-first vault endow/deposit, optional public manage-withdraw surface, optional
+  create-vault setup module, and optional card-provider adapter slots.
+- Deployment target: Vercel-ready config and environment variable names only; no secrets in tracked
+  files or generated client code.
+
+Required skill output boundaries to track:
+
+- The skill belongs first in the repo's canonical skill source and mirrors into the agent skill
+  surface through the normal skill sync path when implementation starts.
+- Green Goods / NYC vaults are the first fixture input. The generated UI must remain agnostic enough
+  for Octant and other public-goods vault communities.
+- Stripe, Coinbase, and Thirdweb stay as provider adapter stubs until separate live-provider work is
+  scoped with server-side verification, receipt policy, and redacted logging.
+- Existing vaults are the default. Create-vault support is operator setup scaffolding, not a public
+  campaign control and not a deployment broadcast in this plan.
+- The portable skill work is tracked in Linear as its own parent issue with child issues, linked back
+  to this plan and the NYC Vault Crowdfunding project.
 
 ## Research Evidence
 
@@ -76,7 +106,8 @@ wallet/account first; fiat off-ramp is outside this recovery plan.
   - Existing receipt contract: `packages/shared/src/public-contracts/index.ts`
   - Existing funding intent server: `packages/agent/src/api/server.ts`
   - Agent startup dependency wiring: `packages/agent/src/index.ts`
-  - Existing wallet Cookie Jar donate hook: `packages/shared/src/hooks/cookie-jar/useCookieJarDeposit.ts`
+  - Existing wallet Cookie Jar donate hook preserved for future scope:
+    `packages/shared/src/hooks/cookie-jar/useCookieJarDeposit.ts`
   - Existing receipt UI: `packages/client/src/components/Public/PublicFundingReceipt.tsx`
 - Source files, tests, or docs reviewed:
   - `packages/client/AGENTS.md`
@@ -94,7 +125,8 @@ wallet/account first; fiat off-ramp is outside this recovery plan.
   - Wallet Endow already passes the connected `primaryAddress` as the vault deposit receiver.
   - Shared data already exposes an owner-scoped all-Gardens vault deposit query.
   - The reusable withdrawal mutation exists in shared and is already consumed by Treasury.
-  - Wallet Donate currently calls the Garden Cookie Jar `deposit(amount)` contract path.
+  - Wallet Donate currently calls the Garden Cookie Jar `deposit(amount)` contract path, but is not
+    part of the NYC vault/endow sprint public `/fund` surface.
   - The current `/fund` tests still assert no public withdrawal controls; this must be replaced, not
     preserved.
   - `packages/client/DESIGN.browser.md` and funder-guide docs currently say `/fund` has no public
@@ -110,11 +142,14 @@ wallet/account first; fiat off-ramp is outside this recovery plan.
   - Current Thirdweb webhook docs use SDK parsing or timestamped signatures with
     `x-payload-signature` / `x-pay-signature` and nested payload data, so the implementation must not
     assume the existing flat `x-thirdweb-signature` shape is current.
+  - The plan-hub validator only treats `ui`, `state_api`, `contracts`, `qa_pass_1`, and `qa_pass_2`
+    as automation lanes; reusable-skill Linear links must be recorded as related tracking metadata,
+    not custom `linear.lanes` entries.
 - Open inferences or assumptions:
   - No contract or indexer schema migration is needed for the public withdrawal panel.
   - Card Endow needs an email/social wallet ownership gate before it can be safely exposed.
-  - Thirdweb checkout/widget choice must be finalized during the state/API lane, but must preserve the
-    receiver-account and strict onchain verification requirements above.
+  - Thirdweb checkout/widget choice for future card lanes must preserve the receiver-account and
+    strict onchain verification requirements above.
 
 ## Human Judgment Points
 
@@ -137,9 +172,11 @@ wallet/account first; fiat off-ramp is outside this recovery plan.
 - Tradeoffs to keep visible during review:
   - Active scheduling. This hub is now active; start with public position data and `/fund`
     management before card recovery work.
-  - Public withdrawal must not wait for Card Donate recovery if the implementation is split into
+  - Public withdrawal must not wait for deferred Donate recovery if the implementation is split into
     separate PRs.
-  - Card Donate and public withdrawal can ship before the later Card Endow lane.
+  - Card Endow is part of this work but not shippable or visible until all proof gates pass.
+  - Reusable skill tracking must not expand the June 1 sprint. It should make the future skill work
+    visible without changing the `/fund` acceptance gates.
 
 ## Non-Functional Constraints
 
@@ -160,8 +197,8 @@ wallet/account first; fiat off-ramp is outside this recovery plan.
 
 | Area | Lane | Notes |
 |---|---|---|
-| UI | `ui` | `/fund` account panel, receipt wayfinding, copy, i18n |
-| State / API | `state_api` | shared public endowment-position hook plus agent Thirdweb/card proof path |
+| UI | `ui` | `/fund` account panel, receipt wayfinding, endow-only public sprint surface, copy, i18n |
+| State / API | `state_api` | shared public endowment-position hook plus Card Endow receiver/proof gates |
 | Contracts | `contracts` | `n/a`; no Solidity, deployment, or indexer schema work planned |
 | QA | `qa_pass_1`, `qa_pass_2` | Sequential review of wallet withdrawal path and card gating |
 
@@ -169,12 +206,15 @@ wallet/account first; fiat off-ramp is outside this recovery plan.
 
 1. Public position data: shared hook/type, safe withdrawable limit, query invalidation, and exports.
 2. Public management UI: `/fund?manage=endowments`, connected empty/active states, withdrawal flow,
-   receipt CTA, explicit funding lane availability, tests, docs truth, and i18n.
-3. Card Donate recovery: real Thirdweb checkout dependency, provider proof entry discipline, current
-   webhook parser/signature verification, strict tuple tests, and Cookie Jar postcondition proof.
-4. Card Endow gate: request/receipt types can represent receiver ownership, but UI/API exposure stays
+   receipt CTA, endow-only public sprint surface, tests, docs truth, and i18n.
+3. Card Endow gate: request/receipt types can represent receiver ownership, but UI/API exposure stays
    hidden until an email-wallet receiver deposit is share-verified, visible, and withdrawable from
    `/fund`.
+4. Donate deferral: preserve underlying Cookie Jar code, but remove public `/fund` Donate CTAs and
+   move Donate planning to separate future non-Cookie-Jar scope.
+5. Skill tracking: record the reusable vault crowdfunding UI skill as a related planning track with
+   DesignMD input requirements, vault manifest requirements, wallet-first runtime assumptions,
+   provider adapter boundaries, and Linear parent/child issue links.
 
 ## Risks
 
@@ -183,18 +223,21 @@ wallet/account first; fiat off-ramp is outside this recovery plan.
 - Risk: Card Endow becomes visible before ownership and withdrawal are proven.
   - Mitigation: keep Card Endow hidden behind provider proof, email-wallet ownership checks,
     share-verification proof, and public withdrawal proof.
-- Risk: Card Donate bypasses Cookie Jar semantics by proving only a provider payment.
-  - Mitigation: require the checkout target/call and webhook/onchain postcondition to match the
-    app-approved Cookie Jar support path for the Garden.
+- Risk: deferred Donate scope leaks back into the NYC sprint.
+  - Mitigation: hide public Donate on `/fund`, preserve low-level Cookie Jar code only, and track any
+    future Donate work in separate Linear scope.
 - Risk: provider proof entries are too broad.
   - Mitigation: require exact availability keys by intent, Garden destination, token, chain, and
     method; one proof cannot unlock another lane.
-- Risk: Card Donate recovery blocks the public withdrawal fix.
-  - Mitigation: sequence public position data and `/fund` management as the first implementation
-    slice; Card Donate recovery is the next slice.
+- Risk: Donate recovery blocks the public withdrawal fix.
+  - Mitigation: keep Donate out of this sprint; sequence public position data, `/fund` management,
+    and Card Endow proof gates only.
 - Risk: the public Max button offers an amount the transaction later rejects.
   - Mitigation: share or parameterize max-loss basis points so preview and mutation use the same
     safe value.
 - Risk: this becomes a broad funding redesign.
   - Mitigation: scope the first implementation to `/fund` management, shared data, agent card proof,
     docs truth, and tests only.
+- Risk: reusable skill work gets mistaken for current sprint implementation scope.
+  - Mitigation: track it as related metadata and Linear child issues, not as a new active automation
+    lane or a runtime code requirement in this pass.

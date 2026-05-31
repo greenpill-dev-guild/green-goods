@@ -5,17 +5,16 @@ import {
   type PublicGardenVaultSummary,
   type PublicVaultSummaryAsset,
 } from "@green-goods/shared";
-import type { PublicFundingIntentKind } from "@green-goods/shared/public-contracts";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { ImageWithFallback } from "@/components/Display";
-import { EditorialGhostButton, EditorialKicker, EditorialPrimaryButton } from "./atoms";
+import { EditorialKicker, EditorialPrimaryButton } from "./atoms";
 import { GardenCoverFallback } from "./GardenCoverFallback";
 
 export interface PublicGardenRowProps {
   garden: PublicGardenSummary;
   vaultSummary?: PublicGardenVaultSummary;
-  onSupport: (garden: PublicGardenSummary, intent: PublicFundingIntentKind) => void;
+  onSupport: (garden: PublicGardenSummary) => void;
 }
 
 /**
@@ -34,10 +33,9 @@ function aggregateGardenerCount(garden: PublicGardenSummary): number {
 /**
  * PublicGardenRow — compact horizontal Garden card used in the Fund-page grid.
  *
- * Anatomy: small thumbnail (left) → garden name + meta (center) → stacked
- * Donate/Endow CTAs (right). Tapping the thumbnail/title block routes to the
- * public Garden detail page; tapping a CTA opens the funding method selector
- * with that intent pre-set so the dialog skips its own intent step.
+ * Anatomy: small thumbnail (left) → garden name + meta (center) → Endow CTA
+ * (right). Tapping the thumbnail/title block routes to the public Garden detail
+ * page; tapping the CTA opens the funding card with the Endow intent pre-set.
  *
  * Density tuned for funder-mode scanning (smaller padding than discovery
  * cards on /gardens) so two cards fit per desktop row at sm:grid-cols-2.
@@ -79,7 +77,7 @@ export function PublicGardenRow({ garden, vaultSummary, onSupport }: PublicGarde
       aria-label={formatMessage(
         {
           id: "public.fund.gardenCardLabel",
-          defaultMessage: "{garden} funding options",
+          defaultMessage: "{garden} endowment option",
         },
         { garden: garden.name || garden.slug }
       )}
@@ -124,18 +122,11 @@ export function PublicGardenRow({ garden, vaultSummary, onSupport }: PublicGarde
 
       <div className="flex shrink-0 flex-col items-stretch justify-center gap-2">
         <EditorialPrimaryButton
-          onClick={() => onSupport(garden, "donate")}
-          className="px-4 py-2 text-xs sm:text-sm"
-        >
-          {formatMessage({ id: "public.fund.dialog.donate.title", defaultMessage: "Donate" })}
-        </EditorialPrimaryButton>
-        <EditorialGhostButton
-          variant="warm"
-          onClick={() => onSupport(garden, "endow")}
+          onClick={() => onSupport(garden)}
           className="px-4 py-2 text-xs sm:text-sm"
         >
           {formatMessage({ id: "public.fund.dialog.endow.title", defaultMessage: "Endow" })}
-        </EditorialGhostButton>
+        </EditorialPrimaryButton>
       </div>
     </div>
   );
