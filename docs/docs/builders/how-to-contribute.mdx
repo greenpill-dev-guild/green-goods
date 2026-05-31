@@ -5,7 +5,7 @@ slug: /builders/how-to-contribute
 sidebar_position: 2
 audience: developer
 owner: docs
-last_verified: 2026-04-27
+last_verified: 2026-05-30
 feature_status: Live
 source_of_truth:
   - AGENTS.md
@@ -28,16 +28,17 @@ Green Goods is open source and built by the [Greenpill Dev Guild](https://paragr
 
 ---
 
-## Starting Your First Issue
+## Picking Up Your First Task
 
-The best way to get started is to pick an issue from the [GitHub issue tracker](https://github.com/greenpill-dev-guild/green-goods/issues):
+Green Goods tracks all product work — bugs, ideas, polish, scoped tasks — in **Linear** (the Greenpill Dev Guild workspace). GitHub is for pull requests and code review only; the issue tracker is disabled by design.
 
-1. **Look for `good first issue` labels** — These are scoped, well-documented, and appropriate for newcomers
-2. **Comment on the issue** — Let the team know you're working on it to avoid duplicate effort
-3. **Read the relevant context files** — Each package has a `.claude/context/*.md` file explaining conventions and patterns
-4. **Set up your local environment** — Follow the [Getting Started](/builders/getting-started) guide
+To pick up your first piece of work:
 
-Issues are not open-ended bounties. Paid implementation work is grant-dependent, must be explicitly scoped with maintainers, and should be tied to clear acceptance criteria before work begins.
+1. **Say hello in [Discord](https://discord.gg/greenpill) or [Telegram](https://t.me/+N3o3_43iRec1Y2Jh)** — Tell a maintainer what you'd like to work on and ask for a scoped starter task. Maintainers track accepted work in Linear and will point you at something `good first issue`-sized.
+2. **Read the relevant context files** — Each package has a `.claude/context/*.md` file explaining conventions and patterns
+3. **Set up your local environment** — Follow the [Getting Started](/builders/getting-started) guide
+
+Work is not open-ended bounties. Paid implementation work is grant-dependent, must be explicitly scoped with maintainers, and should be tied to clear acceptance criteria before work begins.
 
 ### Understanding the codebase
 
@@ -76,6 +77,8 @@ Green Goods welcomes unpaid open-source contributions and clearly scoped funded 
 ---
 
 ## Making A Pull Request
+
+Green Goods uses a **`develop` (staging) → `main` (production)** flow: branch from `develop` and open your PR into `develop`. Maintainers promote `develop → main` for production releases. Both branches require a passing-CI pull request to merge.
 
 ### Branch naming
 
@@ -123,7 +126,7 @@ bun run build         # Build everything (respects dependency order)
 
 ### PR workflow
 
-1. **Create a branch** from `main` with the naming convention above
+1. **Create a branch** from `develop` with the naming convention above
 2. **Make your changes** — Keep PRs focused on a single concern
 3. **Run the quality gate** — All four commands must pass; use `bun run format` if formatting needs to be fixed
 4. **Push and create a PR** — Include a clear description of what and why
