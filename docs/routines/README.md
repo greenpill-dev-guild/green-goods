@@ -77,9 +77,19 @@ All routine writes use the canonical Linear label scheme. Old vocabularies (`are
 | `activity:*` | Routines apply: `activity:qa` (bug fixes, anomaly review, operational health validation), `activity:maintenance` (polish/cleanup that isn't a user-visible defect). The full Linear taxonomy also includes `activity:research`, `activity:architecture`, `activity:build`, `activity:design` — those are human-applied and not used by GG routines. |
 | `task:*` | Routines apply when clear: `task:evidence`, `task:funding-pathway`, `task:access-participation`, `task:reputation-identity`, `task:data-input`, `task:local-onboarding`, `task:evaluator-review`. Omit if the work doesn't clearly map to one of these task pathways. |
 | `source:*` | `source:discord`, `source:telegram`, `source:drive` | Provenance of the originating signal (Customer Needs always carry this; Issues carry it when the originating provenance still matters). |
-| `agent:*` | `agent:routine` (always) | Routine-authored provenance. Optionally pair with `agent:claude` to identify the agent that ran the routine when that distinction matters. Provenance only, not human priority. |
+| `agent:*` | `agent:routine` (default) · `agent:codex` (Codex-ready Issues) | Single-value-per-Issue provenance/routing. Default `agent:routine`; swap to `agent:codex` when an accepted Issue clears the Codex-ready bar (see § Codex hand-off). Provenance only, not human priority. |
 
 The dispatch labels `automation:claude` / `automation:codex` (legacy GitHub-era handoff flags) and the `work:polish` / `work:customer-need` / `area:*` / `health:*` / `grant:*` labels are not used. GitHub Project #4 and its `automated/claude` + `health:*` label set are retired entirely; no active routine writes to a GitHub Issue surface.
+
+## Codex hand-off (label + delegate)
+
+Routines that create accepted Issues can route them to Codex in two tiers. The `agent:*` label is **single-value**, so `agent:codex` *replaces* `agent:routine` — never both.
+
+- **Tier 1 — label `agent:codex` (the queue).** When an accepted Issue clears the **Codex-ready bar** — *clear behavior + named surface + suggestable fix + a validation command (explicit, or inferable from the repo)* — set `agent:codex` (instead of `agent:routine`) and `Todo`. It now appears in the Codex queue (`label:agent:codex` + `Todo` + undelegated) for a human to delegate.
+- **Tier 2 — also delegate to Codex (auto-build).** When the Issue *also* clears the **autonomous-confident bar** — *a concrete suggested fix + a bounded, non-`critical` surface + mechanical scope + a validation command* — also set the Linear **delegate** to the Codex agent so it builds autonomously, with the human left as assignee/reviewer.
+- **Otherwise** (Codex-ready but not confident, or not Codex-ready) → keep `agent:routine`, undelegated; a human triages/delegates. A vague Issue never clears the bar, so it never auto-reaches Codex — the bar *is* the gate.
+
+**Always human-gated, never auto-delegated** regardless of bar: `package:contracts` and shared auth / session / permit / policy and job-queue / work providers (the repo's `critical` set).
 
 ## Bot API environment
 

@@ -66,7 +66,7 @@ If the Product team, expected Issue statuses, or required canonical labels are m
 
 Codified from the 2026-05-13 `/qa-triage` first-run findings. These three constraints apply to every Linear write this routine makes:
 
-1. **`agent:*` is single-value-per-Issue.** Use `agent:routine` on every Issue this routine creates (cron'd provenance). Never combine with `agent:claude` or `agent:codex` — Linear rejects multi-value writes to this group.
+1. **`agent:*` is single-value-per-Issue.** Default to `agent:routine` (cron'd provenance). When an accepted Issue clears the **Codex-ready bar** (clear behavior + named surface + suggestable fix + validation — see [`README.md` § Codex hand-off](README.md)), set `agent:codex` *instead* (single value — never both; Linear rejects multi-value writes to this group), and **delegate** the Issue to the Codex agent when it also clears the **autonomous-confident bar** (the human stays assignee/reviewer).
 2. **`package:*` is single-value-per-Issue.** When a bug spans more than one package, pick the **primary surface** as the label and name the secondary package(s) in the Issue body's `## Surface` block. Omit the label entirely when the surface is genuinely unknown.
 3. **Customer Needs cannot be standalone.** Linear's `save_customer_need` API rejects calls without an `issue` (or `project`) parameter — `Exactly one of projectId or issueId must be defined`. Every Customer Need this routine creates must link to an Issue. For items that aren't actionable accepted-bug Issues, the routine creates a **lightweight tracking Issue** (`activity:maintenance` + `Backlog`) and links the Need to it. There is no standalone Need path.
 
@@ -83,7 +83,7 @@ Issues created from Customer Needs (whether accepted bugs or lightweight trackin
 | `activity:*` | `activity:qa` for confirmed bugs / behavioral defects; `activity:maintenance` for cleanup/polish/ideas/unactionable feedback that still warrants a tracking Issue | **yes** | Issue. One value only. |
 | `task:*` | `task:evidence`, `task:funding-pathway`, `task:access-participation` | yes | Issue, only when the bug clearly falls inside one of these task pathways; otherwise omit. |
 | `source:*` | `source:discord`, `source:telegram`, `source:drive` | n/a (multi-value family — used as provenance flags) | **Always** on every Issue this routine creates, one per origin (Discord→`source:discord`, Telegram→`source:telegram`, Drive→`source:drive`). This stamp is what scopes the Phase 7 triage count to this routine's own writes, so it is non-optional. Never on the Customer Need — Needs carry no labels. |
-| `agent:*` | `agent:routine` (this routine's only value) | **yes** | Issue. Always `agent:routine` for this routine. The interactive `/qa-triage` skill swaps to `agent:claude` or `agent:codex` during human promotion. |
+| `agent:*` | `agent:routine` (default) · `agent:codex` (Codex-ready accepted bugs) | **yes** | Issue. Default `agent:routine`; swap to `agent:codex` when the accepted bug clears the Codex-ready bar (see [`README.md` § Codex hand-off](README.md)), and delegate to Codex when it also clears the autonomous-confident bar. The `/qa-triage` skill applies the same rule on human promotion. |
 
 ### Workflow state
 
