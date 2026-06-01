@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p0",
     "created_at": "2026-05-09T21:35:46.781Z",
-    "updated_at": "2026-06-01T02:21:14Z"
+    "updated_at": "2026-06-01T02:36:57Z"
   },
   "links": {
     "brief": "brief.md",
@@ -25,40 +25,47 @@
     "surfaces": ["packages/client", "packages/shared", "packages/agent", "docs/docs"],
     "depends_on_features": []
   },
+  "sourceBrief": {
+    "title": "Green Goods x Octant: Crowdfunding UI Alignment Brief",
+    "route": "/vaults",
+    "primaryTarget": "Octant V2 vaults on Ethereum",
+    "correction": "The primary problem is NYC Octant vault crowdfunding UI, not the existing Garden /fund surface."
+  },
   "phasePlan": {
-    "purpose": "June 1 Green Goods public demo for two deployed NYC Ethereum Octant vaults, followed by reusable skill planning after demo validation.",
+    "purpose": "Dedicated public /vaults crowdfunding route for NYC Octant V2 Ethereum vault campaigns, followed by reusable skill planning after demo validation.",
     "phases": [
       {
         "number": 1,
-        "name": "Scope/plan lock + Linear sync",
+        "name": "Brief/scope lock + Linear sync",
         "status": "completed",
         "checkInRequiredAfter": false,
         "exitCriteria": [
-          "brief/spec/plan/eval/status align on Wallet Endow + Thirdweb Card Endow demo scope",
+          "brief/spec/plan/eval/status align on dedicated /vaults route scope",
+          "/fund is recorded as reuse context only, not the primary route",
           "Donate and Card Donate remain deferred",
-          "Linear issues PRD-435, PRD-436, PRD-440, PRD-442, PRD-443, PRD-444, PRD-487, and PRD-569 through PRD-573 carry the corrected tracking note"
+          "Linear issues carry the corrected attached-brief tracking note"
         ]
       },
       {
         "number": 2,
-        "name": "Wallet Endow public demo path",
+        "name": "/vaults campaign route + manifest",
         "status": "pending",
         "checkInRequiredAfter": true,
         "exitCriteria": [
-          "Shareable public /fund demo path presents the two deployed NYC Ethereum Octant vaults",
-          "Wallet Endow deposits to the connected wallet receiver for both vaults",
-          "Receipt/success path returns to /fund?manage=endowments"
+          "/vaults route scaffold and campaign browse states are ready",
+          "NYC Octant V2 Ethereum vault manifest shape is defined",
+          "Users can inspect campaign copy and onchain context without wallet connection"
         ]
       },
       {
         "number": 3,
-        "name": "Thirdweb Card Endow demo path",
+        "name": "Wallet-last Wallet Endow path",
         "status": "pending",
         "checkInRequiredAfter": true,
         "exitCriteria": [
-          "Thirdweb Card Endow checkout is wired for the same two vaults",
-          "Card Endow uses a recovered user wallet receiverAddress",
-          "No provider-owned custody path can receive vault shares"
+          "Users choose vault and amount before wallet connection",
+          "Wallet Endow deposits into both NYC Octant V2 Ethereum vaults",
+          "Connected wallet owns the resulting position"
         ]
       },
       {
@@ -67,20 +74,20 @@
         "status": "pending",
         "checkInRequiredAfter": false,
         "exitCriteria": [
-          "Vault shares are verified for the user/recovered wallet",
-          "share_verification proof is recorded or the owner-scoped deposit read proves the same postcondition",
-          "Card Endow remains hidden until this gate passes"
+          "Wallet-funded shares are visible for the connected wallet",
+          "Recovered-wallet Card Endow shares are verified for the recovered wallet",
+          "No provider-owned custody path can receive vault shares"
         ]
       },
       {
         "number": 5,
-        "name": "Public Manage Endowments / withdrawal proof",
+        "name": "Thirdweb Card Endow demo path",
         "status": "pending",
         "checkInRequiredAfter": true,
         "exitCriteria": [
-          "/fund?manage=endowments shows owned wallet and card-funded endowment positions",
-          "Withdrawal proof succeeds for the owning wallet/account",
-          "Management URL contains no receipt tokens, wallet addresses, emails, or provider identifiers"
+          "Thirdweb checkout targets a user-owned recovered wallet receiverAddress",
+          "Webhook/provider proof verifies exact chain, token, amount, destination, transaction, method, and intent",
+          "Public manage/withdraw proof exists before Card Endow exposure"
         ]
       },
       {
@@ -89,9 +96,9 @@
         "status": "pending",
         "checkInRequiredAfter": true,
         "exitCriteria": [
-          "Desktop and mobile browser proof covers final public /fund demo",
-          "Wallet Endow, Thirdweb Card Endow, ownership/share proof, Manage Endowments, Donate absence, and privacy are verified",
-          "Targeted shared/client/agent tests pass or blockers are recorded"
+          "Desktop and mobile browser proof covers final public /vaults demo",
+          "Wallet-last flow, Wallet Endow, Thirdweb Card Endow gates, privacy, i18n, and copy are verified",
+          "Donate/Card Donate are absent and /fund was not redesigned as the primary route"
         ]
       },
       {
@@ -100,13 +107,23 @@
         "status": "pending",
         "checkInRequiredAfter": false,
         "exitCriteria": [
-          "Green Goods demo validation is complete",
+          "Green Goods /vaults demo validation is complete",
           "Reusable skill starts with frontend UI for existing Ethereum Octant vaults using standard RPC plus wallet connection",
           "Advanced backend/API modules cover Thirdweb-first card providers, future Stripe/Coinbase adapters, and optional create-vault via Octant factory/API path"
         ]
       }
     ],
     "checkInGates": [2, 3, 5, 6]
+  },
+  "agentOrchestration": {
+    "executionTruth": ".plans/active/nyc-vault-crowdfunding/",
+    "linearRole": "durable tracking, issue comments, check-in state, and validation visibility; not the implementation truth",
+    "lanes": {
+      "claude_ui": "Own /vaults UI, campaign cards, wallet-last flow, receipt/manage states, responsive layout, i18n, and visible QA pass 1.",
+      "codex_state_api": "Own shared manifest/receiver/provider contracts, Thirdweb checkout/webhook gates, targeted shared/agent tests, and QA pass 2.",
+      "contracts": "No Solidity/deploy/indexer work unless a narrow Octant V2 config need is proven before editing.",
+      "linear": "Mirror phase gates and corrected scope on PRD issues."
+    }
   },
   "validationExpectations": {
     "planMetadata": [
@@ -116,62 +133,53 @@
     ],
     "implementationAgents": {
       "shared": [
-        "public endowment-position hook",
-        "existing-vault manifest and receiver typing selected for the demo path",
-        "safe max-loss preview parity with withdraw mutation",
-        "Card Endow proof-key separation and required receiver semantics"
+        "campaign/vault manifest typing for existing Octant V2 Ethereum vaults",
+        "receiver typing for Wallet Endow and Thirdweb Card Endow",
+        "exact chain/vault/token/provider proof separation",
+        "Card Endow proof-key separation from Card Donate"
       ],
       "client": [
-        "two-vault public /fund demo path",
-        "connected empty and active positions",
-        "/fund?manage=endowments",
-        "Max, confirm, failure, success refresh, receipt CTA, and no admin controls",
-        "sprint visibility: Wallet Endow and Manage Endowments visible, Donate absent, Card Endow hidden until proof, Card Donate proof never reveals Card Endow"
+        "dedicated /vaults route",
+        "browse-without-wallet campaign states",
+        "wallet-last amount -> connect -> confirm sequence",
+        "Wallet Endow for both NYC vaults",
+        "Thirdweb Card Endow hidden until receiver/share/public manage/provider proof",
+        "Donate/Card Donate absent from /vaults",
+        "only targeted /fund compatibility tests if Card Endow reusable capability touches shared /fund code"
       ],
       "agent": [
-        "exact provider proof gating",
-        "strict tuple verification",
+        "Thirdweb checkout requires recovered-wallet receiverAddress",
+        "strict webhook/provider tuple verification",
         "redacted logs",
         "recovered-owner share verification",
         "Card Endow rejection without receiverAddress"
       ],
-      "browser": ["final public /fund demo proof required on desktop and mobile"]
+      "browser": ["final public /vaults demo proof required on desktop and mobile"]
     }
   },
   "notes": [
-    "Promoted to active on 2026-05-10; scope locked on 2026-05-31 to the NYC vault/endow sprint.",
-    "June 1 Green Goods demo is a shareable public /fund link for two deployed NYC Ethereum Octant vaults with Wallet Endow and Thirdweb Card Endow.",
-    "Public withdrawal is the first implementation slice; do not let deferred Donate recovery block the /fund management fix.",
-    "Wallet Endow remains visible while the public /fund management panel is built.",
-    "Public Donate and Card Donate are deferred to separate future non-Cookie-Jar scope; do not expose Donate on /fund for this sprint.",
-    "Thirdweb Card Endow is sprint-critical for the demo, but remains hidden until recovered-wallet ownership, vault-share verification, public visibility, and successful withdrawal proof pass.",
+    "Corrected on 2026-06-01 against the attached Green Goods x Octant crowdfunding brief.",
+    "The primary route is /vaults, a dedicated Octant V2 Ethereum vault crowdfunding surface.",
+    "The previous /fund-centered problem statement was wrong. Existing Garden /fund remains separate and is reuse context only.",
+    "The only /fund relationship in this plan is future-compatible Card Endow receiver/proof capability reuse, not route implementation.",
+    "Wallet Endow and Thirdweb Card Endow are in Green Goods demo scope for the two NYC Octant V2 Ethereum vaults.",
+    "Thirdweb Card Endow remains hidden until recovered-wallet receiver custody, vault-share visibility, public manage/withdraw proof, and strict webhook/provider proof pass.",
     "Card Endow vault shares must belong to the user/recovered wallet, not a provider-owned account.",
-    "Funding lane matrix is explicit: Wallet Endow remains wallet-owned; Manage Endowments is public account-gated; Donate is deferred; Card Endow is ownership/share/withdrawal-gated.",
-    "Low-level Cookie Jar hooks/contracts are preserved in this pass; only the public /fund sprint surface hides Donate.",
-    "Provider proof entries must be exact by intent, Garden destination, token, chain, and method; Card Donate proof never unlocks Card Endow.",
-    "/fund?manage=endowments must not carry receipt tokens, wallet addresses, emails, or provider identifiers.",
-    "Endowment management deeplink is /fund?manage=endowments.",
-    "Public withdraw preview must use the same 1% max-loss default as the withdraw mutation.",
-    "No existing-position migration, public address lookup, fiat off-ramp, contract work, or indexer schema work is planned.",
-    "Local validation on 2026-05-31 passed git diff whitespace check, JSON parsing, lint:vocab, and check:design-tokens; package tests, check:design-generated, and ci-local remain blocked in this worktree because dependencies are not installed.",
-    "Reusable vault crowdfunding UI skill work is tracked from this hub as related planning metadata after Green Goods demo validation, not as a new active automation lane.",
-    "Green Goods / NYC vaults are the first reusable-skill fixture; the future skill must remain portable for Octant and other public-goods vault communities and must not hardcode NYC as the default.",
-    "The simplest reusable skill output is frontend UI for existing Ethereum Octant vaults using standard RPC plus wallet connection.",
-    "Advanced reusable-skill modules are backend/API concerns: Thirdweb-first card providers, future Stripe/Coinbase adapters, optional create-vault via Octant factory/API path, secrets, provider setup, webhook verification, receipt policy, and redacted logs.",
-    "Skill tracking parent PRD-569 and children PRD-570 through PRD-573 cover inputs, DesignMD fixture/template, wallet-first vault runtime, and provider/create-vault extension boundaries.",
-    "Skill tracking validation on 2026-05-31 passed status JSON parse, NYC vault crowdfunding linear-sync manifest with zero warnings, and Linear read-back; full plan-hub validate is blocked by unrelated sentry-stack-observability schema drift.",
+    "Public Donate and Card Donate are deferred and must not appear in /vaults acceptance.",
+    "Green Goods Arbitrum vault factory/contracts are product context and must not be presented as Octant deployed Ethereum infrastructure.",
+    "Reusable skill/scaffold planning starts after Green Goods demo validation.",
     "Check-in gates are required after phases 2, 3, 5, and 6.",
     "status.json is authoritative; branch names are automation signals.",
-    ".plans/ is the durable repo truth; any tool-local or .claude/agent-memory surface stays environment-local until freshness and ownership rules exist."
+    ".plans/ is the durable repo truth; Linear is the durable tracking mirror."
   ],
   "lanes": {
     "ui": {
       "owner": "claude",
-      "status": "in_progress",
+      "status": "ready",
       "branch": "claude/ui/nyc-vault-crowdfunding",
       "depends_on": [],
       "handoff": "handoffs/claude-ui.md",
-      "handoff_note": "Implement and verify the public /fund demo for two deployed NYC Ethereum Octant vaults: Wallet Endow, My Endowments, /fund?manage=endowments, Donate absent, and Thirdweb Card Endow exposure only after recovered-wallet custody/share/withdrawal proof. Add i18n.",
+      "handoff_note": "Implement and verify the dedicated public /vaults route for NYC Octant V2 Ethereum vault crowdfunding: campaign browse without wallet, amount-first/wallet-last flow, Wallet Endow for both NYC vaults, route-local receipt/manage states, Donate/Card Donate absent, and Thirdweb Card Endow hidden until state/API proof gates pass. Do not redesign /fund as the primary route. Add i18n.",
       "tdd": {
         "mode": "required",
         "status": "pending",
@@ -189,11 +197,11 @@
     },
     "state_api": {
       "owner": "codex",
-      "status": "in_progress",
+      "status": "ready",
       "branch": "codex/state-api/nyc-vault-crowdfunding",
       "depends_on": [],
       "handoff": "handoffs/codex-state-api.md",
-      "handoff_note": "Own shared public endowment-position data, existing-vault/receiver typing for the two-vault demo path, safe max-loss preview parity, public withdraw reuse boundaries, exact provider-proof separation, and Thirdweb Card Endow receiver-address/share-verification gates. Donate is deferred out of this sprint.",
+      "handoff_note": "Own shared campaign/vault manifest types, Octant V2 Ethereum vault tuple semantics, Wallet Endow receiver semantics, Thirdweb Card Endow recovered-wallet receiverAddress enforcement, exact provider/webhook proof separation, recovered-owner share verification, redacted logs, and future-compatible Card Endow capability reuse for /fund without making /fund the current route.",
       "tdd": {
         "mode": "required",
         "status": "pending",
@@ -215,7 +223,7 @@
       "branch": "codex/contracts/nyc-vault-crowdfunding",
       "depends_on": [],
       "handoff": "handoffs/codex-contracts.md",
-      "handoff_note": "No Solidity, deployment, or indexer schema work is planned for this recovery hub.",
+      "handoff_note": "No Solidity, deployment broadcast, or indexer schema work is planned. Existing Octant V2 Ethereum vaults are the target; Green Goods Arbitrum contracts are context only.",
       "tdd": {
         "mode": "not_applicable",
         "status": "pending",
@@ -227,7 +235,7 @@
           "command": "",
           "evidence": ""
         },
-        "note": "The plan uses existing vault deposit reads and withdrawal mechanics; no contract lane is planned."
+        "note": "The plan targets existing Octant V2 Ethereum vaults and route/state/API work only."
       },
       "skill_tags": ["contracts"]
     },
@@ -239,7 +247,7 @@
       "branch": "claude/qa-pass-1/nyc-vault-crowdfunding",
       "depends_on": ["ui", "state_api"],
       "handoff": "handoffs/claude-qa-pass-1.md",
-      "handoff_note": "Review the final public /fund demo for the two deployed NYC Ethereum Octant vaults: Wallet Endow, Thirdweb Card Endow custody/share proof, account-gated visibility, /fund?manage=endowments receipt return path, mobile layout, i18n, Donate absence, and Card Endow hidden-until-proof behavior.",
+      "handoff_note": "Review the visible /vaults demo: campaign comprehension before wallet connection, wallet-last flow, Wallet Endow, Thirdweb Card Endow hidden-until-proof, mobile layout, i18n, Donate/Card Donate absence, and no /fund redesign.",
       "skill_tags": ["testing", "review", "ui"]
     },
     "qa_pass_2": {
@@ -251,7 +259,7 @@
       "branch_trigger": "claude/qa-pass-1/nyc-vault-crowdfunding",
       "depends_on": ["qa_pass_1"],
       "handoff": "handoffs/codex-qa-pass-2.md",
-      "handoff_note": "Re-run targeted shared/client/agent validation, inspect Thirdweb provider proof and recovered-owner share gates, require browser proof for the final public /fund demo, and confirm no unrelated funding/PWA/admin work was pulled in.",
+      "handoff_note": "Re-run targeted shared/client/agent validation, inspect Thirdweb provider proof and recovered-owner share gates, require browser proof for the final public /vaults demo, and confirm no unrelated Garden /fund/PWA/admin work was pulled in.",
       "skill_tags": ["testing", "review"]
     }
   },
@@ -262,119 +270,7 @@
       "lane": "system",
       "status": "scaffolded",
       "branch": null,
-      "note": "Scaffolded feature hub in backlog"
-    },
-    {
-      "timestamp": "2026-05-09T21:35:46.785Z",
-      "actor": "codex",
-      "lane": "system",
-      "status": "planned",
-      "branch": "main",
-      "note": "Recorded the public endowment withdrawal recovery plan, card Donate recovery lane, Card Endow gate, and no-contract boundary."
-    },
-    {
-      "timestamp": "2026-05-09T21:50:37.000Z",
-      "actor": "codex",
-      "lane": "system",
-      "status": "reviewed",
-      "branch": "main",
-      "note": "Deep review tightened public management deeplink, safe withdraw preview parity, Thirdweb webhook/current-docs requirement, and Card Endow receiver-address gate."
-    },
-    {
-      "timestamp": "2026-05-09T21:55:49.000Z",
-      "actor": "codex",
-      "lane": "system",
-      "status": "reviewed",
-      "branch": "main",
-      "note": "Second deep audit tightened funding lane matrix, Card Donate Cookie Jar proof, exact provider-proof scope, Card Endow share verification, receipt privacy, and stale docs/design truth targets."
-    },
-    {
-      "timestamp": "2026-05-10T22:34:39.899Z",
-      "actor": "codex",
-      "lane": "system",
-      "status": "linear_recorded",
-      "branch": null,
-      "note": "Recorded Linear parent/lane issue identifiers"
-    },
-    {
-      "timestamp": "2026-05-10T23:05:15.718Z",
-      "actor": "codex",
-      "lane": "system",
-      "status": "linear_recorded",
-      "branch": null,
-      "note": "Recorded Linear parent/lane issue identifiers"
-    },
-    {
-      "timestamp": "2026-05-10T23:12:43.028Z",
-      "actor": "human",
-      "lane": "system",
-      "status": "moved_to_active",
-      "branch": null,
-      "note": "Moved feature hub from backlog to active"
-    },
-    {
-      "timestamp": "2026-05-10T23:13:14.000Z",
-      "actor": "codex",
-      "lane": "system",
-      "status": "plan_refreshed",
-      "branch": "main",
-      "note": "Updated Markdown plan truth after active promotion and verified Linear sync manifest has no warnings."
-    },
-    {
-      "timestamp": "2026-05-10T23:16:43.672Z",
-      "actor": "codex",
-      "lane": "system",
-      "status": "linear_recorded",
-      "branch": null,
-      "note": "Recorded Linear parent/lane issue identifiers"
-    },
-    {
-      "timestamp": "2026-05-31T04:21:01Z",
-      "actor": "codex",
-      "lane": "system",
-      "status": "scope_locked",
-      "branch": null,
-      "note": "Locked NYC sprint to Wallet Endow, public Manage Endowments, and hidden-gated Card Endow; deferred Donate to separate future non-Cookie-Jar scope."
-    },
-    {
-      "timestamp": "2026-05-31T04:31:00Z",
-      "actor": "codex",
-      "lane": "system",
-      "status": "validation_partial",
-      "branch": null,
-      "note": "Passed diff whitespace, JSON parse, lint:vocab, and check:design-tokens; package tests and ci-local blocked by missing node_modules/vitest/js-yaml/tool binaries."
-    },
-    {
-      "timestamp": "2026-05-31T05:06:38Z",
-      "actor": "codex",
-      "lane": "system",
-      "status": "skill_tracking_recorded",
-      "branch": null,
-      "note": "Recorded reusable vault crowdfunding UI skill tracking in local plan metadata and Linear parent/child issues PRD-569 through PRD-573."
-    },
-    {
-      "timestamp": "2026-05-31T05:08:01Z",
-      "actor": "codex",
-      "lane": "system",
-      "status": "skill_tracking_validated",
-      "branch": null,
-      "note": "Status JSON parsed, NYC vault crowdfunding linear-sync manifest returned zero warnings, and Linear read-back confirmed PRD-569 children and PRD-435/PRD-487 comments. Full plan-hub validate remains blocked by unrelated sentry-stack-observability hub schema drift."
-    },
-    {
-      "timestamp": "2026-05-31T05:45:01Z",
-      "actor": "codex",
-      "lane": "system",
-      "status": "phase_sequence_locked",
-      "branch": null,
-      "note": "Locked corrected implementation sequence: Wallet Endow and Thirdweb Card Endow for two deployed NYC Ethereum Octant vaults, check-ins after phases 2/3/5/6, Donate/Card Donate deferred, reusable skill planning after demo validation."
-    },
-    {
-      "timestamp": "2026-05-31T05:52:01Z",
-      "actor": "codex",
-      "lane": "system",
-      "status": "linear_phase_lock_comments_recorded",
-      "branch": null,
-      "note": "Commented PRD-435, PRD-436, PRD-440, PRD-442, PRD-443, PRD-444, PRD-487, and PRD-569 through PRD-573 with the corrected June 1 demo, check-in, validation, and reusable-skill boundaries."
+      "note": "Scaffolded feature hub in backlog."
     },
     {
       "timestamp": "2026-06-01T02:21:14Z",
@@ -382,20 +278,28 @@
       "lane": "system",
       "status": "plan_hub_renamed",
       "branch": "feature/nyc-vault-crowdfunding",
-      "note": "Renamed active plan hub from public-endowment-withdrawal-recovery to nyc-vault-crowdfunding so the plan name matches the full NYC vault crowdfunding demo and follow-on reusable skill scope."
+      "note": "Renamed active plan hub to nyc-vault-crowdfunding."
     },
     {
-      "timestamp": "2026-06-01T02:22:47Z",
+      "timestamp": "2026-06-01T02:30:08Z",
       "actor": "codex",
       "lane": "system",
-      "status": "linear_rename_comments_recorded",
+      "status": "scope_corrected_from_source_brief",
       "branch": "feature/nyc-vault-crowdfunding",
-      "note": "Commented PRD-435, PRD-437, PRD-438, and PRD-569 with the new .plans/active/nyc-vault-crowdfunding/ source path."
+      "note": "Corrected plan truth to the attached Octant crowdfunding brief: dedicated /vaults route, NYC Octant V2 Ethereum vaults, /fund reuse-only boundary, Donate/Card Donate deferred, and reusable skill after demo validation."
+    },
+    {
+      "timestamp": "2026-06-01T02:36:57Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_scope_correction_comments_recorded",
+      "branch": "feature/nyc-vault-crowdfunding",
+      "note": "Commented PRD-435, PRD-436, PRD-437, PRD-438, PRD-439, PRD-440, PRD-441, PRD-442, PRD-443, PRD-444, PRD-487, and PRD-569 through PRD-573 with the dedicated /vaults route correction and /fund reuse-only boundary."
     }
   ],
   "linear": {
     "syncDirection": "plans_to_linear_visibility",
-    "lastSyncedAt": "2026-05-31T05:52:01Z",
+    "lastSyncedAt": "2026-06-01T02:36:57Z",
     "projectDocument": "https://linear.app/greenpill-dev-guild/document/green-goods-x-octant-vault-scope-lock-1fc3d1676fb1",
     "parentIssue": "PRD-435",
     "lanes": {
@@ -449,31 +353,25 @@
         "provider_and_create_vault_boundaries": {
           "issue": "PRD-573"
         }
-      },
-      "comments": {
-        "delivery_parent": "13a5208c-38d0-4c1c-9f98-ff7706cc5d83",
-        "grant_tracker": "76d60a26-904c-419d-b832-2aa0ec652711"
       }
     },
-    "phaseLockComments": {
-      "delivery_parent": "ade66509-d124-460c-a46f-ccfeadf91acc",
-      "scope_lock": "80211702-9826-40f1-aa3c-9b3978f43b0a",
-      "card_endow_gate": "8973abb8-1bd7-4b27-8ffb-a4aff0d6f228",
-      "card_endow_shared": "2e9d9028-1352-4c38-a54b-9694e7553d5a",
-      "card_endow_agent": "eb571b9a-3a1e-4d2f-bcb8-70c7dff16c34",
-      "card_endow_client": "f9f1db78-a556-4646-93f5-de18b8155dc4",
-      "brief_source": "6a323af9-fab5-4cb6-bdc3-b5ce15b8e9fb",
-      "skill_parent": "22c4cf2a-2693-4cff-b742-9a3d33d7f697",
-      "skill_input_schema": "205be1ca-f614-4705-a7ea-dee65f3920d0",
-      "skill_fixture": "71cf4501-55c7-4f7b-b4fc-b7740c362e9e",
-      "skill_wallet_runtime": "b38e3ea8-6fe7-4444-974b-56f6478200ba",
-      "skill_provider_boundaries": "8ca4251f-a36a-4cde-ae38-93745edbb542"
-    },
-    "renameComments": {
-      "delivery_parent": "1fe350a3-959e-438e-962f-c262eee3cc88",
-      "state_api_lane": "d6a09313-acae-4c65-9f7e-25c5741069c1",
-      "ui_lane": "6826ce98-08e0-4f72-94cb-1ef12440256c",
-      "skill_parent": "4d1cf5a1-9c28-40f6-928a-5852f7ab7371"
+    "scopeCorrectionComments": {
+      "delivery_parent": "3095e782-b8a8-4828-8963-a9f8c4d20316",
+      "scope_lock": "55248de9-abe6-4157-8495-e89b76a24857",
+      "state_api_lane": "930d7b6d-7308-47ff-ae41-454f254975cf",
+      "ui_lane": "318694f0-f8f8-42fc-9034-de9b5d4801a9",
+      "deferred_donate": "112b1ad3-1bce-460c-9d11-edecee8aef2e",
+      "card_endow_gate": "f55a0b33-944d-411e-b74d-79145808ce9a",
+      "qa_pass_1": "7442f14e-d4ac-4f4b-bd9a-286a707747b5",
+      "card_endow_shared": "3bf3bbfb-cd2c-4498-8a45-52159c006f5a",
+      "card_endow_agent": "a2bc60fe-e9e4-4ea3-9079-17513265c585",
+      "card_endow_client": "4efb7b1f-922a-4f12-8dd1-c95b2202244c",
+      "brief_source": "51cc185a-3ac0-4383-b1c7-9628e903d406",
+      "skill_parent": "ecdbf03b-a37c-4c6b-804d-e0c5cb1d3684",
+      "skill_input_schema": "366a591e-eb65-4276-a049-3e7688f2095d",
+      "skill_fixture": "cf32c7f5-5b08-4461-851d-ef8de0a348c1",
+      "skill_wallet_runtime": "e166d608-7c28-40d1-94ff-4632c27415cc",
+      "skill_provider_boundaries": "ebea36ee-460c-4f30-aabb-df9d85cc"
     },
     "project": "NYC Vault Crowdfunding"
   }

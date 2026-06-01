@@ -2,180 +2,142 @@
 
 **Feature Slug**: `nyc-vault-crowdfunding`
 **Stage**: `active`
-**Status**: `ACTIVE — June 1 demo sequence locked; ui/state_api IN_PROGRESS, qa BLOCKED`
+**Status**: `ACTIVE - corrected around dedicated /vaults crowdfunding route; implementation not started`
 **Created**: `2026-05-09T21:35:46.781Z`
-**Last Updated**: `2026-06-01T02:21:14Z`
+**Last Updated**: `2026-06-01T02:30:08Z`
 
 ## Decision Log
 
 | # | Decision | Rationale |
 |---|---|---|
-| 1 | Wallet Endow remains visible while public withdrawal management is built. | Avoid breaking the wallet path while fixing the missing return/withdraw UX. |
-| 2 | `/fund` gets a connected-account "My Endowments" panel. | Funders should manage positions from the same public funding website where they endowed. |
-| 3 | Public Donate and Card Donate are deferred out of the NYC sprint. | June 1 scope is purely vault/endow; Donate needs separate future non-Cookie-Jar scope. |
-| 4 | Card Endow stays gated until email-wallet ownership and `/fund` withdrawal are proven. | Prevent hidden custody or stranded vault shares. |
-| 5 | No contracts or indexer schema changes are planned. | Existing owner-scoped vault deposit reads and withdrawal hooks should be enough for v1. |
-| 6 | Endow management deeplink is `/fund?manage=endowments`. | Receipts and success states need one public return target that does not encode private data. |
-| 7 | Public withdraw preview must use the same 1% max-loss default as the withdraw mutation. | Prevent a Max button that later fails or implies unsafe withdrawal terms. |
-| 8 | The `/fund` funding lane matrix is explicit. | Wallet Endow, Manage Endowments, hidden-gated Card Endow, and deferred Donate have different visibility rules. |
-| 9 | Existing low-level Cookie Jar code is preserved but hidden from this sprint surface. | Avoid destructive removal while preventing Donate from drifting back into the NYC vault/endow demo. |
-| 10 | Provider proof is exact-tuple only. | One Garden/token/chain/method/intent proof must never unlock another funding lane. |
-| 11 | Reusable skill work is tracked from this crowdfunding UI hub. | Green Goods is the demo fixture, but the long-term goal is a portable vault crowdfunding UI skill for Octant and other public-goods communities. |
-| 12 | Skill tracking is not a new active automation lane in this pass. | The plan-hub validator syncs only standard lanes; skill issue IDs belong in related tracking metadata until implementation starts. |
-| 13 | Card providers are adapter slots for the skill v1 tracking scope. | Wallet-first vault funding stays the default; Stripe, Coinbase, and Thirdweb require future server-backed implementation before live use. |
-| 14 | June 1 demo is Wallet Endow + Thirdweb Card Endow for two deployed NYC Ethereum Octant vaults. | Card Endow is sprint-critical for Green Goods after custody/share proof, not only future reusable-skill work. |
-| 15 | Public Donate and Card Donate remain deferred. | The sprint must not drift back into Donate or Card Donate while proving the vault/endow demo. |
-| 16 | Reusable skill starts after Green Goods demo validation. | The portable skill begins with existing Ethereum Octant vault UI over standard RPC + wallet connection; advanced card/create-vault modules are later backend/API work. |
-
-## Research / Plan Gate
-
-- [x] Record research evidence in `spec.md`
-- [x] Identify the existing repo pattern to mirror
-- [x] List human judgment points before implementation
-- [x] Define what is out of scope
-- [x] Choose the lightest honest validation commands
-- [x] Promoted to active and verified Linear parent/lane mirror has no sync warnings
+| 1 | Primary surface is `/vaults`. | The attached Octant brief scopes a dedicated vault crowdfunding route; the prior `/fund` framing was wrong. |
+| 2 | `/fund` is reuse context only. | Existing Garden funding should not be redesigned; only Card Endow capability may be reused there later. |
+| 3 | Wallet-last flow is required. | Contributors should browse and choose an amount before wallet connection. |
+| 4 | Octant V2 Ethereum vaults are the integration target. | Green Goods Arbitrum contracts are context/proof, not Octant's deployed Ethereum infrastructure. |
+| 5 | Wallet Endow and Thirdweb Card Endow are demo scope. | Card Endow is sprint-critical after custody/share/withdrawal/provider proof, not just reusable-skill work. |
+| 6 | Public Donate and Card Donate are deferred. | The NYC sprint is vault endowment crowdfunding, not Donate/Card Donate. |
+| 7 | Card Endow requires user-owned receiver custody. | Vault shares must belong to the user/recovered wallet, not a provider-owned account. |
+| 8 | Public management/withdrawal proof belongs to the vault route. | Card Endow cannot be visible until users can see and manage owned positions from the public vault flow. |
+| 9 | Contracts lane is `n/a` by default. | Existing Octant V2 vaults are targets; no new Solidity/deployment/indexer work is planned unless proven necessary. |
+| 10 | Reusable skill starts after demo validation. | The skill/scaffold is an output of the validated prototype, not a blocker for the first `/vaults` demo. |
+| 11 | Linear is a mirror/check-in surface. | `.plans` remains execution truth; Linear keeps durable issue state and check-in visibility. |
 
 ## Requirements Coverage
 
 | Requirement | Lane | Planned Step | Status |
 |---|---|---|---|
-| Public funders can see owned endowments on `/fund`. | `state_api`, `ui` | Build shared public endowment-position data and render the account panel. | ⏳ |
-| Public funders can withdraw from `/fund`. | `ui`, `state_api` | Reuse shared withdraw mutation with amount, Max, confirmation, lifecycle, and refresh. | ⏳ |
-| Shareable June 1 demo link supports two deployed NYC Ethereum Octant vaults. | `ui`, `state_api` | Configure the public `/fund` demo path around the two deployed vaults, with no private URL data. | ⏳ |
-| Wallet Endow works for the two deployed NYC vaults. | `ui`, `state_api` | Keep connected-wallet receiver semantics and public receipt return path for both vaults. | ⏳ |
-| Thirdweb Card Endow works for the two deployed NYC vaults after proof. | `ui`, `state_api` | Build the recovered-wallet receiver checkout path, share verification, visibility, and withdrawal proof before exposure. | ⏳ |
-| Endow receipts return users to management. | `ui` | Update success and receipt CTAs to point back to `/fund` management. | ⏳ |
-| Public Donate is hidden on `/fund` during this sprint. | `ui` | Remove Donate CTAs and public Donate explanatory copy while preserving lower-level Cookie Jar code. | ✅ code updated; validation pending |
-| Card Donate is deferred. | `state_api`, `ui` | Do not route PRD-439 into NYC sprint acceptance; future Donate must be separate non-Cookie-Jar scope. | ✅ deferred |
-| Card Endow cannot launch without recoverable owner account. | `state_api`, `ui` | Require `receiverAddress` ownership in intent contracts and keep Card Endow hidden until email-wallet ownership, share verification, public visibility, and withdrawal proof are complete. | ◐ receiver guard added; share/withdraw proof pending |
-| Provider proof cannot over-unlock card lanes. | `state_api` | Key provider availability by exact intent, Garden destination, token, chain, and method. | ✅ exact-key separation test added; validation pending |
-| Receipt and management URLs preserve privacy. | `ui`, `state_api` | Keep receipt tokens fragment/session-only and keep `/fund?manage=endowments` free of address, email, and provider identifiers. | ⏳ |
-| Product docs stop claiming PWA-only withdrawal. | `ui` | Update funder docs and browser design truth. | ⏳ |
-| Current public funding tests stop asserting support-only withdrawal. | `ui` | Replace the "no withdraw controls" assertion with account-gated withdrawal and no-admin-control tests. | ⏳ |
-| No Solidity or indexer schema work. | `contracts` | Keep contracts lane `n/a`. | ✅ |
-| Reusable skill work is coherently tracked. | `system` | Keep the reusable skill after demo validation, with simplest output = existing Ethereum Octant vault frontend over standard RPC + wallet connection and advanced card/create-vault modules deferred to backend/API planning. | ✅ local plan + Linear tracking recorded |
+| Dedicated public `/vaults` route exists for NYC Octant vault crowdfunding. | `ui` | Build the route scaffold, campaign list/detail states, and route-local receipt/manage states. | ⏳ |
+| Users can browse campaigns without wallet connection. | `ui` | Render campaign cards and details from a manifest before wallet provider gating. | ⏳ |
+| Campaigns explain project, recipient logic, funding purpose, and onchain context. | `ui`, `state_api` | Define campaign/vault manifest fields and render plain-language plus onchain metadata. | ⏳ |
+| Users choose vault and amount before connecting. | `ui` | Reuse/adapt amount-first funding primitives for wallet-last confirmation. | ⏳ |
+| Wallet Endow deposits into the selected Octant V2 Ethereum vault. | `ui`, `state_api` | Wire deposit confirmation with connected wallet receiver semantics for both NYC vaults. | ⏳ |
+| Thirdweb Card Endow works after proof gates. | `state_api`, `ui` | Build recovered-wallet receiver checkout, share verification, public manage/withdraw proof, and exact provider verification. | ⏳ |
+| Card Endow cannot create provider-owned custody. | `state_api` | Require `receiverAddress`, verify resulting shares for that receiver, and keep Card Endow hidden until proof passes. | ⏳ |
+| `/fund` is not the route being implemented. | `ui`, `state_api` | Keep Garden funding UI separate; only make reusable Card Endow capability compatible for later `/fund` adoption. | ⏳ |
+| Donate and Card Donate remain deferred. | `ui`, `state_api` | Do not expose Donate/Card Donate in `/vaults` acceptance or provider-proof gating. | ✅ deferred |
+| Green Goods Arbitrum contracts are not presented as Octant Ethereum infra. | `ui`, `contracts` | Keep copy/architecture and contracts lane clear; target Octant V2 Ethereum vaults. | ⏳ |
+| Reusable skill/scaffold is planned after demo validation. | `system` | Keep skill issues linked and defer implementation until `/vaults` demo passes QA. | ✅ tracked |
 
 ## Implementation Phases
 
-1. **Scope/plan lock + Linear sync**: align `.plans` and Linear around the corrected demo sequence,
-   deferred Donate scope, and reusable-skill-after-demo boundary.
-2. **Wallet Endow public demo path**: make the shareable public `/fund` demo path support Wallet
-   Endow for the two deployed NYC Ethereum Octant vaults. **Check in after this phase.**
-3. **Thirdweb Card Endow demo path**: make the same two vaults support Thirdweb Card Endow through a
-   recovered-wallet receiver, preserving user custody. **Check in after this phase.**
-4. **Ownership/share verification gate**: prove the vault shares belong to the user/recovered wallet,
-   not a provider-owned account, before Card Endow exposure.
-5. **Public Manage Endowments / withdrawal proof**: prove wallet-funded and card-funded endowment
-   positions appear and can withdraw through `/fund?manage=endowments`. **Check in after this phase.**
-6. **Demo QA pass**: verify the complete public demo on desktop/mobile with wallet, card, ownership,
-   manage, privacy, and regression checks. **Check in after this phase.**
-7. **Reusable skill planning handoff**: only after Green Goods demo validation, plan the portable skill
-   with existing Ethereum Octant vault frontend UI first and backend/API card/create-vault modules as
-   advanced follow-on work.
+1. **Brief/scope lock + Linear sync**: correct `.plans` and Linear around the attached Octant
+   crowdfunding brief, dedicated `/vaults` route, `/fund` reuse-only boundary, and deferred Donate
+   scope.
+2. **`/vaults` campaign route + manifest**: define the route, campaign/vault manifest shape, browse
+   states, and NYC vault fixture data. **Check in after this phase.**
+3. **Wallet-last Wallet Endow path**: implement browse -> amount -> connect -> confirm -> deposit for
+   the two NYC Octant V2 Ethereum vaults. **Check in after this phase.**
+4. **Ownership/share verification gate**: prove Wallet Endow and recovered-wallet Card Endow shares
+   are owned by the user/recovered wallet and visible from the public route.
+5. **Thirdweb Card Endow demo path**: implement guarded checkout/webhook/share verification with
+   user-owned receiver custody and public manage/withdraw proof. **Check in after this phase.**
+6. **Demo QA pass**: verify `/vaults` on desktop/mobile, wallet-last UX, Wallet Endow, Card Endow
+   gates, route privacy, copy/i18n, no Donate/Card Donate, and no unrelated `/fund` redesign.
+   **Check in after this phase.**
+7. **Reusable skill planning handoff**: after demo validation, plan the portable Octant vault
+   crowdfunding scaffold with frontend-first existing-vault UI and advanced backend/card/create-vault
+   modules.
 
-## Reusable Skill Tracking Checklist
+## Agent Orchestration
 
-- [x] Record DesignMD-required input, campaign context, existing-vault manifest, runtime module, and
-  Vercel deployment assumptions in `spec.md`
-- [x] Keep Green Goods / NYC vaults framed as the fixture, not the skill boundary
-- [x] Keep wallet-first existing Ethereum Octant vault funding over standard RPC + wallet connection as
-  the simplest skill runtime assumption
-- [x] Track Thirdweb-first, future Stripe/Coinbase card providers as backend/API adapter modules after
-  Green Goods demo validation
-- [x] Track optional create-vault support through an Octant factory/API path as operator setup
-  scaffolding only
-- [x] Create Linear parent issue for reusable vault crowdfunding UI skill work: PRD-569
-- [x] Create Linear child issue for skill input schema and validation contract: PRD-570
-- [x] Create Linear child issue for DesignMD campaign template and Green Goods fixture: PRD-571
-- [x] Create Linear child issue for wallet-first vault manifest/runtime semantics: PRD-572
-- [x] Create Linear child issue for card-provider adapter and create-vault module boundaries: PRD-573
-- [x] Comment on PRD-435 and PRD-487 with the skill issue links
-- [x] Record created Linear issue IDs in `status.json` under non-lane tracking metadata
-
-## TDD / Proof Order
-
-- [ ] Identify the behavior boundary for each implementation lane before editing code
-- [ ] Write or select the minimal failing test/proof first
-- [ ] Run the RED command and record evidence in the lane handoff
-- [ ] Implement the smallest change that can satisfy the proof
-- [ ] Run the GREEN command and record evidence in the lane handoff
-- [ ] Record machine-readable proof with `node scripts/harness/plan-hub.mjs record-tdd`
-- [ ] If TDD cannot honestly apply, record `not_applicable` or `proof_limit` with a concrete note in `status.json`
+| Lane | Agent / Surface | Starts When | Output |
+|---|---|---|---|
+| UI | Claude Cloud / Claude Code | Phase 2 | `/vaults` route, campaign UI, wallet-last flow, receipt/manage states, i18n, browser proof prep |
+| State / API | Codex | Phase 2, parallel with UI manifest work | shared manifest/receiver/provider types, Thirdweb checkout/webhook gates, targeted shared/agent tests |
+| Contracts | Codex | Only if implementation proves a need | Normally `n/a`; no new Solidity/deploy/indexer work |
+| QA pass 1 | Claude | After phases 2-5 are complete | visible UX/mobile/copy/i18n requirement review |
+| QA pass 2 | Codex | After QA pass 1 | validation rerun, provider/share/receiver proof review, final plan status |
+| Linear | Linear MCP / Linear agent | Every check-in | durable issue comments/state reflecting phase gate outcomes |
 
 ## Lane Checklists
 
 ### UI (`claude/ui/nyc-vault-crowdfunding`)
 
-- [ ] Add `/fund` "My Endowments" account panel, connected empty state, active positions, and withdraw controls
-- [ ] Add the shareable public demo path for the two deployed NYC Ethereum Octant vaults
-- [ ] Keep Wallet Endow visible and working for both deployed NYC vaults
-- [ ] Expose Thirdweb Card Endow only after the recovered-wallet custody, share-verification, and withdrawal proof gates pass
-- [ ] Hide/remove Donate choices and Donate CTAs from the public `/fund` sprint surface
-- [ ] Make the `/fund` funding lane matrix explicit in UI state: Wallet Endow, Manage Endowments, Card Endow hidden, Donate deferred
-- [ ] Add `/fund?manage=endowments` focus/scroll behavior and receipt/success wayfinding back to that panel
-- [ ] Keep `/fund?manage=endowments` privacy-safe; do not encode receipt tokens, wallet addresses, emails, or provider IDs in the URL
-- [ ] Keep position visibility connection-gated; do not add public address lookup
+- [ ] Build the dedicated `/vaults` route; do not move the primary demo to `/fund`
+- [ ] Add campaign list/detail states for the two NYC Octant V2 Ethereum vaults
+- [ ] Show campaign copy, recipient/routing summary, vault metadata, and onchain context
+- [ ] Support browse -> choose vault -> choose amount before wallet connection
+- [ ] Connect wallet only at final confirmation
+- [ ] Keep Wallet Endow visible and working for both NYC vaults
+- [ ] Keep Thirdweb Card Endow hidden until state/API proof gates are satisfied
+- [ ] Add receipt/confirmation and public manage/withdraw links under the vault route
+- [ ] Keep Donate and Card Donate absent from `/vaults`
 - [ ] Add i18n for new user-facing strings in `en`, `es`, and `pt`
-- [ ] Replace current public funding tests that assert "support-only / no withdraw"
-- [ ] Update `packages/client/DESIGN.browser.md` plus funder docs that currently say `/fund` has no public withdrawals
-- [ ] Record RED/GREEN proof or a proof-limit note before marking the lane complete
+- [ ] Browser-proof final `/vaults` route on desktop and mobile
 - [ ] Write `handoffs/claude-ui.md`
 
 ### State / API (`codex/state-api/nyc-vault-crowdfunding`)
 
-- [ ] Add shared public endowment-position hook/type using existing owner deposit, vault catalog, and public garden data
-- [ ] Ensure available/Max withdrawal uses the same safe max-loss basis points as `useVaultWithdraw`
-- [ ] Reuse the existing shared vault withdrawal path for public withdraws
-- [ ] Extend public receipt/intent contracts for public management CTA and Card Endow receiver ownership
-- [ ] Reject Card Endow sessions without recovered-wallet `receiverAddress`
-- [ ] Deposit Thirdweb Card Endow vault shares to the recovered owner and verify shares before funded/share-verified state
-- [ ] Require exact provider-proof availability keys by intent, Garden destination, token, chain, and method
-- [ ] Preserve strict onchain tuple verification before marking provider intents funded
-- [ ] For Card Endow, verify recovered email/social wallet ownership, vault-share receipt, `share_verification`, and `/fund` withdrawal proof before exposure
-- [ ] Keep agent/client logs and telemetry redacted; do not log receipt tokens, emails, or provider PII
-- [ ] Record RED/GREEN proof or a proof-limit note before marking the lane complete
+- [ ] Define campaign/vault manifest and receiver types for existing Octant V2 Ethereum vaults
+- [ ] Verify exact chain/vault/token tuple semantics for both NYC vaults
+- [ ] Keep connected-wallet receiver semantics for Wallet Endow
+- [ ] Require user-owned recovered-wallet `receiverAddress` for Card Endow
+- [ ] Reject Card Endow sessions without a valid receiver
+- [ ] Verify vault shares for the recovered user before Card Endow exposure
+- [ ] Require exact provider/webhook tuple verification before funded/share-verified state
+- [ ] Keep Card Donate proof separate from Card Endow proof
+- [ ] Keep logs and telemetry redacted
+- [ ] Make reusable Card Endow capability compatible with future `/fund` adoption without making
+  `/fund` the current route
 - [ ] Write `handoffs/codex-state-api.md`
 
 ### Contracts (`codex/contracts/nyc-vault-crowdfunding`)
 
-- [x] No contract work planned
-- [x] No deployment work planned
+- [x] No Solidity work planned
+- [x] No deployment broadcast planned
 - [x] No indexer schema work planned
+- [ ] If implementation proves config is needed, document it as manifest/config only before editing
 
 ### QA Pass 1 (`claude/qa-pass-1/nyc-vault-crowdfunding`)
 
-- [ ] Review wallet-connected `/fund` management UX on desktop and mobile
-- [ ] Verify the shareable public demo link covers both deployed NYC Ethereum Octant vaults
-- [ ] Verify account-gated visibility, withdraw flow clarity, receipt return path, and i18n
-- [ ] Verify funding lane availability is understandable, Donate is absent from `/fund`, and card rails do not appear without exact proof
-- [ ] Verify Card Endow remains hidden until ownership/withdrawal proof exists
+- [ ] Review `/vaults` browse and campaign comprehension without wallet connection
+- [ ] Verify wallet-last amount/confirm sequence
+- [ ] Verify desktop/mobile layout and i18n
+- [ ] Confirm Donate/Card Donate are absent
+- [ ] Confirm `/fund` was not redesigned as the primary vault crowdfunding route
 - [ ] Write `handoffs/claude-qa-pass-1.md`
 
 ### QA Pass 2 (`codex/qa-pass-2/nyc-vault-crowdfunding`)
 
-- [ ] Review regression risk around funding, Treasury withdrawal reuse, provider proof gates, and docs truth
-- [ ] Verify Card Endow proves share ownership and public withdrawal, not only provider success
-- [ ] Run targeted validation commands from `eval.md`
-- [ ] Confirm `status.json` lane state matches recorded proof before closeout
+- [ ] Re-run targeted shared/client/agent tests selected by implementation agents
+- [ ] Inspect receiver/share/provider proof gates for Card Endow
+- [ ] Confirm final browser proof targets `/vaults`
+- [ ] Confirm `status.json` lane state and Linear comments match the implemented proof
 - [ ] Write `handoffs/codex-qa-pass-2.md`
 
 ## Validation
 
-- [ ] Targeted shared hook tests for public endowment-position data
-- [ ] Targeted shared tests for existing-vault manifest/receiver typing that implementation agents choose for the demo path
-- [ ] Targeted shared tests for safe max-loss preview parity with the withdraw mutation
-- [ ] Targeted client `/fund` tests for connected empty, active position, `/fund?manage=endowments`, Max, confirm, failure, success refresh, receipt CTA, and no admin controls
-- [ ] Targeted client `/fund` tests for the two-vault public demo path and final browser proof on `/fund`
-- [ ] Targeted client tests for sprint visibility: Endow and Manage Endowments visible, Donate absent, Card Endow hidden until ownership/share/withdraw proof, and Card Donate proof never reveals Card Endow
-- [ ] Targeted shared tests for Card Endow proof-key separation and required receiver semantics
-- [ ] Targeted agent tests for exact provider proof gating, strict tuple verification, redacted logs, recovered-owner share verification, and Card Endow rejection without `receiverAddress`
-- [ ] `bun run lint:vocab`
-- [ ] `bun run check:design-generated`
-- [ ] `bun run check:design-tokens`
-- [ ] `node scripts/dev/ci-local.js --quick`
-- [x] Status JSON parses after NYC demo phase update
-- [x] `node scripts/harness/plan-hub.mjs linear-sync --feature nyc-vault-crowdfunding --json` returns zero warnings
-- [ ] `node scripts/harness/plan-hub.mjs validate` (may remain blocked by unrelated `sentry-stack-observability` hub schema drift unless that drift is fixed)
-- [x] Linear read-back confirms the skill parent/children exist and are linked to this plan
-- [x] Linear comments recorded on PRD-435, PRD-436, PRD-440, PRD-442, PRD-443, PRD-444, PRD-487, and PRD-569 through PRD-573
+- [ ] Targeted shared tests for campaign/vault manifest and receiver typing
+- [ ] Targeted shared tests for exact chain/vault/token/provider proof separation
+- [ ] Targeted client tests for `/vaults` browse-without-wallet campaign states
+- [ ] Targeted client tests for wallet-last amount -> connect -> confirm sequence
+- [ ] Targeted client tests for Wallet Endow on both NYC vaults
+- [ ] Targeted client tests for Thirdweb Card Endow hidden-until-proof behavior
+- [ ] Targeted client compatibility tests for future `/fund` Card Endow capability reuse where touched
+- [ ] Targeted agent tests for Thirdweb checkout/webhook tuple verification, redacted logs, recovered
+  owner share verification, and Card Endow rejection without `receiverAddress`
+- [ ] Browser proof for final public `/vaults` demo on desktop and mobile
+- [ ] `status.json` parses
+- [ ] `node scripts/harness/plan-hub.mjs linear-sync --feature nyc-vault-crowdfunding --json` returns zero warnings
+- [ ] `node scripts/harness/plan-hub.mjs validate` passes or reports only known unrelated
+  `sentry-stack-observability` drift
