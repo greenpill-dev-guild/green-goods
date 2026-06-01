@@ -392,6 +392,40 @@ test("linear-sync chooses package labels by lane for cross-package plans", () =>
     );
   }));
 
+test("linear-sync omits package labels on research-only plans", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "research-only-linear", "--stage", "backlog"]).status, 0);
+    const status = readStatus(root, "backlog", "research-only-linear");
+    status.taxonomy = {
+      initiative: "environmental-data",
+      tracks: ["contracts", "shared"],
+      work_types: ["research"],
+      surfaces: [],
+      depends_on_features: [],
+    };
+    for (const laneName of ["ui", "state_api", "contracts"]) {
+      status.lanes[laneName].status = "n/a";
+      status.lanes[laneName].tdd = {
+        mode: "not_applicable",
+        status: "pending",
+        red: { command: "", evidence: "" },
+        green: { command: "", evidence: "" },
+        note: "Research-only hub, no implementation lane.",
+      };
+    }
+    status.lanes.qa_pass_1.status = "n/a";
+    status.lanes.qa_pass_2.status = "n/a";
+    writeStatus(root, "backlog", "research-only-linear", status);
+
+    const result = runPlanHub(root, ["linear-sync", "--feature", "research-only-linear", "--json"]);
+    assert.equal(result.status, 0, result.stderr);
+    const manifest = JSON.parse(result.stdout);
+    assert.ok(
+      manifest.parent.labels.every((label) => !label.startsWith("package:")),
+      `research-only parent should carry no package: label, got: ${manifest.parent.labels.join(", ")}`,
+    );
+  }));
+
 test("linear-sync labels docs-owned state lanes as docs work", () =>
   withFixture((root) => {
     assert.equal(runPlanHub(root, ["scaffold", "docs-lane-fixture", "--stage", "active"]).status, 0);

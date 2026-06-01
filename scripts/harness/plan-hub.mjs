@@ -460,12 +460,22 @@ function packageLabelsForTracks(tracks, laneName = null) {
   return [];
 }
 
+function isResearchOnly(status) {
+  const workTypes = status.taxonomy?.work_types;
+  return (
+    Array.isArray(workTypes) &&
+    workTypes.length > 0 &&
+    workTypes.every((workType) => workType === "research")
+  );
+}
+
 function linearLabelsForStatus(status, activityLabel, laneName = null) {
-  return uniqueSorted([
-    ...LINEAR_BASE_LABELS,
-    activityLabel,
-    ...packageLabelsForTracks(status.taxonomy?.tracks, laneName),
-  ]);
+  // package:* is a code-surface tag; omit it on research-only plans (Research team) —
+  // they describe a research question, not work inside a code package.
+  const packageLabels = isResearchOnly(status)
+    ? []
+    : packageLabelsForTracks(status.taxonomy?.tracks, laneName);
+  return uniqueSorted([...LINEAR_BASE_LABELS, activityLabel, ...packageLabels]);
 }
 
 function linearPriorityForStatus(status) {
@@ -483,10 +493,7 @@ function linearPriorityForStatus(status) {
 }
 
 function linearTeamForStatus(status) {
-  const workTypes = status.taxonomy?.work_types;
-  return Array.isArray(workTypes) && workTypes.length > 0 && workTypes.every((workType) => workType === "research")
-    ? "Research"
-    : "Product";
+  return isResearchOnly(status) ? "Research" : "Product";
 }
 
 function linearStateForStage(stage) {
