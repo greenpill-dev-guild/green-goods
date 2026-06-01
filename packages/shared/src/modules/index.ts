@@ -237,6 +237,7 @@ export {
 // VAULT CROWDFUNDING
 // ============================================================================
 export {
+  createOctantVaultWalletEndowReceiver,
   EVMAVERICKS_REQUIRED_MANIFEST_FIELDS,
   getOctantVaultCampaignBySlug,
   getOctantVaultCampaignCopy,
@@ -246,9 +247,28 @@ export {
   isOctantVaultCampaignTransactionReady,
   OCTANT_VAULT_CAMPAIGN_MANIFEST,
   OCTANT_VAULT_MANIFEST_FIELD_LABELS,
+  validateOctantVaultCardEndowProof,
+  validateOctantVaultCardEndowReceiver,
   validateOctantVaultCampaignManifest,
 } from "./vault-crowdfunding";
 export type {
+  OctantVaultCardDonateIntentKind,
+  OctantVaultCardDonateProof,
+  OctantVaultCardEndowIntentKind,
+  OctantVaultCardEndowProof,
+  OctantVaultCardEndowProofExpectation,
+  OctantVaultCardEndowProofInput,
+  OctantVaultCardEndowProofValidation,
+  OctantVaultCardEndowProofValidationError,
+  OctantVaultCardEndowReceiver,
+  OctantVaultCardEndowReceiverCustody,
+  OctantVaultCardEndowReceiverInput,
+  OctantVaultCardEndowReceiverValidation,
+  OctantVaultCardEndowReceiverValidationError,
+  OctantVaultCardProof,
+  OctantVaultCardProofAsset,
+  OctantVaultCardProofIntentKind,
+  OctantVaultCardProvider,
   OctantVaultCampaignAssetManifest,
   OctantVaultCampaignCopy,
   OctantVaultCampaignFixtureRole,
@@ -258,8 +278,13 @@ export type {
   OctantVaultCampaignSlug,
   OctantVaultCampaignTargetProtocol,
   OctantVaultCampaignTransactionState,
+  OctantVaultEndowReceiver,
   OctantVaultManifest,
   OctantVaultManifestField,
+  OctantVaultPaymentMethod,
+  OctantVaultTransactionHash,
+  OctantVaultWalletEndowIntentKind,
+  OctantVaultWalletEndowReceiver,
 } from "./vault-crowdfunding";
 // ============================================================================
 // JOB QUEUE

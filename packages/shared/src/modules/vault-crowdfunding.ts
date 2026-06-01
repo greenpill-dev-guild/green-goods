@@ -79,6 +79,136 @@ export interface OctantVaultCampaignTransactionState {
   disabledReason?: "manifest_incomplete" | "wallet_endow_not_implemented";
 }
 
+export type OctantVaultWalletEndowIntentKind = "wallet_endow";
+export type OctantVaultCardEndowIntentKind = "card_endow";
+export type OctantVaultCardDonateIntentKind = "card_donate";
+export type OctantVaultCardProofIntentKind =
+  | OctantVaultCardEndowIntentKind
+  | OctantVaultCardDonateIntentKind;
+export type OctantVaultPaymentMethod = "wallet" | "card";
+export type OctantVaultCardProvider = "thirdweb";
+export type OctantVaultTransactionHash = `0x${string}`;
+export type OctantVaultCardEndowReceiverCustody = "user_owned_recovered_wallet";
+
+export interface OctantVaultWalletEndowReceiver {
+  intentKind: OctantVaultWalletEndowIntentKind;
+  paymentMethod: "wallet";
+  receiverKind: "connected_wallet";
+  receiverCustody: "connected_wallet";
+  receiverAddress: Address;
+}
+
+export interface OctantVaultCardEndowReceiver {
+  intentKind: OctantVaultCardEndowIntentKind;
+  paymentMethod: "card";
+  receiverKind: "recovered_wallet";
+  receiverCustody: OctantVaultCardEndowReceiverCustody;
+  receiverAddress: Address;
+}
+
+export type OctantVaultEndowReceiver =
+  | OctantVaultWalletEndowReceiver
+  | OctantVaultCardEndowReceiver;
+
+export interface OctantVaultCardEndowReceiverInput {
+  receiverAddress?: string;
+  receiverCustody?: string;
+}
+
+export type OctantVaultCardEndowReceiverValidationError =
+  | "receiver_required"
+  | "receiver_invalid"
+  | "receiver_custody_required"
+  | "receiver_custody_invalid"
+  | "provider_owned_receiver";
+
+export interface OctantVaultCardEndowReceiverValidation {
+  status: "valid" | "invalid";
+  errors: OctantVaultCardEndowReceiverValidationError[];
+  receiver?: OctantVaultCardEndowReceiver;
+}
+
+export interface OctantVaultCardProofAsset {
+  address: Address;
+  symbol: string;
+  decimals: number;
+}
+
+export interface OctantVaultCardEndowProof {
+  intentKind: OctantVaultCardEndowIntentKind;
+  provider: OctantVaultCardProvider;
+  paymentMethod: "card";
+  chainId: number;
+  vaultAddress: Address;
+  destinationAddress: Address;
+  asset: OctantVaultCardProofAsset;
+  amount: string;
+  receiverAddress: Address;
+  receiverCustody: OctantVaultCardEndowReceiverCustody;
+  transactionHash: OctantVaultTransactionHash;
+}
+
+export interface OctantVaultCardDonateProof {
+  intentKind: OctantVaultCardDonateIntentKind;
+  provider: OctantVaultCardProvider;
+  paymentMethod: "card";
+  chainId: number;
+  destinationAddress: Address;
+  asset: OctantVaultCardProofAsset;
+  amount: string;
+  transactionHash: OctantVaultTransactionHash;
+}
+
+export type OctantVaultCardProof = OctantVaultCardEndowProof | OctantVaultCardDonateProof;
+
+export interface OctantVaultCardEndowProofInput {
+  intentKind?: string;
+  provider?: string;
+  paymentMethod?: string;
+  chainId?: number;
+  vaultAddress?: string;
+  destinationAddress?: string;
+  asset?: Partial<{
+    address: string;
+    symbol: string;
+    decimals: number;
+  }>;
+  amount?: string;
+  receiverAddress?: string;
+  receiverCustody?: string;
+  transactionHash?: string;
+}
+
+export interface OctantVaultCardEndowProofExpectation {
+  campaign: OctantVaultCampaignManifest;
+  amount: string;
+  receiverAddress: Address;
+  transactionHash: OctantVaultTransactionHash;
+}
+
+export type OctantVaultCardEndowProofValidationError =
+  | "manifest_incomplete"
+  | "intent_mismatch"
+  | "provider_mismatch"
+  | "payment_method_mismatch"
+  | "chain_mismatch"
+  | "vault_mismatch"
+  | "destination_mismatch"
+  | "asset_address_mismatch"
+  | "asset_symbol_mismatch"
+  | "asset_decimals_mismatch"
+  | "amount_mismatch"
+  | "invalid_receiver"
+  | "provider_owned_receiver"
+  | "receiver_mismatch"
+  | "transaction_hash_mismatch";
+
+export interface OctantVaultCardEndowProofValidation {
+  status: "valid" | "invalid";
+  errors: OctantVaultCardEndowProofValidationError[];
+  proof?: OctantVaultCardEndowProof;
+}
+
 export const GREENPILL_NYC_REQUIRED_MANIFEST_FIELDS = [
   "chainId",
   "vaultAddress",
@@ -169,6 +299,24 @@ function hasAddress(value: unknown): value is Address {
   return typeof value === "string" && /^0x[a-fA-F0-9]{40}$/.test(value);
 }
 
+function hasTransactionHash(value: unknown): value is OctantVaultTransactionHash {
+  return typeof value === "string" && /^0x[a-fA-F0-9]{64}$/.test(value);
+}
+
+function addressesMatch(value: unknown, expected: unknown): boolean {
+  return (
+    hasAddress(value) && hasAddress(expected) && value.toLowerCase() === expected.toLowerCase()
+  );
+}
+
+function transactionHashesMatch(value: unknown, expected: unknown): boolean {
+  return (
+    hasTransactionHash(value) &&
+    hasTransactionHash(expected) &&
+    value.toLowerCase() === expected.toLowerCase()
+  );
+}
+
 function hasOctantEthereumChainId(value: unknown): boolean {
   return Number.isInteger(value) && Number(value) === OCTANT_V2_ETHEREUM_CHAIN_ID;
 }
@@ -198,6 +346,57 @@ function hasCampaignCopy(copy: OctantVaultCampaignCopy | undefined): boolean {
     hasText(copy?.recipientLogic) &&
     hasText(copy?.riskNote)
   );
+}
+
+export function createOctantVaultWalletEndowReceiver(
+  connectedWalletAddress: Address
+): OctantVaultWalletEndowReceiver {
+  return {
+    intentKind: "wallet_endow",
+    paymentMethod: "wallet",
+    receiverKind: "connected_wallet",
+    receiverCustody: "connected_wallet",
+    receiverAddress: connectedWalletAddress,
+  };
+}
+
+export function validateOctantVaultCardEndowReceiver(
+  input: OctantVaultCardEndowReceiverInput
+): OctantVaultCardEndowReceiverValidation {
+  const errors: OctantVaultCardEndowReceiverValidationError[] = [];
+
+  if (!hasText(input.receiverAddress)) {
+    errors.push("receiver_required");
+  } else if (!hasAddress(input.receiverAddress)) {
+    errors.push("receiver_invalid");
+  }
+
+  if (!hasText(input.receiverCustody)) {
+    errors.push("receiver_custody_required");
+  } else if (input.receiverCustody === "provider_owned_custody") {
+    errors.push("provider_owned_receiver");
+  } else if (input.receiverCustody !== "user_owned_recovered_wallet") {
+    errors.push("receiver_custody_invalid");
+  }
+
+  if (errors.length > 0) {
+    return {
+      status: "invalid",
+      errors,
+    };
+  }
+
+  return {
+    status: "valid",
+    errors: [],
+    receiver: {
+      intentKind: "card_endow",
+      paymentMethod: "card",
+      receiverKind: "recovered_wallet",
+      receiverCustody: "user_owned_recovered_wallet",
+      receiverAddress: input.receiverAddress as Address,
+    },
+  };
 }
 
 function getRequiredFields(
@@ -249,6 +448,102 @@ export function validateOctantVaultCampaignManifest(
   return {
     status: missingFields.length === 0 ? "complete" : "blocked_pending_manifest",
     missingFields,
+  };
+}
+
+export function validateOctantVaultCardEndowProof(
+  proof: OctantVaultCardEndowProofInput,
+  expected: OctantVaultCardEndowProofExpectation
+): OctantVaultCardEndowProofValidation {
+  const errors: OctantVaultCardEndowProofValidationError[] = [];
+  const manifestValidation = validateOctantVaultCampaignManifest(expected.campaign);
+  const expectedVault = expected.campaign.vault;
+  const expectedAsset = expectedVault?.asset;
+
+  if (manifestValidation.status !== "complete") {
+    errors.push("manifest_incomplete");
+  }
+  if (proof.intentKind !== "card_endow") {
+    errors.push("intent_mismatch");
+  }
+  if (proof.provider !== "thirdweb") {
+    errors.push("provider_mismatch");
+  }
+  if (proof.paymentMethod !== "card") {
+    errors.push("payment_method_mismatch");
+  }
+  if (proof.chainId !== expectedVault?.chainId) {
+    errors.push("chain_mismatch");
+  }
+  if (!addressesMatch(proof.vaultAddress, expectedVault?.vaultAddress)) {
+    errors.push("vault_mismatch");
+  }
+  if (!addressesMatch(proof.destinationAddress, expectedVault?.vaultAddress)) {
+    errors.push("destination_mismatch");
+  }
+  if (!addressesMatch(proof.asset?.address, expectedAsset?.address)) {
+    errors.push("asset_address_mismatch");
+  }
+  if (!hasText(proof.asset?.symbol) || proof.asset?.symbol !== expectedAsset?.symbol) {
+    errors.push("asset_symbol_mismatch");
+  }
+  if (
+    !Number.isInteger(proof.asset?.decimals) ||
+    proof.asset?.decimals !== expectedAsset?.decimals
+  ) {
+    errors.push("asset_decimals_mismatch");
+  }
+  if (!hasText(proof.amount) || proof.amount !== expected.amount) {
+    errors.push("amount_mismatch");
+  }
+
+  const receiverValidation = validateOctantVaultCardEndowReceiver({
+    receiverAddress: proof.receiverAddress,
+    receiverCustody: proof.receiverCustody,
+  });
+  if (receiverValidation.status === "invalid") {
+    errors.push("invalid_receiver");
+    if (receiverValidation.errors.includes("provider_owned_receiver")) {
+      errors.push("provider_owned_receiver");
+    }
+  } else if (
+    !receiverValidation.receiver ||
+    !addressesMatch(receiverValidation.receiver.receiverAddress, expected.receiverAddress)
+  ) {
+    errors.push("receiver_mismatch");
+  }
+
+  if (!transactionHashesMatch(proof.transactionHash, expected.transactionHash)) {
+    errors.push("transaction_hash_mismatch");
+  }
+
+  if (errors.length > 0) {
+    return {
+      status: "invalid",
+      errors,
+    };
+  }
+
+  return {
+    status: "valid",
+    errors: [],
+    proof: {
+      intentKind: "card_endow",
+      provider: "thirdweb",
+      paymentMethod: "card",
+      chainId: proof.chainId as number,
+      vaultAddress: proof.vaultAddress as Address,
+      destinationAddress: proof.destinationAddress as Address,
+      asset: {
+        address: proof.asset?.address as Address,
+        symbol: proof.asset?.symbol as string,
+        decimals: proof.asset?.decimals as number,
+      },
+      amount: proof.amount as string,
+      receiverAddress: proof.receiverAddress as Address,
+      receiverCustody: "user_owned_recovered_wallet",
+      transactionHash: proof.transactionHash as OctantVaultTransactionHash,
+    },
   };
 }
 
