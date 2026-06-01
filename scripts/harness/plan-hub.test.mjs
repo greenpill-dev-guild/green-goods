@@ -333,7 +333,6 @@ test("linear-sync manifest creates a parent and actionable implementation lane i
       "package:client",
       "protocol:green-goods",
       "source:plans",
-      "task:funding-pathway",
     ]);
     assert.deepEqual(
       manifest.lanes.map((lane) => [lane.lane, lane.action, lane.title, lane.state]),
@@ -347,14 +346,12 @@ test("linear-sync manifest creates a parent and actionable implementation lane i
       "package:client",
       "protocol:green-goods",
       "source:plans",
-      "task:funding-pathway",
     ]);
     assert.deepEqual(manifest.lanes[1].labels, [
       "activity:build",
       "package:shared",
       "protocol:green-goods",
       "source:plans",
-      "task:funding-pathway",
     ]);
     assert.match(manifest.warnings.join("\n"), /missing Linear parent issue/);
     assert.match(manifest.warnings.join("\n"), /missing Linear issue for lane ui/);

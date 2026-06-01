@@ -123,12 +123,6 @@ const LANE_PACKAGE_TRACK_PRIORITIES = {
   state_api: ["shared", "indexer", "agent", "contracts", "docs", "admin", "client-browser", "client-pwa", "client"],
   contracts: ["contracts"],
 };
-const INITIATIVE_TO_TASK_LABEL = {
-  "environmental-data": "task:data-input",
-  reputation: "task:reputation-identity",
-  seasons: "task:local-onboarding",
-  "yield-to-impact": "task:funding-pathway",
-};
 
 function usage() {
   console.log(`Usage:
@@ -466,16 +460,11 @@ function packageLabelsForTracks(tracks, laneName = null) {
   return [];
 }
 
-function taskLabelForStatus(status) {
-  return INITIATIVE_TO_TASK_LABEL[status.taxonomy?.initiative] || null;
-}
-
 function linearLabelsForStatus(status, activityLabel, laneName = null) {
   return uniqueSorted([
     ...LINEAR_BASE_LABELS,
     activityLabel,
     ...packageLabelsForTracks(status.taxonomy?.tracks, laneName),
-    taskLabelForStatus(status),
   ]);
 }
 
