@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p0",
     "created_at": "2026-05-09T21:35:46.781Z",
-    "updated_at": "2026-06-01T03:04:53Z"
+    "updated_at": "2026-06-01T05:50:56Z"
   },
   "links": {
     "brief": "brief.md",
@@ -22,7 +22,14 @@
     "initiative": "public-experience",
     "tracks": ["client-browser", "client", "shared", "agent", "docs"],
     "work_types": ["implementation", "qa"],
-    "surfaces": ["packages/client", "packages/shared", "packages/agent", "docs/docs"],
+    "surfaces": [
+      "packages/client",
+      "packages/shared",
+      "packages/agent",
+      "docs/docs",
+      ".claude/skills/octant-vault-crowdfunding",
+      ".agents/skills/octant-vault-crowdfunding"
+    ],
     "depends_on_features": []
   },
   "sourceBrief": {
@@ -66,7 +73,7 @@
     }
   },
   "phasePlan": {
-    "purpose": "Dedicated public /vaults crowdfunding route for Greenpill NYC and EVMavericks Octant V2 Ethereum vault campaigns, followed by reusable skill planning after demo validation.",
+    "purpose": "Dedicated public /vaults crowdfunding route for Greenpill NYC and EVMavericks Octant V2 Ethereum vault campaigns, followed by Codex-owned reusable octant-vault-crowdfunding skill delivery after demo validation.",
     "phases": [
       {
         "number": 1,
@@ -131,7 +138,7 @@
       },
       {
         "number": 6,
-        "name": "Demo QA pass",
+        "name": "Demo QA validates /vaults",
         "status": "pending",
         "checkInRequiredAfter": true,
         "exitCriteria": [
@@ -143,17 +150,31 @@
       },
       {
         "number": 7,
-        "name": "Reusable skill planning handoff after demo validation",
+        "name": "Codex authors reusable octant-vault-crowdfunding skill + templates",
         "status": "pending",
         "checkInRequiredAfter": false,
         "exitCriteria": [
           "Green Goods /vaults demo validation is complete",
-          "Reusable skill starts with frontend UI for existing Ethereum Octant vaults using standard RPC plus wallet connection",
-          "Advanced backend/API modules cover Thirdweb-first card providers, future Stripe/Coinbase adapters, and optional create-vault via Octant factory/API path"
+          "Canonical skill artifact plan targets .claude/skills/octant-vault-crowdfunding/",
+          ".agents/skills mirror expectations after bun run skills:sync are recorded",
+          "Skill templates cover existing Ethereum Octant vault UI using standard RPC plus wallet connection",
+          "Advanced module specs cover Thirdweb-first card providers, Coinbase/Stripe future adapters, and optional create-vault via Octant Ethereum factory/API path"
+        ]
+      },
+      {
+        "number": 8,
+        "name": "Skill dry-run QA + Linear closeout",
+        "status": "pending",
+        "checkInRequiredAfter": true,
+        "exitCriteria": [
+          "Skill static checks are listed for the later artifact: bun run skills:sync and bun run check:skills",
+          "Dry-run proof covers Greenpill NYC, EVMavericks blocked_pending_manifest, and one synthetic complete manifest fixture",
+          "Linear skill issues PRD-569 through PRD-573 carry current durable descriptions and closeout evidence",
+          "Project is not complete until the skill lane passes"
         ]
       }
     ],
-    "checkInGates": [2, 3, 5, 6]
+    "checkInGates": [2, 3, 5, 6, 8]
   },
   "agentOrchestration": {
     "executionTruth": ".plans/active/nyc-vault-crowdfunding/",
@@ -162,6 +183,7 @@
       "claude_ui": "Own /vaults UI, Greenpill NYC and EVMavericks campaign cards, blocked-pending-manifest states, wallet-last flow, receipt/manage states, responsive layout, i18n, and visible QA pass 1.",
       "codex_state_api": "Own shared manifest/receiver/provider contracts, EVMavericks manifest gate, Thirdweb checkout/webhook gates, targeted shared/agent tests, and QA pass 2.",
       "contracts": "No Solidity/deploy/indexer work unless a narrow Octant V2 config need is proven before editing.",
+      "codex_skill": "After demo QA validation, own the reusable octant-vault-crowdfunding agent skill delivery: canonical .claude/skills artifact plan, templates, fixture examples, advanced module specs, .agents/skills mirror expectations after skills:sync, static checks, and pilot plus synthetic dry-run QA.",
       "linear": "Mirror phase gates and corrected scope on PRD issues."
     }
   },
@@ -197,7 +219,16 @@
         "recovered-owner share verification",
         "Card Endow rejection without receiverAddress"
       ],
-      "browser": ["final public /vaults demo proof required on desktop and mobile"]
+      "browser": ["final public /vaults demo proof required on desktop and mobile"],
+      "skill": [
+        "Codex-owned reusable octant-vault-crowdfunding skill lane starts after demo QA validation",
+        "canonical artifact plan targets .claude/skills/octant-vault-crowdfunding/",
+        ".agents/skills mirror expectations after bun run skills:sync are recorded",
+        "templates cover campaign context, existing vault manifest, wallet RPC assumptions, and implementation handoff",
+        "fixtures cover Greenpill NYC, EVMavericks blocked_pending_manifest, and one synthetic complete manifest",
+        "advanced modules cover Thirdweb first, Coinbase/Stripe future adapters, optional Octant Ethereum factory/API create-vault module",
+        "later artifact validation lists bun run skills:sync, bun run check:skills, and pilot/synthetic dry-run QA"
+      ]
     }
   },
   "notes": [
@@ -213,8 +244,11 @@
     "Card Endow vault shares must belong to the user/recovered wallet, not a provider-owned account.",
     "Public Donate and Card Donate are deferred and must not appear in /vaults acceptance.",
     "Green Goods Arbitrum vault factory/contracts are product context and must not be presented as Octant deployed Ethereum infrastructure.",
-    "Reusable skill/scaffold planning starts after Green Goods demo validation.",
-    "Check-in gates are required after phases 2, 3, 5, and 6.",
+    "Reusable octant-vault-crowdfunding skill delivery starts after Green Goods demo validation and is the final project deliverable.",
+    "The later skill artifact is planned for .claude/skills/octant-vault-crowdfunding/ and mirrored into .agents/skills after bun run skills:sync.",
+    "Skill v1 is an agent skill plus templates, not a runnable generator or full packaged app.",
+    "Skill dry-run proof must cover Greenpill NYC, EVMavericks blocked_pending_manifest, and one synthetic complete manifest fixture.",
+    "Check-in gates are required after phases 2, 3, 5, 6, and 8.",
     "status.json is authoritative; branch names are automation signals.",
     ".plans/ is the durable repo truth; Linear is the durable tracking mirror."
   ],
@@ -307,6 +341,30 @@
       "handoff": "handoffs/codex-qa-pass-2.md",
       "handoff_note": "Re-run targeted shared/client/agent validation, inspect Thirdweb provider proof, recovered-owner share gates, and EVMavericks manifest blocking behavior, require browser proof for the final public /vaults demo, and confirm no unrelated Garden /fund/PWA/admin work was pulled in.",
       "skill_tags": ["testing", "review"]
+    },
+    "skill": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "codex/skill/octant-vault-crowdfunding",
+      "depends_on": ["qa_pass_2"],
+      "handoff": "handoffs/codex-skill.md",
+      "handoff_note": "After demo QA validation, deliver the reusable octant-vault-crowdfunding agent skill plan plus templates: canonical .claude/skills/octant-vault-crowdfunding/ artifact plan, .agents/skills mirror expectations after bun run skills:sync, Greenpill NYC and EVMavericks fixtures plus one synthetic complete manifest, simplest existing-vault runtime guidance, Thirdweb-first card module, Coinbase/Stripe future adapter boundaries, optional Octant Ethereum factory/API create-vault module, backend custody/secrets/webhook/receipt/logging boundaries, static checks, and dry-run proof.",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "The skill lane is an agentic guidance artifact lane; acceptance is static skill validation plus pilot/synthetic dry-run QA after the later artifact is authored."
+      },
+      "skill_tags": ["plan", "architecture", "web3", "testing"]
     }
   },
   "history": [
@@ -357,11 +415,27 @@
       "status": "linear_durable_scope_updated",
       "branch": "feature/nyc-vault-crowdfunding",
       "note": "Updated Linear issue descriptions for PRD-435 through PRD-438, PRD-440, PRD-442 through PRD-444, PRD-487, and PRD-569 through PRD-573; refreshed stale titles where they would point implementers back to /fund or away from NYC + EVMavericks."
+    },
+    {
+      "timestamp": "2026-06-01T05:43:47Z",
+      "actor": "codex",
+      "lane": "skill",
+      "status": "skill_lane_locked",
+      "branch": "feature/nyc-vault-crowdfunding",
+      "note": "Promoted reusable octant-vault-crowdfunding skill delivery to a first-class Codex-owned final deliverable after demo QA validation, with static plus pilot/synthetic dry-run QA."
+    },
+    {
+      "timestamp": "2026-06-01T05:50:56Z",
+      "actor": "codex",
+      "lane": "skill",
+      "status": "linear_skill_lane_promoted",
+      "branch": "feature/nyc-vault-crowdfunding",
+      "note": "Updated PRD-569 through PRD-573 as active skill-lane workstreams, corrected PRD-441 as the /vaults demo QA blocker, and added final superseding Linear comments."
     }
   ],
   "linear": {
     "syncDirection": "plans_to_linear_visibility",
-    "lastSyncedAt": "2026-06-01T03:04:53Z",
+    "lastSyncedAt": "2026-06-01T05:50:56Z",
     "projectDocument": "https://linear.app/greenpill-dev-guild/document/green-goods-x-octant-vault-scope-lock-1fc3d1676fb1",
     "parentIssue": "PRD-435",
     "lanes": {
@@ -401,7 +475,11 @@
     },
     "skillTrack": {
       "parentIssue": "PRD-569",
-      "status": "backlog_tracking",
+      "status": "active_skill_lane_blocked_by_demo_qa",
+      "lane": "skill",
+      "branch": "codex/skill/octant-vault-crowdfunding",
+      "handoff": "handoffs/codex-skill.md",
+      "blockedBy": ["PRD-441"],
       "children": {
         "input_schema": {
           "issue": "PRD-570"
@@ -440,6 +518,14 @@
       "state_api_lane": "b4d449e8-3927-45ff-9e0d-d98211a71be8",
       "ui_lane": "dd500527-62d3-466e-ad8d-f50ce5e2cceb",
       "skill_parent": "11356b02-c304-4556-8b45-ef228cf461dc"
+    },
+    "skillLaneSupersedingComments": {
+      "qa_gate": "729b3ad4-0bbc-4271-b06c-6aa6505122c3",
+      "skill_parent": "92c06893-67e6-4a32-a939-864ffada8c54",
+      "skill_input_schema": "830ad689-6adf-40da-b6b0-7bb787617fa3",
+      "skill_fixtures_templates": "2a173278-58c9-49ad-b351-a09587de41b8",
+      "skill_wallet_runtime": "f5701899-af64-4a79-99fe-2c8872a31dee",
+      "skill_advanced_modules": "c112f5a0-ec2c-4b52-8f79-727b6daaba4c"
     },
     "project": "NYC Vault Crowdfunding"
   }

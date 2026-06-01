@@ -2,9 +2,9 @@
 
 **Feature Slug**: `nyc-vault-crowdfunding`
 **Stage**: `active`
-**Status**: `ACTIVE - /vaults route locked; NYC + EVMavericks pilot fixtures; implementation not started`
+**Status**: `ACTIVE - /vaults route locked; NYC + EVMavericks pilot fixtures; reusable skill lane locked`
 **Created**: `2026-05-09T21:35:46.781Z`
-**Last Updated**: `2026-06-01T03:04:53Z`
+**Last Updated**: `2026-06-01T05:50:56Z`
 
 ## Decision Log
 
@@ -21,7 +21,8 @@
 | 9 | Contracts lane is `n/a` by default. | Existing Octant V2 vaults are targets; no new Solidity/deployment/indexer work is planned unless proven necessary. |
 | 10 | Greenpill NYC and EVMavericks are the first fixture slots. | The route should demonstrate local civic-tech crowdfunding and recurring ETH-native public-goods funding from the source brief. |
 | 11 | Linear is a mirror/check-in surface. | `.plans` remains execution truth; Linear keeps durable issue state and check-in visibility. |
-| 12 | Reusable skill starts after demo validation. | The skill/scaffold is an output of the validated prototype, not a blocker for the first `/vaults` demo. |
+| 12 | Reusable `octant-vault-crowdfunding` skill is the final deliverable. | The `/vaults` demo validates the pilot patterns first, but the project is not complete until Codex delivers and QA-checks the agent skill plus templates. |
+| 13 | Skill v1 is an agent skill plus templates. | No runnable generator or full packaged app is required for v1; static checks and pilot/synthetic dry-run proof are required. |
 
 ## Requirements Coverage
 
@@ -39,7 +40,7 @@
 | `/fund` is not the route being implemented. | `ui`, `state_api` | Keep Garden funding UI separate; only make reusable Card Endow capability compatible for later `/fund` adoption. | ⏳ |
 | Donate and Card Donate remain deferred. | `ui`, `state_api` | Do not expose Donate/Card Donate in `/vaults` acceptance or provider-proof gating. | ✅ deferred |
 | Green Goods Arbitrum contracts are not presented as Octant Ethereum infra. | `ui`, `contracts` | Keep copy/architecture and contracts lane clear; target Octant V2 Ethereum vaults. | ⏳ |
-| Reusable skill/scaffold is planned after demo validation. | `system` | Keep skill issues linked and defer implementation until `/vaults` demo passes QA. | ✅ tracked |
+| Reusable `octant-vault-crowdfunding` skill is delivered after demo validation. | `skill` | Codex authors the canonical skill plan and templates, covering simplest runtime, pilot + synthetic fixtures, Thirdweb-first card modules, Coinbase/Stripe future adapters, optional Octant Ethereum factory/API create-vault module, and dry-run QA. | ⏳ |
 
 ## Implementation Phases
 
@@ -56,12 +57,16 @@
 5. **Thirdweb Card Endow demo path**: implement guarded checkout/webhook/share verification with
    user-owned receiver custody and public manage/withdraw proof for complete-manifest fixtures only.
    **Check in after this phase.**
-6. **Demo QA pass**: verify `/vaults` on desktop/mobile, wallet-last UX, Wallet Endow, Card Endow
-   gates, route privacy, copy/i18n, no Donate/Card Donate, and no unrelated `/fund` redesign.
-   **Check in after this phase.**
-7. **Reusable skill planning handoff**: after demo validation, plan the portable Octant vault
-   crowdfunding scaffold with frontend-first existing-vault UI and advanced backend/card/create-vault
-   modules.
+6. **Demo QA validates `/vaults`**: verify `/vaults` on desktop/mobile, wallet-last UX, Wallet
+   Endow, Card Endow gates, route privacy, copy/i18n, no Donate/Card Donate, and no unrelated
+   `/fund` redesign. **Check in after this phase.**
+7. **Reusable skill delivery lane**: Codex authors the `octant-vault-crowdfunding` agent skill plan
+   and templates for frontend-first existing-vault UI, pilot fixtures, synthetic portability fixture,
+   Thirdweb-first card modules, Coinbase/Stripe future adapter boundaries, and optional Octant
+   Ethereum factory/API create-vault module.
+8. **Skill dry-run QA + Linear closeout**: run skill static checks and dry-run proof against
+   Greenpill NYC, EVMavericks `blocked_pending_manifest`, and one synthetic complete manifest
+   fixture; then update Linear skill issues with final evidence.
 
 ## Agent Orchestration
 
@@ -72,6 +77,7 @@
 | Contracts | Codex | Only if implementation proves a need | Normally `n/a`; no new Solidity/deploy/indexer work |
 | QA pass 1 | Claude | After phases 2-5 are complete | visible UX/mobile/copy/i18n requirement review |
 | QA pass 2 | Codex | After QA pass 1 | validation rerun, provider/share/receiver proof review, final plan status |
+| Skill | Codex | After demo QA validation | `octant-vault-crowdfunding` agent skill plan, templates, fixture examples, advanced module specs, `.claude/skills` + `.agents/skills` mirror expectations, static checks, and dry-run proof |
 | Linear | Linear MCP / Linear agent | Every check-in | durable issue comments/state reflecting phase gate outcomes |
 
 ## Lane Checklists
@@ -132,6 +138,21 @@
 - [ ] Confirm `status.json` lane state and Linear comments match the implemented proof
 - [ ] Write `handoffs/codex-qa-pass-2.md`
 
+### Skill (`codex/skill/octant-vault-crowdfunding`)
+
+- [ ] Start only after demo QA validation has passed
+- [ ] Plan the canonical `.claude/skills/octant-vault-crowdfunding/` artifact
+- [ ] Record `.agents/skills` mirror expectations after `bun run skills:sync`
+- [ ] Include templates for campaign context, existing vault manifest, wallet RPC assumptions, and implementation handoff
+- [ ] Include Greenpill NYC as the validated pilot fixture
+- [ ] Include EVMavericks as a `blocked_pending_manifest` fixture
+- [ ] Include one synthetic complete manifest fixture to prove the skill is not hardcoded
+- [ ] Cover simplest runtime guidance: frontend UI, standard RPC, wallet connection, manifest-driven campaign UI, wallet-last Endow flow
+- [ ] Cover advanced module specs: Thirdweb first, Coinbase/Stripe future adapters, optional Octant Ethereum factory/API create-vault module
+- [ ] Call out backend concerns: secrets, provider setup, webhook verification, receipt policy, custody rules, redacted logs
+- [ ] Run static skill validation and pilot/synthetic dry-run QA
+- [ ] Write `handoffs/codex-skill.md`
+
 ## Validation
 
 - [ ] Targeted shared tests for campaign/vault manifest, receiver typing, and EVMavericks blocked-pending-manifest state
@@ -144,6 +165,8 @@
 - [ ] Targeted agent tests for Thirdweb checkout/webhook tuple verification, redacted logs, recovered
   owner share verification, and Card Endow rejection without `receiverAddress`
 - [ ] Browser proof for final public `/vaults` demo on desktop and mobile
+- [ ] `octant-vault-crowdfunding` skill static checks: `bun run check:skills` after the later skill artifact is created and mirrored
+- [ ] Skill dry-run proof covers Greenpill NYC, EVMavericks `blocked_pending_manifest`, and one synthetic complete manifest fixture
 - [ ] `status.json` parses
 - [ ] `node scripts/harness/plan-hub.mjs linear-sync --feature nyc-vault-crowdfunding --json` returns zero warnings
 - [ ] `node scripts/harness/plan-hub.mjs validate` passes or reports only known unrelated

@@ -16,6 +16,8 @@ and Card Donate remain deferred.
 Greenpill NYC remains the first available transaction fixture when its deployed vault metadata is
 recorded. EVMavericks is part of the first demo scope, but its Wallet Endow and Card Endow
 transaction controls are blocked until the EVMavericks Octant V2 Ethereum vault manifest is supplied.
+After the pilot demo is validated, Codex must deliver the reusable `octant-vault-crowdfunding` agent
+skill plus templates as the final project deliverable.
 
 ## Users
 
@@ -25,7 +27,7 @@ transaction controls are blocked until the EVMavericks Octant V2 Ethereum vault 
   Thirdweb Card Endow path.
 - Operators: Green Goods/Octant reviewers who need a prototype that separates Green Goods campaign UX
   from Octant V2 Ethereum vault infrastructure.
-- Future scaffold users: projects that need a reusable Octant vault crowdfunding UI without cloning
+- Future skill users: projects that need a reusable Octant vault crowdfunding UI without cloning
   Green Goods or hardcoding NYC.
 
 ## Functional Requirements
@@ -59,8 +61,12 @@ transaction controls are blocked until the EVMavericks Octant V2 Ethereum vault 
     remain blocked until chain ID, vault address, asset address, asset symbol, decimals,
     recipient/routing summary, Protocol Guild destination context, explorer link, and campaign copy
     are supplied.
-16. The reusable skill/scaffold must be planned after demo validation and must not expand the demo
-    route acceptance gates.
+16. The reusable `octant-vault-crowdfunding` skill must be delivered after demo validation while
+    keeping the demo route acceptance gates unchanged.
+17. The skill deliverable must be an agent skill plus templates in v1, not a runnable generator or
+    full packaged app.
+18. The skill must include static and dry-run QA against Greenpill NYC, EVMavericks
+    `blocked_pending_manifest`, and one synthetic complete manifest fixture.
 
 ## Interface Requirements
 
@@ -106,32 +112,40 @@ Octant layer:
 Implementation agents must not conflate the Green Goods Arbitrum vault factory with Octant V2
 Ethereum vault infrastructure.
 
-## Reusable Skill Tracking Requirements
+## Reusable Skill Delivery Requirements
 
-This hub also tracks the future reusable vault crowdfunding UI skill as follow-on work after Green
-Goods demo validation. This pass updates repo and Linear tracking; it does not build the skill,
-template, or runtime code.
+This hub tracks the reusable `octant-vault-crowdfunding` agent skill as a first-class delivery lane
+after Green Goods demo validation. This planning cleanup does not create the skill artifact, but the
+project is not complete until the later Codex skill lane delivers and validates it.
 
-Required future skill inputs:
+Required skill inputs:
 
 - DesignMD input path for the community or campaign.
 - Campaign context: community name, campaign goal, vault story, impact framing, CTA labels, risk
   notes, and safe source brief links.
 - Existing vault manifest: chain ID, vault address, asset address, asset symbol, decimals, display
-  name, explorer link, and optional indexer/position support.
+  name, explorer link, recipient/routing summary, campaign copy, and optional indexer/position
+  support.
 - Wallet RPC config and wallet connection assumptions.
-- Optional provider configuration for card/debit modules, with secrets excluded.
+- Optional provider configuration for card/debit modules, with secrets excluded from frontend output.
 
-Required future skill output boundaries:
+Required skill output boundaries:
 
-- Simplest output: frontend UI for existing Ethereum Octant vaults using standard RPC plus wallet
-  connection.
-- Greenpill NYC and EVMavericks are the first fixtures, not defaults.
-- Advanced modules: backend/API card-provider adapters with Thirdweb first, future Stripe/Coinbase
-  adapters, optional create-vault via Octant factory/API path, webhook verification, receipt policy,
-  redacted logs, and provider setup.
-- Existing vaults are the default. Create-vault support is operator setup scaffolding, not a public
-  Green Goods campaign control in this plan.
+- Canonical artifact plan: `.claude/skills/octant-vault-crowdfunding/` with mirrored Codex surface
+  through `.agents/skills` after `bun run skills:sync`.
+- Simplest runtime guidance: frontend UI for existing Ethereum Octant vaults using standard RPC,
+  wallet connection, manifest-driven campaign UI, and wallet-last Endow flow.
+- Templates: manifest schema notes, campaign context prompt/template, fixture examples, validation
+  checklist, and handoff structure for implementation agents.
+- Fixtures: Greenpill NYC validated pilot fixture, EVMavericks `blocked_pending_manifest`, and one
+  synthetic complete manifest fixture to prove the skill is not hardcoded.
+- Advanced modules: Thirdweb card-provider module as the first concrete card path; Coinbase and
+  Stripe as future adapter modules with interface and boundary expectations; optional create-vault
+  module through the Octant Ethereum factory/API path.
+- Backend concerns: secrets, provider setup, webhook verification, receipt policy, custody rules, and
+  redacted logs must be explicit in the skill.
+- Existing vaults remain the default runtime path. Create-vault support is operator setup
+  scaffolding, not a public Green Goods campaign control in this plan.
 
 ## Research Evidence
 
@@ -193,6 +207,7 @@ Repo surfaces implementation agents should inspect before coding:
 | State / API | `state_api` | campaign/vault manifest types, EVMavericks manifest gate, receiver semantics, provider proof, Thirdweb checkout/webhook gates |
 | Contracts | `contracts` | `n/a`; no Solidity, deployment broadcast, or indexer schema work planned |
 | QA | `qa_pass_1`, `qa_pass_2` | Sequential visible UX review and provider/validation review |
+| Reusable skill | `skill` | Codex-owned `octant-vault-crowdfunding` skill artifact plan, templates, fixtures, advanced module specs, static checks, and dry-run proof |
 
 ## Implementation Slices
 
@@ -202,8 +217,9 @@ Repo surfaces implementation agents should inspect before coding:
 3. Wallet-last Wallet Endow path for complete-manifest fixtures. Check in after this phase.
 4. Ownership/share verification gate.
 5. Thirdweb Card Endow demo path for complete-manifest fixtures. Check in after this phase.
-6. Demo QA pass. Check in after this phase.
-7. Reusable skill planning handoff after demo validation.
+6. Demo QA validates `/vaults`. Check in after this phase.
+7. Codex authors reusable `octant-vault-crowdfunding` skill plus templates after demo validation.
+8. Skill dry-run QA + Linear closeout.
 
 ## Risks
 
@@ -217,5 +233,6 @@ Repo surfaces implementation agents should inspect before coding:
 - Risk: Green Goods Arbitrum contracts are misrepresented as Octant Ethereum infra.
   - Mitigation: route copy and architecture docs must identify Octant V2 Ethereum vaults as the
     integration target.
-- Risk: reusable skill planning expands current implementation.
-  - Mitigation: skill work stays post-demo planning metadata until `/vaults` demo validation passes.
+- Risk: reusable skill delivery starts before the demo patterns are validated.
+  - Mitigation: the Codex skill lane depends on demo QA, and the project is not complete until the
+    skill passes static plus pilot/synthetic dry-run QA.

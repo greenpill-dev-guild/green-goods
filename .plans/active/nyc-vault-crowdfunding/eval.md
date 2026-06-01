@@ -20,8 +20,9 @@
    Octant V2 Ethereum infrastructure.
 9. Privacy: receipt tokens, wallet addresses, emails, recovered-wallet IDs, and provider identifiers
    do not appear in shareable URLs or client-visible logs.
-10. Skill tracking quality: reusable scaffold work starts after Green Goods demo validation and does
-   not expand the `/vaults` demo acceptance gates.
+10. Skill delivery quality: reusable `octant-vault-crowdfunding` agent skill work starts after
+    Green Goods demo validation and the project is not complete until the skill plus templates pass
+    static and dry-run QA.
 11. Plan metadata quality: `status.json` parses, `linear-sync --json` returns zero warnings, and full
     `plan-hub validate` blockers are reported rather than hidden.
 
@@ -45,7 +46,10 @@
 | AC-14 | Contracts boundary | No new Solidity, deployment broadcast, or indexer schema work is introduced. | `contracts` | `n/a` |
 | AC-15 | Browser proof | Final `/vaults` route is browser-proofed on desktop and mobile. | `qa_pass_1`, `qa_pass_2` | |
 | AC-16 | Linear/check-in proof | Linear comments and status JSON record phase gates after phases 2, 3, 5, and 6. | `system` | |
-| AC-17 | Skill handoff | Reusable skill plan remains post-demo and starts with frontend UI for existing Ethereum Octant vaults. | `system` | |
+| AC-17 | Skill delivery lane | Codex-owned `skill` lane is present, depends on demo QA validation, and points at `handoffs/codex-skill.md` plus `codex/skill/octant-vault-crowdfunding`. | `skill` | |
+| AC-18 | Skill artifact scope | Skill deliverable is an agent skill plus templates for `.claude/skills/octant-vault-crowdfunding/`, mirrored to `.agents/skills` after `skills:sync`, not a runnable generator or packaged app in v1. | `skill` | |
+| AC-19 | Skill dry-run proof | Skill QA covers Greenpill NYC, EVMavericks `blocked_pending_manifest`, and one synthetic complete manifest fixture. | `skill` | |
+| AC-20 | Advanced module coverage | Skill covers Thirdweb as first concrete card provider, Coinbase/Stripe as future adapter modules, optional Octant Ethereum factory/API create-vault module, and backend custody/secrets/webhook/logging concerns. | `skill` | |
 
 ## Test Strategy
 
@@ -62,6 +66,9 @@
 - `/fund` compatibility: only run targeted tests for Card Endow capability reuse if implementation
   touches shared code consumed by `/fund`; do not make `/fund` the primary browser proof route.
 - E2E / Playwright: final public `/vaults` desktop and mobile proof once implementation exists.
+- Skill lane: after the later artifact is authored, run `bun run skills:sync`, `bun run
+  check:skills`, and a documented dry-run against Greenpill NYC, EVMavericks
+  `blocked_pending_manifest`, and one synthetic complete manifest fixture.
 - Tracking checks: status JSON parse, `linear-sync --feature nyc-vault-crowdfunding --json` with zero
   warnings, full `plan-hub validate` when unrelated drift permits, and Linear read-back/comments.
 
@@ -73,7 +80,9 @@
   implementation proceeds.
 - After phase 5: confirm Thirdweb Card Endow preserves user custody and passes receiver/share/public
   manage/provider proof before exposure.
-- After phase 6: confirm demo QA proof is acceptable before reusable skill planning starts.
+- After phase 6: confirm demo QA proof is acceptable before Codex starts reusable skill delivery.
+- After phase 8: confirm skill static checks, dry-run proof, and Linear closeout evidence are
+  recorded.
 
 ## QA Sequence
 
@@ -91,3 +100,16 @@
 - Re-run targeted shared/client/agent validation selected by implementation agents.
 - Inspect Thirdweb provider proof, recovered-wallet receiver semantics, share verification, route
   privacy, and final `/vaults` browser proof.
+
+### Codex Skill QA
+
+- Start only after demo QA validation passes.
+- Confirm the skill lane points to `codex/skill/octant-vault-crowdfunding` and
+  `handoffs/codex-skill.md`.
+- Verify the skill artifact plan targets `.claude/skills/octant-vault-crowdfunding/` and the Codex
+  mirror through `.agents/skills` after `bun run skills:sync`.
+- Dry-run the skill against Greenpill NYC, EVMavericks `blocked_pending_manifest`, and one synthetic
+  complete manifest fixture.
+- Confirm advanced module coverage: Thirdweb first, Coinbase/Stripe future adapters, optional Octant
+  Ethereum factory/API create-vault module, secrets/provider/webhook/receipt/custody/logging
+  boundaries.

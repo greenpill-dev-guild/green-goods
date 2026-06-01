@@ -4,7 +4,7 @@
 **Stage**: `active`
 **Priority**: `p0`
 **Created**: `2026-05-09T21:35:46.781Z`
-**Last Updated**: `2026-06-01T03:04:53Z`
+**Last Updated**: `2026-06-01T05:50:56Z`
 **Source Brief**: Green Goods x Octant Crowdfunding UI Alignment Brief
 
 ## Problem
@@ -48,7 +48,9 @@ Endow transaction work is blocked until its Octant V2 Ethereum vault manifest is
 - Green Goods' current Arbitrum vault factory and related contracts are product context and
   implementation proof only. They must not be presented as Octant's deployed Ethereum vault
   infrastructure.
-- Reusable skill/scaffold planning starts only after the Green Goods demo is validated.
+- The reusable `octant-vault-crowdfunding` agent skill is a core final deliverable, not a loose
+  follow-up. It starts after the Green Goods demo is validated and the project is not complete until
+  the skill lane passes static and dry-run QA.
 - EVMavericks transaction enablement remains blocked until chain ID, vault address, asset
   address/symbol/decimals, recipient/routing summary, Protocol Guild destination context, explorer
   link, and campaign copy are recorded in the manifest.
@@ -70,7 +72,11 @@ In scope:
 - Shared vault campaign, manifest, receiver, provider-proof, and receipt types needed by the route.
 - Agent/backend card checkout and webhook boundaries required for the Thirdweb Card Endow demo path.
 - Targeted shared/client/agent tests and final browser proof for `/vaults`.
-- Linear tracking for implementation phases, check-ins, QA, and reusable skill handoff.
+- Codex-owned reusable `octant-vault-crowdfunding` skill delivery after demo validation, including
+  `.claude/skills/octant-vault-crowdfunding/` artifact planning, `.agents/skills` mirror
+  expectations after `skills:sync`, templates, fixture examples, advanced module boundaries, and
+  dry-run proof.
+- Linear tracking for implementation phases, check-ins, QA, and reusable skill delivery.
 
 Out of scope:
 
@@ -84,6 +90,8 @@ Out of scope:
 - Fiat/card off-ramp for withdrawals.
 - Public address lookup.
 - Admin UI or PWA shell redesign.
+- Creating the actual `.claude/skills/octant-vault-crowdfunding/` artifact in this planning cleanup
+  pass. The artifact is a later implementation phase in this same project.
 
 ## Locked Lane Matrix
 
@@ -93,6 +101,7 @@ Out of scope:
 | Wallet Endow | In scope for complete manifests | Connected wallet deposits into the selected deployed Octant V2 Ethereum vault and owns the resulting position; disabled for any fixture missing required manifest data. |
 | Thirdweb Card Endow | In scope for complete manifests, hidden until proof passes | Checkout must target a user-owned recovered wallet receiver; shares, visibility, withdrawal/manage path, and webhook tuple must be proven. |
 | Public management / withdrawal proof | In scope | The vault crowdfunding route must give users a public path back to owned positions without leaking addresses, emails, receipt tokens, or provider IDs in URLs. |
+| `octant-vault-crowdfunding` skill | Final deliverable after demo validation | Codex authors the canonical agent skill plus templates for existing Ethereum Octant vault UIs, Thirdweb-first card modules, Coinbase/Stripe future adapter boundaries, optional Octant Ethereum factory/API create-vault module, and pilot + synthetic dry-run proof. |
 | `/fund` Garden UI | Reuse only | Existing Garden funding stays separate; only the reusable Card Endow capability can be applied there later. |
 | Public Donate | Deferred | Separate future scope. |
 | Card Donate | Deferred | Separate future scope; Card Donate proof must never unlock Card Endow. |
@@ -112,11 +121,15 @@ Out of scope:
 5. **Thirdweb Card Endow demo path**: wire the guarded Thirdweb checkout/backend path only for
    fixtures with complete manifest data and only after the user-owned receiver, share visibility,
    withdrawal/manage, and webhook verification contract is enforceable. **Check in after this phase.**
-6. **Demo QA pass**: browser-proof `/vaults` on desktop and mobile, verify wallet/card gates,
-   privacy, copy, i18n, and regression boundaries. **Check in after this phase.**
-7. **Reusable skill planning handoff**: after demo validation, plan the portable scaffold around
-   existing Ethereum Octant vault UI first, then backend card-provider and optional create-vault
-   modules.
+6. **Demo QA validates `/vaults`**: browser-proof `/vaults` on desktop and mobile, verify
+   wallet/card gates, privacy, copy, i18n, and regression boundaries. **Check in after this phase.**
+7. **Reusable skill delivery lane**: Codex authors the `octant-vault-crowdfunding` agent skill plan
+   and templates for existing Ethereum Octant vault UI first, then Thirdweb-first card-provider
+   modules, Coinbase/Stripe future adapter boundaries, and optional Octant Ethereum factory/API
+   create-vault module.
+8. **Skill dry-run QA + Linear closeout**: validate the skill with static checks and dry-run proof
+   against Greenpill NYC, EVMavericks `blocked_pending_manifest`, and one synthetic complete
+   manifest fixture; then close out Linear skill-lane tracking.
 
 ## Agent Orchestration
 
@@ -132,18 +145,26 @@ Out of scope:
   and missing requirements.
 - **Codex QA pass**: re-run targeted validation, inspect provider/share/receiver proof, and require
   browser evidence for the final `/vaults` route.
+- **Codex skill lane**: after demo QA passes, own the reusable `octant-vault-crowdfunding` agent
+  skill delivery: canonical `.claude/skills/octant-vault-crowdfunding/` artifact plan, templates,
+  fixture examples, advanced module specs, `.agents/skills` mirror expectations after `skills:sync`,
+  and static plus dry-run QA.
 - **Linear agent / Linear MCP**: durable tracking, issue comments, check-in state, and validation
   visibility only. `.plans/active/nyc-vault-crowdfunding/` remains execution truth.
 
-## Reusable Skill Tracking
+## Reusable Skill Delivery
 
-The reusable crowdfunding UI skill starts after Green Goods demo validation. The simplest output is a
-frontend UI for existing Ethereum Octant vaults using standard RPC plus wallet connection. Greenpill
-NYC and EVMavericks are the first fixtures, not hardcoded defaults.
+The reusable `octant-vault-crowdfunding` skill starts after Green Goods demo validation and is the
+final reusable/scalable deliverable for other communities. The simplest output is an agent skill plus
+templates that let implementation agents produce a frontend UI for existing Ethereum Octant vaults
+using standard RPC plus wallet connection. Greenpill NYC and EVMavericks are pilot fixtures, not
+hardcoded defaults, and one synthetic complete manifest fixture is required to prove portability.
 
-Advanced modules are follow-on backend/API work: Thirdweb-first card providers, future
-Stripe/Coinbase adapters, optional create-vault support through an Octant factory/API path, secrets,
-provider setup, webhook verification, receipt policy, and redacted logs.
+The skill must cover advanced modules as templates/specs in v1: Thirdweb is the first concrete
+card-provider path; Coinbase and Stripe are future adapter modules with interface and boundary
+expectations; optional create-vault support uses the Octant Ethereum factory/API path. Secrets,
+provider setup, webhook verification, receipt policy, custody rules, and redacted logs are backend
+concerns and must be called out by the skill.
 
 ## Success Signal
 
@@ -151,5 +172,8 @@ A contributor can open the public `/vaults` demo, browse the Greenpill NYC and E
 vault campaigns without a wallet, choose a complete-manifest vault and amount, connect at final
 confirmation, complete Wallet Endow or gated Thirdweb Card Endow into the correct Octant V2 Ethereum
 vault, and later reach a public management path where the user-owned position is visible and
-withdrawable, with test, browser, QA, and Linear evidence recorded. If EVMavericks manifest metadata
-is still missing, its campaign remains visible but transaction controls stay blocked with clear copy.
+withdrawable. After that demo is validated, Codex delivers the reusable `octant-vault-crowdfunding`
+agent skill plan with templates, pilot plus synthetic fixture examples, advanced module boundaries,
+`.claude/skills/octant-vault-crowdfunding/` and `.agents/skills` mirror expectations, static checks,
+dry-run proof, and Linear evidence recorded. If EVMavericks manifest metadata is still missing, its
+campaign remains visible but transaction controls stay blocked with clear copy.
