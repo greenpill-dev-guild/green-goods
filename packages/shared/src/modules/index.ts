@@ -234,6 +234,34 @@ export {
   getVaultEvents,
 } from "./data/vaults";
 // ============================================================================
+// VAULT CROWDFUNDING
+// ============================================================================
+export {
+  EVMAVERICKS_REQUIRED_MANIFEST_FIELDS,
+  getOctantVaultCampaignBySlug,
+  getOctantVaultCampaignCopy,
+  getOctantVaultCampaigns,
+  getOctantVaultCampaignTransactionState,
+  GREENPILL_NYC_REQUIRED_MANIFEST_FIELDS,
+  isOctantVaultCampaignTransactionReady,
+  OCTANT_VAULT_CAMPAIGN_MANIFEST,
+  OCTANT_VAULT_MANIFEST_FIELD_LABELS,
+  validateOctantVaultCampaignManifest,
+} from "./vault-crowdfunding";
+export type {
+  OctantVaultCampaignAssetManifest,
+  OctantVaultCampaignCopy,
+  OctantVaultCampaignFixtureRole,
+  OctantVaultCampaignManifest,
+  OctantVaultCampaignManifestStatus,
+  OctantVaultCampaignManifestValidation,
+  OctantVaultCampaignSlug,
+  OctantVaultCampaignTargetProtocol,
+  OctantVaultCampaignTransactionState,
+  OctantVaultManifest,
+  OctantVaultManifestField,
+} from "./vault-crowdfunding";
+// ============================================================================
 // JOB QUEUE
 // ============================================================================
 export {
