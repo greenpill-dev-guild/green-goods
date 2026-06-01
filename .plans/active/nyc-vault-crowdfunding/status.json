@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p0",
     "created_at": "2026-05-09T21:35:46.781Z",
-    "updated_at": "2026-06-01T02:36:57Z"
+    "updated_at": "2026-06-01T03:04:53Z"
   },
   "links": {
     "brief": "brief.md",
@@ -29,10 +29,44 @@
     "title": "Green Goods x Octant: Crowdfunding UI Alignment Brief",
     "route": "/vaults",
     "primaryTarget": "Octant V2 vaults on Ethereum",
-    "correction": "The primary problem is NYC Octant vault crowdfunding UI, not the existing Garden /fund surface."
+    "primaryFixtures": ["greenpill-nyc", "evmavericks"],
+    "correction": "The primary problem is Octant V2 Ethereum vault crowdfunding UI, not the existing Garden /fund surface."
+  },
+  "pilotFixtures": {
+    "greenpill-nyc": {
+      "label": "Greenpill NYC",
+      "status": "first_available_transaction_fixture",
+      "transactionEnablement": "enabled only after deployed Octant V2 Ethereum vault metadata is recorded in the manifest",
+      "requiredManifestFields": [
+        "chainId",
+        "vaultAddress",
+        "assetAddress",
+        "assetSymbol",
+        "assetDecimals",
+        "recipientRoutingSummary",
+        "explorerLink",
+        "campaignCopy"
+      ]
+    },
+    "evmavericks": {
+      "label": "EVMavericks Fantasy Football League",
+      "status": "blocked_pending_manifest",
+      "transactionEnablement": "Wallet Endow and Card Endow disabled until the required manifest is supplied",
+      "requiredManifestFields": [
+        "chainId",
+        "vaultAddress",
+        "assetAddress",
+        "assetSymbol",
+        "assetDecimals",
+        "recipientRoutingSummary",
+        "protocolGuildDestinationContext",
+        "explorerLink",
+        "campaignCopy"
+      ]
+    }
   },
   "phasePlan": {
-    "purpose": "Dedicated public /vaults crowdfunding route for NYC Octant V2 Ethereum vault campaigns, followed by reusable skill planning after demo validation.",
+    "purpose": "Dedicated public /vaults crowdfunding route for Greenpill NYC and EVMavericks Octant V2 Ethereum vault campaigns, followed by reusable skill planning after demo validation.",
     "phases": [
       {
         "number": 1,
@@ -41,6 +75,7 @@
         "checkInRequiredAfter": false,
         "exitCriteria": [
           "brief/spec/plan/eval/status align on dedicated /vaults route scope",
+          "Greenpill NYC and EVMavericks are locked as first-demo fixture slots",
           "/fund is recorded as reuse context only, not the primary route",
           "Donate and Card Donate remain deferred",
           "Linear issues carry the corrected attached-brief tracking note"
@@ -53,7 +88,8 @@
         "checkInRequiredAfter": true,
         "exitCriteria": [
           "/vaults route scaffold and campaign browse states are ready",
-          "NYC Octant V2 Ethereum vault manifest shape is defined",
+          "Greenpill NYC and EVMavericks fixture slots exist in the manifest",
+          "EVMavericks is marked blocked_pending_manifest until required vault metadata is supplied",
           "Users can inspect campaign copy and onchain context without wallet connection"
         ]
       },
@@ -64,7 +100,9 @@
         "checkInRequiredAfter": true,
         "exitCriteria": [
           "Users choose vault and amount before wallet connection",
-          "Wallet Endow deposits into both NYC Octant V2 Ethereum vaults",
+          "Wallet Endow deposits only for complete-manifest fixtures",
+          "Greenpill NYC is the first available transaction fixture when its deployed vault metadata is recorded",
+          "EVMavericks transaction controls remain disabled while blocked_pending_manifest",
           "Connected wallet owns the resulting position"
         ]
       },
@@ -74,8 +112,8 @@
         "status": "pending",
         "checkInRequiredAfter": false,
         "exitCriteria": [
-          "Wallet-funded shares are visible for the connected wallet",
-          "Recovered-wallet Card Endow shares are verified for the recovered wallet",
+          "Wallet-funded shares are visible for the connected wallet on complete-manifest fixtures",
+          "Recovered-wallet Card Endow shares are verified for the recovered wallet on complete-manifest fixtures",
           "No provider-owned custody path can receive vault shares"
         ]
       },
@@ -85,7 +123,8 @@
         "status": "pending",
         "checkInRequiredAfter": true,
         "exitCriteria": [
-          "Thirdweb checkout targets a user-owned recovered wallet receiverAddress",
+          "Thirdweb checkout targets a user-owned recovered wallet receiverAddress for complete-manifest fixtures only",
+          "EVMavericks Card Endow remains disabled while blocked_pending_manifest",
           "Webhook/provider proof verifies exact chain, token, amount, destination, transaction, method, and intent",
           "Public manage/withdraw proof exists before Card Endow exposure"
         ]
@@ -97,6 +136,7 @@
         "checkInRequiredAfter": true,
         "exitCriteria": [
           "Desktop and mobile browser proof covers final public /vaults demo",
+          "Greenpill NYC and EVMavericks fixture slots are both visible",
           "Wallet-last flow, Wallet Endow, Thirdweb Card Endow gates, privacy, i18n, and copy are verified",
           "Donate/Card Donate are absent and /fund was not redesigned as the primary route"
         ]
@@ -119,8 +159,8 @@
     "executionTruth": ".plans/active/nyc-vault-crowdfunding/",
     "linearRole": "durable tracking, issue comments, check-in state, and validation visibility; not the implementation truth",
     "lanes": {
-      "claude_ui": "Own /vaults UI, campaign cards, wallet-last flow, receipt/manage states, responsive layout, i18n, and visible QA pass 1.",
-      "codex_state_api": "Own shared manifest/receiver/provider contracts, Thirdweb checkout/webhook gates, targeted shared/agent tests, and QA pass 2.",
+      "claude_ui": "Own /vaults UI, Greenpill NYC and EVMavericks campaign cards, blocked-pending-manifest states, wallet-last flow, receipt/manage states, responsive layout, i18n, and visible QA pass 1.",
+      "codex_state_api": "Own shared manifest/receiver/provider contracts, EVMavericks manifest gate, Thirdweb checkout/webhook gates, targeted shared/agent tests, and QA pass 2.",
       "contracts": "No Solidity/deploy/indexer work unless a narrow Octant V2 config need is proven before editing.",
       "linear": "Mirror phase gates and corrected scope on PRD issues."
     }
@@ -134,15 +174,18 @@
     "implementationAgents": {
       "shared": [
         "campaign/vault manifest typing for existing Octant V2 Ethereum vaults",
+        "pilot fixture status for greenpill-nyc and evmavericks",
+        "blocked_pending_manifest behavior for EVMavericks",
         "receiver typing for Wallet Endow and Thirdweb Card Endow",
         "exact chain/vault/token/provider proof separation",
         "Card Endow proof-key separation from Card Donate"
       ],
       "client": [
         "dedicated /vaults route",
-        "browse-without-wallet campaign states",
+        "browse-without-wallet campaign states for Greenpill NYC and EVMavericks",
+        "EVMavericks disabled transaction state until required manifest fields are supplied",
         "wallet-last amount -> connect -> confirm sequence",
-        "Wallet Endow for both NYC vaults",
+        "Wallet Endow for complete-manifest fixtures",
         "Thirdweb Card Endow hidden until receiver/share/public manage/provider proof",
         "Donate/Card Donate absent from /vaults",
         "only targeted /fund compatibility tests if Card Endow reusable capability touches shared /fund code"
@@ -159,10 +202,13 @@
   },
   "notes": [
     "Corrected on 2026-06-01 against the attached Green Goods x Octant crowdfunding brief.",
-    "The primary route is /vaults, a dedicated Octant V2 Ethereum vault crowdfunding surface.",
+    "The primary route is /vaults, a dedicated Octant V2 Ethereum vault crowdfunding surface. No /vault alias or redirect is planned in this cleanup.",
+    "Greenpill NYC and EVMavericks are locked as the first-demo fixture slots.",
+    "Greenpill NYC remains the first available transaction fixture when its deployed vault metadata is recorded.",
+    "EVMavericks transaction work is blocked_pending_manifest until chain ID, vault address, asset address/symbol/decimals, recipient/routing summary, Protocol Guild destination context, explorer link, and campaign copy are supplied.",
     "The previous /fund-centered problem statement was wrong. Existing Garden /fund remains separate and is reuse context only.",
     "The only /fund relationship in this plan is future-compatible Card Endow receiver/proof capability reuse, not route implementation.",
-    "Wallet Endow and Thirdweb Card Endow are in Green Goods demo scope for the two NYC Octant V2 Ethereum vaults.",
+    "Wallet Endow and Thirdweb Card Endow are in Green Goods demo scope for complete-manifest fixtures.",
     "Thirdweb Card Endow remains hidden until recovered-wallet receiver custody, vault-share visibility, public manage/withdraw proof, and strict webhook/provider proof pass.",
     "Card Endow vault shares must belong to the user/recovered wallet, not a provider-owned account.",
     "Public Donate and Card Donate are deferred and must not appear in /vaults acceptance.",
@@ -179,7 +225,7 @@
       "branch": "claude/ui/nyc-vault-crowdfunding",
       "depends_on": [],
       "handoff": "handoffs/claude-ui.md",
-      "handoff_note": "Implement and verify the dedicated public /vaults route for NYC Octant V2 Ethereum vault crowdfunding: campaign browse without wallet, amount-first/wallet-last flow, Wallet Endow for both NYC vaults, route-local receipt/manage states, Donate/Card Donate absent, and Thirdweb Card Endow hidden until state/API proof gates pass. Do not redesign /fund as the primary route. Add i18n.",
+      "handoff_note": "Implement and verify the dedicated public /vaults route for Greenpill NYC and EVMavericks Octant V2 Ethereum vault crowdfunding: campaign browse without wallet, amount-first/wallet-last flow, blocked-pending-manifest state for EVMavericks, Wallet Endow for complete-manifest fixtures, route-local receipt/manage states, Donate/Card Donate absent, and Thirdweb Card Endow hidden until state/API proof gates pass. Do not redesign /fund as the primary route. Add i18n.",
       "tdd": {
         "mode": "required",
         "status": "pending",
@@ -201,7 +247,7 @@
       "branch": "codex/state-api/nyc-vault-crowdfunding",
       "depends_on": [],
       "handoff": "handoffs/codex-state-api.md",
-      "handoff_note": "Own shared campaign/vault manifest types, Octant V2 Ethereum vault tuple semantics, Wallet Endow receiver semantics, Thirdweb Card Endow recovered-wallet receiverAddress enforcement, exact provider/webhook proof separation, recovered-owner share verification, redacted logs, and future-compatible Card Endow capability reuse for /fund without making /fund the current route.",
+      "handoff_note": "Own shared campaign/vault manifest types, Greenpill NYC and EVMavericks fixture status, EVMavericks blocked_pending_manifest gate, Octant V2 Ethereum vault tuple semantics, Wallet Endow receiver semantics, Thirdweb Card Endow recovered-wallet receiverAddress enforcement, exact provider/webhook proof separation, recovered-owner share verification, redacted logs, and future-compatible Card Endow capability reuse for /fund without making /fund the current route.",
       "tdd": {
         "mode": "required",
         "status": "pending",
@@ -247,7 +293,7 @@
       "branch": "claude/qa-pass-1/nyc-vault-crowdfunding",
       "depends_on": ["ui", "state_api"],
       "handoff": "handoffs/claude-qa-pass-1.md",
-      "handoff_note": "Review the visible /vaults demo: campaign comprehension before wallet connection, wallet-last flow, Wallet Endow, Thirdweb Card Endow hidden-until-proof, mobile layout, i18n, Donate/Card Donate absence, and no /fund redesign.",
+      "handoff_note": "Review the visible /vaults demo: Greenpill NYC and EVMavericks fixture slots, EVMavericks blocked-pending-manifest state, campaign comprehension before wallet connection, wallet-last flow, Wallet Endow on complete-manifest fixtures, Thirdweb Card Endow hidden-until-proof, mobile layout, i18n, Donate/Card Donate absence, and no /fund redesign.",
       "skill_tags": ["testing", "review", "ui"]
     },
     "qa_pass_2": {
@@ -259,7 +305,7 @@
       "branch_trigger": "claude/qa-pass-1/nyc-vault-crowdfunding",
       "depends_on": ["qa_pass_1"],
       "handoff": "handoffs/codex-qa-pass-2.md",
-      "handoff_note": "Re-run targeted shared/client/agent validation, inspect Thirdweb provider proof and recovered-owner share gates, require browser proof for the final public /vaults demo, and confirm no unrelated Garden /fund/PWA/admin work was pulled in.",
+      "handoff_note": "Re-run targeted shared/client/agent validation, inspect Thirdweb provider proof, recovered-owner share gates, and EVMavericks manifest blocking behavior, require browser proof for the final public /vaults demo, and confirm no unrelated Garden /fund/PWA/admin work was pulled in.",
       "skill_tags": ["testing", "review"]
     }
   },
@@ -286,7 +332,7 @@
       "lane": "system",
       "status": "scope_corrected_from_source_brief",
       "branch": "feature/nyc-vault-crowdfunding",
-      "note": "Corrected plan truth to the attached Octant crowdfunding brief: dedicated /vaults route, NYC Octant V2 Ethereum vaults, /fund reuse-only boundary, Donate/Card Donate deferred, and reusable skill after demo validation."
+      "note": "Corrected plan truth to the attached Octant crowdfunding brief: dedicated /vaults route, Octant V2 Ethereum vault crowdfunding, /fund reuse-only boundary, Donate/Card Donate deferred, and reusable skill after demo validation."
     },
     {
       "timestamp": "2026-06-01T02:36:57Z",
@@ -295,11 +341,27 @@
       "status": "linear_scope_correction_comments_recorded",
       "branch": "feature/nyc-vault-crowdfunding",
       "note": "Commented PRD-435, PRD-436, PRD-437, PRD-438, PRD-439, PRD-440, PRD-441, PRD-442, PRD-443, PRD-444, PRD-487, and PRD-569 through PRD-573 with the dedicated /vaults route correction and /fund reuse-only boundary."
+    },
+    {
+      "timestamp": "2026-06-01T02:53:32Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "fixture_scope_locked",
+      "branch": "feature/nyc-vault-crowdfunding",
+      "note": "Locked /vaults as canonical, added Greenpill NYC and EVMavericks first-demo fixture slots, and marked EVMavericks blocked_pending_manifest until its Octant V2 Ethereum vault metadata is supplied."
+    },
+    {
+      "timestamp": "2026-06-01T03:04:53Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_durable_scope_updated",
+      "branch": "feature/nyc-vault-crowdfunding",
+      "note": "Updated Linear issue descriptions for PRD-435 through PRD-438, PRD-440, PRD-442 through PRD-444, PRD-487, and PRD-569 through PRD-573; refreshed stale titles where they would point implementers back to /fund or away from NYC + EVMavericks."
     }
   ],
   "linear": {
     "syncDirection": "plans_to_linear_visibility",
-    "lastSyncedAt": "2026-06-01T02:36:57Z",
+    "lastSyncedAt": "2026-06-01T03:04:53Z",
     "projectDocument": "https://linear.app/greenpill-dev-guild/document/green-goods-x-octant-vault-scope-lock-1fc3d1676fb1",
     "parentIssue": "PRD-435",
     "lanes": {
@@ -372,6 +434,12 @@
       "skill_fixture": "cf32c7f5-5b08-4461-851d-ef8de0a348c1",
       "skill_wallet_runtime": "e166d608-7c28-40d1-94ff-4632c27415cc",
       "skill_provider_boundaries": "ebea36ee-460c-4f30-aabb-df9d85cc"
+    },
+    "finalSupersedingComments": {
+      "delivery_parent": "137cedd9-af3f-41ef-a728-1366740738d9",
+      "state_api_lane": "b4d449e8-3927-45ff-9e0d-d98211a71be8",
+      "ui_lane": "dd500527-62d3-466e-ad8d-f50ce5e2cceb",
+      "skill_parent": "11356b02-c304-4556-8b45-ef228cf461dc"
     },
     "project": "NYC Vault Crowdfunding"
   }
