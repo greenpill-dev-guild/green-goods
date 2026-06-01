@@ -95,7 +95,6 @@ Investigation likely spans `package:admin` (display) and `package:indexer` (enri
 - `activity:architecture` — strategic / architectural work (e.g., cross-device account recovery, auth-flow rework).
 - `source:drive` — provenance still matters for triage.
 - `agent:*` (one only) — `agent:claude` (interactive Claude Code), `agent:codex` (delegated to Codex), `agent:routine` (cron'd routine writes). When both an origin and a delegate-to apply, the **delegate-to** wins as the label; the originating agent goes in the body's `## Provenance` section. The interactive `qa-triage` skill defaults to `agent:claude` unless the user picks Codex delegation in the assignee dialog.
-- `task:*` — apply only when the work clearly falls inside one of the canonical task pathways (`task:evidence`, `task:funding-pathway`, `task:access-participation`, `task:reputation-identity`, `task:data-input`, `task:local-onboarding`, `task:evaluator-review`). Omit if unsure.
 
 **Workflow state**:
 - `Todo` when surface + behavior are clear and a fix path is suggestable.

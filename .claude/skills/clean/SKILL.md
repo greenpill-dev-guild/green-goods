@@ -473,7 +473,7 @@ Routing rules:
 - Attach to an active bounded project only when the scope clearly matches. Do not route new work
   into completed/staging umbrella projects such as `Green Goods`, `Coop`, `Network Website`, or
   `Cookie Jar`; otherwise leave the issue unprojected.
-- Use only these label namespaces: `protocol:*`, `package:*`, `activity:*`, `task:*`,
+- Use only these label namespaces: `protocol:*`, `package:*`, `activity:*`,
   `funding:*`, `source:*`, `agent:*`.
 - Keep private, security-sensitive, user-identifying, replay, wallet, email, and session details
   out of public Linear issue bodies.
