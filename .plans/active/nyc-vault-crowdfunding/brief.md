@@ -1,6 +1,6 @@
-# Public Endowment Withdrawal Recovery
+# NYC Vault Crowdfunding
 
-**Slug**: `public-endowment-withdrawal-recovery`
+**Slug**: `nyc-vault-crowdfunding`
 **Stage**: `active`
 **Priority**: `p0`
 **Created**: `2026-05-09T21:35:46.781Z`

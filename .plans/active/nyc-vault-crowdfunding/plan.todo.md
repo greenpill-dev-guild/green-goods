@@ -1,10 +1,10 @@
-# Public Endowment Withdrawal Recovery Plan
+# NYC Vault Crowdfunding Plan
 
-**Feature Slug**: `public-endowment-withdrawal-recovery`
+**Feature Slug**: `nyc-vault-crowdfunding`
 **Stage**: `active`
 **Status**: `ACTIVE — June 1 demo sequence locked; ui/state_api IN_PROGRESS, qa BLOCKED`
 **Created**: `2026-05-09T21:35:46.781Z`
-**Last Updated**: `2026-05-31T05:45:01Z`
+**Last Updated**: `2026-06-01T02:21:14Z`
 
 ## Decision Log
 
@@ -105,7 +105,7 @@
 
 ## Lane Checklists
 
-### UI (`claude/ui/public-endowment-withdrawal-recovery`)
+### UI (`claude/ui/nyc-vault-crowdfunding`)
 
 - [ ] Add `/fund` "My Endowments" account panel, connected empty state, active positions, and withdraw controls
 - [ ] Add the shareable public demo path for the two deployed NYC Ethereum Octant vaults
@@ -122,7 +122,7 @@
 - [ ] Record RED/GREEN proof or a proof-limit note before marking the lane complete
 - [ ] Write `handoffs/claude-ui.md`
 
-### State / API (`codex/state-api/public-endowment-withdrawal-recovery`)
+### State / API (`codex/state-api/nyc-vault-crowdfunding`)
 
 - [ ] Add shared public endowment-position hook/type using existing owner deposit, vault catalog, and public garden data
 - [ ] Ensure available/Max withdrawal uses the same safe max-loss basis points as `useVaultWithdraw`
@@ -137,13 +137,13 @@
 - [ ] Record RED/GREEN proof or a proof-limit note before marking the lane complete
 - [ ] Write `handoffs/codex-state-api.md`
 
-### Contracts (`codex/contracts/public-endowment-withdrawal-recovery`)
+### Contracts (`codex/contracts/nyc-vault-crowdfunding`)
 
 - [x] No contract work planned
 - [x] No deployment work planned
 - [x] No indexer schema work planned
 
-### QA Pass 1 (`claude/qa-pass-1/public-endowment-withdrawal-recovery`)
+### QA Pass 1 (`claude/qa-pass-1/nyc-vault-crowdfunding`)
 
 - [ ] Review wallet-connected `/fund` management UX on desktop and mobile
 - [ ] Verify the shareable public demo link covers both deployed NYC Ethereum Octant vaults
@@ -152,7 +152,7 @@
 - [ ] Verify Card Endow remains hidden until ownership/withdrawal proof exists
 - [ ] Write `handoffs/claude-qa-pass-1.md`
 
-### QA Pass 2 (`codex/qa-pass-2/public-endowment-withdrawal-recovery`)
+### QA Pass 2 (`codex/qa-pass-2/nyc-vault-crowdfunding`)
 
 - [ ] Review regression risk around funding, Treasury withdrawal reuse, provider proof gates, and docs truth
 - [ ] Verify Card Endow proves share ownership and public withdrawal, not only provider success
@@ -175,7 +175,7 @@
 - [ ] `bun run check:design-tokens`
 - [ ] `node scripts/dev/ci-local.js --quick`
 - [x] Status JSON parses after NYC demo phase update
-- [x] `node scripts/harness/plan-hub.mjs linear-sync --feature public-endowment-withdrawal-recovery --json` returns zero warnings
+- [x] `node scripts/harness/plan-hub.mjs linear-sync --feature nyc-vault-crowdfunding --json` returns zero warnings
 - [ ] `node scripts/harness/plan-hub.mjs validate` (may remain blocked by unrelated `sentry-stack-observability` hub schema drift unless that drift is fixed)
 - [x] Linear read-back confirms the skill parent/children exist and are linked to this plan
 - [x] Linear comments recorded on PRD-435, PRD-436, PRD-440, PRD-442, PRD-443, PRD-444, PRD-487, and PRD-569 through PRD-573

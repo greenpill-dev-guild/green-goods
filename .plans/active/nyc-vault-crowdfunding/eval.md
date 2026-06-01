@@ -1,4 +1,4 @@
-# Public Endowment Withdrawal Recovery Evaluation Plan
+# NYC Vault Crowdfunding Evaluation Plan
 
 ## Release Gates
 
@@ -20,7 +20,7 @@
 8. Skill tracking quality: reusable vault crowdfunding UI skill work is visible in this hub and
    Linear, starts only after Green Goods demo validation, and does not expand the June 1 `/fund`
    sprint acceptance gates.
-9. Plan metadata quality: `status.json` parses, the public-endowment `linear-sync --json` manifest
+9. Plan metadata quality: `status.json` parses, the NYC vault crowdfunding `linear-sync --json` manifest
    returns zero warnings, and full `plan-hub validate` blockers are reported rather than hidden.
 
 ## Acceptance Checks
@@ -45,7 +45,7 @@
 | AC-16 | Regression review | QA re-runs targeted validation and confirms no unrelated funding/PWA/admin work was pulled in. | `qa_pass_2` | |
 | AC-17 | Skill tracking plan | `brief.md`, `spec.md`, `plan.todo.md`, and `status.json` capture reusable skill work as post-demo planning, with simplest output = existing Ethereum Octant vault frontend over standard RPC + wallet connection and advanced backend/API modules deferred. | `system` | |
 | AC-18 | Skill Linear tracking | A Linear parent issue plus child issues track input schema, DesignMD/template fixture, vault runtime semantics, and provider/create-vault extension boundaries. | `system` | |
-| AC-19 | Plan-hub validity | Skill issue links are recorded outside `linear.lanes`; `status.json` parses; public-endowment `linear-sync --json` returns zero warnings; full `plan-hub validate` passes or reports only known unrelated blockers. | `system` | |
+| AC-19 | Plan-hub validity | Skill issue links are recorded outside `linear.lanes`; `status.json` parses; NYC vault crowdfunding `linear-sync --json` returns zero warnings; full `plan-hub validate` passes or reports only known unrelated blockers. | `system` | |
 
 ## Test Strategy
 
@@ -65,7 +65,7 @@
   Endow hidden state, docs truth, and privacy-safe receipt URLs.
 - TDD proof: RED/GREEN commands and evidence are recorded in lane handoffs and summarized in `status.json`.
 - Tracking checks: status JSON parse validation,
-  `node scripts/harness/plan-hub.mjs linear-sync --feature public-endowment-withdrawal-recovery --json`
+  `node scripts/harness/plan-hub.mjs linear-sync --feature nyc-vault-crowdfunding --json`
   with zero warnings, full `plan-hub validate` when unrelated hub drift permits it, and Linear
   read-back of the issue tree after updates.
 
@@ -91,7 +91,7 @@
 ### Codex QA Pass 2
 
 - Start only after `qa_pass_1` is passed
-- Confirm the trigger branch exists: `claude/qa-pass-1/public-endowment-withdrawal-recovery`
+- Confirm the trigger branch exists: `claude/qa-pass-1/nyc-vault-crowdfunding`
 - Re-run targeted validation, inspect provider proof gates, and close the loop on remaining defects
 - Inspect agent tests for exact provider-proof keys, Card Endow receiver/share verification, and
   redacted logging

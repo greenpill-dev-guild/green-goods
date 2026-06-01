@@ -1,4 +1,4 @@
-# Public Endowment Withdrawal Recovery Spec
+# NYC Vault Crowdfunding Spec
 
 ## Summary
 

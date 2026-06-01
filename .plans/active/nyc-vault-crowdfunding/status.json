@@ -1,8 +1,8 @@
 {
   "version": 1,
   "feature": {
-    "slug": "public-endowment-withdrawal-recovery",
-    "title": "Public Endowment Withdrawal Recovery",
+    "slug": "nyc-vault-crowdfunding",
+    "title": "NYC Vault Crowdfunding",
     "kind": "feature",
     "stage": "active"
   },
@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p0",
     "created_at": "2026-05-09T21:35:46.781Z",
-    "updated_at": "2026-05-31T05:52:01Z"
+    "updated_at": "2026-06-01T02:21:14Z"
   },
   "links": {
     "brief": "brief.md",
@@ -111,7 +111,7 @@
   "validationExpectations": {
     "planMetadata": [
       "status.json parses",
-      "node scripts/harness/plan-hub.mjs linear-sync --feature public-endowment-withdrawal-recovery --json returns zero warnings",
+      "node scripts/harness/plan-hub.mjs linear-sync --feature nyc-vault-crowdfunding --json returns zero warnings",
       "node scripts/harness/plan-hub.mjs validate may remain blocked by unrelated sentry-stack-observability hub schema drift unless that drift is fixed"
     ],
     "implementationAgents": {
@@ -159,7 +159,7 @@
     "The simplest reusable skill output is frontend UI for existing Ethereum Octant vaults using standard RPC plus wallet connection.",
     "Advanced reusable-skill modules are backend/API concerns: Thirdweb-first card providers, future Stripe/Coinbase adapters, optional create-vault via Octant factory/API path, secrets, provider setup, webhook verification, receipt policy, and redacted logs.",
     "Skill tracking parent PRD-569 and children PRD-570 through PRD-573 cover inputs, DesignMD fixture/template, wallet-first vault runtime, and provider/create-vault extension boundaries.",
-    "Skill tracking validation on 2026-05-31 passed status JSON parse, public-endowment linear-sync manifest with zero warnings, and Linear read-back; full plan-hub validate is blocked by unrelated sentry-stack-observability schema drift.",
+    "Skill tracking validation on 2026-05-31 passed status JSON parse, NYC vault crowdfunding linear-sync manifest with zero warnings, and Linear read-back; full plan-hub validate is blocked by unrelated sentry-stack-observability schema drift.",
     "Check-in gates are required after phases 2, 3, 5, and 6.",
     "status.json is authoritative; branch names are automation signals.",
     ".plans/ is the durable repo truth; any tool-local or .claude/agent-memory surface stays environment-local until freshness and ownership rules exist."
@@ -168,7 +168,7 @@
     "ui": {
       "owner": "claude",
       "status": "in_progress",
-      "branch": "claude/ui/public-endowment-withdrawal-recovery",
+      "branch": "claude/ui/nyc-vault-crowdfunding",
       "depends_on": [],
       "handoff": "handoffs/claude-ui.md",
       "handoff_note": "Implement and verify the public /fund demo for two deployed NYC Ethereum Octant vaults: Wallet Endow, My Endowments, /fund?manage=endowments, Donate absent, and Thirdweb Card Endow exposure only after recovered-wallet custody/share/withdrawal proof. Add i18n.",
@@ -190,7 +190,7 @@
     "state_api": {
       "owner": "codex",
       "status": "in_progress",
-      "branch": "codex/state-api/public-endowment-withdrawal-recovery",
+      "branch": "codex/state-api/nyc-vault-crowdfunding",
       "depends_on": [],
       "handoff": "handoffs/codex-state-api.md",
       "handoff_note": "Own shared public endowment-position data, existing-vault/receiver typing for the two-vault demo path, safe max-loss preview parity, public withdraw reuse boundaries, exact provider-proof separation, and Thirdweb Card Endow receiver-address/share-verification gates. Donate is deferred out of this sprint.",
@@ -212,7 +212,7 @@
     "contracts": {
       "owner": "codex",
       "status": "n/a",
-      "branch": "codex/contracts/public-endowment-withdrawal-recovery",
+      "branch": "codex/contracts/nyc-vault-crowdfunding",
       "depends_on": [],
       "handoff": "handoffs/codex-contracts.md",
       "handoff_note": "No Solidity, deployment, or indexer schema work is planned for this recovery hub.",
@@ -236,7 +236,7 @@
       "status": "blocked",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
-      "branch": "claude/qa-pass-1/public-endowment-withdrawal-recovery",
+      "branch": "claude/qa-pass-1/nyc-vault-crowdfunding",
       "depends_on": ["ui", "state_api"],
       "handoff": "handoffs/claude-qa-pass-1.md",
       "handoff_note": "Review the final public /fund demo for the two deployed NYC Ethereum Octant vaults: Wallet Endow, Thirdweb Card Endow custody/share proof, account-gated visibility, /fund?manage=endowments receipt return path, mobile layout, i18n, Donate absence, and Card Endow hidden-until-proof behavior.",
@@ -247,8 +247,8 @@
       "status": "blocked",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
-      "branch": "codex/qa-pass-2/public-endowment-withdrawal-recovery",
-      "branch_trigger": "claude/qa-pass-1/public-endowment-withdrawal-recovery",
+      "branch": "codex/qa-pass-2/nyc-vault-crowdfunding",
+      "branch_trigger": "claude/qa-pass-1/nyc-vault-crowdfunding",
       "depends_on": ["qa_pass_1"],
       "handoff": "handoffs/codex-qa-pass-2.md",
       "handoff_note": "Re-run targeted shared/client/agent validation, inspect Thirdweb provider proof and recovered-owner share gates, require browser proof for the final public /fund demo, and confirm no unrelated funding/PWA/admin work was pulled in.",
@@ -358,7 +358,7 @@
       "lane": "system",
       "status": "skill_tracking_validated",
       "branch": null,
-      "note": "Status JSON parsed, public-endowment linear-sync manifest returned zero warnings, and Linear read-back confirmed PRD-569 children and PRD-435/PRD-487 comments. Full plan-hub validate remains blocked by unrelated sentry-stack-observability hub schema drift."
+      "note": "Status JSON parsed, NYC vault crowdfunding linear-sync manifest returned zero warnings, and Linear read-back confirmed PRD-569 children and PRD-435/PRD-487 comments. Full plan-hub validate remains blocked by unrelated sentry-stack-observability hub schema drift."
     },
     {
       "timestamp": "2026-05-31T05:45:01Z",
@@ -375,6 +375,22 @@
       "status": "linear_phase_lock_comments_recorded",
       "branch": null,
       "note": "Commented PRD-435, PRD-436, PRD-440, PRD-442, PRD-443, PRD-444, PRD-487, and PRD-569 through PRD-573 with the corrected June 1 demo, check-in, validation, and reusable-skill boundaries."
+    },
+    {
+      "timestamp": "2026-06-01T02:21:14Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "plan_hub_renamed",
+      "branch": "feature/nyc-vault-crowdfunding",
+      "note": "Renamed active plan hub from public-endowment-withdrawal-recovery to nyc-vault-crowdfunding so the plan name matches the full NYC vault crowdfunding demo and follow-on reusable skill scope."
+    },
+    {
+      "timestamp": "2026-06-01T02:22:47Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_rename_comments_recorded",
+      "branch": "feature/nyc-vault-crowdfunding",
+      "note": "Commented PRD-435, PRD-437, PRD-438, and PRD-569 with the new .plans/active/nyc-vault-crowdfunding/ source path."
     }
   ],
   "linear": {
@@ -452,6 +468,12 @@
       "skill_fixture": "71cf4501-55c7-4f7b-b4fc-b7740c362e9e",
       "skill_wallet_runtime": "b38e3ea8-6fe7-4444-974b-56f6478200ba",
       "skill_provider_boundaries": "8ca4251f-a36a-4cde-ae38-93745edbb542"
+    },
+    "renameComments": {
+      "delivery_parent": "1fe350a3-959e-438e-962f-c262eee3cc88",
+      "state_api_lane": "d6a09313-acae-4c65-9f7e-25c5741069c1",
+      "ui_lane": "6826ce98-08e0-4f72-94cb-1ef12440256c",
+      "skill_parent": "4d1cf5a1-9c28-40f6-928a-5852f7ab7371"
     },
     "project": "NYC Vault Crowdfunding"
   }
