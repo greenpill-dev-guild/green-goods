@@ -4,7 +4,7 @@
 **Stage**: `active`
 **Status**: `ACTIVE - /vaults route locked; NYC + EVMavericks pilot fixtures; reusable skill lane locked`
 **Created**: `2026-05-09T21:35:46.781Z`
-**Last Updated**: `2026-06-02T05:10:00Z`
+**Last Updated**: `2026-06-02T06:32:06Z`
 
 ## Decision Log
 
@@ -65,7 +65,9 @@
    are owned by the user/recovered wallet and visible from the public route.
 5. **Thirdweb Card Endow demo path**: implement guarded checkout/webhook/share verification with
    user-owned receiver custody and public manage/withdraw proof for complete-manifest fixtures only.
-   **Check in after this phase.**
+   **Check in after this phase.** Status: final hardening comments refreshed in Linear via the
+   custom `mcp__linear` server on `2026-06-02T06:32:06Z`; production Card Endow remains hidden until
+   the Thirdweb `TransactionWidget` contract-call prototype proves `approve + deposit`.
 6. **Demo QA validates `/vaults`**: verify `/vaults` on desktop/mobile, wallet-last UX, Wallet
    Endow, Card Endow gates, route privacy, copy/i18n, no Donate/Card Donate, and no unrelated
    `/fund` redesign. **Check in after this phase.**

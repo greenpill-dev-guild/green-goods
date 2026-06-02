@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p0",
     "created_at": "2026-05-09T21:35:46.781Z",
-    "updated_at": "2026-06-02T05:54:51Z"
+    "updated_at": "2026-06-02T06:32:06Z"
   },
   "links": {
     "brief": "brief.md",
@@ -889,12 +889,20 @@
       "lane": "qa",
       "status": "final_deep_review_fixes_validated",
       "branch": "feature/nyc-vault-crowdfunding",
-      "note": "Final review rechecked Thirdweb Bridge docs, sourceRoute/idempotency behavior, secret exposure, hidden Card Endow copy, DB persistence, and test setup. Fixed repo-local SQLite test temp files by moving them to the system temp directory, and tightened the funding_intents mock update parser so WHERE id is not treated as a SET assignment. Linear comments were not changed."
+      "note": "Final review rechecked Thirdweb Bridge docs, sourceRoute/idempotency behavior, secret exposure, hidden Card Endow copy, DB persistence, and test setup. Fixed repo-local SQLite test temp files by moving them to the system temp directory, and tightened the funding_intents mock update parser so WHERE id is not treated as a SET assignment."
+    },
+    {
+      "timestamp": "2026-06-02T06:32:06Z",
+      "actor": "codex",
+      "lane": "linear",
+      "status": "phase_4_5_final_hardening_comments_refreshed",
+      "branch": "feature/nyc-vault-crowdfunding",
+      "note": "Updated Linear via the custom mcp__linear server, not the Codex app/plugin path. Added final hardening comments to PRD-435, PRD-437, PRD-438, PRD-441, and PRD-573 with TransactionWidget prototype gate, hidden Card Endow expectation, and wallet/card human QA implications. No issue state was changed."
     }
   ],
   "linear": {
     "syncDirection": "plans_to_linear_visibility",
-    "lastSyncedAt": "2026-06-02T05:12:37Z",
+    "lastSyncedAt": "2026-06-02T06:32:06Z",
     "projectDocument": "https://linear.app/greenpill-dev-guild/document/green-goods-x-octant-vault-scope-lock-1fc3d1676fb1",
     "parentIssue": "PRD-435",
     "lanes": {
@@ -999,6 +1007,13 @@
       "ui_lane": "b5c2e1fd-386a-4910-9ed7-101ef3f4e4af",
       "qa_gate": "61babe37-cb67-4252-ad8a-a60c63becedb",
       "skill_fixtures_templates": "ca1504ba-9666-437f-8a8e-4813841d0fb9"
+    },
+    "finalHardeningComments": {
+      "delivery_parent": "8968e853-6e4e-48fb-b827-2d156af83367",
+      "state_api_lane": "d391799a-c489-4c98-9a1e-daad2ff8bda3",
+      "ui_lane": "dd02a9f7-2c92-4300-95af-092d2a0f4fdd",
+      "qa_gate": "63837d9f-df0d-4e2f-8d12-723622f91e58",
+      "skill_provider_boundaries": "9d6c27b7-70f5-4350-9075-d2374be2817a"
     },
     "project": "NYC Vault Crowdfunding"
   }
