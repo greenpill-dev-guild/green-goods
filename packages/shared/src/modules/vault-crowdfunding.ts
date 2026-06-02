@@ -89,6 +89,8 @@ export interface OctantVaultCampaignTransactionState {
   status: "ready" | "blocked_pending_manifest" | "blocked_pending_wallet_endow";
   walletEndowEnabled: boolean;
   cardEndowVisible: boolean;
+  cardEndowStatus?: "hidden_manifest_incomplete" | "hidden_pending_proof" | "visible";
+  cardEndowProofErrors?: OctantVaultCardEndowReadinessError[];
   missingFields: OctantVaultManifestField[];
   disabledReason?: "manifest_incomplete" | "wallet_endow_not_implemented";
 }
@@ -253,6 +255,97 @@ export interface OctantVaultCardEndowProofValidation {
   proof?: OctantVaultCardEndowProof;
 }
 
+export const OCTANT_VAULT_ROUTE_MANAGEMENT_URL = "/vaults?manage=positions" as const;
+
+export interface OctantVaultCardEndowTuple {
+  intentKind: OctantVaultCardEndowIntentKind;
+  paymentMethod: "card";
+  chainId: number;
+  vaultAddress: Address;
+  tokenAddress: Address;
+  amount: string;
+  destinationAddress: Address;
+  receiverAddress: Address;
+}
+
+export type OctantVaultShareOwnershipProofError =
+  | "manifest_incomplete"
+  | "receiver_required"
+  | "receiver_invalid"
+  | "owner_required"
+  | "owner_receiver_mismatch"
+  | "vault_mismatch"
+  | "shares_missing"
+  | "shares_not_visible";
+
+export interface OctantVaultShareOwnershipProofInput {
+  campaign: OctantVaultCampaignManifest;
+  ownerAddress?: string;
+  receiverAddress?: string;
+  vaultAddress?: string;
+  shareBalance?: string | bigint | number;
+  sharesVisible?: boolean;
+}
+
+export interface OctantVaultShareOwnershipProofValidation {
+  status: "valid" | "invalid";
+  errors: OctantVaultShareOwnershipProofError[];
+}
+
+export type OctantVaultRouteManageProofError =
+  | "manifest_incomplete"
+  | "receiver_required"
+  | "receiver_invalid"
+  | "owner_receiver_mismatch"
+  | "vault_mismatch"
+  | "route_mismatch"
+  | "management_url_mismatch"
+  | "shares_not_visible"
+  | "withdraw_unavailable";
+
+export interface OctantVaultRouteManageProofInput {
+  campaign: OctantVaultCampaignManifest;
+  ownerAddress?: string;
+  receiverAddress?: string;
+  vaultAddress?: string;
+  routePath?: string;
+  managementUrl?: string;
+  sharesVisible?: boolean;
+  withdrawAvailable?: boolean;
+}
+
+export interface OctantVaultRouteManageProofValidation {
+  status: "valid" | "invalid";
+  errors: OctantVaultRouteManageProofError[];
+}
+
+export type OctantVaultCardEndowReadinessError =
+  | "manifest_incomplete"
+  | "receiver_invalid"
+  | "provider_proof_invalid"
+  | "share_proof_invalid"
+  | "manage_proof_invalid";
+
+export interface OctantVaultCardEndowReadinessInput {
+  campaign: OctantVaultCampaignManifest;
+  amount: string;
+  receiverAddress?: string;
+  transactionHash: OctantVaultTransactionHash;
+  providerProof: OctantVaultCardEndowProofInput;
+  shareProof: OctantVaultShareOwnershipProofInput;
+  manageProof: OctantVaultRouteManageProofInput;
+}
+
+export interface OctantVaultCardEndowReadiness {
+  status: "ready" | "hidden";
+  cardEndowVisible: boolean;
+  errors: OctantVaultCardEndowReadinessError[];
+  tuple?: OctantVaultCardEndowTuple;
+  providerProof?: OctantVaultCardEndowProofValidation;
+  shareProof?: OctantVaultShareOwnershipProofValidation;
+  manageProof?: OctantVaultRouteManageProofValidation;
+}
+
 export const GREENPILL_NYC_REQUIRED_MANIFEST_FIELDS = [
   "chainId",
   "vaultAddress",
@@ -309,7 +402,7 @@ const evmavericksPreviewCopy: OctantVaultCampaignCopy = {
   recipientLogic:
     "Protocol Guild destination context and recipient routing are required before this campaign can accept Endow transactions.",
   riskNote:
-    "Wallet Endow and Thirdweb Card Endow are blocked until the complete EVMavericks Octant V2 Ethereum manifest is supplied.",
+    "Wallet Endow and card funding are blocked until the complete EVMavericks Octant V2 Ethereum manifest is supplied.",
 };
 
 const WETH_ASSET_MANIFEST = {
@@ -396,6 +489,17 @@ function transactionHashesMatch(value: unknown, expected: unknown): boolean {
     hasTransactionHash(expected) &&
     value.toLowerCase() === expected.toLowerCase()
   );
+}
+
+function unique<T extends string>(values: readonly T[]): T[] {
+  return [...new Set(values)];
+}
+
+function hasPositiveShareBalance(value: OctantVaultShareOwnershipProofInput["shareBalance"]) {
+  if (typeof value === "bigint") return value > 0n;
+  if (typeof value === "number") return Number.isInteger(value) && value > 0;
+  if (typeof value !== "string" || !/^\d+$/.test(value)) return false;
+  return BigInt(value) > 0n;
 }
 
 function hasOctantEthereumChainId(value: unknown): boolean {
@@ -628,6 +732,168 @@ export function validateOctantVaultCardEndowProof(
   };
 }
 
+export function validateOctantVaultShareOwnershipProof(
+  input: OctantVaultShareOwnershipProofInput
+): OctantVaultShareOwnershipProofValidation {
+  const errors: OctantVaultShareOwnershipProofError[] = [];
+  const manifestValidation = validateOctantVaultCampaignManifest(input.campaign);
+
+  if (manifestValidation.status !== "complete") {
+    errors.push("manifest_incomplete");
+  }
+  if (!hasText(input.receiverAddress)) {
+    errors.push("receiver_required");
+  } else if (!hasAddress(input.receiverAddress)) {
+    errors.push("receiver_invalid");
+  }
+  if (!hasText(input.ownerAddress)) {
+    errors.push("owner_required");
+  } else if (!addressesMatch(input.ownerAddress, input.receiverAddress)) {
+    errors.push("owner_receiver_mismatch");
+  }
+  if (!addressesMatch(input.vaultAddress, input.campaign.vault?.vaultAddress)) {
+    errors.push("vault_mismatch");
+  }
+  if (!hasPositiveShareBalance(input.shareBalance)) {
+    errors.push("shares_missing");
+  }
+  if (input.sharesVisible !== true) {
+    errors.push("shares_not_visible");
+  }
+
+  return {
+    status: errors.length === 0 ? "valid" : "invalid",
+    errors,
+  };
+}
+
+export function validateOctantVaultRouteManageProof(
+  input: OctantVaultRouteManageProofInput
+): OctantVaultRouteManageProofValidation {
+  const errors: OctantVaultRouteManageProofError[] = [];
+  const manifestValidation = validateOctantVaultCampaignManifest(input.campaign);
+
+  if (manifestValidation.status !== "complete") {
+    errors.push("manifest_incomplete");
+  }
+  if (!hasText(input.receiverAddress)) {
+    errors.push("receiver_required");
+  } else if (!hasAddress(input.receiverAddress)) {
+    errors.push("receiver_invalid");
+  }
+  if (!addressesMatch(input.ownerAddress, input.receiverAddress)) {
+    errors.push("owner_receiver_mismatch");
+  }
+  if (!addressesMatch(input.vaultAddress, input.campaign.vault?.vaultAddress)) {
+    errors.push("vault_mismatch");
+  }
+  if (input.routePath !== "/vaults") {
+    errors.push("route_mismatch");
+  }
+  if (input.managementUrl !== OCTANT_VAULT_ROUTE_MANAGEMENT_URL) {
+    errors.push("management_url_mismatch");
+  }
+  if (input.sharesVisible !== true) {
+    errors.push("shares_not_visible");
+  }
+  if (input.withdrawAvailable !== true) {
+    errors.push("withdraw_unavailable");
+  }
+
+  return {
+    status: errors.length === 0 ? "valid" : "invalid",
+    errors,
+  };
+}
+
+export function prepareOctantVaultCardEndowReadiness({
+  campaign,
+  amount,
+  receiverAddress,
+  transactionHash,
+  providerProof,
+  shareProof,
+  manageProof,
+}: OctantVaultCardEndowReadinessInput): OctantVaultCardEndowReadiness {
+  const errors: OctantVaultCardEndowReadinessError[] = [];
+  const manifestValidation = validateOctantVaultCampaignManifest(campaign);
+  if (manifestValidation.status !== "complete") {
+    errors.push("manifest_incomplete");
+  }
+
+  const receiverValidation = validateOctantVaultCardEndowReceiver({
+    receiverAddress,
+    receiverCustody: "user_owned_recovered_wallet",
+  });
+  if (receiverValidation.status === "invalid" || !receiverValidation.receiver) {
+    errors.push("receiver_invalid");
+  }
+
+  const expected: OctantVaultCardEndowProofExpectation = {
+    campaign,
+    amount,
+    receiverAddress: receiverAddress as Address,
+    transactionHash,
+  };
+  const providerValidation = validateOctantVaultCardEndowProof(providerProof, expected);
+  if (providerValidation.status === "invalid") {
+    errors.push("provider_proof_invalid");
+  }
+
+  const shareValidation = validateOctantVaultShareOwnershipProof({
+    ...shareProof,
+    campaign,
+    receiverAddress,
+  });
+  if (shareValidation.status === "invalid") {
+    errors.push("share_proof_invalid");
+  }
+
+  const manageValidation = validateOctantVaultRouteManageProof({
+    ...manageProof,
+    campaign,
+    receiverAddress,
+  });
+  if (manageValidation.status === "invalid") {
+    errors.push("manage_proof_invalid");
+  }
+
+  if (
+    errors.length > 0 ||
+    !receiverValidation.receiver ||
+    !campaign.vault?.vaultAddress ||
+    !campaign.vault.asset?.address
+  ) {
+    return {
+      status: "hidden",
+      cardEndowVisible: false,
+      errors: unique(errors),
+      providerProof: providerValidation,
+      shareProof: shareValidation,
+      manageProof: manageValidation,
+    };
+  }
+
+  return {
+    status: "ready",
+    cardEndowVisible: true,
+    errors: [],
+    tuple: {
+      intentKind: "card_endow",
+      paymentMethod: "card",
+      chainId: campaign.vault.chainId as number,
+      vaultAddress: campaign.vault.vaultAddress,
+      tokenAddress: campaign.vault.asset.address,
+      amount,
+      destinationAddress: campaign.vault.vaultAddress,
+      receiverAddress: receiverValidation.receiver.receiverAddress,
+    },
+    providerProof: providerValidation,
+    shareProof: shareValidation,
+    manageProof: manageValidation,
+  };
+}
+
 export function prepareOctantVaultWalletEndow({
   campaign,
   amount,
@@ -698,7 +964,8 @@ export function isOctantVaultCampaignTransactionReady(
 }
 
 export function getOctantVaultCampaignTransactionState(
-  campaign: OctantVaultCampaignManifest
+  campaign: OctantVaultCampaignManifest,
+  options: { cardEndowReadiness?: OctantVaultCardEndowReadiness } = {}
 ): OctantVaultCampaignTransactionState {
   const validation = validateOctantVaultCampaignManifest(campaign);
   const manifestComplete = validation.status === "complete";
@@ -708,19 +975,23 @@ export function getOctantVaultCampaignTransactionState(
       manifestStatus: validation.status,
       status: "blocked_pending_manifest",
       walletEndowEnabled: false,
-      // Card Endow remains hidden until custody/share/provider proof gates land in a later phase.
+      // Card Endow stays hidden until manifest, custody, share, manage, and provider proof pass.
       cardEndowVisible: false,
+      cardEndowStatus: "hidden_manifest_incomplete",
       missingFields: validation.missingFields,
       disabledReason: "manifest_incomplete",
     };
   }
 
+  const cardEndowVisible = options.cardEndowReadiness?.status === "ready";
+
   return {
     manifestStatus: validation.status,
     status: "ready",
     walletEndowEnabled: true,
-    // Card Endow remains hidden until custody/share/provider proof gates land in a later phase.
-    cardEndowVisible: false,
+    cardEndowVisible,
+    cardEndowStatus: cardEndowVisible ? "visible" : "hidden_pending_proof",
+    cardEndowProofErrors: options.cardEndowReadiness?.errors,
     missingFields: validation.missingFields,
   };
 }

@@ -94,6 +94,31 @@ function formatFieldLabel(
   });
 }
 
+function formatCardEndowStatus(
+  formatMessage: ReturnType<typeof useIntl>["formatMessage"],
+  status: ReturnType<typeof getOctantVaultCampaignTransactionState>["cardEndowStatus"]
+): string {
+  if (status === "visible") {
+    return formatMessage({
+      id: "public.vaults.cardEndow.visible",
+      defaultMessage: "Thirdweb Card Endow proof is ready.",
+    });
+  }
+
+  if (status === "hidden_manifest_incomplete") {
+    return formatMessage({
+      id: "public.vaults.cardEndow.hiddenManifestIncomplete",
+      defaultMessage: "Card funding stays hidden until the manifest and proof gates pass.",
+    });
+  }
+
+  return formatMessage({
+    id: "public.vaults.cardEndow.hiddenPendingProof",
+    defaultMessage:
+      "Card funding stays hidden until custody, share, manage, and provider proof passes.",
+  });
+}
+
 function CampaignStatus({ campaign }: { campaign: OctantVaultCampaignManifest }) {
   const { formatMessage } = useIntl();
   const state = getOctantVaultCampaignTransactionState(campaign);
@@ -375,10 +400,7 @@ export function CampaignCard({
             {walletEndowLabel}
           </button>
           <p className="text-sm leading-[1.5] text-text-soft-400">
-            {formatMessage({
-              id: "public.vaults.cardEndow.hidden",
-              defaultMessage: "Thirdweb Card Endow hidden until custody proof passes",
-            })}
+            {formatCardEndowStatus(formatMessage, transactionState.cardEndowStatus)}
           </p>
         </div>
         <div className="mt-5">
@@ -570,7 +592,7 @@ function WalletEndowPanel({
             {formatMessage({
               id: "public.vaults.walletEndow.cardHidden",
               defaultMessage:
-                "Thirdweb Card Endow remains hidden until custody, share, manage, and provider proof passes.",
+                "Card funding remains hidden until custody, share, manage, and provider proof passes.",
             })}
           </p>
         </div>
@@ -844,7 +866,7 @@ export function VaultsPageContent({
         lede={formatMessage({
           id: "public.vaults.hero.lede",
           defaultMessage:
-            "Browse Greenpill NYC and EVMavericks campaign slots before any wallet step. Wallet Endow and Card Endow stay disabled until each Octant V2 Ethereum vault manifest is complete.",
+            "Browse Greenpill NYC and EVMavericks campaign slots before any wallet step. Wallet Endow stays disabled until each Octant V2 Ethereum vault manifest is complete.",
         })}
       />
 

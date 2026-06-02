@@ -31,6 +31,19 @@ describe("@green-goods/shared/public-contracts", () => {
     );
   });
 
+  it("adds route scope to availabilityKey only when a source route is explicit", () => {
+    expect(
+      buildPublicFundingAvailabilityKey({
+        ...baseAvailabilityInput,
+        destinationType: "vault",
+        fundingIntent: "endow",
+        sourceRoute: "/vaults",
+      })
+    ).toBe(
+      `v2:/vaults:${gardenA}:vault:0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:endow:card:11155111:${token}:thirdweb`
+    );
+  });
+
   it("keeps amount min/max failures out of base availability reason codes", () => {
     expect(Object.keys(PUBLIC_FUNDING_AVAILABILITY_REASON_SEMANTICS)).not.toContain(
       "amount_below_min"
@@ -84,6 +97,36 @@ describe("@green-goods/shared/public-contracts", () => {
         ...baseAvailabilityInput,
         destinationType: "vault",
         fundingIntent: "endow",
+      }).state
+    ).toBe("hidden");
+  });
+
+  it("keeps /fund and /vaults provider proofs route-local when sourceRoute is explicit", () => {
+    const registry = createProviderProofRegistry([
+      {
+        ...baseAvailabilityInput,
+        destinationType: "vault",
+        fundingIntent: "endow",
+        sourceRoute: "/fund",
+        state: "live",
+        proofReference: "spike:fund-vault-endow-sepolia-2026-06-02",
+      },
+    ]);
+
+    expect(
+      registry.resolve({
+        ...baseAvailabilityInput,
+        destinationType: "vault",
+        fundingIntent: "endow",
+        sourceRoute: "/fund",
+      }).state
+    ).toBe("live");
+    expect(
+      registry.resolve({
+        ...baseAvailabilityInput,
+        destinationType: "vault",
+        fundingIntent: "endow",
+        sourceRoute: "/vaults",
       }).state
     ).toBe("hidden");
   });

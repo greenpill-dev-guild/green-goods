@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p0",
     "created_at": "2026-05-09T21:35:46.781Z",
-    "updated_at": "2026-06-01T19:47:42Z"
+    "updated_at": "2026-06-02T05:54:51Z"
   },
   "links": {
     "brief": "brief.md",
@@ -276,7 +276,44 @@
       "greenpill-nyc": "blocked_pending_required_manifest_fields",
       "evmavericks": "blocked_pending_required_manifest_fields"
     },
-    "cardEndowVisibility": "hidden until custody/share/manage/provider proof passes"
+    "cardEndowVisibility": "hidden for real pilot fixtures; visible only for complete manifests after custody/share/manage/provider proof passes",
+    "thirdwebCardEndowReadiness": {
+      "timestamp": "2026-06-02T05:35:29Z",
+      "scope": "strict synthetic complete-manifest shared proof only; real pilots remain transaction-blocked and production Thirdweb Card Endow stays blocked until contract-call checkout/provider-session proof is supplied",
+      "implementedProofContracts": [
+        "user-owned recovered-wallet receiverAddress",
+        "vault share owner/receiver match",
+        "positive visible vault share balance",
+        "route-local /vaults management URL",
+        "withdraw availability",
+        "Card Endow tuple separation from Card Donate"
+      ],
+      "agentReadiness": [
+        "Thirdweb send-payment checkout adapter using VITE_THIRDWEB_CLIENT_ID and THIRDWEB_SECRET_KEY remains Donate-compatible only and refuses Card Endow because vault Endow requires a contract-call checkout path",
+        "Thirdweb Bridge webhook verifier requires x-payload-signature/x-pay-signature plus x-timestamp/x-pay-timestamp",
+        "300-second webhook timestamp tolerance with no legacy no-timestamp signature fallback",
+        "strict provider session, sourceRoute, chain, token, exact amount, destination, receiver, method, and intent checks",
+        "route-local /vaults receipt URL and /vaults?manage=positions management URL",
+        "route-scoped availability keys for explicit /vaults provider proof while preserving legacy /fund key compatibility when no sourceRoute is supplied",
+        "default /fund receipt compatibility without /fund UI redesign and without returning Thirdweb clientSecret values"
+      ],
+      "docsReviewed": [
+        "https://portal.thirdweb.com/bridge/webhooks",
+        "https://portal.thirdweb.com/reference",
+        "https://portal.thirdweb.com/bridge/custom-data",
+        "https://portal.thirdweb.com/bridge/send",
+        "https://portal.thirdweb.com/bridge/transactions"
+      ],
+      "stillBlocked": [
+        "Greenpill NYC recipient/routing summary",
+        "Greenpill NYC campaign copy",
+        "EVMavericks recipient/routing summary",
+        "EVMavericks Protocol Guild destination context",
+        "EVMavericks campaign copy",
+        "live pilot custody/share/manage/provider proof",
+        "Thirdweb Card Endow contract-call checkout/provider-session proof"
+      ]
+    }
   },
   "phasePlan": {
     "purpose": "Dedicated public /vaults crowdfunding route for Greenpill NYC and EVMavericks Octant V2 Ethereum vault campaigns, followed by Codex-owned reusable octant-vault-crowdfunding skill delivery after demo validation.",
@@ -322,24 +359,25 @@
       {
         "number": 4,
         "name": "Ownership/share verification gate",
-        "status": "pending",
+        "status": "completed",
         "checkInRequiredAfter": false,
         "exitCriteria": [
-          "Wallet-funded shares are visible for the connected wallet on complete-manifest fixtures",
-          "Recovered-wallet Card Endow shares are verified for the recovered wallet on complete-manifest fixtures",
-          "No provider-owned custody path can receive vault shares"
+          "Shared proof contracts require recovered-wallet owner/receiver match before Card Endow visibility",
+          "Shared proof contracts require positive visible vault shares for complete manifests",
+          "Shared proof contracts require /vaults route-local manage/withdraw proof",
+          "No provider-owned custody path can satisfy the recovered-wallet proof contract"
         ]
       },
       {
         "number": 5,
         "name": "Thirdweb Card Endow demo path",
-        "status": "pending",
+        "status": "completed",
         "checkInRequiredAfter": true,
         "exitCriteria": [
-          "Thirdweb checkout targets a user-owned recovered wallet receiverAddress for complete-manifest fixtures only",
-          "EVMavericks Card Endow remains disabled while blocked_pending_manifest",
-          "Webhook/provider proof verifies exact chain, token, amount, destination, transaction, method, and intent",
-          "Public manage/withdraw proof exists before Card Endow exposure"
+          "Unsafe Thirdweb send-payment checkout path is blocked for Card Endow; a future Card Endow provider must prove the contract-call checkout shape that calls deposit(amount, receiverAddress)",
+          "Greenpill NYC and EVMavericks Card Endow remain disabled while required non-chain fields and live proof are missing",
+          "Webhook/provider proof verifies exact provider session, sourceRoute, chain, token, amount, destination, receiver, transaction, method, and intent",
+          "Route-local /vaults receipt and management URL proof exists before Card Endow exposure"
         ]
       },
       {
@@ -415,14 +453,15 @@
         "EVMavericks disabled transaction state until required manifest fields are supplied",
         "wallet-last amount -> connect -> confirm sequence",
         "Wallet Endow for complete-manifest fixtures through the Octant-specific prepared transaction path",
-        "Thirdweb Card Endow hidden until receiver/share/public manage/provider proof",
+        "Thirdweb Card Endow hidden until receiver/share/route-local manage/provider proof",
         "Donate/Card Donate absent from /vaults",
         "only targeted /fund compatibility tests if Card Endow reusable capability touches shared /fund code"
       ],
       "agent": [
-        "Thirdweb checkout requires recovered-wallet receiverAddress",
-        "strict webhook/provider tuple verification",
-        "redacted logs",
+        "Thirdweb send-payment adapter refuses Card Endow until contract-call checkout proof exists",
+        "strict signed webhook/provider tuple verification with timestamp and sourceRoute checks",
+        "route-local /vaults receipt and /fund compatibility behavior",
+        "redacted logs remain a separate snapshot coverage item",
         "recovered-owner share verification",
         "Card Endow rejection without receiverAddress"
       ],
@@ -456,6 +495,9 @@
     "The only /fund relationship in this plan is future-compatible Card Endow receiver/proof capability reuse, not route implementation.",
     "Wallet Endow and Thirdweb Card Endow are in Green Goods demo scope for complete-manifest fixtures.",
     "Thirdweb Card Endow remains hidden until recovered-wallet receiver custody, vault-share visibility, public manage/withdraw proof, and strict webhook/provider proof pass.",
+    "As of 2026-06-02, shared Card Endow readiness is implemented for synthetic complete manifests only; real Greenpill NYC and EVMavericks pilot fixtures remain blocked.",
+    "As of 2026-06-02T05:35:29Z, the production Thirdweb send-payment adapter refuses Card Endow until a contract-call checkout path and provider-session proof are supplied.",
+    "Thirdweb readiness uses VITE_THIRDWEB_CLIENT_ID, THIRDWEB_SECRET_KEY, THIRDWEB_WEBHOOK_SECRET, AGENT_ALLOWED_ORIGINS, and VITE_API_BASE_URL without adding secrets or env files.",
     "Card Endow vault shares must belong to the user/recovered wallet, not a provider-owned account.",
     "Public Donate and Card Donate are deferred and must not appear in /vaults acceptance.",
     "Green Goods Arbitrum vault factory/contracts are product context and must not be presented as Octant deployed Ethereum infrastructure.",
@@ -507,7 +549,7 @@
         },
         "green": {
           "command": "bun run test -- src/__tests__/modules/vault-crowdfunding.test.ts",
-          "evidence": "35 tests passed for pilot fixture presence, recorded chain/vault/asset/factory metadata, strict missing non-chain fields, complete-manifest Wallet Endow readiness, synthetic Wallet Endow prep, and Card Endow proof gates."
+          "evidence": "38 tests passed for pilot fixture presence, recorded chain/vault/asset/factory metadata, strict missing non-chain fields, complete-manifest Wallet Endow readiness, synthetic Wallet Endow prep, Card Endow/Card Donate separation, recovered-wallet share ownership proof, route-local manage/withdraw proof, and Card Endow readiness visibility gates."
         },
         "note": ""
       },
@@ -784,11 +826,75 @@
       "status": "phase_3_final_browser_proof_refreshed",
       "branch": "feature/nyc-vault-crowdfunding",
       "note": "Refreshed built-client stable-Brave proof for /vaults after the provider-last correction. Desktop 1440px and mobile 390px both passed with two pilot cards, blocked Wallet Endow controls, no Donate/Card Donate, hidden Thirdweb Card Endow notices, no Connect Wallet, no wallet runtime DOM, no wallet-provider network requests, no page or console errors, and no horizontal overflow. Screenshots refreshed under .codex-artifacts/nyc-vault-crowdfunding/final-pass/."
+    },
+    {
+      "timestamp": "2026-06-02T04:47:47Z",
+      "actor": "codex",
+      "lane": "linear",
+      "status": "phase_3_final_proof_comments_refreshed",
+      "branch": "feature/nyc-vault-crowdfunding",
+      "note": "Reviewed committed branch state, refreshed plan checklist metadata, and updated existing Linear Phase 3 comments to include the provider-last wallet-runtime correction, 7-test client proof, final desktop/mobile Brave proof, blocked pilot transaction state, and remaining Card Endow/API gaps. No issue state was changed."
+    },
+    {
+      "timestamp": "2026-06-02T05:10:00Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "phase_4_ownership_share_manage_proof_recorded",
+      "branch": "feature/nyc-vault-crowdfunding",
+      "note": "Implemented shared Card Endow readiness proof contracts for complete manifests: recovered-wallet receiver ownership, positive visible vault shares, route-local /vaults manage/withdraw proof, and Card Endow/Card Donate separation. Real Greenpill NYC and EVMavericks pilot fixtures remain transaction-blocked because required non-chain manifest fields and live proof are still missing."
+    },
+    {
+      "timestamp": "2026-06-02T05:10:00Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "phase_5_thirdweb_card_endow_readiness_recorded",
+      "branch": "feature/nyc-vault-crowdfunding",
+      "note": "Implemented guarded Thirdweb Bridge Payments readiness path: checkout adapter from the existing env contract, signed Bridge webhook verification, exact provider session/chain/token/amount/destination/receiver/method/intent checks, route-local /vaults receipts, /fund compatibility, and no secret-bearing client payloads. Card Endow remains hidden unless all proof gates pass."
+    },
+    {
+      "timestamp": "2026-06-02T05:10:00Z",
+      "actor": "codex",
+      "lane": "qa",
+      "status": "phase_4_5_targeted_validation_recorded",
+      "branch": "feature/nyc-vault-crowdfunding",
+      "note": "Validated shared vault crowdfunding tests (38), agent public API/webhook plus funding-intent tests (31), and client /vaults tests (7). Client test run logged the known test fallback warning for missing VITE_CHAIN_ID and the Node punycode deprecation warning."
+    },
+    {
+      "timestamp": "2026-06-02T05:12:37Z",
+      "actor": "codex",
+      "lane": "linear",
+      "status": "phase_4_5_readiness_comments_refreshed",
+      "branch": "feature/nyc-vault-crowdfunding",
+      "note": "Updated existing Linear comments on PRD-435, PRD-437, PRD-438, PRD-441, and PRD-573 with Phase 4/5 shared/API proof readiness, strict Thirdweb Bridge Payments/webhook behavior, route-local receipt proof, remaining pilot blockers, and validation counts. No issue state was changed."
+    },
+    {
+      "timestamp": "2026-06-02T05:35:29Z",
+      "actor": "codex",
+      "lane": "qa",
+      "status": "phase_4_5_review_findings_addressed",
+      "branch": "feature/nyc-vault-crowdfunding",
+      "note": "Addressed adversarial review findings locally: route-scoped provider availability for explicit /vaults proof, timestamp-only Thirdweb webhook signatures, sourceRoute tuple matching, no clientSecret exposure, Card Endow blocked from the unsafe Thirdweb send-payment adapter until contract-call checkout proof exists, locale fallback fixes, and plan checklist correction. Linear comments have not yet been refreshed after this local fix pass."
+    },
+    {
+      "timestamp": "2026-06-02T05:49:05Z",
+      "actor": "codex",
+      "lane": "qa",
+      "status": "phase_4_5_hidden_label_fix_validated",
+      "branch": "feature/nyc-vault-crowdfunding",
+      "note": "Tightened /vaults hidden-state copy so the Card Endow label is absent from the DOM until proof state is visible. Rebuilt client and verified built /vaults in headless Brave: no Card Endow, no Card Donate, no Donate button, two disabled Wallet Endow buttons, two generic card-funding hidden messages, and zero console errors."
+    },
+    {
+      "timestamp": "2026-06-02T05:54:51Z",
+      "actor": "codex",
+      "lane": "qa",
+      "status": "final_deep_review_fixes_validated",
+      "branch": "feature/nyc-vault-crowdfunding",
+      "note": "Final review rechecked Thirdweb Bridge docs, sourceRoute/idempotency behavior, secret exposure, hidden Card Endow copy, DB persistence, and test setup. Fixed repo-local SQLite test temp files by moving them to the system temp directory, and tightened the funding_intents mock update parser so WHERE id is not treated as a SET assignment. Linear comments were not changed."
     }
   ],
   "linear": {
     "syncDirection": "plans_to_linear_visibility",
-    "lastSyncedAt": "2026-06-01T19:47:42Z",
+    "lastSyncedAt": "2026-06-02T05:12:37Z",
     "projectDocument": "https://linear.app/greenpill-dev-guild/document/green-goods-x-octant-vault-scope-lock-1fc3d1676fb1",
     "parentIssue": "PRD-435",
     "lanes": {

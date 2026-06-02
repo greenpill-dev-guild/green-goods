@@ -87,6 +87,8 @@ export type FundingDestinationType = "cookieJar" | "vault";
 export type PublicFundingIntentKind = "donate" | "endow";
 export type PublicPaymentMethod = "card" | "wallet";
 export type PublicFundingProvider = "thirdweb";
+export type PublicFundingSourceRoute = "/fund" | "/vaults";
+export type PublicFundingManagementUrl = "/fund?manage=endowments" | "/vaults?manage=positions";
 
 export type CreateFundingIntentRequest = {
   gardenId: string;
@@ -101,6 +103,8 @@ export type CreateFundingIntentRequest = {
   clientRequestId: string;
   /** Required for Card Endow so vault shares land in the recovered wallet owner. */
   receiverAddress?: Address;
+  /** Public route that created the receipt. Defaults to /fund for compatibility. */
+  sourceRoute?: PublicFundingSourceRoute;
   payerEmail?: string;
   locale?: PublicLocale;
 };
@@ -125,6 +129,7 @@ export type ClientCheckoutPayload = {
     gardenId: string;
     destinationType: FundingDestinationType;
     fundingIntent: PublicFundingIntentKind;
+    sourceRoute?: PublicFundingSourceRoute;
   };
 };
 
@@ -156,7 +161,7 @@ export type PublicFundingReceipt = {
   quoteExpiresAt?: string;
   updatedAt: string;
   appManagementCta?: "install_app" | "open_app" | "manage_endowments";
-  managementUrl?: "/fund?manage=endowments";
+  managementUrl?: PublicFundingManagementUrl;
   failureCode?: "expired" | "provider_failed" | "onchain_failed" | "reconciliation_failed";
 };
 
@@ -169,7 +174,7 @@ export type CreateFundingIntentResponse =
       checkoutSession?: ClientCheckoutSession;
       quoteExpiresAt: string;
       receiptToken: string;
-      receiptUrl: `/fund?intent=${string}#receiptToken=${string}`;
+      receiptUrl: `${PublicFundingSourceRoute}?intent=${string}#receiptToken=${string}`;
       publicReceipt: PublicFundingReceipt;
     }
   | PublicApiError;
@@ -215,6 +220,10 @@ export type ThirdwebNormalizedFundingEvent = {
   providerSessionId?: string;
   providerPaymentId?: string;
   fundingIntentId?: string;
+  destinationType?: FundingDestinationType;
+  fundingIntent?: PublicFundingIntentKind;
+  paymentMethod?: PublicPaymentMethod;
+  sourceRoute?: PublicFundingSourceRoute;
   eventType:
     | "session_created"
     | "payment_submitted"
@@ -258,6 +267,7 @@ export type PublicFundingAvailabilityKeyInput = {
   chainId: number | string;
   token: Address | string;
   provider: PublicFundingProvider;
+  sourceRoute?: PublicFundingSourceRoute;
 };
 
 export type PublicFundingAvailability = PublicFundingAvailabilityKeyInput & {
@@ -322,6 +332,21 @@ export function buildPublicFundingAvailabilityKey(
   const destinationAddress = normalizeAddressLike(input.destinationAddress);
   const chainId = String(input.chainId).trim();
   const token = normalizeAddressLike(input.token);
+  if (input.sourceRoute) {
+    return [
+      "v2",
+      input.sourceRoute,
+      gardenKey,
+      input.destinationType,
+      destinationAddress,
+      input.fundingIntent,
+      input.paymentMethod,
+      chainId,
+      token,
+      input.provider,
+    ].join(":");
+  }
+
   return [
     "v1",
     gardenKey,

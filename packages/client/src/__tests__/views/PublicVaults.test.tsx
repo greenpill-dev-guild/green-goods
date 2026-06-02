@@ -171,17 +171,18 @@ describe("VaultsPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("keeps Donate and Card Donate out of the vault campaign route", () => {
+  it("keeps Donate, Card Donate, and hidden Card Endow labels out of the vault campaign route", () => {
     renderView();
 
     expect(screen.queryByText("Donate")).not.toBeInTheDocument();
     expect(screen.queryByText("Card Donate")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Card Endow/i)).not.toBeInTheDocument();
     expect(
-      screen.getAllByText("Thirdweb Card Endow hidden until custody proof passes")
+      screen.getAllByText("Card funding stays hidden until the manifest and proof gates pass.")
     ).toHaveLength(2);
   });
 
-  it("enables amount selection for complete manifests without connecting during browse", () => {
+  it("enables amount selection for complete manifests without exposing Card Endow early", () => {
     renderCard(makeCompleteCampaign());
 
     expect(screen.getByText("Manifest complete")).toBeInTheDocument();
@@ -195,6 +196,13 @@ describe("VaultsPage", () => {
         "This campaign is ready for the amount-first Wallet Endow confirmation flow."
       )
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Card funding stays hidden until custody, share, manage, and provider proof passes."
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Card Endow/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /card endow/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Connect Wallet" })).not.toBeInTheDocument();
   });
 

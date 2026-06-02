@@ -41,6 +41,9 @@ declare namespace NodeJS {
     // Upload signing
     PINATA_JWT?: string;
     PINATA_UPLOADS_API_URL?: string;
+    THIRDWEB_SECRET_KEY?: string;
+    THIRDWEB_WEBHOOK_SECRET?: string;
+    VITE_THIRDWEB_CLIENT_ID?: string;
 
     // Analytics
     POSTHOG_AGENT_KEY?: string;

@@ -13,6 +13,15 @@ Endow remains hidden until the implementation proves user-owned receiver custody
 visibility, withdrawal/manage availability, and strict provider/webhook verification. Public Donate
 and Card Donate remain deferred.
 
+As of `2026-06-02T05:35:29Z`, shared/API Card Endow readiness is implemented only where proof can
+be strict: synthetic complete manifests can pass recovered-wallet receiver, share ownership,
+route-local manage/withdraw, route-scoped provider proof, and webhook tuple checks. The production
+Thirdweb send-payment adapter now refuses Card Endow because the current docs require a
+contract-call checkout path for vault `deposit(amount, receiverAddress)`. Signed Thirdweb Bridge
+webhooks still verify timestamped payloads before receipt state changes. The real Greenpill NYC and
+EVMavericks pilot fixtures remain transaction-blocked until the missing non-chain fields, live
+custody/share/manage proof, and contract-call provider proof are supplied.
+
 Greenpill NYC remains the first available transaction fixture when its deployed vault metadata is
 recorded and the non-chain manifest fields are supplied. EVMavericks is part of the first demo scope,
 but its Wallet Endow and Card Endow transaction controls are blocked until the EVMavericks Octant V2
@@ -50,8 +59,9 @@ skill plus templates as the final project deliverable.
 9. Card Endow must not deposit vault shares to a provider-owned or unrecoverable account.
 10. Card Endow exposure requires proof that the recovered wallet owns visible vault shares and can
     reach the public management/withdrawal path.
-11. Webhook/provider verification must confirm the exact chain, token, amount, destination, method,
-    transaction, and intent before any Card Endow state is treated as funded or share-verified.
+11. Webhook/provider verification must confirm the exact route, chain, token, amount, destination,
+    method, transaction, and intent before any Card Endow state is treated as funded or
+    share-verified.
 12. `/fund` remains the existing Garden funding surface. This plan may produce reusable Card Endow
     receiver/proof capability that `/fund` can adopt later, but `/fund` is not the vault
     crowdfunding route.
@@ -78,6 +88,8 @@ skill plus templates as the final project deliverable.
   wallet addresses, emails, provider IDs, or recovered-wallet identifiers in the URL.
 - Receipt and confirmation states must preserve the route-local return path to the vault campaign or
   vault management state.
+- Card Endow receipts created from `/vaults` must return to `/vaults?manage=positions`; `/fund`
+  compatibility must continue returning to `/fund?manage=endowments` without redesigning `/fund`.
 - Campaign config must be manifest-driven: chain ID, vault address, asset address, asset symbol,
   decimals, display name, recipient/routing summary, explorer link, campaign copy, and optional
   indexer support.
@@ -86,6 +98,9 @@ skill plus templates as the final project deliverable.
 - Card funding intent contracts must carry a user-owned `receiverAddress: Address` for Card Endow.
 - Card availability must be keyed to exact provider-proof tuples. Card Donate proof must never unlock
   Card Endow, and one vault/token/chain/method proof must never unlock another.
+- Thirdweb Bridge webhook handling must verify the signed raw payload, timestamp tolerance, provider
+  session, chain, token, exact destination amount, destination address, receiver address, method, and
+  intent before marking a Card Endow funding transaction as funded.
 - Browser copy must distinguish:
   - Wallet Endow: active.
   - Thirdweb Card Endow: active only after proof gates.
@@ -197,6 +212,16 @@ Required skill output boundaries:
     [`0x6D8c4E4A158083E30B53ba7df3cFB885fC096fF6`](https://etherscan.io/address/0x6D8c4E4A158083E30B53ba7df3cFB885fC096fF6);
     it is not the creator of either pilot contract and must not be substituted into the pilot
     fixture manifest without later governing/creation proof.
+- Thirdweb docs/resources cross-check recorded on `2026-06-02T05:10:00Z`:
+  - Current Thirdweb API reference lists Bridge payment creation under
+    `POST https://api.thirdweb.com/v1/bridge/payments`; the agent adapter uses that path with
+    `THIRDWEB_SECRET_KEY`.
+  - Thirdweb Bridge webhook docs require `x-payload-signature`/`x-pay-signature`,
+    `x-timestamp`/`x-pay-timestamp`, HMAC-SHA256 over `{timestamp}.{payload}`, and a 300-second
+    tolerance; the agent verifier implements that before event normalization.
+  - Thirdweb custom payment data docs state `purchaseData` is included in webhooks and payment
+    history; the agent stores only route/intent metadata needed for tuple verification and keeps
+    secrets out of client-visible receipt payloads.
 
 Repo surfaces implementation agents should inspect before coding:
 

@@ -5,11 +5,15 @@ import {
   getOctantVaultCampaignBySlug,
   getOctantVaultCampaigns,
   getOctantVaultCampaignTransactionState,
+  OCTANT_VAULT_ROUTE_MANAGEMENT_URL,
+  prepareOctantVaultCardEndowReadiness,
   isOctantVaultCampaignTransactionReady,
   prepareOctantVaultWalletEndow,
   validateOctantVaultCardEndowProof,
   validateOctantVaultCardEndowReceiver,
   validateOctantVaultCampaignManifest,
+  validateOctantVaultRouteManageProof,
+  validateOctantVaultShareOwnershipProof,
   type OctantVaultCardEndowProofExpectation,
   type OctantVaultCardEndowProofInput,
   type OctantVaultCampaignManifest,
@@ -92,6 +96,32 @@ function makeCardEndowExpectation(
     amount: VALID_AMOUNT,
     receiverAddress: VALID_RECEIVER_ADDRESS,
     transactionHash: VALID_TRANSACTION_HASH,
+  };
+}
+
+function makeShareOwnershipProof(overrides = {}) {
+  return {
+    campaign: makeCompleteManifest(),
+    ownerAddress: VALID_RECEIVER_ADDRESS,
+    receiverAddress: VALID_RECEIVER_ADDRESS,
+    vaultAddress: "0x1111111111111111111111111111111111111111",
+    shareBalance: "1000",
+    sharesVisible: true,
+    ...overrides,
+  };
+}
+
+function makeRouteManageProof(overrides = {}) {
+  return {
+    campaign: makeCompleteManifest(),
+    ownerAddress: VALID_RECEIVER_ADDRESS,
+    receiverAddress: VALID_RECEIVER_ADDRESS,
+    vaultAddress: "0x1111111111111111111111111111111111111111",
+    routePath: "/vaults",
+    managementUrl: OCTANT_VAULT_ROUTE_MANAGEMENT_URL,
+    sharesVisible: true,
+    withdrawAvailable: true,
+    ...overrides,
   };
 }
 
@@ -433,6 +463,7 @@ describe("Octant vault Card Endow public contracts", () => {
         status: "blocked_pending_manifest",
         walletEndowEnabled: false,
         cardEndowVisible: false,
+        cardEndowStatus: "hidden_manifest_incomplete",
         missingFields: ["recipientRoutingSummary", "campaignCopy"],
         disabledReason: "manifest_incomplete",
       },
@@ -441,6 +472,7 @@ describe("Octant vault Card Endow public contracts", () => {
         status: "blocked_pending_manifest",
         walletEndowEnabled: false,
         cardEndowVisible: false,
+        cardEndowStatus: "hidden_manifest_incomplete",
         missingFields: [
           "recipientRoutingSummary",
           "protocolGuildDestinationContext",
@@ -449,5 +481,99 @@ describe("Octant vault Card Endow public contracts", () => {
         disabledReason: "manifest_incomplete",
       },
     ]);
+  });
+
+  it("requires recovered-wallet share ownership and route-local manage proof before Card Endow visibility", () => {
+    const campaign = makeCompleteManifest();
+    const readiness = prepareOctantVaultCardEndowReadiness({
+      campaign,
+      amount: VALID_AMOUNT,
+      receiverAddress: VALID_RECEIVER_ADDRESS,
+      transactionHash: VALID_TRANSACTION_HASH,
+      providerProof: makeCardEndowProof(),
+      shareProof: makeShareOwnershipProof({ campaign }),
+      manageProof: makeRouteManageProof({ campaign }),
+    });
+
+    expect(readiness).toMatchObject({
+      status: "ready",
+      cardEndowVisible: true,
+      tuple: {
+        intentKind: "card_endow",
+        paymentMethod: "card",
+        chainId: 1,
+        vaultAddress: "0x1111111111111111111111111111111111111111",
+        tokenAddress: "0x2222222222222222222222222222222222222222",
+        amount: VALID_AMOUNT,
+        destinationAddress: "0x1111111111111111111111111111111111111111",
+        receiverAddress: VALID_RECEIVER_ADDRESS,
+      },
+    });
+    expect(
+      getOctantVaultCampaignTransactionState(campaign, { cardEndowReadiness: readiness })
+    ).toMatchObject({
+      cardEndowVisible: true,
+      cardEndowStatus: "visible",
+    });
+  });
+
+  it("rejects Card Endow readiness when shares are provider-owned, hidden, or not withdrawable from /vaults", () => {
+    const campaign = makeCompleteManifest();
+
+    expect(
+      validateOctantVaultShareOwnershipProof(
+        makeShareOwnershipProof({
+          campaign,
+          ownerAddress: "0x4444444444444444444444444444444444444444",
+        })
+      )
+    ).toMatchObject({
+      status: "invalid",
+      errors: expect.arrayContaining(["owner_receiver_mismatch"]),
+    });
+    expect(
+      validateOctantVaultShareOwnershipProof(
+        makeShareOwnershipProof({
+          campaign,
+          sharesVisible: false,
+        })
+      )
+    ).toMatchObject({
+      status: "invalid",
+      errors: expect.arrayContaining(["shares_not_visible"]),
+    });
+    expect(
+      validateOctantVaultRouteManageProof(
+        makeRouteManageProof({
+          campaign,
+          managementUrl: "/fund?manage=endowments",
+          withdrawAvailable: false,
+        })
+      )
+    ).toMatchObject({
+      status: "invalid",
+      errors: expect.arrayContaining(["management_url_mismatch", "withdraw_unavailable"]),
+    });
+  });
+
+  it("keeps real pilot fixtures hidden from Card Endow even when a reusable proof object is supplied", () => {
+    const greenpillNyc = getOctantVaultCampaignBySlug("greenpill-nyc");
+
+    expect(greenpillNyc).toBeDefined();
+    expect(
+      prepareOctantVaultCardEndowReadiness({
+        campaign: greenpillNyc!,
+        amount: VALID_AMOUNT,
+        receiverAddress: VALID_RECEIVER_ADDRESS,
+        transactionHash: VALID_TRANSACTION_HASH,
+        providerProof: makeCardEndowProof(),
+        shareProof: makeShareOwnershipProof({ campaign: greenpillNyc! }),
+        manageProof: makeRouteManageProof({ campaign: greenpillNyc! }),
+      })
+    ).toMatchObject({
+      status: "hidden",
+      cardEndowVisible: false,
+      errors: expect.arrayContaining(["manifest_incomplete"]),
+    });
   });
 });

@@ -18,6 +18,8 @@ import {
   createProviderProofRegistry,
   PUBLIC_AGENT_ROUTES,
   type PublicApiError,
+  type PublicFundingManagementUrl,
+  type PublicFundingSourceRoute,
   type PublicSubscribeRequest,
   type PublicUploadSignRequest,
   publicProviderProofRegistry,
@@ -170,6 +172,8 @@ const WEBHOOK_BODY_LIMIT_BYTES = 256 * 1024;
 const UPLOAD_SIGN_BODY_LIMIT_BYTES = 8 * 1024;
 const MAX_UPLOAD_SIGN_TTL_SECONDS = 10 * 60;
 const MAX_UPLOAD_SIGN_SIZE_BYTES = 100 * 1024 * 1024;
+const THIRDWEB_WEBHOOK_TOLERANCE_SECONDS = 300;
+const DEFAULT_THIRDWEB_API_BASE_URL = "https://api.thirdweb.com";
 
 type BodyReadResult<T> =
   | { ok: true; value: T | undefined }
@@ -192,6 +196,146 @@ export interface ThirdwebCheckoutClient {
     availabilityProofReference?: string;
     quoteExpiresAt: string;
   }): Promise<ThirdwebCheckoutResult>;
+}
+
+export interface ThirdwebCheckoutClientConfig {
+  clientId?: string;
+  secretKey?: string;
+  apiBaseUrl?: string;
+  fetch?: typeof fetch;
+}
+
+type FundingReceiptUrl = `${PublicFundingSourceRoute}?intent=${string}#receiptToken=${string}`;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function stringValue(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim().length > 0 ? value : undefined;
+}
+
+function getNestedString(record: Record<string, unknown>, key: string): string | undefined {
+  const value = record[key];
+  return stringValue(value);
+}
+
+function getThirdwebDestinationAmount(payload: Record<string, unknown>): string | undefined {
+  const direct = stringValue(payload.destinationAmount);
+  if (direct) return direct;
+  const token = isRecord(payload.token) ? payload.token : undefined;
+  return stringValue(token?.amount);
+}
+
+export function createThirdwebCheckoutClient(
+  config: ThirdwebCheckoutClientConfig
+): ThirdwebCheckoutClient | undefined {
+  const clientId = config.clientId?.trim();
+  const secretKey = config.secretKey?.trim();
+  if (!clientId || !secretKey) return undefined;
+
+  const apiBaseUrl = (config.apiBaseUrl ?? DEFAULT_THIRDWEB_API_BASE_URL).replace(/\/+$/, "");
+  const doFetch = config.fetch ?? fetch;
+
+  return {
+    async createSession({ fundingIntentId, request, availabilityProofReference, quoteExpiresAt }) {
+      const sourceRoute = getFundingSourceRoute(request);
+      if (request.fundingIntent === "endow") {
+        throw new Error("Thirdweb Card Endow requires a contract-call checkout integration");
+      }
+      const requestBody = {
+        name: "Green Goods Card Donate",
+        description: "Green Goods public funding checkout",
+        recipient: request.destinationAddress,
+        token: {
+          address: request.token,
+          chainId: request.chainId,
+          amount: request.amountUsd,
+        },
+        purchaseData: {
+          fundingIntentId,
+          availabilityProofReference,
+          gardenId: request.gardenId,
+          destinationType: request.destinationType,
+          destinationAddress: request.destinationAddress,
+          fundingIntent: request.fundingIntent,
+          paymentMethod: request.paymentMethod,
+          chainId: request.chainId,
+          token: request.token,
+          receiverAddress: request.receiverAddress,
+          sourceRoute,
+          txRole: "funding",
+        },
+      };
+
+      const response = await doFetch(`${apiBaseUrl}/v1/bridge/payments`, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-secret-key": secretKey,
+        },
+        body: JSON.stringify(requestBody),
+      });
+      if (!response.ok) {
+        throw new Error("Thirdweb checkout session creation failed");
+      }
+
+      const payload = (await response.json()) as unknown;
+      if (!isRecord(payload)) {
+        throw new Error("Thirdweb checkout response was invalid");
+      }
+
+      const providerSessionId =
+        getNestedString(payload, "id") ?? getNestedString(payload, "paymentId");
+      const providerPaymentId = getNestedString(payload, "paymentId") ?? providerSessionId;
+      const checkoutUrl =
+        getNestedString(payload, "checkoutUrl") ?? getNestedString(payload, "url");
+      const quotedAssetAmount = getThirdwebDestinationAmount(payload);
+      if (
+        !providerSessionId ||
+        !quotedAssetAmount ||
+        parseBaseUnitAmount(quotedAssetAmount) === undefined
+      ) {
+        throw new Error("Thirdweb checkout response did not include a strict token amount");
+      }
+
+      return {
+        providerSessionId,
+        providerPaymentId,
+        checkoutExpiresAt: quoteExpiresAt,
+        receiverAddress: request.receiverAddress,
+        quotedAssetAmount,
+        minAssetAmount: quotedAssetAmount,
+        checkoutSession: {
+          provider: "thirdweb",
+          mode: checkoutUrl ? "hosted" : "widget",
+          expiresAt: quoteExpiresAt,
+          checkoutUrl,
+          checkoutPayload: {
+            provider: "thirdweb",
+            clientId,
+            chainId: request.chainId,
+            destinationAddress: request.destinationAddress,
+            receiverAddress: request.receiverAddress,
+            token: request.token,
+            amountUsd: request.amountUsd,
+            minAssetAmount: quotedAssetAmount,
+            transaction: {
+              to: request.destinationAddress,
+              data: "0x",
+              value: "0",
+            },
+            metadata: {
+              gardenId: request.gardenId,
+              destinationType: request.destinationType,
+              fundingIntent: request.fundingIntent,
+              sourceRoute,
+            },
+          },
+        },
+      };
+    },
+  };
 }
 
 export interface UploadSigningConfig {
@@ -509,6 +653,20 @@ function validateFundingIntentRequest(body: unknown): CreateFundingIntentRequest
       fieldErrors: { receiverAddress: "Receiver wallet is required for Card Endow" },
     });
   }
+  if (
+    candidate.sourceRoute !== undefined &&
+    candidate.sourceRoute !== "/fund" &&
+    candidate.sourceRoute !== "/vaults"
+  ) {
+    return safeError("invalid_request", "Invalid funding source route.", {
+      fieldErrors: { sourceRoute: "Invalid source route" },
+    });
+  }
+  if (candidate.sourceRoute === "/vaults" && candidate.destinationType !== "vault") {
+    return safeError("invalid_request", "Vault route funding must target a Vault.", {
+      fieldErrors: { sourceRoute: "Vault route funding must target a Vault" },
+    });
+  }
 
   const amountUsd = normalizeDecimalString(candidate.amountUsd);
   if (!amountUsd) {
@@ -535,9 +693,28 @@ function validateFundingIntentRequest(body: unknown): CreateFundingIntentRequest
     availabilityKey: candidate.availabilityKey,
     clientRequestId: candidate.clientRequestId,
     receiverAddress: candidate.receiverAddress,
+    sourceRoute: candidate.sourceRoute,
     payerEmail: candidate.payerEmail,
     locale: candidate.locale,
   };
+}
+
+function getFundingSourceRoute(
+  request: Pick<CreateFundingIntentRequest, "sourceRoute">
+): PublicFundingSourceRoute {
+  return request.sourceRoute ?? "/fund";
+}
+
+function getEndowManagementUrl(sourceRoute: PublicFundingSourceRoute): PublicFundingManagementUrl {
+  return sourceRoute === "/vaults" ? "/vaults?manage=positions" : "/fund?manage=endowments";
+}
+
+function buildFundingReceiptUrl(
+  sourceRoute: PublicFundingSourceRoute,
+  intentId: string,
+  receiptToken: string
+): FundingReceiptUrl {
+  return `${sourceRoute}?intent=${intentId}#receiptToken=${receiptToken}` as FundingReceiptUrl;
 }
 
 function createFundingIntentRecord(input: {
@@ -550,6 +727,7 @@ function createFundingIntentRecord(input: {
 }): FundingIntentRecord {
   const nowIso = new Date(input.now).toISOString();
   const quoteExpiresAt = new Date(input.now + 10 * 60 * 1000).toISOString();
+  const sourceRoute = getFundingSourceRoute(input.request);
 
   return {
     id: input.id,
@@ -574,6 +752,9 @@ function createFundingIntentRecord(input: {
     quoteExpiresAt,
     checkoutExpiresAt: input.checkout.checkoutExpiresAt ?? input.checkout.checkoutSession.expiresAt,
     receiverAddress: input.request.receiverAddress ?? input.checkout.receiverAddress,
+    sourceRoute,
+    managementUrl:
+      input.request.fundingIntent === "endow" ? getEndowManagementUrl(sourceRoute) : undefined,
     quotedAssetAmount: input.checkout.quotedAssetAmount,
     minAssetAmount: input.checkout.minAssetAmount,
     checkoutSession: input.checkout.checkoutSession,
@@ -600,7 +781,28 @@ function getStrictFundingEventMismatch(
   if (!event.providerSessionId || event.providerSessionId !== intent.providerSessionId) {
     return "provider_session_mismatch";
   }
+  if (intent.sourceRoute && event.sourceRoute !== intent.sourceRoute) {
+    return "source_route_mismatch";
+  }
   if (event.chainId !== intent.chainId) return "chain_mismatch";
+  if (
+    (intent.sourceRoute === "/vaults" || intent.fundingIntent === "endow") &&
+    event.destinationType !== intent.destinationType
+  ) {
+    return "destination_type_mismatch";
+  }
+  if (
+    (intent.sourceRoute === "/vaults" || intent.fundingIntent === "endow") &&
+    event.fundingIntent !== intent.fundingIntent
+  ) {
+    return "intent_mismatch";
+  }
+  if (
+    (intent.sourceRoute === "/vaults" || intent.fundingIntent === "endow") &&
+    event.paymentMethod !== intent.paymentMethod
+  ) {
+    return "payment_method_mismatch";
+  }
   if (normalizeAddress(event.token) !== normalizeAddress(intent.token)) return "token_mismatch";
   if (normalizeAddress(event.destinationAddress) !== normalizeAddress(intent.destinationAddress)) {
     return "destination_mismatch";
@@ -613,10 +815,11 @@ function getStrictFundingEventMismatch(
   }
 
   const eventAmount = parseBaseUnitAmount(event.destinationAmount);
-  const minAmount = parseBaseUnitAmount(intent.minAssetAmount);
+  const expectedAmount = parseBaseUnitAmount(intent.quotedAssetAmount ?? intent.minAssetAmount);
   if (event.destinationAmount && eventAmount === undefined) return "invalid_destination_amount";
-  if (eventAmount !== undefined && minAmount !== undefined && eventAmount < minAmount) {
-    return "amount_below_min";
+  if (expectedAmount !== undefined && eventAmount === undefined) return "amount_mismatch";
+  if (eventAmount !== undefined && expectedAmount !== undefined && eventAmount !== expectedAmount) {
+    return "amount_mismatch";
   }
 
   return undefined;
@@ -624,22 +827,116 @@ function getStrictFundingEventMismatch(
 
 function verifyWebhookSignature(
   body: string,
-  signature: string | null | undefined,
-  secret?: string
+  headers: Headers,
+  secret?: string,
+  now = Date.now(),
+  toleranceSeconds = THIRDWEB_WEBHOOK_TOLERANCE_SECONDS
 ): boolean {
-  if (!secret || !signature) return false;
-  const digest = createHmac("sha256", secret).update(body).digest("hex");
-  const normalized = signature.startsWith("sha256=")
-    ? signature.slice("sha256=".length)
-    : signature;
+  if (!secret) return false;
+
+  const signature = headers.get("x-payload-signature") ?? headers.get("x-pay-signature");
+  const timestamp = headers.get("x-timestamp") ?? headers.get("x-pay-timestamp");
+  if (signature && timestamp) {
+    const parsedTimestamp = Number.parseInt(timestamp, 10);
+    if (!Number.isFinite(parsedTimestamp)) return false;
+    const diff = Math.abs(Math.floor(now / 1000) - parsedTimestamp);
+    if (diff > toleranceSeconds) return false;
+    return timingSafeHexEqual(
+      createHmac("sha256", secret).update(`${timestamp}.${body}`).digest("hex"),
+      signature
+    );
+  }
+
+  return false;
+}
+
+function timingSafeHexEqual(expected: string, actual: string): boolean {
+  const normalized = actual.startsWith("sha256=") ? actual.slice("sha256=".length) : actual;
   if (!HEX_RE.test(`0x${normalized}`)) return false;
-  const left = Buffer.from(digest, "hex");
+  const left = Buffer.from(expected, "hex");
   const right = Buffer.from(normalized, "hex");
   return left.length === right.length && timingSafeEqual(left, right);
 }
 
 function normalizeThirdwebEvent(payload: unknown): ThirdwebNormalizedFundingEvent | undefined {
   const data = payload as Record<string, unknown>;
+  const bridgeData = isRecord(data.data) ? data.data : undefined;
+  if (bridgeData && data.type === "pay.onchain-transaction") {
+    const purchaseData = isRecord(bridgeData.purchaseData) ? bridgeData.purchaseData : {};
+    const destinationToken = isRecord(bridgeData.destinationToken)
+      ? bridgeData.destinationToken
+      : {};
+    const transactions = Array.isArray(bridgeData.transactions) ? bridgeData.transactions : [];
+    const destinationChainId =
+      typeof destinationToken.chainId === "number" ? destinationToken.chainId : undefined;
+    const destinationTransaction = transactions.find(
+      (transaction) =>
+        isRecord(transaction) &&
+        (destinationChainId === undefined || transaction.chainId === destinationChainId) &&
+        typeof transaction.transactionHash === "string"
+    ) as Record<string, unknown> | undefined;
+    const status = typeof bridgeData.status === "string" ? bridgeData.status : undefined;
+    const eventType: ThirdwebNormalizedFundingEvent["eventType"] =
+      status === "COMPLETED"
+        ? "transaction_submitted"
+        : status === "FAILED" || status === "CANCELLED"
+          ? "failed"
+          : "payment_submitted";
+    const providerEventId =
+      stringValue(data.id) ??
+      stringValue(bridgeData.transactionId) ??
+      stringValue(bridgeData.paymentId);
+    if (!providerEventId) return undefined;
+
+    return {
+      provider: "thirdweb",
+      providerEventId,
+      providerSessionId: stringValue(bridgeData.paymentId),
+      providerPaymentId: stringValue(bridgeData.paymentId),
+      fundingIntentId: stringValue(purchaseData.fundingIntentId),
+      destinationType:
+        purchaseData.destinationType === "cookieJar" || purchaseData.destinationType === "vault"
+          ? purchaseData.destinationType
+          : undefined,
+      fundingIntent:
+        purchaseData.fundingIntent === "donate" || purchaseData.fundingIntent === "endow"
+          ? purchaseData.fundingIntent
+          : undefined,
+      paymentMethod:
+        purchaseData.paymentMethod === "card" || purchaseData.paymentMethod === "wallet"
+          ? purchaseData.paymentMethod
+          : undefined,
+      sourceRoute:
+        purchaseData.sourceRoute === "/fund" || purchaseData.sourceRoute === "/vaults"
+          ? purchaseData.sourceRoute
+          : undefined,
+      eventType,
+      txRole:
+        typeof purchaseData.txRole === "string"
+          ? (purchaseData.txRole as ThirdwebNormalizedFundingEvent["txRole"])
+          : undefined,
+      txHash: stringValue(destinationTransaction?.transactionHash),
+      chainId: destinationChainId,
+      destinationAddress:
+        typeof purchaseData.destinationAddress === "string" &&
+        isAddress(purchaseData.destinationAddress)
+          ? purchaseData.destinationAddress
+          : typeof bridgeData.receiver === "string" && isAddress(bridgeData.receiver)
+            ? bridgeData.receiver
+            : undefined,
+      receiverAddress:
+        typeof purchaseData.receiverAddress === "string" && isAddress(purchaseData.receiverAddress)
+          ? purchaseData.receiverAddress
+          : undefined,
+      token:
+        typeof destinationToken.address === "string" && isAddress(destinationToken.address)
+          ? destinationToken.address
+          : undefined,
+      destinationAmount: stringValue(bridgeData.destinationAmount),
+      occurredAt: String(bridgeData.updatedAt ?? bridgeData.createdAt ?? new Date().toISOString()),
+    };
+  }
+
   const providerEventId = data.id ?? data.eventId ?? data.providerEventId;
   const eventType = data.eventType ?? data.type;
   const occurredAt = data.occurredAt ?? data.createdAt ?? new Date().toISOString();
@@ -664,6 +961,20 @@ function normalizeThirdwebEvent(payload: unknown): ThirdwebNormalizedFundingEven
     providerPaymentId:
       typeof data.providerPaymentId === "string" ? data.providerPaymentId : undefined,
     fundingIntentId: typeof data.fundingIntentId === "string" ? data.fundingIntentId : undefined,
+    destinationType:
+      data.destinationType === "cookieJar" || data.destinationType === "vault"
+        ? data.destinationType
+        : undefined,
+    fundingIntent:
+      data.fundingIntent === "donate" || data.fundingIntent === "endow"
+        ? data.fundingIntent
+        : undefined,
+    paymentMethod:
+      data.paymentMethod === "card" || data.paymentMethod === "wallet"
+        ? data.paymentMethod
+        : undefined,
+    sourceRoute:
+      data.sourceRoute === "/fund" || data.sourceRoute === "/vaults" ? data.sourceRoute : undefined,
     eventType: eventType as ThirdwebNormalizedFundingEvent["eventType"],
     txRole:
       typeof data.txRole === "string"
@@ -1179,6 +1490,8 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
     );
     if (rateError) return c.json(rateError, 429);
 
+    const routeScopedAvailability =
+      request.sourceRoute === undefined ? {} : { sourceRoute: request.sourceRoute };
     const expectedAvailabilityKey = buildPublicFundingAvailabilityKey({
       gardenKey: request.gardenId,
       destinationType: request.destinationType,
@@ -1188,6 +1501,7 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
       chainId: request.chainId,
       token: request.token,
       provider: "thirdweb",
+      ...routeScopedAvailability,
     });
     const availability = providerProofRegistry.resolve({
       gardenKey: request.gardenId,
@@ -1198,6 +1512,7 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
       chainId: request.chainId,
       token: request.token,
       provider: "thirdweb",
+      ...routeScopedAvailability,
     });
     if (request.availabilityKey !== expectedAvailabilityKey || availability.state !== "live") {
       return c.json(
@@ -1241,7 +1556,11 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
         checkoutSession: updated.checkoutSession,
         quoteExpiresAt: updated.quoteExpiresAt,
         receiptToken,
-        receiptUrl: `/fund?intent=${updated.id}#receiptToken=${receiptToken}`,
+        receiptUrl: buildFundingReceiptUrl(
+          updated.sourceRoute ?? "/fund",
+          updated.id,
+          receiptToken
+        ),
         publicReceipt: redactFundingReceipt(updated),
       });
     }
@@ -1308,7 +1627,7 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
       checkoutSession: record.checkoutSession,
       quoteExpiresAt: record.quoteExpiresAt,
       receiptToken,
-      receiptUrl: `/fund?intent=${record.id}#receiptToken=${receiptToken}`,
+      receiptUrl: buildFundingReceiptUrl(record.sourceRoute ?? "/fund", record.id, receiptToken),
       publicReceipt: redactFundingReceipt(record),
     });
   });
@@ -1355,12 +1674,12 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
     if (!rawBodyResult.ok) return c.json(rawBodyResult.error, rawBodyResult.status);
 
     const rawBody = rawBodyResult.text;
-    const signature = c.req.header("x-thirdweb-signature");
     const secret = deps.thirdwebWebhookSecret ?? process.env.THIRDWEB_WEBHOOK_SECRET;
-    if (!verifyWebhookSignature(rawBody, signature, secret)) {
+    if (!verifyWebhookSignature(rawBody, c.req.raw.headers, secret, deps.now?.() ?? Date.now())) {
       return c.json(safeError("provider_unavailable", "Webhook verification failed."), 401);
     }
 
+    const signature = c.req.header("x-payload-signature") ?? c.req.header("x-pay-signature");
     const postRateError = checkRateLimit(
       c,
       deps,

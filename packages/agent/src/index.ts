@@ -8,7 +8,7 @@
  * Future platforms: Discord, WhatsApp, SMS
  */
 
-import { createServer, startServer } from "./api/server";
+import { createServer, createThirdwebCheckoutClient, startServer } from "./api/server";
 import { parseAllowedOrigins } from "./api/public-protection";
 import { getConfig } from "./config";
 import { createGroupCaptureHandler, handleMessage, setHandlerContext } from "./handlers";
@@ -124,6 +124,10 @@ async function main(): Promise<void> {
     },
     thirdwebWebhookSecret: config.thirdwebWebhookSecret,
     thirdwebClientId: config.thirdwebClientId,
+    thirdwebCheckout: createThirdwebCheckoutClient({
+      clientId: config.thirdwebClientId,
+      secretKey: config.thirdwebSecretKey,
+    }),
   });
 
   if (config.telegramRuntimeDisabled) {

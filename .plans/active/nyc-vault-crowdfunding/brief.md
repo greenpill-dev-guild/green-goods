@@ -4,7 +4,7 @@
 **Stage**: `active`
 **Priority**: `p0`
 **Created**: `2026-05-09T21:35:46.781Z`
-**Last Updated**: `2026-06-01T18:51:25Z`
+**Last Updated**: `2026-06-02T05:10:00Z`
 **Source Brief**: Green Goods x Octant Crowdfunding UI Alignment Brief
 
 ## Problem
@@ -56,6 +56,12 @@ Endow transaction work is blocked until its Octant V2 Ethereum vault manifest is
   recorded from read-only Ethereum evidence; recipient/routing summary, campaign copy, and the
   relevant Card Endow custody/share/manage/provider proof are still missing. EVMavericks also still
   requires Protocol Guild destination context.
+- Shared/API Card Endow readiness is now strict for complete manifests only: recovered-wallet
+  `receiverAddress`, share ownership/visibility proof, route-local `/vaults` manage/withdraw proof,
+  route-scoped provider/webhook tuple verification, route-local receipts, and timestamped Thirdweb
+  Bridge webhook verification are implemented and tested with a synthetic complete manifest. The
+  production Thirdweb send-payment adapter refuses Card Endow until contract-call checkout proof is
+  supplied. The real Greenpill NYC and EVMavericks pilot fixtures remain blocked.
 
 ## Onchain Manifest Evidence
 

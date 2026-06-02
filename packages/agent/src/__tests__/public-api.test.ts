@@ -6,7 +6,12 @@ import {
   type CreateFundingIntentRequest,
 } from "@green-goods/shared/public-contracts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createServer, hasReceiptTokenBody, type ThirdwebCheckoutClient } from "../api/server";
+import {
+  createServer,
+  createThirdwebCheckoutClient,
+  hasReceiptTokenBody,
+  type ThirdwebCheckoutClient,
+} from "../api/server";
 import {
   InMemoryPublicRateLimiter,
   publicRateLimitKey,
@@ -59,23 +64,32 @@ const cardEndowAvailabilityInput = {
 };
 
 const createCardEndowFundingRequest = (
-  overrides: Partial<CreateFundingIntentRequest> = {}
-): CreateFundingIntentRequest => ({
-  gardenId,
-  destinationType: "vault",
-  destinationAddress,
-  fundingIntent: "endow",
-  paymentMethod: "card",
-  amountUsd: "25.00",
-  chainId: 11155111,
-  token,
-  availabilityKey: buildPublicFundingAvailabilityKey(cardEndowAvailabilityInput),
-  clientRequestId: "client-request-endow-1",
-  receiverAddress,
-  payerEmail: "supporter@example.org",
-  locale: "en",
-  ...overrides,
-});
+  overrides: Partial<CreateFundingIntentRequest> & Record<string, unknown> = {}
+): CreateFundingIntentRequest => {
+  const sourceRoute =
+    overrides.sourceRoute === "/fund" || overrides.sourceRoute === "/vaults"
+      ? overrides.sourceRoute
+      : undefined;
+  return {
+    gardenId,
+    destinationType: "vault",
+    destinationAddress,
+    fundingIntent: "endow",
+    paymentMethod: "card",
+    amountUsd: "25.00",
+    chainId: 11155111,
+    token,
+    availabilityKey: buildPublicFundingAvailabilityKey({
+      ...cardEndowAvailabilityInput,
+      ...(sourceRoute ? { sourceRoute } : {}),
+    }),
+    clientRequestId: "client-request-endow-1",
+    receiverAddress,
+    payerEmail: "supporter@example.org",
+    locale: "en",
+    ...overrides,
+  };
+};
 
 function jsonHeaders(extra: Record<string, string> = {}) {
   return {
@@ -482,6 +496,144 @@ describe("public funding intent API", () => {
     expect(body.checkoutSession.checkoutPayload.receiverAddress).toBe(receiverAddress);
   });
 
+  it("keeps /vaults Card Endow receipts route-local without changing /fund compatibility", async () => {
+    const thirdwebCheckout: ThirdwebCheckoutClient = {
+      createSession: vi.fn(async ({ fundingIntentId, request, quoteExpiresAt }) => ({
+        providerSessionId: `thirdweb_${fundingIntentId}`,
+        checkoutSession: {
+          provider: "thirdweb" as const,
+          mode: "widget" as const,
+          expiresAt: quoteExpiresAt,
+          clientToken: `checkout_${fundingIntentId}`,
+          checkoutPayload: {
+            provider: "thirdweb" as const,
+            clientId: "thirdweb-client",
+            chainId: request.chainId,
+            destinationAddress: request.destinationAddress,
+            receiverAddress: request.receiverAddress,
+            token: request.token,
+            amountUsd: request.amountUsd,
+            minAssetAmount: "25000000",
+            transaction: {
+              to: request.destinationAddress,
+              data: "0x1234" as `0x${string}`,
+              value: "0",
+            },
+            metadata: {
+              gardenId: request.gardenId,
+              destinationType: request.destinationType,
+              fundingIntent: request.fundingIntent,
+            },
+          },
+        },
+        receiverAddress: request.receiverAddress,
+        quotedAssetAmount: "25000000",
+        minAssetAmount: "25000000",
+      })),
+    };
+    const app = createServer(
+      {
+        isAIReady: () => true,
+        allowedOrigins: new Set([ORIGIN]),
+        fundingIntents: new MemoryFundingIntentStore(),
+        publicRateLimiter: new InMemoryPublicRateLimiter(),
+        providerProofRegistry: createProviderProofRegistry([
+          {
+            ...cardEndowAvailabilityInput,
+            sourceRoute: "/vaults",
+            state: "live",
+            proofReference: "synthetic:card-endow-vaults-route-local-2026-06-02",
+          },
+        ]),
+        thirdwebClientId: "thirdweb-client",
+        thirdwebCheckout,
+      },
+      { logger: false }
+    );
+
+    const response = await app.request(PUBLIC_AGENT_ROUTES.fundingIntents, {
+      method: "POST",
+      headers: jsonHeaders(),
+      body: JSON.stringify(createCardEndowFundingRequest({ sourceRoute: "/vaults" })),
+    });
+
+    const body = await response.json();
+    expect(response.status).toBe(200);
+    expect(body.receiptUrl).toMatch(/^\/vaults\?intent=fi_[a-f0-9]+#receiptToken=/);
+    expect(body.publicReceipt.managementUrl).toBe("/vaults?manage=positions");
+  });
+
+  it("builds a configured Thirdweb send-payment checkout adapter from the existing env contract", async () => {
+    const fetchSpy = vi.fn(
+      async (_url: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
+        expect((init?.headers as Record<string, string>)["x-secret-key"]).toBe("sk_test_secret");
+        return new Response(
+          JSON.stringify({
+            id: "pay_123",
+            checkoutUrl: "https://pay.thirdweb.test/pay_123",
+            clientSecret: "client_secret_should_not_be_returned",
+            destinationAmount: "25000000",
+          }),
+          { status: 200, headers: { "content-type": "application/json" } }
+        );
+      }
+    );
+    const client = createThirdwebCheckoutClient({
+      clientId: "thirdweb-client",
+      secretKey: "sk_test_secret",
+      fetch: fetchSpy as unknown as typeof fetch,
+      apiBaseUrl: "https://api.thirdweb.test",
+    });
+
+    expect(client).toBeDefined();
+    const request = createFundingRequest();
+    const result = await client!.createSession({
+      fundingIntentId: "fi_adapter",
+      request,
+      availabilityProofReference: "synthetic:proof",
+      quoteExpiresAt: "2026-04-27T12:10:00.000Z",
+    });
+
+    const body = JSON.parse((fetchSpy.mock.calls[0]?.[1]?.body ?? "{}") as string);
+    expect(fetchSpy.mock.calls[0]?.[0]).toBe("https://api.thirdweb.test/v1/bridge/payments");
+    expect(body).toMatchObject({
+      recipient: destinationAddress,
+      token: { address: token, chainId: 11155111 },
+      purchaseData: {
+        fundingIntentId: "fi_adapter",
+        destinationType: "cookieJar",
+        fundingIntent: "donate",
+        paymentMethod: "card",
+        sourceRoute: "/fund",
+        txRole: "funding",
+      },
+    });
+    expect(result.checkoutSession.checkoutPayload?.metadata.fundingIntent).toBe("donate");
+    expect(JSON.stringify(result)).not.toContain("sk_test_secret");
+    expect(JSON.stringify(result)).not.toContain("client_secret_should_not_be_returned");
+    expect(result.checkoutSession.clientToken).toBeUndefined();
+  });
+
+  it("does not create Card Endow sessions through the Thirdweb send-payment adapter", async () => {
+    const fetchSpy = vi.fn();
+    const client = createThirdwebCheckoutClient({
+      clientId: "thirdweb-client",
+      secretKey: "sk_test_secret",
+      fetch: fetchSpy as unknown as typeof fetch,
+      apiBaseUrl: "https://api.thirdweb.test",
+    });
+
+    await expect(
+      client!.createSession({
+        fundingIntentId: "fi_adapter",
+        request: createCardEndowFundingRequest({ sourceRoute: "/vaults" }),
+        availabilityProofReference: "synthetic:proof",
+        quoteExpiresAt: "2026-04-27T12:10:00.000Z",
+      })
+    ).rejects.toThrow(/contract-call checkout/);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
   it("creates a card-only intent with fragment receipt URL and no-store headers", async () => {
     const { app } = createFundingApp();
 
@@ -581,9 +733,32 @@ describe("thirdweb webhook API and public rate-limit keys", () => {
 
   function signedWebhookRequest(payload: Record<string, unknown>) {
     const body = JSON.stringify(payload);
+    const timestamp = String(Math.floor(Date.now() / 1000));
     return {
       method: "POST",
-      headers: { "x-thirdweb-signature": createHmac("sha256", secret).update(body).digest("hex") },
+      headers: {
+        "x-payload-signature": createHmac("sha256", secret)
+          .update(`${timestamp}.${body}`)
+          .digest("hex"),
+        "x-timestamp": timestamp,
+      },
+      body,
+    };
+  }
+
+  function officialSignedWebhookRequest(
+    payload: Record<string, unknown>,
+    timestamp = String(Math.floor(Date.parse("2026-04-27T12:05:00.000Z") / 1000))
+  ) {
+    const body = JSON.stringify(payload);
+    return {
+      method: "POST",
+      headers: {
+        "x-payload-signature": createHmac("sha256", secret)
+          .update(`${timestamp}.${body}`)
+          .digest("hex"),
+        "x-timestamp": timestamp,
+      },
       body,
     };
   }
@@ -605,6 +780,8 @@ describe("thirdweb webhook API and public rate-limit keys", () => {
       token: token as `0x${string}`,
       provider: "thirdweb",
       providerSessionId: "thirdweb_session",
+      sourceRoute: "/fund",
+      managementUrl: "/fund?manage=endowments",
       status: "pending_provider",
       receiptTokenHash: "hash",
       quoteExpiresAt: "2026-04-27T12:10:00.000Z",
@@ -662,16 +839,17 @@ describe("thirdweb webhook API and public rate-limit keys", () => {
       destinationAmount: "25",
       occurredAt: "2026-04-27T12:05:00.000Z",
     });
-    const signature = createHmac("sha256", secret).update(payload).digest("hex");
+    const timestamp = String(Math.floor(Date.now() / 1000));
+    const signature = createHmac("sha256", secret).update(`${timestamp}.${payload}`).digest("hex");
 
     const rejected = await app.request(PUBLIC_AGENT_ROUTES.thirdwebWebhook, {
       method: "POST",
-      headers: { "x-thirdweb-signature": "bad" },
+      headers: { "x-payload-signature": "bad", "x-timestamp": timestamp },
       body: payload,
     });
     const accepted = await app.request(PUBLIC_AGENT_ROUTES.thirdwebWebhook, {
       method: "POST",
-      headers: { "x-thirdweb-signature": signature },
+      headers: { "x-payload-signature": signature, "x-timestamp": timestamp },
       body: payload,
     });
 
@@ -680,6 +858,145 @@ describe("thirdweb webhook API and public rate-limit keys", () => {
     const updated = await store.getById("fi_test");
     expect(updated?.status).toBe("pending_onchain");
     expect(updated?.transactionAttempts[0]?.txHash).toMatch(/^0x/);
+  });
+
+  it("rejects legacy Thirdweb signatures that do not carry a timestamp", async () => {
+    const store = new MemoryFundingIntentStore();
+    const app = createServer(
+      {
+        isAIReady: () => true,
+        fundingIntents: store,
+        publicRateLimiter: new InMemoryPublicRateLimiter(),
+        thirdwebWebhookSecret: secret,
+      },
+      { logger: false }
+    );
+    await store.create(createRecord());
+
+    const body = JSON.stringify({
+      id: "evt_legacy",
+      eventType: "transaction_submitted",
+      fundingIntentId: "fi_test",
+      txHash,
+      chainId: 11155111,
+      destinationAddress,
+      token,
+      destinationAmount: "25000000",
+      occurredAt: "2026-04-27T12:05:00.000Z",
+    });
+    const response = await app.request(PUBLIC_AGENT_ROUTES.thirdwebWebhook, {
+      method: "POST",
+      headers: { "x-thirdweb-signature": createHmac("sha256", secret).update(body).digest("hex") },
+      body,
+    });
+
+    expect(response.status).toBe(401);
+    expect((await store.getById("fi_test"))?.status).toBe("pending_provider");
+  });
+
+  it("accepts current Thirdweb Bridge webhook signature headers and nested completed payment payloads", async () => {
+    const store = new MemoryFundingIntentStore();
+    const confirmFundingTuple = vi
+      .fn<() => Promise<FundingConfirmationResult>>()
+      .mockResolvedValue({
+        status: "confirmed",
+        txHash: txHash as `0x${string}`,
+        matchedAssetAmount: "25000000",
+        confirmedAt: "2026-04-27T12:05:00.000Z",
+      });
+    const app = createServer(
+      {
+        isAIReady: () => true,
+        fundingIntents: store,
+        publicRateLimiter: new InMemoryPublicRateLimiter(),
+        thirdwebWebhookSecret: secret,
+        confirmFundingTuple,
+        now: () => Date.parse("2026-04-27T12:05:00.000Z"),
+      },
+      { logger: false }
+    );
+    await store.create(createRecord());
+
+    const response = await app.request(
+      PUBLIC_AGENT_ROUTES.thirdwebWebhook,
+      officialSignedWebhookRequest({
+        version: 2,
+        type: "pay.onchain-transaction",
+        data: {
+          paymentId: "thirdweb_session",
+          transactionId: "thirdweb_tx_1",
+          status: "COMPLETED",
+          destinationToken: {
+            chainId: 11155111,
+            address: token,
+            symbol: "USDC",
+            decimals: 6,
+          },
+          destinationAmount: "25000000",
+          receiver: destinationAddress,
+          transactions: [{ chainId: 11155111, transactionHash: txHash }],
+          purchaseData: {
+            fundingIntentId: "fi_test",
+            txRole: "funding",
+            destinationType: "cookieJar",
+            fundingIntent: "donate",
+            paymentMethod: "card",
+            sourceRoute: "/fund",
+          },
+        },
+      })
+    );
+
+    expect(response.status).toBe(200);
+    expect(confirmFundingTuple).toHaveBeenCalledWith(txHash, {
+      token,
+      destinationAddress,
+      minAssetAmount: "25000000",
+      chainId: 11155111,
+    });
+    const updated = await store.getById("fi_test");
+    expect(updated?.status).toBe("funded");
+    expect(updated?.fundingTxHash).toBe(txHash);
+    expect(updated?.transactionAttempts[0]).toMatchObject({
+      role: "funding",
+      status: "confirmed",
+      destinationAddress,
+      amount: "25000000",
+    });
+  });
+
+  it("rejects stale current Thirdweb webhook timestamps before event handling", async () => {
+    const store = new MemoryFundingIntentStore();
+    const app = createServer(
+      {
+        isAIReady: () => true,
+        fundingIntents: store,
+        publicRateLimiter: new InMemoryPublicRateLimiter(),
+        thirdwebWebhookSecret: secret,
+        now: () => Date.parse("2026-04-27T12:10:01.000Z"),
+      },
+      { logger: false }
+    );
+    await store.create(createRecord());
+
+    const response = await app.request(
+      PUBLIC_AGENT_ROUTES.thirdwebWebhook,
+      officialSignedWebhookRequest(
+        {
+          version: 2,
+          type: "pay.onchain-transaction",
+          data: {
+            paymentId: "thirdweb_session",
+            status: "COMPLETED",
+            purchaseData: { fundingIntentId: "fi_test" },
+          },
+        },
+        String(Math.floor(Date.parse("2026-04-27T12:00:00.000Z") / 1000))
+      )
+    );
+
+    expect(response.status).toBe(401);
+    expect((await store.getById("fi_test"))?.status).toBe("pending_provider");
   });
 
   it("rejects oversized thirdweb webhooks before signature verification", async () => {
@@ -745,6 +1062,7 @@ describe("thirdweb webhook API and public rate-limit keys", () => {
         chainId: 11155111,
         destinationAddress,
         token,
+        sourceRoute: "/fund",
         destinationAmount: "25000000",
         occurredAt: "2026-04-27T12:05:00.000Z",
       })
@@ -792,6 +1110,7 @@ describe("thirdweb webhook API and public rate-limit keys", () => {
         chainId: 11155111,
         destinationAddress,
         token,
+        sourceRoute: "/fund",
         destinationAmount: "25000000",
         occurredAt: "2026-04-27T12:05:00.000Z",
       })
@@ -832,6 +1151,7 @@ describe("thirdweb webhook API and public rate-limit keys", () => {
         chainId: 11155111,
         destinationAddress,
         token,
+        sourceRoute: "/fund",
         destinationAmount: "25000000",
         occurredAt: "2026-04-27T12:05:00.000Z",
       })
@@ -844,6 +1164,63 @@ describe("thirdweb webhook API and public rate-limit keys", () => {
     expect(updated?.failureCode).toBe("reconciliation_failed");
     expect(updated?.fundingTxHash).toBeUndefined();
     expect(updated?.transactionAttempts[0]?.failureCode).toBe("provider_session_mismatch");
+  });
+
+  it("fails strict funding events that do not match the locked source route", async () => {
+    const store = new MemoryFundingIntentStore();
+    const confirmFundingTuple = vi.fn<() => Promise<FundingConfirmationResult>>();
+    const app = createServer(
+      {
+        isAIReady: () => true,
+        fundingIntents: store,
+        publicRateLimiter: new InMemoryPublicRateLimiter(),
+        thirdwebWebhookSecret: secret,
+        confirmFundingTuple,
+      },
+      { logger: false }
+    );
+    await store.create(
+      createRecord({
+        destinationType: "vault",
+        fundingIntent: "endow",
+        availabilityKey: buildPublicFundingAvailabilityKey({
+          ...cardEndowAvailabilityInput,
+          sourceRoute: "/vaults",
+        }),
+        sourceRoute: "/vaults",
+        managementUrl: "/vaults?manage=positions",
+        receiverAddress: receiverAddress as `0x${string}`,
+      })
+    );
+
+    const response = await app.request(
+      PUBLIC_AGENT_ROUTES.thirdwebWebhook,
+      signedWebhookRequest({
+        id: "evt_wrong_route",
+        eventType: "transaction_submitted",
+        txRole: "funding",
+        fundingIntentId: "fi_test",
+        providerSessionId: "thirdweb_session",
+        destinationType: "vault",
+        fundingIntent: "endow",
+        paymentMethod: "card",
+        sourceRoute: "/fund",
+        txHash,
+        chainId: 11155111,
+        destinationAddress,
+        receiverAddress,
+        token,
+        destinationAmount: "25000000",
+        occurredAt: "2026-04-27T12:05:00.000Z",
+      })
+    );
+
+    expect(response.status).toBe(200);
+    expect(confirmFundingTuple).not.toHaveBeenCalled();
+    const updated = await store.getById("fi_test");
+    expect(updated?.status).toBe("failed");
+    expect(updated?.failureCode).toBe("reconciliation_failed");
+    expect(updated?.transactionAttempts[0]?.failureCode).toBe("source_route_mismatch");
   });
 
   it("keeps expired precedence by moving strict late matches to funded_late", async () => {
@@ -886,6 +1263,7 @@ describe("thirdweb webhook API and public rate-limit keys", () => {
         chainId: 11155111,
         destinationAddress,
         token,
+        sourceRoute: "/fund",
         destinationAmount: "25000000",
         occurredAt: "2026-04-27T12:45:00.000Z",
       })
