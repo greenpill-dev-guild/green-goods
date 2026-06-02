@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p0",
     "created_at": "2026-05-09T21:35:46.781Z",
-    "updated_at": "2026-06-01T06:48:01.794Z"
+    "updated_at": "2026-06-01T19:47:42Z"
   },
   "links": {
     "brief": "brief.md",
@@ -42,8 +42,8 @@
   "pilotFixtures": {
     "greenpill-nyc": {
       "label": "Greenpill NYC",
-      "status": "first_available_transaction_fixture",
-      "transactionEnablement": "enabled only after deployed Octant V2 Ethereum vault metadata is recorded in the manifest",
+      "status": "blocked_pending_required_manifest_fields",
+      "transactionEnablement": "blocked until recipient/routing summary, campaign copy, and required proof gates complete the manifest",
       "requiredManifestFields": [
         "chainId",
         "vaultAddress",
@@ -53,12 +53,35 @@
         "recipientRoutingSummary",
         "explorerLink",
         "campaignCopy"
+      ],
+      "derivedOnchainFields": {
+        "chainId": 1,
+        "vaultAddress": "0xaC8F844CEA2Fd75B7A5514f11974895B334fd9A5",
+        "vaultName": "Greenpill NYC",
+        "vaultSymbol": "gpWETH",
+        "vaultDecimals": 18,
+        "assetAddress": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+        "assetSymbol": "WETH",
+        "assetDecimals": 18,
+        "factoryAddress": "0x9A6c9aA80D4A0d8Da29EcbA62c40ccBBB321abB6",
+        "factoryName": "YearnV3StrategyFactory",
+        "factoryEvidenceType": "pilot_strategy_factory_creator",
+        "factorySourcePath": "src/factories/yieldDonating/YearnV3StrategyFactory.sol",
+        "vaultExplorerLink": "https://etherscan.io/address/0xaC8F844CEA2Fd75B7A5514f11974895B334fd9A5",
+        "assetExplorerLink": "https://etherscan.io/address/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+        "factoryExplorerLink": "https://etherscan.io/address/0x9A6c9aA80D4A0d8Da29EcbA62c40ccBBB321abB6"
+      },
+      "missingManifestFields": [
+        "recipientRoutingSummary",
+        "campaignCopy",
+        "FACTORY() accessor return proof",
+        "Card Endow custody/share/manage/provider proof"
       ]
     },
     "evmavericks": {
       "label": "EVMavericks Fantasy Football League",
       "status": "blocked_pending_manifest",
-      "transactionEnablement": "Wallet Endow and Card Endow disabled until the required manifest is supplied",
+      "transactionEnablement": "Wallet Endow and Card Endow disabled until the required non-chain manifest fields and proof gates are supplied",
       "requiredManifestFields": [
         "chainId",
         "vaultAddress",
@@ -69,8 +92,191 @@
         "protocolGuildDestinationContext",
         "explorerLink",
         "campaignCopy"
+      ],
+      "derivedOnchainFields": {
+        "chainId": 1,
+        "vaultAddress": "0x0bCe8c16974FFD3B410A32365c5bCf27a5A630Fc",
+        "vaultName": "EVMavs PGF",
+        "vaultSymbol": "evmWETH",
+        "vaultDecimals": 18,
+        "assetAddress": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+        "assetSymbol": "WETH",
+        "assetDecimals": 18,
+        "factoryAddress": "0x9A6c9aA80D4A0d8Da29EcbA62c40ccBBB321abB6",
+        "factoryName": "YearnV3StrategyFactory",
+        "factoryEvidenceType": "pilot_strategy_factory_creator",
+        "factorySourcePath": "src/factories/yieldDonating/YearnV3StrategyFactory.sol",
+        "vaultExplorerLink": "https://etherscan.io/address/0x0bCe8c16974FFD3B410A32365c5bCf27a5A630Fc",
+        "assetExplorerLink": "https://etherscan.io/address/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+        "factoryExplorerLink": "https://etherscan.io/address/0x9A6c9aA80D4A0d8Da29EcbA62c40ccBBB321abB6"
+      },
+      "missingManifestFields": [
+        "recipientRoutingSummary",
+        "protocolGuildDestinationContext",
+        "campaignCopy",
+        "FACTORY() accessor return proof",
+        "Card Endow custody/share/manage/provider proof"
       ]
     }
+  },
+  "onchainManifestEvidence": {
+    "timestamp": "2026-06-01T18:07:43Z",
+    "chainId": 1,
+    "rpcMethod": "cast call over Ethereum JSON-RPC eth_call",
+    "rpcUrlUsed": "https://ethereum-rpc.publicnode.com",
+    "rpcNote": "The shell did not have ETHEREUM_RPC_URL exported and direct root .env loading was blocked by the repo guard. Initial read-only calls assigned this public Ethereum RPC to ETHEREUM_RPC_URL; subsequent cast calls used the same public RPC URL directly after cast panicked inside the sandbox and was rerun outside the sandbox.",
+    "octantDocumentationEvidence": {
+      "timestamp": "2026-06-01T18:51:25Z",
+      "sourcesReviewed": [
+        {
+          "label": "Octant MultistrategyVault smart contract docs",
+          "url": "https://docs.v2.octant.build/docs/smart_contracts/MultistrategyVault/"
+        },
+        {
+          "label": "Octant MultistrategyVaultFactory smart contract docs",
+          "url": "https://docs.v2.octant.build/docs/smart_contracts/MultistrategyVaultFactory"
+        },
+        {
+          "label": "Octant multi-strategy vault integration guide",
+          "url": "https://docs.v2.octant.build/docs/integration_guides_and_tutorials/multi-strategy-vaults"
+        }
+      ],
+      "finding": "Octant docs/resources describe MultistrategyVault.FACTORY() as the vault-level MultistrategyVaultFactory accessor, but this review did not find an official Ethereum mainnet MultistrategyVaultFactory deployment address.",
+      "proofLimit": "Use 0x9A6c9aA80D4A0d8Da29EcbA62c40ccBBB321abB6 only as shared pilot YearnV3StrategyFactory creator evidence for the two supplied contracts, not as a proven MultistrategyVaultFactory deployment or successful FACTORY() return."
+    },
+    "factory": {
+      "address": "0x9A6c9aA80D4A0d8Da29EcbA62c40ccBBB321abB6",
+      "name": "YearnV3StrategyFactory",
+      "evidenceType": "pilot_contract_creator",
+      "sourcePath": "src/factories/yieldDonating/YearnV3StrategyFactory.sol",
+      "etherscan": "https://etherscan.io/address/0x9A6c9aA80D4A0d8Da29EcbA62c40ccBBB321abB6",
+      "blockscout": "https://eth.blockscout.com/address/0x9A6c9aA80D4A0d8Da29EcbA62c40ccBBB321abB6",
+      "source": "Blockscout contract creation metadata for both vault proxy addresses plus verified factory metadata at /api/v2/smart-contracts/0x9A6c9aA80D4A0d8Da29EcbA62c40ccBBB321abB6.",
+      "roleClarification": "This is durable pilot strategy-factory/creator metadata. Do not claim it is the documented MultistrategyVaultFactory address unless later Octant deployment proof establishes that.",
+      "factoryAccessor": {
+        "signature": "FACTORY()(address)",
+        "greenpill-nyc": {
+          "status": "reverted",
+          "output": "Error: server returned an error response: error code 3: execution reverted, data: \"0x\""
+        },
+        "evmavericks": {
+          "status": "reverted",
+          "output": "Error: server returned an error response: error code 3: execution reverted, data: \"0x\""
+        },
+        "proofStatus": "blocked; do not claim a successful vault-level FACTORY() return"
+      }
+    },
+    "explorerFactoryCandidates": {
+      "pilotYearnV3StrategyFactory": {
+        "address": "0x9A6c9aA80D4A0d8Da29EcbA62c40ccBBB321abB6",
+        "name": "YearnV3StrategyFactory",
+        "adoptedForPilotManifest": true,
+        "reason": "Blockscout address metadata shows this contract created both supplied pilot contracts, and Blockscout smart-contract metadata verifies it as YearnV3StrategyFactory."
+      },
+      "etherscanYearnV3StrategyFactoryCandidate": {
+        "address": "0x6D8c4E4A158083E30B53ba7df3cFB885fC096fF6",
+        "name": "YearnV3StrategyFactory",
+        "etherscan": "https://etherscan.io/address/0x6D8c4E4A158083E30B53ba7df3cFB885fC096fF6",
+        "blockscout": "https://eth.blockscout.com/address/0x6D8c4E4A158083E30B53ba7df3cFB885fC096fF6",
+        "adoptedForPilotManifest": false,
+        "reason": "Etherscan surfaces this as a YearnV3StrategyFactory candidate, but it is not the creator of either supplied pilot contract and Blockscout address metadata did not verify/name it during this review."
+      }
+    },
+    "assets": {
+      "weth": {
+        "address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+        "symbol": "WETH",
+        "decimals": 18,
+        "etherscan": "https://etherscan.io/address/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+      }
+    },
+    "vaults": {
+      "greenpill-nyc": {
+        "label": "Greenpill NYC",
+        "inputAddress": "0xac8f844cea2fd75b7a5514f11974895b334fd9a5",
+        "checksumAddress": "0xaC8F844CEA2Fd75B7A5514f11974895B334fd9A5",
+        "etherscan": "https://etherscan.io/address/0xaC8F844CEA2Fd75B7A5514f11974895B334fd9A5",
+        "asset": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+        "assetSymbol": "WETH",
+        "assetDecimals": 18,
+        "vaultName": "Greenpill NYC",
+        "vaultSymbol": "gpWETH",
+        "vaultDecimals": 18,
+        "apiVersion": "1.0.0",
+        "blockscoutCreator": "0x9A6c9aA80D4A0d8Da29EcbA62c40ccBBB321abB6",
+        "implementation": "0xE8797A98710518A6973Cc8612f98154EECF2C711",
+        "implementationName": "YieldDonatingTokenizedStrategy",
+        "factoryMetadataCall": "yearnV3StrategyInfo(address)(address) returned a non-zero management address; address intentionally omitted because it is not a required display-safe manifest field.",
+        "missingFields": [
+          "recipientRoutingSummary",
+          "campaignCopy",
+          "FACTORY() accessor return proof",
+          "Card Endow custody/share/manage/provider proof"
+        ]
+      },
+      "evmavericks": {
+        "label": "EVMavericks Fantasy Football League",
+        "inputAddress": "0x0bce8c16974ffd3b410a32365c5bcf27a5a630fc",
+        "checksumAddress": "0x0bCe8c16974FFD3B410A32365c5bCf27a5A630Fc",
+        "etherscan": "https://etherscan.io/address/0x0bCe8c16974FFD3B410A32365c5bCf27a5A630Fc",
+        "asset": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+        "assetSymbol": "WETH",
+        "assetDecimals": 18,
+        "vaultName": "EVMavs PGF",
+        "vaultSymbol": "evmWETH",
+        "vaultDecimals": 18,
+        "apiVersion": "1.0.0",
+        "blockscoutCreator": "0x9A6c9aA80D4A0d8Da29EcbA62c40ccBBB321abB6",
+        "implementation": "0xE8797A98710518A6973Cc8612f98154EECF2C711",
+        "implementationName": "YieldDonatingTokenizedStrategy",
+        "factoryMetadataCall": "yearnV3StrategyInfo(address)(address) returned a non-zero management address; address intentionally omitted because it is not a required display-safe manifest field.",
+        "missingFields": [
+          "recipientRoutingSummary",
+          "protocolGuildDestinationContext",
+          "campaignCopy",
+          "FACTORY() accessor return proof",
+          "Card Endow custody/share/manage/provider proof"
+        ]
+      }
+    },
+    "sourceCommandSummary": [
+      "git status --short --branch -> ## feature/nyc-vault-crowdfunding...origin/feature/nyc-vault-crowdfunding [ahead 2]",
+      "cast to-check-sum-address 0xac8f844cea2fd75b7a5514f11974895b334fd9a5 -> 0xaC8F844CEA2Fd75B7A5514f11974895B334fd9A5",
+      "cast to-check-sum-address 0x0bce8c16974ffd3b410a32365c5bcf27a5a630fc -> 0x0bCe8c16974FFD3B410A32365c5bCf27a5A630Fc",
+      "cast call <vault> \"FACTORY()(address)\" --rpc-url \"$ETHEREUM_RPC_URL\" reached RPC and reverted with empty 0x data for both vaults",
+      "cast call <vault> \"asset()(address)\" -> 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2 for both vaults",
+      "cast call <vault> \"name()(string)\" -> Greenpill NYC / EVMavs PGF",
+      "cast call <vault> \"symbol()(string)\" -> gpWETH / evmWETH",
+      "cast call <vault> \"decimals()(uint8)\" -> 18 for both vaults",
+      "cast call <vault> \"apiVersion()(string)\" -> 1.0.0 for both vaults",
+      "cast call WETH \"symbol()(string)\" -> WETH; cast call WETH \"decimals()(uint8)\" -> 18",
+      "curl -s Blockscout /api/v2/addresses/<vault> -> both vault proxies share creator 0x9A6c9aA80D4A0d8Da29EcbA62c40ccBBB321abB6 and implementation 0xE8797A98710518A6973Cc8612f98154EECF2C711 YieldDonatingTokenizedStrategy",
+      "curl -s Blockscout /api/v2/addresses/0x9A6c9aA80D4A0d8Da29EcbA62c40ccBBB321abB6 -> verified YearnV3StrategyFactory",
+      "curl -s Blockscout /api/v2/smart-contracts/0x9A6c9aA80D4A0d8Da29EcbA62c40ccBBB321abB6 -> source path src/factories/yieldDonating/YearnV3StrategyFactory.sol",
+      "curl -s Blockscout /api/v2/addresses/0x6D8c4E4A158083E30B53ba7df3cFB885fC096fF6 -> not a creator for either pilot contract and not verified/named by Blockscout during this review",
+      "Octant docs/resources review -> MultistrategyVault.FACTORY() is documented as a MultistrategyVaultFactory accessor, but no official Ethereum mainnet MultistrategyVaultFactory deployment address was found",
+      "cast call factory \"yearnV3StrategyInfo(address)(address)\" <vault> -> non-zero management address for both vaults; not recorded as display manifest metadata"
+    ],
+    "missingFields": {
+      "greenpill-nyc": [
+        "recipientRoutingSummary",
+        "campaignCopy",
+        "FACTORY() accessor return proof",
+        "Card Endow custody/share/manage/provider proof"
+      ],
+      "evmavericks": [
+        "recipientRoutingSummary",
+        "protocolGuildDestinationContext",
+        "campaignCopy",
+        "FACTORY() accessor return proof",
+        "Card Endow custody/share/manage/provider proof"
+      ]
+    },
+    "fixtureTransactionStatus": {
+      "greenpill-nyc": "blocked_pending_required_manifest_fields",
+      "evmavericks": "blocked_pending_required_manifest_fields"
+    },
+    "cardEndowVisibility": "hidden until custody/share/manage/provider proof passes"
   },
   "phasePlan": {
     "purpose": "Dedicated public /vaults crowdfunding route for Greenpill NYC and EVMavericks Octant V2 Ethereum vault campaigns, followed by Codex-owned reusable octant-vault-crowdfunding skill delivery after demo validation.",
@@ -103,14 +309,14 @@
       {
         "number": 3,
         "name": "Wallet-last Wallet Endow path",
-        "status": "pending",
+        "status": "completed",
         "checkInRequiredAfter": true,
         "exitCriteria": [
           "Users choose vault and amount before wallet connection",
-          "Wallet Endow deposits only for complete-manifest fixtures",
+          "Wallet Endow submits through an Octant-specific Ethereum mainnet hook only for complete-manifest fixtures",
           "Greenpill NYC is the first available transaction fixture when its deployed vault metadata is recorded",
           "EVMavericks transaction controls remain disabled while blocked_pending_manifest",
-          "Connected wallet owns the resulting position"
+          "Connected wallet receiver is enforced; share/ownership visibility is verified in the later proof gate"
         ]
       },
       {
@@ -200,6 +406,7 @@
         "blocked_pending_manifest behavior for EVMavericks",
         "receiver typing for Wallet Endow and Thirdweb Card Endow",
         "exact chain/vault/token/provider proof separation",
+        "Octant Wallet Endow hook threads chainId 1 through reads/writes and rejects non-wallet auth",
         "Card Endow proof-key separation from Card Donate"
       ],
       "client": [
@@ -207,7 +414,7 @@
         "browse-without-wallet campaign states for Greenpill NYC and EVMavericks",
         "EVMavericks disabled transaction state until required manifest fields are supplied",
         "wallet-last amount -> connect -> confirm sequence",
-        "Wallet Endow for complete-manifest fixtures",
+        "Wallet Endow for complete-manifest fixtures through the Octant-specific prepared transaction path",
         "Thirdweb Card Endow hidden until receiver/share/public manage/provider proof",
         "Donate/Card Donate absent from /vaults",
         "only targeted /fund compatibility tests if Card Endow reusable capability touches shared /fund code"
@@ -219,7 +426,10 @@
         "recovered-owner share verification",
         "Card Endow rejection without receiverAddress"
       ],
-      "browser": ["final public /vaults demo proof required on desktop and mobile"],
+      "browser": [
+        "final public /vaults demo proof required on desktop and mobile",
+        "refreshed built-route Brave proof after wallet-runtime correction recorded at .codex-artifacts/nyc-vault-crowdfunding/final-pass/"
+      ],
       "skill": [
         "Codex-owned reusable octant-vault-crowdfunding skill lane starts after demo QA validation",
         "canonical artifact plan targets .claude/skills/octant-vault-crowdfunding/",
@@ -227,6 +437,7 @@
         "templates cover campaign context, existing vault manifest, wallet RPC assumptions, and implementation handoff",
         "fixtures cover Greenpill NYC, EVMavericks blocked_pending_manifest, and one synthetic complete manifest",
         "advanced modules cover Thirdweb first, Coinbase/Stripe future adapters, optional Octant Ethereum factory/API create-vault module",
+        "optional create-vault factory support requires explicit Octant MultistrategyVaultFactory deployment/API proof before any address is used",
         "later artifact validation lists bun run skills:sync, bun run check:skills, and pilot/synthetic dry-run QA"
       ]
     }
@@ -235,8 +446,12 @@
     "Corrected on 2026-06-01 against the attached Green Goods x Octant crowdfunding brief.",
     "The primary route is /vaults, a dedicated Octant V2 Ethereum vault crowdfunding surface. No /vault alias or redirect is planned in this cleanup.",
     "Greenpill NYC and EVMavericks are locked as the first-demo fixture slots.",
-    "Greenpill NYC remains the first available transaction fixture when its deployed vault metadata is recorded.",
-    "EVMavericks transaction work is blocked_pending_manifest until chain ID, vault address, asset address/symbol/decimals, recipient/routing summary, Protocol Guild destination context, explorer link, and campaign copy are supplied.",
+    "Greenpill NYC remains the first available transaction fixture candidate, but transaction controls stay blocked until recipient/routing summary and campaign copy are supplied.",
+    "EVMavericks transaction work is blocked_pending_manifest until recipient/routing summary, Protocol Guild destination context, and campaign copy are supplied.",
+    "On 2026-06-01, read-only Ethereum evidence recorded chain ID 1, checksummed vault addresses, WETH asset metadata, Etherscan links, and shared YearnV3StrategyFactory creator/factory metadata for both pilot vaults.",
+    "The requested vault-level FACTORY()(address) call reverted with empty 0x data for both vaults; do not claim successful FACTORY() return proof unless a later call produces it.",
+    "Octant docs/resources describe MultistrategyVault.FACTORY() and MultistrategyVaultFactory conceptually, but no official Ethereum mainnet MultistrategyVaultFactory deployment address was found in this review.",
+    "The separate Etherscan YearnV3StrategyFactory candidate at 0x6D8c4E4A158083E30B53ba7df3cFB885fC096fF6 is recorded as not adopted for the NYC pilot fixtures because it is not their creator.",
     "The previous /fund-centered problem statement was wrong. Existing Garden /fund remains separate and is reuse context only.",
     "The only /fund relationship in this plan is future-compatible Card Endow receiver/proof capability reuse, not route implementation.",
     "Wallet Endow and Thirdweb Card Endow are in Green Goods demo scope for complete-manifest fixtures.",
@@ -269,7 +484,7 @@
         },
         "green": {
           "command": "bun run test -- src/__tests__/views/PublicVaults.test.tsx",
-          "evidence": "3 tests passed for dedicated /vaults browse, blocked transaction controls, and Donate/Card Donate absence."
+          "evidence": "7 tests passed for dedicated /vaults browse without wallet runtime providers, blocked pilot controls, Donate/Card Donate absence, complete-manifest amount selection, wallet-last connect sequencing, passkey restored-auth rejection, and prepared Octant Wallet Endow payload submission."
         },
         "note": ""
       },
@@ -292,7 +507,7 @@
         },
         "green": {
           "command": "bun run test -- src/__tests__/modules/vault-crowdfunding.test.ts",
-          "evidence": "4 tests passed for pilot fixture presence, required fields, blocked_pending_manifest, and complete manifest readiness."
+          "evidence": "35 tests passed for pilot fixture presence, recorded chain/vault/asset/factory metadata, strict missing non-chain fields, complete-manifest Wallet Endow readiness, synthetic Wallet Endow prep, and Card Endow proof gates."
         },
         "note": ""
       },
@@ -465,11 +680,115 @@
       "status": "completed",
       "branch": "claude/ui/nyc-vault-crowdfunding",
       "note": "Phase 2 public /vaults browse route implemented with read-only campaign cards, manifest missing-field details, disabled Wallet Endow states, hidden Card Endow state, i18n, and targeted client tests."
+    },
+    {
+      "timestamp": "2026-06-01T18:07:43Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "onchain_manifest_evidence_recorded",
+      "branch": "feature/nyc-vault-crowdfunding",
+      "note": "Recorded Ethereum mainnet onchain evidence for Greenpill NYC and EVMavericks: checksummed vaults, WETH asset metadata, vault token metadata, shared YearnV3StrategyFactory creator/factory evidence, Etherscan links, failed FACTORY() accessor proof, and remaining missing non-chain manifest fields."
+    },
+    {
+      "timestamp": "2026-06-01T18:10:52Z",
+      "actor": "codex",
+      "lane": "linear",
+      "status": "onchain_manifest_evidence_comments_recorded",
+      "branch": "feature/nyc-vault-crowdfunding",
+      "note": "Commented PRD-435, PRD-437, PRD-438, PRD-441, and PRD-571 with pilot vault metadata, shared factory evidence, fixture blocking gaps, QA implications, and skill fixture implications without moving issue states."
+    },
+    {
+      "timestamp": "2026-06-01T18:51:25Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "octant_factory_docs_cross_check_recorded",
+      "branch": "feature/nyc-vault-crowdfunding",
+      "note": "Recorded Octant docs/resources factory distinction: MultistrategyVaultFactory is documented conceptually with no official Ethereum deployment address found; pilot metadata keeps 0x9A6c as YearnV3StrategyFactory creator evidence and records 0x6D8c as a non-adopted explorer candidate."
+    },
+    {
+      "timestamp": "2026-06-01T18:54:35Z",
+      "actor": "codex",
+      "lane": "linear",
+      "status": "octant_factory_docs_cross_check_comments_updated",
+      "branch": "feature/nyc-vault-crowdfunding",
+      "note": "Updated existing Linear evidence comments on PRD-435, PRD-437, PRD-438, PRD-441, and PRD-571 with the Octant docs/resources factory distinction, non-adopted 0x6D8c explorer candidate, and no issue-state changes."
+    },
+    {
+      "timestamp": "2026-06-01T19:42:55Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "phase_3_wallet_endow_ready_contract_recorded",
+      "branch": "feature/nyc-vault-crowdfunding",
+      "note": "Implemented strict complete-manifest Wallet Endow preparation for Octant V2 Ethereum vault campaigns. Synthetic complete fixtures become wallet-ready; Greenpill NYC and EVMavericks remain transaction-blocked on missing non-chain manifest fields and proof gates."
+    },
+    {
+      "timestamp": "2026-06-01T19:42:55Z",
+      "actor": "codex",
+      "lane": "ui",
+      "status": "phase_3_wallet_last_flow_recorded",
+      "branch": "feature/nyc-vault-crowdfunding",
+      "note": "Implemented /vaults amount-first, wallet-last Wallet Endow panel for complete manifests, now tightened so WalletRuntimeProviders mounts only after a valid amount is submitted into wallet confirmation; pilot fixtures stay visible and blocked, and Thirdweb Card Endow plus Donate/Card Donate remain absent."
+    },
+    {
+      "timestamp": "2026-06-01T19:42:55Z",
+      "actor": "codex",
+      "lane": "qa",
+      "status": "phase_3_validation_recorded",
+      "branch": "feature/nyc-vault-crowdfunding",
+      "note": "Validated Phase 3 with targeted shared/client tests, client production build, and stable-Brave desktop/mobile screenshots for /vaults. Existing browser proof shows browse layout, both pilot cards visible, both Wallet Endow controls blocked, Card Endow hidden, and no Donate/Card Donate; it does not prove live transaction readiness or wallet runtime side-effect absence."
+    },
+    {
+      "timestamp": "2026-06-01T19:47:42Z",
+      "actor": "codex",
+      "lane": "linear",
+      "status": "phase_3_check_in_comments_recorded",
+      "branch": "feature/nyc-vault-crowdfunding",
+      "note": "Commented PRD-435, PRD-437, PRD-438, PRD-441, and PRD-571 with Phase 3 Wallet Endow flow, strict manifest gating, blocked pilot fixture behavior, validation proof, and no issue-state changes."
+    },
+    {
+      "timestamp": "2026-06-01T20:38:00Z",
+      "actor": "codex",
+      "lane": "qa",
+      "status": "phase_3_review_findings_addressed",
+      "branch": "feature/nyc-vault-crowdfunding",
+      "note": "Addressed adversarial review findings: /vaults no longer mounts WalletRuntimeProviders during browse or amount entry; complete-manifest Wallet Endow uses useOctantVaultWalletEndow with chainId 1 on reads/writes and wallet-only auth; tests cover provider-last runtime mount, passkey rejection, prepared payload, and mainnet chain threading. No live Ethereum mainnet deposit was executed."
+    },
+    {
+      "timestamp": "2026-06-01T20:41:22Z",
+      "actor": "codex",
+      "lane": "qa",
+      "status": "phase_3_review_findings_validation_recorded",
+      "branch": "feature/nyc-vault-crowdfunding",
+      "note": "Revalidated review fixes with status.json parse, shared module tests, shared vault hook tests, client /vaults tests, client build, vocab lint, git diff --check, and linear-sync --json. plan-hub validate still reports only unrelated sentry-stack-observability drift."
+    },
+    {
+      "timestamp": "2026-06-01T21:26:56Z",
+      "actor": "codex",
+      "lane": "qa",
+      "status": "phase_3_lazy_runtime_browser_proof_recorded",
+      "branch": "feature/nyc-vault-crowdfunding",
+      "note": "Refreshed built-client Brave proof for /vaults on desktop 1440px and mobile 390px. Both passes showed the two pilot cards, blocked Wallet Endow controls, no Donate/Card Donate, two hidden Thirdweb Card Endow notices, no Connect Wallet button, zero wallet DOM, zero wallet-provider network requests during browse, no page errors, and no horizontal overflow. Screenshots saved under .codex-artifacts/nyc-vault-crowdfunding/final-pass/."
+    },
+    {
+      "timestamp": "2026-06-01T21:31:38Z",
+      "actor": "codex",
+      "lane": "qa",
+      "status": "phase_3_provider_last_flow_tightened",
+      "branch": "feature/nyc-vault-crowdfunding",
+      "note": "Tightened the synthetic complete Wallet Endow path so WalletRuntimeProviders remains unmounted after campaign selection and during amount entry; it mounts only after a valid amount is submitted into wallet confirmation. Targeted client /vaults tests passed after the correction."
+    },
+    {
+      "timestamp": "2026-06-01T21:35:00Z",
+      "actor": "codex",
+      "lane": "qa",
+      "status": "phase_3_final_browser_proof_refreshed",
+      "branch": "feature/nyc-vault-crowdfunding",
+      "note": "Refreshed built-client stable-Brave proof for /vaults after the provider-last correction. Desktop 1440px and mobile 390px both passed with two pilot cards, blocked Wallet Endow controls, no Donate/Card Donate, hidden Thirdweb Card Endow notices, no Connect Wallet, no wallet runtime DOM, no wallet-provider network requests, no page or console errors, and no horizontal overflow. Screenshots refreshed under .codex-artifacts/nyc-vault-crowdfunding/final-pass/."
     }
   ],
   "linear": {
     "syncDirection": "plans_to_linear_visibility",
-    "lastSyncedAt": "2026-06-01T05:50:56Z",
+    "lastSyncedAt": "2026-06-01T19:47:42Z",
     "projectDocument": "https://linear.app/greenpill-dev-guild/document/green-goods-x-octant-vault-scope-lock-1fc3d1676fb1",
     "parentIssue": "PRD-435",
     "lanes": {
@@ -560,6 +879,20 @@
       "skill_fixtures_templates": "2a173278-58c9-49ad-b351-a09587de41b8",
       "skill_wallet_runtime": "f5701899-af64-4a79-99fe-2c8872a31dee",
       "skill_advanced_modules": "c112f5a0-ec2c-4b52-8f79-727b6daaba4c"
+    },
+    "onchainEvidenceComments": {
+      "delivery_parent": "bc4cc660-8b31-418d-9d90-461b476b0922",
+      "state_api_lane": "9cef1c99-d46c-47eb-9569-7e354aadb33b",
+      "ui_lane": "c6517a75-a965-4c63-a39f-bacadaf5d00a",
+      "qa_gate": "0d6904c7-2408-484e-88d9-d6217a3a0fc3",
+      "skill_fixtures_templates": "ef368fbf-cab8-4821-9c6d-38940d816fba"
+    },
+    "phase3CheckInComments": {
+      "delivery_parent": "6ee02b9a-e1d0-458a-8312-e662e4526391",
+      "state_api_lane": "f26c0c7a-cf4b-4495-a536-854ff6c2b33d",
+      "ui_lane": "b5c2e1fd-386a-4910-9ed7-101ef3f4e4af",
+      "qa_gate": "61babe37-cb67-4252-ad8a-a60c63becedb",
+      "skill_fixtures_templates": "ca1504ba-9666-437f-8a8e-4813841d0fb9"
     },
     "project": "NYC Vault Crowdfunding"
   }

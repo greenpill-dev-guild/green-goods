@@ -451,6 +451,7 @@ export {
   useEnableAutoAllocate,
   useEmergencyPause,
   useHarvest,
+  useOctantVaultWalletEndow,
   useVaultDeposit,
   useVaultWithdraw,
 } from "./vault/useVaultOperations";

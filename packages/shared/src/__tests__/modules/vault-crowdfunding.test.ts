@@ -6,6 +6,7 @@ import {
   getOctantVaultCampaigns,
   getOctantVaultCampaignTransactionState,
   isOctantVaultCampaignTransactionReady,
+  prepareOctantVaultWalletEndow,
   validateOctantVaultCardEndowProof,
   validateOctantVaultCardEndowReceiver,
   validateOctantVaultCampaignManifest,
@@ -109,10 +110,20 @@ describe("Octant vault crowdfunding manifest", () => {
     });
   });
 
-  it("keeps Greenpill NYC transaction disabled until complete deployed vault metadata is recorded", () => {
+  it("records Greenpill NYC chain metadata but keeps transactions blocked on non-chain fields", () => {
     const campaign = getOctantVaultCampaignBySlug("greenpill-nyc");
 
     expect(campaign).toBeDefined();
+    expect(campaign?.vault).toMatchObject({
+      chainId: 1,
+      vaultAddress: "0xaC8F844CEA2Fd75B7A5514f11974895B334fd9A5",
+      asset: {
+        address: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+        symbol: "WETH",
+        decimals: 18,
+      },
+      explorerLink: "https://etherscan.io/address/0xaC8F844CEA2Fd75B7A5514f11974895B334fd9A5",
+    });
     expect(GREENPILL_NYC_REQUIRED_MANIFEST_FIELDS).toEqual([
       "chainId",
       "vaultAddress",
@@ -125,7 +136,7 @@ describe("Octant vault crowdfunding manifest", () => {
     ]);
     expect(getOctantVaultCampaignTransactionState(campaign!)).toMatchObject({
       status: "blocked_pending_manifest",
-      missingFields: GREENPILL_NYC_REQUIRED_MANIFEST_FIELDS,
+      missingFields: ["recipientRoutingSummary", "campaignCopy"],
       walletEndowEnabled: false,
       cardEndowVisible: false,
     });
@@ -138,7 +149,7 @@ describe("Octant vault crowdfunding manifest", () => {
     expect(EVMAVERICKS_REQUIRED_MANIFEST_FIELDS).toContain("protocolGuildDestinationContext");
     expect(getOctantVaultCampaignTransactionState(campaign!)).toMatchObject({
       status: "blocked_pending_manifest",
-      missingFields: EVMAVERICKS_REQUIRED_MANIFEST_FIELDS,
+      missingFields: ["recipientRoutingSummary", "protocolGuildDestinationContext", "campaignCopy"],
       walletEndowEnabled: false,
       cardEndowVisible: false,
     });
@@ -153,16 +164,84 @@ describe("Octant vault crowdfunding manifest", () => {
     });
   });
 
-  it("does not treat a complete manifest as executable Wallet Endow readiness in Phase 2", () => {
+  it("enables Wallet Endow readiness only for a complete manifest", () => {
     const completeManifest = makeCompleteManifest();
 
-    expect(isOctantVaultCampaignTransactionReady(completeManifest)).toBe(false);
+    expect(isOctantVaultCampaignTransactionReady(completeManifest)).toBe(true);
     expect(getOctantVaultCampaignTransactionState(completeManifest)).toMatchObject({
       manifestStatus: "complete",
-      status: "blocked_pending_wallet_endow",
-      walletEndowEnabled: false,
+      status: "ready",
+      walletEndowEnabled: true,
       cardEndowVisible: false,
-      disabledReason: "wallet_endow_not_implemented",
+      missingFields: [],
+    });
+  });
+
+  it("prepares a Wallet Endow transaction for a complete synthetic fixture", () => {
+    const completeManifest = makeCompleteManifest();
+
+    expect(
+      prepareOctantVaultWalletEndow({
+        campaign: completeManifest,
+        amount: 2500000n,
+        receiverAddress: VALID_RECEIVER_ADDRESS,
+      })
+    ).toEqual({
+      status: "ready",
+      errors: [],
+      transaction: {
+        intentKind: "wallet_endow",
+        paymentMethod: "wallet",
+        chainId: 1,
+        vaultAddress: "0x1111111111111111111111111111111111111111",
+        assetAddress: "0x2222222222222222222222222222222222222222",
+        assetSymbol: "USDC",
+        assetDecimals: 6,
+        amount: 2500000n,
+        receiver: {
+          intentKind: "wallet_endow",
+          paymentMethod: "wallet",
+          receiverKind: "connected_wallet",
+          receiverCustody: "connected_wallet",
+          receiverAddress: VALID_RECEIVER_ADDRESS,
+        },
+      },
+    });
+  });
+
+  it("does not prepare Wallet Endow for blocked pilot fixtures or invalid confirmation input", () => {
+    const greenpillNyc = getOctantVaultCampaignBySlug("greenpill-nyc");
+    const completeManifest = makeCompleteManifest();
+
+    expect(greenpillNyc).toBeDefined();
+    expect(
+      prepareOctantVaultWalletEndow({
+        campaign: greenpillNyc!,
+        amount: 2500000n,
+        receiverAddress: VALID_RECEIVER_ADDRESS,
+      })
+    ).toMatchObject({
+      status: "blocked",
+      errors: expect.arrayContaining(["manifest_incomplete"]),
+    });
+    expect(
+      prepareOctantVaultWalletEndow({
+        campaign: completeManifest,
+        amount: 0n,
+        receiverAddress: VALID_RECEIVER_ADDRESS,
+      })
+    ).toMatchObject({
+      status: "blocked",
+      errors: expect.arrayContaining(["amount_required"]),
+    });
+    expect(
+      prepareOctantVaultWalletEndow({
+        campaign: completeManifest,
+        amount: 2500000n,
+      })
+    ).toMatchObject({
+      status: "blocked",
+      errors: expect.arrayContaining(["receiver_required"]),
     });
   });
 
@@ -343,7 +422,7 @@ describe("Octant vault Card Endow public contracts", () => {
     });
   });
 
-  it("keeps Phase 2 /vaults transaction flags unchanged", () => {
+  it("keeps pilot /vaults transaction flags blocked under strict manifest gating", () => {
     const states = getOctantVaultCampaigns().map((campaign) =>
       getOctantVaultCampaignTransactionState(campaign)
     );
@@ -354,7 +433,7 @@ describe("Octant vault Card Endow public contracts", () => {
         status: "blocked_pending_manifest",
         walletEndowEnabled: false,
         cardEndowVisible: false,
-        missingFields: GREENPILL_NYC_REQUIRED_MANIFEST_FIELDS,
+        missingFields: ["recipientRoutingSummary", "campaignCopy"],
         disabledReason: "manifest_incomplete",
       },
       {
@@ -362,7 +441,11 @@ describe("Octant vault Card Endow public contracts", () => {
         status: "blocked_pending_manifest",
         walletEndowEnabled: false,
         cardEndowVisible: false,
-        missingFields: EVMAVERICKS_REQUIRED_MANIFEST_FIELDS,
+        missingFields: [
+          "recipientRoutingSummary",
+          "protocolGuildDestinationContext",
+          "campaignCopy",
+        ],
         disabledReason: "manifest_incomplete",
       },
     ]);

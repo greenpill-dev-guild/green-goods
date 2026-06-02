@@ -39,11 +39,25 @@ export interface OctantVaultCampaignAssetManifest {
   decimals?: number;
 }
 
+export interface OctantVaultStrategyFactoryEvidence {
+  address: Address;
+  name: string;
+  evidenceType: "pilot_strategy_factory_creator";
+  sourcePath: string;
+  explorerLink: string;
+  roleClarification: string;
+  factoryAccessorProofStatus: "reverted";
+}
+
 export interface OctantVaultManifest {
   chainId?: number;
   vaultAddress?: Address;
+  vaultName?: string;
+  vaultSymbol?: string;
+  vaultDecimals?: number;
   asset?: OctantVaultCampaignAssetManifest;
   explorerLink?: string;
+  strategyFactory?: OctantVaultStrategyFactoryEvidence;
 }
 
 export interface OctantVaultCampaignManifest {
@@ -109,6 +123,36 @@ export interface OctantVaultCardEndowReceiver {
 export type OctantVaultEndowReceiver =
   | OctantVaultWalletEndowReceiver
   | OctantVaultCardEndowReceiver;
+
+export type OctantVaultWalletEndowPreparationError =
+  | "manifest_incomplete"
+  | "amount_required"
+  | "receiver_required"
+  | "receiver_invalid";
+
+export interface OctantVaultWalletEndowPreparationInput {
+  campaign: OctantVaultCampaignManifest;
+  amount?: bigint | null;
+  receiverAddress?: string;
+}
+
+export interface OctantVaultWalletEndowPreparedTransaction {
+  intentKind: OctantVaultWalletEndowIntentKind;
+  paymentMethod: "wallet";
+  chainId: number;
+  vaultAddress: Address;
+  assetAddress: Address;
+  assetSymbol: string;
+  assetDecimals: number;
+  amount: bigint;
+  receiver: OctantVaultWalletEndowReceiver;
+}
+
+export interface OctantVaultWalletEndowPreparation {
+  status: "ready" | "blocked";
+  errors: OctantVaultWalletEndowPreparationError[];
+  transaction?: OctantVaultWalletEndowPreparedTransaction;
+}
 
 export interface OctantVaultCardEndowReceiverInput {
   receiverAddress?: string;
@@ -268,6 +312,23 @@ const evmavericksPreviewCopy: OctantVaultCampaignCopy = {
     "Wallet Endow and Thirdweb Card Endow are blocked until the complete EVMavericks Octant V2 Ethereum manifest is supplied.",
 };
 
+const WETH_ASSET_MANIFEST = {
+  address: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+  symbol: "WETH",
+  decimals: 18,
+} as const satisfies OctantVaultCampaignAssetManifest;
+
+const PILOT_STRATEGY_FACTORY_CREATOR = {
+  address: "0x9A6c9aA80D4A0d8Da29EcbA62c40ccBBB321abB6",
+  name: "YearnV3StrategyFactory",
+  evidenceType: "pilot_strategy_factory_creator",
+  sourcePath: "src/factories/yieldDonating/YearnV3StrategyFactory.sol",
+  explorerLink: "https://etherscan.io/address/0x9A6c9aA80D4A0d8Da29EcbA62c40ccBBB321abB6",
+  roleClarification:
+    "Shared pilot strategy-factory/creator evidence only; not a proven MultistrategyVaultFactory deployment or successful FACTORY() return.",
+  factoryAccessorProofStatus: "reverted",
+} as const satisfies OctantVaultStrategyFactoryEvidence;
+
 export const OCTANT_VAULT_CAMPAIGN_MANIFEST = [
   {
     slug: "greenpill-nyc",
@@ -277,6 +338,16 @@ export const OCTANT_VAULT_CAMPAIGN_MANIFEST = [
     routePath: "/vaults",
     targetProtocol: "octant-v2-ethereum",
     previewCopy: greenpillNycPreviewCopy,
+    vault: {
+      chainId: OCTANT_V2_ETHEREUM_CHAIN_ID,
+      vaultAddress: "0xaC8F844CEA2Fd75B7A5514f11974895B334fd9A5",
+      vaultName: "Greenpill NYC",
+      vaultSymbol: "gpWETH",
+      vaultDecimals: 18,
+      asset: WETH_ASSET_MANIFEST,
+      explorerLink: "https://etherscan.io/address/0xaC8F844CEA2Fd75B7A5514f11974895B334fd9A5",
+      strategyFactory: PILOT_STRATEGY_FACTORY_CREATOR,
+    },
     requiredManifestFields: GREENPILL_NYC_REQUIRED_MANIFEST_FIELDS,
   },
   {
@@ -287,6 +358,16 @@ export const OCTANT_VAULT_CAMPAIGN_MANIFEST = [
     routePath: "/vaults",
     targetProtocol: "octant-v2-ethereum",
     previewCopy: evmavericksPreviewCopy,
+    vault: {
+      chainId: OCTANT_V2_ETHEREUM_CHAIN_ID,
+      vaultAddress: "0x0bCe8c16974FFD3B410A32365c5bCf27a5A630Fc",
+      vaultName: "EVMavs PGF",
+      vaultSymbol: "evmWETH",
+      vaultDecimals: 18,
+      asset: WETH_ASSET_MANIFEST,
+      explorerLink: "https://etherscan.io/address/0x0bCe8c16974FFD3B410A32365c5bCf27a5A630Fc",
+      strategyFactory: PILOT_STRATEGY_FACTORY_CREATOR,
+    },
     requiredManifestFields: EVMAVERICKS_REQUIRED_MANIFEST_FIELDS,
   },
 ] as const satisfies readonly OctantVaultCampaignManifest[];
@@ -547,6 +628,69 @@ export function validateOctantVaultCardEndowProof(
   };
 }
 
+export function prepareOctantVaultWalletEndow({
+  campaign,
+  amount,
+  receiverAddress,
+}: OctantVaultWalletEndowPreparationInput): OctantVaultWalletEndowPreparation {
+  const errors: OctantVaultWalletEndowPreparationError[] = [];
+  const manifestValidation = validateOctantVaultCampaignManifest(campaign);
+  const vault = campaign.vault;
+  const asset = vault?.asset;
+
+  if (manifestValidation.status !== "complete") {
+    errors.push("manifest_incomplete");
+  }
+  if (typeof amount !== "bigint" || amount <= 0n) {
+    errors.push("amount_required");
+  }
+  if (!hasText(receiverAddress)) {
+    errors.push("receiver_required");
+  } else if (!hasAddress(receiverAddress)) {
+    errors.push("receiver_invalid");
+  }
+
+  if (
+    !vault ||
+    !asset ||
+    !hasOctantEthereumChainId(vault.chainId) ||
+    !hasAddress(vault.vaultAddress) ||
+    !hasAddress(asset.address) ||
+    !hasText(asset.symbol) ||
+    !Number.isInteger(asset.decimals) ||
+    Number(asset.decimals) < 0
+  ) {
+    if (!errors.includes("manifest_incomplete")) {
+      errors.push("manifest_incomplete");
+    }
+  }
+
+  if (errors.length > 0) {
+    return {
+      status: "blocked",
+      errors,
+    };
+  }
+
+  const receiver = createOctantVaultWalletEndowReceiver(receiverAddress as Address);
+
+  return {
+    status: "ready",
+    errors: [],
+    transaction: {
+      intentKind: "wallet_endow",
+      paymentMethod: "wallet",
+      chainId: vault?.chainId as number,
+      vaultAddress: vault?.vaultAddress as Address,
+      assetAddress: asset?.address as Address,
+      assetSymbol: asset?.symbol as string,
+      assetDecimals: asset?.decimals as number,
+      amount: amount as bigint,
+      receiver,
+    },
+  };
+}
+
 export function isOctantVaultCampaignTransactionReady(
   campaign: OctantVaultCampaignManifest
 ): boolean {
@@ -573,12 +717,11 @@ export function getOctantVaultCampaignTransactionState(
 
   return {
     manifestStatus: validation.status,
-    status: "blocked_pending_wallet_endow",
-    walletEndowEnabled: false,
+    status: "ready",
+    walletEndowEnabled: true,
     // Card Endow remains hidden until custody/share/provider proof gates land in a later phase.
     cardEndowVisible: false,
     missingFields: validation.missingFields,
-    disabledReason: "wallet_endow_not_implemented",
   };
 }
 

@@ -4,7 +4,7 @@
 **Stage**: `active`
 **Priority**: `p0`
 **Created**: `2026-05-09T21:35:46.781Z`
-**Last Updated**: `2026-06-01T05:50:56Z`
+**Last Updated**: `2026-06-01T18:51:25Z`
 **Source Brief**: Green Goods x Octant Crowdfunding UI Alignment Brief
 
 ## Problem
@@ -51,9 +51,34 @@ Endow transaction work is blocked until its Octant V2 Ethereum vault manifest is
 - The reusable `octant-vault-crowdfunding` agent skill is a core final deliverable, not a loose
   follow-up. It starts after the Green Goods demo is validated and the project is not complete until
   the skill lane passes static and dry-run QA.
-- EVMavericks transaction enablement remains blocked until chain ID, vault address, asset
-  address/symbol/decimals, recipient/routing summary, Protocol Guild destination context, explorer
-  link, and campaign copy are recorded in the manifest.
+- Both pilot transaction fixtures remain blocked until every required manifest field is present.
+  Chain ID, vault address, explorer link, shared factory/creator, and WETH asset metadata are now
+  recorded from read-only Ethereum evidence; recipient/routing summary, campaign copy, and the
+  relevant Card Endow custody/share/manage/provider proof are still missing. EVMavericks also still
+  requires Protocol Guild destination context.
+
+## Onchain Manifest Evidence
+
+Recorded on `2026-06-01T18:07:43Z` from Ethereum mainnet (`chainId: 1`) read-only calls.
+Octant docs/resources were cross-checked on `2026-06-01T18:51:25Z`: the docs describe
+`MultistrategyVault.FACTORY()` as returning a `MultistrategyVaultFactory`, but no official
+Ethereum mainnet `MultistrategyVaultFactory` deployment address was found in the docs/resources
+review. The pilot fixture metadata therefore records the shared verified `YearnV3StrategyFactory`
+creator for the two supplied contracts, not a successful vault-level `FACTORY()` return.
+
+| Fixture | Vault | Vault token | Asset | Factory / creator evidence | Still missing |
+|---|---|---|---|---|---|
+| Greenpill NYC | [`0xaC8F844CEA2Fd75B7A5514f11974895B334fd9A5`](https://etherscan.io/address/0xaC8F844CEA2Fd75B7A5514f11974895B334fd9A5) | `Greenpill NYC` / `gpWETH` / 18 decimals | [`WETH`](https://etherscan.io/address/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2), 18 decimals | Pilot strategy factory/creator [`YearnV3StrategyFactory`](https://etherscan.io/address/0x9A6c9aA80D4A0d8Da29EcbA62c40ccBBB321abB6), source path `src/factories/yieldDonating/YearnV3StrategyFactory.sol`. The requested `FACTORY()(address)` vault accessor reverted with `0x`, so strict accessor-return proof is not available. | recipient/routing summary, campaign copy, Card Endow custody/share/manage/provider proof |
+| EVMavericks | [`0x0bCe8c16974FFD3B410A32365c5bCf27a5A630Fc`](https://etherscan.io/address/0x0bCe8c16974FFD3B410A32365c5bCf27a5A630Fc) | `EVMavs PGF` / `evmWETH` / 18 decimals | [`WETH`](https://etherscan.io/address/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2), 18 decimals | Pilot strategy factory/creator [`YearnV3StrategyFactory`](https://etherscan.io/address/0x9A6c9aA80D4A0d8Da29EcbA62c40ccBBB321abB6), source path `src/factories/yieldDonating/YearnV3StrategyFactory.sol`. The requested `FACTORY()(address)` vault accessor reverted with `0x`, so strict accessor-return proof is not available. | recipient/routing summary, Protocol Guild destination context, campaign copy, Card Endow custody/share/manage/provider proof |
+
+Command evidence is machine-readable in `status.json` under `onchainManifestEvidence`. The
+factory/creator address is recorded from Blockscout contract-creation metadata plus verified factory
+metadata, not from a successful vault-level `FACTORY()` return. Do not use the onchain donation or
+management addresses to invent recipient copy or Protocol Guild destination context. Etherscan also
+surfaces a separate `YearnV3StrategyFactory` candidate at
+[`0x6D8c4E4A158083E30B53ba7df3cFB885fC096fF6`](https://etherscan.io/address/0x6D8c4E4A158083E30B53ba7df3cFB885fC096fF6);
+do not use it for the NYC pilot fixtures unless later evidence proves it created or governs those
+specific contracts.
 
 ## Scope Notes
 

@@ -14,8 +14,9 @@ visibility, withdrawal/manage availability, and strict provider/webhook verifica
 and Card Donate remain deferred.
 
 Greenpill NYC remains the first available transaction fixture when its deployed vault metadata is
-recorded. EVMavericks is part of the first demo scope, but its Wallet Endow and Card Endow
-transaction controls are blocked until the EVMavericks Octant V2 Ethereum vault manifest is supplied.
+recorded and the non-chain manifest fields are supplied. EVMavericks is part of the first demo scope,
+but its Wallet Endow and Card Endow transaction controls are blocked until the EVMavericks Octant V2
+Ethereum vault manifest is complete.
 After the pilot demo is validated, Codex must deliver the reusable `octant-vault-crowdfunding` agent
 skill plus templates as the final project deliverable.
 
@@ -60,7 +61,8 @@ skill plus templates as the final project deliverable.
 15. EVMavericks must have a fixture slot in the `/vaults` campaign manifest. Its transaction paths
     remain blocked until chain ID, vault address, asset address, asset symbol, decimals,
     recipient/routing summary, Protocol Guild destination context, explorer link, and campaign copy
-    are supplied.
+    are supplied. Chain ID, vault address, WETH asset metadata, and explorer links are now recorded;
+    the remaining non-chain fields still block transactions.
 16. The reusable `octant-vault-crowdfunding` skill must be delivered after demo validation while
     keeping the demo route acceptance gates unchanged.
 17. The skill deliverable must be an agent skill plus templates in v1, not a runnable generator or
@@ -165,6 +167,36 @@ Required skill output boundaries:
   metadata is recorded; EVMavericks transaction enablement is blocked pending manifest metadata.
 - Source brief treats card/debit as guarded. The corrected Green Goods demo scope keeps Thirdweb Card
   Endow sprint-critical, but hidden until custody/share/withdrawal/provider proof passes.
+- Ethereum mainnet evidence recorded on `2026-06-01T18:07:43Z`:
+  - Greenpill NYC vault:
+    [`0xaC8F844CEA2Fd75B7A5514f11974895B334fd9A5`](https://etherscan.io/address/0xaC8F844CEA2Fd75B7A5514f11974895B334fd9A5);
+    vault metadata `name = "Greenpill NYC"`, `symbol = "gpWETH"`, `decimals = 18`.
+  - EVMavericks vault:
+    [`0x0bCe8c16974FFD3B410A32365c5bCf27a5A630Fc`](https://etherscan.io/address/0x0bCe8c16974FFD3B410A32365c5bCf27a5A630Fc);
+    vault metadata `name = "EVMavs PGF"`, `symbol = "evmWETH"`, `decimals = 18`.
+  - Both vaults return asset
+    [`0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2`](https://etherscan.io/address/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2),
+    `WETH`, 18 decimals.
+  - Both vaults share Blockscout creator/factory
+    [`0x9A6c9aA80D4A0d8Da29EcbA62c40ccBBB321abB6`](https://etherscan.io/address/0x9A6c9aA80D4A0d8Da29EcbA62c40ccBBB321abB6),
+    verified as `YearnV3StrategyFactory` with source path
+    `src/factories/yieldDonating/YearnV3StrategyFactory.sol`; the factory also has non-empty
+    `yearnV3StrategyInfo` entries for both vault addresses.
+  - The requested vault-level `FACTORY()(address)` calls reached Ethereum RPC but reverted with
+    empty `0x` data for both vaults, so strict `FACTORY()` return proof remains unavailable.
+  - No recipient/routing summary, Protocol Guild destination context, or campaign copy was inferred
+    from onchain metadata.
+- Octant docs/resources cross-check recorded on `2026-06-01T18:51:25Z`:
+  - Octant docs describe `MultistrategyVault.FACTORY()` as the vault-level
+    `MultistrategyVaultFactory` accessor, but the docs/resources review did not find an official
+    Ethereum mainnet `MultistrategyVaultFactory` deployment address.
+  - The pilot manifest therefore records `0x9A6c9aA80D4A0d8Da29EcbA62c40ccBBB321abB6` as the
+    shared `YearnV3StrategyFactory` creator for the two supplied pilot contracts, not as a proven
+    `MultistrategyVaultFactory` accessor return.
+  - Etherscan also surfaces a separate `YearnV3StrategyFactory` candidate
+    [`0x6D8c4E4A158083E30B53ba7df3cFB885fC096fF6`](https://etherscan.io/address/0x6D8c4E4A158083E30B53ba7df3cFB885fC096fF6);
+    it is not the creator of either pilot contract and must not be substituted into the pilot
+    fixture manifest without later governing/creation proof.
 
 Repo surfaces implementation agents should inspect before coding:
 
@@ -181,8 +213,14 @@ Repo surfaces implementation agents should inspect before coding:
 
 - Record the Greenpill NYC deployed Octant V2 Ethereum vault addresses and asset metadata before
   transaction coding.
-- Record the EVMavericks Octant V2 Ethereum vault manifest before enabling EVMavericks Wallet Endow
-  or Card Endow.
+- Record the missing Greenpill NYC recipient/routing summary and campaign copy before enabling
+  Greenpill NYC Wallet Endow or Card Endow.
+- Record the missing EVMavericks recipient/routing summary, Protocol Guild destination context, and
+  campaign copy before enabling EVMavericks Wallet Endow or Card Endow.
+- Treat the shared `YearnV3StrategyFactory` creator as durable factory evidence, but do not claim a
+  successful vault-level `FACTORY()` return unless a later call produces one.
+- If implementation needs the actual Octant `MultistrategyVaultFactory` deployment address for
+  create-vault work, obtain explicit Octant docs/release/deployer proof before recording it.
 - Confirm Thirdweb checkout architecture before exposing Card Endow; provider checkout creation alone
   is not sufficient.
 - Confirm public management route shape for owned vault positions before wiring receipt CTAs.

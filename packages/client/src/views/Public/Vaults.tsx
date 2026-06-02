@@ -3,11 +3,18 @@ import {
   getOctantVaultCampaigns,
   getOctantVaultCampaignTransactionState,
   OCTANT_VAULT_MANIFEST_FIELD_LABELS,
+  prepareOctantVaultWalletEndow,
   type OctantVaultCampaignManifest,
   type OctantVaultManifestField,
+  type OctantVaultWalletEndowPreparedTransaction,
+  useAuth,
+  useOctantVaultWalletEndow,
+  useUser,
+  validateDecimalInput,
 } from "@green-goods/shared";
-import { useMemo } from "react";
+import { type FormEvent, useCallback, useEffect, useId, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
+import { formatUnits, parseUnits } from "viem";
 import {
   EditorialDivider,
   EditorialHeading,
@@ -18,6 +25,7 @@ import {
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
 import { PublicFooter } from "@/components/Public/PublicFooter";
 import { getPublicHeroImage, publicCuration } from "@/content/publicCuration";
+import WalletRuntimeProviders from "@/routes/WalletRuntimeProviders";
 
 const fieldMessageIds: Record<OctantVaultManifestField, string> = {
   chainId: "public.vaults.field.chainId",
@@ -128,7 +136,7 @@ function ManifestMissingList({
         {formatMessage({
           id: "public.vaults.manifest.complete",
           defaultMessage:
-            "This campaign has the required vault tuple for Wallet Endow. Transaction execution starts in the next phase.",
+            "This campaign is ready for the amount-first Wallet Endow confirmation flow.",
         })}
       </p>
     );
@@ -225,11 +233,26 @@ function VaultMetadata({ campaign }: { campaign: OctantVaultCampaignManifest }) 
   );
 }
 
-export function CampaignCard({ campaign }: { campaign: OctantVaultCampaignManifest }) {
+export function CampaignCard({
+  campaign,
+  onSelectWalletEndow,
+}: {
+  campaign: OctantVaultCampaignManifest;
+  onSelectWalletEndow?: (campaign: OctantVaultCampaignManifest) => void;
+}) {
   const { formatMessage } = useIntl();
   const copy = formatCampaignCopy(formatMessage, campaign);
   const transactionState = getOctantVaultCampaignTransactionState(campaign);
   const missingId = `vault-campaign-${campaign.slug}-missing-fields`;
+  const walletEndowLabel = transactionState.walletEndowEnabled
+    ? formatMessage({
+        id: "public.vaults.walletEndow.chooseAmount",
+        defaultMessage: "Choose amount",
+      })
+    : formatMessage({
+        id: "public.vaults.walletEndow.unavailable",
+        defaultMessage: "Wallet Endow unavailable",
+      });
 
   return (
     <article
@@ -326,13 +349,16 @@ export function CampaignCard({ campaign }: { campaign: OctantVaultCampaignManife
           <button
             type="button"
             disabled={!transactionState.walletEndowEnabled}
+            onClick={() => {
+              if (transactionState.walletEndowEnabled) onSelectWalletEndow?.(campaign);
+            }}
             aria-describedby={missingId}
             aria-label={
               transactionState.walletEndowEnabled
                 ? formatMessage(
                     {
-                      id: "public.vaults.walletEndow.readyLabel",
-                      defaultMessage: "Wallet Endow for {campaign}",
+                      id: "public.vaults.walletEndow.chooseAmountLabel",
+                      defaultMessage: "Choose amount for {campaign}",
                     },
                     { campaign: campaign.displayName }
                   )
@@ -346,15 +372,7 @@ export function CampaignCard({ campaign }: { campaign: OctantVaultCampaignManife
             }
             className="w-full rounded-full bg-text-strong-950 px-5 py-3 text-sm font-semibold text-static-white transition-colors disabled:cursor-not-allowed disabled:bg-stroke-soft-200 disabled:text-text-soft-400"
           >
-            {transactionState.walletEndowEnabled
-              ? formatMessage({
-                  id: "public.vaults.walletEndow.ready",
-                  defaultMessage: "Wallet Endow",
-                })
-              : formatMessage({
-                  id: "public.vaults.walletEndow.unavailable",
-                  defaultMessage: "Wallet Endow unavailable",
-                })}
+            {walletEndowLabel}
           </button>
           <p className="text-sm leading-[1.5] text-text-soft-400">
             {formatMessage({
@@ -371,9 +389,436 @@ export function CampaignCard({ campaign }: { campaign: OctantVaultCampaignManife
   );
 }
 
-function VaultsPageContent() {
+interface WalletEndowPanelProps {
+  campaign: OctantVaultCampaignManifest;
+  onClose: () => void;
+  onAmountChange: () => void;
+  onContinueToWallet: (amount: bigint) => void;
+}
+
+function getAmountErrorMessage(
+  formatMessage: ReturnType<typeof useIntl>["formatMessage"],
+  validationKey: string | null,
+  symbol: string
+) {
+  if (validationKey === "app.treasury.tooManyDecimals") {
+    return formatMessage(
+      {
+        id: "public.vaults.walletEndow.amount.tooManyDecimals",
+        defaultMessage: "Use fewer decimals for {symbol}.",
+      },
+      { symbol }
+    );
+  }
+
+  if (validationKey) {
+    return formatMessage({
+      id: "public.vaults.walletEndow.amount.invalid",
+      defaultMessage: "Enter a valid amount.",
+    });
+  }
+
+  return null;
+}
+
+function WalletEndowPanel({
+  campaign,
+  onClose,
+  onAmountChange,
+  onContinueToWallet,
+}: WalletEndowPanelProps) {
   const { formatMessage } = useIntl();
-  const campaigns = useMemo(() => getOctantVaultCampaigns(), []);
+  const amountInputId = useId();
+  const amountHelpId = useId();
+  const amountErrorId = useId();
+  const [amountInput, setAmountInput] = useState("");
+  const decimals = campaign.vault?.asset?.decimals ?? 18;
+  const symbol =
+    campaign.vault?.asset?.symbol ??
+    formatMessage({ id: "public.vaults.walletEndow.assetFallback", defaultMessage: "tokens" });
+  const validationKey = validateDecimalInput(amountInput, decimals);
+  const amountError = getAmountErrorMessage(formatMessage, validationKey, symbol);
+  const parsedAmount = useMemo(() => {
+    const trimmed = amountInput.trim();
+    if (!trimmed || validationKey) return null;
+
+    try {
+      return parseUnits(trimmed, decimals);
+    } catch {
+      return null;
+    }
+  }, [amountInput, decimals, validationKey]);
+  const hasReadyAmount = typeof parsedAmount === "bigint" && parsedAmount > 0n;
+  const showWalletAction = hasReadyAmount && !amountError;
+  const actionLabel = !showWalletAction
+    ? formatMessage({
+        id: "public.vaults.walletEndow.enterAmount",
+        defaultMessage: "Enter an amount",
+      })
+    : formatMessage({
+        id: "public.vaults.walletEndow.continueToWallet",
+        defaultMessage: "Continue to wallet",
+      });
+
+  useEffect(() => {
+    setAmountInput("");
+  }, [campaign.slug]);
+
+  const handleSubmit = useCallback(
+    (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      if (!showWalletAction || !parsedAmount) return;
+
+      onContinueToWallet(parsedAmount);
+    },
+    [onContinueToWallet, parsedAmount, showWalletAction]
+  );
+
+  return (
+    <aside
+      className="mt-10 border border-stroke-soft-200 bg-bg-white-0 p-5 shadow-[var(--shadow-editorial-card)] sm:p-6"
+      aria-labelledby="public-vaults-wallet-endow-title"
+      data-testid="vault-wallet-endow-panel"
+    >
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <EditorialKicker className="mb-3">
+            {formatMessage({
+              id: "public.vaults.walletEndow.kicker",
+              defaultMessage: "Wallet Endow",
+            })}
+          </EditorialKicker>
+          <h3
+            id="public-vaults-wallet-endow-title"
+            className="font-serif text-2xl font-normal leading-[1.08] text-text-strong-950"
+          >
+            {formatMessage({
+              id: "public.vaults.walletEndow.title",
+              defaultMessage: "Prepare Wallet Endow",
+            })}
+          </h3>
+          <p className="mt-3 max-w-2xl text-sm leading-[1.65] text-text-sub-600">
+            {formatMessage(
+              {
+                id: "public.vaults.walletEndow.body",
+                defaultMessage:
+                  "Choose the amount for {campaign}. Wallet connection is requested only after this final confirmation step.",
+              },
+              { campaign: campaign.displayName }
+            )}
+          </p>
+        </div>
+        <button
+          type="button"
+          className="w-fit rounded-full border border-stroke-soft-200 px-4 py-2 text-sm font-medium text-text-sub-600 transition-colors hover:bg-bg-weak-50 hover:text-text-strong-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
+          onClick={onClose}
+        >
+          {formatMessage({ id: "public.vaults.walletEndow.close", defaultMessage: "Close" })}
+        </button>
+      </div>
+
+      <form className="mt-6 grid gap-5 md:grid-cols-[minmax(0,1fr)_auto]" onSubmit={handleSubmit}>
+        <div>
+          <label
+            htmlFor={amountInputId}
+            className="block font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400"
+          >
+            {formatMessage({
+              id: "public.vaults.walletEndow.amountLabel",
+              defaultMessage: "Amount",
+            })}
+          </label>
+          <p id={amountHelpId} className="mt-2 text-sm leading-[1.5] text-text-sub-600">
+            {formatMessage(
+              {
+                id: "public.vaults.walletEndow.amountHelp",
+                defaultMessage: "Enter an amount in {symbol}.",
+              },
+              { symbol }
+            )}
+          </p>
+          <input
+            id={amountInputId}
+            value={amountInput}
+            inputMode="decimal"
+            autoComplete="off"
+            aria-describedby={amountError ? `${amountHelpId} ${amountErrorId}` : amountHelpId}
+            aria-invalid={Boolean(amountError)}
+            className="mt-3 w-full rounded-2xl border border-stroke-soft-200 bg-bg-weak-50 px-4 py-3 text-base text-text-strong-950 outline-none transition-colors placeholder:text-text-soft-400 focus:border-primary-action focus:ring-2 focus:ring-primary-action/20"
+            placeholder="0.00"
+            onChange={(event) => {
+              setAmountInput(event.target.value);
+              onAmountChange();
+            }}
+          />
+          {amountError ? (
+            <p id={amountErrorId} className="mt-2 text-sm leading-[1.5] text-error-base">
+              {amountError}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="flex flex-col justify-end gap-3">
+          <button
+            type="submit"
+            disabled={!showWalletAction}
+            className="min-h-12 rounded-full bg-text-strong-950 px-6 py-3 text-sm font-semibold text-static-white transition-colors disabled:cursor-not-allowed disabled:bg-stroke-soft-200 disabled:text-text-soft-400"
+          >
+            {actionLabel}
+          </button>
+          <p className="max-w-sm text-xs leading-[1.5] text-text-soft-400">
+            {formatMessage({
+              id: "public.vaults.walletEndow.cardHidden",
+              defaultMessage:
+                "Thirdweb Card Endow remains hidden until custody, share, manage, and provider proof passes.",
+            })}
+          </p>
+        </div>
+      </form>
+    </aside>
+  );
+}
+
+interface WalletEndowConfirmationPanelProps {
+  campaign: OctantVaultCampaignManifest;
+  amount: bigint;
+  primaryWalletAddress?: string | null;
+  isSubmitting: boolean;
+  submissionError?: unknown;
+  onClose: () => void;
+  onConnectWallet: () => void;
+  onSubmitWalletEndow: (
+    transaction: OctantVaultWalletEndowPreparedTransaction,
+    callbacks: { onError: () => void; onSuccess: () => void }
+  ) => void;
+}
+
+function WalletEndowConfirmationPanel({
+  campaign,
+  amount,
+  primaryWalletAddress,
+  isSubmitting,
+  submissionError,
+  onClose,
+  onConnectWallet,
+  onSubmitWalletEndow,
+}: WalletEndowConfirmationPanelProps) {
+  const { formatMessage } = useIntl();
+  const [status, setStatus] = useState<"idle" | "success">("idle");
+  const symbol =
+    campaign.vault?.asset?.symbol ??
+    formatMessage({ id: "public.vaults.walletEndow.assetFallback", defaultMessage: "tokens" });
+  const decimals = campaign.vault?.asset?.decimals ?? 18;
+  const formattedAmount = formatUnits(amount, decimals);
+  const actionLabel = primaryWalletAddress
+    ? formatMessage({
+        id: "public.vaults.walletEndow.confirm",
+        defaultMessage: "Confirm Wallet Endow",
+      })
+    : formatMessage({
+        id: "public.vaults.walletEndow.connect",
+        defaultMessage: "Connect Wallet",
+      });
+
+  useEffect(() => {
+    setStatus("idle");
+  }, [amount, campaign.slug]);
+
+  const handleSubmit = useCallback(
+    (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+
+      if (!primaryWalletAddress) {
+        onConnectWallet();
+        return;
+      }
+
+      const prepared = prepareOctantVaultWalletEndow({
+        campaign,
+        amount,
+        receiverAddress: primaryWalletAddress,
+      });
+
+      if (prepared.status !== "ready" || !prepared.transaction) return;
+
+      onSubmitWalletEndow(prepared.transaction, {
+        onError: () => setStatus("idle"),
+        onSuccess: () => setStatus("success"),
+      });
+    },
+    [amount, campaign, onConnectWallet, onSubmitWalletEndow, primaryWalletAddress]
+  );
+
+  return (
+    <aside
+      className="mt-6 border border-stroke-soft-200 bg-bg-white-0 p-5 shadow-[var(--shadow-editorial-card)] sm:p-6"
+      aria-labelledby="public-vaults-wallet-endow-confirm-title"
+      data-testid="vault-wallet-endow-confirmation"
+    >
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <EditorialKicker className="mb-3">
+            {formatMessage({
+              id: "public.vaults.walletEndow.kicker",
+              defaultMessage: "Wallet Endow",
+            })}
+          </EditorialKicker>
+          <h3
+            id="public-vaults-wallet-endow-confirm-title"
+            className="font-serif text-2xl font-normal leading-[1.08] text-text-strong-950"
+          >
+            {formatMessage({
+              id: "public.vaults.walletEndow.confirmTitle",
+              defaultMessage: "Confirm with wallet",
+            })}
+          </h3>
+          <p className="mt-3 max-w-2xl text-sm leading-[1.65] text-text-sub-600">
+            {formatMessage(
+              {
+                id: "public.vaults.walletEndow.confirmBody",
+                defaultMessage:
+                  "Confirm the selected amount with the wallet that should receive the vault position for {campaign}.",
+              },
+              { campaign: campaign.displayName }
+            )}
+          </p>
+        </div>
+        <button
+          type="button"
+          className="w-fit rounded-full border border-stroke-soft-200 px-4 py-2 text-sm font-medium text-text-sub-600 transition-colors hover:bg-bg-weak-50 hover:text-text-strong-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
+          onClick={onClose}
+        >
+          {formatMessage({ id: "public.vaults.walletEndow.close", defaultMessage: "Close" })}
+        </button>
+      </div>
+
+      <form
+        className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"
+        onSubmit={handleSubmit}
+      >
+        <div>
+          <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
+            {formatMessage({
+              id: "public.vaults.walletEndow.confirmAmountLabel",
+              defaultMessage: "Selected amount",
+            })}
+          </p>
+          <p className="mt-2 text-base font-medium text-text-strong-950">
+            {formatMessage(
+              {
+                id: "public.vaults.walletEndow.confirmAmount",
+                defaultMessage: "{amount} {symbol}",
+              },
+              { amount: formattedAmount, symbol }
+            )}
+          </p>
+        </div>
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="min-h-12 rounded-full bg-text-strong-950 px-6 py-3 text-sm font-semibold text-static-white transition-colors disabled:cursor-not-allowed disabled:bg-stroke-soft-200 disabled:text-text-soft-400"
+        >
+          {isSubmitting
+            ? formatMessage({
+                id: "public.vaults.walletEndow.submitting",
+                defaultMessage: "Submitting...",
+              })
+            : actionLabel}
+        </button>
+      </form>
+      {status === "success" ? (
+        <p className="mt-5 rounded-2xl bg-primary-action/10 p-4 text-sm leading-[1.55] text-primary-base">
+          {formatMessage({
+            id: "public.vaults.walletEndow.success",
+            defaultMessage:
+              "Wallet Endow was submitted. Route-local receipt and management proof continue in the next gates.",
+          })}
+        </p>
+      ) : null}
+      {submissionError ? (
+        <p className="mt-5 rounded-2xl bg-error-lighter/30 p-4 text-sm leading-[1.55] text-error-base">
+          {formatMessage({
+            id: "public.vaults.walletEndow.error",
+            defaultMessage:
+              "Wallet Endow could not be submitted. Review the wallet error and retry.",
+          })}
+        </p>
+      ) : null}
+    </aside>
+  );
+}
+
+function WalletEndowRuntimePanel({
+  campaign,
+  amount,
+  onClose,
+}: {
+  campaign: OctantVaultCampaignManifest;
+  amount: bigint;
+  onClose: () => void;
+}) {
+  return (
+    <WalletRuntimeProviders>
+      <WalletEndowRuntimePanelContent campaign={campaign} amount={amount} onClose={onClose} />
+    </WalletRuntimeProviders>
+  );
+}
+
+function WalletEndowRuntimePanelContent({
+  campaign,
+  amount,
+  onClose,
+}: {
+  campaign: OctantVaultCampaignManifest;
+  amount: bigint;
+  onClose: () => void;
+}) {
+  const { authMode, primaryAddress } = useUser();
+  const { loginWithWallet } = useAuth();
+  const walletEndow = useOctantVaultWalletEndow({ errorMode: "inline" });
+  const primaryWalletAddress = authMode === "wallet" ? primaryAddress : null;
+  const handleWalletEndowSubmit = useCallback(
+    (
+      transaction: OctantVaultWalletEndowPreparedTransaction,
+      callbacks: { onError: () => void; onSuccess: () => void }
+    ) => {
+      walletEndow.mutate(transaction, callbacks);
+    },
+    [walletEndow]
+  );
+
+  return (
+    <WalletEndowConfirmationPanel
+      campaign={campaign}
+      amount={amount}
+      primaryWalletAddress={primaryWalletAddress}
+      isSubmitting={walletEndow.isPending}
+      submissionError={walletEndow.error}
+      onClose={onClose}
+      onConnectWallet={loginWithWallet}
+      onSubmitWalletEndow={handleWalletEndowSubmit}
+    />
+  );
+}
+
+export function VaultsPageContent({
+  campaigns: campaignItems,
+}: {
+  campaigns?: OctantVaultCampaignManifest[];
+} = {}) {
+  const { formatMessage } = useIntl();
+  const campaigns = useMemo(() => campaignItems ?? getOctantVaultCampaigns(), [campaignItems]);
+  const [selectedWalletEndowCampaign, setSelectedWalletEndowCampaign] =
+    useState<OctantVaultCampaignManifest | null>(null);
+  const [walletEndowAmount, setWalletEndowAmount] = useState<bigint | null>(null);
+  const handleSelectWalletEndow = useCallback((campaign: OctantVaultCampaignManifest) => {
+    setSelectedWalletEndowCampaign(campaign);
+    setWalletEndowAmount(null);
+  }, []);
+  const handleCloseWalletEndow = useCallback(() => {
+    setSelectedWalletEndowCampaign(null);
+    setWalletEndowAmount(null);
+  }, []);
 
   return (
     <>
@@ -431,9 +876,28 @@ function VaultsPageContent() {
 
           <div className="mt-10 grid grid-cols-1 gap-5 lg:grid-cols-2">
             {campaigns.map((campaign) => (
-              <CampaignCard key={campaign.slug} campaign={campaign} />
+              <CampaignCard
+                key={campaign.slug}
+                campaign={campaign}
+                onSelectWalletEndow={handleSelectWalletEndow}
+              />
             ))}
           </div>
+          {selectedWalletEndowCampaign ? (
+            <WalletEndowPanel
+              campaign={selectedWalletEndowCampaign}
+              onClose={handleCloseWalletEndow}
+              onAmountChange={() => setWalletEndowAmount(null)}
+              onContinueToWallet={setWalletEndowAmount}
+            />
+          ) : null}
+          {selectedWalletEndowCampaign && walletEndowAmount ? (
+            <WalletEndowRuntimePanel
+              campaign={selectedWalletEndowCampaign}
+              amount={walletEndowAmount}
+              onClose={handleCloseWalletEndow}
+            />
+          ) : null}
         </div>
       </section>
 
