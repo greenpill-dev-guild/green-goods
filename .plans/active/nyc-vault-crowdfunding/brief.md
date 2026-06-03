@@ -4,7 +4,7 @@
 **Stage**: `active`
 **Priority**: `p0`
 **Created**: `2026-05-09T21:35:46.781Z`
-**Last Updated**: `2026-06-02T05:10:00Z`
+**Last Updated**: `2026-06-03T02:07:53Z`
 **Source Brief**: Green Goods x Octant Crowdfunding UI Alignment Brief
 
 ## Problem
@@ -55,13 +55,35 @@ Endow transaction work is blocked until its Octant V2 Ethereum vault manifest is
   Chain ID, vault address, explorer link, shared factory/creator, and WETH asset metadata are now
   recorded from read-only Ethereum evidence; recipient/routing summary, campaign copy, and the
   relevant Card Endow custody/share/manage/provider proof are still missing. EVMavericks also still
-  requires Protocol Guild destination context.
+  requires Protocol Guild destination context. Both pilot cards have synthetic-safe route preview
+  copy for browse QA, but that preview copy is not authoritative `campaignCopy` and does not unlock
+  Wallet Endow or Card Endow.
 - Shared/API Card Endow readiness is now strict for complete manifests only: recovered-wallet
   `receiverAddress`, share ownership/visibility proof, route-local `/vaults` manage/withdraw proof,
   route-scoped provider/webhook tuple verification, route-local receipts, and timestamped Thirdweb
-  Bridge webhook verification are implemented and tested with a synthetic complete manifest. The
-  production Thirdweb send-payment adapter refuses Card Endow until contract-call checkout proof is
-  supplied. The real Greenpill NYC and EVMavericks pilot fixtures remain blocked.
+  Bridge webhook verification are implemented and tested with a synthetic complete manifest.
+  Current Thirdweb docs prove `TransactionWidget` can execute a prepared contract call with
+  `erc20Value`, but do not prove one smooth insufficient-allowance `approve + deposit` sequence for
+  an ERC-4626 vault. The production Thirdweb send-payment adapter refuses Card Endow, and the shared
+  fallback contract now records: card funds the user-owned recovered wallet first, route-local
+  receipt locks expected vault/token/amount/receiver, user authorization executes `approve` then
+  `deposit(amount, receiverAddress)`, and shares are verified with `vault.balanceOf(receiverAddress)`.
+  The real Greenpill NYC and EVMavericks pilot fixtures remain blocked.
+- QA deployment distinction for `2026-06-02`: a branch preview may expose the `/vaults` demo for
+  controlled review, but production API testing requires the Fly agent at `https://agent.greengoods.app`
+  to run this branch/commit because the public funding-intent routes live in `packages/agent`.
+  This does not make Card Endow production-visible, and no real card-funded value should move until
+  the human confirms the exact amount, token, vault, receiver wallet, and provider route.
+- Card Endow human QA is implemented behind `/vaults?cardEndowQa=1` as of
+  `2026-06-03T01:16:11Z`. The query-gated Greenpill NYC Card Endow QA fixture uses the recorded
+  Ethereum chain `1`, Greenpill NYC vault, and WETH token; the default `/vaults` route still shows
+  only the real pilot cards with Card Endow hidden and no `Pay by card` action. The QA flow uses
+  Thirdweb email OTP/in-app wallet recovery, shows receiver wallet plus exact campaign/chain/vault/
+  token/amount/provider route, requires human tuple confirmation before Thirdweb card funding, then
+  requires user-approved `approve(token -> vault, amount)` and `deposit(amount, receiverAddress)`.
+  Success is claimed only after `vault.balanceOf(receiverAddress)` returns positive shares. A stale
+  active Thirdweb account cannot become the Card Endow receiver before email OTP recovery. No live
+  value was moved by this implementation pass.
 
 ## Onchain Manifest Evidence
 
@@ -97,6 +119,9 @@ In scope:
   transaction fixture when its known deployed vault metadata is recorded.
 - Thirdweb Card Endow for every fixture with complete manifest data after custody, share,
   withdrawal/manage, and provider proof gates pass.
+- Query-gated Card Endow human QA at `/vaults?cardEndowQa=1` for controlled Greenpill NYC provider
+  testing. This is not general production exposure and still requires a runtime
+  `VITE_THIRDWEB_CLIENT_ID` client id plus human approval before live card payment.
 - EVMavericks fixture slot plus hard manifest gate before any EVMavericks Wallet Endow or Card Endow
   transaction path is enabled.
 - Route-local receipt/confirmation states and public management/withdrawal links for vault positions.

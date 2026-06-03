@@ -3,9 +3,11 @@ import {
   EVMAVERICKS_REQUIRED_MANIFEST_FIELDS,
   GREENPILL_NYC_REQUIRED_MANIFEST_FIELDS,
   getOctantVaultCampaignBySlug,
+  getOctantVaultCampaignCopy,
   getOctantVaultCampaigns,
   getOctantVaultCampaignTransactionState,
   OCTANT_VAULT_ROUTE_MANAGEMENT_URL,
+  prepareOctantVaultCardEndowFallbackPlan,
   prepareOctantVaultCardEndowReadiness,
   isOctantVaultCampaignTransactionReady,
   prepareOctantVaultWalletEndow,
@@ -185,6 +187,31 @@ describe("Octant vault crowdfunding manifest", () => {
     });
   });
 
+  it("uses synthetic-safe pilot preview copy without satisfying transaction-enabling fields", () => {
+    const greenpillNyc = getOctantVaultCampaignBySlug("greenpill-nyc");
+    const evmavericks = getOctantVaultCampaignBySlug("evmavericks");
+
+    expect(greenpillNyc).toBeDefined();
+    expect(evmavericks).toBeDefined();
+    expect(greenpillNyc?.previewCopy).toBeDefined();
+    expect(evmavericks?.previewCopy).toBeDefined();
+    expect(getOctantVaultCampaignCopy(greenpillNyc!)).toEqual(greenpillNyc?.previewCopy);
+    expect(getOctantVaultCampaignCopy(evmavericks!)).toEqual(evmavericks?.previewCopy);
+    expect(greenpillNyc?.campaignCopy).toBeUndefined();
+    expect(greenpillNyc?.recipientRoutingSummary).toBeUndefined();
+    expect(evmavericks?.campaignCopy).toBeUndefined();
+    expect(evmavericks?.recipientRoutingSummary).toBeUndefined();
+    expect(evmavericks?.protocolGuildDestinationContext).toBeUndefined();
+    expect(validateOctantVaultCampaignManifest(greenpillNyc!)).toMatchObject({
+      status: "blocked_pending_manifest",
+      missingFields: ["recipientRoutingSummary", "campaignCopy"],
+    });
+    expect(validateOctantVaultCampaignManifest(evmavericks!)).toMatchObject({
+      status: "blocked_pending_manifest",
+      missingFields: ["recipientRoutingSummary", "protocolGuildDestinationContext", "campaignCopy"],
+    });
+  });
+
   it("validates a complete Octant V2 Ethereum vault manifest", () => {
     const completeManifest = makeCompleteManifest();
 
@@ -301,6 +328,104 @@ describe("Octant vault crowdfunding manifest", () => {
 });
 
 describe("Octant vault Card Endow public contracts", () => {
+  it("prepares the fallback plan by funding the recovered wallet before user-authorized approval and deposit", () => {
+    const campaign = makeCompleteManifest();
+
+    expect(
+      prepareOctantVaultCardEndowFallbackPlan({
+        campaign,
+        amount: VALID_AMOUNT,
+        receiverAddress: VALID_RECEIVER_ADDRESS,
+      })
+    ).toEqual({
+      status: "ready",
+      errors: [],
+      plan: {
+        providerFlow: "fund_recovered_wallet_then_user_authorized_deposit",
+        cardFunding: {
+          provider: "thirdweb",
+          paymentMethod: "card",
+          chainId: 1,
+          destinationAddress: VALID_RECEIVER_ADDRESS,
+          tokenAddress: "0x2222222222222222222222222222222222222222",
+          tokenSymbol: "USDC",
+          tokenDecimals: 6,
+          amount: VALID_AMOUNT,
+          receiverAddress: VALID_RECEIVER_ADDRESS,
+        },
+        receiptExpectation: {
+          sourceRoute: "/vaults",
+          managementUrl: OCTANT_VAULT_ROUTE_MANAGEMENT_URL,
+          expectedVaultAddress: "0x1111111111111111111111111111111111111111",
+          expectedTokenAddress: "0x2222222222222222222222222222222222222222",
+          expectedAmount: VALID_AMOUNT,
+          receiverAddress: VALID_RECEIVER_ADDRESS,
+        },
+        userAuthorizedTransactions: [
+          {
+            role: "approval",
+            chainId: 1,
+            contractAddress: "0x2222222222222222222222222222222222222222",
+            functionName: "approve",
+            args: ["0x1111111111111111111111111111111111111111", VALID_AMOUNT],
+          },
+          {
+            role: "funding",
+            chainId: 1,
+            contractAddress: "0x1111111111111111111111111111111111111111",
+            functionName: "deposit",
+            args: [VALID_AMOUNT, VALID_RECEIVER_ADDRESS],
+          },
+        ],
+        shareVerification: {
+          role: "share_verification",
+          chainId: 1,
+          contractAddress: "0x1111111111111111111111111111111111111111",
+          functionName: "balanceOf",
+          args: [VALID_RECEIVER_ADDRESS],
+          expectedResult: "positive_share_balance",
+        },
+      },
+    });
+  });
+
+  it("keeps fallback Card Endow planning blocked for incomplete pilots and invalid receiver input", () => {
+    const greenpillNyc = getOctantVaultCampaignBySlug("greenpill-nyc");
+    const completeManifest = makeCompleteManifest();
+
+    expect(greenpillNyc).toBeDefined();
+    expect(
+      prepareOctantVaultCardEndowFallbackPlan({
+        campaign: greenpillNyc!,
+        amount: VALID_AMOUNT,
+        receiverAddress: VALID_RECEIVER_ADDRESS,
+      })
+    ).toMatchObject({
+      status: "blocked",
+      errors: expect.arrayContaining(["manifest_incomplete"]),
+    });
+    expect(
+      prepareOctantVaultCardEndowFallbackPlan({
+        campaign: completeManifest,
+        amount: "0",
+        receiverAddress: VALID_RECEIVER_ADDRESS,
+      })
+    ).toMatchObject({
+      status: "blocked",
+      errors: expect.arrayContaining(["amount_required"]),
+    });
+    expect(
+      prepareOctantVaultCardEndowFallbackPlan({
+        campaign: completeManifest,
+        amount: VALID_AMOUNT,
+        receiverAddress: "0xnot-an-address",
+      })
+    ).toMatchObject({
+      status: "blocked",
+      errors: expect.arrayContaining(["receiver_invalid"]),
+    });
+  });
+
   it("rejects missing or invalid recovered-wallet receivers", () => {
     expect(
       validateOctantVaultCardEndowReceiver({

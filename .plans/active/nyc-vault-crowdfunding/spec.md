@@ -13,14 +13,21 @@ Endow remains hidden until the implementation proves user-owned receiver custody
 visibility, withdrawal/manage availability, and strict provider/webhook verification. Public Donate
 and Card Donate remain deferred.
 
-As of `2026-06-02T05:35:29Z`, shared/API Card Endow readiness is implemented only where proof can
-be strict: synthetic complete manifests can pass recovered-wallet receiver, share ownership,
-route-local manage/withdraw, route-scoped provider proof, and webhook tuple checks. The production
-Thirdweb send-payment adapter now refuses Card Endow because the current docs require a
-contract-call checkout path for vault `deposit(amount, receiverAddress)`. Signed Thirdweb Bridge
-webhooks still verify timestamped payloads before receipt state changes. The real Greenpill NYC and
-EVMavericks pilot fixtures remain transaction-blocked until the missing non-chain fields, live
-custody/share/manage proof, and contract-call provider proof are supplied.
+As of `2026-06-03T01:16:11Z`, shared/API Card Endow readiness is implemented only where proof can
+be strict, and `/vaults?cardEndowQa=1` exposes a controlled Greenpill NYC human-QA browser path.
+Synthetic complete manifests can pass recovered-wallet receiver, share ownership, route-local
+manage/withdraw, route-scoped provider proof, webhook tuple checks, and a fallback plan where card
+funding lands in the user-owned recovered wallet before user-authorized `approve + deposit`. The
+production Thirdweb send-payment adapter still refuses Card Endow because generic send-payment
+checkout is not Card Endow proof. Current Thirdweb docs prove `TransactionWidget` can execute a
+prepared contract call with `erc20Value`, and separately document ERC20 approval helpers, but do not
+prove one smooth insufficient-allowance `approve + deposit` sequence for an ERC-4626 vault. Signed
+Thirdweb Bridge webhooks still verify timestamped payloads before receipt state changes. The default
+public route keeps the real Greenpill NYC and EVMavericks pilot fixtures transaction-blocked until
+the missing non-chain fields, live custody/share/manage proof, and provider proof are supplied.
+Greenpill NYC and EVMavericks also carry synthetic-safe preview copy for route browse QA, but those
+fields intentionally remain separate from transaction-enabling `campaignCopy`,
+`recipientRoutingSummary`, and Protocol Guild destination context.
 
 Greenpill NYC remains the first available transaction fixture when its deployed vault metadata is
 recorded and the non-chain manifest fields are supplied. EVMavericks is part of the first demo scope,
@@ -79,6 +86,18 @@ skill plus templates as the final project deliverable.
     full packaged app.
 18. The skill must include static and dry-run QA against Greenpill NYC, EVMavericks
     `blocked_pending_manifest`, and one synthetic complete manifest fixture.
+19. The Card Endow human-QA path must stay gated behind `/vaults?cardEndowQa=1` and must not expose
+    `Pay by card` on the default `/vaults` route.
+20. The Card Endow human-QA path must use Thirdweb email OTP/in-app wallet recovery only as the
+    primary wallet path. Google, Apple, passkey, wallet extensions, and existing wallets are not
+    required for this QA flow.
+20a. A stale active Thirdweb account or existing wallet must not satisfy the Card Endow QA
+     `receiverAddress`; the receiver comes only from the verified email OTP/in-app wallet recovery.
+21. Before a live card payment, the UI must show and require human confirmation of receiver wallet,
+    exact chain, vault, token, amount, campaign, and provider route.
+22. After provider funding succeeds, the QA user must authorize `approve(token -> vault, amount)`
+    and `deposit(amount, receiverAddress)` from the recovered wallet. Success is verified only by
+    reading `vault.balanceOf(receiverAddress)` and confirming positive shares.
 
 ## Interface Requirements
 
@@ -90,9 +109,19 @@ skill plus templates as the final project deliverable.
   vault management state.
 - Card Endow receipts created from `/vaults` must return to `/vaults?manage=positions`; `/fund`
   compatibility must continue returning to `/fund?manage=endowments` without redesigning `/fund`.
+- If the `TransactionWidget` full-flow proof remains unavailable, the fallback contract is:
+  card funds the recovered wallet, receipt records expected vault/token/amount/receiver, the user or
+  user-approved session executes ERC20 `approve(vault, amount)` followed by vault
+  `deposit(amount, receiverAddress)`, and shares are verified by
+  `vault.balanceOf(receiverAddress) > 0`.
+- The current human-QA access path is `/vaults?cardEndowQa=1`. It appends a QA-only Greenpill NYC
+  Card Endow campaign fixture using the recorded Ethereum chain `1`, Greenpill NYC vault, and WETH
+  asset, while the default `/vaults` route remains generally hidden for Card Endow.
 - Campaign config must be manifest-driven: chain ID, vault address, asset address, asset symbol,
   decimals, display name, recipient/routing summary, explorer link, campaign copy, and optional
   indexer support.
+- Synthetic-safe pilot preview copy may be present for browse QA, but it must not satisfy
+  transaction-enabling non-chain manifest fields.
 - EVMavericks must additionally record Protocol Guild destination context before transactions can be
   enabled.
 - Card funding intent contracts must carry a user-owned `receiverAddress: Address` for Card Endow.
@@ -222,6 +251,31 @@ Required skill output boundaries:
   - Thirdweb custom payment data docs state `purchaseData` is included in webhooks and payment
     history; the agent stores only route/intent metadata needed for tuple verification and keeps
     secrets out of client-visible receipt payloads.
+- Thirdweb `TransactionWidget` prototype check recorded on `2026-06-02T06:49:45Z`:
+  - `TransactionWidget` accepts a prepared contract call and can specify required ERC20 value with
+    `erc20Value`, so a synthetic vault `deposit(amount, receiverAddress)` checkout shape is
+    plausible for the WETH vault asset.
+  - Thirdweb documents `getApprovalForTransaction` as a separate pre-check/approval step before the
+    final prepared transaction when ERC20 allowance is insufficient; the docs reviewed did not
+    prove the widget batches or sequences that approval plus the vault `deposit` in one smooth card
+    checkout.
+  - DAI is not a valid direct vault deposit asset for the current pilot vaults because both recorded
+    Octant vaults expose WETH as `asset()`. DAI can only be a source/payment token if Thirdweb Bridge
+    can route it into the required WETH balance before the user-authorized deposit.
+  - Bridge/onramp limits remain provider-dependent: token support requires liquidity and supported
+    chain routing, fiat onramp has a $1 minimum and user/region caps, onramp fees are provider-set,
+    crypto swap fees include Thirdweb's 0.3% Bridge protocol fee, and unsupported direct tokens
+    require an additional Buy With Crypto step.
+  - Branch preview QA is allowed for the `/vaults` route, but production API QA is only meaningful
+    after the Fly agent at `https://agent.greengoods.app` is deployed from the same branch/commit as
+    the preview. That deploy must not be treated as production Card Endow exposure; real card-funded
+    movement remains gated on a human-confirmed amount/token/vault/receiver/provider tuple.
+  - Thirdweb user wallets are documented as non-custodial user wallets stored in enclave/MPC-style
+    infrastructure, with recovery through the user's auth method and optional linked auth methods.
+    That supports a recovered-wallet receiver assumption, but Green Goods still needs live wallet
+    ownership, receipt, and `balanceOf(receiverAddress)` proof before exposing production Card Endow.
+  - Session keys can support later server-assisted `approve + deposit`, but only after explicit user
+    authorization and narrow call policies for the ERC20 `approve` target and vault `deposit` target.
 
 Repo surfaces implementation agents should inspect before coding:
 
@@ -246,8 +300,9 @@ Repo surfaces implementation agents should inspect before coding:
   successful vault-level `FACTORY()` return unless a later call produces one.
 - If implementation needs the actual Octant `MultistrategyVaultFactory` deployment address for
   create-vault work, obtain explicit Octant docs/release/deployer proof before recording it.
-- Confirm Thirdweb checkout architecture before exposing Card Endow; provider checkout creation alone
-  is not sufficient.
+- Keep Card Endow hidden until either a live Thirdweb full-flow contract-call checkout proves
+  recovered-wallet shares, or the fallback flow is QA-approved: fund recovered wallet first, then
+  user-authorized `approve + deposit`, then `balanceOf(receiverAddress)` proof.
 - Confirm public management route shape for owned vault positions before wiring receipt CTAs.
 
 ## Non-Functional Constraints
