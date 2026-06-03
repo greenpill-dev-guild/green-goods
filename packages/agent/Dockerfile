@@ -63,6 +63,7 @@ ENV NODE_ENV=production
 # Env vars are injected by the runtime platform;
 # bun's --env-file=../../.env in the start script is a no-op when the file is absent.
 COPY --from=prod-deps /app/node_modules ./node_modules
+COPY --from=prod-deps /app/packages/agent/node_modules ./packages/agent/node_modules
 COPY --from=prod-deps /app/package.json ./package.json
 COPY --from=base /app/packages/agent/package.json ./packages/agent/package.json
 COPY --from=base /app/packages/agent/dist ./packages/agent/dist
@@ -71,6 +72,10 @@ COPY --from=base /app/packages/shared/src ./packages/shared/src
 COPY --from=base /app/packages/contracts/package.json ./packages/contracts/package.json
 COPY --from=base /app/packages/contracts/deployments ./packages/contracts/deployments
 COPY --from=base /app/packages/contracts/abis ./packages/contracts/abis
+
+# Fail the image build if Bun cannot resolve workspace package export subpaths
+# from the runtime layout used by the compiled agent server.
+RUN bun -e "await import('@green-goods/shared/public-contracts')"
 
 # Default DB path points to the mounted Fly volume.
 ENV DB_PATH=/data/agent.db

@@ -89,7 +89,10 @@
    and the Fly agent Dockerfile uses the full workspace dev type graph for the build stage while
    copying only the production-filtered agent runtime graph into the release image. The production
    dependency stage also includes shared source and contract runtime artifacts before the filtered
-   install so Bun package export subpaths resolve at startup.
+   install so Bun package export subpaths resolve at startup. The v108 follow-up still proved the
+   package-local agent `node_modules` graph was required for Bun's runtime resolver, so the runner
+   image now copies that graph and fails the image build if `@green-goods/shared/public-contracts`
+   cannot be imported from the runtime layout.
 6. **Demo QA validates `/vaults`**: verify `/vaults` on desktop/mobile, wallet-last UX, Wallet
    Endow, Card Endow gates, route privacy, copy/i18n, no Donate/Card Donate, and no unrelated
    `/fund` redesign. **Check in after this phase.**
@@ -220,7 +223,8 @@
 - [x] Targeted agent tests cover public funding-intent CORS preflight, CORS headers on checkout
   responses, route-local receipt preflight, receipt CORS headers, and Fly Dockerfile deployment
   hardening with a full workspace build type graph plus a frozen production-filtered agent
-  runtime graph that includes linked shared source package exports
+  runtime graph that includes linked shared source package exports, the package-local agent
+  `node_modules` graph, and a runtime import check for `@green-goods/shared/public-contracts`
 - [ ] Targeted agent log snapshot coverage for redacted provider logs
 - [x] Refresh browser proof for final public `/vaults` demo on desktop and mobile
 - [ ] `octant-vault-crowdfunding` skill static checks: `bun run check:skills` after the later skill artifact is created and mirrored
