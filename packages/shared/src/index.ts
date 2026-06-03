@@ -198,6 +198,7 @@ export {
   toastService,
   TxInlineFeedback,
   updateToasts,
+  validationToasts,
   VaultPositionCard,
   WorkCard as WorkCardComponent,
   GardenCard as GardenCardComponent,
