@@ -3,6 +3,7 @@ import type { QueryKey } from "@tanstack/react-query";
 import {
   DEFAULT_CHAIN_ID,
   queryKeys,
+  ToastViewport,
   type Action,
   type Address,
   type Garden as SharedGarden,
@@ -53,6 +54,15 @@ const STORYBOOK_SUBMIT_ACTIONS: Action[] = STORYBOOK_ADMIN_ACTIONS.map((action, 
           },
         ]
       : [],
+  mediaInfo:
+    index === 0
+      ? {
+          title: "Field photos",
+          required: true,
+          minImageCount: 1,
+          maxImageCount: 3,
+        }
+      : action.mediaInfo,
 }));
 
 const STORYBOOK_EMPTY_DOMAIN_GARDEN = {
@@ -137,10 +147,13 @@ const disconnectedAuthState: AuthStateValue = {
 
 function SubmitWorkRouteStory() {
   return (
-    <Routes>
-      <Route path="/hub/work/submit" element={<SubmitWork />} />
-      <Route path="/garden/settings" element={<div className="p-6">Garden settings route</div>} />
-    </Routes>
+    <>
+      <Routes>
+        <Route path="/hub/work/submit" element={<SubmitWork />} />
+        <Route path="/garden/settings" element={<div className="p-6">Garden settings route</div>} />
+      </Routes>
+      <ToastViewport />
+    </>
   );
 }
 
@@ -148,6 +161,7 @@ function SubmitWorkSheetStory() {
   return (
     <div className="mx-auto max-w-xl p-4">
       <SubmitWorkPanel layout="sheet" onCancel={fn()} onSuccess={fn()} />
+      <ToastViewport />
     </div>
   );
 }
@@ -212,14 +226,19 @@ function disconnectedDecorators() {
 }
 
 export const PageAvailableAction: Story = {
+  tags: ["storybook-ci"],
   render: () => <SubmitWorkRouteStory />,
   decorators: submitWorkDecorators(),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(await canvas.findByRole("heading", { name: "Submit Work" })).toBeVisible();
-    await userEvent.selectOptions(await canvas.findByLabelText("Action"), `${DEFAULT_CHAIN_ID}-1`);
-    await expect(await canvas.findByLabelText("Plot code")).toBeVisible();
+    await userEvent.selectOptions(await canvas.findByLabelText(/Action/), `${DEFAULT_CHAIN_ID}-1`);
+    await expect(await canvas.findByLabelText(/Plot code/)).toBeVisible();
     await expect(await canvas.findByLabelText("Time Spent (hours)")).toBeVisible();
+    await userEvent.type(await canvas.findByLabelText(/Plot code/), "Plot A");
+    await userEvent.click(await canvas.findByRole("button", { name: "Submit Work" }));
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(await page.findByText("At least one image is required")).toBeVisible();
   },
 };
 

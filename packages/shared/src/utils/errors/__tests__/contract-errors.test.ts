@@ -330,4 +330,14 @@ describe("parseAndFormatError", () => {
     expect(result.parsed.name).toBe("NotGardenOperator");
     expect(result.title).toContain("Garden Operator");
   });
+
+  it("formats wallet session errors with reconnect guidance", () => {
+    const result = parseAndFormatError(new Error("Connector not connected"));
+
+    expect(result.parsed.name).toBe("WalletSessionUnavailable");
+    expect(result.title).toBe("Wallet Session Unavailable");
+    expect(result.message).toBe(
+      "Wallet session unavailable. Disconnect and reconnect your wallet, then try again."
+    );
+  });
 });

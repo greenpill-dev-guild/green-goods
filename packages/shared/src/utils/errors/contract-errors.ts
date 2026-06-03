@@ -488,7 +488,30 @@ export function parseContractError(error: unknown): ParsedContractError {
     };
   }
 
-  // 2. Wallet balance / gas errors
+  // 2. Wallet connector/session errors. Keep this before generic network
+  // handling so stale WalletConnect/AppKit sessions get actionable recovery.
+  if (
+    lowerStr.includes("connector not connected") ||
+    lowerStr.includes("wallet not connected") ||
+    lowerStr.includes("wallet disconnected") ||
+    lowerStr.includes("provider disconnected") ||
+    lowerStr.includes("session expired") ||
+    lowerStr.includes("session disconnected") ||
+    ((lowerStr.includes("wallet") || lowerStr.includes("connector")) &&
+      lowerStr.includes("session") &&
+      (lowerStr.includes("expired") || lowerStr.includes("unavailable")))
+  ) {
+    return {
+      raw: signature ?? errorStr,
+      name: "WalletSessionUnavailable",
+      message: "Wallet session unavailable. Disconnect and reconnect your wallet, then try again.",
+      isKnown: true,
+      recoverable: true,
+      suggestedAction: "check-wallet",
+    };
+  }
+
+  // 3. Wallet balance / gas errors
   if (
     lowerStr.includes("insufficient funds") ||
     lowerStr.includes("insufficient balance") ||
@@ -530,7 +553,7 @@ export function parseContractError(error: unknown): ParsedContractError {
     };
   }
 
-  // 3. Manual validation errors (from simulation layer) — must precede the
+  // 4. Manual validation errors (from simulation layer) — must precede the
   //    generic "validation" word match below.
   if (errorStr.includes("Validation failed")) {
     const cleanMessage = errorStr.replace(/^Error:\s*/, "");
@@ -544,7 +567,7 @@ export function parseContractError(error: unknown): ParsedContractError {
     };
   }
 
-  // 4. Media upload service unconfigured (specific — must precede generic IPFS).
+  // 5. Media upload service unconfigured (specific — must precede generic IPFS).
   if (
     lowerStr.includes("media upload not initialized") ||
     lowerStr.includes("ipfs upload service is not configured") ||
@@ -560,7 +583,7 @@ export function parseContractError(error: unknown): ParsedContractError {
     };
   }
 
-  // 5. IPFS / media upload failures (recoverable)
+  // 6. IPFS / media upload failures (recoverable)
   if (
     lowerStr.includes("ipfs") ||
     lowerStr.includes("failed to upload") ||
@@ -576,7 +599,7 @@ export function parseContractError(error: unknown): ParsedContractError {
     };
   }
 
-  // 6. Storage errors (quota first — more specific message)
+  // 7. Storage errors (quota first — more specific message)
   if (lowerStr.includes("quota")) {
     return {
       raw: signature ?? errorStr,
@@ -599,7 +622,7 @@ export function parseContractError(error: unknown): ParsedContractError {
     };
   }
 
-  // 7. Offline (specific) before generic network
+  // 8. Offline (specific) before generic network
   if (lowerStr.includes("offline") || lowerStr.includes("you are offline")) {
     return {
       raw: signature ?? errorStr,
@@ -611,7 +634,7 @@ export function parseContractError(error: unknown): ParsedContractError {
     };
   }
 
-  // 8. Network / timeout (recoverable)
+  // 9. Network / timeout (recoverable)
   if (lowerStr.includes("timeout") || lowerStr.includes("timed out")) {
     return {
       raw: signature ?? errorStr,
@@ -639,7 +662,7 @@ export function parseContractError(error: unknown): ParsedContractError {
     };
   }
 
-  // 9. Permission / authorization (generic — specific contract reverts like
+  // 10. Permission / authorization (generic — specific contract reverts like
   //    NotGardenMember are caught by the signature/name loop above).
   if (
     lowerStr.includes("unauthorized") ||
@@ -658,7 +681,7 @@ export function parseContractError(error: unknown): ParsedContractError {
     };
   }
 
-  // 10. Generic execution reverted with no specific reason — last because
+  // 11. Generic execution reverted with no specific reason — last because
   //     "reverted" is broad and signature-based reverts above carry richer copy.
   if (
     lowerStr.includes("execution reverted") ||
@@ -674,7 +697,7 @@ export function parseContractError(error: unknown): ParsedContractError {
     };
   }
 
-  // 11. Generic validation fallback (after the more-specific "Validation failed" above)
+  // 12. Generic validation fallback (after the more-specific "Validation failed" above)
   if (
     lowerStr.includes("required field") ||
     lowerStr.includes("invalid format") ||
