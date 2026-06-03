@@ -86,8 +86,8 @@
    `/vaults` keeps Card Endow hidden and no real value was moved.
    `2026-06-03` API/deploy hardening: funding-intent and route-local receipt responses now carry
    public CORS headers for allowed preview origins, receipt reads preflight `X-GG-Receipt-Token`,
-   and the Fly agent Dockerfile installs/copies only the agent runtime graph instead of shipping the
-   full monorepo dependency/runtime tree.
+   and the Fly agent Dockerfile uses the full workspace dev type graph for the build stage while
+   copying only the production-filtered agent runtime graph into the release image.
 6. **Demo QA validates `/vaults`**: verify `/vaults` on desktop/mobile, wallet-last UX, Wallet
    Endow, Card Endow gates, route privacy, copy/i18n, no Donate/Card Donate, and no unrelated
    `/fund` redesign. **Check in after this phase.**
@@ -217,7 +217,8 @@
   until a contract-call checkout path is proven
 - [x] Targeted agent tests cover public funding-intent CORS preflight, CORS headers on checkout
   responses, route-local receipt preflight, receipt CORS headers, and Fly Dockerfile deployment
-  hardening with a complete workspace manifest set plus a frozen production-filtered agent graph
+  hardening with a full workspace build type graph plus a frozen production-filtered agent
+  runtime graph
 - [ ] Targeted agent log snapshot coverage for redacted provider logs
 - [x] Refresh browser proof for final public `/vaults` demo on desktop and mobile
 - [ ] `octant-vault-crowdfunding` skill static checks: `bun run check:skills` after the later skill artifact is created and mirrored

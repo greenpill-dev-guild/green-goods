@@ -1053,7 +1053,7 @@
       "lane": "state_api",
       "status": "preview_agent_cors_and_fly_image_hardened",
       "branch": "feature/nyc-vault-crowdfunding",
-      "note": "Hardened the agent API/deploy boundary after the first preview/Fly attempt: public funding-intent and route-local receipt endpoints now answer allowed-origin CORS preflight/response headers, receipt reads allow X-GG-Receipt-Token, and packages/agent/Dockerfile installs/copies only the agent runtime graph to reduce Fly image build/push risk. Targeted agent public API/funding tests, agent typecheck, and agent build pass locally."
+      "note": "Hardened the agent API/deploy boundary after the first preview/Fly attempt: public funding-intent and route-local receipt endpoints now answer allowed-origin CORS preflight/response headers, receipt reads allow X-GG-Receipt-Token, and packages/agent/Dockerfile uses the full workspace dev type graph for the build stage while copying only the production-filtered agent runtime graph into the release image. Targeted agent public API/funding tests, agent typecheck, and agent build pass locally."
     }
   ],
   "linear": {

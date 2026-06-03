@@ -18,8 +18,9 @@ COPY packages/indexer/package.json ./packages/indexer/package.json
 COPY docs/package.json ./docs/package.json
 COPY scripts ./scripts
 
-# Install the agent workspace dependency graph instead of every app workspace.
-RUN bun install --frozen-lockfile --filter @green-goods/agent
+# The agent build type-checks shared source through workspace path aliases, so
+# the build image needs the root dev type graph rather than the runtime filter.
+RUN bun install --frozen-lockfile
 
 # Build the agent (outputs to packages/agent/dist)
 RUN bun run build:agent
