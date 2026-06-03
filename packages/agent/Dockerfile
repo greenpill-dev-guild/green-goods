@@ -1,25 +1,15 @@
 # syntax=docker/dockerfile:1
 
-ARG BUN_VERSION=1.3.10
-
-FROM oven/bun:${BUN_VERSION} AS base
+FROM oven/bun:1 AS base
 WORKDIR /app
 
-# Workspace manifests, runtime package sources, and postinstall helper.
+# Workspace manifests (root) and source
 COPY package.json bun.lock ./
-COPY packages/admin/package.json ./packages/admin/package.json
-COPY packages/agent ./packages/agent
-COPY packages/client/package.json ./packages/client/package.json
-COPY packages/shared ./packages/shared
-COPY packages/contracts/package.json ./packages/contracts/package.json
-COPY packages/contracts/deployments ./packages/contracts/deployments
-COPY packages/contracts/abis ./packages/contracts/abis
-COPY packages/indexer/package.json ./packages/indexer/package.json
+COPY packages ./packages
 COPY docs/package.json ./docs/package.json
 COPY scripts ./scripts
 
-# The agent build type-checks shared source through workspace path aliases, so
-# the build image needs the root dev type graph rather than the runtime filter.
+# Install all workspace deps
 RUN bun install --frozen-lockfile
 
 # Build the agent (outputs to packages/agent/dist)
@@ -36,48 +26,16 @@ RUN --mount=type=secret,id=SENTRY_AUTH_TOKEN \
     fi && \
     find packages/agent/dist -name '*.map' -delete
 
-FROM oven/bun:${BUN_VERSION} AS prod-deps
-WORKDIR /app
-
-COPY package.json bun.lock ./
-COPY packages/admin/package.json ./packages/admin/package.json
-COPY packages/agent/package.json ./packages/agent/package.json
-COPY packages/client/package.json ./packages/client/package.json
-COPY packages/shared ./packages/shared
-COPY packages/contracts/package.json ./packages/contracts/package.json
-COPY packages/contracts/deployments ./packages/contracts/deployments
-COPY packages/contracts/abis ./packages/contracts/abis
-COPY packages/indexer/package.json ./packages/indexer/package.json
-COPY docs/package.json ./docs/package.json
-COPY scripts ./scripts
-
-# Include runtime workspace source packages before the production install so
-# Bun's linked node_modules graph can resolve package export subpaths.
-RUN bun install --frozen-lockfile --production --filter @green-goods/agent
-
-FROM oven/bun:${BUN_VERSION}-slim AS runner
+FROM oven/bun:1-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 
-# Copy production dependencies and runtime workspace files only.
-# Env vars are injected by the runtime platform;
+# Copy built workspace. Env vars are injected by the runtime platform (Railway, etc.);
 # bun's --env-file=../../.env in the start script is a no-op when the file is absent.
-COPY --from=prod-deps /app/node_modules ./node_modules
-COPY --from=prod-deps /app/packages/agent/node_modules ./packages/agent/node_modules
-COPY --from=prod-deps /app/package.json ./package.json
-COPY --from=base /app/packages/agent/package.json ./packages/agent/package.json
-COPY --from=base /app/packages/agent/dist ./packages/agent/dist
-COPY --from=base /app/packages/shared/package.json ./packages/shared/package.json
-COPY --from=base /app/packages/shared/src ./packages/shared/src
-COPY --from=base /app/packages/contracts/package.json ./packages/contracts/package.json
-COPY --from=base /app/packages/contracts/deployments ./packages/contracts/deployments
-COPY --from=base /app/packages/contracts/abis ./packages/contracts/abis
+COPY --from=base /app/node_modules ./node_modules
+COPY --from=base /app/packages ./packages
 
-# Fail the image build if Bun cannot resolve workspace package export subpaths
-# from the runtime layout used by the compiled agent server.
-RUN cd packages/agent && bun -e "await import('@green-goods/shared/public-contracts')"
-
-# Default DB path points to the mounted Fly volume.
+# Default DB path points to mounted volume on Railway
 ENV DB_PATH=/data/agent.db
 
 WORKDIR /app/packages/agent
