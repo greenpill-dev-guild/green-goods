@@ -84,6 +84,10 @@
    card funding, user-approved `approve(token -> vault, amount)`, `deposit(amount,
    receiverAddress)`, and `vault.balanceOf(receiverAddress)` positive-share verification. Default
    `/vaults` keeps Card Endow hidden and no real value was moved.
+   `2026-06-03` API/deploy hardening: funding-intent and route-local receipt responses now carry
+   public CORS headers for allowed preview origins, receipt reads preflight `X-GG-Receipt-Token`,
+   and the Fly agent Dockerfile installs/copies only the agent runtime graph instead of shipping the
+   full monorepo dependency/runtime tree.
 6. **Demo QA validates `/vaults`**: verify `/vaults` on desktop/mobile, wallet-last UX, Wallet
    Endow, Card Endow gates, route privacy, copy/i18n, no Donate/Card Donate, and no unrelated
    `/fund` redesign. **Check in after this phase.**
@@ -211,6 +215,8 @@
   sourceRoute matching, recovered receiver handling, and Card Endow rejection without `receiverAddress`
 - [x] Targeted agent tests prove the current Thirdweb send-payment adapter refuses Card Endow
   until a contract-call checkout path is proven
+- [x] Targeted agent tests cover public funding-intent CORS preflight, CORS headers on checkout
+  responses, route-local receipt preflight, and receipt CORS headers
 - [ ] Targeted agent log snapshot coverage for redacted provider logs
 - [x] Refresh browser proof for final public `/vaults` demo on desktop and mobile
 - [ ] `octant-vault-crowdfunding` skill static checks: `bun run check:skills` after the later skill artifact is created and mirrored

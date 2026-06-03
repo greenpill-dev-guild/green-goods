@@ -283,6 +283,41 @@ describe("public funding intent API", () => {
     return { app, store };
   }
 
+  it("answers funding-intent CORS preflight for allowed origins", async () => {
+    const { app } = createFundingApp();
+
+    const response = await app.request(PUBLIC_AGENT_ROUTES.fundingIntents, {
+      method: "OPTIONS",
+      headers: {
+        origin: ORIGIN,
+        "access-control-request-method": "POST",
+        "access-control-request-headers": "content-type",
+      },
+    });
+
+    expect(response.status).toBe(204);
+    expect(response.headers.get("access-control-allow-origin")).toBe(ORIGIN);
+    expect(response.headers.get("access-control-allow-methods")).toContain("POST");
+    expect(response.headers.get("access-control-allow-headers")).toContain("Content-Type");
+  });
+
+  it("rejects funding-intent CORS preflight for untrusted origins", async () => {
+    const { app } = createFundingApp();
+
+    const response = await app.request(PUBLIC_AGENT_ROUTES.fundingIntents, {
+      method: "OPTIONS",
+      headers: {
+        origin: "https://evil.example",
+        "access-control-request-method": "POST",
+        "access-control-request-headers": "content-type",
+      },
+    });
+
+    expect(response.status).toBe(403);
+    expect(response.headers.get("access-control-allow-origin")).toBeNull();
+    expect((await response.json()).errorCode).toBe("origin_not_allowed");
+  });
+
   it("keeps unproven card rails unavailable by default", async () => {
     const app = createServer(
       {
@@ -645,6 +680,7 @@ describe("public funding intent API", () => {
 
     const body = await response.json();
     expect(response.status).toBe(200);
+    expect(response.headers.get("access-control-allow-origin")).toBe(ORIGIN);
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(response.headers.get("pragma")).toBe("no-cache");
     expect(body.ok).toBe(true);
@@ -673,6 +709,7 @@ describe("public funding intent API", () => {
       { headers: { origin: ORIGIN } }
     );
     expect(queryToken.status).toBe(400);
+    expect(queryToken.headers.get("access-control-allow-origin")).toBe(ORIGIN);
 
     const bodyTokenRequest = {
       headers: new Headers({
@@ -690,6 +727,19 @@ describe("public funding intent API", () => {
     });
     expect(missing.status).toBe(401);
 
+    const preflight = await app.request(`/public/funding-intents/${createdBody.id}`, {
+      method: "OPTIONS",
+      headers: {
+        origin: ORIGIN,
+        "access-control-request-method": "GET",
+        "access-control-request-headers": "x-gg-receipt-token",
+      },
+    });
+    expect(preflight.status).toBe(204);
+    expect(preflight.headers.get("access-control-allow-origin")).toBe(ORIGIN);
+    expect(preflight.headers.get("access-control-allow-methods")).toContain("GET");
+    expect(preflight.headers.get("access-control-allow-headers")).toContain("X-GG-Receipt-Token");
+
     const read = await app.request(`/public/funding-intents/${createdBody.id}`, {
       headers: {
         origin: ORIGIN,
@@ -697,6 +747,7 @@ describe("public funding intent API", () => {
       },
     });
     expect(read.status).toBe(200);
+    expect(read.headers.get("access-control-allow-origin")).toBe(ORIGIN);
     expect(read.headers.get("cache-control")).toBe("no-store");
     expect((await read.json()).publicReceipt.id).toBe(createdBody.id);
   });

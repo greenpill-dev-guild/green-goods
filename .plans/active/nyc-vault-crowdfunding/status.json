@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p0",
     "created_at": "2026-05-09T21:35:46.781Z",
-    "updated_at": "2026-06-03T02:07:53Z"
+    "updated_at": "2026-06-03T04:25:26Z"
   },
   "links": {
     "brief": "brief.md",
@@ -1046,6 +1046,14 @@
       "status": "card_endow_email_wallet_bypass_hardened",
       "branch": "feature/nyc-vault-crowdfunding",
       "note": "Hardened the Card Endow QA panel so a stale active Thirdweb account cannot become receiverAddress or unlock the BuyWidget before email OTP recovery. Targeted client /vaults tests now include this bypass regression and pass with 9 tests."
+    },
+    {
+      "timestamp": "2026-06-03T04:25:26Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "preview_agent_cors_and_fly_image_hardened",
+      "branch": "feature/nyc-vault-crowdfunding",
+      "note": "Hardened the agent API/deploy boundary after the first preview/Fly attempt: public funding-intent and route-local receipt endpoints now answer allowed-origin CORS preflight/response headers, receipt reads allow X-GG-Receipt-Token, and packages/agent/Dockerfile installs/copies only the agent runtime graph to reduce Fly image build/push risk. Targeted agent public API/funding tests, agent typecheck, and agent build pass locally."
     }
   ],
   "linear": {
