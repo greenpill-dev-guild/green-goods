@@ -27,3 +27,5 @@
 !docs/package.json
 !scripts/
 !scripts/**
+
+packages/agent/dist/

@@ -158,7 +158,7 @@ class Blockchain {
           plantCount: params.workData.plantCount,
         },
       },
-      params.gardenAddress,
+      params.gardenAddress as Address,
       params.actionUID,
       params.actionTitle,
       this.chainId,
@@ -189,7 +189,7 @@ class Blockchain {
         confidence: params.approved ? 1 : 0, // LOW for approvals, NONE for rejections
         verificationMethod: 1, // Bitmask: 0x01 = bot-verified
       },
-      params.gardenerAddress,
+      params.gardenerAddress as Address,
       this.chainId
     );
 
