@@ -75,7 +75,7 @@ COPY --from=base /app/packages/contracts/abis ./packages/contracts/abis
 
 # Fail the image build if Bun cannot resolve workspace package export subpaths
 # from the runtime layout used by the compiled agent server.
-RUN bun -e "await import('@green-goods/shared/public-contracts')"
+RUN cd packages/agent && bun -e "await import('@green-goods/shared/public-contracts')"
 
 # Default DB path points to the mounted Fly volume.
 ENV DB_PATH=/data/agent.db
