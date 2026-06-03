@@ -48,9 +48,9 @@ COPY packages/indexer/package.json ./packages/indexer/package.json
 COPY docs/package.json ./docs/package.json
 COPY scripts ./scripts
 
-# Bun's workspace filter currently attempts to rewrite bun.lock when combined
-# with --production in this Docker stage, so keep the frozen agent graph here.
-RUN bun install --frozen-lockfile --filter @green-goods/agent
+# Use the complete top-level workspace manifest set above so Bun can resolve
+# the filtered production graph without rewriting bun.lock.
+RUN bun install --frozen-lockfile --production --filter @green-goods/agent
 
 FROM oven/bun:${BUN_VERSION}-slim AS runner
 WORKDIR /app
