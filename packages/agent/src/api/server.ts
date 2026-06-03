@@ -22,6 +22,7 @@ import {
   type PublicFundingSourceRoute,
   type PublicSubscribeRequest,
   type PublicUploadSignRequest,
+  type SubmitFundingIntentProofRequest,
   publicProviderProofRegistry,
   type ThirdwebNormalizedFundingEvent,
   validatePublicUploadSignRequest,
@@ -699,6 +700,115 @@ function validateFundingIntentRequest(body: unknown): CreateFundingIntentRequest
   };
 }
 
+function validateFundingIntentProofRequest(
+  body: unknown
+): SubmitFundingIntentProofRequest | PublicApiError {
+  const candidate = body as Partial<SubmitFundingIntentProofRequest> | undefined;
+  if (!candidate || typeof candidate !== "object") {
+    return safeError("invalid_request", "Invalid request body.");
+  }
+
+  if (
+    typeof candidate.gardenId !== "string" ||
+    typeof candidate.destinationType !== "string" ||
+    typeof candidate.destinationAddress !== "string" ||
+    typeof candidate.fundingIntent !== "string" ||
+    typeof candidate.paymentMethod !== "string" ||
+    typeof candidate.provider !== "string" ||
+    typeof candidate.sourceRoute !== "string" ||
+    typeof candidate.chainId !== "number" ||
+    typeof candidate.token !== "string" ||
+    typeof candidate.availabilityKey !== "string" ||
+    typeof candidate.clientRequestId !== "string" ||
+    typeof candidate.receiverAddress !== "string" ||
+    typeof candidate.receiverCustody !== "string" ||
+    typeof candidate.amount !== "string" ||
+    typeof candidate.transactionHash !== "string" ||
+    typeof candidate.shareBalance !== "string"
+  ) {
+    return safeError("invalid_request", "Required funding proof fields are missing.", {
+      fieldErrors: { request: "Required funding proof fields are missing" },
+    });
+  }
+
+  if (
+    candidate.destinationType !== "vault" ||
+    candidate.fundingIntent !== "endow" ||
+    candidate.paymentMethod !== "card" ||
+    candidate.provider !== "thirdweb" ||
+    candidate.sourceRoute !== "/vaults"
+  ) {
+    return safeError("invalid_request", "Invalid Card Endow proof tuple.", {
+      fieldErrors: { request: "Card Endow proof must target /vaults thirdweb card Endow" },
+    });
+  }
+  if (!isAddress(candidate.destinationAddress)) {
+    return safeError("invalid_request", "Invalid destination address.", {
+      fieldErrors: { destinationAddress: "Invalid address" },
+    });
+  }
+  if (!isAddress(candidate.token)) {
+    return safeError("invalid_request", "Invalid token address.", {
+      fieldErrors: { token: "Invalid address" },
+    });
+  }
+  if (!isAddress(candidate.receiverAddress)) {
+    return safeError("invalid_request", "Invalid receiver address.", {
+      fieldErrors: { receiverAddress: "Invalid address" },
+    });
+  }
+  if (candidate.receiverCustody !== "user_owned_recovered_wallet") {
+    return safeError("invalid_request", "Invalid receiver custody.", {
+      fieldErrors: { receiverCustody: "Card Endow requires a recovered receiver wallet" },
+    });
+  }
+  if (!HEX_RE.test(candidate.transactionHash)) {
+    return safeError("invalid_request", "Invalid transaction hash.", {
+      fieldErrors: { transactionHash: "Invalid transaction hash" },
+    });
+  }
+
+  const amount = parseBaseUnitAmount(candidate.amount);
+  if (amount === undefined || amount <= 0n) {
+    return safeError("invalid_request", "Invalid funded amount.", {
+      fieldErrors: { amount: "Card Endow proof requires a positive funded amount" },
+    });
+  }
+
+  const shareBalance = parseBaseUnitAmount(candidate.shareBalance);
+  if (shareBalance === undefined || shareBalance <= 0n) {
+    return safeError("invalid_request", "Card Endow proof requires positive vault shares.", {
+      fieldErrors: { shareBalance: "Card Endow proof requires positive vault shares" },
+    });
+  }
+  const locale =
+    candidate.locale === "en" || candidate.locale === "es" || candidate.locale === "pt"
+      ? candidate.locale
+      : undefined;
+
+  return {
+    gardenId: candidate.gardenId.trim(),
+    gardenName: candidate.gardenName?.trim() || undefined,
+    destinationType: "vault",
+    destinationAddress: candidate.destinationAddress,
+    fundingIntent: "endow",
+    paymentMethod: "card",
+    provider: "thirdweb",
+    sourceRoute: "/vaults",
+    chainId: candidate.chainId,
+    token: candidate.token,
+    availabilityKey: candidate.availabilityKey,
+    clientRequestId: candidate.clientRequestId.trim(),
+    receiverAddress: candidate.receiverAddress,
+    receiverCustody: "user_owned_recovered_wallet",
+    amount: amount.toString(),
+    transactionHash: candidate.transactionHash as `0x${string}`,
+    shareBalance: shareBalance.toString(),
+    payerEmail: candidate.payerEmail,
+    locale,
+  };
+}
+
 function getFundingSourceRoute(
   request: Pick<CreateFundingIntentRequest, "sourceRoute">
 ): PublicFundingSourceRoute {
@@ -759,6 +869,97 @@ function createFundingIntentRecord(input: {
     minAssetAmount: input.checkout.minAssetAmount,
     checkoutSession: input.checkout.checkoutSession,
     transactionAttempts: [],
+    createdAt: nowIso,
+    updatedAt: nowIso,
+  };
+}
+
+function createFundingProofFingerprint(request: SubmitFundingIntentProofRequest): string {
+  return hashSecret(
+    [
+      request.gardenId.trim().toLowerCase(),
+      request.destinationType,
+      request.destinationAddress.trim().toLowerCase(),
+      request.fundingIntent,
+      request.paymentMethod,
+      request.provider,
+      request.sourceRoute,
+      String(request.chainId),
+      request.token.trim().toLowerCase(),
+      request.availabilityKey,
+      request.clientRequestId.trim(),
+      request.receiverAddress.trim().toLowerCase(),
+      request.receiverCustody,
+      request.amount,
+      request.transactionHash.trim().toLowerCase(),
+      request.shareBalance,
+      normalizeEmailHash(request.payerEmail) ?? "",
+    ].join("|")
+  );
+}
+
+function createFundingIntentProofRecord(input: {
+  id: string;
+  request: SubmitFundingIntentProofRequest;
+  idempotencyFingerprint: string;
+  receiptTokenHash: string;
+  now: number;
+  status?: "funded" | "funded_late";
+  matchedAssetAmount?: string;
+}): FundingIntentRecord {
+  const nowIso = new Date(input.now).toISOString();
+  const quoteExpiresAt = nowIso;
+
+  return {
+    id: input.id,
+    gardenId: input.request.gardenId.trim(),
+    gardenName: input.request.gardenName ?? input.request.gardenId.trim(),
+    destinationType: "vault",
+    destinationAddress: input.request.destinationAddress,
+    fundingIntent: "endow",
+    paymentMethod: "card",
+    availabilityKey: input.request.availabilityKey,
+    clientRequestId: input.request.clientRequestId.trim(),
+    idempotencyFingerprint: input.idempotencyFingerprint,
+    amountUsd: "0",
+    chainId: input.request.chainId,
+    token: input.request.token,
+    provider: "thirdweb",
+    providerSessionId: `client-side-proof:${input.request.transactionHash.toLowerCase()}`,
+    status: input.status ?? "funded",
+    payerEmailHash: normalizeEmailHash(input.request.payerEmail),
+    receiptTokenHash: input.receiptTokenHash,
+    quoteExpiresAt,
+    checkoutExpiresAt: quoteExpiresAt,
+    receiverAddress: input.request.receiverAddress,
+    sourceRoute: "/vaults",
+    managementUrl: "/vaults?manage=positions",
+    quotedAssetAmount: input.request.amount,
+    minAssetAmount: input.request.amount,
+    fundedAssetAmount: input.matchedAssetAmount ?? input.request.amount,
+    fundingTxHash: input.request.transactionHash,
+    transactionAttempts: [
+      {
+        role: "funding",
+        status: "confirmed",
+        txHash: input.request.transactionHash,
+        chainId: input.request.chainId,
+        token: input.request.token,
+        destinationAddress: input.request.destinationAddress,
+        receiverAddress: input.request.receiverAddress,
+        amount: input.matchedAssetAmount ?? input.request.amount,
+        confirmedAt: nowIso,
+      },
+      {
+        role: "share_verification",
+        status: "confirmed",
+        chainId: input.request.chainId,
+        destinationAddress: input.request.destinationAddress,
+        receiverAddress: input.request.receiverAddress,
+        amount: input.request.shareBalance,
+        confirmedAt: nowIso,
+      },
+    ],
     createdAt: nowIso,
     updatedAt: nowIso,
   };
@@ -1674,6 +1875,129 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
       quoteExpiresAt: record.quoteExpiresAt,
       receiptToken,
       receiptUrl: buildFundingReceiptUrl(record.sourceRoute ?? "/fund", record.id, receiptToken),
+      publicReceipt: redactFundingReceipt(record),
+    });
+  });
+
+  app.options(PUBLIC_AGENT_ROUTES.fundingIntentProof, (c) => {
+    const originError = checkOrigin(c, deps);
+    if (originError) return publicCorsResponse(c, deps, originError, 403);
+    setPublicCorsHeaders(c, deps);
+    return c.body(null, 204);
+  });
+
+  app.post(PUBLIC_AGENT_ROUTES.fundingIntentProof, async (c) => {
+    const originError = checkOrigin(c, deps);
+    if (originError) return publicCorsResponse(c, deps, originError, 403);
+
+    const bodyResult = await readLimitedJsonBody<unknown>(c.req.raw);
+    if (!bodyResult.ok) return publicCorsResponse(c, deps, bodyResult.error, bodyResult.status);
+
+    const request = validateFundingIntentProofRequest(bodyResult.value);
+    if (isPublicApiError(request)) return publicCorsResponse(c, deps, request, 400);
+
+    const rateError = checkRateLimit(
+      c,
+      deps,
+      "funding_proof",
+      [request.gardenId, request.receiverAddress, request.transactionHash].join(":")
+    );
+    if (rateError) return publicCorsResponse(c, deps, rateError, 429);
+
+    const availabilityInput = {
+      gardenKey: request.gardenId,
+      destinationType: request.destinationType,
+      destinationAddress: request.destinationAddress,
+      fundingIntent: request.fundingIntent,
+      paymentMethod: request.paymentMethod,
+      chainId: request.chainId,
+      token: request.token,
+      provider: request.provider,
+      sourceRoute: request.sourceRoute,
+    };
+    const expectedAvailabilityKey = buildPublicFundingAvailabilityKey(availabilityInput);
+    const availability = providerProofRegistry.resolve(availabilityInput);
+    if (request.availabilityKey !== expectedAvailabilityKey || availability.state !== "live") {
+      return publicCorsResponse(
+        c,
+        deps,
+        safeError("funding_unavailable", "This funding method is not available yet."),
+        409
+      );
+    }
+
+    let matchedAssetAmount: string | undefined;
+    if (deps.confirmFundingTuple) {
+      const confirmation = await deps.confirmFundingTuple(request.transactionHash, {
+        token: request.token.toLowerCase(),
+        destinationAddress: request.destinationAddress.toLowerCase(),
+        minAssetAmount: request.amount,
+        chainId: request.chainId,
+      });
+      if (confirmation.status !== "confirmed") {
+        return publicCorsResponse(
+          c,
+          deps,
+          safeError("funding_unavailable", "This funding proof is not confirmed yet."),
+          409
+        );
+      }
+      matchedAssetAmount = confirmation.matchedAssetAmount;
+    }
+
+    const idempotencyFingerprint = createFundingProofFingerprint(request);
+    const existing = await fundingIntents.getByClientRequestId(request.clientRequestId);
+    const receiptToken = createReceiptToken();
+    const receiptTokenHash = hashSecret(receiptToken);
+    const now = deps.now?.() ?? Date.now();
+
+    if (existing) {
+      if (existing.idempotencyFingerprint !== idempotencyFingerprint) {
+        return publicCorsResponse(
+          c,
+          deps,
+          safeError("idempotency_conflict", "This client request id was already used."),
+          409
+        );
+      }
+      const updated = await fundingIntents.update({
+        ...existing,
+        receiptTokenHash,
+        updatedAt: new Date(now).toISOString(),
+      });
+      return publicCorsResponse(c, deps, {
+        ok: true,
+        id: updated.id,
+        status: updated.status === "funded_late" ? "funded_late" : "funded",
+        provider: "thirdweb",
+        receiptToken,
+        receiptUrl: buildFundingReceiptUrl("/vaults", updated.id, receiptToken),
+        publicReceipt: redactFundingReceipt(updated),
+      });
+    }
+
+    const record = createFundingIntentProofRecord({
+      id: createFundingIntentId(),
+      request,
+      idempotencyFingerprint,
+      receiptTokenHash,
+      now,
+      matchedAssetAmount,
+    });
+    await fundingIntents.create(record);
+    await fundingIntents.appendEvent(
+      record.id,
+      record.status,
+      "client-side Card Endow proof recorded"
+    );
+
+    return publicCorsResponse(c, deps, {
+      ok: true,
+      id: record.id,
+      status: record.status,
+      provider: "thirdweb",
+      receiptToken,
+      receiptUrl: buildFundingReceiptUrl("/vaults", record.id, receiptToken),
       publicReceipt: redactFundingReceipt(record),
     });
   });

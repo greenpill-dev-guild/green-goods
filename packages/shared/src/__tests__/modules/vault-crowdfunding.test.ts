@@ -101,6 +101,19 @@ function makeCardEndowExpectation(
   };
 }
 
+function makeCardEndowProofForCampaign(
+  campaign: OctantVaultCampaignManifest,
+  overrides: Partial<OctantVaultCardEndowProofInput> = {}
+): OctantVaultCardEndowProofInput {
+  return makeCardEndowProof({
+    chainId: campaign.vault?.chainId,
+    vaultAddress: campaign.vault?.vaultAddress,
+    destinationAddress: campaign.vault?.vaultAddress,
+    asset: campaign.vault?.asset,
+    ...overrides,
+  });
+}
+
 function makeShareOwnershipProof(overrides = {}) {
   return {
     campaign: makeCompleteManifest(),
@@ -111,6 +124,14 @@ function makeShareOwnershipProof(overrides = {}) {
     sharesVisible: true,
     ...overrides,
   };
+}
+
+function makeShareOwnershipProofForCampaign(campaign: OctantVaultCampaignManifest, overrides = {}) {
+  return makeShareOwnershipProof({
+    campaign,
+    vaultAddress: campaign.vault?.vaultAddress,
+    ...overrides,
+  });
 }
 
 function makeRouteManageProof(overrides = {}) {
@@ -125,6 +146,14 @@ function makeRouteManageProof(overrides = {}) {
     withdrawAvailable: true,
     ...overrides,
   };
+}
+
+function makeRouteManageProofForCampaign(campaign: OctantVaultCampaignManifest, overrides = {}) {
+  return makeRouteManageProof({
+    campaign,
+    vaultAddress: campaign.vault?.vaultAddress,
+    ...overrides,
+  });
 }
 
 describe("Octant vault crowdfunding manifest", () => {
@@ -142,7 +171,7 @@ describe("Octant vault crowdfunding manifest", () => {
     });
   });
 
-  it("records Greenpill NYC chain metadata but keeps transactions blocked on non-chain fields", () => {
+  it("records Greenpill NYC chain metadata and production-QA manifest completion", () => {
     const campaign = getOctantVaultCampaignBySlug("greenpill-nyc");
 
     expect(campaign).toBeDefined();
@@ -167,11 +196,14 @@ describe("Octant vault crowdfunding manifest", () => {
       "campaignCopy",
     ]);
     expect(getOctantVaultCampaignTransactionState(campaign!)).toMatchObject({
-      status: "blocked_pending_manifest",
-      missingFields: ["recipientRoutingSummary", "campaignCopy"],
-      walletEndowEnabled: false,
+      status: "ready",
+      missingFields: [],
+      walletEndowEnabled: true,
       cardEndowVisible: false,
+      cardEndowStatus: "hidden_pending_proof",
     });
+    expect(campaign?.campaignCopy).toBeDefined();
+    expect(campaign?.recipientRoutingSummary).toContain("recovered Thirdweb email wallet");
   });
 
   it("requires the Protocol Guild destination context before EVMavericks can enable transactions", () => {
@@ -187,7 +219,7 @@ describe("Octant vault crowdfunding manifest", () => {
     });
   });
 
-  it("uses synthetic-safe pilot preview copy without satisfying transaction-enabling fields", () => {
+  it("keeps EVMavericks preview copy from satisfying transaction-enabling fields", () => {
     const greenpillNyc = getOctantVaultCampaignBySlug("greenpill-nyc");
     const evmavericks = getOctantVaultCampaignBySlug("evmavericks");
 
@@ -195,16 +227,16 @@ describe("Octant vault crowdfunding manifest", () => {
     expect(evmavericks).toBeDefined();
     expect(greenpillNyc?.previewCopy).toBeDefined();
     expect(evmavericks?.previewCopy).toBeDefined();
-    expect(getOctantVaultCampaignCopy(greenpillNyc!)).toEqual(greenpillNyc?.previewCopy);
+    expect(getOctantVaultCampaignCopy(greenpillNyc!)).toEqual(greenpillNyc?.campaignCopy);
     expect(getOctantVaultCampaignCopy(evmavericks!)).toEqual(evmavericks?.previewCopy);
-    expect(greenpillNyc?.campaignCopy).toBeUndefined();
-    expect(greenpillNyc?.recipientRoutingSummary).toBeUndefined();
+    expect(greenpillNyc?.campaignCopy).toBeDefined();
+    expect(greenpillNyc?.recipientRoutingSummary).toBeDefined();
     expect(evmavericks?.campaignCopy).toBeUndefined();
     expect(evmavericks?.recipientRoutingSummary).toBeUndefined();
     expect(evmavericks?.protocolGuildDestinationContext).toBeUndefined();
     expect(validateOctantVaultCampaignManifest(greenpillNyc!)).toMatchObject({
-      status: "blocked_pending_manifest",
-      missingFields: ["recipientRoutingSummary", "campaignCopy"],
+      status: "complete",
+      missingFields: [],
     });
     expect(validateOctantVaultCampaignManifest(evmavericks!)).toMatchObject({
       status: "blocked_pending_manifest",
@@ -267,13 +299,13 @@ describe("Octant vault crowdfunding manifest", () => {
   });
 
   it("does not prepare Wallet Endow for blocked pilot fixtures or invalid confirmation input", () => {
-    const greenpillNyc = getOctantVaultCampaignBySlug("greenpill-nyc");
+    const evmavericks = getOctantVaultCampaignBySlug("evmavericks");
     const completeManifest = makeCompleteManifest();
 
-    expect(greenpillNyc).toBeDefined();
+    expect(evmavericks).toBeDefined();
     expect(
       prepareOctantVaultWalletEndow({
-        campaign: greenpillNyc!,
+        campaign: evmavericks!,
         amount: 2500000n,
         receiverAddress: VALID_RECEIVER_ADDRESS,
       })
@@ -390,13 +422,13 @@ describe("Octant vault Card Endow public contracts", () => {
   });
 
   it("keeps fallback Card Endow planning blocked for incomplete pilots and invalid receiver input", () => {
-    const greenpillNyc = getOctantVaultCampaignBySlug("greenpill-nyc");
+    const evmavericks = getOctantVaultCampaignBySlug("evmavericks");
     const completeManifest = makeCompleteManifest();
 
-    expect(greenpillNyc).toBeDefined();
+    expect(evmavericks).toBeDefined();
     expect(
       prepareOctantVaultCardEndowFallbackPlan({
-        campaign: greenpillNyc!,
+        campaign: evmavericks!,
         amount: VALID_AMOUNT,
         receiverAddress: VALID_RECEIVER_ADDRESS,
       })
@@ -577,20 +609,20 @@ describe("Octant vault Card Endow public contracts", () => {
     });
   });
 
-  it("keeps pilot /vaults transaction flags blocked under strict manifest gating", () => {
+  it("keeps only incomplete pilot /vaults transaction flags blocked under strict manifest gating", () => {
     const states = getOctantVaultCampaigns().map((campaign) =>
       getOctantVaultCampaignTransactionState(campaign)
     );
 
     expect(states).toEqual([
       {
-        manifestStatus: "blocked_pending_manifest",
-        status: "blocked_pending_manifest",
-        walletEndowEnabled: false,
+        manifestStatus: "complete",
+        status: "ready",
+        walletEndowEnabled: true,
         cardEndowVisible: false,
-        cardEndowStatus: "hidden_manifest_incomplete",
-        missingFields: ["recipientRoutingSummary", "campaignCopy"],
-        disabledReason: "manifest_incomplete",
+        cardEndowStatus: "hidden_pending_proof",
+        cardEndowProofErrors: undefined,
+        missingFields: [],
       },
       {
         manifestStatus: "blocked_pending_manifest",
@@ -681,19 +713,36 @@ describe("Octant vault Card Endow public contracts", () => {
     });
   });
 
-  it("keeps real pilot fixtures hidden from Card Endow even when a reusable proof object is supplied", () => {
+  it("exposes Greenpill NYC with exact proof while keeping incomplete pilots hidden", () => {
     const greenpillNyc = getOctantVaultCampaignBySlug("greenpill-nyc");
+    const evmavericks = getOctantVaultCampaignBySlug("evmavericks");
 
     expect(greenpillNyc).toBeDefined();
+    expect(evmavericks).toBeDefined();
     expect(
       prepareOctantVaultCardEndowReadiness({
         campaign: greenpillNyc!,
         amount: VALID_AMOUNT,
         receiverAddress: VALID_RECEIVER_ADDRESS,
         transactionHash: VALID_TRANSACTION_HASH,
-        providerProof: makeCardEndowProof(),
-        shareProof: makeShareOwnershipProof({ campaign: greenpillNyc! }),
-        manageProof: makeRouteManageProof({ campaign: greenpillNyc! }),
+        providerProof: makeCardEndowProofForCampaign(greenpillNyc!),
+        shareProof: makeShareOwnershipProofForCampaign(greenpillNyc!),
+        manageProof: makeRouteManageProofForCampaign(greenpillNyc!),
+      })
+    ).toMatchObject({
+      status: "ready",
+      cardEndowVisible: true,
+      errors: [],
+    });
+    expect(
+      prepareOctantVaultCardEndowReadiness({
+        campaign: evmavericks!,
+        amount: VALID_AMOUNT,
+        receiverAddress: VALID_RECEIVER_ADDRESS,
+        transactionHash: VALID_TRANSACTION_HASH,
+        providerProof: makeCardEndowProofForCampaign(evmavericks!),
+        shareProof: makeShareOwnershipProofForCampaign(evmavericks!),
+        manageProof: makeRouteManageProofForCampaign(evmavericks!),
       })
     ).toMatchObject({
       status: "hidden",

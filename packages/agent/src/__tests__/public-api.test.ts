@@ -598,6 +598,148 @@ describe("public funding intent API", () => {
     expect(body.publicReceipt.managementUrl).toBe("/vaults?manage=positions");
   });
 
+  it("records client-side Card Endow proof only after positive vault shares", async () => {
+    const store = new MemoryFundingIntentStore();
+    const confirmFundingTuple = vi.fn(async () => ({
+      status: "confirmed" as const,
+      txHash: "0xabcdef" as const,
+      blockNumber: "123",
+      confirmedAt: "2026-04-27T12:06:00.000Z",
+      matchedAssetAmount: "25000000",
+    }));
+    const app = createServer(
+      {
+        isAIReady: () => true,
+        allowedOrigins: new Set([ORIGIN]),
+        fundingIntents: store,
+        publicRateLimiter: new InMemoryPublicRateLimiter(),
+        providerProofRegistry: createProviderProofRegistry([
+          {
+            ...cardEndowAvailabilityInput,
+            sourceRoute: "/vaults",
+            state: "live",
+            proofReference: "production:card-endow-vaults-proof-2026-06-03",
+          },
+        ]),
+        confirmFundingTuple,
+        now: () => Date.parse("2026-04-27T12:00:00.000Z"),
+      },
+      { logger: false }
+    );
+    const request = createCardEndowFundingRequest({ sourceRoute: "/vaults" });
+
+    const response = await app.request(PUBLIC_AGENT_ROUTES.fundingIntentProof, {
+      method: "POST",
+      headers: jsonHeaders(),
+      body: JSON.stringify({
+        gardenId,
+        gardenName: "Greenpill NYC",
+        destinationType: "vault",
+        destinationAddress,
+        fundingIntent: "endow",
+        paymentMethod: "card",
+        provider: "thirdweb",
+        sourceRoute: "/vaults",
+        chainId: 11155111,
+        token,
+        availabilityKey: request.availabilityKey,
+        clientRequestId: "client-proof-1",
+        receiverAddress,
+        receiverCustody: "user_owned_recovered_wallet",
+        amount: "25000000",
+        transactionHash: "0xabcdef",
+        shareBalance: "1",
+        payerEmail: "supporter@example.org",
+        locale: "en",
+      }),
+    });
+
+    const body = await response.json();
+    expect(response.status).toBe(200);
+    expect(body.status).toBe("funded");
+    expect(body.receiptUrl).toMatch(/^\/vaults\?intent=fi_[a-f0-9]+#receiptToken=/);
+    expect(body.publicReceipt).toMatchObject({
+      status: "funded",
+      garden: { id: gardenId, name: "Greenpill NYC" },
+      destination: { type: "vault", address: destinationAddress },
+      fundingIntent: "endow",
+      fundingTxHash: "0xabcdef",
+      receiverAddress,
+      managementUrl: "/vaults?manage=positions",
+      amount: {
+        amountUsd: "0",
+        token,
+        chainId: 11155111,
+        fundedAssetAmount: "25000000",
+      },
+    });
+    expect(confirmFundingTuple).toHaveBeenCalledWith("0xabcdef", {
+      token: token.toLowerCase(),
+      destinationAddress: destinationAddress.toLowerCase(),
+      minAssetAmount: "25000000",
+      chainId: 11155111,
+    });
+    const created = await store.getByClientRequestId("client-proof-1");
+    expect(created?.status).toBe("funded");
+    expect(created?.transactionAttempts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ role: "funding", status: "confirmed", txHash: "0xabcdef" }),
+        expect.objectContaining({ role: "share_verification", status: "confirmed" }),
+      ])
+    );
+  });
+
+  it("rejects Card Endow proof when vault.balanceOf(receiver) is not positive", async () => {
+    const app = createServer(
+      {
+        isAIReady: () => true,
+        allowedOrigins: new Set([ORIGIN]),
+        fundingIntents: new MemoryFundingIntentStore(),
+        publicRateLimiter: new InMemoryPublicRateLimiter(),
+        providerProofRegistry: createProviderProofRegistry([
+          {
+            ...cardEndowAvailabilityInput,
+            sourceRoute: "/vaults",
+            state: "live",
+            proofReference: "production:card-endow-vaults-proof-2026-06-03",
+          },
+        ]),
+      },
+      { logger: false }
+    );
+    const request = createCardEndowFundingRequest({ sourceRoute: "/vaults" });
+
+    const response = await app.request(PUBLIC_AGENT_ROUTES.fundingIntentProof, {
+      method: "POST",
+      headers: jsonHeaders(),
+      body: JSON.stringify({
+        gardenId,
+        gardenName: "Greenpill NYC",
+        destinationType: "vault",
+        destinationAddress,
+        fundingIntent: "endow",
+        paymentMethod: "card",
+        provider: "thirdweb",
+        sourceRoute: "/vaults",
+        chainId: 11155111,
+        token,
+        availabilityKey: request.availabilityKey,
+        clientRequestId: "client-proof-zero-shares",
+        receiverAddress,
+        receiverCustody: "user_owned_recovered_wallet",
+        amount: "25000000",
+        transactionHash: "0xabcdef",
+        shareBalance: "0",
+      }),
+    });
+
+    const body = await response.json();
+    expect(response.status).toBe(400);
+    expect(body.fieldErrors).toEqual({
+      shareBalance: "Card Endow proof requires positive vault shares",
+    });
+  });
+
   it("builds a configured Thirdweb send-payment checkout adapter from the existing env contract", async () => {
     const fetchSpy = vi.fn(
       async (_url: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {

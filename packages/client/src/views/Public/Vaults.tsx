@@ -23,7 +23,6 @@ import {
   useState,
 } from "react";
 import { useIntl } from "react-intl";
-import { useLocation } from "react-router-dom";
 import { formatUnits, parseUnits } from "viem";
 import {
   EditorialDivider,
@@ -37,8 +36,7 @@ import { PublicFooter } from "@/components/Public/PublicFooter";
 import { getPublicHeroImage, publicCuration } from "@/content/publicCuration";
 import WalletRuntimeProviders from "@/routes/WalletRuntimeProviders";
 
-const CARD_ENDOW_QA_SEARCH_PARAM = "cardEndowQa";
-const CARD_ENDOW_QA_CAMPAIGN_SLUG = "greenpill-nyc-card-endow-qa";
+const CARD_ENDOW_PRODUCTION_CAMPAIGN_SLUG = "greenpill-nyc";
 const CardEndowPanel = lazy(() => import("./VaultCardEndowQa"));
 
 const fieldMessageIds: Record<OctantVaultManifestField, string> = {
@@ -133,50 +131,8 @@ function formatCardEndowStatus(
   });
 }
 
-function isCardEndowQaEnabled(search: string): boolean {
-  const value = new URLSearchParams(search).get(CARD_ENDOW_QA_SEARCH_PARAM);
-  return value === "1" || value === "true";
-}
-
-function getCardEndowQaCampaign(
-  campaigns: readonly OctantVaultCampaignManifest[]
-): OctantVaultCampaignManifest | null {
-  const greenpillNycCampaign = campaigns.find((campaign) => campaign.slug === "greenpill-nyc");
-
-  if (!greenpillNycCampaign?.vault) return null;
-
-  return {
-    ...greenpillNycCampaign,
-    slug: CARD_ENDOW_QA_CAMPAIGN_SLUG,
-    displayName: "Greenpill NYC Card Endow QA",
-    fixtureRole: "standard_campaign",
-    previewCopy: undefined,
-    campaignCopy: {
-      headline: "QA-gated card funding for the Greenpill NYC vault.",
-      summary:
-        "A hidden QA fixture that uses the Greenpill NYC vault tuple and proves the recovered-wallet Card Endow path.",
-      fundingPurpose:
-        "Fund the recovered Thirdweb email wallet first, then let that same wallet approve and deposit into the Greenpill NYC Octant vault.",
-      recipientLogic:
-        "The recovered Thirdweb email wallet is both the funded wallet and the receiver that must show positive vault shares.",
-      riskNote:
-        "Live card payment and onchain approval stay locked until the QA user confirms the exact chain, vault, token, amount, and receiver.",
-    },
-    recipientRoutingSummary:
-      "QA route: Thirdweb card funds the recovered email wallet, then that wallet approves the token and deposits into the Greenpill NYC vault for itself.",
-  };
-}
-
-function buildCardEndowCampaigns(
-  campaigns: readonly OctantVaultCampaignManifest[],
-  cardEndowQaEnabled: boolean
-): OctantVaultCampaignManifest[] {
-  if (!cardEndowQaEnabled) return [...campaigns];
-
-  const qaCampaign = getCardEndowQaCampaign(campaigns);
-  if (!qaCampaign) return [...campaigns];
-
-  return [...campaigns, qaCampaign];
+function isProductionCardEndowCampaign(campaign: OctantVaultCampaignManifest): boolean {
+  return campaign.slug === CARD_ENDOW_PRODUCTION_CAMPAIGN_SLUG;
 }
 
 function CampaignStatus({ campaign }: { campaign: OctantVaultCampaignManifest }) {
@@ -320,19 +276,18 @@ function VaultMetadata({ campaign }: { campaign: OctantVaultCampaignManifest }) 
 
 export function CampaignCard({
   campaign,
-  cardEndowQaEnabled = false,
   onSelectCardEndow,
   onSelectWalletEndow,
 }: {
   campaign: OctantVaultCampaignManifest;
-  cardEndowQaEnabled?: boolean;
   onSelectCardEndow?: (campaign: OctantVaultCampaignManifest) => void;
   onSelectWalletEndow?: (campaign: OctantVaultCampaignManifest) => void;
 }) {
   const { formatMessage } = useIntl();
   const copy = formatCampaignCopy(formatMessage, campaign);
   const transactionState = getOctantVaultCampaignTransactionState(campaign);
-  const showCardEndowQaAction = cardEndowQaEnabled && transactionState.walletEndowEnabled;
+  const showCardEndowAction =
+    isProductionCardEndowCampaign(campaign) && transactionState.walletEndowEnabled;
   const missingId = `vault-campaign-${campaign.slug}-missing-fields`;
   const walletEndowLabel = transactionState.walletEndowEnabled
     ? formatMessage({
@@ -464,7 +419,7 @@ export function CampaignCard({
           >
             {walletEndowLabel}
           </button>
-          {showCardEndowQaAction ? (
+          {showCardEndowAction ? (
             <button
               type="button"
               onClick={() => onSelectCardEndow?.(campaign)}
@@ -484,11 +439,11 @@ export function CampaignCard({
             </button>
           ) : null}
           <p className="text-sm leading-[1.5] text-text-soft-400">
-            {showCardEndowQaAction
+            {showCardEndowAction
               ? formatMessage({
-                  id: "public.vaults.cardEndow.qaAvailable",
+                  id: "public.vaults.cardEndow.available",
                   defaultMessage:
-                    "QA card funding is available after email-wallet recovery and exact tuple confirmation.",
+                    "Card funding is available after email-wallet recovery and exact tuple confirmation.",
                 })
               : formatCardEndowStatus(formatMessage, transactionState.cardEndowStatus)}
           </p>
@@ -919,12 +874,7 @@ export function VaultsPageContent({
   campaigns?: OctantVaultCampaignManifest[];
 } = {}) {
   const { formatMessage } = useIntl();
-  const location = useLocation();
-  const cardEndowQaEnabled = isCardEndowQaEnabled(location.search);
-  const campaigns = useMemo(
-    () => buildCardEndowCampaigns(campaignItems ?? getOctantVaultCampaigns(), cardEndowQaEnabled),
-    [campaignItems, cardEndowQaEnabled]
-  );
+  const campaigns = useMemo(() => campaignItems ?? getOctantVaultCampaigns(), [campaignItems]);
   const [selectedWalletEndowCampaign, setSelectedWalletEndowCampaign] =
     useState<OctantVaultCampaignManifest | null>(null);
   const [selectedCardEndowCampaign, setSelectedCardEndowCampaign] =
@@ -1007,7 +957,6 @@ export function VaultsPageContent({
               <CampaignCard
                 key={campaign.slug}
                 campaign={campaign}
-                cardEndowQaEnabled={cardEndowQaEnabled}
                 onSelectCardEndow={handleSelectCardEndow}
                 onSelectWalletEndow={handleSelectWalletEndow}
               />
@@ -1027,7 +976,7 @@ export function VaultsPageContent({
                 <p className="mt-10 rounded-2xl bg-bg-white-0 p-4 text-sm leading-[1.55] text-text-sub-600 ring-1 ring-stroke-soft-200">
                   {formatMessage({
                     id: "public.vaults.cardEndow.loading",
-                    defaultMessage: "Loading Card Endow QA...",
+                    defaultMessage: "Loading Card Endow...",
                   })}
                 </p>
               }

@@ -74,16 +74,15 @@ Endow transaction work is blocked until its Octant V2 Ethereum vault manifest is
   to run this branch/commit because the public funding-intent routes live in `packages/agent`.
   This does not make Card Endow production-visible, and no real card-funded value should move until
   the human confirms the exact amount, token, vault, receiver wallet, and provider route.
-- Card Endow human QA is implemented behind `/vaults?cardEndowQa=1` as of
-  `2026-06-03T01:16:11Z`. The query-gated Greenpill NYC Card Endow QA fixture uses the recorded
-  Ethereum chain `1`, Greenpill NYC vault, and WETH token; the default `/vaults` route still shows
-  only the real pilot cards with Card Endow hidden and no `Pay by card` action. The QA flow uses
-  Thirdweb email OTP/in-app wallet recovery, shows receiver wallet plus exact campaign/chain/vault/
-  token/amount/provider route, requires human tuple confirmation before Thirdweb card funding, then
-  requires user-approved `approve(token -> vault, amount)` and `deposit(amount, receiverAddress)`.
-  Success is claimed only after `vault.balanceOf(receiverAddress)` returns positive shares. A stale
-  active Thirdweb account cannot become the Card Endow receiver before email OTP recovery. No live
-  value was moved by this implementation pass.
+- Card Endow human QA is exposed on default `/vaults` for Greenpill NYC as of
+  `2026-06-03T18:13:39Z`. The production-QA Greenpill NYC Card Endow fixture uses the recorded
+  Ethereum chain `1`, Greenpill NYC vault, and WETH token. The flow uses Thirdweb email OTP/in-app
+  wallet recovery, shows receiver wallet plus exact campaign/chain/vault/token/amount/provider
+  route, requires human tuple confirmation before Thirdweb card funding, then requires user-approved
+  `approve(token -> vault, amount)` and `deposit(amount, receiverAddress)`. Success is claimed only
+  after `vault.balanceOf(receiverAddress)` returns positive shares and `/public/funding-intents/proof`
+  records the proof. A stale active Thirdweb account cannot become the Card Endow receiver before
+  email OTP recovery. No live value was moved by this implementation pass.
 
 ## Onchain Manifest Evidence
 
@@ -119,8 +118,7 @@ In scope:
   transaction fixture when its known deployed vault metadata is recorded.
 - Thirdweb Card Endow for every fixture with complete manifest data after custody, share,
   withdrawal/manage, and provider proof gates pass.
-- Query-gated Card Endow human QA at `/vaults?cardEndowQa=1` for controlled Greenpill NYC provider
-  testing. This is not general production exposure and still requires a runtime
+- Default `/vaults` Card Endow human QA for Greenpill NYC provider testing. This requires a runtime
   `VITE_THIRDWEB_CLIENT_ID` client id plus human approval before live card payment.
 - EVMavericks fixture slot plus hard manifest gate before any EVMavericks Wallet Endow or Card Endow
   transaction path is enabled.

@@ -23,10 +23,10 @@
 | 11 | Linear is a mirror/check-in surface. | `.plans` remains execution truth; Linear keeps durable issue state and check-in visibility. |
 | 12 | Reusable `octant-vault-crowdfunding` skill is the final deliverable. | The `/vaults` demo validates the pilot patterns first, but the project is not complete until Codex delivers and QA-checks the agent skill plus templates. |
 | 13 | Skill v1 is an agent skill plus templates. | No runnable generator or full packaged app is required for v1; static checks and pilot/synthetic dry-run proof are required. |
-| 14 | Pilot vault metadata is partially derived, but transactions stay blocked until non-chain fields and proof gates are complete. | Chain ID, checksummed vaults, WETH asset metadata, explorer links, and shared creator/factory evidence are recorded. Recipient/routing summary, campaign copy, EVMavericks Protocol Guild context, and Card Endow custody/share/manage/provider proof remain missing. |
+| 14 | Pilot vault metadata is partially derived, but transactions stay blocked until non-chain fields and proof gates are complete. | Chain ID, checksummed vaults, WETH asset metadata, explorer links, and shared creator/factory evidence are recorded. Greenpill NYC now supplies campaign copy and recovered-wallet Card Endow proof routing; EVMavericks Protocol Guild context, campaign copy, and transaction proof remain missing. |
 | 15 | `0x9A6c...` is pilot strategy-factory/creator evidence, not a proven `MultistrategyVaultFactory` deployment. | Octant docs describe the `MultistrategyVaultFactory` accessor but no official Ethereum deployment address was found; the separate Etherscan `0x6D8c...` `YearnV3StrategyFactory` candidate is not the creator for the two pilot contracts. |
 | 16 | `TransactionWidget` full-flow Card Endow is not proven. | Current docs support prepared contract calls with `erc20Value` and separate ERC20 approval helpers, but do not prove one smooth insufficient-allowance `approve + deposit` sequence for the Octant ERC-4626 vault; fallback is fund recovered wallet first, then user-authorized `approve + deposit`, then `balanceOf(receiverAddress)` proof. |
-| 17 | Card Endow human QA is query-gated. | `/vaults?cardEndowQa=1` exposes a controlled Greenpill NYC QA fixture using Thirdweb email OTP/in-app wallet recovery and exact tuple confirmation; default `/vaults` still hides Card Endow and has no `Pay by card` action. |
+| 17 | Greenpill NYC Card Endow QA is exposed on default `/vaults`. | `/vaults` exposes the Greenpill NYC Card Endow flow with Thirdweb email OTP/in-app wallet recovery, exact tuple confirmation, card funding into the recovered wallet, user-approved approve/deposit, positive `balanceOf(receiverAddress)` proof, and agent proof recording; EVMavericks stays blocked. |
 
 ## Requirements Coverage
 
@@ -36,11 +36,11 @@
 | Users can browse campaigns without wallet connection. | `ui` | Render campaign cards and details from a manifest before wallet provider gating. | ✅ targeted tests prove no wallet runtime provider on browse; previous screenshots cover browse layout |
 | Campaigns explain project, recipient logic, funding purpose, and onchain context. | `ui`, `state_api` | Define campaign/vault manifest fields and render plain-language plus onchain metadata. | ✅ pilot chain/vault/asset/factory metadata rendered; synthetic-safe preview copy remains non-authoritative |
 | Users choose vault and amount before connecting. | `ui` | Reuse/adapt amount-first funding primitives for wallet-last confirmation. | ✅ complete-manifest path implemented and tested |
-| Greenpill NYC remains the first available transaction fixture candidate. | `ui`, `state_api` | Record known deployed vault metadata and wire transaction proof first when recipient/routing summary and campaign copy complete the manifest. | ⏳ chain/vault/asset/factory recorded; non-chain fields missing |
+| Greenpill NYC remains the first available transaction fixture candidate. | `ui`, `state_api` | Record known deployed vault metadata and wire transaction proof first when recipient/routing summary and campaign copy complete the manifest. | ✅ Greenpill NYC campaign copy, recipient routing, Card Endow access, and proof-route recording are wired; live value movement remains human-gated |
 | EVMavericks fixture slot exists but transactions are blocked until manifest data lands. | `ui`, `state_api` | Add blocked-pending-manifest state requiring chain ID, vault, asset, recipient/routing, Protocol Guild destination context, explorer link, and campaign copy. | ⏳ chain/vault/asset/factory recorded; non-chain fields missing |
 | Wallet Endow deposits into the selected Octant V2 Ethereum vault. | `ui`, `state_api` | Wire deposit confirmation with connected wallet receiver semantics only for complete-manifest fixtures. | ✅ Octant-specific chain-aware hook and synthetic complete path tested; live mainnet deposit proof pending |
-| Thirdweb Card Endow works after proof gates. | `state_api`, `ui` | Build recovered-wallet receiver checkout, share verification, public manage/withdraw proof, and exact provider verification only for complete-manifest fixtures; use the fallback flow if `TransactionWidget` cannot prove one smooth `approve + deposit`. | ⏳ full-flow not proven; fallback contract added |
-| Card Endow human-QA flow is available without production exposure. | `ui`, `state_api` | Gate `/vaults?cardEndowQa=1`, recover a Thirdweb email/in-app wallet, show exact tuple, require human tuple confirmation before card funding, then require approve/deposit and `balanceOf(receiverAddress)` proof. | ✅ QA route implemented and targeted client tests cover mocked provider success through positive shares plus stale active-wallet bypass rejection |
+| Thirdweb Card Endow works after proof gates. | `state_api`, `ui` | Build recovered-wallet receiver checkout, share verification, public manage/withdraw proof, and exact provider verification only for complete-manifest fixtures; use the fallback flow if `TransactionWidget` cannot prove one smooth `approve + deposit`. | ✅ Greenpill NYC default `/vaults` fallback flow wired through client proof submission; live payment and onchain approve/deposit remain human-gated |
+| Card Endow human-QA flow is available on production route for Greenpill NYC. | `ui`, `state_api` | Recover a Thirdweb email/in-app wallet, show exact tuple, require human tuple confirmation before card funding, then require approve/deposit, `balanceOf(receiverAddress)` proof, and agent proof recording. | ✅ Default `/vaults` path implemented and targeted client/agent tests cover mocked provider success through positive shares plus stale active-wallet bypass rejection |
 | Card Endow cannot create provider-owned custody. | `state_api` | Require `receiverAddress`, verify resulting shares for that receiver, and keep Card Endow hidden until proof passes. | ⏳ |
 | `/fund` is not the route being implemented. | `ui`, `state_api` | Keep Garden funding UI separate; only make reusable Card Endow capability compatible for later `/fund` adoption. | ⏳ |
 | Donate and Card Donate remain deferred. | `ui`, `state_api` | Do not expose Donate/Card Donate in `/vaults` acceptance or provider-proof gating. | ✅ deferred |
@@ -78,12 +78,12 @@
    deploy the Fly agent from the same branch/commit before expecting `https://agent.greengoods.app`
    to serve the new funding-intent routes. Real card-funded movement still needs explicit human
    confirmation of amount, token, vault, receiver wallet, and provider route.
-   `2026-06-03` human-QA implementation: `/vaults?cardEndowQa=1` appends a hidden Greenpill NYC Card
-   Endow QA fixture using the recorded Ethereum chain `1`, Greenpill NYC vault, and WETH token. The
-   flow uses Thirdweb email OTP/in-app wallet recovery, exact tuple confirmation before BuyWidget
-   card funding, user-approved `approve(token -> vault, amount)`, `deposit(amount,
-   receiverAddress)`, and `vault.balanceOf(receiverAddress)` positive-share verification. Default
-   `/vaults` keeps Card Endow hidden and no real value was moved.
+   `2026-06-03` production-QA implementation: default `/vaults` exposes the Greenpill NYC Card Endow
+   path using the recorded Ethereum chain `1`, Greenpill NYC vault, and WETH token. The flow uses
+   Thirdweb email OTP/in-app wallet recovery, exact tuple confirmation before BuyWidget card funding,
+   user-approved `approve(token -> vault, amount)`, `deposit(amount, receiverAddress)`,
+   `vault.balanceOf(receiverAddress)` positive-share verification, and `/public/funding-intents/proof`
+   agent recording. No real value was moved by automated validation.
    `2026-06-03` API/deploy hardening: funding-intent and route-local receipt responses now carry
    public CORS headers for allowed preview origins, receipt reads preflight `X-GG-Receipt-Token`,
    and the Fly agent Dockerfile uses the full workspace dev type graph for the build stage while
@@ -127,10 +127,11 @@
 - [x] Support browse -> choose vault -> choose amount before wallet connection
 - [x] Connect wallet only at final confirmation
 - [x] Keep Wallet Endow visible and working only for complete-manifest fixtures
-- [x] Keep Thirdweb Card Endow hidden until state/API proof gates are satisfied
-- [x] Add query-gated `/vaults?cardEndowQa=1` Card Endow human-QA path with Thirdweb email OTP,
-  recovered in-app wallet receiver, exact tuple confirmation, provider card funding gate, approve,
-  deposit, and `balanceOf(receiverAddress)` verification
+- [x] Expose Greenpill NYC Thirdweb Card Endow on default `/vaults` after state/API proof gates are
+  satisfied
+- [x] Add default `/vaults` Greenpill NYC Card Endow human-QA path with Thirdweb email OTP, recovered
+  in-app wallet receiver, exact tuple confirmation, provider card funding gate, approve, deposit,
+  `balanceOf(receiverAddress)` verification, and agent proof recording
 - [x] Prevent stale active Thirdweb accounts from becoming the Card Endow receiver before email OTP
   recovery
 - [ ] Add receipt/confirmation and public manage/withdraw links under the vault route
@@ -143,7 +144,7 @@
 
 - [x] Define campaign/vault manifest and receiver types for existing Octant V2 Ethereum vaults
 - [x] Record chain ID `1`, checksummed pilot vault addresses, WETH asset address/symbol/decimals, vault name/symbol/decimals, explorer links, and shared creator/factory evidence
-- [x] Require Greenpill NYC manifest fields before any transaction enablement: recipient/routing summary and campaign copy remain missing
+- [x] Require Greenpill NYC manifest fields before any transaction enablement: recipient/routing summary and campaign copy are now supplied for the production-QA path
 - [x] Require EVMavericks manifest fields before any transaction enablement: recipient/routing summary, Protocol Guild destination context, and campaign copy remain missing
 - [x] Keep pilot browse copy synthetic-safe by using `previewCopy` without satisfying transaction-enabling `campaignCopy` or routing fields
 - [x] Treat the requested vault-level `FACTORY()(address)` accessor as unavailable until it stops reverting; use the recorded shared `YearnV3StrategyFactory` creator/factory evidence only as metadata, not transaction enablement by itself
@@ -156,6 +157,8 @@
 - [x] Require exact provider/webhook tuple verification before funded/share-verified state
 - [x] Add fallback contract for card-fund-recovered-wallet, route-local receipt expectations,
   user-authorized `approve + deposit`, and `vault.balanceOf(receiverAddress)` verification
+- [x] Add `/public/funding-intents/proof` route for Greenpill NYC client-side Card Endow proof after
+  positive recovered-wallet vault shares
 - [x] Keep Card Donate proof separate from Card Endow proof
 - [x] Keep logs and telemetry redacted
 - [x] Make reusable Card Endow capability compatible with future `/fund` adoption without making
@@ -212,9 +215,9 @@
 - [x] Targeted client tests for wallet-last amount -> connect -> confirm sequence
 - [x] Targeted client tests for Wallet Endow on complete-manifest fixtures, provider-last wallet-runtime mounting, and prepared Octant transaction payloads
 - [x] Targeted client tests for Thirdweb Card Endow hidden-until-proof behavior
-- [x] Targeted client tests for `/vaults?cardEndowQa=1` Thirdweb email-wallet Card Endow QA flow
+- [x] Targeted client tests for default `/vaults` Thirdweb email-wallet Card Endow QA flow
   through mocked provider funding, approve, deposit, positive `balanceOf(receiverAddress)`, and
-  stale active-wallet receiver bypass rejection
+  stale active-wallet receiver bypass rejection plus agent proof submission
 - [ ] Targeted client compatibility tests for future `/fund` Card Endow capability reuse where touched
 - [x] Targeted agent tests for Thirdweb checkout/webhook tuple verification, route-local
   sourceRoute matching, recovered receiver handling, and Card Endow rejection without `receiverAddress`
@@ -225,6 +228,8 @@
   hardening with a full workspace build type graph plus a frozen production-filtered agent
   runtime graph that includes linked shared source package exports, the package-local agent
   `node_modules` graph, and a runtime import check for `@green-goods/shared/public-contracts`
+- [x] Targeted agent tests cover `/public/funding-intents/proof` recording after positive
+  `vault.balanceOf(receiverAddress)` proof and rejection when shares are zero
 - [ ] Targeted agent log snapshot coverage for redacted provider logs
 - [x] Refresh browser proof for final public `/vaults` demo on desktop and mobile
 - [ ] `octant-vault-crowdfunding` skill static checks: `bun run check:skills` after the later skill artifact is created and mirrored

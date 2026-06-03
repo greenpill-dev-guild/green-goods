@@ -188,6 +188,40 @@ export type ReadFundingIntentReceiptResponse =
   | { ok: true; publicReceipt: PublicFundingReceipt }
   | PublicApiError;
 
+export type SubmitFundingIntentProofRequest = {
+  gardenId: string;
+  gardenName?: string;
+  destinationType: "vault";
+  destinationAddress: Address;
+  fundingIntent: "endow";
+  paymentMethod: "card";
+  provider: "thirdweb";
+  sourceRoute: "/vaults";
+  chainId: number;
+  token: Address;
+  availabilityKey: string;
+  clientRequestId: string;
+  receiverAddress: Address;
+  receiverCustody: "user_owned_recovered_wallet";
+  amount: string;
+  transactionHash: `0x${string}`;
+  shareBalance: string;
+  payerEmail?: string;
+  locale?: PublicLocale;
+};
+
+export type SubmitFundingIntentProofResponse =
+  | {
+      ok: true;
+      id: string;
+      status: "funded" | "funded_late";
+      provider: "thirdweb";
+      receiptToken: string;
+      receiptUrl: `${PublicFundingSourceRoute}?intent=${string}#receiptToken=${string}`;
+      publicReceipt: PublicFundingReceipt;
+    }
+  | PublicApiError;
+
 export type FundingTransactionRole =
   | "allowance_reset"
   | "approval"
@@ -243,6 +277,7 @@ export type ThirdwebNormalizedFundingEvent = {
 export const PUBLIC_AGENT_ROUTES = {
   subscribe: "/public/subscribe",
   fundingIntents: "/public/funding-intents",
+  fundingIntentProof: "/public/funding-intents/proof",
   fundingIntentReceipt: "/public/funding-intents/:id",
   uploadSign: "/api/uploads/sign",
   thirdwebWebhook: "/webhooks/thirdweb",
@@ -423,7 +458,24 @@ export function createProviderProofRegistry(entries: readonly ProviderProofEntry
   };
 }
 
-export const PUBLIC_PROVIDER_PROOF_ENTRIES: readonly ProviderProofEntry[] = [];
+const GREENPILL_NYC_OCTANT_VAULT = "0xaC8F844CEA2Fd75B7A5514f11974895B334fd9A5" as const;
+const ETHEREUM_WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2" as const;
+
+export const PUBLIC_PROVIDER_PROOF_ENTRIES: readonly ProviderProofEntry[] = [
+  {
+    gardenKey: "greenpill-nyc",
+    destinationType: "vault",
+    destinationAddress: GREENPILL_NYC_OCTANT_VAULT,
+    fundingIntent: "endow",
+    paymentMethod: "card",
+    chainId: 1,
+    token: ETHEREUM_WETH,
+    provider: "thirdweb",
+    sourceRoute: "/vaults",
+    state: "live",
+    proofReference: "production:greenpill-nyc-card-endow-proof-route-2026-06-03",
+  },
+];
 export const publicProviderProofRegistry = createProviderProofRegistry(
   PUBLIC_PROVIDER_PROOF_ENTRIES
 );

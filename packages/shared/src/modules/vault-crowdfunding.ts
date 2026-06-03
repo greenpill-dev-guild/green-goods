@@ -465,13 +465,13 @@ export const OCTANT_VAULT_MANIFEST_FIELD_LABELS: Record<OctantVaultManifestField
 const greenpillNycPreviewCopy: OctantVaultCampaignCopy = {
   headline: "A dedicated vault for Greenpill NYC civic-tech funding.",
   summary:
-    "Greenpill NYC is the first pilot slot for the Octant V2 Ethereum vault crowdfunding demo.",
+    "Greenpill NYC is ready for production Card Endow testing through the Octant V2 Ethereum vault route.",
   fundingPurpose:
-    "The campaign is intended to fund local public-goods coordination while keeping the vault tuple explicit before transactions are enabled.",
+    "Fund local civic-tech coordination while keeping the exact Ethereum vault, WETH amount, and receiver wallet visible before any value moves.",
   recipientLogic:
-    "Recipient routing will be shown here once the deployed Octant V2 Ethereum vault manifest is recorded.",
+    "Card funding lands in the recovered email wallet first; that same user-owned wallet approves WETH and deposits into the Greenpill NYC vault for itself.",
   riskNote:
-    "Wallet Endow stays disabled until the chain, vault, asset, recipient routing, explorer link, and approved campaign copy are complete.",
+    "Live mainnet payment stays locked behind email wallet recovery, tuple confirmation, user-approved approve/deposit transactions, and positive share proof.",
 };
 
 const evmavericksPreviewCopy: OctantVaultCampaignCopy = {
@@ -512,6 +512,9 @@ export const OCTANT_VAULT_CAMPAIGN_MANIFEST = [
     routePath: "/vaults",
     targetProtocol: "octant-v2-ethereum",
     previewCopy: greenpillNycPreviewCopy,
+    campaignCopy: greenpillNycPreviewCopy,
+    recipientRoutingSummary:
+      "Greenpill NYC Card Endow funds the recovered Thirdweb email wallet with WETH, then that same wallet approves the vault and deposits WETH so vault shares remain with the recovered wallet receiver.",
     vault: {
       chainId: OCTANT_V2_ETHEREUM_CHAIN_ID,
       vaultAddress: "0xaC8F844CEA2Fd75B7A5514f11974895B334fd9A5",

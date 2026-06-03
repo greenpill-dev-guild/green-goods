@@ -13,19 +13,18 @@ Endow remains hidden until the implementation proves user-owned receiver custody
 visibility, withdrawal/manage availability, and strict provider/webhook verification. Public Donate
 and Card Donate remain deferred.
 
-As of `2026-06-03T01:16:11Z`, shared/API Card Endow readiness is implemented only where proof can
-be strict, and `/vaults?cardEndowQa=1` exposes a controlled Greenpill NYC human-QA browser path.
-Synthetic complete manifests can pass recovered-wallet receiver, share ownership, route-local
-manage/withdraw, route-scoped provider proof, webhook tuple checks, and a fallback plan where card
-funding lands in the user-owned recovered wallet before user-authorized `approve + deposit`. The
-production Thirdweb send-payment adapter still refuses Card Endow because generic send-payment
-checkout is not Card Endow proof. Current Thirdweb docs prove `TransactionWidget` can execute a
-prepared contract call with `erc20Value`, and separately document ERC20 approval helpers, but do not
-prove one smooth insufficient-allowance `approve + deposit` sequence for an ERC-4626 vault. Signed
-Thirdweb Bridge webhooks still verify timestamped payloads before receipt state changes. The default
-public route keeps the real Greenpill NYC and EVMavericks pilot fixtures transaction-blocked until
-the missing non-chain fields, live custody/share/manage proof, and provider proof are supplied.
-Greenpill NYC and EVMavericks also carry synthetic-safe preview copy for route browse QA, but those
+As of `2026-06-03T18:13:39Z`, shared/API Card Endow readiness is implemented only where proof can
+be strict, and default `/vaults` exposes a controlled Greenpill NYC human-QA browser path. Greenpill
+NYC can pass recovered-wallet receiver, share ownership, route-local manage/withdraw, route-scoped
+provider proof, proof-route recording, and a fallback plan where card funding lands in the user-owned
+recovered wallet before user-authorized `approve + deposit`. The production Thirdweb send-payment
+adapter still refuses Card Endow because generic send-payment checkout is not Card Endow proof.
+Current Thirdweb docs prove `TransactionWidget` can execute a prepared contract call with
+`erc20Value`, and separately document ERC20 approval helpers, but do not prove one smooth
+insufficient-allowance `approve + deposit` sequence for an ERC-4626 vault. Signed Thirdweb Bridge
+webhooks still verify timestamped payloads before receipt state changes. EVMavericks remains
+transaction-blocked until the missing non-chain fields, live custody/share/manage proof, and provider
+proof are supplied. EVMavericks carries synthetic-safe preview copy for route browse QA, but those
 fields intentionally remain separate from transaction-enabling `campaignCopy`,
 `recipientRoutingSummary`, and Protocol Guild destination context.
 
@@ -86,8 +85,8 @@ skill plus templates as the final project deliverable.
     full packaged app.
 18. The skill must include static and dry-run QA against Greenpill NYC, EVMavericks
     `blocked_pending_manifest`, and one synthetic complete manifest fixture.
-19. The Card Endow human-QA path must stay gated behind `/vaults?cardEndowQa=1` and must not expose
-    `Pay by card` on the default `/vaults` route.
+19. The Greenpill NYC Card Endow human-QA path must be available on default `/vaults`; incomplete
+    campaigns such as EVMavericks must not expose `Pay by card`.
 20. The Card Endow human-QA path must use Thirdweb email OTP/in-app wallet recovery only as the
     primary wallet path. Google, Apple, passkey, wallet extensions, and existing wallets are not
     required for this QA flow.
@@ -114,9 +113,9 @@ skill plus templates as the final project deliverable.
   user-approved session executes ERC20 `approve(vault, amount)` followed by vault
   `deposit(amount, receiverAddress)`, and shares are verified by
   `vault.balanceOf(receiverAddress) > 0`.
-- The current human-QA access path is `/vaults?cardEndowQa=1`. It appends a QA-only Greenpill NYC
-  Card Endow campaign fixture using the recorded Ethereum chain `1`, Greenpill NYC vault, and WETH
-  asset, while the default `/vaults` route remains generally hidden for Card Endow.
+- The current human-QA access path is default `/vaults`. It exposes the Greenpill NYC Card Endow
+  campaign using the recorded Ethereum chain `1`, Greenpill NYC vault, and WETH asset, while
+  incomplete campaigns remain hidden for Card Endow.
 - Campaign config must be manifest-driven: chain ID, vault address, asset address, asset symbol,
   decimals, display name, recipient/routing summary, explorer link, campaign copy, and optional
   indexer support.

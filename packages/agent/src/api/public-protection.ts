@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 export type PublicRouteClass =
   | "subscribe"
   | "funding_create"
+  | "funding_proof"
   | "receipt_read"
   | "upload_sign"
   | "webhook_pre"
@@ -33,6 +34,7 @@ export interface RateLimitResult {
 export const PUBLIC_RATE_LIMIT_POLICIES = {
   subscribe: { limit: 5, windowMs: 60 * 60 * 1000 },
   funding_create: { limit: 10, windowMs: 10 * 60 * 1000 },
+  funding_proof: { limit: 10, windowMs: 10 * 60 * 1000 },
   receipt_read: { limit: 60, windowMs: 10 * 60 * 1000 },
   upload_sign: { limit: 20, windowMs: 60 * 1000 },
   webhook_pre: { limit: 300, windowMs: 60 * 1000 },

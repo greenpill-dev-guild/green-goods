@@ -5,6 +5,7 @@ import {
   createPublicImpactSlice,
   derivePublicGardenSlug,
   PUBLIC_FUNDING_AVAILABILITY_REASON_SEMANTICS,
+  PUBLIC_AGENT_ROUTES,
   resolveFundGardenReference,
   type Address,
 } from "../public-contracts";
@@ -41,6 +42,13 @@ describe("@green-goods/shared/public-contracts", () => {
       })
     ).toBe(
       `v2:/vaults:${gardenA}:vault:0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:endow:card:11155111:${token}:thirdweb`
+    );
+  });
+
+  it("publishes a concrete funding-intent proof route instead of relying on the receipt wildcard", () => {
+    expect(PUBLIC_AGENT_ROUTES.fundingIntentProof).toBe("/public/funding-intents/proof");
+    expect(PUBLIC_AGENT_ROUTES.fundingIntentProof).not.toBe(
+      PUBLIC_AGENT_ROUTES.fundingIntentReceipt
     );
   });
 

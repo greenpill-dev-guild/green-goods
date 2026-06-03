@@ -4,7 +4,7 @@
  * @vitest-environment jsdom
  */
 
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
@@ -41,7 +41,9 @@ const thirdwebMocks = vi.hoisted(() => {
     preAuthenticate: vi.fn(async () => undefined),
     prepareContractCall: vi.fn((options: unknown) => ({ kind: "prepared", options })),
     readContract: vi.fn(async () => 12n),
-    sendAndConfirmTransaction: vi.fn(async () => ({ transactionHash: "0xreceipt" })),
+    sendAndConfirmTransaction: vi.fn(async () => ({
+      transactionHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    })),
     useConnectConnect: vi.fn(async (walletOrFn: unknown) => {
       if (typeof walletOrFn === "function") {
         return await (walletOrFn as () => Promise<unknown>)();
@@ -50,6 +52,10 @@ const thirdwebMocks = vi.hoisted(() => {
     }),
   };
 });
+
+const fetchMock = vi.hoisted(() => vi.fn());
+
+vi.stubGlobal("fetch", fetchMock);
 
 vi.mock("@green-goods/shared", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@green-goods/shared")>();
@@ -224,7 +230,43 @@ describe("VaultsPage", () => {
     thirdwebMocks.readContract.mockClear();
     thirdwebMocks.sendAndConfirmTransaction.mockClear();
     thirdwebMocks.useConnectConnect.mockClear();
+    vi.stubGlobal("fetch", fetchMock);
+    fetchMock.mockReset();
+    fetchMock.mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          ok: true,
+          id: "fi_card_endow_proof",
+          status: "funded",
+          provider: "thirdweb",
+          receiptUrl: "/vaults?intent=fi_card_endow_proof#receiptToken=tok_test",
+          publicReceipt: {
+            id: "fi_card_endow_proof",
+            status: "funded",
+            garden: { id: "greenpill-nyc", name: "Greenpill NYC" },
+            destination: {
+              type: "vault",
+              address: "0xaC8F844CEA2Fd75B7A5514f11974895B334fd9A5",
+            },
+            fundingIntent: "endow",
+            amount: {
+              amountUsd: "0",
+              token: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+              chainId: 1,
+              fundedAssetAmount: "10000000000000000",
+            },
+            fundingTxHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            receiverAddress: thirdwebMocks.receiverAddress,
+            updatedAt: "2026-06-03T00:00:00.000Z",
+            appManagementCta: "manage_endowments",
+            managementUrl: "/vaults?manage=positions",
+          },
+        }),
+        { status: 200, headers: { "content-type": "application/json" } }
+      )
+    );
     vi.stubEnv("VITE_THIRDWEB_CLIENT_ID", "test-thirdweb-client");
+    vi.stubEnv("VITE_API_BASE_URL", "https://agent.test");
   });
 
   it("renders the dedicated /vaults browse surface without wallet connection", () => {
@@ -242,15 +284,18 @@ describe("VaultsPage", () => {
     expect(screen.queryByTestId("wallet-runtime-provider")).not.toBeInTheDocument();
   });
 
-  it("shows blocked transaction controls for incomplete manifest fixtures", () => {
+  it("shows production Card Endow on Greenpill NYC and blocked controls for incomplete fixtures", () => {
     renderView();
 
     const nycCard = screen.getByTestId("vault-campaign-card-greenpill-nyc");
     const evmavericksCard = screen.getByTestId("vault-campaign-card-evmavericks");
 
     expect(
-      within(nycCard).getByRole("button", { name: "Wallet Endow unavailable for Greenpill NYC" })
-    ).toBeDisabled();
+      within(nycCard).getByRole("button", { name: "Choose amount for Greenpill NYC" })
+    ).toBeEnabled();
+    expect(
+      within(nycCard).getByRole("button", { name: "Pay by card for Greenpill NYC" })
+    ).toBeEnabled();
     expect(
       within(evmavericksCard).getByRole("button", {
         name: "Wallet Endow unavailable for EVMavericks Fantasy Football League",
@@ -263,16 +308,15 @@ describe("VaultsPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("keeps Donate, Card Donate, and hidden Card Endow labels out of the vault campaign route", () => {
+  it("keeps Donate and Card Donate labels out of the vault campaign route", () => {
     renderView();
 
     expect(screen.queryByText("Donate")).not.toBeInTheDocument();
     expect(screen.queryByText("Card Donate")).not.toBeInTheDocument();
-    expect(screen.queryByText(/Card Endow/i)).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Pay by card/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Pay by card for Greenpill NYC" })).toBeEnabled();
     expect(
       screen.getAllByText("Card funding stays hidden until the manifest and proof gates pass.")
-    ).toHaveLength(2);
+    ).toHaveLength(1);
   });
 
   it("enables amount selection for complete manifests without exposing Card Endow early", () => {
@@ -299,21 +343,15 @@ describe("VaultsPage", () => {
     expect(screen.queryByRole("button", { name: "Connect Wallet" })).not.toBeInTheDocument();
   });
 
-  it("exposes the Card Endow human-QA flow only on the QA-gated route", async () => {
+  it("exposes the Card Endow production flow on the default /vaults route and records proof", async () => {
     const user = userEvent.setup();
 
-    renderView("/vaults?cardEndowQa=1");
+    renderView();
 
-    expect(
-      screen.getByRole("heading", { name: "Greenpill NYC Card Endow QA" })
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Pay by card for Greenpill NYC Card Endow QA" })
-    ).toBeEnabled();
+    expect(screen.getByRole("heading", { name: "Greenpill NYC" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Pay by card for Greenpill NYC" })).toBeEnabled();
 
-    await user.click(
-      screen.getByRole("button", { name: "Pay by card for Greenpill NYC Card Endow QA" })
-    );
+    await user.click(screen.getByRole("button", { name: "Pay by card for Greenpill NYC" }));
     expect(await screen.findByTestId("vault-card-endow-panel")).toBeInTheDocument();
 
     await user.type(screen.getByLabelText("Amount"), "0.01");
@@ -332,7 +370,7 @@ describe("VaultsPage", () => {
     expect(thirdwebMocks.useConnectConnect).toHaveBeenCalledTimes(1);
 
     const tuple = await screen.findByTestId("vault-card-endow-tuple");
-    expect(tuple).toHaveTextContent("Greenpill NYC Card Endow QA");
+    expect(tuple).toHaveTextContent("Greenpill NYC");
     expect(tuple).toHaveTextContent(thirdwebMocks.receiverAddress);
     expect(tuple).toHaveTextContent("Ethereum chain 1");
     expect(tuple).toHaveTextContent("0xaC8F844CEA2Fd75B7A5514f11974895B334fd9A5");
@@ -369,6 +407,12 @@ describe("VaultsPage", () => {
     );
 
     await user.click(screen.getByRole("button", { name: "Deposit to receiver" }));
+    await waitFor(() => expect(thirdwebMocks.sendAndConfirmTransaction).toHaveBeenCalledTimes(2));
+    await expect(
+      thirdwebMocks.sendAndConfirmTransaction.mock.results[1]?.value
+    ).resolves.toMatchObject({
+      transactionHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    });
     expect(thirdwebMocks.prepareContractCall).toHaveBeenCalledWith(
       expect.objectContaining({
         method: "function deposit(uint256 assets, address receiver) returns (uint256)",
@@ -385,17 +429,44 @@ describe("VaultsPage", () => {
         "Verified positive vault.balanceOf(receiver): 12 shares are visible for the recovered wallet."
       )
     ).toBeInTheDocument();
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://agent.test/public/funding-intents/proof",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({ "content-type": "application/json" }),
+      })
+    );
+    const proofBody = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
+    expect(proofBody).toMatchObject({
+      gardenId: "greenpill-nyc",
+      gardenName: "Greenpill NYC",
+      destinationType: "vault",
+      destinationAddress: "0xaC8F844CEA2Fd75B7A5514f11974895B334fd9A5",
+      fundingIntent: "endow",
+      paymentMethod: "card",
+      provider: "thirdweb",
+      sourceRoute: "/vaults",
+      chainId: 1,
+      token: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+      amount: "10000000000000000",
+      receiverAddress: thirdwebMocks.receiverAddress,
+      receiverCustody: "user_owned_recovered_wallet",
+      transactionHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      shareBalance: "12",
+    });
+    expect(
+      await screen.findByText("Funding proof recorded for the recovered wallet receipt.")
+    ).toBeInTheDocument();
   });
 
   it("does not let an existing active wallet bypass email-wallet recovery for Card Endow QA", async () => {
     const user = userEvent.setup();
     thirdwebMocks.activeAccount = { address: "0x5555555555555555555555555555555555555555" };
 
-    renderView("/vaults?cardEndowQa=1");
+    renderView();
 
-    await user.click(
-      screen.getByRole("button", { name: "Pay by card for Greenpill NYC Card Endow QA" })
-    );
+    await user.click(screen.getByRole("button", { name: "Pay by card for Greenpill NYC" }));
     await user.type(screen.getByLabelText("Amount"), "0.01");
 
     expect(screen.queryByTestId("vault-card-endow-tuple")).not.toBeInTheDocument();

@@ -1,4 +1,9 @@
 import {
+  buildPublicFundingAvailabilityKey,
+  PUBLIC_AGENT_ROUTES,
+  type SubmitFundingIntentProofResponse,
+} from "@green-goods/shared/public-contracts";
+import {
   prepareOctantVaultCardEndowFallbackPlan,
   type Address,
   type OctantVaultCardEndowFallbackPlan,
@@ -24,6 +29,10 @@ import {
 import { inAppWallet, preAuthenticate } from "thirdweb/wallets/in-app";
 import { formatUnits, isAddress, parseUnits } from "viem";
 import { EditorialKicker } from "@/components/Public/atoms";
+
+function getAgentApiBaseUrl(): string {
+  return import.meta.env.VITE_API_BASE_URL || "";
+}
 
 function getThirdwebClientId(): string {
   return import.meta.env.VITE_THIRDWEB_CLIENT_ID?.trim() ?? "";
@@ -72,6 +81,14 @@ function formatProviderFlow(
   return flow;
 }
 
+function getTransactionHash(result: unknown): `0x${string}` | null {
+  if (!result || typeof result !== "object") return null;
+  const candidate = (result as { transactionHash?: unknown }).transactionHash;
+  return typeof candidate === "string" && candidate.startsWith("0x")
+    ? (candidate as `0x${string}`)
+    : null;
+}
+
 export interface CardEndowPanelProps {
   campaign: OctantVaultCampaignManifest;
   onClose: () => void;
@@ -96,7 +113,7 @@ export default function CardEndowPanel({ campaign, onClose }: CardEndowPanelProp
           <EditorialKicker className="mb-3">
             {formatMessage({
               id: "public.vaults.cardEndow.kicker",
-              defaultMessage: "Card Endow QA",
+              defaultMessage: "Card Endow",
             })}
           </EditorialKicker>
           <h3
@@ -113,7 +130,7 @@ export default function CardEndowPanel({ campaign, onClose }: CardEndowPanelProp
               {
                 id: "public.vaults.cardEndow.body",
                 defaultMessage:
-                  "This QA flow creates or recovers a user-owned Thirdweb email wallet, funds that wallet by card, then asks that same wallet to approve and deposit into {campaign}.",
+                  "This flow creates or recovers a user-owned Thirdweb email wallet, funds that wallet by card, then asks that same wallet to approve and deposit into {campaign}.",
               },
               { campaign: campaign.displayName }
             )}
@@ -140,7 +157,7 @@ export default function CardEndowPanel({ campaign, onClose }: CardEndowPanelProp
           {formatMessage({
             id: "public.vaults.cardEndow.missingClientId",
             defaultMessage:
-              "Thirdweb email wallet QA requires VITE_THIRDWEB_CLIENT_ID before starting the client.",
+              "Thirdweb email wallet recovery requires VITE_THIRDWEB_CLIENT_ID before starting the client.",
           })}
         </p>
       )}
@@ -171,7 +188,12 @@ function CardEndowProviderContent({
   const [cardFundingStatus, setCardFundingStatus] = useState<"idle" | "funded">("idle");
   const [approvalStatus, setApprovalStatus] = useState<"idle" | "approved">("idle");
   const [depositStatus, setDepositStatus] = useState<"idle" | "deposited">("idle");
+  const [depositTxHash, setDepositTxHash] = useState<`0x${string}` | null>(null);
   const [shareBalance, setShareBalance] = useState<bigint | null>(null);
+  const [proofStatus, setProofStatus] = useState<"idle" | "submitting" | "recorded" | "error">(
+    "idle"
+  );
+  const [proofError, setProofError] = useState<string | null>(null);
   const [flowError, setFlowError] = useState<string | null>(null);
   const { connect, error: connectError, isConnecting } = useConnect();
   const sendAndConfirmTransaction = useSendAndConfirmTransaction({ payModal: false });
@@ -239,7 +261,10 @@ function CardEndowProviderContent({
     setCardFundingStatus("idle");
     setApprovalStatus("idle");
     setDepositStatus("idle");
+    setDepositTxHash(null);
     setShareBalance(null);
+    setProofStatus("idle");
+    setProofError(null);
     setFlowError(null);
   }, [campaign.slug]);
 
@@ -248,7 +273,10 @@ function CardEndowProviderContent({
     setCardFundingStatus("idle");
     setApprovalStatus("idle");
     setDepositStatus("idle");
+    setDepositTxHash(null);
     setShareBalance(null);
+    setProofStatus("idle");
+    setProofError(null);
   }, [amountInput, recoveredWalletAddress]);
 
   const handleSendEmailCode = useCallback(
@@ -301,8 +329,8 @@ function CardEndowProviderContent({
     [canVerifyEmailWallet, chain, client, connect, emailInput, otpInput]
   );
 
-  const readShareBalance = useCallback(async () => {
-    if (!plan) return;
+  const readShareBalance = useCallback(async (): Promise<bigint | null> => {
+    if (!plan) return null;
 
     const vaultContract = getContract({
       client,
@@ -316,7 +344,77 @@ function CardEndowProviderContent({
     });
     const shares = typeof result === "bigint" ? result : BigInt(String(result ?? "0"));
     setShareBalance(shares);
+    return shares;
   }, [chain, client, plan]);
+
+  const submitFundingProof = useCallback(
+    async (transactionHash: `0x${string}`, shares: bigint) => {
+      if (!plan || !campaign.vault?.asset || shares <= 0n) return;
+
+      setProofStatus("submitting");
+      setProofError(null);
+      const availabilityKey = buildPublicFundingAvailabilityKey({
+        gardenKey: campaign.slug,
+        destinationType: "vault",
+        destinationAddress: plan.receiptExpectation.expectedVaultAddress,
+        fundingIntent: "endow",
+        paymentMethod: "card",
+        chainId: plan.cardFunding.chainId,
+        token: plan.receiptExpectation.expectedTokenAddress,
+        provider: "thirdweb",
+        sourceRoute: "/vaults",
+      });
+
+      try {
+        const response = await fetch(
+          `${getAgentApiBaseUrl()}${PUBLIC_AGENT_ROUTES.fundingIntentProof}`,
+          {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              gardenId: campaign.slug,
+              gardenName: campaign.displayName,
+              destinationType: "vault",
+              destinationAddress: plan.receiptExpectation.expectedVaultAddress,
+              fundingIntent: "endow",
+              paymentMethod: "card",
+              provider: "thirdweb",
+              sourceRoute: "/vaults",
+              chainId: plan.cardFunding.chainId,
+              token: plan.receiptExpectation.expectedTokenAddress,
+              availabilityKey,
+              clientRequestId: [
+                "card-endow-proof",
+                campaign.slug,
+                plan.receiptExpectation.receiverAddress,
+                transactionHash,
+              ].join(":"),
+              receiverAddress: plan.receiptExpectation.receiverAddress,
+              receiverCustody: "user_owned_recovered_wallet",
+              amount: plan.receiptExpectation.expectedAmount,
+              transactionHash,
+              shareBalance: shares.toString(),
+              payerEmail: emailInput.trim() || undefined,
+              locale: "en",
+            }),
+          }
+        );
+        const json = (await response.json()) as SubmitFundingIntentProofResponse;
+        if (!response.ok || !("ok" in json) || !json.ok) {
+          throw new Error(
+            "message" in json ? json.message : "Funding proof could not be recorded."
+          );
+        }
+        setProofStatus("recorded");
+      } catch (error) {
+        setProofStatus("error");
+        setProofError(
+          error instanceof Error ? error.message : "Funding proof could not be recorded."
+        );
+      }
+    },
+    [campaign.displayName, campaign.slug, campaign.vault?.asset, emailInput, plan]
+  );
 
   const handleApprove = useCallback(async () => {
     if (!plan || !canAuthorizeApproval) return;
@@ -357,13 +455,38 @@ function CardEndowProviderContent({
         params: [BigInt(plan.cardFunding.amount), plan.receiptExpectation.receiverAddress],
       });
 
-      await sendAndConfirmTransaction.mutateAsync(transaction);
+      const result = await sendAndConfirmTransaction.mutateAsync(transaction);
+      const txHash = getTransactionHash(result);
+      setDepositTxHash(txHash);
       setDepositStatus("deposited");
-      await readShareBalance();
+      const shares = await readShareBalance();
+      if (txHash !== null && shares !== null && shares > 0n) {
+        await submitFundingProof(txHash, shares);
+      }
     } catch (error) {
       setFlowError(error instanceof Error ? error.message : "Vault deposit failed.");
     }
-  }, [canAuthorizeDeposit, chain, client, plan, readShareBalance, sendAndConfirmTransaction]);
+  }, [
+    canAuthorizeDeposit,
+    chain,
+    client,
+    plan,
+    readShareBalance,
+    sendAndConfirmTransaction,
+    submitFundingProof,
+  ]);
+
+  useEffect(() => {
+    if (
+      depositTxHash === null ||
+      !hasPositiveShares ||
+      shareBalance === null ||
+      proofStatus !== "idle"
+    ) {
+      return;
+    }
+    void submitFundingProof(depositTxHash, shareBalance);
+  }, [depositTxHash, hasPositiveShares, proofStatus, shareBalance, submitFundingProof]);
 
   return (
     <div className="mt-6 grid gap-6">
@@ -741,16 +864,43 @@ function CardEndowProviderContent({
       ) : null}
 
       {hasPositiveShares ? (
-        <p className="rounded-2xl bg-primary-action/10 p-4 text-sm leading-[1.55] text-primary-base">
-          {formatMessage(
-            {
-              id: "public.vaults.cardEndow.positiveShares",
-              defaultMessage:
-                "Verified positive vault.balanceOf(receiver): {shares} shares are visible for the recovered wallet.",
-            },
-            { shares: shareBalance?.toString() ?? "0" }
-          )}
-        </p>
+        <div className="grid gap-3">
+          <p className="rounded-2xl bg-primary-action/10 p-4 text-sm leading-[1.55] text-primary-base">
+            {formatMessage(
+              {
+                id: "public.vaults.cardEndow.positiveShares",
+                defaultMessage:
+                  "Verified positive vault.balanceOf(receiver): {shares} shares are visible for the recovered wallet.",
+              },
+              { shares: shareBalance?.toString() ?? "0" }
+            )}
+          </p>
+          {proofStatus === "submitting" ? (
+            <p className="rounded-2xl bg-bg-weak-50 p-4 text-sm leading-[1.55] text-text-sub-600">
+              {formatMessage({
+                id: "public.vaults.cardEndow.proofSubmitting",
+                defaultMessage: "Recording funding proof with the Green Goods agent...",
+              })}
+            </p>
+          ) : null}
+          {proofStatus === "recorded" ? (
+            <p className="rounded-2xl bg-primary-action/10 p-4 text-sm leading-[1.55] text-primary-base">
+              {formatMessage({
+                id: "public.vaults.cardEndow.proofRecorded",
+                defaultMessage: "Funding proof recorded for the recovered wallet receipt.",
+              })}
+            </p>
+          ) : null}
+          {proofStatus === "error" ? (
+            <p className="rounded-2xl bg-error-lighter/30 p-4 text-sm leading-[1.55] text-error-base">
+              {proofError ??
+                formatMessage({
+                  id: "public.vaults.cardEndow.proofFailed",
+                  defaultMessage: "Funding proof could not be recorded.",
+                })}
+            </p>
+          ) : null}
+        </div>
       ) : shareBalance !== null ? (
         <p className="rounded-2xl bg-error-lighter/30 p-4 text-sm leading-[1.55] text-error-base">
           {formatMessage({
