@@ -301,6 +301,24 @@ describe("public funding intent API", () => {
     expect(response.headers.get("access-control-allow-headers")).toContain("Content-Type");
   });
 
+  it("answers funding-intent CORS preflight for owned Vercel previews", async () => {
+    const { app } = createFundingApp();
+    const previewOrigin =
+      "https://green-goods-git-feature-nyc-vault-crow-880636-greenpilldevguild.vercel.app";
+
+    const response = await app.request(PUBLIC_AGENT_ROUTES.fundingIntents, {
+      method: "OPTIONS",
+      headers: {
+        origin: previewOrigin,
+        "access-control-request-method": "POST",
+        "access-control-request-headers": "content-type",
+      },
+    });
+
+    expect(response.status).toBe(204);
+    expect(response.headers.get("access-control-allow-origin")).toBe(previewOrigin);
+  });
+
   it("rejects funding-intent CORS preflight for untrusted origins", async () => {
     const { app } = createFundingApp();
 
@@ -308,6 +326,23 @@ describe("public funding intent API", () => {
       method: "OPTIONS",
       headers: {
         origin: "https://evil.example",
+        "access-control-request-method": "POST",
+        "access-control-request-headers": "content-type",
+      },
+    });
+
+    expect(response.status).toBe(403);
+    expect(response.headers.get("access-control-allow-origin")).toBeNull();
+    expect((await response.json()).errorCode).toBe("origin_not_allowed");
+  });
+
+  it("rejects funding-intent CORS preflight for unrelated Vercel origins", async () => {
+    const { app } = createFundingApp();
+
+    const response = await app.request(PUBLIC_AGENT_ROUTES.fundingIntents, {
+      method: "OPTIONS",
+      headers: {
+        origin: "https://green-goods-8bccw8q6a-attacker.vercel.app",
         "access-control-request-method": "POST",
         "access-control-request-headers": "content-type",
       },

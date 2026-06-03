@@ -120,8 +120,22 @@ export function parseAllowedOrigins(value?: string): Set<string> {
   );
 }
 
+function isGreenGoodsVercelPreviewOrigin(origin: string): boolean {
+  try {
+    const { hostname, protocol } = new URL(origin);
+    if (protocol !== "https:") return false;
+    return /^green-goods(?:-[a-z0-9-]+)?-greenpilldevguild\.vercel\.app$/.test(
+      hostname.toLowerCase()
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function isOriginAllowed(request: Request, allowedOrigins: Set<string>): boolean {
   if (allowedOrigins.size === 0) return false;
   const origin = normalizePublicOrigin(request.headers.get("origin"));
-  return origin !== "none" && allowedOrigins.has(origin);
+  return (
+    origin !== "none" && (allowedOrigins.has(origin) || isGreenGoodsVercelPreviewOrigin(origin))
+  );
 }
