@@ -1,6 +1,8 @@
 # syntax=docker/dockerfile:1
 
-FROM oven/bun:1 AS base
+ARG BUN_VERSION=1.3.10
+
+FROM oven/bun:${BUN_VERSION} AS base
 WORKDIR /app
 
 # Workspace manifests, runtime package sources, and postinstall helper.
@@ -30,7 +32,7 @@ RUN --mount=type=secret,id=SENTRY_AUTH_TOKEN \
     fi && \
     find packages/agent/dist -name '*.map' -delete
 
-FROM oven/bun:1 AS prod-deps
+FROM oven/bun:${BUN_VERSION} AS prod-deps
 WORKDIR /app
 
 COPY package.json bun.lock ./
@@ -42,7 +44,7 @@ COPY scripts ./scripts
 
 RUN bun install --frozen-lockfile --production --filter @green-goods/agent
 
-FROM oven/bun:1-slim AS runner
+FROM oven/bun:${BUN_VERSION}-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 

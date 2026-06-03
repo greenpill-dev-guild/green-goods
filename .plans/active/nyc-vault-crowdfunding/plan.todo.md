@@ -216,7 +216,8 @@
 - [x] Targeted agent tests prove the current Thirdweb send-payment adapter refuses Card Endow
   until a contract-call checkout path is proven
 - [x] Targeted agent tests cover public funding-intent CORS preflight, CORS headers on checkout
-  responses, route-local receipt preflight, and receipt CORS headers
+  responses, route-local receipt preflight, receipt CORS headers, and Fly Dockerfile deployment
+  hardening with the repo Bun version pinned
 - [ ] Targeted agent log snapshot coverage for redacted provider logs
 - [x] Refresh browser proof for final public `/vaults` demo on desktop and mobile
 - [ ] `octant-vault-crowdfunding` skill static checks: `bun run check:skills` after the later skill artifact is created and mirrored
