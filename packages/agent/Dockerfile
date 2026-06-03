@@ -7,11 +7,14 @@ WORKDIR /app
 
 # Workspace manifests, runtime package sources, and postinstall helper.
 COPY package.json bun.lock ./
+COPY packages/admin/package.json ./packages/admin/package.json
 COPY packages/agent ./packages/agent
+COPY packages/client/package.json ./packages/client/package.json
 COPY packages/shared ./packages/shared
 COPY packages/contracts/package.json ./packages/contracts/package.json
 COPY packages/contracts/deployments ./packages/contracts/deployments
 COPY packages/contracts/abis ./packages/contracts/abis
+COPY packages/indexer/package.json ./packages/indexer/package.json
 COPY docs/package.json ./docs/package.json
 COPY scripts ./scripts
 
@@ -36,9 +39,12 @@ FROM oven/bun:${BUN_VERSION} AS prod-deps
 WORKDIR /app
 
 COPY package.json bun.lock ./
+COPY packages/admin/package.json ./packages/admin/package.json
 COPY packages/agent/package.json ./packages/agent/package.json
+COPY packages/client/package.json ./packages/client/package.json
 COPY packages/shared/package.json ./packages/shared/package.json
 COPY packages/contracts/package.json ./packages/contracts/package.json
+COPY packages/indexer/package.json ./packages/indexer/package.json
 COPY docs/package.json ./docs/package.json
 COPY scripts ./scripts
 
