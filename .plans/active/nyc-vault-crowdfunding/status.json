@@ -1054,6 +1054,14 @@
       "status": "preview_agent_cors_and_fly_image_hardened",
       "branch": "feature/nyc-vault-crowdfunding",
       "note": "Hardened the agent API/deploy boundary after the first preview/Fly attempt: public funding-intent and route-local receipt endpoints now answer allowed-origin CORS preflight/response headers, receipt reads allow X-GG-Receipt-Token, and packages/agent/Dockerfile uses the full workspace dev type graph for the build stage while copying only the production-filtered agent runtime graph into the release image. Targeted agent public API/funding tests, agent typecheck, and agent build pass locally."
+    },
+    {
+      "timestamp": "2026-06-03T04:34:44Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "fly_runtime_export_fix_recorded",
+      "branch": "feature/nyc-vault-crowdfunding",
+      "note": "Fly release v106 built and pushed but failed smoke checks because runtime node_modules could not resolve @green-goods/shared/public-contracts. Restored production to the last complete v105 image, then hardened packages/agent/Dockerfile so the production dependency stage includes shared source and contract runtime artifacts before the filtered install."
     }
   ],
   "linear": {

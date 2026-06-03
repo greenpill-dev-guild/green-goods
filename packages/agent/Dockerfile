@@ -43,14 +43,16 @@ COPY package.json bun.lock ./
 COPY packages/admin/package.json ./packages/admin/package.json
 COPY packages/agent/package.json ./packages/agent/package.json
 COPY packages/client/package.json ./packages/client/package.json
-COPY packages/shared/package.json ./packages/shared/package.json
+COPY packages/shared ./packages/shared
 COPY packages/contracts/package.json ./packages/contracts/package.json
+COPY packages/contracts/deployments ./packages/contracts/deployments
+COPY packages/contracts/abis ./packages/contracts/abis
 COPY packages/indexer/package.json ./packages/indexer/package.json
 COPY docs/package.json ./docs/package.json
 COPY scripts ./scripts
 
-# Use the complete top-level workspace manifest set above so Bun can resolve
-# the filtered production graph without rewriting bun.lock.
+# Include runtime workspace source packages before the production install so
+# Bun's linked node_modules graph can resolve package export subpaths.
 RUN bun install --frozen-lockfile --production --filter @green-goods/agent
 
 FROM oven/bun:${BUN_VERSION}-slim AS runner
