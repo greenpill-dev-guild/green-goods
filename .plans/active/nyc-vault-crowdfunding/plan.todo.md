@@ -217,7 +217,7 @@
   until a contract-call checkout path is proven
 - [x] Targeted agent tests cover public funding-intent CORS preflight, CORS headers on checkout
   responses, route-local receipt preflight, receipt CORS headers, and Fly Dockerfile deployment
-  hardening with the repo Bun version pinned
+  hardening with a frozen filtered agent graph that avoids production-install lockfile drift
 - [ ] Targeted agent log snapshot coverage for redacted provider logs
 - [x] Refresh browser proof for final public `/vaults` demo on desktop and mobile
 - [ ] `octant-vault-crowdfunding` skill static checks: `bun run check:skills` after the later skill artifact is created and mirrored
