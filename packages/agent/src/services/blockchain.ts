@@ -4,8 +4,6 @@
  * Direct blockchain operations. No interface abstraction.
  */
 
-import { submitApprovalBot, submitWorkBot } from "@green-goods/shared";
-
 /**
  * Minimal GardenAccount ABI for agent verification functions.
  *
@@ -137,6 +135,7 @@ class Blockchain {
   // ==========================================================================
 
   async submitWork(params: SubmitWorkParams): Promise<Hex> {
+    const { submitWorkBot } = await import("@green-goods/shared/modules/work/bot-submission");
     const account = privateKeyToAccount(params.privateKey);
 
     const walletClient = createWalletClient({
@@ -170,6 +169,7 @@ class Blockchain {
   }
 
   async submitApproval(params: SubmitApprovalParams): Promise<Hex> {
+    const { submitApprovalBot } = await import("@green-goods/shared/modules/work/bot-submission");
     const account = privateKeyToAccount(params.privateKey);
 
     const walletClient = createWalletClient({

@@ -5,7 +5,7 @@
  * Uses getDefaultChain from shared package for chain configuration.
  */
 
-import { getDefaultChain } from "@green-goods/shared";
+import { getDefaultChain } from "@green-goods/shared/config/blockchain";
 import type { Chain } from "viem";
 import { arbitrum, celo, optimism, sepolia } from "viem/chains";
 import { logger } from "./services/logger";
