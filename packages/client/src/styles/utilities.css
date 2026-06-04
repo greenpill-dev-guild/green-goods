@@ -78,3 +78,10 @@
     height: 100dvh;
   }
 }
+
+/* Vault checkout is a transaction workspace; keep its sheet square even though
+   shared DialogShell defaults to rounded mobile/desktop surfaces. This must stay
+   outside @layer utilities so it wins over shared's unlayered attribute rules. */
+[data-component="DialogShell"][data-slot="surface"].vault-checkout-surface {
+  border-radius: 0;
+}

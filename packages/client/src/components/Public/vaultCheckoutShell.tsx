@@ -1,0 +1,144 @@
+import { RiCheckLine } from "@remixicon/react";
+import type { ReactNode } from "react";
+import { useIntl } from "react-intl";
+
+/**
+ * Shared layout + control primitives for the /vaults checkout sheet.
+ *
+ * Both the dialog shell (amount/method + wallet path) and the lazily-loaded Card
+ * Endow flow render as a `CheckoutScreen`: a scrollable body with a pinned footer
+ * inside the fixed-height `DialogShell`. Controls are square per the
+ * transaction-flow treatment — these classes are scoped to the vault checkout and
+ * do not touch the global editorial CTA atoms.
+ */
+
+export type CheckoutMethod = "card" | "wallet";
+
+// Square transaction controls (no rounded capsules inside the checkout).
+export const CHECKOUT_PRIMARY_BUTTON =
+  "inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-none bg-text-strong-950 px-6 py-3 text-sm font-semibold text-static-white transition-colors disabled:cursor-not-allowed disabled:bg-stroke-soft-200 disabled:text-text-soft-400";
+
+export const CHECKOUT_GHOST_BUTTON =
+  "inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-none border border-stroke-soft-200 bg-bg-white-0 px-6 py-3 text-sm font-semibold text-text-sub-600 transition-colors hover:bg-bg-weak-50 disabled:cursor-not-allowed disabled:bg-stroke-soft-200 disabled:text-text-soft-400";
+
+export const CHECKOUT_INPUT =
+  "w-full rounded-none border border-stroke-soft-200 bg-bg-white-0 px-4 py-3 text-base text-text-strong-950 outline-none transition-colors placeholder:text-text-soft-400 focus:border-primary-action disabled:cursor-not-allowed disabled:bg-bg-weak-50 disabled:text-text-soft-400";
+
+export const CHECKOUT_FIELD_LABEL =
+  "block font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400";
+
+/**
+ * One checkout step: a scrollable body region with an optional footer pinned to
+ * the bottom of the fixed-height sheet. Fills its flex parent (the DialogShell
+ * body, which the dialog flattens to a flex column).
+ */
+export function CheckoutScreen({ children, footer }: { children: ReactNode; footer?: ReactNode }) {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">{children}</div>
+      {footer ? (
+        <div className="shrink-0 border-t border-stroke-soft-200 bg-bg-white-0 px-4 py-4 sm:px-6">
+          {footer}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export interface CheckoutSummaryItem {
+  label: string;
+  value: ReactNode;
+  /** Render the value in a mono, break-all treatment (addresses). */
+  mono?: boolean;
+}
+
+/**
+ * Compact, read-only strip of decisions already made (amount, method, email,
+ * receiver). Replaces keeping full previous sections visible; an optional Edit
+ * affordance lets the user step back while the value path is still unlocked.
+ */
+export function CheckoutSummary({
+  items,
+  onEdit,
+  editLabel,
+}: {
+  items: CheckoutSummaryItem[];
+  onEdit?: () => void;
+  editLabel?: string;
+}) {
+  const { formatMessage } = useIntl();
+  return (
+    <div className="rounded-none border border-stroke-soft-200 bg-bg-weak-50 px-4 py-3">
+      <div className="flex items-start justify-between gap-3">
+        <dl className="grid min-w-0 flex-1 gap-x-4 gap-y-2 sm:grid-cols-2">
+          {items.map((item) => (
+            <div key={item.label} className="min-w-0">
+              <dt className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-soft-400">
+                {item.label}
+              </dt>
+              <dd
+                className={
+                  item.mono
+                    ? "mt-0.5 break-all font-mono text-xs text-text-sub-600"
+                    : "mt-0.5 text-sm text-text-strong-950"
+                }
+              >
+                {item.value}
+              </dd>
+            </div>
+          ))}
+        </dl>
+        {onEdit ? (
+          <button
+            type="button"
+            onClick={onEdit}
+            className="shrink-0 rounded-none px-2 py-1 text-xs font-semibold text-primary-base underline-offset-2 transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-1"
+          >
+            {editLabel ??
+              formatMessage({ id: "public.vaults.checkout.edit", defaultMessage: "Edit" })}
+          </button>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+/** Method choice tile — squared, with a non-color selected cue (check + ring). */
+export function CheckoutMethodTile({
+  method,
+  label,
+  subtitle,
+  selected,
+  disabled,
+  onSelect,
+}: {
+  method: CheckoutMethod;
+  label: string;
+  subtitle: string;
+  selected: boolean;
+  disabled: boolean;
+  onSelect: (method: CheckoutMethod) => void;
+}) {
+  return (
+    <button
+      type="button"
+      data-testid={`vault-checkout-method-${method}`}
+      onClick={() => onSelect(method)}
+      aria-pressed={selected}
+      disabled={disabled}
+      className={`flex items-start justify-between gap-2 rounded-none border px-4 py-3 text-left transition-colors ${
+        selected
+          ? "border-primary-action bg-editorial-warm ring-1 ring-primary-action"
+          : "border-stroke-soft-200 bg-bg-white-0 hover:bg-editorial-warm/40"
+      } disabled:cursor-not-allowed disabled:opacity-60`}
+    >
+      <span className="flex flex-col gap-0.5">
+        <span className="font-serif text-base text-text-strong-950">{label}</span>
+        <span className="text-[11px] text-text-soft-400">{subtitle}</span>
+      </span>
+      {selected ? (
+        <RiCheckLine className="mt-0.5 h-4 w-4 shrink-0 text-primary-base" aria-hidden />
+      ) : null}
+    </button>
+  );
+}

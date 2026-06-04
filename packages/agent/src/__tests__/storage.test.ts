@@ -394,8 +394,8 @@ describe("Chat Message Capture", () => {
       buildChatMessageInput({ id: `claim-${Date.now()}`, messageId: `${Date.now()}-claim` })
     );
 
-    await expect(db.claimChatMessage(stored.id, Date.now() - 1)).resolves.toBe(true);
-    await expect(db.claimChatMessage(stored.id, Date.now() - 1)).resolves.toBe(false);
+    await expect(db.claimChatMessage(stored.id, 900, 1000)).resolves.toBe(true);
+    await expect(db.claimChatMessage(stored.id, 900, 1001)).resolves.toBe(false);
 
     const processing = await db.getNewChatMessages({
       chatId: stored.chatId,

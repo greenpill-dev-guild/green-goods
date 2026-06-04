@@ -1,4 +1,6 @@
 import {
+  DialogShell,
+  getOctantVaultCampaignTransactionState,
   prepareOctantVaultWalletEndow,
   type OctantVaultCampaignManifest,
   useAuth,
@@ -6,22 +8,19 @@ import {
   useUser,
   validateDecimalInput,
 } from "@green-goods/shared";
-import { RiCloseLine } from "@remixicon/react";
-import {
-  type FormEvent,
-  lazy,
-  Suspense,
-  useCallback,
-  useEffect,
-  useId,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { lazy, Suspense, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits, parseUnits } from "viem";
-import { EditorialKicker } from "@/components/Public/atoms";
 import WalletRuntimeProviders from "@/routes/WalletRuntimeProviders";
+import {
+  CHECKOUT_FIELD_LABEL,
+  CHECKOUT_GHOST_BUTTON,
+  CHECKOUT_PRIMARY_BUTTON,
+  type CheckoutMethod,
+  CheckoutMethodTile,
+  CheckoutScreen,
+  CheckoutSummary,
+} from "./vaultCheckoutShell";
 
 /**
  * The only campaign vetted for production Card Endow. Other complete manifests
@@ -39,7 +38,6 @@ function isProductionCardEndowCampaign(campaign: OctantVaultCampaignManifest): b
 // never pull it into the main chunk.
 const VaultCardEndowFlow = lazy(() => import("./VaultCardEndowFlow"));
 
-type CheckoutMethod = "card" | "wallet";
 export interface VaultCheckoutGuardState {
   inputsLocked: boolean;
   closeLocked: boolean;
@@ -49,6 +47,8 @@ const UNLOCKED_CHECKOUT_GUARD: VaultCheckoutGuardState = {
   inputsLocked: false,
   closeLocked: false,
 };
+
+type VaultCheckoutPhase = "amount" | "method" | "pay";
 
 function getAmountErrorMessage(
   formatMessage: ReturnType<typeof useIntl>["formatMessage"],
@@ -81,21 +81,25 @@ export interface VaultCheckoutDialogProps {
 }
 
 /**
- * VaultCheckoutDialog — single guided checkout for one Octant vault campaign,
- * mirroring the /fund PublicFundingCard anatomy (overlay, mono kicker, editorial
- * serif heading, amount-first, method picker as visual cards). Amount is entered
- * once and shared by both payment paths; the Card path only appears for the
- * production campaign and only after a valid amount.
+ * VaultCheckoutDialog — a fixed-height checkout sheet (shared `DialogShell`) for
+ * one Octant vault campaign. It renders one focused step at a time with a pinned
+ * footer action and a compact summary of decisions already made:
+ *   amount → method → wallet path | card path.
+ * Amount-first stays strict (no method before a valid amount); the Card path only
+ * appears for the production campaign when the manifest is transaction-ready.
+ * Payment-path components own their own authoritative state and report a lock
+ * guard up so the sheet can prevent edits and close while a transaction is in
+ * flight.
  */
 export function VaultCheckoutDialog({ campaign, onClose }: VaultCheckoutDialogProps) {
   const { formatMessage } = useIntl();
-  const titleId = useId();
   const amountInputId = useId();
   const amountHelpId = useId();
   const amountErrorId = useId();
   const amountRef = useRef<HTMLInputElement>(null);
   const [amountInput, setAmountInput] = useState("");
   const [selectedMethod, setSelectedMethod] = useState<CheckoutMethod | null>(null);
+  const [phase, setPhase] = useState<VaultCheckoutPhase>("amount");
   const [checkoutGuard, setCheckoutGuard] =
     useState<VaultCheckoutGuardState>(UNLOCKED_CHECKOUT_GUARD);
 
@@ -108,7 +112,6 @@ export function VaultCheckoutDialog({ campaign, onClose }: VaultCheckoutDialogPr
   const parsedAmount = useMemo(() => {
     const trimmed = amountInput.trim();
     if (!trimmed || validationKey) return null;
-
     try {
       return parseUnits(trimmed, decimals);
     } catch {
@@ -117,245 +120,311 @@ export function VaultCheckoutDialog({ campaign, onClose }: VaultCheckoutDialogPr
   }, [amountInput, decimals, validationKey]);
   const hasReadyAmount = typeof parsedAmount === "bigint" && parsedAmount > 0n;
 
-  // Card stays gated to the production campaign; every other complete manifest
-  // offers Wallet only, so an un-reviewed vault never surfaces a card affordance.
-  const availableMethods: CheckoutMethod[] = isProductionCardEndowCampaign(campaign)
-    ? ["card", "wallet"]
-    : ["wallet"];
-  // The method picker is the explicit commit point — neither Thirdweb nor AppKit
-  // mounts until the user picks. It appears only after a valid amount.
-  const showMethodPicker = hasReadyAmount;
+  const transactionState = useMemo(
+    () => getOctantVaultCampaignTransactionState(campaign),
+    [campaign]
+  );
+  const cardMethodAvailable =
+    transactionState.walletEndowEnabled && isProductionCardEndowCampaign(campaign);
+  const availableMethods = useMemo<CheckoutMethod[]>(() => {
+    if (!transactionState.walletEndowEnabled) return [];
+    return cardMethodAvailable ? ["card", "wallet"] : ["wallet"];
+  }, [cardMethodAvailable, transactionState.walletEndowEnabled]);
+  const hasPaymentMethods = availableMethods.length > 0;
 
-  // Amount-first: focus the amount field on open (avoids the autoFocus a11y rule).
   useEffect(() => {
-    amountRef.current?.focus();
+    if (selectedMethod && !availableMethods.includes(selectedMethod)) {
+      setSelectedMethod(null);
+    }
+  }, [availableMethods, selectedMethod]);
+
+  // Amount-first: direct focus to the amount field after DialogShell's open-focus
+  // settles (Radix focuses the close button first), so the first checkout action
+  // is ready to type. rAF avoids the autoFocus a11y rule and the focus race.
+  useEffect(() => {
+    if (phase !== "amount") return;
+    const raf = requestAnimationFrame(() => amountRef.current?.focus());
+    return () => cancelAnimationFrame(raf);
+  }, [phase]);
+
+  const handleOpenChange = useCallback(
+    (open: boolean) => {
+      if (!open && !checkoutGuard.closeLocked) onClose();
+    },
+    [checkoutGuard.closeLocked, onClose]
+  );
+
+  const handleAmountChange = useCallback((value: string) => {
+    setAmountInput(value);
+    setSelectedMethod(null);
   }, []);
 
-  // Escape closes the checkout (mirrors PublicFundingCard).
-  useEffect(() => {
-    const handler = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !checkoutGuard.closeLocked) onClose();
-    };
-    document.addEventListener("keydown", handler);
-    return () => document.removeEventListener("keydown", handler);
-  }, [checkoutGuard.closeLocked, onClose]);
+  const handleAmountContinue = useCallback(() => {
+    if (hasReadyAmount && hasPaymentMethods) setPhase("method");
+  }, [hasPaymentMethods, hasReadyAmount]);
 
-  const activeMethod = hasReadyAmount ? selectedMethod : null;
-  const closeLabel = formatMessage({ id: "public.fund.dialog.close", defaultMessage: "Close" });
-  const handleClose = useCallback(() => {
-    if (!checkoutGuard.closeLocked) onClose();
-  }, [checkoutGuard.closeLocked, onClose]);
+  const handleMethodContinue = useCallback(() => {
+    if (hasReadyAmount && selectedMethod) setPhase("pay");
+  }, [hasReadyAmount, selectedMethod]);
+
+  const handleBackToAmount = useCallback(() => {
+    if (checkoutGuard.inputsLocked) return;
+    setCheckoutGuard(UNLOCKED_CHECKOUT_GUARD);
+    setPhase("amount");
+  }, [checkoutGuard.inputsLocked]);
+
+  const handleBackToMethod = useCallback(() => {
+    if (checkoutGuard.inputsLocked) return;
+    setCheckoutGuard(UNLOCKED_CHECKOUT_GUARD);
+    setPhase("method");
+  }, [checkoutGuard.inputsLocked]);
+
+  const formattedAmount = hasReadyAmount && parsedAmount ? formatUnits(parsedAmount, decimals) : "";
+  const methodLabel =
+    selectedMethod === "card"
+      ? formatMessage({ id: "public.vaults.checkout.method.card", defaultMessage: "Card" })
+      : formatMessage({ id: "public.vaults.checkout.method.wallet", defaultMessage: "Wallet" });
+
+  const amountSummaryItems = [
+    {
+      label: formatMessage({
+        id: "public.vaults.checkout.review.amount",
+        defaultMessage: "Amount",
+      }),
+      value: `${formattedAmount} ${symbol}`,
+    },
+  ];
+
+  const summaryItems = [
+    ...amountSummaryItems,
+    {
+      label: formatMessage({
+        id: "public.vaults.checkout.review.method",
+        defaultMessage: "Payment",
+      }),
+      value: methodLabel,
+    },
+  ];
+
+  const titleNode = (
+    <span className="font-serif text-lg font-normal text-text-strong-950">
+      {formatMessage(
+        { id: "public.vaults.checkout.title", defaultMessage: "Endow to" },
+        { campaign: campaign.displayName }
+      )}{" "}
+      <span className="text-text-sub-600">{campaign.displayName}</span>
+    </span>
+  );
 
   return (
-    <div
-      className="fixed inset-0 z-modal flex items-end justify-center bg-static-black/40 p-0 sm:items-center sm:p-4"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby={titleId}
+    <DialogShell
+      open
+      onOpenChange={handleOpenChange}
+      title={titleNode}
+      description={formatMessage({
+        id: "public.vaults.checkout.description",
+        defaultMessage: "Choose an amount and how you'd like to pay.",
+      })}
+      size="xl"
+      preventClose={checkoutGuard.closeLocked}
+      hideCloseButton={checkoutGuard.closeLocked}
+      className="vault-checkout-surface flex h-[88vh] flex-col sm:h-[640px]"
+      bodyClassName="flex min-h-0 flex-1 flex-col overflow-hidden p-0 max-h-none"
     >
-      <button
-        type="button"
-        aria-label={closeLabel}
-        className="absolute inset-0"
-        onClick={handleClose}
-        disabled={checkoutGuard.closeLocked}
-      />
-      <div
-        className="relative max-h-[calc(100vh-2rem)] w-full max-w-[calc(100vw-2rem)] overflow-y-auto bg-bg-white-0 p-6 shadow-[var(--shadow-editorial-panel)] sm:max-w-md sm:p-8"
-        data-component="VaultCheckoutDialog"
-        data-step={activeMethod ?? (showMethodPicker ? "method" : "amount")}
-      >
-        <header className="mb-5 flex items-start justify-between gap-3">
-          <div className="flex flex-col gap-1.5">
-            <EditorialKicker>
-              {`§ ${formatMessage({ id: "public.vaults.endow.kicker", defaultMessage: "Endow" }).toUpperCase()}`}
-            </EditorialKicker>
-            <h2
-              id={titleId}
-              className="font-serif text-xl font-normal leading-[1.1] text-text-strong-950 md:text-2xl"
-            >
-              {formatMessage({ id: "public.vaults.checkout.title", defaultMessage: "Endow to" })}
-              <br />
-              <span className="text-text-sub-600">{campaign.displayName}</span>
-            </h2>
-          </div>
-          <button
-            type="button"
-            aria-label={closeLabel}
-            onClick={handleClose}
-            disabled={checkoutGuard.closeLocked}
-            className="rounded-full p-1 text-text-sub-600 transition-colors hover:bg-bg-weak-50"
-          >
-            <RiCloseLine className="h-5 w-5" />
-          </button>
-        </header>
-
-        <div className="flex flex-col gap-5">
-          <div className="flex flex-col gap-1.5">
-            <label
-              htmlFor={amountInputId}
-              className="font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400"
+      {phase === "amount" ? (
+        <CheckoutScreen
+          footer={
+            <button
+              type="button"
+              onClick={handleAmountContinue}
+              disabled={!hasReadyAmount || !hasPaymentMethods}
+              className={CHECKOUT_PRIMARY_BUTTON}
             >
               {formatMessage({
-                id: "public.vaults.walletEndow.amountLabel",
-                defaultMessage: "Amount",
+                id: "public.vaults.checkout.continue",
+                defaultMessage: "Continue",
               })}
-            </label>
-            <div className="flex items-center gap-2 border border-stroke-soft-200 bg-bg-white-0 px-4 py-3 transition-colors focus-within:border-primary-action">
-              <input
-                ref={amountRef}
-                id={amountInputId}
-                type="text"
-                inputMode="decimal"
-                autoComplete="off"
-                value={amountInput}
-                aria-describedby={amountError ? `${amountHelpId} ${amountErrorId}` : amountHelpId}
-                aria-invalid={Boolean(amountError)}
-                disabled={checkoutGuard.inputsLocked}
-                onChange={(event) => setAmountInput(event.target.value)}
-                placeholder="0.00"
-                className="flex-1 bg-transparent font-serif text-2xl text-text-strong-950 outline-none placeholder:text-text-soft-400 disabled:cursor-not-allowed disabled:text-text-soft-400"
-              />
-              <span className="font-mono text-sm uppercase tracking-[0.12em] text-text-soft-400">
-                {symbol}
-              </span>
-            </div>
-            <p id={amountHelpId} className="text-xs leading-[1.5] text-text-soft-400">
-              {formatMessage(
-                {
-                  id: "public.vaults.walletEndow.amountHelp",
-                  defaultMessage: "Enter an amount in {symbol}.",
-                },
-                { symbol }
-              )}
+            </button>
+          }
+        >
+          <div className="flex flex-col gap-5">
+            <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
+              {`§ ${formatMessage({ id: "public.vaults.endow.kicker", defaultMessage: "Endow" }).toUpperCase()}`}
             </p>
-            {amountError ? (
-              <p id={amountErrorId} className="text-xs leading-[1.5] text-error-base">
-                {amountError}
+
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor={amountInputId} className={CHECKOUT_FIELD_LABEL}>
+                {formatMessage({
+                  id: "public.vaults.walletEndow.amountLabel",
+                  defaultMessage: "Amount",
+                })}
+              </label>
+              <div className="flex items-center gap-2 rounded-none border border-stroke-soft-200 bg-bg-white-0 px-4 py-3 transition-colors focus-within:border-primary-action">
+                <input
+                  ref={amountRef}
+                  id={amountInputId}
+                  type="text"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  value={amountInput}
+                  aria-describedby={amountError ? `${amountHelpId} ${amountErrorId}` : amountHelpId}
+                  aria-invalid={Boolean(amountError)}
+                  onChange={(event) => handleAmountChange(event.target.value)}
+                  placeholder="0.00"
+                  className="flex-1 bg-transparent font-serif text-2xl text-text-strong-950 outline-none placeholder:text-text-soft-400"
+                />
+                <span className="font-mono text-sm uppercase tracking-[0.12em] text-text-soft-400">
+                  {symbol}
+                </span>
+              </div>
+              <p id={amountHelpId} className="text-xs leading-[1.5] text-text-soft-400">
+                {formatMessage(
+                  {
+                    id: "public.vaults.walletEndow.amountHelp",
+                    defaultMessage: "Enter an amount in {symbol}.",
+                  },
+                  { symbol }
+                )}
               </p>
-            ) : null}
+              {amountError ? (
+                <p id={amountErrorId} className="text-xs leading-[1.5] text-error-base">
+                  {amountError}
+                </p>
+              ) : null}
+            </div>
           </div>
+        </CheckoutScreen>
+      ) : phase === "method" ? (
+        <CheckoutScreen
+          footer={
+            <div className="flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={handleMethodContinue}
+                disabled={!hasReadyAmount || !selectedMethod}
+                className={CHECKOUT_PRIMARY_BUTTON}
+              >
+                {formatMessage({
+                  id: "public.vaults.checkout.continue",
+                  defaultMessage: "Continue",
+                })}
+              </button>
+              <button type="button" onClick={handleBackToAmount} className={CHECKOUT_GHOST_BUTTON}>
+                {formatMessage({ id: "public.vaults.checkout.back", defaultMessage: "Back" })}
+              </button>
+            </div>
+          }
+        >
+          <div className="flex flex-col gap-5">
+            <CheckoutSummary items={amountSummaryItems} onEdit={handleBackToAmount} />
 
-          {showMethodPicker ? (
-            <MethodPicker
-              methods={availableMethods}
-              selected={selectedMethod}
-              onSelect={setSelectedMethod}
-              disabled={checkoutGuard.inputsLocked}
-            />
-          ) : null}
-
-          {activeMethod === "wallet" && parsedAmount ? (
-            <WalletEndowPath
-              campaign={campaign}
-              amount={parsedAmount}
-              onCheckoutGuardChange={setCheckoutGuard}
-            />
-          ) : null}
-
-          {activeMethod === "card" && parsedAmount ? (
-            <Suspense
-              fallback={
-                <p className="rounded-2xl bg-bg-weak-50 p-4 text-sm leading-[1.55] text-text-sub-600">
+            <fieldset className="flex flex-col gap-2">
+              <legend className={CHECKOUT_FIELD_LABEL}>
+                {formatMessage({
+                  id: "public.vaults.checkout.method.legend",
+                  defaultMessage: "How would you like to pay?",
+                })}
+              </legend>
+              <div
+                className={`grid gap-2 ${availableMethods.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}
+                role="group"
+              >
+                {availableMethods.map((method) => (
+                  <CheckoutMethodTile
+                    key={method}
+                    method={method}
+                    selected={selectedMethod === method}
+                    disabled={false}
+                    onSelect={setSelectedMethod}
+                    label={
+                      method === "card"
+                        ? formatMessage({
+                            id: "public.vaults.checkout.method.card",
+                            defaultMessage: "Card",
+                          })
+                        : formatMessage({
+                            id: "public.vaults.checkout.method.wallet",
+                            defaultMessage: "Wallet",
+                          })
+                    }
+                    subtitle={
+                      method === "card"
+                        ? formatMessage({
+                            id: "public.vaults.checkout.method.cardSubtitle",
+                            defaultMessage: "Debit or credit",
+                          })
+                        : formatMessage({
+                            id: "public.vaults.checkout.method.walletSubtitle",
+                            defaultMessage: "Connect a wallet",
+                          })
+                    }
+                  />
+                ))}
+              </div>
+            </fieldset>
+          </div>
+        </CheckoutScreen>
+      ) : selectedMethod === "wallet" && parsedAmount ? (
+        <WalletEndowPath
+          campaign={campaign}
+          amount={parsedAmount}
+          summaryItems={summaryItems}
+          canEdit={!checkoutGuard.inputsLocked}
+          onBack={handleBackToMethod}
+          onCheckoutGuardChange={setCheckoutGuard}
+        />
+      ) : selectedMethod === "card" && parsedAmount ? (
+        <Suspense
+          fallback={
+            <CheckoutScreen
+              footer={
+                <button
+                  type="button"
+                  onClick={handleBackToMethod}
+                  className={CHECKOUT_GHOST_BUTTON}
+                >
+                  {formatMessage({ id: "public.vaults.checkout.back", defaultMessage: "Back" })}
+                </button>
+              }
+            >
+              <div className="flex flex-col gap-5">
+                <CheckoutSummary items={summaryItems} onEdit={handleBackToMethod} />
+                <p className="rounded-none bg-bg-weak-50 p-4 text-sm leading-[1.55] text-text-sub-600">
                   {formatMessage({
                     id: "public.vaults.cardEndow.loading",
                     defaultMessage: "Loading Card Endow...",
                   })}
                 </p>
-              }
-            >
-              <VaultCardEndowFlow
-                campaign={campaign}
-                amount={parsedAmount}
-                onCheckoutGuardChange={setCheckoutGuard}
-              />
-            </Suspense>
-          ) : null}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function MethodPicker({
-  methods,
-  selected,
-  onSelect,
-  disabled,
-}: {
-  methods: readonly CheckoutMethod[];
-  selected: CheckoutMethod | null;
-  onSelect: (method: CheckoutMethod) => void;
-  disabled: boolean;
-}) {
-  const { formatMessage } = useIntl();
-  const copy: Record<CheckoutMethod, { label: string; subtitle: string }> = {
-    card: {
-      label: formatMessage({ id: "public.vaults.checkout.method.card", defaultMessage: "Card" }),
-      subtitle: formatMessage({
-        id: "public.vaults.checkout.method.cardSubtitle",
-        defaultMessage: "Debit or credit",
-      }),
-    },
-    wallet: {
-      label: formatMessage({
-        id: "public.vaults.checkout.method.wallet",
-        defaultMessage: "Wallet",
-      }),
-      subtitle: formatMessage({
-        id: "public.vaults.checkout.method.walletSubtitle",
-        defaultMessage: "Connect a wallet",
-      }),
-    },
-  };
-
-  return (
-    <fieldset className="flex flex-col gap-2">
-      <legend className="font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
-        {formatMessage({
-          id: "public.vaults.checkout.method.legend",
-          defaultMessage: "How would you like to pay?",
-        })}
-      </legend>
-      <div
-        className={`grid gap-2 ${methods.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}
-        role="group"
-      >
-        {methods.map((method) => {
-          const isSelected = selected === method;
-          return (
-            <button
-              key={method}
-              type="button"
-              data-testid={`vault-checkout-method-${method}`}
-              onClick={() => onSelect(method)}
-              aria-pressed={isSelected}
-              disabled={disabled}
-              className={`flex flex-col items-start gap-0.5 border px-4 py-3 text-left transition-colors ${
-                isSelected
-                  ? "border-primary-action bg-editorial-warm"
-                  : "border-stroke-soft-200 bg-bg-white-0 hover:bg-editorial-warm/40"
-              } disabled:cursor-not-allowed disabled:opacity-60`}
-            >
-              <span className="font-serif text-base text-text-strong-950">
-                {copy[method].label}
-              </span>
-              <span className="text-[11px] text-text-soft-400">{copy[method].subtitle}</span>
-            </button>
-          );
-        })}
-      </div>
-    </fieldset>
+              </div>
+            </CheckoutScreen>
+          }
+        >
+          <VaultCardEndowFlow
+            campaign={campaign}
+            amount={parsedAmount}
+            summaryItems={summaryItems}
+            onBack={handleBackToMethod}
+            onCheckoutGuardChange={setCheckoutGuard}
+          />
+        </Suspense>
+      ) : null}
+    </DialogShell>
   );
 }
 
 function WalletEndowPath({
   campaign,
   amount,
+  summaryItems,
+  canEdit,
+  onBack,
   onCheckoutGuardChange,
 }: {
   campaign: OctantVaultCampaignManifest;
   amount: bigint;
+  summaryItems: { label: string; value: React.ReactNode }[];
+  canEdit: boolean;
+  onBack: () => void;
   onCheckoutGuardChange: (guard: VaultCheckoutGuardState) => void;
 }) {
   return (
@@ -363,6 +432,9 @@ function WalletEndowPath({
       <WalletEndowPathContent
         campaign={campaign}
         amount={amount}
+        summaryItems={summaryItems}
+        canEdit={canEdit}
+        onBack={onBack}
         onCheckoutGuardChange={onCheckoutGuardChange}
       />
     </WalletRuntimeProviders>
@@ -372,10 +444,16 @@ function WalletEndowPath({
 function WalletEndowPathContent({
   campaign,
   amount,
+  summaryItems,
+  canEdit,
+  onBack,
   onCheckoutGuardChange,
 }: {
   campaign: OctantVaultCampaignManifest;
   amount: bigint;
+  summaryItems: { label: string; value: React.ReactNode }[];
+  canEdit: boolean;
+  onBack: () => void;
   onCheckoutGuardChange: (guard: VaultCheckoutGuardState) => void;
 }) {
   const { formatMessage } = useIntl();
@@ -388,11 +466,9 @@ function WalletEndowPathContent({
   // Only a wallet-mode session is a valid Wallet Endow receiver. Restored passkey
   // / embedded sessions must still connect a wallet (PRD parity with /fund).
   const primaryWalletAddress = authMode === "wallet" ? primaryAddress : null;
-  const decimals = campaign.vault?.asset?.decimals ?? 18;
   const symbol =
     campaign.vault?.asset?.symbol ??
     formatMessage({ id: "public.vaults.walletEndow.assetFallback", defaultMessage: "tokens" });
-  const formattedAmount = formatUnits(amount, decimals);
   const walletFlowKey = `${campaign.slug}:${amount.toString()}:${primaryWalletAddress ?? ""}`;
   const walletFlowKeyRef = useRef(walletFlowKey);
   walletFlowKeyRef.current = walletFlowKey;
@@ -411,38 +487,33 @@ function WalletEndowPathContent({
     return () => onCheckoutGuardChange(UNLOCKED_CHECKOUT_GUARD);
   }, [onCheckoutGuardChange, walletBusy]);
 
-  const handleSubmit = useCallback(
-    (event: FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
+  const handleSubmit = useCallback(() => {
+    if (!primaryWalletAddress) {
+      loginWithWallet();
+      return;
+    }
 
-      if (!primaryWalletAddress) {
-        loginWithWallet();
-        return;
-      }
+    const prepared = prepareOctantVaultWalletEndow({
+      campaign,
+      amount,
+      receiverAddress: primaryWalletAddress,
+    });
 
-      const prepared = prepareOctantVaultWalletEndow({
-        campaign,
-        amount,
-        receiverAddress: primaryWalletAddress,
-      });
+    if (prepared.status !== "ready" || !prepared.transaction) return;
 
-      if (prepared.status !== "ready" || !prepared.transaction) return;
-
-      const submissionKey = walletFlowKey;
-      setPendingSubmissionKey(submissionKey);
-      walletEndow.mutate(prepared.transaction, {
-        onError: () => {
-          setPendingSubmissionKey((current) => (current === submissionKey ? null : current));
-          if (walletFlowKeyRef.current === submissionKey) setStatus("idle");
-        },
-        onSuccess: () => {
-          setPendingSubmissionKey((current) => (current === submissionKey ? null : current));
-          if (walletFlowKeyRef.current === submissionKey) setStatus("success");
-        },
-      });
-    },
-    [amount, campaign, loginWithWallet, primaryWalletAddress, walletEndow, walletFlowKey]
-  );
+    const submissionKey = walletFlowKey;
+    setPendingSubmissionKey(submissionKey);
+    walletEndow.mutate(prepared.transaction, {
+      onError: () => {
+        setPendingSubmissionKey((current) => (current === submissionKey ? null : current));
+        if (walletFlowKeyRef.current === submissionKey) setStatus("idle");
+      },
+      onSuccess: () => {
+        setPendingSubmissionKey((current) => (current === submissionKey ? null : current));
+        if (walletFlowKeyRef.current === submissionKey) setStatus("success");
+      },
+    });
+  }, [amount, campaign, loginWithWallet, primaryWalletAddress, walletEndow, walletFlowKey]);
 
   const actionLabel = primaryWalletAddress
     ? formatMessage({
@@ -451,162 +522,161 @@ function WalletEndowPathContent({
       })
     : formatMessage({ id: "public.vaults.walletEndow.connect", defaultMessage: "Connect Wallet" });
 
-  return (
-    <form
-      className="flex flex-col gap-4 border-t border-stroke-soft-200 pt-5"
-      onSubmit={handleSubmit}
-      data-testid="vault-wallet-endow-path"
-    >
-      <dl className="grid gap-3 text-sm sm:grid-cols-2">
-        <div>
-          <dt className="font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
-            {formatMessage({
-              id: "public.vaults.checkout.review.amount",
-              defaultMessage: "Amount",
-            })}
-          </dt>
-          <dd className="mt-1 font-medium text-text-strong-950">
-            {formatMessage(
-              {
-                id: "public.vaults.walletEndow.confirmAmount",
-                defaultMessage: "{amount} {symbol}",
-              },
-              { amount: formattedAmount, symbol }
-            )}
-          </dd>
-        </div>
-        <div>
-          <dt className="font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
-            {formatMessage({
-              id: "public.vaults.checkout.review.campaign",
-              defaultMessage: "Campaign",
-            })}
-          </dt>
-          <dd className="mt-1 text-text-sub-600">{campaign.displayName}</dd>
-        </div>
-        <div>
-          <dt className="font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
-            {formatMessage({
-              id: "public.vaults.checkout.review.receiver",
-              defaultMessage: "Receiver wallet",
-            })}
-          </dt>
-          <dd className="mt-1 break-all font-mono text-xs text-text-sub-600">
-            {primaryWalletAddress ??
-              formatMessage({
-                id: "public.vaults.checkout.review.receiverPending",
-                defaultMessage: "Set when you connect a wallet",
-              })}
-          </dd>
-        </div>
-        <div>
-          <dt className="font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
-            {formatMessage({
-              id: "public.vaults.checkout.review.route",
-              defaultMessage: "Vault route",
-            })}
-          </dt>
-          <dd className="mt-1 text-text-sub-600">
-            {formatMessage({
-              id: "public.vaults.checkout.review.routeValue",
-              defaultMessage: "Octant V2 Ethereum vault",
-            })}
-          </dd>
-        </div>
-      </dl>
+  const receiverValue =
+    primaryWalletAddress ??
+    formatMessage({
+      id: "public.vaults.checkout.review.receiverPending",
+      defaultMessage: "Set when you connect a wallet",
+    });
 
-      <details className="rounded-xl border border-stroke-soft-200 bg-bg-weak-50 p-4">
-        <summary className="cursor-pointer font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
-          {formatMessage({
-            id: "public.vaults.cardEndow.tupleDetailsSummary",
-            defaultMessage: "Full onchain detail",
-          })}
-        </summary>
-        <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+  return (
+    <CheckoutScreen
+      footer={
+        <div className="flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={handleSubmit}
+            disabled={walletBusy}
+            className={CHECKOUT_PRIMARY_BUTTON}
+          >
+            {walletBusy
+              ? formatMessage({
+                  id: "public.vaults.walletEndow.submitting",
+                  defaultMessage: "Submitting...",
+                })
+              : actionLabel}
+          </button>
+          {canEdit ? (
+            <button type="button" onClick={onBack} className={CHECKOUT_GHOST_BUTTON}>
+              {formatMessage({ id: "public.vaults.checkout.back", defaultMessage: "Back" })}
+            </button>
+          ) : null}
+        </div>
+      }
+    >
+      <div className="flex flex-col gap-5" data-testid="vault-wallet-endow-path">
+        <CheckoutSummary items={summaryItems} onEdit={canEdit ? onBack : undefined} />
+
+        <dl className="grid gap-3 text-sm sm:grid-cols-2">
           <div>
-            <dt className="font-medium text-text-strong-950">
+            <dt className={CHECKOUT_FIELD_LABEL}>
               {formatMessage({
-                id: "public.vaults.cardEndow.tupleChain",
-                defaultMessage: "Chain",
+                id: "public.vaults.checkout.review.route",
+                defaultMessage: "Vault route",
               })}
             </dt>
-            <dd className="text-text-sub-600">
-              {formatMessage(
-                {
-                  id: "public.vaults.cardEndow.chainValue",
-                  defaultMessage: "Ethereum chain {chainId}",
-                },
-                { chainId: campaign.vault?.chainId ?? 1 }
-              )}
-            </dd>
-          </div>
-          <div>
-            <dt className="font-medium text-text-strong-950">
-              {formatMessage({ id: "public.vaults.cardEndow.tupleVault", defaultMessage: "Vault" })}
-            </dt>
-            <dd className="break-all font-mono text-xs text-text-sub-600">
-              {campaign.vault?.vaultAddress ?? ""}
-            </dd>
-          </div>
-          <div>
-            <dt className="font-medium text-text-strong-950">
-              {formatMessage({ id: "public.vaults.cardEndow.tupleToken", defaultMessage: "Token" })}
-            </dt>
-            <dd className="break-all text-text-sub-600">
-              {symbol} · {campaign.vault?.asset?.address ?? ""}
-            </dd>
-          </div>
-          <div>
-            <dt className="font-medium text-text-strong-950">
+            <dd className="mt-1 text-text-sub-600">
               {formatMessage({
-                id: "public.vaults.cardEndow.tupleBaseUnits",
-                defaultMessage: "Base units",
+                id: "public.vaults.checkout.review.routeValue",
+                defaultMessage: "Octant V2 Ethereum vault",
+              })}
+            </dd>
+          </div>
+          <div>
+            <dt className={CHECKOUT_FIELD_LABEL}>
+              {formatMessage({
+                id: "public.vaults.checkout.review.receiver",
+                defaultMessage: "Receiver wallet",
               })}
             </dt>
-            <dd className="text-text-sub-600">
-              {formatMessage(
-                {
-                  id: "public.vaults.cardEndow.baseUnitsValue",
-                  defaultMessage: "{amount} base units",
-                },
-                { amount: amount.toString() }
-              )}
+            <dd
+              className={
+                primaryWalletAddress
+                  ? "mt-1 break-all font-mono text-xs text-text-sub-600"
+                  : "mt-1 text-sm text-text-sub-600"
+              }
+            >
+              {receiverValue}
             </dd>
           </div>
         </dl>
-      </details>
 
-      <button
-        type="submit"
-        disabled={walletBusy}
-        className="min-h-12 w-full rounded-full bg-text-strong-950 px-6 py-3 text-sm font-semibold text-static-white transition-colors disabled:cursor-not-allowed disabled:bg-stroke-soft-200 disabled:text-text-soft-400"
-      >
-        {walletBusy
-          ? formatMessage({
-              id: "public.vaults.walletEndow.submitting",
-              defaultMessage: "Submitting...",
-            })
-          : actionLabel}
-      </button>
+        <details className="border-t border-stroke-soft-200 pt-4">
+          <summary className="cursor-pointer font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
+            {formatMessage({
+              id: "public.vaults.cardEndow.tupleDetailsSummary",
+              defaultMessage: "Full onchain detail",
+            })}
+          </summary>
+          <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+            <div>
+              <dt className="font-medium text-text-strong-950">
+                {formatMessage({
+                  id: "public.vaults.cardEndow.tupleChain",
+                  defaultMessage: "Chain",
+                })}
+              </dt>
+              <dd className="text-text-sub-600">
+                {formatMessage(
+                  {
+                    id: "public.vaults.cardEndow.chainValue",
+                    defaultMessage: "Ethereum chain {chainId}",
+                  },
+                  { chainId: campaign.vault?.chainId ?? 1 }
+                )}
+              </dd>
+            </div>
+            <div>
+              <dt className="font-medium text-text-strong-950">
+                {formatMessage({
+                  id: "public.vaults.cardEndow.tupleVault",
+                  defaultMessage: "Vault",
+                })}
+              </dt>
+              <dd className="break-all font-mono text-xs text-text-sub-600">
+                {campaign.vault?.vaultAddress ?? ""}
+              </dd>
+            </div>
+            <div>
+              <dt className="font-medium text-text-strong-950">
+                {formatMessage({
+                  id: "public.vaults.cardEndow.tupleToken",
+                  defaultMessage: "Token",
+                })}
+              </dt>
+              <dd className="break-all text-text-sub-600">
+                {symbol} · {campaign.vault?.asset?.address ?? ""}
+              </dd>
+            </div>
+            <div>
+              <dt className="font-medium text-text-strong-950">
+                {formatMessage({
+                  id: "public.vaults.cardEndow.tupleBaseUnits",
+                  defaultMessage: "Base units",
+                })}
+              </dt>
+              <dd className="text-text-sub-600">
+                {formatMessage(
+                  {
+                    id: "public.vaults.cardEndow.baseUnitsValue",
+                    defaultMessage: "{amount} base units",
+                  },
+                  { amount: amount.toString() }
+                )}
+              </dd>
+            </div>
+          </dl>
+        </details>
 
-      {status === "success" ? (
-        <p className="rounded-2xl bg-primary-action/10 p-4 text-sm leading-[1.55] text-primary-base">
-          {formatMessage({
-            id: "public.vaults.walletEndow.success",
-            defaultMessage:
-              "Wallet Endow was submitted. Route-local receipt and management proof continue in the next gates.",
-          })}
-        </p>
-      ) : null}
-      {walletEndow.error ? (
-        <p className="rounded-2xl bg-error-lighter/30 p-4 text-sm leading-[1.55] text-error-base">
-          {formatMessage({
-            id: "public.vaults.walletEndow.error",
-            defaultMessage:
-              "Wallet Endow could not be submitted. Review the wallet error and retry.",
-          })}
-        </p>
-      ) : null}
-    </form>
+        {status === "success" ? (
+          <p className="rounded-none bg-primary-action/10 p-4 text-sm leading-[1.55] text-primary-base">
+            {formatMessage({
+              id: "public.vaults.walletEndow.success",
+              defaultMessage:
+                "Wallet Endow was submitted. Route-local receipt and management proof continue in the next gates.",
+            })}
+          </p>
+        ) : null}
+        {walletEndow.error ? (
+          <p className="rounded-none bg-error-lighter/30 p-4 text-sm leading-[1.55] text-error-base">
+            {formatMessage({
+              id: "public.vaults.walletEndow.error",
+              defaultMessage:
+                "Wallet Endow could not be submitted. Review the wallet error and retry.",
+            })}
+          </p>
+        ) : null}
+      </div>
+    </CheckoutScreen>
   );
 }

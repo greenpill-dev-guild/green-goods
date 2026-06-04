@@ -179,7 +179,11 @@ function renderView(path = "/vaults") {
     createElement(
       MemoryRouter,
       { initialEntries: [path] },
-      createElement(IntlProvider, { locale: "en", messages: {} }, createElement(VaultsPage))
+      createElement(
+        IntlProvider,
+        { locale: "en", messages: { "app.common.close": "Close" } },
+        createElement(VaultsPage)
+      )
     )
   );
 }
@@ -191,7 +195,7 @@ function renderContent(campaigns: OctantVaultCampaignManifest[], path = "/vaults
       { initialEntries: [path] },
       createElement(
         IntlProvider,
-        { locale: "en", messages: {} },
+        { locale: "en", messages: { "app.common.close": "Close" } },
         createElement(VaultsPageContent, { campaigns })
       )
     )
@@ -205,7 +209,7 @@ function renderCard(campaign: OctantVaultCampaignManifest) {
       { initialEntries: ["/vaults"] },
       createElement(
         IntlProvider,
-        { locale: "en", messages: {} },
+        { locale: "en", messages: { "app.common.close": "Close" } },
         createElement(CampaignCard, { campaign })
       )
     )
@@ -215,7 +219,11 @@ function renderCard(campaign: OctantVaultCampaignManifest) {
 async function openGreenpillCardCheckout(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole("button", { name: "Endow to Greenpill NYC" }));
   await user.type(screen.getByLabelText("Amount"), "0.01");
+  expect(screen.queryByTestId("vault-checkout-method-card")).not.toBeInTheDocument();
+  expect(screen.queryByTestId("vault-checkout-method-wallet")).not.toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "Continue" }));
   await user.click(screen.getByTestId("vault-checkout-method-card"));
+  await user.click(screen.getByRole("button", { name: "Continue" }));
   await screen.findByTestId("vault-card-endow-flow");
 }
 
@@ -236,6 +244,8 @@ async function confirmTupleAndFundCard(user: ReturnType<typeof userEvent.setup>)
       "I confirm this exact campaign, chain, vault, token, amount, receiver, and provider route before live card payment."
     )
   );
+  expect(screen.queryByTestId("thirdweb-buy-widget")).not.toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "Confirm and continue" }));
   await user.click(screen.getByTestId("thirdweb-buy-widget"));
   await screen.findByText(
     "Thirdweb reported card funding success for the recovered wallet. The user can now approve the vault allowance."
@@ -371,6 +381,8 @@ describe("VaultsPage", () => {
     expect(screen.queryByTestId("vault-checkout-method-wallet")).not.toBeInTheDocument();
 
     await user.type(screen.getByLabelText("Amount"), "2.5");
+    expect(screen.queryByTestId("vault-checkout-method-wallet")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Continue" }));
 
     // Card stays gated to the production campaign; this fixture exposes Wallet only.
     expect(screen.getByTestId("vault-checkout-method-wallet")).toBeInTheDocument();
@@ -391,7 +403,10 @@ describe("VaultsPage", () => {
     expect(screen.queryByTestId("vault-checkout-method-card")).not.toBeInTheDocument();
 
     await user.type(screen.getByLabelText("Amount"), "0.01");
+    expect(screen.queryByTestId("vault-checkout-method-card")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Continue" }));
     await user.click(screen.getByTestId("vault-checkout-method-card"));
+    await user.click(screen.getByRole("button", { name: "Continue" }));
     expect(await screen.findByTestId("vault-card-endow-flow")).toBeInTheDocument();
 
     await user.type(screen.getByLabelText("Email"), "qa@example.org");
@@ -424,12 +439,17 @@ describe("VaultsPage", () => {
     ).toBeInTheDocument();
     expect(screen.queryByTestId("thirdweb-buy-widget")).not.toBeInTheDocument();
 
+    const confirmAndContinue = screen.getByRole("button", { name: "Confirm and continue" });
+    expect(confirmAndContinue).toBeDisabled();
     await user.click(
       screen.getByLabelText(
         "I confirm this exact campaign, chain, vault, token, amount, receiver, and provider route before live card payment."
       )
     );
 
+    expect(screen.queryByTestId("thirdweb-buy-widget")).not.toBeInTheDocument();
+    expect(confirmAndContinue).toBeEnabled();
+    await user.click(confirmAndContinue);
     expect(screen.getByTestId("thirdweb-buy-widget")).toBeInTheDocument();
     await user.click(screen.getByTestId("thirdweb-buy-widget"));
     expect(
@@ -500,7 +520,7 @@ describe("VaultsPage", () => {
     ).toBeInTheDocument();
   });
 
-  it("locks checkout inputs while Card Endow approval is pending", async () => {
+  it("locks amount and method while Card Endow approval is pending", async () => {
     const user = userEvent.setup();
     let resolveApproval: ((value: { transactionHash: `0x${string}` }) => void) | undefined;
     thirdwebMocks.sendAndConfirmTransaction.mockImplementationOnce(
@@ -518,24 +538,25 @@ describe("VaultsPage", () => {
 
     await user.click(screen.getByRole("button", { name: "Approve token -> vault" }));
 
-    expect(screen.getByLabelText("Amount")).toBeDisabled();
-    expect(screen.getByTestId("vault-checkout-method-card")).toBeDisabled();
-    expect(screen.getByTestId("vault-checkout-method-wallet")).toBeDisabled();
-    for (const closeButton of screen.getAllByRole("button", { name: "Close" })) {
-      expect(closeButton).toBeDisabled();
-    }
-    expect(screen.getByRole("button", { name: "Deposit to receiver" })).toBeDisabled();
+    // Structural lock: amount/method are collapsed to a read-only summary, the
+    // back/edit path is gone, and the sheet cannot be closed mid-transaction.
+    expect(screen.queryByLabelText("Amount")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("vault-checkout-method-card")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("vault-checkout-method-wallet")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Back" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Edit" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
 
-    await user.type(screen.getByLabelText("Amount"), "2");
-    expect(screen.getByLabelText("Amount")).toHaveValue("0.01");
+    // Pending feedback, and the summary still shows the locked amount.
+    expect(screen.getByRole("button", { name: "Approving..." })).toBeDisabled();
+    expect(screen.getByText("0.01 WETH")).toBeInTheDocument();
 
     resolveApproval?.({
       transactionHash: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
     });
     await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Approval confirmed" })).toBeDisabled()
+      expect(screen.getByRole("button", { name: "Deposit to receiver" })).toBeEnabled()
     );
-    expect(screen.getByRole("button", { name: "Deposit to receiver" })).toBeEnabled();
   });
 
   it("resets OTP and recovered wallet state when the payer email changes", async () => {
@@ -557,7 +578,8 @@ describe("VaultsPage", () => {
     await user.type(screen.getByLabelText("Email"), "ops@example.org");
 
     expect(screen.getByLabelText("Thirdweb code")).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Verify email wallet" })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Verify email wallet" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Send email code" })).toBeInTheDocument();
     expect(screen.queryByTestId("vault-card-endow-tuple")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Send email code" }));
@@ -576,7 +598,9 @@ describe("VaultsPage", () => {
 
     await user.click(screen.getByRole("button", { name: "Endow to Greenpill NYC" }));
     await user.type(screen.getByLabelText("Amount"), "0.01");
+    await user.click(screen.getByRole("button", { name: "Continue" }));
     await user.click(screen.getByTestId("vault-checkout-method-card"));
+    await user.click(screen.getByRole("button", { name: "Continue" }));
     await screen.findByTestId("vault-card-endow-flow");
 
     expect(screen.queryByTestId("vault-card-endow-tuple")).not.toBeInTheDocument();
@@ -601,10 +625,18 @@ describe("VaultsPage", () => {
     expect(sharedHookMocks.walletRuntimeProviderRender).not.toHaveBeenCalled();
 
     await user.type(screen.getByLabelText("Amount"), "2.5");
+    expect(screen.queryByTestId("vault-checkout-method-wallet")).not.toBeInTheDocument();
     expect(screen.queryByTestId("wallet-runtime-provider")).not.toBeInTheDocument();
     expect(sharedHookMocks.walletRuntimeProviderRender).not.toHaveBeenCalled();
 
+    await user.click(screen.getByRole("button", { name: "Continue" }));
     await user.click(screen.getByTestId("vault-checkout-method-wallet"));
+
+    // The wallet runtime must not mount on method pick — only after Continue.
+    expect(screen.queryByTestId("wallet-runtime-provider")).not.toBeInTheDocument();
+    expect(sharedHookMocks.walletRuntimeProviderRender).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Continue" }));
 
     expect(screen.getByTestId("wallet-runtime-provider")).toBeInTheDocument();
     expect(sharedHookMocks.walletRuntimeProviderRender).toHaveBeenCalled();
@@ -624,7 +656,9 @@ describe("VaultsPage", () => {
 
     await user.click(screen.getByRole("button", { name: "Endow to Synthetic complete campaign" }));
     await user.type(screen.getByLabelText("Amount"), "2.5");
+    await user.click(screen.getByRole("button", { name: "Continue" }));
     await user.click(screen.getByTestId("vault-checkout-method-wallet"));
+    await user.click(screen.getByRole("button", { name: "Continue" }));
     await user.click(screen.getByRole("button", { name: "Connect Wallet" }));
 
     expect(sharedHookMocks.loginWithWallet).toHaveBeenCalledTimes(1);
@@ -640,7 +674,9 @@ describe("VaultsPage", () => {
 
     await user.click(screen.getByRole("button", { name: "Endow to Synthetic complete campaign" }));
     await user.type(screen.getByLabelText("Amount"), "2.5");
+    await user.click(screen.getByRole("button", { name: "Continue" }));
     await user.click(screen.getByTestId("vault-checkout-method-wallet"));
+    await user.click(screen.getByRole("button", { name: "Continue" }));
     await user.click(screen.getByRole("button", { name: "Confirm Wallet Endow" }));
 
     expect(sharedHookMocks.loginWithWallet).not.toHaveBeenCalled();
