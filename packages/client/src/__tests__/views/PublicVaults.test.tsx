@@ -361,14 +361,14 @@ describe("VaultsPage", () => {
     expect(screen.queryByTestId("wallet-runtime-provider")).not.toBeInTheDocument();
   });
 
-  it("keeps the Card Endow QA query param available for the public vault route", async () => {
+  it("scrubs the deprecated Card Endow QA query param while preserving valid route params", async () => {
     const locations: string[] = [];
 
     renderViewWithLocationProbe("/vaults?cardEndowQa=1&manage=positions", (location) => {
       locations.push(location);
     });
 
-    await waitFor(() => expect(locations.at(-1)).toBe("/vaults?cardEndowQa=1&manage=positions"));
+    await waitFor(() => expect(locations.at(-1)).toBe("/vaults?manage=positions"));
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
       "Octant vault campaigns for public goods."
     );
@@ -388,14 +388,18 @@ describe("VaultsPage", () => {
     ).not.toBeInTheDocument();
     expect(within(nycCard).queryByRole("button", { name: /pay by card/i })).not.toBeInTheDocument();
 
-    // EVMavericks stays blocked with a human explanation and no payment affordance.
+    // EVMavericks stays transaction-blocked with neutral public preview copy.
     expect(within(evmavericksCard).queryByRole("button")).not.toBeInTheDocument();
-    expect(within(evmavericksCard).getByText("More details needed")).toBeInTheDocument();
     expect(
-      within(
-        within(evmavericksCard).getByRole("list", { name: "Campaign details still needed" })
-      ).getByText("Protocol Guild destination context")
+      within(evmavericksCard).getByText(
+        "This preview does not accept Endow payments yet. The campaign will open after its vault route is complete and verified."
+      )
     ).toBeInTheDocument();
+    expect(within(evmavericksCard).getByText("Preview")).toBeInTheDocument();
+    expect(within(evmavericksCard).queryByRole("list")).not.toBeInTheDocument();
+    expect(
+      within(evmavericksCard).queryByText("Protocol Guild destination context")
+    ).not.toBeInTheDocument();
     expect(screen.queryByText(/manifest/i)).not.toBeInTheDocument();
   });
 
@@ -438,6 +442,7 @@ describe("VaultsPage", () => {
 
     // Card stays gated to the production campaign; this fixture exposes Wallet only.
     expect(screen.getByTestId("vault-checkout-method-wallet")).toBeInTheDocument();
+    expect(screen.getByText("Connect at the final step")).toBeInTheDocument();
     expect(screen.queryByTestId("vault-checkout-method-card")).not.toBeInTheDocument();
     expect(screen.queryByTestId("vault-card-endow-flow")).not.toBeInTheDocument();
     expect(screen.queryByTestId("thirdweb-buy-widget")).not.toBeInTheDocument();
@@ -465,7 +470,9 @@ describe("VaultsPage", () => {
     expect(await screen.findByTestId("vault-card-endow-flow")).toBeInTheDocument();
 
     await user.type(screen.getByLabelText("Email"), "qa@example.org");
+    expect(screen.queryByText("qa@example.org")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Send email code" }));
+    expect(screen.queryByText("qa@example.org")).not.toBeInTheDocument();
 
     expect(thirdwebMocks.preAuthenticate).toHaveBeenCalledWith({
       client: { clientId: "test-thirdweb-client" },
@@ -477,6 +484,7 @@ describe("VaultsPage", () => {
     await user.click(screen.getByRole("button", { name: "Verify email wallet" }));
 
     expect(thirdwebMocks.useConnectConnect).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("qa@example.org")).toBeInTheDocument();
 
     const tuple = await screen.findByTestId("vault-card-endow-tuple");
     expect(tuple).toHaveTextContent("Greenpill NYC");

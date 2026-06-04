@@ -303,7 +303,9 @@ function VaultCheckoutDialogContent({ campaign, onClose }: VaultCheckoutDialogPr
       preventClose={checkoutGuard.closeLocked}
       hideCloseButton={checkoutGuard.closeLocked}
       className="vault-checkout-surface flex flex-col"
-      bodyClassName="flex min-h-0 flex-1 flex-col overflow-hidden p-0 max-h-none"
+      headerClassName="px-4 py-2 sm:px-5 sm:py-2"
+      descriptionClassName="sr-only"
+      bodyClassName="flex min-h-0 flex-1 flex-col overflow-hidden !p-0 sm:!p-0 max-h-none"
     >
       {phase === "amount" ? (
         <CheckoutScreen
@@ -324,6 +326,12 @@ function VaultCheckoutDialogContent({ campaign, onClose }: VaultCheckoutDialogPr
           <div className="flex flex-col gap-5">
             <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
               {`§ ${formatMessage({ id: "public.vaults.endow.kicker", defaultMessage: "Endow" }).toUpperCase()}`}
+            </p>
+            <p className="text-sm leading-[1.55] text-text-sub-600">
+              {formatMessage({
+                id: "public.vaults.checkout.description",
+                defaultMessage: "Choose an amount and how you'd like to pay.",
+              })}
             </p>
 
             <div className="flex flex-col gap-1.5">
@@ -430,13 +438,10 @@ function VaultCheckoutDialogContent({ campaign, onClose }: VaultCheckoutDialogPr
                             id: "public.vaults.checkout.method.cardSubtitle",
                             defaultMessage: "Debit or credit card",
                           })
-                        : formatMessage(
-                            {
-                              id: "public.vaults.checkout.method.walletSubtitle",
-                              defaultMessage: "I already have {symbol}",
-                            },
-                            { symbol: settlementSymbol }
-                          )
+                        : formatMessage({
+                            id: "public.vaults.checkout.method.walletSubtitle",
+                            defaultMessage: "Connect at the final step",
+                          })
                     }
                   />
                 ))}

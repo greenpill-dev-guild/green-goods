@@ -2,12 +2,11 @@ import {
   getOctantVaultCampaignCopy,
   getOctantVaultCampaigns,
   getOctantVaultCampaignTransactionState,
-  OCTANT_VAULT_MANIFEST_FIELD_LABELS,
   type OctantVaultCampaignManifest,
-  type OctantVaultManifestField,
 } from "@green-goods/shared";
 import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
+import { Navigate, useLocation } from "react-router-dom";
 import {
   EditorialDivider,
   EditorialHeading,
@@ -19,18 +18,6 @@ import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
 import { PublicFooter } from "@/components/Public/PublicFooter";
 import { VaultCheckoutDialog } from "@/components/Public/VaultCheckoutDialog";
 import { getPublicHeroImage, publicCuration } from "@/content/publicCuration";
-
-const fieldMessageIds: Record<OctantVaultManifestField, string> = {
-  chainId: "public.vaults.field.chainId",
-  vaultAddress: "public.vaults.field.vaultAddress",
-  assetAddress: "public.vaults.field.assetAddress",
-  assetSymbol: "public.vaults.field.assetSymbol",
-  assetDecimals: "public.vaults.field.assetDecimals",
-  recipientRoutingSummary: "public.vaults.field.recipientRoutingSummary",
-  protocolGuildDestinationContext: "public.vaults.field.protocolGuildDestinationContext",
-  explorerLink: "public.vaults.field.explorerLink",
-  campaignCopy: "public.vaults.field.campaignCopy",
-};
 
 const copyFieldMessageIds = {
   headline: "headline",
@@ -80,16 +67,6 @@ function formatCampaignCopy(
   };
 }
 
-function formatFieldLabel(
-  formatMessage: ReturnType<typeof useIntl>["formatMessage"],
-  field: OctantVaultManifestField
-): string {
-  return formatMessage({
-    id: fieldMessageIds[field],
-    defaultMessage: OCTANT_VAULT_MANIFEST_FIELD_LABELS[field],
-  });
-}
-
 function CampaignStatus({ campaign }: { campaign: OctantVaultCampaignManifest }) {
   const { formatMessage } = useIntl();
   const state = getOctantVaultCampaignTransactionState(campaign);
@@ -101,7 +78,7 @@ function CampaignStatus({ campaign }: { campaign: OctantVaultCampaignManifest })
         })
       : formatMessage({
           id: "public.vaults.status.blocked",
-          defaultMessage: "More details needed",
+          defaultMessage: "Preview",
         });
 
   return (
@@ -117,42 +94,17 @@ function CampaignStatus({ campaign }: { campaign: OctantVaultCampaignManifest })
   );
 }
 
-function ManifestMissingList({
-  missingFields,
-  id,
-}: {
-  missingFields: readonly OctantVaultManifestField[];
-  id: string;
-}) {
+function CampaignPreviewNote() {
   const { formatMessage } = useIntl();
 
-  // Only rendered for blocked campaigns (ready ones render the Endow CTA instead),
-  // so `missingFields` is always non-empty here.
   return (
-    <div id={id}>
-      <p className="text-sm leading-[1.55] text-text-sub-600">
-        {formatMessage({
-          id: "public.vaults.manifest.blocked",
-          defaultMessage: "Endow stays paused while these campaign details are finalized:",
-        })}
-      </p>
-      <ul
-        className="mt-3 flex flex-wrap gap-2"
-        aria-label={formatMessage({
-          id: "public.vaults.manifest.missingFields",
-          defaultMessage: "Campaign details still needed",
-        })}
-      >
-        {missingFields.map((field) => (
-          <li
-            key={field}
-            className="rounded-full bg-bg-white-0 px-3 py-1 text-xs text-text-sub-600 ring-1 ring-stroke-soft-200"
-          >
-            {formatFieldLabel(formatMessage, field)}
-          </li>
-        ))}
-      </ul>
-    </div>
+    <p className="text-sm leading-[1.55] text-text-sub-600">
+      {formatMessage({
+        id: "public.vaults.manifest.blocked",
+        defaultMessage:
+          "This preview does not accept Endow payments yet. The campaign will open after its vault route is complete and verified.",
+      })}
+    </p>
   );
 }
 
@@ -167,7 +119,6 @@ export function CampaignCard({
   const copy = formatCampaignCopy(formatMessage, campaign);
   const transactionState = getOctantVaultCampaignTransactionState(campaign);
   const ready = transactionState.walletEndowEnabled;
-  const missingId = `vault-campaign-${campaign.slug}-missing-fields`;
 
   return (
     <article
@@ -244,7 +195,7 @@ export function CampaignCard({
         >
           {formatMessage({
             id: "public.vaults.card.readiness",
-            defaultMessage: "Readiness",
+            defaultMessage: "Availability",
           })}
         </h4>
         <div className="mt-4">
@@ -261,7 +212,7 @@ export function CampaignCard({
               {formatMessage({ id: "public.vaults.endow.cta", defaultMessage: "Endow" })}
             </button>
           ) : (
-            <ManifestMissingList id={missingId} missingFields={transactionState.missingFields} />
+            <CampaignPreviewNote />
           )}
         </div>
       </section>
@@ -388,6 +339,32 @@ export function VaultsPageContent({
   );
 }
 
+function DeprecatedCardEndowQueryParamScrub() {
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+
+  if (!searchParams.has("cardEndowQa")) return null;
+
+  searchParams.delete("cardEndowQa");
+  const nextSearch = searchParams.toString();
+
+  return (
+    <Navigate
+      replace
+      to={{
+        pathname: location.pathname,
+        search: nextSearch ? `?${nextSearch}` : "",
+        hash: location.hash,
+      }}
+    />
+  );
+}
+
 export default function VaultsPage() {
-  return <VaultsPageContent />;
+  return (
+    <>
+      <DeprecatedCardEndowQueryParamScrub />
+      <VaultsPageContent />
+    </>
+  );
 }

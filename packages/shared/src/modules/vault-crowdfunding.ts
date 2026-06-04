@@ -481,9 +481,9 @@ const evmavericksPreviewCopy: OctantVaultCampaignCopy = {
   fundingPurpose:
     "The campaign is intended to support a Fantasy Football League funding flow tied to public-goods outcomes.",
   recipientLogic:
-    "Protocol Guild destination context and recipient routing are required before this campaign can accept Endow transactions.",
+    "Recipient routing will be published with the live vault metadata before this campaign accepts Endow transactions.",
   riskNote:
-    "Wallet Endow and card funding are blocked until the EVMavericks Octant V2 Ethereum vault details are complete.",
+    "This preview does not accept payments yet; Endow opens after the vault route is complete and verified.",
 };
 
 const WETH_ASSET_MANIFEST = {

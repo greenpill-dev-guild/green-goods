@@ -641,14 +641,14 @@ function CardEndowProviderContent({
 
   const cardSummaryItems: CheckoutSummaryItem[] = [
     ...summaryItems,
-    ...(verifiedEmail || emailInput.trim()
+    ...(verifiedEmail
       ? [
           {
             label: formatMessage({
               id: "public.vaults.cardEndow.emailLabel",
               defaultMessage: "Email",
             }),
-            value: verifiedEmail ?? emailInput.trim(),
+            value: verifiedEmail,
           },
         ]
       : []),
