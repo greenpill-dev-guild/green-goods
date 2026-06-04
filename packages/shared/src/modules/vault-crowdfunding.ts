@@ -467,9 +467,9 @@ const greenpillNycPreviewCopy: OctantVaultCampaignCopy = {
   summary:
     "Greenpill NYC is ready for production Card Endow testing through the Octant V2 Ethereum vault route.",
   fundingPurpose:
-    "Fund local civic-tech coordination while keeping the exact Ethereum vault, WETH amount, and receiver wallet visible before any value moves.",
+    "Fund local civic-tech coordination while keeping the exact Ethereum vault, ETH settlement amount, and receiver wallet visible before any value moves.",
   recipientLogic:
-    "Card funding lands in the recovered email wallet first; that same user-owned wallet approves WETH and deposits into the Greenpill NYC vault for itself.",
+    "Card funding lands in the recovered email wallet first; that same user-owned wallet approves the vault asset and deposits into the Greenpill NYC vault for itself.",
   riskNote:
     "Live mainnet payment stays locked behind email wallet recovery, tuple confirmation, user-approved approve/deposit transactions, and positive share proof.",
 };
@@ -477,13 +477,13 @@ const greenpillNycPreviewCopy: OctantVaultCampaignCopy = {
 const evmavericksPreviewCopy: OctantVaultCampaignCopy = {
   headline: "A pending vault slot for recurring ETH-native public-goods funding.",
   summary:
-    "EVMavericks appears in the first demo manifest so reviewers can inspect the slot before transaction metadata lands.",
+    "EVMavericks appears as a preview slot so reviewers can inspect the campaign before transaction metadata lands.",
   fundingPurpose:
     "The campaign is intended to support a Fantasy Football League funding flow tied to public-goods outcomes.",
   recipientLogic:
     "Protocol Guild destination context and recipient routing are required before this campaign can accept Endow transactions.",
   riskNote:
-    "Wallet Endow and card funding are blocked until the complete EVMavericks Octant V2 Ethereum manifest is supplied.",
+    "Wallet Endow and card funding are blocked until the EVMavericks Octant V2 Ethereum vault details are complete.",
 };
 
 const WETH_ASSET_MANIFEST = {
@@ -514,7 +514,7 @@ export const OCTANT_VAULT_CAMPAIGN_MANIFEST = [
     previewCopy: greenpillNycPreviewCopy,
     campaignCopy: greenpillNycPreviewCopy,
     recipientRoutingSummary:
-      "Greenpill NYC Card Endow funds the recovered Thirdweb email wallet with WETH, then that same wallet approves the vault and deposits WETH so vault shares remain with the recovered wallet receiver.",
+      "Greenpill NYC Card Endow funds the recovered Thirdweb email wallet with the vault asset, then that same wallet approves the vault and deposits so vault shares remain with the recovered wallet receiver.",
     vault: {
       chainId: OCTANT_V2_ETHEREUM_CHAIN_ID,
       vaultAddress: "0xaC8F844CEA2Fd75B7A5514f11974895B334fd9A5",
@@ -1205,7 +1205,7 @@ export function getOctantVaultCampaignCopy(
       summary: "Campaign copy is pending.",
       fundingPurpose: "Funding purpose is pending.",
       recipientLogic: "Recipient routing is pending.",
-      riskNote: "Transactions are disabled until the manifest is complete.",
+      riskNote: "Transactions are disabled until the campaign details are complete.",
     }
   );
 }

@@ -17,6 +17,8 @@ export const PRICE_FEED_DECIMALS = 8;
 const USD_CENTS_SCALE = 100n;
 
 const ETH_USD_FEED: Record<number, Address | undefined> = {
+  // Ethereum mainnet — Octant V2 vault route
+  1: "0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419" as Address,
   // Arbitrum mainnet — production target
   42161: "0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612" as Address,
   // Sepolia — testnet

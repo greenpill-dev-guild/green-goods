@@ -97,11 +97,11 @@ function CampaignStatus({ campaign }: { campaign: OctantVaultCampaignManifest })
     state.manifestStatus === "complete"
       ? formatMessage({
           id: "public.vaults.status.ready",
-          defaultMessage: "Manifest complete",
+          defaultMessage: "Ready for checkout",
         })
       : formatMessage({
           id: "public.vaults.status.blocked",
-          defaultMessage: "Blocked pending manifest",
+          defaultMessage: "More details needed",
         });
 
   return (
@@ -133,14 +133,14 @@ function ManifestMissingList({
       <p className="text-sm leading-[1.55] text-text-sub-600">
         {formatMessage({
           id: "public.vaults.manifest.blocked",
-          defaultMessage: "Endow stays disabled until these manifest fields are supplied:",
+          defaultMessage: "Endow stays paused while these campaign details are finalized:",
         })}
       </p>
       <ul
         className="mt-3 flex flex-wrap gap-2"
         aria-label={formatMessage({
           id: "public.vaults.manifest.missingFields",
-          defaultMessage: "Missing manifest fields",
+          defaultMessage: "Campaign details still needed",
         })}
       >
         {missingFields.map((field) => (
@@ -310,7 +310,7 @@ export function VaultsPageContent({
         lede={formatMessage({
           id: "public.vaults.hero.lede",
           defaultMessage:
-            "Browse Greenpill NYC and EVMavericks campaign slots before any wallet step. Endow stays disabled until each Octant V2 Ethereum vault manifest is complete.",
+            "Browse Greenpill NYC and EVMavericks campaign slots before any wallet step. Endow opens once each campaign's Octant V2 Ethereum vault details are ready.",
         })}
       />
 
@@ -323,7 +323,7 @@ export function VaultsPageContent({
             <EditorialKicker className="mb-3">
               {formatMessage({
                 id: "public.vaults.browse.kicker",
-                defaultMessage: "§ 01 — Campaign manifest",
+                defaultMessage: "§ 01 — Campaign details",
               })}
             </EditorialKicker>
             <EditorialHeading id="public-vaults-browse-title">

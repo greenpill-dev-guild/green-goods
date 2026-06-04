@@ -64,6 +64,10 @@ function formatProviderFlow(
   return flow;
 }
 
+function getSettlementSymbol(symbol: string): string {
+  return symbol.toUpperCase() === "WETH" ? "ETH" : symbol;
+}
+
 function getTransactionHash(result: unknown): `0x${string}` | null {
   if (!result || typeof result !== "object") return null;
   const candidate = (result as { transactionHash?: unknown }).transactionHash;
@@ -131,7 +135,7 @@ export default function VaultCardEndowFlow({
           {formatMessage({
             id: "public.vaults.cardEndow.missingClientId",
             defaultMessage:
-              "Thirdweb email wallet recovery requires VITE_THIRDWEB_CLIENT_ID before starting the client.",
+              "Card checkout is not available on this domain yet. The operator needs to finish Thirdweb access before donors can continue.",
           })}
         </p>
       </CheckoutScreen>
@@ -633,6 +637,7 @@ function CardEndowProviderContent({
 
   // ── Render helpers ─────────────────────────────────────────────────────────
   const canEditCheckout = !checkoutInputsLocked;
+  const cardFundingSymbol = getSettlementSymbol(plan?.cardFunding.tokenSymbol ?? "ETH");
 
   const cardSummaryItems: CheckoutSummaryItem[] = [
     ...summaryItems,
@@ -708,7 +713,7 @@ function CardEndowProviderContent({
           </div>
         }
       >
-        <div className="flex flex-col gap-5" data-testid="vault-card-endow-flow">
+        <div className="flex min-h-[31rem] flex-col gap-5" data-testid="vault-card-endow-flow">
           <CheckoutSummary items={cardSummaryItems} onEdit={canEditCheckout ? onBack : undefined} />
 
           <form id={emailFormId} className="grid gap-2" onSubmit={handleSendEmailCode}>
@@ -734,7 +739,11 @@ function CardEndowProviderContent({
             />
           </form>
 
-          <form id={otpFormId} className="grid gap-2" onSubmit={handleVerifyEmailWallet}>
+          <form
+            id={otpFormId}
+            className="grid min-h-[6.5rem] gap-2"
+            onSubmit={handleVerifyEmailWallet}
+          >
             <label htmlFor={otpInputId} className={CHECKOUT_FIELD_LABEL}>
               {formatMessage({
                 id: "public.vaults.cardEndow.otpLabel",
@@ -850,7 +859,7 @@ function CardEndowProviderContent({
                     })}
                   </dt>
                   <dd className="text-text-sub-600">
-                    {formattedAmount} {plan.cardFunding.tokenSymbol}
+                    {formattedAmount} {cardFundingSymbol}
                   </dd>
                 </div>
                 <div>
@@ -969,7 +978,7 @@ function CardEndowProviderContent({
               {formatMessage({
                 id: "public.vaults.cardEndow.planBlocked",
                 defaultMessage:
-                  "Card Endow fallback plan is blocked. Confirm the campaign manifest, amount, and recovered wallet address.",
+                  "Card checkout is blocked. Confirm the campaign details, amount, and recovered wallet address.",
               })}
             </p>
           )}

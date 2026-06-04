@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { isZeroAddress, ZERO_ADDRESS } from "../../utils/blockchain/address";
+import { getEthUsdFeedAddress } from "../../utils/blockchain/price-feeds";
 import {
   formatTokenAmount,
   getNetDeposited,
@@ -11,6 +12,12 @@ import {
 } from "../../utils/blockchain/vaults";
 
 describe("Vault Utilities", () => {
+  describe("getEthUsdFeedAddress", () => {
+    it("returns the Ethereum mainnet feed for Octant V2 vault conversion", () => {
+      expect(getEthUsdFeedAddress(1)).toBe("0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419");
+    });
+  });
+
   describe("ZERO_ADDRESS", () => {
     it("is a 42-character hex string", () => {
       expect(ZERO_ADDRESS).toBe("0x0000000000000000000000000000000000000000");

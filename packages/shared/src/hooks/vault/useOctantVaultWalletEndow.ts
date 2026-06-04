@@ -13,6 +13,7 @@ import { useTransactionSender } from "../blockchain/useTransactionSender";
 import { useSafeMutation } from "../utils/useSafeMutation";
 import {
   isRecoverableAllowanceReadError,
+  shouldShowLifecycleToast,
   shouldShowErrorToast,
   VaultDepositStageError,
   type VaultDepositFailureReason,
@@ -29,7 +30,8 @@ export function useOctantVaultWalletEndow(options: VaultMutationOptions = {}) {
   const { formatMessage } = useIntl();
   const { authMode, primaryAddress } = useUser();
   const sender = useTransactionSender();
-  const showErrorToast = shouldShowErrorToast(options.errorMode);
+  const showLifecycleToast = shouldShowLifecycleToast(options.toastMode);
+  const showErrorToast = showLifecycleToast && shouldShowErrorToast(options.errorMode);
   const handleError = createMutationErrorHandler({
     source: "useOctantVaultWalletEndow",
     toastContext: "Octant Wallet Endow",
@@ -207,7 +209,7 @@ export function useOctantVaultWalletEndow(options: VaultMutationOptions = {}) {
         );
       }
 
-      if (activeToastId.current) {
+      if (showLifecycleToast && activeToastId.current) {
         toastService.loading({
           id: activeToastId.current,
           title: formatMessage({ id: "app.treasury.deposit" }),
@@ -232,6 +234,10 @@ export function useOctantVaultWalletEndow(options: VaultMutationOptions = {}) {
       }
     },
     onMutate: () => {
+      if (!showLifecycleToast) {
+        activeToastId.current = undefined;
+        return { toastId: undefined };
+      }
       const toastId = toastService.loading({
         title: formatMessage({ id: "app.treasury.deposit" }),
         message: formatMessage({ id: "app.treasury.approving" }),
@@ -241,13 +247,17 @@ export function useOctantVaultWalletEndow(options: VaultMutationOptions = {}) {
     },
     onSuccess: (_txHash, _transaction, context) => {
       if (context?.toastId) toastService.dismiss(context.toastId);
-      toastService.success({
-        title: formatMessage({ id: "app.treasury.deposit" }),
-        message: formatMessage({ id: "app.treasury.depositSuccess" }),
-      });
+      activeToastId.current = undefined;
+      if (showLifecycleToast) {
+        toastService.success({
+          title: formatMessage({ id: "app.treasury.deposit" }),
+          message: formatMessage({ id: "app.treasury.depositSuccess" }),
+        });
+      }
     },
     onError: (error, transaction, context) => {
       if (context?.toastId) toastService.dismiss(context.toastId);
+      activeToastId.current = undefined;
       const metadata = {
         chainId: transaction?.chainId,
         assetAddress: transaction?.assetAddress,

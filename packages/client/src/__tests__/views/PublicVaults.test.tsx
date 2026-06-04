@@ -6,9 +6,9 @@
 
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createElement } from "react";
+import { Fragment, createElement, useEffect } from "react";
 import { IntlProvider } from "react-intl";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { OctantVaultCampaignManifest } from "@green-goods/shared";
@@ -74,6 +74,14 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       reset: sharedHookMocks.octantVaultWalletEndowReset,
       error: null,
       isPending: false,
+    }),
+    useEthUsdPrice: () => ({
+      hasFeed: true,
+      priceAnswer: 300000000000n,
+      isLoading: false,
+      isError: false,
+      isStale: false,
+      updatedAt: 1770000000n,
     }),
   };
 });
@@ -188,6 +196,35 @@ function renderView(path = "/vaults") {
   );
 }
 
+function LocationProbe({ onChange }: { onChange: (location: string) => void }) {
+  const location = useLocation();
+
+  useEffect(() => {
+    onChange(`${location.pathname}${location.search}${location.hash}`);
+  }, [location.hash, location.pathname, location.search, onChange]);
+
+  return null;
+}
+
+function renderViewWithLocationProbe(path: string, onLocationChange: (location: string) => void) {
+  return render(
+    createElement(
+      MemoryRouter,
+      { initialEntries: [path] },
+      createElement(
+        IntlProvider,
+        { locale: "en", messages: { "app.common.close": "Close" } },
+        createElement(
+          Fragment,
+          null,
+          createElement(VaultsPage),
+          createElement(LocationProbe, { onChange: onLocationChange })
+        )
+      )
+    )
+  );
+}
+
 function renderContent(campaigns: OctantVaultCampaignManifest[], path = "/vaults") {
   return render(
     createElement(
@@ -218,7 +255,7 @@ function renderCard(campaign: OctantVaultCampaignManifest) {
 
 async function openGreenpillCardCheckout(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole("button", { name: "Endow to Greenpill NYC" }));
-  await user.type(screen.getByLabelText("Amount"), "0.01");
+  await user.type(screen.getByLabelText("Donation amount"), "30");
   expect(screen.queryByTestId("vault-checkout-method-card")).not.toBeInTheDocument();
   expect(screen.queryByTestId("vault-checkout-method-wallet")).not.toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "Continue" }));
@@ -324,6 +361,20 @@ describe("VaultsPage", () => {
     expect(screen.queryByTestId("wallet-runtime-provider")).not.toBeInTheDocument();
   });
 
+  it("keeps the Card Endow QA query param available for the public vault route", async () => {
+    const locations: string[] = [];
+
+    renderViewWithLocationProbe("/vaults?cardEndowQa=1&manage=positions", (location) => {
+      locations.push(location);
+    });
+
+    await waitFor(() => expect(locations.at(-1)).toBe("/vaults?cardEndowQa=1&manage=positions"));
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
+      "Octant vault campaigns for public goods."
+    );
+    expect(screen.getByRole("button", { name: "Endow to Greenpill NYC" })).toBeEnabled();
+  });
+
   it("shows one Endow CTA on Greenpill NYC and a blocked explanation for incomplete fixtures", () => {
     renderView();
 
@@ -339,12 +390,13 @@ describe("VaultsPage", () => {
 
     // EVMavericks stays blocked with a human explanation and no payment affordance.
     expect(within(evmavericksCard).queryByRole("button")).not.toBeInTheDocument();
-    expect(within(evmavericksCard).getByText("Blocked pending manifest")).toBeInTheDocument();
+    expect(within(evmavericksCard).getByText("More details needed")).toBeInTheDocument();
     expect(
       within(
-        within(evmavericksCard).getByRole("list", { name: "Missing manifest fields" })
+        within(evmavericksCard).getByRole("list", { name: "Campaign details still needed" })
       ).getByText("Protocol Guild destination context")
     ).toBeInTheDocument();
+    expect(screen.queryByText(/manifest/i)).not.toBeInTheDocument();
   });
 
   it("keeps Donate and Card Donate labels out of the vault campaign route", () => {
@@ -358,7 +410,7 @@ describe("VaultsPage", () => {
   it("renders one Endow CTA for a complete manifest card", () => {
     renderCard(makeCompleteCampaign());
 
-    expect(screen.getByText("Manifest complete")).toBeInTheDocument();
+    expect(screen.getByText("Ready for checkout")).toBeInTheDocument();
     expect(
       screen.getByRole("button", { name: "Endow to Synthetic complete campaign" })
     ).toBeEnabled();
@@ -380,7 +432,7 @@ describe("VaultsPage", () => {
     expect(screen.queryByTestId("vault-checkout-method-card")).not.toBeInTheDocument();
     expect(screen.queryByTestId("vault-checkout-method-wallet")).not.toBeInTheDocument();
 
-    await user.type(screen.getByLabelText("Amount"), "2.5");
+    await user.type(screen.getByLabelText("Donation amount"), "2.50");
     expect(screen.queryByTestId("vault-checkout-method-wallet")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Continue" }));
 
@@ -402,9 +454,12 @@ describe("VaultsPage", () => {
     await user.click(screen.getByRole("button", { name: "Endow to Greenpill NYC" }));
     expect(screen.queryByTestId("vault-checkout-method-card")).not.toBeInTheDocument();
 
-    await user.type(screen.getByLabelText("Amount"), "0.01");
+    await user.type(screen.getByLabelText("Donation amount"), "30");
     expect(screen.queryByTestId("vault-checkout-method-card")).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Continue" }));
+    expect(screen.getByText("$30.00")).toBeInTheDocument();
+    expect(screen.getByText("Settles as 0.01 ETH")).toBeInTheDocument();
+    expect(screen.queryByText(/Wrapped ETH/i)).not.toBeInTheDocument();
     await user.click(screen.getByTestId("vault-checkout-method-card"));
     await user.click(screen.getByRole("button", { name: "Continue" }));
     expect(await screen.findByTestId("vault-card-endow-flow")).toBeInTheDocument();
@@ -540,7 +595,7 @@ describe("VaultsPage", () => {
 
     // Structural lock: amount/method are collapsed to a read-only summary, the
     // back/edit path is gone, and the sheet cannot be closed mid-transaction.
-    expect(screen.queryByLabelText("Amount")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Donation amount")).not.toBeInTheDocument();
     expect(screen.queryByTestId("vault-checkout-method-card")).not.toBeInTheDocument();
     expect(screen.queryByTestId("vault-checkout-method-wallet")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Back" })).not.toBeInTheDocument();
@@ -549,7 +604,8 @@ describe("VaultsPage", () => {
 
     // Pending feedback, and the summary still shows the locked amount.
     expect(screen.getByRole("button", { name: "Approving..." })).toBeDisabled();
-    expect(screen.getByText("0.01 WETH")).toBeInTheDocument();
+    expect(screen.getByText("$30.00")).toBeInTheDocument();
+    expect(screen.getByText("Settles as 0.01 ETH")).toBeInTheDocument();
 
     resolveApproval?.({
       transactionHash: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
@@ -597,7 +653,7 @@ describe("VaultsPage", () => {
     renderView();
 
     await user.click(screen.getByRole("button", { name: "Endow to Greenpill NYC" }));
-    await user.type(screen.getByLabelText("Amount"), "0.01");
+    await user.type(screen.getByLabelText("Donation amount"), "30");
     await user.click(screen.getByRole("button", { name: "Continue" }));
     await user.click(screen.getByTestId("vault-checkout-method-card"));
     await user.click(screen.getByRole("button", { name: "Continue" }));
@@ -620,31 +676,37 @@ describe("VaultsPage", () => {
 
     await user.click(screen.getByRole("button", { name: "Endow to Synthetic complete campaign" }));
 
-    // The wallet runtime must not mount before a valid amount or a method choice.
-    expect(screen.queryByTestId("wallet-runtime-provider")).not.toBeInTheDocument();
-    expect(sharedHookMocks.walletRuntimeProviderRender).not.toHaveBeenCalled();
+    // Opening checkout may prepare wallet runtime for price conversion, but it
+    // must not expose a wallet action before amount + method + final continue.
+    expect(screen.getByTestId("wallet-runtime-provider")).toBeInTheDocument();
+    expect(sharedHookMocks.walletRuntimeProviderRender).toHaveBeenCalled();
+    expect(screen.queryByTestId("vault-wallet-endow-path")).not.toBeInTheDocument();
 
-    await user.type(screen.getByLabelText("Amount"), "2.5");
+    await user.type(screen.getByLabelText("Donation amount"), "2.50");
     expect(screen.queryByTestId("vault-checkout-method-wallet")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("wallet-runtime-provider")).not.toBeInTheDocument();
-    expect(sharedHookMocks.walletRuntimeProviderRender).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("vault-wallet-endow-path")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Continue" }));
     await user.click(screen.getByTestId("vault-checkout-method-wallet"));
 
-    // The wallet runtime must not mount on method pick — only after Continue.
-    expect(screen.queryByTestId("wallet-runtime-provider")).not.toBeInTheDocument();
-    expect(sharedHookMocks.walletRuntimeProviderRender).not.toHaveBeenCalled();
+    // Method pick is still not the wallet connection step.
+    expect(screen.queryByTestId("vault-wallet-endow-path")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Connect Wallet" })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Continue" }));
 
-    expect(screen.getByTestId("wallet-runtime-provider")).toBeInTheDocument();
-    expect(sharedHookMocks.walletRuntimeProviderRender).toHaveBeenCalled();
-    expect(screen.getByText("2.5 USDC")).toBeInTheDocument();
+    expect(screen.getByTestId("vault-wallet-endow-path")).toBeInTheDocument();
+    expect(screen.getByText("$2.50")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Connect Wallet" }));
 
     expect(sharedHookMocks.loginWithWallet).toHaveBeenCalledTimes(1);
     expect(sharedHookMocks.octantVaultWalletEndowMutate).not.toHaveBeenCalled();
+
+    await user.keyboard("{Escape}");
+
+    expect(screen.getByTestId("vault-wallet-endow-path")).toBeInTheDocument();
+    expect(screen.getByText("$2.50")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Connect Wallet" })).toBeInTheDocument();
   });
 
   it("does not treat restored passkey auth as Wallet Endow readiness", async () => {
@@ -655,7 +717,7 @@ describe("VaultsPage", () => {
     renderContent([makeCompleteCampaign()]);
 
     await user.click(screen.getByRole("button", { name: "Endow to Synthetic complete campaign" }));
-    await user.type(screen.getByLabelText("Amount"), "2.5");
+    await user.type(screen.getByLabelText("Donation amount"), "2.50");
     await user.click(screen.getByRole("button", { name: "Continue" }));
     await user.click(screen.getByTestId("vault-checkout-method-wallet"));
     await user.click(screen.getByRole("button", { name: "Continue" }));
@@ -673,7 +735,7 @@ describe("VaultsPage", () => {
     renderContent([makeCompleteCampaign()]);
 
     await user.click(screen.getByRole("button", { name: "Endow to Synthetic complete campaign" }));
-    await user.type(screen.getByLabelText("Amount"), "2.5");
+    await user.type(screen.getByLabelText("Donation amount"), "2.50");
     await user.click(screen.getByRole("button", { name: "Continue" }));
     await user.click(screen.getByTestId("vault-checkout-method-wallet"));
     await user.click(screen.getByRole("button", { name: "Continue" }));

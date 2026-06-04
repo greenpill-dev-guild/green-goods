@@ -1,16 +1,19 @@
 import {
   DialogShell,
+  formatTokenAmount,
+  formatUsdCents,
   getOctantVaultCampaignTransactionState,
+  parseUsdToCents,
   prepareOctantVaultWalletEndow,
   type OctantVaultCampaignManifest,
+  usdCentsToWei,
   useAuth,
+  useEthUsdPrice,
   useOctantVaultWalletEndow,
   useUser,
-  validateDecimalInput,
 } from "@green-goods/shared";
 import { lazy, Suspense, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
-import { formatUnits, parseUnits } from "viem";
 import WalletRuntimeProviders from "@/routes/WalletRuntimeProviders";
 import {
   CHECKOUT_FIELD_LABEL,
@@ -28,6 +31,8 @@ import {
  * an un-reviewed vault can never surface a live card payment affordance.
  */
 const CARD_ENDOW_PRODUCTION_CAMPAIGN_SLUG = "greenpill-nyc";
+const WETH_SYMBOL = "WETH";
+const ETH_SYMBOL = "ETH";
 
 function isProductionCardEndowCampaign(campaign: OctantVaultCampaignManifest): boolean {
   return campaign.slug === CARD_ENDOW_PRODUCTION_CAMPAIGN_SLUG;
@@ -50,25 +55,33 @@ const UNLOCKED_CHECKOUT_GUARD: VaultCheckoutGuardState = {
 
 type VaultCheckoutPhase = "amount" | "method" | "pay";
 
+function usdCentsToStableTokenUnits(cents: bigint, decimals: number): bigint {
+  if (cents <= 0n) return 0n;
+  if (decimals >= 2) return cents * 10n ** BigInt(decimals - 2);
+  return cents / 10n ** BigInt(2 - decimals);
+}
+
+function getSettlementSymbol(symbol: string): string {
+  return symbol.toUpperCase() === WETH_SYMBOL ? ETH_SYMBOL : symbol;
+}
+
 function getAmountErrorMessage(
   formatMessage: ReturnType<typeof useIntl>["formatMessage"],
-  validationKey: string | null,
-  symbol: string
+  amountInput: string,
+  usdCents: bigint | null,
+  conversionUnavailable: boolean
 ) {
-  if (validationKey === "app.treasury.tooManyDecimals") {
-    return formatMessage(
-      {
-        id: "public.vaults.walletEndow.amount.tooManyDecimals",
-        defaultMessage: "Use fewer decimals for {symbol}.",
-      },
-      { symbol }
-    );
-  }
-
-  if (validationKey) {
+  if (amountInput.trim() && (usdCents === null || usdCents <= 0n)) {
     return formatMessage({
       id: "public.vaults.walletEndow.amount.invalid",
-      defaultMessage: "Enter a valid amount.",
+      defaultMessage: "Enter a valid dollar amount.",
+    });
+  }
+
+  if (conversionUnavailable) {
+    return formatMessage({
+      id: "public.vaults.walletEndow.amount.conversionUnavailable",
+      defaultMessage: "ETH pricing is not available right now. Try again in a moment.",
     });
   }
 
@@ -78,6 +91,14 @@ function getAmountErrorMessage(
 export interface VaultCheckoutDialogProps {
   campaign: OctantVaultCampaignManifest;
   onClose: () => void;
+}
+
+export function VaultCheckoutDialog(props: VaultCheckoutDialogProps) {
+  return (
+    <WalletRuntimeProviders>
+      <VaultCheckoutDialogContent {...props} />
+    </WalletRuntimeProviders>
+  );
 }
 
 /**
@@ -91,7 +112,7 @@ export interface VaultCheckoutDialogProps {
  * guard up so the sheet can prevent edits and close while a transaction is in
  * flight.
  */
-export function VaultCheckoutDialog({ campaign, onClose }: VaultCheckoutDialogProps) {
+function VaultCheckoutDialogContent({ campaign, onClose }: VaultCheckoutDialogProps) {
   const { formatMessage } = useIntl();
   const amountInputId = useId();
   const amountHelpId = useId();
@@ -102,22 +123,43 @@ export function VaultCheckoutDialog({ campaign, onClose }: VaultCheckoutDialogPr
   const [phase, setPhase] = useState<VaultCheckoutPhase>("amount");
   const [checkoutGuard, setCheckoutGuard] =
     useState<VaultCheckoutGuardState>(UNLOCKED_CHECKOUT_GUARD);
+  const checkoutGuardRef = useRef<VaultCheckoutGuardState>(UNLOCKED_CHECKOUT_GUARD);
 
   const decimals = campaign.vault?.asset?.decimals ?? 18;
   const symbol =
     campaign.vault?.asset?.symbol ??
     formatMessage({ id: "public.vaults.walletEndow.assetFallback", defaultMessage: "tokens" });
-  const validationKey = validateDecimalInput(amountInput, decimals);
-  const amountError = getAmountErrorMessage(formatMessage, validationKey, symbol);
-  const parsedAmount = useMemo(() => {
-    const trimmed = amountInput.trim();
-    if (!trimmed || validationKey) return null;
-    try {
-      return parseUnits(trimmed, decimals);
-    } catch {
-      return null;
+  const settlementSymbol = getSettlementSymbol(symbol);
+  const isEthSettlement = settlementSymbol === ETH_SYMBOL;
+  const ethUsd = useEthUsdPrice({
+    enabled: isEthSettlement,
+    chainId: campaign.vault?.chainId,
+  });
+  const usdCents = useMemo(() => parseUsdToCents(amountInput), [amountInput]);
+  const { parsedAmount, conversionUnavailable } = useMemo(() => {
+    if (usdCents === null || usdCents <= 0n) {
+      return { parsedAmount: null, conversionUnavailable: false };
     }
-  }, [amountInput, decimals, validationKey]);
+    if (isEthSettlement) {
+      if (!ethUsd.hasFeed || ethUsd.priceAnswer <= 0n) {
+        return { parsedAmount: null, conversionUnavailable: true };
+      }
+      return {
+        parsedAmount: usdCentsToWei(usdCents, ethUsd.priceAnswer, decimals),
+        conversionUnavailable: false,
+      };
+    }
+    return {
+      parsedAmount: usdCentsToStableTokenUnits(usdCents, decimals),
+      conversionUnavailable: false,
+    };
+  }, [decimals, ethUsd.hasFeed, ethUsd.priceAnswer, isEthSettlement, usdCents]);
+  const amountError = getAmountErrorMessage(
+    formatMessage,
+    amountInput,
+    usdCents,
+    conversionUnavailable
+  );
   const hasReadyAmount = typeof parsedAmount === "bigint" && parsedAmount > 0n;
 
   const transactionState = useMemo(
@@ -155,10 +197,15 @@ export function VaultCheckoutDialog({ campaign, onClose }: VaultCheckoutDialogPr
 
   const handleOpenChange = useCallback(
     (open: boolean) => {
-      if (!open && !checkoutGuard.closeLocked) onClose();
+      if (!open && !checkoutGuardRef.current.closeLocked) onClose();
     },
-    [checkoutGuard.closeLocked, onClose]
+    [onClose]
   );
+
+  const updateCheckoutGuard = useCallback((guard: VaultCheckoutGuardState) => {
+    checkoutGuardRef.current = guard;
+    setCheckoutGuard(guard);
+  }, []);
 
   const handleAmountChange = useCallback((value: string) => {
     setAmountInput(value);
@@ -175,17 +222,31 @@ export function VaultCheckoutDialog({ campaign, onClose }: VaultCheckoutDialogPr
 
   const handleBackToAmount = useCallback(() => {
     if (checkoutGuard.inputsLocked) return;
-    setCheckoutGuard(UNLOCKED_CHECKOUT_GUARD);
+    updateCheckoutGuard(UNLOCKED_CHECKOUT_GUARD);
     setPhase("amount");
-  }, [checkoutGuard.inputsLocked]);
+  }, [checkoutGuard.inputsLocked, updateCheckoutGuard]);
 
   const handleBackToMethod = useCallback(() => {
     if (checkoutGuard.inputsLocked) return;
-    setCheckoutGuard(UNLOCKED_CHECKOUT_GUARD);
+    updateCheckoutGuard(UNLOCKED_CHECKOUT_GUARD);
     setPhase("method");
-  }, [checkoutGuard.inputsLocked]);
+  }, [checkoutGuard.inputsLocked, updateCheckoutGuard]);
 
-  const formattedAmount = hasReadyAmount && parsedAmount ? formatUnits(parsedAmount, decimals) : "";
+  const formattedUsdAmount = usdCents !== null && usdCents > 0n ? formatUsdCents(usdCents) : "";
+  const formattedSettlementAmount =
+    hasReadyAmount && parsedAmount
+      ? formatTokenAmount(parsedAmount, decimals, isEthSettlement ? 6 : 4, undefined, true)
+      : "";
+  const settlementDetail =
+    formattedSettlementAmount && settlementSymbol
+      ? formatMessage(
+          {
+            id: "public.vaults.checkout.review.settlement",
+            defaultMessage: "Settles as {amount} {symbol}",
+          },
+          { amount: formattedSettlementAmount, symbol: settlementSymbol }
+        )
+      : "";
   const methodLabel =
     selectedMethod === "card"
       ? formatMessage({ id: "public.vaults.checkout.method.card", defaultMessage: "Card" })
@@ -195,9 +256,16 @@ export function VaultCheckoutDialog({ campaign, onClose }: VaultCheckoutDialogPr
     {
       label: formatMessage({
         id: "public.vaults.checkout.review.amount",
-        defaultMessage: "Amount",
+        defaultMessage: "Donation amount",
       }),
-      value: `${formattedAmount} ${symbol}`,
+      value: (
+        <span className="inline-flex flex-col gap-0.5">
+          <span>{formattedUsdAmount}</span>
+          {settlementDetail ? (
+            <span className="text-xs text-text-soft-400">{settlementDetail}</span>
+          ) : null}
+        </span>
+      ),
     },
   ];
 
@@ -262,10 +330,13 @@ export function VaultCheckoutDialog({ campaign, onClose }: VaultCheckoutDialogPr
               <label htmlFor={amountInputId} className={CHECKOUT_FIELD_LABEL}>
                 {formatMessage({
                   id: "public.vaults.walletEndow.amountLabel",
-                  defaultMessage: "Amount",
+                  defaultMessage: "Donation amount",
                 })}
               </label>
               <div className="flex items-center gap-2 rounded-none border border-stroke-soft-200 bg-bg-white-0 px-4 py-3 transition-colors focus-within:border-primary-action">
+                <span className="font-serif text-2xl text-text-soft-400" aria-hidden>
+                  $
+                </span>
                 <input
                   ref={amountRef}
                   id={amountInputId}
@@ -279,17 +350,15 @@ export function VaultCheckoutDialog({ campaign, onClose }: VaultCheckoutDialogPr
                   placeholder="0.00"
                   className="flex-1 bg-transparent font-serif text-2xl text-text-strong-950 outline-none placeholder:text-text-soft-400"
                 />
-                <span className="font-mono text-sm uppercase tracking-[0.12em] text-text-soft-400">
-                  {symbol}
-                </span>
               </div>
               <p id={amountHelpId} className="text-xs leading-[1.5] text-text-soft-400">
                 {formatMessage(
                   {
                     id: "public.vaults.walletEndow.amountHelp",
-                    defaultMessage: "Enter an amount in {symbol}.",
+                    defaultMessage:
+                      "Enter dollars first. Checkout settles to {symbol} for the Octant vault.",
                   },
-                  { symbol }
+                  { symbol: settlementSymbol }
                 )}
               </p>
               {amountError ? (
@@ -359,12 +428,15 @@ export function VaultCheckoutDialog({ campaign, onClose }: VaultCheckoutDialogPr
                       method === "card"
                         ? formatMessage({
                             id: "public.vaults.checkout.method.cardSubtitle",
-                            defaultMessage: "Debit or credit",
+                            defaultMessage: "Debit or credit card",
                           })
-                        : formatMessage({
-                            id: "public.vaults.checkout.method.walletSubtitle",
-                            defaultMessage: "Connect a wallet",
-                          })
+                        : formatMessage(
+                            {
+                              id: "public.vaults.checkout.method.walletSubtitle",
+                              defaultMessage: "I already have {symbol}",
+                            },
+                            { symbol: settlementSymbol }
+                          )
                     }
                   />
                 ))}
@@ -379,7 +451,7 @@ export function VaultCheckoutDialog({ campaign, onClose }: VaultCheckoutDialogPr
           summaryItems={summaryItems}
           canEdit={!checkoutGuard.inputsLocked}
           onBack={handleBackToMethod}
-          onCheckoutGuardChange={setCheckoutGuard}
+          onCheckoutGuardChange={updateCheckoutGuard}
         />
       ) : selectedMethod === "card" && parsedAmount ? (
         <Suspense
@@ -412,7 +484,7 @@ export function VaultCheckoutDialog({ campaign, onClose }: VaultCheckoutDialogPr
             amount={parsedAmount}
             summaryItems={summaryItems}
             onBack={handleBackToMethod}
-            onCheckoutGuardChange={setCheckoutGuard}
+            onCheckoutGuardChange={updateCheckoutGuard}
           />
         </Suspense>
       ) : null}
@@ -436,16 +508,14 @@ function WalletEndowPath({
   onCheckoutGuardChange: (guard: VaultCheckoutGuardState) => void;
 }) {
   return (
-    <WalletRuntimeProviders>
-      <WalletEndowPathContent
-        campaign={campaign}
-        amount={amount}
-        summaryItems={summaryItems}
-        canEdit={canEdit}
-        onBack={onBack}
-        onCheckoutGuardChange={onCheckoutGuardChange}
-      />
-    </WalletRuntimeProviders>
+    <WalletEndowPathContent
+      campaign={campaign}
+      amount={amount}
+      summaryItems={summaryItems}
+      canEdit={canEdit}
+      onBack={onBack}
+      onCheckoutGuardChange={onCheckoutGuardChange}
+    />
   );
 }
 
@@ -467,9 +537,11 @@ function WalletEndowPathContent({
   const { formatMessage } = useIntl();
   const { authMode, primaryAddress } = useUser();
   const { loginWithWallet } = useAuth();
-  const walletEndow = useOctantVaultWalletEndow({ errorMode: "inline" });
+  const walletEndow = useOctantVaultWalletEndow({ errorMode: "inline", toastMode: "silent" });
   const [status, setStatus] = useState<"idle" | "success">("idle");
   const [pendingSubmissionKey, setPendingSubmissionKey] = useState<string | null>(null);
+  const [walletConnectRequested, setWalletConnectRequested] = useState(false);
+  const walletConnectRequestedRef = useRef(false);
 
   // Only a wallet-mode session is a valid Wallet Endow receiver. Restored passkey
   // / embedded sessions must still connect a wallet (PRD parity with /fund).
@@ -481,22 +553,51 @@ function WalletEndowPathContent({
   const walletFlowKeyRef = useRef(walletFlowKey);
   walletFlowKeyRef.current = walletFlowKey;
   const walletBusy = walletEndow.isPending || pendingSubmissionKey !== null;
+  const resetWalletEndow = walletEndow.reset;
+  const updateWalletConnectRequested = useCallback((requested: boolean) => {
+    walletConnectRequestedRef.current = requested;
+    setWalletConnectRequested(requested);
+  }, []);
 
   useEffect(() => {
     setStatus("idle");
     setPendingSubmissionKey(null);
-    walletEndow.reset();
-  }, [amount, campaign.slug, walletEndow]);
+    updateWalletConnectRequested(false);
+    resetWalletEndow();
+  }, [amount, campaign.slug, resetWalletEndow, updateWalletConnectRequested]);
 
   useEffect(() => {
-    onCheckoutGuardChange(
-      walletBusy ? { inputsLocked: true, closeLocked: true } : UNLOCKED_CHECKOUT_GUARD
-    );
+    const guard = walletBusy
+      ? { inputsLocked: true, closeLocked: true }
+      : walletConnectRequested
+        ? { inputsLocked: false, closeLocked: true }
+        : UNLOCKED_CHECKOUT_GUARD;
+    onCheckoutGuardChange(guard);
+  }, [onCheckoutGuardChange, walletBusy, walletConnectRequested]);
+
+  useEffect(() => {
     return () => onCheckoutGuardChange(UNLOCKED_CHECKOUT_GUARD);
-  }, [onCheckoutGuardChange, walletBusy]);
+  }, [onCheckoutGuardChange]);
+
+  useEffect(() => {
+    if (primaryWalletAddress) updateWalletConnectRequested(false);
+  }, [primaryWalletAddress, updateWalletConnectRequested]);
+
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (!walletConnectRequestedRef.current || event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopPropagation();
+    };
+
+    document.addEventListener("keydown", handleEscape, true);
+    return () => document.removeEventListener("keydown", handleEscape, true);
+  }, []);
 
   const handleSubmit = useCallback(() => {
     if (!primaryWalletAddress) {
+      updateWalletConnectRequested(true);
+      onCheckoutGuardChange({ inputsLocked: false, closeLocked: true });
       loginWithWallet();
       return;
     }
@@ -521,7 +622,16 @@ function WalletEndowPathContent({
         if (walletFlowKeyRef.current === submissionKey) setStatus("success");
       },
     });
-  }, [amount, campaign, loginWithWallet, primaryWalletAddress, walletEndow, walletFlowKey]);
+  }, [
+    amount,
+    campaign,
+    loginWithWallet,
+    onCheckoutGuardChange,
+    primaryWalletAddress,
+    updateWalletConnectRequested,
+    walletEndow,
+    walletFlowKey,
+  ]);
 
   const actionLabel = primaryWalletAddress
     ? formatMessage({
