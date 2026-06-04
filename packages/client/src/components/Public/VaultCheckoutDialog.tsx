@@ -138,11 +138,17 @@ export function VaultCheckoutDialog({ campaign, onClose }: VaultCheckoutDialogPr
     }
   }, [availableMethods, selectedMethod]);
 
-  // Amount-first: direct focus to the amount field after DialogShell's open-focus
-  // settles (Radix focuses the close button first), so the first checkout action
-  // is ready to type. rAF avoids the autoFocus a11y rule and the focus race.
+  // Amount-first: on desktop, direct focus to the amount field after
+  // DialogShell's open-focus settles. On mobile this can force the visual
+  // viewport to scroll and push the fixed checkout footer off-screen.
   useEffect(() => {
     if (phase !== "amount") return;
+    if (
+      typeof window.matchMedia === "function" &&
+      !window.matchMedia("(min-width: 640px)").matches
+    ) {
+      return;
+    }
     const raf = requestAnimationFrame(() => amountRef.current?.focus());
     return () => cancelAnimationFrame(raf);
   }, [phase]);
@@ -228,7 +234,7 @@ export function VaultCheckoutDialog({ campaign, onClose }: VaultCheckoutDialogPr
       size="xl"
       preventClose={checkoutGuard.closeLocked}
       hideCloseButton={checkoutGuard.closeLocked}
-      className="vault-checkout-surface flex h-[88vh] flex-col sm:h-[640px]"
+      className="vault-checkout-surface flex flex-col"
       bodyClassName="flex min-h-0 flex-1 flex-col overflow-hidden p-0 max-h-none"
     >
       {phase === "amount" ? (
@@ -326,7 +332,9 @@ export function VaultCheckoutDialog({ campaign, onClose }: VaultCheckoutDialogPr
                 })}
               </legend>
               <div
-                className={`grid gap-2 ${availableMethods.length > 1 ? "grid-cols-2" : "grid-cols-1"}`}
+                className={`grid gap-2 ${
+                  availableMethods.length > 1 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"
+                }`}
                 role="group"
               >
                 {availableMethods.map((method) => (

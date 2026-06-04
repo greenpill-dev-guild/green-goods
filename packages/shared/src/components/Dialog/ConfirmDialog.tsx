@@ -138,6 +138,7 @@ export function DialogShell({
               <Dialog.Close asChild>
                 <button
                   type="button"
+                  data-slot="close"
                   className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-text-soft transition hover:bg-bg-soft active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2"
                   aria-label={formatMessage({ id: "app.common.close" })}
                 >

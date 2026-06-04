@@ -83,5 +83,29 @@
    shared DialogShell defaults to rounded mobile/desktop surfaces. This must stay
    outside @layer utilities so it wins over shared's unlayered attribute rules. */
 [data-component="DialogShell"][data-slot="surface"].vault-checkout-surface {
+  animation: none;
   border-radius: 0;
+  left: 50%;
+  top: max(0.5rem, env(safe-area-inset-top));
+  bottom: max(0.5rem, env(safe-area-inset-bottom));
+  height: auto;
+  max-height: none;
+  --tw-translate-x: 0;
+  --tw-translate-y: 0;
+  transform: translateX(-50%);
+}
+
+[data-component="DialogShell"][data-slot="surface"].vault-checkout-surface
+  [data-slot="close"] {
+  border-radius: 0;
+}
+
+@media (min-width: 640px) {
+  [data-component="DialogShell"][data-slot="surface"].vault-checkout-surface {
+    top: 50%;
+    bottom: auto;
+    height: 40rem;
+    max-height: calc(100dvh - 2rem);
+    transform: translate(-50%, -50%);
+  }
 }

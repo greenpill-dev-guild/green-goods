@@ -13,7 +13,6 @@ import {
   EditorialHeading,
   EditorialKicker,
   EditorialLede,
-  EditorialPrimaryButton,
   EditorialTitleAccent,
 } from "@/components/Public/atoms";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
@@ -40,6 +39,9 @@ const copyFieldMessageIds = {
   recipientLogic: "recipientLogic",
   riskNote: "riskNote",
 } as const;
+
+const VAULT_ENDOW_BUTTON_CLASS =
+  "inline-flex min-h-12 w-full items-center justify-center gap-2 border border-primary-action bg-primary-action px-6 py-3 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60";
 
 function campaignCopyId(
   campaign: OctantVaultCampaignManifest,
@@ -247,16 +249,17 @@ export function CampaignCard({
         </h4>
         <div className="mt-4">
           {ready ? (
-            <EditorialPrimaryButton
+            <button
+              type="button"
               onClick={() => onEndow?.(campaign)}
               aria-label={formatMessage(
                 { id: "public.vaults.endow.ctaLabel", defaultMessage: "Endow to {campaign}" },
                 { campaign: campaign.displayName }
               )}
-              className="w-full"
+              className={VAULT_ENDOW_BUTTON_CLASS}
             >
               {formatMessage({ id: "public.vaults.endow.cta", defaultMessage: "Endow" })}
-            </EditorialPrimaryButton>
+            </button>
           ) : (
             <ManifestMissingList id={missingId} missingFields={transactionState.missingFields} />
           )}
