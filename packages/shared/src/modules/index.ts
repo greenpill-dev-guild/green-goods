@@ -398,4 +398,5 @@ export { submitWorkDirectly } from "./work/wallet-submission";
 export {
   getSubmissionStatusText,
   validateApprovalDraft,
+  validateWorkSubmissionContext,
 } from "./work/work-submission";

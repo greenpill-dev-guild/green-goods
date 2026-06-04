@@ -208,6 +208,24 @@ export class ClientTestHelper {
   }
 
   /**
+   * Persist dev mock auth before the app boots (mirrors AuthGate / DevAuthProvider).
+   *
+   * Seeds the same sessionStorage key the app reads, so auth survives route
+   * changes and redirects without appending `?mockAuth=` to every navigation.
+   * Only active in dev mode — the Vite dev server the Playwright webServer runs;
+   * tree-shaken from production builds. Preferred over injectWalletAuth(), which
+   * depends on wagmi verifying a real connector and is flaky in headless CI.
+   */
+  async enableMockAuth(role: AdminMockRole = "user") {
+    await this.page.addInitScript(
+      ({ role, storageKey }) => {
+        window.sessionStorage.setItem(storageKey, role);
+      },
+      { role, storageKey: DEV_MOCK_AUTH_STORAGE_KEY }
+    );
+  }
+
+  /**
    * Navigate to login and create a new passkey account.
    *
    * Flow: Click "Sign Up" → Enter username → Click "Create Account"

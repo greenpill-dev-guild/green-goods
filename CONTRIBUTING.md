@@ -18,11 +18,24 @@ bun run dev
 
 ## Contribution Flow
 
-1. Pick a scoped GitHub issue or discuss the change with maintainers first.
-2. Create a focused branch from the active base branch.
+1. Pick a scoped task from the Linear backlog (or discuss the change with maintainers first via Discord/Telegram). Green Goods tracks all work in Linear — GitHub is for PRs and code review only.
+2. Create a focused branch from `develop` (see [Branch Model](#branch-model) below).
 3. Keep the change inside the smallest sensible package boundary.
 4. Add or update tests when behavior changes.
-5. Open a pull request with what changed, why it changed, and how you validated it.
+5. Open a pull request into `develop` with what changed, why it changed, and how you validated it.
+
+## Branch Model
+
+Green Goods runs a **staging → production** flow:
+
+- **`develop`** is the integration/staging branch. Open your PRs here; merges to `develop` deploy to staging for validation.
+- **`main`** is production. Maintainers promote `develop → main` once changes are validated on staging.
+
+Branch from `develop` and PR into `develop`. Don't target `main` directly except for a documented hotfix.
+
+### PR gate
+
+Both branches are protected: a pull request with passing CI checks is required to merge. Maintainers keep an admin fast-path for docs/trivial/hotfix changes only. (Required reviewer approval turns on as the contributor base grows; until then, the passing-checks requirement is the gate — it already applies to every PR, including maintainers'.)
 
 ## Funding and Bounties
 

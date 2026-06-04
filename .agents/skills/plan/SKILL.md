@@ -309,7 +309,7 @@ Rules:
   `Coop`, `Network Website`, or `Cookie Jar`.
 - If no active bounded project clearly matches, leave the Linear issue unprojected and correctly
   labeled.
-- Use only these label namespaces: `protocol:*`, `package:*`, `activity:*`, `task:*`,
+- Use only these label namespaces: `protocol:*`, `package:*`, `activity:*`,
   `funding:*`, `source:*`, `agent:*`.
 
 ### Progress Updates

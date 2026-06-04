@@ -163,7 +163,7 @@ The full prompt-vocabulary client ban list (including `workbench row`, `inspecto
 1. **Adding a domain entity, persona, or surface**: edit the markdown table above and update the relevant Docusaurus pages that introduce the term. Entities also need a TypeScript type in `@green-goods/shared` and likely a contract or hook surface.
 2. **Adding a lint-enforced banned term**: edit `linter_enforced.terms` in [`banned-vocabulary.json`](https://github.com/greenpill-dev-guild/green-goods/blob/main/docs/docs/reference/banned-vocabulary.json), add a row to the table above, and run `bun run lint:vocab` to confirm the new term enforces. The bash regex rebuilds from the JSON automatically — do not edit the script's term list directly.
 3. **Adding an admin-only or client-only AI-prompt banned term**: edit the matching `prompt_vocabulary_*_banned` array in the JSON, add a row to the table above, and update the `§ Never Use` section in the matching prompt-contract.
-4. **Removing a term**: requires explicit design review — these are load-bearing for both human and AI consumers. Open an issue first; do not remove silently.
+4. **Removing a term**: requires explicit design review — these are load-bearing for both human and AI consumers. Raise it with maintainers first (Discord, tracked in Linear); do not remove silently.
 
 The glossary file and the JSON sidecar are siblings — if you edit one without the other, the cross-references break and the linter falls out of sync with the docs.
 
