@@ -2,7 +2,7 @@
  * SiteHeader Component Tests
  *
  * Tests the public website header for the editorial public browser:
- * - Desktop: nav order Gardens / Impact / Fund / Actions + Install/Open App CTA
+ * - Desktop: nav order Gardens / Impact / Vaults / Fund / Actions + Install/Open App CTA
  * - Mobile: hamburger button (aria-expanded toggling)
  * - Drawer: opens, closes on Escape, mirrors nav + Install/Open App
  * - Wallet connect is intentionally absent from public header chrome
@@ -39,6 +39,7 @@ const messages: Record<string, string> = {
   "public.nav.gardens": "Gardens",
   "public.nav.actions": "Actions",
   "public.nav.impact": "Impact",
+  "public.nav.vaults": "Vaults",
   "public.nav.fund": "Fund",
   "public.nav.installApp": "Install App",
   "public.nav.openApp": "Open App",
@@ -84,11 +85,12 @@ describe("SiteHeader", () => {
     cleanup();
   });
 
-  it("desktop: renders Gardens / Impact / Fund / Actions and the Install App CTA", () => {
+  it("desktop: renders Gardens / Impact / Vaults / Fund / Actions and the Install App CTA", () => {
     renderHeader();
     // Nav links and CTA render regardless of viewport (visibility toggled by CSS).
     expect(screen.getAllByText("Gardens").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Impact").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Vaults").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Fund").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Actions").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Install App").length).toBeGreaterThanOrEqual(1);
@@ -97,7 +99,7 @@ describe("SiteHeader", () => {
     expect(screen.queryByText("Connect Wallet")).toBeNull();
   });
 
-  it("nav order is Gardens / Impact / Fund / Actions", () => {
+  it("nav order is Gardens / Impact / Vaults / Fund / Actions", () => {
     renderHeader();
     const navs = screen.getAllByRole("navigation");
     const desktopNav = navs[0];
@@ -105,9 +107,9 @@ describe("SiteHeader", () => {
       (link) => link.textContent ?? ""
     );
     const navOrder = links.filter((label) =>
-      ["Gardens", "Impact", "Fund", "Actions"].includes(label)
+      ["Gardens", "Impact", "Vaults", "Fund", "Actions"].includes(label)
     );
-    expect(navOrder).toEqual(["Gardens", "Impact", "Fund", "Actions"]);
+    expect(navOrder).toEqual(["Gardens", "Impact", "Vaults", "Fund", "Actions"]);
   });
 
   it("renders Open App when the PWA is already installed", () => {
@@ -183,7 +185,7 @@ describe("SiteHeader", () => {
   });
 
   it("renders transparent on every public route (not just home)", () => {
-    for (const route of ["/", "/gardens", "/impact", "/fund", "/actions"]) {
+    for (const route of ["/", "/gardens", "/impact", "/vaults", "/fund", "/actions"]) {
       cleanup();
       renderHeader(route);
       const header = document.querySelector("header");

@@ -5,6 +5,7 @@
  * - Renders SiteHeader above route outlet content
  * - /fund route renders within PublicShell
  * - /gardens route renders within PublicShell
+ * - /vaults route renders within PublicShell
  * - No bottom nav (AppBar) visible in browser mode
  *
  * @vitest-environment jsdom
@@ -61,6 +62,7 @@ const messages: Record<string, string> = {
   "public.nav.gardens": "Gardens",
   "public.nav.actions": "Actions",
   "public.nav.impact": "Impact",
+  "public.nav.vaults": "Vaults",
   "public.nav.fund": "Fund",
   "public.nav.installApp": "Install App",
   "public.nav.openApp": "Open App",
@@ -77,6 +79,8 @@ const FundContent = () =>
   );
 const GardensContent = () =>
   createElement("div", { "data-testid": "gardens-content" }, "Gardens Page Content");
+const VaultsContent = () =>
+  createElement("div", { "data-testid": "vaults-content" }, "Vaults Page Content");
 
 function renderShellWithRoute(initialRoute: string) {
   return render(
@@ -96,7 +100,8 @@ function renderShellWithRoute(initialRoute: string) {
               Route,
               { element: createElement(PublicShell) },
               createElement(Route, { path: "fund", element: createElement(FundContent) }),
-              createElement(Route, { path: "gardens", element: createElement(GardensContent) })
+              createElement(Route, { path: "gardens", element: createElement(GardensContent) }),
+              createElement(Route, { path: "vaults", element: createElement(VaultsContent) })
             )
           )
         )
@@ -146,6 +151,15 @@ describe("PublicShell", () => {
     // Gardens content rendered via Outlet
     expect(screen.getByTestId("gardens-content")).toBeInTheDocument();
     expect(screen.getByText("Gardens Page Content")).toBeInTheDocument();
+  });
+
+  it("/vaults route renders within PublicShell", () => {
+    renderShellWithRoute("/vaults");
+
+    expect(document.querySelector("header")).toBeInTheDocument();
+    expect(screen.getByTestId("vaults-content")).toBeInTheDocument();
+    expect(screen.getByText("Vaults Page Content")).toBeInTheDocument();
+    expect(screen.queryByTestId("authenticated-nav")).not.toBeInTheDocument();
   });
 
   it("resets the public scroll container on route changes", () => {
