@@ -212,6 +212,36 @@ function renderCard(campaign: OctantVaultCampaignManifest) {
   );
 }
 
+async function openGreenpillCardCheckout(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole("button", { name: "Endow to Greenpill NYC" }));
+  await user.type(screen.getByLabelText("Amount"), "0.01");
+  await user.click(screen.getByTestId("vault-checkout-method-card"));
+  await screen.findByTestId("vault-card-endow-flow");
+}
+
+async function recoverEmailWallet(
+  user: ReturnType<typeof userEvent.setup>,
+  email = "qa@example.org"
+) {
+  await user.type(screen.getByLabelText("Email"), email);
+  await user.click(screen.getByRole("button", { name: "Send email code" }));
+  await user.type(screen.getByLabelText("Thirdweb code"), "123456");
+  await user.click(screen.getByRole("button", { name: "Verify email wallet" }));
+  await screen.findByTestId("vault-card-endow-tuple");
+}
+
+async function confirmTupleAndFundCard(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(
+    screen.getByLabelText(
+      "I confirm this exact campaign, chain, vault, token, amount, receiver, and provider route before live card payment."
+    )
+  );
+  await user.click(screen.getByTestId("thirdweb-buy-widget"));
+  await screen.findByText(
+    "Thirdweb reported card funding success for the recovered wallet. The user can now approve the vault allowance."
+  );
+}
+
 describe("VaultsPage", () => {
   beforeEach(() => {
     sharedHookMocks.loginWithWallet.mockClear();
@@ -284,23 +314,22 @@ describe("VaultsPage", () => {
     expect(screen.queryByTestId("wallet-runtime-provider")).not.toBeInTheDocument();
   });
 
-  it("shows production Card Endow on Greenpill NYC and blocked controls for incomplete fixtures", () => {
+  it("shows one Endow CTA on Greenpill NYC and a blocked explanation for incomplete fixtures", () => {
     renderView();
 
     const nycCard = screen.getByTestId("vault-campaign-card-greenpill-nyc");
     const evmavericksCard = screen.getByTestId("vault-campaign-card-evmavericks");
 
+    // Greenpill NYC collapses both payment paths into a single Endow CTA.
+    expect(within(nycCard).getByRole("button", { name: "Endow to Greenpill NYC" })).toBeEnabled();
     expect(
-      within(nycCard).getByRole("button", { name: "Choose amount for Greenpill NYC" })
-    ).toBeEnabled();
-    expect(
-      within(nycCard).getByRole("button", { name: "Pay by card for Greenpill NYC" })
-    ).toBeEnabled();
-    expect(
-      within(evmavericksCard).getByRole("button", {
-        name: "Wallet Endow unavailable for EVMavericks Fantasy Football League",
-      })
-    ).toBeDisabled();
+      within(nycCard).queryByRole("button", { name: /choose amount/i })
+    ).not.toBeInTheDocument();
+    expect(within(nycCard).queryByRole("button", { name: /pay by card/i })).not.toBeInTheDocument();
+
+    // EVMavericks stays blocked with a human explanation and no payment affordance.
+    expect(within(evmavericksCard).queryByRole("button")).not.toBeInTheDocument();
+    expect(within(evmavericksCard).getByText("Blocked pending manifest")).toBeInTheDocument();
     expect(
       within(
         within(evmavericksCard).getByRole("list", { name: "Missing manifest fields" })
@@ -313,48 +342,58 @@ describe("VaultsPage", () => {
 
     expect(screen.queryByText("Donate")).not.toBeInTheDocument();
     expect(screen.queryByText("Card Donate")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Pay by card for Greenpill NYC" })).toBeEnabled();
-    expect(
-      screen.getAllByText("Card funding stays hidden until the manifest and proof gates pass.")
-    ).toHaveLength(1);
+    expect(screen.getByRole("button", { name: "Endow to Greenpill NYC" })).toBeEnabled();
   });
 
-  it("enables amount selection for complete manifests without exposing Card Endow early", () => {
+  it("renders one Endow CTA for a complete manifest card", () => {
     renderCard(makeCompleteCampaign());
 
     expect(screen.getByText("Manifest complete")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", {
-        name: "Choose amount for Synthetic complete campaign",
-      })
+      screen.getByRole("button", { name: "Endow to Synthetic complete campaign" })
     ).toBeEnabled();
-    expect(
-      screen.getByText(
-        "This campaign is ready for the amount-first Wallet Endow confirmation flow."
-      )
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "Card funding stays hidden until custody, share, manage, and provider proof passes."
-      )
-    ).toBeInTheDocument();
+    // No early payment-method or Card Endow exposure on the card itself.
     expect(screen.queryByText(/Card Endow/i)).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /card endow/i })).not.toBeInTheDocument();
+    expect(screen.queryByTestId("vault-checkout-method-card")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("vault-checkout-method-wallet")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Connect Wallet" })).not.toBeInTheDocument();
   });
 
-  it("exposes the Card Endow production flow on the default /vaults route and records proof", async () => {
+  it("offers a complete non-production campaign Wallet checkout only — never Card", async () => {
+    const user = userEvent.setup();
+
+    renderContent([makeCompleteCampaign()]);
+
+    await user.click(screen.getByRole("button", { name: "Endow to Synthetic complete campaign" }));
+
+    // Amount-first: no payment method appears before a valid amount.
+    expect(screen.queryByTestId("vault-checkout-method-card")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("vault-checkout-method-wallet")).not.toBeInTheDocument();
+
+    await user.type(screen.getByLabelText("Amount"), "2.5");
+
+    // Card stays gated to the production campaign; this fixture exposes Wallet only.
+    expect(screen.getByTestId("vault-checkout-method-wallet")).toBeInTheDocument();
+    expect(screen.queryByTestId("vault-checkout-method-card")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("vault-card-endow-flow")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("thirdweb-buy-widget")).not.toBeInTheDocument();
+  });
+
+  it("runs the Card Endow checkout amount-first and records proof", async () => {
     const user = userEvent.setup();
 
     renderView();
 
     expect(screen.getByRole("heading", { name: "Greenpill NYC" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Pay by card for Greenpill NYC" })).toBeEnabled();
 
-    await user.click(screen.getByRole("button", { name: "Pay by card for Greenpill NYC" }));
-    expect(await screen.findByTestId("vault-card-endow-panel")).toBeInTheDocument();
+    // One Endow CTA opens the checkout; amount is entered before any method choice.
+    await user.click(screen.getByRole("button", { name: "Endow to Greenpill NYC" }));
+    expect(screen.queryByTestId("vault-checkout-method-card")).not.toBeInTheDocument();
 
     await user.type(screen.getByLabelText("Amount"), "0.01");
+    await user.click(screen.getByTestId("vault-checkout-method-card"));
+    expect(await screen.findByTestId("vault-card-endow-flow")).toBeInTheDocument();
+
     await user.type(screen.getByLabelText("Email"), "qa@example.org");
     await user.click(screen.getByRole("button", { name: "Send email code" }));
 
@@ -454,20 +493,91 @@ describe("VaultsPage", () => {
       receiverCustody: "user_owned_recovered_wallet",
       transactionHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
       shareBalance: "12",
+      payerEmail: "qa@example.org",
     });
     expect(
       await screen.findByText("Funding proof recorded for the recovered wallet receipt.")
     ).toBeInTheDocument();
   });
 
-  it("does not let an existing active wallet bypass email-wallet recovery for Card Endow QA", async () => {
+  it("locks checkout inputs while Card Endow approval is pending", async () => {
+    const user = userEvent.setup();
+    let resolveApproval: ((value: { transactionHash: `0x${string}` }) => void) | undefined;
+    thirdwebMocks.sendAndConfirmTransaction.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveApproval = resolve;
+        })
+    );
+
+    renderView();
+
+    await openGreenpillCardCheckout(user);
+    await recoverEmailWallet(user);
+    await confirmTupleAndFundCard(user);
+
+    await user.click(screen.getByRole("button", { name: "Approve token -> vault" }));
+
+    expect(screen.getByLabelText("Amount")).toBeDisabled();
+    expect(screen.getByTestId("vault-checkout-method-card")).toBeDisabled();
+    expect(screen.getByTestId("vault-checkout-method-wallet")).toBeDisabled();
+    for (const closeButton of screen.getAllByRole("button", { name: "Close" })) {
+      expect(closeButton).toBeDisabled();
+    }
+    expect(screen.getByRole("button", { name: "Deposit to receiver" })).toBeDisabled();
+
+    await user.type(screen.getByLabelText("Amount"), "2");
+    expect(screen.getByLabelText("Amount")).toHaveValue("0.01");
+
+    resolveApproval?.({
+      transactionHash: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    });
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Approval confirmed" })).toBeDisabled()
+    );
+    expect(screen.getByRole("button", { name: "Deposit to receiver" })).toBeEnabled();
+  });
+
+  it("resets OTP and recovered wallet state when the payer email changes", async () => {
+    const user = userEvent.setup();
+
+    renderView();
+
+    await openGreenpillCardCheckout(user);
+    await user.type(screen.getByLabelText("Email"), "qa@example.org");
+    await user.click(screen.getByRole("button", { name: "Send email code" }));
+
+    expect(thirdwebMocks.preAuthenticate).toHaveBeenCalledWith({
+      client: { clientId: "test-thirdweb-client" },
+      strategy: "email",
+      email: "qa@example.org",
+    });
+
+    await user.clear(screen.getByLabelText("Email"));
+    await user.type(screen.getByLabelText("Email"), "ops@example.org");
+
+    expect(screen.getByLabelText("Thirdweb code")).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Verify email wallet" })).toBeDisabled();
+    expect(screen.queryByTestId("vault-card-endow-tuple")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Send email code" }));
+    expect(thirdwebMocks.preAuthenticate).toHaveBeenLastCalledWith({
+      client: { clientId: "test-thirdweb-client" },
+      strategy: "email",
+      email: "ops@example.org",
+    });
+  });
+
+  it("does not let an existing active wallet bypass email-wallet recovery for Card Endow", async () => {
     const user = userEvent.setup();
     thirdwebMocks.activeAccount = { address: "0x5555555555555555555555555555555555555555" };
 
     renderView();
 
-    await user.click(screen.getByRole("button", { name: "Pay by card for Greenpill NYC" }));
+    await user.click(screen.getByRole("button", { name: "Endow to Greenpill NYC" }));
     await user.type(screen.getByLabelText("Amount"), "0.01");
+    await user.click(screen.getByTestId("vault-checkout-method-card"));
+    await screen.findByTestId("vault-card-endow-flow");
 
     expect(screen.queryByTestId("vault-card-endow-tuple")).not.toBeInTheDocument();
     expect(screen.queryByTestId("thirdweb-buy-widget")).not.toBeInTheDocument();
@@ -476,7 +586,7 @@ describe("VaultsPage", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("keeps wallet connection at final confirmation after the user chooses an amount", async () => {
+  it("keeps wallet connection at the method-pick step after the user chooses an amount", async () => {
     const user = userEvent.setup();
 
     renderContent([makeCompleteCampaign()]);
@@ -484,21 +594,20 @@ describe("VaultsPage", () => {
     expect(screen.queryByRole("button", { name: "Connect Wallet" })).not.toBeInTheDocument();
     expect(sharedHookMocks.walletRuntimeProviderRender).not.toHaveBeenCalled();
 
-    await user.click(
-      screen.getByRole("button", { name: "Choose amount for Synthetic complete campaign" })
-    );
+    await user.click(screen.getByRole("button", { name: "Endow to Synthetic complete campaign" }));
 
-    expect(screen.getByRole("heading", { name: "Prepare Wallet Endow" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Connect Wallet" })).not.toBeInTheDocument();
+    // The wallet runtime must not mount before a valid amount or a method choice.
     expect(screen.queryByTestId("wallet-runtime-provider")).not.toBeInTheDocument();
     expect(sharedHookMocks.walletRuntimeProviderRender).not.toHaveBeenCalled();
 
     await user.type(screen.getByLabelText("Amount"), "2.5");
     expect(screen.queryByTestId("wallet-runtime-provider")).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Continue to wallet" }));
+    expect(sharedHookMocks.walletRuntimeProviderRender).not.toHaveBeenCalled();
+
+    await user.click(screen.getByTestId("vault-checkout-method-wallet"));
 
     expect(screen.getByTestId("wallet-runtime-provider")).toBeInTheDocument();
-    expect(sharedHookMocks.walletRuntimeProviderRender).toHaveBeenCalledTimes(1);
+    expect(sharedHookMocks.walletRuntimeProviderRender).toHaveBeenCalled();
     expect(screen.getByText("2.5 USDC")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Connect Wallet" }));
 
@@ -513,11 +622,9 @@ describe("VaultsPage", () => {
 
     renderContent([makeCompleteCampaign()]);
 
-    await user.click(
-      screen.getByRole("button", { name: "Choose amount for Synthetic complete campaign" })
-    );
+    await user.click(screen.getByRole("button", { name: "Endow to Synthetic complete campaign" }));
     await user.type(screen.getByLabelText("Amount"), "2.5");
-    await user.click(screen.getByRole("button", { name: "Continue to wallet" }));
+    await user.click(screen.getByTestId("vault-checkout-method-wallet"));
     await user.click(screen.getByRole("button", { name: "Connect Wallet" }));
 
     expect(sharedHookMocks.loginWithWallet).toHaveBeenCalledTimes(1);
@@ -531,11 +638,9 @@ describe("VaultsPage", () => {
 
     renderContent([makeCompleteCampaign()]);
 
-    await user.click(
-      screen.getByRole("button", { name: "Choose amount for Synthetic complete campaign" })
-    );
+    await user.click(screen.getByRole("button", { name: "Endow to Synthetic complete campaign" }));
     await user.type(screen.getByLabelText("Amount"), "2.5");
-    await user.click(screen.getByRole("button", { name: "Continue to wallet" }));
+    await user.click(screen.getByTestId("vault-checkout-method-wallet"));
     await user.click(screen.getByRole("button", { name: "Confirm Wallet Endow" }));
 
     expect(sharedHookMocks.loginWithWallet).not.toHaveBeenCalled();
