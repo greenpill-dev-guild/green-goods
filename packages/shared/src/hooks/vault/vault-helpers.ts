@@ -27,6 +27,7 @@ export type VaultDepositFailureReason =
   | "depositLimitZero"
   | "depositLimitReached"
   | "vaultUnavailable"
+  | "insufficientBalance"
   | "slippage";
 export type TxErrorMode = "toast" | "inline" | "auto";
 

@@ -240,6 +240,7 @@ describe("hooks/vault/useVaultOperations", () => {
   it("runs Octant Wallet Endow on the prepared transaction chain, not the app default chain", async () => {
     mockReadContract
       .mockResolvedValueOnce(100n) // maxDeposit
+      .mockResolvedValueOnce(10n) // balanceOf (>= amount, passes pre-flight)
       .mockResolvedValueOnce(10n) // preApprovalPreview
       .mockResolvedValueOnce(0n) // allowance (insufficient)
       .mockResolvedValueOnce(10n) // refreshed allowance
@@ -276,7 +277,7 @@ describe("hooks/vault/useVaultOperations", () => {
       });
     });
 
-    expect(mockReadContract).toHaveBeenCalledTimes(5);
+    expect(mockReadContract).toHaveBeenCalledTimes(6);
     for (const call of mockReadContract.mock.calls) {
       expect(call[1]).toEqual(expect.objectContaining({ chainId: TEST_OCTANT_CHAIN_ID }));
     }
@@ -297,6 +298,49 @@ describe("hooks/vault/useVaultOperations", () => {
         args: [10n, TEST_PRIMARY_ADDRESS],
       })
     );
+  });
+
+  it("blocks Octant Wallet Endow before approving when the wallet holds insufficient WETH", async () => {
+    mockReadContract
+      .mockResolvedValueOnce(100n) // maxDeposit
+      .mockResolvedValueOnce(5n); // balanceOf (< amount → insufficient WETH)
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+
+    const { result } = renderHook(() => useOctantVaultWalletEndow({ errorMode: "inline" }), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await act(async () => {
+      await expect(
+        result.current.mutateAsync({
+          intentKind: "wallet_endow",
+          paymentMethod: "wallet",
+          chainId: TEST_OCTANT_CHAIN_ID,
+          vaultAddress: TEST_VAULT as `0x${string}`,
+          assetAddress: TEST_ASSET as `0x${string}`,
+          assetSymbol: "WETH",
+          assetDecimals: 18,
+          amount: 10n,
+          receiver: {
+            intentKind: "wallet_endow",
+            paymentMethod: "wallet",
+            receiverKind: "connected_wallet",
+            receiverCustody: "connected_wallet",
+            receiverAddress: TEST_PRIMARY_ADDRESS as `0x${string}`,
+          },
+        })
+      ).rejects.toThrow(/insufficient WETH/i);
+    });
+
+    // Stops at maxDeposit + balanceOf; never previews, approves, or deposits.
+    expect(mockReadContract).toHaveBeenCalledTimes(2);
+    expect(mockSendContractCall).not.toHaveBeenCalled();
   });
 
   it("rejects Octant Wallet Endow when the restored auth mode is not wallet", async () => {

@@ -24,6 +24,11 @@ export { COOKIE_JAR_ABI, COOKIE_JAR_FACTORY_ABI, COOKIE_JAR_MODULE_ABI } from ".
 
 export { DEPLOYMENT_REGISTRY_ABI } from "./deployment-registry";
 
-export { ERC20_ALLOWANCE_ABI, ERC20_DECIMALS_ABI, ERC20_SYMBOL_ABI } from "./erc20";
+export {
+  ERC20_ALLOWANCE_ABI,
+  ERC20_BALANCE_ABI,
+  ERC20_DECIMALS_ABI,
+  ERC20_SYMBOL_ABI,
+} from "./erc20";
 
 export { AGGREGATOR_V3_ABI } from "./aggregator-v3";

@@ -3571,6 +3571,7 @@
   "public.vaults.walletEndow.continueToWallet": "Continuar para carteira",
   "public.vaults.walletEndow.enterAmount": "Insira um valor",
   "public.vaults.walletEndow.error": "Wallet Endow nao pode ser enviado. Revise o erro da carteira e tente novamente.",
+  "public.vaults.walletEndow.insufficientWeth": "Esta carteira não tem WETH suficiente para esta contribuição. Converta ETH em WETH primeiro e tente novamente.",
   "public.vaults.walletEndow.kicker": "Endow com carteira",
   "public.vaults.walletEndow.ready": "Endow com carteira",
   "public.vaults.walletEndow.readyLabel": "Endow com carteira para {campaign}",

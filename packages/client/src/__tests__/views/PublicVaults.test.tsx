@@ -11,13 +11,14 @@ import { IntlProvider } from "react-intl";
 import { MemoryRouter, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import type { OctantVaultCampaignManifest } from "@green-goods/shared";
+import { type OctantVaultCampaignManifest, VaultDepositStageError } from "@green-goods/shared";
 import VaultsPage, { CampaignCard, VaultsPageContent } from "../../views/Public/Vaults";
 
 const sharedHookMocks = vi.hoisted(() => ({
   loginWithWallet: vi.fn(),
   octantVaultWalletEndowMutate: vi.fn(),
   octantVaultWalletEndowReset: vi.fn(),
+  octantVaultWalletEndowError: null as unknown,
   walletRuntimeProviderRender: vi.fn(),
   primaryAddress: undefined as string | undefined,
   authMode: null as "wallet" | "passkey" | "embedded" | null,
@@ -80,7 +81,7 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
     useOctantVaultWalletEndow: () => ({
       mutate: sharedHookMocks.octantVaultWalletEndowMutate,
       reset: sharedHookMocks.octantVaultWalletEndowReset,
-      error: null,
+      error: sharedHookMocks.octantVaultWalletEndowError,
       isPending: false,
     }),
     useEthUsdPrice: () => ({
@@ -329,6 +330,7 @@ describe("VaultsPage", () => {
     sharedHookMocks.loginWithWallet.mockClear();
     sharedHookMocks.octantVaultWalletEndowMutate.mockClear();
     sharedHookMocks.octantVaultWalletEndowReset.mockClear();
+    sharedHookMocks.octantVaultWalletEndowError = null;
     sharedHookMocks.walletRuntimeProviderRender.mockClear();
     sharedHookMocks.primaryAddress = undefined;
     sharedHookMocks.authMode = null;
@@ -1114,6 +1116,33 @@ describe("VaultsPage", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  it("surfaces a clear WETH-shortfall message instead of an opaque wallet error", async () => {
+    sharedHookMocks.authMode = "wallet";
+    sharedHookMocks.primaryAddress = VALID_RECEIVER_ADDRESS;
+    sharedHookMocks.octantVaultWalletEndowError = new VaultDepositStageError(
+      "deposit",
+      "Connected wallet holds insufficient WETH to complete this deposit",
+      "insufficientBalance"
+    );
+
+    renderContent([makeCompleteCampaign()]);
+
+    fireEvent.click(screen.getByRole("button", { name: "Endow to Synthetic complete campaign" }));
+    fireEvent.click(screen.getByTestId("vault-checkout-method-wallet"));
+    fireEvent.change(screen.getByLabelText("Amount to endow"), { target: { value: "2.50" } });
+    fireEvent.click(screen.getByRole("button", { name: "Continue to Wallet" }));
+
+    // The specific, actionable message shows instead of the generic wallet error.
+    expect(
+      await screen.findByText(
+        "This wallet doesn't have enough WETH for this endowment. Wrap ETH to WETH first, then try again."
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("Wallet Endow could not be submitted. Review the wallet error and retry.")
+    ).not.toBeInTheDocument();
   });
 
   it("shows the on-chain vault total on the campaign card", () => {

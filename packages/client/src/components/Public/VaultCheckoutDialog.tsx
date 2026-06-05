@@ -10,6 +10,7 @@ import {
   useAuth,
   useEthUsdPrice,
   useOctantVaultWalletEndow,
+  VaultDepositStageError,
   useTimeout,
   useUser,
 } from "@green-goods/shared";
@@ -881,11 +882,18 @@ function WalletEndowPathContent({
         ) : null}
         {walletEndow.error ? (
           <p className="rounded-none bg-error-lighter/30 p-4 text-sm leading-[1.55] text-error-base">
-            {formatMessage({
-              id: "public.vaults.walletEndow.error",
-              defaultMessage:
-                "Wallet Endow could not be submitted. Review the wallet error and retry.",
-            })}
+            {walletEndow.error instanceof VaultDepositStageError &&
+            walletEndow.error.reason === "insufficientBalance"
+              ? formatMessage({
+                  id: "public.vaults.walletEndow.insufficientWeth",
+                  defaultMessage:
+                    "This wallet doesn't have enough WETH for this endowment. Wrap ETH to WETH first, then try again.",
+                })
+              : formatMessage({
+                  id: "public.vaults.walletEndow.error",
+                  defaultMessage:
+                    "Wallet Endow could not be submitted. Review the wallet error and retry.",
+                })}
           </p>
         ) : null}
       </div>

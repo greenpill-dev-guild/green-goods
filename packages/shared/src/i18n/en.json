@@ -3571,6 +3571,7 @@
   "public.vaults.walletEndow.continueToWallet": "Continue to wallet",
   "public.vaults.walletEndow.enterAmount": "Enter an amount",
   "public.vaults.walletEndow.error": "Wallet Endow could not be submitted. Review the wallet error and retry.",
+  "public.vaults.walletEndow.insufficientWeth": "This wallet doesn't have enough WETH for this endowment. Wrap ETH to WETH first, then try again.",
   "public.vaults.walletEndow.kicker": "Wallet Endow",
   "public.vaults.walletEndow.ready": "Wallet Endow",
   "public.vaults.walletEndow.readyLabel": "Wallet Endow for {campaign}",

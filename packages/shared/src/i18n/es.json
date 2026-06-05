@@ -3571,6 +3571,7 @@
   "public.vaults.walletEndow.continueToWallet": "Continuar a billetera",
   "public.vaults.walletEndow.enterAmount": "Ingresa un monto",
   "public.vaults.walletEndow.error": "Wallet Endow no pudo enviarse. Revisa el error de la billetera e intenta de nuevo.",
+  "public.vaults.walletEndow.insufficientWeth": "Esta billetera no tiene suficiente WETH para esta contribución. Convierte ETH a WETH primero y vuelve a intentarlo.",
   "public.vaults.walletEndow.kicker": "Endow con billetera",
   "public.vaults.walletEndow.ready": "Endow con billetera",
   "public.vaults.walletEndow.readyLabel": "Endow con billetera para {campaign}",

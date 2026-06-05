@@ -6,7 +6,11 @@ import { toastService } from "../../components/toast";
 import { getWagmiConfig } from "../../config/appkit";
 import type { OctantVaultWalletEndowPreparedTransaction } from "../../modules/vault-crowdfunding";
 import type { Address } from "../../types/domain";
-import { ERC20_ALLOWANCE_ABI, OCTANT_VAULT_ABI } from "../../utils/blockchain/abis";
+import {
+  ERC20_ALLOWANCE_ABI,
+  ERC20_BALANCE_ABI,
+  OCTANT_VAULT_ABI,
+} from "../../utils/blockchain/abis";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useUser } from "../auth/useUser";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
@@ -122,6 +126,40 @@ export function useOctantVaultWalletEndow(options: VaultMutationOptions = {}) {
       }
       if (transaction.amount > maxDeposit) {
         throw new VaultDepositStageError("deposit", "Endow amount exceeds the current vault limit");
+      }
+
+      // Pre-flight balance check (before any approval). The vault pulls `amount` of
+      // the underlying asset (WETH) via transferFrom on deposit, so a wallet that
+      // doesn't hold enough WETH makes the deposit revert in simulation. Surface this
+      // clearly up front instead of letting the user approve a deposit that can't
+      // succeed. A flaky balance read fails open — the on-chain deposit still guards funds.
+      try {
+        const balanceResult = await readContract(getWagmiConfig(), {
+          address: transaction.assetAddress,
+          abi: ERC20_BALANCE_ABI,
+          functionName: "balanceOf",
+          args: [primaryAddress as Address],
+          chainId,
+        });
+        const balance = typeof balanceResult === "bigint" ? balanceResult : 0n;
+        if (balance < transaction.amount) {
+          const error = new VaultDepositStageError(
+            "deposit",
+            "Connected wallet holds insufficient WETH to complete this deposit",
+            "insufficientBalance"
+          );
+          error.diagnostics = {
+            chainId: String(chainId),
+            assetAddress: transaction.assetAddress,
+            receiver,
+            balance: String(balance),
+            amount: String(transaction.amount),
+          };
+          throw error;
+        }
+      } catch (error) {
+        if (error instanceof VaultDepositStageError) throw error;
+        // Non-stage error => balance read failed; fall through and let the flow proceed.
       }
 
       const preApprovalPreview = await readContract(getWagmiConfig(), {
@@ -265,6 +303,15 @@ export function useOctantVaultWalletEndow(options: VaultMutationOptions = {}) {
         receiver: transaction?.receiver.receiverAddress,
       };
       if (error instanceof VaultDepositStageError) {
+        if (error.reason === "insufficientBalance") {
+          // User-actionable pre-flight (wallet lacks WETH): surfaced inline in the
+          // checkout sheet, so keep telemetry but suppress a competing error toast.
+          handleError(error, {
+            metadata: { ...metadata, ...error.diagnostics },
+            showToast: false,
+          });
+          return;
+        }
         if (showErrorToast) {
           toastService.error({
             title: formatMessage({ id: "app.treasury.deposit" }),

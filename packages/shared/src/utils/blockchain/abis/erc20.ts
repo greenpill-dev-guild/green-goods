@@ -1,8 +1,18 @@
 /**
  * ERC20 ABIs
  *
- * Minimal ABIs for ERC20 decimals and allowance/approve operations.
+ * Minimal ABIs for ERC20 decimals, symbol, balance, and allowance/approve operations.
  */
+
+export const ERC20_BALANCE_ABI = [
+  {
+    type: "function",
+    name: "balanceOf",
+    stateMutability: "view",
+    inputs: [{ name: "account", type: "address" }],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+] as const;
 
 export const ERC20_DECIMALS_ABI = [
   {
