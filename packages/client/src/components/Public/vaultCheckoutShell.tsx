@@ -13,7 +13,6 @@ import { useIntl } from "react-intl";
  */
 
 export type CheckoutMethod = "card" | "wallet";
-export type CheckoutLayout = "compact" | "flow";
 
 // Square transaction controls (no rounded capsules inside the checkout).
 export const CHECKOUT_PRIMARY_BUTTON =
@@ -28,13 +27,29 @@ export const CHECKOUT_INPUT =
 export const CHECKOUT_FIELD_LABEL =
   "block font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400";
 
+/**
+ * Derive a block-explorer transaction URL from a campaign's explorer link (an
+ * address URL on the vault's chain), so checkout success screens can link the
+ * deposit without depending on a separate chain registry.
+ */
+export function getTxExplorerUrl(
+  explorerLink: string | undefined,
+  txHash: string | null
+): string | null {
+  if (!explorerLink || !txHash) return null;
+  try {
+    return `${new URL(explorerLink).origin}/tx/${txHash}`;
+  } catch {
+    return null;
+  }
+}
+
 export interface CheckoutSurfaceProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   ariaLabel: string;
   title: ReactNode;
   description: string;
-  layout: CheckoutLayout;
   preventClose?: boolean;
   hideCloseButton?: boolean;
   children: ReactNode;
@@ -43,7 +58,8 @@ export interface CheckoutSurfaceProps {
 /**
  * Route-local adaptive checkout surface. Desktop keeps the shared DialogShell;
  * mobile uses the PWA bottom sheet primitive without changing global dialog
- * behavior.
+ * behavior. The surface holds one stable height across every checkout step so the
+ * sheet never resizes as the user moves through the flow.
  */
 export function CheckoutSurface({
   open,
@@ -51,7 +67,6 @@ export function CheckoutSurface({
   ariaLabel,
   title,
   description,
-  layout,
   preventClose = false,
   hideCloseButton = false,
   children,
@@ -75,10 +90,9 @@ export function CheckoutSurface({
         overlayClassName="vault-checkout-mobile-overlay"
         panelClassName={cn(
           "vault-checkout-mobile-panel vault-checkout-surface rounded-t-none",
-          layout === "compact" ? "vault-checkout-surface--compact" : "vault-checkout-surface--flow",
-          layout === "compact" ? "h-auto max-h-[92dvh]" : "h-[92dvh] max-h-[92dvh]"
+          "h-[85dvh] max-h-[85dvh]"
         )}
-        panelStyle={{ maxHeight: "92dvh" }}
+        panelStyle={{ height: "85dvh", maxHeight: "85dvh" }}
         autoFocusSelector='[data-testid="vault-checkout-sheet-close"]'
       >
         <div className="flex min-h-0 flex-1 flex-col">
@@ -114,17 +128,10 @@ export function CheckoutSurface({
       size="xl"
       preventClose={preventClose}
       hideCloseButton={hideCloseButton}
-      className={cn(
-        "vault-checkout-surface flex flex-col",
-        layout === "compact" ? "vault-checkout-surface--compact" : "vault-checkout-surface--flow",
-        layout === "compact" ? "h-auto" : "h-[min(40rem,90vh)]"
-      )}
+      className={cn("vault-checkout-surface flex flex-col", "h-[min(40rem,90vh)]")}
       headerClassName="px-4 py-2 sm:px-5 sm:py-2"
       descriptionClassName="sr-only"
-      bodyClassName={cn(
-        "flex min-h-0 flex-col overflow-hidden !p-0 sm:!p-0 max-h-none",
-        layout === "flow" ? "flex-1" : ""
-      )}
+      bodyClassName="flex min-h-0 flex-1 flex-col overflow-hidden !p-0 sm:!p-0 max-h-none"
     >
       {children}
     </DialogShell>
@@ -132,31 +139,11 @@ export function CheckoutSurface({
 }
 
 /**
- * One checkout step. Compact layout hugs content for setup and short system
- * errors; flow layout keeps long routes scrollable with an optional pinned footer.
+ * One checkout step: a scrollable body that fills the stable-height surface with an
+ * optional footer pinned to the bottom. Every step uses the same layout so the
+ * surface never resizes between steps.
  */
-export function CheckoutScreen({
-  children,
-  footer,
-  layout = "flow",
-}: {
-  children: ReactNode;
-  footer?: ReactNode;
-  layout?: CheckoutLayout;
-}) {
-  if (layout === "compact") {
-    return (
-      <div className="flex max-h-[inherit] min-h-0 flex-col">
-        <div className="min-h-0 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">{children}</div>
-        {footer ? (
-          <div className="shrink-0 border-t border-stroke-soft-200 bg-bg-white-0 px-4 py-4 sm:px-6">
-            {footer}
-          </div>
-        ) : null}
-      </div>
-    );
-  }
-
+export function CheckoutScreen({ children, footer }: { children: ReactNode; footer?: ReactNode }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">{children}</div>

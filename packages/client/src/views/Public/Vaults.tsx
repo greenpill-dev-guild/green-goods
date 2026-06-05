@@ -1,7 +1,11 @@
 import {
+  formatTokenAmount,
+  formatUsdCents,
+  getOctantVaultAssetDisplayPolicy,
   getOctantVaultCampaignCopy,
   getOctantVaultCampaigns,
   getOctantVaultCampaignTransactionState,
+  useOctantVaultStats,
   type OctantVaultCampaignManifest,
 } from "@green-goods/shared";
 import { useCallback, useMemo, useState } from "react";
@@ -28,7 +32,7 @@ const copyFieldMessageIds = {
 } as const;
 
 const VAULT_ENDOW_BUTTON_CLASS =
-  "inline-flex min-h-12 w-full items-center justify-center gap-2 border border-primary-action bg-editorial-warm px-6 py-3 text-sm font-semibold text-text-strong-950 transition-colors hover:bg-primary-action/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60";
+  "inline-flex min-h-12 w-full items-center justify-center gap-2 border border-primary-action bg-primary-action px-6 py-3 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60";
 
 function campaignCopyId(
   campaign: OctantVaultCampaignManifest,
@@ -107,6 +111,61 @@ function CampaignPreviewNote() {
   );
 }
 
+/**
+ * On-chain crowdfunding signal for a campaign card: how much the dedicated Octant
+ * vault currently holds. Reads through a read-only public client (no wallet
+ * runtime) and degrades gracefully — it renders nothing on error or when no vault
+ * route exists. Supporter/donor counts are a follow-up (not indexed for these
+ * mainnet vaults yet).
+ */
+function CampaignVaultStats({ campaign }: { campaign: OctantVaultCampaignManifest }) {
+  const { formatMessage } = useIntl();
+  const decimals = campaign.vault?.asset?.decimals ?? 18;
+  const donorSymbol = getOctantVaultAssetDisplayPolicy(campaign.vault?.asset?.symbol).donorSymbol;
+  const stats = useOctantVaultStats({
+    vaultAddress: campaign.vault?.vaultAddress,
+    chainId: campaign.vault?.chainId,
+    decimals,
+  });
+
+  if (!campaign.vault?.vaultAddress || stats.isError) return null;
+
+  const tokenAmount = formatTokenAmount(stats.totalAssets, decimals, 4, undefined, true);
+  const usd = stats.usdCents !== null ? formatUsdCents(stats.usdCents) : null;
+
+  return (
+    <dl
+      className="border-y border-stroke-soft-200 py-4"
+      data-testid={`vault-campaign-stats-${campaign.slug}`}
+    >
+      <dt className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-soft-400">
+        {formatMessage({ id: "public.vaults.card.inVault", defaultMessage: "In vault" })}
+      </dt>
+      {stats.isLoading ? (
+        <dd className="mt-1 font-serif text-2xl leading-none text-text-soft-400">…</dd>
+      ) : stats.totalAssets > 0n ? (
+        <dd className="mt-1 flex items-baseline gap-2">
+          <span className="font-serif text-3xl leading-none text-text-strong-950">
+            {usd ?? `${tokenAmount} ${donorSymbol}`}
+          </span>
+          {usd ? (
+            <span className="text-sm text-text-soft-400">
+              {tokenAmount} {donorSymbol}
+            </span>
+          ) : null}
+        </dd>
+      ) : (
+        <dd className="mt-1 font-serif text-xl leading-none text-text-soft-400">
+          {formatMessage({
+            id: "public.vaults.card.justLaunched",
+            defaultMessage: "Just launched — be the first to endow",
+          })}
+        </dd>
+      )}
+    </dl>
+  );
+}
+
 export function CampaignCard({
   campaign,
   onEndow,
@@ -140,6 +199,8 @@ export function CampaignCard({
         </div>
         <p className="text-base leading-[1.6] text-text-sub-600">{copy.summary}</p>
       </header>
+
+      <CampaignVaultStats campaign={campaign} />
 
       <EditorialDivider />
 

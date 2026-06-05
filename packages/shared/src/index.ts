@@ -583,6 +583,7 @@ export {
   useVaultDeposit,
   useVaultDeposits,
   useVaultEvents,
+  useOctantVaultStats,
   useVaultPreview,
   useVaultWithdraw,
   useContainerQuery,

@@ -31,6 +31,8 @@ export const vaultsKeys = {
       chainId,
     ] as const,
   allDeposits: (chainId: number) => ["greengoods", "vaults", "allDeposits", chainId] as const,
+  campaignStats: (vaultAddress: string, chainId: number) =>
+    ["greengoods", "vaults", "campaignStats", vaultAddress, chainId] as const,
 } as const;
 
 export const cookieJarKeys = {

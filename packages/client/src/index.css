@@ -64,7 +64,8 @@ body {
   position: relative;
   display: flex;
   width: 100%;
-  max-height: 92dvh;
+  height: 85dvh;
+  max-height: 85dvh;
   flex-direction: column;
   overflow: hidden;
   border: 1px solid var(--color-stroke-soft-200);

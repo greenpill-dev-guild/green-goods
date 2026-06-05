@@ -10,10 +10,12 @@ import {
   useAuth,
   useEthUsdPrice,
   useOctantVaultWalletEndow,
+  useTimeout,
   useUser,
 } from "@green-goods/shared";
 import { lazy, Suspense, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
+import { EditorialLinkArrow } from "@/components/Public/atoms";
 import WalletRuntimeProviders from "@/routes/WalletRuntimeProviders";
 import {
   CHECKOUT_FIELD_LABEL,
@@ -25,6 +27,7 @@ import {
   CheckoutMethodTile,
   CheckoutScreen,
   CheckoutSummary,
+  getTxExplorerUrl,
 } from "./vaultCheckoutShell";
 
 const CARD_ENDOW_PRODUCTION_CAMPAIGN_SLUGS = new Set(["greenpill-nyc", "evmavericks"]);
@@ -105,6 +108,11 @@ function VaultCheckoutDialogContent({ campaign, onClose }: VaultCheckoutDialogPr
   const [amountInput, setAmountInput] = useState("");
   const [selectedMethod, setSelectedMethod] = useState<CheckoutMethod | null>(null);
   const [phase, setPhase] = useState<VaultCheckoutPhase>("setup");
+  // The WETH/base-unit amount is derived from a live ETH/USD feed; freeze it when
+  // the user leaves setup so a mid-transaction price tick cannot change the amount
+  // (which would reset progress or strand an in-flight endow). Setup keeps the live
+  // estimate; the pay phase uses this committed value.
+  const [committedAmount, setCommittedAmount] = useState<bigint | null>(null);
   const [checkoutGuard, setCheckoutGuard] =
     useState<VaultCheckoutGuardState>(UNLOCKED_CHECKOUT_GUARD);
   const checkoutGuardRef = useRef<VaultCheckoutGuardState>(UNLOCKED_CHECKOUT_GUARD);
@@ -199,20 +207,25 @@ function VaultCheckoutDialogContent({ campaign, onClose }: VaultCheckoutDialogPr
   }, []);
 
   const handleSetupContinue = useCallback(() => {
-    if (hasReadyAmount && selectedMethod && !conversionUnavailable) setPhase("pay");
-  }, [conversionUnavailable, hasReadyAmount, selectedMethod]);
+    if (hasReadyAmount && parsedAmount && selectedMethod && !conversionUnavailable) {
+      setCommittedAmount(parsedAmount);
+      setPhase("pay");
+    }
+  }, [conversionUnavailable, hasReadyAmount, parsedAmount, selectedMethod]);
 
   const handleBackToSetup = useCallback(() => {
     if (checkoutGuard.inputsLocked) return;
     updateCheckoutGuard(UNLOCKED_CHECKOUT_GUARD);
+    setCommittedAmount(null);
     setPhase("setup");
   }, [checkoutGuard.inputsLocked, updateCheckoutGuard]);
 
+  // Pay phase reads the frozen amount so the summary cannot drift with the live feed.
+  const effectiveAmount = phase === "pay" ? committedAmount : parsedAmount;
   const formattedUsdAmount = usdCents !== null && usdCents > 0n ? formatUsdCents(usdCents) : "";
-  const formattedSettlementAmount =
-    hasReadyAmount && parsedAmount
-      ? formatTokenAmount(parsedAmount, decimals, isEthSettlement ? 6 : 4, undefined, true)
-      : "";
+  const formattedSettlementAmount = effectiveAmount
+    ? formatTokenAmount(effectiveAmount, decimals, isEthSettlement ? 6 : 4, undefined, true)
+    : "";
   const settlementDetail =
     formattedSettlementAmount && assetDisplay.settlementSymbol
       ? formatMessage(
@@ -299,13 +312,11 @@ function VaultCheckoutDialogContent({ campaign, onClose }: VaultCheckoutDialogPr
         id: "public.vaults.checkout.description",
         defaultMessage: "Choose an amount and how you'd like to pay.",
       })}
-      layout={phase === "setup" ? "compact" : "flow"}
       preventClose={checkoutGuard.closeLocked}
       hideCloseButton={checkoutGuard.closeLocked}
     >
       {phase === "setup" ? (
         <CheckoutScreen
-          layout="compact"
           footer={
             <button
               type="button"
@@ -437,16 +448,17 @@ function VaultCheckoutDialogContent({ campaign, onClose }: VaultCheckoutDialogPr
             </fieldset>
           </div>
         </CheckoutScreen>
-      ) : selectedMethod === "wallet" && parsedAmount ? (
+      ) : selectedMethod === "wallet" && committedAmount ? (
         <WalletEndowPath
           campaign={campaign}
-          amount={parsedAmount}
+          amount={committedAmount}
           summaryItems={summaryItems}
           canEdit={!checkoutGuard.inputsLocked}
           onBack={handleBackToSetup}
+          onComplete={onClose}
           onCheckoutGuardChange={updateCheckoutGuard}
         />
-      ) : selectedMethod === "card" && parsedAmount ? (
+      ) : selectedMethod === "card" && committedAmount ? (
         <Suspense
           fallback={
             <CheckoutScreen
@@ -470,9 +482,10 @@ function VaultCheckoutDialogContent({ campaign, onClose }: VaultCheckoutDialogPr
         >
           <VaultCardEndowFlow
             campaign={campaign}
-            amount={parsedAmount}
+            amount={committedAmount}
             summaryItems={summaryItems}
             onBack={handleBackToSetup}
+            onComplete={onClose}
             onCheckoutGuardChange={updateCheckoutGuard}
           />
         </Suspense>
@@ -487,6 +500,7 @@ function WalletEndowPath({
   summaryItems,
   canEdit,
   onBack,
+  onComplete,
   onCheckoutGuardChange,
 }: {
   campaign: OctantVaultCampaignManifest;
@@ -494,6 +508,7 @@ function WalletEndowPath({
   summaryItems: { label: string; value: React.ReactNode }[];
   canEdit: boolean;
   onBack: () => void;
+  onComplete: () => void;
   onCheckoutGuardChange: (guard: VaultCheckoutGuardState) => void;
 }) {
   return (
@@ -503,6 +518,7 @@ function WalletEndowPath({
       summaryItems={summaryItems}
       canEdit={canEdit}
       onBack={onBack}
+      onComplete={onComplete}
       onCheckoutGuardChange={onCheckoutGuardChange}
     />
   );
@@ -514,6 +530,7 @@ function WalletEndowPathContent({
   summaryItems,
   canEdit,
   onBack,
+  onComplete,
   onCheckoutGuardChange,
 }: {
   campaign: OctantVaultCampaignManifest;
@@ -521,16 +538,23 @@ function WalletEndowPathContent({
   summaryItems: { label: string; value: React.ReactNode }[];
   canEdit: boolean;
   onBack: () => void;
+  onComplete: () => void;
   onCheckoutGuardChange: (guard: VaultCheckoutGuardState) => void;
 }) {
   const { formatMessage } = useIntl();
   const { authMode, primaryAddress } = useUser();
   const { loginWithWallet } = useAuth();
-  const walletEndow = useOctantVaultWalletEndow({ errorMode: "inline", toastMode: "silent" });
+  // toastMode "auto" surfaces lifecycle toasts (approving → depositing → success) so
+  // the long wallet mutation has progress feedback; errorMode "inline" keeps errors
+  // in the sheet (shouldShowErrorToast("inline") is false, so no double error toast).
+  const walletEndow = useOctantVaultWalletEndow({ errorMode: "inline", toastMode: "auto" });
   const [status, setStatus] = useState<"idle" | "success">("idle");
+  const [successTxHash, setSuccessTxHash] = useState<string | null>(null);
+  const [slow, setSlow] = useState(false);
   const [pendingSubmissionKey, setPendingSubmissionKey] = useState<string | null>(null);
   const [walletConnectRequested, setWalletConnectRequested] = useState(false);
   const walletConnectRequestedRef = useRef(false);
+  const { set: scheduleSlow, clear: clearSlow } = useTimeout();
 
   // Only a wallet-mode session is a valid Wallet Endow receiver. Restored passkey
   // / embedded sessions must still connect a wallet (PRD parity with /fund).
@@ -551,19 +575,33 @@ function WalletEndowPathContent({
 
   useEffect(() => {
     setStatus("idle");
+    setSuccessTxHash(null);
+    setSlow(false);
     setPendingSubmissionKey(null);
     updateWalletConnectRequested(false);
     resetWalletEndow();
   }, [amount, campaign.slug, resetWalletEndow, updateWalletConnectRequested]);
 
+  // Recovery affordance: if the submission is still in flight after a while, surface
+  // a "taking longer" note and unlock close so the user is never stranded on a stall.
   useEffect(() => {
-    const guard = walletBusy
-      ? { inputsLocked: true, closeLocked: true }
-      : walletConnectRequested
-        ? { inputsLocked: false, closeLocked: true }
-        : UNLOCKED_CHECKOUT_GUARD;
+    if (!walletBusy) {
+      clearSlow();
+      setSlow(false);
+      return;
+    }
+    return scheduleSlow(() => setSlow(true), 30_000);
+  }, [walletBusy, scheduleSlow, clearSlow]);
+
+  useEffect(() => {
+    const guard =
+      walletBusy && !slow
+        ? { inputsLocked: true, closeLocked: true }
+        : walletConnectRequested
+          ? { inputsLocked: false, closeLocked: true }
+          : UNLOCKED_CHECKOUT_GUARD;
     onCheckoutGuardChange(guard);
-  }, [onCheckoutGuardChange, walletBusy, walletConnectRequested]);
+  }, [onCheckoutGuardChange, walletBusy, walletConnectRequested, slow]);
 
   useEffect(() => {
     return () => onCheckoutGuardChange(UNLOCKED_CHECKOUT_GUARD);
@@ -585,6 +623,8 @@ function WalletEndowPathContent({
   }, []);
 
   const handleSubmit = useCallback(() => {
+    // Once submitted successfully, the action becomes Done — never a second deposit.
+    if (status === "success") return;
     if (!primaryWalletAddress) {
       updateWalletConnectRequested(true);
       onCheckoutGuardChange({ inputsLocked: false, closeLocked: true });
@@ -607,9 +647,12 @@ function WalletEndowPathContent({
         setPendingSubmissionKey((current) => (current === submissionKey ? null : current));
         if (walletFlowKeyRef.current === submissionKey) setStatus("idle");
       },
-      onSuccess: () => {
+      onSuccess: (txHash) => {
         setPendingSubmissionKey((current) => (current === submissionKey ? null : current));
-        if (walletFlowKeyRef.current === submissionKey) setStatus("success");
+        if (walletFlowKeyRef.current === submissionKey) {
+          setSuccessTxHash(typeof txHash === "string" ? txHash : null);
+          setStatus("success");
+        }
       },
     });
   }, [
@@ -618,10 +661,72 @@ function WalletEndowPathContent({
     loginWithWallet,
     onCheckoutGuardChange,
     primaryWalletAddress,
+    status,
     updateWalletConnectRequested,
     walletEndow,
     walletFlowKey,
   ]);
+
+  // Success is a terminal screen: the Confirm button is replaced by Done, so a
+  // completed endowment can never be re-submitted from here.
+  if (status === "success") {
+    const explorerUrl = getTxExplorerUrl(campaign.vault?.explorerLink, successTxHash);
+    return (
+      <CheckoutScreen
+        footer={
+          <button type="button" onClick={onComplete} className={CHECKOUT_PRIMARY_BUTTON}>
+            {formatMessage({ id: "public.vaults.checkout.done", defaultMessage: "Done" })}
+          </button>
+        }
+      >
+        <div className="flex flex-col gap-5" data-testid="vault-wallet-endow-success">
+          <CheckoutStageHeader
+            eyebrow={formatMessage({
+              id: "public.vaults.walletEndow.done.eyebrow",
+              defaultMessage: "Complete",
+            })}
+            title={formatMessage({
+              id: "public.vaults.walletEndow.done.title",
+              defaultMessage: "Endowment submitted",
+            })}
+            description={formatMessage({
+              id: "public.vaults.walletEndow.done.description",
+              defaultMessage: "Your wallet now holds the vault position for this campaign.",
+            })}
+          />
+          <CheckoutSummary items={summaryItems} />
+          <p className="rounded-none bg-primary-action/10 p-4 text-sm leading-[1.55] text-primary-base">
+            {formatMessage({
+              id: "public.vaults.walletEndow.success",
+              defaultMessage:
+                "Endowment submitted. You can review this wallet's endowments from the Fund page.",
+            })}
+          </p>
+          <div className="flex flex-col gap-3">
+            {explorerUrl ? (
+              <a
+                href={explorerUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-sm font-semibold text-primary-base underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action"
+              >
+                {formatMessage({
+                  id: "public.vaults.checkout.viewTransaction",
+                  defaultMessage: "View transaction",
+                })}
+              </a>
+            ) : null}
+            <EditorialLinkArrow to="/fund">
+              {formatMessage({
+                id: "public.vaults.checkout.viewOnFund",
+                defaultMessage: "View on Fund page",
+              })}
+            </EditorialLinkArrow>
+          </div>
+        </div>
+      </CheckoutScreen>
+    );
+  }
 
   const actionLabel = primaryWalletAddress
     ? formatMessage({
@@ -757,14 +862,22 @@ function WalletEndowPathContent({
           </dl>
         </details>
 
-        {status === "success" ? (
-          <p className="rounded-none bg-primary-action/10 p-4 text-sm leading-[1.55] text-primary-base">
-            {formatMessage({
-              id: "public.vaults.walletEndow.success",
-              defaultMessage:
-                "Endowment submitted. You can review this wallet's endowments from the Fund page.",
-            })}
-          </p>
+        {slow ? (
+          <div className="flex flex-col gap-2 rounded-none bg-bg-weak-50 p-4 text-sm leading-[1.55] text-text-sub-600">
+            <p>
+              {formatMessage({
+                id: "public.vaults.checkout.slow",
+                defaultMessage:
+                  "Taking longer than expected — your transaction may still be processing. Check the Fund page before retrying.",
+              })}
+            </p>
+            <EditorialLinkArrow to="/fund">
+              {formatMessage({
+                id: "public.vaults.checkout.viewOnFund",
+                defaultMessage: "View on Fund page",
+              })}
+            </EditorialLinkArrow>
+          </div>
         ) : null}
         {walletEndow.error ? (
           <p className="rounded-none bg-error-lighter/30 p-4 text-sm leading-[1.55] text-error-base">

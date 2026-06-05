@@ -6,6 +6,7 @@ import {
 import {
   prepareOctantVaultCardEndowFallbackPlan,
   getOctantVaultAssetDisplayPolicy,
+  useTimeout,
   type Address,
   type OctantVaultCampaignManifest,
 } from "@green-goods/shared";
@@ -36,6 +37,7 @@ import {
   CheckoutStageHeader,
   CheckoutScreen,
   CheckoutSummary,
+  getTxExplorerUrl,
   type CheckoutSummaryItem,
 } from "./vaultCheckoutShell";
 
@@ -66,7 +68,7 @@ function getTransactionHash(result: unknown): `0x${string}` | null {
  * status to idle, so the derivation naturally holds the stage and the inline
  * error renders in place.
  */
-type CardEndowStage = "recover" | "review" | "fund" | "approve" | "deposit" | "done";
+type CardEndowStage = "recover" | "review" | "fund" | "complete" | "done";
 
 export interface VaultCardEndowFlowProps {
   campaign: OctantVaultCampaignManifest;
@@ -76,6 +78,8 @@ export interface VaultCardEndowFlowProps {
   summaryItems: CheckoutSummaryItem[];
   /** Step back to the amount/method configure step (only while inputs are unlocked). */
   onBack: () => void;
+  /** Close the checkout sheet once the endowment is complete. */
+  onComplete: () => void;
   onCheckoutGuardChange: (guard: VaultCheckoutGuardState) => void;
 }
 
@@ -93,6 +97,7 @@ export default function VaultCardEndowFlow({
   amount,
   summaryItems,
   onBack,
+  onComplete,
   onCheckoutGuardChange,
 }: VaultCardEndowFlowProps) {
   const { formatMessage } = useIntl();
@@ -105,7 +110,6 @@ export default function VaultCardEndowFlow({
   if (!client) {
     return (
       <CheckoutScreen
-        layout="compact"
         footer={
           <button type="button" onClick={onBack} className={CHECKOUT_GHOST_BUTTON}>
             {formatMessage({ id: "public.vaults.checkout.back", defaultMessage: "Back" })}
@@ -134,6 +138,7 @@ export default function VaultCardEndowFlow({
         client={client}
         summaryItems={summaryItems}
         onBack={onBack}
+        onComplete={onComplete}
         onCheckoutGuardChange={onCheckoutGuardChange}
       />
     </ThirdwebProvider>
@@ -146,6 +151,7 @@ function CardEndowProviderContent({
   client,
   summaryItems,
   onBack,
+  onComplete,
   onCheckoutGuardChange,
 }: {
   campaign: OctantVaultCampaignManifest;
@@ -153,6 +159,7 @@ function CardEndowProviderContent({
   client: ThirdwebClient;
   summaryItems: CheckoutSummaryItem[];
   onBack: () => void;
+  onComplete: () => void;
   onCheckoutGuardChange: (guard: VaultCheckoutGuardState) => void;
 }) {
   const { formatMessage } = useIntl();
@@ -163,7 +170,6 @@ function CardEndowProviderContent({
   const otpInputId = useId();
   const otpHelpId = useId();
   const otpFormId = useId();
-  const tupleConfirmId = useId();
   const otpRef = useRef<HTMLInputElement>(null);
   const [emailInput, setEmailInput] = useState("");
   const [otpEmail, setOtpEmail] = useState<string | null>(null);
@@ -171,7 +177,6 @@ function CardEndowProviderContent({
   const [otpInput, setOtpInput] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [recoveredWalletAddress, setRecoveredWalletAddress] = useState<Address | null>(null);
-  const [tupleAcknowledged, setTupleAcknowledged] = useState(false);
   const [tupleConfirmed, setTupleConfirmed] = useState(false);
   const [cardFundingStatus, setCardFundingStatus] = useState<"idle" | "funded">("idle");
   const [approvalStatus, setApprovalStatus] = useState<"idle" | "pending" | "approved">("idle");
@@ -183,6 +188,9 @@ function CardEndowProviderContent({
   );
   const [proofError, setProofError] = useState<string | null>(null);
   const [flowError, setFlowError] = useState<string | null>(null);
+  // Recovery affordance: surface a "taking longer" note + unlock close on a stall.
+  const [slow, setSlow] = useState(false);
+  const { set: scheduleSlow, clear: clearSlow } = useTimeout();
   const { connect, error: connectError, isConnecting } = useConnect();
   const sendAndConfirmTransaction = useSendAndConfirmTransaction({ payModal: false });
   const decimals = campaign.vault?.asset?.decimals ?? 18;
@@ -224,15 +232,13 @@ function CardEndowProviderContent({
     otpEmail === emailInput.trim() &&
     emailInput.trim().includes("@") &&
     otpInput.trim().length > 0;
-  const canAuthorizeApproval = Boolean(
-    plan && tupleConfirmed && cardFundingStatus === "funded" && approvalStatus === "idle"
-  );
-  const canAuthorizeDeposit = Boolean(
-    plan &&
-      tupleConfirmed &&
-      cardFundingStatus === "funded" &&
-      approvalStatus === "approved" &&
-      depositStatus === "idle"
+  const completeBusy =
+    approvalStatus === "pending" ||
+    depositStatus === "pending" ||
+    sendAndConfirmTransaction.isPending;
+  // One action runs approve -> deposit; retry resumes at deposit when already approved.
+  const canCompleteEndowment = Boolean(
+    plan && cardFundingStatus === "funded" && depositStatus !== "deposited" && !completeBusy
   );
   const hasPositiveShares = shareBalance !== null && shareBalance > 0n;
   const valuePathStarted =
@@ -256,15 +262,13 @@ function CardEndowProviderContent({
   const stage: CardEndowStage =
     depositStatus === "deposited"
       ? "done"
-      : cardFundingStatus === "funded" && approvalStatus === "approved"
-        ? "deposit"
-        : cardFundingStatus === "funded"
-          ? "approve"
-          : tupleConfirmed && plan
-            ? "fund"
-            : receiverAddress
-              ? "review"
-              : "recover";
+      : cardFundingStatus === "funded"
+        ? "complete"
+        : tupleConfirmed && plan
+          ? "fund"
+          : receiverAddress
+            ? "review"
+            : "recover";
 
   // Switching campaign (a fresh checkout) clears every Card Endow gate.
   useEffect(() => {
@@ -274,7 +278,6 @@ function CardEndowProviderContent({
     setOtpInput("");
     setOtpSent(false);
     setRecoveredWalletAddress(null);
-    setTupleAcknowledged(false);
     setTupleConfirmed(false);
     setCardFundingStatus("idle");
     setApprovalStatus("idle");
@@ -290,7 +293,6 @@ function CardEndowProviderContent({
   // never the email/recovered-wallet inputs themselves — inline errors only set
   // `flowError`, so a failed step keeps the user's progress intact.
   useEffect(() => {
-    setTupleAcknowledged(false);
     setTupleConfirmed(false);
     setCardFundingStatus("idle");
     setApprovalStatus("idle");
@@ -305,14 +307,25 @@ function CardEndowProviderContent({
   useEffect(() => {
     onCheckoutGuardChange({
       inputsLocked: checkoutInputsLocked,
-      closeLocked: transactionPending,
+      closeLocked: transactionPending && !slow,
     });
     return () =>
       onCheckoutGuardChange({
         inputsLocked: false,
         closeLocked: false,
       });
-  }, [checkoutInputsLocked, onCheckoutGuardChange, transactionPending]);
+  }, [checkoutInputsLocked, onCheckoutGuardChange, transactionPending, slow]);
+
+  // Recovery affordance: if a transaction is still in flight after a while, surface
+  // a "taking longer" note and unlock close so the user is never stranded.
+  useEffect(() => {
+    if (!transactionPending) {
+      clearSlow();
+      setSlow(false);
+      return;
+    }
+    return scheduleSlow(() => setSlow(true), 30_000);
+  }, [transactionPending, scheduleSlow, clearSlow]);
 
   // Keyboard continuity: once a fresh code is sent, move focus to the OTP field so
   // a keyboard user is not stranded between the email and verification steps.
@@ -326,7 +339,6 @@ function CardEndowProviderContent({
     setOtpEmail(null);
     setVerifiedEmail(null);
     setRecoveredWalletAddress(null);
-    setTupleAcknowledged(false);
     setTupleConfirmed(false);
     setCardFundingStatus("idle");
     setApprovalStatus("idle");
@@ -517,60 +529,45 @@ function CardEndowProviderContent({
     ]
   );
 
-  const handleApprove = useCallback(async () => {
-    if (!plan || !canAuthorizeApproval) return;
+  // One action runs the strict approve -> deposit ordering with confirmations. A
+  // failure resets only the failed stage, so a retry resumes at deposit when the
+  // approval already confirmed (no redundant approval tx). The funding-proof gate is
+  // preserved.
+  const handleCompleteEndowment = useCallback(async () => {
+    if (!plan || !canCompleteEndowment) return;
 
     const expectedFlowKey = flowKey;
     setFlowError(null);
-    setApprovalStatus("pending");
     try {
-      const tokenContract = getContract({
-        client,
-        chain,
-        address: plan.cardFunding.tokenAddress,
-      });
-      const transaction = prepareContractCall({
-        contract: tokenContract,
-        method: "function approve(address spender, uint256 value)",
-        params: [plan.receiptExpectation.expectedVaultAddress, BigInt(plan.cardFunding.amount)],
-      });
+      if (approvalStatus !== "approved") {
+        setApprovalStatus("pending");
+        const tokenContract = getContract({
+          client,
+          chain,
+          address: plan.cardFunding.tokenAddress,
+        });
+        const approveTransaction = prepareContractCall({
+          contract: tokenContract,
+          method: "function approve(address spender, uint256 value)",
+          params: [plan.receiptExpectation.expectedVaultAddress, BigInt(plan.cardFunding.amount)],
+        });
+        await sendAndConfirmTransaction.mutateAsync(approveTransaction);
+        if (!isCurrentFlow(expectedFlowKey)) return;
+        setApprovalStatus("approved");
+      }
 
-      await sendAndConfirmTransaction.mutateAsync(transaction);
-      if (isCurrentFlow(expectedFlowKey)) setApprovalStatus("approved");
-    } catch (error) {
-      if (!isCurrentFlow(expectedFlowKey)) return;
-      setApprovalStatus("idle");
-      setFlowError(error instanceof Error ? error.message : "Token approval failed.");
-    }
-  }, [
-    canAuthorizeApproval,
-    chain,
-    client,
-    flowKey,
-    isCurrentFlow,
-    plan,
-    sendAndConfirmTransaction,
-  ]);
-
-  const handleDeposit = useCallback(async () => {
-    if (!plan || !canAuthorizeDeposit) return;
-
-    const expectedFlowKey = flowKey;
-    setFlowError(null);
-    setDepositStatus("pending");
-    try {
+      setDepositStatus("pending");
       const vaultContract = getContract({
         client,
         chain,
         address: plan.receiptExpectation.expectedVaultAddress,
       });
-      const transaction = prepareContractCall({
+      const depositTransaction = prepareContractCall({
         contract: vaultContract,
         method: "function deposit(uint256 assets, address receiver) returns (uint256)",
         params: [BigInt(plan.cardFunding.amount), plan.receiptExpectation.receiverAddress],
       });
-
-      const result = await sendAndConfirmTransaction.mutateAsync(transaction);
+      const result = await sendAndConfirmTransaction.mutateAsync(depositTransaction);
       const txHash = getTransactionHash(result);
       if (!isCurrentFlow(expectedFlowKey)) return;
       setDepositTxHash(txHash);
@@ -581,11 +578,14 @@ function CardEndowProviderContent({
       }
     } catch (error) {
       if (!isCurrentFlow(expectedFlowKey)) return;
-      setDepositStatus("idle");
-      setFlowError(error instanceof Error ? error.message : "Vault deposit failed.");
+      // Keep a confirmed approval so retry only re-runs the deposit.
+      setApprovalStatus((current) => (current === "pending" ? "idle" : current));
+      setDepositStatus((current) => (current === "pending" ? "idle" : current));
+      setFlowError(error instanceof Error ? error.message : "Endowment could not be completed.");
     }
   }, [
-    canAuthorizeDeposit,
+    approvalStatus,
+    canCompleteEndowment,
     chain,
     client,
     flowKey,
@@ -710,7 +710,7 @@ function CardEndowProviderContent({
           <CheckoutStageHeader
             eyebrow={formatMessage({
               id: "public.vaults.cardEndow.stage.recover.eyebrow",
-              defaultMessage: "Step 1 of 5",
+              defaultMessage: "Step 1 of 4",
             })}
             title={formatMessage({
               id: "public.vaults.cardEndow.stage.recover.title",
@@ -810,38 +810,16 @@ function CardEndowProviderContent({
         footer={
           <div className="flex flex-col gap-3">
             {plan ? (
-              <>
-                <label
-                  htmlFor={tupleConfirmId}
-                  className="flex gap-3 border border-stroke-soft-200 bg-bg-weak-50 p-3 text-sm leading-[1.5] text-text-sub-600"
-                >
-                  <input
-                    id={tupleConfirmId}
-                    type="checkbox"
-                    className="mt-1 size-4 border-stroke-soft-200 text-primary-action focus:ring-primary-action"
-                    checked={tupleAcknowledged}
-                    onChange={(event) => setTupleAcknowledged(event.target.checked)}
-                  />
-                  <span>
-                    {formatMessage({
-                      id: "public.vaults.cardEndow.confirmTuple",
-                      defaultMessage:
-                        "I confirm the campaign, receiver, token, and amount are correct before live card payment.",
-                    })}
-                  </span>
-                </label>
-                <button
-                  type="button"
-                  disabled={!tupleAcknowledged}
-                  onClick={() => setTupleConfirmed(true)}
-                  className={CHECKOUT_PRIMARY_BUTTON}
-                >
-                  {formatMessage({
-                    id: "public.vaults.cardEndow.confirmAndContinue",
-                    defaultMessage: "Continue to card payment",
-                  })}
-                </button>
-              </>
+              <button
+                type="button"
+                onClick={() => setTupleConfirmed(true)}
+                className={CHECKOUT_PRIMARY_BUTTON}
+              >
+                {formatMessage({
+                  id: "public.vaults.cardEndow.confirmAndContinue",
+                  defaultMessage: "Continue to card payment",
+                })}
+              </button>
             ) : null}
             {backButton}
           </div>
@@ -851,7 +829,7 @@ function CardEndowProviderContent({
           <CheckoutStageHeader
             eyebrow={formatMessage({
               id: "public.vaults.cardEndow.stage.review.eyebrow",
-              defaultMessage: "Step 2 of 5",
+              defaultMessage: "Step 2 of 4",
             })}
             title={formatMessage({
               id: "public.vaults.cardEndow.stage.review.title",
@@ -1025,7 +1003,7 @@ function CardEndowProviderContent({
           <CheckoutStageHeader
             eyebrow={formatMessage({
               id: "public.vaults.cardEndow.stage.fund.eyebrow",
-              defaultMessage: "Step 3 of 5",
+              defaultMessage: "Step 3 of 4",
             })}
             title={formatMessage({
               id: "public.vaults.cardEndow.stage.fund.title",
@@ -1093,42 +1071,49 @@ function CardEndowProviderContent({
     );
   }
 
-  // ── approve: authorize the vault to use the funded WETH ───────────────────
-  if (stage === "approve") {
+  // ── complete: one action runs the strict approve -> deposit ordering ───────
+  if (stage === "complete") {
+    const completeLabel =
+      depositStatus === "pending"
+        ? formatMessage({
+            id: "public.vaults.cardEndow.depositing",
+            defaultMessage: "Depositing...",
+          })
+        : approvalStatus === "pending"
+          ? formatMessage({
+              id: "public.vaults.cardEndow.approving",
+              defaultMessage: "Approving...",
+            })
+          : formatMessage({
+              id: "public.vaults.cardEndow.complete",
+              defaultMessage: "Complete endowment",
+            });
     return (
       <CheckoutScreen
         footer={
           <button
             type="button"
-            disabled={!canAuthorizeApproval || sendAndConfirmTransaction.isPending}
+            disabled={!canCompleteEndowment}
             className={CHECKOUT_PRIMARY_BUTTON}
-            onClick={handleApprove}
+            onClick={handleCompleteEndowment}
           >
-            {approvalStatus === "pending"
-              ? formatMessage({
-                  id: "public.vaults.cardEndow.approving",
-                  defaultMessage: "Approving...",
-                })
-              : formatMessage({
-                  id: "public.vaults.cardEndow.approve",
-                  defaultMessage: "Approve vault transfer",
-                })}
+            {completeLabel}
           </button>
         }
       >
         <div className="flex flex-col gap-5" data-testid="vault-card-endow-flow">
           <CheckoutStageHeader
             eyebrow={formatMessage({
-              id: "public.vaults.cardEndow.stage.approve.eyebrow",
-              defaultMessage: "Step 4 of 5",
+              id: "public.vaults.cardEndow.stage.complete.eyebrow",
+              defaultMessage: "Step 4 of 4",
             })}
             title={formatMessage({
-              id: "public.vaults.cardEndow.stage.approve.title",
-              defaultMessage: "Approve vault transfer",
+              id: "public.vaults.cardEndow.stage.complete.title",
+              defaultMessage: "Complete endowment",
             })}
             description={formatMessage({
-              id: "public.vaults.cardEndow.stage.approve.description",
-              defaultMessage: "Authorize the vault to use the funded WETH for this endowment.",
+              id: "public.vaults.cardEndow.stage.complete.description",
+              defaultMessage: "Approve the vault transfer and deposit the funded WETH in one step.",
             })}
           />
           <CheckoutSummary items={cardSummaryItems} />
@@ -1141,68 +1126,19 @@ function CardEndowProviderContent({
           </p>
           <p className="text-sm leading-[1.6] text-text-sub-600">
             {formatMessage({
-              id: "public.vaults.cardEndow.approveTechnical",
-              defaultMessage: "This approves token -> vault.",
+              id: "public.vaults.cardEndow.completeTechnical",
+              defaultMessage: "This approves token -> vault, then deposits amount -> receiver.",
             })}
           </p>
-          {errorNotes}
-        </div>
-      </CheckoutScreen>
-    );
-  }
-
-  // ── deposit: complete the vault position for the verified email wallet ─────
-  if (stage === "deposit") {
-    return (
-      <CheckoutScreen
-        footer={
-          <button
-            type="button"
-            disabled={!canAuthorizeDeposit || sendAndConfirmTransaction.isPending}
-            className={CHECKOUT_PRIMARY_BUTTON}
-            onClick={handleDeposit}
-          >
-            {depositStatus === "pending"
-              ? formatMessage({
-                  id: "public.vaults.cardEndow.depositing",
-                  defaultMessage: "Depositing...",
-                })
-              : formatMessage({
-                  id: "public.vaults.cardEndow.deposit",
-                  defaultMessage: "Complete endowment",
-                })}
-          </button>
-        }
-      >
-        <div className="flex flex-col gap-5" data-testid="vault-card-endow-flow">
-          <CheckoutStageHeader
-            eyebrow={formatMessage({
-              id: "public.vaults.cardEndow.stage.deposit.eyebrow",
-              defaultMessage: "Step 5 of 5",
-            })}
-            title={formatMessage({
-              id: "public.vaults.cardEndow.stage.deposit.title",
-              defaultMessage: "Complete endowment",
-            })}
-            description={formatMessage({
-              id: "public.vaults.cardEndow.stage.deposit.description",
-              defaultMessage:
-                "Deposit the funded WETH so the vault position is issued to your verified email wallet.",
-            })}
-          />
-          <CheckoutSummary items={cardSummaryItems} />
-          <p className="rounded-none bg-primary-action/10 p-4 text-sm leading-[1.55] text-primary-base">
-            {formatMessage({
-              id: "public.vaults.cardEndow.approved",
-              defaultMessage: "Vault authorization confirmed",
-            })}
-          </p>
-          <p className="text-sm leading-[1.6] text-text-sub-600">
-            {formatMessage({
-              id: "public.vaults.cardEndow.depositTechnical",
-              defaultMessage: "This deposits amount -> receiver.",
-            })}
-          </p>
+          {slow ? (
+            <p className="rounded-none bg-bg-weak-50 p-4 text-sm leading-[1.55] text-text-sub-600">
+              {formatMessage({
+                id: "public.vaults.checkout.slow",
+                defaultMessage:
+                  "Taking longer than expected — your transaction may still be processing. Check the Fund page before retrying.",
+              })}
+            </p>
+          ) : null}
           {errorNotes}
         </div>
       </CheckoutScreen>
@@ -1210,21 +1146,27 @@ function CardEndowProviderContent({
   }
 
   // ── done: positive-share proof + funding proof ─────────────────────────────
+  const depositTxUrl = getTxExplorerUrl(campaign.vault?.explorerLink, depositTxHash);
   return (
     <CheckoutScreen
       footer={
-        hasPositiveShares ? null : (
-          <button
-            type="button"
-            className={CHECKOUT_GHOST_BUTTON}
-            onClick={() => void readShareBalance()}
-          >
-            {formatMessage({
-              id: "public.vaults.cardEndow.readShares",
-              defaultMessage: "Check vault position",
-            })}
+        <div className="flex flex-col gap-2">
+          {hasPositiveShares ? null : (
+            <button
+              type="button"
+              className={CHECKOUT_GHOST_BUTTON}
+              onClick={() => void readShareBalance()}
+            >
+              {formatMessage({
+                id: "public.vaults.cardEndow.readShares",
+                defaultMessage: "Check vault position",
+              })}
+            </button>
+          )}
+          <button type="button" className={CHECKOUT_PRIMARY_BUTTON} onClick={onComplete}>
+            {formatMessage({ id: "public.vaults.checkout.done", defaultMessage: "Done" })}
           </button>
-        )
+        </div>
       }
     >
       <div className="flex flex-col gap-4" data-testid="vault-card-endow-flow">
@@ -1304,6 +1246,19 @@ function CardEndowProviderContent({
             })}
           </p>
         )}
+        {depositTxUrl ? (
+          <a
+            href={depositTxUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="text-sm font-semibold text-primary-base underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action"
+          >
+            {formatMessage({
+              id: "public.vaults.checkout.viewTransaction",
+              defaultMessage: "View transaction",
+            })}
+          </a>
+        ) : null}
         {errorNotes}
       </div>
     </CheckoutScreen>

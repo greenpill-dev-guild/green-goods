@@ -456,6 +456,7 @@ export {
   useVaultWithdraw,
 } from "./vault/useVaultOperations";
 export { useVaultPreview } from "./vault/useVaultPreview";
+export { useOctantVaultStats, type OctantVaultStats } from "./vault/useOctantVaultStats";
 export { useHarvestableYield } from "./vault/useHarvestableYield";
 export { useStrategyRate } from "./vault/useStrategyRate";
 export { fetchApprovalsByRecipients } from "./work/useAggregatedApprovals";
