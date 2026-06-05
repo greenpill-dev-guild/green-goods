@@ -2,6 +2,7 @@ import {
   DialogShell,
   formatTokenAmount,
   formatUsdCents,
+  getOctantVaultAssetDisplayPolicy,
   getOctantVaultCampaignTransactionState,
   parseUsdToCents,
   prepareOctantVaultWalletEndow,
@@ -31,7 +32,6 @@ import {
  * an un-reviewed vault can never surface a live card payment affordance.
  */
 const CARD_ENDOW_PRODUCTION_CAMPAIGN_SLUG = "greenpill-nyc";
-const WETH_SYMBOL = "WETH";
 const ETH_SYMBOL = "ETH";
 
 function isProductionCardEndowCampaign(campaign: OctantVaultCampaignManifest): boolean {
@@ -53,16 +53,12 @@ const UNLOCKED_CHECKOUT_GUARD: VaultCheckoutGuardState = {
   closeLocked: false,
 };
 
-type VaultCheckoutPhase = "amount" | "method" | "pay";
+type VaultCheckoutPhase = "setup" | "pay";
 
 function usdCentsToStableTokenUnits(cents: bigint, decimals: number): bigint {
   if (cents <= 0n) return 0n;
   if (decimals >= 2) return cents * 10n ** BigInt(decimals - 2);
   return cents / 10n ** BigInt(2 - decimals);
-}
-
-function getSettlementSymbol(symbol: string): string {
-  return symbol.toUpperCase() === WETH_SYMBOL ? ETH_SYMBOL : symbol;
 }
 
 function getAmountErrorMessage(
@@ -103,11 +99,10 @@ export function VaultCheckoutDialog(props: VaultCheckoutDialogProps) {
 
 /**
  * VaultCheckoutDialog — a fixed-height checkout sheet (shared `DialogShell`) for
- * one Octant vault campaign. It renders one focused step at a time with a pinned
- * footer action and a compact summary of decisions already made:
- *   amount → method → wallet path | card path.
- * Amount-first stays strict (no method before a valid amount); the Card path only
- * appears for the production campaign when the manifest is transaction-ready.
+ * one Octant vault campaign. It keeps amount and method choice together in the
+ * editable setup step, then moves to the selected wallet or card path.
+ * The Card path only appears for the production campaign when the manifest is
+ * transaction-ready.
  * Payment-path components own their own authoritative state and report a lock
  * guard up so the sheet can prevent edits and close while a transaction is in
  * flight.
@@ -120,7 +115,7 @@ function VaultCheckoutDialogContent({ campaign, onClose }: VaultCheckoutDialogPr
   const amountRef = useRef<HTMLInputElement>(null);
   const [amountInput, setAmountInput] = useState("");
   const [selectedMethod, setSelectedMethod] = useState<CheckoutMethod | null>(null);
-  const [phase, setPhase] = useState<VaultCheckoutPhase>("amount");
+  const [phase, setPhase] = useState<VaultCheckoutPhase>("setup");
   const [checkoutGuard, setCheckoutGuard] =
     useState<VaultCheckoutGuardState>(UNLOCKED_CHECKOUT_GUARD);
   const checkoutGuardRef = useRef<VaultCheckoutGuardState>(UNLOCKED_CHECKOUT_GUARD);
@@ -129,8 +124,8 @@ function VaultCheckoutDialogContent({ campaign, onClose }: VaultCheckoutDialogPr
   const symbol =
     campaign.vault?.asset?.symbol ??
     formatMessage({ id: "public.vaults.walletEndow.assetFallback", defaultMessage: "tokens" });
-  const settlementSymbol = getSettlementSymbol(symbol);
-  const isEthSettlement = settlementSymbol === ETH_SYMBOL;
+  const assetDisplay = getOctantVaultAssetDisplayPolicy(symbol);
+  const isEthSettlement = assetDisplay.donorSymbol === ETH_SYMBOL;
   const ethUsd = useEthUsdPrice({
     enabled: isEthSettlement,
     chainId: campaign.vault?.chainId,
@@ -173,6 +168,7 @@ function VaultCheckoutDialogContent({ campaign, onClose }: VaultCheckoutDialogPr
     return cardMethodAvailable ? ["card", "wallet"] : ["wallet"];
   }, [cardMethodAvailable, transactionState.walletEndowEnabled]);
   const hasPaymentMethods = availableMethods.length > 0;
+  const canSelectPaymentMethod = hasReadyAmount && !amountError && hasPaymentMethods;
 
   useEffect(() => {
     if (selectedMethod && !availableMethods.includes(selectedMethod)) {
@@ -180,11 +176,11 @@ function VaultCheckoutDialogContent({ campaign, onClose }: VaultCheckoutDialogPr
     }
   }, [availableMethods, selectedMethod]);
 
-  // Amount-first: on desktop, direct focus to the amount field after
-  // DialogShell's open-focus settles. On mobile this can force the visual
-  // viewport to scroll and push the fixed checkout footer off-screen.
+  // On desktop, direct focus to the amount field after DialogShell's open-focus
+  // settles. On mobile this can force the visual viewport to scroll and push the
+  // fixed checkout footer off-screen.
   useEffect(() => {
-    if (phase !== "amount") return;
+    if (phase !== "setup") return;
     if (
       typeof window.matchMedia === "function" &&
       !window.matchMedia("(min-width: 640px)").matches
@@ -209,27 +205,16 @@ function VaultCheckoutDialogContent({ campaign, onClose }: VaultCheckoutDialogPr
 
   const handleAmountChange = useCallback((value: string) => {
     setAmountInput(value);
-    setSelectedMethod(null);
   }, []);
 
-  const handleAmountContinue = useCallback(() => {
-    if (hasReadyAmount && hasPaymentMethods) setPhase("method");
-  }, [hasPaymentMethods, hasReadyAmount]);
-
-  const handleMethodContinue = useCallback(() => {
+  const handleSetupContinue = useCallback(() => {
     if (hasReadyAmount && selectedMethod) setPhase("pay");
   }, [hasReadyAmount, selectedMethod]);
 
-  const handleBackToAmount = useCallback(() => {
+  const handleBackToSetup = useCallback(() => {
     if (checkoutGuard.inputsLocked) return;
     updateCheckoutGuard(UNLOCKED_CHECKOUT_GUARD);
-    setPhase("amount");
-  }, [checkoutGuard.inputsLocked, updateCheckoutGuard]);
-
-  const handleBackToMethod = useCallback(() => {
-    if (checkoutGuard.inputsLocked) return;
-    updateCheckoutGuard(UNLOCKED_CHECKOUT_GUARD);
-    setPhase("method");
+    setPhase("setup");
   }, [checkoutGuard.inputsLocked, updateCheckoutGuard]);
 
   const formattedUsdAmount = usdCents !== null && usdCents > 0n ? formatUsdCents(usdCents) : "";
@@ -238,13 +223,13 @@ function VaultCheckoutDialogContent({ campaign, onClose }: VaultCheckoutDialogPr
       ? formatTokenAmount(parsedAmount, decimals, isEthSettlement ? 6 : 4, undefined, true)
       : "";
   const settlementDetail =
-    formattedSettlementAmount && settlementSymbol
+    formattedSettlementAmount && assetDisplay.settlementSymbol
       ? formatMessage(
           {
             id: "public.vaults.checkout.review.settlement",
-            defaultMessage: "Settles as {amount} {symbol}",
+            defaultMessage: "Settles into the Octant vault as {amount} {symbol}",
           },
-          { amount: formattedSettlementAmount, symbol: settlementSymbol }
+          { amount: formattedSettlementAmount, symbol: assetDisplay.settlementSymbol }
         )
       : "";
   const methodLabel =
@@ -255,8 +240,12 @@ function VaultCheckoutDialogContent({ campaign, onClose }: VaultCheckoutDialogPr
   const amountSummaryItems = [
     {
       label: formatMessage({
-        id: "public.vaults.checkout.review.amount",
-        defaultMessage: "Donation amount",
+        id:
+          assetDisplay.donorSymbol === ETH_SYMBOL
+            ? "public.vaults.checkout.review.ethContribution"
+            : "public.vaults.checkout.review.amount",
+        defaultMessage:
+          assetDisplay.donorSymbol === ETH_SYMBOL ? "ETH contribution" : "Donation amount",
       }),
       value: (
         <span className="inline-flex flex-col gap-0.5">
@@ -307,13 +296,13 @@ function VaultCheckoutDialogContent({ campaign, onClose }: VaultCheckoutDialogPr
       descriptionClassName="sr-only"
       bodyClassName="flex min-h-0 flex-1 flex-col overflow-hidden !p-0 sm:!p-0 max-h-none"
     >
-      {phase === "amount" ? (
+      {phase === "setup" ? (
         <CheckoutScreen
           footer={
             <button
               type="button"
-              onClick={handleAmountContinue}
-              disabled={!hasReadyAmount || !hasPaymentMethods}
+              onClick={handleSetupContinue}
+              disabled={!hasReadyAmount || !selectedMethod || !hasPaymentMethods}
               className={CHECKOUT_PRIMARY_BUTTON}
             >
               {formatMessage({
@@ -364,9 +353,12 @@ function VaultCheckoutDialogContent({ campaign, onClose }: VaultCheckoutDialogPr
                   {
                     id: "public.vaults.walletEndow.amountHelp",
                     defaultMessage:
-                      "Enter dollars first. Checkout settles to {symbol} for the Octant vault.",
+                      "Enter dollars first. Checkout estimates an {donorSymbol} contribution and settles into the Octant vault as {settlementSymbol}.",
                   },
-                  { symbol: settlementSymbol }
+                  {
+                    donorSymbol: assetDisplay.donorSymbol,
+                    settlementSymbol: assetDisplay.settlementSymbol,
+                  }
                 )}
               </p>
               {amountError ? (
@@ -375,31 +367,6 @@ function VaultCheckoutDialogContent({ campaign, onClose }: VaultCheckoutDialogPr
                 </p>
               ) : null}
             </div>
-          </div>
-        </CheckoutScreen>
-      ) : phase === "method" ? (
-        <CheckoutScreen
-          footer={
-            <div className="flex flex-col gap-2">
-              <button
-                type="button"
-                onClick={handleMethodContinue}
-                disabled={!hasReadyAmount || !selectedMethod}
-                className={CHECKOUT_PRIMARY_BUTTON}
-              >
-                {formatMessage({
-                  id: "public.vaults.checkout.continue",
-                  defaultMessage: "Continue",
-                })}
-              </button>
-              <button type="button" onClick={handleBackToAmount} className={CHECKOUT_GHOST_BUTTON}>
-                {formatMessage({ id: "public.vaults.checkout.back", defaultMessage: "Back" })}
-              </button>
-            </div>
-          }
-        >
-          <div className="flex flex-col gap-5">
-            <CheckoutSummary items={amountSummaryItems} onEdit={handleBackToAmount} />
 
             <fieldset className="flex flex-col gap-2">
               <legend className={CHECKOUT_FIELD_LABEL}>
@@ -419,8 +386,10 @@ function VaultCheckoutDialogContent({ campaign, onClose }: VaultCheckoutDialogPr
                     key={method}
                     method={method}
                     selected={selectedMethod === method}
-                    disabled={false}
-                    onSelect={setSelectedMethod}
+                    disabled={!canSelectPaymentMethod}
+                    onSelect={(nextMethod) => {
+                      if (canSelectPaymentMethod) setSelectedMethod(nextMethod);
+                    }}
                     label={
                       method === "card"
                         ? formatMessage({
@@ -446,6 +415,14 @@ function VaultCheckoutDialogContent({ campaign, onClose }: VaultCheckoutDialogPr
                   />
                 ))}
               </div>
+              {hasPaymentMethods && !canSelectPaymentMethod ? (
+                <p className="text-xs leading-[1.5] text-text-soft-400">
+                  {formatMessage({
+                    id: "public.vaults.checkout.method.amountRequired",
+                    defaultMessage: "Enter a dollar amount first to choose a payment method.",
+                  })}
+                </p>
+              ) : null}
             </fieldset>
           </div>
         </CheckoutScreen>
@@ -455,7 +432,7 @@ function VaultCheckoutDialogContent({ campaign, onClose }: VaultCheckoutDialogPr
           amount={parsedAmount}
           summaryItems={summaryItems}
           canEdit={!checkoutGuard.inputsLocked}
-          onBack={handleBackToMethod}
+          onBack={handleBackToSetup}
           onCheckoutGuardChange={updateCheckoutGuard}
         />
       ) : selectedMethod === "card" && parsedAmount ? (
@@ -463,17 +440,13 @@ function VaultCheckoutDialogContent({ campaign, onClose }: VaultCheckoutDialogPr
           fallback={
             <CheckoutScreen
               footer={
-                <button
-                  type="button"
-                  onClick={handleBackToMethod}
-                  className={CHECKOUT_GHOST_BUTTON}
-                >
+                <button type="button" onClick={handleBackToSetup} className={CHECKOUT_GHOST_BUTTON}>
                   {formatMessage({ id: "public.vaults.checkout.back", defaultMessage: "Back" })}
                 </button>
               }
             >
               <div className="flex flex-col gap-5">
-                <CheckoutSummary items={summaryItems} onEdit={handleBackToMethod} />
+                <CheckoutSummary items={summaryItems} onEdit={handleBackToSetup} />
                 <p className="rounded-none bg-bg-weak-50 p-4 text-sm leading-[1.55] text-text-sub-600">
                   {formatMessage({
                     id: "public.vaults.cardEndow.loading",
@@ -488,7 +461,7 @@ function VaultCheckoutDialogContent({ campaign, onClose }: VaultCheckoutDialogPr
             campaign={campaign}
             amount={parsedAmount}
             summaryItems={summaryItems}
-            onBack={handleBackToMethod}
+            onBack={handleBackToSetup}
             onCheckoutGuardChange={updateCheckoutGuard}
           />
         </Suspense>
@@ -554,6 +527,7 @@ function WalletEndowPathContent({
   const symbol =
     campaign.vault?.asset?.symbol ??
     formatMessage({ id: "public.vaults.walletEndow.assetFallback", defaultMessage: "tokens" });
+  const assetDisplay = getOctantVaultAssetDisplayPolicy(symbol);
   const walletFlowKey = `${campaign.slug}:${amount.toString()}:${primaryWalletAddress ?? ""}`;
   const walletFlowKeyRef = useRef(walletFlowKey);
   walletFlowKeyRef.current = walletFlowKey;
@@ -717,8 +691,8 @@ function WalletEndowPathContent({
         <details className="border-t border-stroke-soft-200 pt-4">
           <summary className="cursor-pointer font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
             {formatMessage({
-              id: "public.vaults.cardEndow.tupleDetailsSummary",
-              defaultMessage: "Full onchain detail",
+              id: "public.vaults.checkout.technicalDetails",
+              defaultMessage: "Technical WETH details",
             })}
           </summary>
           <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
@@ -726,7 +700,7 @@ function WalletEndowPathContent({
               <dt className="font-medium text-text-strong-950">
                 {formatMessage({
                   id: "public.vaults.cardEndow.tupleChain",
-                  defaultMessage: "Chain",
+                  defaultMessage: "Ethereum network",
                 })}
               </dt>
               <dd className="text-text-sub-600">
@@ -743,7 +717,7 @@ function WalletEndowPathContent({
               <dt className="font-medium text-text-strong-950">
                 {formatMessage({
                   id: "public.vaults.cardEndow.tupleVault",
-                  defaultMessage: "Vault",
+                  defaultMessage: "Octant vault",
                 })}
               </dt>
               <dd className="break-all font-mono text-xs text-text-sub-600">
@@ -754,28 +728,11 @@ function WalletEndowPathContent({
               <dt className="font-medium text-text-strong-950">
                 {formatMessage({
                   id: "public.vaults.cardEndow.tupleToken",
-                  defaultMessage: "Token",
+                  defaultMessage: "WETH token",
                 })}
               </dt>
               <dd className="break-all text-text-sub-600">
-                {symbol} · {campaign.vault?.asset?.address ?? ""}
-              </dd>
-            </div>
-            <div>
-              <dt className="font-medium text-text-strong-950">
-                {formatMessage({
-                  id: "public.vaults.cardEndow.tupleBaseUnits",
-                  defaultMessage: "Base units",
-                })}
-              </dt>
-              <dd className="text-text-sub-600">
-                {formatMessage(
-                  {
-                    id: "public.vaults.cardEndow.baseUnitsValue",
-                    defaultMessage: "{amount} base units",
-                  },
-                  { amount: amount.toString() }
-                )}
+                {assetDisplay.technicalSymbol} · {campaign.vault?.asset?.address ?? ""}
               </dd>
             </div>
           </dl>
@@ -786,7 +743,7 @@ function WalletEndowPathContent({
             {formatMessage({
               id: "public.vaults.walletEndow.success",
               defaultMessage:
-                "Wallet Endow was submitted. Route-local receipt and management proof continue in the next gates.",
+                "Wallet contribution submitted. Keep this window open for the receipt.",
             })}
           </p>
         ) : null}

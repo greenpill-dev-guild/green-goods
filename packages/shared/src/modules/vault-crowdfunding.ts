@@ -39,6 +39,15 @@ export interface OctantVaultCampaignAssetManifest {
   decimals?: number;
 }
 
+export interface OctantVaultAssetDisplayPolicy {
+  /** Primary donor-facing unit. WETH vault deposits are presented as ETH contributions. */
+  donorSymbol: string;
+  /** Settlement unit for receipt/review copy. */
+  settlementSymbol: string;
+  /** Exact token symbol used by the deployed vault. */
+  technicalSymbol: string;
+}
+
 export interface OctantVaultStrategyFactoryEvidence {
   address: Address;
   name: string;
@@ -467,15 +476,14 @@ const greenpillNycPreviewCopy: OctantVaultCampaignCopy = {
   summary:
     "Greenpill NYC is ready for production Card Endow testing through the Octant V2 Ethereum vault route.",
   fundingPurpose:
-    "Fund local civic-tech coordination while keeping the exact Ethereum vault, ETH settlement amount, and receiver wallet visible before any value moves.",
+    "Fund local civic-tech coordination with an ETH contribution that settles into the Octant vault as WETH.",
   recipientLogic:
-    "Card funding lands in the recovered email wallet first; that same user-owned wallet approves the vault asset and deposits into the Greenpill NYC vault for itself.",
-  riskNote:
-    "Live mainnet payment stays locked behind email wallet recovery, tuple confirmation, user-approved approve/deposit transactions, and positive share proof.",
+    "Contributions settle into the Greenpill NYC Octant vault so the supporter keeps the resulting vault position.",
+  riskNote: "No card payment or wallet transaction starts until checkout asks you to continue.",
 };
 
 const evmavericksPreviewCopy: OctantVaultCampaignCopy = {
-  headline: "A pending vault slot for recurring ETH-native public-goods funding.",
+  headline: "A pending vault slot for recurring ETH public-goods funding.",
   summary:
     "EVMavericks appears as a preview slot so reviewers can inspect the campaign before transaction metadata lands.",
   fundingPurpose:
@@ -630,6 +638,25 @@ export function createOctantVaultWalletEndowReceiver(
     receiverKind: "connected_wallet",
     receiverCustody: "connected_wallet",
     receiverAddress: connectedWalletAddress,
+  };
+}
+
+export function getOctantVaultAssetDisplayPolicy(
+  symbol: string | null | undefined
+): OctantVaultAssetDisplayPolicy {
+  const technicalSymbol = symbol?.trim() || "tokens";
+  if (technicalSymbol.toUpperCase() === "WETH") {
+    return {
+      donorSymbol: "ETH",
+      settlementSymbol: "WETH",
+      technicalSymbol: "WETH",
+    };
+  }
+
+  return {
+    donorSymbol: technicalSymbol,
+    settlementSymbol: technicalSymbol,
+    technicalSymbol,
   };
 }
 

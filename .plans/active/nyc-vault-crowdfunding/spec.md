@@ -8,6 +8,13 @@ Greenpill NYC and EVMavericks pilot fixtures. This is a dedicated vault crowdfun
 and amount second, connect a wallet only at final confirmation, then deposit into the target Octant
 V2 vault on Ethereum.
 
+The deployed-vault asset model is confirmed as WETH, not native ETH. Direct read-only calls show
+both pilot vaults return mainnet WETH `0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2` from `asset()`,
+with token metadata `WETH` / `Wrapped Ether` / 18. Vault metadata is `Greenpill NYC` / `gpWETH` / 18
+and `EVMavs PGF` / `evmWETH` / 18. `/vaults` donor copy must say `ETH contribution` first and then
+make settlement explicit: `Settles into the Octant vault as WETH`. No native ETH, `msg.value`,
+payable deposit interface, or direct ETH deposit route is part of this plan.
+
 Wallet Endow and Thirdweb Card Endow are both part of the Green Goods demo scope. Thirdweb Card
 Endow remains hidden until the implementation proves user-owned receiver custody, vault-share
 visibility, withdrawal/manage availability, and strict provider/webhook verification. Public Donate
@@ -92,11 +99,14 @@ skill plus templates as the final project deliverable.
     required for this QA flow.
 20a. A stale active Thirdweb account or existing wallet must not satisfy the Card Endow QA
      `receiverAddress`; the receiver comes only from the verified email OTP/in-app wallet recovery.
-21. Before a live card payment, the UI must show and require human confirmation of receiver wallet,
-    exact chain, vault, token, amount, campaign, and provider route.
-22. After provider funding succeeds, the QA user must authorize `approve(token -> vault, amount)`
-    and `deposit(amount, receiverAddress)` from the recovered wallet. Success is verified only by
-    reading `vault.balanceOf(receiverAddress)` and confirming positive shares.
+21. Before a live card payment, the primary UI must show donor language: campaign, ETH contribution,
+    WETH settlement detail, and a clear "No card payment starts until you continue" gate. Provider
+    route, tuple, base-unit, approve/deposit, and recovered-wallet implementation wording stays out
+    of the primary UI.
+22. Card Endow remains WETH funding followed by ERC20 `approve(vault, amount)` and vault
+    `deposit(amount, receiverAddress)` from the verified email wallet. Success is verified only by
+    reading positive vault shares, but the donor-facing success copy should say the vault position is
+    confirmed.
 
 ## Interface Requirements
 
@@ -113,6 +123,11 @@ skill plus templates as the final project deliverable.
   user-approved session executes ERC20 `approve(vault, amount)` followed by vault
   `deposit(amount, receiverAddress)`, and shares are verified by
   `vault.balanceOf(receiverAddress) > 0`.
+- The fallback contract is WETH-only for the pilot vaults. It must never prepare native ETH
+  `msg.value`, a payable deposit call, or any donor copy implying direct ETH deposit.
+- Technical details may expose WETH token address, vault address, and Ethereum chain ID in a
+  collapsed details section. The primary amount/review copy uses `ETH contribution` and the
+  settlement detail `WETH`.
 - The current human-QA access path is default `/vaults`. It exposes the Greenpill NYC Card Endow
   campaign using the recorded Ethereum chain `1`, Greenpill NYC vault, and WETH asset, while
   incomplete campaigns remain hidden for Card Endow.

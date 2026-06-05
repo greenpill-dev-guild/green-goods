@@ -16,7 +16,7 @@ export type CheckoutMethod = "card" | "wallet";
 
 // Square transaction controls (no rounded capsules inside the checkout).
 export const CHECKOUT_PRIMARY_BUTTON =
-  "inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-none bg-primary-action px-6 py-3 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-stroke-soft-200 disabled:text-text-soft-400";
+  "inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-none border border-primary-action bg-editorial-warm px-6 py-3 text-sm font-semibold text-text-strong-950 transition-colors hover:bg-primary-action/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:border-stroke-soft-200 disabled:bg-stroke-soft-200 disabled:text-text-soft-400";
 
 export const CHECKOUT_GHOST_BUTTON =
   "inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-none border border-stroke-soft-200 bg-bg-white-0 px-6 py-3 text-sm font-semibold text-text-sub-600 transition-colors hover:bg-bg-weak-50 disabled:cursor-not-allowed disabled:bg-stroke-soft-200 disabled:text-text-soft-400";

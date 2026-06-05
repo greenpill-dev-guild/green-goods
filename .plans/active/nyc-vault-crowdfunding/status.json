@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p0",
     "created_at": "2026-05-09T21:35:46.781Z",
-    "updated_at": "2026-06-03T05:08:20Z"
+    "updated_at": "2026-06-05T00:09:43Z"
   },
   "links": {
     "brief": "brief.md",
@@ -42,8 +42,8 @@
   "pilotFixtures": {
     "greenpill-nyc": {
       "label": "Greenpill NYC",
-      "status": "blocked_pending_required_manifest_fields",
-      "transactionEnablement": "blocked until recipient/routing summary, campaign copy, and required proof gates complete the manifest",
+      "status": "ready_for_controlled_production_qa",
+      "transactionEnablement": "Wallet Endow and Card Endow QA are enabled on default /vaults after recipient/routing summary, campaign copy, and proof-route handling were supplied; live value movement remains human-gated.",
       "requiredManifestFields": [
         "chainId",
         "vaultAddress",
@@ -72,16 +72,15 @@
         "factoryExplorerLink": "https://etherscan.io/address/0x9A6c9aA80D4A0d8Da29EcbA62c40ccBBB321abB6"
       },
       "syntheticSafePreview": {
-        "status": "present_preview_only",
-        "fields": ["previewCopy"],
-        "doesNotSatisfy": ["recipientRoutingSummary", "campaignCopy"],
-        "transactionEffect": "does_not_unlock_wallet_endow_or_card_endow"
+        "status": "present_with_authoritative_campaign_copy",
+        "fields": ["previewCopy", "campaignCopy"],
+        "doesNotSatisfy": [],
+        "transactionEffect": "greenpill_nyc_transactions_enabled_for_controlled_qa"
       },
-      "missingManifestFields": [
-        "recipientRoutingSummary",
-        "campaignCopy",
-        "FACTORY() accessor return proof",
-        "Card Endow custody/share/manage/provider proof"
+      "missingManifestFields": [],
+      "proofLimits": [
+        "FACTORY() accessor return proof remains unavailable and is not required for this QA fixture.",
+        "Live card payment, onchain approval/deposit, and positive mainnet share proof were not moved by automated validation."
       ]
     },
     "evmavericks": {
@@ -141,6 +140,12 @@
     "rpcMethod": "cast call over Ethereum JSON-RPC eth_call",
     "rpcUrlUsed": "https://ethereum-rpc.publicnode.com",
     "rpcNote": "The shell did not have ETHEREUM_RPC_URL exported and direct root .env loading was blocked by the repo guard. Initial read-only calls assigned this public Ethereum RPC to ETHEREUM_RPC_URL; subsequent cast calls used the same public RPC URL directly after cast panicked inside the sandbox and was rerun outside the sandbox.",
+    "wethRevalidation": {
+      "timestamp": "2026-06-05T00:09:43Z",
+      "finding": "Both deployed pilot vaults return mainnet WETH 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2 from asset(); token metadata is WETH / Wrapped Ether / 18, Greenpill NYC vault metadata is Greenpill NYC / gpWETH / 18, and EVMavericks vault metadata is EVMavs PGF / evmWETH / 18.",
+      "donorDisplayPolicy": "Primary donor copy says ETH contribution; checkout and review settlement copy says it settles into the Octant vault as WETH; technical details may expose WETH token address, vault address, and chain ID.",
+      "nativeEthPolicy": "Do not prepare native ETH, msg.value, payable deposit, or direct ETH deposit logic for these pilot vaults."
+    },
     "octantDocumentationEvidence": {
       "timestamp": "2026-06-01T18:51:25Z",
       "sourcesReviewed": [
@@ -223,11 +228,10 @@
         "implementation": "0xE8797A98710518A6973Cc8612f98154EECF2C711",
         "implementationName": "YieldDonatingTokenizedStrategy",
         "factoryMetadataCall": "yearnV3StrategyInfo(address)(address) returned a non-zero management address; address intentionally omitted because it is not a required display-safe manifest field.",
-        "missingFields": [
-          "recipientRoutingSummary",
-          "campaignCopy",
-          "FACTORY() accessor return proof",
-          "Card Endow custody/share/manage/provider proof"
+        "missingFields": [],
+        "proofLimits": [
+          "FACTORY() accessor return proof remains unavailable and is not required for this QA fixture.",
+          "Live card payment, onchain approval/deposit, and positive mainnet share proof were not moved by automated validation."
         ]
       },
       "evmavericks": {
@@ -289,10 +293,10 @@
       ]
     },
     "fixtureTransactionStatus": {
-      "greenpill-nyc": "blocked_pending_required_manifest_fields",
+      "greenpill-nyc": "ready_for_controlled_production_qa",
       "evmavericks": "blocked_pending_required_manifest_fields"
     },
-    "cardEndowVisibility": "visible for Greenpill NYC on default /vaults after campaign copy, recovered-wallet custody, tuple confirmation, share proof, and agent proof recording; hidden for incomplete fixtures such as EVMavericks",
+    "cardEndowVisibility": "visible for Greenpill NYC on default /vaults after campaign copy, email-wallet custody, donor review, WETH funding, share proof, and agent proof recording; hidden for incomplete fixtures such as EVMavericks",
     "thirdwebCardEndowReadiness": {
       "timestamp": "2026-06-03T01:16:11Z",
       "scope": "strict Greenpill NYC production-QA browser flow plus synthetic complete-manifest shared proof; EVMavericks remains transaction-blocked in the default production route; TransactionWidget full-flow approve+deposit proof is not established, so fallback shape is card funds recovered wallet first, then user-authorized approve+deposit, then balanceOf(receiverAddress) proof and /public/funding-intents/proof recording",
@@ -305,14 +309,14 @@
         "accessPath": "/vaults",
         "clientRequirement": "VITE_THIRDWEB_CLIENT_ID must be available to the client at runtime; no env files or secrets are added by this lane",
         "campaignFixture": "Greenpill NYC Card Endow uses the recorded Greenpill NYC vault, WETH asset, Ethereum chain 1, and production-QA transaction-enabling copy/routing on the default /vaults route",
-        "flow": "choose Greenpill NYC and amount, choose Pay by card, enter email in Green Goods UI, send Thirdweb email OTP, recover the Thirdweb in-app wallet, display receiver/chain/vault/token/amount/campaign/provider route, require exact tuple confirmation, show Thirdweb BuyWidget card funding to the recovered wallet, then require user-approved approve(token -> vault, amount), deposit(amount, receiverAddress), vault.balanceOf(receiverAddress) positive-share verification, and /public/funding-intents/proof recording",
+        "flow": "choose Greenpill NYC and amount, choose card, enter email, send verification code, recover the in-app email wallet, review ETH contribution plus WETH settlement detail, show technical WETH/vault/chain details only in the accordion, continue to secure card payment, then require user authorization and vault deposit before positive-share verification and /public/funding-intents/proof recording",
         "productionExposure": "default /vaults exposes Greenpill NYC Card Endow; incomplete fixtures such as EVMavericks keep Pay by card hidden",
-        "proofLimit": "automated tests mock provider success and balanceOf; browser proof stops before real card payment. Human QA must confirm the exact tuple and move value before live receipt/share proof can be claimed"
+        "proofLimit": "automated tests mock card funding success and share reads; browser proof stops before real card payment. Human QA must continue and move value before live receipt/share proof can be claimed"
       },
       "qaDeploymentBoundary": {
         "branchPreview": "allowed_for_controlled_vaults_route_review",
         "productionApiRequirement": "https://agent.greengoods.app must run this branch or commit before production-backed funding-intent route QA is meaningful",
-        "valueMovementGate": "real card-funded movement requires human confirmation of exact amount, token, vault, receiver wallet, and provider route"
+        "valueMovementGate": "real card-funded movement requires human continuation after reviewing the ETH contribution, WETH settlement, vault, chain, and verified email wallet"
       },
       "transactionWidgetPrototype": {
         "verdict": "not_proven_for_one_smooth_card_to_vault_deposit_flow",
@@ -330,8 +334,8 @@
         "route-local /vaults management URL",
         "withdraw availability",
         "Card Endow tuple separation from Card Donate",
-        "fallback plan: card funds recovered wallet first, route-local receipt records expected vault/token/amount/receiver, user authorization executes approve then deposit, and vault.balanceOf(receiverAddress) verifies shares",
-        "default /vaults Greenpill NYC client flow wires Thirdweb email OTP/in-app wallet recovery, exact tuple confirmation, card funding, approve, deposit, balanceOf verification UI, and agent proof recording while keeping Pay by card hidden for incomplete fixtures"
+        "fallback plan: card funds the verified email wallet with WETH first, route-local receipt records expected vault/token/amount/receiver, user authorization executes approve then deposit, and positive share reads verify the position",
+        "default /vaults Greenpill NYC client flow wires email OTP/in-app wallet recovery, donor-language review, card funding, authorization, deposit, positive-share verification UI, and agent proof recording while keeping Pay by card hidden for incomplete fixtures"
       ],
       "agentReadiness": [
         "Thirdweb send-payment checkout adapter using VITE_THIRDWEB_CLIENT_ID and THIRDWEB_SECRET_KEY remains Donate-compatible only and refuses Card Endow because vault Endow requires a contract-call checkout path",
@@ -507,7 +511,7 @@
         "wallet-last amount -> connect -> confirm sequence",
         "Wallet Endow for complete-manifest fixtures through the Octant-specific prepared transaction path",
         "Thirdweb Card Endow hidden until receiver/share/route-local manage/provider proof",
-        "default /vaults Greenpill NYC Card Endow flow with Thirdweb email OTP wallet recovery, exact tuple confirmation, card funding gate, approve/deposit authorization, balanceOf positive-share verification, and /public/funding-intents/proof recording",
+        "default /vaults Greenpill NYC Card Endow flow with email OTP wallet recovery, code-sent success, donor review, WETH settlement detail, card funding gate, authorization/deposit, positive-share verification, and /public/funding-intents/proof recording",
         "Donate/Card Donate absent from /vaults",
         "only targeted /fund compatibility tests if Card Endow reusable capability touches shared /fund code"
       ],
@@ -553,9 +557,9 @@
     "Thirdweb Card Endow remains hidden until recovered-wallet receiver custody, vault-share visibility, public manage/withdraw proof, and strict webhook/provider proof pass.",
     "As of 2026-06-02, shared Card Endow readiness is implemented for synthetic complete manifests only; real Greenpill NYC and EVMavericks pilot fixtures remain blocked.",
     "As of 2026-06-02T07:40:33Z, the production Thirdweb send-payment adapter refuses Card Endow, TransactionWidget full-flow approve+deposit proof is not established, and fallback planning uses card funding to the recovered wallet followed by user-authorized approve+deposit and vault.balanceOf(receiverAddress) proof.",
-    "As of 2026-06-03T18:13:39Z, default /vaults exposes a Greenpill NYC Card Endow QA flow that uses Thirdweb email OTP/in-app wallet recovery, requires exact tuple confirmation before Thirdweb card funding, then requires user-approved approve and deposit before balanceOf(receiverAddress) positive-share verification and /public/funding-intents/proof recording. EVMavericks keeps Pay by card absent and Card Endow hidden.",
-    "As of 2026-06-03T18:13:39Z, the previous gated Brave proof is stale for exposure decisions and must be refreshed against default /vaults before production QA signoff. Live Thirdweb OTP, recovered-wallet card funding, approve/deposit authorization, and positive vault.balanceOf(receiverAddress) proof still require a human QA user and value movement.",
-    "As of 2026-06-03T02:07:53Z, the Card Endow QA panel rejects stale active Thirdweb accounts as receiver shortcuts. The fallback tuple and BuyWidget remain unavailable until the QA user verifies the email OTP and the recovered in-app wallet address becomes the receiverAddress.",
+    "As of 2026-06-05T00:09:43Z, default /vaults exposes a Greenpill NYC Card Endow QA flow that uses email OTP/in-app wallet recovery, code-sent success, donor-language review with ETH contribution and WETH settlement detail, secure card funding, user authorization/deposit, positive-share verification, and /public/funding-intents/proof recording. EVMavericks keeps Pay by card absent and Card Endow hidden.",
+    "As of 2026-06-03T18:13:39Z, the previous gated Brave proof is stale for exposure decisions and must be refreshed against default /vaults before production QA signoff. Live email OTP, card funding, authorization/deposit, and positive-share proof still require a human QA user and value movement.",
+    "As of 2026-06-03T02:07:53Z, the Card Endow QA panel rejects stale active Thirdweb accounts as receiver shortcuts. Card payment remains unavailable until the QA user verifies the email OTP and the recovered in-app wallet address becomes the receiverAddress.",
     "Both real pilot fixtures have synthetic-safe preview copy for /vaults browse QA, but previewCopy is intentionally separate from campaignCopy, recipientRoutingSummary, and Protocol Guild destination context and does not unlock transactions.",
     "Thirdweb readiness uses VITE_THIRDWEB_CLIENT_ID, THIRDWEB_SECRET_KEY, THIRDWEB_WEBHOOK_SECRET, AGENT_ALLOWED_ORIGINS, and VITE_API_BASE_URL without adding secrets or env files.",
     "Card Endow vault shares must belong to the user/recovered wallet, not a provider-owned account.",
@@ -781,7 +785,7 @@
       "lane": "ui",
       "status": "completed",
       "branch": "claude/ui/nyc-vault-crowdfunding",
-      "note": "Phase 2 public /vaults browse route implemented with read-only campaign cards, manifest missing-field details, disabled Wallet Endow states, hidden Card Endow state, i18n, and targeted client tests."
+      "note": "Phase 2 public /vaults browse route implemented with read-only campaign cards, preview availability details, disabled Wallet Endow states, hidden Card Endow state, i18n, and targeted client tests."
     },
     {
       "timestamp": "2026-06-01T18:07:43Z",
@@ -997,7 +1001,7 @@
       "lane": "qa_pass_2",
       "status": "preview_api_deploy_boundary_recorded",
       "branch": "feature/nyc-vault-crowdfunding",
-      "note": "Clarified that branch preview QA can proceed for /vaults, but production-backed funding-intent route QA requires deploying the Fly agent from this branch/commit; real card-funded value remains gated on human confirmation of amount, token, vault, receiver wallet, and provider route."
+      "note": "Clarified that branch preview QA can proceed for /vaults, but production-backed funding-intent route QA requires deploying the Fly agent from this branch/commit; real card-funded value remains gated on human review of amount, WETH settlement, vault, chain, and verified email wallet."
     },
     {
       "timestamp": "2026-06-02T23:14:23Z",

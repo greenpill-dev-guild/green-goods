@@ -749,6 +749,7 @@ export {
   filterAttestationsByAssessment,
   getApprovedAttestations,
   getAuthMode,
+  getOctantVaultAssetDisplayPolicy,
   getOctantVaultCampaignBySlug,
   getOctantVaultCampaignCopy,
   getOctantVaultCampaigns,

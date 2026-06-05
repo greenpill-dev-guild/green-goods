@@ -5,6 +5,7 @@ import {
 } from "@green-goods/shared/public-contracts";
 import {
   prepareOctantVaultCardEndowFallbackPlan,
+  getOctantVaultAssetDisplayPolicy,
   type Address,
   type OctantVaultCardEndowFallbackPlan,
   type OctantVaultCampaignManifest,
@@ -50,24 +51,6 @@ function getThirdwebChain(chainId: number) {
   return chainId === ethereum.id ? ethereum : defineChain(chainId);
 }
 
-function formatProviderFlow(
-  formatMessage: ReturnType<typeof useIntl>["formatMessage"],
-  flow: OctantVaultCardEndowFallbackPlan["providerFlow"]
-) {
-  if (flow === "fund_recovered_wallet_then_user_authorized_deposit") {
-    return formatMessage({
-      id: "public.vaults.cardEndow.providerFlow.fundRecoveredWallet",
-      defaultMessage: "Thirdweb card funds the recovered email wallet first.",
-    });
-  }
-
-  return flow;
-}
-
-function getSettlementSymbol(symbol: string): string {
-  return symbol.toUpperCase() === "WETH" ? "ETH" : symbol;
-}
-
 function getTransactionHash(result: unknown): `0x${string}` | null {
   if (!result || typeof result !== "object") return null;
   const candidate = (result as { transactionHash?: unknown }).transactionHash;
@@ -101,8 +84,8 @@ export interface VaultCardEndowFlowProps {
  *
  * Mounted (lazily) only once a valid amount exists and the user chose Card. Renders
  * one focused step at a time inside the fixed-height sheet, keeping every Card Endow
- * safety gate: email-wallet recovery first, exact-tuple confirmation before the
- * Thirdweb BuyWidget, strict approve -> deposit ordering, and proof only after a
+ * safety gate: email verification first, donor review before the Thirdweb
+ * BuyWidget, strict WETH approve -> deposit ordering, and proof only after a
  * positive `vault.balanceOf(receiver)` read.
  */
 export default function VaultCardEndowFlow({
@@ -135,7 +118,7 @@ export default function VaultCardEndowFlow({
           {formatMessage({
             id: "public.vaults.cardEndow.missingClientId",
             defaultMessage:
-              "Card checkout is not available on this domain yet. The operator needs to finish Thirdweb access before donors can continue.",
+              "Card checkout is not available on this domain yet. Please choose wallet or try again later.",
           })}
         </p>
       </CheckoutScreen>
@@ -174,6 +157,7 @@ function CardEndowProviderContent({
   const { formatMessage } = useIntl();
   const emailInputId = useId();
   const emailHelpId = useId();
+  const emailStatusId = useId();
   const emailFormId = useId();
   const otpInputId = useId();
   const otpHelpId = useId();
@@ -388,7 +372,7 @@ function CardEndowProviderContent({
         setRecoveredWalletAddress(null);
         setOtpSent(true);
       } catch (error) {
-        setFlowError(error instanceof Error ? error.message : "Thirdweb email code failed.");
+        setFlowError(error instanceof Error ? error.message : "Email code could not be sent.");
       }
     },
     [canSendEmailCode, client, emailInput]
@@ -420,7 +404,11 @@ function CardEndowProviderContent({
           return wallet;
         });
       } catch (error) {
-        setFlowError(error instanceof Error ? error.message : "Thirdweb email wallet failed.");
+        setFlowError(
+          error instanceof Error
+            ? error.message
+            : "Email wallet verification could not be completed."
+        );
       }
     },
     [canVerifyEmailWallet, chain, client, connect, emailInput, otpInput]
@@ -637,7 +625,9 @@ function CardEndowProviderContent({
 
   // ── Render helpers ─────────────────────────────────────────────────────────
   const canEditCheckout = !checkoutInputsLocked;
-  const cardFundingSymbol = getSettlementSymbol(plan?.cardFunding.tokenSymbol ?? "ETH");
+  const assetDisplay = getOctantVaultAssetDisplayPolicy(
+    plan?.cardFunding.tokenSymbol ?? campaign.vault?.asset?.symbol
+  );
 
   const cardSummaryItems: CheckoutSummaryItem[] = [
     ...summaryItems,
@@ -656,11 +646,13 @@ function CardEndowProviderContent({
       ? [
           {
             label: formatMessage({
-              id: "public.vaults.checkout.review.receiver",
-              defaultMessage: "Receiver wallet",
+              id: "public.vaults.cardEndow.positionHolder",
+              defaultMessage: "Vault position",
             }),
-            value: receiverAddress,
-            mono: true,
+            value: formatMessage({
+              id: "public.vaults.cardEndow.positionHolderValue",
+              defaultMessage: "Verified email wallet",
+            }),
           },
         ]
       : []),
@@ -702,7 +694,7 @@ function CardEndowProviderContent({
               {otpSent
                 ? formatMessage({
                     id: "public.vaults.cardEndow.verifyWallet",
-                    defaultMessage: "Verify email wallet",
+                    defaultMessage: "Verify email",
                   })
                 : formatMessage({
                     id: "public.vaults.cardEndow.sendCode",
@@ -723,8 +715,7 @@ function CardEndowProviderContent({
             <p id={emailHelpId} className="text-sm leading-[1.5] text-text-sub-600">
               {formatMessage({
                 id: "public.vaults.cardEndow.emailHelp",
-                defaultMessage:
-                  "Thirdweb sends a verification code to recover the embedded wallet.",
+                defaultMessage: "We send a verification code before opening secure card payment.",
               })}
             </p>
             <input
@@ -732,12 +723,26 @@ function CardEndowProviderContent({
               value={emailInput}
               type="email"
               autoComplete="email"
-              aria-describedby={emailHelpId}
+              aria-describedby={otpSent ? `${emailHelpId} ${emailStatusId}` : emailHelpId}
               className={CHECKOUT_INPUT}
               placeholder="qa@example.org"
               onChange={(event) => handleEmailInputChange(event.target.value)}
             />
           </form>
+
+          <div id={emailStatusId} aria-live="polite" aria-atomic="true" className="min-h-[3.25rem]">
+            {otpSent && otpEmail ? (
+              <p className="rounded-none bg-primary-action/10 p-4 text-sm leading-[1.55] text-primary-base">
+                {formatMessage(
+                  {
+                    id: "public.vaults.cardEndow.emailCodeSent",
+                    defaultMessage: "Code sent. Check {email} and enter the 6-digit code below.",
+                  },
+                  { email: otpEmail }
+                )}
+              </p>
+            ) : null}
+          </div>
 
           <form
             id={otpFormId}
@@ -747,7 +752,7 @@ function CardEndowProviderContent({
             <label htmlFor={otpInputId} className={CHECKOUT_FIELD_LABEL}>
               {formatMessage({
                 id: "public.vaults.cardEndow.otpLabel",
-                defaultMessage: "Thirdweb code",
+                defaultMessage: "Email code",
               })}
             </label>
             <p id={otpHelpId} className="text-sm leading-[1.5] text-text-sub-600">
@@ -781,7 +786,7 @@ function CardEndowProviderContent({
     );
   }
 
-  // ── review: exact tuple + confirmation ─────────────────────────────────────
+  // ── review: donor confirmation + technical WETH details ───────────────────
   if (stage === "review") {
     return (
       <CheckoutScreen
@@ -801,11 +806,14 @@ function CardEndowProviderContent({
                     onChange={(event) => setTupleAcknowledged(event.target.checked)}
                   />
                   <span>
-                    {formatMessage({
-                      id: "public.vaults.cardEndow.confirmTuple",
-                      defaultMessage:
-                        "I confirm this exact campaign, chain, vault, token, amount, receiver, and provider route before live card payment.",
-                    })}
+                    {formatMessage(
+                      {
+                        id: "public.vaults.cardEndow.confirmTuple",
+                        defaultMessage:
+                          "I'm ready to continue to secure card payment for {campaign}.",
+                      },
+                      { campaign: campaign.displayName }
+                    )}
                   </span>
                 </label>
                 <button
@@ -816,7 +824,7 @@ function CardEndowProviderContent({
                 >
                   {formatMessage({
                     id: "public.vaults.cardEndow.confirmAndContinue",
-                    defaultMessage: "Confirm and continue",
+                    defaultMessage: "Continue to card payment",
                   })}
                 </button>
               </>
@@ -831,16 +839,15 @@ function CardEndowProviderContent({
           {plan ? (
             <section
               className="flex flex-col gap-4"
-              aria-labelledby="public-vaults-card-endow-tuple-title"
-              data-testid="vault-card-endow-tuple"
+              aria-labelledby="public-vaults-card-endow-review-title"
+              data-testid="vault-card-endow-review"
             >
-              <h4 id="public-vaults-card-endow-tuple-title" className={CHECKOUT_FIELD_LABEL}>
+              <h4 id="public-vaults-card-endow-review-title" className={CHECKOUT_FIELD_LABEL}>
                 {formatMessage({
                   id: "public.vaults.cardEndow.tupleTitle",
-                  defaultMessage: "Review before live card payment",
+                  defaultMessage: "Review donation",
                 })}
               </h4>
-              {/* Human summary leads; the full onchain tuple is one tap away. */}
               <dl className="grid gap-3 text-sm sm:grid-cols-2">
                 <div>
                   <dt className="font-medium text-text-strong-950">
@@ -855,41 +862,50 @@ function CardEndowProviderContent({
                   <dt className="font-medium text-text-strong-950">
                     {formatMessage({
                       id: "public.vaults.cardEndow.tupleAmount",
-                      defaultMessage: "Amount",
+                      defaultMessage: "ETH contribution",
                     })}
                   </dt>
                   <dd className="text-text-sub-600">
-                    {formattedAmount} {cardFundingSymbol}
+                    {formattedAmount} {assetDisplay.donorSymbol}
                   </dd>
                 </div>
                 <div>
                   <dt className="font-medium text-text-strong-950">
                     {formatMessage({
-                      id: "public.vaults.cardEndow.tupleReceiver",
-                      defaultMessage: "Receiver wallet",
+                      id: "public.vaults.cardEndow.settlement",
+                      defaultMessage: "Settlement",
                     })}
                   </dt>
-                  <dd className="break-all font-mono text-xs text-text-sub-600">
-                    {plan.receiptExpectation.receiverAddress}
+                  <dd className="text-text-sub-600">
+                    {formatMessage(
+                      {
+                        id: "public.vaults.cardEndow.settlementValue",
+                        defaultMessage: "Settles into the Octant vault as {amount} {symbol}",
+                      },
+                      { amount: formattedAmount, symbol: assetDisplay.settlementSymbol }
+                    )}
                   </dd>
                 </div>
                 <div>
                   <dt className="font-medium text-text-strong-950">
                     {formatMessage({
-                      id: "public.vaults.cardEndow.tupleProviderRoute",
-                      defaultMessage: "Provider route",
+                      id: "public.vaults.cardEndow.nextStep",
+                      defaultMessage: "Next step",
                     })}
                   </dt>
                   <dd className="text-text-sub-600">
-                    {formatProviderFlow(formatMessage, plan.providerFlow)}
+                    {formatMessage({
+                      id: "public.vaults.cardEndow.nextStepValue",
+                      defaultMessage: "Secure card payment",
+                    })}
                   </dd>
                 </div>
               </dl>
               <details className="border-t border-stroke-soft-200 pt-4">
                 <summary className="cursor-pointer font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
                   {formatMessage({
-                    id: "public.vaults.cardEndow.tupleDetailsSummary",
-                    defaultMessage: "Full onchain detail",
+                    id: "public.vaults.checkout.technicalDetails",
+                    defaultMessage: "Technical WETH details",
                   })}
                 </summary>
                 <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
@@ -897,7 +913,7 @@ function CardEndowProviderContent({
                     <dt className="font-medium text-text-strong-950">
                       {formatMessage({
                         id: "public.vaults.cardEndow.tupleChain",
-                        defaultMessage: "Chain",
+                        defaultMessage: "Ethereum network",
                       })}
                     </dt>
                     <dd className="text-text-sub-600">
@@ -914,7 +930,7 @@ function CardEndowProviderContent({
                     <dt className="font-medium text-text-strong-950">
                       {formatMessage({
                         id: "public.vaults.cardEndow.tupleVault",
-                        defaultMessage: "Vault",
+                        defaultMessage: "Octant vault",
                       })}
                     </dt>
                     <dd className="break-all font-mono text-xs text-text-sub-600">
@@ -925,28 +941,22 @@ function CardEndowProviderContent({
                     <dt className="font-medium text-text-strong-950">
                       {formatMessage({
                         id: "public.vaults.cardEndow.tupleToken",
-                        defaultMessage: "Token",
+                        defaultMessage: "WETH token",
                       })}
                     </dt>
                     <dd className="break-all text-text-sub-600">
-                      {plan.cardFunding.tokenSymbol} · {plan.cardFunding.tokenAddress}
+                      {assetDisplay.technicalSymbol} · {plan.cardFunding.tokenAddress}
                     </dd>
                   </div>
                   <div>
                     <dt className="font-medium text-text-strong-950">
                       {formatMessage({
-                        id: "public.vaults.cardEndow.tupleBaseUnits",
-                        defaultMessage: "Base units",
+                        id: "public.vaults.cardEndow.checkoutWallet",
+                        defaultMessage: "Checkout wallet",
                       })}
                     </dt>
-                    <dd className="text-text-sub-600">
-                      {formatMessage(
-                        {
-                          id: "public.vaults.cardEndow.baseUnitsValue",
-                          defaultMessage: "{amount} base units",
-                        },
-                        { amount: plan.cardFunding.amount }
-                      )}
+                    <dd className="break-all font-mono text-xs text-text-sub-600">
+                      {plan.receiptExpectation.receiverAddress}
                     </dd>
                   </div>
                 </dl>
@@ -955,21 +965,13 @@ function CardEndowProviderContent({
                 {formatMessage({
                   id: "public.vaults.cardEndow.authorizationOrder",
                   defaultMessage:
-                    "After provider funding succeeds, this wallet must approve token -> vault, then deposit amount -> receiver.",
-                })}
-              </p>
-              <p className="text-sm leading-[1.6] text-text-sub-600">
-                {formatMessage({
-                  id: "public.vaults.cardEndow.shareProof",
-                  defaultMessage:
-                    "Success is verified only by reading vault.balanceOf(receiver) and confirming positive shares.",
+                    "Your card payment funds the verified email wallet with WETH, then you finish the Octant vault deposit from that wallet.",
                 })}
               </p>
               <p className="bg-bg-weak-50 p-4 text-sm leading-[1.55] text-text-sub-600">
                 {formatMessage({
                   id: "public.vaults.cardEndow.cardLocked",
-                  defaultMessage:
-                    "Live card payment stays locked until the exact tuple confirmation is checked.",
+                  defaultMessage: "No card payment starts until you continue.",
                 })}
               </p>
             </section>
@@ -978,7 +980,7 @@ function CardEndowProviderContent({
               {formatMessage({
                 id: "public.vaults.cardEndow.planBlocked",
                 defaultMessage:
-                  "Card checkout is blocked. Confirm the campaign details, amount, and recovered wallet address.",
+                  "Card checkout is paused. Confirm the campaign, amount, and verified email wallet before continuing.",
               })}
             </p>
           )}
@@ -989,7 +991,7 @@ function CardEndowProviderContent({
     );
   }
 
-  // ── fund: Thirdweb BuyWidget is its own action (no footer) ──────────────────
+  // ── fund: card payment widget is its own action (no footer) ────────────────
   if (stage === "fund" && plan) {
     return (
       <CheckoutScreen>
@@ -999,7 +1001,7 @@ function CardEndowProviderContent({
             className="grid gap-4"
             aria-label={formatMessage({
               id: "public.vaults.cardEndow.cardFundingRegion",
-              defaultMessage: "Thirdweb card funding",
+              defaultMessage: "Card payment",
             })}
           >
             <div data-testid="vault-card-endow-buy-widget-host">
@@ -1019,16 +1021,16 @@ function CardEndowProviderContent({
                 theme="light"
                 title={formatMessage({
                   id: "public.vaults.cardEndow.buyWidgetTitle",
-                  defaultMessage: "Fund recovered email wallet",
+                  defaultMessage: "Secure card payment",
                 })}
                 description={formatMessage({
                   id: "public.vaults.cardEndow.buyWidgetDescription",
                   defaultMessage:
-                    "Thirdweb may show required card, provider, and compliance steps. Funds must land in the recovered receiver wallet.",
+                    "Card payment funds your verified email wallet with WETH for this Octant vault.",
                 })}
                 buttonLabel={formatMessage({
                   id: "public.vaults.cardEndow.buyWidgetButton",
-                  defaultMessage: "Fund wallet by card",
+                  defaultMessage: "Continue to card payment",
                 })}
                 purchaseData={{
                   intent: "octant_vault_card_endow",
@@ -1050,7 +1052,7 @@ function CardEndowProviderContent({
     );
   }
 
-  // ── approve: token -> vault ────────────────────────────────────────────────
+  // ── approve: authorize the vault to use the funded WETH ───────────────────
   if (stage === "approve") {
     return (
       <CheckoutScreen
@@ -1068,7 +1070,7 @@ function CardEndowProviderContent({
                 })
               : formatMessage({
                   id: "public.vaults.cardEndow.approve",
-                  defaultMessage: "Approve token -> vault",
+                  defaultMessage: "Authorize vault deposit",
                 })}
           </button>
         }
@@ -1079,14 +1081,13 @@ function CardEndowProviderContent({
             {formatMessage({
               id: "public.vaults.cardEndow.cardFunded",
               defaultMessage:
-                "Thirdweb reported card funding success for the recovered wallet. The user can now approve the vault allowance.",
+                "Card funding is complete. Next, authorize the vault to use the WETH for this contribution.",
             })}
           </p>
           <p className="text-sm leading-[1.6] text-text-sub-600">
             {formatMessage({
               id: "public.vaults.cardEndow.authorizationOrder",
-              defaultMessage:
-                "After provider funding succeeds, this wallet must approve token -> vault, then deposit amount -> receiver.",
+              defaultMessage: "This authorization does not start another card payment.",
             })}
           </p>
           {errorNotes}
@@ -1095,7 +1096,7 @@ function CardEndowProviderContent({
     );
   }
 
-  // ── deposit: amount -> receiver ────────────────────────────────────────────
+  // ── deposit: complete the vault position for the verified email wallet ─────
   if (stage === "deposit") {
     return (
       <CheckoutScreen
@@ -1113,7 +1114,7 @@ function CardEndowProviderContent({
                 })
               : formatMessage({
                   id: "public.vaults.cardEndow.deposit",
-                  defaultMessage: "Deposit to receiver",
+                  defaultMessage: "Complete vault deposit",
                 })}
           </button>
         }
@@ -1123,14 +1124,14 @@ function CardEndowProviderContent({
           <p className="rounded-none bg-primary-action/10 p-4 text-sm leading-[1.55] text-primary-base">
             {formatMessage({
               id: "public.vaults.cardEndow.approved",
-              defaultMessage: "Approval confirmed",
+              defaultMessage: "Vault authorization confirmed",
             })}
           </p>
           <p className="text-sm leading-[1.6] text-text-sub-600">
             {formatMessage({
               id: "public.vaults.cardEndow.shareProof",
               defaultMessage:
-                "Success is verified only by reading vault.balanceOf(receiver) and confirming positive shares.",
+                "Finish the deposit so the vault position is issued to your verified email wallet.",
             })}
           </p>
           {errorNotes}
@@ -1151,7 +1152,7 @@ function CardEndowProviderContent({
           >
             {formatMessage({
               id: "public.vaults.cardEndow.readShares",
-              defaultMessage: "Read vault shares",
+              defaultMessage: "Check vault position",
             })}
           </button>
         )
@@ -1166,7 +1167,7 @@ function CardEndowProviderContent({
                 {
                   id: "public.vaults.cardEndow.positiveShares",
                   defaultMessage:
-                    "Verified positive vault.balanceOf(receiver): {shares} shares are visible for the recovered wallet.",
+                    "Vault position confirmed: {shares} shares are visible for your verified email wallet.",
                 },
                 { shares: shareBalance?.toString() ?? "0" }
               )}
@@ -1183,7 +1184,7 @@ function CardEndowProviderContent({
               <p className="rounded-none bg-primary-action/10 p-4 text-sm leading-[1.55] text-primary-base">
                 {formatMessage({
                   id: "public.vaults.cardEndow.proofRecorded",
-                  defaultMessage: "Funding proof recorded for the recovered wallet receipt.",
+                  defaultMessage: "Receipt recorded for your vault contribution.",
                 })}
               </p>
             ) : null}
@@ -1201,14 +1202,14 @@ function CardEndowProviderContent({
           <p className="rounded-none bg-error-lighter/30 p-4 text-sm leading-[1.55] text-error-base">
             {formatMessage({
               id: "public.vaults.cardEndow.noShares",
-              defaultMessage: "vault.balanceOf(receiver) did not return positive shares.",
+              defaultMessage: "We could not confirm vault shares yet.",
             })}
           </p>
         ) : (
           <p className="rounded-none bg-bg-weak-50 p-4 text-sm leading-[1.55] text-text-sub-600">
             {formatMessage({
               id: "public.vaults.cardEndow.verifyingShares",
-              defaultMessage: "Verifying vault shares for the recovered wallet...",
+              defaultMessage: "Confirming your vault position...",
             })}
           </p>
         )}

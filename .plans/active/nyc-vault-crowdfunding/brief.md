@@ -4,7 +4,7 @@
 **Stage**: `active`
 **Priority**: `p0`
 **Created**: `2026-05-09T21:35:46.781Z`
-**Last Updated**: `2026-06-03T02:07:53Z`
+**Last Updated**: `2026-06-05T00:09:43Z`
 **Source Brief**: Green Goods x Octant Crowdfunding UI Alignment Brief
 
 ## Problem
@@ -51,13 +51,16 @@ Endow transaction work is blocked until its Octant V2 Ethereum vault manifest is
 - The reusable `octant-vault-crowdfunding` agent skill is a core final deliverable, not a loose
   follow-up. It starts after the Green Goods demo is validated and the project is not complete until
   the skill lane passes static and dry-run QA.
-- Both pilot transaction fixtures remain blocked until every required manifest field is present.
-  Chain ID, vault address, explorer link, shared factory/creator, and WETH asset metadata are now
-  recorded from read-only Ethereum evidence; recipient/routing summary, campaign copy, and the
-  relevant Card Endow custody/share/manage/provider proof are still missing. EVMavericks also still
-  requires Protocol Guild destination context. Both pilot cards have synthetic-safe route preview
-  copy for browse QA, but that preview copy is not authoritative `campaignCopy` and does not unlock
-  Wallet Endow or Card Endow.
+- The deployed-vault asset model is locked: both pilot Octant vaults are Ethereum mainnet vaults
+  whose raw `asset()` is mainnet WETH `0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2`
+  (`WETH` / `Wrapped Ether` / 18). Donor-facing checkout copy says `ETH contribution` first and
+  then states that the contribution settles into the Octant vault as `WETH`. No native ETH,
+  `msg.value`, payable deposit, or direct ETH deposit route is in scope.
+- Greenpill NYC is the controlled production-QA transaction fixture. EVMavericks remains visible as
+  a preview slot and transaction-blocked until recipient/routing summary, Protocol Guild destination
+  context, campaign copy, and proof gates are supplied. Both pilot cards may use synthetic-safe
+  route preview copy for browse QA, but preview copy is not authoritative `campaignCopy` and does
+  not unlock Wallet Endow or Card Endow for EVMavericks.
 - Shared/API Card Endow readiness is now strict for complete manifests only: recovered-wallet
   `receiverAddress`, share ownership/visibility proof, route-local `/vaults` manage/withdraw proof,
   route-scoped provider/webhook tuple verification, route-local receipts, and timestamped Thirdweb
@@ -73,16 +76,24 @@ Endow transaction work is blocked until its Octant V2 Ethereum vault manifest is
   controlled review, but production API testing requires the Fly agent at `https://agent.greengoods.app`
   to run this branch/commit because the public funding-intent routes live in `packages/agent`.
   This does not make Card Endow production-visible, and no real card-funded value should move until
-  the human confirms the exact amount, token, vault, receiver wallet, and provider route.
+  the human reviews the amount, WETH settlement, vault, chain, and verified email wallet.
 - Card Endow human QA is exposed on default `/vaults` for Greenpill NYC as of
-  `2026-06-03T18:13:39Z`. The production-QA Greenpill NYC Card Endow fixture uses the recorded
-  Ethereum chain `1`, Greenpill NYC vault, and WETH token. The flow uses Thirdweb email OTP/in-app
-  wallet recovery, shows receiver wallet plus exact campaign/chain/vault/token/amount/provider
-  route, requires human tuple confirmation before Thirdweb card funding, then requires user-approved
-  `approve(token -> vault, amount)` and `deposit(amount, receiverAddress)`. Success is claimed only
-  after `vault.balanceOf(receiverAddress)` returns positive shares and `/public/funding-intents/proof`
-  records the proof. A stale active Thirdweb account cannot become the Card Endow receiver before
-  email OTP recovery. No live value was moved by this implementation pass.
+  `2026-06-03T18:13:39Z`. The production-QA Greenpill NYC Card Endow fixture uses Ethereum chain
+  `1`, the Greenpill NYC Octant vault, and WETH settlement. The donor flow verifies email, shows a
+  clear code-sent success state, reviews the ETH contribution plus WETH settlement detail, and keeps
+  payment/protocol implementation details out of the primary UI. The technical accordion may expose
+  WETH token address, vault address, and chain ID. Under the hood, Card Endow remains WETH funding
+  followed by ERC20 approval and vault deposit; no native ETH route is added. No live value was moved
+  by this implementation pass.
+
+## WETH Model Correction
+
+Recorded on `2026-06-05T00:09:43Z` from the read-only revalidation already captured in this lane:
+both deployed pilot vaults return mainnet WETH from `asset()`, and WETH token metadata resolves to
+`WETH` / `Wrapped Ether` / 18. Vault metadata is `Greenpill NYC` / `gpWETH` / 18 and `EVMavs PGF` /
+`evmWETH` / 18. `/vaults` therefore keeps WETH as the canonical technical asset while presenting
+the donor amount as `ETH contribution` with the explicit settlement detail: `Settles into the
+Octant vault as WETH`.
 
 ## Onchain Manifest Evidence
 

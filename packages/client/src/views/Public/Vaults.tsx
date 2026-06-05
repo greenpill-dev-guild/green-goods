@@ -28,7 +28,7 @@ const copyFieldMessageIds = {
 } as const;
 
 const VAULT_ENDOW_BUTTON_CLASS =
-  "inline-flex min-h-12 w-full items-center justify-center gap-2 border border-primary-action bg-primary-action px-6 py-3 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60";
+  "inline-flex min-h-12 w-full items-center justify-center gap-2 border border-primary-action bg-editorial-warm px-6 py-3 text-sm font-semibold text-text-strong-950 transition-colors hover:bg-primary-action/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60";
 
 function campaignCopyId(
   campaign: OctantVaultCampaignManifest,
@@ -261,7 +261,7 @@ export function VaultsPageContent({
         lede={formatMessage({
           id: "public.vaults.hero.lede",
           defaultMessage:
-            "Browse Greenpill NYC and EVMavericks campaign slots before any wallet step. Endow opens once each campaign's Octant V2 Ethereum vault details are ready.",
+            "Browse Greenpill NYC and EVMavericks campaign slots before any wallet step. Endow opens once each campaign's Octant V2 Ethereum vault route is ready.",
         })}
       />
 

@@ -240,6 +240,7 @@ export {
   createOctantVaultWalletEndowReceiver,
   EVMAVERICKS_REQUIRED_MANIFEST_FIELDS,
   getOctantVaultCampaignBySlug,
+  getOctantVaultAssetDisplayPolicy,
   getOctantVaultCampaignCopy,
   getOctantVaultCampaigns,
   getOctantVaultCampaignTransactionState,

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   EVMAVERICKS_REQUIRED_MANIFEST_FIELDS,
   GREENPILL_NYC_REQUIRED_MANIFEST_FIELDS,
+  getOctantVaultAssetDisplayPolicy,
   getOctantVaultCampaignBySlug,
   getOctantVaultCampaignCopy,
   getOctantVaultCampaigns,
@@ -25,6 +26,7 @@ const OCTANT_V2_ETHEREUM_CHAIN_ID = 1;
 const VALID_RECEIVER_ADDRESS = "0x3333333333333333333333333333333333333333";
 const VALID_TRANSACTION_HASH = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 const VALID_AMOUNT = "2500000";
+const MAINNET_WETH_ADDRESS = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
 
 function makeCompleteManifest(
   overrides: Partial<OctantVaultCampaignManifest> = {}
@@ -204,6 +206,47 @@ describe("Octant vault crowdfunding manifest", () => {
     });
     expect(campaign?.campaignCopy).toBeDefined();
     expect(campaign?.recipientRoutingSummary).toContain("recovered Thirdweb email wallet");
+  });
+
+  it("records both deployed pilot vaults as mainnet WETH vaults", () => {
+    const greenpillNyc = getOctantVaultCampaignBySlug("greenpill-nyc");
+    const evmavericks = getOctantVaultCampaignBySlug("evmavericks");
+
+    expect(greenpillNyc?.vault).toMatchObject({
+      chainId: 1,
+      vaultName: "Greenpill NYC",
+      vaultSymbol: "gpWETH",
+      vaultDecimals: 18,
+      asset: {
+        address: MAINNET_WETH_ADDRESS,
+        symbol: "WETH",
+        decimals: 18,
+      },
+    });
+    expect(evmavericks?.vault).toMatchObject({
+      chainId: 1,
+      vaultName: "EVMavs PGF",
+      vaultSymbol: "evmWETH",
+      vaultDecimals: 18,
+      asset: {
+        address: MAINNET_WETH_ADDRESS,
+        symbol: "WETH",
+        decimals: 18,
+      },
+    });
+  });
+
+  it("keeps WETH technical while presenting ETH as the donor amount label", () => {
+    expect(getOctantVaultAssetDisplayPolicy("WETH")).toEqual({
+      donorSymbol: "ETH",
+      settlementSymbol: "WETH",
+      technicalSymbol: "WETH",
+    });
+    expect(getOctantVaultAssetDisplayPolicy("USDC")).toEqual({
+      donorSymbol: "USDC",
+      settlementSymbol: "USDC",
+      technicalSymbol: "USDC",
+    });
   });
 
   it("requires the Protocol Guild destination context before EVMavericks can enable transactions", () => {
@@ -419,6 +462,60 @@ describe("Octant vault Card Endow public contracts", () => {
         },
       },
     });
+  });
+
+  it("keeps pilot wallet and card fallback plans on WETH ERC20 approval/deposit", () => {
+    const greenpillNyc = getOctantVaultCampaignBySlug("greenpill-nyc");
+
+    expect(greenpillNyc).toBeDefined();
+    expect(
+      prepareOctantVaultWalletEndow({
+        campaign: greenpillNyc!,
+        amount: 10000000000000000n,
+        receiverAddress: VALID_RECEIVER_ADDRESS,
+      })
+    ).toMatchObject({
+      status: "ready",
+      transaction: {
+        chainId: 1,
+        assetAddress: MAINNET_WETH_ADDRESS,
+        assetSymbol: "WETH",
+        assetDecimals: 18,
+        amount: 10000000000000000n,
+      },
+    });
+
+    const fallback = prepareOctantVaultCardEndowFallbackPlan({
+      campaign: greenpillNyc!,
+      amount: "10000000000000000",
+      receiverAddress: VALID_RECEIVER_ADDRESS,
+    });
+
+    expect(fallback).toMatchObject({
+      status: "ready",
+      plan: {
+        cardFunding: {
+          chainId: 1,
+          tokenAddress: MAINNET_WETH_ADDRESS,
+          tokenSymbol: "WETH",
+          tokenDecimals: 18,
+        },
+        userAuthorizedTransactions: [
+          {
+            role: "approval",
+            functionName: "approve",
+            contractAddress: MAINNET_WETH_ADDRESS,
+          },
+          {
+            role: "funding",
+            functionName: "deposit",
+            contractAddress: greenpillNyc!.vault?.vaultAddress,
+            args: ["10000000000000000", VALID_RECEIVER_ADDRESS],
+          },
+        ],
+      },
+    });
+    expect(JSON.stringify(fallback)).not.toMatch(/payable|msg\.value|native_eth/i);
   });
 
   it("keeps fallback Card Endow planning blocked for incomplete pilots and invalid receiver input", () => {
