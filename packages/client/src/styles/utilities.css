@@ -104,8 +104,13 @@
   [data-component="DialogShell"][data-slot="surface"].vault-checkout-surface {
     top: 50%;
     bottom: auto;
-    height: 40rem;
+    height: min(40rem, calc(100dvh - 2rem));
     max-height: calc(100dvh - 2rem);
     transform: translate(-50%, -50%);
+  }
+
+  [data-component="DialogShell"][data-slot="surface"].vault-checkout-surface.vault-checkout-surface--compact {
+    height: auto;
+    max-height: min(92dvh, calc(100dvh - 2rem));
   }
 }

@@ -7,7 +7,6 @@ import {
   prepareOctantVaultCardEndowFallbackPlan,
   getOctantVaultAssetDisplayPolicy,
   type Address,
-  type OctantVaultCardEndowFallbackPlan,
   type OctantVaultCampaignManifest,
 } from "@green-goods/shared";
 import { type FormEvent, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
@@ -34,6 +33,7 @@ import {
   CHECKOUT_GHOST_BUTTON,
   CHECKOUT_INPUT,
   CHECKOUT_PRIMARY_BUTTON,
+  CheckoutStageHeader,
   CheckoutScreen,
   CheckoutSummary,
   type CheckoutSummaryItem,
@@ -105,6 +105,7 @@ export default function VaultCardEndowFlow({
   if (!client) {
     return (
       <CheckoutScreen
+        layout="compact"
         footer={
           <button type="button" onClick={onBack} className={CHECKOUT_GHOST_BUTTON}>
             {formatMessage({ id: "public.vaults.checkout.back", defaultMessage: "Back" })}
@@ -705,8 +706,23 @@ function CardEndowProviderContent({
           </div>
         }
       >
-        <div className="flex min-h-[31rem] flex-col gap-5" data-testid="vault-card-endow-flow">
-          <CheckoutSummary items={cardSummaryItems} onEdit={canEditCheckout ? onBack : undefined} />
+        <div className="flex flex-col gap-5" data-testid="vault-card-endow-flow">
+          <CheckoutStageHeader
+            eyebrow={formatMessage({
+              id: "public.vaults.cardEndow.stage.recover.eyebrow",
+              defaultMessage: "Step 1 of 5",
+            })}
+            title={formatMessage({
+              id: "public.vaults.cardEndow.stage.recover.title",
+              defaultMessage: "Verify email wallet",
+            })}
+            description={formatMessage({
+              id: "public.vaults.cardEndow.stage.recover.description",
+              defaultMessage:
+                "Card payments fund a secure email wallet first. You will approve the vault deposit after card funding succeeds.",
+            })}
+          />
+          <CheckoutSummary items={cardSummaryItems} />
 
           <form id={emailFormId} className="grid gap-2" onSubmit={handleSendEmailCode}>
             <label htmlFor={emailInputId} className={CHECKOUT_FIELD_LABEL}>
@@ -715,7 +731,8 @@ function CardEndowProviderContent({
             <p id={emailHelpId} className="text-sm leading-[1.5] text-text-sub-600">
               {formatMessage({
                 id: "public.vaults.cardEndow.emailHelp",
-                defaultMessage: "We send a verification code before opening secure card payment.",
+                defaultMessage:
+                  "Card payments fund a secure email wallet first. Verify the email that should own this vault position.",
               })}
             </p>
             <input
@@ -725,7 +742,7 @@ function CardEndowProviderContent({
               autoComplete="email"
               aria-describedby={otpSent ? `${emailHelpId} ${emailStatusId}` : emailHelpId}
               className={CHECKOUT_INPUT}
-              placeholder="qa@example.org"
+              placeholder="you@example.com"
               onChange={(event) => handleEmailInputChange(event.target.value)}
             />
           </form>
@@ -806,14 +823,11 @@ function CardEndowProviderContent({
                     onChange={(event) => setTupleAcknowledged(event.target.checked)}
                   />
                   <span>
-                    {formatMessage(
-                      {
-                        id: "public.vaults.cardEndow.confirmTuple",
-                        defaultMessage:
-                          "I'm ready to continue to secure card payment for {campaign}.",
-                      },
-                      { campaign: campaign.displayName }
-                    )}
+                    {formatMessage({
+                      id: "public.vaults.cardEndow.confirmTuple",
+                      defaultMessage:
+                        "I confirm the campaign, receiver, token, and amount are correct before live card payment.",
+                    })}
                   </span>
                 </label>
                 <button
@@ -834,7 +848,22 @@ function CardEndowProviderContent({
         }
       >
         <div className="flex flex-col gap-5" data-testid="vault-card-endow-flow">
-          <CheckoutSummary items={cardSummaryItems} onEdit={canEditCheckout ? onBack : undefined} />
+          <CheckoutStageHeader
+            eyebrow={formatMessage({
+              id: "public.vaults.cardEndow.stage.review.eyebrow",
+              defaultMessage: "Step 2 of 5",
+            })}
+            title={formatMessage({
+              id: "public.vaults.cardEndow.stage.review.title",
+              defaultMessage: "Review card route",
+            })}
+            description={formatMessage({
+              id: "public.vaults.cardEndow.stage.review.description",
+              defaultMessage:
+                "Confirm the campaign, receiver, token, and amount before live card payment.",
+            })}
+          />
+          <CheckoutSummary items={cardSummaryItems} />
 
           {plan ? (
             <section
@@ -872,31 +901,28 @@ function CardEndowProviderContent({
                 <div>
                   <dt className="font-medium text-text-strong-950">
                     {formatMessage({
-                      id: "public.vaults.cardEndow.settlement",
-                      defaultMessage: "Settlement",
+                      id: "public.vaults.cardEndow.tupleReceiver",
+                      defaultMessage: "Receiver",
                     })}
                   </dt>
                   <dd className="text-text-sub-600">
-                    {formatMessage(
-                      {
-                        id: "public.vaults.cardEndow.settlementValue",
-                        defaultMessage: "Settles into the Octant vault as {amount} {symbol}",
-                      },
-                      { amount: formattedAmount, symbol: assetDisplay.settlementSymbol }
-                    )}
+                    {formatMessage({
+                      id: "public.vaults.cardEndow.positionHolderValue",
+                      defaultMessage: "Verified email wallet",
+                    })}
                   </dd>
                 </div>
                 <div>
                   <dt className="font-medium text-text-strong-950">
                     {formatMessage({
-                      id: "public.vaults.cardEndow.nextStep",
-                      defaultMessage: "Next step",
+                      id: "public.vaults.cardEndow.route",
+                      defaultMessage: "Route",
                     })}
                   </dt>
                   <dd className="text-text-sub-600">
                     {formatMessage({
-                      id: "public.vaults.cardEndow.nextStepValue",
-                      defaultMessage: "Secure card payment",
+                      id: "public.vaults.cardEndow.routeValue",
+                      defaultMessage: "Card -> email wallet -> Octant vault",
                     })}
                   </dd>
                 </div>
@@ -996,6 +1022,21 @@ function CardEndowProviderContent({
     return (
       <CheckoutScreen>
         <div className="flex flex-col gap-5" data-testid="vault-card-endow-flow">
+          <CheckoutStageHeader
+            eyebrow={formatMessage({
+              id: "public.vaults.cardEndow.stage.fund.eyebrow",
+              defaultMessage: "Step 3 of 5",
+            })}
+            title={formatMessage({
+              id: "public.vaults.cardEndow.stage.fund.title",
+              defaultMessage: "Fund wallet by card",
+            })}
+            description={formatMessage({
+              id: "public.vaults.cardEndow.stage.fund.description",
+              defaultMessage:
+                "Thirdweb will collect card details and fund the verified email wallet.",
+            })}
+          />
           <CheckoutSummary items={cardSummaryItems} />
           <section
             className="grid gap-4"
@@ -1070,24 +1111,38 @@ function CardEndowProviderContent({
                 })
               : formatMessage({
                   id: "public.vaults.cardEndow.approve",
-                  defaultMessage: "Authorize vault deposit",
+                  defaultMessage: "Approve vault transfer",
                 })}
           </button>
         }
       >
         <div className="flex flex-col gap-5" data-testid="vault-card-endow-flow">
+          <CheckoutStageHeader
+            eyebrow={formatMessage({
+              id: "public.vaults.cardEndow.stage.approve.eyebrow",
+              defaultMessage: "Step 4 of 5",
+            })}
+            title={formatMessage({
+              id: "public.vaults.cardEndow.stage.approve.title",
+              defaultMessage: "Approve vault transfer",
+            })}
+            description={formatMessage({
+              id: "public.vaults.cardEndow.stage.approve.description",
+              defaultMessage: "Authorize the vault to use the funded WETH for this endowment.",
+            })}
+          />
           <CheckoutSummary items={cardSummaryItems} />
           <p className="rounded-none bg-primary-action/10 p-4 text-sm leading-[1.55] text-primary-base">
             {formatMessage({
               id: "public.vaults.cardEndow.cardFunded",
               defaultMessage:
-                "Card funding is complete. Next, authorize the vault to use the WETH for this contribution.",
+                "Card funding is complete. Next, approve the vault transfer for this endowment.",
             })}
           </p>
           <p className="text-sm leading-[1.6] text-text-sub-600">
             {formatMessage({
-              id: "public.vaults.cardEndow.authorizationOrder",
-              defaultMessage: "This authorization does not start another card payment.",
+              id: "public.vaults.cardEndow.approveTechnical",
+              defaultMessage: "This approves token -> vault.",
             })}
           </p>
           {errorNotes}
@@ -1114,12 +1169,27 @@ function CardEndowProviderContent({
                 })
               : formatMessage({
                   id: "public.vaults.cardEndow.deposit",
-                  defaultMessage: "Complete vault deposit",
+                  defaultMessage: "Complete endowment",
                 })}
           </button>
         }
       >
         <div className="flex flex-col gap-5" data-testid="vault-card-endow-flow">
+          <CheckoutStageHeader
+            eyebrow={formatMessage({
+              id: "public.vaults.cardEndow.stage.deposit.eyebrow",
+              defaultMessage: "Step 5 of 5",
+            })}
+            title={formatMessage({
+              id: "public.vaults.cardEndow.stage.deposit.title",
+              defaultMessage: "Complete endowment",
+            })}
+            description={formatMessage({
+              id: "public.vaults.cardEndow.stage.deposit.description",
+              defaultMessage:
+                "Deposit the funded WETH so the vault position is issued to your verified email wallet.",
+            })}
+          />
           <CheckoutSummary items={cardSummaryItems} />
           <p className="rounded-none bg-primary-action/10 p-4 text-sm leading-[1.55] text-primary-base">
             {formatMessage({
@@ -1129,9 +1199,8 @@ function CardEndowProviderContent({
           </p>
           <p className="text-sm leading-[1.6] text-text-sub-600">
             {formatMessage({
-              id: "public.vaults.cardEndow.shareProof",
-              defaultMessage:
-                "Finish the deposit so the vault position is issued to your verified email wallet.",
+              id: "public.vaults.cardEndow.depositTechnical",
+              defaultMessage: "This deposits amount -> receiver.",
             })}
           </p>
           {errorNotes}
@@ -1159,9 +1228,31 @@ function CardEndowProviderContent({
       }
     >
       <div className="flex flex-col gap-4" data-testid="vault-card-endow-flow">
+        <CheckoutStageHeader
+          eyebrow={formatMessage({
+            id: "public.vaults.cardEndow.stage.done.eyebrow",
+            defaultMessage: "Complete",
+          })}
+          title={formatMessage({
+            id: "public.vaults.cardEndow.stage.done.title",
+            defaultMessage: "Endowment complete",
+          })}
+          description={formatMessage({
+            id: "public.vaults.cardEndow.stage.done.description",
+            defaultMessage:
+              "Your verified email wallet now has a vault position for this campaign.",
+          })}
+        />
         <CheckoutSummary items={cardSummaryItems} />
         {hasPositiveShares ? (
           <>
+            <p className="rounded-none bg-primary-action/10 p-4 text-sm leading-[1.55] text-primary-base">
+              {formatMessage({
+                id: "public.vaults.cardEndow.doneLead",
+                defaultMessage:
+                  "Endowment complete. Your verified email wallet now holds the vault position for this campaign.",
+              })}
+            </p>
             <p className="rounded-none bg-primary-action/10 p-4 text-sm leading-[1.55] text-primary-base">
               {formatMessage(
                 {

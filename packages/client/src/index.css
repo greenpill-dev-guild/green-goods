@@ -51,6 +51,47 @@ body {
   @apply w-full h-full mx-auto flex flex-col overflow-x-hidden;
 }
 
+.vault-checkout-mobile-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.vault-checkout-mobile-panel {
+  position: relative;
+  display: flex;
+  width: 100%;
+  max-height: 92dvh;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--color-stroke-soft-200);
+  border-right: 0;
+  border-bottom: 0;
+  border-left: 0;
+  border-radius: 0;
+  background: var(--color-bg-white-0);
+  box-shadow: var(--shadow-float);
+}
+
+.vault-checkout-mobile-panel [data-slot="drag-handle"] {
+  display: flex;
+  justify-content: center;
+  padding-top: 0.75rem;
+  padding-bottom: 0.25rem;
+  cursor: grab;
+  touch-action: none;
+}
+
+.vault-checkout-mobile-panel [data-slot="drag-handle"] > div {
+  width: 2.5rem;
+  height: 0.375rem;
+  border-radius: 999px;
+  background: rgb(var(--tone-primary, var(--primary-base)) / 0.32);
+}
+
 #landing-root {
   @apply w-full h-full mx-auto flex flex-col max-w-[var(--breakpoint-xl)];
 }
