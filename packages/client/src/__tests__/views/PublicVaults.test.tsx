@@ -400,7 +400,9 @@ describe("VaultsPage", () => {
     expect(
       screen.getByRole("heading", { name: "EVMavericks Fantasy Football League" })
     ).toBeInTheDocument();
-    expect(screen.getByText("No wallet connection needed to browse.")).toBeInTheDocument();
+    expect(
+      screen.getByText("Your support funds real public-goods work and keeps working over time.")
+    ).toBeInTheDocument();
     expect(sharedHookMocks.walletRuntimeProviderRender).not.toHaveBeenCalled();
     expect(screen.queryByTestId("wallet-runtime-provider")).not.toBeInTheDocument();
   });

@@ -309,7 +309,7 @@ export function VaultsPageContent({
         lede={formatMessage({
           id: "public.vaults.hero.lede",
           defaultMessage:
-            "Browse Greenpill NYC and EVMavericks before any wallet step. Wallet Endow and Card Endow open for both supplied Octant V2 Ethereum vault routes.",
+            "Fund public-goods work that keeps giving — your contribution settles into a dedicated Octant vault, and the position stays yours.",
         })}
       />
 
@@ -334,7 +334,8 @@ export function VaultsPageContent({
             <EditorialLede className="mt-5 max-w-2xl">
               {formatMessage({
                 id: "public.vaults.browse.lede",
-                defaultMessage: "No wallet connection needed to browse.",
+                defaultMessage:
+                  "Your support funds real public-goods work and keeps working over time.",
               })}
             </EditorialLede>
           </header>

@@ -176,8 +176,9 @@ describe("Display mode — AppBar visibility", () => {
 
     // It should contain nav links
     expect(screen.getAllByText("Gardens").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("Vaults").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Fund").length).toBeGreaterThanOrEqual(1);
+    // Vaults is intentionally not in the header nav.
+    expect(screen.queryByText("Vaults")).toBeNull();
 
     // The SiteHeader is a fixed top-0 overlay header, NOT a fixed bottom-0 nav
     expect(header!.className).toMatch(/fixed/);

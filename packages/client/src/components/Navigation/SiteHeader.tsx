@@ -8,7 +8,6 @@ import { PublicInstallAction } from "@/components/Public/PublicInstallAction";
 const NAV_ITEMS = [
   { path: "/gardens", labelId: "public.nav.gardens", defaultLabel: "Gardens" },
   { path: "/impact", labelId: "public.nav.impact", defaultLabel: "Impact" },
-  { path: "/vaults", labelId: "public.nav.vaults", defaultLabel: "Vaults" },
   { path: "/fund", labelId: "public.nav.fund", defaultLabel: "Fund" },
   { path: "/actions", labelId: "public.nav.actions", defaultLabel: "Actions" },
 ] as const;

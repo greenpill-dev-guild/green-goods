@@ -85,21 +85,22 @@ describe("SiteHeader", () => {
     cleanup();
   });
 
-  it("desktop: renders Gardens / Impact / Vaults / Fund / Actions and the Install App CTA", () => {
+  it("desktop: renders Gardens / Impact / Fund / Actions and the Install App CTA", () => {
     renderHeader();
     // Nav links and CTA render regardless of viewport (visibility toggled by CSS).
     expect(screen.getAllByText("Gardens").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Impact").length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText("Vaults").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Fund").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Actions").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Install App").length).toBeGreaterThanOrEqual(1);
+    // Vaults is intentionally not in the header nav.
+    expect(screen.queryByText("Vaults")).toBeNull();
     expect(mockUseInstallGuidance).toHaveBeenCalledWith("unknown", false, false, null, false);
     // No wallet CTA in public header.
     expect(screen.queryByText("Connect Wallet")).toBeNull();
   });
 
-  it("nav order is Gardens / Impact / Vaults / Fund / Actions", () => {
+  it("nav order is Gardens / Impact / Fund / Actions", () => {
     renderHeader();
     const navs = screen.getAllByRole("navigation");
     const desktopNav = navs[0];
@@ -107,9 +108,9 @@ describe("SiteHeader", () => {
       (link) => link.textContent ?? ""
     );
     const navOrder = links.filter((label) =>
-      ["Gardens", "Impact", "Vaults", "Fund", "Actions"].includes(label)
+      ["Gardens", "Impact", "Fund", "Actions"].includes(label)
     );
-    expect(navOrder).toEqual(["Gardens", "Impact", "Vaults", "Fund", "Actions"]);
+    expect(navOrder).toEqual(["Gardens", "Impact", "Fund", "Actions"]);
   });
 
   it("renders Open App when the PWA is already installed", () => {
