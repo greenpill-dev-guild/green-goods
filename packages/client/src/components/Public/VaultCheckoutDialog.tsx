@@ -16,7 +16,6 @@ import {
 } from "@green-goods/shared";
 import { lazy, Suspense, useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
-import { EditorialLinkArrow } from "@/components/Public/atoms";
 import WalletRuntimeProviders from "@/routes/WalletRuntimeProviders";
 import {
   CHECKOUT_FIELD_LABEL,
@@ -79,6 +78,8 @@ function getAmountErrorMessage(
 export interface VaultCheckoutDialogProps {
   campaign: OctantVaultCampaignManifest;
   onClose: () => void;
+  /** Hand off to the route-local `/vaults?manage=positions` surface after success. */
+  onManagePositions?: () => void;
 }
 
 export function VaultCheckoutDialog(props: VaultCheckoutDialogProps) {
@@ -99,7 +100,11 @@ export function VaultCheckoutDialog(props: VaultCheckoutDialogProps) {
  * guard up so the sheet can prevent edits and close while a transaction is in
  * flight.
  */
-function VaultCheckoutDialogContent({ campaign, onClose }: VaultCheckoutDialogProps) {
+function VaultCheckoutDialogContent({
+  campaign,
+  onClose,
+  onManagePositions,
+}: VaultCheckoutDialogProps) {
   const { formatMessage } = useIntl();
   const amountInputId = useId();
   const amountHelpId = useId();
@@ -457,6 +462,7 @@ function VaultCheckoutDialogContent({ campaign, onClose }: VaultCheckoutDialogPr
           canEdit={!checkoutGuard.inputsLocked}
           onBack={handleBackToSetup}
           onComplete={onClose}
+          onManagePositions={onManagePositions}
           onCheckoutGuardChange={updateCheckoutGuard}
         />
       ) : selectedMethod === "card" && committedAmount ? (
@@ -487,6 +493,7 @@ function VaultCheckoutDialogContent({ campaign, onClose }: VaultCheckoutDialogPr
             summaryItems={summaryItems}
             onBack={handleBackToSetup}
             onComplete={onClose}
+            onManagePositions={onManagePositions}
             onCheckoutGuardChange={updateCheckoutGuard}
           />
         </Suspense>
@@ -502,6 +509,7 @@ function WalletEndowPath({
   canEdit,
   onBack,
   onComplete,
+  onManagePositions,
   onCheckoutGuardChange,
 }: {
   campaign: OctantVaultCampaignManifest;
@@ -510,6 +518,7 @@ function WalletEndowPath({
   canEdit: boolean;
   onBack: () => void;
   onComplete: () => void;
+  onManagePositions?: () => void;
   onCheckoutGuardChange: (guard: VaultCheckoutGuardState) => void;
 }) {
   return (
@@ -520,6 +529,7 @@ function WalletEndowPath({
       canEdit={canEdit}
       onBack={onBack}
       onComplete={onComplete}
+      onManagePositions={onManagePositions}
       onCheckoutGuardChange={onCheckoutGuardChange}
     />
   );
@@ -532,6 +542,7 @@ function WalletEndowPathContent({
   canEdit,
   onBack,
   onComplete,
+  onManagePositions,
   onCheckoutGuardChange,
 }: {
   campaign: OctantVaultCampaignManifest;
@@ -540,6 +551,7 @@ function WalletEndowPathContent({
   canEdit: boolean;
   onBack: () => void;
   onComplete: () => void;
+  onManagePositions?: () => void;
   onCheckoutGuardChange: (guard: VaultCheckoutGuardState) => void;
 }) {
   const { formatMessage } = useIntl();
@@ -675,9 +687,23 @@ function WalletEndowPathContent({
     return (
       <CheckoutScreen
         footer={
-          <button type="button" onClick={onComplete} className={CHECKOUT_PRIMARY_BUTTON}>
-            {formatMessage({ id: "public.vaults.checkout.done", defaultMessage: "Done" })}
-          </button>
+          <div className="flex flex-col gap-2">
+            {onManagePositions ? (
+              <button type="button" onClick={onManagePositions} className={CHECKOUT_PRIMARY_BUTTON}>
+                {formatMessage({
+                  id: "public.vaults.checkout.managePosition",
+                  defaultMessage: "Manage vault position",
+                })}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={onComplete}
+              className={onManagePositions ? CHECKOUT_GHOST_BUTTON : CHECKOUT_PRIMARY_BUTTON}
+            >
+              {formatMessage({ id: "public.vaults.checkout.done", defaultMessage: "Done" })}
+            </button>
+          </div>
         }
       >
         <div className="flex flex-col gap-5" data-testid="vault-wallet-endow-success">
@@ -700,30 +726,22 @@ function WalletEndowPathContent({
             {formatMessage({
               id: "public.vaults.walletEndow.success",
               defaultMessage:
-                "Endowment submitted. You can review this wallet's endowments from the Fund page.",
+                "Endowment submitted. Manage this WETH-backed vault position any time from /vaults.",
             })}
           </p>
-          <div className="flex flex-col gap-3">
-            {explorerUrl ? (
-              <a
-                href={explorerUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="text-sm font-semibold text-primary-base underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action"
-              >
-                {formatMessage({
-                  id: "public.vaults.checkout.viewTransaction",
-                  defaultMessage: "View transaction",
-                })}
-              </a>
-            ) : null}
-            <EditorialLinkArrow to="/fund">
+          {explorerUrl ? (
+            <a
+              href={explorerUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="text-sm font-semibold text-primary-base underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action"
+            >
               {formatMessage({
-                id: "public.vaults.checkout.viewOnFund",
-                defaultMessage: "View on Fund page",
+                id: "public.vaults.checkout.viewTransaction",
+                defaultMessage: "View transaction",
               })}
-            </EditorialLinkArrow>
-          </div>
+            </a>
+          ) : null}
         </div>
       </CheckoutScreen>
     );
@@ -869,15 +887,9 @@ function WalletEndowPathContent({
               {formatMessage({
                 id: "public.vaults.checkout.slow",
                 defaultMessage:
-                  "Taking longer than expected — your transaction may still be processing. Check the Fund page before retrying.",
+                  "Taking longer than expected — your transaction may still be processing. Wait a moment before retrying; your position will appear under Manage positions on /vaults once it settles.",
               })}
             </p>
-            <EditorialLinkArrow to="/fund">
-              {formatMessage({
-                id: "public.vaults.checkout.viewOnFund",
-                defaultMessage: "View on Fund page",
-              })}
-            </EditorialLinkArrow>
           </div>
         ) : null}
         {walletEndow.error ? (

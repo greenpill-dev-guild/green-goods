@@ -458,6 +458,15 @@ export {
 export { useVaultPreview } from "./vault/useVaultPreview";
 export { useOctantVaultStats, type OctantVaultStats } from "./vault/useOctantVaultStats";
 export {
+  useOctantVaultPositions,
+  type OctantVaultPosition,
+  type UseOctantVaultPositionsResult,
+} from "./vault/useOctantVaultPositions";
+export {
+  useOctantVaultWithdraw,
+  type OctantVaultWithdrawParams,
+} from "./vault/useOctantVaultWithdraw";
+export {
   VaultDepositStageError,
   type VaultDepositFailureReason,
   type VaultDepositStage,

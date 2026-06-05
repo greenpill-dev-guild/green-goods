@@ -320,6 +320,13 @@ export type {
   OctantVaultWalletEndowIntentKind,
   OctantVaultWalletEndowReceiver,
 } from "./vault-crowdfunding";
+export {
+  forgetOctantVaultCardWalletPositions,
+  getOctantVaultCardWalletOwners,
+  getOctantVaultCardWalletPositionRefs,
+  rememberOctantVaultCardWalletPosition,
+} from "./octant-vault-card-wallet-cache";
+export type { OctantVaultCardWalletPositionRef } from "./octant-vault-card-wallet-cache";
 // ============================================================================
 // JOB QUEUE
 // ============================================================================

@@ -10,8 +10,9 @@ import {
 } from "@green-goods/shared";
 import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate, useLocation, useSearchParams } from "react-router-dom";
 import {
+  EditorialGhostButton,
   EditorialHeading,
   EditorialKicker,
   EditorialLede,
@@ -20,7 +21,11 @@ import {
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
 import { PublicFooter } from "@/components/Public/PublicFooter";
 import { VaultCheckoutDialog } from "@/components/Public/VaultCheckoutDialog";
+import { VaultManagePositionsPanel } from "@/components/Public/VaultManagePositionsPanel";
 import { getPublicHeroImage, publicCuration } from "@/content/publicCuration";
+
+const MANAGE_POSITIONS_PARAM = "manage";
+const MANAGE_POSITIONS_VALUE = "positions";
 
 const copyFieldMessageIds = {
   headline: "headline",
@@ -275,6 +280,8 @@ export function VaultsPageContent({
 } = {}) {
   const { formatMessage } = useIntl();
   const campaigns = useMemo(() => campaignItems ?? getOctantVaultCampaigns(), [campaignItems]);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const managing = searchParams.get(MANAGE_POSITIONS_PARAM) === MANAGE_POSITIONS_VALUE;
   const [selectedCampaign, setSelectedCampaign] = useState<OctantVaultCampaignManifest | null>(
     null
   );
@@ -284,6 +291,29 @@ export function VaultsPageContent({
   const handleClose = useCallback(() => {
     setSelectedCampaign(null);
   }, []);
+  // Open the route-local management surface. Only `?manage=positions` enters the URL
+  // — never an address, email, or any owner identifier.
+  const openManage = useCallback(() => {
+    setSelectedCampaign(null);
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.set(MANAGE_POSITIONS_PARAM, MANAGE_POSITIONS_VALUE);
+        return next;
+      },
+      { replace: false }
+    );
+  }, [setSearchParams]);
+  const closeManage = useCallback(() => {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete(MANAGE_POSITIONS_PARAM);
+        return next;
+      },
+      { replace: true }
+    );
+  }, [setSearchParams]);
 
   return (
     <>
@@ -338,6 +368,19 @@ export function VaultsPageContent({
                   "Your support funds real public-goods work and keeps working over time.",
               })}
             </EditorialLede>
+            <div className="mt-6">
+              <EditorialGhostButton
+                variant="warm"
+                className="px-5 py-2.5 text-sm"
+                onClick={openManage}
+                data-testid="vault-manage-positions-entry"
+              >
+                {formatMessage({
+                  id: "public.vaults.manage.entry",
+                  defaultMessage: "Manage positions",
+                })}
+              </EditorialGhostButton>
+            </div>
           </header>
 
           <div className="mt-10 grid grid-cols-1 gap-5 lg:grid-cols-2">
@@ -377,11 +420,16 @@ export function VaultsPageContent({
 
       <PublicFooter variant="soil" />
 
-      {selectedCampaign ? (
+      {/* Management and checkout each mount their own wallet runtime, so render at
+          most one at a time to avoid nesting two AppKit providers. */}
+      {managing ? (
+        <VaultManagePositionsPanel open onClose={closeManage} onEndow={closeManage} />
+      ) : selectedCampaign ? (
         <VaultCheckoutDialog
           key={selectedCampaign.slug}
           campaign={selectedCampaign}
           onClose={handleClose}
+          onManagePositions={openManage}
         />
       ) : null}
     </>

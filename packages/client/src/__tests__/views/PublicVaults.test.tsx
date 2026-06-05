@@ -412,11 +412,13 @@ describe("VaultsPage", () => {
   it("scrubs the deprecated Card Endow QA query param while preserving valid route params", async () => {
     const locations: string[] = [];
 
-    renderViewWithLocationProbe("/vaults?cardEndowQa=1&manage=positions", (location) => {
+    // `ref` stands in for an unrelated route param to preserve. (`manage=positions`
+    // is no longer inert — it opens the route-local management panel.)
+    renderViewWithLocationProbe("/vaults?cardEndowQa=1&ref=newsletter", (location) => {
       locations.push(location);
     });
 
-    await waitFor(() => expect(locations.at(-1)).toBe("/vaults?manage=positions"));
+    await waitFor(() => expect(locations.at(-1)).toBe("/vaults?ref=newsletter"));
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
       "Octant vault campaigns for public goods."
     );
@@ -1110,7 +1112,10 @@ describe("VaultsPage", () => {
       });
 
       expect(screen.getByText(/Taking longer than expected/)).toBeInTheDocument();
-      expect(screen.getByRole("link", { name: "View on Fund page" })).toBeInTheDocument();
+      // The slow state no longer points to the Fund page — vault positions are
+      // managed route-locally from /vaults.
+      expect(screen.queryByRole("link", { name: "View on Fund page" })).not.toBeInTheDocument();
+      expect(screen.queryByText(/Fund page/i)).not.toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "Retry" })).not.toBeInTheDocument();
       expect(sharedHookMocks.octantVaultWalletEndowMutate).toHaveBeenCalledTimes(1);
     } finally {

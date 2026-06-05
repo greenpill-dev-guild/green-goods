@@ -6,6 +6,7 @@ import {
 import {
   prepareOctantVaultCardEndowFallbackPlan,
   getOctantVaultAssetDisplayPolicy,
+  rememberOctantVaultCardWalletPosition,
   useTimeout,
   type Address,
   type OctantVaultCampaignManifest,
@@ -80,6 +81,8 @@ export interface VaultCardEndowFlowProps {
   onBack: () => void;
   /** Close the checkout sheet once the endowment is complete. */
   onComplete: () => void;
+  /** Hand off to `/vaults?manage=positions` after the card position is confirmed. */
+  onManagePositions?: () => void;
   onCheckoutGuardChange: (guard: VaultCheckoutGuardState) => void;
 }
 
@@ -98,6 +101,7 @@ export default function VaultCardEndowFlow({
   summaryItems,
   onBack,
   onComplete,
+  onManagePositions,
   onCheckoutGuardChange,
 }: VaultCardEndowFlowProps) {
   const { formatMessage } = useIntl();
@@ -139,6 +143,7 @@ export default function VaultCardEndowFlow({
         summaryItems={summaryItems}
         onBack={onBack}
         onComplete={onComplete}
+        onManagePositions={onManagePositions}
         onCheckoutGuardChange={onCheckoutGuardChange}
       />
     </ThirdwebProvider>
@@ -152,6 +157,7 @@ function CardEndowProviderContent({
   summaryItems,
   onBack,
   onComplete,
+  onManagePositions,
   onCheckoutGuardChange,
 }: {
   campaign: OctantVaultCampaignManifest;
@@ -160,6 +166,7 @@ function CardEndowProviderContent({
   summaryItems: CheckoutSummaryItem[];
   onBack: () => void;
   onComplete: () => void;
+  onManagePositions?: () => void;
   onCheckoutGuardChange: (guard: VaultCheckoutGuardState) => void;
 }) {
   const { formatMessage } = useIntl();
@@ -607,6 +614,28 @@ function CardEndowProviderContent({
     }
     void submitFundingProof(depositTxHash, shareBalance);
   }, [depositTxHash, hasPositiveShares, proofStatus, shareBalance, submitFundingProof]);
+
+  // Once shares are confirmed, remember ONLY the safe owner metadata so the
+  // `/vaults?manage=positions` surface can re-display this card-wallet position
+  // when the supporter returns. Never caches email, OTP, provider IDs, or receipts.
+  useEffect(() => {
+    if (!hasPositiveShares || !receiverAddress) return;
+    const vaultAddress = campaign.vault?.vaultAddress;
+    const chainId = campaign.vault?.chainId;
+    if (!vaultAddress || !chainId) return;
+    rememberOctantVaultCardWalletPosition({
+      recoveredWalletAddress: receiverAddress,
+      campaignSlug: campaign.slug,
+      vaultAddress,
+      chainId,
+    });
+  }, [
+    hasPositiveShares,
+    receiverAddress,
+    campaign.slug,
+    campaign.vault?.vaultAddress,
+    campaign.vault?.chainId,
+  ]);
 
   const handleCardFundingSuccess = useCallback(() => {
     const expectedFlowKey = flowKey;
@@ -1135,7 +1164,7 @@ function CardEndowProviderContent({
               {formatMessage({
                 id: "public.vaults.checkout.slow",
                 defaultMessage:
-                  "Taking longer than expected — your transaction may still be processing. Check the Fund page before retrying.",
+                  "Taking longer than expected — your transaction may still be processing. Wait a moment before retrying; your position will appear under Manage positions on /vaults once it settles.",
               })}
             </p>
           ) : null}
@@ -1163,7 +1192,23 @@ function CardEndowProviderContent({
               })}
             </button>
           )}
-          <button type="button" className={CHECKOUT_PRIMARY_BUTTON} onClick={onComplete}>
+          {onManagePositions && hasPositiveShares ? (
+            <button type="button" className={CHECKOUT_PRIMARY_BUTTON} onClick={onManagePositions}>
+              {formatMessage({
+                id: "public.vaults.checkout.managePosition",
+                defaultMessage: "Manage vault position",
+              })}
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className={
+              onManagePositions && hasPositiveShares
+                ? CHECKOUT_GHOST_BUTTON
+                : CHECKOUT_PRIMARY_BUTTON
+            }
+            onClick={onComplete}
+          >
             {formatMessage({ id: "public.vaults.checkout.done", defaultMessage: "Done" })}
           </button>
         </div>

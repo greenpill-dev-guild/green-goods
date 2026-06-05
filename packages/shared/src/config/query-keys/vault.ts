@@ -33,6 +33,14 @@ export const vaultsKeys = {
   allDeposits: (chainId: number) => ["greengoods", "vaults", "allDeposits", chainId] as const,
   campaignStats: (vaultAddress: string, chainId: number) =>
     ["greengoods", "vaults", "campaignStats", vaultAddress, chainId] as const,
+  /**
+   * Active Octant V2 campaign-vault positions for one owner address on one chain.
+   * Owner is lowercased by the caller so connected-wallet and card-wallet reads
+   * share a stable key. Used by `useOctantVaultPositions` on the `/vaults`
+   * management surface (read through a public client, no indexer).
+   */
+  octantPositions: (ownerAddress: string, chainId: number) =>
+    ["greengoods", "vaults", "octantPositions", ownerAddress, chainId] as const,
 } as const;
 
 export const cookieJarKeys = {
