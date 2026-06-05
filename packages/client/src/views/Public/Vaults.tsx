@@ -12,7 +12,6 @@ import { useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Navigate, useLocation } from "react-router-dom";
 import {
-  EditorialDivider,
   EditorialHeading,
   EditorialKicker,
   EditorialLede,
@@ -202,8 +201,6 @@ export function CampaignCard({
 
       <CampaignVaultStats campaign={campaign} />
 
-      <EditorialDivider />
-
       <section aria-labelledby={`vault-campaign-${campaign.slug}-story-title`}>
         <h4
           id={`vault-campaign-${campaign.slug}-story-title`}
@@ -232,15 +229,6 @@ export function CampaignCard({
               })}
             </dt>
             <dd className="mt-1">{copy.recipientLogic}</dd>
-          </div>
-          <div>
-            <dt className="font-medium text-text-strong-950">
-              {formatMessage({
-                id: "public.vaults.card.guardrail",
-                defaultMessage: "Guardrail",
-              })}
-            </dt>
-            <dd className="mt-1">{copy.riskNote}</dd>
           </div>
         </dl>
       </section>

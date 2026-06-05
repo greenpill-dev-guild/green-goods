@@ -3410,7 +3410,6 @@
   "public.vaults.campaign.greenpill-nyc.riskNote": "No card payment or wallet transaction starts until checkout asks you to continue.",
   "public.vaults.campaign.greenpill-nyc.summary": "Greenpill NYC is ready for production Card Endow testing through the Octant V2 Ethereum vault route.",
   "public.vaults.card.fundingPurpose": "Funding purpose",
-  "public.vaults.card.guardrail": "Guardrail",
   "public.vaults.card.onchainContext": "Onchain context",
   "public.vaults.card.recipientLogic": "Recipient logic",
   "public.vaults.card.story": "Campaign story",
