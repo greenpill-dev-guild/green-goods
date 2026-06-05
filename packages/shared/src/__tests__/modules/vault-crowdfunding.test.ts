@@ -12,9 +12,11 @@ import {
   prepareOctantVaultCardEndowReadiness,
   isOctantVaultCampaignTransactionReady,
   prepareOctantVaultWalletEndow,
+  validateOctantVaultCardEndowManifest,
   validateOctantVaultCardEndowProof,
   validateOctantVaultCardEndowReceiver,
   validateOctantVaultCampaignManifest,
+  validateOctantVaultWalletEndowManifest,
   validateOctantVaultRouteManageProof,
   validateOctantVaultShareOwnershipProof,
   type OctantVaultCardEndowProofExpectation,
@@ -169,7 +171,7 @@ describe("Octant vault crowdfunding manifest", () => {
     });
     expect(campaigns[1]).toMatchObject({
       slug: "evmavericks",
-      fixtureRole: "blocked_pending_manifest",
+      fixtureRole: "standard_campaign",
     });
   });
 
@@ -249,16 +251,29 @@ describe("Octant vault crowdfunding manifest", () => {
     });
   });
 
-  it("requires the Protocol Guild destination context before EVMavericks can enable transactions", () => {
+  it("keeps EVMavericks wallet and card tuples ready from deployed vault metadata", () => {
     const campaign = getOctantVaultCampaignBySlug("evmavericks");
 
     expect(campaign).toBeDefined();
     expect(EVMAVERICKS_REQUIRED_MANIFEST_FIELDS).toContain("protocolGuildDestinationContext");
-    expect(getOctantVaultCampaignTransactionState(campaign!)).toMatchObject({
+    expect(validateOctantVaultCampaignManifest(campaign!)).toMatchObject({
       status: "blocked_pending_manifest",
       missingFields: ["recipientRoutingSummary", "protocolGuildDestinationContext", "campaignCopy"],
-      walletEndowEnabled: false,
+    });
+    expect(validateOctantVaultWalletEndowManifest(campaign!)).toMatchObject({
+      status: "complete",
+      missingFields: [],
+    });
+    expect(validateOctantVaultCardEndowManifest(campaign!)).toMatchObject({
+      status: "complete",
+      missingFields: [],
+    });
+    expect(getOctantVaultCampaignTransactionState(campaign!)).toMatchObject({
+      status: "ready",
+      missingFields: ["recipientRoutingSummary", "protocolGuildDestinationContext", "campaignCopy"],
+      walletEndowEnabled: true,
       cardEndowVisible: false,
+      cardEndowStatus: "hidden_pending_proof",
     });
   });
 
@@ -284,6 +299,14 @@ describe("Octant vault crowdfunding manifest", () => {
     expect(validateOctantVaultCampaignManifest(evmavericks!)).toMatchObject({
       status: "blocked_pending_manifest",
       missingFields: ["recipientRoutingSummary", "protocolGuildDestinationContext", "campaignCopy"],
+    });
+    expect(validateOctantVaultWalletEndowManifest(evmavericks!)).toMatchObject({
+      status: "complete",
+      missingFields: [],
+    });
+    expect(validateOctantVaultCardEndowManifest(evmavericks!)).toMatchObject({
+      status: "complete",
+      missingFields: [],
     });
   });
 
@@ -341,7 +364,7 @@ describe("Octant vault crowdfunding manifest", () => {
     });
   });
 
-  it("does not prepare Wallet Endow for blocked pilot fixtures or invalid confirmation input", () => {
+  it("prepares Wallet Endow for EVMavericks and blocks invalid confirmation input", () => {
     const evmavericks = getOctantVaultCampaignBySlug("evmavericks");
     const completeManifest = makeCompleteManifest();
 
@@ -352,9 +375,26 @@ describe("Octant vault crowdfunding manifest", () => {
         amount: 2500000n,
         receiverAddress: VALID_RECEIVER_ADDRESS,
       })
-    ).toMatchObject({
-      status: "blocked",
-      errors: expect.arrayContaining(["manifest_incomplete"]),
+    ).toEqual({
+      status: "ready",
+      errors: [],
+      transaction: {
+        intentKind: "wallet_endow",
+        paymentMethod: "wallet",
+        chainId: 1,
+        vaultAddress: "0x0bCe8c16974FFD3B410A32365c5bCf27a5A630Fc",
+        assetAddress: MAINNET_WETH_ADDRESS,
+        assetSymbol: "WETH",
+        assetDecimals: 18,
+        amount: 2500000n,
+        receiver: {
+          intentKind: "wallet_endow",
+          paymentMethod: "wallet",
+          receiverKind: "connected_wallet",
+          receiverCustody: "connected_wallet",
+          receiverAddress: VALID_RECEIVER_ADDRESS,
+        },
+      },
     });
     expect(
       prepareOctantVaultWalletEndow({
@@ -518,20 +558,44 @@ describe("Octant vault Card Endow public contracts", () => {
     expect(JSON.stringify(fallback)).not.toMatch(/payable|msg\.value|native_eth/i);
   });
 
-  it("keeps fallback Card Endow planning blocked for incomplete pilots and invalid receiver input", () => {
+  it("prepares EVMavericks fallback Card Endow and blocks invalid receiver input", () => {
     const evmavericks = getOctantVaultCampaignBySlug("evmavericks");
     const completeManifest = makeCompleteManifest();
 
     expect(evmavericks).toBeDefined();
-    expect(
-      prepareOctantVaultCardEndowFallbackPlan({
-        campaign: evmavericks!,
-        amount: VALID_AMOUNT,
-        receiverAddress: VALID_RECEIVER_ADDRESS,
-      })
-    ).toMatchObject({
-      status: "blocked",
-      errors: expect.arrayContaining(["manifest_incomplete"]),
+    const fallback = prepareOctantVaultCardEndowFallbackPlan({
+      campaign: evmavericks!,
+      amount: VALID_AMOUNT,
+      receiverAddress: VALID_RECEIVER_ADDRESS,
+    });
+
+    expect(fallback).toMatchObject({
+      status: "ready",
+      plan: {
+        cardFunding: {
+          chainId: 1,
+          tokenAddress: MAINNET_WETH_ADDRESS,
+          tokenSymbol: "WETH",
+          tokenDecimals: 18,
+        },
+        receiptExpectation: {
+          expectedVaultAddress: evmavericks!.vault?.vaultAddress,
+          expectedTokenAddress: MAINNET_WETH_ADDRESS,
+        },
+        userAuthorizedTransactions: [
+          {
+            role: "approval",
+            functionName: "approve",
+            contractAddress: MAINNET_WETH_ADDRESS,
+          },
+          {
+            role: "funding",
+            functionName: "deposit",
+            contractAddress: evmavericks!.vault?.vaultAddress,
+            args: [VALID_AMOUNT, VALID_RECEIVER_ADDRESS],
+          },
+        ],
+      },
     });
     expect(
       prepareOctantVaultCardEndowFallbackPlan({
@@ -596,7 +660,7 @@ describe("Octant vault Card Endow public contracts", () => {
     });
   });
 
-  it("accepts an exact Card Endow tuple only for complete fixtures", () => {
+  it("accepts an exact Card Endow tuple for transaction-ready fixtures", () => {
     const completeManifest = makeCompleteManifest();
     const evmavericks = getOctantVaultCampaignBySlug("evmavericks");
 
@@ -612,12 +676,12 @@ describe("Octant vault Card Endow public contracts", () => {
     expect(evmavericks).toBeDefined();
     expect(
       validateOctantVaultCardEndowProof(
-        makeCardEndowProof(),
+        makeCardEndowProofForCampaign(evmavericks!),
         makeCardEndowExpectation(evmavericks!)
       )
     ).toMatchObject({
-      status: "invalid",
-      errors: expect.arrayContaining(["manifest_incomplete"]),
+      status: "valid",
+      errors: [],
     });
   });
 
@@ -706,7 +770,7 @@ describe("Octant vault Card Endow public contracts", () => {
     });
   });
 
-  it("keeps only incomplete pilot /vaults transaction flags blocked under strict manifest gating", () => {
+  it("keeps both pilots wallet-ready and Card Endow proof-gated", () => {
     const states = getOctantVaultCampaigns().map((campaign) =>
       getOctantVaultCampaignTransactionState(campaign)
     );
@@ -723,16 +787,16 @@ describe("Octant vault Card Endow public contracts", () => {
       },
       {
         manifestStatus: "blocked_pending_manifest",
-        status: "blocked_pending_manifest",
-        walletEndowEnabled: false,
+        status: "ready",
+        walletEndowEnabled: true,
         cardEndowVisible: false,
-        cardEndowStatus: "hidden_manifest_incomplete",
+        cardEndowStatus: "hidden_pending_proof",
         missingFields: [
           "recipientRoutingSummary",
           "protocolGuildDestinationContext",
           "campaignCopy",
         ],
-        disabledReason: "manifest_incomplete",
+        cardEndowProofErrors: undefined,
       },
     ]);
   });
@@ -810,7 +874,7 @@ describe("Octant vault Card Endow public contracts", () => {
     });
   });
 
-  it("exposes Greenpill NYC with exact proof while keeping incomplete pilots hidden", () => {
+  it("exposes both pilot vaults with exact Card Endow proof", () => {
     const greenpillNyc = getOctantVaultCampaignBySlug("greenpill-nyc");
     const evmavericks = getOctantVaultCampaignBySlug("evmavericks");
 
@@ -842,9 +906,9 @@ describe("Octant vault Card Endow public contracts", () => {
         manageProof: makeRouteManageProofForCampaign(evmavericks!),
       })
     ).toMatchObject({
-      status: "hidden",
-      cardEndowVisible: false,
-      errors: expect.arrayContaining(["manifest_incomplete"]),
+      status: "ready",
+      cardEndowVisible: true,
+      errors: [],
     });
   });
 });

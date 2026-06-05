@@ -252,6 +252,7 @@ export {
   prepareOctantVaultCardEndowFallbackPlan,
   prepareOctantVaultCardEndowReadiness,
   prepareOctantVaultWalletEndow,
+  validateOctantVaultCardEndowManifest,
   validateOctantVaultCardEndowProof,
   validateOctantVaultCardEndowReceiver,
   validateOctantVaultCampaignManifest,

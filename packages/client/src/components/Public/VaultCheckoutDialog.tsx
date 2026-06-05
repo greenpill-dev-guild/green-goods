@@ -27,16 +27,11 @@ import {
   CheckoutSummary,
 } from "./vaultCheckoutShell";
 
-/**
- * The only campaign vetted for production Card Endow. Other complete manifests
- * collapse to Wallet-only — the card path stays gated behind this allowlist so
- * an un-reviewed vault can never surface a live card payment affordance.
- */
-const CARD_ENDOW_PRODUCTION_CAMPAIGN_SLUG = "greenpill-nyc";
+const CARD_ENDOW_PRODUCTION_CAMPAIGN_SLUGS = new Set(["greenpill-nyc", "evmavericks"]);
 const ETH_SYMBOL = "ETH";
 
 function isProductionCardEndowCampaign(campaign: OctantVaultCampaignManifest): boolean {
-  return campaign.slug === CARD_ENDOW_PRODUCTION_CAMPAIGN_SLUG;
+  return CARD_ENDOW_PRODUCTION_CAMPAIGN_SLUGS.has(campaign.slug);
 }
 
 // Thirdweb (BuyWidget + in-app wallet) is heavy and only the Card path needs it.
@@ -94,8 +89,8 @@ export function VaultCheckoutDialog(props: VaultCheckoutDialogProps) {
  * VaultCheckoutDialog — a fixed-height checkout sheet (shared `DialogShell`) for
  * one Octant vault campaign. It keeps amount and method choice together in the
  * editable setup step, then moves to the selected wallet or card path.
- * The Card path only appears for the production campaign when the manifest is
- * transaction-ready.
+ * The Card path appears for production-approved vault campaigns when the
+ * transaction tuple is ready.
  * Payment-path components own their own authoritative state and report a lock
  * guard up so the sheet can prevent edits and close while a transaction is in
  * flight.

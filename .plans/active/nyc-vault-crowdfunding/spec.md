@@ -65,9 +65,9 @@ skill plus templates as the final project deliverable.
 5. Users must choose a vault/campaign and amount before wallet connection is requested.
 6. Wallet connection must happen at the final confirmation step.
 7. Wallet Endow must deposit into the selected Octant V2 vault on Ethereum and make the connected
-   wallet the owner/receiver of the resulting vault position, but only for fixtures with complete
-   manifest data.
-8. Thirdweb Card Endow must be available for complete-manifest fixtures only after a user-owned
+   wallet the owner/receiver of the resulting vault position for fixtures with verified vault
+   tuples.
+8. Thirdweb Card Endow must be available for fixtures with verified vault tuples after a user-owned
    recovered wallet receiver can be enforced and verified.
 9. Card Endow must not deposit vault shares to a provider-owned or unrecoverable account.
 10. Card Endow exposure requires proof that the recovered wallet owns visible vault shares and can
@@ -81,19 +81,19 @@ skill plus templates as the final project deliverable.
 13. Public Donate and Card Donate must not appear in the pilot vault demo acceptance path.
 14. Green Goods' Arbitrum vault factory and related contracts must be described only as product
     context/proof, not as Octant's deployed Ethereum infrastructure.
-15. EVMavericks must have a fixture slot in the `/vaults` campaign manifest. Its transaction paths
-    remain blocked until chain ID, vault address, asset address, asset symbol, decimals,
-    recipient/routing summary, Protocol Guild destination context, explorer link, and campaign copy
-    are supplied. Chain ID, vault address, WETH asset metadata, and explorer links are now recorded;
-    the remaining non-chain fields still block transactions.
+15. EVMavericks must have a fixture slot in the `/vaults` campaign manifest. Its Wallet Endow and
+    Card Endow transaction paths are enabled from the supplied chain ID, vault address, asset
+    address, asset symbol, decimals, and explorer link. Recipient/routing summary, Protocol Guild
+    destination context, and campaign copy remain missing non-chain metadata, but they do not block
+    the card/wallet transaction tuple.
 16. The reusable `octant-vault-crowdfunding` skill must be delivered after demo validation while
     keeping the demo route acceptance gates unchanged.
 17. The skill deliverable must be an agent skill plus templates in v1, not a runnable generator or
     full packaged app.
-18. The skill must include static and dry-run QA against Greenpill NYC, EVMavericks
-    `blocked_pending_manifest`, and one synthetic complete manifest fixture.
-19. The Greenpill NYC Card Endow human-QA path must be available on default `/vaults`; incomplete
-    campaigns such as EVMavericks must not expose `Pay by card`.
+18. The skill must include static and dry-run QA against Greenpill NYC, EVMavericks, and one
+    synthetic complete manifest fixture.
+19. The Greenpill NYC and EVMavericks Card Endow human-QA paths must be available on default
+    `/vaults`.
 20. The Card Endow human-QA path must use Thirdweb email OTP/in-app wallet recovery only as the
     primary wallet path. Google, Apple, passkey, wallet extensions, and existing wallets are not
     required for this QA flow.
@@ -197,7 +197,7 @@ Required skill output boundaries:
   wallet connection, manifest-driven campaign UI, and wallet-last Endow flow.
 - Templates: manifest schema notes, campaign context prompt/template, fixture examples, validation
   checklist, and handoff structure for implementation agents.
-- Fixtures: Greenpill NYC validated pilot fixture, EVMavericks `blocked_pending_manifest`, and one
+- Fixtures: Greenpill NYC validated pilot fixture, EVMavericks validated pilot fixture, and one
   synthetic complete manifest fixture to prove the skill is not hardcoded.
 - Advanced modules: Thirdweb card-provider module as the first concrete card path; Coinbase and
   Stripe as future adapter modules with interface and boundary expectations; optional create-vault
@@ -221,8 +221,9 @@ Required skill output boundaries:
 - Source brief states Green Goods' Arbitrum vault factory must not be presented as Octant deployed
   Ethereum infrastructure.
 - Source brief identifies Greenpill NYC and EVMavericks as pilot contexts. The corrected demo scope
-  includes both fixture slots. Greenpill NYC remains the first available transaction fixture when its
-  metadata is recorded; EVMavericks transaction enablement is blocked pending manifest metadata.
+  includes both fixture slots. Greenpill NYC and EVMavericks are Wallet Endow and Card Endow-ready
+  from their verified Ethereum vault/WETH tuples; EVMavericks still lacks broader non-chain
+  campaign metadata, but that does not block the card-funded endowment tuple.
 - Source brief treats card/debit as guarded. The corrected Green Goods demo scope keeps Thirdweb Card
   Endow sprint-critical, but hidden until custody/share/withdrawal/provider proof passes.
 - Ethereum mainnet evidence recorded on `2026-06-01T18:07:43Z`:
@@ -308,15 +309,15 @@ Repo surfaces implementation agents should inspect before coding:
   transaction coding.
 - Record the missing Greenpill NYC recipient/routing summary and campaign copy before enabling
   Greenpill NYC Wallet Endow or Card Endow.
-- Record the missing EVMavericks recipient/routing summary, Protocol Guild destination context, and
-  campaign copy before enabling EVMavericks Wallet Endow or Card Endow.
+- Track the missing EVMavericks recipient/routing summary, Protocol Guild destination context, and
+  campaign copy as non-chain metadata without disabling EVMavericks Wallet Endow or Card Endow.
 - Treat the shared `YearnV3StrategyFactory` creator as durable factory evidence, but do not claim a
   successful vault-level `FACTORY()` return unless a later call produces one.
 - If implementation needs the actual Octant `MultistrategyVaultFactory` deployment address for
   create-vault work, obtain explicit Octant docs/release/deployer proof before recording it.
-- Keep Card Endow hidden until either a live Thirdweb full-flow contract-call checkout proves
-  recovered-wallet shares, or the fallback flow is QA-approved: fund recovered wallet first, then
-  user-authorized `approve + deposit`, then `balanceOf(receiverAddress)` proof.
+- Keep live Card Endow value movement gated until either a live Thirdweb full-flow contract-call
+  checkout proves recovered-wallet shares, or the fallback flow is QA-approved: fund recovered
+  wallet first, then user-authorized `approve + deposit`, then `balanceOf(receiverAddress)` proof.
 - Confirm public management route shape for owned vault positions before wiring receipt CTAs.
 
 ## Non-Functional Constraints
@@ -335,8 +336,8 @@ Repo surfaces implementation agents should inspect before coding:
 
 | Area | Lane | Notes |
 |---|---|---|
-| UI | `ui` | `/vaults` route, Greenpill NYC + EVMavericks campaign cards, amount-first/wallet-last flow, blocked-manifest states, receipt/manage states, copy, i18n |
-| State / API | `state_api` | campaign/vault manifest types, EVMavericks manifest gate, receiver semantics, provider proof, Thirdweb checkout/webhook gates |
+| UI | `ui` | `/vaults` route, Greenpill NYC + EVMavericks campaign cards, amount-first/wallet-last flow, transaction-ready states, receipt/manage states, copy, i18n |
+| State / API | `state_api` | campaign/vault manifest types, EVMavericks transaction gate, receiver semantics, provider proof, Thirdweb checkout/webhook gates |
 | Contracts | `contracts` | `n/a`; no Solidity, deployment broadcast, or indexer schema work planned |
 | QA | `qa_pass_1`, `qa_pass_2` | Sequential visible UX review and provider/validation review |
 | Reusable skill | `skill` | Codex-owned `octant-vault-crowdfunding` skill artifact plan, templates, fixtures, advanced module specs, static checks, and dry-run proof |
@@ -346,9 +347,9 @@ Repo surfaces implementation agents should inspect before coding:
 1. Brief/scope lock + Linear sync.
 2. `/vaults` campaign route + manifest, with Greenpill NYC and EVMavericks fixture slots. Check in
    after this phase.
-3. Wallet-last Wallet Endow path for complete-manifest fixtures. Check in after this phase.
+3. Wallet-last Wallet Endow path for transaction-ready fixtures. Check in after this phase.
 4. Ownership/share verification gate.
-5. Thirdweb Card Endow demo path for complete-manifest fixtures. Check in after this phase.
+5. Thirdweb Card Endow demo path for transaction-ready fixtures. Check in after this phase.
 6. Demo QA validates `/vaults`. Check in after this phase.
 7. Codex authors reusable `octant-vault-crowdfunding` skill plus templates after demo validation.
 8. Skill dry-run QA + Linear closeout.

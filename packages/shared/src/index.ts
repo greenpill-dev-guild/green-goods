@@ -802,6 +802,7 @@ export {
   updateUserProfile,
   uploadFileToIPFS,
   uploadJSONToIPFS,
+  validateOctantVaultCardEndowManifest,
   validateOctantVaultCardEndowProof,
   validateOctantVaultCardEndowReceiver,
   validateOctantVaultCampaignManifest,

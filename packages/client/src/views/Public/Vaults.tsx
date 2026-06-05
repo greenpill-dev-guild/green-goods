@@ -70,21 +70,20 @@ function formatCampaignCopy(
 function CampaignStatus({ campaign }: { campaign: OctantVaultCampaignManifest }) {
   const { formatMessage } = useIntl();
   const state = getOctantVaultCampaignTransactionState(campaign);
-  const label =
-    state.manifestStatus === "complete"
-      ? formatMessage({
-          id: "public.vaults.status.ready",
-          defaultMessage: "Ready for checkout",
-        })
-      : formatMessage({
-          id: "public.vaults.status.blocked",
-          defaultMessage: "Preview",
-        });
+  const label = state.walletEndowEnabled
+    ? formatMessage({
+        id: "public.vaults.status.ready",
+        defaultMessage: "Ready for checkout",
+      })
+    : formatMessage({
+        id: "public.vaults.status.blocked",
+        defaultMessage: "Preview",
+      });
 
   return (
     <span
       className={
-        state.manifestStatus === "complete"
+        state.walletEndowEnabled
           ? "inline-flex w-fit rounded-full bg-primary-action/12 px-3 py-1 font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-primary-base"
           : "inline-flex w-fit rounded-full bg-bg-weak-50 px-3 py-1 font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-text-sub-600 ring-1 ring-stroke-soft-200"
       }
@@ -261,7 +260,7 @@ export function VaultsPageContent({
         lede={formatMessage({
           id: "public.vaults.hero.lede",
           defaultMessage:
-            "Browse Greenpill NYC and EVMavericks campaign slots before any wallet step. Endow opens once each campaign's Octant V2 Ethereum vault route is ready.",
+            "Browse Greenpill NYC and EVMavericks before any wallet step. Wallet Endow and Card Endow open for both supplied Octant V2 Ethereum vault routes.",
         })}
       />
 

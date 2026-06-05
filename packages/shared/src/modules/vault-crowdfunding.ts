@@ -483,15 +483,14 @@ const greenpillNycPreviewCopy: OctantVaultCampaignCopy = {
 };
 
 const evmavericksPreviewCopy: OctantVaultCampaignCopy = {
-  headline: "A pending vault slot for recurring ETH public-goods funding.",
+  headline: "A live wallet route for EVMavericks public-goods funding.",
   summary:
-    "EVMavericks appears as a preview slot so reviewers can inspect the campaign before transaction metadata lands.",
+    "EVMavericks can accept Wallet Endow and Card Endow through its supplied Octant V2 Ethereum vault.",
   fundingPurpose:
-    "The campaign is intended to support a Fantasy Football League funding flow tied to public-goods outcomes.",
+    "Support the EVMavericks Fantasy Football League public-goods funding flow with an ETH contribution that settles into the Octant vault as WETH.",
   recipientLogic:
-    "Recipient routing will be published with the live vault metadata before this campaign accepts Endow transactions.",
-  riskNote:
-    "This preview does not accept payments yet; Endow opens after the vault route is complete and verified.",
+    "Wallet Endow deposits into the EVMavs PGF vault for the connected wallet; Card Endow funds a recovered email wallet before that wallet approves and deposits into the same vault.",
+  riskNote: "No card payment or wallet transaction starts until checkout asks you to continue.",
 };
 
 const WETH_ASSET_MANIFEST = {
@@ -539,7 +538,7 @@ export const OCTANT_VAULT_CAMPAIGN_MANIFEST = [
     slug: "evmavericks",
     displayName: "EVMavericks Fantasy Football League",
     communityName: "EVMavericks",
-    fixtureRole: "blocked_pending_manifest",
+    fixtureRole: "standard_campaign",
     routePath: "/vaults",
     targetProtocol: "octant-v2-ethereum",
     previewCopy: evmavericksPreviewCopy,
@@ -706,6 +705,17 @@ function getRequiredFields(
   return GREENPILL_NYC_REQUIRED_MANIFEST_FIELDS;
 }
 
+const WALLET_ENDOW_REQUIRED_MANIFEST_FIELDS = [
+  "chainId",
+  "vaultAddress",
+  "assetAddress",
+  "assetSymbol",
+  "assetDecimals",
+  "explorerLink",
+] as const satisfies readonly OctantVaultManifestField[];
+
+const CARD_ENDOW_REQUIRED_MANIFEST_FIELDS = WALLET_ENDOW_REQUIRED_MANIFEST_FIELDS;
+
 function hasManifestField(
   campaign: OctantVaultCampaignManifest,
   field: OctantVaultManifestField
@@ -751,12 +761,38 @@ export function validateOctantVaultCampaignManifest(
   };
 }
 
+export function validateOctantVaultWalletEndowManifest(
+  campaign: OctantVaultCampaignManifest
+): OctantVaultCampaignManifestValidation {
+  const missingFields = WALLET_ENDOW_REQUIRED_MANIFEST_FIELDS.filter(
+    (field) => !hasManifestField(campaign, field)
+  );
+
+  return {
+    status: missingFields.length === 0 ? "complete" : "blocked_pending_manifest",
+    missingFields,
+  };
+}
+
+export function validateOctantVaultCardEndowManifest(
+  campaign: OctantVaultCampaignManifest
+): OctantVaultCampaignManifestValidation {
+  const missingFields = CARD_ENDOW_REQUIRED_MANIFEST_FIELDS.filter(
+    (field) => !hasManifestField(campaign, field)
+  );
+
+  return {
+    status: missingFields.length === 0 ? "complete" : "blocked_pending_manifest",
+    missingFields,
+  };
+}
+
 export function validateOctantVaultCardEndowProof(
   proof: OctantVaultCardEndowProofInput,
   expected: OctantVaultCardEndowProofExpectation
 ): OctantVaultCardEndowProofValidation {
   const errors: OctantVaultCardEndowProofValidationError[] = [];
-  const manifestValidation = validateOctantVaultCampaignManifest(expected.campaign);
+  const manifestValidation = validateOctantVaultCardEndowManifest(expected.campaign);
   const expectedVault = expected.campaign.vault;
   const expectedAsset = expectedVault?.asset;
 
@@ -851,7 +887,7 @@ export function validateOctantVaultShareOwnershipProof(
   input: OctantVaultShareOwnershipProofInput
 ): OctantVaultShareOwnershipProofValidation {
   const errors: OctantVaultShareOwnershipProofError[] = [];
-  const manifestValidation = validateOctantVaultCampaignManifest(input.campaign);
+  const manifestValidation = validateOctantVaultCardEndowManifest(input.campaign);
 
   if (manifestValidation.status !== "complete") {
     errors.push("manifest_incomplete");
@@ -886,7 +922,7 @@ export function validateOctantVaultRouteManageProof(
   input: OctantVaultRouteManageProofInput
 ): OctantVaultRouteManageProofValidation {
   const errors: OctantVaultRouteManageProofError[] = [];
-  const manifestValidation = validateOctantVaultCampaignManifest(input.campaign);
+  const manifestValidation = validateOctantVaultCardEndowManifest(input.campaign);
 
   if (manifestValidation.status !== "complete") {
     errors.push("manifest_incomplete");
@@ -931,7 +967,7 @@ export function prepareOctantVaultCardEndowReadiness({
   manageProof,
 }: OctantVaultCardEndowReadinessInput): OctantVaultCardEndowReadiness {
   const errors: OctantVaultCardEndowReadinessError[] = [];
-  const manifestValidation = validateOctantVaultCampaignManifest(campaign);
+  const manifestValidation = validateOctantVaultCardEndowManifest(campaign);
   if (manifestValidation.status !== "complete") {
     errors.push("manifest_incomplete");
   }
@@ -1015,7 +1051,7 @@ export function prepareOctantVaultCardEndowFallbackPlan({
   receiverAddress,
 }: OctantVaultCardEndowFallbackPlanInput): OctantVaultCardEndowFallbackPreparation {
   const errors: OctantVaultCardEndowFallbackPlanError[] = [];
-  const manifestValidation = validateOctantVaultCampaignManifest(campaign);
+  const manifestValidation = validateOctantVaultCardEndowManifest(campaign);
   const vault = campaign.vault;
   const asset = vault?.asset;
 
@@ -1116,7 +1152,7 @@ export function prepareOctantVaultWalletEndow({
   receiverAddress,
 }: OctantVaultWalletEndowPreparationInput): OctantVaultWalletEndowPreparation {
   const errors: OctantVaultWalletEndowPreparationError[] = [];
-  const manifestValidation = validateOctantVaultCampaignManifest(campaign);
+  const manifestValidation = validateOctantVaultWalletEndowManifest(campaign);
   const vault = campaign.vault;
   const asset = vault?.asset;
 
@@ -1184,9 +1220,12 @@ export function getOctantVaultCampaignTransactionState(
   options: { cardEndowReadiness?: OctantVaultCardEndowReadiness } = {}
 ): OctantVaultCampaignTransactionState {
   const validation = validateOctantVaultCampaignManifest(campaign);
-  const manifestComplete = validation.status === "complete";
+  const walletValidation = validateOctantVaultWalletEndowManifest(campaign);
+  const walletEndowEnabled = walletValidation.status === "complete";
+  const cardValidation = validateOctantVaultCardEndowManifest(campaign);
+  const cardEndowReadyForProof = cardValidation.status === "complete";
 
-  if (!manifestComplete) {
+  if (!walletEndowEnabled) {
     return {
       manifestStatus: validation.status,
       status: "blocked_pending_manifest",
@@ -1199,14 +1238,18 @@ export function getOctantVaultCampaignTransactionState(
     };
   }
 
-  const cardEndowVisible = options.cardEndowReadiness?.status === "ready";
+  const cardEndowVisible = cardEndowReadyForProof && options.cardEndowReadiness?.status === "ready";
 
   return {
     manifestStatus: validation.status,
     status: "ready",
     walletEndowEnabled: true,
     cardEndowVisible,
-    cardEndowStatus: cardEndowVisible ? "visible" : "hidden_pending_proof",
+    cardEndowStatus: cardEndowVisible
+      ? "visible"
+      : cardEndowReadyForProof
+        ? "hidden_pending_proof"
+        : "hidden_manifest_incomplete",
     cardEndowProofErrors: options.cardEndowReadiness?.errors,
     missingFields: validation.missingFields,
   };

@@ -411,7 +411,7 @@ describe("VaultsPage", () => {
     expect(screen.getByRole("button", { name: "Endow to Greenpill NYC" })).toBeEnabled();
   });
 
-  it("shows one Endow CTA on Greenpill NYC and a blocked explanation for incomplete fixtures", () => {
+  it("shows Endow CTAs for both card-ready vault fixtures", () => {
     renderView();
 
     const nycCard = screen.getByTestId("vault-campaign-card-greenpill-nyc");
@@ -424,15 +424,22 @@ describe("VaultsPage", () => {
     ).not.toBeInTheDocument();
     expect(within(nycCard).queryByRole("button", { name: /pay by card/i })).not.toBeInTheDocument();
 
-    // EVMavericks stays transaction-blocked with neutral public preview copy.
-    expect(within(evmavericksCard).queryByRole("button")).not.toBeInTheDocument();
+    // EVMavericks is wallet-ready and card-ready through the supplied vault tuple.
+    expect(
+      within(evmavericksCard).getByRole("button", {
+        name: "Endow to EVMavericks Fantasy Football League",
+      })
+    ).toBeEnabled();
+    expect(within(evmavericksCard).getByText("Ready for checkout")).toBeInTheDocument();
     expect(
       within(evmavericksCard).getByText(
-        "This preview does not accept Endow payments yet. The campaign will open after its vault route is complete and verified."
+        "EVMavericks can accept Wallet Endow and Card Endow through its supplied Octant V2 Ethereum vault."
       )
     ).toBeInTheDocument();
-    expect(within(evmavericksCard).getByText("Preview")).toBeInTheDocument();
-    expect(within(evmavericksCard).queryByRole("list")).not.toBeInTheDocument();
+    expect(within(evmavericksCard).queryByText("Preview")).not.toBeInTheDocument();
+    expect(
+      within(evmavericksCard).queryByRole("button", { name: /pay by card/i })
+    ).not.toBeInTheDocument();
     expect(
       within(evmavericksCard).queryByText("Protocol Guild destination context")
     ).not.toBeInTheDocument();
@@ -498,6 +505,39 @@ describe("VaultsPage", () => {
     expect(screen.getByTestId("vault-wallet-endow-path")).toBeInTheDocument();
     expect(screen.queryByTestId("vault-checkout-method-card")).not.toBeInTheDocument();
     expect(screen.queryByTestId("vault-card-endow-flow")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("thirdweb-buy-widget")).not.toBeInTheDocument();
+  });
+
+  it("opens EVMavericks with Card and Wallet checkout", async () => {
+    const user = userEvent.setup();
+
+    renderView();
+
+    await user.click(
+      screen.getByRole("button", { name: "Endow to EVMavericks Fantasy Football League" })
+    );
+
+    const continueButton = screen.getByRole("button", { name: "Continue" });
+    expect(continueButton).toBeDisabled();
+    const cardMethod = screen.getByTestId("vault-checkout-method-card");
+    const walletMethod = screen.getByTestId("vault-checkout-method-wallet");
+    expect(cardMethod).toBeEnabled();
+    expect(walletMethod).toBeEnabled();
+    await user.click(cardMethod);
+    expect(cardMethod).toHaveAttribute("aria-pressed", "true");
+    const continueToCardButton = screen.getByRole("button", { name: "Continue to Card" });
+    expect(continueToCardButton).toBeDisabled();
+    await user.type(screen.getByLabelText("Amount to endow"), "25");
+    expect(continueToCardButton).toBeEnabled();
+    await user.click(continueToCardButton);
+
+    expect(await screen.findByTestId("vault-card-endow-flow")).toBeInTheDocument();
+    await recoverEmailWallet(user, "evm@example.org");
+    const review = await screen.findByTestId("vault-card-endow-review");
+    expect(review).toHaveTextContent("EVMavericks Fantasy Football League");
+    expect(review).toHaveTextContent("Ethereum chain 1");
+    expect(review).toHaveTextContent("0x0bCe8c16974FFD3B410A32365c5bCf27a5A630Fc");
+    expect(review).toHaveTextContent("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2");
     expect(screen.queryByTestId("thirdweb-buy-widget")).not.toBeInTheDocument();
   });
 
