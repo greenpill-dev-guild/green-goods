@@ -37,7 +37,7 @@ function isProductionCardEndowCampaign(campaign: OctantVaultCampaignManifest): b
   return CARD_ENDOW_PRODUCTION_CAMPAIGN_SLUGS.has(campaign.slug);
 }
 
-// Thirdweb (BuyWidget + in-app wallet) is heavy and only the Card path needs it.
+// Thirdweb (in-app wallet + Bridge onramp) is heavy and only the Card path needs it.
 // Keep it behind a lazy boundary so the modal shell, amount step, and Wallet path
 // never pull it into the main chunk.
 const VaultCardEndowFlow = lazy(() => import("./VaultCardEndowFlow"));

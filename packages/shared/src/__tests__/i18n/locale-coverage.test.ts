@@ -124,6 +124,7 @@ const allowedIdenticalProductValues = new Set([
   "Solar",
   "Stablecoin",
   "Telegram",
+  "Thirdweb Bridge",
   "Token",
   "tokens",
   "Tx",

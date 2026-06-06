@@ -39,7 +39,6 @@ const thirdwebMocks = vi.hoisted(() => {
     receiverAddress,
     activeAccount: undefined as { address: string } | undefined,
     activeWallet: { id: "inApp" },
-    buyWidgetProps: [] as unknown[],
     createThirdwebClient: vi.fn((options: { clientId: string }) => ({
       clientId: options.clientId,
     })),
@@ -53,6 +52,10 @@ const thirdwebMocks = vi.hoisted(() => {
     sendAndConfirmTransaction: vi.fn(async () => ({
       transactionHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     })),
+    // Headless onramp (Bridge.Onramp) replaces the embedded BuyWidget. Defaults are
+    // (re)set per test in beforeEach so once-overrides can model PENDING/FAILED/fallback.
+    onrampPrepare: vi.fn(),
+    onrampStatus: vi.fn(),
     useConnectConnect: vi.fn(async (walletOrFn: unknown) => {
       if (typeof walletOrFn === "function") {
         return await (walletOrFn as () => Promise<unknown>)();
@@ -63,8 +66,34 @@ const thirdwebMocks = vi.hoisted(() => {
 });
 
 const fetchMock = vi.hoisted(() => vi.fn());
+const windowOpenMock = vi.hoisted(() => vi.fn());
+const checkoutWindowMocks = vi.hoisted(() => {
+  type MockCheckoutWindow = {
+    location: { href: string };
+    close: ReturnType<typeof vi.fn>;
+    closed: boolean;
+    opener: unknown;
+  };
+
+  return {
+    current: null as MockCheckoutWindow | null,
+    create() {
+      const checkoutWindow = {
+        location: { href: "about:blank" },
+        close: vi.fn(),
+        closed: false,
+        opener: { app: "green-goods" },
+      } satisfies MockCheckoutWindow;
+      checkoutWindow.close.mockImplementation(() => {
+        checkoutWindow.closed = true;
+      });
+      return checkoutWindow;
+    },
+  };
+});
 
 vi.stubGlobal("fetch", fetchMock);
+vi.stubGlobal("open", windowOpenMock);
 
 vi.mock("@green-goods/shared", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@green-goods/shared")>();
@@ -101,6 +130,12 @@ vi.mock("thirdweb", () => ({
   getContract: thirdwebMocks.getContract,
   prepareContractCall: thirdwebMocks.prepareContractCall,
   readContract: thirdwebMocks.readContract,
+  Bridge: {
+    Onramp: {
+      prepare: thirdwebMocks.onrampPrepare,
+      status: thirdwebMocks.onrampStatus,
+    },
+  },
 }));
 
 vi.mock("thirdweb/chains", () => ({
@@ -112,20 +147,6 @@ vi.mock("thirdweb/react", async () => {
   const { createElement } = await import("react");
 
   return {
-    BuyWidget: (props: {
-      onSuccess?: (data: { quote: { type: "buy" }; statuses: unknown[] }) => void;
-    }) => {
-      thirdwebMocks.buyWidgetProps.push(props);
-      return createElement(
-        "button",
-        {
-          type: "button",
-          "data-testid": "thirdweb-buy-widget",
-          onClick: () => props.onSuccess?.({ quote: { type: "buy" }, statuses: [] }),
-        },
-        "Thirdweb card funding widget"
-      );
-    },
     ThirdwebProvider: ({ children }: { children: unknown }) =>
       createElement("div", { "data-testid": "thirdweb-provider" }, children),
     useActiveAccount: () => thirdwebMocks.activeAccount,
@@ -319,7 +340,11 @@ async function recoverEmailWallet(
 async function confirmTupleAndFundCard(user: ReturnType<typeof userEvent.setup>) {
   expect(screen.queryByTestId("thirdweb-buy-widget")).not.toBeInTheDocument();
   await user.click(screen.getByRole("button", { name: "Continue to card payment" }));
-  await user.click(screen.getByTestId("thirdweb-buy-widget"));
+  // Step 3 is the Green Goods-owned panel — never an embedded provider widget.
+  await screen.findByTestId("vault-card-payment-panel");
+  expect(screen.queryByTestId("thirdweb-buy-widget")).not.toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "Open secure card checkout" }));
+  await user.click(await screen.findByRole("button", { name: "Check payment status" }));
   await screen.findByText(
     "Card funding is complete. Next, approve the vault transfer for this endowment."
   );
@@ -344,7 +369,6 @@ describe("VaultsPage", () => {
     };
     stubMatchMedia();
     thirdwebMocks.activeAccount = undefined;
-    thirdwebMocks.buyWidgetProps = [];
     thirdwebMocks.createThirdwebClient.mockClear();
     thirdwebMocks.getContract.mockClear();
     thirdwebMocks.inAppWallet.mockClear();
@@ -352,8 +376,28 @@ describe("VaultsPage", () => {
     thirdwebMocks.prepareContractCall.mockClear();
     thirdwebMocks.readContract.mockClear();
     thirdwebMocks.sendAndConfirmTransaction.mockClear();
+    thirdwebMocks.onrampPrepare.mockReset();
+    thirdwebMocks.onrampPrepare.mockResolvedValue({
+      id: "onramp_test_session",
+      link: "https://onramp.test/session",
+      currency: "USD",
+      currencyAmount: 30,
+      destinationAmount: 10000000000000000n,
+      steps: [],
+      intent: {},
+    });
+    thirdwebMocks.onrampStatus.mockReset();
+    thirdwebMocks.onrampStatus.mockResolvedValue({ status: "COMPLETED", transactions: [] });
     thirdwebMocks.useConnectConnect.mockClear();
+    checkoutWindowMocks.current = null;
+    windowOpenMock.mockReset();
+    windowOpenMock.mockImplementation(() => {
+      const checkoutWindow = checkoutWindowMocks.create();
+      checkoutWindowMocks.current = checkoutWindow;
+      return checkoutWindow;
+    });
     vi.stubGlobal("fetch", fetchMock);
+    vi.stubGlobal("open", windowOpenMock);
     fetchMock.mockReset();
     fetchMock.mockResolvedValue(
       new Response(
@@ -722,11 +766,63 @@ describe("VaultsPage", () => {
     const confirmAndContinue = screen.getByRole("button", { name: "Continue to card payment" });
     expect(confirmAndContinue).toBeEnabled();
     await user.click(confirmAndContinue);
-    expect(screen.getByTestId("thirdweb-buy-widget")).toBeInTheDocument();
-    await user.click(screen.getByTestId("thirdweb-buy-widget"));
+
+    // Step 3 is the Green Goods-owned payment panel — never an embedded provider widget.
+    expect(await screen.findByTestId("vault-card-payment-panel")).toBeInTheDocument();
+    expect(screen.getByText("Step 3 of 4")).toBeInTheDocument();
+    expect(screen.queryByTestId("thirdweb-buy-widget")).not.toBeInTheDocument();
+
+    // Opening checkout pre-opens a blank tab from the click gesture, prepares a
+    // headless onramp for the recovered wallet + WETH, and redirects that tab.
+    await user.click(screen.getByRole("button", { name: "Open secure card checkout" }));
+    await waitFor(() => expect(thirdwebMocks.onrampPrepare).toHaveBeenCalledTimes(1));
+    expect(windowOpenMock).toHaveBeenCalledWith("about:blank", "_blank");
+    expect(thirdwebMocks.onrampPrepare).toHaveBeenCalledWith(
+      expect.objectContaining({
+        onramp: "stripe",
+        chainId: 1,
+        tokenAddress: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+        receiver: thirdwebMocks.receiverAddress,
+        amount: 10000000000000000n,
+        purchaseData: expect.objectContaining({
+          intent: "octant_vault_card_endow",
+          route: "/vaults",
+          campaignSlug: "greenpill-nyc",
+          vaultAddress: "0xaC8F844CEA2Fd75B7A5514f11974895B334fd9A5",
+          tokenAddress: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+          receiverAddress: thirdwebMocks.receiverAddress,
+          amount: "10000000000000000",
+        }),
+      })
+    );
+    await waitFor(() =>
+      expect(checkoutWindowMocks.current?.location.href).toBe("https://onramp.test/session")
+    );
+    expect(checkoutWindowMocks.current?.opener).toBeNull();
+    expect(
+      within(screen.getByTestId("vault-card-payment-panel")).getByRole("status")
+    ).toHaveAttribute("aria-live", "polite");
+    expect(
+      screen.getByText(
+        "Card checkout is ready. If a new tab did not open, use the secure checkout link below, then return here to confirm your vault position."
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open secure checkout link" })).toHaveAttribute(
+      "href",
+      "https://onramp.test/session"
+    );
+
+    // Checking status returns COMPLETED, advancing to the Step 4 combined complete step.
+    await user.click(await screen.findByRole("button", { name: "Check payment status" }));
+    await waitFor(() =>
+      expect(thirdwebMocks.onrampStatus).toHaveBeenCalledWith({
+        id: "onramp_test_session",
+        client: { clientId: "test-thirdweb-client" },
+      })
+    );
 
     // Card funding lands on the single combined complete step (approve + deposit).
-    expect(screen.getByText("Step 4 of 4")).toBeInTheDocument();
+    expect(await screen.findByText("Step 4 of 4")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Complete endowment" })).toBeInTheDocument();
     expect(
       screen.getByText(
@@ -798,6 +894,148 @@ describe("VaultsPage", () => {
     expect(
       await screen.findByText("Receipt recorded for your vault contribution.")
     ).toBeInTheDocument();
+  });
+
+  it("keeps the supporter on Step 3 when the card payment is still pending", async () => {
+    const user = userEvent.setup();
+    thirdwebMocks.onrampStatus.mockResolvedValueOnce({ status: "PENDING", transactions: [] });
+
+    renderView();
+
+    await openGreenpillCardCheckout(user);
+    await recoverEmailWallet(user);
+    await user.click(screen.getByRole("button", { name: "Continue to card payment" }));
+    await user.click(await screen.findByRole("button", { name: "Open secure card checkout" }));
+    await user.click(await screen.findByRole("button", { name: "Check payment status" }));
+
+    // PENDING never advances to Step 4 or runs an on-chain transaction.
+    expect(
+      await screen.findByText(
+        "Your card payment is still processing. Finish it in the checkout tab, then check the status again."
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByText("Step 3 of 4")).toBeInTheDocument();
+    expect(screen.queryByText("Step 4 of 4")).not.toBeInTheDocument();
+    expect(thirdwebMocks.sendAndConfirmTransaction).not.toHaveBeenCalled();
+  });
+
+  it("falls back to Coinbase when the Stripe onramp prepare fails", async () => {
+    const user = userEvent.setup();
+    thirdwebMocks.onrampPrepare.mockRejectedValueOnce(new Error("stripe unavailable"));
+
+    renderView();
+
+    await openGreenpillCardCheckout(user);
+    await recoverEmailWallet(user);
+    await user.click(screen.getByRole("button", { name: "Continue to card payment" }));
+    await user.click(await screen.findByRole("button", { name: "Open secure card checkout" }));
+
+    // Stripe failed in a controlled way, so the panel retries with Coinbase and still
+    // redirects the pre-opened checkout tab.
+    await waitFor(() => expect(thirdwebMocks.onrampPrepare).toHaveBeenCalledTimes(2));
+    expect(thirdwebMocks.onrampPrepare.mock.calls[0]?.[0]).toMatchObject({ onramp: "stripe" });
+    expect(thirdwebMocks.onrampPrepare.mock.calls[1]?.[0]).toMatchObject({ onramp: "coinbase" });
+    expect(windowOpenMock).toHaveBeenCalledWith("about:blank", "_blank");
+    await waitFor(() =>
+      expect(checkoutWindowMocks.current?.location.href).toBe("https://onramp.test/session")
+    );
+    expect(screen.getByRole("link", { name: "Open secure checkout link" })).toHaveAttribute(
+      "href",
+      "https://onramp.test/session"
+    );
+  });
+
+  it("keeps a direct checkout link available when the browser blocks the new tab", async () => {
+    const user = userEvent.setup();
+    windowOpenMock.mockReturnValueOnce(null);
+
+    renderView();
+
+    await openGreenpillCardCheckout(user);
+    await recoverEmailWallet(user);
+    await user.click(screen.getByRole("button", { name: "Continue to card payment" }));
+    await user.click(await screen.findByRole("button", { name: "Open secure card checkout" }));
+
+    await waitFor(() => expect(thirdwebMocks.onrampPrepare).toHaveBeenCalledTimes(1));
+    expect(windowOpenMock).toHaveBeenCalledWith("about:blank", "_blank");
+    expect(checkoutWindowMocks.current).toBeNull();
+    expect(
+      await screen.findByText(
+        "Card checkout is ready. If a new tab did not open, use the secure checkout link below, then return here to confirm your vault position."
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open secure checkout link" })).toHaveAttribute(
+      "href",
+      "https://onramp.test/session"
+    );
+    expect(screen.getByRole("button", { name: "Check payment status" })).toBeEnabled();
+  });
+
+  it("keeps provider prepare errors generic and closes the blank checkout tab", async () => {
+    const user = userEvent.setup();
+    thirdwebMocks.onrampPrepare.mockRejectedValue(new Error("stripe unavailable: provider trace"));
+
+    renderView();
+
+    await openGreenpillCardCheckout(user);
+    await recoverEmailWallet(user);
+    await user.click(screen.getByRole("button", { name: "Continue to card payment" }));
+    await user.click(await screen.findByRole("button", { name: "Open secure card checkout" }));
+
+    await waitFor(() => expect(thirdwebMocks.onrampPrepare).toHaveBeenCalledTimes(2));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "We couldn't open card checkout. Please try again."
+    );
+    expect(screen.queryByText(/provider trace/i)).not.toBeInTheDocument();
+    expect(checkoutWindowMocks.current?.closed).toBe(true);
+    expect(
+      screen.queryByRole("link", { name: "Open secure checkout link" })
+    ).not.toBeInTheDocument();
+  });
+
+  it("keeps provider status errors generic", async () => {
+    const user = userEvent.setup();
+    thirdwebMocks.onrampStatus.mockRejectedValueOnce(new Error("coinbase session trace"));
+
+    renderView();
+
+    await openGreenpillCardCheckout(user);
+    await recoverEmailWallet(user);
+    await user.click(screen.getByRole("button", { name: "Continue to card payment" }));
+    await user.click(await screen.findByRole("button", { name: "Open secure card checkout" }));
+    await user.click(await screen.findByRole("button", { name: "Check payment status" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "We couldn't check your payment yet. Please try again."
+    );
+    expect(screen.queryByText(/session trace/i)).not.toBeInTheDocument();
+    expect(screen.queryByText("Step 4 of 4")).not.toBeInTheDocument();
+  });
+
+  it("surfaces a recoverable error and never advances when the card payment fails", async () => {
+    const user = userEvent.setup();
+    thirdwebMocks.onrampStatus.mockResolvedValueOnce({ status: "FAILED", transactions: [] });
+
+    renderView();
+
+    await openGreenpillCardCheckout(user);
+    await recoverEmailWallet(user);
+    await user.click(screen.getByRole("button", { name: "Continue to card payment" }));
+    await user.click(await screen.findByRole("button", { name: "Open secure card checkout" }));
+    await user.click(await screen.findByRole("button", { name: "Check payment status" }));
+
+    expect(
+      await screen.findByText(
+        "That card payment didn't go through. You can open checkout again to try once more."
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Step 4 of 4")).not.toBeInTheDocument();
+    expect(thirdwebMocks.sendAndConfirmTransaction).not.toHaveBeenCalled();
+    // Retry stays available — the donor can reopen checkout through the direct link.
+    expect(screen.getByRole("link", { name: "Open secure checkout link" })).toHaveAttribute(
+      "href",
+      "https://onramp.test/session"
+    );
   });
 
   it("locks the sheet while the combined Card Endow runs, then finishes after it resolves", async () => {

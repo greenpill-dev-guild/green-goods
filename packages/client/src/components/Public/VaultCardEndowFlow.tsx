@@ -21,14 +21,10 @@ import {
   type ThirdwebClient,
 } from "thirdweb";
 import { defineChain, ethereum } from "thirdweb/chains";
-import {
-  BuyWidget,
-  ThirdwebProvider,
-  useConnect,
-  useSendAndConfirmTransaction,
-} from "thirdweb/react";
+import { ThirdwebProvider, useConnect, useSendAndConfirmTransaction } from "thirdweb/react";
 import { inAppWallet, preAuthenticate } from "thirdweb/wallets/in-app";
 import { formatUnits, isAddress } from "viem";
+import VaultCardPaymentPanel from "./VaultCardPaymentPanel";
 import type { VaultCheckoutGuardState } from "./VaultCheckoutDialog";
 import {
   CHECKOUT_FIELD_LABEL,
@@ -91,9 +87,9 @@ export interface VaultCardEndowFlowProps {
  *
  * Mounted (lazily) only once a valid amount exists and the user chose Card. Renders
  * one focused step at a time inside the fixed-height sheet, keeping every Card Endow
- * safety gate: email verification first, donor review before the Thirdweb
- * BuyWidget, strict WETH approve -> deposit ordering, and proof only after a
- * positive `vault.balanceOf(receiver)` read.
+ * safety gate: email verification first, donor review before the Green Goods-owned
+ * card payment panel (headless Bridge.Onramp checkout), strict WETH approve ->
+ * deposit ordering, and proof only after a positive `vault.balanceOf(receiver)` read.
  */
 export default function VaultCardEndowFlow({
   campaign,
@@ -205,15 +201,6 @@ function CardEndowProviderContent({
   const formattedAmount = hasReadyAmount ? formatUnits(amount, decimals) : "";
   const chainId = campaign.vault?.chainId ?? ethereum.id;
   const chain = useMemo(() => getThirdwebChain(chainId), [chainId]);
-  const buyWidgetWallets = useMemo(
-    () => [
-      inAppWallet({
-        auth: { options: ["email"] },
-        metadata: { name: "Green Goods" },
-      }),
-    ],
-    []
-  );
   const receiverAddress =
     recoveredWalletAddress && isAddress(recoveredWalletAddress) ? recoveredWalletAddress : null;
   const flowKey = `${campaign.slug}:${amount.toString()}:${receiverAddress ?? ""}`;
@@ -644,15 +631,6 @@ function CardEndowProviderContent({
     setCardFundingStatus("funded");
   }, [flowKey, isCurrentFlow]);
 
-  const handleCardFundingError = useCallback(
-    (error: { message: string }) => {
-      const expectedFlowKey = flowKey;
-      if (!isCurrentFlow(expectedFlowKey)) return;
-      setFlowError(error.message);
-    },
-    [flowKey, isCurrentFlow]
-  );
-
   // ── Render helpers ─────────────────────────────────────────────────────────
   const canEditCheckout = !checkoutInputsLocked;
   const assetDisplay = getOctantVaultAssetDisplayPolicy(
@@ -1024,79 +1002,17 @@ function CardEndowProviderContent({
     );
   }
 
-  // ── fund: card payment widget is its own action (no footer) ────────────────
+  // ── fund: Green Goods-owned card payment panel (headless Bridge.Onramp) ────
   if (stage === "fund" && plan) {
     return (
-      <CheckoutScreen>
-        <div className="flex flex-col gap-5" data-testid="vault-card-endow-flow">
-          <CheckoutStageHeader
-            eyebrow={formatMessage({
-              id: "public.vaults.cardEndow.stage.fund.eyebrow",
-              defaultMessage: "Step 3 of 4",
-            })}
-            title={formatMessage({
-              id: "public.vaults.cardEndow.stage.fund.title",
-              defaultMessage: "Fund wallet by card",
-            })}
-            description={formatMessage({
-              id: "public.vaults.cardEndow.stage.fund.description",
-              defaultMessage:
-                "Thirdweb will collect card details and fund the verified email wallet.",
-            })}
-          />
-          <CheckoutSummary items={cardSummaryItems} />
-          <section
-            className="grid gap-4"
-            aria-label={formatMessage({
-              id: "public.vaults.cardEndow.cardFundingRegion",
-              defaultMessage: "Card payment",
-            })}
-          >
-            <div data-testid="vault-card-endow-buy-widget-host">
-              <BuyWidget
-                client={client}
-                chain={chain}
-                tokenAddress={plan.cardFunding.tokenAddress}
-                amount={formatUnits(
-                  BigInt(plan.cardFunding.amount),
-                  plan.cardFunding.tokenDecimals
-                )}
-                receiverAddress={plan.cardFunding.destinationAddress}
-                paymentMethods={["card"]}
-                amountEditable={false}
-                tokenEditable={false}
-                connectOptions={{ wallets: buyWidgetWallets, autoConnect: false, chain }}
-                theme="light"
-                title={formatMessage({
-                  id: "public.vaults.cardEndow.buyWidgetTitle",
-                  defaultMessage: "Secure card payment",
-                })}
-                description={formatMessage({
-                  id: "public.vaults.cardEndow.buyWidgetDescription",
-                  defaultMessage:
-                    "Card payment funds your verified email wallet with WETH for this Octant vault.",
-                })}
-                buttonLabel={formatMessage({
-                  id: "public.vaults.cardEndow.buyWidgetButton",
-                  defaultMessage: "Continue to card payment",
-                })}
-                purchaseData={{
-                  intent: "octant_vault_card_endow",
-                  route: "/vaults",
-                  campaignSlug: campaign.slug,
-                  vaultAddress: plan.receiptExpectation.expectedVaultAddress,
-                  tokenAddress: plan.receiptExpectation.expectedTokenAddress,
-                  receiverAddress: plan.receiptExpectation.receiverAddress,
-                  amount: plan.receiptExpectation.expectedAmount,
-                }}
-                onSuccess={handleCardFundingSuccess}
-                onError={handleCardFundingError}
-              />
-            </div>
-          </section>
-          {errorNotes}
-        </div>
-      </CheckoutScreen>
+      <VaultCardPaymentPanel
+        client={client}
+        plan={plan}
+        campaign={campaign}
+        summaryItems={cardSummaryItems}
+        onCardFundingSuccess={handleCardFundingSuccess}
+        errorNotes={errorNotes}
+      />
     );
   }
 
