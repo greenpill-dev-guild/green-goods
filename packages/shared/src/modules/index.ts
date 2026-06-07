@@ -2,6 +2,10 @@
 
 export {
   ANALYTICS_EVENTS,
+  trackAdminActionCreateFailed,
+  // Admin: action events
+  trackAdminActionCreateStarted,
+  trackAdminActionCreateSuccess,
   trackAdminDeployFailed,
   // Admin: deployment events
   trackAdminDeployStarted,

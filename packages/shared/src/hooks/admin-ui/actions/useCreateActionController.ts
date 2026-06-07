@@ -3,9 +3,13 @@ import {
   adminRoutes,
   buildActionInstructionsV2,
   Domain,
+  getNetworkContracts,
   logger,
   type Step,
   toastService,
+  trackAdminActionCreateFailed,
+  trackAdminActionCreateStarted,
+  trackAdminActionCreateSuccess,
   uploadFileToIPFS,
   useActionOperations,
   useFormWizardStepValidation,
@@ -35,6 +39,8 @@ export function useCreateActionController() {
   const location = useLocation();
   const { formatMessage } = useIntl();
   const { registerAction, isLoading } = useActionOperations(CREATE_ACTION_DEFAULT_CHAIN_ID);
+  const createActionContracts = getNetworkContracts(CREATE_ACTION_DEFAULT_CHAIN_ID);
+  const actionCreateGardenAddress = createActionContracts.gardenToken;
   const [currentStep, setCurrentStep] = useState(0);
   const setDraftFormState = useSheetOrchestratorStore((state) => state.setFormState);
   const clearDraftFormState = useSheetOrchestratorStore((state) => state.clearViewState);
@@ -155,6 +161,10 @@ export function useCreateActionController() {
   }, [currentStep, form, setDraftFormState]);
 
   const onSubmit = async (data: CreateActionFormData) => {
+    let mutationStarted = false;
+    const actionSlug = data.slug.trim().toLowerCase();
+    const actionDomain = data.domain as Domain;
+
     try {
       toastService.loading({
         title: formatMessage({
@@ -182,15 +192,41 @@ export function useCreateActionController() {
 
       toastService.dismiss();
 
-      await registerAction({
+      const telemetryBase = {
+        gardenAddress: actionCreateGardenAddress,
+        chainId: CREATE_ACTION_DEFAULT_CHAIN_ID,
+        actionTitle: data.title,
+        actionSlug,
+        actionDomain,
+      };
+
+      mutationStarted = true;
+      trackAdminActionCreateStarted(telemetryBase);
+
+      const result = await registerAction({
         title: data.title,
-        slug: data.slug.trim().toLowerCase(),
-        domain: data.domain as Domain,
+        slug: actionSlug,
+        domain: actionDomain,
         startTime: Math.floor(data.startTime.getTime() / 1000),
         endTime: Math.floor(data.endTime.getTime() / 1000),
         capitals: data.capitals,
         media: mediaCIDs,
         instructions: instructionsUpload.cid,
+      });
+
+      if (!result.success) {
+        const errorMessage = result.error?.message ?? "Action registration failed";
+        mutationStarted = false;
+        trackAdminActionCreateFailed({
+          ...telemetryBase,
+          error: errorMessage,
+        });
+        throw new Error(errorMessage);
+      }
+
+      trackAdminActionCreateSuccess({
+        ...telemetryBase,
+        txHash: result.hash ?? "",
       });
 
       clearDraftFormState(ACTION_CREATE_DRAFT_PATH);
@@ -203,6 +239,17 @@ export function useCreateActionController() {
         title: data.title,
         mediaCount: data.media.length,
       });
+      if (mutationStarted) {
+        trackAdminActionCreateFailed({
+          gardenAddress: actionCreateGardenAddress,
+          chainId: CREATE_ACTION_DEFAULT_CHAIN_ID,
+          actionTitle: data.title,
+          actionSlug,
+          actionDomain,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
+
       toastService.error({
         title: formatMessage({
           id: "app.admin.actions.create.errorTitle",

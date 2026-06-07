@@ -711,6 +711,10 @@ export {
   submitApprovalBot,
   submitWorkBot,
   track,
+  trackAdminActionCreateFailed,
+  // Admin action tracking
+  trackAdminActionCreateStarted,
+  trackAdminActionCreateSuccess,
   trackAdminDeployFailed,
   // Admin deploy tracking
   trackAdminDeployStarted,
