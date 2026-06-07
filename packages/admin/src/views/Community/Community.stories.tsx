@@ -94,9 +94,49 @@ export const Treasury: Story = {
 };
 
 export const VaultInspector: Story = {
-  tags: ["visual-harness"],
+  tags: ["storybook-ci"],
   args: { initialPath: "/community/treasury/vault" },
   decorators: communityDecorators(),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    await expect(
+      await canvas.findByRole(
+        "button",
+        { name: /Rio Rainforest Lab/ },
+        ADMIN_ROUTE_STORY_QUERY_OPTIONS
+      )
+    ).toBeVisible();
+    const leftSheet = await canvas.findByTestId(
+      "left-sheet",
+      undefined,
+      ADMIN_ROUTE_STORY_QUERY_OPTIONS
+    );
+    await expect(leftSheet).toHaveAttribute("data-component", "LeftSheet");
+    await expect(
+      await within(leftSheet).findByText(
+        "Total value locked",
+        undefined,
+        ADMIN_ROUTE_STORY_QUERY_OPTIONS
+      )
+    ).toBeVisible();
+    await expect(
+      await within(leftSheet).findByText(
+        "Net deposited",
+        undefined,
+        ADMIN_ROUTE_STORY_QUERY_OPTIONS
+      )
+    ).toBeVisible();
+    await expect(
+      (
+        await within(leftSheet).findAllByText(
+          "Depositors",
+          undefined,
+          ADMIN_ROUTE_STORY_QUERY_OPTIONS
+        )
+      ).length
+    ).toBeGreaterThan(0);
+  },
 };
 
 export const GovernancePools: Story = {
