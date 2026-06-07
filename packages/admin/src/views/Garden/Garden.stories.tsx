@@ -6,7 +6,7 @@ import {
   type Address,
   type Garden as SharedGarden,
 } from "@green-goods/shared";
-import { expect, waitFor, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import {
   STORYBOOK_ADMIN_GARDENS,
   STORYBOOK_ADMIN_SHELL_SEEDS,
@@ -63,11 +63,25 @@ const STORYBOOK_EMPTY_DOMAIN_GARDEN = {
 const STORYBOOK_EMPTY_DOMAIN_GARDENS = STORYBOOK_ADMIN_GARDENS.map((garden) =>
   garden.id === STORYBOOK_EMPTY_DOMAIN_GARDEN.id ? STORYBOOK_EMPTY_DOMAIN_GARDEN : garden
 );
+const STORYBOOK_SECONDARY_ADMIN_GARDEN = STORYBOOK_ADMIN_GARDENS[1] as SharedGarden;
+const STORYBOOK_SECONDARY_ADMIN_GARDEN_ID =
+  STORYBOOK_SECONDARY_ADMIN_GARDEN.id.toLowerCase() as Address;
 
 const STORYBOOK_EMPTY_DOMAIN_SEEDS: ReadonlyArray<readonly [QueryKey, unknown]> =
   STORYBOOK_ADMIN_SHELL_SEEDS.map(([key, data]) =>
     data === STORYBOOK_ADMIN_GARDENS ? [key, STORYBOOK_EMPTY_DOMAIN_GARDENS] : [key, data]
   );
+const STORYBOOK_SECONDARY_GARDEN_SEEDS: ReadonlyArray<readonly [QueryKey, unknown]> = [
+  ...STORYBOOK_ADMIN_SHELL_SEEDS,
+  [queryKeys.assessments.byGardenBase(STORYBOOK_SECONDARY_ADMIN_GARDEN.id, DEFAULT_CHAIN_ID), []],
+  [queryKeys.works.merged(STORYBOOK_SECONDARY_ADMIN_GARDEN.id, DEFAULT_CHAIN_ID), []],
+  [queryKeys.hypercerts.list(STORYBOOK_SECONDARY_ADMIN_GARDEN.id, DEFAULT_CHAIN_ID, undefined), []],
+  [queryKeys.vaults.byGarden(STORYBOOK_SECONDARY_ADMIN_GARDEN_ID, DEFAULT_CHAIN_ID), []],
+  [queryKeys.yield.allocations(STORYBOOK_SECONDARY_ADMIN_GARDEN_ID, DEFAULT_CHAIN_ID, 20), []],
+  [queryKeys.community.garden(STORYBOOK_SECONDARY_ADMIN_GARDEN_ID, DEFAULT_CHAIN_ID), null],
+  [queryKeys.community.pools(STORYBOOK_SECONDARY_ADMIN_GARDEN_ID, DEFAULT_CHAIN_ID), []],
+  [queryKeys.conviction.strategies(STORYBOOK_SECONDARY_ADMIN_GARDEN_ID, DEFAULT_CHAIN_ID), []],
+];
 
 const STORYBOOK_OPERATOR_ADDRESS_KEY = STORYBOOK_OPERATOR_ADDRESS.toLowerCase() as Address;
 
@@ -145,6 +159,78 @@ export const Settings: Story = {
   decorators: gardenDecorators(),
 };
 
+export const GardenSwitchRemainsInteractive: Story = {
+  tags: ["storybook-ci"],
+  args: { initialPath: "/garden/overview" },
+  decorators: gardenDecorators({ seeds: STORYBOOK_SECONDARY_GARDEN_SEEDS }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const page = within(canvasElement.ownerDocument.body);
+
+    await expect(
+      await canvas.findByRole(
+        "button",
+        { name: /Rio Rainforest Lab/ },
+        ADMIN_ROUTE_STORY_QUERY_OPTIONS
+      )
+    ).toBeVisible();
+
+    await userEvent.click(
+      await canvas.findByRole(
+        "button",
+        { name: /Rio Rainforest Lab/ },
+        ADMIN_ROUTE_STORY_QUERY_OPTIONS
+      )
+    );
+    await userEvent.click(
+      await page.findByRole("button", { name: "Botanic Commons" }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
+    );
+    await waitFor(() =>
+      expect(canvas.getByRole("button", { name: /Botanic Commons/ })).toBeVisible()
+    );
+    await expect(
+      await canvas.findByRole("heading", { name: "Garden" }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
+    ).toBeVisible();
+
+    await userEvent.click(
+      await canvas.findByRole(
+        "button",
+        { name: /Botanic Commons/ },
+        ADMIN_ROUTE_STORY_QUERY_OPTIONS
+      )
+    );
+    await userEvent.click(
+      await page.findByRole(
+        "button",
+        { name: "Rio Rainforest Lab" },
+        ADMIN_ROUTE_STORY_QUERY_OPTIONS
+      )
+    );
+    await waitFor(() =>
+      expect(canvas.getByRole("button", { name: /Rio Rainforest Lab/ })).toBeVisible()
+    );
+  },
+};
+
+export const UrlGardenSync: Story = {
+  tags: ["storybook-ci"],
+  args: { initialPath: `/garden/settings?gardenAddress=${STORYBOOK_SECONDARY_ADMIN_GARDEN.id}` },
+  decorators: gardenDecorators({ seeds: STORYBOOK_SECONDARY_GARDEN_SEEDS }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+
+    await expect(
+      await canvas.findByRole("heading", { name: "Garden" }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
+    ).toBeVisible();
+    await waitFor(() =>
+      expect(canvas.getByRole("button", { name: /Botanic Commons/ })).toBeVisible()
+    );
+    await expect(
+      (await canvas.findAllByText("Brazil", undefined, ADMIN_ROUTE_STORY_QUERY_OPTIONS)).length
+    ).toBeGreaterThan(0);
+  },
+};
+
 export const CreateGardenRoute: Story = {
   tags: ["storybook-ci"],
   args: { initialPath: "/garden/create" },
@@ -194,5 +280,12 @@ export const EmptyDomains: Story = {
         ADMIN_ROUTE_STORY_QUERY_OPTIONS
       )
     ).toHaveLength(1);
+    await userEvent.click(
+      await canvas.findByRole("button", { name: "Edit domains" }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
+    );
+    const page = within(canvasElement.ownerDocument.body);
+    await expect(
+      await page.findByRole("dialog", { name: "Edit Domains" }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
+    ).toBeVisible();
   },
 };
