@@ -120,7 +120,7 @@ export const SubmitWorkSheet: Story = {
         ADMIN_ROUTE_STORY_QUERY_OPTIONS
       )
     );
-    await waitFor(() => expect(canvas.queryByTestId("left-sheet")).not.toBeInTheDocument());
+    await waitFor(() => expect(leftSheet).toHaveAttribute("data-state", "closed"));
     await expect(
       await canvas.findByText("Canopy transect upload", undefined, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
     ).toBeVisible();
