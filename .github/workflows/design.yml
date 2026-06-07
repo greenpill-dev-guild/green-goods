@@ -1,6 +1,13 @@
 name: Design
 
 on:
+  workflow_dispatch:
+    inputs:
+      publish_chromatic:
+        description: "Publish Storybook to Chromatic"
+        required: false
+        default: false
+        type: boolean
   push:
     branches: [main, develop]
     paths:
@@ -150,5 +157,5 @@ jobs:
           path: packages/shared/storybook-static
 
       - name: Publish Storybook to Chromatic
-        if: env.CHROMATIC_PROJECT_TOKEN != ''
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_chromatic && env.CHROMATIC_PROJECT_TOKEN != '' }}
         run: bun run --filter @green-goods/shared chromatic -- --exit-zero-on-changes --exit-once-uploaded
