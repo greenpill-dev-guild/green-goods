@@ -376,7 +376,7 @@ Routing rules:
   `Network Website`, or `Cookie Jar`.
 - Attach to an active bounded project only when the scope clearly matches. Otherwise leave the
   issue unprojected and correctly labeled.
-- Use only these label namespaces: `protocol:*`, `package:*`, `activity:*`, `task:*`,
+- Use only these label namespaces: `protocol:*`, `package:*`, `activity:*`,
   `funding:*`, `source:*`, `agent:*`.
 - Keep private, security-sensitive, exploit-enabling, replay, session, wallet, email, or
   user-identifying details out of public Linear issue bodies. Store sensitive context only in the

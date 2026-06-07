@@ -81,7 +81,6 @@ Issues created from Customer Needs (whether accepted bugs or lightweight trackin
 | `protocol:green-goods` | always | n/a (binary) | every Issue this routine creates |
 | `package:*` | `package:client`, `package:admin`, `package:shared`, `package:contracts`, `package:indexer`, `package:agent`, `package:docs` | **yes** | Issue. One value only. Pick primary surface; note secondary in body. Omit if surface is genuinely unknown. |
 | `activity:*` | `activity:qa` for confirmed bugs / behavioral defects; `activity:maintenance` for cleanup/polish/ideas/unactionable feedback that still warrants a tracking Issue | **yes** | Issue. One value only. |
-| `task:*` | `task:evidence`, `task:funding-pathway`, `task:access-participation` | yes | Issue, only when the bug clearly falls inside one of these task pathways; otherwise omit. |
 | `source:*` | `source:discord`, `source:telegram`, `source:drive` | n/a (multi-value family — used as provenance flags) | **Always** on every Issue this routine creates, one per origin (Discord→`source:discord`, Telegram→`source:telegram`, Drive→`source:drive`). This stamp is what scopes the Phase 7 triage count to this routine's own writes, so it is non-optional. Never on the Customer Need — Needs carry no labels. |
 | `agent:*` | `agent:routine` (default) · `agent:codex` (Codex-ready accepted bugs) | **yes** | Issue. Default `agent:routine`; swap to `agent:codex` when the accepted bug clears the Codex-ready bar (see [`README.md` § Codex hand-off](README.md)), and delegate to Codex when it also clears the autonomous-confident bar. The `/qa-triage` skill applies the same rule on human promotion. |
 
@@ -348,7 +347,7 @@ Source: the dedicated `#bug-report` channel (`DISCORD_BUGS_CHANNEL_ID`). The ret
    {Discord message URL — same as the Customer Need}
    ```
 
-   Project: leave **unprojected** on the Product team. Apply labels: `protocol:green-goods` + `activity:qa` + `package:<inferred>` (omit if unknown) + `source:discord` + `agent:routine` + the relevant `task:*` if the bug clearly maps to one of the canonical task pathways (`task:evidence`, `task:funding-pathway`, `task:access-participation`). Status: `Todo`. Link the Issue to the Customer Need via Linear's relationship surface ("relates to" or the Customer Need's linked-issues field, whichever the Linear API exposes). The Issue body inherits the same privacy boundary — never paste replay URLs, session IDs, distinct IDs, wallet addresses, or reporter identifiers into it.
+   Project: leave **unprojected** on the Product team. Apply labels: `protocol:green-goods` + `activity:qa` + `package:<inferred>` (omit if unknown) + `source:discord` + `agent:routine`. Status: `Todo`. Link the Issue to the Customer Need via Linear's relationship surface ("relates to" or the Customer Need's linked-issues field, whichever the Linear API exposes). The Issue body inherits the same privacy boundary — never paste replay URLs, session IDs, distinct IDs, wallet addresses, or reporter identifiers into it.
 
 7. **Acknowledge on Discord** — reply with the Linear URL and add ✅ reaction in `#bug-report`. When acknowledging, link the Customer Need (not the Issue), because the Customer Need is the user-facing record:
 
@@ -428,7 +427,7 @@ Run the sub-flow below twice — once with `inferred_type=bug` (ack target `#bug
 
    The Customer Need carries **no labels** — `save_customer_need` has no `labels` field. Provenance lives in the body; the canonical labels (`protocol:green-goods` + `source:telegram` + `agent:routine` + `activity:*`) go on the linked Issue created in step 8.
 
-8. **Create the linked Issue**. When the report is actionable per the same acceptance bar as Phase 1 step 6, create an accepted-bug Issue. Idea-source captures get a lightweight `activity:maintenance` + `Backlog` tracking Issue. Apply the same canonical labels for Issues (`protocol:green-goods` + `activity:qa` or `activity:maintenance` + `package:<inferred>` + `source:telegram` + `agent:routine` + relevant `task:*`) and privacy boundary.
+8. **Create the linked Issue**. When the report is actionable per the same acceptance bar as Phase 1 step 6, create an accepted-bug Issue. Idea-source captures get a lightweight `activity:maintenance` + `Backlog` tracking Issue. Apply the same canonical labels for Issues (`protocol:green-goods` + `activity:qa` or `activity:maintenance` + `package:<inferred>` + `source:telegram` + `agent:routine`) and privacy boundary.
 
 9. **Mark the captured message triaged**:
    ```
@@ -487,7 +486,7 @@ The `google-drive` connector exposes only `title`, `fullText`, `mimeType`, `modi
 
    Drive notes are mixed-source so judgment is required: include the meeting attendees in `## Reporter context` and prefer the privacy-safe summary over verbatim quotes when in doubt.
 
-7. **Create accepted-bug Issue** only if the doc captures an actionable bug with a clear surface (rare — Drive notes usually need triage first). Apply the same canonical labels (`protocol:green-goods` + `activity:qa` + `package:<inferred>` + `source:drive` + `agent:routine` + relevant `task:*`) and privacy boundary as in Phase 1 step 6.
+7. **Create accepted-bug Issue** only if the doc captures an actionable bug with a clear surface (rare — Drive notes usually need triage first). Apply the same canonical labels (`protocol:green-goods` + `activity:qa` + `package:<inferred>` + `source:drive` + `agent:routine`) and privacy boundary as in Phase 1 step 6.
 
 8. **Reporter acknowledgement** is not applicable for Drive (no per-message back-channel). Drive-sourced records appear in the daily Discord summary as a batch.
 

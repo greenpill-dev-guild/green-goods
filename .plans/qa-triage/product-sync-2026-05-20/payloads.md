@@ -2,6 +2,8 @@
 
 Mode: `--fixture --dry-run`. No Linear writes. The payloads below would be submitted via `save_issue` + `save_customer_need` on a real run.
 
+Freshness note (2026-06-02): this file is fixture-only and is not an accepted Linear or QA Sheet record. `PRD-XXX` links are placeholders. Historical `task:*` label examples from the dry-run are stale and are not part of the current canonical label scheme.
+
 ## Assignee dialog (bulk-default + exceptions-only)
 
 ```
