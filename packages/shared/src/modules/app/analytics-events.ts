@@ -409,3 +409,33 @@ export const trackAdminDeployFailed = createTracker<{
   contractType: string;
   error: string;
 }>(ANALYTICS_EVENTS.ADMIN_DEPLOY_FAILED);
+
+// ============================================================================
+// ADMIN: ACTION MANAGEMENT
+// ============================================================================
+
+export const trackAdminActionCreateStarted = createTracker<{
+  gardenAddress: string;
+  chainId: number;
+  actionTitle: string;
+  actionSlug: string;
+  actionDomain: number;
+}>(ANALYTICS_EVENTS.ADMIN_ACTION_CREATE_STARTED);
+
+export const trackAdminActionCreateSuccess = createTracker<{
+  gardenAddress: string;
+  chainId: number;
+  actionTitle: string;
+  actionSlug: string;
+  actionDomain: number;
+  txHash: string;
+}>(ANALYTICS_EVENTS.ADMIN_ACTION_CREATE_SUCCESS);
+
+export const trackAdminActionCreateFailed = createTracker<{
+  gardenAddress: string;
+  chainId: number;
+  actionTitle: string;
+  actionSlug: string;
+  actionDomain: number;
+  error: string;
+}>(ANALYTICS_EVENTS.ADMIN_ACTION_CREATE_FAILED);

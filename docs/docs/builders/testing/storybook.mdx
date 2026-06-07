@@ -274,14 +274,14 @@ The built artifact is uploaded via `actions/upload-artifact@v4` for review.
 
 ### Chromatic Flow
 
-Chromatic runs after the local Storybook gates, not instead of them:
+Chromatic is manual opt-in. Normal PR and push runs stop after the local Storybook gates and uploaded artifact:
 
 1. `check:stories` verifies that required shared foundations and curated admin surfaces have stories.
 2. `test:stories:ci` runs browser-mode Vitest against stable `storybook-ci` stories.
 3. `build-storybook` creates `packages/shared/storybook-static` and uploads it as the CI review artifact.
-4. If `CHROMATIC_PROJECT_TOKEN` is configured, `bun run --filter @green-goods/shared chromatic -- --exit-zero-on-changes` publishes that built Storybook to Chromatic.
+4. A maintainer can run the Design workflow manually with `publish_chromatic` enabled to publish the built Storybook to Chromatic when the snapshot budget allows it.
 
-The first lane is intentionally non-blocking for visual diffs: `--exit-zero-on-changes` lets Chromatic collect baselines and surface screenshot changes without failing the PR while the design lane is being established. Once the team has approved baselines and decided which component roots should be visual-release gates, remove `--exit-zero-on-changes` and protect the Chromatic check.
+The manual Chromatic lane is intentionally non-blocking for visual diffs: `--exit-zero-on-changes` lets Chromatic collect baselines and surface screenshot changes without failing the workflow while the design lane is being established. Do not protect the Chromatic `UI Tests` check unless the team has approved baselines and snapshot budget.
 
 The standalone component library deploy is owned by Vercel. The Storybook GitHub Actions lane remains the validation gate for Storybook coverage, interaction smoke tests, and the static Storybook build artifact.
 

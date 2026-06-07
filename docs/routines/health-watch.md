@@ -62,6 +62,8 @@ Each category maps to a Linear label combination — old `health:*` GitHub label
 | Agent service down/unreachable | `package:agent` |
 | Client-side error spike | `package:client` or `package:admin` (whichever PostHog project surged) |
 
+**Codex hand-off:** most health anomalies are operational (indexer/agent/contract state) and stay `agent:routine` for a human. Only when an accepted health Issue is a **code fix that clears the Codex-ready bar** (clear surface + concrete suggested fix + validation; never `package:contracts` or shared auth — see [`README.md` § Codex hand-off](README.md)) swap `agent:routine`→`agent:codex`, and delegate to Codex when it also clears the autonomous-confident bar.
+
 ### 1. Indexer
 
 Query `ENVIO_INDEXER_URL` for `chain_metadata { latest_processed_block }`. Query `ARBITRUM_RPC_URL` with `eth_blockNumber`.

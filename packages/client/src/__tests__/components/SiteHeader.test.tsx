@@ -135,6 +135,39 @@ describe("SiteHeader", () => {
     expect(screen.getAllByText("Open App").length).toBeGreaterThanOrEqual(1);
   });
 
+  it("renders Install App when mobile history says installed but the PWA is gone", () => {
+    mockUseApp.mockReturnValue({
+      isMobile: true,
+      isInstalled: false,
+      wasInstalled: true,
+      platform: "unknown",
+      deferredPrompt: null,
+      promptInstall: vi.fn(),
+    });
+    mockUseInstallGuidance.mockReturnValue({
+      scenario: "manual-install-available",
+      primaryAction: { type: "show-manual-steps", label: "Install App" },
+      secondaryAction: { type: "continue-in-browser", label: "Continue in Browser" },
+      browserInfo: { browser: "unknown" },
+      showBrowserOption: true,
+      manualInstructions: [
+        {
+          stepNumber: 1,
+          icon: "menu",
+          title: "Step 1",
+          description: "Open the browser menu.",
+        },
+      ],
+      browserSwitchReason: null,
+      openInBrowserUrl: null,
+    });
+
+    renderHeader();
+
+    expect(screen.getAllByText("Install App").length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByText("Open App")).not.toBeInTheDocument();
+  });
+
   it("desktop install CTA opens the QR handoff dialog", () => {
     renderHeader();
     const desktopCta = screen.getByRole("button", { name: "Install App" });

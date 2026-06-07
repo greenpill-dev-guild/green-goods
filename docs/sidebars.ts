@@ -266,6 +266,7 @@ const sidebars: SidebarsConfig = {
         {type: 'doc', id: 'builders/quality/test-cases', label: 'Test Cases'},
         {type: 'doc', id: 'builders/quality/regression', label: 'Regression Testing'},
         {type: 'doc', id: 'builders/quality/agentic-eval', label: 'Agentic Evaluation'},
+        {type: 'doc', id: 'builders/quality/artifact-freshness', label: 'Artifact Freshness'},
         {type: 'doc', id: 'builders/quality/husky', label: 'Husky'},
         {type: 'doc', id: 'builders/quality/gh-actions', label: 'GitHub Actions'},
       ],

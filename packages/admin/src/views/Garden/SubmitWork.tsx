@@ -22,6 +22,7 @@ import {
   submitWorkDirectly,
   Textarea,
   toastService,
+  validationToasts,
   useAdminGardenWorkspaceSelection,
   useActions,
   useAuthState,
@@ -31,6 +32,7 @@ import {
   useWorkForm,
   type WorkInput,
 } from "@green-goods/shared";
+import { validateWorkSubmissionContext } from "@green-goods/shared/modules";
 import { RiUploadCloudLine } from "@remixicon/react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
@@ -212,6 +214,15 @@ function DynamicWorkFields({
   );
 }
 
+function getMinRequiredImages(action: Action | null) {
+  if (!action?.mediaInfo?.required) return 0;
+  return action.mediaInfo.minImageCount ?? 1;
+}
+
+function getOriginalError(error: unknown) {
+  return error instanceof Error && error.cause instanceof Error ? error.cause : error;
+}
+
 type SubmitWorkLayout = "page" | "sheet";
 
 export interface SubmitWorkPanelProps {
@@ -322,14 +333,15 @@ export function SubmitWorkPanel({ layout = "page", onSuccess, onCancel }: Submit
     },
     onError: (error: unknown) => {
       setProgressMessage("");
-      const { title, message } = parseAndFormatError(error);
-      logger.error("Admin work submission failed", { error });
+      const originalError = getOriginalError(error);
+      const { title, message } = parseAndFormatError(originalError);
+      logger.error("Admin work submission failed", { error, originalError });
 
       toastService.error({
         title: title || formatMessage({ id: "app.admin.work.submit.error" }),
         message,
         context: "admin work submission",
-        error,
+        error: originalError,
       });
     },
     onSettled: () => {
@@ -340,6 +352,21 @@ export function SubmitWorkPanel({ layout = "page", onSuccess, onCancel }: Submit
   useBeforeUnloadWhilePending(mutation.isPending);
 
   const onSubmit = handleSubmit((data) => {
+    const actionUID = selectedAction ? parseActionUID(selectedAction.id) : null;
+    const validationErrors = validateWorkSubmissionContext(
+      garden.id as Address,
+      actionUID,
+      images,
+      {
+        minRequired: getMinRequiredImages(selectedAction),
+      }
+    );
+
+    if (validationErrors.length > 0) {
+      validationToasts.formError(validationErrors[0]);
+      return;
+    }
+
     if (!selectedAction) return;
     mutation.mutate(data as Record<string, unknown>);
   });
