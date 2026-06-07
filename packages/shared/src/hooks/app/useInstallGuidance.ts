@@ -236,18 +236,20 @@ export function useInstallGuidance(
     // Manual installation available (Safari on iOS, or Android without prompt)
     const manualInstructions = getManualInstallSteps(platform, browserInfo.browser);
 
-    // User has already installed the PWA — primary CTA is "Open App", not "Install".
+    // A remembered install is not proof the PWA is still installed. Mobile browsers
+    // can keep local install history after the app is removed, so keep reinstall
+    // guidance available unless the current installed check confirms it is present.
     if (wasInstalled) {
       return {
         browserInfo,
         scenario: "manual-install-available",
         primaryAction: {
-          type: "open-app",
-          label: "Open App",
+          type: "show-manual-steps",
+          label: "Install App",
         },
         secondaryAction: {
-          type: "show-manual-steps",
-          label: "Reinstall",
+          type: "continue-in-browser",
+          label: "Continue in Browser",
         },
         showBrowserOption: true,
         manualInstructions,
@@ -365,18 +367,4 @@ function getManualInstallSteps(platform: Platform, browser: MobileBrowser): Manu
       description: 'Look for "Add to Home Screen" or "Install".',
     },
   ];
-}
-
-/**
- * Declaration for BeforeInstallPromptEvent (not in standard TS types)
- */
-declare global {
-  interface BeforeInstallPromptEvent extends Event {
-    readonly platforms: string[];
-    readonly userChoice: Promise<{
-      outcome: "accepted" | "dismissed";
-      platform: string;
-    }>;
-    prompt(): Promise<void>;
-  }
 }

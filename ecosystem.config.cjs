@@ -34,6 +34,8 @@ function envValue(key, fallback = "") {
   return process.env[key] || rootEnv[key] || fallback;
 }
 
+const viteEnableSwDev = envValue("VITE_ENABLE_SW_DEV", "false");
+
 module.exports = {
   apps: [
     {
@@ -99,7 +101,7 @@ module.exports = {
       cwd: ".",
       env: {
         NODE_ENV: "development",
-        VITE_ENABLE_SW_DEV: "false",
+        VITE_ENABLE_SW_DEV: viteEnableSwDev,
         VITE_DEV_CHAIN_MODE: "arbitrum_fork",
         VITE_CHAIN_ID: "42161",
         VITE_LOCAL_FORK_RPC_URL: "http://127.0.0.1:3009",

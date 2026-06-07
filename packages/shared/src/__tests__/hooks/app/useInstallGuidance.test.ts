@@ -190,16 +190,17 @@ describe("hooks/app/useInstallGuidance", () => {
       expect(result.current.manualInstructions![0].icon).toBe("share");
     });
 
-    it("shows open-app as primary when wasInstalled is true", () => {
+    it("keeps reinstall guidance primary when wasInstalled is true but not currently installed", () => {
       mockDetect.mockReturnValue(safariBrowser);
       mockCanTrigger.mockReturnValue(false);
 
       const { result } = renderHook(() => useInstallGuidance("ios", false, true, null, true));
 
       expect(result.current.scenario).toBe("manual-install-available");
-      expect(result.current.primaryAction.type).toBe("open-app");
-      expect(result.current.secondaryAction?.type).toBe("show-manual-steps");
-      expect(result.current.secondaryAction?.label).toBe("Reinstall");
+      expect(result.current.primaryAction.type).toBe("show-manual-steps");
+      expect(result.current.primaryAction.label).toBe("Install App");
+      expect(result.current.secondaryAction?.type).toBe("continue-in-browser");
+      expect(result.current.secondaryAction?.label).toBe("Continue in Browser");
     });
 
     it("provides Android Chrome manual steps", () => {
