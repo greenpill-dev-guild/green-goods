@@ -34,6 +34,8 @@ import {
   CheckoutStageHeader,
   CheckoutScreen,
   CheckoutSummary,
+  getAddressExplorerUrl,
+  getEthereumNetworkLabel,
   getTxExplorerUrl,
   type CheckoutSummaryItem,
 } from "./vaultCheckoutShell";
@@ -812,6 +814,16 @@ function CardEndowProviderContent({
 
   // ── review: donor confirmation + technical WETH details ───────────────────
   if (stage === "review") {
+    const vaultExplorerUrl = plan
+      ? getAddressExplorerUrl(
+          campaign.vault?.explorerLink,
+          plan.receiptExpectation.expectedVaultAddress
+        )
+      : null;
+    const tokenExplorerUrl = plan
+      ? getAddressExplorerUrl(campaign.vault?.explorerLink, plan.cardFunding.tokenAddress)
+      : null;
+
     return (
       <CheckoutScreen
         footer={
@@ -928,13 +940,7 @@ function CardEndowProviderContent({
                       })}
                     </dt>
                     <dd className="text-text-sub-600">
-                      {formatMessage(
-                        {
-                          id: "public.vaults.cardEndow.chainValue",
-                          defaultMessage: "Ethereum chain {chainId}",
-                        },
-                        { chainId: plan.cardFunding.chainId }
-                      )}
+                      {getEthereumNetworkLabel(plan.cardFunding.chainId, formatMessage)}
                     </dd>
                   </div>
                   <div>
@@ -945,7 +951,18 @@ function CardEndowProviderContent({
                       })}
                     </dt>
                     <dd className="break-all font-mono text-xs text-text-sub-600">
-                      {plan.receiptExpectation.expectedVaultAddress}
+                      {vaultExplorerUrl ? (
+                        <a
+                          href={vaultExplorerUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-primary-base underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action"
+                        >
+                          {plan.receiptExpectation.expectedVaultAddress}
+                        </a>
+                      ) : (
+                        plan.receiptExpectation.expectedVaultAddress
+                      )}
                     </dd>
                   </div>
                   <div>
@@ -956,7 +973,19 @@ function CardEndowProviderContent({
                       })}
                     </dt>
                     <dd className="break-all text-text-sub-600">
-                      {assetDisplay.technicalSymbol} · {plan.cardFunding.tokenAddress}
+                      {assetDisplay.technicalSymbol} ·{" "}
+                      {tokenExplorerUrl ? (
+                        <a
+                          href={tokenExplorerUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="font-mono text-xs text-primary-base underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action"
+                        >
+                          {plan.cardFunding.tokenAddress}
+                        </a>
+                      ) : (
+                        <span className="font-mono text-xs">{plan.cardFunding.tokenAddress}</span>
+                      )}
                     </dd>
                   </div>
                   <div>

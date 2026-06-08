@@ -3,13 +3,17 @@ import {
   formatUsdCents,
   getOctantVaultAssetDisplayPolicy,
   getOctantVaultCampaignTransactionState,
+  normalizeDecimalInput,
   parseUsdToCents,
   prepareOctantVaultWalletEndow,
+  type Address,
   type OctantVaultCampaignManifest,
   usdCentsToWei,
   useAuth,
   useEthUsdPrice,
+  useOctantVaultWalletBalances,
   useOctantVaultWalletEndow,
+  useWrapEthToWeth,
   VaultDepositStageError,
   useTimeout,
   useUser,
@@ -27,6 +31,8 @@ import {
   CheckoutMethodTile,
   CheckoutScreen,
   CheckoutSummary,
+  getAddressExplorerUrl,
+  getEthereumNetworkLabel,
   getTxExplorerUrl,
 } from "./vaultCheckoutShell";
 
@@ -212,8 +218,13 @@ function VaultCheckoutDialogContent({
     setAmountInput(value);
   }, []);
 
+  const normalizeSetupAmountInput = useCallback(() => {
+    setAmountInput((current) => normalizeDecimalInput(current));
+  }, []);
+
   const handleSetupContinue = useCallback(() => {
     if (hasReadyAmount && parsedAmount && selectedMethod && !conversionUnavailable) {
+      setAmountInput((current) => normalizeDecimalInput(current));
       setCommittedAmount(parsedAmount);
       setPhase("pay");
     }
@@ -371,6 +382,7 @@ function VaultCheckoutDialogContent({
                     .join(" ")}
                   aria-invalid={Boolean(amountError)}
                   onChange={(event) => handleAmountChange(event.target.value)}
+                  onBlur={normalizeSetupAmountInput}
                   placeholder="0.00"
                   className="flex-1 bg-transparent font-serif text-2xl text-text-strong-950 outline-none placeholder:text-text-soft-400"
                 />
@@ -576,11 +588,36 @@ function WalletEndowPathContent({
     campaign.vault?.asset?.symbol ??
     formatMessage({ id: "public.vaults.walletEndow.assetFallback", defaultMessage: "tokens" });
   const assetDisplay = getOctantVaultAssetDisplayPolicy(symbol);
+  const chainId = campaign.vault?.chainId ?? 1;
+  const assetAddress = campaign.vault?.asset?.address as Address | undefined;
+  const assetDecimals = campaign.vault?.asset?.decimals ?? 18;
+  const isWethAsset = assetDisplay.technicalSymbol === "WETH" && Boolean(assetAddress);
+  const walletBalances = useOctantVaultWalletBalances({
+    owner: primaryWalletAddress as Address | null,
+    chainId,
+    assetAddress: assetAddress ?? null,
+    enabled: Boolean(primaryWalletAddress && assetAddress),
+  });
+  const wrapEthToWeth = useWrapEthToWeth({ errorMode: "inline" });
   const walletFlowKey = `${campaign.slug}:${amount.toString()}:${primaryWalletAddress ?? ""}`;
+  const wrapFlowKey = `${walletFlowKey}:${assetAddress ?? ""}`;
   const walletFlowKeyRef = useRef(walletFlowKey);
   walletFlowKeyRef.current = walletFlowKey;
-  const walletBusy = walletEndow.isPending || pendingSubmissionKey !== null;
+  const [wrapCompletedKey, setWrapCompletedKey] = useState<string | null>(null);
+  const hasCompletedWrapForAmount = wrapCompletedKey === wrapFlowKey;
+  const assetBalance = walletBalances.assetBalance;
+  const nativeBalance = walletBalances.nativeBalance;
+  const assetInsufficient = typeof assetBalance === "bigint" && assetBalance < amount;
+  const ethSufficientForWrap = typeof nativeBalance === "bigint" && nativeBalance >= amount;
+  const shouldWrapBeforeDeposit =
+    Boolean(primaryWalletAddress && isWethAsset) &&
+    assetInsufficient &&
+    ethSufficientForWrap &&
+    !hasCompletedWrapForAmount;
+  const walletBusy =
+    walletEndow.isPending || wrapEthToWeth.isPending || pendingSubmissionKey !== null;
   const resetWalletEndow = walletEndow.reset;
+  const resetWrapEthToWeth = wrapEthToWeth.reset;
   const updateWalletConnectRequested = useCallback((requested: boolean) => {
     walletConnectRequestedRef.current = requested;
     setWalletConnectRequested(requested);
@@ -591,9 +628,18 @@ function WalletEndowPathContent({
     setSuccessTxHash(null);
     setSlow(false);
     setPendingSubmissionKey(null);
+    setWrapCompletedKey(null);
     updateWalletConnectRequested(false);
     resetWalletEndow();
-  }, [amount, campaign.slug, resetWalletEndow, updateWalletConnectRequested]);
+    resetWrapEthToWeth();
+  }, [
+    amount,
+    campaign.slug,
+    primaryWalletAddress,
+    resetWalletEndow,
+    resetWrapEthToWeth,
+    updateWalletConnectRequested,
+  ]);
 
   // Recovery affordance: if the submission is still in flight after a while, surface
   // a "taking longer" note and unlock close so the user is never stranded on a stall.
@@ -645,6 +691,25 @@ function WalletEndowPathContent({
       return;
     }
 
+    if (shouldWrapBeforeDeposit && assetAddress) {
+      const submissionKey = wrapFlowKey;
+      wrapEthToWeth.mutate(
+        { chainId, wethAddress: assetAddress, amount },
+        {
+          onError: () => {
+            if (walletFlowKeyRef.current === walletFlowKey) setWrapCompletedKey(null);
+          },
+          onSuccess: () => {
+            if (walletFlowKeyRef.current === walletFlowKey) {
+              setWrapCompletedKey(submissionKey);
+              void walletBalances.refetch();
+            }
+          },
+        }
+      );
+      return;
+    }
+
     const prepared = prepareOctantVaultWalletEndow({
       campaign,
       amount,
@@ -671,12 +736,18 @@ function WalletEndowPathContent({
   }, [
     amount,
     campaign,
+    assetAddress,
+    chainId,
     loginWithWallet,
     onCheckoutGuardChange,
     primaryWalletAddress,
+    shouldWrapBeforeDeposit,
     status,
     updateWalletConnectRequested,
+    walletBalances,
     walletEndow,
+    wrapEthToWeth,
+    wrapFlowKey,
     walletFlowKey,
   ]);
 
@@ -747,12 +818,24 @@ function WalletEndowPathContent({
     );
   }
 
+  const formattedWrapAmount = formatTokenAmount(amount, assetDecimals, 6, undefined, true);
   const actionLabel = primaryWalletAddress
-    ? formatMessage({
-        id: "public.vaults.walletEndow.confirm",
-        defaultMessage: "Confirm endowment",
-      })
+    ? shouldWrapBeforeDeposit
+      ? formatMessage({
+          id: "public.vaults.walletEndow.wrap",
+          defaultMessage: "Wrap ETH to WETH",
+        })
+      : formatMessage({
+          id: "public.vaults.walletEndow.confirm",
+          defaultMessage: "Confirm endowment",
+        })
     : formatMessage({ id: "public.vaults.walletEndow.connect", defaultMessage: "Connect wallet" });
+
+  const vaultExplorerUrl = getAddressExplorerUrl(
+    campaign.vault?.explorerLink,
+    campaign.vault?.vaultAddress
+  );
+  const tokenExplorerUrl = getAddressExplorerUrl(campaign.vault?.explorerLink, assetAddress);
 
   const receiverValue =
     primaryWalletAddress ??
@@ -770,12 +853,17 @@ function WalletEndowPathContent({
           disabled={walletBusy}
           className={CHECKOUT_PRIMARY_BUTTON}
         >
-          {walletBusy
+          {wrapEthToWeth.isPending
             ? formatMessage({
-                id: "public.vaults.walletEndow.submitting",
-                defaultMessage: "Submitting...",
+                id: "public.vaults.walletEndow.wrapping",
+                defaultMessage: "Wrapping...",
               })
-            : actionLabel}
+            : walletBusy
+              ? formatMessage({
+                  id: "public.vaults.walletEndow.submitting",
+                  defaultMessage: "Submitting...",
+                })
+              : actionLabel}
         </button>
       }
     >
@@ -831,6 +919,75 @@ function WalletEndowPathContent({
           </div>
         </dl>
 
+        {primaryWalletAddress && isWethAsset ? (
+          <section
+            className="rounded-none border border-stroke-soft-200 bg-bg-weak-50 p-4"
+            aria-labelledby="vault-wallet-balances-title"
+          >
+            <h4
+              id="vault-wallet-balances-title"
+              className="font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400"
+            >
+              {formatMessage({
+                id: "public.vaults.walletEndow.balances.title",
+                defaultMessage: "Ethereum Mainnet balances",
+              })}
+            </h4>
+            {walletBalances.isLoading ? (
+              <p className="mt-3 text-sm text-text-sub-600">
+                {formatMessage({
+                  id: "public.vaults.walletEndow.balances.loading",
+                  defaultMessage: "Loading balances...",
+                })}
+              </p>
+            ) : (
+              <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
+                <div>
+                  <dt className="font-medium text-text-strong-950">
+                    {formatMessage({
+                      id: "public.vaults.walletEndow.balances.eth",
+                      defaultMessage: "ETH balance",
+                    })}
+                  </dt>
+                  <dd className="mt-1 text-text-sub-600">
+                    {formatTokenAmount(nativeBalance ?? 0n, 18, 6, undefined, true)} ETH
+                  </dd>
+                </div>
+                <div>
+                  <dt className="font-medium text-text-strong-950">
+                    {formatMessage({
+                      id: "public.vaults.walletEndow.balances.weth",
+                      defaultMessage: "WETH balance",
+                    })}
+                  </dt>
+                  <dd className="mt-1 text-text-sub-600">
+                    {formatTokenAmount(assetBalance ?? 0n, assetDecimals, 6, undefined, true)} WETH
+                  </dd>
+                </div>
+              </dl>
+            )}
+            {shouldWrapBeforeDeposit ? (
+              <p className="mt-4 rounded-none bg-primary-action/10 p-3 text-sm leading-[1.55] text-primary-base">
+                {formatMessage(
+                  {
+                    id: "public.vaults.walletEndow.balances.wrapPrompt",
+                    defaultMessage:
+                      "Your wallet has enough ETH. Wrap {amount} ETH into WETH before confirming the vault deposit.",
+                  },
+                  { amount: formattedWrapAmount }
+                )}
+              </p>
+            ) : hasCompletedWrapForAmount ? (
+              <p className="mt-4 rounded-none bg-primary-action/10 p-3 text-sm leading-[1.55] text-primary-base">
+                {formatMessage({
+                  id: "public.vaults.walletEndow.balances.wrapComplete",
+                  defaultMessage: "ETH was wrapped. Continue to confirm the WETH vault deposit.",
+                })}
+              </p>
+            ) : null}
+          </section>
+        ) : null}
+
         <details className="border-t border-stroke-soft-200 pt-4">
           <summary className="cursor-pointer font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
             {formatMessage({
@@ -847,13 +1004,7 @@ function WalletEndowPathContent({
                 })}
               </dt>
               <dd className="text-text-sub-600">
-                {formatMessage(
-                  {
-                    id: "public.vaults.cardEndow.chainValue",
-                    defaultMessage: "Ethereum chain {chainId}",
-                  },
-                  { chainId: campaign.vault?.chainId ?? 1 }
-                )}
+                {getEthereumNetworkLabel(campaign.vault?.chainId ?? 1, formatMessage)}
               </dd>
             </div>
             <div>
@@ -864,7 +1015,18 @@ function WalletEndowPathContent({
                 })}
               </dt>
               <dd className="break-all font-mono text-xs text-text-sub-600">
-                {campaign.vault?.vaultAddress ?? ""}
+                {vaultExplorerUrl ? (
+                  <a
+                    href={vaultExplorerUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-primary-base underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action"
+                  >
+                    {campaign.vault?.vaultAddress ?? ""}
+                  </a>
+                ) : (
+                  (campaign.vault?.vaultAddress ?? "")
+                )}
               </dd>
             </div>
             <div>
@@ -875,7 +1037,19 @@ function WalletEndowPathContent({
                 })}
               </dt>
               <dd className="break-all text-text-sub-600">
-                {assetDisplay.technicalSymbol} · {campaign.vault?.asset?.address ?? ""}
+                {assetDisplay.technicalSymbol} ·{" "}
+                {tokenExplorerUrl ? (
+                  <a
+                    href={tokenExplorerUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-mono text-xs text-primary-base underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action"
+                  >
+                    {assetAddress ?? ""}
+                  </a>
+                ) : (
+                  <span className="font-mono text-xs">{assetAddress ?? ""}</span>
+                )}
               </dd>
             </div>
           </dl>

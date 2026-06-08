@@ -1,7 +1,7 @@
 import { DialogShell, PwaSheet, cn, useMediaQuery } from "@green-goods/shared";
 import { RiCheckLine, RiCloseLine } from "@remixicon/react";
 import type { ReactNode } from "react";
-import { useIntl } from "react-intl";
+import { useIntl, type IntlShape } from "react-intl";
 
 /**
  * Shared layout + control primitives for the /vaults checkout surface.
@@ -42,6 +42,39 @@ export function getTxExplorerUrl(
   } catch {
     return null;
   }
+}
+
+export function getAddressExplorerUrl(
+  explorerLink: string | undefined,
+  address: string | null | undefined
+): string | null {
+  if (!address) return null;
+  try {
+    const origin = explorerLink ? new URL(explorerLink).origin : "https://etherscan.io";
+    return `${origin}/address/${address}`;
+  } catch {
+    return `https://etherscan.io/address/${address}`;
+  }
+}
+
+export function getEthereumNetworkLabel(
+  chainId: number | null | undefined,
+  formatMessage: IntlShape["formatMessage"]
+): string {
+  if (chainId === 1) {
+    return formatMessage({
+      id: "public.vaults.network.ethereumMainnet",
+      defaultMessage: "Ethereum Mainnet",
+    });
+  }
+
+  return formatMessage(
+    {
+      id: "public.vaults.network.chainValue",
+      defaultMessage: "Chain {chainId}",
+    },
+    { chainId: chainId ?? "unknown" }
+  );
 }
 
 export interface CheckoutSurfaceProps {

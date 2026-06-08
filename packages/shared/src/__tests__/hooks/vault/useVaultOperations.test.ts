@@ -116,6 +116,7 @@ const operationsModule = await import("../../../hooks/vault/useVaultOperations")
 const {
   useVaultDeposit,
   useOctantVaultWalletEndow,
+  useWrapEthToWeth,
   useVaultWithdraw,
   useHarvest,
   useEmergencyPause,
@@ -341,6 +342,37 @@ describe("hooks/vault/useVaultOperations", () => {
     // Stops at maxDeposit + balanceOf; never previews, approves, or deposits.
     expect(mockReadContract).toHaveBeenCalledTimes(2);
     expect(mockSendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("wraps ETH into the configured WETH token before the existing vault deposit path", async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+
+    const { result } = renderHook(() => useWrapEthToWeth({ errorMode: "inline" }), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        chainId: TEST_OCTANT_CHAIN_ID,
+        wethAddress: TEST_ASSET as `0x${string}`,
+        amount: 10n,
+      });
+    });
+
+    expect(mockSendContractCall).toHaveBeenCalledWith(
+      expect.objectContaining({
+        chainId: TEST_OCTANT_CHAIN_ID,
+        address: TEST_ASSET,
+        functionName: "deposit",
+        args: [],
+        value: 10n,
+      })
+    );
   });
 
   it("rejects Octant Wallet Endow when the restored auth mode is not wallet", async () => {

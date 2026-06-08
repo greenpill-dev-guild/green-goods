@@ -91,8 +91,9 @@ export function formatUsdPrice(priceAnswer: bigint, locale?: string): string {
 export function parseUsdToCents(input: string): bigint | null {
   const trimmed = input.trim();
   if (!trimmed) return null;
-  if (!/^\d+(?:\.\d{1,2})?$/.test(trimmed)) return null;
-  const [whole, fraction = ""] = trimmed.split(".");
+  const normalized = trimmed.startsWith(".") ? `0${trimmed}` : trimmed;
+  if (!/^\d+(?:\.\d{1,2})?$/.test(normalized)) return null;
+  const [whole, fraction = ""] = normalized.split(".");
   const paddedFraction = fraction.padEnd(2, "0");
   return BigInt(whole) * 100n + BigInt(paddedFraction);
 }

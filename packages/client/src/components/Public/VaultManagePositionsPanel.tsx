@@ -11,6 +11,7 @@ import {
   useOctantVaultWithdraw,
   useTxErrorMessages,
   useUser,
+  normalizeDecimalInput,
   validateDecimalInput,
 } from "@green-goods/shared";
 import * as Dialog from "@radix-ui/react-dialog";
@@ -20,6 +21,7 @@ import { useIntl } from "react-intl";
 import { formatUnits, parseUnits } from "viem";
 import WalletRuntimeProviders from "@/routes/WalletRuntimeProviders";
 import { EditorialGhostButton } from "./atoms";
+import { getAddressExplorerUrl, getEthereumNetworkLabel } from "./vaultCheckoutShell";
 
 /** Card-wallet management nests a ThirdwebProvider + BuyWidget-class deps; keep it
  * out of the main chunk and only load it when a card position actually exists. */
@@ -434,7 +436,7 @@ export function VaultPositionRowView({
   const parsedAmount = useMemo(() => {
     if (!amountInput.trim() || inputError) return 0n;
     try {
-      return parseUnits(amountInput, decimals);
+      return parseUnits(normalizeDecimalInput(amountInput), decimals);
     } catch {
       return 0n;
     }
@@ -450,6 +452,8 @@ export function VaultPositionRowView({
     parsedAmount <= 0n ||
     withdrawable <= 0n ||
     exceedsAvailable;
+  const vaultExplorerUrl = getAddressExplorerUrl(position.explorerLink, position.vaultAddress);
+  const tokenExplorerUrl = getAddressExplorerUrl(position.explorerLink, position.assetAddress);
 
   const resetInput = () => {
     setAmountInput("");
@@ -566,7 +570,20 @@ export function VaultPositionRowView({
                 defaultMessage: "Octant vault",
               })}
             </dt>
-            <dd className="break-all font-mono text-text-sub-600">{position.vaultAddress}</dd>
+            <dd className="break-all font-mono text-text-sub-600">
+              {vaultExplorerUrl ? (
+                <a
+                  href={vaultExplorerUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-primary-base underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action"
+                >
+                  {position.vaultAddress}
+                </a>
+              ) : (
+                position.vaultAddress
+              )}
+            </dd>
           </div>
           <div>
             <dt className="font-medium text-text-strong-950">
@@ -575,8 +592,20 @@ export function VaultPositionRowView({
                 defaultMessage: "WETH token",
               })}
             </dt>
-            <dd className="break-all font-mono text-text-sub-600">
-              {position.assetSymbol} · {position.assetAddress}
+            <dd className="break-all text-text-sub-600">
+              {position.assetSymbol} ·{" "}
+              {tokenExplorerUrl ? (
+                <a
+                  href={tokenExplorerUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-mono text-primary-base underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action"
+                >
+                  {position.assetAddress}
+                </a>
+              ) : (
+                <span className="font-mono">{position.assetAddress}</span>
+              )}
             </dd>
           </div>
           <div>
@@ -587,13 +616,7 @@ export function VaultPositionRowView({
               })}
             </dt>
             <dd className="text-text-sub-600">
-              {formatMessage(
-                {
-                  id: "public.vaults.manage.position.tech.chainValue",
-                  defaultMessage: "Ethereum chain {chainId}",
-                },
-                { chainId: position.chainId }
-              )}
+              {getEthereumNetworkLabel(position.chainId, formatMessage)}
             </dd>
           </div>
           <div>
@@ -650,6 +673,7 @@ export function VaultPositionRowView({
                 setSuccessMessage("");
                 onResetError?.();
               }}
+              onBlur={() => setAmountInput((current) => normalizeDecimalInput(current))}
               placeholder={`0.0 ${symbol}`}
               aria-invalid={Boolean(inputError || exceedsAvailable)}
               aria-describedby={feedbackId}
@@ -747,7 +771,10 @@ export function VaultPositionRowView({
               variant="warm"
               className="mt-4 w-full px-5 py-2.5 text-sm"
               disabled={disableConfirm}
-              onClick={() => setShowConfirm(true)}
+              onClick={() => {
+                setAmountInput((current) => normalizeDecimalInput(current));
+                setShowConfirm(true);
+              }}
             >
               {formatMessage({
                 id: "public.vaults.manage.withdraw.review",

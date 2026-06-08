@@ -8,6 +8,7 @@ import {
   getVaultAssetSymbol,
   isUnlimitedVaultLimit,
   MAX_UINT256,
+  normalizeDecimalInput,
   validateDecimalInput,
 } from "../../utils/blockchain/vaults";
 
@@ -115,6 +116,10 @@ describe("Vault Utilities", () => {
       expect(validateDecimalInput("1.5", 18)).toBeNull();
     });
 
+    it("returns null for a leading decimal", () => {
+      expect(validateDecimalInput(".001", 18)).toBeNull();
+    });
+
     it("returns null for valid decimal with trailing dot", () => {
       expect(validateDecimalInput("100.", 18)).toBeNull();
     });
@@ -141,6 +146,17 @@ describe("Vault Utilities", () => {
 
     it("returns null when decimals are under limit", () => {
       expect(validateDecimalInput("1.12", 6)).toBeNull();
+    });
+  });
+
+  describe("normalizeDecimalInput", () => {
+    it("adds a leading zero to leading decimal inputs", () => {
+      expect(normalizeDecimalInput(".001")).toBe("0.001");
+    });
+
+    it("leaves non-leading decimal values unchanged", () => {
+      expect(normalizeDecimalInput("1.001")).toBe("1.001");
+      expect(normalizeDecimalInput("100.")).toBe("100.");
     });
   });
 
