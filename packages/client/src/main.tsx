@@ -17,7 +17,7 @@ initTheme();
 
 initBrowserSentry({
   dsn: import.meta.env.VITE_SENTRY_CLIENT_DSN,
-  environment: import.meta.env.MODE,
+  environment: import.meta.env.VITE_SENTRY_ENVIRONMENT || import.meta.env.MODE,
   release: import.meta.env.VITE_APP_VERSION
     ? `green-goods-client@${import.meta.env.VITE_APP_VERSION}`
     : undefined,
