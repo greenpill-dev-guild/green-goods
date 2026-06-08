@@ -308,11 +308,30 @@ function checkDocker() {
   }
 }
 
+function dependencyReadiness() {
+  const requiredPaths = [
+    "node_modules/.bun",
+    "node_modules/.bin/turbo",
+    "node_modules/.bin/oxlint",
+    "node_modules/multiformats/basics.js",
+  ];
+  const missing = requiredPaths.filter((entry) => !fs.existsSync(entry));
+  return { ready: missing.length === 0, missing };
+}
+
 function shouldRunInstall() {
   if (options.installMode === "skip") return false;
   if (options.installMode === "always") return true;
   if (isHost) return true;
-  return !fs.existsSync("node_modules");
+
+  const readiness = dependencyReadiness();
+  if (readiness.ready) return false;
+
+  if (fs.existsSync("node_modules")) {
+    log.warning(`node_modules exists but install markers are missing (${readiness.missing.join(", ")}); reinstalling.`);
+  }
+
+  return true;
 }
 
 function installCommand() {
