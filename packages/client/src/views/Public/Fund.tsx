@@ -331,6 +331,7 @@ function FundPageContent() {
     intent: PublicFundingIntentKind;
   } | null>(null);
   const [isEndowmentPanelOpen, setEndowmentPanelOpen] = useState(false);
+  const isEndowmentPanelClosePendingRef = useRef(false);
   const hasWalletRuntime = Boolean(selectorState);
   const { ref: pathsRef, revealed: pathsRevealed } = useInViewReveal<HTMLElement>();
   const { ref: gardensRef, revealed: gardensRevealed } = useInViewReveal<HTMLElement>();
@@ -351,7 +352,13 @@ function FundPageContent() {
   }, [matchedGardenId]);
 
   useEffect(() => {
-    setEndowmentPanelOpen(manageQuery === "endowments");
+    if (manageQuery === "endowments") {
+      isEndowmentPanelClosePendingRef.current = false;
+      setEndowmentPanelOpen(true);
+      return;
+    }
+
+    setEndowmentPanelOpen(false);
   }, [manageQuery]);
 
   const closeSelector = useCallback(() => setSelectorState(null), []);
@@ -359,21 +366,37 @@ function FundPageContent() {
   const handleManageEndowmentsClick = useCallback(() => {
     const nextParams = new URLSearchParams(searchParams);
     nextParams.set("manage", "endowments");
+    isEndowmentPanelClosePendingRef.current = false;
     setEndowmentPanelOpen(true);
     setSearchParams(nextParams, { preventScrollReset: true });
   }, [searchParams, setSearchParams]);
 
   const handleEndowmentPanelOpenChange = useCallback(
     (open: boolean) => {
+      if (open) {
+        isEndowmentPanelClosePendingRef.current = false;
+        setEndowmentPanelOpen(true);
+        return;
+      }
+
       setEndowmentPanelOpen(open);
-      if (!open && searchParams.get("manage") === "endowments") {
-        const nextParams = new URLSearchParams(searchParams);
-        nextParams.delete("manage");
-        setSearchParams(nextParams, { replace: true, preventScrollReset: true });
+      if (searchParams.get("manage") === "endowments") {
+        isEndowmentPanelClosePendingRef.current = true;
       }
     },
-    [searchParams, setSearchParams]
+    [searchParams]
   );
+
+  const handleEndowmentPanelExitComplete = useCallback(() => {
+    if (!isEndowmentPanelClosePendingRef.current) return;
+
+    isEndowmentPanelClosePendingRef.current = false;
+    if (searchParams.get("manage") === "endowments") {
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete("manage");
+      setSearchParams(nextParams, { replace: true, preventScrollReset: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const handleSupport = useCallback(
     (garden: PublicGardenSummary, intent: PublicFundingIntentKind) => {
@@ -680,6 +703,7 @@ function FundPageContent() {
 
       <PublicEndowmentPanel
         open={isEndowmentPanelOpen}
+        onExitComplete={handleEndowmentPanelExitComplete}
         onOpenChange={handleEndowmentPanelOpenChange}
       />
     </>

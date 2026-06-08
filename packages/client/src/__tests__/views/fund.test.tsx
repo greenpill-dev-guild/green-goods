@@ -11,11 +11,11 @@
  * @vitest-environment jsdom
  */
 
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement, Fragment, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
-import { MemoryRouter, useNavigate } from "react-router-dom";
+import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import type { Address } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -56,12 +56,14 @@ const {
   mockUsePublicVaultSummary,
   mockOpenWalletModal,
   mockPrimaryAddress,
+  mockLastEndowmentExitComplete,
 } = vi.hoisted(() => ({
   mockUseInViewReveal: vi.fn(),
   mockUsePublicGardens: vi.fn(),
   mockUsePublicVaultSummary: vi.fn(),
   mockOpenWalletModal: vi.fn(),
   mockPrimaryAddress: { current: null as Address | null },
+  mockLastEndowmentExitComplete: { current: null as (() => void) | null },
 }));
 
 vi.mock("@green-goods/shared", () => {
@@ -140,18 +142,23 @@ vi.mock("@/components/Public/PublicFundingReceipt", () => ({
 vi.mock("@/components/Public/PublicEndowmentPanel", () => ({
   PublicEndowmentPanel: ({
     open,
+    onExitComplete,
     onOpenChange,
   }: {
     open: boolean;
+    onExitComplete?: () => void;
     onOpenChange: (open: boolean) => void;
-  }) =>
-    open ? (
+  }) => {
+    mockLastEndowmentExitComplete.current = onExitComplete ?? null;
+
+    return open ? (
       <div role="dialog" aria-label="Your Endowments" data-testid="public-endowment-panel">
         <button type="button" onClick={() => onOpenChange(false)}>
           Close endowments
         </button>
       </div>
-    ) : null,
+    ) : null;
+  },
 }));
 
 vi.mock("@/routes/WalletRuntimeProviders", () => ({
@@ -178,6 +185,11 @@ function HistoryBackButton() {
   );
 }
 
+function LocationSearchProbe() {
+  const location = useLocation();
+  return <div data-testid="location-search">{location.search}</div>;
+}
+
 function renderView(
   initialEntries: string[] = ["/fund"],
   options: { initialIndex?: number; extra?: ReactNode } = {}
@@ -198,6 +210,7 @@ function renderView(
 describe("FundPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockLastEndowmentExitComplete.current = null;
     mockPrimaryAddress.current = null;
     mockUseInViewReveal.mockReturnValue({ ref: { current: null }, revealed: true });
     mockUsePublicGardens.mockReturnValue({ data: mockGardens, isLoading: false });
@@ -414,6 +427,26 @@ describe("FundPage", () => {
     renderView(["/fund?manage=endowments"]);
 
     expect(screen.getByTestId("public-endowment-panel")).toBeInTheDocument();
+  });
+
+  it("keeps the manage query until the endowment panel exit completes", async () => {
+    const user = userEvent.setup();
+    renderView(["/fund?manage=endowments"], { extra: createElement(LocationSearchProbe) });
+
+    expect(screen.getByTestId("location-search")).toHaveTextContent("?manage=endowments");
+
+    await user.click(screen.getByRole("button", { name: "Close endowments" }));
+
+    expect(screen.queryByTestId("public-endowment-panel")).toBeNull();
+    expect(screen.getByTestId("location-search")).toHaveTextContent("?manage=endowments");
+
+    act(() => {
+      mockLastEndowmentExitComplete.current?.();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("location-search")).toHaveTextContent("");
+    });
   });
 
   it("closes the endowment panel when navigation removes the manage query", async () => {
