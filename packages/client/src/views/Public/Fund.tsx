@@ -15,7 +15,6 @@ import { useIntl } from "react-intl";
 import { useSearchParams } from "react-router-dom";
 import {
   EditorialHeading,
-  EditorialGhostLink,
   EditorialKicker,
   EditorialLinkArrow,
   EditorialNumeral,
@@ -332,6 +331,7 @@ function FundPageContent() {
     intent: PublicFundingIntentKind;
   } | null>(null);
   const [isEndowmentPanelOpen, setEndowmentPanelOpen] = useState(false);
+  const isEndowmentPanelClosePendingRef = useRef(false);
   const hasWalletRuntime = Boolean(selectorState);
   const { ref: pathsRef, revealed: pathsRevealed } = useInViewReveal<HTMLElement>();
   const { ref: gardensRef, revealed: gardensRevealed } = useInViewReveal<HTMLElement>();
@@ -352,31 +352,51 @@ function FundPageContent() {
   }, [matchedGardenId]);
 
   useEffect(() => {
-    setEndowmentPanelOpen(manageQuery === "endowments");
+    if (manageQuery === "endowments") {
+      isEndowmentPanelClosePendingRef.current = false;
+      setEndowmentPanelOpen(true);
+      return;
+    }
+
+    setEndowmentPanelOpen(false);
   }, [manageQuery]);
 
   const closeSelector = useCallback(() => setSelectorState(null), []);
 
-  const manageEndowmentsTo = useMemo(() => {
+  const handleManageEndowmentsClick = useCallback(() => {
     const nextParams = new URLSearchParams(searchParams);
     nextParams.set("manage", "endowments");
-    return {
-      pathname: "/fund",
-      search: `?${nextParams.toString()}`,
-    };
-  }, [searchParams]);
+    isEndowmentPanelClosePendingRef.current = false;
+    setEndowmentPanelOpen(true);
+    setSearchParams(nextParams, { preventScrollReset: true });
+  }, [searchParams, setSearchParams]);
 
   const handleEndowmentPanelOpenChange = useCallback(
     (open: boolean) => {
+      if (open) {
+        isEndowmentPanelClosePendingRef.current = false;
+        setEndowmentPanelOpen(true);
+        return;
+      }
+
       setEndowmentPanelOpen(open);
-      if (!open && searchParams.get("manage") === "endowments") {
-        const nextParams = new URLSearchParams(searchParams);
-        nextParams.delete("manage");
-        setSearchParams(nextParams, { replace: true });
+      if (searchParams.get("manage") === "endowments") {
+        isEndowmentPanelClosePendingRef.current = true;
       }
     },
-    [searchParams, setSearchParams]
+    [searchParams]
   );
+
+  const handleEndowmentPanelExitComplete = useCallback(() => {
+    if (!isEndowmentPanelClosePendingRef.current) return;
+
+    isEndowmentPanelClosePendingRef.current = false;
+    if (searchParams.get("manage") === "endowments") {
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete("manage");
+      setSearchParams(nextParams, { replace: true, preventScrollReset: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const handleSupport = useCallback(
     (garden: PublicGardenSummary, intent: PublicFundingIntentKind) => {
@@ -562,27 +582,29 @@ function FundPageContent() {
                   })}
                 </EditorialHeading>
               </div>
-              <EditorialGhostLink
-                to={manageEndowmentsTo}
-                variant="warm"
-                className="w-full px-5 py-2.5 text-sm sm:w-auto"
+              <button
+                type="button"
+                onClick={handleManageEndowmentsClick}
+                aria-expanded={isEndowmentPanelOpen}
+                aria-haspopup="dialog"
+                className="inline-flex min-h-11 w-fit items-center border-b border-primary-action/35 text-left text-sm font-medium text-primary-action transition-colors hover:border-primary-action-hover hover:text-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-4 focus-visible:ring-offset-bg-weak-50 sm:mt-1"
               >
                 {formatMessage({
                   id: "public.fund.manageEndowments.cta",
                   defaultMessage: "Manage Endowments",
                 })}
-              </EditorialGhostLink>
+              </button>
             </div>
           </header>
 
           {isLoading ? (
             <div
-              className="mt-8 grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-2 2xl:grid-cols-3"
+              className="mt-8 grid grid-cols-1 gap-x-6 gap-y-6 sm:auto-rows-fr sm:grid-cols-2"
               aria-hidden="true"
             >
               {[0, 1, 2, 3].map((i) => (
                 <div key={i} className="flex items-stretch gap-4 py-4 sm:gap-5">
-                  <div className="h-20 w-20 shrink-0 animate-pulse bg-editorial-warm" />
+                  <div className="h-20 w-28 shrink-0 animate-pulse bg-editorial-warm sm:h-24 sm:w-36" />
                   <div className="flex flex-1 flex-col justify-center gap-2">
                     <div className="h-3 w-24 animate-pulse bg-stroke-soft-200/60" />
                     <div className="h-5 w-3/4 animate-pulse bg-stroke-soft-200/60" />
@@ -619,7 +641,10 @@ function FundPageContent() {
               </div>
             </div>
           ) : (
-            <div className="mt-8 grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-2 2xl:grid-cols-3">
+            <div
+              className="mt-8 grid grid-cols-1 gap-x-6 gap-y-6 sm:auto-rows-fr sm:grid-cols-2"
+              data-testid="public-fund-garden-grid"
+            >
               {orderedGardens.map((garden) => {
                 const isMatchedHighlight =
                   resolved.status === "match" && resolved.garden?.id === garden.id;
@@ -629,8 +654,8 @@ function FundPageContent() {
                     ref={isMatchedHighlight ? matchHighlightRef : undefined}
                     className={
                       isMatchedHighlight
-                        ? "ring-2 ring-primary-action ring-offset-4 ring-offset-bg-weak-50"
-                        : undefined
+                        ? "h-full min-w-0 ring-2 ring-primary-action ring-offset-4 ring-offset-bg-weak-50"
+                        : "h-full min-w-0"
                     }
                   >
                     <PublicGardenRow
@@ -678,6 +703,7 @@ function FundPageContent() {
 
       <PublicEndowmentPanel
         open={isEndowmentPanelOpen}
+        onExitComplete={handleEndowmentPanelExitComplete}
         onOpenChange={handleEndowmentPanelOpenChange}
       />
     </>

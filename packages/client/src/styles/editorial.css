@@ -155,6 +155,50 @@
   }
 }
 
+@keyframes public-endowment-panel-in-bottom {
+  from {
+    opacity: 0.92;
+    transform: translate3d(0, 100%, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes public-endowment-panel-out-bottom {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    opacity: 0.92;
+    transform: translate3d(0, 100%, 0);
+  }
+}
+
+@keyframes public-endowment-panel-in-side {
+  from {
+    opacity: 0.96;
+    transform: translate3d(100%, 0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes public-endowment-panel-out-side {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    opacity: 0.96;
+    transform: translate3d(100%, 0, 0);
+  }
+}
+
 @layer utilities {
   .editorial-hero-in {
     opacity: 0;
@@ -403,6 +447,48 @@
     animation-delay: 300ms;
   }
 
+  /*
+   * Public endowment management panel - route-backed account sheet on /fund.
+   * Mobile behaves as a bottom sheet; sm+ behaves as a right-side drawer.
+   * The component owns data-motion-state so route query cleanup can happen
+   * after a single exit animation instead of cutting the sheet off early.
+   */
+  .public-endowment-overlay[data-motion-state="open"] {
+    animation: public-install-overlay-in var(--spring-effects-duration)
+      var(--spring-effects-easing) both;
+  }
+
+  .public-endowment-overlay[data-motion-state="closed"] {
+    animation: public-install-overlay-out var(--spring-effects-fast-duration)
+      var(--spring-effects-fast-easing) both;
+  }
+
+  .public-endowment-panel {
+    backface-visibility: hidden;
+    transform: translate3d(0, 0, 0);
+    will-change: transform, opacity;
+  }
+
+  .public-endowment-panel[data-motion-state="open"] {
+    animation: public-endowment-panel-in-bottom var(--spring-spatial-slow-duration)
+      var(--spring-spatial-slow-easing) both;
+  }
+
+  .public-endowment-panel[data-motion-state="closed"] {
+    animation: public-endowment-panel-out-bottom var(--spring-spatial-duration)
+      var(--spring-spatial-easing) both;
+  }
+
+  @media (min-width: 640px) {
+    .public-endowment-panel[data-motion-state="open"] {
+      animation-name: public-endowment-panel-in-side;
+    }
+
+    .public-endowment-panel[data-motion-state="closed"] {
+      animation-name: public-endowment-panel-out-side;
+    }
+  }
+
   .public-install-overlay[data-state="open"] {
     animation: public-install-overlay-in var(--spring-effects-fast-duration, 150ms)
       var(--spring-effects-fast-easing, ease-out) forwards;
@@ -438,11 +524,14 @@
     .editorial-fade-up-1,
     .editorial-fade-up-2,
     .editorial-fade-up-3,
+    .public-endowment-overlay[data-motion-state],
+    .public-endowment-panel[data-motion-state],
     .public-install-overlay[data-state],
     .public-install-sheet[data-state],
     .public-garden-dialog-overlay[data-state] {
       animation: none;
       opacity: 1;
+      transform: none;
     }
 
     .editorial-section-reveal {

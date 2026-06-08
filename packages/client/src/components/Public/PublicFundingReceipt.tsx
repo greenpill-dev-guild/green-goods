@@ -252,6 +252,7 @@ function ReceiptBody({
           {receipt.appManagementCta === "manage_endowments" ? (
             <EditorialGhostLink
               to={receipt.managementUrl ?? "/fund?manage=endowments"}
+              preventScrollReset
               variant="warm"
               data-app-cta={receipt.appManagementCta}
               className="px-5 py-2.5 text-sm"

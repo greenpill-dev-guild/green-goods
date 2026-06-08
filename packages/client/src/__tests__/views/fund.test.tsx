@@ -6,16 +6,16 @@
  * - Tapping Donate or Endow opens PublicFundingCard with the matching intent.
  * - `?intent=` mounts the receipt UI.
  * - `?garden=` stale resolution renders a non-blocking message.
- * - The Garden section exposes the public Manage Endowments panel link.
+ * - The Garden section exposes the public Manage Endowments panel text button.
  *
  * @vitest-environment jsdom
  */
 
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement, Fragment, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
-import { MemoryRouter, useNavigate } from "react-router-dom";
+import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import type { Address } from "viem";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -56,18 +56,58 @@ const {
   mockUsePublicVaultSummary,
   mockOpenWalletModal,
   mockPrimaryAddress,
+  mockLastEndowmentExitComplete,
 } = vi.hoisted(() => ({
   mockUseInViewReveal: vi.fn(),
   mockUsePublicGardens: vi.fn(),
   mockUsePublicVaultSummary: vi.fn(),
   mockOpenWalletModal: vi.fn(),
   mockPrimaryAddress: { current: null as Address | null },
+  mockLastEndowmentExitComplete: { current: null as (() => void) | null },
 }));
 
-vi.mock("@green-goods/shared", async () => {
-  const actual = await vi.importActual<typeof import("@green-goods/shared")>("@green-goods/shared");
+vi.mock("@green-goods/shared", () => {
+  const formatMockTokenAmount = (value: bigint, decimals = 18, maximumFractionDigits = 4) => {
+    const scale = 10n ** BigInt(decimals);
+    const whole = value / scale;
+    const remainder = value % scale;
+    const normalized = Number(whole) + Number(remainder) / Number(scale);
+    return new Intl.NumberFormat("en-US", {
+      maximumFractionDigits,
+    }).format(normalized);
+  };
+
   return {
-    ...actual,
+    cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
+    formatApy: (value: number) => `${value.toFixed(2)}%`,
+    formatRelativeTime: () => "recently",
+    formatTokenAmount: formatMockTokenAmount,
+    ImageWithFallback: ({
+      alt = "",
+      className,
+      backgroundFallback,
+      src,
+    }: {
+      alt?: string;
+      className?: string;
+      backgroundFallback?: ReactNode;
+      src?: string;
+    }) =>
+      src ? (
+        <img alt={alt} className={className} src={src} />
+      ) : backgroundFallback ? (
+        <>{backgroundFallback}</>
+      ) : (
+        <div aria-hidden="true" className={className} />
+      ),
+    publicGardenHelpers: {
+      deriveSlug: (name: string, id: string) =>
+        name
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-|-$/g, "") || id.toLowerCase(),
+    },
     useAppKit: () => ({ open: mockOpenWalletModal }),
     useInViewReveal: (...args: unknown[]) => mockUseInViewReveal(...args),
     usePublicGardens: (...args: unknown[]) => mockUsePublicGardens(...args),
@@ -102,18 +142,23 @@ vi.mock("@/components/Public/PublicFundingReceipt", () => ({
 vi.mock("@/components/Public/PublicEndowmentPanel", () => ({
   PublicEndowmentPanel: ({
     open,
+    onExitComplete,
     onOpenChange,
   }: {
     open: boolean;
+    onExitComplete?: () => void;
     onOpenChange: (open: boolean) => void;
-  }) =>
-    open ? (
+  }) => {
+    mockLastEndowmentExitComplete.current = onExitComplete ?? null;
+
+    return open ? (
       <div role="dialog" aria-label="Your Endowments" data-testid="public-endowment-panel">
         <button type="button" onClick={() => onOpenChange(false)}>
           Close endowments
         </button>
       </div>
-    ) : null,
+    ) : null;
+  },
 }));
 
 vi.mock("@/routes/WalletRuntimeProviders", () => ({
@@ -140,6 +185,11 @@ function HistoryBackButton() {
   );
 }
 
+function LocationSearchProbe() {
+  const location = useLocation();
+  return <div data-testid="location-search">{location.search}</div>;
+}
+
 function renderView(
   initialEntries: string[] = ["/fund"],
   options: { initialIndex?: number; extra?: ReactNode } = {}
@@ -160,6 +210,7 @@ function renderView(
 describe("FundPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockLastEndowmentExitComplete.current = null;
     mockPrimaryAddress.current = null;
     mockUseInViewReveal.mockReturnValue({ ref: { current: null }, revealed: true });
     mockUsePublicGardens.mockReturnValue({ data: mockGardens, isLoading: false });
@@ -314,34 +365,106 @@ describe("FundPage", () => {
     expect(screen.getByText(/Garden matching "missing"/)).toBeInTheDocument();
   });
 
-  it("places Manage Endowments as a link button in the Garden selection section", () => {
+  it("places Manage Endowments as a text button in the Garden selection section", () => {
     renderView();
     const gardenSection = screen
       .getByRole("heading", { name: /Gardens accepting support/i })
       .closest("section");
 
     expect(gardenSection).not.toBeNull();
-    const manageLink = within(gardenSection as HTMLElement).getByRole("link", {
+    const manageButton = within(gardenSection as HTMLElement).getByRole("button", {
       name: "Manage Endowments",
     });
 
-    expect(manageLink).toBeInTheDocument();
-    expect(manageLink).toHaveAttribute("href", "/fund?manage=endowments");
+    expect(manageButton).toBeInTheDocument();
+    expect(manageButton).toHaveAttribute("type", "button");
+    expect(manageButton).toHaveAttribute("aria-haspopup", "dialog");
+    expect(manageButton).not.toHaveAttribute("href");
   });
 
-  it("opens the endowment panel from the Garden section link button", async () => {
+  it("opens the endowment panel from the Garden section text button", async () => {
     const user = userEvent.setup();
     renderView();
 
-    await user.click(screen.getByRole("link", { name: "Manage Endowments" }));
+    await user.click(screen.getByRole("button", { name: "Manage Endowments" }));
 
     expect(screen.getByTestId("public-endowment-panel")).toBeInTheDocument();
+  });
+
+  it("keeps Garden selection cards in a max two-column equal-row grid", () => {
+    renderView();
+
+    const grid = screen.getByTestId("public-fund-garden-grid");
+    expect(grid).toHaveClass("sm:grid-cols-2");
+    expect(grid).toHaveClass("sm:auto-rows-fr");
+    expect(grid.className).not.toContain("grid-cols-3");
+
+    const gardenCard = screen.getByRole("group", {
+      name: "Solar Community Garden funding options",
+    });
+    expect(gardenCard).toHaveAttribute("data-component", "PublicGardenRow");
+    expect(gardenCard).toHaveClass("h-full");
+    expect(gardenCard).toHaveClass("min-w-0");
+    expect(gardenCard.parentElement).toHaveClass("h-full");
+    expect(gardenCard.parentElement).toHaveClass("min-w-0");
+
+    const vaultMetrics = within(gardenCard)
+      .getByText(/2,005 DAI/)
+      .closest("p");
+    expect(vaultMetrics).toHaveClass("min-w-0");
+    expect(vaultMetrics).toHaveClass("max-w-full");
+    expect(vaultMetrics?.className).toContain("[overflow-wrap:anywhere]");
+  });
+
+  it("keeps compact Garden media rectangular with fitted fallback initials", () => {
+    renderView();
+
+    const imageCard = screen.getByRole("group", {
+      name: "Solar Community Garden funding options",
+    });
+    const imageMedia = imageCard.querySelector('[data-component="PublicGardenRowMedia"]');
+    expect(imageMedia).toHaveClass("h-20");
+    expect(imageMedia).toHaveClass("w-28");
+    expect(imageMedia).toHaveClass("sm:h-24");
+    expect(imageMedia).toHaveClass("sm:w-36");
+    expect(imageMedia?.className).not.toContain("w-20");
+
+    const fallbackCard = screen.getByRole("group", {
+      name: "Urban Composting Hub funding options",
+    });
+    const fallbackInitial = fallbackCard.querySelector(
+      '[data-component="GardenCoverFallbackInitial"]'
+    );
+    expect(fallbackInitial).toHaveTextContent("UC");
+    expect(fallbackInitial).toHaveClass("text-3xl");
+    expect(fallbackInitial).toHaveClass("sm:text-4xl");
+    expect(fallbackInitial).toHaveClass("lg:text-4xl");
   });
 
   it("opens the endowment panel from /fund?manage=endowments", () => {
     renderView(["/fund?manage=endowments"]);
 
     expect(screen.getByTestId("public-endowment-panel")).toBeInTheDocument();
+  });
+
+  it("keeps the manage query until the endowment panel exit completes", async () => {
+    const user = userEvent.setup();
+    renderView(["/fund?manage=endowments"], { extra: createElement(LocationSearchProbe) });
+
+    expect(screen.getByTestId("location-search")).toHaveTextContent("?manage=endowments");
+
+    await user.click(screen.getByRole("button", { name: "Close endowments" }));
+
+    expect(screen.queryByTestId("public-endowment-panel")).toBeNull();
+    expect(screen.getByTestId("location-search")).toHaveTextContent("?manage=endowments");
+
+    act(() => {
+      mockLastEndowmentExitComplete.current?.();
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId("location-search")).toHaveTextContent("");
+    });
   });
 
   it("closes the endowment panel when navigation removes the manage query", async () => {
