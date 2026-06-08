@@ -21,6 +21,14 @@ import { Badge } from "@/components/Communication";
 import { ImagePreviewDialog } from "@/components/Dialogs";
 import { Books } from "@/components/Features";
 import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
+import { trackWorkMediaJourneyEvent } from "./mediaAnalytics";
+import {
+  getSafeMediaBatchMetadata,
+  getSafeMediaMetadata,
+  getWorkMediaId,
+  isVideoFile,
+  normalizeWorkMediaFiles,
+} from "./mediaProcessing";
 
 const WORK_DRAFT_TRACKING_ID = "work-draft";
 const VIDEO_TRACKING_ID = "work-draft-video";
@@ -39,6 +47,14 @@ interface WorkMediaProps {
   onCameraClickRef?: React.MutableRefObject<(() => void) | null>;
   isRecording?: boolean;
   recordingElapsed?: number;
+  brokenMediaIds?: ReadonlySet<string>;
+  onPreviewFailed?: (file: File, surface: "media") => void;
+  onRemoveMedia?: (file: File, surface: "media") => void;
+  onRemoveBrokenMedia?: (surface: "media") => void;
+  workSubmissionJourneyId?: string | null;
+  ensureWorkSubmissionJourneyId?: () => string;
+  authMode?: "wallet" | "passkey" | "embedded" | null;
+  actionUID?: number | null;
 }
 
 /** Get platform context for analytics */
@@ -92,11 +108,6 @@ function validateVideoDuration(file: File): Promise<{ valid: boolean; duration: 
   });
 }
 
-/** Check if a file is a video type */
-function isVideoFile(file: File): boolean {
-  return file.type.startsWith("video/");
-}
-
 /** Format seconds as m:ss */
 function formatTime(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -115,17 +126,32 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
   onCameraClickRef,
   isRecording = false,
   recordingElapsed = 0,
+  brokenMediaIds,
+  onPreviewFailed,
+  onRemoveMedia,
+  onRemoveBrokenMedia,
+  workSubmissionJourneyId,
+  ensureWorkSubmissionJourneyId,
+  authMode,
+  actionUID,
 }) => {
   const intl = useIntl();
   const [previewIndex, setPreviewIndex] = useState<number | null>(null);
-  const [isCompressing, setIsCompressing] = useState(false);
+  const [processingPhase, setProcessingPhase] = useState<"idle" | "converting" | "compressing">(
+    "idle"
+  );
   const [compressionProgress, setCompressionProgress] = useState(0);
   const [videoError, setVideoError] = useState<string | null>(null);
-  const [playingVideoIndex, setPlayingVideoIndex] = useState<number | null>(null);
+  const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
 
   const mediaInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const uploadSourceRef = useRef<"gallery" | "camera" | null>(null);
+  const isProcessingMedia = processingPhase !== "idle";
+  const brokenCount = useMemo(
+    () => images.filter((file) => brokenMediaIds?.has(getWorkMediaId(file))).length,
+    [brokenMediaIds, images]
+  );
 
   // Stable blob URLs for all media items
   const mediaUrls = useMemo(
@@ -157,7 +183,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
 
   const handleUploadClick = useCallback((source: "gallery" | "camera") => {
     uploadSourceRef.current = source;
-    track("media_upload_clicked", { source, ...getPlatformContext() });
+    track("media_upload_clicked", { source, ...getPlatformContext() }, { includeSessionId: false });
     (source === "gallery" ? mediaInputRef : cameraInputRef).current?.click();
   }, []);
 
@@ -174,34 +200,129 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
    */
   const handleMediaUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
-    const source = uploadSourceRef.current;
+    const source = uploadSourceRef.current ?? "gallery";
     const context = getPlatformContext();
+    const journeyId = ensureWorkSubmissionJourneyId?.() ?? workSubmissionJourneyId ?? null;
     setVideoError(null);
 
     if (!files?.length) {
-      track("media_upload_cancelled", { source, ...context });
+      track("media_upload_cancelled", { source, ...context }, { includeSessionId: false });
       uploadSourceRef.current = null;
       return;
     }
 
     const fileArray = Array.from(files);
-    const totalSize = fileArray.reduce((sum, f) => sum + f.size, 0);
+    const safeBatchMetadata = getSafeMediaBatchMetadata(fileArray);
 
-    track("media_upload_started", {
+    trackWorkMediaJourneyEvent("work_media_selected", {
+      work_submission_journey_id: journeyId,
       source,
-      count: fileArray.length,
-      totalSizeKB: Math.round(totalSize / 1024),
-      ...context,
+      auth_mode: authMode,
+      action_uid: actionUID,
+      submission_phase: "media",
+      ...safeBatchMetadata,
     });
 
-    // Split into images and videos
-    const imageFiles = fileArray.filter((f) => !isVideoFile(f));
-    const videoFiles = fileArray.filter(isVideoFile);
+    track(
+      "media_upload_started",
+      {
+        source,
+        count: fileArray.length,
+        sizeBuckets: safeBatchMetadata.size_buckets,
+        ...context,
+      },
+      { includeSessionId: false }
+    );
 
-    setIsCompressing(true);
+    setProcessingPhase("converting");
     setCompressionProgress(0);
 
     try {
+      const normalized = await normalizeWorkMediaFiles(fileArray, {
+        onHeicConversionStarted: (file) => {
+          trackWorkMediaJourneyEvent("work_media_heic_conversion_started", {
+            work_submission_journey_id: journeyId,
+            source,
+            auth_mode: authMode,
+            action_uid: actionUID,
+            submission_phase: "media",
+            ...getSafeMediaMetadata(file),
+          });
+        },
+        onHeicConversionSucceeded: (originalFile, convertedFile) => {
+          trackWorkMediaJourneyEvent("work_media_heic_conversion_succeeded", {
+            work_submission_journey_id: journeyId,
+            source,
+            auth_mode: authMode,
+            action_uid: actionUID,
+            submission_phase: "media",
+            conversion_count: 1,
+            ...getSafeMediaMetadata(convertedFile),
+            extension: getSafeMediaMetadata(originalFile).extension,
+          });
+        },
+        onHeicConversionFailed: (file) => {
+          trackWorkMediaJourneyEvent("work_media_heic_conversion_failed", {
+            work_submission_journey_id: journeyId,
+            source,
+            auth_mode: authMode,
+            action_uid: actionUID,
+            submission_phase: "media",
+            rejected_count: 1,
+            parsed_error_family: "heic_conversion_failed",
+            ...getSafeMediaMetadata(file),
+          });
+        },
+      });
+
+      const unsupportedCount = normalized.rejected.filter(
+        (item) => item.reason === "unsupported"
+      ).length;
+      const conversionFailureCount = normalized.rejected.filter(
+        (item) => item.reason === "heic_conversion_failed"
+      ).length;
+
+      if (unsupportedCount > 0) {
+        toastService.info({
+          title: intl.formatMessage({
+            id: "app.garden.upload.unsupportedMediaTitle",
+            defaultMessage: "Some files were not added",
+          }),
+          message: intl.formatMessage(
+            {
+              id: "app.garden.upload.unsupportedMediaMessage",
+              defaultMessage:
+                "{count, plural, one {That file is not a supported photo or video.} other {# files are not supported photos or videos.}}",
+            },
+            { count: unsupportedCount }
+          ),
+          context: "mediaUpload",
+        });
+      }
+
+      if (conversionFailureCount > 0) {
+        toastService.error({
+          title: intl.formatMessage({
+            id: "app.garden.upload.conversionFailedTitle",
+            defaultMessage: "HEIC photo could not be converted",
+          }),
+          message: intl.formatMessage(
+            {
+              id: "app.garden.upload.conversionFailedMessage",
+              defaultMessage:
+                "{count, plural, one {Try that photo again or choose a different image.} other {Try those photos again or choose different images.}}",
+            },
+            { count: conversionFailureCount }
+          ),
+          context: "mediaUpload",
+        });
+      }
+
+      // Split normalized media into images and videos
+      const normalizedFiles = normalized.accepted.map((item) => item.file);
+      const imageFiles = normalizedFiles.filter((f) => !isVideoFile(f));
+      const videoFiles = normalizedFiles.filter(isVideoFile);
+
       // --- Process videos: validate duration ---
       const validVideos: File[] = [];
       for (const vf of videoFiles) {
@@ -223,15 +344,20 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
                   { max: MAX_VIDEO_DURATION_SECONDS, actual: Math.round(duration) }
                 );
           setVideoError(errorMsg);
-          track("media_upload_failed", {
-            error: duration === 0 ? "video_corrupt" : "video_too_long",
-            duration,
-            ...context,
-          });
+          track(
+            "media_upload_failed",
+            {
+              error: duration === 0 ? "video_corrupt" : "video_too_long",
+              durationBucket: duration === 0 ? "unknown" : "over-30s",
+              ...context,
+            },
+            { includeSessionId: false }
+          );
         }
       }
 
       // --- Process images: compress ---
+      setProcessingPhase("compressing");
       const toCompress = imageFiles.filter((f) => imageCompressor.shouldCompress(f, 1024));
       const noCompress = imageFiles.filter((f) => !imageCompressor.shouldCompress(f, 1024));
 
@@ -245,8 +371,15 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
         );
         processedImages.push(...results.map((r) => r.file));
 
-        const stats = imageCompressor.getCompressionStats(results);
-        track("media_compression_complete", { ...stats, ...context });
+        track(
+          "media_compression_complete",
+          {
+            filesProcessed: results.length,
+            sizeBuckets: getSafeMediaBatchMetadata(toCompress).size_buckets,
+            ...context,
+          },
+          { includeSessionId: false }
+        );
       }
 
       // --- Combine and append (no mutual exclusivity) ---
@@ -284,18 +417,28 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
         });
       }
 
-      track("media_upload_complete", {
-        count: newFiles.length,
-        imageCount: processedImages.length,
-        videoCount: validVideos.length,
-        droppedCount,
-        ...context,
-      });
+      track(
+        "media_upload_complete",
+        {
+          count: newFiles.length,
+          imageCount: processedImages.length,
+          videoCount: validVideos.length,
+          conversionCount: normalized.converted.length,
+          rejectedCount: normalized.rejected.length,
+          droppedCount,
+          ...context,
+        },
+        { includeSessionId: false }
+      );
     } catch (error) {
-      track("media_upload_failed", {
-        error: error instanceof Error ? error.message : "Unknown",
-        ...context,
-      });
+      track(
+        "media_upload_failed",
+        {
+          error: error instanceof Error ? error.name : "UnknownError",
+          ...context,
+        },
+        { includeSessionId: false }
+      );
       // Don't fall back to uncompressed originals — they can blow IndexedDB
       // quota and silently exceed submission size limits. Surface the failure
       // and let the user retry.
@@ -312,14 +455,33 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
         error,
       });
     } finally {
-      setIsCompressing(false);
+      setProcessingPhase("idle");
       setCompressionProgress(0);
       event.target.value = "";
       uploadSourceRef.current = null;
     }
   };
 
-  const removeMedia = (index: number) => setImages((prev) => prev.filter((_, i) => i !== index));
+  const removeMedia = (file: File) => {
+    const mediaId = getWorkMediaId(file);
+    if (playingVideoId === mediaId) setPlayingVideoId(null);
+
+    if (onRemoveMedia) {
+      onRemoveMedia(file, "media");
+      return;
+    }
+
+    setImages((prev) => prev.filter((item) => getWorkMediaId(item) !== mediaId));
+  };
+
+  const removeBrokenMedia = () => {
+    if (onRemoveBrokenMedia) {
+      onRemoveBrokenMedia("media");
+      return;
+    }
+
+    setImages((prev) => prev.filter((file) => !brokenMediaIds?.has(getWorkMediaId(file))));
+  };
 
   // Config values with defaults
   const title =
@@ -399,24 +561,24 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
           ref={mediaInputRef}
           id="work-media-upload"
           type="file"
-          accept="image/*,video/*"
+          accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif,video/*"
           onChange={handleMediaUpload}
           multiple
-          disabled={isCompressing}
+          disabled={isProcessingMedia}
         />
         <input
           ref={cameraInputRef}
           id="work-media-camera"
           type="file"
-          accept="image/*"
+          accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
           capture="environment"
           onChange={handleMediaUpload}
-          disabled={isCompressing}
+          disabled={isProcessingMedia}
         />
       </div>
 
       {/* Compression progress */}
-      {isCompressing && (
+      {isProcessingMedia && (
         <div
           className={cn(
             "flex items-center gap-3 rounded-[var(--radius-lg)] border p-4",
@@ -427,10 +589,15 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
           <RiLoader4Line className={cn("w-5 h-5 animate-spin", pwaStatusStyles.information.icon)} />
           <div className="flex-1">
             <p className="text-sm font-medium text-text-strong-950">
-              {intl.formatMessage({
-                id: "app.garden.upload.compressing",
-                defaultMessage: "Compressing images...",
-              })}
+              {processingPhase === "converting"
+                ? intl.formatMessage({
+                    id: "app.garden.upload.convertingHeic",
+                    defaultMessage: "Converting HEIC photos...",
+                  })
+                : intl.formatMessage({
+                    id: "app.garden.upload.compressing",
+                    defaultMessage: "Compressing images...",
+                  })}
             </p>
             <div className="mt-2 bg-bg-soft-200 rounded-full h-2">
               <div
@@ -445,6 +612,45 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
           <span className={cn("text-sm font-medium", pwaStatusStyles.information.text)}>
             {Math.round(compressionProgress)}%
           </span>
+        </div>
+      )}
+
+      {brokenCount > 0 && (
+        <div
+          role="status"
+          aria-live="polite"
+          className={cn(
+            "flex flex-col gap-2 rounded-[var(--radius-lg)] border p-3",
+            pwaStatusStyles.warning.surface,
+            pwaStatusStyles.warning.border
+          )}
+        >
+          <p className={cn("text-sm font-medium", pwaStatusStyles.warning.text)}>
+            {intl.formatMessage({
+              id: "app.garden.upload.previewFailedTitle",
+              defaultMessage: "Some media previews failed",
+            })}
+          </p>
+          <p className={cn("text-sm", pwaStatusStyles.warning.text)}>
+            {intl.formatMessage(
+              {
+                id: "app.garden.upload.previewFailedMessage",
+                defaultMessage:
+                  "{count, plural, one {Remove the broken item and keep the rest of your work.} other {Remove the broken items and keep the rest of your work.}}",
+              },
+              { count: brokenCount }
+            )}
+          </p>
+          <button
+            type="button"
+            className="self-start min-h-11 rounded-[var(--radius-md)] border border-stroke-sub-300 bg-bg-white-0 px-3 text-sm font-medium text-text-strong-950"
+            onClick={removeBrokenMedia}
+          >
+            {intl.formatMessage({
+              id: "app.garden.upload.removeBrokenMedia",
+              defaultMessage: "Remove broken media",
+            })}
+          </button>
         </div>
       )}
 
@@ -488,16 +694,19 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
           {images.map((file, index) => {
             const isVideo = isVideoFile(file);
             const url = mediaUrls[index];
+            const mediaId = getWorkMediaId(file);
+            const isBroken = brokenMediaIds?.has(mediaId) ?? false;
 
             if (isVideo) {
-              const isPlaying = playingVideoIndex === index;
+              const isPlaying = playingVideoId === mediaId;
               return (
-                <div key={`media-${file.name}-${index}`} className="relative">
+                <div key={mediaId} className="relative">
                   {/* eslint-disable-next-line jsx-a11y/media-has-caption -- user-generated content */}
                   <video
                     src={url}
                     controls={isPlaying}
                     className="w-full aspect-4/3 md:aspect-square object-cover rounded-lg"
+                    onError={() => onPreviewFailed?.(file, "media")}
                     aria-label={intl.formatMessage({
                       id: "app.garden.upload.videoPreview",
                       defaultMessage: "Video preview",
@@ -510,10 +719,18 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
                     <button
                       type="button"
                       className="absolute inset-0 flex items-center justify-center rounded-[var(--radius-lg)] bg-[var(--color-overlay)]"
-                      onClick={() => setPlayingVideoIndex(index)}
+                      onClick={() => setPlayingVideoId(mediaId)}
                     >
                       <RiPlayFill className="w-12 h-12 text-static-white" />
                     </button>
+                  )}
+                  {isBroken && (
+                    <div className="absolute inset-x-2 bottom-2 rounded-[var(--radius-md)] border border-stroke-sub-300 bg-bg-white-0 px-2 py-1 text-xs font-medium text-text-strong-950">
+                      {intl.formatMessage({
+                        id: "app.garden.upload.brokenPreviewLabel",
+                        defaultMessage: "Preview failed",
+                      })}
+                    </div>
                   )}
                   {/* Remove button */}
                   <button
@@ -527,8 +744,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
                     )}
                     className="flex items-center justify-center min-h-11 min-w-11 bg-bg-white-0 border border-stroke-sub-300 rounded-lg absolute top-2 right-2 z-10"
                     onClick={() => {
-                      if (playingVideoIndex === index) setPlayingVideoIndex(null);
-                      removeMedia(index);
+                      removeMedia(file);
                     }}
                   >
                     <RiCloseLine className="w-4 h-4" />
@@ -540,10 +756,11 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
             // Photo card
             const photoIndex = photoOnlyData.findIndex((p) => p.originalIndex === index);
             return (
-              <div key={`media-${file.name}-${index}`} className="relative">
+              <div key={mediaId} className="relative">
                 <button
                   type="button"
                   className="relative group cursor-pointer w-full"
+                  disabled={isBroken}
                   onClick={() => {
                     if (photoIndex >= 0) setPreviewIndex(photoIndex);
                   }}
@@ -552,11 +769,20 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
                     src={url}
                     alt={`${intl.formatMessage({ id: "app.garden.upload.uploaded", defaultMessage: "Uploaded" })} ${index + 1}`}
                     className="w-full aspect-4/3 md:aspect-square object-cover rounded-lg"
+                    onError={() => onPreviewFailed?.(file, "media")}
                   />
                   <div className="absolute inset-0 flex items-center justify-center rounded-[var(--radius-lg)] bg-[var(--color-overlay)] opacity-0 transition-opacity duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] group-hover:opacity-100">
                     <RiZoomInLine className="w-12 h-12 text-static-white" />
                   </div>
                 </button>
+                {isBroken && (
+                  <div className="absolute inset-x-2 bottom-2 rounded-[var(--radius-md)] border border-stroke-sub-300 bg-bg-white-0 px-2 py-1 text-xs font-medium text-text-strong-950">
+                    {intl.formatMessage({
+                      id: "app.garden.upload.brokenPreviewLabel",
+                      defaultMessage: "Preview failed",
+                    })}
+                  </div>
+                )}
                 <button
                   type="button"
                   aria-label={intl.formatMessage(
@@ -566,7 +792,7 @@ export const WorkMedia: React.FC<WorkMediaProps> = ({
                   className="flex items-center justify-center min-h-11 min-w-11 bg-bg-white-0 border border-stroke-sub-300 rounded-lg absolute top-2 right-2 z-10"
                   onClick={(e) => {
                     e.stopPropagation();
-                    removeMedia(index);
+                    removeMedia(file);
                   }}
                 >
                   <RiCloseLine className="w-4 h-4" />
