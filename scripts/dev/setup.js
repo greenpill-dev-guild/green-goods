@@ -338,6 +338,15 @@ function installCommand() {
   return isHost ? "bun install" : "bun install --frozen-lockfile";
 }
 
+function installEnvironment() {
+  return {
+    ...process.env,
+    // Global libvips can force Sharp into a host C++ source build. Prefer the
+    // package-managed prebuilt path for reproducible worktree/container setup.
+    SHARP_IGNORE_GLOBAL_LIBVIPS: process.env.SHARP_IGNORE_GLOBAL_LIBVIPS || "1",
+  };
+}
+
 function writeBaselineEnv() {
   const envPath = ".env";
   if (fs.existsSync(envPath)) {
@@ -446,7 +455,7 @@ if (shouldRunInstall()) {
   const command = installCommand();
   log.info(`Installing dependencies (${command})...\n`);
   try {
-    execSync(command, { stdio: "inherit" });
+    execSync(command, { stdio: "inherit", env: installEnvironment() });
     log.success("Dependencies installed\n");
   } catch {
     log.error("Failed to install dependencies\n");
