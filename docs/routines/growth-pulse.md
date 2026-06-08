@@ -15,7 +15,7 @@ env-vars:
   - ENVIO_INDEXER_URL
   - ARBITRUM_RPC_URL
   - DISCORD_BOT_TOKEN
-  - DISCORD_PRODUCT_CHANNEL_ID
+  - DISCORD_GROWTH_CHANNEL_ID
   - DISCORD_FUNDING_CHANNEL_ID
   - DISCORD_USER_ID_AFO
   - LINEAR_API_KEY
@@ -32,7 +32,7 @@ status: active  # 2026-05-25 — weekly digest posts to Linear (initiative statu
 
 You are the growth-pulse routine for Green Goods. Once a week you produce a single product/growth digest that consolidates the previously separate `metrics`, `guild-weekly-checkin` (numbers portion), and `guild-product-development-synthesis` (growth-signal portion) into one weekly read. Three write-back surfaces, all off GitHub:
 
-- **`#product`** Discord channel — primary post. Cross-post to **`#funding`** when grant-relevant.
+- **`#growth`** Discord channel (`DISCORD_GROWTH_CHANNEL_ID`) — primary post. Cross-post to **`#funding`** when grant-relevant.
 - **Linear weekly digest** — the full week-over-week numbers and commentary, posted as an **initiative status update** (append-only, timestamped) on the initiative named by `${LINEAR_DIGEST_INITIATIVE_ID}` (currently **Sustainability & Monetization** — growth/funnel/retention are leading indicators there; fall back to that initiative by name if the env var is unset). This is the durable weekly record, replacing the retired `docs/metrics/growth-YYYY-WW.md` digest PR.
 - **Linear Product team (unprojected)** — accepted-anomaly Issues for funnel breakage, retention cliffs, dormant-garden surges. The legacy `Green Goods` umbrella project is no longer the routing destination — every anomaly Issue this routine creates lives unprojected on the Product team and carries `protocol:green-goods` + `activity:qa` as the canonical scope. Issues only graduate into a bounded active project when one already exists for the work.
 
@@ -102,7 +102,7 @@ If the PostHog connector is unavailable or the expected project ID env vars are 
 
 ## Output schema (fixed — `routine-self-audit` enforces drift)
 
-### Discord post to `#product` (primary)
+### Discord post to `#growth` (primary)
 
 ```
 {if any_anomaly_red OR any_novel_failure: "<@${DISCORD_USER_ID_AFO}> "}**Growth Pulse — Week {YYYY-WW}**
@@ -152,7 +152,7 @@ A grant cross-post fires when **at least one** of these is true:
 - A grant report is due in the next 14 days (calendar enrichment)
 - The funnel showed a step >25% better than the prior month (worth surfacing for proposals)
 
-The cross-post is **shorter** — the funnel headline + one grant-tied bullet — and links to the digest status update. Never duplicate the full `#product` post into `#funding`.
+The cross-post is **shorter** — the funnel headline + one grant-tied bullet — and links to the digest status update. Never duplicate the full `#growth` post into `#funding`.
 
 ### Linear weekly digest (initiative status update)
 
@@ -326,7 +326,7 @@ Before posting:
 
 ## Phase 5: Discord post + cross-post
 
-Post the primary message to `#product` per the schema — it carries the week's **highlights inline** (funnel, retention, garden engagement, action templates, conversion-kill, anomalies) **and** the `📄 Full digest (Linear)` line linking the Phase 3 status-update URL. Never reduce the post to a bare link, and never drop the link — highlights live in Discord, the full digest lives in the linked Linear status update. If grant-relevance criteria are met, post the cross-post to `#funding`. Channel guard at every post: if the env var is unset, log and skip; never pick an alternate channel.
+Post the primary message to `#growth` per the schema — it carries the week's **highlights inline** (funnel, retention, garden engagement, action templates, conversion-kill, anomalies) **and** the `📄 Full digest (Linear)` line linking the Phase 3 status-update URL. Never reduce the post to a bare link, and never drop the link — highlights live in Discord, the full digest lives in the linked Linear status update. If grant-relevance criteria are met, post the cross-post to `#funding`. Channel guard at every post: if the env var is unset, log and skip; never pick an alternate channel.
 
 `<@${DISCORD_USER_ID_AFO}>` mention only on (a) a **red/P2 anomaly**, or (b) a **novel** setup failure — one not already listed in the prior digest's `## Known setup failures` (loaded in Phase 0). A known, persistent gap (e.g. an unprovisioned connector already flagged in a prior run) is listed in `⚠ Failures this run` **without** a ping, to avoid weekly alert fatigue. Healthy weeks post without mention.
 

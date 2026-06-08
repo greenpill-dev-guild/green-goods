@@ -10,7 +10,7 @@ Guild-level routines live in [`greenpill-dev-guild/.github/routines/claude/`](ht
 |---|---|---|---|---|
 | `bug-intake.md` | active | M/W/F 04:00 | `#bug-report` (per-capture acks for bug-source) + `#product` (idea-source acks + daily summary) | Linear Customer Needs (raw signal); accepted bugs become unprojected Linear Product Issues |
 | `health-watch.md` | active | Daily M-F 07:30 | `#engineering` (red only) | Linear Product Issues for accepted operational health work (unprojected) |
-| `growth-pulse.md` | active | Mon 09:00 weekly | `#product` + `#funding` cross-post | Linear Product Issues for accepted anomalies (unprojected) + weekly digest as a Linear initiative status update (Sustainability & Monetization) |
+| `growth-pulse.md` | active | Mon 09:00 weekly | `#growth` + `#funding` cross-post | Linear Product Issues for accepted anomalies (unprojected) + weekly digest as a Linear initiative status update (Sustainability & Monetization) |
 | `qa-triage-pulse.md` | active | Wed 21:00 UTC = 13:00 PST / 14:00 PDT (3h after the 10am PST Product Sync start) | `#product` (Discord summary, @mention when there's something to triage) | Linear Customer Needs only (pre-staged, label `source:qa-triage-pulse` + `qa-sync:<date>`); `/qa-triage` promotes them to Issues + QA-sheet rows interactively. Routine id: `trig_01GSagDiEV9Y8QTBzKeZsPSw` |
 | `pr-review.md` | active | event-driven (PR open) | inline on PR | n/a |
 
@@ -33,7 +33,8 @@ Gmail is intentionally NOT wired on any GG routine (personal-inbox pollution ris
 | Channel | Used by | Why |
 |---|---|---|
 | `#bug-report` (DISCORD_BUGS_CHANNEL_ID) | bug-intake (Phase 1 ingest source + per-capture acks for bug-source records) | dedicated bug-report feed; reporter ack surface for Telegram bug-topic captures |
-| `#product` (DISCORD_PRODUCT_CHANNEL_ID) | bug-intake (idea-source per-capture acks + daily summary), growth-pulse, qa-triage-pulse (Wed pre-stage summary) | user-facing concerns + ideas |
+| `#product` (DISCORD_PRODUCT_CHANNEL_ID) | bug-intake (idea-source per-capture acks + daily summary), qa-triage-pulse (Wed pre-stage summary) | user-facing concerns + ideas |
+| `#growth` (DISCORD_GROWTH_CHANNEL_ID) | growth-pulse (weekly digest highlights) | growth / funnel / retention / action-template pulse |
 | `#engineering` (DISCORD_ENGINEERING_CHANNEL_ID) | health-watch (red only) | operational health status — engineering-focused (indexer / Vercel / contracts / agent uptime / client errors) |
 | `#funding` (DISCORD_FUNDING_CHANNEL_ID) | growth-pulse cross-post (when grant-relevant) | grant relevance only |
 | inline on PR | pr-review | review surface |
