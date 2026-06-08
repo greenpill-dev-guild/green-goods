@@ -122,20 +122,44 @@ export function PublicGardenRow({ garden, vaultSummary, onSupport }: PublicGarde
         </div>
       </Link>
 
-      <div className="flex shrink-0 flex-col items-stretch justify-center gap-2">
-        <EditorialPrimaryButton
-          onClick={() => onSupport(garden, "donate")}
-          className="px-4 py-2 text-xs sm:text-sm"
-        >
-          {formatMessage({ id: "public.fund.dialog.donate.title", defaultMessage: "Donate" })}
-        </EditorialPrimaryButton>
-        <EditorialGhostButton
-          variant="warm"
-          onClick={() => onSupport(garden, "endow")}
-          className="px-4 py-2 text-xs sm:text-sm"
-        >
-          {formatMessage({ id: "public.fund.dialog.endow.title", defaultMessage: "Endow" })}
-        </EditorialGhostButton>
+      <div className="flex shrink-0 flex-col items-stretch justify-center gap-3">
+        <div className="flex flex-col items-stretch gap-1">
+          <EditorialPrimaryButton
+            onClick={() => onSupport(garden, "donate")}
+            className="px-4 py-2 text-xs sm:text-sm"
+            aria-describedby={`${garden.id}-donate-helper`}
+          >
+            {formatMessage({ id: "public.fund.dialog.donate.title", defaultMessage: "Donate" })}
+          </EditorialPrimaryButton>
+          <p
+            id={`${garden.id}-donate-helper`}
+            className="max-w-24 text-center text-[10px] leading-[1.25] text-text-soft-400"
+          >
+            {formatMessage({
+              id: "public.fund.gardenDonateHelper",
+              defaultMessage: "Shared fund support",
+            })}
+          </p>
+        </div>
+        <div className="flex flex-col items-stretch gap-1">
+          <EditorialGhostButton
+            variant="warm"
+            onClick={() => onSupport(garden, "endow")}
+            className="px-4 py-2 text-xs sm:text-sm"
+            aria-describedby={`${garden.id}-endow-helper`}
+          >
+            {formatMessage({ id: "public.fund.dialog.endow.title", defaultMessage: "Endow" })}
+          </EditorialGhostButton>
+          <p
+            id={`${garden.id}-endow-helper`}
+            className="max-w-24 text-center text-[10px] leading-[1.25] text-text-soft-400"
+          >
+            {formatMessage({
+              id: "public.fund.gardenEndowHelper",
+              defaultMessage: "Garden Vault endowment",
+            })}
+          </p>
+        </div>
       </div>
     </div>
   );

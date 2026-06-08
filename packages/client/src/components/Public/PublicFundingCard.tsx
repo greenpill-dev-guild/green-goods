@@ -269,6 +269,15 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
     { id: "public.fund.card.title", defaultMessage: "{intent} to" },
     { intent: kickerText }
   );
+  const pathText = isDonate
+    ? formatMessage({
+        id: "public.fund.card.donatePath",
+        defaultMessage: "Shared fund support",
+      })
+    : formatMessage({
+        id: "public.fund.card.endowPath",
+        defaultMessage: "Garden Vault endowment",
+      });
 
   return (
     <div
@@ -299,6 +308,7 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
               <br />
               <span className="text-text-sub-600">{garden.name}</span>
             </h2>
+            <p className="text-xs leading-[1.45] text-text-soft-400">{pathText}</p>
           </div>
           <button
             type="button"
