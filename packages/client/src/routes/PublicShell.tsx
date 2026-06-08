@@ -1,8 +1,20 @@
-import { useLayoutEffect } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { Outlet, ScrollRestoration, useLocation } from "react-router-dom";
 import { SiteHeader } from "@/components/Navigation/SiteHeader";
 
 const PUBLIC_SCROLL_ROOT_ID = "client-scroll-root";
+const PUBLIC_SCROLL_PRESERVED_SEARCH_PARAMS = new Set(["manage"]);
+
+type PublicScrollPosition = {
+  left: number;
+  top: number;
+};
+
+type PublicRouteSnapshot = {
+  hash: string;
+  pathname: string;
+  search: string;
+};
 
 function getPublicScrollRoot(): HTMLElement | null {
   return document.getElementById(PUBLIC_SCROLL_ROOT_ID);
@@ -16,6 +28,27 @@ function scrollPublicRootToTop() {
     scrollRoot.scrollTo?.({ top: 0, left: 0, behavior: "auto" });
   }
   window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+}
+
+function readPublicScrollPosition(): PublicScrollPosition {
+  const scrollRoot = getPublicScrollRoot();
+  if (scrollRoot) {
+    return { left: scrollRoot.scrollLeft, top: scrollRoot.scrollTop };
+  }
+  return { left: window.scrollX, top: window.scrollY };
+}
+
+function restorePublicScrollPosition(position: PublicScrollPosition) {
+  const scrollRoot = getPublicScrollRoot();
+  if (scrollRoot) {
+    scrollRoot.scrollTop = position.top;
+    scrollRoot.scrollLeft = position.left;
+    scrollRoot.scrollTo?.({ top: position.top, left: position.left, behavior: "auto" });
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    return;
+  }
+
+  window.scrollTo({ top: position.top, left: position.left, behavior: "auto" });
 }
 
 function scrollToHashTarget(hash: string): boolean {
@@ -34,13 +67,103 @@ function scrollToHashTarget(hash: string): boolean {
   return true;
 }
 
+function getChangedSearchParamNames(previousSearch: string, nextSearch: string): Set<string> {
+  const previous = new URLSearchParams(previousSearch);
+  const next = new URLSearchParams(nextSearch);
+  const names = new Set([...previous.keys(), ...next.keys()]);
+  const changed = new Set<string>();
+
+  for (const name of names) {
+    if (previous.getAll(name).join("\u0000") !== next.getAll(name).join("\u0000")) {
+      changed.add(name);
+    }
+  }
+
+  return changed;
+}
+
+function shouldPreservePublicSearchScroll(previousSearch: string, nextSearch: string): boolean {
+  const changedParamNames = getChangedSearchParamNames(previousSearch, nextSearch);
+  if (changedParamNames.size === 0) return false;
+
+  return Array.from(changedParamNames).every((name) =>
+    PUBLIC_SCROLL_PRESERVED_SEARCH_PARAMS.has(name)
+  );
+}
+
+function useLatestPublicScrollPositionRef() {
+  const scrollPositionRef = useRef<PublicScrollPosition>({ left: 0, top: 0 });
+  const interactionScrollPositionRef = useRef<PublicScrollPosition | null>(null);
+
+  useEffect(() => {
+    const scrollTarget = getPublicScrollRoot() ?? window;
+    const updateScrollPosition = () => {
+      scrollPositionRef.current = readPublicScrollPosition();
+    };
+    const captureInteractionScrollPosition = () => {
+      interactionScrollPositionRef.current = readPublicScrollPosition();
+    };
+
+    updateScrollPosition();
+    scrollTarget.addEventListener("scroll", updateScrollPosition, { passive: true });
+    document.addEventListener("pointerdown", captureInteractionScrollPosition, {
+      capture: true,
+      passive: true,
+    });
+    document.addEventListener("click", captureInteractionScrollPosition, {
+      capture: true,
+      passive: true,
+    });
+    document.addEventListener("keydown", captureInteractionScrollPosition, { capture: true });
+
+    return () => {
+      scrollTarget.removeEventListener("scroll", updateScrollPosition);
+      document.removeEventListener("pointerdown", captureInteractionScrollPosition, {
+        capture: true,
+      });
+      document.removeEventListener("click", captureInteractionScrollPosition, { capture: true });
+      document.removeEventListener("keydown", captureInteractionScrollPosition, { capture: true });
+    };
+  }, []);
+
+  return { interactionScrollPositionRef, scrollPositionRef };
+}
+
 function usePublicRouteScrollReset() {
   const { hash, pathname, search } = useLocation();
+  const previousRouteRef = useRef<PublicRouteSnapshot | null>(null);
+  const { interactionScrollPositionRef, scrollPositionRef } = useLatestPublicScrollPositionRef();
 
   useLayoutEffect(() => {
+    const previousRoute = previousRouteRef.current;
+    previousRouteRef.current = { hash, pathname, search };
+
+    const isInitialRender = previousRoute === null;
+    const didPathnameChange = previousRoute?.pathname !== pathname;
+    const didHashChange = previousRoute?.hash !== hash;
+    const didSearchChange = previousRoute?.search !== search;
+
+    if (
+      !isInitialRender &&
+      !didPathnameChange &&
+      !didHashChange &&
+      didSearchChange &&
+      shouldPreservePublicSearchScroll(previousRoute.search, search)
+    ) {
+      const preservedPosition = interactionScrollPositionRef.current ?? scrollPositionRef.current;
+      interactionScrollPositionRef.current = null;
+      restorePublicScrollPosition(preservedPosition);
+      const frame = requestAnimationFrame(() => restorePublicScrollPosition(preservedPosition));
+      return () => cancelAnimationFrame(frame);
+    }
+
+    if (!isInitialRender && !didPathnameChange && !didHashChange && !didSearchChange) return;
+
     if (scrollToHashTarget(hash)) return;
     scrollPublicRootToTop();
-  }, [hash, pathname, search]);
+    interactionScrollPositionRef.current = null;
+    scrollPositionRef.current = { left: 0, top: 0 };
+  }, [hash, interactionScrollPositionRef, pathname, scrollPositionRef, search]);
 }
 
 /**

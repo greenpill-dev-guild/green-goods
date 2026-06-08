@@ -73,7 +73,8 @@ const FundContent = () =>
     "div",
     { "data-testid": "fund-content" },
     "Fund Page Content",
-    createElement(Link, { to: "/gardens" }, "Open gardens")
+    createElement(Link, { to: "/gardens" }, "Open gardens"),
+    createElement(Link, { to: "/fund?manage=endowments" }, "Open endowments")
   );
 const GardensContent = () =>
   createElement("div", { "data-testid": "gardens-content" }, "Gardens Page Content");
@@ -159,6 +160,20 @@ describe("PublicShell", () => {
 
     expect(screen.getByTestId("gardens-content")).toBeInTheDocument();
     expect(scrollRoot!.scrollTop).toBe(0);
+  });
+
+  it("preserves the public scroll container on search-only route changes", () => {
+    renderShellWithRoute("/fund");
+
+    const scrollRoot = document.getElementById("client-scroll-root");
+    expect(scrollRoot).toBeInTheDocument();
+    scrollRoot!.scrollTop = 720;
+    fireEvent.scroll(scrollRoot!);
+
+    fireEvent.click(screen.getByRole("link", { name: "Open endowments" }));
+
+    expect(screen.getByTestId("fund-content")).toBeInTheDocument();
+    expect(scrollRoot!.scrollTop).toBe(720);
   });
 
   it("no bottom nav (AppBar) visible in browser mode", () => {

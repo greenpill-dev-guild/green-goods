@@ -52,9 +52,9 @@ export function PublicEndowmentPanel({ open, onOpenChange }: PublicEndowmentPane
         <Dialog.Content
           data-component="PublicEndowmentPanel"
           className={cn(
-            "fixed z-modal flex max-h-[86vh] w-full flex-col overflow-hidden border border-stroke-soft-200 bg-bg-weak-50 text-text-strong-950 shadow-[var(--shadow-editorial-panel)] focus:outline-none",
-            "inset-x-0 bottom-0 rounded-t-3xl",
-            "sm:inset-x-auto sm:inset-y-4 sm:right-4 sm:max-h-[calc(100vh-2rem)] sm:w-[min(34rem,calc(100vw-2rem))] sm:rounded-3xl"
+            "fixed z-modal flex max-h-[86vh] w-full flex-col overflow-hidden rounded-none border border-x-0 border-b-0 border-stroke-soft-200 bg-bg-weak-50 text-text-strong-950 shadow-[var(--shadow-editorial-panel)] focus:outline-none",
+            "inset-x-0 bottom-0",
+            "sm:inset-x-auto sm:inset-y-0 sm:right-0 sm:h-screen sm:max-h-screen sm:w-[min(34rem,100vw)] sm:border-y-0 sm:border-l sm:border-r-0"
           )}
         >
           <header className="flex items-start justify-between gap-4 border-b border-stroke-soft-200 bg-bg-white-0 px-5 py-5 sm:px-6">

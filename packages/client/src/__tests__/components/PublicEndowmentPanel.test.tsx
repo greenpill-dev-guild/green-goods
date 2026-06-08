@@ -216,6 +216,16 @@ describe("PublicEndowmentPanel", () => {
     expect(mockLoginWithWallet).toHaveBeenCalled();
   });
 
+  it("renders the outer sheet without rounded borders", () => {
+    renderPanel();
+
+    const sheet = document.querySelector('[data-component="PublicEndowmentPanel"]');
+    expect(sheet).not.toBeNull();
+    expect(sheet).toHaveClass("rounded-none");
+    expect(sheet!.className).not.toContain("rounded-t-3xl");
+    expect(sheet!.className).not.toContain("rounded-3xl");
+  });
+
   it("explains the empty state for a connected wallet without endowments", () => {
     mockPrimaryAddress.current = TEST_OWNER;
 
