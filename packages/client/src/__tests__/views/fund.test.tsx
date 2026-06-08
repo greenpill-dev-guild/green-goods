@@ -6,7 +6,7 @@
  * - Tapping Donate or Endow opens PublicFundingCard with the matching intent.
  * - `?intent=` mounts the receipt UI.
  * - `?garden=` stale resolution renders a non-blocking message.
- * - The Garden section exposes the public Manage Endowments panel link.
+ * - The Garden section exposes the public Manage Endowments panel text button.
  *
  * @vitest-environment jsdom
  */
@@ -64,10 +64,44 @@ const {
   mockPrimaryAddress: { current: null as Address | null },
 }));
 
-vi.mock("@green-goods/shared", async () => {
-  const actual = await vi.importActual<typeof import("@green-goods/shared")>("@green-goods/shared");
+vi.mock("@green-goods/shared", () => {
+  const formatMockTokenAmount = (value: bigint, decimals = 18, maximumFractionDigits = 4) => {
+    const scale = 10n ** BigInt(decimals);
+    const whole = value / scale;
+    const remainder = value % scale;
+    const normalized = Number(whole) + Number(remainder) / Number(scale);
+    return new Intl.NumberFormat("en-US", {
+      maximumFractionDigits,
+    }).format(normalized);
+  };
+
   return {
-    ...actual,
+    cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
+    formatApy: (value: number) => `${value.toFixed(2)}%`,
+    formatRelativeTime: () => "recently",
+    formatTokenAmount: formatMockTokenAmount,
+    ImageWithFallback: ({
+      alt = "",
+      className,
+      src,
+    }: {
+      alt?: string;
+      className?: string;
+      src?: string;
+    }) =>
+      src ? (
+        <img alt={alt} className={className} src={src} />
+      ) : (
+        <div aria-hidden="true" className={className} />
+      ),
+    publicGardenHelpers: {
+      deriveSlug: (name: string, id: string) =>
+        name
+          .trim()
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-|-$/g, "") || id.toLowerCase(),
+    },
     useAppKit: () => ({ open: mockOpenWalletModal }),
     useInViewReveal: (...args: unknown[]) => mockUseInViewReveal(...args),
     usePublicGardens: (...args: unknown[]) => mockUsePublicGardens(...args),
@@ -296,26 +330,28 @@ describe("FundPage", () => {
     expect(screen.getByText(/Garden matching "missing"/)).toBeInTheDocument();
   });
 
-  it("places Manage Endowments as a link button in the Garden selection section", () => {
+  it("places Manage Endowments as a text button in the Garden selection section", () => {
     renderView();
     const gardenSection = screen
       .getByRole("heading", { name: /Gardens accepting support/i })
       .closest("section");
 
     expect(gardenSection).not.toBeNull();
-    const manageLink = within(gardenSection as HTMLElement).getByRole("link", {
+    const manageButton = within(gardenSection as HTMLElement).getByRole("button", {
       name: "Manage Endowments",
     });
 
-    expect(manageLink).toBeInTheDocument();
-    expect(manageLink).toHaveAttribute("href", "/fund?manage=endowments");
+    expect(manageButton).toBeInTheDocument();
+    expect(manageButton).toHaveAttribute("type", "button");
+    expect(manageButton).toHaveAttribute("aria-haspopup", "dialog");
+    expect(manageButton).not.toHaveAttribute("href");
   });
 
-  it("opens the endowment panel from the Garden section link button", async () => {
+  it("opens the endowment panel from the Garden section text button", async () => {
     const user = userEvent.setup();
     renderView();
 
-    await user.click(screen.getByRole("link", { name: "Manage Endowments" }));
+    await user.click(screen.getByRole("button", { name: "Manage Endowments" }));
 
     expect(screen.getByTestId("public-endowment-panel")).toBeInTheDocument();
   });

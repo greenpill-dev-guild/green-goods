@@ -15,7 +15,6 @@ import { useIntl } from "react-intl";
 import { useSearchParams } from "react-router-dom";
 import {
   EditorialHeading,
-  EditorialGhostLink,
   EditorialKicker,
   EditorialLinkArrow,
   EditorialNumeral,
@@ -357,14 +356,12 @@ function FundPageContent() {
 
   const closeSelector = useCallback(() => setSelectorState(null), []);
 
-  const manageEndowmentsTo = useMemo(() => {
+  const handleManageEndowmentsClick = useCallback(() => {
     const nextParams = new URLSearchParams(searchParams);
     nextParams.set("manage", "endowments");
-    return {
-      pathname: "/fund",
-      search: `?${nextParams.toString()}`,
-    };
-  }, [searchParams]);
+    setEndowmentPanelOpen(true);
+    setSearchParams(nextParams, { preventScrollReset: true });
+  }, [searchParams, setSearchParams]);
 
   const handleEndowmentPanelOpenChange = useCallback(
     (open: boolean) => {
@@ -372,7 +369,7 @@ function FundPageContent() {
       if (!open && searchParams.get("manage") === "endowments") {
         const nextParams = new URLSearchParams(searchParams);
         nextParams.delete("manage");
-        setSearchParams(nextParams, { replace: true });
+        setSearchParams(nextParams, { replace: true, preventScrollReset: true });
       }
     },
     [searchParams, setSearchParams]
@@ -562,16 +559,18 @@ function FundPageContent() {
                   })}
                 </EditorialHeading>
               </div>
-              <EditorialGhostLink
-                to={manageEndowmentsTo}
-                variant="warm"
-                className="w-full px-5 py-2.5 text-sm sm:w-auto"
+              <button
+                type="button"
+                onClick={handleManageEndowmentsClick}
+                aria-expanded={isEndowmentPanelOpen}
+                aria-haspopup="dialog"
+                className="inline-flex min-h-11 w-fit items-center border-b border-primary-action/35 text-left text-sm font-medium text-primary-action transition-colors hover:border-primary-action-hover hover:text-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-4 focus-visible:ring-offset-bg-weak-50 sm:mt-1"
               >
                 {formatMessage({
                   id: "public.fund.manageEndowments.cta",
                   defaultMessage: "Manage Endowments",
                 })}
-              </EditorialGhostLink>
+              </button>
             </div>
           </header>
 
