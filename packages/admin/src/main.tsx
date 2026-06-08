@@ -38,7 +38,7 @@ const cleanupTheme = initTheme();
 
 initBrowserSentry({
   dsn: import.meta.env.VITE_SENTRY_ADMIN_DSN,
-  environment: import.meta.env.MODE,
+  environment: import.meta.env.VITE_SENTRY_ENVIRONMENT || import.meta.env.MODE,
   release: import.meta.env.VITE_APP_VERSION
     ? `green-goods-admin@${import.meta.env.VITE_APP_VERSION}`
     : undefined,
