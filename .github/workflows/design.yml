@@ -1,6 +1,13 @@
 name: Design
 
 on:
+  workflow_dispatch:
+    inputs:
+      publish_chromatic:
+        description: "Publish Storybook to Chromatic"
+        required: false
+        default: false
+        type: boolean
   push:
     branches: [main, develop]
     paths:
@@ -77,10 +84,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "22"
 
@@ -111,12 +118,12 @@ jobs:
       CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: "22"
 
@@ -144,11 +151,11 @@ jobs:
         run: bun run --filter @green-goods/shared build-storybook
 
       - name: Upload Storybook artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: storybook-static
           path: packages/shared/storybook-static
 
       - name: Publish Storybook to Chromatic
-        if: env.CHROMATIC_PROJECT_TOKEN != ''
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_chromatic && env.CHROMATIC_PROJECT_TOKEN != '' }}
         run: bun run --filter @green-goods/shared chromatic -- --exit-zero-on-changes --exit-once-uploaded

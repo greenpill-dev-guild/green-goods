@@ -3,4 +3,37 @@ version = 1
 name = "green-goods"
 
 [setup]
-script = ""
+script = '''
+set -e
+
+prepend_path() {
+  if [ -n "$1" ] && [ -d "$1" ]; then
+    PATH="$1:$PATH"
+  fi
+}
+
+# Codex local-environment shells are not guaranteed to be login shells. Expose
+# the repo's mise and Bun shims before npm launches scripts/dev/setup.js.
+prepend_path "$HOME/.local/share/mise/shims"
+prepend_path "$HOME/.bun/bin"
+export PATH
+
+npm run setup -- --profile isolated
+'''
+
+[cleanup]
+script = '''
+set -e
+
+prepend_path() {
+  if [ -n "$1" ] && [ -d "$1" ]; then
+    PATH="$1:$PATH"
+  fi
+}
+
+prepend_path "$HOME/.local/share/mise/shims"
+prepend_path "$HOME/.bun/bin"
+export PATH
+
+bun run dev:clean
+'''

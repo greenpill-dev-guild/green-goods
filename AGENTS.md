@@ -46,6 +46,15 @@ Linear (workspace `greenpill-dev-guild`) is the durable backlog as of 2026-05-09
 
 **Privacy boundary** (PostHog evidence in Linear bodies): error message + hash + counts OK; replay URLs, session IDs, distinct IDs, wallet addresses, and reporter identifiers stay out.
 
+## Linear-Spawned Issue Contract
+
+When you are dispatched from a Linear issue (delegated/assigned, labeled `agent:codex`), **that issue is your spec.** Read it in full, plus this file and — if the issue references a `.plans/<feature>/` lane — that lane's `status.json` and todo.
+
+- **Codex-ready gate.** Start implementing only if the issue gives all of: clear **acceptance criteria**, a named **surface / `package:*`**, and **validation** (explicit commands, or inferable from the Validation Ladder below). If any is missing, the scope is ambiguous, or it asks for a cross-lane or architecture decision — **stop and comment on the issue with what's missing; do not guess.** A vague issue is a no-op, not a green light. This is the Linear entry to the same audit-then-ship rhythm in `## Codex Workflow`.
+- **Executor, not orchestrator.** Implement only the issue's scoped unit. Cross-lane order and coupling live in `.plans/<feature>/status.json` + the human — do not reorder lanes, pull in sibling lanes, or expand past the acceptance criteria. Coupled-feature order: shared/types + contracts → state/API → UI.
+- **Branch + PR.** Work on the integration branch named in the issue or its lane, not a fresh ad-hoc branch. The PR body must link the issue — `Closes PRD-NNN` (or `Linear: PRD-NNN`); that link is the issue↔PR source of truth. One issue per PR; keep unattended-maintenance PRs as drafts with the right labels (see `## Scope Constraints For Automated Maintenance`); never self-merge. `critical` and `packages/contracts` surfaces get extra human/Claude review.
+- **Before the PR**, run the lightest Validation Ladder rung that proves the change (`node scripts/dev/ci-local.js --quick` minimum; add `bun run lint:vocab` + design checks for frontend) and produce evidence per `## Verify Before Claiming Success`. Honor the privacy boundary above and `## Multi-Agent Repo Safety`.
+
 ## Codex Workflow
 
 1. Read the nearest `AGENTS.md`.

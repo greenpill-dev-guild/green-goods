@@ -350,25 +350,44 @@ function GardenMembersList({
 
   return (
     <div className="space-y-3" data-component="GardenMembersList">
-      <header className="flex items-baseline justify-between gap-3">
-        <h2 className="text-title-md font-semibold text-text-strong">
-          {formatMessage({
-            id: "cockpit.garden.members.title",
-            defaultMessage: "Gardeners",
-          })}
-        </h2>
-        <p className="text-label-sm font-medium text-text-soft tabular-nums">
+      <header className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 space-y-1">
+          <h2 className="text-title-md font-semibold text-text-strong [overflow-wrap:anywhere]">
+            {formatMessage(
+              {
+                id: "cockpit.garden.members.title",
+                defaultMessage: "Members of {name}",
+              },
+              { name: gardenName }
+            )}
+          </h2>
+          <p className="text-body-sm text-text-sub">
+            {formatMessage({
+              id: "cockpit.garden.members.scope",
+              defaultMessage: "This roster is scoped to the selected garden.",
+            })}
+          </p>
+        </div>
+        <p className="shrink-0 text-label-sm font-medium text-text-soft tabular-nums">
           {formatMessage(
             {
               id: "cockpit.garden.members.count",
-              defaultMessage: "{count, plural, one {# gardener} other {# gardeners}}",
+              defaultMessage:
+                "{count, plural, one {# gardener in this garden} other {# gardeners in this garden}}",
             },
             { count: gardeners.length }
           )}
         </p>
       </header>
 
-      <div className="flex flex-wrap gap-1.5" role="group" aria-label="Member filters">
+      <div
+        className="flex flex-wrap gap-1.5"
+        role="group"
+        aria-label={formatMessage({
+          id: "cockpit.garden.members.filterAria",
+          defaultMessage: "Filter this garden's members by role",
+        })}
+      >
         {GARDEN_MEMBERS_FILTERS.map((chip) => (
           <AdminFilterChip
             key={chip.id}

@@ -23,6 +23,7 @@ interface ImportMetaEnv {
   readonly VITE_PINATA_GATEWAY_URL?: string;
   readonly VITE_CAMPAIGN_COOKIE_JARS?: string;
   readonly VITE_SENTRY_CLIENT_DSN?: string;
+  readonly VITE_SENTRY_ENVIRONMENT?: string;
   readonly VITE_SENTRY_DEBUG?: string;
 }
 

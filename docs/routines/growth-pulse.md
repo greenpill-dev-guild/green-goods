@@ -210,7 +210,7 @@ The status update carries the routine's health read: `onTrack` on a healthy/quie
 
 ### Linear anomaly Issue body
 
-When a growth-side metric crosses an anomaly threshold, the anomaly is **accepted** — open a Linear Issue **unprojected** on the Product team with `protocol:green-goods` + `activity:qa` + `package:<inferred>` (e.g., `package:client` for funnel/retention; `package:admin` for action-template stalls) + `agent:routine`. Body:
+When a growth-side metric crosses an anomaly threshold, the anomaly is **accepted** — open a Linear Issue **unprojected** on the Product team with `protocol:green-goods` + `activity:qa` + `package:<inferred>` (e.g., `package:client` for funnel/retention; `package:admin` for action-template stalls) + `agent:routine`. **Codex hand-off:** swap `agent:routine`→`agent:codex` when the anomaly Issue clears the Codex-ready bar (clear surface + concrete suggested fix + validation; see [`README.md` § Codex hand-off](README.md)), and delegate to Codex when it also clears the autonomous-confident bar — a telemetry-emit gap is the canonical example. Body:
 
 ```markdown
 ## Anomaly type
@@ -319,7 +319,7 @@ If the status-update write fails (auth, initiative not resolvable, etc.), surfac
 
 Before posting:
 
-1. List every Linear Issue this run created/refreshed and confirm: unprojected on the Product team, expected canonical labels (`protocol:green-goods`, `activity:qa`, `package:*`, `agent:routine`), body matches schema, no private fields.
+1. List every Linear Issue this run created/refreshed and confirm: unprojected on the Product team, expected canonical labels (`protocol:green-goods`, `activity:qa`, `package:*`, one `agent:*` value — `agent:routine` by default or `agent:codex` when the Issue clears the Codex-ready bar), body matches schema, no private fields.
 2. Confirm the weekly digest status update: posted to the resolved initiative, body matches the schema, health set, no private fields. Confirm NO GitHub PR, branch, or `docs/metrics/` file was created.
 3. **Privacy grep** across every Linear body (anomaly Issues + the weekly digest status update) and the Discord post for the strings `replay`, `session_id`, `distinct_id`, `0x` (wallet addresses are public on-chain, but treat as suspect — confirm each one is a deliberate `garden_address` reference, not a `distinct_id`), full stack URLs with query strings, and any reporter identifiers. Any unintended hit means the routine leaked private context — fail loud in the `⚠ Failures this run` block and edit the offending body in place to redact before saving.
 4. Confirm the Discord post and `#funding` cross-post fit the schema. Drop excess content rather than expanding sections.
