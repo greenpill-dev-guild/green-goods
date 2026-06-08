@@ -164,23 +164,23 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
 
             return (
               <Card key={garden.id}>
-                <div className="flex items-center gap-3 w-full">
+                <div className="flex min-w-0 items-center gap-3 w-full">
                   <Avatar>
                     <div className="flex items-center justify-center text-center mx-auto text-primary">
                       <RiPlantLine className="w-4" />
                     </div>
                   </Avatar>
-                  <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+                  <div className="flex flex-col gap-0.5 min-w-0 flex-1 overflow-hidden">
                     <div
-                      className="line-clamp-2 text-sm font-medium leading-snug"
+                      className="line-clamp-2 min-w-0 max-w-full text-sm font-medium leading-snug [overflow-wrap:anywhere]"
                       title={garden.name}
                     >
                       {garden.name}
                     </div>
                     {garden.location && (
-                      <div className="flex items-center gap-1 text-xs text-text-sub-600">
+                      <div className="flex min-w-0 max-w-full items-center gap-1 text-xs text-text-sub-600">
                         <RiMapPinLine className="w-3 h-3 shrink-0" />
-                        <span className="truncate" title={garden.location}>
+                        <span className="min-w-0 truncate" title={garden.location}>
                           {garden.location}
                         </span>
                       </div>
