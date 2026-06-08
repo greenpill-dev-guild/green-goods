@@ -26,6 +26,12 @@ import { getPublicHeroImage, publicCuration } from "@/content/publicCuration";
 
 const MANAGE_POSITIONS_PARAM = "manage";
 const MANAGE_POSITIONS_VALUE = "positions";
+const OCTANT_YIELD_DONATING_STRATEGY_URL =
+  "https://docs.v2.octant.build/docs/yield_donating_strategy";
+const OCTANT_YIELD_DONATING_STRATEGY_CONTRACT_URL =
+  "https://docs.v2.octant.build/docs/smart_contracts/YieldDonatingTokenizedStrategy/";
+const OCTANT_YIELD_DONATING_STRATEGY_ARCHITECTURE_URL =
+  "https://docs.v2.octant.build/docs/yield_donating_strategy/architecture-yds";
 
 const copyFieldMessageIds = {
   headline: "headline",
@@ -167,6 +173,85 @@ function CampaignVaultStats({ campaign }: { campaign: OctantVaultCampaignManifes
         </dd>
       )}
     </dl>
+  );
+}
+
+function YieldSupportExplainer() {
+  const { formatMessage } = useIntl();
+
+  return (
+    <section
+      className="bg-bg-weak-50 px-6 pb-16 sm:px-10 md:pb-20"
+      aria-labelledby="public-vaults-strategy-title"
+    >
+      <div className="mx-auto max-w-7xl border-t border-stroke-soft-200 pt-8">
+        <EditorialKicker className="mb-3">
+          {formatMessage({
+            id: "public.vaults.strategy.kicker",
+            defaultMessage: "§ 02 — Strategy model",
+          })}
+        </EditorialKicker>
+        <EditorialHeading id="public-vaults-strategy-title" size="sub">
+          {formatMessage({
+            id: "public.vaults.strategy.title",
+            defaultMessage: "How yield support works",
+          })}
+        </EditorialHeading>
+        <div className="mt-4 grid gap-4 text-sm leading-[1.65] text-text-sub-600 md:grid-cols-[minmax(0,1fr)_auto] md:text-base">
+          <div className="max-w-3xl space-y-4">
+            <p>
+              {formatMessage({
+                id: "public.vaults.strategy.body",
+                defaultMessage:
+                  "Supporters receive vault shares for their WETH-backed position, while reported strategy profit is represented as project-supporting donation shares rather than a per-user profit balance.",
+              })}
+            </p>
+            <p>
+              {formatMessage({
+                id: "public.vaults.strategy.evidence",
+                defaultMessage:
+                  "The recorded pilot evidence points to YieldDonatingTokenizedStrategy contracts created through YearnV3StrategyFactory metadata. Green Goods treats that as strategy-factory and creator evidence for these pilot vaults, not as a new deployment or yield-rate claim.",
+              })}
+            </p>
+          </div>
+          <div className="flex flex-col items-start gap-2 text-sm">
+            <a
+              href={OCTANT_YIELD_DONATING_STRATEGY_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="font-semibold text-primary-base underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action"
+            >
+              {formatMessage({
+                id: "public.vaults.strategy.source.yds",
+                defaultMessage: "Octant Yield Donating Strategy docs",
+              })}
+            </a>
+            <a
+              href={OCTANT_YIELD_DONATING_STRATEGY_CONTRACT_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="font-semibold text-primary-base underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action"
+            >
+              {formatMessage({
+                id: "public.vaults.strategy.source.contract",
+                defaultMessage: "YieldDonatingTokenizedStrategy contract docs",
+              })}
+            </a>
+            <a
+              href={OCTANT_YIELD_DONATING_STRATEGY_ARCHITECTURE_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="font-semibold text-primary-base underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action"
+            >
+              {formatMessage({
+                id: "public.vaults.strategy.source.architecture",
+                defaultMessage: "YDS architecture",
+              })}
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -391,6 +476,8 @@ export function VaultsPageContent({
         </div>
       </section>
 
+      <YieldSupportExplainer />
+
       <section
         className="bg-bg-weak-50 px-6 pb-24 sm:px-10 md:pb-32"
         aria-labelledby="public-vaults-boundary-title"
@@ -399,7 +486,7 @@ export function VaultsPageContent({
           <EditorialKicker className="mb-3">
             {formatMessage({
               id: "public.vaults.boundary.kicker",
-              defaultMessage: "§ 02 — Route boundary",
+              defaultMessage: "§ 03 — Route boundary",
             })}
           </EditorialKicker>
           <EditorialHeading id="public-vaults-boundary-title" size="sub">

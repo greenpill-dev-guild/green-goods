@@ -37,6 +37,9 @@ const mocks = vi.hoisted(() => ({
   // Stable identity — the real hook returns a stable reset; an unstable one would
   // retrigger WalletEndowPathContent's reset effect and clobber the success state.
   walletEndowReset: vi.fn(),
+  wrapEthToWethMutate: vi.fn(),
+  wrapEthToWethReset: vi.fn(),
+  walletBalancesRefetch: vi.fn(async () => undefined),
   // Thirdweb card session: by default a live session for CARD (no re-verify).
   activeAccount: { address: CARD } as { address: string } | undefined,
   autoConnectLoading: false,
@@ -94,6 +97,20 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       reset: mocks.walletEndowReset,
       error: null,
       isPending: false,
+    }),
+    useWrapEthToWeth: () => ({
+      mutate: mocks.wrapEthToWethMutate,
+      reset: mocks.wrapEthToWethReset,
+      error: null,
+      isPending: false,
+    }),
+    useOctantVaultWalletBalances: () => ({
+      nativeBalance: null,
+      assetBalance: null,
+      isLoading: false,
+      isError: false,
+      isFetching: false,
+      refetch: mocks.walletBalancesRefetch,
     }),
     useEthUsdPrice: () => ({
       hasFeed: false,
@@ -183,6 +200,11 @@ vi.mock("@/routes/WalletRuntimeProviders", async () => {
   };
 });
 
+const intlMessages = {
+  "app.common.close": "Close",
+  "app.treasury.invalidAmount": "Enter a valid amount.",
+};
+
 function renderPage(path = "/vaults") {
   return render(
     createElement(
@@ -190,7 +212,7 @@ function renderPage(path = "/vaults") {
       { initialEntries: [path] },
       createElement(
         IntlProvider,
-        { locale: "en", messages: { "app.common.close": "Close" } },
+        { locale: "en", messages: intlMessages },
         createElement(VaultsPage)
       )
     )
@@ -204,7 +226,7 @@ function renderContent(campaigns: OctantVaultCampaignManifest[]) {
       { initialEntries: ["/vaults"] },
       createElement(
         IntlProvider,
-        { locale: "en", messages: { "app.common.close": "Close" } },
+        { locale: "en", messages: intlMessages },
         createElement(VaultsPageContent, { campaigns })
       )
     )
@@ -218,6 +240,9 @@ beforeEach(() => {
   mocks.authMode = null;
   mocks.primaryAddress = undefined;
   mocks.positionsByOwner = {};
+  mocks.wrapEthToWethMutate.mockClear();
+  mocks.wrapEthToWethReset.mockClear();
+  mocks.walletBalancesRefetch.mockClear();
   mocks.activeAccount = { address: CARD };
   mocks.autoConnectLoading = false;
   window.localStorage.clear();
@@ -272,6 +297,15 @@ describe("/vaults?manage=positions", () => {
     expect(within(panel).getByText("WETH-backed vault position")).toBeInTheDocument();
     // Position value label is present (precise WETH wording, not Fund language).
     expect(within(panel).getByText(/Position value in WETH/)).toBeInTheDocument();
+    expect(within(panel).getByText("Ethereum Mainnet")).toBeInTheDocument();
+    expect(within(panel).getByRole("link", { name: VAULT })).toHaveAttribute(
+      "href",
+      `https://etherscan.io/address/${VAULT}`
+    );
+    expect(within(panel).getByRole("link", { name: /0xC02aaA39/ })).toHaveAttribute(
+      "href",
+      `https://etherscan.io/address/${ASSET}`
+    );
     expect(within(panel).getByTestId("vault-manage-position-greenpill-nyc")).toBeInTheDocument();
   });
 
@@ -362,6 +396,34 @@ describe("/vaults?manage=positions", () => {
     } finally {
       Object.defineProperty(navigator, "language", { value: originalLanguage, configurable: true });
     }
+  });
+
+  it("preserves a leading decimal while typing and normalizes it before submit", async () => {
+    const user = userEvent.setup();
+    mocks.authMode = "wallet";
+    mocks.primaryAddress = CONNECTED;
+    mocks.positionsByOwner[CONNECTED.toLowerCase()] = {
+      ...emptyPositions(),
+      positions: [makePosition({ withdrawable: 1_000_000_000_000_000_000n })],
+      hasPositions: true,
+    };
+    renderPage("/vaults?manage=positions");
+
+    const row = screen.getByTestId("vault-manage-position-greenpill-nyc");
+    await user.click(within(row).getByRole("button", { name: "Withdraw" }));
+
+    const amount = within(row).getByLabelText<HTMLInputElement>("Withdrawal amount");
+    await user.type(amount, ".001");
+    expect(amount.value).toBe(".001");
+
+    await user.click(within(row).getByRole("button", { name: "Review withdrawal" }));
+    expect(amount.value).toBe("0.001");
+    await user.click(within(row).getByRole("button", { name: "Confirm" }));
+
+    await waitFor(() => expect(mocks.withdrawMutateAsync).toHaveBeenCalledTimes(1));
+    expect(mocks.withdrawMutateAsync).toHaveBeenCalledWith(
+      expect.objectContaining({ amount: 1_000_000_000_000_000n })
+    );
   });
 
   it("renders card-wallet positions under a Card wallet tab without re-verifying email", async () => {

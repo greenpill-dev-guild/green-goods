@@ -56,3 +56,13 @@ export const ERC20_ALLOWANCE_ABI = [
     outputs: [{ name: "", type: "bool" }],
   },
 ] as const;
+
+export const WETH_DEPOSIT_ABI = [
+  {
+    type: "function",
+    name: "deposit",
+    stateMutability: "payable",
+    inputs: [],
+    outputs: [],
+  },
+] as const;

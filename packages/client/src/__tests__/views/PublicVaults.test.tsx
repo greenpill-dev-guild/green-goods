@@ -19,6 +19,18 @@ const sharedHookMocks = vi.hoisted(() => ({
   octantVaultWalletEndowMutate: vi.fn(),
   octantVaultWalletEndowReset: vi.fn(),
   octantVaultWalletEndowError: null as unknown,
+  wrapEthToWethMutate: vi.fn(),
+  wrapEthToWethReset: vi.fn(),
+  wrapEthToWethError: null as unknown,
+  wrapEthToWethIsPending: false,
+  walletBalancesRefetch: vi.fn(async () => undefined),
+  walletBalances: {
+    nativeBalance: null as bigint | null,
+    assetBalance: null as bigint | null,
+    isLoading: false,
+    isError: false,
+    refetch: vi.fn(async () => undefined),
+  },
   walletRuntimeProviderRender: vi.fn(),
   primaryAddress: undefined as string | undefined,
   authMode: null as "wallet" | "passkey" | "embedded" | null,
@@ -113,6 +125,13 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       error: sharedHookMocks.octantVaultWalletEndowError,
       isPending: false,
     }),
+    useWrapEthToWeth: () => ({
+      mutate: sharedHookMocks.wrapEthToWethMutate,
+      reset: sharedHookMocks.wrapEthToWethReset,
+      error: sharedHookMocks.wrapEthToWethError,
+      isPending: sharedHookMocks.wrapEthToWethIsPending,
+    }),
+    useOctantVaultWalletBalances: () => sharedHookMocks.walletBalances,
     useEthUsdPrice: () => ({
       hasFeed: sharedHookMocks.ethUsdHasFeed,
       priceAnswer: sharedHookMocks.ethUsdPriceAnswer,
@@ -356,6 +375,18 @@ describe("VaultsPage", () => {
     sharedHookMocks.octantVaultWalletEndowMutate.mockClear();
     sharedHookMocks.octantVaultWalletEndowReset.mockClear();
     sharedHookMocks.octantVaultWalletEndowError = null;
+    sharedHookMocks.wrapEthToWethMutate.mockClear();
+    sharedHookMocks.wrapEthToWethReset.mockClear();
+    sharedHookMocks.wrapEthToWethError = null;
+    sharedHookMocks.wrapEthToWethIsPending = false;
+    sharedHookMocks.walletBalancesRefetch.mockClear();
+    sharedHookMocks.walletBalances = {
+      nativeBalance: null,
+      assetBalance: null,
+      isLoading: false,
+      isError: false,
+      refetch: sharedHookMocks.walletBalancesRefetch,
+    };
     sharedHookMocks.walletRuntimeProviderRender.mockClear();
     sharedHookMocks.primaryAddress = undefined;
     sharedHookMocks.authMode = null;
@@ -593,10 +624,46 @@ describe("VaultsPage", () => {
     await recoverEmailWallet(user, "evm@example.org");
     const review = await screen.findByTestId("vault-card-endow-review");
     expect(review).toHaveTextContent("EVMavericks Fantasy Football League");
-    expect(review).toHaveTextContent("Ethereum chain 1");
-    expect(review).toHaveTextContent("0x0bCe8c16974FFD3B410A32365c5bCf27a5A630Fc");
-    expect(review).toHaveTextContent("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2");
+    expect(review).toHaveTextContent("Ethereum Mainnet");
+    expect(
+      within(review).getByRole("link", {
+        name: "0x0bCe8c16974FFD3B410A32365c5bCf27a5A630Fc",
+      })
+    ).toHaveAttribute(
+      "href",
+      "https://etherscan.io/address/0x0bCe8c16974FFD3B410A32365c5bCf27a5A630Fc"
+    );
+    expect(
+      within(review).getByRole("link", {
+        name: /0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2/,
+      })
+    ).toHaveAttribute(
+      "href",
+      "https://etherscan.io/address/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+    );
     expect(screen.queryByTestId("thirdweb-buy-widget")).not.toBeInTheDocument();
+  });
+
+  it("explains the Octant yield-donating strategy without APY claims", () => {
+    renderView();
+
+    expect(screen.getByRole("heading", { name: "How yield support works" })).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Supporters receive vault shares for their WETH-backed position, while reported strategy profit is represented as project-supporting donation shares/i
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /The recorded pilot evidence points to YieldDonatingTokenizedStrategy contracts created through YearnV3StrategyFactory metadata/i
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Octant Yield Donating Strategy docs" })
+    ).toHaveAttribute("href", "https://docs.v2.octant.build/docs/yield_donating_strategy");
+    expect(screen.queryByText(/APY/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/guaranteed/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/accrued profit/i)).not.toBeInTheDocument();
   });
 
   it("renders a desktop dialog and a mobile bottom sheet for checkout setup", async () => {
@@ -747,9 +814,23 @@ describe("VaultsPage", () => {
     expect(review).toHaveTextContent("Route");
     expect(review).toHaveTextContent("Card -> email wallet -> Octant vault");
     expect(review).toHaveTextContent("Technical WETH details");
-    expect(review).toHaveTextContent("Ethereum chain 1");
-    expect(review).toHaveTextContent("0xaC8F844CEA2Fd75B7A5514f11974895B334fd9A5");
-    expect(review).toHaveTextContent("0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2");
+    expect(review).toHaveTextContent("Ethereum Mainnet");
+    expect(
+      within(review).getByRole("link", {
+        name: "0xaC8F844CEA2Fd75B7A5514f11974895B334fd9A5",
+      })
+    ).toHaveAttribute(
+      "href",
+      "https://etherscan.io/address/0xaC8F844CEA2Fd75B7A5514f11974895B334fd9A5"
+    );
+    expect(
+      within(review).getByRole("link", {
+        name: /0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2/,
+      })
+    ).toHaveAttribute(
+      "href",
+      "https://etherscan.io/address/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+    );
     expect(review).toHaveTextContent("Checkout wallet");
     expect(screen.queryByText("Provider route")).not.toBeInTheDocument();
     expect(screen.queryByText(/base units/i)).not.toBeInTheDocument();
@@ -1259,6 +1340,68 @@ describe("VaultsPage", () => {
         onError: expect.any(Function),
         onSuccess: expect.any(Function),
       })
+    );
+  });
+
+  it("shows wallet ETH and WETH balances and wraps ETH before WETH deposit", async () => {
+    const user = userEvent.setup();
+    sharedHookMocks.authMode = "wallet";
+    sharedHookMocks.primaryAddress = VALID_RECEIVER_ADDRESS;
+    sharedHookMocks.walletBalances = {
+      nativeBalance: 20_000_000_000_000_000n,
+      assetBalance: 0n,
+      isLoading: false,
+      isError: false,
+      refetch: sharedHookMocks.walletBalancesRefetch,
+    };
+    sharedHookMocks.wrapEthToWethMutate.mockImplementationOnce(
+      (_params: unknown, options?: { onSuccess?: (hash: string) => void }) => {
+        options?.onSuccess?.("0xwrapwrapwrapwrapwrapwrapwrapwrapwrapwrapwrapwrapwrapwrapwrapwrap");
+      }
+    );
+
+    renderView();
+
+    await user.click(screen.getByRole("button", { name: "Endow to Greenpill NYC" }));
+    await user.click(screen.getByTestId("vault-checkout-method-wallet"));
+    await user.type(screen.getByLabelText("Amount to endow"), "30");
+    await user.click(screen.getByRole("button", { name: "Continue to Wallet" }));
+
+    expect(screen.getByText("Ethereum Mainnet balances")).toBeInTheDocument();
+    expect(screen.getByText("ETH balance")).toBeInTheDocument();
+    expect(screen.getByText("0.02 ETH")).toBeInTheDocument();
+    expect(screen.getByText("WETH balance")).toBeInTheDocument();
+    expect(screen.getByText("0 WETH")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Your wallet has enough ETH. Wrap 0.01 ETH into WETH before confirming the vault deposit."
+      )
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Wrap ETH to WETH" }));
+
+    expect(sharedHookMocks.wrapEthToWethMutate).toHaveBeenCalledWith(
+      {
+        chainId: 1,
+        wethAddress: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+        amount: 10_000_000_000_000_000n,
+      },
+      expect.objectContaining({
+        onError: expect.any(Function),
+        onSuccess: expect.any(Function),
+      })
+    );
+    await waitFor(() => expect(sharedHookMocks.walletBalancesRefetch).toHaveBeenCalledTimes(1));
+
+    await user.click(screen.getByRole("button", { name: "Confirm endowment" }));
+
+    expect(sharedHookMocks.octantVaultWalletEndowMutate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        chainId: 1,
+        assetAddress: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+        amount: 10_000_000_000_000_000n,
+      }),
+      expect.anything()
     );
   });
 

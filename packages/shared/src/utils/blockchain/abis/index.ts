@@ -29,6 +29,7 @@ export {
   ERC20_BALANCE_ABI,
   ERC20_DECIMALS_ABI,
   ERC20_SYMBOL_ABI,
+  WETH_DEPOSIT_ABI,
 } from "./erc20";
 
 export { AGGREGATOR_V3_ABI } from "./aggregator-v3";

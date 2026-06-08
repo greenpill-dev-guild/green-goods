@@ -41,6 +41,8 @@ export const vaultsKeys = {
    */
   octantPositions: (ownerAddress: string, chainId: number) =>
     ["greengoods", "vaults", "octantPositions", ownerAddress, chainId] as const,
+  octantWalletBalances: (ownerAddress: string, chainId: number, assetAddress: string) =>
+    ["greengoods", "vaults", "octantWalletBalances", ownerAddress, chainId, assetAddress] as const,
 } as const;
 
 export const cookieJarKeys = {

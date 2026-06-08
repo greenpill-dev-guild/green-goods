@@ -4,7 +4,7 @@
 **Stage**: `active`
 **Status**: `ACTIVE - /vaults route locked; NYC + EVMavericks pilot fixtures; reusable skill lane locked`
 **Created**: `2026-05-09T21:35:46.781Z`
-**Last Updated**: `2026-06-05T00:09:43Z`
+**Last Updated**: `2026-06-08T19:24:57Z`
 
 ## Decision Log
 
@@ -28,6 +28,30 @@
 | 16 | `TransactionWidget` full-flow Card Endow is not proven. | Current docs support prepared contract calls with `erc20Value` and separate ERC20 approval helpers, but do not prove one smooth insufficient-allowance `approve + deposit` sequence for the Octant ERC-4626 vault; fallback is fund recovered wallet first, then user-authorized `approve + deposit`, then `balanceOf(receiverAddress)` proof. |
 | 17 | Greenpill NYC and EVMavericks Card Endow QA are exposed on default `/vaults`. | `/vaults` exposes Card Endow for both pilot vaults with email OTP/in-app wallet recovery, donor-language review before card payment, WETH funding, user-approved authorization/deposit, positive share proof, and agent proof recording. |
 | 18 | Pilot vault settlement is WETH with ETH-first donor copy. | Both deployed pilot vaults return mainnet WETH from `asset()` (`WETH` / `Wrapped Ether` / 18) and vault symbols `gpWETH` / `evmWETH`; `/vaults` shows `ETH contribution` with WETH settlement detail and must not imply native ETH, `msg.value`, or payable deposit. |
+| 19 | Octant QA feedback is now decision-locked into implementation scopes. | The 2026-06-08 successful Greenpill NYC deposit feedback exposes real polish gaps. Technical labels/links, ETH/WETH balances, ETH→WETH wrapping, leading-decimal inputs, source-backed strategy copy, shares-first redeem management, and aggregate project-supporting value definition are now tracked as implementation-ready or research-ready issues. |
+| 20 | `/vaults?manage=positions` uses shares-first redeem semantics. | Supporters own vault shares; WETH is the estimated/returned asset. The v1 manage control should redeem shares via `maxRedeem`/`redeem`, not ask users to withdraw a WETH amount from `maxWithdraw`. |
+| 21 | Profit-share display is aggregate project support, not per-user accrued profit. | Octant YDS routes profit into project-supporting/donation shares instead of compounding it into each depositor's position. The first numeric metric should be aggregate project-supporting value generated, with a hidden/unavailable state until the donation/router address and formula are proven. |
+
+## Octant QA Follow-Up Scope (2026-06-08)
+
+Source signal: Octant QA reported a successful Greenpill NYC deposit and supplied checkout/manage
+screenshots. Linear customer need: `0f183c94-5250-4531-bef7-296b621607cb`.
+
+### Implementation-Ready / Research-Ready Follow-Ups
+
+These are ready to pick up once an agent has capacity. They should preserve the existing WETH
+settlement model, route-local `/vaults?manage=positions` ownership boundaries, and human-gated value
+movement.
+
+| Linear | Scope | Why quick | Validation |
+|---|---|---|---|
+| [PRD-583](https://linear.app/greenpill-dev-guild/issue/PRD-583/polish-vaults-technical-details-labels-and-explorer-links) | Link vault + WETH addresses to Etherscan and label chain `1` as `Ethereum Mainnet`. | Pure client copy/link polish using existing manifest explorer data. | `bun run --filter @green-goods/client test -- PublicVaults VaultManagePositions`; `bun run lint:vocab`. |
+| [PRD-584](https://linear.app/greenpill-dev-guild/issue/PRD-584/show-eth-and-weth-balances-in-vaults-wallet-checkout) | Show connected-wallet ETH and WETH balances during Wallet Endow review and route insufficient WETH/sufficient ETH users into PRD-588. | Balance visibility is implementation-ready and uses existing manifest chain/token data. | `bun run --filter @green-goods/client test -- PublicVaults`; shared hook tests if shared code changes. |
+| [PRD-588](https://linear.app/greenpill-dev-guild/issue/PRD-588/support-in-checkout-eth-to-weth-conversion) | Add an in-checkout ETH→WETH conversion step before the existing WETH approve/deposit path. | User clarified this should be supported now; it remains WETH-only and does not add native ETH vault deposits. | `bun run --filter @green-goods/client test -- PublicVaults`; browser proof up to wallet confirmation without automated value movement. |
+| [PRD-585](https://linear.app/greenpill-dev-guild/issue/PRD-585/accept-leading-decimal-amounts-in-vaults-inputs) | Accept `.001` while editing, parse it as `0.001`, and normalize at review/submit or blur. | Shared decimal-validation fix with targeted client coverage. | Shared validation tests; `bun run --filter @green-goods/client test -- VaultManagePositions PublicVaults` if checkout input is affected. |
+| [PRD-586](https://linear.app/greenpill-dev-guild/issue/PRD-586/add-strategy-and-yield-support-explainer-to-vaults) | Add source-backed, user-friendly strategy/yield-support details using Octant docs plus the recorded `YieldDonatingTokenizedStrategy` evidence. | Copy/design work is ready if it avoids unsupported APY, payout, accrued-value, or guarantee claims. | `bun run --filter @green-goods/client test -- PublicVaults`; `bun run lint:vocab`; browser proof for visible copy. |
+| [PRD-587](https://linear.app/greenpill-dev-guild/issue/PRD-587/implement-shares-first-vaults-redeem-flow) | Replace WETH-amount withdrawal UX with shares-first redeem UX using `maxRedeem`, estimated WETH proceeds, and `redeem(shares, receiver, owner)`. | Decision is locked; user expectation and vault ownership model are share-based. | Shared hook tests for `maxRedeem`/`redeem`; `bun run --filter @green-goods/client test -- VaultManagePositions`; browser proof before real value movement. |
+| [PRD-589](https://linear.app/greenpill-dev-guild/issue/PRD-589/define-aggregate-project-supporting-value-metric-for-vaults) | Define aggregate project-supporting value generated by the vault/strategy, not per-user accrued profit. | Decision is locked; first numeric metric should be aggregate support value with hidden/unavailable states until the source is proven. | Formula/source proof, unit tests for unavailable/zero/positive states, shared hook/client tests if UI ships. |
 
 ## Requirements Coverage
 
@@ -47,6 +71,7 @@
 | Donate and Card Donate remain deferred. | `ui`, `state_api` | Do not expose Donate/Card Donate in `/vaults` acceptance or provider-proof gating. | ✅ deferred |
 | Green Goods Arbitrum contracts are not presented as Octant Ethereum infra. | `ui`, `contracts` | Keep copy/architecture and contracts lane clear; target Octant V2 Ethereum vaults. | ⏳ |
 | Reusable `octant-vault-crowdfunding` skill is delivered after demo validation. | `skill` | Codex authors the canonical skill plan and templates, covering simplest runtime, pilot + synthetic fixtures, Thirdweb-first card modules, Coinbase/Stripe future adapters, optional Octant Ethereum factory/API create-vault module, and dry-run QA. | ⏳ |
+| Octant QA follow-ups are tracked and decision-locked. | `ui`, `state_api`, `qa_pass_1` | PRD-583, PRD-584, PRD-585, PRD-586, and PRD-588 quick fixes are implemented pending human QA; PRD-587 shares-first redeem and PRD-589 aggregate metric remain intentionally deferred for later scoped passes. | ⏳ quick fixes implemented |
 
 ## Implementation Phases
 
@@ -95,7 +120,9 @@
    cannot be imported from the runtime layout.
 6. **Demo QA validates `/vaults`**: verify `/vaults` on desktop/mobile, wallet-last UX, Wallet
    Endow, Card Endow gates, route privacy, copy/i18n, no Donate/Card Donate, and no unrelated
-   `/fund` redesign. **Check in after this phase.**
+   `/fund` redesign. **Check in after this phase.** `2026-06-08` Octant QA follow-ups are now
+   tracked in PRD-583 through PRD-589, with PRD-587 locked to shares-first redeem and PRD-589
+   locked to aggregate project-supporting value rather than per-user accrued profit.
 7. **Reusable skill delivery lane**: Codex authors the `octant-vault-crowdfunding` agent skill plan
    and templates for frontend-first existing-vault UI, pilot fixtures, synthetic portability fixture,
    Thirdweb-first card modules, Coinbase/Stripe future adapter boundaries, and optional Octant
@@ -183,6 +210,8 @@
 - [ ] Verify desktop/mobile layout and i18n
 - [ ] Confirm Donate/Card Donate are absent
 - [ ] Confirm `/fund` was not redesigned as the primary vault crowdfunding route
+- [ ] Validate Octant QA follow-ups PRD-583 through PRD-589 when implemented or source-defined
+- [ ] Verify PRD-587 uses shares-first redeem semantics before claiming management UX is ready
 - [ ] Write `handoffs/claude-qa-pass-1.md`
 
 ### QA Pass 2 (`codex/qa-pass-2/nyc-vault-crowdfunding`)
@@ -226,6 +255,10 @@
   stale active-wallet receiver bypass rejection plus agent proof submission
 - [x] Targeted client tests for ETH-first amount copy, WETH settlement detail, email-code success,
   technical WETH details, and no provider/base-unit jargon in the primary card review
+- [x] Targeted client/shared tests for Octant QA quick fixes PRD-583, PRD-584, PRD-585, PRD-586, and PRD-588
+- [x] Browser proof for visible Octant QA quick fixes: strategy explainer and Wallet Endow technical details
+- [ ] PRD-587 shares-first redeem tests cover `maxRedeem`, estimated WETH proceeds, and `redeem(shares, receiver, owner)`
+- [ ] PRD-589 metric-definition proof records aggregate source/formula or an unavailable numeric state
 - [ ] Targeted client compatibility tests for future `/fund` Card Endow capability reuse where touched
 - [x] Targeted agent tests for Thirdweb checkout/webhook tuple verification, route-local
   sourceRoute matching, recovered receiver handling, and Card Endow rejection without `receiverAddress`

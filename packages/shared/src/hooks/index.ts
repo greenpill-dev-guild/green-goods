@@ -452,6 +452,7 @@ export {
   useEmergencyPause,
   useHarvest,
   useOctantVaultWalletEndow,
+  useWrapEthToWeth,
   useVaultDeposit,
   useVaultWithdraw,
 } from "./vault/useVaultOperations";
@@ -466,6 +467,11 @@ export {
   useOctantVaultWithdraw,
   type OctantVaultWithdrawParams,
 } from "./vault/useOctantVaultWithdraw";
+export {
+  useOctantVaultWalletBalances,
+  type OctantVaultWalletBalancesResult,
+  type UseOctantVaultWalletBalancesOptions,
+} from "./vault/useOctantVaultWalletBalances";
 export {
   VaultDepositStageError,
   type VaultDepositFailureReason,
