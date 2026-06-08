@@ -581,7 +581,7 @@ function FundPageContent() {
             >
               {[0, 1, 2, 3].map((i) => (
                 <div key={i} className="flex items-stretch gap-4 py-4 sm:gap-5">
-                  <div className="h-20 w-20 shrink-0 animate-pulse bg-editorial-warm" />
+                  <div className="h-20 w-28 shrink-0 animate-pulse bg-editorial-warm sm:h-24 sm:w-36" />
                   <div className="flex flex-1 flex-col justify-center gap-2">
                     <div className="h-3 w-24 animate-pulse bg-stroke-soft-200/60" />
                     <div className="h-5 w-3/4 animate-pulse bg-stroke-soft-200/60" />

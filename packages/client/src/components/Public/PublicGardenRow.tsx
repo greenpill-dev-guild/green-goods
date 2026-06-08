@@ -92,12 +92,21 @@ export function PublicGardenRow({ garden, vaultSummary, onSupport }: PublicGarde
         className="group flex min-w-0 flex-1 basis-0 items-stretch gap-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 sm:gap-5"
         aria-label={garden.name}
       >
-        <div className="relative h-20 w-20 shrink-0 overflow-hidden bg-editorial-warm">
+        <div
+          data-component="PublicGardenRowMedia"
+          className="relative h-20 w-28 shrink-0 overflow-hidden bg-editorial-warm sm:h-24 sm:w-36"
+        >
           <ImageWithFallback
             src={garden.bannerImage}
             alt=""
             className="h-full w-full object-cover transition-transform group-hover:scale-[1.03]"
-            backgroundFallback={<GardenCoverFallback name={garden.name} slug={garden.slug} />}
+            backgroundFallback={
+              <GardenCoverFallback
+                name={garden.name}
+                slug={garden.slug}
+                initialClassName="text-3xl tracking-[-0.025em] sm:text-4xl lg:text-4xl"
+              />
+            }
           />
         </div>
 

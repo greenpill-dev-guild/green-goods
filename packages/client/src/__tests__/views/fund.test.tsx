@@ -83,14 +83,18 @@ vi.mock("@green-goods/shared", () => {
     ImageWithFallback: ({
       alt = "",
       className,
+      backgroundFallback,
       src,
     }: {
       alt?: string;
       className?: string;
+      backgroundFallback?: ReactNode;
       src?: string;
     }) =>
       src ? (
         <img alt={alt} className={className} src={src} />
+      ) : backgroundFallback ? (
+        <>{backgroundFallback}</>
       ) : (
         <div aria-hidden="true" className={className} />
       ),
@@ -379,6 +383,31 @@ describe("FundPage", () => {
     expect(vaultMetrics).toHaveClass("min-w-0");
     expect(vaultMetrics).toHaveClass("max-w-full");
     expect(vaultMetrics?.className).toContain("[overflow-wrap:anywhere]");
+  });
+
+  it("keeps compact Garden media rectangular with fitted fallback initials", () => {
+    renderView();
+
+    const imageCard = screen.getByRole("group", {
+      name: "Solar Community Garden funding options",
+    });
+    const imageMedia = imageCard.querySelector('[data-component="PublicGardenRowMedia"]');
+    expect(imageMedia).toHaveClass("h-20");
+    expect(imageMedia).toHaveClass("w-28");
+    expect(imageMedia).toHaveClass("sm:h-24");
+    expect(imageMedia).toHaveClass("sm:w-36");
+    expect(imageMedia?.className).not.toContain("w-20");
+
+    const fallbackCard = screen.getByRole("group", {
+      name: "Urban Composting Hub funding options",
+    });
+    const fallbackInitial = fallbackCard.querySelector(
+      '[data-component="GardenCoverFallbackInitial"]'
+    );
+    expect(fallbackInitial).toHaveTextContent("UC");
+    expect(fallbackInitial).toHaveClass("text-3xl");
+    expect(fallbackInitial).toHaveClass("sm:text-4xl");
+    expect(fallbackInitial).toHaveClass("lg:text-4xl");
   });
 
   it("opens the endowment panel from /fund?manage=endowments", () => {
