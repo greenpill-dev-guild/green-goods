@@ -28,6 +28,8 @@ beforeAll(() => {
 
 // Mock shared barrel imports — component imports everything from @green-goods/shared
 vi.mock("@green-goods/shared", () => ({
+  DEFAULT_CHAIN_ID: 11155111,
+  cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
   AudioPlayer: ({ file, onDelete }: any) => <div data-testid="audio-player">{file?.name}</div>,
   AudioRecorder: ({ onRecordingComplete }: any) => (
     <button
@@ -38,6 +40,10 @@ vi.mock("@green-goods/shared", () => ({
     </button>
   ),
   track: vi.fn(),
+  toastService: {
+    info: vi.fn(),
+    error: vi.fn(),
+  },
   mediaResourceManager: {
     getOrCreateUrl: vi.fn((file: File) => `blob:mock-url-${file.name}`),
     cleanupUrls: vi.fn(),
@@ -48,6 +54,13 @@ vi.mock("@green-goods/shared", () => ({
     getCompressionStats: vi.fn().mockReturnValue({}),
   },
 }));
+
+const heicToMocks = vi.hoisted(() => ({
+  heicTo: vi.fn(),
+  isHeic: vi.fn(),
+}));
+
+vi.mock("heic-to/csp", () => heicToMocks);
 
 // Mock the components that WorkMedia uses
 vi.mock("@/components/Cards", () => ({
@@ -73,6 +86,7 @@ vi.mock("@/components/Features", () => ({
 }));
 
 // Import after mocks
+import { getWorkMediaId } from "../../views/Garden/mediaProcessing";
 import { WorkMedia } from "../../views/Garden/Media";
 
 const messages = {
@@ -84,6 +98,8 @@ const messages = {
   "app.garden.upload.remove": "Remove",
 };
 
+const mockSetAudioNotes = vi.fn();
+
 function renderWithIntl(ui: React.ReactElement) {
   return render(
     <IntlProvider messages={messages} locale="en" defaultLocale="en">
@@ -92,11 +108,58 @@ function renderWithIntl(ui: React.ReactElement) {
   );
 }
 
-describe("WorkMedia", () => {
-  const mockSetAudioNotes = vi.fn();
+function fileListFrom(files: File[]): FileList {
+  return {
+    length: files.length,
+    item: (index: number) => files[index] ?? null,
+    [Symbol.iterator]: function* () {
+      yield* files;
+    },
+    ...Object.fromEntries(files.map((file, index) => [index, file])),
+  } as unknown as FileList;
+}
 
+function StatefulWorkMedia({ initialImages = [] }: { initialImages?: File[] }) {
+  const [images, setImages] = React.useState<File[]>(initialImages);
+  const [brokenMediaIds, setBrokenMediaIds] = React.useState<Set<string>>(() => new Set());
+
+  return (
+    <WorkMedia
+      config={{ required: false, maxImageCount: 5 }}
+      images={images}
+      setImages={setImages}
+      audioNotes={[]}
+      setAudioNotes={mockSetAudioNotes}
+      minRequired={0}
+      brokenMediaIds={brokenMediaIds}
+      onPreviewFailed={(file) => {
+        setBrokenMediaIds((prev) => new Set(prev).add(getWorkMediaId(file)));
+      }}
+      onRemoveMedia={(file) => {
+        const mediaId = getWorkMediaId(file);
+        setImages((prev) => prev.filter((item) => getWorkMediaId(item) !== mediaId));
+        setBrokenMediaIds((prev) => {
+          const next = new Set(prev);
+          next.delete(mediaId);
+          return next;
+        });
+      }}
+      onRemoveBrokenMedia={() => {
+        setImages((prev) => prev.filter((file) => !brokenMediaIds.has(getWorkMediaId(file))));
+        setBrokenMediaIds(new Set());
+      }}
+      ensureWorkSubmissionJourneyId={() => "journey-123"}
+      authMode="wallet"
+      actionUID={1}
+    />
+  );
+}
+
+describe("WorkMedia", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    heicToMocks.isHeic.mockResolvedValue(false);
+    heicToMocks.heicTo.mockResolvedValue(new Blob(["jpeg"], { type: "image/jpeg" }));
   });
 
   it("renders with upload title from config", () => {
@@ -258,22 +321,69 @@ describe("WorkMedia", () => {
 
     const galleryInput = document.getElementById("work-media-upload") as HTMLInputElement;
 
-    // Create a mock FileList
-    const mockFileList = {
-      0: mockFile,
-      length: 1,
-      item: (index: number) => (index === 0 ? mockFile : null),
-      [Symbol.iterator]: function* () {
-        yield mockFile;
-      },
-    } as unknown as FileList;
-
     // Simulate file selection
-    fireEvent.change(galleryInput, { target: { files: mockFileList } });
+    fireEvent.change(galleryInput, { target: { files: fileListFrom([mockFile]) } });
 
     // setImages should be called (may be async due to compression)
     await waitFor(() => {
       expect(setImages).toHaveBeenCalled();
     });
+  });
+
+  it("shows converted HEIC media as a JPEG preview", async () => {
+    heicToMocks.isHeic.mockResolvedValue(true);
+    const heic = new File(["heic"], "garden.heic", { type: "image/heic" });
+
+    renderWithIntl(<StatefulWorkMedia />);
+
+    const galleryInput = document.getElementById("work-media-upload") as HTMLInputElement;
+    fireEvent.change(galleryInput, { target: { files: fileListFrom([heic]) } });
+
+    await waitFor(() => {
+      expect(screen.getByRole("img", { name: /uploaded 1/i })).toBeInTheDocument();
+    });
+    expect(screen.getByRole("img", { name: /uploaded 1/i })).toHaveAttribute(
+      "src",
+      "blob:mock-url-garden.jpg"
+    );
+  });
+
+  it("removes broken previews without removing good media", async () => {
+    const good = new File(["good"], "good.jpg", { type: "image/jpeg" });
+    const broken = new File(["broken"], "broken.jpg", { type: "image/jpeg" });
+
+    renderWithIntl(<StatefulWorkMedia initialImages={[good, broken]} />);
+
+    const images = screen.getAllByRole("img");
+    fireEvent.error(images[1]);
+
+    expect(await screen.findByText("Some media previews failed")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Remove broken media" }));
+
+    await waitFor(() => {
+      expect(screen.getAllByRole("img")).toHaveLength(1);
+    });
+    expect(screen.getByRole("img")).toHaveAttribute("src", "blob:mock-url-good.jpg");
+  });
+
+  it("removes media by file identity rather than index", () => {
+    const first = new File(["first"], "first.jpg", { type: "image/jpeg" });
+    const second = new File(["second"], "second.jpg", { type: "image/jpeg" });
+    const onRemoveMedia = vi.fn();
+
+    renderWithIntl(
+      <WorkMedia
+        config={{ required: false, maxImageCount: 5 }}
+        images={[first, second]}
+        setImages={vi.fn()}
+        audioNotes={[]}
+        setAudioNotes={mockSetAudioNotes}
+        onRemoveMedia={onRemoveMedia}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove media 2" }));
+
+    expect(onRemoveMedia).toHaveBeenCalledWith(second, "media");
   });
 });

@@ -469,6 +469,27 @@ export function parseContractError(error: unknown): ParsedContractError {
 
   const lowerStr = errorStr.toLowerCase();
 
+  // 1. Wallet request expiry. These are short-lived wallet/account-abstraction
+  // request windows, not broken media or a failed contract payload. Keep this
+  // before session and timeout handling so Review can offer the same-data retry.
+  if (
+    lowerStr.includes("request expired") ||
+    lowerStr.includes("proposal expired") ||
+    lowerStr.includes("out of time-range") ||
+    lowerStr.includes("aa22") ||
+    lowerStr.includes("aa32")
+  ) {
+    return {
+      raw: signature ?? errorStr,
+      name: "WalletRequestExpired",
+      message: "Wallet request expired before it was confirmed.",
+      action: "Submit again from Review when you're ready.",
+      isKnown: true,
+      recoverable: true,
+      suggestedAction: "retry",
+    };
+  }
+
   // 1. User cancellation (wallet rejection or passkey biometric cancel) —
   //    checked first so a wallet-layer user-rejection wrapping a generic
   //    "execution reverted" message still classifies as cancellation.
@@ -742,6 +763,14 @@ export function isNotGardenMemberError(error: unknown): boolean {
 export function isAlreadyGardenerError(error: unknown): boolean {
   const parsed = parseContractError(error);
   return parsed.name === "AlreadyGardener";
+}
+
+/**
+ * Check if an error is an expired wallet/account-abstraction request.
+ */
+export function isWalletRequestExpiredError(error: unknown): boolean {
+  const parsed = parseContractError(error);
+  return parsed.name === "WalletRequestExpired";
 }
 
 /**

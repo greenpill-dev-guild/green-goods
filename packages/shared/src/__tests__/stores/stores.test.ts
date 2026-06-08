@@ -46,6 +46,7 @@ describe("stores/useWorkFlowStore", () => {
       expect(state.selectedDomain).toBeNull();
       expect(state.images).toEqual([]);
       expect(state.imageObjectUrls).toEqual([]);
+      expect(state.workSubmissionJourneyId).toBeNull();
     });
   });
 
@@ -133,6 +134,21 @@ describe("stores/useWorkFlowStore", () => {
       expect(result.current.images).toHaveLength(1);
       expect(result.current.images[0]).toBe(mockFile);
     });
+
+    it("creates and reuses a work submission journey id", () => {
+      const { result } = renderHook(() => useWorkFlowStore());
+
+      let firstId = "";
+      let secondId = "";
+      act(() => {
+        firstId = result.current.ensureWorkSubmissionJourneyId();
+        secondId = result.current.ensureWorkSubmissionJourneyId();
+      });
+
+      expect(firstId).toBeTruthy();
+      expect(secondId).toBe(firstId);
+      expect(result.current.workSubmissionJourneyId).toBe(firstId);
+    });
   });
 
   describe("image URL management", () => {
@@ -185,6 +201,7 @@ describe("stores/useWorkFlowStore", () => {
       expect(result.current.actionUID).toBeNull();
       expect(result.current.feedback).toBe("");
       expect(result.current.submissionCompleted).toBe(false);
+      expect(result.current.workSubmissionJourneyId).toBeNull();
       expect(result.current.imageObjectUrls).toEqual([]);
       expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:test-url");
     });
