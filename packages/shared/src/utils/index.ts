@@ -328,6 +328,7 @@ export {
   formatErrorForToast,
   isAlreadyGardenerError,
   isNotGardenMemberError,
+  isWalletRequestExpiredError,
   parseAndFormatError,
   parseContractError,
 } from "./errors/contract-errors";

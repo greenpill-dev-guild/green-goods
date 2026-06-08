@@ -32,6 +32,7 @@
     "@tanstack/react-query": "^5.85.3",
     "@tanstack/react-query-persist-client": "^5.85.3",
     "embla-carousel-react": "^8.6.0",
+    "heic-to": "^1.5.2",
     "idb": "^8.0.3",
     "idb-keyval": "^6.2.2",
     "posthog-js": "^1.315.0",

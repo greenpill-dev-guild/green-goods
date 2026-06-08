@@ -5,11 +5,14 @@ import {
   type Garden,
   mediaResourceManager,
   type WorkInput,
+  cn,
 } from "@green-goods/shared";
 import { RiFileFill, RiPencilFill, RiTimeFill } from "@remixicon/react";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { WorkView } from "@/components/Features/Work";
+import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
+import { getWorkMediaId, isVideoFile } from "./mediaProcessing";
 
 /** Stable tracking ID for work draft media URLs (shared with Media.tsx) */
 const WORK_DRAFT_TRACKING_ID = "work-draft";
@@ -41,6 +44,9 @@ interface WorkReviewProps {
   values: Record<string, unknown>;
   timeSpentMinutes?: number;
   feedback: string;
+  brokenMediaIds?: ReadonlySet<string>;
+  onPreviewFailed?: (file: File, surface: "review") => void;
+  onRemoveBrokenMedia?: (surface: "review") => void;
 }
 
 export const WorkReview: React.FC<WorkReviewProps> = ({
@@ -52,6 +58,9 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
   values,
   timeSpentMinutes,
   feedback,
+  brokenMediaIds,
+  onPreviewFailed,
+  onRemoveBrokenMedia,
 }) => {
   const intl = useIntl();
   const reviewTitle =
@@ -115,10 +124,15 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
 
   // Separate photos from videos (both can coexist)
   const { photoFiles, videoFiles } = useMemo(() => {
-    const videos = images.filter((f) => f.type.startsWith("video/"));
-    const photos = images.filter((f) => !f.type.startsWith("video/"));
+    const videos = images.filter(isVideoFile);
+    const photos = images.filter((f) => !isVideoFile(f));
     return { photoFiles: photos, videoFiles: videos };
   }, [images]);
+
+  const brokenCount = useMemo(
+    () => images.filter((file) => brokenMediaIds?.has(getWorkMediaId(file))).length,
+    [brokenMediaIds, images]
+  );
 
   // Stable URLs for photos (same tracking ID as Media.tsx)
   const photoUrls = useMemo(
@@ -135,6 +149,45 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
 
   return (
     <div className="flex flex-col gap-4">
+      {brokenCount > 0 && (
+        <div
+          role="status"
+          aria-live="polite"
+          className={cn(
+            "flex flex-col gap-2 rounded-[var(--radius-lg)] border p-3",
+            pwaStatusStyles.warning.surface,
+            pwaStatusStyles.warning.border
+          )}
+        >
+          <p className={cn("text-sm font-medium", pwaStatusStyles.warning.text)}>
+            {intl.formatMessage({
+              id: "app.garden.review.previewFailedTitle",
+              defaultMessage: "Some media previews failed",
+            })}
+          </p>
+          <p className={cn("text-sm", pwaStatusStyles.warning.text)}>
+            {intl.formatMessage(
+              {
+                id: "app.garden.review.previewFailedMessage",
+                defaultMessage:
+                  "{count, plural, one {Remove the broken item before submitting again. Your details will stay here.} other {Remove the broken items before submitting again. Your details will stay here.}}",
+              },
+              { count: brokenCount }
+            )}
+          </p>
+          <button
+            type="button"
+            className="self-start min-h-11 rounded-[var(--radius-md)] border border-stroke-sub-300 bg-bg-white-0 px-3 text-sm font-medium text-text-strong-950"
+            onClick={() => onRemoveBrokenMedia?.("review")}
+          >
+            {intl.formatMessage({
+              id: "app.garden.review.removeBrokenMedia",
+              defaultMessage: "Remove broken media",
+            })}
+          </button>
+        </div>
+      )}
+
       <WorkView
         title={reviewTitle}
         info={reviewDescription}
@@ -145,6 +198,10 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
         details={details}
         headerIcon={RiFileFill}
         primaryActions={[]}
+        onMediaError={(_mediaUrl, index) => {
+          const file = photoFiles[index];
+          if (file) onPreviewFailed?.(file, "review");
+        }}
       />
 
       {/* Video previews (shown alongside photos, not mutually exclusive) */}
@@ -158,7 +215,16 @@ export const WorkReview: React.FC<WorkReviewProps> = ({
           </p>
           {videoUrls.map((url, index) => (
             /* eslint-disable-next-line jsx-a11y/media-has-caption -- user-generated content */
-            <video key={`review-video-${index}`} src={url} controls className="w-full rounded-lg">
+            <video
+              key={getWorkMediaId(videoFiles[index])}
+              src={url}
+              controls
+              className="w-full rounded-lg"
+              onError={() => {
+                const file = videoFiles[index];
+                if (file) onPreviewFailed?.(file, "review");
+              }}
+            >
               <track kind="captions" />
             </video>
           ))}

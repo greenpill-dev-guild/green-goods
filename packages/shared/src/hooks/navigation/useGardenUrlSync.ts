@@ -7,6 +7,17 @@ import { ADMIN_GARDEN_SHARE_PARAM } from "../../utils/navigation/admin-routes";
 
 type UrlParamValue = string | null | undefined;
 
+interface UpdateParamsOptions {
+  replace: boolean;
+  preventScrollReset?: boolean;
+}
+
+const REPLACE_URL_PARAMS_OPTIONS = { replace: true } satisfies UpdateParamsOptions;
+const ROUTE_BACKED_ITEM_URL_OPTIONS = {
+  replace: false,
+  preventScrollReset: true,
+} satisfies UpdateParamsOptions;
+
 export interface GardenUrlSyncResult {
   gardenId: string | null;
   tab: string | null;
@@ -40,21 +51,18 @@ export function useGardenUrlSync(): GardenUrlSyncResult {
   const item = searchParams.get("item");
 
   const updateParams = useCallback(
-    (updates: Record<string, UrlParamValue>, replace: boolean) => {
-      setSearchParams(
-        (prev) => {
-          const next = new URLSearchParams(prev);
-          for (const [key, value] of Object.entries(updates)) {
-            if (value === undefined || value === null || value === "") {
-              next.delete(key);
-            } else {
-              next.set(key, value);
-            }
+    (updates: Record<string, UrlParamValue>, options: UpdateParamsOptions) => {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        for (const [key, value] of Object.entries(updates)) {
+          if (value === undefined || value === null || value === "") {
+            next.delete(key);
+          } else {
+            next.set(key, value);
           }
-          return next;
-        },
-        { replace }
-      );
+        }
+        return next;
+      }, options);
     },
     [setSearchParams]
   );
@@ -96,6 +104,7 @@ export function useGardenUrlSync(): GardenUrlSyncResult {
     isLoaded,
     matchingSelectedGarden,
     matchingUrlGarden,
+    requestedGardenAddress,
     resolvedDefaultGarden,
     selectedGardenId,
     setSelectedGarden,
@@ -110,7 +119,7 @@ export function useGardenUrlSync(): GardenUrlSyncResult {
     (garden: Garden | null) => {
       const nextGardenAddress = garden ? (garden.tokenAddress ?? garden.id) : null;
       pendingGardenAddressRef.current = nextGardenAddress;
-      updateParams({ [ADMIN_GARDEN_SHARE_PARAM]: nextGardenAddress }, true);
+      updateParams({ [ADMIN_GARDEN_SHARE_PARAM]: nextGardenAddress }, REPLACE_URL_PARAMS_OPTIONS);
       setSelectedGarden(garden);
     },
     [setSelectedGarden, updateParams]
@@ -118,27 +127,27 @@ export function useGardenUrlSync(): GardenUrlSyncResult {
 
   const setTab = useCallback(
     (nextTab: UrlParamValue) => {
-      updateParams({ tab: nextTab }, true);
+      updateParams({ tab: nextTab }, REPLACE_URL_PARAMS_OPTIONS);
     },
     [updateParams]
   );
 
   const setFilter = useCallback(
     (key: string, value: UrlParamValue) => {
-      updateParams({ [key]: value }, true);
+      updateParams({ [key]: value }, REPLACE_URL_PARAMS_OPTIONS);
     },
     [updateParams]
   );
 
   const openItem = useCallback(
     (itemId: string) => {
-      updateParams({ item: itemId }, false);
+      updateParams({ item: itemId }, ROUTE_BACKED_ITEM_URL_OPTIONS);
     },
     [updateParams]
   );
 
   const closeItem = useCallback(() => {
-    updateParams({ item: undefined }, false);
+    updateParams({ item: undefined }, ROUTE_BACKED_ITEM_URL_OPTIONS);
   }, [updateParams]);
 
   return {

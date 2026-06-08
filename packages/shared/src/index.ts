@@ -1268,6 +1268,7 @@ export {
   isUserAddress,
   isValidAddressFormat,
   isValidAttestationId,
+  isWalletRequestExpiredError,
   loadFormDraft,
   localizeAction,
   markStaleActionTranslations,

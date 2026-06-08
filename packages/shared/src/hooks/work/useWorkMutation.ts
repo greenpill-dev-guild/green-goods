@@ -20,6 +20,9 @@ import {
   trackWorkSubmissionFailed,
   trackWorkSubmissionStarted,
   trackWorkSubmissionSuccess,
+  trackWorkWalletRequestExpired,
+  trackWorkWalletRequestFailed,
+  trackWorkWalletRequestStarted,
 } from "../../modules/app/analytics-events";
 import {
   addBreadcrumb,
@@ -37,7 +40,7 @@ import type { Action, Address, Work, WorkDraft } from "../../types/domain";
 import { getActionTitle } from "../../utils/action/parsers";
 import { hapticError, hapticSuccess } from "../../utils/app/haptics";
 import { DEBUG_ENABLED, debugError, debugLog } from "../../utils/debug";
-import { parseAndFormatError } from "../../utils/errors/contract-errors";
+import { parseAndFormatError, parseContractError } from "../../utils/errors/contract-errors";
 import { INDEXER_LAG_SCHEDULE_MS, queryKeys } from "../../config/query-keys";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
 import { useSafeMutation } from "../utils/useSafeMutation";
@@ -64,6 +67,12 @@ interface UseWorkMutationOptions {
 function isNetworkError(error: unknown): boolean {
   // Upload-phase errors should surface to the user, not silently queue
   if (error instanceof WorkSubmissionError && error.phase === "upload") {
+    return false;
+  }
+
+  const originalError =
+    error instanceof Error && error.cause instanceof Error ? error.cause : error;
+  if (parseContractError(originalError).name === "WalletRequestExpired") {
     return false;
   }
 
@@ -97,6 +106,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
   const chainId = DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
   const openWorkDashboard = useUIStore((s) => s.openWorkDashboard);
+  const walletRequestStartedJourneyRef = useRef<string | null>(null);
 
   // Use managed timeout for toast dismissal to ensure cleanup on unmount
   const { set: scheduleToastDismiss } = useTimeout();
@@ -118,6 +128,8 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
 
   const mutation = useMutation({
     mutationFn: async ({ draft, images }: { draft: WorkDraft; images: File[] }) => {
+      const workSubmissionJourneyId = useWorkFlowStore.getState().ensureWorkSubmissionJourneyId();
+
       // Validate required context before submission
       if (!gardenAddress) {
         throw new Error("Garden must be selected before submitting work");
@@ -182,6 +194,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
           });
         }
         try {
+          walletRequestStartedJourneyRef.current = null;
           return await submitWorkDirectly(
             draft,
             gardenAddress,
@@ -191,6 +204,21 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
             images,
             {
               onProgress: (stage, message) => {
+                if (
+                  stage === "confirming" &&
+                  walletRequestStartedJourneyRef.current !== workSubmissionJourneyId
+                ) {
+                  walletRequestStartedJourneyRef.current = workSubmissionJourneyId;
+                  trackWorkWalletRequestStarted({
+                    workSubmissionJourneyId,
+                    authMode,
+                    chainId,
+                    actionUID,
+                    imageCount: images.length,
+                    submissionPhase: "wallet_request",
+                  });
+                }
+
                 // Map wallet submission stages to toast updates
                 if (stage === "complete") {
                   walletProgressToasts.success();
@@ -324,6 +352,8 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
       return offlineTxHash;
     },
     onMutate: async (variables) => {
+      const workSubmissionJourneyId = useWorkFlowStore.getState().ensureWorkSubmissionJourneyId();
+
       if (DEBUG_ENABLED && variables) {
         debugLog("[WorkMutation] Starting work submission", {
           gardenAddress,
@@ -340,13 +370,15 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         actionTitle,
         authMode,
         imageCount: variables?.images.length ?? 0,
+        workSubmissionJourneyId,
       });
       trackWorkSubmissionStarted({
-        gardenAddress: gardenAddress ?? "",
         actionUID: actionUID ?? 0,
-        actionTitle,
         authMode,
         imageCount: variables?.images.length ?? 0,
+        workSubmissionJourneyId,
+        chainId,
+        submissionPhase: "review",
       });
 
       // --- Optimistic cache insertion ---
@@ -413,17 +445,19 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
     },
     onSuccess: (txHash) => {
       const isOfflineHash = typeof txHash === "string" && txHash.startsWith("0xoffline_");
+      const workSubmissionJourneyId = useWorkFlowStore.getState().ensureWorkSubmissionJourneyId();
 
       // Provide haptic feedback for successful submission
       hapticSuccess();
 
       // Track submission success
       trackWorkSubmissionSuccess({
-        gardenAddress: gardenAddress ?? "",
         actionUID: actionUID ?? 0,
-        txHash: String(txHash ?? ""),
         authMode,
         wasOffline: isOfflineHash,
+        workSubmissionJourneyId,
+        chainId,
+        submissionPhase: "success",
       });
 
       // Mark submission as complete (triggers checkmark animation in Garden view)
@@ -475,6 +509,8 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
       }
     },
     onError: (error: unknown, variables, context) => {
+      const workSubmissionJourneyId = useWorkFlowStore.getState().ensureWorkSubmissionJourneyId();
+
       // Provide haptic feedback for error
       hapticError();
 
@@ -513,22 +549,44 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
 
       // Track submission failure - funnel event
       trackWorkSubmissionFailed({
-        gardenAddress: gardenAddress ?? "",
         actionUID: actionUID ?? 0,
-        error:
-          parsed.message ||
-          (originalError instanceof Error ? originalError.message : "Unknown error"),
+        error: parsed.name,
         authMode,
+        imageCount: variables?.images.length ?? 0,
+        workSubmissionJourneyId,
+        chainId,
+        submissionPhase: phase,
+        parsedErrorFamily: parsed.name,
       });
+
+      if (authMode === "wallet" && parsed.name === "WalletRequestExpired") {
+        trackWorkWalletRequestExpired({
+          workSubmissionJourneyId,
+          authMode,
+          chainId,
+          actionUID: actionUID ?? undefined,
+          imageCount: variables?.images.length ?? 0,
+          submissionPhase: phase,
+          parsedErrorFamily: parsed.name,
+        });
+      } else if (authMode === "wallet" && phase === "transaction") {
+        trackWorkWalletRequestFailed({
+          workSubmissionJourneyId,
+          authMode,
+          chainId,
+          actionUID: actionUID ?? undefined,
+          imageCount: variables?.images.length ?? 0,
+          submissionPhase: phase,
+          parsedErrorFamily: parsed.name,
+        });
+      }
 
       // Route tracking by phase: upload failures go to storage category,
       // transaction failures go to contract category
       if (phase === "upload") {
         trackUploadError(originalError, {
           uploadCategory: "file_upload",
-          uploadBatchId,
           source: "useWorkMutation",
-          gardenAddress: gardenAddress ?? undefined,
           authMode,
           userAction: "submitting work",
           severity: "error",
@@ -542,7 +600,6 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
       } else {
         trackContractError(originalError, {
           source: "useWorkMutation",
-          gardenAddress: gardenAddress ?? undefined,
           authMode,
           userAction: "submitting work",
           metadata: {
@@ -551,7 +608,6 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
             parsedErrorName: parsed.name,
             isKnown: parsed.isKnown,
             submission_phase: phase,
-            upload_batch_id: uploadBatchId,
           },
         });
       }

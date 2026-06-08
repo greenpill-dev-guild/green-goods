@@ -172,14 +172,16 @@ export const RouteBackedCreate: Story = {
     );
     await expect(leftSheet).toHaveAttribute("data-component", "LeftSheet");
     await expect(leftSheet).toHaveAttribute("data-width", "wide");
-    await waitFor(() =>
-      expectDesktopSheetClearance({
-        appBar: getAppBarRoot(canvasElement),
-        canvasElement,
-        dialog: canvas.getByTestId("left-sheet-dialog"),
-        navigation: canvas.getByRole("navigation"),
-        sheet: leftSheet,
-      })
+    await waitFor(
+      () =>
+        expectDesktopSheetClearance({
+          appBar: getAppBarRoot(canvasElement),
+          canvasElement,
+          dialog: canvas.getByTestId("left-sheet-dialog"),
+          navigation: canvas.getByRole("navigation"),
+          sheet: leftSheet,
+        }),
+      ADMIN_ROUTE_STORY_QUERY_OPTIONS
     );
     await expect(
       await within(leftSheet).findByRole(
@@ -209,14 +211,16 @@ export const RouteBackedCreateMobile: Story = {
       ADMIN_ROUTE_STORY_QUERY_OPTIONS
     );
     await expect(bottomSheet).toHaveAttribute("data-component", "BottomSheet");
-    await waitFor(() =>
-      expectMobileBottomSheetClearance({
-        appBar: getAppBarRoot(canvasElement),
-        canvasElement,
-        dialog: canvas.getByTestId("bottom-sheet-dialog"),
-        navigation: canvas.getByRole("navigation"),
-        sheet: bottomSheet,
-      })
+    await waitFor(
+      () =>
+        expectMobileBottomSheetClearance({
+          appBar: getAppBarRoot(canvasElement),
+          canvasElement,
+          dialog: canvas.getByTestId("bottom-sheet-dialog"),
+          navigation: canvas.getByRole("navigation"),
+          sheet: bottomSheet,
+        }),
+      ADMIN_ROUTE_STORY_QUERY_OPTIONS
     );
     await expect(
       await within(bottomSheet).findByRole(

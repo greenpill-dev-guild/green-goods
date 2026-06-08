@@ -5,6 +5,7 @@ import {
   type Garden,
   logger,
   mediaResourceManager,
+  parseContractError,
   toastService,
   track,
   useActionTranslation,
@@ -15,6 +16,7 @@ import {
   useOffline,
   useTimeout,
   useJoinGarden,
+  useUser,
   useWorkFormContext,
   useWorkFlowStore,
   useWorkSelection,
@@ -29,7 +31,7 @@ import {
   RiPlantFill,
   RiStopFill,
 } from "@remixicon/react";
-import React, { useCallback, useEffect, useMemo, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/Actions";
@@ -44,6 +46,8 @@ import { WorkIntro } from "./Intro";
 import { WorkMedia } from "./Media";
 import { WorkReview } from "./Review";
 import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
+import { trackWorkMediaJourneyEvent } from "./mediaAnalytics";
+import { getSafeMediaMetadata, getWorkMediaId } from "./mediaProcessing";
 
 // Loading skeleton for intro tab
 const IntroSkeleton: React.FC = () => {
@@ -113,6 +117,7 @@ const Work: React.FC = () => {
   } = useWorkSelection();
   const form = useWorkFormContext();
   const { workMutation } = form;
+  const { authMode } = useUser();
   const {
     joinGarden,
     isJoining: isJoiningCommunityGarden,
@@ -121,11 +126,15 @@ const Work: React.FC = () => {
 
   const canBypassMediaRequirement = import.meta.env.VITE_DEBUG_MODE === "true";
   const submissionCompleted = useWorkFlowStore((s) => s.submissionCompleted);
+  const workSubmissionJourneyId = useWorkFlowStore((s) => s.workSubmissionJourneyId);
+  const ensureWorkSubmissionJourneyId = useWorkFlowStore((s) => s.ensureWorkSubmissionJourneyId);
   const setGardenAddressStable = useWorkFlowStore((s) => s.setGardenAddress);
   const audioNotes = useWorkFlowStore((s) => s.audioNotes);
   const setAudioNotes = useWorkFlowStore((s) => s.setAudioNotes);
   const { isOnline, pendingCount, syncStatus } = useOffline();
   const { set: scheduleNavigation } = useTimeout();
+  const [brokenMediaIds, setBrokenMediaIds] = useState<Set<string>>(() => new Set());
+  const brokenMediaIdsRef = useRef(brokenMediaIds);
 
   // Media upload click handlers (exposed by WorkMedia for PostHog tracking)
   const mediaClickRef = useRef<(() => void) | null>(null);
@@ -141,7 +150,11 @@ const Work: React.FC = () => {
       // Read current state directly — Zustand setters don't accept updater functions
       const current = useWorkFlowStore.getState().audioNotes;
       setAudioNotes([...current, file]);
-      track("audio_note_recorded", { duration: "unknown", noteIndex: current.length });
+      track(
+        "audio_note_recorded",
+        { duration: "unknown", noteIndex: current.length },
+        { includeSessionId: false }
+      );
     },
   });
 
@@ -157,6 +170,14 @@ const Work: React.FC = () => {
     timeSpentMinutes,
     values,
   } = form;
+
+  useEffect(() => {
+    brokenMediaIdsRef.current = brokenMediaIds;
+  }, [brokenMediaIds]);
+
+  useEffect(() => {
+    ensureWorkSubmissionJourneyId();
+  }, [ensureWorkSubmissionJourneyId]);
 
   // Draft save on exit (only saves when user navigates away, not automatically)
   const { saveOnExit } = useDraftAutoSave(
@@ -213,6 +234,7 @@ const Work: React.FC = () => {
 
   const handleStartFresh = async () => {
     await clearDraft();
+    setBrokenMediaIds(new Set());
     useWorkFlowStore.getState().reset();
     form.reset();
   };
@@ -409,6 +431,84 @@ const Work: React.FC = () => {
     }
   };
 
+  const markMediaPreviewFailed = useCallback(
+    (file: File, surface: "media" | "review") => {
+      const mediaId = getWorkMediaId(file);
+      if (brokenMediaIdsRef.current.has(mediaId)) return;
+
+      const journeyId = ensureWorkSubmissionJourneyId();
+      setBrokenMediaIds((prev) => {
+        const next = new Set(prev);
+        next.add(mediaId);
+        brokenMediaIdsRef.current = next;
+        return next;
+      });
+
+      trackWorkMediaJourneyEvent("work_media_preview_failed", {
+        work_submission_journey_id: journeyId,
+        source: surface,
+        auth_mode: authMode,
+        action_uid: actionUID,
+        submission_phase: surface,
+        parsed_error_family: "preview_failed",
+        broken_count: brokenMediaIdsRef.current.size,
+        ...getSafeMediaMetadata(file),
+      });
+    },
+    [actionUID, authMode, ensureWorkSubmissionJourneyId]
+  );
+
+  const handleRemoveMedia = useCallback(
+    (file: File, surface: "media" | "review") => {
+      const mediaId = getWorkMediaId(file);
+      const journeyId = ensureWorkSubmissionJourneyId();
+
+      setImages((prev) => prev.filter((item) => getWorkMediaId(item) !== mediaId));
+      setBrokenMediaIds((prev) => {
+        if (!prev.has(mediaId)) return prev;
+        const next = new Set(prev);
+        next.delete(mediaId);
+        brokenMediaIdsRef.current = next;
+        return next;
+      });
+
+      trackWorkMediaJourneyEvent("work_media_removed", {
+        work_submission_journey_id: journeyId,
+        source: surface,
+        auth_mode: authMode,
+        action_uid: actionUID,
+        submission_phase: surface,
+        file_count: 1,
+        broken_count: brokenMediaIdsRef.current.size,
+        ...getSafeMediaMetadata(file),
+      });
+    },
+    [actionUID, authMode, ensureWorkSubmissionJourneyId, setImages]
+  );
+
+  const handleRemoveBrokenMedia = useCallback(
+    (surface: "media" | "review") => {
+      const idsToRemove = new Set(brokenMediaIdsRef.current);
+      if (idsToRemove.size === 0) return;
+
+      const journeyId = ensureWorkSubmissionJourneyId();
+      setImages((prev) => prev.filter((file) => !idsToRemove.has(getWorkMediaId(file))));
+      setBrokenMediaIds(new Set());
+      brokenMediaIdsRef.current = new Set();
+
+      trackWorkMediaJourneyEvent("work_broken_media_removed", {
+        work_submission_journey_id: journeyId,
+        source: surface,
+        auth_mode: authMode,
+        action_uid: actionUID,
+        submission_phase: surface,
+        file_count: idsToRemove.size,
+        broken_count: idsToRemove.size,
+      });
+    },
+    [actionUID, authMode, ensureWorkSubmissionJourneyId, setImages]
+  );
+
   const handleJoinCommunityGarden = useCallback(async () => {
     if (!joinableCommunityGarden?.id) return;
 
@@ -460,6 +560,15 @@ const Work: React.FC = () => {
     document.getElementById("app-scroll")?.scrollTo({ top: 0, behavior: "instant" });
     setActiveTab(tab);
   };
+
+  const isWalletRequestExpired = useMemo(() => {
+    if (activeTab !== WorkTab.Review || !workMutation.error) return false;
+    const originalError =
+      workMutation.error instanceof Error && workMutation.error.cause instanceof Error
+        ? workMutation.error.cause
+        : workMutation.error;
+    return parseContractError(originalError).name === "WalletRequestExpired";
+  }, [activeTab, workMutation.error]);
 
   // Handle exit from garden flow - save draft if there's meaningful progress
   const handleExitFlow = async () => {
@@ -552,10 +661,15 @@ const Work: React.FC = () => {
     },
     [WorkTab.Review]: {
       primary: handleWorkSubmission,
-      primaryLabel: intl.formatMessage({
-        id: "app.garden.submit.tab.review.label",
-        defaultMessage: "Upload Work",
-      }),
+      primaryLabel: isWalletRequestExpired
+        ? intl.formatMessage({
+            id: "app.garden.submit.tab.review.retryLabel",
+            defaultMessage: "Submit again",
+          })
+        : intl.formatMessage({
+            id: "app.garden.submit.tab.review.label",
+            defaultMessage: "Upload Work",
+          }),
       primaryDisabled: !state.isValid || state.isSubmitting || workMutation.isPending,
       customSecondary: null,
       backButton: () => changeTab(WorkTab.Details),
@@ -603,6 +717,14 @@ const Work: React.FC = () => {
             onCameraClickRef={cameraClickRef}
             isRecording={isRecording}
             recordingElapsed={recordingElapsed}
+            brokenMediaIds={brokenMediaIds}
+            onPreviewFailed={markMediaPreviewFailed}
+            onRemoveMedia={handleRemoveMedia}
+            onRemoveBrokenMedia={handleRemoveBrokenMedia}
+            workSubmissionJourneyId={workSubmissionJourneyId}
+            ensureWorkSubmissionJourneyId={ensureWorkSubmissionJourneyId}
+            authMode={authMode}
+            actionUID={actionUID}
           />
         );
       case WorkTab.Details:
@@ -634,6 +756,9 @@ const Work: React.FC = () => {
             values={values}
             feedback={feedback}
             timeSpentMinutes={timeSpentMinutes}
+            brokenMediaIds={brokenMediaIds}
+            onPreviewFailed={markMediaPreviewFailed}
+            onRemoveBrokenMedia={handleRemoveBrokenMedia}
           />
         );
       }
