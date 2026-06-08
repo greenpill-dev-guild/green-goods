@@ -176,6 +176,20 @@ describe("PublicShell", () => {
     expect(scrollRoot!.scrollTop).toBe(720);
   });
 
+  it("preserves the public scroll container when opening management from receipt search params", () => {
+    renderShellWithRoute("/fund?intent=receipt_123");
+
+    const scrollRoot = document.getElementById("client-scroll-root");
+    expect(scrollRoot).toBeInTheDocument();
+    scrollRoot!.scrollTop = 720;
+    fireEvent.scroll(scrollRoot!);
+
+    fireEvent.click(screen.getByRole("link", { name: "Open endowments" }));
+
+    expect(screen.getByTestId("fund-content")).toBeInTheDocument();
+    expect(scrollRoot!.scrollTop).toBe(720);
+  });
+
   it("no bottom nav (AppBar) visible in browser mode", () => {
     renderShellWithRoute("/gardens");
 

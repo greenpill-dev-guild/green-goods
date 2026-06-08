@@ -4,6 +4,7 @@ import { SiteHeader } from "@/components/Navigation/SiteHeader";
 
 const PUBLIC_SCROLL_ROOT_ID = "client-scroll-root";
 const PUBLIC_SCROLL_PRESERVED_SEARCH_PARAMS = new Set(["manage"]);
+const PUBLIC_SCROLL_DISMISSED_ON_MANAGEMENT_OPEN_SEARCH_PARAMS = new Set(["intent"]);
 
 type PublicScrollPosition = {
   left: number;
@@ -83,11 +84,29 @@ function getChangedSearchParamNames(previousSearch: string, nextSearch: string):
 }
 
 function shouldPreservePublicSearchScroll(previousSearch: string, nextSearch: string): boolean {
+  const previousParams = new URLSearchParams(previousSearch);
+  const nextParams = new URLSearchParams(nextSearch);
   const changedParamNames = getChangedSearchParamNames(previousSearch, nextSearch);
   if (changedParamNames.size === 0) return false;
 
-  return Array.from(changedParamNames).every((name) =>
-    PUBLIC_SCROLL_PRESERVED_SEARCH_PARAMS.has(name)
+  if (
+    Array.from(changedParamNames).every((name) => PUBLIC_SCROLL_PRESERVED_SEARCH_PARAMS.has(name))
+  ) {
+    return true;
+  }
+
+  const didOpenManagement =
+    previousParams.get("manage") !== nextParams.get("manage") &&
+    nextParams.get("manage") === "endowments";
+
+  if (!didOpenManagement) return false;
+
+  return Array.from(changedParamNames).every(
+    (name) =>
+      PUBLIC_SCROLL_PRESERVED_SEARCH_PARAMS.has(name) ||
+      (PUBLIC_SCROLL_DISMISSED_ON_MANAGEMENT_OPEN_SEARCH_PARAMS.has(name) &&
+        previousParams.has(name) &&
+        !nextParams.has(name))
   );
 }
 
