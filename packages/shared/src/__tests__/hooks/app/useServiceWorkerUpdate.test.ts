@@ -5,7 +5,7 @@
  * waiting workers and provides user-controlled update application.
  */
 
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock logger and posthog
@@ -29,9 +29,39 @@ vi.mock("../../../modules/app/posthog", () => ({
 import { useServiceWorkerUpdate } from "../../../hooks/app/useServiceWorkerUpdate";
 import { track } from "../../../modules/app/posthog";
 
+function createMockRegistration(
+  overrides: Partial<ServiceWorkerRegistration> = {}
+): ServiceWorkerRegistration {
+  return {
+    waiting: null,
+    installing: null,
+    update: vi.fn().mockResolvedValue(undefined),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    ...overrides,
+  } as unknown as ServiceWorkerRegistration;
+}
+
+function installServiceWorkerMock(registration: ServiceWorkerRegistration) {
+  Object.defineProperty(navigator, "serviceWorker", {
+    configurable: true,
+    enumerable: true,
+    value: {
+      controller: {} as ServiceWorker,
+      getRegistration: vi.fn().mockResolvedValue(registration),
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    },
+  });
+}
+
 describe("hooks/app/useServiceWorkerUpdate", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   describe("when service worker is not available", () => {
@@ -68,6 +98,41 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
 
       // Should not set isUpdating since there's no waiting worker
       expect(result.current.isUpdating).toBe(false);
+    });
+  });
+
+  describe("waiting service worker detection", () => {
+    it("keeps updateAvailable false when no waiting worker exists", async () => {
+      vi.stubEnv("VITE_ENABLE_SW_DEV", "true");
+      const registration = createMockRegistration();
+      installServiceWorkerMock(registration);
+
+      const { result } = renderHook(() => useServiceWorkerUpdate());
+
+      await waitFor(() => {
+        expect(navigator.serviceWorker.getRegistration).toHaveBeenCalled();
+      });
+
+      expect(result.current.updateAvailable).toBe(false);
+      expect(result.current.waitingWorker).toBeNull();
+    });
+
+    it("sets updateAvailable when registration.waiting exists", async () => {
+      vi.stubEnv("VITE_ENABLE_SW_DEV", "true");
+      const waitingWorker = { postMessage: vi.fn() } as unknown as ServiceWorker;
+      const registration = createMockRegistration({ waiting: waitingWorker });
+      installServiceWorkerMock(registration);
+
+      const { result } = renderHook(() => useServiceWorkerUpdate());
+
+      await waitFor(() => {
+        expect(result.current.updateAvailable).toBe(true);
+      });
+
+      expect(result.current.waitingWorker).toBe(waitingWorker);
+      expect(track).toHaveBeenCalledWith("sw_update_available", {
+        source: "initial_check",
+      });
     });
   });
 

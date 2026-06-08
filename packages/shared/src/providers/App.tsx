@@ -5,6 +5,7 @@ import { IntlProvider } from "react-intl";
 import enMessages from "../i18n/en.json";
 import esMessages from "../i18n/es.json";
 import ptMessages from "../i18n/pt.json";
+import { toastService } from "../components/toast";
 import {
   registerGlobalProperties,
   restoreExceptionTopLevelProps,
@@ -32,6 +33,11 @@ export type InstallState = "idle" | "not-installed" | "installed" | "unsupported
 export const supportedLanguages = ["en", "pt", "es"] as const;
 export type Locale = (typeof supportedLanguages)[number];
 export type { Platform };
+
+const installSuccessToastIds = {
+  title: "app.toast.install.success.title",
+  message: "app.toast.install.success.message",
+} as const;
 
 export interface AppDataProps {
   isMobile: boolean;
@@ -62,6 +68,11 @@ function getBrowserLocale(available: readonly string[], fallback: string): strin
   }
 
   return fallback;
+}
+
+function formatAppProviderMessage(locale: Locale, id: string, fallback: string) {
+  const localizedMessage = (messages[locale] as Record<string, string>)[id];
+  return localizedMessage || fallback;
 }
 
 export const AppContext = React.createContext<AppDataProps>({
@@ -144,6 +155,17 @@ export const AppProvider = ({
     setInstalledState("installed");
     setWasInstalled(true);
     localStorage.setItem("gg-pwa-installed", "true");
+    toastService.success({
+      id: "app-install-success",
+      title: formatAppProviderMessage(locale, installSuccessToastIds.title, "App installed"),
+      message: formatAppProviderMessage(
+        locale,
+        installSuccessToastIds.message,
+        "Green Goods is ready from your home screen."
+      ),
+      context: "pwa install",
+      suppressLogging: true,
+    });
     track("App Installed", {
       platform,
       locale,
