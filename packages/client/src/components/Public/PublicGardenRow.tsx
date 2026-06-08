@@ -75,6 +75,7 @@ export function PublicGardenRow({ garden, vaultSummary, onSupport }: PublicGarde
 
   return (
     <div
+      data-component="PublicGardenRow"
       role="group"
       aria-label={formatMessage(
         {
@@ -83,12 +84,12 @@ export function PublicGardenRow({ garden, vaultSummary, onSupport }: PublicGarde
         },
         { garden: garden.name || garden.slug }
       )}
-      className="flex items-stretch gap-4 py-4 sm:gap-5"
+      className="flex h-full min-w-0 items-stretch gap-4 py-4 sm:gap-5"
     >
       <Link
         to={`/gardens/${garden.slug}`}
         viewTransition
-        className="group flex min-w-0 flex-1 items-stretch gap-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 sm:gap-5"
+        className="group flex min-w-0 flex-1 basis-0 items-stretch gap-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 sm:gap-5"
         aria-label={garden.name}
       >
         <div className="relative h-20 w-20 shrink-0 overflow-hidden bg-editorial-warm">
@@ -102,19 +103,23 @@ export function PublicGardenRow({ garden, vaultSummary, onSupport }: PublicGarde
 
         <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
           {garden.location ? (
-            <EditorialKicker className="-mb-0.5">{garden.location}</EditorialKicker>
+            <EditorialKicker className="-mb-0.5 line-clamp-1 min-w-0 [overflow-wrap:anywhere]">
+              {garden.location}
+            </EditorialKicker>
           ) : null}
           <h3
-            className="font-serif text-lg font-normal leading-[1.15] tracking-[-0.012em] text-text-strong-950 group-hover:text-primary-action"
+            className="min-w-0 font-serif text-lg font-normal leading-[1.15] tracking-[-0.012em] text-text-strong-950 group-hover:text-primary-action"
             title={garden.name}
           >
-            <span className="line-clamp-2">{garden.name || garden.slug}</span>
+            <span className="line-clamp-2 [overflow-wrap:anywhere]">
+              {garden.name || garden.slug}
+            </span>
           </h3>
-          <p className="flex flex-wrap items-center gap-x-2 text-xs text-text-soft-400">
+          <p className="flex min-w-0 flex-wrap items-center gap-x-2 text-xs text-text-soft-400">
             {meta.map((label, index) => (
-              <span key={label} className="flex items-center gap-x-2">
+              <span key={label} className="flex min-w-0 items-center gap-x-2">
                 {index > 0 ? <span aria-hidden="true">·</span> : null}
-                <span>{label}</span>
+                <span className="[overflow-wrap:anywhere]">{label}</span>
               </span>
             ))}
           </p>
@@ -153,10 +158,12 @@ function GardenVaultMetrics({ summary }: { summary?: PublicGardenVaultSummary })
   if (balanceLabels.length === 0) return null;
 
   return (
-    <p className="mt-1 flex flex-wrap items-center gap-x-2 text-[11px] leading-[1.45] text-text-sub-600">
-      <span>{balanceLabels.join(" · ")}</span>
+    <p className="mt-1 flex min-w-0 max-w-full flex-wrap items-center gap-x-2 gap-y-1 text-[11px] leading-[1.45] text-text-sub-600 [overflow-wrap:anywhere]">
+      <span className="min-w-0 max-w-full [overflow-wrap:anywhere]">
+        {balanceLabels.join(" · ")}
+      </span>
       {accruedLabels.length > 0 ? (
-        <span>
+        <span className="min-w-0 max-w-full [overflow-wrap:anywhere]">
           {" · "}
           {formatMessage(
             {

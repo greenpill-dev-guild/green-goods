@@ -576,7 +576,7 @@ function FundPageContent() {
 
           {isLoading ? (
             <div
-              className="mt-8 grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-2 2xl:grid-cols-3"
+              className="mt-8 grid grid-cols-1 gap-x-6 gap-y-6 sm:auto-rows-fr sm:grid-cols-2"
               aria-hidden="true"
             >
               {[0, 1, 2, 3].map((i) => (
@@ -618,7 +618,10 @@ function FundPageContent() {
               </div>
             </div>
           ) : (
-            <div className="mt-8 grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-2 2xl:grid-cols-3">
+            <div
+              className="mt-8 grid grid-cols-1 gap-x-6 gap-y-6 sm:auto-rows-fr sm:grid-cols-2"
+              data-testid="public-fund-garden-grid"
+            >
               {orderedGardens.map((garden) => {
                 const isMatchedHighlight =
                   resolved.status === "match" && resolved.garden?.id === garden.id;
@@ -628,8 +631,8 @@ function FundPageContent() {
                     ref={isMatchedHighlight ? matchHighlightRef : undefined}
                     className={
                       isMatchedHighlight
-                        ? "ring-2 ring-primary-action ring-offset-4 ring-offset-bg-weak-50"
-                        : undefined
+                        ? "h-full min-w-0 ring-2 ring-primary-action ring-offset-4 ring-offset-bg-weak-50"
+                        : "h-full min-w-0"
                     }
                   >
                     <PublicGardenRow

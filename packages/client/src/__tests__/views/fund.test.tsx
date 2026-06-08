@@ -356,6 +356,31 @@ describe("FundPage", () => {
     expect(screen.getByTestId("public-endowment-panel")).toBeInTheDocument();
   });
 
+  it("keeps Garden selection cards in a max two-column equal-row grid", () => {
+    renderView();
+
+    const grid = screen.getByTestId("public-fund-garden-grid");
+    expect(grid).toHaveClass("sm:grid-cols-2");
+    expect(grid).toHaveClass("sm:auto-rows-fr");
+    expect(grid.className).not.toContain("grid-cols-3");
+
+    const gardenCard = screen.getByRole("group", {
+      name: "Solar Community Garden funding options",
+    });
+    expect(gardenCard).toHaveAttribute("data-component", "PublicGardenRow");
+    expect(gardenCard).toHaveClass("h-full");
+    expect(gardenCard).toHaveClass("min-w-0");
+    expect(gardenCard.parentElement).toHaveClass("h-full");
+    expect(gardenCard.parentElement).toHaveClass("min-w-0");
+
+    const vaultMetrics = within(gardenCard)
+      .getByText(/2,005 DAI/)
+      .closest("p");
+    expect(vaultMetrics).toHaveClass("min-w-0");
+    expect(vaultMetrics).toHaveClass("max-w-full");
+    expect(vaultMetrics?.className).toContain("[overflow-wrap:anywhere]");
+  });
+
   it("opens the endowment panel from /fund?manage=endowments", () => {
     renderView(["/fund?manage=endowments"]);
 
