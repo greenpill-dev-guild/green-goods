@@ -36,6 +36,27 @@ function resolveAdminSentryDsn(): string | undefined {
   );
 }
 
+function normalizeSentryEnvironment(value: string | undefined): string | undefined {
+  const environment = value?.trim().toLowerCase();
+  if (!environment) return undefined;
+  if (environment === "prod") return "production";
+  return environment;
+}
+
+function resolveSentryEnvironment(mode: string): string {
+  return (
+    normalizeSentryEnvironment(envValue("SENTRY_ENVIRONMENT")) ||
+    normalizeSentryEnvironment(envValue("VITE_SENTRY_ENVIRONMENT")) ||
+    normalizeSentryEnvironment(envValue("VERCEL_TARGET_ENV")) ||
+    normalizeSentryEnvironment(envValue("VITE_VERCEL_TARGET_ENV")) ||
+    normalizeSentryEnvironment(envValue("VERCEL_ENV")) ||
+    normalizeSentryEnvironment(envValue("VITE_VERCEL_ENV")) ||
+    normalizeSentryEnvironment(envValue("APP_ENV")) ||
+    normalizeSentryEnvironment(mode) ||
+    "development"
+  );
+}
+
 function deleteSourceMapsInDirectory(directory: string): void {
   if (!existsSync(directory)) return;
 
@@ -145,6 +166,7 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
   }
   const enableSourceMaps = shouldUploadSentrySourceMaps;
   const sentryDsn = resolveAdminSentryDsn();
+  const sentryEnvironment = resolveSentryEnvironment(mode);
   // Env-parity gate (PRD-567): a production deploy must ship with a resolvable
   // Sentry DSN, or error tracking silently no-ops — the May Sentry thrash. This
   // reuses the value resolved above, so it only fires when Sentry would truly be
@@ -252,6 +274,7 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
     define: {
       "import.meta.env.VITE_APP_VERSION": JSON.stringify(shortAppVersion),
       "import.meta.env.VITE_SENTRY_ADMIN_DSN": JSON.stringify(sentryDsn ?? ""),
+      "import.meta.env.VITE_SENTRY_ENVIRONMENT": JSON.stringify(sentryEnvironment),
     },
     plugins,
     // Deduplicate React, PostHog, and Sentry to prevent multiple instances
