@@ -195,6 +195,15 @@ describe("PublicFundingCard", () => {
   });
 
   it.each([
+    ["donate", "Shared fund support"],
+    ["endow", "Garden Vault endowment"],
+  ] as const)("labels the %s funding path in the card header", (intent, pathLabel) => {
+    renderCard(intent);
+
+    expect(screen.getByText(pathLabel)).toBeInTheDocument();
+  });
+
+  it.each([
     ["donate", "Donate $5.00 in DAI", "Wallet rejected the donation", mockCookieJarReset],
     ["endow", "Endow $5.00 in DAI", "Wallet rejected the endowment", mockVaultReset],
   ] as const)("keeps %s inline transaction errors visible until the amount or token changes", async (intent, buttonName, errorMessage, resetMutation) => {

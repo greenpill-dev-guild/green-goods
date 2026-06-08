@@ -131,7 +131,7 @@ function VaultAggregationSection({ summary }: { summary: PublicVaultSummary }) {
             {formatMessage({
               id: "public.fund.vaults.lede",
               defaultMessage:
-                "Endow adds long-term capital to these vaults; Donate sends support directly to a Garden's shared fund.",
+                "Endow adds long-term capital to Garden Vault endowments; Donate sends support directly to a Garden's shared fund.",
             })}
           </p>
         </header>
@@ -515,9 +515,9 @@ function FundPageContent() {
               titleId="public.fund.paths.endowTitle"
               defaultTitle="Endow"
               ledeId="public.fund.paths.endowLede"
-              defaultLede="A Vault designed so the deposit can remain while yield supports the Garden over many seasons."
+              defaultLede="A Garden Vault endowment designed so the deposit can remain while support reaches the Garden over many seasons."
               routesId="public.fund.paths.endowRoutes"
-              defaultRoutes="Stays in the Garden's Vault."
+              defaultRoutes="Stays in the Garden's Vault endowment."
               bestForId="public.fund.paths.endowBestFor"
               defaultBestFor="Long-term support that compounds."
               learnMoreId="public.fund.paths.endowLearnMore"

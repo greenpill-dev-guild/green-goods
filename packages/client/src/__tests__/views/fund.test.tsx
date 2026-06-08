@@ -319,6 +319,24 @@ describe("FundPage", () => {
     expect(screen.queryByRole("button", { name: "Support" })).toBeNull();
   });
 
+  it("keeps /fund Donate as shared fund support and Endow as endowment support", () => {
+    renderView();
+
+    expect(screen.getAllByText(/Garden's shared fund/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Garden Vault endowment/i).length).toBeGreaterThan(0);
+
+    for (const garden of mockGardens) {
+      const row = screen.getByRole("group", {
+        name: `${garden.name} funding options`,
+      });
+
+      expect(within(row).getByRole("button", { name: "Donate" })).toBeEnabled();
+      expect(within(row).getByText("Shared fund support")).toBeInTheDocument();
+      expect(within(row).getByRole("button", { name: "Endow" })).toBeEnabled();
+      expect(within(row).getByText("Garden Vault endowment")).toBeInTheDocument();
+    }
+  });
+
   it("clicking Donate opens PublicFundingCard with intent=donate", async () => {
     const user = userEvent.setup();
     renderView();
