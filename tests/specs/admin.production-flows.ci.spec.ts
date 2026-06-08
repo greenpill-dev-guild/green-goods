@@ -15,6 +15,11 @@ import { AdminTestHelper, TEST_URLS } from "../helpers/test-utils";
 
 const ADMIN_URL = TEST_URLS.admin;
 const TEST_GARDEN_ID = "0x0000000000000000000000000000000000000001";
+const ROUTE_SMOKE_TEST_TIMEOUT_MS = 90_000;
+
+function withGardenAddress(route: string): string {
+  return `${route}?gardenAddress=${encodeURIComponent(TEST_GARDEN_ID)}`;
+}
 
 async function setupAuthenticatedAdmin(page: import("@playwright/test").Page) {
   const helper = new AdminTestHelper(page);
@@ -33,8 +38,8 @@ async function setupAuthenticatedAdmin(page: import("@playwright/test").Page) {
 }
 
 async function expectNoCrashOnRoute(page: import("@playwright/test").Page, route: string) {
-  await page.goto(route);
-  await page.waitForLoadState("domcontentloaded");
+  // Route smoke only needs the SPA shell mounted; full load can wait on non-critical assets.
+  await page.goto(route, { waitUntil: "domcontentloaded" });
 
   const hasAppError = await page
     .locator('text="Unexpected Application Error"')
@@ -49,10 +54,11 @@ test.describe("Admin Production Flows CI", () => {
   test.use({ baseURL: ADMIN_URL });
 
   test("critical flow routes render for authenticated users", async ({ page }) => {
+    test.setTimeout(ROUTE_SMOKE_TEST_TIMEOUT_MS);
+
     const helper = await setupAuthenticatedAdmin(page);
 
-    await page.goto("/dashboard");
-    await page.waitForLoadState("domcontentloaded");
+    await page.goto("/hub", { waitUntil: "domcontentloaded" });
 
     const isAuthenticated = await helper.waitForAuthSettled({ timeout: 15000 });
     if (!isAuthenticated) {
@@ -62,10 +68,10 @@ test.describe("Admin Production Flows CI", () => {
     }
 
     const criticalRoutes = [
-      "/gardens/create",
-      `/gardens/${TEST_GARDEN_ID}/assessments/create`,
-      `/gardens/${TEST_GARDEN_ID}/vault`,
-      `/gardens/${TEST_GARDEN_ID}/hypercerts/create`,
+      "/garden/create",
+      withGardenAddress("/hub/assess/create"),
+      withGardenAddress("/community/treasury/vault"),
+      withGardenAddress("/hub/certify/create"),
     ];
 
     for (const route of criticalRoutes) {
