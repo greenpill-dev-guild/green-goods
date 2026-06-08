@@ -8,7 +8,7 @@
  * @vitest-environment jsdom
  */
 
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
@@ -159,12 +159,12 @@ function activePortfolio() {
   };
 }
 
-function renderPanel(open = true) {
+function renderPanel(open = true, onOpenChange = vi.fn()) {
   return render(
     createElement(
       IntlProvider,
       { locale: "en", messages },
-      createElement(PublicEndowmentPanel, { open, onOpenChange: vi.fn() })
+      createElement(PublicEndowmentPanel, { open, onOpenChange })
     )
   );
 }
@@ -214,6 +214,72 @@ describe("PublicEndowmentPanel", () => {
     await user.click(screen.getByRole("button", { name: "Connect Wallet" }));
 
     expect(mockLoginWithWallet).toHaveBeenCalled();
+  });
+
+  it("renders the outer sheet without rounded borders", () => {
+    renderPanel();
+
+    const sheet = document.querySelector(
+      '[data-component="PublicEndowmentPanel"][data-slot="surface"]'
+    );
+    expect(sheet).not.toBeNull();
+    expect(sheet).toHaveClass("rounded-none");
+    expect(sheet!.className).not.toContain("rounded-t-3xl");
+    expect(sheet!.className).not.toContain("rounded-3xl");
+  });
+
+  it("wires overlay and surface motion hooks for open state", () => {
+    renderPanel();
+
+    const overlay = document.querySelector(
+      '[data-component="PublicEndowmentPanel"][data-slot="overlay"]'
+    );
+    const sheet = document.querySelector(
+      '[data-component="PublicEndowmentPanel"][data-slot="surface"]'
+    );
+
+    expect(overlay).not.toBeNull();
+    expect(overlay).toHaveClass("public-endowment-overlay");
+    expect(overlay).toHaveAttribute("data-state", "open");
+    expect(overlay).toHaveAttribute("data-motion-state", "open");
+
+    expect(sheet).not.toBeNull();
+    expect(sheet).toHaveClass("public-endowment-panel");
+    expect(sheet).toHaveAttribute("data-state", "open");
+    expect(sheet).toHaveAttribute("data-motion-state", "open");
+  });
+
+  it("keeps the panel mounted until the close animation ends", async () => {
+    const onOpenChange = vi.fn();
+    const { rerender } = renderPanel(true, onOpenChange);
+
+    rerender(
+      createElement(
+        IntlProvider,
+        { locale: "en", messages },
+        createElement(PublicEndowmentPanel, { open: false, onOpenChange })
+      )
+    );
+
+    const sheet = document.querySelector(
+      '[data-component="PublicEndowmentPanel"][data-slot="surface"]'
+    );
+    const overlay = document.querySelector(
+      '[data-component="PublicEndowmentPanel"][data-slot="overlay"]'
+    );
+
+    expect(sheet).not.toBeNull();
+    expect(sheet).toHaveAttribute("data-motion-state", "closed");
+    expect(overlay).not.toBeNull();
+    expect(overlay).toHaveAttribute("data-motion-state", "closed");
+
+    fireEvent.animationEnd(sheet!);
+
+    await waitFor(() => {
+      expect(
+        document.querySelector('[data-component="PublicEndowmentPanel"][data-slot="surface"]')
+      ).toBeNull();
+    });
   });
 
   it("explains the empty state for a connected wallet without endowments", () => {

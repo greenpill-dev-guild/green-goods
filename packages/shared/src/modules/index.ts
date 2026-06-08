@@ -52,6 +52,9 @@ export {
   // Work submission events
   trackWorkSubmissionStarted,
   trackWorkSubmissionSuccess,
+  trackWorkWalletRequestExpired,
+  trackWorkWalletRequestFailed,
+  trackWorkWalletRequestStarted,
 } from "./app/analytics-events";
 // ============================================================================
 // APP / ERROR TRACKING

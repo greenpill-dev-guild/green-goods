@@ -12,8 +12,22 @@ prepend_path() {
   fi
 }
 
+trust_mise_config() {
+  if [ ! -f ".mise.toml" ]; then
+    return
+  fi
+
+  for mise_bin in "$(command -v mise 2>/dev/null || true)" "$HOME/.local/bin/mise" "/opt/homebrew/bin/mise" "/usr/local/bin/mise"; do
+    if [ -n "$mise_bin" ] && [ -x "$mise_bin" ]; then
+      "$mise_bin" trust --quiet --yes "$PWD/.mise.toml"
+      return
+    fi
+  done
+}
+
 # Codex local-environment shells are not guaranteed to be login shells. Expose
 # the repo's mise and Bun shims before npm launches scripts/dev/setup.js.
+trust_mise_config
 prepend_path "$HOME/.local/share/mise/shims"
 prepend_path "$HOME/.bun/bin"
 export PATH
@@ -31,6 +45,20 @@ prepend_path() {
   fi
 }
 
+trust_mise_config() {
+  if [ ! -f ".mise.toml" ]; then
+    return
+  fi
+
+  for mise_bin in "$(command -v mise 2>/dev/null || true)" "$HOME/.local/bin/mise" "/opt/homebrew/bin/mise" "/usr/local/bin/mise"; do
+    if [ -n "$mise_bin" ] && [ -x "$mise_bin" ]; then
+      "$mise_bin" trust --quiet --yes "$PWD/.mise.toml"
+      return
+    fi
+  done
+}
+
+trust_mise_config
 prepend_path "$HOME/.local/share/mise/shims"
 prepend_path "$HOME/.bun/bin"
 export PATH

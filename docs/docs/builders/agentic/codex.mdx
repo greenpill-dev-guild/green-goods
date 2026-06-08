@@ -81,7 +81,7 @@ name = "green-goods"
 script = '''
 set -e
 
-# Prepend mise and Bun shims, then:
+# Trust this worktree's exact mise config, prepend mise and Bun shims, then:
 npm run setup -- --profile isolated
 '''
 
@@ -89,7 +89,7 @@ npm run setup -- --profile isolated
 script = '''
 set -e
 
-# Prepend mise and Bun shims, then:
+# Trust this worktree's exact mise config, prepend mise and Bun shims, then:
 bun run dev:clean
 '''
 ```
@@ -103,8 +103,10 @@ npm run setup -- --profile isolated
 
 The environment file is intentionally a thin launcher, not a Codex-specific
 setup implementation. It prepends the repo's mise and Bun shim locations because
-Codex local-environment shells are not guaranteed to be login shells; all
-workspace behavior lives in `scripts/dev/setup.js` and `scripts/dev/clean.js`.
+Codex local-environment shells are not guaranteed to be login shells, and first
+trusts the exact worktree `.mise.toml` so shimmed `npm`/`bun` calls can load the
+repo tool versions; all workspace behavior lives in `scripts/dev/setup.js` and
+`scripts/dev/clean.js`.
 The isolated setup profile starts from Node/npm, can bootstrap Bun when network
 access is available, then uses the Bun workspace runtime once it is installed or
 confirmed. It avoids host-only effects such as Foundry installation, Docker

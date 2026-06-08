@@ -60,6 +60,7 @@ vi.mock("../../stores/useWorkFlowStore", () => ({
   useWorkFlowStore: {
     getState: vi.fn(() => ({
       setSubmissionCompleted: vi.fn(),
+      ensureWorkSubmissionJourneyId: vi.fn(() => "journey-123"),
     })),
   },
 }));
@@ -89,6 +90,9 @@ vi.mock("../../modules/app/analytics-events", () => ({
   trackWorkSubmissionStarted: vi.fn(),
   trackWorkSubmissionSuccess: vi.fn(),
   trackWorkSubmissionFailed: vi.fn(),
+  trackWorkWalletRequestStarted: vi.fn(),
+  trackWorkWalletRequestExpired: vi.fn(),
+  trackWorkWalletRequestFailed: vi.fn(),
 }));
 
 // Mock useTransactionSender to avoid wagmi provider dependency
@@ -104,19 +108,52 @@ vi.mock("../../hooks/blockchain/useTransactionSender", () => ({
 }));
 
 vi.mock("../../utils/errors/contract-errors", () => ({
-  parseContractError: vi.fn((error: unknown) => ({
-    raw: error instanceof Error ? error.message : String(error),
-    name: "UnknownError",
-    message: "Something went wrong",
-    isKnown: false,
-    recoverable: true,
-    suggestedAction: "retry",
-  })),
-  parseAndFormatError: vi.fn(() => ({
-    title: "Error",
-    message: "Something went wrong",
-    parsed: { isKnown: false, name: "unknown", recoverable: true },
-  })),
+  parseContractError: vi.fn((error: unknown) => {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.toLowerCase().includes("request expired")) {
+      return {
+        raw: message,
+        name: "WalletRequestExpired",
+        message: "Wallet request expired before it was confirmed.",
+        action: "Submit again from Review when you're ready.",
+        isKnown: true,
+        recoverable: true,
+        suggestedAction: "retry",
+      };
+    }
+    return {
+      raw: message,
+      name: "UnknownError",
+      message: "Something went wrong",
+      isKnown: false,
+      recoverable: true,
+      suggestedAction: "retry",
+    };
+  }),
+  parseAndFormatError: vi.fn((error: unknown) => {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.toLowerCase().includes("request expired")) {
+      return {
+        title: "Wallet Request Expired",
+        message:
+          "Wallet request expired before it was confirmed. Submit again from Review when you're ready.",
+        parsed: {
+          raw: message,
+          name: "WalletRequestExpired",
+          message: "Wallet request expired before it was confirmed.",
+          action: "Submit again from Review when you're ready.",
+          isKnown: true,
+          recoverable: true,
+          suggestedAction: "retry",
+        },
+      };
+    }
+    return {
+      title: "Error",
+      message: "Something went wrong",
+      parsed: { isKnown: false, name: "UnknownError", recoverable: true },
+    };
+  }),
   isNotGardenMemberError: vi.fn(() => false),
   isAlreadyGardenerError: vi.fn(() => false),
   formatErrorForToast: vi.fn(() => ({ title: "Error", message: "Something went wrong" })),
@@ -128,6 +165,10 @@ import { jobQueue } from "../../modules/job-queue";
 import { submitWorkDirectly } from "../../modules/work/wallet-submission";
 import { WorkSubmissionError } from "../../modules/work/wallet-submission/types";
 import { submitWorkToQueue } from "../../modules/work/work-submission";
+import {
+  trackWorkWalletRequestExpired,
+  trackWorkWalletRequestStarted,
+} from "../../modules/app/analytics-events";
 import {
   createMockAction,
   createMockFiles,
@@ -199,6 +240,37 @@ describe("hooks/work/useWorkMutation", () => {
         expect.objectContaining({ onProgress: expect.any(Function) })
       );
       expect(submitWorkToQueue).not.toHaveBeenCalled();
+    });
+
+    it("tracks when the wallet request starts", async () => {
+      mock(submitWorkDirectly).mockImplementation(
+        async (_draft, _garden, _actionUID, _actionTitle, _chainId, _images, options) => {
+          options?.onProgress?.("confirming", "Confirm in your wallet...");
+          return MOCK_TX_HASH;
+        }
+      );
+
+      const { result } = renderHook(() => useWorkMutation(defaultOptions), {
+        wrapper: createWrapper(),
+      });
+
+      await act(async () => {
+        await result.current.mutateAsync({
+          draft: createMockWorkDraft(),
+          images: createMockFiles(2),
+        });
+      });
+
+      expect(trackWorkWalletRequestStarted).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workSubmissionJourneyId: "journey-123",
+          authMode: "wallet",
+          chainId: 11155111,
+          actionUID: 1,
+          imageCount: 2,
+          submissionPhase: "wallet_request",
+        })
+      );
     });
   });
 
@@ -448,6 +520,51 @@ describe("hooks/work/useWorkMutation", () => {
       // Transaction-phase network errors SHOULD fall back to queue
       expect(submitWorkToQueue).toHaveBeenCalled();
       expect(txHash).toBe("0xoffline_fallback");
+    });
+
+    it("keeps wallet request expiry on the direct Review retry path", async () => {
+      const expiredError = new WorkSubmissionError(
+        "Wallet request expired",
+        "transaction",
+        "batch-expired",
+        new Error("request expired")
+      );
+      mock(submitWorkDirectly).mockRejectedValue(expiredError);
+
+      const { result } = renderHook(() => useWorkMutation(defaultOptions), {
+        wrapper: createWrapper(),
+      });
+
+      await act(async () => {
+        try {
+          await result.current.mutateAsync({
+            draft: createMockWorkDraft(),
+            images: createMockFiles(2),
+          });
+        } catch {
+          // Expected to throw so the Review step can keep the same draft state.
+        }
+      });
+
+      expect(submitWorkToQueue).not.toHaveBeenCalled();
+      expect(trackWorkWalletRequestExpired).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workSubmissionJourneyId: "journey-123",
+          authMode: "wallet",
+          chainId: 11155111,
+          actionUID: 1,
+          imageCount: 2,
+          submissionPhase: "transaction",
+          parsedErrorFamily: "WalletRequestExpired",
+        })
+      );
+      expect(walletProgressToasts.error).toHaveBeenCalledWith(
+        expect.stringContaining("Wallet request expired"),
+        true
+      );
+      await waitFor(() => {
+        expect(result.current.isError).toBe(true);
+      });
     });
 
     it("inserts optimistic entry when wallet submission falls back to queue", async () => {

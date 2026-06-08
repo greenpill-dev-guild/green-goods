@@ -8,13 +8,14 @@ import {
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { ImageWithFallback } from "@/components/Display";
-import { EditorialKicker, EditorialPrimaryButton } from "./atoms";
+import type { PublicFundingIntentKind } from "@green-goods/shared/public-contracts";
+import { EditorialGhostButton, EditorialKicker, EditorialPrimaryButton } from "./atoms";
 import { GardenCoverFallback } from "./GardenCoverFallback";
 
 export interface PublicGardenRowProps {
   garden: PublicGardenSummary;
   vaultSummary?: PublicGardenVaultSummary;
-  onSupport: (garden: PublicGardenSummary) => void;
+  onSupport: (garden: PublicGardenSummary, intent: PublicFundingIntentKind) => void;
 }
 
 /**
@@ -73,46 +74,60 @@ export function PublicGardenRow({ garden, vaultSummary, onSupport }: PublicGarde
 
   return (
     <div
+      data-component="PublicGardenRow"
       role="group"
       aria-label={formatMessage(
         {
           id: "public.fund.gardenCardLabel",
-          defaultMessage: "{garden} endowment option",
+          defaultMessage: "{garden} funding options",
         },
         { garden: garden.name || garden.slug }
       )}
-      className="flex items-stretch gap-4 py-4 sm:gap-5"
+      className="flex h-full min-w-0 items-stretch gap-4 py-4 sm:gap-5"
     >
       <Link
         to={`/gardens/${garden.slug}`}
         viewTransition
-        className="group flex min-w-0 flex-1 items-stretch gap-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 sm:gap-5"
+        className="group flex min-w-0 flex-1 basis-0 items-stretch gap-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 sm:gap-5"
         aria-label={garden.name}
       >
-        <div className="relative h-20 w-20 shrink-0 overflow-hidden bg-editorial-warm">
+        <div
+          data-component="PublicGardenRowMedia"
+          className="relative h-20 w-28 shrink-0 overflow-hidden bg-editorial-warm sm:h-24 sm:w-36"
+        >
           <ImageWithFallback
             src={garden.bannerImage}
             alt=""
             className="h-full w-full object-cover transition-transform group-hover:scale-[1.03]"
-            backgroundFallback={<GardenCoverFallback name={garden.name} slug={garden.slug} />}
+            backgroundFallback={
+              <GardenCoverFallback
+                name={garden.name}
+                slug={garden.slug}
+                initialClassName="text-3xl tracking-[-0.025em] sm:text-4xl lg:text-4xl"
+              />
+            }
           />
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
           {garden.location ? (
-            <EditorialKicker className="-mb-0.5">{garden.location}</EditorialKicker>
+            <EditorialKicker className="-mb-0.5 line-clamp-1 min-w-0 [overflow-wrap:anywhere]">
+              {garden.location}
+            </EditorialKicker>
           ) : null}
           <h3
-            className="font-serif text-lg font-normal leading-[1.15] tracking-[-0.012em] text-text-strong-950 group-hover:text-primary-action"
+            className="min-w-0 font-serif text-lg font-normal leading-[1.15] tracking-[-0.012em] text-text-strong-950 group-hover:text-primary-action"
             title={garden.name}
           >
-            <span className="line-clamp-2">{garden.name || garden.slug}</span>
+            <span className="line-clamp-2 [overflow-wrap:anywhere]">
+              {garden.name || garden.slug}
+            </span>
           </h3>
-          <p className="flex flex-wrap items-center gap-x-2 text-xs text-text-soft-400">
+          <p className="flex min-w-0 flex-wrap items-center gap-x-2 text-xs text-text-soft-400">
             {meta.map((label, index) => (
-              <span key={label} className="flex items-center gap-x-2">
+              <span key={label} className="flex min-w-0 items-center gap-x-2">
                 {index > 0 ? <span aria-hidden="true">·</span> : null}
-                <span>{label}</span>
+                <span className="[overflow-wrap:anywhere]">{label}</span>
               </span>
             ))}
           </p>
@@ -120,13 +135,44 @@ export function PublicGardenRow({ garden, vaultSummary, onSupport }: PublicGarde
         </div>
       </Link>
 
-      <div className="flex shrink-0 flex-col items-stretch justify-center gap-2">
-        <EditorialPrimaryButton
-          onClick={() => onSupport(garden)}
-          className="px-4 py-2 text-xs sm:text-sm"
-        >
-          {formatMessage({ id: "public.fund.dialog.endow.title", defaultMessage: "Endow" })}
-        </EditorialPrimaryButton>
+      <div className="flex shrink-0 flex-col items-stretch justify-center gap-3">
+        <div className="flex flex-col items-stretch gap-1">
+          <EditorialPrimaryButton
+            onClick={() => onSupport(garden, "donate")}
+            className="px-4 py-2 text-xs sm:text-sm"
+            aria-describedby={`${garden.id}-donate-helper`}
+          >
+            {formatMessage({ id: "public.fund.dialog.donate.title", defaultMessage: "Donate" })}
+          </EditorialPrimaryButton>
+          <p
+            id={`${garden.id}-donate-helper`}
+            className="max-w-24 text-center text-[10px] leading-[1.25] text-text-soft-400"
+          >
+            {formatMessage({
+              id: "public.fund.gardenDonateHelper",
+              defaultMessage: "Shared fund support",
+            })}
+          </p>
+        </div>
+        <div className="flex flex-col items-stretch gap-1">
+          <EditorialGhostButton
+            variant="warm"
+            onClick={() => onSupport(garden, "endow")}
+            className="px-4 py-2 text-xs sm:text-sm"
+            aria-describedby={`${garden.id}-endow-helper`}
+          >
+            {formatMessage({ id: "public.fund.dialog.endow.title", defaultMessage: "Endow" })}
+          </EditorialGhostButton>
+          <p
+            id={`${garden.id}-endow-helper`}
+            className="max-w-24 text-center text-[10px] leading-[1.25] text-text-soft-400"
+          >
+            {formatMessage({
+              id: "public.fund.gardenEndowHelper",
+              defaultMessage: "Garden Vault endowment",
+            })}
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -144,10 +190,12 @@ function GardenVaultMetrics({ summary }: { summary?: PublicGardenVaultSummary })
   if (balanceLabels.length === 0) return null;
 
   return (
-    <p className="mt-1 flex flex-wrap items-center gap-x-2 text-[11px] leading-[1.45] text-text-sub-600">
-      <span>{balanceLabels.join(" · ")}</span>
+    <p className="mt-1 flex min-w-0 max-w-full flex-wrap items-center gap-x-2 gap-y-1 text-[11px] leading-[1.45] text-text-sub-600 [overflow-wrap:anywhere]">
+      <span className="min-w-0 max-w-full [overflow-wrap:anywhere]">
+        {balanceLabels.join(" · ")}
+      </span>
       {accruedLabels.length > 0 ? (
-        <span>
+        <span className="min-w-0 max-w-full [overflow-wrap:anywhere]">
           {" · "}
           {formatMessage(
             {

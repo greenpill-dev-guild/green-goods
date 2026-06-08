@@ -46,6 +46,7 @@ type WorkViewProps = {
    */
   footerSpacerClassName?: string;
   showMedia?: boolean;
+  onMediaError?: (mediaUrl: string, index: number) => void;
 };
 
 export const WorkView: React.FC<WorkViewProps> = ({
@@ -64,6 +65,7 @@ export const WorkView: React.FC<WorkViewProps> = ({
   reserveFooterSpace = false,
   footerSpacerClassName,
   showMedia = true,
+  onMediaError,
 }) => {
   const intl = useIntl();
 
@@ -110,6 +112,7 @@ export const WorkView: React.FC<WorkViewProps> = ({
                     alt={`Work media ${index + 1}`}
                     className="w-full h-full aspect-3/4 object-cover rounded-2xl"
                     fallbackClassName="w-full h-full aspect-3/4 rounded-2xl"
+                    onErrorCallback={() => onMediaError?.(item, index)}
                   />
                 </CarouselItem>
               ))}
