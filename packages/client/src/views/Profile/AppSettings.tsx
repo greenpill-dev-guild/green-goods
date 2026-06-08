@@ -1,15 +1,13 @@
 import {
   capitalize,
-  ConfirmDialog,
   hapticLight,
   type Locale,
-  logger,
-  toastService,
   useApp,
+  useServiceWorkerUpdate,
   useTheme,
 } from "@green-goods/shared";
 import { RiEarthFill, RiRefreshLine, RiSettings2Line } from "@remixicon/react";
-import { type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { Button } from "@/components/Actions";
 import { Card } from "@/components/Cards";
@@ -26,9 +24,8 @@ interface ApplicationSettings {
 export const AppSettings: React.FC = () => {
   const { theme, setTheme } = useTheme();
   const { locale, switchLanguage, availableLocales } = useApp();
+  const { updateAvailable, isUpdating, applyUpdate } = useServiceWorkerUpdate();
   const intl = useIntl();
-  const [refreshConfirmOpen, setRefreshConfirmOpen] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const themeOptions = useMemo(
     () => [
@@ -127,65 +124,9 @@ export const AppSettings: React.FC = () => {
     ]
   );
 
-  const handleRefreshClick = () => {
+  const handleUpdateClick = () => {
     hapticLight();
-    if (typeof navigator !== "undefined" && navigator.onLine === false) {
-      toastService.info({
-        title: intl.formatMessage({
-          id: "app.update.offline",
-          defaultMessage: "You're offline",
-        }),
-        message: intl.formatMessage({
-          id: "app.update.offlineMessage",
-          defaultMessage: "Connect to the internet to update the app.",
-        }),
-        context: "appRefresh",
-      });
-      return;
-    }
-    setRefreshConfirmOpen(true);
-  };
-
-  const handleRefreshApp = async () => {
-    setIsRefreshing(true);
-    try {
-      toastService.loading({
-        title: intl.formatMessage({
-          id: "app.update.refreshing",
-          defaultMessage: "Updating app…",
-        }),
-        message: intl.formatMessage({
-          id: "app.update.refreshingMessage",
-          defaultMessage: "Clearing cached data and reloading.",
-        }),
-        context: "appRefresh",
-      });
-
-      if ("serviceWorker" in navigator) {
-        const regs = await navigator.serviceWorker.getRegistrations();
-        await Promise.all(regs.map((r) => r.unregister()));
-      }
-
-      if ("caches" in window) {
-        const keys = await caches.keys();
-        await Promise.all(keys.map((key) => caches.delete(key)));
-      }
-
-      try {
-        localStorage.removeItem("__rq_pc__");
-      } catch (e) {
-        logger.debug("[AppRefresh] localStorage clear failed:", { error: e });
-      }
-      try {
-        indexedDB.deleteDatabase("gg-react-query");
-      } catch (e) {
-        logger.debug("[AppRefresh] IndexedDB clear failed:", { error: e });
-      }
-    } catch (err) {
-      logger.debug("[AppRefresh] Best-effort cache clear failed:", { error: err });
-    } finally {
-      window.location.reload();
-    }
+    applyUpdate();
   };
 
   return (
@@ -215,60 +156,43 @@ export const AppSettings: React.FC = () => {
         </Card>
       ))}
 
-      <Card>
-        <div className="flex flex-row items-center gap-3 w-full">
-          <Avatar>
-            <div className="flex items-center justify-center text-center mx-auto text-primary">
-              <RiRefreshLine className="w-4" />
+      {updateAvailable && (
+        <Card>
+          <div className="flex flex-row items-center gap-3 w-full">
+            <Avatar>
+              <div className="flex items-center justify-center text-center mx-auto text-primary">
+                <RiRefreshLine className="w-4" />
+              </div>
+            </Avatar>
+            <div className="flex flex-col gap-0.5 min-w-0 flex-1">
+              <div className="text-sm font-medium">
+                {intl.formatMessage({
+                  id: "app.update.title",
+                  defaultMessage: "Update app",
+                })}
+              </div>
+              <div className="text-xs text-text-sub-600 line-clamp-2">
+                {intl.formatMessage({
+                  id: "app.update.subtitle",
+                  defaultMessage: "A new version is ready.",
+                })}
+              </div>
             </div>
-          </Avatar>
-          <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-            <div className="text-sm font-medium">
-              {intl.formatMessage({
-                id: "app.update.title",
-                defaultMessage: "Refresh app",
+            <Button
+              variant="neutral"
+              mode="stroke"
+              size="small"
+              onClick={handleUpdateClick}
+              disabled={isUpdating}
+              label={intl.formatMessage({
+                id: "app.update.button",
+                defaultMessage: "Update",
               })}
-            </div>
-            <div className="text-xs text-text-sub-600 line-clamp-2">
-              {intl.formatMessage({
-                id: "app.update.subtitle",
-                defaultMessage: "Get the latest updates and features",
-              })}
-            </div>
+              className="w-[110px] shrink-0 sm:w-[140px]"
+            />
           </div>
-          <Button
-            variant="neutral"
-            mode="stroke"
-            size="small"
-            onClick={handleRefreshClick}
-            label={intl.formatMessage({
-              id: "app.update.button",
-              defaultMessage: "Refresh",
-            })}
-            className="w-[110px] shrink-0 sm:w-[140px]"
-          />
-        </div>
-      </Card>
-
-      <ConfirmDialog
-        isOpen={refreshConfirmOpen}
-        onClose={() => setRefreshConfirmOpen(false)}
-        onConfirm={handleRefreshApp}
-        title={intl.formatMessage({
-          id: "app.update.confirmTitle",
-          defaultMessage: "Refresh app?",
-        })}
-        description={intl.formatMessage({
-          id: "app.update.confirmDescription",
-          defaultMessage:
-            "This clears cached data and reloads the app to fetch the latest version. Your saved drafts and pending submissions are kept.",
-        })}
-        confirmLabel={intl.formatMessage({
-          id: "app.update.confirmAction",
-          defaultMessage: "Refresh",
-        })}
-        isLoading={isRefreshing}
-      />
+        </Card>
+      )}
     </>
   );
 };
