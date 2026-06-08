@@ -216,8 +216,8 @@ Approved contrast exceptions:
 | `packages/client/src/views/Login/components/LoadingSplash.tsx:53` | `border-primary-alpha-24` | state | <code>"h-10 w-10 animate-spin rounded-full border-4 border-primary-alpha-24",</code> |
 | `packages/client/src/views/Profile/AccountInfo.tsx:80` | `text-primary` | accent | <code>&lt;div className="flex items-center justify-center text-center mx-auto text-primary"&gt;</code> |
 | `packages/client/src/views/Profile/AccountInfo.tsx:122` | `text-primary` | accent | <code>&lt;div className="flex items-center justify-center text-center mx-auto text-primary"&gt;</code> |
-| `packages/client/src/views/Profile/AppSettings.tsx:203` | `text-primary` | accent | <code>&lt;div className="flex items-center justify-center text-center mx-auto text-primary"&gt;</code> |
-| `packages/client/src/views/Profile/AppSettings.tsx:221` | `text-primary` | accent | <code>&lt;div className="flex items-center justify-center text-center mx-auto text-primary"&gt;</code> |
+| `packages/client/src/views/Profile/AppSettings.tsx:144` | `text-primary` | accent | <code>&lt;div className="flex items-center justify-center text-center mx-auto text-primary"&gt;</code> |
+| `packages/client/src/views/Profile/AppSettings.tsx:163` | `text-primary` | accent | <code>&lt;div className="flex items-center justify-center text-center mx-auto text-primary"&gt;</code> |
 | `packages/client/src/views/Profile/Badges.tsx:32` | `text-primary` | accent | <code>return &lt;RiSeedlingLine className="h-5 w-5 text-primary" /&gt;;</code> |
 | `packages/client/src/views/Profile/Badges.tsx:34` | `text-primary` | accent | <code>return &lt;RiHammerLine className="h-5 w-5 text-primary" /&gt;;</code> |
 | `packages/client/src/views/Profile/Badges.tsx:36` | `text-primary` | accent | <code>return &lt;RiCoinsLine className="h-5 w-5 text-primary" /&gt;;</code> |
