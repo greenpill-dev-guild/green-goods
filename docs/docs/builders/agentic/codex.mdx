@@ -83,6 +83,21 @@ script = ""
 
 There is no project-scoped bootstrap script defined in `.codex/environments/environment.toml` at the moment. Any additional setup is handled outside this file.
 
+Codex worktrees should use the same generic isolated setup profile as other
+container or worktree flows:
+
+```bash
+npm run setup -- --profile isolated
+```
+
+This intentionally stays outside `.codex/environments/environment.toml` so the
+repo does not grow a Codex-specific setup command. The isolated profile starts
+from Node/npm, can bootstrap Bun when network access is available, then uses
+the Bun workspace runtime once it is installed or confirmed. It avoids
+host-only effects such as Foundry installation, Docker checks, service
+starts/stops, browser launches, secret resolution, and sibling-worktree
+cleanup.
+
 ### Hooks
 
 No project Codex hooks are currently registered. The previous prompt-submit normalization hook was removed because it could infer task contracts from pasted source material instead of the user's actual request. The shared rules live in `AGENTS.md`, package-local `AGENTS.md`, `.plans/`, and the builder docs.
