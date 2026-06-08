@@ -103,6 +103,7 @@ vi.mock("@/components/Actions", () => ({
     label,
     onClick,
     disabled,
+    className,
   }: {
     label: string;
     onClick?: () => void;
@@ -112,7 +113,8 @@ vi.mock("@/components/Actions", () => ({
     size?: string;
     className?: string;
     leadingIcon?: React.ReactNode;
-  }) => createElement("button", { onClick, disabled, "data-testid": `btn-${label}` }, label),
+  }) =>
+    createElement("button", { onClick, disabled, className, "data-testid": `btn-${label}` }, label),
 }));
 
 vi.mock("@/components/Cards", () => ({
@@ -201,23 +203,52 @@ describe("GardensList", () => {
     expect(screen.getByText("Member")).toBeInTheDocument();
   });
 
-  it("allows long garden names to wrap to two lines", () => {
+  it("constrains long garden names and locations without displacing row actions", () => {
+    const longMemberName = "RegenerativeBioregionStewardshipGardenCollective2026";
+    const longJoinableName = "WatershedCommonsSeedLibraryNeighborhoodGardenCollective";
+    const longLocation = "RuaDasCooperativasNeighborhoodWithLongUnbrokenPlaceNameLisbonPortugal";
+
     mockGardensState.data = [
       {
-        id: "0xgarden-long",
-        name: "A Very Long Community Garden Name That Needs Two Lines",
-        location: "Lisbon",
+        id: "0xgarden-member-long",
+        name: longMemberName,
+        location: longLocation,
         openJoining: true,
         gardeners: [MOCK_ADDRESS],
+        operators: [],
+      },
+      {
+        id: "0xgarden-joinable-long",
+        name: longJoinableName,
+        location: longLocation,
+        openJoining: true,
+        gardeners: [],
         operators: [],
       },
     ];
 
     render(wrap(createElement(GardensList, { primaryAddress: MOCK_ADDRESS as any })));
 
-    expect(screen.getByText("A Very Long Community Garden Name That Needs Two Lines")).toHaveClass(
-      "line-clamp-2"
-    );
+    const memberName = screen.getByText(longMemberName);
+    const joinableName = screen.getByText(longJoinableName);
+    const locationRows = screen.getAllByText(longLocation);
+    const memberBadge = screen.getByText("Member").parentElement;
+    const joinButton = screen.getByTestId("btn-Join");
+
+    for (const gardenName of [memberName, joinableName]) {
+      expect(gardenName).toHaveClass("line-clamp-2", "min-w-0", "max-w-full");
+      expect(gardenName.className).toContain("[overflow-wrap:anywhere]");
+      expect(gardenName.parentElement).toHaveClass("min-w-0", "flex-1");
+      expect(gardenName.parentElement?.parentElement).toHaveClass("min-w-0", "w-full");
+    }
+
+    for (const location of locationRows) {
+      expect(location).toHaveClass("min-w-0", "truncate");
+      expect(location.parentElement).toHaveClass("min-w-0", "max-w-full");
+    }
+
+    expect(memberBadge).toHaveClass("shrink-0");
+    expect(joinButton).toHaveClass("shrink-0");
   });
 
   it("shows join button for open gardens user has not joined", () => {
