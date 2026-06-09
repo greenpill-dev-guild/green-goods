@@ -1255,14 +1255,35 @@ export function getOctantVaultCampaignTransactionState(
   };
 }
 
+function cloneCampaign(campaign: OctantVaultCampaignManifest): OctantVaultCampaignManifest {
+  return {
+    ...campaign,
+    campaignCopy: campaign.campaignCopy ? { ...campaign.campaignCopy } : undefined,
+    previewCopy: campaign.previewCopy ? { ...campaign.previewCopy } : undefined,
+    requiredManifestFields: campaign.requiredManifestFields
+      ? [...campaign.requiredManifestFields]
+      : undefined,
+    vault: campaign.vault
+      ? {
+          ...campaign.vault,
+          asset: campaign.vault.asset ? { ...campaign.vault.asset } : undefined,
+          strategyFactory: campaign.vault.strategyFactory
+            ? { ...campaign.vault.strategyFactory }
+            : undefined,
+        }
+      : undefined,
+  };
+}
+
 export function getOctantVaultCampaigns(): OctantVaultCampaignManifest[] {
-  return [...OCTANT_VAULT_CAMPAIGN_MANIFEST];
+  return OCTANT_VAULT_CAMPAIGN_MANIFEST.map(cloneCampaign);
 }
 
 export function getOctantVaultCampaignBySlug(
   slug: OctantVaultCampaignSlug
 ): OctantVaultCampaignManifest | undefined {
-  return OCTANT_VAULT_CAMPAIGN_MANIFEST.find((campaign) => campaign.slug === slug);
+  const campaign = OCTANT_VAULT_CAMPAIGN_MANIFEST.find((entry) => entry.slug === slug);
+  return campaign ? cloneCampaign(campaign) : undefined;
 }
 
 export function getOctantVaultCampaignCopy(

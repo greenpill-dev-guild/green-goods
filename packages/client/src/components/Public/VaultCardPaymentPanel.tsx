@@ -30,7 +30,7 @@ const ONRAMP_PROVIDERS = ["stripe", "coinbase"] as const;
  * prepared session still renders a native fallback link in this panel.
  */
 function openPendingCheckoutWindow(): Window | null {
-  const checkoutWindow = window.open("about:blank", "_blank");
+  const checkoutWindow = window.open("about:blank", "_blank", "noopener,noreferrer");
   if (!checkoutWindow) return null;
 
   try {
@@ -189,7 +189,13 @@ export default function VaultCardPaymentPanel({
         onCardFundingSuccess();
         return;
       }
-      setStatusOutcome(result.status === "FAILED" ? "failed" : "pending");
+      if (result.status === "FAILED") {
+        setSession(null);
+        setPhase("ready");
+        setStatusOutcome("failed");
+        return;
+      }
+      setStatusOutcome("pending");
     } catch {
       setBusy("idle");
       setError(statusFailedMessage);

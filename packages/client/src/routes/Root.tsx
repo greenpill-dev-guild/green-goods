@@ -26,7 +26,7 @@ export default function Root() {
   return (
     <div id="client-scroll-root" className="overflow-x-hidden w-full h-full">
       <Outlet />
-      <ToastViewport toastOptions={{ style: { borderRadius: "0px" } }} />
+      <ToastViewport toastOptions={{ style: { borderRadius: "var(--radius-md)" } }} />
     </div>
   );
 }

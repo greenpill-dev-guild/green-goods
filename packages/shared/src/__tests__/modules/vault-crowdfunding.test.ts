@@ -175,6 +175,25 @@ describe("Octant vault crowdfunding manifest", () => {
     });
   });
 
+  it("returns defensive copies of campaign manifests", () => {
+    const campaigns = getOctantVaultCampaigns();
+    const campaign = campaigns[0]!;
+
+    campaign.displayName = "Mutated display";
+    campaign.vault!.asset!.symbol = "MUTATED";
+    campaign.campaignCopy!.headline = "Mutated headline";
+    (campaign.requiredManifestFields as string[]).push("protocolGuildDestinationContext");
+
+    const freshCampaign = getOctantVaultCampaignBySlug("greenpill-nyc");
+
+    expect(freshCampaign?.displayName).toBe("Greenpill NYC");
+    expect(freshCampaign?.vault?.asset?.symbol).toBe("WETH");
+    expect(freshCampaign?.campaignCopy?.headline).toBe(
+      "A dedicated vault for Greenpill NYC civic-tech funding."
+    );
+    expect(freshCampaign?.requiredManifestFields).toEqual(GREENPILL_NYC_REQUIRED_MANIFEST_FIELDS);
+  });
+
   it("records Greenpill NYC chain metadata and production-QA manifest completion", () => {
     const campaign = getOctantVaultCampaignBySlug("greenpill-nyc");
 

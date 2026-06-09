@@ -3585,7 +3585,7 @@
   "public.vaults.metadata.chain": "Cadeia",
   "public.vaults.metadata.chainValue": "Ethereum · cadeia {chainId}",
   "public.vaults.network.chainValue": "Cadeia {chainId}",
-  "public.vaults.network.ethereumMainnet": "Ethereum Mainnet",
+  "public.vaults.network.ethereumMainnet": "Rede principal do Ethereum",
   "public.vaults.metadata.explorer": "Explorador",
   "public.vaults.metadata.pending": "Pendente",
   "public.vaults.metadata.vaultAddress": "Endereço do vault",

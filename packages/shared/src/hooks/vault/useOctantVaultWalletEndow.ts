@@ -35,7 +35,7 @@ export function useOctantVaultWalletEndow(options: VaultMutationOptions = {}) {
   const { authMode, primaryAddress } = useUser();
   const sender = useTransactionSender();
   const showLifecycleToast = shouldShowLifecycleToast(options.toastMode);
-  const showErrorToast = showLifecycleToast && shouldShowErrorToast(options.errorMode);
+  const showErrorToast = shouldShowErrorToast(options.errorMode);
   const handleError = createMutationErrorHandler({
     source: "useOctantVaultWalletEndow",
     toastContext: "Octant Wallet Endow",
@@ -104,7 +104,7 @@ export function useOctantVaultWalletEndow(options: VaultMutationOptions = {}) {
         if (isShutdown) {
           reason = "vaultShutdown";
           message = "Vault has been permanently shut down";
-        } else if (depLimit === 0n) {
+        } else if (depLimit !== null && depLimit === 0n) {
           reason = "depositLimitZero";
           message = "Vault deposit limit is zero";
         } else if (depLimit !== null && totalAssets !== null && totalAssets >= depLimit) {
@@ -145,7 +145,10 @@ export function useOctantVaultWalletEndow(options: VaultMutationOptions = {}) {
         if (balance < transaction.amount) {
           const error = new VaultDepositStageError(
             "deposit",
-            "Connected wallet holds insufficient WETH to complete this deposit",
+            formatMessage({
+              id: "public.vaults.walletEndow.insufficientWeth",
+              defaultMessage: "Connected wallet holds insufficient WETH to complete this deposit",
+            }),
             "insufficientBalance"
           );
           error.diagnostics = {

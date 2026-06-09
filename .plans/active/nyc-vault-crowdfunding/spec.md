@@ -136,8 +136,9 @@ skill plus templates as the final project deliverable.
   indexer support.
 - Synthetic-safe pilot preview copy may be present for browse QA, but it must not satisfy
   transaction-enabling non-chain manifest fields.
-- EVMavericks must additionally record Protocol Guild destination context before transactions can be
-  enabled.
+- EVMavericks must additionally record Protocol Guild destination context before the full campaign
+  manifest can be marked complete. Its Wallet Endow and Card Endow transaction tuples remain enabled
+  from the verified chain-specific vault fields while that non-chain context is pending.
 - Card funding intent contracts must carry a user-owned `receiverAddress: Address` for Card Endow.
 - Card availability must be keyed to exact provider-proof tuples. Card Donate proof must never unlock
   Card Endow, and one vault/token/chain/method proof must never unlock another.
