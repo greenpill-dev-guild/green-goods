@@ -29,6 +29,7 @@ export type AuthPasskeyReason =
   | "credential_not_found"
   | "legacy_fallback"
   | "passkey_server_disabled"
+  | "recovery_context_taken"
   | "server_unavailable"
   | "unsupported_context"
   | "verification_failed"

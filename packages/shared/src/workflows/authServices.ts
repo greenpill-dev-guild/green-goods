@@ -165,6 +165,10 @@ function classifyAuthErrorReason(error: unknown): AuthPasskeyReason {
     return "credential_not_found";
   }
 
+  if (message.includes("already registered") || message.includes("recovery name")) {
+    return "recovery_context_taken";
+  }
+
   if (
     message.includes("fetch") ||
     message.includes("network") ||
@@ -314,6 +318,16 @@ async function registerPasskeyWithServer(
 ): Promise<PasskeySessionResult> {
   const context = buildPasskeyRecoveryContext(userName);
   const passkeyServerClient = createPasskeyServerClient(chainId);
+  const existingCredentials = (await passkeyServerClient.getCredentials({
+    context,
+  })) as PasskeyServerCredential[];
+
+  if (existingCredentials.length > 0) {
+    throw new Error(
+      "That recovery name is already registered. Try recovery or choose another name."
+    );
+  }
+
   const registrationOptions = await passkeyServerClient.startRegistration({ context });
   const createdCredential = await createWebAuthnCredential(registrationOptions);
   const verification = (await passkeyServerClient.verifyRegistration({

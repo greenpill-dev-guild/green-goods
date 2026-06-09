@@ -1889,6 +1889,7 @@
   "app.login.error.noPasskey": "We couldn't find a passkey for that username. Retry, use a same-device fallback if you have one, or confirm before creating a separate account.",
   "app.login.error.passkeyUnavailable": "Passkeys aren't available in this browser. Open Green Goods in a supported browser before starting passkey sign-in.",
   "app.login.error.passkeyVerification": "We couldn't verify your passkey. Try again or sign in with a wallet.",
+  "app.login.error.recoveryNameTaken": "That recovery name is already registered. Use recovery or choose another name for a separate account.",
   "app.login.error.unsupportedBrowser": "Open Green Goods in the recommended browser before starting passkey sign-in.",
   "app.login.error.usernameTooShort": "Please enter a display name with at least 3 characters.",
   "app.login.guidance.copyLinkSafari": "Copy this link and open it in Safari",

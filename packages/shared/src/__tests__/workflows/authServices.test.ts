@@ -500,6 +500,7 @@ describe("workflows/authServices (Pimlico Server Flow)", () => {
         publicKey: MOCK_SERVER_CREDENTIAL.publicKey,
         userName: MOCK_USERNAME,
       });
+      mockPasskeyServerClient.getCredentials.mockResolvedValue([]);
       (createWebAuthnCredential as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_CREDENTIAL);
     });
 
@@ -532,6 +533,22 @@ describe("workflows/authServices (Pimlico Server Flow)", () => {
       });
       expect(result.smartAccountAddress).toBe(MOCK_SMART_ACCOUNT_ADDRESS);
       expect(result.userName).toBe(MOCK_USERNAME);
+    });
+
+    it("fails before registration when the recovery context is already registered", async () => {
+      mockPasskeyServerClient.getCredentials.mockResolvedValue([MOCK_SERVER_CREDENTIAL]);
+
+      await expect(
+        invokeService(registerPasskeyService, {
+          userName: MOCK_USERNAME,
+          chainId: MOCK_CHAIN_ID,
+        })
+      ).rejects.toThrow("That recovery name is already registered");
+
+      expect(mockPasskeyServerClient.startRegistration).not.toHaveBeenCalled();
+      expect(createWebAuthnCredential).not.toHaveBeenCalled();
+      expect(setStoredUsername).not.toHaveBeenCalled();
+      expect(setStoredSmartAccountAddress).not.toHaveBeenCalled();
     });
 
     it("fails closed when the passkey server does not verify registration", async () => {

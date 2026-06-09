@@ -1889,6 +1889,7 @@
   "app.login.error.noPasskey": "No encontramos una passkey para ese nombre. Reintenta, usa una alternativa del mismo dispositivo si la tienes, o confirma antes de crear una cuenta separada.",
   "app.login.error.passkeyUnavailable": "Las passkeys no están disponibles en este navegador. Abre Green Goods en un navegador compatible antes de iniciar sesión con passkey.",
   "app.login.error.passkeyVerification": "No pudimos verificar tu clave de acceso. Inténtalo de nuevo o usa una billetera.",
+  "app.login.error.recoveryNameTaken": "Ese nombre de recuperación ya está registrado. Usa recuperación o elige otro nombre para una cuenta separada.",
   "app.login.error.unsupportedBrowser": "Abre Green Goods en el navegador recomendado antes de iniciar sesión con passkey.",
   "app.login.error.usernameTooShort": "Por favor ingresa un nombre con al menos 3 caracteres.",
   "app.login.guidance.copyLinkSafari": "Copia este enlace y ábrelo en Safari",

@@ -1,4 +1,5 @@
 import {
+  classifyPasskeyCeremonyContext,
   copyToClipboard,
   debugError,
   type InstallGuidance,
@@ -68,6 +69,13 @@ const getFriendlyErrorMessage = (err: unknown, intl: IntlShape): string => {
       id: "app.login.error.addressMismatch",
       defaultMessage:
         "That passkey points to a different account address. Retry recovery or use another sign-in method.",
+    });
+  }
+  if (msg.includes("already registered") || msg.includes("recovery name")) {
+    return intl.formatMessage({
+      id: "app.login.error.recoveryNameTaken",
+      defaultMessage:
+        "That recovery name is already registered. Use recovery or choose another name for a separate account.",
     });
   }
   if (msg.includes("network") || msg.includes("timeout") || msg.includes("fetch")) {
@@ -207,7 +215,9 @@ export function Login() {
     isMobile && (guidance.scenario === "wrong-browser" || guidance.scenario === "in-app-browser");
 
   const blockUnsupportedPasskeyCeremony = useCallback(() => {
-    if (!unsupportedPasskeyContext) {
+    const ceremonyContext = classifyPasskeyCeremonyContext();
+
+    if (!unsupportedPasskeyContext && ceremonyContext.supported) {
       return false;
     }
 

@@ -21,6 +21,13 @@ const mockLoginWithPasskey = vi.fn();
 const mockCreateAccount = vi.fn();
 const mockLoginWithWallet = vi.fn();
 const mockLoginWithEmbedded = vi.fn();
+const { mockClassifyPasskeyCeremonyContext } = vi.hoisted(() => ({
+  mockClassifyPasskeyCeremonyContext: vi.fn(() => ({
+    supported: true,
+    rpId: "greengoods.app",
+    origin: "https://greengoods.app",
+  })),
+}));
 let mockHasStoredCredential = false;
 
 vi.mock("@green-goods/shared", () => ({
@@ -31,6 +38,7 @@ vi.mock("@green-goods/shared", () => ({
     show: vi.fn(),
   },
   copyToClipboard: vi.fn(),
+  classifyPasskeyCeremonyContext: mockClassifyPasskeyCeremonyContext,
   useInstallGuidance: () => ({
     showInstallPrompt: false,
     scenario: null,
@@ -181,6 +189,11 @@ describe("Login View - New User (progressive disclosure)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockHasStoredCredential = false;
+    mockClassifyPasskeyCeremonyContext.mockReturnValue({
+      supported: true,
+      rpId: "greengoods.app",
+      origin: "https://greengoods.app",
+    });
   });
 
   afterEach(() => {
@@ -230,6 +243,23 @@ describe("Login View - New User (progressive disclosure)", () => {
     await user.click(screen.getByTestId("primary-button"));
 
     expect(mockLoginWithPasskey).toHaveBeenCalledWith("testuser");
+  });
+
+  it("blocks recovery before ceremony when the RP/origin context is unsupported", async () => {
+    const user = userEvent.setup();
+    mockClassifyPasskeyCeremonyContext.mockReturnValue({
+      supported: false,
+      reason: "rp_origin_mismatch",
+      rpId: "greengoods.app",
+      origin: "https://example.com",
+    });
+    renderWithRouter();
+
+    await user.type(screen.getByTestId("username-input"), "testuser");
+    await user.click(screen.getByTestId("primary-button"));
+
+    expect(mockLoginWithPasskey).not.toHaveBeenCalled();
+    expect(screen.getByTestId("error-message")).toHaveTextContent(/recommended browser/i);
   });
 
   it("shows address continuity notice", () => {

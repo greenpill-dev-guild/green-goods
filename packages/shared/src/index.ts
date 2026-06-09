@@ -222,6 +222,7 @@ export {
   createShouldDehydrateQuery,
   DEFAULT_CHAIN_ID,
   DOMAIN_CONFIG,
+  classifyPasskeyCeremonyContext,
   type DomainStyle,
   getChain,
   getChainName,
