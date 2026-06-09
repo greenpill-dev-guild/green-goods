@@ -5,10 +5,11 @@ import {
   getOctantVaultCampaignCopy,
   getOctantVaultCampaigns,
   getOctantVaultCampaignTransactionState,
+  useOctantVaultProjectSupportMetric,
   useOctantVaultStats,
   type OctantVaultCampaignManifest,
 } from "@green-goods/shared";
-import { useCallback, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Navigate, useLocation, useSearchParams } from "react-router-dom";
 import {
@@ -176,7 +177,66 @@ function CampaignVaultStats({ campaign }: { campaign: OctantVaultCampaignManifes
   );
 }
 
-function YieldSupportExplainer() {
+function ProjectSupportMetricCard({ campaign }: { campaign: OctantVaultCampaignManifest }) {
+  const { formatMessage } = useIntl();
+  const assetSymbol = campaign.vault?.asset?.symbol ?? "WETH";
+  const assetDecimals = campaign.vault?.asset?.decimals ?? 18;
+  const metric = useOctantVaultProjectSupportMetric({
+    vaultAddress: campaign.vault?.vaultAddress,
+    chainId: campaign.vault?.chainId,
+  });
+  const amountLabel = `${formatTokenAmount(metric.assetValue, assetDecimals, 4, undefined, true)} ${assetSymbol}`;
+
+  let valueNode: ReactNode;
+  let bodyNode: ReactNode;
+
+  if (metric.isLoading) {
+    valueNode = "…";
+    bodyNode = formatMessage({
+      id: "public.vaults.strategy.metric.loading",
+      defaultMessage: "Reading the configured project-support router.",
+    });
+  } else if (metric.status === "unavailable") {
+    valueNode = formatMessage({
+      id: "public.vaults.strategy.metric.unavailable",
+      defaultMessage: "Unavailable",
+    });
+    bodyNode = formatMessage({
+      id: "public.vaults.strategy.metric.unavailableBody",
+      defaultMessage:
+        "No numeric support value is shown until the router source and conversion path can be proven.",
+    });
+  } else if (metric.status === "zero") {
+    valueNode = amountLabel;
+    bodyNode = formatMessage({
+      id: "public.vaults.strategy.metric.zeroBody",
+      defaultMessage:
+        "The project-support router is proven, but it does not currently hold donation shares.",
+    });
+  } else {
+    valueNode = amountLabel;
+    bodyNode = formatMessage({
+      id: "public.vaults.strategy.metric.positiveBody",
+      defaultMessage:
+        "Estimated from donation shares held by the configured project-support router.",
+    });
+  }
+
+  return (
+    <article
+      className="border border-stroke-soft-200 bg-bg-white-0 p-4"
+      data-testid={`vault-project-support-metric-${campaign.slug}`}
+    >
+      <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-soft-400">
+        {campaign.displayName}
+      </p>
+      <p className="mt-2 font-serif text-2xl leading-none text-text-strong-950">{valueNode}</p>
+      <p className="mt-3 text-xs leading-[1.55] text-text-sub-600">{bodyNode}</p>
+    </article>
+  );
+}
+
+function YieldSupportExplainer({ campaigns }: { campaigns: OctantVaultCampaignManifest[] }) {
   const { formatMessage } = useIntl();
 
   return (
@@ -248,6 +308,22 @@ function YieldSupportExplainer() {
                 defaultMessage: "YDS architecture",
               })}
             </a>
+          </div>
+        </div>
+        <div className="mt-6" aria-labelledby="public-vaults-strategy-metric-title">
+          <p
+            id="public-vaults-strategy-metric-title"
+            className="font-mono text-[10.5px] font-medium uppercase tracking-[0.16em] text-text-soft-400"
+          >
+            {formatMessage({
+              id: "public.vaults.strategy.metric.title",
+              defaultMessage: "Project-supporting value generated",
+            })}
+          </p>
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
+            {campaigns.map((campaign) => (
+              <ProjectSupportMetricCard key={campaign.slug} campaign={campaign} />
+            ))}
           </div>
         </div>
       </div>
@@ -476,7 +552,7 @@ export function VaultsPageContent({
         </div>
       </section>
 
-      <YieldSupportExplainer />
+      <YieldSupportExplainer campaigns={campaigns} />
 
       <section
         className="bg-bg-weak-50 px-6 pb-24 sm:px-10 md:pb-32"

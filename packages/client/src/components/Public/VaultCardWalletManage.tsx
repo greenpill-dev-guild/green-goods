@@ -49,7 +49,7 @@ export interface VaultCardWalletManageProps {
  * Manage card/recovered email-wallet vault positions on `/vaults`.
  *
  * Viewing is always read-only — positions are read from the cached recovered
- * wallet address through a public client, no session required. Withdrawing needs
+ * wallet address through a public client, no session required. Redeeming needs
  * the live Thirdweb in-app (email) wallet session: `useAutoConnect` silently
  * reconnects a still-valid session (so a supporter who just finished Card Endow
  * never re-verifies), and only once autoConnect has settled WITHOUT a matching
@@ -134,7 +134,7 @@ function CardOwnerPositions({
     <p className="rounded-xl bg-bg-weak-50 p-3 text-xs leading-[1.5] text-text-sub-600">
       {formatMessage({
         id: "public.vaults.manage.card.readOnly",
-        defaultMessage: "Read-only — restore the email wallet above to withdraw.",
+        defaultMessage: "Read-only — restore the email wallet above to redeem shares.",
       })}
     </p>
   );
@@ -183,8 +183,8 @@ function CardOwnerPositions({
               id: "public.vaults.manage.withdraw.destinationCard",
               defaultMessage: "your card wallet",
             })}
-            isWithdrawing={false}
-            onWithdraw={async () => undefined}
+            isRedeeming={false}
+            onRedeem={async () => undefined}
             disabledReason={readOnlyNote}
           />
         )
@@ -193,7 +193,7 @@ function CardOwnerPositions({
   );
 }
 
-/** Card-wallet row: signs the withdraw with the live Thirdweb in-app wallet. */
+/** Card-wallet row: signs the redeem with the live Thirdweb in-app wallet. */
 function CardVaultPositionRow({
   position,
   client,
@@ -217,7 +217,7 @@ function CardVaultPositionRow({
         id: "public.vaults.manage.withdraw.destinationCard",
         defaultMessage: "your card wallet",
       })}
-      isWithdrawing={sendAndConfirm.isPending}
+      isRedeeming={sendAndConfirm.isPending}
       onResetError={() => setError(null)}
       errorNode={
         error ? (
@@ -226,7 +226,7 @@ function CardVaultPositionRow({
           </p>
         ) : null
       }
-      onWithdraw={async (amount) => {
+      onRedeem={async (shares) => {
         setError(null);
         try {
           const vault = getContract({ client, chain, address: position.vaultAddress });
@@ -235,23 +235,23 @@ function CardVaultPositionRow({
           const maxResult = await readContract({
             contract: vault,
             method:
-              "function maxWithdraw(address owner, uint256 maxLoss, address[] strategies) view returns (uint256)",
+              "function maxRedeem(address owner, uint256 maxLoss, address[] strategies) view returns (uint256)",
             params: [owner, DEFAULT_WITHDRAW_MAX_LOSS_BPS, []],
           });
-          const maxWithdrawable = typeof maxResult === "bigint" ? maxResult : 0n;
-          if (amount > maxWithdrawable) {
+          const maxRedeemable = typeof maxResult === "bigint" ? maxResult : 0n;
+          if (shares > maxRedeemable) {
             throw new Error(
               formatMessage({
                 id: "public.vaults.manage.withdraw.exceeds",
-                defaultMessage: "Amount is higher than the withdrawable amount.",
+                defaultMessage: "Share amount is higher than the currently redeemable shares.",
               })
             );
           }
           const transaction = prepareContractCall({
             contract: vault,
             method:
-              "function withdraw(uint256 assets, address receiver, address owner, uint256 maxLoss, address[] strategies) returns (uint256)",
-            params: [amount, owner, owner, DEFAULT_WITHDRAW_MAX_LOSS_BPS, []],
+              "function redeem(uint256 shares, address receiver, address owner) returns (uint256)",
+            params: [shares, owner, owner],
           });
           await sendAndConfirm.mutateAsync(transaction);
           await onRefresh();
@@ -262,7 +262,7 @@ function CardVaultPositionRow({
               : formatMessage({
                   id: "public.vaults.manage.withdraw.error",
                   defaultMessage:
-                    "Withdrawal could not be completed. Review the wallet error and retry.",
+                    "Redemption could not be completed. Review the wallet error and retry.",
                 })
           );
           throw caught;
@@ -275,7 +275,7 @@ function CardVaultPositionRow({
 /**
  * Restore the recovered email wallet session when autoConnect found none —
  * email + OTP, reusing the Card Endow recovery ceremony. On success the active
- * account becomes the recovered wallet and withdraw unlocks.
+ * account becomes the recovered wallet and redeem unlocks.
  */
 function RestoreEmailWallet({
   client,
@@ -349,14 +349,14 @@ function RestoreEmailWallet({
       <h3 className="font-serif text-lg font-normal text-text-strong-950">
         {formatMessage({
           id: "public.vaults.manage.card.restoreTitle",
-          defaultMessage: "Restore email wallet to withdraw",
+          defaultMessage: "Restore email wallet to redeem",
         })}
       </h3>
       <p className="mt-2 text-sm leading-[1.55] text-text-sub-600">
         {formatMessage({
           id: "public.vaults.manage.card.restoreBody",
           defaultMessage:
-            "Viewing is read-only. To withdraw, restore the email wallet that owns this position.",
+            "Viewing is read-only. To redeem shares, restore the email wallet that owns this position.",
         })}
       </p>
 

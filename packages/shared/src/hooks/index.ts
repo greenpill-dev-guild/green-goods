@@ -459,13 +459,19 @@ export {
 export { useVaultPreview } from "./vault/useVaultPreview";
 export { useOctantVaultStats, type OctantVaultStats } from "./vault/useOctantVaultStats";
 export {
+  useOctantVaultProjectSupportMetric,
+  type OctantVaultProjectSupportMetric,
+  type OctantVaultProjectSupportMetricStatus,
+  type UseOctantVaultProjectSupportMetricOptions,
+} from "./vault/useOctantVaultProjectSupportMetric";
+export {
   useOctantVaultPositions,
   type OctantVaultPosition,
   type UseOctantVaultPositionsResult,
 } from "./vault/useOctantVaultPositions";
 export {
-  useOctantVaultWithdraw,
-  type OctantVaultWithdrawParams,
+  useOctantVaultRedeem,
+  type OctantVaultRedeemParams,
 } from "./vault/useOctantVaultWithdraw";
 export {
   useOctantVaultWalletBalances,
