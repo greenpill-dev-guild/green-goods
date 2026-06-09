@@ -156,7 +156,7 @@ export function getPasskeyRpId(
   location?: Pick<Location, "hostname">
 ): string {
   // Allow override via env var for development/staging
-  const envRpId = env.VITE_PASSKEY_RP_ID;
+  const envRpId = env.VITE_PASSKEY_RP_ID?.trim().toLowerCase();
   if (envRpId) {
     return envRpId;
   }

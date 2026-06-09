@@ -65,7 +65,11 @@ const getFriendlyErrorMessage = (err: unknown, intl: IntlShape): string => {
       defaultMessage: "Sign in was cancelled. Try again when you're ready.",
     });
   }
-  if (msg.includes("expected account") || msg.includes("address")) {
+  if (
+    msg.includes("expected account address") ||
+    msg.includes("address mismatch") ||
+    msg.includes("did not match the expected account")
+  ) {
     return intl.formatMessage({
       id: "app.login.error.addressMismatch",
       defaultMessage:
@@ -86,7 +90,14 @@ const getFriendlyErrorMessage = (err: unknown, intl: IntlShape): string => {
         "Passkey recovery is temporarily unavailable. Retry later or use a same-device passkey if you still have one.",
     });
   }
-  if (msg.includes("not support") || msg.includes("unavailable")) {
+  if (
+    msg.includes("not support") ||
+    msg.includes("unsupported browser") ||
+    msg.includes("passkey unavailable") ||
+    msg.includes("passkeys aren't available") ||
+    msg.includes("passkeys are not available") ||
+    msg.includes("webauthn unavailable")
+  ) {
     return intl.formatMessage({
       id: "app.login.error.passkeyUnavailable",
       defaultMessage:
@@ -605,13 +616,7 @@ export function Login() {
                 }),
                 onClick: handleWalletLogin,
               }
-            : {
-                label: intl.formatMessage({
-                  id: "app.login.button.createSeparateAccount",
-                  defaultMessage: "Create separate account",
-                }),
-                onClick: handleStartSeparateAccount,
-              })
+            : undefined)
         }
         usernameInput={{
           value: recoveryUsername,

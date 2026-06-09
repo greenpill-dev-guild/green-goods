@@ -121,7 +121,7 @@ describe("config/passkeyServer", () => {
     });
 
     it("returns custom RP ID from env overrides", () => {
-      expect(getPasskeyRpId({ VITE_PASSKEY_RP_ID: "staging.greengoods.app" })).toBe(
+      expect(getPasskeyRpId({ VITE_PASSKEY_RP_ID: " Staging.GreenGoods.App " })).toBe(
         "staging.greengoods.app"
       );
     });

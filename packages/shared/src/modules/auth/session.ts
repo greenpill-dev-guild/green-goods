@@ -14,6 +14,7 @@
  * Reference: https://docs.pimlico.io/docs/how-tos/signers/passkey
  */
 
+import type { Address } from "viem";
 import type { P256Credential } from "viem/account-abstraction";
 
 import type { AuthMode } from "../../types/auth";
@@ -102,13 +103,13 @@ export function clearStoredRpId(): void {
 // ============================================================================
 
 /** Store the expected smart-account address for passkey account continuity. */
-export function setStoredSmartAccountAddress(address: string): void {
+export function setStoredSmartAccountAddress(address: Address): void {
   localStorage.setItem(SMART_ACCOUNT_ADDRESS_STORAGE_KEY, address);
 }
 
 /** Get the expected smart-account address for passkey account continuity. */
-export function getStoredSmartAccountAddress(): string | null {
-  return localStorage.getItem(SMART_ACCOUNT_ADDRESS_STORAGE_KEY);
+export function getStoredSmartAccountAddress(): Address | null {
+  return localStorage.getItem(SMART_ACCOUNT_ADDRESS_STORAGE_KEY) as Address | null;
 }
 
 /** Clear the expected smart-account address. */
@@ -124,13 +125,13 @@ export function clearStoredSmartAccountAddress(): void {
 export const EMBEDDED_ADDRESS_KEY = "greengoods_embedded_address";
 
 /** Store embedded wallet address in localStorage */
-export function setEmbeddedAddress(address: string): void {
+export function setEmbeddedAddress(address: Address): void {
   localStorage.setItem(EMBEDDED_ADDRESS_KEY, address);
 }
 
 /** Get stored embedded wallet address */
-export function getEmbeddedAddress(): string | null {
-  return localStorage.getItem(EMBEDDED_ADDRESS_KEY);
+export function getEmbeddedAddress(): Address | null {
+  return localStorage.getItem(EMBEDDED_ADDRESS_KEY) as Address | null;
 }
 
 /** Clear stored embedded wallet address */

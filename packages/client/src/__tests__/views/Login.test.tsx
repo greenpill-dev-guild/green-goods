@@ -252,9 +252,9 @@ describe("Login View - New User (progressive disclosure)", () => {
     expect(screen.getByTestId("secondary-button")).toHaveTextContent("Sign in with a wallet");
   });
 
-  it("shows guarded separate-account entry as tertiary action", () => {
+  it("does not show separate-account entry before recovery has failed", () => {
     renderWithRouter();
-    expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Create separate account");
+    expect(screen.queryByTestId("tertiary-button")).not.toBeInTheDocument();
   });
 
   it("shows username recovery input before lookup", () => {
@@ -299,6 +299,22 @@ describe("Login View - New User (progressive disclosure)", () => {
     expect(screen.getByTestId("error-message")).toHaveTextContent(/recommended browser/i);
   });
 
+  it("maps explicit address-continuity errors to recovery guidance", async () => {
+    mockAuthError = new Error("Recovered passkey did not match the expected account address");
+    renderWithRouter();
+
+    expect(await screen.findByTestId("error-message")).toHaveTextContent(
+      /different account address/i
+    );
+  });
+
+  it("does not map unrelated address errors to address-mismatch guidance", async () => {
+    mockAuthError = new Error("Address profile service temporarily unavailable");
+    renderWithRouter();
+
+    expect(await screen.findByTestId("error-message")).toHaveTextContent(/something went wrong/i);
+  });
+
   it("shows address continuity notice", () => {
     renderWithRouter();
     expect(screen.getByTestId("notice")).toHaveTextContent(
@@ -308,9 +324,13 @@ describe("Login View - New User (progressive disclosure)", () => {
 
   it("requires explicit confirmation before separate account creation", async () => {
     const user = userEvent.setup();
+    mockLoginWithPasskey.mockRejectedValueOnce(new Error("No passkey credential found"));
     renderWithRouter();
 
-    await user.click(screen.getByTestId("tertiary-button"));
+    await user.type(screen.getByTestId("username-input"), "missinguser");
+    await user.click(screen.getByTestId("primary-button"));
+    await screen.findByTestId("error-message");
+    await user.click(screen.getByTestId("secondary-button"));
 
     expect(screen.getByTestId("primary-button")).toHaveTextContent("Continue to new account");
     expect(screen.getByTestId("info-callout")).toHaveTextContent(/different address/i);
@@ -324,14 +344,17 @@ describe("Login View - New User (progressive disclosure)", () => {
 
   it("creates a separate account only after confirmation", async () => {
     const user = userEvent.setup();
+    mockLoginWithPasskey.mockRejectedValueOnce(new Error("No passkey credential found"));
     renderWithRouter();
 
-    await user.click(screen.getByTestId("tertiary-button"));
+    await user.type(screen.getByTestId("username-input"), "missinguser");
     await user.click(screen.getByTestId("primary-button"));
-    await user.type(screen.getByTestId("username-input"), "newuser");
+    await screen.findByTestId("error-message");
+    await user.click(screen.getByTestId("secondary-button"));
+    await user.click(screen.getByTestId("primary-button"));
     await user.click(screen.getByTestId("primary-button"));
 
-    expect(mockCreateAccount).toHaveBeenCalledWith("newuser");
+    expect(mockCreateAccount).toHaveBeenCalledWith("missinguser");
   });
 
   it("failed recovery exposes guarded new-account confirmation path", async () => {
