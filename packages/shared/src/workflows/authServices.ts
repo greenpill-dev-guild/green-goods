@@ -16,8 +16,9 @@
 
 import { createSmartAccountClient, type SmartAccountClient } from "permissionless";
 import { toKernelSmartAccount } from "permissionless/accounts";
-import { type Hex, http } from "viem";
+import { type Hex, hexToBytes, http } from "viem";
 import {
+  createWebAuthnCredential,
   entryPoint07Address,
   type P256Credential,
   toWebAuthnAccount,
@@ -25,7 +26,13 @@ import {
 import { fromPromise } from "xstate";
 
 import { getChain } from "../config/chains";
-import { createPasskey, getPasskeyRpId } from "../config/passkeyServer";
+import {
+  buildPasskeyRecoveryContext,
+  createPasskey,
+  createPasskeyServerClient,
+  getPasskeyRpId,
+  isPasskeyServerEnabled,
+} from "../config/passkeyServer";
 import {
   createPimlicoClientForChain,
   createPublicClientForChain,
@@ -39,12 +46,17 @@ import {
   trackAuthPasskeyRegisterStarted,
   trackAuthPasskeyRegisterSuccess,
   trackAuthSessionRestored,
+  type AuthPasskeyReason,
+  type AuthPasskeySource,
 } from "../modules/app/analytics-events";
 import { logger } from "../modules/app/logger";
 import {
   getAuthMode,
   getStoredCredential,
+  getStoredSmartAccountAddress,
   getStoredUsername,
+  setStoredCredential,
+  setStoredSmartAccountAddress,
   setStoredUsername,
 } from "../modules/auth/session";
 
@@ -66,6 +78,30 @@ interface RestoreInput {
 }
 
 const DEFAULT_SPONSORSHIP_POLICY_ID = "sp_next_monster_badoon";
+
+type PasskeyServerCredential = {
+  id: string;
+  publicKey: Hex;
+};
+
+type PasskeyServerAuthenticationOptions = {
+  challenge: Hex | Uint8Array | ArrayBuffer;
+  rpId?: string;
+  userVerification?: UserVerificationRequirement;
+  uuid: string;
+};
+
+type PasskeyServerVerificationResult = {
+  success?: boolean;
+  id?: string;
+  publicKey?: Hex;
+  userName?: string;
+  username?: string;
+};
+
+type PasskeySessionWithSource = PasskeySessionResult & {
+  source: AuthPasskeySource;
+};
 
 // ============================================================================
 // HELPERS
@@ -98,6 +134,124 @@ function decodeCredentialId(id: string): Uint8Array {
     }
     return new Uint8Array(byteValues);
   }
+}
+
+function decodeChallenge(challenge: Hex | Uint8Array | ArrayBuffer): Uint8Array {
+  if (typeof challenge === "string") {
+    return hexToBytes(challenge);
+  }
+  if (challenge instanceof Uint8Array) {
+    return challenge;
+  }
+  return new Uint8Array(challenge);
+}
+
+function classifyAuthErrorReason(error: unknown): AuthPasskeyReason {
+  const message = error instanceof Error ? error.message.toLowerCase() : String(error);
+
+  if (message.includes("expected account") || message.includes("address")) {
+    return "address_mismatch";
+  }
+
+  if (message.includes("cancel") || message.includes("abort") || message.includes("notallowed")) {
+    return "cancelled";
+  }
+
+  if (
+    message.includes("no passkey") ||
+    message.includes("no credential") ||
+    message.includes("credential not found")
+  ) {
+    return "credential_not_found";
+  }
+
+  if (
+    message.includes("fetch") ||
+    message.includes("network") ||
+    message.includes("timeout") ||
+    message.includes("unavailable")
+  ) {
+    return "server_unavailable";
+  }
+
+  if (
+    message.includes("verify") ||
+    message.includes("verification") ||
+    message.includes("registration failed") ||
+    message.includes("authentication failed")
+  ) {
+    return "verification_failed";
+  }
+
+  if (
+    message.includes("unsupported") ||
+    message.includes("origin") ||
+    message.includes("rp id") ||
+    message.includes("rp_id")
+  ) {
+    return "unsupported_context";
+  }
+
+  return "unknown";
+}
+
+function canUseLegacyFallback(error: unknown): boolean {
+  return classifyAuthErrorReason(error) === "server_unavailable";
+}
+
+function getVerifiedUsername(
+  verification: PasskeyServerVerificationResult,
+  fallback: string
+): string {
+  return verification.userName || verification.username || fallback;
+}
+
+function toVerifiedCredential(
+  verification: PasskeyServerVerificationResult,
+  raw: PublicKeyCredential,
+  failureMessage: string
+): P256Credential {
+  if (!verification.success || !verification.id || !verification.publicKey) {
+    throw new Error(failureMessage);
+  }
+
+  return {
+    id: verification.id,
+    publicKey: verification.publicKey,
+    raw,
+  };
+}
+
+function assertExpectedSmartAccountAddress(address: Hex): void {
+  const expectedAddress = getStoredSmartAccountAddress();
+
+  if (expectedAddress && expectedAddress.toLowerCase() !== address.toLowerCase()) {
+    throw new Error("Recovered passkey did not match the expected account address");
+  }
+}
+
+function cachePasskeySession(credential: P256Credential, userName: string, address: Hex): void {
+  setStoredCredential(credential);
+  setStoredUsername(userName);
+  setStoredSmartAccountAddress(address);
+}
+
+async function buildAndCachePasskeySession(
+  credential: P256Credential,
+  userName: string,
+  chainId: number
+): Promise<PasskeySessionResult> {
+  const { client, address } = await buildSmartAccountFromCredential(credential, chainId);
+
+  assertExpectedSmartAccountAddress(address);
+  cachePasskeySession(credential, userName, address);
+
+  return {
+    credential,
+    smartAccountClient: client,
+    smartAccountAddress: address,
+    userName,
+  };
 }
 
 /**
@@ -154,6 +308,121 @@ async function buildSmartAccountFromCredential(
   return { client, address: account.address as Hex };
 }
 
+async function registerPasskeyWithServer(
+  userName: string,
+  chainId: number
+): Promise<PasskeySessionResult> {
+  const context = buildPasskeyRecoveryContext(userName);
+  const passkeyServerClient = createPasskeyServerClient(chainId);
+  const registrationOptions = await passkeyServerClient.startRegistration({ context });
+  const createdCredential = await createWebAuthnCredential(registrationOptions);
+  const verification = (await passkeyServerClient.verifyRegistration({
+    credential: createdCredential,
+    context,
+  })) as PasskeyServerVerificationResult;
+  const credential = toVerifiedCredential(
+    verification,
+    createdCredential.raw,
+    "Passkey server registration failed"
+  );
+  const resolvedUsername = getVerifiedUsername(verification, context.username);
+
+  return buildAndCachePasskeySession(credential, resolvedUsername, chainId);
+}
+
+async function authenticatePasskeyWithServer(
+  userName: string,
+  chainId: number
+): Promise<PasskeySessionResult | null> {
+  const context = buildPasskeyRecoveryContext(userName);
+  const passkeyServerClient = createPasskeyServerClient(chainId);
+  const credentials = (await passkeyServerClient.getCredentials({
+    context,
+  })) as PasskeyServerCredential[];
+
+  if (credentials.length === 0) {
+    return null;
+  }
+
+  const authenticationOptions =
+    (await passkeyServerClient.startAuthentication()) as PasskeyServerAuthenticationOptions;
+  const rpId = authenticationOptions.rpId || getPasskeyRpId();
+  const authResponse = await window.navigator.credentials.get({
+    publicKey: {
+      challenge: decodeChallenge(authenticationOptions.challenge),
+      rpId,
+      userVerification: authenticationOptions.userVerification || "required",
+      allowCredentials: credentials.map((credential) => ({
+        id: decodeCredentialId(credential.id) as BufferSource,
+        type: "public-key",
+        transports: ["internal", "hybrid"],
+      })),
+      timeout: 60000,
+    },
+  });
+
+  if (!authResponse) {
+    throw new Error("Passkey authentication was cancelled");
+  }
+
+  const verification = (await passkeyServerClient.verifyAuthentication({
+    raw: authResponse as PublicKeyCredential,
+    uuid: authenticationOptions.uuid,
+  })) as PasskeyServerVerificationResult;
+  const credential = toVerifiedCredential(
+    verification,
+    authResponse as PublicKeyCredential,
+    "Passkey server authentication failed"
+  );
+  const resolvedUsername = getVerifiedUsername(verification, context.username);
+
+  return buildAndCachePasskeySession(credential, resolvedUsername, chainId);
+}
+
+async function authenticatePasskeyFromLocalCache(
+  userName: string | null,
+  chainId: number
+): Promise<PasskeySessionResult> {
+  const credential = getStoredCredential();
+
+  if (!credential) {
+    throw new Error("No passkey found. Please create a new account.");
+  }
+
+  const credentialIdBytes = decodeCredentialId(credential.id);
+  const rpId = getPasskeyRpId();
+
+  logger.debug("[Passkey] Authentication", {
+    rpId,
+    origin: window.location.origin,
+    source: "local_cache",
+  });
+
+  const authResponse = await window.navigator.credentials.get({
+    publicKey: {
+      challenge: crypto.getRandomValues(new Uint8Array(32)),
+      rpId,
+      userVerification: "required",
+      allowCredentials: [
+        {
+          id: credentialIdBytes as BufferSource,
+          type: "public-key",
+          transports: ["internal", "hybrid"],
+        },
+      ],
+      timeout: 60000,
+    },
+  });
+
+  if (!authResponse) {
+    throw new Error("Passkey authentication was cancelled");
+  }
+
+  const resolvedUsername = userName || getStoredUsername() || "";
+
+  return buildAndCachePasskeySession(credential, resolvedUsername, chainId);
+}
+
 // ============================================================================
 // SERVICE: Restore Session
 // ============================================================================
@@ -194,14 +463,17 @@ export const restoreSessionService = fromPromise<RestoreSessionResult | null, Re
     try {
       // Build smart account from stored credential
       const { client, address } = await buildSmartAccountFromCredential(storedCredential, chainId);
+      setStoredSmartAccountAddress(address);
 
       // Track successful session restore
       trackAuthSessionRestored({
-        smartAccountAddress: address,
-        userName: storedUsername || "unknown",
+        source: "restore",
+        outcome: "success",
+        passkeyServerEnabled: isPasskeyServerEnabled(),
+        hasLocalCredential: true,
       });
 
-      logger.debug("[Auth] Session restored for:", { address });
+      logger.debug("[Auth] Session restored from local passkey cache");
 
       return {
         credential: storedCredential,
@@ -237,38 +509,41 @@ export const registerPasskeyService = fromPromise<PasskeySessionResult, PasskeyI
       throw new Error("Username is required for registration");
     }
 
+    const passkeyServerEnabled = isPasskeyServerEnabled();
+    const source: AuthPasskeySource = passkeyServerEnabled ? "server" : "local_cache";
+
     // Track registration started
-    trackAuthPasskeyRegisterStarted({ userName });
+    trackAuthPasskeyRegisterStarted({
+      source,
+      outcome: "started",
+      passkeyServerEnabled,
+      hasLocalCredential: Boolean(getStoredCredential()),
+    });
 
     try {
-      // Create passkey (this stores it in localStorage too)
-      const credential = await createPasskey(userName);
-
-      // Store username for display
-      setStoredUsername(userName);
-
-      // Build smart account
-      const { client, address } = await buildSmartAccountFromCredential(credential, chainId);
+      const result = passkeyServerEnabled
+        ? await registerPasskeyWithServer(userName, chainId)
+        : await buildAndCachePasskeySession(await createPasskey(userName), userName, chainId);
 
       // Track successful registration
       trackAuthPasskeyRegisterSuccess({
-        smartAccountAddress: address,
-        userName,
+        source,
+        outcome: "success",
+        passkeyServerEnabled,
+        hasLocalCredential: true,
       });
 
-      logger.debug("[Auth] Registration complete", { address });
+      logger.debug("[Auth] Registration complete", { source });
 
-      return {
-        credential,
-        smartAccountClient: client,
-        smartAccountAddress: address,
-        userName,
-      };
+      return result;
     } catch (error) {
       // Track failed registration
       trackAuthPasskeyRegisterFailed({
-        error: error instanceof Error ? error.message : "Unknown error",
-        userName,
+        source,
+        outcome: "failed",
+        reason: classifyAuthErrorReason(error),
+        passkeyServerEnabled,
+        hasLocalCredential: Boolean(getStoredCredential()),
       });
       throw error;
     }
@@ -290,80 +565,75 @@ export const registerPasskeyService = fromPromise<PasskeySessionResult, PasskeyI
 export const authenticatePasskeyService = fromPromise<PasskeySessionResult, PasskeyInput>(
   async ({ input }) => {
     const { userName, chainId } = input;
+    const passkeyServerEnabled = isPasskeyServerEnabled();
+    const hasLocalCredential = Boolean(getStoredCredential());
+    let source: AuthPasskeySource = passkeyServerEnabled && userName ? "server" : "local_cache";
 
     // Track login started
-    trackAuthPasskeyLoginStarted({ userName: userName || "returning" });
+    trackAuthPasskeyLoginStarted({
+      source,
+      outcome: "started",
+      passkeyServerEnabled,
+      hasLocalCredential,
+    });
 
     try {
-      // Get stored credential
-      const credential = getStoredCredential();
+      let result: PasskeySessionWithSource | null = null;
 
-      if (!credential) {
-        throw new Error("No passkey found. Please create a new account.");
+      if (passkeyServerEnabled && userName) {
+        try {
+          const serverResult = await authenticatePasskeyWithServer(userName, chainId);
+          if (serverResult) {
+            result = { ...serverResult, source: "server" };
+          } else if (hasLocalCredential) {
+            logger.warn("[Auth] Passkey server returned no credentials; using local fallback");
+            result = {
+              ...(await authenticatePasskeyFromLocalCache(userName, chainId)),
+              source: "local_cache",
+            };
+          } else {
+            throw new Error("No passkey credential found for that username.");
+          }
+        } catch (serverError) {
+          if (hasLocalCredential && canUseLegacyFallback(serverError)) {
+            logger.warn("[Auth] Passkey server unavailable; using local fallback");
+            result = {
+              ...(await authenticatePasskeyFromLocalCache(userName, chainId)),
+              source: "local_cache",
+            };
+          } else {
+            throw serverError;
+          }
+        }
+      } else {
+        result = {
+          ...(await authenticatePasskeyFromLocalCache(userName, chainId)),
+          source: "local_cache",
+        };
       }
 
-      // Decode credential ID for WebAuthn authentication
-      const credentialIdBytes = decodeCredentialId(credential.id);
-
-      // Get RP ID - MUST match what was used during registration
-      const rpId = getPasskeyRpId();
-
-      logger.debug("[Passkey] Authentication", {
-        rpId,
-        origin: window.location.origin,
-        credential: credential.id.substring(0, 16) + "...",
-      });
-
-      // Prompt WebAuthn authentication (biometric)
-      const authResponse = await window.navigator.credentials.get({
-        publicKey: {
-          challenge: crypto.getRandomValues(new Uint8Array(32)),
-          rpId,
-          userVerification: "required",
-          allowCredentials: [
-            {
-              id: credentialIdBytes as BufferSource,
-              type: "public-key",
-              transports: ["internal", "hybrid"],
-            },
-          ],
-          timeout: 60000,
-        },
-      });
-
-      if (!authResponse) {
-        throw new Error("Passkey authentication was cancelled");
-      }
-
-      // Update stored username if provided
-      if (userName) {
-        setStoredUsername(userName);
-      }
-
-      // Build smart account with the stored credential
-      const { client, address } = await buildSmartAccountFromCredential(credential, chainId);
-
-      const resolvedUsername = userName || getStoredUsername() || "";
+      source = result.source;
 
       // Track successful login
       trackAuthPasskeyLoginSuccess({
-        smartAccountAddress: address,
-        userName: resolvedUsername,
+        source,
+        outcome: "success",
+        reason: source === "local_cache" && passkeyServerEnabled ? "legacy_fallback" : undefined,
+        passkeyServerEnabled,
+        hasLocalCredential: Boolean(getStoredCredential()),
       });
 
-      logger.debug("[Auth] Authentication complete", { address });
+      logger.debug("[Auth] Authentication complete", { source });
 
-      return {
-        credential,
-        smartAccountClient: client,
-        smartAccountAddress: address,
-        userName: resolvedUsername,
-      };
+      return result;
     } catch (error) {
       // Track failed login
       trackAuthPasskeyLoginFailed({
-        error: error instanceof Error ? error.message : "Unknown error",
-        userName: userName || "unknown",
+        source,
+        outcome: "failed",
+        reason: classifyAuthErrorReason(error),
+        passkeyServerEnabled,
+        hasLocalCredential: Boolean(getStoredCredential()),
       });
       throw error;
     }

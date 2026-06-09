@@ -127,12 +127,16 @@ export {
   clearStoredRpId,
   // Username (Pimlico server)
   clearStoredUsername,
+  clearStoredSmartAccountAddress,
   getAuthMode,
+  getStoredSmartAccountAddress,
   getStoredUsername,
   hasStoredUsername,
   // RP ID (Android passkey compatibility)
   RP_ID_STORAGE_KEY,
+  SMART_ACCOUNT_ADDRESS_STORAGE_KEY,
   setAuthMode,
+  setStoredSmartAccountAddress,
   setStoredRpId,
   setStoredUsername,
   USERNAME_STORAGE_KEY,

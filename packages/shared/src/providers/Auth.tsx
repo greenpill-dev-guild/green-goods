@@ -47,6 +47,7 @@ import {
   clearAuthMode,
   clearEmbeddedAddress,
   clearStoredCredential,
+  clearStoredSmartAccountAddress,
   clearStoredUsername,
   getAuthMode,
   getStoredUsername,
@@ -440,11 +441,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     await disconnectWallet();
 
-    // Clear auth mode, username, and embedded address, but KEEP credential for future passkey login
-    // The credential contains the public key needed to reconstruct the smart account
-    // Clearing it would force the user to create a new account (different address)
+    // Clear auth mode and embedded address, but keep passkey recovery metadata.
+    // Username + credential + expected address are the local cache for same-device fallback.
     clearAuthMode();
-    clearStoredUsername();
     clearEmbeddedAddress();
 
     // Reset wallet restore guard to allow future auto-restore
@@ -473,9 +472,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [actor]);
 
   const clearPasskey = useCallback(() => {
-    // Clear stored credential and username from localStorage
+    // Clear stored credential, username, and expected address from localStorage.
     clearStoredCredential();
     clearStoredUsername();
+    clearStoredSmartAccountAddress();
     if (actor) {
       actor.send({ type: "SIGN_OUT" });
     }

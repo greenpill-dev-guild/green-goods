@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-05-24T04:21:07.501Z",
-    "updated_at": "2026-05-24T04:59:58Z",
+    "updated_at": "2026-06-09T02:11:57.884Z",
     "target_date": "2026-06-10"
   },
   "links": {
@@ -79,16 +79,16 @@
       "handoff": "handoffs/claude-ui.md",
       "tdd": {
         "mode": "required",
-        "status": "pending",
+        "status": "green_recorded",
         "red": {
-          "command": "",
-          "evidence": ""
+          "command": "bun run --cwd packages/client test -- src/__tests__/views/Login.test.tsx",
+          "evidence": "RED during recovery-first UI implementation: 3 failures caught stale address-continuity default copy and no-passkey recovery error classification."
         },
         "green": {
-          "command": "",
-          "evidence": ""
+          "command": "bun run --cwd packages/client test -- src/__tests__/views/Login.test.tsx",
+          "evidence": "GREEN after UI fixes: Login view recovery tests passed, 18 tests total."
         },
-        "note": "UI lane should prove recovery/fallback copy and i18n; provider-sync behavior may require manual QA evidence."
+        "note": ""
       },
       "skill_tags": ["ui", "auth", "i18n", "recovery"]
     },
@@ -100,16 +100,16 @@
       "handoff": "handoffs/codex-state-api.md",
       "tdd": {
         "mode": "required",
-        "status": "pending",
+        "status": "green_recorded",
         "red": {
-          "command": "",
-          "evidence": ""
+          "command": "bun run --cwd packages/shared test -- src/__tests__/workflows/authServices.test.ts",
+          "evidence": "RED before implementation: hosted server registration/login, server no-credential fallback, server-unavailable fallback, and address-mismatch recovery tests failed (5 failures)."
         },
         "green": {
-          "command": "",
-          "evidence": ""
+          "command": "bun run --cwd packages/shared test -- src/__tests__/config/passkeyServer.test.ts src/__tests__/workflows/authServices.test.ts src/__tests__/modules/session.test.ts src/__tests__/workflows/authMachine.test.ts src/__tests__/hooks/useAuth.test.ts",
+          "evidence": "GREEN after implementation: passkey-server config plus shared auth/session/machine/hook tests passed, 5 files and 92 tests total."
         },
-        "note": "Target authServices/authMachine tests for server-backed register/login, legacy fallback, and failure-safe storage."
+        "note": ""
       },
       "skill_tags": ["react", "xstate", "permissionless", "pimlico", "passkey"]
     },
@@ -220,6 +220,38 @@
       "status": "linear_synced",
       "branch": null,
       "note": "Updated PRD-521, PRD-537, PRD-538, PRD-540, and PRD-541 with production readiness gates."
+    },
+    {
+      "timestamp": "2026-06-09T02:03:59.842Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "codex/state-api/account-recovery-hardening",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-06-09T02:04:28.712Z",
+      "actor": "codex",
+      "lane": "ui",
+      "status": "tdd_recorded",
+      "branch": "claude/ui/account-recovery-hardening",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-06-09T02:04:56.227Z",
+      "actor": "codex",
+      "lane": "qa_pass_1",
+      "status": "ready",
+      "branch": "claude/qa-pass-1/account-recovery-hardening",
+      "note": "State/API and UI recovery dependencies have green targeted validation and browser proof; ready for PRD-540 QA matrix execution."
+    },
+    {
+      "timestamp": "2026-06-09T02:11:57.885Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "codex/state-api/account-recovery-hardening",
+      "note": "Recorded RED/GREEN TDD proof"
     }
   ]
 }

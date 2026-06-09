@@ -18,6 +18,8 @@ import { type LoadingState, Splash } from "@/components/Layout";
 import { APP_ROUTES } from "@/config/pwa-routing";
 import { LoadingSplash } from "@/views/Login/components/LoadingSplash";
 
+type NoLocalPasskeyMode = "recover" | "confirm-new-account" | "create";
+
 /** Get the browser guidance label based on scenario and platform */
 function getBrowserGuidanceLabel(
   guidance: InstallGuidance,
@@ -61,23 +63,36 @@ const getFriendlyErrorMessage = (err: unknown, intl: IntlShape): string => {
       defaultMessage: "Sign in was cancelled. Try again when you're ready.",
     });
   }
-  if (msg.includes("not support") || msg.includes("unavailable")) {
+  if (msg.includes("expected account") || msg.includes("address")) {
     return intl.formatMessage({
-      id: "app.login.error.passkeyUnavailable",
+      id: "app.login.error.addressMismatch",
       defaultMessage:
-        "Passkeys aren't available on this device. Try signing in with a wallet instead.",
+        "That passkey points to a different account address. Retry recovery or use another sign-in method.",
     });
   }
   if (msg.includes("network") || msg.includes("timeout") || msg.includes("fetch")) {
     return intl.formatMessage({
       id: "app.login.error.network",
-      defaultMessage: "Connection issue. Check your internet and try again.",
+      defaultMessage:
+        "Passkey recovery is temporarily unavailable. Retry later or use a same-device passkey if you still have one.",
     });
   }
-  if (msg.includes("no passkey found") || msg.includes("no credentials")) {
+  if (msg.includes("not support") || msg.includes("unavailable")) {
+    return intl.formatMessage({
+      id: "app.login.error.passkeyUnavailable",
+      defaultMessage:
+        "Passkeys aren't available in this browser. Open Green Goods in a supported browser before starting passkey sign-in.",
+    });
+  }
+  if (
+    msg.includes("no passkey found") ||
+    msg.includes("no passkey credential") ||
+    msg.includes("no credential")
+  ) {
     return intl.formatMessage({
       id: "app.login.error.noPasskey",
-      defaultMessage: "No passkey was found on this device. You can create a new account instead.",
+      defaultMessage:
+        "We couldn't find a passkey for that username. Retry, use a same-device fallback if you have one, or confirm before creating a separate account.",
     });
   }
   if (msg.includes("credential") || msg.includes("passkey")) {
@@ -126,8 +141,9 @@ export function Login() {
   const [loadingMessage, setLoadingMessage] = useState<string | undefined>();
   const [loginError, setLoginError] = useState<string | null>(null);
   const [username, setUsername] = useState("");
-  // Progressive disclosure: toggle between wallet-primary and passkey-create modes (new users only)
-  const [showPasskeyCreate, setShowPasskeyCreate] = useState(false);
+  const [recoveryUsername, setRecoveryUsername] = useState("");
+  const [recoveryAttempted, setRecoveryAttempted] = useState(false);
+  const [noLocalPasskeyMode, setNoLocalPasskeyMode] = useState<NoLocalPasskeyMode>("recover");
 
   // Handle browser switch action (for wrong browser/in-app browser scenarios)
   const handleBrowserSwitch = useCallback(async () => {
@@ -187,7 +203,27 @@ export function Login() {
     }
   }, [authError, isAuthenticating, intl]);
 
-  const handleAuthError = (err: unknown, operation: "login" | "create") => {
+  const unsupportedPasskeyContext =
+    isMobile && (guidance.scenario === "wrong-browser" || guidance.scenario === "in-app-browser");
+
+  const blockUnsupportedPasskeyCeremony = useCallback(() => {
+    if (!unsupportedPasskeyContext) {
+      return false;
+    }
+
+    setLoadingState(null);
+    setLoadingMessage(undefined);
+    setLoginError(
+      intl.formatMessage({
+        id: "app.login.error.unsupportedBrowser",
+        defaultMessage:
+          "Open Green Goods in the recommended browser before starting passkey sign-in.",
+      })
+    );
+    return true;
+  }, [intl, unsupportedPasskeyContext]);
+
+  const handleAuthError = (err: unknown, operation: "login" | "recover" | "create") => {
     setLoadingState(null);
     setLoadingMessage(undefined);
     debugError("Authentication failed", err);
@@ -203,13 +239,13 @@ export function Login() {
     if (!isUserCancellation) {
       trackAuthError(err, {
         source: "Login.handleAuthError",
-        userAction:
-          operation === "create" ? "creating account with passkey" : "logging in with passkey",
+        userAction: `${operation} with passkey`,
         authMode: "passkey",
         recoverable: true,
         metadata: {
           operation,
           has_stored_credential: hasStoredCredential,
+          guidance_scenario: guidance.scenario || "none",
         },
       });
     }
@@ -217,6 +253,8 @@ export function Login() {
 
   // Login with existing passkey
   const handlePasskeyLogin = async () => {
+    if (blockUnsupportedPasskeyCeremony()) return;
+
     setLoginError(null);
     setLoadingMessage(
       intl.formatMessage({
@@ -232,8 +270,40 @@ export function Login() {
     }
   };
 
+  const handlePasskeyRecovery = async () => {
+    if (blockUnsupportedPasskeyCeremony()) return;
+
+    const trimmedUsername = recoveryUsername.trim();
+    if (trimmedUsername.length < 3) {
+      setLoginError(
+        intl.formatMessage({
+          id: "app.login.error.usernameTooShort",
+          defaultMessage: "Please enter a display name with at least 3 characters.",
+        })
+      );
+      return;
+    }
+
+    setLoginError(null);
+    setLoadingMessage(
+      intl.formatMessage({
+        id: "app.login.loading.recovering",
+        defaultMessage: "Looking up your passkey...",
+      })
+    );
+    setLoadingState("welcome");
+    try {
+      await loginWithPasskey?.(trimmedUsername);
+    } catch (err) {
+      setRecoveryAttempted(true);
+      handleAuthError(err, "recover");
+    }
+  };
+
   // Create new passkey account with required username (minimum 3 characters)
   const handleCreateAccount = async () => {
+    if (blockUnsupportedPasskeyCeremony()) return;
+
     const trimmedUsername = username.trim();
     if (trimmedUsername.length < 3) {
       setLoginError(
@@ -259,8 +329,28 @@ export function Login() {
     }
   };
 
+  const handleStartSeparateAccount = () => {
+    setLoginError(null);
+    setNoLocalPasskeyMode("confirm-new-account");
+  };
+
+  const handleConfirmSeparateAccount = () => {
+    const recoveryName = recoveryUsername.trim();
+    if (recoveryName.length >= 3 && !username.trim()) {
+      setUsername(recoveryName);
+    }
+    setLoginError(null);
+    setNoLocalPasskeyMode("create");
+  };
+
+  const handleReturnToRecovery = () => {
+    setLoginError(null);
+    setNoLocalPasskeyMode("recover");
+  };
+
   // Validation: username must be at least 3 characters for new accounts
   const isUsernameValid = username.trim().length >= 3;
+  const isRecoveryUsernameValid = recoveryUsername.trim().length >= 3;
 
   // Login with wallet
   const handleWalletLogin = () => {
@@ -295,7 +385,7 @@ export function Login() {
   // Address continuity notice shown across all login modes
   const addressContinuityNotice = intl.formatMessage({
     id: "app.login.notice.addressContinuity",
-    defaultMessage: "Each sign-in method creates a separate account.",
+    defaultMessage: "Creating a separate account gives you a different address.",
   });
 
   // ─── Progressive disclosure: action hierarchy depends on user state ─────────
@@ -308,9 +398,10 @@ export function Login() {
   //   Primary: Create your account (passkey-first; gardener-clear default)
   //   Secondary: Sign in with a wallet
   //
-  // New user, passkey create mode (showPasskeyCreate=true):
-  //   Primary: Create Account (with username input)
-  //   Secondary: Sign in with a wallet
+  // Missing local cache:
+  //   Primary: Recover with username/ENS (hosted passkey server lookup)
+  //   Secondary: Wallet or guarded separate-account confirmation after failure
+  //   Separate account creation is a two-step confirmation flow.
 
   const helmet = (
     <Helmet>
@@ -352,8 +443,38 @@ export function Login() {
     );
   }
 
-  // ─── New user, passkey create mode ──────────────────────────────────────────
-  if (showPasskeyCreate) {
+  if (!hasExistingAccount && noLocalPasskeyMode === "confirm-new-account") {
+    return (
+      <>
+        {helmet}
+        <Splash
+          login={handleConfirmSeparateAccount}
+          isLoggingIn={isAuthenticating}
+          buttonLabel={intl.formatMessage({
+            id: "app.login.button.confirmSeparateAccount",
+            defaultMessage: "Continue to new account",
+          })}
+          errorMessage={!isAuthenticating ? loginError : null}
+          secondaryAction={{
+            label: intl.formatMessage({
+              id: "app.login.button.backToRecovery",
+              defaultMessage: "Back to recovery",
+            }),
+            onSelect: handleReturnToRecovery,
+          }}
+          tertiaryAction={browserGuidanceTertiaryAction}
+          notice={addressContinuityNotice}
+          infoCallout={intl.formatMessage({
+            id: "app.login.recovery.separateAccountConfirmation",
+            defaultMessage:
+              "Creating a separate account gives you a different address. It will not recover access tied to the previous passkey.",
+          })}
+        />
+      </>
+    );
+  }
+
+  if (!hasExistingAccount && noLocalPasskeyMode === "create") {
     return (
       <>
         {helmet}
@@ -361,53 +482,121 @@ export function Login() {
           login={handleCreateAccount}
           isLoggingIn={isAuthenticating}
           buttonLabel={intl.formatMessage({
-            id: "app.login.button.createAccount",
-            defaultMessage: "Create account",
+            id: "app.login.button.createSeparateAccount",
+            defaultMessage: "Create separate account",
           })}
           errorMessage={!isAuthenticating ? loginError : null}
-          secondaryAction={walletAction}
+          secondaryAction={{
+            label: intl.formatMessage({
+              id: "app.login.button.backToRecovery",
+              defaultMessage: "Back to recovery",
+            }),
+            onSelect: handleReturnToRecovery,
+          }}
           tertiaryAction={browserGuidanceTertiaryAction}
           usernameInput={{
             value: username,
             onChange: (e) => setUsername(e.target.value),
+            label: intl.formatMessage({
+              id: "app.login.username.newAccountLabel",
+              defaultMessage: "Display name for new account",
+            }),
             placeholder: intl.formatMessage({
               id: "app.login.username.placeholder",
               defaultMessage: "Enter a display name",
             }),
             hint: intl.formatMessage({
-              id: "app.login.username.hint",
-              defaultMessage: "Required — at least 3 characters",
+              id: "app.login.username.newAccountHint",
+              defaultMessage:
+                "This creates a different address. Use recovery if you already made a passkey.",
             }),
             minLength: 3,
-            onCancel: () => setShowPasskeyCreate(false),
+            onCancel: handleReturnToRecovery,
           }}
           isLoginDisabled={!isUsernameValid}
           notice={addressContinuityNotice}
           infoCallout={intl.formatMessage({
             id: "app.login.passkey.explainer",
             defaultMessage:
-              "Passkeys let you sign in securely from this device — no passwords to remember.",
+              "Passkeys keep sign-in passwordless. Synced passkeys can recover where your provider supports passkey sync.",
           })}
         />
       </>
     );
   }
 
-  // ─── New user, default mode: passkey-first (gardener-clear) ─────────────────
+  // ─── Missing local cache: recover before creating a new account ─────────────
   return (
     <>
       {helmet}
       <Splash
-        login={() => setShowPasskeyCreate(true)}
+        login={handlePasskeyRecovery}
         isLoggingIn={isAuthenticating}
         buttonLabel={intl.formatMessage({
-          id: "app.login.button.createPasskeyAccount",
-          defaultMessage: "Create your account",
+          id: recoveryAttempted
+            ? "app.login.button.retryRecovery"
+            : "app.login.button.recoverPasskey",
+          defaultMessage: recoveryAttempted ? "Retry recovery" : "Recover with passkey",
         })}
         errorMessage={!isAuthenticating ? loginError : null}
-        secondaryAction={walletAction}
-        tertiaryAction={browserGuidanceTertiaryAction}
+        secondaryAction={
+          recoveryAttempted && loginError
+            ? {
+                label: intl.formatMessage({
+                  id: "app.login.button.createSeparateAccount",
+                  defaultMessage: "Create separate account",
+                }),
+                onSelect: handleStartSeparateAccount,
+              }
+            : walletAction
+        }
+        tertiaryAction={
+          browserGuidanceTertiaryAction ||
+          (recoveryAttempted && loginError
+            ? {
+                label: intl.formatMessage({
+                  id: "app.login.button.connectWallet",
+                  defaultMessage: "Sign in with a wallet",
+                }),
+                onClick: handleWalletLogin,
+              }
+            : {
+                label: intl.formatMessage({
+                  id: "app.login.button.createSeparateAccount",
+                  defaultMessage: "Create separate account",
+                }),
+                onClick: handleStartSeparateAccount,
+              })
+        }
+        usernameInput={{
+          value: recoveryUsername,
+          onChange: (e) => setRecoveryUsername(e.target.value),
+          label: intl.formatMessage({
+            id: "app.login.recovery.label",
+            defaultMessage: "Username or ENS handle",
+          }),
+          placeholder: intl.formatMessage({
+            id: "app.login.recovery.placeholder",
+            defaultMessage: "Enter your username or ENS handle",
+          }),
+          hint: intl.formatMessage({
+            id: "app.login.recovery.hint",
+            defaultMessage: "Use the same name you chose when setting up your passkey.",
+          }),
+          minLength: 3,
+        }}
+        isLoginDisabled={!isRecoveryUsernameValid}
         notice={addressContinuityNotice}
+        infoCallout={intl.formatMessage({
+          id:
+            recoveryAttempted && loginError
+              ? "app.login.recovery.retryInfo"
+              : "app.login.recovery.info",
+          defaultMessage:
+            recoveryAttempted && loginError
+              ? "Recovery did not complete. Retry, use a same-device fallback if available, or confirm before creating a separate account."
+              : "Synced passkeys can recover where your provider supports sync. Legacy local-only passkeys still work on the same device and may need re-enrollment after storage loss.",
+        })}
       />
     </>
   );

@@ -79,6 +79,7 @@ vi.mock("@/components/Layout", () => ({
     notice,
     usernameInput,
     infoCallout,
+    isLoginDisabled,
   }: {
     login?: () => void;
     buttonLabel?: string;
@@ -88,6 +89,7 @@ vi.mock("@/components/Layout", () => ({
     notice?: string;
     usernameInput?: { value: string; onChange: (e: unknown) => void; onCancel?: () => void };
     infoCallout?: string;
+    isLoginDisabled?: boolean;
   }) =>
     createElement(
       "div",
@@ -98,6 +100,7 @@ vi.mock("@/components/Layout", () => ({
           "data-testid": "primary-button",
           onClick: login,
           type: "button",
+          disabled: isLoginDisabled,
         },
         buttonLabel || "Create Account"
       ),
@@ -189,9 +192,9 @@ describe("Login View - New User (progressive disclosure)", () => {
     expect(screen.getByTestId("splash-screen")).toBeInTheDocument();
   });
 
-  it("shows Create your account as primary action for new users", () => {
+  it("shows recovery as primary action when no local passkey cache exists", () => {
     renderWithRouter();
-    expect(screen.getByTestId("primary-button")).toHaveTextContent("Create your account");
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Recover with passkey");
   });
 
   it("shows Sign in with a wallet as secondary action", () => {
@@ -199,18 +202,16 @@ describe("Login View - New User (progressive disclosure)", () => {
     expect(screen.getByTestId("secondary-button")).toHaveTextContent("Sign in with a wallet");
   });
 
-  it("does not show a tertiary action by default", () => {
+  it("shows guarded separate-account entry as tertiary action", () => {
     renderWithRouter();
-    expect(screen.queryByTestId("tertiary-button")).not.toBeInTheDocument();
+    expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Create separate account");
   });
 
-  it("toggles to passkey creation mode when primary button clicked", async () => {
-    const user = userEvent.setup();
+  it("shows username recovery input before lookup", () => {
     renderWithRouter();
 
-    await user.click(screen.getByTestId("primary-button"));
     expect(screen.getByTestId("username-input")).toBeInTheDocument();
-    expect(screen.getByTestId("primary-button")).toHaveTextContent("Create account");
+    expect(screen.getByTestId("info-callout")).toHaveTextContent(/synced passkeys/i);
   });
 
   it("calls loginWithWallet when secondary button clicked from default new-user mode", async () => {
@@ -221,66 +222,66 @@ describe("Login View - New User (progressive disclosure)", () => {
     expect(mockLoginWithWallet).toHaveBeenCalled();
   });
 
-  it("does not call loginWithEmbedded from the visible new-user actions", async () => {
+  it("recovers by username through passkey login", async () => {
     const user = userEvent.setup();
     renderWithRouter();
 
+    await user.type(screen.getByTestId("username-input"), "testuser");
     await user.click(screen.getByTestId("primary-button"));
-    await user.click(screen.getByTestId("secondary-button"));
 
-    expect(mockLoginWithEmbedded).not.toHaveBeenCalled();
+    expect(mockLoginWithPasskey).toHaveBeenCalledWith("testuser");
   });
 
   it("shows address continuity notice", () => {
     renderWithRouter();
     expect(screen.getByTestId("notice")).toHaveTextContent(
-      "Each sign-in method creates a separate account."
+      "Creating a separate account gives you a different address."
     );
   });
 
-  it("returns from passkey creation mode via cancel", async () => {
+  it("requires explicit confirmation before separate account creation", async () => {
     const user = userEvent.setup();
     renderWithRouter();
 
-    // Enter passkey creation mode via primary
+    await user.click(screen.getByTestId("tertiary-button"));
+
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Continue to new account");
+    expect(screen.getByTestId("info-callout")).toHaveTextContent(/different address/i);
+    expect(mockCreateAccount).not.toHaveBeenCalled();
+
     await user.click(screen.getByTestId("primary-button"));
+
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Create separate account");
     expect(screen.getByTestId("username-input")).toBeInTheDocument();
-
-    // Click cancel to go back
-    await user.click(screen.getByTestId("cancel-passkey-create"));
-
-    // Should return to default mode (passkey-first)
-    expect(screen.getByTestId("primary-button")).toHaveTextContent("Create your account");
-    expect(screen.queryByTestId("username-input")).not.toBeInTheDocument();
   });
 
-  it("does not show passkey explainer in default new-user mode", () => {
-    renderWithRouter();
-    expect(screen.queryByTestId("info-callout")).not.toBeInTheDocument();
-  });
-
-  it("shows passkey explainer in passkey creation mode", async () => {
+  it("creates a separate account only after confirmation", async () => {
     const user = userEvent.setup();
     renderWithRouter();
 
-    // Toggle to passkey creation mode via primary
+    await user.click(screen.getByTestId("tertiary-button"));
+    await user.click(screen.getByTestId("primary-button"));
+    await user.type(screen.getByTestId("username-input"), "newuser");
     await user.click(screen.getByTestId("primary-button"));
 
-    expect(screen.getByTestId("info-callout")).toBeInTheDocument();
-    expect(screen.getByTestId("info-callout")).toHaveTextContent(/passkey|sign in securely/i);
+    expect(mockCreateAccount).toHaveBeenCalledWith("newuser");
   });
 
-  it("hides passkey explainer when leaving passkey creation mode", async () => {
+  it("failed recovery exposes guarded new-account confirmation path", async () => {
     const user = userEvent.setup();
+    mockLoginWithPasskey.mockRejectedValueOnce(new Error("No passkey credential found"));
     renderWithRouter();
 
-    // Enter passkey creation mode
+    await user.type(screen.getByTestId("username-input"), "missinguser");
     await user.click(screen.getByTestId("primary-button"));
-    expect(screen.getByTestId("info-callout")).toBeInTheDocument();
 
-    // Cancel back to default mode
-    await user.click(screen.getByTestId("cancel-passkey-create"));
-    expect(screen.queryByTestId("info-callout")).not.toBeInTheDocument();
+    expect(await screen.findByTestId("error-message")).toHaveTextContent(/couldn't find/i);
+    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Create separate account");
+
+    await user.click(screen.getByTestId("secondary-button"));
+
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Continue to new account");
+    expect(screen.getByTestId("info-callout")).toHaveTextContent(/different address/i);
   });
 });
 
@@ -331,7 +332,7 @@ describe("Login View - Existing User (progressive disclosure)", () => {
   it("shows address continuity notice", () => {
     renderWithRouter();
     expect(screen.getByTestId("notice")).toHaveTextContent(
-      "Each sign-in method creates a separate account."
+      "Creating a separate account gives you a different address."
     );
   });
 

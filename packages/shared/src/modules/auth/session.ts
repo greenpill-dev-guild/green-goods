@@ -7,6 +7,7 @@
  * - AUTH_MODE_STORAGE_KEY: Which auth method is active ("passkey" | "wallet")
  * - USERNAME_STORAGE_KEY: User's display name
  * - CREDENTIAL_STORAGE_KEY: Passkey credential (id + publicKey)
+ * - SMART_ACCOUNT_ADDRESS_STORAGE_KEY: Expected passkey smart-account address
  *
  * Note: This is a simplified client-only approach following Pimlico's documentation.
  * Credentials are stored in localStorage - no server-side storage needed.
@@ -33,6 +34,9 @@ const CREDENTIAL_STORAGE_KEY = "greengoods_credential";
 
 /** RP ID used during passkey registration (for cross-device consistency) */
 export const RP_ID_STORAGE_KEY = "greengoods_rp_id";
+
+/** Expected smart-account address rebuilt from the active passkey credential */
+export const SMART_ACCOUNT_ADDRESS_STORAGE_KEY = "greengoods_smart_account_address";
 
 // ============================================================================
 // AUTH MODE
@@ -94,6 +98,25 @@ export function clearStoredRpId(): void {
 }
 
 // ============================================================================
+// SMART ACCOUNT ADDRESS (account continuity)
+// ============================================================================
+
+/** Store the expected smart-account address for passkey account continuity. */
+export function setStoredSmartAccountAddress(address: string): void {
+  localStorage.setItem(SMART_ACCOUNT_ADDRESS_STORAGE_KEY, address);
+}
+
+/** Get the expected smart-account address for passkey account continuity. */
+export function getStoredSmartAccountAddress(): string | null {
+  return localStorage.getItem(SMART_ACCOUNT_ADDRESS_STORAGE_KEY);
+}
+
+/** Clear the expected smart-account address. */
+export function clearStoredSmartAccountAddress(): void {
+  localStorage.removeItem(SMART_ACCOUNT_ADDRESS_STORAGE_KEY);
+}
+
+// ============================================================================
 // EMBEDDED WALLET ADDRESS
 // ============================================================================
 
@@ -131,6 +154,7 @@ export function clearAllAuth(): void {
   localStorage.removeItem(USERNAME_STORAGE_KEY);
   localStorage.removeItem(CREDENTIAL_STORAGE_KEY);
   localStorage.removeItem(RP_ID_STORAGE_KEY);
+  localStorage.removeItem(SMART_ACCOUNT_ADDRESS_STORAGE_KEY);
   localStorage.removeItem(EMBEDDED_ADDRESS_KEY);
 }
 
@@ -153,6 +177,7 @@ function debugPasskeyConfig(): void {
   const envRpId = import.meta.env.VITE_PASSKEY_RP_ID;
   const storedRpId = localStorage.getItem(RP_ID_STORAGE_KEY);
   const storedUsername = localStorage.getItem(USERNAME_STORAGE_KEY);
+  const storedSmartAccountAddress = localStorage.getItem(SMART_ACCOUNT_ADDRESS_STORAGE_KEY);
   const hostname = window.location.hostname;
   const origin = window.location.origin;
 
@@ -174,6 +199,7 @@ function debugPasskeyConfig(): void {
     hostname,
     origin,
     storedUsername: storedUsername || "(not set)",
+    storedSmartAccountAddress: storedSmartAccountAddress ? "(set)" : "(not set)",
     effectiveRpId,
   });
 

@@ -41,12 +41,16 @@ Object.defineProperty(global, "localStorage", {
 import {
   AUTH_MODE_STORAGE_KEY,
   EMBEDDED_ADDRESS_KEY,
+  SMART_ACCOUNT_ADDRESS_STORAGE_KEY,
   clearAllAuth,
   clearEmbeddedAddress,
+  clearStoredSmartAccountAddress,
   getAuthMode,
   getEmbeddedAddress,
+  getStoredSmartAccountAddress,
   setAuthMode,
   setEmbeddedAddress,
+  setStoredSmartAccountAddress,
 } from "../../modules/auth/session";
 
 // ============================================================================
@@ -119,15 +123,41 @@ describe("modules/auth/session", () => {
     });
   });
 
+  describe("smart account address storage", () => {
+    const TEST_ADDRESS = "0x1234567890123456789012345678901234567890";
+
+    it("stores expected passkey smart account address", () => {
+      setStoredSmartAccountAddress(TEST_ADDRESS);
+      expect(mockLocalStorage.setItem).toHaveBeenCalledWith(
+        SMART_ACCOUNT_ADDRESS_STORAGE_KEY,
+        TEST_ADDRESS
+      );
+    });
+
+    it("retrieves expected passkey smart account address", () => {
+      mockLocalStorage.setItem(SMART_ACCOUNT_ADDRESS_STORAGE_KEY, TEST_ADDRESS);
+      const address = getStoredSmartAccountAddress();
+      expect(address).toBe(TEST_ADDRESS);
+    });
+
+    it("clears expected passkey smart account address", () => {
+      mockLocalStorage.setItem(SMART_ACCOUNT_ADDRESS_STORAGE_KEY, TEST_ADDRESS);
+      clearStoredSmartAccountAddress();
+      expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(SMART_ACCOUNT_ADDRESS_STORAGE_KEY);
+    });
+  });
+
   describe("clearAllAuth", () => {
     it("clears embedded address along with other auth data", () => {
       const TEST_ADDRESS = "0x1234567890123456789012345678901234567890";
       mockLocalStorage.setItem(EMBEDDED_ADDRESS_KEY, TEST_ADDRESS);
+      mockLocalStorage.setItem(SMART_ACCOUNT_ADDRESS_STORAGE_KEY, TEST_ADDRESS);
       mockLocalStorage.setItem(AUTH_MODE_STORAGE_KEY, "embedded");
 
       clearAllAuth();
 
       expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(EMBEDDED_ADDRESS_KEY);
+      expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(SMART_ACCOUNT_ADDRESS_STORAGE_KEY);
       expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(AUTH_MODE_STORAGE_KEY);
     });
   });
