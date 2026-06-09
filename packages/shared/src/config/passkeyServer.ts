@@ -95,7 +95,7 @@ export function classifyPasskeyCeremonyContext(
   const env = options.env ?? import.meta.env;
   const location =
     options.location ?? (typeof window !== "undefined" ? window.location : undefined);
-  const rpId = getPasskeyRpId(env);
+  const rpId = getPasskeyRpId(env, location);
 
   if (!location) {
     return {
@@ -129,8 +129,8 @@ export function classifyPasskeyCeremonyContext(
     };
   }
 
-  const matchesRpId = hostname === rpId || hostname.endsWith(`.${rpId}`);
-  if (rpId !== "localhost" && !matchesRpId && !isLocalhost) {
+  const matchesRpId = hostname === rpId || (!isLocalhost && hostname.endsWith(`.${rpId}`));
+  if (!matchesRpId) {
     return {
       supported: false,
       reason: "rp_origin_mismatch",
@@ -151,20 +151,27 @@ export function classifyPasskeyCeremonyContext(
  * Uses hardcoded production domain for consistency.
  * Falls back to hostname only in development when on localhost.
  */
-export function getPasskeyRpId(env: PasskeyServerEnv = import.meta.env): string {
+export function getPasskeyRpId(
+  env: PasskeyServerEnv = import.meta.env,
+  location?: Pick<Location, "hostname">
+): string {
   // Allow override via env var for development/staging
   const envRpId = env.VITE_PASSKEY_RP_ID;
   if (envRpId) {
     return envRpId;
   }
 
+  const hostname =
+    location?.hostname ?? (typeof window !== "undefined" ? window.location.hostname : undefined);
+
   // In development on localhost, use hostname to allow local testing
   // Note: Passkeys created on localhost won't work in production
-  if (env.DEV && typeof window !== "undefined" && window.location.hostname === "localhost") {
+  if (env.DEV && (hostname === "localhost" || hostname === "127.0.0.1")) {
     logger.warn(
-      "[Passkey] Using localhost as RP ID. Passkeys created here will NOT work in production."
+      "[Passkey] Using local development host as RP ID. Passkeys created here will NOT work in production.",
+      { hostname }
     );
-    return "localhost";
+    return hostname;
   }
 
   // Default to production domain

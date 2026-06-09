@@ -755,6 +755,25 @@ describe("workflows/authServices (Pimlico Server Flow)", () => {
       expect(result.smartAccountAddress).toBe(MOCK_SMART_ACCOUNT_ADDRESS);
     });
 
+    it("does not overwrite the cached username when local fallback handles a recovery lookup", async () => {
+      mockStoredCredential = MOCK_CREDENTIAL;
+      mockStoredUsername = "stored-local-user";
+      mockPasskeyServerClient.getCredentials.mockResolvedValue([]);
+      mockCredentials.get.mockResolvedValue({
+        id: MOCK_CREDENTIAL.id,
+        type: "public-key",
+      });
+
+      const result = await invokeService(authenticatePasskeyService, {
+        userName: "mistyped-recovery-name",
+        chainId: MOCK_CHAIN_ID,
+      });
+
+      expect(result.userName).toBe("stored-local-user");
+      expect(setStoredUsername).toHaveBeenCalledWith("stored-local-user");
+      expect(setStoredUsername).not.toHaveBeenCalledWith("mistyped-recovery-name");
+    });
+
     it("preserves local auth data and falls back when the server is unavailable", async () => {
       mockStoredCredential = MOCK_CREDENTIAL;
       mockStoredUsername = MOCK_USERNAME;

@@ -432,7 +432,7 @@ async function authenticatePasskeyFromLocalCache(
     throw new Error("Passkey authentication was cancelled");
   }
 
-  const resolvedUsername = userName || getStoredUsername() || "";
+  const resolvedUsername = getStoredUsername() || userName || "";
 
   return buildAndCachePasskeySession(credential, resolvedUsername, chainId);
 }

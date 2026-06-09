@@ -44,6 +44,32 @@ describe("config/passkeyServer", () => {
       });
     });
 
+    it("uses 127.0.0.1 as the RP ID for 127.0.0.1 development ceremonies", () => {
+      expect(
+        classifyPasskeyCeremonyContext({
+          env: { DEV: true },
+          location: locationFor("http://127.0.0.1:5173"),
+        })
+      ).toEqual({
+        supported: true,
+        rpId: "127.0.0.1",
+        origin: "http://127.0.0.1:5173",
+      });
+    });
+
+    it("blocks local development ceremonies when a custom RP ID does not match", () => {
+      expect(
+        classifyPasskeyCeremonyContext({
+          env: { DEV: true, VITE_PASSKEY_RP_ID: "staging.greengoods.app" },
+          location: locationFor("http://127.0.0.1:5173"),
+        })
+      ).toMatchObject({
+        supported: false,
+        reason: "rp_origin_mismatch",
+        rpId: "staging.greengoods.app",
+      });
+    });
+
     it("blocks localhost ceremonies in production", () => {
       expect(
         classifyPasskeyCeremonyContext({
