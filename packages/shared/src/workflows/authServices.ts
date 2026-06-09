@@ -116,7 +116,14 @@ type PasskeyServerVerifyAuthenticationInput = Parameters<
  * WebAuthn credential IDs can be in either format.
  */
 function decodeCredentialId(id: string): Uint8Array {
-  // Try base64URL decode first
+  const hex = id.replace(/^0x/, "");
+  if (hex.length > 0 && hex.length % 2 === 0 && /^[\da-f]+$/i.test(hex)) {
+    const byteValues = hex.match(/.{2}/g)?.map((byte) => parseInt(byte, 16)) || [];
+    return new Uint8Array(byteValues);
+  }
+
+  // Try base64URL decode after hex detection. Hex IDs are also valid base64URL
+  // strings, so base64 cannot be the first parser.
   try {
     let base64 = id.replace(/-/g, "+").replace(/_/g, "/");
     const padding = base64.length % 4;
@@ -130,13 +137,7 @@ function decodeCredentialId(id: string): Uint8Array {
     }
     return bytes;
   } catch {
-    // Try hex decoding as fallback
-    const hex = id.replace(/^0x/, "");
-    const byteValues = hex.match(/.{1,2}/g)?.map((byte) => parseInt(byte, 16)) || [];
-    if (byteValues.some((b) => isNaN(b))) {
-      throw new Error("Invalid credential ID format");
-    }
-    return new Uint8Array(byteValues);
+    throw new Error("Invalid credential ID format");
   }
 }
 

@@ -234,6 +234,7 @@ export {
   isChainSupported,
   isGreenWillDeployed,
   isPasskeyAvailable,
+  isPasskeyServerEnabled,
   ONBOARDED_STORAGE_KEY,
   PERSIST_MAX_AGE,
   queryClient,

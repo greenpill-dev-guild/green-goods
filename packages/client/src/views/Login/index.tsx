@@ -2,6 +2,7 @@ import {
   classifyPasskeyCeremonyContext,
   copyToClipboard,
   debugError,
+  isPasskeyServerEnabled,
   type InstallGuidance,
   type Platform,
   toastService,
@@ -152,6 +153,7 @@ export function Login() {
   const [recoveryUsername, setRecoveryUsername] = useState("");
   const [recoveryAttempted, setRecoveryAttempted] = useState(false);
   const [noLocalPasskeyMode, setNoLocalPasskeyMode] = useState<NoLocalPasskeyMode>("recover");
+  const passkeyServerEnabled = isPasskeyServerEnabled();
 
   // Handle browser switch action (for wrong browser/in-app browser scenarios)
   const handleBrowserSwitch = useCallback(async () => {
@@ -492,17 +494,23 @@ export function Login() {
           login={handleCreateAccount}
           isLoggingIn={isAuthenticating}
           buttonLabel={intl.formatMessage({
-            id: "app.login.button.createSeparateAccount",
-            defaultMessage: "Create separate account",
+            id: passkeyServerEnabled
+              ? "app.login.button.createSeparateAccount"
+              : "app.login.button.createAccount",
+            defaultMessage: passkeyServerEnabled ? "Create separate account" : "Create account",
           })}
           errorMessage={!isAuthenticating ? loginError : null}
-          secondaryAction={{
-            label: intl.formatMessage({
-              id: "app.login.button.backToRecovery",
-              defaultMessage: "Back to recovery",
-            }),
-            onSelect: handleReturnToRecovery,
-          }}
+          secondaryAction={
+            passkeyServerEnabled
+              ? {
+                  label: intl.formatMessage({
+                    id: "app.login.button.backToRecovery",
+                    defaultMessage: "Back to recovery",
+                  }),
+                  onSelect: handleReturnToRecovery,
+                }
+              : walletAction
+          }
           tertiaryAction={browserGuidanceTertiaryAction}
           usernameInput={{
             value: username,
@@ -516,20 +524,47 @@ export function Login() {
               defaultMessage: "Enter a display name",
             }),
             hint: intl.formatMessage({
-              id: "app.login.username.newAccountHint",
-              defaultMessage:
-                "This creates a different address. Use recovery if you already made a passkey.",
+              id: passkeyServerEnabled
+                ? "app.login.username.newAccountHint"
+                : "app.login.username.hint",
+              defaultMessage: passkeyServerEnabled
+                ? "This creates a different address. Use recovery if you already made a passkey."
+                : "Required — at least 3 characters",
             }),
             minLength: 3,
-            onCancel: handleReturnToRecovery,
+            onCancel: passkeyServerEnabled
+              ? handleReturnToRecovery
+              : () => setNoLocalPasskeyMode("recover"),
           }}
           isLoginDisabled={!isUsernameValid}
-          notice={addressContinuityNotice}
+          notice={passkeyServerEnabled ? addressContinuityNotice : undefined}
           infoCallout={intl.formatMessage({
-            id: "app.login.passkey.explainer",
-            defaultMessage:
-              "Passkeys keep sign-in passwordless. Synced passkeys can recover where your provider supports passkey sync.",
+            id: passkeyServerEnabled
+              ? "app.login.passkey.explainer"
+              : "app.login.passkey.localExplainer",
+            defaultMessage: passkeyServerEnabled
+              ? "Passkeys keep sign-in passwordless. Synced passkeys can recover where your provider supports passkey sync."
+              : "This local passkey keeps same-device login available. It may need re-enrollment if browser storage is cleared.",
           })}
+        />
+      </>
+    );
+  }
+
+  if (!hasExistingAccount && !passkeyServerEnabled) {
+    return (
+      <>
+        {helmet}
+        <Splash
+          login={() => setNoLocalPasskeyMode("create")}
+          isLoggingIn={isAuthenticating}
+          buttonLabel={intl.formatMessage({
+            id: "app.login.button.createPasskeyAccount",
+            defaultMessage: "Create your account",
+          })}
+          errorMessage={!isAuthenticating ? loginError : null}
+          secondaryAction={walletAction}
+          tertiaryAction={browserGuidanceTertiaryAction}
         />
       </>
     );

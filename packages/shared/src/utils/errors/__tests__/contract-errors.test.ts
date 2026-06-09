@@ -190,6 +190,14 @@ describe("parseContractError", () => {
       expect(result.message).toContain("Wallet request expired");
     });
 
+    it("does not classify arbitrary AA22 bytes as wallet request expiry", () => {
+      const result = parseContractError(
+        "execution reverted while processing 0xaa22beef00000000000000000000000000000000"
+      );
+
+      expect(result.name).not.toBe("WalletRequestExpired");
+    });
+
     it("classifies offline before generic network", () => {
       const result = parseContractError("Device is offline");
       expect(result.name).toBe("Offline");

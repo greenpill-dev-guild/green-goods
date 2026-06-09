@@ -1904,6 +1904,7 @@
   "app.login.metaDescription": "Inicia sesión en Green Goods para empezar a documentar el trabajo regenerativo de tu comunidad.",
   "app.login.notice.addressContinuity": "Crear una cuenta separada te da una dirección diferente.",
   "app.login.passkey.explainer": "Las passkeys mantienen el inicio de sesión sin contraseña. Las passkeys sincronizadas pueden recuperar donde tu proveedor admite sincronización.",
+  "app.login.passkey.localExplainer": "Esta passkey local mantiene disponible el acceso en el mismo dispositivo. Puede requerir reinscripción si se borra el almacenamiento del navegador.",
   "app.login.recovery.hint": "Usa el mismo nombre que elegiste al configurar tu passkey.",
   "app.login.recovery.info": "Las passkeys sincronizadas pueden recuperar donde tu proveedor admite sincronización. Las passkeys locales heredadas siguen funcionando en el mismo dispositivo y pueden requerir reinscripción tras perder el almacenamiento.",
   "app.login.recovery.label": "Nombre de usuario o ENS",

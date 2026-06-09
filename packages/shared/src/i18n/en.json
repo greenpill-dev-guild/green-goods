@@ -1904,6 +1904,7 @@
   "app.login.metaDescription": "Sign in to Green Goods to start documenting regenerative work in your community.",
   "app.login.notice.addressContinuity": "Creating a separate account gives you a different address.",
   "app.login.passkey.explainer": "Passkeys keep sign-in passwordless. Synced passkeys can recover where your provider supports passkey sync.",
+  "app.login.passkey.localExplainer": "This local passkey keeps same-device login available. It may need re-enrollment if browser storage is cleared.",
   "app.login.recovery.hint": "Use the same name you chose when setting up your passkey.",
   "app.login.recovery.info": "Synced passkeys can recover where your provider supports sync. Legacy local-only passkeys still work on the same device and may need re-enrollment after storage loss.",
   "app.login.recovery.label": "Username or ENS handle",

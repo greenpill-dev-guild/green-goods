@@ -734,6 +734,49 @@ describe("workflows/authServices (Pimlico Server Flow)", () => {
       expect(result.userName).toBe(MOCK_USERNAME);
     });
 
+    it("decodes hex credential IDs from the passkey server before WebAuthn lookup", async () => {
+      mockStoredCredential = null;
+      mockPasskeyServerClient.getCredentials.mockResolvedValue([
+        {
+          id: "deadbeef",
+          publicKey: MOCK_SERVER_CREDENTIAL.publicKey,
+        },
+      ]);
+      mockPasskeyServerClient.verifyAuthentication.mockResolvedValue({
+        success: true,
+        id: "deadbeef",
+        publicKey: MOCK_SERVER_CREDENTIAL.publicKey,
+        userName: MOCK_USERNAME,
+      });
+      mockCredentials.get.mockResolvedValue({
+        id: "deadbeef",
+        rawId: new Uint8Array([0xde, 0xad, 0xbe, 0xef]),
+        type: "public-key",
+        response: {
+          clientDataJSON: new Uint8Array([1]),
+          authenticatorData: new Uint8Array([2]),
+          signature: new Uint8Array([3]),
+          userHandle: new Uint8Array([4]),
+        },
+        authenticatorAttachment: "platform",
+        getClientExtensionResults: () => ({}),
+      });
+
+      await invokeService(authenticatePasskeyService, {
+        userName: MOCK_USERNAME,
+        chainId: MOCK_CHAIN_ID,
+      });
+
+      const webAuthnRequest = mockCredentials.get.mock.calls[0]?.[0] as {
+        publicKey?: {
+          allowCredentials?: Array<{ id: ArrayBuffer }>;
+        };
+      };
+      const credentialId = webAuthnRequest.publicKey?.allowCredentials?.[0]?.id;
+      expect(credentialId).toBeInstanceOf(ArrayBuffer);
+      expect(Array.from(new Uint8Array(credentialId))).toEqual([0xde, 0xad, 0xbe, 0xef]);
+    });
+
     it("uses legacy same-device fallback when the server has no credential but local cache exists", async () => {
       mockStoredCredential = MOCK_CREDENTIAL;
       mockPasskeyServerClient.getCredentials.mockResolvedValue([]);

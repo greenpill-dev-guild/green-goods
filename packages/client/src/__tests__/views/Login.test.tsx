@@ -30,6 +30,7 @@ const { mockClassifyPasskeyCeremonyContext } = vi.hoisted(() => ({
 }));
 let mockHasStoredCredential = false;
 let mockAuthError: Error | null = null;
+let mockPasskeyServerEnabled = true;
 
 vi.mock("@green-goods/shared", () => ({
   toastService: {
@@ -40,6 +41,7 @@ vi.mock("@green-goods/shared", () => ({
   },
   copyToClipboard: vi.fn(),
   classifyPasskeyCeremonyContext: mockClassifyPasskeyCeremonyContext,
+  isPasskeyServerEnabled: () => mockPasskeyServerEnabled,
   useInstallGuidance: () => ({
     showInstallPrompt: false,
     scenario: null,
@@ -192,6 +194,7 @@ describe("Login View - New User (progressive disclosure)", () => {
     vi.clearAllMocks();
     mockHasStoredCredential = false;
     mockAuthError = null;
+    mockPasskeyServerEnabled = true;
     mockClassifyPasskeyCeremonyContext.mockReturnValue({
       supported: true,
       rpId: "greengoods.app",
@@ -211,6 +214,37 @@ describe("Login View - New User (progressive disclosure)", () => {
   it("shows recovery as primary action when no local passkey cache exists", () => {
     renderWithRouter();
     expect(screen.getByTestId("primary-button")).toHaveTextContent("Recover with passkey");
+  });
+
+  it("keeps legacy local account creation when passkey server is disabled", async () => {
+    const user = userEvent.setup();
+    mockPasskeyServerEnabled = false;
+    renderWithRouter();
+
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Create your account");
+    expect(screen.queryByTestId("username-input")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("tertiary-button")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("notice")).not.toBeInTheDocument();
+
+    await user.click(screen.getByTestId("primary-button"));
+
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Create account");
+    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Sign in with a wallet");
+    expect(screen.getByTestId("username-input")).toBeInTheDocument();
+    expect(screen.queryByTestId("notice")).not.toBeInTheDocument();
+
+    await user.click(screen.getByTestId("cancel-passkey-create"));
+
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Create your account");
+    expect(screen.queryByTestId("username-input")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("notice")).not.toBeInTheDocument();
+
+    await user.click(screen.getByTestId("primary-button"));
+    await user.type(screen.getByTestId("username-input"), "legacyuser");
+    await user.click(screen.getByTestId("primary-button"));
+
+    expect(mockCreateAccount).toHaveBeenCalledWith("legacyuser");
+    expect(mockLoginWithPasskey).not.toHaveBeenCalled();
   });
 
   it("shows Sign in with a wallet as secondary action", () => {
@@ -342,6 +376,7 @@ describe("Login View - Existing User (progressive disclosure)", () => {
     vi.clearAllMocks();
     mockHasStoredCredential = true;
     mockAuthError = null;
+    mockPasskeyServerEnabled = true;
   });
 
   afterEach(() => {
