@@ -124,7 +124,7 @@ describe("hooks/vault/useOctantVaultRedeem", () => {
       expect.objectContaining({
         address: VAULT,
         functionName: "redeem",
-        args: [400n, OWNER, OWNER],
+        args: [400n, OWNER, OWNER, 100n, []],
         chainId: OCTANT_CHAIN_ID,
       })
     );

@@ -113,7 +113,7 @@ export function useOctantVaultRedeem(options: VaultMutationOptions = {}) {
         address: params.vaultAddress,
         abi: OCTANT_VAULT_ABI,
         functionName: "redeem",
-        args: [params.shares, receiver, owner],
+        args: [params.shares, receiver, owner, maxLossBps, []],
         chainId: params.chainId,
       });
       return result.hash;
