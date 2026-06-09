@@ -102,6 +102,10 @@ type PasskeyServerVerificationResult = {
 type PasskeySessionWithSource = PasskeySessionResult & {
   source: AuthPasskeySource;
 };
+type PasskeyServerClient = ReturnType<typeof createPasskeyServerClient>;
+type PasskeyServerVerifyAuthenticationInput = Parameters<
+  PasskeyServerClient["verifyAuthentication"]
+>[0];
 
 // ============================================================================
 // HELPERS
@@ -134,6 +138,12 @@ function decodeCredentialId(id: string): Uint8Array {
     }
     return new Uint8Array(byteValues);
   }
+}
+
+function toStrictArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  const buffer = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(buffer).set(bytes);
+  return buffer;
 }
 
 function decodeChallenge(challenge: Hex | Uint8Array | ArrayBuffer): Uint8Array {
@@ -212,7 +222,7 @@ function getVerifiedUsername(
 
 function toVerifiedCredential(
   verification: PasskeyServerVerificationResult,
-  raw: PublicKeyCredential,
+  raw: P256Credential["raw"],
   failureMessage: string
 ): P256Credential {
   if (!verification.success || !verification.id || !verification.publicKey) {
@@ -363,11 +373,11 @@ async function authenticatePasskeyWithServer(
   const rpId = authenticationOptions.rpId || getPasskeyRpId();
   const authResponse = await window.navigator.credentials.get({
     publicKey: {
-      challenge: decodeChallenge(authenticationOptions.challenge),
+      challenge: toStrictArrayBuffer(decodeChallenge(authenticationOptions.challenge)),
       rpId,
       userVerification: authenticationOptions.userVerification || "required",
       allowCredentials: credentials.map((credential) => ({
-        id: decodeCredentialId(credential.id) as BufferSource,
+        id: toStrictArrayBuffer(decodeCredentialId(credential.id)),
         type: "public-key",
         transports: ["internal", "hybrid"],
       })),
@@ -382,10 +392,10 @@ async function authenticatePasskeyWithServer(
   const verification = (await passkeyServerClient.verifyAuthentication({
     raw: authResponse as PublicKeyCredential,
     uuid: authenticationOptions.uuid,
-  })) as PasskeyServerVerificationResult;
+  } as unknown as PasskeyServerVerifyAuthenticationInput)) as PasskeyServerVerificationResult;
   const credential = toVerifiedCredential(
     verification,
-    authResponse as PublicKeyCredential,
+    authResponse as P256Credential["raw"],
     "Passkey server authentication failed"
   );
   const resolvedUsername = getVerifiedUsername(verification, context.username);

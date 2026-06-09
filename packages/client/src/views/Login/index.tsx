@@ -302,10 +302,10 @@ export function Login() {
       })
     );
     setLoadingState("welcome");
+    setRecoveryAttempted(true);
     try {
       await loginWithPasskey?.(trimmedUsername);
     } catch (err) {
-      setRecoveryAttempted(true);
       handleAuthError(err, "recover");
     }
   };

@@ -29,6 +29,7 @@ const { mockClassifyPasskeyCeremonyContext } = vi.hoisted(() => ({
   })),
 }));
 let mockHasStoredCredential = false;
+let mockAuthError: Error | null = null;
 
 vi.mock("@green-goods/shared", () => ({
   toastService: {
@@ -63,7 +64,7 @@ vi.mock("@green-goods/shared", () => ({
     isReady: true,
     smartAccountAddress: null,
     hasStoredCredential: mockHasStoredCredential,
-    error: null,
+    error: mockAuthError,
   }),
   debugError: vi.fn(),
   trackAuthError: vi.fn(),
@@ -157,30 +158,31 @@ vi.mock("@/components/Layout", () => ({
 // Import after mocks
 import { Login } from "../../views/Login";
 
-const renderWithRouter = (initialRoute = "/home/login") => {
-  return render(
+const createLoginTree = (initialRoute = "/home/login") =>
+  createElement(
+    IntlProvider,
+    { locale: "en", messages: {} },
     createElement(
-      IntlProvider,
-      { locale: "en", messages: {} },
+      HelmetProvider,
+      null,
       createElement(
-        HelmetProvider,
-        null,
+        MemoryRouter,
+        { initialEntries: [initialRoute] },
         createElement(
-          MemoryRouter,
-          { initialEntries: [initialRoute] },
-          createElement(
-            Routes,
-            null,
-            createElement(Route, { path: "/home/login/*", element: createElement(Login) }),
-            createElement(Route, {
-              path: "/home",
-              element: createElement("div", null, "Home Page"),
-            })
-          )
+          Routes,
+          null,
+          createElement(Route, { path: "/home/login/*", element: createElement(Login) }),
+          createElement(Route, {
+            path: "/home",
+            element: createElement("div", null, "Home Page"),
+          })
         )
       )
     )
   );
+
+const renderWithRouter = (initialRoute = "/home/login") => {
+  return render(createLoginTree(initialRoute));
 };
 
 // ─── New User (no stored credential) ─────────────────────────────────────────
@@ -189,6 +191,7 @@ describe("Login View - New User (progressive disclosure)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockHasStoredCredential = false;
+    mockAuthError = null;
     mockClassifyPasskeyCeremonyContext.mockReturnValue({
       supported: true,
       rpId: "greengoods.app",
@@ -313,6 +316,23 @@ describe("Login View - New User (progressive disclosure)", () => {
     expect(screen.getByTestId("primary-button")).toHaveTextContent("Continue to new account");
     expect(screen.getByTestId("info-callout")).toHaveTextContent(/different address/i);
   });
+
+  it("keeps guarded recovery fallback when auth error arrives after passkey dispatch", async () => {
+    const user = userEvent.setup();
+    mockLoginWithPasskey.mockResolvedValueOnce(undefined);
+    const view = renderWithRouter();
+
+    await user.type(screen.getByTestId("username-input"), "missinguser");
+    await user.click(screen.getByTestId("primary-button"));
+
+    expect(mockLoginWithPasskey).toHaveBeenCalledWith("missinguser");
+
+    mockAuthError = new Error("No passkey credential found");
+    view.rerender(createLoginTree());
+
+    expect(await screen.findByTestId("error-message")).toHaveTextContent(/couldn't find/i);
+    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Create separate account");
+  });
 });
 
 // ─── Existing User (has stored credential) ───────────────────────────────────
@@ -321,6 +341,7 @@ describe("Login View - Existing User (progressive disclosure)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockHasStoredCredential = true;
+    mockAuthError = null;
   });
 
   afterEach(() => {
