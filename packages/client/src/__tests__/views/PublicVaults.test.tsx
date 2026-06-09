@@ -29,6 +29,7 @@ const sharedHookMocks = vi.hoisted(() => ({
     assetBalance: null as bigint | null,
     isLoading: false,
     isError: false,
+    isFetching: false,
     refetch: vi.fn(async () => undefined),
   },
   walletRuntimeProviderRender: vi.fn(),
@@ -39,6 +40,14 @@ const sharedHookMocks = vi.hoisted(() => ({
   octantVaultStats: {
     totalAssets: 0n,
     usdCents: null as bigint | null,
+    isLoading: false,
+    isError: false,
+  },
+  projectSupportMetric: {
+    status: "zero" as "unavailable" | "zero" | "positive",
+    sourceAddress: "0x950208836634cD439F01262e98D0FCF422F78452" as `0x${string}` | null,
+    shareBalance: 0n,
+    assetValue: 0n,
     isLoading: false,
     isError: false,
   },
@@ -141,6 +150,7 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       updatedAt: 1770000000n,
     }),
     useOctantVaultStats: () => sharedHookMocks.octantVaultStats,
+    useOctantVaultProjectSupportMetric: () => sharedHookMocks.projectSupportMetric,
   };
 });
 
@@ -386,6 +396,7 @@ describe("VaultsPage", () => {
       assetBalance: null,
       isLoading: false,
       isError: false,
+      isFetching: false,
       refetch: sharedHookMocks.walletBalancesRefetch,
     };
     sharedHookMocks.walletRuntimeProviderRender.mockClear();
@@ -396,6 +407,14 @@ describe("VaultsPage", () => {
     sharedHookMocks.octantVaultStats = {
       totalAssets: 0n,
       usdCents: null,
+      isLoading: false,
+      isError: false,
+    };
+    sharedHookMocks.projectSupportMetric = {
+      status: "zero",
+      sourceAddress: "0x950208836634cD439F01262e98D0FCF422F78452",
+      shareBalance: 0n,
+      assetValue: 0n,
       isLoading: false,
       isError: false,
     };
@@ -649,6 +668,13 @@ describe("VaultsPage", () => {
     renderView();
 
     expect(screen.getByRole("heading", { name: "How yield support works" })).toBeInTheDocument();
+    expect(screen.getByText("Project-supporting value generated")).toBeInTheDocument();
+    expect(screen.getAllByText("0 WETH")).not.toHaveLength(0);
+    expect(
+      screen.getAllByText(
+        "The project-support router is proven, but it does not currently hold donation shares."
+      )
+    ).not.toHaveLength(0);
     expect(
       screen.getByText(
         /Supporters receive vault shares for their WETH-backed position, while reported strategy profit is represented as project-supporting donation shares/i
@@ -665,6 +691,51 @@ describe("VaultsPage", () => {
     expect(screen.queryByText(/APY/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/guaranteed/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/accrued profit/i)).not.toBeInTheDocument();
+  });
+
+  it("hides the aggregate support number when the router source is unavailable", () => {
+    sharedHookMocks.projectSupportMetric = {
+      status: "unavailable",
+      sourceAddress: null,
+      shareBalance: 0n,
+      assetValue: 0n,
+      isLoading: false,
+      isError: false,
+      unavailableReason: "missing_source",
+    };
+
+    renderView();
+
+    const metric = screen.getByTestId("vault-project-support-metric-greenpill-nyc");
+    expect(within(metric).getByText("Unavailable")).toBeInTheDocument();
+    expect(
+      within(metric).getByText(
+        "No numeric support value is shown until the router source and conversion path can be proven."
+      )
+    ).toBeInTheDocument();
+    expect(within(metric).queryByText(/WETH/)).toBeNull();
+  });
+
+  it("renders a positive aggregate project-supporting value without per-user profit copy", () => {
+    sharedHookMocks.projectSupportMetric = {
+      status: "positive",
+      sourceAddress: "0x950208836634cD439F01262e98D0FCF422F78452",
+      shareBalance: 4_000_000_000_000_000n,
+      assetValue: 4_100_000_000_000_000n,
+      isLoading: false,
+      isError: false,
+    };
+
+    renderView();
+
+    const metric = screen.getByTestId("vault-project-support-metric-greenpill-nyc");
+    expect(within(metric).getByText("0.0041 WETH")).toBeInTheDocument();
+    expect(
+      within(metric).getByText(
+        "Estimated from donation shares held by the configured project-support router."
+      )
+    ).toBeInTheDocument();
+    expect(within(metric).queryByText(/your accrued/i)).toBeNull();
   });
 
   it("renders a desktop dialog and a mobile bottom sheet for checkout setup", async () => {
@@ -1372,6 +1443,7 @@ describe("VaultsPage", () => {
       assetBalance: 0n,
       isLoading: false,
       isError: false,
+      isFetching: false,
       refetch: sharedHookMocks.walletBalancesRefetch,
     };
     sharedHookMocks.wrapEthToWethMutate.mockImplementationOnce(
@@ -1387,11 +1459,12 @@ describe("VaultsPage", () => {
     await user.type(screen.getByLabelText("Amount to endow"), "30");
     await user.click(screen.getByRole("button", { name: "Continue to Wallet" }));
 
+    const walletPath = screen.getByTestId("vault-wallet-endow-path");
     expect(screen.getByText("Ethereum Mainnet balances")).toBeInTheDocument();
     expect(screen.getByText("ETH balance")).toBeInTheDocument();
-    expect(screen.getByText("0.02 ETH")).toBeInTheDocument();
+    expect(within(walletPath).getByText("0.02 ETH")).toBeInTheDocument();
     expect(screen.getByText("WETH balance")).toBeInTheDocument();
-    expect(screen.getByText("0 WETH")).toBeInTheDocument();
+    expect(within(walletPath).getByText("0 WETH")).toBeInTheDocument();
     expect(
       screen.getByText(
         "Your wallet has enough ETH. Wrap 0.01 ETH into WETH before confirming the vault deposit."
@@ -1423,6 +1496,75 @@ describe("VaultsPage", () => {
       }),
       expect.anything()
     );
+  });
+
+  it("wraps only the WETH shortfall when the wallet already has partial WETH", async () => {
+    const user = userEvent.setup();
+    sharedHookMocks.authMode = "wallet";
+    sharedHookMocks.primaryAddress = VALID_RECEIVER_ADDRESS;
+    sharedHookMocks.walletBalances = {
+      nativeBalance: 1_000_000_000_000_000n,
+      assetBalance: 9_000_000_000_000_000n,
+      isLoading: false,
+      isError: false,
+      isFetching: false,
+      refetch: sharedHookMocks.walletBalancesRefetch,
+    };
+
+    renderView();
+
+    await user.click(screen.getByRole("button", { name: "Endow to Greenpill NYC" }));
+    await user.click(screen.getByTestId("vault-checkout-method-wallet"));
+    await user.type(screen.getByLabelText("Amount to endow"), "30");
+    await user.click(screen.getByRole("button", { name: "Continue to Wallet" }));
+
+    expect(
+      screen.getByText(
+        "Your wallet has enough ETH. Wrap 0.001 ETH into WETH before confirming the vault deposit."
+      )
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Wrap ETH to WETH" }));
+
+    expect(sharedHookMocks.wrapEthToWethMutate).toHaveBeenCalledWith(
+      {
+        chainId: 1,
+        wethAddress: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+        amount: 1_000_000_000_000_000n,
+      },
+      expect.objectContaining({
+        onError: expect.any(Function),
+        onSuccess: expect.any(Function),
+      })
+    );
+  });
+
+  it("keeps wallet endow disabled while ETH and WETH balances are loading", async () => {
+    const user = userEvent.setup();
+    sharedHookMocks.authMode = "wallet";
+    sharedHookMocks.primaryAddress = VALID_RECEIVER_ADDRESS;
+    sharedHookMocks.walletBalances = {
+      nativeBalance: null,
+      assetBalance: null,
+      isLoading: true,
+      isError: false,
+      isFetching: true,
+      refetch: sharedHookMocks.walletBalancesRefetch,
+    };
+
+    renderView();
+
+    await user.click(screen.getByRole("button", { name: "Endow to Greenpill NYC" }));
+    await user.click(screen.getByTestId("vault-checkout-method-wallet"));
+    await user.type(screen.getByLabelText("Amount to endow"), "30");
+    await user.click(screen.getByRole("button", { name: "Continue to Wallet" }));
+
+    const submit = screen.getByRole("button", { name: "Loading balances..." });
+    expect(submit).toBeDisabled();
+
+    await user.click(submit);
+    expect(sharedHookMocks.wrapEthToWethMutate).not.toHaveBeenCalled();
+    expect(sharedHookMocks.octantVaultWalletEndowMutate).not.toHaveBeenCalled();
   });
 
   it("freezes the settlement amount at Continue so a live price change cannot move it", async () => {

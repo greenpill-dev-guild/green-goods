@@ -2,9 +2,9 @@
 
 **Feature Slug**: `nyc-vault-crowdfunding`
 **Stage**: `active`
-**Status**: `ACTIVE - /vaults route locked; NYC + EVMavericks pilot fixtures; reusable skill lane locked`
+**Status**: `ACTIVE - /vaults route locked; Octant QA PRD-583 through PRD-589 implemented/source-defined pending human QA`
 **Created**: `2026-05-09T21:35:46.781Z`
-**Last Updated**: `2026-06-08T19:24:57Z`
+**Last Updated**: `2026-06-08T20:06:07Z`
 
 ## Decision Log
 
@@ -71,7 +71,7 @@ movement.
 | Donate and Card Donate remain deferred. | `ui`, `state_api` | Do not expose Donate/Card Donate in `/vaults` acceptance or provider-proof gating. | ✅ deferred |
 | Green Goods Arbitrum contracts are not presented as Octant Ethereum infra. | `ui`, `contracts` | Keep copy/architecture and contracts lane clear; target Octant V2 Ethereum vaults. | ⏳ |
 | Reusable `octant-vault-crowdfunding` skill is delivered after demo validation. | `skill` | Codex authors the canonical skill plan and templates, covering simplest runtime, pilot + synthetic fixtures, Thirdweb-first card modules, Coinbase/Stripe future adapters, optional Octant Ethereum factory/API create-vault module, and dry-run QA. | ⏳ |
-| Octant QA follow-ups are tracked and decision-locked. | `ui`, `state_api`, `qa_pass_1` | PRD-583, PRD-584, PRD-585, PRD-586, and PRD-588 quick fixes are implemented pending human QA; PRD-587 shares-first redeem and PRD-589 aggregate metric remain intentionally deferred for later scoped passes. | ⏳ quick fixes implemented |
+| Octant QA follow-ups are tracked and decision-locked. | `ui`, `state_api`, `qa_pass_1` | PRD-583 through PRD-589 are implemented or source-defined pending human QA. PRD-587 uses shares-first redeem semantics; PRD-589 uses the configured YDS router shares converted to WETH and falls back to unavailable rather than inventing a number. | ⏳ pending human QA |
 
 ## Implementation Phases
 
@@ -257,8 +257,8 @@ movement.
   technical WETH details, and no provider/base-unit jargon in the primary card review
 - [x] Targeted client/shared tests for Octant QA quick fixes PRD-583, PRD-584, PRD-585, PRD-586, and PRD-588
 - [x] Browser proof for visible Octant QA quick fixes: strategy explainer and Wallet Endow technical details
-- [ ] PRD-587 shares-first redeem tests cover `maxRedeem`, estimated WETH proceeds, and `redeem(shares, receiver, owner)`
-- [ ] PRD-589 metric-definition proof records aggregate source/formula or an unavailable numeric state
+- [x] PRD-587 shares-first redeem tests cover `maxRedeem`, estimated WETH proceeds, leading-decimal shares input, `maxRedeem = 0` unavailable state, and `redeem(shares, receiver, owner)`
+- [x] PRD-589 metric-definition proof records aggregate source/formula, units, cadence, and unavailable/zero/positive states
 - [ ] Targeted client compatibility tests for future `/fund` Card Endow capability reuse where touched
 - [x] Targeted agent tests for Thirdweb checkout/webhook tuple verification, route-local
   sourceRoute matching, recovered receiver handling, and Card Endow rejection without `receiverAddress`
@@ -273,6 +273,9 @@ movement.
   `vault.balanceOf(receiverAddress)` proof and rejection when shares are zero
 - [ ] Targeted agent log snapshot coverage for redacted provider logs
 - [x] Refresh browser proof for final public `/vaults` demo on desktop and mobile
+- [x] Browser proof for PRD-589 resolved metric and PRD-587 route-local manage shell:
+  `.codex-artifacts/nyc-vault-crowdfunding/vaults-project-support-metric.png`,
+  `.codex-artifacts/nyc-vault-crowdfunding/vaults-manage-positions-shell.png`
 - [ ] `octant-vault-crowdfunding` skill static checks: `bun run check:skills` after the later skill artifact is created and mirrored
 - [ ] Skill dry-run proof covers Greenpill NYC, EVMavericks, and one synthetic complete manifest fixture
 - [x] `status.json` parses

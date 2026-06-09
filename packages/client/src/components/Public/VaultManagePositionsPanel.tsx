@@ -8,7 +8,7 @@ import {
   truncateAddress,
   useAuth,
   useOctantVaultPositions,
-  useOctantVaultWithdraw,
+  useOctantVaultRedeem,
   useTxErrorMessages,
   useUser,
   normalizeDecimalInput,
@@ -61,7 +61,7 @@ function VaultManagePositionsContent({ open, onClose, onEndow }: VaultManagePosi
   const { formatMessage } = useIntl();
   const { authMode, primaryAddress } = useUser();
   const connectedAddress = authMode === "wallet" ? (primaryAddress as Address | null) : null;
-  // Snapshot cached card owners once per open so withdraw-driven refetches don't
+  // Snapshot cached card owners once per open so redeem-driven refetches don't
   // reshuffle sections mid-interaction.
   const cardOwners = useMemo(() => getOctantVaultCardWalletOwners(), []);
   const hasCardOwners = cardOwners.length > 0;
@@ -98,7 +98,8 @@ function VaultManagePositionsContent({ open, onClose, onEndow }: VaultManagePosi
               <Dialog.Description className="mt-3 text-sm leading-[1.6] text-text-sub-600">
                 {formatMessage({
                   id: "public.vaults.manage.lede",
-                  defaultMessage: "View and withdraw your WETH-backed Octant vault positions.",
+                  defaultMessage:
+                    "View your WETH-backed Octant vault shares and redeem available shares when you choose.",
                 })}
               </Dialog.Description>
             </div>
@@ -346,7 +347,7 @@ export function PositionsSkeleton() {
   );
 }
 
-/** Connected-wallet row: withdraws through the chain-aware transaction sender. */
+/** Connected-wallet row: redeems through the chain-aware transaction sender. */
 function ConnectedVaultPositionRow({
   position,
   owner,
@@ -357,8 +358,8 @@ function ConnectedVaultPositionRow({
   onRefresh: () => Promise<unknown>;
 }) {
   const { formatMessage } = useIntl();
-  const withdraw = useOctantVaultWithdraw({ errorMode: "inline" });
-  const txError = useTxErrorMessages(withdraw.error);
+  const redeem = useOctantVaultRedeem({ errorMode: "inline" });
+  const txError = useTxErrorMessages(redeem.error);
 
   return (
     <VaultPositionRowView
@@ -367,9 +368,9 @@ function ConnectedVaultPositionRow({
         id: "public.vaults.manage.withdraw.destinationWallet",
         defaultMessage: "your connected wallet",
       })}
-      isWithdrawing={withdraw.isPending}
+      isRedeeming={redeem.isPending}
       errorNode={
-        withdraw.error ? (
+        redeem.error ? (
           <Alert
             variant="error"
             className="mt-4 rounded-2xl bg-error-lighter/30 p-3"
@@ -379,43 +380,44 @@ function ConnectedVaultPositionRow({
           </Alert>
         ) : null
       }
-      onWithdraw={async (amount) => {
-        await withdraw.mutateAsync({
+      onRedeem={async (shares) => {
+        await redeem.mutateAsync({
           chainId: position.chainId,
           vaultAddress: position.vaultAddress,
-          amount,
+          shares,
           owner,
+          receiver: owner,
         });
         await onRefresh();
       }}
-      onResetError={withdraw.reset}
+      onResetError={redeem.reset}
     />
   );
 }
 
 /**
- * Presentational withdraw row shared by both owner sources. Default view shows
- * campaign, position value, shares, and withdrawable; technical details (vault,
- * token, chain, raw shares, explorer) live behind a disclosure. Withdraw is a
- * collapsed control that expands to amount → review → confirm; the actual signing
- * is injected via `onWithdraw`.
+ * Presentational redeem row shared by both owner sources. Default view shows
+ * campaign, position value, owned shares, redeemable shares, and estimated WETH
+ * proceeds; technical details (vault, token, chain, raw shares, explorer) live
+ * behind a disclosure. Redeem is a collapsed control that expands to shares →
+ * review → confirm; the actual signing is injected via `onRedeem`.
  */
 export function VaultPositionRowView({
   position,
   destinationLabel,
-  isWithdrawing,
+  isRedeeming,
   errorNode,
-  onWithdraw,
+  onRedeem,
   onResetError,
   disabledReason,
 }: {
   position: OctantVaultPosition;
   destinationLabel: string;
-  isWithdrawing: boolean;
+  isRedeeming: boolean;
   errorNode?: React.ReactNode;
-  onWithdraw: (amount: bigint) => Promise<void>;
+  onRedeem: (shares: bigint) => Promise<void>;
   onResetError?: () => void;
-  /** When set, the withdraw control is replaced by this node (e.g. restore session). */
+  /** When set, the redeem control is replaced by this node (e.g. restore session). */
   disabledReason?: React.ReactNode;
 }) {
   const { formatMessage } = useIntl();
@@ -426,31 +428,59 @@ export function VaultPositionRowView({
   const [amountInput, setAmountInput] = useState("");
   const [showConfirm, setShowConfirm] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
-  const decimals = position.assetDecimals;
+  const assetDecimals = position.assetDecimals;
+  const shareDecimals = position.shareDecimals;
   const symbol = position.assetSymbol;
 
   const inputError = useMemo(
-    () => validateDecimalInput(amountInput, decimals),
-    [amountInput, decimals]
+    () => validateDecimalInput(amountInput, shareDecimals),
+    [amountInput, shareDecimals]
   );
-  const parsedAmount = useMemo(() => {
+  const parsedShares = useMemo(() => {
     if (!amountInput.trim() || inputError) return 0n;
     try {
-      return parseUnits(normalizeDecimalInput(amountInput), decimals);
+      return parseUnits(normalizeDecimalInput(amountInput), shareDecimals);
     } catch {
       return 0n;
     }
-  }, [amountInput, inputError, decimals]);
+  }, [amountInput, inputError, shareDecimals]);
 
-  const display = (value: bigint) =>
-    `${formatTokenAmount(value, decimals, 4, undefined, true)} ${symbol}`;
-  const withdrawable = position.withdrawable;
-  const exceedsAvailable = parsedAmount > 0n && withdrawable > 0n && parsedAmount > withdrawable;
+  const displayAssets = (value: bigint) =>
+    `${formatTokenAmount(value, assetDecimals, 4, undefined, true)} ${symbol}`;
+  const displayShares = (value: bigint) =>
+    `${formatTokenAmount(value, shareDecimals, 4, undefined, true)} shares`;
+  const redeemableShares = position.redeemableShares;
+  const unavailableProceedsLabel = formatMessage({
+    id: "public.vaults.manage.position.estimatedProceedsUnavailable",
+    defaultMessage: "Unavailable",
+  });
+  const redemptionUnavailable = position.shares > 0n && redeemableShares <= 0n;
+  const redemptionPreviewUnavailable =
+    redeemableShares > 0n && position.estimatedRedeemAssets === null;
+  const redeemControlUnavailable = redemptionUnavailable || redemptionPreviewUnavailable;
+  const estimateRedeemAssets = (shares: bigint): bigint | null => {
+    if (redemptionPreviewUnavailable) return null;
+    if (
+      shares <= 0n ||
+      redeemableShares <= 0n ||
+      position.estimatedRedeemAssets === null ||
+      position.estimatedRedeemAssets <= 0n
+    ) {
+      return 0n;
+    }
+    return (position.estimatedRedeemAssets * shares) / redeemableShares;
+  };
+  const estimatedAssets = estimateRedeemAssets(parsedShares);
+  const estimatedAssetsLabel =
+    estimatedAssets === null ? unavailableProceedsLabel : displayAssets(estimatedAssets);
+  const exceedsAvailable =
+    parsedShares > 0n && redeemableShares > 0n && parsedShares > redeemableShares;
   const disableConfirm =
-    isWithdrawing ||
+    isRedeeming ||
     Boolean(inputError) ||
-    parsedAmount <= 0n ||
-    withdrawable <= 0n ||
+    estimatedAssets === null ||
+    parsedShares <= 0n ||
+    redeemableShares <= 0n ||
     exceedsAvailable;
   const vaultExplorerUrl = getAddressExplorerUrl(position.explorerLink, position.vaultAddress);
   const tokenExplorerUrl = getAddressExplorerUrl(position.explorerLink, position.assetAddress);
@@ -462,20 +492,23 @@ export function VaultPositionRowView({
     onResetError?.();
   };
 
-  const executeWithdraw = async () => {
+  const executeRedeem = async () => {
     if (disableConfirm) return;
-    const amountLabel = display(parsedAmount);
+    if (estimatedAssets === null) return;
+    const sharesLabel = displayShares(parsedShares);
+    const assetsLabel = displayAssets(estimatedAssets);
     try {
-      await onWithdraw(parsedAmount);
+      await onRedeem(parsedShares);
       setAmountInput("");
       setShowConfirm(false);
       setSuccessMessage(
         formatMessage(
           {
             id: "public.vaults.manage.withdraw.success",
-            defaultMessage: "{amount} withdrawn. Balances may take a moment to update.",
+            defaultMessage:
+              "{shares} redeemed. Estimated {assets} returned; balances may take a moment to update.",
           },
-          { amount: amountLabel }
+          { shares: sharesLabel, assets: assetsLabel }
         )
       );
     } catch {
@@ -512,7 +545,7 @@ export function VaultPositionRowView({
                 {": "}
               </dt>
               <dd className="inline font-semibold text-text-strong-950">
-                {display(position.positionValue)}
+                {displayAssets(position.positionValue)}
               </dd>
             </div>
             <div>
@@ -523,21 +556,35 @@ export function VaultPositionRowView({
                 })}
                 {": "}
               </dt>
-              <dd className="inline text-text-sub-600">{formatTokenAmount(position.shares, 18)}</dd>
+              <dd className="inline text-text-sub-600">{displayShares(position.shares)}</dd>
             </div>
             <div>
               <dt className="inline">
                 {formatMessage({
                   id: "public.vaults.manage.position.withdrawable",
-                  defaultMessage: "Withdrawable now",
+                  defaultMessage: "Redeemable shares now",
                 })}
                 {": "}
               </dt>
-              <dd className="inline text-text-sub-600">{display(withdrawable)}</dd>
+              <dd className="inline text-text-sub-600">{displayShares(redeemableShares)}</dd>
+            </div>
+            <div>
+              <dt className="inline">
+                {formatMessage({
+                  id: "public.vaults.manage.position.estimatedProceeds",
+                  defaultMessage: "Estimated WETH proceeds",
+                })}
+                {": "}
+              </dt>
+              <dd className="inline text-text-sub-600">
+                {redeemControlUnavailable || position.estimatedRedeemAssets === null
+                  ? unavailableProceedsLabel
+                  : displayAssets(position.estimatedRedeemAssets)}
+              </dd>
             </div>
           </dl>
         </div>
-        {disabledReason ? null : (
+        {disabledReason || redeemControlUnavailable ? null : (
           <EditorialGhostButton
             className="shrink-0 px-4 py-2 text-xs"
             aria-expanded={expanded}
@@ -549,7 +596,7 @@ export function VaultPositionRowView({
           >
             {formatMessage({
               id: "public.vaults.manage.position.withdraw",
-              defaultMessage: "Withdraw",
+              defaultMessage: "Redeem shares",
             })}
           </EditorialGhostButton>
         )}
@@ -646,7 +693,45 @@ export function VaultPositionRowView({
 
       {disabledReason ? <div className="mt-3">{disabledReason}</div> : null}
 
-      {expanded && !disabledReason ? (
+      {redemptionUnavailable ? (
+        <Alert
+          variant="warning"
+          className="mt-3 rounded-2xl bg-warning-lighter/30 p-3"
+          title={formatMessage({
+            id: "public.vaults.manage.redeem.unavailableTitle",
+            defaultMessage: "Redemption unavailable right now",
+          })}
+        >
+          <p className="mt-1 text-xs leading-[1.5] text-text-sub-600">
+            {formatMessage({
+              id: "public.vaults.manage.redeem.unavailableBody",
+              defaultMessage:
+                "This owner has visible vault shares, but the vault is not reporting redeemable shares at the current loss limit. Try again later or keep the position intact.",
+            })}
+          </p>
+        </Alert>
+      ) : null}
+
+      {redemptionPreviewUnavailable ? (
+        <Alert
+          variant="warning"
+          className="mt-3 rounded-2xl bg-warning-lighter/30 p-3"
+          title={formatMessage({
+            id: "public.vaults.manage.redeem.previewUnavailableTitle",
+            defaultMessage: "Estimated proceeds unavailable",
+          })}
+        >
+          <p className="mt-1 text-xs leading-[1.5] text-text-sub-600">
+            {formatMessage({
+              id: "public.vaults.manage.redeem.previewUnavailableBody",
+              defaultMessage:
+                "This owner has redeemable shares, but the vault conversion preview is unavailable. Refresh and try again before redeeming.",
+            })}
+          </p>
+        </Alert>
+      ) : null}
+
+      {expanded && !disabledReason && !redeemControlUnavailable ? (
         <div
           id={regionId}
           className="mt-4 rounded-2xl border border-stroke-soft-200 bg-bg-weak-50 p-4"
@@ -657,7 +742,7 @@ export function VaultPositionRowView({
           >
             {formatMessage({
               id: "public.vaults.manage.withdraw.amount",
-              defaultMessage: "Withdrawal amount",
+              defaultMessage: "Shares to redeem",
             })}
           </label>
           <div className="mt-2 flex items-center gap-2">
@@ -674,7 +759,7 @@ export function VaultPositionRowView({
                 onResetError?.();
               }}
               onBlur={() => setAmountInput((current) => normalizeDecimalInput(current))}
-              placeholder={`0.0 ${symbol}`}
+              placeholder="0.0 shares"
               aria-invalid={Boolean(inputError || exceedsAvailable)}
               aria-describedby={feedbackId}
               className={cn(
@@ -685,12 +770,12 @@ export function VaultPositionRowView({
             <button
               type="button"
               onClick={() => {
-                setAmountInput(formatUnits(withdrawable, decimals));
+                setAmountInput(formatUnits(redeemableShares, shareDecimals));
                 setShowConfirm(false);
                 setSuccessMessage("");
                 onResetError?.();
               }}
-              disabled={withdrawable <= 0n}
+              disabled={redeemableShares <= 0n}
               className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-full border border-stroke-soft-200 bg-bg-white-0 px-4 py-2.5 text-xs font-medium text-text-sub-600 transition-colors hover:bg-bg-weak-50 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {formatMessage({ id: "public.vaults.manage.withdraw.max", defaultMessage: "Max" })}
@@ -705,7 +790,7 @@ export function VaultPositionRowView({
             <p id={feedbackId} className="mt-2 text-xs text-error-dark" role="alert">
               {formatMessage({
                 id: "public.vaults.manage.withdraw.exceeds",
-                defaultMessage: "Amount is higher than the withdrawable amount.",
+                defaultMessage: "Share amount is higher than the currently redeemable shares.",
               })}
             </p>
           ) : (
@@ -713,9 +798,9 @@ export function VaultPositionRowView({
               {formatMessage(
                 {
                   id: "public.vaults.manage.withdraw.available",
-                  defaultMessage: "Available now: {amount}",
+                  defaultMessage: "Redeemable now: {shares}. Estimated proceeds update at review.",
                 },
-                { amount: display(withdrawable) }
+                { shares: displayShares(redeemableShares) }
               )}
             </p>
           )}
@@ -725,16 +810,20 @@ export function VaultPositionRowView({
               <p className="font-serif text-lg font-normal text-text-strong-950">
                 {formatMessage({
                   id: "public.vaults.manage.withdraw.confirmTitle",
-                  defaultMessage: "Confirm withdrawal",
+                  defaultMessage: "Confirm share redemption",
                 })}
               </p>
               <p className="mt-2 text-sm leading-[1.55] text-text-sub-600">
                 {formatMessage(
                   {
                     id: "public.vaults.manage.withdraw.confirmBody",
-                    defaultMessage: "Return {amount} to {destination}?",
+                    defaultMessage: "Redeem {shares} for approximately {assets} to {destination}?",
                   },
-                  { amount: display(parsedAmount), destination: destinationLabel }
+                  {
+                    shares: displayShares(parsedShares),
+                    assets: estimatedAssetsLabel,
+                    destination: destinationLabel,
+                  }
                 )}
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
@@ -742,12 +831,12 @@ export function VaultPositionRowView({
                   variant="warm"
                   className="px-5 py-2.5 text-sm"
                   disabled={disableConfirm}
-                  onClick={() => void executeWithdraw()}
+                  onClick={() => void executeRedeem()}
                 >
-                  {isWithdrawing
+                  {isRedeeming
                     ? formatMessage({
                         id: "public.vaults.manage.withdraw.pending",
-                        defaultMessage: "Withdrawing…",
+                        defaultMessage: "Redeeming…",
                       })
                     : formatMessage({
                         id: "public.vaults.manage.withdraw.confirm",
@@ -756,7 +845,7 @@ export function VaultPositionRowView({
                 </EditorialGhostButton>
                 <EditorialGhostButton
                   className="px-5 py-2.5 text-sm"
-                  disabled={isWithdrawing}
+                  disabled={isRedeeming}
                   onClick={() => setShowConfirm(false)}
                 >
                   {formatMessage({
@@ -778,7 +867,7 @@ export function VaultPositionRowView({
             >
               {formatMessage({
                 id: "public.vaults.manage.withdraw.review",
-                defaultMessage: "Review withdrawal",
+                defaultMessage: "Review redemption",
               })}
             </EditorialGhostButton>
           )}

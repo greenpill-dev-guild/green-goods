@@ -52,16 +52,25 @@ function wrapper() {
 
 /** Resolve reads by functionName + vault address so allSettled interleaving is irrelevant. */
 function mockReads(
-  byVault: Record<string, { shares: bigint; value: bigint; withdrawable: bigint }>
+  byVault: Record<
+    string,
+    { shares: bigint; value: bigint; redeemableShares: bigint; redeemAssets: bigint }
+  >
 ) {
-  mockReadContract.mockImplementation((call: { address: string; functionName: string }) => {
-    const entry = byVault[call.address.toLowerCase()];
-    if (!entry) return Promise.resolve(0n);
-    if (call.functionName === "balanceOf") return Promise.resolve(entry.shares);
-    if (call.functionName === "convertToAssets") return Promise.resolve(entry.value);
-    if (call.functionName === "maxWithdraw") return Promise.resolve(entry.withdrawable);
-    return Promise.resolve(0n);
-  });
+  mockReadContract.mockImplementation(
+    (call: { address: string; functionName: string; args?: readonly unknown[] }) => {
+      const entry = byVault[call.address.toLowerCase()];
+      if (!entry) return Promise.resolve(0n);
+      if (call.functionName === "balanceOf") return Promise.resolve(entry.shares);
+      if (call.functionName === "convertToAssets") {
+        return Promise.resolve(
+          call.args?.[0] === entry.redeemableShares ? entry.redeemAssets : entry.value
+        );
+      }
+      if (call.functionName === "maxRedeem") return Promise.resolve(entry.redeemableShares);
+      return Promise.resolve(0n);
+    }
+  );
 }
 
 describe("hooks/vault/useOctantVaultPositions", () => {
@@ -69,10 +78,15 @@ describe("hooks/vault/useOctantVaultPositions", () => {
     vi.clearAllMocks();
   });
 
-  it("returns only active positions (shares > 0) with value and withdrawable", async () => {
+  it("returns only active positions (shares > 0) with value and redeemable shares", async () => {
     mockReads({
-      [VAULT_A.toLowerCase()]: { shares: 500n, value: 600n, withdrawable: 550n },
-      [VAULT_B.toLowerCase()]: { shares: 0n, value: 0n, withdrawable: 0n },
+      [VAULT_A.toLowerCase()]: {
+        shares: 500n,
+        value: 600n,
+        redeemableShares: 400n,
+        redeemAssets: 480n,
+      },
+      [VAULT_B.toLowerCase()]: { shares: 0n, value: 0n, redeemableShares: 0n, redeemAssets: 0n },
     });
 
     const { result } = renderHook(() => useOctantVaultPositions(OWNER, { campaigns: CAMPAIGNS }), {
@@ -87,16 +101,50 @@ describe("hooks/vault/useOctantVaultPositions", () => {
     expect(position.campaignSlug).toBe("greenpill-nyc");
     expect(position.vaultAddress).toBe(VAULT_A);
     expect(position.shares).toBe(500n);
+    expect(position.shareDecimals).toBe(18);
     expect(position.positionValue).toBe(600n);
-    expect(position.withdrawable).toBe(550n);
+    expect(position.redeemableShares).toBe(400n);
+    expect(position.estimatedRedeemAssets).toBe(480n);
     expect(position.assetSymbol).toBe("WETH");
     expect(position.chainId).toBe(1);
 
-    // maxWithdraw is read at the 1% default maxLoss so the displayed withdrawable
-    // matches what the withdraw paths will accept.
+    // maxRedeem is read at the 1% default maxLoss so displayed shares match what
+    // the redeem paths will accept.
     expect(mockReadContract).toHaveBeenCalledWith(
-      expect.objectContaining({ functionName: "maxWithdraw", args: [OWNER, 100n, []] })
+      expect.objectContaining({ functionName: "maxRedeem", args: [OWNER, 100n, []] })
     );
+    expect(mockReadContract).toHaveBeenCalledWith(
+      expect.objectContaining({ functionName: "convertToAssets", args: [400n] })
+    );
+  });
+
+  it("preserves redeemable shares when the estimated proceeds preview fails", async () => {
+    mockReadContract.mockImplementation(
+      (call: { address: string; functionName: string; args?: readonly unknown[] }) => {
+        if (call.address.toLowerCase() === VAULT_B.toLowerCase()) return Promise.resolve(0n);
+        if (call.functionName === "balanceOf") return Promise.resolve(500n);
+        if (call.functionName === "maxRedeem") return Promise.resolve(400n);
+        if (call.functionName === "convertToAssets") {
+          if (call.args?.[0] === 400n) return Promise.reject(new Error("preview unavailable"));
+          return Promise.resolve(600n);
+        }
+        return Promise.resolve(0n);
+      }
+    );
+
+    const { result } = renderHook(() => useOctantVaultPositions(OWNER, { campaigns: CAMPAIGNS }), {
+      wrapper: wrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.positions).toHaveLength(1);
+    expect(result.current.positions[0]).toMatchObject({
+      shares: 500n,
+      positionValue: 600n,
+      redeemableShares: 400n,
+      estimatedRedeemAssets: null,
+    });
   });
 
   it("is disabled and reads nothing without an owner", async () => {
@@ -130,7 +178,7 @@ describe("hooks/vault/useOctantVaultPositions", () => {
       }
       if (call.functionName === "balanceOf") return Promise.resolve(500n);
       if (call.functionName === "convertToAssets") return Promise.resolve(600n);
-      if (call.functionName === "maxWithdraw") return Promise.resolve(550n);
+      if (call.functionName === "maxRedeem") return Promise.resolve(550n);
       return Promise.resolve(0n);
     });
 

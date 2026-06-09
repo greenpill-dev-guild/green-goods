@@ -1,5 +1,5 @@
 /**
- * useOctantVaultWithdraw Hook Tests
+ * useOctantVaultRedeem Hook Tests
  * @vitest-environment jsdom
  */
 
@@ -63,11 +63,11 @@ vi.mock("../../../utils/errors/mutation-error-handler", () => ({
 }));
 
 const messages = {
-  "app.treasury.withdraw": "Withdraw",
-  "app.treasury.withdrawSuccess": "Withdraw successful",
+  "public.vaults.manage.redeem.toastTitle": "Redeem vault shares",
+  "public.vaults.manage.redeem.toastSuccess": "Share redemption submitted.",
 } as const;
 
-const { useOctantVaultWithdraw } = await import("../../../hooks/vault/useOctantVaultWithdraw");
+const { useOctantVaultRedeem } = await import("../../../hooks/vault/useOctantVaultWithdraw");
 
 function createWrapper(queryClient: QueryClient) {
   return function Wrapper({ children }: { children: ReactNode }) {
@@ -85,7 +85,7 @@ function makeQueryClient() {
   });
 }
 
-describe("hooks/vault/useOctantVaultWithdraw", () => {
+describe("hooks/vault/useOctantVaultRedeem", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUser.authMode = "wallet";
@@ -94,12 +94,12 @@ describe("hooks/vault/useOctantVaultWithdraw", () => {
     mockTransactionSender = { sendContractCall: mockSendContractCall, authMode: "wallet" };
   });
 
-  it("pre-checks maxWithdraw with chainId, then sends withdraw with the 1% maxLoss and invalidates positions", async () => {
-    mockReadContract.mockResolvedValueOnce(1_000n); // maxWithdraw
+  it("pre-checks maxRedeem with chainId, then sends redeem and invalidates positions", async () => {
+    mockReadContract.mockResolvedValueOnce(1_000n); // maxRedeem
     const queryClient = makeQueryClient();
     const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
 
-    const { result } = renderHook(() => useOctantVaultWithdraw(), {
+    const { result } = renderHook(() => useOctantVaultRedeem(), {
       wrapper: createWrapper(queryClient),
     });
 
@@ -107,7 +107,7 @@ describe("hooks/vault/useOctantVaultWithdraw", () => {
       await result.current.mutateAsync({
         chainId: OCTANT_CHAIN_ID,
         vaultAddress: VAULT,
-        amount: 400n,
+        shares: 400n,
       });
     });
 
@@ -115,7 +115,7 @@ describe("hooks/vault/useOctantVaultWithdraw", () => {
       expect.anything(),
       expect.objectContaining({
         address: VAULT,
-        functionName: "maxWithdraw",
+        functionName: "maxRedeem",
         args: [OWNER, 100n, []],
         chainId: OCTANT_CHAIN_ID,
       })
@@ -123,8 +123,8 @@ describe("hooks/vault/useOctantVaultWithdraw", () => {
     expect(mockSendContractCall).toHaveBeenCalledWith(
       expect.objectContaining({
         address: VAULT,
-        functionName: "withdraw",
-        args: [400n, OWNER, OWNER, 100n, []],
+        functionName: "redeem",
+        args: [400n, OWNER, OWNER],
         chainId: OCTANT_CHAIN_ID,
       })
     );
@@ -135,28 +135,28 @@ describe("hooks/vault/useOctantVaultWithdraw", () => {
     );
   });
 
-  it("rejects when the amount exceeds the withdrawable balance and never signs", async () => {
-    mockReadContract.mockResolvedValueOnce(100n); // maxWithdraw below requested amount
-    const { result } = renderHook(() => useOctantVaultWithdraw(), {
+  it("rejects when shares exceed maxRedeem and never signs", async () => {
+    mockReadContract.mockResolvedValueOnce(100n); // maxRedeem below requested shares
+    const { result } = renderHook(() => useOctantVaultRedeem(), {
       wrapper: createWrapper(makeQueryClient()),
     });
 
     await act(async () => {
       await expect(
-        result.current.mutateAsync({ chainId: OCTANT_CHAIN_ID, vaultAddress: VAULT, amount: 400n })
-      ).rejects.toThrow(/exceeds/i);
+        result.current.mutateAsync({ chainId: OCTANT_CHAIN_ID, vaultAddress: VAULT, shares: 400n })
+      ).rejects.toThrow(/exceed/i);
     });
     expect(mockSendContractCall).not.toHaveBeenCalled();
   });
 
   it("rejects a non-mainnet chain before any read", async () => {
-    const { result } = renderHook(() => useOctantVaultWithdraw(), {
+    const { result } = renderHook(() => useOctantVaultRedeem(), {
       wrapper: createWrapper(makeQueryClient()),
     });
 
     await act(async () => {
       await expect(
-        result.current.mutateAsync({ chainId: 42161, vaultAddress: VAULT, amount: 400n })
+        result.current.mutateAsync({ chainId: 42161, vaultAddress: VAULT, shares: 400n })
       ).rejects.toThrow(/Ethereum mainnet/i);
     });
     expect(mockReadContract).not.toHaveBeenCalled();
@@ -166,20 +166,20 @@ describe("hooks/vault/useOctantVaultWithdraw", () => {
   it("rejects when the session is not a connected wallet", async () => {
     mockUser.authMode = "passkey";
     mockTransactionSender = { sendContractCall: mockSendContractCall, authMode: "passkey" };
-    const { result } = renderHook(() => useOctantVaultWithdraw(), {
+    const { result } = renderHook(() => useOctantVaultRedeem(), {
       wrapper: createWrapper(makeQueryClient()),
     });
 
     await act(async () => {
       await expect(
-        result.current.mutateAsync({ chainId: OCTANT_CHAIN_ID, vaultAddress: VAULT, amount: 400n })
+        result.current.mutateAsync({ chainId: OCTANT_CHAIN_ID, vaultAddress: VAULT, shares: 400n })
       ).rejects.toThrow(/connected wallet/i);
     });
     expect(mockSendContractCall).not.toHaveBeenCalled();
   });
 
   it("rejects when the owner is not the connected wallet", async () => {
-    const { result } = renderHook(() => useOctantVaultWithdraw(), {
+    const { result } = renderHook(() => useOctantVaultRedeem(), {
       wrapper: createWrapper(makeQueryClient()),
     });
 
@@ -188,7 +188,7 @@ describe("hooks/vault/useOctantVaultWithdraw", () => {
         result.current.mutateAsync({
           chainId: OCTANT_CHAIN_ID,
           vaultAddress: VAULT,
-          amount: 400n,
+          shares: 400n,
           owner: OTHER,
         })
       ).rejects.toThrow(/connected wallet/i);

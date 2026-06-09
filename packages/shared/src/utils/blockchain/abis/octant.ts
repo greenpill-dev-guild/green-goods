@@ -185,6 +185,13 @@ export const OCTANT_VAULT_ABI = [
   },
   {
     type: "function",
+    name: "dragonRouter",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "address" }],
+  },
+  {
+    type: "function",
     name: "totalAssets",
     stateMutability: "view",
     inputs: [],

@@ -28,8 +28,8 @@ const mocks = vi.hoisted(() => ({
   loginWithWallet: vi.fn(),
   walletRuntimeRender: vi.fn(),
   positionsByOwner: {} as Record<string, ReturnType<typeof emptyPositions> | undefined>,
-  withdrawMutateAsync: vi.fn(async () => "0xhash"),
-  withdrawReset: vi.fn(),
+  redeemMutateAsync: vi.fn(async () => "0xhash"),
+  redeemReset: vi.fn(),
   // Drive the wallet-endow mutation straight to success in the copy test.
   walletEndowMutate: vi.fn((_tx: unknown, opts?: { onSuccess?: (hash: string) => void }) =>
     opts?.onSuccess?.("0xhash")
@@ -69,9 +69,11 @@ function makePosition(over: Partial<OctantVaultPosition> = {}): OctantVaultPosit
     assetAddress: ASSET as `0x${string}`,
     assetSymbol: "WETH",
     assetDecimals: 18,
+    shareDecimals: 18,
     shares: 1_000_000_000_000_000_000n,
     positionValue: 1_200_000_000_000_000_000n,
-    withdrawable: 1_000_000_000_000_000_000n,
+    redeemableShares: 1_000_000_000_000_000_000n,
+    estimatedRedeemAssets: 1_200_000_000_000_000_000n,
     explorerLink: `https://etherscan.io/address/${VAULT}`,
     ...over,
   };
@@ -85,10 +87,10 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
     useUser: () => ({ authMode: mocks.authMode, primaryAddress: mocks.primaryAddress }),
     useOctantVaultPositions: (owner?: string | null) =>
       owner ? (mocks.positionsByOwner[owner.toLowerCase()] ?? emptyPositions()) : emptyPositions(),
-    useOctantVaultWithdraw: () => ({
-      mutateAsync: mocks.withdrawMutateAsync,
+    useOctantVaultRedeem: () => ({
+      mutateAsync: mocks.redeemMutateAsync,
       mutate: vi.fn(),
-      reset: mocks.withdrawReset,
+      reset: mocks.redeemReset,
       isPending: false,
       error: null,
     }),
@@ -125,6 +127,15 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       usdCents: null,
       isLoading: false,
       isError: false,
+    }),
+    useOctantVaultProjectSupportMetric: () => ({
+      status: "unavailable",
+      sourceAddress: null,
+      shareBalance: 0n,
+      assetValue: 0n,
+      isLoading: false,
+      isError: false,
+      unavailableReason: "missing_source",
     }),
   };
 });
@@ -319,46 +330,49 @@ describe("/vaults?manage=positions", () => {
     expect(within(panel).getByRole("button", { name: "Endow a campaign" })).toBeInTheDocument();
   });
 
-  it("gates withdraw: disabled over the withdrawable max, enabled and signs for a valid amount", async () => {
+  it("gates redeem: disabled over the redeemable max, enabled and signs for a valid share amount", async () => {
     const user = userEvent.setup();
     mocks.authMode = "wallet";
     mocks.primaryAddress = CONNECTED;
     mocks.positionsByOwner[CONNECTED.toLowerCase()] = {
       ...emptyPositions(),
-      positions: [makePosition({ withdrawable: 1_000_000_000_000_000_000n })], // 1 WETH
+      positions: [makePosition({ redeemableShares: 1_000_000_000_000_000_000n })], // 1 share
       hasPositions: true,
     };
     renderPage("/vaults?manage=positions");
 
     const row = screen.getByTestId("vault-manage-position-greenpill-nyc");
-    await user.click(within(row).getByRole("button", { name: "Withdraw" }));
+    await user.click(within(row).getByRole("button", { name: "Redeem shares" }));
 
-    const amount = within(row).getByLabelText("Withdrawal amount");
+    const amount = within(row).getByLabelText("Shares to redeem");
     // Over the max → review stays disabled and an error shows.
     await user.type(amount, "2");
-    expect(within(row).getByText(/higher than the withdrawable amount/i)).toBeInTheDocument();
-    expect(within(row).getByRole("button", { name: "Review withdrawal" })).toBeDisabled();
+    expect(
+      within(row).getByText(/higher than the currently redeemable shares/i)
+    ).toBeInTheDocument();
+    expect(within(row).getByRole("button", { name: "Review redemption" })).toBeDisabled();
 
-    // Valid amount → review enabled; confirm calls the chain-aware withdraw.
+    // Valid amount → review enabled; confirm calls the chain-aware redeem.
     await user.clear(amount);
     await user.type(amount, "0.5");
-    const review = within(row).getByRole("button", { name: "Review withdrawal" });
+    const review = within(row).getByRole("button", { name: "Review redemption" });
     expect(review).toBeEnabled();
     await user.click(review);
+    expect(within(row).getByText(/approximately 0.6 WETH/i)).toBeInTheDocument();
     await user.click(within(row).getByRole("button", { name: "Confirm" }));
 
-    await waitFor(() => expect(mocks.withdrawMutateAsync).toHaveBeenCalledTimes(1));
-    expect(mocks.withdrawMutateAsync).toHaveBeenCalledWith(
+    await waitFor(() => expect(mocks.redeemMutateAsync).toHaveBeenCalledTimes(1));
+    expect(mocks.redeemMutateAsync).toHaveBeenCalledWith(
       expect.objectContaining({
         chainId: 1,
         vaultAddress: VAULT,
         owner: CONNECTED,
-        amount: 500_000_000_000_000_000n,
+        shares: 500_000_000_000_000_000n,
       })
     );
   });
 
-  it("Max fills the exact withdrawable and round-trips through parseUnits in a comma-decimal locale", async () => {
+  it("Max fills the exact redeemable shares and round-trips through parseUnits in a comma-decimal locale", async () => {
     // Regression guard for the Max button. It must use a locale-independent
     // formatter (formatUnits) that round-trips through parseUnits. The previous
     // display formatter rendered 1.5 WETH as "1,5" under a comma-decimal locale;
@@ -371,30 +385,38 @@ describe("/vaults?manage=positions", () => {
       mocks.primaryAddress = CONNECTED;
       mocks.positionsByOwner[CONNECTED.toLowerCase()] = {
         ...emptyPositions(),
-        positions: [makePosition({ withdrawable: 1_500_000_000_000_000_000n })], // 1.5 WETH
+        positions: [
+          makePosition({
+            redeemableShares: 1_500_000_000_000_000_000n,
+            estimatedRedeemAssets: 1_500_000_000_000_000_000n,
+          }),
+        ], // 1.5 shares
         hasPositions: true,
       };
       renderPage("/vaults?manage=positions");
 
       const row = screen.getByTestId("vault-manage-position-greenpill-nyc");
-      await user.click(within(row).getByRole("button", { name: "Withdraw" }));
+      await user.click(within(row).getByRole("button", { name: "Redeem shares" }));
       await user.click(within(row).getByRole("button", { name: "Max" }));
 
-      const amount = within(row).getByLabelText<HTMLInputElement>("Withdrawal amount");
+      const amount = within(row).getByLabelText<HTMLInputElement>("Shares to redeem");
       // Locale-independent: exactly "1.5", never "15" (the old comma-strip result).
       expect(amount.value).toBe("1.5");
 
-      const review = within(row).getByRole("button", { name: "Review withdrawal" });
+      const review = within(row).getByRole("button", { name: "Review redemption" });
       expect(review).toBeEnabled();
       await user.click(review);
       await user.click(within(row).getByRole("button", { name: "Confirm" }));
 
-      await waitFor(() => expect(mocks.withdrawMutateAsync).toHaveBeenCalledTimes(1));
-      expect(mocks.withdrawMutateAsync).toHaveBeenCalledWith(
-        expect.objectContaining({ amount: 1_500_000_000_000_000_000n })
+      await waitFor(() => expect(mocks.redeemMutateAsync).toHaveBeenCalledTimes(1));
+      expect(mocks.redeemMutateAsync).toHaveBeenCalledWith(
+        expect.objectContaining({ shares: 1_500_000_000_000_000_000n })
       );
     } finally {
-      Object.defineProperty(navigator, "language", { value: originalLanguage, configurable: true });
+      Object.defineProperty(navigator, "language", {
+        value: originalLanguage,
+        configurable: true,
+      });
     }
   });
 
@@ -404,26 +426,68 @@ describe("/vaults?manage=positions", () => {
     mocks.primaryAddress = CONNECTED;
     mocks.positionsByOwner[CONNECTED.toLowerCase()] = {
       ...emptyPositions(),
-      positions: [makePosition({ withdrawable: 1_000_000_000_000_000_000n })],
+      positions: [makePosition({ redeemableShares: 1_000_000_000_000_000_000n })],
       hasPositions: true,
     };
     renderPage("/vaults?manage=positions");
 
     const row = screen.getByTestId("vault-manage-position-greenpill-nyc");
-    await user.click(within(row).getByRole("button", { name: "Withdraw" }));
+    await user.click(within(row).getByRole("button", { name: "Redeem shares" }));
 
-    const amount = within(row).getByLabelText<HTMLInputElement>("Withdrawal amount");
+    const amount = within(row).getByLabelText<HTMLInputElement>("Shares to redeem");
     await user.type(amount, ".001");
     expect(amount.value).toBe(".001");
 
-    await user.click(within(row).getByRole("button", { name: "Review withdrawal" }));
+    await user.click(within(row).getByRole("button", { name: "Review redemption" }));
     expect(amount.value).toBe("0.001");
     await user.click(within(row).getByRole("button", { name: "Confirm" }));
 
-    await waitFor(() => expect(mocks.withdrawMutateAsync).toHaveBeenCalledTimes(1));
-    expect(mocks.withdrawMutateAsync).toHaveBeenCalledWith(
-      expect.objectContaining({ amount: 1_000_000_000_000_000n })
+    await waitFor(() => expect(mocks.redeemMutateAsync).toHaveBeenCalledTimes(1));
+    expect(mocks.redeemMutateAsync).toHaveBeenCalledWith(
+      expect.objectContaining({ shares: 1_000_000_000_000_000n })
     );
+  });
+
+  it("explains a visible position when maxRedeem returns zero", () => {
+    mocks.authMode = "wallet";
+    mocks.primaryAddress = CONNECTED;
+    mocks.positionsByOwner[CONNECTED.toLowerCase()] = {
+      ...emptyPositions(),
+      positions: [makePosition({ redeemableShares: 0n, estimatedRedeemAssets: 0n })],
+      hasPositions: true,
+    };
+
+    renderPage("/vaults?manage=positions");
+
+    const row = screen.getByTestId("vault-manage-position-greenpill-nyc");
+    expect(within(row).getByText("Redemption unavailable right now")).toBeInTheDocument();
+    expect(within(row).getByText(/visible vault shares/i)).toBeInTheDocument();
+    expect(within(row).getByText(/Estimated WETH proceeds/i)).toBeInTheDocument();
+    expect(within(row).getByText("Unavailable")).toBeInTheDocument();
+    expect(within(row).queryByRole("button", { name: "Redeem shares" })).toBeNull();
+  });
+
+  it("blocks redemption when estimated WETH proceeds cannot be previewed", () => {
+    mocks.authMode = "wallet";
+    mocks.primaryAddress = CONNECTED;
+    mocks.positionsByOwner[CONNECTED.toLowerCase()] = {
+      ...emptyPositions(),
+      positions: [
+        makePosition({
+          redeemableShares: 1_000_000_000_000_000_000n,
+          estimatedRedeemAssets: null,
+        }),
+      ],
+      hasPositions: true,
+    };
+
+    renderPage("/vaults?manage=positions");
+
+    const row = screen.getByTestId("vault-manage-position-greenpill-nyc");
+    expect(within(row).getByText(/Estimated WETH proceeds/i)).toBeInTheDocument();
+    expect(within(row).getByText("Unavailable")).toBeInTheDocument();
+    expect(within(row).getByText("Estimated proceeds unavailable")).toBeInTheDocument();
+    expect(within(row).queryByRole("button", { name: "Redeem shares" })).toBeNull();
   });
 
   it("renders card-wallet positions under a Card wallet tab without re-verifying email", async () => {
@@ -456,10 +520,10 @@ describe("/vaults?manage=positions", () => {
       expect(within(panel).getByTestId("vault-manage-position-greenpill-nyc")).toBeInTheDocument()
     );
     // No email/OTP restore prompt — the live session means no re-verification.
-    expect(within(panel).queryByText("Restore email wallet to withdraw")).toBeNull();
+    expect(within(panel).queryByText("Restore email wallet to redeem")).toBeNull();
     expect(within(panel).queryByText(/restore the email wallet/i)).toBeNull();
-    // Withdraw is available (session live).
-    expect(within(panel).getByRole("button", { name: "Withdraw" })).toBeInTheDocument();
+    // Redeem is available (session live).
+    expect(within(panel).getByRole("button", { name: "Redeem shares" })).toBeInTheDocument();
     // The no-re-verify path is the autoConnect rehydration mechanism, wired with
     // the email in-app wallet — assert it is actually invoked, not bypassed.
     expect(mocks.autoConnectSpy).toHaveBeenCalledWith(
@@ -495,11 +559,11 @@ describe("/vaults?manage=positions", () => {
 
     const panel = screen.getByTestId("vault-manage-positions-panel");
     await waitFor(() =>
-      expect(within(panel).getByText("Restore email wallet to withdraw")).toBeInTheDocument()
+      expect(within(panel).getByText("Restore email wallet to redeem")).toBeInTheDocument()
     );
-    // Position still visible read-only, but no active Withdraw control.
+    // Position still visible read-only, but no active Redeem control.
     expect(within(panel).getByTestId("vault-manage-position-greenpill-nyc")).toBeInTheDocument();
-    expect(within(panel).queryByRole("button", { name: "Withdraw" })).toBeNull();
+    expect(within(panel).queryByRole("button", { name: "Redeem shares" })).toBeNull();
   });
 });
 

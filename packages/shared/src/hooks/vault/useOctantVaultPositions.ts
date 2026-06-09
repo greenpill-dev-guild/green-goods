@@ -10,13 +10,15 @@
  *
  * It is deliberately owner-agnostic — pass any address. For each campaign vault it
  * reads `balanceOf(owner)`, and for vaults the owner actually holds, the live
- * `convertToAssets(shares)` position value and `maxWithdraw(owner, maxLoss, [])`
- * withdrawable. Only **active** positions (shares > 0) are returned; the surface
+ * `convertToAssets(shares)` position value, `maxRedeem(owner, maxLoss, [])`, and
+ * `convertToAssets(redeemableShares)` estimated WETH proceeds. Only **active**
+ * positions (shares > 0) are returned; the surface
  * shows current holdings, not historical activity.
  *
  * The `maxLoss` used here is the canonical {@link DEFAULT_WITHDRAW_MAX_LOSS_BPS}
- * (1%), the SAME value the connected-wallet and card-wallet withdraw paths pass to
- * `withdraw` — so the "withdrawable" shown is the amount those paths will accept.
+ * (1%), the SAME value the connected-wallet and card-wallet redeem paths pass to
+ * redeem pre-check — so the "redeemable" shares shown are the shares those paths
+ * will accept.
  *
  * @module hooks/vault/useOctantVaultPositions
  */
@@ -47,10 +49,14 @@ export interface OctantVaultPosition {
   assetDecimals: number;
   /** Vault shares the owner holds (`balanceOf`). */
   shares: bigint;
+  /** Vault share decimals. Octant/Yearn V3 tokenized strategies use 18. */
+  shareDecimals: number;
   /** Current value of those shares in asset base units (`convertToAssets`). */
   positionValue: bigint;
-  /** Withdrawable now in asset base units (`maxWithdraw` at the 1% default maxLoss). */
-  withdrawable: bigint;
+  /** Redeemable shares now (`maxRedeem` at the 1% default maxLoss). */
+  redeemableShares: bigint;
+  /** Estimated returned assets for `redeemableShares` (`convertToAssets`), or null when preview is unavailable. */
+  estimatedRedeemAssets: bigint | null;
   explorerLink?: string;
 }
 
@@ -76,6 +82,7 @@ interface ReadableVault {
   assetAddress: Address;
   assetSymbol: string;
   assetDecimals: number;
+  shareDecimals: number;
 }
 
 /** Campaigns whose manifest is complete enough to read positions from. */
@@ -100,6 +107,7 @@ function toReadableVaults(campaigns: OctantVaultCampaignManifest[]): ReadableVau
       assetAddress: asset.address,
       assetSymbol: asset.symbol,
       assetDecimals: asset.decimals,
+      shareDecimals: vault.vaultDecimals ?? 18,
     });
   }
   return readable;
@@ -120,10 +128,10 @@ async function readVaultPosition(
   const shares = typeof sharesResult === "bigint" ? sharesResult : 0n;
   if (shares <= 0n) return null;
 
-  // Secondary reads are nice-to-have: a flaky convertToAssets / maxWithdraw must
-  // not hide a position the owner provably holds. Fall back to 0 (withdraw stays
-  // disabled, value shows as unavailable) rather than dropping the row.
-  const [valueResult, withdrawableResult] = await Promise.all([
+  // Secondary reads are nice-to-have: flaky conversion / maxRedeem reads must not
+  // hide a position the owner provably holds. Fall back to 0 (redeem stays
+  // unavailable, value shows as unavailable) rather than dropping the row.
+  const [valueResult, redeemableSharesResult] = await Promise.all([
     publicClient
       .readContract({
         address: vault.vaultAddress,
@@ -144,7 +152,7 @@ async function readVaultPosition(
       .readContract({
         address: vault.vaultAddress,
         abi: OCTANT_VAULT_ABI,
-        functionName: "maxWithdraw",
+        functionName: "maxRedeem",
         args: [owner, DEFAULT_WITHDRAW_MAX_LOSS_BPS, []],
       })
       .catch((error) => {
@@ -157,6 +165,20 @@ async function readVaultPosition(
         return 0n;
       }),
   ]);
+  const redeemableShares = typeof redeemableSharesResult === "bigint" ? redeemableSharesResult : 0n;
+  let estimatedRedeemAssets: bigint | null = 0n;
+  if (redeemableShares > 0n) {
+    const estimatedRedeemAssetsResult = await publicClient
+      .readContract({
+        address: vault.vaultAddress,
+        abi: OCTANT_VAULT_ABI,
+        functionName: "convertToAssets",
+        args: [redeemableShares],
+      })
+      .catch(() => null);
+    estimatedRedeemAssets =
+      typeof estimatedRedeemAssetsResult === "bigint" ? estimatedRedeemAssetsResult : null;
+  }
 
   return {
     campaignSlug: vault.campaign.slug,
@@ -167,9 +189,11 @@ async function readVaultPosition(
     assetAddress: vault.assetAddress,
     assetSymbol: vault.assetSymbol,
     assetDecimals: vault.assetDecimals,
+    shareDecimals: vault.shareDecimals,
     shares,
     positionValue: typeof valueResult === "bigint" ? valueResult : 0n,
-    withdrawable: typeof withdrawableResult === "bigint" ? withdrawableResult : 0n,
+    redeemableShares,
+    estimatedRedeemAssets,
   };
 }
 

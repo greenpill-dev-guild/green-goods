@@ -608,8 +608,18 @@ function WalletEndowPathContent({
   const hasCompletedWrapForAmount = wrapCompletedKey === wrapFlowKey;
   const assetBalance = walletBalances.assetBalance;
   const nativeBalance = walletBalances.nativeBalance;
-  const assetInsufficient = typeof assetBalance === "bigint" && assetBalance < amount;
-  const ethSufficientForWrap = typeof nativeBalance === "bigint" && nativeBalance >= amount;
+  const wrapShortfall =
+    typeof assetBalance === "bigint" && assetBalance < amount ? amount - assetBalance : 0n;
+  const assetInsufficient = wrapShortfall > 0n;
+  const ethSufficientForWrap =
+    wrapShortfall > 0n && typeof nativeBalance === "bigint" && nativeBalance >= wrapShortfall;
+  const walletBalanceDecisionPending =
+    Boolean(primaryWalletAddress && isWethAsset && !hasCompletedWrapForAmount) &&
+    !walletBalances.isError &&
+    (walletBalances.isLoading ||
+      walletBalances.isFetching ||
+      typeof assetBalance !== "bigint" ||
+      typeof nativeBalance !== "bigint");
   const shouldWrapBeforeDeposit =
     Boolean(primaryWalletAddress && isWethAsset) &&
     assetInsufficient &&
@@ -709,10 +719,12 @@ function WalletEndowPathContent({
       return;
     }
 
+    if (walletBalanceDecisionPending) return;
+
     if (shouldWrapBeforeDeposit && assetAddress) {
       const submissionKey = wrapFlowKey;
       wrapEthToWeth.mutate(
-        { chainId, wethAddress: assetAddress, amount },
+        { chainId, wethAddress: assetAddress, amount: wrapShortfall },
         {
           onError: () => {
             if (walletFlowKeyRef.current === walletFlowKey) setWrapCompletedKey(null);
@@ -763,9 +775,11 @@ function WalletEndowPathContent({
     shouldWrapBeforeDeposit,
     status,
     updateWalletConnectRequested,
+    walletBalanceDecisionPending,
     walletBalances,
     walletEndow,
     wrapEthToWeth,
+    wrapShortfall,
     wrapFlowKey,
     walletFlowKey,
   ]);
@@ -837,7 +851,13 @@ function WalletEndowPathContent({
     );
   }
 
-  const formattedWrapAmount = formatTokenAmount(amount, assetDecimals, 6, undefined, true);
+  const formattedWrapAmount = formatTokenAmount(
+    wrapShortfall > 0n ? wrapShortfall : amount,
+    assetDecimals,
+    6,
+    undefined,
+    true
+  );
   const actionLabel = primaryWalletAddress
     ? shouldWrapBeforeDeposit
       ? formatMessage({
@@ -869,7 +889,7 @@ function WalletEndowPathContent({
         <button
           type="button"
           onClick={handleSubmit}
-          disabled={walletBusy}
+          disabled={walletBusy || walletBalanceDecisionPending}
           className={CHECKOUT_PRIMARY_BUTTON}
         >
           {wrapEthToWeth.isPending
@@ -882,7 +902,12 @@ function WalletEndowPathContent({
                   id: "public.vaults.walletEndow.submitting",
                   defaultMessage: "Submitting...",
                 })
-              : actionLabel}
+              : walletBalanceDecisionPending
+                ? formatMessage({
+                    id: "public.vaults.walletEndow.balances.loading",
+                    defaultMessage: "Loading balances...",
+                  })
+                : actionLabel}
         </button>
       }
     >
