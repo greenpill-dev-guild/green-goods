@@ -3,7 +3,7 @@ import {
   type OctantVaultCampaignManifest,
   type OctantVaultCardEndowFallbackPlan,
 } from "@green-goods/shared";
-import { type ReactNode, useCallback, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { Bridge, type ThirdwebClient } from "thirdweb";
 import { formatUnits } from "viem";
@@ -68,8 +68,11 @@ export interface VaultCardPaymentPanelProps {
   campaign: OctantVaultCampaignManifest;
   /** Decisions already made (amount, method, email, position holder) summary strip. */
   summaryItems: CheckoutSummaryItem[];
-  /** Advance to Step 4 once the card payment is confirmed COMPLETED. */
+  /** Starts the vault deposit batch once the card payment is confirmed COMPLETED. */
   onCardFundingSuccess: () => void;
+  cardFundingComplete: boolean;
+  statusBlock: ReactNode;
+  fallbackButton?: ReactNode;
   /** Parent connect/flow error surface, rendered for continuity. */
   errorNotes?: ReactNode;
 }
@@ -77,7 +80,7 @@ export interface VaultCardPaymentPanelProps {
 type PanelPhase = "ready" | "opened";
 type PanelBusy = "idle" | "preparing" | "checking";
 /** Non-terminal status outcomes shown in place; COMPLETED advances out of the panel. */
-type PanelStatusOutcome = "pending" | "failed" | null;
+type PanelStatusOutcome = "pending" | "failed" | "error" | null;
 
 /**
  * VaultCardPaymentPanel — Green Goods-owned Step 3 of the /vaults Card Endow flow.
@@ -85,7 +88,7 @@ type PanelStatusOutcome = "pending" | "failed" | null;
  * Replaces the embedded Thirdweb `BuyWidget` with a headless `Bridge.Onramp` flow
  * the donor never sees as a provider surface: a Green Goods CTA opens secure card
  * checkout in a new tab, then the donor returns and checks payment status. Only a
- * COMPLETED status advances to the Step 4 `approve -> deposit -> balanceOf` proof
+ * COMPLETED status starts the Step 3 `approve -> deposit -> balanceOf` proof
  * path (owned by the parent). PENDING/CREATED keep the donor here in plain copy;
  * FAILED is recoverable with a retry. No vault position is treated as complete
  * until the donor returns and finishes confirmation.
@@ -96,6 +99,9 @@ export default function VaultCardPaymentPanel({
   campaign,
   summaryItems,
   onCardFundingSuccess,
+  cardFundingComplete,
+  statusBlock,
+  fallbackButton,
   errorNotes,
 }: VaultCardPaymentPanelProps) {
   const { formatMessage } = useIntl();
@@ -104,6 +110,7 @@ export default function VaultCardPaymentPanel({
   const [session, setSession] = useState<{ id: string; link: string } | null>(null);
   const [statusOutcome, setStatusOutcome] = useState<PanelStatusOutcome>(null);
   const [error, setError] = useState<string | null>(null);
+  const statusCheckInFlightRef = useRef(false);
   const prepareFailedMessage = formatMessage({
     id: "public.vaults.cardEndow.panel.prepareFailed",
     defaultMessage: "We couldn't open card checkout. Please try again.",
@@ -175,7 +182,10 @@ export default function VaultCardPaymentPanel({
   }, [busy, client, plan.cardFunding, purchaseData, prepareFailedMessage]);
 
   const handleCheckStatus = useCallback(async () => {
-    if (busy !== "idle" || !session) return;
+    if (busy !== "idle" || !session || cardFundingComplete || statusCheckInFlightRef.current) {
+      return;
+    }
+    statusCheckInFlightRef.current = true;
     setBusy("checking");
     setError(null);
     setStatusOutcome(null);
@@ -185,7 +195,7 @@ export default function VaultCardPaymentPanel({
       // Clear the in-flight lock before branching so no outcome can strand the button.
       setBusy("idle");
       if (result.status === "COMPLETED") {
-        // Terminal forward: the parent flips to Step 4 and unmounts this panel.
+        // Terminal forward: the parent starts the Step 3 deposit work.
         onCardFundingSuccess();
         return;
       }
@@ -198,9 +208,21 @@ export default function VaultCardPaymentPanel({
       setStatusOutcome("pending");
     } catch {
       setBusy("idle");
+      setStatusOutcome("error");
       setError(statusFailedMessage);
+    } finally {
+      statusCheckInFlightRef.current = false;
     }
-  }, [busy, session, client, onCardFundingSuccess, statusFailedMessage]);
+  }, [busy, cardFundingComplete, session, client, onCardFundingSuccess, statusFailedMessage]);
+
+  useEffect(() => {
+    if (!session || cardFundingComplete || statusOutcome === "error") return;
+    const delay = statusOutcome === "pending" ? 5_000 : 0;
+    const timeout = window.setTimeout(() => {
+      void handleCheckStatus();
+    }, delay);
+    return () => window.clearTimeout(timeout);
+  }, [cardFundingComplete, handleCheckStatus, session, statusOutcome]);
 
   const footer =
     phase === "ready" ? (
@@ -220,7 +242,7 @@ export default function VaultCardPaymentPanel({
               defaultMessage: "Open secure card checkout",
             })}
       </button>
-    ) : (
+    ) : cardFundingComplete ? null : (
       <div className="flex flex-col gap-2">
         <button
           type="button"
@@ -238,17 +260,6 @@ export default function VaultCardPaymentPanel({
                 defaultMessage: "Check payment status",
               })}
         </button>
-        <a
-          href={session?.link}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={CHECKOUT_GHOST_BUTTON}
-        >
-          {formatMessage({
-            id: "public.vaults.cardEndow.panel.openCheckoutLink",
-            defaultMessage: "Open secure checkout link",
-          })}
-        </a>
       </div>
     );
 
@@ -258,16 +269,16 @@ export default function VaultCardPaymentPanel({
         <CheckoutStageHeader
           eyebrow={formatMessage({
             id: "public.vaults.cardEndow.stage.fund.eyebrow",
-            defaultMessage: "Step 3 of 4",
+            defaultMessage: "Step 3 of 3",
           })}
           title={formatMessage({
             id: "public.vaults.cardEndow.stage.fund.title",
-            defaultMessage: "Pay by card",
+            defaultMessage: "Pay and deposit",
           })}
           description={formatMessage({
             id: "public.vaults.cardEndow.stage.fund.description",
             defaultMessage:
-              "Pay by card to fund your verified email wallet, then return here to confirm your vault position.",
+              "Complete card funding, then the verified email wallet deposits into the vault.",
           })}
         />
         <CheckoutSummary items={summaryItems} />
@@ -305,7 +316,7 @@ export default function VaultCardPaymentPanel({
           </div>
 
           <div role="status" aria-live="polite" aria-atomic="true" className="flex flex-col gap-3">
-            {phase === "opened" ? (
+            {phase === "opened" && !cardFundingComplete ? (
               <p className="rounded-none bg-primary-action/10 p-4 text-sm leading-[1.55] text-primary-base">
                 {formatMessage({
                   id: "public.vaults.cardEndow.panel.opened",
@@ -315,7 +326,7 @@ export default function VaultCardPaymentPanel({
               </p>
             ) : null}
 
-            {statusOutcome === "pending" ? (
+            {statusOutcome === "pending" && !cardFundingComplete ? (
               <p className="rounded-none bg-bg-weak-50 p-4 text-sm leading-[1.55] text-text-sub-600">
                 {formatMessage({
                   id: "public.vaults.cardEndow.panel.pending",
@@ -348,13 +359,23 @@ export default function VaultCardPaymentPanel({
             </p>
           ) : null}
 
-          <p className="bg-bg-weak-50 p-4 text-sm leading-[1.55] text-text-sub-600">
-            {formatMessage({
-              id: "public.vaults.cardEndow.panel.gateNote",
-              defaultMessage:
-                "No vault position is complete until you return and finish confirmation.",
-            })}
-          </p>
+          {statusBlock}
+
+          {session ? (
+            <a
+              href={session.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={CHECKOUT_GHOST_BUTTON}
+            >
+              {formatMessage({
+                id: "public.vaults.cardEndow.panel.openCheckoutLink",
+                defaultMessage: "Open secure checkout link",
+              })}
+            </a>
+          ) : null}
+
+          {fallbackButton ? <div className="flex flex-col gap-2">{fallbackButton}</div> : null}
 
           {session ? (
             <details className="border-t border-stroke-soft-200 pt-4">
@@ -387,6 +408,21 @@ export default function VaultCardPaymentPanel({
                     })}
                   </dt>
                   <dd className="break-all font-mono text-xs text-text-sub-600">{session.id}</dd>
+                </div>
+                <div>
+                  <dt className="font-medium text-text-strong-950">
+                    {formatMessage({
+                      id: "public.vaults.cardEndow.panel.executionLabel",
+                      defaultMessage: "Deposit execution",
+                    })}
+                  </dt>
+                  <dd className="text-text-sub-600">
+                    {formatMessage({
+                      id: "public.vaults.cardEndow.panel.executionValue",
+                      defaultMessage:
+                        "EIP-7702 batch when supported; approve and deposit fallback if not.",
+                    })}
+                  </dd>
                 </div>
               </dl>
             </details>
