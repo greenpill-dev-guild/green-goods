@@ -72,7 +72,7 @@ body {
   border-right: 0;
   border-bottom: 0;
   border-left: 0;
-  border-radius: 0;
+  @apply rounded-none;
   background: var(--color-bg-white-0);
   box-shadow: var(--shadow-float);
 }
@@ -89,7 +89,7 @@ body {
 .vault-checkout-mobile-panel [data-slot="drag-handle"] > div {
   width: 2.5rem;
   height: 0.375rem;
-  border-radius: 999px;
+  border-radius: var(--radius-full);
   background: rgb(var(--tone-primary, var(--primary-base)) / 0.32);
 }
 

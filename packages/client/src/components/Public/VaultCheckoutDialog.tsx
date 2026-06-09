@@ -580,6 +580,7 @@ function WalletEndowPathContent({
   const [walletConnectRequested, setWalletConnectRequested] = useState(false);
   const walletConnectRequestedRef = useRef(false);
   const { set: scheduleSlow, clear: clearSlow } = useTimeout();
+  const { set: scheduleWalletConnectFallback, clear: clearWalletConnectFallback } = useTimeout();
 
   // Only a wallet-mode session is a valid Wallet Endow receiver. Restored passkey
   // / embedded sessions must still connect a wallet (PRD parity with /fund).
@@ -639,6 +640,7 @@ function WalletEndowPathContent({
     setSlow(false);
     setPendingSubmissionKey(null);
     setWrapCompletedKey(null);
+    clearWalletConnectFallback();
     updateWalletConnectRequested(false);
     resetWalletEndow();
     resetWrapEthToWeth();
@@ -646,6 +648,7 @@ function WalletEndowPathContent({
     amount,
     campaign.slug,
     primaryWalletAddress,
+    clearWalletConnectFallback,
     resetWalletEndow,
     resetWrapEthToWeth,
     updateWalletConnectRequested,
@@ -677,8 +680,11 @@ function WalletEndowPathContent({
   }, [onCheckoutGuardChange]);
 
   useEffect(() => {
-    if (primaryWalletAddress) updateWalletConnectRequested(false);
-  }, [primaryWalletAddress, updateWalletConnectRequested]);
+    if (primaryWalletAddress) {
+      clearWalletConnectFallback();
+      updateWalletConnectRequested(false);
+    }
+  }, [clearWalletConnectFallback, primaryWalletAddress, updateWalletConnectRequested]);
 
   useEffect(() => {
     const handleEscape = (event: KeyboardEvent) => {
@@ -697,7 +703,19 @@ function WalletEndowPathContent({
     if (!primaryWalletAddress) {
       updateWalletConnectRequested(true);
       onCheckoutGuardChange({ inputsLocked: false, closeLocked: true });
-      loginWithWallet();
+      const cancelWalletConnectFallback = scheduleWalletConnectFallback(() => {
+        if (walletFlowKeyRef.current === walletFlowKey) {
+          updateWalletConnectRequested(false);
+          onCheckoutGuardChange(UNLOCKED_CHECKOUT_GUARD);
+        }
+      }, 15_000);
+      void Promise.resolve(loginWithWallet()).catch(() => {
+        cancelWalletConnectFallback();
+        if (walletFlowKeyRef.current === walletFlowKey) {
+          updateWalletConnectRequested(false);
+          onCheckoutGuardChange(UNLOCKED_CHECKOUT_GUARD);
+        }
+      });
       return;
     }
 
@@ -753,6 +771,7 @@ function WalletEndowPathContent({
     loginWithWallet,
     onCheckoutGuardChange,
     primaryWalletAddress,
+    scheduleWalletConnectFallback,
     shouldWrapBeforeDeposit,
     status,
     updateWalletConnectRequested,

@@ -1926,24 +1926,30 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
       );
     }
 
-    let matchedAssetAmount: string | undefined;
-    if (deps.confirmFundingTuple) {
-      const confirmation = await deps.confirmFundingTuple(request.transactionHash, {
-        token: request.token.toLowerCase(),
-        destinationAddress: request.destinationAddress.toLowerCase(),
-        minAssetAmount: request.amount,
-        chainId: request.chainId,
-      });
-      if (confirmation.status !== "confirmed") {
-        return publicCorsResponse(
-          c,
-          deps,
-          safeError("funding_unavailable", "This funding proof is not confirmed yet."),
-          409
-        );
-      }
-      matchedAssetAmount = confirmation.matchedAssetAmount;
+    if (!deps.confirmFundingTuple) {
+      return publicCorsResponse(
+        c,
+        deps,
+        safeError("funding_unavailable", "This funding proof is not confirmed yet."),
+        409
+      );
     }
+
+    const confirmation = await deps.confirmFundingTuple(request.transactionHash, {
+      token: request.token.toLowerCase(),
+      destinationAddress: request.destinationAddress.toLowerCase(),
+      minAssetAmount: request.amount,
+      chainId: request.chainId,
+    });
+    if (confirmation.status !== "confirmed") {
+      return publicCorsResponse(
+        c,
+        deps,
+        safeError("funding_unavailable", "This funding proof is not confirmed yet."),
+        409
+      );
+    }
+    const matchedAssetAmount = confirmation.matchedAssetAmount;
 
     const idempotencyFingerprint = createFundingProofFingerprint(request);
     const existing = await fundingIntents.getByClientRequestId(request.clientRequestId);

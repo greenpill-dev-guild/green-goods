@@ -175,6 +175,21 @@ describe("parseContractError", () => {
   });
 
   describe("network and connectivity patterns", () => {
+    it.each([
+      "request expired",
+      "proposal expired",
+      "out of time-range",
+      "AA22 expired or not due",
+      "AA32 paymaster expired or not due",
+    ])("classifies wallet request expiry phrasing: %s", (message) => {
+      const result = parseContractError(message);
+      expect(result.name).toBe("WalletRequestExpired");
+      expect(result.isKnown).toBe(true);
+      expect(result.recoverable).toBe(true);
+      expect(result.suggestedAction).toBe("retry");
+      expect(result.message).toContain("Wallet request expired");
+    });
+
     it("classifies offline before generic network", () => {
       const result = parseContractError("Device is offline");
       expect(result.name).toBe("Offline");

@@ -724,6 +724,55 @@ describe("public funding intent API", () => {
     );
   });
 
+  it("rejects client-side Card Endow proof when tuple confirmation is unavailable", async () => {
+    const store = new MemoryFundingIntentStore();
+    const app = createServer(
+      {
+        isAIReady: () => true,
+        allowedOrigins: new Set([ORIGIN]),
+        fundingIntents: store,
+        publicRateLimiter: new InMemoryPublicRateLimiter(),
+        providerProofRegistry: createProviderProofRegistry([
+          {
+            ...cardEndowAvailabilityInput,
+            sourceRoute: "/vaults",
+            state: "live",
+            proofReference: "production:card-endow-vaults-proof-2026-06-03",
+          },
+        ]),
+      },
+      { logger: false }
+    );
+    const request = createCardEndowFundingRequest({ sourceRoute: "/vaults" });
+
+    const response = await app.request(PUBLIC_AGENT_ROUTES.fundingIntentProof, {
+      method: "POST",
+      headers: jsonHeaders(),
+      body: JSON.stringify({
+        gardenId,
+        gardenName: "Greenpill NYC",
+        destinationType: "vault",
+        destinationAddress,
+        fundingIntent: "endow",
+        paymentMethod: "card",
+        provider: "thirdweb",
+        sourceRoute: "/vaults",
+        chainId: 11155111,
+        token,
+        availabilityKey: request.availabilityKey,
+        clientRequestId: "client-proof-no-confirmation",
+        receiverAddress,
+        receiverCustody: "user_owned_recovered_wallet",
+        amount: "25000000",
+        transactionHash: "0xabcdef",
+        shareBalance: "1",
+      }),
+    });
+
+    expect(response.status).toBe(409);
+    expect(await store.getByClientRequestId("client-proof-no-confirmation")).toBeUndefined();
+  });
+
   it("rejects Card Endow proof when vault.balanceOf(receiver) is not positive", async () => {
     const app = createServer(
       {

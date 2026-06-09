@@ -381,7 +381,8 @@ async function confirmTupleAndFundCard(user: ReturnType<typeof userEvent.setup>)
 
 describe("VaultsPage", () => {
   beforeEach(() => {
-    sharedHookMocks.loginWithWallet.mockClear();
+    sharedHookMocks.loginWithWallet.mockReset();
+    sharedHookMocks.loginWithWallet.mockResolvedValue(undefined);
     sharedHookMocks.octantVaultWalletEndowMutate.mockClear();
     sharedHookMocks.octantVaultWalletEndowReset.mockClear();
     sharedHookMocks.octantVaultWalletEndowError = null;
@@ -928,7 +929,7 @@ describe("VaultsPage", () => {
     // headless onramp for the recovered wallet + WETH, and redirects that tab.
     await user.click(screen.getByRole("button", { name: "Open secure card checkout" }));
     await waitFor(() => expect(thirdwebMocks.onrampPrepare).toHaveBeenCalledTimes(1));
-    expect(windowOpenMock).toHaveBeenCalledWith("about:blank", "_blank");
+    expect(windowOpenMock).toHaveBeenCalledWith("about:blank", "_blank", "noopener,noreferrer");
     expect(thirdwebMocks.onrampPrepare).toHaveBeenCalledWith(
       expect.objectContaining({
         onramp: "stripe",
@@ -1087,7 +1088,7 @@ describe("VaultsPage", () => {
     await waitFor(() => expect(thirdwebMocks.onrampPrepare).toHaveBeenCalledTimes(2));
     expect(thirdwebMocks.onrampPrepare.mock.calls[0]?.[0]).toMatchObject({ onramp: "stripe" });
     expect(thirdwebMocks.onrampPrepare.mock.calls[1]?.[0]).toMatchObject({ onramp: "coinbase" });
-    expect(windowOpenMock).toHaveBeenCalledWith("about:blank", "_blank");
+    expect(windowOpenMock).toHaveBeenCalledWith("about:blank", "_blank", "noopener,noreferrer");
     await waitFor(() =>
       expect(checkoutWindowMocks.current?.location.href).toBe("https://onramp.test/session")
     );
@@ -1109,7 +1110,7 @@ describe("VaultsPage", () => {
     await user.click(await screen.findByRole("button", { name: "Open secure card checkout" }));
 
     await waitFor(() => expect(thirdwebMocks.onrampPrepare).toHaveBeenCalledTimes(1));
-    expect(windowOpenMock).toHaveBeenCalledWith("about:blank", "_blank");
+    expect(windowOpenMock).toHaveBeenCalledWith("about:blank", "_blank", "noopener,noreferrer");
     expect(checkoutWindowMocks.current).toBeNull();
     expect(
       await screen.findByText(
@@ -1183,11 +1184,13 @@ describe("VaultsPage", () => {
     ).toBeInTheDocument();
     expect(screen.queryByText("Step 4 of 4")).not.toBeInTheDocument();
     expect(thirdwebMocks.sendAndConfirmTransaction).not.toHaveBeenCalled();
-    // Retry stays available — the donor can reopen checkout through the direct link.
-    expect(screen.getByRole("link", { name: "Open secure checkout link" })).toHaveAttribute(
-      "href",
-      "https://onramp.test/session"
-    );
+    // Retry creates a fresh provider session rather than sending the donor back to
+    // the failed checkout session.
+    expect(
+      screen.queryByRole("link", { name: "Open secure checkout link" })
+    ).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Open secure card checkout" }));
+    await waitFor(() => expect(thirdwebMocks.onrampPrepare).toHaveBeenCalledTimes(2));
   });
 
   it("locks the sheet while the combined Card Endow runs, then finishes after it resolves", async () => {
@@ -1356,6 +1359,23 @@ describe("VaultsPage", () => {
     expect(screen.getByTestId("vault-wallet-endow-path")).toBeInTheDocument();
     expect(screen.getByText("$3.25")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Connect wallet" })).toBeInTheDocument();
+  });
+
+  it("unlocks the wallet checkout sheet when wallet connection is cancelled", async () => {
+    const user = userEvent.setup();
+    sharedHookMocks.loginWithWallet.mockRejectedValueOnce(new Error("wallet cancelled"));
+
+    renderContent([makeCompleteCampaign()]);
+
+    await user.click(screen.getByRole("button", { name: "Endow to Synthetic complete campaign" }));
+    await user.click(screen.getByTestId("vault-checkout-method-wallet"));
+    await user.type(screen.getByLabelText("Amount to endow"), "2.50");
+    await user.click(screen.getByRole("button", { name: "Continue to Wallet" }));
+    await user.click(screen.getByRole("button", { name: "Connect wallet" }));
+
+    expect(sharedHookMocks.loginWithWallet).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(screen.getByRole("button", { name: "Close" })).toBeInTheDocument());
+    expect(screen.getByRole("button", { name: "Connect wallet" })).toBeEnabled();
   });
 
   it("does not treat restored passkey auth as Wallet Endow readiness", async () => {

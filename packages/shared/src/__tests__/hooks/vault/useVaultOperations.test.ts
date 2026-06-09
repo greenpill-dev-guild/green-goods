@@ -31,6 +31,7 @@ const TEST_ASSET = "0x3333333333333333333333333333333333333333";
 const TEST_VAULT = "0x4444444444444444444444444444444444444444";
 const TEST_OCTANT_MODULE = "0x5555555555555555555555555555555555555555";
 const TEST_OCTANT_CHAIN_ID = 1;
+const MAINNET_WETH_ADDRESS = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
 
 const mockSendContractCall = vi.fn();
 const mockReadContract = vi.fn();
@@ -344,7 +345,7 @@ describe("hooks/vault/useVaultOperations", () => {
     expect(mockSendContractCall).not.toHaveBeenCalled();
   });
 
-  it("wraps ETH into the configured WETH token before the existing vault deposit path", async () => {
+  it("wraps ETH into canonical mainnet WETH before the existing vault deposit path", async () => {
     const queryClient = new QueryClient({
       defaultOptions: {
         queries: { retry: false },
@@ -359,7 +360,7 @@ describe("hooks/vault/useVaultOperations", () => {
     await act(async () => {
       await result.current.mutateAsync({
         chainId: TEST_OCTANT_CHAIN_ID,
-        wethAddress: TEST_ASSET as `0x${string}`,
+        wethAddress: MAINNET_WETH_ADDRESS as `0x${string}`,
         amount: 10n,
       });
     });
@@ -367,12 +368,37 @@ describe("hooks/vault/useVaultOperations", () => {
     expect(mockSendContractCall).toHaveBeenCalledWith(
       expect.objectContaining({
         chainId: TEST_OCTANT_CHAIN_ID,
-        address: TEST_ASSET,
+        address: MAINNET_WETH_ADDRESS,
         functionName: "deposit",
         args: [],
         value: 10n,
       })
     );
+  });
+
+  it("rejects non-canonical WETH targets before sending wrap value", async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+
+    const { result } = renderHook(() => useWrapEthToWeth({ errorMode: "inline" }), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await act(async () => {
+      await expect(
+        result.current.mutateAsync({
+          chainId: TEST_OCTANT_CHAIN_ID,
+          wethAddress: TEST_ASSET as `0x${string}`,
+          amount: 10n,
+        })
+      ).rejects.toThrow("canonical Ethereum mainnet WETH");
+    });
+
+    expect(mockSendContractCall).not.toHaveBeenCalled();
   });
 
   it("rejects Octant Wallet Endow when the restored auth mode is not wallet", async () => {

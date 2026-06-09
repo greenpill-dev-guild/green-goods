@@ -1,3 +1,5 @@
+import type { Address } from "../../types/domain";
+
 export const vaultsKeys = {
   all: ["greengoods", "vaults"] as const,
   byChain: (chainId: number) => ["greengoods", "vaults", "chain", chainId] as const,
@@ -31,7 +33,7 @@ export const vaultsKeys = {
       chainId,
     ] as const,
   allDeposits: (chainId: number) => ["greengoods", "vaults", "allDeposits", chainId] as const,
-  campaignStats: (vaultAddress: string, chainId: number) =>
+  campaignStats: (vaultAddress: Address, chainId: number) =>
     ["greengoods", "vaults", "campaignStats", vaultAddress, chainId] as const,
   projectSupportMetric: (vaultAddress: string, chainId: number) =>
     ["greengoods", "vaults", "projectSupportMetric", vaultAddress, chainId] as const,
@@ -41,7 +43,7 @@ export const vaultsKeys = {
    * share a stable key. Used by `useOctantVaultPositions` on the `/vaults`
    * management surface (read through a public client, no indexer).
    */
-  octantPositions: (ownerAddress: string, chainId: number) =>
+  octantPositions: (ownerAddress: Address, chainId: number) =>
     ["greengoods", "vaults", "octantPositions", ownerAddress, chainId] as const,
   octantWalletBalances: (ownerAddress: string, chainId: number, assetAddress: string) =>
     ["greengoods", "vaults", "octantWalletBalances", ownerAddress, chainId, assetAddress] as const,

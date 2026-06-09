@@ -27,6 +27,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createPublicClientForChain } from "../../config/pimlico";
 import { queryKeys } from "../../config/query-keys";
 import { STALE_TIME_FAST } from "../../config/query-keys/constants";
+import { logger } from "../../modules/app/logger";
 import {
   getOctantVaultCampaigns,
   type OctantVaultCampaignManifest,
@@ -138,7 +139,15 @@ async function readVaultPosition(
         functionName: "convertToAssets",
         args: [shares],
       })
-      .catch(() => 0n),
+      .catch((error) => {
+        logger.error("[useOctantVaultPositions] convertToAssets read failed", {
+          error,
+          chainId: vault.chainId,
+          vaultAddress: vault.vaultAddress,
+          owner,
+        });
+        return 0n;
+      }),
     publicClient
       .readContract({
         address: vault.vaultAddress,
@@ -146,7 +155,15 @@ async function readVaultPosition(
         functionName: "maxRedeem",
         args: [owner, DEFAULT_WITHDRAW_MAX_LOSS_BPS, []],
       })
-      .catch(() => 0n),
+      .catch((error) => {
+        logger.error("[useOctantVaultPositions] maxWithdraw read failed", {
+          error,
+          chainId: vault.chainId,
+          vaultAddress: vault.vaultAddress,
+          owner,
+        });
+        return 0n;
+      }),
   ]);
   const redeemableShares = typeof redeemableSharesResult === "bigint" ? redeemableSharesResult : 0n;
   let estimatedRedeemAssets: bigint | null = 0n;
@@ -186,7 +203,7 @@ export function useOctantVaultPositions(
 ): UseOctantVaultPositionsResult {
   const campaigns = options.campaigns ?? getOctantVaultCampaigns();
   const readableVaults = toReadableVaults(campaigns);
-  const ownerKey = owner ? owner.toLowerCase() : "";
+  const ownerKey = owner ? (owner.toLowerCase() as Address) : undefined;
   // Pilot campaigns share one chain; key on it plus a campaign signature so a
   // changed manifest set never serves a stale cache entry.
   const primaryChainId = readableVaults[0]?.chainId ?? 0;
@@ -197,10 +214,19 @@ export function useOctantVaultPositions(
   const enabled = (options.enabled ?? true) && Boolean(owner) && readableVaults.length > 0;
 
   const query = useQuery({
-    queryKey: [
-      ...queryKeys.vaults.octantPositions(ownerKey, primaryChainId),
-      campaignSignature,
-    ] as const,
+    queryKey: ownerKey
+      ? ([
+          ...queryKeys.vaults.octantPositions(ownerKey, primaryChainId),
+          campaignSignature,
+        ] as const)
+      : ([
+          "greengoods",
+          "vaults",
+          "octantPositions",
+          "disabled",
+          primaryChainId,
+          campaignSignature,
+        ] as const),
     enabled,
     staleTime: STALE_TIME_FAST,
     queryFn: async () => {

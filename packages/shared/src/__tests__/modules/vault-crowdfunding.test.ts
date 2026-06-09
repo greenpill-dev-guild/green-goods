@@ -1,12 +1,17 @@
 import { describe, expect, it } from "vitest";
+import enMessages from "../../i18n/en.json";
 import {
   EVMAVERICKS_REQUIRED_MANIFEST_FIELDS,
   GREENPILL_NYC_REQUIRED_MANIFEST_FIELDS,
   getOctantVaultAssetDisplayPolicy,
   getOctantVaultCampaignBySlug,
   getOctantVaultCampaignCopy,
+  getOctantVaultCampaignCopyMessageIds,
   getOctantVaultCampaigns,
   getOctantVaultCampaignTransactionState,
+  OCTANT_VAULT_CAMPAIGN_COPY_MESSAGE_IDS,
+  OCTANT_VAULT_MANIFEST_FIELD_LABEL_MESSAGE_IDS,
+  OCTANT_VAULT_MANIFEST_FIELD_LABELS,
   OCTANT_VAULT_ROUTE_MANAGEMENT_URL,
   prepareOctantVaultCardEndowFallbackPlan,
   prepareOctantVaultCardEndowReadiness,
@@ -175,6 +180,25 @@ describe("Octant vault crowdfunding manifest", () => {
     });
   });
 
+  it("returns defensive copies of campaign manifests", () => {
+    const campaigns = getOctantVaultCampaigns();
+    const campaign = campaigns[0]!;
+
+    campaign.displayName = "Mutated display";
+    campaign.vault!.asset!.symbol = "MUTATED";
+    campaign.campaignCopy!.headline = "Mutated headline";
+    (campaign.requiredManifestFields as string[]).push("protocolGuildDestinationContext");
+
+    const freshCampaign = getOctantVaultCampaignBySlug("greenpill-nyc");
+
+    expect(freshCampaign?.displayName).toBe("Greenpill NYC");
+    expect(freshCampaign?.vault?.asset?.symbol).toBe("WETH");
+    expect(freshCampaign?.campaignCopy?.headline).toBe(
+      "A dedicated vault for Greenpill NYC civic-tech funding."
+    );
+    expect(freshCampaign?.requiredManifestFields).toEqual(GREENPILL_NYC_REQUIRED_MANIFEST_FIELDS);
+  });
+
   it("records Greenpill NYC chain metadata and production-QA manifest completion", () => {
     const campaign = getOctantVaultCampaignBySlug("greenpill-nyc");
 
@@ -307,6 +331,42 @@ describe("Octant vault crowdfunding manifest", () => {
     expect(validateOctantVaultCardEndowManifest(evmavericks!)).toMatchObject({
       status: "complete",
       missingFields: [],
+    });
+  });
+
+  it("sources donor-facing campaign copy and field labels from shared locale keys", () => {
+    const greenpillNyc = getOctantVaultCampaignBySlug("greenpill-nyc");
+    const evmavericks = getOctantVaultCampaignBySlug("evmavericks");
+    const fallbackCampaign = makeCompleteManifest({
+      slug: "unlisted-campaign",
+      displayName: "Unlisted campaign",
+      campaignCopy: undefined,
+      previewCopy: undefined,
+    });
+
+    expect(greenpillNyc).toBeDefined();
+    expect(evmavericks).toBeDefined();
+    expect(getOctantVaultCampaignCopyMessageIds(greenpillNyc!)).toBe(
+      OCTANT_VAULT_CAMPAIGN_COPY_MESSAGE_IDS["greenpill-nyc"]
+    );
+    expect(getOctantVaultCampaignCopyMessageIds(evmavericks!)).toBe(
+      OCTANT_VAULT_CAMPAIGN_COPY_MESSAGE_IDS.evmavericks
+    );
+    expect(getOctantVaultCampaignCopy(greenpillNyc!).headline).toBe(
+      enMessages[OCTANT_VAULT_CAMPAIGN_COPY_MESSAGE_IDS["greenpill-nyc"].headline]
+    );
+    expect(getOctantVaultCampaignCopy(evmavericks!).summary).toBe(
+      enMessages[OCTANT_VAULT_CAMPAIGN_COPY_MESSAGE_IDS.evmavericks.summary]
+    );
+    expect(OCTANT_VAULT_MANIFEST_FIELD_LABELS.protocolGuildDestinationContext).toBe(
+      enMessages[OCTANT_VAULT_MANIFEST_FIELD_LABEL_MESSAGE_IDS.protocolGuildDestinationContext]
+    );
+    expect(getOctantVaultCampaignCopy(fallbackCampaign)).toMatchObject({
+      headline: "Unlisted campaign",
+      summary: enMessages["public.vaults.campaign.fallback.summary"],
+      fundingPurpose: enMessages["public.vaults.campaign.fallback.fundingPurpose"],
+      recipientLogic: enMessages["public.vaults.campaign.fallback.recipientLogic"],
+      riskNote: enMessages["public.vaults.campaign.fallback.riskNote"],
     });
   });
 

@@ -82,9 +82,15 @@ export interface GardenCoverFallbackProps {
   /** Garden slug; used as the deterministic seed when name is empty. */
   slug: string;
   className?: string;
+  initialClassName?: string;
 }
 
-export function GardenCoverFallback({ name, slug, className }: GardenCoverFallbackProps) {
+export function GardenCoverFallback({
+  name,
+  slug,
+  className,
+  initialClassName,
+}: GardenCoverFallbackProps) {
   const seed = hashString(slug || name || "garden");
   const palette = PALETTES[seed % PALETTES.length]!;
   const angle = 145 + (seed % 4) * 15; // 145 / 160 / 175 / 190deg
@@ -99,7 +105,13 @@ export function GardenCoverFallback({ name, slug, className }: GardenCoverFallba
         color: palette.fg,
       }}
     >
-      <span className="select-none font-serif text-6xl font-light tracking-[-0.04em] sm:text-7xl lg:text-8xl">
+      <span
+        data-component="GardenCoverFallbackInitial"
+        className={cn(
+          "select-none font-serif text-6xl font-light leading-none tracking-[-0.04em] sm:text-7xl lg:text-8xl",
+          initialClassName
+        )}
+      >
         {initial}
       </span>
     </div>

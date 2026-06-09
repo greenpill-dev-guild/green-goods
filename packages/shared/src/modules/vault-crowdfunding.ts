@@ -1,6 +1,8 @@
+import enMessages from "../i18n/en.json";
 import type { Address } from "../types/domain";
 
-export type OctantVaultCampaignSlug = "greenpill-nyc" | "evmavericks" | (string & {});
+export type KnownOctantVaultCampaignSlug = "greenpill-nyc" | "evmavericks";
+export type OctantVaultCampaignSlug = KnownOctantVaultCampaignSlug | (string & {});
 
 export type OctantVaultCampaignFixtureRole =
   | "first_available_transaction_fixture"
@@ -31,6 +33,33 @@ export interface OctantVaultCampaignCopy {
   fundingPurpose: string;
   recipientLogic: string;
   riskNote: string;
+}
+
+type SharedLocaleMessageId = keyof typeof enMessages;
+export type OctantVaultCampaignCopyField = keyof OctantVaultCampaignCopy;
+export type OctantVaultCampaignCopyMessageIds = Record<
+  OctantVaultCampaignCopyField,
+  SharedLocaleMessageId
+>;
+export type OctantVaultManifestFieldLabelMessageIds = Record<
+  OctantVaultManifestField,
+  SharedLocaleMessageId
+>;
+
+function enMessage(id: SharedLocaleMessageId): string {
+  return enMessages[id];
+}
+
+function campaignCopyFromMessageIds(
+  messageIds: OctantVaultCampaignCopyMessageIds
+): OctantVaultCampaignCopy {
+  return {
+    headline: enMessage(messageIds.headline),
+    summary: enMessage(messageIds.summary),
+    fundingPurpose: enMessage(messageIds.fundingPurpose),
+    recipientLogic: enMessage(messageIds.recipientLogic),
+    riskNote: enMessage(messageIds.riskNote),
+  };
 }
 
 export interface OctantVaultCampaignAssetManifest {
@@ -459,39 +488,71 @@ export const EVMAVERICKS_REQUIRED_MANIFEST_FIELDS = [
   "campaignCopy",
 ] as const satisfies readonly OctantVaultManifestField[];
 
+export const OCTANT_VAULT_MANIFEST_FIELD_LABEL_MESSAGE_IDS = {
+  chainId: "public.vaults.field.chainId",
+  vaultAddress: "public.vaults.field.vaultAddress",
+  assetAddress: "public.vaults.field.assetAddress",
+  assetSymbol: "public.vaults.field.assetSymbol",
+  assetDecimals: "public.vaults.field.assetDecimals",
+  recipientRoutingSummary: "public.vaults.field.recipientRoutingSummary",
+  protocolGuildDestinationContext: "public.vaults.field.protocolGuildDestinationContext",
+  explorerLink: "public.vaults.field.explorerLink",
+  campaignCopy: "public.vaults.field.campaignCopy",
+} as const satisfies OctantVaultManifestFieldLabelMessageIds;
+
 export const OCTANT_VAULT_MANIFEST_FIELD_LABELS: Record<OctantVaultManifestField, string> = {
-  chainId: "chain ID",
-  vaultAddress: "vault address",
-  assetAddress: "asset address",
-  assetSymbol: "asset symbol",
-  assetDecimals: "asset decimals",
-  recipientRoutingSummary: "recipient/routing summary",
-  protocolGuildDestinationContext: "Protocol Guild destination context",
-  explorerLink: "explorer link",
-  campaignCopy: "campaign copy",
+  chainId: enMessage(OCTANT_VAULT_MANIFEST_FIELD_LABEL_MESSAGE_IDS.chainId),
+  vaultAddress: enMessage(OCTANT_VAULT_MANIFEST_FIELD_LABEL_MESSAGE_IDS.vaultAddress),
+  assetAddress: enMessage(OCTANT_VAULT_MANIFEST_FIELD_LABEL_MESSAGE_IDS.assetAddress),
+  assetSymbol: enMessage(OCTANT_VAULT_MANIFEST_FIELD_LABEL_MESSAGE_IDS.assetSymbol),
+  assetDecimals: enMessage(OCTANT_VAULT_MANIFEST_FIELD_LABEL_MESSAGE_IDS.assetDecimals),
+  recipientRoutingSummary: enMessage(
+    OCTANT_VAULT_MANIFEST_FIELD_LABEL_MESSAGE_IDS.recipientRoutingSummary
+  ),
+  protocolGuildDestinationContext: enMessage(
+    OCTANT_VAULT_MANIFEST_FIELD_LABEL_MESSAGE_IDS.protocolGuildDestinationContext
+  ),
+  explorerLink: enMessage(OCTANT_VAULT_MANIFEST_FIELD_LABEL_MESSAGE_IDS.explorerLink),
+  campaignCopy: enMessage(OCTANT_VAULT_MANIFEST_FIELD_LABEL_MESSAGE_IDS.campaignCopy),
 };
 
-const greenpillNycPreviewCopy: OctantVaultCampaignCopy = {
-  headline: "A dedicated vault for Greenpill NYC civic-tech funding.",
-  summary:
-    "Greenpill NYC is ready for production Card Endow testing through the Octant V2 Ethereum vault route.",
-  fundingPurpose:
-    "Fund local civic-tech coordination with an ETH contribution that settles into the Octant vault as WETH.",
-  recipientLogic:
-    "Contributions settle into the Greenpill NYC Octant vault so the supporter keeps the resulting vault position.",
-  riskNote: "No card payment or wallet transaction starts until checkout asks you to continue.",
-};
+export const OCTANT_VAULT_CAMPAIGN_COPY_MESSAGE_IDS = {
+  "greenpill-nyc": {
+    headline: "public.vaults.campaign.greenpill-nyc.headline",
+    summary: "public.vaults.campaign.greenpill-nyc.summary",
+    fundingPurpose: "public.vaults.campaign.greenpill-nyc.fundingPurpose",
+    recipientLogic: "public.vaults.campaign.greenpill-nyc.recipientLogic",
+    riskNote: "public.vaults.campaign.greenpill-nyc.riskNote",
+  },
+  evmavericks: {
+    headline: "public.vaults.campaign.evmavericks.headline",
+    summary: "public.vaults.campaign.evmavericks.summary",
+    fundingPurpose: "public.vaults.campaign.evmavericks.fundingPurpose",
+    recipientLogic: "public.vaults.campaign.evmavericks.recipientLogic",
+    riskNote: "public.vaults.campaign.evmavericks.riskNote",
+  },
+} as const satisfies Record<KnownOctantVaultCampaignSlug, OctantVaultCampaignCopyMessageIds>;
 
-const evmavericksPreviewCopy: OctantVaultCampaignCopy = {
-  headline: "A live wallet route for EVMavericks public-goods funding.",
-  summary:
-    "EVMavericks can accept Wallet Endow and Card Endow through its supplied Octant V2 Ethereum vault.",
-  fundingPurpose:
-    "Support the EVMavericks Fantasy Football League public-goods funding flow with an ETH contribution that settles into the Octant vault as WETH.",
-  recipientLogic:
-    "Wallet Endow deposits into the EVMavs PGF vault for the connected wallet; Card Endow funds a recovered email wallet before that wallet approves and deposits into the same vault.",
-  riskNote: "No card payment or wallet transaction starts until checkout asks you to continue.",
-};
+function isKnownOctantVaultCampaignSlug(
+  slug: OctantVaultCampaignSlug
+): slug is KnownOctantVaultCampaignSlug {
+  return slug === "greenpill-nyc" || slug === "evmavericks";
+}
+
+const OCTANT_VAULT_CAMPAIGN_COPY_FALLBACK_MESSAGE_IDS = {
+  summary: "public.vaults.campaign.fallback.summary",
+  fundingPurpose: "public.vaults.campaign.fallback.fundingPurpose",
+  recipientLogic: "public.vaults.campaign.fallback.recipientLogic",
+  riskNote: "public.vaults.campaign.fallback.riskNote",
+} as const satisfies Omit<OctantVaultCampaignCopyMessageIds, "headline">;
+
+const greenpillNycPreviewCopy = campaignCopyFromMessageIds(
+  OCTANT_VAULT_CAMPAIGN_COPY_MESSAGE_IDS["greenpill-nyc"]
+);
+
+const evmavericksPreviewCopy = campaignCopyFromMessageIds(
+  OCTANT_VAULT_CAMPAIGN_COPY_MESSAGE_IDS.evmavericks
+);
 
 const WETH_ASSET_MANIFEST = {
   address: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
@@ -1255,14 +1316,43 @@ export function getOctantVaultCampaignTransactionState(
   };
 }
 
+function cloneCampaign(campaign: OctantVaultCampaignManifest): OctantVaultCampaignManifest {
+  return {
+    ...campaign,
+    campaignCopy: campaign.campaignCopy ? { ...campaign.campaignCopy } : undefined,
+    previewCopy: campaign.previewCopy ? { ...campaign.previewCopy } : undefined,
+    requiredManifestFields: campaign.requiredManifestFields
+      ? [...campaign.requiredManifestFields]
+      : undefined,
+    vault: campaign.vault
+      ? {
+          ...campaign.vault,
+          asset: campaign.vault.asset ? { ...campaign.vault.asset } : undefined,
+          strategyFactory: campaign.vault.strategyFactory
+            ? { ...campaign.vault.strategyFactory }
+            : undefined,
+        }
+      : undefined,
+  };
+}
+
 export function getOctantVaultCampaigns(): OctantVaultCampaignManifest[] {
-  return [...OCTANT_VAULT_CAMPAIGN_MANIFEST];
+  return OCTANT_VAULT_CAMPAIGN_MANIFEST.map(cloneCampaign);
 }
 
 export function getOctantVaultCampaignBySlug(
   slug: OctantVaultCampaignSlug
 ): OctantVaultCampaignManifest | undefined {
-  return OCTANT_VAULT_CAMPAIGN_MANIFEST.find((campaign) => campaign.slug === slug);
+  const campaign = OCTANT_VAULT_CAMPAIGN_MANIFEST.find((entry) => entry.slug === slug);
+  return campaign ? cloneCampaign(campaign) : undefined;
+}
+
+export function getOctantVaultCampaignCopyMessageIds(
+  campaign: OctantVaultCampaignManifest
+): OctantVaultCampaignCopyMessageIds | undefined {
+  return isKnownOctantVaultCampaignSlug(campaign.slug)
+    ? OCTANT_VAULT_CAMPAIGN_COPY_MESSAGE_IDS[campaign.slug]
+    : undefined;
 }
 
 export function getOctantVaultCampaignCopy(
@@ -1272,10 +1362,10 @@ export function getOctantVaultCampaignCopy(
     campaign.campaignCopy ??
     campaign.previewCopy ?? {
       headline: campaign.displayName,
-      summary: "Campaign copy is pending.",
-      fundingPurpose: "Funding purpose is pending.",
-      recipientLogic: "Recipient routing is pending.",
-      riskNote: "Transactions are disabled until the campaign details are complete.",
+      summary: enMessage(OCTANT_VAULT_CAMPAIGN_COPY_FALLBACK_MESSAGE_IDS.summary),
+      fundingPurpose: enMessage(OCTANT_VAULT_CAMPAIGN_COPY_FALLBACK_MESSAGE_IDS.fundingPurpose),
+      recipientLogic: enMessage(OCTANT_VAULT_CAMPAIGN_COPY_FALLBACK_MESSAGE_IDS.recipientLogic),
+      riskNote: enMessage(OCTANT_VAULT_CAMPAIGN_COPY_FALLBACK_MESSAGE_IDS.riskNote),
     }
   );
 }

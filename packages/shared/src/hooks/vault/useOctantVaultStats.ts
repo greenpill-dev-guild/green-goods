@@ -20,6 +20,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createPublicClientForChain } from "../../config/pimlico";
 import { queryKeys } from "../../config/query-keys";
 import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
+import { logger } from "../../modules/app/logger";
 import type { Address } from "../../types/domain";
 import { AGGREGATOR_V3_ABI, OCTANT_VAULT_ABI } from "../../utils/blockchain/abis";
 import { getEthUsdFeedAddress } from "../../utils/blockchain/price-feeds";
@@ -85,7 +86,13 @@ export function useOctantVaultStats(options: UseOctantVaultStatsOptions = {}): O
           });
           const answer = Array.isArray(roundData) ? roundData[1] : undefined;
           if (typeof answer === "bigint" && answer > 0n) priceAnswer = answer;
-        } catch {
+        } catch (error) {
+          logger.error("[useOctantVaultStats] ETH/USD feed read failed", {
+            error,
+            chainId,
+            vaultAddress,
+            feedAddress,
+          });
           priceAnswer = 0n;
         }
       }

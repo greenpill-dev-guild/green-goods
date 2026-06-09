@@ -37,8 +37,11 @@ function toSnakeCase(obj: Record<string, unknown>): Record<string, unknown> {
 /**
  * Creates a typed tracking function that automatically converts keys to snake_case
  */
-function createTracker<T extends Record<string, unknown>>(eventName: string) {
-  return (props: T) => track(eventName, toSnakeCase(props));
+function createTracker<T extends Record<string, unknown>>(
+  eventName: string,
+  options?: { includeSessionId?: boolean }
+) {
+  return (props: T) => track(eventName, toSnakeCase(props), options);
 }
 
 // ============================================================================
@@ -74,6 +77,9 @@ export const ANALYTICS_EVENTS = {
   WORK_SUBMISSION_SUCCESS: "work_submission_success",
   WORK_SUBMISSION_FAILED: "work_submission_failed",
   WORK_SUBMISSION_OFFLINE: "work_submission_offline",
+  WORK_WALLET_REQUEST_STARTED: "work_wallet_request_started",
+  WORK_WALLET_REQUEST_EXPIRED: "work_wallet_request_expired",
+  WORK_WALLET_REQUEST_FAILED: "work_wallet_request_failed",
 
   // Work Approval
   WORK_APPROVAL_STARTED: "work_approval_started",
@@ -210,13 +216,39 @@ export const trackGardenAutoJoinFailed = createTracker<{ gardenAddress: string; 
 // WORK SUBMISSION TRACKING
 // ============================================================================
 
+const workSubmissionTrackerOptions = { includeSessionId: false };
+
+type WorkSubmissionPhase =
+  | "media"
+  | "details"
+  | "review"
+  | "upload"
+  | "transaction"
+  | "sync"
+  | "wallet_request"
+  | "success"
+  | "unknown";
+
+type WorkTrackingSafeMetadata = {
+  workSubmissionJourneyId?: string;
+  authMode: AuthMode;
+  chainId?: number;
+  actionUID?: number;
+  imageCount?: number;
+  submissionPhase?: WorkSubmissionPhase;
+  parsedErrorFamily?: string;
+};
+
 export const trackWorkSubmissionStarted = createTracker<{
-  gardenAddress: string;
-  actionUID: number;
+  gardenAddress?: string;
+  actionUID?: number;
   actionTitle?: string;
   authMode: AuthMode;
-  imageCount: number;
-}>(ANALYTICS_EVENTS.WORK_SUBMISSION_STARTED);
+  imageCount?: number;
+  workSubmissionJourneyId?: string;
+  chainId?: number;
+  submissionPhase?: WorkSubmissionPhase;
+}>(ANALYTICS_EVENTS.WORK_SUBMISSION_STARTED, workSubmissionTrackerOptions);
 
 export const trackWorkSubmissionQueued = createTracker<{
   gardenAddress: string;
@@ -226,19 +258,42 @@ export const trackWorkSubmissionQueued = createTracker<{
 }>(ANALYTICS_EVENTS.WORK_SUBMISSION_QUEUED);
 
 export const trackWorkSubmissionSuccess = createTracker<{
-  gardenAddress: string;
-  actionUID: number;
-  txHash: string;
+  gardenAddress?: string;
+  actionUID?: number;
+  txHash?: string;
   authMode: AuthMode;
   wasOffline: boolean;
-}>(ANALYTICS_EVENTS.WORK_SUBMISSION_SUCCESS);
+  workSubmissionJourneyId?: string;
+  chainId?: number;
+  submissionPhase?: WorkSubmissionPhase;
+}>(ANALYTICS_EVENTS.WORK_SUBMISSION_SUCCESS, workSubmissionTrackerOptions);
 
 export const trackWorkSubmissionFailed = createTracker<{
-  gardenAddress: string;
-  actionUID: number;
+  gardenAddress?: string;
+  actionUID?: number;
   error: string;
   authMode: AuthMode;
-}>(ANALYTICS_EVENTS.WORK_SUBMISSION_FAILED);
+  imageCount?: number;
+  workSubmissionJourneyId?: string;
+  chainId?: number;
+  submissionPhase?: WorkSubmissionPhase;
+  parsedErrorFamily?: string;
+}>(ANALYTICS_EVENTS.WORK_SUBMISSION_FAILED, workSubmissionTrackerOptions);
+
+export const trackWorkWalletRequestStarted = createTracker<WorkTrackingSafeMetadata>(
+  ANALYTICS_EVENTS.WORK_WALLET_REQUEST_STARTED,
+  workSubmissionTrackerOptions
+);
+
+export const trackWorkWalletRequestExpired = createTracker<WorkTrackingSafeMetadata>(
+  ANALYTICS_EVENTS.WORK_WALLET_REQUEST_EXPIRED,
+  workSubmissionTrackerOptions
+);
+
+export const trackWorkWalletRequestFailed = createTracker<WorkTrackingSafeMetadata>(
+  ANALYTICS_EVENTS.WORK_WALLET_REQUEST_FAILED,
+  workSubmissionTrackerOptions
+);
 
 export const trackWorkSubmissionOffline = createTracker<{
   gardenAddress: string;
