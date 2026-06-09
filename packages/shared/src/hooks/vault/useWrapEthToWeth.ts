@@ -1,4 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
+import { getAddress } from "viem";
 import type { Address } from "../../types/domain";
 import { WETH_DEPOSIT_ABI } from "../../utils/blockchain/abis";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
@@ -8,6 +9,9 @@ import { useSafeMutation } from "../utils/useSafeMutation";
 import { shouldShowErrorToast, type VaultMutationOptions } from "./vault-helpers";
 
 const OCTANT_V2_ETHEREUM_CHAIN_ID = 1;
+const CANONICAL_MAINNET_WETH_ADDRESS = getAddress(
+  "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+) as Address;
 
 export interface WrapEthToWethParams {
   chainId: number;
@@ -32,6 +36,10 @@ export function useWrapEthToWeth(options: VaultMutationOptions = {}) {
       if (params.amount <= 0n) {
         throw new Error("Wrap amount must be greater than zero");
       }
+      const wethAddress = getAddress(params.wethAddress) as Address;
+      if (wethAddress !== CANONICAL_MAINNET_WETH_ADDRESS) {
+        throw new Error("ETH to WETH conversion requires canonical Ethereum mainnet WETH");
+      }
       if (!sender) {
         throw new Error("TransactionSender not available — auth not initialized");
       }
@@ -40,7 +48,7 @@ export function useWrapEthToWeth(options: VaultMutationOptions = {}) {
       }
 
       const result = await sender.sendContractCall({
-        address: params.wethAddress,
+        address: wethAddress,
         abi: WETH_DEPOSIT_ABI,
         functionName: "deposit",
         args: [],
