@@ -23,10 +23,12 @@ interface TertiaryActionConfig {
 interface UsernameInputConfig {
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  label?: string;
   placeholder?: string;
   hint?: string;
   onCancel?: () => void;
   minLength?: number;
+  autoComplete?: string;
 }
 
 interface SplashProps {
@@ -69,26 +71,35 @@ export const Splash: React.FC<SplashProps> = ({
 
   const displayMessage = loadingState ? message || stateMessages[loadingState] : APP_NAME;
   const showUsernameInput = usernameInput && !loadingState;
+  const usernameInputId = "login-username";
+  const usernameHintId = "login-username-hint";
+  const errorMessageId = "login-error-message";
+  const usernameDescription = [
+    usernameHintId,
+    errorMessage && showUsernameInput ? errorMessageId : null,
+  ]
+    .filter(Boolean)
+    .join(" ");
   const effectsTransition =
     "transition-[opacity,color,border-color,background-color,box-shadow] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]";
   const revealTransition =
     "transition-[max-height,opacity,margin] duration-[var(--spring-spatial-duration)] ease-[var(--spring-spatial-easing)]";
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-bg-white-0 px-4 pb-12 pt-[12vh]">
+    <div className="min-h-screen flex flex-col items-center justify-start bg-bg-white-0 px-4 pb-8 pt-[5vh] sm:pt-[7vh]">
       {/* Fixed-size container - prevents layout shift */}
       <div className="flex w-full max-w-sm flex-col items-center">
         {/* ─────────────────────────────────────────────────────────────────────
             LOGO SECTION - Always visible, never moves
         ───────────────────────────────────────────────────────────────────── */}
-        <div className="flex-shrink-0 mb-6">
+        <div className="flex-shrink-0 mb-4">
           <img
             src="/icon.png"
             alt={APP_NAME}
             width={240}
             height={240}
             className={cn(
-              "transition-opacity duration-[var(--spring-effects-slow-duration)] ease-[var(--spring-effects-slow-easing)]",
+              "h-24 w-24 sm:h-28 sm:w-28 transition-opacity duration-[var(--spring-effects-slow-duration)] ease-[var(--spring-effects-slow-easing)]",
               loadingState && "animate-pulse"
             )}
           />
@@ -97,7 +108,7 @@ export const Splash: React.FC<SplashProps> = ({
         {/* ─────────────────────────────────────────────────────────────────────
             TITLE/MESSAGE - Fixed height container
         ───────────────────────────────────────────────────────────────────── */}
-        <div className="h-8 flex items-center justify-center mb-6">
+        <div className="h-8 flex items-center justify-center mb-5">
           <h3 className={cn("text-center font-bold text-primary", effectsTransition)}>
             {displayMessage}
           </h3>
@@ -111,15 +122,34 @@ export const Splash: React.FC<SplashProps> = ({
           className={cn(
             "w-full overflow-hidden",
             revealTransition,
-            showUsernameInput ? "max-h-24 opacity-100 mb-4" : "max-h-0 opacity-0 mb-0"
+            showUsernameInput ? "max-h-36 opacity-100 mb-4" : "max-h-0 opacity-0 mb-0"
           )}
+          aria-hidden={!showUsernameInput}
+          hidden={!showUsernameInput}
         >
+          <label
+            htmlFor={usernameInputId}
+            className={cn(
+              "mb-2 block text-center text-sm font-semibold text-text-strong-950 transition-opacity duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
+              showUsernameInput ? "opacity-100" : "opacity-0"
+            )}
+          >
+            {usernameInput?.label ||
+              intl.formatMessage({
+                id: "app.login.username.label",
+                defaultMessage: "Username or ENS handle",
+              })}
+          </label>
           <input
+            id={usernameInputId}
             type="text"
             value={usernameInput?.value ?? ""}
             onChange={usernameInput?.onChange ?? (() => {})}
             placeholder={usernameInput?.placeholder || "Choose a username"}
             minLength={usernameInput?.minLength}
+            autoComplete={usernameInput?.autoComplete || "username"}
+            aria-describedby={usernameDescription || undefined}
+            aria-invalid={Boolean(errorMessage && showUsernameInput)}
             data-testid="username-input"
             className="w-full px-4 py-3 rounded-full border border-stroke-soft-200 bg-bg-white-0 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-alpha-24 text-center text-text-strong-950 placeholder:text-text-soft-400"
             disabled={isLoggingIn || !showUsernameInput}
@@ -136,6 +166,7 @@ export const Splash: React.FC<SplashProps> = ({
             }}
           />
           <p
+            id={usernameHintId}
             className={cn(
               "mt-2 text-center text-xs text-text-sub-600 transition-opacity duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
               showUsernameInput ? "opacity-100" : "opacity-0"
@@ -152,7 +183,7 @@ export const Splash: React.FC<SplashProps> = ({
           className={cn(
             "w-full overflow-hidden",
             revealTransition,
-            infoCallout && !loadingState ? "max-h-24 opacity-100 mb-4" : "max-h-0 opacity-0 mb-0"
+            infoCallout && !loadingState ? "max-h-40 opacity-100 mb-4" : "max-h-0 opacity-0 mb-0"
           )}
         >
           <p
@@ -223,29 +254,27 @@ export const Splash: React.FC<SplashProps> = ({
         {/* ─────────────────────────────────────────────────────────────────────
             CONTEXT MESSAGE - Fixed height for loading states
         ───────────────────────────────────────────────────────────────────── */}
-        <div className="h-6 flex items-center justify-center mt-2">
-          <p
-            className={cn(
-              "max-w-sm text-center text-sm text-text-sub-600 transition-opacity duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
-              loadingState === "joining-garden" ? "opacity-100" : "opacity-0"
-            )}
-          >
-            {intl.formatMessage({
-              id: "app.login.splash.joiningGardenHint",
-              defaultMessage: "Confirm on your device when prompted",
-            })}
-          </p>
-        </div>
+        {loadingState === "joining-garden" && (
+          <div className="h-6 flex items-center justify-center mt-2">
+            <p className="max-w-sm text-center text-sm text-text-sub-600">
+              {intl.formatMessage({
+                id: "app.login.splash.joiningGardenHint",
+                defaultMessage: "Confirm on your device when prompted",
+              })}
+            </p>
+          </div>
+        )}
 
         {/* ─────────────────────────────────────────────────────────────────────
             ERROR MESSAGE - Fixed height with smooth reveal
         ───────────────────────────────────────────────────────────────────── */}
-        <div className="relative w-full h-16 mt-2">
+        <div className="w-full min-h-16 mt-2">
           <div
+            id={errorMessageId}
             role="alert"
             aria-live="polite"
             className={cn(
-              "absolute left-0 right-0 top-0 w-full transition-[opacity,transform] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
+              "w-full transition-[opacity,transform] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
               errorMessage && !loadingState
                 ? "opacity-100 translate-y-0"
                 : "opacity-0 -translate-y-2 pointer-events-none"

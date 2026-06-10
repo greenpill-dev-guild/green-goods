@@ -21,6 +21,19 @@ import { track } from "./posthog";
 
 type AuthMode = "passkey" | "wallet" | "embedded" | null;
 type MemberType = GardenRole;
+export type AuthPasskeySource = "server" | "local_cache" | "restore" | "unknown";
+export type AuthPasskeyOutcome = "started" | "success" | "failed";
+export type AuthPasskeyReason =
+  | "address_mismatch"
+  | "cancelled"
+  | "credential_not_found"
+  | "legacy_fallback"
+  | "passkey_server_disabled"
+  | "recovery_context_taken"
+  | "server_unavailable"
+  | "unsupported_context"
+  | "verification_failed"
+  | "unknown";
 
 /**
  * Converts camelCase object keys to snake_case for PostHog
@@ -123,29 +136,35 @@ export const ANALYTICS_EVENTS = {
 // AUTH TRACKING
 // ============================================================================
 
-export const trackAuthPasskeyRegisterStarted = createTracker<{ userName: string }>(
+type AuthPasskeyTelemetry = {
+  source: AuthPasskeySource;
+  outcome: AuthPasskeyOutcome;
+  reason?: AuthPasskeyReason;
+  passkeyServerEnabled?: boolean;
+  hasLocalCredential?: boolean;
+};
+
+export const trackAuthPasskeyRegisterStarted = createTracker<AuthPasskeyTelemetry>(
   ANALYTICS_EVENTS.AUTH_PASSKEY_REGISTER_STARTED
 );
 
-export const trackAuthPasskeyRegisterSuccess = createTracker<{
-  smartAccountAddress: string;
-  userName: string;
-}>(ANALYTICS_EVENTS.AUTH_PASSKEY_REGISTER_SUCCESS);
+export const trackAuthPasskeyRegisterSuccess = createTracker<AuthPasskeyTelemetry>(
+  ANALYTICS_EVENTS.AUTH_PASSKEY_REGISTER_SUCCESS
+);
 
-export const trackAuthPasskeyRegisterFailed = createTracker<{ error: string; userName: string }>(
+export const trackAuthPasskeyRegisterFailed = createTracker<AuthPasskeyTelemetry>(
   ANALYTICS_EVENTS.AUTH_PASSKEY_REGISTER_FAILED
 );
 
-export const trackAuthPasskeyLoginStarted = createTracker<{ userName: string }>(
+export const trackAuthPasskeyLoginStarted = createTracker<AuthPasskeyTelemetry>(
   ANALYTICS_EVENTS.AUTH_PASSKEY_LOGIN_STARTED
 );
 
-export const trackAuthPasskeyLoginSuccess = createTracker<{
-  smartAccountAddress: string;
-  userName: string;
-}>(ANALYTICS_EVENTS.AUTH_PASSKEY_LOGIN_SUCCESS);
+export const trackAuthPasskeyLoginSuccess = createTracker<AuthPasskeyTelemetry>(
+  ANALYTICS_EVENTS.AUTH_PASSKEY_LOGIN_SUCCESS
+);
 
-export const trackAuthPasskeyLoginFailed = createTracker<{ error: string; userName: string }>(
+export const trackAuthPasskeyLoginFailed = createTracker<AuthPasskeyTelemetry>(
   ANALYTICS_EVENTS.AUTH_PASSKEY_LOGIN_FAILED
 );
 
@@ -160,10 +179,9 @@ export const trackAuthWalletConnectFailed = createTracker<{ error: string }>(
   ANALYTICS_EVENTS.AUTH_WALLET_CONNECT_FAILED
 );
 
-export const trackAuthSessionRestored = createTracker<{
-  smartAccountAddress: string;
-  userName: string;
-}>(ANALYTICS_EVENTS.AUTH_SESSION_RESTORED);
+export const trackAuthSessionRestored = createTracker<AuthPasskeyTelemetry>(
+  ANALYTICS_EVENTS.AUTH_SESSION_RESTORED
+);
 
 export const trackAuthSwitchMethod = createTracker<{
   from: "passkey" | "wallet";

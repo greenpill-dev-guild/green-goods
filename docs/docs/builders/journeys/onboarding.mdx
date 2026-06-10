@@ -69,7 +69,7 @@ stateDiagram-v2
 | # | State | Persona | Surface (package + view) | Hook / Service | Side effects | Status |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | ChoosingAuth | A | `client` / `views/Login` | `useAuth`, `useInstallGuidance`, `useApp` | None — UI only | shipped |
-| 2a | CreatingPasskey | A | `client` / `views/Login` | `useAuth.createPasskey()` | `navigator.credentials.create()`; credential ID written to IndexedDB | shipped |
+| 2a | CreatingPasskey | A | `client` / `views/Login` | `useAuth.createPasskey()` | `navigator.credentials.create()`; with `VITE_PASSKEY_SERVER_ENABLED=true`, Pimlico hosted passkey server verifies the credential against normalized username/ENS context; localStorage caches metadata for same-device fallback | shipped |
 | 2b | WalletConnect | A or B | `client` / `views/Login`, `admin` / `views/Profile` | `useAppKit`, `useAuth.connect()` | Wallet connection event from AppKit | shipped |
 | 3 | SmartAccountReady | A | `client` (cross-cutting) | `useAuth`, internal smart account derivation | CREATE2 address derived; ERC-4337 account deployed lazily on first tx | shipped |
 | 4 | AutoJoinedRoot | A | `client` (cross-cutting) | `useAutoJoinRootGarden` | Reads `VITE_ROOT_GARDEN`, queues a join via `JoinGarden` flow when address present and not yet joined | shipped |
@@ -79,8 +79,10 @@ stateDiagram-v2
 
 ## Failure / recovery paths
 
-- **Passkey unavailable on device.** `Login/index.tsx` detects via `getFriendlyErrorMessage` and falls back to "Login with wallet" guidance. No retry loop — user must explicitly choose the wallet path.
-- **In-app browser scenario.** `useInstallGuidance` returns `scenario: "in-app-browser"` (Telegram, Twitter, etc. embedded webview). UI surfaces "Open in Chrome/Safari" with a copy-link affordance. Passkey creation in an in-app browser will silently fail on iOS — the guidance prevents the attempt.
+- **Passkey recovery after local cache loss.** `Login/index.tsx` asks for the username or ENS handle before lookup. With `VITE_PASSKEY_SERVER_ENABLED=true`, the shared auth service calls Pimlico's hosted passkey server using the same normalized context used at registration. Synced passkeys can recover where the user's passkey provider supports sync. Legacy local-only passkeys still work on the same device and may require re-enrollment after storage loss.
+- **Passkey unavailable or server unavailable.** `Login/index.tsx` surfaces retry/fallback guidance. The shared auth service preserves credential, username, auth mode, and expected-address metadata on server/network failure, then falls back to the same-device local credential when one exists.
+- **Address mismatch.** If server-discovered credential metadata rebuilds a different stored smart-account address, the shared auth service fails closed and the UI treats it as a recoverable failure. It does not silently create a new account.
+- **In-app browser scenario.** `useInstallGuidance` returns `scenario: "in-app-browser"` (Telegram, Twitter, etc. embedded webview). UI surfaces "Open in Chrome/Safari" with a copy-link affordance and blocks passkey ceremonies until the user opens a supported browser.
 - **Garden address invalid (`/join` agent path).** `blockchain.getGardenInfo` returns `{exists: false}`. Bot replies with "Garden not found" and does not mutate user record.
 - **Custodial key compromise (agent path).** No automated rotation today. The bot holds the private key; recovery is operationally manual. Spec § 3.1 calls out this limitation as accepted for the field-worker JTBD ("low bandwidth submission") — the trade-off is that gardeners do not manage keys themselves.
 - **Smart account first-tx failure.** Paymaster funds exhausted, RPC unavailable, or bundler rejects the UserOp. Tx is retried via the standard mutation pipeline (`useTransactionSender`). PWA does not deploy the smart account until needed (counterfactual deployment).
@@ -95,4 +97,6 @@ stateDiagram-v2
 
 - Hook boundary: all auth hooks live in `@green-goods/shared` (`hooks/auth/`). Client and admin only consume them.
 - Single chain: the chain is fixed at build time by `VITE_CHAIN_ID`. There is no chain-switching UX during onboarding.
-- IndexedDB is the canonical local store for the passkey credential ID. ENS text-record sync for cross-device recovery is partial (see `packages/shared/src/hooks/ens/`).
+- LocalStorage is a cache and same-device fallback for passkey credential metadata, normalized username, RP ID, and expected smart-account address. It is not the recovery source of truth when the hosted server path is enabled.
+- `VITE_PASSKEY_SERVER_ENABLED=false` is the rollback path and keeps legacy local-only passkey behavior.
+- Green Goods does not currently import legacy local-only credentials into Pimlico's hosted passkey server, and this lane does not promise same-address recovery after total passkey-provider loss.

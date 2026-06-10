@@ -7,9 +7,12 @@
  * Reference: https://docs.pimlico.io/docs/how-tos/signers/passkey
  */
 
+import { createPasskeyServerClient as createPermissionlessPasskeyServerClient } from "permissionless/clients/passkeyServer";
+import { http } from "viem";
 import { createWebAuthnCredential, type P256Credential } from "viem/account-abstraction";
 import { logger } from "../modules/app/logger";
 import { setStoredCredential, setStoredRpId } from "../modules/auth/session";
+import { getPimlicoBundlerUrl } from "./pimlico";
 
 // ============================================================================
 // RP ID CONFIGURATION
@@ -30,11 +33,117 @@ export const PASSKEY_RP_ID = "greengoods.app";
 export const PASSKEY_RP_NAME = "Green Goods";
 
 type PasskeyServerEnv = {
+  DEV?: boolean;
+  PROD?: boolean;
   VITE_PASSKEY_SERVER_ENABLED?: string;
+  VITE_PASSKEY_RP_ID?: string;
 };
 
 export function isPasskeyServerEnabled(env: PasskeyServerEnv = import.meta.env): boolean {
   return env.VITE_PASSKEY_SERVER_ENABLED === "true";
+}
+
+export type PasskeyRecoveryContext = {
+  username: string;
+};
+
+export function normalizePasskeyAccountIdentifier(identifier: string): string {
+  return identifier.trim().replace(/^@+/, "").toLowerCase();
+}
+
+export function buildPasskeyRecoveryContext(identifier: string): PasskeyRecoveryContext {
+  const username = normalizePasskeyAccountIdentifier(identifier);
+  if (username.length < 3) {
+    throw new Error("Username is required for passkey recovery");
+  }
+  return { username };
+}
+
+export function createPasskeyServerClient(chainId: number) {
+  return createPermissionlessPasskeyServerClient({
+    transport: http(getPimlicoBundlerUrl(chainId)),
+  });
+}
+
+export type PasskeyCeremonyBlockReason =
+  | "no_browser_context"
+  | "non_https_origin"
+  | "preview_or_localhost_production"
+  | "rp_origin_mismatch";
+
+export type PasskeyCeremonyContextStatus =
+  | {
+      supported: true;
+      rpId: string;
+      origin: string;
+    }
+  | {
+      supported: false;
+      reason: PasskeyCeremonyBlockReason;
+      rpId: string;
+      origin: string;
+    };
+
+type PasskeyCeremonyContextOptions = {
+  env?: PasskeyServerEnv;
+  location?: Pick<Location, "hostname" | "origin" | "protocol">;
+};
+
+export function classifyPasskeyCeremonyContext(
+  options: PasskeyCeremonyContextOptions = {}
+): PasskeyCeremonyContextStatus {
+  const env = options.env ?? import.meta.env;
+  const location =
+    options.location ?? (typeof window !== "undefined" ? window.location : undefined);
+  const rpId = getPasskeyRpId(env, location);
+
+  if (!location) {
+    return {
+      supported: false,
+      reason: "no_browser_context",
+      rpId,
+      origin: "",
+    };
+  }
+
+  const hostname = location.hostname;
+  const origin = location.origin;
+  const isLocalhost = hostname === "localhost" || hostname === "127.0.0.1";
+  const isHttps = location.protocol === "https:" || (Boolean(env.DEV) && isLocalhost);
+
+  if (!isHttps) {
+    return {
+      supported: false,
+      reason: "non_https_origin",
+      rpId,
+      origin,
+    };
+  }
+
+  if (Boolean(env.PROD) && (isLocalhost || hostname.endsWith(".vercel.app"))) {
+    return {
+      supported: false,
+      reason: "preview_or_localhost_production",
+      rpId,
+      origin,
+    };
+  }
+
+  const matchesRpId = hostname === rpId || (!isLocalhost && hostname.endsWith(`.${rpId}`));
+  if (!matchesRpId) {
+    return {
+      supported: false,
+      reason: "rp_origin_mismatch",
+      rpId,
+      origin,
+    };
+  }
+
+  return {
+    supported: true,
+    rpId,
+    origin,
+  };
 }
 
 /**
@@ -42,20 +151,27 @@ export function isPasskeyServerEnabled(env: PasskeyServerEnv = import.meta.env):
  * Uses hardcoded production domain for consistency.
  * Falls back to hostname only in development when on localhost.
  */
-export function getPasskeyRpId(): string {
+export function getPasskeyRpId(
+  env: PasskeyServerEnv = import.meta.env,
+  location?: Pick<Location, "hostname">
+): string {
   // Allow override via env var for development/staging
-  const envRpId = import.meta.env.VITE_PASSKEY_RP_ID;
+  const envRpId = env.VITE_PASSKEY_RP_ID?.trim().toLowerCase();
   if (envRpId) {
     return envRpId;
   }
 
+  const hostname =
+    location?.hostname ?? (typeof window !== "undefined" ? window.location.hostname : undefined);
+
   // In development on localhost, use hostname to allow local testing
   // Note: Passkeys created on localhost won't work in production
-  if (import.meta.env.DEV && window.location.hostname === "localhost") {
+  if (env.DEV && (hostname === "localhost" || hostname === "127.0.0.1")) {
     logger.warn(
-      "[Passkey] Using localhost as RP ID. Passkeys created here will NOT work in production."
+      "[Passkey] Using local development host as RP ID. Passkeys created here will NOT work in production.",
+      { hostname }
     );
-    return "localhost";
+    return hostname;
   }
 
   // Default to production domain
