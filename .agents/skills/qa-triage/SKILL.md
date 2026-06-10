@@ -1,19 +1,19 @@
 ---
 name: qa-triage
 user-invocable: true
-description: Process a product sync QA session and turn the meeting notes into triaged Linear records + QA-sheet rows. Use this skill whenever the user mentions a QA call, QA sync, product sync, QA session, product review, "triage the QA bugs", "file the bugs from the call", "extract bugs from the sync notes", "update the QA sheet with bugs", processing meeting notes for bugs, or wants to file Linear issues from a recent QA meeting — even if they don't explicitly say "qa-triage". Pulls the latest Gemini notes from Drive (with ~/Downloads fallback), cross-references each item against PostHog telemetry and existing Linear/Sheet records, scope-locks the triage, then writes Linear Customer Needs/Issues with assignees and appends Defects rows to the Green Goods QA Sheet.
+description: Process a build sync QA session (the meeting formerly called product sync) and turn the meeting notes into triaged Linear records + QA-sheet rows. Use this skill whenever the user mentions a QA call, QA sync, build sync, product sync (legacy name), QA session, product review, "triage the QA bugs", "file the bugs from the call", "extract bugs from the sync notes", "update the QA sheet with bugs", processing meeting notes for bugs, or wants to file Linear issues from a recent QA meeting — even if they don't explicitly say "qa-triage". Pulls the latest Gemini notes from Drive (with ~/Downloads fallback), cross-references each item against PostHog telemetry and existing Linear/Sheet records, scope-locks the triage, then writes Linear Customer Needs/Issues with assignees and appends Defects rows to the Green Goods QA Sheet.
 argument-hint: "[<notes-path|slug|qa-sync:YYYY-MM-DD>] [--dry-run] [--no-codex] [--no-sheet] [--fixture]"
 version: "0.2.0"
 status: active
 packages: ["all"]
 dependencies: ["posthog-questions", "doc-feedback", "debug", "audit-then-ship"]
-last_updated: "2026-05-13"
+last_updated: "2026-06-10"
 last_verified: "2026-05-13"
 ---
 
 # QA Triage Skill
 
-Interactive sibling of the `bug-intake` cron'd routine. Pulls the latest **Product Sync** QA notes from Drive (with `~/Downloads` fallback), extracts bugs, ideas, and feedback, cross-references each item against PostHog telemetry and existing Linear + QA-sheet records, gates the triage with an explicit scope lock, then writes Linear records and appends rows to the **Green Goods v1.1 QA** Sheet.
+Interactive sibling of the `bug-intake` cron'd routine. Pulls the latest **Build Sync** QA notes from Drive (with `~/Downloads` fallback), extracts bugs, ideas, and feedback, cross-references each item against PostHog telemetry and existing Linear + QA-sheet records, gates the triage with an explicit scope lock, then writes Linear records and appends rows to the **Green Goods v1.1 QA** Sheet.
 
 Mirror [`docs/routines/bug-intake.md`](../../docs/routines/bug-intake.md) for the Linear protocol, label scheme, and privacy boundary — this skill is its **interactive, on-demand, single-source** sibling, not a replacement.
 
@@ -21,7 +21,7 @@ Mirror [`docs/routines/bug-intake.md`](../../docs/routines/bug-intake.md) for th
 
 | Trigger | Action |
 |---------|--------|
-| `/qa-triage` | Discover the latest Product Sync notes (Drive → Downloads). If the [`qa-triage-pulse`](../../docs/routines/qa-triage-pulse.md) routine has pre-staged Customer Needs for the latest sync, offer to resume from those instead. |
+| `/qa-triage` | Discover the latest Build Sync notes (Drive → Downloads). If the [`qa-triage-pulse`](../../docs/routines/qa-triage-pulse.md) routine has pre-staged Customer Needs for the latest sync, offer to resume from those instead. |
 | `/qa-triage <path>` | Use the supplied notes path (absolute, relative, or `~/Downloads/...`) |
 | `/qa-triage <slug>` | Resume against `.plans/qa-triage/<slug>/notes.md` from a prior run |
 | `/qa-triage qa-sync:<YYYY-MM-DD>` | Resume from routine-pre-staged Customer Needs carrying that `qa-sync:*` label. Phases 1-3 are skipped (already done by `qa-triage-pulse`); triage gate fires immediately. |
@@ -64,7 +64,7 @@ Skill-wide config: `.plans/qa-triage/.config.json` — caches resolved Sheet fil
 
 > **Fixture-mode short-circuit.** When `--fixture` is set, skip the live-MCP probes in steps 3, 5, and 6 (PostHog reachability, Sheet permission check, full Sheet structure read). Treat the Sheet permissions as tight (already verified), reuse the cached `qa_sheet` block in `.config.json`, and DO NOT populate `test_catalog` on fixture runs — the fixture is synthetic and a stale catalog from a real run would be more useful than a fixture-derived one. Steps 1, 2, 3a (orphan worktree sweep), and 4 (Sheet file-id resolve from cache) still run.
 
-1. **Resolve workspace slug** from the input file's title or filename stem (lowercase-hyphenated, e.g., `Product Sync — 2026-05-13` → `product-sync-2026-05-13`).
+1. **Resolve workspace slug** from the input file's title or filename stem (lowercase-hyphenated, e.g., `Build Sync — 2026-06-10` → `build-sync-2026-06-10`).
 2. **Resolve Linear handles by name** at the start of every run:
    - Team: `Product` (fallback `Research` only when the user asks).
    - Workflow states: expect `Backlog`, `Todo`.
@@ -112,7 +112,7 @@ Lookup order, first match wins:
 
 0. **Resume from `qa-triage-pulse` pre-stage** — if invoked as `/qa-triage qa-sync:<YYYY-MM-DD>`, OR if no explicit path/slug was given but Linear has ≥1 open Customer Need carrying both `source:qa-triage-pulse` and a `qa-sync:<latest-date>` label, surface the resume prompt:
 
-   > Found {N} pre-staged Customer Needs from {date}'s Product Sync (routine: qa-triage-pulse). Resume from those, or run a fresh extract from notes? `[resume / fresh / quit]`
+   > Found {N} pre-staged Customer Needs from {date}'s Build Sync (routine: qa-triage-pulse). Resume from those, or run a fresh extract from notes? `[resume / fresh / quit]`
 
    On `resume`: populate `extraction.md` from the linked Customer Need + Backlog tracking-Issue pairs (one item per pair, using the Need's verbatim source and the Issue's summary / safe evidence blocks), skip Phases 2 and 3 (Codex dispatch + PostHog cross-ref already done by the routine), and jump straight to Phase 4 with the pre-staged set as the numbered triage list. On `fresh`: ignore the pre-stage and continue to step 1 below; the Phase 6 confirm step will detect duplicates against the existing Customer Needs.
 
@@ -122,7 +122,7 @@ Lookup order, first match wins:
 2. **Drive query** —
 
    ```
-   title contains 'Product Sync' and title contains 'Notes by Gemini' and modifiedTime > '<14d-ago RFC3339>'
+   (title contains 'Build Sync' or title contains 'Product Sync') and title contains 'Notes by Gemini' and modifiedTime > '<14d-ago RFC3339>'
    ```
 
    Filter to `mimeType = 'application/vnd.google-apps.document'`.
@@ -445,7 +445,7 @@ This skill makes **one** explicit exception: the QA Sheet may carry `PostHog Ses
 
 ## Related Skills
 
-- [qa-triage-pulse routine](../../docs/routines/qa-triage-pulse.md) — cron'd async sibling routine that pre-stages Customer Needs every Wednesday after the 10am PST Product Sync. The skill's Phase 1 step 0 resumes from those pre-stages when present, cutting interactive triage time to ~5 minutes.
+- [qa-triage-pulse routine](../../docs/routines/qa-triage-pulse.md) — cron'd async sibling routine that pre-stages Customer Needs every Wednesday after the 10am PST Build Sync. The skill's Phase 1 step 0 resumes from those pre-stages when present, cutting interactive triage time to ~5 minutes.
 - [bug-intake routine](../../docs/routines/bug-intake.md) — cron'd async sibling routine for Discord + Telegram + Drive bug-source intake (M/W/F). Shares the Linear protocol and privacy boundary. This skill is the interactive single-source counterpart for QA-sync notes specifically.
 - [`posthog-questions`](../posthog-questions/SKILL.md) — named PostHog questions this skill calls.
 - [`audit-then-ship`](../audit-then-ship/SKILL.md) — source of the Phase 4 scope-lock gate language.
@@ -458,4 +458,4 @@ This skill makes **one** explicit exception: the QA Sheet may carry `PostHog Ses
 - **Scope lock is the contract** — recorded in `triage.md`, referenced through Phase 7.
 - **Every write needs evidence** — Linear payloads ride PostHog safe-summaries when available; Sheet rows carry the same plus the privacy-excepted private fields.
 - **The Sheet is the only exception** — never paint elsewhere.
-- **One invocation, one product sync** — single-source by design. The async multi-source path is `bug-intake`'s job.
+- **One invocation, one build sync** — single-source by design. The async multi-source path is `bug-intake`'s job.

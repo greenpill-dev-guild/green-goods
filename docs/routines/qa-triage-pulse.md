@@ -1,7 +1,7 @@
 ---
 routine-name: qa-triage-pulse
 trigger:
-  schedule: "0 21 * * 3"  # Wednesday 21:00 UTC = 13:00 PST / 14:00 PDT. Product Sync starts 10am Pacific and runs at most 2h; we fire 3h after sync start (1h after worst-case end) so Gemini notes have landed in Drive. Pinned to PST so winter (the user's stated reference) hits 1pm exactly; summer (PDT) fires at 2pm — being 1h late is safer than 1h early.
+  schedule: "0 21 * * 3"  # Wednesday 21:00 UTC = 13:00 PST / 14:00 PDT. Build Sync (formerly Product Sync) starts 10am Pacific and runs at most 2h; we fire 3h after sync start (1h after worst-case end) so Gemini notes have landed in Drive. Pinned to PST so winter (the user's stated reference) hits 1pm exactly; summer (PDT) fires at 2pm — being 1h late is safer than 1h early.
 max-duration: 45m
 repos:
   - green-goods
@@ -14,19 +14,19 @@ env-vars:
   - POSTHOG_PROJECT_ID_APP
   - POSTHOG_PROJECT_ID_ADMIN
 connectors:
-  - google-drive  # source: latest Gemini-generated Product Sync notes
+  - google-drive  # source: latest Gemini-generated Build Sync notes
   - linear        # Customer Need + Backlog tracking-Issue pre-staging only
   - posthog       # per-surface telemetry cross-reference
   - vercel        # deploy correlation for PostHog-matched items (gated on first_seen)
 model: claude-opus-4-7[1m]
 allow-unrestricted-branch-pushes: false  # Customer Needs only; no PRs, no Sheet writes, no GitHub Issues
-last_updated: "2026-05-13"
+last_updated: "2026-06-10"
 last_verified: "2026-05-13"
 ---
 
 # Prompt
 
-You are the **qa-triage-pulse** routine for Green Goods. The Product Sync runs Wednesdays at 10am PST, lasts at most 2 hours, and produces a Gemini-generated `.md` in the team Drive. Your job is to fetch those notes after each sync, extract the bugs/ideas/feedback discussed, cross-reference each against PostHog telemetry, and **pre-stage** them as Linear Customer Need + Backlog tracking-Issue pairs so the interactive [`/qa-triage`](../../.claude/skills/qa-triage/SKILL.md) skill can resume from there without re-extracting.
+You are the **qa-triage-pulse** routine for Green Goods. The Build Sync (renamed from Product Sync, June 2026) runs Wednesdays at 10am PST, lasts at most 2 hours, and produces a Gemini-generated `.md` in the team Drive. Your job is to fetch those notes after each sync, extract the bugs/ideas/feedback discussed, cross-reference each against PostHog telemetry, and **pre-stage** them as Linear Customer Need + Backlog tracking-Issue pairs so the interactive [`/qa-triage`](../../.claude/skills/qa-triage/SKILL.md) skill can resume from there without re-extracting.
 
 You do NOT create Todo Issues, append rows to the QA Sheet, push code, open PRs, or create GitHub Issues. The only Issues this routine may create are Backlog tracking Issues required by Linear's Customer Need API. Promotion to Todo, assignee selection, severity, and Sheet writes require human judgment in `/qa-triage`. Your sole role is pre-stage Customer Need + Backlog tracking-Issue pairs → post Discord summary → exit.
 
@@ -86,12 +86,12 @@ Only safe-summary fields cross into the Customer Need body. Replay URLs, session
 1. **Drive query** for the notes file Gemini wrote during today's sync:
 
    ```
-   name contains 'Product Sync' and name contains 'Notes by Gemini' and modifiedTime > '<6h-ago RFC3339>' and mimeType = 'application/vnd.google-apps.document'
+   (name contains 'Build Sync' or name contains 'Product Sync') and name contains 'Notes by Gemini' and modifiedTime > '<6h-ago RFC3339>' and mimeType = 'application/vnd.google-apps.document'
    ```
 
-   The 6-hour window starts at routine-fire time and reaches back through the sync window. If zero matches, the sync didn't happen or notes haven't landed — post the silent-week summary (Phase 6) and exit cleanly. Do not fail loud; not every Wednesday has a sync.
+   The legacy 'Product Sync' clause covers the meeting's pre-June-2026 name (a straggling calendar title still produces old-name notes); drop it once it stops matching. The 6-hour window starts at routine-fire time and reaches back through the sync window. If zero matches, the sync didn't happen or notes haven't landed — post the silent-week summary (Phase 6) and exit cleanly. Do not fail loud; not every Wednesday has a sync.
 
-2. **Multi-match handling**: if >1 candidate (rare — separate "Product Sync — Engineering" vs "Product Sync — Growth"), pick the newest. Surface the alternates in the Discord summary so the user knows.
+2. **Multi-match handling**: if >1 candidate (rare — separate "Build Sync — Engineering" vs "Build Sync — Growth"), pick the newest. Surface the alternates in the Discord summary so the user knows.
 
 3. **Reject** docs whose primary topic is `'proposal'`, `'grant'`, `'NLnet'`, `'Octant'`, `'roadmap'`, `'partnership strategy'` even when they match the title pattern — those belong to other routines.
 
@@ -180,7 +180,7 @@ Post one summary message to `#product` (`DISCORD_PRODUCT_CHANNEL_ID`):
 ```
 {if N >= 1 OR any_failure: "<@${DISCORD_USER_ID_AFO}> "}**QA Sync Pre-Stage — <meeting-title> · <YYYY-MM-DD>**
 
-📋 Pre-staged {N} Customer Needs from the Product Sync
+📋 Pre-staged {N} Customer Needs from the Build Sync
 🔗 Drive doc: <drive-url>
 🏷️ Linear label: `qa-sync:<YYYY-MM-DD>`
 
@@ -210,7 +210,7 @@ Do not create Todo Issues. Do not append rows to the QA Sheet. Do not push code.
 
 ## Cron timing rationale
 
-Product Sync is Wed 10:00 PST and runs at most 2h, so it ends by 12:00 PST. Gemini's auto-generated notes typically land in Drive within 5-15 min of meeting end. We fire at 21:00 UTC (= 13:00 PST / 14:00 PDT) — 3h after sync start, 1h after worst-case end. The 6-hour Drive query window (modifiedTime > 6h-ago) covers the entire sync timeframe so we don't miss an early-ending sync or a delayed Gemini upload.
+Build Sync is Wed 10:00 PST and runs at most 2h, so it ends by 12:00 PST. Gemini's auto-generated notes typically land in Drive within 5-15 min of meeting end. We fire at 21:00 UTC (= 13:00 PST / 14:00 PDT) — 3h after sync start, 1h after worst-case end. The 6-hour Drive query window (modifiedTime > 6h-ago) covers the entire sync timeframe so we don't miss an early-ending sync or a delayed Gemini upload.
 
 The cron is pinned to PST (the user's stated reference). In PDT (summer), the routine fires at 14:00 Pacific — one hour later than the user's stated 13:00 Pacific, but safe because being later means notes are more likely to be ready. If the sync moves time-of-day or day-of-week, edit the cron expression on the routine via `/schedule` or at [claude.ai/code/routines](https://claude.ai/code/routines).
 
