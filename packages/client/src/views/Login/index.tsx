@@ -59,7 +59,15 @@ const getFriendlyErrorMessage = (err: unknown, intl: IntlShape): string => {
     });
 
   const msg = err.message.toLowerCase();
-  if (msg.includes("cancel") || msg.includes("abort") || msg.includes("user deny")) {
+  // "not allowed" covers WebAuthn NotAllowedError messages ("The operation
+  // either timed out or was not allowed.") raised when the user dismisses
+  // the platform passkey prompt.
+  if (
+    msg.includes("cancel") ||
+    msg.includes("abort") ||
+    msg.includes("user deny") ||
+    msg.includes("not allowed")
+  ) {
     return intl.formatMessage({
       id: "app.login.error.cancelled",
       defaultMessage: "Sign in was cancelled. Try again when you're ready.",
@@ -256,12 +264,14 @@ export function Login() {
     debugError("Authentication failed", err);
     setLoginError(getFriendlyErrorMessage(err, intl));
 
-    // Check if user intentionally cancelled (don't track as error)
+    // Check if user intentionally cancelled (don't track as error).
+    // "not allowed" covers WebAuthn NotAllowedError prompt dismissals.
     const isUserCancellation =
       err instanceof Error &&
       (err.message.toLowerCase().includes("cancel") ||
         err.message.toLowerCase().includes("abort") ||
-        err.message.toLowerCase().includes("user deny"));
+        err.message.toLowerCase().includes("user deny") ||
+        err.message.toLowerCase().includes("not allowed"));
 
     if (!isUserCancellation) {
       trackAuthError(err, {

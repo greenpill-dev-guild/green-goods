@@ -61,6 +61,40 @@ export function clearAuthMode(): void {
 }
 
 // ============================================================================
+// SIGNED-OUT SENTINEL (explicit sign-out durability)
+// ============================================================================
+
+/**
+ * Sentinel written by explicit sign-out.
+ *
+ * Sign-out intentionally keeps the passkey recovery metadata (credential,
+ * username, expected address) as the same-device cache, but session restore
+ * also rehydrates passkey sessions when no auth mode is stored. Without this
+ * sentinel a refresh after explicit sign-out would silently re-authenticate
+ * the prior passkey account — defeating sign-out on shared devices.
+ *
+ * Lifecycle: set by explicit sign-out; cleared only by a successful passkey
+ * session creation (not by sign-in intent — a dismissed ceremony must leave
+ * the device signed out).
+ */
+export const SIGNED_OUT_STORAGE_KEY = "greengoods_signed_out";
+
+/** Mark that the user explicitly signed out; suppresses automatic restore. */
+export function setSignedOutSentinel(): void {
+  localStorage.setItem(SIGNED_OUT_STORAGE_KEY, "true");
+}
+
+/** Re-enable automatic session restore (successful sign-in opts back in). */
+export function clearSignedOutSentinel(): void {
+  localStorage.removeItem(SIGNED_OUT_STORAGE_KEY);
+}
+
+/** Whether the user explicitly signed out and has not signed back in. */
+export function hasSignedOutSentinel(): boolean {
+  return localStorage.getItem(SIGNED_OUT_STORAGE_KEY) === "true";
+}
+
+// ============================================================================
 // USERNAME (Pimlico Server)
 // ============================================================================
 
@@ -157,6 +191,7 @@ export function clearAllAuth(): void {
   localStorage.removeItem(RP_ID_STORAGE_KEY);
   localStorage.removeItem(SMART_ACCOUNT_ADDRESS_STORAGE_KEY);
   localStorage.removeItem(EMBEDDED_ADDRESS_KEY);
+  localStorage.removeItem(SIGNED_OUT_STORAGE_KEY);
 }
 
 // ============================================================================

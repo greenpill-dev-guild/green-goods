@@ -128,14 +128,19 @@ export {
   // Username (Pimlico server)
   clearStoredUsername,
   clearStoredSmartAccountAddress,
+  // Signed-out sentinel (explicit sign-out durability)
+  clearSignedOutSentinel,
   getAuthMode,
   getStoredSmartAccountAddress,
   getStoredUsername,
+  hasSignedOutSentinel,
   hasStoredUsername,
   // RP ID (Android passkey compatibility)
   RP_ID_STORAGE_KEY,
+  SIGNED_OUT_STORAGE_KEY,
   SMART_ACCOUNT_ADDRESS_STORAGE_KEY,
   setAuthMode,
+  setSignedOutSentinel,
   setStoredSmartAccountAddress,
   setStoredRpId,
   setStoredUsername,

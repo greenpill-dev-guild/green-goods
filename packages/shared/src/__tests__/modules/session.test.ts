@@ -40,16 +40,20 @@ Object.defineProperty(global, "localStorage", {
 
 import {
   AUTH_MODE_STORAGE_KEY,
-  EMBEDDED_ADDRESS_KEY,
-  SMART_ACCOUNT_ADDRESS_STORAGE_KEY,
   clearAllAuth,
   clearEmbeddedAddress,
+  clearSignedOutSentinel,
   clearStoredSmartAccountAddress,
+  EMBEDDED_ADDRESS_KEY,
   getAuthMode,
   getEmbeddedAddress,
   getStoredSmartAccountAddress,
+  hasSignedOutSentinel,
+  SIGNED_OUT_STORAGE_KEY,
+  SMART_ACCOUNT_ADDRESS_STORAGE_KEY,
   setAuthMode,
   setEmbeddedAddress,
+  setSignedOutSentinel,
   setStoredSmartAccountAddress,
 } from "../../modules/auth/session";
 
@@ -81,6 +85,33 @@ describe("modules/auth/session", () => {
     it("accepts 'wallet' as a valid auth mode", () => {
       setAuthMode("wallet");
       expect(mockLocalStorage.setItem).toHaveBeenCalledWith(AUTH_MODE_STORAGE_KEY, "wallet");
+    });
+  });
+
+  describe("signed-out sentinel", () => {
+    it("sets, reads, and clears the sentinel", () => {
+      expect(hasSignedOutSentinel()).toBe(false);
+      setSignedOutSentinel();
+      expect(mockLocalStorage.setItem).toHaveBeenCalledWith(SIGNED_OUT_STORAGE_KEY, "true");
+      expect(hasSignedOutSentinel()).toBe(true);
+      clearSignedOutSentinel();
+      expect(hasSignedOutSentinel()).toBe(false);
+    });
+
+    it("is not cleared by sign-in intent alone", () => {
+      // Auth mode is written at dispatch time, before the WebAuthn ceremony
+      // resolves. A dismissed ceremony must leave the device signed out, so
+      // only a successful passkey session creation clears the sentinel.
+      setSignedOutSentinel();
+      setAuthMode("passkey");
+      expect(hasSignedOutSentinel()).toBe(true);
+    });
+
+    it("is removed by clearAllAuth", () => {
+      setSignedOutSentinel();
+      clearAllAuth();
+      expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(SIGNED_OUT_STORAGE_KEY);
+      expect(hasSignedOutSentinel()).toBe(false);
     });
   });
 

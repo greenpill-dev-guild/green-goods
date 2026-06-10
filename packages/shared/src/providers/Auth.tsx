@@ -54,6 +54,7 @@ import {
   hasStoredCredential,
   setAuthMode as saveAuthModeToStorage,
   setEmbeddedAddress,
+  setSignedOutSentinel,
 } from "../modules/auth/session";
 import { type AuthActor, getAuthActor } from "../workflows/authActor";
 
@@ -382,8 +383,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       // Get stored username or use provided. An empty username routes the
       // auth service straight to the local one-tap path — never fabricate a
       // placeholder, because under the passkey-server flag any truthy name
-      // triggers a hosted-server lookup for that literal username.
-      const finalUserName = userName || getStoredUsername() || "";
+      // triggers a hosted-server lookup for that literal username. Nullish
+      // coalescing preserves an explicit "" from the caller.
+      const finalUserName = userName ?? getStoredUsername() ?? "";
 
       // Send event to machine
       actor.send({ type: "LOGIN_PASSKEY_EXISTING", userName: finalUserName });
@@ -431,7 +433,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     (userName?: string) => {
       if (!actor) return;
       // Empty username routes to the local one-tap path (see loginWithPasskey).
-      const finalUserName = userName || getStoredUsername() || "";
+      const finalUserName = userName ?? getStoredUsername() ?? "";
       actor.send({ type: "SWITCH_TO_PASSKEY", userName: finalUserName });
       saveAuthModeToStorage("passkey");
     },
@@ -449,6 +451,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // Username + credential + expected address are the local cache for same-device fallback.
     clearAuthMode();
     clearEmbeddedAddress();
+    // Make sign-out durable: suppress automatic passkey session restore on
+    // refresh until the next successful passkey sign-in (sign-in intent alone
+    // does not clear the sentinel — a dismissed ceremony stays signed out).
+    // The cached metadata still powers one-tap re-login.
+    setSignedOutSentinel();
 
     // Reset wallet restore guard to allow future auto-restore
     walletRestoreAttemptedRef.current = false;

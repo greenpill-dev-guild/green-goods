@@ -51,10 +51,12 @@ import {
 } from "../modules/app/analytics-events";
 import { logger } from "../modules/app/logger";
 import {
+  clearSignedOutSentinel,
   getAuthMode,
   getStoredCredential,
   getStoredSmartAccountAddress,
   getStoredUsername,
+  hasSignedOutSentinel,
   setStoredCredential,
   setStoredSmartAccountAddress,
   setStoredUsername,
@@ -289,6 +291,10 @@ function cachePasskeySession(credential: P256Credential, userName: string, addre
   setStoredCredential(credential);
   setStoredUsername(userName);
   setStoredSmartAccountAddress(address);
+  // A successful passkey session creation is the only opt-back-in from the
+  // signed-out sentinel — sign-in intent alone (a dismissed ceremony) must
+  // leave automatic restore suppressed.
+  clearSignedOutSentinel();
 }
 
 type BuildPasskeySessionOptions = {
@@ -527,6 +533,14 @@ async function authenticatePasskeyFromLocalCache(
 export const restoreSessionService = fromPromise<RestoreSessionResult | null, RestoreInput>(
   async ({ input }) => {
     const { chainId } = input;
+
+    // Explicit sign-out suppresses automatic restore until the user signs
+    // back in. The recovery metadata stays cached for one-tap re-login, but
+    // a refresh must not silently re-authenticate on a shared device.
+    if (hasSignedOutSentinel()) {
+      logger.debug("[Auth] Signed-out sentinel present, skipping passkey session restore");
+      return null;
+    }
 
     // Check stored auth mode - respect user's last authentication choice
     const storedAuthMode = getAuthMode();

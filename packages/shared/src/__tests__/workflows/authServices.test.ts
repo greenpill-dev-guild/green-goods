@@ -140,7 +140,15 @@ let mockStoredUsername: string | null = null;
 let mockStoredCredential: unknown = null;
 let mockAuthMode: "passkey" | "wallet" | "embedded" | null = null;
 let mockStoredSmartAccountAddress: string | null = null;
+let mockSignedOut = false;
 vi.mock("../../modules/auth/session", () => ({
+  hasSignedOutSentinel: vi.fn(() => mockSignedOut),
+  setSignedOutSentinel: vi.fn(() => {
+    mockSignedOut = true;
+  }),
+  clearSignedOutSentinel: vi.fn(() => {
+    mockSignedOut = false;
+  }),
   getAuthMode: vi.fn(() => mockAuthMode),
   setAuthMode: vi.fn((mode: "passkey" | "wallet" | "embedded") => {
     mockAuthMode = mode;
@@ -178,6 +186,7 @@ import { createWebAuthnCredential } from "viem/account-abstraction";
 import { createPasskey } from "../../config/passkeyServer";
 import {
   clearAuthMode,
+  clearSignedOutSentinel,
   clearStoredCredential,
   clearStoredSmartAccountAddress,
   clearStoredUsername,
@@ -291,6 +300,7 @@ describe("workflows/authServices (Pimlico Server Flow)", () => {
     mockStoredCredential = null;
     mockAuthMode = null;
     mockStoredSmartAccountAddress = null;
+    mockSignedOut = false;
     mockPasskeyServerEnabled = false;
     globalMockLocalStorage.clear();
     globalMockLocalStorage._setStore({});
@@ -396,6 +406,22 @@ describe("workflows/authServices (Pimlico Server Flow)", () => {
       });
 
       expect(result).toBeNull();
+    });
+
+    it("does not restore a passkey session after explicit sign-out", async () => {
+      // Sign-out keeps the recovery cache but must stay durable across
+      // refresh — restore may only resume after an explicit sign-in.
+      mockStoredCredential = MOCK_CREDENTIAL;
+      mockStoredUsername = MOCK_USERNAME;
+      mockSignedOut = true;
+
+      const result = await invokeService(restoreSessionService, {
+        chainId: MOCK_CHAIN_ID,
+      });
+
+      expect(result).toBeNull();
+      expect(clearStoredCredential).not.toHaveBeenCalled();
+      expect(clearStoredUsername).not.toHaveBeenCalled();
     });
 
     it("fails closed without clearing storage when the stored credential rebuilds a different address", async () => {
@@ -675,6 +701,42 @@ describe("workflows/authServices (Pimlico Server Flow)", () => {
           chainId: MOCK_CHAIN_ID,
         })
       ).rejects.toThrow("Passkey authentication was cancelled");
+    });
+
+    it("clears the signed-out sentinel only after a successful passkey login", async () => {
+      mockStoredCredential = MOCK_CREDENTIAL;
+      mockSignedOut = true;
+      mockCredentials.get.mockResolvedValue({
+        id: MOCK_CREDENTIAL.id,
+        type: "public-key",
+      });
+
+      const result = await invokeService(authenticatePasskeyService, {
+        userName: MOCK_USERNAME,
+        chainId: MOCK_CHAIN_ID,
+      });
+
+      expect(result.smartAccountAddress).toBe(MOCK_SMART_ACCOUNT_ADDRESS);
+      expect(clearSignedOutSentinel).toHaveBeenCalled();
+      expect(mockSignedOut).toBe(false);
+    });
+
+    it("keeps the signed-out sentinel when the ceremony is dismissed", async () => {
+      // Shared-device guard: sign-in intent alone must not re-enable
+      // automatic restore — a dismissed prompt leaves the device signed out.
+      mockStoredCredential = MOCK_CREDENTIAL;
+      mockSignedOut = true;
+      mockCredentials.get.mockResolvedValue(null);
+
+      await expect(
+        invokeService(authenticatePasskeyService, {
+          userName: MOCK_USERNAME,
+          chainId: MOCK_CHAIN_ID,
+        })
+      ).rejects.toThrow("Passkey authentication was cancelled");
+
+      expect(clearSignedOutSentinel).not.toHaveBeenCalled();
+      expect(mockSignedOut).toBe(true);
     });
 
     it("prompts WebAuthn with correct credential ID from storage", async () => {
