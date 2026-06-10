@@ -18,10 +18,16 @@ import {
   getContract,
   prepareContractCall,
   readContract,
+  waitForReceipt,
   type ThirdwebClient,
 } from "thirdweb";
 import { defineChain, ethereum } from "thirdweb/chains";
-import { ThirdwebProvider, useConnect, useSendAndConfirmTransaction } from "thirdweb/react";
+import {
+  ThirdwebProvider,
+  useConnect,
+  useSendAndConfirmTransaction,
+  useSendBatchTransaction,
+} from "thirdweb/react";
 import { inAppWallet, preAuthenticate } from "thirdweb/wallets/in-app";
 import { formatUnits, isAddress } from "viem";
 import VaultCardPaymentPanel from "./VaultCardPaymentPanel";
@@ -52,6 +58,19 @@ function getThirdwebChain(chainId: number) {
   return chainId === ethereum.id ? ethereum : defineChain(chainId);
 }
 
+function supportsCardEndowBatch(chainId: number) {
+  return chainId === ethereum.id || chainId === 11155111;
+}
+
+function getInAppWalletAdminAddress(wallet: unknown): Address | null {
+  const getAdminAccount = (wallet as { getAdminAccount?: unknown }).getAdminAccount;
+  if (typeof getAdminAccount !== "function") return null;
+  const account = getAdminAccount.call(wallet) as { address?: unknown } | undefined;
+  return typeof account?.address === "string" && isAddress(account.address)
+    ? (account.address as Address)
+    : null;
+}
+
 function getTransactionHash(result: unknown): `0x${string}` | null {
   if (!result || typeof result !== "object") return null;
   const candidate = (result as { transactionHash?: unknown }).transactionHash;
@@ -67,7 +86,8 @@ function getTransactionHash(result: unknown): `0x${string}` | null {
  * status to idle, so the derivation naturally holds the stage and the inline
  * error renders in place.
  */
-type CardEndowStage = "recover" | "review" | "fund" | "complete" | "done";
+type CardEndowStage = "recover" | "review" | "fund" | "done";
+type CardEndowBatchStatus = "idle" | "unsupported" | "pending" | "failed" | "succeeded";
 
 export interface VaultCardEndowFlowProps {
   campaign: OctantVaultCampaignManifest;
@@ -184,6 +204,7 @@ function CardEndowProviderContent({
   const [recoveredWalletAddress, setRecoveredWalletAddress] = useState<Address | null>(null);
   const [tupleConfirmed, setTupleConfirmed] = useState(false);
   const [cardFundingStatus, setCardFundingStatus] = useState<"idle" | "funded">("idle");
+  const [batchStatus, setBatchStatus] = useState<CardEndowBatchStatus>("idle");
   const [approvalStatus, setApprovalStatus] = useState<"idle" | "pending" | "approved">("idle");
   const [depositStatus, setDepositStatus] = useState<"idle" | "pending" | "deposited">("idle");
   const [depositTxHash, setDepositTxHash] = useState<`0x${string}` | null>(null);
@@ -197,6 +218,7 @@ function CardEndowProviderContent({
   const [slow, setSlow] = useState(false);
   const { set: scheduleSlow, clear: clearSlow } = useTimeout();
   const { connect, error: connectError, isConnecting } = useConnect();
+  const sendBatchTransaction = useSendBatchTransaction();
   const sendAndConfirmTransaction = useSendAndConfirmTransaction({ payModal: false });
   const decimals = campaign.vault?.asset?.decimals ?? 18;
   const hasReadyAmount = amount > 0n;
@@ -229,12 +251,19 @@ function CardEndowProviderContent({
     emailInput.trim().includes("@") &&
     otpInput.trim().length > 0;
   const completeBusy =
+    batchStatus === "pending" ||
     approvalStatus === "pending" ||
     depositStatus === "pending" ||
+    sendBatchTransaction.isPending ||
     sendAndConfirmTransaction.isPending;
+  const fallbackAvailable = batchStatus === "failed" || batchStatus === "unsupported";
   // One action runs approve -> deposit; retry resumes at deposit when already approved.
   const canCompleteEndowment = Boolean(
-    plan && cardFundingStatus === "funded" && depositStatus !== "deposited" && !completeBusy
+    plan &&
+      cardFundingStatus === "funded" &&
+      fallbackAvailable &&
+      depositStatus !== "deposited" &&
+      !completeBusy
   );
   const hasPositiveShares = shareBalance !== null && shareBalance > 0n;
   const valuePathStarted =
@@ -246,9 +275,11 @@ function CardEndowProviderContent({
     proofStatus !== "idle";
   const cardPaymentVisible = Boolean(plan && tupleConfirmed);
   const transactionPending =
+    batchStatus === "pending" ||
     approvalStatus === "pending" ||
     depositStatus === "pending" ||
     proofStatus === "submitting" ||
+    sendBatchTransaction.isPending ||
     sendAndConfirmTransaction.isPending;
   const checkoutInputsLocked = Boolean(
     cardPaymentVisible || valuePathStarted || transactionPending
@@ -258,13 +289,11 @@ function CardEndowProviderContent({
   const stage: CardEndowStage =
     depositStatus === "deposited"
       ? "done"
-      : cardFundingStatus === "funded"
-        ? "complete"
-        : tupleConfirmed && plan
-          ? "fund"
-          : receiverAddress
-            ? "review"
-            : "recover";
+      : tupleConfirmed && plan
+        ? "fund"
+        : receiverAddress
+          ? "review"
+          : "recover";
 
   // Switching campaign (a fresh checkout) clears every Card Endow gate.
   useEffect(() => {
@@ -276,6 +305,7 @@ function CardEndowProviderContent({
     setRecoveredWalletAddress(null);
     setTupleConfirmed(false);
     setCardFundingStatus("idle");
+    setBatchStatus("idle");
     setApprovalStatus("idle");
     setDepositStatus("idle");
     setDepositTxHash(null);
@@ -337,6 +367,7 @@ function CardEndowProviderContent({
     setRecoveredWalletAddress(null);
     setTupleConfirmed(false);
     setCardFundingStatus("idle");
+    setBatchStatus("idle");
     setApprovalStatus("idle");
     setDepositStatus("idle");
     setDepositTxHash(null);
@@ -398,6 +429,14 @@ function CardEndowProviderContent({
         await connect(async () => {
           const wallet = inAppWallet({
             auth: { options: ["email"] },
+            ...(supportsCardEndowBatch(chainId)
+              ? {
+                  executionMode: {
+                    mode: "EIP7702",
+                    sponsorGas: true,
+                  },
+                }
+              : {}),
             metadata: { name: "Green Goods" },
           });
           const account = await wallet.connect({
@@ -408,7 +447,20 @@ function CardEndowProviderContent({
             verificationCode: otpInput.trim(),
           });
 
-          setRecoveredWalletAddress(account.address);
+          if (!isAddress(account.address)) {
+            throw new Error("Email wallet did not return a valid receiver address.");
+          }
+
+          const recoveredAddress = account.address as Address;
+          const walletAdminAddress = getInAppWalletAdminAddress(wallet);
+          setRecoveredWalletAddress(recoveredAddress);
+          setBatchStatus(
+            supportsCardEndowBatch(chainId) &&
+              walletAdminAddress !== null &&
+              account.address.toLowerCase() === walletAdminAddress.toLowerCase()
+              ? "idle"
+              : "unsupported"
+          );
           setVerifiedEmail(email);
           return wallet;
         });
@@ -420,7 +472,7 @@ function CardEndowProviderContent({
         );
       }
     },
-    [canVerifyEmailWallet, chain, client, connect, emailInput, otpInput]
+    [canVerifyEmailWallet, chain, chainId, client, connect, emailInput, otpInput]
   );
 
   const readShareBalance = useCallback(
@@ -525,44 +577,120 @@ function CardEndowProviderContent({
     ]
   );
 
-  // One action runs the strict approve -> deposit ordering with confirmations. A
-  // failure resets only the failed stage, so a retry resumes at deposit when the
-  // approval already confirmed (no redundant approval tx). The funding-proof gate is
-  // preserved.
+  const createSettlementTransactions = useCallback(() => {
+    if (!plan) return null;
+
+    const tokenContract = getContract({
+      client,
+      chain,
+      address: plan.cardFunding.tokenAddress,
+    });
+    const approveTransaction = prepareContractCall({
+      contract: tokenContract,
+      method: "function approve(address spender, uint256 value)",
+      params: [plan.receiptExpectation.expectedVaultAddress, BigInt(plan.cardFunding.amount)],
+    });
+    const vaultContract = getContract({
+      client,
+      chain,
+      address: plan.receiptExpectation.expectedVaultAddress,
+    });
+    const depositTransaction = prepareContractCall({
+      contract: vaultContract,
+      method: "function deposit(uint256 assets, address receiver) returns (uint256)",
+      params: [BigInt(plan.cardFunding.amount), plan.receiptExpectation.receiverAddress],
+    });
+
+    return [approveTransaction, depositTransaction] as const;
+  }, [chain, client, plan]);
+
+  const handleBatchEndowment = useCallback(async () => {
+    if (!plan || cardFundingStatus !== "funded" || batchStatus !== "idle") return;
+
+    const transactions = createSettlementTransactions();
+    if (!transactions) return;
+
+    const expectedFlowKey = flowKey;
+    setFlowError(null);
+    try {
+      setBatchStatus("pending");
+      setApprovalStatus("pending");
+      setDepositStatus("pending");
+      const waitOptions = await sendBatchTransaction.mutateAsync([...transactions]);
+      const receipt = await waitForReceipt(waitOptions);
+      if (receipt.status === "reverted") {
+        throw new Error("Batch transaction reverted.");
+      }
+      const txHash = getTransactionHash(receipt) ?? getTransactionHash(waitOptions);
+      if (txHash === null) {
+        throw new Error("Batch transaction receipt did not include a transaction hash.");
+      }
+      if (!isCurrentFlow(expectedFlowKey)) return;
+      setBatchStatus("succeeded");
+      setApprovalStatus("approved");
+      setDepositTxHash(txHash);
+      setDepositStatus("deposited");
+      const shares = await readShareBalance(expectedFlowKey);
+      if (txHash !== null && shares !== null && shares > 0n) {
+        await submitFundingProof(txHash, shares, expectedFlowKey);
+      }
+    } catch (error) {
+      if (!isCurrentFlow(expectedFlowKey)) return;
+      setBatchStatus("failed");
+      setApprovalStatus("idle");
+      setDepositStatus("idle");
+      setFlowError(
+        formatMessage({
+          id: "public.vaults.cardEndow.autoDepositFailed",
+          defaultMessage:
+            "The vault deposit could not finish automatically. Use the button below to finish the deposit.",
+        })
+      );
+    }
+  }, [
+    batchStatus,
+    cardFundingStatus,
+    createSettlementTransactions,
+    formatMessage,
+    flowKey,
+    isCurrentFlow,
+    plan,
+    readShareBalance,
+    sendBatchTransaction,
+    submitFundingProof,
+  ]);
+
+  useEffect(() => {
+    if (
+      !plan ||
+      cardFundingStatus !== "funded" ||
+      batchStatus !== "idle" ||
+      depositStatus === "deposited"
+    ) {
+      return;
+    }
+    void handleBatchEndowment();
+  }, [batchStatus, cardFundingStatus, depositStatus, handleBatchEndowment, plan]);
+
+  // Fallback keeps the current approve -> deposit ordering available inline when
+  // batching is unsupported or the smart-account batch fails.
   const handleCompleteEndowment = useCallback(async () => {
     if (!plan || !canCompleteEndowment) return;
 
+    const transactions = createSettlementTransactions();
+    if (!transactions) return;
+    const [approveTransaction, depositTransaction] = transactions;
     const expectedFlowKey = flowKey;
     setFlowError(null);
     try {
       if (approvalStatus !== "approved") {
         setApprovalStatus("pending");
-        const tokenContract = getContract({
-          client,
-          chain,
-          address: plan.cardFunding.tokenAddress,
-        });
-        const approveTransaction = prepareContractCall({
-          contract: tokenContract,
-          method: "function approve(address spender, uint256 value)",
-          params: [plan.receiptExpectation.expectedVaultAddress, BigInt(plan.cardFunding.amount)],
-        });
         await sendAndConfirmTransaction.mutateAsync(approveTransaction);
         if (!isCurrentFlow(expectedFlowKey)) return;
         setApprovalStatus("approved");
       }
 
       setDepositStatus("pending");
-      const vaultContract = getContract({
-        client,
-        chain,
-        address: plan.receiptExpectation.expectedVaultAddress,
-      });
-      const depositTransaction = prepareContractCall({
-        contract: vaultContract,
-        method: "function deposit(uint256 assets, address receiver) returns (uint256)",
-        params: [BigInt(plan.cardFunding.amount), plan.receiptExpectation.receiverAddress],
-      });
       const result = await sendAndConfirmTransaction.mutateAsync(depositTransaction);
       const txHash = getTransactionHash(result);
       if (!isCurrentFlow(expectedFlowKey)) return;
@@ -582,8 +710,7 @@ function CardEndowProviderContent({
   }, [
     approvalStatus,
     canCompleteEndowment,
-    chain,
-    client,
+    createSettlementTransactions,
     flowKey,
     isCurrentFlow,
     plan,
@@ -689,6 +816,138 @@ function CardEndowProviderContent({
     </>
   );
 
+  const fallbackButton =
+    stage === "fund" && cardFundingStatus === "funded" && fallbackAvailable ? (
+      <button
+        type="button"
+        disabled={!canCompleteEndowment}
+        className={CHECKOUT_PRIMARY_BUTTON}
+        onClick={handleCompleteEndowment}
+      >
+        {depositStatus === "pending"
+          ? formatMessage({
+              id: "public.vaults.cardEndow.depositing",
+              defaultMessage: "Depositing...",
+            })
+          : approvalStatus === "pending"
+            ? formatMessage({
+                id: "public.vaults.cardEndow.approving",
+                defaultMessage: "Approving...",
+              })
+            : formatMessage({
+                id: "public.vaults.cardEndow.finishDepositFallback",
+                defaultMessage: "Finish vault deposit",
+              })}
+      </button>
+    ) : null;
+
+  const statusBlock = (
+    <div
+      role="status"
+      aria-live="polite"
+      aria-atomic="true"
+      data-testid="vault-card-endow-status-block"
+      className="grid gap-2 rounded-none bg-bg-weak-50 p-4 text-sm"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <span className="font-medium text-text-strong-950">
+          {formatMessage({
+            id: "public.vaults.cardEndow.status.payment",
+            defaultMessage: "Payment",
+          })}
+        </span>
+        <span className="text-right text-text-sub-600">
+          {cardFundingStatus === "funded"
+            ? formatMessage({
+                id: "public.vaults.cardEndow.status.paymentComplete",
+                defaultMessage: "Card funding complete",
+              })
+            : formatMessage({
+                id: "public.vaults.cardEndow.status.paymentPending",
+                defaultMessage: "Pending card funding",
+              })}
+        </span>
+      </div>
+      <div className="flex items-center justify-between gap-3">
+        <span className="font-medium text-text-strong-950">
+          {formatMessage({
+            id: "public.vaults.cardEndow.status.deposit",
+            defaultMessage: "Vault deposit",
+          })}
+        </span>
+        <span className="text-right text-text-sub-600">
+          {depositStatus === "deposited"
+            ? formatMessage({
+                id: "public.vaults.cardEndow.status.depositComplete",
+                defaultMessage: "Deposit sent",
+              })
+            : batchStatus === "pending" || depositStatus === "pending"
+              ? formatMessage({
+                  id: "public.vaults.cardEndow.status.depositing",
+                  defaultMessage: "Depositing into the vault",
+                })
+              : cardFundingStatus === "funded" && fallbackAvailable
+                ? formatMessage({
+                    id: "public.vaults.cardEndow.status.depositFallback",
+                    defaultMessage: "Fallback ready",
+                  })
+                : formatMessage({
+                    id: "public.vaults.cardEndow.status.depositWaiting",
+                    defaultMessage: "Waiting for payment",
+                  })}
+        </span>
+      </div>
+      <div className="flex items-center justify-between gap-3">
+        <span className="font-medium text-text-strong-950">
+          {formatMessage({
+            id: "public.vaults.cardEndow.status.shares",
+            defaultMessage: "Vault position",
+          })}
+        </span>
+        <span className="text-right text-text-sub-600">
+          {hasPositiveShares
+            ? formatMessage({
+                id: "public.vaults.cardEndow.status.sharesConfirmed",
+                defaultMessage: "Shares confirmed",
+              })
+            : depositStatus === "deposited"
+              ? formatMessage({
+                  id: "public.vaults.cardEndow.status.sharesPending",
+                  defaultMessage: "Confirming shares",
+                })
+              : formatMessage({
+                  id: "public.vaults.cardEndow.status.sharesWaiting",
+                  defaultMessage: "Waiting for deposit",
+                })}
+        </span>
+      </div>
+      <div className="flex items-center justify-between gap-3">
+        <span className="font-medium text-text-strong-950">
+          {formatMessage({
+            id: "public.vaults.cardEndow.status.receipt",
+            defaultMessage: "Receipt",
+          })}
+        </span>
+        <span className="text-right text-text-sub-600">
+          {proofStatus === "recorded"
+            ? formatMessage({
+                id: "public.vaults.cardEndow.status.receiptRecorded",
+                defaultMessage: "Receipt recorded",
+              })
+            : proofStatus === "submitting"
+              ? formatMessage({
+                  id: "public.vaults.cardEndow.status.receiptRecording",
+                  defaultMessage: "Recording receipt",
+                })
+              : formatMessage({
+                  id: "public.vaults.cardEndow.status.receiptWaiting",
+                  defaultMessage: "Waiting for vault position",
+                })}
+        </span>
+      </div>
+    </div>
+  );
+
   // ── recover: email + OTP ───────────────────────────────────────────────────
   if (stage === "recover") {
     return (
@@ -719,7 +978,7 @@ function CardEndowProviderContent({
           <CheckoutStageHeader
             eyebrow={formatMessage({
               id: "public.vaults.cardEndow.stage.recover.eyebrow",
-              defaultMessage: "Step 1 of 4",
+              defaultMessage: "Step 1 of 3",
             })}
             title={formatMessage({
               id: "public.vaults.cardEndow.stage.recover.title",
@@ -728,7 +987,7 @@ function CardEndowProviderContent({
             description={formatMessage({
               id: "public.vaults.cardEndow.stage.recover.description",
               defaultMessage:
-                "Card payments fund a secure email wallet first. You will approve the vault deposit after card funding succeeds.",
+                "Card funding completes the vault endowment from a secure email wallet after you review the route.",
             })}
           />
           <CheckoutSummary items={cardSummaryItems} />
@@ -848,7 +1107,7 @@ function CardEndowProviderContent({
           <CheckoutStageHeader
             eyebrow={formatMessage({
               id: "public.vaults.cardEndow.stage.review.eyebrow",
-              defaultMessage: "Step 2 of 4",
+              defaultMessage: "Step 2 of 3",
             })}
             title={formatMessage({
               id: "public.vaults.cardEndow.stage.review.title",
@@ -1005,7 +1264,7 @@ function CardEndowProviderContent({
                 {formatMessage({
                   id: "public.vaults.cardEndow.authorizationOrder",
                   defaultMessage:
-                    "Your card payment funds the verified email wallet with WETH, then you finish the Octant vault deposit from that wallet.",
+                    "Your card funding completes the vault endowment for the verified email wallet after checkout succeeds.",
                 })}
               </p>
               <p className="bg-bg-weak-50 p-4 text-sm leading-[1.55] text-text-sub-600">
@@ -1039,83 +1298,12 @@ function CardEndowProviderContent({
         plan={plan}
         campaign={campaign}
         summaryItems={cardSummaryItems}
+        cardFundingComplete={cardFundingStatus === "funded"}
+        statusBlock={statusBlock}
+        fallbackButton={fallbackButton}
         onCardFundingSuccess={handleCardFundingSuccess}
         errorNotes={errorNotes}
       />
-    );
-  }
-
-  // ── complete: one action runs the strict approve -> deposit ordering ───────
-  if (stage === "complete") {
-    const completeLabel =
-      depositStatus === "pending"
-        ? formatMessage({
-            id: "public.vaults.cardEndow.depositing",
-            defaultMessage: "Depositing...",
-          })
-        : approvalStatus === "pending"
-          ? formatMessage({
-              id: "public.vaults.cardEndow.approving",
-              defaultMessage: "Approving...",
-            })
-          : formatMessage({
-              id: "public.vaults.cardEndow.complete",
-              defaultMessage: "Complete endowment",
-            });
-    return (
-      <CheckoutScreen
-        footer={
-          <button
-            type="button"
-            disabled={!canCompleteEndowment}
-            className={CHECKOUT_PRIMARY_BUTTON}
-            onClick={handleCompleteEndowment}
-          >
-            {completeLabel}
-          </button>
-        }
-      >
-        <div className="flex flex-col gap-5" data-testid="vault-card-endow-flow">
-          <CheckoutStageHeader
-            eyebrow={formatMessage({
-              id: "public.vaults.cardEndow.stage.complete.eyebrow",
-              defaultMessage: "Step 4 of 4",
-            })}
-            title={formatMessage({
-              id: "public.vaults.cardEndow.stage.complete.title",
-              defaultMessage: "Complete endowment",
-            })}
-            description={formatMessage({
-              id: "public.vaults.cardEndow.stage.complete.description",
-              defaultMessage: "Approve the vault transfer and deposit the funded WETH in one step.",
-            })}
-          />
-          <CheckoutSummary items={cardSummaryItems} />
-          <p className="rounded-none bg-primary-action/10 p-4 text-sm leading-[1.55] text-primary-base">
-            {formatMessage({
-              id: "public.vaults.cardEndow.cardFunded",
-              defaultMessage:
-                "Card funding is complete. Next, approve the vault transfer for this endowment.",
-            })}
-          </p>
-          <p className="text-sm leading-[1.6] text-text-sub-600">
-            {formatMessage({
-              id: "public.vaults.cardEndow.completeTechnical",
-              defaultMessage: "This approves token -> vault, then deposits amount -> receiver.",
-            })}
-          </p>
-          {slow ? (
-            <p className="rounded-none bg-bg-weak-50 p-4 text-sm leading-[1.55] text-text-sub-600">
-              {formatMessage({
-                id: "public.vaults.checkout.slow",
-                defaultMessage:
-                  "Taking longer than expected — your transaction may still be processing. Wait a moment before retrying; your position will appear under Manage positions on /vaults once it settles.",
-              })}
-            </p>
-          ) : null}
-          {errorNotes}
-        </div>
-      </CheckoutScreen>
     );
   }
 
@@ -1176,6 +1364,7 @@ function CardEndowProviderContent({
           })}
         />
         <CheckoutSummary items={cardSummaryItems} />
+        {statusBlock}
         {hasPositiveShares ? (
           <>
             <p className="rounded-none bg-primary-action/10 p-4 text-sm leading-[1.55] text-primary-base">

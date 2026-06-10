@@ -40,6 +40,9 @@ const mocks = vi.hoisted(() => ({
   wrapEthToWethMutate: vi.fn(),
   wrapEthToWethReset: vi.fn(),
   walletBalancesRefetch: vi.fn(async () => undefined),
+  thirdwebPrepareContractCall: vi.fn((o: unknown) => o),
+  thirdwebReadContract: vi.fn(async () => 1_000_000_000_000_000_000n),
+  thirdwebSendAndConfirmMutateAsync: vi.fn(async () => ({})),
   // Thirdweb card session: by default a live session for CARD (no re-verify).
   activeAccount: { address: CARD } as { address: string } | undefined,
   autoConnectLoading: false,
@@ -172,8 +175,8 @@ function makeStableCampaign(): OctantVaultCampaignManifest {
 vi.mock("thirdweb", () => ({
   createThirdwebClient: (o: { clientId: string }) => ({ clientId: o.clientId }),
   getContract: (o: unknown) => o,
-  prepareContractCall: (o: unknown) => o,
-  readContract: vi.fn(async () => 1_000_000_000_000_000_000n),
+  prepareContractCall: (o: unknown) => mocks.thirdwebPrepareContractCall(o),
+  readContract: (o: unknown) => mocks.thirdwebReadContract(o),
 }));
 vi.mock("thirdweb/chains", () => ({
   defineChain: (id: number) => ({ id }),
@@ -191,7 +194,7 @@ vi.mock("thirdweb/react", async () => {
     },
     useConnect: () => ({ connect: vi.fn(), isConnecting: false, error: null }),
     useSendAndConfirmTransaction: () => ({
-      mutateAsync: vi.fn(async () => ({})),
+      mutateAsync: mocks.thirdwebSendAndConfirmMutateAsync,
       isPending: false,
     }),
   };
@@ -254,6 +257,9 @@ beforeEach(() => {
   mocks.wrapEthToWethMutate.mockClear();
   mocks.wrapEthToWethReset.mockClear();
   mocks.walletBalancesRefetch.mockClear();
+  mocks.thirdwebPrepareContractCall.mockClear();
+  mocks.thirdwebReadContract.mockClear();
+  mocks.thirdwebSendAndConfirmMutateAsync.mockClear();
   mocks.activeAccount = { address: CARD };
   mocks.autoConnectLoading = false;
   window.localStorage.clear();
@@ -528,6 +534,45 @@ describe("/vaults?manage=positions", () => {
     // the email in-app wallet — assert it is actually invoked, not bypassed.
     expect(mocks.autoConnectSpy).toHaveBeenCalledWith(
       expect.objectContaining({ wallets: expect.arrayContaining([expect.anything()]) })
+    );
+  });
+
+  it("signs card-wallet redemption with the Octant maxLoss redeem signature", async () => {
+    window.localStorage.setItem(
+      "gg:octant-vault-card-wallets:v1",
+      JSON.stringify([
+        {
+          recoveredWalletAddress: CARD,
+          campaignSlug: "greenpill-nyc",
+          vaultAddress: VAULT,
+          chainId: 1,
+          updatedAt: 1000,
+        },
+      ])
+    );
+    mocks.positionsByOwner[CARD.toLowerCase()] = {
+      ...emptyPositions(),
+      positions: [makePosition()],
+      hasPositions: true,
+    };
+
+    const user = userEvent.setup();
+    renderPage("/vaults?manage=positions");
+    await user.click(screen.getByRole("tab", { name: "Card wallet" }));
+
+    const row = await screen.findByTestId("vault-manage-position-greenpill-nyc");
+    await user.click(within(row).getByRole("button", { name: "Redeem shares" }));
+    await user.type(within(row).getByLabelText("Shares to redeem"), "0.5");
+    await user.click(within(row).getByRole("button", { name: "Review redemption" }));
+    await user.click(within(row).getByRole("button", { name: "Confirm" }));
+
+    await waitFor(() => expect(mocks.thirdwebSendAndConfirmMutateAsync).toHaveBeenCalledTimes(1));
+    expect(mocks.thirdwebPrepareContractCall).toHaveBeenCalledWith(
+      expect.objectContaining({
+        method:
+          "function redeem(uint256 shares, address receiver, address owner, uint256 maxLoss, address[] strategies) returns (uint256)",
+        params: [500_000_000_000_000_000n, CARD, CARD, 100n, []],
+      })
     );
   });
 

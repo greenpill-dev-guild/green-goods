@@ -250,8 +250,8 @@ function CardVaultPositionRow({
           const transaction = prepareContractCall({
             contract: vault,
             method:
-              "function redeem(uint256 shares, address receiver, address owner) returns (uint256)",
-            params: [shares, owner, owner],
+              "function redeem(uint256 shares, address receiver, address owner, uint256 maxLoss, address[] strategies) returns (uint256)",
+            params: [shares, owner, owner, DEFAULT_WITHDRAW_MAX_LOSS_BPS, []],
           });
           await sendAndConfirm.mutateAsync(transaction);
           await onRefresh();
