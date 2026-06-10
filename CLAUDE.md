@@ -137,7 +137,7 @@ Authoritative source for these IDs and the surface mapping: [docs/routines/READM
 
 ## QA Sync Triage
 
-After a product sync QA session, [`/qa-triage`](.claude/skills/qa-triage/SKILL.md) is the interactive path for turning meeting notes into Linear records + QA-sheet rows. It pulls the latest Gemini notes from Drive (with `~/Downloads` fallback), cross-references each item against PostHog telemetry per surface, gates the triage with a scope lock, and writes Customer Needs/Issues plus appends to the **Green Goods v1.1 QA** Sheet. The companion cron'd routine [`qa-triage-pulse`](docs/routines/qa-triage-pulse.md) pre-stages Customer Needs every Wednesday after the 10am PST product sync, so `/qa-triage` can resume from the pre-staged set rather than re-extracting.
+After a build sync QA session (the meeting formerly called product sync), [`/qa-triage`](.claude/skills/qa-triage/SKILL.md) is the interactive path for turning meeting notes into Linear records + QA-sheet rows. It pulls the latest Gemini notes from Drive (with `~/Downloads` fallback), cross-references each item against PostHog telemetry per surface, gates the triage with a scope lock, and writes Customer Needs/Issues plus appends to the **Green Goods v1.1 QA** Sheet. The companion cron'd routine [`qa-triage-pulse`](docs/routines/qa-triage-pulse.md) pre-stages Customer Needs every Wednesday after the 10am PST build sync, so `/qa-triage` can resume from the pre-staged set rather than re-extracting.
 
 ## Key Patterns
 
