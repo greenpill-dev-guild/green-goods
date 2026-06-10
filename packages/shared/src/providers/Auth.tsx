@@ -379,8 +379,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
         await disconnectWallet();
       }
 
-      // Get stored username or use provided
-      const finalUserName = userName || getStoredUsername() || "user";
+      // Get stored username or use provided. An empty username routes the
+      // auth service straight to the local one-tap path — never fabricate a
+      // placeholder, because under the passkey-server flag any truthy name
+      // triggers a hosted-server lookup for that literal username.
+      const finalUserName = userName || getStoredUsername() || "";
 
       // Send event to machine
       actor.send({ type: "LOGIN_PASSKEY_EXISTING", userName: finalUserName });
@@ -427,7 +430,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const switchToPasskey = useCallback(
     (userName?: string) => {
       if (!actor) return;
-      const finalUserName = userName || getStoredUsername() || "user";
+      // Empty username routes to the local one-tap path (see loginWithPasskey).
+      const finalUserName = userName || getStoredUsername() || "";
       actor.send({ type: "SWITCH_TO_PASSKEY", userName: finalUserName });
       saveAuthModeToStorage("passkey");
     },

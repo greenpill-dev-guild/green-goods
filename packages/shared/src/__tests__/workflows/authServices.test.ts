@@ -398,6 +398,23 @@ describe("workflows/authServices (Pimlico Server Flow)", () => {
       expect(result).toBeNull();
     });
 
+    it("fails closed without clearing storage when the stored credential rebuilds a different address", async () => {
+      mockStoredCredential = MOCK_CREDENTIAL;
+      mockStoredUsername = MOCK_USERNAME;
+      mockStoredSmartAccountAddress = MOCK_OTHER_SMART_ACCOUNT_ADDRESS;
+
+      const result = await invokeService(restoreSessionService, {
+        chainId: MOCK_CHAIN_ID,
+      });
+
+      expect(result).toBeNull();
+      // No silent adoption of the drifted address, and nothing destroyed.
+      expect(setStoredSmartAccountAddress).not.toHaveBeenCalled();
+      expect(clearStoredCredential).not.toHaveBeenCalled();
+      expect(clearStoredUsername).not.toHaveBeenCalled();
+      expect(clearStoredSmartAccountAddress).not.toHaveBeenCalled();
+    });
+
     it("restores session when authMode is passkey", async () => {
       mockStoredCredential = MOCK_CREDENTIAL;
       mockStoredUsername = MOCK_USERNAME;
@@ -463,6 +480,22 @@ describe("workflows/authServices (Pimlico Server Flow)", () => {
       });
 
       expect(setStoredUsername).toHaveBeenCalledWith("alice");
+    });
+
+    it("registers a separate account even when a stale expected address remains", async () => {
+      // A confirmed separate account is a new address by definition; stale
+      // continuity state (e.g. after a corrupted-credential cache clear) must
+      // not dead-end registration.
+      mockStoredSmartAccountAddress = MOCK_OTHER_SMART_ACCOUNT_ADDRESS;
+      (createPasskey as ReturnType<typeof vi.fn>).mockResolvedValue(MOCK_CREDENTIAL);
+
+      const result = await invokeService(registerPasskeyService, {
+        userName: MOCK_USERNAME,
+        chainId: MOCK_CHAIN_ID,
+      });
+
+      expect(result.smartAccountAddress).toBe(MOCK_SMART_ACCOUNT_ADDRESS);
+      expect(setStoredSmartAccountAddress).toHaveBeenCalledWith(MOCK_SMART_ACCOUNT_ADDRESS);
     });
 
     it("builds smart account from registered credential", async () => {
@@ -549,6 +582,18 @@ describe("workflows/authServices (Pimlico Server Flow)", () => {
       expect(createWebAuthnCredential).not.toHaveBeenCalled();
       expect(setStoredUsername).not.toHaveBeenCalled();
       expect(setStoredSmartAccountAddress).not.toHaveBeenCalled();
+    });
+
+    it("registers through the server even when a stale expected address remains", async () => {
+      mockStoredSmartAccountAddress = MOCK_OTHER_SMART_ACCOUNT_ADDRESS;
+
+      const result = await invokeService(registerPasskeyService, {
+        userName: MOCK_USERNAME,
+        chainId: MOCK_CHAIN_ID,
+      });
+
+      expect(result.smartAccountAddress).toBe(MOCK_SMART_ACCOUNT_ADDRESS);
+      expect(setStoredSmartAccountAddress).toHaveBeenCalledWith(MOCK_SMART_ACCOUNT_ADDRESS);
     });
 
     it("fails closed when the passkey server does not verify registration", async () => {
@@ -838,6 +883,64 @@ describe("workflows/authServices (Pimlico Server Flow)", () => {
       expect(clearStoredUsername).not.toHaveBeenCalled();
       expect(clearAuthMode).not.toHaveBeenCalled();
       expect(clearStoredSmartAccountAddress).not.toHaveBeenCalled();
+    });
+
+    it("falls back to the local credential when the lookup fails with a viem HTTP transport error", async () => {
+      // Real viem transport failures carry no fallback keywords in their
+      // message text; the lookup phase must still degrade to local fallback.
+      mockStoredCredential = MOCK_CREDENTIAL;
+      mockStoredUsername = MOCK_USERNAME;
+      const transportError = new Error("HTTP request failed.\nStatus: 500\nURL: https://b.test");
+      transportError.name = "HttpRequestError";
+      mockPasskeyServerClient.getCredentials.mockRejectedValue(transportError);
+      mockCredentials.get.mockResolvedValue({
+        id: MOCK_CREDENTIAL.id,
+        type: "public-key",
+      });
+
+      const result = await invokeService(authenticatePasskeyService, {
+        userName: MOCK_USERNAME,
+        chainId: MOCK_CHAIN_ID,
+      });
+
+      expect(result.credential).toEqual(MOCK_CREDENTIAL);
+      expect(clearStoredCredential).not.toHaveBeenCalled();
+      expect(clearStoredUsername).not.toHaveBeenCalled();
+    });
+
+    it("falls back to the local credential when challenge issuance times out", async () => {
+      mockStoredCredential = MOCK_CREDENTIAL;
+      const timeoutError = new Error("The request took too long to respond.");
+      timeoutError.name = "TimeoutError";
+      mockPasskeyServerClient.startAuthentication.mockRejectedValue(timeoutError);
+      mockCredentials.get.mockResolvedValue({
+        id: MOCK_CREDENTIAL.id,
+        type: "public-key",
+      });
+
+      const result = await invokeService(authenticatePasskeyService, {
+        userName: MOCK_USERNAME,
+        chainId: MOCK_CHAIN_ID,
+      });
+
+      expect(result.credential).toEqual(MOCK_CREDENTIAL);
+    });
+
+    it("does not fall back when the user cancels the WebAuthn ceremony", async () => {
+      mockStoredCredential = MOCK_CREDENTIAL;
+      const cancelError = new Error("The operation either timed out or was not allowed.");
+      cancelError.name = "NotAllowedError";
+      mockCredentials.get.mockRejectedValue(cancelError);
+
+      await expect(
+        invokeService(authenticatePasskeyService, {
+          userName: MOCK_USERNAME,
+          chainId: MOCK_CHAIN_ID,
+        })
+      ).rejects.toThrow("not allowed");
+
+      // One ceremony only — cancellation must not re-prompt via local fallback.
+      expect(mockCredentials.get).toHaveBeenCalledTimes(1);
     });
 
     it("fails closed when a recovered credential rebuilds a different stored address", async () => {

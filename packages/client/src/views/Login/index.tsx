@@ -2,8 +2,8 @@ import {
   classifyPasskeyCeremonyContext,
   copyToClipboard,
   debugError,
-  isPasskeyServerEnabled,
   type InstallGuidance,
+  isPasskeyServerEnabled,
   type Platform,
   toastService,
   trackAuthError,
@@ -164,6 +164,10 @@ export function Login() {
   const [recoveryUsername, setRecoveryUsername] = useState("");
   const [recoveryAttempted, setRecoveryAttempted] = useState(false);
   const [noLocalPasskeyMode, setNoLocalPasskeyMode] = useState<NoLocalPasskeyMode>("recover");
+  // Returning users keep one-tap sign-in as primary; this opt-in flag opens
+  // the username recovery prompt for them (e.g. provider-side passkey lost
+  // or stale local cache) without requiring a site-data wipe first.
+  const [forceRecovery, setForceRecovery] = useState(false);
   const passkeyServerEnabled = isPasskeyServerEnabled();
 
   // Handle browser switch action (for wrong browser/in-app browser scenarios)
@@ -352,6 +356,16 @@ export function Login() {
     }
   };
 
+  const handleStartUsernameRecovery = () => {
+    setLoginError(null);
+    setForceRecovery(true);
+  };
+
+  const handleReturnToSignIn = () => {
+    setLoginError(null);
+    setForceRecovery(false);
+  };
+
   const handleStartSeparateAccount = () => {
     setLoginError(null);
     setNoLocalPasskeyMode("confirm-new-account");
@@ -446,7 +460,7 @@ export function Login() {
   );
 
   // ─── Returning user: passkey primary ────────────────────────────────────────
-  if (hasExistingAccount) {
+  if (hasExistingAccount && !forceRecovery) {
     return (
       <>
         {helmet}
@@ -459,7 +473,18 @@ export function Login() {
           })}
           errorMessage={!isAuthenticating ? loginError : null}
           secondaryAction={walletAction}
-          tertiaryAction={browserGuidanceTertiaryAction}
+          tertiaryAction={
+            browserGuidanceTertiaryAction ||
+            (passkeyServerEnabled
+              ? {
+                  label: intl.formatMessage({
+                    id: "app.login.button.recoverWithUsername",
+                    defaultMessage: "Recover with username",
+                  }),
+                  onClick: handleStartUsernameRecovery,
+                }
+              : undefined)
+          }
           notice={addressContinuityNotice}
         />
       </>
@@ -581,7 +606,14 @@ export function Login() {
     );
   }
 
-  // ─── Missing local cache: recover before creating a new account ─────────────
+  // ─── Recovery prompt ─────────────────────────────────────────────────────────
+  // Reached when the local cache is missing (recover before creating a new
+  // account) or when a returning user explicitly opts into username recovery.
+  // Existing-account recovery never exposes separate-account creation: the
+  // user still has a working local credential, and replacing it from this
+  // screen would overwrite the same-device fallback.
+  const isExistingAccountRecovery = hasExistingAccount && forceRecovery;
+
   return (
     <>
       {helmet}
@@ -596,19 +628,27 @@ export function Login() {
         })}
         errorMessage={!isAuthenticating ? loginError : null}
         secondaryAction={
-          recoveryAttempted && loginError
+          isExistingAccountRecovery
             ? {
                 label: intl.formatMessage({
-                  id: "app.login.button.createSeparateAccount",
-                  defaultMessage: "Create separate account",
+                  id: "app.login.button.backToSignIn",
+                  defaultMessage: "Back to sign in",
                 }),
-                onSelect: handleStartSeparateAccount,
+                onSelect: handleReturnToSignIn,
               }
-            : walletAction
+            : recoveryAttempted && loginError
+              ? {
+                  label: intl.formatMessage({
+                    id: "app.login.button.createSeparateAccount",
+                    defaultMessage: "Create separate account",
+                  }),
+                  onSelect: handleStartSeparateAccount,
+                }
+              : walletAction
         }
         tertiaryAction={
           browserGuidanceTertiaryAction ||
-          (recoveryAttempted && loginError
+          (isExistingAccountRecovery || (recoveryAttempted && loginError)
             ? {
                 label: intl.formatMessage({
                   id: "app.login.button.connectWallet",
@@ -638,12 +678,14 @@ export function Login() {
         isLoginDisabled={!isRecoveryUsernameValid}
         notice={addressContinuityNotice}
         infoCallout={intl.formatMessage({
+          // The retry copy mentions separate-account creation, which is not
+          // offered during existing-account recovery — keep the base info there.
           id:
-            recoveryAttempted && loginError
+            !isExistingAccountRecovery && recoveryAttempted && loginError
               ? "app.login.recovery.retryInfo"
               : "app.login.recovery.info",
           defaultMessage:
-            recoveryAttempted && loginError
+            !isExistingAccountRecovery && recoveryAttempted && loginError
               ? "Recovery did not complete. Retry, use a same-device fallback if available, or confirm before creating a separate account."
               : "Synced passkeys can recover where your provider supports sync. Legacy local-only passkeys still work on the same device and may need re-enrollment after storage loss.",
         })}

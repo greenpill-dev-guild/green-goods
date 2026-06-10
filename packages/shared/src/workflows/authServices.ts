@@ -39,6 +39,8 @@ import {
   getPimlicoBundlerUrl,
 } from "../config/pimlico";
 import {
+  type AuthPasskeyReason,
+  type AuthPasskeySource,
   trackAuthPasskeyLoginFailed,
   trackAuthPasskeyLoginStarted,
   trackAuthPasskeyLoginSuccess,
@@ -46,8 +48,6 @@ import {
   trackAuthPasskeyRegisterStarted,
   trackAuthPasskeyRegisterSuccess,
   trackAuthSessionRestored,
-  type AuthPasskeyReason,
-  type AuthPasskeySource,
 } from "../modules/app/analytics-events";
 import { logger } from "../modules/app/logger";
 import {
@@ -157,15 +157,54 @@ function decodeChallenge(challenge: Hex | Uint8Array | ArrayBuffer): Uint8Array 
   return new Uint8Array(challenge);
 }
 
-function classifyAuthErrorReason(error: unknown): AuthPasskeyReason {
-  const message = error instanceof Error ? error.message.toLowerCase() : String(error);
+/**
+ * Failure in the hosted passkey server lookup phase (getCredentials /
+ * startAuthentication), before any WebAuthn ceremony has started. Tagged by
+ * call phase so the legacy local fallback decision does not depend on
+ * provider-specific error message text (viem transport errors such as
+ * HttpRequestError and TimeoutError carry no recognizable keywords).
+ */
+class PasskeyServerLookupError extends Error {
+  readonly cause: unknown;
 
-  if (message.includes("expected account") || message.includes("address")) {
-    return "address_mismatch";
+  constructor(cause: unknown) {
+    // "network" keeps client-side friendly-message mapping on the
+    // server-unavailable copy when no local fallback exists.
+    super("Passkey server lookup failed: network or server unavailable");
+    this.name = "PasskeyServerLookupError";
+    this.cause = cause;
+  }
+}
+
+/** viem transport-level failures that mean the server, not the user, failed. */
+const TRANSPORT_ERROR_NAMES = new Set(["HttpRequestError", "TimeoutError", "RpcRequestError"]);
+
+/** WebAuthn ceremony rejections raised when the user dismisses the prompt. */
+const CANCELLED_ERROR_NAMES = new Set(["NotAllowedError", "AbortError"]);
+
+function classifyAuthErrorReason(error: unknown): AuthPasskeyReason {
+  if (error instanceof PasskeyServerLookupError) {
+    return "server_unavailable";
   }
 
-  if (message.includes("cancel") || message.includes("abort") || message.includes("notallowed")) {
+  const name = error instanceof Error ? error.name : "";
+  const message = (error instanceof Error ? error.message : String(error)).toLowerCase();
+
+  if (
+    CANCELLED_ERROR_NAMES.has(name) ||
+    message.includes("cancel") ||
+    message.includes("abort") ||
+    message.includes("notallowed")
+  ) {
     return "cancelled";
+  }
+
+  if (
+    message.includes("expected account") ||
+    message.includes("address mismatch") ||
+    message.includes("did not match the expected account")
+  ) {
+    return "address_mismatch";
   }
 
   if (
@@ -181,6 +220,7 @@ function classifyAuthErrorReason(error: unknown): AuthPasskeyReason {
   }
 
   if (
+    TRANSPORT_ERROR_NAMES.has(name) ||
     message.includes("fetch") ||
     message.includes("network") ||
     message.includes("timeout") ||
@@ -251,14 +291,29 @@ function cachePasskeySession(credential: P256Credential, userName: string, addre
   setStoredSmartAccountAddress(address);
 }
 
+type BuildPasskeySessionOptions = {
+  /**
+   * Registration mints a new credential and therefore a new smart-account
+   * address by design (the UI guards it behind explicit separate-account
+   * confirmation). Enforcing address continuity there would permanently
+   * dead-end registration whenever stale expected-address state survives a
+   * partial cache clear, so register paths opt out.
+   */
+  enforceExpectedAddress?: boolean;
+};
+
 async function buildAndCachePasskeySession(
   credential: P256Credential,
   userName: string,
-  chainId: number
+  chainId: number,
+  options: BuildPasskeySessionOptions = {}
 ): Promise<PasskeySessionResult> {
+  const { enforceExpectedAddress = true } = options;
   const { client, address } = await buildSmartAccountFromCredential(credential, chainId);
 
-  assertExpectedSmartAccountAddress(address);
+  if (enforceExpectedAddress) {
+    assertExpectedSmartAccountAddress(address);
+  }
   cachePasskeySession(credential, userName, address);
 
   return {
@@ -352,7 +407,9 @@ async function registerPasskeyWithServer(
   );
   const resolvedUsername = getVerifiedUsername(verification, context.username);
 
-  return buildAndCachePasskeySession(credential, resolvedUsername, chainId);
+  return buildAndCachePasskeySession(credential, resolvedUsername, chainId, {
+    enforceExpectedAddress: false,
+  });
 }
 
 async function authenticatePasskeyWithServer(
@@ -361,16 +418,23 @@ async function authenticatePasskeyWithServer(
 ): Promise<PasskeySessionResult | null> {
   const context = buildPasskeyRecoveryContext(userName);
   const passkeyServerClient = createPasskeyServerClient(chainId);
-  const credentials = (await passkeyServerClient.getCredentials({
-    context,
-  })) as PasskeyServerCredential[];
+  const credentials = (await passkeyServerClient
+    .getCredentials({
+      context,
+    })
+    .catch((error: unknown) => {
+      throw new PasskeyServerLookupError(error);
+    })) as PasskeyServerCredential[];
 
   if (credentials.length === 0) {
     return null;
   }
 
-  const authenticationOptions =
-    (await passkeyServerClient.startAuthentication()) as PasskeyServerAuthenticationOptions;
+  const authenticationOptions = (await passkeyServerClient
+    .startAuthentication()
+    .catch((error: unknown) => {
+      throw new PasskeyServerLookupError(error);
+    })) as PasskeyServerAuthenticationOptions;
   const rpId = authenticationOptions.rpId || getPasskeyRpId();
   const authResponse = await window.navigator.credentials.get({
     publicKey: {
@@ -488,6 +552,24 @@ export const restoreSessionService = fromPromise<RestoreSessionResult | null, Re
     try {
       // Build smart account from stored credential
       const { client, address } = await buildSmartAccountFromCredential(storedCredential, chainId);
+
+      // Fail closed on address drift, mirroring the login/recovery guard.
+      // Adopting whatever the stored credential rebuilds would silently
+      // re-point the expected account after partial cache corruption.
+      const expectedAddress = getStoredSmartAccountAddress();
+      if (expectedAddress && expectedAddress.toLowerCase() !== address.toLowerCase()) {
+        logger.warn(
+          "[Auth] Stored credential rebuilt a different smart-account address; skipping restore"
+        );
+        trackAuthSessionRestored({
+          source: "restore",
+          outcome: "failed",
+          reason: "address_mismatch",
+          passkeyServerEnabled: isPasskeyServerEnabled(),
+          hasLocalCredential: true,
+        });
+        return null;
+      }
       setStoredSmartAccountAddress(address);
 
       // Track successful session restore
@@ -548,7 +630,9 @@ export const registerPasskeyService = fromPromise<PasskeySessionResult, PasskeyI
     try {
       const result = passkeyServerEnabled
         ? await registerPasskeyWithServer(userName, chainId)
-        : await buildAndCachePasskeySession(await createPasskey(userName), userName, chainId);
+        : await buildAndCachePasskeySession(await createPasskey(userName), userName, chainId, {
+            enforceExpectedAddress: false,
+          });
 
       // Track successful registration
       trackAuthPasskeyRegisterSuccess({
@@ -621,7 +705,9 @@ export const authenticatePasskeyService = fromPromise<PasskeySessionResult, Pass
           }
         } catch (serverError) {
           if (hasLocalCredential && canUseLegacyFallback(serverError)) {
-            logger.warn("[Auth] Passkey server unavailable; using local fallback");
+            logger.warn("[Auth] Passkey server unavailable; using local fallback", {
+              error: serverError,
+            });
             result = {
               ...(await authenticatePasskeyFromLocalCache(userName, chainId)),
               source: "local_cache",

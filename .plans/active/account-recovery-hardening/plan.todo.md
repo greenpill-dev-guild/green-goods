@@ -98,6 +98,8 @@
 - Verify unsupported/in-app browser contexts do not start a passkey ceremony.
 - Verify address mismatch fails closed and does not authenticate as the wrong account.
 - Record tested platform/provider combinations, including desktop Chrome, Android Chrome/PWA, iOS Safari/PWA if available, and unsupported/in-app browser negative coverage.
+- Run device-matrix passkey ceremonies from a `*.greengoods.app` staging origin (or set `VITE_PASSKEY_RP_ID` to the test host). Cloudflare-tunnel and other non-RP domains are blocked by design (`rp_origin_mismatch`) — record those as logistics constraints, not defects.
+- When simulating "passkey server unavailable", include HTTP 5xx and timeout shapes (not only network-off/fetch failures); the legacy fallback must engage for all of them.
 
 ### Step 7: Clean Up Docs And Support Surfaces
 

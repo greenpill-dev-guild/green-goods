@@ -417,9 +417,47 @@ describe("Login View - Existing User (progressive disclosure)", () => {
     expect(screen.getByTestId("secondary-button")).toHaveTextContent("Sign in with a wallet");
   });
 
-  it("does not show a tertiary action by default", () => {
+  it("offers username recovery as tertiary when the passkey server is enabled", () => {
+    renderWithRouter();
+    expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Recover with username");
+  });
+
+  it("does not show a tertiary action when the passkey server is disabled", () => {
+    mockPasskeyServerEnabled = false;
     renderWithRouter();
     expect(screen.queryByTestId("tertiary-button")).not.toBeInTheDocument();
+  });
+
+  it("opens username recovery and returns to one-tap sign-in", async () => {
+    const user = userEvent.setup();
+    renderWithRouter();
+
+    await user.click(screen.getByTestId("tertiary-button"));
+
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Recover with passkey");
+    expect(screen.getByTestId("username-input")).toBeInTheDocument();
+    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Back to sign in");
+
+    await user.click(screen.getByTestId("secondary-button"));
+
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Sign in with passkey");
+  });
+
+  it("never exposes separate-account creation from existing-account recovery", async () => {
+    const user = userEvent.setup();
+    mockLoginWithPasskey.mockRejectedValueOnce(new Error("No passkey credential found"));
+    renderWithRouter();
+
+    await user.click(screen.getByTestId("tertiary-button"));
+    await user.type(screen.getByTestId("username-input"), "synceduser");
+    await user.click(screen.getByTestId("primary-button"));
+
+    expect(mockLoginWithPasskey).toHaveBeenCalledWith("synceduser");
+    expect(await screen.findByTestId("error-message")).toHaveTextContent(/couldn't find/i);
+    // The local credential stays the same-device fallback; replacing it is
+    // only offered from the no-local-cache flow.
+    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Back to sign in");
+    expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Sign in with a wallet");
   });
 
   it("calls loginWithPasskey when primary button clicked", async () => {
