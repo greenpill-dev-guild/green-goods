@@ -16,6 +16,8 @@ import {
   prepareOctantVaultCardEndowFallbackPlan,
   prepareOctantVaultCardEndowReadiness,
   isOctantVaultCampaignTransactionReady,
+  meetsOctantVaultCardEndowUsdMinimum,
+  OCTANT_VAULT_CARD_ENDOW_MIN_USD_CENTS,
   prepareOctantVaultWalletEndow,
   validateOctantVaultCardEndowManifest,
   validateOctantVaultCardEndowProof,
@@ -970,5 +972,19 @@ describe("Octant vault Card Endow public contracts", () => {
       cardEndowVisible: true,
       errors: [],
     });
+  });
+});
+
+describe("Octant vault Card Endow USD minimum", () => {
+  it("pins the provider minimum at $2.00 in cents", () => {
+    expect(OCTANT_VAULT_CARD_ENDOW_MIN_USD_CENTS).toBe(200n);
+  });
+
+  it("rejects null and sub-minimum amounts and accepts the minimum and above", () => {
+    expect(meetsOctantVaultCardEndowUsdMinimum(null)).toBe(false);
+    expect(meetsOctantVaultCardEndowUsdMinimum(0n)).toBe(false);
+    expect(meetsOctantVaultCardEndowUsdMinimum(199n)).toBe(false);
+    expect(meetsOctantVaultCardEndowUsdMinimum(200n)).toBe(true);
+    expect(meetsOctantVaultCardEndowUsdMinimum(2500n)).toBe(true);
   });
 });

@@ -1,7 +1,9 @@
 import {
   getOctantVaultAssetDisplayPolicy,
+  logger,
   type OctantVaultCampaignManifest,
   type OctantVaultCardEndowFallbackPlan,
+  useTimeout,
 } from "@green-goods/shared";
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
@@ -28,9 +30,14 @@ const ONRAMP_PROVIDERS = ["stripe", "coinbase"] as const;
  * Pre-open a blank checkout tab directly from the click gesture, then redirect it
  * after Bridge prepares the provider session. If the browser blocks it, the
  * prepared session still renders a native fallback link in this panel.
+ *
+ * Must NOT pass `noopener`/`noreferrer` in the features string — that makes
+ * `window.open` return null, leaving no handle to redirect and stranding the
+ * donor on about:blank. The opener is severed manually instead, while the tab
+ * is still same-origin.
  */
 function openPendingCheckoutWindow(): Window | null {
-  const checkoutWindow = window.open("about:blank", "_blank", "noopener,noreferrer");
+  const checkoutWindow = window.open("about:blank", "_blank");
   if (!checkoutWindow) return null;
 
   try {
@@ -45,7 +52,8 @@ function openPendingCheckoutWindow(): Window | null {
 function redirectCheckoutWindow(checkoutWindow: Window | null, link: string): boolean {
   if (!checkoutWindow) return false;
   try {
-    checkoutWindow.location.href = link;
+    // `replace` keeps about:blank out of the new tab's history.
+    checkoutWindow.location.replace(link);
     return true;
   } catch {
     return false;
@@ -72,6 +80,15 @@ export interface VaultCardPaymentPanelProps {
   onCardFundingSuccess: () => void;
   cardFundingComplete: boolean;
   statusBlock: ReactNode;
+  /** Route facts (technical WETH details) shown alongside the payment CTA. */
+  planDetails?: ReactNode;
+  /** Escape hatch back to the previous step; rendered only before a session starts. */
+  backButton?: ReactNode;
+  /**
+   * Reports whether a provider session may exist (preparing or prepared), so the
+   * parent can lock checkout edits exactly while a live card payment is possible.
+   */
+  onPaymentSessionActiveChange?: (active: boolean) => void;
   fallbackButton?: ReactNode;
   /** Parent connect/flow error surface, rendered for continuity. */
   errorNotes?: ReactNode;
@@ -101,6 +118,9 @@ export default function VaultCardPaymentPanel({
   onCardFundingSuccess,
   cardFundingComplete,
   statusBlock,
+  planDetails,
+  backButton,
+  onPaymentSessionActiveChange,
   fallbackButton,
   errorNotes,
 }: VaultCardPaymentPanelProps) {
@@ -171,8 +191,9 @@ export default function VaultCardPaymentPanel({
         setBusy("idle");
         redirectCheckoutWindow(checkoutWindow, prepared.link);
         return;
-      } catch {
-        // Try the next configured provider without surfacing provider internals.
+      } catch (error) {
+        // Donor copy stays provider-agnostic; log internals for diagnosis only.
+        logger.warn("Card endow onramp prepare failed; trying next provider", { onramp, error });
       }
     }
 
@@ -181,67 +202,107 @@ export default function VaultCardPaymentPanel({
     setError(prepareFailedMessage);
   }, [busy, client, plan.cardFunding, purchaseData, prepareFailedMessage]);
 
-  const handleCheckStatus = useCallback(async () => {
-    if (busy !== "idle" || !session || cardFundingComplete || statusCheckInFlightRef.current) {
-      return;
-    }
-    statusCheckInFlightRef.current = true;
-    setBusy("checking");
-    setError(null);
-    setStatusOutcome(null);
-
-    try {
-      const result = await Bridge.Onramp.status({ id: session.id, client });
-      // Clear the in-flight lock before branching so no outcome can strand the button.
-      setBusy("idle");
-      if (result.status === "COMPLETED") {
-        // Terminal forward: the parent starts the Step 3 deposit work.
-        onCardFundingSuccess();
-        return;
+  /**
+   * Checks the provider session status. Background polls must be visually silent:
+   * no busy flip, no upfront outcome/error clearing — only real transitions touch
+   * state, so the pending notice never blinks while the 5s loop runs. Manual
+   * clicks show the busy label but keep the pending notice mounted.
+   */
+  const runStatusCheck = useCallback(
+    async (mode: "manual" | "background") => {
+      if (!session || cardFundingComplete || statusCheckInFlightRef.current) return;
+      if (mode === "manual" && busy !== "idle") return;
+      statusCheckInFlightRef.current = true;
+      if (mode === "manual") {
+        setBusy("checking");
+        setError(null);
       }
-      if (result.status === "FAILED") {
-        setSession(null);
-        setPhase("ready");
-        setStatusOutcome("failed");
-        return;
-      }
-      setStatusOutcome("pending");
-    } catch {
-      setBusy("idle");
-      setStatusOutcome("error");
-      setError(statusFailedMessage);
-    } finally {
-      statusCheckInFlightRef.current = false;
-    }
-  }, [busy, cardFundingComplete, session, client, onCardFundingSuccess, statusFailedMessage]);
 
+      try {
+        const result = await Bridge.Onramp.status({ id: session.id, client });
+        // Clear the busy lock before branching so no outcome can strand the button.
+        if (mode === "manual") setBusy("idle");
+        if (result.status === "COMPLETED") {
+          // Terminal forward: the parent starts the deposit work.
+          onCardFundingSuccess();
+          return;
+        }
+        if (result.status === "FAILED") {
+          setSession(null);
+          setPhase("ready");
+          setStatusOutcome("failed");
+          return;
+        }
+        setStatusOutcome("pending");
+      } catch (error) {
+        logger.warn("Card endow onramp status check failed", { error });
+        if (mode === "manual") setBusy("idle");
+        setStatusOutcome("error");
+        setError(statusFailedMessage);
+      } finally {
+        statusCheckInFlightRef.current = false;
+      }
+    },
+    [busy, cardFundingComplete, session, client, onCardFundingSuccess, statusFailedMessage]
+  );
+
+  const handleCheckStatus = useCallback(() => {
+    void runStatusCheck("manual");
+  }, [runStatusCheck]);
+
+  // Background status loop. `pollTick` re-arms the next poll even when the
+  // outcome is unchanged (a PENDING -> PENDING cycle writes no state).
+  const { set: schedulePoll, clear: clearPoll } = useTimeout();
+  const [pollTick, setPollTick] = useState(0);
   useEffect(() => {
     if (!session || cardFundingComplete || statusOutcome === "error") return;
     const delay = statusOutcome === "pending" ? 5_000 : 0;
-    const timeout = window.setTimeout(() => {
-      void handleCheckStatus();
+    schedulePoll(() => {
+      void runStatusCheck("background").finally(() => {
+        setPollTick((tick) => tick + 1);
+      });
     }, delay);
-    return () => window.clearTimeout(timeout);
-  }, [cardFundingComplete, handleCheckStatus, session, statusOutcome]);
+    return clearPoll;
+  }, [
+    cardFundingComplete,
+    clearPoll,
+    pollTick,
+    runStatusCheck,
+    schedulePoll,
+    session,
+    statusOutcome,
+  ]);
+
+  // Report when a live provider session may exist (preparing counts: a session
+  // can be created even if the redirect fails) so the parent locks edits only
+  // while a card payment could land. Cleanup unlocks on unmount.
+  const paymentSessionActive = Boolean(session) || busy === "preparing";
+  useEffect(() => {
+    onPaymentSessionActiveChange?.(paymentSessionActive);
+    return () => onPaymentSessionActiveChange?.(false);
+  }, [onPaymentSessionActiveChange, paymentSessionActive]);
 
   const footer =
     phase === "ready" ? (
-      <button
-        type="button"
-        disabled={busy !== "idle"}
-        onClick={handleOpenCheckout}
-        className={CHECKOUT_PRIMARY_BUTTON}
-      >
-        {busy === "preparing"
-          ? formatMessage({
-              id: "public.vaults.cardEndow.panel.preparing",
-              defaultMessage: "Opening secure checkout...",
-            })
-          : formatMessage({
-              id: "public.vaults.cardEndow.panel.openCheckout",
-              defaultMessage: "Open secure card checkout",
-            })}
-      </button>
+      <div className="flex flex-col gap-2">
+        <button
+          type="button"
+          disabled={busy !== "idle"}
+          onClick={handleOpenCheckout}
+          className={CHECKOUT_PRIMARY_BUTTON}
+        >
+          {busy === "preparing"
+            ? formatMessage({
+                id: "public.vaults.cardEndow.panel.preparing",
+                defaultMessage: "Opening secure checkout...",
+              })
+            : formatMessage({
+                id: "public.vaults.cardEndow.panel.openCheckout",
+                defaultMessage: "Open secure card checkout",
+              })}
+        </button>
+        {backButton}
+      </div>
     ) : cardFundingComplete ? null : (
       <div className="flex flex-col gap-2">
         <button
@@ -269,7 +330,7 @@ export default function VaultCardPaymentPanel({
         <CheckoutStageHeader
           eyebrow={formatMessage({
             id: "public.vaults.cardEndow.stage.fund.eyebrow",
-            defaultMessage: "Step 3 of 3",
+            defaultMessage: "Step 2 of 2",
           })}
           title={formatMessage({
             id: "public.vaults.cardEndow.stage.fund.title",
@@ -360,6 +421,8 @@ export default function VaultCardPaymentPanel({
           ) : null}
 
           {statusBlock}
+
+          {planDetails}
 
           {session ? (
             <a

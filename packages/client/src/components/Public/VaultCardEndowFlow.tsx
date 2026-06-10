@@ -29,7 +29,7 @@ import {
   useSendBatchTransaction,
 } from "thirdweb/react";
 import { inAppWallet, preAuthenticate } from "thirdweb/wallets/in-app";
-import { formatUnits, isAddress } from "viem";
+import { isAddress } from "viem";
 import VaultCardPaymentPanel from "./VaultCardPaymentPanel";
 import type { VaultCheckoutGuardState } from "./VaultCheckoutDialog";
 import {
@@ -84,9 +84,10 @@ function getTransactionHash(result: unknown): `0x${string}` | null {
  * authoritative booleans below — it never owns amount, receiver, lock, or status
  * state; it only decides which single step to show. A failed step resets its own
  * status to idle, so the derivation naturally holds the stage and the inline
- * error renders in place.
+ * error renders in place. `blocked` is the degraded branch when a recovered
+ * wallet exists but the campaign manifest cannot produce a ready plan.
  */
-type CardEndowStage = "recover" | "review" | "fund" | "done";
+type CardEndowStage = "recover" | "blocked" | "fund" | "done";
 type CardEndowBatchStatus = "idle" | "unsupported" | "pending" | "failed" | "succeeded";
 
 export interface VaultCardEndowFlowProps {
@@ -109,9 +110,10 @@ export interface VaultCardEndowFlowProps {
  *
  * Mounted (lazily) only once a valid amount exists and the user chose Card. Renders
  * one focused step at a time inside the fixed-height sheet, keeping every Card Endow
- * safety gate: email verification first, donor review before the Green Goods-owned
- * card payment panel (headless Bridge.Onramp checkout), strict WETH approve ->
- * deposit ordering, and proof only after a positive `vault.balanceOf(receiver)` read.
+ * safety gate: email verification first, then the Green Goods-owned card payment
+ * panel (headless Bridge.Onramp checkout) where the route facts render beside the
+ * explicit "open checkout" consent click, strict WETH approve -> deposit ordering,
+ * and proof only after a positive `vault.balanceOf(receiver)` read.
  */
 export default function VaultCardEndowFlow({
   campaign,
@@ -202,7 +204,9 @@ function CardEndowProviderContent({
   const [otpInput, setOtpInput] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [recoveredWalletAddress, setRecoveredWalletAddress] = useState<Address | null>(null);
-  const [tupleConfirmed, setTupleConfirmed] = useState(false);
+  // Reported by the payment panel: a provider session is preparing or prepared,
+  // so checkout edits must lock while a live card payment could land.
+  const [paymentSessionActive, setPaymentSessionActive] = useState(false);
   const [cardFundingStatus, setCardFundingStatus] = useState<"idle" | "funded">("idle");
   const [batchStatus, setBatchStatus] = useState<CardEndowBatchStatus>("idle");
   const [approvalStatus, setApprovalStatus] = useState<"idle" | "pending" | "approved">("idle");
@@ -220,9 +224,7 @@ function CardEndowProviderContent({
   const { connect, error: connectError, isConnecting } = useConnect();
   const sendBatchTransaction = useSendBatchTransaction();
   const sendAndConfirmTransaction = useSendAndConfirmTransaction({ payModal: false });
-  const decimals = campaign.vault?.asset?.decimals ?? 18;
   const hasReadyAmount = amount > 0n;
-  const formattedAmount = hasReadyAmount ? formatUnits(amount, decimals) : "";
   const chainId = campaign.vault?.chainId ?? ethereum.id;
   const chain = useMemo(() => getThirdwebChain(chainId), [chainId]);
   const receiverAddress =
@@ -273,7 +275,6 @@ function CardEndowProviderContent({
     depositTxHash !== null ||
     shareBalance !== null ||
     proofStatus !== "idle";
-  const cardPaymentVisible = Boolean(plan && tupleConfirmed);
   const transactionPending =
     batchStatus === "pending" ||
     approvalStatus === "pending" ||
@@ -281,18 +282,20 @@ function CardEndowProviderContent({
     proofStatus === "submitting" ||
     sendBatchTransaction.isPending ||
     sendAndConfirmTransaction.isPending;
+  // Lock only once a card payment could actually land (session preparing/prepared
+  // or value path started) — landing on the pay screen alone must keep Back alive.
   const checkoutInputsLocked = Boolean(
-    cardPaymentVisible || valuePathStarted || transactionPending
+    paymentSessionActive || valuePathStarted || transactionPending
   );
 
   // Render-only stage derivation (read state, never own it). Highest first.
   const stage: CardEndowStage =
     depositStatus === "deposited"
       ? "done"
-      : tupleConfirmed && plan
+      : receiverAddress && plan
         ? "fund"
         : receiverAddress
-          ? "review"
+          ? "blocked"
           : "recover";
 
   // Switching campaign (a fresh checkout) clears every Card Endow gate.
@@ -303,7 +306,7 @@ function CardEndowProviderContent({
     setOtpInput("");
     setOtpSent(false);
     setRecoveredWalletAddress(null);
-    setTupleConfirmed(false);
+    setPaymentSessionActive(false);
     setCardFundingStatus("idle");
     setBatchStatus("idle");
     setApprovalStatus("idle");
@@ -319,7 +322,6 @@ function CardEndowProviderContent({
   // never the email/recovered-wallet inputs themselves — inline errors only set
   // `flowError`, so a failed step keeps the user's progress intact.
   useEffect(() => {
-    setTupleConfirmed(false);
     setCardFundingStatus("idle");
     setApprovalStatus("idle");
     setDepositStatus("idle");
@@ -365,7 +367,7 @@ function CardEndowProviderContent({
     setOtpEmail(null);
     setVerifiedEmail(null);
     setRecoveredWalletAddress(null);
-    setTupleConfirmed(false);
+    setPaymentSessionActive(false);
     setCardFundingStatus("idle");
     setBatchStatus("idle");
     setApprovalStatus("idle");
@@ -801,6 +803,106 @@ function CardEndowProviderContent({
     </button>
   ) : null;
 
+  // Route facts shown beside the payment CTA — the donor reviews the destination
+  // on the same screen where the explicit "open checkout" consent click lives.
+  const vaultExplorerUrl = plan
+    ? getAddressExplorerUrl(
+        campaign.vault?.explorerLink,
+        plan.receiptExpectation.expectedVaultAddress
+      )
+    : null;
+  const tokenExplorerUrl = plan
+    ? getAddressExplorerUrl(campaign.vault?.explorerLink, plan.cardFunding.tokenAddress)
+    : null;
+  const planDetails = plan ? (
+    <div className="flex flex-col gap-4" data-testid="vault-card-endow-plan-details">
+      <p className="text-sm leading-[1.6] text-text-sub-600">
+        {formatMessage({
+          id: "public.vaults.cardEndow.authorizationOrder",
+          defaultMessage:
+            "Your card funding completes the vault endowment for the verified email wallet after checkout succeeds.",
+        })}
+      </p>
+      <details className="border-t border-stroke-soft-200 pt-4">
+        <summary className="cursor-pointer font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
+          {formatMessage({
+            id: "public.vaults.checkout.technicalDetails",
+            defaultMessage: "Technical WETH details",
+          })}
+        </summary>
+        <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+          <div>
+            <dt className="font-medium text-text-strong-950">
+              {formatMessage({
+                id: "public.vaults.cardEndow.tupleChain",
+                defaultMessage: "Ethereum network",
+              })}
+            </dt>
+            <dd className="text-text-sub-600">
+              {getEthereumNetworkLabel(plan.cardFunding.chainId, formatMessage)}
+            </dd>
+          </div>
+          <div>
+            <dt className="font-medium text-text-strong-950">
+              {formatMessage({
+                id: "public.vaults.cardEndow.tupleVault",
+                defaultMessage: "Octant vault",
+              })}
+            </dt>
+            <dd className="break-all font-mono text-xs text-text-sub-600">
+              {vaultExplorerUrl ? (
+                <a
+                  href={vaultExplorerUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-primary-base underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action"
+                >
+                  {plan.receiptExpectation.expectedVaultAddress}
+                </a>
+              ) : (
+                plan.receiptExpectation.expectedVaultAddress
+              )}
+            </dd>
+          </div>
+          <div>
+            <dt className="font-medium text-text-strong-950">
+              {formatMessage({
+                id: "public.vaults.cardEndow.tupleToken",
+                defaultMessage: "WETH token",
+              })}
+            </dt>
+            <dd className="break-all text-text-sub-600">
+              {assetDisplay.technicalSymbol} ·{" "}
+              {tokenExplorerUrl ? (
+                <a
+                  href={tokenExplorerUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-mono text-xs text-primary-base underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action"
+                >
+                  {plan.cardFunding.tokenAddress}
+                </a>
+              ) : (
+                <span className="font-mono text-xs">{plan.cardFunding.tokenAddress}</span>
+              )}
+            </dd>
+          </div>
+          <div>
+            <dt className="font-medium text-text-strong-950">
+              {formatMessage({
+                id: "public.vaults.cardEndow.checkoutWallet",
+                defaultMessage: "Checkout wallet",
+              })}
+            </dt>
+            <dd className="break-all font-mono text-xs text-text-sub-600">
+              {plan.receiptExpectation.receiverAddress}
+            </dd>
+          </div>
+        </dl>
+      </details>
+    </div>
+  ) : null;
+
   const errorNotes = (
     <>
       {connectError ? (
@@ -978,7 +1080,7 @@ function CardEndowProviderContent({
           <CheckoutStageHeader
             eyebrow={formatMessage({
               id: "public.vaults.cardEndow.stage.recover.eyebrow",
-              defaultMessage: "Step 1 of 3",
+              defaultMessage: "Step 1 of 2",
             })}
             title={formatMessage({
               id: "public.vaults.cardEndow.stage.recover.title",
@@ -987,7 +1089,7 @@ function CardEndowProviderContent({
             description={formatMessage({
               id: "public.vaults.cardEndow.stage.recover.description",
               defaultMessage:
-                "Card funding completes the vault endowment from a secure email wallet after you review the route.",
+                "Card funding completes the vault endowment from a secure email wallet.",
             })}
           />
           <CheckoutSummary items={cardSummaryItems} />
@@ -1071,219 +1173,19 @@ function CardEndowProviderContent({
     );
   }
 
-  // ── review: donor confirmation + technical WETH details ───────────────────
-  if (stage === "review") {
-    const vaultExplorerUrl = plan
-      ? getAddressExplorerUrl(
-          campaign.vault?.explorerLink,
-          plan.receiptExpectation.expectedVaultAddress
-        )
-      : null;
-    const tokenExplorerUrl = plan
-      ? getAddressExplorerUrl(campaign.vault?.explorerLink, plan.cardFunding.tokenAddress)
-      : null;
-
+  // ── blocked: recovered wallet exists but the manifest plan is not ready ────
+  if (stage === "blocked") {
     return (
-      <CheckoutScreen
-        footer={
-          <div className="flex flex-col gap-3">
-            {plan ? (
-              <button
-                type="button"
-                onClick={() => setTupleConfirmed(true)}
-                className={CHECKOUT_PRIMARY_BUTTON}
-              >
-                {formatMessage({
-                  id: "public.vaults.cardEndow.confirmAndContinue",
-                  defaultMessage: "Continue to card payment",
-                })}
-              </button>
-            ) : null}
-            {backButton}
-          </div>
-        }
-      >
-        <div className="flex flex-col gap-5" data-testid="vault-card-endow-flow">
-          <CheckoutStageHeader
-            eyebrow={formatMessage({
-              id: "public.vaults.cardEndow.stage.review.eyebrow",
-              defaultMessage: "Step 2 of 3",
-            })}
-            title={formatMessage({
-              id: "public.vaults.cardEndow.stage.review.title",
-              defaultMessage: "Review card route",
-            })}
-            description={formatMessage({
-              id: "public.vaults.cardEndow.stage.review.description",
-              defaultMessage:
-                "Confirm the campaign, receiver, token, and amount before live card payment.",
-            })}
-          />
+      <CheckoutScreen footer={backButton}>
+        <div className="flex flex-col gap-5" data-testid="vault-card-endow-blocked">
           <CheckoutSummary items={cardSummaryItems} />
-
-          {plan ? (
-            <section
-              className="flex flex-col gap-4"
-              aria-labelledby="public-vaults-card-endow-review-title"
-              data-testid="vault-card-endow-review"
-            >
-              <h4 id="public-vaults-card-endow-review-title" className={CHECKOUT_FIELD_LABEL}>
-                {formatMessage({
-                  id: "public.vaults.cardEndow.tupleTitle",
-                  defaultMessage: "Review donation",
-                })}
-              </h4>
-              <dl className="grid gap-3 text-sm sm:grid-cols-2">
-                <div>
-                  <dt className="font-medium text-text-strong-950">
-                    {formatMessage({
-                      id: "public.vaults.cardEndow.tupleCampaign",
-                      defaultMessage: "Campaign",
-                    })}
-                  </dt>
-                  <dd className="break-words text-text-sub-600">{campaign.displayName}</dd>
-                </div>
-                <div>
-                  <dt className="font-medium text-text-strong-950">
-                    {formatMessage({
-                      id: "public.vaults.cardEndow.tupleAmount",
-                      defaultMessage: "ETH contribution",
-                    })}
-                  </dt>
-                  <dd className="text-text-sub-600">
-                    {formattedAmount} {assetDisplay.donorSymbol}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="font-medium text-text-strong-950">
-                    {formatMessage({
-                      id: "public.vaults.cardEndow.tupleReceiver",
-                      defaultMessage: "Receiver",
-                    })}
-                  </dt>
-                  <dd className="text-text-sub-600">
-                    {formatMessage({
-                      id: "public.vaults.cardEndow.positionHolderValue",
-                      defaultMessage: "Verified email wallet",
-                    })}
-                  </dd>
-                </div>
-                <div>
-                  <dt className="font-medium text-text-strong-950">
-                    {formatMessage({
-                      id: "public.vaults.cardEndow.route",
-                      defaultMessage: "Route",
-                    })}
-                  </dt>
-                  <dd className="text-text-sub-600">
-                    {formatMessage({
-                      id: "public.vaults.cardEndow.routeValue",
-                      defaultMessage: "Card -> email wallet -> Octant vault",
-                    })}
-                  </dd>
-                </div>
-              </dl>
-              <details className="border-t border-stroke-soft-200 pt-4">
-                <summary className="cursor-pointer font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
-                  {formatMessage({
-                    id: "public.vaults.checkout.technicalDetails",
-                    defaultMessage: "Technical WETH details",
-                  })}
-                </summary>
-                <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-                  <div>
-                    <dt className="font-medium text-text-strong-950">
-                      {formatMessage({
-                        id: "public.vaults.cardEndow.tupleChain",
-                        defaultMessage: "Ethereum network",
-                      })}
-                    </dt>
-                    <dd className="text-text-sub-600">
-                      {getEthereumNetworkLabel(plan.cardFunding.chainId, formatMessage)}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="font-medium text-text-strong-950">
-                      {formatMessage({
-                        id: "public.vaults.cardEndow.tupleVault",
-                        defaultMessage: "Octant vault",
-                      })}
-                    </dt>
-                    <dd className="break-all font-mono text-xs text-text-sub-600">
-                      {vaultExplorerUrl ? (
-                        <a
-                          href={vaultExplorerUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="text-primary-base underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action"
-                        >
-                          {plan.receiptExpectation.expectedVaultAddress}
-                        </a>
-                      ) : (
-                        plan.receiptExpectation.expectedVaultAddress
-                      )}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="font-medium text-text-strong-950">
-                      {formatMessage({
-                        id: "public.vaults.cardEndow.tupleToken",
-                        defaultMessage: "WETH token",
-                      })}
-                    </dt>
-                    <dd className="break-all text-text-sub-600">
-                      {assetDisplay.technicalSymbol} ·{" "}
-                      {tokenExplorerUrl ? (
-                        <a
-                          href={tokenExplorerUrl}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="font-mono text-xs text-primary-base underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action"
-                        >
-                          {plan.cardFunding.tokenAddress}
-                        </a>
-                      ) : (
-                        <span className="font-mono text-xs">{plan.cardFunding.tokenAddress}</span>
-                      )}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="font-medium text-text-strong-950">
-                      {formatMessage({
-                        id: "public.vaults.cardEndow.checkoutWallet",
-                        defaultMessage: "Checkout wallet",
-                      })}
-                    </dt>
-                    <dd className="break-all font-mono text-xs text-text-sub-600">
-                      {plan.receiptExpectation.receiverAddress}
-                    </dd>
-                  </div>
-                </dl>
-              </details>
-              <p className="text-sm leading-[1.6] text-text-sub-600">
-                {formatMessage({
-                  id: "public.vaults.cardEndow.authorizationOrder",
-                  defaultMessage:
-                    "Your card funding completes the vault endowment for the verified email wallet after checkout succeeds.",
-                })}
-              </p>
-              <p className="bg-bg-weak-50 p-4 text-sm leading-[1.55] text-text-sub-600">
-                {formatMessage({
-                  id: "public.vaults.cardEndow.cardLocked",
-                  defaultMessage: "No card payment starts until you continue.",
-                })}
-              </p>
-            </section>
-          ) : (
-            <p className="rounded-none bg-error-lighter/30 p-4 text-sm leading-[1.55] text-error-base">
-              {formatMessage({
-                id: "public.vaults.cardEndow.planBlocked",
-                defaultMessage:
-                  "Card checkout is paused. Confirm the campaign, amount, and verified email wallet before continuing.",
-              })}
-            </p>
-          )}
-
+          <p className="rounded-none bg-error-lighter/30 p-4 text-sm leading-[1.55] text-error-base">
+            {formatMessage({
+              id: "public.vaults.cardEndow.planBlocked",
+              defaultMessage:
+                "Card checkout is paused. Confirm the campaign, amount, and verified email wallet before continuing.",
+            })}
+          </p>
           {errorNotes}
         </div>
       </CheckoutScreen>
@@ -1300,6 +1202,9 @@ function CardEndowProviderContent({
         summaryItems={cardSummaryItems}
         cardFundingComplete={cardFundingStatus === "funded"}
         statusBlock={statusBlock}
+        planDetails={planDetails}
+        backButton={backButton}
+        onPaymentSessionActiveChange={setPaymentSessionActive}
         fallbackButton={fallbackButton}
         onCardFundingSuccess={handleCardFundingSuccess}
         errorNotes={errorNotes}

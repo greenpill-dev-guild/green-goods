@@ -777,6 +777,18 @@ const WALLET_ENDOW_REQUIRED_MANIFEST_FIELDS = [
 
 const CARD_ENDOW_REQUIRED_MANIFEST_FIELDS = WALLET_ENDOW_REQUIRED_MANIFEST_FIELDS;
 
+/**
+ * Stripe/Coinbase onramp minimum buyer amount in USD cents ($2.00). Below this,
+ * `Bridge.Onramp.prepare` fails for every configured provider, so the checkout
+ * amount step must gate card payments before any provider session is attempted.
+ */
+export const OCTANT_VAULT_CARD_ENDOW_MIN_USD_CENTS = 200n;
+
+/** True when a parsed USD-cents amount satisfies the card onramp provider minimum. */
+export function meetsOctantVaultCardEndowUsdMinimum(usdCents: bigint | null): boolean {
+  return usdCents !== null && usdCents >= OCTANT_VAULT_CARD_ENDOW_MIN_USD_CENTS;
+}
+
 function hasManifestField(
   campaign: OctantVaultCampaignManifest,
   field: OctantVaultManifestField

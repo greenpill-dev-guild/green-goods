@@ -3,6 +3,7 @@ import {
   formatUsdCents,
   getOctantVaultAssetDisplayPolicy,
   getOctantVaultCampaignTransactionState,
+  meetsOctantVaultCardEndowUsdMinimum,
   normalizeDecimalInput,
   parseUsdToCents,
   prepareOctantVaultWalletEndow,
@@ -140,6 +141,12 @@ function VaultCheckoutDialogContent({
     chainId: campaign.vault?.chainId,
   });
   const usdCents = useMemo(() => parseUsdToCents(amountInput), [amountInput]);
+  // Card onramp providers reject buyer amounts under $2; gate before any session.
+  const cardMinimumNotMet =
+    selectedMethod === "card" &&
+    usdCents !== null &&
+    usdCents > 0n &&
+    !meetsOctantVaultCardEndowUsdMinimum(usdCents);
   const { parsedAmount, conversionUnavailable } = useMemo(() => {
     if (usdCents === null || usdCents <= 0n) {
       return { parsedAmount: null, conversionUnavailable: false };
@@ -158,7 +165,15 @@ function VaultCheckoutDialogContent({
       conversionUnavailable: false,
     };
   }, [decimals, ethUsd.hasFeed, ethUsd.priceAnswer, isEthSettlement, usdCents]);
-  const amountError = getAmountErrorMessage(formatMessage, amountInput, usdCents);
+  const amountError =
+    getAmountErrorMessage(formatMessage, amountInput, usdCents) ??
+    (cardMinimumNotMet
+      ? formatMessage({
+          id: "public.vaults.checkout.amount.cardMinimum",
+          defaultMessage:
+            "Card payments need at least $2.00. Enter a higher amount or choose Wallet.",
+        })
+      : null);
   const pricingStatusMessage = conversionUnavailable
     ? formatMessage({
         id: "public.vaults.walletEndow.amount.pricingUnavailable",
@@ -223,12 +238,18 @@ function VaultCheckoutDialogContent({
   }, []);
 
   const handleSetupContinue = useCallback(() => {
-    if (hasReadyAmount && parsedAmount && selectedMethod && !conversionUnavailable) {
+    if (
+      hasReadyAmount &&
+      parsedAmount &&
+      selectedMethod &&
+      !conversionUnavailable &&
+      !cardMinimumNotMet
+    ) {
       setAmountInput((current) => normalizeDecimalInput(current));
       setCommittedAmount(parsedAmount);
       setPhase("pay");
     }
-  }, [conversionUnavailable, hasReadyAmount, parsedAmount, selectedMethod]);
+  }, [cardMinimumNotMet, conversionUnavailable, hasReadyAmount, parsedAmount, selectedMethod]);
 
   const handleBackToSetup = useCallback(() => {
     if (checkoutGuard.inputsLocked) return;
@@ -339,7 +360,11 @@ function VaultCheckoutDialogContent({
               type="button"
               onClick={handleSetupContinue}
               disabled={
-                !hasReadyAmount || !selectedMethod || !hasPaymentMethods || conversionUnavailable
+                !hasReadyAmount ||
+                !selectedMethod ||
+                !hasPaymentMethods ||
+                conversionUnavailable ||
+                cardMinimumNotMet
               }
               className={CHECKOUT_PRIMARY_BUTTON}
             >
@@ -453,7 +478,7 @@ function VaultCheckoutDialogContent({
                       method === "card"
                         ? formatMessage({
                             id: "public.vaults.checkout.method.cardSubtitle",
-                            defaultMessage: "Debit or credit card",
+                            defaultMessage: "Debit or credit · $2 minimum",
                           })
                         : formatMessage({
                             id: "public.vaults.checkout.method.walletSubtitle",
