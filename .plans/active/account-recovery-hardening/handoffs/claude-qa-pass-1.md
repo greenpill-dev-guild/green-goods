@@ -19,6 +19,20 @@
 - Verify production RP/origin posture and staging/prod passkey-server isolation evidence are attached.
 - Verify unsupported/in-app browser contexts do not start a passkey ceremony.
 - Verify address mismatch fails closed if it can be simulated.
+- Shared-device expectation (intended for this release, not a defect): on a device
+  whose local cache holds account A, a second user recovering account B by
+  username fails closed with the address-mismatch copy. There is deliberately no
+  in-Login way to clear A's cached metadata (`clearPasskey` is only reachable
+  while authenticated); B's paths on that device are wallet sign-in or guarded
+  separate-account creation. Record it as PASS when the mismatch copy shows and
+  nothing is cleared. A guarded "use a different account on this device" reset
+  is a follow-up product decision, out of scope for this pass.
+- Username-mismatch fallback surfacing (added 2026-06-10): when the server has
+  no credential for the typed name (or is unreachable) and the device falls back
+  to its cached credential under a different name, the client now shows an
+  informational toast naming the account that was actually signed in
+  (`app.login.toast.fallbackAccount*`). Verify the toast appears in that path
+  and does not appear when the typed name matches the cached account.
 - Record tested platform/provider combinations, including desktop Chrome, Android Chrome/PWA, iOS Safari/PWA if available, and unsupported/in-app browser negative coverage.
 
 ## Evidence

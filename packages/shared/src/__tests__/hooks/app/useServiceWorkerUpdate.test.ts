@@ -26,7 +26,10 @@ vi.mock("../../../modules/app/posthog", () => ({
 // In test, import.meta.env.PROD is false and VITE_ENABLE_SW_DEV is not set,
 // so isEnabled will be false by default. We test the disabled path and mock SW API for enabled path.
 
-import { useServiceWorkerUpdate } from "../../../hooks/app/useServiceWorkerUpdate";
+import {
+  APPLY_UPDATE_TIMEOUT_MS,
+  useServiceWorkerUpdate,
+} from "../../../hooks/app/useServiceWorkerUpdate";
 import { track } from "../../../modules/app/posthog";
 
 function createMockRegistration(
@@ -148,6 +151,7 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
 
       expect(keys1).toEqual(keys2);
       expect(keys1).toEqual([
+        "applyTimedOut",
         "applyUpdate",
         "checkForUpdate",
         "dismissUpdate",
@@ -155,6 +159,80 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
         "updateAvailable",
         "waitingWorker",
       ]);
+    });
+  });
+
+  describe("applyUpdate timeout fallback", () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("resets isUpdating and flags applyTimedOut when activation never happens", async () => {
+      vi.stubEnv("VITE_ENABLE_SW_DEV", "true");
+      const waitingWorker = { postMessage: vi.fn() } as unknown as ServiceWorker;
+      const registration = createMockRegistration({ waiting: waitingWorker });
+      installServiceWorkerMock(registration);
+
+      const { result } = renderHook(() => useServiceWorkerUpdate());
+
+      await waitFor(() => {
+        expect(result.current.updateAvailable).toBe(true);
+      });
+
+      // Switch to fake timers only after the async setup settles so waitFor
+      // above keeps working with real timers.
+      vi.useFakeTimers();
+
+      act(() => {
+        result.current.applyUpdate();
+      });
+
+      expect(result.current.isUpdating).toBe(true);
+      expect(result.current.applyTimedOut).toBe(false);
+      expect(waitingWorker.postMessage).toHaveBeenCalledWith({ type: "SKIP_WAITING" });
+
+      // controllerchange never fires (the PRD-500 hang scenario)
+      act(() => {
+        vi.advanceTimersByTime(APPLY_UPDATE_TIMEOUT_MS);
+      });
+
+      expect(result.current.isUpdating).toBe(false);
+      expect(result.current.applyTimedOut).toBe(true);
+      expect(track).toHaveBeenCalledWith("sw_update_apply_timeout", {});
+      expect(navigator.serviceWorker.removeEventListener).toHaveBeenCalledWith(
+        "controllerchange",
+        expect.any(Function)
+      );
+    });
+
+    it("clears the timed-out flag when the user retries the update", async () => {
+      vi.stubEnv("VITE_ENABLE_SW_DEV", "true");
+      const waitingWorker = { postMessage: vi.fn() } as unknown as ServiceWorker;
+      const registration = createMockRegistration({ waiting: waitingWorker });
+      installServiceWorkerMock(registration);
+
+      const { result } = renderHook(() => useServiceWorkerUpdate());
+
+      await waitFor(() => {
+        expect(result.current.updateAvailable).toBe(true);
+      });
+
+      vi.useFakeTimers();
+
+      act(() => {
+        result.current.applyUpdate();
+      });
+      act(() => {
+        vi.advanceTimersByTime(APPLY_UPDATE_TIMEOUT_MS);
+      });
+      expect(result.current.applyTimedOut).toBe(true);
+
+      act(() => {
+        result.current.applyUpdate();
+      });
+
+      expect(result.current.applyTimedOut).toBe(false);
+      expect(result.current.isUpdating).toBe(true);
     });
   });
 });

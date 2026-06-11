@@ -31,6 +31,8 @@ const { mockClassifyPasskeyCeremonyContext } = vi.hoisted(() => ({
 let mockHasStoredCredential = false;
 let mockAuthError: Error | null = null;
 let mockPasskeyServerEnabled = true;
+let mockIsAuthenticated = false;
+let mockAuthUserName: string | null = null;
 
 vi.mock("@green-goods/shared", () => ({
   toastService: {
@@ -42,6 +44,8 @@ vi.mock("@green-goods/shared", () => ({
   copyToClipboard: vi.fn(),
   classifyPasskeyCeremonyContext: mockClassifyPasskeyCeremonyContext,
   isPasskeyServerEnabled: () => mockPasskeyServerEnabled,
+  normalizePasskeyAccountIdentifier: (value: string) =>
+    value.trim().replace(/^@+/, "").toLowerCase(),
   useInstallGuidance: () => ({
     showInstallPrompt: false,
     scenario: null,
@@ -62,10 +66,11 @@ vi.mock("@green-goods/shared", () => ({
     loginWithWallet: mockLoginWithWallet,
     loginWithEmbedded: mockLoginWithEmbedded,
     isAuthenticating: false,
-    isAuthenticated: false,
+    isAuthenticated: mockIsAuthenticated,
     isReady: true,
     smartAccountAddress: null,
     hasStoredCredential: mockHasStoredCredential,
+    userName: mockAuthUserName,
     error: mockAuthError,
   }),
   debugError: vi.fn(),
@@ -158,6 +163,7 @@ vi.mock("@/components/Layout", () => ({
 }));
 
 // Import after mocks
+import { toastService } from "@green-goods/shared";
 import { Login } from "../../views/Login";
 
 const createLoginTree = (initialRoute = "/home/login") =>
@@ -486,5 +492,80 @@ describe("Login View - Existing User (progressive disclosure)", () => {
   it("does not show passkey explainer for returning users", () => {
     renderWithRouter();
     expect(screen.queryByTestId("info-callout")).not.toBeInTheDocument();
+  });
+});
+
+// ─── Local-fallback account surfacing ─────────────────────────────────────────
+// When the hosted lookup finds nothing (or is unreachable) the auth service
+// deliberately falls back to the credential cached on this device. If that
+// account's name differs from what the user typed, Login must say so.
+
+describe("Login View - fallback account surfacing", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockHasStoredCredential = false;
+    mockAuthError = null;
+    mockPasskeyServerEnabled = true;
+    mockIsAuthenticated = false;
+    mockAuthUserName = null;
+    mockClassifyPasskeyCeremonyContext.mockReturnValue({
+      supported: true,
+      rpId: "greengoods.app",
+      origin: "https://greengoods.app",
+    });
+  });
+
+  afterEach(() => {
+    mockIsAuthenticated = false;
+    mockAuthUserName = null;
+    cleanup();
+  });
+
+  it("toasts when recovery lands on a different cached account", async () => {
+    const user = userEvent.setup();
+    mockLoginWithPasskey.mockResolvedValueOnce(undefined);
+    const view = renderWithRouter();
+
+    await user.type(screen.getByTestId("username-input"), "mistyped-recovery-name");
+    await user.click(screen.getByTestId("primary-button"));
+    expect(mockLoginWithPasskey).toHaveBeenCalledWith("mistyped-recovery-name");
+
+    // Auth resolves via the device's cached credential under another name.
+    mockIsAuthenticated = true;
+    mockAuthUserName = "stored-local-user";
+    view.rerender(createLoginTree());
+
+    expect(toastService.show).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: "info",
+        description: expect.stringContaining("stored-local-user"),
+      })
+    );
+  });
+
+  it("stays quiet when the recovered account matches the typed name", async () => {
+    const user = userEvent.setup();
+    mockLoginWithPasskey.mockResolvedValueOnce(undefined);
+    const view = renderWithRouter();
+
+    await user.type(screen.getByTestId("username-input"), "Stored-Local-User");
+    await user.click(screen.getByTestId("primary-button"));
+
+    mockIsAuthenticated = true;
+    mockAuthUserName = "stored-local-user";
+    view.rerender(createLoginTree());
+
+    expect(toastService.show).not.toHaveBeenCalled();
+  });
+
+  it("stays quiet when authentication did not come from a recovery attempt", () => {
+    mockHasStoredCredential = true;
+    const view = renderWithRouter();
+
+    mockIsAuthenticated = true;
+    mockAuthUserName = "stored-local-user";
+    view.rerender(createLoginTree());
+
+    expect(toastService.show).not.toHaveBeenCalled();
   });
 });

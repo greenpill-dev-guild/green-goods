@@ -24,7 +24,7 @@ interface ApplicationSettings {
 export const AppSettings: React.FC = () => {
   const { theme, setTheme } = useTheme();
   const { locale, switchLanguage, availableLocales } = useApp();
-  const { updateAvailable, isUpdating, applyUpdate } = useServiceWorkerUpdate();
+  const { updateAvailable, isUpdating, applyTimedOut, applyUpdate } = useServiceWorkerUpdate();
   const intl = useIntl();
 
   const themeOptions = useMemo(
@@ -177,6 +177,14 @@ export const AppSettings: React.FC = () => {
                   defaultMessage: "A new version is ready.",
                 })}
               </div>
+              {applyTimedOut && !isUpdating && (
+                <div role="status" className="text-xs text-error-dark">
+                  {intl.formatMessage({
+                    id: "app.update.timeout",
+                    defaultMessage: "The update didn't finish. Close all app tabs and try again.",
+                  })}
+                </div>
+              )}
             </div>
             <Button
               variant="neutral"

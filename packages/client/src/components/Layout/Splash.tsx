@@ -274,10 +274,14 @@ export const Splash: React.FC<SplashProps> = ({
             role="alert"
             aria-live="polite"
             className={cn(
-              "w-full transition-[opacity,transform] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
+              // `visibility` joins the transition so the reveal still animates
+              // (visible flips on immediately, opacity fades in) while the
+              // hidden state drops the region — and its "Error:" prefix —
+              // out of the accessibility tree instead of relying on opacity.
+              "w-full transition-[opacity,transform,visibility] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
               errorMessage && !loadingState
-                ? "opacity-100 translate-y-0"
-                : "opacity-0 -translate-y-2 pointer-events-none"
+                ? "visible opacity-100 translate-y-0"
+                : "invisible opacity-0 -translate-y-2 pointer-events-none"
             )}
           >
             <div className="flex w-full items-start gap-2 rounded-lg border border-error-light bg-error-lighter p-3 text-sm text-error-dark">

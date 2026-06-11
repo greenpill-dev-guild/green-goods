@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p0",
     "created_at": "2026-05-09T21:35:46.781Z",
-    "updated_at": "2026-05-10T23:16:43.672Z"
+    "updated_at": "2026-06-10T21:27:00Z"
   },
   "links": {
     "brief": "brief.md",
@@ -38,7 +38,8 @@
     "Public withdraw preview must use the same 1% max-loss default as the withdraw mutation.",
     "No existing-position migration, public address lookup, fiat off-ramp, contract work, or indexer schema work is planned.",
     "status.json is authoritative; branch names are automation signals.",
-    ".plans/ is the durable repo truth; any tool-local or .claude/agent-memory surface stays environment-local until freshness and ownership rules exist."
+    ".plans/ is the durable repo truth; any tool-local or .claude/agent-memory surface stays environment-local until freshness and ownership rules exist.",
+    "2026-06-10 QA review: /fund Manage Endowments is live in production and on develop — deeplink /fund?manage=endowments opens the wallet-gated dialog with no receipt/account data in the URL, and scroll position survives open/close (#545 verified in Brave). Lane statuses/TDD fields predate this shipped progress; refresh lane truth before dispatching further work from this hub."
   ],
   "lanes": {
     "ui": {
@@ -203,6 +204,14 @@
       "status": "linear_recorded",
       "branch": null,
       "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-06-10T21:27:00Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "shipped_reality_noted",
+      "branch": "fix/qa-review-followups",
+      "note": "Recorded browser-verified shipped state of the public Manage Endowments surface so stale lane metadata is not mistaken for unshipped work."
     }
   ],
   "linear": {

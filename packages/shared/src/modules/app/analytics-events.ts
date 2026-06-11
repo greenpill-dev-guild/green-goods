@@ -510,5 +510,11 @@ export const trackAdminActionCreateFailed = createTracker<{
   actionTitle: string;
   actionSlug: string;
   actionDomain: number;
+  /**
+   * Parsed contract-error family (`parseContractError(...).name`), never the
+   * raw error message — raw strings can embed user content. Mirrors the
+   * work-submission telemetry shape.
+   */
   error: string;
+  parsedErrorFamily: string;
 }>(ANALYTICS_EVENTS.ADMIN_ACTION_CREATE_FAILED);

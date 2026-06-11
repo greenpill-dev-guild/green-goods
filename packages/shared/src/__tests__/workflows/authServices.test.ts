@@ -14,6 +14,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createActor, fromPromise, setup } from "xstate";
 
+import { trackAuthPasskeyLoginFailed } from "../../modules/app/analytics-events";
+
 // ============================================================================
 // GLOBAL SETUP (before tests)
 // ============================================================================
@@ -122,6 +124,18 @@ const mockPasskeyServerClient = {
 };
 
 let mockPasskeyServerEnabled = false;
+
+// Spy on auth telemetry while keeping every other tracker real, so tests can
+// assert which path a failure was attributed to (server vs local fallback).
+vi.mock("../../modules/app/analytics-events", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../modules/app/analytics-events")>();
+  return {
+    ...actual,
+    trackAuthPasskeyLoginStarted: vi.fn(),
+    trackAuthPasskeyLoginSuccess: vi.fn(),
+    trackAuthPasskeyLoginFailed: vi.fn(),
+  };
+});
 
 vi.mock("../../config/passkeyServer", () => ({
   createPasskeyServerClient: vi.fn(() => mockPasskeyServerClient),
@@ -1002,6 +1016,31 @@ describe("workflows/authServices (Pimlico Server Flow)", () => {
       ).rejects.toThrow("not allowed");
 
       // One ceremony only — cancellation must not re-prompt via local fallback.
+      expect(mockCredentials.get).toHaveBeenCalledTimes(1);
+    });
+
+    it("attributes a failed local-fallback ceremony to local_cache, not server", async () => {
+      // Server lookup finds no credential, so the flow degrades to the local
+      // fallback; the user then dismisses that ceremony. The failure happened
+      // on the local path and telemetry must say so.
+      mockStoredCredential = MOCK_CREDENTIAL;
+      mockPasskeyServerClient.getCredentials.mockResolvedValue([]);
+      const cancelError = new Error("The operation either timed out or was not allowed.");
+      cancelError.name = "NotAllowedError";
+      mockCredentials.get.mockRejectedValue(cancelError);
+
+      await expect(
+        invokeService(authenticatePasskeyService, {
+          userName: MOCK_USERNAME,
+          chainId: MOCK_CHAIN_ID,
+        })
+      ).rejects.toThrow("not allowed");
+
+      expect(vi.mocked(trackAuthPasskeyLoginFailed)).toHaveBeenCalledWith(
+        expect.objectContaining({ source: "local_cache", reason: "cancelled" })
+      );
+      // A failure inside the local fallback must not chain into a second
+      // fallback attempt: one local ceremony only.
       expect(mockCredentials.get).toHaveBeenCalledTimes(1);
     });
 
