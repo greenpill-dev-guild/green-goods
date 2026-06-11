@@ -21,6 +21,19 @@ import { track } from "./posthog";
 
 type AuthMode = "passkey" | "wallet" | "embedded" | null;
 type MemberType = GardenRole;
+export type AuthPasskeySource = "server" | "local_cache" | "restore" | "unknown";
+export type AuthPasskeyOutcome = "started" | "success" | "failed";
+export type AuthPasskeyReason =
+  | "address_mismatch"
+  | "cancelled"
+  | "credential_not_found"
+  | "legacy_fallback"
+  | "passkey_server_disabled"
+  | "recovery_context_taken"
+  | "server_unavailable"
+  | "unsupported_context"
+  | "verification_failed"
+  | "unknown";
 
 /**
  * Converts camelCase object keys to snake_case for PostHog
@@ -37,8 +50,11 @@ function toSnakeCase(obj: Record<string, unknown>): Record<string, unknown> {
 /**
  * Creates a typed tracking function that automatically converts keys to snake_case
  */
-function createTracker<T extends Record<string, unknown>>(eventName: string) {
-  return (props: T) => track(eventName, toSnakeCase(props));
+function createTracker<T extends Record<string, unknown>>(
+  eventName: string,
+  options?: { includeSessionId?: boolean }
+) {
+  return (props: T) => track(eventName, toSnakeCase(props), options);
 }
 
 // ============================================================================
@@ -74,6 +90,9 @@ export const ANALYTICS_EVENTS = {
   WORK_SUBMISSION_SUCCESS: "work_submission_success",
   WORK_SUBMISSION_FAILED: "work_submission_failed",
   WORK_SUBMISSION_OFFLINE: "work_submission_offline",
+  WORK_WALLET_REQUEST_STARTED: "work_wallet_request_started",
+  WORK_WALLET_REQUEST_EXPIRED: "work_wallet_request_expired",
+  WORK_WALLET_REQUEST_FAILED: "work_wallet_request_failed",
 
   // Work Approval
   WORK_APPROVAL_STARTED: "work_approval_started",
@@ -117,29 +136,35 @@ export const ANALYTICS_EVENTS = {
 // AUTH TRACKING
 // ============================================================================
 
-export const trackAuthPasskeyRegisterStarted = createTracker<{ userName: string }>(
+type AuthPasskeyTelemetry = {
+  source: AuthPasskeySource;
+  outcome: AuthPasskeyOutcome;
+  reason?: AuthPasskeyReason;
+  passkeyServerEnabled?: boolean;
+  hasLocalCredential?: boolean;
+};
+
+export const trackAuthPasskeyRegisterStarted = createTracker<AuthPasskeyTelemetry>(
   ANALYTICS_EVENTS.AUTH_PASSKEY_REGISTER_STARTED
 );
 
-export const trackAuthPasskeyRegisterSuccess = createTracker<{
-  smartAccountAddress: string;
-  userName: string;
-}>(ANALYTICS_EVENTS.AUTH_PASSKEY_REGISTER_SUCCESS);
+export const trackAuthPasskeyRegisterSuccess = createTracker<AuthPasskeyTelemetry>(
+  ANALYTICS_EVENTS.AUTH_PASSKEY_REGISTER_SUCCESS
+);
 
-export const trackAuthPasskeyRegisterFailed = createTracker<{ error: string; userName: string }>(
+export const trackAuthPasskeyRegisterFailed = createTracker<AuthPasskeyTelemetry>(
   ANALYTICS_EVENTS.AUTH_PASSKEY_REGISTER_FAILED
 );
 
-export const trackAuthPasskeyLoginStarted = createTracker<{ userName: string }>(
+export const trackAuthPasskeyLoginStarted = createTracker<AuthPasskeyTelemetry>(
   ANALYTICS_EVENTS.AUTH_PASSKEY_LOGIN_STARTED
 );
 
-export const trackAuthPasskeyLoginSuccess = createTracker<{
-  smartAccountAddress: string;
-  userName: string;
-}>(ANALYTICS_EVENTS.AUTH_PASSKEY_LOGIN_SUCCESS);
+export const trackAuthPasskeyLoginSuccess = createTracker<AuthPasskeyTelemetry>(
+  ANALYTICS_EVENTS.AUTH_PASSKEY_LOGIN_SUCCESS
+);
 
-export const trackAuthPasskeyLoginFailed = createTracker<{ error: string; userName: string }>(
+export const trackAuthPasskeyLoginFailed = createTracker<AuthPasskeyTelemetry>(
   ANALYTICS_EVENTS.AUTH_PASSKEY_LOGIN_FAILED
 );
 
@@ -154,10 +179,9 @@ export const trackAuthWalletConnectFailed = createTracker<{ error: string }>(
   ANALYTICS_EVENTS.AUTH_WALLET_CONNECT_FAILED
 );
 
-export const trackAuthSessionRestored = createTracker<{
-  smartAccountAddress: string;
-  userName: string;
-}>(ANALYTICS_EVENTS.AUTH_SESSION_RESTORED);
+export const trackAuthSessionRestored = createTracker<AuthPasskeyTelemetry>(
+  ANALYTICS_EVENTS.AUTH_SESSION_RESTORED
+);
 
 export const trackAuthSwitchMethod = createTracker<{
   from: "passkey" | "wallet";
@@ -210,13 +234,39 @@ export const trackGardenAutoJoinFailed = createTracker<{ gardenAddress: string; 
 // WORK SUBMISSION TRACKING
 // ============================================================================
 
+const workSubmissionTrackerOptions = { includeSessionId: false };
+
+type WorkSubmissionPhase =
+  | "media"
+  | "details"
+  | "review"
+  | "upload"
+  | "transaction"
+  | "sync"
+  | "wallet_request"
+  | "success"
+  | "unknown";
+
+type WorkTrackingSafeMetadata = {
+  workSubmissionJourneyId?: string;
+  authMode: AuthMode;
+  chainId?: number;
+  actionUID?: number;
+  imageCount?: number;
+  submissionPhase?: WorkSubmissionPhase;
+  parsedErrorFamily?: string;
+};
+
 export const trackWorkSubmissionStarted = createTracker<{
-  gardenAddress: string;
-  actionUID: number;
+  gardenAddress?: string;
+  actionUID?: number;
   actionTitle?: string;
   authMode: AuthMode;
-  imageCount: number;
-}>(ANALYTICS_EVENTS.WORK_SUBMISSION_STARTED);
+  imageCount?: number;
+  workSubmissionJourneyId?: string;
+  chainId?: number;
+  submissionPhase?: WorkSubmissionPhase;
+}>(ANALYTICS_EVENTS.WORK_SUBMISSION_STARTED, workSubmissionTrackerOptions);
 
 export const trackWorkSubmissionQueued = createTracker<{
   gardenAddress: string;
@@ -226,19 +276,42 @@ export const trackWorkSubmissionQueued = createTracker<{
 }>(ANALYTICS_EVENTS.WORK_SUBMISSION_QUEUED);
 
 export const trackWorkSubmissionSuccess = createTracker<{
-  gardenAddress: string;
-  actionUID: number;
-  txHash: string;
+  gardenAddress?: string;
+  actionUID?: number;
+  txHash?: string;
   authMode: AuthMode;
   wasOffline: boolean;
-}>(ANALYTICS_EVENTS.WORK_SUBMISSION_SUCCESS);
+  workSubmissionJourneyId?: string;
+  chainId?: number;
+  submissionPhase?: WorkSubmissionPhase;
+}>(ANALYTICS_EVENTS.WORK_SUBMISSION_SUCCESS, workSubmissionTrackerOptions);
 
 export const trackWorkSubmissionFailed = createTracker<{
-  gardenAddress: string;
-  actionUID: number;
+  gardenAddress?: string;
+  actionUID?: number;
   error: string;
   authMode: AuthMode;
-}>(ANALYTICS_EVENTS.WORK_SUBMISSION_FAILED);
+  imageCount?: number;
+  workSubmissionJourneyId?: string;
+  chainId?: number;
+  submissionPhase?: WorkSubmissionPhase;
+  parsedErrorFamily?: string;
+}>(ANALYTICS_EVENTS.WORK_SUBMISSION_FAILED, workSubmissionTrackerOptions);
+
+export const trackWorkWalletRequestStarted = createTracker<WorkTrackingSafeMetadata>(
+  ANALYTICS_EVENTS.WORK_WALLET_REQUEST_STARTED,
+  workSubmissionTrackerOptions
+);
+
+export const trackWorkWalletRequestExpired = createTracker<WorkTrackingSafeMetadata>(
+  ANALYTICS_EVENTS.WORK_WALLET_REQUEST_EXPIRED,
+  workSubmissionTrackerOptions
+);
+
+export const trackWorkWalletRequestFailed = createTracker<WorkTrackingSafeMetadata>(
+  ANALYTICS_EVENTS.WORK_WALLET_REQUEST_FAILED,
+  workSubmissionTrackerOptions
+);
 
 export const trackWorkSubmissionOffline = createTracker<{
   gardenAddress: string;
@@ -409,3 +482,39 @@ export const trackAdminDeployFailed = createTracker<{
   contractType: string;
   error: string;
 }>(ANALYTICS_EVENTS.ADMIN_DEPLOY_FAILED);
+
+// ============================================================================
+// ADMIN: ACTION MANAGEMENT
+// ============================================================================
+
+export const trackAdminActionCreateStarted = createTracker<{
+  gardenAddress: string;
+  chainId: number;
+  actionTitle: string;
+  actionSlug: string;
+  actionDomain: number;
+}>(ANALYTICS_EVENTS.ADMIN_ACTION_CREATE_STARTED);
+
+export const trackAdminActionCreateSuccess = createTracker<{
+  gardenAddress: string;
+  chainId: number;
+  actionTitle: string;
+  actionSlug: string;
+  actionDomain: number;
+  txHash: string;
+}>(ANALYTICS_EVENTS.ADMIN_ACTION_CREATE_SUCCESS);
+
+export const trackAdminActionCreateFailed = createTracker<{
+  gardenAddress: string;
+  chainId: number;
+  actionTitle: string;
+  actionSlug: string;
+  actionDomain: number;
+  /**
+   * Parsed contract-error family (`parseContractError(...).name`), never the
+   * raw error message — raw strings can embed user content. Mirrors the
+   * work-submission telemetry shape.
+   */
+  error: string;
+  parsedErrorFamily: string;
+}>(ANALYTICS_EVENTS.ADMIN_ACTION_CREATE_FAILED);

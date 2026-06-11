@@ -21,7 +21,18 @@ const mockLoginWithPasskey = vi.fn();
 const mockCreateAccount = vi.fn();
 const mockLoginWithWallet = vi.fn();
 const mockLoginWithEmbedded = vi.fn();
+const { mockClassifyPasskeyCeremonyContext } = vi.hoisted(() => ({
+  mockClassifyPasskeyCeremonyContext: vi.fn(() => ({
+    supported: true,
+    rpId: "greengoods.app",
+    origin: "https://greengoods.app",
+  })),
+}));
 let mockHasStoredCredential = false;
+let mockAuthError: Error | null = null;
+let mockPasskeyServerEnabled = true;
+let mockIsAuthenticated = false;
+let mockAuthUserName: string | null = null;
 
 vi.mock("@green-goods/shared", () => ({
   toastService: {
@@ -31,6 +42,10 @@ vi.mock("@green-goods/shared", () => ({
     show: vi.fn(),
   },
   copyToClipboard: vi.fn(),
+  classifyPasskeyCeremonyContext: mockClassifyPasskeyCeremonyContext,
+  isPasskeyServerEnabled: () => mockPasskeyServerEnabled,
+  normalizePasskeyAccountIdentifier: (value: string) =>
+    value.trim().replace(/^@+/, "").toLowerCase(),
   useInstallGuidance: () => ({
     showInstallPrompt: false,
     scenario: null,
@@ -51,11 +66,12 @@ vi.mock("@green-goods/shared", () => ({
     loginWithWallet: mockLoginWithWallet,
     loginWithEmbedded: mockLoginWithEmbedded,
     isAuthenticating: false,
-    isAuthenticated: false,
+    isAuthenticated: mockIsAuthenticated,
     isReady: true,
     smartAccountAddress: null,
     hasStoredCredential: mockHasStoredCredential,
-    error: null,
+    userName: mockAuthUserName,
+    error: mockAuthError,
   }),
   debugError: vi.fn(),
   trackAuthError: vi.fn(),
@@ -79,6 +95,7 @@ vi.mock("@/components/Layout", () => ({
     notice,
     usernameInput,
     infoCallout,
+    isLoginDisabled,
   }: {
     login?: () => void;
     buttonLabel?: string;
@@ -88,6 +105,7 @@ vi.mock("@/components/Layout", () => ({
     notice?: string;
     usernameInput?: { value: string; onChange: (e: unknown) => void; onCancel?: () => void };
     infoCallout?: string;
+    isLoginDisabled?: boolean;
   }) =>
     createElement(
       "div",
@@ -98,6 +116,7 @@ vi.mock("@/components/Layout", () => ({
           "data-testid": "primary-button",
           onClick: login,
           type: "button",
+          disabled: isLoginDisabled,
         },
         buttonLabel || "Create Account"
       ),
@@ -144,32 +163,34 @@ vi.mock("@/components/Layout", () => ({
 }));
 
 // Import after mocks
+import { toastService } from "@green-goods/shared";
 import { Login } from "../../views/Login";
 
-const renderWithRouter = (initialRoute = "/home/login") => {
-  return render(
+const createLoginTree = (initialRoute = "/home/login") =>
+  createElement(
+    IntlProvider,
+    { locale: "en", messages: {} },
     createElement(
-      IntlProvider,
-      { locale: "en", messages: {} },
+      HelmetProvider,
+      null,
       createElement(
-        HelmetProvider,
-        null,
+        MemoryRouter,
+        { initialEntries: [initialRoute] },
         createElement(
-          MemoryRouter,
-          { initialEntries: [initialRoute] },
-          createElement(
-            Routes,
-            null,
-            createElement(Route, { path: "/home/login/*", element: createElement(Login) }),
-            createElement(Route, {
-              path: "/home",
-              element: createElement("div", null, "Home Page"),
-            })
-          )
+          Routes,
+          null,
+          createElement(Route, { path: "/home/login/*", element: createElement(Login) }),
+          createElement(Route, {
+            path: "/home",
+            element: createElement("div", null, "Home Page"),
+          })
         )
       )
     )
   );
+
+const renderWithRouter = (initialRoute = "/home/login") => {
+  return render(createLoginTree(initialRoute));
 };
 
 // ─── New User (no stored credential) ─────────────────────────────────────────
@@ -178,6 +199,13 @@ describe("Login View - New User (progressive disclosure)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockHasStoredCredential = false;
+    mockAuthError = null;
+    mockPasskeyServerEnabled = true;
+    mockClassifyPasskeyCeremonyContext.mockReturnValue({
+      supported: true,
+      rpId: "greengoods.app",
+      origin: "https://greengoods.app",
+    });
   });
 
   afterEach(() => {
@@ -189,9 +217,40 @@ describe("Login View - New User (progressive disclosure)", () => {
     expect(screen.getByTestId("splash-screen")).toBeInTheDocument();
   });
 
-  it("shows Create your account as primary action for new users", () => {
+  it("shows recovery as primary action when no local passkey cache exists", () => {
     renderWithRouter();
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Recover with passkey");
+  });
+
+  it("keeps legacy local account creation when passkey server is disabled", async () => {
+    const user = userEvent.setup();
+    mockPasskeyServerEnabled = false;
+    renderWithRouter();
+
     expect(screen.getByTestId("primary-button")).toHaveTextContent("Create your account");
+    expect(screen.queryByTestId("username-input")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("tertiary-button")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("notice")).not.toBeInTheDocument();
+
+    await user.click(screen.getByTestId("primary-button"));
+
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Create account");
+    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Sign in with a wallet");
+    expect(screen.getByTestId("username-input")).toBeInTheDocument();
+    expect(screen.queryByTestId("notice")).not.toBeInTheDocument();
+
+    await user.click(screen.getByTestId("cancel-passkey-create"));
+
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Create your account");
+    expect(screen.queryByTestId("username-input")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("notice")).not.toBeInTheDocument();
+
+    await user.click(screen.getByTestId("primary-button"));
+    await user.type(screen.getByTestId("username-input"), "legacyuser");
+    await user.click(screen.getByTestId("primary-button"));
+
+    expect(mockCreateAccount).toHaveBeenCalledWith("legacyuser");
+    expect(mockLoginWithPasskey).not.toHaveBeenCalled();
   });
 
   it("shows Sign in with a wallet as secondary action", () => {
@@ -199,18 +258,16 @@ describe("Login View - New User (progressive disclosure)", () => {
     expect(screen.getByTestId("secondary-button")).toHaveTextContent("Sign in with a wallet");
   });
 
-  it("does not show a tertiary action by default", () => {
+  it("does not show separate-account entry before recovery has failed", () => {
     renderWithRouter();
     expect(screen.queryByTestId("tertiary-button")).not.toBeInTheDocument();
   });
 
-  it("toggles to passkey creation mode when primary button clicked", async () => {
-    const user = userEvent.setup();
+  it("shows username recovery input before lookup", () => {
     renderWithRouter();
 
-    await user.click(screen.getByTestId("primary-button"));
     expect(screen.getByTestId("username-input")).toBeInTheDocument();
-    expect(screen.getByTestId("primary-button")).toHaveTextContent("Create account");
+    expect(screen.getByTestId("info-callout")).toHaveTextContent(/synced passkeys/i);
   });
 
   it("calls loginWithWallet when secondary button clicked from default new-user mode", async () => {
@@ -221,66 +278,123 @@ describe("Login View - New User (progressive disclosure)", () => {
     expect(mockLoginWithWallet).toHaveBeenCalled();
   });
 
-  it("does not call loginWithEmbedded from the visible new-user actions", async () => {
+  it("recovers by username through passkey login", async () => {
     const user = userEvent.setup();
     renderWithRouter();
 
+    await user.type(screen.getByTestId("username-input"), "testuser");
     await user.click(screen.getByTestId("primary-button"));
-    await user.click(screen.getByTestId("secondary-button"));
 
-    expect(mockLoginWithEmbedded).not.toHaveBeenCalled();
+    expect(mockLoginWithPasskey).toHaveBeenCalledWith("testuser");
+  });
+
+  it("blocks recovery before ceremony when the RP/origin context is unsupported", async () => {
+    const user = userEvent.setup();
+    mockClassifyPasskeyCeremonyContext.mockReturnValue({
+      supported: false,
+      reason: "rp_origin_mismatch",
+      rpId: "greengoods.app",
+      origin: "https://example.com",
+    });
+    renderWithRouter();
+
+    await user.type(screen.getByTestId("username-input"), "testuser");
+    await user.click(screen.getByTestId("primary-button"));
+
+    expect(mockLoginWithPasskey).not.toHaveBeenCalled();
+    expect(screen.getByTestId("error-message")).toHaveTextContent(/recommended browser/i);
+  });
+
+  it("maps explicit address-continuity errors to recovery guidance", async () => {
+    mockAuthError = new Error("Recovered passkey did not match the expected account address");
+    renderWithRouter();
+
+    expect(await screen.findByTestId("error-message")).toHaveTextContent(
+      /different account address/i
+    );
+  });
+
+  it("does not map unrelated address errors to address-mismatch guidance", async () => {
+    mockAuthError = new Error("Address profile service temporarily unavailable");
+    renderWithRouter();
+
+    expect(await screen.findByTestId("error-message")).toHaveTextContent(/something went wrong/i);
   });
 
   it("shows address continuity notice", () => {
     renderWithRouter();
     expect(screen.getByTestId("notice")).toHaveTextContent(
-      "Each sign-in method creates a separate account."
+      "Creating a separate account gives you a different address."
     );
   });
 
-  it("returns from passkey creation mode via cancel", async () => {
+  it("requires explicit confirmation before separate account creation", async () => {
     const user = userEvent.setup();
+    mockLoginWithPasskey.mockRejectedValueOnce(new Error("No passkey credential found"));
     renderWithRouter();
 
-    // Enter passkey creation mode via primary
+    await user.type(screen.getByTestId("username-input"), "missinguser");
     await user.click(screen.getByTestId("primary-button"));
+    await screen.findByTestId("error-message");
+    await user.click(screen.getByTestId("secondary-button"));
+
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Continue to new account");
+    expect(screen.getByTestId("info-callout")).toHaveTextContent(/different address/i);
+    expect(mockCreateAccount).not.toHaveBeenCalled();
+
+    await user.click(screen.getByTestId("primary-button"));
+
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Create separate account");
     expect(screen.getByTestId("username-input")).toBeInTheDocument();
-
-    // Click cancel to go back
-    await user.click(screen.getByTestId("cancel-passkey-create"));
-
-    // Should return to default mode (passkey-first)
-    expect(screen.getByTestId("primary-button")).toHaveTextContent("Create your account");
-    expect(screen.queryByTestId("username-input")).not.toBeInTheDocument();
   });
 
-  it("does not show passkey explainer in default new-user mode", () => {
-    renderWithRouter();
-    expect(screen.queryByTestId("info-callout")).not.toBeInTheDocument();
-  });
-
-  it("shows passkey explainer in passkey creation mode", async () => {
+  it("creates a separate account only after confirmation", async () => {
     const user = userEvent.setup();
+    mockLoginWithPasskey.mockRejectedValueOnce(new Error("No passkey credential found"));
     renderWithRouter();
 
-    // Toggle to passkey creation mode via primary
+    await user.type(screen.getByTestId("username-input"), "missinguser");
+    await user.click(screen.getByTestId("primary-button"));
+    await screen.findByTestId("error-message");
+    await user.click(screen.getByTestId("secondary-button"));
+    await user.click(screen.getByTestId("primary-button"));
     await user.click(screen.getByTestId("primary-button"));
 
-    expect(screen.getByTestId("info-callout")).toBeInTheDocument();
-    expect(screen.getByTestId("info-callout")).toHaveTextContent(/passkey|sign in securely/i);
+    expect(mockCreateAccount).toHaveBeenCalledWith("missinguser");
   });
 
-  it("hides passkey explainer when leaving passkey creation mode", async () => {
+  it("failed recovery exposes guarded new-account confirmation path", async () => {
     const user = userEvent.setup();
+    mockLoginWithPasskey.mockRejectedValueOnce(new Error("No passkey credential found"));
     renderWithRouter();
 
-    // Enter passkey creation mode
+    await user.type(screen.getByTestId("username-input"), "missinguser");
     await user.click(screen.getByTestId("primary-button"));
-    expect(screen.getByTestId("info-callout")).toBeInTheDocument();
 
-    // Cancel back to default mode
-    await user.click(screen.getByTestId("cancel-passkey-create"));
-    expect(screen.queryByTestId("info-callout")).not.toBeInTheDocument();
+    expect(await screen.findByTestId("error-message")).toHaveTextContent(/couldn't find/i);
+    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Create separate account");
+
+    await user.click(screen.getByTestId("secondary-button"));
+
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Continue to new account");
+    expect(screen.getByTestId("info-callout")).toHaveTextContent(/different address/i);
+  });
+
+  it("keeps guarded recovery fallback when auth error arrives after passkey dispatch", async () => {
+    const user = userEvent.setup();
+    mockLoginWithPasskey.mockResolvedValueOnce(undefined);
+    const view = renderWithRouter();
+
+    await user.type(screen.getByTestId("username-input"), "missinguser");
+    await user.click(screen.getByTestId("primary-button"));
+
+    expect(mockLoginWithPasskey).toHaveBeenCalledWith("missinguser");
+
+    mockAuthError = new Error("No passkey credential found");
+    view.rerender(createLoginTree());
+
+    expect(await screen.findByTestId("error-message")).toHaveTextContent(/couldn't find/i);
+    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Create separate account");
   });
 });
 
@@ -290,6 +404,8 @@ describe("Login View - Existing User (progressive disclosure)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockHasStoredCredential = true;
+    mockAuthError = null;
+    mockPasskeyServerEnabled = true;
   });
 
   afterEach(() => {
@@ -307,9 +423,47 @@ describe("Login View - Existing User (progressive disclosure)", () => {
     expect(screen.getByTestId("secondary-button")).toHaveTextContent("Sign in with a wallet");
   });
 
-  it("does not show a tertiary action by default", () => {
+  it("offers username recovery as tertiary when the passkey server is enabled", () => {
+    renderWithRouter();
+    expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Recover with username");
+  });
+
+  it("does not show a tertiary action when the passkey server is disabled", () => {
+    mockPasskeyServerEnabled = false;
     renderWithRouter();
     expect(screen.queryByTestId("tertiary-button")).not.toBeInTheDocument();
+  });
+
+  it("opens username recovery and returns to one-tap sign-in", async () => {
+    const user = userEvent.setup();
+    renderWithRouter();
+
+    await user.click(screen.getByTestId("tertiary-button"));
+
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Recover with passkey");
+    expect(screen.getByTestId("username-input")).toBeInTheDocument();
+    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Back to sign in");
+
+    await user.click(screen.getByTestId("secondary-button"));
+
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Sign in with passkey");
+  });
+
+  it("never exposes separate-account creation from existing-account recovery", async () => {
+    const user = userEvent.setup();
+    mockLoginWithPasskey.mockRejectedValueOnce(new Error("No passkey credential found"));
+    renderWithRouter();
+
+    await user.click(screen.getByTestId("tertiary-button"));
+    await user.type(screen.getByTestId("username-input"), "synceduser");
+    await user.click(screen.getByTestId("primary-button"));
+
+    expect(mockLoginWithPasskey).toHaveBeenCalledWith("synceduser");
+    expect(await screen.findByTestId("error-message")).toHaveTextContent(/couldn't find/i);
+    // The local credential stays the same-device fallback; replacing it is
+    // only offered from the no-local-cache flow.
+    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Back to sign in");
+    expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Sign in with a wallet");
   });
 
   it("calls loginWithPasskey when primary button clicked", async () => {
@@ -331,12 +485,87 @@ describe("Login View - Existing User (progressive disclosure)", () => {
   it("shows address continuity notice", () => {
     renderWithRouter();
     expect(screen.getByTestId("notice")).toHaveTextContent(
-      "Each sign-in method creates a separate account."
+      "Creating a separate account gives you a different address."
     );
   });
 
   it("does not show passkey explainer for returning users", () => {
     renderWithRouter();
     expect(screen.queryByTestId("info-callout")).not.toBeInTheDocument();
+  });
+});
+
+// ─── Local-fallback account surfacing ─────────────────────────────────────────
+// When the hosted lookup finds nothing (or is unreachable) the auth service
+// deliberately falls back to the credential cached on this device. If that
+// account's name differs from what the user typed, Login must say so.
+
+describe("Login View - fallback account surfacing", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockHasStoredCredential = false;
+    mockAuthError = null;
+    mockPasskeyServerEnabled = true;
+    mockIsAuthenticated = false;
+    mockAuthUserName = null;
+    mockClassifyPasskeyCeremonyContext.mockReturnValue({
+      supported: true,
+      rpId: "greengoods.app",
+      origin: "https://greengoods.app",
+    });
+  });
+
+  afterEach(() => {
+    mockIsAuthenticated = false;
+    mockAuthUserName = null;
+    cleanup();
+  });
+
+  it("toasts when recovery lands on a different cached account", async () => {
+    const user = userEvent.setup();
+    mockLoginWithPasskey.mockResolvedValueOnce(undefined);
+    const view = renderWithRouter();
+
+    await user.type(screen.getByTestId("username-input"), "mistyped-recovery-name");
+    await user.click(screen.getByTestId("primary-button"));
+    expect(mockLoginWithPasskey).toHaveBeenCalledWith("mistyped-recovery-name");
+
+    // Auth resolves via the device's cached credential under another name.
+    mockIsAuthenticated = true;
+    mockAuthUserName = "stored-local-user";
+    view.rerender(createLoginTree());
+
+    expect(toastService.show).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: "info",
+        description: expect.stringContaining("stored-local-user"),
+      })
+    );
+  });
+
+  it("stays quiet when the recovered account matches the typed name", async () => {
+    const user = userEvent.setup();
+    mockLoginWithPasskey.mockResolvedValueOnce(undefined);
+    const view = renderWithRouter();
+
+    await user.type(screen.getByTestId("username-input"), "Stored-Local-User");
+    await user.click(screen.getByTestId("primary-button"));
+
+    mockIsAuthenticated = true;
+    mockAuthUserName = "stored-local-user";
+    view.rerender(createLoginTree());
+
+    expect(toastService.show).not.toHaveBeenCalled();
+  });
+
+  it("stays quiet when authentication did not come from a recovery attempt", () => {
+    mockHasStoredCredential = true;
+    const view = renderWithRouter();
+
+    mockIsAuthenticated = true;
+    mockAuthUserName = "stored-local-user";
+    view.rerender(createLoginTree());
+
+    expect(toastService.show).not.toHaveBeenCalled();
   });
 });

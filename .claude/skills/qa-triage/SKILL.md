@@ -68,7 +68,7 @@ Skill-wide config: `.plans/qa-triage/.config.json` — caches resolved Sheet fil
 2. **Resolve Linear handles by name** at the start of every run:
    - Team: `Product` (fallback `Research` only when the user asks).
    - Workflow states: expect `Backlog`, `Todo`.
-   - Label families: `protocol:green-goods`, `package:*`, `activity:qa`, `activity:maintenance`, `task:*`, `source:drive`, `source:qa-triage-pulse`, `agent:claude`, `agent:codex`, `agent:routine`. The per-week label `qa-sync:YYYY-MM-DD` is resolve-or-created on each run that needs it.
+   - Label families: `protocol:green-goods`, `package:*`, `activity:qa`, `activity:maintenance`, `source:drive`, `source:qa-triage-pulse`, `agent:claude`, `agent:codex`, `agent:routine`. The per-week label `qa-sync:YYYY-MM-DD` is resolve-or-created on each run that needs it.
    - If any required label family is missing, fail loud and stop — do not invent records under a different label.
 3. **Probe PostHog reachability** with a single-event query against both `POSTHOG_PROJECT_ID_APP` (`163591`) and `POSTHOG_PROJECT_ID_ADMIN` (`262122`). If either is unreachable, mark the affected surface as `enrichment: unavailable` and continue. **Skipped in `--fixture` mode.**
 
@@ -278,7 +278,7 @@ For each locked item, draft payloads using [`linear-templates.md`](./linear-temp
 
 Linear enforces three constraints the skill's older design didn't account for. Apply these before drafting labels and Customer Needs:
 
-1. **`agent:*` is single-value-per-Issue.** Only ONE of `agent:claude`, `agent:codex`, `agent:routine` may be applied. When both an "origin" agent and a "delegate-to" agent apply to the same Issue (e.g., Claude created it, Codex is fixing it), the **delegate-to** wins as the label; the originating agent goes in the body's `## Provenance` section. If only one role applies (no delegation), use the originating agent.
+1. **`agent:*` is single-value-per-Issue.** Only ONE of `agent:claude`, `agent:codex`, `agent:routine` may be applied. When both an "origin" agent and a "delegate-to" agent apply to the same Issue (e.g., Claude created it, Codex is fixing it), the **delegate-to** wins as the label; the originating agent goes in the body's `## Provenance` section. If only one role applies (no delegation), use the originating agent. **When to route to Codex:** apply `agent:codex` when the Issue clears the **Codex-ready bar** (clear behavior + named surface + suggestable fix + validation — see [`docs/routines/README.md` § Codex hand-off](../../../docs/routines/README.md)); also set the Linear **delegate** to the Codex agent (the human stays assignee/reviewer) when it clears the **autonomous-confident bar** (concrete fix + bounded non-`critical` surface + mechanical + validation). Otherwise keep `agent:routine` / the originating agent.
 
 2. **`package:*` is single-value-per-Issue.** Only ONE `package:*` may be applied. When a bug spans two packages (e.g., admin display + indexer enrichment, or shared hook + client view), the **primary surface** wins as the label; the secondary package(s) are named in the body's `## Surface` section with a one-line note explaining the constraint.
 
@@ -348,18 +348,9 @@ Surface vocabulary on the Defects row: `Public Website | PWA iOS | PWA Android |
 
    **Linear writes** (via Linear MCP):
    - Issues first (Customer Needs require an `issue` parameter — Linear API rejects standalone Needs).
-   - **`save_issue` `labels` is REPLACE, not append** (verified 2026-05-14). When adding a single new label to an existing Issue, always read the current label list first and pass `[...existing, newLabel]`. Passing `["task:X"]` alone will strip every other label off the Issue.
+   - **`save_issue` `labels` is REPLACE, not append** (verified 2026-05-14). When adding a single new label to an existing Issue, always read the current label list first and pass `[...existing, newLabel]`. Passing `["activity:qa"]` alone will strip every other label off the Issue.
    - **Snapshot before in-place edits.** When updating Customer Need bodies or Issue descriptions in bulk on already-filed records, write a JSON dump of every record's pre-edit `{id, title, description, body, labels, priority, status}` to `.plans/qa-triage/<slug>/pre-edit-snapshot.json` first. Cheap safety net if the bulk write goes sideways.
-   - Issue labels: `protocol:green-goods` + ONE `package:*` (primary surface) + `activity:qa` (bug) or `activity:maintenance` (polish) or `activity:architecture` (strategic) + `source:drive` + ONE `agent:*` (delegate-to wins) + `task:*` (be aggressive about applying — see below).
-   - **`task:*` mapping** (apply when *any* of the following keywords match the item; default to applying rather than omitting):
-     - `task:funding-pathway` → bugs/feedback touching `/fund`, `/cookies`, donate, endow, withdraw, vault, treasury, deposit, balance
-     - `task:access-participation` → bugs/feedback touching auth (passkey, social login, sign-in-with-wallet), account recovery, sign-up, garden membership join/leave
-     - `task:reputation-identity` → ENS resolution, avatar/handle display, profile views, member lists, attribution
-     - `task:evidence` → work submission, photo upload, attestation/EAS, hypercerts, impact metrics
-     - `task:local-onboarding` → operator onboarding, garden setup, action templates, garden settings
-     - `task:evaluator-review` → admin work-approval flows, review queues, certification
-     - `task:data-input` → forms in general (admin garden settings, action creation, fund inputs)
-   - When two `task:*` apply, pick the most specific (e.g., `task:funding-pathway` over `task:data-input` for the endow input field).
+   - Issue labels: `protocol:green-goods` + ONE `package:*` (primary surface) + `activity:qa` (bug) or `activity:maintenance` (polish) or `activity:architecture` (strategic) + `source:drive` + ONE `agent:*` (delegate-to wins).
    - Then Customer Needs, each linked to its Issue via the `issue` parameter. Customer Needs accept `body` and `issue`/`project` only — no labels per the API surface.
    - Track-only Issues are created in the same pass as the main Issues, before the Customer Needs that reference them.
 

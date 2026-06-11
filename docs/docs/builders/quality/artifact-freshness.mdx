@@ -1,0 +1,66 @@
+---
+title: Artifact Freshness
+sidebar_label: Artifact Freshness
+slug: /builders/quality/artifact-freshness
+audience: developer
+owner: docs
+last_verified: 2026-06-02
+feature_status: Live
+source_of_truth:
+  - .plans/active/docs-freshness-routine/status.json
+  - .plans/qa-triage/README.md
+  - docs/static/img/screenshots/FRESHNESS.md
+keywords: [artifact freshness, QA Sheet, screenshots, docs hardening, Linear]
+description: Freshness rules for docs screenshots, proof artifacts, and QA Sheet records during the June 10 hardening window.
+---
+
+# Artifact Freshness
+
+This page is the docs-site freshness ledger for the June 10 hardening window. It keeps the repo docs, docs media, and QA reporting artifacts aligned without expanding the pass into grants, stakeholder documents, or app-runtime bug fixes.
+
+## Scope for this pass
+
+| Surface | In scope | Out of scope |
+|---|---|---|
+| Docs site | Builder/community pages, quality pages, sidebars, docs static screenshots, social-card references | Grant drafts, external stakeholder docs, and non-repo decks unless a repo docs page embeds them |
+| QA artifacts | `.plans/qa-triage/**` reports, draft rows, accepted Linear record references, and QA Sheet hygiene notes | Creating new QA rows, changing Linear issue status, or rerunning build-sync triage |
+| Plan truth | `.plans/active/*/status.json` as implementation proof for plan-backed work | Treating docs prose or Linear issue text as execution proof |
+| Roadmap truth | Linear issues/projects for ownership, reporting, and accepted work | Duplicating roadmap status into repo docs |
+
+## Source-of-truth rule
+
+- `.plans/active/*/status.json` remains the execution truth for active plan-backed work.
+- Linear remains the roadmap, ownership, and reporting surface.
+- QA Sheet rows are append-only evidence for accepted defects. Fixture or dry-run rows stay in `.plans/qa-triage/**` and must not be described as Sheet writes.
+- Proof artifacts are current only when the artifact itself, the nearby docs copy, and the referenced app surface still agree.
+
+## Current freshness decisions
+
+| Artifact family | Current decision | Reason |
+|---|---|---|
+| `docs/static/img/screenshots/client-work-dashboard.png` | Stale-but-retained | The docs-freshness hub already identifies it as a refresh candidate; retaining avoids replacing it with a fabricated or empty capture. |
+| `docs/static/img/screenshots/admin-create-garden.png` | Stale-but-retained | Needs a stable real admin Create Garden form capture before replacement. |
+| `docs/static/img/screenshots/admin-work-queue.png` | Stale-but-retained | Needs pending-work fixture data or a safe staging record before replacement. |
+| `docs/static/img/screenshots/admin-work-detail.png` | Stale-but-retained | Needs selected-submission review context before replacement. |
+| `docs/static/img/screenshots/admin-garden-impact.png` | Stale-but-retained | Needs a stable Certify/Create Hypercert surface before replacement. |
+| `docs/static/img/social/donating-to-a-garden.webp` | Deferred | Distinct Donate artwork is still a planned addition; do not reuse Endow imagery as a placeholder. |
+| `.plans/qa-triage/product-sync-2026-05-13/**` | Current accepted QA artifact | The report records accepted Linear records PRD-496 through PRD-522 and a successful QA Sheet write. |
+| `.plans/qa-triage/product-sync-2026-05-20/**` | Fixture-only, not accepted | The run is synthetic and dry-run only; `PRD-XXX` and drafted rows are examples, not accepted Linear or QA Sheet records. |
+
+## QA Sheet alignment
+
+The accepted QA Sheet/reporting baseline is the Product Sync 2026-05-13 run:
+
+- 27 Linear Issues and 27 linked Customer Needs were accepted in the triage report.
+- 21 Defects-tab rows were appended.
+- Test-tab `Defect Link` cells were backfilled without exposing PostHog replay URLs or session IDs.
+
+The Product Sync 2026-05-20 run is deliberately fixture-only. Its draft rows and `PRD-XXX` placeholders are useful for validating payload shape, but they are not accepted QA Sheet records and should not be counted in reporting.
+
+## Operator checklist for future docs freshness runs
+
+1. Start from `.plans/active/docs-freshness-routine/status.json` before editing docs or media.
+2. Replace screenshots only with real app/admin/docs surfaces and safe fixture data.
+3. If a screenshot cannot be safely recaptured, mark it stale or deferred instead of inventing proof.
+4. Keep QA Sheet evidence tied to accepted Linear records; mark fixture artifacts clearly.
+5. Validate with `bun run build:docs` before opening a PR that claims docs-site freshness.

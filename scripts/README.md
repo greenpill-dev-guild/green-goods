@@ -24,7 +24,8 @@ scripts/
 ### `dev/` — local dev workflow
 | Script | Caller | Purpose |
 |---|---|---|
-| `setup.js` | `bun run setup` | First-clone setup; checks deps, installs, configures env |
+| `setup.js` | `npm run setup`, `bun run setup`, `setup:host`, `setup:isolated`, `setup:cloud` | First-clone and workspace setup; checks deps, bootstraps Bun when allowed, installs dependencies, and handles host/isolated/cloud env posture |
+| `clean.js` | `bun run dev:clean`, `bun run dev:clean:dry` | Remove disposable build/test/cache artifacts from the current checkout only; never stops services, removes dependencies, touches env files, or inspects sibling worktrees |
 | `doctor.js` | `bun run dev:doctor` / `setup:doctor` / `dev:prod:health` / `dev:prod:mirror:health` | Non-mutating readiness check (ports, tools, env, profiles) |
 | `env-template-init.js` | `bun run env:template:init` | Generate `.env.template` skeleton from `.env.schema` (one-shot) |
 | `env-sync.js` | `bun run env:sync` | Run `op inject` against `.env.template` to materialize `.env` |

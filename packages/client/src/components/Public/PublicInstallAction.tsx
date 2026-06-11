@@ -48,8 +48,7 @@ export function PublicInstallAction({ children, forceOpenApp = false }: PublicIn
   // the installed PWA from a desktop browser even if `getInstalledRelatedApps`
   // reports it as installed. Always show "Install App" + QR dialog on desktop.
   const isOpenApp =
-    forceOpenApp ||
-    (isMobile && (isInstalled || wasInstalled || guidance.primaryAction.type === "open-app"));
+    forceOpenApp || (isMobile && (isInstalled || guidance.primaryAction.type === "open-app"));
   const dataInstallAction = isOpenApp ? "open-app" : guidance.primaryAction.type;
   const label = formatMessage({
     id: isOpenApp ? "public.nav.openApp" : "public.nav.installApp",

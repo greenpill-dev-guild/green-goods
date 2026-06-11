@@ -19,6 +19,7 @@ interface ImportMetaEnv {
   readonly VITE_PINATA_GATEWAY_URL?: string;
   readonly VITE_APP_VERSION?: string;
   readonly VITE_SENTRY_ADMIN_DSN?: string;
+  readonly VITE_SENTRY_ENVIRONMENT?: string;
   readonly VITE_SENTRY_DEBUG?: string;
 }
 

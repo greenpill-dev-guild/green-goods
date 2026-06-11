@@ -175,6 +175,29 @@ describe("parseContractError", () => {
   });
 
   describe("network and connectivity patterns", () => {
+    it.each([
+      "request expired",
+      "proposal expired",
+      "out of time-range",
+      "AA22 expired or not due",
+      "AA32 paymaster expired or not due",
+    ])("classifies wallet request expiry phrasing: %s", (message) => {
+      const result = parseContractError(message);
+      expect(result.name).toBe("WalletRequestExpired");
+      expect(result.isKnown).toBe(true);
+      expect(result.recoverable).toBe(true);
+      expect(result.suggestedAction).toBe("retry");
+      expect(result.message).toContain("Wallet request expired");
+    });
+
+    it("does not classify arbitrary AA22 bytes as wallet request expiry", () => {
+      const result = parseContractError(
+        "execution reverted while processing 0xaa22beef00000000000000000000000000000000"
+      );
+
+      expect(result.name).not.toBe("WalletRequestExpired");
+    });
+
     it("classifies offline before generic network", () => {
       const result = parseContractError("Device is offline");
       expect(result.name).toBe("Offline");
@@ -329,5 +352,15 @@ describe("parseAndFormatError", () => {
 
     expect(result.parsed.name).toBe("NotGardenOperator");
     expect(result.title).toContain("Garden Operator");
+  });
+
+  it("formats wallet session errors with reconnect guidance", () => {
+    const result = parseAndFormatError(new Error("Connector not connected"));
+
+    expect(result.parsed.name).toBe("WalletSessionUnavailable");
+    expect(result.title).toBe("Wallet Session Unavailable");
+    expect(result.message).toBe(
+      "Wallet session unavailable. Disconnect and reconnect your wallet, then try again."
+    );
   });
 });

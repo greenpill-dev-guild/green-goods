@@ -2,6 +2,10 @@
 
 export {
   ANALYTICS_EVENTS,
+  trackAdminActionCreateFailed,
+  // Admin: action events
+  trackAdminActionCreateStarted,
+  trackAdminActionCreateSuccess,
   trackAdminDeployFailed,
   // Admin: deployment events
   trackAdminDeployStarted,
@@ -48,6 +52,9 @@ export {
   // Work submission events
   trackWorkSubmissionStarted,
   trackWorkSubmissionSuccess,
+  trackWorkWalletRequestExpired,
+  trackWorkWalletRequestFailed,
+  trackWorkWalletRequestStarted,
 } from "./app/analytics-events";
 // ============================================================================
 // APP / ERROR TRACKING
@@ -120,12 +127,21 @@ export {
   clearStoredRpId,
   // Username (Pimlico server)
   clearStoredUsername,
+  clearStoredSmartAccountAddress,
+  // Signed-out sentinel (explicit sign-out durability)
+  clearSignedOutSentinel,
   getAuthMode,
+  getStoredSmartAccountAddress,
   getStoredUsername,
+  hasSignedOutSentinel,
   hasStoredUsername,
   // RP ID (Android passkey compatibility)
   RP_ID_STORAGE_KEY,
+  SIGNED_OUT_STORAGE_KEY,
+  SMART_ACCOUNT_ADDRESS_STORAGE_KEY,
   setAuthMode,
+  setSignedOutSentinel,
+  setStoredSmartAccountAddress,
   setStoredRpId,
   setStoredUsername,
   USERNAME_STORAGE_KEY,
@@ -313,4 +329,5 @@ export { submitWorkDirectly } from "./work/wallet-submission";
 export {
   getSubmissionStatusText,
   validateApprovalDraft,
+  validateWorkSubmissionContext,
 } from "./work/work-submission";

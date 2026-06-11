@@ -4,13 +4,13 @@
     "slug": "sentry-stack-observability",
     "title": "Sentry Stack Observability",
     "kind": "feature",
-    "stage": "active"
+    "stage": "archive"
   },
   "workflow": {
-    "overall_status": "completed",
+    "overall_status": "done",
     "priority": "p2",
     "created_at": "2026-05-27T00:00:00.000Z",
-    "updated_at": "2026-05-28T20:17:53.000Z"
+    "updated_at": "2026-06-11T04:22:26.098Z"
   },
   "links": {
     "brief": "brief.md",
@@ -133,6 +133,14 @@
       "status": "agent_runtime_checked",
       "branch": null,
       "note": "Cached Fly production logs from 2026-05-27T21:42:23Z show Sentry error reporting enabled, the agent running in production, and the health check passing. Direct flyctl/curl checks from this sandbox failed DNS resolution."
+    },
+    {
+      "timestamp": "2026-06-11T04:22:26.098Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "moved_to_archive",
+      "branch": null,
+      "note": "Moved feature hub from active to archive"
     }
   ]
 }
