@@ -177,4 +177,29 @@ describe("useCreateActionController telemetry", () => {
     expect(mockTrackSuccess).not.toHaveBeenCalled();
     expect(mockNavigate).not.toHaveBeenCalled();
   });
+
+  it("emits failed analytics with parsed error family when registerAction throws", async () => {
+    const thrownError = new Error("Network timeout");
+    thrownError.name = "NetworkTimeout";
+    mockRegisterAction.mockRejectedValue(thrownError);
+    const { result } = renderHook(() => useCreateActionController(), { wrapper });
+
+    await act(async () => {
+      await result.current.onSubmit(createFormData());
+    });
+
+    expect(mockTrackStarted).toHaveBeenCalledOnce();
+    // Catch-block path mirrors the result-failure path: parsed family only.
+    expect(mockTrackFailed).toHaveBeenCalledWith({
+      gardenAddress: "0x1111111111111111111111111111111111111111",
+      chainId: 42161,
+      actionTitle: "Repair Event",
+      actionSlug: "repair.event",
+      actionDomain: 2,
+      error: "NetworkTimeout",
+      parsedErrorFamily: "NetworkTimeout",
+    });
+    expect(mockTrackSuccess).not.toHaveBeenCalled();
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
 });

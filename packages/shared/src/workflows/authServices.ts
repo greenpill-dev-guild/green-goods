@@ -724,6 +724,10 @@ export const authenticatePasskeyService = fromPromise<PasskeySessionResult, Pass
           }
         } catch (serverError) {
           if (
+            // Fall back at most once: after the server-empty branch above has
+            // degraded to local (attemptSource === "local_cache"), a failure
+            // from that local ceremony must surface, not trigger a second
+            // fallback ceremony.
             attemptSource === "server" &&
             hasLocalCredential &&
             canUseLegacyFallback(serverError)
