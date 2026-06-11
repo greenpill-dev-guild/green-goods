@@ -235,6 +235,7 @@ export {
   isGreenWillDeployed,
   isPasskeyAvailable,
   isPasskeyServerEnabled,
+  normalizePasskeyAccountIdentifier,
   ONBOARDED_STORAGE_KEY,
   PERSIST_MAX_AGE,
   queryClient,

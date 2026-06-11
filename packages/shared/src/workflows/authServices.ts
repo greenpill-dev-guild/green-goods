@@ -691,6 +691,10 @@ export const authenticatePasskeyService = fromPromise<PasskeySessionResult, Pass
     const passkeyServerEnabled = isPasskeyServerEnabled();
     const hasLocalCredential = Boolean(getStoredCredential());
     let source: AuthPasskeySource = passkeyServerEnabled && userName ? "server" : "local_cache";
+    // Where the most recent authentication attempt actually ran. The server
+    // path can degrade to the local fallback, and a failure there must be
+    // attributed to local_cache, not to the server lookup that preceded it.
+    let attemptSource: AuthPasskeySource = source;
 
     // Track login started
     trackAuthPasskeyLoginStarted({
@@ -710,6 +714,7 @@ export const authenticatePasskeyService = fromPromise<PasskeySessionResult, Pass
             result = { ...serverResult, source: "server" };
           } else if (hasLocalCredential) {
             logger.warn("[Auth] Passkey server returned no credentials; using local fallback");
+            attemptSource = "local_cache";
             result = {
               ...(await authenticatePasskeyFromLocalCache(userName, chainId)),
               source: "local_cache",
@@ -718,10 +723,15 @@ export const authenticatePasskeyService = fromPromise<PasskeySessionResult, Pass
             throw new Error("No passkey credential found for that username.");
           }
         } catch (serverError) {
-          if (hasLocalCredential && canUseLegacyFallback(serverError)) {
+          if (
+            attemptSource === "server" &&
+            hasLocalCredential &&
+            canUseLegacyFallback(serverError)
+          ) {
             logger.warn("[Auth] Passkey server unavailable; using local fallback", {
               error: serverError,
             });
+            attemptSource = "local_cache";
             result = {
               ...(await authenticatePasskeyFromLocalCache(userName, chainId)),
               source: "local_cache",
@@ -752,9 +762,11 @@ export const authenticatePasskeyService = fromPromise<PasskeySessionResult, Pass
 
       return result;
     } catch (error) {
-      // Track failed login
+      // Track failed login against the path that actually failed (the local
+      // fallback ceremony reports local_cache even when the flow began with a
+      // hosted-server lookup).
       trackAuthPasskeyLoginFailed({
-        source,
+        source: attemptSource,
         outcome: "failed",
         reason: classifyAuthErrorReason(error),
         passkeyServerEnabled,

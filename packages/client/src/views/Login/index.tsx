@@ -4,6 +4,7 @@ import {
   debugError,
   type InstallGuidance,
   isPasskeyServerEnabled,
+  normalizePasskeyAccountIdentifier,
   type Platform,
   toastService,
   trackAuthError,
@@ -11,7 +12,7 @@ import {
   useAuth,
   useInstallGuidance,
 } from "@green-goods/shared";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { type IntlShape, useIntl } from "react-intl";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
@@ -152,6 +153,7 @@ export function Login() {
     isAuthenticated,
     isReady,
     hasStoredCredential,
+    userName: authenticatedUserName,
     error: authError,
   } = useAuth();
 
@@ -177,6 +179,41 @@ export function Login() {
   // or stale local cache) without requiring a site-data wipe first.
   const [forceRecovery, setForceRecovery] = useState(false);
   const passkeyServerEnabled = isPasskeyServerEnabled();
+
+  // Name typed into the last username-recovery attempt. When the server has
+  // no credential for it (or is unreachable) the auth service deliberately
+  // falls back to the credential cached on this device, which can belong to a
+  // different name — surface that on success instead of letting the session
+  // silently land on another account.
+  const recoveryAttemptNameRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const attempted = recoveryAttemptNameRef.current;
+    recoveryAttemptNameRef.current = null;
+    if (!attempted || !authenticatedUserName) return;
+    if (
+      normalizePasskeyAccountIdentifier(authenticatedUserName) ===
+      normalizePasskeyAccountIdentifier(attempted)
+    ) {
+      return;
+    }
+    toastService.show({
+      status: "info",
+      title: intl.formatMessage({
+        id: "app.login.toast.fallbackAccountTitle",
+        defaultMessage: "Signed in with this device's passkey",
+      }),
+      description: intl.formatMessage(
+        {
+          id: "app.login.toast.fallbackAccountDescription",
+          defaultMessage:
+            "No passkey matched “{requested}”, so you're signed in as {actual} — the account saved on this device.",
+        },
+        { requested: attempted, actual: authenticatedUserName }
+      ),
+    });
+  }, [isAuthenticated, authenticatedUserName, intl]);
 
   // Handle browser switch action (for wrong browser/in-app browser scenarios)
   const handleBrowserSwitch = useCallback(async () => {
@@ -293,6 +330,7 @@ export function Login() {
     if (blockUnsupportedPasskeyCeremony()) return;
 
     setLoginError(null);
+    recoveryAttemptNameRef.current = null;
     setLoadingMessage(
       intl.formatMessage({
         id: "app.login.loading.authenticating",
@@ -322,6 +360,7 @@ export function Login() {
     }
 
     setLoginError(null);
+    recoveryAttemptNameRef.current = trimmedUsername;
     setLoadingMessage(
       intl.formatMessage({
         id: "app.login.loading.recovering",
@@ -352,6 +391,7 @@ export function Login() {
       return;
     }
     setLoginError(null);
+    recoveryAttemptNameRef.current = null;
     setLoadingMessage(
       intl.formatMessage({
         id: "app.login.loading.creatingWallet",
@@ -402,6 +442,7 @@ export function Login() {
   // Login with wallet
   const handleWalletLogin = () => {
     setLoginError(null);
+    recoveryAttemptNameRef.current = null;
     loginWithWallet?.();
   };
 

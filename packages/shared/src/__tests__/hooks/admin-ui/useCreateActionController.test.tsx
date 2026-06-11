@@ -42,6 +42,10 @@ vi.mock("@green-goods/shared", () => ({
     gardenToken: "0x1111111111111111111111111111111111111111",
   })),
   logger: { error: (...args: unknown[]) => mockLoggerError(...args) },
+  // Minimal double: the controller only forwards `.name` as the parsed family.
+  parseContractError: (error: unknown) => ({
+    name: (error as { name?: string } | null)?.name ?? "Unknown",
+  }),
   toastService: {
     loading: (...args: unknown[]) => mockToastLoading(...args),
     dismiss: (...args: unknown[]) => mockToastDismiss(...args),
@@ -160,13 +164,15 @@ describe("useCreateActionController telemetry", () => {
     });
 
     expect(mockTrackStarted).toHaveBeenCalledOnce();
+    // Telemetry carries the parsed error family, never the raw message.
     expect(mockTrackFailed).toHaveBeenCalledWith({
       gardenAddress: "0x1111111111111111111111111111111111111111",
       chainId: 42161,
       actionTitle: "Repair Event",
       actionSlug: "repair.event",
       actionDomain: 2,
-      error: "Simulation failed",
+      error: "SimulationFailed",
+      parsedErrorFamily: "SimulationFailed",
     });
     expect(mockTrackSuccess).not.toHaveBeenCalled();
     expect(mockNavigate).not.toHaveBeenCalled();
