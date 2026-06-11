@@ -1,6 +1,7 @@
 // packages/shared/src/__tests__/components/Canvas/LeftSheet.test.tsx
+import { Globals } from "@react-spring/web";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { describe, it, expect, vi } from "vitest";
+import { afterAll, beforeAll, describe, it, expect, vi } from "vitest";
 import { IntlProvider } from "react-intl";
 import { LeftSheet } from "../../../components/Canvas/LeftSheet";
 
@@ -111,5 +112,53 @@ describe("LeftSheet", () => {
 
     fireEvent.keyDown(document, { key: "Escape" });
     expect(onClose).toHaveBeenCalledOnce();
+  });
+});
+
+describe("LeftSheet open transition", () => {
+  beforeAll(() => {
+    Globals.assign({ skipAnimation: true });
+  });
+
+  afterAll(() => {
+    Globals.assign({ skipAnimation: false });
+  });
+
+  it("reaches the open pose when opened after mount despite trailing re-renders", async () => {
+    // Regression: react-spring re-applies the spring's declared update on
+    // every commit. When the pose was only declared at mount (closed), any
+    // commit landing after the imperative open start re-targeted the spring
+    // back offscreen — the Hub → Submit Work sheet mounted parked at x=-100
+    // with its scrim at 0, because route-backed config re-registration
+    // produces exactly such trailing commits. The pose must be re-declared
+    // through the useSpring deps array so re-applies stay idempotent.
+    const onClose = vi.fn();
+    const view = renderWithIntl(
+      <LeftSheet open={false} onClose={onClose} title="Submit Work">
+        <div>Content</div>
+      </LeftSheet>
+    );
+    expect(screen.queryByTestId("left-sheet")).not.toBeInTheDocument();
+
+    const rerenderOpen = () =>
+      view.rerender(
+        <IntlProvider locale="en" messages={{ "app.common.close": "Close" }}>
+          <LeftSheet open onClose={onClose} title="Submit Work">
+            {/* Fresh children identity per render, mirroring the route-backed
+                left-sheet config re-registering as content settles. */}
+            <div>Content</div>
+          </LeftSheet>
+        </IntlProvider>
+      );
+
+    rerenderOpen(); // closed → open transition
+    rerenderOpen(); // trailing commits that race the open animation
+    rerenderOpen();
+
+    const panel = await screen.findByTestId("left-sheet");
+    await waitFor(() => {
+      expect(panel.style.transform).toBe("translateX(calc(0% + 0px))");
+    });
+    expect(screen.getByTestId("left-sheet-dialog")).toHaveAttribute("data-state", "open");
   });
 });

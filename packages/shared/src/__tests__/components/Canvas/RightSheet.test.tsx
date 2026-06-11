@@ -1,6 +1,7 @@
 // packages/shared/src/__tests__/components/Canvas/RightSheet.test.tsx
+import { Globals } from "@react-spring/web";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { describe, it, expect, vi } from "vitest";
+import { afterAll, beforeAll, describe, it, expect, vi } from "vitest";
 import { IntlProvider } from "react-intl";
 import { RightSheet } from "../../../components/Canvas/RightSheet";
 
@@ -111,5 +112,48 @@ describe("RightSheet", () => {
 
     fireEvent.keyDown(document, { key: "Escape" });
     expect(onClose).toHaveBeenCalledOnce();
+  });
+});
+
+describe("RightSheet open transition", () => {
+  beforeAll(() => {
+    Globals.assign({ skipAnimation: true });
+  });
+
+  afterAll(() => {
+    Globals.assign({ skipAnimation: false });
+  });
+
+  it("reaches the open pose when opened after mount despite trailing re-renders", async () => {
+    // Mirrors the LeftSheet regression: per-commit re-application of the
+    // spring's declared update must assert the current pose, not the initial
+    // closed pose, or commits landing after the open transition park the
+    // sheet offscreen.
+    const onClose = vi.fn();
+    const view = renderWithIntl(
+      <RightSheet open={false} onClose={onClose} title="Settings">
+        <div>Content</div>
+      </RightSheet>
+    );
+    expect(screen.queryByTestId("right-sheet")).not.toBeInTheDocument();
+
+    const rerenderOpen = () =>
+      view.rerender(
+        <IntlProvider locale="en" messages={{ "app.common.close": "Close" }}>
+          <RightSheet open onClose={onClose} title="Settings">
+            <div>Content</div>
+          </RightSheet>
+        </IntlProvider>
+      );
+
+    rerenderOpen(); // closed -> open transition
+    rerenderOpen(); // trailing commits that race the open animation
+    rerenderOpen();
+
+    const panel = await screen.findByTestId("right-sheet");
+    await waitFor(() => {
+      expect(panel.style.transform).toBe("translateX(calc(0% + 0px))");
+    });
+    expect(screen.getByTestId("right-sheet-dialog")).toHaveAttribute("data-state", "open");
   });
 });

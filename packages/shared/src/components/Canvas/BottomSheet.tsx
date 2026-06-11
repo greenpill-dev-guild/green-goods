@@ -62,30 +62,39 @@ export function BottomSheet({
     children,
   });
 
-  // Spring: y=0 fully open, y=100 fully offscreen bottom (percentage)
-  const [springs, api] = useSpring(() => ({
-    y: open ? 0 : 100,
-    overlay: open ? 1 : 0,
-    config: SPRING_CONFIGS.sheet,
-    immediate: prefersReducedMotion,
-    onRest: (result) => {
-      if (!latestOpenRef.current && result.finished && result.value.y >= 99) {
-        setMounted(false);
-        dialogRef.current?.close();
-      }
-    },
-  }));
+  // Spring: y=0 fully open, y=100 fully offscreen bottom (percentage).
+  // The pose MUST be declared through the deps array: react-spring's
+  // useSprings layout effect re-applies the declared update on every commit,
+  // so the declared update has to track the current pose. With no deps it
+  // stays the initial closed pose forever, and any commit landing after an
+  // imperative open start re-targets the spring back offscreen.
+  const [springs, api] = useSpring(
+    () => ({
+      y: open ? 0 : 100,
+      overlay: open ? 1 : 0,
+      config: SPRING_CONFIGS.sheet,
+      immediate: prefersReducedMotion,
+      onRest: (result) => {
+        if (!latestOpenRef.current && result.finished && result.value.y >= 99) {
+          setMounted(false);
+          dialogRef.current?.close();
+        }
+      },
+    }),
+    [open, prefersReducedMotion]
+  );
 
+  // Mount bookkeeping when open changes; the spring pose itself is driven
+  // declaratively by the deps above.
   useEffect(() => {
     if (open) {
       setMounted(true);
     }
-    api.start({ y: open ? 0 : 100, overlay: open ? 1 : 0, immediate: prefersReducedMotion });
     if (prefersReducedMotion && !open) {
       setMounted(false);
       dialogRef.current?.close();
     }
-  }, [open, api, mounted, prefersReducedMotion, setMounted]);
+  }, [open, prefersReducedMotion, setMounted]);
 
   useCanvasSheetLifecycle({
     dialogRef,
