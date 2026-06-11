@@ -394,14 +394,23 @@ describe("Chat Message Capture", () => {
       buildChatMessageInput({ id: `claim-${Date.now()}`, messageId: `${Date.now()}-claim` })
     );
 
-    await expect(db.claimChatMessage(stored.id, Date.now() - 1)).resolves.toBe(true);
-    await expect(db.claimChatMessage(stored.id, Date.now() - 1)).resolves.toBe(false);
+    // Threshold far in the past: a fresh claim must never look like an expired
+    // lease, no matter how many milliseconds the runner sleeps between calls.
+    // (Date.now() - 1 here was flaky under full-suite parallelism: >=2ms between
+    // the two claims made the first claim "stale" and the re-claim succeeded.)
+    const staleProcessingBefore = Date.now() - 60_000;
+    await expect(db.claimChatMessage(stored.id, staleProcessingBefore)).resolves.toBe(true);
+    await expect(db.claimChatMessage(stored.id, staleProcessingBefore)).resolves.toBe(false);
 
     const processing = await db.getNewChatMessages({
       chatId: stored.chatId,
       status: "processing",
     });
     expect(processing.find((message) => message.id === stored.id)).toBeDefined();
+
+    // Lease expiry is a deliberate branch, not an accident: a threshold ahead
+    // of the claim timestamp treats the processing row as crashed and reclaims.
+    await expect(db.claimChatMessage(stored.id, Date.now() + 1_000)).resolves.toBe(true);
   });
 
   it("can read all statuses for read-only clustering", async () => {
