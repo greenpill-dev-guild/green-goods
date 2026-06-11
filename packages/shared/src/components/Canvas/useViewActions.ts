@@ -58,9 +58,10 @@ export function useViewActions({
   const fabConfig = useMemo<FabConfig | null>(() => {
     if (visibleActions.length === 0) return null;
 
-    // Choose the primary FAB action: explicit `primary: true` if set,
-    // otherwise the first visible action.
-    const primary = visibleActions.find((action) => action.primary) ?? visibleActions[0];
+    // The FAB is the mobile vehicle for the mode's primary action. A view
+    // with no explicit `primary: true` (read-only modes, panel-owned flows)
+    // declares no FAB rather than promoting an arbitrary first action.
+    const primary = visibleActions.find((action) => action.primary);
     if (!primary) return null;
 
     return {
@@ -88,10 +89,10 @@ export function useViewActions({
   const desktopActions = useMemo(() => {
     if (blocked || !isDesktop) return [];
     // Order: secondary/ghost/danger first (left side), primary last (right).
-    // The chosen primary is whatever `primary: true` marks, OR the first
-    // visible action if none is marked — same logic as the FAB.
-    const primaryId = visibleActions.find((action) => action.primary)?.id ?? visibleActions[0]?.id;
-    if (!primaryId) return [];
+    // Views with no marked primary keep declaration order — every action
+    // belongs to the overflow there, so ordering carries no emphasis.
+    const primaryId = visibleActions.find((action) => action.primary)?.id;
+    if (!primaryId) return visibleActions;
     return [
       ...visibleActions.filter((action) => action.id !== primaryId),
       ...visibleActions.filter((action) => action.id === primaryId),

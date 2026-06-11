@@ -97,15 +97,19 @@ export function resolveGardenView(pathname: string): GardenWorkspaceView {
 }
 
 /**
- * Garden view-level actions. Exposes the same set on every tab — view-specific
- * gating happens via `visible`. The Settings tab disables gates that don't make
- * sense alongside the Settings UI itself.
+ * Garden view-level actions — one mode-specific primary per view:
  *
- * Reference design (`design_handoff_admin-revamp/screenshots/02-garden.png`):
- * View public (ghost) + Edit garden (primary) + Invite gardener (secondary).
+ * - `overview`  → Edit garden (primary). View public / Edit domains / Add
+ *   member stay reachable through the header overflow.
+ * - `members`   → Add member (primary) via `onAddMember`, the existing
+ *   role-write path (AddMemberModal + useGardenOperations).
+ * - `activity`  → read surface; no primary so the header presents no
+ *   misleading write CTA. Navigation actions remain in the overflow.
+ * - `settings`  → the settings form owns Save/Cancel; the header only keeps
+ *   View public in the overflow.
  *
- * "View public" links to the client app via the admin's `/gardens/:id` redirect
- * route, which resolves to the public garden page.
+ * "View public" links to the client app via the admin's `/gardens/:id`
+ * redirect route, which resolves to the public garden page.
  */
 export function buildGardenViewActions(
   view: GardenWorkspaceView,
@@ -113,10 +117,10 @@ export function buildGardenViewActions(
   hasSelectedGarden: boolean,
   navigate: (path: string) => void,
   routeContext?: AdminGardenRouteContext,
-  onEditDomains?: () => void
+  onEditDomains?: () => void,
+  onAddMember?: () => void
 ): ViewAction[] {
   const gardenAddress = routeContext?.gardenAddress;
-  const communityRouteContext = { gardenAddress };
   return [
     {
       id: "view-public",
@@ -143,13 +147,20 @@ export function buildGardenViewActions(
       visible: hasSelectedGarden && canManage && Boolean(onEditDomains) && view !== "settings",
     },
     {
-      id: "invite-gardener",
-      label: "Invite gardener",
-      labelId: "cockpit.garden.action.inviteGardener",
+      id: "add-member",
+      label: "Add member",
+      labelId: "cockpit.garden.action.addMember",
       icon: RiUserAddLine,
-      onClick: () => navigate(adminRoutes.communityMembers(communityRouteContext)),
-      variant: "secondary",
-      visible: hasSelectedGarden && canManage,
+      onClick: () => {
+        if (view === "members" && onAddMember) {
+          onAddMember();
+          return;
+        }
+        navigate(adminRoutes.gardenMembers(routeContext));
+      },
+      variant: view === "members" ? "primary" : "secondary",
+      visible: hasSelectedGarden && canManage && view !== "settings",
+      primary: view === "members",
     },
     {
       id: "edit-garden",
@@ -157,9 +168,9 @@ export function buildGardenViewActions(
       labelId: "cockpit.garden.action.editGarden",
       icon: RiSettings3Line,
       onClick: () => navigate(adminRoutes.gardenSettings(routeContext)),
-      variant: "primary",
+      variant: view === "overview" ? "primary" : "secondary",
       visible: hasSelectedGarden && canManage && view !== "settings",
-      primary: true,
+      primary: view === "overview",
     },
   ];
 }

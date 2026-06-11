@@ -46,6 +46,7 @@ export function useGardenWorkspaceController() {
   const lastHydratedGardenStateKeyRef = useRef<string | null>(null);
   const [activityFilter, setActivityFilterState] = useState<ActivityFilter>("all");
   const [domainEditorOpen, setDomainEditorOpen] = useState(false);
+  const [addMemberOpen, setAddMemberOpen] = useState(false);
 
   const view = resolveGardenView(location.pathname);
   const range = parseGardenRange(searchParams.get("range"));
@@ -110,6 +111,8 @@ export function useGardenWorkspaceController() {
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const openDomainEditor = useCallback(() => setDomainEditorOpen(true), []);
   const closeDomainEditor = useCallback(() => setDomainEditorOpen(false), []);
+  const openAddMember = useCallback(() => setAddMemberOpen(true), []);
+  const closeAddMember = useCallback(() => setAddMemberOpen(false), []);
   const viewActions = useMemo(
     () =>
       buildGardenViewActions(
@@ -120,9 +123,18 @@ export function useGardenWorkspaceController() {
         {
           gardenAddress: selectedGardenAddress,
         },
-        openDomainEditor
+        openDomainEditor,
+        openAddMember
       ),
-    [canManage, navigate, openDomainEditor, selectedGarden, selectedGardenAddress, view]
+    [
+      canManage,
+      navigate,
+      openAddMember,
+      openDomainEditor,
+      selectedGarden,
+      selectedGardenAddress,
+      view,
+    ]
   );
   const { desktopActions } = useViewActions({
     actions: viewActions,
@@ -261,12 +273,14 @@ export function useGardenWorkspaceController() {
 
   return {
     activityFilter,
+    addMemberOpen,
     assessments,
     assessmentsError,
     canManage,
     canReview,
     canvasActivityEvents,
     clearSection,
+    closeAddMember,
     community,
     containerRef,
     derived,
@@ -284,9 +298,11 @@ export function useGardenWorkspaceController() {
     hypercerts,
     isOwner,
     closeDomainEditor,
+    openAddMember,
     openDomainEditor,
     openSection,
     range,
+    roleMembers,
     section,
     selectedGarden,
     selectedItem,

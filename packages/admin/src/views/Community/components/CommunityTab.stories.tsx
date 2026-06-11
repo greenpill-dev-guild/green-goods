@@ -112,6 +112,7 @@ const meta: Meta<typeof CommunityTab> = {
     memberSearch: "",
     setMemberSearch: fn(),
     openMembersModal: fn(),
+    onManageMembers: fn(),
     scheduleBackgroundRefetch: fn(),
   },
 };

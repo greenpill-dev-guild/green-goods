@@ -137,10 +137,10 @@ export function useCommunityWorkspaceController() {
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const viewActions = useMemo(
     () =>
-      buildCommunityViewActions(canManage, isOwner, Boolean(selectedGarden), navigate, {
+      buildCommunityViewActions(mode, canManage, isOwner, Boolean(selectedGarden), navigate, {
         gardenAddress: selectedGardenAddress,
       }),
-    [canManage, isOwner, navigate, selectedGarden, selectedGardenAddress]
+    [canManage, isOwner, mode, navigate, selectedGarden, selectedGardenAddress]
   );
   const { desktopActions } = useViewActions({
     actions: viewActions,
@@ -202,6 +202,11 @@ export function useCommunityWorkspaceController() {
     () => navigate(adminRoutes.communityMembers({ gardenAddress: selectedGardenAddress })),
     [navigate, selectedGardenAddress]
   );
+  // People is engagement/read-only; management lives on Garden → Members.
+  const openGardenMembers = useCallback(
+    () => navigate(adminRoutes.gardenMembers({ gardenAddress: selectedGardenAddress })),
+    [navigate, selectedGardenAddress]
+  );
   const createPoolsAsync = useCallback(async () => {
     createPools();
   }, [createPools]);
@@ -240,6 +245,7 @@ export function useCommunityWorkspaceController() {
     isVaultRoute,
     memberSearch,
     mode,
+    openGardenMembers,
     openMembersModal,
     openSection,
     pools,

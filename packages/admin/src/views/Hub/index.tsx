@@ -73,7 +73,12 @@ export default function HubView() {
             sticky
             actions={
               isDesktop && hub.desktopActions.length > 0 ? (
-                <AdminViewActions items={hub.desktopActions} />
+                // One mode-specific primary inline; sibling creation actions
+                // fold into the overflow kebab (header action grammar).
+                <AdminViewActions
+                  items={hub.desktopActions}
+                  maxInline={hub.desktopActions.some((action) => action.primary) ? 1 : 0}
+                />
               ) : undefined
             }
             toolbar={

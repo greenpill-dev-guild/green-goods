@@ -60,7 +60,13 @@ export default function GardenView() {
         }
         actions={
           isDesktop && garden.desktopActions.length > 0 ? (
-            <AdminViewActions items={garden.desktopActions} maxInline={4} />
+            // One mode-specific primary inline (Overview → Edit garden,
+            // Members → Add member); other actions live in the overflow.
+            // Read-only views (Activity) and Settings keep a clean header.
+            <AdminViewActions
+              items={garden.desktopActions}
+              maxInline={garden.desktopActions.some((action) => action.primary) ? 1 : 0}
+            />
           ) : undefined
         }
         variant="canvas"

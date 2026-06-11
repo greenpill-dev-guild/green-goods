@@ -1,5 +1,5 @@
 /**
- * GardenMembersList role-derivation tests
+ * GardenMembersPanel role-derivation tests
  *
  * Pins the role-set construction + per-address role lookup that drives the
  * cleanup A5 chip strip on the Garden Members tab. Lowercase normalization +
@@ -13,7 +13,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildMemberRoleSets,
   memberRolesForAddress,
-} from "@/views/Garden/components/GardenWorkspaceContent";
+} from "@/views/Garden/components/GardenMembersPanel";
 import type { Address } from "@green-goods/shared";
 
 const A_LOWER = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as Address;

@@ -61,7 +61,15 @@ export default function CommunityView() {
         }
         actions={
           isDesktop && community.desktopActions.length > 0 ? (
-            <AdminViewActions items={community.desktopActions} />
+            // One mode-specific primary inline (Treasury → Deposit / withdraw,
+            // Governance → New proposal); Payouts and People keep the header
+            // free of competing primaries — their actions live in local
+            // context (payout panel) or the overflow (View public, Manage
+            // members link to Garden → Members).
+            <AdminViewActions
+              items={community.desktopActions}
+              maxInline={community.desktopActions.some((action) => action.primary) ? 1 : 0}
+            />
           ) : undefined
         }
         variant="canvas"

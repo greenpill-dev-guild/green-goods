@@ -31,7 +31,7 @@ const meta: Meta<typeof GardenSettingsEditor> = {
     docs: {
       description: {
         component:
-          "Real `GardenSettingsEditor` rendered against the Storybook mock wagmi connector and `DevAuthProvider`. The banner field is an upload-to-IPFS control with a live preview (PRD-513); the other fields use inline `EditableField` save. The underlying update mutations (`useUpdateGardenName`, `useUpdateGarden{Description,Location,BannerImage}`, `useSetOpenJoining`, `useSetMaxGardeners`) are wired but inert — actions trigger the real mutation which fails silently against the mock transport. Render states (view / edit / read-only) reflect the live component.",
+          "Real `GardenSettingsEditor` rendered against the Storybook mock wagmi connector and `DevAuthProvider`. Explicit-save form: every field (name, description, location, banner, open joining, max gardeners) edits a local draft; the pinned footer shows the dirty state with Save changes / Cancel. Banner selection shows a local object-URL preview and uploads to IPFS only during Save. The underlying mutations (`useUpdateGardenName`, `useUpdateGarden{Description,Location,BannerImage}`, `useSetOpenJoining`, `useSetMaxGardeners`) are wired but inert against the mock transport. Render states (editable / read-only / dirty footer) reflect the live component.",
       },
     },
   },

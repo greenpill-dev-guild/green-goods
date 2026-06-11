@@ -180,10 +180,11 @@ export function resolveOpenSectionRoute(
 // View Actions — Hub
 // ============================================================================
 //
-// Hub exposes a fixed action set across all stages (Work / Assess / Certify /
-// History). The active stage chooses which action is "primary" (filled, FAB
-// main button); the others render as outlined siblings on desktop and
-// speed-dial children on mobile.
+// One mode-specific primary per stage: Work → Submit Work, Assess → Create
+// Assessment, Certify → Create Hypercert. The sibling creation actions stay
+// reachable through the header overflow / FAB speed-dial. History is an audit
+// surface with no creation target, so it declares no actions at all — the
+// header stays clean and the mobile FAB hides.
 
 export function buildHubViewActions(
   stage: HubPipelineStage,
@@ -192,6 +193,8 @@ export function buildHubViewActions(
   navigate: (path: string) => void,
   hubContext: AdminHubRouteContext
 ): ViewAction[] {
+  if (stage === "history") return [];
+
   return [
     {
       id: "submit-work",
@@ -199,7 +202,7 @@ export function buildHubViewActions(
       labelId: "cockpit.hub.action.submitWork",
       icon: RiAddLine,
       onClick: () => navigate(adminRoutes.hubWorkSubmit(hubContext)),
-      variant: "primary",
+      variant: stage === "work" ? "primary" : "secondary",
       visible: canManage,
       primary: stage === "work",
     },
