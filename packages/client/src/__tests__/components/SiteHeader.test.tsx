@@ -2,7 +2,7 @@
  * SiteHeader Component Tests
  *
  * Tests the public website header for the editorial public browser:
- * - Desktop: nav order Gardens / Impact / Fund / Actions + Install/Open App CTA
+ * - Desktop: nav order Gardens / Impact / Vaults / Fund / Actions + Install/Open App CTA
  * - Mobile: hamburger button (aria-expanded toggling)
  * - Drawer: opens, closes on Escape, mirrors nav + Install/Open App
  * - Wallet connect is intentionally absent from public header chrome
@@ -39,6 +39,7 @@ const messages: Record<string, string> = {
   "public.nav.gardens": "Gardens",
   "public.nav.actions": "Actions",
   "public.nav.impact": "Impact",
+  "public.nav.vaults": "Vaults",
   "public.nav.fund": "Fund",
   "public.nav.installApp": "Install App",
   "public.nav.openApp": "Open App",
@@ -92,6 +93,8 @@ describe("SiteHeader", () => {
     expect(screen.getAllByText("Fund").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Actions").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Install App").length).toBeGreaterThanOrEqual(1);
+    // Vaults is intentionally not in the header nav.
+    expect(screen.queryByText("Vaults")).toBeNull();
     expect(mockUseInstallGuidance).toHaveBeenCalledWith("unknown", false, false, null, false);
     // No wallet CTA in public header.
     expect(screen.queryByText("Connect Wallet")).toBeNull();
@@ -216,7 +219,7 @@ describe("SiteHeader", () => {
   });
 
   it("renders transparent on every public route (not just home)", () => {
-    for (const route of ["/", "/gardens", "/impact", "/fund", "/actions"]) {
+    for (const route of ["/", "/gardens", "/impact", "/vaults", "/fund", "/actions"]) {
       cleanup();
       renderHeader(route);
       const header = document.querySelector("header");

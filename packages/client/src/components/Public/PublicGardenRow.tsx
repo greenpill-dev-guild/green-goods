@@ -5,10 +5,10 @@ import {
   type PublicGardenVaultSummary,
   type PublicVaultSummaryAsset,
 } from "@green-goods/shared";
-import type { PublicFundingIntentKind } from "@green-goods/shared/public-contracts";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { ImageWithFallback } from "@/components/Display";
+import type { PublicFundingIntentKind } from "@green-goods/shared/public-contracts";
 import { EditorialGhostButton, EditorialKicker, EditorialPrimaryButton } from "./atoms";
 import { GardenCoverFallback } from "./GardenCoverFallback";
 
@@ -34,10 +34,9 @@ function aggregateGardenerCount(garden: PublicGardenSummary): number {
 /**
  * PublicGardenRow — compact horizontal Garden card used in the Fund-page grid.
  *
- * Anatomy: small thumbnail (left) → garden name + meta (center) → stacked
- * Donate/Endow CTAs (right). Tapping the thumbnail/title block routes to the
- * public Garden detail page; tapping a CTA opens the funding method selector
- * with that intent pre-set so the dialog skips its own intent step.
+ * Anatomy: small thumbnail (left) → garden name + meta (center) → Endow CTA
+ * (right). Tapping the thumbnail/title block routes to the public Garden detail
+ * page; tapping the CTA opens the funding card with the Endow intent pre-set.
  *
  * Density tuned for funder-mode scanning (smaller padding than discovery
  * cards on /gardens) so two cards fit per desktop row at sm:grid-cols-2.

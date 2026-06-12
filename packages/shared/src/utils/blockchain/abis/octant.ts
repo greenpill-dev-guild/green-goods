@@ -114,6 +114,8 @@ export const OCTANT_VAULT_ABI = [
       { name: "shares", type: "uint256" },
       { name: "receiver", type: "address" },
       { name: "owner", type: "address" },
+      { name: "maxLoss", type: "uint256" },
+      { name: "strategies", type: "address[]" },
     ],
     outputs: [{ name: "", type: "uint256" }],
   },
@@ -182,6 +184,13 @@ export const OCTANT_VAULT_ABI = [
       { name: "strategies", type: "address[]" },
     ],
     outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "dragonRouter",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "address" }],
   },
   {
     type: "function",

@@ -27,15 +27,23 @@ export type VaultDepositFailureReason =
   | "depositLimitZero"
   | "depositLimitReached"
   | "vaultUnavailable"
+  | "insufficientBalance"
   | "slippage";
 export type TxErrorMode = "toast" | "inline" | "auto";
 
 export interface VaultMutationOptions {
   errorMode?: TxErrorMode;
+  toastMode?: "auto" | "silent";
 }
 
 export function shouldShowErrorToast(mode: TxErrorMode = "auto"): boolean {
   return mode !== "inline";
+}
+
+export function shouldShowLifecycleToast(
+  mode: VaultMutationOptions["toastMode"] = "auto"
+): boolean {
+  return mode !== "silent";
 }
 
 export class VaultDepositStageError extends Error {

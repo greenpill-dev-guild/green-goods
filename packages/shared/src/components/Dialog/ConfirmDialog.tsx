@@ -42,6 +42,7 @@ export interface DialogShellProps {
   className?: string;
   bodyClassName?: string;
   headerClassName?: string;
+  descriptionClassName?: string;
   hideCloseButton?: boolean;
   /** When true, prevents close via overlay click or Escape — useful during in-flight mutations. */
   preventClose?: boolean;
@@ -76,6 +77,7 @@ export function DialogShell({
   className,
   bodyClassName,
   headerClassName,
+  descriptionClassName,
   hideCloseButton = false,
   preventClose = false,
 }: DialogShellProps) {
@@ -128,7 +130,9 @@ export function DialogShell({
                   {title}
                 </Dialog.Title>
                 {description && (
-                  <Dialog.Description className="text-body-lg text-text-soft">
+                  <Dialog.Description
+                    className={cn("text-body-lg text-text-soft", descriptionClassName)}
+                  >
                     {description}
                   </Dialog.Description>
                 )}
@@ -138,6 +142,7 @@ export function DialogShell({
               <Dialog.Close asChild>
                 <button
                   type="button"
+                  data-slot="close"
                   className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-text-soft transition hover:bg-bg-soft active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2"
                   aria-label={formatMessage({ id: "app.common.close" })}
                 >

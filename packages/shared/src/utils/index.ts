@@ -239,6 +239,7 @@ export {
   isUnlimitedVaultLimit,
   isZeroBytes32,
   MAX_UINT256,
+  normalizeDecimalInput,
   validateDecimalInput,
 } from "./blockchain/vaults";
 export {

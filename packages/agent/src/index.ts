@@ -8,7 +8,7 @@
  * Future platforms: Discord, WhatsApp, SMS
  */
 
-import { createServer, startServer } from "./api/server";
+import { createServer, createThirdwebCheckoutClient, startServer } from "./api/server";
 import { parseAllowedOrigins } from "./api/public-protection";
 import { getConfig } from "./config";
 import { createGroupCaptureHandler, handleMessage, setHandlerContext } from "./handlers";
@@ -25,7 +25,12 @@ import {
   shutdownAgentAnalytics,
   trackAgentRuntimeStarted,
 } from "./services/analytics";
-import { clearBlockchainCache, initBlockchain } from "./services/blockchain";
+import {
+  clearBlockchainCache,
+  confirmFundingTupleOnChain,
+  initBlockchain,
+  readVaultShareBalanceOnChain,
+} from "./services/blockchain";
 import { closeDB, initDB } from "./services/db";
 import { resolveAgentRpcUrl } from "./services/agent-rpc";
 import { createSqliteFundingIntentStore } from "./services/funding-intents";
@@ -124,6 +129,22 @@ async function main(): Promise<void> {
     },
     thirdwebWebhookSecret: config.thirdwebWebhookSecret,
     thirdwebClientId: config.thirdwebClientId,
+    thirdwebCheckout: createThirdwebCheckoutClient({
+      clientId: config.thirdwebClientId,
+      secretKey: config.thirdwebSecretKey,
+    }),
+    // Card Endow proof verifiers — chain-aware (the funding tx lands on the
+    // tuple's chain, e.g. Ethereum mainnet, not the Green Goods chain). The
+    // proof route fails closed without them; share balances are read on-chain,
+    // never trusted from the client.
+    confirmFundingTuple: (txHash, expected) =>
+      confirmFundingTupleOnChain(
+        txHash as `0x${string}`,
+        expected,
+        resolveAgentRpcUrl(expected.chainId)
+      ),
+    readVaultShareBalance: (params) =>
+      readVaultShareBalanceOnChain(params, resolveAgentRpcUrl(params.chainId)),
   });
 
   if (config.telegramRuntimeDisabled) {

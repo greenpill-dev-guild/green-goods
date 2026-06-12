@@ -6,7 +6,12 @@ import {
   type CreateFundingIntentRequest,
 } from "@green-goods/shared/public-contracts";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createServer, hasReceiptTokenBody, type ThirdwebCheckoutClient } from "../api/server";
+import {
+  createServer,
+  createThirdwebCheckoutClient,
+  hasReceiptTokenBody,
+  type ThirdwebCheckoutClient,
+} from "../api/server";
 import {
   InMemoryPublicRateLimiter,
   publicRateLimitKey,
@@ -18,6 +23,7 @@ import { type FundingIntentRecord, MemoryFundingIntentStore } from "../services/
 const ORIGIN = "https://greengoods.app";
 const gardenId = "0x1111111111111111111111111111111111111111";
 const destinationAddress = "0x2222222222222222222222222222222222222222";
+const receiverAddress = "0x3333333333333333333333333333333333333333";
 const token = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
 
 const availabilityInput = {
@@ -45,6 +51,45 @@ const createFundingRequest = (): CreateFundingIntentRequest => ({
   payerEmail: "supporter@example.org",
   locale: "en",
 });
+
+const cardEndowAvailabilityInput = {
+  gardenKey: gardenId,
+  destinationType: "vault" as const,
+  destinationAddress,
+  fundingIntent: "endow" as const,
+  paymentMethod: "card" as const,
+  chainId: 11155111,
+  token,
+  provider: "thirdweb" as const,
+};
+
+const createCardEndowFundingRequest = (
+  overrides: Partial<CreateFundingIntentRequest> & Record<string, unknown> = {}
+): CreateFundingIntentRequest => {
+  const sourceRoute =
+    overrides.sourceRoute === "/fund" || overrides.sourceRoute === "/vaults"
+      ? overrides.sourceRoute
+      : undefined;
+  return {
+    gardenId,
+    destinationType: "vault",
+    destinationAddress,
+    fundingIntent: "endow",
+    paymentMethod: "card",
+    amountUsd: "25.00",
+    chainId: 11155111,
+    token,
+    availabilityKey: buildPublicFundingAvailabilityKey({
+      ...cardEndowAvailabilityInput,
+      ...(sourceRoute ? { sourceRoute } : {}),
+    }),
+    clientRequestId: "client-request-endow-1",
+    receiverAddress,
+    payerEmail: "supporter@example.org",
+    locale: "en",
+    ...overrides,
+  };
+};
 
 function jsonHeaders(extra: Record<string, string> = {}) {
   return {
@@ -238,6 +283,76 @@ describe("public funding intent API", () => {
     return { app, store };
   }
 
+  it("answers funding-intent CORS preflight for allowed origins", async () => {
+    const { app } = createFundingApp();
+
+    const response = await app.request(PUBLIC_AGENT_ROUTES.fundingIntents, {
+      method: "OPTIONS",
+      headers: {
+        origin: ORIGIN,
+        "access-control-request-method": "POST",
+        "access-control-request-headers": "content-type",
+      },
+    });
+
+    expect(response.status).toBe(204);
+    expect(response.headers.get("access-control-allow-origin")).toBe(ORIGIN);
+    expect(response.headers.get("access-control-allow-methods")).toContain("POST");
+    expect(response.headers.get("access-control-allow-headers")).toContain("Content-Type");
+  });
+
+  it("answers funding-intent CORS preflight for owned Vercel previews", async () => {
+    const { app } = createFundingApp();
+    const previewOrigin =
+      "https://green-goods-git-feature-nyc-vault-crow-880636-greenpilldevguild.vercel.app";
+
+    const response = await app.request(PUBLIC_AGENT_ROUTES.fundingIntents, {
+      method: "OPTIONS",
+      headers: {
+        origin: previewOrigin,
+        "access-control-request-method": "POST",
+        "access-control-request-headers": "content-type",
+      },
+    });
+
+    expect(response.status).toBe(204);
+    expect(response.headers.get("access-control-allow-origin")).toBe(previewOrigin);
+  });
+
+  it("rejects funding-intent CORS preflight for untrusted origins", async () => {
+    const { app } = createFundingApp();
+
+    const response = await app.request(PUBLIC_AGENT_ROUTES.fundingIntents, {
+      method: "OPTIONS",
+      headers: {
+        origin: "https://evil.example",
+        "access-control-request-method": "POST",
+        "access-control-request-headers": "content-type",
+      },
+    });
+
+    expect(response.status).toBe(403);
+    expect(response.headers.get("access-control-allow-origin")).toBeNull();
+    expect((await response.json()).errorCode).toBe("origin_not_allowed");
+  });
+
+  it("rejects funding-intent CORS preflight for unrelated Vercel origins", async () => {
+    const { app } = createFundingApp();
+
+    const response = await app.request(PUBLIC_AGENT_ROUTES.fundingIntents, {
+      method: "OPTIONS",
+      headers: {
+        origin: "https://green-goods-8bccw8q6a-attacker.vercel.app",
+        "access-control-request-method": "POST",
+        "access-control-request-headers": "content-type",
+      },
+    });
+
+    expect(response.status).toBe(403);
+    expect(response.headers.get("access-control-allow-origin")).toBeNull();
+    expect((await response.json()).errorCode).toBe("origin_not_allowed");
+  });
+
   it("keeps unproven card rails unavailable by default", async () => {
     const app = createServer(
       {
@@ -286,6 +401,772 @@ describe("public funding intent API", () => {
     expect((await response.json()).errorCode).toBe("provider_unavailable");
   });
 
+  it("rejects Card Endow creation without a recovered receiver wallet", async () => {
+    const thirdwebCheckout: ThirdwebCheckoutClient = {
+      createSession: vi.fn(),
+    };
+    const app = createServer(
+      {
+        isAIReady: () => true,
+        allowedOrigins: new Set([ORIGIN]),
+        publicRateLimiter: new InMemoryPublicRateLimiter(),
+        providerProofRegistry: createProviderProofRegistry([
+          {
+            ...cardEndowAvailabilityInput,
+            state: "live",
+            proofReference: "spike:card-endow-recovered-wallet-sepolia-2026-05-30",
+          },
+        ]),
+        thirdwebClientId: "thirdweb-client",
+        thirdwebCheckout,
+      },
+      { logger: false }
+    );
+
+    const response = await app.request(PUBLIC_AGENT_ROUTES.fundingIntents, {
+      method: "POST",
+      headers: jsonHeaders(),
+      body: JSON.stringify(createCardEndowFundingRequest({ receiverAddress: undefined })),
+    });
+
+    expect(response.status).toBe(400);
+    expect((await response.json()).fieldErrors).toEqual({
+      receiverAddress: "Receiver wallet is required for Card Endow",
+    });
+    expect(thirdwebCheckout.createSession).not.toHaveBeenCalled();
+  });
+
+  it("requires Card Endow checkout sessions to target the recovered receiver wallet", async () => {
+    const thirdwebCheckout: ThirdwebCheckoutClient = {
+      createSession: vi.fn(async ({ fundingIntentId, request, quoteExpiresAt }) => ({
+        providerSessionId: `thirdweb_${fundingIntentId}`,
+        checkoutSession: {
+          provider: "thirdweb" as const,
+          mode: "widget" as const,
+          expiresAt: quoteExpiresAt,
+          clientToken: `checkout_${fundingIntentId}`,
+          checkoutPayload: {
+            provider: "thirdweb" as const,
+            clientId: "thirdweb-client",
+            chainId: request.chainId,
+            destinationAddress: request.destinationAddress,
+            token: request.token,
+            amountUsd: request.amountUsd,
+            minAssetAmount: "25000000",
+            transaction: {
+              to: request.destinationAddress,
+              data: "0x1234" as `0x${string}`,
+              value: "0",
+            },
+            metadata: {
+              gardenId: request.gardenId,
+              destinationType: request.destinationType,
+              fundingIntent: request.fundingIntent,
+            },
+          },
+        },
+        quotedAssetAmount: "25000000",
+        minAssetAmount: "25000000",
+      })),
+    };
+    const app = createServer(
+      {
+        isAIReady: () => true,
+        allowedOrigins: new Set([ORIGIN]),
+        fundingIntents: new MemoryFundingIntentStore(),
+        publicRateLimiter: new InMemoryPublicRateLimiter(),
+        providerProofRegistry: createProviderProofRegistry([
+          {
+            ...cardEndowAvailabilityInput,
+            state: "live",
+            proofReference: "spike:card-endow-recovered-wallet-sepolia-2026-05-30",
+          },
+        ]),
+        thirdwebClientId: "thirdweb-client",
+        thirdwebCheckout,
+      },
+      { logger: false }
+    );
+
+    const response = await app.request(PUBLIC_AGENT_ROUTES.fundingIntents, {
+      method: "POST",
+      headers: jsonHeaders(),
+      body: JSON.stringify(createCardEndowFundingRequest()),
+    });
+
+    expect(response.status).toBe(503);
+    expect((await response.json()).errorCode).toBe("provider_unavailable");
+  });
+
+  it("records Card Endow receiver semantics on receipts and checkout payloads", async () => {
+    const thirdwebCheckout: ThirdwebCheckoutClient = {
+      createSession: vi.fn(async ({ fundingIntentId, request, quoteExpiresAt }) => ({
+        providerSessionId: `thirdweb_${fundingIntentId}`,
+        checkoutSession: {
+          provider: "thirdweb" as const,
+          mode: "widget" as const,
+          expiresAt: quoteExpiresAt,
+          clientToken: `checkout_${fundingIntentId}`,
+          checkoutPayload: {
+            provider: "thirdweb" as const,
+            clientId: "thirdweb-client",
+            chainId: request.chainId,
+            destinationAddress: request.destinationAddress,
+            receiverAddress: request.receiverAddress,
+            token: request.token,
+            amountUsd: request.amountUsd,
+            minAssetAmount: "25000000",
+            transaction: {
+              to: request.destinationAddress,
+              data: "0x1234" as `0x${string}`,
+              value: "0",
+            },
+            metadata: {
+              gardenId: request.gardenId,
+              destinationType: request.destinationType,
+              fundingIntent: request.fundingIntent,
+            },
+          },
+        },
+        receiverAddress: request.receiverAddress,
+        quotedAssetAmount: "25000000",
+        minAssetAmount: "25000000",
+      })),
+    };
+    const app = createServer(
+      {
+        isAIReady: () => true,
+        allowedOrigins: new Set([ORIGIN]),
+        fundingIntents: new MemoryFundingIntentStore(),
+        publicRateLimiter: new InMemoryPublicRateLimiter(),
+        providerProofRegistry: createProviderProofRegistry([
+          {
+            ...cardEndowAvailabilityInput,
+            state: "live",
+            proofReference: "spike:card-endow-recovered-wallet-sepolia-2026-05-30",
+          },
+        ]),
+        thirdwebClientId: "thirdweb-client",
+        thirdwebCheckout,
+      },
+      { logger: false }
+    );
+
+    const response = await app.request(PUBLIC_AGENT_ROUTES.fundingIntents, {
+      method: "POST",
+      headers: jsonHeaders(),
+      body: JSON.stringify(createCardEndowFundingRequest()),
+    });
+
+    const body = await response.json();
+    expect(response.status).toBe(200);
+    expect(body.publicReceipt.receiverAddress).toBe(receiverAddress);
+    expect(body.publicReceipt.appManagementCta).toBe("manage_endowments");
+    expect(body.publicReceipt.managementUrl).toBe("/fund?manage=endowments");
+    expect(body.checkoutSession.checkoutPayload.receiverAddress).toBe(receiverAddress);
+  });
+
+  it("keeps /vaults Card Endow receipts route-local without changing /fund compatibility", async () => {
+    const thirdwebCheckout: ThirdwebCheckoutClient = {
+      createSession: vi.fn(async ({ fundingIntentId, request, quoteExpiresAt }) => ({
+        providerSessionId: `thirdweb_${fundingIntentId}`,
+        checkoutSession: {
+          provider: "thirdweb" as const,
+          mode: "widget" as const,
+          expiresAt: quoteExpiresAt,
+          clientToken: `checkout_${fundingIntentId}`,
+          checkoutPayload: {
+            provider: "thirdweb" as const,
+            clientId: "thirdweb-client",
+            chainId: request.chainId,
+            destinationAddress: request.destinationAddress,
+            receiverAddress: request.receiverAddress,
+            token: request.token,
+            amountUsd: request.amountUsd,
+            minAssetAmount: "25000000",
+            transaction: {
+              to: request.destinationAddress,
+              data: "0x1234" as `0x${string}`,
+              value: "0",
+            },
+            metadata: {
+              gardenId: request.gardenId,
+              destinationType: request.destinationType,
+              fundingIntent: request.fundingIntent,
+            },
+          },
+        },
+        receiverAddress: request.receiverAddress,
+        quotedAssetAmount: "25000000",
+        minAssetAmount: "25000000",
+      })),
+    };
+    const app = createServer(
+      {
+        isAIReady: () => true,
+        allowedOrigins: new Set([ORIGIN]),
+        fundingIntents: new MemoryFundingIntentStore(),
+        publicRateLimiter: new InMemoryPublicRateLimiter(),
+        providerProofRegistry: createProviderProofRegistry([
+          {
+            ...cardEndowAvailabilityInput,
+            sourceRoute: "/vaults",
+            state: "live",
+            proofReference: "synthetic:card-endow-vaults-route-local-2026-06-02",
+          },
+        ]),
+        thirdwebClientId: "thirdweb-client",
+        thirdwebCheckout,
+      },
+      { logger: false }
+    );
+
+    const response = await app.request(PUBLIC_AGENT_ROUTES.fundingIntents, {
+      method: "POST",
+      headers: jsonHeaders(),
+      body: JSON.stringify(createCardEndowFundingRequest({ sourceRoute: "/vaults" })),
+    });
+
+    const body = await response.json();
+    expect(response.status).toBe(200);
+    expect(body.receiptUrl).toMatch(/^\/vaults\?intent=fi_[a-f0-9]+#receiptToken=/);
+    expect(body.publicReceipt.managementUrl).toBe("/vaults?manage=positions");
+  });
+
+  it("records client-side Card Endow proof only after positive vault shares", async () => {
+    const store = new MemoryFundingIntentStore();
+    const confirmFundingTuple = vi.fn(async () => ({
+      status: "confirmed" as const,
+      txHash: "0xabcdef" as const,
+      blockNumber: "123",
+      confirmedAt: "2026-04-27T12:06:00.000Z",
+      matchedAssetAmount: "25000000",
+    }));
+    // The server-side read is the share authority; the client claims "1" below
+    // and the recorded verification must carry this value instead.
+    const readVaultShareBalance = vi.fn(async () => 7777n);
+    const app = createServer(
+      {
+        isAIReady: () => true,
+        allowedOrigins: new Set([ORIGIN]),
+        fundingIntents: store,
+        publicRateLimiter: new InMemoryPublicRateLimiter(),
+        providerProofRegistry: createProviderProofRegistry([
+          {
+            ...cardEndowAvailabilityInput,
+            sourceRoute: "/vaults",
+            state: "live",
+            proofReference: "production:card-endow-vaults-proof-2026-06-03",
+          },
+        ]),
+        confirmFundingTuple,
+        readVaultShareBalance,
+        now: () => Date.parse("2026-04-27T12:00:00.000Z"),
+      },
+      { logger: false }
+    );
+    const request = createCardEndowFundingRequest({ sourceRoute: "/vaults" });
+
+    const response = await app.request(PUBLIC_AGENT_ROUTES.fundingIntentProof, {
+      method: "POST",
+      headers: jsonHeaders(),
+      body: JSON.stringify({
+        gardenId,
+        gardenName: "Greenpill NYC",
+        destinationType: "vault",
+        destinationAddress,
+        fundingIntent: "endow",
+        paymentMethod: "card",
+        provider: "thirdweb",
+        sourceRoute: "/vaults",
+        chainId: 11155111,
+        token,
+        availabilityKey: request.availabilityKey,
+        clientRequestId: "client-proof-1",
+        receiverAddress,
+        receiverCustody: "user_owned_recovered_wallet",
+        amount: "25000000",
+        transactionHash: "0xabcdef",
+        shareBalance: "1",
+        payerEmail: "supporter@example.org",
+        locale: "en",
+      }),
+    });
+
+    const body = await response.json();
+    expect(response.status).toBe(200);
+    expect(body.status).toBe("funded");
+    expect(body.receiptUrl).toMatch(/^\/vaults\?intent=fi_[a-f0-9]+#receiptToken=/);
+    expect(body.publicReceipt).toMatchObject({
+      status: "funded",
+      garden: { id: gardenId, name: "Greenpill NYC" },
+      destination: { type: "vault", address: destinationAddress },
+      fundingIntent: "endow",
+      fundingTxHash: "0xabcdef",
+      receiverAddress,
+      managementUrl: "/vaults?manage=positions",
+      amount: {
+        amountUsd: "0",
+        token,
+        chainId: 11155111,
+        fundedAssetAmount: "25000000",
+      },
+    });
+    expect(confirmFundingTuple).toHaveBeenCalledWith("0xabcdef", {
+      token: token.toLowerCase(),
+      destinationAddress: destinationAddress.toLowerCase(),
+      minAssetAmount: "25000000",
+      chainId: 11155111,
+    });
+    const created = await store.getByClientRequestId("client-proof-1");
+    expect(created?.status).toBe("funded");
+    expect(readVaultShareBalance).toHaveBeenCalledWith({
+      chainId: 11155111,
+      vaultAddress: destinationAddress,
+      ownerAddress: receiverAddress,
+    });
+    expect(created?.transactionAttempts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ role: "funding", status: "confirmed", txHash: "0xabcdef" }),
+        // The recorded share amount is the SERVER-read balance, never the
+        // client's claimed "1".
+        expect.objectContaining({
+          role: "share_verification",
+          status: "confirmed",
+          amount: "7777",
+        }),
+      ])
+    );
+  });
+
+  it("rejects client-side Card Endow proof when the share verifier is unavailable", async () => {
+    const store = new MemoryFundingIntentStore();
+    const confirmFundingTuple = vi.fn(async () => ({
+      status: "confirmed" as const,
+      txHash: "0xabcdef" as const,
+      matchedAssetAmount: "25000000",
+    }));
+    const app = createServer(
+      {
+        isAIReady: () => true,
+        allowedOrigins: new Set([ORIGIN]),
+        fundingIntents: store,
+        publicRateLimiter: new InMemoryPublicRateLimiter(),
+        providerProofRegistry: createProviderProofRegistry([
+          {
+            ...cardEndowAvailabilityInput,
+            sourceRoute: "/vaults",
+            state: "live",
+            proofReference: "production:card-endow-vaults-proof-2026-06-03",
+          },
+        ]),
+        confirmFundingTuple,
+        // No readVaultShareBalance — the route must fail closed without it.
+      },
+      { logger: false }
+    );
+    const request = createCardEndowFundingRequest({ sourceRoute: "/vaults" });
+
+    const response = await app.request(PUBLIC_AGENT_ROUTES.fundingIntentProof, {
+      method: "POST",
+      headers: jsonHeaders(),
+      body: JSON.stringify({
+        gardenId,
+        gardenName: "Greenpill NYC",
+        destinationType: "vault",
+        destinationAddress,
+        fundingIntent: "endow",
+        paymentMethod: "card",
+        provider: "thirdweb",
+        sourceRoute: "/vaults",
+        chainId: 11155111,
+        token,
+        availabilityKey: request.availabilityKey,
+        clientRequestId: "client-proof-no-share-verifier",
+        receiverAddress,
+        receiverCustody: "user_owned_recovered_wallet",
+        amount: "25000000",
+        transactionHash: "0xabcdef",
+        shareBalance: "1",
+      }),
+    });
+
+    expect(response.status).toBe(409);
+    expect(confirmFundingTuple).not.toHaveBeenCalled();
+    expect(await store.getByClientRequestId("client-proof-no-share-verifier")).toBeUndefined();
+  });
+
+  it("rejects a forged Card Endow share claim when the server-side share read is zero", async () => {
+    const store = new MemoryFundingIntentStore();
+    const confirmFundingTuple = vi.fn(async () => ({
+      status: "confirmed" as const,
+      txHash: "0xabcdef" as const,
+      matchedAssetAmount: "25000000",
+    }));
+    const readVaultShareBalance = vi.fn(async () => 0n);
+    const app = createServer(
+      {
+        isAIReady: () => true,
+        allowedOrigins: new Set([ORIGIN]),
+        fundingIntents: store,
+        publicRateLimiter: new InMemoryPublicRateLimiter(),
+        providerProofRegistry: createProviderProofRegistry([
+          {
+            ...cardEndowAvailabilityInput,
+            sourceRoute: "/vaults",
+            state: "live",
+            proofReference: "production:card-endow-vaults-proof-2026-06-03",
+          },
+        ]),
+        confirmFundingTuple,
+        readVaultShareBalance,
+      },
+      { logger: false }
+    );
+    const request = createCardEndowFundingRequest({ sourceRoute: "/vaults" });
+
+    const response = await app.request(PUBLIC_AGENT_ROUTES.fundingIntentProof, {
+      method: "POST",
+      headers: jsonHeaders(),
+      body: JSON.stringify({
+        gardenId,
+        gardenName: "Greenpill NYC",
+        destinationType: "vault",
+        destinationAddress,
+        fundingIntent: "endow",
+        paymentMethod: "card",
+        provider: "thirdweb",
+        sourceRoute: "/vaults",
+        chainId: 11155111,
+        token,
+        availabilityKey: request.availabilityKey,
+        clientRequestId: "client-proof-forged-shares",
+        receiverAddress,
+        receiverCustody: "user_owned_recovered_wallet",
+        amount: "25000000",
+        transactionHash: "0xabcdef",
+        // Forged claim: the wallet holds no shares on chain.
+        shareBalance: "999999",
+      }),
+    });
+
+    expect(response.status).toBe(409);
+    expect(readVaultShareBalance).toHaveBeenCalledTimes(1);
+    expect(await store.getByClientRequestId("client-proof-forged-shares")).toBeUndefined();
+  });
+
+  it("rejects Card Endow proof when the server-side share read fails", async () => {
+    const store = new MemoryFundingIntentStore();
+    const confirmFundingTuple = vi.fn(async () => ({
+      status: "confirmed" as const,
+      txHash: "0xabcdef" as const,
+      matchedAssetAmount: "25000000",
+    }));
+    const readVaultShareBalance = vi.fn(async () => {
+      throw new Error("rpc unavailable");
+    });
+    const app = createServer(
+      {
+        isAIReady: () => true,
+        allowedOrigins: new Set([ORIGIN]),
+        fundingIntents: store,
+        publicRateLimiter: new InMemoryPublicRateLimiter(),
+        providerProofRegistry: createProviderProofRegistry([
+          {
+            ...cardEndowAvailabilityInput,
+            sourceRoute: "/vaults",
+            state: "live",
+            proofReference: "production:card-endow-vaults-proof-2026-06-03",
+          },
+        ]),
+        confirmFundingTuple,
+        readVaultShareBalance,
+      },
+      { logger: false }
+    );
+    const request = createCardEndowFundingRequest({ sourceRoute: "/vaults" });
+
+    const response = await app.request(PUBLIC_AGENT_ROUTES.fundingIntentProof, {
+      method: "POST",
+      headers: jsonHeaders(),
+      body: JSON.stringify({
+        gardenId,
+        gardenName: "Greenpill NYC",
+        destinationType: "vault",
+        destinationAddress,
+        fundingIntent: "endow",
+        paymentMethod: "card",
+        provider: "thirdweb",
+        sourceRoute: "/vaults",
+        chainId: 11155111,
+        token,
+        availabilityKey: request.availabilityKey,
+        clientRequestId: "client-proof-share-read-failed",
+        receiverAddress,
+        receiverCustody: "user_owned_recovered_wallet",
+        amount: "25000000",
+        transactionHash: "0xabcdef",
+        shareBalance: "1",
+      }),
+    });
+
+    expect(response.status).toBe(409);
+    expect(await store.getByClientRequestId("client-proof-share-read-failed")).toBeUndefined();
+  });
+
+  it("accepts both production /vaults Card Endow tuples through the default provider-proof registry", async () => {
+    // P1 allowlist/registry sync: every campaign the client exposes for Card
+    // Endow (greenpill-nyc AND evmavericks) must resolve `live` in the DEFAULT
+    // registry, or donors would move value and then fail receipt recording.
+    const productionTuples = [
+      {
+        gardenKey: "greenpill-nyc",
+        gardenName: "Greenpill NYC",
+        vault: "0xaC8F844CEA2Fd75B7A5514f11974895B334fd9A5",
+        clientRequestId: "client-proof-prod-nyc",
+      },
+      {
+        gardenKey: "evmavericks",
+        gardenName: "EVMavericks Fantasy Football League",
+        vault: "0x0bCe8c16974FFD3B410A32365c5bCf27a5A630Fc",
+        clientRequestId: "client-proof-prod-evmavericks",
+      },
+    ] as const;
+    const wethToken = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+    const store = new MemoryFundingIntentStore();
+    const app = createServer(
+      {
+        isAIReady: () => true,
+        allowedOrigins: new Set([ORIGIN]),
+        fundingIntents: store,
+        publicRateLimiter: new InMemoryPublicRateLimiter(),
+        // No providerProofRegistry override: the DEFAULT production registry
+        // must carry live entries for both pilot tuples.
+        confirmFundingTuple: vi.fn(async () => ({
+          status: "confirmed" as const,
+          txHash: "0xabcdef" as const,
+          matchedAssetAmount: "10000000000000000",
+        })),
+        readVaultShareBalance: vi.fn(async () => 42n),
+      },
+      { logger: false }
+    );
+
+    for (const tuple of productionTuples) {
+      const availabilityKey = buildPublicFundingAvailabilityKey({
+        gardenKey: tuple.gardenKey,
+        destinationType: "vault",
+        destinationAddress: tuple.vault,
+        fundingIntent: "endow",
+        paymentMethod: "card",
+        chainId: 1,
+        token: wethToken,
+        provider: "thirdweb",
+        sourceRoute: "/vaults",
+      });
+
+      const response = await app.request(PUBLIC_AGENT_ROUTES.fundingIntentProof, {
+        method: "POST",
+        headers: jsonHeaders(),
+        body: JSON.stringify({
+          gardenId: tuple.gardenKey,
+          gardenName: tuple.gardenName,
+          destinationType: "vault",
+          destinationAddress: tuple.vault,
+          fundingIntent: "endow",
+          paymentMethod: "card",
+          provider: "thirdweb",
+          sourceRoute: "/vaults",
+          chainId: 1,
+          token: wethToken,
+          availabilityKey,
+          clientRequestId: tuple.clientRequestId,
+          receiverAddress,
+          receiverCustody: "user_owned_recovered_wallet",
+          amount: "10000000000000000",
+          transactionHash: "0xabcdef",
+          shareBalance: "1",
+        }),
+      });
+
+      expect(response.status).toBe(200);
+      const body = await response.json();
+      expect(body.status).toBe("funded");
+      expect(body.publicReceipt.managementUrl).toBe("/vaults?manage=positions");
+    }
+  });
+
+  it("rejects client-side Card Endow proof when tuple confirmation is unavailable", async () => {
+    const store = new MemoryFundingIntentStore();
+    const app = createServer(
+      {
+        isAIReady: () => true,
+        allowedOrigins: new Set([ORIGIN]),
+        fundingIntents: store,
+        publicRateLimiter: new InMemoryPublicRateLimiter(),
+        providerProofRegistry: createProviderProofRegistry([
+          {
+            ...cardEndowAvailabilityInput,
+            sourceRoute: "/vaults",
+            state: "live",
+            proofReference: "production:card-endow-vaults-proof-2026-06-03",
+          },
+        ]),
+      },
+      { logger: false }
+    );
+    const request = createCardEndowFundingRequest({ sourceRoute: "/vaults" });
+
+    const response = await app.request(PUBLIC_AGENT_ROUTES.fundingIntentProof, {
+      method: "POST",
+      headers: jsonHeaders(),
+      body: JSON.stringify({
+        gardenId,
+        gardenName: "Greenpill NYC",
+        destinationType: "vault",
+        destinationAddress,
+        fundingIntent: "endow",
+        paymentMethod: "card",
+        provider: "thirdweb",
+        sourceRoute: "/vaults",
+        chainId: 11155111,
+        token,
+        availabilityKey: request.availabilityKey,
+        clientRequestId: "client-proof-no-confirmation",
+        receiverAddress,
+        receiverCustody: "user_owned_recovered_wallet",
+        amount: "25000000",
+        transactionHash: "0xabcdef",
+        shareBalance: "1",
+      }),
+    });
+
+    expect(response.status).toBe(409);
+    expect(await store.getByClientRequestId("client-proof-no-confirmation")).toBeUndefined();
+  });
+
+  it("rejects Card Endow proof when vault.balanceOf(receiver) is not positive", async () => {
+    const app = createServer(
+      {
+        isAIReady: () => true,
+        allowedOrigins: new Set([ORIGIN]),
+        fundingIntents: new MemoryFundingIntentStore(),
+        publicRateLimiter: new InMemoryPublicRateLimiter(),
+        providerProofRegistry: createProviderProofRegistry([
+          {
+            ...cardEndowAvailabilityInput,
+            sourceRoute: "/vaults",
+            state: "live",
+            proofReference: "production:card-endow-vaults-proof-2026-06-03",
+          },
+        ]),
+      },
+      { logger: false }
+    );
+    const request = createCardEndowFundingRequest({ sourceRoute: "/vaults" });
+
+    const response = await app.request(PUBLIC_AGENT_ROUTES.fundingIntentProof, {
+      method: "POST",
+      headers: jsonHeaders(),
+      body: JSON.stringify({
+        gardenId,
+        gardenName: "Greenpill NYC",
+        destinationType: "vault",
+        destinationAddress,
+        fundingIntent: "endow",
+        paymentMethod: "card",
+        provider: "thirdweb",
+        sourceRoute: "/vaults",
+        chainId: 11155111,
+        token,
+        availabilityKey: request.availabilityKey,
+        clientRequestId: "client-proof-zero-shares",
+        receiverAddress,
+        receiverCustody: "user_owned_recovered_wallet",
+        amount: "25000000",
+        transactionHash: "0xabcdef",
+        shareBalance: "0",
+      }),
+    });
+
+    const body = await response.json();
+    expect(response.status).toBe(400);
+    expect(body.fieldErrors).toEqual({
+      shareBalance: "Card Endow proof requires positive vault shares",
+    });
+  });
+
+  it("builds a configured Thirdweb send-payment checkout adapter from the existing env contract", async () => {
+    const fetchSpy = vi.fn(
+      async (_url: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1]) => {
+        expect((init?.headers as Record<string, string>)["x-secret-key"]).toBe("sk_test_secret");
+        return new Response(
+          JSON.stringify({
+            id: "pay_123",
+            checkoutUrl: "https://pay.thirdweb.test/pay_123",
+            clientSecret: "client_secret_should_not_be_returned",
+            destinationAmount: "25000000",
+          }),
+          { status: 200, headers: { "content-type": "application/json" } }
+        );
+      }
+    );
+    const client = createThirdwebCheckoutClient({
+      clientId: "thirdweb-client",
+      secretKey: "sk_test_secret",
+      fetch: fetchSpy as unknown as typeof fetch,
+      apiBaseUrl: "https://api.thirdweb.test",
+    });
+
+    expect(client).toBeDefined();
+    const request = createFundingRequest();
+    const result = await client!.createSession({
+      fundingIntentId: "fi_adapter",
+      request,
+      availabilityProofReference: "synthetic:proof",
+      quoteExpiresAt: "2026-04-27T12:10:00.000Z",
+    });
+
+    const body = JSON.parse((fetchSpy.mock.calls[0]?.[1]?.body ?? "{}") as string);
+    expect(fetchSpy.mock.calls[0]?.[0]).toBe("https://api.thirdweb.test/v1/bridge/payments");
+    expect(body).toMatchObject({
+      recipient: destinationAddress,
+      token: { address: token, chainId: 11155111 },
+      purchaseData: {
+        fundingIntentId: "fi_adapter",
+        destinationType: "cookieJar",
+        fundingIntent: "donate",
+        paymentMethod: "card",
+        sourceRoute: "/fund",
+        txRole: "funding",
+      },
+    });
+    expect(result.checkoutSession.checkoutPayload?.metadata.fundingIntent).toBe("donate");
+    expect(JSON.stringify(result)).not.toContain("sk_test_secret");
+    expect(JSON.stringify(result)).not.toContain("client_secret_should_not_be_returned");
+    expect(result.checkoutSession.clientToken).toBeUndefined();
+  });
+
+  it("does not create Card Endow sessions through the Thirdweb send-payment adapter", async () => {
+    const fetchSpy = vi.fn();
+    const client = createThirdwebCheckoutClient({
+      clientId: "thirdweb-client",
+      secretKey: "sk_test_secret",
+      fetch: fetchSpy as unknown as typeof fetch,
+      apiBaseUrl: "https://api.thirdweb.test",
+    });
+
+    await expect(
+      client!.createSession({
+        fundingIntentId: "fi_adapter",
+        request: createCardEndowFundingRequest({ sourceRoute: "/vaults" }),
+        availabilityProofReference: "synthetic:proof",
+        quoteExpiresAt: "2026-04-27T12:10:00.000Z",
+      })
+    ).rejects.toThrow(/contract-call checkout/);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
   it("creates a card-only intent with fragment receipt URL and no-store headers", async () => {
     const { app } = createFundingApp();
 
@@ -297,6 +1178,7 @@ describe("public funding intent API", () => {
 
     const body = await response.json();
     expect(response.status).toBe(200);
+    expect(response.headers.get("access-control-allow-origin")).toBe(ORIGIN);
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(response.headers.get("pragma")).toBe("no-cache");
     expect(body.ok).toBe(true);
@@ -325,6 +1207,7 @@ describe("public funding intent API", () => {
       { headers: { origin: ORIGIN } }
     );
     expect(queryToken.status).toBe(400);
+    expect(queryToken.headers.get("access-control-allow-origin")).toBe(ORIGIN);
 
     const bodyTokenRequest = {
       headers: new Headers({
@@ -342,6 +1225,19 @@ describe("public funding intent API", () => {
     });
     expect(missing.status).toBe(401);
 
+    const preflight = await app.request(`/public/funding-intents/${createdBody.id}`, {
+      method: "OPTIONS",
+      headers: {
+        origin: ORIGIN,
+        "access-control-request-method": "GET",
+        "access-control-request-headers": "x-gg-receipt-token",
+      },
+    });
+    expect(preflight.status).toBe(204);
+    expect(preflight.headers.get("access-control-allow-origin")).toBe(ORIGIN);
+    expect(preflight.headers.get("access-control-allow-methods")).toContain("GET");
+    expect(preflight.headers.get("access-control-allow-headers")).toContain("X-GG-Receipt-Token");
+
     const read = await app.request(`/public/funding-intents/${createdBody.id}`, {
       headers: {
         origin: ORIGIN,
@@ -349,6 +1245,7 @@ describe("public funding intent API", () => {
       },
     });
     expect(read.status).toBe(200);
+    expect(read.headers.get("access-control-allow-origin")).toBe(ORIGIN);
     expect(read.headers.get("cache-control")).toBe("no-store");
     expect((await read.json()).publicReceipt.id).toBe(createdBody.id);
   });
@@ -385,9 +1282,32 @@ describe("thirdweb webhook API and public rate-limit keys", () => {
 
   function signedWebhookRequest(payload: Record<string, unknown>) {
     const body = JSON.stringify(payload);
+    const timestamp = String(Math.floor(Date.now() / 1000));
     return {
       method: "POST",
-      headers: { "x-thirdweb-signature": createHmac("sha256", secret).update(body).digest("hex") },
+      headers: {
+        "x-payload-signature": createHmac("sha256", secret)
+          .update(`${timestamp}.${body}`)
+          .digest("hex"),
+        "x-timestamp": timestamp,
+      },
+      body,
+    };
+  }
+
+  function officialSignedWebhookRequest(
+    payload: Record<string, unknown>,
+    timestamp = String(Math.floor(Date.parse("2026-04-27T12:05:00.000Z") / 1000))
+  ) {
+    const body = JSON.stringify(payload);
+    return {
+      method: "POST",
+      headers: {
+        "x-payload-signature": createHmac("sha256", secret)
+          .update(`${timestamp}.${body}`)
+          .digest("hex"),
+        "x-timestamp": timestamp,
+      },
       body,
     };
   }
@@ -409,6 +1329,8 @@ describe("thirdweb webhook API and public rate-limit keys", () => {
       token: token as `0x${string}`,
       provider: "thirdweb",
       providerSessionId: "thirdweb_session",
+      sourceRoute: "/fund",
+      managementUrl: "/fund?manage=endowments",
       status: "pending_provider",
       receiptTokenHash: "hash",
       quoteExpiresAt: "2026-04-27T12:10:00.000Z",
@@ -466,16 +1388,17 @@ describe("thirdweb webhook API and public rate-limit keys", () => {
       destinationAmount: "25",
       occurredAt: "2026-04-27T12:05:00.000Z",
     });
-    const signature = createHmac("sha256", secret).update(payload).digest("hex");
+    const timestamp = String(Math.floor(Date.now() / 1000));
+    const signature = createHmac("sha256", secret).update(`${timestamp}.${payload}`).digest("hex");
 
     const rejected = await app.request(PUBLIC_AGENT_ROUTES.thirdwebWebhook, {
       method: "POST",
-      headers: { "x-thirdweb-signature": "bad" },
+      headers: { "x-payload-signature": "bad", "x-timestamp": timestamp },
       body: payload,
     });
     const accepted = await app.request(PUBLIC_AGENT_ROUTES.thirdwebWebhook, {
       method: "POST",
-      headers: { "x-thirdweb-signature": signature },
+      headers: { "x-payload-signature": signature, "x-timestamp": timestamp },
       body: payload,
     });
 
@@ -484,6 +1407,145 @@ describe("thirdweb webhook API and public rate-limit keys", () => {
     const updated = await store.getById("fi_test");
     expect(updated?.status).toBe("pending_onchain");
     expect(updated?.transactionAttempts[0]?.txHash).toMatch(/^0x/);
+  });
+
+  it("rejects legacy Thirdweb signatures that do not carry a timestamp", async () => {
+    const store = new MemoryFundingIntentStore();
+    const app = createServer(
+      {
+        isAIReady: () => true,
+        fundingIntents: store,
+        publicRateLimiter: new InMemoryPublicRateLimiter(),
+        thirdwebWebhookSecret: secret,
+      },
+      { logger: false }
+    );
+    await store.create(createRecord());
+
+    const body = JSON.stringify({
+      id: "evt_legacy",
+      eventType: "transaction_submitted",
+      fundingIntentId: "fi_test",
+      txHash,
+      chainId: 11155111,
+      destinationAddress,
+      token,
+      destinationAmount: "25000000",
+      occurredAt: "2026-04-27T12:05:00.000Z",
+    });
+    const response = await app.request(PUBLIC_AGENT_ROUTES.thirdwebWebhook, {
+      method: "POST",
+      headers: { "x-thirdweb-signature": createHmac("sha256", secret).update(body).digest("hex") },
+      body,
+    });
+
+    expect(response.status).toBe(401);
+    expect((await store.getById("fi_test"))?.status).toBe("pending_provider");
+  });
+
+  it("accepts current Thirdweb Bridge webhook signature headers and nested completed payment payloads", async () => {
+    const store = new MemoryFundingIntentStore();
+    const confirmFundingTuple = vi
+      .fn<() => Promise<FundingConfirmationResult>>()
+      .mockResolvedValue({
+        status: "confirmed",
+        txHash: txHash as `0x${string}`,
+        matchedAssetAmount: "25000000",
+        confirmedAt: "2026-04-27T12:05:00.000Z",
+      });
+    const app = createServer(
+      {
+        isAIReady: () => true,
+        fundingIntents: store,
+        publicRateLimiter: new InMemoryPublicRateLimiter(),
+        thirdwebWebhookSecret: secret,
+        confirmFundingTuple,
+        now: () => Date.parse("2026-04-27T12:05:00.000Z"),
+      },
+      { logger: false }
+    );
+    await store.create(createRecord());
+
+    const response = await app.request(
+      PUBLIC_AGENT_ROUTES.thirdwebWebhook,
+      officialSignedWebhookRequest({
+        version: 2,
+        type: "pay.onchain-transaction",
+        data: {
+          paymentId: "thirdweb_session",
+          transactionId: "thirdweb_tx_1",
+          status: "COMPLETED",
+          destinationToken: {
+            chainId: 11155111,
+            address: token,
+            symbol: "USDC",
+            decimals: 6,
+          },
+          destinationAmount: "25000000",
+          receiver: destinationAddress,
+          transactions: [{ chainId: 11155111, transactionHash: txHash }],
+          purchaseData: {
+            fundingIntentId: "fi_test",
+            txRole: "funding",
+            destinationType: "cookieJar",
+            fundingIntent: "donate",
+            paymentMethod: "card",
+            sourceRoute: "/fund",
+          },
+        },
+      })
+    );
+
+    expect(response.status).toBe(200);
+    expect(confirmFundingTuple).toHaveBeenCalledWith(txHash, {
+      token,
+      destinationAddress,
+      minAssetAmount: "25000000",
+      chainId: 11155111,
+    });
+    const updated = await store.getById("fi_test");
+    expect(updated?.status).toBe("funded");
+    expect(updated?.fundingTxHash).toBe(txHash);
+    expect(updated?.transactionAttempts[0]).toMatchObject({
+      role: "funding",
+      status: "confirmed",
+      destinationAddress,
+      amount: "25000000",
+    });
+  });
+
+  it("rejects stale current Thirdweb webhook timestamps before event handling", async () => {
+    const store = new MemoryFundingIntentStore();
+    const app = createServer(
+      {
+        isAIReady: () => true,
+        fundingIntents: store,
+        publicRateLimiter: new InMemoryPublicRateLimiter(),
+        thirdwebWebhookSecret: secret,
+        now: () => Date.parse("2026-04-27T12:10:01.000Z"),
+      },
+      { logger: false }
+    );
+    await store.create(createRecord());
+
+    const response = await app.request(
+      PUBLIC_AGENT_ROUTES.thirdwebWebhook,
+      officialSignedWebhookRequest(
+        {
+          version: 2,
+          type: "pay.onchain-transaction",
+          data: {
+            paymentId: "thirdweb_session",
+            status: "COMPLETED",
+            purchaseData: { fundingIntentId: "fi_test" },
+          },
+        },
+        String(Math.floor(Date.parse("2026-04-27T12:00:00.000Z") / 1000))
+      )
+    );
+
+    expect(response.status).toBe(401);
+    expect((await store.getById("fi_test"))?.status).toBe("pending_provider");
   });
 
   it("rejects oversized thirdweb webhooks before signature verification", async () => {
@@ -549,6 +1611,7 @@ describe("thirdweb webhook API and public rate-limit keys", () => {
         chainId: 11155111,
         destinationAddress,
         token,
+        sourceRoute: "/fund",
         destinationAmount: "25000000",
         occurredAt: "2026-04-27T12:05:00.000Z",
       })
@@ -596,6 +1659,7 @@ describe("thirdweb webhook API and public rate-limit keys", () => {
         chainId: 11155111,
         destinationAddress,
         token,
+        sourceRoute: "/fund",
         destinationAmount: "25000000",
         occurredAt: "2026-04-27T12:05:00.000Z",
       })
@@ -636,6 +1700,7 @@ describe("thirdweb webhook API and public rate-limit keys", () => {
         chainId: 11155111,
         destinationAddress,
         token,
+        sourceRoute: "/fund",
         destinationAmount: "25000000",
         occurredAt: "2026-04-27T12:05:00.000Z",
       })
@@ -648,6 +1713,63 @@ describe("thirdweb webhook API and public rate-limit keys", () => {
     expect(updated?.failureCode).toBe("reconciliation_failed");
     expect(updated?.fundingTxHash).toBeUndefined();
     expect(updated?.transactionAttempts[0]?.failureCode).toBe("provider_session_mismatch");
+  });
+
+  it("fails strict funding events that do not match the locked source route", async () => {
+    const store = new MemoryFundingIntentStore();
+    const confirmFundingTuple = vi.fn<() => Promise<FundingConfirmationResult>>();
+    const app = createServer(
+      {
+        isAIReady: () => true,
+        fundingIntents: store,
+        publicRateLimiter: new InMemoryPublicRateLimiter(),
+        thirdwebWebhookSecret: secret,
+        confirmFundingTuple,
+      },
+      { logger: false }
+    );
+    await store.create(
+      createRecord({
+        destinationType: "vault",
+        fundingIntent: "endow",
+        availabilityKey: buildPublicFundingAvailabilityKey({
+          ...cardEndowAvailabilityInput,
+          sourceRoute: "/vaults",
+        }),
+        sourceRoute: "/vaults",
+        managementUrl: "/vaults?manage=positions",
+        receiverAddress: receiverAddress as `0x${string}`,
+      })
+    );
+
+    const response = await app.request(
+      PUBLIC_AGENT_ROUTES.thirdwebWebhook,
+      signedWebhookRequest({
+        id: "evt_wrong_route",
+        eventType: "transaction_submitted",
+        txRole: "funding",
+        fundingIntentId: "fi_test",
+        providerSessionId: "thirdweb_session",
+        destinationType: "vault",
+        fundingIntent: "endow",
+        paymentMethod: "card",
+        sourceRoute: "/fund",
+        txHash,
+        chainId: 11155111,
+        destinationAddress,
+        receiverAddress,
+        token,
+        destinationAmount: "25000000",
+        occurredAt: "2026-04-27T12:05:00.000Z",
+      })
+    );
+
+    expect(response.status).toBe(200);
+    expect(confirmFundingTuple).not.toHaveBeenCalled();
+    const updated = await store.getById("fi_test");
+    expect(updated?.status).toBe("failed");
+    expect(updated?.failureCode).toBe("reconciliation_failed");
+    expect(updated?.transactionAttempts[0]?.failureCode).toBe("source_route_mismatch");
   });
 
   it("keeps expired precedence by moving strict late matches to funded_late", async () => {
@@ -690,6 +1812,7 @@ describe("thirdweb webhook API and public rate-limit keys", () => {
         chainId: 11155111,
         destinationAddress,
         token,
+        sourceRoute: "/fund",
         destinationAmount: "25000000",
         occurredAt: "2026-04-27T12:45:00.000Z",
       })
