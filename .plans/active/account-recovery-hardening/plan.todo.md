@@ -32,14 +32,14 @@
 
 | Requirement | Lane | Planned Step | Status |
 |---|---|---|---|
-| Server-backed passkey registration/login | `state_api` | Step 1 | todo |
-| Staging-first rollout flag | `state_api` | Step 1 | todo |
-| Legacy local credential fallback | `state_api`, `ui` | Step 2 | todo |
-| Username recovery prompt and guarded new-account path | `ui`, `state_api` | Step 3 | todo |
-| Production RP/origin/address gates | `state_api`, `qa_pass_1` | Step 4 | todo |
+| Server-backed passkey registration/login | `state_api` | Step 1 | implemented |
+| Staging-first rollout flag | `state_api` | Step 1 | implemented |
+| Legacy local credential fallback | `state_api`, `ui` | Step 2 | implemented |
+| Username recovery prompt and guarded new-account path | `ui`, `state_api` | Step 3 | implemented |
+| Production RP/origin/address gates | `state_api`, `qa_pass_1` | Step 4 | classified; live QA pending |
 | Kernel/ENS recovery boundary | `state_api` | Step 5 | spike |
 | Browser/PWA/reinstall QA matrix | `qa_pass_1`, `qa_pass_2` | Step 6 | blocked |
-| Docs/support readiness | `ui`, `state_api`, `qa_pass_2` | Step 7 | todo |
+| Docs/support readiness | `ui`, `state_api`, `qa_pass_2` | Step 7 | implemented; QA support review pending |
 
 ## Implementation Steps
 
@@ -98,6 +98,8 @@
 - Verify unsupported/in-app browser contexts do not start a passkey ceremony.
 - Verify address mismatch fails closed and does not authenticate as the wrong account.
 - Record tested platform/provider combinations, including desktop Chrome, Android Chrome/PWA, iOS Safari/PWA if available, and unsupported/in-app browser negative coverage.
+- Run device-matrix passkey ceremonies from a `*.greengoods.app` staging origin (or set `VITE_PASSKEY_RP_ID` to the test host). Cloudflare-tunnel and other non-RP domains are blocked by design (`rp_origin_mismatch`) — record those as logistics constraints, not defects.
+- When simulating "passkey server unavailable", include HTTP 5xx and timeout shapes (not only network-off/fetch failures); the legacy fallback must engage for all of them.
 
 ### Step 7: Clean Up Docs And Support Surfaces
 
@@ -110,24 +112,24 @@
 
 ### UI (`claude/ui/account-recovery-hardening`)
 
-- [ ] Add recovery/fallback copy and i18n.
-- [ ] Show legacy local-only re-enrollment guidance without blocking same-device login.
-- [ ] Avoid overclaiming recovery when provider sync is unavailable.
+- [x] Add recovery/fallback copy and i18n.
+- [x] Show legacy local-only re-enrollment guidance without blocking same-device login.
+- [x] Avoid overclaiming recovery when provider sync is unavailable.
 - [ ] Write `handoffs/claude-ui.md`.
 
 ### State / API (`codex/state-api/account-recovery-hardening`)
 
-- [ ] Add shared Pimlico passkey-server client.
-- [ ] Add and respect `VITE_PASSKEY_SERVER_ENABLED`.
-- [ ] Centralize normalized username/ENS-handle context construction.
-- [ ] Replace local-only registration/login with server-backed first path.
-- [ ] Keep local credential fallback and failure-safe storage behavior.
-- [ ] Prove or explicitly defer legacy credential server migration/import.
-- [ ] Prove canonical RP/origin and same-address continuity for server-backed login.
-- [ ] Add privacy-safe recovery telemetry or redact reused auth telemetry for recovery paths.
-- [ ] Document exact installed `permissionless` passkey-server API usage and any upgrade requirement.
-- [ ] Add focused auth service/machine tests.
-- [ ] Write `handoffs/codex-state-api.md`.
+- [x] Add shared Pimlico passkey-server client.
+- [x] Add and respect `VITE_PASSKEY_SERVER_ENABLED`.
+- [x] Centralize normalized username/ENS-handle context construction.
+- [x] Replace local-only registration/login with server-backed first path.
+- [x] Keep local credential fallback and failure-safe storage behavior.
+- [x] Prove or explicitly defer legacy credential server migration/import.
+- [x] Prove canonical RP/origin and same-address continuity for server-backed login.
+- [x] Add privacy-safe recovery telemetry or redact reused auth telemetry for recovery paths.
+- [x] Document exact installed `permissionless` passkey-server API usage and any upgrade requirement.
+- [x] Add focused auth service/machine tests.
+- [x] Write `handoffs/codex-state-api.md`.
 
 ### Contracts (`n/a`)
 
@@ -151,8 +153,8 @@
 
 ## Validation
 
-- [ ] `node scripts/harness/plan-hub.mjs validate`
-- [ ] Targeted shared auth tests, for example `bun run --cwd packages/shared test -- src/__tests__/workflows/authServices.test.ts src/__tests__/workflows/authMachine.test.ts`
-- [ ] `bun run build:shared`
-- [ ] Manual passkey QA matrix evidence in `reports/`
-- [ ] Docs/support cleanup evidence in `reports/` or lane handoffs
+- [ ] `node scripts/harness/plan-hub.mjs validate` — failed on unrelated `.plans/active/sentry-stack-observability` hub shape; no feature-scoped validate command exists.
+- [x] Targeted shared auth tests: `bun run --cwd packages/shared test -- src/__tests__/workflows/authServices.test.ts src/__tests__/modules/session.test.ts src/__tests__/workflows/authMachine.test.ts src/__tests__/hooks/useAuth.test.ts`
+- [x] `bun run build:shared`
+- [ ] Manual passkey QA matrix evidence in `reports/` — live provider/PWA matrix remains for `PRD-540`.
+- [x] Docs/support cleanup evidence in `handoffs/codex-state-api.md`

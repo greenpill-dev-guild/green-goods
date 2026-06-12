@@ -8,6 +8,11 @@ import { resolve } from "path";
 import { defineConfig, loadEnv, type Plugin } from "vite";
 import mkcert from "vite-plugin-mkcert";
 import { VitePWA, type VitePWAOptions } from "vite-plugin-pwa";
+import {
+  createPwaManifestBranding,
+  resolvePwaManifestFlavor,
+  type PwaManifestBranding,
+} from "./src/config/pwa-manifest";
 import { APP_ROUTES, createPwaRoutingConfig } from "./src/config/pwa-routing";
 import { createPublicSocialPreviewPlugin } from "./vite/social-preview";
 
@@ -96,6 +101,40 @@ function deleteSentrySourceMapsPlugin(outDir: string): Plugin {
   };
 }
 
+function pwaHtmlMetadataPlugin(branding: PwaManifestBranding): Plugin {
+  const appleIcon = (sizes: string) => {
+    const icon = branding.appleTouchIcons.find((candidate) => candidate.sizes === sizes);
+    if (!icon) throw new Error(`Missing ${sizes} apple touch icon for ${branding.flavor} PWA`);
+    return icon.src;
+  };
+
+  const replacements = {
+    "%PWA_APP_NAME%": branding.name,
+    "%PWA_APPLE_ICON_57%": appleIcon("57x57"),
+    "%PWA_APPLE_ICON_60%": appleIcon("60x60"),
+    "%PWA_APPLE_ICON_72%": appleIcon("72x72"),
+    "%PWA_APPLE_ICON_120%": appleIcon("120x120"),
+    "%PWA_APPLE_ICON_144%": appleIcon("144x144"),
+    "%PWA_APPLE_ICON_180%": appleIcon("180x180"),
+    "%PWA_BROWSER_ICON%": branding.browserIcon,
+    "%PWA_MS_TILE_COLOR%": branding.msTileColor,
+    "%PWA_MS_TILE_IMAGE%": branding.msTileImage,
+    "%PWA_THEME_COLOR_LIGHT%": branding.htmlThemeColorLight,
+    "%PWA_THEME_COLOR_DARK%": branding.htmlThemeColorDark,
+  };
+
+  return {
+    name: "green-goods-pwa-html-metadata",
+    transformIndexHtml(html) {
+      let transformedHtml = html;
+      for (const [token, value] of Object.entries(replacements)) {
+        transformedHtml = transformedHtml.split(token).join(value);
+      }
+      return transformedHtml;
+    },
+  };
+}
+
 export default defineConfig(async ({ command, mode }) => {
   const rootDir = resolve(__dirname, "../../");
   // Resolve .env from monorepo root even when this package script runs with a package cwd.
@@ -152,6 +191,7 @@ export default defineConfig(async ({ command, mode }) => {
       ? `${url}${url.includes("?") ? "&" : "?"}gg_v=${encodeURIComponent(shortAppVersion)}`
       : url;
   const pwaStartUrl = versionedUrl(pwaRouting.startUrl);
+  const pwaBranding = createPwaManifestBranding(resolvePwaManifestFlavor(process.env));
 
   // Skip mkcert in devcontainer, CI, or when SKIP_MKCERT is set
   // SKIP_MKCERT is useful when sudo is broken (e.g., "you do not exist in passwd database")
@@ -226,6 +266,7 @@ export default defineConfig(async ({ command, mode }) => {
 
   const plugins = [
     devTunnelPlugin(),
+    pwaHtmlMetadataPlugin(pwaBranding),
     // Only use mkcert for HTTPS when not in devcontainer, CI, or explicitly skipped
     ...(isDevContainer || isCI || skipMkcert ? [] : [mkcert()]),
     tailwindcss(),
@@ -239,26 +280,7 @@ export default defineConfig(async ({ command, mode }) => {
     }),
     createPublicSocialPreviewPlugin(isIPFSBuild),
     VitePWA({
-      includeAssets: [
-        "favicon.ico",
-        "apple-icon.png",
-        "icon-192.png",
-        "icon.png",
-        "icon-512.png",
-        "maskable-icon-512.png",
-        "images/android-icon-36x36.png",
-        "images/android-icon-48x48.png",
-        "images/android-icon-72x72.png",
-        "images/android-icon-144x144.png",
-        "images/apple-icon-57x57.png",
-        "images/apple-icon-60x60.png",
-        "images/apple-icon-72x72.png",
-        "images/apple-icon-120x120.png",
-        "images/apple-icon-144x144.png",
-        "images/ms-icon-70x70.png",
-        "images/ms-icon-144x144.png",
-        "images/ms-icon-310x310.png",
-      ],
+      includeAssets: pwaBranding.includeAssets,
       injectRegister: false,
       registerType: "prompt",
       workbox: {
@@ -368,48 +390,38 @@ export default defineConfig(async ({ command, mode }) => {
         ],
       },
       manifest: {
-        id: pwaRouting.manifestId,
-        name: "Green Goods",
-        short_name: "Green Goods",
+        id: pwaBranding.manifestId,
+        name: pwaBranding.name,
+        short_name: pwaBranding.shortName,
+        ...(pwaBranding.description ? { description: pwaBranding.description } : {}),
         // Window Controls Overlay: Native desktop app feel (removes browser titlebar)
         // Falls back to standalone on mobile or unsupported browsers
         display_override: ["window-controls-overlay", "standalone"],
-        icons: [
-          { src: "images/android-icon-72x72.png", sizes: "72x72", type: "image/png" },
-          { src: "images/android-icon-144x144.png", sizes: "144x144", type: "image/png" },
-          { src: "icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
-          { src: "icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
-          {
-            src: "maskable-icon-512.png",
-            sizes: "512x512",
-            type: "image/png",
-            purpose: "maskable",
-          },
-        ],
+        icons: pwaBranding.manifestIcons,
         start_url: pwaStartUrl,
         scope: pwaRouting.manifestScope,
         display: "standalone",
         orientation: "portrait-primary",
-        theme_color: "#fff",
-        background_color: "#fff",
+        theme_color: pwaBranding.themeColor,
+        background_color: pwaBranding.backgroundColor,
         shortcuts: [
           {
             name: "Home",
             description: "View Gardens",
             url: pwaRouting.shortcutUrl(APP_ROUTES.home),
-            icons: [{ src: "icon-192.png", sizes: "192x192", type: "image/png" }],
+            icons: [{ src: pwaBranding.shortcutIcon, sizes: "192x192", type: "image/png" }],
           },
           {
             name: "Garden",
             description: "Upload your work",
             url: pwaRouting.shortcutUrl(APP_ROUTES.garden),
-            icons: [{ src: "icon-192.png", sizes: "192x192", type: "image/png" }],
+            icons: [{ src: pwaBranding.shortcutIcon, sizes: "192x192", type: "image/png" }],
           },
           {
             name: "Profile",
             description: "View your profile",
             url: pwaRouting.shortcutUrl(APP_ROUTES.profile),
-            icons: [{ src: "icon-192.png", sizes: "192x192", type: "image/png" }],
+            icons: [{ src: pwaBranding.shortcutIcon, sizes: "192x192", type: "image/png" }],
           },
         ],
         categories: [],

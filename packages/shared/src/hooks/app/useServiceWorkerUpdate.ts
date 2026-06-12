@@ -10,12 +10,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { logger } from "../../modules/app/logger";
 import { track } from "../../modules/app/posthog";
+import { useTimeout } from "../utils/useTimeout";
 
 export interface ServiceWorkerUpdateState {
   /** Whether a new service worker is waiting to activate */
   updateAvailable: boolean;
   /** Whether the update is currently being applied */
   isUpdating: boolean;
+  /** True when the last applyUpdate gave up waiting for the new worker to activate */
+  applyTimedOut: boolean;
   /** Check for an update and return true when a waiting worker is ready */
   checkForUpdate: () => Promise<boolean>;
   /** Apply the update (reloads the page) */
@@ -27,6 +30,14 @@ export interface ServiceWorkerUpdateState {
 }
 
 const WAITING_WORKER_TIMEOUT_MS = 10_000;
+
+/**
+ * Bound on the apply path: time allowed between posting SKIP_WAITING and the
+ * `controllerchange` reload. If the waiting worker never activates, recover
+ * the UI (reset `isUpdating`, expose `applyTimedOut`) instead of hanging in
+ * an indefinite "Updating…" state (PRD-500).
+ */
+export const APPLY_UPDATE_TIMEOUT_MS = 60_000;
 
 /**
  * Minimum gap between automatic update checks triggered by `focus` /
@@ -63,8 +74,12 @@ const MIN_AUTO_CHECK_INTERVAL_MS = 15 * 60 * 1000;
 export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
   const [updateAvailable, setUpdateAvailable] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [applyTimedOut, setApplyTimedOut] = useState(false);
   const [waitingWorker, setWaitingWorker] = useState<ServiceWorker | null>(null);
   const [dismissed, setDismissed] = useState(false);
+
+  // Managed timeout for the apply path; cleared on activation and on unmount.
+  const { set: scheduleApplyTimeout, clear: clearApplyTimeout } = useTimeout();
 
   // Track registration for cleanup
   const registrationRef = useRef<ServiceWorkerRegistration | null>(null);
@@ -200,9 +215,10 @@ export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
   // Use the event listener hook for controller change (with { once: true })
   // This ensures we only handle it once and it's properly cleaned up
   const handleControllerChange = useCallback(() => {
+    clearApplyTimeout();
     controllerChangeListenerRef.current = false;
     window.location.reload();
-  }, []);
+  }, [clearApplyTimeout]);
 
   // Track if we've added the controllerchange listener
   const controllerChangeListenerRef = useRef(false);
@@ -305,6 +321,7 @@ export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
     if (!worker) return;
 
     waitingWorkerRef.current = worker;
+    setApplyTimedOut(false);
     setIsUpdating(true);
     track("sw_update_applied", {});
 
@@ -317,7 +334,24 @@ export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
     navigator.serviceWorker.addEventListener("controllerchange", handleControllerChange, {
       once: true,
     });
-  }, [waitingWorker, handleControllerChange]);
+
+    // Fail open after a bounded wait: if the waiting worker never activates
+    // (PRD-500's indefinite "Updating…" hang), recover the UI so the user can
+    // retry or keep using the current version.
+    scheduleApplyTimeout(() => {
+      if (controllerChangeListenerRef.current) {
+        navigator.serviceWorker.removeEventListener("controllerchange", handleControllerChange);
+        controllerChangeListenerRef.current = false;
+      }
+      setIsUpdating(false);
+      setApplyTimedOut(true);
+      logger.warn("Service worker update did not activate before timeout", {
+        source: "useServiceWorkerUpdate.applyUpdate",
+        timeoutMs: APPLY_UPDATE_TIMEOUT_MS,
+      });
+      track("sw_update_apply_timeout", {});
+    }, APPLY_UPDATE_TIMEOUT_MS);
+  }, [waitingWorker, handleControllerChange, scheduleApplyTimeout]);
 
   // Cleanup effect for controllerchange listener if component unmounts before it fires
   useEffect(() => {
@@ -338,6 +372,7 @@ export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
   return {
     updateAvailable: updateAvailable && !dismissed,
     isUpdating,
+    applyTimedOut,
     checkForUpdate,
     applyUpdate,
     dismissUpdate,

@@ -54,11 +54,21 @@ export { getGardensSubgraphUrl } from "./gardens-subgraph";
 
 // From passkeyServer.ts (client-only passkey utilities)
 export {
+  buildPasskeyRecoveryContext,
+  classifyPasskeyCeremonyContext,
   createPasskey,
+  createPasskeyServerClient,
   getPasskeyRpId,
   isPasskeyAvailable,
+  isPasskeyServerEnabled,
+  normalizePasskeyAccountIdentifier,
   PASSKEY_RP_ID,
   PASSKEY_RP_NAME,
+} from "./passkeyServer";
+export type {
+  PasskeyCeremonyBlockReason,
+  PasskeyCeremonyContextStatus,
+  PasskeyRecoveryContext,
 } from "./passkeyServer";
 // From pimlico.ts
 export {

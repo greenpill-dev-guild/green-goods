@@ -468,6 +468,7 @@ export function parseContractError(error: unknown): ParsedContractError {
   // ============================================================================
 
   const lowerStr = errorStr.toLowerCase();
+  const hasWalletRequestExpiryCode = /\baa(?:22|32)\b[^\n\r]*(?:expired|not due)/i.test(errorStr);
 
   // 1. Wallet request expiry. These are short-lived wallet/account-abstraction
   // request windows, not broken media or a failed contract payload. Keep this
@@ -476,8 +477,7 @@ export function parseContractError(error: unknown): ParsedContractError {
     lowerStr.includes("request expired") ||
     lowerStr.includes("proposal expired") ||
     lowerStr.includes("out of time-range") ||
-    lowerStr.includes("aa22") ||
-    lowerStr.includes("aa32")
+    hasWalletRequestExpiryCode
   ) {
     return {
       raw: signature ?? errorStr,

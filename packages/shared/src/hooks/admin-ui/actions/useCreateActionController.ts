@@ -5,6 +5,7 @@ import {
   Domain,
   getNetworkContracts,
   logger,
+  parseContractError,
   type Step,
   toastService,
   trackAdminActionCreateFailed,
@@ -217,9 +218,13 @@ export function useCreateActionController() {
       if (!result.success) {
         const errorMessage = result.error?.message ?? "Action registration failed";
         mutationStarted = false;
+        // Telemetry carries the parsed error family only — raw messages can
+        // embed operator-typed content (work/auth telemetry follow the same rule).
+        const parsedFamily = parseContractError(result.error ?? errorMessage).name;
         trackAdminActionCreateFailed({
           ...telemetryBase,
-          error: errorMessage,
+          error: parsedFamily,
+          parsedErrorFamily: parsedFamily,
         });
         throw new Error(errorMessage);
       }
@@ -240,13 +245,15 @@ export function useCreateActionController() {
         mediaCount: data.media.length,
       });
       if (mutationStarted) {
+        const parsedFamily = parseContractError(error).name;
         trackAdminActionCreateFailed({
           gardenAddress: actionCreateGardenAddress,
           chainId: CREATE_ACTION_DEFAULT_CHAIN_ID,
           actionTitle: data.title,
           actionSlug,
           actionDomain,
-          error: error instanceof Error ? error.message : String(error),
+          error: parsedFamily,
+          parsedErrorFamily: parsedFamily,
         });
       }
 

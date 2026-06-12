@@ -394,6 +394,9 @@ describe("Chat Message Capture", () => {
       buildChatMessageInput({ id: `claim-${Date.now()}`, messageId: `${Date.now()}-claim` })
     );
 
+    // Injected clock keeps this fully deterministic: develop's deflake used a
+    // far-past threshold against the wall clock; this branch's injectable `now`
+    // removes the wall clock from the claim/re-claim pair entirely.
     await expect(db.claimChatMessage(stored.id, 900, 1000)).resolves.toBe(true);
     await expect(db.claimChatMessage(stored.id, 900, 1001)).resolves.toBe(false);
 
@@ -402,6 +405,10 @@ describe("Chat Message Capture", () => {
       status: "processing",
     });
     expect(processing.find((message) => message.id === stored.id)).toBeDefined();
+
+    // Lease expiry is a deliberate branch, not an accident: a threshold ahead
+    // of the claim timestamp treats the processing row as crashed and reclaims.
+    await expect(db.claimChatMessage(stored.id, Date.now() + 1_000)).resolves.toBe(true);
   });
 
   it("can read all statuses for read-only clustering", async () => {

@@ -47,12 +47,14 @@ import {
   clearAuthMode,
   clearEmbeddedAddress,
   clearStoredCredential,
+  clearStoredSmartAccountAddress,
   clearStoredUsername,
   getAuthMode,
   getStoredUsername,
   hasStoredCredential,
   setAuthMode as saveAuthModeToStorage,
   setEmbeddedAddress,
+  setSignedOutSentinel,
 } from "../modules/auth/session";
 import { type AuthActor, getAuthActor } from "../workflows/authActor";
 
@@ -378,8 +380,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
         await disconnectWallet();
       }
 
-      // Get stored username or use provided
-      const finalUserName = userName || getStoredUsername() || "user";
+      // Get stored username or use provided. An empty username routes the
+      // auth service straight to the local one-tap path — never fabricate a
+      // placeholder, because under the passkey-server flag any truthy name
+      // triggers a hosted-server lookup for that literal username. Nullish
+      // coalescing preserves an explicit "" from the caller.
+      const finalUserName = userName ?? getStoredUsername() ?? "";
 
       // Send event to machine
       actor.send({ type: "LOGIN_PASSKEY_EXISTING", userName: finalUserName });
@@ -426,7 +432,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const switchToPasskey = useCallback(
     (userName?: string) => {
       if (!actor) return;
-      const finalUserName = userName || getStoredUsername() || "user";
+      // Empty username routes to the local one-tap path (see loginWithPasskey).
+      const finalUserName = userName ?? getStoredUsername() ?? "";
       actor.send({ type: "SWITCH_TO_PASSKEY", userName: finalUserName });
       saveAuthModeToStorage("passkey");
     },
@@ -440,12 +447,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     await disconnectWallet();
 
-    // Clear auth mode, username, and embedded address, but KEEP credential for future passkey login
-    // The credential contains the public key needed to reconstruct the smart account
-    // Clearing it would force the user to create a new account (different address)
+    // Clear auth mode and embedded address, but keep passkey recovery metadata.
+    // Username + credential + expected address are the local cache for same-device fallback.
     clearAuthMode();
-    clearStoredUsername();
     clearEmbeddedAddress();
+    // Make sign-out durable: suppress automatic passkey session restore on
+    // refresh until the next successful passkey sign-in (sign-in intent alone
+    // does not clear the sentinel — a dismissed ceremony stays signed out).
+    // The cached metadata still powers one-tap re-login.
+    setSignedOutSentinel();
 
     // Reset wallet restore guard to allow future auto-restore
     walletRestoreAttemptedRef.current = false;
@@ -473,9 +483,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [actor]);
 
   const clearPasskey = useCallback(() => {
-    // Clear stored credential and username from localStorage
+    // Clear stored credential, username, and expected address from localStorage.
     clearStoredCredential();
     clearStoredUsername();
+    clearStoredSmartAccountAddress();
     if (actor) {
       actor.send({ type: "SIGN_OUT" });
     }

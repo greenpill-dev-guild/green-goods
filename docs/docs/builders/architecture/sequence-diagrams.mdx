@@ -218,23 +218,31 @@ The three-way split is configured per garden in basis points (bps):
 
 ## Passkey onboarding flow
 
-New gardeners onboard using WebAuthn passkeys -- no seed phrases, no browser extensions. The passkey creates a smart account (ERC-4337) that serves as the gardener's on-chain identity.
+New gardeners onboard using WebAuthn passkeys -- no seed phrases, no browser extensions. The passkey creates a smart account (ERC-4337) that serves as the gardener's on-chain identity. When `VITE_PASSKEY_SERVER_ENABLED=true`, registration and lookup use Pimlico's hosted passkey server with a normalized username or ENS-handle context; with the flag off, Green Goods stays on the legacy local-only passkey path.
 
 ```mermaid
 sequenceDiagram
     actor G as New Gardener
     participant PWA as Client PWA
+    participant PKS as Pimlico Passkey Server
     participant WebAuthn as WebAuthn API
     participant Bundler as ERC-4337 Bundler
     participant Factory as Account Factory
     participant Chain as On-Chain
 
     G->>PWA: Tap "Join Garden"
+    opt Hosted passkey server enabled
+        PWA->>PKS: startRegistration(context)
+    end
     PWA->>WebAuthn: navigator.credentials.create()
     WebAuthn-->>PWA: PublicKeyCredential (passkey)
+    opt Hosted passkey server enabled
+        PWA->>PKS: verifyRegistration(credential, context)
+        PKS-->>PWA: credential id + public key
+    end
 
     PWA->>PWA: Derive smart account address (CREATE2)
-    PWA->>PWA: Store credential ID in IndexedDB
+    PWA->>PWA: Cache credential metadata, username, RP ID, expected address in localStorage
 
     Note over PWA,Bundler: First transaction sponsors gas
 
@@ -250,8 +258,17 @@ sequenceDiagram
     Note over G,Chain: Subsequent transactions
 
     G->>PWA: Submit work
+    opt Hosted passkey server enabled and local cache missing
+        PWA->>PKS: getCredentials(context)
+        PKS-->>PWA: credential id + public key
+        PWA->>PKS: startAuthentication()
+    end
     PWA->>WebAuthn: navigator.credentials.get()
     WebAuthn-->>PWA: Signed assertion
+    opt Hosted passkey server enabled
+        PWA->>PKS: verifyAuthentication(assertion)
+        PWA->>PWA: Fail closed if rebuilt address mismatches expected address
+    end
     PWA->>Bundler: UserOperation (signed by passkey)
     Bundler->>Chain: Execute via smart account
 ```
@@ -261,7 +278,8 @@ sequenceDiagram
 - **No wallet required**: Gardeners authenticate with device biometrics (fingerprint, face) via WebAuthn.
 - **Counterfactual deployment**: The smart account address is derived from the passkey public key before deployment. The account is only deployed on-chain with the first real transaction.
 - **Gas sponsorship**: The first transaction uses a paymaster so new users do not need to hold ETH.
-- **Credential storage**: The passkey credential ID is stored locally in IndexedDB and (optionally) synced to ENS text records for cross-device recovery.
+- **Credential storage and recovery**: LocalStorage caches the credential metadata, normalized username, RP ID, and expected smart-account address. With `VITE_PASSKEY_SERVER_ENABLED=true`, Pimlico's hosted passkey server is the lookup source for storage-loss recovery; local cache remains the legacy same-device fallback.
+- **Rollback**: Set `VITE_PASSKEY_SERVER_ENABLED=false` to keep legacy local-only passkey behavior.
 
 ---
 

@@ -7,12 +7,14 @@
  * - AUTH_MODE_STORAGE_KEY: Which auth method is active ("passkey" | "wallet")
  * - USERNAME_STORAGE_KEY: User's display name
  * - CREDENTIAL_STORAGE_KEY: Passkey credential (id + publicKey)
+ * - SMART_ACCOUNT_ADDRESS_STORAGE_KEY: Expected passkey smart-account address
  *
  * Note: This is a simplified client-only approach following Pimlico's documentation.
  * Credentials are stored in localStorage - no server-side storage needed.
  * Reference: https://docs.pimlico.io/docs/how-tos/signers/passkey
  */
 
+import type { Address } from "viem";
 import type { P256Credential } from "viem/account-abstraction";
 
 import type { AuthMode } from "../../types/auth";
@@ -34,6 +36,9 @@ const CREDENTIAL_STORAGE_KEY = "greengoods_credential";
 /** RP ID used during passkey registration (for cross-device consistency) */
 export const RP_ID_STORAGE_KEY = "greengoods_rp_id";
 
+/** Expected smart-account address rebuilt from the active passkey credential */
+export const SMART_ACCOUNT_ADDRESS_STORAGE_KEY = "greengoods_smart_account_address";
+
 // ============================================================================
 // AUTH MODE
 // ============================================================================
@@ -53,6 +58,40 @@ export function setAuthMode(mode: Exclude<AuthMode, null>): void {
 /** Clear the auth mode (on sign out) */
 export function clearAuthMode(): void {
   localStorage.removeItem(AUTH_MODE_STORAGE_KEY);
+}
+
+// ============================================================================
+// SIGNED-OUT SENTINEL (explicit sign-out durability)
+// ============================================================================
+
+/**
+ * Sentinel written by explicit sign-out.
+ *
+ * Sign-out intentionally keeps the passkey recovery metadata (credential,
+ * username, expected address) as the same-device cache, but session restore
+ * also rehydrates passkey sessions when no auth mode is stored. Without this
+ * sentinel a refresh after explicit sign-out would silently re-authenticate
+ * the prior passkey account — defeating sign-out on shared devices.
+ *
+ * Lifecycle: set by explicit sign-out; cleared only by a successful passkey
+ * session creation (not by sign-in intent — a dismissed ceremony must leave
+ * the device signed out).
+ */
+export const SIGNED_OUT_STORAGE_KEY = "greengoods_signed_out";
+
+/** Mark that the user explicitly signed out; suppresses automatic restore. */
+export function setSignedOutSentinel(): void {
+  localStorage.setItem(SIGNED_OUT_STORAGE_KEY, "true");
+}
+
+/** Re-enable automatic session restore (successful sign-in opts back in). */
+export function clearSignedOutSentinel(): void {
+  localStorage.removeItem(SIGNED_OUT_STORAGE_KEY);
+}
+
+/** Whether the user explicitly signed out and has not signed back in. */
+export function hasSignedOutSentinel(): boolean {
+  return localStorage.getItem(SIGNED_OUT_STORAGE_KEY) === "true";
 }
 
 // ============================================================================
@@ -94,6 +133,25 @@ export function clearStoredRpId(): void {
 }
 
 // ============================================================================
+// SMART ACCOUNT ADDRESS (account continuity)
+// ============================================================================
+
+/** Store the expected smart-account address for passkey account continuity. */
+export function setStoredSmartAccountAddress(address: Address): void {
+  localStorage.setItem(SMART_ACCOUNT_ADDRESS_STORAGE_KEY, address);
+}
+
+/** Get the expected smart-account address for passkey account continuity. */
+export function getStoredSmartAccountAddress(): Address | null {
+  return localStorage.getItem(SMART_ACCOUNT_ADDRESS_STORAGE_KEY) as Address | null;
+}
+
+/** Clear the expected smart-account address. */
+export function clearStoredSmartAccountAddress(): void {
+  localStorage.removeItem(SMART_ACCOUNT_ADDRESS_STORAGE_KEY);
+}
+
+// ============================================================================
 // EMBEDDED WALLET ADDRESS
 // ============================================================================
 
@@ -101,13 +159,13 @@ export function clearStoredRpId(): void {
 export const EMBEDDED_ADDRESS_KEY = "greengoods_embedded_address";
 
 /** Store embedded wallet address in localStorage */
-export function setEmbeddedAddress(address: string): void {
+export function setEmbeddedAddress(address: Address): void {
   localStorage.setItem(EMBEDDED_ADDRESS_KEY, address);
 }
 
 /** Get stored embedded wallet address */
-export function getEmbeddedAddress(): string | null {
-  return localStorage.getItem(EMBEDDED_ADDRESS_KEY);
+export function getEmbeddedAddress(): Address | null {
+  return localStorage.getItem(EMBEDDED_ADDRESS_KEY) as Address | null;
 }
 
 /** Clear stored embedded wallet address */
@@ -131,7 +189,9 @@ export function clearAllAuth(): void {
   localStorage.removeItem(USERNAME_STORAGE_KEY);
   localStorage.removeItem(CREDENTIAL_STORAGE_KEY);
   localStorage.removeItem(RP_ID_STORAGE_KEY);
+  localStorage.removeItem(SMART_ACCOUNT_ADDRESS_STORAGE_KEY);
   localStorage.removeItem(EMBEDDED_ADDRESS_KEY);
+  localStorage.removeItem(SIGNED_OUT_STORAGE_KEY);
 }
 
 // ============================================================================
@@ -153,6 +213,7 @@ function debugPasskeyConfig(): void {
   const envRpId = import.meta.env.VITE_PASSKEY_RP_ID;
   const storedRpId = localStorage.getItem(RP_ID_STORAGE_KEY);
   const storedUsername = localStorage.getItem(USERNAME_STORAGE_KEY);
+  const storedSmartAccountAddress = localStorage.getItem(SMART_ACCOUNT_ADDRESS_STORAGE_KEY);
   const hostname = window.location.hostname;
   const origin = window.location.origin;
 
@@ -174,6 +235,7 @@ function debugPasskeyConfig(): void {
     hostname,
     origin,
     storedUsername: storedUsername || "(not set)",
+    storedSmartAccountAddress: storedSmartAccountAddress ? "(set)" : "(not set)",
     effectiveRpId,
   });
 

@@ -11,6 +11,12 @@ packages/admin/src/views/Actions/ActionDetail.tsx <div className="h-80 rounded-[
 packages/admin/src/views/Hub/components/HubWorkbenchSkeletonRows.tsx <div className="h-14 w-14 rounded-2xl skeleton-shimmer max-[599px]:h-11 max-[599px]:w-11 max-[599px]:rounded-[0.85rem]" />	legacy-runtime	admin	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
 packages/client/src/components/Layout/Hero.tsx bgColor={isDark ? "#1a1a1a" : "#ffffff"}	legacy-runtime	client	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
 packages/client/src/components/Layout/Hero.tsx fgColor={isDark ? "#ffffff" : "#000000"}	legacy-runtime	client	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
+packages/client/src/config/pwa-manifest.ts backgroundColor: "#fff",	legacy-runtime	client	2026-12-31	web manifest requires serialized literal colors pending token export
+packages/client/src/config/pwa-manifest.ts const STAGING_DARK_SURFACE = "#111b13";	legacy-runtime	client	2026-12-31	web manifest requires serialized literal colors pending token export
+packages/client/src/config/pwa-manifest.ts htmlThemeColorDark: "#171717",	legacy-runtime	client	2026-12-31	web manifest requires serialized literal colors pending token export
+packages/client/src/config/pwa-manifest.ts htmlThemeColorLight: "#ffffff",	legacy-runtime	client	2026-12-31	web manifest requires serialized literal colors pending token export
+packages/client/src/config/pwa-manifest.ts msTileColor: "#ffffff",	legacy-runtime	client	2026-12-31	web manifest requires serialized literal colors pending token export
+packages/client/src/config/pwa-manifest.ts themeColor: "#fff",	legacy-runtime	client	2026-12-31	web manifest requires serialized literal colors pending token export
 packages/shared/src/components/Audio/AudioPlayer.tsx background: `linear-gradient(to right, var(--color-primary-base, #3b82f6) ${progress}%, var(--color-bg-soft-200, #e5e7eb) ${progress}%)`,	legacy-runtime	shared	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
 packages/shared/src/components/Canvas/NavigationBar.tsx : "bg-black/3 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.22)] group-hover:bg-white/72"	legacy-runtime	shared	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
 packages/shared/src/components/Canvas/NavigationBar.tsx : "min-w-[4.25rem] rounded-[1.1rem] px-3 py-2",	legacy-runtime	shared	2026-12-31	legacy literal tracked for migration to Warm Earth tokens
