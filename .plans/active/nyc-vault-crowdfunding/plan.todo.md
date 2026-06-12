@@ -2,9 +2,9 @@
 
 **Feature Slug**: `nyc-vault-crowdfunding`
 **Stage**: `active`
-**Status**: `ACTIVE - /vaults route locked; Octant QA PRD-583 through PRD-589 implemented/source-defined pending human QA`
+**Status**: `ACTIVE - /vaults route locked; Card Endow production hardening shipped on PR 543 (CI green, review threads resolved); Octant QA PRD-583 through PRD-589 implemented/source-defined pending human QA`
 **Created**: `2026-05-09T21:35:46.781Z`
-**Last Updated**: `2026-06-08T20:06:07Z`
+**Last Updated**: `2026-06-12T19:59:00Z`
 
 ## Decision Log
 
@@ -31,6 +31,8 @@
 | 19 | Octant QA feedback is now decision-locked into implementation scopes. | The 2026-06-08 successful Greenpill NYC deposit feedback exposes real polish gaps. Technical labels/links, ETH/WETH balances, ETH→WETH wrapping, leading-decimal inputs, source-backed strategy copy, shares-first redeem management, and aggregate project-supporting value definition are now tracked as implementation-ready or research-ready issues. |
 | 20 | `/vaults?manage=positions` uses shares-first redeem semantics. | Supporters own vault shares; WETH is the estimated/returned asset. The v1 manage control should redeem shares via `maxRedeem`/`redeem`, not ask users to withdraw a WETH amount from `maxWithdraw`. |
 | 21 | Profit-share display is aggregate project support, not per-user accrued profit. | Octant YDS routes profit into project-supporting/donation shares instead of compounding it into each depositor's position. The first numeric metric should be aggregate project-supporting value generated, with a hidden/unavailable state until the donation/router address and formula are proven. |
+| 22 | Card Endow settlement requires exact provider-route proof, and the agent never trusts client share claims. | 2026-06-12 hardening: approve/deposit starts only after the prepared onramp quote matches the exact chain/WETH/receiver/amount, `Onramp.status` is COMPLETED with a non-contradicting tuple, and WETH `balanceOf(receiver)` covers the amount. The agent proof route independently reads `vault.balanceOf(receiverAddress)` on-chain (fails closed without verifiers), and the client Card Endow allowlist must stay in lockstep with live provider-proof registry entries (EVMavericks entry added per the Codex review). |
+| 23 | Pending-funded Card Endow recovery is route-local safe metadata. | A provably COMPLETED payment caches only the public recovery tuple (recovered wallet, campaign, vault, chain, token, expected amount, status); `/vaults?manage=positions` offers a finish-deposit path with same-session reuse via autoConnect or email-OTP restore for returning wallets. Emails, OTPs, provider/session IDs, and receipt tokens are never cached or placed in URLs. |
 
 ## Octant QA Follow-Up Scope (2026-06-08)
 
@@ -271,6 +273,18 @@ movement.
   `node_modules` graph, and a runtime import check for `@green-goods/shared/public-contracts`
 - [x] Targeted agent tests cover `/public/funding-intents/proof` recording after positive
   `vault.balanceOf(receiverAddress)` proof and rejection when shares are zero
+- [x] 2026-06-12 hardening: targeted client tests cover the three visible Card Endow stages,
+  OTP field only after code send, prepared-quote mismatch blocking session acceptance,
+  COMPLETED-without-WETH-balance never starting settlement, batch-failure fallback on Step 3,
+  proof POST only after positive shares, route-local `/vaults?manage=positions` handoff, and
+  pending-funded recovery cache safety
+- [x] 2026-06-12 hardening: targeted shared tests cover exact onramp quote/completion route
+  validation, funding-balance floor, pending-funded cache lifecycle, legacy cache compatibility,
+  and private-looking field stripping
+- [x] 2026-06-12 hardening: targeted agent tests prove the proof route fails closed without
+  server-side verifiers, rejects forged share claims when the on-chain read is zero or fails,
+  records only the server-read share balance, and accepts both production pilot tuples through
+  the DEFAULT provider-proof registry
 - [ ] Targeted agent log snapshot coverage for redacted provider logs
 - [x] Refresh browser proof for final public `/vaults` demo on desktop and mobile
 - [x] Browser proof for PRD-589 resolved metric and PRD-587 route-local manage shell:

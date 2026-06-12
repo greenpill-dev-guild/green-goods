@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p0",
     "created_at": "2026-05-09T21:35:46.781Z",
-    "updated_at": "2026-06-08T20:08:52Z"
+    "updated_at": "2026-06-12T19:59:00Z"
   },
   "links": {
     "brief": "brief.md",
@@ -362,7 +362,35 @@
         "live pilot custody/share/manage/provider proof",
         "Thirdweb full-flow approve+deposit contract-call checkout/provider-session proof",
         "human live wallet/card QA against fallback provider funding and recovered-wallet share verification"
-      ]
+      ],
+      "productionHardening": {
+        "timestamp": "2026-06-12T19:59:00Z",
+        "commits": ["ca05de903", "c1a3eeb1a", "bfb28a6ea"],
+        "pullRequest": "https://github.com/greenpill-dev-guild/green-goods/pull/543",
+        "donorFlow": "Three visible stages on default /vaults Card Endow: Step 1 of 3 verify email wallet (OTP field renders only after a code is sent), Step 2 of 3 secure card payment, Step 3 of 3 vault deposit and proof with the inline approve+deposit fallback when the EIP-7702 batch is unsupported or fails.",
+        "settlementProofGates": [
+          "Bridge.Onramp.prepare quote must match the exact chain, WETH token, recovered receiver, and base-unit amount or the session is never accepted (validateOctantVaultCardOnrampQuote)",
+          "Bridge.Onramp.status must be COMPLETED with a non-contradicting purchase tuple (validateOctantVaultCardOnrampCompletion)",
+          "recovered-wallet WETH balanceOf(receiver) must cover the expected amount before approve/deposit (hasRequiredOctantVaultFundingBalance)",
+          "quote/status/balance failures stay route-local and recoverable; approve-then-deposit ordering preserved"
+        ],
+        "pendingFundedRecovery": "Once a payment is provably COMPLETED with a valid tuple, the safe public recovery tuple (recovered wallet, campaign slug, vault, chainId, token, expected base-unit amount, status, updatedAt) is cached; /vaults?manage=positions offers a finish-deposit path (live session direct, returning wallet via email-OTP restore). Confirmed shares upgrade the entry. No emails, OTPs, provider/session IDs, or receipt tokens are cached or placed in URLs.",
+        "agentServerSideShareProof": "Codex review P1: /public/funding-intents/proof fails closed without server-side verifiers, confirms the funding tuple, then reads vault.balanceOf(receiverAddress) on-chain and records only the server-read value; client-supplied shareBalance is never recorded. Production wires confirmFundingTupleOnChain + readVaultShareBalanceOnChain through resolveAgentRpcUrl(chainId), making the route production-usable for Ethereum mainnet tuples.",
+        "providerProofRegistrySync": "Codex review P1: EVMavericks live /vaults Card Endow provider-proof entry added so the client allowlist and the agent registry stay in lockstep; an agent test posts both production tuples through the DEFAULT registry and both record successfully.",
+        "validation": [
+          "node scripts/dev/ci-local.js --quick -> all checks passed (client 589, admin 98, agent 215 incl. 4 new proof-gate tests)",
+          "bun run --filter @green-goods/client test -- PublicVaults VaultManagePositions -> 64 passed",
+          "bun run --filter @green-goods/shared test -- vault-crowdfunding octant-vault-card-wallet-cache -> 69 passed",
+          "shared + client + agent tsc --noEmit clean; lint:vocab clean; i18n key parity 3740/3740/3740",
+          "PR 543 CI fully green on bfb28a6ea (all 10 pull_request workflows + CI Gate + CodeQL); mergeStateStatus CLEAN; 0 unresolved review threads"
+        ],
+        "incidentNotes": [
+          "Original implementation worktree was deleted externally with uncommitted work; the diff was rebuilt from session context and proven equivalent by the identical targeted test suites before commit.",
+          "PR CI had been silently skipped because the PR was CONFLICTING with develop (GitHub cannot build the merge ref); merging origin/develop (storage.test claim conflict kept the injectable-clock deterministic version, develop's active public-endowment-withdrawal-recovery plan doc preserved) restored workflow triggering.",
+          "Design Guardrails then caught a stale client PWA token audit after the merge; regenerated via bun run design:generate in bfb28a6ea."
+        ],
+        "proofLimit": "Automated tests mock provider funding and chain reads; no live card payment, onchain approval/deposit, or mainnet share movement was performed. Live Card Endow QA remains human-gated."
+      }
     }
   },
   "phasePlan": {
@@ -574,6 +602,9 @@
     "As of 2026-06-08T20:06:07Z, PRD-589 is implemented pending human QA: aggregate project-supporting value is sourced from the configured YDS dragonRouter address, measured as vault.balanceOf(router) donation shares converted with convertToAssets, displayed in WETH, and falls back to unavailable instead of inventing a number.",
     "As of 2026-06-08T18:24:22Z, user clarification locked PRD-583 visible network label to Ethereum Mainnet, PRD-585 decimal handling to preserve typing while parsing/normalizing .001 as 0.001, and PRD-588 as a Ready implementation issue for ETH-to-WETH conversion before the existing WETH approve/deposit path.",
     "PRD-586 must use current Octant Yield Donating Strategy docs plus the plan-recorded YieldDonatingTokenizedStrategy/YearnV3StrategyFactory evidence for user-friendly copy, without unsupported APY, accrued-value, payout-cadence, or guarantee claims.",
+    "As of 2026-06-12T19:59:00Z, the Card Endow production hardening pass is on the feature branch (ca05de903 + develop merge c1a3eeb1a + token-audit regen bfb28a6ea): three visible donor stages, exact onramp quote/status/balance proof gates before approve/deposit, pending-funded recovery via safe public metadata, and OTP entry only after a code is sent.",
+    "Codex review P1 resolutions: the agent proof route now verifies vault.balanceOf(receiverAddress) server-side (client shareBalance is never recorded) and fails closed without verifiers; EVMavericks has its live /vaults provider-proof entry so the client Card Endow allowlist and agent registry stay in lockstep.",
+    "PR 543 CI is fully green on bfb28a6ea with mergeStateStatus CLEAN and zero unresolved review threads. CI had been silently skipped while the PR was CONFLICTING with develop; the origin/develop merge restored pull_request workflow triggering.",
     "status.json is authoritative; branch names are automation signals.",
     ".plans/ is the durable repo truth; Linear is the durable tracking mirror."
   ],
@@ -1158,6 +1189,22 @@
       "status": "octant_qa_remaining_issue_comments_recorded",
       "branch": "codex/octant-qa-quick-fixes",
       "note": "Posted Linear comments on PRD-441, PRD-587, and PRD-589 with implemented scope, validation, browser proof artifacts, live zero-router metric reads, and no-real-value-movement boundary."
+    },
+    {
+      "timestamp": "2026-06-12T19:59:00Z",
+      "actor": "claude",
+      "lane": "state_api",
+      "status": "card_endow_production_hardening_shipped",
+      "branch": "feature/nyc-vault-crowdfunding",
+      "note": "Shipped Card Endow hardening (three-stage donor flow, onramp quote/status/balance proof gates, pending-funded recovery, server-side agent share proof, EVMavericks provider-proof entry, es.json diacritics, CodeQL fix) in ca05de903; merged origin/develop in c1a3eeb1a to unblock silently-skipped PR CI; regenerated client PWA token audit in bfb28a6ea. PR 543 fully green, all review threads resolved."
+    },
+    {
+      "timestamp": "2026-06-12T20:11:00Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "production_hardening_linear_comments_recorded",
+      "branch": "feature/nyc-vault-crowdfunding",
+      "note": "Recorded production-hardening evidence in plan hub (status.json productionHardening block, plan.todo.md decision log rows 22-23 plus hardening validation items, eval.md AC-8/AC-9/AC-11/AC-11a) and posted Linear evidence comments on PRD-441 (qa gate), PRD-442 (shared), PRD-443 (agent), PRD-444 (client); IDs in linear.productionHardeningComments. Comments only, no Linear state changes."
     }
   ],
   "linear": {
@@ -1285,6 +1332,12 @@
     "cardEndowHumanQaComments": {
       "qa_gate": "86c67716-9d67-4b66-a651-7e51658666b2",
       "skill_provider_boundaries": "81ea02a8-cff8-48ef-8d0a-2fa50bea9495"
+    },
+    "productionHardeningComments": {
+      "qa_gate": "36401f00-588c-4aed-8921-6127e25b33ca",
+      "card_endow_shared": "84132e2d-fd85-47dd-8c48-d95c6eb03ded",
+      "card_endow_agent": "a9e46428-2b79-417d-ac6a-29a6d1d2ddca",
+      "card_endow_client": "b9f86220-99a7-438a-9452-bef1931d683e"
     },
     "octantQaFeedback": {
       "customerNeed": "0f183c94-5250-4531-bef7-296b621607cb",
