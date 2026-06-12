@@ -1,13 +1,11 @@
 import {
   adminRoutes,
   type AdminCommunityRouteContext,
-  type FabConfig,
   formatTokenAmount,
   type MetaStripItem,
   type ViewAction,
 } from "@green-goods/shared";
 import {
-  RiAddLine,
   RiExternalLinkLine,
   RiMoneyDollarCircleLine,
   RiUserLine,
@@ -95,17 +93,17 @@ export function communitySectionForMode(mode: CommunityWorkspaceMode) {
 }
 
 /**
- * Community view-level actions — one mode-specific primary per mode, and only
- * actions with a real target:
+ * Community view-level actions — stable trio: the same set renders on every
+ * mode, in the same order, so positions never shift between tabs. Only the
+ * filled emphasis moves to the mode whose workflow the action opens:
  *
- * - `treasury`   → Deposit / withdraw (owner) opens the vault sheet.
- * - `governance` → New proposal opens the hypercert signal-pool sheet, where
- *   registering a hypercert is the existing proposal-creation write.
- * - `payouts`    → the CookieJarPayoutPanel owns Withdraw / Fund / Manage in
- *   local context; the header adds no competing primary.
- * - `members`    → People stays engagement/read-only. Manage members links
- *   clearly to the Garden → Members management surface (no role-management
- *   CTA pretending People manages roles).
+ * - `treasury`   → Deposit / withdraw filled (owner-gated; opens the vault
+ *   sheet over the treasury route).
+ * - `governance` → New proposal filled (opens the hypercert signal-pool
+ *   sheet, where registering a hypercert is the proposal-creation write).
+ * - `payouts` / `members` → no fill: the CookieJarPayoutPanel owns its
+ *   actions in local context, and People stays engagement/read-only with
+ *   Manage members linking to the Garden → Members management surface.
  */
 export function buildCommunityViewActions(
   mode: CommunityWorkspaceMode,
@@ -137,7 +135,7 @@ export function buildCommunityViewActions(
       icon: RiUserLine,
       onClick: () => navigate(adminRoutes.gardenMembers({ gardenAddress })),
       variant: "secondary",
-      visible: hasSelectedGarden && canManage && mode === "members",
+      visible: hasSelectedGarden && canManage,
     },
     {
       id: "deposit-withdraw",
@@ -156,49 +154,8 @@ export function buildCommunityViewActions(
       icon: RiUserVoiceLine,
       onClick: () => navigate(adminRoutes.communityGovernanceSignalPool("hypercert", routeContext)),
       variant: mode === "governance" ? "primary" : "secondary",
-      visible: hasSelectedGarden && canManage && mode === "governance",
+      visible: hasSelectedGarden && canManage,
       primary: mode === "governance",
     },
   ];
-}
-
-/** @deprecated Use `buildCommunityViewActions` + `useViewActions` instead. */
-export function buildCommunityFabConfig(
-  canManage: boolean,
-  hasSelectedGarden: boolean,
-  navigate: (path: string) => void,
-  routeContext?: AdminCommunityRouteContext
-): FabConfig | null {
-  if (!hasSelectedGarden || !canManage) return null;
-
-  return {
-    icon: RiAddLine,
-    label: "Community Actions",
-    actions: [
-      {
-        id: "new-proposal",
-        icon: RiUserVoiceLine,
-        label: "New proposal",
-        labelId: "cockpit.community.fab.newProposal",
-      },
-      {
-        id: "add-member",
-        icon: RiUserLine,
-        label: "Add member",
-        labelId: "cockpit.community.fab.addMember",
-      },
-      {
-        id: "manage-vault",
-        icon: RiMoneyDollarCircleLine,
-        label: "Manage vault",
-        labelId: "cockpit.community.fab.manageVault",
-      },
-    ],
-    onAction: (actionId: string) => {
-      if (actionId === "new-proposal") navigate(adminRoutes.communityGovernance(routeContext));
-      else if (actionId === "add-member") navigate(adminRoutes.communityMembers(routeContext));
-      else if (actionId === "manage-vault")
-        navigate(adminRoutes.communityTreasuryVault(routeContext));
-    },
-  };
 }

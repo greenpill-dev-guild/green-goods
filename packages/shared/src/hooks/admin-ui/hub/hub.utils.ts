@@ -180,11 +180,12 @@ export function resolveOpenSectionRoute(
 // View Actions — Hub
 // ============================================================================
 //
-// One mode-specific primary per stage: Work → Submit Work, Assess → Create
-// Assessment, Certify → Create Hypercert. The sibling creation actions stay
-// reachable through the header overflow / FAB speed-dial. History is an audit
-// surface with no creation target, so it declares no actions at all — the
-// header stays clean and the mobile FAB hides.
+// Stable trio: the same creation actions render on every stage, in the same
+// order, so button positions never shift as the operator moves between tabs.
+// Only the emphasis moves — the stage whose workflow an action opens renders
+// it filled (Work → Submit Work, Assess → Create Assessment, Certify →
+// Create Hypercert). History owns no creation flow, so all three stay
+// outlined there and the mobile FAB hides (no `primary` → no FAB).
 
 export function buildHubViewActions(
   stage: HubPipelineStage,
@@ -193,8 +194,6 @@ export function buildHubViewActions(
   navigate: (path: string) => void,
   hubContext: AdminHubRouteContext
 ): ViewAction[] {
-  if (stage === "history") return [];
-
   return [
     {
       id: "submit-work",

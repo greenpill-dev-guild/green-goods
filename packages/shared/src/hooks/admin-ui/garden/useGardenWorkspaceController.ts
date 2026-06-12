@@ -123,18 +123,9 @@ export function useGardenWorkspaceController() {
         {
           gardenAddress: selectedGardenAddress,
         },
-        openDomainEditor,
         openAddMember
       ),
-    [
-      canManage,
-      navigate,
-      openAddMember,
-      openDomainEditor,
-      selectedGarden,
-      selectedGardenAddress,
-      view,
-    ]
+    [canManage, navigate, openAddMember, selectedGarden, selectedGardenAddress, view]
   );
   const { desktopActions } = useViewActions({
     actions: viewActions,

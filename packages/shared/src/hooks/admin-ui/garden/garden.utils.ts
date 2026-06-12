@@ -1,18 +1,10 @@
 import {
   adminRoutes,
   type AdminGardenRouteContext,
-  type FabConfig,
   type MetaStripItem,
   type ViewAction,
 } from "@green-goods/shared";
-import {
-  RiAddLine,
-  RiExternalLinkLine,
-  RiHandCoinLine,
-  RiPencilLine,
-  RiSettings3Line,
-  RiUserAddLine,
-} from "@remixicon/react";
+import { RiExternalLinkLine, RiSettings3Line, RiUserAddLine } from "@remixicon/react";
 
 /**
  * Inputs for the Garden header stats slot. Pulled directly off the values the
@@ -97,16 +89,18 @@ export function resolveGardenView(pathname: string): GardenWorkspaceView {
 }
 
 /**
- * Garden view-level actions — one mode-specific primary per view:
+ * Garden view-level actions — stable trio: the same set renders on every
+ * view, in the same order, so positions never shift between tabs. Only the
+ * filled emphasis moves to the view whose workflow the action opens:
  *
- * - `overview`  → Edit garden (primary). View public / Edit domains / Add
- *   member stay reachable through the header overflow.
- * - `members`   → Add member (primary) via `onAddMember`, the existing
- *   role-write path (AddMemberModal + useGardenOperations).
- * - `activity`  → read surface; no primary so the header presents no
- *   misleading write CTA. Navigation actions remain in the overflow.
- * - `settings`  → the settings form owns Save/Cancel; the header only keeps
- *   View public in the overflow.
+ * - `members`  → Add member filled (opens the AddMemberModal write path
+ *   in-place via `onAddMember`; navigates to the members view elsewhere).
+ * - `settings` → Edit garden filled (idempotent navigation when already
+ *   there — the settings form owns Save/Cancel).
+ * - `overview` / `activity` → read surfaces; everything stays outlined.
+ *
+ * Domains are garden configuration and are edited from the Settings form,
+ * not from the header (QA refinement pass — decision 4).
  *
  * "View public" links to the client app via the admin's `/gardens/:id`
  * redirect route, which resolves to the public garden page.
@@ -117,7 +111,6 @@ export function buildGardenViewActions(
   hasSelectedGarden: boolean,
   navigate: (path: string) => void,
   routeContext?: AdminGardenRouteContext,
-  onEditDomains?: () => void,
   onAddMember?: () => void
 ): ViewAction[] {
   const gardenAddress = routeContext?.gardenAddress;
@@ -138,15 +131,6 @@ export function buildGardenViewActions(
       visible: hasSelectedGarden && Boolean(gardenAddress),
     },
     {
-      id: "edit-domains",
-      label: "Edit domains",
-      labelId: "cockpit.garden.action.editDomains",
-      icon: RiPencilLine,
-      onClick: () => onEditDomains?.(),
-      variant: "secondary",
-      visible: hasSelectedGarden && canManage && Boolean(onEditDomains) && view !== "settings",
-    },
-    {
       id: "add-member",
       label: "Add member",
       labelId: "cockpit.garden.action.addMember",
@@ -159,7 +143,7 @@ export function buildGardenViewActions(
         navigate(adminRoutes.gardenMembers(routeContext));
       },
       variant: view === "members" ? "primary" : "secondary",
-      visible: hasSelectedGarden && canManage && view !== "settings",
+      visible: hasSelectedGarden && canManage,
       primary: view === "members",
     },
     {
@@ -168,55 +152,9 @@ export function buildGardenViewActions(
       labelId: "cockpit.garden.action.editGarden",
       icon: RiSettings3Line,
       onClick: () => navigate(adminRoutes.gardenSettings(routeContext)),
-      variant: view === "overview" ? "primary" : "secondary",
-      visible: hasSelectedGarden && canManage && view !== "settings",
-      primary: view === "overview",
+      variant: view === "settings" ? "primary" : "secondary",
+      visible: hasSelectedGarden && canManage,
+      primary: view === "settings",
     },
   ];
-}
-
-/** @deprecated Use `buildGardenViewActions` + `useViewActions` instead. Retained
- *  during the transition until all consumers are migrated. */
-export function buildGardenFabConfig(
-  view: GardenWorkspaceView,
-  canManage: boolean,
-  hasSelectedGarden: boolean,
-  navigate: (path: string) => void,
-  routeContext?: AdminGardenRouteContext
-): FabConfig | null {
-  if (!hasSelectedGarden || !canManage || view === "settings") return null;
-
-  const communityRouteContext = { gardenAddress: routeContext?.gardenAddress };
-
-  return {
-    icon: RiAddLine,
-    label: "Garden Actions",
-    actions: [
-      {
-        id: "edit-garden",
-        icon: RiSettings3Line,
-        label: "Edit garden",
-        labelId: "cockpit.garden.fab.editGarden",
-      },
-      {
-        id: "invite-gardener",
-        icon: RiUserAddLine,
-        label: "Invite gardener",
-        labelId: "cockpit.garden.fab.inviteGardener",
-      },
-      {
-        id: "send-distribution",
-        icon: RiHandCoinLine,
-        label: "Send distribution",
-        labelId: "cockpit.garden.fab.sendDistribution",
-      },
-    ],
-    onAction: (actionId: string) => {
-      if (actionId === "edit-garden") navigate(adminRoutes.gardenSettings(routeContext));
-      else if (actionId === "invite-gardener")
-        navigate(adminRoutes.communityMembers(communityRouteContext));
-      else if (actionId === "send-distribution")
-        navigate(adminRoutes.communityPayouts(communityRouteContext));
-    },
-  };
 }
