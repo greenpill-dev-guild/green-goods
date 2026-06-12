@@ -1,7 +1,12 @@
 import {
   type Address,
   DEFAULT_WITHDRAW_MAX_LOSS_BPS,
+  formatTokenAmount,
+  getOctantVaultCampaignBySlug,
+  getOctantVaultPendingFundedCardWalletRefs,
+  type OctantVaultCardWalletPositionRef,
   type OctantVaultPosition,
+  rememberOctantVaultCardWalletPosition,
   truncateAddress,
   useOctantVaultPositions,
 } from "@green-goods/shared";
@@ -96,6 +101,14 @@ function CardWalletManageInner({
   // Treat the session as "still resolving" until autoConnect settles, so a
   // same-session supporter is never wrongly told to re-verify during the window.
   const sessionResolving = autoConnect.isLoading;
+  // Pending-funded recovery entries (card funding landed, no shares yet). Held
+  // in state so finishing a deposit removes the card without a full remount.
+  const [pendingRefs, setPendingRefs] = useState<OctantVaultCardWalletPositionRef[]>(() =>
+    getOctantVaultPendingFundedCardWalletRefs()
+  );
+  const refreshPendingRefs = useCallback(() => {
+    setPendingRefs(getOctantVaultPendingFundedCardWalletRefs());
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -106,6 +119,10 @@ function CardWalletManageInner({
           client={client}
           activeAddress={(activeAccount?.address as Address | undefined) ?? null}
           sessionResolving={sessionResolving}
+          pendingRefs={pendingRefs.filter(
+            (ref) => ref.recoveredWalletAddress.toLowerCase() === owner.toLowerCase()
+          )}
+          onPendingResolved={refreshPendingRefs}
           onEndow={onEndow}
         />
       ))}
@@ -118,17 +135,22 @@ function CardOwnerPositions({
   client,
   activeAddress,
   sessionResolving,
+  pendingRefs,
+  onPendingResolved,
   onEndow,
 }: {
   owner: Address;
   client: ThirdwebClient;
   activeAddress: Address | null;
   sessionResolving: boolean;
+  pendingRefs: OctantVaultCardWalletPositionRef[];
+  onPendingResolved: () => void;
   onEndow?: () => void;
 }) {
   const { formatMessage } = useIntl();
   const positions = useOctantVaultPositions(owner, { enabled: true });
   const sessionLive = Boolean(activeAddress && activeAddress.toLowerCase() === owner.toLowerCase());
+  const hasPending = pendingRefs.length > 0;
 
   const readOnlyNote = (
     <p className="rounded-xl bg-bg-weak-50 p-3 text-xs leading-[1.5] text-text-sub-600">
@@ -139,8 +161,11 @@ function CardOwnerPositions({
     </p>
   );
 
+  // The restore prompt also serves pending-funded recovery: a returning
+  // supporter whose card funding landed without a finished deposit restores the
+  // email wallet here, then finishes the deposit below.
   const sessionBanner =
-    positions.hasPositions && !sessionLive ? (
+    (positions.hasPositions || hasPending) && !sessionLive ? (
       sessionResolving ? (
         <p className="rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-4 text-sm leading-[1.55] text-text-sub-600">
           {formatMessage({
@@ -151,6 +176,31 @@ function CardOwnerPositions({
       ) : (
         <RestoreEmailWallet client={client} expectedOwner={owner} />
       )
+    ) : null;
+
+  const pendingCards = hasPending ? (
+    <div className="space-y-3">
+      {pendingRefs.map((ref) => (
+        <PendingFundedDepositCard
+          key={`${ref.recoveredWalletAddress}:${ref.vaultAddress}`}
+          refEntry={ref}
+          client={client}
+          sessionLive={sessionLive}
+          onResolved={async () => {
+            onPendingResolved();
+            await positions.refetch();
+          }}
+        />
+      ))}
+    </div>
+  ) : null;
+
+  const beforeList =
+    sessionBanner || pendingCards ? (
+      <div className="space-y-3">
+        {sessionBanner}
+        {pendingCards}
+      </div>
     ) : null;
 
   return (
@@ -165,7 +215,7 @@ function CardOwnerPositions({
         defaultMessage: "No vault positions for this card wallet yet",
       })}
       onEndow={onEndow}
-      beforeList={sessionBanner}
+      beforeList={beforeList}
       renderRow={(position) =>
         sessionLive ? (
           <CardVaultPositionRow
@@ -269,6 +319,183 @@ function CardVaultPositionRow({
         }
       }}
     />
+  );
+}
+
+/**
+ * Pending-funded recovery: card funding (WETH) landed in the recovered wallet
+ * but the approve/deposit never produced shares. With a live session this card
+ * finishes the same ordered approve -> deposit pair the checkout uses, verifies
+ * positive `vault.balanceOf(owner)`, and upgrades the cache entry to confirmed.
+ * Without a session it stays read-only until the email wallet is restored above.
+ */
+function PendingFundedDepositCard({
+  refEntry,
+  client,
+  sessionLive,
+  onResolved,
+}: {
+  refEntry: OctantVaultCardWalletPositionRef;
+  client: ThirdwebClient;
+  sessionLive: boolean;
+  onResolved: () => Promise<void> | void;
+}) {
+  const { formatMessage } = useIntl();
+  const sendAndConfirm = useSendAndConfirmTransaction({ payModal: false });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const campaign = useMemo(
+    () => getOctantVaultCampaignBySlug(refEntry.campaignSlug),
+    [refEntry.campaignSlug]
+  );
+  const displayName = campaign?.displayName ?? refEntry.campaignSlug;
+  const assetDecimals = campaign?.vault?.asset?.decimals ?? 18;
+  const assetSymbol = campaign?.vault?.asset?.symbol ?? "WETH";
+  const chain = useMemo(() => getThirdwebChain(refEntry.chainId), [refEntry.chainId]);
+  const expectedAmount = refEntry.expectedAmount;
+  const tokenAddress = refEntry.tokenAddress;
+  const amountLabel = expectedAmount
+    ? `${formatTokenAmount(BigInt(expectedAmount), assetDecimals, 6, undefined, true)} ${assetSymbol}`
+    : null;
+
+  const finishDeposit = useCallback(async () => {
+    if (!sessionLive || busy || !tokenAddress || !expectedAmount) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const amount = BigInt(expectedAmount);
+      const tokenContract = getContract({ client, chain, address: tokenAddress });
+      const approveTransaction = prepareContractCall({
+        contract: tokenContract,
+        method: "function approve(address spender, uint256 value)",
+        params: [refEntry.vaultAddress, amount],
+      });
+      await sendAndConfirm.mutateAsync(approveTransaction);
+
+      const vaultContract = getContract({ client, chain, address: refEntry.vaultAddress });
+      const depositTransaction = prepareContractCall({
+        contract: vaultContract,
+        method: "function deposit(uint256 assets, address receiver) returns (uint256)",
+        params: [amount, refEntry.recoveredWalletAddress],
+      });
+      await sendAndConfirm.mutateAsync(depositTransaction);
+
+      const sharesResult = await readContract({
+        contract: vaultContract,
+        method: "function balanceOf(address account) view returns (uint256)",
+        params: [refEntry.recoveredWalletAddress],
+      });
+      const shares =
+        typeof sharesResult === "bigint" ? sharesResult : BigInt(String(sharesResult ?? "0"));
+      if (shares <= 0n) {
+        setError(
+          formatMessage({
+            id: "public.vaults.manage.card.pendingSharesUnconfirmed",
+            defaultMessage:
+              "The deposit was sent, but vault shares are not visible yet. Refresh in a moment.",
+          })
+        );
+        return;
+      }
+
+      rememberOctantVaultCardWalletPosition({
+        recoveredWalletAddress: refEntry.recoveredWalletAddress,
+        campaignSlug: refEntry.campaignSlug,
+        vaultAddress: refEntry.vaultAddress,
+        chainId: refEntry.chainId,
+        status: "confirmed",
+      });
+      await onResolved();
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : formatMessage({
+              id: "public.vaults.manage.card.pendingFinishError",
+              defaultMessage:
+                "The vault deposit could not be completed. Review the wallet error and retry.",
+            })
+      );
+    } finally {
+      setBusy(false);
+    }
+  }, [
+    busy,
+    chain,
+    client,
+    expectedAmount,
+    formatMessage,
+    onResolved,
+    refEntry.campaignSlug,
+    refEntry.chainId,
+    refEntry.recoveredWalletAddress,
+    refEntry.vaultAddress,
+    sendAndConfirm,
+    sessionLive,
+    tokenAddress,
+  ]);
+
+  return (
+    <section
+      className="rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-4"
+      data-testid={`vault-manage-pending-funded-${refEntry.campaignSlug}`}
+    >
+      <h3 className="font-serif text-lg font-normal text-text-strong-950">
+        {formatMessage({
+          id: "public.vaults.manage.card.pendingTitle",
+          defaultMessage: "Finish your vault deposit",
+        })}
+      </h3>
+      <p className="mt-2 text-sm leading-[1.55] text-text-sub-600">
+        {amountLabel
+          ? formatMessage(
+              {
+                id: "public.vaults.manage.card.pendingBody",
+                defaultMessage:
+                  "Your card funding of {amount} for {campaign} arrived in this wallet, but the vault deposit hasn't finished yet. Finish the deposit to receive your vault shares.",
+              },
+              { amount: amountLabel, campaign: displayName }
+            )
+          : formatMessage(
+              {
+                id: "public.vaults.manage.card.pendingBodyNoAmount",
+                defaultMessage:
+                  "Card funding for {campaign} arrived in this wallet, but the vault deposit hasn't finished yet.",
+              },
+              { campaign: displayName }
+            )}
+      </p>
+      {sessionLive ? (
+        <EditorialGhostButton
+          variant="warm"
+          className="mt-4 w-full px-5 py-2.5 text-sm"
+          disabled={busy || !tokenAddress || !expectedAmount}
+          onClick={() => void finishDeposit()}
+        >
+          {busy
+            ? formatMessage({
+                id: "public.vaults.manage.card.pendingFinishPending",
+                defaultMessage: "Finishing deposit…",
+              })
+            : formatMessage({
+                id: "public.vaults.manage.card.pendingFinishCta",
+                defaultMessage: "Finish vault deposit",
+              })}
+        </EditorialGhostButton>
+      ) : (
+        <p className="mt-3 rounded-xl bg-bg-weak-50 p-3 text-xs leading-[1.5] text-text-sub-600">
+          {formatMessage({
+            id: "public.vaults.manage.card.pendingRestoreNote",
+            defaultMessage: "Restore the email wallet above to finish this deposit.",
+          })}
+        </p>
+      )}
+      {error ? (
+        <p className="mt-3 rounded-xl bg-error-lighter/30 p-3 text-xs leading-[1.5] text-error-base">
+          {error}
+        </p>
+      ) : null}
+    </section>
   );
 }
 

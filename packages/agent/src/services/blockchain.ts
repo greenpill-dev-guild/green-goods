@@ -350,99 +350,7 @@ class Blockchain {
       };
     }
 
-    let receipt: Awaited<ReturnType<typeof this.publicClient.getTransactionReceipt>>;
-    try {
-      receipt = await this.publicClient.getTransactionReceipt({ hash: txHash });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      if (/not found|not be found|could not find/i.test(message)) {
-        return { status: "pending", txHash };
-      }
-      log.warn({ txHash, error: message }, "Funding tuple confirmation receipt lookup failed");
-      return { status: "pending", txHash };
-    }
-
-    if (receipt.status !== "success") {
-      return {
-        status: "failed",
-        txHash,
-        blockNumber: receipt.blockNumber?.toString(),
-        confirmedAt: new Date().toISOString(),
-      };
-    }
-
-    const expectedToken = expected.token.toLowerCase();
-    const expectedDestination = expected.destinationAddress.toLowerCase();
-    const minAmount = expected.minAssetAmount ? safeParseBigInt(expected.minAssetAmount) : 0n;
-
-    let totalMatched = 0n;
-    let sawTokenLog = false;
-    let sawDestinationLog = false;
-
-    for (const rawLog of receipt.logs ?? []) {
-      if (rawLog.address.toLowerCase() !== expectedToken) continue;
-      sawTokenLog = true;
-      try {
-        const decoded = decodeEventLog({
-          abi: [ERC20_TRANSFER_EVENT],
-          data: rawLog.data,
-          topics: rawLog.topics,
-        });
-        if (decoded.eventName !== "Transfer") continue;
-        const args = decoded.args as { from: string; to: string; value: bigint };
-        if (args.to.toLowerCase() !== expectedDestination) continue;
-        sawDestinationLog = true;
-        totalMatched += args.value;
-      } catch {
-        // Ignore non-Transfer logs that happen to share the token address.
-      }
-    }
-
-    if (!sawTokenLog) {
-      return {
-        status: "tuple_mismatch",
-        txHash,
-        blockNumber: receipt.blockNumber?.toString(),
-        confirmedAt: new Date().toISOString(),
-        mismatchReason: "token_mismatch",
-      };
-    }
-    if (!sawDestinationLog) {
-      return {
-        status: "tuple_mismatch",
-        txHash,
-        blockNumber: receipt.blockNumber?.toString(),
-        confirmedAt: new Date().toISOString(),
-        mismatchReason: "destination_mismatch",
-      };
-    }
-    if (totalMatched === 0n) {
-      return {
-        status: "tuple_mismatch",
-        txHash,
-        blockNumber: receipt.blockNumber?.toString(),
-        confirmedAt: new Date().toISOString(),
-        mismatchReason: "no_matching_transfer",
-      };
-    }
-    if (minAmount > 0n && totalMatched < minAmount) {
-      return {
-        status: "tuple_mismatch",
-        txHash,
-        blockNumber: receipt.blockNumber?.toString(),
-        confirmedAt: new Date().toISOString(),
-        matchedAssetAmount: totalMatched.toString(),
-        mismatchReason: "amount_below_min",
-      };
-    }
-
-    return {
-      status: "confirmed",
-      txHash,
-      blockNumber: receipt.blockNumber?.toString(),
-      confirmedAt: new Date().toISOString(),
-      matchedAssetAmount: totalMatched.toString(),
-    };
+    return confirmFundingTupleWithClient(this.publicClient, txHash, expected);
   }
 
   getChainId(): number {
@@ -454,6 +362,164 @@ class Blockchain {
     this.gardenerCache.clear();
     this.gardenCache.clear();
   }
+}
+
+// ============================================================================
+// CHAIN-AWARE FUNDING PROOF HELPERS
+// ============================================================================
+
+type FundingReceiptClient = {
+  getTransactionReceipt: (args: { hash: Hex }) => Promise<{
+    status: string;
+    blockNumber?: bigint | null;
+    logs?: readonly { address: string; data: Hex; topics: readonly Hex[] }[];
+  }>;
+};
+
+/**
+ * Core funding-tuple verification against an already-resolved client: the
+ * transaction must have succeeded and must include ERC-20 Transfer log(s) on
+ * the expected token moving at least `minAssetAmount` to the expected
+ * destination. Shared by the singleton (Green Goods chain) and the chain-aware
+ * public proof path (e.g. Ethereum mainnet Card Endow deposits).
+ */
+async function confirmFundingTupleWithClient(
+  client: FundingReceiptClient,
+  txHash: Hex,
+  expected: FundingTupleExpectation
+): Promise<FundingConfirmationResult> {
+  let receipt: Awaited<ReturnType<FundingReceiptClient["getTransactionReceipt"]>>;
+  try {
+    receipt = await client.getTransactionReceipt({ hash: txHash });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (/not found|not be found|could not find/i.test(message)) {
+      return { status: "pending", txHash };
+    }
+    log.warn({ txHash, error: message }, "Funding tuple confirmation receipt lookup failed");
+    return { status: "pending", txHash };
+  }
+
+  if (receipt.status !== "success") {
+    return {
+      status: "failed",
+      txHash,
+      blockNumber: receipt.blockNumber?.toString(),
+      confirmedAt: new Date().toISOString(),
+    };
+  }
+
+  const expectedToken = expected.token.toLowerCase();
+  const expectedDestination = expected.destinationAddress.toLowerCase();
+  const minAmount = expected.minAssetAmount ? safeParseBigInt(expected.minAssetAmount) : 0n;
+
+  let totalMatched = 0n;
+  let sawTokenLog = false;
+  let sawDestinationLog = false;
+
+  for (const rawLog of receipt.logs ?? []) {
+    if (rawLog.address.toLowerCase() !== expectedToken) continue;
+    sawTokenLog = true;
+    try {
+      const decoded = decodeEventLog({
+        abi: [ERC20_TRANSFER_EVENT],
+        data: rawLog.data,
+        topics: rawLog.topics as [Hex, ...Hex[]],
+      });
+      if (decoded.eventName !== "Transfer") continue;
+      const args = decoded.args as { from: string; to: string; value: bigint };
+      if (args.to.toLowerCase() !== expectedDestination) continue;
+      sawDestinationLog = true;
+      totalMatched += args.value;
+    } catch {
+      // Ignore non-Transfer logs that happen to share the token address.
+    }
+  }
+
+  if (!sawTokenLog) {
+    return {
+      status: "tuple_mismatch",
+      txHash,
+      blockNumber: receipt.blockNumber?.toString(),
+      confirmedAt: new Date().toISOString(),
+      mismatchReason: "token_mismatch",
+    };
+  }
+  if (!sawDestinationLog) {
+    return {
+      status: "tuple_mismatch",
+      txHash,
+      blockNumber: receipt.blockNumber?.toString(),
+      confirmedAt: new Date().toISOString(),
+      mismatchReason: "destination_mismatch",
+    };
+  }
+  if (totalMatched === 0n) {
+    return {
+      status: "tuple_mismatch",
+      txHash,
+      blockNumber: receipt.blockNumber?.toString(),
+      confirmedAt: new Date().toISOString(),
+      mismatchReason: "no_matching_transfer",
+    };
+  }
+  if (minAmount > 0n && totalMatched < minAmount) {
+    return {
+      status: "tuple_mismatch",
+      txHash,
+      blockNumber: receipt.blockNumber?.toString(),
+      confirmedAt: new Date().toISOString(),
+      matchedAssetAmount: totalMatched.toString(),
+      mismatchReason: "amount_below_min",
+    };
+  }
+
+  return {
+    status: "confirmed",
+    txHash,
+    blockNumber: receipt.blockNumber?.toString(),
+    confirmedAt: new Date().toISOString(),
+    matchedAssetAmount: totalMatched.toString(),
+  };
+}
+
+/**
+ * Chain-aware funding tuple confirmation for the public proof routes. Unlike
+ * the Blockchain singleton (bound to the Green Goods chain), this verifies the
+ * transaction on the chain named by `expected.chainId` through the supplied
+ * RPC URL, so Ethereum-mainnet Card Endow deposits can be confirmed by an
+ * Arbitrum-configured agent.
+ */
+export async function confirmFundingTupleOnChain(
+  txHash: Hex,
+  expected: FundingTupleExpectation,
+  rpcUrl: string
+): Promise<FundingConfirmationResult> {
+  const client = createPublicClient({ transport: http(rpcUrl) });
+  return confirmFundingTupleWithClient(client as unknown as FundingReceiptClient, txHash, expected);
+}
+
+const ERC20_BALANCE_OF_ABI = [
+  parseAbiItem("function balanceOf(address account) view returns (uint256)"),
+] as const;
+
+/**
+ * Server-side recovered-wallet share proof for Card Endow: reads the vault's
+ * ERC-20 `balanceOf(owner)` on the funding chain. The public proof route must
+ * never trust a client-supplied share balance — this read is the authority.
+ */
+export async function readVaultShareBalanceOnChain(
+  params: { chainId: number; vaultAddress: string; ownerAddress: string },
+  rpcUrl: string
+): Promise<bigint> {
+  const client = createPublicClient({ transport: http(rpcUrl) });
+  const result = await client.readContract({
+    address: params.vaultAddress as Address,
+    abi: ERC20_BALANCE_OF_ABI,
+    functionName: "balanceOf",
+    args: [params.ownerAddress as Address],
+  });
+  return typeof result === "bigint" ? result : BigInt(String(result ?? "0"));
 }
 
 // ============================================================================

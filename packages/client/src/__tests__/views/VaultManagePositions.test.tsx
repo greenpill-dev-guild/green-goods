@@ -6,9 +6,9 @@
 
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { createElement } from "react";
+import { createElement, Fragment, useEffect } from "react";
 import { IntlProvider } from "react-intl";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { OctantVaultCampaignManifest, OctantVaultPosition } from "@green-goods/shared";
@@ -230,6 +230,54 @@ function renderPage(path = "/vaults") {
         createElement(VaultsPage)
       )
     )
+  );
+}
+
+function LocationProbe({ onChange }: { onChange: (location: string) => void }) {
+  const location = useLocation();
+
+  useEffect(() => {
+    onChange(`${location.pathname}${location.search}${location.hash}`);
+  }, [location.hash, location.pathname, location.search, onChange]);
+
+  return null;
+}
+
+function renderPageWithLocationProbe(path: string, onLocationChange: (location: string) => void) {
+  return render(
+    createElement(
+      MemoryRouter,
+      { initialEntries: [path] },
+      createElement(
+        IntlProvider,
+        { locale: "en", messages: intlMessages },
+        createElement(
+          Fragment,
+          null,
+          createElement(VaultsPage),
+          createElement(LocationProbe, { onChange: onLocationChange })
+        )
+      )
+    )
+  );
+}
+
+/** Seed one pending-funded recovery entry (safe public metadata only). */
+function seedPendingFundedEntry() {
+  window.localStorage.setItem(
+    "gg:octant-vault-card-wallets:v1",
+    JSON.stringify([
+      {
+        recoveredWalletAddress: CARD,
+        campaignSlug: "greenpill-nyc",
+        vaultAddress: VAULT,
+        chainId: 1,
+        updatedAt: 1000,
+        status: "pending_funded",
+        tokenAddress: ASSET,
+        expectedAmount: "10000000000000000",
+      },
+    ])
   );
 }
 
@@ -574,6 +622,115 @@ describe("/vaults?manage=positions", () => {
         params: [500_000_000_000_000_000n, CARD, CARD, 100n, []],
       })
     );
+  });
+
+  it("finishes a pending-funded deposit from a live card-wallet session and upgrades the cache", async () => {
+    seedPendingFundedEntry();
+    // No vault shares yet — the entry is funding without a finished deposit.
+    mocks.activeAccount = { address: CARD };
+
+    const user = userEvent.setup();
+    renderPage("/vaults?manage=positions");
+    await user.click(screen.getByRole("tab", { name: "Card wallet" }));
+
+    const pendingCard = await screen.findByTestId("vault-manage-pending-funded-greenpill-nyc");
+    expect(within(pendingCard).getByText("Finish your vault deposit")).toBeInTheDocument();
+    // A live session never asks for email re-verification.
+    expect(screen.queryByText("Restore email wallet to redeem")).toBeNull();
+
+    await user.click(within(pendingCard).getByRole("button", { name: "Finish vault deposit" }));
+
+    // The finish path keeps the ordered approve -> deposit pair.
+    await waitFor(() => expect(mocks.thirdwebSendAndConfirmMutateAsync).toHaveBeenCalledTimes(2));
+    expect(mocks.thirdwebPrepareContractCall).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        method: "function approve(address spender, uint256 value)",
+        params: [VAULT, 10_000_000_000_000_000n],
+      })
+    );
+    expect(mocks.thirdwebPrepareContractCall).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        method: "function deposit(uint256 assets, address receiver) returns (uint256)",
+        params: [10_000_000_000_000_000n, CARD],
+      })
+    );
+
+    // Positive shares upgrade the cache entry to confirmed and drop the
+    // recovery tuple; the pending card disappears.
+    await waitFor(() => {
+      const raw = window.localStorage.getItem("gg:octant-vault-card-wallets:v1") ?? "[]";
+      const entries = JSON.parse(raw) as Array<Record<string, unknown>>;
+      expect(entries).toHaveLength(1);
+      expect(entries[0]).toMatchObject({ status: "confirmed" });
+      expect(entries[0]).not.toHaveProperty("tokenAddress");
+      expect(entries[0]).not.toHaveProperty("expectedAmount");
+    });
+    await waitFor(() =>
+      expect(screen.queryByTestId("vault-manage-pending-funded-greenpill-nyc")).toBeNull()
+    );
+  });
+
+  it("lets a returning pending-funded wallet restore the email wallet before finishing the deposit", async () => {
+    seedPendingFundedEntry();
+    // Session gone, autoConnect settled — the wallet is "returning".
+    mocks.activeAccount = undefined;
+    mocks.autoConnectLoading = false;
+
+    const user = userEvent.setup();
+    renderPage("/vaults?manage=positions");
+    await user.click(screen.getByRole("tab", { name: "Card wallet" }));
+
+    const panel = screen.getByTestId("vault-manage-positions-panel");
+    // The restore ceremony is offered even though no share positions exist yet.
+    await waitFor(() =>
+      expect(within(panel).getByText("Restore email wallet to redeem")).toBeInTheDocument()
+    );
+    // The pending deposit is visible but cannot run without the live wallet.
+    const pendingCard = within(panel).getByTestId("vault-manage-pending-funded-greenpill-nyc");
+    expect(
+      within(pendingCard).getByText("Restore the email wallet above to finish this deposit.")
+    ).toBeInTheDocument();
+    expect(within(pendingCard).queryByRole("button", { name: "Finish vault deposit" })).toBeNull();
+    // Restore stays the email OTP ceremony (send code first).
+    expect(within(panel).getByRole("button", { name: "Send email code" })).toBeInTheDocument();
+  });
+
+  it("keeps owner identifiers out of the management URL", async () => {
+    window.localStorage.setItem(
+      "gg:octant-vault-card-wallets:v1",
+      JSON.stringify([
+        {
+          recoveredWalletAddress: CARD,
+          campaignSlug: "greenpill-nyc",
+          vaultAddress: VAULT,
+          chainId: 1,
+          updatedAt: 1000,
+        },
+      ])
+    );
+    mocks.positionsByOwner[CARD.toLowerCase()] = {
+      ...emptyPositions(),
+      positions: [makePosition()],
+      hasPositions: true,
+    };
+    const locations: string[] = [];
+    const user = userEvent.setup();
+
+    renderPageWithLocationProbe("/vaults", (location) => {
+      locations.push(location);
+    });
+
+    await user.click(screen.getByTestId("vault-manage-positions-entry"));
+    await waitFor(() => expect(locations.at(-1)).toBe("/vaults?manage=positions"));
+    await user.click(screen.getByRole("tab", { name: "Card wallet" }));
+    await screen.findByTestId("vault-manage-position-greenpill-nyc");
+
+    // Only ?manage=positions ever enters the URL — never an address, email,
+    // provider/session ID, or receipt token.
+    expect(locations.at(-1)).toBe("/vaults?manage=positions");
+    expect(locations.join(" ")).not.toMatch(/0x[a-fA-F0-9]{6,}|@|provider|session|receipt|token=/i);
   });
 
   it("prompts email-wallet restoration for a returning card wallet whose session is gone", async () => {

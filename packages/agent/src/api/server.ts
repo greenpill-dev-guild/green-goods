@@ -136,6 +136,17 @@ export interface ServerDeps {
     txHash: string,
     expected: FundingTupleExpectation
   ) => Promise<FundingConfirmationResult>;
+  /**
+   * Server-side recovered-wallet share proof for the Card Endow proof route:
+   * must read `vault.balanceOf(owner)` (or equivalent) on the funding chain.
+   * Client-supplied share balances are never trusted; the route fails closed
+   * when this dependency is absent.
+   */
+  readVaultShareBalance?: (params: {
+    chainId: number;
+    vaultAddress: string;
+    ownerAddress: string;
+  }) => Promise<bigint>;
   now?: () => number;
 }
 
@@ -906,6 +917,8 @@ function createFundingIntentProofRecord(input: {
   now: number;
   status?: "funded" | "funded_late";
   matchedAssetAmount?: string;
+  /** Server-read vault share balance — the client claim is never recorded. */
+  verifiedShareBalance: string;
 }): FundingIntentRecord {
   const nowIso = new Date(input.now).toISOString();
   const quoteExpiresAt = nowIso;
@@ -956,7 +969,7 @@ function createFundingIntentProofRecord(input: {
         chainId: input.request.chainId,
         destinationAddress: input.request.destinationAddress,
         receiverAddress: input.request.receiverAddress,
-        amount: input.request.shareBalance,
+        amount: input.verifiedShareBalance,
         confirmedAt: nowIso,
       },
     ],
@@ -1926,7 +1939,10 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
       );
     }
 
-    if (!deps.confirmFundingTuple) {
+    // Both server-side verifiers are required: the funding-tuple confirmation
+    // AND an independent vault share read. Without either, the route fails
+    // closed — a client-supplied shareBalance is never proof.
+    if (!deps.confirmFundingTuple || !deps.readVaultShareBalance) {
       return publicCorsResponse(
         c,
         deps,
@@ -1950,6 +1966,37 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
       );
     }
     const matchedAssetAmount = confirmation.matchedAssetAmount;
+
+    // A matching WETH transfer into the vault does not prove the recovered
+    // wallet received vault shares. Read the share balance server-side and
+    // record only that verified value.
+    let verifiedShareBalance: bigint;
+    try {
+      verifiedShareBalance = await deps.readVaultShareBalance({
+        chainId: request.chainId,
+        vaultAddress: request.destinationAddress,
+        ownerAddress: request.receiverAddress,
+      });
+    } catch (error) {
+      log.warn(
+        { error: error instanceof Error ? error.message : String(error) },
+        "Card Endow proof share balance read failed"
+      );
+      return publicCorsResponse(
+        c,
+        deps,
+        safeError("funding_unavailable", "This funding proof is not confirmed yet."),
+        409
+      );
+    }
+    if (verifiedShareBalance <= 0n) {
+      return publicCorsResponse(
+        c,
+        deps,
+        safeError("funding_unavailable", "This funding proof is not confirmed yet."),
+        409
+      );
+    }
 
     const idempotencyFingerprint = createFundingProofFingerprint(request);
     const existing = await fundingIntents.getByClientRequestId(request.clientRequestId);
@@ -1989,6 +2036,7 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
       receiptTokenHash,
       now,
       matchedAssetAmount,
+      verifiedShareBalance: verifiedShareBalance.toString(),
     });
     await fundingIntents.create(record);
     await fundingIntents.appendEvent(

@@ -1118,6 +1118,191 @@ export function prepareOctantVaultCardEndowReadiness({
   };
 }
 
+export type OctantVaultCardOnrampQuoteError =
+  | "quote_missing"
+  | "chain_mismatch"
+  | "token_mismatch"
+  | "receiver_mismatch"
+  | "amount_mismatch";
+
+export interface OctantVaultCardOnrampQuoteInput {
+  /** Destination chain echoed by the provider quote/intent. */
+  chainId?: number;
+  /** Destination token echoed by the provider quote/intent. */
+  tokenAddress?: string;
+  /** Receiver echoed by the provider quote/intent. */
+  receiver?: string;
+  /** Intent amount echoed by the provider quote, in base units. */
+  amount?: string | bigint | null;
+  /** Quoted destination amount, in base units. */
+  destinationAmount?: string | bigint | null;
+}
+
+export interface OctantVaultCardOnrampRouteExpectation {
+  chainId: number;
+  tokenAddress: Address;
+  receiverAddress: Address;
+  /** Expected base-unit amount. */
+  amount: string;
+}
+
+export interface OctantVaultCardOnrampQuoteValidation {
+  status: "valid" | "invalid";
+  errors: OctantVaultCardOnrampQuoteError[];
+}
+
+function toBaseUnitString(value: string | bigint | null | undefined): string | null {
+  if (typeof value === "bigint") return value >= 0n ? value.toString() : null;
+  if (typeof value === "string" && /^\d+$/.test(value)) return value;
+  return null;
+}
+
+/**
+ * Exact-route proof for a prepared card onramp quote. A Card Endow checkout
+ * session may only be accepted when the provider quote funds the exact chain,
+ * vault asset (WETH for the pilots), recovered receiver, and base-unit amount
+ * this endowment expects. Any mismatch blocks the session before checkout.
+ */
+export function validateOctantVaultCardOnrampQuote(
+  quote: OctantVaultCardOnrampQuoteInput | null | undefined,
+  expected: OctantVaultCardOnrampRouteExpectation
+): OctantVaultCardOnrampQuoteValidation {
+  if (!quote) {
+    return { status: "invalid", errors: ["quote_missing"] };
+  }
+
+  const errors: OctantVaultCardOnrampQuoteError[] = [];
+
+  if (quote.chainId !== expected.chainId) {
+    errors.push("chain_mismatch");
+  }
+  if (!addressesMatch(quote.tokenAddress, expected.tokenAddress)) {
+    errors.push("token_mismatch");
+  }
+  if (!addressesMatch(quote.receiver, expected.receiverAddress)) {
+    errors.push("receiver_mismatch");
+  }
+
+  const intentAmount = toBaseUnitString(quote.amount);
+  const destinationAmount = toBaseUnitString(quote.destinationAmount);
+  const amountConfirmed =
+    (intentAmount !== null || destinationAmount !== null) &&
+    (intentAmount === null || intentAmount === expected.amount) &&
+    (destinationAmount === null || destinationAmount === expected.amount);
+  if (!amountConfirmed) {
+    errors.push("amount_mismatch");
+  }
+
+  return {
+    status: errors.length === 0 ? "valid" : "invalid",
+    errors,
+  };
+}
+
+export type OctantVaultCardOnrampCompletionError =
+  | "status_not_completed"
+  | "intent_contradiction"
+  | "route_contradiction"
+  | "campaign_contradiction"
+  | "vault_contradiction"
+  | "token_contradiction"
+  | "receiver_contradiction"
+  | "amount_contradiction";
+
+export interface OctantVaultCardOnrampCompletionInput {
+  status?: string;
+  /** Provider-echoed purchase/session tuple (untrusted until validated). */
+  purchaseData?: unknown;
+}
+
+export interface OctantVaultCardOnrampCompletionExpectation
+  extends OctantVaultCardOnrampRouteExpectation {
+  campaignSlug: string;
+  vaultAddress: Address;
+}
+
+export interface OctantVaultCardOnrampCompletionValidation {
+  status: "valid" | "invalid";
+  errors: OctantVaultCardOnrampCompletionError[];
+}
+
+/**
+ * Card Endow settlement may start only on a `COMPLETED` onramp status whose
+ * echoed purchase/session tuple does not contradict the expected route. Absent
+ * tuple fields cannot contradict; present fields must match exactly.
+ */
+export function validateOctantVaultCardOnrampCompletion(
+  input: OctantVaultCardOnrampCompletionInput,
+  expected: OctantVaultCardOnrampCompletionExpectation
+): OctantVaultCardOnrampCompletionValidation {
+  const errors: OctantVaultCardOnrampCompletionError[] = [];
+
+  if (input.status !== "COMPLETED") {
+    errors.push("status_not_completed");
+  }
+
+  if (input.purchaseData && typeof input.purchaseData === "object") {
+    const tuple = input.purchaseData as Record<string, unknown>;
+    if (tuple.intent !== undefined && tuple.intent !== "octant_vault_card_endow") {
+      errors.push("intent_contradiction");
+    }
+    if (tuple.route !== undefined && tuple.route !== "/vaults") {
+      errors.push("route_contradiction");
+    }
+    if (tuple.campaignSlug !== undefined && tuple.campaignSlug !== expected.campaignSlug) {
+      errors.push("campaign_contradiction");
+    }
+    if (
+      tuple.vaultAddress !== undefined &&
+      !addressesMatch(tuple.vaultAddress, expected.vaultAddress)
+    ) {
+      errors.push("vault_contradiction");
+    }
+    if (
+      tuple.tokenAddress !== undefined &&
+      !addressesMatch(tuple.tokenAddress, expected.tokenAddress)
+    ) {
+      errors.push("token_contradiction");
+    }
+    if (
+      tuple.receiverAddress !== undefined &&
+      !addressesMatch(tuple.receiverAddress, expected.receiverAddress)
+    ) {
+      errors.push("receiver_contradiction");
+    }
+    if (tuple.amount !== undefined && String(tuple.amount) !== expected.amount) {
+      errors.push("amount_contradiction");
+    }
+  }
+
+  return {
+    status: errors.length === 0 ? "valid" : "invalid",
+    errors,
+  };
+}
+
+/**
+ * Funding-balance proof: the recovered wallet's vault-asset (WETH) balance must
+ * cover the expected base-unit amount before approve/deposit may begin.
+ */
+export function hasRequiredOctantVaultFundingBalance(
+  balance: bigint | string | number | null | undefined,
+  expectedAmount: string
+): boolean {
+  if (!/^\d+$/.test(expectedAmount)) return false;
+  let parsed: bigint;
+  if (typeof balance === "bigint") {
+    parsed = balance;
+  } else if (typeof balance === "number" && Number.isInteger(balance) && balance >= 0) {
+    parsed = BigInt(balance);
+  } else if (typeof balance === "string" && /^\d+$/.test(balance)) {
+    parsed = BigInt(balance);
+  } else {
+    return false;
+  }
+  return parsed >= BigInt(expectedAmount);
+}
+
 export function prepareOctantVaultCardEndowFallbackPlan({
   campaign,
   amount,

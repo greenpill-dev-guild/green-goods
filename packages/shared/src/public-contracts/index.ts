@@ -459,8 +459,15 @@ export function createProviderProofRegistry(entries: readonly ProviderProofEntry
 }
 
 const GREENPILL_NYC_OCTANT_VAULT = "0xaC8F844CEA2Fd75B7A5514f11974895B334fd9A5" as const;
+const EVMAVERICKS_OCTANT_VAULT = "0x0bCe8c16974FFD3B410A32365c5bCf27a5A630Fc" as const;
 const ETHEREUM_WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2" as const;
 
+/**
+ * Live entries must stay in lockstep with the client Card Endow allowlist
+ * (`CARD_ENDOW_PRODUCTION_CAMPAIGN_SLUGS` in the /vaults checkout): every
+ * campaign the client exposes for Card Endow needs a matching live entry here,
+ * or the agent proof route rejects the receipt AFTER value moved.
+ */
 export const PUBLIC_PROVIDER_PROOF_ENTRIES: readonly ProviderProofEntry[] = [
   {
     gardenKey: "greenpill-nyc",
@@ -474,6 +481,19 @@ export const PUBLIC_PROVIDER_PROOF_ENTRIES: readonly ProviderProofEntry[] = [
     sourceRoute: "/vaults",
     state: "live",
     proofReference: "production:greenpill-nyc-card-endow-proof-route-2026-06-03",
+  },
+  {
+    gardenKey: "evmavericks",
+    destinationType: "vault",
+    destinationAddress: EVMAVERICKS_OCTANT_VAULT,
+    fundingIntent: "endow",
+    paymentMethod: "card",
+    chainId: 1,
+    token: ETHEREUM_WETH,
+    provider: "thirdweb",
+    sourceRoute: "/vaults",
+    state: "live",
+    proofReference: "production:evmavericks-card-endow-proof-route-2026-06-12",
   },
 ];
 export const publicProviderProofRegistry = createProviderProofRegistry(

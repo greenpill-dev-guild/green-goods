@@ -86,8 +86,13 @@ function getTransactionHash(result: unknown): `0x${string}` | null {
  * status to idle, so the derivation naturally holds the stage and the inline
  * error renders in place. `blocked` is the degraded branch when a recovered
  * wallet exists but the campaign manifest cannot produce a ready plan.
+ *
+ * The donor sees three stages: `recover` (Step 1 — verify email wallet),
+ * `fund` (Step 2 — secure card payment), and `settle` (Step 3 — vault deposit
+ * and proof, entered only after the payment proof gates pass). `done` is the
+ * completed end of Step 3.
  */
-type CardEndowStage = "recover" | "blocked" | "fund" | "done";
+type CardEndowStage = "recover" | "blocked" | "fund" | "settle" | "done";
 type CardEndowBatchStatus = "idle" | "unsupported" | "pending" | "failed" | "succeeded";
 
 export interface VaultCardEndowFlowProps {
@@ -289,14 +294,19 @@ function CardEndowProviderContent({
   );
 
   // Render-only stage derivation (read state, never own it). Highest first.
+  // `cardFundingStatus === "funded"` means every payment proof gate passed
+  // (exact quote, COMPLETED + tuple, covering WETH balance) — only then does
+  // the donor reach Step 3 settlement.
   const stage: CardEndowStage =
     depositStatus === "deposited"
       ? "done"
-      : receiverAddress && plan
-        ? "fund"
-        : receiverAddress
-          ? "blocked"
-          : "recover";
+      : receiverAddress && plan && cardFundingStatus === "funded"
+        ? "settle"
+        : receiverAddress && plan
+          ? "fund"
+          : receiverAddress
+            ? "blocked"
+            : "recover";
 
   // Switching campaign (a fresh checkout) clears every Card Endow gate.
   useEffect(() => {
@@ -633,10 +643,11 @@ function CardEndowProviderContent({
       setDepositTxHash(txHash);
       setDepositStatus("deposited");
       const shares = await readShareBalance(expectedFlowKey);
-      if (txHash !== null && shares !== null && shares > 0n) {
+      // txHash is already non-null here — the missing-hash branch above throws.
+      if (shares !== null && shares > 0n) {
         await submitFundingProof(txHash, shares, expectedFlowKey);
       }
-    } catch (error) {
+    } catch {
       if (!isCurrentFlow(expectedFlowKey)) return;
       setBatchStatus("failed");
       setApprovalStatus("idle");
@@ -735,7 +746,9 @@ function CardEndowProviderContent({
 
   // Once shares are confirmed, remember ONLY the safe owner metadata so the
   // `/vaults?manage=positions` surface can re-display this card-wallet position
-  // when the supporter returns. Never caches email, OTP, provider IDs, or receipts.
+  // when the supporter returns. The confirmed write upserts over any
+  // pending-funded entry for the same (wallet, vault). Never caches email, OTP,
+  // provider IDs, or receipts.
   useEffect(() => {
     if (!hasPositiveShares || !receiverAddress) return;
     const vaultAddress = campaign.vault?.vaultAddress;
@@ -746,6 +759,7 @@ function CardEndowProviderContent({
       campaignSlug: campaign.slug,
       vaultAddress,
       chainId,
+      status: "confirmed",
     });
   }, [
     hasPositiveShares,
@@ -755,12 +769,42 @@ function CardEndowProviderContent({
     campaign.vault?.chainId,
   ]);
 
+  // Pending-funded recovery tuple — ONLY safe public metadata — so a supporter
+  // who drops off between card funding and the finished deposit can resume from
+  // `/vaults?manage=positions`. Written as soon as the payment is provably
+  // COMPLETED with a valid tuple (funds may still be in transit), refreshed when
+  // the covering WETH balance is proven, and upserted to confirmed on shares.
+  const rememberPendingFundedRecovery = useCallback(() => {
+    const vaultAddress = campaign.vault?.vaultAddress;
+    const chainId = campaign.vault?.chainId;
+    if (!plan || !receiverAddress || !vaultAddress || !chainId) return;
+    rememberOctantVaultCardWalletPosition({
+      recoveredWalletAddress: receiverAddress,
+      campaignSlug: campaign.slug,
+      vaultAddress,
+      chainId,
+      tokenAddress: plan.cardFunding.tokenAddress,
+      expectedAmount: plan.cardFunding.amount,
+      status: "pending_funded",
+    });
+  }, [campaign.slug, campaign.vault?.vaultAddress, campaign.vault?.chainId, plan, receiverAddress]);
+
+  // Provider payment proven (COMPLETED + non-contradicting tuple) — persist the
+  // recovery entry even though the WETH may not have landed yet.
+  const handlePaymentCompleted = useCallback(() => {
+    if (!isCurrentFlow(flowKey)) return;
+    rememberPendingFundedRecovery();
+  }, [flowKey, isCurrentFlow, rememberPendingFundedRecovery]);
+
+  // Every payment proof gate passed (exact quote + COMPLETED tuple + covering
+  // WETH balance) — refresh the recovery entry and enter Step 3 settlement.
   const handleCardFundingSuccess = useCallback(() => {
     const expectedFlowKey = flowKey;
     if (!isCurrentFlow(expectedFlowKey)) return;
     setFlowError(null);
+    rememberPendingFundedRecovery();
     setCardFundingStatus("funded");
-  }, [flowKey, isCurrentFlow]);
+  }, [flowKey, isCurrentFlow, rememberPendingFundedRecovery]);
 
   // ── Render helpers ─────────────────────────────────────────────────────────
   const canEditCheckout = !checkoutInputsLocked;
@@ -918,8 +962,10 @@ function CardEndowProviderContent({
     </>
   );
 
+  // Inline Step 3 fallback: when the EIP-7702 batch is unsupported or failed,
+  // the ordered approve -> deposit pair stays available as one explicit action.
   const fallbackButton =
-    stage === "fund" && cardFundingStatus === "funded" && fallbackAvailable ? (
+    stage === "settle" && fallbackAvailable ? (
       <button
         type="button"
         disabled={!canCompleteEndowment}
@@ -1080,7 +1126,7 @@ function CardEndowProviderContent({
           <CheckoutStageHeader
             eyebrow={formatMessage({
               id: "public.vaults.cardEndow.stage.recover.eyebrow",
-              defaultMessage: "Step 1 of 2",
+              defaultMessage: "Step 1 of 3",
             })}
             title={formatMessage({
               id: "public.vaults.cardEndow.stage.recover.title",
@@ -1117,7 +1163,10 @@ function CardEndowProviderContent({
             />
           </form>
 
-          <div id={emailStatusId} aria-live="polite" aria-atomic="true" className="min-h-[3.25rem]">
+          {/* Mounted before the code is sent so the announcement lands in an
+              existing live region; the code-entry form itself appears only after
+              a code exists — no locked placeholder field beforehand. */}
+          <div id={emailStatusId} aria-live="polite" aria-atomic="true">
             {otpSent && otpEmail ? (
               <p className="rounded-none bg-primary-action/10 p-4 text-sm leading-[1.55] text-primary-base">
                 {formatMessage(
@@ -1131,41 +1180,33 @@ function CardEndowProviderContent({
             ) : null}
           </div>
 
-          <form
-            id={otpFormId}
-            className="grid min-h-[6.5rem] gap-2"
-            onSubmit={handleVerifyEmailWallet}
-          >
-            <label htmlFor={otpInputId} className={CHECKOUT_FIELD_LABEL}>
-              {formatMessage({
-                id: "public.vaults.cardEndow.otpLabel",
-                defaultMessage: "Email code",
-              })}
-            </label>
-            <p id={otpHelpId} className="text-sm leading-[1.5] text-text-sub-600">
-              {otpSent
-                ? formatMessage({
-                    id: "public.vaults.cardEndow.otpHelp",
-                    defaultMessage: "Enter the 6-digit code from your email.",
-                  })
-                : formatMessage({
-                    id: "public.vaults.cardEndow.otpHelpLocked",
-                    defaultMessage: "Send the code above to unlock this field.",
-                  })}
-            </p>
-            <input
-              ref={otpRef}
-              id={otpInputId}
-              value={otpInput}
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              disabled={!otpSent}
-              aria-describedby={otpHelpId}
-              className={CHECKOUT_INPUT}
-              placeholder="123456"
-              onChange={(event) => setOtpInput(event.target.value)}
-            />
-          </form>
+          {otpSent ? (
+            <form id={otpFormId} className="grid gap-2" onSubmit={handleVerifyEmailWallet}>
+              <label htmlFor={otpInputId} className={CHECKOUT_FIELD_LABEL}>
+                {formatMessage({
+                  id: "public.vaults.cardEndow.otpLabel",
+                  defaultMessage: "Email code",
+                })}
+              </label>
+              <p id={otpHelpId} className="text-sm leading-[1.5] text-text-sub-600">
+                {formatMessage({
+                  id: "public.vaults.cardEndow.otpHelp",
+                  defaultMessage: "Enter the 6-digit code from your email.",
+                })}
+              </p>
+              <input
+                ref={otpRef}
+                id={otpInputId}
+                value={otpInput}
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                aria-describedby={otpHelpId}
+                className={CHECKOUT_INPUT}
+                placeholder="123456"
+                onChange={(event) => setOtpInput(event.target.value)}
+              />
+            </form>
+          ) : null}
 
           {errorNotes}
         </div>
@@ -1205,10 +1246,52 @@ function CardEndowProviderContent({
         planDetails={planDetails}
         backButton={backButton}
         onPaymentSessionActiveChange={setPaymentSessionActive}
-        fallbackButton={fallbackButton}
+        onPaymentCompleted={handlePaymentCompleted}
         onCardFundingSuccess={handleCardFundingSuccess}
         errorNotes={errorNotes}
       />
+    );
+  }
+
+  // ── settle: Step 3 — vault deposit and proof ───────────────────────────────
+  // Entered only after every payment proof gate passed. The ordered
+  // approve -> deposit batch starts automatically; when batching is
+  // unsupported or fails, the inline fallback button finishes the same
+  // ordered pair. Errors stay route-local and recoverable.
+  if (stage === "settle" && plan) {
+    return (
+      <CheckoutScreen footer={fallbackButton}>
+        <div className="flex flex-col gap-5" data-testid="vault-card-endow-settle">
+          <CheckoutStageHeader
+            eyebrow={formatMessage({
+              id: "public.vaults.cardEndow.stage.settle.eyebrow",
+              defaultMessage: "Step 3 of 3",
+            })}
+            title={formatMessage({
+              id: "public.vaults.cardEndow.stage.settle.title",
+              defaultMessage: "Vault deposit and proof",
+            })}
+            description={formatMessage({
+              id: "public.vaults.cardEndow.stage.settle.description",
+              defaultMessage:
+                "Card funding arrived in your verified email wallet. The vault deposit completes the endowment and confirms your position.",
+            })}
+          />
+          <CheckoutSummary items={cardSummaryItems} />
+          {statusBlock}
+          {slow ? (
+            <p className="rounded-none bg-bg-weak-50 p-4 text-sm leading-[1.55] text-text-sub-600">
+              {formatMessage({
+                id: "public.vaults.checkout.slow",
+                defaultMessage:
+                  "Taking longer than expected — your transaction may still be processing. Wait a moment before retrying; your position will appear under Manage positions on /vaults once it settles.",
+              })}
+            </p>
+          ) : null}
+          {errorNotes}
+          {planDetails}
+        </div>
+      </CheckoutScreen>
     );
   }
 

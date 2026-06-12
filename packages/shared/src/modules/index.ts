@@ -248,6 +248,7 @@ export {
   EVMAVERICKS_REQUIRED_MANIFEST_FIELDS,
   getOctantVaultCampaignBySlug,
   getOctantVaultAssetDisplayPolicy,
+  hasRequiredOctantVaultFundingBalance,
   getOctantVaultCampaignCopy,
   getOctantVaultCampaignCopyMessageIds,
   getOctantVaultCampaigns,
@@ -267,6 +268,8 @@ export {
   validateOctantVaultCardEndowManifest,
   validateOctantVaultCardEndowProof,
   validateOctantVaultCardEndowReceiver,
+  validateOctantVaultCardOnrampCompletion,
+  validateOctantVaultCardOnrampQuote,
   validateOctantVaultCampaignManifest,
   validateOctantVaultRouteManageProof,
   validateOctantVaultShareOwnershipProof,
@@ -274,6 +277,14 @@ export {
 export type {
   OctantVaultCardDonateIntentKind,
   OctantVaultCardDonateProof,
+  OctantVaultCardOnrampCompletionError,
+  OctantVaultCardOnrampCompletionExpectation,
+  OctantVaultCardOnrampCompletionInput,
+  OctantVaultCardOnrampCompletionValidation,
+  OctantVaultCardOnrampQuoteError,
+  OctantVaultCardOnrampQuoteInput,
+  OctantVaultCardOnrampQuoteValidation,
+  OctantVaultCardOnrampRouteExpectation,
   OctantVaultCardEndowIntentKind,
   OctantVaultCardEndowProof,
   OctantVaultCardEndowProofExpectation,
@@ -340,9 +351,13 @@ export {
   forgetOctantVaultCardWalletPositions,
   getOctantVaultCardWalletOwners,
   getOctantVaultCardWalletPositionRefs,
+  getOctantVaultPendingFundedCardWalletRefs,
   rememberOctantVaultCardWalletPosition,
 } from "./octant-vault-card-wallet-cache";
-export type { OctantVaultCardWalletPositionRef } from "./octant-vault-card-wallet-cache";
+export type {
+  OctantVaultCardWalletPositionRef,
+  OctantVaultCardWalletPositionStatus,
+} from "./octant-vault-card-wallet-cache";
 // ============================================================================
 // JOB QUEUE
 // ============================================================================

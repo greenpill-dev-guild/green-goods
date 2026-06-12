@@ -4,6 +4,7 @@ import {
   EVMAVERICKS_REQUIRED_MANIFEST_FIELDS,
   GREENPILL_NYC_REQUIRED_MANIFEST_FIELDS,
   getOctantVaultAssetDisplayPolicy,
+  hasRequiredOctantVaultFundingBalance,
   getOctantVaultCampaignBySlug,
   getOctantVaultCampaignCopy,
   getOctantVaultCampaignCopyMessageIds,
@@ -22,12 +23,16 @@ import {
   validateOctantVaultCardEndowManifest,
   validateOctantVaultCardEndowProof,
   validateOctantVaultCardEndowReceiver,
+  validateOctantVaultCardOnrampCompletion,
+  validateOctantVaultCardOnrampQuote,
   validateOctantVaultCampaignManifest,
   validateOctantVaultWalletEndowManifest,
   validateOctantVaultRouteManageProof,
   validateOctantVaultShareOwnershipProof,
   type OctantVaultCardEndowProofExpectation,
   type OctantVaultCardEndowProofInput,
+  type OctantVaultCardOnrampCompletionExpectation,
+  type OctantVaultCardOnrampRouteExpectation,
   type OctantVaultCampaignManifest,
 } from "../../modules/vault-crowdfunding";
 
@@ -972,6 +977,217 @@ describe("Octant vault Card Endow public contracts", () => {
       cardEndowVisible: true,
       errors: [],
     });
+  });
+});
+
+describe("Octant vault card onramp route proof", () => {
+  const ROUTE_EXPECTATION: OctantVaultCardOnrampRouteExpectation = {
+    chainId: OCTANT_V2_ETHEREUM_CHAIN_ID,
+    tokenAddress: MAINNET_WETH_ADDRESS,
+    receiverAddress: VALID_RECEIVER_ADDRESS,
+    amount: "10000000000000000",
+  };
+  const COMPLETION_EXPECTATION: OctantVaultCardOnrampCompletionExpectation = {
+    ...ROUTE_EXPECTATION,
+    campaignSlug: "greenpill-nyc",
+    vaultAddress: "0xaC8F844CEA2Fd75B7A5514f11974895B334fd9A5",
+  };
+
+  it("accepts an exact WETH quote for the recovered receiver", () => {
+    expect(
+      validateOctantVaultCardOnrampQuote(
+        {
+          chainId: 1,
+          tokenAddress: MAINNET_WETH_ADDRESS.toLowerCase(),
+          receiver: VALID_RECEIVER_ADDRESS,
+          amount: "10000000000000000",
+          destinationAmount: 10000000000000000n,
+        },
+        ROUTE_EXPECTATION
+      )
+    ).toEqual({ status: "valid", errors: [] });
+  });
+
+  it("confirms the amount through destinationAmount alone when the intent omits it", () => {
+    expect(
+      validateOctantVaultCardOnrampQuote(
+        {
+          chainId: 1,
+          tokenAddress: MAINNET_WETH_ADDRESS,
+          receiver: VALID_RECEIVER_ADDRESS,
+          destinationAmount: 10000000000000000n,
+        },
+        ROUTE_EXPECTATION
+      )
+    ).toEqual({ status: "valid", errors: [] });
+  });
+
+  it("fails each mismatched route field", () => {
+    expect(
+      validateOctantVaultCardOnrampQuote(
+        {
+          chainId: 137,
+          tokenAddress: MAINNET_WETH_ADDRESS,
+          receiver: VALID_RECEIVER_ADDRESS,
+          destinationAmount: 10000000000000000n,
+        },
+        ROUTE_EXPECTATION
+      ).errors
+    ).toContain("chain_mismatch");
+
+    expect(
+      validateOctantVaultCardOnrampQuote(
+        {
+          chainId: 1,
+          tokenAddress: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+          receiver: VALID_RECEIVER_ADDRESS,
+          destinationAmount: 10000000000000000n,
+        },
+        ROUTE_EXPECTATION
+      ).errors
+    ).toContain("token_mismatch");
+
+    expect(
+      validateOctantVaultCardOnrampQuote(
+        {
+          chainId: 1,
+          tokenAddress: MAINNET_WETH_ADDRESS,
+          receiver: "0x9999999999999999999999999999999999999999",
+          destinationAmount: 10000000000000000n,
+        },
+        ROUTE_EXPECTATION
+      ).errors
+    ).toContain("receiver_mismatch");
+
+    expect(
+      validateOctantVaultCardOnrampQuote(
+        {
+          chainId: 1,
+          tokenAddress: MAINNET_WETH_ADDRESS,
+          receiver: VALID_RECEIVER_ADDRESS,
+          destinationAmount: 9999999999999999n,
+        },
+        ROUTE_EXPECTATION
+      ).errors
+    ).toContain("amount_mismatch");
+
+    // A contradicting intent amount fails even when destinationAmount matches.
+    expect(
+      validateOctantVaultCardOnrampQuote(
+        {
+          chainId: 1,
+          tokenAddress: MAINNET_WETH_ADDRESS,
+          receiver: VALID_RECEIVER_ADDRESS,
+          amount: "20000000000000000",
+          destinationAmount: 10000000000000000n,
+        },
+        ROUTE_EXPECTATION
+      ).errors
+    ).toContain("amount_mismatch");
+  });
+
+  it("rejects a quote that confirms nothing about the amount or is missing entirely", () => {
+    expect(
+      validateOctantVaultCardOnrampQuote(
+        {
+          chainId: 1,
+          tokenAddress: MAINNET_WETH_ADDRESS,
+          receiver: VALID_RECEIVER_ADDRESS,
+        },
+        ROUTE_EXPECTATION
+      ).errors
+    ).toContain("amount_mismatch");
+    expect(validateOctantVaultCardOnrampQuote(null, ROUTE_EXPECTATION)).toEqual({
+      status: "invalid",
+      errors: ["quote_missing"],
+    });
+    // Empty intent (no echoed route facts) cannot prove the route.
+    const emptyQuote = validateOctantVaultCardOnrampQuote({}, ROUTE_EXPECTATION);
+    expect(emptyQuote.status).toBe("invalid");
+    expect(emptyQuote.errors).toEqual(
+      expect.arrayContaining([
+        "chain_mismatch",
+        "token_mismatch",
+        "receiver_mismatch",
+        "amount_mismatch",
+      ])
+    );
+  });
+
+  it("accepts COMPLETED with an absent or exactly-matching purchase tuple", () => {
+    expect(
+      validateOctantVaultCardOnrampCompletion({ status: "COMPLETED" }, COMPLETION_EXPECTATION)
+    ).toEqual({ status: "valid", errors: [] });
+    expect(
+      validateOctantVaultCardOnrampCompletion(
+        {
+          status: "COMPLETED",
+          purchaseData: {
+            intent: "octant_vault_card_endow",
+            route: "/vaults",
+            campaignSlug: "greenpill-nyc",
+            vaultAddress: "0xaC8F844CEA2Fd75B7A5514f11974895B334fd9A5",
+            tokenAddress: MAINNET_WETH_ADDRESS,
+            receiverAddress: VALID_RECEIVER_ADDRESS,
+            amount: "10000000000000000",
+          },
+        },
+        COMPLETION_EXPECTATION
+      )
+    ).toEqual({ status: "valid", errors: [] });
+  });
+
+  it("rejects non-COMPLETED statuses and contradicting purchase tuples", () => {
+    expect(
+      validateOctantVaultCardOnrampCompletion({ status: "PENDING" }, COMPLETION_EXPECTATION).errors
+    ).toContain("status_not_completed");
+
+    const contradiction = validateOctantVaultCardOnrampCompletion(
+      {
+        status: "COMPLETED",
+        purchaseData: {
+          intent: "card_donate",
+          route: "/fund",
+          campaignSlug: "another-campaign",
+          vaultAddress: "0x0bCe8c16974FFD3B410A32365c5bCf27a5A630Fc",
+          tokenAddress: "0x6B175474E89094C44Da98b954EedeAC495271d0F",
+          receiverAddress: "0x9999999999999999999999999999999999999999",
+          amount: "1",
+        },
+      },
+      COMPLETION_EXPECTATION
+    );
+    expect(contradiction.status).toBe("invalid");
+    expect(contradiction.errors).toEqual(
+      expect.arrayContaining([
+        "intent_contradiction",
+        "route_contradiction",
+        "campaign_contradiction",
+        "vault_contradiction",
+        "token_contradiction",
+        "receiver_contradiction",
+        "amount_contradiction",
+      ])
+    );
+  });
+
+  it("requires the WETH funding balance to cover the expected amount", () => {
+    expect(hasRequiredOctantVaultFundingBalance(10000000000000000n, "10000000000000000")).toBe(
+      true
+    );
+    expect(hasRequiredOctantVaultFundingBalance(10000000000000001n, "10000000000000000")).toBe(
+      true
+    );
+    expect(hasRequiredOctantVaultFundingBalance("10000000000000000", "10000000000000000")).toBe(
+      true
+    );
+    expect(hasRequiredOctantVaultFundingBalance(9999999999999999n, "10000000000000000")).toBe(
+      false
+    );
+    expect(hasRequiredOctantVaultFundingBalance(0n, "10000000000000000")).toBe(false);
+    expect(hasRequiredOctantVaultFundingBalance(null, "10000000000000000")).toBe(false);
+    expect(hasRequiredOctantVaultFundingBalance(undefined, "10000000000000000")).toBe(false);
+    expect(hasRequiredOctantVaultFundingBalance(10000000000000000n, "not-a-number")).toBe(false);
   });
 });
 

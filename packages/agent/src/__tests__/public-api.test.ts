@@ -642,6 +642,9 @@ describe("public funding intent API", () => {
       confirmedAt: "2026-04-27T12:06:00.000Z",
       matchedAssetAmount: "25000000",
     }));
+    // The server-side read is the share authority; the client claims "1" below
+    // and the recorded verification must carry this value instead.
+    const readVaultShareBalance = vi.fn(async () => 7777n);
     const app = createServer(
       {
         isAIReady: () => true,
@@ -657,6 +660,7 @@ describe("public funding intent API", () => {
           },
         ]),
         confirmFundingTuple,
+        readVaultShareBalance,
         now: () => Date.parse("2026-04-27T12:00:00.000Z"),
       },
       { logger: false }
@@ -716,12 +720,280 @@ describe("public funding intent API", () => {
     });
     const created = await store.getByClientRequestId("client-proof-1");
     expect(created?.status).toBe("funded");
+    expect(readVaultShareBalance).toHaveBeenCalledWith({
+      chainId: 11155111,
+      vaultAddress: destinationAddress,
+      ownerAddress: receiverAddress,
+    });
     expect(created?.transactionAttempts).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ role: "funding", status: "confirmed", txHash: "0xabcdef" }),
-        expect.objectContaining({ role: "share_verification", status: "confirmed" }),
+        // The recorded share amount is the SERVER-read balance, never the
+        // client's claimed "1".
+        expect.objectContaining({
+          role: "share_verification",
+          status: "confirmed",
+          amount: "7777",
+        }),
       ])
     );
+  });
+
+  it("rejects client-side Card Endow proof when the share verifier is unavailable", async () => {
+    const store = new MemoryFundingIntentStore();
+    const confirmFundingTuple = vi.fn(async () => ({
+      status: "confirmed" as const,
+      txHash: "0xabcdef" as const,
+      matchedAssetAmount: "25000000",
+    }));
+    const app = createServer(
+      {
+        isAIReady: () => true,
+        allowedOrigins: new Set([ORIGIN]),
+        fundingIntents: store,
+        publicRateLimiter: new InMemoryPublicRateLimiter(),
+        providerProofRegistry: createProviderProofRegistry([
+          {
+            ...cardEndowAvailabilityInput,
+            sourceRoute: "/vaults",
+            state: "live",
+            proofReference: "production:card-endow-vaults-proof-2026-06-03",
+          },
+        ]),
+        confirmFundingTuple,
+        // No readVaultShareBalance — the route must fail closed without it.
+      },
+      { logger: false }
+    );
+    const request = createCardEndowFundingRequest({ sourceRoute: "/vaults" });
+
+    const response = await app.request(PUBLIC_AGENT_ROUTES.fundingIntentProof, {
+      method: "POST",
+      headers: jsonHeaders(),
+      body: JSON.stringify({
+        gardenId,
+        gardenName: "Greenpill NYC",
+        destinationType: "vault",
+        destinationAddress,
+        fundingIntent: "endow",
+        paymentMethod: "card",
+        provider: "thirdweb",
+        sourceRoute: "/vaults",
+        chainId: 11155111,
+        token,
+        availabilityKey: request.availabilityKey,
+        clientRequestId: "client-proof-no-share-verifier",
+        receiverAddress,
+        receiverCustody: "user_owned_recovered_wallet",
+        amount: "25000000",
+        transactionHash: "0xabcdef",
+        shareBalance: "1",
+      }),
+    });
+
+    expect(response.status).toBe(409);
+    expect(confirmFundingTuple).not.toHaveBeenCalled();
+    expect(await store.getByClientRequestId("client-proof-no-share-verifier")).toBeUndefined();
+  });
+
+  it("rejects a forged Card Endow share claim when the server-side share read is zero", async () => {
+    const store = new MemoryFundingIntentStore();
+    const confirmFundingTuple = vi.fn(async () => ({
+      status: "confirmed" as const,
+      txHash: "0xabcdef" as const,
+      matchedAssetAmount: "25000000",
+    }));
+    const readVaultShareBalance = vi.fn(async () => 0n);
+    const app = createServer(
+      {
+        isAIReady: () => true,
+        allowedOrigins: new Set([ORIGIN]),
+        fundingIntents: store,
+        publicRateLimiter: new InMemoryPublicRateLimiter(),
+        providerProofRegistry: createProviderProofRegistry([
+          {
+            ...cardEndowAvailabilityInput,
+            sourceRoute: "/vaults",
+            state: "live",
+            proofReference: "production:card-endow-vaults-proof-2026-06-03",
+          },
+        ]),
+        confirmFundingTuple,
+        readVaultShareBalance,
+      },
+      { logger: false }
+    );
+    const request = createCardEndowFundingRequest({ sourceRoute: "/vaults" });
+
+    const response = await app.request(PUBLIC_AGENT_ROUTES.fundingIntentProof, {
+      method: "POST",
+      headers: jsonHeaders(),
+      body: JSON.stringify({
+        gardenId,
+        gardenName: "Greenpill NYC",
+        destinationType: "vault",
+        destinationAddress,
+        fundingIntent: "endow",
+        paymentMethod: "card",
+        provider: "thirdweb",
+        sourceRoute: "/vaults",
+        chainId: 11155111,
+        token,
+        availabilityKey: request.availabilityKey,
+        clientRequestId: "client-proof-forged-shares",
+        receiverAddress,
+        receiverCustody: "user_owned_recovered_wallet",
+        amount: "25000000",
+        transactionHash: "0xabcdef",
+        // Forged claim: the wallet holds no shares on chain.
+        shareBalance: "999999",
+      }),
+    });
+
+    expect(response.status).toBe(409);
+    expect(readVaultShareBalance).toHaveBeenCalledTimes(1);
+    expect(await store.getByClientRequestId("client-proof-forged-shares")).toBeUndefined();
+  });
+
+  it("rejects Card Endow proof when the server-side share read fails", async () => {
+    const store = new MemoryFundingIntentStore();
+    const confirmFundingTuple = vi.fn(async () => ({
+      status: "confirmed" as const,
+      txHash: "0xabcdef" as const,
+      matchedAssetAmount: "25000000",
+    }));
+    const readVaultShareBalance = vi.fn(async () => {
+      throw new Error("rpc unavailable");
+    });
+    const app = createServer(
+      {
+        isAIReady: () => true,
+        allowedOrigins: new Set([ORIGIN]),
+        fundingIntents: store,
+        publicRateLimiter: new InMemoryPublicRateLimiter(),
+        providerProofRegistry: createProviderProofRegistry([
+          {
+            ...cardEndowAvailabilityInput,
+            sourceRoute: "/vaults",
+            state: "live",
+            proofReference: "production:card-endow-vaults-proof-2026-06-03",
+          },
+        ]),
+        confirmFundingTuple,
+        readVaultShareBalance,
+      },
+      { logger: false }
+    );
+    const request = createCardEndowFundingRequest({ sourceRoute: "/vaults" });
+
+    const response = await app.request(PUBLIC_AGENT_ROUTES.fundingIntentProof, {
+      method: "POST",
+      headers: jsonHeaders(),
+      body: JSON.stringify({
+        gardenId,
+        gardenName: "Greenpill NYC",
+        destinationType: "vault",
+        destinationAddress,
+        fundingIntent: "endow",
+        paymentMethod: "card",
+        provider: "thirdweb",
+        sourceRoute: "/vaults",
+        chainId: 11155111,
+        token,
+        availabilityKey: request.availabilityKey,
+        clientRequestId: "client-proof-share-read-failed",
+        receiverAddress,
+        receiverCustody: "user_owned_recovered_wallet",
+        amount: "25000000",
+        transactionHash: "0xabcdef",
+        shareBalance: "1",
+      }),
+    });
+
+    expect(response.status).toBe(409);
+    expect(await store.getByClientRequestId("client-proof-share-read-failed")).toBeUndefined();
+  });
+
+  it("accepts both production /vaults Card Endow tuples through the default provider-proof registry", async () => {
+    // P1 allowlist/registry sync: every campaign the client exposes for Card
+    // Endow (greenpill-nyc AND evmavericks) must resolve `live` in the DEFAULT
+    // registry, or donors would move value and then fail receipt recording.
+    const productionTuples = [
+      {
+        gardenKey: "greenpill-nyc",
+        gardenName: "Greenpill NYC",
+        vault: "0xaC8F844CEA2Fd75B7A5514f11974895B334fd9A5",
+        clientRequestId: "client-proof-prod-nyc",
+      },
+      {
+        gardenKey: "evmavericks",
+        gardenName: "EVMavericks Fantasy Football League",
+        vault: "0x0bCe8c16974FFD3B410A32365c5bCf27a5A630Fc",
+        clientRequestId: "client-proof-prod-evmavericks",
+      },
+    ] as const;
+    const wethToken = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
+    const store = new MemoryFundingIntentStore();
+    const app = createServer(
+      {
+        isAIReady: () => true,
+        allowedOrigins: new Set([ORIGIN]),
+        fundingIntents: store,
+        publicRateLimiter: new InMemoryPublicRateLimiter(),
+        // No providerProofRegistry override: the DEFAULT production registry
+        // must carry live entries for both pilot tuples.
+        confirmFundingTuple: vi.fn(async () => ({
+          status: "confirmed" as const,
+          txHash: "0xabcdef" as const,
+          matchedAssetAmount: "10000000000000000",
+        })),
+        readVaultShareBalance: vi.fn(async () => 42n),
+      },
+      { logger: false }
+    );
+
+    for (const tuple of productionTuples) {
+      const availabilityKey = buildPublicFundingAvailabilityKey({
+        gardenKey: tuple.gardenKey,
+        destinationType: "vault",
+        destinationAddress: tuple.vault,
+        fundingIntent: "endow",
+        paymentMethod: "card",
+        chainId: 1,
+        token: wethToken,
+        provider: "thirdweb",
+        sourceRoute: "/vaults",
+      });
+
+      const response = await app.request(PUBLIC_AGENT_ROUTES.fundingIntentProof, {
+        method: "POST",
+        headers: jsonHeaders(),
+        body: JSON.stringify({
+          gardenId: tuple.gardenKey,
+          gardenName: tuple.gardenName,
+          destinationType: "vault",
+          destinationAddress: tuple.vault,
+          fundingIntent: "endow",
+          paymentMethod: "card",
+          provider: "thirdweb",
+          sourceRoute: "/vaults",
+          chainId: 1,
+          token: wethToken,
+          availabilityKey,
+          clientRequestId: tuple.clientRequestId,
+          receiverAddress,
+          receiverCustody: "user_owned_recovered_wallet",
+          amount: "10000000000000000",
+          transactionHash: "0xabcdef",
+          shareBalance: "1",
+        }),
+      });
+
+      expect(response.status).toBe(200);
+      const body = await response.json();
+      expect(body.status).toBe("funded");
+      expect(body.publicReceipt.managementUrl).toBe("/vaults?manage=positions");
+    }
   });
 
   it("rejects client-side Card Endow proof when tuple confirmation is unavailable", async () => {
