@@ -63,6 +63,7 @@ export type {
   MetaStripProps,
   CanvasMobilePrimaryAction,
   RouteBackedLeftSheetConfig,
+  WorkbenchCardProps,
   WorkbenchRowProps,
   WorkbenchTone,
   ToolbarSlot,
@@ -108,13 +109,13 @@ export {
   MetaStrip,
   ProposalCardConviction,
   WeightAllocator,
+  WorkbenchCard,
   WorkbenchList,
   WorkbenchRow,
   surfaceCardVariants,
   FabProvider,
   LeftSheetProvider,
   useCanvasResponsiveFab,
-  useCanvasPortal,
   useFabConfig,
   useFabConfigValue,
   useViewActions,
@@ -277,7 +278,6 @@ export * from "./hooks/admin-ui/layout/useCommandPaletteData";
 export * from "./hooks/admin-ui/layout/useCommandPaletteShortcuts";
 export * from "./hooks/admin-ui/navigation/sheetRegistry";
 export * from "./hooks/admin-ui/navigation/workspaceNavigation";
-export * from "./hooks/admin-ui/navigation/workspaceScroll";
 export * from "./hooks/admin-ui/navigation/workspaceViews";
 export type {
   ActionFiltersState,

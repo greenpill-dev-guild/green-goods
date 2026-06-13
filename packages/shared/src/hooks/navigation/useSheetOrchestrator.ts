@@ -33,7 +33,6 @@ export function getSheetCloseAnimationMs(): number {
 export interface UseSheetOrchestratorReturn {
   activeSheet: "left" | "right" | null;
   activeContentId: string | null;
-  isReceded: boolean;
   openSheet: (side: "left" | "right", contentId: string) => void;
   closeSheet: () => void;
   onNavigateAway: (currentPath: string) => Promise<void>;
@@ -93,7 +92,6 @@ export function useSheetOrchestrator(): UseSheetOrchestratorReturn {
   return {
     activeSheet,
     activeContentId,
-    isReceded: activeSheet !== null,
     openSheet,
     closeSheet,
     onNavigateAway,

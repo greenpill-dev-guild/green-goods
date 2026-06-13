@@ -25,14 +25,12 @@ export default function GardenView() {
         hasSelectedGarden: Boolean(garden.selectedGarden),
         gardenerCount: garden.garden?.gardeners.length ?? 0,
         pendingWorkCount: garden.derived.pendingWorks.length,
-        treasuryBalance: garden.treasuryBalance,
         formatMessage,
       }),
     [
       garden.selectedGarden,
       garden.garden?.gardeners.length,
       garden.derived.pendingWorks.length,
-      garden.treasuryBalance,
       formatMessage,
     ]
   );

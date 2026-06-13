@@ -1,7 +1,7 @@
 // packages/shared/src/__tests__/components/Canvas/LeftSheet.test.tsx
 import { Globals } from "@react-spring/web";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { afterAll, beforeAll, describe, it, expect, vi } from "vitest";
+import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
 import { IntlProvider } from "react-intl";
 import { LeftSheet } from "../../../components/Canvas/LeftSheet";
 
@@ -79,7 +79,7 @@ describe("LeftSheet", () => {
     expect(screen.getByTestId("left-sheet")).toHaveStyle({
       borderRadius: "var(--radius-sheet, 24px)",
       bottom: "0px",
-      height: "auto",
+      height: "100%",
       left: "var(--admin-sheet-side-inset, 1rem)",
       maxHeight: "100%",
     });
@@ -116,11 +116,11 @@ describe("LeftSheet", () => {
 });
 
 describe("LeftSheet open transition", () => {
-  beforeAll(() => {
+  beforeEach(() => {
     Globals.assign({ skipAnimation: true });
   });
 
-  afterAll(() => {
+  afterEach(() => {
     Globals.assign({ skipAnimation: false });
   });
 

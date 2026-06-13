@@ -19,7 +19,7 @@ export interface WorkbenchRowProps {
   className?: string;
 }
 
-function getStatusToneClasses(tone: WorkbenchTone) {
+export function getStatusToneClasses(tone: WorkbenchTone) {
   if (tone === "pending") return "bg-warning-lighter/95 text-warning-dark";
   if (tone === "approved") return "bg-success-lighter/95 text-success-dark";
   if (tone === "certify") return "bg-primary-alpha-10 text-text-strong";
@@ -69,20 +69,20 @@ export function WorkbenchRow({
           <span className="text-label-sm text-text-soft">{eyebrow}</span>
           <span
             className={cn(
-              "inline-flex items-center rounded-full px-2.5 py-1 text-[0.72rem] font-bold tracking-[0.01em]",
+              "inline-flex items-center rounded-full px-2.5 py-1 text-label-sm font-bold",
               getStatusToneClasses(statusTone)
             )}
           >
             {statusLabel}
           </span>
         </div>
-        <h3 className="mt-[0.32rem] text-title-md text-text-strong">{title}</h3>
-        <p className="mt-[0.2rem] max-w-[60ch] text-body-md text-text-sub">{description}</p>
-        <div className="mt-[0.55rem] flex flex-wrap gap-[0.45rem]">
+        <h3 className="mt-1 text-title-md text-text-strong">{title}</h3>
+        <p className="mt-1 text-body-md text-text-sub">{description}</p>
+        <div className="mt-2 flex flex-wrap gap-1.5">
           {meta.map((value) => (
             <span
               key={`${title}-${value}`}
-              className="inline-flex items-center rounded-full bg-bg-soft px-2.5 py-[0.34rem] text-body-sm font-semibold text-text-sub shadow-[var(--edge-rest)]"
+              className="inline-flex items-center rounded-full bg-bg-soft px-2.5 py-1 text-body-sm font-semibold text-text-sub shadow-[var(--edge-rest)]"
             >
               {value}
             </span>
@@ -100,7 +100,7 @@ export function WorkbenchRow({
   );
 
   const sharedClassName = cn(
-    "relative grid w-full items-center gap-[0.875rem] px-4 py-3 text-left transition-[background-color,transform,box-shadow,filter] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] motion-reduce:transition-none max-[599px]:grid-cols-[auto_minmax(0,1fr)] max-[599px]:gap-3 max-[599px]:px-[0.8rem] max-[599px]:py-[0.85rem]",
+    "relative grid w-full items-center gap-3 px-4 py-3 text-left transition-[background-color,transform,box-shadow,filter] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] motion-reduce:transition-none max-[599px]:grid-cols-[auto_minmax(0,1fr)]",
     "grid-cols-[auto_minmax(0,1fr)_auto]",
     selected && "bg-[rgb(var(--tone-primary-container)/0.12)] shadow-[var(--edge-focus)]",
     disabled && "cursor-default opacity-60 shadow-none",

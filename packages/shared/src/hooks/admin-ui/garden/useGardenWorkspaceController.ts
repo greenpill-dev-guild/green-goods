@@ -20,10 +20,6 @@ import {
   type AdminWorkspaceSectionTab,
 } from "../navigation/workspaceNavigation";
 import { buildGardenViewActions, resolveGardenView } from "./garden.utils";
-import {
-  bindCanvasScrollPositionPersistence,
-  restoreCanvasScrollPosition,
-} from "../navigation/workspaceScroll";
 
 type ActivityFilter = "all" | "work" | "impact" | "community";
 
@@ -58,7 +54,6 @@ export function useGardenWorkspaceController() {
 
     const persistedState = getGardenWorkspaceState(gardenStateKey, "garden");
     setActivityFilterState(parseActivityFilter(persistedState.filter));
-    restoreCanvasScrollPosition(persistedState.scrollPosition);
     lastHydratedGardenStateKeyRef.current = gardenStateKey;
   }, [gardenStateKey, getGardenWorkspaceState]);
 
@@ -80,14 +75,6 @@ export function useGardenWorkspaceController() {
     setGardenWorkspaceState,
     view,
   ]);
-
-  useEffect(() => {
-    if (!selectedGarden) return;
-
-    return bindCanvasScrollPositionPersistence((scrollPosition) => {
-      setGardenWorkspaceState(gardenStateKey, "garden", { scrollPosition });
-    });
-  }, [gardenStateKey, selectedGarden, setGardenWorkspaceState]);
 
   const {
     garden,

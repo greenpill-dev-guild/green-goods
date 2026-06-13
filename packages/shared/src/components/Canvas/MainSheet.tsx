@@ -1,161 +1,45 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useState,
-  type MutableRefObject,
-  type ReactNode,
-} from "react";
-import { useMediaQuery } from "../../hooks/ui/useMediaQuery";
+import type { ReactNode } from "react";
 import { cn } from "../../utils";
 
-interface CanvasPortalContextValue {
-  portalTarget: HTMLDivElement | null;
-  setOverlayActive: (id: string, active: boolean) => void;
-}
-
-const CanvasPortalContext = createContext<CanvasPortalContextValue>({
-  portalTarget: null,
-  setOverlayActive: () => {},
-});
-
-/**
- * Accepts either a mutable ref object (legacy) or a React callback ref.
- * Callback refs let consumers drive component state on mount — critical
- * for the canvas overlay root, which must trigger a re-render when it
- * attaches so sheets can bind `container` on first open.
- */
-type OverlayRef = MutableRefObject<HTMLDivElement | null> | ((node: HTMLDivElement | null) => void);
-
 export interface MainSheetProps {
-  /** Whether the main sheet is in receded state (sheet is open) */
-  isReceded: boolean;
   /** Children rendered inside the main sheet content zone */
   children: ReactNode;
-  /** Optional ref to the overlay portal root for shell-owned sheets */
-  overlayRef?: OverlayRef;
   className?: string;
-}
-
-export function useCanvasPortal() {
-  return useContext(CanvasPortalContext);
 }
 
 /**
  * MainSheet — the primary content surface that lives inside the admin canvas.
  *
- * Floats above the atmospheric canvas field, bounded between the top axis and nav dock.
- * When a sheet opens, the main sheet recedes with a slightly stronger depth response.
- * Sheets portal into the overlay root so they're bounded to this zone without
- * being clipped by the scrolling content layer.
- *
- * The main sheet has two internal layers:
- * - a transformed content surface that scrolls and recedes
- * - a bounded overlay root that stays crisp above the content surface
+ * Floats above the atmospheric canvas field, bounded between the top axis and
+ * nav dock. It stays put when side sheets open — the sheets' own scrim and
+ * elevation carry the depth (QA refinement pass: the previous
+ * blur/dim/translate recession read as an accidental shift and was removed).
+ * Sheets portal into CanvasLayout's dedicated sheet layer, not into this
+ * surface, so the canvas stays crisp and readable behind them.
  */
-export function MainSheet({ isReceded, children, overlayRef, className }: MainSheetProps) {
-  const [portalTarget, setPortalTarget] = useState<HTMLDivElement | null>(null);
-  const [activeOverlayIds, setActiveOverlayIds] = useState<Set<string>>(() => new Set());
-  const prefersReducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
-
-  const handlePortalTargetRef = useCallback(
-    (node: HTMLDivElement | null) => {
-      setPortalTarget(node);
-      if (typeof overlayRef === "function") {
-        overlayRef(node);
-      } else if (overlayRef) {
-        overlayRef.current = node;
-      }
-    },
-    [overlayRef]
-  );
-
-  const setOverlayActive = useCallback((id: string, active: boolean) => {
-    setActiveOverlayIds((current) => {
-      const next = new Set(current);
-      if (active) {
-        next.add(id);
-      } else {
-        next.delete(id);
-      }
-      return next;
-    });
-  }, []);
-
-  const canvasPortalValue = useMemo(
-    () => ({
-      portalTarget,
-      setOverlayActive,
-    }),
-    [portalTarget, setOverlayActive]
-  );
-
-  const isSheetOpen = activeOverlayIds.size > 0;
-  const isMainSheetReceded = isReceded || isSheetOpen;
-  const mainSheetState = isMainSheetReceded ? "receded" : "resting";
-  const overlayState = isSheetOpen ? "active" : "idle";
-
-  // Handoff sheet-system.css: `.act-mainsheet.is-sheet-open { filter: blur(6px); }`.
-  // `--canvas-blur-receded` is the lighter scroll-recede signal; sheet-open stacks
-  // a stronger scrim on top.
-  const filter = isSheetOpen
-    ? "blur(var(--canvas-blur-sheet-open, 6px))"
-    : isMainSheetReceded
-      ? "blur(var(--canvas-blur-receded, 1.5px))"
-      : "none";
-
+export function MainSheet({ children, className }: MainSheetProps) {
   return (
-    <CanvasPortalContext.Provider value={canvasPortalValue}>
-      <div
-        className={cn("canvas-area-main relative flex-1 min-h-0 w-full", className)}
-        style={{
-          marginBottom: "1rem",
-        }}
-        data-component="MainSheet"
-        data-slot="root"
-        data-state={mainSheetState}
-        data-sheet-open={isSheetOpen ? "true" : "false"}
-        data-testid="main-sheet"
-      >
-        <div className="relative h-full min-h-0 overflow-hidden" data-slot="frame">
-          <div
-            className={cn("h-full min-h-0 will-change-[transform,opacity,filter]", "glass-surface")}
-            style={{
-              // Animated paints are limited to opacity + transform — both compositor
-              // friendly. `filter: blur()` switches from receded (1.5px) to sheet-open
-              // (6px per handoff) — animation on the filter is allowed because Web
-              // sheet-open already commits a heavier paint anyway.
-              transition: prefersReducedMotion
-                ? "none"
-                : [
-                    "opacity var(--spring-spatial-duration) var(--spring-spatial-easing)",
-                    "transform var(--spring-spatial-duration) var(--spring-spatial-easing)",
-                    "filter var(--spring-spatial-duration) var(--spring-spatial-easing)",
-                  ].join(", "),
-              transform: isMainSheetReceded ? "translateY(var(--canvas-recede-y, 8px))" : "none",
-              opacity: isMainSheetReceded ? "var(--canvas-opacity-receded, 0.95)" : 1,
-              filter,
-            }}
-            data-component="MainSheet"
-            data-slot="surface"
-            data-state={mainSheetState}
-            data-sheet-open={isSheetOpen ? "true" : "false"}
-            data-testid="main-sheet-content"
-          >
-            {children}
-          </div>
-        </div>
-
+    <div
+      className={cn("canvas-area-main relative flex-1 min-h-0 w-full", className)}
+      style={{
+        marginBottom: "1rem",
+      }}
+      data-component="MainSheet"
+      data-slot="root"
+      data-state="resting"
+      data-testid="main-sheet"
+    >
+      <div className="relative h-full min-h-0 overflow-hidden" data-slot="frame">
         <div
-          ref={handlePortalTargetRef}
-          className="pointer-events-none absolute inset-0 z-raised overflow-hidden"
+          className={cn("h-full min-h-0", "glass-surface")}
           data-component="MainSheet"
-          data-slot="overlay-root"
-          data-state={overlayState}
-          data-testid="main-sheet-overlay-root"
-        />
+          data-slot="surface"
+          data-state="resting"
+          data-testid="main-sheet-content"
+        >
+          {children}
+        </div>
       </div>
-    </CanvasPortalContext.Provider>
+    </div>
   );
 }

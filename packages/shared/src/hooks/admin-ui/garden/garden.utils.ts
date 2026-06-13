@@ -15,7 +15,6 @@ export interface GardenHeaderStatsInput {
   hasSelectedGarden: boolean;
   gardenerCount: number;
   pendingWorkCount: number;
-  treasuryBalance: string;
   formatMessage: (
     descriptor: { id: string; defaultMessage?: string },
     values?: Record<string, unknown>
@@ -28,14 +27,14 @@ export interface GardenHeaderStatsInput {
  * Returns [] when no garden is selected so the metadata slot stays clean
  * during the workspace selection gate.
  *
- * Stat shape (3 items): gardeners count · pending work · treasury.
- * Per audit §5.6 the slot must NOT include the garden name.
+ * Stat shape (2 items): gardeners count · pending work. Treasury lives on the
+ * Community workspace (the treasury/governance owner) so it is not duplicated
+ * here. Per audit §5.6 the slot must NOT include the garden name.
  */
 export function buildGardenHeaderStats({
   hasSelectedGarden,
   gardenerCount,
   pendingWorkCount,
-  treasuryBalance,
   formatMessage,
 }: GardenHeaderStatsInput): MetaStripItem[] {
   if (!hasSelectedGarden) return [];
@@ -62,14 +61,6 @@ export function buildGardenHeaderStats({
         },
         { count: pendingWorkCount }
       ),
-    },
-    {
-      id: "treasury",
-      value: treasuryBalance,
-      label: formatMessage({
-        id: "cockpit.garden.stats.treasury",
-        defaultMessage: "treasury",
-      }),
     },
   ];
 }

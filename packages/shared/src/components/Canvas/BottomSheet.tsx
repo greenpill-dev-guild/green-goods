@@ -162,12 +162,17 @@ export function BottomSheet({
       data-boundary={sheetBoundary}
       data-testid="bottom-sheet-dialog"
     >
-      {/* Custom overlay — static blur, opacity fade only */}
+      {/* Custom overlay — scrim that fades with the sheet. Bounded sheets dim
+          the canvas pane behind them (no movement, no blur — depth via the
+          scrim alone, per QA refinement); unbounded sheets keep the blurred
+          viewport scrim. */}
       <animated.div
-        className={cn("absolute inset-0", isBounded ? "bg-transparent" : "")}
+        className="absolute inset-0"
         style={{
-          opacity: isBounded ? 0 : springs.overlay,
-          backgroundColor: isBounded ? undefined : "rgb(var(--m3-on-surface, 10 10 10) / 0.18)",
+          opacity: springs.overlay,
+          backgroundColor: isBounded
+            ? "rgb(var(--m3-on-surface, 10 10 10) / 0.32)"
+            : "rgb(var(--m3-on-surface, 10 10 10) / 0.18)",
           backdropFilter: isBounded ? undefined : "blur(2px)",
           WebkitBackdropFilter: isBounded ? undefined : "blur(2px)",
         }}

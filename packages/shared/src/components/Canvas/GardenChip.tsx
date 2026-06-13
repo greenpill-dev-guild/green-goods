@@ -1,5 +1,5 @@
 import * as Popover from "@radix-ui/react-popover";
-import { RiAddLine, RiSeedlingLine } from "@remixicon/react";
+import { RiAddLine, RiArrowDownSLine, RiSeedlingLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { cn } from "../../utils/styles/cn";
@@ -126,6 +126,9 @@ export function GardenChip({
           <span className="truncate" title={displayName}>
             {displayName}
           </span>
+          {/* Caret signals the chip is a garden switcher (QA: the pill didn't
+              read as interactive without an explicit dropdown affordance). */}
+          <RiArrowDownSLine className="h-4 w-4 shrink-0 text-text-sub" aria-hidden="true" />
         </button>
       </Popover.Trigger>
 

@@ -1,7 +1,7 @@
 // packages/shared/src/__tests__/components/Canvas/RightSheet.test.tsx
 import { Globals } from "@react-spring/web";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { afterAll, beforeAll, describe, it, expect, vi } from "vitest";
+import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
 import { IntlProvider } from "react-intl";
 import { RightSheet } from "../../../components/Canvas/RightSheet";
 
@@ -79,7 +79,7 @@ describe("RightSheet", () => {
     expect(screen.getByTestId("right-sheet")).toHaveStyle({
       borderRadius: "var(--radius-sheet, 24px)",
       bottom: "0px",
-      height: "auto",
+      height: "100%",
       maxHeight: "100%",
       right: "var(--admin-sheet-side-inset, 1rem)",
     });
@@ -116,11 +116,11 @@ describe("RightSheet", () => {
 });
 
 describe("RightSheet open transition", () => {
-  beforeAll(() => {
+  beforeEach(() => {
     Globals.assign({ skipAnimation: true });
   });
 
-  afterAll(() => {
+  afterEach(() => {
     Globals.assign({ skipAnimation: false });
   });
 

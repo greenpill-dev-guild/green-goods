@@ -55,8 +55,8 @@ export function LeftSheet({
   const sheetBoundary = isBounded ? "bounded" : "viewport";
   const widthVar =
     width === "wide"
-      ? "var(--canvas-left-sheet-width-wide, clamp(420px, 36vw, 640px))"
-      : "var(--canvas-left-sheet-width, clamp(320px, 28vw, 480px))";
+      ? "var(--canvas-left-sheet-width-wide, clamp(460px, 40vw, 720px))"
+      : "var(--canvas-left-sheet-width, clamp(360px, 30vw, 540px))";
   const { formatMessage } = useIntl();
   const closeLabel = formatMessage({ id: "app.common.close" });
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -172,12 +172,17 @@ export function LeftSheet({
     >
       {renderedDescription ? <p className="sr-only">{renderedDescription}</p> : null}
 
-      {/* Custom overlay — static blur, opacity fade only */}
+      {/* Custom overlay — scrim that fades with the sheet. Bounded sheets dim
+          the canvas pane behind them (no movement, no blur — depth via the
+          scrim alone, per QA refinement); unbounded sheets keep the blurred
+          viewport scrim. */}
       <animated.div
-        className={cn("absolute inset-0", isBounded ? "bg-transparent" : "")}
+        className="absolute inset-0"
         style={{
-          opacity: isBounded ? 0 : springs.overlay,
-          backgroundColor: isBounded ? undefined : "rgb(var(--m3-on-surface, 10 10 10) / 0.18)",
+          opacity: springs.overlay,
+          backgroundColor: isBounded
+            ? "rgb(var(--m3-on-surface, 10 10 10) / 0.32)"
+            : "rgb(var(--m3-on-surface, 10 10 10) / 0.18)",
           backdropFilter: isBounded ? undefined : "blur(2px)",
           WebkitBackdropFilter: isBounded ? undefined : "blur(2px)",
         }}
@@ -205,7 +210,9 @@ export function LeftSheet({
             ? `min(${widthVar}, calc(100% - (var(--admin-sheet-side-inset, 1rem) * 2)))`
             : "100%",
           maxWidth: isBounded ? undefined : widthVar,
-          height: isBounded ? "auto" : "100%",
+          // Fill the canvas pane so every side sheet is the same height as the
+          // main container (QA: content-height sheets read as inconsistent chrome).
+          height: "100%",
           maxHeight: isBounded ? "100%" : undefined,
           paddingBottom: isBounded ? undefined : "env(safe-area-inset-bottom)",
           touchAction: "none",

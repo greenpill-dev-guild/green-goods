@@ -58,7 +58,7 @@ export function PageHeader({
       data-surface={variant}
       className={cn(
         isCanvas
-          ? "relative border-b px-0 py-3"
+          ? "relative border-b px-0 pt-3 pb-2"
           : cn(
               "border-b px-4 py-3 sm:px-6 sm:py-4",
               sticky ? "bg-bg-white shadow-regular-sm" : "bg-bg-white"
@@ -155,7 +155,7 @@ export function PageHeader({
         <div
           data-region="route-header-toolbar"
           className={cn(
-            "mt-3 flex flex-wrap items-center gap-3 border-t border-stroke-soft-200 pt-3 sm:mt-4 sm:pt-4",
+            "mt-2 flex flex-wrap items-center gap-3 border-t border-stroke-soft-200 pt-2 sm:mt-3 sm:pt-3",
             isCanvas && "bg-transparent"
           )}
         >

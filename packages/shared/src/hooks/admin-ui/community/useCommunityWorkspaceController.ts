@@ -22,10 +22,6 @@ import {
   communitySectionForMode,
   resolveCommunityMode,
 } from "./community.utils";
-import {
-  bindCanvasScrollPositionPersistence,
-  restoreCanvasScrollPosition,
-} from "../navigation/workspaceScroll";
 
 export function useCommunityWorkspaceController() {
   const { formatMessage } = useIntl();
@@ -79,7 +75,6 @@ export function useCommunityWorkspaceController() {
 
     const persistedState = getGardenWorkspaceState(gardenStateKey, "community");
     setMemberSearchState(persistedState.search);
-    restoreCanvasScrollPosition(persistedState.scrollPosition);
     lastHydratedGardenStateKeyRef.current = gardenStateKey;
   }, [gardenStateKey, getGardenWorkspaceState]);
 
@@ -101,14 +96,6 @@ export function useCommunityWorkspaceController() {
     setGardenWorkspaceState,
     sheetOpen,
   ]);
-
-  useEffect(() => {
-    if (!selectedGarden) return;
-
-    return bindCanvasScrollPositionPersistence((scrollPosition) => {
-      setGardenWorkspaceState(gardenStateKey, "community", { scrollPosition });
-    });
-  }, [gardenStateKey, selectedGarden, setGardenWorkspaceState]);
 
   const {
     garden,

@@ -65,7 +65,7 @@
     bottom: 0;
     min-height: 80px;
     border-radius: 0;
-    padding: 12px 8px calc(env(safe-area-inset-bottom) + 16px);
+    padding: 12px 8px calc(env(safe-area-inset-bottom) + 8px);
     gap: 0;
   }
 }

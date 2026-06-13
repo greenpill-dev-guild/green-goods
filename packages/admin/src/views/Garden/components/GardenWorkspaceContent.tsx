@@ -6,7 +6,7 @@ import {
   type AdminWorkspaceSectionTab,
   type useGardenWorkspaceController,
 } from "@green-goods/shared";
-import { RiPulseLine } from "@remixicon/react";
+import { RiImageLine, RiPulseLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { GardenDomainModal } from "@/components/Garden/GardenDomainEditor";
 import { GardenSettingsEditor } from "@/components/Garden/GardenSettingsEditor";
@@ -56,11 +56,6 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
 
   return (
     <div className="mt-4 space-y-4">
-      <GardenDomainSummaryRow
-        domainMask={workspace.garden.domainMask}
-        canManage={workspace.canManage}
-        onEditDomains={workspace.openDomainEditor}
-      />
       {workspace.view === "overview" ? (
         <OverviewTab
           section={workspace.section}
@@ -140,6 +135,45 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
           />
 
           <div className="space-y-4">
+            {/* Identity preview — surfaces the banner + name that otherwise sit
+                below the fold in the form, and gives the right panel a job
+                (QA: the panel read as underutilized). */}
+            <Surface elevation="ground" padding="none" className="overflow-hidden">
+              {workspace.garden.bannerImage ? (
+                <img
+                  src={workspace.garden.bannerImage}
+                  alt=""
+                  className="h-28 w-full object-cover"
+                />
+              ) : (
+                <div className="flex h-28 w-full items-center justify-center bg-bg-soft text-text-soft">
+                  <RiImageLine className="h-6 w-6" />
+                </div>
+              )}
+              <div className="space-y-1 p-3 text-sm text-text-sub">
+                <h3 className="label-md text-text-strong">{workspace.garden.name}</h3>
+                {workspace.garden.location ? <p>{workspace.garden.location}</p> : null}
+                {workspace.community ? (
+                  <p>
+                    {formatMessage({
+                      id: "cockpit.garden.communityConnected",
+                      defaultMessage: "Community connected",
+                    })}
+                  </p>
+                ) : null}
+              </div>
+            </Surface>
+
+            {/* Domain management lives inside Settings now (QA: the edit-domains
+                row no longer floats above every garden tab). */}
+            <Surface elevation="ground" padding="none" className="overflow-hidden">
+              <GardenDomainSummaryRow
+                domainMask={workspace.garden.domainMask}
+                canManage={workspace.canManage}
+                onEditDomains={workspace.openDomainEditor}
+              />
+            </Surface>
+
             <Alert variant="info">
               {formatMessage({
                 id: "cockpit.garden.settingsHint",
@@ -147,31 +181,6 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
                   "Profile, joining rules, and membership limits now live in the canvas garden workspace.",
               })}
             </Alert>
-
-            <Surface
-              elevation="ground"
-              padding="compact"
-              className="space-y-2 text-sm text-text-sub"
-            >
-              <h3 className="label-md text-text-strong">
-                {formatMessage({
-                  id: "cockpit.garden.contextCard",
-                  defaultMessage: "Garden context",
-                })}
-              </h3>
-              <p>
-                <span className="font-medium text-text-strong">{workspace.garden.name}</span>
-              </p>
-              {workspace.garden.location ? <p>{workspace.garden.location}</p> : null}
-              {workspace.community ? (
-                <p>
-                  {formatMessage({
-                    id: "cockpit.garden.communityConnected",
-                    defaultMessage: "Community connected",
-                  })}
-                </p>
-              ) : null}
-            </Surface>
           </div>
         </div>
       ) : null}

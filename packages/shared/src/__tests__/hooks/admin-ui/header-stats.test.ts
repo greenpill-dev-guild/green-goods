@@ -24,34 +24,30 @@ describe("buildGardenHeaderStats", () => {
       hasSelectedGarden: false,
       gardenerCount: 5,
       pendingWorkCount: 2,
-      treasuryBalance: "12.5",
       formatMessage: makeFormatMessage(),
     });
     expect(items).toEqual([]);
   });
 
-  it("emits gardeners / pending-work / treasury items in that order", () => {
+  it("emits gardeners / pending-work items in that order (treasury lives on Community)", () => {
     const items = buildGardenHeaderStats({
       hasSelectedGarden: true,
       gardenerCount: 5,
       pendingWorkCount: 2,
-      treasuryBalance: "12.5",
       formatMessage: makeFormatMessage(),
     });
-    expect(items.map((item) => item.id)).toEqual(["gardeners", "pending-work", "treasury"]);
+    expect(items.map((item) => item.id)).toEqual(["gardeners", "pending-work"]);
   });
 
-  it("stringifies numeric counts and passes the treasury balance through unchanged", () => {
+  it("stringifies numeric counts", () => {
     const items = buildGardenHeaderStats({
       hasSelectedGarden: true,
       gardenerCount: 0,
       pendingWorkCount: 13,
-      treasuryBalance: "1,234.56",
       formatMessage: makeFormatMessage(),
     });
     expect(items[0]?.value).toBe("0");
     expect(items[1]?.value).toBe("13");
-    expect(items[2]?.value).toBe("1,234.56");
   });
 
   it("calls formatMessage with the canonical i18n ids and count parameter for plurals", () => {
@@ -60,15 +56,10 @@ describe("buildGardenHeaderStats", () => {
       hasSelectedGarden: true,
       gardenerCount: 1,
       pendingWorkCount: 1,
-      treasuryBalance: "0",
       formatMessage,
     });
     const ids = formatMessage.mock.calls.map((call) => call[0].id);
-    expect(ids).toEqual([
-      "cockpit.garden.stats.gardeners",
-      "cockpit.garden.stats.pendingWork",
-      "cockpit.garden.stats.treasury",
-    ]);
+    expect(ids).toEqual(["cockpit.garden.stats.gardeners", "cockpit.garden.stats.pendingWork"]);
     expect(formatMessage.mock.calls[0]?.[1]).toEqual({ count: 1 });
     expect(formatMessage.mock.calls[1]?.[1]).toEqual({ count: 1 });
   });

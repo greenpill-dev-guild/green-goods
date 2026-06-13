@@ -198,7 +198,7 @@ export function GardenMembersPanel({
     });
   }, [filter, gardeners, looksLikeEnsName, resolvedEnsAddress, roleSets, trimmedSearch]);
 
-  const addByRole: Record<GardenRole, (address: string) => Promise<{ success: boolean }>> = {
+  const addByRole: Record<GardenRole, (address: Address) => Promise<{ success: boolean }>> = {
     gardener: operations.addGardener,
     operator: operations.addOperator,
     evaluator: operations.addEvaluator,
@@ -206,7 +206,7 @@ export function GardenMembersPanel({
     funder: operations.addFunder,
     community: operations.addCommunity,
   };
-  const removeByRole: Record<GardenRole, (address: string) => Promise<{ success: boolean }>> = {
+  const removeByRole: Record<GardenRole, (address: Address) => Promise<{ success: boolean }>> = {
     gardener: operations.removeGardener,
     operator: operations.removeOperator,
     evaluator: operations.removeEvaluator,

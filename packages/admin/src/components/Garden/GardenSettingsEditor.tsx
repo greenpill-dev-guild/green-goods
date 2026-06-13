@@ -135,8 +135,10 @@ export function GardenSettingsEditor({
     if (!isDirty && !isSaving) {
       setDraft(draftFromGarden(garden));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gardenSnapshot]);
+    // The snapshot-equality guard above is the real trigger; isDirty/isSaving/
+    // garden are listed so the guard always reads current values (no stale
+    // closure) and the effect no longer needs an exhaustive-deps suppression.
+  }, [gardenSnapshot, isDirty, isSaving, garden]);
 
   const canEditProfile = canManage;
   const canEditName = isOwner;

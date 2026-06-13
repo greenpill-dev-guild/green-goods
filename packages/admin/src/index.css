@@ -244,16 +244,12 @@
 
 /* ============================================================================
  * SPATIAL DESIGN TOKENS — Warm Earth design language
- * Spring tokens, canvas recession, shadow-border edges
+ * Spring tokens, shadow-border edges
  * Spec: .plans/active/admin-ui-revamp/artifacts/spatial-architecture.md
+ * (Canvas-recession tokens removed in the QA refinement pass — the MainSheet
+ * no longer recedes when sheets open; sheet scrim + elevation carry depth.)
  * ============================================================================ */
 :root {
-  /* Canvas recession — material focus variation */
-  --canvas-scale-receded: 0.992;
-  --canvas-opacity-receded: 0.95;
-  --canvas-blur-receded: 1.5px;
-  --canvas-recede-y: 8px;
-
   /* Shadow-as-border edge tokens (replace CSS border/ring) */
   --edge-rest: 0 0 0 1px rgba(0, 0, 0, 0.06);
   --edge-hover: 0 0 0 1px rgba(31, 193, 107, 0.20);
@@ -314,7 +310,9 @@
     transparent 100%
   );
   --admin-appbar-height: 3.5rem;
-  --admin-nav-offset-desktop: 20px;
+  /* Nav floats closer to the edge to reclaim vertical space (QA refinement);
+     drives both the floating-pill bottom and the sheet-clearance calc below. */
+  --admin-nav-offset-desktop: 12px;
   --admin-nav-height-desktop: 3.5rem;
   --admin-nav-height-mobile: calc(5rem + env(safe-area-inset-bottom));
   --admin-sheet-top-gap: 0.5rem;
@@ -326,8 +324,8 @@
   --admin-sheet-bottom: calc(
     var(--admin-nav-offset-desktop, 20px) + var(--admin-nav-height-desktop, 3.5rem) + var(--admin-sheet-bottom-gap-desktop, 1.5rem)
   );
-  --admin-main-bottom-clearance-desktop: 6.25rem;
-  --admin-main-bottom-clearance-mobile: calc(env(safe-area-inset-bottom) + 9.5rem);
+  --admin-main-bottom-clearance-desktop: 6rem;
+  --admin-main-bottom-clearance-mobile: calc(env(safe-area-inset-bottom) + 9rem);
   --admin-main-content-min-height: calc(
     100dvh - var(--admin-appbar-height, 3.5rem) - var(--admin-main-bottom-clearance-desktop)
   );
@@ -440,20 +438,24 @@
   --tone-surface-tint-color: rgb(var(--green-600) / 8%);
 }
 
-/* Community — Orange. The action tone is warm but still a filled-control role. */
+/* Community — Amber/Gold. The ambient canvas tint leans yellow so the workspace
+   reads clearly apart from the Actions red neighbor (QA: the old orange tint sat
+   too close to red). Primary stays orange-600 and action orange-700 so white text
+   on filled controls (incl. the date-picker selected day) holds AA contrast — the
+   yellow separation comes from the tint, secondary, and containers, not primary. */
 [data-tone="community"] {
   --tone-primary: var(--orange-600);
   --tone-on-primary: 255 255 255;
   --tone-action: var(--orange-700);
   --tone-action-hover: var(--orange-800);
   --tone-on-action: 255 255 255;
-  --tone-primary-container: var(--orange-100);
-  --tone-on-primary-container: var(--orange-900);
-  --tone-secondary: var(--orange-300);
-  --tone-surface-tint: var(--orange-600) / 8%;
-  --tone-outline: var(--orange-200);
-  --tone-surface-variant: var(--orange-50);
-  --tone-surface-tint-color: rgb(var(--orange-600) / 8%);
+  --tone-primary-container: var(--yellow-100);
+  --tone-on-primary-container: var(--yellow-900);
+  --tone-secondary: var(--yellow-300);
+  --tone-surface-tint: var(--yellow-500) / 8%;
+  --tone-outline: var(--yellow-200);
+  --tone-surface-variant: var(--yellow-50);
+  --tone-surface-tint-color: rgb(var(--yellow-500) / 8%);
 }
 
 /* Actions — Red */
@@ -521,18 +523,18 @@
 }
 
 [data-theme="dark"] [data-tone="community"] {
-  --tone-primary: var(--orange-200);
-  --tone-on-primary: var(--orange-900);
+  --tone-primary: var(--yellow-200);
+  --tone-on-primary: var(--yellow-900);
   --tone-action: var(--orange-800);
   --tone-action-hover: var(--orange-700);
   --tone-on-action: 255 255 255;
-  --tone-primary-container: var(--orange-900);
-  --tone-on-primary-container: var(--orange-100);
-  --tone-secondary: var(--orange-400);
-  --tone-surface-tint: var(--orange-200) / 10%;
-  --tone-outline: var(--orange-700);
-  --tone-surface-variant: var(--orange-900);
-  --tone-surface-tint-color: rgb(var(--orange-200) / 10%);
+  --tone-primary-container: var(--yellow-900);
+  --tone-on-primary-container: var(--yellow-100);
+  --tone-secondary: var(--yellow-400);
+  --tone-surface-tint: var(--yellow-200) / 10%;
+  --tone-outline: var(--yellow-700);
+  --tone-surface-variant: var(--yellow-900);
+  --tone-surface-tint-color: rgb(var(--yellow-200) / 10%);
 }
 
 [data-theme="dark"] [data-tone="actions"] {
@@ -1677,7 +1679,6 @@
 
   /* Sheet geometry — handoff sheet-system.css contract */
   --radius-sheet: 24px;
-  --canvas-blur-sheet-open: 6px;
 
   /* Typography alias to existing --font-heading */
   --font-sans: var(--font-heading);

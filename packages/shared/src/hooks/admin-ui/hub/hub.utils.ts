@@ -41,11 +41,11 @@ export {
 export const HUB_STAGE_RAIL_ID = "hub-stage";
 
 export const HUB_META_PILL_CLASSNAME =
-  "inline-flex items-center rounded-full bg-bg-white/80 px-2.5 py-[0.34rem] text-[0.74rem] font-semibold text-text-sub shadow-[var(--edge-rest)]";
+  "inline-flex items-center rounded-full bg-bg-white/80 px-2.5 py-1 text-label-sm font-semibold text-text-sub shadow-[var(--edge-rest)]";
 export const HUB_CERTIFY_STATUS_CLASSNAME =
-  "inline-flex items-center rounded-full bg-primary-alpha-10 px-2.5 py-1 text-[0.72rem] font-bold tracking-[0.01em] text-text-strong";
+  "inline-flex items-center rounded-full bg-primary-alpha-10 px-2.5 py-1 text-label-sm font-bold text-text-strong";
 export const HUB_HISTORY_STATUS_CLASSNAME =
-  "inline-flex items-center rounded-full bg-bg-white/85 px-2.5 py-1 text-[0.72rem] font-bold tracking-[0.01em] text-text-sub shadow-[var(--edge-rest)]";
+  "inline-flex items-center rounded-full bg-bg-white/85 px-2.5 py-1 text-label-sm font-bold text-text-sub shadow-[var(--edge-rest)]";
 
 // ============================================================================
 // Utility Functions
