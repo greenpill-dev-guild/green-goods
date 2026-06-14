@@ -11,8 +11,10 @@
 
 import { describe, expect, it, vi } from "vitest";
 
+import { buildActionsHeaderStats } from "../../../hooks/admin-ui/actions/actions.utils";
 import { buildCommunityHeaderStats } from "../../../hooks/admin-ui/community/community.utils";
 import { buildGardenHeaderStats } from "../../../hooks/admin-ui/garden/garden.utils";
+import { buildHubHeaderStats } from "../../../hooks/admin-ui/hub/hub.utils";
 
 function makeFormatMessage() {
   return vi.fn((descriptor: { id: string; defaultMessage?: string }) => descriptor.id);
@@ -128,5 +130,69 @@ describe("buildCommunityHeaderStats", () => {
     ]);
     expect(formatMessage.mock.calls[0]?.[1]).toEqual({ count: 1 });
     expect(formatMessage.mock.calls[1]?.[1]).toEqual({ count: 2 });
+  });
+});
+
+describe("buildHubHeaderStats", () => {
+  it("returns an empty array when no garden is selected", () => {
+    const items = buildHubHeaderStats({
+      hasSelectedGarden: false,
+      pendingWorkCount: 3,
+      assessmentCount: 1,
+      certificationCount: 2,
+      formatMessage: makeFormatMessage(),
+    });
+    expect(items).toEqual([]);
+  });
+
+  it("emits pending-work / in-assessment / to-certify pipeline counts in order", () => {
+    const items = buildHubHeaderStats({
+      hasSelectedGarden: true,
+      pendingWorkCount: 3,
+      assessmentCount: 1,
+      certificationCount: 2,
+      formatMessage: makeFormatMessage(),
+    });
+    expect(items.map((item) => item.id)).toEqual(["pending-work", "in-assessment", "to-certify"]);
+    expect(items.map((item) => item.value)).toEqual(["3", "1", "2"]);
+  });
+
+  it("calls formatMessage with the canonical i18n ids", () => {
+    const formatMessage = makeFormatMessage();
+    buildHubHeaderStats({
+      hasSelectedGarden: true,
+      pendingWorkCount: 0,
+      assessmentCount: 0,
+      certificationCount: 0,
+      formatMessage,
+    });
+    expect(formatMessage.mock.calls.map((call) => call[0].id)).toEqual([
+      "cockpit.hub.stats.pendingWork",
+      "cockpit.hub.stats.inAssessment",
+      "cockpit.hub.stats.toCertify",
+    ]);
+  });
+});
+
+describe("buildActionsHeaderStats", () => {
+  it("emits registry-level total / domains items (additive vs the lifecycle tabs)", () => {
+    const items = buildActionsHeaderStats({
+      totalCount: 12,
+      domainsCovered: 3,
+      formatMessage: makeFormatMessage(),
+    });
+    expect(items.map((item) => item.id)).toEqual(["total", "domains"]);
+    expect(items.map((item) => item.value)).toEqual(["12", "3"]);
+  });
+
+  it("passes the count parameter through for pluralization", () => {
+    const formatMessage = makeFormatMessage();
+    buildActionsHeaderStats({ totalCount: 1, domainsCovered: 4, formatMessage });
+    expect(formatMessage.mock.calls.map((call) => call[0].id)).toEqual([
+      "cockpit.actions.stats.total",
+      "cockpit.actions.stats.domains",
+    ]);
+    expect(formatMessage.mock.calls[0]?.[1]).toEqual({ count: 1 });
+    expect(formatMessage.mock.calls[1]?.[1]).toEqual({ count: 4 });
   });
 });

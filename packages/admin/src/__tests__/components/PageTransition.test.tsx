@@ -342,10 +342,14 @@ describe("PageTransition", () => {
   it("keeps Hub stage tab pane changes motionless", () => {
     const css = readFileSync(resolve(__dirname, "../../index.css"), "utf-8");
 
-    expect(css).toMatch(
-      /\.hub-results-pane\s*{[^}]*animation:\s*none;[^}]*transition:\s*none;[^}]*transform:\s*none;/s
-    );
+    // The pane no longer carries `key={hub.stage}`, so a stage switch doesn't
+    // remount the subtree — there is nothing to animate. The CSS must not
+    // (re)introduce a pane animation or transition that would make tab changes
+    // move; the earlier `animation/transition/transform: none` suppression was
+    // guarding against a remount that no longer happens.
     expect(css).not.toContain("hub-fade-in");
+    expect(css).not.toMatch(/\.hub-results-pane\s*{[^}]*animation:/s);
+    expect(css).not.toMatch(/\.hub-results-pane\s*{[^}]*transition:/s);
   });
 
   it("keeps persistent navigation active-state changes motionless", () => {

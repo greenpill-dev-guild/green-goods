@@ -1,4 +1,5 @@
 import {
+  buildActionsHeaderStats,
   Domain,
   DOMAIN_CONFIG,
   DOMAIN_FILTER_OPTIONS,
@@ -8,7 +9,7 @@ import {
   getWorkbenchTone,
   LIFECYCLE_TABS,
   localizeAction,
-  NativeSelect,
+  MetaStrip,
   Surface,
   useActionsController,
   useMediaQuery,
@@ -17,6 +18,7 @@ import {
 } from "@green-goods/shared";
 import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
+import { AdminSortSelect } from "@/components/AdminSortSelect";
 import { AdminTabRail } from "@/components/AdminTabRail";
 import { AdminViewActions } from "@/components/AdminViewActions";
 import {
@@ -25,7 +27,7 @@ import {
   CanvasRouteHeader,
 } from "@/components/Layout/CanvasRouteFrame";
 import { RiFileListLine } from "@remixicon/react";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { ActionsSheetDescriptor } from "./ActionsSheetDescriptor";
 
@@ -61,6 +63,17 @@ export default function Actions() {
   const intl = useIntl();
   const actions = useActionsController();
   const isDesktop = useMediaQuery("(min-width: 1024px)");
+
+  const headerStats = useMemo(
+    () =>
+      buildActionsHeaderStats({
+        totalCount: actions.actions.length,
+        domainsCovered: new Set(actions.actions.map((action) => action.domain)).size,
+        formatMessage: intl.formatMessage,
+      }),
+    [actions.actions, intl.formatMessage]
+  );
+
   const handleRefresh = useCallback(() => {
     void actions.refetch();
   }, [actions]);
@@ -84,7 +97,11 @@ export default function Actions() {
           defaultMessage:
             "Scan the registry, review lifecycle status, and maintain submission requirements.",
         })}
+        metadata={
+          headerStats.length > 0 ? <MetaStrip items={headerStats} density="inline" /> : undefined
+        }
         variant="canvas"
+        sticky
         actions={
           isDesktop && actions.desktopActions.length > 0 ? (
             <AdminViewActions items={actions.desktopActions} />
@@ -100,31 +117,11 @@ export default function Actions() {
                 defaultMessage: "Search actions...",
               })}
             >
-              <label className="flex h-10 shrink-0 items-center gap-2 rounded-[var(--m3-shape-full)] border border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface-container))] pl-3 pr-2 text-body-md font-medium text-[rgb(var(--m3-on-surface-variant))]">
-                <span className="whitespace-nowrap">
-                  {intl.formatMessage({
-                    id: "app.admin.sortSelect.sortBy",
-                    defaultMessage: "Sort by",
-                  })}
-                </span>
-                <NativeSelect
-                  surface="admin"
-                  controlSize="sm"
-                  value={actions.filters.sort}
-                  onChange={(event) => actions.setFilter("sort", event.target.value)}
-                  aria-label={intl.formatMessage({
-                    id: "app.admin.sortSelect.sortBy",
-                    defaultMessage: "Sort by",
-                  })}
-                  className="h-8 min-h-8 rounded-full border-0 bg-transparent py-0 pl-1 pr-8 shadow-none"
-                >
-                  {actions.sortOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </NativeSelect>
-              </label>
+              <AdminSortSelect
+                value={actions.filters.sort}
+                onChange={(value) => actions.setFilter("sort", value)}
+                options={actions.sortOptions}
+              />
               {DOMAIN_FILTER_OPTIONS.map((tag) => {
                 const selected = actions.filters.domain === tag.value;
                 return (

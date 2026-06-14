@@ -8,6 +8,7 @@ import {
 import {
   type AdminHubRouteContext,
   adminRoutes,
+  type MetaStripItem,
   type useGardenDerivedState,
 } from "@green-goods/shared";
 import type { ViewAction } from "../../../components/Canvas/viewActions.types";
@@ -46,6 +47,65 @@ export const HUB_CERTIFY_STATUS_CLASSNAME =
   "inline-flex items-center rounded-full bg-primary-alpha-10 px-2.5 py-1 text-label-sm font-bold text-text-strong";
 export const HUB_HISTORY_STATUS_CLASSNAME =
   "inline-flex items-center rounded-full bg-bg-white/85 px-2.5 py-1 text-label-sm font-bold text-text-sub shadow-[var(--edge-rest)]";
+
+// ============================================================================
+// Header Stats — Hub
+// ============================================================================
+
+export interface HubHeaderStatsInput {
+  hasSelectedGarden: boolean;
+  pendingWorkCount: number;
+  assessmentCount: number;
+  certificationCount: number;
+  formatMessage: (
+    descriptor: { id: string; defaultMessage?: string },
+    values?: Record<string, unknown>
+  ) => string;
+}
+
+/**
+ * Inline MetaStrip items for the Hub header so all four workspace headers
+ * share the title · subtitle · stats anatomy (the headers were drifting in
+ * height/position between views). Returns [] before a garden is selected so
+ * the slot stays clean on the selection gate. Stat shape (3 items): pending
+ * work · in assessment · to certify — the pipeline depth at a glance.
+ */
+export function buildHubHeaderStats({
+  hasSelectedGarden,
+  pendingWorkCount,
+  assessmentCount,
+  certificationCount,
+  formatMessage,
+}: HubHeaderStatsInput): MetaStripItem[] {
+  if (!hasSelectedGarden) return [];
+
+  return [
+    {
+      id: "pending-work",
+      value: String(pendingWorkCount),
+      label: formatMessage({
+        id: "cockpit.hub.stats.pendingWork",
+        defaultMessage: "pending",
+      }),
+    },
+    {
+      id: "in-assessment",
+      value: String(assessmentCount),
+      label: formatMessage({
+        id: "cockpit.hub.stats.inAssessment",
+        defaultMessage: "in assessment",
+      }),
+    },
+    {
+      id: "to-certify",
+      value: String(certificationCount),
+      label: formatMessage({
+        id: "cockpit.hub.stats.toCertify",
+        defaultMessage: "to certify",
+      }),
+    },
+  ];
+}
 
 // ============================================================================
 // Utility Functions

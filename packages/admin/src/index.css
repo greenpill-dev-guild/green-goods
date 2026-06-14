@@ -438,11 +438,15 @@
   --tone-surface-tint-color: rgb(var(--green-600) / 8%);
 }
 
-/* Community — Amber/Gold. The ambient canvas tint leans yellow so the workspace
-   reads clearly apart from the Actions red neighbor (QA: the old orange tint sat
-   too close to red). Primary stays orange-600 and action orange-700 so white text
-   on filled controls (incl. the date-picker selected day) holds AA contrast — the
-   yellow separation comes from the tint, secondary, and containers, not primary. */
+/* Community — Amber/Gold. The ambient canvas wash leans gold (oklch hue 80,
+   vs the Actions red-orange neighbor at 30) so the workspace reads clearly
+   apart (QA round 2: the earlier hue-50 wash still sat too close to red).
+   Primary stays orange-600 and action orange-700 because --tone-primary feeds
+   --m3-primary, which M3 renders as a white-text filled background (buttons,
+   FAB, date-picker selected day) — those need AA contrast, and orange-600 is
+   the lightest white-safe step in the ramp. The yellow separation therefore
+   comes from the canvas wash, surface tint, secondary, and containers, not the
+   primary accent. */
 [data-tone="community"] {
   --tone-primary: var(--orange-600);
   --tone-on-primary: 255 255 255;
@@ -1490,9 +1494,6 @@
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-    animation: none;
-    transition: none;
-    transform: none;
   }
 
   /* `.hub-route-shell` mobile padding: now owned by `.canvas-route-card`. */
@@ -1681,12 +1682,6 @@
   .rounded-xl {
     transition: none !important;
   }
-
-  .hub-results-pane {
-    animation: none !important;
-    transition: none !important;
-    transform: none !important;
-  }
 }
 
 /* ============================================================================
@@ -1855,12 +1850,12 @@
 
 [data-tone="hub"]       { --tone-canvas: oklch(96.5% calc(0.008 * var(--tone-strength)) 240); }
 [data-tone="garden"]    { --tone-canvas: oklch(96.5% calc(0.008 * var(--tone-strength)) 145); }
-[data-tone="community"] { --tone-canvas: oklch(96.5% calc(0.008 * var(--tone-strength)) 50);  }
+[data-tone="community"] { --tone-canvas: oklch(96.5% calc(0.016 * var(--tone-strength)) 80);  }
 [data-tone="actions"]   { --tone-canvas: oklch(96.5% calc(0.008 * var(--tone-strength)) 30);  }
 
 :is([data-theme="dark"][data-tone="hub"], [data-theme="dark"] [data-tone="hub"])             { --tone-canvas: oklch(20% calc(0.012 * var(--tone-strength)) 240); }
 :is([data-theme="dark"][data-tone="garden"], [data-theme="dark"] [data-tone="garden"])       { --tone-canvas: oklch(20% calc(0.012 * var(--tone-strength)) 145); }
-:is([data-theme="dark"][data-tone="community"], [data-theme="dark"] [data-tone="community"]) { --tone-canvas: oklch(20% calc(0.012 * var(--tone-strength)) 50);  }
+:is([data-theme="dark"][data-tone="community"], [data-theme="dark"] [data-tone="community"]) { --tone-canvas: oklch(20% calc(0.020 * var(--tone-strength)) 80);  }
 :is([data-theme="dark"][data-tone="actions"], [data-theme="dark"] [data-tone="actions"])     { --tone-canvas: oklch(20% calc(0.012 * var(--tone-strength)) 30);  }
 
 /* ============================================================================
