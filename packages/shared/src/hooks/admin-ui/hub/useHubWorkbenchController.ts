@@ -131,7 +131,7 @@ export function useHubWorkbenchController() {
   const canCertify = canReview;
   const canBrowseHistory = canManage || canReview;
 
-  const { stage, stages } = useMemo(
+  const { stage, stages, stageCounts } = useMemo(
     () =>
       buildHubStageModel({
         requestedStage,
@@ -472,6 +472,7 @@ export function useHubWorkbenchController() {
     sortDirection,
     sortOptions,
     stage,
+    stageCounts,
     stageTitle,
     stages,
     updateSearch,
