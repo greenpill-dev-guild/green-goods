@@ -1,15 +1,12 @@
 import {
   adminRoutes,
   type AdminCommunityRouteContext,
-  type FabConfig,
   formatTokenAmount,
   type MetaStripItem,
   type ViewAction,
 } from "@green-goods/shared";
 import {
-  RiAddLine,
   RiExternalLinkLine,
-  RiHandCoinLine,
   RiMoneyDollarCircleLine,
   RiUserLine,
   RiUserVoiceLine,
@@ -96,12 +93,20 @@ export function communitySectionForMode(mode: CommunityWorkspaceMode) {
 }
 
 /**
- * Community view-level actions. Reference design pairs a primary "New proposal"
- * with a "View public" ghost button; we extend with role/treasury actions per
- * user request (Manage roles, Deposit / withdraw, Manage payouts). On desktop
- * AdminViewActions inlines the top 3 and folds the rest into an overflow kebab.
+ * Community view-level actions — stable trio: the same set renders on every
+ * mode, in the same order, so positions never shift between tabs. Only the
+ * filled emphasis moves to the mode whose workflow the action opens:
+ *
+ * - `treasury`   → Deposit / withdraw filled (owner-gated; opens the vault
+ *   sheet over the treasury route).
+ * - `governance` → New proposal filled (opens the hypercert signal-pool
+ *   sheet, where registering a hypercert is the proposal-creation write).
+ * - `payouts` / `members` → no fill: the CookieJarPayoutPanel owns its
+ *   actions in local context, and People stays engagement/read-only with
+ *   Manage members linking to the Garden → Members management surface.
  */
 export function buildCommunityViewActions(
+  mode: CommunityWorkspaceMode,
   canManage: boolean,
   isOwner: boolean,
   hasSelectedGarden: boolean,
@@ -124,11 +129,11 @@ export function buildCommunityViewActions(
       visible: hasSelectedGarden && Boolean(gardenAddress),
     },
     {
-      id: "manage-roles",
-      label: "Manage roles",
-      labelId: "cockpit.community.action.manageRoles",
+      id: "manage-members",
+      label: "Manage members",
+      labelId: "cockpit.community.action.manageMembers",
       icon: RiUserLine,
-      onClick: () => navigate(adminRoutes.communityMembers(routeContext)),
+      onClick: () => navigate(adminRoutes.gardenMembers({ gardenAddress })),
       variant: "secondary",
       visible: hasSelectedGarden && canManage,
     },
@@ -138,68 +143,19 @@ export function buildCommunityViewActions(
       labelId: "cockpit.community.action.depositWithdraw",
       icon: RiMoneyDollarCircleLine,
       onClick: () => navigate(adminRoutes.communityTreasuryVault(routeContext)),
-      variant: "secondary",
+      variant: mode === "treasury" ? "primary" : "secondary",
       visible: hasSelectedGarden && isOwner,
-    },
-    {
-      id: "manage-payouts",
-      label: "Manage payouts",
-      labelId: "cockpit.community.action.managePayouts",
-      icon: RiHandCoinLine,
-      onClick: () => navigate(adminRoutes.communityPayouts(routeContext)),
-      variant: "secondary",
-      visible: hasSelectedGarden && canManage,
+      primary: mode === "treasury",
     },
     {
       id: "new-proposal",
       label: "New proposal",
       labelId: "cockpit.community.action.newProposal",
       icon: RiUserVoiceLine,
-      onClick: () => navigate(adminRoutes.communityGovernance(routeContext)),
-      variant: "primary",
+      onClick: () => navigate(adminRoutes.communityGovernanceSignalPool("hypercert", routeContext)),
+      variant: mode === "governance" ? "primary" : "secondary",
       visible: hasSelectedGarden && canManage,
-      primary: true,
+      primary: mode === "governance",
     },
   ];
-}
-
-/** @deprecated Use `buildCommunityViewActions` + `useViewActions` instead. */
-export function buildCommunityFabConfig(
-  canManage: boolean,
-  hasSelectedGarden: boolean,
-  navigate: (path: string) => void,
-  routeContext?: AdminCommunityRouteContext
-): FabConfig | null {
-  if (!hasSelectedGarden || !canManage) return null;
-
-  return {
-    icon: RiAddLine,
-    label: "Community Actions",
-    actions: [
-      {
-        id: "new-proposal",
-        icon: RiUserVoiceLine,
-        label: "New proposal",
-        labelId: "cockpit.community.fab.newProposal",
-      },
-      {
-        id: "add-member",
-        icon: RiUserLine,
-        label: "Add member",
-        labelId: "cockpit.community.fab.addMember",
-      },
-      {
-        id: "manage-vault",
-        icon: RiMoneyDollarCircleLine,
-        label: "Manage vault",
-        labelId: "cockpit.community.fab.manageVault",
-      },
-    ],
-    onAction: (actionId: string) => {
-      if (actionId === "new-proposal") navigate(adminRoutes.communityGovernance(routeContext));
-      else if (actionId === "add-member") navigate(adminRoutes.communityMembers(routeContext));
-      else if (actionId === "manage-vault")
-        navigate(adminRoutes.communityTreasuryVault(routeContext));
-    },
-  };
 }

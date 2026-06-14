@@ -10,9 +10,10 @@ interface UseViewActionsOptions extends ViewActionsConfig {
 
 interface UseViewActionsResult {
   /**
-   * The visible, ordered actions for desktop rendering. Empty array if
-   * blocked or no visible actions. Order: secondary/ghost/danger first
-   * (left), primary last (right) — matches the M3 button-row convention.
+   * The visible actions for desktop rendering, in declaration order. Empty
+   * array if blocked or no visible actions. Declaration order is part of the
+   * stable-trio contract: a workspace's actions keep their positions across
+   * tab changes — only the filled (`primary`) emphasis moves.
    */
   desktopActions: ViewAction[];
   /**
@@ -58,9 +59,10 @@ export function useViewActions({
   const fabConfig = useMemo<FabConfig | null>(() => {
     if (visibleActions.length === 0) return null;
 
-    // Choose the primary FAB action: explicit `primary: true` if set,
-    // otherwise the first visible action.
-    const primary = visibleActions.find((action) => action.primary) ?? visibleActions[0];
+    // The FAB is the mobile vehicle for the mode's primary action. A view
+    // with no explicit `primary: true` (read-only modes, panel-owned flows)
+    // declares no FAB rather than promoting an arbitrary first action.
+    const primary = visibleActions.find((action) => action.primary);
     if (!primary) return null;
 
     return {
@@ -87,15 +89,10 @@ export function useViewActions({
 
   const desktopActions = useMemo(() => {
     if (blocked || !isDesktop) return [];
-    // Order: secondary/ghost/danger first (left side), primary last (right).
-    // The chosen primary is whatever `primary: true` marks, OR the first
-    // visible action if none is marked — same logic as the FAB.
-    const primaryId = visibleActions.find((action) => action.primary)?.id ?? visibleActions[0]?.id;
-    if (!primaryId) return [];
-    return [
-      ...visibleActions.filter((action) => action.id !== primaryId),
-      ...visibleActions.filter((action) => action.id === primaryId),
-    ];
+    // Declaration order, always. Reordering by emphasis would shuffle button
+    // positions as the active tab (and with it the filled action) changes —
+    // the stable-trio grammar keeps positions frozen and moves only the fill.
+    return visibleActions;
   }, [blocked, isDesktop, visibleActions]);
 
   return { desktopActions, mobilePrimaryAction };

@@ -279,7 +279,9 @@ export const RealProviderShell: Story = {
     await expect(rightSheet).toHaveAttribute("data-component", "RightSheet");
     await expect(rightSheet).toHaveAttribute("data-boundary", "bounded");
     await expect(sheetLayer).toHaveAttribute("data-state", "right");
-    await waitFor(() => expect(mainSheet).toHaveAttribute("data-state", "receded"));
+    // The main canvas no longer recedes when a sheet opens — depth now comes
+    // from the sheet's own scrim, so the surface stays at rest (QA refinement).
+    await waitFor(() => expect(mainSheet).toHaveAttribute("data-state", "resting"));
     await expect(within(rightSheet).getByRole("heading", { name: sheetHeading })).toBeVisible();
     await userEvent.click(within(rightSheet).getByRole("button", { name: "Close" }));
   },

@@ -1,5 +1,5 @@
 import * as Popover from "@radix-ui/react-popover";
-import { RiAddLine, RiSeedlingLine } from "@remixicon/react";
+import { RiAddLine, RiArrowDownSLine, RiSeedlingLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { cn } from "../../utils/styles/cn";
@@ -126,6 +126,19 @@ export function GardenChip({
           <span className="truncate" title={displayName}>
             {displayName}
           </span>
+          {/* Caret signals the chip is a garden switcher (QA: the pill didn't
+              read as interactive without an explicit dropdown affordance).
+              Inline metrics/color keep this shared-JSX icon off Tailwind
+              utilities that admin's content scan may not reach. */}
+          <RiArrowDownSLine
+            aria-hidden="true"
+            style={{
+              height: "1rem",
+              width: "1rem",
+              flexShrink: 0,
+              color: "rgb(var(--text-sub-600))",
+            }}
+          />
         </button>
       </Popover.Trigger>
 

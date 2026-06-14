@@ -61,6 +61,9 @@ export default function CommunityView() {
         }
         actions={
           isDesktop && community.desktopActions.length > 0 ? (
+            // Stable trio: positions frozen across modes; Treasury fills
+            // Deposit / withdraw, Governance fills New proposal, Payouts and
+            // People stay outlined (panel-owned / read-only modes).
             <AdminViewActions items={community.desktopActions} />
           ) : undefined
         }

@@ -41,11 +41,11 @@ export {
 export const HUB_STAGE_RAIL_ID = "hub-stage";
 
 export const HUB_META_PILL_CLASSNAME =
-  "inline-flex items-center rounded-full bg-bg-white/80 px-2.5 py-[0.34rem] text-[0.74rem] font-semibold text-text-sub shadow-[var(--edge-rest)]";
+  "inline-flex items-center rounded-full bg-bg-white/80 px-2.5 py-1 text-label-sm font-semibold text-text-sub shadow-[var(--edge-rest)]";
 export const HUB_CERTIFY_STATUS_CLASSNAME =
-  "inline-flex items-center rounded-full bg-primary-alpha-10 px-2.5 py-1 text-[0.72rem] font-bold tracking-[0.01em] text-text-strong";
+  "inline-flex items-center rounded-full bg-primary-alpha-10 px-2.5 py-1 text-label-sm font-bold text-text-strong";
 export const HUB_HISTORY_STATUS_CLASSNAME =
-  "inline-flex items-center rounded-full bg-bg-white/85 px-2.5 py-1 text-[0.72rem] font-bold tracking-[0.01em] text-text-sub shadow-[var(--edge-rest)]";
+  "inline-flex items-center rounded-full bg-bg-white/85 px-2.5 py-1 text-label-sm font-bold text-text-sub shadow-[var(--edge-rest)]";
 
 // ============================================================================
 // Utility Functions
@@ -180,10 +180,12 @@ export function resolveOpenSectionRoute(
 // View Actions — Hub
 // ============================================================================
 //
-// Hub exposes a fixed action set across all stages (Work / Assess / Certify /
-// History). The active stage chooses which action is "primary" (filled, FAB
-// main button); the others render as outlined siblings on desktop and
-// speed-dial children on mobile.
+// Stable trio: the same creation actions render on every stage, in the same
+// order, so button positions never shift as the operator moves between tabs.
+// Only the emphasis moves — the stage whose workflow an action opens renders
+// it filled (Work → Submit Work, Assess → Create Assessment, Certify →
+// Create Hypercert). History owns no creation flow, so all three stay
+// outlined there and the mobile FAB hides (no `primary` → no FAB).
 
 export function buildHubViewActions(
   stage: HubPipelineStage,
@@ -199,7 +201,7 @@ export function buildHubViewActions(
       labelId: "cockpit.hub.action.submitWork",
       icon: RiAddLine,
       onClick: () => navigate(adminRoutes.hubWorkSubmit(hubContext)),
-      variant: "primary",
+      variant: stage === "work" ? "primary" : "secondary",
       visible: canManage,
       primary: stage === "work",
     },

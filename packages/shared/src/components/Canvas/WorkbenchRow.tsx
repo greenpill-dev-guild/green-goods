@@ -19,9 +19,13 @@ export interface WorkbenchRowProps {
   className?: string;
 }
 
-function getStatusToneClasses(tone: WorkbenchTone) {
-  if (tone === "pending") return "bg-warning-lighter/95 text-warning-dark";
-  if (tone === "approved") return "bg-success-lighter/95 text-success-dark";
+export function getStatusToneClasses(tone: WorkbenchTone) {
+  // Base `bg-*-lighter` (no `/95`): the opacity-modifier variant authored in
+  // shared JSX is not reached by admin's Tailwind content scan, so the pill
+  // rendered background-less in admin. The base tint ships and the 95%→100%
+  // delta on an already-pale color is imperceptible. Fixes Actions + Hub.
+  if (tone === "pending") return "bg-warning-lighter text-warning-dark";
+  if (tone === "approved") return "bg-success-lighter text-success-dark";
   if (tone === "certify") return "bg-primary-alpha-10 text-text-strong";
   return "bg-bg-soft text-text-sub shadow-[var(--edge-rest)]";
 }
@@ -52,11 +56,11 @@ export function WorkbenchRow({
             alt=""
             loading="lazy"
             draggable={false}
-            className="h-14 w-14 rounded-2xl object-cover shadow-[var(--edge-rest),_var(--elevation-1)] max-[599px]:h-11 max-[599px]:w-11 max-[599px]:rounded-xl"
+            className="h-14 w-14 rounded-2xl object-cover workbench-raised max-[599px]:h-11 max-[599px]:w-11"
           />
         ) : (
           <div
-            className="inline-flex h-14 w-14 items-center justify-center rounded-2xl text-primary-base shadow-[var(--edge-rest),_var(--elevation-1)] max-[599px]:h-11 max-[599px]:w-11 max-[599px]:rounded-xl"
+            className="inline-flex h-14 w-14 items-center justify-center rounded-2xl text-primary-base workbench-raised max-[599px]:h-11 max-[599px]:w-11"
             style={{ background: "var(--admin-workbench-icon-bg, rgb(var(--bg-soft-200)))" }}
           >
             <LeadingIcon className="h-5 w-5" />
@@ -69,20 +73,20 @@ export function WorkbenchRow({
           <span className="text-label-sm text-text-soft">{eyebrow}</span>
           <span
             className={cn(
-              "inline-flex items-center rounded-full px-2.5 py-1 text-[0.72rem] font-bold tracking-[0.01em]",
+              "inline-flex items-center rounded-full px-2.5 py-1 text-label-sm font-bold",
               getStatusToneClasses(statusTone)
             )}
           >
             {statusLabel}
           </span>
         </div>
-        <h3 className="mt-[0.32rem] text-title-md text-text-strong">{title}</h3>
-        <p className="mt-[0.2rem] max-w-[60ch] text-body-md text-text-sub">{description}</p>
-        <div className="mt-[0.55rem] flex flex-wrap gap-[0.45rem]">
+        <h3 className="mt-1 text-title-md text-text-strong">{title}</h3>
+        <p className="mt-1 text-body-md text-text-sub">{description}</p>
+        <div className="mt-2 flex flex-wrap gap-1.5">
           {meta.map((value) => (
             <span
               key={`${title}-${value}`}
-              className="inline-flex items-center rounded-full bg-bg-soft px-2.5 py-[0.34rem] text-body-sm font-semibold text-text-sub shadow-[var(--edge-rest)]"
+              className="inline-flex items-center rounded-full bg-bg-soft px-2.5 py-1 text-body-sm font-semibold text-text-sub shadow-[var(--edge-rest)]"
             >
               {value}
             </span>
@@ -91,7 +95,7 @@ export function WorkbenchRow({
       </div>
 
       <div
-        className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-bg-soft text-text-sub shadow-[var(--edge-rest)] max-[599px]:hidden"
+        className="workbench-row-trailing h-9 w-9 items-center justify-center rounded-full bg-bg-soft text-text-sub shadow-[var(--edge-rest)]"
         aria-hidden="true"
       >
         <RiArrowRightLine className="h-4 w-4" />
@@ -100,13 +104,13 @@ export function WorkbenchRow({
   );
 
   const sharedClassName = cn(
-    "relative grid w-full items-center gap-[0.875rem] px-4 py-3 text-left transition-[background-color,transform,box-shadow,filter] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] motion-reduce:transition-none max-[599px]:grid-cols-[auto_minmax(0,1fr)] max-[599px]:gap-3 max-[599px]:px-[0.8rem] max-[599px]:py-[0.85rem]",
+    "workbench-row relative grid w-full items-center gap-3 px-4 py-3 text-left max-[599px]:grid-cols-[auto_minmax(0,1fr)]",
     "grid-cols-[auto_minmax(0,1fr)_auto]",
-    selected && "bg-[rgb(var(--tone-primary-container)/0.12)] shadow-[var(--edge-focus)]",
+    selected && "shadow-[var(--edge-focus)]",
     disabled && "cursor-default opacity-60 shadow-none",
     onClick &&
       !disabled &&
-      "workbench-row-clickable cursor-pointer hover:-translate-y-0.5 hover:bg-bg-weak hover:shadow-[var(--edge-hover),_var(--elevation-1)] active:translate-y-0 active:bg-bg-soft active:shadow-[var(--edge-rest)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base",
+      "workbench-row-clickable cursor-pointer hover:bg-bg-weak focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base",
     className
   );
 

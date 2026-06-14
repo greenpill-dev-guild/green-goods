@@ -73,6 +73,8 @@ export default function HubView() {
             sticky
             actions={
               isDesktop && hub.desktopActions.length > 0 ? (
+                // Stable trio: positions frozen across stages, the active
+                // stage's creation action renders filled.
                 <AdminViewActions items={hub.desktopActions} />
               ) : undefined
             }

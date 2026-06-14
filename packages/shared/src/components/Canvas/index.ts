@@ -1,6 +1,6 @@
 export { BottomSheet, type BottomSheetProps } from "./BottomSheet";
 export { LeftSheet, type LeftSheetProps } from "./LeftSheet";
-export { MainSheet, useCanvasPortal, type MainSheetProps } from "./MainSheet";
+export { MainSheet, type MainSheetProps } from "./MainSheet";
 export { RightSheet, type RightSheetProps } from "./RightSheet";
 export { EmptyStateShell } from "./EmptyStateShell";
 export { MetaStrip, type MetaStripItem, type MetaStripProps } from "./MetaStrip";
@@ -11,6 +11,7 @@ export {
 } from "./useCanvasResponsiveFab";
 export { useViewActions } from "./useViewActions";
 export type { ViewAction, ViewActionsConfig } from "./viewActions.types";
+export { WorkbenchCard, type WorkbenchCardProps } from "./WorkbenchCard";
 export { WorkbenchList } from "./WorkbenchList";
 export {
   WorkbenchRow,
