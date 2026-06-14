@@ -195,9 +195,9 @@ export function CanvasLayout() {
   const { setGarden } = useGardenUrlSync();
   useStaleGardenGuard();
 
-  // Sheet orchestrator — manages pane-scoped sheets + main-sheet recession
+  // Sheet orchestrator — manages pane-scoped sheets
   const orchestrator = useSheetOrchestrator();
-  const { activeContentId, activeSheet, closeSheet, isReceded, openSheet } = orchestrator;
+  const { activeContentId, activeSheet, closeSheet, openSheet } = orchestrator;
   // State-driven sheet layer: sheets need to re-render once the canvas-level
   // portal root mounts so they stay bounded between AppBar and NavigationBar.
   const [sheetLayerRoot, setSheetLayerRoot] = useState<HTMLDivElement | null>(null);
@@ -453,7 +453,7 @@ export function CanvasLayout() {
             </div>
 
             {/* ── Body 2: MainSheet — Content Zone (Z2) ── */}
-            <MainSheet isReceded={isReceded}>
+            <MainSheet>
               <main
                 id="main-content"
                 data-region="main-scroll-area"
@@ -499,7 +499,11 @@ export function CanvasLayout() {
 
             <div
               ref={sheetLayerRef}
-              className="admin-canvas-sheet-layer pointer-events-none absolute inset-0 z-raised overflow-hidden"
+              className="admin-canvas-sheet-layer pointer-events-none absolute inset-0 overflow-hidden"
+              // Above sticky chrome (--z-sticky: 20) so an opening sheet never
+              // starts a frame underneath the PageHeader/AppBar and "pops" to
+              // the front mid-animation; below the nav dock (--z-nav: 30).
+              style={{ zIndex: "var(--z-sheet-layer, 25)" }}
               data-component="CanvasLayout"
               data-slot="sheet-layer"
               data-state={activeSheet ?? "idle"}

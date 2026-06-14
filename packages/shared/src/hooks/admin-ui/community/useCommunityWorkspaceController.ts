@@ -22,10 +22,6 @@ import {
   communitySectionForMode,
   resolveCommunityMode,
 } from "./community.utils";
-import {
-  bindCanvasScrollPositionPersistence,
-  restoreCanvasScrollPosition,
-} from "../navigation/workspaceScroll";
 
 export function useCommunityWorkspaceController() {
   const { formatMessage } = useIntl();
@@ -79,7 +75,6 @@ export function useCommunityWorkspaceController() {
 
     const persistedState = getGardenWorkspaceState(gardenStateKey, "community");
     setMemberSearchState(persistedState.search);
-    restoreCanvasScrollPosition(persistedState.scrollPosition);
     lastHydratedGardenStateKeyRef.current = gardenStateKey;
   }, [gardenStateKey, getGardenWorkspaceState]);
 
@@ -101,14 +96,6 @@ export function useCommunityWorkspaceController() {
     setGardenWorkspaceState,
     sheetOpen,
   ]);
-
-  useEffect(() => {
-    if (!selectedGarden) return;
-
-    return bindCanvasScrollPositionPersistence((scrollPosition) => {
-      setGardenWorkspaceState(gardenStateKey, "community", { scrollPosition });
-    });
-  }, [gardenStateKey, selectedGarden, setGardenWorkspaceState]);
 
   const {
     garden,
@@ -137,10 +124,10 @@ export function useCommunityWorkspaceController() {
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const viewActions = useMemo(
     () =>
-      buildCommunityViewActions(canManage, isOwner, Boolean(selectedGarden), navigate, {
+      buildCommunityViewActions(mode, canManage, isOwner, Boolean(selectedGarden), navigate, {
         gardenAddress: selectedGardenAddress,
       }),
-    [canManage, isOwner, navigate, selectedGarden, selectedGardenAddress]
+    [canManage, isOwner, mode, navigate, selectedGarden, selectedGardenAddress]
   );
   const { desktopActions } = useViewActions({
     actions: viewActions,
@@ -202,6 +189,11 @@ export function useCommunityWorkspaceController() {
     () => navigate(adminRoutes.communityMembers({ gardenAddress: selectedGardenAddress })),
     [navigate, selectedGardenAddress]
   );
+  // People is engagement/read-only; management lives on Garden → Members.
+  const openGardenMembers = useCallback(
+    () => navigate(adminRoutes.gardenMembers({ gardenAddress: selectedGardenAddress })),
+    [navigate, selectedGardenAddress]
+  );
   const createPoolsAsync = useCallback(async () => {
     createPools();
   }, [createPools]);
@@ -240,6 +232,7 @@ export function useCommunityWorkspaceController() {
     isVaultRoute,
     memberSearch,
     mode,
+    openGardenMembers,
     openMembersModal,
     openSection,
     pools,

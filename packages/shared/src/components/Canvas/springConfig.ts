@@ -9,7 +9,11 @@ import type { SpringConfig } from "@react-spring/web";
  * - gentle: Choreographed stagger, background transitions
  */
 export const SPRING_CONFIGS = {
-  sheet: { mass: 0.7, tension: 260, friction: 26 } satisfies SpringConfig,
+  // clamp: the sheet pose is slightly underdamped (ζ ≈ 0.96), so without it
+  // the enter animation overshoots its rest position and visibly "settles
+  // back" right at the end (QA refinement pass). Clamping stops the spring at
+  // rest in both directions; the exit clamp is invisible (off-screen).
+  sheet: { mass: 0.7, tension: 260, friction: 26, clamp: true } satisfies SpringConfig,
   recession: { mass: 0.9, tension: 180, friction: 24 } satisfies SpringConfig,
   snappy: { mass: 0.8, tension: 300, friction: 28 } satisfies SpringConfig,
   gentle: { mass: 1.2, tension: 120, friction: 20 } satisfies SpringConfig,

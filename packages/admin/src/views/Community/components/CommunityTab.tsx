@@ -13,7 +13,7 @@ import {
   type TabBadgeSeverity,
   type YieldAllocation,
 } from "@green-goods/shared";
-import { RiArrowRightSLine, RiSearchLine, RiUserLine } from "@remixicon/react";
+import { RiArrowRightSLine, RiSearchLine, RiUserLine, RiUserSettingsLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
@@ -57,8 +57,22 @@ export interface CommunityTabProps {
   memberSearch: string;
   setMemberSearch: (search: string) => void;
   openMembersModal: (type: GardenRole) => void;
+  /** Clear link from People (engagement/read-only) to Garden → Members
+   *  (the management surface). Role mutations never happen on this tab. */
+  onManageMembers: () => void;
   scheduleBackgroundRefetch: () => void;
 }
+
+/** Read-only role chip palette — mirrors the Garden Members chip colors so a
+ *  person reads the same across both surfaces. */
+const PEOPLE_ROLE_CHIP_CLASSES: Record<GardenRole, string> = {
+  owner: "bg-warning-lighter text-warning-dark",
+  operator: "bg-success-lighter text-success-dark",
+  evaluator: "bg-feature-lighter text-feature-dark",
+  gardener: "bg-information-lighter text-information-dark",
+  funder: "bg-primary-lighter text-primary-dark",
+  community: "bg-bg-weak text-text-sub",
+};
 
 export function CommunityTab({
   garden,
@@ -87,6 +101,7 @@ export function CommunityTab({
   memberSearch,
   setMemberSearch,
   openMembersModal,
+  onManageMembers,
   scheduleBackgroundRefetch,
 }: CommunityTabProps) {
   const { formatMessage } = useIntl();
@@ -97,6 +112,7 @@ export function CommunityTab({
   // directory data still render — they collapse the list to empty per the
   // "stub the rest as inert" direction lock from the audit.
   const [peopleFilter, setPeopleFilter] = useState<"all" | GardenRole>("all");
+  const isPeopleMode = section === "members";
   const filteredVisibleDirectory = useMemo(() => {
     if (peopleFilter === "all") return visibleDirectory;
     return visibleDirectory.filter((entry) => entry.roles.includes(peopleFilter));
@@ -247,15 +263,33 @@ export function CommunityTab({
                       {formatMessage({ id: "app.garden.detail.community.membersDescription" })}
                     </p>
                   </div>
-                  {section !== "members" && filteredDirectory.length > 8 ? (
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={() => openSection("community", "members")}
-                    >
-                      {formatMessage({ id: "app.garden.admin.viewAll" })}
-                    </Button>
-                  ) : null}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {!isPeopleMode && filteredDirectory.length > 8 ? (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => openSection("community", "members")}
+                      >
+                        {formatMessage({ id: "app.garden.admin.viewAll" })}
+                      </Button>
+                    ) : null}
+                    {canManage ? (
+                      // People stays engagement/read-only — this is the one
+                      // management affordance, and it leaves the tab.
+                      <AdminButton
+                        type="button"
+                        variant="outlined"
+                        size="sm"
+                        leadingIcon={<RiUserSettingsLine />}
+                        onClick={onManageMembers}
+                      >
+                        {formatMessage({
+                          id: "cockpit.community.action.manageMembers",
+                          defaultMessage: "Manage members",
+                        })}
+                      </AdminButton>
+                    ) : null}
+                  </div>
                 </Card.Header>
                 <Card.Body>
                   <div className="mb-3 space-y-3">
@@ -315,11 +349,10 @@ export function CommunityTab({
                       ).map((chip) => (
                         <AdminFilterChip
                           key={chip.id}
+                          label={formatMessage({ id: chip.labelId, defaultMessage: chip.fallback })}
                           selected={peopleFilter === chip.id}
-                          onClick={() => setPeopleFilter(chip.id)}
-                        >
-                          {formatMessage({ id: chip.labelId, defaultMessage: chip.fallback })}
-                        </AdminFilterChip>
+                          onToggle={() => setPeopleFilter(chip.id)}
+                        />
                       ))}
                     </div>
                   </div>
@@ -335,20 +368,27 @@ export function CommunityTab({
                         <AdminCard variant="outlined" key={entry.address} className="px-3 py-2.5">
                           <div className="flex min-w-0 items-center justify-between gap-3">
                             <AddressDisplay address={entry.address} className="min-w-0 flex-1" />
-                            <div className="flex flex-wrap items-center gap-1.5">
+                            <div
+                              className="flex flex-wrap items-center justify-end gap-1"
+                              aria-label={formatMessage({
+                                id: "cockpit.garden.members.rolesLabel",
+                                defaultMessage: "Roles",
+                              })}
+                            >
+                              {/* Read-only role indicators. The previous
+                                  AdminButtons navigated back to this same
+                                  route — a no-op pretending People manages
+                                  roles. Management lives on Garden → Members. */}
                               {entry.roles.map((role) => {
                                 const label = getRoleLabel(role, formatMessage);
                                 return (
-                                  <AdminButton
+                                  <span
                                     key={`${entry.address}-${role}`}
-                                    type="button"
-                                    variant="tonal"
-                                    size="sm"
-                                    className="h-auto min-w-0 rounded-full px-2 py-0.5 text-[11px]"
-                                    onClick={() => openMembersModal(role)}
+                                    data-role-chip={role}
+                                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-label-sm font-medium ${PEOPLE_ROLE_CHIP_CLASSES[role]}`}
                                   >
                                     {label.singular}
-                                  </AdminButton>
+                                  </span>
                                 );
                               })}
                             </div>
@@ -466,6 +506,20 @@ export function CommunityTab({
                 {roleSummary.map((entry) => {
                   const roleLabel = getRoleLabel(entry.role, formatMessage);
                   const Icon = roleIcons[entry.role];
+                  // On the People mode these rows would navigate to the route
+                  // the operator is already on — render plain count rows there
+                  // and keep the navigation affordance on the other modes.
+                  if (isPeopleMode) {
+                    return (
+                      <div key={entry.role} className="garden-stat-row w-full">
+                        <span className="inline-flex items-center gap-1.5 garden-stat-row-label">
+                          <Icon className="h-3.5 w-3.5" />
+                          {roleLabel.plural}
+                        </span>
+                        <span className="garden-stat-row-value">{entry.count}</span>
+                      </div>
+                    );
+                  }
                   return (
                     <AdminButton
                       key={entry.role}

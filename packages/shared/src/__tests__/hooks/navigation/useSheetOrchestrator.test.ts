@@ -3,7 +3,7 @@
  * @vitest-environment jsdom
  *
  * Tests the navigation-aware hook that wraps useSheetOrchestratorStore.
- * Validates: isReceded derivation, onNavigateAway save/close timing,
+ * Validates: open/close passthrough, onNavigateAway save/close timing,
  * and onNavigateArrive restore without auto-open.
  */
 
@@ -33,24 +33,6 @@ describe("hooks/navigation/useSheetOrchestrator", () => {
   });
 
   // =========================================================================
-  // isReceded derivation
-  // =========================================================================
-
-  it("isReceded is false when no sheet is open", () => {
-    const { result } = renderHook(() => useSheetOrchestrator());
-    expect(result.current.isReceded).toBe(false);
-  });
-
-  it("isReceded is true when a sheet is open", () => {
-    act(() => {
-      useSheetOrchestratorStore.getState().openSheet("left", "create");
-    });
-
-    const { result } = renderHook(() => useSheetOrchestrator());
-    expect(result.current.isReceded).toBe(true);
-  });
-
-  // =========================================================================
   // openSheet / closeSheet passthrough
   // =========================================================================
 
@@ -77,7 +59,6 @@ describe("hooks/navigation/useSheetOrchestrator", () => {
 
     expect(result.current.activeSheet).toBeNull();
     expect(result.current.activeContentId).toBeNull();
-    expect(result.current.isReceded).toBe(false);
   });
 
   // =========================================================================

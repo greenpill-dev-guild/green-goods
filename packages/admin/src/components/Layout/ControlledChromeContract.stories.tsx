@@ -143,10 +143,10 @@ function ControlledChromeContract({ theme }: ControlledChromeContractProps) {
                 labelId: "cockpit.garden.action.editDomains",
               },
               {
-                id: "invite-gardener",
+                id: "add-member",
                 icon: RiTeamLine,
-                label: "Invite gardener",
-                labelId: "cockpit.garden.action.inviteGardener",
+                label: "Add member",
+                labelId: "cockpit.garden.action.addMember",
               },
             ],
             onAction: fn(),

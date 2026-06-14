@@ -45,10 +45,6 @@ import {
   resolveHubRouteSelection,
   resolveHubRouteState,
 } from "./hub.workbenchModel";
-import {
-  bindCanvasScrollPositionPersistence,
-  restoreCanvasScrollPosition,
-} from "../navigation/workspaceScroll";
 
 export function useHubWorkbenchController() {
   const { formatMessage } = useIntl();
@@ -107,7 +103,6 @@ export function useHubWorkbenchController() {
 
     const persistedState = getGardenWorkspaceState(gardenStateKey, "hub");
     setSearchTerm(persistedState.search);
-    restoreCanvasScrollPosition(persistedState.scrollPosition);
     lastHydratedGardenStateKeyRef.current = gardenStateKey;
   }, [gardenStateKey, getGardenWorkspaceState]);
 
@@ -286,14 +281,6 @@ export function useHubWorkbenchController() {
     sortDirection,
     stage,
   ]);
-
-  useEffect(() => {
-    if (!selectedGarden) return;
-
-    return bindCanvasScrollPositionPersistence((scrollPosition) => {
-      setGardenWorkspaceState(gardenStateKey, "hub", { scrollPosition });
-    });
-  }, [gardenStateKey, selectedGarden, setGardenWorkspaceState]);
 
   useEffect(() => {
     if (!routeSheetContentId || !routeSheetSide) {

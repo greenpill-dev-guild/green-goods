@@ -161,9 +161,9 @@ export function useAdminRightSheetDescriptor({
     return {
       title: formatMessage(entry.title),
       content: activeTab === "settings" ? renderAccountSettings() : renderAccountProfile(),
-      // Settings holds form rows (toasts, addresses, key ops); profile is mostly
-      // read-only identity. Settings widens to fit two-column field rows.
-      width: activeTab === "settings" ? "wide" : "default",
+      // One width for every right sheet — per-content widths made the chrome
+      // feel inconsistent across notifications/profile/settings opens (QA
+      // refinement pass). The shared default token sizes all of them.
     };
   }, [contentId, formatMessage, renderAccountProfile, renderAccountSettings, renderNotifications]);
 }

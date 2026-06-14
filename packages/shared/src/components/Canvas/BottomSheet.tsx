@@ -62,30 +62,39 @@ export function BottomSheet({
     children,
   });
 
-  // Spring: y=0 fully open, y=100 fully offscreen bottom (percentage)
-  const [springs, api] = useSpring(() => ({
-    y: open ? 0 : 100,
-    overlay: open ? 1 : 0,
-    config: SPRING_CONFIGS.sheet,
-    immediate: prefersReducedMotion,
-    onRest: (result) => {
-      if (!latestOpenRef.current && result.finished && result.value.y >= 99) {
-        setMounted(false);
-        dialogRef.current?.close();
-      }
-    },
-  }));
+  // Spring: y=0 fully open, y=100 fully offscreen bottom (percentage).
+  // The pose MUST be declared through the deps array: react-spring's
+  // useSprings layout effect re-applies the declared update on every commit,
+  // so the declared update has to track the current pose. With no deps it
+  // stays the initial closed pose forever, and any commit landing after an
+  // imperative open start re-targets the spring back offscreen.
+  const [springs, api] = useSpring(
+    () => ({
+      y: open ? 0 : 100,
+      overlay: open ? 1 : 0,
+      config: SPRING_CONFIGS.sheet,
+      immediate: prefersReducedMotion,
+      onRest: (result) => {
+        if (!latestOpenRef.current && result.finished && result.value.y >= 99) {
+          setMounted(false);
+          dialogRef.current?.close();
+        }
+      },
+    }),
+    [open, prefersReducedMotion]
+  );
 
+  // Mount bookkeeping when open changes; the spring pose itself is driven
+  // declaratively by the deps above.
   useEffect(() => {
     if (open) {
       setMounted(true);
     }
-    api.start({ y: open ? 0 : 100, overlay: open ? 1 : 0, immediate: prefersReducedMotion });
     if (prefersReducedMotion && !open) {
       setMounted(false);
       dialogRef.current?.close();
     }
-  }, [open, api, mounted, prefersReducedMotion, setMounted]);
+  }, [open, prefersReducedMotion, setMounted]);
 
   useCanvasSheetLifecycle({
     dialogRef,
@@ -153,12 +162,18 @@ export function BottomSheet({
       data-boundary={sheetBoundary}
       data-testid="bottom-sheet-dialog"
     >
-      {/* Custom overlay — static blur, opacity fade only */}
+      {/* Custom overlay — scrim that fades with the sheet. Bounded sheets dim
+          the canvas pane behind them (no movement, no blur — depth via the
+          scrim alone, per QA refinement); unbounded sheets keep the blurred
+          viewport scrim. */}
       <animated.div
-        className={cn("absolute inset-0", isBounded ? "bg-transparent" : "")}
         style={{
-          opacity: isBounded ? 0 : springs.overlay,
-          backgroundColor: isBounded ? undefined : "rgb(var(--m3-on-surface, 10 10 10) / 0.18)",
+          position: "absolute",
+          inset: 0,
+          opacity: springs.overlay,
+          backgroundColor: isBounded
+            ? "rgb(var(--m3-on-surface, 10 10 10) / 0.32)"
+            : "rgb(var(--m3-on-surface, 10 10 10) / 0.18)",
           backdropFilter: isBounded ? undefined : "blur(2px)",
           WebkitBackdropFilter: isBounded ? undefined : "blur(2px)",
         }}

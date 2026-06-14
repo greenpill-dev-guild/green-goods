@@ -140,7 +140,7 @@ function AdminAccessHomeShell({ children }: { children: ReactNode }) {
           }
         />
       </div>
-      <MainSheet isReceded={false}>{children}</MainSheet>
+      <MainSheet>{children}</MainSheet>
       <div className="canvas-area-bottom" />
     </div>
   );

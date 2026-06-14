@@ -207,6 +207,9 @@ export function HubSheetDescriptor({
             content: sheetDescriptor.content,
             closeTo,
             onBeforeClose,
+            // Hub deep-link sheets carry forms and media evidence — the
+            // default left-sheet width cramps them (QA refinement pass).
+            width: "wide" as const,
           }
         : null,
     [closeTo, onBeforeClose, sheetDescriptor]

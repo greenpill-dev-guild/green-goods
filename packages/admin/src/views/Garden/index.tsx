@@ -25,14 +25,12 @@ export default function GardenView() {
         hasSelectedGarden: Boolean(garden.selectedGarden),
         gardenerCount: garden.garden?.gardeners.length ?? 0,
         pendingWorkCount: garden.derived.pendingWorks.length,
-        treasuryBalance: garden.treasuryBalance,
         formatMessage,
       }),
     [
       garden.selectedGarden,
       garden.garden?.gardeners.length,
       garden.derived.pendingWorks.length,
-      garden.treasuryBalance,
       formatMessage,
     ]
   );
@@ -60,7 +58,9 @@ export default function GardenView() {
         }
         actions={
           isDesktop && garden.desktopActions.length > 0 ? (
-            <AdminViewActions items={garden.desktopActions} maxInline={4} />
+            // Stable trio: positions frozen across views; Members fills Add
+            // member, Settings fills Edit garden, read surfaces stay outlined.
+            <AdminViewActions items={garden.desktopActions} />
           ) : undefined
         }
         variant="canvas"
