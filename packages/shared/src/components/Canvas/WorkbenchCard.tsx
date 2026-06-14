@@ -48,11 +48,11 @@ export function WorkbenchCard({
               alt=""
               loading="lazy"
               draggable={false}
-              className="h-11 w-11 rounded-xl object-cover shadow-[var(--edge-rest),_var(--elevation-1)]"
+              className="h-11 w-11 rounded-xl object-cover workbench-raised"
             />
           ) : (
             <div
-              className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-primary-base shadow-[var(--edge-rest),_var(--elevation-1)]"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-primary-base workbench-raised"
               style={{ background: "var(--admin-workbench-icon-bg, rgb(var(--bg-soft-200)))" }}
             >
               <LeadingIcon className="h-5 w-5" />
@@ -93,13 +93,13 @@ export function WorkbenchCard({
   );
 
   const sharedClassName = cn(
-    "relative flex h-full flex-col gap-3 rounded-2xl p-4 text-left transition-[background-color,transform,box-shadow] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] motion-reduce:transition-none",
-    "glass-raised shadow-[var(--edge-rest),_var(--elevation-1)]",
+    "workbench-card relative flex h-full flex-col gap-3 rounded-2xl p-4 text-left",
+    "glass-raised",
     selected && "shadow-[var(--edge-focus)]",
     disabled && "cursor-default opacity-60 shadow-none",
     onClick &&
       !disabled &&
-      "cursor-pointer hover:-translate-y-0.5 hover:bg-bg-weak hover:shadow-[var(--edge-hover),_var(--elevation-2)] active:translate-y-0 active:shadow-[var(--edge-rest)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base",
+      "workbench-card-clickable cursor-pointer hover:bg-bg-weak focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base",
     className
   );
 

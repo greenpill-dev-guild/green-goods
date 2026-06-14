@@ -56,11 +56,11 @@ export function WorkbenchRow({
             alt=""
             loading="lazy"
             draggable={false}
-            className="h-14 w-14 rounded-2xl object-cover shadow-[var(--edge-rest),_var(--elevation-1)] max-[599px]:h-11 max-[599px]:w-11 max-[599px]:rounded-xl"
+            className="h-14 w-14 rounded-2xl object-cover workbench-raised max-[599px]:h-11 max-[599px]:w-11"
           />
         ) : (
           <div
-            className="inline-flex h-14 w-14 items-center justify-center rounded-2xl text-primary-base shadow-[var(--edge-rest),_var(--elevation-1)] max-[599px]:h-11 max-[599px]:w-11 max-[599px]:rounded-xl"
+            className="inline-flex h-14 w-14 items-center justify-center rounded-2xl text-primary-base workbench-raised max-[599px]:h-11 max-[599px]:w-11"
             style={{ background: "var(--admin-workbench-icon-bg, rgb(var(--bg-soft-200)))" }}
           >
             <LeadingIcon className="h-5 w-5" />
@@ -95,7 +95,7 @@ export function WorkbenchRow({
       </div>
 
       <div
-        className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-bg-soft text-text-sub shadow-[var(--edge-rest)] max-[599px]:hidden"
+        className="workbench-row-trailing h-9 w-9 items-center justify-center rounded-full bg-bg-soft text-text-sub shadow-[var(--edge-rest)]"
         aria-hidden="true"
       >
         <RiArrowRightLine className="h-4 w-4" />
@@ -104,13 +104,13 @@ export function WorkbenchRow({
   );
 
   const sharedClassName = cn(
-    "relative grid w-full items-center gap-3 px-4 py-3 text-left transition-[background-color,transform,box-shadow,filter] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] motion-reduce:transition-none max-[599px]:grid-cols-[auto_minmax(0,1fr)]",
+    "workbench-row relative grid w-full items-center gap-3 px-4 py-3 text-left max-[599px]:grid-cols-[auto_minmax(0,1fr)]",
     "grid-cols-[auto_minmax(0,1fr)_auto]",
-    selected && "bg-[rgb(var(--tone-primary-container)/0.12)] shadow-[var(--edge-focus)]",
+    selected && "shadow-[var(--edge-focus)]",
     disabled && "cursor-default opacity-60 shadow-none",
     onClick &&
       !disabled &&
-      "workbench-row-clickable cursor-pointer hover:-translate-y-0.5 hover:bg-bg-weak hover:shadow-[var(--edge-hover),_var(--elevation-1)] active:translate-y-0 active:bg-bg-soft active:shadow-[var(--edge-rest)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base",
+      "workbench-row-clickable cursor-pointer hover:bg-bg-weak focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base",
     className
   );
 

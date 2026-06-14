@@ -1251,6 +1251,67 @@
     background: rgb(var(--bg-sub-300));
   }
 
+  /* ── Workbench surfaces (Hub WorkbenchRow + Actions WorkbenchCard) ──────────
+     These shared Canvas components are admin-only consumers. A handful of their
+     edge/elevation/hover/selected utilities are authored in packages/shared/src
+     JSX as arbitrary-value or compound variants that admin's Tailwind v4 content
+     scan does not reach, so they silently no-op in admin's build. Own those here
+     (base layout/colour utilities that DO ship stay in the components).
+     Verified against admin dist (packages/admin/dist/assets/*.css). */
+  .workbench-row,
+  .workbench-card {
+    transition-property: background-color, transform, box-shadow, filter;
+    transition-duration: var(--spring-spatial-fast-duration, 200ms);
+    transition-timing-function: var(--spring-spatial-fast-easing, cubic-bezier(0.34, 1.56, 0.64, 1));
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .workbench-row,
+    .workbench-card {
+      transition: none;
+    }
+  }
+
+  /* Selected row gains a container tint; the focus ring ships via Tailwind. */
+  .workbench-row[data-selected="true"] {
+    background-color: rgb(var(--tone-primary-container) / 0.12);
+  }
+
+  /* Clickable surfaces lift on hover (row → elevation-1, card → elevation-2)
+     and settle on press. Transform is owned here so it never races Tailwind's
+     translate utilities. */
+  .workbench-row-clickable:hover {
+    transform: translateY(-0.125rem);
+    box-shadow: var(--edge-hover), var(--elevation-1);
+  }
+
+  .workbench-card-clickable:hover {
+    transform: translateY(-0.125rem);
+    box-shadow: var(--edge-hover), var(--elevation-2);
+  }
+
+  .workbench-row-clickable:active,
+  .workbench-card-clickable:active {
+    transform: translateY(0);
+    box-shadow: var(--edge-rest);
+  }
+
+  /* Raised inner tiles (thumbnail / icon) — edge ring + elevation. */
+  .workbench-raised {
+    box-shadow: var(--edge-rest), var(--elevation-1);
+  }
+
+  /* Row trailing affordance hides on the <600px two-column layout. */
+  .workbench-row-trailing {
+    display: inline-flex;
+  }
+
+  @media (max-width: 599px) {
+    .workbench-row-trailing {
+      display: none;
+    }
+  }
+
   @supports not (backdrop-filter: blur(1px)) {
     .canvas-route-card {
       background: rgb(var(--admin-surface-0));
