@@ -30,7 +30,7 @@ export default function HubView() {
         hasSelectedGarden: Boolean(hub.selectedGarden),
         // Pipeline totals, not the search-filtered queue lengths: the header
         // summary must match the stage tab badges (same unfiltered stageCounts),
-        // otherwise an active search makes the two disagree. (#563 review P2)
+        // otherwise an active search makes the two disagree.
         pendingWorkCount: hub.stageCounts.work ?? 0,
         assessmentCount: hub.stageCounts.assess ?? 0,
         certificationCount: hub.stageCounts.certify ?? 0,
