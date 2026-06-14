@@ -167,8 +167,9 @@ export function BottomSheet({
           scrim alone, per QA refinement); unbounded sheets keep the blurred
           viewport scrim. */}
       <animated.div
-        className="absolute inset-0"
         style={{
+          position: "absolute",
+          inset: 0,
           opacity: springs.overlay,
           backgroundColor: isBounded
             ? "rgb(var(--m3-on-surface, 10 10 10) / 0.32)"

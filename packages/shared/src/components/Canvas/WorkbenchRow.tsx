@@ -20,8 +20,12 @@ export interface WorkbenchRowProps {
 }
 
 export function getStatusToneClasses(tone: WorkbenchTone) {
-  if (tone === "pending") return "bg-warning-lighter/95 text-warning-dark";
-  if (tone === "approved") return "bg-success-lighter/95 text-success-dark";
+  // Base `bg-*-lighter` (no `/95`): the opacity-modifier variant authored in
+  // shared JSX is not reached by admin's Tailwind content scan, so the pill
+  // rendered background-less in admin. The base tint ships and the 95%→100%
+  // delta on an already-pale color is imperceptible. Fixes Actions + Hub.
+  if (tone === "pending") return "bg-warning-lighter text-warning-dark";
+  if (tone === "approved") return "bg-success-lighter text-success-dark";
   if (tone === "certify") return "bg-primary-alpha-10 text-text-strong";
   return "bg-bg-soft text-text-sub shadow-[var(--edge-rest)]";
 }
