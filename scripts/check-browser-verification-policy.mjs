@@ -1,30 +1,10 @@
 #!/usr/bin/env bun
 
-import { extname, join, relative } from 'node:path';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { join, relative } from 'node:path';
 
 const repoRoot = process.cwd();
 const requiredPolicyFiles = ["AGENTS.md", "CLAUDE.md", "packages/admin/AGENTS.md", "packages/client/AGENTS.md", "packages/shared/AGENTS.md"];
-const staleGuidanceRoots = [
-  "AGENTS.md",
-  "CLAUDE.md",
-  "packages",
-  "docs",
-  ".claude/skills",
-  ".agents/skills",
-  "scripts/README.md",
-];
-const ignoredDirectories = new Set([
-  '.git',
-  '.cache',
-  '.next',
-  'node_modules',
-  'dist',
-  'build',
-  'build-storybook',
-  'output',
-]);
-const scannedMarkdownExtensions = new Set(['.md', '.mdx']);
 
 const failures = [];
 
@@ -36,21 +16,24 @@ function read(relPath) {
   return readFileSync(join(repoRoot, relPath), 'utf8');
 }
 
-function shouldScanFile(path) {
-  const name = path.split('/').at(-1);
-  return name === 'AGENTS.md' || name === 'CLAUDE.md' || scannedMarkdownExtensions.has(extname(path));
-}
-
-function walkGuidanceFiles(dir, result = []) {
+function walk(dir, result = []) {
   if (!existsSync(dir)) return result;
-  const stat = statSync(dir);
-  if (stat.isFile()) {
-    if (shouldScanFile(dir)) result.push(dir);
-    return result;
-  }
-
   for (const entry of readdirSync(dir)) {
-    if (ignoredDirectories.has(entry)) continue;
+    if (
+      [
+        '.git',
+        '.cache',
+        '.claude',
+        '.next',
+        'node_modules',
+        'dist',
+        'build',
+        'build-storybook',
+        'output',
+      ].includes(entry)
+    ) {
+      continue;
+    }
     const fullPath = join(dir, entry);
     let stat;
     try {
@@ -59,8 +42,8 @@ function walkGuidanceFiles(dir, result = []) {
       continue;
     }
     if (stat.isDirectory()) {
-      walkGuidanceFiles(fullPath, result);
-    } else if (shouldScanFile(fullPath)) {
+      walk(fullPath, result);
+    } else if (entry === 'AGENTS.md' || entry === 'CLAUDE.md') {
       result.push(fullPath);
     }
   }
@@ -100,20 +83,16 @@ const stalePatterns = [
   /Build-backed browser proof:\s*`bun run agentic:browser-proof`/i,
   /Brave MCP live DOM/i,
   /Brave-backed browser MCP/i,
-  /Brave-backed DevTools MCP/i,
   /DevTools MCP path for live browser debugging/i,
-  /Use Brave DevTools MCP when/i,
-  /Use Brave DevTools MCP only as an additional proof pass/i,
-  /use isolated DevTools MCP only/i,
   /isolated\/public proof lane/i,
   /browser proof still runs in Brave/i,
+  /only when the authenticated QA browser is Chrome\/Edge/i,
+  /Brave-only QA/i,
+  /Chrome\/Edge QA profiles/i,
+  /for Brave-only QA/i,
 ];
 
-const staleGuidanceFiles = [
-  ...new Set(staleGuidanceRoots.flatMap((root) => walkGuidanceFiles(join(repoRoot, root)))),
-];
-
-for (const filePath of staleGuidanceFiles) {
+for (const filePath of walk(repoRoot)) {
   const relPath = relative(repoRoot, filePath);
   const text = readFileSync(filePath, 'utf8');
   for (const pattern of stalePatterns) {
@@ -136,14 +115,19 @@ if (existsSync(packageJsonPath)) {
     fail('package.json: agentic:check must run check:browser-verification-policy');
   }
 
-  const browserProofGuard = 'bun scripts/require-authenticated-browser-qa.mjs && ';
-
-  if (scripts['agentic:browser-proof'] !== 'bun run browser-proof:routes') {
-    fail('package.json: agentic:browser-proof must delegate to browser-proof:routes');
+  if (
+    scripts['agentic:browser-proof'] &&
+    !scripts['agentic:browser-proof'].startsWith('bun scripts/require-authenticated-browser-qa.mjs')
+  ) {
+    fail('package.json: local agentic:browser-proof must be guarded by require-authenticated-browser-qa.mjs');
   }
 
-  if (!scripts['browser-proof:routes']?.startsWith(browserProofGuard)) {
-    fail('package.json: browser-proof:routes must be guarded by require-authenticated-browser-qa.mjs');
+  if (
+    scripts['agentic:verify'] &&
+    scripts['agentic:verify'].includes('ui:verify') &&
+    !scripts['agentic:verify'].startsWith('bun scripts/require-authenticated-browser-qa.mjs')
+  ) {
+    fail('package.json: local agentic:verify browser lane must be guarded by require-authenticated-browser-qa.mjs');
   }
 }
 
