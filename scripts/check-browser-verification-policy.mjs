@@ -1,10 +1,30 @@
 #!/usr/bin/env bun
 
+import { extname, join, relative } from 'node:path';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
-import { join, relative } from 'node:path';
 
 const repoRoot = process.cwd();
 const requiredPolicyFiles = ["AGENTS.md", "CLAUDE.md", "packages/admin/AGENTS.md", "packages/client/AGENTS.md", "packages/shared/AGENTS.md"];
+const staleGuidanceRoots = [
+  "AGENTS.md",
+  "CLAUDE.md",
+  "packages",
+  "docs",
+  ".claude/skills",
+  ".agents/skills",
+  "scripts/README.md",
+];
+const ignoredDirectories = new Set([
+  '.git',
+  '.cache',
+  '.next',
+  'node_modules',
+  'dist',
+  'build',
+  'build-storybook',
+  'output',
+]);
+const scannedMarkdownExtensions = new Set(['.md', '.mdx']);
 
 const failures = [];
 
@@ -16,24 +36,21 @@ function read(relPath) {
   return readFileSync(join(repoRoot, relPath), 'utf8');
 }
 
-function walk(dir, result = []) {
+function shouldScanFile(path) {
+  const name = path.split('/').at(-1);
+  return name === 'AGENTS.md' || name === 'CLAUDE.md' || scannedMarkdownExtensions.has(extname(path));
+}
+
+function walkGuidanceFiles(dir, result = []) {
   if (!existsSync(dir)) return result;
+  const stat = statSync(dir);
+  if (stat.isFile()) {
+    if (shouldScanFile(dir)) result.push(dir);
+    return result;
+  }
+
   for (const entry of readdirSync(dir)) {
-    if (
-      [
-        '.git',
-        '.cache',
-        '.claude',
-        '.next',
-        'node_modules',
-        'dist',
-        'build',
-        'build-storybook',
-        'output',
-      ].includes(entry)
-    ) {
-      continue;
-    }
+    if (ignoredDirectories.has(entry)) continue;
     const fullPath = join(dir, entry);
     let stat;
     try {
@@ -42,8 +59,8 @@ function walk(dir, result = []) {
       continue;
     }
     if (stat.isDirectory()) {
-      walk(fullPath, result);
-    } else if (entry === 'AGENTS.md' || entry === 'CLAUDE.md') {
+      walkGuidanceFiles(fullPath, result);
+    } else if (shouldScanFile(fullPath)) {
       result.push(fullPath);
     }
   }
@@ -88,7 +105,11 @@ const stalePatterns = [
   /browser proof still runs in Brave/i,
 ];
 
-for (const filePath of walk(repoRoot)) {
+const staleGuidanceFiles = [
+  ...new Set(staleGuidanceRoots.flatMap((root) => walkGuidanceFiles(join(repoRoot, root)))),
+];
+
+for (const filePath of staleGuidanceFiles) {
   const relPath = relative(repoRoot, filePath);
   const text = readFileSync(filePath, 'utf8');
   for (const pattern of stalePatterns) {
