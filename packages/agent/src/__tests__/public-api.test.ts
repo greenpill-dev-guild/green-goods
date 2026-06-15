@@ -16,6 +16,8 @@ import type { FundingConfirmationResult, TransactionConfirmation } from "../serv
 import { type FundingIntentRecord, MemoryFundingIntentStore } from "../services/funding-intents";
 
 const ORIGIN = "https://greengoods.app";
+const STAGING_CLIENT_ORIGIN = "https://staging.greengoods.app";
+const STAGING_ADMIN_ORIGIN = "https://staging-admin.greengoods.app";
 const gardenId = "0x1111111111111111111111111111111111111111";
 const destinationAddress = "0x2222222222222222222222222222222222222222";
 const token = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
@@ -54,6 +56,15 @@ function jsonHeaders(extra: Record<string, string> = {}) {
   };
 }
 
+function expectCorsFor(response: Response, origin: string) {
+  expect(response.headers.get("access-control-allow-origin")).toBe(origin);
+  expect(response.headers.get("access-control-allow-methods")).toContain("POST");
+  expect(response.headers.get("access-control-allow-methods")).toContain("OPTIONS");
+  expect(response.headers.get("access-control-allow-headers")).toContain("Content-Type");
+  expect(response.headers.get("access-control-allow-headers")).toContain("X-GG-Receipt-Token");
+  expect(response.headers.get("vary")).toBe("Origin");
+}
+
 describe("Hono Agent API compatibility", () => {
   it("serves health and readiness responses", async () => {
     const app = createServer({ isAIReady: () => true }, { logger: false });
@@ -84,6 +95,121 @@ describe("Hono Agent API compatibility", () => {
         })
       ).status
     ).toBe(503);
+  });
+});
+
+describe("public browser CORS", () => {
+  it("allows staging origins to preflight public browser APIs", async () => {
+    const app = createServer(
+      {
+        isAIReady: () => true,
+        allowedOrigins: new Set([ORIGIN, STAGING_CLIENT_ORIGIN, STAGING_ADMIN_ORIGIN]),
+      },
+      { logger: false }
+    );
+
+    const subscribe = await app.request(PUBLIC_AGENT_ROUTES.subscribe, {
+      method: "OPTIONS",
+      headers: {
+        origin: STAGING_CLIENT_ORIGIN,
+        "access-control-request-method": "POST",
+        "access-control-request-headers": "Content-Type",
+      },
+    });
+    const fundingIntent = await app.request(PUBLIC_AGENT_ROUTES.fundingIntents, {
+      method: "OPTIONS",
+      headers: {
+        origin: STAGING_CLIENT_ORIGIN,
+        "access-control-request-method": "POST",
+        "access-control-request-headers": "Content-Type",
+      },
+    });
+    const receipt = await app.request("/public/funding-intents/fi_test", {
+      method: "OPTIONS",
+      headers: {
+        origin: STAGING_CLIENT_ORIGIN,
+        "access-control-request-method": "GET",
+        "access-control-request-headers": "X-GG-Receipt-Token",
+      },
+    });
+    const uploadFromAdmin = await app.request(PUBLIC_AGENT_ROUTES.uploadSign, {
+      method: "OPTIONS",
+      headers: {
+        origin: STAGING_ADMIN_ORIGIN,
+        "access-control-request-method": "POST",
+        "access-control-request-headers": "Content-Type",
+      },
+    });
+
+    expect(subscribe.status).toBe(204);
+    expect(fundingIntent.status).toBe(204);
+    expect(receipt.status).toBe(204);
+    expect(uploadFromAdmin.status).toBe(204);
+    expectCorsFor(subscribe, STAGING_CLIENT_ORIGIN);
+    expectCorsFor(fundingIntent, STAGING_CLIENT_ORIGIN);
+    expectCorsFor(receipt, STAGING_CLIENT_ORIGIN);
+    expectCorsFor(uploadFromAdmin, STAGING_ADMIN_ORIGIN);
+  });
+
+  it("keeps rejected origins closed during preflight", async () => {
+    const app = createServer(
+      {
+        isAIReady: () => true,
+        allowedOrigins: new Set([ORIGIN, STAGING_CLIENT_ORIGIN]),
+      },
+      { logger: false }
+    );
+
+    const response = await app.request(PUBLIC_AGENT_ROUTES.fundingIntents, {
+      method: "OPTIONS",
+      headers: {
+        origin: "https://example.invalid",
+        "access-control-request-method": "POST",
+        "access-control-request-headers": "Content-Type",
+      },
+    });
+
+    expect(response.status).toBe(403);
+    expect(response.headers.get("access-control-allow-origin")).toBeNull();
+    expect((await response.json()).errorCode).toBe("origin_not_allowed");
+  });
+
+  it("adds CORS headers to public API JSON error responses", async () => {
+    const app = createServer(
+      {
+        isAIReady: () => true,
+        allowedOrigins: new Set([ORIGIN, STAGING_CLIENT_ORIGIN]),
+        publicRateLimiter: new InMemoryPublicRateLimiter(),
+      },
+      { logger: false }
+    );
+
+    const subscribe = await app.request(PUBLIC_AGENT_ROUTES.subscribe, {
+      method: "POST",
+      headers: {
+        origin: STAGING_CLIENT_ORIGIN,
+        "content-type": "application/json",
+      },
+      body: "{}",
+    });
+    const fundingIntent = await app.request(PUBLIC_AGENT_ROUTES.fundingIntents, {
+      method: "POST",
+      headers: {
+        origin: STAGING_CLIENT_ORIGIN,
+        "content-type": "application/json",
+      },
+      body: "{}",
+    });
+    const receipt = await app.request("/public/funding-intents/fi_test", {
+      headers: { origin: STAGING_CLIENT_ORIGIN },
+    });
+
+    expect(subscribe.status).toBe(400);
+    expect(fundingIntent.status).toBe(400);
+    expect(receipt.status).toBe(401);
+    expectCorsFor(subscribe, STAGING_CLIENT_ORIGIN);
+    expectCorsFor(fundingIntent, STAGING_CLIENT_ORIGIN);
+    expectCorsFor(receipt, STAGING_CLIENT_ORIGIN);
   });
 });
 

@@ -33,6 +33,10 @@ declare global {
   }
 }
 
+const adminAppUrl =
+  import.meta.env.VITE_ADMIN_APP_URL ||
+  (typeof window !== "undefined" ? window.location.origin : "https://admin.greengoods.app");
+
 // Initialize theme system
 const cleanupTheme = initTheme();
 
@@ -67,7 +71,7 @@ export const Root = () => (
         metadata={{
           name: "Green Goods Admin",
           description: "Garden management canvas for the Green Goods protocol",
-          url: "https://admin.greengoods.app",
+          url: adminAppUrl,
           icons: ["https://greengoods.app/icon.png"],
         }}
         defaultChainId={DEFAULT_CHAIN_ID}
