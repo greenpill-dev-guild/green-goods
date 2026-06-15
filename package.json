@@ -252,6 +252,5 @@
   },
   "author": "",
   "license": "MIT",
-  "patchedDependencies": {
-  }
+  "patchedDependencies": {}
 }
