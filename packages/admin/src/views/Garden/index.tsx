@@ -26,12 +26,13 @@ export default function GardenView() {
         gardenerCount: garden.garden?.gardeners.length ?? 0,
         // The garden's own certified output (hypercerts). Pending work is the
         // Hub's domain, so the header speaks to legacy, not the review queue.
-        impactCount: garden.hypercerts.length,
+        impactCount: garden.hypercertsLoading ? null : garden.hypercerts.length,
         formatMessage,
       }),
     [
       garden.selectedGarden,
       garden.garden?.gardeners.length,
+      garden.hypercertsLoading,
       garden.hypercerts.length,
       formatMessage,
     ]

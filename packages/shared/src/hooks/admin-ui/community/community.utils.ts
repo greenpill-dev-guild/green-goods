@@ -18,7 +18,7 @@ import {
 export interface CommunityHeaderStatsInput {
   hasSelectedGarden: boolean;
   vaultNetDeposited: bigint;
-  distributedAmounts: readonly bigint[];
+  distributedAmounts: readonly bigint[] | null;
   formatMessage: (
     descriptor: { id: string; defaultMessage?: string },
     values?: Record<string, unknown>
@@ -33,10 +33,11 @@ export interface CommunityHeaderStatsInput {
  * the workspace selection gate. Per audit §5.6, the slot must NOT include the
  * garden name.
  *
- * Stat shape: treasury balance · total distributed when the distribution is a
- * single asset. Multi-asset allocations intentionally omit the distributed item
- * until the header has an asset-specific display, because base units cannot be
- * summed across assets.
+ * Stat shape: treasury balance · total distributed when allocations are loaded
+ * and the distribution is a single asset. Loading or multi-asset allocations
+ * intentionally omit the distributed item until the header has truthful data
+ * and an asset-specific display, because base units cannot be summed across
+ * assets.
  */
 export function buildCommunityHeaderStats({
   hasSelectedGarden,
@@ -57,7 +58,7 @@ export function buildCommunityHeaderStats({
     },
   ];
 
-  if (distributedAmounts.length <= 1) {
+  if (distributedAmounts !== null && distributedAmounts.length <= 1) {
     items.push({
       id: "distributed",
       value: formatTokenAmount(distributedAmounts[0] ?? 0n),

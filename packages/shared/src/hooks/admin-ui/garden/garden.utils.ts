@@ -14,7 +14,7 @@ import { RiExternalLinkLine, RiSettings3Line, RiUserAddLine } from "@remixicon/r
 export interface GardenHeaderStatsInput {
   hasSelectedGarden: boolean;
   gardenerCount: number;
-  impactCount: number;
+  impactCount: number | null;
   formatMessage: (
     descriptor: { id: string; defaultMessage?: string },
     values?: Record<string, unknown>
@@ -30,7 +30,7 @@ export interface GardenHeaderStatsInput {
  * metadata slot stays clean during the workspace selection gate. Per audit §5.6
  * the slot must NOT include the garden name.
  *
- * Stat shape (2 items): gardeners count · certified impact.
+ * Stat shape: gardeners count · certified impact once hypercerts are loaded.
  */
 export function buildGardenHeaderStats({
   hasSelectedGarden,
@@ -40,7 +40,7 @@ export function buildGardenHeaderStats({
 }: GardenHeaderStatsInput): MetaStripItem[] {
   if (!hasSelectedGarden) return [];
 
-  return [
+  const items: MetaStripItem[] = [
     {
       id: "gardeners",
       value: String(gardenerCount),
@@ -52,7 +52,10 @@ export function buildGardenHeaderStats({
         { count: gardenerCount }
       ),
     },
-    {
+  ];
+
+  if (impactCount !== null) {
+    items.push({
       id: "impact",
       value: String(impactCount),
       label: formatMessage(
@@ -62,8 +65,10 @@ export function buildGardenHeaderStats({
         },
         { count: impactCount }
       ),
-    },
-  ];
+    });
+  }
+
+  return items;
 }
 
 /**

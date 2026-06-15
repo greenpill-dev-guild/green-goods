@@ -45,11 +45,12 @@ export default function CommunityView() {
       buildCommunityHeaderStats({
         hasSelectedGarden: Boolean(community.selectedGarden),
         vaultNetDeposited: community.vaultNetDeposited,
-        distributedAmounts: distributedAmountsByAsset,
+        distributedAmounts: community.allocationsLoading ? null : distributedAmountsByAsset,
         formatMessage,
       }),
     [
       community.selectedGarden,
+      community.allocationsLoading,
       community.vaultNetDeposited,
       distributedAmountsByAsset,
       formatMessage,

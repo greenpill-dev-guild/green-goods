@@ -52,6 +52,16 @@ describe("buildGardenHeaderStats", () => {
     expect(items[1]?.value).toBe("13");
   });
 
+  it("omits impact while hypercerts are still loading", () => {
+    const items = buildGardenHeaderStats({
+      hasSelectedGarden: true,
+      gardenerCount: 5,
+      impactCount: null,
+      formatMessage: makeFormatMessage(),
+    });
+    expect(items.map((item) => item.id)).toEqual(["gardeners"]);
+  });
+
   it("calls formatMessage with the canonical i18n ids and count parameter for plurals", () => {
     const formatMessage = makeFormatMessage();
     buildGardenHeaderStats({
@@ -131,6 +141,16 @@ describe("buildCommunityHeaderStats", () => {
       hasSelectedGarden: true,
       vaultNetDeposited: 0n,
       distributedAmounts: [500_000_000_000_000_000n, 1_000_000n],
+      formatMessage: makeFormatMessage(),
+    });
+    expect(items.map((item) => item.id)).toEqual(["treasury"]);
+  });
+
+  it("omits distributed totals while allocations are still loading", () => {
+    const items = buildCommunityHeaderStats({
+      hasSelectedGarden: true,
+      vaultNetDeposited: 0n,
+      distributedAmounts: null,
       formatMessage: makeFormatMessage(),
     });
     expect(items.map((item) => item.id)).toEqual(["treasury"]);

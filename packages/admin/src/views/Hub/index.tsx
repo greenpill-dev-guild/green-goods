@@ -24,21 +24,26 @@ export default function HubView() {
   const hub = useHubWorkbenchController();
   const isDesktop = useMediaQuery("(min-width: 1024px)");
 
-  const headerStats = useMemo(
-    () =>
-      buildHubHeaderStats({
-        hasSelectedGarden: Boolean(hub.selectedGarden),
-        // Queue aging, not stage depth: the stage tab rail already shows the
-        // per-stage counts, so the header surfaces what to triage first. Both
-        // counts are unfiltered, so an active search never shifts them. The
-        // derived warning count includes critical items, so keep waiting as the
-        // exclusive 24-72h bucket.
-        overdueCount: hub.pendingCriticalCount,
-        waitingCount: Math.max(0, hub.pendingWarningCount - hub.pendingCriticalCount),
-        formatMessage,
-      }),
-    [hub.selectedGarden, hub.pendingCriticalCount, hub.pendingWarningCount, formatMessage]
-  );
+  const headerStats = useMemo(() => {
+    if (hub.worksLoading) return [];
+    return buildHubHeaderStats({
+      hasSelectedGarden: Boolean(hub.selectedGarden),
+      // Queue aging, not stage depth: the stage tab rail already shows the
+      // per-stage counts, so the header surfaces what to triage first. Both
+      // counts are unfiltered, so an active search never shifts them. The
+      // derived warning count includes critical items, so keep waiting as the
+      // exclusive 24-72h bucket.
+      overdueCount: hub.pendingCriticalCount,
+      waitingCount: Math.max(0, hub.pendingWarningCount - hub.pendingCriticalCount),
+      formatMessage,
+    });
+  }, [
+    hub.selectedGarden,
+    hub.worksLoading,
+    hub.pendingCriticalCount,
+    hub.pendingWarningCount,
+    formatMessage,
+  ]);
 
   return (
     <CanvasRouteFrame
