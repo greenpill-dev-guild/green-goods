@@ -44,20 +44,20 @@ export const adminButtonVariants = tv({
       ],
       // Elevated — medium emphasis with surface tint
       elevated: [
-        "bg-[rgb(var(--m3-surface-container-low))] [color:rgb(var(--m3-primary))]",
+        "bg-[rgb(var(--m3-surface-container-low))] [color:rgb(var(--tone-on-surface-accent,var(--m3-primary)))]",
         "shadow-[var(--m3-elevation-1)] hover:shadow-[var(--m3-elevation-2)]",
         "[--state-layer-color:var(--m3-primary)]",
       ],
       // Outlined — low emphasis with border
       outlined: [
-        "bg-transparent [color:rgb(var(--m3-primary))]",
+        "bg-transparent [color:rgb(var(--tone-on-surface-accent,var(--m3-primary)))]",
         "border border-[rgb(var(--m3-outline))]",
         "shadow-[var(--m3-elevation-0)]",
         "[--state-layer-color:var(--m3-primary)]",
       ],
       // Text — lowest emphasis
       text: [
-        "bg-transparent [color:rgb(var(--m3-primary))]",
+        "bg-transparent [color:rgb(var(--tone-on-surface-accent,var(--m3-primary)))]",
         "shadow-[var(--m3-elevation-0)]",
         "[--state-layer-color:var(--m3-primary)]",
       ],

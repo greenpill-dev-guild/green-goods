@@ -70,6 +70,32 @@
 }
 
 /* --------------------------------------------------------------------------
+ * Tone-derived primary roles — RE-DECLARED at `.admin-m3` scope (scoping fix)
+ *
+ * `--m3-primary` (and the primary-container pair) indirect through
+ * `--tone-primary`, which is set per-workspace on the `[data-tone]` element —
+ * the SAME element that carries `.admin-m3` (see CanvasLayout). Declaring these
+ * only at `:root` (above) substitutes `var(--tone-primary)` at `:root`, where
+ * it is unset, so the value locks to the green fallback and that COMPUTED green
+ * inherits DOWN past the `[data-tone]` element that would have tinted it — which
+ * is why "everything was green" while only the canvas + filled button (which
+ * read `--tone-action` directly) picked up the workspace hue.
+ *
+ * Re-declaring them here, on the element that also sets `--tone-primary`,
+ * resolves the indirection in-scope, so every consumer that reads `--m3-primary`
+ * (secondary buttons, checkbox, progress, text-field accents, list selection)
+ * tints to the active workspace. Do NOT delete this as a "duplicate of :root":
+ * the `:root` copy is the no-tone fallback; THIS copy is what makes tone work.
+ * Enforced by scripts/design/check-tokens.sh.
+ * -------------------------------------------------------------------------- */
+.admin-m3 {
+  --m3-primary: var(--tone-primary, var(--green-500));
+  --m3-on-primary: var(--tone-on-primary, 255 255 255);
+  --m3-primary-container: var(--tone-primary-container, var(--green-100));
+  --m3-on-primary-container: var(--tone-on-primary-container, var(--green-900));
+}
+
+/* --------------------------------------------------------------------------
  * M3 Surface Color Aliases — Dark Mode
  * Overrides for [data-theme="dark"] adaptive dark palette
  * -------------------------------------------------------------------------- */
@@ -100,6 +126,14 @@
   --m3-on-tertiary-container: var(--warning-dark);
   --m3-error-container: var(--error-light);
   --m3-on-error-container: var(--error-dark);
+}
+
+/* Dark-mode pair of the tone-derived re-declaration above (same scoping fix). */
+[data-theme="dark"] .admin-m3 {
+  --m3-primary: var(--tone-primary, var(--green-200));
+  --m3-on-primary: var(--tone-on-primary, var(--green-900));
+  --m3-primary-container: var(--tone-primary-container, var(--green-900));
+  --m3-on-primary-container: var(--tone-on-primary-container, var(--green-100));
 }
 
 /* --------------------------------------------------------------------------
