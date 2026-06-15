@@ -88,7 +88,7 @@ Hard rules:
 Apply only the approved fixes, in order. For each:
 
 1. Make the edit.
-2. **Verify the change in the same turn**: re-read the file, run the targeted test, or read the rendered DOM (Brave-backed browser MCP) for UI changes. No "should work" claims. (See AGENTS.md → *Verify Before Claiming Success*.)
+2. **Verify the change in the same turn**: re-read the file, run the targeted test, or read the rendered DOM through the authenticated Brave QA profile for UI changes. No "should work" claims. (See AGENTS.md → *Verify Before Claiming Success*.)
 3. Move to the next.
 
 **If you discover a new issue mid-fix**:

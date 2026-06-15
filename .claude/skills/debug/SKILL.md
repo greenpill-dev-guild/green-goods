@@ -107,7 +107,7 @@ Fires for `user_bug_triage` mode. Use this as the gating frame whenever any exte
 regardless of phrasing or role. Apply this BEFORE choosing UI Regression or Data/API/Contract
 protocols; this decides which one fits.
 
-1. **Reproduce, with the user's exact inputs.** Drive the real surface (Brave-backed browser MCP against
+1. **Reproduce, with the user's exact inputs.** Drive the real surface (authenticated Brave QA profile against
    `localhost` or prod in Brave, real auth mode, real garden, real entry path). Target: trigger the failure
    yourself within 5 minutes. Do not open PostHog or Sentry yet. If reproducing is impossible, document why
    and proceed with explicit caveat.

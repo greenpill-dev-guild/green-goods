@@ -40,9 +40,8 @@ should come from `@green-goods/shared`.
 - Client changes commonly depend on shared hooks and providers. If the change reaches into
   `@green-goods/shared`, validate from the repo root, not only from this package.
 - Route and rendering changes should always get a build, not only tests.
-- For local human/agent browser walkthroughs and visual debugging, use Brave with an
-  isolated/non-default profile; do not silently fall back to any non-Brave browser for Green Goods
-  browser proof.
+- Local agentic browser QA must use the authenticated Brave QA profile. Codex: use the Codex browser-extension path and claim the already-open Brave tab/window. Claude Code: use the Claude Code Chrome/Chromium extension path (`claude --chrome` or `/chrome`) and select the authenticated Brave profile/tab when it is installed, connected, and able to control the already-open Brave window. Do not fall back merely because the extension is branded Chrome. If the Brave extension path is unavailable or not connected, use Claude computer-use/visible desktop control of the already-open Brave window; if neither can reach authenticated Brave, report QA as blocked. Use this for admin, PWA, extension, wallet/passkey, staging-session, installed-app, and profile-dependent verification.
+- Do not use isolated Browser, Playwright, or DevTools MCP profiles for local QA. Existing isolated browser-proof commands are CI/clean-room checks only and must not be reported as authenticated verification. If authenticated Brave access is blocked, stop and report QA as blocked.
 
 ## Validation
 
