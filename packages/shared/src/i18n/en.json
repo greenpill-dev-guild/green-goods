@@ -2707,7 +2707,7 @@
   "cockpit.garden.settingsHint": "Profile, joining rules, and membership limits now live in the canvas garden workspace.",
   "cockpit.garden.settingsPlaceholder": "Garden settings will be displayed here",
   "cockpit.garden.stats.gardeners": "{count, plural, one {gardener} other {gardeners}}",
-  "cockpit.garden.stats.impact": "{count, plural, one {impact} other {impact}}",
+  "cockpit.garden.stats.impact": "{count, plural, one {impact} other {impacts}}",
   "cockpit.garden.title": "Garden",
   "cockpit.garden.viewSwitcher": "Garden views",
   "cockpit.gardenChip.allGardens": "All Gardens",

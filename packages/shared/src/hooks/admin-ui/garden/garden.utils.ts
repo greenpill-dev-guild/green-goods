@@ -58,7 +58,7 @@ export function buildGardenHeaderStats({
       label: formatMessage(
         {
           id: "cockpit.garden.stats.impact",
-          defaultMessage: "{count, plural, one {impact} other {impact}}",
+          defaultMessage: "{count, plural, one {impact} other {impacts}}",
         },
         { count: impactCount }
       ),
