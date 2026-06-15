@@ -100,7 +100,11 @@ const stalePatterns = [
   /Build-backed browser proof:\s*`bun run agentic:browser-proof`/i,
   /Brave MCP live DOM/i,
   /Brave-backed browser MCP/i,
+  /Brave-backed DevTools MCP/i,
   /DevTools MCP path for live browser debugging/i,
+  /Use Brave DevTools MCP when/i,
+  /Use Brave DevTools MCP only as an additional proof pass/i,
+  /use isolated DevTools MCP only/i,
   /isolated\/public proof lane/i,
   /browser proof still runs in Brave/i,
 ];
@@ -132,11 +136,14 @@ if (existsSync(packageJsonPath)) {
     fail('package.json: agentic:check must run check:browser-verification-policy');
   }
 
-  if (
-    scripts['agentic:browser-proof'] &&
-    !scripts['agentic:browser-proof'].startsWith('bun scripts/require-authenticated-browser-qa.mjs && ')
-  ) {
-    fail('package.json: local agentic:browser-proof must be guarded by require-authenticated-browser-qa.mjs');
+  const browserProofGuard = 'bun scripts/require-authenticated-browser-qa.mjs && ';
+
+  if (scripts['agentic:browser-proof'] !== 'bun run browser-proof:routes') {
+    fail('package.json: agentic:browser-proof must delegate to browser-proof:routes');
+  }
+
+  if (!scripts['browser-proof:routes']?.startsWith(browserProofGuard)) {
+    fail('package.json: browser-proof:routes must be guarded by require-authenticated-browser-qa.mjs');
   }
 }
 
