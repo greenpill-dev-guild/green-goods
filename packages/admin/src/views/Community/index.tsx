@@ -1,6 +1,7 @@
 import {
   buildCommunityHeaderStats,
   MetaStrip,
+  type Address,
   useCommunityWorkspaceController,
   useMediaQuery,
 } from "@green-goods/shared";
@@ -18,20 +19,41 @@ export default function CommunityView() {
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const totalPeople = community.derived.directoryEntries.length;
 
+  // Paid-out magnitudes by asset. The Payouts tab badge is a count, but the
+  // header cannot add base units across WETH/USDC/etc. as one token total.
+  const distributedAmountsByAsset = useMemo(
+    () =>
+      Array.from(
+        community.allocations
+          .reduce((totals, allocation) => {
+            const current = totals.get(allocation.assetAddress) ?? 0n;
+            totals.set(
+              allocation.assetAddress,
+              current +
+                allocation.cookieJarAmount +
+                allocation.fractionsAmount +
+                allocation.juiceboxAmount
+            );
+            return totals;
+          }, new Map<Address, bigint>())
+          .values()
+      ),
+    [community.allocations]
+  );
+
   const headerStats = useMemo(
     () =>
       buildCommunityHeaderStats({
         hasSelectedGarden: Boolean(community.selectedGarden),
-        peopleCount: totalPeople,
-        poolCount: community.pools.length,
         vaultNetDeposited: community.vaultNetDeposited,
+        distributedAmounts: community.allocationsLoading ? null : distributedAmountsByAsset,
         formatMessage,
       }),
     [
       community.selectedGarden,
-      totalPeople,
-      community.pools.length,
+      community.allocationsLoading,
       community.vaultNetDeposited,
+      distributedAmountsByAsset,
       formatMessage,
     ]
   );
@@ -62,8 +84,8 @@ export default function CommunityView() {
         actions={
           isDesktop && community.desktopActions.length > 0 ? (
             // Stable trio: positions frozen across modes; Treasury fills
-            // Deposit / withdraw, Governance fills New proposal, Payouts and
-            // People stay outlined (panel-owned / read-only modes).
+            // Deposit / withdraw, Governance fills New proposal, People fills
+            // Manage members. Payouts stays outlined (its panel owns actions).
             <AdminViewActions items={community.desktopActions} />
           ) : undefined
         }

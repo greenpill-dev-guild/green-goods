@@ -17,9 +17,8 @@ import {
  */
 export interface CommunityHeaderStatsInput {
   hasSelectedGarden: boolean;
-  peopleCount: number;
-  poolCount: number;
   vaultNetDeposited: bigint;
+  distributedAmounts: readonly bigint[] | null;
   formatMessage: (
     descriptor: { id: string; defaultMessage?: string },
     values?: Record<string, unknown>
@@ -27,45 +26,28 @@ export interface CommunityHeaderStatsInput {
 }
 
 /**
- * Cleanup A6: build the inline MetaStrip items rendered in the Community
- * header after Tier 4 dropped the garden-name re-declaration. Returns [] when
- * no garden is selected so the metadata slot stays clean during the workspace
- * selection gate. Per audit §5.6, the slot must NOT include the garden name.
+ * Build the inline MetaStrip items rendered in the Community header. The tab
+ * rail already carries the People / Governance / Payouts *counts*, so the
+ * header complements them with the treasury *magnitudes* the tabs don't show.
+ * Returns [] when no garden is selected so the metadata slot stays clean during
+ * the workspace selection gate. Per audit §5.6, the slot must NOT include the
+ * garden name.
  *
- * Stat shape (3 items): people count · signal pool count · treasury balance.
+ * Stat shape: treasury balance · total distributed when allocations are loaded
+ * and the distribution is a single asset. Loading or multi-asset allocations
+ * intentionally omit the distributed item until the header has truthful data
+ * and an asset-specific display, because base units cannot be summed across
+ * assets.
  */
 export function buildCommunityHeaderStats({
   hasSelectedGarden,
-  peopleCount,
-  poolCount,
   vaultNetDeposited,
+  distributedAmounts,
   formatMessage,
 }: CommunityHeaderStatsInput): MetaStripItem[] {
   if (!hasSelectedGarden) return [];
 
-  return [
-    {
-      id: "people",
-      value: String(peopleCount),
-      label: formatMessage(
-        {
-          id: "cockpit.community.stats.people",
-          defaultMessage: "{count, plural, one {person} other {people}}",
-        },
-        { count: peopleCount }
-      ),
-    },
-    {
-      id: "pools",
-      value: String(poolCount),
-      label: formatMessage(
-        {
-          id: "cockpit.community.stats.pools",
-          defaultMessage: "{count, plural, one {pool} other {pools}}",
-        },
-        { count: poolCount }
-      ),
-    },
+  const items: MetaStripItem[] = [
     {
       id: "treasury",
       value: formatTokenAmount(vaultNetDeposited),
@@ -75,6 +57,19 @@ export function buildCommunityHeaderStats({
       }),
     },
   ];
+
+  if (distributedAmounts !== null && distributedAmounts.length <= 1) {
+    items.push({
+      id: "distributed",
+      value: formatTokenAmount(distributedAmounts[0] ?? 0n),
+      label: formatMessage({
+        id: "cockpit.community.stats.distributed",
+        defaultMessage: "distributed",
+      }),
+    });
+  }
+
+  return items;
 }
 
 export type CommunityWorkspaceMode = "treasury" | "governance" | "payouts" | "members";
@@ -134,8 +129,9 @@ export function buildCommunityViewActions(
       labelId: "cockpit.community.action.manageMembers",
       icon: RiUserLine,
       onClick: () => navigate(adminRoutes.gardenMembers({ gardenAddress })),
-      variant: "secondary",
+      variant: mode === "members" ? "primary" : "secondary",
       visible: hasSelectedGarden && canManage,
+      primary: mode === "members",
     },
     {
       id: "deposit-withdraw",

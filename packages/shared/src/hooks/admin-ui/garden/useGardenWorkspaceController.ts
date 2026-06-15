@@ -92,6 +92,7 @@ export function useGardenWorkspaceController() {
     allocations,
     works,
     hypercerts,
+    hypercertsLoading,
     roleMembers,
   } = useGardenDetailData(selectedGarden?.id);
 
@@ -274,6 +275,7 @@ export function useGardenWorkspaceController() {
     handleTabChange,
     hypercertId,
     hypercerts,
+    hypercertsLoading,
     isOwner,
     closeDomainEditor,
     openAddMember,
