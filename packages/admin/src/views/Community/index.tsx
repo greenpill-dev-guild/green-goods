@@ -18,15 +18,24 @@ export default function CommunityView() {
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const totalPeople = community.derived.directoryEntries.length;
 
-  // Total paid out across every allocation rail — the magnitude the Payouts
-  // tab badge (a count) doesn't show. Summed inline like Actions' domainsCovered
-  // so no controller change is needed.
-  const distributedAmount = useMemo(
+  // Paid-out magnitudes by asset. The Payouts tab badge is a count, but the
+  // header cannot add base units across WETH/USDC/etc. as one token total.
+  const distributedAmountsByAsset = useMemo(
     () =>
-      community.allocations.reduce(
-        (sum, allocation) =>
-          sum + allocation.cookieJarAmount + allocation.fractionsAmount + allocation.juiceboxAmount,
-        0n
+      Array.from(
+        community.allocations
+          .reduce((totals, allocation) => {
+            const current = totals.get(allocation.assetAddress) ?? 0n;
+            totals.set(
+              allocation.assetAddress,
+              current +
+                allocation.cookieJarAmount +
+                allocation.fractionsAmount +
+                allocation.juiceboxAmount
+            );
+            return totals;
+          }, new Map<string, bigint>())
+          .values()
       ),
     [community.allocations]
   );
@@ -36,10 +45,15 @@ export default function CommunityView() {
       buildCommunityHeaderStats({
         hasSelectedGarden: Boolean(community.selectedGarden),
         vaultNetDeposited: community.vaultNetDeposited,
-        distributedAmount,
+        distributedAmounts: distributedAmountsByAsset,
         formatMessage,
       }),
-    [community.selectedGarden, community.vaultNetDeposited, distributedAmount, formatMessage]
+    [
+      community.selectedGarden,
+      community.vaultNetDeposited,
+      distributedAmountsByAsset,
+      formatMessage,
+    ]
   );
 
   return (

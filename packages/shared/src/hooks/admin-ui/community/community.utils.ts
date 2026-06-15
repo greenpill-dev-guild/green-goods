@@ -18,7 +18,7 @@ import {
 export interface CommunityHeaderStatsInput {
   hasSelectedGarden: boolean;
   vaultNetDeposited: bigint;
-  distributedAmount: bigint;
+  distributedAmounts: readonly bigint[];
   formatMessage: (
     descriptor: { id: string; defaultMessage?: string },
     values?: Record<string, unknown>
@@ -28,22 +28,25 @@ export interface CommunityHeaderStatsInput {
 /**
  * Build the inline MetaStrip items rendered in the Community header. The tab
  * rail already carries the People / Governance / Payouts *counts*, so the
- * header complements them with the treasury *magnitudes* the tabs don't show —
- * an in/out pair: balance held vs total distributed. Returns [] when no garden
- * is selected so the metadata slot stays clean during the workspace selection
- * gate. Per audit §5.6, the slot must NOT include the garden name.
+ * header complements them with the treasury *magnitudes* the tabs don't show.
+ * Returns [] when no garden is selected so the metadata slot stays clean during
+ * the workspace selection gate. Per audit §5.6, the slot must NOT include the
+ * garden name.
  *
- * Stat shape (2 items): treasury balance · total distributed.
+ * Stat shape: treasury balance · total distributed when the distribution is a
+ * single asset. Multi-asset allocations intentionally omit the distributed item
+ * until the header has an asset-specific display, because base units cannot be
+ * summed across assets.
  */
 export function buildCommunityHeaderStats({
   hasSelectedGarden,
   vaultNetDeposited,
-  distributedAmount,
+  distributedAmounts,
   formatMessage,
 }: CommunityHeaderStatsInput): MetaStripItem[] {
   if (!hasSelectedGarden) return [];
 
-  return [
+  const items: MetaStripItem[] = [
     {
       id: "treasury",
       value: formatTokenAmount(vaultNetDeposited),
@@ -52,15 +55,20 @@ export function buildCommunityHeaderStats({
         defaultMessage: "treasury",
       }),
     },
-    {
+  ];
+
+  if (distributedAmounts.length <= 1) {
+    items.push({
       id: "distributed",
-      value: formatTokenAmount(distributedAmount),
+      value: formatTokenAmount(distributedAmounts[0] ?? 0n),
       label: formatMessage({
         id: "cockpit.community.stats.distributed",
         defaultMessage: "distributed",
       }),
-    },
-  ];
+    });
+  }
+
+  return items;
 }
 
 export type CommunityWorkspaceMode = "treasury" | "governance" | "payouts" | "members";

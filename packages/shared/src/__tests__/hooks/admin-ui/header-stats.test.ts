@@ -72,7 +72,7 @@ describe("buildCommunityHeaderStats", () => {
     const items = buildCommunityHeaderStats({
       hasSelectedGarden: false,
       vaultNetDeposited: 0n,
-      distributedAmount: 0n,
+      distributedAmounts: [0n],
       formatMessage: makeFormatMessage(),
     });
     expect(items).toEqual([]);
@@ -82,7 +82,7 @@ describe("buildCommunityHeaderStats", () => {
     const items = buildCommunityHeaderStats({
       hasSelectedGarden: true,
       vaultNetDeposited: 0n,
-      distributedAmount: 0n,
+      distributedAmounts: [0n],
       formatMessage: makeFormatMessage(),
     });
     expect(items.map((item) => item.id)).toEqual(["treasury", "distributed"]);
@@ -92,7 +92,7 @@ describe("buildCommunityHeaderStats", () => {
     const items = buildCommunityHeaderStats({
       hasSelectedGarden: true,
       vaultNetDeposited: 0n,
-      distributedAmount: 0n,
+      distributedAmounts: [0n],
       formatMessage: makeFormatMessage(),
     });
     expect(items[0]?.value).toBe("0");
@@ -103,7 +103,7 @@ describe("buildCommunityHeaderStats", () => {
     const items = buildCommunityHeaderStats({
       hasSelectedGarden: true,
       vaultNetDeposited: 1_500_000_000_000_000_000n, // 1.5 * 10^18
-      distributedAmount: 500_000_000_000_000_000n, // 0.5 * 10^18
+      distributedAmounts: [500_000_000_000_000_000n], // 0.5 * 10^18
       formatMessage: makeFormatMessage(),
     });
     // formatTokenAmount uses the active locale; assert digit + decimal-separator + digit
@@ -116,7 +116,7 @@ describe("buildCommunityHeaderStats", () => {
     buildCommunityHeaderStats({
       hasSelectedGarden: true,
       vaultNetDeposited: 0n,
-      distributedAmount: 0n,
+      distributedAmounts: [0n],
       formatMessage,
     });
     const ids = formatMessage.mock.calls.map((call) => call[0].id);
@@ -124,6 +124,16 @@ describe("buildCommunityHeaderStats", () => {
       "cockpit.community.stats.treasury",
       "cockpit.community.stats.distributed",
     ]);
+  });
+
+  it("omits distributed totals when allocations span multiple assets", () => {
+    const items = buildCommunityHeaderStats({
+      hasSelectedGarden: true,
+      vaultNetDeposited: 0n,
+      distributedAmounts: [500_000_000_000_000_000n, 1_000_000n],
+      formatMessage: makeFormatMessage(),
+    });
+    expect(items.map((item) => item.id)).toEqual(["treasury"]);
   });
 });
 

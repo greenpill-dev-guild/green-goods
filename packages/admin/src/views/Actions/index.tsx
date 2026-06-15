@@ -64,15 +64,14 @@ export default function Actions() {
   const actions = useActionsController();
   const isDesktop = useMediaQuery("(min-width: 1024px)");
 
-  const headerStats = useMemo(
-    () =>
-      buildActionsHeaderStats({
-        totalCount: actions.actions.length,
-        domainsCovered: new Set(actions.actions.map((action) => action.domain)).size,
-        formatMessage: intl.formatMessage,
-      }),
-    [actions.actions, intl.formatMessage]
-  );
+  const headerStats = useMemo(() => {
+    if (actions.isLoading) return [];
+    return buildActionsHeaderStats({
+      totalCount: actions.actions.length,
+      domainsCovered: new Set(actions.actions.map((action) => action.domain)).size,
+      formatMessage: intl.formatMessage,
+    });
+  }, [actions.actions, actions.isLoading, intl.formatMessage]);
 
   const handleRefresh = useCallback(() => {
     void actions.refetch();

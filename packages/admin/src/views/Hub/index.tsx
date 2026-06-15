@@ -30,9 +30,11 @@ export default function HubView() {
         hasSelectedGarden: Boolean(hub.selectedGarden),
         // Queue aging, not stage depth: the stage tab rail already shows the
         // per-stage counts, so the header surfaces what to triage first. Both
-        // counts are unfiltered, so an active search never shifts them.
+        // counts are unfiltered, so an active search never shifts them. The
+        // derived warning count includes critical items, so keep waiting as the
+        // exclusive 24-72h bucket.
         overdueCount: hub.pendingCriticalCount,
-        waitingCount: hub.pendingWarningCount,
+        waitingCount: Math.max(0, hub.pendingWarningCount - hub.pendingCriticalCount),
         formatMessage,
       }),
     [hub.selectedGarden, hub.pendingCriticalCount, hub.pendingWarningCount, formatMessage]
