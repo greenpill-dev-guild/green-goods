@@ -96,10 +96,15 @@ export const Splash: React.FC<SplashProps> = ({
           <img
             src="/icon.png"
             alt={APP_NAME}
-            width={240}
-            height={240}
+            // The logomark is a wide horizontal GG (819×464). Constrain the
+            // height and let the width follow the aspect ratio — `w-24`/`w-28`
+            // forced it into a square box and crushed it (the intrinsic size
+            // hint must match the asset, not a 240×240 square, or the box
+            // squishes the same way).
+            width={819}
+            height={464}
             className={cn(
-              "h-24 w-24 sm:h-28 sm:w-28 transition-opacity duration-[var(--spring-effects-slow-duration)] ease-[var(--spring-effects-slow-easing)]",
+              "h-24 w-auto sm:h-28 transition-opacity duration-[var(--spring-effects-slow-duration)] ease-[var(--spring-effects-slow-easing)]",
               loadingState && "animate-pulse"
             )}
           />
