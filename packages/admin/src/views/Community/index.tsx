@@ -1,6 +1,7 @@
 import {
   buildCommunityHeaderStats,
   MetaStrip,
+  type Address,
   useCommunityWorkspaceController,
   useMediaQuery,
 } from "@green-goods/shared";
@@ -34,7 +35,7 @@ export default function CommunityView() {
                 allocation.juiceboxAmount
             );
             return totals;
-          }, new Map<string, bigint>())
+          }, new Map<Address, bigint>())
           .values()
       ),
     [community.allocations]
