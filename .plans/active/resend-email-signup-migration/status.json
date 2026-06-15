@@ -1,0 +1,157 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "resend-email-signup-migration",
+    "title": "Resend Email Signup Migration",
+    "kind": "feature",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "active",
+    "priority": "p2",
+    "created_at": "2026-06-15T19:04:43.563Z",
+    "updated_at": "2026-06-15T19:07:32.438Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": "PRD-598",
+    "project": "Green Goods Public Website & Docs Polish",
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": "2026-06-15T19:07:32.438Z",
+    "lanes": {}
+  },
+  "taxonomy": {
+    "initiative": "public-experience",
+    "tracks": ["agent", "client-browser", "shared"],
+    "work_types": ["implementation", "ops", "qa"],
+    "surfaces": ["packages/agent", "packages/client", "packages/shared"],
+    "depends_on_features": []
+  },
+  "notes": [
+    "Linear mirror: PRD-598.",
+    "Primary implementation surface is packages/agent; packages/client and packages/shared are secondary touched surfaces.",
+    "Current code imports public subscribers into Luma through packages/agent/src/services/luma.ts and exposes luma_import_failed through shared public contracts.",
+    "Use current Resend contacts/segments/topics APIs; do not build new work on deprecated Resend Audiences APIs.",
+    "Historical Luma subscriber import is out of scope unless a maintainer supplies an export and accepts a follow-up lane.",
+    "Live provider QA needs a safe Resend test/staging key. Without credentials, record QA as blocked instead of claiming live capture proof.",
+    "Mark unused lanes as n/a before promoting QA.",
+    "status.json is authoritative; branch names are automation signals.",
+    "Use targeted bun run test or bun run test as the iterative gate for the touched surface; coverage is scheduled or pre-merge evidence.",
+    ".plans/ is the durable repo truth; any tool-local or .claude/agent-memory surface stays environment-local until freshness and ownership rules exist."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "ready",
+      "branch": "claude/ui/resend-email-signup-migration",
+      "depends_on": ["state_api"],
+      "handoff": "handoffs/claude-ui.md",
+      "handoff_note": "Provider-neutral client comments/tests and localized failure copy only; preserve the current public form layout and payload.",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": ""
+      },
+      "skill_tags": ["ui", "frontend-design", "react"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "ready",
+      "branch": "codex/state-api/resend-email-signup-migration",
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "handoff_note": "Primary lane. Replace Luma adapter/config/bootstrap with a Resend-backed subscription client, preserve public subscribe route guards, and update shared public contracts/i18n.",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": ""
+      },
+      "skill_tags": ["agent", "api", "testing"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "codex/contracts/resend-email-signup-migration",
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "handoff_note": "No Solidity, deployment, or indexer schema work is planned for this provider migration.",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": "Provider migration only; no contract behavior changes."
+      },
+      "skill_tags": ["contracts"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "claude/qa-pass-1/resend-email-signup-migration",
+      "depends_on": ["ui", "state_api"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "handoff_note": "Review public homepage subscribe behavior, provider-neutral copy, Resend live-proof availability, and no out-of-scope surface changes.",
+      "skill_tags": ["testing", "review", "ui"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "codex/qa-pass-2/resend-email-signup-migration",
+      "branch_trigger": "claude/qa-pass-1/resend-email-signup-migration",
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "handoff_note": "Re-run focused provider/API/client validation and node scripts/dev/ci-local.js --quick before PR handoff.",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-06-15T19:04:43.565Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in active"
+    },
+    {
+      "timestamp": "2026-06-15T19:07:32.438Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    }
+  ]
+}
