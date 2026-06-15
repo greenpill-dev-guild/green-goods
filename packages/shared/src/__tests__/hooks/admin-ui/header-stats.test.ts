@@ -25,27 +25,27 @@ describe("buildGardenHeaderStats", () => {
     const items = buildGardenHeaderStats({
       hasSelectedGarden: false,
       gardenerCount: 5,
-      pendingWorkCount: 2,
+      impactCount: 2,
       formatMessage: makeFormatMessage(),
     });
     expect(items).toEqual([]);
   });
 
-  it("emits gardeners / pending-work items in that order (treasury lives on Community)", () => {
+  it("emits gardeners / impact items in that order (pending work lives on Hub)", () => {
     const items = buildGardenHeaderStats({
       hasSelectedGarden: true,
       gardenerCount: 5,
-      pendingWorkCount: 2,
+      impactCount: 2,
       formatMessage: makeFormatMessage(),
     });
-    expect(items.map((item) => item.id)).toEqual(["gardeners", "pending-work"]);
+    expect(items.map((item) => item.id)).toEqual(["gardeners", "impact"]);
   });
 
   it("stringifies numeric counts", () => {
     const items = buildGardenHeaderStats({
       hasSelectedGarden: true,
       gardenerCount: 0,
-      pendingWorkCount: 13,
+      impactCount: 13,
       formatMessage: makeFormatMessage(),
     });
     expect(items[0]?.value).toBe("0");
@@ -57,11 +57,11 @@ describe("buildGardenHeaderStats", () => {
     buildGardenHeaderStats({
       hasSelectedGarden: true,
       gardenerCount: 1,
-      pendingWorkCount: 1,
+      impactCount: 1,
       formatMessage,
     });
     const ids = formatMessage.mock.calls.map((call) => call[0].id);
-    expect(ids).toEqual(["cockpit.garden.stats.gardeners", "cockpit.garden.stats.pendingWork"]);
+    expect(ids).toEqual(["cockpit.garden.stats.gardeners", "cockpit.garden.stats.impact"]);
     expect(formatMessage.mock.calls[0]?.[1]).toEqual({ count: 1 });
     expect(formatMessage.mock.calls[1]?.[1]).toEqual({ count: 1 });
   });
@@ -71,65 +71,59 @@ describe("buildCommunityHeaderStats", () => {
   it("returns an empty array when no garden is selected", () => {
     const items = buildCommunityHeaderStats({
       hasSelectedGarden: false,
-      peopleCount: 5,
-      poolCount: 2,
       vaultNetDeposited: 0n,
+      distributedAmount: 0n,
       formatMessage: makeFormatMessage(),
     });
     expect(items).toEqual([]);
   });
 
-  it("emits people / pools / treasury items in that order", () => {
+  it("emits treasury / distributed items in that order (people + pools live on the tabs)", () => {
     const items = buildCommunityHeaderStats({
       hasSelectedGarden: true,
-      peopleCount: 5,
-      poolCount: 2,
       vaultNetDeposited: 0n,
+      distributedAmount: 0n,
       formatMessage: makeFormatMessage(),
     });
-    expect(items.map((item) => item.id)).toEqual(["people", "pools", "treasury"]);
+    expect(items.map((item) => item.id)).toEqual(["treasury", "distributed"]);
   });
 
-  it("formats the vault balance via formatTokenAmount (zero renders as '0')", () => {
+  it("formats both token amounts via formatTokenAmount (zero renders as '0')", () => {
     const items = buildCommunityHeaderStats({
       hasSelectedGarden: true,
-      peopleCount: 0,
-      poolCount: 0,
       vaultNetDeposited: 0n,
+      distributedAmount: 0n,
       formatMessage: makeFormatMessage(),
     });
-    expect(items[2]?.value).toBe("0");
+    expect(items[0]?.value).toBe("0");
+    expect(items[1]?.value).toBe("0");
   });
 
-  it("formats a non-zero vault balance with the token's 18 decimal precision (default)", () => {
+  it("formats non-zero balances with the token's 18 decimal precision (default)", () => {
     const items = buildCommunityHeaderStats({
       hasSelectedGarden: true,
-      peopleCount: 0,
-      poolCount: 0,
       vaultNetDeposited: 1_500_000_000_000_000_000n, // 1.5 * 10^18
+      distributedAmount: 500_000_000_000_000_000n, // 0.5 * 10^18
       formatMessage: makeFormatMessage(),
     });
-    // formatTokenAmount uses the active locale; assert we get a 1 + decimal-separator + 5
-    expect(items[2]?.value).toMatch(/^1[.,]5$/);
+    // formatTokenAmount uses the active locale; assert digit + decimal-separator + digit
+    expect(items[0]?.value).toMatch(/^1[.,]5$/);
+    expect(items[1]?.value).toMatch(/^0[.,]5$/);
   });
 
-  it("calls formatMessage with the canonical i18n ids and count parameter", () => {
+  it("calls formatMessage with the canonical i18n ids", () => {
     const formatMessage = makeFormatMessage();
     buildCommunityHeaderStats({
       hasSelectedGarden: true,
-      peopleCount: 1,
-      poolCount: 2,
       vaultNetDeposited: 0n,
+      distributedAmount: 0n,
       formatMessage,
     });
     const ids = formatMessage.mock.calls.map((call) => call[0].id);
     expect(ids).toEqual([
-      "cockpit.community.stats.people",
-      "cockpit.community.stats.pools",
       "cockpit.community.stats.treasury",
+      "cockpit.community.stats.distributed",
     ]);
-    expect(formatMessage.mock.calls[0]?.[1]).toEqual({ count: 1 });
-    expect(formatMessage.mock.calls[1]?.[1]).toEqual({ count: 2 });
   });
 });
 
@@ -137,39 +131,35 @@ describe("buildHubHeaderStats", () => {
   it("returns an empty array when no garden is selected", () => {
     const items = buildHubHeaderStats({
       hasSelectedGarden: false,
-      pendingWorkCount: 3,
-      assessmentCount: 1,
-      certificationCount: 2,
+      overdueCount: 3,
+      waitingCount: 1,
       formatMessage: makeFormatMessage(),
     });
     expect(items).toEqual([]);
   });
 
-  it("emits pending-work / in-assessment / to-certify pipeline counts in order", () => {
+  it("emits overdue / waiting aging counts in order (stage depth lives on the tabs)", () => {
     const items = buildHubHeaderStats({
       hasSelectedGarden: true,
-      pendingWorkCount: 3,
-      assessmentCount: 1,
-      certificationCount: 2,
+      overdueCount: 3,
+      waitingCount: 1,
       formatMessage: makeFormatMessage(),
     });
-    expect(items.map((item) => item.id)).toEqual(["pending-work", "in-assessment", "to-certify"]);
-    expect(items.map((item) => item.value)).toEqual(["3", "1", "2"]);
+    expect(items.map((item) => item.id)).toEqual(["overdue", "waiting"]);
+    expect(items.map((item) => item.value)).toEqual(["3", "1"]);
   });
 
   it("calls formatMessage with the canonical i18n ids", () => {
     const formatMessage = makeFormatMessage();
     buildHubHeaderStats({
       hasSelectedGarden: true,
-      pendingWorkCount: 0,
-      assessmentCount: 0,
-      certificationCount: 0,
+      overdueCount: 0,
+      waitingCount: 0,
       formatMessage,
     });
     expect(formatMessage.mock.calls.map((call) => call[0].id)).toEqual([
-      "cockpit.hub.stats.pendingWork",
-      "cockpit.hub.stats.inAssessment",
-      "cockpit.hub.stats.toCertify",
+      "cockpit.hub.stats.overdue",
+      "cockpit.hub.stats.waiting",
     ]);
   });
 });

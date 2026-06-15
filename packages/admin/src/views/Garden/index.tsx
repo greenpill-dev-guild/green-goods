@@ -24,13 +24,15 @@ export default function GardenView() {
       buildGardenHeaderStats({
         hasSelectedGarden: Boolean(garden.selectedGarden),
         gardenerCount: garden.garden?.gardeners.length ?? 0,
-        pendingWorkCount: garden.derived.pendingWorks.length,
+        // The garden's own certified output (hypercerts). Pending work is the
+        // Hub's domain, so the header speaks to legacy, not the review queue.
+        impactCount: garden.hypercerts.length,
         formatMessage,
       }),
     [
       garden.selectedGarden,
       garden.garden?.gardeners.length,
-      garden.derived.pendingWorks.length,
+      garden.hypercerts.length,
       formatMessage,
     ]
   );

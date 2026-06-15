@@ -136,11 +136,12 @@ describe("buildCommunityViewActions — stable trio", () => {
     }
   });
 
-  it("fills exactly the mode-owned action (treasury → deposit, governance → proposal)", () => {
+  it("fills exactly the mode-owned action (treasury → deposit, governance → proposal, people → manage)", () => {
     expect(primaryIds(buildFor("treasury"))).toEqual(["deposit-withdraw"]);
     expect(primaryIds(buildFor("governance"))).toEqual(["new-proposal"]);
+    // Payouts stays panel-owned (no header primary); People fills Manage members.
     expect(primaryIds(buildFor("payouts"))).toEqual([]);
-    expect(primaryIds(buildFor("members"))).toEqual([]);
+    expect(primaryIds(buildFor("members"))).toEqual(["manage-members"]);
   });
 
   it("routes the governance action to the hypercert signal pool register flow", () => {

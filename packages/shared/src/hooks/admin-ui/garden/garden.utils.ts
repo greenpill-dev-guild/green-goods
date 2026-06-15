@@ -14,7 +14,7 @@ import { RiExternalLinkLine, RiSettings3Line, RiUserAddLine } from "@remixicon/r
 export interface GardenHeaderStatsInput {
   hasSelectedGarden: boolean;
   gardenerCount: number;
-  pendingWorkCount: number;
+  impactCount: number;
   formatMessage: (
     descriptor: { id: string; defaultMessage?: string },
     values?: Record<string, unknown>
@@ -22,19 +22,20 @@ export interface GardenHeaderStatsInput {
 }
 
 /**
- * Cleanup A6: build the inline MetaStrip items rendered in the Garden header
- * after Tier 4 dropped the legacy garden-name re-declaration (Frontend Rule 17).
- * Returns [] when no garden is selected so the metadata slot stays clean
- * during the workspace selection gate.
+ * Build the inline MetaStrip items rendered in the Garden header. Pairs the
+ * garden's roster (gardeners) with its own output (certified impact) — the
+ * "who's here + what they've produced" of a garden. Pending work is the Hub's
+ * concern (the review queue lives there) and treasury lives on Community, so
+ * neither is restated here. Returns [] when no garden is selected so the
+ * metadata slot stays clean during the workspace selection gate. Per audit §5.6
+ * the slot must NOT include the garden name.
  *
- * Stat shape (2 items): gardeners count · pending work. Treasury lives on the
- * Community workspace (the treasury/governance owner) so it is not duplicated
- * here. Per audit §5.6 the slot must NOT include the garden name.
+ * Stat shape (2 items): gardeners count · certified impact.
  */
 export function buildGardenHeaderStats({
   hasSelectedGarden,
   gardenerCount,
-  pendingWorkCount,
+  impactCount,
   formatMessage,
 }: GardenHeaderStatsInput): MetaStripItem[] {
   if (!hasSelectedGarden) return [];
@@ -52,14 +53,14 @@ export function buildGardenHeaderStats({
       ),
     },
     {
-      id: "pending-work",
-      value: String(pendingWorkCount),
+      id: "impact",
+      value: String(impactCount),
       label: formatMessage(
         {
-          id: "cockpit.garden.stats.pendingWork",
-          defaultMessage: "{count, plural, one {pending work} other {pending work}}",
+          id: "cockpit.garden.stats.impact",
+          defaultMessage: "{count, plural, one {impact} other {impact}}",
         },
-        { count: pendingWorkCount }
+        { count: impactCount }
       ),
     },
   ];

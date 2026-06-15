@@ -28,21 +28,14 @@ export default function HubView() {
     () =>
       buildHubHeaderStats({
         hasSelectedGarden: Boolean(hub.selectedGarden),
-        // Pipeline totals, not the search-filtered queue lengths: the header
-        // summary must match the stage tab badges (same unfiltered stageCounts),
-        // otherwise an active search makes the two disagree.
-        pendingWorkCount: hub.stageCounts.work ?? 0,
-        assessmentCount: hub.stageCounts.assess ?? 0,
-        certificationCount: hub.stageCounts.certify ?? 0,
+        // Queue aging, not stage depth: the stage tab rail already shows the
+        // per-stage counts, so the header surfaces what to triage first. Both
+        // counts are unfiltered, so an active search never shifts them.
+        overdueCount: hub.pendingCriticalCount,
+        waitingCount: hub.pendingWarningCount,
         formatMessage,
       }),
-    [
-      hub.selectedGarden,
-      hub.stageCounts.work,
-      hub.stageCounts.assess,
-      hub.stageCounts.certify,
-      formatMessage,
-    ]
+    [hub.selectedGarden, hub.pendingCriticalCount, hub.pendingWarningCount, formatMessage]
   );
 
   return (

@@ -18,22 +18,28 @@ export default function CommunityView() {
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const totalPeople = community.derived.directoryEntries.length;
 
+  // Total paid out across every allocation rail — the magnitude the Payouts
+  // tab badge (a count) doesn't show. Summed inline like Actions' domainsCovered
+  // so no controller change is needed.
+  const distributedAmount = useMemo(
+    () =>
+      community.allocations.reduce(
+        (sum, allocation) =>
+          sum + allocation.cookieJarAmount + allocation.fractionsAmount + allocation.juiceboxAmount,
+        0n
+      ),
+    [community.allocations]
+  );
+
   const headerStats = useMemo(
     () =>
       buildCommunityHeaderStats({
         hasSelectedGarden: Boolean(community.selectedGarden),
-        peopleCount: totalPeople,
-        poolCount: community.pools.length,
         vaultNetDeposited: community.vaultNetDeposited,
+        distributedAmount,
         formatMessage,
       }),
-    [
-      community.selectedGarden,
-      totalPeople,
-      community.pools.length,
-      community.vaultNetDeposited,
-      formatMessage,
-    ]
+    [community.selectedGarden, community.vaultNetDeposited, distributedAmount, formatMessage]
   );
 
   return (
@@ -62,8 +68,8 @@ export default function CommunityView() {
         actions={
           isDesktop && community.desktopActions.length > 0 ? (
             // Stable trio: positions frozen across modes; Treasury fills
-            // Deposit / withdraw, Governance fills New proposal, Payouts and
-            // People stay outlined (panel-owned / read-only modes).
+            // Deposit / withdraw, Governance fills New proposal, People fills
+            // Manage members. Payouts stays outlined (its panel owns actions).
             <AdminViewActions items={community.desktopActions} />
           ) : undefined
         }

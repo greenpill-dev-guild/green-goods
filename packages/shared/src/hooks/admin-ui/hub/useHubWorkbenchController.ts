@@ -454,6 +454,8 @@ export function useHubWorkbenchController() {
     hypercertsLoading,
     isSubmitRoute,
     normalizedSearch,
+    pendingCriticalCount: derived.pendingCriticalCount,
+    pendingWarningCount: derived.pendingWarningCount,
     pendingWorks,
     refreshAgoText,
     resultCount,
