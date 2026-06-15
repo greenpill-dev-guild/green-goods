@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 
-import { extname, join, relative } from 'node:path';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { extname, join, relative } from 'node:path';
 
 const repoRoot = process.cwd();
 const requiredPolicyFiles = ["AGENTS.md", "CLAUDE.md", "packages/admin/AGENTS.md", "packages/client/AGENTS.md", "packages/shared/AGENTS.md"];
@@ -43,8 +43,8 @@ function shouldScanFile(path) {
 
 function walkGuidanceFiles(dir, result = []) {
   if (!existsSync(dir)) return result;
-  const stat = statSync(dir);
-  if (stat.isFile()) {
+  const rootStat = statSync(dir);
+  if (rootStat.isFile()) {
     if (shouldScanFile(dir)) result.push(dir);
     return result;
   }
@@ -107,6 +107,10 @@ const stalePatterns = [
   /use isolated DevTools MCP only/i,
   /isolated\/public proof lane/i,
   /browser proof still runs in Brave/i,
+  /only when the authenticated QA browser is Chrome\/Edge/i,
+  /Brave-only QA/i,
+  /Chrome\/Edge QA profiles/i,
+  /for Brave-only QA/i,
 ];
 
 const staleGuidanceFiles = [
@@ -144,6 +148,14 @@ if (existsSync(packageJsonPath)) {
 
   if (!scripts['browser-proof:routes']?.startsWith(browserProofGuard)) {
     fail('package.json: browser-proof:routes must be guarded by require-authenticated-browser-qa.mjs');
+  }
+
+  if (
+    scripts['agentic:verify'] &&
+    scripts['agentic:verify'].includes('ui:verify') &&
+    !scripts['agentic:verify'].startsWith('bun scripts/require-authenticated-browser-qa.mjs')
+  ) {
+    fail('package.json: local agentic:verify browser lane must be guarded by require-authenticated-browser-qa.mjs');
   }
 }
 
