@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-06-15T19:04:43.563Z",
-    "updated_at": "2026-06-15T19:07:32.438Z"
+    "updated_at": "2026-06-15T23:27:27.976Z"
   },
   "links": {
     "brief": "brief.md",
@@ -23,8 +23,15 @@
     "project": "Green Goods Public Website & Docs Polish",
     "initiative": null,
     "syncDirection": "plans_to_linear_visibility",
-    "lastSyncedAt": "2026-06-15T19:07:32.438Z",
-    "lanes": {}
+    "lastSyncedAt": "2026-06-15T23:27:27.976Z",
+    "lanes": {
+      "state_api": {
+        "issue": "PRD-599"
+      },
+      "ui": {
+        "issue": "PRD-600"
+      }
+    }
   },
   "taxonomy": {
     "initiative": "public-experience",
@@ -147,6 +154,14 @@
     },
     {
       "timestamp": "2026-06-15T19:07:32.438Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-06-15T23:27:27.977Z",
       "actor": "codex",
       "lane": "system",
       "status": "linear_recorded",
