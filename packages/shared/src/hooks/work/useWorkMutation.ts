@@ -29,7 +29,10 @@ import {
   trackContractError,
   trackUploadError,
 } from "../../modules/app/error-tracking";
-import { WorkSubmissionError } from "../../modules/work/wallet-submission/types";
+import {
+  WorkSubmissionError,
+  type WalletSubmissionStage,
+} from "../../modules/work/wallet-submission/types";
 import { jobQueue } from "../../modules/job-queue";
 import { simulateWorkSubmission } from "../../modules/work/simulate";
 import { submitWorkDirectly } from "../../modules/work/wallet-submission";
@@ -46,13 +49,22 @@ import { useTransactionSender } from "../blockchain/useTransactionSender";
 import { useSafeMutation } from "../utils/useSafeMutation";
 import { useProgressiveInvalidation, useTimeout } from "../utils/useTimeout";
 
-interface UseWorkMutationOptions {
+export interface UseWorkMutationOptions {
   authMode: "wallet" | "passkey" | "embedded" | null;
   gardenAddress: Address | null;
   actionUID: number | null;
   actions: Action[];
   /** User address (smart account or wallet) for scoping jobs */
   userAddress: Address | null;
+  /**
+   * Client PWA completion behavior is on by default. Admin and other consumers
+   * can opt out while still using the shared submission pipeline.
+   */
+  completeClientFlow?: boolean;
+  onProgress?: (stage: WalletSubmissionStage, message: string) => void;
+  onSuccess?: (txHash: `0x${string}` | string) => void;
+  onError?: (error: unknown) => void;
+  onSettled?: () => void;
 }
 
 /**
@@ -101,7 +113,18 @@ function isNetworkError(error: unknown): boolean {
  * @returns Mutation instance
  */
 export function useWorkMutation(options: UseWorkMutationOptions) {
-  const { authMode, gardenAddress, actionUID, actions, userAddress } = options;
+  const {
+    authMode,
+    gardenAddress,
+    actionUID,
+    actions,
+    userAddress,
+    completeClientFlow = true,
+    onProgress,
+    onSuccess,
+    onError,
+    onSettled,
+  } = options;
   const sender = useTransactionSender();
   const chainId = DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
@@ -225,6 +248,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
                 } else {
                   showWalletProgress(stage, message);
                 }
+                onProgress?.(stage, message);
               },
             }
           );
@@ -460,12 +484,14 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         submissionPhase: "success",
       });
 
-      // Mark submission as complete (triggers checkmark animation in Garden view)
-      // The Garden view useEffect will handle:
-      // 1. Clearing the draft
-      // 2. Navigating to /home
-      // 3. Opening the work dashboard
-      useWorkFlowStore.getState().setSubmissionCompleted(true);
+      if (completeClientFlow) {
+        // Mark submission as complete (triggers checkmark animation in Garden view)
+        // The Garden view useEffect will handle:
+        // 1. Clearing the draft
+        // 2. Navigating to /home
+        // 3. Opening the work dashboard
+        useWorkFlowStore.getState().setSubmissionCompleted(true);
+      }
 
       if (isOfflineHash) {
         // Offline: dismiss info toast after brief delay
@@ -494,9 +520,13 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         scheduleFollowUp();
       }
 
-      // Open work dashboard immediately - navigation will follow from Garden view
-      // This creates a fluid transition: success checkmark → dashboard slides up → navigate
-      openWorkDashboard();
+      if (completeClientFlow) {
+        // Open work dashboard immediately - navigation will follow from Garden view.
+        // This creates a fluid transition: success checkmark -> dashboard slides up -> navigate.
+        openWorkDashboard();
+      }
+
+      onSuccess?.(txHash);
 
       if (DEBUG_ENABLED) {
         debugLog("[WorkMutation] Work submission completed", {
@@ -659,6 +689,11 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
           message: displayMessage,
         });
       }
+
+      onError?.(error);
+    },
+    onSettled: () => {
+      onSettled?.();
     },
   });
 

@@ -3,6 +3,8 @@ import {
   DEFAULT_CHAIN_ID,
   findActionByUID,
   type Garden,
+  getSafeMediaMetadata,
+  getWorkMediaId,
   logger,
   mediaResourceManager,
   parseContractError,
@@ -47,7 +49,6 @@ import { WorkMedia } from "./Media";
 import { WorkReview } from "./Review";
 import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
 import { trackWorkMediaJourneyEvent } from "./mediaAnalytics";
-import { getSafeMediaMetadata, getWorkMediaId } from "./mediaProcessing";
 
 // Loading skeleton for intro tab
 const IntroSkeleton: React.FC = () => {

@@ -4,7 +4,6 @@ import {
   Alert,
   adminRoutes,
   Card,
-  DEFAULT_CHAIN_ID,
   type Domain,
   expandDomainMask,
   FileUploadField,
@@ -12,13 +11,11 @@ import {
   findActionByUID,
   getActionTitle,
   logger,
+  normalizeWorkMediaFiles,
   NativeSelect,
   parseActionUID,
-  parseAndFormatError,
-  queryKeys,
   SheetBody,
   SheetFooter,
-  submitWorkDirectly,
   Textarea,
   toastService,
   validationToasts,
@@ -28,13 +25,14 @@ import {
   useBeforeUnloadWhilePending,
   useGardenPermissions,
   useGardens,
+  useUser,
   useWorkForm,
+  useWorkMutation,
   type WorkInput,
 } from "@green-goods/shared";
 import { validateWorkSubmissionContext } from "@green-goods/shared/modules";
 import { RiUploadCloudLine } from "@remixicon/react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Controller } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -218,11 +216,8 @@ function getMinRequiredImages(action: Action | null) {
   return action.mediaInfo.minImageCount ?? 1;
 }
 
-function getOriginalError(error: unknown) {
-  return error instanceof Error && error.cause instanceof Error ? error.cause : error;
-}
-
 type SubmitWorkLayout = "page" | "sheet";
+type MediaFeedback = { variant: "warning" | "error"; message: string };
 
 export interface SubmitWorkPanelProps {
   layout?: SubmitWorkLayout;
@@ -233,13 +228,13 @@ export interface SubmitWorkPanelProps {
 export function SubmitWorkPanel({ layout = "page", onSuccess, onCancel }: SubmitWorkPanelProps) {
   const { formatMessage } = useIntl();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const { selectedGarden } = useAdminGardenWorkspaceSelection();
   const gardenId = selectedGarden?.id ?? null;
 
   const { data: gardens = [] } = useGardens();
   const { data: actions = [] } = useActions();
-  const { isAuthenticated } = useAuthState();
+  const { isAuthenticated, authMode } = useAuthState();
+  const { primaryAddress } = useUser();
   const { canManageGarden } = useGardenPermissions();
 
   const garden = useMemo(
@@ -261,6 +256,10 @@ export function SubmitWorkPanel({ layout = "page", onSuccess, onCancel }: Submit
     const uid = parseActionUID(selectedActionId);
     return findActionByUID(actions, uid);
   }, [selectedActionId, actions]);
+  const selectedActionUID = useMemo(
+    () => (selectedAction ? parseActionUID(selectedAction.id) : null),
+    [selectedAction]
+  );
 
   const form = useWorkForm(selectedAction?.inputs);
   const {
@@ -273,75 +272,30 @@ export function SubmitWorkPanel({ layout = "page", onSuccess, onCancel }: Submit
 
   const [images, setImages] = useState<File[]>([]);
   const [progressMessage, setProgressMessage] = useState("");
+  const [mediaFeedback, setMediaFeedback] = useState<MediaFeedback | null>(null);
+  const [isPreparingMedia, setIsPreparingMedia] = useState(false);
   const canSubmit = garden ? canManageGarden(garden) : false;
 
-  const mutation = useMutation({
-    mutationFn: async (formData: Record<string, unknown>) => {
-      if (!garden || !selectedAction) {
-        throw new Error("Garden and action must be selected");
-      }
-
-      const actionUID = parseActionUID(selectedAction.id);
-      if (actionUID === null) {
-        throw new Error("Invalid action ID");
-      }
-
-      const actionTitle = getActionTitle(actions, actionUID);
-      const { feedback, timeSpentMinutes, ...details } = formData;
-      const draft = {
-        actionUID,
-        title: actionTitle,
-        timeSpentMinutes: typeof timeSpentMinutes === "number" ? timeSpentMinutes : 0,
-        feedback: typeof feedback === "string" ? feedback : "",
-        media: images,
-        details: details as Record<string, unknown>,
-      };
-
-      setProgressMessage(formatMessage({ id: "app.admin.work.submit.progress.validating" }));
-
-      return submitWorkDirectly(
-        draft,
-        garden.id as Address,
-        actionUID,
-        actionTitle,
-        DEFAULT_CHAIN_ID,
-        images,
-        {
-          onProgress: (stage, message) => {
-            const i18nKey = `app.admin.work.submit.progress.${stage}`;
-            setProgressMessage(formatMessage({ id: i18nKey, defaultMessage: message }));
-          },
-        }
-      );
+  const mutation = useWorkMutation({
+    authMode,
+    gardenAddress: garden?.id ? (garden.id as Address) : null,
+    actionUID: selectedActionUID,
+    actions,
+    userAddress: primaryAddress ? (primaryAddress as Address) : null,
+    completeClientFlow: false,
+    onProgress: (stage, message) => {
+      const i18nKey = `app.admin.work.submit.progress.${stage}`;
+      setProgressMessage(formatMessage({ id: i18nKey, defaultMessage: message }));
     },
     onSuccess: () => {
       toastService.success({
         title: formatMessage({ id: "app.admin.work.submit.success" }),
       });
 
-      if (garden) {
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.works.online(garden.id as Address, DEFAULT_CHAIN_ID),
-        });
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.works.merged(garden.id as Address, DEFAULT_CHAIN_ID),
-        });
-      }
-
       onSuccess?.();
     },
     onError: (error: unknown) => {
-      setProgressMessage("");
-      const originalError = getOriginalError(error);
-      const { title, message } = parseAndFormatError(originalError);
-      logger.error("Admin work submission failed", { error, originalError });
-
-      toastService.error({
-        title: title || formatMessage({ id: "app.admin.work.submit.error" }),
-        message,
-        context: "admin work submission",
-        error: originalError,
-      });
+      logger.error("Admin work submission failed", { error });
     },
     onSettled: () => {
       setProgressMessage("");
@@ -351,10 +305,9 @@ export function SubmitWorkPanel({ layout = "page", onSuccess, onCancel }: Submit
   useBeforeUnloadWhilePending(mutation.isPending);
 
   const onSubmit = handleSubmit((data) => {
-    const actionUID = selectedAction ? parseActionUID(selectedAction.id) : null;
     const validationErrors = validateWorkSubmissionContext(
       garden.id as Address,
-      actionUID,
+      selectedActionUID,
       images,
       {
         minRequired: getMinRequiredImages(selectedAction),
@@ -366,15 +319,129 @@ export function SubmitWorkPanel({ layout = "page", onSuccess, onCancel }: Submit
       return;
     }
 
-    if (!selectedAction) return;
-    mutation.mutate(data as Record<string, unknown>);
+    if (!selectedAction || selectedActionUID === null) return;
+    setMediaFeedback(null);
+
+    const actionTitle = getActionTitle(actions, selectedActionUID);
+    const { feedback, timeSpentMinutes, ...details } = data as Record<string, unknown>;
+    const draft = {
+      actionUID: selectedActionUID,
+      title: actionTitle,
+      timeSpentMinutes: typeof timeSpentMinutes === "number" ? timeSpentMinutes : 0,
+      feedback: typeof feedback === "string" ? feedback : "",
+      media: images,
+      details: details as Record<string, unknown>,
+    };
+
+    setProgressMessage(formatMessage({ id: "app.admin.work.submit.progress.validating" }));
+    mutation.mutate({ draft, images: images.slice() });
   });
 
   const handleActionChange = (actionId: string) => {
     setSelectedActionId(actionId);
     resetForm();
     setImages([]);
+    setMediaFeedback(null);
+    setProgressMessage("");
   };
+
+  const handleFilesChange = useCallback(
+    async (newFiles: File[]) => {
+      setMediaFeedback(null);
+      if (newFiles.length === 0) return;
+
+      setIsPreparingMedia(true);
+      setProgressMessage(formatMessage({ id: "admin.fileUpload.processing" }, { progress: 0 }));
+
+      try {
+        const normalized = await normalizeWorkMediaFiles(newFiles, {
+          onHeicConversionStarted: () => {
+            setProgressMessage(formatMessage({ id: "app.garden.upload.convertingHeic" }));
+          },
+        });
+
+        const acceptedFiles = normalized.accepted.map((item) => item.file);
+        if (acceptedFiles.length > 0) {
+          setImages((prev) => [...prev, ...acceptedFiles]);
+        }
+
+        const unsupportedCount = normalized.rejected.filter(
+          (item) => item.reason === "unsupported"
+        ).length;
+        const conversionFailureCount = normalized.rejected.filter(
+          (item) => item.reason === "heic_conversion_failed"
+        ).length;
+        const messages: string[] = [];
+
+        if (unsupportedCount > 0) {
+          const message = formatMessage(
+            {
+              id: "app.garden.upload.unsupportedMediaMessage",
+              defaultMessage:
+                "{count, plural, one {That file is not a supported photo or video.} other {# files are not supported photos or videos.}}",
+            },
+            { count: unsupportedCount }
+          );
+          messages.push(message);
+          toastService.info({
+            title: formatMessage({
+              id: "app.garden.upload.unsupportedMediaTitle",
+              defaultMessage: "Some files were not added",
+            }),
+            message,
+            context: "admin media upload",
+          });
+        }
+
+        if (conversionFailureCount > 0) {
+          const message = formatMessage(
+            {
+              id: "app.garden.upload.conversionFailedMessage",
+              defaultMessage:
+                "{count, plural, one {Try that photo again or choose a different image.} other {Try those photos again or choose different images.}}",
+            },
+            { count: conversionFailureCount }
+          );
+          messages.push(message);
+          toastService.error({
+            title: formatMessage({
+              id: "app.garden.upload.conversionFailedTitle",
+              defaultMessage: "HEIC photo could not be converted",
+            }),
+            message,
+            context: "admin media upload",
+          });
+        }
+
+        if (messages.length > 0) {
+          setMediaFeedback({
+            variant: conversionFailureCount > 0 ? "error" : "warning",
+            message: messages.join(" "),
+          });
+        }
+      } catch (error) {
+        logger.error("Admin media processing failed", { error });
+        const message = formatMessage({
+          id: "app.garden.upload.compressionFailedMessage",
+          defaultMessage: "Try fewer or smaller images, or check your connection.",
+        });
+        setMediaFeedback({ variant: "error", message });
+        toastService.error({
+          title: formatMessage({
+            id: "app.garden.upload.compressionFailedTitle",
+            defaultMessage: "Couldn't process those images",
+          }),
+          message,
+          context: "admin media upload",
+          error,
+        });
+      } finally {
+        setIsPreparingMedia(false);
+        setProgressMessage("");
+      }
+    },
+    [formatMessage]
+  );
 
   const renderState = (variant: "error" | "warning", messageId: string) => {
     const state = <Alert variant={variant}>{formatMessage({ id: messageId })}</Alert>;
@@ -493,15 +560,18 @@ export function SubmitWorkPanel({ layout = "page", onSuccess, onCancel }: Submit
           <FileUploadField
             label={formatMessage({ id: "app.admin.work.submit.media" })}
             helpText={formatMessage({ id: "app.admin.work.submit.mediaHint" })}
-            accept="image/*"
+            accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
             multiple
-            compress
+            compress={false}
             showPreview
             currentFiles={images}
-            onFilesChange={(newFiles) => setImages((prev) => [...prev, ...newFiles])}
+            onFilesChange={handleFilesChange}
             onRemoveFile={(index) => setImages((prev) => prev.filter((_, i) => i !== index))}
-            disabled={mutation.isPending}
+            disabled={mutation.isPending || isPreparingMedia}
           />
+          {mediaFeedback ? (
+            <Alert variant={mediaFeedback.variant}>{mediaFeedback.message}</Alert>
+          ) : null}
         </>
       ) : null}
     </>
@@ -521,8 +591,8 @@ export function SubmitWorkPanel({ layout = "page", onSuccess, onCancel }: Submit
         type="submit"
         form={formId}
         variant="filled"
-        loading={mutation.isPending}
-        disabled={mutation.isPending || availableActions.length === 0}
+        loading={mutation.isPending || isPreparingMedia}
+        disabled={mutation.isPending || isPreparingMedia || availableActions.length === 0}
         leadingIcon={<RiUploadCloudLine />}
       >
         {mutation.isPending

@@ -503,6 +503,7 @@ export { buildWorkFormSchema, useWorkForm, workFormSchema } from "./work/useWork
 export { useWorkImages } from "./work/useWorkImages";
 export type { UseWorkMetadataResult, WorkMetadataStatus } from "./work/useWorkMetadata";
 export { useWorkMetadata } from "./work/useWorkMetadata";
+export type { UseWorkMutationOptions } from "./work/useWorkMutation";
 export { useWorkMutation } from "./work/useWorkMutation";
 export type { UseWorkMutationWithProgressReturn } from "./work/useWorkMutationWithProgress";
 export { useWorkMutationWithProgress } from "./work/useWorkMutationWithProgress";

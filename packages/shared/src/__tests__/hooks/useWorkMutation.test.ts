@@ -12,6 +12,12 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+const workMutationStoreMocks = vi.hoisted(() => ({
+  openWorkDashboard: vi.fn(),
+  setSubmissionCompleted: vi.fn(),
+  ensureWorkSubmissionJourneyId: vi.fn(() => "journey-123"),
+}));
+
 // Mock modules
 vi.mock("../../modules/work/wallet-submission", () => ({
   submitWorkDirectly: vi.fn(),
@@ -53,14 +59,14 @@ vi.mock("../../components/toast", () => ({
 }));
 
 vi.mock("../../stores/useUIStore", () => ({
-  useUIStore: vi.fn(() => vi.fn()),
+  useUIStore: vi.fn(() => workMutationStoreMocks.openWorkDashboard),
 }));
 
 vi.mock("../../stores/useWorkFlowStore", () => ({
   useWorkFlowStore: {
     getState: vi.fn(() => ({
-      setSubmissionCompleted: vi.fn(),
-      ensureWorkSubmissionJourneyId: vi.fn(() => "journey-123"),
+      setSubmissionCompleted: workMutationStoreMocks.setSubmissionCompleted,
+      ensureWorkSubmissionJourneyId: workMutationStoreMocks.ensureWorkSubmissionJourneyId,
     })),
   },
 }));
@@ -194,6 +200,7 @@ describe("hooks/work/useWorkMutation", () => {
       },
     });
     vi.clearAllMocks();
+    workMutationStoreMocks.ensureWorkSubmissionJourneyId.mockReturnValue("journey-123");
 
     // Default: online
     Object.defineProperty(navigator, "onLine", {
@@ -271,6 +278,58 @@ describe("hooks/work/useWorkMutation", () => {
           submissionPhase: "wallet_request",
         })
       );
+    });
+
+    it("exposes wallet progress to reusable hook consumers", async () => {
+      const onProgress = vi.fn();
+      mock(submitWorkDirectly).mockImplementation(
+        async (_draft, _garden, _actionUID, _actionTitle, _chainId, _images, options) => {
+          options?.onProgress?.("uploading", "Uploading media to IPFS...");
+          return MOCK_TX_HASH;
+        }
+      );
+
+      const { result } = renderHook(() => useWorkMutation({ ...defaultOptions, onProgress }), {
+        wrapper: createWrapper(),
+      });
+
+      await act(async () => {
+        await result.current.mutateAsync({
+          draft: createMockWorkDraft(),
+          images: createMockFiles(1),
+        });
+      });
+
+      expect(onProgress).toHaveBeenCalledWith("uploading", "Uploading media to IPFS...");
+    });
+
+    it("lets admin-style consumers opt out of client completion side effects", async () => {
+      const onSuccess = vi.fn();
+      const onSettled = vi.fn();
+      mock(submitWorkDirectly).mockResolvedValue(MOCK_TX_HASH);
+
+      const { result } = renderHook(
+        () =>
+          useWorkMutation({
+            ...defaultOptions,
+            completeClientFlow: false,
+            onSuccess,
+            onSettled,
+          }),
+        { wrapper: createWrapper() }
+      );
+
+      await act(async () => {
+        await result.current.mutateAsync({
+          draft: createMockWorkDraft(),
+          images: createMockFiles(1),
+        });
+      });
+
+      expect(onSuccess).toHaveBeenCalledWith(MOCK_TX_HASH);
+      expect(onSettled).toHaveBeenCalled();
+      expect(workMutationStoreMocks.setSubmissionCompleted).not.toHaveBeenCalled();
+      expect(workMutationStoreMocks.openWorkDashboard).not.toHaveBeenCalled();
     });
   });
 

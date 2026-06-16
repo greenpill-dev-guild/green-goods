@@ -13,18 +13,31 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // Track calls to mediaResourceManager and AudioPlayer
 const mockGetOrCreateUrl = vi.fn((file: File, trackingId: string) => `blob:mock-${file.name}`);
 
-vi.mock("@green-goods/shared", async () => {
-  const actual = await vi.importActual<typeof import("@green-goods/shared")>("@green-goods/shared");
-  return {
-    ...actual,
-    mediaResourceManager: {
-      getOrCreateUrl: (...args: unknown[]) => mockGetOrCreateUrl(...(args as [File, string])),
-      cleanupUrls: vi.fn(),
-    },
-    AudioPlayer: ({ file }: { file: File }) =>
-      createElement("div", { "data-testid": `audio-player-${file.name}` }, file.name),
-  };
-});
+vi.mock("@green-goods/shared", () => ({
+  AudioPlayer: ({ file }: { file: File }) =>
+    createElement("div", { "data-testid": `audio-player-${file.name}` }, file.name),
+  cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
+  Domain: {
+    SOLAR: 0,
+    AGRO: 1,
+    EDU: 2,
+    WASTE: 3,
+  },
+  formatTimeSpent: (minutes?: number) => {
+    if (!minutes) return "";
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    if (hours > 0 && remainingMinutes > 0) return `${hours}h ${remainingMinutes}m`;
+    if (hours > 0) return `${hours}h`;
+    return `${remainingMinutes}m`;
+  },
+  getWorkMediaId: (file: File) => `media-${file.name}-${file.size}-${file.lastModified}`,
+  isVideoFile: (file: File) => file.type.startsWith("video/"),
+  mediaResourceManager: {
+    getOrCreateUrl: (...args: unknown[]) => mockGetOrCreateUrl(...(args as [File, string])),
+    cleanupUrls: vi.fn(),
+  },
+}));
 
 // Mock WorkView to expose the props it receives for assertion
 vi.mock("@/components/Features/Work", () => ({
@@ -81,8 +94,7 @@ vi.mock("@/components/Features/Work", () => ({
 
 // Import after mocks
 import type { Action, Address, Garden } from "@green-goods/shared";
-import { Domain } from "@green-goods/shared";
-import { getWorkMediaId } from "../../views/Garden/mediaProcessing";
+import { Domain, getWorkMediaId } from "@green-goods/shared";
 import { WorkReview } from "../../views/Garden/Review";
 
 const messages: Record<string, string> = {
