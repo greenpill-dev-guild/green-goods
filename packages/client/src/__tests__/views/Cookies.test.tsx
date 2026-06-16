@@ -13,6 +13,7 @@ const TEST_TOKEN = "0x2222222222222222222222222222222222222222" as const;
 const TEST_WALLET = "0x3333333333333333333333333333333333333333" as const;
 
 const mockOpenWallet = vi.fn();
+const mockLoginWithWallet = vi.fn();
 const mockClaimMutate = vi.fn();
 const mockDepositMutate = vi.fn();
 const mockClaimReset = vi.fn();
@@ -62,10 +63,10 @@ vi.mock("wagmi", () => ({
 }));
 
 vi.mock("@green-goods/shared", async () => {
-  const actual = await vi.importActual<typeof import("@green-goods/shared")>("@green-goods/shared");
+  const React = await vi.importActual<typeof import("react")>("react");
 
   return {
-    ...actual,
+    Alert: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
     Button: ({
       children,
       loading: _loading,
@@ -75,6 +76,18 @@ vi.mock("@green-goods/shared", async () => {
         {children}
       </button>
     ),
+    classifyTxError: (error: Error | null) => ({
+      severity: "error",
+      rawMessage: error?.message ?? "",
+      messageKey: "app.transaction.error.generic",
+      titleKey: "app.transaction.error.title",
+    }),
+    cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
+    formatTokenAmount: (value: bigint, decimals = 18) => String(Number(value) / 10 ** decimals),
+    ImageWithFallback: (props: React.ImgHTMLAttributes<HTMLImageElement>) => <img {...props} />,
+    isMeaningfulTxErrorMessage: (message?: string) => Boolean(message),
+    resolveIPFSUrl: (url: string) => url,
+    truncateAddress: (address: string) => `${address.slice(0, 6)}...${address.slice(-4)}`,
     TxInlineFeedback: ({
       visible,
       title,
@@ -84,7 +97,9 @@ vi.mock("@green-goods/shared", async () => {
       title: string;
       message: string;
     }) => (visible ? <div role="alert">{`${title}: ${message}`}</div> : null),
+    useInViewReveal: () => ({ ref: React.createRef<HTMLElement>(), revealed: true }),
     useAppKit: () => ({ open: mockOpenWallet }),
+    useAuth: () => ({ loginWithWallet: mockLoginWithWallet }),
     useCampaignCookieJar: (jarAddress: string) => mockUseCampaignCookieJar(jarAddress),
     useCampaignCookieJarCampaigns: () => mockUseCampaignCookieJarCampaigns(),
     useCampaignCookieJarDeposit: () => ({
@@ -101,6 +116,7 @@ vi.mock("@green-goods/shared", async () => {
     }),
     usePublicGardens: () => mockUsePublicGardens(),
     useUser: () => mockUseUser(),
+    validateDecimalInput: () => null,
   };
 });
 
@@ -152,6 +168,7 @@ describe("CookiesPage", () => {
   });
 
   it("asks disconnected visitors to connect before claiming", async () => {
+    const user = userEvent.setup();
     mockUseUser.mockReturnValue({ primaryAddress: undefined });
 
     renderPage();
@@ -165,9 +182,11 @@ describe("CookiesPage", () => {
     expect(
       await screen.findByText(/Connect a wallet to check claim access and add funds/i)
     ).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: "Connect wallet" }).length).toBeGreaterThanOrEqual(
-      1
-    );
+    const connectButtons = screen.getAllByRole("button", { name: "Connect wallet" });
+    expect(connectButtons.length).toBeGreaterThanOrEqual(1);
+    await user.click(connectButtons[0]!);
+    expect(mockLoginWithWallet).toHaveBeenCalledTimes(1);
+    expect(mockOpenWallet).not.toHaveBeenCalled();
   });
 
   it("claims a fixed cookie amount for an eligible wallet", async () => {
