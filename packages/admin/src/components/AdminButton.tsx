@@ -12,6 +12,12 @@ export const adminButtonVariants = tv({
     // Layout & shape
     "inline-flex items-center justify-center gap-2 whitespace-nowrap",
     "rounded-[var(--m3-shape-full)]",
+    // Geometry parity — every variant carries a 1px border box so the box never
+    // changes width when a button swaps filled↔outlined (e.g. the active-tab
+    // action). Auto-width buttons grow by the border, so without this the
+    // outlined variant rendered 2px wider than filled (measured). Outlined
+    // overrides only the border COLOR.
+    "border border-transparent",
     // Typography
     "text-label-lg font-medium",
     // Motion
@@ -48,11 +54,13 @@ export const adminButtonVariants = tv({
         "shadow-[var(--m3-elevation-1)] hover:shadow-[var(--m3-elevation-2)]",
         "[--state-layer-color:var(--m3-primary)]",
       ],
-      // Outlined — low emphasis with border
+      // Outlined — low emphasis with border. Matches the filled hover (1px lift
+      // + elevation gain) so the primary↔secondary pair behaves identically.
       outlined: [
         "bg-transparent [color:rgb(var(--tone-on-surface-accent,var(--m3-primary)))]",
-        "border border-[rgb(var(--m3-outline))]",
-        "shadow-[var(--m3-elevation-0)]",
+        "border-[rgb(var(--m3-outline))]",
+        "shadow-[var(--m3-elevation-0)] hover:shadow-[var(--m3-elevation-1)]",
+        "hover:-translate-y-[1px] active:translate-y-0",
         "[--state-layer-color:var(--m3-primary)]",
       ],
       // Text — lowest emphasis
