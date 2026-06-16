@@ -2,6 +2,11 @@ import { describe, expect, it } from "vitest";
 import vercelConfig from "../../../vercel.json";
 
 describe("client Vercel public social shell routing", () => {
+  const noStoreHeader = {
+    key: "Cache-Control",
+    value: "no-cache, no-store, must-revalidate",
+  };
+
   it("serves generated editorial shells before the catch-all SPA rewrite", () => {
     const rewrites = vercelConfig.rewrites;
     const catchAllIndex = rewrites.findIndex((rewrite) => rewrite.source === "/(.*)");
@@ -25,6 +30,13 @@ describe("client Vercel public social shell routing", () => {
     expect(vercelConfig.rewrites.at(-1)).toEqual({
       source: "/(.*)",
       destination: "/index.html",
+    });
+  });
+
+  it("serves the cookie jar editorial shell without route-level browser caching", () => {
+    expect(vercelConfig.headers).toContainEqual({
+      source: "/cookies",
+      headers: [noStoreHeader],
     });
   });
 });
