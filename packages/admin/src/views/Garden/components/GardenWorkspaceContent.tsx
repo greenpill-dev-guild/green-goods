@@ -112,9 +112,7 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
           owners={workspace.garden.owners ?? []}
           roleMembers={workspace.roleMembers}
           canManage={workspace.canManage}
-          addMemberOpen={workspace.addMemberOpen}
           onOpenAddMember={workspace.openAddMember}
-          onCloseAddMember={workspace.closeAddMember}
         />
       ) : null}
 

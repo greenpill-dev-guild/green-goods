@@ -45,9 +45,7 @@ const meta: Meta<typeof GardenMembersPanel> = {
     owners: [OWNER],
     roleMembers: ROLE_MEMBERS,
     canManage: true,
-    addMemberOpen: false,
     onOpenAddMember: fn(),
-    onCloseAddMember: fn(),
   },
 };
 
@@ -58,10 +56,6 @@ export const Populated: Story = {};
 
 export const ReadOnly: Story = {
   args: { canManage: false },
-};
-
-export const AddMemberOpen: Story = {
-  args: { addMemberOpen: true },
 };
 
 export const Empty: Story = {

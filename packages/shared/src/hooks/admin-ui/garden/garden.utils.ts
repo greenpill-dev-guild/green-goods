@@ -132,13 +132,11 @@ export function buildGardenViewActions(
       label: "Add member",
       labelId: "cockpit.garden.action.addMember",
       icon: RiUserAddLine,
-      onClick: () => {
-        if (view === "members" && onAddMember) {
-          onAddMember();
-          return;
-        }
-        navigate(adminRoutes.gardenMembers(routeContext));
-      },
+      // Opens the add-member left sheet in ONE click from any Garden view: the
+      // sheet is declared at the always-mounted workspace shell
+      // (GardenSheetDescriptor) and driven by controller state, so it no longer
+      // navigates to the members tab first and waits for a second click.
+      onClick: () => onAddMember?.(),
       variant: view === "members" ? "primary" : "secondary",
       visible: hasSelectedGarden && canManage,
       primary: view === "members",
