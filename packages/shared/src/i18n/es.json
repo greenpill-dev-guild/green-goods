@@ -686,6 +686,7 @@
   "app.admin.work.submit.noActionsForDomain": "No hay acciones disponibles para los dominios de este jardín",
   "app.admin.work.submit.noActionsForDomain.cta": "Configurar dominios",
   "app.admin.work.submit.noPermission": "No tienes permiso para enviar trabajo para este jardín",
+  "app.admin.work.submit.offline.message": "Vuelve a conectarte a internet antes de enviar trabajo.",
   "app.admin.work.submit.progress.confirming": "Confirma en tu billetera...",
   "app.admin.work.submit.progress.syncing": "Sincronizando con blockchain...",
   "app.admin.work.submit.progress.uploading": "Subiendo medios...",

@@ -10,6 +10,7 @@ import {
   FormField,
   findActionByUID,
   getActionTitle,
+  imageCompressor,
   logger,
   normalizeWorkMediaFiles,
   NativeSelect,
@@ -21,6 +22,7 @@ import {
   validationToasts,
   useAdminGardenWorkspaceSelection,
   useActions,
+  type AuthStateValue,
   useAuthState,
   useBeforeUnloadWhilePending,
   useGardenPermissions,
@@ -218,14 +220,79 @@ function getMinRequiredImages(action: Action | null) {
 
 type SubmitWorkLayout = "page" | "sheet";
 type MediaFeedback = { variant: "warning" | "error"; message: string };
+type SubmitWorkAuthSnapshot = Pick<AuthStateValue, "authMode" | "isAuthenticated"> & {
+  primaryAddress: Address | string | null | undefined;
+};
 
 export interface SubmitWorkPanelProps {
   layout?: SubmitWorkLayout;
   onSuccess?: () => void;
   onCancel?: () => void;
+  auth?: SubmitWorkAuthSnapshot;
 }
 
-export function SubmitWorkPanel({ layout = "page", onSuccess, onCancel }: SubmitWorkPanelProps) {
+const ADMIN_WORK_MEDIA_COMPRESSION_THRESHOLD_KB = 1024;
+const ADMIN_WORK_MEDIA_COMPRESSION_OPTIONS = {
+  maxSizeMB: 0.8,
+  maxWidthOrHeight: 2048,
+  initialQuality: 0.8,
+  useWebWorker: true,
+} as const;
+
+async function compressAdminWorkMediaFiles(
+  files: File[],
+  onProgress: (progress: number) => void
+): Promise<File[]> {
+  const filesToCompress = files
+    .map((file, index) => ({ file, index }))
+    .filter(({ file }) =>
+      imageCompressor.shouldCompress(file, ADMIN_WORK_MEDIA_COMPRESSION_THRESHOLD_KB)
+    );
+
+  if (filesToCompress.length === 0) return files;
+
+  const compressed = await imageCompressor.compressImages(
+    filesToCompress.map(({ file }) => file),
+    ADMIN_WORK_MEDIA_COMPRESSION_OPTIONS,
+    (progress) => onProgress(progress)
+  );
+
+  const preparedFiles = files.slice();
+  compressed.forEach((result, compressedIndex) => {
+    const originalIndex = filesToCompress[compressedIndex]?.index;
+    if (originalIndex !== undefined) {
+      preparedFiles[originalIndex] = result.file;
+    }
+  });
+
+  return preparedFiles;
+}
+
+function isOffline() {
+  return typeof navigator !== "undefined" && navigator.onLine === false;
+}
+
+export function SubmitWorkPanel({ auth, ...props }: SubmitWorkPanelProps) {
+  if (auth) {
+    return <SubmitWorkPanelContent {...props} auth={auth} />;
+  }
+
+  return <SubmitWorkPanelWithAuth {...props} />;
+}
+
+function SubmitWorkPanelWithAuth(props: Omit<SubmitWorkPanelProps, "auth">) {
+  const { isAuthenticated, authMode } = useAuthState();
+  const { primaryAddress } = useUser();
+
+  return <SubmitWorkPanelContent {...props} auth={{ authMode, isAuthenticated, primaryAddress }} />;
+}
+
+function SubmitWorkPanelContent({
+  layout = "page",
+  onSuccess,
+  onCancel,
+  auth,
+}: Omit<SubmitWorkPanelProps, "auth"> & { auth: SubmitWorkAuthSnapshot }) {
   const { formatMessage } = useIntl();
   const navigate = useNavigate();
   const { selectedGarden } = useAdminGardenWorkspaceSelection();
@@ -233,8 +300,7 @@ export function SubmitWorkPanel({ layout = "page", onSuccess, onCancel }: Submit
 
   const { data: gardens = [] } = useGardens();
   const { data: actions = [] } = useActions();
-  const { isAuthenticated, authMode } = useAuthState();
-  const { primaryAddress } = useUser();
+  const { authMode, isAuthenticated, primaryAddress } = auth;
   const { canManageGarden } = useGardenPermissions();
 
   const garden = useMemo(
@@ -302,7 +368,7 @@ export function SubmitWorkPanel({ layout = "page", onSuccess, onCancel }: Submit
     },
   });
 
-  useBeforeUnloadWhilePending(mutation.isPending);
+  useBeforeUnloadWhilePending(mutation.isPending || isPreparingMedia);
 
   const onSubmit = handleSubmit((data) => {
     const validationErrors = validateWorkSubmissionContext(
@@ -320,6 +386,19 @@ export function SubmitWorkPanel({ layout = "page", onSuccess, onCancel }: Submit
     }
 
     if (!selectedAction || selectedActionUID === null) return;
+
+    if (isOffline()) {
+      toastService.error({
+        title: formatMessage({ id: "app.admin.garden.create.offline.title" }),
+        message: formatMessage({
+          id: "app.admin.work.submit.offline.message",
+          defaultMessage: "Reconnect to the internet before submitting work.",
+        }),
+        context: "admin work submission",
+      });
+      return;
+    }
+
     setMediaFeedback(null);
 
     const actionTitle = getActionTitle(actions, selectedActionUID);
@@ -362,7 +441,15 @@ export function SubmitWorkPanel({ layout = "page", onSuccess, onCancel }: Submit
 
         const acceptedFiles = normalized.accepted.map((item) => item.file);
         if (acceptedFiles.length > 0) {
-          setImages((prev) => [...prev, ...acceptedFiles]);
+          const preparedFiles = await compressAdminWorkMediaFiles(acceptedFiles, (progress) => {
+            setProgressMessage(
+              formatMessage(
+                { id: "admin.fileUpload.processing", defaultMessage: "Processing... {progress}%" },
+                { progress: Math.round(progress) }
+              )
+            );
+          });
+          setImages((prev) => [...prev, ...preparedFiles]);
         }
 
         const unsupportedCount = normalized.rejected.filter(

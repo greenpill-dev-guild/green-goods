@@ -21,6 +21,7 @@ const {
   mockToastSuccess,
   mockUseWorkMutation,
   mockValidationFormError,
+  mockImageCompressor,
 } = vi.hoisted(() => ({
   mockState: {
     actions: [] as Action[],
@@ -33,6 +34,20 @@ const {
   mockToastSuccess: vi.fn(),
   mockUseWorkMutation: vi.fn(),
   mockValidationFormError: vi.fn(),
+  mockImageCompressor: {
+    shouldCompress: vi.fn(() => false),
+    compressImages: vi.fn(
+      async (files: File[], _options: unknown, onProgress?: (progress: number) => void) => {
+        onProgress?.(100);
+        return files.map((file) => ({
+          file,
+          originalSize: file.size,
+          compressedSize: file.size,
+          compressionRatio: 0,
+        }));
+      }
+    ),
+  },
 }));
 
 const heicToMocks = vi.hoisted(() => ({
@@ -181,6 +196,7 @@ vi.mock("@green-goods/shared", async () => {
       uid === null
         ? fallback
         : (actions.find((action) => Number(action.id.split("-").pop()) === uid)?.title ?? fallback),
+    imageCompressor: mockImageCompressor,
     logger: {
       error: vi.fn(),
     },
@@ -330,6 +346,13 @@ function uploadFile(container: HTMLElement, fileName = "before.png", type = "ima
   return file;
 }
 
+function setNavigatorOnline(isOnline: boolean) {
+  Object.defineProperty(window.navigator, "onLine", {
+    configurable: true,
+    get: () => isOnline,
+  });
+}
+
 function TestProviders({ children }: { children: ReactNode }) {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -350,6 +373,7 @@ function TestProviders({ children }: { children: ReactNode }) {
 describe("SubmitWorkPanel submit behavior", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    setNavigatorOnline(true);
     mockState.selectedGarden = {
       id: gardenAddress,
       tokenAddress: gardenAddress,
@@ -367,6 +391,18 @@ describe("SubmitWorkPanel submit behavior", () => {
     });
     heicToMocks.isHeic.mockResolvedValue(false);
     heicToMocks.heicTo.mockResolvedValue(new Blob(["jpeg"], { type: "image/jpeg" }));
+    mockImageCompressor.shouldCompress.mockReturnValue(false);
+    mockImageCompressor.compressImages.mockImplementation(
+      async (files: File[], _options: unknown, onProgress?: (progress: number) => void) => {
+        onProgress?.(100);
+        return files.map((file) => ({
+          file,
+          originalSize: file.size,
+          compressedSize: file.size,
+          compressionRatio: 0,
+        }));
+      }
+    );
     vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:test-preview");
     vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
   });
@@ -500,6 +536,55 @@ describe("SubmitWorkPanel submit behavior", () => {
     });
   });
 
+  it("compresses normalized media before submitting", async () => {
+    const user = userEvent.setup();
+    const compressedFile = new File(["compressed"], "large-compressed.jpg", {
+      type: "image/jpeg",
+    });
+    mockImageCompressor.shouldCompress.mockReturnValue(true);
+    mockImageCompressor.compressImages.mockResolvedValue([
+      {
+        file: compressedFile,
+        originalSize: 12 * 1024 * 1024,
+        compressedSize: compressedFile.size,
+        compressionRatio: 99,
+      },
+    ]);
+
+    const { container } = render(
+      <TestProviders>
+        <SubmitWorkPanel layout="page" />
+      </TestProviders>
+    );
+
+    await selectActionAndFillRequiredFields(user);
+    const rawFile = uploadFile(container, "large.png", "image/png");
+
+    await waitFor(() => {
+      expect(mockImageCompressor.compressImages).toHaveBeenCalledWith(
+        [rawFile],
+        expect.objectContaining({
+          maxSizeMB: 0.8,
+          maxWidthOrHeight: 2048,
+          initialQuality: 0.8,
+          useWebWorker: true,
+        }),
+        expect.any(Function)
+      );
+    });
+
+    await user.click(screen.getByRole("button", { name: "Submit Work" }));
+
+    await waitFor(() => {
+      expect(mockMutate).toHaveBeenCalledWith({
+        draft: expect.objectContaining({
+          media: [compressedFile],
+        }),
+        images: [compressedFile],
+      });
+    });
+  });
+
   it("normalizes HEIC media before submitting", async () => {
     heicToMocks.isHeic.mockResolvedValue(true);
     const user = userEvent.setup();
@@ -555,6 +640,32 @@ describe("SubmitWorkPanel submit behavior", () => {
         title: "Some files were not added",
       })
     );
+    expect(mockMutate).not.toHaveBeenCalled();
+  });
+
+  it("blocks offline admin submissions instead of queuing them", async () => {
+    mockState.actions = [createAction({ required: false, minImageCount: 0 })];
+    setNavigatorOnline(false);
+    const user = userEvent.setup();
+
+    render(
+      <TestProviders>
+        <SubmitWorkPanel layout="page" />
+      </TestProviders>
+    );
+
+    await selectActionAndFillRequiredFields(user);
+    await user.click(screen.getByRole("button", { name: "Submit Work" }));
+
+    await waitFor(() => {
+      expect(mockToastError).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: "You're offline",
+          message: "Reconnect to the internet before submitting work.",
+          context: "admin work submission",
+        })
+      );
+    });
     expect(mockMutate).not.toHaveBeenCalled();
   });
 

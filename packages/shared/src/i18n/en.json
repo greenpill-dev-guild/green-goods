@@ -686,6 +686,7 @@
   "app.admin.work.submit.noActionsForDomain": "No actions available for this garden's domains",
   "app.admin.work.submit.noActionsForDomain.cta": "Configure domains",
   "app.admin.work.submit.noPermission": "You don't have permission to submit work for this garden",
+  "app.admin.work.submit.offline.message": "Reconnect to the internet before submitting work.",
   "app.admin.work.submit.progress.confirming": "Confirm in your wallet...",
   "app.admin.work.submit.progress.syncing": "Syncing with blockchain...",
   "app.admin.work.submit.progress.uploading": "Uploading media...",
