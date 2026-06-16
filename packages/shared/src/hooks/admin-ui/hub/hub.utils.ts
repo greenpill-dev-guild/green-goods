@@ -253,9 +253,9 @@ export function buildHubViewActions(
       labelId: "cockpit.hub.action.submitWork",
       icon: RiAddLine,
       onClick: () => navigate(adminRoutes.hubWorkSubmit(hubContext)),
-      variant: stage === "work" ? "primary" : "secondary",
+      variant: "primary",
       visible: canManage,
-      primary: stage === "work",
+      primary: true,
     },
     {
       id: "create-assessment",
@@ -263,9 +263,9 @@ export function buildHubViewActions(
       labelId: "cockpit.hub.action.createAssessment",
       icon: RiCheckLine,
       onClick: () => navigate(adminRoutes.hubAssessCreate(hubContext)),
-      variant: stage === "assess" ? "primary" : "secondary",
+      variant: "secondary",
       visible: canReview,
-      primary: stage === "assess",
+      primary: false,
     },
     {
       id: "create-hypercert",
@@ -273,9 +273,9 @@ export function buildHubViewActions(
       labelId: "cockpit.hub.action.createHypercert",
       icon: RiMedalLine,
       onClick: () => navigate(adminRoutes.hubCertifyCreate(hubContext)),
-      variant: stage === "certify" ? "primary" : "secondary",
+      variant: "secondary",
       visible: canManage,
-      primary: stage === "certify",
+      primary: false,
     },
   ];
 }

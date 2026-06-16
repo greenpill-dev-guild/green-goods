@@ -137,9 +137,9 @@ export function buildGardenViewActions(
       // (GardenSheetDescriptor) and driven by controller state, so it no longer
       // navigates to the members tab first and waits for a second click.
       onClick: () => onAddMember?.(),
-      variant: view === "members" ? "primary" : "secondary",
+      variant: "primary",
       visible: hasSelectedGarden && canManage,
-      primary: view === "members",
+      primary: true,
     },
     {
       id: "edit-garden",
@@ -147,9 +147,9 @@ export function buildGardenViewActions(
       labelId: "cockpit.garden.action.editGarden",
       icon: RiSettings3Line,
       onClick: () => navigate(adminRoutes.gardenSettings(routeContext)),
-      variant: view === "settings" ? "primary" : "secondary",
+      variant: "secondary",
       visible: hasSelectedGarden && canManage,
-      primary: view === "settings",
+      primary: false,
     },
   ];
 }

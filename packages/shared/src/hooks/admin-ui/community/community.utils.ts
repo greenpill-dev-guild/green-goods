@@ -129,9 +129,9 @@ export function buildCommunityViewActions(
       labelId: "cockpit.community.action.manageMembers",
       icon: RiUserLine,
       onClick: () => navigate(adminRoutes.gardenMembers({ gardenAddress })),
-      variant: mode === "members" ? "primary" : "secondary",
+      variant: "secondary",
       visible: hasSelectedGarden && canManage,
-      primary: mode === "members",
+      primary: false,
     },
     {
       id: "deposit-withdraw",
@@ -139,9 +139,9 @@ export function buildCommunityViewActions(
       labelId: "cockpit.community.action.depositWithdraw",
       icon: RiMoneyDollarCircleLine,
       onClick: () => navigate(adminRoutes.communityTreasuryVault(routeContext)),
-      variant: mode === "treasury" ? "primary" : "secondary",
+      variant: "secondary",
       visible: hasSelectedGarden && isOwner,
-      primary: mode === "treasury",
+      primary: false,
     },
     {
       id: "new-proposal",
@@ -149,9 +149,9 @@ export function buildCommunityViewActions(
       labelId: "cockpit.community.action.newProposal",
       icon: RiUserVoiceLine,
       onClick: () => navigate(adminRoutes.communityGovernanceSignalPool("hypercert", routeContext)),
-      variant: mode === "governance" ? "primary" : "secondary",
+      variant: "primary",
       visible: hasSelectedGarden && canManage,
-      primary: mode === "governance",
+      primary: true,
     },
   ];
 }

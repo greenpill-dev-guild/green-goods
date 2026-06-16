@@ -1,17 +1,18 @@
 /**
- * View-action grammar tests — the stable-trio contract.
+ * View-action grammar tests — one fixed primary per view.
  *
  * Every workspace builder returns the SAME action set, in the SAME order, on
- * every tab of its workspace; only the filled emphasis (`primary`) moves to
- * the tab whose workflow the action opens. These tests pin:
+ * every tab, and declares ONE fixed primary action (filled, rendered rightmost
+ * by AdminViewActions) that does NOT move with the active tab. These tests pin:
  *
  *   1. id/order stability across tabs (button positions never shift),
- *   2. at most one `primary` per tab, matching the tab→action map,
- *   3. read surfaces (Hub history, Garden overview/activity, Community
- *      payouts/people) carry no filled action,
- *   4. real targets only (no self-nav, no removed edit-domains header action).
+ *   2. exactly one fixed `primary` per view — Hub→submit-work,
+ *      Garden→add-member, Community→new-proposal — independent of the tab,
+ *   3. the primary opens its flow directly on first click (no select-then-act),
+ *   4. real targets only (no self-nav, no removed edit-domains header action),
+ *   5. role/ownership gating still blanks unavailable actions.
  *
- * QA refinement pass on PR #562 — decision 1 (stable trio, active filled).
+ * Supersedes the earlier "stable trio, active-tab filled" grammar.
  */
 
 import { describe, expect, it, vi } from "vitest";
@@ -42,7 +43,7 @@ function primaryIds(actions: Array<{ id: string; visible?: boolean; primary?: bo
     .map((action) => action.id);
 }
 
-describe("buildHubViewActions — stable trio", () => {
+describe("buildHubViewActions — fixed primary", () => {
   const buildFor = (stage: HubPipelineStage) =>
     buildHubViewActions(stage, true, true, vi.fn(), { gardenAddress: GARDEN });
 
@@ -53,16 +54,16 @@ describe("buildHubViewActions — stable trio", () => {
     }
   });
 
-  it("fills exactly the stage-owned creation action", () => {
-    expect(primaryIds(buildFor("work"))).toEqual(["submit-work"]);
-    expect(primaryIds(buildFor("assess"))).toEqual(["create-assessment"]);
-    expect(primaryIds(buildFor("certify"))).toEqual(["create-hypercert"]);
+  it("declares submit-work as the fixed primary on every stage", () => {
+    for (const stage of HUB_STAGES) {
+      expect(primaryIds(buildFor(stage))).toEqual(["submit-work"]);
+    }
   });
 
-  it("keeps history all-outlined (audit surface, no creation flow → no FAB)", () => {
+  it("keeps the full action trio on the history (audit) stage", () => {
     const history = buildFor("history");
     expect(visibleIds(history)).toHaveLength(3);
-    expect(primaryIds(history)).toEqual([]);
+    expect(primaryIds(history)).toEqual(["submit-work"]);
   });
 
   it("blanks role-gated actions for read-only operators", () => {
@@ -73,7 +74,7 @@ describe("buildHubViewActions — stable trio", () => {
   });
 });
 
-describe("buildGardenViewActions — stable trio", () => {
+describe("buildGardenViewActions — fixed primary", () => {
   const buildFor = (view: GardenWorkspaceView, onAddMember = vi.fn()) =>
     buildGardenViewActions(view, true, true, vi.fn(), { gardenAddress: GARDEN }, onAddMember);
 
@@ -84,11 +85,10 @@ describe("buildGardenViewActions — stable trio", () => {
     }
   });
 
-  it("fills exactly the view-owned action (members → add, settings → edit)", () => {
-    expect(primaryIds(buildFor("members"))).toEqual(["add-member"]);
-    expect(primaryIds(buildFor("settings"))).toEqual(["edit-garden"]);
-    expect(primaryIds(buildFor("overview"))).toEqual([]);
-    expect(primaryIds(buildFor("activity"))).toEqual([]);
+  it("declares add-member as the fixed primary on every view", () => {
+    for (const view of GARDEN_VIEWS) {
+      expect(primaryIds(buildFor(view))).toEqual(["add-member"]);
+    }
   });
 
   it("dropped the header edit-domains action — domains are edited in Settings", () => {
@@ -97,22 +97,18 @@ describe("buildGardenViewActions — stable trio", () => {
     }
   });
 
-  it("opens the add-member flow in place on the members view and routes to it elsewhere", () => {
-    const navigate = vi.fn();
+  it("opens the add-member flow in one click from any view (no select-then-act)", () => {
     const addMember = vi.fn();
 
-    buildGardenViewActions("members", true, true, navigate, { gardenAddress: GARDEN }, addMember)
-      .find((action) => action.id === "add-member")
-      ?.onClick();
-    expect(addMember).toHaveBeenCalledTimes(1);
-    expect(navigate).not.toHaveBeenCalled();
-
-    buildGardenViewActions("overview", true, true, navigate, { gardenAddress: GARDEN }, addMember)
-      .find((action) => action.id === "add-member")
-      ?.onClick();
-    expect(navigate).toHaveBeenCalledTimes(1);
-    expect(navigate.mock.calls[0]?.[0]).toContain("/garden/members");
-    expect(navigate.mock.calls[0]?.[0]).toContain(GARDEN);
+    for (const view of GARDEN_VIEWS) {
+      const navigate = vi.fn();
+      buildGardenViewActions(view, true, true, navigate, { gardenAddress: GARDEN }, addMember)
+        .find((action) => action.id === "add-member")
+        ?.onClick();
+      // First click opens directly — never a navigate-to-tab detour.
+      expect(navigate).not.toHaveBeenCalled();
+    }
+    expect(addMember).toHaveBeenCalledTimes(GARDEN_VIEWS.length);
   });
 
   it("leaves only the public link for viewers who cannot manage", () => {
@@ -123,7 +119,7 @@ describe("buildGardenViewActions — stable trio", () => {
   });
 });
 
-describe("buildCommunityViewActions — stable trio", () => {
+describe("buildCommunityViewActions — fixed primary", () => {
   const buildFor = (mode: CommunityWorkspaceMode, { canManage = true, isOwner = true } = {}) =>
     buildCommunityViewActions(mode, canManage, isOwner, true, vi.fn(), {
       gardenAddress: GARDEN,
@@ -136,12 +132,10 @@ describe("buildCommunityViewActions — stable trio", () => {
     }
   });
 
-  it("fills exactly the mode-owned action (treasury → deposit, governance → proposal, people → manage)", () => {
-    expect(primaryIds(buildFor("treasury"))).toEqual(["deposit-withdraw"]);
-    expect(primaryIds(buildFor("governance"))).toEqual(["new-proposal"]);
-    // Payouts stays panel-owned (no header primary); People fills Manage members.
-    expect(primaryIds(buildFor("payouts"))).toEqual([]);
-    expect(primaryIds(buildFor("members"))).toEqual(["manage-members"]);
+  it("declares new-proposal as the fixed primary on every mode", () => {
+    for (const mode of COMMUNITY_MODES) {
+      expect(primaryIds(buildFor(mode))).toEqual(["new-proposal"]);
+    }
   });
 
   it("routes the governance action to the hypercert signal pool register flow", () => {
