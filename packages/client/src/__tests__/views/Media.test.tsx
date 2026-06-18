@@ -30,6 +30,71 @@ beforeAll(() => {
 vi.mock("@green-goods/shared", () => ({
   DEFAULT_CHAIN_ID: 11155111,
   cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
+  getWorkMediaId: (file: File) => `media-${file.name}-${file.size}-${file.lastModified}`,
+  isVideoFile: (file: File) => file.type.startsWith("video/"),
+  getSafeMediaBatchMetadata: (files: File[]) => ({
+    file_count: files.length,
+    mime_types: files.map((file) => file.type || "unknown"),
+    extensions: files.map((file) => file.name.split(".").pop() ?? "unknown"),
+    size_buckets: ["0-1mb"],
+    image_count: files.filter((file) => file.type.startsWith("image/")).length,
+    video_count: files.filter((file) => file.type.startsWith("video/")).length,
+  }),
+  getSafeMediaMetadata: (file: File) => ({
+    extension: file.name.split(".").pop() ?? "unknown",
+    mime_type: file.type || "unknown",
+    size_bucket: "0-1mb",
+    media_kind: file.type.startsWith("video/") ? "video" : "image",
+  }),
+  normalizeWorkMediaFiles: vi.fn(async (files: File[]) => {
+    const accepted = [];
+    const converted = [];
+
+    for (const file of files) {
+      if (
+        (file.type === "image/heic" || file.name.endsWith(".heic")) &&
+        (await heicToMocks.isHeic(file))
+      ) {
+        const blob = await heicToMocks.heicTo({
+          blob: file,
+          type: "image/jpeg",
+          quality: 0.85,
+        });
+        const convertedFile = new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), {
+          type: "image/jpeg",
+          lastModified: file.lastModified,
+        });
+        const entry = {
+          file: convertedFile,
+          originalFile: file,
+          converted: true,
+          metadata: {
+            extension: "jpg",
+            mime_type: "image/jpeg",
+            size_bucket: "0-1mb",
+            media_kind: "image",
+          },
+        };
+        accepted.push(entry);
+        converted.push({ originalFile: file, file: convertedFile, metadata: entry.metadata });
+        continue;
+      }
+
+      accepted.push({
+        file,
+        originalFile: file,
+        converted: false,
+        metadata: {
+          extension: file.name.split(".").pop() ?? "unknown",
+          mime_type: file.type || "unknown",
+          size_bucket: "0-1mb",
+          media_kind: file.type.startsWith("video/") ? "video" : "image",
+        },
+      });
+    }
+
+    return { accepted, rejected: [], converted };
+  }),
   AudioPlayer: ({ file, onDelete }: any) => <div data-testid="audio-player">{file?.name}</div>,
   AudioRecorder: ({ onRecordingComplete }: any) => (
     <button
@@ -86,7 +151,7 @@ vi.mock("@/components/Features", () => ({
 }));
 
 // Import after mocks
-import { getWorkMediaId } from "../../views/Garden/mediaProcessing";
+import { getWorkMediaId } from "@green-goods/shared";
 import { WorkMedia } from "../../views/Garden/Media";
 
 const messages = {
