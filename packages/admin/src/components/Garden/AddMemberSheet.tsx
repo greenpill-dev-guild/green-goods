@@ -20,8 +20,10 @@ import { AdminButton } from "../AdminButton";
 interface AddMemberSheetProps {
   /** Garden token address — the write target for `useGardenOperations`. */
   gardenAddress: Address;
-  /** Close the sheet (clears the route-backed left sheet). */
+  /** Close the sheet after successful writes. */
   onClose: () => void;
+  /** Request a user-initiated dismiss while preserving parent close guards. */
+  onRequestClose?: () => void;
   /** Reports active wallet writes so the shell can block dismiss gestures. */
   onSubmittingChange?: (submitting: boolean) => void;
 }
@@ -41,6 +43,7 @@ interface AddMemberSheetProps {
 export function AddMemberSheet({
   gardenAddress,
   onClose,
+  onRequestClose,
   onSubmittingChange,
 }: AddMemberSheetProps) {
   const { formatMessage } = useIntl();
@@ -172,6 +175,7 @@ export function AddMemberSheet({
 
   const formId = "admin-add-member-sheet";
   const batchCount = pending.length + (trimmed ? 1 : 0);
+  const requestClose = onRequestClose ?? onClose;
 
   return (
     <>
@@ -283,7 +287,7 @@ export function AddMemberSheet({
         </form>
       </SheetBody>
       <SheetFooter>
-        <AdminButton type="button" variant="text" onClick={onClose} disabled={busy}>
+        <AdminButton type="button" variant="text" onClick={requestClose} disabled={busy}>
           {formatMessage({ id: "admin.common.cancel", defaultMessage: "Cancel" })}
         </AdminButton>
         <AdminButton

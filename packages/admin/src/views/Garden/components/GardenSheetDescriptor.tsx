@@ -63,14 +63,6 @@ export function GardenSheetDescriptor({
   }, [addMemberSubmitting, onCloseAddMember]);
 
   const config = useMemo<LeftSheetConfig | null>(() => {
-    if (hypercertId) {
-      return {
-        title: formatMessage({ id: "app.hypercerts.detail.title", defaultMessage: "Hypercert" }),
-        content: <HypercertDetail layout="sheet" hypercertId={hypercertId} />,
-        onClose: () => navigate(closeTo),
-      };
-    }
-
     const activeAddMemberGardenAddress = addMemberOpen
       ? (addMemberGardenAddress ?? gardenAddress)
       : undefined;
@@ -85,13 +77,22 @@ export function GardenSheetDescriptor({
           <AddMemberSheet
             key={activeAddMemberGardenAddress}
             gardenAddress={activeAddMemberGardenAddress}
-            onClose={handleShellCloseAddMember}
+            onClose={onCloseAddMember}
+            onRequestClose={handleShellCloseAddMember}
             onSubmittingChange={setAddMemberSubmitting}
           />
         ),
         onClose: handleShellCloseAddMember,
         preventClose: addMemberSubmitting,
         width: "wide",
+      };
+    }
+
+    if (hypercertId) {
+      return {
+        title: formatMessage({ id: "app.hypercerts.detail.title", defaultMessage: "Hypercert" }),
+        content: <HypercertDetail layout="sheet" hypercertId={hypercertId} />,
+        onClose: () => navigate(closeTo),
       };
     }
 
@@ -106,6 +107,7 @@ export function GardenSheetDescriptor({
     handleShellCloseAddMember,
     hypercertId,
     navigate,
+    onCloseAddMember,
   ]);
 
   useLeftSheetConfig(config);

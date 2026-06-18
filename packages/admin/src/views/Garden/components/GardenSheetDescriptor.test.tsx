@@ -68,12 +68,14 @@ function getCurrentConfig(): LeftSheetConfig {
 function getAddMemberSheetProps(config: LeftSheetConfig): {
   gardenAddress: Address;
   onClose: () => void;
+  onRequestClose?: () => void;
   onSubmittingChange?: (submitting: boolean) => void;
 } {
   expect(isValidElement(config.content)).toBe(true);
   return config.content.props as {
     gardenAddress: Address;
     onClose: () => void;
+    onRequestClose?: () => void;
     onSubmittingChange?: (submitting: boolean) => void;
   };
 }
@@ -98,7 +100,7 @@ describe("GardenSheetDescriptor add-member sheet", () => {
     getCurrentConfig().onClose();
     expect(onCloseAddMember).not.toHaveBeenCalled();
 
-    getAddMemberSheetProps(getCurrentConfig()).onClose();
+    getAddMemberSheetProps(getCurrentConfig()).onRequestClose?.();
     expect(onCloseAddMember).not.toHaveBeenCalled();
 
     act(() => {
@@ -107,8 +109,29 @@ describe("GardenSheetDescriptor add-member sheet", () => {
 
     expect(getCurrentConfig().preventClose).toBe(false);
 
-    getAddMemberSheetProps(getCurrentConfig()).onClose();
+    getAddMemberSheetProps(getCurrentConfig()).onRequestClose?.();
     expect(onCloseAddMember).toHaveBeenCalledTimes(1);
+  });
+
+  it("lets successful add-member writes close after the guarded submit phase", () => {
+    const onCloseAddMember = vi.fn();
+    renderDescriptor({ onCloseAddMember });
+
+    const sheetProps = getAddMemberSheetProps(getCurrentConfig());
+
+    act(() => {
+      sheetProps.onSubmittingChange?.(true);
+    });
+
+    sheetProps.onClose();
+    expect(onCloseAddMember).toHaveBeenCalledTimes(1);
+  });
+
+  it("prioritizes the one-click add-member sheet over an open hypercert sheet", () => {
+    renderDescriptor({ hypercertId: "hc-1", addMemberOpen: true });
+
+    expect(getCurrentConfig().title).toBe("Add member");
+    expect(getAddMemberSheetProps(getCurrentConfig()).gardenAddress).toBe(GARDEN_A);
   });
 
   it("closes the idle add-member sheet when the selected garden changes", async () => {
