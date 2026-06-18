@@ -4,8 +4,11 @@
  */
 
 import { MemoryRouter } from "react-router-dom";
+import { QueryClient } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders, screen, userEvent } from "../../test-utils";
+import { DEFAULT_CHAIN_ID, queryKeys } from "@green-goods/shared";
+import { AdminAccessStateRenderer } from "@/components/Layout/AdminAccessStateRenderer";
 import { CanvasGardenAccessState } from "@/components/Layout/CanvasGardenAccessState";
 import { CanvasWorkspaceSelectionState } from "@/components/Layout/CanvasWorkspaceSelectionState";
 import { ConnectShell } from "@/components/Layout/ConnectShell";
@@ -94,6 +97,30 @@ describe("CanvasWorkspaceSelectionState", () => {
     await user.click(screen.getByRole("button", { name: /open comunidad verde/i }));
 
     expect(onSelectGarden).toHaveBeenCalledWith(gardens[0]);
+  });
+});
+
+describe("AdminAccessStateRenderer", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("retries both base garden and role queries from the indexer-error state", async () => {
+    const invalidateQueries = vi.spyOn(QueryClient.prototype, "invalidateQueries");
+    const user = userEvent.setup();
+
+    renderWithProviders(
+      <MemoryRouter>
+        <AdminAccessStateRenderer state={{ status: "indexer-error" }} ready={null} />
+      </MemoryRouter>
+    );
+
+    await user.click(screen.getByRole("button", { name: /try again/i }));
+
+    expect(invalidateQueries).toHaveBeenCalledWith({
+      queryKey: queryKeys.gardens.byChain(DEFAULT_CHAIN_ID),
+    });
+    expect(invalidateQueries).toHaveBeenCalledWith({ queryKey: queryKeys.role.all });
   });
 });
 
