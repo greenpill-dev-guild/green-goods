@@ -14,7 +14,7 @@
   "admin.actions.sort.default": "Default",
   "admin.actions.sort.recent": "Recent",
   "admin.actions.sort.title": "Title",
-  "admin.addMember.addCount": "Add {count} members",
+  "admin.addMember.addCount": "{count, plural, one {Add # member} other {Add # members}}",
   "admin.addMember.addToList": "Add",
   "admin.addMember.adding": "Adding...",
   "admin.addMember.ensResolved": "Resolves to {address}",

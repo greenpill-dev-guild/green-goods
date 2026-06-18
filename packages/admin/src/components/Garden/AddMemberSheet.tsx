@@ -66,8 +66,16 @@ export function AddMemberSheet({
   const resolveInput = async (): Promise<Address | null> => {
     if (!trimmed) return null;
     if (isAddress(trimmed)) return trimmed;
-    const lookup = resolvedEnsAddress ?? (await resolveEnsAddress(trimmed));
-    return lookup && isAddress(lookup) ? lookup : null;
+    try {
+      const lookup = resolvedEnsAddress ?? (await resolveEnsAddress(trimmed));
+      return lookup && isAddress(lookup) ? lookup : null;
+    } catch (err) {
+      logger.error("Failed to resolve ENS address for add-member sheet", {
+        error: err,
+        name: trimmed,
+      });
+      return null;
+    }
   };
 
   const stage = (address: Address) => {
@@ -128,11 +136,13 @@ export function AddMemberSheet({
       return;
     }
 
+    const failed: Address[] = [];
+    let processedCount = 0;
     setSubmitting(true);
     try {
-      const failed: Address[] = [];
-      for (const address of batch) {
+      for (const [index, address] of batch.entries()) {
         const result = await operations.addGardener(address);
+        processedCount = index + 1;
         if (!result.success) failed.push(address);
       }
       if (failed.length > 0) {
@@ -145,6 +155,8 @@ export function AddMemberSheet({
       onClose();
     } catch (err) {
       const { message, parsed } = parseAndFormatError(err);
+      setPending([...failed, ...batch.slice(processedCount)]);
+      setInput("");
       setError(parsed.isKnown ? message : formatMessage({ id: "app.admin.roles.error.addFailed" }));
     } finally {
       setSubmitting(false);
@@ -273,15 +285,13 @@ export function AddMemberSheet({
           loading={submitting}
           disabled={submitting || batchCount === 0}
         >
-          {batchCount > 1
-            ? formatMessage(
-                { id: "admin.addMember.addCount", defaultMessage: "Add {count} members" },
-                { count: batchCount }
-              )
-            : formatMessage(
-                { id: "app.admin.roles.add" },
-                { role: formatMessage({ id: "app.roles.gardener" }) }
-              )}
+          {formatMessage(
+            {
+              id: "admin.addMember.addCount",
+              defaultMessage: "{count, plural, one {Add # member} other {Add # members}}",
+            },
+            { count: batchCount }
+          )}
         </AdminButton>
       </SheetFooter>
     </>

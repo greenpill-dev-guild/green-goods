@@ -85,7 +85,7 @@ export function GardenSheetDescriptor({
           <AddMemberSheet
             key={activeAddMemberGardenAddress}
             gardenAddress={activeAddMemberGardenAddress}
-            onClose={onCloseAddMember}
+            onClose={handleShellCloseAddMember}
             onSubmittingChange={setAddMemberSubmitting}
           />
         ),
@@ -104,7 +104,6 @@ export function GardenSheetDescriptor({
     handleShellCloseAddMember,
     hypercertId,
     navigate,
-    onCloseAddMember,
   ]);
 
   useLeftSheetConfig(config);

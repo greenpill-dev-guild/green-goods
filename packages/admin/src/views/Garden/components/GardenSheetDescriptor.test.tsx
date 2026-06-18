@@ -83,7 +83,7 @@ describe("GardenSheetDescriptor add-member sheet", () => {
     mockUseLeftSheetConfig.mockClear();
   });
 
-  it("blocks shell close while add-member writes are submitting", () => {
+  it("blocks add-member close paths while writes are submitting", () => {
     const onCloseAddMember = vi.fn();
     renderDescriptor({ onCloseAddMember });
 
@@ -96,9 +96,14 @@ describe("GardenSheetDescriptor add-member sheet", () => {
     getCurrentConfig().onClose();
     expect(onCloseAddMember).not.toHaveBeenCalled();
 
+    getAddMemberSheetProps(getCurrentConfig()).onClose();
+    expect(onCloseAddMember).not.toHaveBeenCalled();
+
     act(() => {
-      sheetProps.onClose();
+      sheetProps.onSubmittingChange?.(false);
     });
+
+    getAddMemberSheetProps(getCurrentConfig()).onClose();
     expect(onCloseAddMember).toHaveBeenCalledTimes(1);
   });
 
