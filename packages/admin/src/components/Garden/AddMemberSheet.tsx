@@ -11,7 +11,7 @@ import {
   useGardenOperations,
 } from "@green-goods/shared";
 import { RiAddLine, RiClipboardLine, RiCloseLine } from "@remixicon/react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { isAddress } from "viem";
 import { EnsAddressText } from "@/components/EnsAddressText";
@@ -19,9 +19,11 @@ import { AdminButton } from "../AdminButton";
 
 interface AddMemberSheetProps {
   /** Garden token address — the write target for `useGardenOperations`. */
-  gardenAddress: string;
+  gardenAddress: Address;
   /** Close the sheet (clears the route-backed left sheet). */
   onClose: () => void;
+  /** Reports active wallet writes so the shell can block dismiss gestures. */
+  onSubmittingChange?: (submitting: boolean) => void;
 }
 
 /**
@@ -36,7 +38,11 @@ interface AddMemberSheetProps {
  *   for retry.
  * - Inherits the garden (green) workspace tint from the sheet surface.
  */
-export function AddMemberSheet({ gardenAddress, onClose }: AddMemberSheetProps) {
+export function AddMemberSheet({
+  gardenAddress,
+  onClose,
+  onSubmittingChange,
+}: AddMemberSheetProps) {
   const { formatMessage } = useIntl();
   const operations = useGardenOperations(gardenAddress);
   const [input, setInput] = useState("");
@@ -51,6 +57,11 @@ export function AddMemberSheet({ gardenAddress, onClose }: AddMemberSheetProps) 
     shouldResolveEns ? trimmed : null,
     { enabled: shouldResolveEns }
   );
+
+  useEffect(() => {
+    onSubmittingChange?.(submitting);
+    return () => onSubmittingChange?.(false);
+  }, [onSubmittingChange, submitting]);
 
   const resolveInput = async (): Promise<Address | null> => {
     if (!trimmed) return null;

@@ -89,16 +89,13 @@ export function communitySectionForMode(mode: CommunityWorkspaceMode) {
 
 /**
  * Community view-level actions — stable trio: the same set renders on every
- * mode, in the same order, so positions never shift between tabs. Only the
- * filled emphasis moves to the mode whose workflow the action opens:
+ * mode, in the same order, so positions never shift between tabs. New proposal
+ * is the fixed primary; the remaining actions stay secondary/ghost so emphasis
+ * no longer follows the active mode:
  *
- * - `treasury`   → Deposit / withdraw filled (owner-gated; opens the vault
- *   sheet over the treasury route).
- * - `governance` → New proposal filled (opens the hypercert signal-pool
- *   sheet, where registering a hypercert is the proposal-creation write).
- * - `payouts` / `members` → no fill: the CookieJarPayoutPanel owns its
- *   actions in local context, and People stays engagement/read-only with
- *   Manage members linking to the Garden → Members management surface.
+ * - New proposal opens the hypercert signal-pool sheet.
+ * - Deposit / withdraw stays owner-gated and secondary.
+ * - Manage members links to the Garden Members management surface.
  */
 export function buildCommunityViewActions(
   mode: CommunityWorkspaceMode,

@@ -87,14 +87,13 @@ export function resolveGardenView(pathname: string): GardenWorkspaceView {
 
 /**
  * Garden view-level actions — stable trio: the same set renders on every
- * view, in the same order, so positions never shift between tabs. Only the
- * filled emphasis moves to the view whose workflow the action opens:
+ * view, in the same order, so positions never shift between tabs. Add member
+ * is the fixed primary; the remaining actions stay secondary/ghost so emphasis
+ * no longer follows the active view:
  *
- * - `members`  → Add member filled (opens the AddMemberModal write path
- *   in-place via `onAddMember`; navigates to the members view elsewhere).
- * - `settings` → Edit garden filled (idempotent navigation when already
- *   there — the settings form owns Save/Cancel).
- * - `overview` / `activity` → read surfaces; everything stays outlined.
+ * - Add member opens the left-sheet write path in one click from any view.
+ * - Edit garden navigates to Settings, where the form owns Save/Cancel.
+ * - View public stays ghost because it leaves the admin context.
  *
  * Domains are garden configuration and are edited from the Settings form,
  * not from the header (QA refinement pass — decision 4).

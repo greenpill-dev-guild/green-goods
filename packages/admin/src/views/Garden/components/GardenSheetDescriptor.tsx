@@ -1,5 +1,5 @@
-import { type LeftSheetConfig, useLeftSheetConfig } from "@green-goods/shared";
-import { useMemo } from "react";
+import { type Address, type LeftSheetConfig, useLeftSheetConfig } from "@green-goods/shared";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { AddMemberSheet } from "@/components/Garden/AddMemberSheet";
@@ -12,7 +12,7 @@ interface GardenSheetDescriptorProps {
   addMemberOpen: boolean;
   onCloseAddMember: () => void;
   /** Garden token address — write target for the add-member sheet. */
-  gardenAddress: string | undefined;
+  gardenAddress: Address | undefined;
 }
 
 /**
@@ -32,6 +32,35 @@ export function GardenSheetDescriptor({
 }: GardenSheetDescriptorProps) {
   const { formatMessage } = useIntl();
   const navigate = useNavigate();
+  const [addMemberGardenAddress, setAddMemberGardenAddress] = useState<Address | undefined>();
+  const [addMemberSubmitting, setAddMemberSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (!addMemberOpen) {
+      setAddMemberGardenAddress(undefined);
+      setAddMemberSubmitting(false);
+      return;
+    }
+
+    if (!addMemberGardenAddress && gardenAddress) {
+      setAddMemberGardenAddress(gardenAddress);
+    }
+  }, [addMemberGardenAddress, addMemberOpen, gardenAddress]);
+
+  useEffect(() => {
+    if (!addMemberOpen || !addMemberGardenAddress || addMemberSubmitting) return;
+    if (!gardenAddress) {
+      onCloseAddMember();
+      return;
+    }
+    if (addMemberGardenAddress.toLowerCase() === gardenAddress.toLowerCase()) return;
+    onCloseAddMember();
+  }, [addMemberGardenAddress, addMemberOpen, addMemberSubmitting, gardenAddress, onCloseAddMember]);
+
+  const handleShellCloseAddMember = useCallback(() => {
+    if (addMemberSubmitting) return;
+    onCloseAddMember();
+  }, [addMemberSubmitting, onCloseAddMember]);
 
   const config = useMemo<LeftSheetConfig | null>(() => {
     if (hypercertId) {
@@ -42,14 +71,25 @@ export function GardenSheetDescriptor({
       };
     }
 
-    if (addMemberOpen && gardenAddress) {
+    const activeAddMemberGardenAddress = addMemberOpen
+      ? (addMemberGardenAddress ?? gardenAddress)
+      : undefined;
+
+    if (activeAddMemberGardenAddress) {
       return {
         title: formatMessage({
           id: "cockpit.garden.action.addMember",
           defaultMessage: "Add member",
         }),
-        content: <AddMemberSheet gardenAddress={gardenAddress} onClose={onCloseAddMember} />,
-        onClose: onCloseAddMember,
+        content: (
+          <AddMemberSheet
+            key={activeAddMemberGardenAddress}
+            gardenAddress={activeAddMemberGardenAddress}
+            onClose={onCloseAddMember}
+            onSubmittingChange={setAddMemberSubmitting}
+          />
+        ),
+        onClose: handleShellCloseAddMember,
         width: "wide",
       };
     }
@@ -57,9 +97,11 @@ export function GardenSheetDescriptor({
     return null;
   }, [
     addMemberOpen,
+    addMemberGardenAddress,
     closeTo,
     formatMessage,
     gardenAddress,
+    handleShellCloseAddMember,
     hypercertId,
     navigate,
     onCloseAddMember,

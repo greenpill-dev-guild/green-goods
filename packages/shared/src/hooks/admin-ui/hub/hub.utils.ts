@@ -234,10 +234,9 @@ export function resolveOpenSectionRoute(
 //
 // Stable trio: the same creation actions render on every stage, in the same
 // order, so button positions never shift as the operator moves between tabs.
-// Only the emphasis moves — the stage whose workflow an action opens renders
-// it filled (Work → Submit work, Assess → Create assessment, Certify →
-// Create hypercert). History owns no creation flow, so all three stay
-// outlined there and the mobile FAB hides (no `primary` → no FAB).
+// Submit work is the fixed primary across Work, Assess, Certify, and History;
+// the assessment and hypercert actions stay secondary so emphasis no longer
+// follows the active stage.
 
 export function buildHubViewActions(
   stage: HubPipelineStage,
