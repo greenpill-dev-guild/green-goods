@@ -13,10 +13,10 @@ const VARIANT_TO_ADMIN_BUTTON = {
 } as const;
 
 /**
- * Renders the desktop view-action row — the stable-trio grammar: a
- * workspace's actions render in declaration order on every tab, and only the
- * active tab's action carries the filled (`primary`) variant. No overflow
- * menu and no reordering, so button positions never shift between tabs.
+ * Renders the desktop view-action row. Each view declares ONE fixed primary
+ * action: it renders filled and rightmost (affirmative action on the right),
+ * with the remaining actions in declaration order to its left. The primary no
+ * longer follows the active tab, so its position is stable across tabs.
  *
  * Pair with `useViewActions` so the same `ViewAction[]` drives both this
  * component (desktop) and the FAB speed-dial (tablet/mobile).
@@ -24,12 +24,18 @@ const VARIANT_TO_ADMIN_BUTTON = {
 export function AdminViewActions({ items }: AdminViewActionsProps) {
   if (items.length === 0) return null;
 
+  // Primary rightmost: non-primary actions keep declaration order; the single
+  // primary sorts last. Array.sort is stable, so siblings never shuffle.
+  const ordered = [...items].sort(
+    (a, b) => Number(Boolean(a.primary)) - Number(Boolean(b.primary))
+  );
+
   return (
     <div
       className="flex flex-shrink-0 flex-wrap items-center justify-end gap-2"
       data-component="AdminViewActions"
     >
-      {items.map((action) => (
+      {ordered.map((action) => (
         <AdminViewActionButton key={action.id} action={action} />
       ))}
     </div>
