@@ -129,7 +129,7 @@
 }
 
 /* Dark-mode pair of the tone-derived re-declaration above (same scoping fix). */
-[data-theme="dark"] .admin-m3 {
+:is(.admin-m3[data-theme="dark"], [data-theme="dark"] .admin-m3) {
   --m3-primary: var(--tone-primary, var(--green-200));
   --m3-on-primary: var(--tone-on-primary, var(--green-900));
   --m3-primary-container: var(--tone-primary-container, var(--green-900));
