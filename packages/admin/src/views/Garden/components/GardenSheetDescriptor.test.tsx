@@ -93,6 +93,8 @@ describe("GardenSheetDescriptor add-member sheet", () => {
       sheetProps.onSubmittingChange?.(true);
     });
 
+    expect(getCurrentConfig().preventClose).toBe(true);
+
     getCurrentConfig().onClose();
     expect(onCloseAddMember).not.toHaveBeenCalled();
 
@@ -102,6 +104,8 @@ describe("GardenSheetDescriptor add-member sheet", () => {
     act(() => {
       sheetProps.onSubmittingChange?.(false);
     });
+
+    expect(getCurrentConfig().preventClose).toBe(false);
 
     getAddMemberSheetProps(getCurrentConfig()).onClose();
     expect(onCloseAddMember).toHaveBeenCalledTimes(1);

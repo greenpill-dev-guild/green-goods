@@ -48,6 +48,7 @@ export function AddMemberSheet({
   const [input, setInput] = useState("");
   const [pending, setPending] = useState<Address[]>([]);
   const [error, setError] = useState("");
+  const [submitResolving, setSubmitResolving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const trimmed = input.trim();
@@ -57,11 +58,12 @@ export function AddMemberSheet({
     shouldResolveEns ? trimmed : null,
     { enabled: shouldResolveEns }
   );
+  const busy = submitResolving || submitting;
 
   useEffect(() => {
-    onSubmittingChange?.(submitting);
+    onSubmittingChange?.(busy);
     return () => onSubmittingChange?.(false);
-  }, [onSubmittingChange, submitting]);
+  }, [busy, onSubmittingChange]);
 
   const resolveInput = async (): Promise<Address | null> => {
     if (!trimmed) return null;
@@ -117,29 +119,33 @@ export function AddMemberSheet({
     event.preventDefault();
     setError("");
 
-    // Fold a typed-but-not-yet-staged address into the batch so a single entry
-    // doesn't require the extra "Add" tap.
-    let batch = pending;
-    if (trimmed) {
-      const resolved = await resolveInput();
-      if (!resolved) {
-        setError(formatMessage({ id: "app.admin.roles.error.ensResolutionFailed" }));
-        return;
-      }
-      batch = pending.some((entry) => entry.toLowerCase() === resolved.toLowerCase())
-        ? pending
-        : [...pending, resolved];
-    }
-
-    if (batch.length === 0) {
-      setError(formatMessage({ id: "app.admin.roles.error.addressRequired" }));
-      return;
-    }
-
     const failed: Address[] = [];
     let processedCount = 0;
-    setSubmitting(true);
+    let batch = pending;
     try {
+      // Fold a typed-but-not-yet-staged address into the batch so a single
+      // entry doesn't require the extra "Add" tap. ENS submit resolution is
+      // marked busy before awaiting so close paths cannot continue into a
+      // wallet write after the operator cancels.
+      if (trimmed) {
+        if (!isHexAddress) setSubmitResolving(true);
+        const resolved = await resolveInput();
+        if (!resolved) {
+          setError(formatMessage({ id: "app.admin.roles.error.ensResolutionFailed" }));
+          return;
+        }
+        batch = pending.some((entry) => entry.toLowerCase() === resolved.toLowerCase())
+          ? pending
+          : [...pending, resolved];
+      }
+
+      if (batch.length === 0) {
+        setError(formatMessage({ id: "app.admin.roles.error.addressRequired" }));
+        return;
+      }
+
+      setSubmitResolving(false);
+      setSubmitting(true);
       for (const [index, address] of batch.entries()) {
         const result = await operations.addGardener(address);
         processedCount = index + 1;
@@ -159,6 +165,7 @@ export function AddMemberSheet({
       setInput("");
       setError(parsed.isKnown ? message : formatMessage({ id: "app.admin.roles.error.addFailed" }));
     } finally {
+      setSubmitResolving(false);
       setSubmitting(false);
     }
   };
@@ -191,14 +198,14 @@ export function AddMemberSheet({
                     id: "admin.addMember.placeholder",
                     defaultMessage: "0x... or name.eth",
                   })}
-                  disabled={submitting}
+                  disabled={busy}
                   aria-invalid={!!error}
                   invalid={!!error}
                 />
                 <button
                   type="button"
                   onClick={handlePaste}
-                  disabled={submitting}
+                  disabled={busy}
                   className="absolute right-1 top-1/2 -translate-y-1/2 flex min-h-11 min-w-11 items-center justify-center text-text-soft hover:text-text-sub disabled:opacity-50"
                   title={formatMessage({
                     id: "admin.addMember.paste",
@@ -212,7 +219,7 @@ export function AddMemberSheet({
                 type="button"
                 variant="tonal"
                 onClick={() => handleAddToList()}
-                disabled={submitting || !trimmed || (shouldResolveEns && resolvingEns)}
+                disabled={busy || !trimmed || (shouldResolveEns && resolvingEns)}
                 leadingIcon={<RiAddLine />}
               >
                 {formatMessage({ id: "admin.addMember.addToList", defaultMessage: "Add" })}
@@ -260,7 +267,7 @@ export function AddMemberSheet({
                   <button
                     type="button"
                     onClick={() => removeEntry(address)}
-                    disabled={submitting}
+                    disabled={busy}
                     aria-label={formatMessage({
                       id: "admin.addMember.remove",
                       defaultMessage: "Remove",
@@ -276,14 +283,14 @@ export function AddMemberSheet({
         </form>
       </SheetBody>
       <SheetFooter>
-        <AdminButton type="button" variant="text" onClick={onClose} disabled={submitting}>
+        <AdminButton type="button" variant="text" onClick={onClose} disabled={busy}>
           {formatMessage({ id: "admin.common.cancel", defaultMessage: "Cancel" })}
         </AdminButton>
         <AdminButton
           type="submit"
           form={formId}
-          loading={submitting}
-          disabled={submitting || batchCount === 0}
+          loading={busy}
+          disabled={busy || batchCount === 0 || (shouldResolveEns && resolvingEns)}
         >
           {formatMessage(
             {

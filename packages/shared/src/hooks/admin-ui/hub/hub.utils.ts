@@ -262,9 +262,9 @@ export function buildHubViewActions(
       labelId: "cockpit.hub.action.createAssessment",
       icon: RiCheckLine,
       onClick: () => navigate(adminRoutes.hubAssessCreate(hubContext)),
-      variant: "secondary",
+      variant: canManage ? "secondary" : "primary",
       visible: canReview,
-      primary: false,
+      primary: !canManage,
     },
     {
       id: "create-hypercert",

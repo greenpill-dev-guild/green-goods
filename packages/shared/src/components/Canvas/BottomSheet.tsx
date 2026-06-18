@@ -1,6 +1,6 @@
 import { animated, useSpring } from "@react-spring/web";
 import { useDrag } from "@use-gesture/react";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useIntl } from "react-intl";
 import { useMediaQuery } from "../../hooks/ui/useMediaQuery";
@@ -30,6 +30,8 @@ export interface BottomSheetProps {
    * bounded to the container (canvas overlay root).
    */
   container?: HTMLElement | null;
+  /** Prevent shell-level dismiss paths while protected sheet work is active. */
+  preventClose?: boolean;
 }
 
 /**
@@ -46,6 +48,7 @@ export function BottomSheet({
   children,
   maxHeight = 85,
   container,
+  preventClose = false,
 }: BottomSheetProps) {
   const isBounded = container !== undefined && container !== null;
   const sheetState = open ? "open" : "closed";
@@ -96,12 +99,20 @@ export function BottomSheet({
     }
   }, [open, prefersReducedMotion, setMounted]);
 
+  const requestClose = useCallback(() => {
+    if (preventClose) {
+      api.start({ y: 0, immediate: false });
+      return;
+    }
+    onClose();
+  }, [api, onClose, preventClose]);
+
   useCanvasSheetLifecycle({
     dialogRef,
     open,
     mounted,
     isBounded,
-    onClose,
+    onClose: requestClose,
     autoFocusSelector: '[data-testid="bottom-sheet-close"]',
   });
 
@@ -121,13 +132,19 @@ export function BottomSheet({
         prefersReducedMotion,
       });
 
+      if (preventClose) {
+        if (intent.kind === "cancel") cancel();
+        api.start({ y: 0, immediate: false });
+        return;
+      }
+
       if (intent.kind === "cancel") {
         cancel();
         api.start({ y: 0, immediate: false });
         return;
       }
       if (intent.kind === "dismiss") {
-        onClose();
+        requestClose();
         return;
       }
       if (intent.kind === "snap") {
@@ -178,7 +195,7 @@ export function BottomSheet({
           WebkitBackdropFilter: isBounded ? undefined : "blur(2px)",
         }}
         onClick={(event) => {
-          if (event.target === event.currentTarget) onClose();
+          if (event.target === event.currentTarget) requestClose();
         }}
         data-component="BottomSheet"
         data-slot="overlay"
@@ -229,10 +246,11 @@ export function BottomSheet({
           title={renderedTitle}
           closeLabel={closeLabel}
           closeTestId="bottom-sheet-close"
-          onClose={onClose}
+          onClose={requestClose}
+          closeDisabled={preventClose}
           showCloseWhenUntitled={false}
         />
-        <CanvasSheetBody onClose={onClose} scrollable>
+        <CanvasSheetBody onClose={requestClose} scrollable>
           {renderedChildren}
         </CanvasSheetBody>
       </animated.div>

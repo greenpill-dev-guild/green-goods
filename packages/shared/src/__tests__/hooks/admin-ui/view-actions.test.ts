@@ -72,6 +72,16 @@ describe("buildHubViewActions — fixed primary", () => {
     });
     expect(visibleIds(actions)).toEqual([]);
   });
+
+  it("promotes create-assessment when it is the evaluator-only Hub action", () => {
+    const actions = buildHubViewActions("assess", false, true, vi.fn(), {
+      gardenAddress: GARDEN,
+    });
+
+    expect(visibleIds(actions)).toEqual(["create-assessment"]);
+    expect(primaryIds(actions)).toEqual(["create-assessment"]);
+    expect(actions.find((action) => action.id === "create-assessment")?.variant).toBe("primary");
+  });
 });
 
 describe("buildGardenViewActions — fixed primary", () => {

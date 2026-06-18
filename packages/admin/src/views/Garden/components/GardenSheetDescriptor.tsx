@@ -90,6 +90,7 @@ export function GardenSheetDescriptor({
           />
         ),
         onClose: handleShellCloseAddMember,
+        preventClose: addMemberSubmitting,
         width: "wide",
       };
     }
@@ -98,6 +99,7 @@ export function GardenSheetDescriptor({
   }, [
     addMemberOpen,
     addMemberGardenAddress,
+    addMemberSubmitting,
     closeTo,
     formatMessage,
     gardenAddress,
