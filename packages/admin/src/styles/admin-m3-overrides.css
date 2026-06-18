@@ -65,7 +65,7 @@
     bottom: 0;
     min-height: 80px;
     border-radius: 0;
-    padding: 12px 8px calc(env(safe-area-inset-bottom) + 16px);
+    padding: 12px 8px calc(env(safe-area-inset-bottom) + 8px);
     gap: 0;
   }
 }
@@ -236,13 +236,22 @@
   background: transparent;
 }
 
-/* Sheets — liquid shell, solid inner content supplied by panels/SheetBody */
+/* Sheets — liquid shell, solid inner content supplied by panels/SheetBody.
+ * A subtle workspace wash (--tone-surface-tint-color: rgb(hue / 8–10%)) is
+ * layered OVER the neutral --admin-sheet-bg so the sheet quietly carries the
+ * active view's hue (sheets sit inside [data-tone], so the wash resolves to the
+ * current workspace; falls back to transparent when no tone is set). */
 .admin-m3 [data-component="RightSheet"][data-slot="surface"].glass-floating,
 .admin-m3 [data-component="LeftSheet"][data-slot="surface"].glass-floating,
 .admin-m3 [data-component="BottomSheet"][data-slot="surface"].glass-floating {
   backdrop-filter: blur(var(--admin-chrome-blur)) saturate(1.14);
   -webkit-backdrop-filter: blur(var(--admin-chrome-blur)) saturate(1.14);
-  background: var(--admin-sheet-bg);
+  background:
+    linear-gradient(
+      var(--tone-surface-tint-color, transparent),
+      var(--tone-surface-tint-color, transparent)
+    ),
+    var(--admin-sheet-bg);
   border-color: var(--admin-chrome-border);
 }
 

@@ -34,9 +34,11 @@ export function LoadingSplash({ loadingState, message }: LoadingSplashProps) {
           <img
             src="/icon.png"
             alt={APP_NAME}
-            width={240}
-            height={240}
-            className="animate-pulse transition-opacity duration-[var(--spring-effects-slow-duration)] ease-[var(--spring-effects-slow-easing)]"
+            // Same wide GG logomark + treatment as Splash so the login →
+            // loading transition doesn't jump the logo's size or shape.
+            width={819}
+            height={464}
+            className="h-24 w-auto sm:h-28 animate-pulse transition-opacity duration-[var(--spring-effects-slow-duration)] ease-[var(--spring-effects-slow-easing)]"
           />
         </div>
 

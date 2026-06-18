@@ -244,16 +244,12 @@
 
 /* ============================================================================
  * SPATIAL DESIGN TOKENS — Warm Earth design language
- * Spring tokens, canvas recession, shadow-border edges
+ * Spring tokens, shadow-border edges
  * Spec: .plans/active/admin-ui-revamp/artifacts/spatial-architecture.md
+ * (Canvas-recession tokens removed in the QA refinement pass — the MainSheet
+ * no longer recedes when sheets open; sheet scrim + elevation carry depth.)
  * ============================================================================ */
 :root {
-  /* Canvas recession — material focus variation */
-  --canvas-scale-receded: 0.992;
-  --canvas-opacity-receded: 0.95;
-  --canvas-blur-receded: 1.5px;
-  --canvas-recede-y: 8px;
-
   /* Shadow-as-border edge tokens (replace CSS border/ring) */
   --edge-rest: 0 0 0 1px rgba(0, 0, 0, 0.06);
   --edge-hover: 0 0 0 1px rgba(31, 193, 107, 0.20);
@@ -314,7 +310,9 @@
     transparent 100%
   );
   --admin-appbar-height: 3.5rem;
-  --admin-nav-offset-desktop: 20px;
+  /* Nav floats closer to the edge to reclaim vertical space (QA refinement);
+     drives both the floating-pill bottom and the sheet-clearance calc below. */
+  --admin-nav-offset-desktop: 12px;
   --admin-nav-height-desktop: 3.5rem;
   --admin-nav-height-mobile: calc(5rem + env(safe-area-inset-bottom));
   --admin-sheet-top-gap: 0.5rem;
@@ -326,8 +324,8 @@
   --admin-sheet-bottom: calc(
     var(--admin-nav-offset-desktop, 20px) + var(--admin-nav-height-desktop, 3.5rem) + var(--admin-sheet-bottom-gap-desktop, 1.5rem)
   );
-  --admin-main-bottom-clearance-desktop: 6.25rem;
-  --admin-main-bottom-clearance-mobile: calc(env(safe-area-inset-bottom) + 9.5rem);
+  --admin-main-bottom-clearance-desktop: 6rem;
+  --admin-main-bottom-clearance-mobile: calc(env(safe-area-inset-bottom) + 9rem);
   --admin-main-content-min-height: calc(
     100dvh - var(--admin-appbar-height, 3.5rem) - var(--admin-main-bottom-clearance-desktop)
   );
@@ -421,6 +419,11 @@
   --tone-surface-tint: var(--blue-600) / 8%;
   --tone-outline: var(--blue-200);
   --tone-surface-variant: var(--blue-50);
+  /* Contrast-safe accent for tone-colored TEXT / outline / icon on light
+     surfaces (AA ≥4.5 on white). Distinct from --tone-action (filled bg w/ white
+     text) and --tone-primary (the mid fill step — too light as text, e.g.
+     green-600 ≈ 2.85:1). Consumed directly via var(); never indirected at :root. */
+  --tone-on-surface-accent: var(--blue-700);
   --tone-surface-tint-color: rgb(var(--blue-600) / 8%);
 }
 
@@ -437,23 +440,33 @@
   --tone-surface-tint: var(--green-600) / 8%;
   --tone-outline: var(--green-200);
   --tone-surface-variant: var(--green-50);
+  --tone-on-surface-accent: var(--green-800);
   --tone-surface-tint-color: rgb(var(--green-600) / 8%);
 }
 
-/* Community — Orange. The action tone is warm but still a filled-control role. */
+/* Community — Amber/Gold. The ambient canvas wash leans gold (oklch hue 80,
+   vs the Actions red-orange neighbor at 30) so the workspace reads clearly
+   apart (QA round 2: the earlier hue-50 wash still sat too close to red).
+   Primary stays orange-600 and action orange-700 because --tone-primary feeds
+   --m3-primary, which M3 renders as a white-text filled background (buttons,
+   FAB, date-picker selected day) — those need AA contrast, and orange-600 is
+   the lightest white-safe step in the ramp. The yellow separation therefore
+   comes from the canvas wash, surface tint, secondary, and containers, not the
+   primary accent. */
 [data-tone="community"] {
   --tone-primary: var(--orange-600);
   --tone-on-primary: 255 255 255;
   --tone-action: var(--orange-700);
   --tone-action-hover: var(--orange-800);
   --tone-on-action: 255 255 255;
-  --tone-primary-container: var(--orange-100);
-  --tone-on-primary-container: var(--orange-900);
-  --tone-secondary: var(--orange-300);
-  --tone-surface-tint: var(--orange-600) / 8%;
-  --tone-outline: var(--orange-200);
-  --tone-surface-variant: var(--orange-50);
-  --tone-surface-tint-color: rgb(var(--orange-600) / 8%);
+  --tone-primary-container: var(--yellow-100);
+  --tone-on-primary-container: var(--yellow-900);
+  --tone-secondary: var(--yellow-300);
+  --tone-surface-tint: var(--yellow-500) / 8%;
+  --tone-outline: var(--yellow-200);
+  --tone-surface-variant: var(--yellow-50);
+  --tone-on-surface-accent: var(--orange-700);
+  --tone-surface-tint-color: rgb(var(--yellow-500) / 8%);
 }
 
 /* Actions — Red */
@@ -469,6 +482,7 @@
   --tone-surface-tint: var(--red-500) / 8%;
   --tone-outline: var(--red-200);
   --tone-surface-variant: var(--red-50);
+  --tone-on-surface-accent: var(--red-700);
   --tone-surface-tint-color: rgb(var(--red-500) / 8%);
 }
 
@@ -485,6 +499,7 @@
   --tone-surface-tint: 120 113 108 / 8%;
   --tone-outline: 214 211 209;
   --tone-surface-variant: 245 245 244;
+  --tone-on-surface-accent: 68 64 60;
   --tone-surface-tint-color: rgb(120 113 108 / 8%);
 }
 
@@ -502,6 +517,7 @@
   --tone-surface-tint: var(--blue-200) / 10%;
   --tone-outline: var(--blue-700);
   --tone-surface-variant: var(--blue-900);
+  --tone-on-surface-accent: var(--blue-200);
   --tone-surface-tint-color: rgb(var(--blue-200) / 10%);
 }
 
@@ -517,22 +533,24 @@
   --tone-surface-tint: var(--green-200) / 10%;
   --tone-outline: var(--green-700);
   --tone-surface-variant: var(--green-900);
+  --tone-on-surface-accent: var(--green-200);
   --tone-surface-tint-color: rgb(var(--green-200) / 10%);
 }
 
 [data-theme="dark"] [data-tone="community"] {
-  --tone-primary: var(--orange-200);
-  --tone-on-primary: var(--orange-900);
+  --tone-primary: var(--yellow-200);
+  --tone-on-primary: var(--yellow-900);
   --tone-action: var(--orange-800);
   --tone-action-hover: var(--orange-700);
   --tone-on-action: 255 255 255;
-  --tone-primary-container: var(--orange-900);
-  --tone-on-primary-container: var(--orange-100);
-  --tone-secondary: var(--orange-400);
-  --tone-surface-tint: var(--orange-200) / 10%;
-  --tone-outline: var(--orange-700);
-  --tone-surface-variant: var(--orange-900);
-  --tone-surface-tint-color: rgb(var(--orange-200) / 10%);
+  --tone-primary-container: var(--yellow-900);
+  --tone-on-primary-container: var(--yellow-100);
+  --tone-secondary: var(--yellow-400);
+  --tone-surface-tint: var(--yellow-200) / 10%;
+  --tone-outline: var(--yellow-700);
+  --tone-surface-variant: var(--yellow-900);
+  --tone-on-surface-accent: var(--yellow-200);
+  --tone-surface-tint-color: rgb(var(--yellow-200) / 10%);
 }
 
 [data-theme="dark"] [data-tone="actions"] {
@@ -547,6 +565,7 @@
   --tone-surface-tint: var(--red-200) / 10%;
   --tone-outline: var(--red-700);
   --tone-surface-variant: var(--red-900);
+  --tone-on-surface-accent: var(--red-200);
   --tone-surface-tint-color: rgb(var(--red-200) / 10%);
 }
 
@@ -562,6 +581,7 @@
   --tone-surface-tint: 214 211 209 / 10%;
   --tone-outline: 87 83 78;
   --tone-surface-variant: 68 64 60;
+  --tone-on-surface-accent: 214 211 209;
   --tone-surface-tint-color: rgb(214 211 209 / 10%);
 }
 
@@ -1249,6 +1269,67 @@
     background: rgb(var(--bg-sub-300));
   }
 
+  /* ── Workbench surfaces (Hub WorkbenchRow + Actions WorkbenchCard) ──────────
+     These shared Canvas components are admin-only consumers. A handful of their
+     edge/elevation/hover/selected utilities are authored in packages/shared/src
+     JSX as arbitrary-value or compound variants that admin's Tailwind v4 content
+     scan does not reach, so they silently no-op in admin's build. Own those here
+     (base layout/colour utilities that DO ship stay in the components).
+     Verified against admin dist (packages/admin/dist/assets/*.css). */
+  .workbench-row,
+  .workbench-card {
+    transition-property: background-color, transform, box-shadow, filter;
+    transition-duration: var(--spring-spatial-fast-duration, 200ms);
+    transition-timing-function: var(--spring-spatial-fast-easing, cubic-bezier(0.34, 1.56, 0.64, 1));
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .workbench-row,
+    .workbench-card {
+      transition: none;
+    }
+  }
+
+  /* Selected row gains a container tint; the focus ring ships via Tailwind. */
+  .workbench-row[data-selected="true"] {
+    background-color: rgb(var(--tone-primary-container) / 0.12);
+  }
+
+  /* Clickable surfaces lift on hover (row → elevation-1, card → elevation-2)
+     and settle on press. Transform is owned here so it never races Tailwind's
+     translate utilities. */
+  .workbench-row-clickable:hover {
+    transform: translateY(-0.125rem);
+    box-shadow: var(--edge-hover), var(--elevation-1);
+  }
+
+  .workbench-card-clickable:hover {
+    transform: translateY(-0.125rem);
+    box-shadow: var(--edge-hover), var(--elevation-2);
+  }
+
+  .workbench-row-clickable:active,
+  .workbench-card-clickable:active {
+    transform: translateY(0);
+    box-shadow: var(--edge-rest);
+  }
+
+  /* Raised inner tiles (thumbnail / icon) — edge ring + elevation. */
+  .workbench-raised {
+    box-shadow: var(--edge-rest), var(--elevation-1);
+  }
+
+  /* Row trailing affordance hides on the <600px two-column layout. */
+  .workbench-row-trailing {
+    display: inline-flex;
+  }
+
+  @media (max-width: 599px) {
+    .workbench-row-trailing {
+      display: none;
+    }
+  }
+
   @supports not (backdrop-filter: blur(1px)) {
     .canvas-route-card {
       background: rgb(var(--admin-surface-0));
@@ -1427,9 +1508,6 @@
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-    animation: none;
-    transition: none;
-    transform: none;
   }
 
   /* `.hub-route-shell` mobile padding: now owned by `.canvas-route-card`. */
@@ -1618,12 +1696,6 @@
   .rounded-xl {
     transition: none !important;
   }
-
-  .hub-results-pane {
-    animation: none !important;
-    transition: none !important;
-    transform: none !important;
-  }
 }
 
 /* ============================================================================
@@ -1677,7 +1749,6 @@
 
   /* Sheet geometry — handoff sheet-system.css contract */
   --radius-sheet: 24px;
-  --canvas-blur-sheet-open: 6px;
 
   /* Typography alias to existing --font-heading */
   --font-sans: var(--font-heading);
@@ -1793,12 +1864,12 @@
 
 [data-tone="hub"]       { --tone-canvas: oklch(96.5% calc(0.008 * var(--tone-strength)) 240); }
 [data-tone="garden"]    { --tone-canvas: oklch(96.5% calc(0.008 * var(--tone-strength)) 145); }
-[data-tone="community"] { --tone-canvas: oklch(96.5% calc(0.008 * var(--tone-strength)) 50);  }
+[data-tone="community"] { --tone-canvas: oklch(96.5% calc(0.016 * var(--tone-strength)) 80);  }
 [data-tone="actions"]   { --tone-canvas: oklch(96.5% calc(0.008 * var(--tone-strength)) 30);  }
 
 :is([data-theme="dark"][data-tone="hub"], [data-theme="dark"] [data-tone="hub"])             { --tone-canvas: oklch(20% calc(0.012 * var(--tone-strength)) 240); }
 :is([data-theme="dark"][data-tone="garden"], [data-theme="dark"] [data-tone="garden"])       { --tone-canvas: oklch(20% calc(0.012 * var(--tone-strength)) 145); }
-:is([data-theme="dark"][data-tone="community"], [data-theme="dark"] [data-tone="community"]) { --tone-canvas: oklch(20% calc(0.012 * var(--tone-strength)) 50);  }
+:is([data-theme="dark"][data-tone="community"], [data-theme="dark"] [data-tone="community"]) { --tone-canvas: oklch(20% calc(0.020 * var(--tone-strength)) 80);  }
 :is([data-theme="dark"][data-tone="actions"], [data-theme="dark"] [data-tone="actions"])     { --tone-canvas: oklch(20% calc(0.012 * var(--tone-strength)) 30);  }
 
 /* ============================================================================

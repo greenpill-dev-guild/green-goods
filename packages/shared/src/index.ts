@@ -64,6 +64,7 @@ export type {
   MetaStripProps,
   CanvasMobilePrimaryAction,
   RouteBackedLeftSheetConfig,
+  WorkbenchCardProps,
   WorkbenchRowProps,
   WorkbenchTone,
   ToolbarSlot,
@@ -109,13 +110,13 @@ export {
   MetaStrip,
   ProposalCardConviction,
   WeightAllocator,
+  WorkbenchCard,
   WorkbenchList,
   WorkbenchRow,
   surfaceCardVariants,
   FabProvider,
   LeftSheetProvider,
   useCanvasResponsiveFab,
-  useCanvasPortal,
   useFabConfig,
   useFabConfigValue,
   useViewActions,
@@ -279,7 +280,6 @@ export * from "./hooks/admin-ui/layout/useCommandPaletteData";
 export * from "./hooks/admin-ui/layout/useCommandPaletteShortcuts";
 export * from "./hooks/admin-ui/navigation/sheetRegistry";
 export * from "./hooks/admin-ui/navigation/workspaceNavigation";
-export * from "./hooks/admin-ui/navigation/workspaceScroll";
 export * from "./hooks/admin-ui/navigation/workspaceViews";
 export type {
   ActionFiltersState,
@@ -694,6 +694,7 @@ export type {
   // Logger types
   LogContext,
   Logger,
+  MediaRejectedReason,
   OctantVaultCardDonateIntentKind,
   OctantVaultCardDonateProof,
   OctantVaultCardEndowIntentKind,
@@ -769,6 +770,7 @@ export type {
   OctantVaultWalletEndowReceiver,
   PasskeyApprovalSubmissionParams,
   PasskeyWorkSubmissionParams,
+  SafeMediaMetadata,
   ResultOf,
   TransactionSender,
   TransactionSenderOptions,
@@ -808,6 +810,7 @@ export {
   IPFS_FALLBACK_GATEWAYS,
   isOctantVaultCampaignTransactionReady,
   isOfflineTxHash,
+  isVideoFile,
   jobQueue,
   meetsOctantVaultCardEndowUsdMinimum,
   jobQueueEventBus,
@@ -830,6 +833,10 @@ export {
   resolveAvatarUrl,
   resolveIPFSUrl,
   serviceWorkerManager,
+  getSafeMediaBatchMetadata,
+  getSafeMediaMetadata,
+  getWorkMediaId,
+  normalizeWorkMediaFiles,
   submitApprovalBot,
   submitWorkBot,
   track,

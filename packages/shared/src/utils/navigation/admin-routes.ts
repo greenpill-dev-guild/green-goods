@@ -12,7 +12,7 @@ export type AdminWorkspaceId =
 export type AdminSignalPoolType = "hypercert" | "action";
 export type AdminHubMode = "work" | "assess" | "certify" | "history";
 export type AdminHubView = AdminHubMode;
-export type AdminGardenMode = "overview" | "impact" | "settings";
+export type AdminGardenMode = "overview" | "activity" | "members" | "impact" | "settings";
 export type AdminCommunityMode = "treasury" | "governance" | "payouts" | "members";
 export type AdminHubSort = "newest" | "oldest";
 
@@ -152,6 +152,12 @@ export const adminRoutes = {
   },
   gardenOverview(context?: AdminGardenRouteContext) {
     return this.gardenMode("overview", context);
+  },
+  gardenActivity(context?: AdminGardenRouteContext) {
+    return this.gardenMode("activity", context);
+  },
+  gardenMembers(context?: AdminGardenRouteContext) {
+    return this.gardenMode("members", context);
   },
   gardenImpact(context?: AdminGardenRouteContext) {
     return this.gardenMode("impact", context);

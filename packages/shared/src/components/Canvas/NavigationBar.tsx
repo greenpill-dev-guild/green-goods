@@ -367,10 +367,12 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
           // Inline style for `position: fixed; bottom; left; right; z-index` per
           // CLAUDE.md "Known Gotchas" — Tailwind v4 doesn't scan packages/shared
           // from admin/client builds, so positional utilities can silently fail
-          // to compile. The handoff sheet-system contract is `bottom: 20px`.
+          // to compile. Bottom offset reads the admin sheet-system token (single
+          // source of truth shared with the sheet-clearance calc); the 20px
+          // default preserves the handoff contract for any non-admin consumer.
           style={{
             position: "fixed",
-            bottom: "20px",
+            bottom: "var(--admin-nav-offset-desktop, 20px)",
             left: 0,
             right: 0,
             marginInline: "auto",

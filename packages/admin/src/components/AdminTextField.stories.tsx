@@ -1,5 +1,6 @@
 import { RiMailLine, RiSearchLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
+import { expect, userEvent, within } from "storybook/test";
 import { withAdminPrimitiveFrame } from "../../../shared/.storybook/decorators";
 import { AdminTextField } from "./AdminTextField";
 
@@ -112,4 +113,62 @@ export const OutlinedAtSectionTop: Story = {
       </div>
     </section>
   ),
+};
+
+const WORKSPACE_TONES = [
+  ["hub", "Hub"],
+  ["garden", "Garden"],
+  ["community", "Community"],
+  ["actions", "Actions"],
+] as const;
+
+const TextFieldToneMatrix = ({ theme }: { theme: "light" | "dark" }) => (
+  <section
+    data-theme={theme}
+    className="admin-m3 rounded-[var(--m3-shape-lg)] bg-[rgb(var(--m3-surface))] p-4"
+  >
+    <div className="mb-3 text-label-md font-semibold uppercase text-[rgb(var(--m3-on-surface-variant))]">
+      {theme}
+    </div>
+    <div className="grid gap-3 md:grid-cols-2">
+      {WORKSPACE_TONES.map(([tone, label]) => (
+        <div
+          key={`${theme}-${tone}`}
+          data-tone={tone}
+          className="space-y-3 rounded-[var(--m3-shape-md)] border border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface-container-low))] p-3"
+        >
+          <div className="text-label-md font-medium text-[rgb(var(--m3-on-surface-variant))]">
+            {label}
+          </div>
+          <AdminTextField
+            label={`${theme} ${label} filled`}
+            variant="filled"
+            defaultValue="North Meadow"
+            helperText="Focus shows the workspace accent line."
+          />
+          <AdminTextField
+            label={`${theme} ${label} outlined`}
+            variant="outlined"
+            defaultValue="North Meadow"
+            helperText="Focus shows the workspace accent ring."
+          />
+        </div>
+      ))}
+    </div>
+  </section>
+);
+
+export const WorkspaceToneMatrix: Story = {
+  render: () => (
+    <div className="space-y-4">
+      <TextFieldToneMatrix theme="light" />
+      <TextFieldToneMatrix theme="dark" />
+    </div>
+  ),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const actionsField = canvas.getByRole("textbox", { name: "dark Actions outlined" });
+    await userEvent.click(actionsField);
+    await expect(actionsField).toHaveFocus();
+  },
 };

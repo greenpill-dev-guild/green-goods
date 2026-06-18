@@ -29,7 +29,7 @@ export function MetaStrip({ items, className, density = "pill" }: MetaStripProps
         data-component="MetaStrip"
         data-density="inline"
         className={cn(
-          "flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.78rem] font-medium tracking-[0.01em] text-text-sub",
+          "flex flex-wrap items-center gap-x-2 gap-y-1 text-label-sm font-medium text-text-sub",
           className
         )}
       >
@@ -61,7 +61,7 @@ export function MetaStrip({ items, className, density = "pill" }: MetaStripProps
       {items.map((item, index) => (
         <span
           key={item.id ?? `meta-${index}`}
-          className="inline-flex items-center gap-1.5 rounded-full bg-bg-soft px-3 py-2 text-[0.72rem] font-semibold tracking-[0.01em] text-text-sub shadow-[var(--edge-rest)]"
+          className="inline-flex items-center gap-1.5 rounded-full bg-bg-soft px-3 py-2 text-label-sm font-semibold text-text-sub shadow-[var(--edge-rest)]"
         >
           {item.value ? <span className="font-bold text-text-strong">{item.value}</span> : null}
           <span>{item.label}</span>

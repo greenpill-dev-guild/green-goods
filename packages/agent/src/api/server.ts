@@ -591,7 +591,7 @@ function positiveInteger(value: number | undefined): number | undefined {
   return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : undefined;
 }
 
-function setPublicCorsHeaders(c: Context, deps: ServerDeps): void {
+function setPublicBrowserCorsHeaders(c: Context, deps: ServerDeps): void {
   const origin = c.req.header("origin");
   if (!origin || !isOriginAllowed(c.req.raw, getAllowedOrigins(deps))) return;
 
@@ -602,9 +602,16 @@ function setPublicCorsHeaders(c: Context, deps: ServerDeps): void {
   c.header("Vary", "Origin");
 }
 
-function publicCorsResponse(c: Context, deps: ServerDeps, body: unknown, status = 200) {
-  setPublicCorsHeaders(c, deps);
+function publicBrowserCorsResponse(c: Context, deps: ServerDeps, body: unknown, status = 200) {
+  setPublicBrowserCorsHeaders(c, deps);
   return jsonNoStore(c, body, status);
+}
+
+function publicBrowserCorsPreflight(c: Context, deps: ServerDeps) {
+  const originError = checkOrigin(c, deps);
+  if (originError) return publicBrowserCorsResponse(c, deps, originError, 403);
+  setPublicBrowserCorsHeaders(c, deps);
+  return c.body(null, 204);
 }
 
 function validateFundingIntentRequest(body: unknown): CreateFundingIntentRequest | PublicApiError {
@@ -1375,19 +1382,16 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
   });
 
   app.options(PUBLIC_AGENT_ROUTES.uploadSign, (c) => {
-    const originError = checkOrigin(c, deps);
-    if (originError) return publicCorsResponse(c, deps, originError, 403);
-    setPublicCorsHeaders(c, deps);
-    return c.body(null, 204);
+    return publicBrowserCorsPreflight(c, deps);
   });
 
   app.post(PUBLIC_AGENT_ROUTES.uploadSign, async (c) => {
     const originError = checkOrigin(c, deps);
-    if (originError) return publicCorsResponse(c, deps, originError, 403);
+    if (originError) return publicBrowserCorsResponse(c, deps, originError, 403);
 
     const config = getUploadSigningConfig(deps);
     if (!config.jwt) {
-      return publicCorsResponse(
+      return publicBrowserCorsResponse(
         c,
         deps,
         safeError("provider_unavailable", "Upload signing is unavailable right now."),
@@ -1396,14 +1400,15 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
     }
 
     const bodyResult = await readLimitedJsonBody<unknown>(c.req.raw, UPLOAD_SIGN_BODY_LIMIT_BYTES);
-    if (!bodyResult.ok) return publicCorsResponse(c, deps, bodyResult.error, bodyResult.status);
+    if (!bodyResult.ok)
+      return publicBrowserCorsResponse(c, deps, bodyResult.error, bodyResult.status);
 
     const validation = validatePublicUploadSignRequest(bodyResult.value, {
       allowedMimeTypes: config.allowedMimeTypes,
       maxFileSize: config.maxFileSize,
       isAddress,
     });
-    if (!validation.ok) return publicCorsResponse(c, deps, validation.error, 400);
+    if (!validation.ok) return publicBrowserCorsResponse(c, deps, validation.error, 400);
     const { request } = validation;
 
     const rateError = checkRateLimitWithPolicy(
@@ -1413,7 +1418,7 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
       [request.category ?? "file_upload", request.mimeType].join(":"),
       getUploadSignRateLimitPolicy(deps)
     );
-    if (rateError) return publicCorsResponse(c, deps, rateError, 429);
+    if (rateError) return publicBrowserCorsResponse(c, deps, rateError, 429);
 
     try {
       const signUpload = deps.signPinataUploadUrl ?? createPinataSignedUploadUrl;
@@ -1427,7 +1432,7 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
         now: config.now,
       });
 
-      return publicCorsResponse(c, deps, {
+      return publicBrowserCorsResponse(c, deps, {
         ok: true,
         url,
         expiresAt: Math.floor(config.now() / 1000) + config.ttlSeconds,
@@ -1438,7 +1443,7 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
       if (!(error instanceof PinataUploadSignerConfigError)) {
         log.warn({ err: error }, "Pinata upload signing failed");
       }
-      return publicCorsResponse(
+      return publicBrowserCorsResponse(
         c,
         deps,
         safeError("provider_unavailable", "Upload signing is unavailable right now."),
@@ -1651,26 +1656,24 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
   // ==========================================================================
 
   app.options(PUBLIC_AGENT_ROUTES.subscribe, (c) => {
-    const originError = checkOrigin(c, deps);
-    if (originError) return publicCorsResponse(c, deps, originError, 403);
-    setPublicCorsHeaders(c, deps);
-    return c.body(null, 204);
+    return publicBrowserCorsPreflight(c, deps);
   });
 
   app.post(PUBLIC_AGENT_ROUTES.subscribe, async (c) => {
     const originError = checkOrigin(c, deps);
-    if (originError) return publicCorsResponse(c, deps, originError, 403);
+    if (originError) return publicBrowserCorsResponse(c, deps, originError, 403);
 
     const bodyResult = await readLimitedJsonBody<Partial<PublicSubscribeRequest>>(c.req.raw);
-    if (!bodyResult.ok) return publicCorsResponse(c, deps, bodyResult.error, bodyResult.status);
+    if (!bodyResult.ok)
+      return publicBrowserCorsResponse(c, deps, bodyResult.error, bodyResult.status);
 
     const body = bodyResult.value;
     const email = body?.email?.trim().toLowerCase();
     const rateError = checkRateLimit(c, deps, "subscribe", email ?? "invalid");
-    if (rateError) return publicCorsResponse(c, deps, rateError, 429);
+    if (rateError) return publicBrowserCorsResponse(c, deps, rateError, 429);
 
     if (!isEmail(email)) {
-      return publicCorsResponse(
+      return publicBrowserCorsResponse(
         c,
         deps,
         safeError("invalid_email", "Enter a valid email address."),
@@ -1678,7 +1681,7 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
       );
     }
     if (body?.consent !== true) {
-      return publicCorsResponse(
+      return publicBrowserCorsResponse(
         c,
         deps,
         safeError("consent_required", "Consent is required."),
@@ -1686,7 +1689,7 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
       );
     }
     if (!deps.lumaClient) {
-      return publicCorsResponse(
+      return publicBrowserCorsResponse(
         c,
         deps,
         safeError("luma_import_failed", "Subscription is unavailable right now."),
@@ -1701,9 +1704,9 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
         source: body.source ?? "unknown",
         consentedAt: new Date(deps.now?.() ?? Date.now()).toISOString(),
       });
-      return publicCorsResponse(c, deps, { ok: true, status });
+      return publicBrowserCorsResponse(c, deps, { ok: true, status });
     } catch {
-      return publicCorsResponse(
+      return publicBrowserCorsResponse(
         c,
         deps,
         safeError("luma_import_failed", "Subscription is unavailable right now."),
@@ -1713,22 +1716,20 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
   });
 
   app.options(PUBLIC_AGENT_ROUTES.fundingIntents, (c) => {
-    const originError = checkOrigin(c, deps);
-    if (originError) return publicCorsResponse(c, deps, originError, 403);
-    setPublicCorsHeaders(c, deps);
-    return c.body(null, 204);
+    return publicBrowserCorsPreflight(c, deps);
   });
 
   app.post(PUBLIC_AGENT_ROUTES.fundingIntents, async (c) => {
     const originError = checkOrigin(c, deps);
-    if (originError) return publicCorsResponse(c, deps, originError, 403);
+    if (originError) return publicBrowserCorsResponse(c, deps, originError, 403);
 
     const bodyResult = await readLimitedJsonBody<unknown>(c.req.raw);
-    if (!bodyResult.ok) return publicCorsResponse(c, deps, bodyResult.error, bodyResult.status);
+    if (!bodyResult.ok)
+      return publicBrowserCorsResponse(c, deps, bodyResult.error, bodyResult.status);
 
     const body = bodyResult.value;
     const request = validateFundingIntentRequest(body);
-    if (isPublicApiError(request)) return publicCorsResponse(c, deps, request, 400);
+    if (isPublicApiError(request)) return publicBrowserCorsResponse(c, deps, request, 400);
 
     const rateError = checkRateLimit(
       c,
@@ -1736,7 +1737,7 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
       "funding_create",
       [request.gardenId, request.destinationAddress, request.fundingIntent].join(":")
     );
-    if (rateError) return publicCorsResponse(c, deps, rateError, 429);
+    if (rateError) return publicBrowserCorsResponse(c, deps, rateError, 429);
 
     const routeScopedAvailability =
       request.sourceRoute === undefined ? {} : { sourceRoute: request.sourceRoute };
@@ -1763,7 +1764,7 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
       ...routeScopedAvailability,
     });
     if (request.availabilityKey !== expectedAvailabilityKey || availability.state !== "live") {
-      return publicCorsResponse(
+      return publicBrowserCorsResponse(
         c,
         deps,
         safeError("funding_unavailable", "This funding method is not available yet."),
@@ -1771,7 +1772,7 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
       );
     }
     if (!deps.thirdwebCheckout) {
-      return publicCorsResponse(
+      return publicBrowserCorsResponse(
         c,
         deps,
         safeError("provider_unavailable", "This funding provider is unavailable right now."),
@@ -1781,7 +1782,12 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
 
     const idempotencyFingerprint = createIdempotencyFingerprint(request, "thirdweb");
     if (!idempotencyFingerprint) {
-      return publicCorsResponse(c, deps, safeError("invalid_request", "Invalid amount."), 400);
+      return publicBrowserCorsResponse(
+        c,
+        deps,
+        safeError("invalid_request", "Invalid amount."),
+        400
+      );
     }
 
     const existing = await fundingIntents.getByClientRequestId(request.clientRequestId);
@@ -1790,7 +1796,7 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
 
     if (existing) {
       if (existing.idempotencyFingerprint !== idempotencyFingerprint) {
-        return publicCorsResponse(
+        return publicBrowserCorsResponse(
           c,
           deps,
           safeError("idempotency_conflict", "This client request id was already used."),
@@ -1802,7 +1808,7 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
         receiptTokenHash,
         updatedAt: new Date(deps.now?.() ?? Date.now()).toISOString(),
       });
-      return publicCorsResponse(c, deps, {
+      return publicBrowserCorsResponse(c, deps, {
         ok: true,
         id: updated.id,
         status: updated.status,
@@ -1831,7 +1837,7 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
         quoteExpiresAt,
       });
     } catch {
-      return publicCorsResponse(
+      return publicBrowserCorsResponse(
         c,
         deps,
         safeError("provider_unavailable", "This funding provider is unavailable right now."),
@@ -1843,7 +1849,7 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
       parseBaseUnitAmount(checkout.quotedAssetAmount) === undefined ||
       parseBaseUnitAmount(checkout.minAssetAmount) === undefined
     ) {
-      return publicCorsResponse(
+      return publicBrowserCorsResponse(
         c,
         deps,
         safeError("provider_unavailable", "This funding provider is unavailable right now."),
@@ -1856,7 +1862,7 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
       request.fundingIntent === "endow" &&
       normalizeAddress(checkoutReceiverAddress) !== normalizeAddress(request.receiverAddress)
     ) {
-      return publicCorsResponse(
+      return publicBrowserCorsResponse(
         c,
         deps,
         safeError("provider_unavailable", "This funding provider is unavailable right now."),
@@ -1879,7 +1885,7 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
       "funding intent checkout session created"
     );
 
-    return publicCorsResponse(c, deps, {
+    return publicBrowserCorsResponse(c, deps, {
       ok: true,
       id: record.id,
       status: record.status,
@@ -1893,21 +1899,19 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
   });
 
   app.options(PUBLIC_AGENT_ROUTES.fundingIntentProof, (c) => {
-    const originError = checkOrigin(c, deps);
-    if (originError) return publicCorsResponse(c, deps, originError, 403);
-    setPublicCorsHeaders(c, deps);
-    return c.body(null, 204);
+    return publicBrowserCorsPreflight(c, deps);
   });
 
   app.post(PUBLIC_AGENT_ROUTES.fundingIntentProof, async (c) => {
     const originError = checkOrigin(c, deps);
-    if (originError) return publicCorsResponse(c, deps, originError, 403);
+    if (originError) return publicBrowserCorsResponse(c, deps, originError, 403);
 
     const bodyResult = await readLimitedJsonBody<unknown>(c.req.raw);
-    if (!bodyResult.ok) return publicCorsResponse(c, deps, bodyResult.error, bodyResult.status);
+    if (!bodyResult.ok)
+      return publicBrowserCorsResponse(c, deps, bodyResult.error, bodyResult.status);
 
     const request = validateFundingIntentProofRequest(bodyResult.value);
-    if (isPublicApiError(request)) return publicCorsResponse(c, deps, request, 400);
+    if (isPublicApiError(request)) return publicBrowserCorsResponse(c, deps, request, 400);
 
     const rateError = checkRateLimit(
       c,
@@ -1915,7 +1919,7 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
       "funding_proof",
       [request.gardenId, request.receiverAddress, request.transactionHash].join(":")
     );
-    if (rateError) return publicCorsResponse(c, deps, rateError, 429);
+    if (rateError) return publicBrowserCorsResponse(c, deps, rateError, 429);
 
     const availabilityInput = {
       gardenKey: request.gardenId,
@@ -1931,7 +1935,7 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
     const expectedAvailabilityKey = buildPublicFundingAvailabilityKey(availabilityInput);
     const availability = providerProofRegistry.resolve(availabilityInput);
     if (request.availabilityKey !== expectedAvailabilityKey || availability.state !== "live") {
-      return publicCorsResponse(
+      return publicBrowserCorsResponse(
         c,
         deps,
         safeError("funding_unavailable", "This funding method is not available yet."),
@@ -1943,7 +1947,7 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
     // AND an independent vault share read. Without either, the route fails
     // closed — a client-supplied shareBalance is never proof.
     if (!deps.confirmFundingTuple || !deps.readVaultShareBalance) {
-      return publicCorsResponse(
+      return publicBrowserCorsResponse(
         c,
         deps,
         safeError("funding_unavailable", "This funding proof is not confirmed yet."),
@@ -1958,7 +1962,7 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
       chainId: request.chainId,
     });
     if (confirmation.status !== "confirmed") {
-      return publicCorsResponse(
+      return publicBrowserCorsResponse(
         c,
         deps,
         safeError("funding_unavailable", "This funding proof is not confirmed yet."),
@@ -1982,7 +1986,7 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
         { error: error instanceof Error ? error.message : String(error) },
         "Card Endow proof share balance read failed"
       );
-      return publicCorsResponse(
+      return publicBrowserCorsResponse(
         c,
         deps,
         safeError("funding_unavailable", "This funding proof is not confirmed yet."),
@@ -1990,7 +1994,7 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
       );
     }
     if (verifiedShareBalance <= 0n) {
-      return publicCorsResponse(
+      return publicBrowserCorsResponse(
         c,
         deps,
         safeError("funding_unavailable", "This funding proof is not confirmed yet."),
@@ -2006,7 +2010,7 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
 
     if (existing) {
       if (existing.idempotencyFingerprint !== idempotencyFingerprint) {
-        return publicCorsResponse(
+        return publicBrowserCorsResponse(
           c,
           deps,
           safeError("idempotency_conflict", "This client request id was already used."),
@@ -2018,7 +2022,7 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
         receiptTokenHash,
         updatedAt: new Date(now).toISOString(),
       });
-      return publicCorsResponse(c, deps, {
+      return publicBrowserCorsResponse(c, deps, {
         ok: true,
         id: updated.id,
         status: updated.status === "funded_late" ? "funded_late" : "funded",
@@ -2045,7 +2049,7 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
       "client-side Card Endow proof recorded"
     );
 
-    return publicCorsResponse(c, deps, {
+    return publicBrowserCorsResponse(c, deps, {
       ok: true,
       id: record.id,
       status: record.status,
@@ -2057,17 +2061,14 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
   });
 
   app.options("/public/funding-intents/:id", (c) => {
-    const originError = checkOrigin(c, deps);
-    if (originError) return publicCorsResponse(c, deps, originError, 403);
-    setPublicCorsHeaders(c, deps);
-    return c.body(null, 204);
+    return publicBrowserCorsPreflight(c, deps);
   });
 
   app.get("/public/funding-intents/:id", async (c) => {
     const originError = checkOrigin(c, deps);
-    if (originError) return publicCorsResponse(c, deps, originError, 403);
+    if (originError) return publicBrowserCorsResponse(c, deps, originError, 403);
     if (hasReceiptTokenQuery(c.req.raw) || (await hasReceiptTokenBody(c.req.raw))) {
-      return publicCorsResponse(
+      return publicBrowserCorsResponse(
         c,
         deps,
         safeError("invalid_request", "Receipt tokens must use the header."),
@@ -2077,11 +2078,11 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
 
     const id = c.req.param("id");
     const rateError = checkRateLimit(c, deps, "receipt_read", id);
-    if (rateError) return publicCorsResponse(c, deps, rateError, 429);
+    if (rateError) return publicBrowserCorsResponse(c, deps, rateError, 429);
 
     const receiptToken = c.req.header("x-gg-receipt-token");
     if (!receiptToken) {
-      return publicCorsResponse(
+      return publicBrowserCorsResponse(
         c,
         deps,
         safeError("receipt_token_required", "Receipt token is required."),
@@ -2091,7 +2092,7 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
 
     const record = await fundingIntents.getById(id);
     if (!record || record.receiptTokenHash !== hashSecret(receiptToken)) {
-      return publicCorsResponse(
+      return publicBrowserCorsResponse(
         c,
         deps,
         safeError("receipt_token_invalid", "Receipt token is invalid."),
@@ -2105,7 +2106,7 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
       await fundingIntents.appendEvent(reconciled.id, reconciled.status, "expired on receipt read");
     }
 
-    return publicCorsResponse(c, deps, {
+    return publicBrowserCorsResponse(c, deps, {
       ok: true,
       publicReceipt: redactFundingReceipt(reconciled),
     });

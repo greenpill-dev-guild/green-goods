@@ -11,8 +11,10 @@
 
 import { describe, expect, it, vi } from "vitest";
 
+import { buildActionsHeaderStats } from "../../../hooks/admin-ui/actions/actions.utils";
 import { buildCommunityHeaderStats } from "../../../hooks/admin-ui/community/community.utils";
 import { buildGardenHeaderStats } from "../../../hooks/admin-ui/garden/garden.utils";
+import { buildHubHeaderStats } from "../../../hooks/admin-ui/hub/hub.utils";
 
 function makeFormatMessage() {
   return vi.fn((descriptor: { id: string; defaultMessage?: string }) => descriptor.id);
@@ -23,35 +25,41 @@ describe("buildGardenHeaderStats", () => {
     const items = buildGardenHeaderStats({
       hasSelectedGarden: false,
       gardenerCount: 5,
-      pendingWorkCount: 2,
-      treasuryBalance: "12.5",
+      impactCount: 2,
       formatMessage: makeFormatMessage(),
     });
     expect(items).toEqual([]);
   });
 
-  it("emits gardeners / pending-work / treasury items in that order", () => {
+  it("emits gardeners / impact items in that order (pending work lives on Hub)", () => {
     const items = buildGardenHeaderStats({
       hasSelectedGarden: true,
       gardenerCount: 5,
-      pendingWorkCount: 2,
-      treasuryBalance: "12.5",
+      impactCount: 2,
       formatMessage: makeFormatMessage(),
     });
-    expect(items.map((item) => item.id)).toEqual(["gardeners", "pending-work", "treasury"]);
+    expect(items.map((item) => item.id)).toEqual(["gardeners", "impact"]);
   });
 
-  it("stringifies numeric counts and passes the treasury balance through unchanged", () => {
+  it("stringifies numeric counts", () => {
     const items = buildGardenHeaderStats({
       hasSelectedGarden: true,
       gardenerCount: 0,
-      pendingWorkCount: 13,
-      treasuryBalance: "1,234.56",
+      impactCount: 13,
       formatMessage: makeFormatMessage(),
     });
     expect(items[0]?.value).toBe("0");
     expect(items[1]?.value).toBe("13");
-    expect(items[2]?.value).toBe("1,234.56");
+  });
+
+  it("omits impact while hypercerts are still loading", () => {
+    const items = buildGardenHeaderStats({
+      hasSelectedGarden: true,
+      gardenerCount: 5,
+      impactCount: null,
+      formatMessage: makeFormatMessage(),
+    });
+    expect(items.map((item) => item.id)).toEqual(["gardeners"]);
   });
 
   it("calls formatMessage with the canonical i18n ids and count parameter for plurals", () => {
@@ -59,16 +67,11 @@ describe("buildGardenHeaderStats", () => {
     buildGardenHeaderStats({
       hasSelectedGarden: true,
       gardenerCount: 1,
-      pendingWorkCount: 1,
-      treasuryBalance: "0",
+      impactCount: 1,
       formatMessage,
     });
     const ids = formatMessage.mock.calls.map((call) => call[0].id);
-    expect(ids).toEqual([
-      "cockpit.garden.stats.gardeners",
-      "cockpit.garden.stats.pendingWork",
-      "cockpit.garden.stats.treasury",
-    ]);
+    expect(ids).toEqual(["cockpit.garden.stats.gardeners", "cockpit.garden.stats.impact"]);
     expect(formatMessage.mock.calls[0]?.[1]).toEqual({ count: 1 });
     expect(formatMessage.mock.calls[1]?.[1]).toEqual({ count: 1 });
   });
@@ -78,64 +81,138 @@ describe("buildCommunityHeaderStats", () => {
   it("returns an empty array when no garden is selected", () => {
     const items = buildCommunityHeaderStats({
       hasSelectedGarden: false,
-      peopleCount: 5,
-      poolCount: 2,
       vaultNetDeposited: 0n,
+      distributedAmounts: [0n],
       formatMessage: makeFormatMessage(),
     });
     expect(items).toEqual([]);
   });
 
-  it("emits people / pools / treasury items in that order", () => {
+  it("emits treasury / distributed items in that order (people + pools live on the tabs)", () => {
     const items = buildCommunityHeaderStats({
       hasSelectedGarden: true,
-      peopleCount: 5,
-      poolCount: 2,
       vaultNetDeposited: 0n,
+      distributedAmounts: [0n],
       formatMessage: makeFormatMessage(),
     });
-    expect(items.map((item) => item.id)).toEqual(["people", "pools", "treasury"]);
+    expect(items.map((item) => item.id)).toEqual(["treasury", "distributed"]);
   });
 
-  it("formats the vault balance via formatTokenAmount (zero renders as '0')", () => {
+  it("formats both token amounts via formatTokenAmount (zero renders as '0')", () => {
     const items = buildCommunityHeaderStats({
       hasSelectedGarden: true,
-      peopleCount: 0,
-      poolCount: 0,
       vaultNetDeposited: 0n,
+      distributedAmounts: [0n],
       formatMessage: makeFormatMessage(),
     });
-    expect(items[2]?.value).toBe("0");
+    expect(items[0]?.value).toBe("0");
+    expect(items[1]?.value).toBe("0");
   });
 
-  it("formats a non-zero vault balance with the token's 18 decimal precision (default)", () => {
+  it("formats non-zero balances with the token's 18 decimal precision (default)", () => {
     const items = buildCommunityHeaderStats({
       hasSelectedGarden: true,
-      peopleCount: 0,
-      poolCount: 0,
       vaultNetDeposited: 1_500_000_000_000_000_000n, // 1.5 * 10^18
+      distributedAmounts: [500_000_000_000_000_000n], // 0.5 * 10^18
       formatMessage: makeFormatMessage(),
     });
-    // formatTokenAmount uses the active locale; assert we get a 1 + decimal-separator + 5
-    expect(items[2]?.value).toMatch(/^1[.,]5$/);
+    // formatTokenAmount uses the active locale; assert digit + decimal-separator + digit
+    expect(items[0]?.value).toMatch(/^1[.,]5$/);
+    expect(items[1]?.value).toMatch(/^0[.,]5$/);
   });
 
-  it("calls formatMessage with the canonical i18n ids and count parameter", () => {
+  it("calls formatMessage with the canonical i18n ids", () => {
     const formatMessage = makeFormatMessage();
     buildCommunityHeaderStats({
       hasSelectedGarden: true,
-      peopleCount: 1,
-      poolCount: 2,
       vaultNetDeposited: 0n,
+      distributedAmounts: [0n],
       formatMessage,
     });
     const ids = formatMessage.mock.calls.map((call) => call[0].id);
     expect(ids).toEqual([
-      "cockpit.community.stats.people",
-      "cockpit.community.stats.pools",
       "cockpit.community.stats.treasury",
+      "cockpit.community.stats.distributed",
+    ]);
+  });
+
+  it("omits distributed totals when allocations span multiple assets", () => {
+    const items = buildCommunityHeaderStats({
+      hasSelectedGarden: true,
+      vaultNetDeposited: 0n,
+      distributedAmounts: [500_000_000_000_000_000n, 1_000_000n],
+      formatMessage: makeFormatMessage(),
+    });
+    expect(items.map((item) => item.id)).toEqual(["treasury"]);
+  });
+
+  it("omits distributed totals while allocations are still loading", () => {
+    const items = buildCommunityHeaderStats({
+      hasSelectedGarden: true,
+      vaultNetDeposited: 0n,
+      distributedAmounts: null,
+      formatMessage: makeFormatMessage(),
+    });
+    expect(items.map((item) => item.id)).toEqual(["treasury"]);
+  });
+});
+
+describe("buildHubHeaderStats", () => {
+  it("returns an empty array when no garden is selected", () => {
+    const items = buildHubHeaderStats({
+      hasSelectedGarden: false,
+      overdueCount: 3,
+      waitingCount: 1,
+      formatMessage: makeFormatMessage(),
+    });
+    expect(items).toEqual([]);
+  });
+
+  it("emits overdue / waiting aging counts in order (stage depth lives on the tabs)", () => {
+    const items = buildHubHeaderStats({
+      hasSelectedGarden: true,
+      overdueCount: 3,
+      waitingCount: 1,
+      formatMessage: makeFormatMessage(),
+    });
+    expect(items.map((item) => item.id)).toEqual(["overdue", "waiting"]);
+    expect(items.map((item) => item.value)).toEqual(["3", "1"]);
+  });
+
+  it("calls formatMessage with the canonical i18n ids", () => {
+    const formatMessage = makeFormatMessage();
+    buildHubHeaderStats({
+      hasSelectedGarden: true,
+      overdueCount: 0,
+      waitingCount: 0,
+      formatMessage,
+    });
+    expect(formatMessage.mock.calls.map((call) => call[0].id)).toEqual([
+      "cockpit.hub.stats.overdue",
+      "cockpit.hub.stats.waiting",
+    ]);
+  });
+});
+
+describe("buildActionsHeaderStats", () => {
+  it("emits registry-level total / domains items (additive vs the lifecycle tabs)", () => {
+    const items = buildActionsHeaderStats({
+      totalCount: 12,
+      domainsCovered: 3,
+      formatMessage: makeFormatMessage(),
+    });
+    expect(items.map((item) => item.id)).toEqual(["total", "domains"]);
+    expect(items.map((item) => item.value)).toEqual(["12", "3"]);
+  });
+
+  it("passes the count parameter through for pluralization", () => {
+    const formatMessage = makeFormatMessage();
+    buildActionsHeaderStats({ totalCount: 1, domainsCovered: 4, formatMessage });
+    expect(formatMessage.mock.calls.map((call) => call[0].id)).toEqual([
+      "cockpit.actions.stats.total",
+      "cockpit.actions.stats.domains",
     ]);
     expect(formatMessage.mock.calls[0]?.[1]).toEqual({ count: 1 });
-    expect(formatMessage.mock.calls[1]?.[1]).toEqual({ count: 2 });
+    expect(formatMessage.mock.calls[1]?.[1]).toEqual({ count: 4 });
   });
 });

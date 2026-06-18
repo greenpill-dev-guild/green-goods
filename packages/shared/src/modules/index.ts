@@ -411,6 +411,30 @@ export { runTranslationDiagnostics } from "./translation/diagnostics";
 // ============================================================================
 export { submitApprovalBot, submitWorkBot } from "./work/bot-submission";
 // ============================================================================
+// WORK / MEDIA PROCESSING
+// ============================================================================
+export type {
+  AcceptedWorkMediaFile,
+  ConvertedWorkMediaFile,
+  MediaRejectedReason,
+  RejectedWorkMediaFile,
+  SafeMediaMetadata,
+  WorkMediaKind,
+  WorkMediaProcessingResult,
+  WorkMediaSource,
+} from "./work/media-processing";
+export {
+  getFileExtension,
+  getMediaKind,
+  getSafeMediaBatchMetadata,
+  getSafeMediaMetadata,
+  getSizeBucket,
+  getWorkMediaId,
+  HEIC_JPEG_QUALITY,
+  isVideoFile,
+  normalizeWorkMediaFiles,
+} from "./work/media-processing";
+// ============================================================================
 // TRANSACTIONS
 // ============================================================================
 export type {

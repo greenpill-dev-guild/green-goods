@@ -4,6 +4,11 @@ import {
   cn,
   imageCompressor,
   mediaResourceManager,
+  getSafeMediaBatchMetadata,
+  getSafeMediaMetadata,
+  getWorkMediaId,
+  isVideoFile,
+  normalizeWorkMediaFiles,
   toastService,
   track,
 } from "@green-goods/shared";
@@ -22,13 +27,6 @@ import { ImagePreviewDialog } from "@/components/Dialogs";
 import { Books } from "@/components/Features";
 import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
 import { trackWorkMediaJourneyEvent } from "./mediaAnalytics";
-import {
-  getSafeMediaBatchMetadata,
-  getSafeMediaMetadata,
-  getWorkMediaId,
-  isVideoFile,
-  normalizeWorkMediaFiles,
-} from "./mediaProcessing";
 
 const WORK_DRAFT_TRACKING_ID = "work-draft";
 const VIDEO_TRACKING_ID = "work-draft-video";

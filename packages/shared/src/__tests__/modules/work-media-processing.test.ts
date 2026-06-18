@@ -7,7 +7,12 @@ const heicToMocks = vi.hoisted(() => ({
 
 vi.mock("heic-to/csp", () => heicToMocks);
 
-import { HEIC_JPEG_QUALITY, normalizeWorkMediaFiles } from "../../views/Garden/mediaProcessing";
+import {
+  HEIC_JPEG_QUALITY,
+  getSafeMediaBatchMetadata,
+  getWorkMediaId,
+  normalizeWorkMediaFiles,
+} from "../../modules/work/media-processing";
 
 describe("normalizeWorkMediaFiles", () => {
   beforeEach(() => {
@@ -72,5 +77,20 @@ describe("normalizeWorkMediaFiles", () => {
     expect(result.rejected).toHaveLength(1);
     expect(result.rejected[0].reason).toBe("unsupported");
     expect(heicToMocks.heicTo).not.toHaveBeenCalled();
+  });
+
+  it("returns stable media IDs and safe batch metadata", () => {
+    const jpeg = new File(["jpeg"], "photo.jpg", { type: "image/jpeg" });
+    const video = new File(["video"], "clip.mp4", { type: "video/mp4" });
+
+    expect(getWorkMediaId(jpeg)).toBe(getWorkMediaId(jpeg));
+    expect(getSafeMediaBatchMetadata([jpeg, video])).toEqual({
+      file_count: 2,
+      mime_types: ["image/jpeg", "video/mp4"],
+      extensions: ["jpg", "mp4"],
+      size_buckets: ["0-1mb"],
+      image_count: 1,
+      video_count: 1,
+    });
   });
 });

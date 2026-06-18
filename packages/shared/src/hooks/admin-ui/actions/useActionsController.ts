@@ -16,7 +16,7 @@ import {
   type ViewAction,
 } from "@green-goods/shared";
 import { RiAddLine } from "@remixicon/react";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -27,10 +27,6 @@ import {
 } from "./actions.utils";
 import { isActionsRouteSheetContentId } from "../navigation/sheetRegistry";
 import { resolveActionsRouteState } from "./actions.workspaceModel";
-import {
-  bindCanvasScrollPositionPersistence,
-  restoreCanvasScrollPosition,
-} from "../navigation/workspaceScroll";
 import type { UserRole } from "../../gardener/useRole";
 
 export function canManageActionsForRole(role: UserRole): boolean {
@@ -45,9 +41,7 @@ export function useActionsController() {
   const { role } = useRole();
   const { data: actions = [], isLoading, isFetching, refetch } = useActions(DEFAULT_CHAIN_ID);
   const canManageActions = canManageActionsForRole(role);
-  const getGardenWorkspaceState = useGardenStateStore((state) => state.getGardenWorkspaceState);
   const setGardenWorkspaceState = useGardenStateStore((state) => state.setGardenWorkspaceState);
-  const hydratedRef = useRef(false);
   const listSearch = useMemo(
     () => getActionsListSearch(new URLSearchParams(location.search)),
     [location.search]
@@ -104,14 +98,6 @@ export function useActionsController() {
   }, [filteredActions, lifecycle]);
 
   useEffect(() => {
-    if (hydratedRef.current) return;
-
-    const persistedState = getGardenWorkspaceState(ALL_GARDENS_KEY, "actions");
-    restoreCanvasScrollPosition(persistedState.scrollPosition);
-    hydratedRef.current = true;
-  }, [getGardenWorkspaceState]);
-
-  useEffect(() => {
     setGardenWorkspaceState(ALL_GARDENS_KEY, "actions", {
       activeMode: lifecycle,
       filter: filters.sort ?? "",
@@ -119,12 +105,6 @@ export function useActionsController() {
       sheetOpen: routeState.contentId !== null,
     });
   }, [filters.sort, lifecycle, routeState.actionId, routeState.contentId, setGardenWorkspaceState]);
-
-  useEffect(() => {
-    return bindCanvasScrollPositionPersistence((scrollPosition) => {
-      setGardenWorkspaceState(ALL_GARDENS_KEY, "actions", { scrollPosition });
-    });
-  }, [setGardenWorkspaceState]);
 
   const openActionDetail = useCallback(
     (actionId: string) => {

@@ -458,6 +458,9 @@
   --z-base: 0;
   --z-raised: 10;
   --z-sticky: 20;
+  /* Canvas sheet layer: above sticky chrome so opening sheets never start a
+   * frame beneath the PageHeader/AppBar, below the nav dock. */
+  --z-sheet-layer: 25;
   --z-nav: 30;
 	  --z-overlay: 40;
 	  --z-modal: 50;
@@ -1737,10 +1740,14 @@
      content carries its own bottom padding to avoid being covered by the
      floating pill. */
   .workspace-canvas-grid {
-    --canvas-right-sheet-width: clamp(320px, 28vw, 480px);
-    --canvas-right-sheet-width-wide: clamp(420px, 36vw, 640px);
-    --canvas-left-sheet-width: clamp(320px, 28vw, 480px);
-    --canvas-left-sheet-width-wide: clamp(420px, 36vw, 640px);
+    /* Right sheets share ONE width (QA refinement: per-content widths read as
+       inconsistent chrome); the wide variant stays for left-sheet workflows. */
+    --canvas-right-sheet-width: clamp(380px, 30vw, 560px);
+    --canvas-right-sheet-width-wide: clamp(380px, 30vw, 560px);
+    /* Left sheets host creation/submission forms — widened (QA: the work
+       submission sheet read as cramped at the old 420–640 wide preset). */
+    --canvas-left-sheet-width: clamp(360px, 30vw, 540px);
+    --canvas-left-sheet-width-wide: clamp(460px, 40vw, 720px);
     display: grid;
     grid-template-areas:
       "top    top    top"

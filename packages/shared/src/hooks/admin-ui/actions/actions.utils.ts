@@ -1,3 +1,4 @@
+import type { MetaStripItem } from "../../../components/Canvas/MetaStrip";
 import { DOMAIN_CONFIG } from "../../../config/domain";
 import { Domain, type Action } from "../../../types/domain";
 
@@ -19,6 +20,53 @@ export const ACTION_FILTER_DEFAULTS: Record<string, string | undefined> = {
 const ACTION_LIST_QUERY_KEYS = ["sort", "domain", "search", "lifecycle"] as const;
 
 export type LifecycleStage = "all" | "active" | "upcoming" | "completed";
+
+export interface ActionsHeaderStatsInput {
+  totalCount: number;
+  domainsCovered: number;
+  formatMessage: (
+    descriptor: { id: string; defaultMessage?: string },
+    values?: Record<string, unknown>
+  ) => string;
+}
+
+/**
+ * Inline MetaStrip items for the Actions header so all four workspace headers
+ * share the title · subtitle · stats anatomy. Deliberately registry-level and
+ * additive — the lifecycle tab rail already carries the all/active/upcoming/
+ * completed counts, so the header summarizes coverage instead (Frontend Rule
+ * 17). Stat shape (2 items): total actions · domains covered.
+ */
+export function buildActionsHeaderStats({
+  totalCount,
+  domainsCovered,
+  formatMessage,
+}: ActionsHeaderStatsInput): MetaStripItem[] {
+  return [
+    {
+      id: "total",
+      value: String(totalCount),
+      label: formatMessage(
+        {
+          id: "cockpit.actions.stats.total",
+          defaultMessage: "{count, plural, one {action} other {actions}}",
+        },
+        { count: totalCount }
+      ),
+    },
+    {
+      id: "domains",
+      value: String(domainsCovered),
+      label: formatMessage(
+        {
+          id: "cockpit.actions.stats.domains",
+          defaultMessage: "{count, plural, one {domain} other {domains}}",
+        },
+        { count: domainsCovered }
+      ),
+    },
+  ];
+}
 
 export const LIFECYCLE_TABS: { id: LifecycleStage; labelId: string; defaultLabel: string }[] = [
   { id: "all", labelId: "cockpit.actions.stage.all", defaultLabel: "All" },

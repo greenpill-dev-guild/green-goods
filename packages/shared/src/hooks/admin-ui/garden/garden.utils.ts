@@ -1,18 +1,10 @@
 import {
   adminRoutes,
   type AdminGardenRouteContext,
-  type FabConfig,
   type MetaStripItem,
   type ViewAction,
 } from "@green-goods/shared";
-import {
-  RiAddLine,
-  RiExternalLinkLine,
-  RiHandCoinLine,
-  RiPencilLine,
-  RiSettings3Line,
-  RiUserAddLine,
-} from "@remixicon/react";
+import { RiExternalLinkLine, RiSettings3Line, RiUserAddLine } from "@remixicon/react";
 
 /**
  * Inputs for the Garden header stats slot. Pulled directly off the values the
@@ -22,8 +14,7 @@ import {
 export interface GardenHeaderStatsInput {
   hasSelectedGarden: boolean;
   gardenerCount: number;
-  pendingWorkCount: number;
-  treasuryBalance: string;
+  impactCount: number | null;
   formatMessage: (
     descriptor: { id: string; defaultMessage?: string },
     values?: Record<string, unknown>
@@ -31,24 +22,25 @@ export interface GardenHeaderStatsInput {
 }
 
 /**
- * Cleanup A6: build the inline MetaStrip items rendered in the Garden header
- * after Tier 4 dropped the legacy garden-name re-declaration (Frontend Rule 17).
- * Returns [] when no garden is selected so the metadata slot stays clean
- * during the workspace selection gate.
+ * Build the inline MetaStrip items rendered in the Garden header. Pairs the
+ * garden's roster (gardeners) with its own output (certified impact) — the
+ * "who's here + what they've produced" of a garden. Pending work is the Hub's
+ * concern (the review queue lives there) and treasury lives on Community, so
+ * neither is restated here. Returns [] when no garden is selected so the
+ * metadata slot stays clean during the workspace selection gate. Per audit §5.6
+ * the slot must NOT include the garden name.
  *
- * Stat shape (3 items): gardeners count · pending work · treasury.
- * Per audit §5.6 the slot must NOT include the garden name.
+ * Stat shape: gardeners count · certified impact once hypercerts are loaded.
  */
 export function buildGardenHeaderStats({
   hasSelectedGarden,
   gardenerCount,
-  pendingWorkCount,
-  treasuryBalance,
+  impactCount,
   formatMessage,
 }: GardenHeaderStatsInput): MetaStripItem[] {
   if (!hasSelectedGarden) return [];
 
-  return [
+  const items: MetaStripItem[] = [
     {
       id: "gardeners",
       value: String(gardenerCount),
@@ -60,26 +52,23 @@ export function buildGardenHeaderStats({
         { count: gardenerCount }
       ),
     },
-    {
-      id: "pending-work",
-      value: String(pendingWorkCount),
+  ];
+
+  if (impactCount !== null) {
+    items.push({
+      id: "impact",
+      value: String(impactCount),
       label: formatMessage(
         {
-          id: "cockpit.garden.stats.pendingWork",
-          defaultMessage: "{count, plural, one {pending work} other {pending work}}",
+          id: "cockpit.garden.stats.impact",
+          defaultMessage: "{count, plural, one {impact} other {impacts}}",
         },
-        { count: pendingWorkCount }
+        { count: impactCount }
       ),
-    },
-    {
-      id: "treasury",
-      value: treasuryBalance,
-      label: formatMessage({
-        id: "cockpit.garden.stats.treasury",
-        defaultMessage: "treasury",
-      }),
-    },
-  ];
+    });
+  }
+
+  return items;
 }
 
 /**
@@ -97,15 +86,21 @@ export function resolveGardenView(pathname: string): GardenWorkspaceView {
 }
 
 /**
- * Garden view-level actions. Exposes the same set on every tab — view-specific
- * gating happens via `visible`. The Settings tab disables gates that don't make
- * sense alongside the Settings UI itself.
+ * Garden view-level actions — stable trio: the same set renders on every
+ * view, in the same order, so positions never shift between tabs. Only the
+ * filled emphasis moves to the view whose workflow the action opens:
  *
- * Reference design (`design_handoff_admin-revamp/screenshots/02-garden.png`):
- * View public (ghost) + Edit garden (primary) + Invite gardener (secondary).
+ * - `members`  → Add member filled (opens the AddMemberModal write path
+ *   in-place via `onAddMember`; navigates to the members view elsewhere).
+ * - `settings` → Edit garden filled (idempotent navigation when already
+ *   there — the settings form owns Save/Cancel).
+ * - `overview` / `activity` → read surfaces; everything stays outlined.
  *
- * "View public" links to the client app via the admin's `/gardens/:id` redirect
- * route, which resolves to the public garden page.
+ * Domains are garden configuration and are edited from the Settings form,
+ * not from the header (QA refinement pass — decision 4).
+ *
+ * "View public" links to the client app via the admin's `/gardens/:id`
+ * redirect route, which resolves to the public garden page.
  */
 export function buildGardenViewActions(
   view: GardenWorkspaceView,
@@ -113,10 +108,9 @@ export function buildGardenViewActions(
   hasSelectedGarden: boolean,
   navigate: (path: string) => void,
   routeContext?: AdminGardenRouteContext,
-  onEditDomains?: () => void
+  onAddMember?: () => void
 ): ViewAction[] {
   const gardenAddress = routeContext?.gardenAddress;
-  const communityRouteContext = { gardenAddress };
   return [
     {
       id: "view-public",
@@ -134,22 +128,20 @@ export function buildGardenViewActions(
       visible: hasSelectedGarden && Boolean(gardenAddress),
     },
     {
-      id: "edit-domains",
-      label: "Edit domains",
-      labelId: "cockpit.garden.action.editDomains",
-      icon: RiPencilLine,
-      onClick: () => onEditDomains?.(),
-      variant: "secondary",
-      visible: hasSelectedGarden && canManage && Boolean(onEditDomains) && view !== "settings",
-    },
-    {
-      id: "invite-gardener",
-      label: "Invite gardener",
-      labelId: "cockpit.garden.action.inviteGardener",
+      id: "add-member",
+      label: "Add member",
+      labelId: "cockpit.garden.action.addMember",
       icon: RiUserAddLine,
-      onClick: () => navigate(adminRoutes.communityMembers(communityRouteContext)),
-      variant: "secondary",
+      onClick: () => {
+        if (view === "members" && onAddMember) {
+          onAddMember();
+          return;
+        }
+        navigate(adminRoutes.gardenMembers(routeContext));
+      },
+      variant: view === "members" ? "primary" : "secondary",
       visible: hasSelectedGarden && canManage,
+      primary: view === "members",
     },
     {
       id: "edit-garden",
@@ -157,55 +149,9 @@ export function buildGardenViewActions(
       labelId: "cockpit.garden.action.editGarden",
       icon: RiSettings3Line,
       onClick: () => navigate(adminRoutes.gardenSettings(routeContext)),
-      variant: "primary",
-      visible: hasSelectedGarden && canManage && view !== "settings",
-      primary: true,
+      variant: view === "settings" ? "primary" : "secondary",
+      visible: hasSelectedGarden && canManage,
+      primary: view === "settings",
     },
   ];
-}
-
-/** @deprecated Use `buildGardenViewActions` + `useViewActions` instead. Retained
- *  during the transition until all consumers are migrated. */
-export function buildGardenFabConfig(
-  view: GardenWorkspaceView,
-  canManage: boolean,
-  hasSelectedGarden: boolean,
-  navigate: (path: string) => void,
-  routeContext?: AdminGardenRouteContext
-): FabConfig | null {
-  if (!hasSelectedGarden || !canManage || view === "settings") return null;
-
-  const communityRouteContext = { gardenAddress: routeContext?.gardenAddress };
-
-  return {
-    icon: RiAddLine,
-    label: "Garden Actions",
-    actions: [
-      {
-        id: "edit-garden",
-        icon: RiSettings3Line,
-        label: "Edit garden",
-        labelId: "cockpit.garden.fab.editGarden",
-      },
-      {
-        id: "invite-gardener",
-        icon: RiUserAddLine,
-        label: "Invite gardener",
-        labelId: "cockpit.garden.fab.inviteGardener",
-      },
-      {
-        id: "send-distribution",
-        icon: RiHandCoinLine,
-        label: "Send distribution",
-        labelId: "cockpit.garden.fab.sendDistribution",
-      },
-    ],
-    onAction: (actionId: string) => {
-      if (actionId === "edit-garden") navigate(adminRoutes.gardenSettings(routeContext));
-      else if (actionId === "invite-gardener")
-        navigate(adminRoutes.communityMembers(communityRouteContext));
-      else if (actionId === "send-distribution")
-        navigate(adminRoutes.communityPayouts(communityRouteContext));
-    },
-  };
 }

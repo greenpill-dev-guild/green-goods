@@ -1,9 +1,9 @@
 import {
   type Address,
-  Button,
   Card,
   cn,
   FileUploadField,
+  FormField,
   GARDEN_NAME_MAX_LENGTH,
   GardenBannerFallback,
   ImageWithFallback,
@@ -22,9 +22,10 @@ import {
   useUpdateGardenLocation,
   useUpdateGardenName,
 } from "@green-goods/shared";
-import { RiCloseLine, RiEditLine, RiLoader4Line, RiSaveLine } from "@remixicon/react";
-import { useState } from "react";
+import { RiCloseLine } from "@remixicon/react";
+import { useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
+import { AdminButton } from "@/components/AdminButton";
 
 interface GardenSettingsEditorProps {
   gardenAddress: Address;
@@ -40,268 +41,39 @@ interface GardenSettingsEditorProps {
   isOwner: boolean;
 }
 
-interface EditableFieldProps {
-  label: string;
-  value: string;
-  onSave: (value: string) => void;
-  isPending: boolean;
-  canEdit: boolean;
-  multiline?: boolean;
-  maxLength?: number;
+interface SettingsDraft {
+  name: string;
+  description: string;
+  location: string;
+  openJoining: boolean;
+  maxGardeners: string;
+  /** Locally selected banner file — uploads to IPFS only on Save. */
+  bannerFile: File | null;
+  /** Marks the saved banner for removal on Save. */
+  bannerRemoved: boolean;
 }
 
-function EditableField({
-  label,
-  value,
-  onSave,
-  isPending,
-  canEdit,
-  multiline,
-  maxLength,
-}: EditableFieldProps) {
-  const { formatMessage } = useIntl();
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(value);
-
-  const handleSave = () => {
-    if (draft.trim() !== value) {
-      onSave(draft.trim());
-    }
-    setEditing(false);
+function draftFromGarden(garden: GardenSettingsEditorProps["garden"]): SettingsDraft {
+  return {
+    name: garden.name,
+    description: garden.description,
+    location: garden.location,
+    openJoining: !!garden.openJoining,
+    maxGardeners: String(garden.maxGardeners ?? 0),
+    bannerFile: null,
+    bannerRemoved: false,
   };
-
-  const handleCancel = () => {
-    setDraft(value);
-    setEditing(false);
-  };
-
-  if (!editing) {
-    return (
-      <div className="group flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <p className="label-xs text-text-soft">{label}</p>
-          <p
-            className={cn(
-              "mt-1 max-w-prose text-sm text-text-strong",
-              !value && "italic text-text-sub",
-              multiline && "line-clamp-3"
-            )}
-            title={value || undefined}
-          >
-            {value ||
-              formatMessage({ id: "app.garden.settings.notSet", defaultMessage: "Not set" })}
-          </p>
-        </div>
-        {canEdit && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setDraft(value);
-              setEditing(true);
-            }}
-            className="mt-4 h-auto min-w-0 shrink-0 rounded-md p-1.5 text-text-soft opacity-0 transition-opacity hover:bg-bg-weak hover:text-text-strong group-hover:opacity-100"
-            aria-label={formatMessage(
-              { id: "app.garden.settings.edit", defaultMessage: "Edit {field}" },
-              { field: label }
-            )}
-          >
-            <RiEditLine className="h-4 w-4" />
-          </Button>
-        )}
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-2">
-      <p className="label-xs text-text-soft">{label}</p>
-      {multiline ? (
-        <Textarea
-          surface="admin"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          rows={3}
-          className="w-full rounded-lg border border-stroke-sub bg-bg-white px-3 py-2 text-sm text-text-strong focus:border-primary-base focus:outline-none focus:ring-1 focus:ring-primary-base"
-        />
-      ) : (
-        <TextInput
-          surface="admin"
-          type="text"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          maxLength={maxLength}
-          className="w-full rounded-lg border border-stroke-sub bg-bg-white px-3 py-2 text-sm text-text-strong focus:border-primary-base focus:outline-none focus:ring-1 focus:ring-primary-base"
-        />
-      )}
-      {maxLength && (
-        <p
-          className={cn(
-            "text-right text-xs tabular-nums",
-            draft.length > maxLength
-              ? "text-error-base"
-              : draft.length > maxLength * 0.85
-                ? "text-warning-base"
-                : "text-text-soft"
-          )}
-        >
-          {draft.length}/{maxLength}
-        </p>
-      )}
-      <div className="flex gap-2">
-        <Button size="sm" onClick={handleSave} disabled={isPending || draft.trim() === value}>
-          {isPending ? (
-            <RiLoader4Line className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <RiSaveLine className="mr-1.5 h-3.5 w-3.5" />
-          )}
-          {formatMessage({ id: "app.common.save", defaultMessage: "Save" })}
-        </Button>
-        <Button size="sm" variant="secondary" onClick={handleCancel} disabled={isPending}>
-          {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-        </Button>
-      </div>
-    </div>
-  );
 }
 
 /**
- * Banner image field with upload-to-IPFS + live preview (PRD-513).
+ * Explicit-save garden settings form.
  *
- * Replaces the prior text-only URL field, which rendered the saved value as a
- * bare link with no preview, leaving operators unable to see the image they
- * uploaded. Mirrors the create-flow uploader (`DetailsStep.handleBannerUpload`)
- * and routes the on-chain write through `useUpdateGardenBannerImage`, which owns
- * the loading/success toast and cache invalidation.
+ * Every field edits a local draft; nothing reaches IPFS or the chain until
+ * Save. Save runs only the dirty fields through their existing per-field
+ * mutations (each keeps its own loading/success toast), and the banner file
+ * shows a local object-URL preview until Save uploads it. Cancel resets the
+ * draft to the last saved values.
  */
-function BannerImageField({
-  gardenAddress,
-  bannerImage,
-  gardenName,
-  canEdit,
-}: {
-  gardenAddress: Address;
-  bannerImage: string;
-  gardenName: string;
-  canEdit: boolean;
-}) {
-  const { formatMessage } = useIntl();
-  const updateBannerImage = useUpdateGardenBannerImage();
-  const [isUploading, setIsUploading] = useState(false);
-  // Optimistic preview: resolved URL of the image we just uploaded, shown
-  // immediately while the on-chain update confirms and re-indexes.
-  const [pendingPreview, setPendingPreview] = useState<string | null>(null);
-
-  const resolvedCurrent = bannerImage ? resolveIPFSUrl(bannerImage) : "";
-  const previewSrc = pendingPreview ?? resolvedCurrent;
-  const isPending = isUploading || updateBannerImage.isPending;
-
-  const handleUpload = async (files: File[]) => {
-    let file = files[0];
-    if (!file) return;
-
-    setIsUploading(true);
-    try {
-      if (imageCompressor.shouldCompress(file, 1024)) {
-        const result = await imageCompressor.compressImage(file, {
-          maxSizeMB: 0.8,
-          maxWidthOrHeight: 2048,
-        });
-        file = result.file;
-      }
-
-      const uploadResult = await uploadFileToIPFS(file);
-      const ipfsUrl = resolveIPFSUrl(uploadResult.cid);
-
-      setPendingPreview(ipfsUrl);
-      // Roll the optimistic preview back if the on-chain write fails, so the UI
-      // never contradicts the mutation's own error toast (sensitive write surface).
-      updateBannerImage.mutate(
-        { gardenAddress, value: ipfsUrl },
-        { onError: () => setPendingPreview(null) }
-      );
-    } catch (error) {
-      logger.error("Banner upload failed", { error, source: "GardenSettingsEditor" });
-      toastService.error({
-        title: formatMessage({
-          id: "app.garden.create.uploadFailed",
-          defaultMessage: "Upload failed",
-        }),
-        message: formatMessage({
-          id: "app.garden.create.uploadFailedMessage",
-          defaultMessage: "Could not upload banner image. Please try again.",
-        }),
-        context: "banner upload",
-        error,
-      });
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleRemove = () => {
-    setPendingPreview(null);
-    updateBannerImage.mutate({ gardenAddress, value: "" });
-  };
-
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between gap-2">
-        <p className="label-xs text-text-soft">
-          {formatMessage({
-            id: "app.garden.create.bannerImageLabel",
-            defaultMessage: "Banner image",
-          })}
-        </p>
-        {canEdit && previewSrc ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={handleRemove}
-            disabled={isPending}
-            className="h-auto min-w-0 shrink-0 rounded-md px-1.5 py-1 text-text-soft hover:bg-bg-weak hover:text-text-strong"
-          >
-            {isPending ? (
-              <RiLoader4Line className="mr-1 h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <RiCloseLine className="mr-1 h-3.5 w-3.5" />
-            )}
-            {formatMessage({ id: "app.common.remove", defaultMessage: "Remove" })}
-          </Button>
-        ) : null}
-      </div>
-
-      <div className="h-28 w-full overflow-hidden rounded-lg">
-        {previewSrc ? (
-          <ImageWithFallback
-            src={previewSrc}
-            alt={formatMessage({ id: "app.garden.detail.bannerAlt" }, { name: gardenName })}
-            className="h-28 w-full object-cover"
-            backgroundFallback={<GardenBannerFallback name={gardenName} />}
-          />
-        ) : (
-          <GardenBannerFallback name={gardenName} />
-        )}
-      </div>
-
-      {canEdit ? (
-        <FileUploadField
-          accept="image/*"
-          showPreview={false}
-          disabled={isPending}
-          helpText={formatMessage({
-            id: "app.garden.create.bannerImageHelp",
-            defaultMessage: "Upload a hero image showcasing the garden (optional)",
-          })}
-          onFilesChange={handleUpload}
-        />
-      ) : null}
-    </div>
-  );
-}
-
 export function GardenSettingsEditor({
   gardenAddress,
   garden,
@@ -313,13 +85,152 @@ export function GardenSettingsEditor({
   const updateName = useUpdateGardenName();
   const updateDescription = useUpdateGardenDescription();
   const updateLocation = useUpdateGardenLocation();
+  const updateBannerImage = useUpdateGardenBannerImage();
   const setOpenJoining = useSetOpenJoining();
   const setMaxGardeners = useSetMaxGardeners();
 
-  const [maxInput, setMaxInput] = useState(String(garden.maxGardeners ?? 0));
+  const [draft, setDraft] = useState<SettingsDraft>(() => draftFromGarden(garden));
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Local preview for a freshly selected banner file. Revoked on change and
+  // unmount so draft previews never leak object URLs.
+  const [bannerPreviewUrl, setBannerPreviewUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!draft.bannerFile) {
+      setBannerPreviewUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(draft.bannerFile);
+    setBannerPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [draft.bannerFile]);
+
+  // Adopt refreshed garden values (post-save invalidation, garden switch)
+  // whenever the operator has no pending edits — never clobber a dirty draft.
+  const gardenSnapshot = JSON.stringify([
+    garden.name,
+    garden.description,
+    garden.location,
+    garden.bannerImage,
+    !!garden.openJoining,
+    garden.maxGardeners ?? 0,
+  ]);
+  const lastSnapshotRef = useRef(gardenSnapshot);
+
+  // Plain per-render computation — string compares against the saved values.
+  const baseline = draftFromGarden(garden);
+  const dirtyFields: string[] = [];
+  if (draft.name.trim() !== baseline.name) dirtyFields.push("name");
+  if (draft.description.trim() !== baseline.description) dirtyFields.push("description");
+  if (draft.location.trim() !== baseline.location) dirtyFields.push("location");
+  if (draft.openJoining !== baseline.openJoining) dirtyFields.push("openJoining");
+  if (Number(draft.maxGardeners) !== Number(baseline.maxGardeners))
+    dirtyFields.push("maxGardeners");
+  if (draft.bannerFile || draft.bannerRemoved) dirtyFields.push("banner");
+  const isDirty = dirtyFields.length > 0;
+
+  useEffect(() => {
+    if (lastSnapshotRef.current === gardenSnapshot) return;
+    lastSnapshotRef.current = gardenSnapshot;
+    if (!isDirty && !isSaving) {
+      setDraft(draftFromGarden(garden));
+    }
+    // The snapshot-equality guard above is the real trigger; isDirty/isSaving/
+    // garden are listed so the guard always reads current values (no stale
+    // closure) and the effect no longer needs an exhaustive-deps suppression.
+  }, [gardenSnapshot, isDirty, isSaving, garden]);
+
+  const canEditProfile = canManage;
+  const canEditName = isOwner;
+  const canEditAnything = canEditProfile || canEditName;
+
+  const nameInvalid = canEditName && draft.name.trim().length === 0;
+  const maxGardenersNumber = Number(draft.maxGardeners);
+  const maxGardenersInvalid =
+    !Number.isInteger(maxGardenersNumber) ||
+    Number.isNaN(maxGardenersNumber) ||
+    maxGardenersNumber < 0;
+  const hasValidationError = nameInvalid || maxGardenersInvalid;
+
+  const resolvedSavedBanner =
+    garden.bannerImage && !draft.bannerRemoved ? resolveIPFSUrl(garden.bannerImage) : "";
+  const previewSrc = bannerPreviewUrl ?? resolvedSavedBanner;
+
+  const handleCancel = () => {
+    setDraft(draftFromGarden(garden));
+  };
+
+  const handleSave = async () => {
+    if (!isDirty || hasValidationError || isSaving) return;
+
+    setIsSaving(true);
+    try {
+      // Each dirty field reuses its existing mutation (own toast + cache
+      // invalidation). Sequential on purpose: one wallet confirmation at a
+      // time, and a failure stops the run with the draft intact.
+      if (dirtyFields.includes("name")) {
+        await updateName.mutateAsync({ gardenAddress, value: draft.name.trim() });
+      }
+      if (dirtyFields.includes("description")) {
+        await updateDescription.mutateAsync({ gardenAddress, value: draft.description.trim() });
+      }
+      if (dirtyFields.includes("location")) {
+        await updateLocation.mutateAsync({ gardenAddress, value: draft.location.trim() });
+      }
+      if (dirtyFields.includes("openJoining")) {
+        await setOpenJoining.mutateAsync({ gardenAddress, value: draft.openJoining });
+      }
+      if (dirtyFields.includes("maxGardeners")) {
+        await setMaxGardeners.mutateAsync({ gardenAddress, value: maxGardenersNumber });
+      }
+      if (dirtyFields.includes("banner")) {
+        if (draft.bannerFile) {
+          let file = draft.bannerFile;
+          if (imageCompressor.shouldCompress(file, 1024)) {
+            const result = await imageCompressor.compressImage(file, {
+              maxSizeMB: 0.8,
+              maxWidthOrHeight: 2048,
+            });
+            file = result.file;
+          }
+          const uploadResult = await uploadFileToIPFS(file);
+          await updateBannerImage.mutateAsync({
+            gardenAddress,
+            value: resolveIPFSUrl(uploadResult.cid),
+          });
+        } else if (draft.bannerRemoved) {
+          await updateBannerImage.mutateAsync({ gardenAddress, value: "" });
+        }
+      }
+
+      // Clear banner draft state; field values stay and become the new
+      // baseline when the invalidated garden query refreshes the props.
+      setDraft((current) => ({ ...current, bannerFile: null, bannerRemoved: false }));
+    } catch (error) {
+      // Contract mutations already toast their own parsed errors; the IPFS
+      // upload path is the one failure with no mutation toast of its own.
+      logger.error("Garden settings save failed", { error, source: "GardenSettingsEditor" });
+      toastService.error({
+        title: formatMessage({
+          id: "app.garden.create.uploadFailed",
+          defaultMessage: "Upload failed",
+        }),
+        message: formatMessage({
+          id: "app.garden.settings.saveFailedMessage",
+          defaultMessage: "Your edits are still here — review the error and save again.",
+        }),
+        context: "garden settings save",
+        error,
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const disabledProfileField = !canEditProfile || isSaving;
 
   return (
-    <Card>
+    <Card data-component="GardenSettingsEditor">
       <Card.Header>
         <h3 className="label-md text-text-strong">
           {formatMessage({
@@ -329,60 +240,155 @@ export function GardenSettingsEditor({
         </h3>
         <p className="mt-1 text-xs text-text-sub">
           {formatMessage({
-            id: "app.garden.settings.description",
-            defaultMessage: "Update garden profile and configuration",
+            id: "app.garden.settings.explicitSave",
+            defaultMessage: "Changes stay local until you save them.",
           })}
         </p>
       </Card.Header>
-      <Card.Body className="space-y-4">
-        <EditableField
+      <Card.Body className="space-y-5">
+        <FormField
           label={formatMessage({ id: "app.garden.settings.name", defaultMessage: "Name" })}
-          value={garden.name}
-          onSave={(v) => updateName.mutate({ gardenAddress, value: v })}
-          isPending={updateName.isPending}
-          canEdit={isOwner}
-          maxLength={GARDEN_NAME_MAX_LENGTH}
-        />
+          htmlFor="garden-settings-name"
+          required={canEditName}
+          error={
+            nameInvalid
+              ? formatMessage({
+                  id: "app.garden.settings.nameRequired",
+                  defaultMessage: "Garden name is required",
+                })
+              : undefined
+          }
+        >
+          <TextInput
+            surface="admin"
+            id="garden-settings-name"
+            type="text"
+            value={draft.name}
+            onChange={(e) => setDraft((current) => ({ ...current, name: e.target.value }))}
+            maxLength={GARDEN_NAME_MAX_LENGTH}
+            disabled={!canEditName || isSaving}
+            aria-invalid={nameInvalid || undefined}
+          />
+          <p
+            className={cn(
+              "mt-1 text-right text-xs tabular-nums",
+              draft.name.length > GARDEN_NAME_MAX_LENGTH * 0.85
+                ? "text-warning-base"
+                : "text-text-soft"
+            )}
+          >
+            {draft.name.length}/{GARDEN_NAME_MAX_LENGTH}
+          </p>
+        </FormField>
 
-        <div className="border-t border-stroke-soft" />
-
-        <EditableField
+        <FormField
           label={formatMessage({
-            id: "app.garden.settings.description",
+            id: "app.garden.settings.descriptionLabel",
             defaultMessage: "Description",
           })}
-          value={garden.description}
-          onSave={(v) => updateDescription.mutate({ gardenAddress, value: v })}
-          isPending={updateDescription.isPending}
-          canEdit={canManage}
-          multiline
-        />
+          htmlFor="garden-settings-description"
+        >
+          <Textarea
+            surface="admin"
+            id="garden-settings-description"
+            value={draft.description}
+            onChange={(e) => setDraft((current) => ({ ...current, description: e.target.value }))}
+            rows={3}
+            disabled={disabledProfileField}
+            className="resize-y"
+          />
+        </FormField>
 
-        <div className="border-t border-stroke-soft" />
-
-        <EditableField
+        <FormField
           label={formatMessage({ id: "app.garden.settings.location", defaultMessage: "Location" })}
-          value={garden.location}
-          onSave={(v) => updateLocation.mutate({ gardenAddress, value: v })}
-          isPending={updateLocation.isPending}
-          canEdit={canManage}
-        />
+          htmlFor="garden-settings-location"
+        >
+          <TextInput
+            surface="admin"
+            id="garden-settings-location"
+            type="text"
+            value={draft.location}
+            onChange={(e) => setDraft((current) => ({ ...current, location: e.target.value }))}
+            disabled={disabledProfileField}
+          />
+        </FormField>
 
         <div className="border-t border-stroke-soft" />
 
-        <BannerImageField
-          gardenAddress={gardenAddress}
-          bannerImage={garden.bannerImage}
-          gardenName={garden.name}
-          canEdit={canManage}
-        />
-
-        <div className="border-t border-stroke-soft" />
-
-        {/* Open Joining Toggle */}
-        <div className="flex items-center justify-between">
-          <div>
+        {/* Banner image — local draft preview; uploads on Save. */}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-2">
             <p className="label-xs text-text-soft">
+              {formatMessage({
+                id: "app.garden.create.bannerImageLabel",
+                defaultMessage: "Banner image",
+              })}
+            </p>
+            {canEditProfile && previewSrc ? (
+              <AdminButton
+                type="button"
+                variant="text"
+                size="sm"
+                leadingIcon={<RiCloseLine />}
+                onClick={() =>
+                  setDraft((current) => ({
+                    ...current,
+                    bannerFile: null,
+                    bannerRemoved: Boolean(garden.bannerImage),
+                  }))
+                }
+                disabled={isSaving}
+              >
+                {formatMessage({ id: "app.common.remove", defaultMessage: "Remove" })}
+              </AdminButton>
+            ) : null}
+          </div>
+
+          <div className="relative h-28 w-full overflow-hidden rounded-lg">
+            {previewSrc ? (
+              <ImageWithFallback
+                src={previewSrc}
+                alt={formatMessage({ id: "app.garden.detail.bannerAlt" }, { name: garden.name })}
+                className="h-28 w-full object-cover"
+                backgroundFallback={<GardenBannerFallback name={garden.name} />}
+              />
+            ) : (
+              <GardenBannerFallback name={garden.name} />
+            )}
+            {draft.bannerFile ? (
+              <span className="absolute bottom-2 right-2 rounded-full bg-bg-white/90 px-2 py-0.5 text-[11px] font-medium text-text-sub shadow-[var(--edge-rest)]">
+                {formatMessage({
+                  id: "app.garden.settings.bannerDraft",
+                  defaultMessage: "Preview — uploads on save",
+                })}
+              </span>
+            ) : null}
+          </div>
+
+          {canEditProfile ? (
+            <FileUploadField
+              accept="image/*"
+              showPreview={false}
+              disabled={isSaving}
+              helpText={formatMessage({
+                id: "app.garden.create.bannerImageHelp",
+                defaultMessage: "Upload a banner image showcasing the garden (optional)",
+              })}
+              onFilesChange={(files) => {
+                const file = files[0];
+                if (!file) return;
+                setDraft((current) => ({ ...current, bannerFile: file, bannerRemoved: false }));
+              }}
+            />
+          ) : null}
+        </div>
+
+        <div className="border-t border-stroke-soft" />
+
+        {/* Open Joining */}
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="label-xs text-text-soft" id="garden-settings-open-joining-label">
               {formatMessage({
                 id: "app.garden.settings.openJoining",
                 defaultMessage: "Open Joining",
@@ -396,29 +402,28 @@ export function GardenSettingsEditor({
             </p>
           </div>
           <Switch
-            disabled={!canManage || setOpenJoining.isPending}
-            checked={!!garden.openJoining}
-            onCheckedChange={() =>
-              setOpenJoining.mutate({ gardenAddress, value: !garden.openJoining })
+            disabled={disabledProfileField}
+            checked={draft.openJoining}
+            onCheckedChange={(checked) =>
+              setDraft((current) => ({ ...current, openJoining: checked === true }))
             }
             surface="admin"
-            className={cn(
-              (!canManage || setOpenJoining.isPending) && "cursor-not-allowed opacity-50"
-            )}
+            aria-labelledby="garden-settings-open-joining-label"
+            className={cn(disabledProfileField && "cursor-not-allowed opacity-50")}
           />
         </div>
 
         <div className="border-t border-stroke-soft" />
 
         {/* Max Gardeners */}
-        <div className="group flex items-center justify-between gap-4">
+        <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="label-xs text-text-soft">
+            <label className="label-xs text-text-soft" htmlFor="garden-settings-max-gardeners">
               {formatMessage({
                 id: "app.garden.settings.maxGardeners",
                 defaultMessage: "Max Gardeners",
               })}
-            </p>
+            </label>
             <p className="mt-1 text-xs text-text-sub">
               {formatMessage({
                 id: "app.garden.settings.maxGardenersDescription",
@@ -426,37 +431,71 @@ export function GardenSettingsEditor({
               })}
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <TextInput
-              surface="admin"
-              type="number"
-              min={0}
-              value={maxInput}
-              onChange={(e) => setMaxInput(e.target.value)}
-              disabled={!canManage || setMaxGardeners.isPending}
-              className="w-20 rounded-lg border border-stroke-sub bg-bg-white px-2 py-1.5 text-right text-sm text-text-strong focus:border-primary-base focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-            />
-            {canManage && Number(maxInput) !== (garden.maxGardeners ?? 0) && (
-              <Button
-                size="sm"
-                onClick={() =>
-                  setMaxGardeners.mutate({
-                    gardenAddress,
-                    value: Number(maxInput),
-                  })
-                }
-                disabled={setMaxGardeners.isPending}
-              >
-                {setMaxGardeners.isPending ? (
-                  <RiLoader4Line className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  formatMessage({ id: "app.common.save", defaultMessage: "Save" })
-                )}
-              </Button>
-            )}
-          </div>
+          <TextInput
+            surface="admin"
+            id="garden-settings-max-gardeners"
+            type="number"
+            min={0}
+            step={1}
+            value={draft.maxGardeners}
+            onChange={(e) => setDraft((current) => ({ ...current, maxGardeners: e.target.value }))}
+            disabled={disabledProfileField}
+            aria-invalid={maxGardenersInvalid || undefined}
+            className="w-24 text-right"
+          />
         </div>
       </Card.Body>
+
+      {canEditAnything ? (
+        <Card.Footer className="flex flex-wrap items-center justify-between gap-3">
+          <p
+            className={cn("text-xs", isDirty ? "text-warning-dark" : "text-text-soft")}
+            aria-live="polite"
+            data-slot="dirty-state"
+          >
+            {isSaving
+              ? formatMessage({
+                  id: "app.garden.settings.saving",
+                  defaultMessage: "Saving changes…",
+                })
+              : isDirty
+                ? formatMessage(
+                    {
+                      id: "app.garden.settings.unsavedChanges",
+                      defaultMessage:
+                        "{count, plural, one {# unsaved change} other {# unsaved changes}}",
+                    },
+                    { count: dirtyFields.length }
+                  )
+                : formatMessage({
+                    id: "app.garden.settings.allSaved",
+                    defaultMessage: "All changes saved",
+                  })}
+          </p>
+          <div className="flex items-center gap-2">
+            <AdminButton
+              type="button"
+              variant="text"
+              onClick={handleCancel}
+              disabled={!isDirty || isSaving}
+            >
+              {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
+            </AdminButton>
+            <AdminButton
+              type="button"
+              variant="filled"
+              onClick={() => void handleSave()}
+              disabled={!isDirty || hasValidationError || isSaving}
+              loading={isSaving}
+            >
+              {formatMessage({
+                id: "app.garden.settings.saveChanges",
+                defaultMessage: "Save changes",
+              })}
+            </AdminButton>
+          </div>
+        </Card.Footer>
+      ) : null}
     </Card>
   );
 }

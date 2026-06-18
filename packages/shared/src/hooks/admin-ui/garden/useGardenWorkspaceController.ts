@@ -20,10 +20,6 @@ import {
   type AdminWorkspaceSectionTab,
 } from "../navigation/workspaceNavigation";
 import { buildGardenViewActions, resolveGardenView } from "./garden.utils";
-import {
-  bindCanvasScrollPositionPersistence,
-  restoreCanvasScrollPosition,
-} from "../navigation/workspaceScroll";
 
 type ActivityFilter = "all" | "work" | "impact" | "community";
 
@@ -46,6 +42,7 @@ export function useGardenWorkspaceController() {
   const lastHydratedGardenStateKeyRef = useRef<string | null>(null);
   const [activityFilter, setActivityFilterState] = useState<ActivityFilter>("all");
   const [domainEditorOpen, setDomainEditorOpen] = useState(false);
+  const [addMemberOpen, setAddMemberOpen] = useState(false);
 
   const view = resolveGardenView(location.pathname);
   const range = parseGardenRange(searchParams.get("range"));
@@ -57,7 +54,6 @@ export function useGardenWorkspaceController() {
 
     const persistedState = getGardenWorkspaceState(gardenStateKey, "garden");
     setActivityFilterState(parseActivityFilter(persistedState.filter));
-    restoreCanvasScrollPosition(persistedState.scrollPosition);
     lastHydratedGardenStateKeyRef.current = gardenStateKey;
   }, [gardenStateKey, getGardenWorkspaceState]);
 
@@ -80,14 +76,6 @@ export function useGardenWorkspaceController() {
     view,
   ]);
 
-  useEffect(() => {
-    if (!selectedGarden) return;
-
-    return bindCanvasScrollPositionPersistence((scrollPosition) => {
-      setGardenWorkspaceState(gardenStateKey, "garden", { scrollPosition });
-    });
-  }, [gardenStateKey, selectedGarden, setGardenWorkspaceState]);
-
   const {
     garden,
     fetching,
@@ -104,12 +92,15 @@ export function useGardenWorkspaceController() {
     allocations,
     works,
     hypercerts,
+    hypercertsLoading,
     roleMembers,
   } = useGardenDetailData(selectedGarden?.id);
 
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const openDomainEditor = useCallback(() => setDomainEditorOpen(true), []);
   const closeDomainEditor = useCallback(() => setDomainEditorOpen(false), []);
+  const openAddMember = useCallback(() => setAddMemberOpen(true), []);
+  const closeAddMember = useCallback(() => setAddMemberOpen(false), []);
   const viewActions = useMemo(
     () =>
       buildGardenViewActions(
@@ -120,9 +111,9 @@ export function useGardenWorkspaceController() {
         {
           gardenAddress: selectedGardenAddress,
         },
-        openDomainEditor
+        openAddMember
       ),
-    [canManage, navigate, openDomainEditor, selectedGarden, selectedGardenAddress, view]
+    [canManage, navigate, openAddMember, selectedGarden, selectedGardenAddress, view]
   );
   const { desktopActions } = useViewActions({
     actions: viewActions,
@@ -261,12 +252,14 @@ export function useGardenWorkspaceController() {
 
   return {
     activityFilter,
+    addMemberOpen,
     assessments,
     assessmentsError,
     canManage,
     canReview,
     canvasActivityEvents,
     clearSection,
+    closeAddMember,
     community,
     containerRef,
     derived,
@@ -282,11 +275,14 @@ export function useGardenWorkspaceController() {
     handleTabChange,
     hypercertId,
     hypercerts,
+    hypercertsLoading,
     isOwner,
     closeDomainEditor,
+    openAddMember,
     openDomainEditor,
     openSection,
     range,
+    roleMembers,
     section,
     selectedGarden,
     selectedItem,
