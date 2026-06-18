@@ -61,6 +61,7 @@ function defaultRole() {
     role: "user" as const,
     operatorGardens: [] as Array<{ id: string; name: string }>,
     loading: false,
+    gardensError: false,
   };
 }
 
@@ -213,6 +214,28 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
     const { result } = renderHook(() => useEligibleAdminGardens());
 
     expect(result.current.isError).toBe(true);
+  });
+
+  it("surfaces useRole.gardensError so an operator-gardens outage renders an error branch, not no-access", () => {
+    // The exact masking this fixes: the base list looks clean (empty, no error)
+    // but the address-filtered operator-gardens query failed. Previously that
+    // produced isError=false → "No garden access yet" instead of a retry.
+    mockUseGardens.mockReturnValue({ data: [], isFetched: true, isError: false });
+    mockUseRole.mockReturnValue({ ...defaultRole(), gardensError: true });
+
+    const { result } = renderHook(() => useEligibleAdminGardens());
+
+    expect(result.current.isError).toBe(true);
+  });
+
+  it("preserves the deployer create-garden path during an operator-gardens outage", () => {
+    mockUseGardens.mockReturnValue({ data: [], isFetched: true, isError: false });
+    mockUseRole.mockReturnValue({ ...defaultRole(), role: "deployer", gardensError: true });
+
+    const { result } = renderHook(() => useEligibleAdminGardens());
+
+    expect(result.current.canCreateGarden).toBe(true);
+    expect(result.current.isError).toBe(false);
   });
 
   it("reports isLoaded false while the role query is still loading", () => {

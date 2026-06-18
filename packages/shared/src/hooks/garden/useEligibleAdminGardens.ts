@@ -21,9 +21,11 @@ export interface EligibleAdminGardensResult {
    */
   isLoaded: boolean;
   /**
-   * True if the indexer base-list query errored. `getGardens()` swallows
-   * indexer failures and returns []; without this flag, an outage looks
-   * identical to a legitimate no-garden state.
+   * True if the indexer errored for EITHER the base garden list or the
+   * address-filtered operator-gardens query (`useRole`). Both swallow the
+   * failure into []; without this flag an outage is indistinguishable from a
+   * legitimate no-garden state, so the admin would show "no access" instead of
+   * a retry.
    */
   isError: boolean;
   /**
@@ -77,8 +79,8 @@ function stubGardenFromOperatorHint(
 export function useEligibleAdminGardens(): EligibleAdminGardensResult {
   const address = usePrimaryAddress();
   const chainId = useCurrentChain();
-  const { data: gardens = [], isFetched, isError } = useGardens();
-  const { role, operatorGardens, loading: roleLoading } = useRole();
+  const { data: gardens = [], isFetched, isError: baseListError } = useGardens();
+  const { role, operatorGardens, loading: roleLoading, gardensError: roleGardensError } = useRole();
   const lastGardenIdsByScope = useAdminStore((state) => state.lastGardenIdsByScope);
 
   const scopeKey = useMemo(() => getAdminGardenScopeKey(address, chainId), [address, chainId]);
@@ -140,7 +142,10 @@ export function useEligibleAdminGardens(): EligibleAdminGardensResult {
     // a Create CTA would land on the unauthorized page. Match the gate exactly.
     canCreateGarden: role === "deployer",
     isLoaded: isFetched && !roleLoading,
-    isError,
+    // A base-list outage is always retryable. A role-gardens outage is
+    // retryable for normal operators, but should not block the deployer-only
+    // create-garden path when no garden exists yet.
+    isError: baseListError || (roleGardensError && role !== "deployer"),
     hasStaleBaseList,
   };
 }
