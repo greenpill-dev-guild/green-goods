@@ -33,7 +33,7 @@ import {
   WorkSubmissionError,
   type WalletSubmissionStage,
 } from "../../modules/work/wallet-submission/types";
-import { jobQueue } from "../../modules/job-queue";
+import { isOfflineTxHash, jobQueue } from "../../modules/job-queue";
 import { simulateWorkSubmission } from "../../modules/work/simulate";
 import { submitWorkDirectly } from "../../modules/work/wallet-submission";
 import { submitWorkToQueue } from "../../modules/work/work-submission";
@@ -61,6 +61,11 @@ export interface UseWorkMutationOptions {
    * can opt out while still using the shared submission pipeline.
    */
   completeClientFlow?: boolean;
+  /**
+   * Client PWA queue fallback is on by default. Admin consumers can disable it
+   * so a wallet/network failure never looks like a completed admin submission.
+   */
+  allowOfflineQueue?: boolean;
   onProgress?: (stage: WalletSubmissionStage, message: string) => void;
   onSuccess?: (txHash: `0x${string}` | string) => void;
   onError?: (error: unknown) => void;
@@ -120,6 +125,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
     actions,
     userAddress,
     completeClientFlow = true,
+    allowOfflineQueue = true,
     onProgress,
     onSuccess,
     onError,
@@ -188,6 +194,10 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
       if (authMode === "wallet") {
         // Check if offline - wallet users also queue when offline
         if (!navigator.onLine) {
+          if (!allowOfflineQueue) {
+            throw new Error("Offline queue is disabled for this submission surface");
+          }
+
           if (DEBUG_ENABLED) {
             debugLog("[WorkMutation] Wallet user offline - queuing work", {
               gardenAddress,
@@ -254,6 +264,10 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
           );
         } catch (error) {
           if (isNetworkError(error)) {
+            if (!allowOfflineQueue) {
+              throw error;
+            }
+
             // Genuine network error during transaction phase — fall back to queue.
             // Insert an optimistic entry so the work is visible in the UI
             // (onMutate skips this for online wallet users, expecting submitWorkDirectly
@@ -303,6 +317,10 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
           }
           throw error;
         }
+      }
+
+      if (!allowOfflineQueue) {
+        throw new Error("Offline queue is disabled for this submission surface");
       }
 
       if (DEBUG_ENABLED) {
@@ -421,7 +439,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
           queryKeys.works.merged(gardenAddress, chainId)
         );
 
-        if (!isWalletOnline) {
+        if (allowOfflineQueue && !isWalletOnline) {
           // Insert an optimistic Work entry so it appears instantly in lists
           const optimisticWork: Work = {
             id: `0xoffline_optimistic_${Date.now()}`,
@@ -456,7 +474,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
       // --- Toasts ---
       const isOffline = !navigator.onLine;
 
-      if (isOffline) {
+      if (allowOfflineQueue && isOffline) {
         workToasts.savedOffline();
       } else if (authMode !== "wallet") {
         // For wallet mode, progress toasts are shown via onProgress callback
@@ -468,7 +486,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
       return { previousMerged };
     },
     onSuccess: (txHash) => {
-      const isOfflineHash = typeof txHash === "string" && txHash.startsWith("0xoffline_");
+      const isOfflineHash = typeof txHash === "string" && isOfflineTxHash(txHash);
       const workSubmissionJourneyId = useWorkFlowStore.getState().ensureWorkSubmissionJourneyId();
 
       // Provide haptic feedback for successful submission

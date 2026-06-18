@@ -197,6 +197,7 @@ vi.mock("@green-goods/shared", async () => {
         ? fallback
         : (actions.find((action) => Number(action.id.split("-").pop()) === uid)?.title ?? fallback),
     imageCompressor: mockImageCompressor,
+    isOfflineTxHash: (txHash: string) => txHash.startsWith("0xoffline_"),
     logger: {
       error: vi.fn(),
     },
@@ -331,6 +332,14 @@ function createAction(mediaInfo: Action["mediaInfo"] = {}): Action {
       ...mediaInfo,
     },
   };
+}
+
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((resolver) => {
+    resolve = resolver;
+  });
+  return { promise, resolve };
 }
 
 async function selectActionAndFillRequiredFields(user: ReturnType<typeof userEvent.setup>) {
@@ -485,6 +494,7 @@ describe("SubmitWorkPanel submit behavior", () => {
         actionUID: 42,
         userAddress: gardenAddress,
         completeClientFlow: false,
+        allowOfflineQueue: false,
       })
     );
   });
@@ -614,6 +624,61 @@ describe("SubmitWorkPanel submit behavior", () => {
     });
   });
 
+  it("blocks action switches and cancel while media is preparing", async () => {
+    const user = userEvent.setup();
+    const compressedFile = new File(["compressed"], "large-compressed.jpg", {
+      type: "image/jpeg",
+    });
+    const compression =
+      createDeferred<
+        Array<{
+          file: File;
+          originalSize: number;
+          compressedSize: number;
+          compressionRatio: number;
+        }>
+      >();
+    mockImageCompressor.shouldCompress.mockReturnValue(true);
+    mockImageCompressor.compressImages.mockImplementation(
+      async (_files: File[], _options: unknown, onProgress?: (progress: number) => void) => {
+        onProgress?.(20);
+        return compression.promise;
+      }
+    );
+
+    const { container } = render(
+      <TestProviders>
+        <SubmitWorkPanel layout="page" />
+      </TestProviders>
+    );
+
+    await selectActionAndFillRequiredFields(user);
+    uploadFile(container, "large.png", "image/png");
+
+    const actionSelect = screen.getByLabelText(/Action/);
+    await waitFor(() => {
+      expect(actionSelect).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Submit Work" })).toBeDisabled();
+    });
+
+    act(() => {
+      compression.resolve([
+        {
+          file: compressedFile,
+          originalSize: 12 * 1024 * 1024,
+          compressedSize: compressedFile.size,
+          compressionRatio: 99,
+        },
+      ]);
+    });
+
+    await waitFor(() => {
+      expect(actionSelect).not.toBeDisabled();
+      expect(screen.getByRole("button", { name: "Cancel" })).not.toBeDisabled();
+    });
+  });
+
   it("rejects unsupported media before the shared mutation is called", async () => {
     const user = userEvent.setup();
 
@@ -641,6 +706,33 @@ describe("SubmitWorkPanel submit behavior", () => {
       })
     );
     expect(mockMutate).not.toHaveBeenCalled();
+  });
+
+  it("does not report success when the shared mutation returns an offline queue hash", async () => {
+    const onSuccess = vi.fn();
+
+    render(
+      <TestProviders>
+        <SubmitWorkPanel layout="page" onSuccess={onSuccess} />
+      </TestProviders>
+    );
+
+    act(() => {
+      const handleSuccess = mockState.workMutationOptions?.onSuccess as
+        | ((txHash: string) => void)
+        | undefined;
+      handleSuccess?.("0xoffline_stranded");
+    });
+
+    expect(mockToastError).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "Work was not submitted",
+        message: "Reconnect and submit again from admin so the transaction can be confirmed.",
+        context: "admin work submission",
+      })
+    );
+    expect(mockToastSuccess).not.toHaveBeenCalled();
+    expect(onSuccess).not.toHaveBeenCalled();
   });
 
   it("blocks offline admin submissions instead of queuing them", async () => {

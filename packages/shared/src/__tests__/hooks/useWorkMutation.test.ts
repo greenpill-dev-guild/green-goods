@@ -28,6 +28,7 @@ vi.mock("../../modules/work/work-submission", () => ({
 }));
 
 vi.mock("../../modules/job-queue", () => ({
+  isOfflineTxHash: (txHash: string) => txHash.startsWith("0xoffline_"),
   jobQueue: {
     processJob: vi.fn(),
   },
@@ -358,6 +359,30 @@ describe("hooks/work/useWorkMutation", () => {
       expect(submitWorkDirectly).not.toHaveBeenCalled();
       expect(workToasts.savedOffline).toHaveBeenCalled();
     });
+
+    it("lets admin-style consumers disable offline queue fallback", async () => {
+      Object.defineProperty(navigator, "onLine", { value: false });
+
+      const { result } = renderHook(
+        () => useWorkMutation({ ...defaultOptions, allowOfflineQueue: false }),
+        {
+          wrapper: createWrapper(),
+        }
+      );
+
+      await act(async () => {
+        await expect(
+          result.current.mutateAsync({
+            draft: createMockWorkDraft(),
+            images: createMockFiles(1),
+          })
+        ).rejects.toThrow("Offline queue is disabled");
+      });
+
+      expect(submitWorkToQueue).not.toHaveBeenCalled();
+      expect(submitWorkDirectly).not.toHaveBeenCalled();
+      expect(workToasts.savedOffline).not.toHaveBeenCalled();
+    });
   });
 
   describe("Passkey mode - online", () => {
@@ -579,6 +604,37 @@ describe("hooks/work/useWorkMutation", () => {
       // Transaction-phase network errors SHOULD fall back to queue
       expect(submitWorkToQueue).toHaveBeenCalled();
       expect(txHash).toBe("0xoffline_fallback");
+    });
+
+    it("does not fall back to queue for transaction errors when disabled", async () => {
+      const txError = new WorkSubmissionError(
+        "Network error - please check your connection",
+        "transaction",
+        "batch-no-queue",
+        new Error("network connection failed")
+      );
+      mock(submitWorkDirectly).mockRejectedValue(txError);
+
+      const { result } = renderHook(
+        () => useWorkMutation({ ...defaultOptions, allowOfflineQueue: false }),
+        {
+          wrapper: createWrapper(),
+        }
+      );
+
+      await act(async () => {
+        await expect(
+          result.current.mutateAsync({
+            draft: createMockWorkDraft(),
+            images: createMockFiles(1),
+          })
+        ).rejects.toThrow("Network error");
+      });
+
+      expect(submitWorkToQueue).not.toHaveBeenCalled();
+      await waitFor(() => {
+        expect(result.current.isError).toBe(true);
+      });
     });
 
     it("keeps wallet request expiry on the direct Review retry path", async () => {

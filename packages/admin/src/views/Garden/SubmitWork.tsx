@@ -11,6 +11,7 @@ import {
   findActionByUID,
   getActionTitle,
   imageCompressor,
+  isOfflineTxHash,
   logger,
   normalizeWorkMediaFiles,
   NativeSelect,
@@ -34,7 +35,7 @@ import {
 } from "@green-goods/shared";
 import { validateWorkSubmissionContext } from "@green-goods/shared/modules";
 import { RiUploadCloudLine } from "@remixicon/react";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Controller } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -221,7 +222,7 @@ function getMinRequiredImages(action: Action | null) {
 type SubmitWorkLayout = "page" | "sheet";
 type MediaFeedback = { variant: "warning" | "error"; message: string };
 type SubmitWorkAuthSnapshot = Pick<AuthStateValue, "authMode" | "isAuthenticated"> & {
-  primaryAddress: Address | string | null | undefined;
+  primaryAddress: Address | null | undefined;
 };
 
 export interface SubmitWorkPanelProps {
@@ -317,6 +318,8 @@ function SubmitWorkPanelContent({
   );
 
   const [selectedActionId, setSelectedActionId] = useState("");
+  const selectedActionIdRef = useRef(selectedActionId);
+  selectedActionIdRef.current = selectedActionId;
   const selectedAction = useMemo<Action | null>(() => {
     if (!selectedActionId) return null;
     const uid = parseActionUID(selectedActionId);
@@ -347,13 +350,23 @@ function SubmitWorkPanelContent({
     gardenAddress: garden?.id ? (garden.id as Address) : null,
     actionUID: selectedActionUID,
     actions,
-    userAddress: primaryAddress ? (primaryAddress as Address) : null,
+    userAddress: primaryAddress ?? null,
     completeClientFlow: false,
+    allowOfflineQueue: false,
     onProgress: (stage, message) => {
       const i18nKey = `app.admin.work.submit.progress.${stage}`;
       setProgressMessage(formatMessage({ id: i18nKey, defaultMessage: message }));
     },
-    onSuccess: () => {
+    onSuccess: (txHash) => {
+      if (typeof txHash === "string" && isOfflineTxHash(txHash)) {
+        toastService.error({
+          title: formatMessage({ id: "app.admin.work.submit.queuedError.title" }),
+          message: formatMessage({ id: "app.admin.work.submit.queuedError.message" }),
+          context: "admin work submission",
+        });
+        return;
+      }
+
       toastService.success({
         title: formatMessage({ id: "app.admin.work.submit.success" }),
       });
@@ -429,6 +442,9 @@ function SubmitWorkPanelContent({
       setMediaFeedback(null);
       if (newFiles.length === 0) return;
 
+      const actionIdAtStart = selectedActionIdRef.current;
+      const isCurrentAction = () => selectedActionIdRef.current === actionIdAtStart;
+
       setIsPreparingMedia(true);
       setProgressMessage(formatMessage({ id: "admin.fileUpload.processing" }, { progress: 0 }));
 
@@ -438,6 +454,7 @@ function SubmitWorkPanelContent({
             setProgressMessage(formatMessage({ id: "app.garden.upload.convertingHeic" }));
           },
         });
+        if (!isCurrentAction()) return;
 
         const acceptedFiles = normalized.accepted.map((item) => item.file);
         if (acceptedFiles.length > 0) {
@@ -449,6 +466,7 @@ function SubmitWorkPanelContent({
               )
             );
           });
+          if (!isCurrentAction()) return;
           setImages((prev) => [...prev, ...preparedFiles]);
         }
 
@@ -590,6 +608,7 @@ function SubmitWorkPanelContent({
             surface="admin"
             id="action-select"
             value={selectedActionId}
+            disabled={mutation.isPending || isPreparingMedia}
             onChange={(event) => handleActionChange(event.target.value)}
           >
             <option value="">
@@ -670,7 +689,7 @@ function SubmitWorkPanelContent({
         type="button"
         variant="text"
         onClick={() => onCancel?.()}
-        disabled={mutation.isPending}
+        disabled={mutation.isPending || isPreparingMedia}
       >
         {formatMessage({ id: "app.wizard.cancel", defaultMessage: "Cancel" })}
       </AdminButton>
