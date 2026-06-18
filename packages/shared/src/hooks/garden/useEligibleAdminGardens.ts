@@ -142,9 +142,10 @@ export function useEligibleAdminGardens(): EligibleAdminGardensResult {
     // a Create CTA would land on the unauthorized page. Match the gate exactly.
     canCreateGarden: role === "deployer",
     isLoaded: isFetched && !roleLoading,
-    // An outage in EITHER the base list or the operator-gardens query is a
-    // retryable indexer error, not a genuine "no access".
-    isError: baseListError || roleGardensError,
+    // A base-list outage is always retryable. A role-gardens outage is
+    // retryable for normal operators, but should not block the deployer-only
+    // create-garden path when no garden exists yet.
+    isError: baseListError || (roleGardensError && role !== "deployer"),
     hasStaleBaseList,
   };
 }

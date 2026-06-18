@@ -228,6 +228,16 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
     expect(result.current.isError).toBe(true);
   });
 
+  it("preserves the deployer create-garden path during an operator-gardens outage", () => {
+    mockUseGardens.mockReturnValue({ data: [], isFetched: true, isError: false });
+    mockUseRole.mockReturnValue({ ...defaultRole(), role: "deployer", gardensError: true });
+
+    const { result } = renderHook(() => useEligibleAdminGardens());
+
+    expect(result.current.canCreateGarden).toBe(true);
+    expect(result.current.isError).toBe(false);
+  });
+
   it("reports isLoaded false while the role query is still loading", () => {
     mockUseRole.mockReturnValue({ ...defaultRole(), loading: true });
     mockUseGardens.mockReturnValue({ data: [], isFetched: true, isError: false });
