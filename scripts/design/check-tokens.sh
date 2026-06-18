@@ -329,9 +329,49 @@ if [[ -n "$ADMIN_CHROME_VIOLATIONS" ]]; then
   exit 1
 fi
 
+# ----------------------------------------------------------------------------
+# Workspace tone propagation guard
+#
+# Two regressions shipped silently before this guard existed:
+#   1. The tone-derived M3 roles (--m3-primary etc.) were declared ONLY at
+#      :root, so var(--tone-primary) substituted above the [data-tone] element
+#      and locked to the green fallback — "everything admin rendered green"
+#      while only the canvas + filled button (which read --tone-action directly)
+#      picked up the workspace hue. The fix re-declares them at .admin-m3 scope
+#      (the same element that sets --tone-primary).
+#   2. Tone-colored TEXT needs a contrast-safe step (--tone-on-surface-accent);
+#      the mid --tone-primary step fails AA as text on white (green-600 ≈ 2.85).
+# A passing story is not proof the tint reaches the DOM — these checks are.
+# ----------------------------------------------------------------------------
+ADMIN_INDEX_CSS="packages/admin/src/index.css"
+
+# (1) --m3-primary must be re-declared inside a `.admin-m3` rule, not only :root.
+if ! awk '
+  /^[^{}]*\{/ { in_admin = ($0 ~ /\.admin-m3/) }
+  /\}/        { in_admin = 0 }
+  in_admin && /--m3-primary:[[:space:]]*var\(--tone-primary/ { found = 1 }
+  END { exit(found ? 0 : 1) }
+' "$ADMIN_M3_TOKENS"; then
+  echo "❌ Workspace tone scoping regression: --m3-primary is not re-declared at .admin-m3 scope in $ADMIN_M3_TOKENS."
+  echo "   Without a .admin-m3 { --m3-primary: var(--tone-primary, …) } block, var(--tone-primary) resolves at :root (unset)"
+  echo "   and every --m3-primary consumer locks to the green fallback regardless of the active workspace."
+  exit 1
+fi
+
+# (2) Every tone block that defines --tone-action must also define a
+#     contrast-safe --tone-on-surface-accent (text/outline/icon role).
+TONE_ACTION_COUNT="$(grep -cE '^[[:space:]]*--tone-action:' "$ADMIN_INDEX_CSS" || true)"
+TONE_ACCENT_COUNT="$(grep -cE '^[[:space:]]*--tone-on-surface-accent:' "$ADMIN_INDEX_CSS" || true)"
+if [[ "$TONE_ACTION_COUNT" -eq 0 || "$TONE_ACCENT_COUNT" -ne "$TONE_ACTION_COUNT" ]]; then
+  echo "❌ Tone accent role drift in $ADMIN_INDEX_CSS: ${TONE_ACTION_COUNT} --tone-action vs ${TONE_ACCENT_COUNT} --tone-on-surface-accent declarations."
+  echo "   Every [data-tone] block (light + dark) must define a contrast-safe --tone-on-surface-accent for tone-colored text/outline/icon."
+  exit 1
+fi
+
 node scripts/design/check-css-custom-properties.mjs
 
 echo "✅ check-design-tokens: ${#EXPECTED_TOKENS[@]} runtime tokens present in theme.css."
+echo "✅ workspace tone propagation guard: --m3-primary re-declared at .admin-m3 scope; ${TONE_ACCENT_COUNT} --tone-on-surface-accent roles present."
 echo "✅ DesignMD radius outputs present in $GENERATED_CSS."
 echo "✅ admin M3 variable usages resolve to defined tokens."
 echo "✅ no new raw cubic-bezier, duration, color, radius literals, or primitive palette utilities outside token-definition or audited baseline files."

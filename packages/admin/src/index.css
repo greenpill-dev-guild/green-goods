@@ -419,6 +419,11 @@
   --tone-surface-tint: var(--blue-600) / 8%;
   --tone-outline: var(--blue-200);
   --tone-surface-variant: var(--blue-50);
+  /* Contrast-safe accent for tone-colored TEXT / outline / icon on light
+     surfaces (AA ≥4.5 on white). Distinct from --tone-action (filled bg w/ white
+     text) and --tone-primary (the mid fill step — too light as text, e.g.
+     green-600 ≈ 2.85:1). Consumed directly via var(); never indirected at :root. */
+  --tone-on-surface-accent: var(--blue-700);
   --tone-surface-tint-color: rgb(var(--blue-600) / 8%);
 }
 
@@ -435,6 +440,7 @@
   --tone-surface-tint: var(--green-600) / 8%;
   --tone-outline: var(--green-200);
   --tone-surface-variant: var(--green-50);
+  --tone-on-surface-accent: var(--green-800);
   --tone-surface-tint-color: rgb(var(--green-600) / 8%);
 }
 
@@ -459,6 +465,7 @@
   --tone-surface-tint: var(--yellow-500) / 8%;
   --tone-outline: var(--yellow-200);
   --tone-surface-variant: var(--yellow-50);
+  --tone-on-surface-accent: var(--orange-700);
   --tone-surface-tint-color: rgb(var(--yellow-500) / 8%);
 }
 
@@ -475,6 +482,7 @@
   --tone-surface-tint: var(--red-500) / 8%;
   --tone-outline: var(--red-200);
   --tone-surface-variant: var(--red-50);
+  --tone-on-surface-accent: var(--red-700);
   --tone-surface-tint-color: rgb(var(--red-500) / 8%);
 }
 
@@ -491,6 +499,7 @@
   --tone-surface-tint: 120 113 108 / 8%;
   --tone-outline: 214 211 209;
   --tone-surface-variant: 245 245 244;
+  --tone-on-surface-accent: 68 64 60;
   --tone-surface-tint-color: rgb(120 113 108 / 8%);
 }
 
@@ -508,6 +517,7 @@
   --tone-surface-tint: var(--blue-200) / 10%;
   --tone-outline: var(--blue-700);
   --tone-surface-variant: var(--blue-900);
+  --tone-on-surface-accent: var(--blue-200);
   --tone-surface-tint-color: rgb(var(--blue-200) / 10%);
 }
 
@@ -523,6 +533,7 @@
   --tone-surface-tint: var(--green-200) / 10%;
   --tone-outline: var(--green-700);
   --tone-surface-variant: var(--green-900);
+  --tone-on-surface-accent: var(--green-200);
   --tone-surface-tint-color: rgb(var(--green-200) / 10%);
 }
 
@@ -538,6 +549,7 @@
   --tone-surface-tint: var(--yellow-200) / 10%;
   --tone-outline: var(--yellow-700);
   --tone-surface-variant: var(--yellow-900);
+  --tone-on-surface-accent: var(--yellow-200);
   --tone-surface-tint-color: rgb(var(--yellow-200) / 10%);
 }
 
@@ -553,6 +565,7 @@
   --tone-surface-tint: var(--red-200) / 10%;
   --tone-outline: var(--red-700);
   --tone-surface-variant: var(--red-900);
+  --tone-on-surface-accent: var(--red-200);
   --tone-surface-tint-color: rgb(var(--red-200) / 10%);
 }
 
@@ -568,6 +581,7 @@
   --tone-surface-tint: 214 211 209 / 10%;
   --tone-outline: 87 83 78;
   --tone-surface-variant: 68 64 60;
+  --tone-on-surface-accent: 214 211 209;
   --tone-surface-tint-color: rgb(214 211 209 / 10%);
 }
 
