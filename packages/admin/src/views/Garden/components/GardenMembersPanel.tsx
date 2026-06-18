@@ -125,9 +125,7 @@ export interface GardenMembersPanelProps {
   roleMembers: Record<GardenRole, Address[]>;
   canManage: boolean;
   /** Header "Add member" action state, owned by the workspace controller. */
-  addMemberOpen: boolean;
   onOpenAddMember: () => void;
-  onCloseAddMember: () => void;
 }
 
 export function GardenMembersPanel({
@@ -140,9 +138,7 @@ export function GardenMembersPanel({
   owners,
   roleMembers,
   canManage,
-  addMemberOpen,
   onOpenAddMember,
-  onCloseAddMember,
 }: GardenMembersPanelProps) {
   const { formatMessage } = useIntl();
   const [filter, setFilter] = useState<GardenMembersFilter>("all");
@@ -263,15 +259,6 @@ export function GardenMembersPanel({
               : undefined
           }
         />
-        {canManage ? (
-          <AddMemberModal
-            isOpen={addMemberOpen}
-            onClose={onCloseAddMember}
-            memberType="gardener"
-            onAdd={addMemberForRole("gardener")}
-            isLoading={operations.isLoading}
-          />
-        ) : null}
       </>
     );
   }
@@ -420,16 +407,9 @@ export function GardenMembersPanel({
 
       {canManage ? (
         <>
-          {/* Header "Add member" primary — adds a gardener, the common case.
-              Other roles add through Manage Roles below. */}
-          <AddMemberModal
-            isOpen={addMemberOpen}
-            onClose={onCloseAddMember}
-            memberType="gardener"
-            onAdd={addMemberForRole("gardener")}
-            isLoading={operations.isLoading}
-          />
-
+          {/* Header "Add member" (gardener, the common case) now opens as a
+              left sheet via GardenSheetDescriptor. Other roles add through
+              Manage Roles below; that per-role AddMemberModal stays. */}
           <ManageRolesModal
             isOpen={manageRolesOpen}
             onClose={() => setManageRolesOpen(false)}

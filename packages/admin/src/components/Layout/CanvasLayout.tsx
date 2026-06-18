@@ -675,6 +675,7 @@ function CanvasLeftSheet({
         onClose={config?.onClose ?? (() => {})}
         title={config?.title}
         container={overlayRoot}
+        preventClose={config?.preventClose}
         width={config?.width ?? "default"}
       >
         {config?.content}
@@ -689,6 +690,7 @@ function CanvasLeftSheet({
       title={config?.title}
       maxHeight={92}
       container={overlayRoot}
+      preventClose={config?.preventClose}
     >
       {config?.content}
     </BottomSheet>

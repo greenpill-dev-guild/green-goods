@@ -21,6 +21,8 @@ export interface LeftSheetConfig {
   content: ReactNode;
   /** Called when the sheet is closed (e.g., navigate back) */
   onClose: () => void;
+  /** Blocks shell-level close gestures while an in-sheet write is active. */
+  preventClose?: boolean;
   /** Width hint for desktop side sheets. */
   width?: LeftSheetWidth;
 }
@@ -30,6 +32,7 @@ export interface RouteBackedLeftSheetConfig {
   content: ReactNode;
   closeTo: string;
   onBeforeClose?: () => void;
+  preventClose?: boolean;
   width?: LeftSheetWidth;
 }
 
@@ -114,6 +117,7 @@ export function useRouteBackedLeftSheetConfig(config: RouteBackedLeftSheetConfig
             title: config.title,
             content: config.content,
             onClose: handleClose,
+            preventClose: config.preventClose,
             width: config.width,
           }
         : null,

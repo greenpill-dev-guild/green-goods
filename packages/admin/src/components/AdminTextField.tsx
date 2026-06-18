@@ -125,7 +125,9 @@ export const AdminTextField = React.forwardRef<HTMLInputElement, AdminTextFieldP
       // Remove browser defaults
       "outline-none border-none focus:outline-none focus:border-none",
       // Caret color
-      hasError ? "caret-[rgb(var(--m3-error))]" : "caret-[rgb(var(--m3-primary))]",
+      hasError
+        ? "caret-[rgb(var(--m3-error))]"
+        : "caret-[rgb(var(--tone-on-surface-accent,var(--m3-primary)))]",
       // Placeholder — only visible when focused and empty
       "placeholder-[rgb(var(--m3-on-surface-variant)/0.6)]",
       !focused && "placeholder-transparent",
@@ -198,7 +200,7 @@ export const AdminTextField = React.forwardRef<HTMLInputElement, AdminTextFieldP
                       hasError
                         ? "text-[rgb(var(--m3-error))]"
                         : focused
-                          ? "text-[rgb(var(--m3-primary))]"
+                          ? "text-[rgb(var(--tone-on-surface-accent,var(--m3-primary)))]"
                           : "text-[rgb(var(--m3-on-surface-variant))]",
                     ]
                   : [
@@ -270,7 +272,7 @@ export const AdminTextField = React.forwardRef<HTMLInputElement, AdminTextFieldP
               hasError
                 ? "h-0.5 bg-[rgb(var(--m3-error))]"
                 : focused
-                  ? "h-0.5 bg-[rgb(var(--m3-primary))]"
+                  ? "h-0.5 bg-[rgb(var(--tone-on-surface-accent,var(--m3-primary)))]"
                   : "h-px bg-[rgb(var(--m3-on-surface-variant))]",
               disabled && "bg-[rgb(var(--m3-on-surface)/0.38)] h-px"
             )}
@@ -325,7 +327,7 @@ export const AdminTextField = React.forwardRef<HTMLInputElement, AdminTextFieldP
                 ? "ring-2 ring-inset ring-[rgb(var(--m3-error))]"
                 : "ring-2 ring-inset ring-[rgb(var(--m3-error))]"
               : focused
-                ? "ring-2 ring-inset ring-[rgb(var(--m3-primary))]"
+                ? "ring-2 ring-inset ring-[rgb(var(--tone-on-surface-accent,var(--m3-primary)))]"
                 : "ring-1 ring-inset ring-[rgb(var(--m3-outline))]",
             disabled && "ring-1 ring-inset ring-[rgb(var(--m3-on-surface)/0.38)]"
           )}
@@ -364,7 +366,7 @@ export const AdminTextField = React.forwardRef<HTMLInputElement, AdminTextFieldP
                     hasError
                       ? "text-[rgb(var(--m3-error))]"
                       : focused
-                        ? "text-[rgb(var(--m3-primary))]"
+                        ? "text-[rgb(var(--tone-on-surface-accent,var(--m3-primary)))]"
                         : "text-[rgb(var(--m3-on-surface-variant))]",
                   ]
                 : [

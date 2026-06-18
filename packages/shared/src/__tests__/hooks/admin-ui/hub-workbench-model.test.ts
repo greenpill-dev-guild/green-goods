@@ -10,7 +10,10 @@
 
 import { describe, expect, it } from "vitest";
 
-import { buildHubStageModel } from "../../../hooks/admin-ui/hub/hub.workbenchModel";
+import {
+  buildHubStageModel,
+  resolveHubRouteState,
+} from "../../../hooks/admin-ui/hub/hub.workbenchModel";
 
 const baseInput = {
   requestedStage: "work" as const,
@@ -49,5 +52,63 @@ describe("buildHubStageModel stageCounts", () => {
     expect(stageCounts.work).toBe(1);
     expect(stageCounts.assess).toBe(2);
     expect(stageCounts.certify).toBe(1);
+  });
+});
+
+/**
+ * Two-click investigation — what does the model do at a full-page create route?
+ *
+ * Hypothesis under test (Explore agent): navigating to /hub/assess/create makes
+ * the stage-sync effect (requestedStage !== stage) replace-navigate to the bare
+ * stage, stripping /create and forcing a second click. The effect only fires
+ * when stage diverges from requestedStage — so this pins WHEN that happens.
+ */
+describe("Hub create-route stage resolution (two-click investigation)", () => {
+  const routeStateFor = (pathname: string) =>
+    resolveHubRouteState({
+      pathname,
+      sortParam: null,
+      routedWorkIdParam: undefined,
+      routedAssessmentIdParam: undefined,
+      routedHistoryEventIdParam: undefined,
+      activeContentId: null,
+    });
+
+  it("treats /hub/assess/create as the assess stage with no sheet content", () => {
+    const s = routeStateFor("/hub/assess/create");
+    expect(s.requestedStage).toBe("assess");
+    expect(s.routeSheetContentId).toBeNull();
+  });
+
+  it("does NOT diverge stage from requestedStage when the operator can assess (no redirect)", () => {
+    const { stage } = buildHubStageModel({
+      requestedStage: "assess",
+      canManage: true,
+      canAssess: true,
+      canCertify: true,
+      canBrowseHistory: true,
+      works: [],
+      assessments: [],
+      hypercerts: [],
+    });
+    // stage === requestedStage → the effect's `requestedStage === stage` guard
+    // returns early → no redirect. So a permitted operator does NOT hit the
+    // stripping mechanism — the two-click cause for them lies elsewhere.
+    expect(stage).toBe("assess");
+  });
+
+  it("clamps stage to a visible fallback when the operator cannot assess (a legitimate permission redirect, not the two-click bug)", () => {
+    const { stage } = buildHubStageModel({
+      requestedStage: "assess",
+      canManage: true,
+      canAssess: false,
+      canCertify: true,
+      canBrowseHistory: true,
+      works: [],
+      assessments: [],
+      hypercerts: [],
+    });
+    expect(stage).not.toBe("assess");
+    expect(stage).toBe("work"); // first visible stage
   });
 });

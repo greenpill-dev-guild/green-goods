@@ -12,6 +12,12 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+const workMutationStoreMocks = vi.hoisted(() => ({
+  openWorkDashboard: vi.fn(),
+  setSubmissionCompleted: vi.fn(),
+  ensureWorkSubmissionJourneyId: vi.fn(() => "journey-123"),
+}));
+
 // Mock modules
 vi.mock("../../modules/work/wallet-submission", () => ({
   submitWorkDirectly: vi.fn(),
@@ -22,6 +28,7 @@ vi.mock("../../modules/work/work-submission", () => ({
 }));
 
 vi.mock("../../modules/job-queue", () => ({
+  isOfflineTxHash: (txHash: string) => txHash.startsWith("0xoffline_"),
   jobQueue: {
     processJob: vi.fn(),
   },
@@ -53,14 +60,14 @@ vi.mock("../../components/toast", () => ({
 }));
 
 vi.mock("../../stores/useUIStore", () => ({
-  useUIStore: vi.fn(() => vi.fn()),
+  useUIStore: vi.fn(() => workMutationStoreMocks.openWorkDashboard),
 }));
 
 vi.mock("../../stores/useWorkFlowStore", () => ({
   useWorkFlowStore: {
     getState: vi.fn(() => ({
-      setSubmissionCompleted: vi.fn(),
-      ensureWorkSubmissionJourneyId: vi.fn(() => "journey-123"),
+      setSubmissionCompleted: workMutationStoreMocks.setSubmissionCompleted,
+      ensureWorkSubmissionJourneyId: workMutationStoreMocks.ensureWorkSubmissionJourneyId,
     })),
   },
 }));
@@ -194,6 +201,7 @@ describe("hooks/work/useWorkMutation", () => {
       },
     });
     vi.clearAllMocks();
+    workMutationStoreMocks.ensureWorkSubmissionJourneyId.mockReturnValue("journey-123");
 
     // Default: online
     Object.defineProperty(navigator, "onLine", {
@@ -272,6 +280,58 @@ describe("hooks/work/useWorkMutation", () => {
         })
       );
     });
+
+    it("exposes wallet progress to reusable hook consumers", async () => {
+      const onProgress = vi.fn();
+      mock(submitWorkDirectly).mockImplementation(
+        async (_draft, _garden, _actionUID, _actionTitle, _chainId, _images, options) => {
+          options?.onProgress?.("uploading", "Uploading media to IPFS...");
+          return MOCK_TX_HASH;
+        }
+      );
+
+      const { result } = renderHook(() => useWorkMutation({ ...defaultOptions, onProgress }), {
+        wrapper: createWrapper(),
+      });
+
+      await act(async () => {
+        await result.current.mutateAsync({
+          draft: createMockWorkDraft(),
+          images: createMockFiles(1),
+        });
+      });
+
+      expect(onProgress).toHaveBeenCalledWith("uploading", "Uploading media to IPFS...");
+    });
+
+    it("lets admin-style consumers opt out of client completion side effects", async () => {
+      const onSuccess = vi.fn();
+      const onSettled = vi.fn();
+      mock(submitWorkDirectly).mockResolvedValue(MOCK_TX_HASH);
+
+      const { result } = renderHook(
+        () =>
+          useWorkMutation({
+            ...defaultOptions,
+            completeClientFlow: false,
+            onSuccess,
+            onSettled,
+          }),
+        { wrapper: createWrapper() }
+      );
+
+      await act(async () => {
+        await result.current.mutateAsync({
+          draft: createMockWorkDraft(),
+          images: createMockFiles(1),
+        });
+      });
+
+      expect(onSuccess).toHaveBeenCalledWith(MOCK_TX_HASH);
+      expect(onSettled).toHaveBeenCalled();
+      expect(workMutationStoreMocks.setSubmissionCompleted).not.toHaveBeenCalled();
+      expect(workMutationStoreMocks.openWorkDashboard).not.toHaveBeenCalled();
+    });
   });
 
   describe("Wallet mode - offline", () => {
@@ -298,6 +358,30 @@ describe("hooks/work/useWorkMutation", () => {
       expect(submitWorkToQueue).toHaveBeenCalled();
       expect(submitWorkDirectly).not.toHaveBeenCalled();
       expect(workToasts.savedOffline).toHaveBeenCalled();
+    });
+
+    it("lets admin-style consumers disable offline queue fallback", async () => {
+      Object.defineProperty(navigator, "onLine", { value: false });
+
+      const { result } = renderHook(
+        () => useWorkMutation({ ...defaultOptions, allowOfflineQueue: false }),
+        {
+          wrapper: createWrapper(),
+        }
+      );
+
+      await act(async () => {
+        await expect(
+          result.current.mutateAsync({
+            draft: createMockWorkDraft(),
+            images: createMockFiles(1),
+          })
+        ).rejects.toThrow("Offline queue is disabled");
+      });
+
+      expect(submitWorkToQueue).not.toHaveBeenCalled();
+      expect(submitWorkDirectly).not.toHaveBeenCalled();
+      expect(workToasts.savedOffline).not.toHaveBeenCalled();
     });
   });
 
@@ -520,6 +604,37 @@ describe("hooks/work/useWorkMutation", () => {
       // Transaction-phase network errors SHOULD fall back to queue
       expect(submitWorkToQueue).toHaveBeenCalled();
       expect(txHash).toBe("0xoffline_fallback");
+    });
+
+    it("does not fall back to queue for transaction errors when disabled", async () => {
+      const txError = new WorkSubmissionError(
+        "Network error - please check your connection",
+        "transaction",
+        "batch-no-queue",
+        new Error("network connection failed")
+      );
+      mock(submitWorkDirectly).mockRejectedValue(txError);
+
+      const { result } = renderHook(
+        () => useWorkMutation({ ...defaultOptions, allowOfflineQueue: false }),
+        {
+          wrapper: createWrapper(),
+        }
+      );
+
+      await act(async () => {
+        await expect(
+          result.current.mutateAsync({
+            draft: createMockWorkDraft(),
+            images: createMockFiles(1),
+          })
+        ).rejects.toThrow("Network error");
+      });
+
+      expect(submitWorkToQueue).not.toHaveBeenCalled();
+      await waitFor(() => {
+        expect(result.current.isError).toBe(true);
+      });
     });
 
     it("keeps wallet request expiry on the direct Review retry path", async () => {

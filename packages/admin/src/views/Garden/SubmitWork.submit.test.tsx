@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { IntlProvider } from "react-intl";
@@ -11,39 +11,267 @@ import { Domain } from "../../../../shared/src/types/domain";
 import { SubmitWorkPanel } from "./SubmitWork";
 
 const gardenAddress = "0xAbCdEf1234567890aBcDeF1234567890aBcDeF12";
-const chainId = 42161;
-const actionId = `${chainId}-42`;
+const actionId = "42161-42";
 
 const {
   mockState,
-  mockSubmitWorkDirectly,
+  mockMutate,
   mockToastError,
+  mockToastInfo,
   mockToastSuccess,
+  mockUseWorkMutation,
   mockValidationFormError,
+  mockImageCompressor,
 } = vi.hoisted(() => ({
   mockState: {
     actions: [] as Action[],
     selectedGarden: null as { id: string; tokenAddress: string; name: string } | null,
+    workMutationOptions: null as null | Record<string, unknown>,
   },
-  mockSubmitWorkDirectly: vi.fn(),
+  mockMutate: vi.fn(),
   mockToastError: vi.fn(),
+  mockToastInfo: vi.fn(),
   mockToastSuccess: vi.fn(),
+  mockUseWorkMutation: vi.fn(),
   mockValidationFormError: vi.fn(),
+  mockImageCompressor: {
+    shouldCompress: vi.fn(() => false),
+    compressImages: vi.fn(
+      async (files: File[], _options: unknown, onProgress?: (progress: number) => void) => {
+        onProgress?.(100);
+        return files.map((file) => ({
+          file,
+          originalSize: file.size,
+          compressedSize: file.size,
+          compressionRatio: 0,
+        }));
+      }
+    ),
+  },
 }));
 
-vi.mock("@green-goods/shared", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@green-goods/shared")>();
+const heicToMocks = vi.hoisted(() => ({
+  heicTo: vi.fn(),
+  isHeic: vi.fn(),
+}));
+
+vi.mock("heic-to/csp", () => heicToMocks);
+
+vi.mock("@green-goods/shared/modules", () => ({
+  validateWorkSubmissionContext: (
+    gardenAddress: string | null,
+    actionUID: number | null,
+    images: File[],
+    options?: { minRequired?: number }
+  ) => {
+    if (!gardenAddress) return ["Garden must be selected before submitting work"];
+    if (actionUID === null) return ["Action must be selected before submitting work"];
+    const minRequired = options?.minRequired ?? 0;
+    if (images.length < minRequired) {
+      return [
+        minRequired === 1
+          ? "At least one image is required"
+          : `At least ${minRequired} images are required`,
+      ];
+    }
+    return [];
+  },
+}));
+
+vi.mock("@green-goods/shared", async () => {
+  const React = await vi.importActual<typeof import("react")>("react");
+  const { useForm } = await vi.importActual<typeof import("react-hook-form")>("react-hook-form");
+
+  const Card = Object.assign(
+    ({ children }: { children: React.ReactNode }) =>
+      React.createElement("div", { "data-testid": "card" }, children),
+    {
+      Body: ({ children }: { children: React.ReactNode }) =>
+        React.createElement("div", null, children),
+      Footer: ({ children, className }: { children: React.ReactNode; className?: string }) =>
+        React.createElement("div", { className }, children),
+    }
+  );
 
   return {
-    ...actual,
-    submitWorkDirectly: mockSubmitWorkDirectly,
+    Alert: ({
+      children,
+      action,
+      variant,
+    }: {
+      children: React.ReactNode;
+      action?: React.ReactNode;
+      variant?: string;
+    }) =>
+      React.createElement(
+        "div",
+        { role: variant === "error" ? "alert" : "status" },
+        children,
+        action
+      ),
+    adminRoutes: {
+      gardenSettings: () => "/garden/settings",
+      hub: () => "/hub",
+    },
+    Card,
+    cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
+    expandDomainMask: (mask: number) => {
+      const domains: number[] = [];
+      if (mask & 1) domains.push(0);
+      if (mask & 2) domains.push(1);
+      if (mask & 4) domains.push(2);
+      if (mask & 8) domains.push(3);
+      return domains;
+    },
+    FileUploadField: ({
+      onFilesChange,
+      currentFiles = [],
+      onRemoveFile,
+      disabled,
+      label,
+      helpText,
+      accept,
+      multiple,
+    }: {
+      onFilesChange: (files: File[]) => void;
+      currentFiles?: File[];
+      onRemoveFile?: (index: number) => void;
+      disabled?: boolean;
+      label?: string;
+      helpText?: string;
+      accept?: string;
+      multiple?: boolean;
+    }) =>
+      React.createElement(
+        "div",
+        null,
+        label ? React.createElement("label", null, label) : null,
+        helpText ? React.createElement("p", null, helpText) : null,
+        React.createElement("input", {
+          type: "file",
+          accept,
+          multiple,
+          disabled,
+          onChange: (event: React.ChangeEvent<HTMLInputElement>) => {
+            onFilesChange(Array.from(event.target.files ?? []));
+          },
+        }),
+        currentFiles.map((file, index) =>
+          React.createElement(
+            "button",
+            {
+              key: `${file.name}-${index}`,
+              type: "button",
+              onClick: () => onRemoveFile?.(index),
+            },
+            file.name
+          )
+        )
+      ),
+    findActionByUID: (actions: Action[], uid: number | null) =>
+      uid === null
+        ? null
+        : (actions.find((action) => Number(action.id.split("-").pop()) === uid) ?? null),
+    FormField: ({
+      children,
+      label,
+      htmlFor,
+      error,
+      required,
+    }: {
+      children: React.ReactNode;
+      label?: string;
+      htmlFor?: string;
+      error?: string;
+      required?: boolean;
+    }) =>
+      React.createElement(
+        "div",
+        null,
+        label ? React.createElement("label", { htmlFor }, `${label}${required ? " *" : ""}`) : null,
+        children,
+        error ? React.createElement("p", null, error) : null
+      ),
+    getActionTitle: (actions: Action[], uid: number | null, fallback = "Unknown Action") =>
+      uid === null
+        ? fallback
+        : (actions.find((action) => Number(action.id.split("-").pop()) === uid)?.title ?? fallback),
+    imageCompressor: mockImageCompressor,
+    isOfflineTxHash: (txHash: string) => txHash.startsWith("0xoffline_"),
+    logger: {
+      error: vi.fn(),
+    },
+    NativeSelect: ({
+      invalid: _invalid,
+      surface: _surface,
+      ...props
+    }: React.SelectHTMLAttributes<HTMLSelectElement> & { invalid?: boolean; surface?: string }) =>
+      React.createElement("select", props),
+    normalizeWorkMediaFiles: async (files: File[]) => {
+      const accepted = [];
+      const rejected = [];
+      const converted = [];
+      for (const file of files) {
+        if (file.type === "text/plain") {
+          rejected.push({
+            file,
+            reason: "unsupported",
+            metadata: {},
+          });
+          continue;
+        }
+        if (file.type === "image/heic" || file.name.endsWith(".heic")) {
+          const isHeic = await heicToMocks.isHeic(file);
+          if (!isHeic) {
+            rejected.push({ file, reason: "unsupported", metadata: {} });
+            continue;
+          }
+          const blob = await heicToMocks.heicTo({
+            blob: file,
+            type: "image/jpeg",
+            quality: 0.85,
+          });
+          const convertedFile = new File([blob], file.name.replace(/\.[^.]+$/, ".jpg"), {
+            type: "image/jpeg",
+            lastModified: file.lastModified,
+          });
+          accepted.push({
+            file: convertedFile,
+            originalFile: file,
+            converted: true,
+            metadata: {},
+          });
+          converted.push({ originalFile: file, file: convertedFile, metadata: {} });
+          continue;
+        }
+        accepted.push({ file, originalFile: file, converted: false, metadata: {} });
+      }
+      return { accepted, rejected, converted };
+    },
+    parseActionUID: (compositeId: string | undefined | null) => {
+      if (!compositeId) return null;
+      const uid = Number(String(compositeId).split("-").pop());
+      return Number.isFinite(uid) ? uid : null;
+    },
+    SheetBody: ({ children }: { children: React.ReactNode }) =>
+      React.createElement("div", null, children),
+    SheetFooter: ({ children }: { children: React.ReactNode }) =>
+      React.createElement("div", null, children),
+    Textarea: ({
+      invalid: _invalid,
+      surface: _surface,
+      ...props
+    }: React.TextareaHTMLAttributes<HTMLTextAreaElement> & {
+      invalid?: boolean;
+      surface?: string;
+    }) => React.createElement("textarea", props),
+    useWorkMutation: mockUseWorkMutation,
     toastService: {
-      ...actual.toastService,
       error: mockToastError,
+      info: mockToastInfo,
       success: mockToastSuccess,
     },
     validationToasts: {
-      ...actual.validationToasts,
       formError: mockValidationFormError,
     },
     useAdminGardenWorkspaceSelection: () => ({
@@ -61,9 +289,15 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
     useActions: () => ({
       data: mockState.actions,
     }),
-    useAuthState: () => ({ isAuthenticated: true }),
+    useAuthState: () => ({ isAuthenticated: true, authMode: "wallet" }),
+    useUser: () => ({ authMode: "wallet", primaryAddress: gardenAddress }),
     useGardenPermissions: () => ({ canManageGarden: () => true }),
     useBeforeUnloadWhilePending: () => undefined,
+    useWorkForm: () =>
+      useForm<Record<string, unknown>>({
+        mode: "onChange",
+        defaultValues: {},
+      }),
   };
 });
 
@@ -100,17 +334,32 @@ function createAction(mediaInfo: Action["mediaInfo"] = {}): Action {
   };
 }
 
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((resolver) => {
+    resolve = resolver;
+  });
+  return { promise, resolve };
+}
+
 async function selectActionAndFillRequiredFields(user: ReturnType<typeof userEvent.setup>) {
   await user.selectOptions(screen.getByLabelText(/Action/), actionId);
   await user.type(screen.getByLabelText(/Plot code/), "Plot A");
 }
 
-function uploadFile(container: HTMLElement, fileName = "before.png") {
+function uploadFile(container: HTMLElement, fileName = "before.png", type = "image/png") {
   const input = container.querySelector('input[type="file"]');
   expect(input).not.toBeNull();
-  const file = new File(["photo"], fileName, { type: "image/png" });
+  const file = new File(["photo"], fileName, { type });
   fireEvent.change(input as HTMLInputElement, { target: { files: [file] } });
   return file;
+}
+
+function setNavigatorOnline(isOnline: boolean) {
+  Object.defineProperty(window.navigator, "onLine", {
+    configurable: true,
+    get: () => isOnline,
+  });
 }
 
 function TestProviders({ children }: { children: ReactNode }) {
@@ -133,13 +382,36 @@ function TestProviders({ children }: { children: ReactNode }) {
 describe("SubmitWorkPanel submit behavior", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    setNavigatorOnline(true);
     mockState.selectedGarden = {
       id: gardenAddress,
       tokenAddress: gardenAddress,
       name: "Green Goods Community Garden",
     };
     mockState.actions = [createAction()];
-    mockSubmitWorkDirectly.mockResolvedValue("0x123");
+    mockState.workMutationOptions = null;
+    mockUseWorkMutation.mockImplementation((options) => {
+      mockState.workMutationOptions = options;
+      return {
+        mutate: mockMutate,
+        isPending: false,
+        error: null,
+      };
+    });
+    heicToMocks.isHeic.mockResolvedValue(false);
+    heicToMocks.heicTo.mockResolvedValue(new Blob(["jpeg"], { type: "image/jpeg" }));
+    mockImageCompressor.shouldCompress.mockReturnValue(false);
+    mockImageCompressor.compressImages.mockImplementation(
+      async (files: File[], _options: unknown, onProgress?: (progress: number) => void) => {
+        onProgress?.(100);
+        return files.map((file) => ({
+          file,
+          originalSize: file.size,
+          compressedSize: file.size,
+          compressionRatio: 0,
+        }));
+      }
+    );
     vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:test-preview");
     vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
   });
@@ -155,7 +427,7 @@ describe("SubmitWorkPanel submit behavior", () => {
 
     expect(await screen.findByText("Garden not found")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Submit Work" })).not.toBeInTheDocument();
-    expect(mockSubmitWorkDirectly).not.toHaveBeenCalled();
+    expect(mockMutate).not.toHaveBeenCalled();
   });
 
   it("blocks required-media actions before opening the wallet", async () => {
@@ -173,7 +445,7 @@ describe("SubmitWorkPanel submit behavior", () => {
     await waitFor(() => {
       expect(mockValidationFormError).toHaveBeenCalledWith("At least one image is required");
     });
-    expect(mockSubmitWorkDirectly).not.toHaveBeenCalled();
+    expect(mockMutate).not.toHaveBeenCalled();
   });
 
   it("treats required media with no minImageCount as requiring one image", async () => {
@@ -192,7 +464,7 @@ describe("SubmitWorkPanel submit behavior", () => {
     await waitFor(() => {
       expect(mockValidationFormError).toHaveBeenCalledWith("At least one image is required");
     });
-    expect(mockSubmitWorkDirectly).not.toHaveBeenCalled();
+    expect(mockMutate).not.toHaveBeenCalled();
   });
 
   it("allows optional media actions with minImageCount 0 to submit without images", async () => {
@@ -209,17 +481,22 @@ describe("SubmitWorkPanel submit behavior", () => {
     await user.click(screen.getByRole("button", { name: "Submit Work" }));
 
     await waitFor(() => {
-      expect(mockSubmitWorkDirectly).toHaveBeenCalledWith(
-        expect.objectContaining({ media: [] }),
-        gardenAddress,
-        42,
-        "Site Assessment (Before)",
-        chainId,
-        [],
-        expect.any(Object)
-      );
+      expect(mockMutate).toHaveBeenCalledWith({
+        draft: expect.objectContaining({ media: [] }),
+        images: [],
+      });
     });
     expect(mockValidationFormError).not.toHaveBeenCalled();
+    expect(mockUseWorkMutation).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        authMode: "wallet",
+        gardenAddress,
+        actionUID: 42,
+        userAddress: gardenAddress,
+        completeClientFlow: false,
+        allowOfflineQueue: false,
+      })
+    );
   });
 
   it("blocks required-media actions until the configured minImageCount is met", async () => {
@@ -239,10 +516,10 @@ describe("SubmitWorkPanel submit behavior", () => {
     await waitFor(() => {
       expect(mockValidationFormError).toHaveBeenCalledWith("At least 2 images are required");
     });
-    expect(mockSubmitWorkDirectly).not.toHaveBeenCalled();
+    expect(mockMutate).not.toHaveBeenCalled();
   });
 
-  it("submits when required media is present", async () => {
+  it("submits through the shared mutation when required media is present", async () => {
     const user = userEvent.setup();
 
     const { container } = render(
@@ -257,28 +534,69 @@ describe("SubmitWorkPanel submit behavior", () => {
     await user.click(screen.getByRole("button", { name: "Submit Work" }));
 
     await waitFor(() => {
-      expect(mockSubmitWorkDirectly).toHaveBeenCalledWith(
-        expect.objectContaining({
+      expect(mockMutate).toHaveBeenCalledWith({
+        draft: expect.objectContaining({
           actionUID: 42,
           details: expect.objectContaining({ plot: "Plot A" }),
           media: [file],
           title: "Site Assessment (Before)",
         }),
-        gardenAddress,
-        42,
-        "Site Assessment (Before)",
-        chainId,
-        [file],
-        expect.any(Object)
-      );
+        images: [file],
+      });
     });
   });
 
-  it("shows reconnect guidance when a wrapped wallet session error is available", async () => {
-    mockSubmitWorkDirectly.mockRejectedValue(
-      new Error("Transaction failed", { cause: new Error("Connector not connected") })
+  it("compresses normalized media before submitting", async () => {
+    const user = userEvent.setup();
+    const compressedFile = new File(["compressed"], "large-compressed.jpg", {
+      type: "image/jpeg",
+    });
+    mockImageCompressor.shouldCompress.mockReturnValue(true);
+    mockImageCompressor.compressImages.mockResolvedValue([
+      {
+        file: compressedFile,
+        originalSize: 12 * 1024 * 1024,
+        compressedSize: compressedFile.size,
+        compressionRatio: 99,
+      },
+    ]);
+
+    const { container } = render(
+      <TestProviders>
+        <SubmitWorkPanel layout="page" />
+      </TestProviders>
     );
 
+    await selectActionAndFillRequiredFields(user);
+    const rawFile = uploadFile(container, "large.png", "image/png");
+
+    await waitFor(() => {
+      expect(mockImageCompressor.compressImages).toHaveBeenCalledWith(
+        [rawFile],
+        expect.objectContaining({
+          maxSizeMB: 0.8,
+          maxWidthOrHeight: 2048,
+          initialQuality: 0.8,
+          useWebWorker: true,
+        }),
+        expect.any(Function)
+      );
+    });
+
+    await user.click(screen.getByRole("button", { name: "Submit Work" }));
+
+    await waitFor(() => {
+      expect(mockMutate).toHaveBeenCalledWith({
+        draft: expect.objectContaining({
+          media: [compressedFile],
+        }),
+        images: [compressedFile],
+      });
+    });
+  });
+
+  it("normalizes HEIC media before submitting", async () => {
+    heicToMocks.isHeic.mockResolvedValue(true);
     const user = userEvent.setup();
 
     const { container } = render(
@@ -288,17 +606,186 @@ describe("SubmitWorkPanel submit behavior", () => {
     );
 
     await selectActionAndFillRequiredFields(user);
-    uploadFile(container);
+    uploadFile(container, "garden.heic", "image/heic");
 
+    await waitFor(() => {
+      expect(heicToMocks.heicTo).toHaveBeenCalled();
+    });
+
+    await user.click(screen.getByRole("button", { name: "Submit Work" }));
+
+    await waitFor(() => {
+      expect(mockMutate).toHaveBeenCalledWith({
+        draft: expect.objectContaining({
+          media: [expect.objectContaining({ name: "garden.jpg", type: "image/jpeg" })],
+        }),
+        images: [expect.objectContaining({ name: "garden.jpg", type: "image/jpeg" })],
+      });
+    });
+  });
+
+  it("blocks action switches and cancel while media is preparing", async () => {
+    const user = userEvent.setup();
+    const compressedFile = new File(["compressed"], "large-compressed.jpg", {
+      type: "image/jpeg",
+    });
+    const compression =
+      createDeferred<
+        Array<{
+          file: File;
+          originalSize: number;
+          compressedSize: number;
+          compressionRatio: number;
+        }>
+      >();
+    mockImageCompressor.shouldCompress.mockReturnValue(true);
+    mockImageCompressor.compressImages.mockImplementation(
+      async (_files: File[], _options: unknown, onProgress?: (progress: number) => void) => {
+        onProgress?.(20);
+        return compression.promise;
+      }
+    );
+
+    const { container } = render(
+      <TestProviders>
+        <SubmitWorkPanel layout="page" />
+      </TestProviders>
+    );
+
+    await selectActionAndFillRequiredFields(user);
+    uploadFile(container, "large.png", "image/png");
+
+    const actionSelect = screen.getByLabelText(/Action/);
+    await waitFor(() => {
+      expect(actionSelect).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Submit Work" })).toBeDisabled();
+    });
+
+    act(() => {
+      compression.resolve([
+        {
+          file: compressedFile,
+          originalSize: 12 * 1024 * 1024,
+          compressedSize: compressedFile.size,
+          compressionRatio: 99,
+        },
+      ]);
+    });
+
+    await waitFor(() => {
+      expect(actionSelect).not.toBeDisabled();
+      expect(screen.getByRole("button", { name: "Cancel" })).not.toBeDisabled();
+    });
+  });
+
+  it("rejects unsupported media before the shared mutation is called", async () => {
+    const user = userEvent.setup();
+
+    const { container } = render(
+      <TestProviders>
+        <SubmitWorkPanel layout="page" />
+      </TestProviders>
+    );
+
+    await selectActionAndFillRequiredFields(user);
+    uploadFile(container, "notes.txt", "text/plain");
+
+    expect(
+      await screen.findByText("That file is not a supported photo or video.")
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Submit Work" }));
+
+    await waitFor(() => {
+      expect(mockValidationFormError).toHaveBeenCalledWith("At least one image is required");
+    });
+    expect(mockToastInfo).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "Some files were not added",
+      })
+    );
+    expect(mockMutate).not.toHaveBeenCalled();
+  });
+
+  it("does not report success when the shared mutation returns an offline queue hash", async () => {
+    const onSuccess = vi.fn();
+
+    render(
+      <TestProviders>
+        <SubmitWorkPanel layout="page" onSuccess={onSuccess} />
+      </TestProviders>
+    );
+
+    act(() => {
+      const handleSuccess = mockState.workMutationOptions?.onSuccess as
+        | ((txHash: string) => void)
+        | undefined;
+      handleSuccess?.("0xoffline_stranded");
+    });
+
+    expect(mockToastError).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "Work was not submitted",
+        message: "Reconnect and submit again from admin so the transaction can be confirmed.",
+        context: "admin work submission",
+      })
+    );
+    expect(mockToastSuccess).not.toHaveBeenCalled();
+    expect(onSuccess).not.toHaveBeenCalled();
+  });
+
+  it("blocks offline admin submissions instead of queuing them", async () => {
+    mockState.actions = [createAction({ required: false, minImageCount: 0 })];
+    setNavigatorOnline(false);
+    const user = userEvent.setup();
+
+    render(
+      <TestProviders>
+        <SubmitWorkPanel layout="page" />
+      </TestProviders>
+    );
+
+    await selectActionAndFillRequiredFields(user);
     await user.click(screen.getByRole("button", { name: "Submit Work" }));
 
     await waitFor(() => {
       expect(mockToastError).toHaveBeenCalledWith(
         expect.objectContaining({
-          message:
-            "Wallet session unavailable. Disconnect and reconnect your wallet, then try again.",
+          title: "You're offline",
+          message: "Reconnect to the internet before submitting work.",
+          context: "admin work submission",
         })
       );
     });
+    expect(mockMutate).not.toHaveBeenCalled();
+  });
+
+  it("maps shared submission progress into the admin footer status", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <TestProviders>
+        <SubmitWorkPanel layout="page" />
+      </TestProviders>
+    );
+
+    await user.selectOptions(screen.getByLabelText(/Action/), actionId);
+
+    act(() => {
+      const onProgress = mockState.workMutationOptions?.onProgress as
+        | ((stage: string, message: string) => void)
+        | undefined;
+      onProgress?.("uploading", "Uploading media to IPFS...");
+    });
+
+    expect(screen.getByText("Uploading media...")).toBeInTheDocument();
+
+    act(() => {
+      const onSettled = mockState.workMutationOptions?.onSettled as (() => void) | undefined;
+      onSettled?.();
+    });
+
+    expect(screen.queryByText("Uploading media...")).not.toBeInTheDocument();
   });
 });

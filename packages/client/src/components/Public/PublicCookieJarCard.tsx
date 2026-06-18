@@ -11,7 +11,7 @@ import {
   type PublicGardenSummary,
   resolveIPFSUrl,
   TxInlineFeedback,
-  useAppKit,
+  useAuth,
   useCampaignCookieJar,
   useCampaignCookieJarDeposit,
   useCampaignCookieJarWithdraw,
@@ -438,7 +438,7 @@ function CampaignCookieJarInlineActions({
 }) {
   const { formatMessage, locale } = useIntl();
   const { primaryAddress } = useUser();
-  const { open: openWalletModal } = useAppKit();
+  const { loginWithWallet } = useAuth();
   const claimId = useId();
   const depositId = useId();
   const [claimAmount, setClaimAmount] = useState("");
@@ -539,7 +539,7 @@ function CampaignCookieJarInlineActions({
 
   const handleClaim = () => {
     if (!primaryAddress) {
-      openWalletModal();
+      loginWithWallet();
       return;
     }
     if (claimDisabled) return;
@@ -559,7 +559,7 @@ function CampaignCookieJarInlineActions({
 
   const handleDeposit = () => {
     if (!primaryAddress) {
-      openWalletModal();
+      loginWithWallet();
       return;
     }
     if (depositDisabled) return;
@@ -584,7 +584,7 @@ function CampaignCookieJarInlineActions({
             defaultMessage: "Connect a wallet to check claim access and add funds.",
           })}
         </p>
-        <Button className="mt-4" onClick={() => openWalletModal()}>
+        <Button className="mt-4" onClick={() => loginWithWallet()}>
           {formatMessage({
             id: "public.cookies.connectWallet",
             defaultMessage: "Connect wallet",

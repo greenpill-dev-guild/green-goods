@@ -3,6 +3,8 @@ import {
   AudioPlayer,
   formatTimeSpent,
   type Garden,
+  getWorkMediaId,
+  isVideoFile,
   mediaResourceManager,
   type WorkInput,
   cn,
@@ -12,7 +14,6 @@ import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { WorkView } from "@/components/Features/Work";
 import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
-import { getWorkMediaId, isVideoFile } from "./mediaProcessing";
 
 /** Stable tracking ID for work draft media URLs (shared with Media.tsx) */
 const WORK_DRAFT_TRACKING_ID = "work-draft";

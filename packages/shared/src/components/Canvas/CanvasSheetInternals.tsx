@@ -236,6 +236,7 @@ export interface CanvasSheetHeaderProps {
   closeLabel: string;
   closeTestId: string;
   onClose: () => void;
+  closeDisabled?: boolean;
   showCloseWhenUntitled?: boolean;
 }
 
@@ -244,16 +245,19 @@ export function CanvasSheetHeader({
   closeLabel,
   closeTestId,
   onClose,
+  closeDisabled = false,
   showCloseWhenUntitled = true,
 }: CanvasSheetHeaderProps) {
   const closeButton = (
     <button
       type="button"
       onClick={onClose}
+      disabled={closeDisabled}
       className={cn(
         "flex h-9 w-9 items-center justify-center rounded-lg",
         "text-text-soft transition-colors hover:bg-bg-soft",
-        "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2"
+        "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2",
+        closeDisabled && "cursor-not-allowed opacity-50 hover:bg-transparent"
       )}
       aria-label={closeLabel}
       data-slot="close-button"

@@ -173,13 +173,18 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       ],
     }),
     useActions: () => ({ data: [] }),
-    useAuthState: () => ({ isAuthenticated: true }),
+    useAuthState: () => ({ isAuthenticated: true, authMode: "wallet" }),
     useGardenPermissions: () => ({ canManageGarden: mockCanManageGarden }),
     useBeforeUnloadWhilePending: () => undefined,
     useGardenDomains: () => ({ data: 0n, isLoading: false }),
     useSetGardenDomains: () => ({
       mutate: vi.fn(),
       isPending: false,
+    }),
+    useWorkMutation: () => ({
+      error: null,
+      isPending: false,
+      mutate: vi.fn(),
     }),
   };
 });
@@ -277,7 +282,19 @@ describe("garden domain recovery UI", () => {
       <TestProviders>
         <MemoryRouter initialEntries={["/hub/work/submit"]}>
           <Routes>
-            <Route path="/hub/work/submit" element={<SubmitWorkPanel layout="page" />} />
+            <Route
+              path="/hub/work/submit"
+              element={
+                <SubmitWorkPanel
+                  layout="page"
+                  auth={{
+                    authMode: "wallet",
+                    isAuthenticated: true,
+                    primaryAddress: gardenAddress,
+                  }}
+                />
+              }
+            />
             <Route path="/garden/settings" element={<div>Garden settings route</div>} />
           </Routes>
         </MemoryRouter>

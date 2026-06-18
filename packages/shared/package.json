@@ -79,6 +79,7 @@
     "gql.tada": "^1.8.10",
     "graphql": "^16.10.0",
     "graphql-request": "^7.1.2",
+    "heic-to": "^1.5.2",
     "permissionless": "^0.2.57",
     "react-day-picker": "^9.13.0",
     "react-router-dom": "^7.12.0",
