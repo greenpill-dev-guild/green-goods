@@ -4,7 +4,7 @@ sidebar_label: Codex
 slug: /builders/agentic/codex
 audience: developer
 owner: docs
-last_verified: 2026-05-11
+last_verified: 2026-06-18
 feature_status: Live
 source_of_truth:
   - AGENTS.md
@@ -21,7 +21,7 @@ graph TB
     subgraph Config["Codex Config"]
         TOML["config.toml\nfallback, model, sandbox"]
         ENV["environment.toml\nversioned env metadata"]
-        Hooks["hooks disabled\nno prompt rewrite"]
+        Hooks["hooks enabled\ncontext + policy checks"]
     end
 
     subgraph Sandbox["Workspace Sandbox"]
@@ -37,7 +37,7 @@ graph TB
     Sandbox -->|output| PR["Draft PR\nmax 20 files"]
 ```
 
-OpenAI Codex is used for automated maintenance tasks in the Green Goods monorepo. The repo-scoped configuration is intentionally small: `AGENTS.md` is the primary context, `CLAUDE.md` is the fallback, the default model is GPT-5.5, the local environment delegates lifecycle work to repo scripts, and the workspace-write sandbox disables network access.
+OpenAI Codex is used for automated maintenance tasks in the Green Goods monorepo. The repo-scoped configuration is intentionally small: `AGENTS.md` is the primary context, `CLAUDE.md` is the fallback, the default model is GPT-5.5, the local environment delegates lifecycle work to repo scripts, the workspace-write sandbox disables network access, and hooks add repo-specific context and policy checks around tool use.
 
 ## Configuration
 
@@ -60,6 +60,13 @@ hooks = true
 # Sandbox: no network access during agent execution
 [sandbox_workspace_write]
 network_access = false
+
+[shell_environment_policy]
+inherit = "all"
+exclude = ["AWS_*", "AZURE_*", "ANTHROPIC_*", "OPENAI_API_KEY"]
+
+[shell_environment_policy.set]
+CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS = "1"
 ```
 
 Key settings:
@@ -68,6 +75,7 @@ Key settings:
 - **`model`** -- `gpt-5.5` is the current project default for automation runs
 - **`hooks = true`** -- project hooks are enabled for supported Codex surfaces; prompts are interpreted directly against `AGENTS.md`, package guides, and `.plans/`
 - **`network_access = false`** -- The workspace-write sandbox has no internet access during execution
+- **`shell_environment_policy`** -- The shell inherits normal environment variables but excludes broad cloud/API credential patterns and sets the Claude agent-teams experiment flag for compatibility with repo automation
 
 ### Environment Metadata (`environment.toml`)
 
@@ -105,7 +113,7 @@ The environment file is intentionally a thin launcher, not a Codex-specific
 setup implementation. It prepends the repo's mise and Bun shim locations because
 Codex local-environment shells are not guaranteed to be login shells, and first
 trusts the exact worktree `.mise.toml` so shimmed `npm`/`bun` calls can load the
-repo tool versions; all workspace behavior lives in `scripts/dev/setup.js` and
+repo tool versions. `.mise.toml` pins Node 22 and Bun 1.3; all workspace behavior lives in `scripts/dev/setup.js` and
 `scripts/dev/clean.js`.
 The isolated setup profile starts from Node/npm, can bootstrap Bun when network
 access is available, then uses the Bun workspace runtime once it is installed or
@@ -115,9 +123,29 @@ sibling-worktree cleanup. Cleanup removes disposable artifacts from the current
 checkout only and does not touch secrets, dependencies, services, or sibling
 worktrees.
 
+Indexer generated files are not baked into the Codex environment launcher. When
+indexer checks need generated sources, use the repo's existing paths:
+
+```bash
+node scripts/dev/ci-local.js --generate-indexer
+# or
+cd packages/indexer && bun run codegen && bun run setup-generated
+```
+
 ### Hooks
 
-No project Codex hooks are currently registered. The previous prompt-submit normalization hook was removed because it could infer task contracts from pasted source material instead of the user's actual request. The shared rules live in `AGENTS.md`, package-local `AGENTS.md`, `.plans/`, and the builder docs.
+Project Codex hooks are enabled through `.codex/hooks.json`:
+
+- `SessionStart` loads Green Goods Codex context on startup, resume, and compaction.
+- `PreToolUse` checks Bash commands and edit/write operations before they run.
+- `PostToolUse` adds Green Goods post-edit context after file edits.
+- `Stop` checks final stop context before Codex finishes a turn.
+
+These hooks are policy and context checks, not prompt rewriting. The previous
+prompt-submit normalization hook was removed because it could infer task
+contracts from pasted source material instead of the user's actual request. The
+shared rules live in `AGENTS.md`, package-local `AGENTS.md`, `.plans/`, and the
+builder docs.
 
 ## Use Cases
 
