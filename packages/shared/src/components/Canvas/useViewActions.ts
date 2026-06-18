@@ -68,12 +68,17 @@ export function useViewActions({
     return {
       icon: primary.icon,
       label: primary.label,
-      actions: visibleActions.map((action) => ({
-        id: action.id,
-        icon: action.icon,
-        label: action.label,
-        labelId: action.labelId,
-      })),
+      // Speed-dial: the primary sits nearest the FAB trigger (first here →
+      // bottom of the upward stack via flex-col-reverse), mirroring the desktop
+      // row's primary-rightmost emphasis.
+      actions: [...visibleActions]
+        .sort((a, b) => Number(Boolean(b.primary)) - Number(Boolean(a.primary)))
+        .map((action) => ({
+          id: action.id,
+          icon: action.icon,
+          label: action.label,
+          labelId: action.labelId,
+        })),
       onAction: (actionId: string) => {
         const target = visibleActions.find((action) => action.id === actionId);
         target?.onClick();
@@ -89,9 +94,9 @@ export function useViewActions({
 
   const desktopActions = useMemo(() => {
     if (blocked || !isDesktop) return [];
-    // Declaration order, always. Reordering by emphasis would shuffle button
-    // positions as the active tab (and with it the filled action) changes —
-    // the stable-trio grammar keeps positions frozen and moves only the fill.
+    // Declaration order; AdminViewActions renders the single fixed primary
+    // rightmost. With one fixed primary per view the primary no longer follows
+    // the active tab, so positions stay stable across tabs.
     return visibleActions;
   }, [blocked, isDesktop, visibleActions]);
 

@@ -262,6 +262,46 @@ describe.each(sheetCases)("$name", (sheet) => {
   });
 });
 
+describe("Canvas sheet preventClose", () => {
+  beforeEach(() => {
+    installPointerPolyfills();
+  });
+
+  it("blocks LeftSheet overlay, Escape, close button, and drag dismiss paths", () => {
+    const onClose = vi.fn();
+    renderWithIntl(
+      <LeftSheet open onClose={onClose} title="Protected sheet" preventClose>
+        <p>Sheet content</p>
+      </LeftSheet>
+    );
+
+    fireEvent.click(screen.getByTestId("left-sheet-overlay"));
+    fireEvent(screen.getByTestId("left-sheet-dialog"), new Event("cancel", { bubbles: true }));
+    fireEvent.click(screen.getByTestId("left-sheet-close"));
+    sheetCases[0].dragPastThreshold(screen.getByTestId("left-sheet"));
+
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByTestId("left-sheet-close")).toBeDisabled();
+  });
+
+  it("blocks BottomSheet overlay, Escape, close button, and drag dismiss paths", () => {
+    const onClose = vi.fn();
+    renderWithIntl(
+      <BottomSheet open onClose={onClose} title="Protected sheet" preventClose>
+        <p>Sheet content</p>
+      </BottomSheet>
+    );
+
+    fireEvent.click(screen.getByTestId("bottom-sheet-overlay"));
+    fireEvent(screen.getByTestId("bottom-sheet-dialog"), new Event("cancel", { bubbles: true }));
+    fireEvent.click(screen.getByTestId("bottom-sheet-close"));
+    sheetCases[2].dragPastThreshold(screen.getByTestId("bottom-sheet-drag-handle"));
+
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByTestId("bottom-sheet-close")).toBeDisabled();
+  });
+});
+
 describe("BottomSheet bounded geometry", () => {
   beforeEach(() => {
     installPointerPolyfills();

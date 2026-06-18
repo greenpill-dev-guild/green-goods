@@ -1,6 +1,6 @@
 import { animated, useSpring } from "@react-spring/web";
 import { useDrag } from "@use-gesture/react";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useIntl } from "react-intl";
 import { useMediaQuery } from "../../hooks/ui/useMediaQuery";
@@ -33,6 +33,8 @@ export interface LeftSheetProps {
   container?: HTMLElement | null;
   /** Width variant. Mirrors RightSheet sizing for consistent side-sheet anatomy. */
   width?: LeftSheetWidth;
+  /** Prevent shell-level dismiss paths while protected sheet work is active. */
+  preventClose?: boolean;
 }
 
 /**
@@ -49,6 +51,7 @@ export function LeftSheet({
   children,
   container,
   width = "default",
+  preventClose = false,
 }: LeftSheetProps) {
   const isBounded = container !== undefined && container !== null;
   const sheetState = open ? "open" : "closed";
@@ -104,12 +107,20 @@ export function LeftSheet({
     }
   }, [open, prefersReducedMotion, setMounted]);
 
+  const requestClose = useCallback(() => {
+    if (preventClose) {
+      api.start({ x: 0, immediate: false });
+      return;
+    }
+    onClose();
+  }, [api, onClose, preventClose]);
+
   useCanvasSheetLifecycle({
     dialogRef,
     open,
     mounted,
     isBounded,
-    onClose,
+    onClose: requestClose,
     autoFocusSelector: '[data-testid="left-sheet-close"]',
   });
 
@@ -129,13 +140,19 @@ export function LeftSheet({
         prefersReducedMotion,
       });
 
+      if (preventClose) {
+        if (intent.kind === "cancel") cancel();
+        api.start({ x: 0, immediate: false });
+        return;
+      }
+
       if (intent.kind === "cancel") {
         cancel();
         api.start({ x: 0, immediate: false });
         return;
       }
       if (intent.kind === "dismiss") {
-        onClose();
+        requestClose();
         return;
       }
       if (intent.kind === "snap") {
@@ -188,7 +205,7 @@ export function LeftSheet({
           WebkitBackdropFilter: isBounded ? undefined : "blur(2px)",
         }}
         onClick={(event) => {
-          if (event.target === event.currentTarget) onClose();
+          if (event.target === event.currentTarget) requestClose();
         }}
         data-component="LeftSheet"
         data-slot="overlay"
@@ -235,9 +252,10 @@ export function LeftSheet({
           title={renderedTitle}
           closeLabel={closeLabel}
           closeTestId="left-sheet-close"
-          onClose={onClose}
+          onClose={requestClose}
+          closeDisabled={preventClose}
         />
-        <CanvasSheetBody onClose={onClose}>{renderedChildren}</CanvasSheetBody>
+        <CanvasSheetBody onClose={requestClose}>{renderedChildren}</CanvasSheetBody>
       </animated.div>
     </dialog>
   );
