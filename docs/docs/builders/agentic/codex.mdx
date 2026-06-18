@@ -52,7 +52,6 @@ project_doc_max_bytes = 40960
 
 # Default model for automated tasks
 model = "gpt-5.5"
-model_reasoning_effort = "xhigh"
 
 [features]
 hooks = true
@@ -123,8 +122,11 @@ sibling-worktree cleanup. Cleanup removes disposable artifacts from the current
 checkout only and does not touch secrets, dependencies, services, or sibling
 worktrees.
 
-Indexer-generated files are not baked into the Codex environment launcher. When
-indexer checks need generated sources, use the repo's existing paths:
+Indexer-generated files are not baked into the Codex environment launcher.
+`setup-generated` runs `pnpm install` inside `packages/indexer/generated`, so it
+needs a network-enabled setup step or already-cached generated dependencies.
+During the no-network agent phase, use these paths only when that generated
+package is already available:
 
 ```bash
 node scripts/dev/ci-local.js --generate-indexer
