@@ -1,68 +1,106 @@
 # CSS Maintainability Polish - QA Pass 1 Handoff
 
-**Lane**: `qa_pass_1`
-**Owner**: `claude`
-**Status**: blocked until the revamped UI lane completes or explicitly defers with evidence
-**Branch target**: `claude/qa-pass-1/css-maintainability-polish`
-**Do not**: redesign public browser, installed PWA, or admin surfaces; do not start QA until `handoffs/claude-ui-revamp.md` has produced a scope-locked UI result.
+**Lane**: `qa_pass_1`  
+**Owner**: `claude`  
+**Status**: blocked on authenticated browser QA access  
+**Branch target**: `claude/qa-pass-1/css-maintainability-polish`  
+**Run date**: `2026-06-19T02:41:18Z`  
+**Checkout used**: `/private/tmp/green-goods-qa-pass-1-css-maintainability-polish` on `claude/qa-pass-1/css-maintainability-polish` at `b4257d57d1be7981e4d037025c41770f538719e6`
 
 ## Current Truth
 
-The hub is still active. `state_api` completed the custom-property guardrail, and the first `ui` pass completed only the low-friction alias cleanup. The active UI lane has been reopened and revamped in `handoffs/claude-ui-revamp.md` to cover the full CSS maintainability surface before QA starts.
+1. `state_api` is complete. The custom-property guard and design-token wiring remain green.
+2. The revamped `ui` lane is complete. The approved runtime micro-batch stayed limited to installed-PWA drawer/dialog backdrop token ownership (`--color-scrim`).
+3. Linear was verified live:
+   - Parent `PRD-451` exists and is `In Review`.
+   - UI lane `PRD-452` is `Done` under `PRD-451`.
+   - QA pass 1 `PRD-610` exists as `Todo` under `PRD-451`.
+4. `.plans` in `origin/develop` was stale for the QA lane Linear ID before this handoff: `linear-sync` saw `qa_pass_1` as a create action because `status.json` only recorded `PRD-452`.
+5. The 60 audited typography/font custom-property entries remain documented debt, not a current gate failure.
 
-Current static proof from the 2026-05-12 reassessment:
+## Findings
 
-- `node scripts/harness/plan-hub.mjs validate` -> `Validated 19 feature hubs.`
-- `node scripts/design/check-css-custom-properties.mjs` -> `CSS custom property guard passed: 3065 var() references, 1005 definitions, 60 audited unresolved entries.`
-- `bun run check:design-tokens` -> passes, including custom-property, raw-token, admin Controlled Chrome, and token-version guards.
-- `bun run check:design-generated` -> exits 0 but mutates generated/guidance files in this checkout. Treat that dirty-tree side effect as a blocker before implementation.
+1. **P1 - Authenticated browser QA is blocked, so QA Pass 1 cannot pass yet.**  
+   Evidence: no Codex Browser/Chrome control tool was exposed for the authenticated Brave QA path; terminal Playwright clean-room attempts were also blocked. Localhost serving of the static Storybook build failed with `PermissionError: [Errno 1] Operation not permitted` even after escalation, and Playwright-launched Brave aborted before a page/context became available.  
+   Impact: admin `/hub`, real admin sheet overlap/focus/route-backed states, and installed-PWA drawer/dialog scroll-lock/focus-trap proof cannot be claimed from this run.
 
-## First-Pass Work That Remains Valid
+2. **P1 - Static guardrails and Storybook build are green.**  
+   Evidence:
+   - `node scripts/harness/plan-hub.mjs validate` -> `Validated 22 feature hubs.`
+   - `node scripts/design/check-css-custom-properties.mjs` -> `CSS custom property guard passed: 3128 var() references, 1002 definitions, 60 audited unresolved entries.`
+   - `bun run check:design-tokens` passed custom-property, raw-token, admin Controlled Chrome, token-version, radius, and workspace-tone guards.
+   - `bun run --filter @green-goods/shared check:stories` -> `178/178 required Storybook surfaces have stories (100%)`.
+   - `bun run --filter @green-goods/shared check:story-quality` -> `Checked 152 story file(s). PASS`.
+   - `bun run --filter @green-goods/shared build-storybook` completed successfully; static output: `packages/shared/storybook-static/`.
 
-- `scripts/design/check-css-custom-properties.mjs` and its baseline remain the active undefined custom-property guard.
-- The first UI pass resolved four mechanical alias drifts and reduced audited unresolved entries from 64 to 60.
-- The remaining 60 audited unresolved entries are documented debt, not a current gate failure.
-- The admin transparent AppBar and bounded sheet direction matches the admin UI contract, but still needs browser proof.
-- Storybook importing shared utilities is a reasonable parity fix, but parity CSS now needs drift review against runtime CSS.
+3. **P1 - Admin Controlled Chrome assumptions are encoded and buildable, but still need runtime/browser confirmation.**  
+   Evidence: `packages/admin/src/components/Layout/ControlledChromeContract.stories.tsx` has `storybook-ci` play assertions for a transparent `AppBar`, blurred `NavigationBar` and `RightSheet`, and solid route content. Static Storybook build included `CanvasLayout`, `ControlledChromeContract`, and Actions sheet story chunks.  
+   Limit: no browser could execute these play assertions or computed-style checks in this environment.
 
-## QA Review Priorities
+4. **P1 - Admin sheet and route-backed Actions assumptions are covered by focused tests and Storybook surfaces, but not visual route QA.**  
+   Evidence:
+   - Admin focused tests passed: `AdminDialog`, `CanvasLayout`, `actions.workspaceModel`, and Hypercert distribution config, `66 passed`.
+   - Shared focused sheet tests passed: `LeftSheet`, `RightSheet`, `BottomSheet`, `SheetInteractions`, and `useToastAction`, `48 passed`.
+   - Storybook surfaces exist for `admin-workspaces-actionssheetdescriptor--route-backed-detail`, `--route-backed-create`, `--route-backed-create-mobile`, and `--route-backed-edit`.
+   Limit: AppBar/navigation overlap, scroll, focus, close, and route-backed create/edit/detail visual behavior still need authenticated Brave or equivalent browser proof.
 
-Review the completed or deferred UI lane result against these categories. Do not perform the UI lane's source audit here unless the UI handoff is missing or explicitly blocked.
+5. **P1 - Client PWA drawer/dialog token ownership is statically and unit-tested as expected, but real installed-PWA flow proof is blocked.**  
+   Evidence:
+   - `packages/client/src/styles/pwaDrawerStyles.ts` uses `bg-[var(--color-scrim)]` for `overlay` and `dialogOverlay`.
+   - Client focused tests passed: `pwaDrawerStyles` and `DraftDialog`, `15 passed`.
+   - Shared `PwaSheet` still uses `style={{ backgroundColor: "var(--color-scrim)" }}` and has Storybook assertions checking `--color-scrim`.
+   Limit: safe area, animation, focus trap, and scroll lock at narrow mobile viewport still need browser execution.
 
-1. Admin CSS source-of-truth pressure: `packages/admin/src/index.css` now carries many token families and broad globals while raw literals are allowlisted in token checks.
-2. Shared Canvas ownership: `LeftSheet`, `RightSheet`, and `BottomSheet` consume `--admin-sheet-*` tokens with fallbacks; decide whether admin-scoped names are acceptable in shared Canvas primitives.
-3. Storybook parity drift: `packages/shared/.storybook/storybook.css` duplicates admin tone/chrome/sheet roles and may drift from runtime imports.
-4. PWA dialog ownership: local PWA drawer/dialog styles now coexist with shared dialog/scrim motion tokens; decide whether `--color-overlay` vs `--color-scrim` is intentional.
-5. Typography debt: `packages/client/src/styles/typography.css` still owns the audited unresolved text/font entries; do not map these without semantic design approval and screenshots.
-6. Story coverage drift: a `PwaSheet` story may be stale after shared `PwaSheet` removal; resolve before relying on Storybook as proof.
-7. Raw-token baseline drift: social-preview raw colors are no longer a gate blocker, but remain audited generated-media debt.
+6. **P2 - Token alias fixes remain coherent.**  
+   Evidence:
+   - `DistributionChart.tsx` uses `--color-information-base`, `--color-primary-dark`, and `--color-information-dark`; the old `--color-info-*` aliases were not found in the Hypercert chart path.
+   - `toast.service.tsx` uses `--color-primary-dark` for action hover and `--color-text-sub-600` for close/description text. The old `primary-strong` / `text-subtle-600` strings were not present in the toast service path.
+   - CSS custom-property and design-token guards passed.
+   Limit: the chart and toast states still lack fresh visual screenshot proof from this QA pass.
 
-## Required Visual Proof Before Closure
+7. **P2 - The isolated `git worktree` requirement was blocked by host Git metadata permissions, but QA proceeded in an isolated local clone.**  
+   Evidence:
+   - Source checkout `/Users/afo/Code/greenpill/green-goods` was clean before work.
+   - `git worktree add ../green-goods-qa-pass-1-css-maintainability-polish -b claude/qa-pass-1/css-maintainability-polish origin/develop` failed creating the branch ref under `.git/refs/heads/claude/...`.
+   - Detached worktree creation failed creating `.git/worktrees/green-goods-qa-pass-1-css-maintainability-polish`.
+   - A local clone under `/private/tmp` was created from the clean source checkout and switched to `claude/qa-pass-1/css-maintainability-polish` at `origin/develop` commit `b4257d57d1be7981e4d037025c41770f538719e6`.
 
-- Admin `/hub` and canvas routes: AppBar stays transparent over the canvas, tone layering is coherent in light/dark, and no glass appears outside Navigation/FAB/sheet shells.
-- Admin sheets: left, right, and bottom sheets avoid AppBar/NavigationBar overlap across desktop and mobile widths; verify scroll, focus, close, and route-backed Actions create/edit/detail states.
-- Client PWA drawers/dialogs: DraftDialog, ModalDrawer, Gardeners detail, and WorkDashboard modal preserve scrim, safe area, close animation, focus trap, and scroll lock at a narrow mobile viewport.
-- Storybook parity: `ControlledChromeContract`, `CanvasLayout`, and Actions sheet stories match runtime assumptions before using them as closure evidence.
-- Typography: capture before/after screenshots before resolving the 60 audited typography/font entries.
-- Token alias fixes: verify the admin Hypercerts distribution chart and shared toast action hover/description styles if those surfaces have not already been visually proven.
+## Evidence Paths
 
-## Human Judgment Points
+- Static Storybook build: `packages/shared/storybook-static/`
+- Story index: `packages/shared/storybook-static/index.json`
+- Story iframe shell: `packages/shared/storybook-static/iframe.html`
+- Admin Controlled Chrome story source: `packages/admin/src/components/Layout/ControlledChromeContract.stories.tsx`
+- Admin CanvasLayout story source: `packages/admin/src/components/Layout/CanvasLayout.stories.tsx`
+- Admin Actions sheet story source: `packages/admin/src/views/Actions/ActionsSheetDescriptor.stories.tsx`
+- Client ModalDrawer story source: `packages/client/src/components/Dialogs/ModalDrawer.stories.tsx`
+- Shared PwaSheet story source: `packages/shared/src/components/Dialog/PwaSheet.stories.tsx`
 
-Escalate back to the human or UI lane if the revamped UI result does not resolve these judgment points:
+No screenshot evidence was captured in this pass because both authenticated browser control and clean-room browser execution were blocked.
 
-- Keep the second pass in this hub, or split into a larger follow-up hub if it expands into typography or admin-token-source extraction.
-- Defer `typography.css` semantic token mapping to `client-pwa-design-system-transition`, unless the change is only removing no-op font-family rules.
-- Accept `--admin-sheet-*` in shared Canvas primitives, or bridge to neutral `--canvas-sheet-*` names.
-- Standardize PWA local drawers on `--color-scrim`, or keep `--color-overlay` as the client-local overlay token.
-- Treat the generated/guidance dirt from `check:design-generated` as a separate docs/guidance cleanup before CSS code changes.
+## Commands Run
 
-## Expected Output
+1. `git status --short` from `/Users/afo/Code/greenpill/green-goods` -> clean.
+2. `git worktree list --porcelain` from `/Users/afo/Code/greenpill/green-goods`.
+3. `git worktree add ../green-goods-qa-pass-1-css-maintainability-polish -b claude/qa-pass-1/css-maintainability-polish origin/develop` -> blocked by `.git/refs/heads/claude/...` permission.
+4. `git worktree add --detach /Users/afo/Code/greenpill/green-goods-qa-pass-1-css-maintainability-polish origin/develop` -> blocked by `.git/worktrees/...` permission.
+5. `git clone /Users/afo/Code/greenpill/green-goods /private/tmp/green-goods-qa-pass-1-css-maintainability-polish`.
+6. `git switch -c claude/qa-pass-1/css-maintainability-polish origin/develop`.
+7. `bun scripts/harness/plan-hub.mjs linear-sync --feature css-maintainability-polish --json`.
+8. Linear MCP reads for `PRD-451`, `PRD-452`, and `PRD-610`.
+9. `bun run agentic:guidance`.
+10. `node scripts/harness/plan-hub.mjs validate`.
+11. `node scripts/design/check-css-custom-properties.mjs`.
+12. `bun run check:design-tokens`.
+13. `bun run --filter @green-goods/shared check:stories`.
+14. `bun run --filter @green-goods/shared check:story-quality`.
+15. `bun run --filter @green-goods/shared build-storybook`.
+16. `bun run test -- src/__tests__/styles/pwaDrawerStyles.test.ts src/__tests__/components/DraftDialog.test.tsx` in `packages/client` -> `15 passed`.
+17. `bun run test -- src/__tests__/components/Canvas/LeftSheet.test.tsx src/__tests__/components/Canvas/RightSheet.test.tsx src/__tests__/components/Canvas/BottomSheet.test.tsx src/__tests__/components/Canvas/SheetInteractions.test.tsx src/__tests__/hooks/useToastAction.test.ts` in `packages/shared` -> `48 passed`.
+18. `bun run test -- src/__tests__/components/AdminDialog.test.tsx src/__tests__/components/CanvasLayout.test.tsx src/views/Actions/actions.workspaceModel.test.ts src/__tests__/components/hypercerts/DistributionConfig.test.tsx` in `packages/admin` -> `66 passed`.
 
-After the revamped UI lane completes, write a QA pass report under this hub with:
+## Recommendation
 
-- Numbered findings ordered by severity and proof confidence.
-- Which issues are ready for targeted cleanup and which require more browser proof.
-- Exact validation commands and browser/Storybook surfaces checked.
-- A recommendation to continue in this hub or split a new follow-up hub.
+Keep the hub active. Do not start QA Pass 2 and do not close/archive the hub yet.
 
-Do not mark `qa_pass_1` passed until the report includes browser/Storybook evidence or explicitly records why a visual proof path is blocked.
+The code-facing CSS maintainability gates are green, and there is no evidence that the 60 audited typography/font entries are a current gate failure. The remaining blocker is proof quality: QA Pass 1 still needs authenticated Brave/browser evidence for admin `/hub`, admin sheet overlap/focus/close behavior, route-backed Actions states, and installed-PWA drawer/dialog focus/scroll/safe-area behavior. If authenticated browser access remains unavailable, split a narrow follow-up for "CSS maintainability browser proof unblock" rather than reopening runtime CSS.
