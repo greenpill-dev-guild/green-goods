@@ -72,6 +72,7 @@ export default function Actions() {
       formatMessage: intl.formatMessage,
     });
   }, [actions.actions, actions.isLoading, intl.formatMessage]);
+  const headerStatsLoading = actions.isLoading;
 
   const handleRefresh = useCallback(() => {
     void actions.refetch();
@@ -97,7 +98,14 @@ export default function Actions() {
             "Scan the registry, review lifecycle status, and maintain submission requirements.",
         })}
         metadata={
-          headerStats.length > 0 ? <MetaStrip items={headerStats} density="inline" /> : undefined
+          headerStatsLoading || headerStats.length > 0 ? (
+            <MetaStrip
+              items={headerStats}
+              density="inline"
+              loading={headerStatsLoading}
+              loadingItemCount={2}
+            />
+          ) : undefined
         }
         variant="canvas"
         sticky
