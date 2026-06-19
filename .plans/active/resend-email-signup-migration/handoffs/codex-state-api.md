@@ -14,6 +14,7 @@ Branch signal: `codex/state-api/resend-email-signup-migration`
 - Preserved `POST /public/subscribe` validation and guard order: origin checks, body-size limits, email validation, consent validation, rate limiting, honest missing-provider failure, and generic upstream failure.
 - Replaced the public `luma_import_failed` contract/copy path with the existing provider-neutral `provider_unavailable` error.
 - Updated root env/config docs and Agent deployment docs for `RESEND_API_KEY`, `RESEND_GREEN_GOODS_SEGMENT_ID`, and `RESEND_GREEN_GOODS_TOPIC_ID`.
+- Hardened the client social-preview build hook so route shells are generated from `writeBundle` after `dist/index.html` is emitted; this addresses the Vercel preview blocker found while preparing the PR for merge.
 
 ## TDD Proof
 
@@ -44,7 +45,7 @@ Branch signal: `codex/state-api/resend-email-signup-migration`
 - `node scripts/harness/plan-hub.mjs validate`
   - Passed: 22 feature hubs validated.
 - `bun run --filter @green-goods/client build`
-  - Passed locally with Bun 1.3.10: Vite transformed 11847 modules and emitted `packages/client/dist/index.html`.
+  - Passed locally with Bun 1.3.10 after moving public social-preview shell generation to `writeBundle`: Vite transformed 11847 modules, emitted `packages/client/dist/index.html`, and generated the PWA worker.
 - `OPENSSL_CONF=/dev/null TMPDIR=/Users/afo/.codex/worktrees/59b3/green-goods /Users/afo/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node ../../node_modules/vitest/vitest.mjs run resend public-api`
   - Passed: 27 tests.
 - `OPENSSL_CONF=/dev/null TMPDIR=/Users/afo/.codex/worktrees/59b3/green-goods /Users/afo/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node ../../node_modules/vitest/vitest.mjs run PublicGetInTouch`
@@ -61,6 +62,7 @@ Branch signal: `codex/state-api/resend-email-signup-migration`
   - Ran after implementation. Format, client tests, admin hub tests, and agent tests passed. The aggregate remained non-zero because `packages/shared/src/__tests__/hooks/vault/useVaultOperations.test.ts` timed out in the existing two-step vault deposit test; this is outside the Resend/public subscribe migration surface.
 - GitHub PR #577 Vercel preview check `Vercel - green-goods`
   - Blocked on the first pushed implementation head `7a6e4ed`: Vercel failed in the client social-preview closeBundle hook with `ENOENT: no such file or directory, open '/vercel/path0/packages/client/dist/index.html'`. The same client production build passed locally on this branch; develop's client Vercel check is green. Merge is blocked until the branch preview check is green.
+  - Reproduced again on refreshed head `7258e13`, then fixed locally by moving the social-preview generation hook from `closeBundle` to `writeBundle`. Awaiting the next Vercel run for remote confirmation.
 
 ## Remaining Work
 
