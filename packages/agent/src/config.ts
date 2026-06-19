@@ -178,6 +178,8 @@ export function loadConfig(): Config {
   };
 }
 
+export const getConfig = loadConfig;
+
 function parsePositiveInteger(value: string | undefined): number | undefined {
   if (!value?.trim()) return undefined;
   const parsed = Number(value);
