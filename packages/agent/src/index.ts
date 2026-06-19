@@ -10,7 +10,7 @@
 
 import { createServer, startServer } from "./api/server";
 import { parseAllowedOrigins } from "./api/public-protection";
-import { loadConfig } from "./config";
+import { getConfig } from "./config";
 import { createGroupCaptureHandler, handleMessage, setHandlerContext } from "./handlers";
 import {
   createNotifier,
@@ -40,7 +40,7 @@ import { createShutdownHandler } from "./runtime/shutdown";
 // ============================================================================
 
 async function main(): Promise<void> {
-  const config = loadConfig();
+  const config = getConfig();
   initAgentSentry({
     dsn: config.sentryDsn,
     enabled: config.sentryEnabled,
@@ -205,7 +205,7 @@ async function main(): Promise<void> {
 }
 
 main().catch(async (error) => {
-  captureAgentException(error, { source: "startup" });
+  captureAgentException(error, { source: "startup", surface: "runtime" });
   logger.error({ error }, "❌ Failed to start agent");
   await shutdownAgentAnalytics().catch(() => undefined);
   await shutdownAgentSentry().catch(() => undefined);

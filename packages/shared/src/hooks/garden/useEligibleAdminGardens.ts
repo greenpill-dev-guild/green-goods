@@ -94,7 +94,8 @@ export function useEligibleAdminGardens(): EligibleAdminGardensResult {
       .filter((garden) => {
         return (
           isAddressInList(address, garden.operators) ||
-          isAddressInList(address, garden.owners)
+          isAddressInList(address, garden.owners) ||
+          isAddressInList(address, garden.evaluators)
         );
       })
       .slice()
