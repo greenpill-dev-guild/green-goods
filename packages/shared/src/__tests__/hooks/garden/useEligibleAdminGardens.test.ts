@@ -77,7 +77,7 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
     );
   });
 
-  it("filters gardens to operator, owner, and evaluator memberships", () => {
+  it("filters gardens to operator and owner memberships", () => {
     mockUseGardens.mockReturnValue({
       data: [
         makeGarden("garden-operator", "Operator Garden", { operators: [ADDR_USER] }),
@@ -92,7 +92,6 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
     const { result } = renderHook(() => useEligibleAdminGardens());
 
     expect(result.current.eligibleGardens.map((garden) => garden.id)).toEqual([
-      "garden-evaluator",
       "garden-operator",
       "garden-owner",
     ]);
@@ -104,7 +103,7 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
     mockUseGardens.mockReturnValue({
       data: [
         makeGarden("garden-b", "Beta Garden", { operators: [ADDR_USER] }),
-        makeGarden("garden-a", "Alpha Garden", { evaluators: [ADDR_USER] }),
+        makeGarden("garden-a", "Alpha Garden", { owners: [ADDR_USER] }),
       ],
       isFetched: true,
       isError: false,
@@ -128,7 +127,7 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
     mockUseGardens.mockReturnValue({
       data: [
         makeGarden("garden-z", "Zeta Garden", { operators: [ADDR_USER] }),
-        makeGarden("garden-a", "Alpha Garden", { evaluators: [ADDR_USER] }),
+        makeGarden("garden-a", "Alpha Garden", { owners: [ADDR_USER] }),
       ],
       isFetched: true,
       isError: false,
