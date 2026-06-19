@@ -24,7 +24,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
  * Editorial walnut surface (`bg-editorial-deep`) with a quiet email subscribe
  * form and a secondary Schedule-a-Call CTA. Honest UX: success only when the
  * public Agent route returns a confirmed `subscribed` / `already_subscribed`;
- * Luma outages render a localized failure with the Schedule-a-Call fallback.
+ * subscription provider outages render a localized Schedule-a-Call fallback.
  *
  * Mobile: subscribe form first, then a compact Schedule-a-Call callout.
  * Desktop: same content reflowed in a two-column editorial layout.
