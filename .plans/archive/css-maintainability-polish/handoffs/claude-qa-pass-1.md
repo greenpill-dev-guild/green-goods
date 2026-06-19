@@ -1,10 +1,10 @@
 # CSS Maintainability Polish - QA Pass 1 Handoff
 
-**Lane**: `qa_pass_1`  
-**Owner**: `claude`  
-**Status**: closed with accepted browser-proof follow-up  
-**Branch target**: `claude/qa-pass-1/css-maintainability-polish`  
-**Run date**: `2026-06-19T02:41:18Z`  
+**Lane**: `qa_pass_1`
+**Owner**: `claude`
+**Status**: closed with accepted browser-proof follow-up
+**Branch target**: `claude/qa-pass-1/css-maintainability-polish`
+**Run date**: `2026-06-19T02:41:18Z`
 **Checkout used**: `/private/tmp/green-goods-qa-pass-1-css-maintainability-polish` on `claude/qa-pass-1/css-maintainability-polish` at `b4257d57d1be7981e4d037025c41770f538719e6`
 
 ## Current Truth
@@ -21,11 +21,11 @@
 
 ## Findings
 
-1. **P1 - Authenticated browser QA was blocked in this environment.**  
-   Evidence: no Codex Browser/Chrome control tool was exposed for the authenticated Brave QA path; terminal Playwright clean-room attempts were also blocked. Localhost serving of the static Storybook build failed with `PermissionError: [Errno 1] Operation not permitted` even after escalation, and Playwright-launched Brave aborted before a page/context became available.  
+1. **P1 - Authenticated browser QA was blocked in this environment.**
+   Evidence: no Codex Browser/Chrome control tool was exposed for the authenticated Brave QA path; terminal Playwright clean-room attempts were also blocked. Localhost serving of the static Storybook build failed with `PermissionError: [Errno 1] Operation not permitted` even after escalation, and Playwright-launched Brave aborted before a page/context became available.
    Impact: admin `/hub`, real admin sheet overlap/focus/route-backed states, and installed-PWA drawer/dialog scroll-lock/focus-trap proof cannot be claimed from this run. This is now accepted as follow-up proof outside this hub.
 
-2. **P1 - Static guardrails and Storybook build are green.**  
+2. **P1 - Static guardrails and Storybook build are green.**
    Evidence:
    - `node scripts/harness/plan-hub.mjs validate` -> `Validated 22 feature hubs.`
    - `node scripts/design/check-css-custom-properties.mjs` -> `CSS custom property guard passed: 3128 var() references, 1002 definitions, 60 audited unresolved entries.`
@@ -34,32 +34,32 @@
    - `bun run --filter @green-goods/shared check:story-quality` -> `Checked 152 story file(s). PASS`.
    - `bun run --filter @green-goods/shared build-storybook` completed successfully; static output: `packages/shared/storybook-static/`.
 
-3. **P1 - Admin Controlled Chrome assumptions are encoded and buildable, but still need runtime/browser confirmation.**  
-   Evidence: `packages/admin/src/components/Layout/ControlledChromeContract.stories.tsx` has `storybook-ci` play assertions for a transparent `AppBar`, blurred `NavigationBar` and `RightSheet`, and solid route content. Static Storybook build included `CanvasLayout`, `ControlledChromeContract`, and Actions sheet story chunks.  
+3. **P1 - Admin Controlled Chrome assumptions are encoded and buildable, but still need runtime/browser confirmation.**
+   Evidence: `packages/admin/src/components/Layout/ControlledChromeContract.stories.tsx` has `storybook-ci` play assertions for a transparent `AppBar`, blurred `NavigationBar` and `RightSheet`, and solid route content. Static Storybook build included `CanvasLayout`, `ControlledChromeContract`, and Actions sheet story chunks.
    Limit: no browser could execute these play assertions or computed-style checks in this environment.
 
-4. **P1 - Admin sheet and route-backed Actions assumptions are covered by focused tests and Storybook surfaces, but not visual route QA.**  
+4. **P1 - Admin sheet and route-backed Actions assumptions are covered by focused tests and Storybook surfaces, but not visual route QA.**
    Evidence:
    - Admin focused tests passed: `AdminDialog`, `CanvasLayout`, `actions.workspaceModel`, and Hypercert distribution config, `66 passed`.
    - Shared focused sheet tests passed: `LeftSheet`, `RightSheet`, `BottomSheet`, `SheetInteractions`, and `useToastAction`, `48 passed`.
    - Storybook surfaces exist for `admin-workspaces-actionssheetdescriptor--route-backed-detail`, `--route-backed-create`, `--route-backed-create-mobile`, and `--route-backed-edit`.
    Limit: AppBar/navigation overlap, scroll, focus, close, and route-backed create/edit/detail visual behavior still need authenticated Brave or equivalent browser proof.
 
-5. **P1 - Client PWA drawer/dialog token ownership is statically and unit-tested as expected, but real installed-PWA flow proof is blocked.**  
+5. **P1 - Client PWA drawer/dialog token ownership is statically and unit-tested as expected, but real installed-PWA flow proof is blocked.**
    Evidence:
    - `packages/client/src/styles/pwaDrawerStyles.ts` uses `bg-[var(--color-scrim)]` for `overlay` and `dialogOverlay`.
    - Client focused tests passed: `pwaDrawerStyles` and `DraftDialog`, `15 passed`.
    - Shared `PwaSheet` still uses `style={{ backgroundColor: "var(--color-scrim)" }}` and has Storybook assertions checking `--color-scrim`.
    Limit: safe area, animation, focus trap, and scroll lock at narrow mobile viewport still need browser execution.
 
-6. **P2 - Token alias fixes remain coherent.**  
+6. **P2 - Token alias fixes remain coherent.**
    Evidence:
    - `DistributionChart.tsx` uses `--color-information-base`, `--color-primary-dark`, and `--color-information-dark`; the old `--color-info-*` aliases were not found in the Hypercert chart path.
    - `toast.service.tsx` uses `--color-primary-dark` for action hover and `--color-text-sub-600` for close/description text. The old `primary-strong` / `text-subtle-600` strings were not present in the toast service path.
    - CSS custom-property and design-token guards passed.
    Limit: the chart and toast states still lack fresh visual screenshot proof from this QA pass.
 
-7. **P2 - The isolated `git worktree` requirement was blocked by host Git metadata permissions, but QA proceeded in an isolated local clone.**  
+7. **P2 - The isolated `git worktree` requirement was blocked by host Git metadata permissions, but QA proceeded in an isolated local clone.**
    Evidence:
    - Source checkout `/Users/afo/Code/greenpill/green-goods` was clean before work.
    - `git worktree add ../green-goods-qa-pass-1-css-maintainability-polish -b claude/qa-pass-1/css-maintainability-polish origin/develop` failed creating the branch ref under `.git/refs/heads/claude/...`.
