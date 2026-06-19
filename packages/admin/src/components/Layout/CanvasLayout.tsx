@@ -539,7 +539,7 @@ function AdminNotificationPanel({ onCloseSheet }: { onCloseSheet: () => void }) 
   const { formatMessage } = useIntl();
   const navigate = useNavigate();
   const { selectedGarden } = useAdminGardenWorkspaceSelection();
-  const selectedGardenAddress = selectedGarden?.tokenAddress ?? selectedGarden?.id;
+  const selectedGardenAddress = selectedGarden?.id;
   const workspace = useGardenDetailData(selectedGarden?.id);
 
   const navigateFromNotification = useCallback(

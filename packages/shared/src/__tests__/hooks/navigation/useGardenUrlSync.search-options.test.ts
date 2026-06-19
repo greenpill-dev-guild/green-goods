@@ -97,20 +97,21 @@ describe("useGardenUrlSync search options", () => {
   });
 
   it("does not let a second hook instance restore the previous URL garden while a switch is pending", () => {
+    const sharedGardenToken = "0x9990000000000000000000000000000000000999";
     const gardenA = {
       id: "garden-a",
       name: "Alpha",
-      tokenAddress: "0xaaa0000000000000000000000000000000000aaa",
+      tokenAddress: sharedGardenToken,
     };
     const gardenB = {
       id: "garden-b",
       name: "Beta",
-      tokenAddress: "0xbbb0000000000000000000000000000000000bbb",
+      tokenAddress: sharedGardenToken,
     };
     mockEligibleGardens.current = [gardenA, gardenB];
     mockSelectedGarden.current = gardenA;
     mockSelectedGardenId.current = gardenA.id;
-    mockSearchParams.current = new URLSearchParams(`gardenAddress=${gardenA.tokenAddress}`);
+    mockSearchParams.current = new URLSearchParams(`gardenAddress=${gardenA.id}`);
 
     const { result, rerender } = renderHook(() => ({
       shell: useGardenUrlSync(),

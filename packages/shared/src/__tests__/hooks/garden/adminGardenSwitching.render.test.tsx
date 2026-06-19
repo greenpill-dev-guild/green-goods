@@ -68,13 +68,13 @@ describe("admin garden switching rendered context", () => {
   it("updates URL and rendered admin content after switching between two eligible gardens", async () => {
     const gardenA = createMockGarden({
       id: "0xaaa0000000000000000000000000000000000aaa",
-      tokenAddress: "0xaaa0000000000000000000000000000000000aaa",
+      tokenAddress: "0x9990000000000000000000000000000000000999",
       name: "Alpha Garden",
       location: "Quito",
     });
     const gardenB = createMockGarden({
       id: "0xbbb0000000000000000000000000000000000bbb",
-      tokenAddress: "0xbbb0000000000000000000000000000000000bbb",
+      tokenAddress: "0x9990000000000000000000000000000000000999",
       name: "Beta Garden",
       location: "Bogota",
     });

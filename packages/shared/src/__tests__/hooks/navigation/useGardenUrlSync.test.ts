@@ -139,12 +139,12 @@ describe("useGardenUrlSync", () => {
     const greenGarden = createMockGarden({
       id: "garden-green",
       name: "Green Goods Community Garden",
-      tokenAddress: "0xaaa0000000000000000000000000000000000aaa",
+      tokenAddress: "0x9990000000000000000000000000000000000999",
     });
     const growGarden = createMockGarden({
       id: "garden-grow",
       name: "Grow Ecosystem",
-      tokenAddress: "0xbbb0000000000000000000000000000000000bbb",
+      tokenAddress: "0x9990000000000000000000000000000000000999",
     });
     mockEligibleGardens.current = [greenGarden, growGarden];
     mockSelectedGarden.current = greenGarden;
@@ -164,7 +164,7 @@ describe("useGardenUrlSync", () => {
     });
 
     expect(mockSetSelectedGarden).toHaveBeenLastCalledWith(growGarden);
-    expect(mockLocationSearch.current).toContain(`gardenAddress=${growGarden.tokenAddress}`);
+    expect(mockLocationSearch.current).toContain(`gardenAddress=${growGarden.id}`);
     expect(mockLocationSearch.current).toContain("sort=oldest");
   });
 
@@ -237,19 +237,17 @@ describe("useGardenUrlSync", () => {
   it("reports the URL garden as active even when the store still has the previous garden", () => {
     const previousGarden = createMockGarden({
       id: "garden-previous",
-      tokenAddress: "0x1110000000000000000000000000000000000111",
+      tokenAddress: "0x9990000000000000000000000000000000000999",
     });
     const urlGarden = createMockGarden({
       id: "garden-url",
-      tokenAddress: "0x7890000000000000000000000000000000000789",
+      tokenAddress: "0x9990000000000000000000000000000000000999",
     });
     mockEligibleGardens.current = [previousGarden, urlGarden];
     mockSelectedGarden.current = previousGarden;
     mockSelectedGardenId.current = previousGarden.id;
 
-    const wrapper = createRouterWrapper([
-      "/hub?gardenAddress=0x7890000000000000000000000000000000000789",
-    ]);
+    const wrapper = createRouterWrapper(["/hub?gardenAddress=garden-url"]);
 
     const { result } = renderHook(() => useGardenUrlSync(), { wrapper });
 
@@ -257,6 +255,28 @@ describe("useGardenUrlSync", () => {
     expect(mockSetSelectedGarden).toHaveBeenCalledWith(
       expect.objectContaining({ id: urlGarden.id })
     );
+  });
+
+  it("prefers garden id over shared tokenAddress when resolving URL garden", () => {
+    const sharedGardenToken = "0x9990000000000000000000000000000000000999";
+    const gardenA = createMockGarden({
+      id: "garden-a",
+      tokenAddress: sharedGardenToken,
+    });
+    const gardenB = createMockGarden({
+      id: "garden-b",
+      tokenAddress: sharedGardenToken,
+    });
+    mockEligibleGardens.current = [gardenA, gardenB];
+    mockSelectedGarden.current = gardenA;
+    mockSelectedGardenId.current = gardenA.id;
+
+    const wrapper = createRouterWrapper(["/hub?gardenAddress=garden-b"]);
+
+    const { result } = renderHook(() => useGardenUrlSync(), { wrapper });
+
+    expect(result.current.gardenId).toBe(gardenB.id);
+    expect(mockSetSelectedGarden).toHaveBeenCalledWith(expect.objectContaining({ id: gardenB.id }));
   });
 
   it("falls back to the resolved default garden when the URL has no garden param", () => {

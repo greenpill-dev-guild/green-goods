@@ -21,6 +21,10 @@ const ROUTE_BACKED_ITEM_URL_OPTIONS = {
 // the old URL garden while the shell is replacing the gardenAddress param.
 let pendingGardenAddress: string | null | undefined;
 
+function getGardenShareAddress(garden: Garden): string {
+  return garden.id;
+}
+
 export interface GardenUrlSyncResult {
   gardenId: string | null;
   tab: string | null;
@@ -76,11 +80,11 @@ export function useGardenUrlSync(): GardenUrlSyncResult {
 
   const matchingUrlGarden =
     requestedGardenAddress !== null
-      ? (eligibleGardens.find(
-          (garden) =>
-            compareAddresses(garden.tokenAddress, requestedGardenAddress) ||
-            compareAddresses(garden.id, requestedGardenAddress)
-        ) ?? null)
+      ? (eligibleGardens.find((garden) => compareAddresses(garden.id, requestedGardenAddress)) ??
+        eligibleGardens.find((garden) =>
+          compareAddresses(garden.tokenAddress, requestedGardenAddress)
+        ) ??
+        null)
       : null;
 
   // URL -> store sync with default resolution.
@@ -118,7 +122,7 @@ export function useGardenUrlSync(): GardenUrlSyncResult {
 
   const setGarden = useCallback(
     (garden: Garden | null) => {
-      const nextGardenAddress = garden ? (garden.tokenAddress ?? garden.id) : null;
+      const nextGardenAddress = garden ? getGardenShareAddress(garden) : null;
       pendingGardenAddress = nextGardenAddress;
       updateParams({ [ADMIN_GARDEN_SHARE_PARAM]: nextGardenAddress }, REPLACE_URL_PARAMS_OPTIONS);
       setSelectedGarden(garden);

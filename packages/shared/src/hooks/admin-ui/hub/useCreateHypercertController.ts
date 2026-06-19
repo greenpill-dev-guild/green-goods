@@ -17,10 +17,7 @@ export function useCreateHypercertController() {
     () => gardens.find((item) => compareAddresses(item.id, selectedGarden?.id)),
     [gardens, selectedGarden?.id]
   );
-  const gardenRouteContext = useMemo(
-    () => ({ gardenAddress: garden?.tokenAddress ?? garden?.id }),
-    [garden?.id, garden?.tokenAddress]
-  );
+  const gardenRouteContext = useMemo(() => ({ gardenAddress: garden?.id }), [garden?.id]);
   const permissions = useGardenPermissions();
   const canManage = garden ? permissions.canManageGarden(garden) : false;
 

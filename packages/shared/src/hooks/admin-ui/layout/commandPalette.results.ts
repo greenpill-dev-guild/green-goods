@@ -164,7 +164,7 @@ export function buildCommandPaletteResults({
       {
         id: `garden-${garden.id}`,
         label: garden.name,
-        href: adminRoutes.garden({ gardenAddress: garden.tokenAddress ?? garden.id }),
+        href: adminRoutes.garden({ gardenAddress: garden.id }),
         onSelect: () => selectGarden(garden),
         category: "gardens",
         subtitle: garden.location || undefined,
@@ -193,12 +193,11 @@ export function buildCommandPaletteResults({
   for (const assessment of assessments) {
     const title = assessment.title || `Assessment ${assessment.id.slice(0, 8)}`;
     const matchedGarden = eligibleGardens.find(
-      (garden) =>
-        (garden.tokenAddress ?? garden.id).toLowerCase() === assessment.gardenAddress.toLowerCase()
+      (garden) => garden.id.toLowerCase() === assessment.gardenAddress.toLowerCase()
     );
     if (!matchedGarden) continue;
 
-    const gardenAddress = matchedGarden.tokenAddress ?? matchedGarden.id;
+    const gardenAddress = matchedGarden.id;
     const gardenName = matchedGarden.name;
     pushIfMatches(
       {
