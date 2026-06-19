@@ -49,11 +49,7 @@ export function MetaStrip({
 }: MetaStripProps) {
   if (loading) {
     return (
-      <MetaStripSkeleton
-        className={className}
-        density={density}
-        itemCount={loadingItemCount}
-      />
+      <MetaStripSkeleton className={className} density={density} itemCount={loadingItemCount} />
     );
   }
 
@@ -107,11 +103,7 @@ export function MetaStrip({
   );
 }
 
-function MetaStripSkeleton({
-  className,
-  density = "pill",
-  itemCount = 2,
-}: MetaStripSkeletonProps) {
+function MetaStripSkeleton({ className, density = "pill", itemCount = 2 }: MetaStripSkeletonProps) {
   if (itemCount <= 0) return null;
 
   const widths = density === "inline" ? INLINE_SKELETON_WIDTHS : PILL_SKELETON_WIDTHS;

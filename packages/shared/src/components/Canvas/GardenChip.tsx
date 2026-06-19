@@ -38,8 +38,7 @@ export function GardenChip({
   const { formatMessage } = useIntl();
   const [open, setOpen] = useState(false);
 
-  const displayName =
-    selectedGarden?.name ?? formatMessage({ id: "app.assessment.selectGarden" });
+  const displayName = selectedGarden?.name ?? formatMessage({ id: "app.assessment.selectGarden" });
 
   const hasMultiple = gardens.length >= 2;
 
