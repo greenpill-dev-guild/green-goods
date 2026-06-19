@@ -98,7 +98,7 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
     GardenChip: (props: {
       gardens: Array<{ id: string; name: string }>;
       selectedGarden: { id: string; name: string } | null;
-      onSelectGarden: (garden: { id: string; name: string } | null) => void;
+      onSelectGarden: (garden: { id: string; name: string }) => void;
     }) => {
       mockGardenChipProps(props);
       return (
@@ -109,9 +109,6 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
               Select {garden.name}
             </button>
           ))}
-          <button type="button" onClick={() => props.onSelectGarden(null)}>
-            Select All Gardens
-          </button>
         </div>
       );
     },
