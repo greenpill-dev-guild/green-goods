@@ -112,6 +112,28 @@ describe("GardenVaultView", () => {
     );
   });
 
+  it("matches the route garden case-insensitively before using the selected fallback", () => {
+    mockRouteParams.current = { id: "GARDEN-1" };
+    mockSelectedGarden.current = {
+      id: "garden-2",
+      tokenAddress: "garden-2",
+      name: "Beta Garden",
+    };
+    mockUseLocation.mockReturnValue({ state: null });
+    mockUseGardens.mockReturnValue({
+      data: [{ id: "garden-1", name: "Alpha Garden" }],
+      isLoading: false,
+    });
+
+    renderWithProviders(<GardenVaultView />);
+
+    expect(screen.getByTestId("page-header")).toHaveAttribute(
+      "data-description",
+      "Manage direct endowment positions and impact-yield routing for Alpha Garden."
+    );
+    expect(mockUseGardenVaults).toHaveBeenCalledWith("garden-1", { enabled: true });
+  });
+
   it("renders the selected garden vault context when the base garden list is stale", () => {
     mockRouteParams.current = {};
     mockSelectedGarden.current = {

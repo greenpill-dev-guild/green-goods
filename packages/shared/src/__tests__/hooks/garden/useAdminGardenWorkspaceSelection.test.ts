@@ -8,9 +8,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mockEligibleState = {
   eligibleGardens: [] as Array<{ id: string; name: string; location?: string }>,
   isLoaded: true,
+  resolvedDefaultGarden: null as { id: string; name: string; location?: string } | null,
 };
 const mockSetSelectedGarden = vi.fn();
 const mockSetUrlGarden = vi.fn();
+const mockUrlGardenId = { current: null as string | null };
 const mockStoreState = {
   selectedGarden: null as { id: string; name: string; location?: string } | null,
   setSelectedGarden: mockSetSelectedGarden,
@@ -26,6 +28,7 @@ vi.mock("../../../stores/useAdminStore", () => ({
 
 vi.mock("../../../hooks/navigation/useGardenUrlSync", () => ({
   useGardenUrlSync: () => ({
+    gardenId: mockUrlGardenId.current,
     setGarden: mockSetUrlGarden,
   }),
 }));
@@ -37,6 +40,8 @@ describe("hooks/garden/useAdminGardenWorkspaceSelection", () => {
     vi.clearAllMocks();
     mockEligibleState.eligibleGardens = [];
     mockEligibleState.isLoaded = true;
+    mockEligibleState.resolvedDefaultGarden = null;
+    mockUrlGardenId.current = null;
     mockStoreState.selectedGarden = null;
   });
 
@@ -96,6 +101,39 @@ describe("hooks/garden/useAdminGardenWorkspaceSelection", () => {
       expect(mockSetUrlGarden).toHaveBeenCalledWith(firstGarden);
     });
     expect(onAutoSelectGarden).toHaveBeenCalledWith(firstGarden);
+  });
+
+  it("auto-selects the resolved default garden when there is no URL garden", async () => {
+    const firstGarden = { id: "garden-a", name: "Alpha" };
+    const defaultGarden = { id: "garden-b", name: "Beta" };
+    const onAutoSelectGarden = vi.fn();
+    mockEligibleState.eligibleGardens = [firstGarden, defaultGarden];
+    mockEligibleState.resolvedDefaultGarden = defaultGarden;
+
+    renderHook(() =>
+      useAdminGardenWorkspaceSelection({
+        autoSelectFirstGarden: true,
+        onAutoSelectGarden,
+      })
+    );
+
+    await waitFor(() => {
+      expect(mockSetUrlGarden).toHaveBeenCalledWith(defaultGarden);
+    });
+    expect(onAutoSelectGarden).toHaveBeenCalledWith(defaultGarden);
+  });
+
+  it("does not auto-select over an explicit URL-selected garden", () => {
+    mockUrlGardenId.current = "garden-b";
+    mockEligibleState.eligibleGardens = [
+      { id: "garden-a", name: "Alpha" },
+      { id: "garden-b", name: "Beta" },
+    ];
+
+    renderHook(() => useAdminGardenWorkspaceSelection({ autoSelectFirstGarden: true }));
+
+    expect(mockSetUrlGarden).not.toHaveBeenCalled();
+    expect(mockSetSelectedGarden).not.toHaveBeenCalled();
   });
 
   it("does not auto-select before eligible gardens are loaded", () => {

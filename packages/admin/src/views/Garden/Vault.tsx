@@ -78,7 +78,10 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
       domainMask: 0,
     };
   }, [resolvedGardenId, selectedGarden]);
-  const garden = gardens.find((item) => item.id === resolvedGardenId) ?? selectedGardenFallback;
+  const normalizedResolvedGardenId = resolvedGardenId?.toLowerCase();
+  const garden =
+    gardens.find((item) => item.id.toLowerCase() === normalizedResolvedGardenId) ??
+    selectedGardenFallback;
   const gardenRouteContext = {
     gardenAddress:
       garden?.tokenAddress ?? garden?.id ?? selectedGarden?.tokenAddress ?? resolvedGardenId,

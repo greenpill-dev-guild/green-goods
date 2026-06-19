@@ -26,10 +26,10 @@ export function useAdminGardenWorkspaceSelection({
   autoSelectFirstGarden = false,
   onAutoSelectGarden,
 }: AdminGardenWorkspaceSelectionOptions = {}): AdminGardenWorkspaceSelection {
-  const { eligibleGardens, isLoaded } = useEligibleAdminGardens();
+  const { eligibleGardens, isLoaded, resolvedDefaultGarden } = useEligibleAdminGardens();
   const selectedGarden = useAdminStore((state) => state.selectedGarden);
   const setSelectedGarden = useAdminStore((state) => state.setSelectedGarden);
-  const { setGarden } = useGardenUrlSync();
+  const { gardenId: syncedGardenId, setGarden } = useGardenUrlSync();
 
   const gardenOptions = useMemo<AdminGardenWorkspaceOption[]>(
     () =>
@@ -50,22 +50,30 @@ export function useAdminGardenWorkspaceSelection({
   );
 
   useEffect(() => {
-    if (!autoSelectFirstGarden || !isLoaded || selectedGarden || eligibleGardens.length === 0) {
+    if (
+      !autoSelectFirstGarden ||
+      !isLoaded ||
+      selectedGarden ||
+      syncedGardenId ||
+      eligibleGardens.length === 0
+    ) {
       return;
     }
 
-    const firstGarden = eligibleGardens[0];
-    if (!firstGarden) return;
+    const nextGarden = resolvedDefaultGarden ?? eligibleGardens[0];
+    if (!nextGarden) return;
 
-    setGarden(firstGarden);
-    onAutoSelectGarden?.(firstGarden);
+    setGarden(nextGarden);
+    onAutoSelectGarden?.(nextGarden);
   }, [
     autoSelectFirstGarden,
     eligibleGardens,
     isLoaded,
     onAutoSelectGarden,
+    resolvedDefaultGarden,
     selectedGarden,
     setGarden,
+    syncedGardenId,
   ]);
 
   return {
