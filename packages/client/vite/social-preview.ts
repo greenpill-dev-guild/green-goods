@@ -258,7 +258,7 @@ function renderTitleLinePath(
   }
 
   const pattern = new RegExp(
-    `\\b(${accentWords.map((word) => word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})\\b`,
+    `\b(${accentWords.map((word) => word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})\b`,
     "g"
   );
   const paths: string[] = [];
@@ -471,7 +471,7 @@ export function createPublicSocialPreviewPlugin(isIPFSBuild: boolean): Plugin {
       if (isIPFSBuild) return html;
       return renderPublicSocialPreviewHtml(html, publicSocialPreviews.home);
     },
-    async closeBundle() {
+    async writeBundle() {
       if (isIPFSBuild) return;
 
       const outputDir = resolveOutputDir(resolvedConfig);
