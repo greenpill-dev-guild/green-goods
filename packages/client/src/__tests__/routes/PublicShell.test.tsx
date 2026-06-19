@@ -32,6 +32,7 @@ vi.mock("@green-goods/shared", () => ({
     deferredPrompt: null,
     promptInstall: vi.fn(),
   }),
+  useIsBraveBrowser: () => false,
   useInstallGuidance: () => ({
     scenario: "desktop",
     primaryAction: { type: "continue-in-browser", label: "Open on Mobile" },
