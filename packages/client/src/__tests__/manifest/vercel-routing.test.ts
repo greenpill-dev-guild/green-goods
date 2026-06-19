@@ -19,6 +19,7 @@ describe("client Vercel public social shell routing", () => {
       { source: "/gardens", destination: "/gardens/index.html" },
       { source: "/gardens/:path*", destination: "/gardens/index.html" },
       { source: "/cookies", destination: "/cookies/index.html" },
+      { source: "/api/agent/:path*", destination: "https://agent.greengoods.app/:path*" },
     ]);
   });
 
