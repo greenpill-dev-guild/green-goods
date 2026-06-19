@@ -27,6 +27,7 @@ bun run build && bun run start
 - 32+ char `ENCRYPTION_SECRET`
 - 32+ char `BOT_API_TOKEN` (bearer token that routines use to call `/api/messages` and its attachments proxy)
 - Pinata JWT (`PINATA_JWT`) when the deployed agent should sign browser upload URLs
+- Resend API key plus Green Goods segment/topic IDs when `/public/subscribe` should capture public subscribers
 - [`flyctl`](https://fly.io/docs/flyctl/install/) installed and authenticated
 - Config file: `fly.toml` at the repo root. Keep it there so the Docker build context includes the workspace root `package.json`, `bun.lock`, `packages/`, `docs/`, and `scripts/`.
 
@@ -47,6 +48,9 @@ flyctl secrets set --config fly.toml \
   ENCRYPTION_SECRET=<32+-char-secret> \
   BOT_API_TOKEN=<routine-auth-bearer-token> \
   PINATA_JWT=<pinata-jwt-for-upload-signing> \
+  RESEND_API_KEY=<resend-api-key> \
+  RESEND_GREEN_GOODS_SEGMENT_ID=<resend-segment-id> \
+  RESEND_GREEN_GOODS_TOPIC_ID=<resend-topic-id> \
   AGENT_ALLOWED_ORIGINS=https://greengoods.app,https://admin.greengoods.app \
   POSTHOG_AGENT_KEY=<optional> \
   TELEGRAM_WEBHOOK_SECRET=<random-string>
@@ -180,7 +184,10 @@ DB_PATH=data/agent.db         # SQLite database path
 POSTHOG_AGENT_KEY=phc_...     # PostHog API key from https://posthog.com
 ANALYTICS_ENABLED=true        # Enable/disable analytics
 PINATA_JWT=...                # Required for POST /api/uploads/sign
-AGENT_ALLOWED_ORIGINS=...     # Comma-separated browser origins allowed to request upload signatures
+RESEND_API_KEY=...            # Required for POST /public/subscribe subscriber capture
+RESEND_GREEN_GOODS_SEGMENT_ID=...
+RESEND_GREEN_GOODS_TOPIC_ID=...
+AGENT_ALLOWED_ORIGINS=...     # Comma-separated browser origins allowed to request public APIs
 ```
 
 Use `POSTHOG_AGENT_KEY` for Fly secrets. `VITE_POSTHOG_AGENT_KEY` is a browser-style name and is ignored by the Node agent runtime.
@@ -251,49 +258,4 @@ bun run test:watch
 
 # Coverage report
 bun run test:coverage
-
-# Interactive UI
-bun run test:ui
 ```
-
-### Test Structure
-
-```
-src/__tests__/
-├── setup.ts              # Test setup, mocks for bun:sqlite, pino, etc.
-├── crypto.test.ts        # Encryption, key generation, validation
-├── handlers.test.ts      # Command handlers (start, join, submit)
-├── rate-limiter.test.ts  # Sliding window rate limiting
-├── storage.test.ts       # Database operations (users, sessions, works)
-└── utils/
-    ├── mocks.ts          # Mock factories for Telegram, blockchain, etc.
-    └── factories.ts      # Test data factories
-```
-
-### Coverage Targets
-
-- **Unit tests**: 70% branches/functions/lines/statements
-- **Critical paths** (crypto, auth): 80%+
-
-## Architecture
-
-See [agent.md](/.claude/context/agent.md) for detailed architecture documentation including:
-- Ports & Adapters pattern
-- Message contracts
-- Handler patterns
-- Adding new platforms
-
-## Known Limitations
-
-- **Voice**: Requires ffmpeg installed; Whisper model downloads on first use
-- **Blockchain**: Currently uses environment chain only
-- **Media**: Photo attachments not yet implemented
-
-## Production Checklist
-
-- [ ] Set `ENCRYPTION_SECRET` (32+ characters)
-- [ ] Configure webhook URL with TLS
-- [ ] Consider HSM/KMS for key storage
-- [ ] Set up monitoring for `/health` endpoint
-- [ ] Configure `POSTHOG_AGENT_KEY` for analytics (`VITE_POSTHOG_AGENT_KEY` is ignored)
-- [ ] Review analytics events in PostHog dashboard
