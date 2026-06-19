@@ -40,6 +40,8 @@ Branch signal: `codex/state-api/resend-email-signup-migration`
   - Passed: `public-api.test.ts` 24 tests, `resend.test.ts` 4 tests, `config.test.ts` 17 tests; 45 tests total.
 - `bun run --filter @green-goods/client test -- PublicGetInTouch`
   - Passed: `PublicGetInTouch.test.tsx` 6 tests.
+- `bun run --filter @green-goods/shared test -- public-contracts`
+  - Passed: `public-contracts.test.ts` 9 tests and `public-contracts/upload-signing.test.ts` 4 tests; 13 tests total.
 - `bun run lint:vocab`
   - Passed: no banned vocabulary in 3 i18n files.
 - `node scripts/harness/plan-hub.mjs validate`
@@ -62,7 +64,8 @@ Branch signal: `codex/state-api/resend-email-signup-migration`
   - Ran after implementation. Format, client tests, admin hub tests, and agent tests passed. The aggregate remained non-zero because `packages/shared/src/__tests__/hooks/vault/useVaultOperations.test.ts` timed out in the existing two-step vault deposit test; this is outside the Resend/public subscribe migration surface.
 - GitHub PR #577 Vercel preview check `Vercel - green-goods`
   - Blocked on the first pushed implementation head `7a6e4ed`: Vercel failed in the client social-preview closeBundle hook with `ENOENT: no such file or directory, open '/vercel/path0/packages/client/dist/index.html'`. The same client production build passed locally on this branch; develop's client Vercel check is green. Merge is blocked until the branch preview check is green.
-  - Reproduced again on refreshed head `7258e13`, then fixed locally by moving the social-preview generation hook from `closeBundle` to `writeBundle`. Awaiting the next Vercel run for remote confirmation.
+  - Reproduced again on refreshed head `7258e13`, then fixed by moving the social-preview generation hook from `closeBundle` to `writeBundle`.
+  - Confirmed remote checks green on PR head `998935a`: `Vercel - green-goods`, `Vercel - green-goods-admin`, `Vercel - green-goods-design`, and `CodeRabbit`.
 
 ## Remaining Work
 
