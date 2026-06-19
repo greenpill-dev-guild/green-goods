@@ -9,8 +9,8 @@ import type { Address } from "@green-goods/shared";
  * Gardens via `usePublicGardens`.
  *
  * Contact configuration only carries the public Agent subscription path and
- * the Google appointment booking URL — Luma calendar/tag/provider details
- * stay server-side in `packages/agent`.
+ * the Google appointment booking URL; provider details stay server-side in
+ * `packages/agent`.
  */
 
 export type CuratedGardenKey = string | Address;
