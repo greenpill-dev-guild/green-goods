@@ -6,7 +6,11 @@ import { createRoot } from "react-dom/client";
 import { HelmetProvider } from "react-helmet-async";
 import App from "@/App.tsx";
 import { AppErrorBoundary } from "@/components/Errors";
-import { createPwaRoutingConfig, PWA_APP_SCOPE } from "@/config/pwa-routing";
+import {
+  createPwaRoutingConfig,
+  PWA_APP_SCOPE,
+  PWA_DEV_SERVICE_WORKER_SCRIPT,
+} from "@/config/pwa-routing";
 import { registerPublicWebMcpTools } from "@/modules/webmcp/public-tools";
 
 import "@/index.css";
@@ -31,6 +35,10 @@ initGlobalErrorHandlers();
 registerPublicWebMcpTools();
 
 const pwaRouting = createPwaRoutingConfig(import.meta.env.VITE_USE_HASH_ROUTER === "true");
+// In dev with SW enabled, register vite-plugin-pwa's generated worker, not /sw.js
+// (which resolves to index.html and fails with an unsupported MIME type).
+const devServiceWorkerEnabled =
+  import.meta.env.DEV && import.meta.env.VITE_ENABLE_SW_DEV === "true";
 void registerServiceWorkerFromEnv(
   {
     DEV: import.meta.env.MODE !== "production",
@@ -39,7 +47,9 @@ void registerServiceWorkerFromEnv(
     VITE_APP_VERSION: import.meta.env.VITE_APP_VERSION,
   },
   {
-    scriptUrl: pwaRouting.serviceWorkerScriptUrl,
+    scriptUrl: devServiceWorkerEnabled
+      ? PWA_DEV_SERVICE_WORKER_SCRIPT
+      : pwaRouting.serviceWorkerScriptUrl,
     scope: pwaRouting.manifestScope,
     legacyScopes: pwaRouting.manifestScope === PWA_APP_SCOPE ? ["/"] : [],
   }
