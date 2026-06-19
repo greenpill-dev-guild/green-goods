@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-04-28T00:00:00.000Z",
-    "updated_at": "2026-05-24T22:23:51.000Z"
+    "updated_at": "2026-06-19T02:41:18.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -36,7 +36,8 @@
     "2026-05-24 modern Web UI follow-up: added reports/modern-web-ui-follow-up-2026-05-24.md and a backlog-style Phase 7 for text-scale readiness, scoped View Transition pilot evaluation, CSS scroll spy, gap decorations, and native dialog/popover consolidation. Lane statuses are unchanged; this is plan truth only.",
     "2026-05-24 Chrome platform operationalization: expanded Phase 7 with CWV/soft-navigation evidence fields, isolated DevTools MCP proof boundaries, and frozen WebMCP approval-spec requirements. Lane statuses are unchanged.",
     "2026-05-24 Codex scope-lock audit on main 06a8108c: runtime CSS stayed read-only. plan-hub validates 21 hubs; CSS guard passes with 3094 var refs / 1005 definitions / 60 audited unresolved; check:design-tokens passes; shared Storybook coverage/quality gates pass; targeted client PWA drawer, shared Canvas sheet, and admin Canvas/Dialog tests pass through package Vitest wrappers. Runtime micro-batch proposed but not approved or implemented.",
-    "2026-05-24 approved UI micro-batch completed: installed-PWA drawer/dialog overlays in packages/client/src/styles/pwaDrawerStyles.ts now use --color-scrim; public editorial overlays, admin chrome, shared Canvas geometry, Storybook frames, and the 60 audited typography/font entries were not changed. Proof: plan-hub validates 21 hubs; CSS guard passes with 3096 var refs / 1005 definitions / 60 audited unresolved; check:design-tokens passes; lint:vocab passes; shared Storybook coverage/quality gates pass; client pwaDrawerStyles Vitest 4/4 passes; build:client passes; built CSS emits background-color:var(--color-scrim); Storybook browser proof confirms ModalDrawer overlay rgba(12, 10, 9, 0.22), full viewport coverage, z-index 50, modalSlideIn, 44px close target, and no horizontal overflow."
+    "2026-05-24 approved UI micro-batch completed: installed-PWA drawer/dialog overlays in packages/client/src/styles/pwaDrawerStyles.ts now use --color-scrim; public editorial overlays, admin chrome, shared Canvas geometry, Storybook frames, and the 60 audited typography/font entries were not changed. Proof: plan-hub validates 21 hubs; CSS guard passes with 3096 var refs / 1005 definitions / 60 audited unresolved; check:design-tokens passes; lint:vocab passes; shared Storybook coverage/quality gates pass; client pwaDrawerStyles Vitest 4/4 passes; build:client passes; built CSS emits background-color:var(--color-scrim); Storybook browser proof confirms ModalDrawer overlay rgba(12, 10, 9, 0.22), full viewport coverage, z-index 50, modalSlideIn, 44px close target, and no horizontal overflow.",
+    "2026-06-19 QA pass 1 rerun: static CSS maintainability gates and focused package tests passed from an isolated local clone on claude/qa-pass-1/css-maintainability-polish at origin/develop b4257d57. Linear PRD-610 verified live and recorded. Authenticated Brave/browser QA was unavailable, and clean-room Storybook browser execution was also blocked, so qa_pass_1 remains blocked on visual proof rather than passed. QA pass 2 remains blocked."
   ],
   "lanes": {
     "ui": {
@@ -122,13 +123,18 @@
     },
     "qa_pass_1": {
       "owner": "claude",
-      "status": "ready",
+      "status": "blocked",
       "ready_when_dependencies_met": true,
-      "manual_blocked": false,
+      "manual_blocked": true,
       "branch": "claude/qa-pass-1/css-maintainability-polish",
       "depends_on": ["ui", "state_api"],
       "handoff": "handoffs/claude-qa-pass-1.md",
-      "skill_tags": ["testing", "review", "visual-qa", "css-re-audit"]
+      "skill_tags": ["testing", "review", "visual-qa", "css-re-audit"],
+      "blocker": {
+        "kind": "qa_environment",
+        "since": "2026-06-19T02:41:18.000Z",
+        "note": "Static gates, Storybook build, and focused package tests passed, but authenticated Brave/browser proof is unavailable. Do not mark qa_pass_1 passed or start qa_pass_2 until admin /hub, admin sheets/Actions route-backed states, and installed-PWA drawer/dialog behavior have browser evidence."
+      }
     },
     "qa_pass_2": {
       "owner": "codex",
@@ -278,6 +284,14 @@
       "status": "completed",
       "branch": "main",
       "note": "Implemented the human-approved runtime micro-batch only: client PWA drawer/dialog backdrop classes now use --color-scrim, with a focused pwaDrawerStyles regression assertion. Validation passed: plan-hub, CSS custom-property guard (3096 refs / 1005 definitions / 60 audited unresolved), check:design-tokens, lint:vocab, shared Storybook coverage/quality, client pwaDrawerStyles Vitest 4/4, and build:client. Browser proof captured Storybook ModalDrawer and shared PwaSheet scrims at rgba(12, 10, 9, 0.22) with full mobile viewport coverage and no horizontal overflow. QA pass 1 is ready for review."
+    },
+    {
+      "timestamp": "2026-06-19T02:41:18.000Z",
+      "actor": "codex",
+      "lane": "qa_pass_1",
+      "status": "blocked",
+      "branch": "claude/qa-pass-1/css-maintainability-polish",
+      "note": "QA pass 1 rerun completed static and focused test evidence from an isolated local clone. Passed: plan-hub validate (22 hubs), CSS custom-property guard (3128 refs / 1002 definitions / 60 audited unresolved), check:design-tokens, agentic guidance, Storybook coverage/quality, static Storybook build, client PWA drawer/DraftDialog tests (15), shared Canvas sheet/toast tests (48), and admin dialog/CanvasLayout/Actions/Hypercert distribution tests (66). Live Linear confirmed PRD-451, PRD-452, and PRD-610. Blocked: no authenticated Brave control path and clean-room browser execution failed, so required admin /hub, sheet, Actions, and installed-PWA visual evidence is still missing."
     }
   ],
   "taxonomy": {
@@ -289,11 +303,14 @@
   },
   "linear": {
     "syncDirection": "plans_to_linear_visibility",
-    "lastSyncedAt": "2026-05-10T22:34:34.859Z",
+    "lastSyncedAt": "2026-06-19T02:41:18.000Z",
     "parentIssue": "PRD-451",
     "lanes": {
       "ui": {
         "issue": "PRD-452"
+      },
+      "qa_pass_1": {
+        "issue": "PRD-610"
       }
     }
   }
