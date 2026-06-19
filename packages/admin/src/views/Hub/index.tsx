@@ -44,6 +44,7 @@ export default function HubView() {
     hub.pendingWarningCount,
     formatMessage,
   ]);
+  const headerStatsLoading = Boolean(hub.selectedGarden) && hub.worksLoading;
 
   return (
     <CanvasRouteFrame
@@ -95,8 +96,13 @@ export default function HubView() {
                 "Review submitted work, run assessments, and certify impact across your gardens.",
             })}
             metadata={
-              headerStats.length > 0 ? (
-                <MetaStrip items={headerStats} density="inline" />
+              headerStatsLoading || headerStats.length > 0 ? (
+                <MetaStrip
+                  items={headerStats}
+                  density="inline"
+                  loading={headerStatsLoading}
+                  loadingItemCount={2}
+                />
               ) : undefined
             }
             variant="canvas"
