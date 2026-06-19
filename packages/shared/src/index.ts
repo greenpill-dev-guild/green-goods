@@ -522,6 +522,7 @@ export {
   useHypercertListings,
   useHypercerts,
   useInstallGuidance,
+  useIsBraveBrowser,
   useJoinGarden,
   useLoadingWithMinDuration,
   useMarketplaceApprovals,

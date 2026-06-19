@@ -2,6 +2,7 @@ import {
   type InstallAction,
   useApp,
   useInstallGuidance,
+  useIsBraveBrowser,
   usePublicInstallHandler,
   useTunnelUrl,
 } from "@green-goods/shared";
@@ -41,6 +42,7 @@ export function PublicInstallAction({ children, forceOpenApp = false }: PublicIn
     isMobile
   );
   const dispatchInstallAction = usePublicInstallHandler(guidance, promptInstall);
+  const isBrave = useIsBraveBrowser();
   const [dialogMode, setDialogMode] = useState<PublicInstallDialogMode | null>(null);
 
   // Gate "open-app" affordance on mobile: desktop users can't usefully launch
@@ -59,6 +61,12 @@ export function PublicInstallAction({ children, forceOpenApp = false }: PublicIn
       event.preventDefault();
 
       if (isOpenApp) {
+        // Brave does not mint a WebAPK on Android, so navigating to the scoped URL
+        // stays in the browser tab instead of launching the installed app.
+        if (isBrave) {
+          setDialogMode("braveLaunch");
+          return;
+        }
         if (typeof window !== "undefined") {
           window.location.assign(launchUrl);
         }
@@ -77,7 +85,7 @@ export function PublicInstallAction({ children, forceOpenApp = false }: PublicIn
 
       setDialogMode("mobileSteps");
     },
-    [dispatchInstallAction, guidance.primaryAction.type, isMobile, isOpenApp, launchUrl]
+    [dispatchInstallAction, guidance.primaryAction.type, isBrave, isMobile, isOpenApp, launchUrl]
   );
 
   const handleDialogPrimaryAction = useCallback<MouseEventHandler<HTMLButtonElement>>(
