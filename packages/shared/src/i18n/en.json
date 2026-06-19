@@ -3452,5 +3452,11 @@
   "public.installDialog.braveKicker": "Open the app",
   "public.installDialog.braveTitle": "Open Green Goods from your home screen",
   "public.installDialog.braveBody": "Brave adds Green Goods as a home-screen app instead of launching it from this button. Tap the Green Goods icon on your home screen to open it.",
-  "public.installDialog.braveFallback": "Open in this tab instead"
+  "public.installDialog.braveFallback": "Open in this tab instead",
+  "app.toast.update.available.title": "Update available",
+  "app.toast.update.available.message": "A new version of Green Goods is ready.",
+  "app.toast.update.updating.title": "Updating...",
+  "app.toast.update.updating.message": "Refreshing to the latest version.",
+  "app.toast.update.stalled.title": "Update needs a restart",
+  "app.toast.update.stalled.message": "Please close and reopen the app to finish updating."
 }

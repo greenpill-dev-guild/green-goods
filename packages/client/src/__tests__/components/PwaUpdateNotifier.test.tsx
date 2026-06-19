@@ -11,6 +11,7 @@ const sharedMocks = vi.hoisted(() => ({
   dismissUpdate: vi.fn(),
   updateAvailable: vi.fn(),
   updating: vi.fn(),
+  stalled: vi.fn(),
   useApp: vi.fn(),
   useServiceWorkerUpdate: vi.fn(),
 }));
@@ -19,6 +20,7 @@ vi.mock("@green-goods/shared", () => ({
   updateToasts: {
     available: sharedMocks.updateAvailable,
     updating: sharedMocks.updating,
+    stalled: sharedMocks.stalled,
   },
   useApp: sharedMocks.useApp,
   useServiceWorkerUpdate: sharedMocks.useServiceWorkerUpdate,
@@ -33,6 +35,7 @@ describe("PwaUpdateNotifier", () => {
     sharedMocks.useServiceWorkerUpdate.mockReturnValue({
       updateAvailable: false,
       isUpdating: false,
+      updateStalled: false,
       applyUpdate: sharedMocks.applyUpdate,
       dismissUpdate: sharedMocks.dismissUpdate,
     });
@@ -52,6 +55,7 @@ describe("PwaUpdateNotifier", () => {
     sharedMocks.useServiceWorkerUpdate.mockReturnValue({
       updateAvailable: true,
       isUpdating: false,
+      updateStalled: false,
       applyUpdate: sharedMocks.applyUpdate,
       dismissUpdate: sharedMocks.dismissUpdate,
     });
@@ -69,6 +73,7 @@ describe("PwaUpdateNotifier", () => {
     sharedMocks.useServiceWorkerUpdate.mockReturnValue({
       updateAvailable: false,
       isUpdating: true,
+      updateStalled: false,
       applyUpdate: sharedMocks.applyUpdate,
       dismissUpdate: sharedMocks.dismissUpdate,
     });
@@ -76,5 +81,19 @@ describe("PwaUpdateNotifier", () => {
     render(createElement(PwaUpdateNotifier));
 
     expect(sharedMocks.updating).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the stalled toast in PWA presentation", () => {
+    sharedMocks.useServiceWorkerUpdate.mockReturnValue({
+      updateAvailable: false,
+      isUpdating: false,
+      updateStalled: true,
+      applyUpdate: sharedMocks.applyUpdate,
+      dismissUpdate: sharedMocks.dismissUpdate,
+    });
+
+    render(createElement(PwaUpdateNotifier));
+
+    expect(sharedMocks.stalled).toHaveBeenCalledWith(sharedMocks.dismissUpdate);
   });
 });
