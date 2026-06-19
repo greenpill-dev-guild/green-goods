@@ -3452,5 +3452,11 @@
   "public.installDialog.braveKicker": "Abrir la app",
   "public.installDialog.braveTitle": "Abre Green Goods desde tu pantalla de inicio",
   "public.installDialog.braveBody": "Brave agrega Green Goods como una app en la pantalla de inicio en lugar de abrirla desde este boton. Toca el icono de Green Goods en tu pantalla de inicio para abrirla.",
-  "public.installDialog.braveFallback": "Abrir en esta pestana"
+  "public.installDialog.braveFallback": "Abrir en esta pestana",
+  "app.toast.update.available.title": "Actualización disponible",
+  "app.toast.update.available.message": "Hay una nueva versión de Green Goods lista.",
+  "app.toast.update.updating.title": "Actualizando...",
+  "app.toast.update.updating.message": "Actualizando a la última versión.",
+  "app.toast.update.stalled.title": "La actualización necesita reiniciarse",
+  "app.toast.update.stalled.message": "Cierra y vuelve a abrir la app para terminar de actualizar."
 }

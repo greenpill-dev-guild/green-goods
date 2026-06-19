@@ -2,16 +2,22 @@ import { updateToasts, useApp, useServiceWorkerUpdate } from "@green-goods/share
 import { useEffect } from "react";
 
 function ServiceWorkerUpdateNotifier() {
-  const { updateAvailable, isUpdating, applyUpdate, dismissUpdate } = useServiceWorkerUpdate();
+  const { updateAvailable, isUpdating, updateStalled, applyUpdate, dismissUpdate } =
+    useServiceWorkerUpdate();
 
   useEffect(() => {
+    if (isUpdating) {
+      updateToasts.updating();
+      return;
+    }
+    if (updateStalled) {
+      updateToasts.stalled(dismissUpdate);
+      return;
+    }
     if (updateAvailable) {
       updateToasts.available(applyUpdate, dismissUpdate);
     }
-    if (isUpdating) {
-      updateToasts.updating();
-    }
-  }, [updateAvailable, isUpdating, applyUpdate, dismissUpdate]);
+  }, [updateAvailable, isUpdating, updateStalled, applyUpdate, dismissUpdate]);
 
   return null;
 }
