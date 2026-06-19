@@ -258,7 +258,7 @@ function renderTitleLinePath(
   }
 
   const pattern = new RegExp(
-    `\b(${accentWords.map((word) => word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})\b`,
+    `\\b(${accentWords.map((word) => word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})\\b`,
     "g"
   );
   const paths: string[] = [];
