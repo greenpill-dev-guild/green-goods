@@ -95,7 +95,7 @@ describe("AppKit config", () => {
       name: "Green Goods",
       description: "Test metadata",
       url: "https://www.greengoods.app",
-      icons: ["https://www.greengoods.app/icon.png"],
+      icons: ["https://www.greengoods.app/icon-192.png"],
     };
 
     ensureAppKit({
