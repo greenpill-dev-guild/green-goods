@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { useAdminStore, type Garden } from "../../stores/useAdminStore";
+import { useGardenUrlSync } from "../navigation/useGardenUrlSync";
 import { useEligibleAdminGardens } from "./useEligibleAdminGardens";
 
 export interface AdminGardenWorkspaceOption {
@@ -28,6 +29,7 @@ export function useAdminGardenWorkspaceSelection({
   const { eligibleGardens, isLoaded } = useEligibleAdminGardens();
   const selectedGarden = useAdminStore((state) => state.selectedGarden);
   const setSelectedGarden = useAdminStore((state) => state.setSelectedGarden);
+  const { setGarden } = useGardenUrlSync();
 
   const gardenOptions = useMemo<AdminGardenWorkspaceOption[]>(
     () =>
@@ -42,9 +44,9 @@ export function useAdminGardenWorkspaceSelection({
   const handleSelectGarden = useCallback(
     (garden: Pick<AdminGardenWorkspaceOption, "id">) => {
       const fullGarden = eligibleGardens.find((entry) => entry.id === garden.id);
-      setSelectedGarden(fullGarden ?? null);
+      setGarden(fullGarden ?? null);
     },
-    [eligibleGardens, setSelectedGarden]
+    [eligibleGardens, setGarden]
   );
 
   useEffect(() => {
@@ -55,7 +57,7 @@ export function useAdminGardenWorkspaceSelection({
     const firstGarden = eligibleGardens[0];
     if (!firstGarden) return;
 
-    setSelectedGarden(firstGarden);
+    setGarden(firstGarden);
     onAutoSelectGarden?.(firstGarden);
   }, [
     autoSelectFirstGarden,
@@ -63,7 +65,7 @@ export function useAdminGardenWorkspaceSelection({
     isLoaded,
     onAutoSelectGarden,
     selectedGarden,
-    setSelectedGarden,
+    setGarden,
   ]);
 
   return {
