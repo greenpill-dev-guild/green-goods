@@ -65,11 +65,10 @@ const meta = {
     },
     selectedGarden: {
       control: "object",
-      description: "The currently selected garden, or null for All Gardens.",
+      description: "The currently selected garden, or null while selection is loading.",
     },
     onSelectGarden: {
-      description:
-        "Callback when a garden is selected. Receives the garden object or null for All Gardens.",
+      description: "Callback when a garden is selected. Receives the garden object.",
     },
     onCreateGarden: {
       description:
@@ -114,8 +113,8 @@ export const MultiGarden: Story = {
   },
 };
 
-/** No garden selected — shows "All Gardens" label. */
-export const AllGardens: Story = {
+/** No garden selected yet — prompts the user to choose an eligible garden. */
+export const SelectionRequired: Story = {
   args: {
     gardens: multipleGardens,
     selectedGarden: null,
@@ -191,7 +190,9 @@ export const StateCatalog: Story = {
       </section>
 
       <section>
-        <h3 className="mb-3 text-sm font-semibold text-text-sub">Multi Garden — All Gardens</h3>
+        <h3 className="mb-3 text-sm font-semibold text-text-sub">
+          Multi Garden - selection required
+        </h3>
         <GardenChip
           gardens={multipleGardens}
           selectedGarden={null}
