@@ -2,7 +2,7 @@
 
 **Lane**: `qa_pass_1`  
 **Owner**: `claude`  
-**Status**: blocked on authenticated browser QA access  
+**Status**: closed with accepted browser-proof follow-up  
 **Branch target**: `claude/qa-pass-1/css-maintainability-polish`  
 **Run date**: `2026-06-19T02:41:18Z`  
 **Checkout used**: `/private/tmp/green-goods-qa-pass-1-css-maintainability-polish` on `claude/qa-pass-1/css-maintainability-polish` at `b4257d57d1be7981e4d037025c41770f538719e6`
@@ -17,12 +17,13 @@
    - QA pass 1 `PRD-610` exists as `Todo` under `PRD-451`.
 4. `.plans` in `origin/develop` was stale for the QA lane Linear ID before this handoff: `linear-sync` saw `qa_pass_1` as a create action because `status.json` only recorded `PRD-452`.
 5. The 60 audited typography/font custom-property entries remain documented debt, not a current gate failure.
+6. 2026-06-19 closeout decision: the hub is archived by explicit human direction. Missing authenticated browser proof remains recorded as a follow-up/proof limit, not as completed QA evidence.
 
 ## Findings
 
-1. **P1 - Authenticated browser QA is blocked, so QA Pass 1 cannot pass yet.**  
+1. **P1 - Authenticated browser QA was blocked in this environment.**  
    Evidence: no Codex Browser/Chrome control tool was exposed for the authenticated Brave QA path; terminal Playwright clean-room attempts were also blocked. Localhost serving of the static Storybook build failed with `PermissionError: [Errno 1] Operation not permitted` even after escalation, and Playwright-launched Brave aborted before a page/context became available.  
-   Impact: admin `/hub`, real admin sheet overlap/focus/route-backed states, and installed-PWA drawer/dialog scroll-lock/focus-trap proof cannot be claimed from this run.
+   Impact: admin `/hub`, real admin sheet overlap/focus/route-backed states, and installed-PWA drawer/dialog scroll-lock/focus-trap proof cannot be claimed from this run. This is now accepted as follow-up proof outside this hub.
 
 2. **P1 - Static guardrails and Storybook build are green.**  
    Evidence:
@@ -101,6 +102,6 @@ No screenshot evidence was captured in this pass because both authenticated brow
 
 ## Recommendation
 
-Keep the hub active. Do not start QA Pass 2 and do not close/archive the hub yet.
+Close/archive the hub by explicit human direction.
 
-The code-facing CSS maintainability gates are green, and there is no evidence that the 60 audited typography/font entries are a current gate failure. The remaining blocker is proof quality: QA Pass 1 still needs authenticated Brave/browser evidence for admin `/hub`, admin sheet overlap/focus/close behavior, route-backed Actions states, and installed-PWA drawer/dialog focus/scroll/safe-area behavior. If authenticated browser access remains unavailable, split a narrow follow-up for "CSS maintainability browser proof unblock" rather than reopening runtime CSS.
+The code-facing CSS maintainability gates are green, and there is no evidence that the 60 audited typography/font entries are a current gate failure. The remaining proof gap is authenticated Brave/browser evidence for admin `/hub`, admin sheet overlap/focus/close behavior, route-backed Actions states, and installed-PWA drawer/dialog focus/scroll/safe-area behavior. Do not claim that browser proof exists for this pass; treat it as accepted follow-up/non-gating debt after this archive move. QA Pass 2 is skipped for this hub closeout.
