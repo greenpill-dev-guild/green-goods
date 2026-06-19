@@ -28,6 +28,7 @@ vi.mock("@green-goods/shared", () => ({
   APP_NAME: "Green Goods",
   cn: (...args: any[]) => args.filter(Boolean).join(" "),
   useApp: mockUseApp,
+  useIsBraveBrowser: () => false,
   useInstallGuidance: mockUseInstallGuidance,
   usePublicInstallHandler: mockUsePublicInstallHandler,
   useTunnelUrl: () => null,

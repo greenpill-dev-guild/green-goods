@@ -33,6 +33,7 @@ vi.mock("@green-goods/shared", () => ({
   useUIStore: (selector: (s: any) => any) => mockUseUIStore(selector),
   APP_NAME: "Green Goods",
   useAppKit: () => ({ open: vi.fn() }),
+  useIsBraveBrowser: () => false,
   useInstallGuidance: () => ({
     scenario: "desktop",
     primaryAction: { type: "continue-in-browser", label: "Open on Mobile" },
