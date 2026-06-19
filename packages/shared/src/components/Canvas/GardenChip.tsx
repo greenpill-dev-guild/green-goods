@@ -11,7 +11,7 @@ import { cn } from "../../utils/styles/cn";
 export interface GardenChipProps {
   gardens: Array<{ id: string; name: string }>;
   selectedGarden: { id: string; name: string } | null;
-  onSelectGarden: (garden: { id: string; name: string } | null) => void;
+  onSelectGarden: (garden: { id: string; name: string }) => void;
   onCreateGarden?: () => void;
 }
 
@@ -22,12 +22,12 @@ export interface GardenChipProps {
 /**
  * Compact pill/chip showing the active garden name.
  *
- * - 1 garden: Static label (no dropdown, no "All Gardens")
+ * - 1 garden: Static label (no dropdown)
  * - 2+ gardens: Click to open a Radix Popover dropdown with
- *   "All Gardens" at top, garden list, divider, "Create Garden" at bottom
+ *   garden list, divider, "Create Garden" at bottom
  *
  * Decision D47: single-garden users never see a switcher.
- * Decision D50: dropdown contains only gardens + All Gardens + Create Garden.
+ * Decision D50: dropdown contains only eligible gardens + Create Garden.
  */
 export function GardenChip({
   gardens,
@@ -39,7 +39,7 @@ export function GardenChip({
   const [open, setOpen] = useState(false);
 
   const displayName =
-    selectedGarden?.name ?? formatMessage({ id: "cockpit.gardenChip.allGardens" });
+    selectedGarden?.name ?? formatMessage({ id: "app.assessment.selectGarden" });
 
   const hasMultiple = gardens.length >= 2;
 
@@ -107,7 +107,7 @@ export function GardenChip({
           }}
           data-component="GardenChip"
           data-slot="trigger"
-          data-selection-state={selectedGarden ? "selected" : "all-gardens"}
+          data-selection-state={selectedGarden ? "selected" : "empty"}
         >
           {selectedGarden ? (
             <span className="relative flex h-4 w-4 shrink-0 items-center justify-center">
@@ -155,16 +155,6 @@ export function GardenChip({
           data-component="GardenChip"
           data-slot="menu"
         >
-          {/* All Gardens option */}
-          <GardenDropdownItem
-            label={formatMessage({ id: "cockpit.gardenChip.allGardens" })}
-            isSelected={selectedGarden === null}
-            onClick={() => {
-              onSelectGarden(null);
-              setOpen(false);
-            }}
-          />
-
           {/* Garden list */}
           {gardens.map((garden) => (
             <GardenDropdownItem
