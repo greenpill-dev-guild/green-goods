@@ -31,7 +31,7 @@ export function useUserCookieJars() {
   const operatorGardens = useMemo(() => {
     if (!gardens || !roleOperatorGardens?.length) return [];
     const opSet = new Set(roleOperatorGardens.map((g) => g.id.toLowerCase()));
-    return gardens.filter((g) => opSet.has(g.tokenAddress.toLowerCase()));
+    return gardens.filter((g) => opSet.has(g.id.toLowerCase()));
   }, [gardens, roleOperatorGardens]);
 
   // Step 1: Batch-read jar addresses for each operator garden
@@ -41,7 +41,7 @@ export function useUserCookieJars() {
         address: moduleAddress as Address,
         abi: COOKIE_JAR_MODULE_ABI,
         functionName: "getGardenJars" as const,
-        args: [garden.tokenAddress.toLowerCase() as Address] as const,
+        args: [garden.id.toLowerCase() as Address] as const,
       })),
     [operatorGardens, moduleAddress]
   );
@@ -65,7 +65,7 @@ export function useUserCookieJars() {
         if (addr.toLowerCase() !== ZERO_ADDRESS) {
           pairs.push({
             jarAddress: addr,
-            gardenAddress: operatorGardens[i].tokenAddress.toLowerCase() as Address,
+            gardenAddress: operatorGardens[i].id.toLowerCase() as Address,
           });
         }
       }

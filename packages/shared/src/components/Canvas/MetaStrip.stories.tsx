@@ -44,3 +44,11 @@ export const Empty: Story = {
     items: [],
   },
 };
+
+export const LoadingInline: Story = {
+  render: () => <MetaStrip density="inline" items={[]} loading loadingItemCount={2} />,
+};
+
+export const LoadingPill: Story = {
+  render: () => <MetaStrip density="pill" items={[]} loading loadingItemCount={3} />,
+};

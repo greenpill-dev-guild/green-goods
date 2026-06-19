@@ -83,8 +83,7 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
     gardens.find((item) => item.id.toLowerCase() === normalizedResolvedGardenId) ??
     selectedGardenFallback;
   const gardenRouteContext = {
-    gardenAddress:
-      garden?.tokenAddress ?? garden?.id ?? selectedGarden?.tokenAddress ?? resolvedGardenId,
+    gardenAddress: garden?.id ?? selectedGarden?.id ?? resolvedGardenId,
   };
   const permissions = useGardenPermissions();
   const { primaryAddress } = useUser();

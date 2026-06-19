@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { useAdminStore, type Garden } from "../../stores/useAdminStore";
+import { compareAddresses } from "../../utils/blockchain/address";
 import { useGardenUrlSync } from "../navigation/useGardenUrlSync";
 import { useEligibleAdminGardens } from "./useEligibleAdminGardens";
 
@@ -43,7 +44,7 @@ export function useAdminGardenWorkspaceSelection({
 
   const handleSelectGarden = useCallback(
     (garden: Pick<AdminGardenWorkspaceOption, "id">) => {
-      const fullGarden = eligibleGardens.find((entry) => entry.id === garden.id);
+      const fullGarden = eligibleGardens.find((entry) => compareAddresses(entry.id, garden.id));
       setGarden(fullGarden ?? null);
     },
     [eligibleGardens, setGarden]

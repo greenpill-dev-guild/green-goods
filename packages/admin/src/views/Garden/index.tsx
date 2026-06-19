@@ -38,6 +38,7 @@ export default function GardenView() {
       formatMessage,
     ]
   );
+  const headerStatsLoading = Boolean(garden.selectedGarden) && garden.hypercertsLoading;
 
   return (
     <CanvasRouteFrame
@@ -61,7 +62,14 @@ export default function GardenView() {
             "What's growing in this garden — overview, activity, gardeners, and settings.",
         })}
         metadata={
-          headerStats.length > 0 ? <MetaStrip items={headerStats} density="inline" /> : undefined
+          headerStatsLoading || headerStats.length > 0 ? (
+            <MetaStrip
+              items={headerStats}
+              density="inline"
+              loading={headerStatsLoading}
+              loadingItemCount={2}
+            />
+          ) : undefined
         }
         actions={
           isDesktop && garden.desktopActions.length > 0 ? (

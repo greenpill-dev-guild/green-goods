@@ -12,10 +12,10 @@ const formatMessage = ((descriptor: { defaultMessage?: string; id: string }) =>
   descriptor.defaultMessage ?? descriptor.id) as IntlShape["formatMessage"];
 
 const eligibleGarden = {
-  id: "garden-1",
+  id: "0x0000000000000000000000000000000000000aaa",
   name: "Chakra Farm",
   location: "Quito",
-  tokenAddress: "0x0000000000000000000000000000000000000aaa",
+  tokenAddress: "0x9990000000000000000000000000000000000999",
 } as Garden;
 
 function assessment(id: string, gardenAddress: string, title: string): GardenAssessment {

@@ -6,14 +6,17 @@ import { renderHook, act } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mockSetSearchParams = vi.fn();
-const mockSearchParams = new URLSearchParams();
+const mockSearchParams = { current: new URLSearchParams() };
 const mockSetSelectedGarden = vi.fn();
 const mockSetPersistedGardenId = vi.fn();
 const mockSelectedGardenId = { current: null as string | null };
 const mockSelectedGarden = { current: null as any };
+const mockEligibleGardens = { current: [] as any[] };
+const mockResolvedDefaultGarden = { current: null as any };
+const mockIsLoaded = { current: true };
 
 vi.mock("react-router-dom", () => ({
-  useSearchParams: () => [mockSearchParams, mockSetSearchParams],
+  useSearchParams: () => [mockSearchParams.current, mockSetSearchParams],
 }));
 
 vi.mock("../../../stores/useAdminStore", () => ({
@@ -29,12 +32,12 @@ vi.mock("../../../stores/useAdminStore", () => ({
 
 vi.mock("../../../hooks/garden/useEligibleAdminGardens", () => ({
   useEligibleAdminGardens: () => ({
-    eligibleGardens: [],
-    resolvedDefaultGarden: null,
+    eligibleGardens: mockEligibleGardens.current,
+    resolvedDefaultGarden: mockResolvedDefaultGarden.current,
     persistedGardenId: null,
     scopeKey: "11155111:0x1111111111111111111111111111111111111111",
     canCreateGarden: false,
-    isLoaded: true,
+    isLoaded: mockIsLoaded.current,
   }),
 }));
 
@@ -43,8 +46,16 @@ import { useGardenUrlSync } from "../../../hooks/navigation/useGardenUrlSync";
 describe("useGardenUrlSync search options", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockSetSelectedGarden.mockImplementation((garden) => {
+      mockSelectedGarden.current = garden;
+      mockSelectedGardenId.current = garden?.id ?? null;
+    });
+    mockSearchParams.current = new URLSearchParams();
     mockSelectedGardenId.current = null;
     mockSelectedGarden.current = null;
+    mockEligibleGardens.current = [];
+    mockResolvedDefaultGarden.current = null;
+    mockIsLoaded.current = true;
   });
 
   it("preserves scroll when opening and closing route-backed item sheets", () => {
@@ -83,5 +94,37 @@ describe("useGardenUrlSync search options", () => {
     });
 
     expect(mockSetSearchParams).toHaveBeenLastCalledWith(expect.any(Function), { replace: true });
+  });
+
+  it("does not let a second hook instance restore the previous URL garden while a switch is pending", () => {
+    const sharedGardenToken = "0x9990000000000000000000000000000000000999";
+    const gardenA = {
+      id: "garden-a",
+      name: "Alpha",
+      tokenAddress: sharedGardenToken,
+    };
+    const gardenB = {
+      id: "garden-b",
+      name: "Beta",
+      tokenAddress: sharedGardenToken,
+    };
+    mockEligibleGardens.current = [gardenA, gardenB];
+    mockSelectedGarden.current = gardenA;
+    mockSelectedGardenId.current = gardenA.id;
+    mockSearchParams.current = new URLSearchParams(`gardenAddress=${gardenA.id}`);
+
+    const { result, rerender } = renderHook(() => ({
+      shell: useGardenUrlSync(),
+      route: useGardenUrlSync(),
+    }));
+
+    act(() => {
+      result.current.shell.setGarden(gardenB);
+    });
+
+    rerender();
+
+    expect(mockSelectedGarden.current).toEqual(gardenB);
+    expect(mockSetSelectedGarden).not.toHaveBeenLastCalledWith(gardenA);
   });
 });
