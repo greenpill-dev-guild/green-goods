@@ -140,7 +140,10 @@ export default function CommunityView() {
         />
       </CanvasRouteHeader>
 
-      <CommunityWorkspaceContent workspace={community} />
+      <CommunityWorkspaceContent
+        key={community.selectedGarden?.id ?? "no-garden"}
+        workspace={community}
+      />
     </CanvasRouteFrame>
   );
 }
