@@ -358,13 +358,184 @@ export function createProviderProofRegistry(entries: readonly ProviderProofEntry
     resolve(input: PublicFundingAvailabilityKeyInput): PublicFundingAvailability {
       const availabilityKey = buildPublicFundingAvailabilityKey(input);
       const entry = byKey.get(availabilityKey);
+      if (!entry || entry.state === "hidden") {
+        return {
+          ...input,
+          availabilityKey,
+          state: "hidden",
+          reasonCode: "proof_pending",
+          reasonParams: { provider: input.provider, requiredProof: "provider_execution" },
+          requiredProof: "provider_execution",
+        };
+      }
+      if (entry.state === "comingSoon") {
+        return {
+          ...input,
+          availabilityKey,
+          state: "comingSoon",
+          reasonCode: "proof_pending",
+          reasonParams: {
+            provider: input.provider,
+            requiredProof: entry.requiredProof ?? "provider_execution",
+          },
+          requiredProof: entry.requiredProof ?? "provider_execution",
+          proofReference: entry.proofReference,
+        };
+      }
       return {
         ...input,
         availabilityKey,
-        state: entry?.state ?? "hidden",
-        requiredProof: entry?.requiredProof,
-        proofReference: entry?.proofReference,
+        state: "live",
+        proofReference: entry.proofReference,
       };
+    },
+    entries(): ProviderProofEntry[] {
+      return [...byKey.values()];
     },
   };
 }
+
+export const PUBLIC_PROVIDER_PROOF_ENTRIES: readonly ProviderProofEntry[] = [];
+export const publicProviderProofRegistry = createProviderProofRegistry(
+  PUBLIC_PROVIDER_PROOF_ENTRIES
+);
+
+export type PublicGardenLookupItem = {
+  id: string;
+  address?: string;
+  name?: string;
+  location?: string;
+};
+
+export type FundGardenResolution =
+  | { status: "normal" }
+  | {
+      status: "matched";
+      matchType: "exact" | "slug";
+      garden: PublicGardenLookupItem;
+      spotlightGardenId: string;
+    }
+  | {
+      status: "fallback";
+      reason: "not_found" | "ambiguous_slug";
+      messageId: "public.fund.garden.notFound" | "public.fund.garden.ambiguous";
+      query: string;
+    };
+
+export function derivePublicGardenSlug(name: string | undefined, addressOrId: string): string {
+  const fallback = addressOrId.trim().toLowerCase();
+  const trimmed = (name ?? "").trim();
+  if (!trimmed) return fallback;
+  const slugified = trimmed.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+  let start = 0;
+  while (start < slugified.length && slugified.charCodeAt(start) === 45) start++;
+  let end = slugified.length;
+  while (end > start && slugified.charCodeAt(end - 1) === 45) end--;
+  return slugified.slice(start, end) || fallback;
+}
+
+export function resolveFundGardenReference(
+  reference: string | undefined,
+  gardens: readonly PublicGardenLookupItem[]
+): FundGardenResolution {
+  const query = reference?.trim().toLowerCase() ?? "";
+  if (!query) return { status: "normal" };
+
+  const exact = gardens.find((garden) => {
+    const id = garden.id.trim().toLowerCase();
+    const address = garden.address?.trim().toLowerCase();
+    return id === query || address === query;
+  });
+  if (exact) {
+    return {
+      status: "matched",
+      matchType: "exact",
+      garden: exact,
+      spotlightGardenId: exact.id,
+    };
+  }
+
+  const slugMatches = gardens.filter((garden) => {
+    const key = garden.address ?? garden.id;
+    return derivePublicGardenSlug(garden.name, key) === query;
+  });
+
+  if (slugMatches.length === 1) {
+    const garden = slugMatches[0];
+    return {
+      status: "matched",
+      matchType: "slug",
+      garden,
+      spotlightGardenId: garden.id,
+    };
+  }
+
+  if (slugMatches.length > 1) {
+    return {
+      status: "fallback",
+      reason: "ambiguous_slug",
+      messageId: "public.fund.garden.ambiguous",
+      query,
+    };
+  }
+
+  return {
+    status: "fallback",
+    reason: "not_found",
+    messageId: "public.fund.garden.notFound",
+    query,
+  };
+}
+
+export const PUBLIC_IMPACT_DEFAULT_PAGE_SIZE = 12;
+export const PUBLIC_IMPACT_GARDEN_FETCH_CAP = 50;
+export const PUBLIC_IMPACT_RECORD_FETCH_CAP = 100;
+
+export type PublicImpactGardenSource = {
+  id: string;
+  address?: string;
+  name: string;
+  location?: string;
+  latestActivityAt?: number;
+};
+
+/**
+ * Tag identifying which stage of the regenerative cycle a record represents.
+ *
+ * Cycle order on the public Impact ledger: **Assessment → Work → Impact
+ * Certificate → (next) Assessment**. The kinds let the UI filter and group
+ * records by stage and show the cycle figure with honest counts per kind.
+ */
+export type PublicImpactEvidenceKind = "assessment" | "work" | "certificate";
+
+export type PublicImpactEvidenceRecord = {
+  /** Namespaced id (`assessment:0x…` / `work:0x…` / `certificate:tokenId`) so
+   * records from different sources can't collide on a shared list. */
+  id: string;
+  kind: PublicImpactEvidenceKind;
+  gardenId: string;
+  gardenName: string;
+  title: string;
+  domain?: string | number;
+  summary?: string;
+  timeWindow?: { start?: number | null; end?: number | null };
+  /** Image URLs from the underlying record. Populated for `work` (EAS media)
+   * and `certificate` (Hypercert imageUri). Assessments only carry an IPFS
+   * config CID, so they fall back to the Garden image when rendered. */
+  media?: readonly string[];
+  /** EAS UID for assessment + work; absent for certificates. */
+  easUid?: string;
+  /** Hypercert id when `kind === "certificate"`. */
+  hypercertId?: string;
+  sourceAvailable: boolean;
+  createdAt: number;
+};
+
+export type PublicImpactSlice = {
+  records: PublicImpactEvidenceRecord[];
+  page: number;
+  pageSize: number;
+  totalFetchedRecords: number;
+  partialData: boolean;
+  sourceLimitReached: boolean;
+};
