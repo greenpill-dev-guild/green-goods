@@ -4,7 +4,7 @@ import { RiCloseLine } from "@remixicon/react";
 import { QRCodeSVG } from "qrcode.react";
 import type { MouseEventHandler } from "react";
 import { useIntl } from "react-intl";
-export type PublicInstallDialogMode = "desktopQr" | "mobileSteps";
+export type PublicInstallDialogMode = "desktopQr" | "mobileSteps" | "braveLaunch";
 export interface PublicInstallDialogProps {
   open: boolean;
   mode: PublicInstallDialogMode;
@@ -34,8 +34,37 @@ export function PublicInstallDialog({
 }: PublicInstallDialogProps) {
   const { formatMessage } = useIntl();
   const isDesktopQr = mode === "desktopQr";
+  const isBraveLaunch = mode === "braveLaunch";
   const manualSteps = guidance.manualInstructions ?? [];
-  const showMobilePrimaryAction = !isDesktopQr && hasMobilePrimaryAction(guidance);
+  const showMobilePrimaryAction =
+    !isDesktopQr && !isBraveLaunch && hasMobilePrimaryAction(guidance);
+
+  const kickerId = isBraveLaunch
+    ? "public.installDialog.braveKicker"
+    : "public.installDialog.kicker";
+  const kickerDefault = isBraveLaunch ? "Open the app" : "Phone handoff";
+
+  const titleId = isDesktopQr
+    ? "public.installDialog.title"
+    : isBraveLaunch
+      ? "public.installDialog.braveTitle"
+      : "public.installDialog.mobileTitle";
+  const titleDefault = isDesktopQr
+    ? "Bring Green Goods into the field"
+    : isBraveLaunch
+      ? "Open Green Goods from your home screen"
+      : "Install Green Goods on this phone";
+
+  const descriptionId = isDesktopQr
+    ? "public.installDialog.description"
+    : isBraveLaunch
+      ? "public.installDialog.braveBody"
+      : "public.installDialog.mobileDescription";
+  const descriptionDefault = isDesktopQr
+    ? "Scan the code with your phone, then install the app from Safari or Chrome."
+    : isBraveLaunch
+      ? "Brave adds Green Goods as a home-screen app instead of launching it from this button. Tap the Green Goods icon on your home screen to open it."
+      : "Use your browser's install controls. If this browser cannot install apps, open this page in Safari or Chrome first.";
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -53,28 +82,20 @@ export function PublicInstallDialog({
               <div className="min-w-0">
                 <p className="font-mono text-[10.5px] font-medium uppercase tracking-[0.18em] text-text-soft-400">
                   {formatMessage({
-                    id: "public.installDialog.kicker",
-                    defaultMessage: "Phone handoff",
+                    id: kickerId,
+                    defaultMessage: kickerDefault,
                   })}
                 </p>
                 <Dialog.Title className="mt-2 font-serif text-2xl font-normal leading-[1.08] tracking-[-0.018em] text-text-strong-950 md:text-3xl">
                   {formatMessage({
-                    id: isDesktopQr
-                      ? "public.installDialog.title"
-                      : "public.installDialog.mobileTitle",
-                    defaultMessage: isDesktopQr
-                      ? "Bring Green Goods into the field"
-                      : "Install Green Goods on this phone",
+                    id: titleId,
+                    defaultMessage: titleDefault,
                   })}
                 </Dialog.Title>
                 <Dialog.Description className="mt-3 max-w-prose text-sm leading-[1.65] text-text-sub-600">
                   {formatMessage({
-                    id: isDesktopQr
-                      ? "public.installDialog.description"
-                      : "public.installDialog.mobileDescription",
-                    defaultMessage: isDesktopQr
-                      ? "Scan the code with your phone, then install the app from Safari or Chrome."
-                      : "Use your browser's install controls. If this browser cannot install apps, open this page in Safari or Chrome first.",
+                    id: descriptionId,
+                    defaultMessage: descriptionDefault,
                   })}
                 </Dialog.Description>
               </div>
@@ -161,6 +182,25 @@ export function PublicInstallDialog({
                     ))}
                   </ol>
                 </div>
+              </div>
+            ) : isBraveLaunch ? (
+              <div className="mt-6 space-y-5">
+                <p className="border border-stroke-soft-200 bg-bg-white-0 p-4 text-sm leading-relaxed text-text-sub-600">
+                  {formatMessage({
+                    id: "public.installDialog.braveBody",
+                    defaultMessage:
+                      "Brave adds Green Goods as a home-screen app instead of launching it from this button. Tap the Green Goods icon on your home screen to open it.",
+                  })}
+                </p>
+                <a
+                  href={launchUrl}
+                  className="inline-flex min-h-11 w-full cursor-pointer items-center justify-center rounded-full bg-primary-action px-5 py-3 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 sm:w-fit"
+                >
+                  {formatMessage({
+                    id: "public.installDialog.braveFallback",
+                    defaultMessage: "Open in this tab instead",
+                  })}
+                </a>
               </div>
             ) : (
               <div className="mt-6 space-y-5">

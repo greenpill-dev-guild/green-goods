@@ -3448,5 +3448,9 @@
   "public.nav.openMenu": "Open menu",
   "public.readDeeper.kicker": "Read deeper",
   "public.source.close": "Close",
-  "public.source.viewSource": "View source"
+  "public.source.viewSource": "View source",
+  "public.installDialog.braveKicker": "Open the app",
+  "public.installDialog.braveTitle": "Open Green Goods from your home screen",
+  "public.installDialog.braveBody": "Brave adds Green Goods as a home-screen app instead of launching it from this button. Tap the Green Goods icon on your home screen to open it.",
+  "public.installDialog.braveFallback": "Open in this tab instead"
 }

@@ -3448,5 +3448,9 @@
   "public.nav.openMenu": "Abrir menu",
   "public.readDeeper.kicker": "Ler a fundo",
   "public.source.close": "Fechar",
-  "public.source.viewSource": "Ver fonte"
+  "public.source.viewSource": "Ver fonte",
+  "public.installDialog.braveKicker": "Abrir o app",
+  "public.installDialog.braveTitle": "Abra o Green Goods pela tela inicial",
+  "public.installDialog.braveBody": "O Brave adiciona o Green Goods como um app na tela inicial em vez de abri-lo por este botão. Toque no icone do Green Goods na tela inicial para abrir.",
+  "public.installDialog.braveFallback": "Abrir nesta aba"
 }

@@ -41,6 +41,7 @@ export type {
   ManualInstallStep,
 } from "./app/useInstallGuidance";
 export { useInstallGuidance } from "./app/useInstallGuidance";
+export { useIsBraveBrowser } from "./app/useIsBraveBrowser";
 export { usePublicInstallHandler } from "./app/usePublicInstallHandler";
 export { useTunnelUrl } from "./app/useTunnelUrl";
 export type {
