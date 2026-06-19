@@ -102,7 +102,9 @@ export function useGardenUrlSync(): GardenUrlSyncResult {
     }
 
     const nextGarden = matchingUrlGarden ?? matchingSelectedGarden ?? resolvedDefaultGarden ?? null;
-    if (!compareAddresses(nextGarden?.id, selectedGardenId)) {
+    const nextGardenId = nextGarden?.id ?? null;
+    const currentGardenId = selectedGardenId ?? null;
+    if (nextGardenId !== currentGardenId && !compareAddresses(nextGardenId, currentGardenId)) {
       setSelectedGarden(nextGarden);
     }
   }, [

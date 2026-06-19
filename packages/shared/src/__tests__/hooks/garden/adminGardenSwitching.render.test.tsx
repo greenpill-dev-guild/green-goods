@@ -50,7 +50,16 @@ function GardenSwitchingHarness() {
       <h1 data-testid="garden-heading">{selectedGarden?.name ?? "No garden"}</h1>
       <p>{renderedContent}</p>
       {gardenOptions.map((garden) => (
-        <button key={garden.id} type="button" onClick={() => handleSelectGarden(garden)}>
+        <button
+          key={garden.id}
+          type="button"
+          onClick={() =>
+            handleSelectGarden({
+              id: garden.name === "Beta Garden" ? garden.id.toUpperCase() : garden.id,
+              name: garden.name,
+            })
+          }
+        >
           Switch to {garden.name}
         </button>
       ))}
