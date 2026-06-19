@@ -42,6 +42,11 @@ declare namespace NodeJS {
     PINATA_JWT?: string;
     PINATA_UPLOADS_API_URL?: string;
 
+    // Public subscription provider
+    RESEND_API_KEY?: string;
+    RESEND_GREEN_GOODS_SEGMENT_ID?: string;
+    RESEND_GREEN_GOODS_TOPIC_ID?: string;
+
     // Analytics
     POSTHOG_AGENT_KEY?: string;
     ANALYTICS_ENABLED?: string;
