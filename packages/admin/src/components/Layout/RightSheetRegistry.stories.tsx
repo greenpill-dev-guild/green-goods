@@ -1,5 +1,6 @@
 import {
   NOTIFICATIONS_SHEET_CONTENT_ID,
+  NotificationPanel,
   PROFILE_SHEET_CONTENT_ID,
   RightSheet,
   SETTINGS_SHEET_CONTENT_ID,
@@ -10,7 +11,7 @@ import {
 } from "@green-goods/shared";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useCallback, useState } from "react";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { STORYBOOK_ADMIN_SHELL_SEEDS } from "../../../../shared/.storybook/adminFixtures";
 import {
   withAdminIdentity,
@@ -36,10 +37,12 @@ function RightSheetRegistryHarness({ initialContentId }: RightSheetRegistryHarne
   const [overlayRoot, setOverlayRoot] = useState<HTMLDivElement | null>(null);
   const renderAccountProfile = useCallback(() => <AccountProfilePanel />, []);
   const renderAccountSettings = useCallback(() => <AccountSettingsPanel />, []);
+  const renderNotifications = useCallback(() => <NotificationPanel items={[]} />, []);
   const descriptor = useAdminRightSheetDescriptor({
     contentId,
     renderAccountProfile,
     renderAccountSettings,
+    renderNotifications,
   });
 
   const openRegisteredContent = (nextContentId: string) => {
@@ -203,11 +206,13 @@ export const StateCatalog: Story = {
     await expect(notificationsPanel.queryByText("Failed to load")).not.toBeInTheDocument();
 
     const closeButton = notificationsPanel.getByRole("button", { name: "Close" });
-    const notificationActions = notificationsPanel
-      .getAllByRole("button")
-      .filter((button) => button !== closeButton);
-    const hasEmptyState = notificationsPanel.queryByText("No notifications") !== null;
-    await expect(hasEmptyState || notificationActions.length > 0).toBe(true);
+    await waitFor(() => {
+      const notificationActions = notificationsPanel
+        .getAllByRole("button")
+        .filter((button) => button !== closeButton);
+      const hasEmptyState = notificationsPanel.queryByText("No notifications") !== null;
+      expect(hasEmptyState || notificationActions.length > 0).toBe(true);
+    });
 
     await userEvent.click(closeButton);
     await expect(canvas.getByTestId("right-sheet-current")).toHaveTextContent("none");

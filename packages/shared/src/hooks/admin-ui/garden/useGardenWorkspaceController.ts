@@ -220,11 +220,11 @@ export function useGardenWorkspaceController() {
         navigate(adminRoutes.gardenSettings({ gardenAddress: selectedGardenAddress }));
       } else if (nextView === "activity") {
         // Tier 4: Activity + Members are net-new tabs per audit IA-Garden.
-        // First-delivery navigation is path-only; range/garden context is
-        // carried in the workspace controller, not the URL.
-        navigate("/garden/activity");
+        // Keep garden context shareable so route changes cannot fall back to
+        // the persisted/default garden on the next URL sync pass.
+        navigate(adminRoutes.gardenActivity({ gardenAddress: selectedGardenAddress, range }));
       } else if (nextView === "members") {
-        navigate("/garden/members");
+        navigate(adminRoutes.gardenMembers({ gardenAddress: selectedGardenAddress, range }));
       } else {
         navigate(adminRoutes.gardenOverview({ gardenAddress: selectedGardenAddress, range }));
       }

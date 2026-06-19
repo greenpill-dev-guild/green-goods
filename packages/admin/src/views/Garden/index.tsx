@@ -114,7 +114,7 @@ export default function GardenView() {
         />
       </CanvasRouteHeader>
 
-      <GardenWorkspaceContent workspace={garden} />
+      <GardenWorkspaceContent key={garden.selectedGarden?.id ?? "no-garden"} workspace={garden} />
     </CanvasRouteFrame>
   );
 }

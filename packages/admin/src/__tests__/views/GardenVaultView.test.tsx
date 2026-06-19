@@ -6,6 +6,10 @@ const mockUseGardens = vi.fn();
 const mockUseGardenVaults = vi.fn();
 const mockUseGardenPermissions = vi.fn();
 const mockUseLocation = vi.fn();
+const mockRouteParams = { current: { id: "garden-1" } as { id?: string } };
+const mockSelectedGarden = {
+  current: { id: "garden-1", tokenAddress: "garden-1", name: "Alpha Garden" },
+};
 
 vi.mock("@green-goods/shared", () => ({
   cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
@@ -17,10 +21,10 @@ vi.mock("@green-goods/shared", () => ({
   },
   useAdminStore: (selector: (state: any) => any) =>
     selector({
-      selectedGarden: { id: "garden-1", name: "Alpha Garden" },
+      selectedGarden: mockSelectedGarden.current,
     }),
   useAdminGardenWorkspaceSelection: () => ({
-    selectedGarden: { id: "garden-1", name: "Alpha Garden" },
+    selectedGarden: mockSelectedGarden.current,
   }),
   useGardens: () => mockUseGardens(),
   useGardenVaults: (...args: unknown[]) => mockUseGardenVaults(...args),
@@ -42,15 +46,16 @@ vi.mock("wagmi", () => ({
 }));
 
 vi.mock("react-router-dom", () => ({
-  useParams: () => ({ id: "garden-1" }),
+  useParams: () => mockRouteParams.current,
   useLocation: () => mockUseLocation(),
 }));
 
 vi.mock("@/components/Layout/PageHeader", () => ({
-  PageHeader: ({ backLink }: { backLink?: { to: string } }) =>
+  PageHeader: ({ backLink, description }: { backLink?: { to: string }; description?: string }) =>
     React.createElement("div", {
       "data-testid": "page-header",
       "data-back-link": backLink?.to ?? "",
+      "data-description": description ?? "",
     }),
 }));
 
@@ -66,6 +71,8 @@ import GardenVaultView from "@/views/Garden/Vault";
 describe("GardenVaultView", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockRouteParams.current = { id: "garden-1" };
+    mockSelectedGarden.current = { id: "garden-1", tokenAddress: "garden-1", name: "Alpha Garden" };
     mockUseGardenPermissions.mockReturnValue({
       canManageGarden: () => false,
       isOwnerOfGarden: () => false,
@@ -103,5 +110,50 @@ describe("GardenVaultView", () => {
       "data-back-link",
       "/community/treasury?gardenAddress=garden-1"
     );
+  });
+
+  it("matches the route garden case-insensitively before using the selected fallback", () => {
+    mockRouteParams.current = { id: "GARDEN-1" };
+    mockSelectedGarden.current = {
+      id: "garden-2",
+      tokenAddress: "garden-2",
+      name: "Beta Garden",
+    };
+    mockUseLocation.mockReturnValue({ state: null });
+    mockUseGardens.mockReturnValue({
+      data: [{ id: "garden-1", name: "Alpha Garden" }],
+      isLoading: false,
+    });
+
+    renderWithProviders(<GardenVaultView />);
+
+    expect(screen.getByTestId("page-header")).toHaveAttribute(
+      "data-description",
+      "Manage direct endowment positions and impact-yield routing for Alpha Garden."
+    );
+    expect(mockUseGardenVaults).toHaveBeenCalledWith("garden-1", { enabled: true });
+  });
+
+  it("renders the selected garden vault context when the base garden list is stale", () => {
+    mockRouteParams.current = {};
+    mockSelectedGarden.current = {
+      id: "garden-2",
+      tokenAddress: "garden-2",
+      name: "Beta Garden",
+    };
+    mockUseLocation.mockReturnValue({ state: null });
+    mockUseGardens.mockReturnValue({
+      data: [{ id: "garden-1", name: "Alpha Garden" }],
+      isLoading: false,
+    });
+
+    renderWithProviders(<GardenVaultView />);
+
+    expect(screen.getByTestId("page-header")).toHaveAttribute(
+      "data-description",
+      "Manage direct endowment positions and impact-yield routing for Beta Garden."
+    );
+    expect(mockUseGardenVaults).toHaveBeenCalledWith("garden-2", { enabled: true });
+    expect(screen.queryByText("app.treasury.gardenNotFound")).not.toBeInTheDocument();
   });
 });

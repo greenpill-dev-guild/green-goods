@@ -80,6 +80,7 @@ export default function HubView() {
         />
       ) : (
         <div
+          key={hub.selectedGarden?.id ?? "no-garden"}
           className="hub-route-stack"
           role="tabpanel"
           id={`${HUB_STAGE_RAIL_ID}-panel`}

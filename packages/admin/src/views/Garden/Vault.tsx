@@ -16,6 +16,7 @@ import {
   useGardens,
   useGardenVaults,
   useUser,
+  type Garden,
 } from "@green-goods/shared";
 import { RiExternalLinkLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
@@ -59,7 +60,28 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
   const resolvedGardenId = id ?? selectedGarden?.id;
 
   const { data: gardens = [], isLoading: gardensLoading } = useGardens();
-  const garden = gardens.find((item) => item.id === resolvedGardenId);
+  const selectedGardenFallback = useMemo<Garden | undefined>(() => {
+    if (!selectedGarden) return undefined;
+    if (resolvedGardenId && selectedGarden.id.toLowerCase() !== resolvedGardenId.toLowerCase()) {
+      return undefined;
+    }
+
+    return {
+      ...selectedGarden,
+      evaluators: [],
+      owners: [],
+      funders: [],
+      communities: [],
+      assessments: [],
+      works: [],
+      openJoining: false,
+      domainMask: 0,
+    };
+  }, [resolvedGardenId, selectedGarden]);
+  const normalizedResolvedGardenId = resolvedGardenId?.toLowerCase();
+  const garden =
+    gardens.find((item) => item.id.toLowerCase() === normalizedResolvedGardenId) ??
+    selectedGardenFallback;
   const gardenRouteContext = {
     gardenAddress:
       garden?.tokenAddress ?? garden?.id ?? selectedGarden?.tokenAddress ?? resolvedGardenId,
