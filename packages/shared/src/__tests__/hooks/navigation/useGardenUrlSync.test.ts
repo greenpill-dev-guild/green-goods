@@ -234,6 +234,31 @@ describe("useGardenUrlSync", () => {
     );
   });
 
+  it("reports the URL garden as active even when the store still has the previous garden", () => {
+    const previousGarden = createMockGarden({
+      id: "garden-previous",
+      tokenAddress: "0x1110000000000000000000000000000000000111",
+    });
+    const urlGarden = createMockGarden({
+      id: "garden-url",
+      tokenAddress: "0x7890000000000000000000000000000000000789",
+    });
+    mockEligibleGardens.current = [previousGarden, urlGarden];
+    mockSelectedGarden.current = previousGarden;
+    mockSelectedGardenId.current = previousGarden.id;
+
+    const wrapper = createRouterWrapper([
+      "/hub?gardenAddress=0x7890000000000000000000000000000000000789",
+    ]);
+
+    const { result } = renderHook(() => useGardenUrlSync(), { wrapper });
+
+    expect(result.current.gardenId).toBe(urlGarden.id);
+    expect(mockSetSelectedGarden).toHaveBeenCalledWith(
+      expect.objectContaining({ id: urlGarden.id })
+    );
+  });
+
   it("falls back to the resolved default garden when the URL has no garden param", () => {
     const defaultGarden = createMockGarden({ id: "garden-default" });
     mockEligibleGardens.current = [defaultGarden];
