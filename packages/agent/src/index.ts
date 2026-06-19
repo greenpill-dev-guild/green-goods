@@ -10,7 +10,7 @@
 
 import { createServer, startServer } from "./api/server";
 import { parseAllowedOrigins } from "./api/public-protection";
-import { getConfig } from "./config";
+import { loadConfig } from "./config";
 import { createGroupCaptureHandler, handleMessage, setHandlerContext } from "./handlers";
 import {
   createNotifier,
@@ -40,7 +40,7 @@ import { createShutdownHandler } from "./runtime/shutdown";
 // ============================================================================
 
 async function main(): Promise<void> {
-  const config = getConfig();
+  const config = loadConfig();
   initAgentSentry({
     dsn: config.sentryDsn,
     enabled: config.sentryEnabled,
@@ -110,7 +110,7 @@ async function main(): Promise<void> {
     allowedOrigins: parseAllowedOrigins(config.publicAllowedOrigins),
     trustedProxy: {
       hops: config.trustedProxyHops,
-      cidrs: config.trustedProxyCidrs?.split(",").map((cidr) => cidr.trim()),
+      cidrs: config.trustedProxyCidrs?.split(",").map((cidr: string) => cidr.trim()),
     },
     uploadSigning: {
       pinataJwt: config.pinataJwt,
@@ -183,13 +183,17 @@ async function main(): Promise<void> {
 
   const shutdown = createShutdownHandler({
     bot,
-    stopRateLimiter: () => rateLimiter.stop(),
-    closeDatabase: closeDB,
-    clearBlockchainCache,
-    shutdownAnalytics: shutdownAgentAnalytics,
-    shutdownSentry: shutdownAgentSentry,
-    captureException: captureAgentException,
+    botMode: config.telegramRuntimeDisabled ? "webhook" : config.mode,
+    cleanupTasks: [
+      () => rateLimiter.destroy(),
+      closeDB,
+      clearBlockchainCache,
+      shutdownAgentAnalytics,
+      shutdownAgentSentry,
+    ],
+    exit: (code) => process.exit(code),
     logger,
+    server,
   });
 
   process.once("SIGINT", () => {
@@ -201,7 +205,7 @@ async function main(): Promise<void> {
 }
 
 main().catch(async (error) => {
-  captureAgentException(error, { phase: "startup" });
+  captureAgentException(error, { source: "startup" });
   logger.error({ error }, "❌ Failed to start agent");
   await shutdownAgentAnalytics().catch(() => undefined);
   await shutdownAgentSentry().catch(() => undefined);

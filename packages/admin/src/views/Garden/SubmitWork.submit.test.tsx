@@ -109,6 +109,8 @@ vi.mock("@green-goods/shared", async () => {
         children,
         action
       ),
+    compareAddresses: (a: string | null | undefined, b: string | null | undefined) =>
+      Boolean(a && b && a.toLowerCase() === b.toLowerCase()),
     adminRoutes: {
       gardenSettings: () => "/garden/settings",
       hub: () => "/hub",
