@@ -1,17 +1,29 @@
-import { updateToasts, useApp, useServiceWorkerUpdate } from "@green-goods/shared";
+import { createUpdateToasts, useApp, useServiceWorkerUpdate } from "@green-goods/shared";
 import { useEffect } from "react";
+import { useIntl } from "react-intl";
 
 function ServiceWorkerUpdateNotifier() {
-  const { updateAvailable, isUpdating, applyUpdate, dismissUpdate } = useServiceWorkerUpdate();
+  const { formatMessage } = useIntl();
+  const { updateAvailable, isUpdating, applyTimedOut, applyUpdate, dismissUpdate } =
+    useServiceWorkerUpdate();
 
   useEffect(() => {
+    const updateToasts = createUpdateToasts(formatMessage);
+
+    if (isUpdating) {
+      updateToasts.updating();
+      return;
+    }
+
+    if (applyTimedOut) {
+      updateToasts.stalled(applyUpdate, dismissUpdate);
+      return;
+    }
+
     if (updateAvailable) {
       updateToasts.available(applyUpdate, dismissUpdate);
     }
-    if (isUpdating) {
-      updateToasts.updating();
-    }
-  }, [updateAvailable, isUpdating, applyUpdate, dismissUpdate]);
+  }, [applyTimedOut, updateAvailable, isUpdating, applyUpdate, dismissUpdate, formatMessage]);
 
   return null;
 }
