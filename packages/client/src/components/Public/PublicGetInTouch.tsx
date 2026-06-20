@@ -16,7 +16,21 @@ import {
 
 type SubmitState = "idle" | "loading" | "ok" | "error";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
+const PUBLIC_AGENT_API_ORIGIN = "https://agent.greengoods.app";
+const PUBLIC_AGENT_PROXY_BASE_URL = "/api/agent";
+const CONFIGURED_API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/+$/, "");
+
+export function getPublicSubscribeUrl(
+  route: string,
+  apiBaseUrl = CONFIGURED_API_BASE_URL,
+  isProduction = import.meta.env.PROD
+) {
+  const normalizedRoute = route.startsWith("/") ? route : `/${route}`;
+  if (isProduction && apiBaseUrl === PUBLIC_AGENT_API_ORIGIN) {
+    return `${PUBLIC_AGENT_PROXY_BASE_URL}${normalizedRoute}`;
+  }
+  return `${apiBaseUrl}${normalizedRoute}`;
+}
 
 /**
  * PublicGetInTouch — closing module on the editorial homepage.
@@ -56,7 +70,7 @@ export function PublicGetInTouch() {
       setSubmitState("loading");
       setErrorMessageId(null);
       try {
-        const response = await fetch(`${API_BASE_URL}${publicCuration.subscribeRoute}`, {
+        const response = await fetch(getPublicSubscribeUrl(publicCuration.subscribeRoute), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),
