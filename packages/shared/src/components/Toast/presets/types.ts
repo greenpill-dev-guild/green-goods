@@ -154,4 +154,8 @@ export const toastMessageIdsUpdate = {
     title: "app.toast.update.updating.title",
     message: "app.toast.update.updating.message",
   },
+  stalled: {
+    title: "app.update.title",
+    message: "app.update.timeout",
+  },
 } as const;
