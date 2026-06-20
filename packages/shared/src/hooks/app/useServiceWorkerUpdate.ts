@@ -320,6 +320,12 @@ export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
       waitingWorkerRef.current ?? waitingWorker ?? registrationRef.current?.waiting ?? null;
     if (!worker) return;
 
+    clearApplyTimeout();
+    if (controllerChangeListenerRef.current) {
+      navigator.serviceWorker.removeEventListener("controllerchange", handleControllerChange);
+      controllerChangeListenerRef.current = false;
+    }
+
     waitingWorkerRef.current = worker;
     setApplyTimedOut(false);
     setIsUpdating(true);
@@ -351,21 +357,23 @@ export function useServiceWorkerUpdate(): ServiceWorkerUpdateState {
       });
       track("sw_update_apply_timeout", {});
     }, APPLY_UPDATE_TIMEOUT_MS);
-  }, [waitingWorker, handleControllerChange, scheduleApplyTimeout]);
+  }, [waitingWorker, clearApplyTimeout, handleControllerChange, scheduleApplyTimeout]);
 
-  // Cleanup effect for controllerchange listener if component unmounts before it fires
+  // Cleanup effect for apply timeout and controllerchange listener if unmounted before activation
   useEffect(() => {
     return () => {
+      clearApplyTimeout();
       if (controllerChangeListenerRef.current) {
         navigator.serviceWorker?.removeEventListener("controllerchange", handleControllerChange);
         controllerChangeListenerRef.current = false;
       }
     };
-  }, [handleControllerChange]);
+  }, [clearApplyTimeout, handleControllerChange]);
 
   const dismissUpdate = useCallback(() => {
     setDismissed(true);
     setUpdateAvailable(false);
+    setApplyTimedOut(false);
     track("sw_update_dismissed", {});
   }, []);
 
