@@ -23,9 +23,12 @@ const sharedMocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@green-goods/shared", () => ({
-  createUpdateToasts: sharedMocks.createUpdateToasts,
   useApp: sharedMocks.useApp,
   useServiceWorkerUpdate: sharedMocks.useServiceWorkerUpdate,
+}));
+
+vi.mock("@green-goods/shared/components", () => ({
+  createUpdateToasts: sharedMocks.createUpdateToasts,
 }));
 
 import { PwaUpdateNotifier } from "../../components/Communication/PwaUpdateNotifier";
