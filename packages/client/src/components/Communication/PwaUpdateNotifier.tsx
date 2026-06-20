@@ -1,4 +1,5 @@
-import { createUpdateToasts, useApp, useServiceWorkerUpdate } from "@green-goods/shared";
+import { useApp, useServiceWorkerUpdate } from "@green-goods/shared";
+import { createUpdateToasts } from "@green-goods/shared/components";
 import { useEffect } from "react";
 import { useIntl } from "react-intl";
 
