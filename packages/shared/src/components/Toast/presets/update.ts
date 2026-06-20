@@ -11,11 +11,15 @@ const updateDefaults = {
     title: "Updating...",
     message: "Refreshing to the latest version.",
   },
+  stalled: {
+    title: "Update app",
+    message: "The update didn't finish. Close all app tabs and try again.",
+  },
 };
 
 export const updateToasts = {
   /** Show info when an update is available with action to refresh */
-  available: (onUpdate: () => void) =>
+  available: (onUpdate: () => void, onDismiss?: () => void) =>
     toastService.info({
       id: "app-update",
       title: updateDefaults.available.title,
@@ -28,6 +32,8 @@ export const updateToasts = {
         dismissOnClick: false,
         testId: "update-now-button",
       },
+      closable: true,
+      onDismiss,
       suppressLogging: true,
     }),
 
@@ -38,6 +44,25 @@ export const updateToasts = {
       title: updateDefaults.updating.title,
       message: updateDefaults.updating.message,
       context: "app update",
+      suppressLogging: true,
+    }),
+
+  /** Show recoverable state when an update activation times out */
+  stalled: (onUpdate: () => void, onDismiss?: () => void) =>
+    toastService.info({
+      id: "app-update",
+      title: updateDefaults.stalled.title,
+      message: updateDefaults.stalled.message,
+      context: "app update",
+      duration: Infinity,
+      action: {
+        label: "Update now",
+        onClick: onUpdate,
+        dismissOnClick: false,
+        testId: "update-now-button",
+      },
+      closable: true,
+      onDismiss,
       suppressLogging: true,
     }),
 
@@ -87,6 +112,30 @@ export function createUpdateToasts(formatMessage: FormatMessageFn) {
           defaultMessage: updateDefaults.updating.message,
         }),
         context: "app update",
+        suppressLogging: true,
+      }),
+
+    stalled: (onUpdate: () => void, onDismiss?: () => void) =>
+      toastService.info({
+        id: "app-update",
+        title: formatMessage({
+          id: toastMessageIdsUpdate.stalled.title,
+          defaultMessage: updateDefaults.stalled.title,
+        }),
+        message: formatMessage({
+          id: toastMessageIdsUpdate.stalled.message,
+          defaultMessage: updateDefaults.stalled.message,
+        }),
+        context: "app update",
+        duration: Infinity,
+        action: {
+          label: "Update now",
+          onClick: onUpdate,
+          dismissOnClick: false,
+          testId: "update-now-button",
+        },
+        closable: true,
+        onDismiss,
         suppressLogging: true,
       }),
 
