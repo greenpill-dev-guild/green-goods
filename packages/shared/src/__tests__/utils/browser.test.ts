@@ -19,6 +19,12 @@ const originalNavigator = global.navigator;
 
 interface MockNavigator {
   userAgent: string;
+  userAgentData?: {
+    brands?: Array<{
+      brand: string;
+      version?: string;
+    }>;
+  };
 }
 
 function mockNavigator(props: MockNavigator): void {
@@ -151,6 +157,45 @@ describe("detectMobileBrowser", () => {
       expect(result.displayName).toBe("Chrome");
     });
 
+    it("accepts Google Chrome on Android from userAgentData brands", () => {
+      mockNavigator({
+        userAgent:
+          "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
+        userAgentData: {
+          brands: [
+            { brand: "Chromium", version: "120" },
+            { brand: "Google Chrome", version: "120" },
+          ],
+        },
+      });
+
+      const result = detectMobileBrowser("android");
+
+      expect(result.browser).toBe("chrome");
+      expect(result.supportsNativePWA).toBe(true);
+      expect(result.isRecommendedBrowser).toBe(true);
+      expect(result.displayName).toBe("Chrome");
+    });
+
+    it("does not treat Chromium-only Android brands as recommended Chrome", () => {
+      mockNavigator({
+        userAgent:
+          "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
+        userAgentData: {
+          brands: [
+            { brand: "Chromium", version: "120" },
+            { brand: "Vivaldi", version: "6" },
+          ],
+        },
+      });
+
+      const result = detectMobileBrowser("android");
+
+      expect(result.browser).toBe("unknown");
+      expect(result.supportsNativePWA).toBe(false);
+      expect(result.isRecommendedBrowser).toBe(false);
+    });
+
     it("detects Samsung Internet as non-PWA capable (only Chrome supports PWA)", () => {
       mockNavigator({
         userAgent:
@@ -189,6 +234,26 @@ describe("detectMobileBrowser", () => {
       expect(result.browser).toBe("brave");
       expect(result.supportsNativePWA).toBe(false);
       expect(result.isRecommendedBrowser).toBe(false);
+    });
+
+    it("detects Brave on Android from userAgentData brands when the user agent looks like Chrome", () => {
+      mockNavigator({
+        userAgent:
+          "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36",
+        userAgentData: {
+          brands: [
+            { brand: "Chromium", version: "120" },
+            { brand: "Brave", version: "1" },
+          ],
+        },
+      });
+
+      const result = detectMobileBrowser("android");
+
+      expect(result.browser).toBe("brave");
+      expect(result.supportsNativePWA).toBe(false);
+      expect(result.isRecommendedBrowser).toBe(false);
+      expect(result.displayName).toBe("Brave");
     });
 
     it("detects Firefox on Android as non-PWA capable", () => {
@@ -505,6 +570,18 @@ describe("canTriggerInstallPrompt", () => {
       isRecommendedBrowser: true,
       isInAppBrowser: false,
       displayName: "Safari",
+    };
+
+    expect(canTriggerInstallPrompt(browserInfo)).toBe(false);
+  });
+
+  it("returns false for Chrome when it is not the recommended native-PWA browser", () => {
+    const browserInfo: BrowserInfo = {
+      browser: "chrome",
+      supportsNativePWA: false,
+      isRecommendedBrowser: false,
+      isInAppBrowser: false,
+      displayName: "Chrome",
     };
 
     expect(canTriggerInstallPrompt(browserInfo)).toBe(false);

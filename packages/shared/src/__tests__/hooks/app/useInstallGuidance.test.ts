@@ -62,6 +62,22 @@ const firefoxBrowser = {
   displayName: "Firefox",
 };
 
+const braveBrowser = {
+  browser: "brave" as const,
+  supportsNativePWA: false,
+  isRecommendedBrowser: false,
+  isInAppBrowser: false,
+  displayName: "Brave",
+};
+
+const unsupportedPwaBrowser = {
+  browser: "edge" as const,
+  supportsNativePWA: true,
+  isRecommendedBrowser: false,
+  isInAppBrowser: false,
+  displayName: "Edge",
+};
+
 describe("hooks/app/useInstallGuidance", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -140,6 +156,44 @@ describe("hooks/app/useInstallGuidance", () => {
       expect(result.current.primaryAction.type).toBe("open-in-browser");
       expect(result.current.secondaryAction?.type).toBe("continue-in-browser");
       expect(result.current.browserSwitchReason).toBeTruthy();
+    });
+
+    it("blocks Brave Android from using the native prompt even when beforeinstallprompt is available", () => {
+      mockDetect.mockReturnValue(braveBrowser);
+      mockOpenUrl.mockReturnValue(
+        "intent://test#Intent;scheme=https;package=com.android.chrome;end"
+      );
+
+      const mockPrompt = { prompt: vi.fn() } as unknown as BeforeInstallPromptEvent;
+
+      const { result } = renderHook(() =>
+        useInstallGuidance("android", false, false, mockPrompt, true)
+      );
+
+      expect(result.current.scenario).toBe("wrong-browser");
+      expect(result.current.primaryAction.type).toBe("open-in-browser");
+      expect(result.current.primaryAction.label).toBe("Open in Chrome");
+      expect(result.current.browserSwitchReason).toContain("Brave");
+      expect(mockCanTrigger).not.toHaveBeenCalled();
+    });
+
+    it("enforces Chrome on Android even if another browser reports PWA support", () => {
+      mockDetect.mockReturnValue(unsupportedPwaBrowser);
+      mockOpenUrl.mockReturnValue(
+        "intent://test#Intent;scheme=https;package=com.android.chrome;end"
+      );
+
+      const mockPrompt = { prompt: vi.fn() } as unknown as BeforeInstallPromptEvent;
+
+      const { result } = renderHook(() =>
+        useInstallGuidance("android", false, false, mockPrompt, true)
+      );
+
+      expect(result.current.scenario).toBe("wrong-browser");
+      expect(result.current.primaryAction.type).toBe("open-in-browser");
+      expect(result.current.primaryAction.label).toBe("Open in Chrome");
+      expect(result.current.browserSwitchReason).toContain("Edge");
+      expect(mockCanTrigger).not.toHaveBeenCalled();
     });
 
     it("uses copy-url on iOS wrong browser", () => {
