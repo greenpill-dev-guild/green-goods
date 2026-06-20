@@ -32,11 +32,7 @@ import { PwaUpdateNotifier } from "../../components/Communication/PwaUpdateNotif
 
 function renderNotifier() {
   return render(
-    createElement(
-      IntlProvider,
-      { locale: "en", messages: {} },
-      createElement(PwaUpdateNotifier)
-    )
+    createElement(IntlProvider, { locale: "en", messages: {} }, createElement(PwaUpdateNotifier))
   );
 }
 
