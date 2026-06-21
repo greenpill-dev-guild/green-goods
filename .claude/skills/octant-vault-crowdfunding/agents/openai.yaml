@@ -1,4 +1,0 @@
-interface:
-  display_name: "Octant Vault Crowdfunding"
-  short_description: "Bootstrap schema-backed Octant vault crowdfunding UIs."
-  default_prompt: "Build or adapt an Octant vault crowdfunding UI from an existing-vault manifest and schema, with wallet-last Endow, optional provider-adapter Card Endow, and non-runnable create-vault operator notes."
