@@ -1,0 +1,83 @@
+{
+  "campaignSlug": "evmavericks",
+  "readiness": "pending_details",
+  "communityName": "EVMavericks Fantasy Football League",
+  "campaignGoal": "Support the EVMavericks Octant vault campaign.",
+  "vaultStory": null,
+  "impactFraming": null,
+  "ctaLabels": {
+    "browse": "View EVMavericks vault",
+    "walletEndow": "Endow with wallet",
+    "cardEndow": "Endow with card",
+    "manage": "Manage position"
+  },
+  "riskNotes": [
+    "The verified vault tuple is present, but campaign copy and recipient/routing details are pending.",
+    "Transaction controls should stay disabled until missing campaign details are supplied."
+  ],
+  "sourceLinks": [
+    {
+      "label": "Vault explorer",
+      "url": "https://etherscan.io/address/0x0bCe8c16974FFD3B410A32365c5bCf27a5A630Fc"
+    },
+    {
+      "label": "WETH explorer",
+      "url": "https://etherscan.io/address/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+    }
+  ],
+  "vault": {
+    "chainId": 1,
+    "vaultAddress": "0x0bCe8c16974FFD3B410A32365c5bCf27a5A630Fc",
+    "vaultDisplayName": "EVMavs PGF",
+    "vaultTokenSymbol": "evmWETH",
+    "vaultDecimals": 18,
+    "assetAddress": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+    "assetSymbol": "WETH",
+    "assetDecimals": 18,
+    "explorerLink": "https://etherscan.io/address/0x0bCe8c16974FFD3B410A32365c5bCf27a5A630Fc",
+    "assetExplorerLink": "https://etherscan.io/address/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+  },
+  "factoryEvidence": {
+    "name": "YearnV3StrategyFactory",
+    "address": "0x9A6c9aA80D4A0d8Da29EcbA62c40ccBBB321abB6",
+    "evidenceType": "pilot_strategy_factory_creator",
+    "proofLimit": "Creator/strategy-factory evidence only; not a proven MultistrategyVaultFactory accessor return."
+  },
+  "campaignCopy": null,
+  "recipientRoutingSummary": null,
+  "positionRead": {
+    "ownerSource": "connected_or_recovered_wallet",
+    "shareRead": "balanceOf(owner)",
+    "redeemRead": "maxRedeem(owner)"
+  },
+  "indexerSupport": null,
+  "cardProvider": null,
+  "createVaultOperatorModule": {
+    "status": "not_needed_existing_vault",
+    "checklistPath": "references/create-vault-operator-module.md"
+  },
+  "runtime": {
+    "framework": "react",
+    "router": "target_repo_router",
+    "walletStack": "target_repo_wallet_stack",
+    "rpcPolicy": "target_repo_rpc_policy",
+    "chainSwitching": "require_ethereum_mainnet",
+    "validationCommands": ["target repo unit tests for pending campaign transaction gates"]
+  },
+  "privacy": {
+    "urlSafeFields": ["campaignSlug"],
+    "publicLogPolicy": "redact provider sessions, receipt tokens, emails, OTPs, and wallet-specific recovery identifiers",
+    "privateFields": ["email", "otp", "providerSessionId", "receiptToken", "webhookSecret"]
+  },
+  "missingFields": [
+    "vaultStory",
+    "impactFraming",
+    "campaignCopy",
+    "recipientRoutingSummary",
+    "protocolGuildDestinationContext"
+  ],
+  "proofLimits": [
+    "The vault tuple is known, but the fixture must remain partial until project-approved campaign and routing details are supplied.",
+    "Do not enable Wallet Endow or Card Endow from this fixture alone."
+  ]
+}

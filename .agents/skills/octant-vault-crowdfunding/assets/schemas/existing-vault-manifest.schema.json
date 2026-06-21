@@ -1,0 +1,215 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://greengoods.app/skills/octant-vault-crowdfunding/existing-vault-manifest.schema.json",
+  "title": "Octant Existing Vault Crowdfunding Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "campaignSlug",
+    "readiness",
+    "communityName",
+    "campaignGoal",
+    "vaultStory",
+    "impactFraming",
+    "ctaLabels",
+    "riskNotes",
+    "sourceLinks",
+    "vault",
+    "campaignCopy",
+    "recipientRoutingSummary",
+    "cardProvider",
+    "createVaultOperatorModule",
+    "runtime",
+    "privacy",
+    "missingFields",
+    "proofLimits"
+  ],
+  "properties": {
+    "campaignSlug": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "readiness": {
+      "type": "string",
+      "enum": ["browse_ready", "wallet_ready", "card_ready", "pending_details", "operator_only"]
+    },
+    "communityName": {
+      "type": "string",
+      "minLength": 1
+    },
+    "campaignGoal": {
+      "type": "string",
+      "minLength": 1
+    },
+    "vaultStory": {
+      "type": ["string", "null"]
+    },
+    "impactFraming": {
+      "type": ["string", "null"]
+    },
+    "ctaLabels": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["browse", "walletEndow", "cardEndow", "manage"],
+      "properties": {
+        "browse": { "type": "string" },
+        "walletEndow": { "type": "string" },
+        "cardEndow": { "type": "string" },
+        "manage": { "type": "string" }
+      }
+    },
+    "riskNotes": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "sourceLinks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["label", "url"],
+        "properties": {
+          "label": { "type": "string" },
+          "url": { "type": "string" }
+        }
+      }
+    },
+    "vault": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "chainId",
+        "vaultAddress",
+        "vaultDisplayName",
+        "vaultTokenSymbol",
+        "vaultDecimals",
+        "assetAddress",
+        "assetSymbol",
+        "assetDecimals",
+        "explorerLink",
+        "assetExplorerLink"
+      ],
+      "properties": {
+        "chainId": { "type": "integer", "minimum": 1 },
+        "vaultAddress": { "$ref": "#/$defs/evmAddress" },
+        "vaultDisplayName": { "type": "string" },
+        "vaultTokenSymbol": { "type": "string" },
+        "vaultDecimals": { "type": "integer", "minimum": 0, "maximum": 36 },
+        "assetAddress": { "$ref": "#/$defs/evmAddress" },
+        "assetSymbol": { "type": "string" },
+        "assetDecimals": { "type": "integer", "minimum": 0, "maximum": 36 },
+        "explorerLink": { "type": "string" },
+        "assetExplorerLink": { "type": "string" }
+      }
+    },
+    "factoryEvidence": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["name", "address", "evidenceType", "proofLimit"],
+      "properties": {
+        "name": { "type": "string" },
+        "address": { "$ref": "#/$defs/evmAddress" },
+        "evidenceType": { "type": "string" },
+        "proofLimit": { "type": "string" }
+      }
+    },
+    "campaignCopy": {
+      "type": ["string", "null"]
+    },
+    "recipientRoutingSummary": {
+      "type": ["string", "null"]
+    },
+    "positionRead": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "ownerSource": { "type": "string" },
+        "shareRead": { "type": "string" },
+        "redeemRead": { "type": "string" }
+      }
+    },
+    "indexerSupport": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "status": { "type": "string" },
+        "endpoint": { "type": ["string", "null"] }
+      }
+    },
+    "cardProvider": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["adapter", "status", "receiverProof", "tupleProof", "shareProof", "secrets"],
+      "properties": {
+        "adapter": { "type": "string" },
+        "status": { "type": "string" },
+        "receiverProof": { "type": "string" },
+        "tupleProof": { "type": "string" },
+        "shareProof": { "type": "string" },
+        "secrets": { "type": "string" }
+      }
+    },
+    "createVaultOperatorModule": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "required": ["status", "checklistPath"],
+      "properties": {
+        "status": { "type": "string" },
+        "checklistPath": { "type": "string" }
+      }
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "framework",
+        "router",
+        "walletStack",
+        "rpcPolicy",
+        "chainSwitching",
+        "validationCommands"
+      ],
+      "properties": {
+        "framework": { "type": "string" },
+        "router": { "type": "string" },
+        "walletStack": { "type": "string" },
+        "rpcPolicy": { "type": "string" },
+        "chainSwitching": { "type": "string" },
+        "validationCommands": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "privacy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["urlSafeFields", "publicLogPolicy", "privateFields"],
+      "properties": {
+        "urlSafeFields": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "publicLogPolicy": { "type": "string" },
+        "privateFields": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "missingFields": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "proofLimits": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "$defs": {
+    "evmAddress": {
+      "type": "string",
+      "pattern": "^0x[a-fA-F0-9]{40}$"
+    }
+  }
+}
