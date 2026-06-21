@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import type { QueryKey } from "@tanstack/react-query";
 import {
   DEFAULT_CHAIN_ID,
+  Domain,
   queryKeys,
   ToastViewport,
   type Action,
@@ -63,6 +64,33 @@ const STORYBOOK_SUBMIT_ACTIONS: Action[] = STORYBOOK_ADMIN_ACTIONS.map((action, 
           maxImageCount: 3,
         }
       : action.mediaInfo,
+}));
+
+// Multiple eligible (AGRO) actions so the chooser renders in-panel instead of
+// auto-selecting. The primary garden is AGRO-only, so these all use Domain.AGRO.
+const CHOOSER_ACTIONS: Action[] = [
+  { title: "Canopy baseline", description: "Document baseline canopy cover for the plot." },
+  {
+    title: "Canopy transect upload",
+    description: "Upload a canopy transect photo series for the plot.",
+  },
+  { title: "Regrowth note", description: "Log a quick observation on observed regrowth." },
+].map((override, index) => ({
+  ...(STORYBOOK_SUBMIT_ACTIONS[0] as Action),
+  id: `${DEFAULT_CHAIN_ID}-${index + 1}`,
+  domain: Domain.AGRO,
+  inputs: [
+    {
+      key: "plot",
+      title: "Plot code",
+      placeholder: "Plot A",
+      type: "text",
+      required: true,
+      options: [],
+    },
+  ],
+  mediaInfo: { title: "Field photos", required: true, minImageCount: 1, maxImageCount: 3 },
+  ...override,
 }));
 
 const STORYBOOK_EMPTY_DOMAIN_GARDEN = {
@@ -157,10 +185,12 @@ function SubmitWorkRouteStory() {
   );
 }
 
-function SubmitWorkSheetStory() {
+// Renders the panel inline (not portaled) so play-test queries can scope to the
+// canvas. The responsive full-screen dialog is exercised by DialogShell.
+function SubmitWorkPanelStory() {
   return (
-    <div className="mx-auto max-w-xl p-4">
-      <SubmitWorkPanel layout="sheet" onCancel={fn()} onSuccess={fn()} />
+    <div className="mx-auto flex h-full max-w-2xl flex-col">
+      <SubmitWorkPanel layout="page" onCancel={fn()} onSuccess={fn()} />
       <ToastViewport />
     </div>
   );
@@ -175,7 +205,7 @@ const meta: Meta<typeof SubmitWorkPanel> = {
     docs: {
       description: {
         component:
-          "Real SubmitWorkPanel route and sheet states with deterministic admin garden/action fixtures.",
+          "SubmitWork as a responsive full-screen dialog (desktop) / full-page route (mobile), plus inline panel states with deterministic admin garden/action fixtures.",
       },
     },
   },
@@ -225,14 +255,16 @@ function disconnectedDecorators() {
   ];
 }
 
-export const PageAvailableAction: Story = {
+// A single eligible action auto-selects into Capture; submitting without media
+// surfaces the required-media validation.
+export const AvailableAction: Story = {
   tags: ["storybook-ci"],
-  render: () => <SubmitWorkRouteStory />,
-  decorators: submitWorkDecorators(),
+  render: () => <SubmitWorkPanelStory />,
+  decorators: submitWorkDecorators({
+    seeds: submitWorkSeeds({ actions: STORYBOOK_SUBMIT_ACTIONS.slice(0, 1) }),
+  }),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(await canvas.findByRole("heading", { name: "Submit Work" })).toBeVisible();
-    await userEvent.selectOptions(await canvas.findByLabelText(/Action/), `${DEFAULT_CHAIN_ID}-1`);
     await expect(await canvas.findByLabelText(/Plot code/)).toBeVisible();
     await expect(await canvas.findByLabelText("Time Spent (hours)")).toBeVisible();
     await userEvent.type(await canvas.findByLabelText(/Plot code/), "Plot A");
@@ -242,13 +274,29 @@ export const PageAvailableAction: Story = {
   },
 };
 
-export const SheetAvailableAction: Story = {
-  render: () => <SubmitWorkSheetStory />,
-  decorators: submitWorkDecorators(),
+// Multiple eligible actions → the scannable card chooser (radiogroup).
+export const ActionChooser: Story = {
+  tags: ["storybook-ci"],
+  render: () => <SubmitWorkPanelStory />,
+  decorators: submitWorkDecorators({ seeds: submitWorkSeeds({ actions: CHOOSER_ACTIONS }) }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const cards = await canvas.findAllByRole("radio");
+    expect(cards.length).toBeGreaterThan(1);
+    await userEvent.click(cards[0]);
+    await expect(await canvas.findByRole("button", { name: "Change action" })).toBeVisible();
+  },
+};
+
+// Desktop full-screen dialog housing (portals to document body) — visual review.
+export const DialogShell: Story = {
+  render: () => <SubmitWorkRouteStory />,
+  decorators: submitWorkDecorators({ seeds: submitWorkSeeds({ actions: CHOOSER_ACTIONS }) }),
 };
 
 export const NoDomainRecovery: Story = {
-  render: () => <SubmitWorkRouteStory />,
+  tags: ["storybook-ci"],
+  render: () => <SubmitWorkPanelStory />,
   decorators: submitWorkDecorators({
     garden: STORYBOOK_EMPTY_DOMAIN_GARDEN,
     seeds: submitWorkSeeds({
@@ -265,7 +313,7 @@ export const NoDomainRecovery: Story = {
 };
 
 export const NoPermission: Story = {
-  render: () => <SubmitWorkRouteStory />,
+  render: () => <SubmitWorkPanelStory />,
   decorators: submitWorkDecorators({
     garden: STORYBOOK_REVIEW_ONLY_GARDEN,
     seeds: submitWorkSeeds({
@@ -281,7 +329,7 @@ export const NoPermission: Story = {
 };
 
 export const Unauthenticated: Story = {
-  render: () => <SubmitWorkSheetStory />,
+  render: () => <SubmitWorkPanelStory />,
   decorators: disconnectedDecorators(),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);

@@ -3,7 +3,7 @@ import {
   type Address,
   Alert,
   adminRoutes,
-  Card,
+  cn,
   type Domain,
   expandDomainMask,
   FileUploadField,
@@ -16,10 +16,9 @@ import {
   normalizeWorkMediaFiles,
   NativeSelect,
   parseActionUID,
-  SheetBody,
-  SheetFooter,
   Textarea,
   toastService,
+  TxInlineFeedback,
   validationToasts,
   useAdminGardenWorkspaceSelection,
   useActions,
@@ -28,24 +27,24 @@ import {
   useBeforeUnloadWhilePending,
   useGardenPermissions,
   useGardens,
+  useMediaQuery,
   useUser,
   useWorkForm,
   useWorkMutation,
   type WorkInput,
 } from "@green-goods/shared";
 import { validateWorkSubmissionContext } from "@green-goods/shared/modules";
-import { RiUploadCloudLine } from "@remixicon/react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { RiArrowLeftLine, RiSeedlingLine, RiUploadCloudLine } from "@remixicon/react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Controller } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AdminButton } from "@/components/AdminButton";
+import { AdminDialog } from "@/components/AdminDialog";
 import { AdminTextField } from "@/components/AdminTextField";
-import {
-  CanvasRouteContent,
-  CanvasRouteFrame,
-  CanvasRouteHeader,
-} from "@/components/Layout/CanvasRouteFrame";
+import { CanvasRouteFrame, CanvasRouteHeader } from "@/components/Layout/CanvasRouteFrame";
+import { CanvasRouteErrorState } from "@/components/Layout/CanvasRouteState";
+import { ActionChooserGrid } from "./components/ActionChooserGrid";
 
 function parseHubContext(search: string) {
   const params = new URLSearchParams(search);
@@ -219,7 +218,10 @@ function getMinRequiredImages(action: Action | null) {
   return action.mediaInfo.minImageCount ?? 1;
 }
 
-type SubmitWorkLayout = "page" | "sheet";
+// "page" = mobile / full-page route (embedded in the canvas); "dialog" = desktop
+// full-screen AdminDialog. Both are route-backed at /hub/work/submit and render
+// the same workflow body — only the outer shell differs by viewport.
+type SubmitWorkLayout = "page" | "dialog";
 type MediaFeedback = { variant: "warning" | "error"; message: string };
 type SubmitWorkAuthSnapshot = Pick<AuthStateValue, "authMode" | "isAuthenticated"> & {
   primaryAddress: Address | null | undefined;
@@ -299,8 +301,8 @@ function SubmitWorkPanelContent({
   const { selectedGarden } = useAdminGardenWorkspaceSelection();
   const gardenId = selectedGarden?.id ?? null;
 
-  const { data: gardens = [] } = useGardens();
-  const { data: actions = [] } = useActions();
+  const { data: gardens = [], isLoading: gardensLoading } = useGardens();
+  const { data: actions = [], isLoading: actionsLoading } = useActions();
   const { authMode, isAuthenticated, primaryAddress } = auth;
   const { canManageGarden } = useGardenPermissions();
 
@@ -344,6 +346,7 @@ function SubmitWorkPanelContent({
   const [mediaFeedback, setMediaFeedback] = useState<MediaFeedback | null>(null);
   const [isPreparingMedia, setIsPreparingMedia] = useState(false);
   const canSubmit = garden ? canManageGarden(garden) : false;
+  const isLoadingData = Boolean(gardensLoading || actionsLoading);
 
   const mutation = useWorkMutation({
     authMode,
@@ -383,7 +386,17 @@ function SubmitWorkPanelContent({
 
   useBeforeUnloadWhilePending(mutation.isPending || isPreparingMedia);
 
+  // Auto-select when exactly one action is eligible — skip the chooser and land
+  // the operator straight in Capture.
+  useEffect(() => {
+    if (!selectedActionId && availableActions.length === 1) {
+      setSelectedActionId(availableActions[0].id);
+    }
+  }, [availableActions, selectedActionId]);
+
   const onSubmit = handleSubmit((data) => {
+    if (!garden || !selectedAction || selectedActionUID === null) return;
+
     const validationErrors = validateWorkSubmissionContext(
       garden.id as Address,
       selectedActionUID,
@@ -397,8 +410,6 @@ function SubmitWorkPanelContent({
       validationToasts.formError(validationErrors[0]);
       return;
     }
-
-    if (!selectedAction || selectedActionUID === null) return;
 
     if (isOffline()) {
       toastService.error({
@@ -435,6 +446,7 @@ function SubmitWorkPanelContent({
     setImages([]);
     setMediaFeedback(null);
     setProgressMessage("");
+    mutation.reset();
   };
 
   const handleFilesChange = useCallback(
@@ -548,165 +560,57 @@ function SubmitWorkPanelContent({
     [formatMessage]
   );
 
-  const renderState = (variant: "error" | "warning", messageId: string) => {
-    const state = <Alert variant={variant}>{formatMessage({ id: messageId })}</Alert>;
-
-    return layout === "page" ? (
-      <CanvasRouteContent maxWidthClassName="max-w-2xl" className="mt-6">
-        {state}
-      </CanvasRouteContent>
-    ) : (
-      state
+  const renderGuard = (variant: "error" | "warning", messageId: string) => {
+    if (layout === "page") {
+      return <CanvasRouteErrorState variant={variant} message={formatMessage({ id: messageId })} />;
+    }
+    return (
+      <div className="p-6">
+        <Alert variant={variant}>{formatMessage({ id: messageId })}</Alert>
+      </div>
     );
   };
 
-  if (!garden) {
-    return renderState("error", "app.garden.admin.notFound");
-  }
-
-  if (!isAuthenticated) {
-    return renderState("warning", "app.admin.work.submit.connectWallet");
-  }
-
-  if (!canSubmit) {
-    return renderState("warning", "app.admin.work.submit.noPermission");
-  }
-
-  // Stable form id so the sheet-mode SheetFooter submit button can target the
-  // form via the `form="..."` attribute (handoff sheet anatomy: pinned footer
-  // sits OUTSIDE the form element and triggers submit by id).
-  const formId = "submit-work-form";
-
-  // Shared field stack — identical grouping in both layouts so the form reads
-  // the same on the page route and inside the Hub LeftSheet: action picker →
-  // action-specific fields → effort/notes → media evidence.
-  const formFields = (
-    <>
-      <FormField
-        label={formatMessage({ id: "app.admin.work.submit.selectAction" })}
-        htmlFor="action-select"
-        required
-      >
-        {availableActions.length === 0 ? (
-          <Alert
-            variant="info"
-            action={
-              <AdminButton
-                type="button"
-                variant="text"
-                size="sm"
-                onClick={() => navigate(adminRoutes.gardenSettings({ gardenAddress: garden.id }))}
-              >
-                {formatMessage({ id: "app.admin.work.submit.noActionsForDomain.cta" })}
-              </AdminButton>
-            }
-          >
-            {formatMessage({ id: "app.admin.work.submit.noActionsForDomain" })}
-          </Alert>
-        ) : (
-          <NativeSelect
-            surface="admin"
-            id="action-select"
-            value={selectedActionId}
-            disabled={mutation.isPending || isPreparingMedia}
-            onChange={(event) => handleActionChange(event.target.value)}
-          >
-            <option value="">
-              {formatMessage({ id: "app.admin.work.submit.selectActionPlaceholder" })}
-            </option>
-            {availableActions.map((action) => (
-              <option key={action.id} value={action.id}>
-                {action.title}
-              </option>
+  // Loading must win over the empty/not-found branches — both `garden` and
+  // `availableActions` are legitimately absent while the lists are still
+  // fetching, so resolving them early would flash a false empty state.
+  if (isLoadingData) {
+    return (
+      <div className="mx-auto w-full max-w-2xl px-4 py-6 sm:px-6" role="status" aria-busy="true">
+        <span className="sr-only">{formatMessage({ id: "app.admin.work.submit.loading" })}</span>
+        <div className="space-y-4">
+          <div className="h-7 w-2/3 rounded-lg skeleton-shimmer" />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {[0, 1, 2, 3].map((index) => (
+              <div
+                key={index}
+                className="h-28 rounded-lg skeleton-shimmer"
+                style={{ animationDelay: `${index * 0.05}s` }}
+              />
             ))}
-          </NativeSelect>
-        )}
-      </FormField>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-      {selectedAction && selectedAction.inputs.length > 0 ? (
-        <DynamicWorkFields
-          inputs={selectedAction.inputs}
-          control={control}
-          register={register}
-          errors={errors as Record<string, { message?: string } | undefined>}
-        />
-      ) : null}
+  if (!garden) return renderGuard("error", "app.garden.admin.notFound");
+  if (!isAuthenticated) return renderGuard("warning", "app.admin.work.submit.connectWallet");
+  if (!canSubmit) return renderGuard("warning", "app.admin.work.submit.noPermission");
 
-      {selectedAction ? (
-        <>
-          <AdminTextField
-            label={formatMessage({ id: "app.admin.work.submit.timeSpent" })}
-            id="timeSpentMinutes"
-            type="number"
-            variant="outlined"
-            error={errors.timeSpentMinutes?.message}
-            helperText={formatMessage({ id: "app.admin.work.submit.timeSpentHint" })}
-            placeholder={formatMessage({ id: "app.admin.work.submit.timeSpentPlaceholder" })}
-            inputProps={{ step: "0.25", min: 0 }}
-            {...register("timeSpentMinutes")}
-          />
-
-          <FormField
-            label={formatMessage({ id: "app.admin.work.submit.feedback" })}
-            htmlFor="feedback"
-            error={errors.feedback?.message}
-          >
-            <Textarea
-              surface="admin"
-              id="feedback"
-              rows={3}
-              placeholder={formatMessage({ id: "app.admin.work.submit.feedbackPlaceholder" })}
-              aria-invalid={!!errors.feedback}
-              invalid={!!errors.feedback}
-              className="resize-y"
-              {...register("feedback")}
-            />
-          </FormField>
-
-          <FileUploadField
-            label={formatMessage({ id: "app.admin.work.submit.media" })}
-            helpText={formatMessage({ id: "app.admin.work.submit.mediaHint" })}
-            accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
-            multiple
-            compress={false}
-            showPreview
-            currentFiles={images}
-            onFilesChange={handleFilesChange}
-            onRemoveFile={(index) => setImages((prev) => prev.filter((_, i) => i !== index))}
-            disabled={mutation.isPending || isPreparingMedia}
-          />
-          {mediaFeedback ? (
-            <Alert variant={mediaFeedback.variant}>{mediaFeedback.message}</Alert>
-          ) : null}
-        </>
-      ) : null}
-    </>
-  );
-
-  const footerActions = (
-    <>
-      <AdminButton
-        type="button"
-        variant="text"
-        onClick={() => onCancel?.()}
-        disabled={mutation.isPending || isPreparingMedia}
-      >
-        {formatMessage({ id: "app.wizard.cancel", defaultMessage: "Cancel" })}
-      </AdminButton>
-      <AdminButton
-        type="submit"
-        form={formId}
-        variant="filled"
-        loading={mutation.isPending || isPreparingMedia}
-        disabled={mutation.isPending || isPreparingMedia || availableActions.length === 0}
-        leadingIcon={<RiUploadCloudLine />}
-      >
-        {mutation.isPending
-          ? formatMessage({ id: "app.admin.work.submit.submitting" })
-          : formatMessage({ id: "app.admin.work.submit.submit" })}
-      </AdminButton>
-    </>
-  );
+  // Stable form id so the footer submit button can target the form via the
+  // `form="..."` attribute — the footer sits outside the <form> element.
+  const formId = "submit-work-form";
+  const containerClass = "mx-auto w-full max-w-2xl px-4 py-6 sm:px-6";
+  const hasActions = availableActions.length > 0;
+  const inCapture = Boolean(selectedAction);
+  const busy = mutation.isPending || isPreparingMedia;
+  const photoRequirementText = selectedAction?.mediaInfo?.required
+    ? formatMessage(
+        { id: "app.admin.work.submit.photosRequired" },
+        { count: getMinRequiredImages(selectedAction) }
+      )
+    : formatMessage({ id: "app.admin.work.submit.photosOptional" });
 
   const progressSlot = (
     <div className="min-w-0 flex-1" aria-live="polite">
@@ -718,41 +622,217 @@ function SubmitWorkPanelContent({
     </div>
   );
 
-  if (layout === "page") {
+  const footerActions = (
+    <>
+      <AdminButton type="button" variant="text" onClick={() => onCancel?.()} disabled={busy}>
+        {formatMessage({ id: "app.wizard.cancel", defaultMessage: "Cancel" })}
+      </AdminButton>
+      <AdminButton
+        type="submit"
+        form={formId}
+        variant="filled"
+        loading={busy}
+        disabled={busy}
+        leadingIcon={<RiUploadCloudLine />}
+      >
+        {mutation.isPending
+          ? formatMessage({ id: "app.admin.work.submit.submitting" })
+          : formatMessage({ id: "app.admin.work.submit.submit" })}
+      </AdminButton>
+    </>
+  );
+
+  const emptyState = (
+    <div className={containerClass}>
+      <div className="flex flex-col items-center gap-3 rounded-lg border border-stroke-soft bg-bg-white p-8 text-center">
+        <RiSeedlingLine className="h-10 w-10 text-text-soft" aria-hidden="true" />
+        <p className="text-sm font-semibold text-text-strong">
+          {formatMessage({ id: "app.admin.work.submit.noActionsForDomain" })}
+        </p>
+        <p className="max-w-sm text-xs text-text-soft">
+          {formatMessage({ id: "app.admin.work.submit.noActionsForDomainHint" })}
+        </p>
+        <AdminButton
+          type="button"
+          variant="filled"
+          onClick={() => navigate(adminRoutes.gardenSettings({ gardenAddress: garden.id }))}
+        >
+          {formatMessage({ id: "app.admin.work.submit.noActionsForDomain.cta" })}
+        </AdminButton>
+      </div>
+    </div>
+  );
+
+  const chooseView = (
+    <div className={containerClass}>
+      <div className="space-y-1">
+        <h2 className="text-base font-semibold text-text-strong">
+          {formatMessage({ id: "app.admin.work.submit.chooseActionTitle" })}
+        </h2>
+        <p className="text-sm text-text-soft">
+          {formatMessage(
+            { id: "app.admin.work.submit.chooseActionDescription" },
+            { garden: garden.name }
+          )}
+        </p>
+      </div>
+      <div className="mt-4">
+        <ActionChooserGrid
+          actions={availableActions}
+          selectedActionId={selectedActionId}
+          onSelect={handleActionChange}
+          disabled={busy}
+          groupLabel={formatMessage({ id: "app.admin.work.submit.selectAction" })}
+        />
+      </div>
+    </div>
+  );
+
+  const captureView = (
+    <div className={containerClass}>
+      <div className="flex items-start justify-between gap-3 rounded-lg border border-stroke-soft bg-bg-weak p-4">
+        <div className="min-w-0">
+          <p className="text-xs font-medium text-text-soft">{garden.name}</p>
+          <p className="text-sm font-semibold text-text-strong">{selectedAction?.title}</p>
+          <p className="text-xs text-text-soft">{photoRequirementText}</p>
+        </div>
+        {availableActions.length > 1 ? (
+          <AdminButton
+            type="button"
+            variant="text"
+            size="sm"
+            leadingIcon={<RiArrowLeftLine />}
+            onClick={() => handleActionChange("")}
+            disabled={busy}
+          >
+            {formatMessage({ id: "app.admin.work.submit.changeAction" })}
+          </AdminButton>
+        ) : null}
+      </div>
+
+      <form id={formId} onSubmit={onSubmit} className="mt-5 space-y-5">
+        {selectedAction && selectedAction.inputs.length > 0 ? (
+          <DynamicWorkFields
+            inputs={selectedAction.inputs}
+            control={control}
+            register={register}
+            errors={errors as Record<string, { message?: string } | undefined>}
+          />
+        ) : null}
+
+        <AdminTextField
+          label={formatMessage({ id: "app.admin.work.submit.timeSpent" })}
+          id="timeSpentMinutes"
+          type="number"
+          variant="outlined"
+          error={errors.timeSpentMinutes?.message}
+          helperText={formatMessage({ id: "app.admin.work.submit.timeSpentHint" })}
+          placeholder={formatMessage({ id: "app.admin.work.submit.timeSpentPlaceholder" })}
+          inputProps={{ step: "0.25", min: 0 }}
+          {...register("timeSpentMinutes")}
+        />
+
+        <FormField
+          label={formatMessage({ id: "app.admin.work.submit.feedback" })}
+          htmlFor="feedback"
+          error={errors.feedback?.message}
+        >
+          <Textarea
+            surface="admin"
+            id="feedback"
+            rows={3}
+            placeholder={formatMessage({ id: "app.admin.work.submit.feedbackPlaceholder" })}
+            aria-invalid={!!errors.feedback}
+            invalid={!!errors.feedback}
+            className="resize-y"
+            {...register("feedback")}
+          />
+        </FormField>
+
+        <FileUploadField
+          label={formatMessage({ id: "app.admin.work.submit.media" })}
+          helpText={formatMessage({ id: "app.admin.work.submit.mediaHint" })}
+          accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
+          multiple
+          compress={false}
+          showPreview
+          currentFiles={images}
+          onFilesChange={handleFilesChange}
+          onRemoveFile={(index) => setImages((prev) => prev.filter((_, i) => i !== index))}
+          disabled={busy}
+        />
+        {mediaFeedback ? (
+          <Alert variant={mediaFeedback.variant}>{mediaFeedback.message}</Alert>
+        ) : null}
+      </form>
+
+      {mutation.isError ? (
+        <div className="mt-4">
+          <TxInlineFeedback
+            visible
+            severity="error"
+            title={formatMessage({ id: "app.admin.work.submit.failureTitle" })}
+            message={formatMessage({ id: "app.admin.work.submit.failureMessage" })}
+            reserveClassName="min-h-0"
+            action={
+              <AdminButton
+                type="button"
+                variant="outlined"
+                size="sm"
+                onClick={() => void onSubmit()}
+                disabled={busy}
+              >
+                {formatMessage({ id: "app.admin.work.submit.retry" })}
+              </AdminButton>
+            }
+          />
+        </div>
+      ) : null}
+    </div>
+  );
+
+  const body = !hasActions ? emptyState : inCapture ? captureView : chooseView;
+  const showFooter = hasActions && inCapture;
+
+  const footer = showFooter ? (
+    <div
+      className={cn(
+        "border-t border-stroke-soft bg-bg-white",
+        layout === "dialog" && "sticky bottom-0 z-10"
+      )}
+    >
+      <div className="mx-auto flex w-full max-w-2xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
+        {progressSlot}
+        <div className="flex gap-2">{footerActions}</div>
+      </div>
+    </div>
+  ) : null;
+
+  // Dialog shell renders its own sticky top bar (the fullscreen AdminDialog
+  // suppresses the structured header) so the operator always sees the garden.
+  if (layout === "dialog") {
     return (
-      <CanvasRouteContent maxWidthClassName="max-w-2xl" className="mt-6">
-        <form id={formId} onSubmit={onSubmit}>
-          <Card>
-            <Card.Body className="space-y-5">{formFields}</Card.Body>
-            {selectedAction ? (
-              <Card.Footer className="flex items-center justify-between gap-3">
-                {progressSlot}
-                <div className="flex gap-2">{footerActions}</div>
-              </Card.Footer>
-            ) : null}
-          </Card>
-        </form>
-      </CanvasRouteContent>
+      <div className="flex min-h-full flex-col">
+        <div className="sticky top-0 z-10 border-b border-stroke-soft bg-bg-white px-4 py-4 sm:px-6">
+          <div className="mx-auto w-full max-w-2xl pr-10">
+            <p className="text-xs font-medium text-text-soft">{garden.name}</p>
+            <h1 className="text-lg font-semibold text-text-strong">
+              {formatMessage({ id: "app.admin.work.submit.title" })}
+            </h1>
+          </div>
+        </div>
+        <div className="flex-1">{body}</div>
+        {footer}
+      </div>
     );
   }
 
-  // Sheet layout: admin sheet/form anatomy — fields sit directly on the sheet
-  // surface (no nested card), scroll inside SheetBody, and commit through the
-  // pinned SheetFooter. The submit button targets the form by id because the
-  // footer sits outside the form element.
+  // Page shell: the route's CanvasRouteHeader supplies the title/back, so the
+  // panel only renders the workflow body + footer.
   return (
     <>
-      <SheetBody>
-        <form id={formId} onSubmit={onSubmit} className="space-y-5">
-          {formFields}
-        </form>
-      </SheetBody>
-      {selectedAction ? (
-        <SheetFooter>
-          {progressSlot}
-          {footerActions}
-        </SheetFooter>
-      ) : null}
+      {body}
+      {footer}
     </>
   );
 }
@@ -761,8 +841,27 @@ export default function SubmitWork() {
   const { formatMessage } = useIntl();
   const navigate = useNavigate();
   const location = useLocation();
+  const isDesktop = useMediaQuery("(min-width: 600px)");
 
   const hubContext = parseHubContext(location.search);
+  const close = () => navigate(adminRoutes.hub(hubContext));
+
+  // Desktop: full-screen dialog over the Hub. Mobile: its own full-page route.
+  if (isDesktop) {
+    return (
+      <AdminDialog
+        open
+        size="fullscreen"
+        onOpenChange={(next) => {
+          if (!next) close();
+        }}
+        title={formatMessage({ id: "app.admin.work.submit.title" })}
+        description={formatMessage({ id: "app.admin.work.submit.description" })}
+      >
+        <SubmitWorkPanel layout="dialog" onSuccess={close} onCancel={close} />
+      </AdminDialog>
+    );
+  }
 
   return (
     <CanvasRouteFrame>
@@ -776,11 +875,7 @@ export default function SubmitWork() {
         }}
         sticky
       />
-      <SubmitWorkPanel
-        layout="page"
-        onSuccess={() => navigate(adminRoutes.hub(hubContext))}
-        onCancel={() => navigate(adminRoutes.hub(hubContext))}
-      />
+      <SubmitWorkPanel layout="page" onSuccess={close} onCancel={close} />
     </CanvasRouteFrame>
   );
 }

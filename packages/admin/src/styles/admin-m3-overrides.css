@@ -340,6 +340,27 @@ body:has(.admin-m3) [data-component="ConfirmDialog"][data-slot="surface"] {
   }
 }
 
+/* Full-screen takeover (desktop create/commit flows, e.g. Submit Work). The
+ * surface has no centering translate, so a scale+fade is safe (no transform
+ * double-up). The extra [data-size="fullscreen"] attribute raises specificity
+ * above the sheet/modal surface rules, in or out of the 640px media query. */
+@keyframes adminDialogFullscreenIn {
+  from { transform: scale(0.98); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+@keyframes adminDialogFullscreenOut {
+  from { transform: scale(1); opacity: 1; }
+  to   { transform: scale(0.98); opacity: 0; }
+}
+[data-component="AdminDialog"][data-size="fullscreen"][data-slot="surface"][data-state="open"] {
+  animation: adminDialogFullscreenIn var(--spring-spatial-slow-duration)
+    var(--spring-spatial-slow-easing) both;
+}
+[data-component="AdminDialog"][data-size="fullscreen"][data-slot="surface"][data-state="closed"] {
+  animation: adminDialogFullscreenOut var(--spring-spatial-duration)
+    var(--spring-spatial-easing) both;
+}
+
 /* Reduced motion — disable the enter/exit animation (mirrors the shared
  * dialog block in utilities.css). The `to`/forwards fill still resolves the
  * resting transform, so the surface lands centered, just without motion. */

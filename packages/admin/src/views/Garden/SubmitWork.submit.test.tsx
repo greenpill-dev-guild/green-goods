@@ -25,6 +25,7 @@ const {
 } = vi.hoisted(() => ({
   mockState: {
     actions: [] as Action[],
+    actionsLoading: false,
     selectedGarden: null as { id: string; tokenAddress: string; name: string } | null,
     workMutationOptions: null as null | Record<string, unknown>,
   },
@@ -115,6 +116,16 @@ vi.mock("@green-goods/shared", async () => {
     },
     Card,
     cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
+    Capital: {
+      SOCIAL: 0,
+      MATERIAL: 1,
+      FINANCIAL: 2,
+      LIVING: 3,
+      INTELLECTUAL: 4,
+      EXPERIENTIAL: 5,
+      SPIRITUAL: 6,
+      CULTURAL: 7,
+    },
     expandDomainMask: (mask: number) => {
       const domains: number[] = [];
       if (mask & 1) domains.push(0);
@@ -265,6 +276,18 @@ vi.mock("@green-goods/shared", async () => {
       invalid?: boolean;
       surface?: string;
     }) => React.createElement("textarea", props),
+    TxInlineFeedback: ({
+      visible,
+      title,
+      message,
+      action,
+    }: {
+      visible: boolean;
+      title: string;
+      message: string;
+      action?: React.ReactNode;
+    }) => (visible ? React.createElement("div", { role: "alert" }, title, message, action) : null),
+    useMediaQuery: () => true,
     useWorkMutation: mockUseWorkMutation,
     toastService: {
       error: mockToastError,
@@ -288,6 +311,7 @@ vi.mock("@green-goods/shared", async () => {
     }),
     useActions: () => ({
       data: mockState.actions,
+      isLoading: mockState.actionsLoading,
     }),
     useAuthState: () => ({ isAuthenticated: true, authMode: "wallet" }),
     useUser: () => ({ authMode: "wallet", primaryAddress: gardenAddress }),
@@ -342,9 +366,10 @@ function createDeferred<T>() {
   return { promise, resolve };
 }
 
+// A single eligible action auto-selects into the Capture step, so the chooser is
+// skipped entirely — fill the required field directly.
 async function selectActionAndFillRequiredFields(user: ReturnType<typeof userEvent.setup>) {
-  await user.selectOptions(screen.getByLabelText(/Action/), actionId);
-  await user.type(screen.getByLabelText(/Plot code/), "Plot A");
+  await user.type(await screen.findByLabelText(/Plot code/), "Plot A");
 }
 
 function uploadFile(container: HTMLElement, fileName = "before.png", type = "image/png") {
@@ -389,13 +414,16 @@ describe("SubmitWorkPanel submit behavior", () => {
       name: "Green Goods Community Garden",
     };
     mockState.actions = [createAction()];
+    mockState.actionsLoading = false;
     mockState.workMutationOptions = null;
     mockUseWorkMutation.mockImplementation((options) => {
       mockState.workMutationOptions = options;
       return {
         mutate: mockMutate,
         isPending: false,
+        isError: false,
         error: null,
+        reset: vi.fn(),
       };
     });
     heicToMocks.isHeic.mockResolvedValue(false);
@@ -625,6 +653,15 @@ describe("SubmitWorkPanel submit behavior", () => {
   });
 
   it("blocks action switches and cancel while media is preparing", async () => {
+    mockState.actions = [
+      createAction(),
+      {
+        ...createAction(),
+        id: "42161-43",
+        slug: "agro.site_assessment_after",
+        title: "Site Assessment (After)",
+      },
+    ];
     const user = userEvent.setup();
     const compressedFile = new File(["compressed"], "large-compressed.jpg", {
       type: "image/jpeg",
@@ -652,12 +689,13 @@ describe("SubmitWorkPanel submit behavior", () => {
       </TestProviders>
     );
 
-    await selectActionAndFillRequiredFields(user);
+    // Two eligible actions → the chooser is shown; pick one to enter Capture.
+    await user.click(screen.getByRole("radio", { name: /Site Assessment \(Before\)/ }));
+    await user.type(await screen.findByLabelText(/Plot code/), "Plot A");
     uploadFile(container, "large.png", "image/png");
 
-    const actionSelect = screen.getByLabelText(/Action/);
     await waitFor(() => {
-      expect(actionSelect).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Change action" })).toBeDisabled();
       expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
       expect(screen.getByRole("button", { name: "Submit Work" })).toBeDisabled();
     });
@@ -674,7 +712,7 @@ describe("SubmitWorkPanel submit behavior", () => {
     });
 
     await waitFor(() => {
-      expect(actionSelect).not.toBeDisabled();
+      expect(screen.getByRole("button", { name: "Change action" })).not.toBeDisabled();
       expect(screen.getByRole("button", { name: "Cancel" })).not.toBeDisabled();
     });
   });
@@ -762,15 +800,14 @@ describe("SubmitWorkPanel submit behavior", () => {
   });
 
   it("maps shared submission progress into the admin footer status", async () => {
-    const user = userEvent.setup();
-
     render(
       <TestProviders>
         <SubmitWorkPanel layout="page" />
       </TestProviders>
     );
 
-    await user.selectOptions(screen.getByLabelText(/Action/), actionId);
+    // Single eligible action auto-selects into Capture, surfacing the footer.
+    await screen.findByLabelText(/Plot code/);
 
     act(() => {
       const onProgress = mockState.workMutationOptions?.onProgress as
@@ -787,5 +824,61 @@ describe("SubmitWorkPanel submit behavior", () => {
     });
 
     expect(screen.queryByText("Uploading media...")).not.toBeInTheDocument();
+  });
+
+  it("auto-selects the only eligible action and lands in the Capture step", async () => {
+    render(
+      <TestProviders>
+        <SubmitWorkPanel layout="page" />
+      </TestProviders>
+    );
+
+    // Single action → no chooser, no "Change action", straight to the form.
+    expect(await screen.findByLabelText(/Plot code/)).toBeInTheDocument();
+    expect(screen.queryByRole("radio")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Change action" })).not.toBeInTheDocument();
+  });
+
+  it("shows the action chooser when multiple actions are eligible", async () => {
+    mockState.actions = [
+      createAction(),
+      {
+        ...createAction(),
+        id: "42161-43",
+        slug: "agro.site_assessment_after",
+        title: "Site Assessment (After)",
+      },
+    ];
+    const user = userEvent.setup();
+
+    render(
+      <TestProviders>
+        <SubmitWorkPanel layout="page" />
+      </TestProviders>
+    );
+
+    expect(screen.getAllByRole("radio")).toHaveLength(2);
+    expect(screen.queryByLabelText(/Plot code/)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("radio", { name: /Site Assessment \(After\)/ }));
+
+    expect(await screen.findByLabelText(/Plot code/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Change action" })).toBeInTheDocument();
+  });
+
+  it("shows a loading state instead of the empty state while actions load", async () => {
+    mockState.actions = [];
+    mockState.actionsLoading = true;
+
+    render(
+      <TestProviders>
+        <SubmitWorkPanel layout="page" />
+      </TestProviders>
+    );
+
+    expect(screen.getByRole("status")).toHaveAttribute("aria-busy", "true");
+    expect(
+      screen.queryByText("No actions available for this garden's domains")
+    ).not.toBeInTheDocument();
   });
 });

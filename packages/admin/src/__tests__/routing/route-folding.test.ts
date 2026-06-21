@@ -70,6 +70,11 @@ describe("route folding", () => {
     expect(hubRouteBlock).toContain('path: "work"');
     expect(hubRouteBlock).toContain('path: ":workId"');
     expect(hubRouteBlock).toContain('path: "submit"');
+    // Submit Work resolves through its own dedicated view, not the Hub sheet.
+    expect(routeViews).toContain(
+      'const submitWorkView = lazyView(() => import("@/views/Garden/SubmitWork"));'
+    );
+    expect(hubRouteBlock).toContain("lazy: submitWorkView");
     expect(hubRouteBlock).toContain('path: "assess"');
     expect(hubRouteBlock).toContain('path: "certify"');
     expect(hubRouteBlock).toContain('path: "history"');
@@ -80,14 +85,14 @@ describe("route folding", () => {
     expect(hubRouteBlock).not.toMatch(/SubmitWork/);
   });
 
-  it("Work view owns the bounded Hub detail and submit panels", () => {
-    // Panels are composed in the Hub sheet descriptor; content-id constants live with route helpers.
+  it("Hub sheet descriptor owns only the read/review inspectors", () => {
+    // Inspector panels are composed in the Hub sheet descriptor; Submit Work is
+    // a creation/commit flow with its own route, so it is no longer a Hub sheet.
     const hubSheetDescriptor = readSource(hubSheetDescriptorPath);
     const sheetRegistry = readSource(sheetRegistryPath);
 
     expect(hubSheetDescriptor).toContain("WorkDetailPanel");
-    expect(hubSheetDescriptor).toContain("SubmitWorkPanel");
-    expect(sheetRegistry).toContain("hub:submit-work");
+    expect(hubSheetDescriptor).not.toContain("SubmitWorkPanel");
     expect(sheetRegistry).toContain("hub:work-detail:");
     expect(sheetRegistry).toContain("hub:history:");
     expect(sheetRegistry).toContain("ADMIN_ROUTE_SHEET_REGISTRY");

@@ -22,7 +22,7 @@ export interface AdminDialogProps {
   icon?: ComponentType<{ className?: string }> | ReactNode;
   children: ReactNode;
   actions?: ReactNode;
-  size?: "sm" | "md" | "lg" | "xl" | "2xl";
+  size?: "sm" | "md" | "lg" | "xl" | "2xl" | "fullscreen";
   variant?: "standard" | "confirm" | "palette";
   bodyClassName?: string;
   actionsClassName?: string;
@@ -55,6 +55,8 @@ const sizeClasses: Record<NonNullable<AdminDialogProps["size"]>, string> = {
   lg: "sm:max-w-lg",
   xl: "sm:max-w-2xl",
   "2xl": "sm:max-w-4xl lg:max-w-5xl",
+  // Fullscreen positioning/shape is handled inline (not via max-width).
+  fullscreen: "",
 };
 
 const variantClasses: Record<NonNullable<AdminDialogProps["variant"]>, string> = {
@@ -115,7 +117,11 @@ export function AdminDialog({
     if (!nextOpen && preventClose) return;
     onOpenChange(nextOpen);
   };
-  const hasStructuredHeader = variant !== "palette";
+  const isFullscreen = size === "fullscreen";
+  // Fullscreen + palette let the consumer own the visible header chrome; the
+  // structured header (icon/title/description) is suppressed and the title is
+  // kept screen-reader-only for the Radix dialog a11y contract.
+  const hasStructuredHeader = variant !== "palette" && !isFullscreen;
   const iconNode =
     typeof Icon === "function" ? (
       <Icon className="h-6 w-6 text-[rgb(var(--m3-on-surface-variant))]" />
@@ -146,28 +152,36 @@ export function AdminDialog({
           data-slot="surface"
           data-variant={variant}
           data-mobile="sheet"
+          data-size={size}
           role={role}
           className={cn(
-            // Mobile sheet, desktop centered dialog.
-            "fixed bottom-0 left-1/2 z-modal flex max-h-[calc(100dvh-1rem)] w-full max-w-[calc(100vw-1rem)] -translate-x-1/2 flex-col",
-            "rounded-t-[var(--m3-shape-xl)] sm:bottom-auto sm:top-1/2 sm:max-h-[calc(100dvh-2rem)] sm:-translate-y-1/2 sm:rounded-[var(--m3-shape-xl)]",
-            // Surface
-            "bg-[rgb(var(--m3-surface-container-high))]",
-            // Elevation 3
-            "shadow-[var(--m3-elevation-3)]",
-            // Padding: 24dp by default; palette manages its own inner chrome.
-            variant === "palette" ? "p-0" : "p-6",
-            // Enter/exit motion (mobile sheet slide-up, desktop zoom) is driven by the
-            // [data-component="AdminDialog"][data-slot="surface"][data-state] rules in
-            // admin-m3-overrides.css. Those keyframes animate only `transform`; the
-            // centering above uses Tailwind's independent `translate` property, which
-            // composes with `transform` so the surface stays centered. Do NOT re-add
-            // Tailwind `animate-*`/`slide-in-*`/`zoom-*` classes here — tailwindcss-animate
-            // is not loaded in this build, so they emit no CSS (dead classes).
-            // Focus outline suppression (handled per-element)
-            "focus:outline-none",
-            sizeClasses[size],
-            variantClasses[variant],
+            isFullscreen
+              ? // Full-screen takeover (desktop create/commit flows): edge-to-edge,
+                // no centering translate, square corners, surface fills the viewport.
+                // Enter/exit motion is the [data-size="fullscreen"] block in
+                // admin-m3-overrides.css.
+                "fixed inset-0 z-modal flex h-[100dvh] w-screen flex-col bg-[rgb(var(--m3-surface))] focus:outline-none"
+              : cn(
+                  // Mobile sheet, desktop centered dialog.
+                  "fixed bottom-0 left-1/2 z-modal flex max-h-[calc(100dvh-1rem)] w-full max-w-[calc(100vw-1rem)] -translate-x-1/2 flex-col",
+                  "rounded-t-[var(--m3-shape-xl)] sm:bottom-auto sm:top-1/2 sm:max-h-[calc(100dvh-2rem)] sm:-translate-y-1/2 sm:rounded-[var(--m3-shape-xl)]",
+                  // Surface
+                  "bg-[rgb(var(--m3-surface-container-high))]",
+                  // Elevation 3
+                  "shadow-[var(--m3-elevation-3)]",
+                  // Enter/exit motion (mobile sheet slide-up, desktop zoom) is driven by
+                  // the [data-component="AdminDialog"][data-slot="surface"][data-state]
+                  // rules in admin-m3-overrides.css. Those keyframes animate only
+                  // `transform`; the centering uses Tailwind's independent `translate`
+                  // property, which composes so the surface stays centered. Do NOT re-add
+                  // Tailwind animate-*/slide-in-*/zoom-* classes — tailwindcss-animate is
+                  // not loaded in this build, so they emit no CSS (dead classes).
+                  "focus:outline-none",
+                  sizeClasses[size],
+                  variantClasses[variant]
+                ),
+            // Padding: 24dp default; palette + fullscreen own their inner chrome.
+            isFullscreen || variant === "palette" ? "p-0" : "p-6",
             className
           )}
           onPointerDownOutside={(event) => {
@@ -233,7 +247,7 @@ export function AdminDialog({
             className={cn(
               "min-h-0 flex-1 overflow-y-auto text-body-md",
               "text-[rgb(var(--m3-on-surface-variant))]",
-              variant === "palette" ? "" : "-mx-6 mt-4 px-6",
+              isFullscreen || variant === "palette" ? "" : "-mx-6 mt-4 px-6",
               bodyClassName
             )}
           >

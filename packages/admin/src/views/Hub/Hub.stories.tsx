@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import { expect, userEvent, waitFor, within } from "storybook/test";
+import { expect, waitFor, within } from "storybook/test";
 import {
   STORYBOOK_ADMIN_SHELL_SEEDS,
   STORYBOOK_PRIMARY_ADMIN_GARDEN,
@@ -89,46 +89,9 @@ export const WorkDetail: Story = {
   decorators: hubDecorators(),
 };
 
-export const SubmitWorkSheet: Story = {
-  tags: ["storybook-ci"],
-  args: {
-    initialPath: `/hub/work/submit?gardenAddress=${STORYBOOK_PRIMARY_ADMIN_GARDEN.id}&sort=oldest`,
-  },
-  decorators: hubDecorators(),
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    await expect(
-      await canvas.findByRole(
-        "button",
-        { name: /Rio Rainforest Lab/ },
-        ADMIN_ROUTE_STORY_QUERY_OPTIONS
-      )
-    ).toBeVisible();
-    const leftSheet = await canvas.findByTestId(
-      "left-sheet",
-      undefined,
-      ADMIN_ROUTE_STORY_QUERY_OPTIONS
-    );
-    await expect(leftSheet).toHaveAttribute("data-component", "LeftSheet");
-    await expect(
-      await within(leftSheet).findByText("Submit Work", undefined, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
-    ).toBeVisible();
-    await userEvent.click(
-      await within(leftSheet).findByTestId(
-        "left-sheet-close",
-        undefined,
-        ADMIN_ROUTE_STORY_QUERY_OPTIONS
-      )
-    );
-    await waitFor(() => expect(leftSheet).toHaveAttribute("data-state", "closed"));
-    await expect(
-      await canvas.findByText("Canopy transect upload", undefined, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
-    ).toBeVisible();
-    await expect(
-      await canvas.findByLabelText("Sort by", undefined, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
-    ).toHaveValue("oldest");
-  },
-};
+// Submit Work is no longer a Hub left sheet — it owns its own route
+// (/hub/work/submit → submitWorkView). Its states are covered by
+// SubmitWork.stories.tsx (full-screen dialog / page / inline panel).
 
 export const AssessQueue: Story = {
   tags: ["visual-harness"],
