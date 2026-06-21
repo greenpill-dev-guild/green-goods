@@ -18,12 +18,35 @@ import { OPEN_ACCOUNT_SHEET_EVENT } from "@green-goods/shared";
 
 const mockNavigate = vi.fn();
 const mockSetSelectedGarden = vi.fn();
-const mockEligibleGardens = vi.hoisted(() => ({
-  current: [
-    { id: "garden-1", name: "Chakra Farm", location: "Quito", tokenAddress: "0xAAA" },
-    { id: "garden-2", name: "Solar Orchard", location: "Lima", tokenAddress: "0xBBB" },
-  ],
-}));
+const { CHAKRA_GARDEN_ID, SOLAR_GARDEN_ID, SHARED_GARDEN_TOKEN, mockEligibleGardens } = vi.hoisted(
+  () => {
+    const chakraGardenId = "0x0000000000000000000000000000000000000aaa";
+    const solarGardenId = "0x0000000000000000000000000000000000000bbb";
+    const sharedGardenToken = "0x9990000000000000000000000000000000000999";
+
+    return {
+      CHAKRA_GARDEN_ID: chakraGardenId,
+      SOLAR_GARDEN_ID: solarGardenId,
+      SHARED_GARDEN_TOKEN: sharedGardenToken,
+      mockEligibleGardens: {
+        current: [
+          {
+            id: chakraGardenId,
+            name: "Chakra Farm",
+            location: "Quito",
+            tokenAddress: sharedGardenToken,
+          },
+          {
+            id: solarGardenId,
+            name: "Solar Orchard",
+            location: "Lima",
+            tokenAddress: sharedGardenToken,
+          },
+        ],
+      },
+    };
+  }
+);
 
 vi.mock("react-router-dom", async (importOriginal) => {
   const actual = await importOriginal<typeof import("react-router-dom")>();
@@ -67,8 +90,18 @@ describe("CommandPalette Routes", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockEligibleGardens.current = [
-      { id: "garden-1", name: "Chakra Farm", location: "Quito", tokenAddress: "0xAAA" },
-      { id: "garden-2", name: "Solar Orchard", location: "Lima", tokenAddress: "0xBBB" },
+      {
+        id: CHAKRA_GARDEN_ID,
+        name: "Chakra Farm",
+        location: "Quito",
+        tokenAddress: SHARED_GARDEN_TOKEN,
+      },
+      {
+        id: SOLAR_GARDEN_ID,
+        name: "Solar Orchard",
+        location: "Lima",
+        tokenAddress: SHARED_GARDEN_TOKEN,
+      },
     ];
     Object.defineProperty(window, "matchMedia", {
       writable: true,
@@ -264,14 +297,19 @@ describe("CommandPalette Routes", () => {
     await userEvent.click(gardenButton!);
 
     expect(mockSetSelectedGarden).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "garden-1", tokenAddress: "0xAAA" })
+      expect.objectContaining({ id: CHAKRA_GARDEN_ID, tokenAddress: SHARED_GARDEN_TOKEN })
     );
-    expect(mockNavigate).toHaveBeenCalledWith("/garden/overview?gardenAddress=0xAAA");
+    expect(mockNavigate).toHaveBeenCalledWith(`/garden/overview?gardenAddress=${CHAKRA_GARDEN_ID}`);
   });
 
   it("does not expose gardens outside the eligible admin set", async () => {
     mockEligibleGardens.current = [
-      { id: "garden-1", name: "Chakra Farm", location: "Quito", tokenAddress: "0xAAA" },
+      {
+        id: CHAKRA_GARDEN_ID,
+        name: "Chakra Farm",
+        location: "Quito",
+        tokenAddress: SHARED_GARDEN_TOKEN,
+      },
     ];
 
     renderWithProviders(

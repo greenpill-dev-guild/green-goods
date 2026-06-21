@@ -37,7 +37,7 @@ vi.mock("@/content/publicCuration", () => ({
   },
 }));
 
-import { PublicGetInTouch } from "../../components/Public/PublicGetInTouch";
+import { getPublicSubscribeUrl, PublicGetInTouch } from "../../components/Public/PublicGetInTouch";
 
 const messages: Record<string, string> = {
   "public.home.getInTouch.consent":
@@ -113,6 +113,22 @@ describe("PublicGetInTouch", () => {
           source: "homepage_get_in_touch",
         }),
       })
+    );
+  });
+
+  it("uses the same-origin Vercel proxy for the production public agent", () => {
+    expect(getPublicSubscribeUrl("/public/subscribe", "https://agent.greengoods.app", true)).toBe(
+      "/api/agent/public/subscribe"
+    );
+    expect(getPublicSubscribeUrl("/public/subscribe", "https://agent.greengoods.app", false)).toBe(
+      "https://agent.greengoods.app/public/subscribe"
+    );
+    expect(getPublicSubscribeUrl("/public/subscribe", "", true)).toBe("/public/subscribe");
+  });
+
+  it("normalizes subscribe routes without changing custom API bases", () => {
+    expect(getPublicSubscribeUrl("public/subscribe", "https://api.example.test/root", true)).toBe(
+      "https://api.example.test/root/public/subscribe"
     );
   });
 

@@ -30,9 +30,9 @@ import { closeDB, initDB } from "./services/db";
 import { resolveAgentRpcUrl } from "./services/agent-rpc";
 import { createSqliteFundingIntentStore } from "./services/funding-intents";
 import { logger } from "./services/logger";
-import { createLumaClient } from "./services/luma";
 import { rateLimiter } from "./services/rate-limiter";
 import { captureAgentException, initAgentSentry, shutdownAgentSentry } from "./services/sentry";
+import { createResendSubscriptionClient } from "./services/subscriptions";
 import { createShutdownHandler } from "./runtime/shutdown";
 
 // ============================================================================
@@ -74,11 +74,10 @@ async function main(): Promise<void> {
   initDB(config.dbPath);
   initBlockchain(config.chain, resolveAgentRpcUrl(config.chainId));
   const ai = initAI();
-  const lumaClient = createLumaClient({
-    apiKey: config.lumaApiKey,
-    calendarId: config.lumaCalendarId,
-    tagId: config.lumaGreenGoodsTagId,
-    tagName: config.lumaGreenGoodsTagName,
+  const subscriptionClient = createResendSubscriptionClient({
+    apiKey: config.resendApiKey,
+    segmentId: config.resendGreenGoodsSegmentId,
+    topicId: config.resendGreenGoodsTopicId,
   });
 
   const groupCapture = createGroupCaptureHandler(config.captureTopics);
@@ -106,12 +105,12 @@ async function main(): Promise<void> {
     isAIReady: isAIModelLoaded,
     botApiToken: config.botApiToken,
     telegramBot: bot,
-    lumaClient,
+    subscriptionClient,
     fundingIntents: createSqliteFundingIntentStore(),
     allowedOrigins: parseAllowedOrigins(config.publicAllowedOrigins),
     trustedProxy: {
       hops: config.trustedProxyHops,
-      cidrs: config.trustedProxyCidrs?.split(",").map((cidr) => cidr.trim()),
+      cidrs: config.trustedProxyCidrs?.split(",").map((cidr: string) => cidr.trim()),
     },
     uploadSigning: {
       pinataJwt: config.pinataJwt,
@@ -179,7 +178,7 @@ async function main(): Promise<void> {
   );
 
   // ============================================================================
-  // GRACEFUL SHUTDOWN
+  // SHUTDOWN HANDLERS
   // ============================================================================
 
   const shutdown = createShutdownHandler({
@@ -187,8 +186,8 @@ async function main(): Promise<void> {
     botMode: config.telegramRuntimeDisabled ? "webhook" : config.mode,
     cleanupTasks: [
       () => rateLimiter.destroy(),
-      () => clearBlockchainCache(),
       closeDB,
+      clearBlockchainCache,
       shutdownAgentAnalytics,
       shutdownAgentSentry,
     ],
@@ -197,23 +196,18 @@ async function main(): Promise<void> {
     server,
   });
 
-  process.once("SIGINT", () => void shutdown("SIGINT"));
-  process.once("SIGTERM", () => void shutdown("SIGTERM"));
-
-  process.on("uncaughtException", (error) => {
-    logger.fatal({ err: error }, "Uncaught exception");
-    captureAgentException(error, { source: "process.uncaughtException", surface: "runtime" });
-    void shutdown("uncaughtException", 1);
+  process.once("SIGINT", () => {
+    void shutdown("SIGINT");
   });
-
-  process.on("unhandledRejection", (reason, promise) => {
-    logger.error({ reason, promise }, "Unhandled rejection");
-    captureAgentException(reason, { source: "process.unhandledRejection", surface: "runtime" });
+  process.once("SIGTERM", () => {
+    void shutdown("SIGTERM");
   });
 }
 
-main().catch((error) => {
-  logger.fatal({ err: error }, "Failed to start agent");
+main().catch(async (error) => {
   captureAgentException(error, { source: "startup", surface: "runtime" });
+  logger.error({ error }, "❌ Failed to start agent");
+  await shutdownAgentAnalytics().catch(() => undefined);
+  await shutdownAgentSentry().catch(() => undefined);
   process.exit(1);
 });

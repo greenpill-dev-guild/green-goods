@@ -173,7 +173,7 @@ export function WorkTab({
               lastUpdatedAt={lastWorkRefreshAt}
               initialFilter={section === "history" ? "all" : "pending"}
               highlightWorkId={selectedItem}
-              hubContext={{ gardenAddress: garden.tokenAddress ?? garden.id }}
+              hubContext={{ gardenAddress: garden.id }}
             />
           )}
         </div>

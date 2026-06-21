@@ -3,6 +3,7 @@ import {
   AddressDisplay,
   Alert,
   adminRoutes,
+  compareAddresses,
   useAdminGardenWorkspaceSelection,
   useConvictionStrategies,
   useGardenPermissions,
@@ -35,8 +36,8 @@ export default function GardenStrategiesView({ layout = "page" }: GardenStrategi
   const gardenId = selectedGarden?.id ?? null;
 
   const { data: gardens = [], isLoading: gardensLoading } = useGardens();
-  const garden = gardens.find((item) => item.id === gardenId);
-  const gardenRouteContext = { gardenAddress: garden?.tokenAddress ?? garden?.id ?? gardenId };
+  const garden = gardens.find((item) => compareAddresses(item.id, gardenId));
+  const gardenRouteContext = { gardenAddress: garden?.id ?? gardenId };
   const permissions = useGardenPermissions();
 
   const {

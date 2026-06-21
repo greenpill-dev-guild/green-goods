@@ -3,6 +3,7 @@ import {
   Alert,
   DEFAULT_CHAIN_ID,
   adminRoutes,
+  compareAddresses,
   formatDate,
   getNetworkConfig,
   ImageWithFallback,
@@ -94,8 +95,8 @@ export default function HypercertDetail({
   const location = useLocation();
   const { selectedGarden } = useAdminGardenWorkspaceSelection();
   const { data: gardens = [] } = useGardens();
-  const garden = gardens.find((item) => item.id === selectedGarden?.id);
-  const gardenRouteContext = { gardenAddress: garden?.tokenAddress ?? garden?.id };
+  const garden = gardens.find((item) => compareAddresses(item.id, selectedGarden?.id));
+  const gardenRouteContext = { gardenAddress: garden?.id };
   const permissions = useGardenPermissions();
   const canManage = garden ? permissions.canManageGarden(garden) : false;
   const [listingDialogOpen, setListingDialogOpen] = useState(false);

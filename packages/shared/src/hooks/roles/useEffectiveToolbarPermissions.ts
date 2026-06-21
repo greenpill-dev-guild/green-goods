@@ -9,7 +9,7 @@
  */
 
 import { useMemo } from "react";
-import { isAddressInList } from "../../utils/blockchain/address";
+import { compareAddresses, isAddressInList } from "../../utils/blockchain/address";
 import { useAdminStore } from "../../stores/useAdminStore";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useRole } from "../gardener/useRole";
@@ -53,13 +53,12 @@ export function useEffectiveToolbarPermissions(): ToolbarPermissions {
 
     // Determine which gardens to check
     const scope = selectedGarden
-      ? eligibleGardens.filter((g) => g.id === selectedGarden.id)
+      ? eligibleGardens.filter((g) => compareAddresses(g.id, selectedGarden.id))
       : eligibleGardens;
 
     // Compute aggregated roles across the scope
     let hasAnyRole = false;
     let isOperatorOrOwner = false;
-    let isOwner = false;
 
     for (const garden of scope) {
       const inOperators = isAddressInList(address, garden.operators);
@@ -75,9 +74,6 @@ export function useEffectiveToolbarPermissions(): ToolbarPermissions {
 
       if (inOperators || inOwners) {
         isOperatorOrOwner = true;
-      }
-      if (inOwners) {
-        isOwner = true;
       }
     }
 

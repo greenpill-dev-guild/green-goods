@@ -471,7 +471,7 @@ export function createPublicSocialPreviewPlugin(isIPFSBuild: boolean): Plugin {
       if (isIPFSBuild) return html;
       return renderPublicSocialPreviewHtml(html, publicSocialPreviews.home);
     },
-    async closeBundle() {
+    async writeBundle() {
       if (isIPFSBuild) return;
 
       const outputDir = resolveOutputDir(resolvedConfig);

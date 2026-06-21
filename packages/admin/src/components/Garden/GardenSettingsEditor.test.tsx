@@ -8,6 +8,7 @@ import { resolveIPFSUrl } from "../../../../shared/src/modules/data/ipfs/resolve
 import { GardenSettingsEditor } from "./GardenSettingsEditor";
 
 const gardenAddress = "0xAbCdEf1234567890aBcDeF1234567890aBcDeF12" as `0x${string}`;
+const secondGardenAddress = "0xbBbBbBbbBBBbbbBbbBbbbbBBbBbbbbBbBbbBBbB" as `0x${string}`;
 
 const {
   mockUpdateName,
@@ -58,6 +59,15 @@ const GARDEN = {
   bannerImage: "",
   openJoining: false,
   maxGardeners: 0,
+};
+
+const SECOND_GARDEN = {
+  name: "Bogota Botanic Guild",
+  description: "Urban canopy and compost loops.",
+  location: "Bogota, Colombia",
+  bannerImage: "",
+  openJoining: true,
+  maxGardeners: 42,
 };
 
 function renderEditor(overrides: Partial<Parameters<typeof GardenSettingsEditor>[0]> = {}) {
@@ -157,6 +167,31 @@ describe("GardenSettingsEditor explicit save", () => {
     for (const mutation of allMutations()) {
       expect(mutation).not.toHaveBeenCalled();
     }
+  });
+
+  it("adopts the next garden after a garden switch instead of keeping the old draft", async () => {
+    const user = userEvent.setup();
+    const { rerender } = renderEditor();
+
+    const nameInput = screen.getByLabelText(/Name/);
+    await user.clear(nameInput);
+    await user.type(nameInput, "Unsaved Rio edit");
+    expect(screen.getByText("1 unsaved change")).toBeInTheDocument();
+
+    rerender(
+      <GardenSettingsEditor
+        gardenAddress={secondGardenAddress}
+        garden={SECOND_GARDEN}
+        canManage
+        isOwner
+      />
+    );
+
+    expect(screen.getByLabelText(/Name/)).toHaveValue(SECOND_GARDEN.name);
+    expect(screen.getByLabelText("Description")).toHaveValue(SECOND_GARDEN.description);
+    expect(screen.getByLabelText("Location")).toHaveValue(SECOND_GARDEN.location);
+    expect(screen.getByRole("switch", { name: "Open Joining" })).toBeChecked();
+    expect(screen.getByText("All changes saved")).toBeInTheDocument();
   });
 
   it("previews a selected banner locally and uploads to IPFS only on Save", async () => {

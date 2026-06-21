@@ -25,7 +25,6 @@ export type PublicApiErrorCode =
   | "rate_limited"
   | "origin_not_allowed"
   | "provider_unavailable"
-  | "luma_import_failed"
   | "funding_unavailable"
   | "idempotency_conflict"
   | "amount_below_min"

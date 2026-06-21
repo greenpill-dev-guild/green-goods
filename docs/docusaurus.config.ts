@@ -7,7 +7,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 const config: Config = {
   title: 'Green Goods Documentation',
   tagline: 'Bringing community and environmental actions on-chain',
-  favicon: 'img/favicon.ico', // Green Goods favicon from client app
+  favicon: 'img/icon-192.png', // Green Goods square app icon from client app
 
   // Future flags, see https://docusaurus.io/docs/api/docusaurus-config#future
   future: {
