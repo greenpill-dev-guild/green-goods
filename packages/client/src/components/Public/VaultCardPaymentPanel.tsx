@@ -25,53 +25,34 @@ import {
 } from "./vaultCheckoutShell";
 
 /**
- * Onramp providers tried in order. Stripe is the primary card route; Coinbase is a
- * controlled fallback when Stripe `prepare` fails so a transient provider outage
- * does not strand the donor. Provider names never appear in primary donor copy.
+ * Onramp providers tried in order. Coinbase is the primary card route because it
+ * onramps the donor straight to ETH (which Bridge wraps into the vault's WETH) at
+ * roughly the same fiat cost, instead of selling a USDC intermediate first; Stripe
+ * is the controlled fallback when Coinbase `prepare` fails so a transient provider
+ * outage does not strand the donor. Provider names never appear in primary donor
+ * copy.
  */
-const ONRAMP_PROVIDERS = ["stripe", "coinbase"] as const;
+const ONRAMP_PROVIDERS = ["coinbase", "stripe"] as const;
 
 /**
- * Pre-open a blank checkout tab directly from the click gesture, then redirect it
- * after Bridge prepares the provider session. If the browser blocks it, the
- * prepared session still renders a native fallback link in this panel.
- *
- * Must NOT pass `noopener`/`noreferrer` in the features string — that makes
- * `window.open` return null, leaving no handle to redirect and stranding the
- * donor on about:blank. The opener is severed manually instead, while the tab
- * is still same-origin.
+ * EVM native-token placeholder, passed as the onramp intermediate so providers
+ * sell ETH (wrapped to the vault's WETH by Bridge) rather than defaulting to a
+ * USDC -> WETH swap the donor would see as a stablecoin step. Verified against
+ * both providers: the receiver always settles in WETH. Inlined to avoid a brittle
+ * minified subpath export from `thirdweb/utils`.
  */
-function openPendingCheckoutWindow(): Window | null {
-  const checkoutWindow = window.open("about:blank", "_blank");
-  if (!checkoutWindow) return null;
+const ONRAMP_INTERMEDIATE_TOKEN_ADDRESS = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 
-  try {
-    checkoutWindow.opener = null;
-  } catch {
-    // Some browsers lock opener assignment. The in-panel link still uses noopener.
-  }
-
-  return checkoutWindow;
-}
-
-function redirectCheckoutWindow(checkoutWindow: Window | null, link: string): boolean {
-  if (!checkoutWindow) return false;
-  try {
-    // `replace` keeps about:blank out of the new tab's history.
-    checkoutWindow.location.replace(link);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function closePendingCheckoutWindow(checkoutWindow: Window | null): void {
-  if (!checkoutWindow) return;
-  try {
-    if (!checkoutWindow.closed) checkoutWindow.close();
-  } catch {
-    // Best effort only. The donor remains on the recoverable in-panel error path.
-  }
+/**
+ * Open the prepared checkout link in a new tab directly from the click gesture.
+ * The session is prefetched, so the link is known synchronously — there is no
+ * async gap for a popup blocker to catch and no `about:blank` placeholder tab to
+ * strand the donor on while a provider session prepares. `noopener` severs the
+ * opener for the external provider page; the in-panel link below is the fallback
+ * if the browser still blocks the popup.
+ */
+function openCheckoutTab(link: string): void {
+  window.open(link, "_blank", "noopener");
 }
 
 export interface VaultCardPaymentPanelProps {
@@ -234,13 +215,12 @@ export default function VaultCardPaymentPanel({
     ]
   );
 
-  const handleOpenCheckout = useCallback(async () => {
-    if (busy !== "idle") return;
+  const prepareSession = useCallback(async () => {
+    if (busy !== "idle" || session || cardFundingComplete) return;
     setBusy("preparing");
     setError(null);
     setStatusOutcome(null);
 
-    const checkoutWindow = openPendingCheckoutWindow();
     const amount = BigInt(plan.cardFunding.amount);
     let sawQuoteMismatch = false;
     for (const onramp of ONRAMP_PROVIDERS) {
@@ -250,6 +230,10 @@ export default function VaultCardPaymentPanel({
           onramp,
           chainId: plan.cardFunding.chainId,
           tokenAddress: plan.cardFunding.tokenAddress,
+          // Onramp to ETH (Bridge wraps it into the vault's WETH) so the donor
+          // never sees a USDC step. Coinbase does this at ~parity cost; the Stripe
+          // fallback stays on ETH too for a consistent donor experience.
+          onrampTokenAddress: ONRAMP_INTERMEDIATE_TOKEN_ADDRESS,
           receiver: plan.cardFunding.receiverAddress,
           amount,
           purchaseData,
@@ -278,9 +262,7 @@ export default function VaultCardPaymentPanel({
         }
 
         setSession({ id: prepared.id, link: prepared.link });
-        setPhase("opened");
         setBusy("idle");
-        redirectCheckoutWindow(checkoutWindow, prepared.link);
         return;
       } catch (error) {
         // Donor copy stays provider-agnostic; log internals for diagnosis only.
@@ -288,12 +270,13 @@ export default function VaultCardPaymentPanel({
       }
     }
 
-    closePendingCheckoutWindow(checkoutWindow);
     setBusy("idle");
     if (sawQuoteMismatch) setStatusOutcome("mismatch");
     setError(sawQuoteMismatch ? quoteMismatchMessage : prepareFailedMessage);
   }, [
     busy,
+    session,
+    cardFundingComplete,
     client,
     plan.cardFunding,
     purchaseData,
@@ -301,6 +284,30 @@ export default function VaultCardPaymentPanel({
     quoteMismatchMessage,
     routeExpectation,
   ]);
+
+  // Prefetch the onramp session the moment the donor reaches the pay step so the
+  // secure checkout link is ready the instant they continue — no blank tab and no
+  // wait for `prepare` to round-trip. Preparing a quote is not a payment; the
+  // settlement gates still require the donor to open checkout and complete it.
+  const prefetchStartedRef = useRef(false);
+  useEffect(() => {
+    if (prefetchStartedRef.current) return;
+    prefetchStartedRef.current = true;
+    void prepareSession();
+  }, [prepareSession]);
+
+  // The link is already prepared, so opening is synchronous within the click
+  // gesture. Entering `opened` is the consent point where a card payment can land,
+  // so the parent locks checkout edits from here (never merely from a prefetched
+  // session). If a prefetch failed, the same control retries the preparation.
+  const handleOpenCheckout = useCallback(() => {
+    if (!session) {
+      void prepareSession();
+      return;
+    }
+    openCheckoutTab(session.link);
+    setPhase("opened");
+  }, [session, prepareSession]);
 
   /**
    * Reads the recovered wallet's vault-asset (WETH) balance. Settlement may only
@@ -423,7 +430,9 @@ export default function VaultCardPaymentPanel({
   const { set: schedulePoll, clear: clearPoll } = useTimeout();
   const [pollTick, setPollTick] = useState(0);
   useEffect(() => {
-    if (!session || cardFundingComplete || statusOutcome === "error") return;
+    // Only poll once the donor has opened checkout — a prefetched session sits in
+    // `ready` with no payment in flight, so polling it then would be premature.
+    if (phase !== "opened" || !session || cardFundingComplete || statusOutcome === "error") return;
     const delay = statusOutcome === "pending" || statusOutcome === "funds_pending" ? 5_000 : 0;
     schedulePoll(() => {
       void runStatusCheck("background").finally(() => {
@@ -434,6 +443,7 @@ export default function VaultCardPaymentPanel({
   }, [
     cardFundingComplete,
     clearPoll,
+    phase,
     pollTick,
     runStatusCheck,
     schedulePoll,
@@ -441,10 +451,10 @@ export default function VaultCardPaymentPanel({
     statusOutcome,
   ]);
 
-  // Report when a live provider session may exist (preparing counts: a session
-  // can be created even if the redirect fails) so the parent locks edits only
-  // while a card payment could land. Cleanup unlocks on unmount.
-  const paymentSessionActive = Boolean(session) || busy === "preparing";
+  // A card payment can only land once the donor has opened checkout, so the parent
+  // locks edits from `opened` onward — never merely because a session was
+  // prefetched in `ready`. Cleanup unlocks on unmount.
+  const paymentSessionActive = phase === "opened";
   useEffect(() => {
     onPaymentSessionActiveChange?.(paymentSessionActive);
     return () => onPaymentSessionActiveChange?.(false);
@@ -602,7 +612,7 @@ export default function VaultCardPaymentPanel({
 
           {planDetails}
 
-          {session ? (
+          {session && phase === "opened" ? (
             <a
               href={session.link}
               target="_blank"
@@ -616,7 +626,7 @@ export default function VaultCardPaymentPanel({
             </a>
           ) : null}
 
-          {session ? (
+          {session && phase === "opened" ? (
             <details className="border-t border-stroke-soft-200 pt-4">
               <summary className="cursor-pointer font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
                 {formatMessage({

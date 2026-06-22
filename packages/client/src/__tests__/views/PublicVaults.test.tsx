@@ -1017,7 +1017,8 @@ describe("VaultsPage", () => {
     expect(screen.queryByTestId("thirdweb-buy-widget")).not.toBeInTheDocument();
     expect(screen.queryByText("Step 4 of 4")).not.toBeInTheDocument();
 
-    // Back stays available until a provider session starts.
+    // Back stays available until the donor opens checkout — a prefetched session
+    // alone never locks it.
     expect(screen.getByRole("button", { name: "Back" })).toBeEnabled();
 
     // The route facts render beside the payment CTA, technical details collapsed.
@@ -1045,19 +1046,20 @@ describe("VaultsPage", () => {
     expect(screen.queryByText(/base units/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/exact campaign/i)).not.toBeInTheDocument();
 
-    // Opening checkout pre-opens a blank tab from the click gesture, prepares a
-    // headless onramp for the recovered wallet + WETH, redirects that tab, then
-    // auto-polls the provider status.
-    await user.click(screen.getByRole("button", { name: "Open secure card checkout" }));
+    // The onramp session is prefetched the moment the pay step opens — Coinbase
+    // first, onramping to ETH (Bridge wraps it into WETH) so the donor never sees
+    // a USDC step. The CTA label flips from "Opening..." to ready once the link is
+    // set, so waiting for that name also waits out the prefetch.
+    const openCheckoutButton = await screen.findByRole("button", {
+      name: "Open secure card checkout",
+    });
     await waitFor(() => expect(thirdwebMocks.onrampPrepare).toHaveBeenCalledTimes(1));
-    // No `noopener` in the features string — that would null the handle and strand
-    // the tab on about:blank. The opener is severed manually on the live handle.
-    expect(windowOpenMock).toHaveBeenCalledWith("about:blank", "_blank");
     expect(thirdwebMocks.onrampPrepare).toHaveBeenCalledWith(
       expect.objectContaining({
-        onramp: "stripe",
+        onramp: "coinbase",
         chainId: 1,
         tokenAddress: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+        onrampTokenAddress: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
         receiver: thirdwebMocks.receiverAddress,
         amount: 10000000000000000n,
         purchaseData: expect.objectContaining({
@@ -1071,15 +1073,16 @@ describe("VaultsPage", () => {
         }),
       })
     );
-    await waitFor(() =>
-      expect(checkoutWindowMocks.current?.location.href).toBe("https://onramp.test/session")
+
+    // Because the link is prefetched, opening checkout is a synchronous new-tab
+    // open from the click gesture — no about:blank placeholder, no redirect.
+    await user.click(openCheckoutButton);
+    expect(windowOpenMock).toHaveBeenCalledWith(
+      "https://onramp.test/session",
+      "_blank",
+      "noopener"
     );
-    // The redirect uses `replace` so about:blank never enters the tab history.
-    expect(checkoutWindowMocks.current?.location.replace).toHaveBeenCalledWith(
-      "https://onramp.test/session"
-    );
-    expect(checkoutWindowMocks.current?.opener).toBeNull();
-    // Once a provider session exists, the escape hatch back to setup is locked.
+    // Once the donor opens checkout, the escape hatch back to setup is locked.
     expect(screen.queryByRole("button", { name: "Back" })).not.toBeInTheDocument();
     expect(
       within(screen.getByTestId("vault-card-payment-panel")).getAllByRole("status")[0]
@@ -1243,19 +1246,17 @@ describe("VaultsPage", () => {
 
     await openGreenpillCardCheckout(user);
     await recoverEmailWallet(user);
-    await user.click(await screen.findByRole("button", { name: "Open secure card checkout" }));
-
-    // Both providers were tried and both mismatched quotes were rejected.
+    // The session is prefetched on mount: both providers were tried and both
+    // mismatched quotes were rejected, so no session is ever accepted.
     await waitFor(() => expect(thirdwebMocks.onrampPrepare).toHaveBeenCalledTimes(2));
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "The checkout quote didn't match this endowment, so no card payment was started. Please try again."
     );
-    // No session was accepted: no checkout link, the blank tab was closed, no
-    // status polling, and no settlement transaction of any kind.
+    // No session was accepted: no checkout link, no status polling, and no
+    // settlement transaction of any kind.
     expect(
       screen.queryByRole("link", { name: "Open secure checkout link" })
     ).not.toBeInTheDocument();
-    expect(checkoutWindowMocks.current?.closed).toBe(true);
     expect(thirdwebMocks.onrampStatus).not.toHaveBeenCalled();
     expect(thirdwebMocks.sendBatchTransaction).not.toHaveBeenCalled();
     expect(thirdwebMocks.sendAndConfirmTransaction).not.toHaveBeenCalled();
@@ -1406,11 +1407,13 @@ describe("VaultsPage", () => {
     await openGreenpillCardCheckout(user);
     await recoverEmailWallet(user);
 
-    // No provider session yet — Back must stay available and restore editable setup.
+    // The session is prefetched on this step, but a prefetched session alone must
+    // not lock Back — the donor can still return to editable setup until they open
+    // checkout (locking is gated on opening, not on a session existing).
+    await waitFor(() => expect(thirdwebMocks.onrampPrepare).toHaveBeenCalled());
     await user.click(screen.getByRole("button", { name: "Back" }));
     expect(await screen.findByLabelText("Amount to endow")).toBeInTheDocument();
     expect(screen.getByTestId("vault-checkout-method-card")).toBeEnabled();
-    expect(thirdwebMocks.onrampPrepare).not.toHaveBeenCalled();
 
     // Re-entering the card path restarts at email verification (state was reset).
     await user.click(screen.getByRole("button", { name: "Continue to Card" }));
@@ -1553,25 +1556,30 @@ describe("VaultsPage", () => {
     ).toBe(pendingNotice);
   }, 15_000);
 
-  it("falls back to Coinbase when the Stripe onramp prepare fails", async () => {
+  it("falls back to Stripe when the Coinbase onramp prepare fails", async () => {
     const user = userEvent.setup();
-    thirdwebMocks.onrampPrepare.mockRejectedValueOnce(new Error("stripe unavailable"));
+    thirdwebMocks.onrampPrepare.mockRejectedValueOnce(new Error("coinbase unavailable"));
     thirdwebMocks.onrampStatus.mockResolvedValueOnce({ status: "PENDING", transactions: [] });
 
     renderView();
 
     await openGreenpillCardCheckout(user);
     await recoverEmailWallet(user);
-    await user.click(await screen.findByRole("button", { name: "Open secure card checkout" }));
 
-    // Stripe failed in a controlled way, so the panel retries with Coinbase and still
-    // redirects the pre-opened checkout tab.
+    // Coinbase failed in a controlled way during prefetch, so the panel falls back
+    // to Stripe and still prepares a usable session before the donor opens checkout.
+    const openCheckoutButton = await screen.findByRole("button", {
+      name: "Open secure card checkout",
+    });
     await waitFor(() => expect(thirdwebMocks.onrampPrepare).toHaveBeenCalledTimes(2));
-    expect(thirdwebMocks.onrampPrepare.mock.calls[0]?.[0]).toMatchObject({ onramp: "stripe" });
-    expect(thirdwebMocks.onrampPrepare.mock.calls[1]?.[0]).toMatchObject({ onramp: "coinbase" });
-    expect(windowOpenMock).toHaveBeenCalledWith("about:blank", "_blank");
-    await waitFor(() =>
-      expect(checkoutWindowMocks.current?.location.href).toBe("https://onramp.test/session")
+    expect(thirdwebMocks.onrampPrepare.mock.calls[0]?.[0]).toMatchObject({ onramp: "coinbase" });
+    expect(thirdwebMocks.onrampPrepare.mock.calls[1]?.[0]).toMatchObject({ onramp: "stripe" });
+
+    await user.click(openCheckoutButton);
+    expect(windowOpenMock).toHaveBeenCalledWith(
+      "https://onramp.test/session",
+      "_blank",
+      "noopener"
     );
     expect(screen.getByRole("link", { name: "Open secure checkout link" })).toHaveAttribute(
       "href",
@@ -1588,11 +1596,20 @@ describe("VaultsPage", () => {
 
     await openGreenpillCardCheckout(user);
     await recoverEmailWallet(user);
-    await user.click(await screen.findByRole("button", { name: "Open secure card checkout" }));
 
+    const openCheckoutButton = await screen.findByRole("button", {
+      name: "Open secure card checkout",
+    });
     await waitFor(() => expect(thirdwebMocks.onrampPrepare).toHaveBeenCalledTimes(1));
-    expect(windowOpenMock).toHaveBeenCalledWith("about:blank", "_blank");
-    expect(checkoutWindowMocks.current).toBeNull();
+    await user.click(openCheckoutButton);
+
+    // The new-tab open was blocked, but the prefetched link stays available
+    // in-panel so the donor can still reach checkout.
+    expect(windowOpenMock).toHaveBeenCalledWith(
+      "https://onramp.test/session",
+      "_blank",
+      "noopener"
+    );
     expect(
       await screen.findByText(
         "Card checkout is ready. If a new tab did not open, use the secure checkout link below, then return here to confirm your vault position."
@@ -1605,7 +1622,7 @@ describe("VaultsPage", () => {
     expect(screen.getByRole("button", { name: "Check payment status" })).toBeEnabled();
   });
 
-  it("keeps provider prepare errors generic and closes the blank checkout tab", async () => {
+  it("keeps provider prepare errors generic across providers", async () => {
     const user = userEvent.setup();
     thirdwebMocks.onrampPrepare.mockRejectedValue(new Error("stripe unavailable: provider trace"));
 
@@ -1613,14 +1630,14 @@ describe("VaultsPage", () => {
 
     await openGreenpillCardCheckout(user);
     await recoverEmailWallet(user);
-    await user.click(await screen.findByRole("button", { name: "Open secure card checkout" }));
 
+    // Prefetch tries both providers on mount; both fail, so the donor-facing error
+    // stays generic and no provider trace leaks, with no session accepted.
     await waitFor(() => expect(thirdwebMocks.onrampPrepare).toHaveBeenCalledTimes(2));
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "We couldn't open card checkout. Please try again."
     );
     expect(screen.queryByText(/provider trace/i)).not.toBeInTheDocument();
-    expect(checkoutWindowMocks.current?.closed).toBe(true);
     expect(
       screen.queryByRole("link", { name: "Open secure checkout link" })
     ).not.toBeInTheDocument();
