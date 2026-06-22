@@ -213,6 +213,12 @@ function CardEndowProviderContent({
   // so checkout edits must lock while a live card payment could land.
   const [paymentSessionActive, setPaymentSessionActive] = useState(false);
   const [cardFundingStatus, setCardFundingStatus] = useState<"idle" | "funded">("idle");
+  // The native-ETH shortfall (reported by the pay panel) the settlement must wrap
+  // into WETH before approve+deposit — 0n when the onramp already delivered enough
+  // WETH. `wrapStatus` tracks the sequential-fallback wrap so a retry never wraps
+  // twice; the batch path is atomic and needs no such guard.
+  const [wrapAmount, setWrapAmount] = useState<bigint>(0n);
+  const [wrapStatus, setWrapStatus] = useState<"idle" | "pending" | "wrapped">("idle");
   const [batchStatus, setBatchStatus] = useState<CardEndowBatchStatus>("idle");
   const [approvalStatus, setApprovalStatus] = useState<"idle" | "pending" | "approved">("idle");
   const [depositStatus, setDepositStatus] = useState<"idle" | "pending" | "deposited">("idle");
@@ -295,8 +301,8 @@ function CardEndowProviderContent({
 
   // Render-only stage derivation (read state, never own it). Highest first.
   // `cardFundingStatus === "funded"` means every payment proof gate passed
-  // (exact quote, COMPLETED + tuple, covering WETH balance) — only then does
-  // the donor reach Step 3 settlement.
+  // (exact quote, COMPLETED + tuple, covering WETH/ETH balance) — only then does
+  // the donor reach Step 3 settlement (which wraps any ETH shortfall first).
   const stage: CardEndowStage =
     depositStatus === "deposited"
       ? "done"
@@ -318,6 +324,8 @@ function CardEndowProviderContent({
     setRecoveredWalletAddress(null);
     setPaymentSessionActive(false);
     setCardFundingStatus("idle");
+    setWrapAmount(0n);
+    setWrapStatus("idle");
     setBatchStatus("idle");
     setApprovalStatus("idle");
     setDepositStatus("idle");
@@ -333,6 +341,8 @@ function CardEndowProviderContent({
   // `flowError`, so a failed step keeps the user's progress intact.
   useEffect(() => {
     setCardFundingStatus("idle");
+    setWrapAmount(0n);
+    setWrapStatus("idle");
     setApprovalStatus("idle");
     setDepositStatus("idle");
     setDepositTxHash(null);
@@ -379,6 +389,8 @@ function CardEndowProviderContent({
     setRecoveredWalletAddress(null);
     setPaymentSessionActive(false);
     setCardFundingStatus("idle");
+    setWrapAmount(0n);
+    setWrapStatus("idle");
     setBatchStatus("idle");
     setApprovalStatus("idle");
     setDepositStatus("idle");
@@ -589,16 +601,30 @@ function CardEndowProviderContent({
     ]
   );
 
+  // Build the settlement transactions: an optional ETH -> WETH wrap (when the
+  // onramp left native ETH in the recovered wallet) followed by the strict
+  // approve -> deposit pair. `wethContract` is the canonical WETH token (the vault
+  // asset), so `deposit(){value}` wraps and `approve(...)` authorizes the vault to
+  // pull WETH. The wrap, when present, must run first.
   const createSettlementTransactions = useCallback(() => {
     if (!plan) return null;
 
-    const tokenContract = getContract({
+    const wethContract = getContract({
       client,
       chain,
       address: plan.cardFunding.tokenAddress,
     });
+    const wrapTransaction =
+      wrapAmount > 0n
+        ? prepareContractCall({
+            contract: wethContract,
+            method: "function deposit()",
+            params: [],
+            value: wrapAmount,
+          })
+        : null;
     const approveTransaction = prepareContractCall({
-      contract: tokenContract,
+      contract: wethContract,
       method: "function approve(address spender, uint256 value)",
       params: [plan.receiptExpectation.expectedVaultAddress, BigInt(plan.cardFunding.amount)],
     });
@@ -613,14 +639,21 @@ function CardEndowProviderContent({
       params: [BigInt(plan.cardFunding.amount), plan.receiptExpectation.receiverAddress],
     });
 
-    return [approveTransaction, depositTransaction] as const;
-  }, [chain, client, plan]);
+    return {
+      batch: wrapTransaction
+        ? [wrapTransaction, approveTransaction, depositTransaction]
+        : [approveTransaction, depositTransaction],
+      wrapTransaction,
+      approveTransaction,
+      depositTransaction,
+    };
+  }, [chain, client, plan, wrapAmount]);
 
   const handleBatchEndowment = useCallback(async () => {
     if (!plan || cardFundingStatus !== "funded" || batchStatus !== "idle") return;
 
-    const transactions = createSettlementTransactions();
-    if (!transactions) return;
+    const settlement = createSettlementTransactions();
+    if (!settlement) return;
 
     const expectedFlowKey = flowKey;
     setFlowError(null);
@@ -628,7 +661,9 @@ function CardEndowProviderContent({
       setBatchStatus("pending");
       setApprovalStatus("pending");
       setDepositStatus("pending");
-      const waitOptions = await sendBatchTransaction.mutateAsync([...transactions]);
+      // The batch is atomic — wrap (if any) + approve + deposit all-or-nothing, so
+      // a retry after failure re-runs cleanly without partial-wrap risk.
+      const waitOptions = await sendBatchTransaction.mutateAsync([...settlement.batch]);
       const receipt = await waitForReceipt(waitOptions);
       if (receipt.status === "reverted") {
         throw new Error("Batch transaction reverted.");
@@ -690,12 +725,21 @@ function CardEndowProviderContent({
   const handleCompleteEndowment = useCallback(async () => {
     if (!plan || !canCompleteEndowment) return;
 
-    const transactions = createSettlementTransactions();
-    if (!transactions) return;
-    const [approveTransaction, depositTransaction] = transactions;
+    const settlement = createSettlementTransactions();
+    if (!settlement) return;
+    const { wrapTransaction, approveTransaction, depositTransaction } = settlement;
     const expectedFlowKey = flowKey;
     setFlowError(null);
     try {
+      // Wrap ETH -> WETH first, and exactly once: a retry after a later step fails
+      // must not re-wrap and over-spend the recovered wallet's ETH.
+      if (wrapTransaction && wrapStatus !== "wrapped") {
+        setWrapStatus("pending");
+        await sendAndConfirmTransaction.mutateAsync(wrapTransaction);
+        if (!isCurrentFlow(expectedFlowKey)) return;
+        setWrapStatus("wrapped");
+      }
+
       if (approvalStatus !== "approved") {
         setApprovalStatus("pending");
         await sendAndConfirmTransaction.mutateAsync(approveTransaction);
@@ -715,7 +759,8 @@ function CardEndowProviderContent({
       }
     } catch (error) {
       if (!isCurrentFlow(expectedFlowKey)) return;
-      // Keep a confirmed approval so retry only re-runs the deposit.
+      // Keep a confirmed wrap/approval so a retry only re-runs what's left.
+      setWrapStatus((current) => (current === "pending" ? "idle" : current));
       setApprovalStatus((current) => (current === "pending" ? "idle" : current));
       setDepositStatus((current) => (current === "pending" ? "idle" : current));
       setFlowError(error instanceof Error ? error.message : "Endowment could not be completed.");
@@ -730,6 +775,7 @@ function CardEndowProviderContent({
     readShareBalance,
     sendAndConfirmTransaction,
     submitFundingProof,
+    wrapStatus,
   ]);
 
   useEffect(() => {
@@ -797,14 +843,19 @@ function CardEndowProviderContent({
   }, [flowKey, isCurrentFlow, rememberPendingFundedRecovery]);
 
   // Every payment proof gate passed (exact quote + COMPLETED tuple + covering
-  // WETH balance) — refresh the recovery entry and enter Step 3 settlement.
-  const handleCardFundingSuccess = useCallback(() => {
-    const expectedFlowKey = flowKey;
-    if (!isCurrentFlow(expectedFlowKey)) return;
-    setFlowError(null);
-    rememberPendingFundedRecovery();
-    setCardFundingStatus("funded");
-  }, [flowKey, isCurrentFlow, rememberPendingFundedRecovery]);
+  // WETH/ETH balance) — store the native-ETH shortfall to wrap during settlement,
+  // refresh the recovery entry, and enter Step 3 settlement.
+  const handleCardFundingSuccess = useCallback(
+    (nextWrapAmount: bigint) => {
+      const expectedFlowKey = flowKey;
+      if (!isCurrentFlow(expectedFlowKey)) return;
+      setFlowError(null);
+      setWrapAmount(nextWrapAmount);
+      rememberPendingFundedRecovery();
+      setCardFundingStatus("funded");
+    },
+    [flowKey, isCurrentFlow, rememberPendingFundedRecovery]
+  );
 
   // ── Render helpers ─────────────────────────────────────────────────────────
   const canEditCheckout = !checkoutInputsLocked;
@@ -972,20 +1023,25 @@ function CardEndowProviderContent({
         className={CHECKOUT_PRIMARY_BUTTON}
         onClick={handleCompleteEndowment}
       >
-        {depositStatus === "pending"
+        {wrapStatus === "pending"
           ? formatMessage({
-              id: "public.vaults.cardEndow.depositing",
-              defaultMessage: "Depositing...",
+              id: "public.vaults.walletEndow.wrapping",
+              defaultMessage: "Wrapping...",
             })
-          : approvalStatus === "pending"
+          : depositStatus === "pending"
             ? formatMessage({
-                id: "public.vaults.cardEndow.approving",
-                defaultMessage: "Approving...",
+                id: "public.vaults.cardEndow.depositing",
+                defaultMessage: "Depositing...",
               })
-            : formatMessage({
-                id: "public.vaults.cardEndow.finishDepositFallback",
-                defaultMessage: "Finish vault deposit",
-              })}
+            : approvalStatus === "pending"
+              ? formatMessage({
+                  id: "public.vaults.cardEndow.approving",
+                  defaultMessage: "Approving...",
+                })
+              : formatMessage({
+                  id: "public.vaults.cardEndow.finishDepositFallback",
+                  defaultMessage: "Finish vault deposit",
+                })}
       </button>
     ) : null;
 

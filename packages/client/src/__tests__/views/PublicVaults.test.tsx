@@ -23,6 +23,9 @@ const sharedHookMocks = vi.hoisted(() => ({
   wrapEthToWethReset: vi.fn(),
   wrapEthToWethError: null as unknown,
   wrapEthToWethIsPending: false,
+  // Native ETH balance of the card-recovered wallet, read by VaultCardPaymentPanel
+  // via createPublicClientForChain(...).getBalance to gate combined WETH+ETH coverage.
+  cardRecoveredNativeBalance: 0n as bigint,
   walletBalancesRefetch: vi.fn(async () => undefined),
   walletBalances: {
     nativeBalance: null as bigint | null,
@@ -153,6 +156,11 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
 
   return {
     ...actual,
+    // The card pay panel reads the recovered wallet's native ETH balance through
+    // this client; return the configured mock balance instead of a real RPC call.
+    createPublicClientForChain: () => ({
+      getBalance: async () => sharedHookMocks.cardRecoveredNativeBalance,
+    }),
     useAuth: () => ({
       loginWithWallet: sharedHookMocks.loginWithWallet,
     }),
@@ -441,6 +449,7 @@ describe("VaultsPage", () => {
     sharedHookMocks.wrapEthToWethReset.mockClear();
     sharedHookMocks.wrapEthToWethError = null;
     sharedHookMocks.wrapEthToWethIsPending = false;
+    sharedHookMocks.cardRecoveredNativeBalance = 0n;
     sharedHookMocks.walletBalancesRefetch.mockClear();
     sharedHookMocks.walletBalances = {
       nativeBalance: null,
@@ -492,7 +501,10 @@ describe("VaultsPage", () => {
         status: "success",
       })
     );
-    thirdwebMocks.sendAndConfirmTransaction.mockClear();
+    thirdwebMocks.sendAndConfirmTransaction.mockReset();
+    thirdwebMocks.sendAndConfirmTransaction.mockResolvedValue({
+      transactionHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    });
     thirdwebMocks.onrampPrepare.mockReset();
     // The default prepared quote echoes the exact expected route — chain 1,
     // WETH token, recovered receiver, exact base-unit amount. Mismatch tests
@@ -1747,6 +1759,122 @@ describe("VaultsPage", () => {
     expect(
       await screen.findByText("Receipt recorded for your vault contribution.")
     ).toBeInTheDocument();
+  });
+
+  it("wraps native ETH into WETH inside the batch when the onramp delivered ETH", async () => {
+    const user = userEvent.setup();
+    // The recovered wallet holds native ETH, not WETH (Bridge onramped to ETH).
+    thirdwebMocks.readContract.mockImplementation(async (options: unknown) => {
+      const address = (
+        options as { contract?: { address?: string } }
+      )?.contract?.address?.toLowerCase();
+      if (address === thirdwebMocks.wethTokenAddress.toLowerCase()) return 0n;
+      return 12n;
+    });
+    sharedHookMocks.cardRecoveredNativeBalance = thirdwebMocks.expectedFundingAmount;
+
+    renderView();
+    await openGreenpillCardCheckout(user);
+    await recoverEmailWallet(user);
+    await openSecureCardCheckout(user);
+
+    await waitFor(() => expect(thirdwebMocks.sendBatchTransaction).toHaveBeenCalledTimes(1));
+    const batchTransactions = thirdwebMocks.sendBatchTransaction.mock.calls[0]?.[0] as Array<{
+      options: { method: string; value?: bigint };
+    }>;
+    // The ETH -> WETH wrap is prepended before the strict approve -> deposit pair.
+    expect(batchTransactions).toHaveLength(3);
+    expect(batchTransactions[0]?.options.method).toBe("function deposit()");
+    expect(batchTransactions[0]?.options.value).toBe(thirdwebMocks.expectedFundingAmount);
+    expect(batchTransactions[1]?.options.method).toBe(
+      "function approve(address spender, uint256 value)"
+    );
+    expect(batchTransactions[2]?.options.method).toBe(
+      "function deposit(uint256 assets, address receiver) returns (uint256)"
+    );
+  });
+
+  it("wraps only the native-ETH shortfall when the wallet already holds partial WETH", async () => {
+    const user = userEvent.setup();
+    const halfAmount = thirdwebMocks.expectedFundingAmount / 2n;
+    thirdwebMocks.readContract.mockImplementation(async (options: unknown) => {
+      const address = (
+        options as { contract?: { address?: string } }
+      )?.contract?.address?.toLowerCase();
+      if (address === thirdwebMocks.wethTokenAddress.toLowerCase()) return halfAmount;
+      return 12n;
+    });
+    sharedHookMocks.cardRecoveredNativeBalance = thirdwebMocks.expectedFundingAmount;
+
+    renderView();
+    await openGreenpillCardCheckout(user);
+    await recoverEmailWallet(user);
+    await openSecureCardCheckout(user);
+
+    await waitFor(() => expect(thirdwebMocks.sendBatchTransaction).toHaveBeenCalledTimes(1));
+    const batchTransactions = thirdwebMocks.sendBatchTransaction.mock.calls[0]?.[0] as Array<{
+      options: { method: string; value?: bigint };
+    }>;
+    expect(batchTransactions).toHaveLength(3);
+    expect(batchTransactions[0]?.options.method).toBe("function deposit()");
+    // Only the shortfall is wrapped: amount - the WETH already held.
+    expect(batchTransactions[0]?.options.value).toBe(
+      thirdwebMocks.expectedFundingAmount - halfAmount
+    );
+  });
+
+  it("wraps once in the sequential fallback and never re-wraps on a retry", async () => {
+    const user = userEvent.setup();
+    // Native ETH only, and the batch path is unavailable, so the inline
+    // sequential fallback must wrap -> approve -> deposit.
+    thirdwebMocks.readContract.mockImplementation(async (options: unknown) => {
+      const address = (
+        options as { contract?: { address?: string } }
+      )?.contract?.address?.toLowerCase();
+      if (address === thirdwebMocks.wethTokenAddress.toLowerCase()) return 0n;
+      return 12n;
+    });
+    sharedHookMocks.cardRecoveredNativeBalance = thirdwebMocks.expectedFundingAmount;
+    thirdwebMocks.sendBatchTransaction.mockRejectedValue(new Error("batch unsupported"));
+    // Wrap succeeds; the first approve fails once, then succeeds on retry — the
+    // wrap must NOT run again or it would over-spend the wallet's ETH.
+    let approveAttempts = 0;
+    thirdwebMocks.sendAndConfirmTransaction.mockImplementation(async (tx: unknown) => {
+      const method = (tx as { options?: { method?: string } })?.options?.method;
+      if (method === "function approve(address spender, uint256 value)") {
+        approveAttempts += 1;
+        if (approveAttempts === 1) throw new Error("approve failed once");
+      }
+      return {
+        transactionHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      };
+    });
+
+    renderView();
+    await openGreenpillCardCheckout(user);
+    await recoverEmailWallet(user);
+    await openSecureCardCheckout(user);
+
+    // First finish attempt: wrap succeeds, approve fails — recoverable in place.
+    await user.click(await screen.findByRole("button", { name: "Finish vault deposit" }));
+    await waitFor(() => expect(approveAttempts).toBe(1));
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Finish vault deposit" })).toBeEnabled()
+    );
+    // Retry: wrap is skipped, approve + deposit complete.
+    await user.click(screen.getByRole("button", { name: "Finish vault deposit" }));
+    expect(
+      await screen.findByText(
+        "Endowment complete. Your verified email wallet now holds the vault position for this campaign."
+      )
+    ).toBeInTheDocument();
+
+    const wrapCalls = thirdwebMocks.sendAndConfirmTransaction.mock.calls.filter(
+      (call) =>
+        (call[0] as { options?: { method?: string } })?.options?.method === "function deposit()"
+    );
+    expect(wrapCalls).toHaveLength(1);
+    expect(approveAttempts).toBe(2);
   });
 
   it("uses the sequential fallback when the batch account differs from the recovered wallet", async () => {

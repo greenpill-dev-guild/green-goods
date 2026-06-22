@@ -1,4 +1,5 @@
 import {
+  createPublicClientForChain,
   getOctantVaultAssetDisplayPolicy,
   hasRequiredOctantVaultFundingBalance,
   logger,
@@ -61,9 +62,11 @@ export interface VaultCardPaymentPanelProps {
   /**
    * Starts the Step 3 vault deposit once every payment proof gate passed:
    * exact prepared-quote route, COMPLETED status with a non-contradicting
-   * purchase tuple, and a covering WETH `balanceOf(receiver)` read.
+   * purchase tuple, and a covering balance read (WETH `balanceOf(receiver)` plus
+   * native ETH). Receives `wrapAmount` — the native-ETH shortfall the settlement
+   * step must wrap into WETH first (0n when the wallet already holds enough WETH).
    */
-  onCardFundingSuccess: () => void;
+  onCardFundingSuccess: (wrapAmount: bigint) => void;
   /**
    * Fires once per provider session when the payment is provably COMPLETED with
    * a non-contradicting tuple — possibly before the funds are visible on chain.
@@ -93,8 +96,8 @@ type PanelBusy = "idle" | "preparing" | "checking";
  * Non-terminal status outcomes shown in place; a fully-proven COMPLETED advances
  * out of the panel. `mismatch` is the blocked branch when the provider quote or
  * session tuple stops matching this endowment; `funds_pending` is COMPLETED
- * without a covering WETH balance yet — both are recoverable, neither starts
- * approve/deposit.
+ * without enough combined WETH + native-ETH balance to cover the amount yet —
+ * both are recoverable, neither starts approve/deposit.
  */
 type PanelStatusOutcome = "pending" | "failed" | "error" | "mismatch" | "funds_pending" | null;
 
@@ -115,8 +118,8 @@ function getPanelThirdwebChain(chainId: number) {
  *    accepted and no checkout opens.
  * 2. `Bridge.Onramp.status` must be COMPLETED and its echoed purchase tuple
  *    must not contradict the expected route.
- * 3. The recovered wallet's WETH `balanceOf(receiver)` must cover the expected
- *    amount.
+ * 3. The recovered wallet must hold enough value to settle — WETH `balanceOf`
+ *    plus native ETH (any ETH shortfall is wrapped to WETH during settlement).
  * PENDING/CREATED keep the donor here in plain copy; FAILED and any proof
  * mismatch are recoverable in place. No vault deposit starts from this panel.
  */
@@ -302,9 +305,10 @@ export default function VaultCardPaymentPanel({
   }, [session, prepareSession]);
 
   /**
-   * Reads the recovered wallet's vault-asset (WETH) balance. Settlement may only
-   * start once this covers the expected base-unit amount — a COMPLETED provider
-   * status alone is not funding proof.
+   * Reads the recovered wallet's vault-asset (WETH) balance. The onramp may deliver
+   * WETH (Bridge wrapped it), native ETH, or a mix; settlement reads both and only
+   * starts once the combined value covers the amount — a COMPLETED provider status
+   * alone is not funding proof.
    */
   const readFundingBalance = useCallback(async (): Promise<bigint> => {
     const tokenContract = getContract({
@@ -324,6 +328,16 @@ export default function VaultCardPaymentPanel({
     plan.cardFunding.tokenAddress,
     plan.cardFunding.receiverAddress,
   ]);
+
+  /**
+   * Reads the recovered wallet's native ETH balance. If the onramp delivered ETH
+   * instead of WETH, the settlement batch wraps this shortfall into WETH before the
+   * vault deposit, so ETH held here still counts toward funding coverage.
+   */
+  const readNativeBalance = useCallback(async (): Promise<bigint> => {
+    const publicClient = createPublicClientForChain(plan.cardFunding.chainId);
+    return publicClient.getBalance({ address: plan.cardFunding.receiverAddress });
+  }, [plan.cardFunding.chainId, plan.cardFunding.receiverAddress]);
 
   /**
    * Checks the provider session status. Background polls must be visually silent:
@@ -371,15 +385,28 @@ export default function VaultCardPaymentPanel({
             onPaymentCompleted?.();
           }
 
-          // Gate 3: the recovered wallet must actually hold the expected WETH.
-          const balance = await readFundingBalance();
-          if (!hasRequiredOctantVaultFundingBalance(balance, plan.cardFunding.amount)) {
+          // Gate 3: the recovered wallet must hold enough value to settle — as
+          // WETH (Bridge delivered it), native ETH (we wrap it during settlement),
+          // or a mix. Read both and gate on the combined coverage.
+          const [wethBalance, nativeBalance] = await Promise.all([
+            readFundingBalance(),
+            readNativeBalance(),
+          ]);
+          if (
+            !hasRequiredOctantVaultFundingBalance(
+              wethBalance + nativeBalance,
+              plan.cardFunding.amount
+            )
+          ) {
             setStatusOutcome("funds_pending");
             return;
           }
 
-          // Every proof gate passed: the parent starts the deposit work.
-          onCardFundingSuccess();
+          // Every proof gate passed. Report the native-ETH shortfall the parent
+          // must wrap into WETH first (0n when WETH already covers the amount).
+          const amount = BigInt(plan.cardFunding.amount);
+          const wrapAmount = wethBalance < amount ? amount - wethBalance : 0n;
+          onCardFundingSuccess(wrapAmount);
           return;
         }
         if (result.status === "FAILED") {
@@ -407,6 +434,7 @@ export default function VaultCardPaymentPanel({
       onPaymentCompleted,
       plan.cardFunding.amount,
       readFundingBalance,
+      readNativeBalance,
       routeExpectation,
       sessionMismatchMessage,
       statusFailedMessage,
