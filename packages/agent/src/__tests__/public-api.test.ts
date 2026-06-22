@@ -259,18 +259,18 @@ describe("public browser CORS", () => {
 });
 
 describe("public subscription API", () => {
-  const importSubscriber = vi.fn();
+  const subscribe = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("requires consent and a valid email before calling Luma", async () => {
+  it("requires consent and a valid email before calling the subscription provider", async () => {
     const app = createServer(
       {
         isAIReady: () => true,
         allowedOrigins: new Set([ORIGIN]),
-        lumaClient: { importSubscriber },
+        subscriptionClient: { subscribe },
       },
       { logger: false }
     );
@@ -283,18 +283,16 @@ describe("public subscription API", () => {
 
     expect(response.status).toBe(400);
     expect((await response.json()).errorCode).toBe("consent_required");
-    expect(importSubscriber).not.toHaveBeenCalled();
+    expect(subscribe).not.toHaveBeenCalled();
   });
 
-  it("returns honest subscribed and already_subscribed states from Luma", async () => {
-    importSubscriber
-      .mockResolvedValueOnce("subscribed")
-      .mockResolvedValueOnce("already_subscribed");
+  it("returns honest subscribed and already_subscribed states from the subscription provider", async () => {
+    subscribe.mockResolvedValueOnce("subscribed").mockResolvedValueOnce("already_subscribed");
     const app = createServer(
       {
         isAIReady: () => true,
         allowedOrigins: new Set([ORIGIN]),
-        lumaClient: { importSubscriber },
+        subscriptionClient: { subscribe },
       },
       { logger: false }
     );
@@ -314,7 +312,7 @@ describe("public subscription API", () => {
     expect(await second.json()).toEqual({ ok: true, status: "already_subscribed" });
   });
 
-  it("does not fake success when Luma is unavailable", async () => {
+  it("does not fake success when the subscription provider is unavailable", async () => {
     const app = createServer(
       { isAIReady: () => true, allowedOrigins: new Set([ORIGIN]) },
       { logger: false }
@@ -327,7 +325,7 @@ describe("public subscription API", () => {
     });
 
     expect(response.status).toBe(503);
-    expect((await response.json()).errorCode).toBe("luma_import_failed");
+    expect((await response.json()).errorCode).toBe("provider_unavailable");
   });
 
   it("rejects oversized subscription payloads before validation", async () => {
@@ -335,7 +333,7 @@ describe("public subscription API", () => {
       {
         isAIReady: () => true,
         allowedOrigins: new Set([ORIGIN]),
-        lumaClient: { importSubscriber },
+        subscriptionClient: { subscribe },
       },
       { logger: false }
     );
@@ -348,7 +346,7 @@ describe("public subscription API", () => {
 
     expect(response.status).toBe(413);
     expect((await response.json()).errorCode).toBe("invalid_request");
-    expect(importSubscriber).not.toHaveBeenCalled();
+    expect(subscribe).not.toHaveBeenCalled();
   });
 });
 

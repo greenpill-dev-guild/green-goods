@@ -35,9 +35,9 @@ import { closeDB, initDB } from "./services/db";
 import { resolveAgentRpcUrl } from "./services/agent-rpc";
 import { createSqliteFundingIntentStore } from "./services/funding-intents";
 import { logger } from "./services/logger";
-import { createLumaClient } from "./services/luma";
 import { rateLimiter } from "./services/rate-limiter";
 import { captureAgentException, initAgentSentry, shutdownAgentSentry } from "./services/sentry";
+import { createResendSubscriptionClient } from "./services/subscriptions";
 import { createShutdownHandler } from "./runtime/shutdown";
 
 // ============================================================================
@@ -79,11 +79,10 @@ async function main(): Promise<void> {
   initDB(config.dbPath);
   initBlockchain(config.chain, resolveAgentRpcUrl(config.chainId));
   const ai = initAI();
-  const lumaClient = createLumaClient({
-    apiKey: config.lumaApiKey,
-    calendarId: config.lumaCalendarId,
-    tagId: config.lumaGreenGoodsTagId,
-    tagName: config.lumaGreenGoodsTagName,
+  const subscriptionClient = createResendSubscriptionClient({
+    apiKey: config.resendApiKey,
+    segmentId: config.resendGreenGoodsSegmentId,
+    topicId: config.resendGreenGoodsTopicId,
   });
 
   const groupCapture = createGroupCaptureHandler(config.captureTopics);
@@ -111,7 +110,7 @@ async function main(): Promise<void> {
     isAIReady: isAIModelLoaded,
     botApiToken: config.botApiToken,
     telegramBot: bot,
-    lumaClient,
+    subscriptionClient,
     fundingIntents: createSqliteFundingIntentStore(),
     allowedOrigins: parseAllowedOrigins(config.publicAllowedOrigins),
     trustedProxy: {

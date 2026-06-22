@@ -20,6 +20,7 @@ import {
   type PublicApiError,
   type PublicFundingManagementUrl,
   type PublicFundingSourceRoute,
+  type PublicLocale,
   type PublicSubscribeRequest,
   type PublicUploadSignRequest,
   type SubmitFundingIntentProofRequest,
@@ -53,7 +54,6 @@ import {
   transitionFundingStatus,
 } from "../services/funding-intents";
 import { loggers } from "../services/logger";
-import type { LumaClient } from "../services/luma";
 import {
   createPinataSignedUploadUrl,
   DEFAULT_UPLOAD_SIGN_ALLOWED_MIME_TYPES,
@@ -64,6 +64,7 @@ import {
   type PinataUploadSignerConfig,
 } from "../services/pinata-upload-signer";
 import { captureAgentException } from "../services/sentry";
+import type { SubscriptionClient } from "../services/subscriptions";
 import type { ChatMessageStatus } from "../types";
 import {
   InMemoryPublicRateLimiter,
@@ -95,7 +96,7 @@ export interface ServerDeps {
    * back without exposing the bot token.
    */
   telegramBot?: Telegraf;
-  lumaClient?: LumaClient;
+  subscriptionClient?: SubscriptionClient;
   fundingIntents?: FundingIntentStore;
   /**
    * How often the abandoned-intent sweep runs in ms (defaults to 5 minutes).
@@ -479,6 +480,29 @@ function jsonNoStore(c: Context, body: unknown, status = 200) {
 
 function isEmail(value: string | undefined): value is string {
   return !!value && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+const PUBLIC_SUBSCRIBE_LOCALES = new Set<PublicLocale>(["en", "es", "pt"]);
+const PUBLIC_SUBSCRIBE_SOURCES = new Set<NonNullable<PublicSubscribeRequest["source"]>>([
+  "homepage_get_in_touch",
+  "fund_receipt",
+  "footer",
+  "unknown",
+]);
+
+function normalizePublicSubscribeLocale(value: unknown): PublicLocale | undefined {
+  return typeof value === "string" && PUBLIC_SUBSCRIBE_LOCALES.has(value as PublicLocale)
+    ? (value as PublicLocale)
+    : undefined;
+}
+
+function normalizePublicSubscribeSource(
+  value: unknown
+): NonNullable<PublicSubscribeRequest["source"]> {
+  return typeof value === "string" &&
+    PUBLIC_SUBSCRIBE_SOURCES.has(value as NonNullable<PublicSubscribeRequest["source"]>)
+    ? (value as NonNullable<PublicSubscribeRequest["source"]>)
+    : "unknown";
 }
 
 function isAddress(value: unknown): value is `0x${string}` {
@@ -1454,7 +1478,7 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
 
   // ==========================================================================
   // ROUTINE-FACING API (/api/*)
-  // ==========================================================================
+  // ===========================================================================
 
   const authHook = requireApiAuth(deps);
 
@@ -1653,7 +1677,7 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
 
   // ==========================================================================
   // PUBLIC BROWSER API (/public/*)
-  // ==========================================================================
+  // ===========================================================================
 
   app.options(PUBLIC_AGENT_ROUTES.subscribe, (c) => {
     return publicBrowserCorsPreflight(c, deps);
@@ -1688,20 +1712,20 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
         400
       );
     }
-    if (!deps.lumaClient) {
+    if (!deps.subscriptionClient) {
       return publicBrowserCorsResponse(
         c,
         deps,
-        safeError("luma_import_failed", "Subscription is unavailable right now."),
+        safeError("provider_unavailable", "Subscription is unavailable right now."),
         503
       );
     }
 
     try {
-      const status = await deps.lumaClient.importSubscriber({
+      const status = await deps.subscriptionClient.subscribe({
         email,
-        locale: body.locale,
-        source: body.source ?? "unknown",
+        locale: normalizePublicSubscribeLocale(body.locale),
+        source: normalizePublicSubscribeSource(body.source),
         consentedAt: new Date(deps.now?.() ?? Date.now()).toISOString(),
       });
       return publicBrowserCorsResponse(c, deps, { ok: true, status });
@@ -1709,7 +1733,7 @@ export function createServer(deps: ServerDeps, _config?: Partial<ServerConfig>):
       return publicBrowserCorsResponse(
         c,
         deps,
-        safeError("luma_import_failed", "Subscription is unavailable right now."),
+        safeError("provider_unavailable", "Subscription is unavailable right now."),
         503
       );
     }
