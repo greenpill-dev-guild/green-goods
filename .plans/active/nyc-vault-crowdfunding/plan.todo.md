@@ -2,9 +2,9 @@
 
 **Feature Slug**: `nyc-vault-crowdfunding`
 **Stage**: `active`
-**Status**: `ACTIVE - /vaults route locked; Card Endow production hardening shipped on PR 543 (CI green, review threads resolved); Octant QA PRD-583 through PRD-589 implemented/source-defined pending human QA`
+**Status**: `ACTIVE — Wallet Endow ships on /vaults; Card Endow (card-funded) flow is built + saved on feature/nyc-vault-crowdfunding but PARKED, not shipping. 2026-06-22 human QA found Ethereum-mainnet card funding unviable for the non-crypto-savvy target donors (~5 min for onramp funds to land + onramp KYC + ETH→WETH wrap). A viable card flow would target a fast chain (Arbitrum) but that is NOT committed. First release ships Wallet Endow only.`
 **Created**: `2026-05-09T21:35:46.781Z`
-**Last Updated**: `2026-06-12T19:59:00Z`
+**Last Updated**: `2026-06-22T00:00:00Z`
 
 ## Decision Log
 
@@ -33,6 +33,24 @@
 | 21 | Profit-share display is aggregate project support, not per-user accrued profit. | Octant YDS routes profit into project-supporting/donation shares instead of compounding it into each depositor's position. The first numeric metric should be aggregate project-supporting value generated, with a hidden/unavailable state until the donation/router address and formula are proven. |
 | 22 | Card Endow settlement requires exact provider-route proof, and the agent never trusts client share claims. | 2026-06-12 hardening: approve/deposit starts only after the prepared onramp quote matches the exact chain/WETH/receiver/amount, `Onramp.status` is COMPLETED with a non-contradicting tuple, and WETH `balanceOf(receiver)` covers the amount. The agent proof route independently reads `vault.balanceOf(receiverAddress)` on-chain (fails closed without verifiers), and the client Card Endow allowlist must stay in lockstep with live provider-proof registry entries (EVMavericks entry added per the Codex review). |
 | 23 | Pending-funded Card Endow recovery is route-local safe metadata. | A provably COMPLETED payment caches only the public recovery tuple (recovered wallet, campaign, vault, chain, token, expected amount, status); `/vaults?manage=positions` offers a finish-deposit path with same-session reuse via autoConnect or email-OTP restore for returning wallets. Emails, OTPs, provider/session IDs, and receipt tokens are never cached or placed in URLs. |
+| 24 | **Card Endow (card-funded) flow is PARKED — built + saved, not shipping.** | 2026-06-22 human QA found card funding on **Ethereum mainnet** unviable for the non-crypto-savvy target donors: even after a tolerable Coinbase onramp, funds took **~5 min** to land on Ethereum, on top of onramp KYC and ETH→WETH wrapping. The settlement delay is structural to Ethereum, not fixable in code. The first release ships **Wallet Endow only**; the built card flow stays in the codebase to deploy later. A viable card flow would target a fast/cheap chain (**Arbitrum**), but that is **NOT committed** — it also changes whose vault it is (real Octant-Ethereum vs a GG-hosted Octant-style Arbitrum vault) per Decision #4. |
+
+## Card Flow — Parked 2026-06-22
+
+**Decision:** Keep the card-funded Card Endow flow **built and saved** (on `feature/nyc-vault-crowdfunding`), but **do not ship it**. The first release of `/vaults` is **Wallet Endow only**. Revisit card funding later as a fast-chain effort.
+
+**Why (2026-06-22 human QA):**
+- The Coinbase onramp onboarding itself was tolerable, but after buying ETH the **estimated time for funds to land in the wallet was ~5 minutes** on Ethereum mainnet — fatal for a checkout-style flow.
+- The target audience for the card path is *not* web3-savvy, yet the flow still demands onramp KYC (phone — irreducible for any compliant fiat→crypto onramp; confirmed Stripe also requires it) plus ETH→WETH wrapping. Too much for the intended user.
+- Root cause is the **chain**, not our code: Ethereum-mainnet onramp delivery + confirmations are inherently multi-minute and expensive.
+
+**What stays saved (re-deployable later):** prefetch onramp session + link CTA; ETH→WETH shortfall wrap inside the sponsored EIP-7702 batch + sequential fallback (commits `ffd0c082d`, `926808e9b`, `41cfa00a7`); exact provider proof gates; agent server-side share proof. All tests remain green behind the existing card path.
+
+**Future direction (NOT committed):** A viable card flow would run on **Arbitrum** — Coinbase onramps directly to Arbitrum, Thirdweb Bridge supports it, and EIP-7702 is live there, so settlement is seconds and gas is sponsored. Two things must be resolved before committing:
+1. Confirm Green Goods' Arbitrum Octant-style vault infra (`GreenWill` / `OctantModule` / `OctantFactory` in `deployments/42161-latest.json`) is **live and depositable** — it's currently only an artifact, and the Ethereum strategy-factory accessor already `reverted` (Decision #15), so do not assume.
+2. Product/partnership call: an Arbitrum vault is a **GG-hosted Octant-style** vault, not Octant's **real Ethereum** vault — the NYC/EVMavericks communities may require the real one. This conflicts with Decision #4 (Arbitrum is context, not target) and must be reopened explicitly, not drifted into.
+
+**Re-enable mechanics (when ready):** Hiding the card method for the near-term ship should be a flag-gate (default off), **not** deleting code/tests — emptying `CARD_ENDOW_PRODUCTION_CAMPAIGN_SLUGS` would break ~23 card tests. (Flag-gate not yet implemented — the branch currently still exposes the card method; gating happens when we cut the wallet-only release.)
 
 ## Octant QA Follow-Up Scope (2026-06-08)
 

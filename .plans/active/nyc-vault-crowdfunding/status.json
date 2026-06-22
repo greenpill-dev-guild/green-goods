@@ -10,7 +10,8 @@
     "overall_status": "active",
     "priority": "p0",
     "created_at": "2026-05-09T21:35:46.781Z",
-    "updated_at": "2026-06-12T19:59:00Z"
+    "updated_at": "2026-06-22T00:00:00Z",
+    "cardEndowDisposition": "parked_built_and_saved_not_shipping; first release ships Wallet Endow only; viable card flow deferred to a future fast-chain (Arbitrum) effort that is not committed (see plan.todo.md Decision 24 and the 2026-06-22 notes entries)"
   },
   "links": {
     "brief": "brief.md",
@@ -606,7 +607,9 @@
     "Codex review P1 resolutions: the agent proof route now verifies vault.balanceOf(receiverAddress) server-side (client shareBalance is never recorded) and fails closed without verifiers; EVMavericks has its live /vaults provider-proof entry so the client Card Endow allowlist and agent registry stay in lockstep.",
     "PR 543 CI is fully green on bfb28a6ea with mergeStateStatus CLEAN and zero unresolved review threads. CI had been silently skipped while the PR was CONFLICTING with develop; the origin/develop merge restored pull_request workflow triggering.",
     "status.json is authoritative; branch names are automation signals.",
-    ".plans/ is the durable repo truth; Linear is the durable tracking mirror."
+    ".plans/ is the durable repo truth; Linear is the durable tracking mirror.",
+    "As of 2026-06-22, the card-funded Card Endow flow is PARKED — built and saved on feature/nyc-vault-crowdfunding but NOT shipping. 2026-06-22 human QA found Ethereum-mainnet card funding unviable for the non-crypto-savvy target donors: ~5 min for onramp funds to land on Ethereum plus onramp KYC and ETH->WETH wrapping. The settlement delay is structural to Ethereum, not fixable in code. The built flow (prefetch onramp session + link CTA, ETH->WETH shortfall wrap in the sponsored EIP-7702 batch + sequential fallback per commits ffd0c082d/926808e9b/41cfa00a7, exact provider proof gates, agent server-side share proof) stays saved to deploy later; the first release ships Wallet Endow only. A viable card flow would target a fast chain (Arbitrum: Coinbase onramps there directly, Thirdweb Bridge supports it, EIP-7702 is live) but is NOT committed and reopens Decision 4 (Arbitrum is context, not target) plus needs proof that GG's Arbitrum Octant-style vault infra is live/depositable.",
+    "Near-term card hide must be a flag-gate (default off), not emptying CARD_ENDOW_PRODUCTION_CAMPAIGN_SLUGS, because that would break ~23 card tests; the flag-gate is not yet implemented and the branch still exposes the card method until the wallet-only release is cut."
   ],
   "lanes": {
     "ui": {
