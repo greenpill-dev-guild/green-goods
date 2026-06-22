@@ -1,5 +1,6 @@
 import enMessages from "../i18n/en.json";
 import type { Address } from "../types/domain";
+import type { YieldSourceKind } from "../utils/blockchain/yield-sources";
 
 export type KnownOctantVaultCampaignSlug = "greenpill-nyc" | "evmavericks";
 export type OctantVaultCampaignSlug = KnownOctantVaultCampaignSlug | (string & {});
@@ -87,6 +88,32 @@ export interface OctantVaultStrategyFactoryEvidence {
   factoryAccessorProofStatus: "reverted";
 }
 
+/**
+ * Protocol family of the external yield source a YDS strategy deploys into.
+ * Single-sourced from the adapter registry so the manifest and adapters can't drift.
+ */
+export type OctantVaultYieldSourceKind = YieldSourceKind;
+
+/**
+ * The external yield source the pilot strategy deploys into, recorded as a
+ * verified deployment fact (like {@link OctantVaultManifest.vaultAddress}).
+ *
+ * The deployed `YieldDonatingTokenizedStrategy` exposes no public getter for its
+ * source, so the address is read once off-chain (`YearnV3Strategy.yearnVault()`
+ * for the pilots) and recorded here. `useOctantVaultStrategyApy` then reads this
+ * source's live APY through the matching {@link YieldSourceAdapter}. Absent =>
+ * the APY renders an honest `missing_source` unavailable state, never a number.
+ */
+export interface OctantVaultYieldSource {
+  /** Address of the external yield source the strategy deposits into. */
+  address: Address;
+  kind: OctantVaultYieldSourceKind;
+  /** Chain the source lives on; defaults to the vault chain. */
+  chainId?: number;
+  /** How the source address was verified (recorded, not inferred at runtime). */
+  evidence?: string;
+}
+
 export interface OctantVaultManifest {
   chainId?: number;
   vaultAddress?: Address;
@@ -96,6 +123,8 @@ export interface OctantVaultManifest {
   asset?: OctantVaultCampaignAssetManifest;
   explorerLink?: string;
   strategyFactory?: OctantVaultStrategyFactoryEvidence;
+  /** External yield source for the live strategy-APY read. See {@link OctantVaultYieldSource}. */
+  yieldSource?: OctantVaultYieldSource;
 }
 
 export interface OctantVaultCampaignManifest {
@@ -560,6 +589,19 @@ const WETH_ASSET_MANIFEST = {
   decimals: 18,
 } as const satisfies OctantVaultCampaignAssetManifest;
 
+/**
+ * Both pilot `YearnV3Strategy` vaults deposit into the same inner Yearn V3 WETH
+ * vault, read once off-chain via `YearnV3Strategy.yearnVault()` (the deployed
+ * strategy exposes no other source getter). That inner vault is a standard Yearn
+ * V3 vault listed on yDaemon, so its live `apr.netAPR` is the strategy's
+ * gross/donation-funding rate surfaced on `/vaults`.
+ */
+const PILOT_YEARN_V3_WETH_SOURCE = {
+  address: "0xc56413869c6CDf96496f2b1eF801fEDBdFA7dDB0",
+  kind: "yearn-v3",
+  chainId: OCTANT_V2_ETHEREUM_CHAIN_ID,
+} as const satisfies OctantVaultYieldSource;
+
 const PILOT_STRATEGY_FACTORY_CREATOR = {
   address: "0x9A6c9aA80D4A0d8Da29EcbA62c40ccBBB321abB6",
   name: "YearnV3StrategyFactory",
@@ -582,7 +624,7 @@ export const OCTANT_VAULT_CAMPAIGN_MANIFEST = [
     previewCopy: greenpillNycPreviewCopy,
     campaignCopy: greenpillNycPreviewCopy,
     recipientRoutingSummary:
-      "Greenpill NYC Card Endow funds the recovered Thirdweb email wallet with the vault asset, then that same wallet approves the vault and deposits so vault shares remain with the recovered wallet receiver.",
+      "Contributions deposit into the Greenpill NYC Octant vault; donated yield supports local civic-tech initiatives surfaced via Decentral Park.",
     vault: {
       chainId: OCTANT_V2_ETHEREUM_CHAIN_ID,
       vaultAddress: "0xaC8F844CEA2Fd75B7A5514f11974895B334fd9A5",
@@ -592,6 +634,7 @@ export const OCTANT_VAULT_CAMPAIGN_MANIFEST = [
       asset: WETH_ASSET_MANIFEST,
       explorerLink: "https://etherscan.io/address/0xaC8F844CEA2Fd75B7A5514f11974895B334fd9A5",
       strategyFactory: PILOT_STRATEGY_FACTORY_CREATOR,
+      yieldSource: PILOT_YEARN_V3_WETH_SOURCE,
     },
     requiredManifestFields: GREENPILL_NYC_REQUIRED_MANIFEST_FIELDS,
   },
@@ -612,6 +655,7 @@ export const OCTANT_VAULT_CAMPAIGN_MANIFEST = [
       asset: WETH_ASSET_MANIFEST,
       explorerLink: "https://etherscan.io/address/0x0bCe8c16974FFD3B410A32365c5bCf27a5A630Fc",
       strategyFactory: PILOT_STRATEGY_FACTORY_CREATOR,
+      yieldSource: PILOT_YEARN_V3_WETH_SOURCE,
     },
     requiredManifestFields: EVMAVERICKS_REQUIRED_MANIFEST_FIELDS,
   },

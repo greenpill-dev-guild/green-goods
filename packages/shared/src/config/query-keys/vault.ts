@@ -37,6 +37,9 @@ export const vaultsKeys = {
     ["greengoods", "vaults", "campaignStats", vaultAddress, chainId] as const,
   projectSupportMetric: (vaultAddress: string, chainId: number) =>
     ["greengoods", "vaults", "projectSupportMetric", vaultAddress, chainId] as const,
+  /** Live gross/donation-funding APY of a campaign vault's external yield source. */
+  vaultStrategyApy: (vaultAddress: string, chainId: number) =>
+    ["greengoods", "vaults", "vaultStrategyApy", vaultAddress, chainId] as const,
   /**
    * Active Octant V2 campaign-vault positions for one owner address on one chain.
    * Owner is lowercased by the caller so connected-wallet and card-wallet reads

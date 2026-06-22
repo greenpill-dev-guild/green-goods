@@ -30,6 +30,7 @@ const sharedHookMocks = vi.hoisted(() => ({
   walletBalances: {
     nativeBalance: null as bigint | null,
     assetBalance: null as bigint | null,
+    gasPrice: null as bigint | null,
     isLoading: false,
     isError: false,
     isFetching: false,
@@ -51,6 +52,15 @@ const sharedHookMocks = vi.hoisted(() => ({
     sourceAddress: "0x950208836634cD439F01262e98D0FCF422F78452" as `0x${string}` | null,
     shareBalance: 0n,
     assetValue: 0n,
+    isLoading: false,
+    isError: false,
+  },
+  strategyApy: {
+    status: "unavailable" as "unavailable" | "zero" | "positive",
+    apy: null as number | null,
+    apr: null as number | null,
+    sourceAddress: null as `0x${string}` | null,
+    sourceKind: "yearn-v3" as "yearn-v3" | "aave-v3" | "lido" | "unknown",
     isLoading: false,
     isError: false,
   },
@@ -191,6 +201,7 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
     }),
     useOctantVaultStats: () => sharedHookMocks.octantVaultStats,
     useOctantVaultProjectSupportMetric: () => sharedHookMocks.projectSupportMetric,
+    useOctantVaultStrategyApy: () => sharedHookMocks.strategyApy,
     // The route-local management panel can mount after a card success handoff;
     // it must render without a live QueryClient in this suite.
     useOctantVaultPositions: () => ({
@@ -454,6 +465,7 @@ describe("VaultsPage", () => {
     sharedHookMocks.walletBalances = {
       nativeBalance: null,
       assetBalance: null,
+      gasPrice: null,
       isLoading: false,
       isError: false,
       isFetching: false,
@@ -475,6 +487,15 @@ describe("VaultsPage", () => {
       sourceAddress: "0x950208836634cD439F01262e98D0FCF422F78452",
       shareBalance: 0n,
       assetValue: 0n,
+      isLoading: false,
+      isError: false,
+    };
+    sharedHookMocks.strategyApy = {
+      status: "unavailable",
+      apy: null,
+      apr: null,
+      sourceAddress: null,
+      sourceKind: "yearn-v3",
       isLoading: false,
       isError: false,
     };
@@ -629,7 +650,7 @@ describe("VaultsPage", () => {
     expect(within(evmavericksCard).getByText("Ready for checkout")).toBeInTheDocument();
     expect(
       within(evmavericksCard).getByText(
-        "EVMavericks can accept Wallet Endow and Card Endow through its supplied Octant V2 Ethereum vault."
+        "Each season, the EVMavericks fantasy football league routes 12.5% of its pot into this vault and distributes the remaining 87.5% as league winnings — a recurring public-goods funding stream built on a ritual the community already runs."
       )
     ).toBeInTheDocument();
     expect(within(evmavericksCard).queryByText("Preview")).not.toBeInTheDocument();
@@ -752,20 +773,31 @@ describe("VaultsPage", () => {
     expect(screen.queryByTestId("thirdweb-buy-widget")).not.toBeInTheDocument();
   });
 
-  it("explains the Octant yield-donating strategy without APY claims", () => {
+  it("explains the yield-donating strategy with the withdraw-in-full ownership story", () => {
     renderView();
 
     expect(screen.getByRole("heading", { name: "How yield support works" })).toBeInTheDocument();
-    expect(screen.getByText("Project-supporting value generated")).toBeInTheDocument();
+    expect(screen.getByText("Donated yield generated for the project")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Cumulative across all supporters in this campaign — not your personal balance."
+      )
+    ).toBeInTheDocument();
     expect(screen.getAllByText("0 WETH")).not.toHaveLength(0);
     expect(
       screen.getAllByText(
-        "The project-support router is proven, but it does not currently hold donation shares."
+        "Deposits are in the vault, but no yield has been harvested and donated to the project yet."
       )
     ).not.toHaveLength(0);
     expect(
       screen.getByText(
-        /Supporters receive vault shares for their WETH-backed position, while reported strategy profit is represented as project-supporting donation shares/i
+        /When you support a campaign you receive vault shares for your full WETH contribution/i
+      )
+    ).toBeInTheDocument();
+    // The explicit "withdraw your contribution in full" supporter story (PRD-586).
+    expect(
+      screen.getByText(
+        /you keep the option to withdraw your contribution in full[\s\S]*funds the project/i
       )
     ).toBeInTheDocument();
     expect(
@@ -776,9 +808,73 @@ describe("VaultsPage", () => {
     expect(
       screen.getByRole("link", { name: "Octant Yield Donating Strategy docs" })
     ).toHaveAttribute("href", "https://docs.v2.octant.build/docs/yield_donating_strategy");
-    expect(screen.queryByText(/APY/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/guaranteed/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/accrued profit/i)).not.toBeInTheDocument();
+  });
+
+  it("shows a live underlying-source rate when the strategy APY is positive", () => {
+    sharedHookMocks.strategyApy = {
+      status: "positive",
+      apy: 1.43,
+      apr: 1.43,
+      sourceAddress: "0xc56413869c6CDf96496f2b1eF801fEDBdFA7dDB0",
+      sourceKind: "yearn-v3",
+      isLoading: false,
+      isError: false,
+    };
+
+    renderView();
+
+    const apyLine = screen.getAllByTestId("vault-strategy-apy-greenpill-nyc")[0];
+    expect(within(apyLine).getByText("1.43%")).toBeInTheDocument();
+    expect(
+      within(apyLine).getByText(/Gross annual rate of the strategy's underlying source/i)
+    ).toBeInTheDocument();
+  });
+
+  it("shows no percentage in the strategy APY line when the source rate is unavailable", () => {
+    // strategyApy defaults to the unavailable state in beforeEach.
+    renderView();
+
+    const apyLine = screen.getAllByTestId("vault-strategy-apy-greenpill-nyc")[0];
+    expect(within(apyLine).getByText("Rate unavailable")).toBeInTheDocument();
+    expect(within(apyLine).queryByText(/%/)).toBeNull();
+  });
+
+  it("warns instead of offering a wrap when ETH covers the shortfall but not the gas reserve", async () => {
+    const user = userEvent.setup();
+    // Connected wallet with no WETH and just over the wrap shortfall in ETH, but a
+    // gas price high enough that the reserve (gasPrice * 500k) dwarfs the balance —
+    // so a wrap would strand the follow-on approve/deposit gas.
+    sharedHookMocks.primaryAddress = "0x4444444444444444444444444444444444444444";
+    sharedHookMocks.authMode = "wallet";
+    sharedHookMocks.walletBalances = {
+      nativeBalance: 1_000_000_000_000_000_000n, // 1 ETH — well above the WETH shortfall
+      assetBalance: 0n, // no WETH → wrap would be required
+      gasPrice: 10_000_000_000_000n, // reserve = 5e18 wei, far above the 1 ETH balance
+      isLoading: false,
+      isError: false,
+      isFetching: false,
+      refetch: sharedHookMocks.walletBalancesRefetch,
+    };
+
+    renderView();
+
+    await user.click(
+      screen.getByRole("button", { name: "Endow to EVMavericks Fantasy Football League" })
+    );
+    await user.click(screen.getByTestId("vault-checkout-method-wallet"));
+    await user.type(screen.getByLabelText("Amount to endow"), "25");
+    await user.click(screen.getByRole("button", { name: "Continue to Wallet" }));
+
+    expect(await screen.findByTestId("vault-wallet-endow-path")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "You have enough ETH to wrap, but not enough left for network fees on the approve and deposit steps. Add a little more ETH, then try again."
+      )
+    ).toBeInTheDocument();
+    // The wrap prompt must NOT be offered in this state.
+    expect(screen.queryByText(/Wrap .* ETH into WETH before confirming/i)).toBeNull();
   });
 
   it("hides the aggregate support number when the router source is unavailable", () => {

@@ -140,6 +140,16 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       isError: false,
       unavailableReason: "missing_source",
     }),
+    useOctantVaultStrategyApy: () => ({
+      status: "unavailable",
+      apy: null,
+      apr: null,
+      sourceAddress: null,
+      sourceKind: "yearn-v3",
+      isLoading: false,
+      isError: false,
+      unavailableReason: "missing_source",
+    }),
   };
 });
 

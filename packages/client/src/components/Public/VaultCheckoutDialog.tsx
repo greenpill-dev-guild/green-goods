@@ -39,6 +39,12 @@ import {
 
 const CARD_ENDOW_PRODUCTION_CAMPAIGN_SLUGS = new Set(["greenpill-nyc", "evmavericks"]);
 const ETH_SYMBOL = "ETH";
+/**
+ * Conservative combined gas units for the wrap + ERC20 approve + vault deposit
+ * sequence that follows an in-checkout wrap. Used to reserve ETH so a wrap never
+ * strands a near-empty-ETH wallet before it can finish the deposit.
+ */
+const WRAP_FLOW_GAS_UNITS = 500_000n;
 
 function isProductionCardEndowCampaign(campaign: OctantVaultCampaignManifest): boolean {
   return CARD_ENDOW_PRODUCTION_CAMPAIGN_SLUGS.has(campaign.slug);
@@ -636,8 +642,21 @@ function WalletEndowPathContent({
   const wrapShortfall =
     typeof assetBalance === "bigint" && assetBalance < amount ? amount - assetBalance : 0n;
   const assetInsufficient = wrapShortfall > 0n;
+  // Reserve gas for the wrap + ERC20 approve + vault deposit that follow, so a
+  // wrap never strands a near-empty-ETH wallet before it can finish the endow.
+  const gasReserve =
+    typeof walletBalances.gasPrice === "bigint"
+      ? walletBalances.gasPrice * WRAP_FLOW_GAS_UNITS
+      : 0n;
   const ethSufficientForWrap =
-    wrapShortfall > 0n && typeof nativeBalance === "bigint" && nativeBalance >= wrapShortfall;
+    wrapShortfall > 0n &&
+    typeof nativeBalance === "bigint" &&
+    nativeBalance >= wrapShortfall + gasReserve;
+  const ethShortForGasOnly =
+    wrapShortfall > 0n &&
+    typeof nativeBalance === "bigint" &&
+    nativeBalance >= wrapShortfall &&
+    nativeBalance < wrapShortfall + gasReserve;
   const walletBalanceDecisionPending =
     Boolean(primaryWalletAddress && isWethAsset && !hasCompletedWrapForAmount) &&
     !walletBalances.isError &&
@@ -1045,6 +1064,14 @@ function WalletEndowPathContent({
                   },
                   { amount: formattedWrapAmount }
                 )}
+              </p>
+            ) : ethShortForGasOnly ? (
+              <p className="mt-4 rounded-none bg-warning-lighter/40 p-3 text-sm leading-[1.55] text-text-sub-600">
+                {formatMessage({
+                  id: "public.vaults.walletEndow.balances.gasReserveWarning",
+                  defaultMessage:
+                    "You have enough ETH to wrap, but not enough left for network fees on the approve and deposit steps. Add a little more ETH, then try again.",
+                })}
               </p>
             ) : hasCompletedWrapForAmount ? (
               <p className="mt-4 rounded-none bg-primary-action/10 p-3 text-sm leading-[1.55] text-primary-base">

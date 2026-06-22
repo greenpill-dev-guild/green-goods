@@ -1,4 +1,5 @@
 import {
+  formatApy,
   formatTokenAmount,
   formatUsdCents,
   getOctantVaultAssetDisplayPolicy,
@@ -7,13 +8,13 @@ import {
   getOctantVaultCampaignTransactionState,
   useOctantVaultProjectSupportMetric,
   useOctantVaultStats,
+  useOctantVaultStrategyApy,
   type OctantVaultCampaignManifest,
 } from "@green-goods/shared";
 import { type ReactNode, useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Navigate, useLocation, useSearchParams } from "react-router-dom";
 import {
-  EditorialGhostButton,
   EditorialHeading,
   EditorialKicker,
   EditorialLede,
@@ -211,7 +212,7 @@ function ProjectSupportMetricCard({ campaign }: { campaign: OctantVaultCampaignM
     bodyNode = formatMessage({
       id: "public.vaults.strategy.metric.zeroBody",
       defaultMessage:
-        "The project-support router is proven, but it does not currently hold donation shares.",
+        "Deposits are in the vault, but no yield has been harvested and donated to the project yet.",
     });
   } else {
     valueNode = amountLabel;
@@ -232,7 +233,72 @@ function ProjectSupportMetricCard({ campaign }: { campaign: OctantVaultCampaignM
       </p>
       <p className="mt-2 font-serif text-2xl leading-none text-text-strong-950">{valueNode}</p>
       <p className="mt-3 text-xs leading-[1.55] text-text-sub-600">{bodyNode}</p>
+      <StrategyApyLine campaign={campaign} />
     </article>
+  );
+}
+
+/**
+ * Live gross APY of the campaign vault's underlying yield source (the rate that
+ * funds project donations). Rendered beneath the aggregate donated-value metric.
+ * Degrades to an honest "rate unavailable" state — never a fabricated number.
+ */
+function StrategyApyLine({ campaign }: { campaign: OctantVaultCampaignManifest }) {
+  const { formatMessage } = useIntl();
+  const apy = useOctantVaultStrategyApy({
+    vaultAddress: campaign.vault?.vaultAddress,
+    chainId: campaign.vault?.chainId,
+    yieldSource: campaign.vault?.yieldSource,
+  });
+
+  let valueNode: ReactNode;
+  let bodyNode: ReactNode;
+
+  if (apy.isLoading) {
+    valueNode = "…";
+    bodyNode = formatMessage({
+      id: "public.vaults.strategy.apy.loading",
+      defaultMessage: "Reading the strategy's underlying yield source.",
+    });
+  } else if (apy.status === "unavailable") {
+    valueNode = formatMessage({
+      id: "public.vaults.strategy.apy.unavailable",
+      defaultMessage: "Rate unavailable",
+    });
+    bodyNode = formatMessage({
+      id: "public.vaults.strategy.apy.unavailableBody",
+      defaultMessage:
+        "The strategy's source rate is shown once it can be read. It funds project donations and is not a depositor return.",
+    });
+  } else if (apy.status === "zero") {
+    valueNode = formatApy(apy.apy ?? 0);
+    bodyNode = formatMessage({
+      id: "public.vaults.strategy.apy.zeroBody",
+      defaultMessage: "The underlying yield source currently reports no yield.",
+    });
+  } else {
+    valueNode = formatApy(apy.apy ?? 0);
+    bodyNode = formatMessage({
+      id: "public.vaults.strategy.apy.positiveBody",
+      defaultMessage:
+        "Gross annual rate of the strategy's underlying source. This funds project donations; your share price stays flat.",
+    });
+  }
+
+  return (
+    <div
+      className="mt-3 border-t border-stroke-soft-200 pt-3"
+      data-testid={`vault-strategy-apy-${campaign.slug}`}
+    >
+      <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-soft-400">
+        {formatMessage({
+          id: "public.vaults.strategy.apy.label",
+          defaultMessage: "Underlying source rate",
+        })}
+      </p>
+      <p className="mt-1 font-serif text-xl leading-none text-text-strong-950">{valueNode}</p>
+      <p className="mt-2 text-xs leading-[1.55] text-text-sub-600">{bodyNode}</p>
+    </div>
   );
 }
 
@@ -263,7 +329,14 @@ function YieldSupportExplainer({ campaigns }: { campaigns: OctantVaultCampaignMa
               {formatMessage({
                 id: "public.vaults.strategy.body",
                 defaultMessage:
-                  "Supporters receive vault shares for their WETH-backed position, while reported strategy profit is represented as project-supporting donation shares rather than a per-user profit balance.",
+                  "When you support a campaign you receive vault shares for your full WETH contribution, and that position stays yours. Reported strategy profit becomes project-supporting donation shares rather than a per-user profit balance.",
+              })}
+            </p>
+            <p>
+              {formatMessage({
+                id: "public.vaults.strategy.ownership",
+                defaultMessage:
+                  "You can redeem your shares back to WETH whenever you choose, and the share price is designed to stay flat — so you keep the option to withdraw your contribution in full. The yield the strategy earns on top is what funds the project, which is how you support the work while still being able to exit your position.",
               })}
             </p>
             <p>
@@ -317,7 +390,14 @@ function YieldSupportExplainer({ campaigns }: { campaigns: OctantVaultCampaignMa
           >
             {formatMessage({
               id: "public.vaults.strategy.metric.title",
-              defaultMessage: "Project-supporting value generated",
+              defaultMessage: "Donated yield generated for the project",
+            })}
+          </p>
+          <p className="mt-1 text-xs leading-[1.55] text-text-soft-400">
+            {formatMessage({
+              id: "public.vaults.strategy.metric.subtitle",
+              defaultMessage:
+                "Cumulative across all supporters in this campaign — not your personal balance.",
             })}
           </p>
           <div className="mt-3 grid gap-3 md:grid-cols-2">
@@ -362,7 +442,7 @@ export function CampaignCard({
             {campaign.displayName}
           </h3>
         </div>
-        <p className="text-base leading-[1.6] text-text-sub-600">{copy.summary}</p>
+        <p className="text-base leading-[1.6] text-text-sub-600">{copy.fundingPurpose}</p>
       </header>
 
       <CampaignVaultStats campaign={campaign} />
@@ -377,21 +457,12 @@ export function CampaignCard({
         <p className="mt-2 font-serif text-xl leading-[1.25] text-text-strong-950">
           {copy.headline}
         </p>
-        <dl className="mt-5 space-y-4 text-sm leading-[1.6] text-text-sub-600">
-          <div>
-            <dt className="font-medium text-text-strong-950">
-              {formatMessage({
-                id: "public.vaults.card.fundingPurpose",
-                defaultMessage: "Funding purpose",
-              })}
-            </dt>
-            <dd className="mt-1">{copy.fundingPurpose}</dd>
-          </div>
+        <dl className="mt-5 text-sm leading-[1.6] text-text-sub-600">
           <div>
             <dt className="font-medium text-text-strong-950">
               {formatMessage({
                 id: "public.vaults.card.recipientLogic",
-                defaultMessage: "Recipient logic",
+                defaultMessage: "Where your support goes",
               })}
             </dt>
             <dd className="mt-1">{copy.recipientLogic}</dd>
@@ -530,17 +601,17 @@ export function VaultsPageContent({
               })}
             </EditorialLede>
             <div className="mt-6">
-              <EditorialGhostButton
-                variant="warm"
-                className="px-5 py-2.5 text-sm"
+              <button
+                type="button"
                 onClick={openManage}
                 data-testid="vault-manage-positions-entry"
+                className="inline-flex items-center text-sm font-medium text-primary-base underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
               >
                 {formatMessage({
                   id: "public.vaults.manage.entry",
                   defaultMessage: "Manage positions",
                 })}
-              </EditorialGhostButton>
+              </button>
             </div>
           </header>
 

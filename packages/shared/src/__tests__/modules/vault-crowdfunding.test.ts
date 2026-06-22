@@ -201,7 +201,7 @@ describe("Octant vault crowdfunding manifest", () => {
     expect(freshCampaign?.displayName).toBe("Greenpill NYC");
     expect(freshCampaign?.vault?.asset?.symbol).toBe("WETH");
     expect(freshCampaign?.campaignCopy?.headline).toBe(
-      "A dedicated vault for Greenpill NYC civic-tech funding."
+      "From in-person gatherings to on-chain funding for local civic tech."
     );
     expect(freshCampaign?.requiredManifestFields).toEqual(GREENPILL_NYC_REQUIRED_MANIFEST_FIELDS);
   });
@@ -238,7 +238,7 @@ describe("Octant vault crowdfunding manifest", () => {
       cardEndowStatus: "hidden_pending_proof",
     });
     expect(campaign?.campaignCopy).toBeDefined();
-    expect(campaign?.recipientRoutingSummary).toContain("recovered Thirdweb email wallet");
+    expect(campaign?.recipientRoutingSummary).toContain("Decentral Park");
   });
 
   it("records both deployed pilot vaults as mainnet WETH vaults", () => {

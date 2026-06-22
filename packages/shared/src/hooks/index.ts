@@ -465,6 +465,13 @@ export {
   type UseOctantVaultProjectSupportMetricOptions,
 } from "./vault/useOctantVaultProjectSupportMetric";
 export {
+  useOctantVaultStrategyApy,
+  type OctantVaultStrategyApy,
+  type OctantVaultStrategyApyStatus,
+  type OctantVaultStrategyApyUnavailableReason,
+  type UseOctantVaultStrategyApyOptions,
+} from "./vault/useOctantVaultStrategyApy";
+export {
   useOctantVaultPositions,
   type OctantVaultPosition,
   type UseOctantVaultPositionsResult,

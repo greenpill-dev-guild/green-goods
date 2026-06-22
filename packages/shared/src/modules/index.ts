@@ -348,6 +348,8 @@ export type {
   OctantVaultShareOwnershipProofInput,
   OctantVaultShareOwnershipProofValidation,
   OctantVaultStrategyFactoryEvidence,
+  OctantVaultYieldSource,
+  OctantVaultYieldSourceKind,
   OctantVaultTransactionHash,
   OctantVaultWalletEndowPreparation,
   OctantVaultWalletEndowPreparationError,
