@@ -1059,7 +1059,6 @@ describe("VaultsPage", () => {
         onramp: "coinbase",
         chainId: 1,
         tokenAddress: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
-        onrampTokenAddress: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
         receiver: thirdwebMocks.receiverAddress,
         amount: 10000000000000000n,
         purchaseData: expect.objectContaining({

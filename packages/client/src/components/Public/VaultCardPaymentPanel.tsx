@@ -26,22 +26,18 @@ import {
 
 /**
  * Onramp providers tried in order. Coinbase is the primary card route because it
- * onramps the donor straight to ETH (which Bridge wraps into the vault's WETH) at
+ * natively onramps the donor to ETH (which Bridge wraps into the vault's WETH) at
  * roughly the same fiat cost, instead of selling a USDC intermediate first; Stripe
  * is the controlled fallback when Coinbase `prepare` fails so a transient provider
- * outage does not strand the donor. Provider names never appear in primary donor
- * copy.
+ * outage does not strand the donor.
+ *
+ * Do NOT pass an explicit `onrampTokenAddress` here: the client-scoped Bridge
+ * onramp (browser client ID) rejects it with a 400 INVALID_INPUT — it is only
+ * accepted on the server/secret-key path. We rely on each provider's native
+ * default instead (Coinbase -> ETH, Stripe -> USDC). Provider names never appear
+ * in primary donor copy.
  */
 const ONRAMP_PROVIDERS = ["coinbase", "stripe"] as const;
-
-/**
- * EVM native-token placeholder, passed as the onramp intermediate so providers
- * sell ETH (wrapped to the vault's WETH by Bridge) rather than defaulting to a
- * USDC -> WETH swap the donor would see as a stablecoin step. Verified against
- * both providers: the receiver always settles in WETH. Inlined to avoid a brittle
- * minified subpath export from `thirdweb/utils`.
- */
-const ONRAMP_INTERMEDIATE_TOKEN_ADDRESS = "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE";
 
 /**
  * Open the prepared checkout link in a new tab directly from the click gesture.
@@ -230,10 +226,6 @@ export default function VaultCardPaymentPanel({
           onramp,
           chainId: plan.cardFunding.chainId,
           tokenAddress: plan.cardFunding.tokenAddress,
-          // Onramp to ETH (Bridge wraps it into the vault's WETH) so the donor
-          // never sees a USDC step. Coinbase does this at ~parity cost; the Stripe
-          // fallback stays on ETH too for a consistent donor experience.
-          onrampTokenAddress: ONRAMP_INTERMEDIATE_TOKEN_ADDRESS,
           receiver: plan.cardFunding.receiverAddress,
           amount,
           purchaseData,
