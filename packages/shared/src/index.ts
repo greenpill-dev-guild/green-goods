@@ -81,6 +81,7 @@ export type {
   ToastStatus,
   ToastTranslator,
   ToastViewportProps,
+  ToastViewportVariant,
   TxInlineFeedbackProps,
   TxInlineFeedbackSeverity,
   VaultPositionCardProps,

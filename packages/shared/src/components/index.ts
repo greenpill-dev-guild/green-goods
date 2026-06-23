@@ -277,7 +277,7 @@ export {
   workToasts,
 } from "./Toast/presets";
 // Toast Components
-export type { ToastViewportProps } from "./Toast/ToastViewport";
+export type { ToastViewportProps, ToastViewportVariant } from "./Toast/ToastViewport";
 export { ToastViewport } from "./Toast/ToastViewport";
 export type {
   ToastAction,
