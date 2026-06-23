@@ -580,7 +580,7 @@ export default function VaultCardPaymentPanel({
                 {formatMessage({
                   id: "public.vaults.cardEndow.panel.opened",
                   defaultMessage:
-                    "Card checkout is ready. If a new tab did not open, use the secure checkout link below, then return here to confirm your vault position.",
+                    "Card checkout is ready. If a new tab did not open, use the secure checkout link below, then return here to confirm your vault shares.",
                 })}
               </p>
             ) : null}

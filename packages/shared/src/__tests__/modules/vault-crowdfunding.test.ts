@@ -201,7 +201,7 @@ describe("Octant vault crowdfunding manifest", () => {
     expect(freshCampaign?.displayName).toBe("Greenpill NYC");
     expect(freshCampaign?.vault?.asset?.symbol).toBe("WETH");
     expect(freshCampaign?.campaignCopy?.headline).toBe(
-      "From in-person gatherings to on-chain funding for local civic tech."
+      "From local gatherings to onchain funding for local civic tech."
     );
     expect(freshCampaign?.requiredManifestFields).toEqual(GREENPILL_NYC_REQUIRED_MANIFEST_FIELDS);
   });

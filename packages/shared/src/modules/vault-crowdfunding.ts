@@ -114,6 +114,22 @@ export interface OctantVaultYieldSource {
   evidence?: string;
 }
 
+/**
+ * Verified per-campaign strategy used to compute harvestable generated yield.
+ *
+ * This is intentionally separate from {@link OctantVaultYieldSource}. The
+ * yield source can support APY reads, but generated WETH must come from the
+ * campaign strategy balance itself so the metric does not accidentally include
+ * unrelated deposits in the shared upstream source.
+ */
+export interface OctantVaultYieldStrategy {
+  address: Address;
+  /** Chain the strategy lives on; defaults to the vault chain. */
+  chainId?: number;
+  /** How the strategy address was verified before it was added to the manifest. */
+  evidence?: string;
+}
+
 export interface OctantVaultManifest {
   chainId?: number;
   vaultAddress?: Address;
@@ -125,6 +141,8 @@ export interface OctantVaultManifest {
   strategyFactory?: OctantVaultStrategyFactoryEvidence;
   /** External yield source for the live strategy-APY read. See {@link OctantVaultYieldSource}. */
   yieldSource?: OctantVaultYieldSource;
+  /** Verified per-campaign strategy for harvestable generated-yield reads. */
+  yieldStrategy?: OctantVaultYieldStrategy;
 }
 
 export interface OctantVaultCampaignManifest {
@@ -624,7 +642,7 @@ export const OCTANT_VAULT_CAMPAIGN_MANIFEST = [
     previewCopy: greenpillNycPreviewCopy,
     campaignCopy: greenpillNycPreviewCopy,
     recipientRoutingSummary:
-      "Contributions deposit into the Greenpill NYC Octant vault; donated yield supports local civic tech initiatives surfaced via Decentral Park.",
+      "Contributions deposit into the Greenpill NYC Octant vault; generated yield supports local civic tech initiatives surfaced via Decentral Park.",
     vault: {
       chainId: OCTANT_V2_ETHEREUM_CHAIN_ID,
       vaultAddress: "0xaC8F844CEA2Fd75B7A5514f11974895B334fd9A5",
@@ -1571,6 +1589,10 @@ function cloneCampaign(campaign: OctantVaultCampaignManifest): OctantVaultCampai
           asset: campaign.vault.asset ? { ...campaign.vault.asset } : undefined,
           strategyFactory: campaign.vault.strategyFactory
             ? { ...campaign.vault.strategyFactory }
+            : undefined,
+          yieldSource: campaign.vault.yieldSource ? { ...campaign.vault.yieldSource } : undefined,
+          yieldStrategy: campaign.vault.yieldStrategy
+            ? { ...campaign.vault.yieldStrategy }
             : undefined,
         }
       : undefined,

@@ -212,7 +212,7 @@ function CardOwnerPositions({
       )}
       emptyTitle={formatMessage({
         id: "public.vaults.manage.empty.card.title",
-        defaultMessage: "No vault positions for this card wallet yet",
+        defaultMessage: "No vault shares for this card wallet yet",
       })}
       onEndow={onEndow}
       beforeList={beforeList}
@@ -558,7 +558,7 @@ function RestoreEmailWallet({
               formatMessage({
                 id: "public.vaults.manage.card.restoreMismatch",
                 defaultMessage:
-                  "That email wallet doesn't match this position. Use the email that owns it.",
+                  "That email wallet doesn't match these vault shares. Use the email that owns them.",
               })
             );
           }
@@ -583,7 +583,7 @@ function RestoreEmailWallet({
         {formatMessage({
           id: "public.vaults.manage.card.restoreBody",
           defaultMessage:
-            "Viewing is read-only. To redeem shares, restore the email wallet that owns this position.",
+            "Viewing is read-only. To redeem shares, restore the email wallet that owns them.",
         })}
       </p>
 

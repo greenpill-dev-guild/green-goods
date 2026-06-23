@@ -26,10 +26,9 @@ import {
   CHECKOUT_GHOST_BUTTON,
   CHECKOUT_PRIMARY_BUTTON,
   CheckoutStageHeader,
-  CheckoutSurface,
-  CheckoutMethodTile,
   CheckoutScreen,
   CheckoutSummary,
+  CheckoutSurface,
   getAddressExplorerUrl,
   getEthereumNetworkLabel,
   getTxExplorerUrl,
@@ -54,7 +53,6 @@ const UNLOCKED_CHECKOUT_GUARD: VaultCheckoutGuardState = {
 };
 
 type VaultCheckoutPhase = "setup" | "pay";
-type CheckoutMethod = "wallet";
 
 function usdCentsToStableTokenUnits(cents: bigint, decimals: number): bigint {
   if (cents <= 0n) return 0n;
@@ -94,8 +92,8 @@ export function VaultCheckoutDialog(props: VaultCheckoutDialogProps) {
 
 /**
  * VaultCheckoutDialog — a fixed-height checkout sheet (shared `DialogShell`) for
- * one Octant vault campaign. It keeps amount and method choice together in the
- * editable setup step, then moves to the wallet path.
+ * one Octant vault campaign. It keeps amount entry editable in setup, then
+ * moves to the wallet review path.
  * Payment-path components own their own authoritative state and report a lock
  * guard up so the sheet can prevent edits and close while a transaction is in
  * flight.
@@ -112,7 +110,6 @@ function VaultCheckoutDialogContent({
   const pricingStatusId = useId();
   const amountRef = useRef<HTMLInputElement>(null);
   const [amountInput, setAmountInput] = useState("");
-  const [selectedMethod, setSelectedMethod] = useState<CheckoutMethod | null>(null);
   const [phase, setPhase] = useState<VaultCheckoutPhase>("setup");
   // The WETH/base-unit amount is derived from a live ETH/USD feed; freeze it when
   // the user leaves setup so a mid-transaction price tick cannot change the amount
@@ -166,18 +163,6 @@ function VaultCheckoutDialogContent({
     () => getOctantVaultCampaignTransactionState(campaign),
     [campaign]
   );
-  const availableMethods = useMemo<CheckoutMethod[]>(() => {
-    if (!transactionState.walletEndowEnabled) return [];
-    return ["wallet"];
-  }, [transactionState.walletEndowEnabled]);
-  const hasPaymentMethods = availableMethods.length > 0;
-  const canSelectPaymentMethod = hasPaymentMethods;
-
-  useEffect(() => {
-    if (selectedMethod && !availableMethods.includes(selectedMethod)) {
-      setSelectedMethod(null);
-    }
-  }, [availableMethods, selectedMethod]);
 
   // On desktop, direct focus to the amount field after DialogShell's open-focus
   // settles. On mobile this can force the visual viewport to scroll and push the
@@ -215,12 +200,17 @@ function VaultCheckoutDialogContent({
   }, []);
 
   const handleSetupContinue = useCallback(() => {
-    if (hasReadyAmount && parsedAmount && selectedMethod && !conversionUnavailable) {
+    if (
+      hasReadyAmount &&
+      parsedAmount &&
+      transactionState.walletEndowEnabled &&
+      !conversionUnavailable
+    ) {
       setAmountInput((current) => normalizeDecimalInput(current));
       setCommittedAmount(parsedAmount);
       setPhase("pay");
     }
-  }, [conversionUnavailable, hasReadyAmount, parsedAmount, selectedMethod]);
+  }, [conversionUnavailable, hasReadyAmount, parsedAmount, transactionState.walletEndowEnabled]);
 
   const handleBackToSetup = useCallback(() => {
     if (checkoutGuard.inputsLocked) return;
@@ -245,20 +235,10 @@ function VaultCheckoutDialogContent({
           { amount: formattedSettlementAmount, symbol: assetDisplay.settlementSymbol }
         )
       : "";
-  const methodLabel = formatMessage({
-    id: "public.vaults.checkout.method.wallet",
-    defaultMessage: "Wallet",
+  const setupContinueLabel = formatMessage({
+    id: "public.vaults.checkout.reviewEndowment",
+    defaultMessage: "Review endowment",
   });
-  const setupContinueLabel =
-    selectedMethod === "wallet"
-      ? formatMessage({
-          id: "public.vaults.checkout.continueWallet",
-          defaultMessage: "Continue to Wallet",
-        })
-      : formatMessage({
-          id: "public.vaults.checkout.continue",
-          defaultMessage: "Continue",
-        });
 
   const amountSummaryItems = [
     {
@@ -281,16 +261,7 @@ function VaultCheckoutDialogContent({
     },
   ];
 
-  const summaryItems = [
-    ...amountSummaryItems,
-    {
-      label: formatMessage({
-        id: "public.vaults.checkout.review.method",
-        defaultMessage: "Payment",
-      }),
-      value: methodLabel,
-    },
-  ];
+  const summaryItems = amountSummaryItems;
 
   const titleText = formatMessage(
     { id: "public.vaults.checkout.titleWithCampaign", defaultMessage: "Endow to {campaign}" },
@@ -314,7 +285,7 @@ function VaultCheckoutDialogContent({
       title={titleNode}
       description={formatMessage({
         id: "public.vaults.checkout.description",
-        defaultMessage: "Choose an amount and how you'd like to pay.",
+        defaultMessage: "Enter an amount, then review before connecting your wallet.",
       })}
       preventClose={checkoutGuard.closeLocked}
       hideCloseButton={checkoutGuard.closeLocked}
@@ -326,7 +297,7 @@ function VaultCheckoutDialogContent({
               type="button"
               onClick={handleSetupContinue}
               disabled={
-                !hasReadyAmount || !selectedMethod || !hasPaymentMethods || conversionUnavailable
+                !hasReadyAmount || !transactionState.walletEndowEnabled || conversionUnavailable
               }
               className={CHECKOUT_PRIMARY_BUTTON}
             >
@@ -338,7 +309,8 @@ function VaultCheckoutDialogContent({
             <p className="text-sm leading-[1.55] text-text-sub-600">
               {formatMessage({
                 id: "public.vaults.checkout.setupLede",
-                defaultMessage: "Choose the amount to endow, then pick how you want to pay.",
+                defaultMessage:
+                  "Enter the amount to endow. You will review before connecting your wallet.",
               })}
             </p>
 
@@ -402,44 +374,9 @@ function VaultCheckoutDialogContent({
                 </p>
               ) : null}
             </div>
-
-            <fieldset className="flex flex-col gap-2">
-              <legend className={CHECKOUT_FIELD_LABEL}>
-                {formatMessage({
-                  id: "public.vaults.checkout.method.legend",
-                  defaultMessage: "How would you like to pay?",
-                })}
-              </legend>
-              <div
-                className={`grid gap-2 ${
-                  availableMethods.length > 1 ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-1"
-                }`}
-                role="group"
-              >
-                {availableMethods.map((method) => (
-                  <CheckoutMethodTile
-                    key={method}
-                    method={method}
-                    selected={selectedMethod === method}
-                    disabled={!canSelectPaymentMethod}
-                    onSelect={(nextMethod) => {
-                      if (canSelectPaymentMethod) setSelectedMethod(nextMethod);
-                    }}
-                    label={formatMessage({
-                      id: "public.vaults.checkout.method.wallet",
-                      defaultMessage: "Wallet",
-                    })}
-                    subtitle={formatMessage({
-                      id: "public.vaults.checkout.method.walletSubtitle",
-                      defaultMessage: "Connect at the final step",
-                    })}
-                  />
-                ))}
-              </div>
-            </fieldset>
           </div>
         </CheckoutScreen>
-      ) : selectedMethod === "wallet" && committedAmount ? (
+      ) : committedAmount ? (
         <WalletEndowPath
           campaign={campaign}
           amount={committedAmount}
@@ -750,7 +687,7 @@ function WalletEndowPathContent({
               <button type="button" onClick={onManagePositions} className={CHECKOUT_PRIMARY_BUTTON}>
                 {formatMessage({
                   id: "public.vaults.checkout.managePosition",
-                  defaultMessage: "Manage vault position",
+                  defaultMessage: "Manage vault shares",
                 })}
               </button>
             ) : null}
@@ -776,7 +713,7 @@ function WalletEndowPathContent({
             })}
             description={formatMessage({
               id: "public.vaults.walletEndow.done.description",
-              defaultMessage: "Your wallet now holds the vault position for this campaign.",
+              defaultMessage: "Your wallet now holds vault shares for this campaign.",
             })}
           />
           <CheckoutSummary items={summaryItems} />
@@ -784,7 +721,7 @@ function WalletEndowPathContent({
             {formatMessage({
               id: "public.vaults.walletEndow.success",
               defaultMessage:
-                "Endowment submitted. Manage this WETH vault position any time from /vaults.",
+                "Endowment submitted. Manage these WETH vault shares any time from /vaults.",
             })}
           </p>
           {explorerUrl ? (
@@ -878,7 +815,7 @@ function WalletEndowPathContent({
           description={formatMessage({
             id: "public.vaults.walletEndow.stageDescription",
             defaultMessage:
-              "Connect the wallet that should receive this vault position, then confirm the endowment.",
+              "Connect the wallet that should receive these vault shares, then confirm the endowment.",
           })}
         />
         <CheckoutSummary items={summaryItems} onEdit={canEdit ? onBack : undefined} />
@@ -888,13 +825,13 @@ function WalletEndowPathContent({
             <dt className={CHECKOUT_FIELD_LABEL}>
               {formatMessage({
                 id: "public.vaults.checkout.review.route",
-                defaultMessage: "Vault route",
+                defaultMessage: "Vault destination",
               })}
             </dt>
             <dd className="mt-1 text-text-sub-600">
               {formatMessage({
                 id: "public.vaults.checkout.review.routeValue",
-                defaultMessage: "Octant V2 Ethereum vault",
+                defaultMessage: "Octant vault on Ethereum",
               })}
             </dd>
           </div>
@@ -1067,7 +1004,7 @@ function WalletEndowPathContent({
               {formatMessage({
                 id: "public.vaults.checkout.slow",
                 defaultMessage:
-                  "Taking longer than expected — your transaction may still be processing. Wait a moment before retrying; your position will appear under Manage positions on /vaults once it settles.",
+                  "Taking longer than expected — your transaction may still be processing. Wait a moment before retrying; your vault shares will appear under Manage vault shares once it settles.",
               })}
             </p>
           </div>

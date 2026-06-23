@@ -72,20 +72,20 @@ function VaultManagePositionsContent({ open, onClose, onEndow }: VaultManagePosi
               <p className="font-mono text-[10.5px] font-medium uppercase tracking-[0.18em] text-text-soft-400">
                 {formatMessage({
                   id: "public.vaults.manage.kicker",
-                  defaultMessage: "Vault positions",
+                  defaultMessage: "Vault shares",
                 })}
               </p>
               <Dialog.Title className="mt-2 font-serif text-2xl font-normal leading-[1.08] text-text-strong-950 md:text-3xl">
                 {formatMessage({
                   id: "public.vaults.manage.title",
-                  defaultMessage: "Manage vault positions",
+                  defaultMessage: "Manage vault shares",
                 })}
               </Dialog.Title>
               <Dialog.Description className="mt-3 text-sm leading-[1.6] text-text-sub-600">
                 {formatMessage({
                   id: "public.vaults.manage.lede",
                   defaultMessage:
-                    "View your WETH Octant vault shares and redeem available shares when you choose.",
+                    "View your WETH Octant vault shares and redeem them when you choose.",
                 })}
               </Dialog.Description>
             </div>
@@ -95,7 +95,7 @@ function VaultManagePositionsContent({ open, onClose, onEndow }: VaultManagePosi
                 className="inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-stroke-soft-200 bg-bg-white-0 text-text-sub-600 transition-colors hover:bg-bg-weak-50 hover:text-text-strong-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
                 aria-label={formatMessage({
                   id: "public.vaults.manage.close",
-                  defaultMessage: "Close vault positions",
+                  defaultMessage: "Close vault shares",
                 })}
               >
                 <RiCloseLine className="h-5 w-5" />
@@ -129,7 +129,7 @@ function ConnectedWalletSection({
         <h3 className="font-serif text-xl font-normal text-text-strong-950">
           {formatMessage({
             id: "public.vaults.manage.connected.connectTitle",
-            defaultMessage: "Connect to see your positions",
+            defaultMessage: "Connect to see your vault shares",
           })}
         </h3>
         <p className="mt-3 text-sm leading-[1.6] text-text-sub-600">
@@ -159,7 +159,7 @@ function ConnectedWalletSection({
       ownerLabel={truncateAddress(address)}
       emptyTitle={formatMessage({
         id: "public.vaults.manage.empty.connected.title",
-        defaultMessage: "No vault positions for this wallet yet",
+        defaultMessage: "No vault shares for this wallet yet",
       })}
       onEndow={onEndow}
       renderRow={(position) => (
@@ -205,7 +205,7 @@ export function PositionsList({
         className="rounded-2xl bg-error-lighter/30 p-5"
         title={formatMessage({
           id: "public.vaults.manage.error.title",
-          defaultMessage: "We couldn't load these positions",
+          defaultMessage: "We couldn't load these vault shares",
         })}
       >
         <p className="mt-3 text-sm leading-[1.6] text-text-sub-600">
@@ -233,7 +233,7 @@ export function PositionsList({
           {formatMessage({
             id: "public.vaults.manage.empty.body",
             defaultMessage:
-              "When you endow a campaign on /vaults, your position appears here so you can manage it.",
+              "When you endow a campaign, your vault shares appear here so you can manage them.",
           })}
         </p>
         {onEndow ? (
@@ -457,7 +457,7 @@ export function VaultPositionRowView({
           <p className="mt-0.5 text-xs text-text-soft-400">
             {formatMessage({
               id: "public.vaults.manage.position.backed",
-              defaultMessage: "WETH vault position",
+              defaultMessage: "WETH vault shares",
             })}
           </p>
           <dl className="mt-3 space-y-1 text-xs leading-[1.55] text-text-soft-400">
@@ -465,7 +465,7 @@ export function VaultPositionRowView({
               <dt className="inline">
                 {formatMessage({
                   id: "public.vaults.manage.position.value",
-                  defaultMessage: "Position value in WETH",
+                  defaultMessage: "Value in WETH",
                 })}
                 {": "}
               </dt>

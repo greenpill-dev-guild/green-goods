@@ -122,6 +122,16 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       isLoading: false,
       isError: false,
     }),
+    useOctantVaultHarvestableYield: () => ({
+      status: "unavailable",
+      strategyAddress: null,
+      strategyAssets: 0n,
+      vaultDebt: 0n,
+      harvestableAssets: 0n,
+      isLoading: false,
+      isError: false,
+      unavailableReason: "missing_strategy",
+    }),
     useOctantVaultProjectSupportMetric: () => ({
       status: "unavailable",
       sourceAddress: null,
@@ -289,7 +299,7 @@ beforeEach(() => {
 });
 
 describe("/vaults browse (no management)", () => {
-  it("renders without a wallet runtime and shows a Manage positions entry point", () => {
+  it("renders without a wallet runtime and shows a Manage vault shares entry point", () => {
     renderPage("/vaults");
     // Browse must render with no wallet runtime mounted.
     expect(mocks.walletRuntimeRender).not.toHaveBeenCalled();
@@ -327,9 +337,9 @@ describe("/vaults?manage=positions", () => {
 
     const panel = screen.getByTestId("vault-manage-positions-panel");
     expect(within(panel).getByText("Greenpill NYC")).toBeInTheDocument();
-    expect(within(panel).getByText("WETH vault position")).toBeInTheDocument();
-    // Position value label is present (precise WETH wording, not Fund language).
-    expect(within(panel).getByText(/Position value in WETH/)).toBeInTheDocument();
+    expect(within(panel).getByText("WETH vault shares")).toBeInTheDocument();
+    // Share value label is present (precise WETH wording, not Fund language).
+    expect(within(panel).getByText(/Value in WETH/)).toBeInTheDocument();
     expect(within(panel).getByText("Ethereum Mainnet")).toBeInTheDocument();
     expect(within(panel).getByRole("link", { name: VAULT })).toHaveAttribute(
       "href",
@@ -348,7 +358,7 @@ describe("/vaults?manage=positions", () => {
     renderPage("/vaults?manage=positions");
 
     const panel = screen.getByTestId("vault-manage-positions-panel");
-    expect(within(panel).getByText("No vault positions for this wallet yet")).toBeInTheDocument();
+    expect(within(panel).getByText("No vault shares for this wallet yet")).toBeInTheDocument();
     expect(within(panel).getByRole("button", { name: "Endow a campaign" })).toBeInTheDocument();
   });
 
@@ -526,21 +536,20 @@ describe("/vaults?manage=positions", () => {
     expect(
       within(panel).queryByTestId("vault-manage-pending-funded-greenpill-nyc")
     ).not.toBeInTheDocument();
-    expect(within(panel).getByText("No vault positions for this wallet yet")).toBeInTheDocument();
+    expect(within(panel).getByText("No vault shares for this wallet yet")).toBeInTheDocument();
   });
 });
 
 describe("checkout success no longer points to Fund", () => {
-  it("wallet-endow success offers Manage vault position and never links to /fund", async () => {
+  it("wallet-endow success offers Manage vault shares and never links to /fund", async () => {
     const user = userEvent.setup();
     mocks.authMode = "wallet";
     mocks.primaryAddress = CONNECTED;
     const { container } = renderContent([makeStableCampaign()]);
 
     await user.click(screen.getByRole("button", { name: "Endow to Synthetic complete campaign" }));
-    await user.click(screen.getByTestId("vault-checkout-method-wallet"));
     await user.type(screen.getByLabelText("Amount to endow"), "2.50");
-    await user.click(screen.getByRole("button", { name: "Continue to Wallet" }));
+    await user.click(screen.getByRole("button", { name: "Review endowment" }));
     await user.click(screen.getByRole("button", { name: "Confirm endowment" }));
 
     const success = await screen.findByTestId("vault-wallet-endow-success");
@@ -548,7 +557,7 @@ describe("checkout success no longer points to Fund", () => {
     // No Fund-page CTA or copy remains in the success state.
     expect(container.querySelector('a[href="/fund"]')).toBeNull();
     expect(within(success).queryByText(/Fund page/i)).toBeNull();
-    // Primary CTA is now Manage vault position.
-    expect(screen.getByRole("button", { name: "Manage vault position" })).toBeInTheDocument();
+    // Primary CTA is now Manage vault shares.
+    expect(screen.getByRole("button", { name: "Manage vault shares" })).toBeInTheDocument();
   });
 });

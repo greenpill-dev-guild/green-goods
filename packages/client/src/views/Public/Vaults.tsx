@@ -6,7 +6,7 @@ import {
   getOctantVaultCampaignCopy,
   getOctantVaultCampaigns,
   getOctantVaultCampaignTransactionState,
-  useOctantVaultProjectSupportMetric,
+  useOctantVaultHarvestableYield,
   useOctantVaultStats,
   useOctantVaultStrategyApy,
   type OctantVaultCampaignManifest,
@@ -115,9 +115,9 @@ function CampaignPreviewNote() {
   return (
     <p className="text-sm leading-[1.55] text-text-sub-600">
       {formatMessage({
-        id: "public.vaults.manifest.blocked",
-        defaultMessage:
-          "This preview does not accept Endow payments yet. The campaign will open after its vault route is complete and verified.",
+          id: "public.vaults.manifest.blocked",
+          defaultMessage:
+            "This preview does not accept Endow payments yet. The campaign will open after its vault setup is complete and verified.",
       })}
     </p>
   );
@@ -178,15 +178,16 @@ function CampaignVaultStats({ campaign }: { campaign: OctantVaultCampaignManifes
   );
 }
 
-function ProjectSupportMetricCard({ campaign }: { campaign: OctantVaultCampaignManifest }) {
+function GeneratedYieldMetricCard({ campaign }: { campaign: OctantVaultCampaignManifest }) {
   const { formatMessage } = useIntl();
   const assetSymbol = campaign.vault?.asset?.symbol ?? "WETH";
   const assetDecimals = campaign.vault?.asset?.decimals ?? 18;
-  const metric = useOctantVaultProjectSupportMetric({
+  const metric = useOctantVaultHarvestableYield({
     vaultAddress: campaign.vault?.vaultAddress,
     chainId: campaign.vault?.chainId,
+    yieldStrategy: campaign.vault?.yieldStrategy,
   });
-  const amountLabel = `${formatTokenAmount(metric.assetValue, assetDecimals, 4, undefined, true)} ${assetSymbol}`;
+  const amountLabel = `${formatTokenAmount(metric.harvestableAssets, assetDecimals, 4, undefined, true)} ${assetSymbol}`;
 
   let valueNode: ReactNode;
   let bodyNode: ReactNode;
@@ -195,7 +196,7 @@ function ProjectSupportMetricCard({ campaign }: { campaign: OctantVaultCampaignM
     valueNode = "…";
     bodyNode = formatMessage({
       id: "public.vaults.strategy.metric.loading",
-      defaultMessage: "Reading the configured project support router.",
+      defaultMessage: "Reading generated yield from the verified campaign strategy.",
     });
   } else if (metric.status === "unavailable") {
     valueNode = formatMessage({
@@ -205,28 +206,27 @@ function ProjectSupportMetricCard({ campaign }: { campaign: OctantVaultCampaignM
     bodyNode = formatMessage({
       id: "public.vaults.strategy.metric.unavailableBody",
       defaultMessage:
-        "No numeric support value is shown until the router source and conversion path can be proven.",
+        "Generated yield is shown only after the campaign strategy address and read path are verified.",
     });
   } else if (metric.status === "zero") {
     valueNode = amountLabel;
     bodyNode = formatMessage({
       id: "public.vaults.strategy.metric.zeroBody",
-      defaultMessage:
-        "Deposits are in the vault, but no yield has been harvested and donated to the project yet.",
+      defaultMessage: "No harvestable generated yield is available for this campaign yet.",
     });
   } else {
     valueNode = amountLabel;
     bodyNode = formatMessage({
       id: "public.vaults.strategy.metric.positiveBody",
       defaultMessage:
-        "Estimated from donation shares held by the configured project support router.",
+        "Estimated from strategy assets minus vault debt for this campaign's verified strategy.",
     });
   }
 
   return (
     <article
       className="border border-stroke-soft-200 bg-bg-white-0 p-4"
-      data-testid={`vault-project-support-metric-${campaign.slug}`}
+      data-testid={`vault-generated-yield-metric-${campaign.slug}`}
     >
       <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-soft-400">
         {campaign.displayName}
@@ -329,14 +329,14 @@ function YieldSupportExplainer({ campaigns }: { campaigns: OctantVaultCampaignMa
               {formatMessage({
                 id: "public.vaults.strategy.body",
                 defaultMessage:
-                  "When you support a campaign you receive vault shares for your full WETH contribution, and that position stays yours. Reported strategy profit becomes donation shares that support the project rather than a profit balance for each user.",
+                  "When you support a campaign, your contribution becomes vault shares you can redeem later. Generated yield supports the project instead of becoming a personal profit balance.",
               })}
             </p>
             <p>
               {formatMessage({
                 id: "public.vaults.strategy.ownership",
                 defaultMessage:
-                  "You can redeem your shares back to WETH whenever you choose, and the share price is designed to stay flat, so you keep the option to withdraw your contribution in full. The yield the strategy earns on top is what funds the project, which is how you support the work while still being able to exit your position.",
+                  "You can redeem your vault shares back to WETH whenever you choose. The generated yield is what funds the campaign, so you can support the work while still keeping an exit path.",
               })}
             </p>
             <p>
@@ -390,19 +390,19 @@ function YieldSupportExplainer({ campaigns }: { campaigns: OctantVaultCampaignMa
           >
             {formatMessage({
               id: "public.vaults.strategy.metric.title",
-              defaultMessage: "Donated yield generated for the project",
+              defaultMessage: "Generated yield for the campaign",
             })}
           </p>
           <p className="mt-1 text-xs leading-[1.55] text-text-soft-400">
             {formatMessage({
               id: "public.vaults.strategy.metric.subtitle",
               defaultMessage:
-                "Cumulative across all supporters in this campaign, not your personal balance.",
+                "Harvestable WETH generated by the campaign strategy, not your personal balance.",
             })}
           </p>
           <div className="mt-3 grid gap-3 md:grid-cols-2">
             {campaigns.map((campaign) => (
-              <ProjectSupportMetricCard key={campaign.slug} campaign={campaign} />
+              <GeneratedYieldMetricCard key={campaign.slug} campaign={campaign} />
             ))}
           </div>
         </div>
@@ -583,7 +583,7 @@ export function VaultsPageContent({
         lede={formatMessage({
           id: "public.vaults.hero.lede",
           defaultMessage:
-            "Fund public goods work that keeps giving. Your contribution settles into a dedicated Octant vault, and the position stays yours.",
+            "Support public goods through an Octant vault. Your contribution becomes vault shares you can redeem later, while generated yield supports the campaign.",
         })}
       />
 
@@ -603,7 +603,7 @@ export function VaultsPageContent({
               <EditorialHeading id="public-vaults-browse-title">
                 {formatMessage({
                   id: "public.vaults.browse.title",
-                  defaultMessage: "Two pilot slots, one dedicated vault route.",
+                  defaultMessage: "Two pilot campaigns, each with its own Octant vault.",
                 })}
               </EditorialHeading>
               <EditorialLede className="mt-5">
@@ -623,7 +623,7 @@ export function VaultsPageContent({
               >
                 {formatMessage({
                   id: "public.vaults.manage.entry",
-                  defaultMessage: "Manage positions",
+                  defaultMessage: "Manage vault shares",
                 })}
               </button>
             </div>
@@ -647,20 +647,20 @@ export function VaultsPageContent({
           <EditorialKicker className="mb-3">
             {formatMessage({
               id: "public.vaults.boundary.kicker",
-              defaultMessage: "§ 03: Route boundary",
+              defaultMessage: "§ 03: Separate funding lanes",
             })}
           </EditorialKicker>
           <EditorialHeading id="public-vaults-boundary-title" size="sub">
             {formatMessage({
               id: "public.vaults.boundary.title",
-              defaultMessage: "This is separate from Garden funding.",
+              defaultMessage: "Octant vault endowments live here.",
             })}
           </EditorialHeading>
           <p className="mt-4 max-w-3xl text-sm leading-[1.65] text-text-sub-600 md:text-base">
             {formatMessage({
               id: "public.vaults.boundary.body",
               defaultMessage:
-                "/vaults is the Octant V2 Ethereum vault crowdfunding surface. /fund remains the existing Garden endowment page and is only reuse context for later shared capability.",
+                "This page is for Octant vault endowments. Garden funding remains separate.",
             })}
           </p>
         </div>

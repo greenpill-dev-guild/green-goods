@@ -52,6 +52,8 @@
 
 **Re-enable mechanics (when ready):** Hiding the card method for the near-term ship should be a flag-gate (default off), **not** deleting code/tests — emptying `CARD_ENDOW_PRODUCTION_CAMPAIGN_SLUGS` would break ~23 card tests. (Flag-gate not yet implemented — the branch currently still exposes the card method; gating happens when we cut the wallet-only release.)
 
+**Wallet-only UX adjustment (2026-06-22):** The wallet-only release removes the obsolete single-option payment-method picker from `/vaults` checkout. The visible flow is `Endow` -> amount -> review endowment -> wallet connect/confirm. Card Endow code and proof contracts remain parked and saved for a future explicit re-enable decision.
+
 ## Octant QA Follow-Up Scope (2026-06-08)
 
 Source signal: Octant QA reported a successful Greenpill NYC deposit and supplied checkout/manage

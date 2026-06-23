@@ -40,6 +40,16 @@ export const vaultsKeys = {
   /** Live gross/donation-funding APY of a campaign vault's external yield source. */
   vaultStrategyApy: (vaultAddress: string, chainId: number) =>
     ["greengoods", "vaults", "vaultStrategyApy", vaultAddress, chainId] as const,
+  /** Harvestable generated yield for an Octant campaign vault with a verified strategy. */
+  octantHarvestableYield: (vaultAddress: string, chainId: number, strategyAddress?: string) =>
+    [
+      "greengoods",
+      "vaults",
+      "octantHarvestableYield",
+      vaultAddress,
+      chainId,
+      strategyAddress ?? "missing",
+    ] as const,
   /**
    * Active Octant V2 campaign-vault positions for one owner address on one chain.
    * Owner is lowercased by the caller so connected-wallet and card-wallet reads

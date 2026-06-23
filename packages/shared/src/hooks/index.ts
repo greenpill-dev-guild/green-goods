@@ -472,6 +472,13 @@ export {
   type UseOctantVaultStrategyApyOptions,
 } from "./vault/useOctantVaultStrategyApy";
 export {
+  useOctantVaultHarvestableYield,
+  type OctantVaultHarvestableYield,
+  type OctantVaultHarvestableYieldStatus,
+  type OctantVaultHarvestableYieldUnavailableReason,
+  type UseOctantVaultHarvestableYieldOptions,
+} from "./vault/useOctantVaultHarvestableYield";
+export {
   useOctantVaultPositions,
   type OctantVaultPosition,
   type UseOctantVaultPositionsResult,
