@@ -30,11 +30,13 @@ import { getPublicHeroImage, publicCuration } from "@/content/publicCuration";
 const MANAGE_POSITIONS_PARAM = "manage";
 const MANAGE_POSITIONS_VALUE = "positions";
 const OCTANT_YIELD_DONATING_STRATEGY_URL =
-  "https://docs.v2.octant.build/docs/yield_donating_strategy";
-const OCTANT_YIELD_DONATING_STRATEGY_CONTRACT_URL =
-  "https://docs.v2.octant.build/docs/smart_contracts/YieldDonatingTokenizedStrategy/";
+  "https://docs.v2.octant.build/docs/developers/yield_donating_strategy/";
+const OCTANT_YIELD_DONATING_STRATEGY_INTRODUCTION_URL =
+  "https://docs.v2.octant.build/docs/developers/yield_donating_strategy/introduction-to-yds";
 const OCTANT_YIELD_DONATING_STRATEGY_ARCHITECTURE_URL =
-  "https://docs.v2.octant.build/docs/yield_donating_strategy/architecture-yds";
+  "https://docs.v2.octant.build/docs/developers/yield_donating_strategy/architecture-yds";
+const OCTANT_YIELD_DONATING_STRATEGY_LIFECYCLE_URL =
+  "https://docs.v2.octant.build/docs/developers/yield_donating_strategy/mental-model-lifecycle-yds";
 
 const copyFieldMessageIds = {
   headline: "headline",
@@ -338,15 +340,15 @@ function YieldSupportExplainer() {
               />
             </a>
             <a
-              href={OCTANT_YIELD_DONATING_STRATEGY_CONTRACT_URL}
+              href={OCTANT_YIELD_DONATING_STRATEGY_INTRODUCTION_URL}
               target="_blank"
               rel="noreferrer"
               className="group flex min-h-11 w-full items-center justify-between gap-3 border-b border-stroke-soft-200 py-3 text-left text-sm font-medium leading-snug text-text-strong-950 transition-colors hover:border-primary-action/60 hover:text-primary-action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
             >
               <span>
                 {formatMessage({
-                  id: "public.vaults.strategy.source.contract",
-                  defaultMessage: "YieldDonatingTokenizedStrategy contract docs",
+                  id: "public.vaults.strategy.source.introduction",
+                  defaultMessage: "YDS introduction",
                 })}
               </span>
               <RiExternalLinkLine
@@ -358,12 +360,29 @@ function YieldSupportExplainer() {
               href={OCTANT_YIELD_DONATING_STRATEGY_ARCHITECTURE_URL}
               target="_blank"
               rel="noreferrer"
-              className="group flex min-h-11 w-full items-center justify-between gap-3 py-3 text-left text-sm font-medium leading-snug text-text-strong-950 transition-colors hover:text-primary-action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
+              className="group flex min-h-11 w-full items-center justify-between gap-3 border-b border-stroke-soft-200 py-3 text-left text-sm font-medium leading-snug text-text-strong-950 transition-colors hover:border-primary-action/60 hover:text-primary-action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
             >
               <span>
                 {formatMessage({
                   id: "public.vaults.strategy.source.architecture",
                   defaultMessage: "YDS architecture",
+                })}
+              </span>
+              <RiExternalLinkLine
+                aria-hidden="true"
+                className="h-4 w-4 shrink-0 text-text-soft-400 transition-colors group-hover:text-primary-action"
+              />
+            </a>
+            <a
+              href={OCTANT_YIELD_DONATING_STRATEGY_LIFECYCLE_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="group flex min-h-11 w-full items-center justify-between gap-3 py-3 text-left text-sm font-medium leading-snug text-text-strong-950 transition-colors hover:text-primary-action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
+            >
+              <span>
+                {formatMessage({
+                  id: "public.vaults.strategy.source.lifecycle",
+                  defaultMessage: "YDS lifecycle mental model",
                 })}
               </span>
               <RiExternalLinkLine

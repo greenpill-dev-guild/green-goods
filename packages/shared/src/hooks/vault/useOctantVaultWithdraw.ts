@@ -10,9 +10,8 @@
  * network switch when needed.
  *
  * Card/recovered email-wallet positions use a separate Thirdweb-signed path (the
- * shared package can't depend on `thirdweb/react`); both paths pass the SAME
- * {@link DEFAULT_WITHDRAW_MAX_LOSS_BPS} to the `maxRedeem` pre-check so the
- * redeemable shares shown on screen are the shares the contract will accept.
+ * shared package can't depend on `thirdweb/react`); both paths try the supported
+ * Octant V2 vault/strategy redeem ABI shapes in the same order.
  *
  * @module hooks/vault/useOctantVaultRedeem
  */
@@ -25,6 +24,11 @@ import { getWagmiConfig } from "../../config/appkit";
 import { queryKeys } from "../../config/query-keys";
 import type { Address } from "../../types/domain";
 import { OCTANT_VAULT_ABI } from "../../utils/blockchain/abis";
+import {
+  getOctantVaultRedeemCallShape,
+  OCTANT_VAULT_REDEEM_CALL_SHAPES,
+  type OctantVaultRedeemCallVariant,
+} from "../../utils/blockchain/octant-vault-redeem";
 import { DEFAULT_WITHDRAW_MAX_LOSS_BPS } from "../../utils/blockchain/vaults";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useUser } from "../auth/useUser";
@@ -40,6 +44,33 @@ const OCTANT_V2_ETHEREUM_CHAIN_ID = 1;
 
 function addressesEqual(a: string | null | undefined, b: string | null | undefined): boolean {
   return Boolean(a && b && a.toLowerCase() === b.toLowerCase());
+}
+
+async function readMaxRedeemable(params: {
+  chainId: number;
+  vaultAddress: Address;
+  owner: Address;
+  maxLossBps: bigint;
+}): Promise<{ shares: bigint; variant: OctantVaultRedeemCallVariant }> {
+  for (const shape of OCTANT_VAULT_REDEEM_CALL_SHAPES) {
+    try {
+      const result = await readContract(getWagmiConfig(), {
+        address: params.vaultAddress,
+        abi: OCTANT_VAULT_ABI,
+        functionName: "maxRedeem",
+        args: shape.maxRedeemArgs(params.owner, params.maxLossBps),
+        chainId: params.chainId,
+      });
+      return {
+        shares: typeof result === "bigint" ? result : 0n,
+        variant: shape.variant,
+      };
+    } catch {
+      // Try the next Octant V2 / ERC-4626-compatible redeem shape.
+    }
+  }
+
+  return { shares: 0n, variant: "multistrategy" };
 }
 
 export interface OctantVaultRedeemParams {
@@ -93,27 +124,26 @@ export function useOctantVaultRedeem(options: VaultMutationOptions = {}) {
 
       // Pre-check redeemable shares at this slippage so we fail clearly before the
       // wallet prompt rather than letting the on-chain call revert.
-      const maxRedeemResult = await readContract(getWagmiConfig(), {
-        address: params.vaultAddress,
-        abi: OCTANT_VAULT_ABI,
-        functionName: "maxRedeem",
-        args: [owner, maxLossBps, []],
+      const maxRedeemable = await readMaxRedeemable({
         chainId: params.chainId,
+        vaultAddress: params.vaultAddress,
+        owner,
+        maxLossBps,
       });
-      const maxRedeemable = typeof maxRedeemResult === "bigint" ? maxRedeemResult : 0n;
 
-      if (maxRedeemable <= 0n) {
+      if (maxRedeemable.shares <= 0n) {
         throw new Error("Vault is not accepting redemptions right now");
       }
-      if (params.shares > maxRedeemable) {
+      if (params.shares > maxRedeemable.shares) {
         throw new Error("Redeem shares exceed the available share balance");
       }
 
+      const redeemShape = getOctantVaultRedeemCallShape(maxRedeemable.variant);
       const result = await sender.sendContractCall({
         address: params.vaultAddress,
         abi: OCTANT_VAULT_ABI,
         functionName: "redeem",
-        args: [params.shares, receiver, owner, maxLossBps, []],
+        args: redeemShape.redeemArgs(params.shares, receiver, owner, maxLossBps),
         chainId: params.chainId,
       });
       return result.hash;

@@ -4,7 +4,7 @@ pragma solidity ^0.8.25;
 /// @title IOctantFactory
 /// @notice Minimal interface for Octant's Multi-Strategy Vault Factory
 /// @dev Based on Octant V2 Multi-Strategy Vault system
-/// @custom:see https://docs.v2.octant.build/docs/integration_guides_and_tutorials/multi-strategy-vaults/
+/// @custom:see https://docs.v2.octant.build/docs/developers/yield_donating_strategy/
 interface IOctantFactory {
     /// @notice Deploys a new multi-strategy vault
     /// @param asset The underlying asset for the vault (e.g., USDC)

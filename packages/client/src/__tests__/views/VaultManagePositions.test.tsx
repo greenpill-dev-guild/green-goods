@@ -415,7 +415,13 @@ describe("/vaults?manage=positions", () => {
       "href",
       `https://etherscan.io/address/${ASSET}`
     );
-    expect(within(panel).getByTestId("vault-manage-position-greenpill-nyc")).toBeInTheDocument();
+    expect(within(panel).getByText("Connected wallet").closest("section")).toHaveClass(
+      "rounded-none"
+    );
+    const row = within(panel).getByTestId("vault-manage-position-greenpill-nyc");
+    expect(row).toBeInTheDocument();
+    expect(row).toHaveClass("rounded-none");
+    expect(row).not.toHaveClass("rounded-2xl");
   });
 
   it("shows a localized empty state pointing back to Endow when there are no positions", () => {

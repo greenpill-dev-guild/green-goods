@@ -10,9 +10,9 @@
  *
  * It is deliberately owner-agnostic — pass any address. For each campaign vault it
  * reads `balanceOf(owner)`, and for vaults the owner actually holds, the live
- * `convertToAssets(shares)` position value, `maxRedeem(owner, maxLoss, [])`, and
- * `convertToAssets(redeemableShares)` estimated WETH proceeds. Only **active**
- * positions (shares > 0) are returned; the surface
+ * `convertToAssets(shares)` position value, `maxRedeem(...)` across supported
+ * Octant V2 vault/strategy ABI shapes, and `convertToAssets(redeemableShares)`
+ * estimated WETH proceeds. Only **active** positions (shares > 0) are returned; the surface
  * shows current holdings, not historical activity.
  *
  * The `maxLoss` used here is the canonical {@link DEFAULT_WITHDRAW_MAX_LOSS_BPS}
@@ -34,6 +34,7 @@ import {
 } from "../../modules/vault-crowdfunding";
 import type { Address } from "../../types/domain";
 import { OCTANT_VAULT_ABI } from "../../utils/blockchain/abis";
+import { OCTANT_VAULT_REDEEM_CALL_SHAPES } from "../../utils/blockchain/octant-vault-redeem";
 import { DEFAULT_WITHDRAW_MAX_LOSS_BPS } from "../../utils/blockchain/vaults";
 
 /** One active campaign-vault position held by an owner address. */
@@ -53,11 +54,43 @@ export interface OctantVaultPosition {
   shareDecimals: number;
   /** Current value of those shares in asset base units (`convertToAssets`). */
   positionValue: bigint;
-  /** Redeemable shares now (`maxRedeem` at the 1% default maxLoss). */
+  /** Redeemable shares now (`maxRedeem` at the 1% default maxLoss where supported). */
   redeemableShares: bigint;
   /** Estimated returned assets for `redeemableShares` (`convertToAssets`), or null when preview is unavailable. */
   estimatedRedeemAssets: bigint | null;
   explorerLink?: string;
+}
+
+type OctantReadContractClient = Pick<ReturnType<typeof createPublicClientForChain>, "readContract">;
+
+async function readRedeemableShares(
+  publicClient: OctantReadContractClient,
+  vault: ReadableVault,
+  owner: Address
+): Promise<bigint> {
+  let lastError: unknown;
+
+  for (const shape of OCTANT_VAULT_REDEEM_CALL_SHAPES) {
+    try {
+      const result = await publicClient.readContract({
+        address: vault.vaultAddress,
+        abi: OCTANT_VAULT_ABI,
+        functionName: "maxRedeem",
+        args: shape.maxRedeemArgs(owner, DEFAULT_WITHDRAW_MAX_LOSS_BPS),
+      });
+      return typeof result === "bigint" ? result : 0n;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  logger.error("[useOctantVaultPositions] maxRedeem read failed", {
+    error: lastError,
+    chainId: vault.chainId,
+    vaultAddress: vault.vaultAddress,
+    owner,
+  });
+  return 0n;
 }
 
 export interface UseOctantVaultPositionsResult {
@@ -148,22 +181,7 @@ async function readVaultPosition(
         });
         return 0n;
       }),
-    publicClient
-      .readContract({
-        address: vault.vaultAddress,
-        abi: OCTANT_VAULT_ABI,
-        functionName: "maxRedeem",
-        args: [owner, DEFAULT_WITHDRAW_MAX_LOSS_BPS, []],
-      })
-      .catch((error) => {
-        logger.error("[useOctantVaultPositions] maxWithdraw read failed", {
-          error,
-          chainId: vault.chainId,
-          vaultAddress: vault.vaultAddress,
-          owner,
-        });
-        return 0n;
-      }),
+    readRedeemableShares(publicClient, vault, owner),
   ]);
   const redeemableShares = typeof redeemableSharesResult === "bigint" ? redeemableSharesResult : 0n;
   let estimatedRedeemAssets: bigint | null = 0n;

@@ -146,16 +146,20 @@
       "timestamp": "2026-06-01T18:51:25Z",
       "sourcesReviewed": [
         {
-          "label": "Octant MultistrategyVault smart contract docs",
-          "url": "https://docs.v2.octant.build/docs/smart_contracts/MultistrategyVault/"
+          "label": "Octant yield donating strategy docs",
+          "url": "https://docs.v2.octant.build/docs/developers/yield_donating_strategy/"
         },
         {
-          "label": "Octant MultistrategyVaultFactory smart contract docs",
-          "url": "https://docs.v2.octant.build/docs/smart_contracts/MultistrategyVaultFactory"
+          "label": "Octant YDS introduction",
+          "url": "https://docs.v2.octant.build/docs/developers/yield_donating_strategy/introduction-to-yds"
         },
         {
-          "label": "Octant multi-strategy vault integration guide",
-          "url": "https://docs.v2.octant.build/docs/integration_guides_and_tutorials/multi-strategy-vaults"
+          "label": "Octant YDS architecture",
+          "url": "https://docs.v2.octant.build/docs/developers/yield_donating_strategy/architecture-yds"
+        },
+        {
+          "label": "Octant YDS mental model and lifecycle",
+          "url": "https://docs.v2.octant.build/docs/developers/yield_donating_strategy/mental-model-lifecycle-yds"
         }
       ],
       "finding": "Octant docs/resources describe MultistrategyVault.FACTORY() as the vault-level MultistrategyVaultFactory accessor, but this review did not find an official Ethereum mainnet MultistrategyVaultFactory deployment address.",

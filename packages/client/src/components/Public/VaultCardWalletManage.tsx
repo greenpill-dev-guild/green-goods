@@ -3,9 +3,12 @@ import {
   DEFAULT_WITHDRAW_MAX_LOSS_BPS,
   formatTokenAmount,
   getOctantVaultCampaignBySlug,
+  getOctantVaultRedeemCallShape,
   getOctantVaultPendingFundedCardWalletRefs,
+  OCTANT_VAULT_REDEEM_CALL_SHAPES,
   type OctantVaultCardWalletPositionRef,
   type OctantVaultPosition,
+  type OctantVaultRedeemCallVariant,
   rememberOctantVaultCardWalletPosition,
   truncateAddress,
   useOctantVaultPositions,
@@ -39,6 +42,32 @@ function getThirdwebChain(chainId: number) {
   return chainId === ethereum.id ? ethereum : defineChain(chainId);
 }
 
+async function readCardWalletMaxRedeemable({
+  contract,
+  owner,
+}: {
+  contract: ReturnType<typeof getContract>;
+  owner: Address;
+}): Promise<{ shares: bigint; variant: OctantVaultRedeemCallVariant }> {
+  for (const shape of OCTANT_VAULT_REDEEM_CALL_SHAPES) {
+    try {
+      const result = await readContract({
+        contract,
+        method: shape.maxRedeemMethod,
+        params: shape.maxRedeemArgs(owner, DEFAULT_WITHDRAW_MAX_LOSS_BPS),
+      });
+      return {
+        shares: typeof result === "bigint" ? result : 0n,
+        variant: shape.variant,
+      };
+    } catch {
+      // Try the next Octant V2 / ERC-4626-compatible redeem shape.
+    }
+  }
+
+  return { shares: 0n, variant: "multistrategy" };
+}
+
 // The recovered email wallet config must match the one Card Endow connected with,
 // so Thirdweb's autoConnect knows which wallet to silently reconnect.
 function emailInAppWallet() {
@@ -70,7 +99,7 @@ export default function VaultCardWalletManage({ owners, onEndow }: VaultCardWall
 
   if (!client) {
     return (
-      <p className="rounded-2xl bg-error-lighter/30 p-4 text-sm leading-[1.55] text-error-base">
+      <p className="rounded-none bg-error-lighter/30 p-4 text-sm leading-[1.55] text-error-base">
         {formatMessage({
           id: "public.vaults.manage.card.missingClientId",
           defaultMessage: "Card wallet management is not available on this domain yet.",
@@ -153,7 +182,7 @@ function CardOwnerPositions({
   const hasPending = pendingRefs.length > 0;
 
   const readOnlyNote = (
-    <p className="rounded-xl bg-bg-weak-50 p-3 text-xs leading-[1.5] text-text-sub-600">
+    <p className="rounded-none bg-bg-weak-50 p-3 text-xs leading-[1.5] text-text-sub-600">
       {formatMessage({
         id: "public.vaults.manage.card.readOnly",
         defaultMessage: "Read-only — restore the email wallet above to redeem shares.",
@@ -167,7 +196,7 @@ function CardOwnerPositions({
   const sessionBanner =
     (positions.hasPositions || hasPending) && !sessionLive ? (
       sessionResolving ? (
-        <p className="rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-4 text-sm leading-[1.55] text-text-sub-600">
+        <p className="rounded-none border border-stroke-soft-200 bg-bg-white-0 p-4 text-sm leading-[1.55] text-text-sub-600">
           {formatMessage({
             id: "public.vaults.manage.card.checking",
             defaultMessage: "Checking your card wallet session…",
@@ -271,7 +300,7 @@ function CardVaultPositionRow({
       onResetError={() => setError(null)}
       errorNode={
         error ? (
-          <p className="mt-4 rounded-2xl bg-error-lighter/30 p-3 text-xs leading-[1.5] text-error-base">
+          <p className="mt-4 rounded-none bg-error-lighter/30 p-3 text-xs leading-[1.5] text-error-base">
             {error}
           </p>
         ) : null
@@ -280,16 +309,10 @@ function CardVaultPositionRow({
         setError(null);
         try {
           const vault = getContract({ client, chain, address: position.vaultAddress });
-          // Fresh pre-check at the SAME 1% maxLoss the read used, so we fail before
-          // the wallet prompt rather than reverting on-chain.
-          const maxResult = await readContract({
-            contract: vault,
-            method:
-              "function maxRedeem(address owner, uint256 maxLoss, address[] strategies) view returns (uint256)",
-            params: [owner, DEFAULT_WITHDRAW_MAX_LOSS_BPS, []],
-          });
-          const maxRedeemable = typeof maxResult === "bigint" ? maxResult : 0n;
-          if (shares > maxRedeemable) {
+          // Fresh pre-check using the same ABI fallback order the read hook uses,
+          // so TokenizedStrategy pilot vaults do not look unredeemable.
+          const maxRedeemable = await readCardWalletMaxRedeemable({ contract: vault, owner });
+          if (shares > maxRedeemable.shares) {
             throw new Error(
               formatMessage({
                 id: "public.vaults.manage.withdraw.exceeds",
@@ -297,11 +320,11 @@ function CardVaultPositionRow({
               })
             );
           }
+          const redeemShape = getOctantVaultRedeemCallShape(maxRedeemable.variant);
           const transaction = prepareContractCall({
             contract: vault,
-            method:
-              "function redeem(uint256 shares, address receiver, address owner, uint256 maxLoss, address[] strategies) returns (uint256)",
-            params: [shares, owner, owner, DEFAULT_WITHDRAW_MAX_LOSS_BPS, []],
+            method: redeemShape.redeemMethod,
+            params: redeemShape.redeemArgs(shares, owner, owner, DEFAULT_WITHDRAW_MAX_LOSS_BPS),
           });
           await sendAndConfirm.mutateAsync(transaction);
           await onRefresh();
@@ -437,7 +460,7 @@ function PendingFundedDepositCard({
 
   return (
     <section
-      className="rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-4"
+      className="rounded-none border border-stroke-soft-200 bg-bg-white-0 p-4"
       data-testid={`vault-manage-pending-funded-${refEntry.campaignSlug}`}
     >
       <h3 className="font-serif text-lg font-normal text-text-strong-950">
@@ -483,7 +506,7 @@ function PendingFundedDepositCard({
               })}
         </EditorialGhostButton>
       ) : (
-        <p className="mt-3 rounded-xl bg-bg-weak-50 p-3 text-xs leading-[1.5] text-text-sub-600">
+        <p className="mt-3 rounded-none bg-bg-weak-50 p-3 text-xs leading-[1.5] text-text-sub-600">
           {formatMessage({
             id: "public.vaults.manage.card.pendingRestoreNote",
             defaultMessage: "Restore the email wallet above to finish this deposit.",
@@ -491,7 +514,7 @@ function PendingFundedDepositCard({
         </p>
       )}
       {error ? (
-        <p className="mt-3 rounded-xl bg-error-lighter/30 p-3 text-xs leading-[1.5] text-error-base">
+        <p className="mt-3 rounded-none bg-error-lighter/30 p-3 text-xs leading-[1.5] text-error-base">
           {error}
         </p>
       ) : null}
@@ -572,7 +595,7 @@ function RestoreEmailWallet({
   );
 
   return (
-    <section className="rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-4">
+    <section className="rounded-none border border-stroke-soft-200 bg-bg-white-0 p-4">
       <h3 className="font-serif text-lg font-normal text-text-strong-950">
         {formatMessage({
           id: "public.vaults.manage.card.restoreTitle",
@@ -627,7 +650,7 @@ function RestoreEmailWallet({
 
       {otpSent ? (
         <form className="mt-3 grid gap-2" onSubmit={verify}>
-          <p className="rounded-xl bg-primary-action/10 p-3 text-xs leading-[1.5] text-primary-base">
+          <p className="rounded-none bg-primary-action/10 p-3 text-xs leading-[1.5] text-primary-base">
             {formatMessage(
               {
                 id: "public.vaults.manage.card.codeSent",
@@ -672,7 +695,7 @@ function RestoreEmailWallet({
       ) : null}
 
       {error ? (
-        <p className="mt-3 rounded-xl bg-error-lighter/30 p-3 text-xs leading-[1.5] text-error-base">
+        <p className="mt-3 rounded-none bg-error-lighter/30 p-3 text-xs leading-[1.5] text-error-base">
           {error}
         </p>
       ) : null}

@@ -135,6 +135,87 @@ describe("hooks/vault/useOctantVaultRedeem", () => {
     );
   });
 
+  it("falls back to the TokenizedStrategy redeem overload when multistrategy maxRedeem is unavailable", async () => {
+    mockReadContract.mockRejectedValueOnce(new Error("selector unavailable"));
+    mockReadContract.mockResolvedValueOnce(1_000n);
+    const queryClient = makeQueryClient();
+
+    const { result } = renderHook(() => useOctantVaultRedeem(), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        chainId: OCTANT_CHAIN_ID,
+        vaultAddress: VAULT,
+        shares: 400n,
+      });
+    });
+
+    expect(mockReadContract).toHaveBeenNthCalledWith(
+      1,
+      expect.anything(),
+      expect.objectContaining({
+        functionName: "maxRedeem",
+        args: [OWNER, 100n, []],
+        chainId: OCTANT_CHAIN_ID,
+      })
+    );
+    expect(mockReadContract).toHaveBeenNthCalledWith(
+      2,
+      expect.anything(),
+      expect.objectContaining({
+        functionName: "maxRedeem",
+        args: [OWNER, 100n],
+        chainId: OCTANT_CHAIN_ID,
+      })
+    );
+    expect(mockSendContractCall).toHaveBeenCalledWith(
+      expect.objectContaining({
+        address: VAULT,
+        functionName: "redeem",
+        args: [400n, OWNER, OWNER, 100n],
+        chainId: OCTANT_CHAIN_ID,
+      })
+    );
+  });
+
+  it("falls back to the plain ERC-4626 redeem overload when maxLoss overloads are unavailable", async () => {
+    mockReadContract.mockRejectedValueOnce(new Error("multistrategy selector unavailable"));
+    mockReadContract.mockRejectedValueOnce(new Error("tokenized selector unavailable"));
+    mockReadContract.mockResolvedValueOnce(1_000n);
+
+    const { result } = renderHook(() => useOctantVaultRedeem(), {
+      wrapper: createWrapper(makeQueryClient()),
+    });
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        chainId: OCTANT_CHAIN_ID,
+        vaultAddress: VAULT,
+        shares: 400n,
+      });
+    });
+
+    expect(mockReadContract).toHaveBeenNthCalledWith(
+      3,
+      expect.anything(),
+      expect.objectContaining({
+        functionName: "maxRedeem",
+        args: [OWNER],
+        chainId: OCTANT_CHAIN_ID,
+      })
+    );
+    expect(mockSendContractCall).toHaveBeenCalledWith(
+      expect.objectContaining({
+        address: VAULT,
+        functionName: "redeem",
+        args: [400n, OWNER, OWNER],
+        chainId: OCTANT_CHAIN_ID,
+      })
+    );
+  });
+
   it("rejects when shares exceed maxRedeem and never signs", async () => {
     mockReadContract.mockResolvedValueOnce(100n); // maxRedeem below requested shares
     const { result } = renderHook(() => useOctantVaultRedeem(), {

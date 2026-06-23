@@ -108,13 +108,49 @@ describe("hooks/vault/useOctantVaultPositions", () => {
     expect(position.assetSymbol).toBe("WETH");
     expect(position.chainId).toBe(1);
 
-    // maxRedeem is read at the 1% default maxLoss so displayed shares match what
-    // the redeem paths will accept.
+    // Multistrategy vaults are read at the 1% default maxLoss so displayed
+    // shares match what the redeem paths will accept.
     expect(mockReadContract).toHaveBeenCalledWith(
       expect.objectContaining({ functionName: "maxRedeem", args: [OWNER, 100n, []] })
     );
     expect(mockReadContract).toHaveBeenCalledWith(
       expect.objectContaining({ functionName: "convertToAssets", args: [400n] })
+    );
+  });
+
+  it("falls back to TokenizedStrategy maxRedeem(owner, maxLoss) when the multistrategy overload is unavailable", async () => {
+    mockReadContract.mockImplementation(
+      (call: { address: string; functionName: string; args?: readonly unknown[] }) => {
+        if (call.address.toLowerCase() === VAULT_B.toLowerCase()) return Promise.resolve(0n);
+        if (call.functionName === "balanceOf") return Promise.resolve(500n);
+        if (call.functionName === "convertToAssets") return Promise.resolve(600n);
+        if (call.functionName === "maxRedeem" && call.args?.length === 3) {
+          return Promise.reject(new Error("selector unavailable"));
+        }
+        if (call.functionName === "maxRedeem" && call.args?.length === 2) {
+          return Promise.resolve(500n);
+        }
+        return Promise.resolve(0n);
+      }
+    );
+
+    const { result } = renderHook(() => useOctantVaultPositions(OWNER, { campaigns: CAMPAIGNS }), {
+      wrapper: wrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.positions).toHaveLength(1);
+    expect(result.current.positions[0]).toMatchObject({
+      shares: 500n,
+      redeemableShares: 500n,
+      estimatedRedeemAssets: 600n,
+    });
+    expect(mockReadContract).toHaveBeenCalledWith(
+      expect.objectContaining({ functionName: "maxRedeem", args: [OWNER, 100n, []] })
+    );
+    expect(mockReadContract).toHaveBeenCalledWith(
+      expect.objectContaining({ functionName: "maxRedeem", args: [OWNER, 100n] })
     );
   });
 

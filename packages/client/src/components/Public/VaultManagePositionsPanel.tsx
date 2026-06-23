@@ -228,7 +228,7 @@ function ConnectedWalletSection({
 
   if (!address) {
     return (
-      <div className="rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-5">
+      <div className="rounded-none border border-stroke-soft-200 bg-bg-white-0 p-5">
         <h3 className="font-serif text-xl font-normal text-text-strong-950">
           {formatMessage({
             id: "public.vaults.manage.connected.connectTitle",
@@ -290,7 +290,7 @@ function ConnectedWalletIndicator({ address }: { address: Address }) {
   const fallbackAddress = formatAddress(address, { variant: "long" });
 
   return (
-    <section className="rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-4">
+    <section className="rounded-none border border-stroke-soft-200 bg-bg-white-0 p-4">
       <p className="font-mono text-[10.5px] font-medium uppercase tracking-[0.18em] text-text-soft-400">
         {formatMessage({
           id: "public.vaults.manage.connectedWallet",
@@ -340,7 +340,7 @@ export function PositionsList({
     return (
       <Alert
         variant="error"
-        className="rounded-2xl bg-error-lighter/30 p-5"
+        className="rounded-none bg-error-lighter/30 p-5"
         title={formatMessage({
           id: "public.vaults.manage.error.title",
           defaultMessage: "We couldn't load these vault shares",
@@ -364,7 +364,7 @@ export function PositionsList({
 
   if (!positions.hasPositions) {
     return (
-      <div className="rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-5">
+      <div className="rounded-none border border-stroke-soft-200 bg-bg-white-0 p-5">
         {beforeList}
         <h3 className="font-serif text-xl font-normal text-text-strong-950">{emptyTitle}</h3>
         <p className="mt-3 text-sm leading-[1.6] text-text-sub-600">
@@ -406,8 +406,8 @@ export function PositionsList({
 export function PositionsSkeleton() {
   return (
     <div className="space-y-4" aria-hidden="true">
-      <div className="h-28 animate-pulse rounded-2xl bg-bg-white-0" />
-      <div className="h-28 animate-pulse rounded-2xl bg-bg-white-0" />
+      <div className="h-28 animate-pulse rounded-none bg-bg-white-0" />
+      <div className="h-28 animate-pulse rounded-none bg-bg-white-0" />
     </div>
   );
 }
@@ -438,7 +438,7 @@ function ConnectedVaultPositionRow({
         redeem.error ? (
           <Alert
             variant="error"
-            className="mt-4 rounded-2xl bg-error-lighter/30 p-3"
+            className="mt-4 rounded-none bg-error-lighter/30 p-3"
             title={txError.title}
           >
             <p className="mt-1 text-xs leading-[1.5] text-text-sub-600">{txError.message}</p>
@@ -583,7 +583,7 @@ export function VaultPositionRowView({
 
   return (
     <article
-      className="rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-4"
+      className="rounded-none border border-stroke-soft-200 bg-bg-white-0 p-4"
       data-testid={`vault-manage-position-${position.campaignSlug}`}
     >
       <div className="flex items-start justify-between gap-4">
@@ -761,7 +761,7 @@ export function VaultPositionRowView({
       {redemptionUnavailable ? (
         <Alert
           variant="warning"
-          className="mt-3 rounded-2xl bg-warning-lighter/30 p-3"
+          className="mt-3 rounded-none bg-warning-lighter/30 p-3"
           title={formatMessage({
             id: "public.vaults.manage.redeem.unavailableTitle",
             defaultMessage: "Redemption unavailable right now",
@@ -780,7 +780,7 @@ export function VaultPositionRowView({
       {redemptionPreviewUnavailable ? (
         <Alert
           variant="warning"
-          className="mt-3 rounded-2xl bg-warning-lighter/30 p-3"
+          className="mt-3 rounded-none bg-warning-lighter/30 p-3"
           title={formatMessage({
             id: "public.vaults.manage.redeem.previewUnavailableTitle",
             defaultMessage: "Estimated proceeds unavailable",
@@ -799,7 +799,7 @@ export function VaultPositionRowView({
       {expanded && !disabledReason && !redeemControlUnavailable ? (
         <div
           id={regionId}
-          className="mt-4 rounded-2xl border border-stroke-soft-200 bg-bg-weak-50 p-4"
+          className="mt-4 rounded-none border border-stroke-soft-200 bg-bg-weak-50 p-4"
         >
           <label
             htmlFor={amountInputId}
@@ -871,7 +871,7 @@ export function VaultPositionRowView({
           )}
 
           {showConfirm ? (
-            <div className="mt-4 rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-4">
+            <div className="mt-4 rounded-none border border-stroke-soft-200 bg-bg-white-0 p-4">
               <p className="font-serif text-lg font-normal text-text-strong-950">
                 {formatMessage({
                   id: "public.vaults.manage.withdraw.confirmTitle",
@@ -940,7 +940,7 @@ export function VaultPositionRowView({
           {errorNode}
 
           {successMessage ? (
-            <Alert variant="success" className="mt-4 rounded-2xl bg-success-lighter/30 p-3">
+            <Alert variant="success" className="mt-4 rounded-none bg-success-lighter/30 p-3">
               {successMessage}
             </Alert>
           ) : null}
