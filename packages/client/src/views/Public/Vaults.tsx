@@ -12,15 +12,9 @@ import {
   type OctantVaultCampaignManifest,
 } from "@green-goods/shared";
 import { RiExternalLinkLine } from "@remixicon/react";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
-import { Navigate, useLocation, useSearchParams } from "react-router-dom";
+import { Link, Navigate, useLocation, useSearchParams } from "react-router-dom";
 import {
   EditorialHeading,
   EditorialKicker,
@@ -90,31 +84,18 @@ function formatCampaignCopy(
   };
 }
 
-function CampaignStatus({
-  campaign,
-}: {
-  campaign: OctantVaultCampaignManifest;
-}) {
+function CampaignStatus({ campaign }: { campaign: OctantVaultCampaignManifest }) {
   const { formatMessage } = useIntl();
   const state = getOctantVaultCampaignTransactionState(campaign);
-  const label = state.walletEndowEnabled
-    ? formatMessage({
-        id: "public.vaults.status.ready",
-        defaultMessage: "Ready for checkout",
-      })
-    : formatMessage({
-        id: "public.vaults.status.blocked",
-        defaultMessage: "Preview",
-      });
+  if (state.walletEndowEnabled) return null;
+
+  const label = formatMessage({
+    id: "public.vaults.status.blocked",
+    defaultMessage: "Preview",
+  });
 
   return (
-    <span
-      className={
-        state.walletEndowEnabled
-          ? "inline-flex w-fit rounded-full bg-primary-action/12 px-3 py-1 font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-primary-base"
-          : "inline-flex w-fit rounded-full bg-bg-weak-50 px-3 py-1 font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-text-sub-600 ring-1 ring-stroke-soft-200"
-      }
-    >
+    <span className="inline-flex w-fit rounded-full bg-bg-weak-50 px-3 py-1 font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-text-sub-600 ring-1 ring-stroke-soft-200">
       {label}
     </span>
   );
@@ -141,16 +122,10 @@ function CampaignPreviewNote() {
  * route exists. Supporter/donor counts are a follow-up (not indexed for these
  * mainnet vaults yet).
  */
-function CampaignVaultStats({
-  campaign,
-}: {
-  campaign: OctantVaultCampaignManifest;
-}) {
+function CampaignVaultStats({ campaign }: { campaign: OctantVaultCampaignManifest }) {
   const { formatMessage } = useIntl();
   const decimals = campaign.vault?.asset?.decimals ?? 18;
-  const donorSymbol = getOctantVaultAssetDisplayPolicy(
-    campaign.vault?.asset?.symbol
-  ).donorSymbol;
+  const donorSymbol = getOctantVaultAssetDisplayPolicy(campaign.vault?.asset?.symbol).donorSymbol;
   const stats = useOctantVaultStats({
     vaultAddress: campaign.vault?.vaultAddress,
     chainId: campaign.vault?.chainId,
@@ -159,13 +134,7 @@ function CampaignVaultStats({
 
   if (!campaign.vault?.vaultAddress || stats.isError) return null;
 
-  const tokenAmount = formatTokenAmount(
-    stats.totalAssets,
-    decimals,
-    4,
-    undefined,
-    true
-  );
+  const tokenAmount = formatTokenAmount(stats.totalAssets, decimals, 4, undefined, true);
   const usd = stats.usdCents !== null ? formatUsdCents(stats.usdCents) : null;
 
   return (
@@ -180,9 +149,7 @@ function CampaignVaultStats({
         })}
       </dt>
       {stats.isLoading ? (
-        <dd className="mt-1 font-serif text-2xl leading-none text-text-soft-400">
-          …
-        </dd>
+        <dd className="mt-1 font-serif text-2xl leading-none text-text-soft-400">…</dd>
       ) : stats.totalAssets > 0n ? (
         <dd className="mt-1 flex items-baseline gap-2">
           <span className="font-serif text-3xl leading-none text-text-strong-950">
@@ -206,11 +173,7 @@ function CampaignVaultStats({
   );
 }
 
-function CampaignYieldRow({
-  campaign,
-}: {
-  campaign: OctantVaultCampaignManifest;
-}) {
+function CampaignYieldRow({ campaign }: { campaign: OctantVaultCampaignManifest }) {
   const { formatMessage } = useIntl();
   const assetSymbol = campaign.vault?.asset?.symbol ?? "WETH";
   const assetDecimals = campaign.vault?.asset?.decimals ?? 18;
@@ -354,7 +317,7 @@ function YieldSupportExplainer() {
             >
               {formatMessage({
                 id: "public.vaults.strategy.source.title",
-                defaultMessage: "Source docs",
+                defaultMessage: "Technical docs",
               })}
             </p>
             <a
@@ -383,8 +346,7 @@ function YieldSupportExplainer() {
               <span>
                 {formatMessage({
                   id: "public.vaults.strategy.source.contract",
-                  defaultMessage:
-                    "YieldDonatingTokenizedStrategy contract docs",
+                  defaultMessage: "YieldDonatingTokenizedStrategy contract docs",
                 })}
               </span>
               <RiExternalLinkLine
@@ -538,17 +500,14 @@ export function VaultsPageContent({
   campaigns?: OctantVaultCampaignManifest[];
 } = {}) {
   const { formatMessage } = useIntl();
-  const campaigns = useMemo(
-    () => campaignItems ?? getOctantVaultCampaigns(),
-    [campaignItems]
-  );
+  const campaigns = useMemo(() => campaignItems ?? getOctantVaultCampaigns(), [campaignItems]);
   const [searchParams, setSearchParams] = useSearchParams();
-  const managing =
-    searchParams.get(MANAGE_POSITIONS_PARAM) === MANAGE_POSITIONS_VALUE;
+  const managing = searchParams.get(MANAGE_POSITIONS_PARAM) === MANAGE_POSITIONS_VALUE;
   const [isManagePanelOpen, setManagePanelOpen] = useState(managing);
   const isManagePanelClosePendingRef = useRef(false);
-  const [selectedCampaign, setSelectedCampaign] =
-    useState<OctantVaultCampaignManifest | null>(null);
+  const [selectedCampaign, setSelectedCampaign] = useState<OctantVaultCampaignManifest | null>(
+    null
+  );
   const shouldRenderManagePanel =
     isManagePanelOpen || isManagePanelClosePendingRef.current || managing;
 
@@ -624,13 +583,10 @@ export function VaultsPageContent({
         title={formatMessage(
           {
             id: "public.vaults.hero.title",
-            defaultMessage:
-              "Octant vault campaigns for <accent>public goods</accent>.",
+            defaultMessage: "Octant vault campaigns for <accent>public goods</accent>.",
           },
           {
-            accent: (chunks) => (
-              <EditorialTitleAccent>{chunks}</EditorialTitleAccent>
-            ),
+            accent: (chunks) => <EditorialTitleAccent>{chunks}</EditorialTitleAccent>,
           }
         )}
         lede={formatMessage({
@@ -656,15 +612,14 @@ export function VaultsPageContent({
               <EditorialHeading id="public-vaults-browse-title">
                 {formatMessage({
                   id: "public.vaults.browse.title",
-                  defaultMessage:
-                    "Two pilot campaigns, each with its own Octant vault.",
+                  defaultMessage: "Two pilot campaigns, each with its own Octant vault.",
                 })}
               </EditorialHeading>
               <EditorialLede className="mt-5">
                 {formatMessage({
                   id: "public.vaults.browse.lede",
                   defaultMessage:
-                    "Your support funds real public goods work and keeps working over time.",
+                    "Your support funds real public goods work and keeps growing over time.",
                 })}
               </EditorialLede>
             </div>
@@ -685,11 +640,7 @@ export function VaultsPageContent({
 
           <div className="mt-10 grid grid-cols-1 gap-5 lg:grid-cols-2">
             {campaigns.map((campaign) => (
-              <CampaignCard
-                key={campaign.slug}
-                campaign={campaign}
-                onEndow={handleEndow}
-              />
+              <CampaignCard key={campaign.slug} campaign={campaign} onEndow={handleEndow} />
             ))}
           </div>
         </div>
@@ -711,16 +662,25 @@ export function VaultsPageContent({
           <EditorialHeading id="public-vaults-boundary-title" size="sub">
             {formatMessage({
               id: "public.vaults.boundary.title",
-              defaultMessage: "Octant vault endowments live here.",
+              defaultMessage: "Vaults are the Octant lane.",
             })}
           </EditorialHeading>
           <p className="mt-4 max-w-3xl text-sm leading-[1.65] text-text-sub-600 md:text-base">
             {formatMessage({
               id: "public.vaults.boundary.body",
               defaultMessage:
-                "This page is for Octant vault endowments. Garden funding remains separate.",
+                "This Octant vault lane funds specific campaigns. Gardens carry the broader Green Goods public record of places, work, and impact.",
             })}
           </p>
+          <Link
+            to="/gardens"
+            className="mt-5 inline-flex text-sm font-medium text-primary-base underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
+          >
+            {formatMessage({
+              id: "public.vaults.boundary.cta",
+              defaultMessage: "Explore Gardens",
+            })}
+          </Link>
         </div>
       </section>
 

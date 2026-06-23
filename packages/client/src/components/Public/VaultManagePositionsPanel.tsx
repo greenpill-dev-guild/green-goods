@@ -2,10 +2,11 @@ import {
   type Address,
   Alert,
   cn,
+  formatAddress,
   formatTokenAmount,
   type OctantVaultPosition,
-  truncateAddress,
   useAuth,
+  useEnsName,
   useOctantVaultPositions,
   useOctantVaultRedeem,
   useTxErrorMessages,
@@ -256,23 +257,58 @@ function ConnectedWalletSection({
   }
 
   return (
-    <PositionsList
-      positions={positions}
-      ownerLabel={truncateAddress(address)}
-      emptyTitle={formatMessage({
-        id: "public.vaults.manage.empty.connected.title",
-        defaultMessage: "No vault shares for this wallet yet",
-      })}
-      onEndow={onEndow}
-      renderRow={(position) => (
-        <ConnectedVaultPositionRow
-          key={`${position.vaultAddress}:${position.chainId}`}
-          position={position}
-          owner={address}
-          onRefresh={positions.refetch}
-        />
-      )}
-    />
+    <div className="space-y-4">
+      <ConnectedWalletIndicator address={address} />
+      <PositionsList
+        positions={positions}
+        ownerLabel=""
+        emptyTitle={formatMessage({
+          id: "public.vaults.manage.empty.connected.title",
+          defaultMessage: "No vault shares for this wallet yet",
+        })}
+        onEndow={onEndow}
+        renderRow={(position) => (
+          <ConnectedVaultPositionRow
+            key={`${position.vaultAddress}:${position.chainId}`}
+            position={position}
+            owner={address}
+            onRefresh={positions.refetch}
+          />
+        )}
+      />
+    </div>
+  );
+}
+
+function ConnectedWalletIndicator({ address }: { address: Address }) {
+  const { formatMessage } = useIntl();
+  const { data: ensName } = useEnsName(address, { enabled: Boolean(address) });
+  const displayLabel = formatAddress(address, {
+    ensName: ensName ?? undefined,
+    variant: "long",
+  });
+  const fallbackAddress = formatAddress(address, { variant: "long" });
+
+  return (
+    <section className="rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-4">
+      <p className="font-mono text-[10.5px] font-medium uppercase tracking-[0.18em] text-text-soft-400">
+        {formatMessage({
+          id: "public.vaults.manage.connectedWallet",
+          defaultMessage: "Connected wallet",
+        })}
+      </p>
+      <p
+        className={cn(
+          "mt-2 text-sm font-medium text-text-strong-950",
+          ensName ? "truncate" : "break-all font-mono"
+        )}
+      >
+        {displayLabel}
+      </p>
+      {ensName ? (
+        <p className="mt-1 break-all font-mono text-xs text-text-soft-400">{fallbackAddress}</p>
+      ) : null}
+    </section>
   );
 }
 
@@ -357,9 +393,11 @@ export function PositionsList({
   return (
     <div className="space-y-4">
       {beforeList}
-      <p className="font-mono text-[10.5px] font-medium uppercase tracking-[0.18em] text-text-soft-400">
-        {ownerLabel}
-      </p>
+      {ownerLabel ? (
+        <p className="font-mono text-[10.5px] font-medium uppercase tracking-[0.18em] text-text-soft-400">
+          {ownerLabel}
+        </p>
+      ) : null}
       <div className="space-y-4">{positions.positions.map(renderRow)}</div>
     </div>
   );

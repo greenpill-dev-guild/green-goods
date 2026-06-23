@@ -25,6 +25,7 @@ const { CONNECTED, CARD, VAULT, ASSET } = vi.hoisted(() => ({
 const mocks = vi.hoisted(() => ({
   authMode: null as "wallet" | "passkey" | "embedded" | null,
   primaryAddress: undefined as string | undefined,
+  ensName: null as string | null,
   loginWithWallet: vi.fn(),
   walletRuntimeRender: vi.fn(),
   positionsByOwner: {} as Record<string, ReturnType<typeof emptyPositions> | undefined>,
@@ -79,6 +80,11 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
     ...actual,
     useAuth: () => ({ loginWithWallet: mocks.loginWithWallet }),
     useUser: () => ({ authMode: mocks.authMode, primaryAddress: mocks.primaryAddress }),
+    useEnsName: () => ({
+      data: mocks.ensName,
+      isLoading: false,
+      isError: false,
+    }),
     useOctantVaultPositions: (owner?: string | null) =>
       owner ? (mocks.positionsByOwner[owner.toLowerCase()] ?? emptyPositions()) : emptyPositions(),
     useOctantVaultRedeem: () => ({
@@ -276,6 +282,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   mocks.authMode = null;
   mocks.primaryAddress = undefined;
+  mocks.ensName = null;
   mocks.positionsByOwner = {};
   mocks.wrapEthToWethMutate.mockClear();
   mocks.wrapEthToWethReset.mockClear();
@@ -414,9 +421,12 @@ describe("/vaults?manage=positions", () => {
   it("shows a localized empty state pointing back to Endow when there are no positions", () => {
     mocks.authMode = "wallet";
     mocks.primaryAddress = CONNECTED; // no positions seeded
+    mocks.ensName = "vault-owner.eth";
     renderPage("/vaults?manage=positions");
 
     const panel = screen.getByTestId("vault-manage-positions-panel");
+    expect(within(panel).getByText("Connected wallet")).toBeInTheDocument();
+    expect(within(panel).getByText("vault-owner.eth")).toBeInTheDocument();
     expect(within(panel).getByText("No vault shares for this wallet yet")).toBeInTheDocument();
     expect(within(panel).getByRole("button", { name: "Endow a campaign" })).toBeInTheDocument();
   });
@@ -608,7 +618,6 @@ describe("checkout success no longer points to Fund", () => {
 
     await user.click(screen.getByRole("button", { name: "Endow to Synthetic complete campaign" }));
     await user.type(screen.getByLabelText("Amount to endow"), "2.50");
-    await user.click(screen.getByRole("button", { name: "Review endowment" }));
     await user.click(screen.getByRole("button", { name: "Confirm endowment" }));
 
     const success = await screen.findByTestId("vault-wallet-endow-success");
@@ -617,6 +626,10 @@ describe("checkout success no longer points to Fund", () => {
     expect(container.querySelector('a[href="/fund"]')).toBeNull();
     expect(within(success).queryByText(/Fund page/i)).toBeNull();
     // Primary CTA is now Manage Endowments.
-    expect(screen.getByRole("button", { name: "Manage Endowments" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Manage Endowments" }));
+
+    expect(screen.queryByTestId("vault-wallet-endow-success")).not.toBeInTheDocument();
+    expect(screen.getByTestId("vault-manage-positions-panel")).toBeInTheDocument();
+    expect(screen.getAllByTestId("wallet-runtime-provider")).toHaveLength(1);
   });
 });
