@@ -123,12 +123,13 @@ export function CheckoutSurface({
         overlayClassName="vault-checkout-mobile-overlay"
         panelClassName={cn(
           "vault-checkout-mobile-panel vault-checkout-surface rounded-t-none",
+          "flex flex-col overflow-hidden",
           "h-[85dvh] max-h-[85dvh]"
         )}
         panelStyle={{ height: "85dvh", maxHeight: "85dvh" }}
         autoFocusSelector='[data-testid="vault-checkout-sheet-close"]'
       >
-        <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <div className="flex shrink-0 items-start justify-between gap-3 border-b border-stroke-soft-200 px-4 py-3">
             <div className="min-w-0">
               <h2 className="text-left">{title}</h2>
@@ -161,7 +162,7 @@ export function CheckoutSurface({
       size="xl"
       preventClose={preventClose}
       hideCloseButton={hideCloseButton}
-      className={cn("vault-checkout-surface flex flex-col", "h-[min(40rem,90vh)]")}
+      className={cn("vault-checkout-surface flex flex-col overflow-hidden", "h-[min(40rem,90vh)]")}
       headerClassName="px-4 py-2 sm:px-5 sm:py-2"
       descriptionClassName="sr-only"
       bodyClassName="flex min-h-0 flex-1 flex-col overflow-hidden !p-0 sm:!p-0 max-h-none"
@@ -178,10 +179,22 @@ export function CheckoutSurface({
  */
 export function CheckoutScreen({ children, footer }: { children: ReactNode; footer?: ReactNode }) {
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 sm:px-6 sm:py-5">{children}</div>
+    <div
+      data-testid="vault-checkout-screen"
+      className="flex min-h-0 flex-1 flex-col overflow-hidden"
+    >
+      <div
+        data-testid="vault-checkout-scroll-body"
+        className="min-h-0 flex-1 overscroll-contain overflow-y-auto px-4 py-4 sm:px-6 sm:py-5"
+        style={{ scrollbarGutter: "stable" }}
+      >
+        {children}
+      </div>
       {footer ? (
-        <div className="shrink-0 border-t border-stroke-soft-200 bg-bg-white-0 px-4 py-4 sm:px-6">
+        <div
+          data-testid="vault-checkout-footer"
+          className="shrink-0 border-t border-stroke-soft-200 bg-bg-white-0 px-4 py-4 sm:px-6"
+        >
           {footer}
         </div>
       ) : null}

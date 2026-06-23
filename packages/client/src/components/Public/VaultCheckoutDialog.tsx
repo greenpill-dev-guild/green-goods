@@ -1,4 +1,5 @@
 import {
+  cn,
   formatAddress,
   formatTokenAmount,
   formatUsdCents,
@@ -197,6 +198,7 @@ function VaultCheckoutDialogContent({
           "ETH pricing is temporarily unavailable. Keep this amount and try again in a moment.",
       })
     : null;
+  const amountFeedbackMessage = amountError ?? pricingStatusMessage;
 
   const effectiveAmount = committedAmount ?? parsedAmount;
   const hasReadyAmount =
@@ -500,9 +502,16 @@ function VaultCheckoutDialogContent({
                 defaultMessage: "Enter an amount",
               })}
           </span>
-          {settlementDetail ? (
-            <span className="text-xs text-text-soft-400">{settlementDetail}</span>
-          ) : null}
+          <span
+            data-testid="vault-checkout-summary-settlement"
+            aria-hidden={settlementDetail ? undefined : true}
+            className={cn(
+              "min-h-[1.125rem] text-xs text-text-soft-400",
+              settlementDetail ? null : "invisible"
+            )}
+          >
+            {settlementDetail || "\u00a0"}
+          </span>
         </span>
       ),
     },
@@ -552,6 +561,41 @@ function VaultCheckoutDialogContent({
             "Wallet Endow is disabled in local Arbitrum fork mode because this Octant vault settles on Ethereum mainnet. Open a non-fork dev surface or production before sending a real endowment.",
         })
       : null;
+  const balanceFeedback = shouldWrapBeforeDeposit
+    ? {
+        tone: "primary" as const,
+        message: formatMessage(
+          {
+            id: "public.vaults.walletEndow.balances.wrapPrompt",
+            defaultMessage:
+              "Your wallet has enough ETH. Wrap {amount} ETH into WETH before confirming the vault deposit.",
+          },
+          { amount: formattedWrapAmount }
+        ),
+      }
+    : ethShortForGasOnly
+      ? {
+          tone: "warning" as const,
+          message: formatMessage({
+            id: "public.vaults.walletEndow.balances.gasReserveWarning",
+            defaultMessage:
+              "You have enough ETH to wrap, but not enough left for network fees on the approve and deposit steps. Add a little more ETH, then try again.",
+          }),
+        }
+      : insufficientFundsMessage
+        ? {
+            tone: "error" as const,
+            message: insufficientFundsMessage,
+          }
+        : hasCompletedWrapForAmount
+          ? {
+              tone: "primary" as const,
+              message: formatMessage({
+                id: "public.vaults.walletEndow.balances.wrapComplete",
+                defaultMessage: "ETH was wrapped. Continue to confirm the WETH vault deposit.",
+              }),
+            }
+          : null;
   const vaultExplorerUrl = getAddressExplorerUrl(
     campaign.vault?.explorerLink,
     campaign.vault?.vaultAddress
@@ -784,28 +828,45 @@ function VaultCheckoutDialogContent({
                 }
               )}
             </p>
-            {amountError ? (
-              <p id={amountErrorId} className="text-xs leading-[1.5] text-error-base">
-                {amountError}
-              </p>
-            ) : null}
-            {pricingStatusMessage ? (
-              <p
-                id={pricingStatusId}
-                role="status"
-                className="rounded-none bg-bg-weak-50 p-3 text-xs leading-[1.5] text-text-sub-600"
-              >
-                {pricingStatusMessage}
-              </p>
-            ) : null}
+            <div
+              data-testid="vault-checkout-amount-feedback"
+              data-state={amountFeedbackMessage ? "visible" : "empty"}
+              aria-hidden={amountFeedbackMessage ? undefined : true}
+              className={cn(
+                "min-h-12 max-h-20 overflow-y-auto break-words rounded-none p-3 text-xs leading-[1.5] transition-colors",
+                amountError
+                  ? "bg-error-lighter/20 text-error-base"
+                  : pricingStatusMessage
+                    ? "bg-bg-weak-50 text-text-sub-600"
+                    : "invisible bg-bg-weak-50 text-text-sub-600"
+              )}
+            >
+              {amountError ? (
+                <p id={amountErrorId}>{amountError}</p>
+              ) : pricingStatusMessage ? (
+                <p id={pricingStatusId} role="status">
+                  {pricingStatusMessage}
+                </p>
+              ) : null}
+            </div>
           </div>
 
           <CheckoutSummary items={summaryItems} />
 
-          {localForkBlockedMessage ? (
-            <p className="rounded-none bg-warning-lighter/40 p-4 text-sm leading-[1.55] text-text-sub-600">
-              {localForkBlockedMessage}
-            </p>
+          {localForkBlocksWalletEndow ? (
+            <div
+              data-testid="vault-checkout-availability-feedback"
+              data-state={localForkBlockedMessage ? "visible" : "empty"}
+              aria-hidden={localForkBlockedMessage ? undefined : true}
+              className={cn(
+                "min-h-28 max-h-32 overflow-y-auto break-words rounded-none p-4 text-sm leading-[1.55] transition-colors",
+                localForkBlockedMessage
+                  ? "bg-warning-lighter/40 text-text-sub-600"
+                  : "invisible bg-warning-lighter/40 text-text-sub-600"
+              )}
+            >
+              {localForkBlockedMessage ? <p>{localForkBlockedMessage}</p> : null}
+            </div>
           ) : null}
 
           <dl className="grid gap-3 text-sm sm:grid-cols-2">
@@ -887,37 +948,23 @@ function VaultCheckoutDialogContent({
                   </div>
                 </dl>
               )}
-              {shouldWrapBeforeDeposit ? (
-                <p className="mt-4 rounded-none bg-primary-action/10 p-3 text-sm leading-[1.55] text-primary-base">
-                  {formatMessage(
-                    {
-                      id: "public.vaults.walletEndow.balances.wrapPrompt",
-                      defaultMessage:
-                        "Your wallet has enough ETH. Wrap {amount} ETH into WETH before confirming the vault deposit.",
-                    },
-                    { amount: formattedWrapAmount }
-                  )}
-                </p>
-              ) : ethShortForGasOnly ? (
-                <p className="mt-4 rounded-none bg-warning-lighter/40 p-3 text-sm leading-[1.55] text-text-sub-600">
-                  {formatMessage({
-                    id: "public.vaults.walletEndow.balances.gasReserveWarning",
-                    defaultMessage:
-                      "You have enough ETH to wrap, but not enough left for network fees on the approve and deposit steps. Add a little more ETH, then try again.",
-                  })}
-                </p>
-              ) : insufficientFundsMessage ? (
-                <p className="mt-4 rounded-none bg-error-lighter/30 p-3 text-sm leading-[1.55] text-error-base">
-                  {insufficientFundsMessage}
-                </p>
-              ) : hasCompletedWrapForAmount ? (
-                <p className="mt-4 rounded-none bg-primary-action/10 p-3 text-sm leading-[1.55] text-primary-base">
-                  {formatMessage({
-                    id: "public.vaults.walletEndow.balances.wrapComplete",
-                    defaultMessage: "ETH was wrapped. Continue to confirm the WETH vault deposit.",
-                  })}
-                </p>
-              ) : null}
+              <div
+                data-testid="vault-checkout-balance-feedback"
+                data-state={balanceFeedback ? "visible" : "empty"}
+                aria-hidden={balanceFeedback ? undefined : true}
+                className={cn(
+                  "mt-4 min-h-20 max-h-32 overflow-y-auto break-words rounded-none p-3 text-sm leading-[1.55] transition-colors",
+                  balanceFeedback?.tone === "primary"
+                    ? "bg-primary-action/10 text-primary-base"
+                    : balanceFeedback?.tone === "warning"
+                      ? "bg-warning-lighter/40 text-text-sub-600"
+                      : balanceFeedback?.tone === "error"
+                        ? "bg-error-lighter/30 text-error-base"
+                        : "invisible bg-bg-weak-50 text-text-sub-600"
+                )}
+              >
+                {balanceFeedback ? <p>{balanceFeedback.message}</p> : null}
+              </div>
             </section>
           ) : null}
 
