@@ -348,7 +348,7 @@ function YieldSupportExplainer() {
               <span>
                 {formatMessage({
                   id: "public.vaults.strategy.source.introduction",
-                  defaultMessage: "YDS introduction",
+                  defaultMessage: "Yield Donating Strategy introduction",
                 })}
               </span>
               <RiExternalLinkLine
@@ -365,7 +365,7 @@ function YieldSupportExplainer() {
               <span>
                 {formatMessage({
                   id: "public.vaults.strategy.source.architecture",
-                  defaultMessage: "YDS architecture",
+                  defaultMessage: "Yield Donating Strategy architecture",
                 })}
               </span>
               <RiExternalLinkLine
@@ -382,7 +382,7 @@ function YieldSupportExplainer() {
               <span>
                 {formatMessage({
                   id: "public.vaults.strategy.source.lifecycle",
-                  defaultMessage: "YDS lifecycle mental model",
+                  defaultMessage: "Yield Donating Strategy lifecycle mental model",
                 })}
               </span>
               <RiExternalLinkLine

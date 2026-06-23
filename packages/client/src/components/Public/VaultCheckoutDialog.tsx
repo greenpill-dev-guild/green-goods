@@ -765,7 +765,7 @@ function VaultCheckoutDialogContent({
           </button>
         }
       >
-        <div className="flex flex-col gap-5" data-testid="vault-wallet-endow-path">
+        <div className="flex flex-col gap-4" data-testid="vault-wallet-endow-path">
           <CheckoutStageHeader
             eyebrow={formatMessage({
               id: "public.vaults.walletEndow.stageEyebrow",
@@ -782,193 +782,192 @@ function VaultCheckoutDialogContent({
             })}
           />
 
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor={amountInputId} className={CHECKOUT_FIELD_LABEL}>
-              {formatMessage({
-                id: "public.vaults.walletEndow.amountLabel",
-                defaultMessage: "Amount to endow",
-              })}
-            </label>
-            <div className="flex items-center gap-2 rounded-none border border-stroke-soft-200 bg-bg-white-0 px-4 py-3 transition-colors focus-within:border-primary-action">
-              <span className="font-serif text-2xl text-text-soft-400" aria-hidden>
-                $
-              </span>
-              <input
-                ref={amountRef}
-                id={amountInputId}
-                type="text"
-                inputMode="decimal"
-                autoComplete="off"
-                value={amountInput}
-                disabled={checkoutGuard.inputsLocked}
-                aria-describedby={[
-                  amountHelpId,
-                  amountError ? amountErrorId : null,
-                  pricingStatusMessage ? pricingStatusId : null,
-                ]
-                  .filter(Boolean)
-                  .join(" ")}
-                aria-invalid={Boolean(amountError)}
-                onChange={(event) => handleAmountChange(event.target.value)}
-                onBlur={normalizeAmountInput}
-                placeholder="0.00"
-                className="flex-1 bg-transparent font-serif text-2xl text-text-strong-950 outline-none placeholder:text-text-soft-400 disabled:cursor-not-allowed disabled:text-text-soft-400"
-              />
-            </div>
-            <p id={amountHelpId} className="text-xs leading-[1.5] text-text-soft-400">
-              {formatMessage(
-                {
-                  id: "public.vaults.walletEndow.amountHelp",
-                  defaultMessage:
-                    "We'll estimate the {donorSymbol} needed and send it into the Octant vault as {settlementSymbol}.",
-                },
-                {
-                  donorSymbol: assetDisplay.donorSymbol,
-                  settlementSymbol: assetDisplay.settlementSymbol,
-                }
-              )}
-            </p>
-            <div
-              data-testid="vault-checkout-amount-feedback"
-              data-state={amountFeedbackMessage ? "visible" : "empty"}
-              aria-hidden={amountFeedbackMessage ? undefined : true}
-              className={cn(
-                "min-h-12 max-h-20 overflow-y-auto break-words rounded-none p-3 text-xs leading-[1.5] transition-colors",
-                amountError
-                  ? "bg-error-lighter/20 text-error-base"
-                  : pricingStatusMessage
-                    ? "bg-bg-weak-50 text-text-sub-600"
-                    : "invisible bg-bg-weak-50 text-text-sub-600"
-              )}
-            >
-              {amountError ? (
-                <p id={amountErrorId}>{amountError}</p>
-              ) : pricingStatusMessage ? (
-                <p id={pricingStatusId} role="status">
-                  {pricingStatusMessage}
-                </p>
+          <div className="grid gap-3 sm:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor={amountInputId} className={CHECKOUT_FIELD_LABEL}>
+                {formatMessage({
+                  id: "public.vaults.walletEndow.amountLabel",
+                  defaultMessage: "Amount to endow",
+                })}
+              </label>
+              <div className="flex items-center gap-2 rounded-none border border-stroke-soft-200 bg-bg-white-0 px-4 py-3 transition-colors focus-within:border-primary-action">
+                <span className="font-serif text-2xl text-text-soft-400" aria-hidden>
+                  $
+                </span>
+                <input
+                  ref={amountRef}
+                  id={amountInputId}
+                  type="text"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  value={amountInput}
+                  disabled={checkoutGuard.inputsLocked}
+                  aria-describedby={[
+                    amountHelpId,
+                    amountError ? amountErrorId : null,
+                    pricingStatusMessage ? pricingStatusId : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                  aria-invalid={Boolean(amountError)}
+                  onChange={(event) => handleAmountChange(event.target.value)}
+                  onBlur={normalizeAmountInput}
+                  placeholder="0.00"
+                  className="min-w-0 flex-1 bg-transparent font-serif text-2xl text-text-strong-950 outline-none placeholder:text-text-soft-400 disabled:cursor-not-allowed disabled:text-text-soft-400"
+                />
+              </div>
+              <p id={amountHelpId} className="text-xs leading-[1.5] text-text-soft-400">
+                {settlementDetail ||
+                  formatMessage(
+                    {
+                      id: "public.vaults.walletEndow.amountHelp",
+                      defaultMessage:
+                        "We'll estimate the {donorSymbol} needed and send it into the Octant vault as {settlementSymbol}.",
+                    },
+                    {
+                      donorSymbol: assetDisplay.donorSymbol,
+                      settlementSymbol: assetDisplay.settlementSymbol,
+                    }
+                  )}
+              </p>
+              {amountFeedbackMessage ? (
+                <div
+                  data-testid="vault-checkout-amount-feedback"
+                  data-state="visible"
+                  className={cn(
+                    "max-h-20 overflow-y-auto break-words rounded-none p-3 text-xs leading-[1.5]",
+                    amountError
+                      ? "bg-error-lighter/20 text-error-base"
+                      : "bg-bg-weak-50 text-text-sub-600"
+                  )}
+                >
+                  {amountError ? (
+                    <p id={amountErrorId} role="alert">
+                      {amountError}
+                    </p>
+                  ) : (
+                    <p id={pricingStatusId} role="status">
+                      {pricingStatusMessage}
+                    </p>
+                  )}
+                </div>
               ) : null}
             </div>
+
+            <section className="rounded-none border border-stroke-soft-200 bg-bg-weak-50 p-3">
+              <dl className="grid gap-3 text-sm">
+                <div>
+                  <dt className={CHECKOUT_FIELD_LABEL}>
+                    {formatMessage({
+                      id: "public.vaults.checkout.review.route",
+                      defaultMessage: "Vault destination",
+                    })}
+                  </dt>
+                  <dd className="mt-1 text-text-sub-600">
+                    {formatMessage({
+                      id: "public.vaults.checkout.review.routeValue",
+                      defaultMessage: "Octant vault on Ethereum",
+                    })}
+                  </dd>
+                </div>
+                <div>
+                  <dt className={CHECKOUT_FIELD_LABEL}>
+                    {formatMessage({
+                      id: "public.vaults.checkout.review.receiver",
+                      defaultMessage: "Receiver wallet",
+                    })}
+                  </dt>
+                  <dd className="mt-1 text-sm text-text-sub-600">
+                    <ConnectedWalletValue
+                      address={primaryWalletAddress}
+                      pendingLabel={receiverPendingLabel}
+                    />
+                  </dd>
+                </div>
+              </dl>
+
+              {primaryWalletAddress && isWethAsset ? (
+                <div
+                  className="mt-3 border-t border-stroke-soft-200 pt-3"
+                  aria-labelledby="vault-wallet-balances-title"
+                >
+                  <h4
+                    id="vault-wallet-balances-title"
+                    className="font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400"
+                  >
+                    {formatMessage({
+                      id: "public.vaults.walletEndow.balances.title",
+                      defaultMessage: "Ethereum Mainnet balances",
+                    })}
+                  </h4>
+                  {walletBalances.isLoading ? (
+                    <p className="mt-2 text-sm text-text-sub-600">
+                      {formatMessage({
+                        id: "public.vaults.walletEndow.balances.loading",
+                        defaultMessage: "Loading balances...",
+                      })}
+                    </p>
+                  ) : (
+                    <dl className="mt-2 grid gap-2 text-sm sm:grid-cols-2">
+                      <div>
+                        <dt className="font-medium text-text-strong-950">
+                          {formatMessage({
+                            id: "public.vaults.walletEndow.balances.eth",
+                            defaultMessage: "ETH balance",
+                          })}
+                        </dt>
+                        <dd className="mt-0.5 text-text-sub-600">
+                          {formatTokenAmount(nativeBalance ?? 0n, 18, 6, undefined, true)} ETH
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="font-medium text-text-strong-950">
+                          {formatMessage({
+                            id: "public.vaults.walletEndow.balances.weth",
+                            defaultMessage: "WETH balance",
+                          })}
+                        </dt>
+                        <dd className="mt-0.5 text-text-sub-600">
+                          {formatTokenAmount(assetBalance ?? 0n, assetDecimals, 6, undefined, true)}{" "}
+                          WETH
+                        </dd>
+                      </div>
+                    </dl>
+                  )}
+                  {balanceFeedback ? (
+                    <div
+                      data-testid="vault-checkout-balance-feedback"
+                      data-state="visible"
+                      role={balanceFeedback.tone === "error" ? "alert" : "status"}
+                      className={cn(
+                        "mt-3 max-h-32 overflow-y-auto break-words rounded-none p-3 text-sm leading-[1.55]",
+                        balanceFeedback.tone === "primary"
+                          ? "bg-primary-action/10 text-primary-base"
+                          : balanceFeedback.tone === "warning"
+                            ? "bg-warning-lighter/40 text-text-sub-600"
+                            : "bg-error-lighter/30 text-error-base"
+                      )}
+                    >
+                      <p>{balanceFeedback.message}</p>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+            </section>
           </div>
 
-          <CheckoutSummary items={summaryItems} />
-
-          {localForkBlocksWalletEndow ? (
+          {localForkBlockedMessage ? (
             <div
               data-testid="vault-checkout-availability-feedback"
-              data-state={localForkBlockedMessage ? "visible" : "empty"}
-              aria-hidden={localForkBlockedMessage ? undefined : true}
-              className={cn(
-                "min-h-28 max-h-32 overflow-y-auto break-words rounded-none p-4 text-sm leading-[1.55] transition-colors",
-                localForkBlockedMessage
-                  ? "bg-warning-lighter/40 text-text-sub-600"
-                  : "invisible bg-warning-lighter/40 text-text-sub-600"
-              )}
+              data-state="visible"
+              role="alert"
+              className="max-h-32 overflow-y-auto break-words rounded-none bg-warning-lighter/40 p-4 text-sm leading-[1.55] text-text-sub-600"
             >
-              {localForkBlockedMessage ? <p>{localForkBlockedMessage}</p> : null}
+              <p>{localForkBlockedMessage}</p>
             </div>
           ) : null}
 
-          <dl className="grid gap-3 text-sm sm:grid-cols-2">
-            <div>
-              <dt className={CHECKOUT_FIELD_LABEL}>
-                {formatMessage({
-                  id: "public.vaults.checkout.review.route",
-                  defaultMessage: "Vault destination",
-                })}
-              </dt>
-              <dd className="mt-1 text-text-sub-600">
-                {formatMessage({
-                  id: "public.vaults.checkout.review.routeValue",
-                  defaultMessage: "Octant vault on Ethereum",
-                })}
-              </dd>
-            </div>
-            <div>
-              <dt className={CHECKOUT_FIELD_LABEL}>
-                {formatMessage({
-                  id: "public.vaults.checkout.review.receiver",
-                  defaultMessage: "Receiver wallet",
-                })}
-              </dt>
-              <dd className="mt-1 text-sm text-text-sub-600">
-                <ConnectedWalletValue
-                  address={primaryWalletAddress}
-                  pendingLabel={receiverPendingLabel}
-                />
-              </dd>
-            </div>
-          </dl>
-
-          {primaryWalletAddress && isWethAsset ? (
-            <section
-              className="rounded-none border border-stroke-soft-200 bg-bg-weak-50 p-4"
-              aria-labelledby="vault-wallet-balances-title"
-            >
-              <h4
-                id="vault-wallet-balances-title"
-                className="font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400"
-              >
-                {formatMessage({
-                  id: "public.vaults.walletEndow.balances.title",
-                  defaultMessage: "Ethereum Mainnet balances",
-                })}
-              </h4>
-              {walletBalances.isLoading ? (
-                <p className="mt-3 text-sm text-text-sub-600">
-                  {formatMessage({
-                    id: "public.vaults.walletEndow.balances.loading",
-                    defaultMessage: "Loading balances...",
-                  })}
-                </p>
-              ) : (
-                <dl className="mt-3 grid gap-3 text-sm sm:grid-cols-2">
-                  <div>
-                    <dt className="font-medium text-text-strong-950">
-                      {formatMessage({
-                        id: "public.vaults.walletEndow.balances.eth",
-                        defaultMessage: "ETH balance",
-                      })}
-                    </dt>
-                    <dd className="mt-1 text-text-sub-600">
-                      {formatTokenAmount(nativeBalance ?? 0n, 18, 6, undefined, true)} ETH
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="font-medium text-text-strong-950">
-                      {formatMessage({
-                        id: "public.vaults.walletEndow.balances.weth",
-                        defaultMessage: "WETH balance",
-                      })}
-                    </dt>
-                    <dd className="mt-1 text-text-sub-600">
-                      {formatTokenAmount(assetBalance ?? 0n, assetDecimals, 6, undefined, true)}{" "}
-                      WETH
-                    </dd>
-                  </div>
-                </dl>
-              )}
-              <div
-                data-testid="vault-checkout-balance-feedback"
-                data-state={balanceFeedback ? "visible" : "empty"}
-                aria-hidden={balanceFeedback ? undefined : true}
-                className={cn(
-                  "mt-4 min-h-20 max-h-32 overflow-y-auto break-words rounded-none p-3 text-sm leading-[1.55] transition-colors",
-                  balanceFeedback?.tone === "primary"
-                    ? "bg-primary-action/10 text-primary-base"
-                    : balanceFeedback?.tone === "warning"
-                      ? "bg-warning-lighter/40 text-text-sub-600"
-                      : balanceFeedback?.tone === "error"
-                        ? "bg-error-lighter/30 text-error-base"
-                        : "invisible bg-bg-weak-50 text-text-sub-600"
-                )}
-              >
-                {balanceFeedback ? <p>{balanceFeedback.message}</p> : null}
-              </div>
-            </section>
-          ) : null}
-
-          <details className="border-t border-stroke-soft-200 pt-4">
+          <details className="border-t border-stroke-soft-200 pt-3">
             <summary className="cursor-pointer font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
               {formatMessage({
                 id: "public.vaults.checkout.technicalDetails",

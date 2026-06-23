@@ -569,15 +569,21 @@ describe("VaultsPage", () => {
       "href",
       "https://docs.v2.octant.build/docs/developers/yield_donating_strategy/"
     );
-    expect(screen.getByRole("link", { name: "YDS introduction" })).toHaveAttribute(
+    expect(
+      screen.getByRole("link", { name: "Yield Donating Strategy introduction" })
+    ).toHaveAttribute(
       "href",
       "https://docs.v2.octant.build/docs/developers/yield_donating_strategy/introduction-to-yds"
     );
-    expect(screen.getByRole("link", { name: "YDS architecture" })).toHaveAttribute(
+    expect(
+      screen.getByRole("link", { name: "Yield Donating Strategy architecture" })
+    ).toHaveAttribute(
       "href",
       "https://docs.v2.octant.build/docs/developers/yield_donating_strategy/architecture-yds"
     );
-    expect(screen.getByRole("link", { name: "YDS lifecycle mental model" })).toHaveAttribute(
+    expect(
+      screen.getByRole("link", { name: "Yield Donating Strategy lifecycle mental model" })
+    ).toHaveAttribute(
       "href",
       "https://docs.v2.octant.build/docs/developers/yield_donating_strategy/mental-model-lifecycle-yds"
     );
@@ -755,6 +761,9 @@ describe("VaultsPage", () => {
     expect(screen.getByTestId("vault-checkout-screen")).toHaveClass("overflow-hidden");
     expect(screen.getByTestId("vault-checkout-scroll-body")).toHaveClass("overflow-y-auto");
     expect(screen.getByTestId("vault-checkout-footer")).toBeInTheDocument();
+    expect(screen.getByText("Technical WETH details").closest("details")).not.toHaveAttribute(
+      "open"
+    );
     expect(screen.queryByTestId("vault-checkout-sheet")).not.toBeInTheDocument();
     desktop.unmount();
 
@@ -780,6 +789,9 @@ describe("VaultsPage", () => {
         "Enter an amount, review the Octant vault context, then connect the wallet that should receive these vault shares."
       )
     ).toBeInTheDocument();
+    expect(screen.getByText("Technical WETH details").closest("details")).not.toHaveAttribute(
+      "open"
+    );
   });
 
   it("marks invalid dollar input as a field error and keeps the primary action disabled", async () => {
@@ -792,16 +804,13 @@ describe("VaultsPage", () => {
     expect(screen.queryByTestId("vault-checkout-method-wallet")).not.toBeInTheDocument();
     const primaryAction = screen.getByRole("button", { name: "Enter an amount" });
     const amountInput = screen.getByLabelText("Amount to endow");
-    const amountFeedback = screen.getByTestId("vault-checkout-amount-feedback");
-
-    expect(amountFeedback).toHaveAttribute("data-state", "empty");
-    expect(amountFeedback).toHaveAttribute("aria-hidden", "true");
+    expect(screen.queryByTestId("vault-checkout-amount-feedback")).not.toBeInTheDocument();
 
     await user.type(amountInput, "abc");
 
+    const amountFeedback = screen.getByTestId("vault-checkout-amount-feedback");
     expect(amountInput).toHaveAttribute("aria-invalid", "true");
     expect(amountFeedback).toHaveAttribute("data-state", "visible");
-    expect(amountFeedback).not.toHaveAttribute("aria-hidden");
     expect(screen.getByText("Enter a valid dollar amount.")).toBeInTheDocument();
     expect(primaryAction).toBeDisabled();
   });
@@ -875,15 +884,17 @@ describe("VaultsPage", () => {
     expect(screen.getByText("Review wallet endowment")).toBeInTheDocument();
     expect(screen.getByText("Octant vault on Ethereum")).toBeInTheDocument();
     expect(screen.getByText("Set when you connect a wallet")).toBeInTheDocument();
+    expect(screen.queryByTestId("vault-checkout-amount-feedback")).not.toBeInTheDocument();
 
     await user.type(screen.getByLabelText("Amount to endow"), "2.50");
     expect(screen.getByRole("button", { name: "Connect wallet" })).toBeEnabled();
-    expect(screen.getByText("$2.50")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("2.50")).toBeInTheDocument();
+    expect(screen.getByText(/Settles into the Octant vault as .* USDC/)).toBeInTheDocument();
 
     await user.clear(screen.getByLabelText("Amount to endow"));
     expect(screen.getByRole("button", { name: "Enter an amount" })).toBeDisabled();
     await user.type(screen.getByLabelText("Amount to endow"), "3.25");
-    expect(screen.getByText("$3.25")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("3.25")).toBeInTheDocument();
     expect(screen.queryByTestId("vault-checkout-method-wallet")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "Connect wallet" }));
@@ -894,7 +905,7 @@ describe("VaultsPage", () => {
     await user.keyboard("{Escape}");
 
     expect(screen.getByTestId("vault-wallet-endow-path")).toBeInTheDocument();
-    expect(screen.getByText("$3.25")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("3.25")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Connect wallet" })).toBeInTheDocument();
   });
 
@@ -992,15 +1003,13 @@ describe("VaultsPage", () => {
         name: "Endow to Synthetic complete campaign",
       })
     );
-    const availabilityFeedback = screen.getByTestId("vault-checkout-availability-feedback");
-    expect(availabilityFeedback).toHaveAttribute("data-state", "empty");
-    expect(availabilityFeedback).toHaveAttribute("aria-hidden", "true");
+    expect(screen.queryByTestId("vault-checkout-availability-feedback")).not.toBeInTheDocument();
 
     await user.type(screen.getByLabelText("Amount to endow"), "2.50");
 
     expect(screen.getByRole("button", { name: "Unavailable in local fork" })).toBeDisabled();
+    const availabilityFeedback = screen.getByTestId("vault-checkout-availability-feedback");
     expect(availabilityFeedback).toHaveAttribute("data-state", "visible");
-    expect(availabilityFeedback).not.toHaveAttribute("aria-hidden");
     expect(
       screen.getByText(
         "Wallet Endow is disabled in local Arbitrum fork mode because this Octant vault settles on Ethereum mainnet. Open a non-fork dev surface or production before sending a real endowment."
