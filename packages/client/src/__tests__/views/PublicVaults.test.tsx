@@ -37,6 +37,7 @@ const sharedHookMocks = vi.hoisted(() => ({
   primaryAddress: undefined as string | undefined,
   authMode: null as "wallet" | "passkey" | "embedded" | null,
   ensName: null as string | null,
+  localArbitrumForkMode: false,
   ethUsdHasFeed: true,
   ethUsdPriceAnswer: 300000000000n,
   octantVaultStats: {
@@ -84,6 +85,8 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       isLoading: false,
       isError: false,
     }),
+    isLocalArbitrumForkMode: () => sharedHookMocks.localArbitrumForkMode,
+    LOCAL_ARBITRUM_FORK_CHAIN_ID: 42161,
     useOctantVaultWalletEndow: () => ({
       mutate: sharedHookMocks.octantVaultWalletEndowMutate,
       reset: sharedHookMocks.octantVaultWalletEndowReset,
@@ -295,6 +298,7 @@ describe("VaultsPage", () => {
     sharedHookMocks.primaryAddress = undefined;
     sharedHookMocks.authMode = null;
     sharedHookMocks.ensName = null;
+    sharedHookMocks.localArbitrumForkMode = false;
     sharedHookMocks.ethUsdHasFeed = true;
     sharedHookMocks.ethUsdPriceAnswer = 300000000000n;
     sharedHookMocks.octantVaultStats = {
@@ -942,6 +946,31 @@ describe("VaultsPage", () => {
         onSuccess: expect.any(Function),
       })
     );
+  });
+
+  it("blocks Ethereum Wallet Endow in local Arbitrum fork mode before submission", async () => {
+    const user = userEvent.setup();
+    sharedHookMocks.authMode = "wallet";
+    sharedHookMocks.primaryAddress = VALID_RECEIVER_ADDRESS;
+    sharedHookMocks.localArbitrumForkMode = true;
+
+    renderContent([makeCompleteCampaign()]);
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "Endow to Synthetic complete campaign",
+      })
+    );
+    await user.type(screen.getByLabelText("Amount to endow"), "2.50");
+
+    expect(screen.getByRole("button", { name: "Unavailable in local fork" })).toBeDisabled();
+    expect(
+      screen.getByText(
+        "Wallet Endow is disabled in local Arbitrum fork mode because this Octant vault settles on Ethereum mainnet. Open a non-fork dev surface or production before sending a real endowment."
+      )
+    ).toBeInTheDocument();
+    expect(sharedHookMocks.loginWithWallet).not.toHaveBeenCalled();
+    expect(sharedHookMocks.octantVaultWalletEndowMutate).not.toHaveBeenCalled();
   });
 
   it("blocks connected WETH checkout with an exact shortfall before wallet submission", async () => {

@@ -3707,6 +3707,8 @@
   "public.vaults.walletEndow.insufficientFunds": "Fundos insuficientes",
   "public.vaults.walletEndow.insufficientWeth": "Esta carteira não tem WETH suficiente para esta contribuição. Converta ETH em WETH primeiro e tente novamente.",
   "public.vaults.walletEndow.kicker": "Endow com carteira",
+  "public.vaults.walletEndow.localForkBlocked": "Wallet Endow está desativado no modo local de fork da Arbitrum porque este vault da Octant liquida na Ethereum mainnet. Abra uma superfície de desenvolvimento sem fork ou produção antes de enviar uma contribuição real.",
+  "public.vaults.walletEndow.localForkUnavailable": "Indisponível no fork local",
   "public.vaults.walletEndow.ready": "Endow com carteira",
   "public.vaults.walletEndow.readyLabel": "Endow com carteira para {campaign}",
   "public.vaults.walletEndow.submitting": "Enviando...",

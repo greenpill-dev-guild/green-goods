@@ -4,6 +4,8 @@ import {
   formatUsdCents,
   getOctantVaultAssetDisplayPolicy,
   getOctantVaultCampaignTransactionState,
+  isLocalArbitrumForkMode,
+  LOCAL_ARBITRUM_FORK_CHAIN_ID,
   normalizeDecimalInput,
   parseUsdToCents,
   prepareOctantVaultWalletEndow,
@@ -213,6 +215,8 @@ function VaultCheckoutDialogContent({
   // / embedded sessions must still connect a wallet.
   const primaryWalletAddress = authMode === "wallet" ? (primaryAddress as Address | null) : null;
   const chainId = campaign.vault?.chainId ?? 1;
+  const localForkBlocksWalletEndow =
+    isLocalArbitrumForkMode() && chainId !== LOCAL_ARBITRUM_FORK_CHAIN_ID;
   const assetAddress = campaign.vault?.asset?.address as Address | undefined;
   const assetDecimals = campaign.vault?.asset?.decimals ?? 18;
   const isWethAsset = assetDisplay.technicalSymbol === "WETH" && Boolean(assetAddress);
@@ -367,6 +371,7 @@ function VaultCheckoutDialogContent({
   const handleSubmit = useCallback(() => {
     if (status === "success" || !hasReadyAmount || !effectiveAmount) return;
     if (!transactionState.walletEndowEnabled || conversionUnavailable) return;
+    if (localForkBlocksWalletEndow) return;
 
     setAmountInput((current) => normalizeDecimalInput(current));
     setCommittedAmount(effectiveAmount);
@@ -446,6 +451,7 @@ function VaultCheckoutDialogContent({
     hasReadyAmount,
     insufficientWethBlocksSubmit,
     loginWithWallet,
+    localForkBlocksWalletEndow,
     primaryWalletAddress,
     scheduleWalletConnectFallback,
     shouldWrapBeforeDeposit,
@@ -538,6 +544,14 @@ function VaultCheckoutDialogContent({
           { weth: formattedWrapAmount, eth: formattedMissingEth }
         )
       : null;
+  const localForkBlockedMessage =
+    localForkBlocksWalletEndow && hasReadyAmount
+      ? formatMessage({
+          id: "public.vaults.walletEndow.localForkBlocked",
+          defaultMessage:
+            "Wallet Endow is disabled in local Arbitrum fork mode because this Octant vault settles on Ethereum mainnet. Open a non-fork dev surface or production before sending a real endowment.",
+        })
+      : null;
   const vaultExplorerUrl = getAddressExplorerUrl(
     campaign.vault?.explorerLink,
     campaign.vault?.vaultAddress
@@ -562,6 +576,11 @@ function VaultCheckoutDialogContent({
     actionLabel = formatMessage({
       id: "public.vaults.walletEndow.balances.loading",
       defaultMessage: "Loading balances...",
+    });
+  } else if (hasReadyAmount && localForkBlocksWalletEndow) {
+    actionLabel = formatMessage({
+      id: "public.vaults.walletEndow.localForkUnavailable",
+      defaultMessage: "Unavailable in local fork",
     });
   } else if (insufficientWethBlocksSubmit) {
     actionLabel = formatMessage({
@@ -588,6 +607,7 @@ function VaultCheckoutDialogContent({
   const actionDisabled =
     walletBusy ||
     walletBalanceDecisionPending ||
+    localForkBlocksWalletEndow ||
     insufficientWethBlocksSubmit ||
     !hasReadyAmount ||
     !transactionState.walletEndowEnabled;
@@ -781,6 +801,12 @@ function VaultCheckoutDialogContent({
           </div>
 
           <CheckoutSummary items={summaryItems} />
+
+          {localForkBlockedMessage ? (
+            <p className="rounded-none bg-warning-lighter/40 p-4 text-sm leading-[1.55] text-text-sub-600">
+              {localForkBlockedMessage}
+            </p>
+          ) : null}
 
           <dl className="grid gap-3 text-sm sm:grid-cols-2">
             <div>

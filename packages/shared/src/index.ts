@@ -232,6 +232,8 @@ export {
   getDefaultChain,
   getEASConfig,
   getIndexerUrl,
+  isLocalArbitrumForkMode,
+  LOCAL_ARBITRUM_FORK_CHAIN_ID,
   getNetworkConfig,
   getSDGLabel,
   isChainSupported,
