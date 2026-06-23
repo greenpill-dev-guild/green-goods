@@ -686,8 +686,8 @@ function WalletEndowPathContent({
             {onManagePositions ? (
               <button type="button" onClick={onManagePositions} className={CHECKOUT_PRIMARY_BUTTON}>
                 {formatMessage({
-                  id: "public.vaults.checkout.managePosition",
-                  defaultMessage: "Manage vault shares",
+                  id: "public.vaults.checkout.manageEndowments",
+                  defaultMessage: "Manage Endowments",
                 })}
               </button>
             ) : null}
@@ -1004,7 +1004,7 @@ function WalletEndowPathContent({
               {formatMessage({
                 id: "public.vaults.checkout.slow",
                 defaultMessage:
-                  "Taking longer than expected — your transaction may still be processing. Wait a moment before retrying; your vault shares will appear under Manage vault shares once it settles.",
+                  "Taking longer than expected — your transaction may still be processing. Wait a moment before retrying; your endowment will appear under Manage Endowments once it settles.",
               })}
             </p>
           </div>

@@ -4,7 +4,7 @@
  * @vitest-environment jsdom
  */
 
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement, Fragment, useEffect } from "react";
 import { IntlProvider } from "react-intl";
@@ -299,13 +299,14 @@ beforeEach(() => {
 });
 
 describe("/vaults browse (no management)", () => {
-  it("renders without a wallet runtime and shows a Manage vault shares entry point", () => {
+  it("renders without a wallet runtime and shows a Manage Endowments entry point", () => {
     renderPage("/vaults");
     // Browse must render with no wallet runtime mounted.
     expect(mocks.walletRuntimeRender).not.toHaveBeenCalled();
     expect(screen.queryByTestId("vault-manage-positions-panel")).toBeNull();
     const entry = screen.getByTestId("vault-manage-positions-entry");
     expect(entry).toBeInTheDocument();
+    expect(entry).toHaveTextContent("Manage Endowments");
     expect(entry.parentElement).toHaveClass("justify-end");
     expect(entry.closest("header")).toHaveClass("sm:justify-between");
   });
@@ -323,6 +324,64 @@ describe("/vaults?manage=positions", () => {
     expect(panel).not.toHaveClass("rounded-t-3xl");
     expect(panel).not.toHaveClass("sm:rounded-3xl");
     expect(mocks.walletRuntimeRender).toHaveBeenCalled();
+  });
+
+  it("wires motion hooks for the open management panel", () => {
+    mocks.authMode = "wallet";
+    mocks.primaryAddress = CONNECTED;
+    renderPage("/vaults?manage=positions");
+
+    const overlay = document.querySelector(
+      '[data-component="VaultManagePositionsPanel"][data-slot="overlay"]'
+    );
+    const panel = document.querySelector(
+      '[data-component="VaultManagePositionsPanel"][data-slot="surface"]'
+    );
+
+    expect(overlay).not.toBeNull();
+    expect(overlay).toHaveClass("vault-manage-overlay");
+    expect(overlay).toHaveAttribute("data-state", "open");
+    expect(overlay).toHaveAttribute("data-motion-state", "open");
+
+    expect(panel).not.toBeNull();
+    expect(panel).toHaveClass("vault-manage-panel");
+    expect(panel).toHaveAttribute("data-state", "open");
+    expect(panel).toHaveAttribute("data-motion-state", "open");
+  });
+
+  it("keeps the panel mounted until close animation ends, then clears manage while preserving params", async () => {
+    const user = userEvent.setup();
+    const locations: string[] = [];
+    mocks.authMode = "wallet";
+    mocks.primaryAddress = CONNECTED;
+
+    renderPageWithLocationProbe("/vaults?manage=positions&ref=newsletter", (location) => {
+      locations.push(location);
+    });
+
+    await user.click(screen.getByRole("button", { name: "Close Manage Endowments" }));
+
+    const panel = document.querySelector(
+      '[data-component="VaultManagePositionsPanel"][data-slot="surface"]'
+    );
+    const overlay = document.querySelector(
+      '[data-component="VaultManagePositionsPanel"][data-slot="overlay"]'
+    );
+
+    expect(panel).not.toBeNull();
+    expect(panel).toHaveAttribute("data-motion-state", "closed");
+    expect(overlay).not.toBeNull();
+    expect(overlay).toHaveAttribute("data-motion-state", "closed");
+    expect(locations[locations.length - 1]).toBe("/vaults?manage=positions&ref=newsletter");
+
+    fireEvent.animationEnd(panel!);
+
+    await waitFor(() => {
+      expect(
+        document.querySelector('[data-component="VaultManagePositionsPanel"][data-slot="surface"]')
+      ).toBeNull();
+    });
+    expect(locations[locations.length - 1]).toBe("/vaults?ref=newsletter");
   });
 
   it("renders connected-wallet positions under the Connected wallet source", () => {
@@ -541,7 +600,7 @@ describe("/vaults?manage=positions", () => {
 });
 
 describe("checkout success no longer points to Fund", () => {
-  it("wallet-endow success offers Manage vault shares and never links to /fund", async () => {
+  it("wallet-endow success offers Manage Endowments and never links to /fund", async () => {
     const user = userEvent.setup();
     mocks.authMode = "wallet";
     mocks.primaryAddress = CONNECTED;
@@ -557,7 +616,7 @@ describe("checkout success no longer points to Fund", () => {
     // No Fund-page CTA or copy remains in the success state.
     expect(container.querySelector('a[href="/fund"]')).toBeNull();
     expect(within(success).queryByText(/Fund page/i)).toBeNull();
-    // Primary CTA is now Manage vault shares.
-    expect(screen.getByRole("button", { name: "Manage vault shares" })).toBeInTheDocument();
+    // Primary CTA is now Manage Endowments.
+    expect(screen.getByRole("button", { name: "Manage Endowments" })).toBeInTheDocument();
   });
 });

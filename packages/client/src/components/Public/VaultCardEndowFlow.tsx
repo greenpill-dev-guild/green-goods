@@ -1340,7 +1340,7 @@ function CardEndowProviderContent({
               {formatMessage({
                 id: "public.vaults.checkout.slow",
                 defaultMessage:
-                  "Taking longer than expected — your transaction may still be processing. Wait a moment before retrying; your vault shares will appear under Manage vault shares once it settles.",
+                  "Taking longer than expected — your transaction may still be processing. Wait a moment before retrying; your endowment will appear under Manage Endowments once it settles.",
               })}
             </p>
           ) : null}
@@ -1372,8 +1372,8 @@ function CardEndowProviderContent({
           {onManagePositions && hasPositiveShares ? (
             <button type="button" className={CHECKOUT_PRIMARY_BUTTON} onClick={onManagePositions}>
               {formatMessage({
-                id: "public.vaults.checkout.managePosition",
-                defaultMessage: "Manage vault shares",
+                id: "public.vaults.checkout.manageEndowments",
+                defaultMessage: "Manage Endowments",
               })}
             </button>
           ) : null}
@@ -1403,8 +1403,7 @@ function CardEndowProviderContent({
           })}
           description={formatMessage({
             id: "public.vaults.cardEndow.stage.done.description",
-            defaultMessage:
-              "Your verified email wallet now has vault shares for this campaign.",
+            defaultMessage: "Your verified email wallet now has vault shares for this campaign.",
           })}
         />
         <CheckoutSummary items={cardSummaryItems} />

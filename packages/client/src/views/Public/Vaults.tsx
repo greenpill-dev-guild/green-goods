@@ -11,7 +11,14 @@ import {
   useOctantVaultStrategyApy,
   type OctantVaultCampaignManifest,
 } from "@green-goods/shared";
-import { type ReactNode, useCallback, useMemo, useState } from "react";
+import { RiExternalLinkLine } from "@remixicon/react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useIntl } from "react-intl";
 import { Navigate, useLocation, useSearchParams } from "react-router-dom";
 import {
@@ -83,7 +90,11 @@ function formatCampaignCopy(
   };
 }
 
-function CampaignStatus({ campaign }: { campaign: OctantVaultCampaignManifest }) {
+function CampaignStatus({
+  campaign,
+}: {
+  campaign: OctantVaultCampaignManifest;
+}) {
   const { formatMessage } = useIntl();
   const state = getOctantVaultCampaignTransactionState(campaign);
   const label = state.walletEndowEnabled
@@ -115,9 +126,9 @@ function CampaignPreviewNote() {
   return (
     <p className="text-sm leading-[1.55] text-text-sub-600">
       {formatMessage({
-          id: "public.vaults.manifest.blocked",
-          defaultMessage:
-            "This preview does not accept Endow payments yet. The campaign will open after its vault setup is complete and verified.",
+        id: "public.vaults.manifest.blocked",
+        defaultMessage:
+          "This preview does not accept Endow payments yet. The campaign will open after its vault setup is complete and verified.",
       })}
     </p>
   );
@@ -130,10 +141,16 @@ function CampaignPreviewNote() {
  * route exists. Supporter/donor counts are a follow-up (not indexed for these
  * mainnet vaults yet).
  */
-function CampaignVaultStats({ campaign }: { campaign: OctantVaultCampaignManifest }) {
+function CampaignVaultStats({
+  campaign,
+}: {
+  campaign: OctantVaultCampaignManifest;
+}) {
   const { formatMessage } = useIntl();
   const decimals = campaign.vault?.asset?.decimals ?? 18;
-  const donorSymbol = getOctantVaultAssetDisplayPolicy(campaign.vault?.asset?.symbol).donorSymbol;
+  const donorSymbol = getOctantVaultAssetDisplayPolicy(
+    campaign.vault?.asset?.symbol
+  ).donorSymbol;
   const stats = useOctantVaultStats({
     vaultAddress: campaign.vault?.vaultAddress,
     chainId: campaign.vault?.chainId,
@@ -142,7 +159,13 @@ function CampaignVaultStats({ campaign }: { campaign: OctantVaultCampaignManifes
 
   if (!campaign.vault?.vaultAddress || stats.isError) return null;
 
-  const tokenAmount = formatTokenAmount(stats.totalAssets, decimals, 4, undefined, true);
+  const tokenAmount = formatTokenAmount(
+    stats.totalAssets,
+    decimals,
+    4,
+    undefined,
+    true
+  );
   const usd = stats.usdCents !== null ? formatUsdCents(stats.usdCents) : null;
 
   return (
@@ -151,10 +174,15 @@ function CampaignVaultStats({ campaign }: { campaign: OctantVaultCampaignManifes
       data-testid={`vault-campaign-stats-${campaign.slug}`}
     >
       <dt className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-soft-400">
-        {formatMessage({ id: "public.vaults.card.inVault", defaultMessage: "In vault" })}
+        {formatMessage({
+          id: "public.vaults.card.inVault",
+          defaultMessage: "In vault",
+        })}
       </dt>
       {stats.isLoading ? (
-        <dd className="mt-1 font-serif text-2xl leading-none text-text-soft-400">…</dd>
+        <dd className="mt-1 font-serif text-2xl leading-none text-text-soft-400">
+          …
+        </dd>
       ) : stats.totalAssets > 0n ? (
         <dd className="mt-1 flex items-baseline gap-2">
           <span className="font-serif text-3xl leading-none text-text-strong-950">
@@ -178,131 +206,100 @@ function CampaignVaultStats({ campaign }: { campaign: OctantVaultCampaignManifes
   );
 }
 
-function GeneratedYieldMetricCard({ campaign }: { campaign: OctantVaultCampaignManifest }) {
+function CampaignYieldRow({
+  campaign,
+}: {
+  campaign: OctantVaultCampaignManifest;
+}) {
   const { formatMessage } = useIntl();
   const assetSymbol = campaign.vault?.asset?.symbol ?? "WETH";
   const assetDecimals = campaign.vault?.asset?.decimals ?? 18;
   const metric = useOctantVaultHarvestableYield({
     vaultAddress: campaign.vault?.vaultAddress,
     chainId: campaign.vault?.chainId,
+    asset: campaign.vault?.asset,
+    yieldSource: campaign.vault?.yieldSource,
     yieldStrategy: campaign.vault?.yieldStrategy,
   });
-  const amountLabel = `${formatTokenAmount(metric.harvestableAssets, assetDecimals, 4, undefined, true)} ${assetSymbol}`;
-
-  let valueNode: ReactNode;
-  let bodyNode: ReactNode;
-
-  if (metric.isLoading) {
-    valueNode = "…";
-    bodyNode = formatMessage({
-      id: "public.vaults.strategy.metric.loading",
-      defaultMessage: "Reading generated yield from the verified campaign strategy.",
-    });
-  } else if (metric.status === "unavailable") {
-    valueNode = formatMessage({
-      id: "public.vaults.strategy.metric.unavailable",
-      defaultMessage: "Unavailable",
-    });
-    bodyNode = formatMessage({
-      id: "public.vaults.strategy.metric.unavailableBody",
-      defaultMessage:
-        "Generated yield is shown only after the campaign strategy address and read path are verified.",
-    });
-  } else if (metric.status === "zero") {
-    valueNode = amountLabel;
-    bodyNode = formatMessage({
-      id: "public.vaults.strategy.metric.zeroBody",
-      defaultMessage: "No harvestable generated yield is available for this campaign yet.",
-    });
-  } else {
-    valueNode = amountLabel;
-    bodyNode = formatMessage({
-      id: "public.vaults.strategy.metric.positiveBody",
-      defaultMessage:
-        "Estimated from strategy assets minus vault debt for this campaign's verified strategy.",
-    });
-  }
-
-  return (
-    <article
-      className="border border-stroke-soft-200 bg-bg-white-0 p-4"
-      data-testid={`vault-generated-yield-metric-${campaign.slug}`}
-    >
-      <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-soft-400">
-        {campaign.displayName}
-      </p>
-      <p className="mt-2 font-serif text-2xl leading-none text-text-strong-950">{valueNode}</p>
-      <p className="mt-3 text-xs leading-[1.55] text-text-sub-600">{bodyNode}</p>
-      <StrategyApyLine campaign={campaign} />
-    </article>
-  );
-}
-
-/**
- * Live gross APY of the campaign vault's underlying yield source (the rate that
- * funds project donations). Rendered beneath the aggregate donated-value metric.
- * Degrades to an honest "rate unavailable" state; never a fabricated number.
- */
-function StrategyApyLine({ campaign }: { campaign: OctantVaultCampaignManifest }) {
-  const { formatMessage } = useIntl();
   const apy = useOctantVaultStrategyApy({
     vaultAddress: campaign.vault?.vaultAddress,
     chainId: campaign.vault?.chainId,
     yieldSource: campaign.vault?.yieldSource,
   });
 
-  let valueNode: ReactNode;
-  let bodyNode: ReactNode;
-
-  if (apy.isLoading) {
-    valueNode = "…";
-    bodyNode = formatMessage({
-      id: "public.vaults.strategy.apy.loading",
-      defaultMessage: "Reading the strategy's underlying yield source.",
+  let generatedYieldValue: string;
+  if (metric.isLoading) {
+    generatedYieldValue = formatMessage({
+      id: "public.vaults.card.metricReading",
+      defaultMessage: "Reading",
     });
-  } else if (apy.status === "unavailable") {
-    valueNode = formatMessage({
-      id: "public.vaults.strategy.apy.unavailable",
-      defaultMessage: "Rate unavailable",
+  } else if (metric.status === "unavailable") {
+    generatedYieldValue = formatMessage({
+      id: "public.vaults.card.generatedYieldUnavailable",
+      defaultMessage: "Unavailable",
     });
-    bodyNode = formatMessage({
-      id: "public.vaults.strategy.apy.unavailableBody",
-      defaultMessage:
-        "The strategy's source rate is shown once it can be read. It funds project donations and is not a depositor return.",
-    });
-  } else if (apy.status === "zero") {
-    valueNode = formatApy(apy.apy ?? 0);
-    bodyNode = formatMessage({
-      id: "public.vaults.strategy.apy.zeroBody",
-      defaultMessage: "The underlying yield source currently reports no yield.",
+  } else if (metric.status === "zero") {
+    generatedYieldValue = formatMessage({
+      id: "public.vaults.card.noYieldYet",
+      defaultMessage: "No yield yet",
     });
   } else {
-    valueNode = formatApy(apy.apy ?? 0);
-    bodyNode = formatMessage({
-      id: "public.vaults.strategy.apy.positiveBody",
-      defaultMessage:
-        "Gross annual rate of the strategy's underlying source. This funds project donations; your share price stays flat.",
+    generatedYieldValue = `${formatTokenAmount(
+      metric.harvestableAssets,
+      assetDecimals,
+      4,
+      undefined,
+      true
+    )} ${assetSymbol}`;
+  }
+
+  let fundingRateValue: string;
+  if (apy.isLoading) {
+    fundingRateValue = formatMessage({
+      id: "public.vaults.card.metricReading",
+      defaultMessage: "Reading",
     });
+  } else if (apy.status === "unavailable") {
+    fundingRateValue = formatMessage({
+      id: "public.vaults.card.fundingRateUnavailable",
+      defaultMessage: "Rate unavailable",
+    });
+  } else {
+    fundingRateValue = formatApy(apy.apy ?? 0);
   }
 
   return (
-    <div
-      className="mt-3 border-t border-stroke-soft-200 pt-3"
-      data-testid={`vault-strategy-apy-${campaign.slug}`}
+    <dl
+      className="grid grid-cols-2 gap-3 border-b border-stroke-soft-200 py-4"
+      data-testid={`vault-campaign-yield-row-${campaign.slug}`}
     >
-      <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-soft-400">
-        {formatMessage({
-          id: "public.vaults.strategy.apy.label",
-          defaultMessage: "Underlying source rate",
-        })}
-      </p>
-      <p className="mt-1 font-serif text-xl leading-none text-text-strong-950">{valueNode}</p>
-      <p className="mt-2 text-xs leading-[1.55] text-text-sub-600">{bodyNode}</p>
-    </div>
+      <div>
+        <dt className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-soft-400">
+          {formatMessage({
+            id: "public.vaults.card.generatedYield",
+            defaultMessage: "Generated yield",
+          })}
+        </dt>
+        <dd className="mt-1 font-serif text-lg leading-none text-text-strong-950">
+          {generatedYieldValue}
+        </dd>
+      </div>
+      <div>
+        <dt className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-soft-400">
+          {formatMessage({
+            id: "public.vaults.card.fundingRate",
+            defaultMessage: "Funding rate",
+          })}
+        </dt>
+        <dd className="mt-1 font-serif text-lg leading-none text-text-strong-950">
+          {fundingRateValue}
+        </dd>
+      </div>
+    </dl>
   );
 }
 
-function YieldSupportExplainer({ campaigns }: { campaigns: OctantVaultCampaignManifest[] }) {
+function YieldSupportExplainer() {
   const { formatMessage } = useIntl();
 
   return (
@@ -343,68 +340,76 @@ function YieldSupportExplainer({ campaigns }: { campaigns: OctantVaultCampaignMa
               {formatMessage({
                 id: "public.vaults.strategy.evidence",
                 defaultMessage:
-                  "The recorded pilot evidence points to YieldDonatingTokenizedStrategy contracts created through YearnV3StrategyFactory metadata. Green Goods treats that as evidence of the strategy factory and creator for these pilot vaults, not as a new deployment or yield rate claim.",
+                  "These pilot vaults use Octant's yield donating strategy model. Green Goods links the source docs so you can inspect how generated yield is routed without framing the rate as personal return.",
               })}
             </p>
           </div>
-          <div className="flex flex-col items-start gap-2 text-sm">
+          <aside
+            className="border border-stroke-soft-200 bg-bg-white-0 p-4 text-sm md:min-w-72 md:max-w-xs"
+            aria-labelledby="public-vaults-strategy-source-title"
+          >
+            <p
+              id="public-vaults-strategy-source-title"
+              className="font-mono text-[10.5px] font-medium uppercase tracking-[0.16em] text-text-soft-400"
+            >
+              {formatMessage({
+                id: "public.vaults.strategy.source.title",
+                defaultMessage: "Source docs",
+              })}
+            </p>
             <a
               href={OCTANT_YIELD_DONATING_STRATEGY_URL}
               target="_blank"
               rel="noreferrer"
-              className="font-semibold text-primary-base underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action"
+              className="group mt-2 flex min-h-11 w-full items-center justify-between gap-3 border-b border-stroke-soft-200 py-3 text-left text-sm font-medium leading-snug text-text-strong-950 transition-colors hover:border-primary-action/60 hover:text-primary-action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
             >
-              {formatMessage({
-                id: "public.vaults.strategy.source.yds",
-                defaultMessage: "Octant Yield Donating Strategy docs",
-              })}
+              <span>
+                {formatMessage({
+                  id: "public.vaults.strategy.source.yds",
+                  defaultMessage: "Octant Yield Donating Strategy docs",
+                })}
+              </span>
+              <RiExternalLinkLine
+                aria-hidden="true"
+                className="h-4 w-4 shrink-0 text-text-soft-400 transition-colors group-hover:text-primary-action"
+              />
             </a>
             <a
               href={OCTANT_YIELD_DONATING_STRATEGY_CONTRACT_URL}
               target="_blank"
               rel="noreferrer"
-              className="font-semibold text-primary-base underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action"
+              className="group flex min-h-11 w-full items-center justify-between gap-3 border-b border-stroke-soft-200 py-3 text-left text-sm font-medium leading-snug text-text-strong-950 transition-colors hover:border-primary-action/60 hover:text-primary-action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
             >
-              {formatMessage({
-                id: "public.vaults.strategy.source.contract",
-                defaultMessage: "YieldDonatingTokenizedStrategy contract docs",
-              })}
+              <span>
+                {formatMessage({
+                  id: "public.vaults.strategy.source.contract",
+                  defaultMessage:
+                    "YieldDonatingTokenizedStrategy contract docs",
+                })}
+              </span>
+              <RiExternalLinkLine
+                aria-hidden="true"
+                className="h-4 w-4 shrink-0 text-text-soft-400 transition-colors group-hover:text-primary-action"
+              />
             </a>
             <a
               href={OCTANT_YIELD_DONATING_STRATEGY_ARCHITECTURE_URL}
               target="_blank"
               rel="noreferrer"
-              className="font-semibold text-primary-base underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action"
+              className="group flex min-h-11 w-full items-center justify-between gap-3 py-3 text-left text-sm font-medium leading-snug text-text-strong-950 transition-colors hover:text-primary-action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
             >
-              {formatMessage({
-                id: "public.vaults.strategy.source.architecture",
-                defaultMessage: "YDS architecture",
-              })}
+              <span>
+                {formatMessage({
+                  id: "public.vaults.strategy.source.architecture",
+                  defaultMessage: "YDS architecture",
+                })}
+              </span>
+              <RiExternalLinkLine
+                aria-hidden="true"
+                className="h-4 w-4 shrink-0 text-text-soft-400 transition-colors group-hover:text-primary-action"
+              />
             </a>
-          </div>
-        </div>
-        <div className="mt-6" aria-labelledby="public-vaults-strategy-metric-title">
-          <p
-            id="public-vaults-strategy-metric-title"
-            className="font-mono text-[10.5px] font-medium uppercase tracking-[0.16em] text-text-soft-400"
-          >
-            {formatMessage({
-              id: "public.vaults.strategy.metric.title",
-              defaultMessage: "Generated yield for the campaign",
-            })}
-          </p>
-          <p className="mt-1 text-xs leading-[1.55] text-text-soft-400">
-            {formatMessage({
-              id: "public.vaults.strategy.metric.subtitle",
-              defaultMessage:
-                "Harvestable WETH generated by the campaign strategy, not your personal balance.",
-            })}
-          </p>
-          <div className="mt-3 grid gap-3 md:grid-cols-2">
-            {campaigns.map((campaign) => (
-              <GeneratedYieldMetricCard key={campaign.slug} campaign={campaign} />
-            ))}
-          </div>
+          </aside>
         </div>
       </div>
     </section>
@@ -450,6 +455,7 @@ export function CampaignCard({
 
       <div data-testid={`vault-campaign-amount-row-${campaign.slug}`}>
         <CampaignVaultStats campaign={campaign} />
+        <CampaignYieldRow campaign={campaign} />
       </div>
 
       <section
@@ -461,7 +467,10 @@ export function CampaignCard({
           id={`vault-campaign-${campaign.slug}-story-title`}
           className="font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400"
         >
-          {formatMessage({ id: "public.vaults.card.story", defaultMessage: "Campaign story" })}
+          {formatMessage({
+            id: "public.vaults.card.story",
+            defaultMessage: "Campaign story",
+          })}
         </h4>
         <p
           className="font-serif text-xl leading-[1.25] text-text-strong-950"
@@ -501,12 +510,18 @@ export function CampaignCard({
               type="button"
               onClick={() => onEndow?.(campaign)}
               aria-label={formatMessage(
-                { id: "public.vaults.endow.ctaLabel", defaultMessage: "Endow to {campaign}" },
+                {
+                  id: "public.vaults.endow.ctaLabel",
+                  defaultMessage: "Endow to {campaign}",
+                },
                 { campaign: campaign.displayName }
               )}
               className={VAULT_ENDOW_BUTTON_CLASS}
             >
-              {formatMessage({ id: "public.vaults.endow.cta", defaultMessage: "Endow" })}
+              {formatMessage({
+                id: "public.vaults.endow.cta",
+                defaultMessage: "Endow",
+              })}
             </button>
           ) : (
             <CampaignPreviewNote />
@@ -523,12 +538,30 @@ export function VaultsPageContent({
   campaigns?: OctantVaultCampaignManifest[];
 } = {}) {
   const { formatMessage } = useIntl();
-  const campaigns = useMemo(() => campaignItems ?? getOctantVaultCampaigns(), [campaignItems]);
-  const [searchParams, setSearchParams] = useSearchParams();
-  const managing = searchParams.get(MANAGE_POSITIONS_PARAM) === MANAGE_POSITIONS_VALUE;
-  const [selectedCampaign, setSelectedCampaign] = useState<OctantVaultCampaignManifest | null>(
-    null
+  const campaigns = useMemo(
+    () => campaignItems ?? getOctantVaultCampaigns(),
+    [campaignItems]
   );
+  const [searchParams, setSearchParams] = useSearchParams();
+  const managing =
+    searchParams.get(MANAGE_POSITIONS_PARAM) === MANAGE_POSITIONS_VALUE;
+  const [isManagePanelOpen, setManagePanelOpen] = useState(managing);
+  const isManagePanelClosePendingRef = useRef(false);
+  const [selectedCampaign, setSelectedCampaign] =
+    useState<OctantVaultCampaignManifest | null>(null);
+  const shouldRenderManagePanel =
+    isManagePanelOpen || isManagePanelClosePendingRef.current || managing;
+
+  useEffect(() => {
+    if (managing) {
+      isManagePanelClosePendingRef.current = false;
+      setManagePanelOpen(true);
+      return;
+    }
+
+    setManagePanelOpen(false);
+  }, [managing]);
+
   const handleEndow = useCallback((campaign: OctantVaultCampaignManifest) => {
     setSelectedCampaign(campaign);
   }, []);
@@ -539,6 +572,8 @@ export function VaultsPageContent({
   // Never an address, email, or any owner identifier.
   const openManage = useCallback(() => {
     setSelectedCampaign(null);
+    isManagePanelClosePendingRef.current = false;
+    setManagePanelOpen(true);
     setSearchParams(
       (prev) => {
         const next = new URLSearchParams(prev);
@@ -548,16 +583,31 @@ export function VaultsPageContent({
       { replace: false }
     );
   }, [setSearchParams]);
-  const closeManage = useCallback(() => {
-    setSearchParams(
-      (prev) => {
-        const next = new URLSearchParams(prev);
-        next.delete(MANAGE_POSITIONS_PARAM);
-        return next;
-      },
-      { replace: true }
-    );
-  }, [setSearchParams]);
+  const handleManagePanelOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      if (nextOpen) {
+        isManagePanelClosePendingRef.current = false;
+        setManagePanelOpen(true);
+        return;
+      }
+
+      setManagePanelOpen(false);
+      if (searchParams.get(MANAGE_POSITIONS_PARAM) === MANAGE_POSITIONS_VALUE) {
+        isManagePanelClosePendingRef.current = true;
+      }
+    },
+    [searchParams]
+  );
+  const handleManagePanelExitComplete = useCallback(() => {
+    if (!isManagePanelClosePendingRef.current) return;
+
+    isManagePanelClosePendingRef.current = false;
+    if (searchParams.get(MANAGE_POSITIONS_PARAM) === MANAGE_POSITIONS_VALUE) {
+      const next = new URLSearchParams(searchParams);
+      next.delete(MANAGE_POSITIONS_PARAM);
+      setSearchParams(next, { replace: true, preventScrollReset: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   return (
     <>
@@ -574,10 +624,13 @@ export function VaultsPageContent({
         title={formatMessage(
           {
             id: "public.vaults.hero.title",
-            defaultMessage: "Octant vault campaigns for <accent>public goods</accent>.",
+            defaultMessage:
+              "Octant vault campaigns for <accent>public goods</accent>.",
           },
           {
-            accent: (chunks) => <EditorialTitleAccent>{chunks}</EditorialTitleAccent>,
+            accent: (chunks) => (
+              <EditorialTitleAccent>{chunks}</EditorialTitleAccent>
+            ),
           }
         )}
         lede={formatMessage({
@@ -603,7 +656,8 @@ export function VaultsPageContent({
               <EditorialHeading id="public-vaults-browse-title">
                 {formatMessage({
                   id: "public.vaults.browse.title",
-                  defaultMessage: "Two pilot campaigns, each with its own Octant vault.",
+                  defaultMessage:
+                    "Two pilot campaigns, each with its own Octant vault.",
                 })}
               </EditorialHeading>
               <EditorialLede className="mt-5">
@@ -623,7 +677,7 @@ export function VaultsPageContent({
               >
                 {formatMessage({
                   id: "public.vaults.manage.entry",
-                  defaultMessage: "Manage vault shares",
+                  defaultMessage: "Manage Endowments",
                 })}
               </button>
             </div>
@@ -631,13 +685,17 @@ export function VaultsPageContent({
 
           <div className="mt-10 grid grid-cols-1 gap-5 lg:grid-cols-2">
             {campaigns.map((campaign) => (
-              <CampaignCard key={campaign.slug} campaign={campaign} onEndow={handleEndow} />
+              <CampaignCard
+                key={campaign.slug}
+                campaign={campaign}
+                onEndow={handleEndow}
+              />
             ))}
           </div>
         </div>
       </section>
 
-      <YieldSupportExplainer campaigns={campaigns} />
+      <YieldSupportExplainer />
 
       <section
         className="bg-bg-weak-50 px-6 pb-24 sm:px-10 md:pb-32"
@@ -670,8 +728,13 @@ export function VaultsPageContent({
 
       {/* Management and checkout each mount their own wallet runtime, so render at
           most one at a time to avoid nesting two AppKit providers. */}
-      {managing ? (
-        <VaultManagePositionsPanel open onClose={closeManage} onEndow={closeManage} />
+      {shouldRenderManagePanel ? (
+        <VaultManagePositionsPanel
+          open={isManagePanelOpen}
+          onExitComplete={handleManagePanelExitComplete}
+          onOpenChange={handleManagePanelOpenChange}
+          onEndow={() => handleManagePanelOpenChange(false)}
+        />
       ) : selectedCampaign ? (
         <VaultCheckoutDialog
           key={selectedCampaign.slug}

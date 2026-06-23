@@ -653,6 +653,12 @@ export const OCTANT_VAULT_CAMPAIGN_MANIFEST = [
       explorerLink: "https://etherscan.io/address/0xaC8F844CEA2Fd75B7A5514f11974895B334fd9A5",
       strategyFactory: PILOT_STRATEGY_FACTORY_CREATOR,
       yieldSource: PILOT_YEARN_V3_WETH_SOURCE,
+      yieldStrategy: {
+        address: "0xaC8F844CEA2Fd75B7A5514f11974895B334fd9A5",
+        chainId: OCTANT_V2_ETHEREUM_CHAIN_ID,
+        evidence:
+          "Plan-recorded Blockscout metadata verifies this campaign contract as a YieldDonatingTokenizedStrategy proxy; use it for strategy.totalAssets() - vault.totalDebt() reads.",
+      },
     },
     requiredManifestFields: GREENPILL_NYC_REQUIRED_MANIFEST_FIELDS,
   },
@@ -674,6 +680,12 @@ export const OCTANT_VAULT_CAMPAIGN_MANIFEST = [
       explorerLink: "https://etherscan.io/address/0x0bCe8c16974FFD3B410A32365c5bCf27a5A630Fc",
       strategyFactory: PILOT_STRATEGY_FACTORY_CREATOR,
       yieldSource: PILOT_YEARN_V3_WETH_SOURCE,
+      yieldStrategy: {
+        address: "0x0bCe8c16974FFD3B410A32365c5bCf27a5A630Fc",
+        chainId: OCTANT_V2_ETHEREUM_CHAIN_ID,
+        evidence:
+          "Plan-recorded Blockscout metadata verifies this campaign contract as a YieldDonatingTokenizedStrategy proxy; use it for strategy.totalAssets() - vault.totalDebt() reads.",
+      },
     },
     requiredManifestFields: EVMAVERICKS_REQUIRED_MANIFEST_FIELDS,
   },

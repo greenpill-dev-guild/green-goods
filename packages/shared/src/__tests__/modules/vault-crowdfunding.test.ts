@@ -213,6 +213,10 @@ describe("Octant vault crowdfunding manifest", () => {
     expect(campaign?.vault).toMatchObject({
       chainId: 1,
       vaultAddress: "0xaC8F844CEA2Fd75B7A5514f11974895B334fd9A5",
+      yieldStrategy: {
+        address: "0xaC8F844CEA2Fd75B7A5514f11974895B334fd9A5",
+        chainId: 1,
+      },
       asset: {
         address: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
         symbol: "WETH",
@@ -261,6 +265,10 @@ describe("Octant vault crowdfunding manifest", () => {
       vaultName: "EVMavs PGF",
       vaultSymbol: "evmWETH",
       vaultDecimals: 18,
+      yieldStrategy: {
+        address: "0x0bCe8c16974FFD3B410A32365c5bCf27a5A630Fc",
+        chainId: 1,
+      },
       asset: {
         address: MAINNET_WETH_ADDRESS,
         symbol: "WETH",

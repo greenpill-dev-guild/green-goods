@@ -15,7 +15,7 @@ import {
 } from "@green-goods/shared";
 import * as Dialog from "@radix-ui/react-dialog";
 import { RiCloseLine } from "@remixicon/react";
-import { useId, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits, parseUnits } from "viem";
 import WalletRuntimeProviders from "@/routes/WalletRuntimeProviders";
@@ -24,9 +24,43 @@ import { getAddressExplorerUrl, getEthereumNetworkLabel } from "./vaultCheckoutS
 
 export interface VaultManagePositionsPanelProps {
   open: boolean;
-  onClose: () => void;
+  onExitComplete?: () => void;
+  onOpenChange: (open: boolean) => void;
   /** Endow CTA target — closes the panel and returns to browse. */
   onEndow?: () => void;
+}
+
+const EXIT_ANIMATION_BUFFER_MS = 50;
+const EXIT_ANIMATION_FALLBACK_MS = 300;
+
+function parseCssTimeToMs(value: string): number | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (trimmed.endsWith("ms")) return Number.parseFloat(trimmed);
+  if (trimmed.endsWith("s")) return Number.parseFloat(trimmed) * 1000;
+  return null;
+}
+
+function parseCssTimeListToMs(value: string): number[] {
+  return value
+    .split(",")
+    .map(parseCssTimeToMs)
+    .filter((time): time is number => time !== null && Number.isFinite(time));
+}
+
+function getExitAnimationDurationMs(element: HTMLElement | null): number {
+  if (typeof window === "undefined" || !element) return EXIT_ANIMATION_FALLBACK_MS;
+
+  const styles = window.getComputedStyle(element);
+  const durations = parseCssTimeListToMs(styles.animationDuration);
+  const delays = parseCssTimeListToMs(styles.animationDelay);
+  const totals = durations.map((duration, index) => {
+    const delay = delays[index] ?? delays[delays.length - 1] ?? 0;
+    return duration + delay;
+  });
+  const longestDuration = Math.max(...totals, 0);
+
+  return longestDuration > 0 ? longestDuration : EXIT_ANIMATION_FALLBACK_MS;
 }
 
 /**
@@ -38,34 +72,102 @@ export interface VaultManagePositionsPanelProps {
  */
 export function VaultManagePositionsPanel({
   open,
-  onClose,
+  onExitComplete,
+  onOpenChange,
   onEndow,
 }: VaultManagePositionsPanelProps) {
-  if (!open) return null;
   return (
     <WalletRuntimeProviders>
-      <VaultManagePositionsContent open={open} onClose={onClose} onEndow={onEndow} />
+      <VaultManagePositionsContent
+        open={open}
+        onExitComplete={onExitComplete}
+        onOpenChange={onOpenChange}
+        onEndow={onEndow}
+      />
     </WalletRuntimeProviders>
   );
 }
 
-function VaultManagePositionsContent({ open, onClose, onEndow }: VaultManagePositionsPanelProps) {
+function VaultManagePositionsContent({
+  open,
+  onExitComplete,
+  onOpenChange,
+  onEndow,
+}: VaultManagePositionsPanelProps) {
   const { formatMessage } = useIntl();
   const { authMode, primaryAddress } = useUser();
   const connectedAddress = authMode === "wallet" ? (primaryAddress as Address | null) : null;
+  const [dialogOpen, setDialogOpen] = useState(open);
+  const [exitAnimationComplete, setExitAnimationComplete] = useState(!open);
+  const surfaceRef = useRef<HTMLDivElement | null>(null);
+  const exitFallbackRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const motionState = open ? "open" : exitAnimationComplete ? "idle" : "closed";
+
+  const clearExitFallback = useCallback(() => {
+    if (exitFallbackRef.current) {
+      clearTimeout(exitFallbackRef.current);
+      exitFallbackRef.current = null;
+    }
+  }, []);
+
+  const finishClose = useCallback(() => {
+    clearExitFallback();
+    setExitAnimationComplete(true);
+    setDialogOpen(false);
+    onExitComplete?.();
+  }, [clearExitFallback, onExitComplete]);
+
+  useEffect(() => {
+    if (open) {
+      clearExitFallback();
+      setExitAnimationComplete(false);
+      setDialogOpen(true);
+      return;
+    }
+
+    if (!dialogOpen) return;
+
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      finishClose();
+      return;
+    }
+
+    setExitAnimationComplete(false);
+    exitFallbackRef.current = setTimeout(
+      finishClose,
+      getExitAnimationDurationMs(surfaceRef.current) + EXIT_ANIMATION_BUFFER_MS
+    );
+
+    return clearExitFallback;
+  }, [clearExitFallback, dialogOpen, finishClose, open]);
+
+  useEffect(() => clearExitFallback, [clearExitFallback]);
 
   return (
-    <Dialog.Root open={open} onOpenChange={(next) => (!next ? onClose() : undefined)}>
+    <Dialog.Root open={dialogOpen} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-overlay bg-static-black/40" />
+        <Dialog.Overlay
+          data-component="VaultManagePositionsPanel"
+          data-motion-state={motionState}
+          data-slot="overlay"
+          className="vault-manage-overlay fixed inset-0 z-overlay bg-static-black/40"
+        />
         <Dialog.Content
           data-component="VaultManagePositionsPanel"
+          data-motion-state={motionState}
+          data-slot="surface"
           data-testid="vault-manage-positions-panel"
+          ref={surfaceRef}
           className={cn(
-            "fixed z-modal flex max-h-[86vh] w-full flex-col overflow-hidden border border-stroke-soft-200 bg-bg-weak-50 text-text-strong-950 shadow-[var(--shadow-editorial-panel)] focus:outline-none",
+            "vault-manage-panel fixed z-modal flex max-h-[86vh] w-full flex-col overflow-hidden border border-stroke-soft-200 bg-bg-weak-50 text-text-strong-950 shadow-[var(--shadow-editorial-panel)] focus:outline-none",
             "inset-x-0 bottom-0 rounded-none",
             "sm:inset-x-auto sm:inset-y-4 sm:right-4 sm:max-h-[calc(100vh-2rem)] sm:w-[min(34rem,calc(100vw-2rem))] sm:rounded-none"
           )}
+          onAnimationEnd={(event) => {
+            if (event.target === event.currentTarget && !open) {
+              finishClose();
+            }
+          }}
         >
           <header className="flex items-start justify-between gap-4 border-b border-stroke-soft-200 bg-bg-white-0 px-5 py-5 sm:px-6">
             <div className="min-w-0">
@@ -78,14 +180,14 @@ function VaultManagePositionsContent({ open, onClose, onEndow }: VaultManagePosi
               <Dialog.Title className="mt-2 font-serif text-2xl font-normal leading-[1.08] text-text-strong-950 md:text-3xl">
                 {formatMessage({
                   id: "public.vaults.manage.title",
-                  defaultMessage: "Manage vault shares",
+                  defaultMessage: "Manage Endowments",
                 })}
               </Dialog.Title>
               <Dialog.Description className="mt-3 text-sm leading-[1.6] text-text-sub-600">
                 {formatMessage({
                   id: "public.vaults.manage.lede",
                   defaultMessage:
-                    "View your WETH Octant vault shares and redeem them when you choose.",
+                    "Review the Octant vault endowments connected to this wallet and redeem available shares when you choose.",
                 })}
               </Dialog.Description>
             </div>
@@ -95,7 +197,7 @@ function VaultManagePositionsContent({ open, onClose, onEndow }: VaultManagePosi
                 className="inline-flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full border border-stroke-soft-200 bg-bg-white-0 text-text-sub-600 transition-colors hover:bg-bg-weak-50 hover:text-text-strong-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
                 aria-label={formatMessage({
                   id: "public.vaults.manage.close",
-                  defaultMessage: "Close vault shares",
+                  defaultMessage: "Close Manage Endowments",
                 })}
               >
                 <RiCloseLine className="h-5 w-5" />

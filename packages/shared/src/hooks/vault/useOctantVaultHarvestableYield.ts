@@ -6,7 +6,9 @@
  * unavailable state instead of falling back to donated-router shares or an
  * invented generated-yield number.
  *
- * Harvestable generated yield = max(strategy.totalAssets() - vault.totalDebt(), 0)
+ * For the Octant V2 pilot YDS contracts, harvestable generated yield is the
+ * live value of the strategy's upstream source position plus idle strategy WETH,
+ * minus the strategy's last tracked `totalAssets()`.
  *
  * @module hooks/vault/useOctantVaultHarvestableYield
  */
@@ -15,9 +17,13 @@ import { useQuery } from "@tanstack/react-query";
 import { createPublicClientForChain } from "../../config/pimlico";
 import { queryKeys } from "../../config/query-keys";
 import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
-import type { OctantVaultYieldStrategy } from "../../modules/vault-crowdfunding";
+import type {
+  OctantVaultCampaignAssetManifest,
+  OctantVaultYieldSource,
+  OctantVaultYieldStrategy,
+} from "../../modules/vault-crowdfunding";
 import type { Address } from "../../types/domain";
-import { OCTANT_VAULT_ABI, STRATEGY_ABI } from "../../utils/blockchain/abis";
+import { ERC20_BALANCE_ABI, OCTANT_VAULT_ABI, STRATEGY_ABI } from "../../utils/blockchain/abis";
 
 export type OctantVaultHarvestableYieldStatus = "unavailable" | "zero" | "positive";
 export type OctantVaultHarvestableYieldUnavailableReason =
@@ -28,7 +34,9 @@ export type OctantVaultHarvestableYieldUnavailableReason =
 export interface OctantVaultHarvestableYield {
   status: OctantVaultHarvestableYieldStatus;
   strategyAddress: Address | null;
+  /** Live source-position assets plus idle strategy assets, in the campaign asset unit. */
   strategyAssets: bigint;
+  /** Baseline assets already tracked by the strategy's last report. */
   vaultDebt: bigint;
   harvestableAssets: bigint;
   isLoading: boolean;
@@ -39,6 +47,8 @@ export interface OctantVaultHarvestableYield {
 export interface UseOctantVaultHarvestableYieldOptions {
   vaultAddress?: Address;
   chainId?: number;
+  asset?: OctantVaultCampaignAssetManifest;
+  yieldSource?: OctantVaultYieldSource;
   yieldStrategy?: OctantVaultYieldStrategy;
   enabled?: boolean;
 }
@@ -67,7 +77,7 @@ function unavailableResult(
 export function useOctantVaultHarvestableYield(
   options: UseOctantVaultHarvestableYieldOptions = {}
 ): OctantVaultHarvestableYield {
-  const { vaultAddress, chainId, yieldStrategy } = options;
+  const { vaultAddress, chainId, asset, yieldSource, yieldStrategy } = options;
   const enabled = (options.enabled ?? true) && Boolean(vaultAddress && chainId);
 
   const query = useQuery({
@@ -83,33 +93,58 @@ export function useOctantVaultHarvestableYield(
 
       const strategyAddress = yieldStrategy.address;
       const strategyChainId = yieldStrategy.chainId ?? chainId;
+      const sourceAddress = yieldSource?.address;
+      const sourceChainId = yieldSource?.chainId ?? strategyChainId;
+      const assetAddress = asset?.address;
       const strategyClient = createPublicClientForChain(strategyChainId);
-      const vaultClient =
-        strategyChainId === chainId ? strategyClient : createPublicClientForChain(chainId);
+      const sourceClient =
+        sourceChainId === strategyChainId
+          ? strategyClient
+          : createPublicClientForChain(sourceChainId);
 
       try {
-        const [strategyAssetsResult, vaultDebtResult] = await Promise.all([
+        if (!sourceAddress || !assetAddress) {
+          return unavailableResult("read_error", strategyAddress);
+        }
+
+        const [trackedAssetsResult, sourceSharesResult, idleAssetsResult] = await Promise.all([
           strategyClient.readContract({
             address: strategyAddress,
             abi: STRATEGY_ABI,
             functionName: "totalAssets",
           }),
-          vaultClient.readContract({
-            address: vaultAddress,
-            abi: OCTANT_VAULT_ABI,
-            functionName: "totalDebt",
+          sourceClient.readContract({
+            address: sourceAddress,
+            abi: ERC20_BALANCE_ABI,
+            functionName: "balanceOf",
+            args: [strategyAddress],
+          }),
+          strategyClient.readContract({
+            address: assetAddress,
+            abi: ERC20_BALANCE_ABI,
+            functionName: "balanceOf",
+            args: [strategyAddress],
           }),
         ]);
 
-        const strategyAssets =
-          typeof strategyAssetsResult === "bigint" ? strategyAssetsResult : 0n;
-        const vaultDebt = typeof vaultDebtResult === "bigint" ? vaultDebtResult : 0n;
-        const harvestableAssets = strategyAssets > vaultDebt ? strategyAssets - vaultDebt : 0n;
+        const trackedAssets = typeof trackedAssetsResult === "bigint" ? trackedAssetsResult : 0n;
+        const sourceShares = typeof sourceSharesResult === "bigint" ? sourceSharesResult : 0n;
+        const idleAssets = typeof idleAssetsResult === "bigint" ? idleAssetsResult : 0n;
+        const sourceAssetsResult = await sourceClient.readContract({
+          address: sourceAddress,
+          abi: OCTANT_VAULT_ABI,
+          functionName: "convertToAssets",
+          args: [sourceShares],
+        });
+        const sourceAssets = typeof sourceAssetsResult === "bigint" ? sourceAssetsResult : 0n;
+        const liveStrategyAssets = sourceAssets + idleAssets;
+        const harvestableAssets =
+          liveStrategyAssets > trackedAssets ? liveStrategyAssets - trackedAssets : 0n;
 
         return {
           strategyAddress,
-          strategyAssets,
-          vaultDebt,
+          strategyAssets: liveStrategyAssets,
+          vaultDebt: trackedAssets,
           harvestableAssets,
         };
       } catch {

@@ -7,7 +7,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { OctantVaultYieldStrategy } from "../../../modules/vault-crowdfunding";
+import type {
+  OctantVaultCampaignAssetManifest,
+  OctantVaultYieldSource,
+  OctantVaultYieldStrategy,
+} from "../../../modules/vault-crowdfunding";
 import type { Address } from "../../../types/domain";
 
 const mockReadContract = vi.fn();
@@ -18,7 +22,19 @@ vi.mock("../../../config/pimlico", () => ({
 
 const VAULT = "0xaC8F844CEA2Fd75B7A5514f11974895B334fd9A5" as Address;
 const STRATEGY = "0x1111111111111111111111111111111111111111" as Address;
+const YEARN_SOURCE = "0x2222222222222222222222222222222222222222" as Address;
+const WETH = "0x3333333333333333333333333333333333333333" as Address;
 const YIELD_STRATEGY: OctantVaultYieldStrategy = { address: STRATEGY, chainId: 1 };
+const YIELD_SOURCE: OctantVaultYieldSource = {
+  address: YEARN_SOURCE,
+  kind: "yearn-v3",
+  chainId: 1,
+};
+const WETH_ASSET: OctantVaultCampaignAssetManifest = {
+  address: WETH,
+  symbol: "WETH",
+  decimals: 18,
+};
 
 const { useOctantVaultHarvestableYield } = await import(
   "../../../hooks/vault/useOctantVaultHarvestableYield"
@@ -62,6 +78,8 @@ describe("hooks/vault/useOctantVaultHarvestableYield", () => {
         useOctantVaultHarvestableYield({
           vaultAddress: VAULT,
           chainId: 1,
+          asset: WETH_ASSET,
+          yieldSource: YIELD_SOURCE,
           yieldStrategy: YIELD_STRATEGY,
         }),
       { wrapper: wrapper() }
@@ -76,13 +94,19 @@ describe("hooks/vault/useOctantVaultHarvestableYield", () => {
     });
   });
 
-  it("returns zero when strategy assets do not exceed vault debt", async () => {
+  it("returns zero when live strategy assets do not exceed tracked assets", async () => {
     mockReadContract.mockImplementation((call: { address: Address; functionName: string }) => {
       if (call.address === STRATEGY && call.functionName === "totalAssets") {
         return Promise.resolve(3_000_000_000_000_000n);
       }
-      if (call.address === VAULT && call.functionName === "totalDebt") {
-        return Promise.resolve(3_000_000_000_000_000n);
+      if (call.address === YEARN_SOURCE && call.functionName === "balanceOf") {
+        return Promise.resolve(2_000_000_000_000_000n);
+      }
+      if (call.address === YEARN_SOURCE && call.functionName === "convertToAssets") {
+        return Promise.resolve(2_000_000_000_000_000n);
+      }
+      if (call.address === WETH && call.functionName === "balanceOf") {
+        return Promise.resolve(1_000_000_000_000_000n);
       }
       return Promise.resolve(0n);
     });
@@ -92,6 +116,8 @@ describe("hooks/vault/useOctantVaultHarvestableYield", () => {
         useOctantVaultHarvestableYield({
           vaultAddress: VAULT,
           chainId: 1,
+          asset: WETH_ASSET,
+          yieldSource: YIELD_SOURCE,
           yieldStrategy: YIELD_STRATEGY,
         }),
       { wrapper: wrapper() }
@@ -107,13 +133,19 @@ describe("hooks/vault/useOctantVaultHarvestableYield", () => {
     });
   });
 
-  it("returns positive harvestable WETH from strategy assets minus vault debt", async () => {
+  it("returns positive harvestable WETH from live source assets minus tracked assets", async () => {
     mockReadContract.mockImplementation((call: { address: Address; functionName: string }) => {
       if (call.address === STRATEGY && call.functionName === "totalAssets") {
-        return Promise.resolve(5_000_000_000_000_000n);
-      }
-      if (call.address === VAULT && call.functionName === "totalDebt") {
         return Promise.resolve(3_000_000_000_000_000n);
+      }
+      if (call.address === YEARN_SOURCE && call.functionName === "balanceOf") {
+        return Promise.resolve(4_000_000_000_000_000n);
+      }
+      if (call.address === YEARN_SOURCE && call.functionName === "convertToAssets") {
+        return Promise.resolve(4_000_000_000_000_000n);
+      }
+      if (call.address === WETH && call.functionName === "balanceOf") {
+        return Promise.resolve(1_000_000_000_000_000n);
       }
       return Promise.resolve(0n);
     });
@@ -123,6 +155,8 @@ describe("hooks/vault/useOctantVaultHarvestableYield", () => {
         useOctantVaultHarvestableYield({
           vaultAddress: VAULT,
           chainId: 1,
+          asset: WETH_ASSET,
+          yieldSource: YIELD_SOURCE,
           yieldStrategy: YIELD_STRATEGY,
         }),
       { wrapper: wrapper() }
