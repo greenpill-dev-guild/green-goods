@@ -294,7 +294,10 @@ describe("/vaults browse (no management)", () => {
     // Browse must render with no wallet runtime mounted.
     expect(mocks.walletRuntimeRender).not.toHaveBeenCalled();
     expect(screen.queryByTestId("vault-manage-positions-panel")).toBeNull();
-    expect(screen.getByTestId("vault-manage-positions-entry")).toBeInTheDocument();
+    const entry = screen.getByTestId("vault-manage-positions-entry");
+    expect(entry).toBeInTheDocument();
+    expect(entry.parentElement).toHaveClass("justify-end");
+    expect(entry.closest("header")).toHaveClass("sm:justify-between");
   });
 });
 
@@ -303,7 +306,12 @@ describe("/vaults?manage=positions", () => {
     mocks.authMode = "wallet";
     mocks.primaryAddress = CONNECTED;
     renderPage("/vaults?manage=positions");
-    expect(screen.getByTestId("vault-manage-positions-panel")).toBeInTheDocument();
+    const panel = screen.getByTestId("vault-manage-positions-panel");
+    expect(panel).toBeInTheDocument();
+    expect(panel).toHaveClass("rounded-none");
+    expect(panel).toHaveClass("sm:rounded-none");
+    expect(panel).not.toHaveClass("rounded-t-3xl");
+    expect(panel).not.toHaveClass("sm:rounded-3xl");
     expect(mocks.walletRuntimeRender).toHaveBeenCalled();
   });
 

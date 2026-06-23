@@ -125,8 +125,8 @@ function CampaignPreviewNote() {
 
 /**
  * On-chain crowdfunding signal for a campaign card: how much the dedicated Octant
- * vault currently holds. Reads through a read-only public client (no wallet
- * runtime) and degrades gracefully — it renders nothing on error or when no vault
+ * vault currently holds. Reads through a public client without requiring a wallet
+ * runtime) and degrades gracefully; it renders nothing on error or when no vault
  * route exists. Supporter/donor counts are a follow-up (not indexed for these
  * mainnet vaults yet).
  */
@@ -170,7 +170,7 @@ function CampaignVaultStats({ campaign }: { campaign: OctantVaultCampaignManifes
         <dd className="mt-1 font-serif text-xl leading-none text-text-soft-400">
           {formatMessage({
             id: "public.vaults.card.justLaunched",
-            defaultMessage: "Just launched — be the first to endow",
+            defaultMessage: "Just launched. Be the first to endow.",
           })}
         </dd>
       )}
@@ -195,7 +195,7 @@ function ProjectSupportMetricCard({ campaign }: { campaign: OctantVaultCampaignM
     valueNode = "…";
     bodyNode = formatMessage({
       id: "public.vaults.strategy.metric.loading",
-      defaultMessage: "Reading the configured project-support router.",
+      defaultMessage: "Reading the configured project support router.",
     });
   } else if (metric.status === "unavailable") {
     valueNode = formatMessage({
@@ -219,7 +219,7 @@ function ProjectSupportMetricCard({ campaign }: { campaign: OctantVaultCampaignM
     bodyNode = formatMessage({
       id: "public.vaults.strategy.metric.positiveBody",
       defaultMessage:
-        "Estimated from donation shares held by the configured project-support router.",
+        "Estimated from donation shares held by the configured project support router.",
     });
   }
 
@@ -241,7 +241,7 @@ function ProjectSupportMetricCard({ campaign }: { campaign: OctantVaultCampaignM
 /**
  * Live gross APY of the campaign vault's underlying yield source (the rate that
  * funds project donations). Rendered beneath the aggregate donated-value metric.
- * Degrades to an honest "rate unavailable" state — never a fabricated number.
+ * Degrades to an honest "rate unavailable" state; never a fabricated number.
  */
 function StrategyApyLine({ campaign }: { campaign: OctantVaultCampaignManifest }) {
   const { formatMessage } = useIntl();
@@ -314,7 +314,7 @@ function YieldSupportExplainer({ campaigns }: { campaigns: OctantVaultCampaignMa
         <EditorialKicker className="mb-3">
           {formatMessage({
             id: "public.vaults.strategy.kicker",
-            defaultMessage: "§ 02 — Strategy model",
+            defaultMessage: "§ 02: Strategy model",
           })}
         </EditorialKicker>
         <EditorialHeading id="public-vaults-strategy-title" size="sub">
@@ -336,7 +336,7 @@ function YieldSupportExplainer({ campaigns }: { campaigns: OctantVaultCampaignMa
               {formatMessage({
                 id: "public.vaults.strategy.ownership",
                 defaultMessage:
-                  "You can redeem your shares back to WETH whenever you choose, and the share price is designed to stay flat — so you keep the option to withdraw your contribution in full. The yield the strategy earns on top is what funds the project, which is how you support the work while still being able to exit your position.",
+                  "You can redeem your shares back to WETH whenever you choose, and the share price is designed to stay flat, so you keep the option to withdraw your contribution in full. The yield the strategy earns on top is what funds the project, which is how you support the work while still being able to exit your position.",
               })}
             </p>
             <p>
@@ -397,7 +397,7 @@ function YieldSupportExplainer({ campaigns }: { campaigns: OctantVaultCampaignMa
             {formatMessage({
               id: "public.vaults.strategy.metric.subtitle",
               defaultMessage:
-                "Cumulative across all supporters in this campaign — not your personal balance.",
+                "Cumulative across all supporters in this campaign, not your personal balance.",
             })}
           </p>
           <div className="mt-3 grid gap-3 md:grid-cols-2">
@@ -426,26 +426,31 @@ export function CampaignCard({
   return (
     <article
       data-testid={`vault-campaign-card-${campaign.slug}`}
-      className="flex min-h-full flex-col gap-6 border border-stroke-soft-200 bg-bg-white-0 p-5 shadow-[var(--shadow-editorial-card)] sm:p-6"
+      className="grid min-h-full grid-rows-[auto_auto_auto_auto_1fr_auto] gap-6 border border-stroke-soft-200 bg-bg-white-0 p-5 shadow-[var(--shadow-editorial-card)] sm:p-6 lg:row-span-6 lg:grid-rows-subgrid"
       aria-labelledby={`vault-campaign-${campaign.slug}-title`}
     >
-      <header className="flex flex-col gap-4">
-        <CampaignStatus campaign={campaign} />
-        <div>
-          <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
-            {campaign.communityName}
-          </p>
-          <h3
-            id={`vault-campaign-${campaign.slug}-title`}
-            className="mt-2 font-serif text-2xl font-normal leading-[1.08] text-text-strong-950"
-          >
-            {campaign.displayName}
-          </h3>
-        </div>
-        <p className="text-base leading-[1.6] text-text-sub-600">{copy.fundingPurpose}</p>
-      </header>
+      <CampaignStatus campaign={campaign} />
+      <div>
+        <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
+          {campaign.communityName}
+        </p>
+        <h3
+          id={`vault-campaign-${campaign.slug}-title`}
+          className="mt-2 font-serif text-2xl font-normal leading-[1.08] text-text-strong-950"
+        >
+          {campaign.displayName}
+        </h3>
+      </div>
+      <p
+        className="text-base leading-[1.6] text-text-sub-600"
+        data-testid={`vault-campaign-purpose-${campaign.slug}`}
+      >
+        {copy.fundingPurpose}
+      </p>
 
-      <CampaignVaultStats campaign={campaign} />
+      <div data-testid={`vault-campaign-amount-row-${campaign.slug}`}>
+        <CampaignVaultStats campaign={campaign} />
+      </div>
 
       <section aria-labelledby={`vault-campaign-${campaign.slug}-story-title`}>
         <h4
@@ -454,7 +459,10 @@ export function CampaignCard({
         >
           {formatMessage({ id: "public.vaults.card.story", defaultMessage: "Campaign story" })}
         </h4>
-        <p className="mt-2 font-serif text-xl leading-[1.25] text-text-strong-950">
+        <p
+          className="mt-2 min-h-[2.5em] font-serif text-xl leading-[1.25] text-text-strong-950"
+          data-testid={`vault-campaign-story-headline-${campaign.slug}`}
+        >
           {copy.headline}
         </p>
         <dl className="mt-5 text-sm leading-[1.6] text-text-sub-600">
@@ -471,7 +479,7 @@ export function CampaignCard({
       </section>
 
       <section
-        className="mt-auto"
+        className="self-end"
         aria-labelledby={`vault-campaign-${campaign.slug}-actions-title`}
       >
         <h4
@@ -524,7 +532,7 @@ export function VaultsPageContent({
     setSelectedCampaign(null);
   }, []);
   // Open the route-local management surface. Only `?manage=positions` enters the URL
-  // — never an address, email, or any owner identifier.
+  // Never an address, email, or any owner identifier.
   const openManage = useCallback(() => {
     setSelectedCampaign(null);
     setSearchParams(
@@ -571,7 +579,7 @@ export function VaultsPageContent({
         lede={formatMessage({
           id: "public.vaults.hero.lede",
           defaultMessage:
-            "Fund public goods work that keeps giving — your contribution settles into a dedicated Octant vault, and the position stays yours.",
+            "Fund public goods work that keeps giving. Your contribution settles into a dedicated Octant vault, and the position stays yours.",
         })}
       />
 
@@ -580,27 +588,29 @@ export function VaultsPageContent({
         aria-labelledby="public-vaults-browse-title"
       >
         <div className="mx-auto max-w-7xl">
-          <header className="border-b border-stroke-soft-200 pb-6">
-            <EditorialKicker className="mb-3">
-              {formatMessage({
-                id: "public.vaults.browse.kicker",
-                defaultMessage: "§ 01 — Campaign details",
-              })}
-            </EditorialKicker>
-            <EditorialHeading id="public-vaults-browse-title">
-              {formatMessage({
-                id: "public.vaults.browse.title",
-                defaultMessage: "Two pilot slots, one dedicated vault route.",
-              })}
-            </EditorialHeading>
-            <EditorialLede className="mt-5 max-w-2xl">
-              {formatMessage({
-                id: "public.vaults.browse.lede",
-                defaultMessage:
-                  "Your support funds real public goods work and keeps working over time.",
-              })}
-            </EditorialLede>
-            <div className="mt-6">
+          <header className="flex flex-col gap-6 border-b border-stroke-soft-200 pb-6 sm:flex-row sm:items-end sm:justify-between sm:gap-8">
+            <div className="max-w-2xl">
+              <EditorialKicker className="mb-3">
+                {formatMessage({
+                  id: "public.vaults.browse.kicker",
+                  defaultMessage: "§ 01: Campaign details",
+                })}
+              </EditorialKicker>
+              <EditorialHeading id="public-vaults-browse-title">
+                {formatMessage({
+                  id: "public.vaults.browse.title",
+                  defaultMessage: "Two pilot slots, one dedicated vault route.",
+                })}
+              </EditorialHeading>
+              <EditorialLede className="mt-5">
+                {formatMessage({
+                  id: "public.vaults.browse.lede",
+                  defaultMessage:
+                    "Your support funds real public goods work and keeps working over time.",
+                })}
+              </EditorialLede>
+            </div>
+            <div className="flex justify-end sm:shrink-0">
               <button
                 type="button"
                 onClick={openManage}
@@ -633,7 +643,7 @@ export function VaultsPageContent({
           <EditorialKicker className="mb-3">
             {formatMessage({
               id: "public.vaults.boundary.kicker",
-              defaultMessage: "§ 03 — Route boundary",
+              defaultMessage: "§ 03: Route boundary",
             })}
           </EditorialKicker>
           <EditorialHeading id="public-vaults-boundary-title" size="sub">

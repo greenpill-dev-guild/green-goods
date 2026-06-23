@@ -324,6 +324,18 @@ describe("VaultsPage", () => {
     expect(
       screen.getByText("Your support funds real public goods work and keeps working over time.")
     ).toBeInTheDocument();
+    const nycCard = screen.getByTestId("vault-campaign-card-greenpill-nyc");
+    const evmavericksCard = screen.getByTestId("vault-campaign-card-evmavericks");
+    expect(nycCard).toHaveClass("lg:row-span-6", "lg:grid-rows-subgrid");
+    expect(evmavericksCard).toHaveClass("lg:row-span-6", "lg:grid-rows-subgrid");
+    expect(screen.getByTestId("vault-campaign-story-headline-greenpill-nyc")).toHaveClass(
+      "min-h-[2.5em]"
+    );
+    expect(screen.getByTestId("vault-campaign-story-headline-evmavericks")).toHaveClass(
+      "min-h-[2.5em]"
+    );
+    expect(screen.getByTestId("vault-campaign-amount-row-greenpill-nyc")).toBeInTheDocument();
+    expect(screen.getByTestId("vault-campaign-amount-row-evmavericks")).toBeInTheDocument();
     expect(sharedHookMocks.walletRuntimeProviderRender).not.toHaveBeenCalled();
     expect(screen.queryByTestId("wallet-runtime-provider")).not.toBeInTheDocument();
   });
@@ -332,7 +344,7 @@ describe("VaultsPage", () => {
     const locations: string[] = [];
 
     // `ref` stands in for an unrelated route param to preserve. (`manage=positions`
-    // is no longer inert — it opens the route-local management panel.)
+    // is no longer inert; it opens the route-local management panel.)
     renderViewWithLocationProbe("/vaults?cardEndowQa=1&ref=newsletter", (location) => {
       locations.push(location);
     });
@@ -366,7 +378,7 @@ describe("VaultsPage", () => {
     expect(within(evmavericksCard).getByText("Ready for checkout")).toBeInTheDocument();
     expect(
       within(evmavericksCard).getByText(
-        "Each season, the EVMavericks fantasy football league routes 12.5% of its pot into this vault and distributes the remaining 87.5% as league winnings — a recurring public goods funding stream built on a ritual the community already runs."
+        "Each season, the EVMavericks fantasy football league routes 12.5% of its pot into this vault and distributes the remaining 87.5% as league winnings. The result is a recurring public goods funding stream built on a ritual the community already runs."
       )
     ).toBeInTheDocument();
     expect(within(evmavericksCard).queryByText("Preview")).not.toBeInTheDocument();
@@ -401,7 +413,7 @@ describe("VaultsPage", () => {
     expect(screen.queryByRole("button", { name: "Connect wallet" })).not.toBeInTheDocument();
   });
 
-  it("offers a complete non-production campaign Wallet checkout only — never Card", async () => {
+  it("offers a complete non-production campaign Wallet checkout only, never Card", async () => {
     const user = userEvent.setup();
 
     renderContent([makeCompleteCampaign()]);
@@ -478,7 +490,7 @@ describe("VaultsPage", () => {
     expect(screen.getByText("Donated yield generated for the project")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "Cumulative across all supporters in this campaign — not your personal balance."
+        "Cumulative across all supporters in this campaign, not your personal balance."
       )
     ).toBeInTheDocument();
     expect(screen.getAllByText("0 WETH")).not.toHaveLength(0);
@@ -542,12 +554,12 @@ describe("VaultsPage", () => {
   it("warns instead of offering a wrap when ETH covers the shortfall but not the gas reserve", async () => {
     const user = userEvent.setup();
     // Connected wallet with no WETH and just over the wrap shortfall in ETH, but a
-    // gas price high enough that the reserve (gasPrice * 500k) dwarfs the balance —
+    // gas price high enough that the reserve (gasPrice * 500k) dwarfs the balance,
     // so a wrap would strand the follow-on approve/deposit gas.
     sharedHookMocks.primaryAddress = "0x4444444444444444444444444444444444444444";
     sharedHookMocks.authMode = "wallet";
     sharedHookMocks.walletBalances = {
-      nativeBalance: 1_000_000_000_000_000_000n, // 1 ETH — well above the WETH shortfall
+      nativeBalance: 1_000_000_000_000_000_000n, // 1 ETH, well above the WETH shortfall
       assetBalance: 0n, // no WETH → wrap would be required
       gasPrice: 10_000_000_000_000n, // reserve = 5e18 wei, far above the 1 ETH balance
       isLoading: false,
@@ -614,7 +626,7 @@ describe("VaultsPage", () => {
     expect(within(metric).getByText("0.0041 WETH")).toBeInTheDocument();
     expect(
       within(metric).getByText(
-        "Estimated from donation shares held by the configured project-support router."
+        "Estimated from donation shares held by the configured project support router."
       )
     ).toBeInTheDocument();
     expect(within(metric).queryByText(/your accrued/i)).toBeNull();
@@ -1040,7 +1052,7 @@ describe("VaultsPage", () => {
     await user.click(screen.getByRole("button", { name: "Continue to Wallet" }));
     await user.click(screen.getByRole("button", { name: "Confirm endowment" }));
 
-    // Success is a terminal screen — the confirm action is replaced by Done.
+    // Success is a terminal screen; the confirm action is replaced by Done.
     expect(await screen.findByTestId("vault-wallet-endow-success")).toBeInTheDocument();
     expect(screen.getByText("Endowment submitted")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Done" })).toBeInTheDocument();
@@ -1077,13 +1089,13 @@ describe("VaultsPage", () => {
 
       // After 30s with no resolution the recovery affordance appears. The same `slow`
       // flag flips the checkout guard to closeLocked:false (VaultCheckoutDialog.tsx),
-      // and no Retry is offered — so an in-flight deposit can never be double-submitted.
+      // and no Retry is offered, so an in-flight deposit can never be double-submitted.
       act(() => {
         vi.advanceTimersByTime(30_000);
       });
 
       expect(screen.getByText(/Taking longer than expected/)).toBeInTheDocument();
-      // The slow state no longer points to the Fund page — vault positions are
+      // The slow state no longer points to the Fund page; vault positions are
       // managed route-locally from /vaults.
       expect(screen.queryByRole("link", { name: "View on Fund page" })).not.toBeInTheDocument();
       expect(screen.queryByText(/Fund page/i)).not.toBeInTheDocument();
@@ -1121,7 +1133,7 @@ describe("VaultsPage", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("shows the on-chain vault total on the campaign card", () => {
+  it("shows the onchain vault total on the campaign card", () => {
     sharedHookMocks.octantVaultStats = {
       totalAssets: 15000000000n,
       usdCents: 1500000n,
@@ -1148,6 +1160,6 @@ describe("VaultsPage", () => {
     renderCard(makeCompleteCampaign());
 
     const strip = screen.getByTestId("vault-campaign-stats-synthetic-complete");
-    expect(within(strip).getByText("Just launched — be the first to endow")).toBeInTheDocument();
+    expect(within(strip).getByText("Just launched. Be the first to endow.")).toBeInTheDocument();
   });
 });
