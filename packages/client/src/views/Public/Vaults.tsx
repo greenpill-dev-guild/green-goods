@@ -426,7 +426,7 @@ export function CampaignCard({
   return (
     <article
       data-testid={`vault-campaign-card-${campaign.slug}`}
-      className="grid min-h-full grid-rows-[auto_auto_auto_auto_1fr_auto] gap-6 border border-stroke-soft-200 bg-bg-white-0 p-5 shadow-[var(--shadow-editorial-card)] sm:p-6 lg:row-span-6 lg:grid-rows-subgrid"
+      className="grid min-h-full grid-rows-[auto_auto_auto_auto_1fr_auto] gap-6 border border-stroke-soft-200 bg-bg-white-0 p-5 shadow-[var(--shadow-editorial-card)] sm:p-6 lg:row-span-8 lg:grid-rows-subgrid"
       aria-labelledby={`vault-campaign-${campaign.slug}-title`}
     >
       <CampaignStatus campaign={campaign} />
@@ -452,7 +452,11 @@ export function CampaignCard({
         <CampaignVaultStats campaign={campaign} />
       </div>
 
-      <section aria-labelledby={`vault-campaign-${campaign.slug}-story-title`}>
+      <section
+        className="grid gap-y-2 lg:row-span-3 lg:grid-rows-subgrid lg:gap-y-3"
+        data-testid={`vault-campaign-story-row-${campaign.slug}`}
+        aria-labelledby={`vault-campaign-${campaign.slug}-story-title`}
+      >
         <h4
           id={`vault-campaign-${campaign.slug}-story-title`}
           className="font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400"
@@ -460,12 +464,12 @@ export function CampaignCard({
           {formatMessage({ id: "public.vaults.card.story", defaultMessage: "Campaign story" })}
         </h4>
         <p
-          className="mt-2 min-h-[2.5em] font-serif text-xl leading-[1.25] text-text-strong-950"
+          className="font-serif text-xl leading-[1.25] text-text-strong-950"
           data-testid={`vault-campaign-story-headline-${campaign.slug}`}
         >
           {copy.headline}
         </p>
-        <dl className="mt-5 text-sm leading-[1.6] text-text-sub-600">
+        <dl className="text-sm leading-[1.6] text-text-sub-600">
           <div>
             <dt className="font-medium text-text-strong-950">
               {formatMessage({

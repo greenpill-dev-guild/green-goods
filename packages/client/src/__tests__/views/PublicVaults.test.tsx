@@ -326,13 +326,15 @@ describe("VaultsPage", () => {
     ).toBeInTheDocument();
     const nycCard = screen.getByTestId("vault-campaign-card-greenpill-nyc");
     const evmavericksCard = screen.getByTestId("vault-campaign-card-evmavericks");
-    expect(nycCard).toHaveClass("lg:row-span-6", "lg:grid-rows-subgrid");
-    expect(evmavericksCard).toHaveClass("lg:row-span-6", "lg:grid-rows-subgrid");
-    expect(screen.getByTestId("vault-campaign-story-headline-greenpill-nyc")).toHaveClass(
-      "min-h-[2.5em]"
+    expect(nycCard).toHaveClass("lg:row-span-8", "lg:grid-rows-subgrid");
+    expect(evmavericksCard).toHaveClass("lg:row-span-8", "lg:grid-rows-subgrid");
+    expect(screen.getByTestId("vault-campaign-story-row-greenpill-nyc")).toHaveClass(
+      "lg:row-span-3",
+      "lg:grid-rows-subgrid"
     );
-    expect(screen.getByTestId("vault-campaign-story-headline-evmavericks")).toHaveClass(
-      "min-h-[2.5em]"
+    expect(screen.getByTestId("vault-campaign-story-row-evmavericks")).toHaveClass(
+      "lg:row-span-3",
+      "lg:grid-rows-subgrid"
     );
     expect(screen.getByTestId("vault-campaign-amount-row-greenpill-nyc")).toBeInTheDocument();
     expect(screen.getByTestId("vault-campaign-amount-row-evmavericks")).toBeInTheDocument();
