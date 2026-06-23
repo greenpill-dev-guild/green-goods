@@ -40,15 +40,6 @@ const mocks = vi.hoisted(() => ({
   wrapEthToWethMutate: vi.fn(),
   wrapEthToWethReset: vi.fn(),
   walletBalancesRefetch: vi.fn(async () => undefined),
-  thirdwebPrepareContractCall: vi.fn((o: unknown) => o),
-  thirdwebReadContract: vi.fn(async () => 1_000_000_000_000_000_000n),
-  thirdwebSendAndConfirmMutateAsync: vi.fn(async () => ({})),
-  // Thirdweb card session: by default a live session for CARD (no re-verify).
-  activeAccount: { address: CARD } as { address: string } | undefined,
-  autoConnectLoading: false,
-  // Records useAutoConnect invocations so a test can prove the no-re-verify
-  // rehydration mechanism is actually wired (with the email wallet), not bypassed.
-  autoConnectSpy: vi.fn(),
 }));
 
 function emptyPositions() {
@@ -153,7 +144,7 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
   };
 });
 
-/** Wallet-only stablecoin campaign — avoids the ETH price feed and the card path. */
+/** Wallet-only stablecoin campaign — avoids the ETH price feed. */
 function makeStableCampaign(): OctantVaultCampaignManifest {
   return {
     slug: "synthetic-complete",
@@ -165,7 +156,7 @@ function makeStableCampaign(): OctantVaultCampaignManifest {
     campaignCopy: {
       headline: "Fund a complete Octant vault",
       summary: "A complete fixture for manifest validation.",
-      fundingPurpose: "Support public-goods work through a dedicated vault.",
+      fundingPurpose: "Support public goods work through a dedicated vault.",
       recipientLogic: "Yield routes through the supplied recipient configuration.",
       riskNote: "Vault deposits depend on the underlying token and Octant vault strategy.",
     },
@@ -175,44 +166,10 @@ function makeStableCampaign(): OctantVaultCampaignManifest {
       asset: { address: "0x2222222222222222222222222222222222222222", symbol: "USDC", decimals: 6 },
       explorerLink: "https://etherscan.io/address/0x1111111111111111111111111111111111111111",
     },
-    recipientRoutingSummary: "Yield routes to a verified public-goods recipient.",
+    recipientRoutingSummary: "Yield routes to a verified public goods recipient.",
     protocolGuildDestinationContext: "Protocol Guild allocation context is recorded.",
   };
 }
-
-// Thirdweb is only pulled in by the lazy card-management chunk; mock it so jsdom
-// can render the card section without the real SDK.
-vi.mock("thirdweb", () => ({
-  createThirdwebClient: (o: { clientId: string }) => ({ clientId: o.clientId }),
-  getContract: (o: unknown) => o,
-  prepareContractCall: (o: unknown) => mocks.thirdwebPrepareContractCall(o),
-  readContract: (o: unknown) => mocks.thirdwebReadContract(o),
-}));
-vi.mock("thirdweb/chains", () => ({
-  defineChain: (id: number) => ({ id }),
-  ethereum: { id: 1 },
-}));
-vi.mock("thirdweb/react", async () => {
-  const { createElement: ce } = await import("react");
-  return {
-    ThirdwebProvider: ({ children }: { children: unknown }) =>
-      ce("div", { "data-testid": "thirdweb-provider" }, children),
-    useActiveAccount: () => mocks.activeAccount,
-    useAutoConnect: (options: unknown) => {
-      mocks.autoConnectSpy(options);
-      return { isLoading: mocks.autoConnectLoading, data: true };
-    },
-    useConnect: () => ({ connect: vi.fn(), isConnecting: false, error: null }),
-    useSendAndConfirmTransaction: () => ({
-      mutateAsync: mocks.thirdwebSendAndConfirmMutateAsync,
-      isPending: false,
-    }),
-  };
-});
-vi.mock("thirdweb/wallets/in-app", () => ({
-  inAppWallet: () => ({ connect: vi.fn(async () => ({ address: CARD })) }),
-  preAuthenticate: vi.fn(async () => undefined),
-}));
 
 vi.mock("@/routes/WalletRuntimeProviders", async () => {
   const { createElement: ce } = await import("react");
@@ -307,19 +264,12 @@ function renderContent(campaigns: OctantVaultCampaignManifest[]) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  vi.stubEnv("VITE_THIRDWEB_CLIENT_ID", "test-thirdweb-client");
-  vi.stubEnv("VITE_API_BASE_URL", "https://agent.test");
   mocks.authMode = null;
   mocks.primaryAddress = undefined;
   mocks.positionsByOwner = {};
   mocks.wrapEthToWethMutate.mockClear();
   mocks.wrapEthToWethReset.mockClear();
   mocks.walletBalancesRefetch.mockClear();
-  mocks.thirdwebPrepareContractCall.mockClear();
-  mocks.thirdwebReadContract.mockClear();
-  mocks.thirdwebSendAndConfirmMutateAsync.mockClear();
-  mocks.activeAccount = { address: CARD };
-  mocks.autoConnectLoading = false;
   window.localStorage.clear();
   window.history.pushState({}, "", "/");
   Object.defineProperty(window, "matchMedia", {
@@ -369,7 +319,7 @@ describe("/vaults?manage=positions", () => {
 
     const panel = screen.getByTestId("vault-manage-positions-panel");
     expect(within(panel).getByText("Greenpill NYC")).toBeInTheDocument();
-    expect(within(panel).getByText("WETH-backed vault position")).toBeInTheDocument();
+    expect(within(panel).getByText("WETH vault position")).toBeInTheDocument();
     // Position value label is present (precise WETH wording, not Fund language).
     expect(within(panel).getByText(/Position value in WETH/)).toBeInTheDocument();
     expect(within(panel).getByText("Ethereum Mainnet")).toBeInTheDocument();
@@ -554,228 +504,21 @@ describe("/vaults?manage=positions", () => {
     expect(within(row).queryByRole("button", { name: "Redeem shares" })).toBeNull();
   });
 
-  it("renders card-wallet positions under a Card wallet tab without re-verifying email", async () => {
-    // A cached card-wallet position + a live Thirdweb session (just-completed endow).
-    window.localStorage.setItem(
-      "gg:octant-vault-card-wallets:v1",
-      JSON.stringify([
-        {
-          recoveredWalletAddress: CARD,
-          campaignSlug: "greenpill-nyc",
-          vaultAddress: VAULT,
-          chainId: 1,
-          updatedAt: 1000,
-        },
-      ])
-    );
-    mocks.positionsByOwner[CARD.toLowerCase()] = {
-      ...emptyPositions(),
-      positions: [makePosition()],
-      hasPositions: true,
-    };
-    const user = userEvent.setup();
-    renderPage("/vaults?manage=positions");
+  it("ignores stale card-wallet cache and keeps management wallet-only", () => {
+    seedPendingFundedEntry();
+    mocks.authMode = "wallet";
+    mocks.primaryAddress = CONNECTED;
 
-    // Both owner sources present → tabs render.
-    await user.click(screen.getByRole("tab", { name: "Card wallet" }));
+    renderPage("/vaults?manage=positions");
 
     const panel = screen.getByTestId("vault-manage-positions-panel");
-    await waitFor(() =>
-      expect(within(panel).getByTestId("vault-manage-position-greenpill-nyc")).toBeInTheDocument()
-    );
-    // No email/OTP restore prompt — the live session means no re-verification.
-    expect(within(panel).queryByText("Restore email wallet to redeem")).toBeNull();
-    expect(within(panel).queryByText(/restore the email wallet/i)).toBeNull();
-    // Redeem is available (session live).
-    expect(within(panel).getByRole("button", { name: "Redeem shares" })).toBeInTheDocument();
-    // The no-re-verify path is the autoConnect rehydration mechanism, wired with
-    // the email in-app wallet — assert it is actually invoked, not bypassed.
-    expect(mocks.autoConnectSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ wallets: expect.arrayContaining([expect.anything()]) })
-    );
-  });
-
-  it("signs card-wallet redemption with the Octant maxLoss redeem signature", async () => {
-    window.localStorage.setItem(
-      "gg:octant-vault-card-wallets:v1",
-      JSON.stringify([
-        {
-          recoveredWalletAddress: CARD,
-          campaignSlug: "greenpill-nyc",
-          vaultAddress: VAULT,
-          chainId: 1,
-          updatedAt: 1000,
-        },
-      ])
-    );
-    mocks.positionsByOwner[CARD.toLowerCase()] = {
-      ...emptyPositions(),
-      positions: [makePosition()],
-      hasPositions: true,
-    };
-
-    const user = userEvent.setup();
-    renderPage("/vaults?manage=positions");
-    await user.click(screen.getByRole("tab", { name: "Card wallet" }));
-
-    const row = await screen.findByTestId("vault-manage-position-greenpill-nyc");
-    await user.click(within(row).getByRole("button", { name: "Redeem shares" }));
-    await user.type(within(row).getByLabelText("Shares to redeem"), "0.5");
-    await user.click(within(row).getByRole("button", { name: "Review redemption" }));
-    await user.click(within(row).getByRole("button", { name: "Confirm" }));
-
-    await waitFor(() => expect(mocks.thirdwebSendAndConfirmMutateAsync).toHaveBeenCalledTimes(1));
-    expect(mocks.thirdwebPrepareContractCall).toHaveBeenCalledWith(
-      expect.objectContaining({
-        method:
-          "function redeem(uint256 shares, address receiver, address owner, uint256 maxLoss, address[] strategies) returns (uint256)",
-        params: [500_000_000_000_000_000n, CARD, CARD, 100n, []],
-      })
-    );
-  });
-
-  it("finishes a pending-funded deposit from a live card-wallet session and upgrades the cache", async () => {
-    seedPendingFundedEntry();
-    // No vault shares yet — the entry is funding without a finished deposit.
-    mocks.activeAccount = { address: CARD };
-
-    const user = userEvent.setup();
-    renderPage("/vaults?manage=positions");
-    await user.click(screen.getByRole("tab", { name: "Card wallet" }));
-
-    const pendingCard = await screen.findByTestId("vault-manage-pending-funded-greenpill-nyc");
-    expect(within(pendingCard).getByText("Finish your vault deposit")).toBeInTheDocument();
-    // A live session never asks for email re-verification.
-    expect(screen.queryByText("Restore email wallet to redeem")).toBeNull();
-
-    await user.click(within(pendingCard).getByRole("button", { name: "Finish vault deposit" }));
-
-    // The finish path keeps the ordered approve -> deposit pair.
-    await waitFor(() => expect(mocks.thirdwebSendAndConfirmMutateAsync).toHaveBeenCalledTimes(2));
-    expect(mocks.thirdwebPrepareContractCall).toHaveBeenNthCalledWith(
-      1,
-      expect.objectContaining({
-        method: "function approve(address spender, uint256 value)",
-        params: [VAULT, 10_000_000_000_000_000n],
-      })
-    );
-    expect(mocks.thirdwebPrepareContractCall).toHaveBeenNthCalledWith(
-      2,
-      expect.objectContaining({
-        method: "function deposit(uint256 assets, address receiver) returns (uint256)",
-        params: [10_000_000_000_000_000n, CARD],
-      })
-    );
-
-    // Positive shares upgrade the cache entry to confirmed and drop the
-    // recovery tuple; the pending card disappears.
-    await waitFor(() => {
-      const raw = window.localStorage.getItem("gg:octant-vault-card-wallets:v1") ?? "[]";
-      const entries = JSON.parse(raw) as Array<Record<string, unknown>>;
-      expect(entries).toHaveLength(1);
-      expect(entries[0]).toMatchObject({ status: "confirmed" });
-      expect(entries[0]).not.toHaveProperty("tokenAddress");
-      expect(entries[0]).not.toHaveProperty("expectedAmount");
-    });
-    await waitFor(() =>
-      expect(screen.queryByTestId("vault-manage-pending-funded-greenpill-nyc")).toBeNull()
-    );
-  });
-
-  it("lets a returning pending-funded wallet restore the email wallet before finishing the deposit", async () => {
-    seedPendingFundedEntry();
-    // Session gone, autoConnect settled — the wallet is "returning".
-    mocks.activeAccount = undefined;
-    mocks.autoConnectLoading = false;
-
-    const user = userEvent.setup();
-    renderPage("/vaults?manage=positions");
-    await user.click(screen.getByRole("tab", { name: "Card wallet" }));
-
-    const panel = screen.getByTestId("vault-manage-positions-panel");
-    // The restore ceremony is offered even though no share positions exist yet.
-    await waitFor(() =>
-      expect(within(panel).getByText("Restore email wallet to redeem")).toBeInTheDocument()
-    );
-    // The pending deposit is visible but cannot run without the live wallet.
-    const pendingCard = within(panel).getByTestId("vault-manage-pending-funded-greenpill-nyc");
+    expect(within(panel).queryByRole("tab", { name: "Card wallet" })).not.toBeInTheDocument();
+    expect(within(panel).queryByText(/card wallet/i)).not.toBeInTheDocument();
+    expect(within(panel).queryByText("Restore email wallet to redeem")).not.toBeInTheDocument();
     expect(
-      within(pendingCard).getByText("Restore the email wallet above to finish this deposit.")
-    ).toBeInTheDocument();
-    expect(within(pendingCard).queryByRole("button", { name: "Finish vault deposit" })).toBeNull();
-    // Restore stays the email OTP ceremony (send code first).
-    expect(within(panel).getByRole("button", { name: "Send email code" })).toBeInTheDocument();
-  });
-
-  it("keeps owner identifiers out of the management URL", async () => {
-    window.localStorage.setItem(
-      "gg:octant-vault-card-wallets:v1",
-      JSON.stringify([
-        {
-          recoveredWalletAddress: CARD,
-          campaignSlug: "greenpill-nyc",
-          vaultAddress: VAULT,
-          chainId: 1,
-          updatedAt: 1000,
-        },
-      ])
-    );
-    mocks.positionsByOwner[CARD.toLowerCase()] = {
-      ...emptyPositions(),
-      positions: [makePosition()],
-      hasPositions: true,
-    };
-    const locations: string[] = [];
-    const user = userEvent.setup();
-
-    renderPageWithLocationProbe("/vaults", (location) => {
-      locations.push(location);
-    });
-
-    await user.click(screen.getByTestId("vault-manage-positions-entry"));
-    await waitFor(() => expect(locations.at(-1)).toBe("/vaults?manage=positions"));
-    await user.click(screen.getByRole("tab", { name: "Card wallet" }));
-    await screen.findByTestId("vault-manage-position-greenpill-nyc");
-
-    // Only ?manage=positions ever enters the URL — never an address, email,
-    // provider/session ID, or receipt token.
-    expect(locations.at(-1)).toBe("/vaults?manage=positions");
-    expect(locations.join(" ")).not.toMatch(/0x[a-fA-F0-9]{6,}|@|provider|session|receipt|token=/i);
-  });
-
-  it("prompts email-wallet restoration for a returning card wallet whose session is gone", async () => {
-    window.localStorage.setItem(
-      "gg:octant-vault-card-wallets:v1",
-      JSON.stringify([
-        {
-          recoveredWalletAddress: CARD,
-          campaignSlug: "greenpill-nyc",
-          vaultAddress: VAULT,
-          chainId: 1,
-          updatedAt: 1000,
-        },
-      ])
-    );
-    mocks.positionsByOwner[CARD.toLowerCase()] = {
-      ...emptyPositions(),
-      positions: [makePosition()],
-      hasPositions: true,
-    };
-    // Session gone, autoConnect already settled.
-    mocks.activeAccount = undefined;
-    mocks.autoConnectLoading = false;
-
-    const user = userEvent.setup();
-    renderPage("/vaults?manage=positions");
-    await user.click(screen.getByRole("tab", { name: "Card wallet" }));
-
-    const panel = screen.getByTestId("vault-manage-positions-panel");
-    await waitFor(() =>
-      expect(within(panel).getByText("Restore email wallet to redeem")).toBeInTheDocument()
-    );
-    // Position still visible read-only, but no active Redeem control.
-    expect(within(panel).getByTestId("vault-manage-position-greenpill-nyc")).toBeInTheDocument();
-    expect(within(panel).queryByRole("button", { name: "Redeem shares" })).toBeNull();
+      within(panel).queryByTestId("vault-manage-pending-funded-greenpill-nyc")
+    ).not.toBeInTheDocument();
+    expect(within(panel).getByText("No vault positions for this wallet yet")).toBeInTheDocument();
   });
 });
 

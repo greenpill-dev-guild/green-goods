@@ -12,7 +12,7 @@ import { useIntl, type IntlShape } from "react-intl";
  * atoms.
  */
 
-export type CheckoutMethod = "card" | "wallet";
+export type CheckoutMethod = "wallet";
 
 // Square transaction controls (no rounded capsules inside the checkout).
 export const CHECKOUT_PRIMARY_BUTTON =

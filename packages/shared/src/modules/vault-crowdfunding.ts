@@ -624,7 +624,7 @@ export const OCTANT_VAULT_CAMPAIGN_MANIFEST = [
     previewCopy: greenpillNycPreviewCopy,
     campaignCopy: greenpillNycPreviewCopy,
     recipientRoutingSummary:
-      "Contributions deposit into the Greenpill NYC Octant vault; donated yield supports local civic-tech initiatives surfaced via Decentral Park.",
+      "Contributions deposit into the Greenpill NYC Octant vault; donated yield supports local civic tech initiatives surfaced via Decentral Park.",
     vault: {
       chainId: OCTANT_V2_ETHEREUM_CHAIN_ID,
       vaultAddress: "0xaC8F844CEA2Fd75B7A5514f11974895B334fd9A5",

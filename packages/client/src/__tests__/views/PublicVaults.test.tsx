@@ -23,9 +23,6 @@ const sharedHookMocks = vi.hoisted(() => ({
   wrapEthToWethReset: vi.fn(),
   wrapEthToWethError: null as unknown,
   wrapEthToWethIsPending: false,
-  // Native ETH balance of the card-recovered wallet, read by VaultCardPaymentPanel
-  // via createPublicClientForChain(...).getBalance to gate combined WETH+ETH coverage.
-  cardRecoveredNativeBalance: 0n as bigint,
   walletBalancesRefetch: vi.fn(async () => undefined),
   walletBalances: {
     nativeBalance: null as bigint | null,
@@ -66,111 +63,11 @@ const sharedHookMocks = vi.hoisted(() => ({
   },
 }));
 
-const thirdwebMocks = vi.hoisted(() => {
-  const receiverAddress = "0x4444444444444444444444444444444444444444";
-  const wethTokenAddress = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2";
-  /** $30 at the mocked $3,000/ETH feed → 0.01 WETH in base units. */
-  const expectedFundingAmount = 10000000000000000n;
-
-  /**
-   * Default read routing: the WETH token contract answers the funding-balance
-   * proof with exactly the expected amount; every other contract (the vault)
-   * answers the share read with 12 shares. Tests override per scenario.
-   */
-  const defaultReadContract = async (options: unknown) => {
-    const address = (
-      options as { contract?: { address?: string } }
-    )?.contract?.address?.toLowerCase();
-    if (address === wethTokenAddress.toLowerCase()) return expectedFundingAmount;
-    return 12n;
-  };
-
-  const state = {
-    receiverAddress,
-    wethTokenAddress,
-    expectedFundingAmount,
-    defaultReadContract,
-    adminAddress: receiverAddress,
-    activeAccount: undefined as { address: string } | undefined,
-    activeWallet: { id: "inApp" },
-    createThirdwebClient: vi.fn((options: { clientId: string }) => ({
-      clientId: options.clientId,
-    })),
-    getContract: vi.fn((options: unknown) => options),
-    inAppWallet: vi.fn(() => ({
-      connect: vi.fn(async () => ({ address: receiverAddress })),
-      getAdminAccount: vi.fn(() => ({ address: state.adminAddress })),
-    })),
-    preAuthenticate: vi.fn(async () => undefined),
-    prepareContractCall: vi.fn((options: unknown) => ({ kind: "prepared", options })),
-    readContract: vi.fn(defaultReadContract),
-    sendBatchTransaction: vi.fn(async () => ({
-      transactionHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    })),
-    waitForReceipt: vi.fn(async (options: { transactionHash: `0x${string}` }) => ({
-      ...options,
-      status: "success",
-    })),
-    sendAndConfirmTransaction: vi.fn(async () => ({
-      transactionHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    })),
-    // Headless onramp (Bridge.Onramp) replaces the embedded BuyWidget. Defaults are
-    // (re)set per test in beforeEach so once-overrides can model PENDING/FAILED/fallback.
-    onrampPrepare: vi.fn(),
-    onrampStatus: vi.fn(),
-    useConnectConnect: vi.fn(async (walletOrFn: unknown) => {
-      if (typeof walletOrFn === "function") {
-        return await (walletOrFn as () => Promise<unknown>)();
-      }
-      return walletOrFn;
-    }),
-  };
-  return state;
-});
-
-const fetchMock = vi.hoisted(() => vi.fn());
-const windowOpenMock = vi.hoisted(() => vi.fn());
-const checkoutWindowMocks = vi.hoisted(() => {
-  type MockCheckoutWindow = {
-    location: { href: string; replace: ReturnType<typeof vi.fn> };
-    close: ReturnType<typeof vi.fn>;
-    closed: boolean;
-    opener: unknown;
-  };
-
-  return {
-    current: null as MockCheckoutWindow | null,
-    create() {
-      const checkoutWindow = {
-        location: { href: "about:blank", replace: vi.fn() },
-        close: vi.fn(),
-        closed: false,
-        opener: { app: "green-goods" },
-      } satisfies MockCheckoutWindow;
-      checkoutWindow.location.replace.mockImplementation((link: string) => {
-        checkoutWindow.location.href = link;
-      });
-      checkoutWindow.close.mockImplementation(() => {
-        checkoutWindow.closed = true;
-      });
-      return checkoutWindow;
-    },
-  };
-});
-
-vi.stubGlobal("fetch", fetchMock);
-vi.stubGlobal("open", windowOpenMock);
-
 vi.mock("@green-goods/shared", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@green-goods/shared")>();
 
   return {
     ...actual,
-    // The card pay panel reads the recovered wallet's native ETH balance through
-    // this client; return the configured mock balance instead of a real RPC call.
-    createPublicClientForChain: () => ({
-      getBalance: async () => sharedHookMocks.cardRecoveredNativeBalance,
-    }),
     useAuth: () => ({
       loginWithWallet: sharedHookMocks.loginWithWallet,
     }),
@@ -222,57 +119,6 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
   };
 });
 
-vi.mock("thirdweb", () => ({
-  createThirdwebClient: thirdwebMocks.createThirdwebClient,
-  getContract: thirdwebMocks.getContract,
-  prepareContractCall: thirdwebMocks.prepareContractCall,
-  readContract: thirdwebMocks.readContract,
-  waitForReceipt: thirdwebMocks.waitForReceipt,
-  Bridge: {
-    Onramp: {
-      prepare: thirdwebMocks.onrampPrepare,
-      status: thirdwebMocks.onrampStatus,
-    },
-  },
-}));
-
-vi.mock("thirdweb/chains", () => ({
-  defineChain: (chainId: number) => ({ id: chainId, name: `Chain ${chainId}` }),
-  ethereum: { id: 1, name: "Ethereum" },
-}));
-
-vi.mock("thirdweb/react", async () => {
-  const { createElement } = await import("react");
-
-  return {
-    ThirdwebProvider: ({ children }: { children: unknown }) =>
-      createElement("div", { "data-testid": "thirdweb-provider" }, children),
-    useActiveAccount: () => thirdwebMocks.activeAccount,
-    useActiveWallet: () => thirdwebMocks.activeWallet,
-    useConnect: () => ({
-      connect: thirdwebMocks.useConnectConnect,
-      error: null,
-      isConnecting: false,
-      cancelConnection: vi.fn(),
-    }),
-    useSendAndConfirmTransaction: () => ({
-      mutateAsync: thirdwebMocks.sendAndConfirmTransaction,
-      isPending: false,
-      error: null,
-    }),
-    useSendBatchTransaction: () => ({
-      mutateAsync: thirdwebMocks.sendBatchTransaction,
-      isPending: false,
-      error: null,
-    }),
-  };
-});
-
-vi.mock("thirdweb/wallets/in-app", () => ({
-  inAppWallet: thirdwebMocks.inAppWallet,
-  preAuthenticate: thirdwebMocks.preAuthenticate,
-}));
-
 vi.mock("@/routes/WalletRuntimeProviders", async () => {
   const { createElement } = await import("react");
 
@@ -297,7 +143,7 @@ function makeCompleteCampaign(): OctantVaultCampaignManifest {
     campaignCopy: {
       headline: "Fund a complete Octant vault",
       summary: "A complete fixture for manifest validation.",
-      fundingPurpose: "Support public-goods work through a dedicated vault.",
+      fundingPurpose: "Support public goods work through a dedicated vault.",
       recipientLogic: "Yield routes through the supplied recipient configuration.",
       riskNote: "Vault deposits depend on the underlying token and Octant vault strategy.",
     },
@@ -311,7 +157,7 @@ function makeCompleteCampaign(): OctantVaultCampaignManifest {
       },
       explorerLink: "https://etherscan.io/address/0x1111111111111111111111111111111111111111",
     },
-    recipientRoutingSummary: "Yield routes to a verified public-goods recipient.",
+    recipientRoutingSummary: "Yield routes to a verified public goods recipient.",
     protocolGuildDestinationContext: "Protocol Guild allocation context is recorded.",
   };
 }
@@ -412,43 +258,6 @@ function stubMatchMedia(widthPx = 1024) {
   });
 }
 
-async function openGreenpillCardCheckout(user: ReturnType<typeof userEvent.setup>) {
-  await user.click(screen.getByRole("button", { name: "Endow to Greenpill NYC" }));
-  const continueButton = screen.getByRole("button", { name: "Continue" });
-  const cardMethod = screen.getByTestId("vault-checkout-method-card");
-  expect(continueButton).toBeDisabled();
-  expect(cardMethod).toBeEnabled();
-  await user.click(cardMethod);
-  expect(cardMethod).toHaveAttribute("aria-pressed", "true");
-  const continueToCardButton = screen.getByRole("button", { name: "Continue to Card" });
-  expect(continueToCardButton).toBeDisabled();
-  await user.type(screen.getByLabelText("Amount to endow"), "30");
-  expect(continueToCardButton).toBeEnabled();
-  await user.click(continueToCardButton);
-  await screen.findByTestId("vault-card-endow-flow");
-}
-
-async function recoverEmailWallet(
-  user: ReturnType<typeof userEvent.setup>,
-  email = "qa@example.org"
-) {
-  await user.type(screen.getByLabelText("Email"), email);
-  await user.click(screen.getByRole("button", { name: "Send email code" }));
-  await screen.findByText(`Code sent. Check ${email} and enter the 6-digit code below.`);
-  await user.type(screen.getByLabelText("Email code"), "123456");
-  await user.click(screen.getByRole("button", { name: "Verify email" }));
-  // A verified email lands directly on the pay screen — there is no review step.
-  await screen.findByTestId("vault-card-payment-panel");
-}
-
-async function openSecureCardCheckout(user: ReturnType<typeof userEvent.setup>) {
-  // The pay step is the Green Goods-owned panel — never an embedded provider widget.
-  await screen.findByTestId("vault-card-payment-panel");
-  expect(screen.queryByTestId("thirdweb-buy-widget")).not.toBeInTheDocument();
-  await user.click(screen.getByRole("button", { name: "Open secure card checkout" }));
-  await waitFor(() => expect(thirdwebMocks.onrampStatus).toHaveBeenCalled());
-}
-
 describe("VaultsPage", () => {
   beforeEach(() => {
     sharedHookMocks.loginWithWallet.mockReset();
@@ -460,7 +269,6 @@ describe("VaultsPage", () => {
     sharedHookMocks.wrapEthToWethReset.mockClear();
     sharedHookMocks.wrapEthToWethError = null;
     sharedHookMocks.wrapEthToWethIsPending = false;
-    sharedHookMocks.cardRecoveredNativeBalance = 0n;
     sharedHookMocks.walletBalancesRefetch.mockClear();
     sharedHookMocks.walletBalances = {
       nativeBalance: null,
@@ -500,99 +308,7 @@ describe("VaultsPage", () => {
       isError: false,
     };
     stubMatchMedia();
-    // Card Endow now writes pending/confirmed cache entries; keep tests isolated.
     window.localStorage.clear();
-    thirdwebMocks.activeAccount = undefined;
-    thirdwebMocks.createThirdwebClient.mockClear();
-    thirdwebMocks.getContract.mockClear();
-    thirdwebMocks.inAppWallet.mockClear();
-    thirdwebMocks.preAuthenticate.mockClear();
-    thirdwebMocks.prepareContractCall.mockClear();
-    thirdwebMocks.readContract.mockReset();
-    thirdwebMocks.readContract.mockImplementation(thirdwebMocks.defaultReadContract);
-    thirdwebMocks.adminAddress = thirdwebMocks.receiverAddress;
-    thirdwebMocks.sendBatchTransaction.mockReset();
-    thirdwebMocks.sendBatchTransaction.mockResolvedValue({
-      transactionHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    });
-    thirdwebMocks.waitForReceipt.mockReset();
-    thirdwebMocks.waitForReceipt.mockImplementation(
-      async (options: { transactionHash: `0x${string}` }) => ({
-        ...options,
-        status: "success",
-      })
-    );
-    thirdwebMocks.sendAndConfirmTransaction.mockReset();
-    thirdwebMocks.sendAndConfirmTransaction.mockResolvedValue({
-      transactionHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    });
-    thirdwebMocks.onrampPrepare.mockReset();
-    // The default prepared quote echoes the exact expected route — chain 1,
-    // WETH token, recovered receiver, exact base-unit amount. Mismatch tests
-    // override individual fields.
-    thirdwebMocks.onrampPrepare.mockResolvedValue({
-      id: "onramp_test_session",
-      link: "https://onramp.test/session",
-      currency: "USD",
-      currencyAmount: 30,
-      destinationAmount: thirdwebMocks.expectedFundingAmount,
-      steps: [],
-      intent: {
-        onramp: "stripe",
-        chainId: 1,
-        tokenAddress: thirdwebMocks.wethTokenAddress,
-        receiver: thirdwebMocks.receiverAddress,
-        amount: thirdwebMocks.expectedFundingAmount.toString(),
-      },
-    });
-    thirdwebMocks.onrampStatus.mockReset();
-    thirdwebMocks.onrampStatus.mockResolvedValue({ status: "COMPLETED", transactions: [] });
-    thirdwebMocks.useConnectConnect.mockClear();
-    checkoutWindowMocks.current = null;
-    windowOpenMock.mockReset();
-    windowOpenMock.mockImplementation(() => {
-      const checkoutWindow = checkoutWindowMocks.create();
-      checkoutWindowMocks.current = checkoutWindow;
-      return checkoutWindow;
-    });
-    vi.stubGlobal("fetch", fetchMock);
-    vi.stubGlobal("open", windowOpenMock);
-    fetchMock.mockReset();
-    fetchMock.mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          ok: true,
-          id: "fi_card_endow_proof",
-          status: "funded",
-          provider: "thirdweb",
-          receiptUrl: "/vaults?intent=fi_card_endow_proof#receiptToken=tok_test",
-          publicReceipt: {
-            id: "fi_card_endow_proof",
-            status: "funded",
-            garden: { id: "greenpill-nyc", name: "Greenpill NYC" },
-            destination: {
-              type: "vault",
-              address: "0xaC8F844CEA2Fd75B7A5514f11974895B334fd9A5",
-            },
-            fundingIntent: "endow",
-            amount: {
-              amountUsd: "0",
-              token: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
-              chainId: 1,
-              fundedAssetAmount: "10000000000000000",
-            },
-            fundingTxHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-            receiverAddress: thirdwebMocks.receiverAddress,
-            updatedAt: "2026-06-03T00:00:00.000Z",
-            appManagementCta: "manage_endowments",
-            managementUrl: "/vaults?manage=positions",
-          },
-        }),
-        { status: 200, headers: { "content-type": "application/json" } }
-      )
-    );
-    vi.stubEnv("VITE_THIRDWEB_CLIENT_ID", "test-thirdweb-client");
-    vi.stubEnv("VITE_API_BASE_URL", "https://agent.test");
   });
 
   it("renders the dedicated /vaults browse surface without wallet connection", () => {
@@ -606,7 +322,7 @@ describe("VaultsPage", () => {
       screen.getByRole("heading", { name: "EVMavericks Fantasy Football League" })
     ).toBeInTheDocument();
     expect(
-      screen.getByText("Your support funds real public-goods work and keeps working over time.")
+      screen.getByText("Your support funds real public goods work and keeps working over time.")
     ).toBeInTheDocument();
     expect(sharedHookMocks.walletRuntimeProviderRender).not.toHaveBeenCalled();
     expect(screen.queryByTestId("wallet-runtime-provider")).not.toBeInTheDocument();
@@ -628,20 +344,20 @@ describe("VaultsPage", () => {
     expect(screen.getByRole("button", { name: "Endow to Greenpill NYC" })).toBeEnabled();
   });
 
-  it("shows Endow CTAs for both card-ready vault fixtures", () => {
+  it("shows wallet-only Endow CTAs for both vault fixtures", () => {
     renderView();
 
     const nycCard = screen.getByTestId("vault-campaign-card-greenpill-nyc");
     const evmavericksCard = screen.getByTestId("vault-campaign-card-evmavericks");
 
-    // Greenpill NYC collapses both payment paths into a single Endow CTA.
+    // Greenpill NYC exposes a single vault Endow CTA without a card payment branch.
     expect(within(nycCard).getByRole("button", { name: "Endow to Greenpill NYC" })).toBeEnabled();
     expect(
       within(nycCard).queryByRole("button", { name: /choose amount/i })
     ).not.toBeInTheDocument();
     expect(within(nycCard).queryByRole("button", { name: /pay by card/i })).not.toBeInTheDocument();
 
-    // EVMavericks is wallet-ready and card-ready through the supplied vault tuple.
+    // EVMavericks uses the same wallet-only vault checkout treatment.
     expect(
       within(evmavericksCard).getByRole("button", {
         name: "Endow to EVMavericks Fantasy Football League",
@@ -650,7 +366,7 @@ describe("VaultsPage", () => {
     expect(within(evmavericksCard).getByText("Ready for checkout")).toBeInTheDocument();
     expect(
       within(evmavericksCard).getByText(
-        "Each season, the EVMavericks fantasy football league routes 12.5% of its pot into this vault and distributes the remaining 87.5% as league winnings — a recurring public-goods funding stream built on a ritual the community already runs."
+        "Each season, the EVMavericks fantasy football league routes 12.5% of its pot into this vault and distributes the remaining 87.5% as league winnings — a recurring public goods funding stream built on a ritual the community already runs."
       )
     ).toBeInTheDocument();
     expect(within(evmavericksCard).queryByText("Preview")).not.toBeInTheDocument();
@@ -725,7 +441,7 @@ describe("VaultsPage", () => {
     expect(screen.queryByTestId("thirdweb-buy-widget")).not.toBeInTheDocument();
   });
 
-  it("opens EVMavericks with Card and Wallet checkout", async () => {
+  it("opens EVMavericks with Wallet checkout only and keeps Card Endow hidden", async () => {
     const user = userEvent.setup();
 
     renderView();
@@ -736,40 +452,22 @@ describe("VaultsPage", () => {
 
     const continueButton = screen.getByRole("button", { name: "Continue" });
     expect(continueButton).toBeDisabled();
-    const cardMethod = screen.getByTestId("vault-checkout-method-card");
     const walletMethod = screen.getByTestId("vault-checkout-method-wallet");
-    expect(cardMethod).toBeEnabled();
+    expect(screen.queryByTestId("vault-checkout-method-card")).not.toBeInTheDocument();
     expect(walletMethod).toBeEnabled();
-    await user.click(cardMethod);
-    expect(cardMethod).toHaveAttribute("aria-pressed", "true");
-    const continueToCardButton = screen.getByRole("button", { name: "Continue to Card" });
-    expect(continueToCardButton).toBeDisabled();
+    await user.click(walletMethod);
+    expect(walletMethod).toHaveAttribute("aria-pressed", "true");
+    const continueToWalletButton = screen.getByRole("button", { name: "Continue to Wallet" });
+    expect(continueToWalletButton).toBeDisabled();
     await user.type(screen.getByLabelText("Amount to endow"), "25");
-    expect(continueToCardButton).toBeEnabled();
-    await user.click(continueToCardButton);
+    expect(continueToWalletButton).toBeEnabled();
+    await user.click(continueToWalletButton);
 
-    expect(await screen.findByTestId("vault-card-endow-flow")).toBeInTheDocument();
-    await recoverEmailWallet(user, "evm@example.org");
-    const panel = screen.getByTestId("vault-card-payment-panel");
-    expect(panel).toHaveTextContent("EVMavericks Fantasy Football League");
-    const planDetails = screen.getByTestId("vault-card-endow-plan-details");
-    expect(planDetails).toHaveTextContent("Ethereum Mainnet");
-    expect(
-      within(planDetails).getByRole("link", {
-        name: "0x0bCe8c16974FFD3B410A32365c5bCf27a5A630Fc",
-      })
-    ).toHaveAttribute(
-      "href",
-      "https://etherscan.io/address/0x0bCe8c16974FFD3B410A32365c5bCf27a5A630Fc"
-    );
-    expect(
-      within(planDetails).getByRole("link", {
-        name: /0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2/,
-      })
-    ).toHaveAttribute(
-      "href",
-      "https://etherscan.io/address/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
-    );
+    expect(await screen.findByTestId("vault-wallet-endow-path")).toBeInTheDocument();
+    expect(screen.queryByTestId("vault-card-endow-flow")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("vault-card-payment-panel")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("vault-card-endow-plan-details")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Continue to Card" })).not.toBeInTheDocument();
     expect(screen.queryByTestId("thirdweb-buy-widget")).not.toBeInTheDocument();
   });
 
@@ -900,7 +598,7 @@ describe("VaultsPage", () => {
     expect(within(metric).queryByText(/WETH/)).toBeNull();
   });
 
-  it("renders a positive aggregate project-supporting value without per-user profit copy", () => {
+  it("renders a positive aggregate project support value without individual profit copy", () => {
     sharedHookMocks.projectSupportMetric = {
       status: "positive",
       sourceAddress: "0x950208836634cD439F01262e98D0FCF422F78452",
@@ -959,19 +657,18 @@ describe("VaultsPage", () => {
     renderView();
 
     await user.click(screen.getByRole("button", { name: "Endow to Greenpill NYC" }));
-    await user.click(screen.getByTestId("vault-checkout-method-card"));
-    const continueToCardButton = screen.getByRole("button", { name: "Continue to Card" });
+    const walletMethod = screen.getByTestId("vault-checkout-method-wallet");
+    expect(screen.queryByTestId("vault-checkout-method-card")).not.toBeInTheDocument();
+    await user.click(walletMethod);
+    const continueToWalletButton = screen.getByRole("button", { name: "Continue to Wallet" });
     const amountInput = screen.getByLabelText("Amount to endow");
 
     await user.type(amountInput, "abc");
 
     expect(amountInput).toHaveAttribute("aria-invalid", "true");
     expect(screen.getByText("Enter a valid dollar amount.")).toBeInTheDocument();
-    expect(screen.getByTestId("vault-checkout-method-card")).toHaveAttribute(
-      "aria-pressed",
-      "true"
-    );
-    expect(continueToCardButton).toBeDisabled();
+    expect(walletMethod).toHaveAttribute("aria-pressed", "true");
+    expect(continueToWalletButton).toBeDisabled();
   });
 
   it("treats unavailable ETH pricing as a status callout, not an amount field error", async () => {
@@ -981,7 +678,9 @@ describe("VaultsPage", () => {
     renderView();
 
     await user.click(screen.getByRole("button", { name: "Endow to Greenpill NYC" }));
-    await user.click(screen.getByTestId("vault-checkout-method-card"));
+    const walletMethod = screen.getByTestId("vault-checkout-method-wallet");
+    expect(screen.queryByTestId("vault-checkout-method-card")).not.toBeInTheDocument();
+    await user.click(walletMethod);
     const amountInput = screen.getByLabelText("Amount to endow");
     await user.type(amountInput, "30");
 
@@ -992,1111 +691,30 @@ describe("VaultsPage", () => {
         "ETH pricing is temporarily unavailable. Keep this amount and try again in a moment."
       )
     ).toBeInTheDocument();
-    expect(screen.getByTestId("vault-checkout-method-card")).toHaveAttribute(
-      "aria-pressed",
-      "true"
-    );
-    expect(screen.getByRole("button", { name: "Continue to Card" })).toBeDisabled();
+    expect(walletMethod).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Continue to Wallet" })).toBeDisabled();
   });
 
-  it("enforces the $2 card minimum at setup without constraining the wallet path", async () => {
+  it("does not expose card payment minimums in wallet-only checkout", async () => {
     const user = userEvent.setup();
 
     renderView();
 
     await user.click(screen.getByRole("button", { name: "Endow to Greenpill NYC" }));
-    await user.click(screen.getByTestId("vault-checkout-method-card"));
-    expect(screen.getByText("Debit or credit · $2 minimum")).toBeInTheDocument();
+    expect(screen.queryByTestId("vault-checkout-method-card")).not.toBeInTheDocument();
+    expect(screen.queryByText("Debit or credit · $2 minimum")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Continue to Card" })).not.toBeInTheDocument();
+
+    await user.click(screen.getByTestId("vault-checkout-method-wallet"));
     const amountInput = screen.getByLabelText("Amount to endow");
     await user.type(amountInput, "1.50");
-    expect(amountInput).toHaveAttribute("aria-invalid", "true");
-    expect(
-      screen.getByText("Card payments need at least $2.00. Enter a higher amount or choose Wallet.")
-    ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Continue to Card" })).toBeDisabled();
-
-    // The provider minimum is card-only — the same amount stays valid for Wallet.
-    await user.click(screen.getByTestId("vault-checkout-method-wallet"));
     expect(
       screen.queryByText(
         "Card payments need at least $2.00. Enter a higher amount or choose Wallet."
       )
     ).not.toBeInTheDocument();
+    expect(amountInput).toHaveAttribute("aria-invalid", "false");
     expect(screen.getByRole("button", { name: "Continue to Wallet" })).toBeEnabled();
-
-    // Back on Card, meeting the minimum clears the error and unlocks continue.
-    await user.click(screen.getByTestId("vault-checkout-method-card"));
-    expect(screen.getByRole("button", { name: "Continue to Card" })).toBeDisabled();
-    await user.clear(amountInput);
-    await user.type(amountInput, "2");
-    expect(
-      screen.queryByText(
-        "Card payments need at least $2.00. Enter a higher amount or choose Wallet."
-      )
-    ).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Continue to Card" })).toBeEnabled();
-  });
-
-  it("runs the Card Endow checkout from one setup screen and records proof", async () => {
-    const user = userEvent.setup();
-    thirdwebMocks.onrampStatus.mockResolvedValueOnce({ status: "PENDING", transactions: [] });
-
-    renderView();
-
-    expect(screen.getByRole("heading", { name: "Greenpill NYC" })).toBeInTheDocument();
-
-    // One Endow CTA opens setup with amount and method together, so users do not
-    // bounce through a separate amount-only page.
-    await user.click(screen.getByRole("button", { name: "Endow to Greenpill NYC" }));
-    const continueButton = screen.getByRole("button", { name: "Continue" });
-    const cardMethod = screen.getByTestId("vault-checkout-method-card");
-    const walletMethod = screen.getByTestId("vault-checkout-method-wallet");
-    expect(continueButton).toBeDisabled();
-    expect(cardMethod).toBeInTheDocument();
-    expect(walletMethod).toBeInTheDocument();
-    expect(cardMethod).toBeEnabled();
-    expect(walletMethod).toBeEnabled();
-    expect(
-      screen.getByText("Choose the amount to endow, then pick how you want to pay.")
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByText("Enter a dollar amount first to choose a payment method.")
-    ).not.toBeInTheDocument();
-
-    await user.click(cardMethod);
-    expect(cardMethod).toHaveAttribute("aria-pressed", "true");
-    const continueToCardButton = screen.getByRole("button", { name: "Continue to Card" });
-    expect(continueToCardButton).toBeDisabled();
-    await user.type(screen.getByLabelText("Amount to endow"), "30");
-    expect(continueToCardButton).toBeEnabled();
-    await user.click(continueToCardButton);
-    expect(await screen.findByTestId("vault-card-endow-flow")).toBeInTheDocument();
-    expect(screen.getByText("Step 1 of 3")).toBeInTheDocument();
-    expect(screen.getByText("Verify email wallet")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("you@example.com")).toBeInTheDocument();
-    expect(screen.queryByPlaceholderText("qa@example.org")).not.toBeInTheDocument();
-    // No locked code field clutters Step 1 before a code exists.
-    expect(screen.queryByLabelText("Email code")).not.toBeInTheDocument();
-    expect(screen.queryByText("Send the code above to unlock this field.")).not.toBeInTheDocument();
-    expect(screen.getByText("$30.00")).toBeInTheDocument();
-    expect(screen.getByText("Settles into the Octant vault as 0.01 WETH")).toBeInTheDocument();
-    expect(screen.queryByText(/Wrapped ETH/i)).not.toBeInTheDocument();
-
-    await user.type(screen.getByLabelText("Email"), "qa@example.org");
-    expect(screen.queryByText("qa@example.org")).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Send email code" }));
-    expect(
-      screen.getByText("Code sent. Check qa@example.org and enter the 6-digit code below.")
-    ).toBeInTheDocument();
-
-    expect(thirdwebMocks.preAuthenticate).toHaveBeenCalledWith({
-      client: { clientId: "test-thirdweb-client" },
-      strategy: "email",
-      email: "qa@example.org",
-    });
-
-    await user.type(screen.getByLabelText("Email code"), "123456");
-    await user.click(screen.getByRole("button", { name: "Verify email" }));
-
-    expect(thirdwebMocks.useConnectConnect).toHaveBeenCalledTimes(1);
-    expect(thirdwebMocks.inAppWallet).toHaveBeenCalledWith(
-      expect.objectContaining({
-        executionMode: {
-          mode: "EIP7702",
-          sponsorGas: true,
-        },
-      })
-    );
-    expect(screen.getByText("qa@example.org")).toBeInTheDocument();
-
-    // A verified email lands directly on the Green Goods-owned payment panel —
-    // there is no intermediate review step, and never an embedded provider widget.
-    expect(await screen.findByTestId("vault-card-payment-panel")).toBeInTheDocument();
-    expect(screen.getByText("Step 2 of 3")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Secure card payment" })).toBeInTheDocument();
-    expect(screen.queryByText("Step 3 of 3")).not.toBeInTheDocument();
-    expect(screen.queryByText("Review card route")).not.toBeInTheDocument();
-    expect(
-      screen.queryByText("No card payment starts until you continue.")
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("button", { name: "Continue to card payment" })
-    ).not.toBeInTheDocument();
-    expect(screen.queryByTestId("thirdweb-buy-widget")).not.toBeInTheDocument();
-    expect(screen.queryByText("Step 4 of 4")).not.toBeInTheDocument();
-
-    // Back stays available until the donor opens checkout — a prefetched session
-    // alone never locks it.
-    expect(screen.getByRole("button", { name: "Back" })).toBeEnabled();
-
-    // The route facts render beside the payment CTA, technical details collapsed.
-    const planDetails = screen.getByTestId("vault-card-endow-plan-details");
-    expect(planDetails).toHaveTextContent("Technical WETH details");
-    expect(planDetails).toHaveTextContent("Ethereum Mainnet");
-    expect(
-      within(planDetails).getByRole("link", {
-        name: "0xaC8F844CEA2Fd75B7A5514f11974895B334fd9A5",
-      })
-    ).toHaveAttribute(
-      "href",
-      "https://etherscan.io/address/0xaC8F844CEA2Fd75B7A5514f11974895B334fd9A5"
-    );
-    expect(
-      within(planDetails).getByRole("link", {
-        name: /0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2/,
-      })
-    ).toHaveAttribute(
-      "href",
-      "https://etherscan.io/address/0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
-    );
-    expect(planDetails).toHaveTextContent("Checkout wallet");
-    expect(screen.queryByText("Provider route")).not.toBeInTheDocument();
-    expect(screen.queryByText(/base units/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/exact campaign/i)).not.toBeInTheDocument();
-
-    // The onramp session is prefetched the moment the pay step opens — Coinbase
-    // first, onramping to ETH (Bridge wraps it into WETH) so the donor never sees
-    // a USDC step. The CTA label flips from "Opening..." to ready once the link is
-    // set, so waiting for that name also waits out the prefetch.
-    const openCheckoutButton = await screen.findByRole("button", {
-      name: "Open secure card checkout",
-    });
-    await waitFor(() => expect(thirdwebMocks.onrampPrepare).toHaveBeenCalledTimes(1));
-    expect(thirdwebMocks.onrampPrepare).toHaveBeenCalledWith(
-      expect.objectContaining({
-        onramp: "coinbase",
-        chainId: 1,
-        tokenAddress: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
-        receiver: thirdwebMocks.receiverAddress,
-        amount: 10000000000000000n,
-        purchaseData: expect.objectContaining({
-          intent: "octant_vault_card_endow",
-          route: "/vaults",
-          campaignSlug: "greenpill-nyc",
-          vaultAddress: "0xaC8F844CEA2Fd75B7A5514f11974895B334fd9A5",
-          tokenAddress: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
-          receiverAddress: thirdwebMocks.receiverAddress,
-          amount: "10000000000000000",
-        }),
-      })
-    );
-
-    // Because the link is prefetched, opening checkout is a synchronous new-tab
-    // open from the click gesture — no about:blank placeholder, no redirect.
-    await user.click(openCheckoutButton);
-    expect(windowOpenMock).toHaveBeenCalledWith(
-      "https://onramp.test/session",
-      "_blank",
-      "noopener"
-    );
-    // Once the donor opens checkout, the escape hatch back to setup is locked.
-    expect(screen.queryByRole("button", { name: "Back" })).not.toBeInTheDocument();
-    expect(
-      within(screen.getByTestId("vault-card-payment-panel")).getAllByRole("status")[0]
-    ).toHaveAttribute("aria-live", "polite");
-    expect(screen.getByRole("link", { name: "Open secure checkout link" })).toHaveAttribute(
-      "href",
-      "https://onramp.test/session"
-    );
-
-    await waitFor(() =>
-      expect(thirdwebMocks.onrampStatus).toHaveBeenCalledWith({
-        id: "onramp_test_session",
-        client: { clientId: "test-thirdweb-client" },
-      })
-    );
-    expect(
-      await screen.findByText(
-        "Your card payment is still processing. Finish it in the checkout tab, then check the status again."
-      )
-    ).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Check payment status" }));
-
-    // COMPLETED card funding auto-starts one ordered approve -> deposit batch.
-    await waitFor(() => expect(thirdwebMocks.sendBatchTransaction).toHaveBeenCalledTimes(1));
-    expect(thirdwebMocks.sendAndConfirmTransaction).not.toHaveBeenCalled();
-    const batchTransactions = thirdwebMocks.sendBatchTransaction.mock.calls[0]?.[0] as Array<{
-      options: { method: string };
-    }>;
-    expect(batchTransactions).toHaveLength(2);
-    expect(batchTransactions[0]?.options.method).toBe(
-      "function approve(address spender, uint256 value)"
-    );
-    expect(batchTransactions[1]?.options.method).toBe(
-      "function deposit(uint256 assets, address receiver) returns (uint256)"
-    );
-    expect(screen.queryByText("Step 4 of 4")).not.toBeInTheDocument();
-    expect(thirdwebMocks.readContract).toHaveBeenCalledWith(
-      expect.objectContaining({
-        method: "function balanceOf(address account) view returns (uint256)",
-        params: [thirdwebMocks.receiverAddress],
-      })
-    );
-    expect(
-      await screen.findByText(
-        "Endowment complete. Your verified email wallet now holds the vault position for this campaign."
-      )
-    ).toBeInTheDocument();
-    expect(
-      await screen.findByText(
-        "Vault position confirmed: 12 shares are visible for your verified email wallet."
-      )
-    ).toBeInTheDocument();
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
-    expect(fetchMock).toHaveBeenCalledWith(
-      "https://agent.test/public/funding-intents/proof",
-      expect.objectContaining({
-        method: "POST",
-        headers: expect.objectContaining({ "content-type": "application/json" }),
-      })
-    );
-    const proofBody = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
-    expect(proofBody).toMatchObject({
-      gardenId: "greenpill-nyc",
-      gardenName: "Greenpill NYC",
-      destinationType: "vault",
-      destinationAddress: "0xaC8F844CEA2Fd75B7A5514f11974895B334fd9A5",
-      fundingIntent: "endow",
-      paymentMethod: "card",
-      provider: "thirdweb",
-      sourceRoute: "/vaults",
-      chainId: 1,
-      token: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
-      amount: "10000000000000000",
-      receiverAddress: thirdwebMocks.receiverAddress,
-      receiverCustody: "user_owned_recovered_wallet",
-      transactionHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      shareBalance: "12",
-      payerEmail: "qa@example.org",
-    });
-    expect(
-      await screen.findByText("Receipt recorded for your vault contribution.")
-    ).toBeInTheDocument();
-  });
-
-  it("walks three visible stages and auto-starts Step 3 settlement only after every proof gate", async () => {
-    const user = userEvent.setup();
-    type MockBatchResult = { transactionHash: `0x${string}` };
-    let resolveBatch: ((value: MockBatchResult) => void) | undefined;
-    thirdwebMocks.sendBatchTransaction.mockImplementationOnce(
-      () =>
-        new Promise<MockBatchResult>((resolve) => {
-          resolveBatch = resolve;
-        })
-    );
-
-    renderView();
-
-    // Step 1 of 3 — verify email wallet, with no locked code field beforehand.
-    await openGreenpillCardCheckout(user);
-    expect(screen.getByText("Step 1 of 3")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Verify email wallet" })).toBeInTheDocument();
-    expect(screen.queryByLabelText("Email code")).not.toBeInTheDocument();
-
-    // Step 2 of 3 — secure card payment.
-    await recoverEmailWallet(user);
-    expect(screen.getByText("Step 2 of 3")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Secure card payment" })).toBeInTheDocument();
-    expect(screen.queryByText("Step 3 of 3")).not.toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "Open secure card checkout" }));
-
-    // Settlement starts only after the exact quote, COMPLETED status, and the
-    // covering WETH balance read all passed.
-    await waitFor(() => expect(thirdwebMocks.sendBatchTransaction).toHaveBeenCalledTimes(1));
-    const fundingBalanceReads = thirdwebMocks.readContract.mock.calls.filter(
-      ([options]) =>
-        (options as { contract?: { address?: string } })?.contract?.address?.toLowerCase() ===
-        thirdwebMocks.wethTokenAddress.toLowerCase()
-    );
-    expect(fundingBalanceReads.length).toBeGreaterThan(0);
-
-    // Step 3 of 3 — vault deposit and proof, visible while the batch settles.
-    expect(await screen.findByTestId("vault-card-endow-settle")).toBeInTheDocument();
-    expect(screen.getByText("Step 3 of 3")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Vault deposit and proof" })).toBeInTheDocument();
-    expect(screen.getByText("Depositing into the vault")).toBeInTheDocument();
-
-    await act(async () => {
-      resolveBatch?.({
-        transactionHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      });
-    });
-
-    expect(
-      await screen.findByText(
-        "Endowment complete. Your verified email wallet now holds the vault position for this campaign."
-      )
-    ).toBeInTheDocument();
-  });
-
-  it("blocks checkout/session acceptance when the prepared quote mismatches the route", async () => {
-    const user = userEvent.setup();
-    // Every provider quotes a different receiver than the recovered wallet.
-    thirdwebMocks.onrampPrepare.mockResolvedValue({
-      id: "onramp_attacker_session",
-      link: "https://onramp.test/attacker",
-      currency: "USD",
-      currencyAmount: 30,
-      destinationAmount: thirdwebMocks.expectedFundingAmount,
-      steps: [],
-      intent: {
-        onramp: "stripe",
-        chainId: 1,
-        tokenAddress: thirdwebMocks.wethTokenAddress,
-        receiver: "0x9999999999999999999999999999999999999999",
-        amount: thirdwebMocks.expectedFundingAmount.toString(),
-      },
-    });
-
-    renderView();
-
-    await openGreenpillCardCheckout(user);
-    await recoverEmailWallet(user);
-    // The session is prefetched on mount: both providers were tried and both
-    // mismatched quotes were rejected, so no session is ever accepted.
-    await waitFor(() => expect(thirdwebMocks.onrampPrepare).toHaveBeenCalledTimes(2));
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "The checkout quote didn't match this endowment, so no card payment was started. Please try again."
-    );
-    // No session was accepted: no checkout link, no status polling, and no
-    // settlement transaction of any kind.
-    expect(
-      screen.queryByRole("link", { name: "Open secure checkout link" })
-    ).not.toBeInTheDocument();
-    expect(thirdwebMocks.onrampStatus).not.toHaveBeenCalled();
-    expect(thirdwebMocks.sendBatchTransaction).not.toHaveBeenCalled();
-    expect(thirdwebMocks.sendAndConfirmTransaction).not.toHaveBeenCalled();
-    // The state is recoverable in place — the donor can retry or step back.
-    expect(screen.getByRole("button", { name: "Open secure card checkout" })).toBeEnabled();
-    expect(screen.getByRole("button", { name: "Back" })).toBeEnabled();
-  });
-
-  it("does not start settlement when COMPLETED has no covering WETH balance", async () => {
-    const user = userEvent.setup();
-    // The provider says COMPLETED, but the recovered wallet's WETH balance never
-    // covers the expected amount.
-    thirdwebMocks.readContract.mockImplementation(async (options: unknown) => {
-      const address = (
-        options as { contract?: { address?: string } }
-      )?.contract?.address?.toLowerCase();
-      if (address === thirdwebMocks.wethTokenAddress.toLowerCase()) return 0n;
-      return 12n;
-    });
-
-    renderView();
-
-    await openGreenpillCardCheckout(user);
-    await recoverEmailWallet(user);
-    await user.click(await screen.findByRole("button", { name: "Open secure card checkout" }));
-
-    await waitFor(() => expect(thirdwebMocks.onrampStatus).toHaveBeenCalled());
-    expect(
-      await screen.findByText(
-        "Card payment confirmed. Waiting for the funds to arrive in your verified email wallet — the vault deposit starts once they land."
-      )
-    ).toBeInTheDocument();
-    // No approve/deposit of any kind started, and the donor stays on Step 2
-    // with a live recheck affordance.
-    expect(thirdwebMocks.sendBatchTransaction).not.toHaveBeenCalled();
-    expect(thirdwebMocks.sendAndConfirmTransaction).not.toHaveBeenCalled();
-    expect(screen.getByText("Step 2 of 3")).toBeInTheDocument();
-    expect(screen.queryByTestId("vault-card-endow-settle")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Check payment status" })).toBeEnabled();
-
-    // The proven payment (COMPLETED + valid tuple) already persisted the
-    // pending-funded recovery entry, so a donor who leaves while the funds are
-    // in transit can still finish the deposit from /vaults?manage=positions.
-    const raw = window.localStorage.getItem("gg:octant-vault-card-wallets:v1") ?? "[]";
-    const entries = JSON.parse(raw) as Array<Record<string, unknown>>;
-    expect(
-      entries.find(
-        (entry) =>
-          entry.status === "pending_funded" &&
-          entry.recoveredWalletAddress === thirdwebMocks.receiverAddress
-      )
-    ).toMatchObject({
-      campaignSlug: "greenpill-nyc",
-      tokenAddress: thirdwebMocks.wethTokenAddress,
-      expectedAmount: thirdwebMocks.expectedFundingAmount.toString(),
-    });
-    expect(raw).not.toMatch(/qa@example\.org|otp|receipt|session/i);
-  });
-
-  it("records no proof when the vault share read returns zero", async () => {
-    const user = userEvent.setup();
-    // Funding proof passes, the deposit lands, but the share read returns zero.
-    thirdwebMocks.readContract.mockImplementation(async (options: unknown) => {
-      const address = (
-        options as { contract?: { address?: string } }
-      )?.contract?.address?.toLowerCase();
-      if (address === thirdwebMocks.wethTokenAddress.toLowerCase()) {
-        return thirdwebMocks.expectedFundingAmount;
-      }
-      return 0n;
-    });
-
-    renderView();
-
-    await openGreenpillCardCheckout(user);
-    await recoverEmailWallet(user);
-    await user.click(await screen.findByRole("button", { name: "Open secure card checkout" }));
-
-    await waitFor(() => expect(thirdwebMocks.sendBatchTransaction).toHaveBeenCalledTimes(1));
-    expect(await screen.findByText("We could not confirm vault shares yet.")).toBeInTheDocument();
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
-
-  it("opens route-local management at /vaults?manage=positions after a card success", async () => {
-    const user = userEvent.setup();
-    const locations: string[] = [];
-
-    renderViewWithLocationProbe("/vaults", (location) => {
-      locations.push(location);
-    });
-
-    await openGreenpillCardCheckout(user);
-    await recoverEmailWallet(user);
-    await user.click(await screen.findByRole("button", { name: "Open secure card checkout" }));
-
-    const manageButton = await screen.findByRole("button", { name: "Manage vault position" });
-    await user.click(manageButton);
-
-    await waitFor(() => expect(locations.at(-1)).toBe("/vaults?manage=positions"));
-    expect(await screen.findByTestId("vault-manage-positions-panel")).toBeInTheDocument();
-    // Route-local: no address, email, or provider identifier ever enters the
-    // URL, and the handoff never leaves /vaults for /fund.
-    expect(locations.join(" ")).not.toMatch(/0x[a-fA-F0-9]{6,}|@|onramp|session|token=|fund/);
-  });
-
-  it("caches a safe pending-funded recovery entry and stays recoverable when the batch fails", async () => {
-    const user = userEvent.setup();
-    const locations: string[] = [];
-    thirdwebMocks.sendBatchTransaction.mockRejectedValueOnce(new Error("batch unsupported"));
-
-    renderViewWithLocationProbe("/vaults", (location) => {
-      locations.push(location);
-    });
-
-    await openGreenpillCardCheckout(user);
-    await recoverEmailWallet(user);
-    await user.click(await screen.findByRole("button", { name: "Open secure card checkout" }));
-
-    await waitFor(() => expect(thirdwebMocks.sendBatchTransaction).toHaveBeenCalledTimes(1));
-    expect(await screen.findByTestId("vault-card-endow-settle")).toBeInTheDocument();
-
-    // The recovery state is route-local (no identifiers in the URL) and
-    // recoverable (the inline fallback can finish the deposit).
-    expect(locations.at(-1)).toBe("/vaults");
-    expect(await screen.findByRole("button", { name: "Finish vault deposit" })).toBeEnabled();
-
-    // The pending-funded cache entry carries ONLY safe public metadata.
-    const raw = window.localStorage.getItem("gg:octant-vault-card-wallets:v1") ?? "";
-    const entries = JSON.parse(raw) as Array<Record<string, unknown>>;
-    const pending = entries.find((entry) => entry.status === "pending_funded");
-    expect(pending).toMatchObject({
-      recoveredWalletAddress: thirdwebMocks.receiverAddress,
-      campaignSlug: "greenpill-nyc",
-      vaultAddress: "0xaC8F844CEA2Fd75B7A5514f11974895B334fd9A5",
-      chainId: 1,
-      tokenAddress: thirdwebMocks.wethTokenAddress,
-      expectedAmount: thirdwebMocks.expectedFundingAmount.toString(),
-      status: "pending_funded",
-    });
-    expect(raw).not.toMatch(/qa@example\.org|otp|receipt|session/i);
-  });
-
-  it("returns to setup from the pay screen before a card session starts", async () => {
-    const user = userEvent.setup();
-
-    renderView();
-
-    await openGreenpillCardCheckout(user);
-    await recoverEmailWallet(user);
-
-    // The session is prefetched on this step, but a prefetched session alone must
-    // not lock Back — the donor can still return to editable setup until they open
-    // checkout (locking is gated on opening, not on a session existing).
-    await waitFor(() => expect(thirdwebMocks.onrampPrepare).toHaveBeenCalled());
-    await user.click(screen.getByRole("button", { name: "Back" }));
-    expect(await screen.findByLabelText("Amount to endow")).toBeInTheDocument();
-    expect(screen.getByTestId("vault-checkout-method-card")).toBeEnabled();
-
-    // Re-entering the card path restarts at email verification (state was reset).
-    await user.click(screen.getByRole("button", { name: "Continue to Card" }));
-    expect(await screen.findByTestId("vault-card-endow-flow")).toBeInTheDocument();
-    expect(screen.getByText("Step 1 of 3")).toBeInTheDocument();
-  });
-
-  it("waits for the batch receipt before confirming shares", async () => {
-    const user = userEvent.setup();
-    type MockReceipt = { transactionHash: `0x${string}`; status: "success" };
-    let resolveReceipt: ((value: MockReceipt) => void) | undefined;
-    thirdwebMocks.waitForReceipt.mockImplementationOnce(
-      () =>
-        new Promise<MockReceipt>((resolve) => {
-          resolveReceipt = resolve;
-        })
-    );
-
-    renderView();
-
-    await openGreenpillCardCheckout(user);
-    await recoverEmailWallet(user);
-    await user.click(await screen.findByRole("button", { name: "Open secure card checkout" }));
-
-    await waitFor(() => expect(thirdwebMocks.sendBatchTransaction).toHaveBeenCalledTimes(1));
-    expect(thirdwebMocks.waitForReceipt).toHaveBeenCalledWith(
-      expect.objectContaining({
-        transactionHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      })
-    );
-    // The WETH funding-balance proof read already ran before settlement, but the
-    // vault SHARE read must wait for the batch receipt.
-    const vaultShareReads = () =>
-      thirdwebMocks.readContract.mock.calls.filter(
-        ([options]) =>
-          (options as { contract?: { address?: string } })?.contract?.address?.toLowerCase() ===
-          "0xaC8F844CEA2Fd75B7A5514f11974895B334fd9A5".toLowerCase()
-      );
-    expect(vaultShareReads()).toHaveLength(0);
-    expect(screen.getByText("Depositing into the vault")).toBeInTheDocument();
-    expect(
-      screen.queryByText("Receipt recorded for your vault contribution.")
-    ).not.toBeInTheDocument();
-
-    await act(async () => {
-      resolveReceipt?.({
-        transactionHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-        status: "success",
-      });
-    });
-
-    await waitFor(() => expect(vaultShareReads()).toHaveLength(1));
-    expect(
-      await screen.findByText("Receipt recorded for your vault contribution.")
-    ).toBeInTheDocument();
-  });
-
-  it("keeps the supporter on the payment step when the card payment is still pending", async () => {
-    const user = userEvent.setup();
-    thirdwebMocks.onrampStatus.mockResolvedValueOnce({ status: "PENDING", transactions: [] });
-
-    renderView();
-
-    await openGreenpillCardCheckout(user);
-    await recoverEmailWallet(user);
-    await user.click(await screen.findByRole("button", { name: "Open secure card checkout" }));
-
-    // PENDING never leaves Step 2 or runs an on-chain transaction.
-    await waitFor(() => expect(thirdwebMocks.onrampStatus).toHaveBeenCalledTimes(1));
-    expect(
-      await screen.findByText(
-        "Your card payment is still processing. Finish it in the checkout tab, then check the status again."
-      )
-    ).toBeInTheDocument();
-    expect(screen.getByText("Step 2 of 3")).toBeInTheDocument();
-    expect(screen.queryByText("Step 3 of 3")).not.toBeInTheDocument();
-    expect(thirdwebMocks.sendBatchTransaction).not.toHaveBeenCalled();
-    expect(thirdwebMocks.sendAndConfirmTransaction).not.toHaveBeenCalled();
-    expect(screen.getByRole("button", { name: "Check payment status" })).toBeEnabled();
-
-    // A manual status check keeps the pending notice mounted — the upfront state
-    // clear that blanked the notice during every poll is gone.
-    thirdwebMocks.onrampStatus.mockResolvedValueOnce({ status: "PENDING", transactions: [] });
-    await user.click(screen.getByRole("button", { name: "Check payment status" }));
-    expect(
-      screen.getByText(
-        "Your card payment is still processing. Finish it in the checkout tab, then check the status again."
-      )
-    ).toBeInTheDocument();
-  });
-
-  it("keeps the pending notice steady across silent background polls", async () => {
-    const user = userEvent.setup();
-    let resolveSecondCheck: ((value: { status: string; transactions: never[] }) => void) | null =
-      null;
-    thirdwebMocks.onrampStatus
-      .mockResolvedValueOnce({ status: "PENDING", transactions: [] })
-      .mockImplementationOnce(
-        () =>
-          new Promise((resolve) => {
-            resolveSecondCheck = resolve;
-          })
-      );
-
-    renderView();
-
-    await openGreenpillCardCheckout(user);
-    await recoverEmailWallet(user);
-    await user.click(screen.getByRole("button", { name: "Open secure card checkout" }));
-
-    await waitFor(() => expect(thirdwebMocks.onrampStatus).toHaveBeenCalledTimes(1));
-    const pendingNotice = await screen.findByText(
-      "Your card payment is still processing. Finish it in the checkout tab, then check the status again."
-    );
-
-    // The next background poll fires after the real 5s interval and is held
-    // in flight by the deferred mock.
-    await waitFor(() => expect(thirdwebMocks.onrampStatus).toHaveBeenCalledTimes(2), {
-      timeout: 7_000,
-    });
-
-    // Mid-flight the poll is visually silent: the notice is the same mounted
-    // node (never blanked by an upfront state clear) and the manual button
-    // never flips to its busy label.
-    expect(
-      screen.getByText(
-        "Your card payment is still processing. Finish it in the checkout tab, then check the status again."
-      )
-    ).toBe(pendingNotice);
-    expect(screen.getByRole("button", { name: "Check payment status" })).toBeEnabled();
-    expect(screen.queryByText("Checking payment...")).not.toBeInTheDocument();
-
-    await act(async () => {
-      resolveSecondCheck?.({ status: "PENDING", transactions: [] });
-    });
-    expect(
-      screen.getByText(
-        "Your card payment is still processing. Finish it in the checkout tab, then check the status again."
-      )
-    ).toBe(pendingNotice);
-  }, 15_000);
-
-  it("falls back to Stripe when the Coinbase onramp prepare fails", async () => {
-    const user = userEvent.setup();
-    thirdwebMocks.onrampPrepare.mockRejectedValueOnce(new Error("coinbase unavailable"));
-    thirdwebMocks.onrampStatus.mockResolvedValueOnce({ status: "PENDING", transactions: [] });
-
-    renderView();
-
-    await openGreenpillCardCheckout(user);
-    await recoverEmailWallet(user);
-
-    // Coinbase failed in a controlled way during prefetch, so the panel falls back
-    // to Stripe and still prepares a usable session before the donor opens checkout.
-    const openCheckoutButton = await screen.findByRole("button", {
-      name: "Open secure card checkout",
-    });
-    await waitFor(() => expect(thirdwebMocks.onrampPrepare).toHaveBeenCalledTimes(2));
-    expect(thirdwebMocks.onrampPrepare.mock.calls[0]?.[0]).toMatchObject({ onramp: "coinbase" });
-    expect(thirdwebMocks.onrampPrepare.mock.calls[1]?.[0]).toMatchObject({ onramp: "stripe" });
-
-    await user.click(openCheckoutButton);
-    expect(windowOpenMock).toHaveBeenCalledWith(
-      "https://onramp.test/session",
-      "_blank",
-      "noopener"
-    );
-    expect(screen.getByRole("link", { name: "Open secure checkout link" })).toHaveAttribute(
-      "href",
-      "https://onramp.test/session"
-    );
-  });
-
-  it("keeps a direct checkout link available when the browser blocks the new tab", async () => {
-    const user = userEvent.setup();
-    windowOpenMock.mockReturnValueOnce(null);
-    thirdwebMocks.onrampStatus.mockResolvedValueOnce({ status: "PENDING", transactions: [] });
-
-    renderView();
-
-    await openGreenpillCardCheckout(user);
-    await recoverEmailWallet(user);
-
-    const openCheckoutButton = await screen.findByRole("button", {
-      name: "Open secure card checkout",
-    });
-    await waitFor(() => expect(thirdwebMocks.onrampPrepare).toHaveBeenCalledTimes(1));
-    await user.click(openCheckoutButton);
-
-    // The new-tab open was blocked, but the prefetched link stays available
-    // in-panel so the donor can still reach checkout.
-    expect(windowOpenMock).toHaveBeenCalledWith(
-      "https://onramp.test/session",
-      "_blank",
-      "noopener"
-    );
-    expect(
-      await screen.findByText(
-        "Card checkout is ready. If a new tab did not open, use the secure checkout link below, then return here to confirm your vault position."
-      )
-    ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Open secure checkout link" })).toHaveAttribute(
-      "href",
-      "https://onramp.test/session"
-    );
-    expect(screen.getByRole("button", { name: "Check payment status" })).toBeEnabled();
-  });
-
-  it("keeps provider prepare errors generic across providers", async () => {
-    const user = userEvent.setup();
-    thirdwebMocks.onrampPrepare.mockRejectedValue(new Error("stripe unavailable: provider trace"));
-
-    renderView();
-
-    await openGreenpillCardCheckout(user);
-    await recoverEmailWallet(user);
-
-    // Prefetch tries both providers on mount; both fail, so the donor-facing error
-    // stays generic and no provider trace leaks, with no session accepted.
-    await waitFor(() => expect(thirdwebMocks.onrampPrepare).toHaveBeenCalledTimes(2));
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "We couldn't open card checkout. Please try again."
-    );
-    expect(screen.queryByText(/provider trace/i)).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("link", { name: "Open secure checkout link" })
-    ).not.toBeInTheDocument();
-  });
-
-  it("keeps provider status errors generic", async () => {
-    const user = userEvent.setup();
-    thirdwebMocks.onrampStatus.mockRejectedValueOnce(new Error("coinbase session trace"));
-
-    renderView();
-
-    await openGreenpillCardCheckout(user);
-    await recoverEmailWallet(user);
-    await user.click(await screen.findByRole("button", { name: "Open secure card checkout" }));
-
-    await waitFor(() => expect(thirdwebMocks.onrampStatus).toHaveBeenCalledTimes(1));
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "We couldn't check your payment yet. Please try again."
-    );
-    expect(screen.queryByText(/session trace/i)).not.toBeInTheDocument();
-    expect(screen.queryByText("Step 4 of 4")).not.toBeInTheDocument();
-    await act(async () => {
-      await new Promise((resolve) => window.setTimeout(resolve, 25));
-    });
-    expect(thirdwebMocks.onrampStatus).toHaveBeenCalledTimes(1);
-    expect(thirdwebMocks.sendBatchTransaction).not.toHaveBeenCalled();
-
-    await user.click(screen.getByRole("button", { name: "Check payment status" }));
-    await waitFor(() => expect(thirdwebMocks.sendBatchTransaction).toHaveBeenCalledTimes(1));
-  });
-
-  it("surfaces a recoverable error and never advances when the card payment fails", async () => {
-    const user = userEvent.setup();
-    thirdwebMocks.onrampStatus.mockResolvedValueOnce({ status: "FAILED", transactions: [] });
-
-    renderView();
-
-    await openGreenpillCardCheckout(user);
-    await recoverEmailWallet(user);
-    await user.click(await screen.findByRole("button", { name: "Open secure card checkout" }));
-
-    await waitFor(() => expect(thirdwebMocks.onrampStatus).toHaveBeenCalledTimes(1));
-    expect(
-      await screen.findByText(
-        "That card payment didn't go through. You can open checkout again to try once more."
-      )
-    ).toBeInTheDocument();
-    expect(screen.queryByText("Step 4 of 4")).not.toBeInTheDocument();
-    expect(thirdwebMocks.sendBatchTransaction).not.toHaveBeenCalled();
-    expect(thirdwebMocks.sendAndConfirmTransaction).not.toHaveBeenCalled();
-    // Retry creates a fresh provider session rather than sending the donor back to
-    // the failed checkout session.
-    expect(
-      screen.queryByRole("link", { name: "Open secure checkout link" })
-    ).not.toBeInTheDocument();
-    // The failed session is cleared, so the donor can also step back to setup.
-    expect(screen.getByRole("button", { name: "Back" })).toBeEnabled();
-    await user.click(screen.getByRole("button", { name: "Open secure card checkout" }));
-    await waitFor(() => expect(thirdwebMocks.onrampPrepare).toHaveBeenCalledTimes(2));
-  });
-
-  it("shows an inline fallback when the batch fails and finishes with sequential transactions", async () => {
-    const user = userEvent.setup();
-    thirdwebMocks.sendBatchTransaction.mockRejectedValueOnce(new Error("batch unsupported"));
-
-    renderView();
-
-    await openGreenpillCardCheckout(user);
-    await recoverEmailWallet(user);
-    await user.click(await screen.findByRole("button", { name: "Open secure card checkout" }));
-
-    await waitFor(() => expect(thirdwebMocks.onrampStatus).toHaveBeenCalledTimes(1));
-    await waitFor(() => expect(thirdwebMocks.sendBatchTransaction).toHaveBeenCalledTimes(1));
-    // The failed batch keeps the donor on Step 3 with the inline fallback.
-    expect(await screen.findByTestId("vault-card-endow-settle")).toBeInTheDocument();
-    expect(screen.getByText("Step 3 of 3")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Vault deposit and proof" })).toBeInTheDocument();
-    expect(screen.queryByText("batch unsupported")).not.toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "The vault deposit could not finish automatically. Use the button below to finish the deposit."
-      )
-    ).toBeInTheDocument();
-    expect(screen.getByText("Fallback ready")).toBeInTheDocument();
-    expect(await screen.findByRole("button", { name: "Finish vault deposit" })).toBeEnabled();
-    expect(thirdwebMocks.sendAndConfirmTransaction).not.toHaveBeenCalled();
-
-    await user.click(screen.getByRole("button", { name: "Finish vault deposit" }));
-
-    await waitFor(() => expect(thirdwebMocks.sendAndConfirmTransaction).toHaveBeenCalledTimes(2));
-    const firstSequentialTx = thirdwebMocks.sendAndConfirmTransaction.mock.calls[0]?.[0] as {
-      options: { method: string };
-    };
-    const secondSequentialTx = thirdwebMocks.sendAndConfirmTransaction.mock.calls[1]?.[0] as {
-      options: { method: string };
-    };
-    expect(firstSequentialTx.options.method).toBe(
-      "function approve(address spender, uint256 value)"
-    );
-    expect(secondSequentialTx.options.method).toBe(
-      "function deposit(uint256 assets, address receiver) returns (uint256)"
-    );
-    expect(
-      await screen.findByText(
-        "Endowment complete. Your verified email wallet now holds the vault position for this campaign."
-      )
-    ).toBeInTheDocument();
-    expect(
-      await screen.findByText("Receipt recorded for your vault contribution.")
-    ).toBeInTheDocument();
-  });
-
-  it("wraps native ETH into WETH inside the batch when the onramp delivered ETH", async () => {
-    const user = userEvent.setup();
-    // The recovered wallet holds native ETH, not WETH (Bridge onramped to ETH).
-    thirdwebMocks.readContract.mockImplementation(async (options: unknown) => {
-      const address = (
-        options as { contract?: { address?: string } }
-      )?.contract?.address?.toLowerCase();
-      if (address === thirdwebMocks.wethTokenAddress.toLowerCase()) return 0n;
-      return 12n;
-    });
-    sharedHookMocks.cardRecoveredNativeBalance = thirdwebMocks.expectedFundingAmount;
-
-    renderView();
-    await openGreenpillCardCheckout(user);
-    await recoverEmailWallet(user);
-    await openSecureCardCheckout(user);
-
-    await waitFor(() => expect(thirdwebMocks.sendBatchTransaction).toHaveBeenCalledTimes(1));
-    const batchTransactions = thirdwebMocks.sendBatchTransaction.mock.calls[0]?.[0] as Array<{
-      options: { method: string; value?: bigint };
-    }>;
-    // The ETH -> WETH wrap is prepended before the strict approve -> deposit pair.
-    expect(batchTransactions).toHaveLength(3);
-    expect(batchTransactions[0]?.options.method).toBe("function deposit()");
-    expect(batchTransactions[0]?.options.value).toBe(thirdwebMocks.expectedFundingAmount);
-    expect(batchTransactions[1]?.options.method).toBe(
-      "function approve(address spender, uint256 value)"
-    );
-    expect(batchTransactions[2]?.options.method).toBe(
-      "function deposit(uint256 assets, address receiver) returns (uint256)"
-    );
-  });
-
-  it("wraps only the native-ETH shortfall when the wallet already holds partial WETH", async () => {
-    const user = userEvent.setup();
-    const halfAmount = thirdwebMocks.expectedFundingAmount / 2n;
-    thirdwebMocks.readContract.mockImplementation(async (options: unknown) => {
-      const address = (
-        options as { contract?: { address?: string } }
-      )?.contract?.address?.toLowerCase();
-      if (address === thirdwebMocks.wethTokenAddress.toLowerCase()) return halfAmount;
-      return 12n;
-    });
-    sharedHookMocks.cardRecoveredNativeBalance = thirdwebMocks.expectedFundingAmount;
-
-    renderView();
-    await openGreenpillCardCheckout(user);
-    await recoverEmailWallet(user);
-    await openSecureCardCheckout(user);
-
-    await waitFor(() => expect(thirdwebMocks.sendBatchTransaction).toHaveBeenCalledTimes(1));
-    const batchTransactions = thirdwebMocks.sendBatchTransaction.mock.calls[0]?.[0] as Array<{
-      options: { method: string; value?: bigint };
-    }>;
-    expect(batchTransactions).toHaveLength(3);
-    expect(batchTransactions[0]?.options.method).toBe("function deposit()");
-    // Only the shortfall is wrapped: amount - the WETH already held.
-    expect(batchTransactions[0]?.options.value).toBe(
-      thirdwebMocks.expectedFundingAmount - halfAmount
-    );
-  });
-
-  it("wraps once in the sequential fallback and never re-wraps on a retry", async () => {
-    const user = userEvent.setup();
-    // Native ETH only, and the batch path is unavailable, so the inline
-    // sequential fallback must wrap -> approve -> deposit.
-    thirdwebMocks.readContract.mockImplementation(async (options: unknown) => {
-      const address = (
-        options as { contract?: { address?: string } }
-      )?.contract?.address?.toLowerCase();
-      if (address === thirdwebMocks.wethTokenAddress.toLowerCase()) return 0n;
-      return 12n;
-    });
-    sharedHookMocks.cardRecoveredNativeBalance = thirdwebMocks.expectedFundingAmount;
-    thirdwebMocks.sendBatchTransaction.mockRejectedValue(new Error("batch unsupported"));
-    // Wrap succeeds; the first approve fails once, then succeeds on retry — the
-    // wrap must NOT run again or it would over-spend the wallet's ETH.
-    let approveAttempts = 0;
-    thirdwebMocks.sendAndConfirmTransaction.mockImplementation(async (tx: unknown) => {
-      const method = (tx as { options?: { method?: string } })?.options?.method;
-      if (method === "function approve(address spender, uint256 value)") {
-        approveAttempts += 1;
-        if (approveAttempts === 1) throw new Error("approve failed once");
-      }
-      return {
-        transactionHash: "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-      };
-    });
-
-    renderView();
-    await openGreenpillCardCheckout(user);
-    await recoverEmailWallet(user);
-    await openSecureCardCheckout(user);
-
-    // First finish attempt: wrap succeeds, approve fails — recoverable in place.
-    await user.click(await screen.findByRole("button", { name: "Finish vault deposit" }));
-    await waitFor(() => expect(approveAttempts).toBe(1));
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: "Finish vault deposit" })).toBeEnabled()
-    );
-    // Retry: wrap is skipped, approve + deposit complete.
-    await user.click(screen.getByRole("button", { name: "Finish vault deposit" }));
-    expect(
-      await screen.findByText(
-        "Endowment complete. Your verified email wallet now holds the vault position for this campaign."
-      )
-    ).toBeInTheDocument();
-
-    const wrapCalls = thirdwebMocks.sendAndConfirmTransaction.mock.calls.filter(
-      (call) =>
-        (call[0] as { options?: { method?: string } })?.options?.method === "function deposit()"
-    );
-    expect(wrapCalls).toHaveLength(1);
-    expect(approveAttempts).toBe(2);
-  });
-
-  it("uses the sequential fallback when the batch account differs from the recovered wallet", async () => {
-    const user = userEvent.setup();
-    thirdwebMocks.adminAddress = "0x5555555555555555555555555555555555555555";
-
-    renderView();
-
-    await openGreenpillCardCheckout(user);
-    await recoverEmailWallet(user);
-    expect(screen.queryByRole("button", { name: "Finish vault deposit" })).not.toBeInTheDocument();
-    await user.click(await screen.findByRole("button", { name: "Open secure card checkout" }));
-
-    await waitFor(() => expect(thirdwebMocks.onrampStatus).toHaveBeenCalledTimes(1));
-    expect(thirdwebMocks.sendBatchTransaction).not.toHaveBeenCalled();
-    expect(screen.getByText("Fallback ready")).toBeInTheDocument();
-    await user.click(await screen.findByRole("button", { name: "Finish vault deposit" }));
-
-    await waitFor(() => expect(thirdwebMocks.sendAndConfirmTransaction).toHaveBeenCalledTimes(2));
-    expect(
-      await screen.findByText("Receipt recorded for your vault contribution.")
-    ).toBeInTheDocument();
-  });
-
-  it("locks the sheet while the combined Card Endow runs, then finishes after it resolves", async () => {
-    const user = userEvent.setup();
-    stubMatchMedia(390);
-    let resolveBatch: ((value: { transactionHash: `0x${string}` }) => void) | undefined;
-    // Hold the batch open to observe the in-flight lock after card funding completes.
-    thirdwebMocks.sendBatchTransaction.mockImplementationOnce(
-      () =>
-        new Promise((resolve) => {
-          resolveBatch = resolve;
-        })
-    );
-
-    renderView();
-
-    await openGreenpillCardCheckout(user);
-    await recoverEmailWallet(user);
-    await openSecureCardCheckout(user);
-
-    await waitFor(() => expect(thirdwebMocks.sendBatchTransaction).toHaveBeenCalledTimes(1));
-
-    // Structural lock: amount/method are collapsed to a read-only summary, the
-    // back/edit path is gone, and the sheet cannot be closed mid-transaction.
-    expect(screen.queryByLabelText("Amount to endow")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("vault-checkout-method-card")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("vault-checkout-method-wallet")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Back" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Edit" })).not.toBeInTheDocument();
-    await waitFor(() =>
-      expect(screen.queryByRole("button", { name: "Close" })).not.toBeInTheDocument()
-    );
-    await waitFor(() =>
-      expect(screen.queryByTestId("vault-checkout-sheet-drag-handle")).not.toBeInTheDocument()
-    );
-
-    // Pending feedback, and the summary still shows the locked amount.
-    expect(screen.getByText("Depositing into the vault")).toBeInTheDocument();
-    expect(screen.getByText("$30.00")).toBeInTheDocument();
-    expect(screen.getByText("Settles into the Octant vault as 0.01 WETH")).toBeInTheDocument();
-
-    // Resolving the batch confirms shares and finishes the flow.
-    resolveBatch?.({
-      transactionHash: "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
-    });
-    await waitFor(() => expect(thirdwebMocks.sendAndConfirmTransaction).not.toHaveBeenCalled());
-    expect(
-      await screen.findByText(
-        "Endowment complete. Your verified email wallet now holds the vault position for this campaign."
-      )
-    ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Done" })).toBeInTheDocument();
-  });
-
-  it("resets OTP and recovered wallet state when the payer email changes", async () => {
-    const user = userEvent.setup();
-
-    renderView();
-
-    await openGreenpillCardCheckout(user);
-    await user.type(screen.getByLabelText("Email"), "qa@example.org");
-    await user.click(screen.getByRole("button", { name: "Send email code" }));
-
-    expect(thirdwebMocks.preAuthenticate).toHaveBeenCalledWith({
-      client: { clientId: "test-thirdweb-client" },
-      strategy: "email",
-      email: "qa@example.org",
-    });
-
-    await user.clear(screen.getByLabelText("Email"));
-    await user.type(screen.getByLabelText("Email"), "ops@example.org");
-
-    // Changing the email withdraws the sent code: the code field disappears
-    // entirely instead of lingering as a locked input.
-    expect(screen.queryByLabelText("Email code")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Verify email" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Send email code" })).toBeInTheDocument();
-    expect(screen.queryByTestId("vault-card-payment-panel")).not.toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "Send email code" }));
-    expect(thirdwebMocks.preAuthenticate).toHaveBeenLastCalledWith({
-      client: { clientId: "test-thirdweb-client" },
-      strategy: "email",
-      email: "ops@example.org",
-    });
-  });
-
-  it("does not let an existing active wallet bypass email-wallet recovery for Card Endow", async () => {
-    const user = userEvent.setup();
-    thirdwebMocks.activeAccount = { address: "0x5555555555555555555555555555555555555555" };
-
-    renderView();
-
-    await user.click(screen.getByRole("button", { name: "Endow to Greenpill NYC" }));
-    await user.click(screen.getByTestId("vault-checkout-method-card"));
-    await user.type(screen.getByLabelText("Amount to endow"), "30");
-    await user.click(screen.getByRole("button", { name: "Continue to Card" }));
-    await screen.findByTestId("vault-card-endow-flow");
-
-    expect(screen.queryByTestId("vault-card-payment-panel")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("thirdweb-buy-widget")).not.toBeInTheDocument();
-    expect(
-      screen.queryByText("0x5555555555555555555555555555555555555555")
-    ).not.toBeInTheDocument();
   });
 
   it("keeps wallet connection behind setup continue while amount stays editable", async () => {
@@ -2387,7 +1005,10 @@ describe("VaultsPage", () => {
     );
     const { rerender } = render(ui);
 
-    await openGreenpillCardCheckout(user);
+    await user.click(screen.getByRole("button", { name: "Endow to Greenpill NYC" }));
+    await user.click(screen.getByTestId("vault-checkout-method-wallet"));
+    await user.type(screen.getByLabelText("Amount to endow"), "30");
+    await user.click(screen.getByRole("button", { name: "Continue to Wallet" }));
     // Committed at $30 with ETH at $3,000 => 0.01 WETH.
     expect(screen.getByText("Settles into the Octant vault as 0.01 WETH")).toBeInTheDocument();
 

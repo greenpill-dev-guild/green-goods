@@ -329,7 +329,7 @@ function YieldSupportExplainer({ campaigns }: { campaigns: OctantVaultCampaignMa
               {formatMessage({
                 id: "public.vaults.strategy.body",
                 defaultMessage:
-                  "When you support a campaign you receive vault shares for your full WETH contribution, and that position stays yours. Reported strategy profit becomes project-supporting donation shares rather than a per-user profit balance.",
+                  "When you support a campaign you receive vault shares for your full WETH contribution, and that position stays yours. Reported strategy profit becomes donation shares that support the project rather than a profit balance for each user.",
               })}
             </p>
             <p>
@@ -343,7 +343,7 @@ function YieldSupportExplainer({ campaigns }: { campaigns: OctantVaultCampaignMa
               {formatMessage({
                 id: "public.vaults.strategy.evidence",
                 defaultMessage:
-                  "The recorded pilot evidence points to YieldDonatingTokenizedStrategy contracts created through YearnV3StrategyFactory metadata. Green Goods treats that as strategy-factory and creator evidence for these pilot vaults, not as a new deployment or yield-rate claim.",
+                  "The recorded pilot evidence points to YieldDonatingTokenizedStrategy contracts created through YearnV3StrategyFactory metadata. Green Goods treats that as evidence of the strategy factory and creator for these pilot vaults, not as a new deployment or yield rate claim.",
               })}
             </p>
           </div>
@@ -571,7 +571,7 @@ export function VaultsPageContent({
         lede={formatMessage({
           id: "public.vaults.hero.lede",
           defaultMessage:
-            "Fund public-goods work that keeps giving — your contribution settles into a dedicated Octant vault, and the position stays yours.",
+            "Fund public goods work that keeps giving — your contribution settles into a dedicated Octant vault, and the position stays yours.",
         })}
       />
 
@@ -597,7 +597,7 @@ export function VaultsPageContent({
               {formatMessage({
                 id: "public.vaults.browse.lede",
                 defaultMessage:
-                  "Your support funds real public-goods work and keeps working over time.",
+                  "Your support funds real public goods work and keeps working over time.",
               })}
             </EditorialLede>
             <div className="mt-6">

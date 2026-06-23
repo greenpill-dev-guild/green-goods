@@ -3,7 +3,6 @@ import {
   Alert,
   cn,
   formatTokenAmount,
-  getOctantVaultCardWalletOwners,
   type OctantVaultPosition,
   truncateAddress,
   useAuth,
@@ -16,18 +15,12 @@ import {
 } from "@green-goods/shared";
 import * as Dialog from "@radix-ui/react-dialog";
 import { RiCloseLine } from "@remixicon/react";
-import { lazy, Suspense, useId, useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits, parseUnits } from "viem";
 import WalletRuntimeProviders from "@/routes/WalletRuntimeProviders";
 import { EditorialGhostButton } from "./atoms";
 import { getAddressExplorerUrl, getEthereumNetworkLabel } from "./vaultCheckoutShell";
-
-/** Card-wallet management nests a ThirdwebProvider + BuyWidget-class deps; keep it
- * out of the main chunk and only load it when a card position actually exists. */
-const VaultCardWalletManage = lazy(() => import("./VaultCardWalletManage"));
-
-type ManageTab = "connected" | "card";
 
 export interface VaultManagePositionsPanelProps {
   open: boolean;
@@ -39,10 +32,9 @@ export interface VaultManagePositionsPanelProps {
 /**
  * Route-local management for Octant V2 vault positions, opened from
  * `/vaults?manage=positions`. Desktop renders a right-edge side sheet; mobile a
- * bottom sheet (the `PublicEndowmentPanel` treatment). It supports two owner
- * sources — the connected wallet and card/recovered email wallets — shown as
- * separate sections so a supporter who used both can see each. Browse stays
- * wallet-runtime-free: the AppKit runtime mounts only while this panel is open.
+ * bottom sheet (the `PublicEndowmentPanel` treatment). It manages only the
+ * connected wallet's vault positions. Browse stays wallet-runtime-free: the
+ * AppKit runtime mounts only while this panel is open.
  */
 export function VaultManagePositionsPanel({
   open,
@@ -61,12 +53,6 @@ function VaultManagePositionsContent({ open, onClose, onEndow }: VaultManagePosi
   const { formatMessage } = useIntl();
   const { authMode, primaryAddress } = useUser();
   const connectedAddress = authMode === "wallet" ? (primaryAddress as Address | null) : null;
-  // Snapshot cached card owners once per open so redeem-driven refetches don't
-  // reshuffle sections mid-interaction.
-  const cardOwners = useMemo(() => getOctantVaultCardWalletOwners(), []);
-  const hasCardOwners = cardOwners.length > 0;
-  const [tab, setTab] = useState<ManageTab>("connected");
-  const activeTab: ManageTab = hasCardOwners ? tab : "connected";
 
   return (
     <Dialog.Root open={open} onOpenChange={(next) => (!next ? onClose() : undefined)}>
@@ -99,7 +85,7 @@ function VaultManagePositionsContent({ open, onClose, onEndow }: VaultManagePosi
                 {formatMessage({
                   id: "public.vaults.manage.lede",
                   defaultMessage:
-                    "View your WETH-backed Octant vault shares and redeem available shares when you choose.",
+                    "View your WETH Octant vault shares and redeem available shares when you choose.",
                 })}
               </Dialog.Description>
             </div>
@@ -117,73 +103,12 @@ function VaultManagePositionsContent({ open, onClose, onEndow }: VaultManagePosi
             </Dialog.Close>
           </header>
 
-          {hasCardOwners ? (
-            <div
-              role="tablist"
-              aria-label={formatMessage({
-                id: "public.vaults.manage.tablistLabel",
-                defaultMessage: "Owner sources",
-              })}
-              className="flex shrink-0 gap-1 border-b border-stroke-soft-200 bg-bg-white-0 px-5 sm:px-6"
-            >
-              <ManageTabButton
-                active={activeTab === "connected"}
-                onClick={() => setTab("connected")}
-                label={formatMessage({
-                  id: "public.vaults.manage.tab.connected",
-                  defaultMessage: "Connected wallet",
-                })}
-              />
-              <ManageTabButton
-                active={activeTab === "card"}
-                onClick={() => setTab("card")}
-                label={formatMessage({
-                  id: "public.vaults.manage.tab.card",
-                  defaultMessage: "Card wallet",
-                })}
-              />
-            </div>
-          ) : null}
-
           <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-6">
-            {activeTab === "connected" ? (
-              <ConnectedWalletSection address={connectedAddress} onEndow={onEndow} />
-            ) : (
-              <Suspense fallback={<PositionsSkeleton />}>
-                <VaultCardWalletManage owners={cardOwners} onEndow={onEndow} />
-              </Suspense>
-            )}
+            <ConnectedWalletSection address={connectedAddress} onEndow={onEndow} />
           </div>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
-  );
-}
-
-function ManageTabButton({
-  active,
-  onClick,
-  label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      role="tab"
-      aria-selected={active}
-      onClick={onClick}
-      className={cn(
-        "-mb-px border-b-2 px-1 py-3 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action",
-        active
-          ? "border-primary-action text-text-strong-950"
-          : "border-transparent text-text-soft-400 hover:text-text-sub-600"
-      )}
-    >
-      {label}
-    </button>
   );
 }
 
@@ -252,7 +177,7 @@ function ConnectedWalletSection({
 /**
  * Shared list shell: loading skeleton, error/retry, empty state (which points back
  * to Endow), and the owner address strip. Row rendering is injected so the
- * connected (transaction-sender) and card (Thirdweb) paths share this scaffolding.
+ * connected-wallet management surface can reuse this scaffolding.
  */
 export function PositionsList({
   positions,
@@ -532,7 +457,7 @@ export function VaultPositionRowView({
           <p className="mt-0.5 text-xs text-text-soft-400">
             {formatMessage({
               id: "public.vaults.manage.position.backed",
-              defaultMessage: "WETH-backed vault position",
+              defaultMessage: "WETH vault position",
             })}
           </p>
           <dl className="mt-3 space-y-1 text-xs leading-[1.55] text-text-soft-400">

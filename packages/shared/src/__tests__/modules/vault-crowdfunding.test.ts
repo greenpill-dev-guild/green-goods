@@ -55,7 +55,7 @@ function makeCompleteManifest(
     campaignCopy: {
       headline: "Fund a complete Octant vault",
       summary: "A complete fixture for manifest validation.",
-      fundingPurpose: "Support public-goods work through a dedicated vault.",
+      fundingPurpose: "Support public goods work through a dedicated vault.",
       recipientLogic: "Yield routes through the supplied recipient configuration.",
       riskNote: "Vault deposits depend on the underlying token and Octant vault strategy.",
     },
@@ -69,7 +69,7 @@ function makeCompleteManifest(
       },
       explorerLink: "https://etherscan.io/address/0x1111111111111111111111111111111111111111",
     },
-    recipientRoutingSummary: "Yield routes to a verified public-goods recipient.",
+    recipientRoutingSummary: "Yield routes to a verified public goods recipient.",
     protocolGuildDestinationContext: "Protocol Guild allocation context is recorded.",
     ...overrides,
   };
