@@ -192,6 +192,7 @@ export function useOctantVaultWalletEndow(options: VaultMutationOptions = {}) {
       }
 
       if (allowance < transaction.amount) {
+        options.onLifecycleStep?.("approval");
         try {
           if (allowance > 0n) {
             await sender.sendContractCall({
@@ -250,6 +251,7 @@ export function useOctantVaultWalletEndow(options: VaultMutationOptions = {}) {
         );
       }
 
+      options.onLifecycleStep?.("deposit");
       if (showLifecycleToast && activeToastId.current) {
         toastService.loading({
           id: activeToastId.current,
@@ -287,6 +289,7 @@ export function useOctantVaultWalletEndow(options: VaultMutationOptions = {}) {
       return { toastId };
     },
     onSuccess: (_txHash, _transaction, context) => {
+      options.onLifecycleStep?.("success");
       if (context?.toastId) toastService.dismiss(context.toastId);
       activeToastId.current = undefined;
       if (showLifecycleToast) {
@@ -297,6 +300,7 @@ export function useOctantVaultWalletEndow(options: VaultMutationOptions = {}) {
       }
     },
     onError: (error, transaction, context) => {
+      options.onLifecycleStep?.("error");
       if (context?.toastId) toastService.dismiss(context.toastId);
       activeToastId.current = undefined;
       const metadata = {

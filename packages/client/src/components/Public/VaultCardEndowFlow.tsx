@@ -43,8 +43,11 @@ import {
   getAddressExplorerUrl,
   getEthereumNetworkLabel,
   getTxExplorerUrl,
+  getVaultCheckoutTransactionLabel,
   type CheckoutSummaryItem,
 } from "./vaultCheckoutShell";
+
+const VAULT_CARD_SETTLEMENT_SLOW_WARNING_MS = 90_000;
 
 function getAgentApiBaseUrl(): string {
   return import.meta.env.VITE_API_BASE_URL || "";
@@ -372,7 +375,7 @@ function CardEndowProviderContent({
       setSlow(false);
       return;
     }
-    return scheduleSlow(() => setSlow(true), 30_000);
+    return scheduleSlow(() => setSlow(true), VAULT_CARD_SETTLEMENT_SLOW_WARNING_MS);
   }, [transactionPending, scheduleSlow, clearSlow]);
 
   // Keyboard continuity: once a fresh code is sent, move focus to the OTP field so
@@ -1015,6 +1018,28 @@ function CardEndowProviderContent({
 
   // Inline Step 3 fallback: when the EIP-7702 batch is unsupported or failed,
   // the ordered approve -> deposit pair stays available as one explicit action.
+  const fallbackTransactionTotal = wrapAmount > 0n ? 3 : 2;
+  const fallbackApprovalStep = fallbackTransactionTotal === 3 ? 2 : 1;
+  const fallbackDepositStep = fallbackTransactionTotal === 3 ? 3 : 2;
+  const fallbackWrapLabel = getVaultCheckoutTransactionLabel(formatMessage, "wrap", 1, 3);
+  const fallbackApprovalLabel = getVaultCheckoutTransactionLabel(
+    formatMessage,
+    "approval",
+    fallbackApprovalStep,
+    fallbackTransactionTotal
+  );
+  const fallbackDepositLabel = getVaultCheckoutTransactionLabel(
+    formatMessage,
+    "deposit",
+    fallbackDepositStep,
+    fallbackTransactionTotal
+  );
+  const fallbackButtonLabel =
+    wrapStatus === "pending" || (wrapAmount > 0n && wrapStatus !== "wrapped")
+      ? fallbackWrapLabel
+      : depositStatus === "pending" || approvalStatus === "approved"
+        ? fallbackDepositLabel
+        : fallbackApprovalLabel;
   const fallbackButton =
     stage === "settle" && fallbackAvailable ? (
       <button
@@ -1023,25 +1048,7 @@ function CardEndowProviderContent({
         className={CHECKOUT_PRIMARY_BUTTON}
         onClick={handleCompleteEndowment}
       >
-        {wrapStatus === "pending"
-          ? formatMessage({
-              id: "public.vaults.walletEndow.wrapping",
-              defaultMessage: "Wrapping...",
-            })
-          : depositStatus === "pending"
-            ? formatMessage({
-                id: "public.vaults.cardEndow.depositing",
-                defaultMessage: "Depositing...",
-              })
-            : approvalStatus === "pending"
-              ? formatMessage({
-                  id: "public.vaults.cardEndow.approving",
-                  defaultMessage: "Approving...",
-                })
-              : formatMessage({
-                  id: "public.vaults.cardEndow.finishDepositFallback",
-                  defaultMessage: "Finish vault deposit",
-                })}
+        {fallbackButtonLabel}
       </button>
     ) : null;
 
@@ -1340,7 +1347,7 @@ function CardEndowProviderContent({
               {formatMessage({
                 id: "public.vaults.checkout.slow",
                 defaultMessage:
-                  "Taking longer than expected — your transaction may still be processing. Wait a moment before retrying; your endowment will appear under Manage Endowments once it settles.",
+                  "Still waiting for confirmation. Mainnet transactions can take a little longer; keep this window open or come back through Manage Endowments once it confirms.",
               })}
             </p>
           ) : null}

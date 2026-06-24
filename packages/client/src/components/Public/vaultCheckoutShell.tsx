@@ -27,6 +27,45 @@ export const CHECKOUT_INPUT =
 export const CHECKOUT_FIELD_LABEL =
   "block font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400";
 
+export type VaultCheckoutTransactionStep = "wrap" | "approval" | "deposit";
+
+export function getVaultCheckoutTransactionLabel(
+  formatMessage: IntlShape["formatMessage"],
+  step: VaultCheckoutTransactionStep,
+  current: number,
+  total: number
+): string {
+  const values = { current, total };
+
+  if (step === "wrap") {
+    return formatMessage(
+      {
+        id: "public.vaults.checkout.tx.wrap",
+        defaultMessage: "Wrap ETH ({current}/{total})",
+      },
+      values
+    );
+  }
+
+  if (step === "approval") {
+    return formatMessage(
+      {
+        id: "public.vaults.checkout.tx.approval",
+        defaultMessage: "Approve vault access ({current}/{total})",
+      },
+      values
+    );
+  }
+
+  return formatMessage(
+    {
+      id: "public.vaults.checkout.tx.deposit",
+      defaultMessage: "Confirm vault deposit ({current}/{total})",
+    },
+    values
+  );
+}
+
 /**
  * Derive a block-explorer transaction URL from a campaign's explorer link (an
  * address URL on the vault's chain), so checkout success screens can link the

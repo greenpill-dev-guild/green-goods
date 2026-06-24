@@ -614,6 +614,7 @@ export {
   type OctantVaultWalletBalancesResult,
   type UseOctantVaultWalletBalancesOptions,
   VaultDepositStageError,
+  type VaultEndowLifecycleStep,
   type VaultDepositFailureReason,
   type VaultDepositStage,
   useVaultPreview,

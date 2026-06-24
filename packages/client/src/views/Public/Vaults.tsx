@@ -11,7 +11,6 @@ import {
   useOctantVaultStrategyApy,
   type OctantVaultCampaignManifest,
 } from "@green-goods/shared";
-import { RiExternalLinkLine } from "@remixicon/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link, Navigate, useLocation, useSearchParams } from "react-router-dom";
@@ -29,14 +28,6 @@ import { getPublicHeroImage, publicCuration } from "@/content/publicCuration";
 
 const MANAGE_POSITIONS_PARAM = "manage";
 const MANAGE_POSITIONS_VALUE = "positions";
-const OCTANT_YIELD_DONATING_STRATEGY_URL =
-  "https://docs.v2.octant.build/docs/developers/yield_donating_strategy/";
-const OCTANT_YIELD_DONATING_STRATEGY_INTRODUCTION_URL =
-  "https://docs.v2.octant.build/docs/developers/yield_donating_strategy/introduction-to-yds";
-const OCTANT_YIELD_DONATING_STRATEGY_ARCHITECTURE_URL =
-  "https://docs.v2.octant.build/docs/developers/yield_donating_strategy/architecture-yds";
-const OCTANT_YIELD_DONATING_STRATEGY_LIFECYCLE_URL =
-  "https://docs.v2.octant.build/docs/developers/yield_donating_strategy/mental-model-lifecycle-yds";
 
 const copyFieldMessageIds = {
   headline: "headline",
@@ -285,112 +276,28 @@ function YieldSupportExplainer() {
             defaultMessage: "How yield support works",
           })}
         </EditorialHeading>
-        <div className="mt-4 grid gap-4 text-sm leading-[1.65] text-text-sub-600 md:grid-cols-[minmax(0,1fr)_auto] md:text-base">
-          <div className="max-w-3xl space-y-4">
-            <p>
-              {formatMessage({
-                id: "public.vaults.strategy.body",
-                defaultMessage:
-                  "When you support a campaign, your contribution becomes vault shares you can redeem later. Generated yield supports the project instead of becoming a personal profit balance.",
-              })}
-            </p>
-            <p>
-              {formatMessage({
-                id: "public.vaults.strategy.ownership",
-                defaultMessage:
-                  "You can redeem your vault shares back to WETH whenever you choose. The generated yield is what funds the campaign, so you can support the work while still keeping an exit path.",
-              })}
-            </p>
-            <p>
-              {formatMessage({
-                id: "public.vaults.strategy.evidence",
-                defaultMessage:
-                  "These pilot vaults use Octant's yield donating strategy model. Green Goods links the source docs so you can inspect how generated yield is routed without framing the rate as personal return.",
-              })}
-            </p>
-          </div>
-          <aside
-            className="border border-stroke-soft-200 bg-bg-white-0 p-4 text-sm md:min-w-72 md:max-w-xs"
-            aria-labelledby="public-vaults-strategy-source-title"
-          >
-            <p
-              id="public-vaults-strategy-source-title"
-              className="font-mono text-[10.5px] font-medium uppercase tracking-[0.16em] text-text-soft-400"
-            >
-              {formatMessage({
-                id: "public.vaults.strategy.source.title",
-                defaultMessage: "Technical docs",
-              })}
-            </p>
-            <a
-              href={OCTANT_YIELD_DONATING_STRATEGY_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="group mt-2 flex min-h-11 w-full items-center justify-between gap-3 border-b border-stroke-soft-200 py-3 text-left text-sm font-medium leading-snug text-text-strong-950 transition-colors hover:border-primary-action/60 hover:text-primary-action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
-            >
-              <span>
-                {formatMessage({
-                  id: "public.vaults.strategy.source.yds",
-                  defaultMessage: "Octant Yield Donating Strategy docs",
-                })}
-              </span>
-              <RiExternalLinkLine
-                aria-hidden="true"
-                className="h-4 w-4 shrink-0 text-text-soft-400 transition-colors group-hover:text-primary-action"
-              />
-            </a>
-            <a
-              href={OCTANT_YIELD_DONATING_STRATEGY_INTRODUCTION_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="group flex min-h-11 w-full items-center justify-between gap-3 border-b border-stroke-soft-200 py-3 text-left text-sm font-medium leading-snug text-text-strong-950 transition-colors hover:border-primary-action/60 hover:text-primary-action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
-            >
-              <span>
-                {formatMessage({
-                  id: "public.vaults.strategy.source.introduction",
-                  defaultMessage: "Yield Donating Strategy introduction",
-                })}
-              </span>
-              <RiExternalLinkLine
-                aria-hidden="true"
-                className="h-4 w-4 shrink-0 text-text-soft-400 transition-colors group-hover:text-primary-action"
-              />
-            </a>
-            <a
-              href={OCTANT_YIELD_DONATING_STRATEGY_ARCHITECTURE_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="group flex min-h-11 w-full items-center justify-between gap-3 border-b border-stroke-soft-200 py-3 text-left text-sm font-medium leading-snug text-text-strong-950 transition-colors hover:border-primary-action/60 hover:text-primary-action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
-            >
-              <span>
-                {formatMessage({
-                  id: "public.vaults.strategy.source.architecture",
-                  defaultMessage: "Yield Donating Strategy architecture",
-                })}
-              </span>
-              <RiExternalLinkLine
-                aria-hidden="true"
-                className="h-4 w-4 shrink-0 text-text-soft-400 transition-colors group-hover:text-primary-action"
-              />
-            </a>
-            <a
-              href={OCTANT_YIELD_DONATING_STRATEGY_LIFECYCLE_URL}
-              target="_blank"
-              rel="noreferrer"
-              className="group flex min-h-11 w-full items-center justify-between gap-3 py-3 text-left text-sm font-medium leading-snug text-text-strong-950 transition-colors hover:text-primary-action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
-            >
-              <span>
-                {formatMessage({
-                  id: "public.vaults.strategy.source.lifecycle",
-                  defaultMessage: "Yield Donating Strategy lifecycle mental model",
-                })}
-              </span>
-              <RiExternalLinkLine
-                aria-hidden="true"
-                className="h-4 w-4 shrink-0 text-text-soft-400 transition-colors group-hover:text-primary-action"
-              />
-            </a>
-          </aside>
+        <div className="mt-4 max-w-3xl space-y-4 text-sm leading-[1.65] text-text-sub-600 md:text-base">
+          <p>
+            {formatMessage({
+              id: "public.vaults.strategy.body",
+              defaultMessage:
+                "When you support a campaign, your contribution becomes vault shares you can redeem later. Generated yield supports the project instead of becoming a personal profit balance.",
+            })}
+          </p>
+          <p>
+            {formatMessage({
+              id: "public.vaults.strategy.ownership",
+              defaultMessage:
+                "You can redeem your vault shares back to WETH whenever you choose. The generated yield is what funds the campaign, so you can support the work while still keeping an exit path.",
+            })}
+          </p>
+          <p>
+            {formatMessage({
+              id: "public.vaults.strategy.evidence",
+              defaultMessage:
+                "These pilot vaults use Octant's yield donating strategy model, which routes generated yield without framing the rate as personal return.",
+            })}
+          </p>
         </div>
       </div>
     </section>

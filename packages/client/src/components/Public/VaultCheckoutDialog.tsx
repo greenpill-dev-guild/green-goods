@@ -22,6 +22,7 @@ import {
   useUser,
   useWrapEthToWeth,
   VaultDepositStageError,
+  type VaultEndowLifecycleStep,
 } from "@green-goods/shared";
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
@@ -37,6 +38,7 @@ import {
   getAddressExplorerUrl,
   getEthereumNetworkLabel,
   getTxExplorerUrl,
+  getVaultCheckoutTransactionLabel,
 } from "./vaultCheckoutShell";
 
 const ETH_SYMBOL = "ETH";
@@ -46,6 +48,9 @@ const ETH_SYMBOL = "ETH";
  * strands a near-empty-ETH wallet before it can finish the deposit.
  */
 const WRAP_FLOW_GAS_UNITS = 500_000n;
+const VAULT_CHECKOUT_SLOW_WARNING_MS = 90_000;
+
+type VaultCheckoutLifecycleStep = "idle" | "approval" | "deposit";
 
 export interface VaultCheckoutGuardState {
   inputsLocked: boolean;
@@ -149,8 +154,23 @@ function VaultCheckoutDialogContent({
   const [checkoutGuard, setCheckoutGuard] =
     useState<VaultCheckoutGuardState>(UNLOCKED_CHECKOUT_GUARD);
   const checkoutGuardRef = useRef<VaultCheckoutGuardState>(UNLOCKED_CHECKOUT_GUARD);
+  const [walletLifecycleStep, setWalletLifecycleStep] =
+    useState<VaultCheckoutLifecycleStep>("idle");
+  const handleWalletLifecycleStep = useCallback((step: VaultEndowLifecycleStep) => {
+    if (step === "approval" || step === "deposit") {
+      setWalletLifecycleStep(step);
+      return;
+    }
+    if (step === "success" || step === "error") {
+      setWalletLifecycleStep("idle");
+    }
+  }, []);
 
-  const walletEndow = useOctantVaultWalletEndow({ errorMode: "inline", toastMode: "auto" });
+  const walletEndow = useOctantVaultWalletEndow({
+    errorMode: "inline",
+    toastMode: "auto",
+    onLifecycleStep: handleWalletLifecycleStep,
+  });
   const wrapEthToWeth = useWrapEthToWeth({ errorMode: "inline" });
   const [status, setStatus] = useState<"idle" | "success">("idle");
   const [successTxHash, setSuccessTxHash] = useState<string | null>(null);
@@ -301,6 +321,7 @@ function VaultCheckoutDialogContent({
     setSuccessTxHash(null);
     setSlow(false);
     setPendingSubmissionKey(null);
+    setWalletLifecycleStep("idle");
     setWrapCompletedKey(null);
     clearWalletConnectFallback();
     updateWalletConnectRequested(false);
@@ -322,7 +343,7 @@ function VaultCheckoutDialogContent({
       setSlow(false);
       return;
     }
-    return scheduleSlow(() => setSlow(true), 30_000);
+    return scheduleSlow(() => setSlow(true), VAULT_CHECKOUT_SLOW_WARNING_MS);
   }, [walletBusy, scheduleSlow, clearSlow]);
 
   useEffect(() => {
@@ -408,10 +429,14 @@ function VaultCheckoutDialogContent({
         { chainId, wethAddress: assetAddress, amount: wrapShortfall },
         {
           onError: () => {
-            if (walletFlowKeyRef.current === walletFlowKey) setWrapCompletedKey(null);
+            if (walletFlowKeyRef.current === walletFlowKey) {
+              setWalletLifecycleStep("idle");
+              setWrapCompletedKey(null);
+            }
           },
           onSuccess: () => {
             if (walletFlowKeyRef.current === walletFlowKey) {
+              setWalletLifecycleStep("idle");
               setWrapCompletedKey(submissionKey);
               void walletBalances.refetch();
             }
@@ -431,14 +456,19 @@ function VaultCheckoutDialogContent({
 
     const submissionKey = walletFlowKey;
     setPendingSubmissionKey(submissionKey);
+    setWalletLifecycleStep("approval");
     walletEndow.mutate(prepared.transaction, {
       onError: () => {
         setPendingSubmissionKey((current) => (current === submissionKey ? null : current));
-        if (walletFlowKeyRef.current === submissionKey) setStatus("idle");
+        if (walletFlowKeyRef.current === submissionKey) {
+          setWalletLifecycleStep("idle");
+          setStatus("idle");
+        }
       },
       onSuccess: (txHash) => {
         setPendingSubmissionKey((current) => (current === submissionKey ? null : current));
         if (walletFlowKeyRef.current === submissionKey) {
+          setWalletLifecycleStep("idle");
           setSuccessTxHash(typeof txHash === "string" ? txHash : null);
           setStatus("success");
         }
@@ -601,21 +631,32 @@ function VaultCheckoutDialogContent({
     campaign.vault?.vaultAddress
   );
   const tokenExplorerUrl = getAddressExplorerUrl(campaign.vault?.explorerLink, assetAddress);
+  const walletTransactionTotal =
+    wrapEthToWeth.isPending || shouldWrapBeforeDeposit || hasCompletedWrapForAmount ? 3 : 2;
+  const walletApprovalStep = walletTransactionTotal === 3 ? 2 : 1;
+  const walletDepositStep = walletTransactionTotal === 3 ? 3 : 2;
+  const wrapActionLabel = getVaultCheckoutTransactionLabel(formatMessage, "wrap", 1, 3);
+  const approvalActionLabel = getVaultCheckoutTransactionLabel(
+    formatMessage,
+    "approval",
+    walletApprovalStep,
+    walletTransactionTotal
+  );
+  const depositActionLabel = getVaultCheckoutTransactionLabel(
+    formatMessage,
+    "deposit",
+    walletDepositStep,
+    walletTransactionTotal
+  );
 
   let actionLabel = formatMessage({
     id: "public.vaults.walletEndow.enterAmount",
     defaultMessage: "Enter an amount",
   });
   if (wrapEthToWeth.isPending) {
-    actionLabel = formatMessage({
-      id: "public.vaults.walletEndow.wrapping",
-      defaultMessage: "Wrapping...",
-    });
+    actionLabel = wrapActionLabel;
   } else if (walletBusy) {
-    actionLabel = formatMessage({
-      id: "public.vaults.walletEndow.submitting",
-      defaultMessage: "Submitting...",
-    });
+    actionLabel = walletLifecycleStep === "deposit" ? depositActionLabel : approvalActionLabel;
   } else if (walletBalanceDecisionPending) {
     actionLabel = formatMessage({
       id: "public.vaults.walletEndow.balances.loading",
@@ -632,15 +673,9 @@ function VaultCheckoutDialogContent({
       defaultMessage: "Insufficient funds",
     });
   } else if (hasReadyAmount && primaryWalletAddress && shouldWrapBeforeDeposit) {
-    actionLabel = formatMessage({
-      id: "public.vaults.walletEndow.wrap",
-      defaultMessage: "Wrap ETH to WETH",
-    });
+    actionLabel = wrapActionLabel;
   } else if (hasReadyAmount && primaryWalletAddress) {
-    actionLabel = formatMessage({
-      id: "public.vaults.walletEndow.confirm",
-      defaultMessage: "Confirm endowment",
-    });
+    actionLabel = approvalActionLabel;
   } else if (hasReadyAmount) {
     actionLabel = formatMessage({
       id: "public.vaults.walletEndow.connect",
@@ -1040,7 +1075,7 @@ function VaultCheckoutDialogContent({
                 {formatMessage({
                   id: "public.vaults.checkout.slow",
                   defaultMessage:
-                    "Taking longer than expected. Your transaction may still be processing. Wait a moment before retrying; your endowment will appear under Manage Endowments once it settles.",
+                    "Still waiting for confirmation. Mainnet transactions can take a little longer; keep this window open or come back through Manage Endowments once it confirms.",
                 })}
               </p>
             </div>

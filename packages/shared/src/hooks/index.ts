@@ -494,6 +494,7 @@ export {
 } from "./vault/useOctantVaultWalletBalances";
 export {
   VaultDepositStageError,
+  type VaultEndowLifecycleStep,
   type VaultDepositFailureReason,
   type VaultDepositStage,
 } from "./vault/vault-helpers";

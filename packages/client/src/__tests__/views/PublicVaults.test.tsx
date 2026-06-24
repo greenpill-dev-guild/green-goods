@@ -19,6 +19,9 @@ const sharedHookMocks = vi.hoisted(() => ({
   octantVaultWalletEndowMutate: vi.fn(),
   octantVaultWalletEndowReset: vi.fn(),
   octantVaultWalletEndowError: null as unknown,
+  octantVaultWalletEndowOptions: null as {
+    onLifecycleStep?: (step: string) => void;
+  } | null,
   wrapEthToWethMutate: vi.fn(),
   wrapEthToWethReset: vi.fn(),
   wrapEthToWethError: null as unknown,
@@ -87,12 +90,15 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
     }),
     isLocalArbitrumForkMode: () => sharedHookMocks.localArbitrumForkMode,
     LOCAL_ARBITRUM_FORK_CHAIN_ID: 42161,
-    useOctantVaultWalletEndow: () => ({
-      mutate: sharedHookMocks.octantVaultWalletEndowMutate,
-      reset: sharedHookMocks.octantVaultWalletEndowReset,
-      error: sharedHookMocks.octantVaultWalletEndowError,
-      isPending: false,
-    }),
+    useOctantVaultWalletEndow: (options?: { onLifecycleStep?: (step: string) => void }) => {
+      sharedHookMocks.octantVaultWalletEndowOptions = options ?? null;
+      return {
+        mutate: sharedHookMocks.octantVaultWalletEndowMutate,
+        reset: sharedHookMocks.octantVaultWalletEndowReset,
+        error: sharedHookMocks.octantVaultWalletEndowError,
+        isPending: false,
+      };
+    },
     useWrapEthToWeth: () => ({
       mutate: sharedHookMocks.wrapEthToWethMutate,
       reset: sharedHookMocks.wrapEthToWethReset,
@@ -562,31 +568,19 @@ describe("VaultsPage", () => {
         "Generated yield supports the local civic tech initiatives Greenpill NYC surfaces in New York City."
       )
     ).toBeInTheDocument();
-    expect(screen.getByText("Technical docs")).toBeInTheDocument();
+    expect(screen.queryByText("Technical docs")).not.toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: "Octant Yield Donating Strategy docs" })
-    ).toHaveAttribute(
-      "href",
-      "https://docs.v2.octant.build/docs/developers/yield_donating_strategy/"
-    );
+      screen.queryByRole("link", { name: "Octant Yield Donating Strategy docs" })
+    ).not.toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: "Yield Donating Strategy introduction" })
-    ).toHaveAttribute(
-      "href",
-      "https://docs.v2.octant.build/docs/developers/yield_donating_strategy/introduction-to-yds"
-    );
+      screen.queryByRole("link", { name: "Yield Donating Strategy introduction" })
+    ).not.toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: "Yield Donating Strategy architecture" })
-    ).toHaveAttribute(
-      "href",
-      "https://docs.v2.octant.build/docs/developers/yield_donating_strategy/architecture-yds"
-    );
+      screen.queryByRole("link", { name: "Yield Donating Strategy architecture" })
+    ).not.toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: "Yield Donating Strategy lifecycle mental model" })
-    ).toHaveAttribute(
-      "href",
-      "https://docs.v2.octant.build/docs/developers/yield_donating_strategy/mental-model-lifecycle-yds"
-    );
+      screen.queryByRole("link", { name: "Yield Donating Strategy lifecycle mental model" })
+    ).not.toBeInTheDocument();
     expect(screen.queryByText(/Donated yield/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/guaranteed/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/accrued profit/i)).not.toBeInTheDocument();
@@ -962,7 +956,7 @@ describe("VaultsPage", () => {
     );
     await user.type(screen.getByLabelText("Amount to endow"), "2.50");
     expect(screen.getByText("vault-owner.eth")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Confirm endowment" }));
+    await user.click(screen.getByRole("button", { name: "Approve vault access (1/2)" }));
 
     expect(sharedHookMocks.loginWithWallet).not.toHaveBeenCalled();
     expect(sharedHookMocks.octantVaultWalletEndowMutate).toHaveBeenCalledWith(
@@ -988,6 +982,30 @@ describe("VaultsPage", () => {
         onSuccess: expect.any(Function),
       })
     );
+  });
+
+  it("updates wallet checkout action while approval and deposit confirmations run", async () => {
+    const user = userEvent.setup();
+    sharedHookMocks.authMode = "wallet";
+    sharedHookMocks.primaryAddress = VALID_RECEIVER_ADDRESS;
+    sharedHookMocks.octantVaultWalletEndowMutate.mockImplementationOnce(() => {
+      sharedHookMocks.octantVaultWalletEndowOptions?.onLifecycleStep?.("approval");
+      sharedHookMocks.octantVaultWalletEndowOptions?.onLifecycleStep?.("deposit");
+    });
+
+    renderContent([makeCompleteCampaign()]);
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "Endow to Synthetic complete campaign",
+      })
+    );
+    await user.type(screen.getByLabelText("Amount to endow"), "2.50");
+
+    await user.click(screen.getByRole("button", { name: "Approve vault access (1/2)" }));
+
+    expect(screen.getByRole("button", { name: "Confirm vault deposit (2/2)" })).toBeDisabled();
+    expect(sharedHookMocks.octantVaultWalletEndowMutate).toHaveBeenCalledTimes(1);
   });
 
   it("blocks Ethereum Wallet Endow in local Arbitrum fork mode before submission", async () => {
@@ -1086,7 +1104,7 @@ describe("VaultsPage", () => {
       )
     ).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Wrap ETH to WETH" }));
+    await user.click(screen.getByRole("button", { name: "Wrap ETH (1/3)" }));
 
     expect(sharedHookMocks.wrapEthToWethMutate).toHaveBeenCalledWith(
       {
@@ -1101,7 +1119,7 @@ describe("VaultsPage", () => {
     );
     await waitFor(() => expect(sharedHookMocks.walletBalancesRefetch).toHaveBeenCalledTimes(1));
 
-    await user.click(screen.getByRole("button", { name: "Confirm endowment" }));
+    await user.click(screen.getByRole("button", { name: "Approve vault access (2/3)" }));
 
     expect(sharedHookMocks.octantVaultWalletEndowMutate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -1137,7 +1155,7 @@ describe("VaultsPage", () => {
       )
     ).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Wrap ETH to WETH" }));
+    await user.click(screen.getByRole("button", { name: "Wrap ETH (1/3)" }));
 
     expect(sharedHookMocks.wrapEthToWethMutate).toHaveBeenCalledWith(
       {
@@ -1225,14 +1243,16 @@ describe("VaultsPage", () => {
       })
     );
     await user.type(screen.getByLabelText("Amount to endow"), "2.50");
-    await user.click(screen.getByRole("button", { name: "Confirm endowment" }));
+    await user.click(screen.getByRole("button", { name: "Approve vault access (1/2)" }));
 
     // Success is a terminal screen; the confirm action is replaced by Done.
     expect(await screen.findByTestId("vault-wallet-endow-success")).toBeInTheDocument();
     expect(screen.getByText("Endowment submitted")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Done" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "View transaction" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Confirm endowment" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Approve vault access (1/2)" })
+    ).not.toBeInTheDocument();
     expect(sharedHookMocks.octantVaultWalletEndowMutate).toHaveBeenCalledTimes(1);
 
     // Done closes the sheet.
@@ -1240,7 +1260,7 @@ describe("VaultsPage", () => {
     expect(screen.queryByTestId("vault-wallet-endow-success")).not.toBeInTheDocument();
   });
 
-  it("surfaces a recovery note when a wallet submission stalls past 30s", () => {
+  it("surfaces a recovery note when a wallet submission stalls past 90s", () => {
     vi.useFakeTimers();
     try {
       sharedHookMocks.authMode = "wallet";
@@ -1260,19 +1280,26 @@ describe("VaultsPage", () => {
       fireEvent.change(screen.getByLabelText("Amount to endow"), {
         target: { value: "2.50" },
       });
-      fireEvent.click(screen.getByRole("button", { name: "Confirm endowment" }));
+      fireEvent.click(screen.getByRole("button", { name: "Approve vault access (1/2)" }));
 
-      // In flight: the action reads "Submitting...", and no recovery note exists yet.
-      expect(screen.getByRole("button", { name: "Submitting..." })).toBeDisabled();
-      expect(screen.queryByText(/Taking longer than expected/)).not.toBeInTheDocument();
+      // In flight: the action is still on the wallet-confirmation path, and no
+      // recovery note exists yet.
+      expect(screen.getByRole("button", { name: "Approve vault access (1/2)" })).toBeDisabled();
+      expect(screen.queryByText(/Still waiting for confirmation/)).not.toBeInTheDocument();
 
-      // After 30s with no resolution the recovery affordance appears, while the
+      // After 90s with no resolution the recovery affordance appears, while the
       // in-flight deposit stays close-locked and cannot be double-submitted.
       act(() => {
-        vi.advanceTimersByTime(30_000);
+        vi.advanceTimersByTime(89_999);
       });
 
-      expect(screen.getByText(/Taking longer than expected/)).toBeInTheDocument();
+      expect(screen.queryByText(/Still waiting for confirmation/)).not.toBeInTheDocument();
+
+      act(() => {
+        vi.advanceTimersByTime(1);
+      });
+
+      expect(screen.getByText(/Still waiting for confirmation/)).toBeInTheDocument();
       // The slow state no longer points to the Fund page; vault positions are
       // managed route-locally from /vaults.
       expect(screen.queryByRole("link", { name: "View on Fund page" })).not.toBeInTheDocument();

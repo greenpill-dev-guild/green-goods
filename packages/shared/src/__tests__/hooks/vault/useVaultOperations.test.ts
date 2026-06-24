@@ -302,6 +302,56 @@ describe("hooks/vault/useVaultOperations", () => {
     );
   });
 
+  it("emits Octant Wallet Endow lifecycle steps for approval, deposit, and success", async () => {
+    const lifecycleSteps: string[] = [];
+    mockReadContract
+      .mockResolvedValueOnce(100n) // maxDeposit
+      .mockResolvedValueOnce(10n) // balanceOf (>= amount, passes pre-flight)
+      .mockResolvedValueOnce(10n) // preApprovalPreview
+      .mockResolvedValueOnce(0n) // allowance (insufficient)
+      .mockResolvedValueOnce(10n) // refreshed allowance
+      .mockResolvedValueOnce(10n); // post-approval previewDeposit
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+
+    const { result } = renderHook(
+      () =>
+        useOctantVaultWalletEndow({
+          onLifecycleStep: (step) => lifecycleSteps.push(step),
+        }),
+      {
+        wrapper: createWrapper(queryClient),
+      }
+    );
+
+    await act(async () => {
+      await result.current.mutateAsync({
+        intentKind: "wallet_endow",
+        paymentMethod: "wallet",
+        chainId: TEST_OCTANT_CHAIN_ID,
+        vaultAddress: TEST_VAULT as `0x${string}`,
+        assetAddress: TEST_ASSET as `0x${string}`,
+        assetSymbol: "WETH",
+        assetDecimals: 18,
+        amount: 10n,
+        receiver: {
+          intentKind: "wallet_endow",
+          paymentMethod: "wallet",
+          receiverKind: "connected_wallet",
+          receiverCustody: "connected_wallet",
+          receiverAddress: TEST_PRIMARY_ADDRESS as `0x${string}`,
+        },
+      });
+    });
+
+    expect(lifecycleSteps).toEqual(["approval", "deposit", "success"]);
+  });
+
   it("blocks Octant Wallet Endow before approving when the wallet holds insufficient WETH", async () => {
     mockReadContract
       .mockResolvedValueOnce(100n) // maxDeposit
@@ -343,6 +393,55 @@ describe("hooks/vault/useVaultOperations", () => {
     // Stops at maxDeposit + balanceOf; never previews, approves, or deposits.
     expect(mockReadContract).toHaveBeenCalledTimes(2);
     expect(mockSendContractCall).not.toHaveBeenCalled();
+  });
+
+  it("emits Octant Wallet Endow error lifecycle step on failure", async () => {
+    const lifecycleSteps: string[] = [];
+    mockReadContract
+      .mockResolvedValueOnce(100n) // maxDeposit
+      .mockResolvedValueOnce(5n); // balanceOf (< amount -> insufficient WETH)
+
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: { retry: false },
+        mutations: { retry: false },
+      },
+    });
+
+    const { result } = renderHook(
+      () =>
+        useOctantVaultWalletEndow({
+          errorMode: "inline",
+          onLifecycleStep: (step) => lifecycleSteps.push(step),
+        }),
+      {
+        wrapper: createWrapper(queryClient),
+      }
+    );
+
+    await act(async () => {
+      await expect(
+        result.current.mutateAsync({
+          intentKind: "wallet_endow",
+          paymentMethod: "wallet",
+          chainId: TEST_OCTANT_CHAIN_ID,
+          vaultAddress: TEST_VAULT as `0x${string}`,
+          assetAddress: TEST_ASSET as `0x${string}`,
+          assetSymbol: "WETH",
+          assetDecimals: 18,
+          amount: 10n,
+          receiver: {
+            intentKind: "wallet_endow",
+            paymentMethod: "wallet",
+            receiverKind: "connected_wallet",
+            receiverCustody: "connected_wallet",
+            receiverAddress: TEST_PRIMARY_ADDRESS as `0x${string}`,
+          },
+        })
+      ).rejects.toThrow(/insufficient WETH/i);
+    });
+
+    expect(lifecycleSteps).toEqual(["error"]);
   });
 
   it("wraps ETH into canonical mainnet WETH before the existing vault deposit path", async () => {

@@ -30,10 +30,12 @@ export type VaultDepositFailureReason =
   | "insufficientBalance"
   | "slippage";
 export type TxErrorMode = "toast" | "inline" | "auto";
+export type VaultEndowLifecycleStep = "wrap" | "approval" | "deposit" | "success" | "error";
 
 export interface VaultMutationOptions {
   errorMode?: TxErrorMode;
   toastMode?: "auto" | "silent";
+  onLifecycleStep?: (step: VaultEndowLifecycleStep) => void;
 }
 
 export function shouldShowErrorToast(mode: TxErrorMode = "auto"): boolean {

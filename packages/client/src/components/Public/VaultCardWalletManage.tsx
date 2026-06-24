@@ -33,6 +33,7 @@ import {
 import { inAppWallet, preAuthenticate } from "thirdweb/wallets/in-app";
 import { EditorialGhostButton } from "./atoms";
 import { PositionsList, VaultPositionRowView } from "./VaultManagePositionsPanel";
+import { getVaultCheckoutTransactionLabel } from "./vaultCheckoutShell";
 
 function getThirdwebClientId(): string {
   return import.meta.env.VITE_THIRDWEB_CLIENT_ID?.trim() ?? "";
@@ -366,6 +367,8 @@ function PendingFundedDepositCard({
   const { formatMessage } = useIntl();
   const sendAndConfirm = useSendAndConfirmTransaction({ payModal: false });
   const [busy, setBusy] = useState(false);
+  const [pendingStep, setPendingStep] = useState<"idle" | "approval" | "deposit">("idle");
+  const [approvalComplete, setApprovalComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const campaign = useMemo(
     () => getOctantVaultCampaignBySlug(refEntry.campaignSlug),
@@ -384,16 +387,20 @@ function PendingFundedDepositCard({
   const finishDeposit = useCallback(async () => {
     if (!sessionLive || busy || !tokenAddress || !expectedAmount) return;
     setBusy(true);
+    setPendingStep(approvalComplete ? "deposit" : "approval");
     setError(null);
     try {
       const amount = BigInt(expectedAmount);
       const tokenContract = getContract({ client, chain, address: tokenAddress });
-      const approveTransaction = prepareContractCall({
-        contract: tokenContract,
-        method: "function approve(address spender, uint256 value)",
-        params: [refEntry.vaultAddress, amount],
-      });
-      await sendAndConfirm.mutateAsync(approveTransaction);
+      if (!approvalComplete) {
+        const approveTransaction = prepareContractCall({
+          contract: tokenContract,
+          method: "function approve(address spender, uint256 value)",
+          params: [refEntry.vaultAddress, amount],
+        });
+        await sendAndConfirm.mutateAsync(approveTransaction);
+        setApprovalComplete(true);
+      }
 
       const vaultContract = getContract({ client, chain, address: refEntry.vaultAddress });
       const depositTransaction = prepareContractCall({
@@ -401,6 +408,7 @@ function PendingFundedDepositCard({
         method: "function deposit(uint256 assets, address receiver) returns (uint256)",
         params: [amount, refEntry.recoveredWalletAddress],
       });
+      setPendingStep("deposit");
       await sendAndConfirm.mutateAsync(depositTransaction);
 
       const sharesResult = await readContract({
@@ -428,6 +436,7 @@ function PendingFundedDepositCard({
         chainId: refEntry.chainId,
         status: "confirmed",
       });
+      setApprovalComplete(false);
       await onResolved();
     } catch (caught) {
       setError(
@@ -441,8 +450,10 @@ function PendingFundedDepositCard({
       );
     } finally {
       setBusy(false);
+      setPendingStep("idle");
     }
   }, [
+    approvalComplete,
     busy,
     chain,
     client,
@@ -457,6 +468,10 @@ function PendingFundedDepositCard({
     sessionLive,
     tokenAddress,
   ]);
+  const pendingFinishLabel =
+    pendingStep === "deposit" || (!busy && approvalComplete)
+      ? getVaultCheckoutTransactionLabel(formatMessage, "deposit", 2, 2)
+      : getVaultCheckoutTransactionLabel(formatMessage, "approval", 1, 2);
 
   return (
     <section
@@ -495,15 +510,7 @@ function PendingFundedDepositCard({
           disabled={busy || !tokenAddress || !expectedAmount}
           onClick={() => void finishDeposit()}
         >
-          {busy
-            ? formatMessage({
-                id: "public.vaults.manage.card.pendingFinishPending",
-                defaultMessage: "Finishing deposit…",
-              })
-            : formatMessage({
-                id: "public.vaults.manage.card.pendingFinishCta",
-                defaultMessage: "Finish vault deposit",
-              })}
+          {pendingFinishLabel}
         </EditorialGhostButton>
       ) : (
         <p className="mt-3 rounded-none bg-bg-weak-50 p-3 text-xs leading-[1.5] text-text-sub-600">

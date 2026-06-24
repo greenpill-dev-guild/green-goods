@@ -624,7 +624,7 @@ describe("checkout success no longer points to Fund", () => {
 
     await user.click(screen.getByRole("button", { name: "Endow to Synthetic complete campaign" }));
     await user.type(screen.getByLabelText("Amount to endow"), "2.50");
-    await user.click(screen.getByRole("button", { name: "Confirm endowment" }));
+    await user.click(screen.getByRole("button", { name: "Approve vault access (1/2)" }));
 
     const success = await screen.findByTestId("vault-wallet-endow-success");
     expect(mocks.walletEndowMutate).toHaveBeenCalledTimes(1);
