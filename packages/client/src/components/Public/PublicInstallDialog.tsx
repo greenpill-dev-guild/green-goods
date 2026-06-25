@@ -184,14 +184,7 @@ export function PublicInstallDialog({
                 </div>
               </div>
             ) : isBraveLaunch ? (
-              <div className="mt-6 space-y-5">
-                <p className="border border-stroke-soft-200 bg-bg-white-0 p-4 text-sm leading-relaxed text-text-sub-600">
-                  {formatMessage({
-                    id: "public.installDialog.braveBody",
-                    defaultMessage:
-                      "Brave adds Green Goods as a home-screen app instead of launching it from this button. Tap the Green Goods icon on your home screen to open it.",
-                  })}
-                </p>
+              <div className="mt-6">
                 <a
                   href={launchUrl}
                   className="inline-flex min-h-11 w-full cursor-pointer items-center justify-center rounded-full bg-primary-action px-5 py-3 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 sm:w-fit"
