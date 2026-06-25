@@ -1131,6 +1131,7 @@ export {
   getBlockExplorerAddressUrl,
   getBlockExplorerTokenUrl,
   getEASExplorerUrl,
+  getOpenInBrowserUrl,
   getMarketplaceReadiness,
   DEFAULT_WITHDRAW_MAX_LOSS_BPS,
   getDepositLimitLabel,

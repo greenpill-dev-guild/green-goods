@@ -1,5 +1,6 @@
 import {
   type InstallAction,
+  getOpenInBrowserUrl,
   useApp,
   useInstallGuidance,
   useIsBraveBrowser,
@@ -43,6 +44,12 @@ export function PublicInstallAction({ children, forceOpenApp = false }: PublicIn
   );
   const dispatchInstallAction = usePublicInstallHandler(guidance, promptInstall);
   const isBrave = useIsBraveBrowser();
+  // Android intent that reopens the current page in Chrome. Brave can't mint a
+  // real WebAPK, so install-intent users are steered to Chrome (PRD-499).
+  const openInChromeUrl = useMemo(
+    () => (platform === "android" ? getOpenInBrowserUrl(platform, "chrome") : null),
+    [platform]
+  );
   const [dialogMode, setDialogMode] = useState<PublicInstallDialogMode | null>(null);
 
   // Gate "open-app" affordance on mobile: desktop users can't usefully launch
@@ -78,6 +85,14 @@ export function PublicInstallAction({ children, forceOpenApp = false }: PublicIn
         return;
       }
 
+      // Brave on Android omits the "Brave" UA token, so it is detected as Chrome
+      // and offered a native install that silently creates a home-screen shortcut
+      // instead of a real WebAPK. Warn and steer to Chrome first (PRD-499).
+      if (isBrave && platform === "android") {
+        setDialogMode("braveInstall");
+        return;
+      }
+
       if (guidance.primaryAction.type === "native-install") {
         await dispatchInstallAction(event);
         return;
@@ -85,7 +100,15 @@ export function PublicInstallAction({ children, forceOpenApp = false }: PublicIn
 
       setDialogMode("mobileSteps");
     },
-    [dispatchInstallAction, guidance.primaryAction.type, isBrave, isMobile, isOpenApp, launchUrl]
+    [
+      dispatchInstallAction,
+      guidance.primaryAction.type,
+      isBrave,
+      isMobile,
+      isOpenApp,
+      launchUrl,
+      platform,
+    ]
   );
 
   const handleDialogPrimaryAction = useCallback<MouseEventHandler<HTMLButtonElement>>(
@@ -111,6 +134,7 @@ export function PublicInstallAction({ children, forceOpenApp = false }: PublicIn
         open={dialogMode !== null}
         mode={dialogMode ?? "desktopQr"}
         launchUrl={launchUrl}
+        chromeUrl={openInChromeUrl}
         guidance={guidance}
         onOpenChange={(open) => {
           if (!open) setDialogMode(null);

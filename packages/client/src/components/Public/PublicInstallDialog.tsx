@@ -4,11 +4,13 @@ import { RiCloseLine } from "@remixicon/react";
 import { QRCodeSVG } from "qrcode.react";
 import type { MouseEventHandler } from "react";
 import { useIntl } from "react-intl";
-export type PublicInstallDialogMode = "desktopQr" | "mobileSteps" | "braveLaunch";
+export type PublicInstallDialogMode = "desktopQr" | "mobileSteps" | "braveLaunch" | "braveInstall";
 export interface PublicInstallDialogProps {
   open: boolean;
   mode: PublicInstallDialogMode;
   launchUrl: string;
+  /** Android intent URL that reopens the page in Chrome; used by `braveInstall`. */
+  chromeUrl?: string | null;
   guidance: InstallGuidance;
   onOpenChange: (open: boolean) => void;
   onPrimaryAction?: MouseEventHandler<HTMLButtonElement>;
@@ -28,6 +30,7 @@ export function PublicInstallDialog({
   open,
   mode,
   launchUrl,
+  chromeUrl,
   guidance,
   onOpenChange,
   onPrimaryAction,
@@ -35,36 +38,51 @@ export function PublicInstallDialog({
   const { formatMessage } = useIntl();
   const isDesktopQr = mode === "desktopQr";
   const isBraveLaunch = mode === "braveLaunch";
+  const isBraveInstall = mode === "braveInstall";
   const manualSteps = guidance.manualInstructions ?? [];
   const showMobilePrimaryAction =
-    !isDesktopQr && !isBraveLaunch && hasMobilePrimaryAction(guidance);
+    !isDesktopQr && !isBraveLaunch && !isBraveInstall && hasMobilePrimaryAction(guidance);
 
   const kickerId = isBraveLaunch
     ? "public.installDialog.braveKicker"
-    : "public.installDialog.kicker";
-  const kickerDefault = isBraveLaunch ? "Open the app" : "Phone handoff";
+    : isBraveInstall
+      ? "public.installDialog.braveInstallKicker"
+      : "public.installDialog.kicker";
+  const kickerDefault = isBraveLaunch
+    ? "Open the app"
+    : isBraveInstall
+      ? "Install in Chrome"
+      : "Phone handoff";
 
   const titleId = isDesktopQr
     ? "public.installDialog.title"
     : isBraveLaunch
       ? "public.installDialog.braveTitle"
-      : "public.installDialog.mobileTitle";
+      : isBraveInstall
+        ? "public.installDialog.braveInstallTitle"
+        : "public.installDialog.mobileTitle";
   const titleDefault = isDesktopQr
     ? "Bring Green Goods into the field"
     : isBraveLaunch
       ? "Open Green Goods from your home screen"
-      : "Install Green Goods on this phone";
+      : isBraveInstall
+        ? "Install Green Goods in Chrome"
+        : "Install Green Goods on this phone";
 
   const descriptionId = isDesktopQr
     ? "public.installDialog.description"
     : isBraveLaunch
       ? "public.installDialog.braveBody"
-      : "public.installDialog.mobileDescription";
+      : isBraveInstall
+        ? "public.installDialog.braveInstallBody"
+        : "public.installDialog.mobileDescription";
   const descriptionDefault = isDesktopQr
     ? "Scan the code with your phone, then install the app from Safari or Chrome."
     : isBraveLaunch
       ? "Brave adds Green Goods as a home-screen app instead of launching it from this button. Tap the Green Goods icon on your home screen to open it."
-      : "Use your browser's install controls. If this browser cannot install apps, open this page in Safari or Chrome first.";
+      : isBraveInstall
+        ? "Brave saves Green Goods as a home-screen shortcut instead of installing the full app. Open this page in Chrome, then tap Install to add the real app."
+        : "Use your browser's install controls. If this browser cannot install apps, open this page in Safari or Chrome first.";
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -195,6 +213,20 @@ export function PublicInstallDialog({
                   })}
                 </a>
               </div>
+            ) : isBraveInstall ? (
+              chromeUrl ? (
+                <div className="mt-6">
+                  <a
+                    href={chromeUrl}
+                    className="inline-flex min-h-11 w-full cursor-pointer items-center justify-center rounded-full bg-primary-action px-5 py-3 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 sm:w-fit"
+                  >
+                    {formatMessage({
+                      id: "public.installDialog.braveInstallAction",
+                      defaultMessage: "Open in Chrome",
+                    })}
+                  </a>
+                </div>
+              ) : null
             ) : (
               <div className="mt-6 space-y-5">
                 {guidance.browserSwitchReason ? (
