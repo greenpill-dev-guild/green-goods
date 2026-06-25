@@ -198,6 +198,7 @@ export {
   TranslationBadge,
   toastService,
   TxInlineFeedback,
+  createUpdateToasts,
   updateToasts,
   validationToasts,
   VaultPositionCard,
