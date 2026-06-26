@@ -240,4 +240,41 @@ describe("modules/data/ipfs", () => {
 
     expect(result).toEqual({ cid: validCid });
   });
+
+  it("aborts a stalled Pinata upload once the timeout elapses", async () => {
+    vi.useFakeTimers();
+    try {
+      await initializeIpfsFromEnv({
+        MODE: "test",
+        PINATA_JWT: "pinata-server-token",
+        PINATA_GATEWAY_URL: "https://pinata.example",
+        PINATA_API_URL: "https://uploads.pinata.test/v3",
+      });
+
+      // A fetch that never resolves on its own — it only settles when its
+      // AbortSignal fires, mimicking a connection that stalls mid-upload.
+      const fetchMock = vi.fn<typeof fetch>(
+        (_input, init) =>
+          new Promise<Response>((_resolve, reject) => {
+            (init as RequestInit | undefined)?.signal?.addEventListener("abort", () => {
+              reject(new DOMException("The operation was aborted.", "AbortError"));
+            });
+          })
+      );
+      globalThis.fetch = fetchMock;
+
+      const uploadPromise = uploadFileToIPFS(
+        new File(["content"], "proof.txt", { type: "text/plain" })
+      );
+      const expectation = expect(uploadPromise).rejects.toThrow(/timed out/i);
+
+      // Advance past the 60s upload ceiling so the AbortController fires.
+      await vi.advanceTimersByTimeAsync(60_000);
+      await expectation;
+
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
