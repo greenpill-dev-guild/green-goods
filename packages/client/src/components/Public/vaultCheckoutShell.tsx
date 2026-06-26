@@ -1,6 +1,15 @@
 import { DialogShell, PwaSheet, cn, useMediaQuery } from "@green-goods/shared";
-import { RiCheckLine, RiCloseLine } from "@remixicon/react";
-import type { ReactNode } from "react";
+import { RiCheckLine, RiCloseLine, RiInformationLine } from "@remixicon/react";
+import {
+  type CSSProperties,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { useIntl, type IntlShape } from "react-intl";
 
 /**
@@ -27,7 +36,7 @@ export const CHECKOUT_INPUT =
 export const CHECKOUT_FIELD_LABEL =
   "block font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400";
 
-export type VaultCheckoutTransactionStep = "wrap" | "approval" | "deposit";
+export type VaultCheckoutTransactionStep = "wrap" | "approvalReset" | "approval" | "deposit";
 
 export function getVaultCheckoutTransactionLabel(
   formatMessage: IntlShape["formatMessage"],
@@ -57,10 +66,20 @@ export function getVaultCheckoutTransactionLabel(
     );
   }
 
+  if (step === "approvalReset") {
+    return formatMessage(
+      {
+        id: "public.vaults.checkout.tx.approvalReset",
+        defaultMessage: "Reset vault access ({current}/{total})",
+      },
+      values
+    );
+  }
+
   return formatMessage(
     {
       id: "public.vaults.checkout.tx.deposit",
-      defaultMessage: "Confirm vault deposit ({current}/{total})",
+      defaultMessage: "Confirm endowment ({current}/{total})",
     },
     values
   );
@@ -246,6 +265,157 @@ export interface CheckoutSummaryItem {
   value: ReactNode;
   /** Render the value in a mono, break-all treatment (addresses). */
   mono?: boolean;
+}
+
+export function CheckoutTransactionDetails({
+  label,
+  children,
+  className,
+}: {
+  label: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  const isMobile = useMediaQuery("(max-width: 639px)");
+  const [open, setOpen] = useState(false);
+  const [contentStyle, setContentStyle] = useState<CSSProperties>({});
+  const [openAbove, setOpenAbove] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const contentRef = useRef<HTMLDivElement | null>(null);
+  const contentId = useId();
+  const titleId = useId();
+  const closePopover = useCallback((restoreFocus = false) => {
+    setOpen(false);
+    if (restoreFocus) {
+      requestAnimationFrame(() => triggerRef.current?.focus({ preventScroll: true }));
+    }
+  }, []);
+
+  const updatePosition = useCallback(() => {
+    const trigger = triggerRef.current;
+    if (!trigger) return;
+
+    const rect = trigger.getBoundingClientRect();
+    const availableBelow = Math.max(window.innerHeight - rect.bottom - 16, 0);
+    const availableAbove = Math.max(rect.top - 16, 0);
+    const contentHeight = contentRef.current?.offsetHeight ?? 0;
+    const nextOpenAbove = availableBelow < contentHeight && availableAbove > availableBelow;
+    const availableHeight = Math.max(nextOpenAbove ? availableAbove : availableBelow, 0);
+
+    setOpenAbove(nextOpenAbove);
+    setContentStyle({
+      maxHeight: Math.min(448, availableHeight),
+    });
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+
+    updatePosition();
+    const frame = requestAnimationFrame(updatePosition);
+
+    return () => cancelAnimationFrame(frame);
+  }, [open, updatePosition]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (triggerRef.current?.contains(target) || contentRef.current?.contains(target)) return;
+      closePopover(false);
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      closePopover(true);
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown, true);
+    window.addEventListener("keydown", handleKeyDown, true);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown, true);
+      window.removeEventListener("keydown", handleKeyDown, true);
+    };
+  }, [closePopover, open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const frame = requestAnimationFrame(() => contentRef.current?.focus({ preventScroll: true }));
+    return () => cancelAnimationFrame(frame);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [open, updatePosition]);
+
+  if (isMobile) {
+    return (
+      <details className={cn("border-t border-stroke-soft-200 pt-3", className)}>
+        <summary className="cursor-pointer font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
+          {label}
+        </summary>
+        <div className="mt-3">{children}</div>
+      </details>
+    );
+  }
+
+  return (
+    <div className={cn("relative border-t border-stroke-soft-200 pt-3", className)}>
+      <button
+        ref={triggerRef}
+        type="button"
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-controls={contentId}
+        onClick={() => setOpen((value) => !value)}
+        className="inline-flex items-center gap-1.5 font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400 underline-offset-2 transition-colors hover:text-text-sub-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
+      >
+        <RiInformationLine className="size-3.5" aria-hidden />
+        {label}
+      </button>
+      {open ? (
+        <div
+          ref={contentRef}
+          id={contentId}
+          role="dialog"
+          aria-labelledby={titleId}
+          tabIndex={-1}
+          onKeyDown={(event) => {
+            if (event.key !== "Escape") return;
+            event.preventDefault();
+            event.stopPropagation();
+            closePopover(true);
+          }}
+          className={cn(
+            "absolute left-0 z-toast w-full max-w-full overflow-y-auto border border-stroke-soft-200 bg-bg-white-0 p-4 text-text-strong-950 shadow-[var(--shadow-editorial-panel)] sm:w-[22.5rem]",
+            openAbove ? "bottom-full mb-2" : "top-full mt-2"
+          )}
+          style={contentStyle}
+        >
+          <p id={titleId} className="sr-only">
+            {label}
+          </p>
+          {children}
+        </div>
+      ) : null}
+    </div>
+  );
 }
 
 /**

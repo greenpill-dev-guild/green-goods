@@ -35,6 +35,7 @@ import {
   CheckoutStageHeader,
   CheckoutSummary,
   CheckoutSurface,
+  CheckoutTransactionDetails,
   getAddressExplorerUrl,
   getEthereumNetworkLabel,
   getTxExplorerUrl,
@@ -50,7 +51,7 @@ const ETH_SYMBOL = "ETH";
 const WRAP_FLOW_GAS_UNITS = 500_000n;
 const VAULT_CHECKOUT_SLOW_WARNING_MS = 90_000;
 
-type VaultCheckoutLifecycleStep = "idle" | "approval" | "deposit";
+type VaultCheckoutLifecycleStep = "idle" | "approvalReset" | "approval" | "deposit";
 
 export interface VaultCheckoutGuardState {
   inputsLocked: boolean;
@@ -156,15 +157,53 @@ function VaultCheckoutDialogContent({
   const checkoutGuardRef = useRef<VaultCheckoutGuardState>(UNLOCKED_CHECKOUT_GUARD);
   const [walletLifecycleStep, setWalletLifecycleStep] =
     useState<VaultCheckoutLifecycleStep>("idle");
-  const handleWalletLifecycleStep = useCallback((step: VaultEndowLifecycleStep) => {
-    if (step === "approval" || step === "deposit") {
-      setWalletLifecycleStep(step);
-      return;
-    }
-    if (step === "success" || step === "error") {
-      setWalletLifecycleStep("idle");
-    }
+  const walletLifecycleStepRef = useRef<VaultCheckoutLifecycleStep>("idle");
+  const setTrackedWalletLifecycleStep = useCallback((step: VaultCheckoutLifecycleStep) => {
+    walletLifecycleStepRef.current = step;
+    setWalletLifecycleStep(step);
   }, []);
+  const [walletReadyForDepositKey, setWalletReadyForDepositKey] = useState<string | null>(null);
+  const [walletApprovalResetKey, setWalletApprovalResetKey] = useState<string | null>(null);
+  const walletLifecycleFlowKeyRef = useRef<string | null>(null);
+  const handleWalletLifecycleStep = useCallback(
+    (step: VaultEndowLifecycleStep) => {
+      const flowKey = walletLifecycleFlowKeyRef.current;
+      if (step === "approvalReset" || step === "approval" || step === "deposit") {
+        setTrackedWalletLifecycleStep(step);
+        if (step === "approvalReset" && flowKey) {
+          setWalletApprovalResetKey(flowKey);
+        }
+        if (step === "deposit" && flowKey) {
+          setWalletReadyForDepositKey(flowKey);
+        }
+        return;
+      }
+      if (step === "approvalComplete") {
+        setTrackedWalletLifecycleStep("deposit");
+        if (flowKey) {
+          setWalletReadyForDepositKey(flowKey);
+        }
+        return;
+      }
+      if (step === "success") {
+        setTrackedWalletLifecycleStep("idle");
+        setWalletReadyForDepositKey(null);
+        setWalletApprovalResetKey(null);
+        walletLifecycleFlowKeyRef.current = null;
+        return;
+      }
+      if (step === "error") {
+        const failedStep = walletLifecycleStepRef.current;
+        // Preserve a deposit-ready retry after approval has already completed.
+        // The amount/campaign/wallet reset effect below clears these flow-scoped keys.
+        setTrackedWalletLifecycleStep("idle");
+        if (failedStep === "approvalReset") {
+          setWalletApprovalResetKey(null);
+        }
+      }
+    },
+    [setTrackedWalletLifecycleStep]
+  );
 
   const walletEndow = useOctantVaultWalletEndow({
     errorMode: "inline",
@@ -252,6 +291,7 @@ function VaultCheckoutDialogContent({
   const wrapFlowKey = `${walletFlowKey}:${assetAddress ?? ""}`;
   const walletFlowKeyRef = useRef(walletFlowKey);
   walletFlowKeyRef.current = walletFlowKey;
+  const hasWalletDepositReadyForFlow = walletReadyForDepositKey === walletFlowKey;
   const [wrapCompletedKey, setWrapCompletedKey] = useState<string | null>(null);
   const hasCompletedWrapForAmount = wrapCompletedKey === wrapFlowKey;
   const assetBalance = walletBalances.assetBalance;
@@ -321,7 +361,10 @@ function VaultCheckoutDialogContent({
     setSuccessTxHash(null);
     setSlow(false);
     setPendingSubmissionKey(null);
-    setWalletLifecycleStep("idle");
+    setTrackedWalletLifecycleStep("idle");
+    setWalletReadyForDepositKey(null);
+    setWalletApprovalResetKey(null);
+    walletLifecycleFlowKeyRef.current = null;
     setWrapCompletedKey(null);
     clearWalletConnectFallback();
     updateWalletConnectRequested(false);
@@ -334,6 +377,7 @@ function VaultCheckoutDialogContent({
     clearWalletConnectFallback,
     resetWalletEndow,
     resetWrapEthToWeth,
+    setTrackedWalletLifecycleStep,
     updateWalletConnectRequested,
   ]);
 
@@ -430,13 +474,13 @@ function VaultCheckoutDialogContent({
         {
           onError: () => {
             if (walletFlowKeyRef.current === walletFlowKey) {
-              setWalletLifecycleStep("idle");
+              setTrackedWalletLifecycleStep("idle");
               setWrapCompletedKey(null);
             }
           },
           onSuccess: () => {
             if (walletFlowKeyRef.current === walletFlowKey) {
-              setWalletLifecycleStep("idle");
+              setTrackedWalletLifecycleStep("idle");
               setWrapCompletedKey(submissionKey);
               void walletBalances.refetch();
             }
@@ -456,19 +500,23 @@ function VaultCheckoutDialogContent({
 
     const submissionKey = walletFlowKey;
     setPendingSubmissionKey(submissionKey);
-    setWalletLifecycleStep("approval");
+    walletLifecycleFlowKeyRef.current = submissionKey;
+    setTrackedWalletLifecycleStep(hasWalletDepositReadyForFlow ? "deposit" : "approval");
     walletEndow.mutate(prepared.transaction, {
       onError: () => {
         setPendingSubmissionKey((current) => (current === submissionKey ? null : current));
         if (walletFlowKeyRef.current === submissionKey) {
-          setWalletLifecycleStep("idle");
+          setTrackedWalletLifecycleStep("idle");
           setStatus("idle");
         }
       },
       onSuccess: (txHash) => {
         setPendingSubmissionKey((current) => (current === submissionKey ? null : current));
         if (walletFlowKeyRef.current === submissionKey) {
-          setWalletLifecycleStep("idle");
+          setTrackedWalletLifecycleStep("idle");
+          setWalletReadyForDepositKey(null);
+          setWalletApprovalResetKey(null);
+          walletLifecycleFlowKeyRef.current = null;
           setSuccessTxHash(typeof txHash === "string" ? txHash : null);
           setStatus("success");
         }
@@ -481,6 +529,7 @@ function VaultCheckoutDialogContent({
     conversionUnavailable,
     effectiveAmount,
     hasReadyAmount,
+    hasWalletDepositReadyForFlow,
     insufficientWethBlocksSubmit,
     loginWithWallet,
     localForkBlocksWalletEndow,
@@ -488,6 +537,7 @@ function VaultCheckoutDialogContent({
     scheduleWalletConnectFallback,
     shouldWrapBeforeDeposit,
     status,
+    setTrackedWalletLifecycleStep,
     transactionState.walletEndowEnabled,
     updateWalletConnectRequested,
     walletBalanceDecisionPending,
@@ -508,7 +558,7 @@ function VaultCheckoutDialogContent({
       ? formatMessage(
           {
             id: "public.vaults.checkout.review.settlement",
-            defaultMessage: "Settles into the Octant vault as {amount} {symbol}",
+            defaultMessage: "Prepared as {amount} {symbol} for the campaign vault",
           },
           { amount: formattedSettlementAmount, symbol: assetDisplay.settlementSymbol }
         )
@@ -516,12 +566,8 @@ function VaultCheckoutDialogContent({
   const summaryItems = [
     {
       label: formatMessage({
-        id:
-          assetDisplay.donorSymbol === ETH_SYMBOL
-            ? "public.vaults.checkout.review.ethContribution"
-            : "public.vaults.checkout.review.amount",
-        defaultMessage:
-          assetDisplay.donorSymbol === ETH_SYMBOL ? "ETH contribution" : "Donation amount",
+        id: "public.vaults.checkout.review.amount",
+        defaultMessage: "Endowment amount",
       }),
       value: (
         <span className="inline-flex flex-col gap-0.5">
@@ -578,7 +624,7 @@ function VaultCheckoutDialogContent({
           {
             id: "public.vaults.walletEndow.balances.shortfall",
             defaultMessage:
-              "This wallet is short {weth} WETH. Add WETH, or add at least {eth} ETH to wrap here.",
+              "This wallet needs {weth} more WETH, or at least {eth} ETH to prepare this endowment.",
           },
           { weth: formattedWrapAmount, eth: formattedMissingEth }
         )
@@ -598,7 +644,7 @@ function VaultCheckoutDialogContent({
           {
             id: "public.vaults.walletEndow.balances.wrapPrompt",
             defaultMessage:
-              "Your wallet has enough ETH. Wrap {amount} ETH into WETH before confirming the vault deposit.",
+              "Your wallet has enough ETH. Wrap {amount} ETH into WETH to prepare this endowment.",
           },
           { amount: formattedWrapAmount }
         ),
@@ -622,7 +668,7 @@ function VaultCheckoutDialogContent({
               tone: "primary" as const,
               message: formatMessage({
                 id: "public.vaults.walletEndow.balances.wrapComplete",
-                defaultMessage: "ETH was wrapped. Continue to confirm the WETH vault deposit.",
+                defaultMessage: "ETH was wrapped. Continue to confirm this endowment.",
               }),
             }
           : null;
@@ -631,11 +677,31 @@ function VaultCheckoutDialogContent({
     campaign.vault?.vaultAddress
   );
   const tokenExplorerUrl = getAddressExplorerUrl(campaign.vault?.explorerLink, assetAddress);
-  const walletTransactionTotal =
-    wrapEthToWeth.isPending || shouldWrapBeforeDeposit || hasCompletedWrapForAmount ? 3 : 2;
-  const walletApprovalStep = walletTransactionTotal === 3 ? 2 : 1;
-  const walletDepositStep = walletTransactionTotal === 3 ? 3 : 2;
-  const wrapActionLabel = getVaultCheckoutTransactionLabel(formatMessage, "wrap", 1, 3);
+  const walletHasWrapStep =
+    wrapEthToWeth.isPending || shouldWrapBeforeDeposit || hasCompletedWrapForAmount;
+  const walletHasApprovalResetStep = walletApprovalResetKey === walletFlowKey;
+  const walletTransactionTotal = (walletHasWrapStep ? 3 : 2) + (walletHasApprovalResetStep ? 1 : 0);
+  const walletApprovalResetStep = walletHasWrapStep ? 2 : 1;
+  const walletApprovalStep = walletHasWrapStep
+    ? walletHasApprovalResetStep
+      ? 3
+      : 2
+    : walletHasApprovalResetStep
+      ? 2
+      : 1;
+  const walletDepositStep = walletTransactionTotal;
+  const wrapActionLabel = getVaultCheckoutTransactionLabel(
+    formatMessage,
+    "wrap",
+    1,
+    walletTransactionTotal
+  );
+  const approvalResetActionLabel = getVaultCheckoutTransactionLabel(
+    formatMessage,
+    "approvalReset",
+    walletApprovalResetStep,
+    walletTransactionTotal
+  );
   const approvalActionLabel = getVaultCheckoutTransactionLabel(
     formatMessage,
     "approval",
@@ -656,7 +722,16 @@ function VaultCheckoutDialogContent({
   if (wrapEthToWeth.isPending) {
     actionLabel = wrapActionLabel;
   } else if (walletBusy) {
-    actionLabel = walletLifecycleStep === "deposit" ? depositActionLabel : approvalActionLabel;
+    actionLabel =
+      walletLifecycleStep === "deposit"
+        ? depositActionLabel
+        : walletLifecycleStep === "approvalReset"
+          ? approvalResetActionLabel
+          : walletLifecycleStep === "approval"
+            ? approvalActionLabel
+            : hasWalletDepositReadyForFlow
+              ? depositActionLabel
+              : approvalActionLabel;
   } else if (walletBalanceDecisionPending) {
     actionLabel = formatMessage({
       id: "public.vaults.walletEndow.balances.loading",
@@ -675,7 +750,7 @@ function VaultCheckoutDialogContent({
   } else if (hasReadyAmount && primaryWalletAddress && shouldWrapBeforeDeposit) {
     actionLabel = wrapActionLabel;
   } else if (hasReadyAmount && primaryWalletAddress) {
-    actionLabel = approvalActionLabel;
+    actionLabel = hasWalletDepositReadyForFlow ? depositActionLabel : approvalActionLabel;
   } else if (hasReadyAmount) {
     actionLabel = formatMessage({
       id: "public.vaults.walletEndow.connect",
@@ -702,7 +777,7 @@ function VaultCheckoutDialogContent({
         description={formatMessage({
           id: "public.vaults.checkout.description",
           defaultMessage:
-            "Enter an amount, review the Octant vault context, then connect the wallet that should receive these vault shares.",
+            "Choose an endowment amount, connect your wallet, and confirm when you're ready.",
         })}
         preventClose={checkoutGuard.closeLocked}
         hideCloseButton={checkoutGuard.closeLocked}
@@ -744,15 +819,14 @@ function VaultCheckoutDialogContent({
               })}
               description={formatMessage({
                 id: "public.vaults.walletEndow.done.description",
-                defaultMessage: "Your wallet now holds vault shares for this campaign.",
+                defaultMessage: "Your endowment was submitted for this campaign.",
               })}
             />
             <CheckoutSummary items={summaryItems} />
             <p className="rounded-none bg-primary-action/10 p-4 text-sm leading-[1.55] text-primary-base">
               {formatMessage({
                 id: "public.vaults.walletEndow.success",
-                defaultMessage:
-                  "Endowment submitted. Manage these WETH vault shares any time from /vaults.",
+                defaultMessage: "You can review or redeem this endowment from Manage Endowments.",
               })}
             </p>
             {explorerUrl ? (
@@ -783,7 +857,7 @@ function VaultCheckoutDialogContent({
       description={formatMessage({
         id: "public.vaults.checkout.description",
         defaultMessage:
-          "Enter an amount, review the Octant vault context, then connect the wallet that should receive these vault shares.",
+          "Choose an endowment amount, connect your wallet, and confirm when you're ready.",
       })}
       preventClose={checkoutGuard.closeLocked}
       hideCloseButton={checkoutGuard.closeLocked}
@@ -808,12 +882,12 @@ function VaultCheckoutDialogContent({
             })}
             title={formatMessage({
               id: "public.vaults.walletEndow.stageTitle",
-              defaultMessage: "Review wallet endowment",
+              defaultMessage: "Review your endowment",
             })}
             description={formatMessage({
               id: "public.vaults.walletEndow.stageDescription",
               defaultMessage:
-                "Enter an amount, review the Octant vault context, then connect the wallet that should receive these vault shares.",
+                "Choose an endowment amount, connect your wallet, and confirm when you're ready.",
             })}
           />
 
@@ -856,12 +930,10 @@ function VaultCheckoutDialogContent({
                   formatMessage(
                     {
                       id: "public.vaults.walletEndow.amountHelp",
-                      defaultMessage:
-                        "We'll estimate the {donorSymbol} needed and send it into the Octant vault as {settlementSymbol}.",
+                      defaultMessage: "We'll estimate the {donorSymbol} needed for this endowment.",
                     },
                     {
                       donorSymbol: assetDisplay.donorSymbol,
-                      settlementSymbol: assetDisplay.settlementSymbol,
                     }
                   )}
               </p>
@@ -895,7 +967,7 @@ function VaultCheckoutDialogContent({
                   <dt className={CHECKOUT_FIELD_LABEL}>
                     {formatMessage({
                       id: "public.vaults.checkout.review.route",
-                      defaultMessage: "Vault destination",
+                      defaultMessage: "Campaign destination",
                     })}
                   </dt>
                   <dd className="mt-1 text-text-sub-600">
@@ -932,7 +1004,7 @@ function VaultCheckoutDialogContent({
                   >
                     {formatMessage({
                       id: "public.vaults.walletEndow.balances.title",
-                      defaultMessage: "Ethereum Mainnet balances",
+                      defaultMessage: "Wallet balances",
                     })}
                   </h4>
                   {walletBalances.isLoading ? (
@@ -1002,14 +1074,13 @@ function VaultCheckoutDialogContent({
             </div>
           ) : null}
 
-          <details className="border-t border-stroke-soft-200 pt-3">
-            <summary className="cursor-pointer font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
-              {formatMessage({
-                id: "public.vaults.checkout.technicalDetails",
-                defaultMessage: "Technical WETH details",
-              })}
-            </summary>
-            <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+          <CheckoutTransactionDetails
+            label={formatMessage({
+              id: "public.vaults.checkout.technicalDetails",
+              defaultMessage: "Transaction details",
+            })}
+          >
+            <dl className="grid gap-3 text-sm sm:grid-cols-2">
               <div>
                 <dt className="font-medium text-text-strong-950">
                   {formatMessage({
@@ -1067,7 +1138,7 @@ function VaultCheckoutDialogContent({
                 </dd>
               </div>
             </dl>
-          </details>
+          </CheckoutTransactionDetails>
 
           {slow ? (
             <div className="flex flex-col gap-2 rounded-none bg-bg-weak-50 p-4 text-sm leading-[1.55] text-text-sub-600">
@@ -1075,7 +1146,7 @@ function VaultCheckoutDialogContent({
                 {formatMessage({
                   id: "public.vaults.checkout.slow",
                   defaultMessage:
-                    "Still waiting for confirmation. Mainnet transactions can take a little longer; keep this window open or come back through Manage Endowments once it confirms.",
+                    "Confirmation is taking a little longer. Keep this open to follow the endowment as it finishes.",
                 })}
               </p>
             </div>
@@ -1087,12 +1158,12 @@ function VaultCheckoutDialogContent({
                 ? formatMessage({
                     id: "public.vaults.walletEndow.insufficientWeth",
                     defaultMessage:
-                      "This wallet doesn't have enough WETH for this endowment. Wrap ETH to WETH first, then try again.",
+                      "This wallet needs more WETH for this endowment. Wrap ETH to WETH first, then try again.",
                   })
                 : formatMessage({
                     id: "public.vaults.walletEndow.error",
                     defaultMessage:
-                      "Wallet Endow could not be submitted. Review the wallet error and retry.",
+                      "We couldn't submit this endowment. Review the wallet message and try again.",
                   })}
             </p>
           ) : null}

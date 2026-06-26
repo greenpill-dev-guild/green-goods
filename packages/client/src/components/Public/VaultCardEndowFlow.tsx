@@ -40,6 +40,7 @@ import {
   CheckoutStageHeader,
   CheckoutScreen,
   CheckoutSummary,
+  CheckoutTransactionDetails,
   getAddressExplorerUrl,
   getEthereumNetworkLabel,
   getTxExplorerUrl,
@@ -694,7 +695,7 @@ function CardEndowProviderContent({
         formatMessage({
           id: "public.vaults.cardEndow.autoDepositFailed",
           defaultMessage:
-            "The vault deposit could not finish automatically. Use the button below to finish the deposit.",
+            "We couldn't finish the endowment automatically. Use the button below to finish it.",
         })
       );
     }
@@ -884,7 +885,7 @@ function CardEndowProviderContent({
           {
             label: formatMessage({
               id: "public.vaults.cardEndow.positionHolder",
-              defaultMessage: "Vault shares",
+              defaultMessage: "Endowment",
             }),
             value: formatMessage({
               id: "public.vaults.cardEndow.positionHolderValue",
@@ -917,18 +918,17 @@ function CardEndowProviderContent({
       <p className="text-sm leading-[1.6] text-text-sub-600">
         {formatMessage({
           id: "public.vaults.cardEndow.authorizationOrder",
-          defaultMessage:
-            "Your card funding completes the vault endowment for the verified email wallet after checkout succeeds.",
+          defaultMessage: "Your card payment can finish this endowment after checkout succeeds.",
         })}
       </p>
-      <details className="border-t border-stroke-soft-200 pt-4">
-        <summary className="cursor-pointer font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
-          {formatMessage({
-            id: "public.vaults.checkout.technicalDetails",
-            defaultMessage: "Technical WETH details",
-          })}
-        </summary>
-        <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+      <CheckoutTransactionDetails
+        className="pt-4"
+        label={formatMessage({
+          id: "public.vaults.checkout.technicalDetails",
+          defaultMessage: "Transaction details",
+        })}
+      >
+        <dl className="grid gap-3 text-sm sm:grid-cols-2">
           <div>
             <dt className="font-medium text-text-strong-950">
               {formatMessage({
@@ -997,7 +997,7 @@ function CardEndowProviderContent({
             </dd>
           </div>
         </dl>
-      </details>
+      </CheckoutTransactionDetails>
     </div>
   ) : null;
 
@@ -1071,11 +1071,11 @@ function CardEndowProviderContent({
           {cardFundingStatus === "funded"
             ? formatMessage({
                 id: "public.vaults.cardEndow.status.paymentComplete",
-                defaultMessage: "Card funding complete",
+                defaultMessage: "Payment confirmed",
               })
             : formatMessage({
                 id: "public.vaults.cardEndow.status.paymentPending",
-                defaultMessage: "Pending card funding",
+                defaultMessage: "Waiting for payment",
               })}
         </span>
       </div>
@@ -1083,7 +1083,7 @@ function CardEndowProviderContent({
         <span className="font-medium text-text-strong-950">
           {formatMessage({
             id: "public.vaults.cardEndow.status.deposit",
-            defaultMessage: "Vault deposit",
+            defaultMessage: "Endowment",
           })}
         </span>
         <span className="text-right text-text-sub-600">
@@ -1095,12 +1095,12 @@ function CardEndowProviderContent({
             : batchStatus === "pending" || depositStatus === "pending"
               ? formatMessage({
                   id: "public.vaults.cardEndow.status.depositing",
-                  defaultMessage: "Depositing into the vault",
+                  defaultMessage: "Finishing endowment",
                 })
               : cardFundingStatus === "funded" && fallbackAvailable
                 ? formatMessage({
                     id: "public.vaults.cardEndow.status.depositFallback",
-                    defaultMessage: "Fallback ready",
+                    defaultMessage: "Ready to finish",
                   })
                 : formatMessage({
                     id: "public.vaults.cardEndow.status.depositWaiting",
@@ -1112,23 +1112,23 @@ function CardEndowProviderContent({
         <span className="font-medium text-text-strong-950">
           {formatMessage({
             id: "public.vaults.cardEndow.status.shares",
-            defaultMessage: "Vault shares",
+            defaultMessage: "Confirmation",
           })}
         </span>
         <span className="text-right text-text-sub-600">
           {hasPositiveShares
             ? formatMessage({
                 id: "public.vaults.cardEndow.status.sharesConfirmed",
-                defaultMessage: "Shares confirmed",
+                defaultMessage: "Confirmed",
               })
             : depositStatus === "deposited"
               ? formatMessage({
                   id: "public.vaults.cardEndow.status.sharesPending",
-                  defaultMessage: "Confirming shares",
+                  defaultMessage: "Confirming",
                 })
               : formatMessage({
                   id: "public.vaults.cardEndow.status.sharesWaiting",
-                  defaultMessage: "Waiting for deposit",
+                  defaultMessage: "Waiting to finish",
                 })}
         </span>
       </div>
@@ -1152,7 +1152,7 @@ function CardEndowProviderContent({
                 })
               : formatMessage({
                   id: "public.vaults.cardEndow.status.receiptWaiting",
-                  defaultMessage: "Waiting for vault shares",
+                  defaultMessage: "Waiting for confirmation",
                 })}
         </span>
       </div>
@@ -1193,12 +1193,12 @@ function CardEndowProviderContent({
             })}
             title={formatMessage({
               id: "public.vaults.cardEndow.stage.recover.title",
-              defaultMessage: "Verify email wallet",
+              defaultMessage: "Verify your email",
             })}
             description={formatMessage({
               id: "public.vaults.cardEndow.stage.recover.description",
               defaultMessage:
-                "Card funding completes the vault endowment from a secure email wallet.",
+                "We'll use your email to create a secure checkout wallet for this endowment.",
             })}
           />
           <CheckoutSummary items={cardSummaryItems} />
@@ -1211,7 +1211,7 @@ function CardEndowProviderContent({
               {formatMessage({
                 id: "public.vaults.cardEndow.emailHelp",
                 defaultMessage:
-                  "Card payments fund a secure email wallet first. Verify the email that should own these vault shares.",
+                  "Enter the email you want linked to this endowment. You'll use it later to manage or redeem it.",
               })}
             </p>
             <input
@@ -1287,7 +1287,7 @@ function CardEndowProviderContent({
             {formatMessage({
               id: "public.vaults.cardEndow.planBlocked",
               defaultMessage:
-                "Card checkout is paused. Confirm the campaign, amount, and verified email wallet before continuing.",
+                "Card checkout is paused. Confirm the campaign, amount, and verified email before continuing.",
             })}
           </p>
           {errorNotes}
@@ -1332,12 +1332,12 @@ function CardEndowProviderContent({
             })}
             title={formatMessage({
               id: "public.vaults.cardEndow.stage.settle.title",
-              defaultMessage: "Vault deposit and proof",
+              defaultMessage: "Finish endowment",
             })}
             description={formatMessage({
               id: "public.vaults.cardEndow.stage.settle.description",
               defaultMessage:
-                "Card funding arrived in your verified email wallet. The vault deposit completes the endowment and confirms your vault shares.",
+                "Your card payment arrived. Now we'll finish the endowment and confirm it for this campaign.",
             })}
           />
           <CheckoutSummary items={cardSummaryItems} />
@@ -1347,7 +1347,7 @@ function CardEndowProviderContent({
               {formatMessage({
                 id: "public.vaults.checkout.slow",
                 defaultMessage:
-                  "Still waiting for confirmation. Mainnet transactions can take a little longer; keep this window open or come back through Manage Endowments once it confirms.",
+                  "Confirmation is taking a little longer. Keep this open to follow the endowment as it finishes.",
               })}
             </p>
           ) : null}
@@ -1372,7 +1372,7 @@ function CardEndowProviderContent({
             >
               {formatMessage({
                 id: "public.vaults.cardEndow.readShares",
-                defaultMessage: "Check vault shares",
+                defaultMessage: "Check confirmation",
               })}
             </button>
           )}
@@ -1410,7 +1410,7 @@ function CardEndowProviderContent({
           })}
           description={formatMessage({
             id: "public.vaults.cardEndow.stage.done.description",
-            defaultMessage: "Your verified email wallet now has vault shares for this campaign.",
+            defaultMessage: "Your card endowment is confirmed for this campaign.",
           })}
         />
         <CheckoutSummary items={cardSummaryItems} />
@@ -1421,15 +1421,14 @@ function CardEndowProviderContent({
               {formatMessage({
                 id: "public.vaults.cardEndow.doneLead",
                 defaultMessage:
-                  "Endowment complete. Your verified email wallet now holds vault shares for this campaign.",
+                  "Endowment complete. You can manage or redeem it from Manage Endowments.",
               })}
             </p>
             <p className="rounded-none bg-primary-action/10 p-4 text-sm leading-[1.55] text-primary-base">
               {formatMessage(
                 {
                   id: "public.vaults.cardEndow.positiveShares",
-                  defaultMessage:
-                    "Vault shares confirmed: {shares} shares are visible for your verified email wallet.",
+                  defaultMessage: "Endowment confirmed.",
                 },
                 { shares: shareBalance?.toString() ?? "0" }
               )}
@@ -1438,7 +1437,7 @@ function CardEndowProviderContent({
               <p className="rounded-none bg-bg-weak-50 p-4 text-sm leading-[1.55] text-text-sub-600">
                 {formatMessage({
                   id: "public.vaults.cardEndow.proofSubmitting",
-                  defaultMessage: "Recording funding proof with the Green Goods agent...",
+                  defaultMessage: "Recording receipt...",
                 })}
               </p>
             ) : null}
@@ -1446,7 +1445,7 @@ function CardEndowProviderContent({
               <p className="rounded-none bg-primary-action/10 p-4 text-sm leading-[1.55] text-primary-base">
                 {formatMessage({
                   id: "public.vaults.cardEndow.proofRecorded",
-                  defaultMessage: "Receipt recorded for your vault contribution.",
+                  defaultMessage: "Receipt recorded.",
                 })}
               </p>
             ) : null}
@@ -1455,7 +1454,7 @@ function CardEndowProviderContent({
                 {proofError ??
                   formatMessage({
                     id: "public.vaults.cardEndow.proofFailed",
-                    defaultMessage: "Funding proof could not be recorded.",
+                    defaultMessage: "Receipt could not be recorded.",
                   })}
               </p>
             ) : null}
@@ -1464,14 +1463,15 @@ function CardEndowProviderContent({
           <p className="rounded-none bg-error-lighter/30 p-4 text-sm leading-[1.55] text-error-base">
             {formatMessage({
               id: "public.vaults.cardEndow.noShares",
-              defaultMessage: "We could not confirm vault shares yet.",
+              defaultMessage:
+                "We couldn't confirm this endowment yet. Refresh or check again in a moment.",
             })}
           </p>
         ) : (
           <p className="rounded-none bg-bg-weak-50 p-4 text-sm leading-[1.55] text-text-sub-600">
             {formatMessage({
               id: "public.vaults.cardEndow.verifyingShares",
-              defaultMessage: "Confirming your vault shares...",
+              defaultMessage: "Confirming your endowment...",
             })}
           </p>
         )}

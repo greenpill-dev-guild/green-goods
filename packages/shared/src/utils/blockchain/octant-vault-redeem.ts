@@ -28,8 +28,7 @@ export const OCTANT_VAULT_REDEEM_CALL_SHAPES = [
   },
   {
     variant: "tokenized-strategy",
-    maxRedeemMethod:
-      "function maxRedeem(address owner, uint256 maxLoss) view returns (uint256)",
+    maxRedeemMethod: "function maxRedeem(address owner, uint256 maxLoss) view returns (uint256)",
     maxRedeemArgs: (owner: Address, maxLossBps: bigint) => [owner, maxLossBps] as const,
     redeemMethod:
       "function redeem(uint256 shares, address receiver, address owner, uint256 maxLoss) returns (uint256)",

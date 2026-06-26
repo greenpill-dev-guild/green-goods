@@ -33,7 +33,6 @@ import {
 import { inAppWallet, preAuthenticate } from "thirdweb/wallets/in-app";
 import { EditorialGhostButton } from "./atoms";
 import { PositionsList, VaultPositionRowView } from "./VaultManagePositionsPanel";
-import { getVaultCheckoutTransactionLabel } from "./vaultCheckoutShell";
 
 function getThirdwebClientId(): string {
   return import.meta.env.VITE_THIRDWEB_CLIENT_ID?.trim() ?? "";
@@ -103,7 +102,7 @@ export default function VaultCardWalletManage({ owners, onEndow }: VaultCardWall
       <p className="rounded-none bg-error-lighter/30 p-4 text-sm leading-[1.55] text-error-base">
         {formatMessage({
           id: "public.vaults.manage.card.missingClientId",
-          defaultMessage: "Card wallet management is not available on this domain yet.",
+          defaultMessage: "Card wallet management is not available here yet.",
         })}
       </p>
     );
@@ -186,7 +185,7 @@ function CardOwnerPositions({
     <p className="rounded-none bg-bg-weak-50 p-3 text-xs leading-[1.5] text-text-sub-600">
       {formatMessage({
         id: "public.vaults.manage.card.readOnly",
-        defaultMessage: "Read-only — restore the email wallet above to redeem shares.",
+        defaultMessage: "View only. Restore your email recovery wallet to redeem.",
       })}
     </p>
   );
@@ -200,7 +199,7 @@ function CardOwnerPositions({
         <p className="rounded-none border border-stroke-soft-200 bg-bg-white-0 p-4 text-sm leading-[1.55] text-text-sub-600">
           {formatMessage({
             id: "public.vaults.manage.card.checking",
-            defaultMessage: "Checking your card wallet session…",
+            defaultMessage: "Checking your recovery session…",
           })}
         </p>
       ) : (
@@ -237,12 +236,15 @@ function CardOwnerPositions({
     <PositionsList
       positions={positions}
       ownerLabel={formatMessage(
-        { id: "public.vaults.manage.card.ownerLabel", defaultMessage: "Card wallet {address}" },
+        {
+          id: "public.vaults.manage.card.ownerLabel",
+          defaultMessage: "Email recovery wallet {address}",
+        },
         { address: truncateAddress(owner) }
       )}
       emptyTitle={formatMessage({
         id: "public.vaults.manage.empty.card.title",
-        defaultMessage: "No vault shares for this card wallet yet",
+        defaultMessage: "No endowments for this recovery wallet yet",
       })}
       onEndow={onEndow}
       beforeList={beforeList}
@@ -317,7 +319,7 @@ function CardVaultPositionRow({
             throw new Error(
               formatMessage({
                 id: "public.vaults.manage.withdraw.exceeds",
-                defaultMessage: "Share amount is higher than the currently redeemable shares.",
+                defaultMessage: "Enter an amount no higher than what is redeemable now.",
               })
             );
           }
@@ -336,7 +338,7 @@ function CardVaultPositionRow({
               : formatMessage({
                   id: "public.vaults.manage.withdraw.error",
                   defaultMessage:
-                    "Redemption could not be completed. Review the wallet error and retry.",
+                    "Redemption could not be completed. Review the wallet message and try again.",
                 })
           );
           throw caught;
@@ -367,7 +369,7 @@ function PendingFundedDepositCard({
   const { formatMessage } = useIntl();
   const sendAndConfirm = useSendAndConfirmTransaction({ payModal: false });
   const [busy, setBusy] = useState(false);
-  const [pendingStep, setPendingStep] = useState<"idle" | "approval" | "deposit">("idle");
+  const [, setPendingStep] = useState<"idle" | "approval" | "deposit">("idle");
   const [approvalComplete, setApprovalComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const campaign = useMemo(
@@ -423,7 +425,7 @@ function PendingFundedDepositCard({
           formatMessage({
             id: "public.vaults.manage.card.pendingSharesUnconfirmed",
             defaultMessage:
-              "The deposit was sent, but vault shares are not visible yet. Refresh in a moment.",
+              "The transaction was sent, but confirmation is not visible yet. Refresh in a moment.",
           })
         );
         return;
@@ -445,7 +447,7 @@ function PendingFundedDepositCard({
           : formatMessage({
               id: "public.vaults.manage.card.pendingFinishError",
               defaultMessage:
-                "The vault deposit could not be completed. Review the wallet error and retry.",
+                "The endowment could not be completed. Review the wallet message and try again.",
             })
       );
     } finally {
@@ -468,10 +470,15 @@ function PendingFundedDepositCard({
     sessionLive,
     tokenAddress,
   ]);
-  const pendingFinishLabel =
-    pendingStep === "deposit" || (!busy && approvalComplete)
-      ? getVaultCheckoutTransactionLabel(formatMessage, "deposit", 2, 2)
-      : getVaultCheckoutTransactionLabel(formatMessage, "approval", 1, 2);
+  const pendingFinishLabel = busy
+    ? formatMessage({
+        id: "public.vaults.manage.card.pendingFinishPending",
+        defaultMessage: "Finishing endowment...",
+      })
+    : formatMessage({
+        id: "public.vaults.manage.card.pendingFinishCta",
+        defaultMessage: "Finish endowment",
+      });
 
   return (
     <section
@@ -481,7 +488,7 @@ function PendingFundedDepositCard({
       <h3 className="font-serif text-lg font-normal text-text-strong-950">
         {formatMessage({
           id: "public.vaults.manage.card.pendingTitle",
-          defaultMessage: "Finish your vault deposit",
+          defaultMessage: "Finish your endowment",
         })}
       </h3>
       <p className="mt-2 text-sm leading-[1.55] text-text-sub-600">
@@ -490,7 +497,7 @@ function PendingFundedDepositCard({
               {
                 id: "public.vaults.manage.card.pendingBody",
                 defaultMessage:
-                  "Your card funding of {amount} for {campaign} arrived in this wallet, but the vault deposit hasn't finished yet. Finish the deposit to receive your vault shares.",
+                  "Your card payment of {amount} for {campaign} arrived, but the endowment is not finished yet. Finish it here to confirm your campaign support.",
               },
               { amount: amountLabel, campaign: displayName }
             )
@@ -498,7 +505,7 @@ function PendingFundedDepositCard({
               {
                 id: "public.vaults.manage.card.pendingBodyNoAmount",
                 defaultMessage:
-                  "Card funding for {campaign} arrived in this wallet, but the vault deposit hasn't finished yet.",
+                  "Your card payment for {campaign} arrived, but the endowment is not finished yet.",
               },
               { campaign: displayName }
             )}
@@ -516,7 +523,7 @@ function PendingFundedDepositCard({
         <p className="mt-3 rounded-none bg-bg-weak-50 p-3 text-xs leading-[1.5] text-text-sub-600">
           {formatMessage({
             id: "public.vaults.manage.card.pendingRestoreNote",
-            defaultMessage: "Restore the email wallet above to finish this deposit.",
+            defaultMessage: "Restore your email recovery wallet above to finish this endowment.",
           })}
         </p>
       )}
@@ -588,7 +595,7 @@ function RestoreEmailWallet({
               formatMessage({
                 id: "public.vaults.manage.card.restoreMismatch",
                 defaultMessage:
-                  "That email wallet doesn't match these vault shares. Use the email that owns them.",
+                  "That email does not match this endowment. Use the email from the original card checkout.",
               })
             );
           }
@@ -606,14 +613,14 @@ function RestoreEmailWallet({
       <h3 className="font-serif text-lg font-normal text-text-strong-950">
         {formatMessage({
           id: "public.vaults.manage.card.restoreTitle",
-          defaultMessage: "Restore email wallet to redeem",
+          defaultMessage: "Restore access to redeem",
         })}
       </h3>
       <p className="mt-2 text-sm leading-[1.55] text-text-sub-600">
         {formatMessage({
           id: "public.vaults.manage.card.restoreBody",
           defaultMessage:
-            "Viewing is read-only. To redeem shares, restore the email wallet that owns them.",
+            "To redeem this endowment, restore the email you used during card checkout.",
         })}
       </p>
 
@@ -695,7 +702,7 @@ function RestoreEmailWallet({
           >
             {formatMessage({
               id: "public.vaults.manage.card.verify",
-              defaultMessage: "Restore email wallet",
+              defaultMessage: "Restore access",
             })}
           </EditorialGhostButton>
         </form>

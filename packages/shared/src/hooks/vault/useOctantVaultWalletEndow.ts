@@ -192,9 +192,9 @@ export function useOctantVaultWalletEndow(options: VaultMutationOptions = {}) {
       }
 
       if (allowance < transaction.amount) {
-        options.onLifecycleStep?.("approval");
         try {
           if (allowance > 0n) {
+            options.onLifecycleStep?.("approvalReset");
             await sender.sendContractCall({
               address: transaction.assetAddress,
               abi: ERC20_ALLOWANCE_ABI,
@@ -204,6 +204,7 @@ export function useOctantVaultWalletEndow(options: VaultMutationOptions = {}) {
             });
           }
 
+          options.onLifecycleStep?.("approval");
           await sender.sendContractCall({
             address: transaction.assetAddress,
             abi: ERC20_ALLOWANCE_ABI,
@@ -233,6 +234,8 @@ export function useOctantVaultWalletEndow(options: VaultMutationOptions = {}) {
           );
         }
       }
+
+      options.onLifecycleStep?.("approvalComplete");
 
       const freshPreview = await readContract(getWagmiConfig(), {
         address: transaction.vaultAddress,

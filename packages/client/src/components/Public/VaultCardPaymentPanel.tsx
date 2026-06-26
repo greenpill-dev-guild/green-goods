@@ -22,6 +22,7 @@ import {
   CheckoutScreen,
   CheckoutStageHeader,
   CheckoutSummary,
+  CheckoutTransactionDetails,
   type CheckoutSummaryItem,
 } from "./vaultCheckoutShell";
 
@@ -153,13 +154,12 @@ export default function VaultCardPaymentPanel({
   });
   const quoteMismatchMessage = formatMessage({
     id: "public.vaults.cardEndow.panel.quoteMismatch",
-    defaultMessage:
-      "The checkout quote didn't match this endowment, so no card payment was started. Please try again.",
+    defaultMessage: "This checkout session no longer matches your endowment. Start checkout again.",
   });
   const sessionMismatchMessage = formatMessage({
     id: "public.vaults.cardEndow.panel.sessionMismatch",
     defaultMessage:
-      "That payment session doesn't match this endowment, so the vault deposit was not started.",
+      "This payment session does not match your endowment, so we did not finish it. Start checkout again.",
   });
   const statusFailedMessage = formatMessage({
     id: "public.vaults.cardEndow.panel.statusFailed",
@@ -536,8 +536,7 @@ export default function VaultCardPaymentPanel({
           })}
           description={formatMessage({
             id: "public.vaults.cardEndow.stage.fund.description",
-            defaultMessage:
-              "Complete card funding for the verified email wallet. The vault deposit is the next step.",
+            defaultMessage: "Complete the card payment, then return here to finish the endowment.",
           })}
         />
         <CheckoutSummary items={summaryItems} />
@@ -562,12 +561,10 @@ export default function VaultCardPaymentPanel({
               {formatMessage(
                 {
                   id: "public.vaults.cardEndow.panel.contribution",
-                  defaultMessage:
-                    "{amount} {donorSymbol} settles into the Octant vault as {settlementSymbol}",
+                  defaultMessage: "Prepared as {amount} {settlementSymbol} for the campaign vault",
                 },
                 {
                   amount: contributionAmount,
-                  donorSymbol: assetDisplay.donorSymbol,
                   settlementSymbol: assetDisplay.settlementSymbol,
                 }
               )}
@@ -580,7 +577,7 @@ export default function VaultCardPaymentPanel({
                 {formatMessage({
                   id: "public.vaults.cardEndow.panel.opened",
                   defaultMessage:
-                    "Card checkout is ready. If a new tab did not open, use the secure checkout link below, then return here to confirm your vault shares.",
+                    "Secure checkout is ready. If a new tab did not open, use the link below, then return here to finish your endowment.",
                 })}
               </p>
             ) : null}
@@ -590,7 +587,7 @@ export default function VaultCardPaymentPanel({
                 {formatMessage({
                   id: "public.vaults.cardEndow.panel.pending",
                   defaultMessage:
-                    "Your card payment is still processing. Finish it in the checkout tab, then check the status again.",
+                    "Your card payment is still processing. Finish checkout, then check again.",
                 })}
               </p>
             ) : null}
@@ -600,7 +597,7 @@ export default function VaultCardPaymentPanel({
                 {formatMessage({
                   id: "public.vaults.cardEndow.panel.fundsPending",
                   defaultMessage:
-                    "Card payment confirmed. Waiting for the funds to arrive in your verified email wallet — the vault deposit starts once they land.",
+                    "Payment confirmed. We're waiting for the funds to arrive so the endowment can finish.",
                 })}
               </p>
             ) : null}
@@ -613,8 +610,7 @@ export default function VaultCardPaymentPanel({
             >
               {formatMessage({
                 id: "public.vaults.cardEndow.panel.failed",
-                defaultMessage:
-                  "That card payment didn't go through. You can open checkout again to try once more.",
+                defaultMessage: "That card payment didn't go through. You can try again.",
               })}
             </p>
           ) : null}
@@ -647,14 +643,14 @@ export default function VaultCardPaymentPanel({
           ) : null}
 
           {session && phase === "opened" ? (
-            <details className="border-t border-stroke-soft-200 pt-4">
-              <summary className="cursor-pointer font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
-                {formatMessage({
-                  id: "public.vaults.cardEndow.panel.detailsSummary",
-                  defaultMessage: "Payment details",
-                })}
-              </summary>
-              <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+            <CheckoutTransactionDetails
+              className="pt-4"
+              label={formatMessage({
+                id: "public.vaults.cardEndow.panel.detailsSummary",
+                defaultMessage: "Transaction details",
+              })}
+            >
+              <dl className="grid gap-3 text-sm sm:grid-cols-2">
                 <div>
                   <dt className="font-medium text-text-strong-950">
                     {formatMessage({
@@ -694,7 +690,7 @@ export default function VaultCardPaymentPanel({
                   </dd>
                 </div>
               </dl>
-            </details>
+            </CheckoutTransactionDetails>
           ) : null}
         </section>
 

@@ -30,7 +30,14 @@ export type VaultDepositFailureReason =
   | "insufficientBalance"
   | "slippage";
 export type TxErrorMode = "toast" | "inline" | "auto";
-export type VaultEndowLifecycleStep = "wrap" | "approval" | "deposit" | "success" | "error";
+export type VaultEndowLifecycleStep =
+  | "wrap"
+  | "approvalReset"
+  | "approval"
+  | "approvalComplete"
+  | "deposit"
+  | "success"
+  | "error";
 
 export interface VaultMutationOptions {
   errorMode?: TxErrorMode;

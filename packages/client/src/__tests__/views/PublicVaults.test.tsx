@@ -286,6 +286,7 @@ describe("VaultsPage", () => {
     sharedHookMocks.octantVaultWalletEndowMutate.mockClear();
     sharedHookMocks.octantVaultWalletEndowReset.mockClear();
     sharedHookMocks.octantVaultWalletEndowError = null;
+    sharedHookMocks.octantVaultWalletEndowOptions = null;
     sharedHookMocks.wrapEthToWethMutate.mockClear();
     sharedHookMocks.wrapEthToWethReset.mockClear();
     sharedHookMocks.wrapEthToWethError = null;
@@ -341,7 +342,7 @@ describe("VaultsPage", () => {
     renderView();
 
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
-      "Octant vault campaigns for public goods."
+      "Public goods campaigns, powered by Octant vaults."
     );
     expect(screen.getByRole("heading", { name: "Greenpill NYC" })).toBeInTheDocument();
     expect(
@@ -350,26 +351,38 @@ describe("VaultsPage", () => {
       })
     ).toBeInTheDocument();
     expect(
-      screen.getByText("Your support funds real public goods work and keeps growing over time.")
+      screen.getByText("Explore public goods campaigns ready for support.")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("Each campaign turns support today into ongoing public goods funding.")
     ).toBeInTheDocument();
     const nycCard = screen.getByTestId("vault-campaign-card-greenpill-nyc");
     const evmavericksCard = screen.getByTestId("vault-campaign-card-evmavericks");
-    expect(nycCard).toHaveClass("lg:row-span-8", "lg:grid-rows-subgrid");
-    expect(evmavericksCard).toHaveClass("lg:row-span-8", "lg:grid-rows-subgrid");
-    expect(screen.getByTestId("vault-campaign-story-row-greenpill-nyc")).toHaveClass(
-      "lg:row-span-3",
-      "lg:grid-rows-subgrid"
+    expect(within(nycCard).getAllByText("Greenpill Network")).toHaveLength(2);
+    expect(within(nycCard).getByRole("link", { name: "Greenpill Network" })).toHaveAttribute(
+      "href",
+      "https://greenpill.network/"
     );
-    expect(screen.getByTestId("vault-campaign-story-row-evmavericks")).toHaveClass(
-      "lg:row-span-3",
-      "lg:grid-rows-subgrid"
+    expect(within(nycCard).getByRole("link", { name: "Decentral Park" })).toHaveAttribute(
+      "href",
+      "https://decentralpark.nyc/"
     );
+    expect(within(evmavericksCard).getByRole("link", { name: "ManeNet DAO" })).toHaveAttribute(
+      "href",
+      "https://dao.evmavericks.xyz/"
+    );
+    expect(within(evmavericksCard).getByRole("link", { name: "Protocol Guild" })).toHaveAttribute(
+      "href",
+      "https://www.protocolguild.org/"
+    );
+    expect(screen.queryByTestId("vault-campaign-story-row-greenpill-nyc")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("vault-campaign-story-row-evmavericks")).not.toBeInTheDocument();
     expect(screen.getByTestId("vault-campaign-amount-row-greenpill-nyc")).toBeInTheDocument();
     expect(screen.getByTestId("vault-campaign-amount-row-evmavericks")).toBeInTheDocument();
     expect(screen.queryByText("Ready for checkout")).not.toBeInTheDocument();
     expect(
       screen.getByText(
-        "This Octant vault lane funds specific campaigns. Gardens carry the broader Green Goods public record of places, work, and impact."
+        "This page is for Octant-backed campaigns. For the wider Green Goods network, explore Gardens."
       )
     ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Explore Gardens" })).toHaveAttribute(
@@ -391,7 +404,7 @@ describe("VaultsPage", () => {
 
     await waitFor(() => expect(locations.at(-1)).toBe("/vaults?ref=newsletter"));
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
-      "Octant vault campaigns for public goods."
+      "Public goods campaigns, powered by Octant vaults."
     );
     expect(screen.getByRole("button", { name: "Endow to Greenpill NYC" })).toBeEnabled();
   });
@@ -418,8 +431,12 @@ describe("VaultsPage", () => {
     expect(within(evmavericksCard).queryByText("Ready for checkout")).not.toBeInTheDocument();
     expect(
       within(evmavericksCard).getByText(
-        "Each season, the EVMavericks fantasy football league routes 12.5% of its pot into this vault and distributes the remaining 87.5% as league winnings. The result is a recurring public goods funding stream built on a ritual the community already runs."
+        "EVMavericks brings Ethereum community members together around shared incentives, public goods, and a long-running fantasy football ritual. This campaign uses that seasonal league energy to support Protocol Guild, helping fund the contributors who maintain Ethereum's core protocol."
       )
+    ).toBeInTheDocument();
+    expect(within(evmavericksCard).getByRole("link", { name: "ManeNet DAO" })).toBeInTheDocument();
+    expect(
+      within(evmavericksCard).getByRole("link", { name: "Protocol Guild" })
     ).toBeInTheDocument();
     expect(within(evmavericksCard).queryByText("Preview")).not.toBeInTheDocument();
     expect(
@@ -474,7 +491,7 @@ describe("VaultsPage", () => {
     expect(screen.queryByTestId("vault-checkout-method-wallet")).not.toBeInTheDocument();
     expect(
       within(screen.getByTestId("vault-wallet-endow-path")).getByText(
-        "Enter an amount, review the Octant vault context, then connect the wallet that should receive these vault shares."
+        "Choose an endowment amount, connect your wallet, and confirm when you're ready."
       )
     ).toBeInTheDocument();
     expect(screen.queryByText("How would you like to pay?")).not.toBeInTheDocument();
@@ -519,7 +536,7 @@ describe("VaultsPage", () => {
     expect(screen.queryByTestId("thirdweb-buy-widget")).not.toBeInTheDocument();
   });
 
-  it("explains vault shares and generated yield without position jargon", () => {
+  it("explains generated yield without personal-return copy", () => {
     renderView();
 
     expect(sharedHookMocks.harvestableYieldOptions).toContainEqual(
@@ -544,30 +561,30 @@ describe("VaultsPage", () => {
     );
     expect(screen.getByRole("heading", { name: "How yield support works" })).toBeInTheDocument();
     const nycYieldRow = screen.getByTestId("vault-campaign-yield-row-greenpill-nyc");
-    expect(within(nycYieldRow).getByText("Generated yield")).toBeInTheDocument();
-    expect(within(nycYieldRow).getByText("Funding rate")).toBeInTheDocument();
-    expect(within(nycYieldRow).getByText("Unavailable")).toBeInTheDocument();
-    expect(within(nycYieldRow).getByText("Rate unavailable")).toBeInTheDocument();
+    expect(within(nycYieldRow).getByText("Generated for the campaign")).toBeInTheDocument();
+    expect(within(nycYieldRow).getByText("Current yield rate")).toBeInTheDocument();
+    expect(within(nycYieldRow).getAllByText("Not available yet")).toHaveLength(2);
     expect(
       screen.queryByTestId("vault-generated-yield-metric-greenpill-nyc")
     ).not.toBeInTheDocument();
-    expect(screen.queryByText("Generated yield for the campaign")).not.toBeInTheDocument();
     expect(
       screen.getByText(
-        /When you support a campaign, your contribution becomes vault shares you can redeem later/i
+        /Each endowment helps back a campaign today, while the yield it generates can keep supporting the work over time/i
       )
     ).toBeInTheDocument();
+    expect(screen.queryByText(/keeping an exit path/i)).not.toBeInTheDocument();
     expect(
-      screen.getByText(/You can redeem your vault shares back to WETH whenever you choose/i)
+      screen.getByText(/These campaigns use Octant's yield donating strategy model/i)
     ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Octant docs" })).toHaveAttribute(
+      "href",
+      "https://docs.v2.octant.build/"
+    );
     expect(
-      screen.getByText(/These pilot vaults use Octant's yield donating strategy model/i)
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(
+      screen.queryByText(
         "Generated yield supports the local civic tech initiatives Greenpill NYC surfaces in New York City."
       )
-    ).toBeInTheDocument();
+    ).not.toBeInTheDocument();
     expect(screen.queryByText("Technical docs")).not.toBeInTheDocument();
     expect(
       screen.queryByRole("link", { name: "Octant Yield Donating Strategy docs" })
@@ -601,7 +618,7 @@ describe("VaultsPage", () => {
 
     const yieldRow = screen.getByTestId("vault-campaign-yield-row-greenpill-nyc");
     expect(within(yieldRow).getByText("1.43%")).toBeInTheDocument();
-    expect(within(yieldRow).getByText("Funding rate")).toBeInTheDocument();
+    expect(within(yieldRow).getByText("Current yield rate")).toBeInTheDocument();
   });
 
   it("shows no percentage in the strategy APY line when the source rate is unavailable", () => {
@@ -609,7 +626,7 @@ describe("VaultsPage", () => {
     renderView();
 
     const yieldRow = screen.getByTestId("vault-campaign-yield-row-greenpill-nyc");
-    expect(within(yieldRow).getByText("Rate unavailable")).toBeInTheDocument();
+    expect(within(yieldRow).getAllByText("Not available yet")).toHaveLength(2);
     expect(within(yieldRow).queryByText(/%/)).toBeNull();
   });
 
@@ -664,8 +681,8 @@ describe("VaultsPage", () => {
     renderView();
 
     const yieldRow = screen.getByTestId("vault-campaign-yield-row-greenpill-nyc");
-    expect(within(yieldRow).getByText("Generated yield")).toBeInTheDocument();
-    expect(within(yieldRow).getByText("Unavailable")).toBeInTheDocument();
+    expect(within(yieldRow).getByText("Generated for the campaign")).toBeInTheDocument();
+    expect(within(yieldRow).getAllByText("Not available yet")).toHaveLength(2);
     expect(within(yieldRow).queryByText(/WETH/)).toBeNull();
     expect(
       screen.queryByTestId("vault-generated-yield-metric-greenpill-nyc")
@@ -755,9 +772,70 @@ describe("VaultsPage", () => {
     expect(screen.getByTestId("vault-checkout-screen")).toHaveClass("overflow-hidden");
     expect(screen.getByTestId("vault-checkout-scroll-body")).toHaveClass("overflow-y-auto");
     expect(screen.getByTestId("vault-checkout-footer")).toBeInTheDocument();
-    expect(screen.getByText("Technical WETH details").closest("details")).not.toHaveAttribute(
-      "open"
+    const detailsButton = screen.getByRole("button", { name: "Transaction details" });
+    expect(detailsButton).toHaveAttribute("aria-expanded", "false");
+    expect(detailsButton).toHaveAttribute("aria-haspopup", "dialog");
+
+    const originalInnerHeight = window.innerHeight;
+    const originalOffsetHeight = Object.getOwnPropertyDescriptor(
+      HTMLElement.prototype,
+      "offsetHeight"
     );
+    const rectSpy = vi.spyOn(detailsButton, "getBoundingClientRect").mockReturnValue({
+      x: 40,
+      y: 260,
+      width: 120,
+      height: 24,
+      top: 260,
+      right: 160,
+      bottom: 284,
+      left: 40,
+      toJSON: () => ({}),
+    });
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: 300,
+    });
+    Object.defineProperty(HTMLElement.prototype, "offsetHeight", {
+      configurable: true,
+      get() {
+        return this.getAttribute("aria-labelledby") ? 120 : 0;
+      },
+    });
+
+    try {
+      await desktopUser.click(detailsButton);
+      const transactionDetails = await screen.findByRole("dialog", {
+        name: "Transaction details",
+      });
+      await waitFor(() => expect(transactionDetails).toHaveFocus());
+      expect(transactionDetails).toHaveClass("bottom-full");
+      expect(transactionDetails.style.maxHeight).toBe("244px");
+
+      fireEvent.keyDown(window, { key: "Escape" });
+      await waitFor(() =>
+        expect(
+          screen.queryByRole("dialog", { name: "Transaction details" })
+        ).not.toBeInTheDocument()
+      );
+      await waitFor(() => expect(detailsButton).toHaveFocus());
+      expect(
+        screen.getByRole("dialog", {
+          name: "Endow to Synthetic complete campaign",
+        })
+      ).toBeInTheDocument();
+    } finally {
+      rectSpy.mockRestore();
+      Object.defineProperty(window, "innerHeight", {
+        configurable: true,
+        value: originalInnerHeight,
+      });
+      if (originalOffsetHeight) {
+        Object.defineProperty(HTMLElement.prototype, "offsetHeight", originalOffsetHeight);
+      } else {
+        delete (HTMLElement.prototype as { offsetHeight?: number }).offsetHeight;
+      }
+    }
     expect(screen.queryByTestId("vault-checkout-sheet")).not.toBeInTheDocument();
     desktop.unmount();
 
@@ -780,12 +858,10 @@ describe("VaultsPage", () => {
     expect(screen.getByTestId("vault-checkout-footer")).toBeInTheDocument();
     expect(
       within(screen.getByTestId("vault-wallet-endow-path")).getByText(
-        "Enter an amount, review the Octant vault context, then connect the wallet that should receive these vault shares."
+        "Choose an endowment amount, connect your wallet, and confirm when you're ready."
       )
     ).toBeInTheDocument();
-    expect(screen.getByText("Technical WETH details").closest("details")).not.toHaveAttribute(
-      "open"
-    );
+    expect(screen.getByText("Transaction details").closest("details")).not.toHaveAttribute("open");
   });
 
   it("marks invalid dollar input as a field error and keeps the primary action disabled", async () => {
@@ -875,7 +951,7 @@ describe("VaultsPage", () => {
     expect(screen.queryByTestId("vault-checkout-method-card")).not.toBeInTheDocument();
     expect(screen.getByTestId("vault-wallet-endow-path")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Enter an amount" })).toBeDisabled();
-    expect(screen.getByText("Review wallet endowment")).toBeInTheDocument();
+    expect(screen.getByText("Review your endowment")).toBeInTheDocument();
     expect(screen.getByText("Octant vault on Ethereum")).toBeInTheDocument();
     expect(screen.getByText("Set when you connect a wallet")).toBeInTheDocument();
     expect(screen.queryByTestId("vault-checkout-amount-feedback")).not.toBeInTheDocument();
@@ -883,7 +959,7 @@ describe("VaultsPage", () => {
     await user.type(screen.getByLabelText("Amount to endow"), "2.50");
     expect(screen.getByRole("button", { name: "Connect wallet" })).toBeEnabled();
     expect(screen.getByDisplayValue("2.50")).toBeInTheDocument();
-    expect(screen.getByText(/Settles into the Octant vault as .* USDC/)).toBeInTheDocument();
+    expect(screen.getByText(/Prepared as .* USDC for the campaign vault/)).toBeInTheDocument();
 
     await user.clear(screen.getByLabelText("Amount to endow"));
     expect(screen.getByRole("button", { name: "Enter an amount" })).toBeDisabled();
@@ -1004,8 +1080,102 @@ describe("VaultsPage", () => {
 
     await user.click(screen.getByRole("button", { name: "Approve vault access (1/2)" }));
 
-    expect(screen.getByRole("button", { name: "Confirm vault deposit (2/2)" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Confirm endowment (2/2)" })).toBeDisabled();
     expect(sharedHookMocks.octantVaultWalletEndowMutate).toHaveBeenCalledTimes(1);
+  });
+
+  it("expands the wallet checkout counter when allowance reset is required", async () => {
+    const user = userEvent.setup();
+    sharedHookMocks.authMode = "wallet";
+    sharedHookMocks.primaryAddress = VALID_RECEIVER_ADDRESS;
+    sharedHookMocks.octantVaultWalletEndowMutate.mockImplementationOnce(() => {
+      sharedHookMocks.octantVaultWalletEndowOptions?.onLifecycleStep?.("approvalReset");
+    });
+
+    renderContent([makeCompleteCampaign()]);
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "Endow to Synthetic complete campaign",
+      })
+    );
+    await user.type(screen.getByLabelText("Amount to endow"), "2.50");
+
+    await user.click(screen.getByRole("button", { name: "Approve vault access (1/2)" }));
+
+    expect(screen.getByRole("button", { name: "Reset vault access (1/3)" })).toBeDisabled();
+
+    act(() => {
+      sharedHookMocks.octantVaultWalletEndowOptions?.onLifecycleStep?.("approval");
+    });
+
+    expect(screen.getByRole("button", { name: "Approve vault access (2/3)" })).toBeDisabled();
+
+    act(() => {
+      sharedHookMocks.octantVaultWalletEndowOptions?.onLifecycleStep?.("deposit");
+    });
+
+    expect(screen.getByRole("button", { name: "Confirm endowment (3/3)" })).toBeDisabled();
+  });
+
+  it("resumes at deposit when retrying after approval already completed", async () => {
+    const user = userEvent.setup();
+    sharedHookMocks.authMode = "wallet";
+    sharedHookMocks.primaryAddress = VALID_RECEIVER_ADDRESS;
+    sharedHookMocks.octantVaultWalletEndowMutate
+      .mockImplementationOnce(
+        (_transaction: unknown, options?: { onError?: (error: Error) => void }) => {
+          sharedHookMocks.octantVaultWalletEndowOptions?.onLifecycleStep?.("approval");
+          sharedHookMocks.octantVaultWalletEndowOptions?.onLifecycleStep?.("deposit");
+          sharedHookMocks.octantVaultWalletEndowOptions?.onLifecycleStep?.("error");
+          options?.onError?.(new Error("deposit rejected"));
+        }
+      )
+      .mockImplementationOnce(() => undefined);
+
+    renderContent([makeCompleteCampaign()]);
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "Endow to Synthetic complete campaign",
+      })
+    );
+    await user.type(screen.getByLabelText("Amount to endow"), "2.50");
+
+    await user.click(screen.getByRole("button", { name: "Approve vault access (1/2)" }));
+
+    expect(screen.getByRole("button", { name: "Confirm endowment (2/2)" })).toBeEnabled();
+
+    await user.click(screen.getByRole("button", { name: "Confirm endowment (2/2)" }));
+
+    expect(sharedHookMocks.octantVaultWalletEndowMutate).toHaveBeenCalledTimes(2);
+  });
+
+  it("resumes at deposit after a post-approval pre-deposit failure", async () => {
+    const user = userEvent.setup();
+    sharedHookMocks.authMode = "wallet";
+    sharedHookMocks.primaryAddress = VALID_RECEIVER_ADDRESS;
+    sharedHookMocks.octantVaultWalletEndowMutate.mockImplementationOnce(
+      (_transaction: unknown, options?: { onError?: (error: Error) => void }) => {
+        sharedHookMocks.octantVaultWalletEndowOptions?.onLifecycleStep?.("approval");
+        sharedHookMocks.octantVaultWalletEndowOptions?.onLifecycleStep?.("approvalComplete");
+        sharedHookMocks.octantVaultWalletEndowOptions?.onLifecycleStep?.("error");
+        options?.onError?.(new Error("slippage"));
+      }
+    );
+
+    renderContent([makeCompleteCampaign()]);
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "Endow to Synthetic complete campaign",
+      })
+    );
+    await user.type(screen.getByLabelText("Amount to endow"), "2.50");
+
+    await user.click(screen.getByRole("button", { name: "Approve vault access (1/2)" }));
+
+    expect(screen.getByRole("button", { name: "Confirm endowment (2/2)" })).toBeEnabled();
   });
 
   it("blocks Ethereum Wallet Endow in local Arbitrum fork mode before submission", async () => {
@@ -1063,7 +1233,7 @@ describe("VaultsPage", () => {
     );
     expect(
       screen.getByText(
-        "This wallet is short 0.01 WETH. Add WETH, or add at least 0.01 ETH to wrap here."
+        "This wallet needs 0.01 more WETH, or at least 0.01 ETH to prepare this endowment."
       )
     ).toBeInTheDocument();
     expect(sharedHookMocks.octantVaultWalletEndowMutate).not.toHaveBeenCalled();
@@ -1093,14 +1263,14 @@ describe("VaultsPage", () => {
     await user.type(screen.getByLabelText("Amount to endow"), "30");
 
     const walletPath = screen.getByTestId("vault-wallet-endow-path");
-    expect(screen.getByText("Ethereum Mainnet balances")).toBeInTheDocument();
+    expect(screen.getByText("Wallet balances")).toBeInTheDocument();
     expect(screen.getByText("ETH balance")).toBeInTheDocument();
     expect(within(walletPath).getByText("0.02 ETH")).toBeInTheDocument();
     expect(screen.getByText("WETH balance")).toBeInTheDocument();
     expect(within(walletPath).getByText("0 WETH")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "Your wallet has enough ETH. Wrap 0.01 ETH into WETH before confirming the vault deposit."
+        "Your wallet has enough ETH. Wrap 0.01 ETH into WETH to prepare this endowment."
       )
     ).toBeInTheDocument();
 
@@ -1151,7 +1321,7 @@ describe("VaultsPage", () => {
 
     expect(
       screen.getByText(
-        "Your wallet has enough ETH. Wrap 0.001 ETH into WETH before confirming the vault deposit."
+        "Your wallet has enough ETH. Wrap 0.001 ETH into WETH to prepare this endowment."
       )
     ).toBeInTheDocument();
 
@@ -1213,15 +1383,15 @@ describe("VaultsPage", () => {
     await user.type(screen.getByLabelText("Amount to endow"), "30");
     await user.click(screen.getByRole("button", { name: "Connect wallet" }));
     // Committed at $30 with ETH at $3,000 => 0.01 WETH.
-    expect(screen.getByText("Settles into the Octant vault as 0.01 WETH")).toBeInTheDocument();
+    expect(screen.getByText("Prepared as 0.01 WETH for the campaign vault")).toBeInTheDocument();
 
     // The live ETH price doubles mid-flow; the committed amount must not move.
     sharedHookMocks.ethUsdPriceAnswer = 600000000000n;
     rerender(ui);
 
-    expect(screen.getByText("Settles into the Octant vault as 0.01 WETH")).toBeInTheDocument();
+    expect(screen.getByText("Prepared as 0.01 WETH for the campaign vault")).toBeInTheDocument();
     expect(
-      screen.queryByText("Settles into the Octant vault as 0.005 WETH")
+      screen.queryByText("Prepared as 0.005 WETH for the campaign vault")
     ).not.toBeInTheDocument();
   });
 
@@ -1285,7 +1455,7 @@ describe("VaultsPage", () => {
       // In flight: the action is still on the wallet-confirmation path, and no
       // recovery note exists yet.
       expect(screen.getByRole("button", { name: "Approve vault access (1/2)" })).toBeDisabled();
-      expect(screen.queryByText(/Still waiting for confirmation/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Confirmation is taking a little longer/)).not.toBeInTheDocument();
 
       // After 90s with no resolution the recovery affordance appears, while the
       // in-flight deposit stays close-locked and cannot be double-submitted.
@@ -1293,13 +1463,18 @@ describe("VaultsPage", () => {
         vi.advanceTimersByTime(89_999);
       });
 
-      expect(screen.queryByText(/Still waiting for confirmation/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Confirmation is taking a little longer/)).not.toBeInTheDocument();
 
       act(() => {
         vi.advanceTimersByTime(1);
       });
 
-      expect(screen.getByText(/Still waiting for confirmation/)).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          "Confirmation is taking a little longer. Keep this open to follow the endowment as it finishes."
+        )
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/return through Manage Endowments/i)).not.toBeInTheDocument();
       // The slow state no longer points to the Fund page; vault positions are
       // managed route-locally from /vaults.
       expect(screen.queryByRole("link", { name: "View on Fund page" })).not.toBeInTheDocument();
@@ -1336,7 +1511,7 @@ describe("VaultsPage", () => {
     // The specific, actionable message shows instead of the generic wallet error.
     expect(
       await screen.findByText(
-        "This wallet doesn't have enough WETH for this endowment. Wrap ETH to WETH first, then try again."
+        "This wallet needs more WETH for this endowment. Wrap ETH to WETH first, then try again."
       )
     ).toBeInTheDocument();
     expect(
@@ -1355,7 +1530,7 @@ describe("VaultsPage", () => {
     renderCard(makeCompleteCampaign());
 
     const strip = screen.getByTestId("vault-campaign-stats-synthetic-complete");
-    expect(within(strip).getByText("In vault")).toBeInTheDocument();
+    expect(within(strip).getByText("Backed so far")).toBeInTheDocument();
     expect(strip).toHaveTextContent("15,000");
     expect(within(strip).queryByText(/Just launched/)).not.toBeInTheDocument();
   });

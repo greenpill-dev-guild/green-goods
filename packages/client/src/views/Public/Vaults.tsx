@@ -12,7 +12,7 @@ import {
   type OctantVaultCampaignManifest,
 } from "@green-goods/shared";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useIntl } from "react-intl";
+import { FormattedMessage, useIntl } from "react-intl";
 import { Link, Navigate, useLocation, useSearchParams } from "react-router-dom";
 import {
   EditorialHeading,
@@ -39,6 +39,36 @@ const copyFieldMessageIds = {
 
 const VAULT_ENDOW_BUTTON_CLASS =
   "inline-flex min-h-12 w-full items-center justify-center gap-2 border border-primary-action bg-primary-action px-6 py-3 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60";
+
+const campaignLearnMoreLinks: Record<
+  string,
+  { href: string; labelId: string; defaultLabel: string }[]
+> = {
+  "greenpill-nyc": [
+    {
+      href: "https://greenpill.network/",
+      labelId: "public.vaults.campaign.greenpill-nyc.link.greenpillNetwork",
+      defaultLabel: "Greenpill Network",
+    },
+    {
+      href: "https://decentralpark.nyc/",
+      labelId: "public.vaults.campaign.greenpill-nyc.link.decentralPark",
+      defaultLabel: "Decentral Park",
+    },
+  ],
+  evmavericks: [
+    {
+      href: "https://dao.evmavericks.xyz/",
+      labelId: "public.vaults.campaign.evmavericks.link.manenetDao",
+      defaultLabel: "ManeNet DAO",
+    },
+    {
+      href: "https://www.protocolguild.org/",
+      labelId: "public.vaults.campaign.evmavericks.link.protocolGuild",
+      defaultLabel: "Protocol Guild",
+    },
+  ],
+};
 
 function campaignCopyId(
   campaign: OctantVaultCampaignManifest,
@@ -77,6 +107,20 @@ function formatCampaignCopy(
   };
 }
 
+function formatCampaignIdentity(
+  formatMessage: ReturnType<typeof useIntl>["formatMessage"],
+  campaign: OctantVaultCampaignManifest
+) {
+  if (campaign.slug === "greenpill-nyc") {
+    return formatMessage({
+      id: "public.vaults.campaign.greenpill-nyc.identity",
+      defaultMessage: "Greenpill Network",
+    });
+  }
+
+  return campaign.communityName;
+}
+
 function CampaignStatus({ campaign }: { campaign: OctantVaultCampaignManifest }) {
   const { formatMessage } = useIntl();
   const state = getOctantVaultCampaignTransactionState(campaign);
@@ -102,7 +146,7 @@ function CampaignPreviewNote() {
       {formatMessage({
         id: "public.vaults.manifest.blocked",
         defaultMessage:
-          "This preview does not accept Endow payments yet. The campaign will open after its vault setup is complete and verified.",
+          "This campaign is not open for endowments yet. It will open once setup is complete.",
       })}
     </p>
   );
@@ -138,7 +182,7 @@ function CampaignVaultStats({ campaign }: { campaign: OctantVaultCampaignManifes
       <dt className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-soft-400">
         {formatMessage({
           id: "public.vaults.card.inVault",
-          defaultMessage: "In vault",
+          defaultMessage: "Backed so far",
         })}
       </dt>
       {stats.isLoading ? (
@@ -192,7 +236,7 @@ function CampaignYieldRow({ campaign }: { campaign: OctantVaultCampaignManifest 
   } else if (metric.status === "unavailable") {
     generatedYieldValue = formatMessage({
       id: "public.vaults.card.generatedYieldUnavailable",
-      defaultMessage: "Unavailable",
+      defaultMessage: "Not available yet",
     });
   } else if (metric.status === "zero") {
     generatedYieldValue = formatMessage({
@@ -218,7 +262,7 @@ function CampaignYieldRow({ campaign }: { campaign: OctantVaultCampaignManifest 
   } else if (apy.status === "unavailable") {
     fundingRateValue = formatMessage({
       id: "public.vaults.card.fundingRateUnavailable",
-      defaultMessage: "Rate unavailable",
+      defaultMessage: "Not available yet",
     });
   } else {
     fundingRateValue = formatApy(apy.apy ?? 0);
@@ -233,7 +277,7 @@ function CampaignYieldRow({ campaign }: { campaign: OctantVaultCampaignManifest 
         <dt className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-soft-400">
           {formatMessage({
             id: "public.vaults.card.generatedYield",
-            defaultMessage: "Generated yield",
+            defaultMessage: "Generated for the campaign",
           })}
         </dt>
         <dd className="mt-1 font-serif text-lg leading-none text-text-strong-950">
@@ -244,7 +288,7 @@ function CampaignYieldRow({ campaign }: { campaign: OctantVaultCampaignManifest 
         <dt className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-soft-400">
           {formatMessage({
             id: "public.vaults.card.fundingRate",
-            defaultMessage: "Funding rate",
+            defaultMessage: "Current yield rate",
           })}
         </dt>
         <dd className="mt-1 font-serif text-lg leading-none text-text-strong-950">
@@ -281,22 +325,26 @@ function YieldSupportExplainer() {
             {formatMessage({
               id: "public.vaults.strategy.body",
               defaultMessage:
-                "When you support a campaign, your contribution becomes vault shares you can redeem later. Generated yield supports the project instead of becoming a personal profit balance.",
+                "Each endowment helps back a campaign today, while the yield it generates can keep supporting the work over time. You are not earning personal yield; the campaign is the beneficiary.",
             })}
           </p>
           <p>
-            {formatMessage({
-              id: "public.vaults.strategy.ownership",
-              defaultMessage:
-                "You can redeem your vault shares back to WETH whenever you choose. The generated yield is what funds the campaign, so you can support the work while still keeping an exit path.",
-            })}
-          </p>
-          <p>
-            {formatMessage({
-              id: "public.vaults.strategy.evidence",
-              defaultMessage:
-                "These pilot vaults use Octant's yield donating strategy model, which routes generated yield without framing the rate as personal return.",
-            })}
+            <FormattedMessage
+              id="public.vaults.strategy.evidence"
+              defaultMessage="These campaigns use Octant's yield donating strategy model, designed so generated yield can flow toward public goods instead of personal return. Curious readers can explore the broader model in the <docsLink>Octant docs</docsLink>."
+              values={{
+                docsLink: (chunks) => (
+                  <a
+                    href="https://docs.v2.octant.build/"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-medium text-primary-base underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
+                  >
+                    {chunks}
+                  </a>
+                ),
+              }}
+            />
           </p>
         </div>
       </div>
@@ -313,19 +361,21 @@ export function CampaignCard({
 }) {
   const { formatMessage } = useIntl();
   const copy = formatCampaignCopy(formatMessage, campaign);
+  const identity = formatCampaignIdentity(formatMessage, campaign);
+  const links = campaignLearnMoreLinks[campaign.slug] ?? [];
   const transactionState = getOctantVaultCampaignTransactionState(campaign);
   const ready = transactionState.walletEndowEnabled;
 
   return (
     <article
       data-testid={`vault-campaign-card-${campaign.slug}`}
-      className="grid min-h-full grid-rows-[auto_auto_auto_auto_1fr_auto] gap-6 border border-stroke-soft-200 bg-bg-white-0 p-5 shadow-[var(--shadow-editorial-card)] sm:p-6 lg:row-span-8 lg:grid-rows-subgrid"
+      className="grid min-h-full grid-rows-[auto_auto_auto_auto_1fr_auto] gap-6 border border-stroke-soft-200 bg-bg-white-0 p-5 shadow-[var(--shadow-editorial-card)] sm:p-6"
       aria-labelledby={`vault-campaign-${campaign.slug}-title`}
     >
       <CampaignStatus campaign={campaign} />
       <div>
         <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
-          {campaign.communityName}
+          {identity}
         </p>
         <h3
           id={`vault-campaign-${campaign.slug}-title`}
@@ -341,43 +391,35 @@ export function CampaignCard({
         {copy.fundingPurpose}
       </p>
 
+      {links.length ? (
+        <nav
+          className="flex flex-wrap gap-x-4 gap-y-2"
+          aria-label={formatMessage(
+            {
+              id: "public.vaults.campaign.linksLabel",
+              defaultMessage: "Learn more about {campaign}",
+            },
+            { campaign: campaign.displayName }
+          )}
+        >
+          {links.map((link) => (
+            <a
+              key={link.href}
+              href={link.href}
+              target="_blank"
+              rel="noreferrer"
+              className="text-sm font-medium text-primary-base underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
+            >
+              {formatMessage({ id: link.labelId, defaultMessage: link.defaultLabel })}
+            </a>
+          ))}
+        </nav>
+      ) : null}
+
       <div data-testid={`vault-campaign-amount-row-${campaign.slug}`}>
         <CampaignVaultStats campaign={campaign} />
         <CampaignYieldRow campaign={campaign} />
       </div>
-
-      <section
-        className="grid gap-y-2 lg:row-span-3 lg:grid-rows-subgrid lg:gap-y-3"
-        data-testid={`vault-campaign-story-row-${campaign.slug}`}
-        aria-labelledby={`vault-campaign-${campaign.slug}-story-title`}
-      >
-        <h4
-          id={`vault-campaign-${campaign.slug}-story-title`}
-          className="font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400"
-        >
-          {formatMessage({
-            id: "public.vaults.card.story",
-            defaultMessage: "Campaign story",
-          })}
-        </h4>
-        <p
-          className="font-serif text-xl leading-[1.25] text-text-strong-950"
-          data-testid={`vault-campaign-story-headline-${campaign.slug}`}
-        >
-          {copy.headline}
-        </p>
-        <dl className="text-sm leading-[1.6] text-text-sub-600">
-          <div>
-            <dt className="font-medium text-text-strong-950">
-              {formatMessage({
-                id: "public.vaults.card.recipientLogic",
-                defaultMessage: "Where your support goes",
-              })}
-            </dt>
-            <dd className="mt-1">{copy.recipientLogic}</dd>
-          </div>
-        </dl>
-      </section>
 
       <section
         className="self-end"
@@ -509,7 +551,7 @@ export function VaultsPageContent({
         title={formatMessage(
           {
             id: "public.vaults.hero.title",
-            defaultMessage: "Octant vault campaigns for <accent>public goods</accent>.",
+            defaultMessage: "Public goods campaigns, powered by <accent>Octant vaults</accent>.",
           },
           {
             accent: (chunks) => <EditorialTitleAccent>{chunks}</EditorialTitleAccent>,
@@ -518,7 +560,7 @@ export function VaultsPageContent({
         lede={formatMessage({
           id: "public.vaults.hero.lede",
           defaultMessage:
-            "Support public goods through an Octant vault. Your contribution becomes vault shares you can redeem later, while generated yield supports the campaign.",
+            "Back a campaign once, and its support can keep growing as generated yield is routed toward the public good.",
         })}
       />
 
@@ -532,20 +574,20 @@ export function VaultsPageContent({
               <EditorialKicker className="mb-3">
                 {formatMessage({
                   id: "public.vaults.browse.kicker",
-                  defaultMessage: "§ 01: Campaign details",
+                  defaultMessage: "Active Campaigns",
                 })}
               </EditorialKicker>
               <EditorialHeading id="public-vaults-browse-title">
                 {formatMessage({
                   id: "public.vaults.browse.title",
-                  defaultMessage: "Two pilot campaigns, each with its own Octant vault.",
+                  defaultMessage: "Explore public goods campaigns ready for support.",
                 })}
               </EditorialHeading>
               <EditorialLede className="mt-5">
                 {formatMessage({
                   id: "public.vaults.browse.lede",
                   defaultMessage:
-                    "Your support funds real public goods work and keeps growing over time.",
+                    "Each campaign turns support today into ongoing public goods funding.",
                 })}
               </EditorialLede>
             </div>
@@ -582,20 +624,20 @@ export function VaultsPageContent({
           <EditorialKicker className="mb-3">
             {formatMessage({
               id: "public.vaults.boundary.kicker",
-              defaultMessage: "§ 03: Separate funding lanes",
+              defaultMessage: "Beyond these campaigns",
             })}
           </EditorialKicker>
           <EditorialHeading id="public-vaults-boundary-title" size="sub">
             {formatMessage({
               id: "public.vaults.boundary.title",
-              defaultMessage: "Vaults are the Octant lane.",
+              defaultMessage: "Want to see more places, projects, and impact?",
             })}
           </EditorialHeading>
           <p className="mt-4 max-w-3xl text-sm leading-[1.65] text-text-sub-600 md:text-base">
             {formatMessage({
               id: "public.vaults.boundary.body",
               defaultMessage:
-                "This Octant vault lane funds specific campaigns. Gardens carry the broader Green Goods public record of places, work, and impact.",
+                "This page is for Octant-backed campaigns. For the wider Green Goods network, explore Gardens.",
             })}
           </p>
           <Link

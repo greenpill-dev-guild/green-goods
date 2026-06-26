@@ -21,7 +21,11 @@ import { useIntl } from "react-intl";
 import { formatUnits, parseUnits } from "viem";
 import WalletRuntimeProviders from "@/routes/WalletRuntimeProviders";
 import { EditorialGhostButton } from "./atoms";
-import { getAddressExplorerUrl, getEthereumNetworkLabel } from "./vaultCheckoutShell";
+import {
+  CheckoutTransactionDetails,
+  getAddressExplorerUrl,
+  getEthereumNetworkLabel,
+} from "./vaultCheckoutShell";
 
 export interface VaultManagePositionsPanelProps {
   open: boolean;
@@ -175,7 +179,7 @@ function VaultManagePositionsContent({
               <p className="font-mono text-[10.5px] font-medium uppercase tracking-[0.18em] text-text-soft-400">
                 {formatMessage({
                   id: "public.vaults.manage.kicker",
-                  defaultMessage: "Vault shares",
+                  defaultMessage: "Your endowments",
                 })}
               </p>
               <Dialog.Title className="mt-2 font-serif text-2xl font-normal leading-[1.08] text-text-strong-950 md:text-3xl">
@@ -188,7 +192,7 @@ function VaultManagePositionsContent({
                 {formatMessage({
                   id: "public.vaults.manage.lede",
                   defaultMessage:
-                    "Review the Octant vault endowments connected to this wallet and redeem available shares when you choose.",
+                    "Review the endowments connected to your wallet and redeem what's available.",
                 })}
               </Dialog.Description>
             </div>
@@ -232,14 +236,14 @@ function ConnectedWalletSection({
         <h3 className="font-serif text-xl font-normal text-text-strong-950">
           {formatMessage({
             id: "public.vaults.manage.connected.connectTitle",
-            defaultMessage: "Connect to see your vault shares",
+            defaultMessage: "Connect to see your endowments",
           })}
         </h3>
         <p className="mt-3 text-sm leading-[1.6] text-text-sub-600">
           {formatMessage({
             id: "public.vaults.manage.connected.connectBody",
             defaultMessage:
-              "This view only uses your connected wallet. It never adds your address to the URL.",
+              "This view only checks your connected wallet. Your address is not added to the page URL.",
           })}
         </p>
         <EditorialGhostButton
@@ -264,7 +268,7 @@ function ConnectedWalletSection({
         ownerLabel=""
         emptyTitle={formatMessage({
           id: "public.vaults.manage.empty.connected.title",
-          defaultMessage: "No vault shares for this wallet yet",
+          defaultMessage: "No endowments for this wallet yet",
         })}
         onEndow={onEndow}
         renderRow={(position) => (
@@ -343,7 +347,7 @@ export function PositionsList({
         className="rounded-none bg-error-lighter/30 p-5"
         title={formatMessage({
           id: "public.vaults.manage.error.title",
-          defaultMessage: "We couldn't load these vault shares",
+          defaultMessage: "We couldn't load your endowments",
         })}
       >
         <p className="mt-3 text-sm leading-[1.6] text-text-sub-600">
@@ -370,8 +374,7 @@ export function PositionsList({
         <p className="mt-3 text-sm leading-[1.6] text-text-sub-600">
           {formatMessage({
             id: "public.vaults.manage.empty.body",
-            defaultMessage:
-              "When you endow a campaign, your vault shares appear here so you can manage them.",
+            defaultMessage: "When you endow a campaign, it appears here for review or redemption.",
           })}
         </p>
         {onEndow ? (
@@ -560,7 +563,6 @@ export function VaultPositionRowView({
   const executeRedeem = async () => {
     if (disableConfirm) return;
     if (estimatedAssets === null) return;
-    const sharesLabel = displayShares(parsedShares);
     const assetsLabel = displayAssets(estimatedAssets);
     try {
       await onRedeem(parsedShares);
@@ -571,9 +573,9 @@ export function VaultPositionRowView({
           {
             id: "public.vaults.manage.withdraw.success",
             defaultMessage:
-              "{shares} redeemed. Estimated {assets} returned; balances may take a moment to update.",
+              "Redemption submitted. Estimated return: {assets}. Balances may take a moment to update.",
           },
-          { shares: sharesLabel, assets: assetsLabel }
+          { assets: assetsLabel }
         )
       );
     } catch {
@@ -597,7 +599,7 @@ export function VaultPositionRowView({
           <p className="mt-0.5 text-xs text-text-soft-400">
             {formatMessage({
               id: "public.vaults.manage.position.backed",
-              defaultMessage: "WETH vault shares",
+              defaultMessage: "Campaign endowment",
             })}
           </p>
           <dl className="mt-3 space-y-1 text-xs leading-[1.55] text-text-soft-400">
@@ -605,7 +607,7 @@ export function VaultPositionRowView({
               <dt className="inline">
                 {formatMessage({
                   id: "public.vaults.manage.position.value",
-                  defaultMessage: "Value in WETH",
+                  defaultMessage: "Current value",
                 })}
                 {": "}
               </dt>
@@ -616,18 +618,8 @@ export function VaultPositionRowView({
             <div>
               <dt className="inline">
                 {formatMessage({
-                  id: "public.vaults.manage.position.shares",
-                  defaultMessage: "Shares",
-                })}
-                {": "}
-              </dt>
-              <dd className="inline text-text-sub-600">{displayShares(position.shares)}</dd>
-            </div>
-            <div>
-              <dt className="inline">
-                {formatMessage({
                   id: "public.vaults.manage.position.withdrawable",
-                  defaultMessage: "Redeemable shares now",
+                  defaultMessage: "Redeemable now",
                 })}
                 {": "}
               </dt>
@@ -637,7 +629,7 @@ export function VaultPositionRowView({
               <dt className="inline">
                 {formatMessage({
                   id: "public.vaults.manage.position.estimatedProceeds",
-                  defaultMessage: "Estimated WETH proceeds",
+                  defaultMessage: "Estimated return",
                 })}
                 {": "}
               </dt>
@@ -661,20 +653,20 @@ export function VaultPositionRowView({
           >
             {formatMessage({
               id: "public.vaults.manage.position.withdraw",
-              defaultMessage: "Redeem shares",
+              defaultMessage: "Redeem",
             })}
           </EditorialGhostButton>
         )}
       </div>
 
-      <details className="mt-3 border-t border-stroke-soft-200 pt-3">
-        <summary className="cursor-pointer font-mono text-[10.5px] uppercase tracking-[0.16em] text-text-soft-400">
-          {formatMessage({
-            id: "public.vaults.manage.position.technical",
-            defaultMessage: "Technical details",
-          })}
-        </summary>
-        <dl className="mt-3 grid gap-2 text-xs sm:grid-cols-2">
+      <CheckoutTransactionDetails
+        className="mt-3"
+        label={formatMessage({
+          id: "public.vaults.manage.position.technical",
+          defaultMessage: "Transaction details",
+        })}
+      >
+        <dl className="grid gap-2 text-xs sm:grid-cols-2">
           <div>
             <dt className="font-medium text-text-strong-950">
               {formatMessage({
@@ -754,7 +746,7 @@ export function VaultPositionRowView({
             })}
           </a>
         ) : null}
-      </details>
+      </CheckoutTransactionDetails>
 
       {disabledReason ? <div className="mt-3">{disabledReason}</div> : null}
 
@@ -771,7 +763,7 @@ export function VaultPositionRowView({
             {formatMessage({
               id: "public.vaults.manage.redeem.unavailableBody",
               defaultMessage:
-                "This owner has visible vault shares, but the vault is not reporting redeemable shares at the current loss limit. Try again later or keep the position intact.",
+                "This endowment is visible, but nothing is redeemable right now. Try again later or leave it in place.",
             })}
           </p>
         </Alert>
@@ -783,14 +775,14 @@ export function VaultPositionRowView({
           className="mt-3 rounded-none bg-warning-lighter/30 p-3"
           title={formatMessage({
             id: "public.vaults.manage.redeem.previewUnavailableTitle",
-            defaultMessage: "Estimated proceeds unavailable",
+            defaultMessage: "Estimated return unavailable",
           })}
         >
           <p className="mt-1 text-xs leading-[1.5] text-text-sub-600">
             {formatMessage({
               id: "public.vaults.manage.redeem.previewUnavailableBody",
               defaultMessage:
-                "This owner has redeemable shares, but the vault conversion preview is unavailable. Refresh and try again before redeeming.",
+                "We can see a redeemable amount, but the return estimate is unavailable. Refresh before redeeming.",
             })}
           </p>
         </Alert>
@@ -807,7 +799,7 @@ export function VaultPositionRowView({
           >
             {formatMessage({
               id: "public.vaults.manage.withdraw.amount",
-              defaultMessage: "Shares to redeem",
+              defaultMessage: "Amount to redeem",
             })}
           </label>
           <div className="mt-2 flex items-center gap-2">
@@ -855,7 +847,7 @@ export function VaultPositionRowView({
             <p id={feedbackId} className="mt-2 text-xs text-error-dark" role="alert">
               {formatMessage({
                 id: "public.vaults.manage.withdraw.exceeds",
-                defaultMessage: "Share amount is higher than the currently redeemable shares.",
+                defaultMessage: "Enter an amount no higher than what is redeemable now.",
               })}
             </p>
           ) : (
@@ -863,7 +855,8 @@ export function VaultPositionRowView({
               {formatMessage(
                 {
                   id: "public.vaults.manage.withdraw.available",
-                  defaultMessage: "Redeemable now: {shares}. Estimated proceeds update at review.",
+                  defaultMessage:
+                    "Available to redeem: {shares}. The estimate updates before confirmation.",
                 },
                 { shares: displayShares(redeemableShares) }
               )}
@@ -875,17 +868,16 @@ export function VaultPositionRowView({
               <p className="font-serif text-lg font-normal text-text-strong-950">
                 {formatMessage({
                   id: "public.vaults.manage.withdraw.confirmTitle",
-                  defaultMessage: "Confirm share redemption",
+                  defaultMessage: "Confirm redemption",
                 })}
               </p>
               <p className="mt-2 text-sm leading-[1.55] text-text-sub-600">
                 {formatMessage(
                   {
                     id: "public.vaults.manage.withdraw.confirmBody",
-                    defaultMessage: "Redeem {shares} for approximately {assets} to {destination}?",
+                    defaultMessage: "Redeem approximately {assets} to {destination}?",
                   },
                   {
-                    shares: displayShares(parsedShares),
                     assets: estimatedAssetsLabel,
                     destination: destinationLabel,
                   }

@@ -403,22 +403,22 @@ describe("/vaults?manage=positions", () => {
 
     const panel = screen.getByTestId("vault-manage-positions-panel");
     expect(within(panel).getByText("Greenpill NYC")).toBeInTheDocument();
-    expect(within(panel).getByText("WETH vault shares")).toBeInTheDocument();
-    // Share value label is present (precise WETH wording, not Fund language).
-    expect(within(panel).getByText(/Value in WETH/)).toBeInTheDocument();
-    expect(within(panel).getByText("Ethereum Mainnet")).toBeInTheDocument();
-    expect(within(panel).getByRole("link", { name: VAULT })).toHaveAttribute(
+    expect(within(panel).getByText("Campaign endowment")).toBeInTheDocument();
+    expect(within(panel).getByText(/Current value/)).toBeInTheDocument();
+    const row = within(panel).getByTestId("vault-manage-position-greenpill-nyc");
+    fireEvent.click(within(row).getByRole("button", { name: "Transaction details" }));
+    expect(screen.getByText("Ethereum Mainnet")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: VAULT })).toHaveAttribute(
       "href",
       `https://etherscan.io/address/${VAULT}`
     );
-    expect(within(panel).getByRole("link", { name: /0xC02aaA39/ })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /0xC02aaA39/ })).toHaveAttribute(
       "href",
       `https://etherscan.io/address/${ASSET}`
     );
     expect(within(panel).getByText("Connected wallet").closest("section")).toHaveClass(
       "rounded-none"
     );
-    const row = within(panel).getByTestId("vault-manage-position-greenpill-nyc");
     expect(row).toBeInTheDocument();
     expect(row).toHaveClass("rounded-none");
     expect(row).not.toHaveClass("rounded-2xl");
@@ -433,7 +433,7 @@ describe("/vaults?manage=positions", () => {
     const panel = screen.getByTestId("vault-manage-positions-panel");
     expect(within(panel).getByText("Connected wallet")).toBeInTheDocument();
     expect(within(panel).getByText("vault-owner.eth")).toBeInTheDocument();
-    expect(within(panel).getByText("No vault shares for this wallet yet")).toBeInTheDocument();
+    expect(within(panel).getByText("No endowments for this wallet yet")).toBeInTheDocument();
     expect(within(panel).getByRole("button", { name: "Endow a campaign" })).toBeInTheDocument();
   });
 
@@ -449,14 +449,12 @@ describe("/vaults?manage=positions", () => {
     renderPage("/vaults?manage=positions");
 
     const row = screen.getByTestId("vault-manage-position-greenpill-nyc");
-    await user.click(within(row).getByRole("button", { name: "Redeem shares" }));
+    await user.click(within(row).getByRole("button", { name: "Redeem" }));
 
-    const amount = within(row).getByLabelText("Shares to redeem");
+    const amount = within(row).getByLabelText("Amount to redeem");
     // Over the max → review stays disabled and an error shows.
     await user.type(amount, "2");
-    expect(
-      within(row).getByText(/higher than the currently redeemable shares/i)
-    ).toBeInTheDocument();
+    expect(within(row).getByText(/no higher than what is redeemable now/i)).toBeInTheDocument();
     expect(within(row).getByRole("button", { name: "Review redemption" })).toBeDisabled();
 
     // Valid amount → review enabled; confirm calls the chain-aware redeem.
@@ -503,10 +501,10 @@ describe("/vaults?manage=positions", () => {
       renderPage("/vaults?manage=positions");
 
       const row = screen.getByTestId("vault-manage-position-greenpill-nyc");
-      await user.click(within(row).getByRole("button", { name: "Redeem shares" }));
+      await user.click(within(row).getByRole("button", { name: "Redeem" }));
       await user.click(within(row).getByRole("button", { name: "Max" }));
 
-      const amount = within(row).getByLabelText<HTMLInputElement>("Shares to redeem");
+      const amount = within(row).getByLabelText<HTMLInputElement>("Amount to redeem");
       // Locale-independent: exactly "1.5", never "15" (the old comma-strip result).
       expect(amount.value).toBe("1.5");
 
@@ -539,9 +537,9 @@ describe("/vaults?manage=positions", () => {
     renderPage("/vaults?manage=positions");
 
     const row = screen.getByTestId("vault-manage-position-greenpill-nyc");
-    await user.click(within(row).getByRole("button", { name: "Redeem shares" }));
+    await user.click(within(row).getByRole("button", { name: "Redeem" }));
 
-    const amount = within(row).getByLabelText<HTMLInputElement>("Shares to redeem");
+    const amount = within(row).getByLabelText<HTMLInputElement>("Amount to redeem");
     await user.type(amount, ".001");
     expect(amount.value).toBe(".001");
 
@@ -568,10 +566,10 @@ describe("/vaults?manage=positions", () => {
 
     const row = screen.getByTestId("vault-manage-position-greenpill-nyc");
     expect(within(row).getByText("Redemption unavailable right now")).toBeInTheDocument();
-    expect(within(row).getByText(/visible vault shares/i)).toBeInTheDocument();
-    expect(within(row).getByText(/Estimated WETH proceeds/i)).toBeInTheDocument();
+    expect(within(row).getByText(/nothing is redeemable right now/i)).toBeInTheDocument();
+    expect(within(row).getByText(/^Estimated return/)).toBeInTheDocument();
     expect(within(row).getByText("Unavailable")).toBeInTheDocument();
-    expect(within(row).queryByRole("button", { name: "Redeem shares" })).toBeNull();
+    expect(within(row).queryByRole("button", { name: "Redeem" })).toBeNull();
   });
 
   it("blocks redemption when estimated WETH proceeds cannot be previewed", () => {
@@ -591,10 +589,10 @@ describe("/vaults?manage=positions", () => {
     renderPage("/vaults?manage=positions");
 
     const row = screen.getByTestId("vault-manage-position-greenpill-nyc");
-    expect(within(row).getByText(/Estimated WETH proceeds/i)).toBeInTheDocument();
+    expect(within(row).getAllByText(/Estimated return/i)).toHaveLength(2);
     expect(within(row).getByText("Unavailable")).toBeInTheDocument();
-    expect(within(row).getByText("Estimated proceeds unavailable")).toBeInTheDocument();
-    expect(within(row).queryByRole("button", { name: "Redeem shares" })).toBeNull();
+    expect(within(row).getByText("Estimated return unavailable")).toBeInTheDocument();
+    expect(within(row).queryByRole("button", { name: "Redeem" })).toBeNull();
   });
 
   it("ignores stale card-wallet cache and keeps management wallet-only", () => {
@@ -607,11 +605,11 @@ describe("/vaults?manage=positions", () => {
     const panel = screen.getByTestId("vault-manage-positions-panel");
     expect(within(panel).queryByRole("tab", { name: "Card wallet" })).not.toBeInTheDocument();
     expect(within(panel).queryByText(/card wallet/i)).not.toBeInTheDocument();
-    expect(within(panel).queryByText("Restore email wallet to redeem")).not.toBeInTheDocument();
+    expect(within(panel).queryByText("Restore access to redeem")).not.toBeInTheDocument();
     expect(
       within(panel).queryByTestId("vault-manage-pending-funded-greenpill-nyc")
     ).not.toBeInTheDocument();
-    expect(within(panel).getByText("No vault shares for this wallet yet")).toBeInTheDocument();
+    expect(within(panel).getByText("No endowments for this wallet yet")).toBeInTheDocument();
   });
 });
 
