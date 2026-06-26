@@ -1,6 +1,6 @@
 # AI Prompt Contract — Admin Surface
 
-Stable vocabulary and never-use list for prompting AI design tools (Stitch, Antigravity, Claude Design, Figma Make) to generate admin UI that aligns with the Green Goods cockpit.
+Stable vocabulary and never-use list for prompting AI design tools or coding agents to generate admin UI that aligns with the Green Goods cockpit.
 
 > **Companion**: The `client` surface uses a warmer, more expressive palette of vocabulary anchored in the root `DESIGN.md`. This file is admin-specific — operator cockpit framing.
 
@@ -121,10 +121,10 @@ All follow M3 v0.192 anatomy exactly — do not override dimensions, state layer
 ## Companion Files
 
 - [language.md](./language.md) — Full Warm Earth design language (shapes, motion, color, hero moments, material behaviors)
+- [ai-ui-brief.md](./ai-ui-brief.md) — Reusable AI UI/CSS build brief and external reference role map
 - [SKILL.md](./SKILL.md) — Design philosophy, paradigms, admin carve-out
 - Root `DESIGN.md` — Canonical Warm Earth DesignMD tokens + creative brief
 - `packages/admin/DESIGN.md` — Admin-specific DesignMD dialect
-- `.stitch/config.json` — Surface routing for AI design tools
 
 ## Why This Contract Exists
 

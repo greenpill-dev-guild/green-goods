@@ -175,7 +175,7 @@ const manifest = {
   ],
   toolImports: [
     {
-      tool: "Google Stitch",
+      tool: "AI design tools",
       load: [
         "./DESIGN.md",
         "./DESIGN.browser.md",
@@ -230,8 +230,8 @@ Use this folder as the import surface for design and agent tools.
 - \`storybook-design-manifest.json\` links these files to Storybook's \`./index.json\`.
 - \`social-card.png\` is the 1200x630 preview image used by shared Storybook links.
 
-For Google Stitch, load \`${publicUrl}/DESIGN.md\`, \`${publicUrl}/DESIGN.browser.md\`, and \`${publicUrl}/design-md.generated.json\`.
-For Claude Design, load this README, both DesignMD files, and the Storybook \`${publicUrl}/index.json\`.
+For AI design tools, load \`${publicUrl}/DESIGN.md\`, \`${publicUrl}/DESIGN.browser.md\`, and \`${publicUrl}/design-md.generated.json\`.
+For coding agents, load this README, both DesignMD files, and the Storybook \`${publicUrl}/index.json\`.
 For component states, use the Storybook sidebar or \`./index.json\` rather than guessing component names.
 `,
 );
