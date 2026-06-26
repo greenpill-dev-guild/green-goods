@@ -92,10 +92,10 @@ export function useHubWorkbenchController() {
   const isDesktop = useMediaQuery("(min-width: 600px)");
   const hubContext = useMemo<AdminHubRouteContext>(
     () => ({
-      gardenAddress: selectedGarden?.id,
+      gardenAddress: selectedGarden?.tokenAddress ?? selectedGarden?.id,
       sort: sortDirection,
     }),
-    [selectedGarden?.id, sortDirection]
+    [selectedGarden?.id, selectedGarden?.tokenAddress, sortDirection]
   );
 
   useEffect(() => {

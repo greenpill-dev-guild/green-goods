@@ -23,6 +23,6 @@ export const APP_DEFAULT_TITLE = "Green Goods";
 export const APP_TITLE_TEMPLATE = "%s - Green Goods";
 export const APP_DESCRIPTION = "Start Bringing Your Impact Onchain";
 export const APP_URL = "https://greengoods.app";
-export const APP_ICON = "https://greengoods.app/icon-192.png";
+export const APP_ICON = "https://greengoods.app/icon.png";
 
 export const ONBOARDED_STORAGE_KEY = "greengoods_user_onboarded";

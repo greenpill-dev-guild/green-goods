@@ -3,6 +3,8 @@ import { Toaster, type ToastOptions, type ToastPosition } from "react-hot-toast"
 import { useIntl } from "react-intl";
 import { setToastTranslator, type ToastStatus, type ToastTranslator } from "./toast.service";
 
+export type ToastViewportVariant = "default" | "editorial";
+
 const BASE_CONTAINER_STYLE: CSSProperties = {
   zIndex: 20000,
   top: "1.5rem",
@@ -25,6 +27,28 @@ const BASE_TOAST_OPTIONS: ToastOptions = {
     lineHeight: "20px",
     textAlign: "center",
   },
+};
+
+const EDITORIAL_CONTAINER_STYLE: CSSProperties = {
+  top: "clamp(1rem, 2vw, 2rem)",
+  width: "min(460px, calc(100vw - 2rem))",
+};
+
+const EDITORIAL_TOAST_OPTIONS: ToastOptions = {
+  style: {
+    background: "rgb(var(--editorial-warm-rgb, 241 236 226))",
+    color: "var(--color-text-strong-950)",
+    border: "1px solid rgb(var(--editorial-deep-rgb, 45 33 24) / 0.18)",
+    boxShadow: "var(--shadow-editorial-panel, 0 30px 80px -30px rgb(45 33 24 / 0.35))",
+    borderRadius: "var(--radius-md)",
+    padding: "14px 18px",
+    textAlign: "left",
+  },
+  iconTheme: {
+    primary: "rgb(var(--editorial-deep-rgb, 45 33 24))",
+    secondary: "rgb(var(--editorial-warm-rgb, 241 236 226))",
+  },
+  className: "gg-toast-editorial",
 };
 
 function mergeToastOptions(
@@ -62,6 +86,10 @@ function mergeToastOptions(
     };
   }
 
+  if (base.className || overrides.className) {
+    merged.className = [base.className, overrides.className].filter(Boolean).join(" ");
+  }
+
   return merged;
 }
 
@@ -69,15 +97,23 @@ export interface ToastViewportProps {
   position?: ToastPosition;
   containerStyle?: CSSProperties;
   toastOptions?: ToastOptions;
+  variant?: ToastViewportVariant;
 }
 
 export function ToastViewport({
   position = "top-center",
   containerStyle,
   toastOptions,
+  variant = "default",
 }: ToastViewportProps) {
   const intl = useIntl();
   const locale = intl.locale;
+  const variantContainerStyle = variant === "editorial" ? EDITORIAL_CONTAINER_STYLE : undefined;
+  const variantToastOptions = variant === "editorial" ? EDITORIAL_TOAST_OPTIONS : undefined;
+  const mergedToastOptions = mergeToastOptions(
+    mergeToastOptions(BASE_TOAST_OPTIONS, variantToastOptions),
+    toastOptions
+  );
 
   useEffect(() => {
     const titleDescriptors: Record<ToastStatus, { id: string; defaultMessage: string }> = {
@@ -180,8 +216,8 @@ export function ToastViewport({
   return (
     <Toaster
       position={position}
-      containerStyle={{ ...BASE_CONTAINER_STYLE, ...containerStyle }}
-      toastOptions={mergeToastOptions(BASE_TOAST_OPTIONS, toastOptions)}
+      containerStyle={{ ...BASE_CONTAINER_STYLE, ...variantContainerStyle, ...containerStyle }}
+      toastOptions={mergedToastOptions}
     />
   );
 }

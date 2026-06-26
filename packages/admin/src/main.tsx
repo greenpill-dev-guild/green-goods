@@ -72,7 +72,7 @@ export const Root = () => (
           name: "Green Goods Admin",
           description: "Garden management canvas for the Green Goods protocol",
           url: adminAppUrl,
-          icons: ["https://greengoods.app/icon-192.png"],
+          icons: ["https://greengoods.app/icon.png"],
         }}
         defaultChainId={DEFAULT_CHAIN_ID}
       >

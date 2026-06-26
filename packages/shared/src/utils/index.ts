@@ -239,8 +239,14 @@ export {
   isUnlimitedVaultLimit,
   isZeroBytes32,
   MAX_UINT256,
+  normalizeDecimalInput,
   validateDecimalInput,
 } from "./blockchain/vaults";
+export type { OctantVaultRedeemCallVariant } from "./blockchain/octant-vault-redeem";
+export {
+  getOctantVaultRedeemCallShape,
+  OCTANT_VAULT_REDEEM_CALL_SHAPES,
+} from "./blockchain/octant-vault-redeem";
 export {
   formatUsdCents,
   formatUsdPrice,

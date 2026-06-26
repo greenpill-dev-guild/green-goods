@@ -36,7 +36,7 @@ export function useGardenWorkspaceController() {
   const { selectedGarden, gardenOptions, handleSelectGarden } = useAdminGardenWorkspaceSelection();
   const { containerRef } = useSheetWidth();
   const gardenStateKey = selectedGarden?.id ?? "";
-  const selectedGardenAddress = selectedGarden?.id;
+  const selectedGardenAddress = selectedGarden?.tokenAddress ?? selectedGarden?.id;
   const getGardenWorkspaceState = useGardenStateStore((state) => state.getGardenWorkspaceState);
   const setGardenWorkspaceState = useGardenStateStore((state) => state.setGardenWorkspaceState);
   const lastHydratedGardenStateKeyRef = useRef<string | null>(null);
@@ -220,11 +220,11 @@ export function useGardenWorkspaceController() {
         navigate(adminRoutes.gardenSettings({ gardenAddress: selectedGardenAddress }));
       } else if (nextView === "activity") {
         // Tier 4: Activity + Members are net-new tabs per audit IA-Garden.
-        // Keep garden context shareable so route changes cannot fall back to
-        // the persisted/default garden on the next URL sync pass.
-        navigate(adminRoutes.gardenActivity({ gardenAddress: selectedGardenAddress, range }));
+        // First-delivery navigation is path-only; range/garden context is
+        // carried in the workspace controller, not the URL.
+        navigate("/garden/activity");
       } else if (nextView === "members") {
-        navigate(adminRoutes.gardenMembers({ gardenAddress: selectedGardenAddress, range }));
+        navigate("/garden/members");
       } else {
         navigate(adminRoutes.gardenOverview({ gardenAddress: selectedGardenAddress, range }));
       }

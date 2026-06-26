@@ -4,7 +4,6 @@ import {
   Alert,
   adminRoutes,
   Card,
-  compareAddresses,
   type Domain,
   expandDomainMask,
   FileUploadField,
@@ -306,7 +305,7 @@ function SubmitWorkPanelContent({
   const { canManageGarden } = useGardenPermissions();
 
   const garden = useMemo(
-    () => gardens.find((candidate) => compareAddresses(candidate.id, gardenId)),
+    () => gardens.find((candidate) => candidate.id === gardenId),
     [gardens, gardenId]
   );
   const gardenDomains = useMemo<Set<Domain>>(

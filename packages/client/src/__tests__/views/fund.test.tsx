@@ -2,8 +2,8 @@
  * Fund view behavior tests for the editorial public browser refresh.
  *
  * Locks the public-only contract:
- * - Each Garden row exposes Donate + Endow CTAs (no intermediate intent picker).
- * - Tapping Donate or Endow opens PublicFundingCard with the matching intent.
+ * - Each Garden row exposes Donate and Endow CTAs.
+ * - Tapping Donate or Endow opens PublicFundingCard with the selected intent.
  * - `?intent=` mounts the receipt UI.
  * - `?garden=` stale resolution renders a non-blocking message.
  * - The Garden section exposes the public Manage Endowments panel text button.
@@ -170,8 +170,7 @@ import FundPage from "../../views/Public/Fund";
 const messages: Record<string, string> = {
   "public.fund.title": "Fund",
   "public.fund.heroTitle": "A small gesture today, growing over many seasons.",
-  "public.fund.heroLede":
-    "Donate to support a Garden's immediate work, or Endow a Vault designed so yield helps the Garden over time.",
+  "public.fund.heroLede": "Endow a Garden Vault so yield can support the Garden over many seasons.",
   "public.fund.dialog.donate.title": "Donate",
   "public.fund.dialog.endow.title": "Endow",
 };
@@ -310,7 +309,7 @@ describe("FundPage", () => {
     );
   });
 
-  it("each Garden row exposes Donate + Endow CTAs (no intermediate picker)", () => {
+  it("each Garden row exposes Donate and Endow CTAs", () => {
     renderView();
     const donateButtons = screen.getAllByRole("button", { name: "Donate" });
     const endowButtons = screen.getAllByRole("button", { name: "Endow" });
@@ -368,7 +367,7 @@ describe("FundPage", () => {
   it("places Manage Endowments as a text button in the Garden selection section", () => {
     renderView();
     const gardenSection = screen
-      .getByRole("heading", { name: /Gardens accepting support/i })
+      .getByRole("heading", { name: /Gardens accepting endowments/i })
       .closest("section");
 
     expect(gardenSection).not.toBeNull();
@@ -483,22 +482,22 @@ describe("FundPage", () => {
     });
   });
 
-  it("renders the standalone vault section between the hero and Donate/Endow context", () => {
+  it("renders the standalone vault section between the hero and Endow context", () => {
     renderView();
 
     const hero = screen.getByRole("heading", { level: 1 });
     const vaults = screen.getByRole("heading", {
       name: /Endowment capital already supporting Gardens/i,
     });
-    const paths = screen.getByRole("heading", { name: /Donate now, or Endow/i });
-    const gardens = screen.getByRole("heading", { name: /Gardens accepting support/i });
+    const paths = screen.getByRole("heading", { name: /Endow for many seasons/i });
+    const gardens = screen.getByRole("heading", { name: /Gardens accepting endowments/i });
 
     expect(hero.compareDocumentPosition(vaults) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(vaults.compareDocumentPosition(paths) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(paths.compareDocumentPosition(gardens) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(screen.getByText("§ 01 — Endowment engine")).toBeInTheDocument();
-    expect(screen.getByText("§ 02 — Ways to support")).toBeInTheDocument();
-    expect(screen.getByText("§ 03 — Choose where to apply your support")).toBeInTheDocument();
+    expect(screen.getByText("§ 02 — Endowment path")).toBeInTheDocument();
+    expect(screen.getByText("§ 03 — Choose where to endow")).toBeInTheDocument();
   });
 
   it("wires the vault stats section into the reveal lifecycle", () => {

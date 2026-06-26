@@ -1,6 +1,5 @@
 import {
   DEFAULT_CHAIN_ID,
-  compareAddresses,
   useActions,
   useAdminGardenWorkspaceSelection,
   useGardenPermissions,
@@ -36,8 +35,7 @@ export function useResolvedWorkDetail(workId: string | undefined) {
   );
   const gardenId = matchedGarden?.id ?? selectedGardenId;
   const garden =
-    gardens.find((candidateGarden) => compareAddresses(candidateGarden.id, gardenId)) ??
-    matchedGarden;
+    gardens.find((candidateGarden) => candidateGarden.id === gardenId) ?? matchedGarden;
 
   const { works, isLoading: worksLoading } = useWorks(gardenId ?? "");
   const work =
@@ -57,7 +55,7 @@ export function useResolvedWorkDetail(workId: string | undefined) {
   const isReviewed = work?.status === "approved" || work?.status === "rejected";
 
   useEffect(() => {
-    if (matchedGarden && !compareAddresses(matchedGarden.id, selectedGardenId)) {
+    if (matchedGarden && matchedGarden.id !== selectedGardenId) {
       setSelectedGarden(matchedGarden);
     }
   }, [matchedGarden, selectedGardenId, setSelectedGarden]);

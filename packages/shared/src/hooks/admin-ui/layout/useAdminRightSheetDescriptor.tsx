@@ -43,7 +43,7 @@ function AdminNotificationPanel() {
   const navigate = useNavigate();
   const closeSheet = useSheetOrchestratorStore((state) => state.closeSheet);
   const { selectedGarden } = useAdminGardenWorkspaceSelection();
-  const selectedGardenAddress = selectedGarden?.id;
+  const selectedGardenAddress = selectedGarden?.tokenAddress ?? selectedGarden?.id;
   const workspace = useGardenDetailData(selectedGarden?.id);
 
   const navigateFromNotification = useCallback(
