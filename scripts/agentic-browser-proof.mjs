@@ -29,7 +29,7 @@ const surfaces = [
     root: path.join(repoRoot, "packages/client/dist"),
     publicRoot: true,
     spaFallback: true,
-    routes: ["/", "/fund", "/impact", "/gardens", "/actions", "/cookies"],
+    routes: ["/", "/fund", "/impact", "/gardens", "/actions", "/cookies", "/vaults"],
   },
   {
     name: "admin",

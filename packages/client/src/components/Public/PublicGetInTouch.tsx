@@ -16,21 +16,7 @@ import {
 
 type SubmitState = "idle" | "loading" | "ok" | "error";
 
-const PUBLIC_AGENT_API_ORIGIN = "https://agent.greengoods.app";
-const PUBLIC_AGENT_PROXY_BASE_URL = "/api/agent";
-const CONFIGURED_API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/+$/, "");
-
-export function getPublicSubscribeUrl(
-  route: string,
-  apiBaseUrl = CONFIGURED_API_BASE_URL,
-  isProduction = import.meta.env.PROD
-) {
-  const normalizedRoute = route.startsWith("/") ? route : `/${route}`;
-  if (isProduction && apiBaseUrl === PUBLIC_AGENT_API_ORIGIN) {
-    return `${PUBLIC_AGENT_PROXY_BASE_URL}${normalizedRoute}`;
-  }
-  return `${apiBaseUrl}${normalizedRoute}`;
-}
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "";
 
 /**
  * PublicGetInTouch — closing module on the editorial homepage.
@@ -38,7 +24,7 @@ export function getPublicSubscribeUrl(
  * Editorial walnut surface (`bg-editorial-deep`) with a quiet email subscribe
  * form and a secondary Schedule-a-Call CTA. Honest UX: success only when the
  * public Agent route returns a confirmed `subscribed` / `already_subscribed`;
- * subscription provider outages render a localized Schedule-a-Call fallback.
+ * Luma outages render a localized failure with the Schedule-a-Call fallback.
  *
  * Mobile: subscribe form first, then a compact Schedule-a-Call callout.
  * Desktop: same content reflowed in a two-column editorial layout.
@@ -70,7 +56,7 @@ export function PublicGetInTouch() {
       setSubmitState("loading");
       setErrorMessageId(null);
       try {
-        const response = await fetch(getPublicSubscribeUrl(publicCuration.subscribeRoute), {
+        const response = await fetch(`${API_BASE_URL}${publicCuration.subscribeRoute}`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(body),

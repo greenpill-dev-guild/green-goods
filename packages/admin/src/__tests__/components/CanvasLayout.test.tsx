@@ -98,7 +98,7 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
     GardenChip: (props: {
       gardens: Array<{ id: string; name: string }>;
       selectedGarden: { id: string; name: string } | null;
-      onSelectGarden: (garden: { id: string; name: string }) => void;
+      onSelectGarden: (garden: { id: string; name: string } | null) => void;
     }) => {
       mockGardenChipProps(props);
       return (
@@ -109,6 +109,9 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
               Select {garden.name}
             </button>
           ))}
+          <button type="button" onClick={() => props.onSelectGarden(null)}>
+            Select All Gardens
+          </button>
         </div>
       );
     },
@@ -335,37 +338,6 @@ describe("CanvasLayout", () => {
     expect(mockUseStaleGardenGuard).toHaveBeenCalled();
     expect(screen.getByText("Actions")).toBeInTheDocument();
     expect(screen.getByTestId("active-path")).toHaveTextContent("/actions");
-  });
-
-  it("passes the selected garden through the app bar switcher to URL sync", async () => {
-    const user = userEvent.setup();
-    mockEligibleAdminGardens.current = {
-      eligibleGardens: [
-        { id: "garden-1", name: "Garden One", location: "Quito" },
-        { id: "garden-2", name: "Garden Two", location: "Bogota" },
-      ],
-      resolvedDefaultGarden: { id: "garden-1", name: "Garden One", location: "Quito" },
-      persistedGardenId: null,
-      scopeKey: "0x123:10",
-      canCreateGarden: true,
-      isLoaded: true,
-    };
-
-    renderWithProviders(
-      <MemoryRouter initialEntries={["/hub/work?gardenAddress=garden-1"]}>
-        <CanvasLayout />
-      </MemoryRouter>
-    );
-
-    await user.click(screen.getByRole("button", { name: "Select Garden Two" }));
-
-    expect(mockSetUrlGarden).toHaveBeenCalledWith(
-      expect.objectContaining({
-        id: "garden-2",
-        name: "Garden Two",
-        location: "Bogota",
-      })
-    );
   });
 
   it.each([

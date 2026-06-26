@@ -15,6 +15,7 @@ export const CLIENT_ROUTE_IDS = {
   publicGardens: "public-gardens",
   publicCookies: "public-cookies",
   publicFund: "public-fund",
+  publicVaults: "public-vaults",
   publicImpact: "public-impact",
   publicActions: "public-actions",
   publicGlossary: "public-glossary",
@@ -100,6 +101,13 @@ export const appRoutes = [
             path: "fund",
             lazy: async () => ({
               Component: (await import("@/views/Public/Fund")).default,
+            }),
+          },
+          {
+            id: CLIENT_ROUTE_IDS.publicVaults,
+            path: "vaults",
+            lazy: async () => ({
+              Component: (await import("@/views/Public/Vaults")).default,
             }),
           },
           {

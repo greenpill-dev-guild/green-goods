@@ -16,9 +16,8 @@ const TEST_CHAIN_ID = 11155111;
 const TEST_MODULE = "0xModule111111111111111111111111111111111111";
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
-const TEST_GARDEN_1 = "0x1111111111111111111111111111111111111111";
-const TEST_GARDEN_2 = "0x2222222222222222222222222222222222222222";
-const SHARED_GARDEN_TOKEN = "0x9999999999999999999999999999999999999999";
+const TEST_GARDEN_1 = "0xGarden1111111111111111111111111111111111";
+const TEST_GARDEN_2 = "0xGarden2222222222222222222222222222222222";
 const TEST_JAR_1 = "0xJar1111111111111111111111111111111111111";
 const TEST_JAR_2 = "0xJar2222222222222222222222222222222222222";
 const TEST_CURRENCY = "0xCurr111111111111111111111111111111111111";
@@ -106,11 +105,11 @@ describe("hooks/cookie-jar/useUserCookieJars", () => {
   });
 
   it("filters gardens to only those where user is operator", () => {
-    const nonOperatorGarden = "0x3333333333333333333333333333333333333333";
+    const nonOperatorGarden = "0xNonOp111111111111111111111111111111111";
     mockOperatorGardens.push({ id: TEST_GARDEN_1.toLowerCase(), name: "Garden 1" });
     mockGardens.push(
-      { id: TEST_GARDEN_1, tokenAddress: SHARED_GARDEN_TOKEN },
-      { id: nonOperatorGarden, tokenAddress: SHARED_GARDEN_TOKEN }
+      { tokenAddress: TEST_GARDEN_1, id: "garden-1" },
+      { tokenAddress: nonOperatorGarden, id: "garden-non-op" }
     );
 
     // Step 1: jar addresses — only 1 garden should be queried
@@ -152,8 +151,8 @@ describe("hooks/cookie-jar/useUserCookieJars", () => {
       { id: TEST_GARDEN_2.toLowerCase(), name: "Garden 2" }
     );
     mockGardens.push(
-      { id: TEST_GARDEN_1, tokenAddress: SHARED_GARDEN_TOKEN },
-      { id: TEST_GARDEN_2, tokenAddress: SHARED_GARDEN_TOKEN }
+      { tokenAddress: TEST_GARDEN_1, id: "garden-1" },
+      { tokenAddress: TEST_GARDEN_2, id: "garden-2" }
     );
 
     // Step 1: jar addresses for both gardens
@@ -215,7 +214,7 @@ describe("hooks/cookie-jar/useUserCookieJars", () => {
 
   it("filters out zero-address jars across all gardens", () => {
     mockOperatorGardens.push({ id: TEST_GARDEN_1.toLowerCase(), name: "Garden 1" });
-    mockGardens.push({ id: TEST_GARDEN_1, tokenAddress: SHARED_GARDEN_TOKEN });
+    mockGardens.push({ tokenAddress: TEST_GARDEN_1, id: "garden-1" });
 
     // Jar addresses include a zero address
     mockReadContractsResults.push({
@@ -251,7 +250,7 @@ describe("hooks/cookie-jar/useUserCookieJars", () => {
 
   it("falls back to 18 decimals on failure", () => {
     mockOperatorGardens.push({ id: TEST_GARDEN_1.toLowerCase(), name: "Garden 1" });
-    mockGardens.push({ id: TEST_GARDEN_1, tokenAddress: SHARED_GARDEN_TOKEN });
+    mockGardens.push({ tokenAddress: TEST_GARDEN_1, id: "garden-1" });
 
     mockReadContractsResults.push({
       data: [{ result: [TEST_JAR_1], status: "success" }],
@@ -288,7 +287,7 @@ describe("hooks/cookie-jar/useUserCookieJars", () => {
 
   it("sets loading state correctly across all steps", () => {
     mockOperatorGardens.push({ id: TEST_GARDEN_1.toLowerCase(), name: "Garden 1" });
-    mockGardens.push({ id: TEST_GARDEN_1, tokenAddress: SHARED_GARDEN_TOKEN });
+    mockGardens.push({ tokenAddress: TEST_GARDEN_1, id: "garden-1" });
 
     // First step is loading
     mockReadContractsResults.push({ data: undefined, isLoading: true });

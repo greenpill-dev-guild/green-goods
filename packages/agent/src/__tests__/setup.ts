@@ -260,6 +260,18 @@ class InMemoryDatabase {
             const key = String(params[0]);
             return table.get(key) ?? null;
           }
+          if (tableName === "funding_intents") {
+            if (/clientRequestId\s*=\s*\?/i.test(sql)) {
+              const clientRequestId = String(params[0]);
+              return (
+                Array.from(table.values()).find((row) => row.clientRequestId === clientRequestId) ??
+                null
+              );
+            }
+
+            const key = String(params[0]);
+            return table.get(key) ?? null;
+          }
 
           // Simple key lookup based on first two params (platform, platformId) or single param (id)
           const key = params.length >= 2 ? `${params[0]}:${params[1]}` : String(params[0]);
@@ -313,6 +325,17 @@ class InMemoryDatabase {
               messageIds.has(String(row.chatMessageId))
             );
           }
+          if (tableName === "funding_intents") {
+            let rows = Array.from(table.values());
+            if (/status\s+IN\s+\('started',\s*'pending_provider'\)/i.test(sql)) {
+              rows = rows.filter(
+                (row) => row.status === "started" || row.status === "pending_provider"
+              );
+            }
+            rows = rows.sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)));
+            const limit = typeof params[0] === "number" ? params[0] : undefined;
+            return typeof limit === "number" ? rows.slice(0, limit) : rows;
+          }
 
           // Filter by gardenAddress if present
           if (params.length === 1) {
@@ -343,6 +366,8 @@ class InMemoryDatabase {
             idempotency_keys: 9,
             chat_messages: 12,
             chat_message_attachments: 11,
+            funding_intents: 34,
+            funding_intent_events: 6,
           };
 
           // Determine key based on table
@@ -469,6 +494,67 @@ class InMemoryDatabase {
               height: params[9],
               createdAt: params[10],
             };
+          } else if (tableName === "funding_intents") {
+            if (params.length !== EXPECTED_PARAMS.funding_intents) {
+              throw new Error(
+                `Mock DB: Expected ${EXPECTED_PARAMS.funding_intents} params for funding_intents, got ${params.length}`
+              );
+            }
+            key = String(params[0]);
+            if (table.has(key)) {
+              throw new Error("UNIQUE constraint failed: funding_intents.id");
+            }
+            row = {
+              id: params[0],
+              gardenId: params[1],
+              gardenName: params[2],
+              gardenLocation: params[3],
+              destinationType: params[4],
+              destinationAddress: params[5],
+              fundingIntent: params[6],
+              paymentMethod: params[7],
+              availabilityKey: params[8],
+              clientRequestId: params[9],
+              idempotencyFingerprint: params[10],
+              amountUsd: params[11],
+              chainId: params[12],
+              token: params[13],
+              provider: params[14],
+              providerSessionId: params[15],
+              providerPaymentId: params[16],
+              status: params[17],
+              payerEmailHash: params[18],
+              receiptTokenHash: params[19],
+              quoteExpiresAt: params[20],
+              checkoutExpiresAt: params[21],
+              receiverAddress: params[22],
+              sourceRoute: params[23],
+              managementUrl: params[24],
+              quotedAssetAmount: params[25],
+              minAssetAmount: params[26],
+              fundedAssetAmount: params[27],
+              fundingTxHash: params[28],
+              failureCode: params[29],
+              checkoutSession: params[30],
+              transactionAttempts: params[31],
+              createdAt: params[32],
+              updatedAt: params[33],
+            };
+          } else if (tableName === "funding_intent_events") {
+            if (params.length !== EXPECTED_PARAMS.funding_intent_events) {
+              throw new Error(
+                `Mock DB: Expected ${EXPECTED_PARAMS.funding_intent_events} params for funding_intent_events, got ${params.length}`
+              );
+            }
+            key = String(params[0]);
+            row = {
+              id: params[0],
+              intentId: params[1],
+              status: params[2],
+              note: params[3],
+              providerEventId: params[4],
+              createdAt: params[5],
+            };
           } else {
             key = String(params[0]);
             row = { id: params[0] };
@@ -520,6 +606,22 @@ class InMemoryDatabase {
             if (existingRow) {
               existingRow.status = params[0];
               existingRow.updatedAt = params[1];
+              table.set(key, existingRow);
+              return { changes: 1, lastInsertRowid: 0 };
+            }
+            return { changes: 0, lastInsertRowid: 0 };
+          } else if (tableName === "funding_intents") {
+            const key = String(params[params.length - 1]);
+            const existingRow = table.get(key);
+            if (existingRow) {
+              const setFields = params.slice(0, -1);
+              const setClause = sql.split(/\bWHERE\b/i)[0] ?? sql;
+              const assignments = Array.from(setClause.matchAll(/(\w+)\s*=\s*\?/g)).map(
+                (match) => match[1]
+              );
+              assignments.forEach((field, index) => {
+                existingRow[field] = setFields[index];
+              });
               table.set(key, existingRow);
               return { changes: 1, lastInsertRowid: 0 };
             }

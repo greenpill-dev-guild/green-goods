@@ -3,7 +3,6 @@ import { useMemo } from "react";
 import { DEFAULT_CHAIN_ID } from "../../config/blockchain";
 import type { Address } from "../../types/domain";
 import { WeightScheme } from "../../types/gardens-community";
-import { compareAddresses } from "../../utils/blockchain/address";
 import type { GardenRole } from "../../utils/blockchain/garden-roles";
 import { getNetDeposited } from "../../utils/blockchain/vaults";
 import { useGardenAssessments } from "../assessment/useGardenAssessments";
@@ -33,8 +32,8 @@ export function useGardenDetailData(id: string | undefined) {
     hasStaleBaseList,
     isError: eligibleGardenBaseListError,
   } = useEligibleAdminGardens();
-  const baseGarden = gardens.find((g) => compareAddresses(g.id, id)) ?? null;
-  const recoveredEligibleGarden = eligibleGardens.find((g) => compareAddresses(g.id, id)) ?? null;
+  const baseGarden = gardens.find((g) => g.id === id) ?? null;
+  const recoveredEligibleGarden = eligibleGardens.find((g) => g.id === id) ?? null;
   const garden = baseGarden ?? recoveredEligibleGarden ?? undefined;
   const isRecoveredEligibleGarden = baseGarden === null && recoveredEligibleGarden !== null;
 

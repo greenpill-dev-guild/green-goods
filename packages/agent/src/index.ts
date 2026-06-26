@@ -8,7 +8,7 @@
  * Future platforms: Discord, WhatsApp, SMS
  */
 
-import { createServer, startServer } from "./api/server";
+import { createServer, createThirdwebCheckoutClient, startServer } from "./api/server";
 import { parseAllowedOrigins } from "./api/public-protection";
 import { getConfig } from "./config";
 import { createGroupCaptureHandler, handleMessage, setHandlerContext } from "./handlers";
@@ -25,7 +25,12 @@ import {
   shutdownAgentAnalytics,
   trackAgentRuntimeStarted,
 } from "./services/analytics";
-import { clearBlockchainCache, initBlockchain } from "./services/blockchain";
+import {
+  clearBlockchainCache,
+  confirmFundingTupleOnChain,
+  initBlockchain,
+  readVaultShareBalanceOnChain,
+} from "./services/blockchain";
 import { closeDB, initDB } from "./services/db";
 import { resolveAgentRpcUrl } from "./services/agent-rpc";
 import { createSqliteFundingIntentStore } from "./services/funding-intents";
@@ -110,7 +115,7 @@ async function main(): Promise<void> {
     allowedOrigins: parseAllowedOrigins(config.publicAllowedOrigins),
     trustedProxy: {
       hops: config.trustedProxyHops,
-      cidrs: config.trustedProxyCidrs?.split(",").map((cidr: string) => cidr.trim()),
+      cidrs: config.trustedProxyCidrs?.split(",").map((cidr) => cidr.trim()),
     },
     uploadSigning: {
       pinataJwt: config.pinataJwt,
@@ -123,6 +128,22 @@ async function main(): Promise<void> {
     },
     thirdwebWebhookSecret: config.thirdwebWebhookSecret,
     thirdwebClientId: config.thirdwebClientId,
+    thirdwebCheckout: createThirdwebCheckoutClient({
+      clientId: config.thirdwebClientId,
+      secretKey: config.thirdwebSecretKey,
+    }),
+    // Card Endow proof verifiers — chain-aware (the funding tx lands on the
+    // tuple's chain, e.g. Ethereum mainnet, not the Green Goods chain). The
+    // proof route fails closed without them; share balances are read on-chain,
+    // never trusted from the client.
+    confirmFundingTuple: (txHash, expected) =>
+      confirmFundingTupleOnChain(
+        txHash as `0x${string}`,
+        expected,
+        resolveAgentRpcUrl(expected.chainId)
+      ),
+    readVaultShareBalance: (params) =>
+      readVaultShareBalanceOnChain(params, resolveAgentRpcUrl(params.chainId)),
   });
 
   if (config.telegramRuntimeDisabled) {
@@ -178,7 +199,7 @@ async function main(): Promise<void> {
   );
 
   // ============================================================================
-  // SHUTDOWN HANDLERS
+  // GRACEFUL SHUTDOWN
   // ============================================================================
 
   const shutdown = createShutdownHandler({
@@ -186,8 +207,8 @@ async function main(): Promise<void> {
     botMode: config.telegramRuntimeDisabled ? "webhook" : config.mode,
     cleanupTasks: [
       () => rateLimiter.destroy(),
+      () => clearBlockchainCache(),
       closeDB,
-      clearBlockchainCache,
       shutdownAgentAnalytics,
       shutdownAgentSentry,
     ],
@@ -196,18 +217,23 @@ async function main(): Promise<void> {
     server,
   });
 
-  process.once("SIGINT", () => {
-    void shutdown("SIGINT");
+  process.once("SIGINT", () => void shutdown("SIGINT"));
+  process.once("SIGTERM", () => void shutdown("SIGTERM"));
+
+  process.on("uncaughtException", (error) => {
+    logger.fatal({ err: error }, "Uncaught exception");
+    captureAgentException(error, { source: "process.uncaughtException", surface: "runtime" });
+    void shutdown("uncaughtException", 1);
   });
-  process.once("SIGTERM", () => {
-    void shutdown("SIGTERM");
+
+  process.on("unhandledRejection", (reason, promise) => {
+    logger.error({ reason, promise }, "Unhandled rejection");
+    captureAgentException(reason, { source: "process.unhandledRejection", surface: "runtime" });
   });
 }
 
-main().catch(async (error) => {
+main().catch((error) => {
+  logger.fatal({ err: error }, "Failed to start agent");
   captureAgentException(error, { source: "startup", surface: "runtime" });
-  logger.error({ error }, "❌ Failed to start agent");
-  await shutdownAgentAnalytics().catch(() => undefined);
-  await shutdownAgentSentry().catch(() => undefined);
   process.exit(1);
 });

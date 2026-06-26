@@ -179,10 +179,8 @@ export function useInstallGuidance(
       };
     }
 
-    // Wrong browser for Green Goods' install policy. Android is Chrome-only
-    // for now; iOS is Safari-only. Do not fall through to manual/native install
-    // just because another browser reports partial PWA support.
-    if (!browserInfo.isRecommendedBrowser) {
+    // Wrong browser for platform
+    if (!browserInfo.isRecommendedBrowser && !browserInfo.supportsNativePWA) {
       const openUrl = getOpenInBrowserUrl(platform, recommendedBrowser.browser);
 
       return {

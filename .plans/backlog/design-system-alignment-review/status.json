@@ -22,8 +22,7 @@
     "Backlog read-only reassessment after the code/token enforcement work completed.",
     "This is a read-only alignment review unless the user explicitly asks for fixes.",
     "Follow .claude/skills/design/system-alignment-review.md as the required review protocol.",
-    "Primary proof comes from design validators plus file:line evidence, not subjective visual preference.",
-    "2026-06-19 dependency cleared: css-maintainability-polish moved to archive, so this backlog review is no longer blocked on an active hub dependency."
+    "Primary proof comes from design validators plus file:line evidence, not subjective visual preference."
   ],
   "lanes": {
     "ui": {
@@ -88,14 +87,6 @@
       "status": "rescoped",
       "branch": null,
       "note": "Scoped as the follow-up read-only design-system alignment review after deleting the old implementation plan."
-    },
-    {
-      "timestamp": "2026-06-19T03:50:00.000Z",
-      "actor": "codex",
-      "lane": "system",
-      "status": "dependency_cleared",
-      "branch": "claude/qa-pass-1/css-maintainability-polish",
-      "note": "Cleared depends_on_features after css-maintainability-polish was archived; plan-hub validation does not treat archived hubs as active dependency slugs."
     }
   ],
   "taxonomy": {
@@ -103,6 +94,6 @@
     "tracks": ["admin", "client-browser", "client-pwa", "shared", "docs"],
     "work_types": ["review"],
     "surfaces": ["DESIGN.md", "packages/shared", "packages/admin", "packages/client", "docs"],
-    "depends_on_features": []
+    "depends_on_features": ["css-maintainability-polish"]
   }
 }

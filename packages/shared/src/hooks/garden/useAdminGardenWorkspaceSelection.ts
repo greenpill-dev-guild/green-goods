@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { useAdminStore, type Garden } from "../../stores/useAdminStore";
-import { compareAddresses } from "../../utils/blockchain/address";
-import { useGardenUrlSync } from "../navigation/useGardenUrlSync";
 import { useEligibleAdminGardens } from "./useEligibleAdminGardens";
 
 export interface AdminGardenWorkspaceOption {
@@ -27,10 +25,9 @@ export function useAdminGardenWorkspaceSelection({
   autoSelectFirstGarden = false,
   onAutoSelectGarden,
 }: AdminGardenWorkspaceSelectionOptions = {}): AdminGardenWorkspaceSelection {
-  const { eligibleGardens, isLoaded, resolvedDefaultGarden } = useEligibleAdminGardens();
+  const { eligibleGardens, isLoaded } = useEligibleAdminGardens();
   const selectedGarden = useAdminStore((state) => state.selectedGarden);
   const setSelectedGarden = useAdminStore((state) => state.setSelectedGarden);
-  const { gardenId: syncedGardenId, setGarden } = useGardenUrlSync();
 
   const gardenOptions = useMemo<AdminGardenWorkspaceOption[]>(
     () =>
@@ -44,37 +41,29 @@ export function useAdminGardenWorkspaceSelection({
 
   const handleSelectGarden = useCallback(
     (garden: Pick<AdminGardenWorkspaceOption, "id">) => {
-      const fullGarden = eligibleGardens.find((entry) => compareAddresses(entry.id, garden.id));
-      setGarden(fullGarden ?? null);
+      const fullGarden = eligibleGardens.find((entry) => entry.id === garden.id);
+      setSelectedGarden(fullGarden ?? null);
     },
-    [eligibleGardens, setGarden]
+    [eligibleGardens, setSelectedGarden]
   );
 
   useEffect(() => {
-    if (
-      !autoSelectFirstGarden ||
-      !isLoaded ||
-      selectedGarden ||
-      syncedGardenId ||
-      eligibleGardens.length === 0
-    ) {
+    if (!autoSelectFirstGarden || !isLoaded || selectedGarden || eligibleGardens.length === 0) {
       return;
     }
 
-    const nextGarden = resolvedDefaultGarden ?? eligibleGardens[0];
-    if (!nextGarden) return;
+    const firstGarden = eligibleGardens[0];
+    if (!firstGarden) return;
 
-    setGarden(nextGarden);
-    onAutoSelectGarden?.(nextGarden);
+    setSelectedGarden(firstGarden);
+    onAutoSelectGarden?.(firstGarden);
   }, [
     autoSelectFirstGarden,
     eligibleGardens,
     isLoaded,
     onAutoSelectGarden,
-    resolvedDefaultGarden,
     selectedGarden,
-    setGarden,
-    syncedGardenId,
+    setSelectedGarden,
   ]);
 
   return {

@@ -15,13 +15,12 @@ const TEST_MODULE = "0xModule111111111111111111111111111111111111";
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const TEST_USER = "0x1234567890123456789012345678901234567890";
 
-const SHARED_GARDEN_TOKEN = "0x9999999999999999999999999999999999999999";
-const GARDENER_GARDEN = "0x1111111111111111111111111111111111111111";
-const OPERATOR_GARDEN = "0x2222222222222222222222222222222222222222";
-const OWNER_GARDEN = "0x3333333333333333333333333333333333333333";
-const EVALUATOR_GARDEN = "0x4444444444444444444444444444444444444444";
-const FUNDER_GARDEN = "0x5555555555555555555555555555555555555555";
-const COMMUNITY_GARDEN = "0x6666666666666666666666666666666666666666";
+const GARDENER_GARDEN = "0xGarden1111111111111111111111111111111111";
+const OPERATOR_GARDEN = "0xGarden2222222222222222222222222222222222";
+const OWNER_GARDEN = "0xGarden3333333333333333333333333333333333";
+const EVALUATOR_GARDEN = "0xGarden4444444444444444444444444444444444";
+const FUNDER_GARDEN = "0xGarden5555555555555555555555555555555555";
+const COMMUNITY_GARDEN = "0xGarden6666666666666666666666666666666666";
 
 const TEST_JAR_1 = "0xJar1111111111111111111111111111111111111";
 const TEST_JAR_2 = "0xJar2222222222222222222222222222222222222";
@@ -30,8 +29,8 @@ const TEST_CURRENCY = "0xCurr111111111111111111111111111111111111";
 
 const mockGardens = [
   {
-    id: GARDENER_GARDEN,
-    tokenAddress: SHARED_GARDEN_TOKEN,
+    id: "gardener",
+    tokenAddress: GARDENER_GARDEN,
     gardeners: [TEST_USER],
     operators: [],
     owners: [],
@@ -40,8 +39,8 @@ const mockGardens = [
     communities: [],
   },
   {
-    id: OPERATOR_GARDEN,
-    tokenAddress: SHARED_GARDEN_TOKEN,
+    id: "operator",
+    tokenAddress: OPERATOR_GARDEN,
     gardeners: [],
     operators: [TEST_USER],
     owners: [],
@@ -50,8 +49,8 @@ const mockGardens = [
     communities: [],
   },
   {
-    id: OWNER_GARDEN,
-    tokenAddress: SHARED_GARDEN_TOKEN,
+    id: "owner",
+    tokenAddress: OWNER_GARDEN,
     gardeners: [],
     operators: [],
     owners: [TEST_USER],
@@ -60,8 +59,8 @@ const mockGardens = [
     communities: [],
   },
   {
-    id: EVALUATOR_GARDEN,
-    tokenAddress: SHARED_GARDEN_TOKEN,
+    id: "evaluator",
+    tokenAddress: EVALUATOR_GARDEN,
     gardeners: [],
     operators: [],
     owners: [],
@@ -70,8 +69,8 @@ const mockGardens = [
     communities: [],
   },
   {
-    id: FUNDER_GARDEN,
-    tokenAddress: SHARED_GARDEN_TOKEN,
+    id: "funder",
+    tokenAddress: FUNDER_GARDEN,
     gardeners: [],
     operators: [],
     owners: [],
@@ -80,8 +79,8 @@ const mockGardens = [
     communities: [],
   },
   {
-    id: COMMUNITY_GARDEN,
-    tokenAddress: SHARED_GARDEN_TOKEN,
+    id: "community",
+    tokenAddress: COMMUNITY_GARDEN,
     gardeners: [],
     operators: [],
     owners: [],

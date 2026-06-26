@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { isZeroAddress, ZERO_ADDRESS } from "../../utils/blockchain/address";
+import { getEthUsdFeedAddress } from "../../utils/blockchain/price-feeds";
 import {
   formatTokenAmount,
   getNetDeposited,
@@ -7,10 +8,17 @@ import {
   getVaultAssetSymbol,
   isUnlimitedVaultLimit,
   MAX_UINT256,
+  normalizeDecimalInput,
   validateDecimalInput,
 } from "../../utils/blockchain/vaults";
 
 describe("Vault Utilities", () => {
+  describe("getEthUsdFeedAddress", () => {
+    it("returns the Ethereum mainnet feed for Octant V2 vault conversion", () => {
+      expect(getEthUsdFeedAddress(1)).toBe("0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419");
+    });
+  });
+
   describe("ZERO_ADDRESS", () => {
     it("is a 42-character hex string", () => {
       expect(ZERO_ADDRESS).toBe("0x0000000000000000000000000000000000000000");
@@ -108,6 +116,10 @@ describe("Vault Utilities", () => {
       expect(validateDecimalInput("1.5", 18)).toBeNull();
     });
 
+    it("returns null for a leading decimal", () => {
+      expect(validateDecimalInput(".001", 18)).toBeNull();
+    });
+
     it("returns null for valid decimal with trailing dot", () => {
       expect(validateDecimalInput("100.", 18)).toBeNull();
     });
@@ -134,6 +146,17 @@ describe("Vault Utilities", () => {
 
     it("returns null when decimals are under limit", () => {
       expect(validateDecimalInput("1.12", 6)).toBeNull();
+    });
+  });
+
+  describe("normalizeDecimalInput", () => {
+    it("adds a leading zero to leading decimal inputs", () => {
+      expect(normalizeDecimalInput(".001")).toBe("0.001");
+    });
+
+    it("leaves non-leading decimal values unchanged", () => {
+      expect(normalizeDecimalInput("1.001")).toBe("1.001");
+      expect(normalizeDecimalInput("100.")).toBe("100.");
     });
   });
 

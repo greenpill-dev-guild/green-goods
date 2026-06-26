@@ -17,10 +17,9 @@ const ADMIN_URL = TEST_URLS.admin;
 const ROUTE_SMOKE_TEST_TIMEOUT_MS = 90_000;
 const MOCK_DEPLOYER_ADDRESS = "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e";
 const MOCK_OPERATOR_ADDRESS = "0x04D60647836bcA09c37B379550038BdaaFD82503";
-const SHARED_GARDEN_TOKEN = "0xabcd1234567890123456789012345678901234ef";
-const ALPHA_GARDEN_ID = "0x1234567890123456789012345678901234567890";
-const BETA_GARDEN_ID = "0x4567890123456789012345678901234567890123";
-const TEST_GARDEN_CONTEXT = `gardenAddress=${encodeURIComponent(ALPHA_GARDEN_ID)}`;
+const TEST_GARDEN_ADDRESS = "0xabcd1234567890123456789012345678901234ef";
+const TEST_GARDEN_ID = "0x1234567890123456789012345678901234567890";
+const TEST_GARDEN_CONTEXT = `gardenAddress=${encodeURIComponent(TEST_GARDEN_ADDRESS)}`;
 
 const GRAPHQL_HEADERS = {
   "access-control-allow-origin": "*",
@@ -29,12 +28,12 @@ const GRAPHQL_HEADERS = {
   "content-type": "application/json",
 };
 
-const MOCK_ALPHA_GARDEN = {
-  id: ALPHA_GARDEN_ID,
+const MOCK_GARDEN = {
+  id: TEST_GARDEN_ID,
   chainId: 11155111,
-  tokenAddress: SHARED_GARDEN_TOKEN,
+  tokenAddress: TEST_GARDEN_ADDRESS,
   tokenID: "1",
-  name: "Alpha CI Garden",
+  name: "Mock CI Garden",
   description: "Fixture garden for admin production-flow route smoke",
   location: "Nairobi",
   bannerImage: "",
@@ -47,17 +46,6 @@ const MOCK_ALPHA_GARDEN = {
   openJoining: false,
   createdAt: 1710000000,
 };
-const MOCK_BETA_GARDEN = {
-  ...MOCK_ALPHA_GARDEN,
-  id: BETA_GARDEN_ID,
-  tokenID: "2",
-  name: "Beta CI Garden",
-  description: "Second fixture garden for admin switching verification",
-  location: "Bogota",
-  gardeners: [MOCK_OPERATOR_ADDRESS, MOCK_DEPLOYER_ADDRESS],
-  createdAt: 1710000100,
-};
-const MOCK_GARDENS = [MOCK_ALPHA_GARDEN, MOCK_BETA_GARDEN];
 
 function getGraphQLQueryText(route: Route): string {
   const body = route.request().postData();
@@ -121,7 +109,7 @@ async function setupAdminRouteBackend(page: Page) {
         headers: GRAPHQL_HEADERS,
         body: JSON.stringify({
           data: {
-            Garden: MOCK_GARDENS.map(({ id, name }) => ({ id, name })),
+            Garden: [{ id: MOCK_GARDEN.id, name: MOCK_GARDEN.name }],
           },
         }),
       });
@@ -133,11 +121,8 @@ async function setupAdminRouteBackend(page: Page) {
         headers: GRAPHQL_HEADERS,
         body: JSON.stringify({
           data: {
-            Garden: MOCK_GARDENS,
-            GardenDomains: MOCK_GARDENS.map((garden) => ({
-              garden: garden.id,
-              domainMask: 1,
-            })),
+            Garden: [MOCK_GARDEN],
+            GardenDomains: [{ garden: MOCK_GARDEN.id, domainMask: 1 }],
           },
         }),
       });
@@ -245,38 +230,5 @@ test.describe("Admin Production Flows CI", () => {
         }
       });
     }
-  });
-
-  test("garden switcher rebinds the rendered garden workspace", async ({ page }) => {
-    test.setTimeout(ROUTE_SMOKE_TEST_TIMEOUT_MS);
-    const helper = await setupAuthenticatedAdmin(page);
-
-    await expectNoCrashOnRoute(page, helper, `/garden/settings?${TEST_GARDEN_CONTEXT}`);
-
-    const gardenSwitcher = page.locator('[data-component="GardenChip"][data-slot="trigger"]');
-    await expect(gardenSwitcher).toContainText(MOCK_ALPHA_GARDEN.name);
-    await expect(page.getByRole("heading", { name: MOCK_ALPHA_GARDEN.name })).toBeVisible();
-    await expect(page.getByText(MOCK_ALPHA_GARDEN.location, { exact: true })).toBeVisible();
-
-    await gardenSwitcher.click();
-    await page
-      .locator('[data-component="GardenChip"][data-slot="option"]')
-      .filter({ hasText: MOCK_BETA_GARDEN.name })
-      .click();
-
-    await expect
-      .poll(() => new URL(page.url()).searchParams.get("gardenAddress"))
-      .toBe(MOCK_BETA_GARDEN.id);
-    await expect(gardenSwitcher).toContainText(MOCK_BETA_GARDEN.name);
-    await expect(page.getByRole("heading", { name: MOCK_BETA_GARDEN.name })).toBeVisible();
-    await expect(page.getByText(MOCK_BETA_GARDEN.location, { exact: true })).toBeVisible();
-    await expect(page.getByText(MOCK_ALPHA_GARDEN.location, { exact: true })).toHaveCount(0);
-
-    const screenshotPath = test.info().outputPath("admin-garden-switching-beta.png");
-    await page.screenshot({ path: screenshotPath, fullPage: true });
-    await test.info().attach("admin garden switch beta selected", {
-      path: screenshotPath,
-      contentType: "image/png",
-    });
   });
 });

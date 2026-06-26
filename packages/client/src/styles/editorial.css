@@ -479,12 +479,51 @@
       var(--spring-spatial-easing) both;
   }
 
+  /*
+   * /vaults Manage Endowments panel. It uses the same route-backed lifecycle as
+   * PublicEndowmentPanel, but keeps a separate class so the public vault surface
+   * can evolve without coupling /fund styles.
+   */
+  .vault-manage-overlay[data-motion-state="open"] {
+    animation: public-install-overlay-in var(--spring-effects-duration)
+      var(--spring-effects-easing) both;
+  }
+
+  .vault-manage-overlay[data-motion-state="closed"] {
+    animation: public-install-overlay-out var(--spring-effects-fast-duration)
+      var(--spring-effects-fast-easing) both;
+  }
+
+  .vault-manage-panel {
+    backface-visibility: hidden;
+    transform: translate3d(0, 0, 0);
+    will-change: transform, opacity;
+  }
+
+  .vault-manage-panel[data-motion-state="open"] {
+    animation: public-endowment-panel-in-bottom var(--spring-spatial-slow-duration)
+      var(--spring-spatial-slow-easing) both;
+  }
+
+  .vault-manage-panel[data-motion-state="closed"] {
+    animation: public-endowment-panel-out-bottom var(--spring-spatial-duration)
+      var(--spring-spatial-easing) both;
+  }
+
   @media (min-width: 640px) {
     .public-endowment-panel[data-motion-state="open"] {
       animation-name: public-endowment-panel-in-side;
     }
 
     .public-endowment-panel[data-motion-state="closed"] {
+      animation-name: public-endowment-panel-out-side;
+    }
+
+    .vault-manage-panel[data-motion-state="open"] {
+      animation-name: public-endowment-panel-in-side;
+    }
+
+    .vault-manage-panel[data-motion-state="closed"] {
       animation-name: public-endowment-panel-out-side;
     }
   }
@@ -526,6 +565,8 @@
     .editorial-fade-up-3,
     .public-endowment-overlay[data-motion-state],
     .public-endowment-panel[data-motion-state],
+    .vault-manage-overlay[data-motion-state],
+    .vault-manage-panel[data-motion-state],
     .public-install-overlay[data-state],
     .public-install-sheet[data-state],
     .public-garden-dialog-overlay[data-state] {

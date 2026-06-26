@@ -116,9 +116,6 @@ describe("loadConfig analytics env", () => {
   const ORIGINAL_SENTRY_TRACES_SAMPLE_RATE = process.env.SENTRY_TRACES_SAMPLE_RATE;
   const ORIGINAL_SENTRY_RELEASE = process.env.SENTRY_RELEASE;
   const ORIGINAL_FLY_MACHINE_VERSION = process.env.FLY_MACHINE_VERSION;
-  const ORIGINAL_RESEND_API_KEY = process.env.RESEND_API_KEY;
-  const ORIGINAL_RESEND_GREEN_GOODS_SEGMENT_ID = process.env.RESEND_GREEN_GOODS_SEGMENT_ID;
-  const ORIGINAL_RESEND_GREEN_GOODS_TOPIC_ID = process.env.RESEND_GREEN_GOODS_TOPIC_ID;
 
   afterEach(() => {
     if (ORIGINAL_NODE_ENV === undefined) delete process.env.NODE_ENV;
@@ -144,18 +141,6 @@ describe("loadConfig analytics env", () => {
     else process.env.SENTRY_RELEASE = ORIGINAL_SENTRY_RELEASE;
     if (ORIGINAL_FLY_MACHINE_VERSION === undefined) delete process.env.FLY_MACHINE_VERSION;
     else process.env.FLY_MACHINE_VERSION = ORIGINAL_FLY_MACHINE_VERSION;
-    if (ORIGINAL_RESEND_API_KEY === undefined) delete process.env.RESEND_API_KEY;
-    else process.env.RESEND_API_KEY = ORIGINAL_RESEND_API_KEY;
-    if (ORIGINAL_RESEND_GREEN_GOODS_SEGMENT_ID === undefined) {
-      delete process.env.RESEND_GREEN_GOODS_SEGMENT_ID;
-    } else {
-      process.env.RESEND_GREEN_GOODS_SEGMENT_ID = ORIGINAL_RESEND_GREEN_GOODS_SEGMENT_ID;
-    }
-    if (ORIGINAL_RESEND_GREEN_GOODS_TOPIC_ID === undefined) {
-      delete process.env.RESEND_GREEN_GOODS_TOPIC_ID;
-    } else {
-      process.env.RESEND_GREEN_GOODS_TOPIC_ID = ORIGINAL_RESEND_GREEN_GOODS_TOPIC_ID;
-    }
   });
 
   it("uses POSTHOG_AGENT_KEY as the only agent analytics token", () => {
@@ -215,17 +200,5 @@ describe("loadConfig analytics env", () => {
     const config = loadConfig();
 
     expect(config.sentryDsn).toBe("https://standard@sentry.io/1");
-  });
-
-  it("loads Resend subscription provider config from server-only env vars", () => {
-    process.env.RESEND_API_KEY = "resend-key";
-    process.env.RESEND_GREEN_GOODS_SEGMENT_ID = "seg_green_goods";
-    process.env.RESEND_GREEN_GOODS_TOPIC_ID = "topic_green_goods";
-
-    const config = loadConfig();
-
-    expect(config.resendApiKey).toBe("resend-key");
-    expect(config.resendGreenGoodsSegmentId).toBe("seg_green_goods");
-    expect(config.resendGreenGoodsTopicId).toBe("topic_green_goods");
   });
 });

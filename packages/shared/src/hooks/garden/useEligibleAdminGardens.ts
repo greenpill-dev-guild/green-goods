@@ -5,7 +5,7 @@ import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useRole } from "../gardener/useRole";
 import { getAdminGardenScopeKey, useAdminStore } from "../../stores/useAdminStore";
 import type { Address, Garden } from "../../types/domain";
-import { compareAddresses, isAddressInList } from "../../utils/blockchain/address";
+import { isAddressInList } from "../../utils/blockchain/address";
 
 export interface EligibleAdminGardensResult {
   eligibleGardens: Garden[];
@@ -127,7 +127,7 @@ export function useEligibleAdminGardens(): EligibleAdminGardensResult {
 
     const persistedGarden =
       (persistedGardenId
-        ? (eligibleGardens.find((garden) => compareAddresses(garden.id, persistedGardenId)) ?? null)
+        ? (eligibleGardens.find((garden) => garden.id === persistedGardenId) ?? null)
         : null) ?? null;
 
     return persistedGarden ?? eligibleGardens[0] ?? null;

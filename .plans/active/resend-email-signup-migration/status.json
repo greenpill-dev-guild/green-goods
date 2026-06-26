@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-06-15T19:04:43.563Z",
-    "updated_at": "2026-06-19T01:56:53.168Z"
+    "updated_at": "2026-06-15T23:27:27.976Z"
   },
   "links": {
     "brief": "brief.md",
@@ -77,26 +77,25 @@
     },
     "state_api": {
       "owner": "codex",
-      "status": "completed",
+      "status": "ready",
       "branch": "codex/state-api/resend-email-signup-migration",
       "depends_on": [],
       "handoff": "handoffs/codex-state-api.md",
       "handoff_note": "Primary lane. Replace Luma adapter/config/bootstrap with a Resend-backed subscription client, preserve public subscribe route guards, and update shared public contracts/i18n.",
       "tdd": {
         "mode": "required",
-        "status": "green_recorded",
+        "status": "pending",
         "red": {
-          "command": "OPENSSL_CONF=/dev/null TMPDIR=/Users/afo/.codex/worktrees/59b3/green-goods /Users/afo/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node ../../node_modules/vitest/vitest.mjs run resend public-api",
-          "evidence": "Vitest ran public-api/resend: resend suite failed on missing ../services/subscriptions; public-api failed because route still returned luma_import_failed and ignored subscriptionClient."
+          "command": "",
+          "evidence": ""
         },
         "green": {
-          "command": "OPENSSL_CONF=/dev/null TMPDIR=/Users/afo/.codex/worktrees/59b3/green-goods /Users/afo/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node ../../node_modules/vitest/vitest.mjs run resend public-api",
-          "evidence": "packages/agent: public-api.test.ts 23 passed; resend.test.ts 4 passed; 27 tests passed total."
+          "command": "",
+          "evidence": ""
         },
-        "note": "Focused Resend subscription adapter and public API provider-neutral migration proof recorded by Codex."
+        "note": ""
       },
-      "skill_tags": ["agent", "api", "testing"],
-      "manual_blocked": false
+      "skill_tags": ["agent", "api", "testing"]
     },
     "contracts": {
       "owner": "codex",
@@ -168,30 +167,6 @@
       "status": "linear_recorded",
       "branch": null,
       "note": "Recorded Linear parent/lane issue identifiers"
-    },
-    {
-      "timestamp": "2026-06-19T01:54:45.865Z",
-      "actor": "codex",
-      "lane": "state_api",
-      "status": "tdd_recorded",
-      "branch": "codex/state-api/resend-email-signup-migration",
-      "note": "Focused Resend subscription adapter and public API provider-neutral migration proof recorded by Codex."
-    },
-    {
-      "timestamp": "2026-06-19T01:55:13.089Z",
-      "actor": "codex",
-      "lane": "state_api",
-      "status": "completed",
-      "branch": "codex/state-api/resend-email-signup-migration",
-      "note": "Resend-backed subscription client and provider-neutral public subscribe route completed with focused RED/GREEN proof; live Resend QA blocked until credentials/segment/topic IDs are available."
-    },
-    {
-      "timestamp": "2026-06-19T01:56:53.169Z",
-      "actor": "codex",
-      "lane": "state_api",
-      "status": "tdd_recorded",
-      "branch": "codex/state-api/resend-email-signup-migration",
-      "note": "Focused Resend subscription adapter and public API provider-neutral migration proof recorded by Codex."
     }
   ]
 }

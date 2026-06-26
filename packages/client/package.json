@@ -47,6 +47,7 @@
     "react-window": "^1.8.10",
     "tailwind-merge": "3.0.2",
     "tailwind-variants": "3.2.2",
+    "thirdweb": "^5.105.40",
     "viem": "^2.43.4",
     "wagmi": "^2.19.5",
     "zod": "^4.3.5",

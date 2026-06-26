@@ -39,7 +39,7 @@ export function useAccessibleCookieJars() {
     () =>
       primaryAddress
         ? gardens.map((garden) => ({
-            address: garden.id.toLowerCase() as Address,
+            address: garden.tokenAddress.toLowerCase() as Address,
             abi: GARDEN_ACCOUNT_ROLE_ABI,
             functionName: "isGardener" as const,
             args: [primaryAddress] as const,
@@ -88,7 +88,7 @@ export function useAccessibleCookieJars() {
         address: moduleAddress as Address,
         abi: COOKIE_JAR_MODULE_ABI,
         functionName: "getGardenJars" as const,
-        args: [garden.id.toLowerCase() as Address] as const,
+        args: [garden.tokenAddress.toLowerCase() as Address] as const,
       })),
     [eligibleGardens, moduleAddress]
   );
@@ -115,7 +115,7 @@ export function useAccessibleCookieJars() {
         if (address.toLowerCase() !== ZERO_ADDRESS) {
           pairs.push({
             jarAddress: address,
-            gardenAddress: eligibleGardens[index].id.toLowerCase() as Address,
+            gardenAddress: eligibleGardens[index].tokenAddress.toLowerCase() as Address,
           });
         }
       }

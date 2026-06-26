@@ -139,6 +139,7 @@ export {
 // Dialog Components
 export { ConfirmDialog, type ConfirmDialogProps } from "./Dialog";
 export { DialogShell, type DialogShellProps } from "./Dialog";
+export { PwaSheet, type PwaSheetProps } from "./Dialog";
 export { ImagePreviewDialog, type ImagePreviewDialogProps } from "./Dialog";
 // Display Components
 export {
@@ -276,7 +277,7 @@ export {
   workToasts,
 } from "./Toast/presets";
 // Toast Components
-export type { ToastViewportProps } from "./Toast/ToastViewport";
+export type { ToastViewportProps, ToastViewportVariant } from "./Toast/ToastViewport";
 export { ToastViewport } from "./Toast/ToastViewport";
 export type {
   ToastAction,

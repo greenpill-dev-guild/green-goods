@@ -5,7 +5,7 @@
  * Uses getDefaultChain from shared package for chain configuration.
  */
 
-import { getDefaultChain } from "@green-goods/shared";
+import { getDefaultChain } from "@green-goods/shared/config/blockchain";
 import type { Chain } from "viem";
 import { arbitrum, celo, optimism, sepolia } from "viem/chains";
 import { logger } from "./services/logger";
@@ -178,8 +178,6 @@ export function loadConfig(): Config {
   };
 }
 
-export const getConfig = loadConfig;
-
 function parsePositiveInteger(value: string | undefined): number | undefined {
   if (!value?.trim()) return undefined;
   const parsed = Number(value);
@@ -269,5 +267,95 @@ function parseCsv(value: string | undefined): string[] | undefined {
     ?.split(",")
     .map((entry) => entry.trim())
     .filter(Boolean);
-  return entries?.length ? entries : undefined;
+  return entries && entries.length > 0 ? entries : undefined;
+}
+
+/**
+ * Validate configuration and log warnings
+ *
+ * SECURITY: Enforces critical security requirements in production:
+ * - ENCRYPTION_SECRET is required
+ * - TELEGRAM_WEBHOOK_SECRET is required in webhook mode
+ */
+export function validateConfig(config: Config): void {
+  const warnings: string[] = [];
+  const errors: string[] = [];
+
+  if (!config.encryptionSecret) {
+    if (config.isProduction) {
+      errors.push(
+        "ENCRYPTION_SECRET is required in production. " +
+          "Generate one with: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\""
+      );
+    } else {
+      warnings.push("ENCRYPTION_SECRET not set. Using derived key from TELEGRAM_BOT_TOKEN.");
+    }
+  } else if (config.encryptionSecret.length < 32) {
+    if (config.isProduction) {
+      errors.push("ENCRYPTION_SECRET must be at least 32 characters in production.");
+    } else {
+      warnings.push("ENCRYPTION_SECRET should be at least 32 characters.");
+    }
+  }
+
+  if (config.mode === "webhook") {
+    if (!config.telegramWebhookSecret) {
+      if (config.isProduction) {
+        errors.push(
+          "TELEGRAM_WEBHOOK_SECRET is required in production webhook mode. " +
+            "Without it, anyone can send fake webhook requests and impersonate users."
+        );
+      } else {
+        warnings.push("TELEGRAM_WEBHOOK_SECRET not set. Webhook requests won't be verified.");
+      }
+    }
+  }
+
+  if (config.isProduction && !config.publicAllowedOrigins?.trim()) {
+    errors.push(
+      "AGENT_ALLOWED_ORIGINS is required in production so public browser APIs fail closed."
+    );
+  }
+
+  if (config.isProduction && !config.posthogApiKey) {
+    warnings.push("POSTHOG_AGENT_KEY not set. Analytics will be disabled.");
+  }
+
+  if (config.isProduction && config.sentryEnabled && !config.sentryDsn) {
+    warnings.push("SENTRY_AGENT_DSN not set. Sentry error reporting will be disabled.");
+  }
+
+  // Throw on critical errors in production
+  if (errors.length > 0) {
+    for (const error of errors) {
+      logger.error({ error }, "Configuration error");
+    }
+    throw new Error(`Configuration errors:\n- ${errors.join("\n- ")}`);
+  }
+
+  // Log warnings
+  if (warnings.length > 0) {
+    for (const warning of warnings) {
+      logger.warn({ warning }, "Configuration warning");
+    }
+  }
+
+  // Log analytics status
+  if (config.analyticsEnabled && config.posthogApiKey) {
+    logger.info("Analytics enabled");
+  }
+  if (config.sentryEnabled && config.sentryDsn) {
+    logger.info("Sentry error reporting enabled");
+  }
+}
+
+// Export singleton config (loaded lazily)
+let _config: Config | null = null;
+
+export function getConfig(): Config {
+  if (!_config) {
+    _config = loadConfig();
+    validateConfig(_config);
+  }
+  return _config;
 }

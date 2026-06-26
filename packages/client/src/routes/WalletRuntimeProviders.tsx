@@ -30,7 +30,7 @@ export default function WalletRuntimeProviders({ children }: { children: ReactNo
           typeof window !== "undefined"
             ? import.meta.env.VITE_APP_URL || window.location.origin
             : "https://www.greengoods.app",
-        icons: ["https://greengoods.app/icon-192.png"],
+        icons: ["https://greengoods.app/icon.png"],
       }}
       defaultChainId={DEFAULT_CHAIN_ID}
     >
