@@ -59,6 +59,7 @@ describe("public WebMCP tools", () => {
       "/",
       "/fund",
       "/impact",
+      "/vaults",
       "/gardens",
       "/actions",
       "/cookies",
@@ -216,6 +217,31 @@ describe("public WebMCP tools", () => {
       publicOnly: true,
     });
     expect(assign).toHaveBeenCalledWith("/fund");
+  });
+
+  it("describes and navigates the public vaults route", () => {
+    const assign = vi.fn<(route: string) => void>();
+    const tools = createPublicWebMcpTools({
+      pageLocation: {
+        pathname: "/vaults",
+        assign,
+      },
+    });
+    const describeTool = getTool("green_goods_describe_public_page", [...tools]);
+    const navigateTool = getTool("green_goods_navigate_public_route", [...tools]);
+
+    expect(describeTool.execute({})).toMatchObject({
+      status: "ok",
+      path: "/vaults",
+      description: "Public Octant vault campaign crowdfunding surface.",
+      publicOnly: true,
+    });
+    expect(navigateTool.execute({ route: "vaults/" })).toEqual({
+      status: "navigating",
+      route: "/vaults",
+      publicOnly: true,
+    });
+    expect(assign).toHaveBeenCalledWith("/vaults");
   });
 
   it.each([

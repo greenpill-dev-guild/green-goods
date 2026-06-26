@@ -50,7 +50,7 @@ Composed of seven sections in this exact order:
 3. **`PublicProofBand`** — confirmed counts only (Gardens, Contributors, Work, Assessments). Links contextually to `/impact`. Unavailable carbon, water, species, and area metrics stay hidden. Renders on the warm linen surface in light mode and a warm walnut surface in dark mode (both via `--editorial-warm-rgb`); body text uses semantic tokens that auto-flip.
 4. **`PublicRecordLoop`** — visitor-facing four-step narrative: `Assess the place` → `Do the work` → `Verify impact` → `Fund what grows`. Links each step contextually. Body copy must stay grounded in the actual protocol: Gardens as community hubs, Work submissions, operator review, evaluator Assessments, Cookie Jars, and Vault endowments. This is narrative copy; it does **not** imply formal EAS Assessment happens before Work.
 5. **`PublicFundingBridge`** — cardless trust section explaining the two public support paths: `Donate` through a Garden Cookie Jar for direct support, or `Endow` through a Garden Vault designed so yield supports the Garden over time. One primary CTA routes to `/fund`; no wallet connect, amount form, or per-Garden funding selector lives on Home.
-6. **`PublicGetInTouch`** — closing module: email subscribe via `POST {VITE_API_BASE_URL}/public/subscribe` (single opt-in with explicit consent copy) plus a secondary Schedule-a-Call link from `VITE_GOOGLE_APPOINTMENT_URL`. The Schedule-a-Call link is inline after a divider, not inside its own card. **Honest UX**: success only when the public Agent route returns a confirmed `subscribed` / `already_subscribed`; subscription provider outages render a localized failure with the Schedule-a-Call fallback.
+6. **`PublicGetInTouch`** — closing module: email subscribe via `POST {VITE_API_BASE_URL}/public/subscribe` (single opt-in with explicit consent copy) plus a secondary Schedule-a-Call link from `VITE_GOOGLE_APPOINTMENT_URL`. The Schedule-a-Call link is inline after a divider, not inside its own card. **Honest UX**: success only when the public Agent route returns a confirmed `subscribed` / `already_subscribed`; Luma outages render a localized failure with the Schedule-a-Call fallback.
 7. **`PublicFooter`** — compact provenance row with restored living-public-record message, public route links, and contact. Footer links are neutral by default; green is a hover/focus affordance only.
 
 No final sitemap-style "choose your path" route grid.
@@ -87,22 +87,22 @@ Stacks gracefully on mobile. Schedule-a-Call lives in `PublicGetInTouch` above t
 
 ## `/fund`
 
-- Editorial header with Donate / Endow language and a tax/charity disclaimer (Donate is **not** tax-deductible, charitable, or nonprofit-backed unless separately configured).
+- Editorial header is scoped to the June 1 NYC vault/endow sprint: Wallet Endow plus public Manage Endowments. Public Donate is hidden from `/fund` for this sprint and deferred to separate non-Cookie-Jar planning; the low-level Cookie Jar code remains outside this surface.
 - `?intent=<id>` mounts `PublicFundingReceipt` above the Garden grid. Receipt UI reads the in-memory token (already scrubbed by Root) and only renders redacted public fields: Garden, intent, amount, status, `fundingTxHash`, receiver wallet (Card Endow), and the management CTA when the receipt is an Endow receipt.
 - `?manage=endowments` opens `PublicEndowmentPanel`; the URL never carries wallet addresses, account ids, or receipt tokens.
 - `?garden=<id-or-slug>` resolves exact id/address first, then unique-slug match via `publicGardenHelpers.deriveSlug`. Stale / missing / zero-match / ambiguous queries render the regular Fund page with a localized non-blocking message and the matched Garden (if any) scrolls into view with a soft ring highlight.
-- Garden grid uses public Garden rows with Donate and Endow CTAs. Section 3 also carries an always-visible `Manage Endowments` secondary warm capsule aligned to the section header on desktop and stacked under the title on mobile.
+- Garden grid uses public Garden rows with Endow CTAs only. Section 3 also carries an always-visible `Manage Endowments` secondary warm capsule aligned to the section header on desktop and stacked under the title on mobile.
 
 ### Funding UX
 
-Two-step dialog driven by `PublicFundingMethodSelector`:
+Wallet Endow uses `PublicFundingCard` directly from each Garden row:
 
-1. **Intent** — `Donate` (Cookie Jar) or `Endow` (Vault, "designed to preserve your principal while yield helps the Garden", with explicit smart-contract / token / yield / provider / wallet-recovery risk copy).
-2. **Method** — `Wallet` (Reown/wagmi, always available, opens AppKit at the wallet-required step) or `Card` (thirdweb, **hidden** unless `publicProviderProofRegistry.resolve` returns `state: "live"` for the exact tuple). Curated `comingSoon` shows a disabled coming-soon block; otherwise the card option is omitted.
+1. **Amount** — USD-first input with token selection resolved from the selected Garden vault.
+2. **Wallet** — Reown/wagmi wallet connect folds into the submit button and deposits directly to the selected Garden vault with the connected wallet as receiver.
 
-Wallet selection routes to the existing `CookieJarDepositDialog` (Donate) or `VaultDepositDialog` (Endow). Card flow lights up only when the proof registry has a `live` entry.
+Card Endow remains part of the project scope but hidden until recovered-wallet ownership, exact vault-share verification, public visibility, and successful withdrawal proof pass. Card Donate proof never reveals Card Endow, and public Donate/Card Donate do not appear on `/fund` during this sprint.
 
-Manage Endowments is the only public withdrawal surface in v1. It is wallet-owned only, opens a right-side panel on desktop and a bottom sheet on mobile, leads with what the funder has supported, groups positions by Garden, and expands each asset row inline for Withdraw / Max / confirm / pending / error / success. It does not include public address lookup, admin Vault management, auto-buy claims, custody claims, Card Donate, or Card Endow.
+Manage Endowments is the only public withdrawal surface in v1. It is wallet-owned only, opens a right-side panel on desktop and a bottom sheet on mobile, leads with what the funder has supported, groups positions by Garden, and expands each asset row inline for Withdraw / Max / confirm / pending / error / success. It does not include public address lookup, admin Vault management, auto-buy claims, custody claims, public Donate, Card Donate, or visible Card Endow.
 
 ## `/actions`
 

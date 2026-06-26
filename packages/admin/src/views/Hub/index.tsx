@@ -44,7 +44,6 @@ export default function HubView() {
     hub.pendingWarningCount,
     formatMessage,
   ]);
-  const headerStatsLoading = Boolean(hub.selectedGarden) && hub.worksLoading;
 
   return (
     <CanvasRouteFrame
@@ -81,7 +80,6 @@ export default function HubView() {
         />
       ) : (
         <div
-          key={hub.selectedGarden?.id ?? "no-garden"}
           className="hub-route-stack"
           role="tabpanel"
           id={`${HUB_STAGE_RAIL_ID}-panel`}
@@ -96,13 +94,8 @@ export default function HubView() {
                 "Review submitted work, run assessments, and certify impact across your gardens.",
             })}
             metadata={
-              headerStatsLoading || headerStats.length > 0 ? (
-                <MetaStrip
-                  items={headerStats}
-                  density="inline"
-                  loading={headerStatsLoading}
-                  loadingItemCount={2}
-                />
+              headerStats.length > 0 ? (
+                <MetaStrip items={headerStats} density="inline" />
               ) : undefined
             }
             variant="canvas"

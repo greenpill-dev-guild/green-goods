@@ -7,6 +7,7 @@ import {
   RECEIPT_TOKEN_SESSION_KEY,
   scrubReceiptTokenFragmentFromLocation,
 } from "../../routes/receipt-token";
+import { getClientToastViewportVariant } from "../../routes/toast-variant";
 
 function createWindowLike(pathname: string, search: string, hash: string): Window {
   const storage = new Map<string, string>();
@@ -60,5 +61,22 @@ describe("Root receipt-token bootstrap", () => {
 
     expect(token).toBeUndefined();
     expect(win.location.href).toBe("http://localhost:3000/fund#section=receipt");
+  });
+});
+
+describe("Root toast viewport variant", () => {
+  it.each([
+    ["/", "editorial"],
+    ["/vaults", "editorial"],
+    ["/vaults/", "editorial"],
+    ["/gardens/greenpill-nyc", "editorial"],
+    ["/fund", "editorial"],
+    ["/impact", "editorial"],
+    ["/home", "default"],
+    ["/home/greenpill-nyc", "default"],
+    ["/login", "default"],
+    ["/garden", "default"],
+  ] as const)("uses the %s path for the %s toast variant", (pathname, variant) => {
+    expect(getClientToastViewportVariant(pathname)).toBe(variant);
   });
 });

@@ -213,15 +213,6 @@
       ]
     },
     {
-      "source": "/api/agent/:path*",
-      "headers": [
-        {
-          "key": "x-vercel-enable-rewrite-caching",
-          "value": "0"
-        }
-      ]
-    },
-    {
       "source": "/assets/:path*",
       "headers": [
         {
@@ -255,10 +246,6 @@
     {
       "source": "/cookies",
       "destination": "/cookies/index.html"
-    },
-    {
-      "source": "/api/agent/:path*",
-      "destination": "https://agent.greengoods.app/:path*"
     },
     {
       "source": "/(.*)",

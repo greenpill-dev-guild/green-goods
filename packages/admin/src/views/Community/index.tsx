@@ -57,7 +57,6 @@ export default function CommunityView() {
       formatMessage,
     ]
   );
-  const headerStatsLoading = Boolean(community.selectedGarden) && community.allocationsLoading;
 
   return (
     <CanvasRouteFrame
@@ -80,14 +79,7 @@ export default function CommunityView() {
           defaultMessage: "Treasury, governance, payouts, and the people around the garden.",
         })}
         metadata={
-          headerStatsLoading || headerStats.length > 0 ? (
-            <MetaStrip
-              items={headerStats}
-              density="inline"
-              loading={headerStatsLoading}
-              loadingItemCount={2}
-            />
-          ) : undefined
+          headerStats.length > 0 ? <MetaStrip items={headerStats} density="inline" /> : undefined
         }
         actions={
           isDesktop && community.desktopActions.length > 0 ? (
@@ -148,10 +140,7 @@ export default function CommunityView() {
         />
       </CanvasRouteHeader>
 
-      <CommunityWorkspaceContent
-        key={community.selectedGarden?.id ?? "no-garden"}
-        workspace={community}
-      />
+      <CommunityWorkspaceContent workspace={community} />
     </CanvasRouteFrame>
   );
 }

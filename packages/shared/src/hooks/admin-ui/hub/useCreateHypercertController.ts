@@ -1,10 +1,4 @@
-import {
-  adminRoutes,
-  compareAddresses,
-  useAdminStore,
-  useGardenPermissions,
-  useGardens,
-} from "@green-goods/shared";
+import { adminRoutes, useAdminStore, useGardenPermissions, useGardens } from "@green-goods/shared";
 import { useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import type { HypercertCompletionData } from "../hypercerts/types";
@@ -14,10 +8,13 @@ export function useCreateHypercertController() {
   const selectedGarden = useAdminStore((state) => state.selectedGarden);
   const { data: gardens = [] } = useGardens();
   const garden = useMemo(
-    () => gardens.find((item) => compareAddresses(item.id, selectedGarden?.id)),
+    () => gardens.find((item) => item.id === selectedGarden?.id),
     [gardens, selectedGarden?.id]
   );
-  const gardenRouteContext = useMemo(() => ({ gardenAddress: garden?.id }), [garden?.id]);
+  const gardenRouteContext = useMemo(
+    () => ({ gardenAddress: garden?.tokenAddress ?? garden?.id }),
+    [garden?.id, garden?.tokenAddress]
+  );
   const permissions = useGardenPermissions();
   const canManage = garden ? permissions.canManageGarden(garden) : false;
 

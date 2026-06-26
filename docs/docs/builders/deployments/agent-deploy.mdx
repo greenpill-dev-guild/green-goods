@@ -75,13 +75,9 @@ Key variables used by the current agent runtime:
 | `BOT_API_TOKEN` | Routine-facing API enabled | Bearer token for protected `/api/*` routes. |
 | `DB_PATH` | Optional | SQLite database path; defaults to `data/agent.db`. |
 | `POSTHOG_AGENT_KEY` | Optional production analytics | Enables agent analytics when production analytics are enabled. |
-| `RESEND_API_KEY` | Public signup provider | Enables `POST /public/subscribe` to create/update Resend contacts. |
-| `RESEND_GREEN_GOODS_SEGMENT_ID` | Public signup provider | Routes Green Goods subscribers into the configured Resend segment. |
-| `RESEND_GREEN_GOODS_TOPIC_ID` | Public signup provider | Opts Green Goods subscribers into the configured Resend topic. |
 
 The agent loads environment variables from the root `.env` file. Deployed Fly secrets should use the server-side `POSTHOG_AGENT_KEY` name; `VITE_POSTHOG_AGENT_KEY` is not read by the Node runtime.
 Browser upload flows call the agent for short-lived Pinata signed upload URLs. Set `PINATA_JWT` on the agent host so the signer can create those URLs; keep `VITE_API_BASE_URL` pointed at the deployed agent from browser apps. Script and server uploads can still use `PINATA_JWT` directly. The current agent config does not load `DEPLOYER_PRIVATE_KEY` or `VITE_PIMLICO_API_KEY` as required service variables.
-Public signup capture uses Resend Contacts plus the configured Green Goods segment/topic IDs. If these values are missing, `/public/subscribe` returns a provider-neutral unavailable error instead of reporting success. Keep old Luma calendar import credentials out of new deployments once Resend staging/prod signup proof is complete.
 
 ### API Key Management
 
@@ -90,7 +86,7 @@ Sensitive keys should be managed through environment variables or a secrets mana
 - Never commit API keys to the repository
 - Rotate `TELEGRAM_BOT_TOKEN` if compromised
 - Use a strong `ENCRYPTION_SECRET`; rotate it if exposed and plan for stored secret recovery before changing it in production
-- Treat `BOT_API_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, media-upload `PINATA_JWT`, and `RESEND_API_KEY` as production secrets
+- Treat `BOT_API_TOKEN`, `TELEGRAM_WEBHOOK_SECRET`, and media-upload `PINATA_JWT` as production secrets
 
 ### Architecture
 

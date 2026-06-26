@@ -63,7 +63,7 @@ const defaultMetadata: AppKitMetadata = {
   name: "Green Goods",
   description: "Start Bringing Your Impact Onchain",
   url: getCanonicalAppUrl(),
-  icons: ["https://www.greengoods.app/icon-192.png"],
+  icons: ["https://www.greengoods.app/icon.png"],
 };
 
 const defaultProjectId = normalizeOptionalProjectId(ENV.VITE_WALLETCONNECT_PROJECT_ID);

@@ -20,6 +20,11 @@ const meta: Meta<typeof ToastViewport> = {
       ],
       description: "Position of the toast container on screen",
     },
+    variant: {
+      control: "select",
+      options: ["default", "editorial"],
+      description: "Visual treatment for the toast shell",
+    },
   },
   parameters: {
     layout: "fullscreen",
@@ -66,6 +71,10 @@ export const Default: Story = {
 
 export const BottomRight: Story = {
   render: () => <ToastTrigger viewport={<ToastViewport position="bottom-right" />} />,
+};
+
+export const EditorialWebsite: Story = {
+  render: () => <ToastTrigger viewport={<ToastViewport variant="editorial" />} />,
 };
 
 export const Interactive: Story = {

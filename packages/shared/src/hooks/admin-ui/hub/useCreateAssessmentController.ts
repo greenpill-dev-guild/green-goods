@@ -2,7 +2,6 @@ import {
   type Address,
   adminRoutes,
   assessmentStepFields,
-  compareAddresses,
   type CreateAssessmentFormData,
   type Step,
   toastService,
@@ -96,11 +95,11 @@ export function useCreateAssessmentController() {
   const { data: gardens = [] } = useGardens();
   const permissions = useGardenPermissions();
   const gardenId = selectedGarden?.id ?? null;
-  const garden = useMemo(
-    () => gardens.find((item) => compareAddresses(item.id, gardenId)),
-    [gardens, gardenId]
+  const garden = useMemo(() => gardens.find((item) => item.id === gardenId), [gardens, gardenId]);
+  const gardenRouteContext = useMemo(
+    () => ({ gardenAddress: garden?.tokenAddress ?? garden?.id }),
+    [garden?.id, garden?.tokenAddress]
   );
-  const gardenRouteContext = useMemo(() => ({ gardenAddress: garden?.id }), [garden?.id]);
   const canReview = garden ? permissions.canReviewGarden(garden) : false;
 
   const form = useCreateAssessmentStore(useShallow((state) => state.form));

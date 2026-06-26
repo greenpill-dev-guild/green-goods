@@ -1,6 +1,12 @@
 export const PWA_MANIFEST_ID = "/";
 export const PWA_APP_SCOPE = "/home";
 export const PWA_IPFS_SCOPE = "./";
+/**
+ * URL vite-plugin-pwa serves the generated worker from in dev (generateSW dev mode).
+ * The production worker lives at /sw.js; in dev that path returns index.html, so
+ * registering it throws an "unsupported MIME type" error. Not used in production.
+ */
+export const PWA_DEV_SERVICE_WORKER_SCRIPT = "/dev-sw.js?dev-sw";
 
 export const APP_ROUTES = {
   home: "/home",
@@ -15,7 +21,9 @@ export const LEGACY_APP_ROUTES = {
   profile: "/profile",
 } as const;
 
-export const PUBLIC_PWA_LAUNCH_URL = `https://www.greengoods.app${APP_ROUTES.home}`;
+export const PUBLIC_PWA_ORIGIN = "https://www.greengoods.app";
+
+export const PUBLIC_PWA_LAUNCH_URL = `${PUBLIC_PWA_ORIGIN}${APP_ROUTES.home}`;
 
 export interface PwaRoutingConfig {
   assetBasePath: "/" | "./";

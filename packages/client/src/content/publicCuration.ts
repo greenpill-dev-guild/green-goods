@@ -9,14 +9,20 @@ import type { Address } from "@green-goods/shared";
  * Gardens via `usePublicGardens`.
  *
  * Contact configuration only carries the public Agent subscription path and
- * the Google appointment booking URL; provider details stay server-side in
- * `packages/agent`.
+ * the Google appointment booking URL — Luma calendar/tag/provider details
+ * stay server-side in `packages/agent`.
  */
 
 export type CuratedGardenKey = string | Address;
 
 /** Browser-mode views that get their own hero image when curated. */
-export type PublicCurationViewKey = "gardens" | "impact" | "fund" | "actions" | "cookies";
+export type PublicCurationViewKey =
+  | "gardens"
+  | "impact"
+  | "fund"
+  | "vaults"
+  | "actions"
+  | "cookies";
 
 export interface PublicCuration {
   /** Ordered featured garden keys (id or address) for the lead-plus-two layout. */
@@ -46,6 +52,7 @@ export const publicCuration: PublicCuration = {
     gardens: "/images/hero-garden.webp",
     impact: "/images/hero-impact.webp",
     fund: "/images/hero-fund.webp",
+    vaults: "/images/hero-fund.webp",
     actions: "/images/hero-actions.webp",
     cookies: "/images/hero-cookie.webp",
   },

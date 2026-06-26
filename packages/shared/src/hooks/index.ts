@@ -41,7 +41,9 @@ export type {
   ManualInstallStep,
 } from "./app/useInstallGuidance";
 export { useInstallGuidance } from "./app/useInstallGuidance";
+export { useIsBraveBrowser } from "./app/useIsBraveBrowser";
 export { usePublicInstallHandler } from "./app/usePublicInstallHandler";
+export { useTunnelUrl } from "./app/useTunnelUrl";
 export type {
   UseLoadingWithMinDurationOptions,
   UseLoadingWithMinDurationResult,
@@ -451,10 +453,53 @@ export {
   useEnableAutoAllocate,
   useEmergencyPause,
   useHarvest,
+  useOctantVaultWalletEndow,
+  useWrapEthToWeth,
   useVaultDeposit,
   useVaultWithdraw,
 } from "./vault/useVaultOperations";
 export { useVaultPreview } from "./vault/useVaultPreview";
+export { useOctantVaultStats, type OctantVaultStats } from "./vault/useOctantVaultStats";
+export {
+  useOctantVaultProjectSupportMetric,
+  type OctantVaultProjectSupportMetric,
+  type OctantVaultProjectSupportMetricStatus,
+  type UseOctantVaultProjectSupportMetricOptions,
+} from "./vault/useOctantVaultProjectSupportMetric";
+export {
+  useOctantVaultStrategyApy,
+  type OctantVaultStrategyApy,
+  type OctantVaultStrategyApyStatus,
+  type OctantVaultStrategyApyUnavailableReason,
+  type UseOctantVaultStrategyApyOptions,
+} from "./vault/useOctantVaultStrategyApy";
+export {
+  useOctantVaultHarvestableYield,
+  type OctantVaultHarvestableYield,
+  type OctantVaultHarvestableYieldStatus,
+  type OctantVaultHarvestableYieldUnavailableReason,
+  type UseOctantVaultHarvestableYieldOptions,
+} from "./vault/useOctantVaultHarvestableYield";
+export {
+  useOctantVaultPositions,
+  type OctantVaultPosition,
+  type UseOctantVaultPositionsResult,
+} from "./vault/useOctantVaultPositions";
+export {
+  useOctantVaultRedeem,
+  type OctantVaultRedeemParams,
+} from "./vault/useOctantVaultWithdraw";
+export {
+  useOctantVaultWalletBalances,
+  type OctantVaultWalletBalancesResult,
+  type UseOctantVaultWalletBalancesOptions,
+} from "./vault/useOctantVaultWalletBalances";
+export {
+  VaultDepositStageError,
+  type VaultEndowLifecycleStep,
+  type VaultDepositFailureReason,
+  type VaultDepositStage,
+} from "./vault/vault-helpers";
 export { useHarvestableYield } from "./vault/useHarvestableYield";
 export { useStrategyRate } from "./vault/useStrategyRate";
 export { fetchApprovalsByRecipients } from "./work/useAggregatedApprovals";
