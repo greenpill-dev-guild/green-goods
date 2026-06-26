@@ -103,7 +103,7 @@ out/
 **/out/
 
 # Vite dev build output
-dev-dist
+**/dev-dist/
 
 # Gatsby files
 .cache/

@@ -23,6 +23,7 @@ const mockOpenWalletModal = vi.fn();
 vi.mock("@green-goods/shared", () => ({
   APP_NAME: "Green Goods",
   cn: (...args: any[]) => args.filter(Boolean).join(" "),
+  useTunnelUrl: () => null,
   useAppKit: () => ({ open: mockOpenWalletModal }),
   useApp: () => ({
     isMobile: false,
@@ -31,6 +32,7 @@ vi.mock("@green-goods/shared", () => ({
     deferredPrompt: null,
     promptInstall: vi.fn(),
   }),
+  useIsBraveBrowser: () => false,
   useInstallGuidance: () => ({
     scenario: "desktop",
     primaryAction: { type: "continue-in-browser", label: "Open on Mobile" },

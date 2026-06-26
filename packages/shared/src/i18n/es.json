@@ -3448,5 +3448,19 @@
   "public.nav.openMenu": "Abrir menú",
   "public.readDeeper.kicker": "Leer a fondo",
   "public.source.close": "Cerrar",
-  "public.source.viewSource": "Ver fuente"
+  "public.source.viewSource": "Ver fuente",
+  "public.installDialog.braveKicker": "Abrir la app",
+  "public.installDialog.braveTitle": "Abre Green Goods desde tu pantalla de inicio",
+  "public.installDialog.braveBody": "Brave agrega Green Goods como una app en la pantalla de inicio en lugar de abrirla desde este botón. Toca el icono de Green Goods en tu pantalla de inicio para abrirla.",
+  "public.installDialog.braveFallback": "Abrir en esta pestaña",
+  "public.installDialog.braveInstallKicker": "Instalar en Chrome",
+  "public.installDialog.braveInstallTitle": "Instala Green Goods en Chrome",
+  "public.installDialog.braveInstallBody": "Brave guarda Green Goods como un acceso directo en la pantalla de inicio en lugar de instalar la app completa. Abre esta página en Chrome y toca Instalar para agregar la app real.",
+  "public.installDialog.braveInstallAction": "Abrir en Chrome",
+  "app.toast.update.available.title": "Actualización disponible",
+  "app.toast.update.available.message": "Hay una nueva versión de Green Goods lista.",
+  "app.toast.update.updating.title": "Actualizando...",
+  "app.toast.update.updating.message": "Actualizando a la última versión.",
+  "app.toast.update.stalled.title": "La actualización necesita reiniciarse",
+  "app.toast.update.stalled.message": "Cierra y vuelve a abrir la app para terminar de actualizar."
 }

@@ -25,6 +25,7 @@ const mockUseUIStore = vi.fn();
 
 vi.mock("@green-goods/shared", () => ({
   cn: (...args: any[]) => args.filter(Boolean).join(" "),
+  useTunnelUrl: () => null,
   SyncStatusBar: ({ className }: { className?: string }) =>
     createElement("div", { "data-testid": "sync-status-bar", className }),
   useApp: () => mockUseApp(),
@@ -32,6 +33,7 @@ vi.mock("@green-goods/shared", () => ({
   useUIStore: (selector: (s: any) => any) => mockUseUIStore(selector),
   APP_NAME: "Green Goods",
   useAppKit: () => ({ open: vi.fn() }),
+  useIsBraveBrowser: () => false,
   useInstallGuidance: () => ({
     scenario: "desktop",
     primaryAction: { type: "continue-in-browser", label: "Open on Mobile" },

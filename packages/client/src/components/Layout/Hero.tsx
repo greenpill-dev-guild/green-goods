@@ -11,6 +11,7 @@ import {
   useInstallGuidance,
   useIsDarkMode,
   useTimeout,
+  useTunnelUrl,
 } from "@green-goods/shared";
 import {
   RiAddBoxLine,
@@ -25,34 +26,6 @@ import {
   RiUploadLine,
 } from "@remixicon/react";
 import { FormattedMessage, useIntl } from "react-intl";
-
-// Exception to hook boundary: dev-only, non-exported, single-use infrastructure
-function useTunnelUrl(): string | null {
-  const [url, setUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!import.meta.env.DEV) return;
-
-    let cancelled = false;
-    const poll = () => {
-      fetch("/__dev/tunnel")
-        .then((r) => r.json())
-        .then((d) => {
-          if (!cancelled && d.url) setUrl(d.url);
-        })
-        .catch(() => {});
-    };
-
-    poll();
-    const id = setInterval(poll, 5000);
-    return () => {
-      cancelled = true;
-      clearInterval(id);
-    };
-  }, []);
-
-  return url;
-}
 
 interface HeroProps {
   handleSubscribe: (e: React.FormEvent<HTMLFormElement>) => void;

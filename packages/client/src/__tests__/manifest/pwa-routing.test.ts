@@ -1,12 +1,25 @@
 import { describe, expect, it } from "vitest";
 import {
   APP_ROUTES,
+  PUBLIC_PWA_LAUNCH_URL,
+  PUBLIC_PWA_ORIGIN,
   PWA_APP_SCOPE,
+  PWA_DEV_SERVICE_WORKER_SCRIPT,
   PWA_MANIFEST_ID,
   createPwaRoutingConfig,
 } from "../../config/pwa-routing";
 
 describe("PWA routing manifest config", () => {
+  it("builds the production launch URL from origin plus APP_ROUTES.home", () => {
+    expect(PUBLIC_PWA_LAUNCH_URL).toBe(`${PUBLIC_PWA_ORIGIN}${APP_ROUTES.home}`);
+    expect(PUBLIC_PWA_LAUNCH_URL).toBe("https://www.greengoods.app/home");
+  });
+
+  it("serves the dev service worker from the origin root, not relative to nested routes", () => {
+    expect(PWA_DEV_SERVICE_WORKER_SCRIPT.startsWith("/")).toBe(true);
+    expect(PWA_DEV_SERVICE_WORKER_SCRIPT).toBe("/dev-sw.js?dev-sw");
+  });
+
   it("keeps browser-origin PWA ownership under /home with stable app identity", () => {
     const config = createPwaRoutingConfig(false);
 
