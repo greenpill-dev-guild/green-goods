@@ -101,7 +101,7 @@ The voice and tone framework (Grounded · Inviting · Honest · Active) lives in
 
 ## Banned Vocabulary
 
-Three categories. Lint-enforced bans run on every commit and CI; AI-prompt bans are documentation surfaces consumed by Stitch / Claude Design / Figma Make / Antigravity.
+Three categories. Lint-enforced bans run on every commit and CI; AI-prompt bans are documentation surfaces consumed by AI design tools and coding agents.
 
 The structured machine-readable source is [`docs/docs/reference/banned-vocabulary.json`](https://github.com/greenpill-dev-guild/green-goods/blob/main/docs/docs/reference/banned-vocabulary.json). The tables below mirror the JSON for human readers.
 
@@ -126,7 +126,7 @@ The 4 terms tagged `growth-hacking umbrella` are what `CLAUDE.md` and design bri
 
 ### Admin-Only Banned (AI Prompt Vocabulary)
 
-Banned in AI-prompt vocabulary when generating admin-cockpit screens. Not a runtime check — these are documentation surfaces for Stitch / Claude Design / Figma Make / Antigravity.
+Banned in AI-prompt vocabulary when generating admin-cockpit screens. Not a runtime check — these are documentation surfaces for AI design tools and coding agents.
 
 Source: `prompt_vocabulary_admin_banned` in [`banned-vocabulary.json`](https://github.com/greenpill-dev-guild/green-goods/blob/main/docs/docs/reference/banned-vocabulary.json), and [`.claude/skills/design/prompt-contract.md § Never Use`](https://github.com/greenpill-dev-guild/green-goods/blob/main/.claude/skills/design/prompt-contract.md).
 

@@ -88,7 +88,7 @@ components:
 
 # Green Goods Design System
 
-> Creative brief for AI design tools. Paste this file (plus a surface-specific DESIGN.md) into Stitch, Figma AI, or Claude Design to produce on-brand output.
+> Creative brief for AI design tools and coding agents. Pair this file with `.claude/skills/design/ai-ui-brief.md` plus a surface-specific DESIGN.md to produce on-brand output.
 >
 > **Usage:** pair this root file with a dialect file: `packages/admin/DESIGN.md`, `packages/client/DESIGN.pwa.md`, `packages/client/DESIGN.browser.md`, or `docs/DESIGN.md`.
 >
