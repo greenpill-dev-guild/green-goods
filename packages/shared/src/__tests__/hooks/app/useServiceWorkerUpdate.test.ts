@@ -30,6 +30,7 @@ import {
   APPLY_UPDATE_TIMEOUT_MS,
   useServiceWorkerUpdate,
 } from "../../../hooks/app/useServiceWorkerUpdate";
+import { logger } from "../../../modules/app/logger";
 import { track } from "../../../modules/app/posthog";
 
 function createMockRegistration(
@@ -73,6 +74,7 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
 
       expect(result.current.updateAvailable).toBe(false);
       expect(result.current.isUpdating).toBe(false);
+      expect(result.current.updateStalled).toBe(false);
       expect(result.current.waitingWorker).toBeNull();
       expect(typeof result.current.applyUpdate).toBe("function");
       expect(typeof result.current.dismissUpdate).toBe("function");
@@ -88,6 +90,7 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
       });
 
       expect(result.current.updateAvailable).toBe(false);
+      expect(result.current.updateStalled).toBe(false);
     });
   });
 
@@ -99,8 +102,8 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
         result.current.applyUpdate();
       });
 
-      // Should not set isUpdating since there's no waiting worker
       expect(result.current.isUpdating).toBe(false);
+      expect(result.current.updateStalled).toBe(false);
     });
   });
 
@@ -151,12 +154,12 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
 
       expect(keys1).toEqual(keys2);
       expect(keys1).toEqual([
-        "applyTimedOut",
         "applyUpdate",
         "checkForUpdate",
         "dismissUpdate",
         "isUpdating",
         "updateAvailable",
+        "updateStalled",
         "waitingWorker",
       ]);
     });
@@ -167,7 +170,7 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
       vi.useRealTimers();
     });
 
-    it("resets isUpdating and flags applyTimedOut when activation never happens", async () => {
+    it("resets isUpdating and flags updateStalled when activation never happens", async () => {
       vi.stubEnv("VITE_ENABLE_SW_DEV", "true");
       const waitingWorker = { postMessage: vi.fn() } as unknown as ServiceWorker;
       const registration = createMockRegistration({ waiting: waitingWorker });
@@ -188,7 +191,7 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
       });
 
       expect(result.current.isUpdating).toBe(true);
-      expect(result.current.applyTimedOut).toBe(false);
+      expect(result.current.updateStalled).toBe(false);
       expect(waitingWorker.postMessage).toHaveBeenCalledWith({ type: "SKIP_WAITING" });
 
       // controllerchange never fires (the PRD-500 hang scenario)
@@ -197,8 +200,12 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
       });
 
       expect(result.current.isUpdating).toBe(false);
-      expect(result.current.applyTimedOut).toBe(true);
+      expect(result.current.updateStalled).toBe(true);
       expect(track).toHaveBeenCalledWith("sw_update_apply_timeout", {});
+      expect(logger.warn).toHaveBeenCalledWith(
+        "Service worker update did not activate before timeout",
+        expect.objectContaining({ timeoutMs: APPLY_UPDATE_TIMEOUT_MS })
+      );
       expect(navigator.serviceWorker.removeEventListener).toHaveBeenCalledWith(
         "controllerchange",
         expect.any(Function)
@@ -225,13 +232,13 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
       act(() => {
         vi.advanceTimersByTime(APPLY_UPDATE_TIMEOUT_MS);
       });
-      expect(result.current.applyTimedOut).toBe(true);
+      expect(result.current.updateStalled).toBe(true);
 
       act(() => {
         result.current.applyUpdate();
       });
 
-      expect(result.current.applyTimedOut).toBe(false);
+      expect(result.current.updateStalled).toBe(false);
       expect(result.current.isUpdating).toBe(true);
     });
   });

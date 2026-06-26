@@ -82,6 +82,11 @@ const allowedIdenticalLocalizedKeys = new Set([
   "app.community.weightScheme.linear",
   "cockpit.community.stats.pools",
   "public.fund.vaults.vaultCount",
+  // Vault checkout reuses the product term "Endowment" untranslated, matching the
+  // surrounding es/pt vault copy (e.g. "Endowment confirmado."); the app.* namespace
+  // still translates it (es: "Dotación"), so this stays key-scoped rather than global.
+  "public.vaults.cardEndow.positionHolder",
+  "public.vaults.cardEndow.status.deposit",
 ]);
 const allowedIdenticalProductValues = new Set([
   "%",
@@ -93,6 +98,7 @@ const allowedIdenticalProductValues = new Set([
   "Cookie Jars",
   "Cookies",
   "DAI",
+  "Decentral Park",
   "Docs",
   "EAS",
   "Email",
@@ -103,6 +109,7 @@ const allowedIdenticalProductValues = new Set([
   "Feedback",
   "GitHub",
   "Green Goods",
+  "Greenpill Network",
   "GreenWill",
   "ha",
   "Hub",
@@ -115,11 +122,13 @@ const allowedIdenticalProductValues = new Set([
   "kWh",
   "Linear (1-2-3)",
   "m²",
+  "ManeNet DAO",
   "Marketplace",
   "Offline",
   "Onchain",
   "Order ID",
   "Pools",
+  "Protocol Guild",
   "Slug",
   "Solar",
   "Stablecoin",

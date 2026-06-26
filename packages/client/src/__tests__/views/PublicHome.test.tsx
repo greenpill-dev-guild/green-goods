@@ -31,8 +31,10 @@ const {
 vi.mock("@green-goods/shared", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
   useApp: mockUseApp,
+  useIsBraveBrowser: () => false,
   useInstallGuidance: mockUseInstallGuidance,
   usePublicInstallHandler: mockUsePublicInstallHandler,
+  useTunnelUrl: () => null,
   usePublicStats: mockUsePublicStats,
   usePublicGardens: () => ({ data: [], isLoading: false }),
   useInViewReveal: () => ({ ref: vi.fn(), revealed: true }),

@@ -1,17 +1,27 @@
-import { updateToasts, useApp, useServiceWorkerUpdate } from "@green-goods/shared";
-import { useEffect } from "react";
+import { createUpdateToasts, useApp, useServiceWorkerUpdate } from "@green-goods/shared";
+import { useEffect, useMemo } from "react";
+import { useIntl } from "react-intl";
 
 function ServiceWorkerUpdateNotifier() {
-  const { updateAvailable, isUpdating, applyUpdate, dismissUpdate } = useServiceWorkerUpdate();
+  const { formatMessage } = useIntl();
+  const { updateAvailable, isUpdating, updateStalled, applyUpdate, dismissUpdate } =
+    useServiceWorkerUpdate();
+  // Bind the i18n-aware update toasts so es/pt render instead of hardcoded English.
+  const updateToasts = useMemo(() => createUpdateToasts(formatMessage), [formatMessage]);
 
   useEffect(() => {
+    if (isUpdating) {
+      updateToasts.updating();
+      return;
+    }
+    if (updateStalled) {
+      updateToasts.stalled(dismissUpdate);
+      return;
+    }
     if (updateAvailable) {
       updateToasts.available(applyUpdate, dismissUpdate);
     }
-    if (isUpdating) {
-      updateToasts.updating();
-    }
-  }, [updateAvailable, isUpdating, applyUpdate, dismissUpdate]);
+  }, [updateAvailable, isUpdating, updateStalled, applyUpdate, dismissUpdate, updateToasts]);
 
   return null;
 }

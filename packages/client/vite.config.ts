@@ -5,6 +5,7 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { existsSync, readdirSync, readFileSync, rmSync } from "fs";
 import { resolve } from "path";
+import { resolveTunnelHmrConfig } from "../../scripts/lib/vite-tunnel-hmr.js";
 import { defineConfig, loadEnv, type Plugin } from "vite";
 import mkcert from "vite-plugin-mkcert";
 import { VitePWA, type VitePWAOptions } from "vite-plugin-pwa";
@@ -263,6 +264,8 @@ export default defineConfig(async ({ command, mode }) => {
       },
     };
   }
+
+  const tunnelHmr = resolveTunnelHmrConfig(rootDir);
 
   const plugins = [
     devTunnelPlugin(),
@@ -525,12 +528,16 @@ export default defineConfig(async ({ command, mode }) => {
       strictPort: true,
       host: true,
       open: false,
-      hmr: { overlay: true },
+      // cloudflared quick tunnels change hostname each run; allow remote Host headers in dev.
+      allowedHosts: tunnelHmr ? true : undefined,
+      hmr: tunnelHmr ? { overlay: true, ...tunnelHmr } : { overlay: true },
       // Polling is only required on Docker bind mounts and some network filesystems.
       // On macOS native FSEvents the default watcher is much cheaper than polling
       // every 100ms across hundreds of files. Opt in with VITE_USE_POLLING=true.
-      watch:
-        process.env.VITE_USE_POLLING === "true" ? { usePolling: true, interval: 100 } : undefined,
+      watch: {
+        ignored: ["**/dev-dist/**"],
+        ...(process.env.VITE_USE_POLLING === "true" ? { usePolling: true, interval: 100 } : {}),
+      },
       proxy: {
         "/api/graphql": {
           target: indexerProxyTarget,
