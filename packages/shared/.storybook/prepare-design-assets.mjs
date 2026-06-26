@@ -184,7 +184,7 @@ const manifest = {
       note: "Use the root DesignMD file plus the public-browser dialect for browser-facing component work.",
     },
     {
-      tool: "Claude Design",
+      tool: "Coding agents",
       load: [
         "./README.md",
         "./DESIGN.md",

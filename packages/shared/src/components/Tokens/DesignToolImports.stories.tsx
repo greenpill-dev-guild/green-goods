@@ -158,7 +158,7 @@ export const ToolRecipes: Story = {
       </article>
 
       <article className="min-w-0 rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-5">
-        <h2 className="break-words text-title-h5 text-text-strong-950">Claude Design</h2>
+        <h2 className="break-words text-title-h5 text-text-strong-950">Coding Agents</h2>
         <p className="mt-3 min-w-0 break-words text-paragraph-sm text-text-sub-600">
           Load the design README, the two DesignMD files, and <code>index.json</code>. Use the
           browser dialect unless the work explicitly targets installed PWA or admin.
