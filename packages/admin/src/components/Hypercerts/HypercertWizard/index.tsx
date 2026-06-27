@@ -15,6 +15,7 @@ import { AttestationSelector } from "@/components/Hypercerts/Steps/AttestationSe
 import { DistributionConfig } from "@/components/Hypercerts/Steps/DistributionConfig";
 import { HypercertPreview } from "@/components/Hypercerts/Steps/HypercertPreview";
 import { MetadataEditor } from "@/components/Hypercerts/Steps/MetadataEditor";
+import { ActionFlowShell } from "@/components/Layout/ActionFlowShell";
 import { FormFlow, toFormFlowSections } from "@/components/Layout/FormFlow";
 
 export type { HypercertCompletionData };
@@ -142,21 +143,12 @@ export function HypercertWizard({
         variant="warning"
         isLoading={wizard.restoreDraftPending}
       />
-      <FormFlow
-        layout="sheet"
-        sections={toFormFlowSections(wizard.steps, sectionContent)}
-        feedback={
-          validationMessage ? (
-            <div
-              role="status"
-              className="rounded-[var(--radius-lg)] border border-warning-light bg-warning-lighter px-3 py-2 text-sm text-warning-dark"
-            >
-              {validationMessage}
-            </div>
-          ) : undefined
-        }
-        actions={
-          <>
+      <ActionFlowShell
+        layout="dialog"
+        title={formatMessage({ id: "app.hypercerts.create.title" })}
+        context={gardenName}
+        footer={
+          <div className="flex flex-1 flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button
               type="button"
               variant="secondary"
@@ -173,9 +165,24 @@ export function HypercertWizard({
             >
               {wizard.submitLabel}
             </Button>
-          </>
+          </div>
         }
-      />
+      >
+        <FormFlow
+          layout="bare"
+          sections={toFormFlowSections(wizard.steps, sectionContent)}
+          feedback={
+            validationMessage ? (
+              <div
+                role="status"
+                className="rounded-[var(--radius-lg)] border border-warning-light bg-warning-lighter px-3 py-2 text-sm text-warning-dark"
+              >
+                {validationMessage}
+              </div>
+            ) : undefined
+          }
+        />
+      </ActionFlowShell>
       <MintingDialog
         mintingState={wizard.mintingState}
         chainId={wizard.chainId}

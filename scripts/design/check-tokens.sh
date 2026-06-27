@@ -330,6 +330,28 @@ if [[ -n "$ADMIN_CHROME_VIOLATIONS" ]]; then
 fi
 
 # ----------------------------------------------------------------------------
+# Action-flow modality guard
+#
+# Full-surface admin create/commit flows (Submit Work, Create Assessment, Create
+# Hypercert) render as a centered AdminDialog (size="2xl" variant="flow") with a
+# scrim — a bottom-sheet on mobile. The retired `size="fullscreen"` was a Radix
+# modal whose scale-transition revealed the scrim at the viewport edge ("things
+# on the edges"); it is removed from AdminDialog. Fail if it reappears so the
+# lexical trap (the word "fullscreen" → a fullscreen modal) cannot return.
+# ----------------------------------------------------------------------------
+FULLSCREEN_DIALOG_HITS="$(grep -RInE 'size=("fullscreen"|\{[[:space:]]*"fullscreen")' \
+  --include='*.ts' --include='*.tsx' \
+  --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=build \
+  packages/admin/src 2>/dev/null || true)"
+if [[ -n "$FULLSCREEN_DIALOG_HITS" ]]; then
+  echo "❌ Retired AdminDialog size=\"fullscreen\" found:"
+  echo "$FULLSCREEN_DIALOG_HITS" | sed 's/^/  /'
+  echo
+  echo "Full-surface action flows use a centered AdminDialog (size=\"2xl\" variant=\"flow\") with a scrim and a bottom-sheet mobile presentation — not a fullscreen modal takeover."
+  exit 1
+fi
+
+# ----------------------------------------------------------------------------
 # Workspace tone propagation guard
 #
 # Two regressions shipped silently before this guard existed:
@@ -376,4 +398,5 @@ echo "✅ DesignMD radius outputs present in $GENERATED_CSS."
 echo "✅ admin M3 variable usages resolve to defined tokens."
 echo "✅ no new raw cubic-bezier, duration, color, radius literals, or primitive palette utilities outside token-definition or audited baseline files."
 echo "✅ admin Controlled Chrome guard passed: glass/blur/gradients stay in approved shell CSS."
+echo "✅ action-flow modality guard passed: no retired AdminDialog size=\"fullscreen\" usage."
 echo "✅ token_version coupled across design skill, ui skill, and registry (${DESIGN_VER})."
