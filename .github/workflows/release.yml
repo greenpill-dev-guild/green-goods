@@ -1,0 +1,59 @@
+# Tag-triggered GitHub Release with auto-generated notes.
+#
+# The releaser tags the merged-main HEAD manually (see the runbook); pushing the
+# tag triggers this workflow, which only CREATES the GitHub Release. The notes are
+# generated from the commit range since the previous tag and categorized by
+# .github/release.yml. The ship-month title comes from the annotated-tag message
+# if present, else the current UTC month-year (tag on/after the 1st of the ship
+# month so it matches).
+#
+# Canonical runbook: docs/docs/builders/deployments/releasing.mdx
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 # full history so --generate-notes can diff the tag range
+
+      - name: Resolve ship-month title
+        id: meta
+        run: |
+          set -euo pipefail
+          echo "tag=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          # Prefer an annotated-tag subject (e.g. "July 2026"); else fall back to
+          # the current UTC month-year. Tag on/after the 1st of the ship month so
+          # the fallback matches the intended release name.
+          msg="$(git tag -l --format='%(contents:subject)' "${GITHUB_REF_NAME}")"
+          if [ -n "${msg}" ]; then
+            echo "month=${msg}" >> "$GITHUB_OUTPUT"
+          else
+            echo "month=$(date -u +'%B %Y')" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create GitHub Release with generated notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create "${{ steps.meta.outputs.tag }}" \
+            --title "${{ steps.meta.outputs.month }} — ${{ steps.meta.outputs.tag }}" \
+            --generate-notes \
+            --verify-tag
