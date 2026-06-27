@@ -30,6 +30,7 @@
     "env:bootstrap": "node scripts/dev/env-bootstrap.js",
     "env:check": "node scripts/dev/env-check.js",
     "env:validate": "node scripts/dev/env-check.js",
+    "version:bump": "node scripts/ops/bump-version.mjs",
     "skills:sync": "node scripts/harness/sync-agent-skills.mjs",
     "check:skills": "node scripts/harness/sync-agent-skills.mjs --check",
     "check:codex-guidance": "node scripts/quality/check-codex-docs.js && bun run check:skills",
