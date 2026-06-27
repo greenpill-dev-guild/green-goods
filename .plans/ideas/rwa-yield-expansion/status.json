@@ -10,7 +10,7 @@
     "overall_status": "idea",
     "priority": "p2",
     "created_at": "2026-04-17",
-    "updated_at": "2026-06-26T00:00:00.000Z"
+    "updated_at": "2026-06-27T00:02:14.997Z"
   },
   "links": {
     "brief": "brief.md",
@@ -132,7 +132,7 @@
       "note": "Moved feature hub from backlog to ideas"
     },
     {
-      "timestamp": "2026-06-26T00:00:00.000Z",
+      "timestamp": "2026-06-27T00:02:14.997Z",
       "actor": "codex",
       "lane": "system",
       "status": "moved_to_ideas",

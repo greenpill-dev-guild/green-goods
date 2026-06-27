@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-03-16",
-    "updated_at": "2026-06-26T00:00:00.000Z"
+    "updated_at": "2026-06-27T00:01:24.506Z"
   },
   "links": {
     "brief": "brief.md",
@@ -23,7 +23,17 @@
     "syncDirection": "plans_to_linear_visibility",
     "lastSyncedAt": "2026-06-26T00:00:00.000Z",
     "parentIssue": "PRD-351",
-    "lanes": {},
+    "lanes": {
+      "ui": {
+        "issue": "PRD-479"
+      },
+      "state_api": {
+        "issue": "PRD-480"
+      },
+      "contracts": {
+        "issue": "PRD-481"
+      }
+    },
     "project": "Operator Yield Split Visibility & Presets"
   },
   "notes": [
@@ -219,7 +229,7 @@
       "note": "Moved feature hub from active to backlog"
     },
     {
-      "timestamp": "2026-06-26T00:00:00.000Z",
+      "timestamp": "2026-06-27T00:01:24.506Z",
       "actor": "codex",
       "lane": "system",
       "status": "moved_to_backlog",

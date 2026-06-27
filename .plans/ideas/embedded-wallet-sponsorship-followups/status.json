@@ -10,7 +10,7 @@
     "overall_status": "idea",
     "priority": "p2",
     "created_at": "2026-04-12T02:12:20.845Z",
-    "updated_at": "2026-06-27T00:28:08.412Z"
+    "updated_at": "2026-06-27T00:28:08.413Z"
   },
   "links": {
     "brief": "brief.md",
@@ -26,7 +26,7 @@
   "lanes": {
     "ui": {
       "owner": "claude",
-      "status": "n/a",
+      "status": "todo",
       "branch": "claude/ui/embedded-wallet-sponsorship-followups",
       "depends_on": [],
       "handoff": "handoffs/claude-ui.md",
@@ -34,7 +34,7 @@
     },
     "state_api": {
       "owner": "codex",
-      "status": "n/a",
+      "status": "todo",
       "branch": "codex/state-api/embedded-wallet-sponsorship-followups",
       "depends_on": [],
       "handoff": "handoffs/codex-state-api.md",
@@ -50,7 +50,7 @@
     },
     "qa_pass_1": {
       "owner": "claude",
-      "status": "n/a",
+      "status": "blocked",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "claude/qa-pass-1/embedded-wallet-sponsorship-followups",
@@ -60,7 +60,7 @@
     },
     "qa_pass_2": {
       "owner": "codex",
-      "status": "n/a",
+      "status": "blocked",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "codex/qa-pass-2/embedded-wallet-sponsorship-followups",
@@ -96,7 +96,7 @@
       "note": "Moved feature hub from backlog to ideas"
     },
     {
-      "timestamp": "2026-06-26T00:00:00.000Z",
+      "timestamp": "2026-06-27T00:02:03.922Z",
       "actor": "codex",
       "lane": "system",
       "status": "moved_to_ideas",

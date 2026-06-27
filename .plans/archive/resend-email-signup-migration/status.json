@@ -10,7 +10,7 @@
     "overall_status": "done",
     "priority": "p2",
     "created_at": "2026-06-15T19:04:43.563Z",
-    "updated_at": "2026-06-26T00:00:00.000Z"
+    "updated_at": "2026-06-27T00:01:03.011Z"
   },
   "links": {
     "brief": "brief.md",
@@ -177,7 +177,7 @@
       "note": "Moved feature hub from active to archive"
     },
     {
-      "timestamp": "2026-06-26T00:00:00.000Z",
+      "timestamp": "2026-06-27T00:01:03.011Z",
       "actor": "codex",
       "lane": "system",
       "status": "archived_done",

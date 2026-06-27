@@ -10,7 +10,7 @@
     "overall_status": "done",
     "priority": "p0",
     "created_at": "2026-05-09T21:35:46.781Z",
-    "updated_at": "2026-06-26T00:00:00.000Z",
+    "updated_at": "2026-06-27T00:01:12.631Z",
     "cardEndowDisposition": "parked_built_and_saved_not_shipping; first release ships Wallet Endow only; viable card flow deferred to a future fast-chain (Arbitrum) effort that is not committed (see plan.todo.md Decision 24 and the 2026-06-22 notes entries)"
   },
   "links": {
@@ -1222,7 +1222,7 @@
       "note": "Moved feature hub from active to archive"
     },
     {
-      "timestamp": "2026-06-26T00:00:00.000Z",
+      "timestamp": "2026-06-27T00:01:12.631Z",
       "actor": "codex",
       "lane": "system",
       "status": "archived_done",

@@ -10,7 +10,7 @@
     "overall_status": "idea",
     "priority": "p1",
     "created_at": "2026-04-17",
-    "updated_at": "2026-06-26T00:00:00.000Z"
+    "updated_at": "2026-06-27T00:01:58.170Z"
   },
   "links": {
     "brief": "brief.md",
@@ -39,7 +39,7 @@
   "lanes": {
     "ui": {
       "owner": "claude",
-      "status": "n/a",
+      "status": "todo",
       "branch": "claude/ui/reputation-badging",
       "depends_on": ["state_api"],
       "handoff": "handoffs/claude-ui.md",
@@ -48,7 +48,7 @@
     },
     "state_api": {
       "owner": "codex",
-      "status": "n/a",
+      "status": "todo",
       "branch": "codex/state-api/reputation-badging",
       "depends_on": [],
       "handoff": "handoffs/codex-state-api.md",
@@ -57,7 +57,7 @@
     },
     "contracts": {
       "owner": "codex",
-      "status": "n/a",
+      "status": "todo",
       "branch": "codex/contracts/reputation-badging",
       "depends_on": [],
       "handoff": "handoffs/codex-contracts.md",
@@ -66,7 +66,7 @@
     },
     "qa_pass_1": {
       "owner": "claude",
-      "status": "n/a",
+      "status": "blocked",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "claude/qa-pass-1/reputation-badging",
@@ -77,7 +77,7 @@
     },
     "qa_pass_2": {
       "owner": "codex",
-      "status": "n/a",
+      "status": "blocked",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "codex/qa-pass-2/reputation-badging",
@@ -146,7 +146,7 @@
       "note": "Moved feature hub from backlog to ideas"
     },
     {
-      "timestamp": "2026-06-26T00:00:00.000Z",
+      "timestamp": "2026-06-27T00:01:58.170Z",
       "actor": "codex",
       "lane": "system",
       "status": "moved_to_ideas",
