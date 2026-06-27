@@ -1,0 +1,150 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "rwa-yield-expansion",
+    "title": "RWA Yield Expansion Research (Arbitrum environmental and solar assets)",
+    "kind": "feature",
+    "stage": "ideas"
+  },
+  "workflow": {
+    "overall_status": "idea",
+    "priority": "p2",
+    "created_at": "2026-04-17",
+    "updated_at": "2026-06-26T00:00:00.000Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": "2026-05-10T22:34:44.492Z",
+    "parentIssue": "RESR-9",
+    "lanes": {}
+  },
+  "notes": [
+    "Research-first backlog item for Arbitrum environmental and solar yield assets.",
+    "No contract, shared hook, admin, or client implementation should start until asset source, custody/compliance boundary, yield path, risk model, and proof requirements are locked.",
+    "The older Conservative/Balanced preset plan remains historical context only; do not treat it as current build-ready execution order.",
+    "Afo deferred this out of active product work on 2026-04-26. Keep as June implementation/backlog, not part of the April closeout push."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "n/a",
+      "branch": "claude/ui/rwa-yield-expansion",
+      "depends_on": ["state_api", "contracts"],
+      "handoff": "handoffs/claude-ui.md",
+      "handoff_note": "No UI implementation lane is active while this hub is research-first. Reopen only after the Arbitrum environmental/solar asset research locks an implementation boundary.",
+      "skill_tags": ["ui", "react", "web3"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "codex/state-api/rwa-yield-expansion",
+      "depends_on": ["contracts"],
+      "handoff": "handoffs/codex-state-api.md",
+      "handoff_note": "No shared state/API implementation lane is active while this hub is research-first. Reopen only after asset data contracts, yield path, and risk/proof requirements are agreed.",
+      "skill_tags": ["react", "tanstack-query", "data-layer", "testing"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "codex/contracts/rwa-yield-expansion",
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "handoff_note": "No contract implementation lane is active while this hub is research-first. Do not start adapters, preset registries, or queue contracts until the Arbitrum environmental/solar asset path is validated.",
+      "skill_tags": ["contracts"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "n/a",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": true,
+      "branch": "claude/qa-pass-1/rwa-yield-expansion",
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "handoff_note": "No QA lane is active while this hub is research-first. Add QA once a concrete implementation plan is promoted.",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "n/a",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": true,
+      "branch": "codex/qa-pass-2/rwa-yield-expansion",
+      "branch_trigger": "claude/qa-pass-1/rwa-yield-expansion",
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "handoff_note": "No second QA lane is active while this hub is research-first. Add validation once a concrete implementation plan is promoted.",
+      "skill_tags": ["testing", "review", "contracts"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-04-17T00:00:00Z",
+      "actor": "afo",
+      "lane": "system",
+      "status": "created",
+      "branch": null,
+      "note": "Hub created from superpowers spec + plan. Epic #463; outcome milestone #13. 12 decisions locked: policy-layer-on-top approach, Conservative + Balanced Q2 scope, immutable presets, on-flow + Gelato rebalance, 48h switch timelock, 14-day emergency-withdraw gate, external audit before 2026-05-30 contract freeze, 95%+ mutation score on RebalancePolicy."
+    },
+    {
+      "timestamp": "2026-04-19T00:00:00Z",
+      "actor": "claude",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "brief.md + eval.md + status.json scaffolded; spec.md migrated from docs/superpowers/specs/ (legacy folder deleted). plan.todo.md spec link rewired to ./spec.md. Audit engagement bundled with agent-messaging-channels SessionKeyValidator. plan-hub.mjs validate green."
+    },
+    {
+      "timestamp": "2026-04-26T19:08:17.491Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "moved_to_backlog",
+      "branch": null,
+      "note": "Moved feature hub from active to backlog"
+    },
+    {
+      "timestamp": "2026-05-10T22:34:44.492Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-05-10T22:34:44.492Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "research_reframed",
+      "branch": null,
+      "note": "Reset Linear framing to Research parent RESR-9 around Arbitrum environmental and solar yield assets; implementation lanes are not active until research locks asset/proof boundaries."
+    },
+    {
+      "timestamp": "2026-06-27T00:02:14.997Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "moved_to_ideas",
+      "branch": null,
+      "note": "Moved feature hub from backlog to ideas"
+    },
+    {
+      "timestamp": "2026-06-26T00:00:00.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "moved_to_ideas",
+      "branch": null,
+      "note": "Moved to ideas and neutralized lane mirroring until activation."
+    }
+  ],
+  "taxonomy": {
+    "initiative": "yield-to-impact",
+    "tracks": ["contracts", "shared", "admin", "client"],
+    "work_types": ["research"],
+    "surfaces": ["packages/contracts", "packages/shared", "packages/admin", "packages/client"],
+    "depends_on_features": ["yield-split-ui"]
+  }
+}
