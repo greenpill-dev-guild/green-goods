@@ -246,7 +246,11 @@ export function useOctantVaultWalletEndow(options: VaultMutationOptions = {}) {
       });
       const freshShares = typeof freshPreview === "bigint" ? freshPreview : 0n;
       const minShares = (expectedShares * 99n) / 100n;
-      if (freshShares > 0n && freshShares < minShares) {
+      // Guard on the baseline (expectedShares), not freshShares: a fresh preview of
+      // 0n — an unfavorable move all the way to zero, or a flaky post-approval read —
+      // must abort the deposit rather than fall through and deposit blind. Only skip
+      // the check when there was no usable baseline to compare against (expectedShares 0n).
+      if (expectedShares > 0n && freshShares < minShares) {
         throw new VaultDepositStageError(
           "deposit",
           "Exchange rate moved unfavorably during approval. Please try again.",
