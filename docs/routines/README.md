@@ -12,7 +12,7 @@ Guild-level routines live in [`greenpill-dev-guild/.github/routines/claude/`](ht
 | `health-watch.md` | active | Daily M-F 07:30 | `#engineering` (red only) | Linear Product Issues for accepted operational health work (unprojected) |
 | `growth-pulse.md` | active | Mon 09:00 weekly | `#growth` + `#funding` cross-post | Linear Product Issues for accepted anomalies (unprojected) + weekly digest as a Linear initiative status update (Sustainability & Monetization) |
 | `qa-triage-pulse.md` | active | Wed 21:00 UTC = 13:00 PST / 14:00 PDT (3h after the 10am PST Build Sync start) | `#product` (Discord summary, @mention when there's something to triage) | Linear Customer Needs only (pre-staged, label `source:qa-triage-pulse` + `qa-sync:<date>`); `/qa-triage` promotes them to Issues + QA-sheet rows interactively. Routine id: `trig_01GSagDiEV9Y8QTBzKeZsPSw` |
-| `release-prep.md` | active | 25th 16:00 UTC = 08:00 PST / 09:00 PDT (monthly, ~5-6 days pre-cut) | `#engineering` (readiness brief; @mention on decision-needed risk) | none — read + draft only; no Linear/GitHub writes |
+| `release-prep.md` | active | 1st 16:00 UTC = 08:00 PST / 09:00 PDT (monthly, release kickoff) | `#engineering` (readiness brief; @mention on decision-needed risk) | none — read + draft only; no Linear/GitHub writes |
 | `pr-review.md` | active | event-driven (PR open) | inline on PR | n/a |
 
 That's it — five scheduled cadences plus one event-driven, all cloud routines hosted at [claude.ai/code/routines](https://claude.ai/code/routines). Anything else previously in this folder (engineering-pulse, plan-executor, hotfix, drift-watch, metrics) has been removed: cut from the portfolio or converted to Claude Code skills (`/plan`, `/debug`).
