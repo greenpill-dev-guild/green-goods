@@ -1,3 +1,11 @@
+/**
+ * Staged — not yet wired into the live checkout.
+ *
+ * Card/recovery-wallet management for the vault crowdfunding card on-ramp; no live
+ * consumer today by design (live manage UI is wallet-only). Kept for the planned
+ * card-funding rollout — see .plans/archive/nyc-vault-crowdfunding/brief.md. Do not
+ * remove as "dead code".
+ */
 import {
   type Address,
   DEFAULT_WITHDRAW_MAX_LOSS_BPS,
