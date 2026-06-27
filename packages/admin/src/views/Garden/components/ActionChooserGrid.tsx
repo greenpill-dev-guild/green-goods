@@ -1,5 +1,6 @@
 import { type Action, Capital, cn } from "@green-goods/shared";
 import { RiCheckLine, RiImageLine } from "@remixicon/react";
+import { type KeyboardEvent, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 
 /**
@@ -48,14 +49,49 @@ export function ActionChooserGrid({
   groupLabel,
 }: ActionChooserGridProps) {
   const { formatMessage } = useIntl();
+  const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const selectedIndex = actions.findIndex((action) => action.id === selectedActionId);
+  const [focusedIndex, setFocusedIndex] = useState(() => (selectedIndex >= 0 ? selectedIndex : 0));
+  // Roving-tabindex radiogroup: Arrow/Home/End move focus between cards;
+  // Space/Enter (native button activation) selects. Selection-on-activation, not
+  // selection-follows-focus, because selecting auto-advances out of the chooser.
+  const activeIndex = focusedIndex < actions.length ? focusedIndex : 0;
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (disabled || actions.length === 0) return;
+    const last = actions.length - 1;
+    let next: number;
+    switch (event.key) {
+      case "ArrowDown":
+      case "ArrowRight":
+        next = activeIndex >= last ? 0 : activeIndex + 1;
+        break;
+      case "ArrowUp":
+      case "ArrowLeft":
+        next = activeIndex <= 0 ? last : activeIndex - 1;
+        break;
+      case "Home":
+        next = 0;
+        break;
+      case "End":
+        next = last;
+        break;
+      default:
+        return;
+    }
+    event.preventDefault();
+    setFocusedIndex(next);
+    buttonRefs.current[next]?.focus();
+  };
 
   return (
     <div
       role="radiogroup"
       aria-label={groupLabel}
+      onKeyDown={handleKeyDown}
       className="grid grid-cols-1 gap-3 sm:grid-cols-2"
     >
-      {actions.map((action) => {
+      {actions.map((action, index) => {
         const selected = action.id === selectedActionId;
         const required = action.mediaInfo?.required ?? false;
         const minImages = required ? (action.mediaInfo?.minImageCount ?? 1) : 0;
@@ -63,15 +99,21 @@ export function ActionChooserGrid({
         return (
           <button
             key={action.id}
+            ref={(el) => {
+              buttonRefs.current[index] = el;
+            }}
             type="button"
             role="radio"
             aria-checked={selected}
+            tabIndex={index === activeIndex ? 0 : -1}
             disabled={disabled}
             onClick={() => onSelect(action.id)}
+            onFocus={() => setFocusedIndex(index)}
             data-component="ActionChooserCard"
             data-selected={selected}
             className={cn(
-              "relative flex h-full w-full flex-col gap-1.5 rounded-lg border px-4 py-3.5 text-left transition",
+              "relative flex h-full w-full flex-col gap-1.5 rounded-lg border px-4 py-3.5 text-left",
+              "transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base",
               selected
                 ? "border-primary-base bg-primary-alpha-10"

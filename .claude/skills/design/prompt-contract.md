@@ -47,7 +47,8 @@ Use these terms when describing admin UI:
 | `single-mode operations surface` | Community — single dominant workflow |
 | `RightSheet inspector` | Config & alerts (notifications, settings, account) |
 | `BottomSheet inspector` | Detail flows on mobile |
-| `LeftSheet inspector` | Creation flows (submit work, create assessment, mint) |
+| `LeftSheet inspector` | Registry create/edit (e.g. Action create/edit) |
+| `ActionFlowShell` | Full-surface creation/commit flows (Submit Work, Create Assessment, Create Hypercert) — full-screen dialog (desktop) / full-page route (mobile) |
 | `workspace tint` | Subtle atmospheric color — Hub=blue, Garden=green, Community=orange, Actions=red |
 | `workbench list` | Primary data surface inside MainSheet |
 | `stage rail` | Inline secondary actions/filters adjacent to the workspace |
@@ -100,7 +101,8 @@ AI design tools MUST map generated output to these existing exports. Do not inve
 | `CanvasLayout` | CSS Grid root — named areas: `canvas-area-top`, `canvas-area-bottom`, inner cells |
 | `AppBar` | Admin top context bar, Z3 — garden context, search, settings, avatar; transparent root over the workspace canvas |
 | `MainSheet` | Z2 — dominant workspace; `isReceded` prop triggers canvas recession on sheet open |
-| `LeftSheet` | Creation flows (submit work, create assessment, mint) |
+| `ActionFlowShell` | Full-surface action-flow chrome — pinned header + scrolling body + pinned footer; rendered inside a fullscreen `AdminDialog` (desktop) or `CanvasRouteFrame` route (mobile) |
+| `LeftSheet` | Registry create/edit (Action create/edit) and inspector-bound creation |
 | `RightSheet` | Config, alerts, profile, settings, notifications |
 | `BottomSheet` | Mobile detail flows |
 | `NavigationBar` | Bottom workspace tabs — Hub, Garden, Community, Actions; symbol-first; role-adaptive |

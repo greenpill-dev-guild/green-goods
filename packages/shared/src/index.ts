@@ -181,7 +181,6 @@ export {
   SheetFooter,
   LeftSheet,
   RightSheet,
-  SPRING_CONFIGS,
   DISMISS_VELOCITY_THRESHOLD,
   CHOREOGRAPHY_STAGGER_MS,
   SortSelect,

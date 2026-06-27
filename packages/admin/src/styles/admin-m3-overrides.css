@@ -406,3 +406,19 @@ body:has(.admin-m3) [data-component="ConfirmDialog"][data-slot="surface"] {
   position: relative;
   z-index: 1;
 }
+
+/* ============================================================================
+ * Action flow phase cross-fade (qualify ↔ configure)
+ * Animates only the content group — the ActionFlowShell header + footer stay
+ * stationary. Reuses the route-content fade keyframe + admin motion tokens
+ * (minimal-cockpit budget). Disabled under reduced motion.
+ * ============================================================================ */
+.action-flow-fade {
+  animation: var(--admin-motion-route-content-duration) var(--admin-motion-route-content-easing) both
+    route-content-fade-in;
+}
+@media (prefers-reduced-motion: reduce) {
+  .action-flow-fade {
+    animation: none;
+  }
+}

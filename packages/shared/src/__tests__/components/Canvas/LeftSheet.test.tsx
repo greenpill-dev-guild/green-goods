@@ -1,7 +1,6 @@
 // packages/shared/src/__tests__/components/Canvas/LeftSheet.test.tsx
-import { Globals } from "@react-spring/web";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { IntlProvider } from "react-intl";
 import { LeftSheet } from "../../../components/Canvas/LeftSheet";
 
@@ -116,22 +115,13 @@ describe("LeftSheet", () => {
 });
 
 describe("LeftSheet open transition", () => {
-  beforeEach(() => {
-    Globals.assign({ skipAnimation: true });
-  });
-
-  afterEach(() => {
-    Globals.assign({ skipAnimation: false });
-  });
-
   it("reaches the open pose when opened after mount despite trailing re-renders", async () => {
-    // Regression: react-spring re-applies the spring's declared update on
-    // every commit. When the pose was only declared at mount (closed), any
-    // commit landing after the imperative open start re-targeted the spring
-    // back offscreen — the Hub → Submit Work sheet mounted parked at x=-100
-    // with its scrim at 0, because route-backed config re-registration
-    // produces exactly such trailing commits. The pose must be re-declared
-    // through the useSpring deps array so re-applies stay idempotent.
+    // Regression: the CSS slide pose is React-declared (closed → open on the
+    // next frame via the enter effect). Trailing commits after the open
+    // transition must not reset it back offscreen — the enter effect runs once
+    // on open and the pose state persists across re-renders, so the sheet
+    // settles at the open transform (previously parked at x=-100 on Hub →
+    // Submit Work).
     const onClose = vi.fn();
     const view = renderWithIntl(
       <LeftSheet open={false} onClose={onClose} title="Submit Work">

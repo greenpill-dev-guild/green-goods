@@ -1,4 +1,3 @@
-import { animated, useSpring } from "@react-spring/web";
 import { useDrag } from "@use-gesture/react";
 import { useCallback, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
@@ -11,12 +10,11 @@ import {
   getCanvasSheetDialogClassName,
   getCanvasSheetDialogStyle,
   getCanvasSheetDragIntent,
-  getCanvasSheetTransform,
   useCanvasSheetContentSnapshot,
+  useCanvasSheetCssMotion,
   useCanvasSheetLifecycle,
   useCanvasSheetMount,
 } from "./CanvasSheetInternals";
-import { SPRING_CONFIGS } from "./springConfig";
 
 export type LeftSheetWidth = "default" | "wide";
 
@@ -40,8 +38,9 @@ export interface LeftSheetProps {
 /**
  * LeftSheet — action-oriented panel that slides in from the left edge.
  *
- * Uses native <dialog> for focus trap + Escape handling, react-spring for
- * physics-based slide animation. Mirrors RightSheet architecture.
+ * Uses native <dialog> for focus trap + Escape handling, and a CSS transition
+ * for the slide animation (see useCanvasSheetCssMotion). Mirrors RightSheet
+ * architecture.
  */
 export function LeftSheet({
   open,
@@ -65,38 +64,24 @@ export function LeftSheet({
   const dialogRef = useRef<HTMLDialogElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const prefersReducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
-  const { mounted, setMounted, latestOpenRef } = useCanvasSheetMount(open);
+  const { mounted, setMounted } = useCanvasSheetMount(open);
   const {
     title: renderedTitle,
     description: renderedDescription,
     children: renderedChildren,
   } = useCanvasSheetContentSnapshot(open, { title, description, children });
 
-  // Spring: x=0 fully open, x=-100 fully offscreen left.
-  // The pose MUST be declared through the deps array: react-spring's
-  // useSprings layout effect re-applies the declared update on every commit,
-  // so the declared update has to track the current pose. With no deps it
-  // stays the initial closed pose forever, and any commit landing after an
-  // imperative open start re-targets the spring back offscreen — the sheet
-  // then mounts parked at x=-100 (reproduced on /hub/work/submit).
-  const [springs, api] = useSpring(
-    () => ({
-      x: open ? 0 : -100,
-      overlay: open ? 1 : 0,
-      config: SPRING_CONFIGS.sheet,
-      immediate: prefersReducedMotion,
-      onRest: (result) => {
-        if (!latestOpenRef.current && result.finished && result.value.x <= -99) {
-          setMounted(false);
-          dialogRef.current?.close();
-        }
-      },
-    }),
-    [open, prefersReducedMotion]
-  );
+  const motion = useCanvasSheetCssMotion({
+    edge: "left",
+    open,
+    mounted,
+    setMounted,
+    prefersReducedMotion,
+    dialogRef,
+  });
 
-  // Mount bookkeeping when open changes; the spring pose itself is driven
-  // declaratively by the deps above.
+  // Mount bookkeeping: mount on open; under reduced motion, unmount immediately
+  // on close (no exit transition to wait for).
   useEffect(() => {
     if (open) {
       setMounted(true);
@@ -109,11 +94,11 @@ export function LeftSheet({
 
   const requestClose = useCallback(() => {
     if (preventClose) {
-      api.start({ x: 0, immediate: false });
+      motion.snapOpen();
       return;
     }
     onClose();
-  }, [api, onClose, preventClose]);
+  }, [motion, onClose, preventClose]);
 
   useCanvasSheetLifecycle({
     dialogRef,
@@ -142,25 +127,26 @@ export function LeftSheet({
 
       if (preventClose) {
         if (intent.kind === "cancel") cancel();
-        api.start({ x: 0, immediate: false });
+        motion.snapOpen();
         return;
       }
 
       if (intent.kind === "cancel") {
         cancel();
-        api.start({ x: 0, immediate: false });
+        motion.snapOpen();
         return;
       }
       if (intent.kind === "dismiss") {
+        motion.primeClose();
         requestClose();
         return;
       }
       if (intent.kind === "snap") {
-        api.start({ x: 0, immediate: false });
+        motion.snapOpen();
         return;
       }
       if (intent.kind === "drag") {
-        api.start({ x: intent.offset, immediate: true });
+        motion.dragTo(intent.offset);
       }
     },
     {
@@ -189,33 +175,43 @@ export function LeftSheet({
     >
       {renderedDescription ? <p className="sr-only">{renderedDescription}</p> : null}
 
-      {/* Custom overlay — scrim that fades with the sheet. Bounded sheets dim
-          the canvas pane behind them (no movement, no blur — depth via the
+      {/* Custom overlay — scrim that cross-fades with the sheet. Bounded sheets
+          dim the canvas pane behind them (no movement, no blur — depth via the
           scrim alone, per QA refinement); unbounded sheets keep the blurred
           viewport scrim. */}
-      <animated.div
+      <button
+        type="button"
+        aria-label={closeLabel}
+        tabIndex={-1}
         style={{
           position: "absolute",
           inset: 0,
-          opacity: springs.overlay,
+          appearance: "none",
+          border: "none",
+          padding: 0,
+          margin: 0,
+          cursor: "default",
+          opacity: motion.overlayOpacity,
+          transition: motion.overlayTransition,
           backgroundColor: isBounded
             ? "rgb(var(--m3-on-surface, 10 10 10) / 0.32)"
             : "rgb(var(--m3-on-surface, 10 10 10) / 0.18)",
           backdropFilter: isBounded ? undefined : "blur(2px)",
           WebkitBackdropFilter: isBounded ? undefined : "blur(2px)",
         }}
-        onClick={(event) => {
-          if (event.target === event.currentTarget) requestClose();
-        }}
+        onClick={() => requestClose()}
         data-component="LeftSheet"
         data-slot="overlay"
         data-state={sheetState}
         data-testid="left-sheet-overlay"
       />
 
-      {/* Sheet content — spring-driven translateX with handoff 24px overshoot */}
-      <animated.div
-        ref={contentRef}
+      {/* Sheet content — CSS translateX with handoff 24px overshoot */}
+      <div
+        ref={(node) => {
+          contentRef.current = node;
+          motion.surfaceRef.current = node;
+        }}
         className={cn(
           "absolute top-0 left-0 flex h-full flex-col",
           "touch-none focus:outline-none will-change-transform",
@@ -234,12 +230,15 @@ export function LeftSheet({
           maxHeight: isBounded ? "100%" : undefined,
           paddingBottom: isBounded ? undefined : "env(safe-area-inset-bottom)",
           touchAction: "none",
-          transform: springs.x.to((x) => getCanvasSheetTransform("left", x)),
+          willChange: "transform",
+          transform: motion.surfaceTransform,
+          transition: motion.surfaceTransition,
           borderRadius: isBounded
             ? "var(--radius-sheet, 24px)"
             : "0 var(--radius-sheet, 16px) var(--radius-sheet, 16px) 0",
           zIndex: isBounded ? 46 : 51,
         }}
+        onTransitionEnd={motion.onSurfaceTransitionEnd}
         data-component="LeftSheet"
         data-slot="surface"
         data-state={sheetState}
@@ -256,7 +255,7 @@ export function LeftSheet({
           closeDisabled={preventClose}
         />
         <CanvasSheetBody onClose={requestClose}>{renderedChildren}</CanvasSheetBody>
-      </animated.div>
+      </div>
     </dialog>
   );
 
