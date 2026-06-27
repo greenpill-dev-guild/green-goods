@@ -1,0 +1,153 @@
+---
+title: Releasing
+sidebar_label: Releasing
+slug: /builders/deployments/releasing
+audience: developer
+owner: docs
+last_verified: 2026-06-23
+feature_status: Live
+source_of_truth:
+  - .github/workflows/release.yml
+  - .github/release.yml
+  - scripts/ops/bump-version.mjs
+  - .claude/skills/ops/git-workflow.md
+  - CONTRIBUTING.md
+keywords:
+  - release
+  - monthly release
+  - changelog
+  - versioning
+  - hotfix
+  - back-merge
+---
+
+# Releasing
+
+Green Goods ships a **monthly release** at the start of each month, aligned to the two-week cycle cadence (two cycles per release). This page is the canonical runbook. For day-to-day git conventions see [`.claude/skills/ops/git-workflow.md`](https://github.com/greenpill-dev-guild/green-goods/blob/main/.claude/skills/ops/git-workflow.md); for the branch model see [How To Contribute](/builders/how-to-contribute).
+
+## Cadence and versioning
+
+- **When:** the first of each month. Work accumulates on `develop` (staging) all month; a release branch is cut at the end of the prior month and ships on the 1st.
+- **Versioning:** semver, **minor bump per monthly release** (`1.1.0` → `1.2.0` → `1.3.0`). **Patch** for hotfixes (`1.2.1`). **Major** for breaking changes. All seven workspace `package.json` files stay unified — use `bun run version:bump`.
+
+## Naming
+
+A release is named for the **month it ships in**.
+
+| Artifact | Form | Example (ships July 1) |
+| --- | --- | --- |
+| Release branch | `release/<ship-month>` | `release/july-2026` |
+| Tag | `vX.Y.0` | `v1.2.0` |
+| GitHub Release title | `<Month Year> — vX.Y.0` | `July 2026 — v1.2.0` |
+
+## Where the changelog lives
+
+**GitHub Releases is the canonical, complete changelog**, auto-generated from the tag range by [`.github/workflows/release.yml`](https://github.com/greenpill-dev-guild/green-goods/blob/main/.github/workflows/release.yml) (grouped per [`.github/release.yml`](https://github.com/greenpill-dev-guild/green-goods/blob/main/.github/release.yml)). The in-docs [Changelog](/reference/changelog) page is a **thin, curated gardener-facing summary** that links out — not a full mirror. Linear remains the backlog.
+
+## Monthly release — step by step
+
+Example below uses ship month **July 2026** and version **`1.2.0`**.
+
+```bash
+# 0. Soft-freeze develop ~3 days before month end: only QA fixes land. QA against
+#    the develop staging subdomain (staging.greengoods.app) until green.
+
+git fetch origin --tags --prune
+
+# 1. Cut the release branch off the frozen develop.
+git switch -c release/july-2026 origin/develop
+
+# 2. Bump all seven package.json versions (root + 6 packages).
+bun run version:bump 1.2.0
+git diff --stat                 # expect exactly 7 one-line changes
+
+# 3. Add a thin (3-5 line) gardener-facing entry to docs/docs/reference/changelog.md
+#    for v1.2.0, linking the GitHub Release (published in step 8). Not a full mirror.
+
+# 4. Validation gates (run the full set before a production release).
+bun run format:check
+bun run lint
+bun run test
+bun run build
+bun run verify:contracts        # only if contracts changed in the range
+
+# 5. Commit and push the release branch.
+git add -A
+git commit -m "chore(release): v1.2.0 (July 2026)"
+git push -u origin release/july-2026
+
+# 6. Open the release PR into main (base=main triggers full per-package CI + CI Gate).
+gh pr create --repo greenpill-dev-guild/green-goods --base main --head release/july-2026 \
+  --title "Release July 2026 — v1.2.0" \
+  --body "Monthly release. Auto-notes generate on tag push."
+
+# 7. Merge once CI Gate is green (merge-commit keeps develop an ancestor of main).
+
+# 8. Tag the MERGED main HEAD — never before merge — and push the tag.
+git switch main && git pull origin main
+git merge-base --is-ancestor origin/release/july-2026 HEAD && echo "ok: release is in main"
+git tag -a v1.2.0 -m "July 2026"     # annotated subject sets the Release title
+git push origin v1.2.0               # this push triggers .github/workflows/release.yml
+
+# 9. Verify the GitHub Release was created with generated notes.
+gh release view v1.2.0 --web
+
+# 10. BACK-MERGE main → develop (mandatory — see below).
+# 11. Announce to gardeners (the release-prep routine drafts this).
+```
+
+:::note First cadenced release
+The first monthly release after the cadence is adopted will span a large commit range (the backlog that accumulated on `develop`). A long auto-generated GitHub Release is expected for that one — keep the curated gardener entry thin. Subsequent months are normal-sized.
+:::
+
+## Hotfix — step by step
+
+A production bug found mid-month branches from `main`, not `develop`. Example version **`1.2.1`**.
+
+```bash
+git fetch origin --tags --prune
+git switch -c patch/<short-desc> origin/main
+# ... make the minimal fix ...
+bun run version:bump 1.2.1
+bun run format:check && bun run lint && bun run test && bun run build
+git add -A && git commit -m "fix(<scope>): <desc>"
+git push -u origin patch/<short-desc>
+gh pr create --repo greenpill-dev-guild/green-goods --base main --head patch/<short-desc> \
+  --title "Hotfix v1.2.1 — <desc>"
+# merge once CI Gate is green, then tag the merged main HEAD:
+git switch main && git pull origin main
+git tag -a v1.2.1 -m "<Month Year>" && git push origin v1.2.1   # triggers the Release
+# THEN back-merge (below). Skipping this is exactly how a hotfix gets stranded.
+```
+
+## Back-merge main → develop (mandatory)
+
+After **every** release and **every** hotfix, merge `main` back into `develop` so production commits return to the integration branch. Use a real merge (records ancestry) — never cherry-pick (double-applies on the next merge) and never force-push `main`.
+
+```bash
+git fetch origin
+git switch -c chore/back-merge-main-to-develop origin/develop
+git merge origin/main          # resolve conflicts if any; bun install if the lockfile moved
+git push -u origin chore/back-merge-main-to-develop
+gh pr create --repo greenpill-dev-guild/green-goods --base develop \
+  --head chore/back-merge-main-to-develop \
+  --title "chore: back-merge main into develop"
+```
+
+After it merges, `git log origin/develop..origin/main` should be empty — that empty output is the invariant the monthly promote relies on.
+
+## Validation gates reference
+
+| Command | Proves |
+| --- | --- |
+| `bun run format:check` | Formatting clean (biome) |
+| `bun run lint` | Lint clean (oxlint + solhint) |
+| `bun run test` | All package tests pass |
+| `bun run build` | Builds across all packages |
+| `bun run verify:contracts` | Full contract readiness (only when contracts change) |
+
+## Troubleshooting
+
+- **The Release didn't appear after pushing the tag.** Confirm the tag matches `v*.*.*` and the [Release workflow](https://github.com/greenpill-dev-guild/green-goods/actions/workflows/release.yml) ran. If `gh release create` failed with a 403, an org ruleset may restrict who can create releases from Actions — create it locally as a fallback: `gh release create vX.Y.0 --generate-notes --verify-tag --title "<Month Year> — vX.Y.0"`.
+- **Wrong month in the title.** The title comes from the annotated-tag subject, else the current UTC month. Edit the Release title in the GitHub UI, or re-tag with `git tag -a -f` only before the workflow ran.
+- **Tagged the wrong commit.** Always tag the merged `main` HEAD. The `git merge-base --is-ancestor` check in step 8 guards this — run it before tagging.
