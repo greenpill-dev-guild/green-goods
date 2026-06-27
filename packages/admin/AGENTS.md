@@ -73,7 +73,8 @@ foundations.
 - Every privileged action must flow through permission checks such as `useRole` or
   `useGardenPermissions`.
 - Wrap user-visible write actions in the shared toast workflow instead of ad-hoc transaction UI.
-- Use `AdminDialog` / `AdminConfirmDialog`, `RightSheet`, `LeftSheet`, or `BottomSheet` for modal and sheet flows instead of ad-hoc shells. `DialogShell` remains available for shared or non-admin surfaces, but admin dashboard dialogs should use the admin wrappers.
+- Use `AdminDialog` / `AdminConfirmDialog`, `RightSheet`, `LeftSheet`, or `BottomSheet` for modal and sheet flows instead of ad-hoc shells. `DialogShell` remains available for shared or non-admin surfaces, but admin dashboard dialogs should use the admin wrappers. Full-surface create/commit flows (Submit Work, Create Assessment, Create Hypercert) are centered `AdminDialog` (`size="2xl" variant="flow"`) modals hosting `ActionFlowShell` — not fullscreen takeovers or routes.
+- Do not edit the admin UI standards (`admin.mdx`, `packages/admin/DESIGN.md`, `.claude/skills/design/*`) in the same commit as the code they govern. A change to an archetype rule — which surface is a modal vs a sheet vs a route, which primitive a flow uses — is its own commit/PR with its own review, so a wrong implementation cannot quietly rewrite the standard to bless itself. (Static gates check token hygiene, not whether a standard still describes good UI.)
 - New user-facing strings must be translated in all three locale files.
 - New or changed admin UI components/views must add or update Storybook stories in the same change. Run `bun run --filter @green-goods/shared check:stories`; run `bun run --filter @green-goods/shared test:stories:ci` when adding `storybook-ci` stories; run `bun run --filter @green-goods/shared build-storybook` for Storybook-impacting changes.
 
