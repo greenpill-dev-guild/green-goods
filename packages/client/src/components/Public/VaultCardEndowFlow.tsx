@@ -1,3 +1,12 @@
+/**
+ * Staged — not yet wired into the live checkout.
+ *
+ * Card (Thirdweb) on-ramp for vault crowdfunding. Built as part of the NYC vault
+ * crowdfunding work but intentionally kept hidden until the card-payment provider
+ * is proven — the live checkout (VaultCheckoutDialog) is wallet-only. Retained for
+ * the planned card-funding rollout; see .plans/archive/nyc-vault-crowdfunding/brief.md.
+ * Has no live consumer today by design — do not remove as "dead code".
+ */
 import {
   buildPublicFundingAvailabilityKey,
   PUBLIC_AGENT_ROUTES,
