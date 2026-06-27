@@ -33,6 +33,10 @@ Green Goods runs a **staging → production** flow:
 
 Branch from `develop` and PR into `develop`. Don't target `main` directly except for a documented hotfix.
 
+### Releases and hotfixes
+
+Green Goods ships a **monthly release** at the start of each month (minor bump: `1.1.0` → `1.2.0`; patch for hotfixes; major for breaking). Releases are cut from a `release/<ship-month>` branch off `develop`, PR'd into `main`, tagged `vX.Y.0`, then **back-merged to `develop`**. Hotfixes branch from `main` directly and are also back-merged. Full runbook: [Releasing](https://docs.greengoods.app/builders/deployments/releasing).
+
 ### PR gate
 
 Both branches are protected: a pull request with passing CI checks is required to merge. Maintainers keep an admin fast-path for docs/trivial/hotfix changes only. (Required reviewer approval turns on as the contributor base grows; until then, the passing-checks requirement is the gate — it already applies to every PR, including maintainers'.)

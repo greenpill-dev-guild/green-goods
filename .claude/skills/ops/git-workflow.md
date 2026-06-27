@@ -136,6 +136,8 @@ For actual code conflicts:
 
 ## Release Workflow
 
+> **Canonical runbook:** [`docs/docs/builders/deployments/releasing.mdx`](../../../docs/docs/builders/deployments/releasing.mdx) — monthly minor bump, ship-month naming (`release/<ship-month>` → `main`, tag `vX.Y.0`), GitHub Releases as the canonical changelog, mandatory `main → develop` back-merge. This section is the quick git reference; the runbook is the source of truth.
+
 ### Tag Format
 
 ```

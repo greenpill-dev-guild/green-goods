@@ -22,7 +22,7 @@ Unified operations guide covering deployment, CI/CD, git workflow, dependency ma
 |--------|--------|----------|
 | Deploy, release, broadcast, mainnet, testnet, Vercel, indexer deploy | Deployment | [deployment.md](./deployment.md) |
 | CI, GitHub Actions, workflow, pipeline, caching, status checks | CI/CD | [ci-cd.md](./ci-cd.md) |
-| Branch, commit, merge, rebase, PR, release tag, changelog | Git | [git-workflow.md](./git-workflow.md) |
+| Branch, commit, merge, rebase, PR, release tag, changelog, monthly release, hotfix, back-merge | Git | [git-workflow.md](./git-workflow.md) |
 | Dependencies, lockfile, `bun install`, audit, upgrade, workspace | Dependencies | [dependency-management.md](./dependency-management.md) |
 | Format, Biome, import sorting, Prettier migration | Formatting | [biome.md](./biome.md) |
 | Vite, build config, HMR, env vars, plugins, bundle | Build Tool | [vite.md](./vite.md) |
