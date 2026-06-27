@@ -268,6 +268,8 @@ vi.mock("@green-goods/shared", async () => {
       React.createElement("div", null, children),
     SheetFooter: ({ children }: { children: React.ReactNode }) =>
       React.createElement("div", null, children),
+    Surface: ({ children }: { children: React.ReactNode }) =>
+      React.createElement("div", null, children),
     Textarea: ({
       invalid: _invalid,
       surface: _surface,

@@ -815,20 +815,16 @@ function SubmitWorkPanelContent({
 
   const footer = (
     <>
-      <div className="min-w-0 flex-1" aria-live="polite">
+      <div className="min-w-0 flex-1 space-y-1.5" aria-live="polite">
         {busy ? (
-          <div className="space-y-1.5">
-            <AdminLinearProgress
-              ariaLabel={
-                progressMessage || formatMessage({ id: "app.admin.work.submit.submitting" })
-              }
-            />
-            {progressMessage ? (
-              <p className="truncate text-sm text-text-sub" title={progressMessage}>
-                {progressMessage}
-              </p>
-            ) : null}
-          </div>
+          <AdminLinearProgress
+            ariaLabel={progressMessage || formatMessage({ id: "app.admin.work.submit.submitting" })}
+          />
+        ) : null}
+        {progressMessage ? (
+          <p className="truncate text-sm text-text-sub" title={progressMessage}>
+            {progressMessage}
+          </p>
         ) : null}
       </div>
       <div className="flex gap-2">
@@ -858,6 +854,7 @@ function SubmitWorkPanelContent({
       context={garden.name}
       onBack={configureOnBack}
       backLabel={configureBackLabel}
+      backDisabled={busy}
       footer={footer}
     >
       <div ref={phaseRef} tabIndex={-1} key="capture" className="action-flow-fade outline-none">

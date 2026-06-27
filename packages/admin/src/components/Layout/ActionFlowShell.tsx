@@ -21,6 +21,8 @@ export interface ActionFlowShellProps {
   onBack?: () => void;
   /** Accessible label + tooltip for the back-arrow. Required when `onBack` is set. */
   backLabel?: string;
+  /** Disables the back-arrow while protected work is in flight (media prep / tx). */
+  backDisabled?: boolean;
   /**
    * "dialog" reserves header right padding for AdminDialog's own close button.
    * "page" assumes the route owns exit via its back link, so no reservation.
@@ -54,6 +56,7 @@ export function ActionFlowShell({
   context,
   onBack,
   backLabel,
+  backDisabled = false,
   layout = "dialog",
   footer,
   children,
@@ -81,6 +84,7 @@ export function ActionFlowShell({
           <button
             type="button"
             onClick={onBack}
+            disabled={backDisabled}
             aria-label={backLabel}
             title={backLabel}
             className={cn(
@@ -88,7 +92,8 @@ export function ActionFlowShell({
               "border border-stroke-soft text-text-soft",
               "transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
               "hover:text-text-sub active:scale-95",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base"
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base",
+              "disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:text-text-soft disabled:active:scale-100"
             )}
           >
             <RiArrowLeftLine className="h-5 w-5" aria-hidden />
