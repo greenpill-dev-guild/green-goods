@@ -1,6 +1,6 @@
 # AI Prompt Contract — Client Surface
 
-Stable vocabulary and never-use list for prompting AI design tools (Stitch, Antigravity, Claude Design, Figma Make) to generate client PWA screens that align with the Green Goods garden-journal voice.
+Stable vocabulary and never-use list for prompting AI design tools or coding agents to generate client PWA screens that align with the Green Goods garden-journal voice.
 
 > **Companion**: The `admin` surface uses a restrained operator cockpit dialect. See [prompt-contract.md](./prompt-contract.md) for admin-specific framing. This file is client-specific — gardener-facing PWA framing.
 
@@ -118,12 +118,12 @@ AI design tools MUST map generated output to these existing exports. Do not inve
 ## Companion Files
 
 - [prompt-contract.md](./prompt-contract.md) — Admin cockpit prompt contract (sister file)
+- [ai-ui-brief.md](./ai-ui-brief.md) — Reusable AI UI/CSS build brief and external reference role map
 - [language.md](./language.md) — Full Warm Earth design language (shapes, motion, color, hero moments)
 - [SKILL.md](./SKILL.md) — Design philosophy, paradigms, client/admin carve-outs
 - Root `DESIGN.md` — Canonical Warm Earth DesignMD tokens + creative brief
 - `packages/client/DESIGN.pwa.md` — Installed PWA DesignMD dialect
 - `packages/client/DESIGN.browser.md` — Public browser DesignMD dialect
-- `.stitch/config.json` — Surface routing for AI design tools
 
 ## Why This Contract Exists
 
