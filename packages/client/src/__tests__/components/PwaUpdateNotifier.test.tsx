@@ -104,4 +104,49 @@ describe("PwaUpdateNotifier", () => {
 
     expect(sharedMocks.stalled).toHaveBeenCalledWith(sharedMocks.dismissUpdate);
   });
+
+  it("prefers the updating toast over the available toast when both flags are set", () => {
+    sharedMocks.useServiceWorkerUpdate.mockReturnValue({
+      updateAvailable: true,
+      isUpdating: true,
+      updateStalled: false,
+      applyUpdate: sharedMocks.applyUpdate,
+      dismissUpdate: sharedMocks.dismissUpdate,
+    });
+
+    renderNotifier();
+
+    expect(sharedMocks.updating).toHaveBeenCalledTimes(1);
+    expect(sharedMocks.updateAvailable).not.toHaveBeenCalled();
+  });
+
+  it("prefers the stalled toast over the available toast when both flags are set", () => {
+    sharedMocks.useServiceWorkerUpdate.mockReturnValue({
+      updateAvailable: true,
+      isUpdating: false,
+      updateStalled: true,
+      applyUpdate: sharedMocks.applyUpdate,
+      dismissUpdate: sharedMocks.dismissUpdate,
+    });
+
+    renderNotifier();
+
+    expect(sharedMocks.stalled).toHaveBeenCalledTimes(1);
+    expect(sharedMocks.updateAvailable).not.toHaveBeenCalled();
+  });
+
+  it("prefers the updating toast over the stalled toast when both flags are set", () => {
+    sharedMocks.useServiceWorkerUpdate.mockReturnValue({
+      updateAvailable: false,
+      isUpdating: true,
+      updateStalled: true,
+      applyUpdate: sharedMocks.applyUpdate,
+      dismissUpdate: sharedMocks.dismissUpdate,
+    });
+
+    renderNotifier();
+
+    expect(sharedMocks.updating).toHaveBeenCalledTimes(1);
+    expect(sharedMocks.stalled).not.toHaveBeenCalled();
+  });
 });
