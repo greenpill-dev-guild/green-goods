@@ -3,9 +3,11 @@ title: Changelog / Release Notes
 slug: /reference/changelog
 audience: all
 owner: docs
-last_verified: 2026-02-19
+last_verified: 2026-06-23
 feature_status: Live
 source_of_truth:
+  - https://github.com/greenpill-dev-guild/green-goods/releases
+  - docs/docs/builders/deployments/releasing.mdx
   - docs/docs/builders/deployments/status.mdx
   - docs/docusaurus.config.ts
 ---
@@ -16,9 +18,23 @@ Major updates and feature releases for Green Goods.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and [Semantic Versioning](https://semver.org/).
 
+:::info Canonical changelog
+The complete, auto-generated changelog lives on [GitHub Releases](https://github.com/greenpill-dev-guild/green-goods/releases). This page is a curated, gardener-facing summary of notable releases that links out — not a full mirror. See the [release process](/builders/deployments/releasing).
+:::
+
 ---
 
 ## 2026
+
+### v1.1.0 - June 2026
+
+**Vault crowdfunding and PWA reliability**
+
+- Octant yield-vault crowdfunding on `/vaults` (wallet endow, positions, withdraw).
+- Brave / Android PWA install and update reliability improvements.
+- Time-boxed IPFS uploads so stalled work-media uploads fail retryably.
+
+Full notes: [GitHub Releases](https://github.com/greenpill-dev-guild/green-goods/releases).
 
 ### v1.0.0 - February 18, 2026
 
@@ -222,7 +238,7 @@ This is the first official release of Green Goods — an offline-first platform 
 **Migration:** GitBook → Docusaurus 3.9
 
 **New Sections:**
-- `/docs/developer/releasing.md` — release process guide
+- [`/builders/deployments/releasing`](/builders/deployments/releasing) — release process guide
 - `/docs/developer/cursor-workflows.md` — AI-assisted development
 - `/docs/developer/n8n-automation.md` — workflow automation
 - `/docs/developer/docs-contributing.md` — contribution guide

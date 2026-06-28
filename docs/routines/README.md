@@ -12,9 +12,10 @@ Guild-level routines live in [`greenpill-dev-guild/.github/routines/claude/`](ht
 | `health-watch.md` | active | Daily M-F 07:30 | `#engineering` (red only) | Linear Product Issues for accepted operational health work (unprojected) |
 | `growth-pulse.md` | active | Mon 09:00 weekly | `#growth` + `#funding` cross-post | Linear Product Issues for accepted anomalies (unprojected) + weekly digest as a Linear initiative status update (Sustainability & Monetization) |
 | `qa-triage-pulse.md` | active | Wed 21:00 UTC = 13:00 PST / 14:00 PDT (3h after the 10am PST Build Sync start) | `#product` (Discord summary, @mention when there's something to triage) | Linear Customer Needs only (pre-staged, label `source:qa-triage-pulse` + `qa-sync:<date>`); `/qa-triage` promotes them to Issues + QA-sheet rows interactively. Routine id: `trig_01GSagDiEV9Y8QTBzKeZsPSw` |
+| `release-prep.md` | active | 1st 16:00 UTC = 08:00 PST / 09:00 PDT (monthly, release kickoff) | `#engineering` (readiness brief; @mention on decision-needed risk) | none — read + draft only; no Linear/GitHub writes |
 | `pr-review.md` | active | event-driven (PR open) | inline on PR | n/a |
 
-That's it — four scheduled cadences plus one event-driven, all cloud routines hosted at [claude.ai/code/routines](https://claude.ai/code/routines). Anything else previously in this folder (engineering-pulse, plan-executor, hotfix, drift-watch, metrics) has been removed: cut from the portfolio or converted to Claude Code skills (`/plan`, `/debug`).
+That's it — five scheduled cadences plus one event-driven, all cloud routines hosted at [claude.ai/code/routines](https://claude.ai/code/routines). Anything else previously in this folder (engineering-pulse, plan-executor, hotfix, drift-watch, metrics) has been removed: cut from the portfolio or converted to Claude Code skills (`/plan`, `/debug`).
 
 ## Connector Matrix
 
@@ -24,6 +25,7 @@ That's it — four scheduled cadences plus one event-driven, all cloud routines 
 | `health-watch` | Google Calendar, Linear, PostHog, Vercel; Sentry-ready when connector/API access exists | Calendar = context that adjusts severity · Linear = accepted operational health Issues (unprojected Product) · PostHog = client-side `$exception` spike detection + error correlation · Sentry = release regression and agent/API crash context · Vercel = deploy/runtime/web-vitals signal feeding `activity:qa` Issues. Also probes the agent's unauthenticated `/health` via `BOT_API_URL` (env var, not a connector). |
 | `growth-pulse` | Google Calendar, Linear, PostHog | Calendar = WoW context · Linear = accepted-anomaly Issue surface (unprojected Product) · PostHog = product/growth metrics via curated questions. Drive and Miro are intentionally not wired here; Vercel is also intentionally not wired because Vercel Web Analytics overlaps with PostHog and would create dual-source drift. |
 | `qa-triage-pulse` | Google Drive, Linear, PostHog, Vercel | Drive = the Wed Build Sync's Gemini notes · Linear = Customer Need pre-stage surface (raw signal, unprojected) · PostHog = per-surface telemetry cross-reference · Vercel = deploy correlation gated on PostHog-matched items only (anchored to `first_seen`, skipped for items without telemetry signal). |
+| `release-prep` | GitHub (read-only) | GitHub = open PRs + commit range (`main..develop`) + existing releases/tags. No Linear/Drive/PostHog — a pure readiness draft; reads the release runbook live from the checkout. |
 | `pr-review` | Vercel | Preview deployment status + Lighthouse delta. Inline review commentary, not a hard invariant. |
 
 Gmail is intentionally NOT wired on any GG routine (personal-inbox pollution risk).

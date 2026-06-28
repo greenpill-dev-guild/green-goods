@@ -89,6 +89,7 @@ scripts/
 | `ipfs-repin.ts` | `bun run ipfs:repin[:audit]` | Re-pin / audit Pinata content |
 | `upload-action-images.ts` | `bun run upload:action-images[:dry-run]` | Upload action images to IPFS |
 | `upload-sourcemaps.js` | `bun run sourcemaps[:dry-run]`, `client.yml`, `admin.yml` | Build sourcemap-enabled bundles in GitHub Actions, upload maps to PostHog, then remove local map files |
+| `bump-version.mjs` | `bun run version:bump <x.y.z> [--dry-run]` | Surgically set the `"version"` field across root + 6 package.json files to a target semver (unified versioning for monthly releases / hotfixes); one-line diff per file |
 
 ### `agents/` — agent query surfaces
 | Script | Caller | Purpose |
@@ -104,7 +105,6 @@ scripts/
 | `plan-hub.test.mjs` | `node --test scripts/harness/plan-hub.test.mjs` | Black-box fixture checks for plan-hub schema, taxonomy, summaries, and TDD proof gates |
 | `log-automation-run.mjs` | `.plans/_automation/*` prompts | Append plan-run telemetry under `.plans/_automation/runs/` |
 | `parse-docx-feedback.ts` | `doc-feedback` skill | Parse a Google Doc downloaded as `.docx` into markdown with body + comments + tracked changes |
-| `sync-agent-skills.mjs` | `bun run skills:sync`, `bun run check:skills` | Regenerate the Codex-visible `.agents/skills` mirror from canonical `.claude/skills` and fail on drift |
 
 ### `postinstall/`
 | Script | Caller | Purpose |

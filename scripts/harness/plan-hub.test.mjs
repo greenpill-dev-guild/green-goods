@@ -306,7 +306,7 @@ test("archive hubs do not require taxonomy", () =>
     assert.equal(runPlanHub(root, ["validate"]).status, 0);
   }));
 
-test("linear-sync manifest creates a parent and actionable implementation lane issues", () =>
+test("linear-sync manifest keeps backlog hubs parent-only", () =>
   withFixture((root) => {
     assert.equal(runPlanHub(root, ["scaffold", "linear-fixture", "--stage", "backlog"]).status, 0);
     const status = readStatus(root, "backlog", "linear-fixture");
@@ -334,11 +334,39 @@ test("linear-sync manifest creates a parent and actionable implementation lane i
       "protocol:green-goods",
       "source:plans",
     ]);
+    assert.deepEqual(manifest.lanes, []);
+    assert.match(manifest.warnings.join("\n"), /missing Linear parent issue/);
+    assert.match(manifest.warnings.join("\n"), /unprojected/);
+    assert.doesNotMatch(manifest.warnings.join("\n"), /missing Linear issue for lane/);
+  }));
+
+test("linear-sync manifest creates actionable lane issues for active hubs", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "active-linear-fixture", "--stage", "active"]).status, 0);
+    const status = readStatus(root, "active", "active-linear-fixture");
+    status.taxonomy = {
+      initiative: "yield-to-impact",
+      tracks: ["client", "shared"],
+      work_types: ["implementation", "qa"],
+      surfaces: ["packages/client", "packages/shared"],
+      depends_on_features: [],
+    };
+    status.lanes.contracts.status = "n/a";
+    writeStatus(root, "active", "active-linear-fixture", status);
+
+    const result = runPlanHub(root, ["linear-sync", "--feature", "active-linear-fixture", "--json"]);
+    assert.equal(result.status, 0, result.stderr);
+
+    const manifest = JSON.parse(result.stdout);
+    assert.equal(manifest.feature.slug, "active-linear-fixture");
+    assert.equal(manifest.feature.path, ".plans/active/active-linear-fixture/");
+    assert.equal(manifest.parent.action, "create");
+    assert.equal(manifest.parent.title, "plan: Active Linear Fixture");
     assert.deepEqual(
       manifest.lanes.map((lane) => [lane.lane, lane.action, lane.title, lane.state]),
       [
-        ["ui", "create", "UI: Linear Fixture", "Backlog"],
-        ["state_api", "create", "State/API: Linear Fixture", "Backlog"],
+        ["ui", "create", "UI: Active Linear Fixture", "Todo"],
+        ["state_api", "create", "State/API: Active Linear Fixture", "Todo"],
       ],
     );
     assert.deepEqual(manifest.lanes[0].labels, [
@@ -360,8 +388,8 @@ test("linear-sync manifest creates a parent and actionable implementation lane i
 
 test("linear-sync chooses package labels by lane for cross-package plans", () =>
   withFixture((root) => {
-    assert.equal(runPlanHub(root, ["scaffold", "lane-label-fixture", "--stage", "backlog"]).status, 0);
-    const status = readStatus(root, "backlog", "lane-label-fixture");
+    assert.equal(runPlanHub(root, ["scaffold", "lane-label-fixture", "--stage", "active"]).status, 0);
+    const status = readStatus(root, "active", "lane-label-fixture");
     status.taxonomy = {
       initiative: "agent-platform",
       tracks: ["agent", "client", "contracts", "shared"],
@@ -369,7 +397,7 @@ test("linear-sync chooses package labels by lane for cross-package plans", () =>
       surfaces: ["packages/agent", "packages/client", "packages/contracts", "packages/shared"],
       depends_on_features: [],
     };
-    writeStatus(root, "backlog", "lane-label-fixture", status);
+    writeStatus(root, "active", "lane-label-fixture", status);
 
     const result = runPlanHub(root, ["linear-sync", "--feature", "lane-label-fixture", "--json"]);
     assert.equal(result.status, 0, result.stderr);

@@ -169,7 +169,6 @@ When you see a layout bug that "looks like" a missing class, first check: was th
 ## Validation Ladder
 
 - Codex drift check: `node scripts/quality/check-codex-docs.js`
-- Skill mirror check: `bun run check:skills`
 - Quick repo verification: `node scripts/dev/ci-local.js --quick`
 - Full-local dev proof: `bun run dev` followed by `bun run dev:smoke:full` proves browser surfaces, local agent, local indexer/Hasura/Postgres, Anvil fork chain id 42161, deployed bytecode, and funded Anvil accounts without submitting transactions.
 - Production-backed local proof: `bun run dev:prod` followed by `bun run dev:prod:smoke` if you need local browser apps against Arbitrum One, hosted production indexer, and the production agent at https://agent.greengoods.app. Use `bun run dev:prod:mirror:health` before mirror mode; set the Envio API token env var for reliable live-indexer catch-up. The smoke is read-only; wallet-confirmed writes in this mode are real Arbitrum transactions.
@@ -206,12 +205,11 @@ When Codex is running unattended maintenance work:
 
 ## Shared Skill Surface
 
-`.claude/skills` is the canonical repo skill source. `.agents/skills` is a generated Codex-visible mirror, not a hand-edited tree.
+`.claude/skills` is the canonical repo skill source. `.agents/skills` is a symlink to it (`.agents/skills -> ../.claude/skills`), so Claude Code and Codex read one shared skill tree — there is no generated mirror and nothing to keep in sync.
 
-- Update `.claude/skills` first when changing shared skills.
-- Run `bun run skills:sync` after skill edits to regenerate `.agents/skills`.
-- Run `bun run check:skills` before claiming the skill surface is aligned.
-- Do not replace `.agents/skills` with a symlink. A symlink hides drift, but it also lets accidental Codex skill imports write directly into the canonical Claude tree.
+- Edit skills in `.claude/skills`; Codex sees the same files through the `.agents/skills` symlink.
+- Codex officially follows symlinked skill folders, so no `skills:sync` regeneration or `check:skills` drift gate is needed.
+- Do not convert `.agents/skills` back into a real directory or a second copy — that reintroduces the copy drift this symlink removes.
 
 ## Scripts
 

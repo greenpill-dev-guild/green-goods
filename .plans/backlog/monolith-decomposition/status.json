@@ -1,0 +1,127 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "monolith-decomposition",
+    "title": "Monolith Decomposition",
+    "kind": "maintenance",
+    "stage": "backlog"
+  },
+  "workflow": {
+    "overall_status": "backlog",
+    "priority": "p2",
+    "created_at": "2026-05-31T03:18:31.791Z",
+    "updated_at": "2026-06-26T00:00:00.000Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": "PRD-563",
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": "2026-06-26T00:00:00.000Z",
+    "lanes": {}
+  },
+  "taxonomy": {
+    "initiative": "engineering-quality",
+    "tracks": ["agent", "admin"],
+    "work_types": ["cleanup", "maintenance"],
+    "surfaces": [
+      "packages/agent/src/services/db.ts",
+      "packages/agent/src/api/server.ts",
+      "packages/admin/src/views/Cookies/components/CampaignCookieJarPanel.tsx"
+    ],
+    "depends_on_features": []
+  },
+  "notes": [
+    "Backlog-only hub for PRD-563 and child decomposition issues.",
+    "Do not create active lane issues until a slice is explicitly activated.",
+    "PRD-565 remains parked pending the Seasons reframe and campaign-cookie-jar roadmap decision."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "blocked",
+      "manual_blocked": true,
+      "branch": "claude/ui/monolith-decomposition",
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": { "command": "", "evidence": "" },
+        "green": { "command": "", "evidence": "" },
+        "note": "UI/admin Cookie Jar extraction is parked until the Seasons reframe is resolved."
+      },
+      "skill_tags": ["ui", "maintenance", "review"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "todo",
+      "branch": "codex/state-api/monolith-decomposition",
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "tdd": {
+        "mode": "proof_limit",
+        "status": "pending",
+        "red": { "command": "", "evidence": "" },
+        "green": {
+          "command": "not run",
+          "evidence": "Backlog formalization only; no decomposition code changed."
+        },
+        "note": "Future behavior-changing slices must record their own RED/GREEN or validation evidence."
+      },
+      "skill_tags": ["agent", "maintenance", "testing"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "codex/contracts/monolith-decomposition",
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": { "command": "", "evidence": "" },
+        "green": { "command": "", "evidence": "" },
+        "note": "No contract work is planned for structure-only agent/admin decomposition."
+      },
+      "skill_tags": ["contracts"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "claude/qa-pass-1/monolith-decomposition",
+      "depends_on": ["state_api"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "codex/qa-pass-2/monolith-decomposition",
+      "branch_trigger": "claude/qa-pass-1/monolith-decomposition",
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-06-26T00:00:00.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "formalized_backlog",
+      "branch": null,
+      "note": "Formalized monolith decomposition as a backlog hub linked to PRD-563."
+    }
+  ]
+}

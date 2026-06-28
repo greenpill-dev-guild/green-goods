@@ -17,6 +17,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createPublicClientForChain } from "../../config/pimlico";
 import { queryKeys } from "../../config/query-keys";
 import { STALE_TIME_MEDIUM } from "../../config/query-keys/constants";
+import { logger } from "../../modules/app/logger";
 import type {
   OctantVaultCampaignAssetManifest,
   OctantVaultYieldSource,
@@ -147,7 +148,13 @@ export function useOctantVaultHarvestableYield(
           vaultDebt: trackedAssets,
           harvestableAssets,
         };
-      } catch {
+      } catch (error) {
+        logger.error("[useOctantVaultHarvestableYield] read failed", {
+          error,
+          chainId,
+          vaultAddress,
+          strategyAddress,
+        });
         return unavailableResult("read_error", strategyAddress);
       }
     },

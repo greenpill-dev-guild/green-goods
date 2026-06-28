@@ -268,8 +268,24 @@ vi.mock("@green-goods/shared", async () => {
       React.createElement("div", null, children),
     SheetFooter: ({ children }: { children: React.ReactNode }) =>
       React.createElement("div", null, children),
-    Surface: ({ children }: { children: React.ReactNode }) =>
-      React.createElement("div", null, children),
+    Surface: ({
+      children,
+      as: As = "div",
+      className,
+      "data-region": dataRegion,
+      "aria-labelledby": ariaLabelledby,
+    }: {
+      children?: React.ReactNode;
+      as?: React.ElementType;
+      className?: string;
+      "data-region"?: string;
+      "aria-labelledby"?: string;
+    }) =>
+      React.createElement(
+        As,
+        { className, "data-region": dataRegion, "aria-labelledby": ariaLabelledby },
+        children
+      ),
     Textarea: ({
       invalid: _invalid,
       surface: _surface,

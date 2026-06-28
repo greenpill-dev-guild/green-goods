@@ -53,8 +53,8 @@ const meta: Meta<typeof ActionFlowShell> = {
   component: ActionFlowShell,
   tags: ["autodocs"],
   decorators: [
-    // Height-bounded box so the pinned footer behaves as it does inside a
-    // fullscreen AdminDialog (desktop) or a viewport-height route column (mobile).
+    // Height-bounded box so the pinned footer behaves as it does inside the
+    // centered 2xl AdminDialog (flow variant) that hosts these flows.
     (Story) => (
       <div className="h-[640px] w-full max-w-3xl overflow-hidden rounded-xl border border-stroke-soft bg-[rgb(var(--m3-surface))]">
         <Story />
@@ -65,7 +65,7 @@ const meta: Meta<typeof ActionFlowShell> = {
     docs: {
       description: {
         component:
-          "Shared chrome for admin action flows: pinned header (back-arrow + context + title), one scrolling body, and an optional pinned footer. Solid surfaces only — no glass — per the Controlled Chrome boundary. Renders inside a fullscreen AdminDialog (desktop) or a CanvasRouteFrame route (mobile); it is the only title bar in the flow.",
+          'Shared chrome for admin action flows: pinned header (back-arrow + context + title), one scrolling body, and an optional pinned footer. Solid surfaces only — no glass — per the Controlled Chrome boundary. Renders inside a centered AdminDialog (size="2xl" variant="flow"), a bottom-sheet on mobile; it is the only title bar in the flow.',
       },
     },
   },

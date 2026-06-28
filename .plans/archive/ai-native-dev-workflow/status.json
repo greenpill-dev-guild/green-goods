@@ -4,13 +4,13 @@
     "slug": "ai-native-dev-workflow",
     "title": "AI-Native Developer Workflow",
     "kind": "quality",
-    "stage": "active"
+    "stage": "archive"
   },
   "workflow": {
-    "overall_status": "active",
+    "overall_status": "done",
     "priority": "p1",
     "created_at": "2026-05-24",
-    "updated_at": "2026-05-26"
+    "updated_at": "2026-06-26T00:00:00.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -48,7 +48,7 @@
   "lanes": {
     "ui": {
       "owner": "claude",
-      "status": "blocked",
+      "status": "skipped",
       "manual_blocked": true,
       "branch": "claude/ui/ai-native-dev-workflow",
       "depends_on": ["state_api"],
@@ -64,7 +64,7 @@
           "command": "",
           "evidence": ""
         },
-        "note": "No UI lane is ready for this scaffold-hardening pass. Unblock only when a later adoption step intentionally changes user-facing workflow or guidance."
+        "note": "Archived process-infrastructure work; no UI lane shipped."
       },
       "skill_tags": ["review", "principles", "ui"]
     },
@@ -112,7 +112,7 @@
     },
     "qa_pass_1": {
       "owner": "claude",
-      "status": "blocked",
+      "status": "skipped",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "claude/qa-pass-1/ai-native-dev-workflow",
@@ -122,7 +122,7 @@
     },
     "qa_pass_2": {
       "owner": "codex",
-      "status": "blocked",
+      "status": "skipped",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "codex/qa-pass-2/ai-native-dev-workflow",
@@ -164,6 +164,14 @@
       "status": "completed_with_proof_limit",
       "branch": "codex/agent-max-readiness",
       "note": "Completed the readiness pilot with passing plan hub, skill mirror, docs audit, shared tests, agent tests, agent build, and design-generated check. Full drift remains blocked by source-structure on existing oversized touched files and warn-only React pattern findings in the broader dirty tree."
+    },
+    {
+      "timestamp": "2026-06-26T00:00:00.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "archive_metadata_fixed",
+      "branch": null,
+      "note": "Fixed archive status metadata to match folder placement."
     }
   ]
 }

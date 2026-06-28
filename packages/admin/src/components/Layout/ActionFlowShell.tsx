@@ -40,16 +40,17 @@ export interface ActionFlowShellProps {
 
 /**
  * ActionFlowShell — the shared chrome for admin action flows (Submit Work,
- * Create Assessment, …). Renders a pinned header (back-arrow + context + title),
- * a single scrolling body (`SheetBody`), and an optional pinned footer
- * (`SheetFooter`). Fills its parent's height, so the footer pins whenever the
- * parent is height-bounded — true for a fullscreen `AdminDialog` (desktop) and
- * for a `CanvasRouteFrame` route wrapped in a viewport-height column (mobile).
+ * Create Assessment, Create Hypercert). Renders a pinned header (back-arrow +
+ * context + title), a single scrolling body (`SheetBody`), and an optional
+ * pinned footer (`SheetFooter`). Fills its parent's height, so the footer pins
+ * whenever the parent is height-bounded — true for the centered 2xl `AdminDialog`
+ * (`variant="flow"`) that hosts these flows: a centered card on desktop, a
+ * bottom-sheet on mobile.
  *
  * Surfaces are solid; depth comes from the hairline header border and the
  * `SheetFooter` raised treatment, never glass — per the admin Controlled Chrome
  * boundary. There is intentionally no second header here: the caller renders the
- * outer `AdminDialog`/`CanvasRouteFrame`, and this is the only title bar.
+ * outer `AdminDialog`, and this is the only title bar.
  */
 export function ActionFlowShell({
   title,
@@ -67,8 +68,8 @@ export function ActionFlowShell({
     <div
       data-component="ActionFlowShell"
       data-layout={layout}
-      // `flex-1` so it fills a height-bounded flex-column parent (mobile route);
-      // `h-full` covers the fullscreen AdminDialog body (desktop).
+      // `h-full` + `flex-1` fill the height-bounded AdminDialog body (centered
+      // card on desktop, bottom-sheet on mobile) so the footer pins.
       className="flex h-full min-h-0 flex-1 flex-col bg-[rgb(var(--m3-surface))]"
     >
       <header
@@ -76,7 +77,7 @@ export function ActionFlowShell({
         className={cn(
           "flex shrink-0 items-start gap-3 px-4 py-3 sm:px-6",
           "border-b border-stroke-soft",
-          // Reserve room for the fullscreen AdminDialog close button (top-right).
+          // Reserve room for the AdminDialog close button (top-right).
           layout === "dialog" && "pr-14"
         )}
       >

@@ -48,7 +48,7 @@ Use these terms when describing admin UI:
 | `RightSheet inspector` | Config & alerts (notifications, settings, account) |
 | `BottomSheet inspector` | Detail flows on mobile |
 | `LeftSheet inspector` | Registry create/edit (e.g. Action create/edit) |
-| `ActionFlowShell` | Full-surface creation/commit flows (Submit Work, Create Assessment, Create Hypercert) — full-screen dialog (desktop) / full-page route (mobile) |
+| `ActionFlowShell` | Full-surface creation/commit flows (Submit Work, Create Assessment, Create Hypercert) — inner chrome of a centered `AdminDialog` (`size="2xl" variant="flow"`); bottom-sheet on mobile |
 | `workspace tint` | Subtle atmospheric color — Hub=blue, Garden=green, Community=orange, Actions=red |
 | `workbench list` | Primary data surface inside MainSheet |
 | `stage rail` | Inline secondary actions/filters adjacent to the workspace |
@@ -101,7 +101,7 @@ AI design tools MUST map generated output to these existing exports. Do not inve
 | `CanvasLayout` | CSS Grid root — named areas: `canvas-area-top`, `canvas-area-bottom`, inner cells |
 | `AppBar` | Admin top context bar, Z3 — garden context, search, settings, avatar; transparent root over the workspace canvas |
 | `MainSheet` | Z2 — dominant workspace; `isReceded` prop triggers canvas recession on sheet open |
-| `ActionFlowShell` | Full-surface action-flow chrome — pinned header + scrolling body + pinned footer; rendered inside a fullscreen `AdminDialog` (desktop) or `CanvasRouteFrame` route (mobile) |
+| `ActionFlowShell` | Full-surface action-flow chrome — pinned header + scrolling body + pinned footer; rendered inside a centered `AdminDialog` (`size="2xl" variant="flow"`), bottom-sheet on mobile |
 | `LeftSheet` | Registry create/edit (Action create/edit) and inspector-bound creation |
 | `RightSheet` | Config, alerts, profile, settings, notifications |
 | `BottomSheet` | Mobile detail flows |
@@ -115,7 +115,7 @@ AI design tools MUST map generated output to these existing exports. Do not inve
 All follow M3 v0.192 anatomy exactly — do not override dimensions, state layers, or shape scale.
 
 **Shared primitives** (import from `@green-goods/shared`):
-- Dialogs default to `DialogShell`. Use `AdminDialog` only for strict M3 `actions` slot + elevation-3 centered layout (CookieJar modals).
+- Admin dashboard dialogs use `AdminDialog` / `AdminConfirmDialog` (centered M3, scrim, pinned `actions`; `palette` variant for the command palette, `flow` variant at `size="2xl"` for full-surface action flows). `DialogShell` is for shared or non-admin (client PWA) surfaces only — do not use it for admin dashboard dialogs. See the admin.mdx Dialog Contract.
 - Identity / data display: `AddressDisplay`, `DomainBadge`, `StatusBadge`, `Alert`.
 
 **Reference composition**: `/hub` route. Model new admin surfaces on it. `DashboardLayout` / `Sidebar` / `Header` are legacy — do not start from them.

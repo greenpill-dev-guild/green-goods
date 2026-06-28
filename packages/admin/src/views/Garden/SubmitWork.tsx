@@ -26,7 +26,6 @@ import {
   useBeforeUnloadWhilePending,
   useGardenPermissions,
   useGardens,
-  useMediaQuery,
   useUser,
   useWorkForm,
   useWorkMutation,
@@ -43,7 +42,6 @@ import { AdminDialog } from "@/components/AdminDialog";
 import { AdminLinearProgress } from "@/components/AdminLinearProgress";
 import { AdminTextField } from "@/components/AdminTextField";
 import { ActionFlowShell } from "@/components/Layout/ActionFlowShell";
-import { CanvasRouteFrame } from "@/components/Layout/CanvasRouteFrame";
 import { FormFlow, type FormFlowSection } from "@/components/Layout/FormFlow";
 import { ActionChooserGrid } from "./components/ActionChooserGrid";
 
@@ -913,36 +911,27 @@ export default function SubmitWork() {
   const { formatMessage } = useIntl();
   const navigate = useNavigate();
   const location = useLocation();
-  const isDesktop = useMediaQuery("(min-width: 600px)");
 
   const hubContext = parseHubContext(location.search);
   const close = () => navigate(adminRoutes.hub(hubContext));
 
-  // Desktop: full-screen dialog over the Hub. The dialog body is neutralized to
-  // a flex column with no scroll of its own — ActionFlowShell owns the pinned
-  // chrome + scrolling body inside it. The AdminDialog close button is the exit.
-  if (isDesktop) {
-    return (
-      <AdminDialog
-        open
-        size="fullscreen"
-        onOpenChange={(next) => {
-          if (!next) close();
-        }}
-        title={formatMessage({ id: "app.admin.work.submit.title" })}
-        description={formatMessage({ id: "app.admin.work.submit.description" })}
-        bodyClassName="flex min-h-0 flex-col !overflow-hidden"
-      >
-        <SubmitWorkPanel layout="dialog" onSuccess={close} onCancel={close} />
-      </AdminDialog>
-    );
-  }
-
-  // Mobile: own full-page route. The route fills the canvas viewport as a flex
-  // column so ActionFlowShell's footer pins to the bottom.
+  // Centered 2xl modal with a scrim (bottom-sheet on mobile). The dialog body is
+  // neutralized to a flex column with no scroll of its own — ActionFlowShell owns
+  // the pinned chrome + scrolling body inside it. The AdminDialog close button is
+  // the exit; the multi-phase back-arrow (qualify ← configure) lives in the panel.
   return (
-    <CanvasRouteFrame className="flex min-h-[calc(100dvh-3.5rem)] flex-col !p-0">
-      <SubmitWorkPanel layout="page" onSuccess={close} onCancel={close} />
-    </CanvasRouteFrame>
+    <AdminDialog
+      open
+      size="2xl"
+      variant="flow"
+      onOpenChange={(next) => {
+        if (!next) close();
+      }}
+      title={formatMessage({ id: "app.admin.work.submit.title" })}
+      description={formatMessage({ id: "app.admin.work.submit.description" })}
+      bodyClassName="flex min-h-0 flex-col !overflow-hidden"
+    >
+      <SubmitWorkPanel layout="dialog" onSuccess={close} onCancel={close} />
+    </AdminDialog>
   );
 }
