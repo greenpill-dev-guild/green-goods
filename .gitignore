@@ -155,9 +155,6 @@ tests/test-results/
 tests/playwright-report/
 session-state.md
 
-# Stitch downloaded assets (fetched per-session, not committed)
-.stitch/designs/
-
 # Lighthouse CI results
 .lighthouseci/
 lighthouse-results/

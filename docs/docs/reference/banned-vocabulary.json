@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "description": "Machine-readable source for Green Goods banned-vocabulary enforcement. The linter (scripts/design/check-vocab.sh, run via `bun run lint:vocab`) reads `linter_enforced.terms`. The `prompt_vocabulary_*` lists are documentation surfaces for AI design tools (Stitch, Claude Design, Figma Make, Antigravity) — they are not runtime checks. Human-readable companion: docs/docs/reference/glossary-community.md § Banned Vocabulary.",
+  "description": "Machine-readable source for Green Goods banned-vocabulary enforcement. The linter (scripts/design/check-vocab.sh, run via `bun run lint:vocab`) reads `linter_enforced.terms`. The `prompt_vocabulary_*` lists are documentation surfaces for AI design tools and coding agents — they are not runtime checks. Human-readable companion: docs/docs/reference/glossary-community.md § Banned Vocabulary.",
   "linter_enforced": {
     "scope": "user-facing strings in i18n JSON message values",
     "globs": [

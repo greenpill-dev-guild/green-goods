@@ -1,3 +1,11 @@
+/**
+ * Staged — not yet wired into the live checkout.
+ *
+ * Card-payment settlement panel for the vault crowdfunding card on-ramp; consumed
+ * only by the (also-staged) VaultCardEndowFlow. Kept for the planned card-funding
+ * rollout — see .plans/archive/nyc-vault-crowdfunding/brief.md. Do not remove as
+ * "dead code".
+ */
 import {
   createPublicClientForChain,
   getOctantVaultAssetDisplayPolicy,

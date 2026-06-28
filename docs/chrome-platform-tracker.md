@@ -23,5 +23,5 @@ Guidance sources: `modern-web-guidance@latest`, Chrome same-document View Transi
 
 ## Operational Follow-Up
 
-- Repo-native task surface: `.plans/active/css-maintainability-polish/plan.todo.md` under `Phase 7 - Modern Web UI Primitive Follow-Up`.
+- Repo-native task surface: `.plans/archive/css-maintainability-polish/plan.todo.md` under `Phase 7 - Modern Web UI Primitive Follow-Up`.
 - Next proof task: normalize CWV/soft-navigation fields through existing Lighthouse, Vercel/PostHog, and browser-proof evidence before any runtime analytics changes; use clean-room DevTools MCP only for public/non-authenticated protocol debugging, and use authenticated Brave QA for local admin proof.
