@@ -149,8 +149,10 @@ export const AdminTextField = React.forwardRef<HTMLInputElement, AdminTextFieldP
           {/* Container */}
           <div
             className={cn(
-              // Shape: extra-small-top only (top corners rounded, bottom flat)
-              "rounded-t-[var(--m3-shape-xs)] rounded-b-none",
+              // Shape: small-top only (top corners rounded, bottom flat). 8px
+              // harmonizes the field corner with the 8px outlined fields, cards,
+              // and textareas around it (the 4px xs read as too square).
+              "rounded-t-[var(--m3-shape-sm)] rounded-b-none",
               // Height
               "min-h-14",
               // Background
@@ -311,8 +313,9 @@ export const AdminTextField = React.forwardRef<HTMLInputElement, AdminTextFieldP
         {/* Container with outline ring */}
         <div
           className={cn(
-            // Shape: all corners extra-small
-            "rounded-[var(--m3-shape-xs)]",
+            // Shape: all corners small (8px) — softer than the 4px xs, which read
+            // as too square next to the 8px+ surfaces around the field.
+            "rounded-[var(--m3-shape-sm)]",
             // Height
             "min-h-14",
             // Background

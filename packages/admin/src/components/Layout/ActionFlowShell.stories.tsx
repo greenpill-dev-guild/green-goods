@@ -53,10 +53,12 @@ const meta: Meta<typeof ActionFlowShell> = {
   component: ActionFlowShell,
   tags: ["autodocs"],
   decorators: [
-    // Height-bounded box so the pinned footer behaves as it does inside the
-    // centered 2xl AdminDialog (flow variant) that hosts these flows.
+    // Height-bounded box at the desktop dialog max width (lg:max-w-5xl) so the
+    // pinned footer + the lg step-rail behave as they do inside the centered 2xl
+    // AdminDialog (flow variant). Switch the viewport toolbar to Mobile to see the
+    // bottom-sheet width (rail collapses to the header stepper).
     (Story) => (
-      <div className="h-[640px] w-full max-w-3xl overflow-hidden rounded-xl border border-stroke-soft bg-[rgb(var(--m3-surface))]">
+      <div className="h-[640px] w-full max-w-5xl overflow-hidden rounded-xl border border-stroke-soft bg-[rgb(var(--m3-surface))]">
         <Story />
       </div>
     ),
@@ -126,5 +128,28 @@ export const PageLayout: Story = {
   args: {
     ...Configure.args,
     layout: "page",
+  },
+};
+
+const STEPS = [
+  { id: "action", title: "Action" },
+  { id: "media", title: "Media" },
+  { id: "details", title: "Details" },
+  { id: "review", title: "Review" },
+];
+
+// Multi-step: a labelled vertical step-rail on the left at lg+ (uses the width to
+// show every step), the form in the right column. Switch the viewport toolbar to
+// Mobile to see the rail collapse into the compact stepper in the header.
+export const TwoColumnRail: Story = {
+  args: {
+    title: "Submit work",
+    context: "Aiyeloja Family Garden",
+    steps: STEPS,
+    currentStep: 2,
+    onStepClick: fn(),
+    layout: "dialog",
+    children: <FormPreview rows={6} />,
+    footer: <ProgressFooter />,
   },
 };

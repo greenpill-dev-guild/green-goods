@@ -126,6 +126,12 @@ vi.mock("@green-goods/shared", async () => {
       SPIRITUAL: 6,
       CULTURAL: 7,
     },
+    Domain: {
+      SOLAR: 0,
+      AGRO: 1,
+      EDU: 2,
+      WASTE: 3,
+    },
     expandDomainMask: (mask: number) => {
       const domains: number[] = [];
       if (mask & 1) domains.push(0);

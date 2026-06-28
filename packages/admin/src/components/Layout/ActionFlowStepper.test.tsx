@@ -45,4 +45,15 @@ describe("ActionFlowStepper", () => {
     );
     expect(screen.getByText(/Step 4 of 4/)).toHaveTextContent("Review");
   });
+
+  it("vertical orientation lists every step's label", () => {
+    render(
+      <IntlProvider locale="en" messages={enMessages}>
+        <ActionFlowStepper steps={STEPS} currentStep={2} orientation="vertical" />
+      </IntlProvider>
+    );
+    for (const step of STEPS) {
+      expect(screen.getByText(step.title)).toBeInTheDocument();
+    }
+  });
 });

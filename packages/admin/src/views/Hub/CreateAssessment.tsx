@@ -13,7 +13,6 @@ import { ActionsHarvestStep } from "@/components/Assessment/CreateAssessmentStep
 import { DomainContextStep } from "@/components/Assessment/CreateAssessmentSteps/DomainContextStep";
 import { StrategyKernelStep } from "@/components/Assessment/CreateAssessmentSteps/StrategyKernelStep";
 import { ActionFlowShell } from "@/components/Layout/ActionFlowShell";
-import { ActionFlowStepper } from "@/components/Layout/ActionFlowStepper";
 
 // Create Assessment is a create/commit flow rendered as a centered 2xl AdminDialog
 // (bottom-sheet on mobile) through the shared ActionFlowShell grammar, same as
@@ -158,12 +157,8 @@ export default function CreateAssessment() {
         layout="dialog"
         title={title}
         context={createAssessment.garden.name}
-        stepper={
-          <ActionFlowStepper
-            steps={createAssessment.stepConfigs}
-            currentStep={createAssessment.currentStep + 1}
-          />
-        }
+        steps={createAssessment.stepConfigs}
+        currentStep={createAssessment.currentStep + 1}
         footer={footer}
       >
         <ErrorBoundary context="CreateAssessment.Wizard">
@@ -193,7 +188,8 @@ export default function CreateAssessment() {
       open
       size="2xl"
       variant="flow"
-      className="min-h-[90dvh] sm:min-h-0 sm:!max-w-3xl lg:!max-w-3xl"
+      tone="hub"
+      className="min-h-[90dvh] sm:min-h-0 sm:!max-w-3xl lg:!max-w-5xl"
       onOpenChange={(next) => {
         if (!next) createAssessment.handleCancel();
       }}

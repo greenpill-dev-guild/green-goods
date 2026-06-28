@@ -3,7 +3,7 @@ import {
   type Address,
   Alert,
   adminRoutes,
-  type Domain,
+  Domain,
   expandDomainMask,
   FileUploadField,
   FormField,
@@ -40,9 +40,10 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminDialog } from "@/components/AdminDialog";
 import { AdminLinearProgress } from "@/components/AdminLinearProgress";
+import { AdminTabRail } from "@/components/AdminTabRail";
 import { AdminTextField } from "@/components/AdminTextField";
 import { ActionFlowShell } from "@/components/Layout/ActionFlowShell";
-import { ActionFlowStepper, type ActionFlowStep } from "@/components/Layout/ActionFlowStepper";
+import { type ActionFlowStep } from "@/components/Layout/ActionFlowStepper";
 import { ActionChooserGrid } from "./components/ActionChooserGrid";
 import { SubmitWorkReview } from "./components/SubmitWorkReview";
 
@@ -228,6 +229,15 @@ type SubmitWorkAuthSnapshot = Pick<AuthStateValue, "authMode" | "isAuthenticated
   primaryAddress: Address | null | undefined;
 };
 
+// Domain → shared i18n label key (reuses the Create Assessment domain labels so
+// the chooser filter and the assessment domain picker stay in lockstep).
+const DOMAIN_TAB_KEYS: Record<Domain, string> = {
+  [Domain.SOLAR]: "app.admin.assessment.domainAction.domain.solar",
+  [Domain.AGRO]: "app.admin.assessment.domainAction.domain.agroforestry",
+  [Domain.EDU]: "app.admin.assessment.domainAction.domain.education",
+  [Domain.WASTE]: "app.admin.assessment.domainAction.domain.waste",
+};
+
 export interface SubmitWorkPanelProps {
   layout?: SubmitWorkLayout;
   onSuccess?: () => void;
@@ -318,6 +328,21 @@ function SubmitWorkPanelContent({
   const availableActions = useMemo(
     () => actions.filter((action) => gardenDomains.has(action.domain)),
     [actions, gardenDomains]
+  );
+  // Domain filter for the action chooser — shown only when the garden's eligible
+  // actions span more than one domain (mirrors the client's domain tabs).
+  const [actionDomain, setActionDomain] = useState<Domain | "all">("all");
+  const chooserDomains = useMemo(
+    () =>
+      Array.from(new Set(availableActions.map((action) => action.domain))).sort((a, b) => a - b),
+    [availableActions]
+  );
+  const visibleActions = useMemo(
+    () =>
+      actionDomain === "all"
+        ? availableActions
+        : availableActions.filter((action) => action.domain === actionDomain),
+    [availableActions, actionDomain]
   );
 
   const [selectedActionId, setSelectedActionId] = useState("");
@@ -815,8 +840,23 @@ function SubmitWorkPanelContent({
             )}
           </p>
         </div>
+        {chooserDomains.length > 1 ? (
+          <AdminTabRail
+            ariaLabel={formatMessage({ id: "app.admin.assessment.domainAction.domainTitle" })}
+            activeId={actionDomain === "all" ? "all" : String(actionDomain)}
+            onChange={(id) => setActionDomain(id === "all" ? "all" : (Number(id) as Domain))}
+            tabs={[
+              { id: "all", label: formatMessage({ id: "app.common.all", defaultMessage: "All" }) },
+              ...chooserDomains.map((domain) => ({
+                id: String(domain),
+                label: formatMessage({ id: DOMAIN_TAB_KEYS[domain] }),
+                count: availableActions.filter((action) => action.domain === domain).length,
+              })),
+            ]}
+          />
+        ) : null}
         <ActionChooserGrid
-          actions={availableActions}
+          actions={visibleActions}
           selectedActionId={selectedActionId}
           onSelect={handleSelectAction}
           disabled={busy}
@@ -916,13 +956,9 @@ function SubmitWorkPanelContent({
       layout={layout}
       title={title}
       context={garden.name}
-      stepper={
-        <ActionFlowStepper
-          steps={stepConfigs}
-          currentStep={currentStep}
-          onStepClick={handleStepJump}
-        />
-      }
+      steps={stepConfigs}
+      currentStep={currentStep}
+      onStepClick={handleStepJump}
       footer={footer}
     >
       <form id={formId} onSubmit={onSubmit}>
@@ -987,7 +1023,8 @@ export default function SubmitWork() {
       open
       size="2xl"
       variant="flow"
-      className="min-h-[90dvh] sm:min-h-0 sm:!max-w-3xl lg:!max-w-3xl"
+      tone="garden"
+      className="min-h-[90dvh] sm:min-h-0 sm:!max-w-3xl lg:!max-w-5xl"
       onOpenChange={(next) => {
         if (!next) close();
       }}

@@ -118,16 +118,17 @@ export function ActionChooserGrid({
               // for the cockpit. transition-all + spatial-fast mirrors AdminButton.
               "transition-all duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]",
               "active:scale-[0.99]",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-action,var(--primary-action)))]",
+              // Selected/hover follow the workspace tone — matches the stepper + CTA.
               selected
-                ? "border-primary-base bg-primary-alpha-10"
-                : "border-stroke-soft bg-bg-white hover:border-primary-alpha-24 hover:bg-primary-alpha-10",
+                ? "border-[rgb(var(--tone-action,var(--primary-action)))] bg-[rgb(var(--tone-action,var(--primary-action))/0.1)]"
+                : "border-stroke-soft bg-bg-white hover:border-[rgb(var(--tone-action,var(--primary-action))/0.24)] hover:bg-[rgb(var(--tone-action,var(--primary-action))/0.1)]",
               disabled && "cursor-not-allowed opacity-60"
             )}
           >
             {selected ? (
               <RiCheckLine
-                className="absolute right-3 top-3 h-4 w-4 text-primary-base"
+                className="absolute right-3 top-3 h-4 w-4 text-[rgb(var(--tone-on-surface-accent,var(--m3-primary)))]"
                 aria-hidden="true"
               />
             ) : null}
@@ -135,7 +136,9 @@ export function ActionChooserGrid({
             <span
               className={cn(
                 "pr-6 text-sm font-semibold",
-                selected ? "text-primary-darker" : "text-text-strong"
+                selected
+                  ? "text-[rgb(var(--tone-on-surface-accent,var(--m3-primary)))]"
+                  : "text-text-strong"
               )}
             >
               {action.title}

@@ -31,6 +31,15 @@ export interface AdminDialogProps {
   role?: "dialog" | "alertdialog";
   onKeyDown?: KeyboardEventHandler<HTMLDivElement>;
   className?: string;
+  /**
+   * Workspace tone for the portaled surface. The dialog portals to <body>,
+   * escaping CanvasLayout's `[data-tone]` scope, so the per-view accent
+   * (`--tone-*`) is otherwise unset inside the dialog and falls back to green.
+   * Setting it re-establishes the tone in-portal — the action flows pass their
+   * workspace so Hub flows read blue, Garden green, etc. Consumers must read
+   * `--tone-action` / `--tone-on-surface-accent` (not `--m3-primary`).
+   */
+  tone?: "hub" | "garden" | "community" | "actions" | "home";
 }
 
 export interface AdminConfirmDialogProps {
@@ -115,6 +124,7 @@ export function AdminDialog({
   role = "dialog",
   onKeyDown,
   className,
+  tone,
 }: AdminDialogProps) {
   const { formatMessage } = useIntl();
   const handleOpenChange = (nextOpen: boolean) => {
@@ -154,6 +164,7 @@ export function AdminDialog({
           data-component="AdminDialog"
           data-slot="surface"
           data-variant={variant}
+          data-tone={tone}
           data-mobile="sheet"
           data-size={size}
           role={role}

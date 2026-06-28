@@ -17,7 +17,6 @@ import { DistributionConfig } from "@/components/Hypercerts/Steps/DistributionCo
 import { HypercertPreview } from "@/components/Hypercerts/Steps/HypercertPreview";
 import { MetadataEditor } from "@/components/Hypercerts/Steps/MetadataEditor";
 import { ActionFlowShell } from "@/components/Layout/ActionFlowShell";
-import { ActionFlowStepper } from "@/components/Layout/ActionFlowStepper";
 
 export type { HypercertCompletionData };
 export type { HypercertWizardProps };
@@ -151,13 +150,9 @@ export function HypercertWizard({
         layout="dialog"
         title={formatMessage({ id: "app.hypercerts.create.title" })}
         context={gardenName}
-        stepper={
-          <ActionFlowStepper
-            steps={wizard.steps}
-            currentStep={wizard.currentStep}
-            onStepClick={(step) => wizard.handleStepClick(step - 1)}
-          />
-        }
+        steps={wizard.steps}
+        currentStep={wizard.currentStep}
+        onStepClick={(step) => wizard.handleStepClick(step - 1)}
         footer={
           // Mobile: status on top, compact secondary, full-width primary CTA.
           // Desktop: status left, button pair right. SheetFooter is a fixed

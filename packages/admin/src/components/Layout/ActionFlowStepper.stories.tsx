@@ -24,10 +24,11 @@ const meta = {
     docs: {
       description: {
         component:
-          "Compact progress stepper for the admin action flows — numbered dots + connectors with " +
-          "a 'Step N of M · Label' orientation line. The current step takes the admin selectable-card " +
-          "tint, completed steps fill with a check, and each connector grows a green fill as its step " +
-          "completes. Lives in the ActionFlowShell header.",
+          "Progress stepper for the admin action flows. Horizontal (compact dots + connectors + a " +
+          "'Step N of M · Label' line) sits in the ActionFlowShell header on mobile; vertical (labelled " +
+          "rail) sits in the desktop step-rail. The accent follows the workspace tone (Hub blue / Garden " +
+          "green / …) — see HubToned; completed steps fill with a check and connectors grow a tone fill " +
+          "as each step completes.",
       },
     },
   },
@@ -39,3 +40,21 @@ type Story = StoryObj<typeof meta>;
 export const FirstStep: Story = { args: { currentStep: 1 } };
 export const MidFlow: Story = { args: { currentStep: 2 } };
 export const Completed: Story = { args: { currentStep: 4 } };
+
+// Vertical orientation — the labelled rail used in the desktop two-column layout.
+export const VerticalRail: Story = {
+  args: { orientation: "vertical", currentStep: 2 },
+};
+
+// Accent follows the workspace tone: under data-tone="hub" the stepper renders
+// blue (Garden green, Community orange, Actions red), not the green fallback.
+export const HubToned: Story = {
+  args: { currentStep: 2 },
+  decorators: [
+    (Story) => (
+      <div className="admin-m3" data-tone="hub">
+        <Story />
+      </div>
+    ),
+  ],
+};

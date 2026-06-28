@@ -3,6 +3,7 @@
 import { cn, SheetBody, SheetFooter } from "@green-goods/shared";
 import { RiArrowLeftLine } from "@remixicon/react";
 import type { ReactNode } from "react";
+import { ActionFlowStepper, type ActionFlowStep } from "./ActionFlowStepper";
 
 export interface ActionFlowShellProps {
   /** Sticky title (e.g. "Submit work"). */
@@ -14,10 +15,15 @@ export interface ActionFlowShellProps {
    */
   context?: ReactNode;
   /**
-   * Compact progress stepper (e.g. <ActionFlowStepper />) shown under the title
-   * for multi-step flows. Omit it for single-screen flows.
+   * Multi-step model. When provided, the shell renders a compact horizontal
+   * stepper in the header on mobile and a labelled vertical step-rail on desktop
+   * (lg+). Omit for single-screen flows.
    */
-  stepper?: ReactNode;
+  steps?: ActionFlowStep[];
+  /** 1-indexed current step (1..steps.length). */
+  currentStep?: number;
+  /** Jump back to an already-completed step (1-indexed). */
+  onStepClick?: (step: number) => void;
   /**
    * In-flow back (e.g. configure → qualify). When provided, a back-arrow renders
    * in the header. Omit it on the first phase so the only way out is the dialog
@@ -46,21 +52,23 @@ export interface ActionFlowShellProps {
 /**
  * ActionFlowShell — the shared chrome for admin action flows (Submit Work,
  * Create Assessment, Create Hypercert). Renders a pinned header (back-arrow +
- * context + title), a single scrolling body (`SheetBody`), and an optional
- * pinned footer (`SheetFooter`). Fills its parent's height, so the footer pins
- * whenever the parent is height-bounded — true for the centered 2xl `AdminDialog`
- * (`variant="flow"`) that hosts these flows: a centered card on desktop, a
- * bottom-sheet on mobile.
+ * context + title), a body row (an optional desktop step-rail + a single
+ * scrolling `SheetBody`), and an optional pinned footer (`SheetFooter`). Fills
+ * its parent's height, so the footer pins whenever the parent is height-bounded —
+ * true for the centered `AdminDialog` (`variant="flow"`) that hosts these flows.
  *
- * Surfaces are solid; depth comes from the hairline header border and the
- * `SheetFooter` raised treatment, never glass — per the admin Controlled Chrome
- * boundary. There is intentionally no second header here: the caller renders the
- * outer `AdminDialog`, and this is the only title bar.
+ * The stepper is owned here (not passed in) so the shell can render it both ways:
+ * a compact horizontal row in the header on mobile, and a labelled vertical rail
+ * on desktop that uses the width to show every step. Surfaces are solid; depth
+ * comes from the hairline header border + rail divider + the `SheetFooter` raised
+ * treatment, never glass — per the admin Controlled Chrome boundary.
  */
 export function ActionFlowShell({
   title,
   context,
-  stepper,
+  steps,
+  currentStep = 1,
+  onStepClick,
   onBack,
   backLabel,
   backDisabled = false,
@@ -70,6 +78,8 @@ export function ActionFlowShell({
   contentClassName,
   "aria-label": ariaLabel,
 }: ActionFlowShellProps) {
+  const hasSteps = Boolean(steps && steps.length > 0);
+
   return (
     <div
       data-component="ActionFlowShell"
@@ -99,7 +109,7 @@ export function ActionFlowShell({
               "border border-stroke-soft text-text-soft",
               "transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
               "hover:text-text-sub active:scale-95",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-action,var(--primary-action)))]",
               "disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:text-text-soft disabled:active:scale-100"
             )}
           >
@@ -120,19 +130,46 @@ export function ActionFlowShell({
           <h1 className="truncate text-lg font-semibold text-text-strong" title={title}>
             {title}
           </h1>
-          {stepper ? <div className="mt-2.5">{stepper}</div> : null}
+          {/* Mobile stepper — the desktop rail (below) takes over at lg. */}
+          {hasSteps ? (
+            <div className="mt-2.5 lg:hidden">
+              <ActionFlowStepper
+                steps={steps as ActionFlowStep[]}
+                currentStep={currentStep}
+                onStepClick={onStepClick}
+                orientation="horizontal"
+              />
+            </div>
+          ) : null}
         </div>
       </header>
 
-      <SheetBody padded={false} className="min-w-0">
-        <div
-          data-region="action-flow-body"
-          aria-label={ariaLabel}
-          className={cn("mx-auto w-full px-4 py-4 sm:px-6", contentClassName ?? "max-w-3xl")}
-        >
-          {children}
-        </div>
-      </SheetBody>
+      <div className="flex min-h-0 flex-1">
+        {/* Desktop step-rail — labelled vertical stepper, only when there's room. */}
+        {hasSteps ? (
+          <aside
+            data-region="action-flow-rail"
+            className="hidden w-56 shrink-0 flex-col overflow-y-auto border-r border-stroke-soft px-5 py-6 lg:flex"
+          >
+            <ActionFlowStepper
+              steps={steps as ActionFlowStep[]}
+              currentStep={currentStep}
+              onStepClick={onStepClick}
+              orientation="vertical"
+            />
+          </aside>
+        ) : null}
+
+        <SheetBody padded={false} className="min-w-0">
+          <div
+            data-region="action-flow-body"
+            aria-label={ariaLabel}
+            className={cn("mx-auto w-full px-4 py-4 sm:px-6", contentClassName ?? "max-w-3xl")}
+          >
+            {children}
+          </div>
+        </SheetBody>
+      </div>
 
       {footer ? <SheetFooter data-region="action-flow-footer">{footer}</SheetFooter> : null}
     </div>
