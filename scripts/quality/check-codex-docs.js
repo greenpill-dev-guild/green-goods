@@ -287,10 +287,30 @@ function validateGuideReferences() {
   }
 }
 
+function validateSkillMirrorSymlink() {
+  const mirrorPath = path.join(repoRoot, ".agents/skills");
+  let stat;
+  try {
+    stat = fs.lstatSync(mirrorPath);
+  } catch {
+    fail(".agents/skills: missing; expected a symlink to ../.claude/skills (Codex skill discovery depends on it)");
+    return;
+  }
+  if (!stat.isSymbolicLink()) {
+    fail(".agents/skills: must be a symlink to ../.claude/skills, not a real directory");
+    return;
+  }
+  const target = fs.readlinkSync(mirrorPath);
+  if (target !== "../.claude/skills") {
+    fail(`.agents/skills: symlink target must be "../.claude/skills" (found "${target}")`);
+  }
+}
+
 validateActions();
 validateRootGuide();
 validatePackageGuides();
 validateGuideReferences();
+validateSkillMirrorSymlink();
 
 if (failures.length > 0) {
   console.error("Codex consistency check failed:");

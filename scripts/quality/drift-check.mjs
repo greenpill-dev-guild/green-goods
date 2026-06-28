@@ -23,13 +23,6 @@ export const scopes = {
       route: "audit-then-ship",
       severity: "medium",
     },
-    {
-      id: "skills-mirror",
-      label: "Skill mirror",
-      command: ["bun", "run", "check:skills"],
-      route: "audit-then-ship",
-      severity: "medium",
-    },
   ],
   plans: [
     {
