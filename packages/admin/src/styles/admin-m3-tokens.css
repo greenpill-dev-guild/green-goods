@@ -96,6 +96,30 @@
 }
 
 /* --------------------------------------------------------------------------
+ * Portal escape hatch for the tone-derived primary roles.
+ *
+ * The `.admin-m3` block above is what tones `--m3-primary` per-workspace, but it
+ * only fires where `.admin-m3` is on the tree. The AdminDialog action-flow
+ * surfaces (`variant="flow"`) portal to <body> — OUTSIDE `.admin-m3` — and only
+ * re-establish `[data-tone]` (via the dialog's `tone` prop). So in-portal,
+ * `--m3-primary` fell back to the no-tone green and every consumer that reads it
+ * (AdminButton focus ring, AdminLinearProgress bar, AdminCheckbox, …) rendered
+ * green inside a blue/red/amber flow — while `--tone-action` consumers toned
+ * correctly. This bare `[data-tone]` rule re-derives the primary roles from the
+ * tone the portal DOES carry. It is a NO-OP in-canvas (those elements carry both
+ * `.admin-m3` and `[data-tone]`, and both resolve to `var(--tone-primary)`); the
+ * `:is(...[data-theme="dark"]...)` block below keeps higher specificity in dark.
+ * Theme is handled by `--tone-primary` itself (light/dark variants on the
+ * `[data-tone]` scopes), so one rule covers both modes.
+ * -------------------------------------------------------------------------- */
+[data-tone] {
+  --m3-primary: var(--tone-primary, var(--green-500));
+  --m3-on-primary: var(--tone-on-primary, 255 255 255);
+  --m3-primary-container: var(--tone-primary-container, var(--green-100));
+  --m3-on-primary-container: var(--tone-on-primary-container, var(--green-900));
+}
+
+/* --------------------------------------------------------------------------
  * M3 Surface Color Aliases — Dark Mode
  * Overrides for [data-theme="dark"] adaptive dark palette
  * -------------------------------------------------------------------------- */

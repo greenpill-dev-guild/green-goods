@@ -93,6 +93,32 @@ const CHOOSER_ACTIONS: Action[] = [
   ...override,
 }));
 
+// Actions spanning two of the multi-domain garden's domains (Solar + Education),
+// so the domain filter (AdminTabRail) renders above the chooser.
+const MULTI_DOMAIN_ACTIONS: Action[] = [
+  {
+    title: "Solar array log",
+    description: "Record output from the community solar array.",
+    domain: Domain.SOLAR,
+  },
+  {
+    title: "Panel cleaning pass",
+    description: "Log a maintenance clean of the array.",
+    domain: Domain.SOLAR,
+  },
+  {
+    title: "Workshop session",
+    description: "Document a hands-on training workshop.",
+    domain: Domain.EDU,
+  },
+].map((override, index) => ({
+  ...(STORYBOOK_SUBMIT_ACTIONS[0] as Action),
+  id: `${DEFAULT_CHAIN_ID}-${index + 1}`,
+  inputs: [],
+  mediaInfo: { title: "Field photos", required: false, minImageCount: 0, maxImageCount: 3 },
+  ...override,
+}));
+
 const STORYBOOK_EMPTY_DOMAIN_GARDEN = {
   ...STORYBOOK_PRIMARY_ADMIN_GARDEN,
   domainMask: 0,
@@ -255,8 +281,8 @@ function disconnectedDecorators() {
   ];
 }
 
-// A single eligible action auto-selects into Capture; submitting without media
-// surfaces the required-media validation.
+// A single eligible action auto-selects onto Media; advancing without the
+// required photo is gated inline (not deferred to a submit-time toast).
 export const AvailableAction: Story = {
   tags: ["storybook-ci"],
   render: () => <SubmitWorkPanelStory />,
@@ -265,16 +291,12 @@ export const AvailableAction: Story = {
   }),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    // Single action auto-selects onto the Media step; advance to Details to reach
-    // the form fields, then through Review to submit.
+    // Single action auto-selects onto the Media step. The required photo is gated
+    // here: advancing without it shows an inline error and the Details fields stay
+    // out of reach.
     await userEvent.click(await canvas.findByRole("button", { name: "Next" }));
-    await expect(await canvas.findByLabelText(/Plot code/)).toBeVisible();
-    await expect(await canvas.findByLabelText("Time Spent (hours)")).toBeVisible();
-    await userEvent.type(await canvas.findByLabelText(/Plot code/), "Plot A");
-    await userEvent.click(await canvas.findByRole("button", { name: "Next" }));
-    await userEvent.click(await canvas.findByRole("button", { name: "Submit Work" }));
-    const page = within(canvasElement.ownerDocument.body);
-    await expect(await page.findByText("At least one image is required")).toBeVisible();
+    await expect(await canvas.findByText(/Add at least 1 photo to continue/)).toBeVisible();
+    await expect(canvas.queryByLabelText(/Plot code/)).not.toBeInTheDocument();
   },
 };
 
@@ -288,9 +310,29 @@ export const ActionChooser: Story = {
     const cards = await canvas.findAllByRole("radio");
     expect(cards.length).toBeGreaterThan(1);
     await userEvent.click(cards[0]);
-    // Selecting an action advances to the Media step (chooser gone, Back available).
-    await expect(await canvas.findByRole("button", { name: "Next" })).toBeVisible();
+    // Select-in-place: the card is marked but the chooser stays on the Action
+    // step; the footer Next then advances to Media (chooser gone).
+    await expect(cards[0]).toBeChecked();
+    expect(canvas.getAllByRole("radio").length).toBeGreaterThan(1);
+    await userEvent.click(await canvas.findByRole("button", { name: "Next" }));
     await expect(canvas.queryByRole("radio")).not.toBeInTheDocument();
+  },
+};
+
+// Multi-domain garden → the domain filter (AdminTabRail) renders above the
+// chooser. The primary garden is AGRO-only, so this is the only coverage of the
+// >1-domain filter branch.
+export const DomainFilter: Story = {
+  tags: ["storybook-ci"],
+  render: () => <SubmitWorkPanelStory />,
+  decorators: submitWorkDecorators({
+    garden: STORYBOOK_ADMIN_GARDENS[1] as SharedGarden,
+    seeds: submitWorkSeeds({ actions: MULTI_DOMAIN_ACTIONS }),
+  }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByRole("tablist")).toBeVisible();
+    expect((await canvas.findAllByRole("radio")).length).toBeGreaterThan(1);
   },
 };
 

@@ -122,7 +122,7 @@ export function ActionChooserGrid({
               // Selected/hover follow the workspace tone — matches the stepper + CTA.
               selected
                 ? "border-[rgb(var(--tone-action,var(--primary-action)))] bg-[rgb(var(--tone-action,var(--primary-action))/0.1)]"
-                : "border-stroke-soft bg-bg-white hover:border-[rgb(var(--tone-action,var(--primary-action))/0.24)] hover:bg-[rgb(var(--tone-action,var(--primary-action))/0.1)]",
+                : "border-stroke-soft bg-bg-white hover:border-[rgb(var(--tone-action,var(--primary-action))/0.24)] hover:bg-bg-weak",
               disabled && "cursor-not-allowed opacity-60"
             )}
           >

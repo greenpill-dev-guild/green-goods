@@ -3,11 +3,12 @@ import {
   ErrorBoundary,
   TxInlineFeedback,
   useCreateAssessmentController,
+  useStepFocus,
 } from "@green-goods/shared";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
-import { AdminDialog } from "@/components/AdminDialog";
+import { AdminDialog, ADMIN_FLOW_DIALOG_CLASS } from "@/components/AdminDialog";
 import { AdminLinearProgress } from "@/components/AdminLinearProgress";
 import { ActionsHarvestStep } from "@/components/Assessment/CreateAssessmentSteps/ActionsHarvestStep";
 import { DomainContextStep } from "@/components/Assessment/CreateAssessmentSteps/DomainContextStep";
@@ -20,6 +21,7 @@ import { ActionFlowShell } from "@/components/Layout/ActionFlowShell";
 export default function CreateAssessment() {
   const { formatMessage } = useIntl();
   const createAssessment = useCreateAssessmentController();
+  const stepRef = useStepFocus<HTMLDivElement>(createAssessment.currentStep);
 
   const title = formatMessage({
     id: "app.assessment.submitAssessment",
@@ -159,15 +161,18 @@ export default function CreateAssessment() {
         context={createAssessment.garden.name}
         steps={createAssessment.stepConfigs}
         currentStep={createAssessment.currentStep + 1}
+        onStepClick={(step) => {
+          if (!createAssessment.isSubmitting) createAssessment.goToStep(step - 1);
+        }}
         footer={footer}
       >
         <ErrorBoundary context="CreateAssessment.Wizard">
-          <div className="space-y-4">
+          <div ref={stepRef} tabIndex={-1} className="space-y-4 outline-none">
             {activeStep ? (
               <div>
                 <h2 className="text-base font-semibold text-text-strong">{activeStep.title}</h2>
                 {activeStep.description ? (
-                  <p className="mt-0.5 text-sm text-text-soft">{activeStep.description}</p>
+                  <p className="mt-0.5 text-sm text-text-sub">{activeStep.description}</p>
                 ) : null}
               </div>
             ) : null}
@@ -189,7 +194,7 @@ export default function CreateAssessment() {
       size="2xl"
       variant="flow"
       tone="hub"
-      className="min-h-[90dvh] sm:min-h-0 sm:!max-w-3xl lg:!max-w-5xl"
+      className={ADMIN_FLOW_DIALOG_CLASS}
       onOpenChange={(next) => {
         if (!next) createAssessment.handleCancel();
       }}

@@ -372,7 +372,9 @@
 
   --text-strong-950: var(--neutral-950);
   --text-sub-600: var(--neutral-600);
-  --text-soft-400: var(--neutral-400);
+  /* neutral-500 (stone, ~4.8:1 on white) not -400 (2.52:1) — tertiary text must
+     clear WCAG 1.4.3 AA. Dark mode keeps -400 (light-on-dark already passes). */
+  --text-soft-400: var(--neutral-500);
   --text-disabled-300: var(--neutral-300);
   --text-white-0: var(--neutral-0);
 

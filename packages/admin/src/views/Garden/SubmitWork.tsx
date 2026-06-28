@@ -26,6 +26,7 @@ import {
   useBeforeUnloadWhilePending,
   useGardenPermissions,
   useGardens,
+  useStepFocus,
   useUser,
   useWorkForm,
   useWorkMutation,
@@ -38,7 +39,7 @@ import { Controller } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AdminButton } from "@/components/AdminButton";
-import { AdminDialog } from "@/components/AdminDialog";
+import { AdminDialog, ADMIN_FLOW_DIALOG_CLASS } from "@/components/AdminDialog";
 import { AdminLinearProgress } from "@/components/AdminLinearProgress";
 import { AdminTabRail } from "@/components/AdminTabRail";
 import { AdminTextField } from "@/components/AdminTextField";
@@ -337,12 +338,18 @@ function SubmitWorkPanelContent({
       Array.from(new Set(availableActions.map((action) => action.domain))).sort((a, b) => a - b),
     [availableActions]
   );
+  // Guard a stale filter when the garden switches under the open dialog: if the
+  // previously-selected domain isn't among the new garden's domains, fall back to
+  // "all" so the chooser never renders an empty radiogroup. Drives both the
+  // visible actions and the filter tab's active state.
+  const effectiveDomain =
+    actionDomain !== "all" && chooserDomains.includes(actionDomain) ? actionDomain : "all";
   const visibleActions = useMemo(
     () =>
-      actionDomain === "all"
+      effectiveDomain === "all"
         ? availableActions
-        : availableActions.filter((action) => action.domain === actionDomain),
-    [availableActions, actionDomain]
+        : availableActions.filter((action) => action.domain === effectiveDomain),
+    [availableActions, effectiveDomain]
   );
 
   const [selectedActionId, setSelectedActionId] = useState("");
@@ -423,21 +430,10 @@ function SubmitWorkPanelContent({
     }
   }, [availableActions, selectedActionId]);
 
-  // Focus management across step boundaries: move focus into the newly revealed
-  // step region so keyboard + screen-reader users follow the flow. Skipped on
-  // first mount so we never steal initial focus.
-  const phaseRef = useRef<HTMLDivElement>(null);
-  const prevStepRef = useRef<number | null>(null);
-  useEffect(() => {
-    if (prevStepRef.current === null) {
-      prevStepRef.current = currentStep;
-      return;
-    }
-    if (prevStepRef.current !== currentStep) {
-      prevStepRef.current = currentStep;
-      phaseRef.current?.focus();
-    }
-  }, [currentStep]);
+  // Move focus into the newly revealed step region on step change (shared hook,
+  // also used by Create Assessment + Create Hypercert) so keyboard + SR users
+  // follow the flow instead of staying on the Next button.
+  const phaseRef = useStepFocus<HTMLDivElement>(currentStep);
 
   const onSubmit = handleSubmit((data) => {
     if (!garden || !selectedAction || selectedActionUID === null) return;
@@ -699,7 +695,7 @@ function SubmitWorkPanelContent({
           <p className="text-sm font-semibold text-text-strong">
             {formatMessage({ id: "app.admin.work.submit.noActionsForDomain" })}
           </p>
-          <p className="max-w-sm text-xs text-text-soft">
+          <p className="max-w-sm text-xs text-text-sub">
             {formatMessage({ id: "app.admin.work.submit.noActionsForDomainHint" })}
           </p>
           <AdminButton
@@ -739,11 +735,12 @@ function SubmitWorkPanelContent({
   const isFirstStep = currentStep === 1;
   const isLastStep = currentStep === stepConfigs.length;
 
-  // Selecting an action advances to Media; switching action resets the draft.
+  // Select in place (no auto-advance) — selecting marks the card and the footer
+  // Next advances, so a misclick is recoverable and the selected state is visible.
+  // Switching to a different action resets the draft.
   const handleSelectAction = (actionId: string) => {
     if (!actionId) return;
     if (actionId !== selectedActionId) handleActionChange(actionId);
-    setCurrentStep(2);
   };
 
   const goBack = () => {
@@ -752,6 +749,26 @@ function SubmitWorkPanelContent({
   };
   const goNext = async () => {
     if (busy) return;
+    // Gate the required photos at the Media step — otherwise the operator only
+    // learns at submit, after walking Details + Review. Reuses the inline media
+    // Alert (role="alert"), not a deferred toast.
+    if (activeStepId === "media") {
+      const minRequired = getMinRequiredImages(selectedAction);
+      if (minRequired > 0 && images.length < minRequired) {
+        setMediaFeedback({
+          variant: "error",
+          message: formatMessage(
+            {
+              id: "app.admin.work.submit.mediaRequiredError",
+              defaultMessage:
+                "{count, plural, one {Add at least # photo to continue.} other {Add at least # photos to continue.}}",
+            },
+            { count: minRequired }
+          ),
+        });
+        return;
+      }
+    }
     // Validate the work form before leaving Details for Review.
     if (activeStepId === "details") {
       const valid = await form.trigger();
@@ -833,20 +850,23 @@ function SubmitWorkPanelContent({
           <h2 className="text-base font-semibold text-text-strong">
             {formatMessage({ id: "app.admin.work.submit.chooseActionTitle" })}
           </h2>
-          <p className="text-sm text-text-soft">
-            {formatMessage(
-              { id: "app.admin.work.submit.chooseActionDescription" },
-              { garden: garden.name }
-            )}
+          <p className="text-sm text-text-sub">
+            {formatMessage({ id: "app.admin.work.submit.chooseActionDescription" })}
           </p>
         </div>
         {chooserDomains.length > 1 ? (
           <AdminTabRail
             ariaLabel={formatMessage({ id: "app.admin.assessment.domainAction.domainTitle" })}
-            activeId={actionDomain === "all" ? "all" : String(actionDomain)}
+            activeId={effectiveDomain === "all" ? "all" : String(effectiveDomain)}
             onChange={(id) => setActionDomain(id === "all" ? "all" : (Number(id) as Domain))}
             tabs={[
-              { id: "all", label: formatMessage({ id: "app.common.all", defaultMessage: "All" }) },
+              {
+                id: "all",
+                label: formatMessage({
+                  id: "app.admin.work.submit.allActions",
+                  defaultMessage: "All",
+                }),
+              },
               ...chooserDomains.map((domain) => ({
                 id: String(domain),
                 label: formatMessage({ id: DOMAIN_TAB_KEYS[domain] }),
@@ -855,6 +875,19 @@ function SubmitWorkPanelContent({
             ]}
           />
         ) : null}
+        {/* SR-only live status — the domain tablist swaps the radiogroup with no
+            inherent announcement, so report the visible count when the filter
+            changes (the tablist→radiogroup pair has no aria-controls bridge). */}
+        <p className="sr-only" aria-live="polite">
+          {formatMessage(
+            {
+              id: "app.admin.work.submit.actionCount",
+              defaultMessage:
+                "{count, plural, one {# action available} other {# actions available}}",
+            },
+            { count: visibleActions.length }
+          )}
+        </p>
         <ActionChooserGrid
           actions={visibleActions}
           selectedActionId={selectedActionId}
@@ -872,7 +905,7 @@ function SubmitWorkPanelContent({
             {selectedAction?.mediaInfo?.title ||
               formatMessage({ id: "app.admin.work.submit.section.photos" })}
           </h2>
-          <p className="text-sm text-text-soft">{photoRequirementText}</p>
+          <p className="text-sm text-text-sub">{photoRequirementText}</p>
         </div>
         <FileUploadField
           label={formatMessage({ id: "app.admin.work.submit.media" })}
@@ -900,9 +933,17 @@ function SubmitWorkPanelContent({
               formatMessage({ id: "app.admin.work.submit.section.details" })}
           </h2>
           {selectedAction?.title ? (
-            <p className="text-sm text-text-soft">{selectedAction.title}</p>
+            <p className="text-sm text-text-sub">{selectedAction.title}</p>
           ) : null}
         </div>
+        {selectedAction?.inputs.some((input) => input.required) ? (
+          <p className="text-xs text-text-sub">
+            {formatMessage({
+              id: "app.admin.work.submit.requiredLegend",
+              defaultMessage: "* Required field",
+            })}
+          </p>
+        ) : null}
         {selectedAction && selectedAction.inputs.length > 0 ? (
           <DynamicWorkFields
             inputs={selectedAction.inputs}
@@ -947,6 +988,9 @@ function SubmitWorkPanelContent({
         images={images}
         values={form.getValues() as Record<string, unknown>}
         photoRequirementText={photoRequirementText}
+        onEditStep={(step) => {
+          if (!busy) setCurrentStep(step);
+        }}
       />
     );
   }
@@ -1024,7 +1068,7 @@ export default function SubmitWork() {
       size="2xl"
       variant="flow"
       tone="garden"
-      className="min-h-[90dvh] sm:min-h-0 sm:!max-w-3xl lg:!max-w-5xl"
+      className={ADMIN_FLOW_DIALOG_CLASS}
       onOpenChange={(next) => {
         if (!next) close();
       }}

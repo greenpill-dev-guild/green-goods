@@ -78,6 +78,12 @@ const variantClasses: Record<NonNullable<AdminDialogProps["variant"]>, string> =
   flow: "overflow-hidden",
 };
 
+// Shared sizing for the full-surface action-flow dialogs (Submit Work, Create
+// Assessment, Create Hypercert): a ~90dvh bottom-sheet on mobile, a centered
+// max-w-3xl→5xl card on desktop. Centralized so the three flows can't drift
+// (the literal lives here in admin/src so the Tailwind scan reaches it).
+export const ADMIN_FLOW_DIALOG_CLASS = "min-h-[90dvh] sm:min-h-0 sm:!max-w-3xl lg:!max-w-5xl";
+
 const closeButtonClasses = cn(
   "absolute right-4 top-4 z-10",
   "flex h-10 w-10 items-center justify-center",

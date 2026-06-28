@@ -39,12 +39,16 @@ function dotClasses(completed: boolean, isCurrent: boolean) {
       "border-[rgb(var(--tone-action,var(--primary-action)))] bg-[rgb(var(--tone-action,var(--primary-action)))] [color:rgb(var(--tone-on-action,var(--primary-action-foreground)))]",
     isCurrent &&
       "border-[rgb(var(--tone-action,var(--primary-action)))] bg-[rgb(var(--tone-action,var(--primary-action))/0.1)] text-[rgb(var(--tone-on-surface-accent,var(--m3-primary)))]",
-    !completed && !isCurrent && "border-stroke-soft text-text-soft"
+    !completed && !isCurrent && "border-stroke-soft text-text-sub"
   );
 }
 
+// `p-3 -m-3` nets to zero in the flex layout (margin-box unchanged) while the
+// border-box grows to a 44px tap target around the 20px dot — keeps the visual
+// dot + spacing intact, just enlarges the touch/click + focus-ring area for the
+// mobile completed-step jump (WCAG 2.5.5).
 const JUMP_CLASS =
-  "rounded-full transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-action,var(--primary-action)))] focus-visible:ring-offset-1";
+  "-m-3 rounded-full p-3 transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-action,var(--primary-action)))] focus-visible:ring-offset-1";
 
 export function ActionFlowStepper({
   steps,
@@ -106,7 +110,7 @@ export function ActionFlowStepper({
                   <span
                     aria-hidden
                     className={cn(
-                      "my-1 w-px flex-1 transition-colors duration-[var(--spring-effects-duration)] ease-[var(--spring-effects-easing)]",
+                      "my-1 w-0.5 flex-1 transition-colors duration-[var(--spring-effects-duration)] ease-[var(--spring-effects-easing)]",
                       completed
                         ? "bg-[rgb(var(--tone-action,var(--primary-action)))]"
                         : "bg-stroke-soft"
@@ -122,7 +126,7 @@ export function ActionFlowStepper({
                       ? "text-[rgb(var(--tone-on-surface-accent,var(--m3-primary)))]"
                       : completed
                         ? "text-text-strong"
-                        : "text-text-soft"
+                        : "text-text-sub"
                   )}
                   title={step.title}
                 >
@@ -154,7 +158,7 @@ export function ActionFlowStepper({
               {!isLast ? (
                 <span
                   aria-hidden
-                  className="relative h-px w-4 flex-shrink-0 overflow-hidden bg-stroke-soft sm:w-6"
+                  className="relative h-0.5 w-4 flex-shrink-0 overflow-hidden bg-stroke-soft sm:w-6"
                 >
                   <span
                     className={cn(
@@ -169,7 +173,7 @@ export function ActionFlowStepper({
           );
         })}
       </ol>
-      <p data-region="action-flow-step-label" className="mt-1.5 text-xs font-medium text-text-soft">
+      <p data-region="action-flow-step-label" className="mt-1.5 text-xs font-medium text-text-sub">
         {formatMessage(
           { id: "app.common.stepProgress", defaultMessage: "Step {current} of {total} · {label}" },
           { current: currentStep, total, label: currentTitle }

@@ -341,6 +341,7 @@ vi.mock("@green-goods/shared", async () => {
     useUser: () => ({ authMode: "wallet", primaryAddress: gardenAddress }),
     useGardenPermissions: () => ({ canManageGarden: () => true }),
     useBeforeUnloadWhilePending: () => undefined,
+    useStepFocus: () => ({ current: null }),
     useWorkForm: () =>
       useForm<Record<string, unknown>>({
         mode: "onChange",
@@ -512,12 +513,11 @@ describe("SubmitWorkPanel submit behavior", () => {
       </TestProviders>
     );
 
-    await advanceToReview(user);
-    await submitWork(user);
-
-    await waitFor(() => {
-      expect(mockValidationFormError).toHaveBeenCalledWith("At least one image is required");
-    });
+    // On the Media step (single action auto-selected), advancing without the
+    // required photo is gated inline — Details never opens, the mutation never runs.
+    await clickNext(user);
+    expect(await screen.findByText(/Add at least 1 photo to continue/)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Plot code/)).not.toBeInTheDocument();
     expect(mockMutate).not.toHaveBeenCalled();
   });
 
@@ -531,12 +531,10 @@ describe("SubmitWorkPanel submit behavior", () => {
       </TestProviders>
     );
 
-    await advanceToReview(user);
-    await submitWork(user);
-
-    await waitFor(() => {
-      expect(mockValidationFormError).toHaveBeenCalledWith("At least one image is required");
-    });
+    // required with no explicit count ⇒ 1 photo; the Media gate enforces it inline.
+    await clickNext(user);
+    expect(await screen.findByText(/Add at least 1 photo to continue/)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Plot code/)).not.toBeInTheDocument();
     expect(mockMutate).not.toHaveBeenCalled();
   });
 
@@ -582,13 +580,12 @@ describe("SubmitWorkPanel submit behavior", () => {
       </TestProviders>
     );
 
+    // One photo, two required ⇒ the Media gate blocks the advance until the
+    // minimum is met; the mutation never runs.
     uploadFile(container);
-    await advanceToReview(user);
-    await submitWork(user);
-
-    await waitFor(() => {
-      expect(mockValidationFormError).toHaveBeenCalledWith("At least 2 images are required");
-    });
+    await clickNext(user);
+    expect(await screen.findByText(/Add at least 2 photos to continue/)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Plot code/)).not.toBeInTheDocument();
     expect(mockMutate).not.toHaveBeenCalled();
   });
 
@@ -733,8 +730,10 @@ describe("SubmitWorkPanel submit behavior", () => {
       </TestProviders>
     );
 
-    // Two eligible actions → the chooser is shown; pick one to enter the Media step.
+    // Two eligible actions → chooser shown; select one (select-in-place) then Next
+    // to enter the Media step.
     await user.click(screen.getByRole("radio", { name: /Site Assessment \(Before\)/ }));
+    await clickNext(user);
     uploadFile(container, "large.png", "image/png");
 
     await waitFor(() => {
@@ -773,18 +772,16 @@ describe("SubmitWorkPanel submit behavior", () => {
     expect(
       await screen.findByText("That file is not a supported photo or video.")
     ).toBeInTheDocument();
-
-    await advanceToReview(user);
-    await submitWork(user);
-
-    await waitFor(() => {
-      expect(mockValidationFormError).toHaveBeenCalledWith("At least one image is required");
-    });
     expect(mockToastInfo).toHaveBeenCalledWith(
       expect.objectContaining({
         title: "Some files were not added",
       })
     );
+
+    // No valid image was added, so advancing from Media is gated and the
+    // mutation never runs.
+    await clickNext(user);
+    expect(await screen.findByText(/Add at least 1 photo to continue/)).toBeInTheDocument();
     expect(mockMutate).not.toHaveBeenCalled();
   });
 
@@ -905,8 +902,11 @@ describe("SubmitWorkPanel submit behavior", () => {
 
     await user.click(screen.getByRole("radio", { name: /Site Assessment \(After\)/ }));
 
-    // Selecting an action advances to the Media step (chooser gone, Back available).
-    expect(await screen.findByRole("button", { name: "Next" })).toBeInTheDocument();
+    // Select-in-place: the chooser stays on the Action step with the card marked;
+    // the footer Next then advances to Media (chooser gone).
+    expect(screen.getByRole("radio", { name: /Site Assessment \(After\)/ })).toBeChecked();
+    expect(screen.getAllByRole("radio")).toHaveLength(2);
+    await user.click(screen.getByRole("button", { name: "Next" }));
     expect(screen.queryByRole("radio")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Back" })).toBeInTheDocument();
   });

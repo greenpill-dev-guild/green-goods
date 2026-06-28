@@ -1,7 +1,7 @@
 import { Alert, useCreateHypercertController } from "@green-goods/shared";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
-import { AdminDialog } from "@/components/AdminDialog";
+import { AdminDialog, ADMIN_FLOW_DIALOG_CLASS } from "@/components/AdminDialog";
 import { HypercertWizard } from "@/components/Hypercerts/HypercertWizard";
 import { ActionFlowShell } from "@/components/Layout/ActionFlowShell";
 
@@ -52,7 +52,7 @@ export default function CreateHypercert() {
       size="2xl"
       variant="flow"
       tone="hub"
-      className="min-h-[90dvh] sm:min-h-0 sm:!max-w-3xl lg:!max-w-5xl"
+      className={ADMIN_FLOW_DIALOG_CLASS}
       onOpenChange={(next) => {
         if (!next) createHypercert.handleCancel();
       }}

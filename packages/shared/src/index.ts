@@ -569,6 +569,7 @@ export {
   useSlugForm,
   useSyncCampaignCookieJarAllowlist,
   useSplitConfig,
+  useStepFocus,
   useTheme,
   useTimeout,
   useTradeHistory,

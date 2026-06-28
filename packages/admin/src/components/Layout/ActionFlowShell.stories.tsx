@@ -58,7 +58,7 @@ const meta: Meta<typeof ActionFlowShell> = {
     // AdminDialog (flow variant). Switch the viewport toolbar to Mobile to see the
     // bottom-sheet width (rail collapses to the header stepper).
     (Story) => (
-      <div className="h-[640px] w-full max-w-5xl overflow-hidden rounded-xl border border-stroke-soft bg-[rgb(var(--m3-surface))]">
+      <div className="h-[640px] w-full max-w-3xl overflow-hidden rounded-xl border border-stroke-soft bg-[rgb(var(--m3-surface))] lg:max-w-5xl">
         <Story />
       </div>
     ),

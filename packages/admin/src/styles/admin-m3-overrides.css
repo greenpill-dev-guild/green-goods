@@ -401,3 +401,14 @@ body:has(.admin-m3) [data-component="ConfirmDialog"][data-slot="surface"] {
     animation: none;
   }
 }
+
+/* Reduced motion — the stepper dot color transitions, the 300ms horizontal
+ * connector scaleX fill, and the chooser card press are decorative; zero them
+ * out. There is no universal `*{transition:none}` reset in this repo (only
+ * scoped allow-lists like this one), so the stepper/chooser must opt in here. */
+@media (prefers-reduced-motion: reduce) {
+  [data-component="ActionFlowStepper"] *,
+  [data-component="ActionChooserCard"] {
+    transition: none !important;
+  }
+}

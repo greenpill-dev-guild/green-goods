@@ -423,6 +423,7 @@ export { useSheetWidth } from "./useSheetWidth";
 // UTILS (Low-level hooks for common patterns)
 // ============================================================================
 export { useFocusTrap } from "./utils/useFocusTrap";
+export { useStepFocus } from "./utils/useStepFocus";
 export { useDocumentEvent, useEventListener, useWindowEvent } from "./utils/useEventListener";
 export { useMutationLock } from "./utils/useMutationLock";
 export { useSafeMutation } from "./utils/useSafeMutation";

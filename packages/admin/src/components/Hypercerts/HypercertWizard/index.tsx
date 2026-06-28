@@ -1,8 +1,10 @@
 import {
+  Alert,
   ErrorBoundary,
   logger,
   TOTAL_UNITS,
   toastService,
+  useStepFocus,
   useWizardData,
   type HypercertCompletionData,
   type HypercertWizardProps,
@@ -30,6 +32,7 @@ export function HypercertWizard({
   const { formatMessage } = useIntl();
 
   const wizard = useWizardData({ gardenId, gardenName, onComplete });
+  const stepRef = useStepFocus<HTMLDivElement>(wizard.currentStep);
   const mintDisabled = wizard.isSubmitting || wizard.selectedAttestations.length === 0;
   const validationMessage =
     wizard.selectedAttestations.length === 0 ? wizard.validationMessage : undefined;
@@ -200,21 +203,19 @@ export function HypercertWizard({
         }
       >
         {activeStep ? (
-          <div data-region={`hypercert-step-${activeStep.id}`} className="space-y-4">
+          <div
+            ref={stepRef}
+            tabIndex={-1}
+            data-region={`hypercert-step-${activeStep.id}`}
+            className="space-y-4 outline-none"
+          >
             <div>
               <h2 className="text-base font-semibold text-text-strong">{activeStep.title}</h2>
               {activeStep.description ? (
-                <p className="mt-0.5 text-sm text-text-soft">{activeStep.description}</p>
+                <p className="mt-0.5 text-sm text-text-sub">{activeStep.description}</p>
               ) : null}
             </div>
-            {validationMessage ? (
-              <div
-                role="status"
-                className="rounded-[var(--radius-lg)] border border-warning-light bg-warning-lighter px-3 py-2 text-sm text-warning-dark"
-              >
-                {validationMessage}
-              </div>
-            ) : null}
+            {validationMessage ? <Alert variant="warning">{validationMessage}</Alert> : null}
             {sectionContent[activeStep.id as keyof typeof sectionContent]}
           </div>
         ) : null}
