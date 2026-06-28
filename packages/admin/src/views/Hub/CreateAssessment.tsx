@@ -187,7 +187,7 @@ export default function CreateAssessment() {
       open
       size="2xl"
       variant="flow"
-      className="sm:!max-w-3xl lg:!max-w-3xl"
+      className="min-h-[90dvh] sm:min-h-0 sm:!max-w-3xl lg:!max-w-3xl"
       onOpenChange={(next) => {
         if (!next) createAssessment.handleCancel();
       }}
