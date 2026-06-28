@@ -792,6 +792,7 @@
   "app.common.save": "Save",
   "app.common.showLess": "Show less",
   "app.common.showMore": "Show more",
+  "app.common.stepProgress": "Step {current} of {total} · {label}",
   "app.common.submit": "Submit",
   "app.common.tryAgain": "Try Again",
   "app.common.yes": "Yes",

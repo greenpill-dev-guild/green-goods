@@ -742,8 +742,12 @@ function SubmitWorkPanelContent({
   const nextDisabled = busy || (activeStepId === "action" && !selectedAction);
 
   const footer = (
-    <>
-      <div className="min-w-0 flex-1 space-y-1.5" aria-live="polite">
+    // Mobile: status on top, a compact secondary, then a full-width primary CTA
+    // (thumb-reachable, in the client-PWA spirit). Desktop: status left, the
+    // button pair right — the original row. SheetFooter is a fixed inline-flex
+    // row, so this single w-full child owns the responsive layout.
+    <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
+      <div className="min-w-0 space-y-1.5 sm:flex-1" aria-live="polite">
         {busy ? (
           <AdminLinearProgress
             ariaLabel={progressMessage || formatMessage({ id: "app.admin.work.submit.submitting" })}
@@ -755,12 +759,13 @@ function SubmitWorkPanelContent({
           </p>
         ) : null}
       </div>
-      <div className="flex gap-2">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
         <AdminButton
           type="button"
           variant={isFirstStep ? "text" : "outlined"}
           onClick={isFirstStep ? () => onCancel?.() : goBack}
           disabled={busy}
+          className="self-start sm:self-auto"
         >
           {isFirstStep
             ? formatMessage({ id: "app.wizard.cancel", defaultMessage: "Cancel" })
@@ -774,6 +779,7 @@ function SubmitWorkPanelContent({
             loading={busy}
             disabled={busy}
             leadingIcon={<RiUploadCloudLine />}
+            className="w-full sm:w-auto"
           >
             {mutation.isPending
               ? formatMessage({ id: "app.admin.work.submit.submitting" })
@@ -785,12 +791,13 @@ function SubmitWorkPanelContent({
             variant="filled"
             onClick={() => void goNext()}
             disabled={nextDisabled}
+            className="w-full sm:w-auto"
           >
             {formatMessage({ id: "app.common.next", defaultMessage: "Next" })}
           </AdminButton>
         )}
       </div>
-    </>
+    </div>
   );
 
   let stepBody: ReactNode = null;

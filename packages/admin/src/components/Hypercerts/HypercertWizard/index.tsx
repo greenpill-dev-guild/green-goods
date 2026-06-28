@@ -159,16 +159,20 @@ export function HypercertWizard({
           />
         }
         footer={
-          <>
-            <div className="min-w-0 flex-1" aria-live="polite">
+          // Mobile: status on top, compact secondary, full-width primary CTA.
+          // Desktop: status left, button pair right. SheetFooter is a fixed
+          // inline-flex row, so this single w-full child owns the responsive layout.
+          <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="min-w-0 sm:flex-1" aria-live="polite">
               {wizard.isSubmitting ? <AdminLinearProgress ariaLabel={wizard.submitLabel} /> : null}
             </div>
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
               <AdminButton
                 type="button"
                 variant={isFirstStep ? "text" : "outlined"}
                 onClick={isFirstStep ? onCancel : wizard.previousStep}
                 disabled={wizard.isSubmitting}
+                className="self-start sm:self-auto"
               >
                 {isFirstStep
                   ? formatMessage({ id: "app.wizard.cancel", defaultMessage: "Cancel" })
@@ -181,6 +185,7 @@ export function HypercertWizard({
                   onClick={wizard.handleMint}
                   disabled={mintDisabled}
                   loading={wizard.isSubmitting}
+                  className="w-full sm:w-auto"
                 >
                   {wizard.submitLabel}
                 </AdminButton>
@@ -190,12 +195,13 @@ export function HypercertWizard({
                   variant="filled"
                   onClick={wizard.nextStep}
                   disabled={wizard.nextDisabled || wizard.isSubmitting}
+                  className="w-full sm:w-auto"
                 >
                   {formatMessage({ id: "app.common.next", defaultMessage: "Next" })}
                 </AdminButton>
               )}
             </div>
-          </>
+          </div>
         }
       >
         {activeStep ? (

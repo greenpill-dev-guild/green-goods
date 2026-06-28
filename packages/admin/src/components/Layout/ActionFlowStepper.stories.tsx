@@ -24,8 +24,10 @@ const meta = {
     docs: {
       description: {
         component:
-          "Compact progress stepper for the admin action flows — numbered dots + connectors, " +
-          "current step outlined, completed steps filled with a check. Lives in the ActionFlowShell header.",
+          "Compact progress stepper for the admin action flows — numbered dots + connectors with " +
+          "a 'Step N of M · Label' orientation line. The current step takes the admin selectable-card " +
+          "tint, completed steps fill with a check, and each connector grows a green fill as its step " +
+          "completes. Lives in the ActionFlowShell header.",
       },
     },
   },

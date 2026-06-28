@@ -105,16 +105,20 @@ export default function CreateAssessment() {
     ) : null;
 
     const footer = (
-      <>
-        <div className="min-w-0 flex-1" aria-live="polite">
+      // Mobile: status on top, compact secondary, full-width primary CTA.
+      // Desktop: status left, button pair right. SheetFooter is a fixed
+      // inline-flex row, so this single w-full child owns the responsive layout.
+      <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
+        <div className="min-w-0 sm:flex-1" aria-live="polite">
           {createAssessment.isSubmitting ? <AdminLinearProgress ariaLabel={title} /> : null}
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
           <AdminButton
             type="button"
             variant={isFirstStep ? "text" : "outlined"}
             onClick={isFirstStep ? createAssessment.handleCancel : createAssessment.handleBack}
             disabled={createAssessment.isSubmitting}
+            className="self-start sm:self-auto"
           >
             {isFirstStep
               ? formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })
@@ -127,6 +131,7 @@ export default function CreateAssessment() {
               onClick={createAssessment.handleSubmit}
               loading={createAssessment.isSubmitting}
               disabled={createAssessment.isSubmitting}
+              className="w-full sm:w-auto"
             >
               {formatMessage({
                 id: "app.assessment.submitAssessment",
@@ -139,12 +144,13 @@ export default function CreateAssessment() {
               variant="filled"
               onClick={createAssessment.handleNext}
               disabled={createAssessment.isSubmitting}
+              className="w-full sm:w-auto"
             >
               {formatMessage({ id: "app.common.next", defaultMessage: "Next" })}
             </AdminButton>
           )}
         </div>
-      </>
+      </div>
     );
 
     content = (

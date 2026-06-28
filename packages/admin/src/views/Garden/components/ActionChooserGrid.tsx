@@ -113,7 +113,11 @@ export function ActionChooserGrid({
             data-selected={selected}
             className={cn(
               "relative flex h-full w-full flex-col gap-1.5 rounded-lg border px-4 py-3.5 text-left",
-              "transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
+              // Spring press feedback (Standard card motion map) — a tactile
+              // confirmation standing in for the client's haptics, restrained
+              // for the cockpit. transition-all + spatial-fast mirrors AdminButton.
+              "transition-all duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]",
+              "active:scale-[0.99]",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base",
               selected
                 ? "border-primary-base bg-primary-alpha-10"

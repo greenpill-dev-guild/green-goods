@@ -144,7 +144,10 @@ const allowedIdenticalProductValues = new Set([
   "WETH",
   "§ 01 Cookie jars",
 ]);
-const allowedIdenticalValuePatterns = [/^[\d\W]+$/, /^\d+d$/, /^\{[^}]+\}$/, /^\{[^}]+\}h$/];
+// "{hours} h" / "{hours}h" — the hour symbol "h" is identical across en/es/pt, so a
+// compact "{n} h" value is legitimately locale-identical (the optional space matches
+// the actual en.json formatting).
+const allowedIdenticalValuePatterns = [/^[\d\W]+$/, /^\d+d$/, /^\{[^}]+\}$/, /^\{[^}]+\} ?h$/];
 const localeAllowedIdenticalValues: Record<string, Set<string>> = {
   es: new Set([
     " - Error",
