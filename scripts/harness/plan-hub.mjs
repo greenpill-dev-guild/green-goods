@@ -552,6 +552,10 @@ function buildLinearLaneDescription(status, laneName, lane) {
 }
 
 function linearLaneIsActionable(status, laneName) {
+  if (status.feature.stage !== "active") {
+    return false;
+  }
+
   const lane = status.lanes[laneName];
   if (!lane || LINEAR_LANE_SKIP_STATUSES.has(lane.status)) {
     return false;

@@ -146,6 +146,7 @@ out/
 .vercel
 .codex-artifacts/
 tmp/
+.tmp/
 
 # Playwright test results
 test-results/

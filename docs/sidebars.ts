@@ -283,6 +283,7 @@ const sidebars: SidebarsConfig = {
       },
       items: [
         {type: 'doc', id: 'builders/deployments/status', label: 'Deployment Status'},
+        {type: 'doc', id: 'builders/deployments/releasing', label: 'Releasing'},
         {type: 'doc', id: 'builders/deployments/contracts-deploy', label: 'Contracts'},
         {type: 'doc', id: 'builders/deployments/indexer-deploy', label: 'Indexer'},
         {type: 'doc', id: 'builders/deployments/client-deploy', label: 'Client PWA'},

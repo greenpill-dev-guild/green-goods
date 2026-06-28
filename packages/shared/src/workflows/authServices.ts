@@ -604,6 +604,13 @@ export const restoreSessionService = fromPromise<RestoreSessionResult | null, Re
       };
     } catch (error) {
       logger.error("[Auth] Failed to restore session", { error });
+      trackAuthSessionRestored({
+        source: "restore",
+        outcome: "failed",
+        reason: classifyAuthErrorReason(error),
+        passkeyServerEnabled: isPasskeyServerEnabled(),
+        hasLocalCredential: true,
+      });
       // Don't clear credential on network errors - user still has their passkey
       return null;
     }
