@@ -37,7 +37,7 @@ while IFS= read -r file; do
     CONTEXT="${CONTEXT}- Critical Green Goods surface changed (${file}); final response should name the risk surface and validation performed.\n"
   fi
 
-  if printf '%s' "$file" | grep -qE '(^|/)(package\.json|bun\.lockb|bun\.lock|pnpm-lock\.yaml|package-lock\.json|yarn\.lock)$|^\.github/workflows/|^\.codex/|^\.claude/'; then
+  if printf '%s' "$file" | grep -qE '(^|/)(package\.json|bun\.lockb|bun\.lock|pnpm-lock\.yaml|package-lock\.json|yarn\.lock)$|^\.github/workflows/|^\.codex/|^\.claude/|^\.agents/skills'; then
     CONTEXT="${CONTEXT}- Dependency/workflow/agent config changed (${file}); final response should mention config impact and validation.\n"
   fi
 done <<<"$FILES"
