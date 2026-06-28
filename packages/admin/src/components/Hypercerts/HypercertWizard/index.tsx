@@ -1,5 +1,4 @@
 import {
-  Button,
   ErrorBoundary,
   logger,
   TOTAL_UNITS,
@@ -9,14 +8,16 @@ import {
   type HypercertWizardProps,
 } from "@green-goods/shared";
 import { useIntl } from "react-intl";
+import { AdminButton } from "@/components/AdminButton";
 import { AdminConfirmDialog } from "@/components/AdminDialog";
+import { AdminLinearProgress } from "@/components/AdminLinearProgress";
 import { MintingDialog } from "@/components/Hypercerts/MintingDialog";
 import { AttestationSelector } from "@/components/Hypercerts/Steps/AttestationSelector";
 import { DistributionConfig } from "@/components/Hypercerts/Steps/DistributionConfig";
 import { HypercertPreview } from "@/components/Hypercerts/Steps/HypercertPreview";
 import { MetadataEditor } from "@/components/Hypercerts/Steps/MetadataEditor";
 import { ActionFlowShell } from "@/components/Layout/ActionFlowShell";
-import { FormFlow, toFormFlowSections } from "@/components/Layout/FormFlow";
+import { ActionFlowStepper } from "@/components/Layout/ActionFlowStepper";
 
 export type { HypercertCompletionData };
 export type { HypercertWizardProps };
@@ -33,6 +34,9 @@ export function HypercertWizard({
   const mintDisabled = wizard.isSubmitting || wizard.selectedAttestations.length === 0;
   const validationMessage =
     wizard.selectedAttestations.length === 0 ? wizard.validationMessage : undefined;
+  const isFirstStep = wizard.currentStep === 1;
+  const isLastStep = wizard.currentStep === wizard.steps.length;
+  const activeStep = wizard.steps[wizard.currentStep - 1];
 
   const sectionContent = {
     attestations: (
@@ -147,41 +151,72 @@ export function HypercertWizard({
         layout="dialog"
         title={formatMessage({ id: "app.hypercerts.create.title" })}
         context={gardenName}
+        stepper={
+          <ActionFlowStepper
+            steps={wizard.steps}
+            currentStep={wizard.currentStep}
+            onStepClick={(step) => wizard.handleStepClick(step - 1)}
+          />
+        }
         footer={
-          <div className="flex flex-1 flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={onCancel}
-              disabled={wizard.isSubmitting}
-            >
-              {formatMessage({ id: "app.wizard.cancel", defaultMessage: "Cancel" })}
-            </Button>
-            <Button
-              type="button"
-              onClick={wizard.handleMint}
-              disabled={mintDisabled}
-              loading={wizard.isSubmitting}
-            >
-              {wizard.submitLabel}
-            </Button>
-          </div>
+          <>
+            <div className="min-w-0 flex-1" aria-live="polite">
+              {wizard.isSubmitting ? <AdminLinearProgress ariaLabel={wizard.submitLabel} /> : null}
+            </div>
+            <div className="flex gap-2">
+              <AdminButton
+                type="button"
+                variant={isFirstStep ? "text" : "outlined"}
+                onClick={isFirstStep ? onCancel : wizard.previousStep}
+                disabled={wizard.isSubmitting}
+              >
+                {isFirstStep
+                  ? formatMessage({ id: "app.wizard.cancel", defaultMessage: "Cancel" })
+                  : formatMessage({ id: "app.common.back", defaultMessage: "Back" })}
+              </AdminButton>
+              {isLastStep ? (
+                <AdminButton
+                  type="button"
+                  variant="filled"
+                  onClick={wizard.handleMint}
+                  disabled={mintDisabled}
+                  loading={wizard.isSubmitting}
+                >
+                  {wizard.submitLabel}
+                </AdminButton>
+              ) : (
+                <AdminButton
+                  type="button"
+                  variant="filled"
+                  onClick={wizard.nextStep}
+                  disabled={wizard.nextDisabled || wizard.isSubmitting}
+                >
+                  {formatMessage({ id: "app.common.next", defaultMessage: "Next" })}
+                </AdminButton>
+              )}
+            </div>
+          </>
         }
       >
-        <FormFlow
-          layout="bare"
-          sections={toFormFlowSections(wizard.steps, sectionContent)}
-          feedback={
-            validationMessage ? (
+        {activeStep ? (
+          <div data-region={`hypercert-step-${activeStep.id}`} className="space-y-4">
+            <div>
+              <h2 className="text-base font-semibold text-text-strong">{activeStep.title}</h2>
+              {activeStep.description ? (
+                <p className="mt-0.5 text-sm text-text-soft">{activeStep.description}</p>
+              ) : null}
+            </div>
+            {validationMessage ? (
               <div
                 role="status"
                 className="rounded-[var(--radius-lg)] border border-warning-light bg-warning-lighter px-3 py-2 text-sm text-warning-dark"
               >
                 {validationMessage}
               </div>
-            ) : undefined
-          }
-        />
+            ) : null}
+            {sectionContent[activeStep.id as keyof typeof sectionContent]}
+          </div>
+        ) : null}
       </ActionFlowShell>
       <MintingDialog
         mintingState={wizard.mintingState}

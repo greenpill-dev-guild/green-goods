@@ -774,6 +774,7 @@
   "app.common.done": "Listo",
   "app.common.failedToLoad": "Error al cargar",
   "app.common.loading": "Cargando...",
+  "app.common.next": "Siguiente",
   "app.common.no": "No",
   "app.common.optional": "opcional",
   "app.common.processing": "Procesando...",

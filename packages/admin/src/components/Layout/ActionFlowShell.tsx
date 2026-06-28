@@ -14,6 +14,11 @@ export interface ActionFlowShellProps {
    */
   context?: ReactNode;
   /**
+   * Compact progress stepper (e.g. <ActionFlowStepper />) shown under the title
+   * for multi-step flows. Omit it for single-screen flows.
+   */
+  stepper?: ReactNode;
+  /**
    * In-flow back (e.g. configure → qualify). When provided, a back-arrow renders
    * in the header. Omit it on the first phase so the only way out is the dialog
    * close / route back link the caller owns.
@@ -55,6 +60,7 @@ export interface ActionFlowShellProps {
 export function ActionFlowShell({
   title,
   context,
+  stepper,
   onBack,
   backLabel,
   backDisabled = false,
@@ -114,6 +120,7 @@ export function ActionFlowShell({
           <h1 className="truncate text-lg font-semibold text-text-strong" title={title}>
             {title}
           </h1>
+          {stepper ? <div className="mt-2.5">{stepper}</div> : null}
         </div>
       </header>
 
