@@ -51,6 +51,7 @@ export default function CreateHypercert() {
       open
       size="2xl"
       variant="flow"
+      className="sm:!max-w-3xl lg:!max-w-3xl"
       onOpenChange={(next) => {
         if (!next) createHypercert.handleCancel();
       }}

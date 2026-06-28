@@ -33,7 +33,7 @@ import {
 } from "@green-goods/shared";
 import { validateWorkSubmissionContext } from "@green-goods/shared/modules";
 import { RiSeedlingLine, RiUploadCloudLine } from "@remixicon/react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Controller } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -42,8 +42,9 @@ import { AdminDialog } from "@/components/AdminDialog";
 import { AdminLinearProgress } from "@/components/AdminLinearProgress";
 import { AdminTextField } from "@/components/AdminTextField";
 import { ActionFlowShell } from "@/components/Layout/ActionFlowShell";
-import { FormFlow, type FormFlowSection } from "@/components/Layout/FormFlow";
+import { ActionFlowStepper, type ActionFlowStep } from "@/components/Layout/ActionFlowStepper";
 import { ActionChooserGrid } from "./components/ActionChooserGrid";
+import { SubmitWorkReview } from "./components/SubmitWorkReview";
 
 function parseHubContext(search: string) {
   const params = new URLSearchParams(search);
@@ -331,7 +332,6 @@ function SubmitWorkPanelContent({
     () => (selectedAction ? parseActionUID(selectedAction.id) : null),
     [selectedAction]
   );
-  const inCapture = Boolean(selectedAction);
 
   const form = useWorkForm(selectedAction?.inputs);
   const {
@@ -346,6 +346,8 @@ function SubmitWorkPanelContent({
   const [progressMessage, setProgressMessage] = useState("");
   const [mediaFeedback, setMediaFeedback] = useState<MediaFeedback | null>(null);
   const [isPreparingMedia, setIsPreparingMedia] = useState(false);
+  // Stepped flow position (1=Action, 2=Media, 3=Details, 4=Review).
+  const [currentStep, setCurrentStep] = useState(1);
   const canSubmit = garden ? canManageGarden(garden) : false;
   const isLoadingData = Boolean(gardensLoading || actionsLoading);
 
@@ -387,29 +389,30 @@ function SubmitWorkPanelContent({
 
   useBeforeUnloadWhilePending(mutation.isPending || isPreparingMedia);
 
-  // Auto-select when exactly one action is eligible — skip the chooser and land
-  // the operator straight in Capture.
+  // Auto-select when exactly one action is eligible — skip the Action chooser and
+  // land the operator straight on the Media step.
   useEffect(() => {
     if (!selectedActionId && availableActions.length === 1) {
       setSelectedActionId(availableActions[0].id);
+      setCurrentStep((step) => (step === 1 ? 2 : step));
     }
   }, [availableActions, selectedActionId]);
 
-  // Focus management across the qualify → configure phase boundary: move focus
-  // into the newly revealed region so keyboard + screen-reader users follow the
-  // flow. Skipped on first mount so we never steal initial focus.
+  // Focus management across step boundaries: move focus into the newly revealed
+  // step region so keyboard + screen-reader users follow the flow. Skipped on
+  // first mount so we never steal initial focus.
   const phaseRef = useRef<HTMLDivElement>(null);
-  const prevInCaptureRef = useRef<boolean | null>(null);
+  const prevStepRef = useRef<number | null>(null);
   useEffect(() => {
-    if (prevInCaptureRef.current === null) {
-      prevInCaptureRef.current = inCapture;
+    if (prevStepRef.current === null) {
+      prevStepRef.current = currentStep;
       return;
     }
-    if (prevInCaptureRef.current !== inCapture) {
-      prevInCaptureRef.current = inCapture;
+    if (prevStepRef.current !== currentStep) {
+      prevStepRef.current = currentStep;
       phaseRef.current?.focus();
     }
-  }, [inCapture]);
+  }, [currentStep]);
 
   const onSubmit = handleSubmit((data) => {
     if (!garden || !selectedAction || selectedActionUID === null) return;
@@ -686,67 +689,181 @@ function SubmitWorkPanelContent({
     );
   }
 
-  // Qualify phase — choose which action this work documents. Selecting a card
-  // auto-advances to Configure (no Continue step).
-  if (!inCapture) {
-    return (
-      <ActionFlowShell
-        layout={layout}
-        title={title}
-        context={garden.name}
-        onBack={exitBack}
-        backLabel={exitLabel}
-      >
-        <div ref={phaseRef} tabIndex={-1} key="choose" className="action-flow-fade outline-none">
-          <div className="space-y-1">
-            <h2 className="text-base font-semibold text-text-strong">
-              {formatMessage({ id: "app.admin.work.submit.chooseActionTitle" })}
-            </h2>
-            <p className="text-sm text-text-soft">
-              {formatMessage(
-                { id: "app.admin.work.submit.chooseActionDescription" },
-                { garden: garden.name }
-              )}
-            </p>
-          </div>
-          <div className="mt-4">
-            <ActionChooserGrid
-              actions={availableActions}
-              selectedActionId={selectedActionId}
-              onSelect={handleActionChange}
-              disabled={busy}
-              groupLabel={formatMessage({ id: "app.admin.work.submit.selectAction" })}
-            />
-          </div>
-        </div>
-      </ActionFlowShell>
-    );
-  }
-
-  // Configure phase — stacked FormFlow sections (action details → time & notes →
-  // photos) inside one <form>; the pinned footer owns progress + submit.
-  const sections: FormFlowSection[] = [];
-  if (selectedAction && selectedAction.inputs.length > 0) {
-    sections.push({
+  // Stepped flow: Action → Media → Details → Review. The selected action's form
+  // fields live on the Details step, but react-hook-form keeps unmounted-field
+  // values, so Review + submit read the full snapshot.
+  const stepConfigs: ActionFlowStep[] = [
+    {
+      id: "action",
+      title: formatMessage({ id: "app.admin.work.submit.step.action", defaultMessage: "Action" }),
+    },
+    {
+      id: "media",
+      title: formatMessage({ id: "app.admin.work.submit.step.media", defaultMessage: "Media" }),
+    },
+    {
       id: "details",
-      title:
-        selectedAction.details?.title ||
-        formatMessage({ id: "app.admin.work.submit.section.details" }),
-      content: (
-        <DynamicWorkFields
-          inputs={selectedAction.inputs}
-          control={control}
-          register={register}
-          errors={errors as Record<string, { message?: string } | undefined>}
+      title: formatMessage({ id: "app.admin.work.submit.step.details", defaultMessage: "Details" }),
+    },
+    {
+      id: "review",
+      title: formatMessage({ id: "app.admin.work.submit.step.review", defaultMessage: "Review" }),
+    },
+  ];
+  const activeStepId = stepConfigs[currentStep - 1]?.id ?? "action";
+  const isFirstStep = currentStep === 1;
+  const isLastStep = currentStep === stepConfigs.length;
+
+  // Selecting an action advances to Media; switching action resets the draft.
+  const handleSelectAction = (actionId: string) => {
+    if (!actionId) return;
+    if (actionId !== selectedActionId) handleActionChange(actionId);
+    setCurrentStep(2);
+  };
+
+  const goBack = () => {
+    if (busy) return;
+    setCurrentStep((step) => Math.max(1, step - 1));
+  };
+  const goNext = async () => {
+    if (busy) return;
+    // Validate the work form before leaving Details for Review.
+    if (activeStepId === "details") {
+      const valid = await form.trigger();
+      if (!valid) return;
+    }
+    setCurrentStep((step) => Math.min(stepConfigs.length, step + 1));
+  };
+  const handleStepJump = (step: number) => {
+    if (busy || step >= currentStep) return;
+    setCurrentStep(step);
+  };
+
+  const nextDisabled = busy || (activeStepId === "action" && !selectedAction);
+
+  const footer = (
+    <>
+      <div className="min-w-0 flex-1 space-y-1.5" aria-live="polite">
+        {busy ? (
+          <AdminLinearProgress
+            ariaLabel={progressMessage || formatMessage({ id: "app.admin.work.submit.submitting" })}
+          />
+        ) : null}
+        {progressMessage ? (
+          <p className="truncate text-sm text-text-sub" title={progressMessage}>
+            {progressMessage}
+          </p>
+        ) : null}
+      </div>
+      <div className="flex gap-2">
+        <AdminButton
+          type="button"
+          variant={isFirstStep ? "text" : "outlined"}
+          onClick={isFirstStep ? () => onCancel?.() : goBack}
+          disabled={busy}
+        >
+          {isFirstStep
+            ? formatMessage({ id: "app.wizard.cancel", defaultMessage: "Cancel" })
+            : formatMessage({ id: "app.common.back", defaultMessage: "Back" })}
+        </AdminButton>
+        {isLastStep ? (
+          <AdminButton
+            type="submit"
+            form={formId}
+            variant="filled"
+            loading={busy}
+            disabled={busy}
+            leadingIcon={<RiUploadCloudLine />}
+          >
+            {mutation.isPending
+              ? formatMessage({ id: "app.admin.work.submit.submitting" })
+              : formatMessage({ id: "app.admin.work.submit.submit" })}
+          </AdminButton>
+        ) : (
+          <AdminButton
+            type="button"
+            variant="filled"
+            onClick={() => void goNext()}
+            disabled={nextDisabled}
+          >
+            {formatMessage({ id: "app.common.next", defaultMessage: "Next" })}
+          </AdminButton>
+        )}
+      </div>
+    </>
+  );
+
+  let stepBody: ReactNode = null;
+  if (activeStepId === "action") {
+    stepBody = (
+      <div className="space-y-4">
+        <div className="space-y-1">
+          <h2 className="text-base font-semibold text-text-strong">
+            {formatMessage({ id: "app.admin.work.submit.chooseActionTitle" })}
+          </h2>
+          <p className="text-sm text-text-soft">
+            {formatMessage(
+              { id: "app.admin.work.submit.chooseActionDescription" },
+              { garden: garden.name }
+            )}
+          </p>
+        </div>
+        <ActionChooserGrid
+          actions={availableActions}
+          selectedActionId={selectedActionId}
+          onSelect={handleSelectAction}
+          disabled={busy}
+          groupLabel={formatMessage({ id: "app.admin.work.submit.selectAction" })}
         />
-      ),
-    });
-  }
-  sections.push({
-    id: "log",
-    title: formatMessage({ id: "app.admin.work.submit.section.log" }),
-    content: (
+      </div>
+    );
+  } else if (activeStepId === "media") {
+    stepBody = (
+      <div className="space-y-4">
+        <div className="space-y-1">
+          <h2 className="text-base font-semibold text-text-strong">
+            {selectedAction?.mediaInfo?.title ||
+              formatMessage({ id: "app.admin.work.submit.section.photos" })}
+          </h2>
+          <p className="text-sm text-text-soft">{photoRequirementText}</p>
+        </div>
+        <FileUploadField
+          label={formatMessage({ id: "app.admin.work.submit.media" })}
+          helpText={formatMessage({ id: "app.admin.work.submit.mediaHint" })}
+          accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
+          multiple
+          compress={false}
+          showPreview
+          currentFiles={images}
+          onFilesChange={handleFilesChange}
+          onRemoveFile={(index) => setImages((prev) => prev.filter((_, i) => i !== index))}
+          disabled={busy}
+        />
+        {mediaFeedback ? (
+          <Alert variant={mediaFeedback.variant}>{mediaFeedback.message}</Alert>
+        ) : null}
+      </div>
+    );
+  } else if (activeStepId === "details") {
+    stepBody = (
       <div className="space-y-5">
+        <div className="space-y-1">
+          <h2 className="text-base font-semibold text-text-strong">
+            {selectedAction?.details?.title ||
+              formatMessage({ id: "app.admin.work.submit.section.details" })}
+          </h2>
+          {selectedAction?.title ? (
+            <p className="text-sm text-text-soft">{selectedAction.title}</p>
+          ) : null}
+        </div>
+        {selectedAction && selectedAction.inputs.length > 0 ? (
+          <DynamicWorkFields
+            inputs={selectedAction.inputs}
+            control={control}
+            register={register}
+            errors={errors as Record<string, { message?: string } | undefined>}
+          />
+        ) : null}
         <AdminTextField
           label={formatMessage({ id: "app.admin.work.submit.timeSpent" })}
           id="timeSpentMinutes"
@@ -775,135 +892,73 @@ function SubmitWorkPanelContent({
           />
         </FormField>
       </div>
-    ),
-  });
-  sections.push({
-    id: "photos",
-    title:
-      selectedAction?.mediaInfo?.title ||
-      formatMessage({ id: "app.admin.work.submit.section.photos" }),
-    description: photoRequirementText,
-    content: (
-      <div className="space-y-3">
-        <FileUploadField
-          label={formatMessage({ id: "app.admin.work.submit.media" })}
-          helpText={formatMessage({ id: "app.admin.work.submit.mediaHint" })}
-          accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
-          multiple
-          compress={false}
-          showPreview
-          currentFiles={images}
-          onFilesChange={handleFilesChange}
-          onRemoveFile={(index) => setImages((prev) => prev.filter((_, i) => i !== index))}
-          disabled={busy}
-        />
-        {mediaFeedback ? (
-          <Alert variant={mediaFeedback.variant}>{mediaFeedback.message}</Alert>
-        ) : null}
-      </div>
-    ),
-  });
-
-  // Back returns to the chooser when there is one (multiple actions); otherwise
-  // it exits the flow on the mobile route / is omitted in the desktop dialog.
-  const configureOnBack = availableActions.length > 1 ? () => handleActionChange("") : exitBack;
-  const configureBackLabel =
-    availableActions.length > 1
-      ? formatMessage({ id: "app.admin.work.submit.changeAction" })
-      : exitLabel;
-
-  const footer = (
-    <>
-      <div className="min-w-0 flex-1 space-y-1.5" aria-live="polite">
-        {busy ? (
-          <AdminLinearProgress
-            ariaLabel={progressMessage || formatMessage({ id: "app.admin.work.submit.submitting" })}
-          />
-        ) : null}
-        {progressMessage ? (
-          <p className="truncate text-sm text-text-sub" title={progressMessage}>
-            {progressMessage}
-          </p>
-        ) : null}
-      </div>
-      <div className="flex gap-2">
-        <AdminButton type="button" variant="text" onClick={() => onCancel?.()} disabled={busy}>
-          {formatMessage({ id: "app.wizard.cancel", defaultMessage: "Cancel" })}
-        </AdminButton>
-        <AdminButton
-          type="submit"
-          form={formId}
-          variant="filled"
-          loading={busy}
-          disabled={busy}
-          leadingIcon={<RiUploadCloudLine />}
-        >
-          {mutation.isPending
-            ? formatMessage({ id: "app.admin.work.submit.submitting" })
-            : formatMessage({ id: "app.admin.work.submit.submit" })}
-        </AdminButton>
-      </div>
-    </>
-  );
+    );
+  } else if (selectedAction) {
+    stepBody = (
+      <SubmitWorkReview
+        action={selectedAction}
+        images={images}
+        values={form.getValues() as Record<string, unknown>}
+        photoRequirementText={photoRequirementText}
+      />
+    );
+  }
 
   return (
     <ActionFlowShell
       layout={layout}
       title={title}
       context={garden.name}
-      onBack={configureOnBack}
-      backLabel={configureBackLabel}
-      backDisabled={busy}
+      stepper={
+        <ActionFlowStepper
+          steps={stepConfigs}
+          currentStep={currentStep}
+          onStepClick={handleStepJump}
+        />
+      }
       footer={footer}
     >
-      <div ref={phaseRef} tabIndex={-1} key="capture" className="action-flow-fade outline-none">
-        <form id={formId} onSubmit={onSubmit}>
-          <FormFlow
-            layout="bare"
-            intro={
-              <span>
-                <span className="font-semibold text-text-strong">{selectedAction?.title}</span>
-                {" · "}
-                {photoRequirementText}
-              </span>
-            }
-            feedback={
-              mutation.isError ? (
-                <TxInlineFeedback
-                  visible
-                  severity="error"
-                  title={formatMessage({ id: "app.admin.work.submit.failureTitle" })}
-                  message={formatMessage({ id: "app.admin.work.submit.failureMessage" })}
-                  reserveClassName="min-h-0"
-                  action={
-                    <div className="flex flex-wrap gap-2">
-                      <AdminButton
-                        type="button"
-                        variant="outlined"
-                        size="sm"
-                        onClick={() => void onSubmit()}
-                        disabled={busy}
-                      >
-                        {formatMessage({ id: "app.admin.work.submit.retry" })}
-                      </AdminButton>
-                      <AdminButton
-                        type="button"
-                        variant="text"
-                        size="sm"
-                        onClick={() => mutation.reset()}
-                        disabled={busy}
-                      >
-                        {formatMessage({ id: "app.admin.work.submit.editDetails" })}
-                      </AdminButton>
-                    </div>
-                  }
-                />
-              ) : undefined
-            }
-            sections={sections}
-          />
-        </form>
-      </div>
+      <form id={formId} onSubmit={onSubmit}>
+        <div
+          ref={phaseRef}
+          tabIndex={-1}
+          key={activeStepId}
+          className="action-flow-fade space-y-4 outline-none"
+        >
+          {mutation.isError ? (
+            <TxInlineFeedback
+              visible
+              severity="error"
+              title={formatMessage({ id: "app.admin.work.submit.failureTitle" })}
+              message={formatMessage({ id: "app.admin.work.submit.failureMessage" })}
+              reserveClassName="min-h-0"
+              action={
+                <div className="flex flex-wrap gap-2">
+                  <AdminButton
+                    type="button"
+                    variant="outlined"
+                    size="sm"
+                    onClick={() => void onSubmit()}
+                    disabled={busy}
+                  >
+                    {formatMessage({ id: "app.admin.work.submit.retry" })}
+                  </AdminButton>
+                  <AdminButton
+                    type="button"
+                    variant="text"
+                    size="sm"
+                    onClick={() => mutation.reset()}
+                    disabled={busy}
+                  >
+                    {formatMessage({ id: "app.admin.work.submit.editDetails" })}
+                  </AdminButton>
+                </div>
+              }
+            />
+          ) : null}
+          {stepBody}
+        </div>
+      </form>
     </ActionFlowShell>
   );
 }
@@ -925,6 +980,7 @@ export default function SubmitWork() {
       open
       size="2xl"
       variant="flow"
+      className="sm:!max-w-3xl lg:!max-w-3xl"
       onOpenChange={(next) => {
         if (!next) close();
       }}

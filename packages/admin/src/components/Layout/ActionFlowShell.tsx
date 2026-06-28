@@ -37,7 +37,7 @@ export interface ActionFlowShellProps {
   footer?: ReactNode;
   /** Scrollable body content. Rendered inside a centered reading column. */
   children: ReactNode;
-  /** Override the reading-column max width (default `max-w-2xl`). */
+  /** Override the reading-column max width (default `max-w-3xl`). */
   contentClassName?: string;
   /** Live status label for the body region (`aria-live`). */
   "aria-label"?: string;
@@ -128,7 +128,7 @@ export function ActionFlowShell({
         <div
           data-region="action-flow-body"
           aria-label={ariaLabel}
-          className={cn("mx-auto w-full px-4 py-5 sm:px-6", contentClassName ?? "max-w-2xl")}
+          className={cn("mx-auto w-full px-4 py-4 sm:px-6", contentClassName ?? "max-w-3xl")}
         >
           {children}
         </div>

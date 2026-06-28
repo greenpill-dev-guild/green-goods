@@ -39,7 +39,7 @@ export function ActionFlowStepper({ steps, currentStep, onStepClick }: ActionFlo
             className={cn(
               "flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border text-[10px] font-semibold",
               "transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
-              completed && "border-primary-base bg-primary-base text-white",
+              completed && "border-primary-base bg-primary-base [color:rgb(var(--m3-on-primary))]",
               isCurrent && "border-primary-base text-primary-base",
               !completed && !isCurrent && "border-stroke-soft text-text-soft"
             )}
