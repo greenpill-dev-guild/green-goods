@@ -265,9 +265,13 @@ export const AvailableAction: Story = {
   }),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
+    // Single action auto-selects onto the Media step; advance to Details to reach
+    // the form fields, then through Review to submit.
+    await userEvent.click(await canvas.findByRole("button", { name: "Next" }));
     await expect(await canvas.findByLabelText(/Plot code/)).toBeVisible();
     await expect(await canvas.findByLabelText("Time Spent (hours)")).toBeVisible();
     await userEvent.type(await canvas.findByLabelText(/Plot code/), "Plot A");
+    await userEvent.click(await canvas.findByRole("button", { name: "Next" }));
     await userEvent.click(await canvas.findByRole("button", { name: "Submit Work" }));
     const page = within(canvasElement.ownerDocument.body);
     await expect(await page.findByText("At least one image is required")).toBeVisible();
@@ -284,7 +288,9 @@ export const ActionChooser: Story = {
     const cards = await canvas.findAllByRole("radio");
     expect(cards.length).toBeGreaterThan(1);
     await userEvent.click(cards[0]);
-    await expect(await canvas.findByRole("button", { name: "Change action" })).toBeVisible();
+    // Selecting an action advances to the Media step (chooser gone, Back available).
+    await expect(await canvas.findByRole("button", { name: "Next" })).toBeVisible();
+    await expect(canvas.queryByRole("radio")).not.toBeInTheDocument();
   },
 };
 

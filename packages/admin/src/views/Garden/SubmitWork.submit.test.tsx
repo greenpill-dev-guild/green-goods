@@ -384,10 +384,31 @@ function createDeferred<T>() {
   return { promise, resolve };
 }
 
-// A single eligible action auto-selects into the Capture step, so the chooser is
-// skipped entirely — fill the required field directly.
-async function selectActionAndFillRequiredFields(user: ReturnType<typeof userEvent.setup>) {
+// The flow is a stepper: Action → Media → Details → Review. A single eligible
+// action auto-selects and lands on the Media step (the chooser is skipped).
+async function clickNext(user: ReturnType<typeof userEvent.setup>) {
+  // Next is disabled while media is preparing; wait for it to settle.
+  await waitFor(() => expect(screen.getByRole("button", { name: "Next" })).not.toBeDisabled());
+  await user.click(screen.getByRole("button", { name: "Next" }));
+}
+
+async function fillRequiredField(user: ReturnType<typeof userEvent.setup>) {
   await user.type(await screen.findByLabelText(/Plot code/), "Plot A");
+}
+
+// From the Media step, advance through Details (filling the required field) to the
+// Review step, where the Submit button lives.
+async function advanceToReview(
+  user: ReturnType<typeof userEvent.setup>,
+  { fill = true }: { fill?: boolean } = {}
+) {
+  await clickNext(user); // Media → Details
+  if (fill) await fillRequiredField(user);
+  await clickNext(user); // Details → Review (validates the work form)
+}
+
+async function submitWork(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(await screen.findByRole("button", { name: "Submit Work" }));
 }
 
 function uploadFile(container: HTMLElement, fileName = "before.png", type = "image/png") {
@@ -485,8 +506,8 @@ describe("SubmitWorkPanel submit behavior", () => {
       </TestProviders>
     );
 
-    await selectActionAndFillRequiredFields(user);
-    await user.click(screen.getByRole("button", { name: "Submit Work" }));
+    await advanceToReview(user);
+    await submitWork(user);
 
     await waitFor(() => {
       expect(mockValidationFormError).toHaveBeenCalledWith("At least one image is required");
@@ -504,8 +525,8 @@ describe("SubmitWorkPanel submit behavior", () => {
       </TestProviders>
     );
 
-    await selectActionAndFillRequiredFields(user);
-    await user.click(screen.getByRole("button", { name: "Submit Work" }));
+    await advanceToReview(user);
+    await submitWork(user);
 
     await waitFor(() => {
       expect(mockValidationFormError).toHaveBeenCalledWith("At least one image is required");
@@ -523,8 +544,8 @@ describe("SubmitWorkPanel submit behavior", () => {
       </TestProviders>
     );
 
-    await selectActionAndFillRequiredFields(user);
-    await user.click(screen.getByRole("button", { name: "Submit Work" }));
+    await advanceToReview(user);
+    await submitWork(user);
 
     await waitFor(() => {
       expect(mockMutate).toHaveBeenCalledWith({
@@ -555,9 +576,9 @@ describe("SubmitWorkPanel submit behavior", () => {
       </TestProviders>
     );
 
-    await selectActionAndFillRequiredFields(user);
     uploadFile(container);
-    await user.click(screen.getByRole("button", { name: "Submit Work" }));
+    await advanceToReview(user);
+    await submitWork(user);
 
     await waitFor(() => {
       expect(mockValidationFormError).toHaveBeenCalledWith("At least 2 images are required");
@@ -574,10 +595,9 @@ describe("SubmitWorkPanel submit behavior", () => {
       </TestProviders>
     );
 
-    await selectActionAndFillRequiredFields(user);
     const file = uploadFile(container);
-
-    await user.click(screen.getByRole("button", { name: "Submit Work" }));
+    await advanceToReview(user);
+    await submitWork(user);
 
     await waitFor(() => {
       expect(mockMutate).toHaveBeenCalledWith({
@@ -613,7 +633,6 @@ describe("SubmitWorkPanel submit behavior", () => {
       </TestProviders>
     );
 
-    await selectActionAndFillRequiredFields(user);
     const rawFile = uploadFile(container, "large.png", "image/png");
 
     await waitFor(() => {
@@ -629,7 +648,8 @@ describe("SubmitWorkPanel submit behavior", () => {
       );
     });
 
-    await user.click(screen.getByRole("button", { name: "Submit Work" }));
+    await advanceToReview(user);
+    await submitWork(user);
 
     await waitFor(() => {
       expect(mockMutate).toHaveBeenCalledWith({
@@ -651,14 +671,14 @@ describe("SubmitWorkPanel submit behavior", () => {
       </TestProviders>
     );
 
-    await selectActionAndFillRequiredFields(user);
     uploadFile(container, "garden.heic", "image/heic");
 
     await waitFor(() => {
       expect(heicToMocks.heicTo).toHaveBeenCalled();
     });
 
-    await user.click(screen.getByRole("button", { name: "Submit Work" }));
+    await advanceToReview(user);
+    await submitWork(user);
 
     await waitFor(() => {
       expect(mockMutate).toHaveBeenCalledWith({
@@ -707,15 +727,13 @@ describe("SubmitWorkPanel submit behavior", () => {
       </TestProviders>
     );
 
-    // Two eligible actions → the chooser is shown; pick one to enter Capture.
+    // Two eligible actions → the chooser is shown; pick one to enter the Media step.
     await user.click(screen.getByRole("radio", { name: /Site Assessment \(Before\)/ }));
-    await user.type(await screen.findByLabelText(/Plot code/), "Plot A");
     uploadFile(container, "large.png", "image/png");
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Change action" })).toBeDisabled();
-      expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
-      expect(screen.getByRole("button", { name: "Submit Work" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Back" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Next" })).toBeDisabled();
     });
 
     act(() => {
@@ -730,8 +748,8 @@ describe("SubmitWorkPanel submit behavior", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "Change action" })).not.toBeDisabled();
-      expect(screen.getByRole("button", { name: "Cancel" })).not.toBeDisabled();
+      expect(screen.getByRole("button", { name: "Back" })).not.toBeDisabled();
+      expect(screen.getByRole("button", { name: "Next" })).not.toBeDisabled();
     });
   });
 
@@ -744,14 +762,14 @@ describe("SubmitWorkPanel submit behavior", () => {
       </TestProviders>
     );
 
-    await selectActionAndFillRequiredFields(user);
     uploadFile(container, "notes.txt", "text/plain");
 
     expect(
       await screen.findByText("That file is not a supported photo or video.")
     ).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "Submit Work" }));
+    await advanceToReview(user);
+    await submitWork(user);
 
     await waitFor(() => {
       expect(mockValidationFormError).toHaveBeenCalledWith("At least one image is required");
@@ -802,8 +820,8 @@ describe("SubmitWorkPanel submit behavior", () => {
       </TestProviders>
     );
 
-    await selectActionAndFillRequiredFields(user);
-    await user.click(screen.getByRole("button", { name: "Submit Work" }));
+    await advanceToReview(user);
+    await submitWork(user);
 
     await waitFor(() => {
       expect(mockToastError).toHaveBeenCalledWith(
@@ -824,8 +842,8 @@ describe("SubmitWorkPanel submit behavior", () => {
       </TestProviders>
     );
 
-    // Single eligible action auto-selects into Capture, surfacing the footer.
-    await screen.findByLabelText(/Plot code/);
+    // Single eligible action auto-selects into the Media step, surfacing the footer.
+    await screen.findByRole("button", { name: "Next" });
 
     act(() => {
       const onProgress = mockState.workMutationOptions?.onProgress as
@@ -844,17 +862,18 @@ describe("SubmitWorkPanel submit behavior", () => {
     expect(screen.queryByText("Uploading media...")).not.toBeInTheDocument();
   });
 
-  it("auto-selects the only eligible action and lands in the Capture step", async () => {
+  it("auto-selects the only eligible action and lands on the Media step", async () => {
     render(
       <TestProviders>
         <SubmitWorkPanel layout="page" />
       </TestProviders>
     );
 
-    // Single action → no chooser, no "Change action", straight to the form.
-    expect(await screen.findByLabelText(/Plot code/)).toBeInTheDocument();
+    // Single action → no chooser; auto-selected onto the Media step. The Plot code
+    // field lives on the later Details step, so it is not visible yet.
+    expect(await screen.findByRole("button", { name: "Next" })).toBeInTheDocument();
     expect(screen.queryByRole("radio")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Change action" })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Plot code/)).not.toBeInTheDocument();
   });
 
   it("shows the action chooser when multiple actions are eligible", async () => {
@@ -880,8 +899,10 @@ describe("SubmitWorkPanel submit behavior", () => {
 
     await user.click(screen.getByRole("radio", { name: /Site Assessment \(After\)/ }));
 
-    expect(await screen.findByLabelText(/Plot code/)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Change action" })).toBeInTheDocument();
+    // Selecting an action advances to the Media step (chooser gone, Back available).
+    expect(await screen.findByRole("button", { name: "Next" })).toBeInTheDocument();
+    expect(screen.queryByRole("radio")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Back" })).toBeInTheDocument();
   });
 
   it("shows a loading state instead of the empty state while actions load", async () => {
