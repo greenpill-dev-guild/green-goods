@@ -6,6 +6,7 @@ import {
   formatUsdPrice,
   getVaultAssetSymbol,
   isMeaningfulTxErrorMessage,
+  normalizeDecimalInput,
   parseUsdToCents,
   type PublicGardenSummary,
   truncateAddress,
@@ -18,15 +19,38 @@ import {
   useUser,
   useVaultDeposit,
   usdCentsToWei,
+  weiToUsdCents,
 } from "@green-goods/shared";
 import type { PublicFundingIntentKind } from "@green-goods/shared/public-contracts";
 import { RiCheckLine, RiCloseLine } from "@remixicon/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
+import { parseUnits } from "viem";
 import { EditorialGhostButton, EditorialKicker, EditorialPrimaryButton } from "./atoms";
 
 const DAI_SYMBOL = "DAI";
 const WETH_SYMBOL = "WETH";
+
+type Denomination = "usd" | "weth";
+
+/**
+ * Parse a user-typed token amount (WETH denomination) into wei. Mirrors the
+ * tolerant input handling used across the public vault panels: normalize a bare
+ * leading dot, tolerate an in-progress trailing dot ("1." while typing "1.5")
+ * so the CTA/estimate don't flicker back to the empty state between keystrokes,
+ * and fall back to 0n on anything viem cannot parse so the CTA stays in its
+ * "enter an amount" state instead of throwing.
+ */
+function parseTokenInputToWei(input: string, decimals: number): bigint {
+  const normalized = normalizeDecimalInput(input);
+  if (!/^\d+(?:\.\d*)?$/.test(normalized)) return 0n;
+  const canonical = normalized.endsWith(".") ? normalized.slice(0, -1) : normalized;
+  try {
+    return canonical ? parseUnits(canonical, decimals) : 0n;
+  } catch {
+    return 0n;
+  }
+}
 
 interface PublicFundingCardProps {
   open: boolean;
@@ -58,11 +82,13 @@ type Status = "loading" | "idle" | "submitting" | "success" | "error";
  * admin-styled deposit dialogs.
  *
  * Design intent:
- *   - Amount-first: $-prefixed input is the first focus.
+ *   - Amount-first: the prefixed amount input is the first focus.
  *   - Token choice as visual radio cards (not a dropdown), only when 2+ exist.
  *   - Wallet connect folds into the submit button — no separate screen.
- *   - WETH amounts are converted live via Chainlink ETH/USD on Arbitrum;
- *     stable assets (DAI) map 1:1 to USD with no oracle dependency.
+ *   - WETH supporters may enter the amount in USD (converted live via Chainlink
+ *     ETH/USD) or directly in WETH via the denomination toggle (PRD-519),
+ *     defaulting to USD for accessibility; stable assets (DAI) map 1:1 to USD
+ *     with no oracle dependency and never show the toggle.
  *   - Single card, three real states (loading | idle | success), error renders
  *     inline within idle.
  */
@@ -114,7 +140,12 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
   }, [isDonate, jars, vaults]);
 
   const [selectedAddress, setSelectedAddress] = useState<string>("");
+  // Separate per-unit entry buffers so toggling denomination preserves whatever
+  // the supporter typed in each unit (no lossy round-trip conversion). Only one
+  // is "active" at a time, decided by `denomination`.
   const [usdInput, setUsdInput] = useState("");
+  const [wethInput, setWethInput] = useState("");
+  const [denominationMode, setDenominationMode] = useState<Denomination>("usd");
   const [status, setStatus] = useState<Status>("loading");
 
   const isLoadingOptions = isDonate ? isLoadingJars : isLoadingVaults;
@@ -139,6 +170,8 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
   useEffect(() => {
     if (open) return;
     setUsdInput("");
+    setWethInput("");
+    setDenominationMode("usd");
     setSelectedAddress("");
     activeMutation.reset();
   }, [open, activeMutation]);
@@ -159,51 +192,91 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
   );
 
   const isWethSelected = selected?.symbol === WETH_SYMBOL;
+  // The toggle only applies to WETH; for stable assets the effective entry unit
+  // is always USD regardless of any lingering mode from a prior WETH selection.
+  const denomination: Denomination = isWethSelected ? denominationMode : "usd";
   const ethUsd = useEthUsdPrice({
     enabled: open && isWethSelected,
     chainId: selected?.chainId,
   });
 
-  // Convert USD input → token wei. DAI uses 1:1 mapping (cents * 10^16); WETH
-  // requires the live oracle. Returns 0n when input is invalid or the oracle
-  // is unavailable for WETH.
-  const { tokenAmountWei, conversionUnavailable } = useMemo(() => {
-    if (!selected) return { tokenAmountWei: 0n, conversionUnavailable: false };
+  // Selecting a non-WETH asset returns entry to the USD default, so coming back
+  // to WETH always starts in the accessible USD mode rather than a stale unit.
+  useEffect(() => {
+    if (!isWethSelected) setDenominationMode("usd");
+  }, [isWethSelected]);
+
+  // Resolve the deposit amount in token wei + its USD-cents equivalent for both
+  // entry modes. USD entry converts dollars → wei (WETH needs the live oracle;
+  // stable assets map 1:1). WETH entry takes the typed token amount directly, so
+  // it still works when the price feed is stale — the oracle is then only needed
+  // for the informational USD estimate. `conversionUnavailable` is the
+  // USD-entry-into-WETH-without-a-feed dead end; it never blocks WETH entry.
+  const { tokenAmountWei, usdCents, conversionUnavailable } = useMemo(() => {
+    if (!selected) return { tokenAmountWei: 0n, usdCents: 0n, conversionUnavailable: false };
+    if (denomination === "weth") {
+      const wei = parseTokenInputToWei(wethInput, selected.decimals);
+      const cents =
+        ethUsd.hasFeed && ethUsd.priceAnswer > 0n
+          ? weiToUsdCents(wei, ethUsd.priceAnswer, selected.decimals)
+          : 0n;
+      return { tokenAmountWei: wei, usdCents: cents, conversionUnavailable: false };
+    }
     const cents = parseUsdToCents(usdInput);
     if (cents === null || cents <= 0n) {
-      return { tokenAmountWei: 0n, conversionUnavailable: false };
+      return { tokenAmountWei: 0n, usdCents: 0n, conversionUnavailable: false };
     }
     if (isWethSelected) {
       if (!ethUsd.hasFeed || ethUsd.priceAnswer <= 0n) {
-        return { tokenAmountWei: 0n, conversionUnavailable: true };
+        return { tokenAmountWei: 0n, usdCents: cents, conversionUnavailable: true };
       }
       return {
         tokenAmountWei: usdCentsToWei(cents, ethUsd.priceAnswer, selected.decimals),
+        usdCents: cents,
         conversionUnavailable: false,
       };
     }
     // Stable: $1 = 1 token. cents * 10^(decimals-2).
     return {
       tokenAmountWei: cents * 10n ** BigInt(selected.decimals - 2),
+      usdCents: cents,
       conversionUnavailable: false,
     };
-  }, [usdInput, selected, isWethSelected, ethUsd.hasFeed, ethUsd.priceAnswer]);
+  }, [
+    denomination,
+    usdInput,
+    wethInput,
+    selected,
+    isWethSelected,
+    ethUsd.hasFeed,
+    ethUsd.priceAnswer,
+  ]);
 
   const belowMin =
     isDonate && selected?.minDeposit && tokenAmountWei > 0n && tokenAmountWei < selected.minDeposit;
+
+  // Active entry buffer + its setter, chosen by the effective denomination.
+  const amountInput = denomination === "weth" ? wethInput : usdInput;
+  const handleAmountChange = useCallback(
+    (next: string) => {
+      if (denomination === "weth") setWethInput(next);
+      else setUsdInput(next);
+    },
+    [denomination]
+  );
 
   useEffect(() => {
     activeMutationErrorRef.current = activeMutationError;
     resetActiveMutationRef.current = resetActiveMutation;
   }, [activeMutationError, resetActiveMutation]);
 
-  // Clear an existing error only when the user changes the amount or token.
-  // `activeMutation` is a wrapper object and can change identity between
+  // Clear an existing error only when the user changes the amount, unit, or
+  // token. `activeMutation` is a wrapper object and can change identity between
   // renders; depending on it here clears fresh inline errors before users can
   // read why a transaction did not reach their wallet.
   useEffect(() => {
     if (activeMutationErrorRef.current) resetActiveMutationRef.current();
-  }, [usdInput, selectedAddress]);
+  }, [usdInput, wethInput, denomination, selectedAddress]);
 
   const txErrorView = useMemo(() => classifyTxError(activeMutation.error), [activeMutation.error]);
 
@@ -257,6 +330,8 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
   const handleDonateAgain = useCallback(() => {
     setStatus("idle");
     setUsdInput("");
+    setWethInput("");
+    setDenominationMode("usd");
     activeMutation.reset();
   }, [activeMutation]);
 
@@ -278,6 +353,15 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
         id: "public.fund.card.endowPath",
         defaultMessage: "Garden Vault endowment",
       });
+
+  // Success summary mirrors the unit the supporter funded in: a dollar figure in
+  // USD mode, the token amount in WETH mode.
+  const successAmountLabel =
+    denomination === "weth"
+      ? `${formatTokenAmount(tokenAmountWei, selected?.decimals ?? 18, 6)} ${selected?.symbol ?? ""}`.trim()
+      : usdCents > 0n
+        ? formatUsdCents(usdCents)
+        : "";
 
   return (
     <div
@@ -325,7 +409,7 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
           <LoadingBody />
         ) : status === "success" ? (
           <SuccessBody
-            usdInput={usdInput}
+            amountLabel={successAmountLabel}
             gardenName={garden.name}
             onDonateAgain={handleDonateAgain}
             onClose={onClose}
@@ -336,14 +420,18 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
         ) : (
           <IdleBody
             isDonate={isDonate}
-            usdInput={usdInput}
-            onUsdChange={setUsdInput}
+            denomination={denomination}
+            onDenominationChange={setDenominationMode}
+            showDenominationToggle={isWethSelected}
+            amountInput={amountInput}
+            onAmountChange={handleAmountChange}
             options={options}
             selected={selected}
             selectedAddress={selectedAddress}
             onSelectAddress={setSelectedAddress}
             primaryAddress={primaryAddress}
             tokenAmountWei={tokenAmountWei}
+            usdCents={usdCents}
             conversionUnavailable={conversionUnavailable}
             belowMin={Boolean(belowMin)}
             ethUsd={ethUsd}
@@ -409,21 +497,19 @@ export function UnavailableBody({ isDonate }: { isDonate: boolean }) {
 }
 
 export function SuccessBody({
-  usdInput,
+  amountLabel,
   gardenName,
   onDonateAgain,
   onClose,
   isDonate,
 }: {
-  usdInput: string;
+  amountLabel: string;
   gardenName: string;
   onDonateAgain: () => void;
   onClose: () => void;
   isDonate: boolean;
 }) {
   const { formatMessage } = useIntl();
-  const cents = parseUsdToCents(usdInput) ?? 0n;
-  const usdLabel = cents > 0n ? formatUsdCents(cents) : "";
   return (
     <div className="flex flex-col items-center gap-5 py-4 text-center">
       <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-action/15 text-primary-action">
@@ -436,14 +522,14 @@ export function SuccessBody({
                 id: "public.fund.card.successDonate",
                 defaultMessage: "Donated {amount} to {garden}",
               },
-              { amount: usdLabel, garden: gardenName }
+              { amount: amountLabel, garden: gardenName }
             )
           : formatMessage(
               {
                 id: "public.fund.card.successEndow",
                 defaultMessage: "Endowed {amount} to {garden}",
               },
-              { amount: usdLabel, garden: gardenName }
+              { amount: amountLabel, garden: gardenName }
             )}
       </p>
       <div className="mt-2 flex w-full flex-col gap-2 sm:flex-row sm:justify-center">
@@ -468,14 +554,18 @@ export function SuccessBody({
 
 interface IdleBodyProps {
   isDonate: boolean;
-  usdInput: string;
-  onUsdChange: (next: string) => void;
+  denomination: Denomination;
+  onDenominationChange: (next: Denomination) => void;
+  showDenominationToggle: boolean;
+  amountInput: string;
+  onAmountChange: (next: string) => void;
   options: FundingOption[];
   selected: FundingOption | undefined;
   selectedAddress: string;
   onSelectAddress: (next: string) => void;
   primaryAddress: string | undefined;
   tokenAmountWei: bigint;
+  usdCents: bigint;
   conversionUnavailable: boolean;
   belowMin: boolean;
   ethUsd: ReturnType<typeof useEthUsdPrice>;
@@ -487,14 +577,18 @@ interface IdleBodyProps {
 function IdleBody(props: IdleBodyProps) {
   const {
     isDonate,
-    usdInput,
-    onUsdChange,
+    denomination,
+    onDenominationChange,
+    showDenominationToggle,
+    amountInput,
+    onAmountChange,
     options,
     selected,
     selectedAddress,
     onSelectAddress,
     primaryAddress,
     tokenAmountWei,
+    usdCents,
     conversionUnavailable,
     belowMin,
     ethUsd,
@@ -505,6 +599,7 @@ function IdleBody(props: IdleBodyProps) {
   const { formatMessage } = useIntl();
   const { open: openWalletModal } = useAppKit();
   const isWeth = selected?.symbol === WETH_SYMBOL;
+  const isWethDenomination = denomination === "weth";
 
   const submitLabel = useMemo(() => {
     if (isSubmitting) {
@@ -519,8 +614,10 @@ function IdleBody(props: IdleBodyProps) {
         defaultMessage: "Connect Wallet",
       });
     }
-    const cents = parseUsdToCents(usdInput);
-    if (!cents || cents <= 0n) {
+    // "Entered an amount" is unit-specific: WETH entry trusts the parsed wei
+    // (oracle-independent), USD entry trusts the parsed cents.
+    const hasAmount = isWethDenomination ? tokenAmountWei > 0n : usdCents > 0n;
+    if (!hasAmount) {
       return formatMessage({
         id: "public.fund.card.enterAmount",
         defaultMessage: "Enter an amount",
@@ -544,25 +641,30 @@ function IdleBody(props: IdleBodyProps) {
         }
       );
     }
+    const amountLabel = isWethDenomination
+      ? formatTokenAmount(tokenAmountWei, selected?.decimals ?? 18, 6)
+      : formatUsdCents(usdCents);
     return isDonate
       ? formatMessage(
           {
             id: "public.fund.card.donateCta",
             defaultMessage: "Donate {amount} in {asset}",
           },
-          { amount: formatUsdCents(cents), asset: selected?.symbol ?? "" }
+          { amount: amountLabel, asset: selected?.symbol ?? "" }
         )
       : formatMessage(
           {
             id: "public.fund.card.endowCta",
             defaultMessage: "Endow {amount} in {asset}",
           },
-          { amount: formatUsdCents(cents), asset: selected?.symbol ?? "" }
+          { amount: amountLabel, asset: selected?.symbol ?? "" }
         );
   }, [
     isSubmitting,
     primaryAddress,
-    usdInput,
+    isWethDenomination,
+    tokenAmountWei,
+    usdCents,
     conversionUnavailable,
     belowMin,
     selected,
@@ -577,12 +679,29 @@ function IdleBody(props: IdleBodyProps) {
   return (
     <div className="flex flex-col gap-5">
       <AmountInput
-        usdInput={usdInput}
-        onChange={onUsdChange}
+        amountInput={amountInput}
+        onChange={onAmountChange}
         disabled={isSubmitting}
+        denomination={denomination}
         symbol={selected?.symbol ?? ""}
+        showDenominationToggle={showDenominationToggle}
+        onDenominationChange={onDenominationChange}
+        usdSubtitle={
+          isWethDenomination && tokenAmountWei > 0n && ethUsd.hasFeed && ethUsd.priceAnswer > 0n
+            ? formatMessage(
+                {
+                  id: "public.fund.card.usdEstimate",
+                  defaultMessage: "≈ {amount} at {price}/ETH",
+                },
+                {
+                  amount: formatUsdCents(usdCents),
+                  price: formatUsdPrice(ethUsd.priceAnswer),
+                }
+              )
+            : undefined
+        }
         wethSubtitle={
-          isWeth && tokenAmountWei > 0n
+          !isWethDenomination && isWeth && tokenAmountWei > 0n
             ? formatMessage(
                 {
                   id: "public.fund.card.wethEstimate",
@@ -608,7 +727,7 @@ function IdleBody(props: IdleBodyProps) {
               )
             : undefined
         }
-        wethUnavailable={isWeth && conversionUnavailable}
+        wethUnavailable={!isWethDenomination && isWeth && conversionUnavailable}
       />
 
       {options.length > 1 ? (
@@ -659,20 +778,88 @@ function IdleBody(props: IdleBodyProps) {
   );
 }
 
+interface DenominationToggleProps {
+  denomination: Denomination;
+  /** Token symbol shown as the non-USD option label (e.g. "WETH"). */
+  tokenSymbol: string;
+  onChange: (next: Denomination) => void;
+  disabled: boolean;
+}
+
+/**
+ * Compact USD ⇄ token denomination switch for the amount field. Shown only when
+ * the selected asset is WETH, where the dollar value and the token amount
+ * diverge (PRD-519). Mirrors TokenPicker's aria-pressed button treatment so it
+ * reads as a native segmented control; the visually-hidden legend names the
+ * group for assistive tech.
+ */
+export function DenominationToggle({
+  denomination,
+  tokenSymbol,
+  onChange,
+  disabled,
+}: DenominationToggleProps) {
+  const { formatMessage } = useIntl();
+  const choices: { value: Denomination; label: string }[] = [
+    { value: "usd", label: "USD" },
+    { value: "weth", label: tokenSymbol },
+  ];
+  return (
+    <fieldset className="flex items-center gap-1">
+      <legend className="sr-only">
+        {formatMessage({
+          id: "public.fund.card.denominationLegend",
+          defaultMessage: "Enter amount in",
+        })}
+      </legend>
+      {choices.map((choice) => {
+        const isSelected = denomination === choice.value;
+        return (
+          <button
+            key={choice.value}
+            type="button"
+            onClick={() => onChange(choice.value)}
+            disabled={disabled}
+            aria-pressed={isSelected}
+            className={`border px-2.5 py-1 font-mono text-[11px] uppercase tracking-[0.1em] transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+              isSelected
+                ? "border-primary-action bg-editorial-warm text-text-strong-950"
+                : "border-stroke-soft-200 bg-bg-white-0 text-text-soft-400 hover:bg-editorial-warm/40"
+            }`}
+          >
+            {choice.label}
+          </button>
+        );
+      })}
+    </fieldset>
+  );
+}
+
 interface AmountInputProps {
-  usdInput: string;
+  amountInput: string;
   onChange: (next: string) => void;
   disabled: boolean;
   symbol: string;
+  denomination?: Denomination;
+  showDenominationToggle?: boolean;
+  onDenominationChange?: (next: Denomination) => void;
+  /** WETH-mode estimate ("≈ $20.00 at $3,000.00/ETH"). */
+  usdSubtitle?: string;
+  /** USD-mode estimate ("≈ 0.0066 WETH at $3,000.00/ETH"). */
   wethSubtitle?: string;
   wethStaleSubtitle?: string;
   wethUnavailable?: boolean;
 }
 
 export function AmountInput({
-  usdInput,
+  amountInput,
   onChange,
   disabled,
+  symbol,
+  denomination = "usd",
+  showDenominationToggle = false,
+  onDenominationChange,
+  usdSubtitle,
   wethSubtitle,
   wethStaleSubtitle,
   wethUnavailable,
@@ -684,30 +871,52 @@ export function AmountInput({
     // (eslint-plugin-jsx-a11y/no-autofocus) by focusing imperatively here.
     inputRef.current?.focus();
   }, []);
+  const isWethDenomination = denomination === "weth";
   return (
     <div className="flex flex-col gap-1.5">
-      <label
-        htmlFor="public-fund-amount"
-        className="font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400"
-      >
-        {formatMessage({ id: "public.fund.card.amountLabel", defaultMessage: "Amount" })}
-      </label>
+      <div className="flex items-center justify-between gap-2">
+        <label
+          htmlFor="public-fund-amount"
+          className="font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400"
+        >
+          {formatMessage({ id: "public.fund.card.amountLabel", defaultMessage: "Amount" })}
+        </label>
+        {showDenominationToggle && onDenominationChange ? (
+          <DenominationToggle
+            denomination={denomination}
+            tokenSymbol={symbol}
+            onChange={onDenominationChange}
+            disabled={disabled}
+          />
+        ) : null}
+      </div>
       <div className="flex items-center gap-2 border border-stroke-soft-200 bg-bg-white-0 px-4 py-3 transition-colors focus-within:border-primary-action">
-        <span className="font-serif text-2xl text-text-soft-400">$</span>
+        {isWethDenomination ? (
+          <span className="font-mono text-sm uppercase tracking-[0.08em] text-text-soft-400">
+            {symbol}
+          </span>
+        ) : (
+          <span className="font-serif text-2xl text-text-soft-400">$</span>
+        )}
         <input
           ref={inputRef}
           id="public-fund-amount"
           type="text"
           inputMode="decimal"
           autoComplete="off"
-          value={usdInput}
+          value={amountInput}
           onChange={(e) => onChange(e.target.value)}
-          placeholder="0.00"
+          placeholder={isWethDenomination ? "0.0" : "0.00"}
           disabled={disabled}
           className="flex-1 bg-transparent font-serif text-2xl text-text-strong-950 outline-none placeholder:text-text-soft-400 disabled:opacity-60"
         />
       </div>
       <div className="flex min-h-[1rem] flex-col gap-1">
+        {usdSubtitle ? (
+          <p className="text-xs text-text-sub-600" data-testid="usd-estimate">
+            {usdSubtitle}
+          </p>
+        ) : null}
         {wethSubtitle ? (
           <p className="text-xs text-text-sub-600" data-testid="weth-estimate">
             {wethSubtitle}

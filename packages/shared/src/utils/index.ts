@@ -255,6 +255,7 @@ export {
   PRICE_FEED_DECIMALS,
   PRICE_FEED_STALE_THRESHOLD_S,
   usdCentsToWei,
+  weiToUsdCents,
 } from "./blockchain/price-feeds";
 // ============================================================================
 // COMPRESSION (Native Compression Streams API)

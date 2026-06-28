@@ -16,7 +16,7 @@ source_of_truth:
 
 Scope: installed-PWA runtime files in `packages/client/src`. Public browser routes, stories, and tests are excluded so the freeze audit stays focused on the protected app surface.
 
-Summary: 270 token references (accent: 63, action: 129, state: 69, contrast-exception: 9, contrast-risk: 0).
+Summary: 271 token references (accent: 63, action: 130, state: 69, contrast-exception: 9, contrast-risk: 0).
 
 Unapproved bright-green text-bearing combinations: 0.
 
@@ -130,10 +130,11 @@ Approved contrast exceptions:
 | `packages/client/src/components/Public/PublicEvidenceCard.tsx:266` | `text-primary-action` | action | <code>className="font-serif text-xl font-normal leading-[1.15] tracking-[-0.012em] text-text-strong-950 transition-[color,transform] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)] group-hover:text-primary-action motion-safe:group-hover:-translate-y-px"</code> |
 | `packages/client/src/components/Public/PublicFooter.tsx:124` | `ring-primary-action` | action | <code>: "text-text-sub-600 hover:text-primary-action-hover focus-visible:ring-primary-action focus-visible:ring-offset-bg-weak-50"</code> |
 | `packages/client/src/components/Public/PublicFooter.tsx:124` | `text-primary-action-hover` | action | <code>: "text-text-sub-600 hover:text-primary-action-hover focus-visible:ring-primary-action focus-visible:ring-offset-bg-weak-50"</code> |
-| `packages/client/src/components/Public/PublicFundingCard.tsx:429` | `bg-primary-action` | action | <code>&lt;div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-action/15 text-primary-action"&gt;</code> |
-| `packages/client/src/components/Public/PublicFundingCard.tsx:429` | `text-primary-action` | action | <code>&lt;div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-action/15 text-primary-action"&gt;</code> |
-| `packages/client/src/components/Public/PublicFundingCard.tsx:695` | `border-primary-action` | action | <code>&lt;div className="flex items-center gap-2 border border-stroke-soft-200 bg-bg-white-0 px-4 py-3 transition-colors focus-within:border-primary-action"&gt;</code> |
-| `packages/client/src/components/Public/PublicFundingCard.tsx:773` | `border-primary-action` | action | <code>? "border-primary-action bg-editorial-warm"</code> |
+| `packages/client/src/components/Public/PublicFundingCard.tsx:515` | `bg-primary-action` | action | <code>&lt;div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-action/15 text-primary-action"&gt;</code> |
+| `packages/client/src/components/Public/PublicFundingCard.tsx:515` | `text-primary-action` | action | <code>&lt;div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-action/15 text-primary-action"&gt;</code> |
+| `packages/client/src/components/Public/PublicFundingCard.tsx:826` | `border-primary-action` | action | <code>? "border-primary-action bg-editorial-warm text-text-strong-950"</code> |
+| `packages/client/src/components/Public/PublicFundingCard.tsx:893` | `border-primary-action` | action | <code>&lt;div className="flex items-center gap-2 border border-stroke-soft-200 bg-bg-white-0 px-4 py-3 transition-colors focus-within:border-primary-action"&gt;</code> |
+| `packages/client/src/components/Public/PublicFundingCard.tsx:982` | `border-primary-action` | action | <code>? "border-primary-action bg-editorial-warm"</code> |
 | `packages/client/src/components/Public/PublicFundingReceipt.tsx:116` | `bg-primary-action` | action | <code>className="inline-flex w-fit rounded-full bg-primary-action px-5 py-2.5 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover"</code> |
 | `packages/client/src/components/Public/PublicFundingReceipt.tsx:116` | `bg-primary-action-hover` | action | <code>className="inline-flex w-fit rounded-full bg-primary-action px-5 py-2.5 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover"</code> |
 | `packages/client/src/components/Public/PublicFundingReceipt.tsx:116` | `text-primary-action-foreground` | action | <code>className="inline-flex w-fit rounded-full bg-primary-action px-5 py-2.5 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover"</code> |

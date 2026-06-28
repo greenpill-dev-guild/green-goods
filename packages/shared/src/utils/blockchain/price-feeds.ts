@@ -63,6 +63,26 @@ export function usdCentsToWei(
 }
 
 /**
+ * Convert native-token wei to USD cents using a Chainlink price answer — the
+ * exact inverse of {@link usdCentsToWei}. Powers the live USD estimate shown
+ * when a supporter enters a WETH amount directly (PRD-519 endow denomination
+ * toggle), so the dollar value tracks the typed token amount.
+ *
+ * @param wei - Token amount in wei
+ * @param priceAnswer - Raw Chainlink answer (price * 10^PRICE_FEED_DECIMALS)
+ * @param tokenDecimals - Decimals of the source token (WETH = 18)
+ */
+export function weiToUsdCents(wei: bigint, priceAnswer: bigint, tokenDecimals: number): bigint {
+  if (priceAnswer <= 0n || wei <= 0n) return 0n;
+  // cents = (wei * priceAnswer * 100) / (10^tokenDecimals * 10^PRICE_FEED_DECIMALS)
+  // Mirror of usdCentsToWei: priceAnswer encodes price * 10^8, USD_CENTS_SCALE
+  // restores the cents factor the wei amount does not carry.
+  const numerator = wei * priceAnswer * USD_CENTS_SCALE;
+  const denominator = 10n ** BigInt(tokenDecimals) * 10n ** BigInt(PRICE_FEED_DECIMALS);
+  return numerator / denominator;
+}
+
+/**
  * Format a Chainlink USD price answer for display ("$3,712.45").
  *
  * @param priceAnswer - Raw Chainlink answer (price * 10^PRICE_FEED_DECIMALS)
