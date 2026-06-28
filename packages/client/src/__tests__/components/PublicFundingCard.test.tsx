@@ -15,6 +15,8 @@ const TEST_GARDEN = "0x1111111111111111111111111111111111111111" as Address;
 const TEST_DAI = "0xda10009cbd5d07dd0cecc66161fc93d7c9000da1" as Address;
 const TEST_COOKIE_JAR = "0x2222222222222222222222222222222222222222" as Address;
 const TEST_VAULT = "0x3333333333333333333333333333333333333333" as Address;
+const TEST_WETH = "0x82af49447d8a07e3bd95bd0d56f35241523fbab1" as Address;
+const TEST_VAULT_WETH = "0x4444444444444444444444444444444444444444" as Address;
 const TEST_OWNER = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as Address;
 
 const {
@@ -66,7 +68,8 @@ vi.mock("@green-goods/shared", async () => {
     formatTokenAmount: (value: bigint) => String(Number(value) / 1e18),
     formatUsdCents: (value: bigint) => `$${(Number(value) / 100).toFixed(2)}`,
     formatUsdPrice: () => "$3,000.00",
-    getVaultAssetSymbol: () => "DAI",
+    getVaultAssetSymbol: (address: string) =>
+      address?.toLowerCase() === TEST_WETH.toLowerCase() ? "WETH" : "DAI",
     isMeaningfulTxErrorMessage: (message?: string) => Boolean(message),
     parseUsdToCents: (value: string) => {
       const parsed = Number(value);
@@ -118,6 +121,11 @@ vi.mock("@green-goods/shared", async () => {
           chainId: 42161,
           vaultAddress: TEST_VAULT,
         },
+        {
+          asset: TEST_WETH,
+          chainId: 42161,
+          vaultAddress: TEST_VAULT_WETH,
+        },
       ],
     }),
     useUser: () => ({ primaryAddress: authState.primaryAddress }),
@@ -140,6 +148,11 @@ vi.mock("@green-goods/shared", async () => {
       };
     },
     usdCentsToWei: (cents: bigint) => cents * 10n ** 16n,
+    weiToUsdCents: (wei: bigint) => wei / 10n ** 16n,
+    normalizeDecimalInput: (value: string) => {
+      const trimmed = value.trim();
+      return /^\.\d+$/.test(trimmed) ? `0${trimmed}` : trimmed;
+    },
   };
 });
 
@@ -224,5 +237,30 @@ describe("PublicFundingCard", () => {
       expect(resetMutation).toHaveBeenCalledTimes(1);
       expect(screen.queryByRole("alert")).toBeNull();
     });
+  });
+
+  it("lets a WETH endow supporter toggle the amount between USD and WETH, preserving each entry (PRD-519)", async () => {
+    const user = userEvent.setup();
+    renderCard("endow");
+
+    // The DAI vault is the default selection — pick WETH to surface the toggle.
+    await user.click(await screen.findByRole("button", { name: /Wrapped Ether/ }));
+
+    // USD is the accessible default: a $5 entry reads back in dollars.
+    await user.type(screen.getByLabelText("Amount"), "5");
+    expect(screen.getByRole("button", { name: "Endow $5.00 in WETH" })).toBeInTheDocument();
+
+    // Toggle to WETH — the field clears to its own buffer until a token amount
+    // is entered, then the CTA + USD estimate reflect the typed WETH directly.
+    await user.click(screen.getByRole("button", { name: "WETH" }));
+    expect(screen.getByRole("button", { name: "Enter an amount" })).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText("Amount"), "0.05");
+    expect(screen.getByRole("button", { name: "Endow 0.05 in WETH" })).toBeInTheDocument();
+    expect(screen.getByTestId("usd-estimate")).toBeInTheDocument();
+
+    // Toggling back restores the preserved USD entry (no lossy conversion).
+    await user.click(screen.getByRole("button", { name: "USD" }));
+    expect(screen.getByRole("button", { name: "Endow $5.00 in WETH" })).toBeInTheDocument();
   });
 });
