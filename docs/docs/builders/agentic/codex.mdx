@@ -170,14 +170,12 @@ When running automated maintenance tasks via Codex (or any automated agent), con
 
 ## Skills Discovery
 
-Codex discovers skills from its standard locations (`$HOME/.agents/skills`, bundled, admin paths, and the repo-scoped `.agents/skills` tree when present). Green Goods keeps Claude and Codex on the same shared skill surface through a generated mirror:
+Codex discovers skills from its standard locations (`$HOME/.agents/skills`, bundled, admin paths, and the repo-scoped `.agents/skills` tree when present). In Green Goods, `.agents/skills` is a symlink to the canonical `.claude/skills`, so Claude Code and Codex share one skill tree — there is no generated mirror and nothing to sync:
 
 - Canonical source: `.claude/skills`
-- Codex-visible mirror: `.agents/skills`
-- Regenerate mirror: `bun run skills:sync`
-- Check mirror drift: `bun run check:skills`
+- Codex-visible path: `.agents/skills` → symlink → `.claude/skills`
 
-Do not hand-edit `.agents/skills`; changes there will be overwritten by the sync script. Do not replace `.agents/skills` with a symlink. A symlink would remove copy drift, but it also means accidental Codex skill imports or experiments under `.agents/skills` can mutate the canonical Claude tree directly.
+Edit skills in `.claude/skills`; Codex sees the same files through the symlink (it officially follows symlinked skill folders). Do not convert `.agents/skills` back into a real directory or a second copy — that reintroduces the copy drift this symlink removes.
 
 For design-system work, Codex should still follow the repo design source path explicitly: start with `AGENTS.md`, then read the root `DESIGN.md`, the affected surface `DESIGN.md`, `.agents/skills/design/ARCHITECTURE.md`, and the relevant Storybook or package builder doc before editing UI.
 

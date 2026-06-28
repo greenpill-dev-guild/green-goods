@@ -11,7 +11,6 @@ const staleGuidanceRoots = [
   "packages",
   "docs",
   ".claude/skills",
-  ".agents/skills",
   "scripts/README.md",
 ];
 const ignoredDirectories = new Set([

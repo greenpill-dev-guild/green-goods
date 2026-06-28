@@ -105,7 +105,6 @@ scripts/
 | `plan-hub.test.mjs` | `node --test scripts/harness/plan-hub.test.mjs` | Black-box fixture checks for plan-hub schema, taxonomy, summaries, and TDD proof gates |
 | `log-automation-run.mjs` | `.plans/_automation/*` prompts | Append plan-run telemetry under `.plans/_automation/runs/` |
 | `parse-docx-feedback.ts` | `doc-feedback` skill | Parse a Google Doc downloaded as `.docx` into markdown with body + comments + tracked changes |
-| `sync-agent-skills.mjs` | `bun run skills:sync`, `bun run check:skills` | Regenerate the Codex-visible `.agents/skills` mirror from canonical `.claude/skills` and fail on drift |
 
 ### `postinstall/`
 | Script | Caller | Purpose |
