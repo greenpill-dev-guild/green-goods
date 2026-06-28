@@ -46,8 +46,10 @@ export function ActionFlowStepper({ steps, currentStep, onStepClick }: ActionFlo
                   "border-primary-base bg-primary-base [color:rgb(var(--m3-on-primary))]",
                 // Current step mirrors the admin selectable-card "selected" tint
                 // (ActionChooserGrid): tinted fill, not just an outline, so "you
-                // are here" reads at a glance without a decorative halo.
-                isCurrent && "border-primary-base bg-primary-alpha-10 text-primary-darker",
+                // are here" reads at a glance without a decorative halo. The number
+                // stays primary-base (bright green) so the small glyph keeps contrast
+                // in dark mode, where primary-darker resolves near-black-green.
+                isCurrent && "border-primary-base bg-primary-alpha-10 text-primary-base",
                 !completed && !isCurrent && "border-stroke-soft text-text-soft"
               )}
             >
