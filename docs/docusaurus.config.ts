@@ -133,9 +133,9 @@ const config: Config = {
             ],
             to: '/builders/integrations/overview',
           },
+          {from: ['/developer/releasing'], to: '/builders/deployments/releasing'},
           {
             from: [
-              '/developer/releasing',
               '/developer/testing',
               '/developer/docs-contributing',
               '/developer/docs-deployment',
