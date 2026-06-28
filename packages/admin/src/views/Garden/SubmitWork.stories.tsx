@@ -205,7 +205,7 @@ const meta: Meta<typeof SubmitWorkPanel> = {
     docs: {
       description: {
         component:
-          "SubmitWork as a responsive full-screen dialog (desktop) / full-page route (mobile), plus inline panel states with deterministic admin garden/action fixtures.",
+          "SubmitWork hosted in the centered 2xl AdminDialog (a centered card on desktop, a bottom-sheet on mobile), plus inline panel states with deterministic admin garden/action fixtures.",
       },
     },
   },
@@ -288,7 +288,8 @@ export const ActionChooser: Story = {
   },
 };
 
-// Desktop full-screen dialog housing (portals to document body) — visual review.
+// Centered 2xl AdminDialog housing (portals to document body) — visual review of
+// the real flow inside its modal host: single header, scrolling body, pinned footer.
 export const DialogShell: Story = {
   render: () => <SubmitWorkRouteStory />,
   decorators: submitWorkDecorators({ seeds: submitWorkSeeds({ actions: CHOOSER_ACTIONS }) }),

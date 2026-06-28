@@ -217,9 +217,10 @@ function getMinRequiredImages(action: Action | null) {
   return action.mediaInfo.minImageCount ?? 1;
 }
 
-// "page" = mobile / full-page route (embedded in the canvas); "dialog" = desktop
-// full-screen AdminDialog. Both are route-backed at /hub/work/submit and render
-// the same workflow body through ActionFlowShell — only the outer shell differs.
+// "page" = standalone panel with no dialog chrome (tests, inline embedding);
+// "dialog" = hosted in the centered 2xl AdminDialog at /hub/work/submit (a centered
+// card on desktop, a bottom-sheet on mobile). Both render the same workflow body
+// through ActionFlowShell — only the outer shell + close-button reservation differ.
 type SubmitWorkLayout = "page" | "dialog";
 type MediaFeedback = { variant: "warning" | "error"; message: string };
 type SubmitWorkAuthSnapshot = Pick<AuthStateValue, "authMode" | "isAuthenticated"> & {
