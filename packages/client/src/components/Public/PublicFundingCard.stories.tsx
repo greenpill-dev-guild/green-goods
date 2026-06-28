@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { IntlProvider } from "react-intl";
 import {
   AmountInput,
+  DenominationToggle,
   InlineErrorBlock,
   LoadingBody,
   SuccessBody,
@@ -15,9 +16,11 @@ const messages: Record<string, string> = {
   "public.fund.dialog.close": "Close",
   "public.fund.card.title": "{intent} to",
   "public.fund.card.amountLabel": "Amount",
+  "public.fund.card.denominationLegend": "Enter amount in",
   "public.fund.card.payWithLabel": "Pay with",
   "public.fund.card.tokenSubtitle.dai": "Stablecoin",
   "public.fund.card.tokenSubtitle.weth": "Wrapped Ether",
+  "public.fund.card.usdEstimate": "≈ {amount} at {price}/ETH",
   "public.fund.card.wethEstimate": "≈ {amount} WETH at {price}/ETH",
   "public.fund.card.wethStale": "Price last updated {minutes} minutes ago",
   "public.fund.card.wethUnavailable":
@@ -86,7 +89,7 @@ export const SuccessDonate: StoryObj<typeof SuccessBody> = {
   render: () => (
     <Frame>
       <SuccessBody
-        usdInput="20"
+        amountLabel="$20.00"
         gardenName="Aiyeloja Family Garden"
         isDonate={true}
         onDonateAgain={() => {}}
@@ -99,11 +102,53 @@ export const SuccessEndow: StoryObj<typeof SuccessBody> = {
   render: () => (
     <Frame>
       <SuccessBody
-        usdInput="100"
+        amountLabel="$100.00"
         gardenName="Aiyeloja Family Garden"
         isDonate={false}
         onDonateAgain={() => {}}
         onClose={() => {}}
+      />
+    </Frame>
+  ),
+};
+export const SuccessEndowWeth: StoryObj<typeof SuccessBody> = {
+  render: () => (
+    <Frame>
+      <SuccessBody
+        amountLabel="0.05 WETH"
+        gardenName="Aiyeloja Family Garden"
+        isDonate={false}
+        onDonateAgain={() => {}}
+        onClose={() => {}}
+      />
+    </Frame>
+  ),
+};
+
+/* ────────────────────────────────────────────────────────────────────────── */
+/* DenominationToggle                                                           */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+export const DenominationToggleUsd: StoryObj<typeof DenominationToggle> = {
+  render: () => (
+    <Frame>
+      <DenominationToggle
+        denomination="usd"
+        tokenSymbol="WETH"
+        onChange={() => {}}
+        disabled={false}
+      />
+    </Frame>
+  ),
+};
+export const DenominationToggleWeth: StoryObj<typeof DenominationToggle> = {
+  render: () => (
+    <Frame>
+      <DenominationToggle
+        denomination="weth"
+        tokenSymbol="WETH"
+        onChange={() => {}}
+        disabled={false}
       />
     </Frame>
   ),
@@ -116,14 +161,14 @@ export const SuccessEndow: StoryObj<typeof SuccessBody> = {
 export const AmountInputEmpty: StoryObj<typeof AmountInput> = {
   render: () => (
     <Frame>
-      <AmountInput usdInput="" symbol="DAI" onChange={() => {}} disabled={false} />
+      <AmountInput amountInput="" symbol="DAI" onChange={() => {}} disabled={false} />
     </Frame>
   ),
 };
 export const AmountInputWithValue: StoryObj<typeof AmountInput> = {
   render: () => (
     <Frame>
-      <AmountInput usdInput="20.00" symbol="DAI" onChange={() => {}} disabled={false} />
+      <AmountInput amountInput="20.00" symbol="DAI" onChange={() => {}} disabled={false} />
     </Frame>
   ),
 };
@@ -131,11 +176,30 @@ export const AmountInputWethEstimate: StoryObj<typeof AmountInput> = {
   render: () => (
     <Frame>
       <AmountInput
-        usdInput="20.00"
+        amountInput="20.00"
         symbol="WETH"
+        denomination="usd"
+        showDenominationToggle
+        onDenominationChange={() => {}}
         onChange={() => {}}
         disabled={false}
         wethSubtitle="≈ 0.005388 WETH at $3,712.50/ETH"
+      />
+    </Frame>
+  ),
+};
+export const AmountInputWethDenomination: StoryObj<typeof AmountInput> = {
+  render: () => (
+    <Frame>
+      <AmountInput
+        amountInput="0.05"
+        symbol="WETH"
+        denomination="weth"
+        showDenominationToggle
+        onDenominationChange={() => {}}
+        onChange={() => {}}
+        disabled={false}
+        usdSubtitle="≈ $185.63 at $3,712.50/ETH"
       />
     </Frame>
   ),
@@ -144,8 +208,11 @@ export const AmountInputWethStale: StoryObj<typeof AmountInput> = {
   render: () => (
     <Frame>
       <AmountInput
-        usdInput="20.00"
+        amountInput="20.00"
         symbol="WETH"
+        denomination="usd"
+        showDenominationToggle
+        onDenominationChange={() => {}}
         onChange={() => {}}
         disabled={false}
         wethSubtitle="≈ 0.005388 WETH at $3,712.50/ETH"
@@ -158,8 +225,11 @@ export const AmountInputWethUnavailable: StoryObj<typeof AmountInput> = {
   render: () => (
     <Frame>
       <AmountInput
-        usdInput="20.00"
+        amountInput="20.00"
         symbol="WETH"
+        denomination="usd"
+        showDenominationToggle
+        onDenominationChange={() => {}}
         onChange={() => {}}
         disabled={false}
         wethUnavailable={true}
