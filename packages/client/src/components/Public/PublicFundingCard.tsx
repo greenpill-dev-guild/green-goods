@@ -36,15 +36,17 @@ type Denomination = "usd" | "weth";
 /**
  * Parse a user-typed token amount (WETH denomination) into wei. Mirrors the
  * tolerant input handling used across the public vault panels: normalize a bare
- * leading dot, accept only decimal digits, and fall back to 0n on anything
- * viem cannot parse so the CTA stays in its "enter an amount" state instead of
- * throwing.
+ * leading dot, tolerate an in-progress trailing dot ("1." while typing "1.5")
+ * so the CTA/estimate don't flicker back to the empty state between keystrokes,
+ * and fall back to 0n on anything viem cannot parse so the CTA stays in its
+ * "enter an amount" state instead of throwing.
  */
 function parseTokenInputToWei(input: string, decimals: number): bigint {
   const normalized = normalizeDecimalInput(input);
-  if (!/^\d+(?:\.\d+)?$/.test(normalized)) return 0n;
+  if (!/^\d+(?:\.\d*)?$/.test(normalized)) return 0n;
+  const canonical = normalized.endsWith(".") ? normalized.slice(0, -1) : normalized;
   try {
-    return parseUnits(normalized, decimals);
+    return canonical ? parseUnits(canonical, decimals) : 0n;
   } catch {
     return 0n;
   }
