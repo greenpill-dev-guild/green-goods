@@ -6,11 +6,21 @@ import {
   PWA_APP_SCOPE,
   PWA_DEV_SERVICE_WORKER_SCRIPT,
   PWA_MANIFEST_ID,
+  createPwaLaunchUrl,
   createPwaRoutingConfig,
 } from "../../config/pwa-routing";
 
 describe("PWA routing manifest config", () => {
-  it("builds the production launch URL from origin plus APP_ROUTES.home", () => {
+  it("builds launch URLs from the provided origin", () => {
+    expect(createPwaLaunchUrl("https://staging.greengoods.app")).toBe(
+      "https://staging.greengoods.app/home"
+    );
+    expect(createPwaLaunchUrl("https://www.greengoods.app")).toBe(
+      "https://www.greengoods.app/home"
+    );
+  });
+
+  it("keeps the production launch URL as the fallback export", () => {
     expect(PUBLIC_PWA_LAUNCH_URL).toBe(`${PUBLIC_PWA_ORIGIN}${APP_ROUTES.home}`);
     expect(PUBLIC_PWA_LAUNCH_URL).toBe("https://www.greengoods.app/home");
   });

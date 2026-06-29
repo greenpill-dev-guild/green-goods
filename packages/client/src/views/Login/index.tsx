@@ -158,13 +158,14 @@ export function Login() {
   } = useAuth();
 
   // Get platform/browser info for installation guidance
-  const { platform, isMobile, isInstalled, wasInstalled, deferredPrompt } = useApp();
+  const { platform, isMobile, isInstalled, isInstalling, wasInstalled, deferredPrompt } = useApp();
   const guidance = useInstallGuidance(
     platform,
     isInstalled,
     wasInstalled,
     deferredPrompt,
-    isMobile
+    isMobile,
+    isInstalling
   );
 
   const [loadingState, setLoadingState] = useState<LoadingState | null>(null);

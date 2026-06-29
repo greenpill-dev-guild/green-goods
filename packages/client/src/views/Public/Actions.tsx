@@ -446,12 +446,13 @@ export default function ActionsGallery() {
             })}
           </p>
           <PublicInstallAction>
-            {({ label, href, onClick, dataInstallAction }) => (
+            {({ label, href, onClick, disabled, dataInstallAction }) => (
               <a
                 href={href}
                 onClick={onClick}
+                aria-disabled={disabled || undefined}
                 data-install-action={dataInstallAction}
-                className="inline-flex w-fit cursor-pointer items-center gap-2 rounded-full bg-primary-action px-5 py-2.5 text-sm font-semibold text-primary-action-foreground hover:bg-primary-action-hover"
+                className={`inline-flex w-fit cursor-pointer items-center gap-2 rounded-full bg-primary-action px-5 py-2.5 text-sm font-semibold text-primary-action-foreground hover:bg-primary-action-hover ${disabled ? "cursor-not-allowed opacity-70" : ""}`}
               >
                 {label}
               </a>

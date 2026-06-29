@@ -19,12 +19,13 @@ export function PublicInstallCta({ variant = "section", className = "" }: Public
   if (variant === "compact") {
     return (
       <PublicInstallAction>
-        {({ label, href, onClick, dataInstallAction }) => (
+        {({ label, href, onClick, disabled, dataInstallAction }) => (
           <a
             href={href}
             onClick={onClick}
+            aria-disabled={disabled || undefined}
             data-install-action={dataInstallAction}
-            className={`cursor-pointer rounded-full bg-primary-action px-4 py-2 text-sm font-medium text-primary-action-foreground transition-colors hover:bg-primary-action-hover ${className}`}
+            className={`cursor-pointer rounded-full bg-primary-action px-4 py-2 text-sm font-medium text-primary-action-foreground transition-colors hover:bg-primary-action-hover ${disabled ? "cursor-not-allowed opacity-70" : ""} ${className}`}
           >
             {label}
           </a>
@@ -54,12 +55,13 @@ export function PublicInstallCta({ variant = "section", className = "" }: Public
         </p>
         <div className="mt-8 flex justify-center">
           <PublicInstallAction>
-            {({ label, href, onClick, dataInstallAction }) => (
+            {({ label, href, onClick, disabled, dataInstallAction }) => (
               <a
                 href={href}
                 onClick={onClick}
+                aria-disabled={disabled || undefined}
                 data-install-action={dataInstallAction}
-                className="cursor-pointer rounded-full bg-primary-action px-6 py-3 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover"
+                className={`cursor-pointer rounded-full bg-primary-action px-6 py-3 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover ${disabled ? "cursor-not-allowed opacity-70" : ""}`}
               >
                 {label}
               </a>

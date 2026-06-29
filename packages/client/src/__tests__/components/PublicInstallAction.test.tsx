@@ -40,7 +40,10 @@ vi.mock("@green-goods/shared", () => ({
   getOpenInBrowserUrl: mockGetOpenInBrowserUrl,
 }));
 
-import { PublicInstallAction } from "../../components/Public/PublicInstallAction";
+import {
+  PublicInstallAction,
+  type PublicInstallActionRenderProps,
+} from "../../components/Public/PublicInstallAction";
 
 const CHROME_INTENT =
   "intent://www.greengoods.app/#Intent;scheme=https;package=com.android.chrome;end";
@@ -50,14 +53,32 @@ function renderAction() {
     createElement(
       IntlProvider,
       { locale: "en", messages: {}, onError: () => {} },
-      createElement(PublicInstallAction, null, ({ label, onClick }) =>
-        createElement("button", { type: "button", onClick, "data-testid": "cta" }, label)
-      )
+      createElement(PublicInstallAction, {
+        children: ({
+          label,
+          href,
+          onClick,
+          disabled,
+          dataInstallAction,
+        }: PublicInstallActionRenderProps) =>
+          createElement(
+            "button",
+            {
+              type: "button",
+              disabled,
+              onClick,
+              "data-href": href,
+              "data-install-action": dataInstallAction,
+              "data-testid": "cta",
+            },
+            label
+          ),
+      })
     )
   );
 }
 
-describe("PublicInstallAction — Brave install (PRD-499)", () => {
+describe("PublicInstallAction", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUsePublicInstallHandler.mockReturnValue(mockInstallHandler);
@@ -114,5 +135,66 @@ describe("PublicInstallAction — Brave install (PRD-499)", () => {
 
     expect(mockInstallHandler).toHaveBeenCalledTimes(1);
     expect(screen.queryByText("Install Green Goods in Chrome")).not.toBeInTheDocument();
+  });
+
+  it("renders a disabled installing state while Chrome finishes installation", () => {
+    mockUseIsBraveBrowser.mockReturnValue(false);
+    mockUseApp.mockReturnValue({
+      isMobile: true,
+      platform: "android",
+      isInstalled: false,
+      isInstalling: true,
+      wasInstalled: false,
+      deferredPrompt: null,
+      promptInstall: vi.fn(),
+    });
+    mockUseInstallGuidance.mockReturnValue({
+      scenario: "installing",
+      primaryAction: { type: "installing", label: "Installing..." },
+      secondaryAction: null,
+      browserInfo: { browser: "chrome" },
+      showBrowserOption: false,
+      manualInstructions: null,
+      browserSwitchReason: null,
+      openInBrowserUrl: null,
+    });
+
+    renderAction();
+
+    const cta = screen.getByTestId("cta");
+    expect(cta).toBeDisabled();
+    expect(cta).toHaveTextContent("Installing...");
+    expect(cta).toHaveAttribute("data-install-action", "installing");
+  });
+
+  it("uses the current origin for Open App links", () => {
+    mockUseIsBraveBrowser.mockReturnValue(false);
+    mockUseApp.mockReturnValue({
+      isMobile: true,
+      platform: "android",
+      isInstalled: true,
+      isInstalling: false,
+      wasInstalled: true,
+      deferredPrompt: null,
+      promptInstall: vi.fn(),
+    });
+    mockUseInstallGuidance.mockReturnValue({
+      scenario: "already-installed",
+      primaryAction: { type: "open-app", label: "Open App" },
+      secondaryAction: null,
+      browserInfo: { browser: "chrome" },
+      showBrowserOption: false,
+      manualInstructions: null,
+      browserSwitchReason: null,
+      openInBrowserUrl: null,
+    });
+
+    renderAction();
+
+    expect(screen.getByTestId("cta")).toHaveAttribute(
+      "data-href",
+      new URL("/home", window.location.origin).toString()
+    );
+    expect(screen.getByTestId("cta")).toHaveAttribute("data-install-action", "open-app");
   });
 });

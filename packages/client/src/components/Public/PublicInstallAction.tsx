@@ -9,13 +9,14 @@ import {
 } from "@green-goods/shared";
 import { type MouseEventHandler, type ReactNode, useCallback, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { APP_ROUTES, PUBLIC_PWA_LAUNCH_URL } from "@/config/pwa-routing";
+import { PUBLIC_PWA_ORIGIN, createPwaLaunchUrl } from "@/config/pwa-routing";
 import { PublicInstallDialog, type PublicInstallDialogMode } from "./PublicInstallDialog";
 
 export interface PublicInstallActionRenderProps {
   label: string;
   href: string;
   isOpenApp: boolean;
+  disabled: boolean;
   dataInstallAction: InstallAction["type"];
   onClick: MouseEventHandler<HTMLElement>;
 }
@@ -30,17 +31,29 @@ export function PublicInstallAction({ children, forceOpenApp = false }: PublicIn
   const { formatMessage } = useIntl();
   const tunnelUrl = useTunnelUrl();
   const launchUrl = useMemo(() => {
-    if (import.meta.env.MODE !== "development") return PUBLIC_PWA_LAUNCH_URL;
-    const origin = tunnelUrl ?? window.location.origin;
-    return new URL(APP_ROUTES.home, origin).toString();
+    if (typeof window === "undefined") return createPwaLaunchUrl(PUBLIC_PWA_ORIGIN);
+    const origin =
+      import.meta.env.MODE === "development"
+        ? (tunnelUrl ?? window.location.origin)
+        : window.location.origin;
+    return createPwaLaunchUrl(origin);
   }, [tunnelUrl]);
-  const { isMobile, platform, isInstalled, wasInstalled, deferredPrompt, promptInstall } = useApp();
+  const {
+    isMobile,
+    platform,
+    isInstalled,
+    isInstalling,
+    wasInstalled,
+    deferredPrompt,
+    promptInstall,
+  } = useApp();
   const guidance = useInstallGuidance(
     platform,
     isInstalled,
     wasInstalled,
     deferredPrompt,
-    isMobile
+    isMobile,
+    isInstalling
   );
   const dispatchInstallAction = usePublicInstallHandler(guidance, promptInstall);
   const isBrave = useIsBraveBrowser();
@@ -55,17 +68,29 @@ export function PublicInstallAction({ children, forceOpenApp = false }: PublicIn
   // Gate "open-app" affordance on mobile: desktop users can't usefully launch
   // the installed PWA from a desktop browser even if `getInstalledRelatedApps`
   // reports it as installed. Always show "Install App" + QR dialog on desktop.
+  const isInstallPending = guidance.primaryAction.type === "installing";
   const isOpenApp =
-    forceOpenApp || (isMobile && (isInstalled || guidance.primaryAction.type === "open-app"));
-  const dataInstallAction = isOpenApp ? "open-app" : guidance.primaryAction.type;
+    !isInstallPending &&
+    (forceOpenApp || (isMobile && (isInstalled || guidance.primaryAction.type === "open-app")));
+  const dataInstallAction = isInstallPending
+    ? "installing"
+    : isOpenApp
+      ? "open-app"
+      : guidance.primaryAction.type;
   const label = formatMessage({
-    id: isOpenApp ? "public.nav.openApp" : "public.nav.installApp",
-    defaultMessage: isOpenApp ? "Open App" : "Install App",
+    id: isInstallPending
+      ? "public.nav.installingApp"
+      : isOpenApp
+        ? "public.nav.openApp"
+        : "public.nav.installApp",
+    defaultMessage: isInstallPending ? "Installing..." : isOpenApp ? "Open App" : "Install App",
   });
 
   const handleClick = useCallback<MouseEventHandler<HTMLElement>>(
     async (event) => {
       event.preventDefault();
+
+      if (isInstallPending) return;
 
       if (isOpenApp) {
         // Brave does not mint a WebAPK on Android, so navigating to the scoped URL
@@ -104,6 +129,7 @@ export function PublicInstallAction({ children, forceOpenApp = false }: PublicIn
       dispatchInstallAction,
       guidance.primaryAction.type,
       isBrave,
+      isInstallPending,
       isMobile,
       isOpenApp,
       launchUrl,
@@ -127,6 +153,7 @@ export function PublicInstallAction({ children, forceOpenApp = false }: PublicIn
         label,
         href: isOpenApp ? launchUrl : "#install",
         isOpenApp,
+        disabled: isInstallPending,
         dataInstallAction,
         onClick: handleClick,
       })}

@@ -168,12 +168,13 @@ function PersonaRow({ persona, expanded, onToggle, isLast }: PersonaRowProps) {
             <div>
               {persona.cta.type === "install" ? (
                 <PublicInstallAction>
-                  {({ href, onClick, dataInstallAction }) => (
+                  {({ href, onClick, disabled, dataInstallAction }) => (
                     <a
                       href={href}
                       onClick={onClick}
+                      aria-disabled={disabled || undefined}
                       data-install-action={dataInstallAction}
-                      className="inline-flex cursor-pointer items-center gap-2 border-b border-primary-action/35 pb-0.5 text-sm font-medium text-primary-action transition-colors hover:border-primary-action-hover hover:text-primary-action-hover"
+                      className={`inline-flex cursor-pointer items-center gap-2 border-b border-primary-action/35 pb-0.5 text-sm font-medium text-primary-action transition-colors hover:border-primary-action-hover hover:text-primary-action-hover ${disabled ? "cursor-not-allowed opacity-70" : ""}`}
                     >
                       {formatMessage({
                         id: persona.ctaId,

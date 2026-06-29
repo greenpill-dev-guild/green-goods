@@ -246,6 +246,10 @@ contract ArbitrumLiveGardenSignalPoolRepairForkTest is Test {
             return false;
         }
 
+        if (block.chainid == 42_161) {
+            return true;
+        }
+
         uint256 forkBlock = _getArbitrumForkBlock();
         if (forkBlock == 0) {
             vm.createSelectFork(rpcUrl);

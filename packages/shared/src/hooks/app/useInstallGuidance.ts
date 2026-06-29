@@ -67,6 +67,7 @@ export type InstallScenario =
   | "manual-install-available" // Right browser, show manual steps
   | "wrong-browser" // Need to switch browsers
   | "in-app-browser" // In WebView, must open in real browser
+  | "installing" // Native prompt accepted, browser is finishing installation
   | "already-installed" // PWA is already installed
   | "desktop" // Desktop browser, show mobile prompt
   | "unsupported"; // Platform doesn't support PWA
@@ -81,6 +82,7 @@ export interface InstallAction {
     | "open-in-browser" // Open URL in different browser
     | "copy-url" // Copy URL for manual paste
     | "continue-in-browser" // Skip install, use web
+    | "installing" // Installation is pending; no click action
     | "open-app"; // Already installed, open the app
   label: string;
   description?: string;
@@ -104,7 +106,8 @@ export function useInstallGuidance(
   isInstalled: boolean,
   wasInstalled: boolean,
   deferredPrompt: BeforeInstallPromptEvent | null,
-  isMobile: boolean
+  isMobile: boolean,
+  isInstalling = false
 ): InstallGuidance {
   return useMemo(() => {
     // Desktop scenario
@@ -116,6 +119,22 @@ export function useInstallGuidance(
           type: "continue-in-browser",
           label: "Open on Mobile",
           description: "Scan QR or visit on your phone",
+        },
+        secondaryAction: null,
+        showBrowserOption: false,
+        manualInstructions: null,
+        browserSwitchReason: null,
+        openInBrowserUrl: null,
+      };
+    }
+
+    if (isInstalling) {
+      return {
+        browserInfo: detectMobileBrowser(platform),
+        scenario: "installing",
+        primaryAction: {
+          type: "installing",
+          label: "Installing...",
         },
         secondaryAction: null,
         showBrowserOption: false,
@@ -274,7 +293,7 @@ export function useInstallGuidance(
       browserSwitchReason: null,
       openInBrowserUrl: null,
     };
-  }, [platform, isInstalled, wasInstalled, deferredPrompt, isMobile]);
+  }, [platform, isInstalled, wasInstalled, deferredPrompt, isMobile, isInstalling]);
 }
 
 /**

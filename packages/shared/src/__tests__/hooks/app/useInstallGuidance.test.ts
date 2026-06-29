@@ -85,6 +85,20 @@ describe("hooks/app/useInstallGuidance", () => {
   });
 
   describe("already installed scenario", () => {
+    it("returns installing while the native install is settling", () => {
+      mockDetect.mockReturnValue(chromeBrowser);
+
+      const { result } = renderHook(() =>
+        useInstallGuidance("android", false, false, null, true, true)
+      );
+
+      expect(result.current.scenario).toBe("installing");
+      expect(result.current.primaryAction.type).toBe("installing");
+      expect(result.current.primaryAction.label).toBe("Installing...");
+      expect(result.current.secondaryAction).toBeNull();
+      expect(result.current.showBrowserOption).toBe(false);
+    });
+
     it("returns already-installed when isInstalled is true", () => {
       mockDetect.mockReturnValue(safariBrowser);
 
@@ -222,11 +236,12 @@ describe("hooks/app/useInstallGuidance", () => {
         "manual-install-available",
         "wrong-browser",
         "in-app-browser",
+        "installing",
         "already-installed",
         "desktop",
         "unsupported",
       ];
-      expect(validScenarios).toHaveLength(7);
+      expect(validScenarios).toHaveLength(8);
     });
   });
 });

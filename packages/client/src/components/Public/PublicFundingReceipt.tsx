@@ -264,13 +264,14 @@ function ReceiptBody({
             </EditorialGhostLink>
           ) : (
             <PublicInstallAction forceOpenApp={receipt.appManagementCta === "open_app"}>
-              {({ label, href, onClick, dataInstallAction }) => (
+              {({ label, href, onClick, disabled, dataInstallAction }) => (
                 <a
                   href={href}
                   onClick={onClick}
+                  aria-disabled={disabled || undefined}
                   data-app-cta={receipt.appManagementCta}
                   data-install-action={dataInstallAction}
-                  className="cursor-pointer rounded-full bg-primary-action px-5 py-2.5 text-sm font-semibold text-primary-action-foreground hover:bg-primary-action-hover"
+                  className={`cursor-pointer rounded-full bg-primary-action px-5 py-2.5 text-sm font-semibold text-primary-action-foreground hover:bg-primary-action-hover ${disabled ? "cursor-not-allowed opacity-70" : ""}`}
                 >
                   {label}
                 </a>

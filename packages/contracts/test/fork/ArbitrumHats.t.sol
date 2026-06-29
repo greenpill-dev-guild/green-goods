@@ -103,6 +103,8 @@ contract ArbitrumHatsForkTest is Test {
     }
 
     function _selectArbitrumFork(string memory rpcUrl) internal returns (uint256 forkId) {
+        if (block.chainid == 42_161) return vm.activeFork();
+
         uint256 forkBlock = _getArbitrumForkBlock();
         if (forkBlock == 0) return vm.createSelectFork(rpcUrl);
         return vm.createSelectFork(rpcUrl, forkBlock);

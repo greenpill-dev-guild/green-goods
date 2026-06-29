@@ -129,7 +129,7 @@ export const SiteHeader = () => {
 
   return (
     <PublicInstallAction>
-      {({ label, href, onClick, dataInstallAction }) => (
+      {({ label, href, onClick, disabled, dataInstallAction }) => (
         <>
           <header
             ref={headerRef}
@@ -179,8 +179,9 @@ export const SiteHeader = () => {
                   <button
                     type="button"
                     onClick={onClick}
+                    disabled={disabled}
                     data-install-action={dataInstallAction}
-                    className="hidden cursor-pointer rounded-full bg-primary-action px-4 py-2 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 md:inline-flex"
+                    className="hidden cursor-pointer rounded-full bg-primary-action px-4 py-2 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70 md:inline-flex"
                   >
                     {label}
                   </button>
@@ -275,11 +276,15 @@ export const SiteHeader = () => {
                   <a
                     href={href}
                     data-install-action={dataInstallAction}
+                    aria-disabled={disabled || undefined}
                     onClick={(event) => {
-                      closeDrawer();
+                      if (!disabled) closeDrawer();
                       onClick(event);
                     }}
-                    className="block w-full cursor-pointer rounded-lg bg-primary-action px-4 py-3 text-center text-sm font-medium text-primary-action-foreground transition-colors hover:bg-primary-action-hover"
+                    className={cn(
+                      "block w-full cursor-pointer rounded-lg bg-primary-action px-4 py-3 text-center text-sm font-medium text-primary-action-foreground transition-colors hover:bg-primary-action-hover",
+                      disabled && "cursor-not-allowed opacity-70"
+                    )}
                   >
                     {label}
                   </a>

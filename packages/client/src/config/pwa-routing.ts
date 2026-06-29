@@ -23,7 +23,11 @@ export const LEGACY_APP_ROUTES = {
 
 export const PUBLIC_PWA_ORIGIN = "https://www.greengoods.app";
 
-export const PUBLIC_PWA_LAUNCH_URL = `${PUBLIC_PWA_ORIGIN}${APP_ROUTES.home}`;
+export function createPwaLaunchUrl(origin: string): string {
+  return new URL(APP_ROUTES.home, origin).toString();
+}
+
+export const PUBLIC_PWA_LAUNCH_URL = createPwaLaunchUrl(PUBLIC_PWA_ORIGIN);
 
 export interface PwaRoutingConfig {
   assetBasePath: "/" | "./";

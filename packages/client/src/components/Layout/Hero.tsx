@@ -34,7 +34,15 @@ interface HeroProps {
 export const Hero: FC<HeroProps> = () => {
   const intl = useIntl();
   const navigate = useNavigate();
-  const { isMobile, platform, deferredPrompt, promptInstall, isInstalled, wasInstalled } = useApp();
+  const {
+    isMobile,
+    platform,
+    deferredPrompt,
+    promptInstall,
+    isInstalled,
+    isInstalling,
+    wasInstalled,
+  } = useApp();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
   const [copyError, setCopyError] = useState(false);
@@ -51,7 +59,8 @@ export const Hero: FC<HeroProps> = () => {
     isInstalled,
     wasInstalled,
     deferredPrompt,
-    isMobile
+    isMobile,
+    isInstalling
   );
 
   // Auto-reset copy states after 2 seconds (auto-cleared on unmount)
@@ -85,6 +94,8 @@ export const Hero: FC<HeroProps> = () => {
     switch (guidance.primaryAction.type) {
       case "native-install":
         promptInstall();
+        break;
+      case "installing":
         break;
       case "show-manual-steps":
         setIsModalOpen(true);
@@ -200,9 +211,13 @@ export const Hero: FC<HeroProps> = () => {
               <button
                 type="button"
                 onClick={handlePrimaryAction}
-                className="px-6 py-4 bg-primary-action text-primary-action-foreground rounded-full w-full font-bold shadow-sm active:scale-95 transition-transform flex items-center justify-center gap-2"
+                disabled={guidance.primaryAction.type === "installing"}
+                className="px-6 py-4 bg-primary-action text-primary-action-foreground rounded-full w-full font-bold shadow-sm active:scale-95 transition-transform flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {guidance.primaryAction.type === "native-install" && (
+                  <RiDownloadLine className="w-5 h-5" />
+                )}
+                {guidance.primaryAction.type === "installing" && (
                   <RiDownloadLine className="w-5 h-5" />
                 )}
                 {guidance.primaryAction.type === "show-manual-steps" && (
@@ -230,7 +245,12 @@ export const Hero: FC<HeroProps> = () => {
                         id: "app.hero.copyFailed",
                         defaultMessage: "Copy failed",
                       })
-                    : guidance.primaryAction.label}
+                    : guidance.primaryAction.type === "installing"
+                      ? intl.formatMessage({
+                          id: "app.hero.installing",
+                          defaultMessage: "Installing...",
+                        })
+                      : guidance.primaryAction.label}
               </button>
 
               {/* Secondary Action - Continue in Browser */}

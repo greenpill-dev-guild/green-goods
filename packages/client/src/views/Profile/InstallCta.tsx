@@ -19,7 +19,15 @@ import { Card } from "@/components/Cards";
 import { Avatar } from "@/components/Display";
 
 export const InstallCta: React.FC = () => {
-  const { isMobile, isInstalled, wasInstalled, deferredPrompt, promptInstall, platform } = useApp();
+  const {
+    isMobile,
+    isInstalled,
+    isInstalling,
+    wasInstalled,
+    deferredPrompt,
+    promptInstall,
+    platform,
+  } = useApp();
   const intl = useIntl();
 
   const guidance = useInstallGuidance(
@@ -27,10 +35,17 @@ export const InstallCta: React.FC = () => {
     isInstalled,
     wasInstalled,
     deferredPrompt,
-    isMobile
+    isMobile,
+    isInstalling
   );
 
   const installDescription = useMemo(() => {
+    if (guidance.scenario === "installing") {
+      return intl.formatMessage({
+        id: "app.profile.installDescriptionInstalling",
+        defaultMessage: "Green Goods is finishing installation.",
+      });
+    }
     if (guidance.scenario === "native-prompt-available") {
       return intl.formatMessage({
         id: "app.profile.installDescriptionPrompt",
@@ -165,6 +180,20 @@ export const InstallCta: React.FC = () => {
                 label={intl.formatMessage({
                   id: "app.profile.installButton",
                   defaultMessage: "Install",
+                })}
+                className="shrink-0"
+              />
+            )}
+            {guidance.scenario === "installing" && (
+              <Button
+                variant="primary"
+                mode="filled"
+                size="xsmall"
+                disabled
+                leadingIcon={<RiDownloadLine className="w-4" />}
+                label={intl.formatMessage({
+                  id: "app.profile.installingButton",
+                  defaultMessage: "Installing",
                 })}
                 className="shrink-0"
               />
