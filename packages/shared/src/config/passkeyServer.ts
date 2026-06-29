@@ -44,7 +44,7 @@ export function isPasskeyServerEnabled(env: PasskeyServerEnv = import.meta.env):
 }
 
 export type PasskeyRecoveryContext = {
-  username: string;
+  userName: string;
 };
 
 export function normalizePasskeyAccountIdentifier(identifier: string): string {
@@ -52,11 +52,11 @@ export function normalizePasskeyAccountIdentifier(identifier: string): string {
 }
 
 export function buildPasskeyRecoveryContext(identifier: string): PasskeyRecoveryContext {
-  const username = normalizePasskeyAccountIdentifier(identifier);
-  if (username.length < 3) {
+  const userName = normalizePasskeyAccountIdentifier(identifier);
+  if (userName.length < 3) {
     throw new Error("Username is required for passkey recovery");
   }
-  return { username };
+  return { userName };
 }
 
 export function createPasskeyServerClient(chainId: number) {

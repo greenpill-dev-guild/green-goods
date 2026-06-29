@@ -217,9 +217,16 @@ describe("Login View - New User (progressive disclosure)", () => {
     expect(screen.getByTestId("splash-screen")).toBeInTheDocument();
   });
 
-  it("shows recovery as primary action when no local passkey cache exists", () => {
+  it("shows account creation as the primary first-install action", () => {
     renderWithRouter();
-    expect(screen.getByTestId("primary-button")).toHaveTextContent("Recover with passkey");
+
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Create account");
+    expect(screen.getByTestId("primary-button")).toBeDisabled();
+    expect(screen.getByTestId("username-input")).toBeInTheDocument();
+    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Sign in with a wallet");
+    expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Recover with username");
+    expect(screen.getByTestId("info-callout")).toHaveTextContent(/passkeys keep sign-in/i);
+    expect(screen.queryByTestId("notice")).not.toBeInTheDocument();
   });
 
   it("keeps legacy local account creation when passkey server is disabled", async () => {
@@ -227,25 +234,12 @@ describe("Login View - New User (progressive disclosure)", () => {
     mockPasskeyServerEnabled = false;
     renderWithRouter();
 
-    expect(screen.getByTestId("primary-button")).toHaveTextContent("Create your account");
-    expect(screen.queryByTestId("username-input")).not.toBeInTheDocument();
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Create account");
+    expect(screen.getByTestId("username-input")).toBeInTheDocument();
+    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Sign in with a wallet");
     expect(screen.queryByTestId("tertiary-button")).not.toBeInTheDocument();
     expect(screen.queryByTestId("notice")).not.toBeInTheDocument();
 
-    await user.click(screen.getByTestId("primary-button"));
-
-    expect(screen.getByTestId("primary-button")).toHaveTextContent("Create account");
-    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Sign in with a wallet");
-    expect(screen.getByTestId("username-input")).toBeInTheDocument();
-    expect(screen.queryByTestId("notice")).not.toBeInTheDocument();
-
-    await user.click(screen.getByTestId("cancel-passkey-create"));
-
-    expect(screen.getByTestId("primary-button")).toHaveTextContent("Create your account");
-    expect(screen.queryByTestId("username-input")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("notice")).not.toBeInTheDocument();
-
-    await user.click(screen.getByTestId("primary-button"));
     await user.type(screen.getByTestId("username-input"), "legacyuser");
     await user.click(screen.getByTestId("primary-button"));
 
@@ -260,13 +254,20 @@ describe("Login View - New User (progressive disclosure)", () => {
 
   it("does not show separate-account entry before recovery has failed", () => {
     renderWithRouter();
-    expect(screen.queryByTestId("tertiary-button")).not.toBeInTheDocument();
+    expect(screen.getByTestId("primary-button")).not.toHaveTextContent("Create separate account");
+    expect(screen.queryByTestId("notice")).not.toBeInTheDocument();
   });
 
-  it("shows username recovery input before lookup", () => {
+  it("opens username recovery from an explicit recovery action", async () => {
+    const user = userEvent.setup();
     renderWithRouter();
 
+    await user.click(screen.getByTestId("tertiary-button"));
+
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Recover with passkey");
     expect(screen.getByTestId("username-input")).toBeInTheDocument();
+    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Create account");
+    expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Sign in with a wallet");
     expect(screen.getByTestId("info-callout")).toHaveTextContent(/synced passkeys/i);
   });
 
@@ -282,6 +283,7 @@ describe("Login View - New User (progressive disclosure)", () => {
     const user = userEvent.setup();
     renderWithRouter();
 
+    await user.click(screen.getByTestId("tertiary-button"));
     await user.type(screen.getByTestId("username-input"), "testuser");
     await user.click(screen.getByTestId("primary-button"));
 
@@ -298,6 +300,7 @@ describe("Login View - New User (progressive disclosure)", () => {
     });
     renderWithRouter();
 
+    await user.click(screen.getByTestId("tertiary-button"));
     await user.type(screen.getByTestId("username-input"), "testuser");
     await user.click(screen.getByTestId("primary-button"));
 
@@ -321,11 +324,9 @@ describe("Login View - New User (progressive disclosure)", () => {
     expect(await screen.findByTestId("error-message")).toHaveTextContent(/something went wrong/i);
   });
 
-  it("shows address continuity notice", () => {
+  it("does not show address continuity notice during first-time account creation", () => {
     renderWithRouter();
-    expect(screen.getByTestId("notice")).toHaveTextContent(
-      "Creating a separate account gives you a different address."
-    );
+    expect(screen.queryByTestId("notice")).not.toBeInTheDocument();
   });
 
   it("requires explicit confirmation before separate account creation", async () => {
@@ -333,6 +334,7 @@ describe("Login View - New User (progressive disclosure)", () => {
     mockLoginWithPasskey.mockRejectedValueOnce(new Error("No passkey credential found"));
     renderWithRouter();
 
+    await user.click(screen.getByTestId("tertiary-button"));
     await user.type(screen.getByTestId("username-input"), "missinguser");
     await user.click(screen.getByTestId("primary-button"));
     await screen.findByTestId("error-message");
@@ -353,6 +355,7 @@ describe("Login View - New User (progressive disclosure)", () => {
     mockLoginWithPasskey.mockRejectedValueOnce(new Error("No passkey credential found"));
     renderWithRouter();
 
+    await user.click(screen.getByTestId("tertiary-button"));
     await user.type(screen.getByTestId("username-input"), "missinguser");
     await user.click(screen.getByTestId("primary-button"));
     await screen.findByTestId("error-message");
@@ -368,6 +371,7 @@ describe("Login View - New User (progressive disclosure)", () => {
     mockLoginWithPasskey.mockRejectedValueOnce(new Error("No passkey credential found"));
     renderWithRouter();
 
+    await user.click(screen.getByTestId("tertiary-button"));
     await user.type(screen.getByTestId("username-input"), "missinguser");
     await user.click(screen.getByTestId("primary-button"));
 
@@ -385,6 +389,7 @@ describe("Login View - New User (progressive disclosure)", () => {
     mockLoginWithPasskey.mockResolvedValueOnce(undefined);
     const view = renderWithRouter();
 
+    await user.click(screen.getByTestId("tertiary-button"));
     await user.type(screen.getByTestId("username-input"), "missinguser");
     await user.click(screen.getByTestId("primary-button"));
 
@@ -526,6 +531,7 @@ describe("Login View - fallback account surfacing", () => {
     mockLoginWithPasskey.mockResolvedValueOnce(undefined);
     const view = renderWithRouter();
 
+    await user.click(screen.getByTestId("tertiary-button"));
     await user.type(screen.getByTestId("username-input"), "mistyped-recovery-name");
     await user.click(screen.getByTestId("primary-button"));
     expect(mockLoginWithPasskey).toHaveBeenCalledWith("mistyped-recovery-name");
@@ -548,6 +554,7 @@ describe("Login View - fallback account surfacing", () => {
     mockLoginWithPasskey.mockResolvedValueOnce(undefined);
     const view = renderWithRouter();
 
+    await user.click(screen.getByTestId("tertiary-button"));
     await user.type(screen.getByTestId("username-input"), "Stored-Local-User");
     await user.click(screen.getByTestId("primary-button"));
 

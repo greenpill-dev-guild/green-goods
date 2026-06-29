@@ -1,0 +1,36 @@
+flowchart TD
+    Start["Open Green Goods PWA"] --> Local{"Same-device passkey saved?"}
+
+    Local -->|Yes| LocalSignIn["Sign in panel<br/>Primary: sign in with passkey"]
+    Local -->|No| Create["Create account panel<br/>Username + passkey"]
+
+    Create --> CreateSubmit["Create account"]
+    CreateSubmit --> PlatformCreate["Platform passkey prompt"]
+    PlatformCreate -->|Saved| App["Authenticated PWA"]
+    PlatformCreate -->|Cancelled or failed| CreateError["Same create panel<br/>Reserved error slot"]
+
+    Create --> Existing["I already have an account"]
+    Existing --> UsernameSignIn["Sign in panel<br/>Username in fixed form slot"]
+    LocalSignIn -->|Use username| UsernameSignIn
+    LocalSignIn -->|Passkey success| App
+
+    UsernameSignIn --> Lookup["Look up username on passkey server"]
+    Lookup -->|Credential found| PlatformSignIn["Platform passkey prompt"]
+    PlatformSignIn -->|Verified| App
+    PlatformSignIn -->|Cancelled or failed| SignInError["Same sign in panel<br/>Reserved error slot"]
+
+    Lookup -->|No credential| NotFound["Same sign in panel<br/>Username not found error"]
+    Lookup -->|Server unavailable| ServerError["Same sign in panel<br/>Service unavailable error"]
+
+    NotFound --> Retry["Try again"]
+    NotFound --> NewConfirm["Create new account confirmation<br/>Different address warning"]
+    ServerError --> Retry
+    ServerError --> Wallet["Use wallet instead"]
+
+    NewConfirm -->|Go back| UsernameSignIn
+    NewConfirm -->|Create new account| Create
+
+    Create --> Wallet
+    LocalSignIn --> Wallet
+    Wallet --> WalletAuth["Wallet auth"]
+    WalletAuth --> App

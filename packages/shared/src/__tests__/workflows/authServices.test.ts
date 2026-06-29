@@ -141,7 +141,7 @@ vi.mock("../../config/passkeyServer", () => ({
   createPasskeyServerClient: vi.fn(() => mockPasskeyServerClient),
   createPasskey: vi.fn(),
   buildPasskeyRecoveryContext: vi.fn((userName: string) => ({
-    username: userName.trim().replace(/^@/, "").toLowerCase(),
+    userName: userName.trim().replace(/^@/, "").toLowerCase(),
   })),
   getPasskeyRpId: vi.fn(() => "localhost"),
   isPasskeyServerEnabled: vi.fn(() => mockPasskeyServerEnabled),
@@ -237,7 +237,7 @@ const MOCK_SERVER_CREDENTIAL = {
   publicKey: "0xServerPublicKey1234567890" as `0x${string}`,
 };
 
-const MOCK_SERVER_CONTEXT = { username: MOCK_USERNAME };
+const MOCK_SERVER_CONTEXT = { userName: MOCK_USERNAME };
 
 /**
  * Helper to invoke a fromPromise actor and get the result

@@ -411,7 +411,7 @@ async function registerPasskeyWithServer(
     createdCredential.raw,
     "Passkey server registration failed"
   );
-  const resolvedUsername = getVerifiedUsername(verification, context.username);
+  const resolvedUsername = getVerifiedUsername(verification, context.userName);
 
   return buildAndCachePasskeySession(credential, resolvedUsername, chainId, {
     enforceExpectedAddress: false,
@@ -469,7 +469,7 @@ async function authenticatePasskeyWithServer(
     authResponse as P256Credential["raw"],
     "Passkey server authentication failed"
   );
-  const resolvedUsername = getVerifiedUsername(verification, context.username);
+  const resolvedUsername = getVerifiedUsername(verification, context.userName);
 
   return buildAndCachePasskeySession(credential, resolvedUsername, chainId);
 }

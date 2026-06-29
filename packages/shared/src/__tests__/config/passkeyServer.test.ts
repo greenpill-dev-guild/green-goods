@@ -21,6 +21,7 @@ describe("config/passkeyServer", () => {
     it("normalizes usernames and ENS handles for lookup", () => {
       expect(normalizePasskeyAccountIdentifier(" @Alice ")).toBe("alice");
       expect(normalizePasskeyAccountIdentifier("@@Garden.Member")).toBe("garden.member");
+      expect(buildPasskeyRecoveryContext(" @Alice ")).toEqual({ userName: "alice" });
     });
 
     it("rejects recovery identifiers that are too short", () => {
