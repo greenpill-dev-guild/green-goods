@@ -39,6 +39,8 @@ contract EthereumENSReceiverForkTest is Test {
     // ═══════════════════════════════════════════════════════════════════════════
 
     function _tryFork() internal returns (bool) {
+        if (block.chainid == 1) return true;
+
         string memory rpc;
         try vm.envString("ETHEREUM_RPC_URL") returns (string memory value) {
             rpc = value;

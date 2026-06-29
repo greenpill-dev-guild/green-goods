@@ -187,7 +187,7 @@ jobs:
           path: output/contracts-test-audit/
           retention-days: 14
 
-  fork-readiness:
+  fork-readiness-core:
     name: Fork Readiness / ${{ matrix.label }}
     if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.operation == 'fork-readiness' || inputs.operation == 'all')
     runs-on: ubuntu-latest
@@ -196,21 +196,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - shard: arbitrum
-            label: Arbitrum
-            script: test:fork:arbitrum:ci
           - shard: sepolia
             label: Sepolia
             script: test:fork:sepolia:ci
           - shard: ethereum
             label: Ethereum ENS
             script: test:fork:ethereum:ci
-          - shard: gardens
-            label: Gardens And Deployment
-            script: test:fork:gardens:ci
-          - shard: octant
-            label: Octant Readiness
-            script: test:fork:octant:ci
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -294,6 +285,126 @@ jobs:
       - name: Run ${{ matrix.label }} fork shard
         working-directory: packages/contracts
         run: bun run ${{ matrix.script }}
+        env:
+          COOKIE_JAR_FACTORY_ADDRESS: ${{ secrets.COOKIE_JAR_FACTORY_ADDRESS }}
+          CI: true
+
+  fork-readiness-arbitrum:
+    name: Fork Readiness / Arbitrum Sequential
+    if: github.event_name != 'pull_request' && (github.event_name != 'workflow_dispatch' || inputs.operation == 'fork-readiness' || inputs.operation == 'all')
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: stable
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.10
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Resolve fork RPCs and block pins
+        env:
+          ARBITRUM_RPC_URL: ${{ secrets.ARBITRUM_RPC_URL }}
+          ARBITRUM_FORK_BLOCK_NUMBER: ${{ vars.ARBITRUM_FORK_BLOCK_NUMBER || '466388412' }}
+          SEPOLIA_RPC_URL: ${{ secrets.SEPOLIA_RPC_URL }}
+          SEPOLIA_FORK_BLOCK_NUMBER: ${{ vars.SEPOLIA_FORK_BLOCK_NUMBER || '10917257' }}
+          ETHEREUM_RPC_URL: ${{ secrets.ETHEREUM_RPC_URL }}
+          ETHEREUM_FORK_BLOCK_NUMBER: ${{ vars.ETHEREUM_FORK_BLOCK_NUMBER || '25170563' }}
+          ALCHEMY_API_KEY: ${{ secrets.ALCHEMY_API_KEY }}
+          ALCHEMY_KEY: ${{ secrets.ALCHEMY_KEY }}
+          VITE_ALCHEMY_API_KEY: ${{ secrets.VITE_ALCHEMY_API_KEY }}
+          PUBLIC_ARBITRUM_RPC_URL: https://arbitrum-one.public.blastapi.io
+          PUBLIC_SEPOLIA_RPC_URL: https://sepolia.drpc.org
+          PUBLIC_ETHEREUM_RPC_URL: https://ethereum.drpc.org
+        run: |
+          set -euo pipefail
+
+          ALCHEMY_KEY_VALUE="${ALCHEMY_API_KEY:-$ALCHEMY_KEY}"
+          ALCHEMY_KEY_VALUE="${ALCHEMY_KEY_VALUE:-$VITE_ALCHEMY_API_KEY}"
+
+          if [[ -z "$ARBITRUM_RPC_URL" ]]; then
+            if [[ -n "$ALCHEMY_KEY_VALUE" ]]; then
+              ARBITRUM_RPC_URL="https://arb-mainnet.g.alchemy.com/v2/$ALCHEMY_KEY_VALUE"
+              echo "::notice::ARBITRUM_RPC_URL secret is not configured; using derived Alchemy Arbitrum RPC from existing key secret."
+            else
+              ARBITRUM_RPC_URL="$PUBLIC_ARBITRUM_RPC_URL"
+              echo "::warning::ARBITRUM_RPC_URL secret is not configured; using public Arbitrum RPC fallback."
+            fi
+          fi
+
+          if [[ -z "$SEPOLIA_RPC_URL" ]]; then
+            SEPOLIA_RPC_URL="$PUBLIC_SEPOLIA_RPC_URL"
+            echo "::warning::SEPOLIA_RPC_URL secret is not configured; using public Sepolia RPC fallback."
+          fi
+
+          if [[ -z "$ETHEREUM_RPC_URL" ]]; then
+            ETHEREUM_RPC_URL="$PUBLIC_ETHEREUM_RPC_URL"
+            echo "::warning::ETHEREUM_RPC_URL secret is not configured; using public Ethereum RPC fallback."
+          fi
+
+          echo "::add-mask::$ARBITRUM_RPC_URL"
+          echo "::add-mask::$SEPOLIA_RPC_URL"
+          echo "::add-mask::$ETHEREUM_RPC_URL"
+          echo "ARBITRUM_RPC_URL=$ARBITRUM_RPC_URL" >> "$GITHUB_ENV"
+          echo "ARBITRUM_FORK_RPC_URL=$ARBITRUM_RPC_URL" >> "$GITHUB_ENV"
+          echo "ARBITRUM_FORK_BLOCK_NUMBER=$ARBITRUM_FORK_BLOCK_NUMBER" >> "$GITHUB_ENV"
+          echo "SEPOLIA_RPC_URL=$SEPOLIA_RPC_URL" >> "$GITHUB_ENV"
+          echo "SEPOLIA_FORK_RPC_URL=$SEPOLIA_RPC_URL" >> "$GITHUB_ENV"
+          echo "SEPOLIA_FORK_BLOCK_NUMBER=$SEPOLIA_FORK_BLOCK_NUMBER" >> "$GITHUB_ENV"
+          echo "ETHEREUM_RPC_URL=$ETHEREUM_RPC_URL" >> "$GITHUB_ENV"
+          echo "ETHEREUM_FORK_RPC_URL=$ETHEREUM_RPC_URL" >> "$GITHUB_ENV"
+          echo "MAINNET_RPC_URL=$ETHEREUM_RPC_URL" >> "$GITHUB_ENV"
+          echo "ETHEREUM_FORK_BLOCK_NUMBER=$ETHEREUM_FORK_BLOCK_NUMBER" >> "$GITHUB_ENV"
+          echo "MAINNET_FORK_BLOCK_NUMBER=$ETHEREUM_FORK_BLOCK_NUMBER" >> "$GITHUB_ENV"
+          echo "::notice::Arbitrum sequential fork shards blocks: arbitrum=$ARBITRUM_FORK_BLOCK_NUMBER sepolia=$SEPOLIA_FORK_BLOCK_NUMBER ethereum=$ETHEREUM_FORK_BLOCK_NUMBER"
+
+      - name: Run Arbitrum fork shards sequentially
+        working-directory: packages/contracts
+        run: |
+          set +e
+
+          bun run test:fork:arbitrum:ci
+          arbitrum_status=$?
+
+          bun run test:fork:gardens:ci
+          gardens_status=$?
+
+          bun run test:fork:octant:ci
+          octant_status=$?
+
+          set -e
+
+          failed=0
+          if [[ "$arbitrum_status" -ne 0 ]]; then
+            echo "::error::Arbitrum fork shard failed with exit code $arbitrum_status"
+            failed=1
+          fi
+          if [[ "$gardens_status" -ne 0 ]]; then
+            echo "::error::Gardens fork shard failed with exit code $gardens_status"
+            failed=1
+          fi
+          if [[ "$octant_status" -ne 0 ]]; then
+            echo "::error::Octant fork shard failed with exit code $octant_status"
+            failed=1
+          fi
+
+          exit "$failed"
         env:
           COOKIE_JAR_FACTORY_ADDRESS: ${{ secrets.COOKIE_JAR_FACTORY_ADDRESS }}
           CI: true
