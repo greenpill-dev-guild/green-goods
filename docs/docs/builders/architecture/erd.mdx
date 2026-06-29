@@ -38,7 +38,7 @@ erDiagram
     Action ||--o{ Work : "documents"
     Work ||--o| WorkApproval : "reviewed by"
     Work }o--|| Gardener : "submitted by"
-    WorkApproval }o--|| GardenAssessment : "aggregated into"
+    Garden ||--o{ GardenAssessment : "baselines per domain/period"
 
     GardenVault ||--o{ VaultDeposit : "tracks per depositor"
     GardenVault ||--o{ VaultEvent : "logs activity"
@@ -186,7 +186,7 @@ erDiagram
 | --- | --- | --- |
 | **Work** | EAS GraphQL | An attestation that a gardener performed a specific action. Contains a title, media URI (IPFS), and reference to the action. Validated by the WorkResolver. |
 | **WorkApproval** | EAS GraphQL | An operator's review of a work submission. References the work UID with an approval boolean, confidence score, and method description. |
-| **GardenAssessment** | EAS GraphQL | An evaluator's holistic assessment of a garden's progress. Contains notes and supporting media. |
+| **GardenAssessment** | EAS GraphQL | A garden's baseline strategy for a domain and reporting period: diagnosis, SMART-outcome targets, and selected actions. Set up front; approved work is later certified against it (the Hypercert bundles the work, not the assessment). |
 
 ### Financial entities
 

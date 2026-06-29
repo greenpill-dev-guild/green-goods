@@ -78,6 +78,8 @@ Green Goods uses a holistic framework for impact measurement:
 7. **Spiritual Capital**: Meaning, purpose
 8. **Cultural Capital**: Traditions, identity
 
+> The numbering above is presentational. The canonical machine ordering is the `Capital` enum — Social (0), Material (1), Financial (2), Living (3), Intellectual (4), Experiential (5), Spiritual (6), Cultural (7).
+
 **Origin**: From Ethan Roland and Gregory Landua's work in regenerative design.
 
 **Application in Green Goods**:
@@ -123,7 +125,7 @@ Green Goods uses a holistic framework for impact measurement:
 
 **Who she is**: Environmental researcher partnered with AgroforestDAO in Minas Gerais, Brazil. Evaluates garden impact seasonally, not daily. Comfortable with data queries and attestation chains. Needs structured rubrics that map to academic and compliance frameworks.
 
-**A day in her life**: At the end of the growing season, Dr. Chen logs into the evaluator view and reviews the past quarter's work submissions across 3 gardens. She creates an assessment using the Eight Forms of Capital rubric, scoring each capital dimension with evidence references. She exports the assessment data as CSV for her research paper and verifies the attestation chain to confirm nothing was tampered with since submission.
+**A day in her life**: At the end of the growing season, Dr. Chen logs into the evaluator view and reviews the past quarter's approved work across 3 gardens against each garden's assessment baseline. She scores the realized impact across the Eight Forms of Capital rubric with evidence references, exports the data as CSV for her research paper, and verifies the attestation chain to confirm nothing was tampered with since submission.
 
 **What success feels like**: "I have a publishable dataset with cryptographic provenance that I can cite in a peer-reviewed journal." The data export maps cleanly to her research methodology.
 

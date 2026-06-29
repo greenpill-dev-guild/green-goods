@@ -48,7 +48,7 @@ The 10 entities the system tracks. Use the canonical form in code (types, hooks,
 | **Garden** | entity | admin · client · agent · public · docs | A community of gardeners doing regenerative work in a place. ERC-721 NFT bound to a Tokenbound Account that owns a Vault and operator/gardener Hats. |
 | **Action** | entity | admin · client · agent · public · docs | A documented activity a gardener can perform — the unit of work template (e.g. "Plant native species", "Remove invasive growth"). |
 | **Work** | entity | admin · client · agent · public · docs | A specific instance of an Action performed by a gardener, captured with photo + description + metadata, attested on-chain after operator approval. |
-| **Assessment** | entity | admin · client · public · docs | An evaluator's verification of submitted Work — confirms the Work happened, attaches confidence, links to evidence. Drives Hypercert minting. |
+| **Assessment** | entity | admin · client · public · docs | A garden's baseline and strategy, set up front (typically at onboarding): the domain, diagnosis, SMART-outcome targets, selected Actions, and reporting period that work is later measured against. It defines what success looks like *before* the work — it is **not** a review of submitted Work (that is Work Approval). |
 | **Hypercert** | entity | admin · client · public · docs | An on-chain claim of impact bundling approved Work into a fractional impact certificate. Funders hold fractions; gardeners hold contribution credit. |
 | **Vault** | entity | admin · client · public · docs | The garden's treasury. Funders deposit; the garden's Tokenbound Account holds; yield splits flow to operators / gardeners / community per configured ratios. |
 | **Cookie Jar** | entity | admin · client · public · docs | A garden-scoped emergency or discretionary fund with rate-limited withdrawals. Allowlisted members can claim within the configured cap. |
@@ -178,11 +178,17 @@ The structured tables above are the canonical vocabulary contract. The longer en
 ### Action
 A task or bounty available for gardeners to complete within a garden. Actions define specific regenerative activities (like planting trees, litter cleanup, or biodiversity surveys) with clear instructions, metrics, and optional time windows. Each action is registered on-chain and tracks completion statistics.
 
+### Assessment
+A garden's baseline and strategy, created up front (typically at onboarding): the domain, a diagnosis of the current situation, SMART-outcome targets, the selected actions, and the reporting period. It sets what success looks like *before* the work it frames, so that later work approvals and impact certificates have a baseline to measure against. It is not a review of submitted work — that is [Work Approval](#work-approval).
+
 ### Attestation
 An on-chain record created using the Ethereum Attestation Service (EAS). Green Goods uses three attestation types: work submissions, work approvals, and garden assessments. Attestations are permanent, cryptographically signed records that prove specific claims about impact work.
 
 ### Community Member
 Local residents living in the bioregion affected by a Garden's Work. Community Members use public signal and conviction flows to attest that Work exists and is healthy, hold the Garden accountable, and prioritize future Actions.
+
+### Domain
+The category of regenerative work a garden does — *where* the work happens. Green Goods recognizes four action domains: **Agroforestry**, **Waste Management**, **Solar (Hub Development)**, and **Education** (the on-chain `Domain` enum: `SOLAR`, `AGRO`, `EDU`, `WASTE`). A domain is neither an outcome nor a form of capital — carbon and biodiversity, for example, are [outcomes](#outcome), not domains.
 
 ### EAS (Ethereum Attestation Service)
 A protocol for making on-chain and off-chain attestations about any subject. Green Goods uses EAS to create verifiable records of gardener work, operator approvals, and garden assessments. Learn more at [attest.sh](https://attest.sh).
@@ -199,6 +205,8 @@ A holistic framework for measuring wealth and impact beyond money:
 8. **Cultural Capital**: Traditions and shared identity
 
 Green Goods assessments track impact across all eight capitals.
+
+> The numbering above is presentational. The canonical machine ordering is the `Capital` enum: Social (0), Material (1), Financial (2), Living (3), Intellectual (4), Experiential (5), Spiritual (6), Cultural (7).
 
 ### Evaluator
 Impact assessors who verify work quality, create garden assessments, and certify impact across the Eight Forms of Capital. Evaluators ensure that reported work meets quality standards and provide the trust layer between field operations and funding.
@@ -221,6 +229,9 @@ A semi-fungible token representing a claim of impact work. Hypercerts enable ret
 ### Impact Token
 A token representing verified impact work that can be traded, funded, or used to unlock benefits. Green Goods uses Karma GAP attestations as the foundation for impact tokenization. Impact Tokens are the broader concept; see [Hypercert](#hypercert) for the specific tokenized certificate implementation.
 
+### Indicator
+A measurable signal of progress toward an [outcome](#outcome) — the unit a metric is counted in (trees planted, kWh generated, kg diverted, participants verified).
+
 ### IPFS (InterPlanetary File System)
 A distributed file storage system. Green Goods stores work photos, metadata, and action instructions in IPFS through the Pinata-backed upload path, with content identifiers (CIDs) referenced in on-chain attestations.
 
@@ -238,6 +249,9 @@ This pattern ensures high-quality documentation and reduces submission errors.
 ### On-Chain
 Data or transactions permanently recorded on a blockchain. Green Goods stores attestations on-chain for verifiability, while larger data (photos, metadata) is stored off-chain in IPFS and referenced by on-chain records.
 
+### Outcome
+The change an impact claim asserts — what will change and by how much. In Green Goods, outcomes are the SMART targets set in an [assessment](#assessment) and filled by approved work over the reporting period. Outcomes accrue to the [Eight Forms of Capital](#eight-forms-of-capital); they are not [domains](#domain).
+
 ### Owner
 Administrators with full control over garden configuration, role assignments, and governance settings. Owners can promote gardeners to operators, configure actions, and manage the garden's on-chain infrastructure.
 
@@ -254,7 +268,7 @@ Smart contracts that execute custom logic when attestations are created. Green G
 A structured template that defines the format of an attestation. Green Goods uses three schemas:
 - **Work Submission Schema**: Captures gardener work with media and metadata
 - **Work Approval Schema**: Records operator validation decisions
-- **Assessment Schema**: Documents garden-level impact across 8 forms of capital
+- **Assessment Schema**: Records a garden's baseline strategy kernel — domain, diagnosis, SMART-outcome targets, selected actions, and reporting period — set up front, before the work it frames
 
 ### Smart Account (Account Abstraction)
 A smart contract-based wallet that enables gasless transactions, social recovery, and improved UX. Green Goods gardeners use Kernel smart accounts powered by Pimlico, allowing them to submit work without paying gas fees or managing seed phrases.
