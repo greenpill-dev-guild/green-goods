@@ -18,6 +18,7 @@ const profileView = lazyView(() => import("@/views/Profile"));
 const createGardenView = lazyView(() => import("@/views/Garden/CreateGarden"));
 const createAssessmentView = lazyView(() => import("@/views/Hub/CreateAssessment"));
 const createHypercertView = lazyView(() => import("@/views/Hub/CreateHypercert"));
+const submitWorkView = lazyView(() => import("@/views/Garden/SubmitWork"));
 
 function preserveSearch(search: string, omitKeys: string[] = []): string {
   if (!search) return "";
@@ -101,8 +102,11 @@ export const adminCanvasRoutes: RouteObject[] = [
             lazy: hubView,
           },
           {
+            // Submit Work is a creation/commit flow — its own full surface
+            // (desktop full-screen dialog / mobile full-page route), not a Hub
+            // inspector sheet. Mirrors createAssessmentView / createHypercertView.
             path: "submit",
-            lazy: hubView,
+            lazy: submitWorkView,
           },
         ],
       },

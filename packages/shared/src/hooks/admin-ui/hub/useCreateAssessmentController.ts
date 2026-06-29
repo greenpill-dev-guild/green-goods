@@ -104,6 +104,7 @@ export function useCreateAssessmentController() {
 
   const form = useCreateAssessmentStore(useShallow((state) => state.form));
   const currentStep = useCreateAssessmentStore((state) => state.currentStep);
+  const goToStep = useCreateAssessmentStore((state) => state.goToStep);
   const setField = useCreateAssessmentStore((state) => state.setField);
   const nextStep = useCreateAssessmentStore((state) => state.nextStep);
   const previousStep = useCreateAssessmentStore((state) => state.previousStep);
@@ -386,6 +387,7 @@ export function useCreateAssessmentController() {
     canRetry,
     canReview,
     currentStep,
+    goToStep,
     errorMessage: txError.message,
     errorTitle: txError.title,
     garden,

@@ -5,6 +5,7 @@ import { expect, waitFor, within } from "storybook/test";
 import { withAdminPrimitiveFrame } from "../../../shared/.storybook/decorators";
 import { AdminButton } from "./AdminButton";
 import { AdminConfirmDialog, AdminDialog } from "./AdminDialog";
+import { ActionFlowShell } from "./Layout/ActionFlowShell";
 
 const meta: Meta<typeof AdminDialog> = {
   title: "Admin/Primitives/AdminDialog",
@@ -282,6 +283,85 @@ export const PaletteVariant: Story = {
       </AdminDialog>
     </div>
   ),
+};
+
+/**
+ * Flow variant — the centered 2xl host for the admin action flows (Submit Work,
+ * Create Assessment, Create Hypercert). AdminDialog suppresses its own structured
+ * header and zeroes its padding so the consumer owns the chrome through
+ * ActionFlowShell: one pinned header (context + title), one scrolling body, one
+ * pinned footer. A bounded, centered card with a 32% scrim on desktop; a
+ * bottom-sheet on mobile — never a fullscreen takeover. The play test guards the
+ * single-header contract: the AdminDialog structured header must stay suppressed.
+ */
+const FLOW_SECTIONS = ["Action details", "Time & notes", "Evidence photos", "Review"];
+
+export const FlowVariant: Story = {
+  tags: ["storybook-ci"],
+  render: () => (
+    <AdminDialog
+      open
+      size="2xl"
+      variant="flow"
+      className="min-h-[90dvh] sm:min-h-0 sm:!max-w-3xl lg:!max-w-3xl"
+      onOpenChange={() => undefined}
+      title="Submit work"
+      description="Capture the action, evidence, and notes for a new contribution."
+      bodyClassName="flex min-h-0 flex-col !overflow-hidden"
+    >
+      <ActionFlowShell
+        layout="dialog"
+        title="Submit work"
+        context="Rio Rainforest Lab"
+        footer={
+          <>
+            <div className="min-w-0 flex-1" aria-live="polite" />
+            <div className="flex gap-2">
+              <AdminButton variant="text" onClick={() => undefined}>
+                Cancel
+              </AdminButton>
+              <AdminButton variant="filled" onClick={() => undefined}>
+                Submit work
+              </AdminButton>
+            </div>
+          </>
+        }
+      >
+        <div className="space-y-6">
+          {FLOW_SECTIONS.map((sectionTitle, index) => (
+            <section
+              key={sectionTitle}
+              className="space-y-3 rounded-[var(--m3-shape-lg)] border border-stroke-soft p-4"
+            >
+              <div className="flex items-center gap-3">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-bg-weak text-xs font-semibold text-text-sub">
+                  {`0${index + 1}`}
+                </span>
+                <h2 className="text-base font-semibold text-text-strong">{sectionTitle}</h2>
+              </div>
+              <div className="h-10 w-full rounded-lg border border-stroke-soft bg-bg-white" />
+              <div className="h-20 w-full rounded-lg border border-stroke-soft bg-bg-white" />
+            </section>
+          ))}
+        </div>
+      </ActionFlowShell>
+    </AdminDialog>
+  ),
+  play: async () => {
+    const surface = document.querySelector<HTMLElement>(
+      '[data-component="AdminDialog"][data-slot="surface"]'
+    );
+    await waitFor(() => expect(surface).not.toBeNull());
+    // Bounded, centered 2xl card driven by the flow variant — not a fullscreen takeover.
+    await expect(surface).toHaveAttribute("data-variant", "flow");
+    await expect(surface).toHaveAttribute("data-size", "2xl");
+    // Single header: the flow variant suppresses AdminDialog's structured header
+    // (data-slot="header"), so ActionFlowShell's header is the only title bar.
+    await expect(surface?.querySelector('[data-slot="header"]')).toBeNull();
+    await expect(surface?.querySelector('[data-region="action-flow-header"]')).not.toBeNull();
+    // ActionFlowShell pins its footer through the shared SheetFooter.
+    await expect(surface?.querySelector('[data-component="SheetFooter"]')).not.toBeNull();
+  },
 };
 
 export const ConfirmVariant: Story = {

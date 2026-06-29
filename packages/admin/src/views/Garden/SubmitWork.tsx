@@ -3,8 +3,7 @@ import {
   type Address,
   Alert,
   adminRoutes,
-  Card,
-  type Domain,
+  Domain,
   expandDomainMask,
   FileUploadField,
   FormField,
@@ -16,10 +15,9 @@ import {
   normalizeWorkMediaFiles,
   NativeSelect,
   parseActionUID,
-  SheetBody,
-  SheetFooter,
   Textarea,
   toastService,
+  TxInlineFeedback,
   validationToasts,
   useAdminGardenWorkspaceSelection,
   useActions,
@@ -28,24 +26,27 @@ import {
   useBeforeUnloadWhilePending,
   useGardenPermissions,
   useGardens,
+  useStepFocus,
   useUser,
   useWorkForm,
   useWorkMutation,
   type WorkInput,
 } from "@green-goods/shared";
 import { validateWorkSubmissionContext } from "@green-goods/shared/modules";
-import { RiUploadCloudLine } from "@remixicon/react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { RiSeedlingLine, RiUploadCloudLine } from "@remixicon/react";
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Controller } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AdminButton } from "@/components/AdminButton";
+import { AdminDialog, ADMIN_FLOW_DIALOG_CLASS } from "@/components/AdminDialog";
+import { AdminLinearProgress } from "@/components/AdminLinearProgress";
+import { AdminTabRail } from "@/components/AdminTabRail";
 import { AdminTextField } from "@/components/AdminTextField";
-import {
-  CanvasRouteContent,
-  CanvasRouteFrame,
-  CanvasRouteHeader,
-} from "@/components/Layout/CanvasRouteFrame";
+import { ActionFlowShell } from "@/components/Layout/ActionFlowShell";
+import { type ActionFlowStep } from "@/components/Layout/ActionFlowStepper";
+import { ActionChooserGrid } from "./components/ActionChooserGrid";
+import { SubmitWorkReview } from "./components/SubmitWorkReview";
 
 function parseHubContext(search: string) {
   const params = new URLSearchParams(search);
@@ -219,10 +220,23 @@ function getMinRequiredImages(action: Action | null) {
   return action.mediaInfo.minImageCount ?? 1;
 }
 
-type SubmitWorkLayout = "page" | "sheet";
+// "page" = standalone panel with no dialog chrome (tests, inline embedding);
+// "dialog" = hosted in the centered 2xl AdminDialog at /hub/work/submit (a centered
+// card on desktop, a bottom-sheet on mobile). Both render the same workflow body
+// through ActionFlowShell — only the outer shell + close-button reservation differ.
+type SubmitWorkLayout = "page" | "dialog";
 type MediaFeedback = { variant: "warning" | "error"; message: string };
 type SubmitWorkAuthSnapshot = Pick<AuthStateValue, "authMode" | "isAuthenticated"> & {
   primaryAddress: Address | null | undefined;
+};
+
+// Domain → shared i18n label key (reuses the Create Assessment domain labels so
+// the chooser filter and the assessment domain picker stay in lockstep).
+const DOMAIN_TAB_KEYS: Record<Domain, string> = {
+  [Domain.SOLAR]: "app.admin.assessment.domainAction.domain.solar",
+  [Domain.AGRO]: "app.admin.assessment.domainAction.domain.agroforestry",
+  [Domain.EDU]: "app.admin.assessment.domainAction.domain.education",
+  [Domain.WASTE]: "app.admin.assessment.domainAction.domain.waste",
 };
 
 export interface SubmitWorkPanelProps {
@@ -299,8 +313,8 @@ function SubmitWorkPanelContent({
   const { selectedGarden } = useAdminGardenWorkspaceSelection();
   const gardenId = selectedGarden?.id ?? null;
 
-  const { data: gardens = [] } = useGardens();
-  const { data: actions = [] } = useActions();
+  const { data: gardens = [], isLoading: gardensLoading } = useGardens();
+  const { data: actions = [], isLoading: actionsLoading } = useActions();
   const { authMode, isAuthenticated, primaryAddress } = auth;
   const { canManageGarden } = useGardenPermissions();
 
@@ -315,6 +329,27 @@ function SubmitWorkPanelContent({
   const availableActions = useMemo(
     () => actions.filter((action) => gardenDomains.has(action.domain)),
     [actions, gardenDomains]
+  );
+  // Domain filter for the action chooser — shown only when the garden's eligible
+  // actions span more than one domain (mirrors the client's domain tabs).
+  const [actionDomain, setActionDomain] = useState<Domain | "all">("all");
+  const chooserDomains = useMemo(
+    () =>
+      Array.from(new Set(availableActions.map((action) => action.domain))).sort((a, b) => a - b),
+    [availableActions]
+  );
+  // Guard a stale filter when the garden switches under the open dialog: if the
+  // previously-selected domain isn't among the new garden's domains, fall back to
+  // "all" so the chooser never renders an empty radiogroup. Drives both the
+  // visible actions and the filter tab's active state.
+  const effectiveDomain =
+    actionDomain !== "all" && chooserDomains.includes(actionDomain) ? actionDomain : "all";
+  const visibleActions = useMemo(
+    () =>
+      effectiveDomain === "all"
+        ? availableActions
+        : availableActions.filter((action) => action.domain === effectiveDomain),
+    [availableActions, effectiveDomain]
   );
 
   const [selectedActionId, setSelectedActionId] = useState("");
@@ -343,7 +378,10 @@ function SubmitWorkPanelContent({
   const [progressMessage, setProgressMessage] = useState("");
   const [mediaFeedback, setMediaFeedback] = useState<MediaFeedback | null>(null);
   const [isPreparingMedia, setIsPreparingMedia] = useState(false);
+  // Stepped flow position (1=Action, 2=Media, 3=Details, 4=Review).
+  const [currentStep, setCurrentStep] = useState(1);
   const canSubmit = garden ? canManageGarden(garden) : false;
+  const isLoadingData = Boolean(gardensLoading || actionsLoading);
 
   const mutation = useWorkMutation({
     authMode,
@@ -383,7 +421,23 @@ function SubmitWorkPanelContent({
 
   useBeforeUnloadWhilePending(mutation.isPending || isPreparingMedia);
 
+  // Auto-select when exactly one action is eligible — skip the Action chooser and
+  // land the operator straight on the Media step.
+  useEffect(() => {
+    if (!selectedActionId && availableActions.length === 1) {
+      setSelectedActionId(availableActions[0].id);
+      setCurrentStep((step) => (step === 1 ? 2 : step));
+    }
+  }, [availableActions, selectedActionId]);
+
+  // Move focus into the newly revealed step region on step change (shared hook,
+  // also used by Create Assessment + Create Hypercert) so keyboard + SR users
+  // follow the flow instead of staying on the Next button.
+  const phaseRef = useStepFocus<HTMLDivElement>(currentStep);
+
   const onSubmit = handleSubmit((data) => {
+    if (!garden || !selectedAction || selectedActionUID === null) return;
+
     const validationErrors = validateWorkSubmissionContext(
       garden.id as Address,
       selectedActionUID,
@@ -397,8 +451,6 @@ function SubmitWorkPanelContent({
       validationToasts.formError(validationErrors[0]);
       return;
     }
-
-    if (!selectedAction || selectedActionUID === null) return;
 
     if (isOffline()) {
       toastService.error({
@@ -435,6 +487,7 @@ function SubmitWorkPanelContent({
     setImages([]);
     setMediaFeedback(null);
     setProgressMessage("");
+    mutation.reset();
   };
 
   const handleFilesChange = useCallback(
@@ -548,212 +601,452 @@ function SubmitWorkPanelContent({
     [formatMessage]
   );
 
-  const renderState = (variant: "error" | "warning", messageId: string) => {
-    const state = <Alert variant={variant}>{formatMessage({ id: messageId })}</Alert>;
+  const title = formatMessage({ id: "app.admin.work.submit.title" });
+  const exitLabel = formatMessage({ id: "app.admin.work.submit.backToGarden" });
+  // On the mobile route the shell's back-arrow is the only way out, so it exits
+  // the flow; in the desktop dialog the AdminDialog close button owns exit, so a
+  // first-phase back-arrow is omitted.
+  const exitBack = layout === "page" ? () => onCancel?.() : undefined;
 
-    return layout === "page" ? (
-      <CanvasRouteContent maxWidthClassName="max-w-2xl" className="mt-6">
-        {state}
-      </CanvasRouteContent>
-    ) : (
-      state
+  // Loading must win over the empty/not-found branches — both `garden` and
+  // `availableActions` are legitimately absent while the lists are still
+  // fetching, so resolving them early would flash a false empty state.
+  if (isLoadingData) {
+    return (
+      <ActionFlowShell layout={layout} title={title}>
+        <div role="status" aria-busy="true" className="space-y-4">
+          <span className="sr-only">{formatMessage({ id: "app.admin.work.submit.loading" })}</span>
+          <div className="h-7 w-2/3 rounded-lg skeleton-shimmer" />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {[0, 1, 2, 3].map((index) => (
+              <div
+                key={index}
+                className="h-28 rounded-lg skeleton-shimmer"
+                style={{ animationDelay: `${index * 0.05}s` }}
+              />
+            ))}
+          </div>
+        </div>
+      </ActionFlowShell>
     );
-  };
+  }
 
   if (!garden) {
-    return renderState("error", "app.garden.admin.notFound");
+    return (
+      <ActionFlowShell layout={layout} title={title} onBack={exitBack} backLabel={exitLabel}>
+        <Alert variant="error">{formatMessage({ id: "app.garden.admin.notFound" })}</Alert>
+      </ActionFlowShell>
+    );
   }
-
   if (!isAuthenticated) {
-    return renderState("warning", "app.admin.work.submit.connectWallet");
+    return (
+      <ActionFlowShell
+        layout={layout}
+        title={title}
+        context={garden.name}
+        onBack={exitBack}
+        backLabel={exitLabel}
+      >
+        <Alert variant="warning">
+          {formatMessage({ id: "app.admin.work.submit.connectWallet" })}
+        </Alert>
+      </ActionFlowShell>
+    );
   }
-
   if (!canSubmit) {
-    return renderState("warning", "app.admin.work.submit.noPermission");
+    return (
+      <ActionFlowShell
+        layout={layout}
+        title={title}
+        context={garden.name}
+        onBack={exitBack}
+        backLabel={exitLabel}
+      >
+        <Alert variant="warning">
+          {formatMessage({ id: "app.admin.work.submit.noPermission" })}
+        </Alert>
+      </ActionFlowShell>
+    );
   }
 
-  // Stable form id so the sheet-mode SheetFooter submit button can target the
-  // form via the `form="..."` attribute (handoff sheet anatomy: pinned footer
-  // sits OUTSIDE the form element and triggers submit by id).
+  // Stable form id so the footer submit button (rendered outside the <form> in
+  // the pinned footer) can target the form via the `form="..."` attribute.
   const formId = "submit-work-form";
+  const hasActions = availableActions.length > 0;
+  const busy = mutation.isPending || isPreparingMedia;
+  const photoRequirementText = selectedAction?.mediaInfo?.required
+    ? formatMessage(
+        { id: "app.admin.work.submit.photosRequired" },
+        { count: getMinRequiredImages(selectedAction) }
+      )
+    : formatMessage({ id: "app.admin.work.submit.photosOptional" });
 
-  // Shared field stack — identical grouping in both layouts so the form reads
-  // the same on the page route and inside the Hub LeftSheet: action picker →
-  // action-specific fields → effort/notes → media evidence.
-  const formFields = (
-    <>
-      <FormField
-        label={formatMessage({ id: "app.admin.work.submit.selectAction" })}
-        htmlFor="action-select"
-        required
+  if (!hasActions) {
+    return (
+      <ActionFlowShell
+        layout={layout}
+        title={title}
+        context={garden.name}
+        onBack={exitBack}
+        backLabel={exitLabel}
       >
-        {availableActions.length === 0 ? (
-          <Alert
-            variant="info"
-            action={
-              <AdminButton
-                type="button"
-                variant="text"
-                size="sm"
-                onClick={() => navigate(adminRoutes.gardenSettings({ gardenAddress: garden.id }))}
-              >
-                {formatMessage({ id: "app.admin.work.submit.noActionsForDomain.cta" })}
-              </AdminButton>
-            }
-          >
+        <div className="flex flex-col items-center gap-3 rounded-lg border border-stroke-soft bg-bg-white p-8 text-center">
+          <RiSeedlingLine className="h-10 w-10 text-text-soft" aria-hidden="true" />
+          <p className="text-sm font-semibold text-text-strong">
             {formatMessage({ id: "app.admin.work.submit.noActionsForDomain" })}
-          </Alert>
+          </p>
+          <p className="max-w-sm text-xs text-text-sub">
+            {formatMessage({ id: "app.admin.work.submit.noActionsForDomainHint" })}
+          </p>
+          <AdminButton
+            type="button"
+            variant="filled"
+            onClick={() => navigate(adminRoutes.gardenSettings({ gardenAddress: garden.id }))}
+          >
+            {formatMessage({ id: "app.admin.work.submit.noActionsForDomain.cta" })}
+          </AdminButton>
+        </div>
+      </ActionFlowShell>
+    );
+  }
+
+  // Stepped flow: Action → Media → Details → Review. The selected action's form
+  // fields live on the Details step, but react-hook-form keeps unmounted-field
+  // values, so Review + submit read the full snapshot.
+  const stepConfigs: ActionFlowStep[] = [
+    {
+      id: "action",
+      title: formatMessage({ id: "app.admin.work.submit.step.action", defaultMessage: "Action" }),
+    },
+    {
+      id: "media",
+      title: formatMessage({ id: "app.admin.work.submit.step.media", defaultMessage: "Media" }),
+    },
+    {
+      id: "details",
+      title: formatMessage({ id: "app.admin.work.submit.step.details", defaultMessage: "Details" }),
+    },
+    {
+      id: "review",
+      title: formatMessage({ id: "app.admin.work.submit.step.review", defaultMessage: "Review" }),
+    },
+  ];
+  const activeStepId = stepConfigs[currentStep - 1]?.id ?? "action";
+  const isFirstStep = currentStep === 1;
+  const isLastStep = currentStep === stepConfigs.length;
+
+  // Select in place (no auto-advance) — selecting marks the card and the footer
+  // Next advances, so a misclick is recoverable and the selected state is visible.
+  // Switching to a different action resets the draft.
+  const handleSelectAction = (actionId: string) => {
+    if (!actionId) return;
+    if (actionId !== selectedActionId) handleActionChange(actionId);
+  };
+
+  const goBack = () => {
+    if (busy) return;
+    setCurrentStep((step) => Math.max(1, step - 1));
+  };
+  const goNext = async () => {
+    if (busy) return;
+    // Gate the required photos at the Media step — otherwise the operator only
+    // learns at submit, after walking Details + Review. Reuses the inline media
+    // Alert (role="alert"), not a deferred toast.
+    if (activeStepId === "media") {
+      const minRequired = getMinRequiredImages(selectedAction);
+      if (minRequired > 0 && images.length < minRequired) {
+        setMediaFeedback({
+          variant: "error",
+          message: formatMessage(
+            {
+              id: "app.admin.work.submit.mediaRequiredError",
+              defaultMessage:
+                "{count, plural, one {Add at least # photo to continue.} other {Add at least # photos to continue.}}",
+            },
+            { count: minRequired }
+          ),
+        });
+        return;
+      }
+    }
+    // Validate the work form before leaving Details for Review.
+    if (activeStepId === "details") {
+      const valid = await form.trigger();
+      if (!valid) return;
+    }
+    setCurrentStep((step) => Math.min(stepConfigs.length, step + 1));
+  };
+  const handleStepJump = (step: number) => {
+    if (busy || step >= currentStep) return;
+    setCurrentStep(step);
+  };
+
+  const nextDisabled = busy || (activeStepId === "action" && !selectedAction);
+
+  const footer = (
+    // Mobile: status on top, a compact secondary, then a full-width primary CTA
+    // (thumb-reachable, in the client-PWA spirit). Desktop: status left, the
+    // button pair right — the original row. SheetFooter is a fixed inline-flex
+    // row, so this single w-full child owns the responsive layout.
+    <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
+      <div className="min-w-0 space-y-1.5 sm:flex-1" aria-live="polite">
+        {busy ? (
+          <AdminLinearProgress
+            ariaLabel={progressMessage || formatMessage({ id: "app.admin.work.submit.submitting" })}
+          />
+        ) : null}
+        {progressMessage ? (
+          <p className="truncate text-sm text-text-sub" title={progressMessage}>
+            {progressMessage}
+          </p>
+        ) : null}
+      </div>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+        <AdminButton
+          type="button"
+          variant={isFirstStep ? "text" : "outlined"}
+          onClick={isFirstStep ? () => onCancel?.() : goBack}
+          disabled={busy}
+          className="self-start sm:self-auto"
+        >
+          {isFirstStep
+            ? formatMessage({ id: "app.wizard.cancel", defaultMessage: "Cancel" })
+            : formatMessage({ id: "app.common.back", defaultMessage: "Back" })}
+        </AdminButton>
+        {isLastStep ? (
+          <AdminButton
+            type="submit"
+            form={formId}
+            variant="filled"
+            loading={busy}
+            disabled={busy}
+            leadingIcon={<RiUploadCloudLine />}
+            className="w-full sm:w-auto"
+          >
+            {mutation.isPending
+              ? formatMessage({ id: "app.admin.work.submit.submitting" })
+              : formatMessage({ id: "app.admin.work.submit.submit" })}
+          </AdminButton>
         ) : (
-          <NativeSelect
-            surface="admin"
-            id="action-select"
-            value={selectedActionId}
-            disabled={mutation.isPending || isPreparingMedia}
-            onChange={(event) => handleActionChange(event.target.value)}
+          <AdminButton
+            type="button"
+            variant="filled"
+            onClick={() => void goNext()}
+            disabled={nextDisabled}
+            className="w-full sm:w-auto"
           >
-            <option value="">
-              {formatMessage({ id: "app.admin.work.submit.selectActionPlaceholder" })}
-            </option>
-            {availableActions.map((action) => (
-              <option key={action.id} value={action.id}>
-                {action.title}
-              </option>
-            ))}
-          </NativeSelect>
+            {formatMessage({ id: "app.common.next", defaultMessage: "Next" })}
+          </AdminButton>
         )}
-      </FormField>
-
-      {selectedAction && selectedAction.inputs.length > 0 ? (
-        <DynamicWorkFields
-          inputs={selectedAction.inputs}
-          control={control}
-          register={register}
-          errors={errors as Record<string, { message?: string } | undefined>}
-        />
-      ) : null}
-
-      {selectedAction ? (
-        <>
-          <AdminTextField
-            label={formatMessage({ id: "app.admin.work.submit.timeSpent" })}
-            id="timeSpentMinutes"
-            type="number"
-            variant="outlined"
-            error={errors.timeSpentMinutes?.message}
-            helperText={formatMessage({ id: "app.admin.work.submit.timeSpentHint" })}
-            placeholder={formatMessage({ id: "app.admin.work.submit.timeSpentPlaceholder" })}
-            inputProps={{ step: "0.25", min: 0 }}
-            {...register("timeSpentMinutes")}
-          />
-
-          <FormField
-            label={formatMessage({ id: "app.admin.work.submit.feedback" })}
-            htmlFor="feedback"
-            error={errors.feedback?.message}
-          >
-            <Textarea
-              surface="admin"
-              id="feedback"
-              rows={3}
-              placeholder={formatMessage({ id: "app.admin.work.submit.feedbackPlaceholder" })}
-              aria-invalid={!!errors.feedback}
-              invalid={!!errors.feedback}
-              className="resize-y"
-              {...register("feedback")}
-            />
-          </FormField>
-
-          <FileUploadField
-            label={formatMessage({ id: "app.admin.work.submit.media" })}
-            helpText={formatMessage({ id: "app.admin.work.submit.mediaHint" })}
-            accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
-            multiple
-            compress={false}
-            showPreview
-            currentFiles={images}
-            onFilesChange={handleFilesChange}
-            onRemoveFile={(index) => setImages((prev) => prev.filter((_, i) => i !== index))}
-            disabled={mutation.isPending || isPreparingMedia}
-          />
-          {mediaFeedback ? (
-            <Alert variant={mediaFeedback.variant}>{mediaFeedback.message}</Alert>
-          ) : null}
-        </>
-      ) : null}
-    </>
-  );
-
-  const footerActions = (
-    <>
-      <AdminButton
-        type="button"
-        variant="text"
-        onClick={() => onCancel?.()}
-        disabled={mutation.isPending || isPreparingMedia}
-      >
-        {formatMessage({ id: "app.wizard.cancel", defaultMessage: "Cancel" })}
-      </AdminButton>
-      <AdminButton
-        type="submit"
-        form={formId}
-        variant="filled"
-        loading={mutation.isPending || isPreparingMedia}
-        disabled={mutation.isPending || isPreparingMedia || availableActions.length === 0}
-        leadingIcon={<RiUploadCloudLine />}
-      >
-        {mutation.isPending
-          ? formatMessage({ id: "app.admin.work.submit.submitting" })
-          : formatMessage({ id: "app.admin.work.submit.submit" })}
-      </AdminButton>
-    </>
-  );
-
-  const progressSlot = (
-    <div className="min-w-0 flex-1" aria-live="polite">
-      {progressMessage ? (
-        <p className="truncate text-sm text-text-sub" title={progressMessage}>
-          {progressMessage}
-        </p>
-      ) : null}
+      </div>
     </div>
   );
 
-  if (layout === "page") {
-    return (
-      <CanvasRouteContent maxWidthClassName="max-w-2xl" className="mt-6">
-        <form id={formId} onSubmit={onSubmit}>
-          <Card>
-            <Card.Body className="space-y-5">{formFields}</Card.Body>
-            {selectedAction ? (
-              <Card.Footer className="flex items-center justify-between gap-3">
-                {progressSlot}
-                <div className="flex gap-2">{footerActions}</div>
-              </Card.Footer>
-            ) : null}
-          </Card>
-        </form>
-      </CanvasRouteContent>
+  let stepBody: ReactNode = null;
+  if (activeStepId === "action") {
+    stepBody = (
+      <div className="space-y-4">
+        <div className="space-y-1">
+          <h2 className="text-base font-semibold text-text-strong">
+            {formatMessage({ id: "app.admin.work.submit.chooseActionTitle" })}
+          </h2>
+          <p className="text-sm text-text-sub">
+            {formatMessage({ id: "app.admin.work.submit.chooseActionDescription" })}
+          </p>
+        </div>
+        {chooserDomains.length > 1 ? (
+          <AdminTabRail
+            ariaLabel={formatMessage({ id: "app.admin.assessment.domainAction.domainTitle" })}
+            activeId={effectiveDomain === "all" ? "all" : String(effectiveDomain)}
+            onChange={(id) => setActionDomain(id === "all" ? "all" : (Number(id) as Domain))}
+            tabs={[
+              {
+                id: "all",
+                label: formatMessage({
+                  id: "app.admin.work.submit.allActions",
+                  defaultMessage: "All",
+                }),
+              },
+              ...chooserDomains.map((domain) => ({
+                id: String(domain),
+                label: formatMessage({ id: DOMAIN_TAB_KEYS[domain] }),
+                count: availableActions.filter((action) => action.domain === domain).length,
+              })),
+            ]}
+          />
+        ) : null}
+        {/* SR-only live status — the domain tablist swaps the radiogroup with no
+            inherent announcement, so report the visible count when the filter
+            changes (the tablist→radiogroup pair has no aria-controls bridge). */}
+        <p className="sr-only" aria-live="polite">
+          {formatMessage(
+            {
+              id: "app.admin.work.submit.actionCount",
+              defaultMessage:
+                "{count, plural, one {# action available} other {# actions available}}",
+            },
+            { count: visibleActions.length }
+          )}
+        </p>
+        <ActionChooserGrid
+          actions={visibleActions}
+          selectedActionId={selectedActionId}
+          onSelect={handleSelectAction}
+          disabled={busy}
+          groupLabel={formatMessage({ id: "app.admin.work.submit.selectAction" })}
+        />
+      </div>
+    );
+  } else if (activeStepId === "media") {
+    stepBody = (
+      <div className="space-y-4">
+        <div className="space-y-1">
+          <h2 className="text-base font-semibold text-text-strong">
+            {selectedAction?.mediaInfo?.title ||
+              formatMessage({ id: "app.admin.work.submit.section.photos" })}
+          </h2>
+          <p className="text-sm text-text-sub">{photoRequirementText}</p>
+        </div>
+        <FileUploadField
+          label={formatMessage({ id: "app.admin.work.submit.media" })}
+          helpText={formatMessage({ id: "app.admin.work.submit.mediaHint" })}
+          accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
+          multiple
+          compress={false}
+          showPreview
+          currentFiles={images}
+          onFilesChange={handleFilesChange}
+          onRemoveFile={(index) => setImages((prev) => prev.filter((_, i) => i !== index))}
+          disabled={busy}
+        />
+        {mediaFeedback ? (
+          <Alert variant={mediaFeedback.variant}>{mediaFeedback.message}</Alert>
+        ) : null}
+      </div>
+    );
+  } else if (activeStepId === "details") {
+    stepBody = (
+      <div className="space-y-5">
+        <div className="space-y-1">
+          <h2 className="text-base font-semibold text-text-strong">
+            {selectedAction?.details?.title ||
+              formatMessage({ id: "app.admin.work.submit.section.details" })}
+          </h2>
+          {selectedAction?.title ? (
+            <p className="text-sm text-text-sub">{selectedAction.title}</p>
+          ) : null}
+        </div>
+        {selectedAction?.inputs.some((input) => input.required) ? (
+          <p className="text-xs text-text-sub">
+            {formatMessage({
+              id: "app.admin.work.submit.requiredLegend",
+              defaultMessage: "* Required field",
+            })}
+          </p>
+        ) : null}
+        {selectedAction && selectedAction.inputs.length > 0 ? (
+          <DynamicWorkFields
+            inputs={selectedAction.inputs}
+            control={control}
+            register={register}
+            errors={errors as Record<string, { message?: string } | undefined>}
+          />
+        ) : null}
+        <AdminTextField
+          label={formatMessage({ id: "app.admin.work.submit.timeSpent" })}
+          id="timeSpentMinutes"
+          type="number"
+          variant="outlined"
+          error={errors.timeSpentMinutes?.message}
+          helperText={formatMessage({ id: "app.admin.work.submit.timeSpentHint" })}
+          placeholder={formatMessage({ id: "app.admin.work.submit.timeSpentPlaceholder" })}
+          inputProps={{ step: "0.25", min: 0 }}
+          {...register("timeSpentMinutes")}
+        />
+        <FormField
+          label={formatMessage({ id: "app.admin.work.submit.feedback" })}
+          htmlFor="feedback"
+          error={errors.feedback?.message}
+        >
+          <Textarea
+            surface="admin"
+            id="feedback"
+            rows={3}
+            placeholder={formatMessage({ id: "app.admin.work.submit.feedbackPlaceholder" })}
+            aria-invalid={!!errors.feedback}
+            invalid={!!errors.feedback}
+            className="resize-y"
+            {...register("feedback")}
+          />
+        </FormField>
+      </div>
+    );
+  } else if (selectedAction) {
+    stepBody = (
+      <SubmitWorkReview
+        action={selectedAction}
+        images={images}
+        values={form.getValues() as Record<string, unknown>}
+        photoRequirementText={photoRequirementText}
+        onEditStep={(step) => {
+          if (!busy) setCurrentStep(step);
+        }}
+      />
     );
   }
 
-  // Sheet layout: admin sheet/form anatomy — fields sit directly on the sheet
-  // surface (no nested card), scroll inside SheetBody, and commit through the
-  // pinned SheetFooter. The submit button targets the form by id because the
-  // footer sits outside the form element.
   return (
-    <>
-      <SheetBody>
-        <form id={formId} onSubmit={onSubmit} className="space-y-5">
-          {formFields}
-        </form>
-      </SheetBody>
-      {selectedAction ? (
-        <SheetFooter>
-          {progressSlot}
-          {footerActions}
-        </SheetFooter>
-      ) : null}
-    </>
+    <ActionFlowShell
+      layout={layout}
+      title={title}
+      context={garden.name}
+      steps={stepConfigs}
+      currentStep={currentStep}
+      onStepClick={handleStepJump}
+      footer={footer}
+    >
+      <form id={formId} onSubmit={onSubmit}>
+        <div
+          ref={phaseRef}
+          tabIndex={-1}
+          key={activeStepId}
+          className="action-flow-fade space-y-4 outline-none"
+        >
+          {mutation.isError ? (
+            <TxInlineFeedback
+              visible
+              severity="error"
+              title={formatMessage({ id: "app.admin.work.submit.failureTitle" })}
+              message={formatMessage({ id: "app.admin.work.submit.failureMessage" })}
+              reserveClassName="min-h-0"
+              action={
+                <div className="flex flex-wrap gap-2">
+                  <AdminButton
+                    type="button"
+                    variant="outlined"
+                    size="sm"
+                    onClick={() => void onSubmit()}
+                    disabled={busy}
+                  >
+                    {formatMessage({ id: "app.admin.work.submit.retry" })}
+                  </AdminButton>
+                  <AdminButton
+                    type="button"
+                    variant="text"
+                    size="sm"
+                    onClick={() => mutation.reset()}
+                    disabled={busy}
+                  >
+                    {formatMessage({ id: "app.admin.work.submit.editDetails" })}
+                  </AdminButton>
+                </div>
+              }
+            />
+          ) : null}
+          {stepBody}
+        </div>
+      </form>
+    </ActionFlowShell>
   );
 }
 
@@ -763,24 +1056,27 @@ export default function SubmitWork() {
   const location = useLocation();
 
   const hubContext = parseHubContext(location.search);
+  const close = () => navigate(adminRoutes.hub(hubContext));
 
+  // Centered 2xl modal with a scrim (bottom-sheet on mobile). The dialog body is
+  // neutralized to a flex column with no scroll of its own — ActionFlowShell owns
+  // the pinned chrome + scrolling body inside it. The AdminDialog close button is
+  // the exit; the multi-phase back-arrow (qualify ← configure) lives in the panel.
   return (
-    <CanvasRouteFrame>
-      <CanvasRouteHeader
-        maxWidthClassName="max-w-2xl"
-        title={formatMessage({ id: "app.admin.work.submit.title" })}
-        description={formatMessage({ id: "app.admin.work.submit.description" })}
-        backLink={{
-          to: adminRoutes.hub(hubContext),
-          label: formatMessage({ id: "app.admin.work.submit.backToGarden" }),
-        }}
-        sticky
-      />
-      <SubmitWorkPanel
-        layout="page"
-        onSuccess={() => navigate(adminRoutes.hub(hubContext))}
-        onCancel={() => navigate(adminRoutes.hub(hubContext))}
-      />
-    </CanvasRouteFrame>
+    <AdminDialog
+      open
+      size="2xl"
+      variant="flow"
+      tone="garden"
+      className={ADMIN_FLOW_DIALOG_CLASS}
+      onOpenChange={(next) => {
+        if (!next) close();
+      }}
+      title={formatMessage({ id: "app.admin.work.submit.title" })}
+      description={formatMessage({ id: "app.admin.work.submit.description" })}
+      bodyClassName="flex min-h-0 flex-col !overflow-hidden"
+    >
+      <SubmitWorkPanel layout="dialog" onSuccess={close} onCancel={close} />
+    </AdminDialog>
   );
 }

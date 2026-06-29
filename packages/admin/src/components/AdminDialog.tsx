@@ -23,7 +23,7 @@ export interface AdminDialogProps {
   children: ReactNode;
   actions?: ReactNode;
   size?: "sm" | "md" | "lg" | "xl" | "2xl";
-  variant?: "standard" | "confirm" | "palette";
+  variant?: "standard" | "confirm" | "palette" | "flow";
   bodyClassName?: string;
   actionsClassName?: string;
   hideCloseButton?: boolean;
@@ -31,6 +31,15 @@ export interface AdminDialogProps {
   role?: "dialog" | "alertdialog";
   onKeyDown?: KeyboardEventHandler<HTMLDivElement>;
   className?: string;
+  /**
+   * Workspace tone for the portaled surface. The dialog portals to <body>,
+   * escaping CanvasLayout's `[data-tone]` scope, so the per-view accent
+   * (`--tone-*`) is otherwise unset inside the dialog and falls back to green.
+   * Setting it re-establishes the tone in-portal — the action flows pass their
+   * workspace so Hub flows read blue, Garden green, etc. Consumers must read
+   * `--tone-action` / `--tone-on-surface-accent` (not `--m3-primary`).
+   */
+  tone?: "hub" | "garden" | "community" | "actions" | "home";
 }
 
 export interface AdminConfirmDialogProps {
@@ -61,7 +70,19 @@ const variantClasses: Record<NonNullable<AdminDialogProps["variant"]>, string> =
   standard: "",
   confirm: "sm:max-w-md",
   palette: "admin-dialog--palette sm:max-w-2xl p-0",
+  // Full-surface action flow (Submit Work, Create Assessment, Create Hypercert):
+  // the consumer (ActionFlowShell / wizard) owns the visible header + scrolling
+  // body + pinned footer, so the structured header and inner padding are
+  // suppressed. `overflow-hidden` clips the inner square chrome to the dialog's
+  // corner radius. A centered, bounded card — not a fullscreen takeover.
+  flow: "overflow-hidden",
 };
+
+// Shared sizing for the full-surface action-flow dialogs (Submit Work, Create
+// Assessment, Create Hypercert): a ~90dvh bottom-sheet on mobile, a centered
+// max-w-3xl→5xl card on desktop. Centralized so the three flows can't drift
+// (the literal lives here in admin/src so the Tailwind scan reaches it).
+export const ADMIN_FLOW_DIALOG_CLASS = "min-h-[90dvh] sm:min-h-0 sm:!max-w-3xl lg:!max-w-5xl";
 
 const closeButtonClasses = cn(
   "absolute right-4 top-4 z-10",
@@ -109,13 +130,17 @@ export function AdminDialog({
   role = "dialog",
   onKeyDown,
   className,
+  tone,
 }: AdminDialogProps) {
   const { formatMessage } = useIntl();
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen && preventClose) return;
     onOpenChange(nextOpen);
   };
-  const hasStructuredHeader = variant !== "palette";
+  // Palette + flow let the consumer own the visible header chrome; the
+  // structured header (icon/title/description) is suppressed and the title is
+  // kept screen-reader-only for the Radix dialog a11y contract.
+  const hasStructuredHeader = variant !== "palette" && variant !== "flow";
   const iconNode =
     typeof Icon === "function" ? (
       <Icon className="h-6 w-6 text-[rgb(var(--m3-on-surface-variant))]" />
@@ -145,7 +170,9 @@ export function AdminDialog({
           data-component="AdminDialog"
           data-slot="surface"
           data-variant={variant}
+          data-tone={tone}
           data-mobile="sheet"
+          data-size={size}
           role={role}
           className={cn(
             // Mobile sheet, desktop centered dialog.
@@ -155,19 +182,18 @@ export function AdminDialog({
             "bg-[rgb(var(--m3-surface-container-high))]",
             // Elevation 3
             "shadow-[var(--m3-elevation-3)]",
-            // Padding: 24dp by default; palette manages its own inner chrome.
-            variant === "palette" ? "p-0" : "p-6",
-            // Enter/exit motion (mobile sheet slide-up, desktop zoom) is driven by the
-            // [data-component="AdminDialog"][data-slot="surface"][data-state] rules in
-            // admin-m3-overrides.css. Those keyframes animate only `transform`; the
-            // centering above uses Tailwind's independent `translate` property, which
-            // composes with `transform` so the surface stays centered. Do NOT re-add
-            // Tailwind `animate-*`/`slide-in-*`/`zoom-*` classes here — tailwindcss-animate
-            // is not loaded in this build, so they emit no CSS (dead classes).
-            // Focus outline suppression (handled per-element)
+            // Enter/exit motion (mobile sheet slide-up, desktop zoom) is driven by
+            // the [data-component="AdminDialog"][data-slot="surface"][data-state]
+            // rules in admin-m3-overrides.css. Those keyframes animate only
+            // `transform`; the centering uses Tailwind's independent `translate`
+            // property, which composes so the surface stays centered. Do NOT re-add
+            // Tailwind animate-*/slide-in-*/zoom-* classes — tailwindcss-animate is
+            // not loaded in this build, so they emit no CSS (dead classes).
             "focus:outline-none",
             sizeClasses[size],
             variantClasses[variant],
+            // Padding: 24dp default; palette + flow own their inner chrome.
+            variant === "palette" || variant === "flow" ? "p-0" : "p-6",
             className
           )}
           onPointerDownOutside={(event) => {
@@ -233,7 +259,7 @@ export function AdminDialog({
             className={cn(
               "min-h-0 flex-1 overflow-y-auto text-body-md",
               "text-[rgb(var(--m3-on-surface-variant))]",
-              variant === "palette" ? "" : "-mx-6 mt-4 px-6",
+              variant === "palette" || variant === "flow" ? "" : "-mx-6 mt-4 px-6",
               bodyClassName
             )}
           >

@@ -121,7 +121,6 @@ export {
   type LeftSheetProps,
   RightSheet,
   type RightSheetProps,
-  SPRING_CONFIGS,
   DISMISS_VELOCITY_THRESHOLD,
   CHOREOGRAPHY_STAGGER_MS,
   AppBar,

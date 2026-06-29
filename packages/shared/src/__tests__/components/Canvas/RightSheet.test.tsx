@@ -1,7 +1,6 @@
 // packages/shared/src/__tests__/components/Canvas/RightSheet.test.tsx
-import { Globals } from "@react-spring/web";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { IntlProvider } from "react-intl";
 import { RightSheet } from "../../../components/Canvas/RightSheet";
 
@@ -116,19 +115,10 @@ describe("RightSheet", () => {
 });
 
 describe("RightSheet open transition", () => {
-  beforeEach(() => {
-    Globals.assign({ skipAnimation: true });
-  });
-
-  afterEach(() => {
-    Globals.assign({ skipAnimation: false });
-  });
-
   it("reaches the open pose when opened after mount despite trailing re-renders", async () => {
-    // Mirrors the LeftSheet regression: per-commit re-application of the
-    // spring's declared update must assert the current pose, not the initial
-    // closed pose, or commits landing after the open transition park the
-    // sheet offscreen.
+    // Mirrors the LeftSheet regression: the CSS slide pose is React-declared and
+    // persists across re-renders, so commits landing after the open transition
+    // must not park the sheet offscreen.
     const onClose = vi.fn();
     const view = renderWithIntl(
       <RightSheet open={false} onClose={onClose} title="Settings">

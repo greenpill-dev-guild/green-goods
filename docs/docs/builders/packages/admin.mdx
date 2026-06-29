@@ -93,6 +93,7 @@ The admin package is the Green Goods operator canvas. This page is the single UI
 - Form and detail content scrolls inside the dialog body, not on the page behind the scrim.
 - Every admin dialog must expose a visible surface above the scrim, a non-zero panel rect, accessible title and description wiring, a close or cancel affordance, reduced-motion-safe behavior, and visible pinned actions when there is something to commit or cancel.
 - The command palette uses the `palette` variant of `AdminDialog` so search behavior and keyboard navigation live inside the same admin modal contract.
+- Full-surface action flows (Submit Work, Create Assessment, Create Hypercert) use the `flow` variant of `AdminDialog` at `size="2xl"`. The `flow` variant suppresses the structured header and inner padding so the shared `ActionFlowShell` owns the visible header + scrolling body + pinned footer; it stays a centered, scrim-backed modal (bottom-sheet on mobile), not a fullscreen takeover.
 - `DialogShell` remains available for shared or non-admin surfaces. Do not use it for admin dashboard dialogs.
 
 ## Canvas UI Heuristics
@@ -128,8 +129,8 @@ The admin package is the Green Goods operator canvas. This page is the single UI
 
 - `/hub` is the primary canvas workspace. Its primary object is the Hub workbench with Work, Assess, Certify, and History modes.
 - `/hub` is the gold-standard canvas route for composition, depth, responsive adaptation, and tactile state behavior.
-- `/hub` defaults to one dominant workbench surface under the stage rail. Detail, review, submit, and read-only handoff flows belong in bounded `LeftSheet`, `RightSheet`, or `BottomSheet` inspectors.
-- `/hub/work/:workId`, `/hub/work/submit`, `/hub/assess/create`, `/hub/certify/:assessmentId`, `/hub/certify/create`, and `/hub/history/:historyEventId` are canonical Hub deep links, not separate full-page detours. They must render through the same Hub controller and preserve shareable `gardenAddress` and `sort` query state. Hub mode belongs to the path, not a `view` query parameter.
+- `/hub` defaults to one dominant workbench surface under the stage rail. Detail, review, and read-only handoff flows belong in bounded `LeftSheet`, `RightSheet`, or `BottomSheet` inspectors. Full-surface creation/commit flows (Submit Work, Create Assessment, Create Hypercert) open as a centered `AdminDialog` (`size="2xl" variant="flow"`) with a scrim — a bottom-sheet on mobile — hosting the shared `ActionFlowShell` grammar (pinned header + scrolling body + pinned footer), not a Hub inspector sheet. They are centered modals: never a fullscreen takeover, an edge-to-edge surface, or a non-modal route.
+- Read-only Hub deep links (`/hub/work/:workId`, `/hub/certify/:assessmentId`, `/hub/history/:historyEventId`) are bounded inspector sheets that render through the Hub controller and preserve shareable `gardenAddress` and `sort` query state. Full-surface creation/commit deep links (`/hub/work/submit`, `/hub/assess/create`, `/hub/certify/create`) open the centered action-flow dialog (bottom-sheet on mobile), not inspector sheets. Hub mode belongs to the path, not a `view` query parameter.
 - `Certify` stays visible for evaluator-only users as a read-only handoff state. Owner or operator authority unlocks mint actions.
 - `/garden` is the situational overview of a single garden. Its primary object is health, activity, and impact state.
 - `/community` is the operations workspace for membership, treasury, pools, and yield. Only one of those modes should dominate the canvas at a time.

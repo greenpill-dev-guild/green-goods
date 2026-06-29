@@ -25,6 +25,7 @@ const {
 } = vi.hoisted(() => ({
   mockState: {
     actions: [] as Action[],
+    actionsLoading: false,
     selectedGarden: null as { id: string; tokenAddress: string; name: string } | null,
     workMutationOptions: null as null | Record<string, unknown>,
   },
@@ -115,6 +116,22 @@ vi.mock("@green-goods/shared", async () => {
     },
     Card,
     cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
+    Capital: {
+      SOCIAL: 0,
+      MATERIAL: 1,
+      FINANCIAL: 2,
+      LIVING: 3,
+      INTELLECTUAL: 4,
+      EXPERIENTIAL: 5,
+      SPIRITUAL: 6,
+      CULTURAL: 7,
+    },
+    Domain: {
+      SOLAR: 0,
+      AGRO: 1,
+      EDU: 2,
+      WASTE: 3,
+    },
     expandDomainMask: (mask: number) => {
       const domains: number[] = [];
       if (mask & 1) domains.push(0);
@@ -257,6 +274,24 @@ vi.mock("@green-goods/shared", async () => {
       React.createElement("div", null, children),
     SheetFooter: ({ children }: { children: React.ReactNode }) =>
       React.createElement("div", null, children),
+    Surface: ({
+      children,
+      as: As = "div",
+      className,
+      "data-region": dataRegion,
+      "aria-labelledby": ariaLabelledby,
+    }: {
+      children?: React.ReactNode;
+      as?: React.ElementType;
+      className?: string;
+      "data-region"?: string;
+      "aria-labelledby"?: string;
+    }) =>
+      React.createElement(
+        As,
+        { className, "data-region": dataRegion, "aria-labelledby": ariaLabelledby },
+        children
+      ),
     Textarea: ({
       invalid: _invalid,
       surface: _surface,
@@ -265,6 +300,18 @@ vi.mock("@green-goods/shared", async () => {
       invalid?: boolean;
       surface?: string;
     }) => React.createElement("textarea", props),
+    TxInlineFeedback: ({
+      visible,
+      title,
+      message,
+      action,
+    }: {
+      visible: boolean;
+      title: string;
+      message: string;
+      action?: React.ReactNode;
+    }) => (visible ? React.createElement("div", { role: "alert" }, title, message, action) : null),
+    useMediaQuery: () => true,
     useWorkMutation: mockUseWorkMutation,
     toastService: {
       error: mockToastError,
@@ -288,11 +335,13 @@ vi.mock("@green-goods/shared", async () => {
     }),
     useActions: () => ({
       data: mockState.actions,
+      isLoading: mockState.actionsLoading,
     }),
     useAuthState: () => ({ isAuthenticated: true, authMode: "wallet" }),
     useUser: () => ({ authMode: "wallet", primaryAddress: gardenAddress }),
     useGardenPermissions: () => ({ canManageGarden: () => true }),
     useBeforeUnloadWhilePending: () => undefined,
+    useStepFocus: () => ({ current: null }),
     useWorkForm: () =>
       useForm<Record<string, unknown>>({
         mode: "onChange",
@@ -342,9 +391,31 @@ function createDeferred<T>() {
   return { promise, resolve };
 }
 
-async function selectActionAndFillRequiredFields(user: ReturnType<typeof userEvent.setup>) {
-  await user.selectOptions(screen.getByLabelText(/Action/), actionId);
-  await user.type(screen.getByLabelText(/Plot code/), "Plot A");
+// The flow is a stepper: Action → Media → Details → Review. A single eligible
+// action auto-selects and lands on the Media step (the chooser is skipped).
+async function clickNext(user: ReturnType<typeof userEvent.setup>) {
+  // Next is disabled while media is preparing; wait for it to settle.
+  await waitFor(() => expect(screen.getByRole("button", { name: "Next" })).not.toBeDisabled());
+  await user.click(screen.getByRole("button", { name: "Next" }));
+}
+
+async function fillRequiredField(user: ReturnType<typeof userEvent.setup>) {
+  await user.type(await screen.findByLabelText(/Plot code/), "Plot A");
+}
+
+// From the Media step, advance through Details (filling the required field) to the
+// Review step, where the Submit button lives.
+async function advanceToReview(
+  user: ReturnType<typeof userEvent.setup>,
+  { fill = true }: { fill?: boolean } = {}
+) {
+  await clickNext(user); // Media → Details
+  if (fill) await fillRequiredField(user);
+  await clickNext(user); // Details → Review (validates the work form)
+}
+
+async function submitWork(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(await screen.findByRole("button", { name: "Submit Work" }));
 }
 
 function uploadFile(container: HTMLElement, fileName = "before.png", type = "image/png") {
@@ -389,13 +460,16 @@ describe("SubmitWorkPanel submit behavior", () => {
       name: "Green Goods Community Garden",
     };
     mockState.actions = [createAction()];
+    mockState.actionsLoading = false;
     mockState.workMutationOptions = null;
     mockUseWorkMutation.mockImplementation((options) => {
       mockState.workMutationOptions = options;
       return {
         mutate: mockMutate,
         isPending: false,
+        isError: false,
         error: null,
+        reset: vi.fn(),
       };
     });
     heicToMocks.isHeic.mockResolvedValue(false);
@@ -439,12 +513,11 @@ describe("SubmitWorkPanel submit behavior", () => {
       </TestProviders>
     );
 
-    await selectActionAndFillRequiredFields(user);
-    await user.click(screen.getByRole("button", { name: "Submit Work" }));
-
-    await waitFor(() => {
-      expect(mockValidationFormError).toHaveBeenCalledWith("At least one image is required");
-    });
+    // On the Media step (single action auto-selected), advancing without the
+    // required photo is gated inline — Details never opens, the mutation never runs.
+    await clickNext(user);
+    expect(await screen.findByText(/Add at least 1 photo to continue/)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Plot code/)).not.toBeInTheDocument();
     expect(mockMutate).not.toHaveBeenCalled();
   });
 
@@ -458,12 +531,10 @@ describe("SubmitWorkPanel submit behavior", () => {
       </TestProviders>
     );
 
-    await selectActionAndFillRequiredFields(user);
-    await user.click(screen.getByRole("button", { name: "Submit Work" }));
-
-    await waitFor(() => {
-      expect(mockValidationFormError).toHaveBeenCalledWith("At least one image is required");
-    });
+    // required with no explicit count ⇒ 1 photo; the Media gate enforces it inline.
+    await clickNext(user);
+    expect(await screen.findByText(/Add at least 1 photo to continue/)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Plot code/)).not.toBeInTheDocument();
     expect(mockMutate).not.toHaveBeenCalled();
   });
 
@@ -477,8 +548,8 @@ describe("SubmitWorkPanel submit behavior", () => {
       </TestProviders>
     );
 
-    await selectActionAndFillRequiredFields(user);
-    await user.click(screen.getByRole("button", { name: "Submit Work" }));
+    await advanceToReview(user);
+    await submitWork(user);
 
     await waitFor(() => {
       expect(mockMutate).toHaveBeenCalledWith({
@@ -509,13 +580,12 @@ describe("SubmitWorkPanel submit behavior", () => {
       </TestProviders>
     );
 
-    await selectActionAndFillRequiredFields(user);
+    // One photo, two required ⇒ the Media gate blocks the advance until the
+    // minimum is met; the mutation never runs.
     uploadFile(container);
-    await user.click(screen.getByRole("button", { name: "Submit Work" }));
-
-    await waitFor(() => {
-      expect(mockValidationFormError).toHaveBeenCalledWith("At least 2 images are required");
-    });
+    await clickNext(user);
+    expect(await screen.findByText(/Add at least 2 photos to continue/)).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Plot code/)).not.toBeInTheDocument();
     expect(mockMutate).not.toHaveBeenCalled();
   });
 
@@ -528,10 +598,9 @@ describe("SubmitWorkPanel submit behavior", () => {
       </TestProviders>
     );
 
-    await selectActionAndFillRequiredFields(user);
     const file = uploadFile(container);
-
-    await user.click(screen.getByRole("button", { name: "Submit Work" }));
+    await advanceToReview(user);
+    await submitWork(user);
 
     await waitFor(() => {
       expect(mockMutate).toHaveBeenCalledWith({
@@ -567,7 +636,6 @@ describe("SubmitWorkPanel submit behavior", () => {
       </TestProviders>
     );
 
-    await selectActionAndFillRequiredFields(user);
     const rawFile = uploadFile(container, "large.png", "image/png");
 
     await waitFor(() => {
@@ -583,7 +651,8 @@ describe("SubmitWorkPanel submit behavior", () => {
       );
     });
 
-    await user.click(screen.getByRole("button", { name: "Submit Work" }));
+    await advanceToReview(user);
+    await submitWork(user);
 
     await waitFor(() => {
       expect(mockMutate).toHaveBeenCalledWith({
@@ -605,14 +674,14 @@ describe("SubmitWorkPanel submit behavior", () => {
       </TestProviders>
     );
 
-    await selectActionAndFillRequiredFields(user);
     uploadFile(container, "garden.heic", "image/heic");
 
     await waitFor(() => {
       expect(heicToMocks.heicTo).toHaveBeenCalled();
     });
 
-    await user.click(screen.getByRole("button", { name: "Submit Work" }));
+    await advanceToReview(user);
+    await submitWork(user);
 
     await waitFor(() => {
       expect(mockMutate).toHaveBeenCalledWith({
@@ -625,6 +694,15 @@ describe("SubmitWorkPanel submit behavior", () => {
   });
 
   it("blocks action switches and cancel while media is preparing", async () => {
+    mockState.actions = [
+      createAction(),
+      {
+        ...createAction(),
+        id: "42161-43",
+        slug: "agro.site_assessment_after",
+        title: "Site Assessment (After)",
+      },
+    ];
     const user = userEvent.setup();
     const compressedFile = new File(["compressed"], "large-compressed.jpg", {
       type: "image/jpeg",
@@ -652,14 +730,15 @@ describe("SubmitWorkPanel submit behavior", () => {
       </TestProviders>
     );
 
-    await selectActionAndFillRequiredFields(user);
+    // Two eligible actions → chooser shown; select one (select-in-place) then Next
+    // to enter the Media step.
+    await user.click(screen.getByRole("radio", { name: /Site Assessment \(Before\)/ }));
+    await clickNext(user);
     uploadFile(container, "large.png", "image/png");
 
-    const actionSelect = screen.getByLabelText(/Action/);
     await waitFor(() => {
-      expect(actionSelect).toBeDisabled();
-      expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
-      expect(screen.getByRole("button", { name: "Submit Work" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Back" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Next" })).toBeDisabled();
     });
 
     act(() => {
@@ -674,8 +753,8 @@ describe("SubmitWorkPanel submit behavior", () => {
     });
 
     await waitFor(() => {
-      expect(actionSelect).not.toBeDisabled();
-      expect(screen.getByRole("button", { name: "Cancel" })).not.toBeDisabled();
+      expect(screen.getByRole("button", { name: "Back" })).not.toBeDisabled();
+      expect(screen.getByRole("button", { name: "Next" })).not.toBeDisabled();
     });
   });
 
@@ -688,23 +767,21 @@ describe("SubmitWorkPanel submit behavior", () => {
       </TestProviders>
     );
 
-    await selectActionAndFillRequiredFields(user);
     uploadFile(container, "notes.txt", "text/plain");
 
     expect(
       await screen.findByText("That file is not a supported photo or video.")
     ).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: "Submit Work" }));
-
-    await waitFor(() => {
-      expect(mockValidationFormError).toHaveBeenCalledWith("At least one image is required");
-    });
     expect(mockToastInfo).toHaveBeenCalledWith(
       expect.objectContaining({
         title: "Some files were not added",
       })
     );
+
+    // No valid image was added, so advancing from Media is gated and the
+    // mutation never runs.
+    await clickNext(user);
+    expect(await screen.findByText(/Add at least 1 photo to continue/)).toBeInTheDocument();
     expect(mockMutate).not.toHaveBeenCalled();
   });
 
@@ -746,8 +823,8 @@ describe("SubmitWorkPanel submit behavior", () => {
       </TestProviders>
     );
 
-    await selectActionAndFillRequiredFields(user);
-    await user.click(screen.getByRole("button", { name: "Submit Work" }));
+    await advanceToReview(user);
+    await submitWork(user);
 
     await waitFor(() => {
       expect(mockToastError).toHaveBeenCalledWith(
@@ -762,15 +839,14 @@ describe("SubmitWorkPanel submit behavior", () => {
   });
 
   it("maps shared submission progress into the admin footer status", async () => {
-    const user = userEvent.setup();
-
     render(
       <TestProviders>
         <SubmitWorkPanel layout="page" />
       </TestProviders>
     );
 
-    await user.selectOptions(screen.getByLabelText(/Action/), actionId);
+    // Single eligible action auto-selects into the Media step, surfacing the footer.
+    await screen.findByRole("button", { name: "Next" });
 
     act(() => {
       const onProgress = mockState.workMutationOptions?.onProgress as
@@ -787,5 +863,67 @@ describe("SubmitWorkPanel submit behavior", () => {
     });
 
     expect(screen.queryByText("Uploading media...")).not.toBeInTheDocument();
+  });
+
+  it("auto-selects the only eligible action and lands on the Media step", async () => {
+    render(
+      <TestProviders>
+        <SubmitWorkPanel layout="page" />
+      </TestProviders>
+    );
+
+    // Single action → no chooser; auto-selected onto the Media step. The Plot code
+    // field lives on the later Details step, so it is not visible yet.
+    expect(await screen.findByRole("button", { name: "Next" })).toBeInTheDocument();
+    expect(screen.queryByRole("radio")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Plot code/)).not.toBeInTheDocument();
+  });
+
+  it("shows the action chooser when multiple actions are eligible", async () => {
+    mockState.actions = [
+      createAction(),
+      {
+        ...createAction(),
+        id: "42161-43",
+        slug: "agro.site_assessment_after",
+        title: "Site Assessment (After)",
+      },
+    ];
+    const user = userEvent.setup();
+
+    render(
+      <TestProviders>
+        <SubmitWorkPanel layout="page" />
+      </TestProviders>
+    );
+
+    expect(screen.getAllByRole("radio")).toHaveLength(2);
+    expect(screen.queryByLabelText(/Plot code/)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("radio", { name: /Site Assessment \(After\)/ }));
+
+    // Select-in-place: the chooser stays on the Action step with the card marked;
+    // the footer Next then advances to Media (chooser gone).
+    expect(screen.getByRole("radio", { name: /Site Assessment \(After\)/ })).toBeChecked();
+    expect(screen.getAllByRole("radio")).toHaveLength(2);
+    await user.click(screen.getByRole("button", { name: "Next" }));
+    expect(screen.queryByRole("radio")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Back" })).toBeInTheDocument();
+  });
+
+  it("shows a loading state instead of the empty state while actions load", async () => {
+    mockState.actions = [];
+    mockState.actionsLoading = true;
+
+    render(
+      <TestProviders>
+        <SubmitWorkPanel layout="page" />
+      </TestProviders>
+    );
+
+    expect(screen.getByRole("status")).toHaveAttribute("aria-busy", "true");
+    expect(
+      screen.queryByText("No actions available for this garden's domains")
+    ).not.toBeInTheDocument();
   });
 });

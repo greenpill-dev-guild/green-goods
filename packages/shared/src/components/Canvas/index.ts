@@ -51,10 +51,6 @@ export { SheetBody, type SheetBodyProps } from "./SheetBody";
 export { SheetDivider, type SheetDividerProps } from "./SheetDivider";
 export { SheetErrorBoundary, type SheetErrorBoundaryProps } from "./SheetErrorBoundary";
 export { SheetFooter, type SheetFooterProps } from "./SheetFooter";
-export {
-  SPRING_CONFIGS,
-  DISMISS_VELOCITY_THRESHOLD,
-  CHOREOGRAPHY_STAGGER_MS,
-} from "./springConfig";
+export { DISMISS_VELOCITY_THRESHOLD, CHOREOGRAPHY_STAGGER_MS } from "./springConfig";
 export { AppBar, type AppBarProps } from "./AppBar";
 export { useCanvasMobileChromeHidden } from "./useCanvasMobileChromeHidden";

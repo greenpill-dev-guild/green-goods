@@ -465,7 +465,9 @@
   --tone-surface-tint: var(--yellow-500) / 8%;
   --tone-outline: var(--yellow-200);
   --tone-surface-variant: var(--yellow-50);
-  --tone-on-surface-accent: var(--orange-700);
+  /* orange-800 (not -700) so tone-colored TEXT on the light community surface
+     clears AA — orange-700 measured 4.01:1 on the 14px current-step rail label. */
+  --tone-on-surface-accent: var(--orange-800);
   --tone-surface-tint-color: rgb(var(--yellow-500) / 8%);
 }
 

@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import type { QueryKey } from "@tanstack/react-query";
 import {
   DEFAULT_CHAIN_ID,
+  Domain,
   queryKeys,
   ToastViewport,
   type Action,
@@ -63,6 +64,59 @@ const STORYBOOK_SUBMIT_ACTIONS: Action[] = STORYBOOK_ADMIN_ACTIONS.map((action, 
           maxImageCount: 3,
         }
       : action.mediaInfo,
+}));
+
+// Multiple eligible (AGRO) actions so the chooser renders in-panel instead of
+// auto-selecting. The primary garden is AGRO-only, so these all use Domain.AGRO.
+const CHOOSER_ACTIONS: Action[] = [
+  { title: "Canopy baseline", description: "Document baseline canopy cover for the plot." },
+  {
+    title: "Canopy transect upload",
+    description: "Upload a canopy transect photo series for the plot.",
+  },
+  { title: "Regrowth note", description: "Log a quick observation on observed regrowth." },
+].map((override, index) => ({
+  ...(STORYBOOK_SUBMIT_ACTIONS[0] as Action),
+  id: `${DEFAULT_CHAIN_ID}-${index + 1}`,
+  domain: Domain.AGRO,
+  inputs: [
+    {
+      key: "plot",
+      title: "Plot code",
+      placeholder: "Plot A",
+      type: "text",
+      required: true,
+      options: [],
+    },
+  ],
+  mediaInfo: { title: "Field photos", required: true, minImageCount: 1, maxImageCount: 3 },
+  ...override,
+}));
+
+// Actions spanning two of the multi-domain garden's domains (Solar + Education),
+// so the domain filter (AdminTabRail) renders above the chooser.
+const MULTI_DOMAIN_ACTIONS: Action[] = [
+  {
+    title: "Solar array log",
+    description: "Record output from the community solar array.",
+    domain: Domain.SOLAR,
+  },
+  {
+    title: "Panel cleaning pass",
+    description: "Log a maintenance clean of the array.",
+    domain: Domain.SOLAR,
+  },
+  {
+    title: "Workshop session",
+    description: "Document a hands-on training workshop.",
+    domain: Domain.EDU,
+  },
+].map((override, index) => ({
+  ...(STORYBOOK_SUBMIT_ACTIONS[0] as Action),
+  id: `${DEFAULT_CHAIN_ID}-${index + 1}`,
+  inputs: [],
+  mediaInfo: { title: "Field photos", required: false, minImageCount: 0, maxImageCount: 3 },
+  ...override,
 }));
 
 const STORYBOOK_EMPTY_DOMAIN_GARDEN = {
@@ -157,10 +211,12 @@ function SubmitWorkRouteStory() {
   );
 }
 
-function SubmitWorkSheetStory() {
+// Renders the panel inline (not portaled) so play-test queries can scope to the
+// canvas. The responsive full-screen dialog is exercised by DialogShell.
+function SubmitWorkPanelStory() {
   return (
-    <div className="mx-auto max-w-xl p-4">
-      <SubmitWorkPanel layout="sheet" onCancel={fn()} onSuccess={fn()} />
+    <div className="mx-auto flex h-full max-w-2xl flex-col">
+      <SubmitWorkPanel layout="page" onCancel={fn()} onSuccess={fn()} />
       <ToastViewport />
     </div>
   );
@@ -175,7 +231,7 @@ const meta: Meta<typeof SubmitWorkPanel> = {
     docs: {
       description: {
         component:
-          "Real SubmitWorkPanel route and sheet states with deterministic admin garden/action fixtures.",
+          "SubmitWork hosted in the centered 2xl AdminDialog (a centered card on desktop, a bottom-sheet on mobile), plus inline panel states with deterministic admin garden/action fixtures.",
       },
     },
   },
@@ -225,30 +281,71 @@ function disconnectedDecorators() {
   ];
 }
 
-export const PageAvailableAction: Story = {
+// A single eligible action auto-selects onto Media; advancing without the
+// required photo is gated inline (not deferred to a submit-time toast).
+export const AvailableAction: Story = {
   tags: ["storybook-ci"],
-  render: () => <SubmitWorkRouteStory />,
-  decorators: submitWorkDecorators(),
+  render: () => <SubmitWorkPanelStory />,
+  decorators: submitWorkDecorators({
+    seeds: submitWorkSeeds({ actions: STORYBOOK_SUBMIT_ACTIONS.slice(0, 1) }),
+  }),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(await canvas.findByRole("heading", { name: "Submit Work" })).toBeVisible();
-    await userEvent.selectOptions(await canvas.findByLabelText(/Action/), `${DEFAULT_CHAIN_ID}-1`);
-    await expect(await canvas.findByLabelText(/Plot code/)).toBeVisible();
-    await expect(await canvas.findByLabelText("Time Spent (hours)")).toBeVisible();
-    await userEvent.type(await canvas.findByLabelText(/Plot code/), "Plot A");
-    await userEvent.click(await canvas.findByRole("button", { name: "Submit Work" }));
-    const page = within(canvasElement.ownerDocument.body);
-    await expect(await page.findByText("At least one image is required")).toBeVisible();
+    // Single action auto-selects onto the Media step. The required photo is gated
+    // here: advancing without it shows an inline error and the Details fields stay
+    // out of reach.
+    await userEvent.click(await canvas.findByRole("button", { name: "Next" }));
+    await expect(await canvas.findByText(/Add at least 1 photo to continue/)).toBeVisible();
+    await expect(canvas.queryByLabelText(/Plot code/)).not.toBeInTheDocument();
   },
 };
 
-export const SheetAvailableAction: Story = {
-  render: () => <SubmitWorkSheetStory />,
-  decorators: submitWorkDecorators(),
+// Multiple eligible actions → the scannable card chooser (radiogroup).
+export const ActionChooser: Story = {
+  tags: ["storybook-ci"],
+  render: () => <SubmitWorkPanelStory />,
+  decorators: submitWorkDecorators({ seeds: submitWorkSeeds({ actions: CHOOSER_ACTIONS }) }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    const cards = await canvas.findAllByRole("radio");
+    expect(cards.length).toBeGreaterThan(1);
+    await userEvent.click(cards[0]);
+    // Select-in-place: the card is marked but the chooser stays on the Action
+    // step; the footer Next then advances to Media (chooser gone).
+    await expect(cards[0]).toBeChecked();
+    expect(canvas.getAllByRole("radio").length).toBeGreaterThan(1);
+    await userEvent.click(await canvas.findByRole("button", { name: "Next" }));
+    await expect(canvas.queryByRole("radio")).not.toBeInTheDocument();
+  },
+};
+
+// Multi-domain garden → the domain filter (AdminTabRail) renders above the
+// chooser. The primary garden is AGRO-only, so this is the only coverage of the
+// >1-domain filter branch.
+export const DomainFilter: Story = {
+  tags: ["storybook-ci"],
+  render: () => <SubmitWorkPanelStory />,
+  decorators: submitWorkDecorators({
+    garden: STORYBOOK_ADMIN_GARDENS[1] as SharedGarden,
+    seeds: submitWorkSeeds({ actions: MULTI_DOMAIN_ACTIONS }),
+  }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByRole("tablist")).toBeVisible();
+    expect((await canvas.findAllByRole("radio")).length).toBeGreaterThan(1);
+  },
+};
+
+// Centered 2xl AdminDialog housing (portals to document body) — visual review of
+// the real flow inside its modal host: single header, scrolling body, pinned footer.
+export const DialogShell: Story = {
+  render: () => <SubmitWorkRouteStory />,
+  decorators: submitWorkDecorators({ seeds: submitWorkSeeds({ actions: CHOOSER_ACTIONS }) }),
 };
 
 export const NoDomainRecovery: Story = {
-  render: () => <SubmitWorkRouteStory />,
+  tags: ["storybook-ci"],
+  render: () => <SubmitWorkPanelStory />,
   decorators: submitWorkDecorators({
     garden: STORYBOOK_EMPTY_DOMAIN_GARDEN,
     seeds: submitWorkSeeds({
@@ -265,7 +362,7 @@ export const NoDomainRecovery: Story = {
 };
 
 export const NoPermission: Story = {
-  render: () => <SubmitWorkRouteStory />,
+  render: () => <SubmitWorkPanelStory />,
   decorators: submitWorkDecorators({
     garden: STORYBOOK_REVIEW_ONLY_GARDEN,
     seeds: submitWorkSeeds({
@@ -281,7 +378,7 @@ export const NoPermission: Story = {
 };
 
 export const Unauthenticated: Story = {
-  render: () => <SubmitWorkSheetStory />,
+  render: () => <SubmitWorkPanelStory />,
   decorators: disconnectedDecorators(),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);

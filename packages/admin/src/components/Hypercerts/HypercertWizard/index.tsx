@@ -1,21 +1,24 @@
 import {
-  Button,
+  Alert,
   ErrorBoundary,
   logger,
   TOTAL_UNITS,
   toastService,
+  useStepFocus,
   useWizardData,
   type HypercertCompletionData,
   type HypercertWizardProps,
 } from "@green-goods/shared";
 import { useIntl } from "react-intl";
+import { AdminButton } from "@/components/AdminButton";
 import { AdminConfirmDialog } from "@/components/AdminDialog";
+import { AdminLinearProgress } from "@/components/AdminLinearProgress";
 import { MintingDialog } from "@/components/Hypercerts/MintingDialog";
 import { AttestationSelector } from "@/components/Hypercerts/Steps/AttestationSelector";
 import { DistributionConfig } from "@/components/Hypercerts/Steps/DistributionConfig";
 import { HypercertPreview } from "@/components/Hypercerts/Steps/HypercertPreview";
 import { MetadataEditor } from "@/components/Hypercerts/Steps/MetadataEditor";
-import { FormFlow, toFormFlowSections } from "@/components/Layout/FormFlow";
+import { ActionFlowShell } from "@/components/Layout/ActionFlowShell";
 
 export type { HypercertCompletionData };
 export type { HypercertWizardProps };
@@ -29,9 +32,13 @@ export function HypercertWizard({
   const { formatMessage } = useIntl();
 
   const wizard = useWizardData({ gardenId, gardenName, onComplete });
+  const stepRef = useStepFocus<HTMLDivElement>(wizard.currentStep);
   const mintDisabled = wizard.isSubmitting || wizard.selectedAttestations.length === 0;
   const validationMessage =
     wizard.selectedAttestations.length === 0 ? wizard.validationMessage : undefined;
+  const isFirstStep = wizard.currentStep === 1;
+  const isLastStep = wizard.currentStep === wizard.steps.length;
+  const activeStep = wizard.steps[wizard.currentStep - 1];
 
   const sectionContent = {
     attestations: (
@@ -142,40 +149,77 @@ export function HypercertWizard({
         variant="warning"
         isLoading={wizard.restoreDraftPending}
       />
-      <FormFlow
-        layout="sheet"
-        sections={toFormFlowSections(wizard.steps, sectionContent)}
-        feedback={
-          validationMessage ? (
-            <div
-              role="status"
-              className="rounded-[var(--radius-lg)] border border-warning-light bg-warning-lighter px-3 py-2 text-sm text-warning-dark"
-            >
-              {validationMessage}
+      <ActionFlowShell
+        layout="dialog"
+        title={formatMessage({ id: "app.hypercerts.create.title" })}
+        context={gardenName}
+        steps={wizard.steps}
+        currentStep={wizard.currentStep}
+        onStepClick={(step) => wizard.handleStepClick(step - 1)}
+        footer={
+          // Mobile: status on top, compact secondary, full-width primary CTA.
+          // Desktop: status left, button pair right. SheetFooter is a fixed
+          // inline-flex row, so this single w-full child owns the responsive layout.
+          <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="min-w-0 sm:flex-1" aria-live="polite">
+              {wizard.isSubmitting ? <AdminLinearProgress ariaLabel={wizard.submitLabel} /> : null}
             </div>
-          ) : undefined
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+              <AdminButton
+                type="button"
+                variant={isFirstStep ? "text" : "outlined"}
+                onClick={isFirstStep ? onCancel : wizard.previousStep}
+                disabled={wizard.isSubmitting}
+                className="self-start sm:self-auto"
+              >
+                {isFirstStep
+                  ? formatMessage({ id: "app.wizard.cancel", defaultMessage: "Cancel" })
+                  : formatMessage({ id: "app.common.back", defaultMessage: "Back" })}
+              </AdminButton>
+              {isLastStep ? (
+                <AdminButton
+                  type="button"
+                  variant="filled"
+                  onClick={wizard.handleMint}
+                  disabled={mintDisabled}
+                  loading={wizard.isSubmitting}
+                  className="w-full sm:w-auto"
+                >
+                  {wizard.submitLabel}
+                </AdminButton>
+              ) : (
+                <AdminButton
+                  type="button"
+                  variant="filled"
+                  onClick={wizard.nextStep}
+                  disabled={wizard.nextDisabled || wizard.isSubmitting}
+                  className="w-full sm:w-auto"
+                >
+                  {formatMessage({ id: "app.common.next", defaultMessage: "Next" })}
+                </AdminButton>
+              )}
+            </div>
+          </div>
         }
-        actions={
-          <>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={onCancel}
-              disabled={wizard.isSubmitting}
-            >
-              {formatMessage({ id: "app.wizard.cancel", defaultMessage: "Cancel" })}
-            </Button>
-            <Button
-              type="button"
-              onClick={wizard.handleMint}
-              disabled={mintDisabled}
-              loading={wizard.isSubmitting}
-            >
-              {wizard.submitLabel}
-            </Button>
-          </>
-        }
-      />
+      >
+        {activeStep ? (
+          <div
+            ref={stepRef}
+            tabIndex={-1}
+            data-region={`hypercert-step-${activeStep.id}`}
+            className="space-y-4 outline-none"
+          >
+            <div>
+              <h2 className="text-base font-semibold text-text-strong">{activeStep.title}</h2>
+              {activeStep.description ? (
+                <p className="mt-0.5 text-sm text-text-sub">{activeStep.description}</p>
+              ) : null}
+            </div>
+            {validationMessage ? <Alert variant="warning">{validationMessage}</Alert> : null}
+            {sectionContent[activeStep.id as keyof typeof sectionContent]}
+          </div>
+        ) : null}
+      </ActionFlowShell>
       <MintingDialog
         mintingState={wizard.mintingState}
         chainId={wizard.chainId}

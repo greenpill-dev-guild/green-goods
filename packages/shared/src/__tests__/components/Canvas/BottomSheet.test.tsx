@@ -1,7 +1,6 @@
 // packages/shared/src/__tests__/components/Canvas/BottomSheet.test.tsx
-import { Globals } from "@react-spring/web";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { IntlProvider } from "react-intl";
 import { BottomSheet } from "../../../components/Canvas/BottomSheet";
 
@@ -54,20 +53,11 @@ describe("BottomSheet", () => {
 });
 
 describe("BottomSheet open transition", () => {
-  beforeEach(() => {
-    Globals.assign({ skipAnimation: true });
-  });
-
-  afterEach(() => {
-    Globals.assign({ skipAnimation: false });
-  });
-
   it("reaches the open pose when opened after mount despite trailing re-renders", async () => {
-    // Mirrors the LeftSheet/RightSheet regression: react-spring re-applies the
-    // spring's declared update on every commit, so the pose must be declared
-    // through the useSpring deps array. With no deps it stays the initial
-    // closed pose forever and trailing commits park the sheet offscreen at
-    // y=100 (translateY(100%)) instead of reaching the open pose.
+    // Mirrors the LeftSheet/RightSheet regression: the CSS slide pose is
+    // React-declared and persists across re-renders, so trailing commits must
+    // not park the sheet offscreen at y=100 (translateY(100%)) instead of
+    // reaching the open pose.
     const onClose = vi.fn();
     const view = renderWithIntl(
       <BottomSheet open={false} onClose={onClose} title="Filters">

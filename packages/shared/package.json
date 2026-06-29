@@ -69,7 +69,6 @@
     "@hypercerts-org/marketplace-sdk": "^0.8.0",
     "@hypercerts-org/sdk": "^2.9.1",
     "@radix-ui/react-popover": "^1.1.15",
-    "@react-spring/web": "^10.0.3",
     "@reown/appkit": "^1.8.14",
     "@reown/appkit-adapter-wagmi": "^1.8.14",
     "@use-gesture/react": "^10.3.1",

@@ -149,8 +149,12 @@ export const AdminTextField = React.forwardRef<HTMLInputElement, AdminTextFieldP
           {/* Container */}
           <div
             className={cn(
-              // Shape: extra-small-top only (top corners rounded, bottom flat)
-              "rounded-t-[var(--m3-shape-xs)] rounded-b-none",
+              // Shape: small-top only (top corners rounded, bottom flat). 8px
+              // (--m3-shape-sm, the chip/sm tier) is a deliberate step up from the
+              // 4px M3 outlined-field xs, which read as too square. NOTE this does
+              // not match the sibling cards (chooser 16px, review 20px, AdminCard
+              // 12px) — it's the field's own tier, applied across admin fields.
+              "rounded-t-[var(--m3-shape-sm)] rounded-b-none",
               // Height
               "min-h-14",
               // Background
@@ -311,8 +315,10 @@ export const AdminTextField = React.forwardRef<HTMLInputElement, AdminTextFieldP
         {/* Container with outline ring */}
         <div
           className={cn(
-            // Shape: all corners extra-small
-            "rounded-[var(--m3-shape-xs)]",
+            // Shape: all corners small (8px, --m3-shape-sm, the chip/sm tier) — a
+            // deliberate step up from the 4px M3 xs, which read as too square.
+            // (Field's own tier; not matched to the sibling cards at 12-20px.)
+            "rounded-[var(--m3-shape-sm)]",
             // Height
             "min-h-14",
             // Background

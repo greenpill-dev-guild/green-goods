@@ -372,7 +372,9 @@
 
   --text-strong-950: var(--neutral-950);
   --text-sub-600: var(--neutral-600);
-  --text-soft-400: var(--neutral-400);
+  /* neutral-500 (stone, ~4.8:1 on white) not -400 (2.52:1) — tertiary text must
+     clear WCAG 1.4.3 AA. Dark mode keeps -400 (light-on-dark already passes). */
+  --text-soft-400: var(--neutral-500);
   --text-disabled-300: var(--neutral-300);
   --text-white-0: var(--neutral-0);
 
@@ -828,7 +830,9 @@
 
   .gg-control[data-surface="admin"] {
     border-color: rgb(var(--stroke-sub-300));
-    border-radius: var(--m3-shape-md, var(--radius-lg));
+    /* 8px to match the admin text fields (AdminTextField) — keeps every admin
+       input at one corner radius rather than fields at 8px and textareas at 12px. */
+    border-radius: var(--m3-shape-sm, var(--radius-md));
     background: rgb(var(--m3-surface, var(--bg-white-0)));
     color: rgb(var(--m3-on-surface, var(--text-strong-950)));
   }

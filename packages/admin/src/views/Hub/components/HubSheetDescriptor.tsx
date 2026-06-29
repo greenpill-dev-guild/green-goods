@@ -3,7 +3,6 @@ import {
   type AdminHubRouteContext,
   adminRoutes,
   SheetBody,
-  SUBMIT_WORK_CONTENT_ID,
   useRouteBackedLeftSheetConfig,
   type ActivityEvent,
   type Work,
@@ -11,7 +10,6 @@ import {
 import { useCallback, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
-import { SubmitWorkPanel } from "@/views/Garden/SubmitWork";
 import { WorkDetailPanel } from "@/views/Garden/WorkDetail";
 import { HubCertificationInspector } from "./HubCertificationInspector";
 import { HubHistoryInspector } from "./HubHistoryInspector";
@@ -75,7 +73,6 @@ function SheetResolutionState({
  * Calls useLeftSheetConfig internally — render this component inside HubView.
  */
 export function HubSheetDescriptor({
-  routeSheetContentId,
   routeWorkId,
   routeCertificationId,
   routeHistoryEventId,
@@ -98,19 +95,9 @@ export function HubSheetDescriptor({
   }, [onBeforeClose, onNavigateToBase]);
 
   const sheetDescriptor = useMemo(() => {
-    if (routeSheetContentId === SUBMIT_WORK_CONTENT_ID) {
-      return {
-        title: formatMessage({ id: "app.admin.work.submit.title", defaultMessage: "Submit Work" }),
-        content: (
-          <SubmitWorkPanel
-            layout="sheet"
-            onSuccess={handlePanelClose}
-            onCancel={handlePanelClose}
-          />
-        ),
-      };
-    }
-
+    // Submit Work is no longer a Hub inspector sheet — it owns its own route
+    // (/hub/work/submit → submitWorkView). This descriptor only resolves the
+    // read/review inspectors (work detail, certification, history).
     const resolvedWorkDetailId = routeWorkId ?? activeWorkDetailId;
 
     if (resolvedWorkDetailId) {
@@ -192,7 +179,6 @@ export function HubSheetDescriptor({
     activeWorkDetailId,
     routeCertificationId,
     routeHistoryEventId,
-    routeSheetContentId,
     routeWorkId,
     selectedCertification,
     selectedHistoryEvent,

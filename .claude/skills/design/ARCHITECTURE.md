@@ -89,7 +89,7 @@ AI design tools should map output to these exports. Full palette lives in the pr
 
 **Client / shared** (`packages/shared/src/components/`, exported from `@green-goods/shared`):
 - Shell: presentation-mode loaders, `PublicShell` (browser), `PwaRuntime` / `AppShell` (installed PWA), `SiteHeader` (browser), `AppBar` (installed PWA)
-- Dialogs: `DialogShell` (default across client + admin)
+- Dialogs: `DialogShell` (client / shared default; admin dashboard dialogs use `AdminDialog`)
 - Cards / status: `Card`, `StatCard`, `StatusBadge`, `Alert`
 - Primitives: `Button`, `Skeleton`, `Spinner`, `FileUploadField`, `ListPrimitives`, `Surface`, `SyncStatusBar`, `AddressDisplay`, `DomainBadge`
 
