@@ -18,16 +18,19 @@ const DEFAULTS = {
 
 const SHARDS = {
   arbitrum: {
+    chain: "ARBITRUM",
     description: "Arbitrum core, ENS, Gardens module, EAS, Hypercerts, Karma GAP, and full-protocol fork coverage",
     glob:
       "test/fork/{ArbitrumActionRegistry,ArbitrumConvictionVoting,ArbitrumENS,ArbitrumGardenAccount,ArbitrumGardenAccountConfig,ArbitrumGardenAccountMembership,ArbitrumGardenAccountMetadata,ArbitrumGardenToken,ArbitrumGardensModule,ArbitrumGardensNegativePaths,ArbitrumGoodsToken,ArbitrumHats,ArbitrumHypercerts,ArbitrumKarmaGAP,ArbitrumLiveGardenSignalPoolRepair,ArbitrumMultiGardenIsolation,ArbitrumNegativePaths,ArbitrumRoleRevocation,e2e/ArbitrumFullProtocolE2E,eas/ArbitrumEASAttestationLifecycle}.t.sol",
   },
   sepolia: {
+    chain: "SEPOLIA",
     description: "Sepolia protocol, EAS, ENS, Karma GAP, CookieJar, and full-protocol fork coverage",
     glob:
       "test/fork/{SepoliaActionRegistry,SepoliaConvictionVoting,SepoliaCookieJar,SepoliaENS,SepoliaGardenAccount,SepoliaGardenAccountConfig,SepoliaGardenAccountMembership,SepoliaGardenAccountMetadata,SepoliaGardenToken,SepoliaGardensModule,SepoliaGoodsToken,SepoliaHats,SepoliaKarmaGAP,SepoliaNegativePaths,e2e/FullProtocolE2E,e2e/SepoliaExtendedE2E,eas/EASAttestationLifecycle}.t.sol",
   },
   ethereum: {
+    chain: "ETHEREUM",
     description: "Ethereum mainnet ENS receiver, NameWrapper, and cross-chain ENS fork coverage",
     glob: "test/fork/{CrossChainENS,EthereumENSNameWrapper,EthereumENSReceiver}.t.sol",
   },
@@ -36,6 +39,7 @@ const SHARDS = {
     glob: "test/fork/{DeploymentRegistryFork,gardens/GardensCommunityGovernance,gardens/GardensV2Community}.t.sol",
   },
   octant: {
+    chain: "ARBITRUM",
     description: "Arbitrum Octant, Aave strategy, vault, yield splitter, CookieJar, and GreenWill readiness coverage",
     glob:
       "test/fork/{ArbitrumAaveStrategy,ArbitrumCookieJar,ArbitrumGreenWillSupport,ArbitrumOctantVault,ArbitrumVaultYieldE2E,ArbitrumYieldSplitterCore,e2e/ArbitrumExtendedE2E}.t.sol",
@@ -108,6 +112,19 @@ function commonArgs() {
   return args;
 }
 
+function forkArgsForChain(chain, profile = "fork") {
+  if (!chain) return [];
+
+  const env = forgeEnv(profile);
+  const rpc = env[`${chain}_FORK_RPC_URL`] || env[`${chain}_RPC_URL`];
+  if (!rpc) return [];
+
+  const blockNumber = env[`${chain}_FORK_BLOCK_NUMBER`] || env[`${chain}_BLOCK_NUMBER`];
+  const args = ["--fork-url", rpc];
+  if (blockNumber) args.push("--fork-block-number", blockNumber);
+  return args;
+}
+
 function runShard(name) {
   const shard = SHARDS[name];
   if (!shard) {
@@ -117,11 +134,24 @@ function runShard(name) {
 
   console.log(`[fork-shard] ${name}: ${shard.description}`);
   console.log(`[fork-shard] match-path: ${shard.glob}`);
-  runForge(["test", "--match-path", shard.glob, ...commonArgs()]);
+  const forkArgs = forkArgsForChain(shard.chain);
+  if (forkArgs.length) {
+    console.log(`[fork-shard] ${name}: using pinned ${shard.chain.toLowerCase()} process fork`);
+  }
+  runForge(["test", "--match-path", shard.glob, ...forkArgs, ...commonArgs()]);
 
   for (const extraRun of shard.extraRuns || []) {
     console.log(`[fork-shard] ${name}: ${extraRun.description}`);
-    const args = ["test", "--match-path", extraRun.glob, "--match-test", extraRun.matchTest, ...commonArgs()];
+    const extraForkArgs = forkArgsForChain(extraRun.chain || shard.chain, extraRun.profile || "fork");
+    const args = [
+      "test",
+      "--match-path",
+      extraRun.glob,
+      "--match-test",
+      extraRun.matchTest,
+      ...extraForkArgs,
+      ...commonArgs(),
+    ];
     runForge(args, { profile: extraRun.profile });
   }
 }
@@ -132,6 +162,7 @@ function listShard(name) {
     console.error(`Unknown fork shard: ${name}`);
     usage(1);
   }
+  console.log(`[fork-shards] listing ${name}`);
   return listTests(shard.glob);
 }
 
@@ -156,6 +187,7 @@ function flattenTests(listing) {
 }
 
 function checkCoverage() {
+  console.log("[fork-shards] listing baseline");
   const baseline = flattenTests(listTests("test/fork/**"));
   const baselineSet = new Set(baseline);
   const seen = new Map();

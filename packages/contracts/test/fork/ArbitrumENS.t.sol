@@ -42,6 +42,8 @@ contract ArbitrumENSForkTest is Test {
     // ═══════════════════════════════════════════════════════════════════════════
 
     function _tryFork() internal returns (bool) {
+        if (block.chainid == 42_161) return true;
+
         string memory rpc;
         try vm.envString("ARBITRUM_FORK_RPC_URL") returns (string memory value) {
             rpc = value;
