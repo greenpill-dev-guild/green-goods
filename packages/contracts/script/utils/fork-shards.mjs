@@ -30,6 +30,7 @@ const SHARDS = {
       "test/fork/{SepoliaActionRegistry,SepoliaConvictionVoting,SepoliaCookieJar,SepoliaENS,SepoliaGardenAccount,SepoliaGardenAccountConfig,SepoliaGardenAccountMembership,SepoliaGardenAccountMetadata,SepoliaGardenToken,SepoliaGardensModule,SepoliaGoodsToken,SepoliaHats,SepoliaKarmaGAP,SepoliaNegativePaths,e2e/FullProtocolE2E,e2e/SepoliaExtendedE2E,eas/EASAttestationLifecycle}.t.sol",
   },
   ethereum: {
+    chain: "ETHEREUM",
     description: "Ethereum mainnet ENS receiver, NameWrapper, and cross-chain ENS fork coverage",
     glob: "test/fork/{CrossChainENS,EthereumENSNameWrapper,EthereumENSReceiver}.t.sol",
   },
