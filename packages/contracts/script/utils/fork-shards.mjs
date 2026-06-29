@@ -8,7 +8,6 @@ const NO_MATCH_TEST = ".*[cC]elo.*|.*[uU]nlock.*";
 const DEFAULT_THREADS = "1";
 const DEFAULT_VERBOSITY = "-vvv";
 const DEFAULT_FORK_RETRIES = "5";
-const DEFAULT_FORK_RETRY_BACKOFF = "500";
 const DEFAULTS = {
   ARBITRUM_RPC_URL: "https://arbitrum-one.public.blastapi.io",
   ARBITRUM_FORK_BLOCK_NUMBER: "466388412",
@@ -104,7 +103,7 @@ function runForge(args, { profile = "fork", capture = false } = {}) {
 function commonArgs() {
   const verbosity = process.env.FORK_TEST_VERBOSITY || DEFAULT_VERBOSITY;
   const forkRetries = process.env.FORK_TEST_RETRIES || DEFAULT_FORK_RETRIES;
-  const forkRetryBackoff = process.env.FORK_TEST_RETRY_BACKOFF || DEFAULT_FORK_RETRY_BACKOFF;
+  const forkRetryBackoff = process.env.FORK_TEST_RETRY_BACKOFF;
   const args = [
     "--no-match-test",
     NO_MATCH_TEST,
