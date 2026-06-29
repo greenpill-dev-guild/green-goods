@@ -89,11 +89,11 @@ Superpowers plans save to `.plans/active/<feature-name>/plan.todo.md` (not the s
 
 The `docs/` directory contains a Docusaurus site with product documentation, user guides, and developer references. When investigating domain questions, architecture decisions, or user-facing behavior, consult:
 
-- System architecture (diagrams): `docs/docs/developers/architecture.mdx`
-- Domain glossary: `docs/docs/glossary.md`
-- Impact model (CIDS): `docs/docs/concepts/impact-model.mdx`
-- Strategy and goals: `docs/docs/concepts/strategy-and-goals.mdx`
-- Entity matrix: `docs/docs/developers/reference/entity-matrix.mdx`
+- System architecture (diagrams): `docs/docs/builders/architecture.mdx`
+- Domain glossary: `docs/docs/reference/glossary-community.md`
+- Impact model & Eight Forms of Capital: `docs/docs/reference/design-research.md`
+- Action domains, goals & schema registry: `docs/docs/builders/specs/v1-0.mdx`
+- Entity matrix: `docs/docs/builders/integrations/entity-matrix.mdx`
 
 Package-specific context files (`.claude/context/*.md`) include additional documentation references relevant to each package.
 
