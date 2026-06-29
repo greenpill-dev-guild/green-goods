@@ -43,7 +43,7 @@ stateDiagram-v2
     [*] --> SeasonOpen
     SeasonOpen --> BaselineAssessed: evaluator sets the garden baseline (Hub Assess stage)
     BaselineAssessed --> WorksAccumulating: gardeners submit + operators approve
-    WorksAccumulating --> ReadyToCertify: Hub Certify bundles approved work + assessment
+    WorksAccumulating --> ReadyToCertify: Hub Certify mints a Hypercert from approved work
 
     state "Hypercert minting" as Mint {
         ReadyToCertify --> DraftingHypercert: useHypercertDraft
@@ -81,7 +81,7 @@ stateDiagram-v2
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | ReadyToCertify | B | `admin` / `views/Hub` (stage `certify`) | `useGardenAssessments`, `HubCertificationQueue`, `HubCertificationInspector` | Reads attested assessments via EAS | shipped |
 | 2 | DraftingHypercert | B | `admin` / `views/Hub/CreateHypercert.tsx` | `useCreateHypercertController`, `useHypercertDraft`, `useCreateHypercertWorkflow` | IndexedDB draft persistence | shipped |
-| 3 | SelectingAttestations | B | same | `useHypercertAllowlist` | Bundles work + assessment attestation UIDs into `Hypercert.attestationUIDs` | shipped |
+| 3 | SelectingAttestations | B | same | `useHypercertAllowlist` | Bundles the selected approved-work attestation UIDs into `Hypercert.attestationUIDs` (the assessment drives filtering/prefill, not the bundle) | shipped |
 | 4 | AssigningWeights | B | same | `useHypercertContributorWeights` | Per-contributor unit allocation | shipped |
 | 5 | Minting | B | same | `useMintHypercert` | Mints hypercert via Hypercerts contract; emits Transfer event | shipped |
 | 6 | HypercertActive | (system) | Envio | event handlers | Creates `Hypercert` entity (status `ACTIVE`), tokenId, totalUnits | shipped |
@@ -123,6 +123,6 @@ stateDiagram-v2
 ## Notes for builders
 
 - The 3-way split (`cookieJarAmount` / `fractionsAmount` / `juiceboxAmount`) is per-garden and lives on the `YieldAllocation` indexer entity. Always read aggregated yield via `useGardenYieldSummary` and `useProtocolYieldSummary`, not by re-summing individual events client-side.
-- `Hypercert.attestationUIDs` is the canonical link from a hypercert back to its EAS work + assessment attestations. The hypercert is the bundle; the attestations are the evidence. Don't deep-link from hypercerts to individual works without going through this field.
+- `Hypercert.attestationUIDs` is the canonical link from a hypercert back to its EAS work attestations. The hypercert is the bundle; the work attestations are the evidence. Don't deep-link from hypercerts to individual works without going through this field.
 - Octant Vault auto-buy of listed hypercerts is described in spec § 3.3 but there is no automation in this codebase. If you build it, model it as an off-chain bot that watches `useHypercertListings` and submits buy transactions when funded — not as a contract change.
 - A "Season close" primitive does not exist in the contract surface today. If you scope the orchestration: define a public Season read model and a write path (operator-callable, gated by Owner hat) that snapshots the works + assessments + hypercerts set and emits a Season event the indexer can materialize.

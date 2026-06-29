@@ -46,7 +46,7 @@ stateDiagram-v2
     Submitting --> ResolverGate: EAS onAttest
     ResolverGate --> Attested: HatsModule.isEvaluator(attester) = true
     ResolverGate --> Rejected: hat check fails
-    Attested --> AvailableAtCertify: Hub Certify stage bundles it with approved work
+    Attested --> AvailableAtCertify: Hub Certify mints a Hypercert from approved work
     Rejected --> [*]
     AvailableAtCertify --> [*]
 ```
@@ -72,7 +72,7 @@ stateDiagram-v2
 | 7 | Submitting | B / C | same | `useCreateAssessmentWorkflow` | EAS `attest(AssessmentSchema)` — stores `domain` + `assessmentConfigCID` | shipped |
 | 8 | ResolverGate | (chain) | `AssessmentResolver` (contracts) | onchain | Calls `HatsModule.isEvaluator(attester)`. **The hat check is the actual evaluator gate, not a UI gate.** | shipped |
 | 9 | Attested | C | EAS | indexed via EAS GraphQL → `getGardenAssessments` | Available to Hub Certify stage | shipped |
-| 10 | AvailableAtCertify | B | `admin` / `views/Hub` (stage `certify`) → `HubCertificationInspector` | `useGardenAssessments`, `useCreateHypercertWorkflow` | The Hypercert bundles approved work **with** this assessment (`Hypercert.attestationUIDs`) | shipped |
+| 10 | AvailableAtCertify | B | `admin` / `views/Hub` (stage `certify`) → `HubCertificationInspector` | `useGardenAssessments`, `useCreateHypercertWorkflow` | The Hypercert bundles the approved work into `Hypercert.attestationUIDs`; this assessment drives certify-stage filtering and prefill (its UID is not bundled) | shipped |
 
 ## Evaluator surface: served by Garden workspace via role-permissioned visibility
 
