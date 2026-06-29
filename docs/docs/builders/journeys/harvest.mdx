@@ -41,9 +41,9 @@ How a Season's accumulated impact gets converted into hypercerts, distributed yi
 ```mermaid
 stateDiagram-v2
     [*] --> SeasonOpen
-    SeasonOpen --> WorksAccumulating: gardeners submit + operators approve
-    WorksAccumulating --> AssessmentsAttested: evaluation journey runs
-    AssessmentsAttested --> ReadyToCertify: Hub Certify stage shows assessments
+    SeasonOpen --> BaselineAssessed: evaluator sets the garden baseline (Hub Assess stage)
+    BaselineAssessed --> WorksAccumulating: gardeners submit + operators approve
+    WorksAccumulating --> ReadyToCertify: Hub Certify bundles approved work + assessment
 
     state "Hypercert minting" as Mint {
         ReadyToCertify --> DraftingHypercert: useHypercertDraft

@@ -25,30 +25,30 @@ import {StatusBadge} from "@site/src/components/docs";
 
 <StatusBadge status="Live" />
 
-How approved work is bundled and assessed by the people who can vouch for it. The authority boundary is on-chain: `AssessmentResolver` calls `HatsModule.isEvaluator(attester)` before permitting an EAS attestation. Operators draft and evaluators (hat-holders) attest from the **same admin Garden + Hub surfaces** — visibility and permission are role-permissioned per garden, not split into a separate workspace.
+How a garden's baseline assessment is drafted and attested by the people who can vouch for it. The authority boundary is on-chain: `AssessmentResolver` calls `HatsModule.isEvaluator(attester)` before permitting an EAS attestation. Operators draft and evaluators (hat-holders) attest from the **same admin Garden + Hub surfaces** — visibility and permission are role-permissioned per garden, not split into a separate workspace.
 
 ## Personas
 
-- **B: Operator** — drives the Hub Assess stage; bundles approved works into an assessment.
+- **B: Operator** — drives the Hub Assess stage; drafts the garden's baseline assessment (diagnosis, SMART-outcome targets, selected actions, reporting period).
 - **C: Evaluator** — domain expert who signs the assessment with the Evaluator hat. Currently has no dedicated UI; evaluators with the hat use the same admin surface as operators.
 
 ## State machine
 
 ```mermaid
 stateDiagram-v2
-    [*] --> ApprovedWorks
-    ApprovedWorks --> Drafting: Hub stage Assess + FAB Create Assessment
-    Drafting --> SelectingDomain: AssessmentForm.domain
-    SelectingDomain --> SelectingScope: pick approved works
-    SelectingScope --> AttachingMedia: optional sensor logs / photos
+    [*] --> Drafting: Hub stage Assess + FAB Create Assessment
+    Drafting --> DomainContext: title, description, location, domain
+    DomainContext --> StrategyKernel: diagnosis + SMART-outcome targets
+    StrategyKernel --> ActionsHarvest: select action templates + reporting period
+    ActionsHarvest --> AttachingMedia: optional sensor logs / photos
     AttachingMedia --> Reviewing: createAssessmentMachine handoff
     Reviewing --> Submitting: useCreateAssessmentWorkflow
     Submitting --> ResolverGate: EAS onAttest
     ResolverGate --> Attested: HatsModule.isEvaluator(attester) = true
     ResolverGate --> Rejected: hat check fails
-    Attested --> ReadyToCertify: Hub stage Certify shows it
+    Attested --> AvailableAtCertify: Hub Certify stage bundles it with approved work
     Rejected --> [*]
-    ReadyToCertify --> [*]
+    AvailableAtCertify --> [*]
 ```
 
 ## Entry points
@@ -63,16 +63,16 @@ stateDiagram-v2
 
 | # | State | Persona | Surface (package + view) | Hook / Service | Side effects | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | ApprovedWorks | B | `admin` / `views/Hub` (stage `assess`) | `useReviewerWorks`, `HubAssessmentQueue` | Read approved Works + WorkApprovals from EAS via `eas.ts` | shipped |
-| 2 | Drafting | B / C | `admin` / `views/Hub/CreateAssessment.tsx` | `useCreateAssessmentController`, `useCreateAssessmentForm` (RHF + Zod) | IndexedDB draft via `useAssessmentDraft` | shipped |
-| 3 | SelectingDomain | B / C | same | `useCreateAssessmentForm.domain` | Domain mapped to contract enum (`AssessmentSchema.domain` uint8) | shipped |
-| 4 | SelectingScope | B / C | same | `useCreateAssessmentForm.workSelection` | Pulls approved work UIDs via `useGardenDerivedState` | shipped |
+| 1 | Drafting | B / C | `admin` / `views/Hub/CreateAssessment.tsx` | `useCreateAssessmentController`, `useCreateAssessmentForm` (RHF + Zod) | IndexedDB draft via `useAssessmentDraft` | shipped |
+| 2 | Domain & Context | B / C | same | `useCreateAssessmentForm` (`domain`, title, description, location) | Domain mapped to contract enum (`AssessmentSchema.domain` uint8) | shipped |
+| 3 | Strategy Kernel | B / C | same | `useCreateAssessmentForm` (`diagnosis`, `smartOutcomes` — at least one required) | The SMART-outcome targets the work is later measured against | shipped |
+| 4 | Actions & Harvest | B / C | same | `useCreateAssessmentForm` (`selectedActionUIDs`, `reportingPeriodStart/End`) | Selects which action templates the assessment covers + the reporting window | shipped |
 | 5 | AttachingMedia | B / C | same | shared media upload | IPFS pin via Pinata | shipped |
 | 6 | Reviewing | B / C | same | `createAssessmentMachine` (xstate-style state) | UI handoff before submit | shipped |
-| 7 | Submitting | B / C | same | `useCreateAssessmentWorkflow` | EAS `attest(AssessmentSchema)` | shipped |
+| 7 | Submitting | B / C | same | `useCreateAssessmentWorkflow` | EAS `attest(AssessmentSchema)` — stores `domain` + `assessmentConfigCID` | shipped |
 | 8 | ResolverGate | (chain) | `AssessmentResolver` (contracts) | onchain | Calls `HatsModule.isEvaluator(attester)`. **The hat check is the actual evaluator gate, not a UI gate.** | shipped |
 | 9 | Attested | C | EAS | indexed via EAS GraphQL → `getGardenAssessments` | Available to Hub Certify stage | shipped |
-| 10 | ReadyToCertify | B | `admin` / `views/Hub` (stage `certify`) → `HubCertificationInspector` | `useGardenAssessments`, `useCreateHypercertWorkflow` | Inspector shows the assessment with "Ready to certify" badge when `canMint = true` | shipped |
+| 10 | AvailableAtCertify | B | `admin` / `views/Hub` (stage `certify`) → `HubCertificationInspector` | `useGardenAssessments`, `useCreateHypercertWorkflow` | The Hypercert bundles approved work **with** this assessment (`Hypercert.attestationUIDs`) | shipped |
 
 ## Evaluator surface: served by Garden workspace via role-permissioned visibility
 
@@ -89,13 +89,13 @@ In practice that means:
 ## Failure / recovery paths
 
 - **Operator without Evaluator hat tries to submit.** Resolver reverts at `HatsModule.isEvaluator(attester)`. UI surfaces user-friendly text via `parseContractError`. The form draft remains in IndexedDB.
-- **No approved works available.** Hub Assess queue renders empty state; FAB still appears but the assessment will fail Zod validation (no `workSelection` items).
+- **Required fields missing.** The form fails Zod validation if the title, location, diagnosis, the reporting period, or at least one SMART outcome is empty (`useCreateAssessmentForm`). The draft remains in IndexedDB.
 - **IPFS pin fails.** `useCreateAssessmentWorkflow` retries via the standard mutation pipeline. Job queue persists the draft.
 - **Assessment EAS GraphQL lag.** Newly attested assessments may not appear in `useGardenAssessments` immediately. UI uses delayed invalidation pattern (`useDelayedInvalidation`) — nominal lag is ~2s.
 
 ## Connections
 
-- Upstream: [Work Submission](./work-submission) — assessments bundle approved works.
+- Related: [Work Submission](./work-submission) — the assessment sets the baseline; gardeners' approved work is later measured against its SMART outcomes.
 - Downstream: [Harvest](./harvest) — Hub Certify stage takes attested assessments and mints hypercerts. Certification handoff is operator-driven today (`HubCertificationInspector` `canMint` boolean).
 - Sequence diagram: [Assessment flow](../architecture/sequence-diagrams#assessment-flow).
 
