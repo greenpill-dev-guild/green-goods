@@ -5,6 +5,11 @@
 > Garden Commitment Pool identity/control plane, with proof and settlement capabilities attached to
 > the same `poolId`. Premature draft child issues PRD-652 through PRD-658 were canceled and
 > detached pending deeper implementation scoping.
+>
+> **Final planning alignment — 2026-06-29:** Do not use this staged issue packet for current
+> scoping. The current local index and lifecycle brief record the active parent-only planning
+> surface, including module-with-pool-registry, hybrid provisioning, cycles-in-pool, and no active
+> child issues until implementation is explicitly promoted.
 
 > Staged 2026-06-28 because a transient safety-classifier outage blocked Linear writes. Project: **Green Goods Seasons & Campaigns** (`fa1b7a04-6eee-4f43-a861-07d8205aa0bf`). Create issues 1–3 first; then 4 & 5 as children of issue 3 (the epic). Each "accompanying document" is copied from the `.plans/commitment-pooling/` files.
 

@@ -7,6 +7,12 @@
 > build a disposable Model A pool. The earlier recommendation below to hold aggregate state in
 > resolvers is superseded: resolvers validate attestations, while a shared pool
 > control-plane/aggregator emits indexable pool stats for Envio.
+>
+> **Final planning alignment — 2026-06-29:** Use
+> `lifecycle-and-aggregator-semantics.md` for the current proof-capability plan. V1 uses a
+> `CommitmentPoolingModule` with a pool registry/control plane. A separately deployed aggregator is
+> not required for V1 unless later implementation review proves a split is needed without changing
+> `poolId` or UX.
 
 > Companion to [`research-memo.md`](./research-memo.md). This is the **July-shippable** layer: commitments and fulfillment as on-chain EAS attestations, aggregate state surfaced to garden pages, riding the existing `Work`/role/hypercert rails. **Model B** (ERC-20 vouchers + owner-governed swap pool + seed/reserve) is explicitly out of scope here and snaps on later, reusing these attestations as proof-of-fulfillment.
 

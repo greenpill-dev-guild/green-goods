@@ -9,6 +9,12 @@
 > identity/control plane first, proof capability first, optional settlement adapter later. Current
 > Linear documents also supersede any local text that recommends resolver-held aggregate state:
 > resolvers validate attestations; the shared pool control-plane/aggregator emits indexable stats.
+>
+> **Final planning alignment — 2026-06-29:** Use
+> `lifecycle-and-aggregator-semantics.md` for the current lifecycle and state-machine decisions.
+> V1 uses a `CommitmentPoolingModule` with a pool registry/control plane, cycles inside the default
+> pool, per-commitment units, requirements-based readiness, counterparty-first fulfillment, and
+> aggregate-public/member-private visibility.
 
 > **Changelog — v2 (2026-06-27):** Supersedes v1's "off-chain-first" lean. Revised after Afo + Codex input to **Green Goods-as-the-layer, Arbitrum-native, on-chain, two-model** framing. v1's durable findings (Sarafu mechanics, UX pain points, the naming trap, the role model) are preserved below; the chain/sequencing recommendation changed.
 

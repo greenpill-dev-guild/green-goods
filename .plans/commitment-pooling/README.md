@@ -1,6 +1,6 @@
 # Commitment Pooling Planning Index
 
-Last updated: 2026-06-28
+Last updated: 2026-06-29
 
 This folder is a reference export for the commitment-pooling research and planning surface. It is
 not an implementation plan hub yet.
@@ -49,21 +49,43 @@ not an implementation plan hub yet.
   - https://linear.app/greenpill-dev-guild/document/settlement-capability-vouchers-on-shared-pool-identity-a2b501afbb2c
 - Commitment Pooling UX Brief - Cross-Surface Flows (discussion artifact, not scope lock)
   - https://linear.app/greenpill-dev-guild/document/commitment-pooling-ux-brief-cross-surface-flows-2a3072ce4d75
+- Lifecycle And Aggregator Semantics
+  - https://linear.app/greenpill-dev-guild/document/commitment-pooling-lifecycle-and-aggregator-semantics-bfdd633951d6
+  - Local planning brief: `lifecycle-and-aggregator-semantics.md`
 
 ## Locked Decisions
 
 - Green Goods should have one durable Garden Commitment Pool identity/control plane.
+- V1 should use a `CommitmentPoolingModule` with a pool registry/control plane.
+- The module owns default pool identity, cycle lifecycle, capability flags, and aggregate
+  event/state semantics.
+- A separately deployed aggregator is not required for V1; it remains an implementation detail only
+  if later review proves it necessary without changing `poolId` or the UX.
 - Proof and settlement are capabilities attached to the same `poolId`, not separate pool
   constructs.
 - Do not build a disposable Model A pool that must be replaced later.
-- The first proof capability uses a shared pool control-plane/aggregator for garden and pool stats.
+- The first proof capability uses the shared pool control plane for garden and pool stats.
 - Resolvers validate attestations; the control-plane/aggregator emits indexable pool stats for
   Envio.
+- Operators and owners have the highest permissions for pool operations.
+- Existing gardens get pools through HoA/readiness/backfill; future gardens auto-provision once the
+  module is live.
+- Seasons/campaigns are cycles inside the default pool by default, with composting at cycle close.
+- Commitments should support a one-to-many relationship with work submissions.
+- Members can create offers/requests; operators/owners can seed campaign commitments and capture
+  analog commitments.
+- Commitments use per-commitment units.
+- `ReadyForConfirmation` is requirements-based: approved work must satisfy required count/quantity;
+  rejected work can be replaced or operator/owner-waived with reason.
+- Fulfillment is counterparty-first, with operator/owner fallback and no self-confirmation.
+- Public/editorial surfaces show aggregate stats and stories; detailed commitments, disputes, and
+  participant-level data stay member/admin scoped.
 - First HoA distribution includes commitment-pool readiness for every selected garden, but does not
   block on the commitment-pooling software being live.
+- G$ on Arbitrum is partner-confirmed, but token address, custody, and transfer path are required
+  before funds move.
 - If G$ is not available on Arbitrum, readiness proceeds while the Green Goods pool/proof path
   remains Arbitrum-native and denomination-agnostic using DAI and attestations.
-- Each garden starts with one default auto-provisioned pool.
 - Future operator-created pools are designed now and built later.
 - Additional pools represent seasons or campaigns, not arbitrary domain fragmentation.
 - Operators steward and configure pools; owners retain emergency, disable, and final policy control.
@@ -79,3 +101,5 @@ not an implementation plan hub yet.
 - `model-a-spec.md` - earlier proof-capability spec export. It has a local errata header; Linear
   docs now lock the shared pool identity/control-plane and aggregator direction if details differ.
 - `linear-issues-staged.md` - historical staging notes from the initial Linear creation pass.
+- `lifecycle-and-aggregator-semantics.md` - current local planning brief for state machines,
+  commitment-to-work relationships, season/campaign composting, and aggregate stats.
