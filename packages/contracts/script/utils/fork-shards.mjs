@@ -36,6 +36,7 @@ const SHARDS = {
     glob: "test/fork/{CrossChainENS,EthereumENSNameWrapper,EthereumENSReceiver}.t.sol",
   },
   gardens: {
+    chain: "ARBITRUM",
     description: "Mixed-chain Gardens V2 community governance and deployment registry fork coverage",
     glob: "test/fork/{DeploymentRegistryFork,gardens/GardensCommunityGovernance,gardens/GardensV2Community}.t.sol",
   },
