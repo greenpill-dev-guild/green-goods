@@ -7,6 +7,7 @@ import { config as loadDotenv } from "dotenv";
 const NO_MATCH_TEST = ".*[cC]elo.*|.*[uU]nlock.*";
 const DEFAULT_THREADS = "1";
 const DEFAULT_VERBOSITY = "-vvv";
+const DEFAULT_FORK_RETRIES = "5";
 const DEFAULTS = {
   ARBITRUM_RPC_URL: "https://arbitrum-one.public.blastapi.io",
   ARBITRUM_FORK_BLOCK_NUMBER: "466388412",
@@ -35,6 +36,7 @@ const SHARDS = {
     glob: "test/fork/{CrossChainENS,EthereumENSNameWrapper,EthereumENSReceiver}.t.sol",
   },
   gardens: {
+    chain: "ARBITRUM",
     description: "Mixed-chain Gardens V2 community governance and deployment registry fork coverage",
     glob: "test/fork/{DeploymentRegistryFork,gardens/GardensCommunityGovernance,gardens/GardensV2Community}.t.sol",
   },
@@ -101,6 +103,8 @@ function runForge(args, { profile = "fork", capture = false } = {}) {
 
 function commonArgs() {
   const verbosity = process.env.FORK_TEST_VERBOSITY || DEFAULT_VERBOSITY;
+  const forkRetries = process.env.FORK_TEST_RETRIES || DEFAULT_FORK_RETRIES;
+  const forkRetryBackoff = process.env.FORK_TEST_RETRY_BACKOFF;
   const args = [
     "--no-match-test",
     NO_MATCH_TEST,
@@ -108,6 +112,10 @@ function commonArgs() {
     process.env.FORK_TEST_THREADS || DEFAULT_THREADS,
     "--suppress-successful-traces",
   ];
+  if (forkRetries && forkRetries !== "0") {
+    args.push("--fork-retries", forkRetries);
+    if (forkRetryBackoff) args.push("--fork-retry-backoff", forkRetryBackoff);
+  }
   if (verbosity) args.push(verbosity);
   return args;
 }
