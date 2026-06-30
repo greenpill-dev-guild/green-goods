@@ -1,6 +1,6 @@
 import {
   RiArrowDropRightLine,
-  RiFileListLine,
+  RiBookOpenLine,
   RiTelegramLine,
   RiTwitterLine,
 } from "@remixicon/react";
@@ -15,13 +15,50 @@ interface Social {
   Icon: React.ReactNode;
 }
 
-interface FAQ {
-  topic: string;
-  question: string;
-  answer: string;
+interface FaqCategory {
+  id: string;
+  topics: string[];
 }
 
 type ProfileHelpProps = {};
+
+const DOCS_GARDENER_GUIDE_URL = "https://docs.greengoods.app/community/gardener-guide";
+
+// FAQ topics grouped by the gardener journey. Each category renders its own
+// Faq accordion (Radix type="single"), so one item per category can be open at
+// once. Questions/answers are sourced from i18n via
+// `app.profile.help.faq.<topic>.{question,answer}`.
+const faqCategories: FaqCategory[] = [
+  {
+    id: "gettingStarted",
+    topics: [
+      "whatIsGreenGoods",
+      "signingIn",
+      "installingApp",
+      "gardensAndOperators",
+      "howToGetInvolved",
+    ],
+  },
+  {
+    id: "documentingWork",
+    topics: [
+      "whoCanSubmitWork",
+      "howSubmissionWorks",
+      "offlineSupport",
+      "syncTroubleshooting",
+      "reviewAndApproval",
+      "trackingStatus",
+    ],
+  },
+  {
+    id: "account",
+    topics: ["smartAccountAddress", "badgesAndIdentity", "dataStorage"],
+  },
+  {
+    id: "howItWorks",
+    topics: ["whatIsImpact", "whatIsEAS"],
+  },
+];
 
 export const ProfileHelp: React.FC<ProfileHelpProps> = () => {
   const intl = useIntl();
@@ -53,37 +90,34 @@ export const ProfileHelp: React.FC<ProfileHelpProps> = () => {
     },
   ];
 
-  const faqTopics = [
-    "whatIsGreenGoods",
-    "gardensAndOperators",
-    "howToGetInvolved",
-    "whoCanSubmitWork",
-    "howSubmissionWorks",
-    "offlineSupport",
-    "reviewAndApproval",
-    "whatIsEAS",
-    "badgesAndIdentity",
-    "dataStorage",
-    "howToContact",
-  ];
-
-  const faqs: FAQ[] = faqTopics.map((topic) => {
-    return {
-      topic,
-      question: intl.formatMessage({
-        id: `app.profile.help.faq.${topic}.question`,
-      }),
-      answer: intl.formatMessage({
-        id: `app.profile.help.faq.${topic}.answer`,
-      }),
-    };
-  });
-
   return (
     <>
       <h5 className="text-label-md text-text-strong-950">
         {intl.formatMessage({ id: "app.profile.help.getInTouch" })}
       </h5>
+      <a href={DOCS_GARDENER_GUIDE_URL} target="_blank" rel="noopener noreferrer">
+        <FlexCard>
+          <div className="flex flex-row items-center gap-3 grow">
+            <Avatar>
+              <div className="flex items-center justify-center text-center mx-auto text-grey-200">
+                <RiBookOpenLine />
+              </div>
+            </Avatar>
+
+            <div className="flex-1">
+              <div className="text-base">
+                {intl.formatMessage({ id: "app.profile.help.docs.title" })}
+              </div>
+              <div className="text-xs text-text-sub-600">
+                {intl.formatMessage({ id: "app.profile.help.docs.description" })}
+              </div>
+            </div>
+            <div className="flex text-right">
+              <RiArrowDropRightLine />
+            </div>
+          </div>
+        </FlexCard>
+      </a>
       {socials.map((social) => (
         <a key={social.title} href={social.url} target="_blank" rel="noopener noreferrer">
           <FlexCard>
@@ -105,48 +139,23 @@ export const ProfileHelp: React.FC<ProfileHelpProps> = () => {
           </FlexCard>
         </a>
       ))}
-      <a href="https://forms.gle/EnxXDpzmBAt9AZdH7" target="_blank" rel="noopener noreferrer">
-        <FlexCard>
-          <div className="flex flex-row items-center gap-3 grow">
-            <Avatar>
-              <div className="flex items-center justify-center text-center mx-auto text-grey-200">
-                <RiFileListLine />
-              </div>
-            </Avatar>
-
-            <div className="flex-1">
-              <div className="text-base">
-                {intl.formatMessage({
-                  id: "app.profile.help.onboardingForm.title",
-                  defaultMessage: "Onboarding form",
-                })}
-              </div>
-              <div className="text-xs text-text-sub-600">
-                {intl.formatMessage({
-                  id: "app.profile.help.onboardingForm.description",
-                  defaultMessage: "Takes about 10 minutes",
-                })}
-              </div>
-            </div>
-            <div className="flex text-right">
-              <RiArrowDropRightLine />
-            </div>
-          </div>
-        </FlexCard>
-      </a>
-      <h5 className="text-label-md text-text-strong-950">
-        {intl.formatMessage({ id: "app.profile.help.questions" })}
-      </h5>
-      <Faq>
-        {faqs.map((faq) => {
-          return (
-            <FaqItem key={faq.topic} value={faq.topic}>
-              <FaqTrigger>{faq.question}</FaqTrigger>
-              <FaqContent data-testid={`faq-content-${faq.topic}`}>{faq.answer}</FaqContent>
+      {faqCategories.flatMap((category) => [
+        <h5 key={`${category.id}-heading`} className="text-label-md text-text-strong-950">
+          {intl.formatMessage({ id: `app.profile.help.category.${category.id}` })}
+        </h5>,
+        <Faq key={`${category.id}-faq`}>
+          {category.topics.map((topic) => (
+            <FaqItem key={topic} value={topic}>
+              <FaqTrigger>
+                {intl.formatMessage({ id: `app.profile.help.faq.${topic}.question` })}
+              </FaqTrigger>
+              <FaqContent data-testid={`faq-content-${topic}`}>
+                {intl.formatMessage({ id: `app.profile.help.faq.${topic}.answer` })}
+              </FaqContent>
             </FaqItem>
-          );
-        })}
-      </Faq>
+          ))}
+        </Faq>,
+      ])}
     </>
   );
 };
