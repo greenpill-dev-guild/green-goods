@@ -254,6 +254,17 @@ export {
   type SendableToken,
 } from "./config/index";
 
+// Send-flow recipient aggregation (pure helpers)
+export {
+  buildSendRecipientGroups,
+  flattenRecipientMembers,
+} from "./utils/app/send-recipients";
+export type {
+  FlatRecipientMember,
+  RecipientGardenGroup,
+  RecipientMember,
+} from "./utils/app/send-recipients";
+
 // ============================================================================
 // HOOKS
 // ============================================================================

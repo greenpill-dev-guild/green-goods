@@ -3,6 +3,7 @@ import { useIntl } from "react-intl";
 import { ModalDrawer, type ModalDrawerTab } from "@/components/Dialogs/ModalDrawer";
 import { ComingSoonStub } from "./ComingSoonStub";
 import { CookieJarTab } from "./CookieJarTab";
+import { SendTab } from "./SendTab";
 
 interface WalletDrawerProps {
   isOpen: boolean;
@@ -34,9 +35,7 @@ export const WalletDrawer: React.FC<WalletDrawerProps> = ({ isOpen, onClose }) =
       maxHeight="95vh"
     >
       {activeTab === "cookie-jar" && <CookieJarTab />}
-      {activeTab === "send" && (
-        <ComingSoonStub tabName={formatMessage({ id: "app.cookieJar.send" })} />
-      )}
+      {activeTab === "send" && <SendTab />}
       {activeTab === "pools" && (
         <ComingSoonStub tabName={formatMessage({ id: "app.cookieJar.pools" })} />
       )}
