@@ -282,7 +282,8 @@ const COPY = {
   recoverWithUsername: "Recover with username",
   createAccountSecondary: "Create account",
   newAccountLabel: "Display name for new account",
-  newAccountPlaceholder: "Enter a display name",
+  newAccountPlaceholder: "e.g. alice or alice.eth",
+  back: "Back",
   usernameHint: "Use this name later with a synced passkey on another device.",
   recoveryLabel: "Username or ENS handle",
   recoveryPlaceholder: "Enter your username or ENS handle",
@@ -328,7 +329,8 @@ const createArgs: SplashStoryArgs = {
   },
   secondaryAction: { label: COPY.wallet, onSelect: () => {} },
   tertiaryAction: { label: COPY.recoverWithUsername, onClick: () => {} },
-  infoCallout: COPY.passkeyExplainer,
+  // No info callout: the cross-device hint above the input already says this,
+  // and the real server-mode create panel drops the redundant explainer.
 };
 
 const recoverArgs: SplashStoryArgs = {
@@ -341,7 +343,8 @@ const recoverArgs: SplashStoryArgs = {
     placeholder: COPY.recoveryPlaceholder,
     hint: COPY.recoveryHint,
   },
-  secondaryAction: { label: COPY.createAccountSecondary, onSelect: () => {} },
+  // Full-recovery focus: a clean "Back" exit, not a "Create account" nudge.
+  secondaryAction: { label: COPY.back, onSelect: () => {} },
   tertiaryAction: { label: COPY.wallet, onClick: () => {} },
 };
 

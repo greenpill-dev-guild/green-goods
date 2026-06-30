@@ -114,7 +114,7 @@ export const Splash: React.FC<SplashProps> = ({
             TITLE/MESSAGE - Fixed height container
         ───────────────────────────────────────────────────────────────────── */}
         <div className="h-8 flex items-center justify-center mb-5">
-          <h3 className={cn("text-center font-bold text-primary", effectsTransition)}>
+          <h3 className={cn("text-center font-bold text-primary-dark", effectsTransition)}>
             {displayMessage}
           </h3>
         </div>

@@ -225,7 +225,9 @@ describe("Login View - New User (progressive disclosure)", () => {
     expect(screen.getByTestId("username-input")).toBeInTheDocument();
     expect(screen.getByTestId("secondary-button")).toHaveTextContent("Sign in with a wallet");
     expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Recover with username");
-    expect(screen.getByTestId("info-callout")).toHaveTextContent(/passwordless sign-in/i);
+    // The passwordless callout was dropped on first-create — it duplicated the
+    // cross-device hint and crowded the screen.
+    expect(screen.queryByTestId("info-callout")).not.toBeInTheDocument();
     expect(screen.queryByTestId("notice")).not.toBeInTheDocument();
   });
 
@@ -266,7 +268,9 @@ describe("Login View - New User (progressive disclosure)", () => {
 
     expect(screen.getByTestId("primary-button")).toHaveTextContent("Recover with passkey");
     expect(screen.getByTestId("username-input")).toBeInTheDocument();
-    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Create account");
+    // Full-recovery focus: the secondary is now a clean "Back" exit, not a
+    // "Create account" nudge.
+    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Back");
     expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Sign in with a wallet");
     expect(screen.getByTestId("info-callout")).toHaveTextContent(/synced passkeys/i);
   });

@@ -416,12 +416,28 @@ export function Login() {
     setNoLocalPasskeyMode("confirm-new-account");
   };
 
+  // Continue from the separate-account confirmation into create mode, keeping
+  // the recovery attempt so the user lands on the separate-account create panel.
   const handleStartCreateAccountFromRecovery = () => {
     const recoveryName = recoveryUsername.trim();
     if (recoveryName.length >= 3 && !username.trim()) {
       setUsername(recoveryName);
     }
     setLoginError(null);
+    setNoLocalPasskeyMode("create");
+  };
+
+  // Exit recovery back to the first-time create screen. Clearing the recovery
+  // attempt lands the user on a clean create panel (not separate-account mode),
+  // carrying over a typed name as a convenience.
+  const handleExitRecovery = () => {
+    const recoveryName = recoveryUsername.trim();
+    if (recoveryName.length >= 3 && !username.trim()) {
+      setUsername(recoveryName);
+    }
+    setLoginError(null);
+    setRecoveryAttempted(false);
+    setForceRecovery(false);
     setNoLocalPasskeyMode("create");
   };
 
@@ -619,7 +635,7 @@ export function Login() {
             }),
             placeholder: intl.formatMessage({
               id: "app.login.username.placeholder",
-              defaultMessage: "Enter a display name",
+              defaultMessage: "e.g. alice or alice.eth",
             }),
             hint: intl.formatMessage({
               id: isSeparateAccountCreation
@@ -634,14 +650,18 @@ export function Login() {
           }}
           isLoginDisabled={!isUsernameValid}
           notice={isSeparateAccountCreation ? addressContinuityNotice : undefined}
-          infoCallout={intl.formatMessage({
-            id: passkeyServerEnabled
-              ? "app.login.passkey.explainer"
-              : "app.login.passkey.localExplainer",
-            defaultMessage: passkeyServerEnabled
-              ? "Passwordless sign-in. Use your username to find this passkey on another device."
-              : "Keeps same-device sign-in. May need re-enrollment if browser storage is cleared.",
-          })}
+          infoCallout={
+            // The server-mode passkey explainer duplicated the cross-device hint
+            // above the input and crowded the screen — drop it. The local-only
+            // note carries distinct re-enrollment info, so keep that one.
+            passkeyServerEnabled
+              ? undefined
+              : intl.formatMessage({
+                  id: "app.login.passkey.localExplainer",
+                  defaultMessage:
+                    "Keeps same-device sign-in. May need re-enrollment if browser storage is cleared.",
+                })
+          }
         />
       </>
     );
@@ -705,24 +725,25 @@ export function Login() {
                   onSelect: handleStartSeparateAccount,
                 }
               : {
+                  // Full-recovery focus: instead of nudging "Create account",
+                  // offer a clean exit back to the first-time create screen.
                   label: intl.formatMessage({
-                    id: "app.login.button.createAccount",
-                    defaultMessage: "Create account",
+                    id: "app.login.button.back",
+                    defaultMessage: "Back",
                   }),
-                  onSelect: handleStartCreateAccountFromRecovery,
+                  onSelect: handleExitRecovery,
                 }
         }
         tertiaryAction={
-          browserGuidanceTertiaryAction ||
-          (isExistingAccountRecovery || !recoveryAttempted || (recoveryAttempted && loginError)
-            ? {
-                label: intl.formatMessage({
-                  id: "app.login.button.connectWallet",
-                  defaultMessage: "Sign in with a wallet",
-                }),
-                onClick: handleWalletLogin,
-              }
-            : undefined)
+          // Keep the wallet option consistent across every recovery sub-state
+          // instead of flipping it in and out, which read as jarring.
+          browserGuidanceTertiaryAction || {
+            label: intl.formatMessage({
+              id: "app.login.button.connectWallet",
+              defaultMessage: "Sign in with a wallet",
+            }),
+            onClick: handleWalletLogin,
+          }
         }
         usernameInput={{
           value: recoveryUsername,
@@ -744,16 +765,13 @@ export function Login() {
         isLoginDisabled={!isRecoveryUsernameValid}
         notice={addressContinuityNotice}
         infoCallout={intl.formatMessage({
-          // The retry copy mentions separate-account creation, which is not
-          // offered during existing-account recovery — keep the base info there.
-          id:
-            !isExistingAccountRecovery && recoveryAttempted && loginError
-              ? "app.login.recovery.retryInfo"
-              : "app.login.recovery.info",
+          // Keep the callout text constant across attempts: swapping to a shorter
+          // "retry" message changed the callout height and shifted everything
+          // below it. The error banner + "Retry recovery" button already convey
+          // that the attempt failed.
+          id: "app.login.recovery.info",
           defaultMessage:
-            !isExistingAccountRecovery && recoveryAttempted && loginError
-              ? "Recovery didn't complete. Try again or use another method."
-              : "Synced passkeys recover on supported providers. Local-only passkeys work on this device.",
+            "Synced passkeys recover on supported providers. Local-only passkeys work on this device.",
         })}
       />
     </>
