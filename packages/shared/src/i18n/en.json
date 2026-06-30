@@ -3198,6 +3198,8 @@
   "public.fund.vaults.kicker": "§ 01 — Endowment engine",
   "public.fund.vaults.lede": "Endow adds long-term capital to Garden Vault endowments; Donate sends support directly to a Garden's shared fund.",
   "public.fund.vaults.liveYieldUnavailable": "Live yield unavailable",
+  "public.fund.vaults.metricsEmpty": "No endowment activity on this network yet.",
+  "public.fund.vaults.metricsError": "We couldn't load these endowment metrics. Refresh to try again.",
   "public.fund.vaults.readyToHarvest": "Ready to harvest",
   "public.fund.vaults.routed": "Routed to Gardens",
   "public.fund.vaults.routedUnavailable": "Routed data unavailable",

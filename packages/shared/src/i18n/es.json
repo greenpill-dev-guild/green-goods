@@ -3198,6 +3198,8 @@
   "public.fund.vaults.kicker": "§ 01 — Motor de endowment",
   "public.fund.vaults.lede": "Endow agrega capital de largo plazo a los endowments de Garden Vault; Donate envía apoyo directamente al fondo compartido de un Jardín.",
   "public.fund.vaults.liveYieldUnavailable": "Rendimiento no disponible",
+  "public.fund.vaults.metricsEmpty": "Aún no hay actividad de dotación en esta red.",
+  "public.fund.vaults.metricsError": "No pudimos cargar estas métricas de dotación. Actualiza para reintentar.",
   "public.fund.vaults.readyToHarvest": "Listo para cosechar",
   "public.fund.vaults.routed": "Ruteado a Jardines",
   "public.fund.vaults.routedUnavailable": "Datos de ruta no disponibles",

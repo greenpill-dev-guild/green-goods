@@ -569,7 +569,7 @@ describe("FundPage", () => {
     expect(gardenCard).toHaveTextContent("Yield accrued 25 DAI / 0.15 ETH");
   });
 
-  it("omits vault metrics when no indexed vaults exist", () => {
+  it("keeps DAI and ETH endowment cards visible (empty state) when no indexed vaults exist", () => {
     mockUsePublicVaultSummary.mockReturnValue({
       hasVaults: false,
       isLoading: false,
@@ -584,10 +584,33 @@ describe("FundPage", () => {
 
     renderView();
 
+    // Never a blank section — the section and both asset cards stay visible.
     expect(
-      screen.queryByRole("heading", { name: /Endowment capital already supporting Gardens/i })
-    ).toBeNull();
-    expect(screen.queryByText(/DAI endowment balance/)).toBeNull();
-    expect(screen.queryByText(/Yield accrued/)).toBeNull();
+      screen.getByRole("heading", { name: /Endowment capital already supporting Gardens/i })
+    ).toBeInTheDocument();
+    expect(screen.getByText("DAI endowment balance")).toBeInTheDocument();
+    expect(screen.getByText("ETH endowment balance")).toBeInTheDocument();
+    // The cards explain the absence of live figures rather than rendering blank.
+    expect(screen.getAllByText(/No endowment activity on this network yet/i)).toHaveLength(2);
+  });
+
+  it("keeps the asset cards visible with an error message when the metrics fetch fails", () => {
+    mockUsePublicVaultSummary.mockReturnValue({
+      hasVaults: false,
+      isLoading: false,
+      isError: true,
+      isYieldLoading: false,
+      isYieldError: false,
+      isAllocationLoading: false,
+      isAllocationError: false,
+      gardensByAddress: {},
+      assets: [],
+    });
+
+    renderView();
+
+    expect(screen.getByText("DAI endowment balance")).toBeInTheDocument();
+    expect(screen.getByText("ETH endowment balance")).toBeInTheDocument();
+    expect(screen.getAllByText(/couldn't load these endowment metrics/i)).toHaveLength(2);
   });
 });

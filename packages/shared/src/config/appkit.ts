@@ -146,6 +146,12 @@ export function ensureAppKit(options?: AppKitInitOptions) {
     projectId,
     metadata,
     enableNetworkSwitch: true,
+    // Don't auto-open the "switch network" dialog when a connected wallet is on
+    // a chain outside `networks` (e.g. landing on /fund with a wallet on an
+    // unsupported network). The transaction flow still enforces the correct
+    // chain at send time via the wagmi-based chain guard, so suppressing the
+    // intrusive page-load prompt is safe. See Reown options: allowUnsupportedChain.
+    allowUnsupportedChain: true,
     defaultNetwork: getChain(
       options?.defaultChainId ?? DEFAULT_CHAIN_ID
     ) as (typeof networks)[number],

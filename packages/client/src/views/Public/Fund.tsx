@@ -99,12 +99,17 @@ function SupportPath({
   );
 }
 
+// The endowment engine always supports these two assets, so the metrics
+// section keeps their cards visible even when the live figures cannot be
+// fetched — a blank section reads as "broken" rather than "no data yet".
+const VAULT_PLACEHOLDER_SYMBOLS = ["DAI", "ETH"] as const;
+
 function VaultAggregationSection({ summary }: { summary: PublicVaultSummary }) {
   const { formatMessage } = useIntl();
   const { ref: sectionRef, revealed } = useInViewReveal<HTMLElement>();
-  if (!summary.hasVaults && !summary.isLoading) return null;
 
   const assets = summary.assets;
+  const showSkeleton = assets.length === 0 && summary.isLoading;
 
   return (
     <section
@@ -142,7 +147,7 @@ function VaultAggregationSection({ summary }: { summary: PublicVaultSummary }) {
               <VaultAssetCard key={`${asset.chainId}:${asset.asset}`} asset={asset} />
             ))}
           </div>
-        ) : (
+        ) : showSkeleton ? (
           <div className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-2" aria-hidden="true">
             {[0, 1].map((index) => (
               <div
@@ -160,9 +165,60 @@ function VaultAggregationSection({ summary }: { summary: PublicVaultSummary }) {
               </div>
             ))}
           </div>
+        ) : (
+          <div className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-2">
+            {VAULT_PLACEHOLDER_SYMBOLS.map((symbol) => (
+              <VaultAssetUnavailableCard key={symbol} symbol={symbol} errored={summary.isError} />
+            ))}
+          </div>
         )}
       </div>
     </section>
+  );
+}
+
+function VaultAssetUnavailableCard({ symbol, errored }: { symbol: string; errored: boolean }) {
+  const { formatMessage } = useIntl();
+  return (
+    <article className="border border-stroke-soft-200 bg-bg-white-0 p-5 shadow-[var(--shadow-editorial-card)]">
+      <p className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-text-soft-400">
+        {formatMessage(
+          {
+            id: "public.fund.vaults.assetTitle",
+            defaultMessage: "{asset} endowment balance",
+          },
+          { asset: symbol }
+        )}
+      </p>
+      <div className="mt-5">
+        <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
+          {formatMessage({
+            id: "public.fund.vaults.currentBalance",
+            defaultMessage: "Current balance",
+          })}
+        </p>
+        <p
+          className="mt-2 font-serif text-3xl font-normal leading-none tracking-[-0.018em] text-text-soft-400 md:text-4xl"
+          aria-hidden="true"
+        >
+          —
+        </p>
+      </div>
+      <p
+        className="mt-6 border-t border-stroke-soft-200 pt-4 text-sm leading-[1.55] text-text-sub-600"
+        role={errored ? "alert" : undefined}
+      >
+        {errored
+          ? formatMessage({
+              id: "public.fund.vaults.metricsError",
+              defaultMessage: "We couldn't load these endowment metrics. Refresh to try again.",
+            })
+          : formatMessage({
+              id: "public.fund.vaults.metricsEmpty",
+              defaultMessage: "No endowment activity on this network yet.",
+            })}
+      </p>
+    </article>
   );
 }
 
