@@ -110,6 +110,8 @@ export function CookieJarManageModal({
       <AdminDialog
         open={isOpen}
         onOpenChange={(open) => !open && !isPending && onClose()}
+        size="2xl"
+        tone="hub"
         title={formatMessage({
           id: "app.cookieJar.manageModal.title",
           defaultMessage: "Manage Cookie Jars",
@@ -124,8 +126,8 @@ export function CookieJarManageModal({
           {jars.map((jar) => {
             const symbol = getVaultAssetSymbol(jar.assetAddress, undefined);
             return (
-              <AdminCard variant="outlined" key={jar.jarAddress} className="p-3">
-                <div className="flex items-center justify-between">
+              <AdminCard variant="outlined" key={jar.jarAddress} className="p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium text-text-strong">{symbol}</p>
                     <span
@@ -146,7 +148,7 @@ export function CookieJarManageModal({
                           })}
                     </span>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     {canManage && (
                       <AdminButton
                         variant="tonal"
