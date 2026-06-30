@@ -2,14 +2,15 @@
 name: design
 user-invocable: false
 description: "Design philosophy for adaptive, spatial interfaces. Paradigm selection, material language, interaction patterns, inclusive design, ecosystem thinking, and progressive immersion strategy. Use for design direction, visual language decisions, and spatial UI planning."
-version: "2.4.1"
-token_version: "2.3.0"
+version: "2.5.0"
+token_version: "2.4.0"
 status: active
 packages: ["shared", "client", "admin"]
 dependencies: []
-last_updated: "2026-06-26"
-last_verified: "2026-06-26"
+last_updated: "2026-06-30"
+last_verified: "2026-06-30"
 changelog:
+  - "2.5.0 — token_version → 2.4.0. Deliberate admin dark-mode palette (not a light inversion): warm surface ladder (higher elevation = lighter), ring-forward elevation, dual-use-safe per-view accents (light --tone-primary for on-surface text, deep white-safe --tone-action for fills), raised canvas wash. New § Dark Mode Palette (Admin) in language.md with an AA contrast table; new check:design-tokens dark-parity guard."
   - "2.4.1 — Added ai-ui-brief.md as the saved reusable prompt contract for UI/CSS/design generation. Removed stale tool-specific references and replaced missing legacy surface-map routing with repo-owned DesignMD + surface dialect routing."
   - "2.4.0 — Removed project-specific AI-design-tool skills. AI-design platforms change too fast to encode per-platform; the durable contract is platform-agnostic and now lives in this file under § Working with AI Design Tools. ARCHITECTURE.md collapsed from a four-skill stack to a two-skill stack."
   - "2.3.3 — Added stack-review.md (design-system self-audit protocol, scoped strictly to design/ + ui/). ARCHITECTURE.md synced: version label bumped to 2.3.3, stack-review.md added to the Where-to-look table and Related section. stack-review.md hardened with an explicit scope fence (out-of-scope list: other skills, registry canonical_commands, check-guidance-consistency, ship/plan/debug) after a first-run drift into non-design findings."

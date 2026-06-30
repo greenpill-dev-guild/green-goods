@@ -283,7 +283,7 @@
         "full repo design system review"
       ],
       "dependencies": [],
-      "token_version": "2.3.0",
+      "token_version": "2.4.0",
       "sub_files": [
         "ARCHITECTURE.md",
         "language.md",
@@ -320,7 +320,7 @@
         "view transitions API"
       ],
       "dependencies": ["design"],
-      "design_token_version": "2.3.0",
+      "design_token_version": "2.4.0",
       "sub_files": [
         "tailwindcss.md",
         "radix-ui.md",

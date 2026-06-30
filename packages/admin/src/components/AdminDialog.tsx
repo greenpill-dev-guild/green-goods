@@ -134,7 +134,11 @@ export function AdminDialog({
   role = "dialog",
   onKeyDown,
   className,
-  tone,
+  // Default to the neutral "home" tone so a dialog that omits `tone` still
+  // renders a deliberate accent in-portal instead of falling back to green
+  // (the portal escapes CanvasLayout's [data-tone] scope — see the prop doc).
+  // Action flows pass their own workspace tone, so they are unaffected.
+  tone = "home",
 }: AdminDialogProps) {
   const { formatMessage } = useIntl();
   const handleOpenChange = (nextOpen: boolean) => {

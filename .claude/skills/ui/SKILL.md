@@ -2,14 +2,15 @@
 name: ui
 user-invocable: false
 description: UI implementation — TailwindCSS v4, Radix UI primitives, accessibility, Storybook, i18n, diagrams. Implements the direction set by the `design` skill. Use for theming, component composition, accessibility compliance, stories, internationalization, or creating diagrams.
-version: "1.4.1"
-design_token_version: "2.3.0"
+version: "1.5.0"
+design_token_version: "2.4.0"
 status: active
 packages: ["shared", "client", "admin"]
 dependencies: ["design"]
-last_updated: "2026-04-17"
-last_verified: "2026-04-17"
+last_updated: "2026-06-30"
+last_verified: "2026-06-30"
 changelog:
+  - "1.5.0 — design_token_version → 2.4.0 (mirrors design skill). Admin dark-mode token values changed: warm M3 surface ladder + ring-forward --m3-elevation-*/--elevation-* dark overrides in admin-m3-tokens.css/index.css, rewritten dark [data-tone] blocks, raised canvas wash. Implementers: dark accents follow the dual-use-safe rule (--tone-primary stays light; saturation lives in --tone-action). See design/language.md § Dark Mode Palette (Admin)."
   - "1.4.1 — Added 10-step New Component Runbook (single golden path replacing scattered steps). Part 3 Dialogs now names DialogShell (shared, default) and AdminDialog (admin, strict M3) with file paths. Admin Cockpit Mode trimmed to ui-implementation specifics, pointing back to design/SKILL.md § Admin Cockpit Carve-Out as canonical. Registry design_token_version synced to 2.3.0 (was drifted at 2.2.0). Spring motion tokens now real in theme.css."
   - "1.4.0 — Added view-transitions.md (inherited from former design/implementation.md — execution details belong here, not in design). design_token_version pinned to design skill 2.3.0. Material tokens (--color-material-*, --blur-material-*) now implemented in theme.css; compliance guidance should reference them over hardcoded glass values."
   - "1.3.0 — Part 1 replaced with pointer to design skill. Design Thinking and Green Goods Aesthetic Tokens moved wholly to design/language.md and root DESIGN.md to eliminate duplication."

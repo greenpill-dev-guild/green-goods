@@ -119,7 +119,7 @@ export function HubWorkCard({
         "outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-primary,var(--primary-base)))] focus-visible:ring-offset-2"
       )}
     >
-      <div className="relative overflow-hidden border-b border-black/5">
+      <div className="relative overflow-hidden border-b border-stroke-soft">
         {totalMedia === 0 ? (
           <DomainGradientFallback domain={actionDomain} className="aspect-[16/9]" />
         ) : totalMedia === 1 ? (
@@ -210,7 +210,7 @@ export function HubWorkCard({
             {/* Garden name removed from visible body — chrome (AppBar GardenChip) declares
                 garden context. Kept in hover-title above for accessibility. See Rule 17. */}
           </div>
-          <span className="rounded-full bg-bg-soft/90 px-2.5 py-1 text-label-sm font-medium text-text-soft shadow-[inset_0_0_0_1px_rgb(0_0_0_/_0.04)] transition-colors group-hover:bg-bg-weak">
+          <span className="rounded-full bg-bg-soft/90 px-2.5 py-1 text-label-sm font-medium text-text-soft shadow-[inset_0_0_0_1px_rgb(var(--text-strong-950)/0.06)] transition-colors group-hover:bg-bg-weak">
             {formatMessage({ id: "cockpit.hub.tab.review", defaultMessage: "Review" })}
           </span>
         </div>

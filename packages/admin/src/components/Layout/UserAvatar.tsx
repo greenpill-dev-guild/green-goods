@@ -33,8 +33,8 @@ export function UserAvatar({ onOpenProfile }: UserAvatarProps) {
       onClick={onOpenProfile}
       className={cn(
         "inline-flex h-10 w-10 items-center justify-center rounded-lg",
-        "border border-white/65 bg-[rgba(255,255,255,0.64)] text-text-sub",
-        "shadow-[inset_0_0_0_1px_rgba(255,255,255,0.45),0_8px_18px_rgba(15,23,42,0.08)]",
+        "border border-[var(--admin-chrome-border)] bg-[rgb(var(--admin-surface-0)/0.64)] text-text-sub",
+        "shadow-[var(--edge-rest),var(--elevation-1)]",
         "transition-all duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:border-[rgb(var(--tone-tint,59_130_246)/0.24)]",
         "hover:bg-[rgb(var(--tone-tint,59_130_246)/0.10)] hover:text-[rgb(var(--tone-tint,59_130_246))]",
         "active:scale-[0.97] motion-reduce:transition-none motion-reduce:active:scale-100",

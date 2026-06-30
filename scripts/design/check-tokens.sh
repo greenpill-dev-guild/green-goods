@@ -390,9 +390,51 @@ if [[ "$TONE_ACTION_COUNT" -eq 0 || "$TONE_ACCENT_COUNT" -ne "$TONE_ACTION_COUNT
   exit 1
 fi
 
+# ----------------------------------------------------------------------------
+# Dark-mode parity guard
+#
+# Admin dark mode is a deliberate palette, not a light inversion. Two regressions
+# this guard prevents:
+#   1. A workspace tone shipping LIGHT-only (no [data-theme="dark"] block) so it
+#      silently falls back to inverted/green in dark.
+#   2. An elevation ladder with NO dark override — the original bug: every
+#      --m3-elevation-* / --elevation-* was a pure-black drop shadow, invisible
+#      on near-black surfaces, so dark cards had zero separation.
+# ----------------------------------------------------------------------------
+# (1) Each of the 5 workspace tones needs BOTH a light and a dark definition block.
+#     Anchor `{` to end-of-line so the single-line wash assignments
+#     (`[data-tone="X"] { --tone-canvas: … }`) are excluded — only the multi-line
+#     `--tone-*` definition blocks count.
+LIGHT_TONE_BLOCKS="$(grep -cE '^\[data-tone="(hub|garden|community|actions|home)"\] \{ *$' "$ADMIN_INDEX_CSS" || true)"
+DARK_TONE_BLOCKS="$(grep -cE '^\[data-theme="dark"\] \[data-tone="(hub|garden|community|actions|home)"\] \{ *$' "$ADMIN_INDEX_CSS" || true)"
+if [[ "$LIGHT_TONE_BLOCKS" -lt 5 || "$DARK_TONE_BLOCKS" -ne "$LIGHT_TONE_BLOCKS" ]]; then
+  echo "❌ Dark tone parity drift in $ADMIN_INDEX_CSS: ${LIGHT_TONE_BLOCKS} light [data-tone] blocks vs ${DARK_TONE_BLOCKS} dark blocks (expected 5 each)."
+  echo "   Every workspace tone must define a deliberate [data-theme=\"dark\"] [data-tone=\"…\"] block, not inherit the light values."
+  exit 1
+fi
+
+# (2) Elevation levels 1–5 must each have a [data-theme="dark"] override in both
+#     the admin M3 ladder (admin-m3-tokens.css) and the tonal ladder (index.css).
+check_dark_elevation() {
+  dark_levels="$(awk -v tok="$2" '
+    /^[^{}]*\{/ { in_dark = ($0 ~ /\[data-theme="dark"\]/) }
+    /\}/        { in_dark = 0 }
+    in_dark && $0 ~ (tok "-[1-5]:") { n++ }
+    END { print n + 0 }
+  ' "$1")"
+  if [[ "$dark_levels" -lt 5 ]]; then
+    echo "❌ Dark elevation gap: ${2}-[1-5] has only ${dark_levels}/5 [data-theme=\"dark\"] overrides in ${1}."
+    echo "   Black drop shadows are invisible on dark surfaces — each elevation level needs a ring-forward dark override."
+    exit 1
+  fi
+}
+check_dark_elevation "$ADMIN_M3_TOKENS" "--m3-elevation"
+check_dark_elevation "$ADMIN_INDEX_CSS" "--elevation"
+
 node scripts/design/check-css-custom-properties.mjs
 
 echo "✅ check-design-tokens: ${#EXPECTED_TOKENS[@]} runtime tokens present in theme.css."
+echo "✅ dark-mode parity guard: ${DARK_TONE_BLOCKS}/5 dark tone blocks; elevation levels 1–5 have dark overrides."
 echo "✅ workspace tone propagation guard: --m3-primary re-declared at .admin-m3 scope; ${TONE_ACCENT_COUNT} --tone-on-surface-accent roles present."
 echo "✅ DesignMD radius outputs present in $GENERATED_CSS."
 echo "✅ admin M3 variable usages resolve to defined tokens."

@@ -124,15 +124,35 @@
  * Overrides for [data-theme="dark"] adaptive dark palette
  * -------------------------------------------------------------------------- */
 [data-theme="dark"] {
-  /* Surface ladder — derive from --bg-* semantic tokens (remapped in theme.css)
-   * to stay in sync with the M3-aligned dark surface hierarchy (tones 4→22) */
-  --m3-surface: var(--bg-white-0);
-  --m3-surface-dim: var(--bg-white-0);
-  --m3-surface-container-lowest: var(--neutral-975);
-  --m3-surface-container-low: var(--bg-weak-50);
-  --m3-surface-container: var(--bg-soft-200);
-  --m3-surface-container-high: var(--bg-sub-300);
-  --m3-surface-container-highest: var(--bg-surface-800);
+  /* Deliberate warm-dark surface ladder (Warm Earth — constant warm hue ~65,
+   * raised chroma so surfaces read warm even at low lightness). OKLCH is the
+   * authoritative intent (in comments); the shipped value is the computed RGB
+   * triplet because every consumer reads `rgb(var(--m3-surface…))`.
+   * M3-dark convention: HIGHER elevation = LIGHTER. The default card
+   * (`--m3-surface-container`) sits ~6 L* above the canvas (`--m3-surface`), so
+   * card↔canvas separation comes from a lightness STEP, not a (black, invisible)
+   * drop shadow. This replaces the previous cold blue-slate derivation. */
+  --m3-surface: 17 12 8;                 /* oklch(16% .012 65) — canvas floor */
+  --m3-surface-dim: 17 12 8;             /* oklch(16% .012 65) — = surface in dark */
+  --m3-surface-bright: 57 49 41;         /* oklch(32% .018 65) — ladder top */
+  --m3-surface-container-lowest: 10 7 4; /* oklch(13% .010 65) — sunken wells */
+  --m3-surface-container-low: 24 19 13;  /* oklch(19% .014 65) — quiet grouping */
+  --m3-surface-container: 32 25 19;      /* oklch(22% .015 65) — DEFAULT CARD */
+  --m3-surface-container-high: 42 35 28; /* oklch(26% .016 65) — sheet/dialog inner */
+  --m3-surface-container-highest: 52 44 36; /* oklch(30% .018 65) — active/hover, chips */
+
+  /* M3 elevation — DARK override (the `:root` ladder above is light-only: pure
+   * black drop shadows that are invisible on near-black). In M3-dark, depth is a
+   * warm-white RING that scales with elevation; a small black blur is retained
+   * only to help glass/sheets that float OVER content read as lifted. Paired with
+   * the lightness STEP in the surface ladder, this restores card separation. */
+  --m3-elevation-0: none;
+  --m3-elevation-1: 0 0 0 1px rgb(var(--neutral-50) / 0.06);
+  --m3-elevation-2: 0 1px 2px rgb(0 0 0 / 0.5), 0 0 0 1px rgb(var(--neutral-50) / 0.09);
+  --m3-elevation-3: 0 4px 12px rgb(0 0 0 / 0.55), 0 0 0 1px rgb(var(--neutral-50) / 0.12);
+  --m3-elevation-4: 0 8px 24px rgb(0 0 0 / 0.6), 0 0 0 1px rgb(var(--neutral-50) / 0.14);
+  --m3-elevation-5: 0 16px 40px rgb(0 0 0 / 0.6), 0 0 0 1px rgb(var(--neutral-50) / 0.16);
+
   --m3-on-surface: var(--text-strong-950);
   --m3-on-surface-variant: var(--text-sub-600);
   --m3-outline: var(--stroke-sub-300);

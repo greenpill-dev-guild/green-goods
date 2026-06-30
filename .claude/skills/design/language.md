@@ -299,6 +299,35 @@ Colors must read well through translucent glass surfaces. Considerations:
 - **Tinted glass**: Subtle color tint in glass material shifts how content colors appear. Test accent colors through all 5 material thicknesses.
 - **Dark mode**: Glass materials need higher opacity in dark mode (already handled in material tokens). Colors shift to lighter tints for readability.
 
+### Dark Mode Palette (Admin)
+
+Admin dark mode is a **deliberate palette, not a light inversion**. Three rules carry it; all values live in admin-scoped files (`packages/admin/src/index.css`, `admin-m3-tokens.css`) so the client PWA is untouched. Toggle is `[data-theme="dark"]` on `<html>`.
+
+**1 — Warm surface ladder (Warm Earth at low lightness).** Surfaces keep a constant warm hue (~65 OKLCH) with raised chroma so they read warm even when dark. Following the M3-dark convention, **higher elevation = lighter** — the card sits a clear lightness step above the canvas, so separation comes from *tonal lift, not a drop shadow* (black shadows are invisible on near-black).
+
+| Role (`--m3-*`) | OKLCH intent | RGB triplet | Job |
+|---|---|---|---|
+| `surface` / `surface-dim` | `16% .012 65` | `17 12 8` | Canvas floor |
+| `surface-container-lowest` | `13% .010 65` | `10 7 4` | Sunken wells |
+| `surface-container-low` | `19% .014 65` | `24 19 13` | Quiet grouping |
+| `surface-container` | `22% .015 65` | `32 25 19` | **Default card** |
+| `surface-container-high` | `26% .016 65` | `42 35 28` | Sheet / dialog |
+| `surface-container-highest` | `30% .018 65` | `52 44 36` | Active / hover, chips |
+
+**2 — Ring-forward elevation.** Depth is a warm-white hairline ring (`--neutral-50` at 6–16%, scaling with level) plus a small black blur only for chrome floating over content — never a black drop shadow as the primary cue. The canvas wash carries each workspace's hue at L≈17% (just under the card) with chroma ~0.024 (community ~0.034); the dark `--tone-strength` default is `1` (the wash chroma is too low to oversaturate).
+
+**3 — Per-view accents (dual-use-safe).** `--tone-primary` feeds `--m3-primary`, which components consume **both** as a white-text fill **and** as on-surface text/icon/link color. So `--tone-primary` stays **light** (the `-200` step, readable as text on the dark card); saturation lives in `--tone-action` (deep, white-text filled CTA) and vividness in the wash + bright accent text. Never set `--tone-primary` to a deep step — it would make tone-colored links/icons unreadable.
+
+| Tone | Filled action (white-safe) | Accent text on card | Container / on |
+|---|---|---|---|
+| hub (blue) | `blue-700` · 7.3:1 | `blue-200` · 11.7:1 | `blue-900` / `blue-100` |
+| garden (green) | `green-800` · 5.7:1 | `green-200` · 14.4:1 | `green-900` / `green-100` |
+| community (amber/gold) | `orange-700` · 5.0:1 (deep amber — gold identity from wash/accent, not the fill) | `yellow-200` · 14.9:1 | `yellow-900` / `yellow-100` |
+| actions (red) | `red-700` · 6.5:1 | `red-200` · 12.0:1 | `red-900` / `red-100` |
+| home (stone) | `neutral-600` · 7.6:1 | `neutral-300` · 11.7:1 | `neutral-700` / `neutral-100` |
+
+**Contrast invariant:** filled actions carry white text and MUST clear AA (≥4.5:1) — this forces *deep* steps, so "vivid" can never come from brightening the fill. Accent-text `-200` steps clear AA on the `surface-container` card (≥11.7:1). A `check:design-tokens` dark-parity guard enforces light/dark tone-block and elevation parity.
+
 ---
 
 ## Component Patterns

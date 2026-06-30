@@ -345,10 +345,15 @@
   --edge-disabled: 0 0 0 1px rgba(255, 255, 255, 0.04);
   --edge-focus: 0 0 0 3px rgba(31, 193, 107, 0.30);
 
-  --admin-surface-0: 22 25 33;
-  --admin-surface-50: 17 19 27;
-  --warm-shadow: 0 0 0;
-  --warm-shadow-deep: 0 0 0;
+  /* Warm card surfaces — alias onto the M3 ladder (single dark surface source of
+   * truth). Was cold blue-slate (22 25 33 / 17 19 27, hue ~250), which made
+   * .canvas-route-card read cold/flat. Now a warm, elevated plane. */
+  --admin-surface-0: var(--m3-surface-container);     /* 32 25 19 — warm card */
+  --admin-surface-50: var(--m3-surface-container-low); /* 24 19 13 — recessed */
+  /* Restore a warm-brown shadow tint (was 0 0 0 — pure black, zero warmth) so the
+   * large-blur chrome/sheet shadows that DO render on dark carry Warm Earth. */
+  --warm-shadow: 30 22 14;
+  --warm-shadow-deep: 20 14 8;
 
   --admin-chrome-bg: linear-gradient(
     180deg,
@@ -505,17 +510,28 @@
   --tone-surface-tint-color: rgb(120 113 108 / 8%);
 }
 
-/* Dark mode workspace overrides. Keep text, focus, and containers lighter, but
- * filled actions remain deep with white text instead of pastel capsules. */
+/* Dark mode workspace accents — deliberate, AA-verified (not a light inversion).
+ *
+ * DUAL-USE RULE (do not "fix" --tone-primary to a deep step): --tone-primary
+ * feeds --m3-primary, which admin components consume BOTH as a white-text FILL
+ * (checkbox, progress, badge) AND as on-surface TEXT/icon/link color
+ * (admin-m3-overrides.css color:, CampaignCookieJarPanel links,
+ * CreateListingDialog icon). So --tone-primary stays LIGHT (the -200 step) to
+ * read on the dark card (≥11.6:1), paired with a dark --tone-on-primary for the
+ * tonal-fill case. Saturation lives in --tone-action (the strong filled CTA,
+ * deep + white text, ≥5.0:1) and vividness in the canvas wash + bright accent
+ * text — NOT in the primary fill, which would break the text usages above.
+ * Every block keeps --tone-on-surface-accent (gate; the bright tone-TEXT role).
+ * All ratios verified against the warm card surface (32 25 19). */
 [data-theme="dark"] [data-tone="hub"] {
   --tone-primary: var(--blue-200);
   --tone-on-primary: var(--blue-900);
   --tone-action: var(--blue-700);
-  --tone-action-hover: var(--blue-600);
+  --tone-action-hover: var(--blue-800);
   --tone-on-action: 255 255 255;
   --tone-primary-container: var(--blue-900);
   --tone-on-primary-container: var(--blue-100);
-  --tone-secondary: var(--blue-400);
+  --tone-secondary: var(--blue-300);
   --tone-surface-tint: var(--blue-200) / 10%;
   --tone-outline: var(--blue-700);
   --tone-surface-variant: var(--blue-900);
@@ -527,11 +543,11 @@
   --tone-primary: var(--green-200);
   --tone-on-primary: var(--green-900);
   --tone-action: var(--green-800);
-  --tone-action-hover: var(--green-700);
+  --tone-action-hover: var(--green-900); /* deeper hover stays white-safe (green-700 fails 4.29) */
   --tone-on-action: 255 255 255;
   --tone-primary-container: var(--green-900);
   --tone-on-primary-container: var(--green-100);
-  --tone-secondary: var(--green-400);
+  --tone-secondary: var(--green-300);
   --tone-surface-tint: var(--green-200) / 10%;
   --tone-outline: var(--green-700);
   --tone-surface-variant: var(--green-900);
@@ -539,15 +555,20 @@
   --tone-surface-tint-color: rgb(var(--green-200) / 10%);
 }
 
+/* Community = amber/gold. Filled action is a DEEP amber (orange-700, white-safe
+ * 5.0:1) — a brighter amber is not white-safe, so the gold identity comes from
+ * the wash, accent text, secondary and containers (the yellow family), matching
+ * the light-mode strategy. Same orange-700 fill value as light mode → no hue
+ * flip between modes. */
 [data-theme="dark"] [data-tone="community"] {
   --tone-primary: var(--yellow-200);
   --tone-on-primary: var(--yellow-900);
-  --tone-action: var(--orange-800);
-  --tone-action-hover: var(--orange-700);
+  --tone-action: var(--orange-700);
+  --tone-action-hover: var(--orange-800);
   --tone-on-action: 255 255 255;
   --tone-primary-container: var(--yellow-900);
   --tone-on-primary-container: var(--yellow-100);
-  --tone-secondary: var(--yellow-400);
+  --tone-secondary: var(--yellow-300);
   --tone-surface-tint: var(--yellow-200) / 10%;
   --tone-outline: var(--yellow-700);
   --tone-surface-variant: var(--yellow-900);
@@ -559,11 +580,11 @@
   --tone-primary: var(--red-200);
   --tone-on-primary: var(--red-900);
   --tone-action: var(--red-700);
-  --tone-action-hover: var(--red-600);
+  --tone-action-hover: var(--red-800); /* deeper hover stays white-safe (red-600 fails 4.15) */
   --tone-on-action: 255 255 255;
   --tone-primary-container: var(--red-900);
   --tone-on-primary-container: var(--red-100);
-  --tone-secondary: var(--red-400);
+  --tone-secondary: var(--red-300);
   --tone-surface-tint: var(--red-200) / 10%;
   --tone-outline: var(--red-700);
   --tone-surface-variant: var(--red-900);
@@ -572,19 +593,19 @@
 }
 
 [data-theme="dark"] [data-tone="home"] {
-  --tone-primary: 214 211 209;
-  --tone-on-primary: 41 37 36;
-  --tone-action: 68 64 60;
-  --tone-action-hover: 87 83 78;
+  --tone-primary: var(--neutral-300);
+  --tone-on-primary: var(--neutral-900);
+  --tone-action: var(--neutral-600);
+  --tone-action-hover: var(--neutral-700);
   --tone-on-action: 255 255 255;
-  --tone-primary-container: 68 64 60;
-  --tone-on-primary-container: 231 229 228;
-  --tone-secondary: 168 162 158;
-  --tone-surface-tint: 214 211 209 / 10%;
-  --tone-outline: 87 83 78;
-  --tone-surface-variant: 68 64 60;
-  --tone-on-surface-accent: 214 211 209;
-  --tone-surface-tint-color: rgb(214 211 209 / 10%);
+  --tone-primary-container: var(--neutral-700);
+  --tone-on-primary-container: var(--neutral-100);
+  --tone-secondary: var(--neutral-400);
+  --tone-surface-tint: var(--neutral-300) / 10%;
+  --tone-outline: var(--neutral-600);
+  --tone-surface-variant: var(--neutral-800);
+  --tone-on-surface-accent: var(--neutral-300);
+  --tone-surface-tint-color: rgb(var(--neutral-300) / 10%);
 }
 
 /* Workspace-aware tab rail tint. Keep the rail neutral so route color does not
@@ -620,11 +641,14 @@
 }
 
 [data-theme="dark"] {
-  --elevation-1: 0px 1px 2px 0px rgba(0, 0, 0, 0.3), 0px 0px 0px 1px rgb(var(--green-500) / 0.03);
-  --elevation-2: 0px 1px 3px 0px rgba(0, 0, 0, 0.4), 0px 0px 0px 1px rgb(var(--green-500) / 0.05);
-  --elevation-3: 0px 4px 6px -1px rgba(0, 0, 0, 0.4), 0px 0px 0px 1px rgb(var(--green-500) / 0.07);
-  --elevation-4: 0px 10px 15px -3px rgba(0, 0, 0, 0.5), 0px 0px 0px 1px rgb(var(--green-500) / 0.09);
-  --elevation-5: 0px 20px 25px -5px rgba(0, 0, 0, 0.5), 0px 0px 0px 1px rgb(var(--green-500) / 0.12);
+  /* Ring-forward dark elevation: the depth cue is a warm-white hairline (was a
+   * green ring at 3–12%, imperceptible). Ring alpha scales with elevation so the
+   * step is legible; black blur retained for floating chrome over content. */
+  --elevation-1: 0px 1px 2px 0px rgba(0, 0, 0, 0.3), 0px 0px 0px 1px rgb(var(--neutral-50) / 0.06);
+  --elevation-2: 0px 1px 3px 0px rgba(0, 0, 0, 0.4), 0px 0px 0px 1px rgb(var(--neutral-50) / 0.09);
+  --elevation-3: 0px 4px 6px -1px rgba(0, 0, 0, 0.45), 0px 0px 0px 1px rgb(var(--neutral-50) / 0.12);
+  --elevation-4: 0px 10px 15px -3px rgba(0, 0, 0, 0.5), 0px 0px 0px 1px rgb(var(--neutral-50) / 0.14);
+  --elevation-5: 0px 20px 25px -5px rgba(0, 0, 0, 0.5), 0px 0px 0px 1px rgb(var(--neutral-50) / 0.16);
 }
 
 /* ============================================================================
@@ -1757,16 +1781,17 @@
 }
 
 [data-theme="dark"] {
-  /* Dark-mode warm canvas — neutral-950 (matches our existing dark surface ladder) */
-  --canvas: rgb(var(--neutral-950));
+  /* Dark-mode warm surfaces — ALIAS the M3 ladder so there is one dark surface
+   * source of truth (was a parallel --neutral-* set). */
+  --canvas: rgb(var(--m3-surface));                  /* 17 12 8 — canvas floor */
   --ink: rgb(var(--neutral-50));
   --stone: rgb(var(--neutral-400));
   --on-surface-muted: rgb(var(--neutral-300));
   --on-surface-soft: rgb(var(--neutral-400));
   --surface: var(--canvas);
-  --surface-raised: rgb(var(--neutral-900));
-  --surface-sunken: rgb(var(--neutral-975));
-  --surface-quiet: rgb(var(--neutral-925));
+  --surface-raised: rgb(var(--m3-surface-container));     /* 32 25 19 — card */
+  --surface-sunken: rgb(var(--m3-surface-container-lowest)); /* 10 7 4 — sunken */
+  --surface-quiet: rgb(var(--m3-surface-container-high));  /* 42 35 28 — hover */
   --hairline: rgb(var(--neutral-50) / 0.08);
   --hairline-strong: rgb(var(--neutral-50) / 0.14);
   --outline: rgb(var(--neutral-50) / 0.10);
@@ -1860,7 +1885,11 @@
 [data-tone-strength="default"] { --tone-strength: 1; }
 
 /* Dark mode default = subtle (per audit §5.4.3) */
-[data-theme="dark"]                                  { --tone-strength: 0.5; }
+/* Dark default flipped 0.5 → 1 (reverses audit §5.4.3 "subtle default in dark"):
+ * justified because the dark wash chroma was so low that 0.5 made it invisible —
+ * the oversaturation concern §5.4.3 guarded against can't occur at these chromas.
+ * The `subtle` (0.5) and `off` (0) opt-outs below remain for per-view dialing. */
+[data-theme="dark"]                                  { --tone-strength: 1; }
 :is([data-theme="dark"][data-tone-strength="off"], [data-theme="dark"] [data-tone-strength="off"])         { --tone-strength: 0; }
 :is([data-theme="dark"][data-tone-strength="default"], [data-theme="dark"] [data-tone-strength="default"]) { --tone-strength: 1; }
 
@@ -1869,10 +1898,14 @@
 [data-tone="community"] { --tone-canvas: oklch(96.5% calc(0.016 * var(--tone-strength)) 80);  }
 [data-tone="actions"]   { --tone-canvas: oklch(96.5% calc(0.008 * var(--tone-strength)) 30);  }
 
-:is([data-theme="dark"][data-tone="hub"], [data-theme="dark"] [data-tone="hub"])             { --tone-canvas: oklch(20% calc(0.012 * var(--tone-strength)) 240); }
-:is([data-theme="dark"][data-tone="garden"], [data-theme="dark"] [data-tone="garden"])       { --tone-canvas: oklch(20% calc(0.012 * var(--tone-strength)) 145); }
-:is([data-theme="dark"][data-tone="community"], [data-theme="dark"] [data-tone="community"]) { --tone-canvas: oklch(20% calc(0.020 * var(--tone-strength)) 80);  }
-:is([data-theme="dark"][data-tone="actions"], [data-theme="dark"] [data-tone="actions"])     { --tone-canvas: oklch(20% calc(0.012 * var(--tone-strength)) 30);  }
+/* Dark wash: chroma raised ~2× (was ~0.012; at the old 0.5 strength the effective
+ * chroma was ~0.006 — invisible, so every workspace read identically near-black).
+ * Lightness kept at 17%, just UNDER the warm card (L≈21%), so cards still separate
+ * by a lightness step while the per-view hue now reads in the canvas margins. */
+:is([data-theme="dark"][data-tone="hub"], [data-theme="dark"] [data-tone="hub"])             { --tone-canvas: oklch(17% calc(0.024 * var(--tone-strength)) 240); }
+:is([data-theme="dark"][data-tone="garden"], [data-theme="dark"] [data-tone="garden"])       { --tone-canvas: oklch(17% calc(0.024 * var(--tone-strength)) 145); }
+:is([data-theme="dark"][data-tone="community"], [data-theme="dark"] [data-tone="community"]) { --tone-canvas: oklch(17% calc(0.034 * var(--tone-strength)) 80);  }
+:is([data-theme="dark"][data-tone="actions"], [data-theme="dark"] [data-tone="actions"])     { --tone-canvas: oklch(17% calc(0.024 * var(--tone-strength)) 30);  }
 
 /* ============================================================================
  * STATUS PALETTE REMAP (Tier 1b — admin-scoped global remap)
