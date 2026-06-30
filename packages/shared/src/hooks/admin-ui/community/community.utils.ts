@@ -5,12 +5,7 @@ import {
   type MetaStripItem,
   type ViewAction,
 } from "@green-goods/shared";
-import {
-  RiExternalLinkLine,
-  RiMoneyDollarCircleLine,
-  RiUserLine,
-  RiUserVoiceLine,
-} from "@remixicon/react";
+import { RiMoneyDollarCircleLine, RiUserLine, RiUserVoiceLine } from "@remixicon/react";
 
 /**
  * Inputs for the Community header stats slot.
@@ -106,20 +101,8 @@ export function buildCommunityViewActions(
   routeContext?: AdminCommunityRouteContext
 ): ViewAction[] {
   const gardenAddress = routeContext?.gardenAddress;
+  // "View public" lives once, on the Garden workspace — not duplicated here.
   return [
-    {
-      id: "view-public",
-      label: "View public",
-      labelId: "cockpit.community.action.viewPublic",
-      icon: RiExternalLinkLine,
-      onClick: () => {
-        if (!gardenAddress) return;
-        const url = `/gardens/${encodeURIComponent(gardenAddress)}`;
-        window.open(url, "_blank", "noopener,noreferrer");
-      },
-      variant: "ghost",
-      visible: hasSelectedGarden && Boolean(gardenAddress),
-    },
     {
       id: "manage-members",
       label: "Manage members",
