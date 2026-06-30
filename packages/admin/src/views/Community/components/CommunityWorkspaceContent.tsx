@@ -93,7 +93,7 @@ export function CommunityWorkspaceContent({ workspace }: CommunityWorkspaceConte
         memberSearch={workspace.memberSearch}
         setMemberSearch={workspace.setMemberSearch}
         openMembersModal={workspace.openMembersModal}
-        onManageMembers={workspace.openGardenMembers}
+        roleMembers={workspace.roleMembers}
         scheduleBackgroundRefetch={workspace.scheduleBackgroundRefetch}
       />
     </div>

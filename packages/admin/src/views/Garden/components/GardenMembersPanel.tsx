@@ -5,7 +5,6 @@ import {
   GARDEN_ROLE_I18N_KEYS,
   type GardenRole,
   useEnsAddress,
-  useGardenOperations,
 } from "@green-goods/shared";
 import { RiSearchLine, RiTeamLine, RiUserSettingsLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
@@ -14,10 +13,7 @@ import { isAddress } from "viem";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { AdminTextField } from "@/components/AdminTextField";
-import { AddMemberModal } from "@/components/Garden/AddMemberModal";
-import { ManageRolesModal } from "@/components/Garden/ManageRolesModal";
-import { MembersModal } from "@/components/Garden/MembersModal";
-import { getRoleLabel } from "@/components/Garden/gardenUtils";
+import { GardenRolesModals } from "@/components/Garden/GardenRolesModals";
 
 /**
  * /garden/members — the management surface for a garden's roster.
@@ -144,10 +140,6 @@ export function GardenMembersPanel({
   const [filter, setFilter] = useState<GardenMembersFilter>("all");
   const [search, setSearch] = useState("");
   const [manageRolesOpen, setManageRolesOpen] = useState(false);
-  const [roleAddTarget, setRoleAddTarget] = useState<GardenRole | null>(null);
-  const [roleListTarget, setRoleListTarget] = useState<GardenRole | null>(null);
-
-  const operations = useGardenOperations(gardenAddress);
 
   // ENS-aware search: hex queries and plain fragments match the address text;
   // name-like queries (contain a dot, e.g. "afo.eth") resolve through the
@@ -193,42 +185,6 @@ export function GardenMembersPanel({
       return lower.includes(trimmedSearch);
     });
   }, [filter, gardeners, looksLikeEnsName, resolvedEnsAddress, roleSets, trimmedSearch]);
-
-  const addByRole: Record<GardenRole, (address: Address) => Promise<{ success: boolean }>> = {
-    gardener: operations.addGardener,
-    operator: operations.addOperator,
-    evaluator: operations.addEvaluator,
-    owner: operations.addOwner,
-    funder: operations.addFunder,
-    community: operations.addCommunity,
-  };
-  const removeByRole: Record<GardenRole, (address: Address) => Promise<{ success: boolean }>> = {
-    gardener: operations.removeGardener,
-    operator: operations.removeOperator,
-    evaluator: operations.removeEvaluator,
-    owner: operations.removeOwner,
-    funder: operations.removeFunder,
-    community: operations.removeCommunity,
-  };
-
-  // AddMemberModal treats a resolved promise as success and closes; surface
-  // failed operations as throws so the modal keeps the address for retry.
-  const addMemberForRole = (role: GardenRole) => async (address: Address) => {
-    const result = await addByRole[role](address);
-    if (!result.success) {
-      throw new Error(
-        formatMessage({ id: "app.admin.roles.error.addFailed", defaultMessage: "Failed to add" })
-      );
-    }
-  };
-
-  const handleRemoveMember = async (address: Address, role: GardenRole) => {
-    await removeByRole[role](address);
-  };
-
-  const roleListLabel = roleListTarget
-    ? getRoleLabel(roleListTarget, formatMessage).plural
-    : undefined;
 
   if (gardeners.length === 0) {
     return (
@@ -405,45 +361,16 @@ export function GardenMembersPanel({
         })}
       </ul>
 
-      {canManage ? (
-        <>
-          {/* Header "Add member" (gardener, the common case) now opens as a
-              left sheet via GardenSheetDescriptor. Other roles add through
-              Manage Roles below; that per-role AddMemberModal stays. */}
-          <ManageRolesModal
-            isOpen={manageRolesOpen}
-            onClose={() => setManageRolesOpen(false)}
-            roleMembers={roleMembers}
-            canManageRoles={canManage}
-            isLoading={operations.isLoading}
-            onOpenAddMember={(role) => setRoleAddTarget(role)}
-            onOpenMembersModal={(role) => setRoleListTarget(role)}
-            onRemoveMember={(address, role) => void handleRemoveMember(address, role)}
-          />
-
-          {roleAddTarget ? (
-            <AddMemberModal
-              isOpen
-              onClose={() => setRoleAddTarget(null)}
-              memberType={roleAddTarget}
-              onAdd={addMemberForRole(roleAddTarget)}
-              isLoading={operations.isLoading}
-            />
-          ) : null}
-
-          {roleListTarget ? (
-            <MembersModal
-              isOpen
-              onClose={() => setRoleListTarget(null)}
-              title={roleListLabel ?? ""}
-              members={roleMembers[roleListTarget] ?? []}
-              canManage={canManage}
-              onRemove={(member) => handleRemoveMember(member as Address, roleListTarget)}
-              isLoading={operations.isLoading}
-            />
-          ) : null}
-        </>
-      ) : null}
+      {/* Header "Add member" (gardener, the common case) opens via the
+          workspace controller; the per-role add/list/remove writes live in
+          the shared Manage Roles modal stack below (reused on Community too). */}
+      <GardenRolesModals
+        gardenAddress={gardenAddress}
+        roleMembers={roleMembers}
+        canManage={canManage}
+        open={manageRolesOpen}
+        onClose={() => setManageRolesOpen(false)}
+      />
     </div>
   );
 }

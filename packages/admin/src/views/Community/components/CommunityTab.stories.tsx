@@ -38,6 +38,15 @@ const DIRECTORY: RoleDirectoryEntry[] = [
   { address: GARDENER_B, roles: ["gardener"] },
 ];
 
+const ROLE_MEMBERS: Record<GardenRole, Address[]> = {
+  owner: [OWNER],
+  operator: [OPERATOR_A, OPERATOR_B],
+  evaluator: [],
+  gardener: [GARDENER_A, GARDENER_B],
+  funder: [],
+  community: [OWNER, OPERATOR_A, GARDENER_A],
+};
+
 const ALLOCATIONS: YieldAllocation[] = [
   {
     gardenAddress: GARDEN_ID as Address,
@@ -112,7 +121,7 @@ const meta: Meta<typeof CommunityTab> = {
     memberSearch: "",
     setMemberSearch: fn(),
     openMembersModal: fn(),
-    onManageMembers: fn(),
+    roleMembers: ROLE_MEMBERS,
     scheduleBackgroundRefetch: fn(),
   },
 };

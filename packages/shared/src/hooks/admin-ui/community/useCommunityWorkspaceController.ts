@@ -189,11 +189,6 @@ export function useCommunityWorkspaceController() {
     () => navigate(adminRoutes.communityMembers({ gardenAddress: selectedGardenAddress })),
     [navigate, selectedGardenAddress]
   );
-  // People is engagement/read-only; management lives on Garden → Members.
-  const openGardenMembers = useCallback(
-    () => navigate(adminRoutes.gardenMembers({ gardenAddress: selectedGardenAddress })),
-    [navigate, selectedGardenAddress]
-  );
   const createPoolsAsync = useCallback(async () => {
     createPools();
   }, [createPools]);
@@ -232,11 +227,11 @@ export function useCommunityWorkspaceController() {
     isVaultRoute,
     memberSearch,
     mode,
-    openGardenMembers,
     openMembersModal,
     openSection,
     pools,
     poolType,
+    roleMembers,
     scheduleBackgroundRefetch,
     section,
     selectedGarden,

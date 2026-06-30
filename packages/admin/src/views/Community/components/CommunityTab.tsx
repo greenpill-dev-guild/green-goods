@@ -22,6 +22,7 @@ import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { AdminTextField } from "@/components/AdminTextField";
 import { EnsAddressText } from "@/components/EnsAddressText";
 import { GardenCommunityCard } from "@/components/Garden/GardenCommunityCard";
+import { GardenRolesModals } from "@/components/Garden/GardenRolesModals";
 import { GardenYieldCard } from "@/components/Garden/GardenYieldCard";
 import { getRoleLabel } from "@/components/Garden/gardenUtils";
 import { CookieJarPayoutPanel } from "@/views/Hub/components/CookieJarPayoutPanel";
@@ -57,9 +58,9 @@ export interface CommunityTabProps {
   memberSearch: string;
   setMemberSearch: (search: string) => void;
   openMembersModal: (type: GardenRole) => void;
-  /** Clear link from People (engagement/read-only) to Garden → Members
-   *  (the management surface). Role mutations never happen on this tab. */
-  onManageMembers: () => void;
+  /** Full member roster by role — feeds the in-context Manage Roles modal
+   *  stack so role management happens without leaving the Community tab. */
+  roleMembers: Record<GardenRole, Address[]>;
   scheduleBackgroundRefetch: () => void;
 }
 
@@ -101,10 +102,11 @@ export function CommunityTab({
   memberSearch,
   setMemberSearch,
   openMembersModal,
-  onManageMembers,
+  roleMembers,
   scheduleBackgroundRefetch,
 }: CommunityTabProps) {
   const { formatMessage } = useIntl();
+  const [manageRolesOpen, setManageRolesOpen] = useState(false);
 
   // Tier-6 alignment with handoff filter-chip pattern. Community People tab
   // gets a 5-chip rail mirroring Garden Members (All / Operators / Evaluators
@@ -274,14 +276,14 @@ export function CommunityTab({
                       </Button>
                     ) : null}
                     {canManage ? (
-                      // People stays engagement/read-only — this is the one
-                      // management affordance, and it leaves the tab.
+                      // Role management is in-context now — opens the Manage
+                      // Roles modal stack without leaving Community.
                       <AdminButton
                         type="button"
                         variant="outlined"
                         size="sm"
                         leadingIcon={<RiUserSettingsLine />}
-                        onClick={onManageMembers}
+                        onClick={() => setManageRolesOpen(true)}
                       >
                         {formatMessage({
                           id: "cockpit.community.action.manageMembers",
@@ -545,6 +547,14 @@ export function CommunityTab({
           </div>
         </aside>
       </div>
+
+      <GardenRolesModals
+        gardenAddress={garden.id as Address}
+        roleMembers={roleMembers}
+        canManage={canManage}
+        open={manageRolesOpen}
+        onClose={() => setManageRolesOpen(false)}
+      />
     </div>
   );
 }
