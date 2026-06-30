@@ -269,9 +269,7 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
                 loading={isCreatingPools}
               >
                 {!isCreatingPools && <RiAddLine className="h-4 w-4" />}
-                {isCreatingPools
-                  ? formatMessage({ id: "app.community.creatingPools" })
-                  : formatMessage({ id: "app.community.createPools" })}
+                {formatMessage({ id: "app.community.createPools" })}
               </Button>
             )}
           </div>

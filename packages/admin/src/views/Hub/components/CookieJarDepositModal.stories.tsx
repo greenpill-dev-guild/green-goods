@@ -116,7 +116,7 @@ function CookieJarDepositModalHarness({
           disabled={!selected || amount.trim() === ""}
           onClick={fn()}
         >
-          {isPending ? "Depositing…" : "Deposit"}
+          Deposit
         </Button>
 
         <TxInlineFeedback

@@ -397,12 +397,7 @@ export function ReviewForm({
                     className="border-[rgb(var(--m3-error))] [color:rgb(var(--m3-error))] [--state-layer-color:var(--m3-error)] focus-visible:ring-[rgb(var(--m3-error))]"
                     data-action="reject"
                   >
-                    {isSubmitting && submittingAction === "reject"
-                      ? formatMessage({
-                          id: "app.work.detail.rejecting",
-                          defaultMessage: "Rejecting...",
-                        })
-                      : formatMessage({ id: "app.work.detail.reject" })}
+                    {formatMessage({ id: "app.work.detail.reject" })}
                   </AdminButton>
                   <AdminButton
                     type="button"
@@ -412,12 +407,7 @@ export function ReviewForm({
                     loading={isSubmitting && submittingAction === "approve"}
                     data-action="approve"
                   >
-                    {isSubmitting && submittingAction === "approve"
-                      ? formatMessage({
-                          id: "app.work.detail.approving",
-                          defaultMessage: "Approving...",
-                        })
-                      : formatMessage({ id: "app.work.detail.approve" })}
+                    {formatMessage({ id: "app.work.detail.approve" })}
                   </AdminButton>
                 </div>
               </form>

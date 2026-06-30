@@ -360,9 +360,7 @@ export default function GardenSignalPoolView({ layout = "page" }: GardenSignalPo
                     disabled={!newItemId.trim() || registerMutation.isPending}
                     loading={registerMutation.isPending}
                   >
-                    {registerMutation.isPending
-                      ? formatMessage({ id: "app.common.processing" })
-                      : formatMessage({ id: "app.conviction.register" })}
+                    {formatMessage({ id: "app.conviction.register" })}
                   </AdminButton>
                 </div>
               )}

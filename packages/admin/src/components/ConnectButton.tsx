@@ -35,16 +35,11 @@ export function ConnectButton({
       data-testid="connect-wallet-button"
       className={className}
     >
-      {isConnecting
-        ? formatMessage({
-            id: "admin.connectButton.connecting",
-            defaultMessage: "Connecting...",
-          })
-        : children ||
-          formatMessage({
-            id: "admin.connectButton.connect",
-            defaultMessage: "Connect Wallet",
-          })}
+      {children ||
+        formatMessage({
+          id: "admin.connectButton.connect",
+          defaultMessage: "Connect Wallet",
+        })}
     </AdminButton>
   );
 }

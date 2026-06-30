@@ -114,12 +114,7 @@ export function FormWizard({
                   loading={isSubmitting}
                   className="flex-1 sm:flex-initial"
                 >
-                  {isSubmitting
-                    ? formatMessage({
-                        id: "app.wizard.submitting",
-                        defaultMessage: "Deploying...",
-                      })
-                    : resolvedSubmitLabel}
+                  {resolvedSubmitLabel}
                 </Button>
               )}
             </div>

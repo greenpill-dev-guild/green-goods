@@ -73,8 +73,9 @@ type PendingWork = Work & { _isPending?: boolean; _pendingUntilMs?: number };
  *     <button
  *       onClick={handleApprove}
  *       disabled={approvalMutation.isPending}
+ *       aria-busy={approvalMutation.isPending || undefined}
  *     >
- *       {approvalMutation.isPending ? "Submitting..." : "Approve"}
+ *       Approve
  *     </button>
  *   );
  * }

@@ -97,6 +97,7 @@ function CookieJarWithdrawModalHarness({
             <AdminButton
               variant="outlined"
               size="sm"
+              className="min-w-14"
               onClick={() => {
                 if (!selected) return;
                 const max =
@@ -136,7 +137,7 @@ function CookieJarWithdrawModalHarness({
           disabled={!selected || amount.trim() === ""}
           onClick={fn()}
         >
-          {isPending ? "Withdrawing…" : "Withdraw"}
+          Withdraw
         </Button>
 
         <TxInlineFeedback

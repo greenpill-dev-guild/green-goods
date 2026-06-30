@@ -203,9 +203,7 @@ export function DepositModal({
               }
               loading={depositMutation.isPending}
             >
-              {depositMutation.isPending
-                ? formatMessage({ id: "app.treasury.depositing" })
-                : formatMessage({ id: "app.treasury.deposit" })}
+              {formatMessage({ id: "app.treasury.deposit" })}
             </AdminButton>
           </>
         ) : null

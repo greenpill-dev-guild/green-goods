@@ -497,9 +497,7 @@ export default function EditAction({ layout = "page" }: EditActionProps = {}) {
           className="flex flex-col gap-3 sm:flex-row sm:justify-end"
         >
           <AdminButton type="submit" variant="filled" disabled={isLoading} loading={isLoading}>
-            {isLoading
-              ? formatMessage({ id: "app.actions.edit.saving" })
-              : formatMessage({ id: "app.actions.edit.saveChanges" })}
+            {formatMessage({ id: "app.actions.edit.saveChanges" })}
           </AdminButton>
           <AdminButton type="button" variant="outlined" onClick={() => navigate(actionDetailHref)}>
             {formatMessage({ id: "app.common.cancel" })}

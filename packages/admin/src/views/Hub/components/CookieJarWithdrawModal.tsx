@@ -117,12 +117,7 @@ export function CookieJarWithdrawModal({
             disabled={!selectedWithdrawJar || parsedWithdrawAmount <= 0n}
             onClick={handleWithdraw}
           >
-            {isPending
-              ? formatMessage({
-                  id: "app.cookieJar.withdrawing",
-                  defaultMessage: "Withdrawing...",
-                })
-              : formatMessage({ id: "app.cookieJar.withdraw", defaultMessage: "Withdraw" })}
+            {formatMessage({ id: "app.cookieJar.withdraw", defaultMessage: "Withdraw" })}
           </AdminButton>
         </>
       }
@@ -177,6 +172,7 @@ export function CookieJarWithdrawModal({
             <AdminButton
               variant="outlined"
               size="sm"
+              className="min-w-14"
               onClick={() => {
                 if (!selectedWithdrawJar) return;
                 const max =

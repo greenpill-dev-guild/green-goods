@@ -687,25 +687,21 @@ function EndowmentAssetRow({ position, ownerAddress, onRefresh }: EndowmentAsset
             variant="warm"
             className="mt-4 w-full px-5 py-2.5 text-sm"
             disabled={disableWithdraw}
+            aria-busy={withdrawMutation.isPending || undefined}
             onClick={executeWithdraw}
           >
-            {withdrawMutation.isPending
-              ? formatMessage({
-                  id: "public.fund.endowments.withdraw.pending",
-                  defaultMessage: "Withdrawing…",
-                })
-              : parsedAmount > 0n && !inputError
-                ? formatMessage(
-                    {
-                      id: "public.fund.endowments.withdraw.submitAmount",
-                      defaultMessage: "Withdraw {amount}",
-                    },
-                    { amount: amountLabel }
-                  )
-                : formatMessage({
-                    id: "public.fund.endowments.withdraw.submit",
-                    defaultMessage: "Withdraw",
-                  })}
+            {parsedAmount > 0n && !inputError
+              ? formatMessage(
+                  {
+                    id: "public.fund.endowments.withdraw.submitAmount",
+                    defaultMessage: "Withdraw {amount}",
+                  },
+                  { amount: amountLabel }
+                )
+              : formatMessage({
+                  id: "public.fund.endowments.withdraw.submit",
+                  defaultMessage: "Withdraw",
+                })}
           </EditorialGhostButton>
 
           {withdrawMutation.error ? (

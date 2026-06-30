@@ -158,9 +158,7 @@ export function WithdrawModal({
             }
             loading={withdrawMutation.isPending}
           >
-            {withdrawMutation.isPending
-              ? formatMessage({ id: "app.treasury.withdrawing" })
-              : formatMessage({ id: "app.treasury.withdraw" })}
+            {formatMessage({ id: "app.treasury.withdraw" })}
           </AdminButton>
         </>
       }

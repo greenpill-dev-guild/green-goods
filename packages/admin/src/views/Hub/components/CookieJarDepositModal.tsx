@@ -127,12 +127,7 @@ export function CookieJarDepositModal({
             disabled={!selectedDepositJar || parsedDepositAmount <= 0n || Boolean(belowMinDeposit)}
             onClick={handleDeposit}
           >
-            {isPending
-              ? formatMessage({
-                  id: "app.cookieJar.depositing",
-                  defaultMessage: "Depositing...",
-                })
-              : formatMessage({ id: "app.cookieJar.deposit", defaultMessage: "Deposit" })}
+            {formatMessage({ id: "app.cookieJar.deposit", defaultMessage: "Deposit" })}
           </AdminButton>
         </>
       }

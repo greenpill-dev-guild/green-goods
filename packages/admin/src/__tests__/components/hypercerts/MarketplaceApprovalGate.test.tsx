@@ -207,7 +207,7 @@ describe("components/Hypercerts/MarketplaceApprovalGate", () => {
 
       renderGate();
 
-      const approvingButton = screen.getByRole("button", { name: /approving/i });
+      const approvingButton = screen.getByRole("button", { name: /approve all/i });
       expect(approvingButton).toBeDisabled();
     });
   });

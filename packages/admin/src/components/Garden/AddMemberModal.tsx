@@ -123,9 +123,7 @@ export function AddMemberModal({
             disabled={isLoading || !trimmed || (shouldResolveEns && resolvingEns)}
             loading={isLoading}
           >
-            {isLoading
-              ? formatMessage({ id: "admin.addMember.adding", defaultMessage: "Adding..." })
-              : formatMessage({ id: "app.admin.roles.add" }, { role: roleLabel })}
+            {formatMessage({ id: "app.admin.roles.add" }, { role: roleLabel })}
           </AdminButton>
         </>
       }

@@ -823,9 +823,7 @@ function SubmitWorkPanelContent({
             leadingIcon={<RiUploadCloudLine />}
             className="w-full sm:w-auto"
           >
-            {mutation.isPending
-              ? formatMessage({ id: "app.admin.work.submit.submitting" })
-              : formatMessage({ id: "app.admin.work.submit.submit" })}
+            {formatMessage({ id: "app.admin.work.submit.submit" })}
           </AdminButton>
         ) : (
           <AdminButton
