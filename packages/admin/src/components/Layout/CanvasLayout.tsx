@@ -1,13 +1,10 @@
 import {
-  BottomSheet,
   FabProvider,
   RefreshActionProvider,
   GardenChip,
-  LeftSheet,
   LeftSheetProvider,
   MainSheet,
   NavigationBar,
-  RightSheet,
   AppBar,
   NotificationPanel,
   ACCOUNT_TAB_SEARCH_PARAM,
@@ -48,6 +45,7 @@ import {
 import { RiUserLine } from "@remixicon/react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
+import { AdminDialog } from "@/components/AdminDialog";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AccountProfilePanel } from "./AccountProfilePanel";
 import { AccountSettingsPanel } from "./AccountSettingsPanel";
@@ -325,6 +323,20 @@ export function CanvasLayout() {
     } as const;
   }, [isDesktop, location.pathname]);
 
+  // Left-inspector accent: the inspector content is workspace-scoped, so the
+  // centered dialog keeps the active workspace tone (it portals out of
+  // CanvasLayout's [data-tone] scope). Non-tone ids (e.g. "profile") fall back
+  // to the neutral operator "hub" accent. Literal branches keep this a valid
+  // AdminDialog tone regardless of the workspace-id type.
+  const leftDialogTone: "hub" | "garden" | "community" | "actions" =
+    workspaceId === "garden"
+      ? "garden"
+      : workspaceId === "community"
+        ? "community"
+        : workspaceId === "actions"
+          ? "actions"
+          : "hub";
+
   const isCoreWorkspace =
     activePath === "/hub" || activePath === "/garden" || activePath === "/community";
   const noEligibleGardens = eligibleGardens.length === 0;
@@ -529,21 +541,26 @@ export function CanvasLayout() {
               data-testid="canvas-sheet-layer"
             />
 
-            {/* Pane-scoped right sheet — content driven by orchestrator contentId */}
-            {sheetLayerRoot ? (
-              <RightSheet
-                open={activeSheet === "right" && rightSheetDescriptor !== null}
-                onClose={() => closeSheet()}
-                title={rightSheetDescriptor?.title}
-                container={sheetLayerRoot}
-                width={rightSheetDescriptor?.width ?? "default"}
-              >
-                {rightSheetDescriptor?.content}
-              </RightSheet>
-            ) : null}
+            {/* Account / notification inspector — centered AdminDialog (the
+                right sheet retired). The same orchestrator contentId drives
+                open/close. Tone is the neutral operator "hub" accent: this is
+                global account chrome, not workspace content, so it should not
+                inherit the active garden's tint, and the dialog portals out of
+                CanvasLayout's [data-tone] scope. */}
+            <AdminDialog
+              open={activeSheet === "right" && rightSheetDescriptor !== null}
+              onOpenChange={(next) => {
+                if (!next) closeSheet();
+              }}
+              title={rightSheetDescriptor?.title ?? ""}
+              tone="hub"
+              size="lg"
+            >
+              {rightSheetDescriptor?.content}
+            </AdminDialog>
 
             {/* Persistent left/bottom sheet — content declared by views via useLeftSheetConfig */}
-            <CanvasLeftSheet isDesktop={isDesktop} overlayRoot={sheetLayerRoot} />
+            <CanvasLeftSheet tone={leftDialogTone} />
 
             <CommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
           </div>
@@ -669,49 +686,29 @@ const FabAwareNavigationBar = memo(function FabAwareNavigationBar(props: {
 FabAwareNavigationBar.displayName = "FabAwareNavigationBar";
 
 /**
- * Bridge: reads left sheet config from LeftSheetContext and renders
- * LeftSheet (desktop) or BottomSheet (mobile). Persistent across route
- * transitions — views declare content via useLeftSheetConfig().
+ * Bridge: reads left-inspector config from LeftSheetContext and renders it as a
+ * centered AdminDialog — the left/bottom canvas sheets are retired, AdminDialog
+ * is the canonical admin overlay (bottom-sheet presentation on mobile is built
+ * in). Persistent across route transitions — views declare content via
+ * useLeftSheetConfig(). Closing runs `config.onClose`; route-backed configs
+ * navigate to their `closeTo`, so deep-link + back-nav are preserved.
  */
-function CanvasLeftSheet({
-  isDesktop,
-  overlayRoot,
-}: {
-  isDesktop: boolean;
-  overlayRoot: HTMLElement | null;
-}) {
+function CanvasLeftSheet({ tone }: { tone: "hub" | "garden" | "community" | "actions" }) {
   const config = useLeftSheetConfigValue();
   const isOpen = config !== null;
 
-  if (isOpen && !overlayRoot) {
-    return null;
-  }
-
-  if (isDesktop) {
-    return (
-      <LeftSheet
-        open={isOpen}
-        onClose={config?.onClose ?? (() => {})}
-        title={config?.title}
-        container={overlayRoot}
-        preventClose={config?.preventClose}
-        width={config?.width ?? "default"}
-      >
-        {config?.content}
-      </LeftSheet>
-    );
-  }
-
   return (
-    <BottomSheet
+    <AdminDialog
       open={isOpen}
-      onClose={config?.onClose ?? (() => {})}
-      title={config?.title}
-      maxHeight={92}
-      container={overlayRoot}
+      onOpenChange={(next) => {
+        if (!next) config?.onClose?.();
+      }}
+      title={config?.title ?? ""}
+      tone={tone}
+      size={config?.width === "wide" ? "xl" : "lg"}
       preventClose={config?.preventClose}
     >
       {config?.content}
-    </BottomSheet>
+    </AdminDialog>
   );
 }

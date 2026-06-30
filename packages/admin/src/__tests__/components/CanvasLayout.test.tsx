@@ -474,7 +474,7 @@ describe("CanvasLayout", () => {
     );
   });
 
-  it("opens RightSheet with settings content from the desktop settings trigger", async () => {
+  it("opens settings content in a centered dialog from the desktop settings trigger", async () => {
     Object.defineProperty(window, "matchMedia", {
       writable: true,
       value: vi.fn().mockImplementation((query: string) => ({
@@ -500,11 +500,11 @@ describe("CanvasLayout", () => {
     await user.click(screen.getByRole("button", { name: "Open Settings" }));
 
     await waitFor(() => {
-      expect(screen.getByTestId("right-sheet")).toBeInTheDocument();
+      expect(screen.getByTestId("admin-dialog-body")).toBeInTheDocument();
     });
   });
 
-  it("opens RightSheet with profile content from the desktop profile trigger", async () => {
+  it("opens profile content in a centered dialog from the desktop profile trigger", async () => {
     Object.defineProperty(window, "matchMedia", {
       writable: true,
       value: vi.fn().mockImplementation((query: string) => ({
@@ -530,11 +530,11 @@ describe("CanvasLayout", () => {
     await user.click(screen.getByRole("button", { name: "Open Profile" }));
 
     await waitFor(() => {
-      expect(screen.getByTestId("right-sheet")).toBeInTheDocument();
+      expect(screen.getByTestId("admin-dialog-body")).toBeInTheDocument();
     });
   });
 
-  it("opens RightSheet with data-backed notifications content", async () => {
+  it("opens data-backed notifications content in a centered dialog", async () => {
     const user = userEvent.setup();
 
     renderWithProviders(
@@ -546,7 +546,7 @@ describe("CanvasLayout", () => {
     await user.click(screen.getByRole("button", { name: "Open Notifications" }));
 
     await waitFor(() => {
-      expect(screen.getByTestId("right-sheet")).toBeInTheDocument();
+      expect(screen.getByTestId("admin-dialog-body")).toBeInTheDocument();
     });
     expect(screen.getByTestId("notification-panel")).toHaveAttribute("data-loading", "false");
     expect(screen.getByText("3 work submissions need review")).toBeInTheDocument();
@@ -574,7 +574,7 @@ describe("CanvasLayout", () => {
     await user.click(screen.getByRole("button", { name: "Open Notifications" }));
 
     await waitFor(() => {
-      expect(screen.getByTestId("right-sheet")).toBeInTheDocument();
+      expect(screen.getByTestId("admin-dialog-body")).toBeInTheDocument();
     });
     expect(screen.getByTestId("notification-panel")).toHaveAttribute("data-count", "0");
   });
@@ -591,7 +591,7 @@ describe("CanvasLayout", () => {
     await waitFor(() => {
       expect(useSheetOrchestratorStore.getState().activeSheet).toBeNull();
     });
-    expect(screen.queryByTestId("right-sheet")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("admin-dialog-body")).not.toBeInTheDocument();
   });
 
   it("does not apply pl-20 padding on main content", () => {
@@ -617,7 +617,7 @@ describe("CanvasLayout", () => {
     expect(main?.getAttribute("style")).toContain("padding-bottom");
   });
 
-  it("bounds the mobile bottom sheet to the canvas sheet layer", async () => {
+  it("renders a left-inspector config as a centered dialog", async () => {
     mockRouteLeftSheetConfig.current = {
       title: "Mobile inspector",
       content: <div>Inspector content</div>,
@@ -630,11 +630,10 @@ describe("CanvasLayout", () => {
       </MemoryRouter>
     );
 
-    const sheetLayer = await screen.findByTestId("canvas-sheet-layer");
-    const dialog = await screen.findByTestId("bottom-sheet-dialog");
-
-    expect(dialog).toHaveAttribute("data-boundary", "bounded");
-    expect(sheetLayer).toContainElement(dialog);
+    // Left/bottom sheets retired — the left-inspector config now renders as a
+    // centered AdminDialog (full-screen scrim, not bounded to the sheet layer).
+    const dialog = await screen.findByTestId("admin-dialog-body");
+    expect(dialog).toHaveTextContent("Inspector content");
   });
 });
 
