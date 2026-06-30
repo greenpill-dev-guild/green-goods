@@ -141,7 +141,6 @@ const messages: Record<string, string> = {
   "app.garden.communityOnramp.action": "Join Community Garden",
   "app.garden.communityOnramp.description":
     "The Community Garden is open to everyone and gives you a place to submit your first work.",
-  "app.garden.communityOnramp.joining": "Joining...",
   "app.garden.communityOnramp.title": "Join the Community Garden",
   "app.domain.tab.solar": "Solar",
   "app.domain.tab.agro": "Agroforestry",
