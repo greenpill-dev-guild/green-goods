@@ -3,6 +3,7 @@ import {
   ErrorBoundary,
   TxInlineFeedback,
   useCreateAssessmentController,
+  useDirtyClose,
   useStepFocus,
 } from "@green-goods/shared";
 import type { ReactNode } from "react";
@@ -10,6 +11,7 @@ import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminDialog, ADMIN_FLOW_DIALOG_CLASS } from "@/components/AdminDialog";
 import { AdminLinearProgress } from "@/components/AdminLinearProgress";
+import { DiscardChangesDialog } from "@/components/DiscardChangesDialog";
 import { ActionsHarvestStep } from "@/components/Assessment/CreateAssessmentSteps/ActionsHarvestStep";
 import { DomainContextStep } from "@/components/Assessment/CreateAssessmentSteps/DomainContextStep";
 import { StrategyKernelStep } from "@/components/Assessment/CreateAssessmentSteps/StrategyKernelStep";
@@ -22,6 +24,13 @@ export default function CreateAssessment() {
   const { formatMessage } = useIntl();
   const createAssessment = useCreateAssessmentController();
   const stepRef = useStepFocus<HTMLDivElement>(createAssessment.currentStep);
+  // Confirm before an accidental X / scrim / Escape discards an in-progress
+  // assessment. The explicit footer Cancel still exits directly (parity with
+  // Submit Work), so this only guards the dialog's own close affordances.
+  const dirtyClose = useDirtyClose({
+    isDirty: createAssessment.isDirty,
+    onClose: createAssessment.handleCancel,
+  });
 
   const title = formatMessage({
     id: "app.assessment.submitAssessment",
@@ -189,24 +198,29 @@ export default function CreateAssessment() {
   // pinned chrome + scrolling body; the AdminDialog close button is the exit
   // (→ controller handleCancel).
   return (
-    <AdminDialog
-      open
-      size="2xl"
-      variant="flow"
-      tone="hub"
-      className={ADMIN_FLOW_DIALOG_CLASS}
-      onOpenChange={(next) => {
-        if (!next) createAssessment.handleCancel();
-      }}
-      title={title}
-      description={formatMessage({
-        id: "cockpit.assessment.createDescription",
-        defaultMessage:
-          "Capture the context, strategy kernel, and harvest window for a new assessment.",
-      })}
-      bodyClassName="flex min-h-0 flex-col !overflow-hidden"
-    >
-      {content}
-    </AdminDialog>
+    <>
+      <AdminDialog
+        open
+        size="2xl"
+        variant="flow"
+        tone="hub"
+        className={ADMIN_FLOW_DIALOG_CLASS}
+        onOpenChange={dirtyClose.onOpenChange}
+        title={title}
+        description={formatMessage({
+          id: "cockpit.assessment.createDescription",
+          defaultMessage:
+            "Capture the context, strategy kernel, and harvest window for a new assessment.",
+        })}
+        bodyClassName="flex min-h-0 flex-col !overflow-hidden"
+      >
+        {content}
+      </AdminDialog>
+      <DiscardChangesDialog
+        open={dirtyClose.confirmOpen}
+        onKeepEditing={dirtyClose.cancelClose}
+        onDiscard={dirtyClose.confirmClose}
+      />
+    </>
   );
 }

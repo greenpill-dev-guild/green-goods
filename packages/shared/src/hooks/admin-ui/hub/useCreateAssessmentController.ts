@@ -287,6 +287,22 @@ export function useCreateAssessmentController() {
   const isSubmitting = state.matches("submitting");
   const hasError = state.matches("error");
   const isSuccess = state.matches("success");
+  // Dirty = the operator has progressed past the first step or entered any
+  // meaningful field. Gates the confirm-before-discard on close (useDirtyClose).
+  // Suppressed while submitting/succeeded so the close-to-Hub flow isn't blocked.
+  const isDirty = useMemo(() => {
+    if (isSubmitting || isSuccess) return false;
+    if (currentStep > 0) return true;
+    return (
+      form.title.trim().length > 0 ||
+      form.description.trim().length > 0 ||
+      form.location.trim().length > 0 ||
+      form.diagnosis.trim().length > 0 ||
+      form.smartOutcomes.length > 0 ||
+      form.selectedActionUIDs.length > 0 ||
+      form.sdgTargets.length > 0
+    );
+  }, [currentStep, form, isSubmitting, isSuccess]);
   const txError = useTxErrorMessages(state.context.error);
 
   useEffect(() => {
@@ -400,6 +416,7 @@ export function useCreateAssessmentController() {
     handleNext: stepValidation.handleNext,
     handleSubmit,
     hasError,
+    isDirty,
     isSubmitting,
     normalizedGardenDomainMask,
     resetWorkflow,

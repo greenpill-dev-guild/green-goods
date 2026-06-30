@@ -13,6 +13,7 @@ import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminConfirmDialog } from "@/components/AdminDialog";
 import { AdminLinearProgress } from "@/components/AdminLinearProgress";
+import { DiscardChangesDialog } from "@/components/DiscardChangesDialog";
 import { MintingDialog } from "@/components/Hypercerts/MintingDialog";
 import { AttestationSelector } from "@/components/Hypercerts/Steps/AttestationSelector";
 import { DistributionConfig } from "@/components/Hypercerts/Steps/DistributionConfig";
@@ -100,15 +101,10 @@ export function HypercertWizard({
 
   return (
     <>
-      <AdminConfirmDialog
-        isOpen={wizard.showLeaveConfirm}
-        onClose={wizard.handleCancelLeave}
-        onConfirm={wizard.handleConfirmLeave}
-        title={formatMessage({ id: "app.hypercerts.wizard.leaveConfirm.title" })}
-        description={formatMessage({ id: "app.hypercerts.wizard.unsavedChanges" })}
-        confirmLabel={formatMessage({ id: "app.hypercerts.wizard.leaveConfirm.confirm" })}
-        cancelLabel={formatMessage({ id: "app.hypercerts.wizard.leaveConfirm.cancel" })}
-        variant="warning"
+      <DiscardChangesDialog
+        open={wizard.showLeaveConfirm}
+        onKeepEditing={wizard.handleCancelLeave}
+        onDiscard={wizard.handleConfirmLeave}
       />
       <AdminConfirmDialog
         isOpen={wizard.showRestoreDraft}

@@ -260,6 +260,7 @@ export * from "./hooks/admin-ui/actions/createAction.utils";
 export * from "./hooks/admin-ui/actions/useActionsController";
 export * from "./hooks/admin-ui/actions/useCreateActionController";
 export * from "./hooks/admin-ui/useAdminAccessState";
+export * from "./hooks/admin-ui/useDirtyClose";
 export * from "./hooks/admin-ui/community/community.utils";
 export * from "./hooks/admin-ui/community/useCommunityWorkspaceController";
 export * from "./hooks/admin-ui/garden/garden.utils";
