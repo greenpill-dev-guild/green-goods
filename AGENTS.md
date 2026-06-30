@@ -88,6 +88,7 @@ indexer config become **post-broadcast blockers**.
 
 This repo runs multiple concurrent Codex/Claude sessions on the same tree and `develop`. Treat working-tree changes you didn't author this session as another agent's work-in-progress.
 
+- Stay on the current branch for interactive work, which during release/staging prep should be `develop`. Do not create or switch branches unless the user explicitly asks for that branch action in the current turn; branch changes can confuse other agents and risk their work being saved to the wrong place.
 - Stash unknown diffs, don't revert: `git stash push -u -m "..."` is recoverable; `git checkout HEAD --`, `rm -rf`, and `git reset --hard` are not.
 - Investigate first: `git for-each-ref --sort=-committerdate refs/heads/ | head -10`, `ls ~/.codex/worktrees/`, `git log -3 -- <file>`.
 - Bulk destructive ops always need fresh user OK in the current turn — multi-file `git checkout HEAD --`, `rm -rf` of `.plans/`/`packages/`/`docs/`, `git add -A`/`git add .`, `git push --force`.

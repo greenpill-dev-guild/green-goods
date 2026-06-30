@@ -285,6 +285,7 @@ Use `npx pm2 list` to see live status, `npx pm2 logs <name> --nostream` to inspe
 
 This repo runs multiple concurrent Claude/Codex sessions on the same tree and `develop`. Treat working-tree changes you didn't author this session as another agent's work-in-progress.
 
+- **Stay on the current branch unless explicitly told otherwise.** Do not create or switch branches unless the user asks for that branch action in the current turn; branch changes can confuse other agents and put their work on the wrong branch.
 - **Stash unknown diffs, don't revert.** `git stash push -u -m "..."` is recoverable; `git checkout HEAD --`, `rm -rf`, and `git reset --hard` are not.
 - **Investigate before destroying.** `git for-each-ref --sort=-committerdate refs/heads/ | head -10`, `ls ~/.codex/worktrees/`, and `git log -3 -- <file>` show what other agents are doing.
 - **Bulk destructive ops always need fresh user OK in the current turn** — multi-file `git checkout HEAD --`, `rm -rf` of `.plans/`/`packages/`/`docs/`, `git add -A`/`git add .`, `git push --force`.
