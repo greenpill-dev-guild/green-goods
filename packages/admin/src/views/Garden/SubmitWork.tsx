@@ -39,7 +39,7 @@ import { Controller } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AdminButton } from "@/components/AdminButton";
-import { AdminDialog, ADMIN_FLOW_DIALOG_CLASS } from "@/components/AdminDialog";
+import { AdminConfirmDialog, AdminDialog, ADMIN_FLOW_DIALOG_CLASS } from "@/components/AdminDialog";
 import { AdminLinearProgress } from "@/components/AdminLinearProgress";
 import { AdminTabRail } from "@/components/AdminTabRail";
 import { AdminTextField } from "@/components/AdminTextField";
@@ -1057,26 +1057,52 @@ export default function SubmitWork() {
 
   const hubContext = parseHubContext(location.search);
   const close = () => navigate(adminRoutes.hub(hubContext));
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
 
   // Centered 2xl modal with a scrim (bottom-sheet on mobile). The dialog body is
   // neutralized to a flex column with no scroll of its own — ActionFlowShell owns
-  // the pinned chrome + scrolling body inside it. The AdminDialog close button is
-  // the exit; the multi-phase back-arrow (qualify ← configure) lives in the panel.
+  // the pinned chrome + scrolling body inside it. The X / backdrop routes through a
+  // discard confirm so a submission can't be lost to an accidental close; the
+  // explicit Cancel button still exits directly.
   return (
-    <AdminDialog
-      open
-      size="2xl"
-      variant="flow"
-      tone="garden"
-      className={ADMIN_FLOW_DIALOG_CLASS}
-      onOpenChange={(next) => {
-        if (!next) close();
-      }}
-      title={formatMessage({ id: "app.admin.work.submit.title" })}
-      description={formatMessage({ id: "app.admin.work.submit.description" })}
-      bodyClassName="flex min-h-0 flex-col !overflow-hidden"
-    >
-      <SubmitWorkPanel layout="dialog" onSuccess={close} onCancel={close} />
-    </AdminDialog>
+    <>
+      <AdminDialog
+        open
+        size="2xl"
+        variant="flow"
+        tone="garden"
+        className={ADMIN_FLOW_DIALOG_CLASS}
+        onOpenChange={(next) => {
+          if (!next) setShowDiscardConfirm(true);
+        }}
+        title={formatMessage({ id: "app.admin.work.submit.title" })}
+        description={formatMessage({ id: "app.admin.work.submit.description" })}
+        bodyClassName="flex min-h-0 flex-col !overflow-hidden"
+      >
+        <SubmitWorkPanel layout="dialog" onSuccess={close} onCancel={close} />
+      </AdminDialog>
+      <AdminConfirmDialog
+        isOpen={showDiscardConfirm}
+        onClose={() => setShowDiscardConfirm(false)}
+        onConfirm={close}
+        title={formatMessage({
+          id: "app.admin.flow.discardChanges.title",
+          defaultMessage: "Discard changes?",
+        })}
+        description={formatMessage({
+          id: "app.admin.flow.discardChanges.description",
+          defaultMessage: "Any unsaved changes will be lost.",
+        })}
+        confirmLabel={formatMessage({
+          id: "app.admin.flow.discardChanges.confirm",
+          defaultMessage: "Discard",
+        })}
+        cancelLabel={formatMessage({
+          id: "app.admin.flow.discardChanges.cancel",
+          defaultMessage: "Keep editing",
+        })}
+        variant="warning"
+      />
+    </>
   );
 }
