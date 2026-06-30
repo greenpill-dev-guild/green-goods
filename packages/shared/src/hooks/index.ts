@@ -139,6 +139,19 @@ export type { UseEnsQueryOptions, UseEnsQueryResult } from "./blockchain/useEnsQ
 export { useEnsQuery } from "./blockchain/useEnsQuery";
 export type { EthUsdPriceState } from "./blockchain/useEthUsdPrice";
 export { useEthUsdPrice } from "./blockchain/useEthUsdPrice";
+export type { RecentRecipient } from "./blockchain/useRecentRecipients";
+export {
+  addRecentRecipient,
+  useRecentRecipients,
+  useRecentRecipientsVersion,
+} from "./blockchain/useRecentRecipients";
+export type {
+  SendableTokenBalance,
+  UseSendableTokensResult,
+} from "./blockchain/useSendableTokens";
+export { useSendableTokens } from "./blockchain/useSendableTokens";
+export type { SendTokenParams } from "./blockchain/useSendToken";
+export { useSendToken } from "./blockchain/useSendToken";
 export { useTransactionSender } from "./blockchain/useTransactionSender";
 // Suspense-enabled hooks (for use with SuspenseBoundary)
 export {

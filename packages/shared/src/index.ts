@@ -248,6 +248,10 @@ export {
   SDG_TARGETS,
   SUPPORTED_CHAINS,
   type SupportedChainId,
+  buildSendableTokens,
+  getStablecoinSendableTokens,
+  GOODS_TOKEN_META,
+  type SendableToken,
 } from "./config/index";
 
 // ============================================================================
@@ -667,6 +671,11 @@ export {
   usePublicFieldNotes,
   usePublicImpactEvidence,
   usePublicVaultSummary,
+  useSendableTokens,
+  useSendToken,
+  useRecentRecipients,
+  useRecentRecipientsVersion,
+  addRecentRecipient,
 } from "./hooks/index";
 export type {
   PublicGardenSummary,
@@ -682,6 +691,10 @@ export type {
   PublicVaultSummary,
   PublicVaultSummaryAsset,
   PublicVaultSummaryAssetSymbol,
+  SendableTokenBalance,
+  UseSendableTokensResult,
+  SendTokenParams,
+  RecentRecipient,
 } from "./hooks/index";
 export type {
   PublicImpactEvidenceRecord,

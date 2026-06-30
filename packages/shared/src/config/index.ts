@@ -95,3 +95,11 @@ export { getSDGLabel, SDG_TARGETS } from "./sdg";
 // From domain.ts
 export type { DomainStyle } from "./domain";
 export { DOMAIN_CONFIG } from "./domain";
+
+// From tokens.ts — sendable-token registry for the "Send" flow
+export type { SendableToken } from "./tokens";
+export {
+  buildSendableTokens,
+  getStablecoinSendableTokens,
+  GOODS_TOKEN_META,
+} from "./tokens";
