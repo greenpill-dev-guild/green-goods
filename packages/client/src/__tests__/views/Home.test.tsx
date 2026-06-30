@@ -15,6 +15,7 @@ vi.mock("@green-goods/shared", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
   queryKeys: { gardens: { all: ["gardens"] } },
   toastService: { info: vi.fn(), error: vi.fn(), success: vi.fn() },
+  useArrivalState: () => ({ kind: "none", myGardenIds: [] }),
   useAuthState: () => ({
     isAuthenticated: true,
   }),
@@ -60,6 +61,7 @@ vi.mock("@green-goods/shared", () => ({
       isGardenFilterOpen: false,
       openGardenFilter: vi.fn(),
       closeGardenFilter: vi.fn(),
+      openWorkDashboard: vi.fn(),
     };
     return selector(state);
   },

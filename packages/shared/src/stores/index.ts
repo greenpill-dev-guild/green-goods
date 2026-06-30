@@ -38,7 +38,7 @@ export type {
 } from "./useHypercertWizardStore";
 export { useHypercertWizardStore } from "./useHypercertWizardStore";
 // UI Store
-export { type UIState, useUIStore } from "./useUIStore";
+export { type UIState, type WorkDashboardTab, useUIStore } from "./useUIStore";
 // Work Flow Store
 export type { WorkDraftState, WorkFlowState } from "./useWorkFlowStore";
 export { useWorkFlowStore } from "./useWorkFlowStore";

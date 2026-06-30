@@ -8,7 +8,9 @@ import {
 } from "@green-goods/shared";
 import { RiImageLine, RiPulseLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
+import { AdminDialog } from "@/components/AdminDialog";
 import { GardenDomainModal } from "@/components/Garden/GardenDomainEditor";
+import { GardenMetadata } from "@/components/Garden/GardenMetadata";
 import { GardenSettingsEditor } from "@/components/Garden/GardenSettingsEditor";
 import {
   CanvasRouteErrorState,
@@ -56,7 +58,7 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
 
   return (
     <div className="mt-4 space-y-4">
-      {workspace.view === "overview" ? (
+      {workspace.view === "overview" || workspace.view === "settings" ? (
         <OverviewTab
           section={workspace.section}
           selectedItem={workspace.selectedItem}
@@ -116,7 +118,27 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
         />
       ) : null}
 
-      {workspace.view === "settings" ? (
+      {/* Garden settings live in a centered dialog (parity with the other
+          action flows), opened by the Settings tab / "Edit garden" action and
+          rendered over the Overview behind it. Deep-linking to /garden/settings
+          opens it directly; closing returns to the Overview. */}
+      <AdminDialog
+        open={workspace.view === "settings"}
+        onOpenChange={(open) => {
+          if (!open) workspace.handleTabChange("overview");
+        }}
+        size="2xl"
+        tone="garden"
+        title={formatMessage({
+          id: "app.garden.profile.modal.title",
+          defaultMessage: "Garden Profile",
+        })}
+        description={formatMessage({
+          id: "app.garden.profile.modal.description",
+          defaultMessage: "Update settings, metadata, and on-chain identifiers",
+        })}
+        bodyClassName="space-y-6"
+      >
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
           <GardenSettingsEditor
             gardenAddress={workspace.garden.id as Address}
@@ -162,8 +184,8 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
               </div>
             </Surface>
 
-            {/* Domain management lives inside Settings now (QA: the edit-domains
-                row no longer floats above every garden tab). */}
+            {/* Domain management lives inside the settings dialog (QA: the
+                edit-domains row no longer floats above every garden tab). */}
             <Surface elevation="ground" padding="none" className="overflow-hidden">
               <GardenDomainSummaryRow
                 domainMask={workspace.garden.domainMask}
@@ -181,7 +203,14 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
             </Alert>
           </div>
         </div>
-      ) : null}
+
+        <GardenMetadata
+          gardenId={workspace.garden.id as Address}
+          tokenAddress={workspace.garden.tokenAddress as Address}
+          tokenId={BigInt(workspace.garden.tokenID)}
+          chainId={workspace.garden.chainId}
+        />
+      </AdminDialog>
       {workspace.canManage ? (
         <GardenDomainModal
           isOpen={workspace.domainEditorOpen}

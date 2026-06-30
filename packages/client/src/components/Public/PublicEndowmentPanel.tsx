@@ -16,6 +16,7 @@ import {
   useUser,
   useVaultPreview,
   useVaultWithdraw,
+  useWalletConnectDismissGuard,
   validateDecimalInput,
 } from "@green-goods/shared";
 import { RiCloseLine } from "@remixicon/react";
@@ -80,6 +81,10 @@ export function PublicEndowmentPanel({
   // otherwise endowment positions stay unreachable for a freshly-connected
   // public wallet (shared root cause with PRD-497).
   const { loginWithWallet } = useAuth();
+  // Keep this panel open while the wallet modal is opening/open — its
+  // separate-portal focus would otherwise trip Radix outside-dismiss and the
+  // panel would close before the freshly-connected wallet's positions appear.
+  const { markConnecting, shouldBlockDismiss } = useWalletConnectDismissGuard();
   const portfolio = usePublicEndowmentPositions(primaryAddress as Address | undefined, {
     enabled: open && Boolean(primaryAddress),
   });
@@ -153,6 +158,12 @@ export function PublicEndowmentPanel({
               finishClose();
             }
           }}
+          onInteractOutside={(event) => {
+            if (shouldBlockDismiss()) event.preventDefault();
+          }}
+          onEscapeKeyDown={(event) => {
+            if (shouldBlockDismiss()) event.preventDefault();
+          }}
         >
           <header className="flex items-start justify-between gap-4 border-b border-stroke-soft-200 bg-bg-white-0 px-5 py-5 sm:px-6">
             <div className="min-w-0">
@@ -217,7 +228,10 @@ export function PublicEndowmentPanel({
                 <EditorialGhostButton
                   variant="warm"
                   className="mt-5 w-full px-5 py-2.5 text-sm"
-                  onClick={() => loginWithWallet()}
+                  onClick={() => {
+                    markConnecting();
+                    loginWithWallet();
+                  }}
                 >
                   {formatMessage({
                     id: "public.fund.endowments.connect.cta",
@@ -425,10 +439,9 @@ function EndowmentAssetRow({ position, ownerAddress, onRefresh }: EndowmentAsset
   const expandedRegionRef = useRef<HTMLDivElement>(null);
   const [expanded, setExpanded] = useState(false);
   const [amountInput, setAmountInput] = useState("");
-  const [showConfirm, setShowConfirm] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
 
-  // When a row expands, the revealed amount input + Review/Confirm controls can
+  // When a row expands, the revealed amount input + Withdraw control can
   // fall below the scroll fold of the panel body — most acutely for the last
   // position in a tall portfolio inside the mobile bottom sheet. Nudge the
   // freshly revealed region into the body's scroll viewport. `block: "nearest"`
@@ -482,7 +495,7 @@ function EndowmentAssetRow({ position, ownerAddress, onRefresh }: EndowmentAsset
         });
   const exceedsAvailable =
     parsedAmount > 0n && maxWithdrawable > 0n && parsedAmount > maxWithdrawable;
-  const disableConfirm =
+  const disableWithdraw =
     withdrawMutation.isPending ||
     Boolean(inputError) ||
     parsedAmount <= 0n ||
@@ -492,7 +505,7 @@ function EndowmentAssetRow({ position, ownerAddress, onRefresh }: EndowmentAsset
   const amountLabel = formatDisplayAmount(parsedAmount, position.decimals, position.assetSymbol);
 
   const executeWithdraw = () => {
-    if (disableConfirm) return;
+    if (disableWithdraw) return;
     withdrawMutation.mutate(
       {
         gardenAddress: position.gardenAddress,
@@ -506,7 +519,6 @@ function EndowmentAssetRow({ position, ownerAddress, onRefresh }: EndowmentAsset
       {
         onSuccess: async () => {
           setAmountInput("");
-          setShowConfirm(false);
           setSuccessMessage(
             formatMessage(
               {
@@ -614,7 +626,6 @@ function EndowmentAssetRow({ position, ownerAddress, onRefresh }: EndowmentAsset
               value={amountInput}
               onChange={(event) => {
                 setAmountInput(event.target.value);
-                setShowConfirm(false);
                 setSuccessMessage("");
                 withdrawMutation.reset();
               }}
@@ -630,7 +641,6 @@ function EndowmentAssetRow({ position, ownerAddress, onRefresh }: EndowmentAsset
               type="button"
               onClick={() => {
                 setAmountInput(formatUnits(maxWithdrawable, position.decimals));
-                setShowConfirm(false);
                 setSuccessMessage("");
                 withdrawMutation.reset();
               }}
@@ -673,65 +683,30 @@ function EndowmentAssetRow({ position, ownerAddress, onRefresh }: EndowmentAsset
             </p>
           )}
 
-          {showConfirm ? (
-            <div className="mt-4 rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-4">
-              <p className="font-serif text-lg font-normal text-text-strong-950">
-                {formatMessage({
-                  id: "public.fund.endowments.withdraw.confirmTitle",
-                  defaultMessage: "Confirm withdrawal",
-                })}
-              </p>
-              <p className="mt-2 text-sm leading-[1.55] text-text-sub-600">
-                {formatMessage(
-                  {
-                    id: "public.fund.endowments.withdraw.confirmBody",
-                    defaultMessage: "Return {amount} to your connected wallet?",
-                  },
-                  { amount: amountLabel }
-                )}
-              </p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <EditorialGhostButton
-                  variant="warm"
-                  className="px-5 py-2.5 text-sm"
-                  disabled={disableConfirm}
-                  onClick={executeWithdraw}
-                >
-                  {withdrawMutation.isPending
-                    ? formatMessage({
-                        id: "public.fund.endowments.withdraw.pending",
-                        defaultMessage: "Withdrawing…",
-                      })
-                    : formatMessage({
-                        id: "public.fund.endowments.withdraw.confirm",
-                        defaultMessage: "Confirm",
-                      })}
-                </EditorialGhostButton>
-                <EditorialGhostButton
-                  className="px-5 py-2.5 text-sm"
-                  disabled={withdrawMutation.isPending}
-                  onClick={() => setShowConfirm(false)}
-                >
-                  {formatMessage({
-                    id: "public.fund.endowments.withdraw.cancel",
-                    defaultMessage: "Cancel",
+          <EditorialGhostButton
+            variant="warm"
+            className="mt-4 w-full px-5 py-2.5 text-sm"
+            disabled={disableWithdraw}
+            onClick={executeWithdraw}
+          >
+            {withdrawMutation.isPending
+              ? formatMessage({
+                  id: "public.fund.endowments.withdraw.pending",
+                  defaultMessage: "Withdrawing…",
+                })
+              : parsedAmount > 0n && !inputError
+                ? formatMessage(
+                    {
+                      id: "public.fund.endowments.withdraw.submitAmount",
+                      defaultMessage: "Withdraw {amount}",
+                    },
+                    { amount: amountLabel }
+                  )
+                : formatMessage({
+                    id: "public.fund.endowments.withdraw.submit",
+                    defaultMessage: "Withdraw",
                   })}
-                </EditorialGhostButton>
-              </div>
-            </div>
-          ) : (
-            <EditorialGhostButton
-              variant="warm"
-              className="mt-4 w-full px-5 py-2.5 text-sm"
-              disabled={disableConfirm}
-              onClick={() => setShowConfirm(true)}
-            >
-              {formatMessage({
-                id: "public.fund.endowments.withdraw.review",
-                defaultMessage: "Review withdrawal",
-              })}
-            </EditorialGhostButton>
-          )}
+          </EditorialGhostButton>
 
           {withdrawMutation.error ? (
             <Alert

@@ -87,10 +87,13 @@ describe("client public service worker migration", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("activates the deployed service worker without waiting for a manual update prompt", async () => {
+  it("waits on install and skips waiting only after an explicit update message", async () => {
     const { listeners, self } = await loadServiceWorker();
 
-    listeners.install[0]({});
+    expect(listeners.install).toBeUndefined();
+    expect(self.skipWaiting).not.toHaveBeenCalled();
+
+    listeners.message[0]({ data: { type: "SKIP_WAITING" } });
 
     expect(self.skipWaiting).toHaveBeenCalledTimes(1);
   });

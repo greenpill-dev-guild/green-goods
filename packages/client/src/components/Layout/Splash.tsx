@@ -271,9 +271,18 @@ export const Splash: React.FC<SplashProps> = ({
         )}
 
         {/* ─────────────────────────────────────────────────────────────────────
-            ERROR MESSAGE - Fixed height with smooth reveal
+            ERROR MESSAGE - Fixed-height, clamped slot (height-stable for ANY copy).
+            h-20 (80px) is a FIXED height, not a min: the longest trimmed error
+            wraps to 2 lines (~66px at 375px) and fits with headroom (no scrollbar),
+            while overflow-y-auto clamps anything taller (a future or much longer
+            localized string) so it scrolls INSIDE the slot instead of pushing the
+            notice + tertiary below it. The slot is therefore the same height with
+            no error, a short error, or a 4-line error — the tertiary never moves.
+            Keep copy short anyway (see i18n app.login.error.*). The LayoutStability
+            story proves tertiary stability for the longest real error AND a
+            deliberately long one, enforced in CI.
         ───────────────────────────────────────────────────────────────────── */}
-        <div className="w-full min-h-16 mt-2">
+        <div className="w-full h-20 overflow-y-auto mt-2">
           <div
             id={errorMessageId}
             role="alert"

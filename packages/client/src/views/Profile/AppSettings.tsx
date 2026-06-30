@@ -2,6 +2,7 @@ import {
   capitalize,
   hapticLight,
   type Locale,
+  type ServiceWorkerUpdatePhase,
   useApp,
   useServiceWorkerUpdate,
   useTheme,
@@ -24,7 +25,7 @@ interface ApplicationSettings {
 export const AppSettings: React.FC = () => {
   const { theme, setTheme } = useTheme();
   const { locale, switchLanguage, availableLocales } = useApp();
-  const { updateAvailable, isUpdating, updateStalled, applyUpdate } = useServiceWorkerUpdate();
+  const { phase, updateAvailable, applyUpdate } = useServiceWorkerUpdate();
   const intl = useIntl();
 
   const themeOptions = useMemo(
@@ -129,6 +130,81 @@ export const AppSettings: React.FC = () => {
     applyUpdate();
   };
 
+  const updateStatus = useMemo(() => {
+    const phaseCopy: Record<
+      ServiceWorkerUpdatePhase,
+      { title: string; description: string; buttonLabel?: string }
+    > = {
+      idle: {
+        title: "",
+        description: "",
+      },
+      checking: {
+        title: intl.formatMessage({
+          id: "app.update.checking.title",
+          defaultMessage: "Checking for update",
+        }),
+        description: intl.formatMessage({
+          id: "app.update.checking.description",
+          defaultMessage: "Looking for a newer version.",
+        }),
+      },
+      downloading: {
+        title: intl.formatMessage({
+          id: "app.update.downloading.title",
+          defaultMessage: "Downloading update",
+        }),
+        description: intl.formatMessage({
+          id: "app.update.downloading.description",
+          defaultMessage: "Getting the latest version in the background.",
+        }),
+      },
+      ready: {
+        title: intl.formatMessage({
+          id: "app.update.ready.title",
+          defaultMessage: "Ready to restart",
+        }),
+        description: intl.formatMessage({
+          id: "app.update.ready.description",
+          defaultMessage: "Restart Green Goods to finish updating.",
+        }),
+        buttonLabel: intl.formatMessage({
+          id: "app.update.restartButton",
+          defaultMessage: "Restart to update",
+        }),
+      },
+      applying: {
+        title: intl.formatMessage({
+          id: "app.update.applying.title",
+          defaultMessage: "Finishing update",
+        }),
+        description: intl.formatMessage({
+          id: "app.update.applying.description",
+          defaultMessage: "Restarting with the latest version.",
+        }),
+      },
+      stalled: {
+        title: intl.formatMessage({
+          id: "app.update.stalled.title",
+          defaultMessage: "Update needs a restart",
+        }),
+        description: intl.formatMessage({
+          id: "app.update.stalled.description",
+          defaultMessage: "Close and reopen the app if retrying does not finish.",
+        }),
+        buttonLabel: intl.formatMessage({
+          id: "app.update.retryButton",
+          defaultMessage: "Try again",
+        }),
+      },
+    };
+
+    return phaseCopy[phase];
+  }, [intl, phase]);
+
+  const showUpdateCard = phase !== "idle" && (updateAvailable || phase !== "ready");
+  const canApplyUpdate = phase === "ready" || phase === "stalled";
+
   return (
     <>
       <h5 className="text-label-md text-text-strong-950">
@@ -156,7 +232,7 @@ export const AppSettings: React.FC = () => {
         </Card>
       ))}
 
-      {updateAvailable && (
+      {showUpdateCard && (
         <Card>
           <div className="flex flex-row items-center gap-3 w-full">
             <Avatar>
@@ -165,39 +241,21 @@ export const AppSettings: React.FC = () => {
               </div>
             </Avatar>
             <div className="flex flex-col gap-0.5 min-w-0 flex-1">
-              <div className="text-sm font-medium">
-                {intl.formatMessage({
-                  id: "app.update.title",
-                  defaultMessage: "Update app",
-                })}
+              <div className="text-sm font-medium">{updateStatus.title}</div>
+              <div role="status" className="text-xs text-text-sub-600 line-clamp-2">
+                {updateStatus.description}
               </div>
-              <div className="text-xs text-text-sub-600 line-clamp-2">
-                {intl.formatMessage({
-                  id: "app.update.subtitle",
-                  defaultMessage: "A new version is ready.",
-                })}
-              </div>
-              {updateStalled && !isUpdating && (
-                <div role="status" className="text-xs text-error-dark">
-                  {intl.formatMessage({
-                    id: "app.update.timeout",
-                    defaultMessage: "The update didn't finish. Close all app tabs and try again.",
-                  })}
-                </div>
-              )}
             </div>
-            <Button
-              variant="neutral"
-              mode="stroke"
-              size="small"
-              onClick={handleUpdateClick}
-              disabled={isUpdating}
-              label={intl.formatMessage({
-                id: "app.update.button",
-                defaultMessage: "Update",
-              })}
-              className="w-[110px] shrink-0 sm:w-[140px]"
-            />
+            {canApplyUpdate && updateStatus.buttonLabel ? (
+              <Button
+                variant="neutral"
+                mode="stroke"
+                size="small"
+                onClick={handleUpdateClick}
+                label={updateStatus.buttonLabel}
+                className="w-[148px] shrink-0 sm:w-[168px]"
+              />
+            ) : null}
           </div>
         </Card>
       )}

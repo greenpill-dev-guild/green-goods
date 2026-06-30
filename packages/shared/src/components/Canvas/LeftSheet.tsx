@@ -176,16 +176,18 @@ export function LeftSheet({
       {renderedDescription ? <p className="sr-only">{renderedDescription}</p> : null}
 
       {/* Custom overlay — scrim that cross-fades with the sheet. Bounded sheets
-          dim the canvas pane behind them (no movement, no blur — depth via the
-          scrim alone, per QA refinement); unbounded sheets keep the blurred
-          viewport scrim. */}
+          use a fixed, full-viewport scrim that dims the whole screen (AppBar +
+          nav included) like AdminDialog; it only intercepts pointer events while
+          open so the exit fade never blocks the canvas. Unbounded sheets keep the
+          blurred viewport scrim. */}
       <button
         type="button"
         aria-label={closeLabel}
         tabIndex={-1}
         style={{
-          position: "absolute",
+          position: isBounded ? "fixed" : "absolute",
           inset: 0,
+          pointerEvents: open ? "auto" : "none",
           appearance: "none",
           border: "none",
           padding: 0,

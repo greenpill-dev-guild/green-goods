@@ -12,8 +12,9 @@
     "format": "biome format --write .",
     "format:check": "biome format .",
     "lint": "bun --bun run oxlint src",
-    "build": "APP_ENV=production tsc --noEmit && node ../../scripts/dev/node-cli.js vite build && node ../../scripts/dev/remove-public-sourcemaps.js dist",
+    "build": "APP_ENV=production tsc --noEmit && node ../../scripts/dev/node-cli.js vite build && bun run check:pwa-precache && node ../../scripts/dev/remove-public-sourcemaps.js dist",
     "build:deploy": "bun run build",
+    "check:pwa-precache": "node scripts/check-pwa-precache-budget.mjs",
     "preview": "APP_ENV=production bun --bun vite preview",
     "formatjs": "formatjs extract"
   },

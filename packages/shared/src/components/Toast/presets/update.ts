@@ -3,13 +3,22 @@ import { type FormatMessageFn, toastMessageIdsUpdate } from "./types";
 
 /** Default (English) fallback messages for app update toasts */
 const updateDefaults = {
-  available: {
-    title: "Update available",
-    message: "A new version of Green Goods is ready.",
+  checking: {
+    title: "Checking for update",
+    message: "Looking for a newer version.",
   },
-  updating: {
-    title: "Updating...",
-    message: "Refreshing to the latest version.",
+  downloading: {
+    title: "Downloading update",
+    message: "Getting the latest version in the background.",
+  },
+  ready: {
+    title: "Ready to restart",
+    message: "Restart Green Goods to finish updating.",
+    action: "Restart to update",
+  },
+  applying: {
+    title: "Finishing update",
+    message: "Restarting with the latest version.",
   },
   stalled: {
     title: "Update needs a restart",
@@ -18,16 +27,36 @@ const updateDefaults = {
 };
 
 export const updateToasts = {
-  /** Show info when an update is available with action to refresh */
-  available: (onUpdate: () => void, onDismiss?: () => void) =>
+  /** Show quiet progress when an explicit update check is running */
+  checking: () =>
+    toastService.loading({
+      id: "app-update",
+      title: updateDefaults.checking.title,
+      message: updateDefaults.checking.message,
+      context: "app update",
+      suppressLogging: true,
+    }),
+
+  /** Show progress while the browser installs the waiting worker */
+  downloading: () =>
+    toastService.loading({
+      id: "app-update",
+      title: updateDefaults.downloading.title,
+      message: updateDefaults.downloading.message,
+      context: "app update",
+      suppressLogging: true,
+    }),
+
+  /** Show info when an update is ready with action to restart */
+  ready: (onUpdate: () => void, onDismiss?: () => void) =>
     toastService.info({
       id: "app-update",
-      title: updateDefaults.available.title,
-      message: updateDefaults.available.message,
+      title: updateDefaults.ready.title,
+      message: updateDefaults.ready.message,
       context: "app update",
       duration: Infinity, // Stay visible until user acts or toast is replaced
       action: {
-        label: "Update now",
+        label: updateDefaults.ready.action,
         onClick: onUpdate,
         dismissOnClick: false,
         testId: "update-now-button",
@@ -38,11 +67,40 @@ export const updateToasts = {
     }),
 
   /** Show loading state when update is being applied */
+  applying: () =>
+    toastService.loading({
+      id: "app-update",
+      title: updateDefaults.applying.title,
+      message: updateDefaults.applying.message,
+      context: "app update",
+      suppressLogging: true,
+    }),
+
+  /** Backward-compatible alias for the ready phase */
+  available: (onUpdate: () => void, onDismiss?: () => void) =>
+    toastService.info({
+      id: "app-update",
+      title: updateDefaults.ready.title,
+      message: updateDefaults.ready.message,
+      context: "app update",
+      duration: Infinity,
+      action: {
+        label: updateDefaults.ready.action,
+        onClick: onUpdate,
+        dismissOnClick: false,
+        testId: "update-now-button",
+      },
+      closable: true,
+      onDismiss,
+      suppressLogging: true,
+    }),
+
+  /** Backward-compatible alias for the applying phase */
   updating: () =>
     toastService.loading({
       id: "app-update",
-      title: updateDefaults.updating.title,
-      message: updateDefaults.updating.message,
+      title: updateDefaults.applying.title,
+      message: updateDefaults.applying.message,
       context: "app update",
       suppressLogging: true,
     }),
@@ -69,22 +127,55 @@ export const updateToasts = {
  * @param formatMessage - react-intl formatMessage function
  */
 export function createUpdateToasts(formatMessage: FormatMessageFn) {
-  return {
-    available: (onUpdate: () => void, onDismiss?: () => void) =>
+  const localizedToasts = {
+    checking: () =>
+      toastService.loading({
+        id: "app-update",
+        title: formatMessage({
+          id: toastMessageIdsUpdate.checking.title,
+          defaultMessage: updateDefaults.checking.title,
+        }),
+        message: formatMessage({
+          id: toastMessageIdsUpdate.checking.message,
+          defaultMessage: updateDefaults.checking.message,
+        }),
+        context: "app update",
+        suppressLogging: true,
+      }),
+
+    downloading: () =>
+      toastService.loading({
+        id: "app-update",
+        title: formatMessage({
+          id: toastMessageIdsUpdate.downloading.title,
+          defaultMessage: updateDefaults.downloading.title,
+        }),
+        message: formatMessage({
+          id: toastMessageIdsUpdate.downloading.message,
+          defaultMessage: updateDefaults.downloading.message,
+        }),
+        context: "app update",
+        suppressLogging: true,
+      }),
+
+    ready: (onUpdate: () => void, onDismiss?: () => void) =>
       toastService.info({
         id: "app-update",
         title: formatMessage({
-          id: toastMessageIdsUpdate.available.title,
-          defaultMessage: updateDefaults.available.title,
+          id: toastMessageIdsUpdate.ready.title,
+          defaultMessage: updateDefaults.ready.title,
         }),
         message: formatMessage({
-          id: toastMessageIdsUpdate.available.message,
-          defaultMessage: updateDefaults.available.message,
+          id: toastMessageIdsUpdate.ready.message,
+          defaultMessage: updateDefaults.ready.message,
         }),
         context: "app update",
         duration: Infinity,
         action: {
-          label: "Update now",
+          label: formatMessage({
+            id: toastMessageIdsUpdate.ready.action,
+            defaultMessage: updateDefaults.ready.action,
+          }),
           onClick: onUpdate,
           dismissOnClick: false,
           testId: "update-now-button",
@@ -94,16 +185,16 @@ export function createUpdateToasts(formatMessage: FormatMessageFn) {
         suppressLogging: true,
       }),
 
-    updating: () =>
+    applying: () =>
       toastService.loading({
         id: "app-update",
         title: formatMessage({
-          id: toastMessageIdsUpdate.updating.title,
-          defaultMessage: updateDefaults.updating.title,
+          id: toastMessageIdsUpdate.applying.title,
+          defaultMessage: updateDefaults.applying.title,
         }),
         message: formatMessage({
-          id: toastMessageIdsUpdate.updating.message,
-          defaultMessage: updateDefaults.updating.message,
+          id: toastMessageIdsUpdate.applying.message,
+          defaultMessage: updateDefaults.applying.message,
         }),
         context: "app update",
         suppressLogging: true,
@@ -128,5 +219,11 @@ export function createUpdateToasts(formatMessage: FormatMessageFn) {
       }),
 
     dismiss: () => toastService.dismiss("app-update"),
+  };
+
+  return {
+    ...localizedToasts,
+    available: localizedToasts.ready,
+    updating: localizedToasts.applying,
   };
 }

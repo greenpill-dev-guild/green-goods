@@ -54,7 +54,12 @@ export type { NavigateToTopOptions } from "./app/useNavigateToTop";
 export { useNavigateToTop } from "./app/useNavigateToTop";
 export { useScrollToTop } from "./app/useScrollToTop";
 export { useOffline } from "./app/useOffline";
-export type { ServiceWorkerUpdateState } from "./app/useServiceWorkerUpdate";
+export { resolveArrivalKind, useArrivalState } from "./app/useArrivalState";
+export type { ArrivalInputs, ArrivalKind, ArrivalState } from "./app/useArrivalState";
+export type {
+  ServiceWorkerUpdatePhase,
+  ServiceWorkerUpdateState,
+} from "./app/useServiceWorkerUpdate";
 export { useServiceWorkerUpdate } from "./app/useServiceWorkerUpdate";
 export { useTheme } from "./app/useTheme";
 export type { ToastActionOptions } from "./app/useToastAction";
@@ -100,6 +105,8 @@ export { useAuthActions, useAuthContext, useAuthState } from "./auth/useAuth";
 export { useAuth } from "./auth/useAuth";
 export { getPrimaryAddress, usePrimaryAddress } from "./auth/usePrimaryAddress";
 export { useUser } from "./auth/useUser";
+export type { WalletConnectDismissGuard } from "./auth/useWalletModalOpen";
+export { useWalletConnectDismissGuard, useWalletModalOpen } from "./auth/useWalletModalOpen";
 // ============================================================================
 // BLOCKCHAIN
 // ============================================================================

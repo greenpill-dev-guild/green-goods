@@ -500,10 +500,12 @@ export function CanvasLayout() {
             <div
               ref={sheetLayerRef}
               className="admin-canvas-sheet-layer pointer-events-none absolute inset-0 overflow-hidden"
-              // Above sticky chrome (--z-sticky: 20) so an opening sheet never
-              // starts a frame underneath the PageHeader/AppBar and "pops" to
-              // the front mid-animation; below the nav dock (--z-nav: 30).
-              style={{ zIndex: "var(--z-sheet-layer, 25)" }}
+              // Sits at the overlay level (above --z-nav: 30) so an open sheet's
+              // scrim dims the full viewport — AppBar + nav included — matching
+              // AdminDialog (fixed inset-0 at --z-overlay). When no sheet is open
+              // the layer is empty + pointer-events-none, so the floating nav
+              // stays interactive; the scrim only captures clicks while open.
+              style={{ zIndex: "var(--z-overlay, 40)" }}
               data-component="CanvasLayout"
               data-slot="sheet-layer"
               data-state={activeSheet ?? "idle"}

@@ -69,9 +69,9 @@ The browser-facing editorial site and the installed app intentionally share the 
 - The browser-origin manifest keeps `id: "/"` for install migration safety, but scopes the installed PWA to `/home`.
 - IPFS/static builds keep relative assets and hash routing, so the same app routes are represented as `./#/home`, `./#/home/garden`, and `./#/home/profile`.
 
-For production browser-origin builds, the service worker registers at `/home`, preserves the Workbox precache,
-serves the app shell for offline `/home` navigations, and performs a one-time cleanup of legacy root-scoped Green
-Goods service workers.
+For production browser-origin builds, the service worker registers at `/home`, precaches only the installed
+app shell plus essential `/home` assets, serves the app shell for offline `/home` navigations, and performs a
+one-time cleanup of legacy root-scoped Green Goods service workers.
 
 ## Commands
 
@@ -99,12 +99,18 @@ If cloudflared is not installed, the tunnel service exits silently and the QR co
 
 ### Service worker update behavior
 
-The client uses `vite-plugin-pwa` with `registerType: "prompt"` — users control when updates apply. When a new service worker is detected:
+The client uses `vite-plugin-pwa` with `registerType: "prompt"` — users control when updates apply. Workbox
+downloads and installs the new worker in the background, but activation waits for the user. When a new service
+worker is detected:
 
-1. A persistent "Update available" toast appears (stays until acted on)
-2. User taps "Update now" → the waiting SW calls `skipWaiting()` → page reloads
-3. On activation, the new SW clears stale runtime caches (`js-cache`, `indexer-cache`, `graphql-cache`) to prevent serving old content
-4. React Query's IndexedDB cache is busted via `VITE_APP_VERSION` to prevent stale data hydration
+1. The PWA can show phased status: "Downloading update", "Ready to restart", "Finishing update", or restart guidance if the apply path stalls
+2. User taps "Restart to update" only after the waiting worker is ready
+3. The waiting worker receives `SKIP_WAITING`, activates, claims clients, and reloads the page
+4. On activation, the new SW clears stale runtime caches (`js-cache`, `indexer-cache`, `graphql-cache`) to prevent serving old content
+5. React Query's IndexedDB cache is busted via `VITE_APP_VERSION` to prevent stale data hydration
+
+`bun run build` runs `bun run check:pwa-precache` after Vite emits `dist/sw.js`. The check fails if the
+generated Workbox precache exceeds 160 entries or 5 MiB.
 
 The `ipfs-cache` and `image-cache` are preserved across updates since IPFS CIDs are immutable and images are static.
 

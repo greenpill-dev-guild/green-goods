@@ -225,7 +225,7 @@ describe("Login View - New User (progressive disclosure)", () => {
     expect(screen.getByTestId("username-input")).toBeInTheDocument();
     expect(screen.getByTestId("secondary-button")).toHaveTextContent("Sign in with a wallet");
     expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Recover with username");
-    expect(screen.getByTestId("info-callout")).toHaveTextContent(/passkeys keep sign-in/i);
+    expect(screen.getByTestId("info-callout")).toHaveTextContent(/passwordless sign-in/i);
     expect(screen.queryByTestId("notice")).not.toBeInTheDocument();
   });
 
@@ -312,9 +312,7 @@ describe("Login View - New User (progressive disclosure)", () => {
     mockAuthError = new Error("Recovered passkey did not match the expected account address");
     renderWithRouter();
 
-    expect(await screen.findByTestId("error-message")).toHaveTextContent(
-      /different account address/i
-    );
+    expect(await screen.findByTestId("error-message")).toHaveTextContent(/different account/i);
   });
 
   it("does not map unrelated address errors to address-mismatch guidance", async () => {
@@ -375,7 +373,7 @@ describe("Login View - New User (progressive disclosure)", () => {
     await user.type(screen.getByTestId("username-input"), "missinguser");
     await user.click(screen.getByTestId("primary-button"));
 
-    expect(await screen.findByTestId("error-message")).toHaveTextContent(/couldn't find/i);
+    expect(await screen.findByTestId("error-message")).toHaveTextContent(/no passkey found/i);
     expect(screen.getByTestId("secondary-button")).toHaveTextContent("Create separate account");
 
     await user.click(screen.getByTestId("secondary-button"));
@@ -398,7 +396,7 @@ describe("Login View - New User (progressive disclosure)", () => {
     mockAuthError = new Error("No passkey credential found");
     view.rerender(createLoginTree());
 
-    expect(await screen.findByTestId("error-message")).toHaveTextContent(/couldn't find/i);
+    expect(await screen.findByTestId("error-message")).toHaveTextContent(/no passkey found/i);
     expect(screen.getByTestId("secondary-button")).toHaveTextContent("Create separate account");
   });
 });
@@ -464,7 +462,7 @@ describe("Login View - Existing User (progressive disclosure)", () => {
     await user.click(screen.getByTestId("primary-button"));
 
     expect(mockLoginWithPasskey).toHaveBeenCalledWith("synceduser");
-    expect(await screen.findByTestId("error-message")).toHaveTextContent(/couldn't find/i);
+    expect(await screen.findByTestId("error-message")).toHaveTextContent(/no passkey found/i);
     // The local credential stays the same-device fallback; replacing it is
     // only offered from the no-local-cache flow.
     expect(screen.getByTestId("secondary-button")).toHaveTextContent("Back to sign in");

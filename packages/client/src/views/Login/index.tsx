@@ -71,7 +71,7 @@ const getFriendlyErrorMessage = (err: unknown, intl: IntlShape): string => {
   ) {
     return intl.formatMessage({
       id: "app.login.error.cancelled",
-      defaultMessage: "Sign in was cancelled. Try again when you're ready.",
+      defaultMessage: "Sign in was cancelled.",
     });
   }
   if (
@@ -81,22 +81,19 @@ const getFriendlyErrorMessage = (err: unknown, intl: IntlShape): string => {
   ) {
     return intl.formatMessage({
       id: "app.login.error.addressMismatch",
-      defaultMessage:
-        "That passkey points to a different account address. Retry recovery or use another sign-in method.",
+      defaultMessage: "That passkey is for a different account.",
     });
   }
   if (msg.includes("already registered") || msg.includes("recovery name")) {
     return intl.formatMessage({
       id: "app.login.error.recoveryNameTaken",
-      defaultMessage:
-        "That recovery name is already registered. Use recovery or choose another name for a separate account.",
+      defaultMessage: "That name is already registered.",
     });
   }
   if (msg.includes("network") || msg.includes("timeout") || msg.includes("fetch")) {
     return intl.formatMessage({
       id: "app.login.error.network",
-      defaultMessage:
-        "Passkey recovery is temporarily unavailable. Retry later or use a same-device passkey if you still have one.",
+      defaultMessage: "Passkey recovery is temporarily unavailable.",
     });
   }
   if (
@@ -109,8 +106,7 @@ const getFriendlyErrorMessage = (err: unknown, intl: IntlShape): string => {
   ) {
     return intl.formatMessage({
       id: "app.login.error.passkeyUnavailable",
-      defaultMessage:
-        "Passkeys aren't available in this browser. Open Green Goods in a supported browser before starting passkey sign-in.",
+      defaultMessage: "Passkeys aren't available in this browser.",
     });
   }
   if (
@@ -120,20 +116,19 @@ const getFriendlyErrorMessage = (err: unknown, intl: IntlShape): string => {
   ) {
     return intl.formatMessage({
       id: "app.login.error.noPasskey",
-      defaultMessage:
-        "We couldn't find a passkey for that username. Retry, use a same-device fallback if you have one, or confirm before creating a separate account.",
+      defaultMessage: "No passkey found for that username.",
     });
   }
   if (msg.includes("credential") || msg.includes("passkey")) {
     return intl.formatMessage({
       id: "app.login.error.passkeyVerification",
-      defaultMessage: "We couldn't verify your passkey. Try again or sign in with a wallet.",
+      defaultMessage: "We couldn't verify your passkey.",
     });
   }
   if (msg.includes("at least 3 characters")) {
     return intl.formatMessage({
       id: "app.login.error.usernameTooShort",
-      defaultMessage: "Please enter a display name with at least 3 characters.",
+      defaultMessage: "Display name must be at least 3 characters.",
     });
   }
   return intl.formatMessage({
@@ -289,8 +284,7 @@ export function Login() {
     setLoginError(
       intl.formatMessage({
         id: "app.login.error.unsupportedBrowser",
-        defaultMessage:
-          "Open Green Goods in the recommended browser before starting passkey sign-in.",
+        defaultMessage: "Open Green Goods in the recommended browser.",
       })
     );
     return true;
@@ -354,7 +348,7 @@ export function Login() {
       setLoginError(
         intl.formatMessage({
           id: "app.login.error.usernameTooShort",
-          defaultMessage: "Please enter a display name with at least 3 characters.",
+          defaultMessage: "Display name must be at least 3 characters.",
         })
       );
       return;
@@ -386,7 +380,7 @@ export function Login() {
       setLoginError(
         intl.formatMessage({
           id: "app.login.error.usernameTooShort",
-          defaultMessage: "Please enter a display name with at least 3 characters.",
+          defaultMessage: "Display name must be at least 3 characters.",
         })
       );
       return;
@@ -645,8 +639,8 @@ export function Login() {
               ? "app.login.passkey.explainer"
               : "app.login.passkey.localExplainer",
             defaultMessage: passkeyServerEnabled
-              ? "Passkeys keep sign-in passwordless. Your username helps find this passkey again on another device when your provider syncs passkeys."
-              : "This local passkey keeps same-device login available. It may need re-enrollment if browser storage is cleared.",
+              ? "Passwordless sign-in. Use your username to find this passkey on another device."
+              : "Keeps same-device sign-in. May need re-enrollment if browser storage is cleared.",
           })}
         />
       </>
@@ -758,8 +752,8 @@ export function Login() {
               : "app.login.recovery.info",
           defaultMessage:
             !isExistingAccountRecovery && recoveryAttempted && loginError
-              ? "Recovery did not complete. Retry, use a same-device fallback if available, or confirm before creating a separate account."
-              : "Synced passkeys can recover where your provider supports sync. Legacy local-only passkeys still work on the same device and may need re-enrollment after storage loss.",
+              ? "Recovery didn't complete. Try again or use another method."
+              : "Synced passkeys recover on supported providers. Local-only passkeys work on this device.",
         })}
       />
     </>

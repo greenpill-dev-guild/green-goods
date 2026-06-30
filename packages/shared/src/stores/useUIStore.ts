@@ -4,6 +4,9 @@ import { persist } from "zustand/middleware";
 // Storage key for debug mode persistence
 const DEBUG_MODE_STORAGE_KEY = "green-goods:debug-mode";
 
+/** Tabs of the client Work Dashboard modal — lets callers open it to a specific tab. */
+export type WorkDashboardTab = "drafts" | "pending" | "completed";
+
 export type UIState = {
   // Global offline/queue indicators
   isOfflineBannerVisible: boolean;
@@ -11,7 +14,9 @@ export type UIState = {
 
   // Work dashboard/modal controls
   isWorkDashboardOpen: boolean;
-  openWorkDashboard: () => void;
+  /** Tab the dashboard should open to (consumed once on mount); undefined = default tab. */
+  workDashboardInitialTab?: WorkDashboardTab;
+  openWorkDashboard: (tab?: WorkDashboardTab) => void;
   closeWorkDashboard: () => void;
 
   // Garden filter drawer controls (client)
@@ -45,7 +50,8 @@ export const useUIStore = create<UIState>()(
       setOfflineBannerVisible: (visible) => set({ isOfflineBannerVisible: visible }),
 
       isWorkDashboardOpen: false,
-      openWorkDashboard: () => set({ isWorkDashboardOpen: true }),
+      workDashboardInitialTab: undefined,
+      openWorkDashboard: (tab) => set({ isWorkDashboardOpen: true, workDashboardInitialTab: tab }),
       closeWorkDashboard: () => set({ isWorkDashboardOpen: false }),
 
       isGardenFilterOpen: false,

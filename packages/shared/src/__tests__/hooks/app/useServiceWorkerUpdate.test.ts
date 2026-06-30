@@ -33,17 +33,56 @@ import {
 import { logger } from "../../../modules/app/logger";
 import { track } from "../../../modules/app/posthog";
 
+type Listener = () => void;
+
+interface MockServiceWorker extends ServiceWorker {
+  dispatchStateChange: () => void;
+}
+
+interface MockServiceWorkerRegistration extends ServiceWorkerRegistration {
+  dispatchUpdateFound: () => void;
+}
+
+function createMockWorker(overrides: Partial<ServiceWorker> = {}): MockServiceWorker {
+  const listeners: Record<string, Listener[]> = {};
+  const worker = {
+    state: "installing",
+    scriptURL: "https://www.greengoods.app/sw.js?gg_v=release-new",
+    postMessage: vi.fn(),
+    addEventListener: vi.fn((type: string, listener: Listener) => {
+      listeners[type] = [...(listeners[type] ?? []), listener];
+    }),
+    removeEventListener: vi.fn((type: string, listener: Listener) => {
+      listeners[type] = (listeners[type] ?? []).filter((item) => item !== listener);
+    }),
+    dispatchStateChange: () => {
+      listeners.statechange?.forEach((listener) => listener());
+    },
+    ...overrides,
+  } as unknown as MockServiceWorker;
+
+  return worker;
+}
+
 function createMockRegistration(
   overrides: Partial<ServiceWorkerRegistration> = {}
-): ServiceWorkerRegistration {
+): MockServiceWorkerRegistration {
+  const listeners: Record<string, Listener[]> = {};
   return {
     waiting: null,
     installing: null,
     update: vi.fn().mockResolvedValue(undefined),
-    addEventListener: vi.fn(),
-    removeEventListener: vi.fn(),
+    addEventListener: vi.fn((type: string, listener: Listener) => {
+      listeners[type] = [...(listeners[type] ?? []), listener];
+    }),
+    removeEventListener: vi.fn((type: string, listener: Listener) => {
+      listeners[type] = (listeners[type] ?? []).filter((item) => item !== listener);
+    }),
+    dispatchUpdateFound: () => {
+      listeners.updatefound?.forEach((listener) => listener());
+    },
     ...overrides,
-  } as unknown as ServiceWorkerRegistration;
+  } as unknown as MockServiceWorkerRegistration;
 }
 
 function installServiceWorkerMock(registration: ServiceWorkerRegistration) {
@@ -51,7 +90,10 @@ function installServiceWorkerMock(registration: ServiceWorkerRegistration) {
     configurable: true,
     enumerable: true,
     value: {
-      controller: {} as ServiceWorker,
+      controller: createMockWorker({
+        state: "activated",
+        scriptURL: "https://www.greengoods.app/sw.js?gg_v=release-old",
+      }),
       getRegistration: vi.fn().mockResolvedValue(registration),
       addEventListener: vi.fn(),
       removeEventListener: vi.fn(),
@@ -75,6 +117,7 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
       expect(result.current.updateAvailable).toBe(false);
       expect(result.current.isUpdating).toBe(false);
       expect(result.current.updateStalled).toBe(false);
+      expect(result.current.phase).toBe("idle");
       expect(result.current.waitingWorker).toBeNull();
       expect(typeof result.current.applyUpdate).toBe("function");
       expect(typeof result.current.dismissUpdate).toBe("function");
@@ -91,6 +134,7 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
 
       expect(result.current.updateAvailable).toBe(false);
       expect(result.current.updateStalled).toBe(false);
+      expect(result.current.phase).toBe("idle");
     });
   });
 
@@ -104,6 +148,7 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
 
       expect(result.current.isUpdating).toBe(false);
       expect(result.current.updateStalled).toBe(false);
+      expect(result.current.phase).toBe("idle");
     });
   });
 
@@ -120,12 +165,13 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
       });
 
       expect(result.current.updateAvailable).toBe(false);
+      expect(result.current.phase).toBe("idle");
       expect(result.current.waitingWorker).toBeNull();
     });
 
     it("sets updateAvailable when registration.waiting exists", async () => {
       vi.stubEnv("VITE_ENABLE_SW_DEV", "true");
-      const waitingWorker = { postMessage: vi.fn() } as unknown as ServiceWorker;
+      const waitingWorker = createMockWorker({ state: "installed" });
       const registration = createMockRegistration({ waiting: waitingWorker });
       installServiceWorkerMock(registration);
 
@@ -136,9 +182,57 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
       });
 
       expect(result.current.waitingWorker).toBe(waitingWorker);
-      expect(track).toHaveBeenCalledWith("sw_update_available", {
-        source: "initial_check",
+      expect(result.current.phase).toBe("ready");
+      expect(track).toHaveBeenCalledWith(
+        "sw_update_available",
+        expect.objectContaining({
+          source: "initial_check",
+          phase: "ready",
+          app_version: expect.any(String),
+          active_worker_version: "release-old",
+          waiting_worker_version: "release-new",
+        })
+      );
+    });
+
+    it("transitions from downloading to ready when an installing worker finishes", async () => {
+      vi.stubEnv("VITE_ENABLE_SW_DEV", "true");
+      const installingWorker = createMockWorker({ state: "installing" });
+      const registration = createMockRegistration({ installing: installingWorker });
+      installServiceWorkerMock(registration);
+
+      const { result } = renderHook(() => useServiceWorkerUpdate());
+
+      await waitFor(() => {
+        expect(registration.addEventListener).toHaveBeenCalledWith(
+          "updatefound",
+          expect.any(Function)
+        );
       });
+
+      act(() => {
+        registration.dispatchUpdateFound();
+      });
+
+      expect(result.current.phase).toBe("downloading");
+      expect(track).toHaveBeenCalledWith(
+        "sw_update_download_started",
+        expect.objectContaining({ phase: "downloading" })
+      );
+
+      act(() => {
+        Object.defineProperty(installingWorker, "state", {
+          configurable: true,
+          value: "installed",
+        });
+        installingWorker.dispatchStateChange();
+      });
+
+      await waitFor(() => {
+        expect(result.current.phase).toBe("ready");
+      });
+      expect(result.current.updateAvailable).toBe(true);
+      expect(result.current.waitingWorker).toBe(installingWorker);
     });
   });
 
@@ -158,6 +252,7 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
         "checkForUpdate",
         "dismissUpdate",
         "isUpdating",
+        "phase",
         "updateAvailable",
         "updateStalled",
         "waitingWorker",
@@ -172,7 +267,7 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
 
     it("resets isUpdating and flags updateStalled when activation never happens", async () => {
       vi.stubEnv("VITE_ENABLE_SW_DEV", "true");
-      const waitingWorker = { postMessage: vi.fn() } as unknown as ServiceWorker;
+      const waitingWorker = createMockWorker({ state: "installed" });
       const registration = createMockRegistration({ waiting: waitingWorker });
       installServiceWorkerMock(registration);
 
@@ -192,6 +287,7 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
 
       expect(result.current.isUpdating).toBe(true);
       expect(result.current.updateStalled).toBe(false);
+      expect(result.current.phase).toBe("applying");
       expect(waitingWorker.postMessage).toHaveBeenCalledWith({ type: "SKIP_WAITING" });
 
       // controllerchange never fires (the PRD-500 hang scenario)
@@ -201,7 +297,15 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
 
       expect(result.current.isUpdating).toBe(false);
       expect(result.current.updateStalled).toBe(true);
-      expect(track).toHaveBeenCalledWith("sw_update_apply_timeout", {});
+      expect(result.current.phase).toBe("stalled");
+      expect(track).toHaveBeenCalledWith(
+        "sw_update_apply_timeout",
+        expect.objectContaining({
+          phase: "stalled",
+          duration_ms: expect.any(Number),
+          timeout_ms: APPLY_UPDATE_TIMEOUT_MS,
+        })
+      );
       expect(logger.warn).toHaveBeenCalledWith(
         "Service worker update did not activate before timeout",
         expect.objectContaining({ timeoutMs: APPLY_UPDATE_TIMEOUT_MS })
@@ -214,7 +318,7 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
 
     it("clears the timed-out flag when the user retries the update", async () => {
       vi.stubEnv("VITE_ENABLE_SW_DEV", "true");
-      const waitingWorker = { postMessage: vi.fn() } as unknown as ServiceWorker;
+      const waitingWorker = createMockWorker({ state: "installed" });
       const registration = createMockRegistration({ waiting: waitingWorker });
       installServiceWorkerMock(registration);
 
@@ -240,6 +344,7 @@ describe("hooks/app/useServiceWorkerUpdate", () => {
 
       expect(result.current.updateStalled).toBe(false);
       expect(result.current.isUpdating).toBe(true);
+      expect(result.current.phase).toBe("applying");
     });
   });
 });

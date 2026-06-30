@@ -1,36 +1,54 @@
+%% Green Goods PWA passkey login/signup flow (as implemented in views/Login/index.tsx).
+%% Create-account-first for new installs; same-device one-tap for returning users;
+%% recovery is a progressive opt-in; every error stays in the panel's reserved slot
+%% (fixed height — no layout shift); wallet is the fallback from any panel.
 flowchart TD
-    Start["Open Green Goods PWA"] --> Local{"Same-device passkey saved?"}
+    Start(["Open Green Goods PWA"]) --> Ready{"Auth ready?"}
+    Ready -->|Restoring session| Loading["Loading splash · spinner"]
+    Ready -->|Already authenticated| App(["Enter app"])
+    Ready -->|Unauthenticated| Stored{"Passkey saved on this device?"}
 
-    Local -->|Yes| LocalSignIn["Sign in panel<br/>Primary: sign in with passkey"]
-    Local -->|No| Create["Create account panel<br/>Username + passkey"]
+    %% Returning user — same-device one-tap
+    Stored -->|Yes| Returning["Sign in panel<br/>Primary: Sign in with passkey<br/>Secondary: Sign in with a wallet<br/>Tertiary: Recover with username"]
+    Returning -->|Sign in with passkey| LocalPrompt["Platform passkey prompt"]
+    LocalPrompt -->|Verified| App
+    LocalPrompt -->|Cancelled / failed| PanelErr
 
-    Create --> CreateSubmit["Create account"]
-    CreateSubmit --> PlatformCreate["Platform passkey prompt"]
-    PlatformCreate -->|Saved| App["Authenticated PWA"]
-    PlatformCreate -->|Cancelled or failed| CreateError["Same create panel<br/>Reserved error slot"]
+    %% First install — Create account is the default
+    Stored -->|No| Create["Create account panel (default)<br/>Username field<br/>Primary: Create account<br/>Secondary: Sign in with a wallet<br/>Tertiary: Recover with username"]
+    Create -->|Create account| CreatePrompt["Platform passkey prompt"]
+    CreatePrompt -->|Saved| App
+    CreatePrompt -->|Name already taken| PanelErr
+    CreatePrompt -->|Cancelled / failed| PanelErr
 
-    Create --> Existing["I already have an account"]
-    Existing --> UsernameSignIn["Sign in panel<br/>Username in fixed form slot"]
-    LocalSignIn -->|Use username| UsernameSignIn
-    LocalSignIn -->|Passkey success| App
+    %% Progressive recovery — opt-in from either panel
+    Returning -->|Recover with username| Recover["Recover panel<br/>Username / ENS field<br/>Primary: Recover with passkey<br/>Secondary: Create account · Tertiary: wallet"]
+    Create -->|Recover with username| Recover
+    Recover -->|Recover with passkey| Lookup{"Username on passkey server?"}
+    Lookup -->|Credential found| RecoverPrompt["Platform passkey prompt"]
+    RecoverPrompt -->|Verified| App
+    RecoverPrompt -->|Cancelled / failed| PanelErr
+    Lookup -->|No credential| NotFound["Reserved error slot:<br/>No passkey found for that username"]
+    Lookup -->|Server unavailable| ServerErr["Reserved error slot:<br/>Passkey recovery is temporarily unavailable"]
 
-    UsernameSignIn --> Lookup["Look up username on passkey server"]
-    Lookup -->|Credential found| PlatformSignIn["Platform passkey prompt"]
-    PlatformSignIn -->|Verified| App
-    PlatformSignIn -->|Cancelled or failed| SignInError["Same sign in panel<br/>Reserved error slot"]
+    %% Errors stay in the same panel's reserved (fixed-height) slot
+    PanelErr["Reserved error slot — same panel, fixed height"]
+    PanelErr -.try again.-> Stored
+    NotFound -.try again.-> Recover
+    ServerErr -.try again.-> Recover
 
-    Lookup -->|No credential| NotFound["Same sign in panel<br/>Username not found error"]
-    Lookup -->|Server unavailable| ServerError["Same sign in panel<br/>Service unavailable error"]
+    %% Separate account after a failed recovery (guarded, two-step)
+    NotFound -->|Create separate account| ConfirmNew{"Confirm new account<br/>different-address notice"}
+    ServerErr -->|Create separate account| ConfirmNew
+    ConfirmNew -->|Continue to new account| Create
+    ConfirmNew -->|Back to recovery| Recover
 
-    NotFound --> Retry["Try again"]
-    NotFound --> NewConfirm["Create new account confirmation<br/>Different address warning"]
-    ServerError --> Retry
-    ServerError --> Wallet["Use wallet instead"]
+    %% Wallet fallback from any panel
+    Returning -->|Wallet| Wallet["Connect external wallet"]
+    Create -->|Wallet| Wallet
+    Recover -->|Wallet| Wallet
+    Wallet -->|Connected| App
 
-    NewConfirm -->|Go back| UsernameSignIn
-    NewConfirm -->|Create new account| Create
-
-    Create --> Wallet
-    LocalSignIn --> Wallet
-    Wallet --> WalletAuth["Wallet auth"]
-    WalletAuth --> App
+    %% Local-only deployments (passkey server disabled)
+    Stored -->|No · recovery server disabled| CreateLocal["Create account panel (local-only)<br/>no recovery tertiary"]
+    CreateLocal -->|Create account| CreatePrompt

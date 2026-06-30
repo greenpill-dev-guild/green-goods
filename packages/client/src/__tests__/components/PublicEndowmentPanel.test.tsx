@@ -8,7 +8,7 @@
  * @vitest-environment jsdom
  */
 
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
@@ -31,6 +31,7 @@ const {
   mockWithdrawReset,
   mockRefresh,
   mockRefetchPreview,
+  mockBlockDismiss,
 } = vi.hoisted(() => ({
   mockOpenWallet: vi.fn(),
   mockLoginWithWallet: vi.fn(),
@@ -42,6 +43,7 @@ const {
   mockWithdrawReset: vi.fn(),
   mockRefresh: vi.fn(),
   mockRefetchPreview: vi.fn(),
+  mockBlockDismiss: { current: false as boolean },
 }));
 
 function formatSimpleTokenAmount(value: bigint, decimals = 18): string {
@@ -78,6 +80,10 @@ vi.mock("@green-goods/shared", async () => {
     truncateAddress: (address: string) => `${address.slice(0, 6)}...${address.slice(-4)}`,
     useAppKit: () => ({ open: mockOpenWallet }),
     useAuth: () => ({ loginWithWallet: mockLoginWithWallet }),
+    useWalletConnectDismissGuard: () => ({
+      markConnecting: () => {},
+      shouldBlockDismiss: () => mockBlockDismiss.current,
+    }),
     useDebouncedValue: (value: unknown) => value,
     usePublicEndowmentPositions: (...args: unknown[]) => mockUsePublicEndowmentPositions(...args),
     useTxErrorMessages: (error: unknown) => ({
@@ -102,11 +108,10 @@ const messages: Record<string, string> = {
   "public.fund.endowments.empty.title": "No endowments for this wallet yet",
   "public.fund.endowments.position.withdraw": "Withdraw",
   "public.fund.endowments.title": "Your Endowments",
-  "public.fund.endowments.withdraw.confirm": "Confirm",
-  "public.fund.endowments.withdraw.confirmTitle": "Confirm withdrawal",
   "public.fund.endowments.withdraw.max": "Max",
   "public.fund.endowments.withdraw.amount": "Withdrawal amount",
-  "public.fund.endowments.withdraw.review": "Review withdrawal",
+  "public.fund.endowments.withdraw.submit": "Withdraw",
+  "public.fund.endowments.withdraw.submitAmount": "Withdraw {amount}",
   "public.fund.endowments.withdraw.success": "{amount} returned to your wallet.",
 };
 
@@ -173,6 +178,7 @@ describe("PublicEndowmentPanel", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockPrimaryAddress.current = null;
+    mockBlockDismiss.current = false;
     mockRefresh.mockResolvedValue(undefined);
     mockRefetchPreview.mockResolvedValue(undefined);
     mockUsePublicEndowmentPositions.mockReturnValue({
@@ -307,7 +313,7 @@ describe("PublicEndowmentPanel", () => {
     expect(screen.getByText("4 DAI")).toBeInTheDocument();
   });
 
-  it("expands a row inline, supports Max, confirms, and refreshes after success", async () => {
+  it("expands a row inline, supports Max, and withdraws directly without an in-app confirm step", async () => {
     const user = userEvent.setup();
     mockPrimaryAddress.current = TEST_OWNER;
     mockUsePublicEndowmentPositions.mockReturnValue(activePortfolio());
@@ -323,11 +329,9 @@ describe("PublicEndowmentPanel", () => {
     const amountInput = screen.getByRole("textbox", { name: "Withdrawal amount" });
     expect(amountInput).toHaveValue("4");
 
-    await user.click(screen.getByRole("button", { name: "Review withdrawal" }));
-    const confirmPanel = screen.getByText("Confirm withdrawal").closest("div");
-    expect(confirmPanel).not.toBeNull();
-
-    await user.click(within(confirmPanel as HTMLElement).getByRole("button", { name: "Confirm" }));
+    // No intermediate "Review"/"Confirm" step — the submit button carries the
+    // amount and goes straight to the wallet (mutation) on a single click.
+    await user.click(screen.getByRole("button", { name: "Withdraw 4 DAI" }));
 
     expect(mockWithdrawMutate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -348,6 +352,23 @@ describe("PublicEndowmentPanel", () => {
     // Success is announced to assistive tech via a polite live region.
     const status = await screen.findByRole("status");
     expect(status).toHaveTextContent(/returned to your wallet/i);
+  });
+
+  it("does not dismiss while the wallet modal is open (Escape is guarded)", async () => {
+    // Regression guard for the wallet-connect dismissal fix: when the wallet
+    // modal owns interaction (shouldBlockDismiss → true), outside-interaction /
+    // Escape must NOT close the panel, so it stays open through connect.
+    // (The open-autofocus timing edge is covered by the connectingRef ref, not
+    // by this mock; the live wallet flow is the real proof.)
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+    mockPrimaryAddress.current = null;
+    mockBlockDismiss.current = true;
+
+    renderPanel(true, onOpenChange);
+
+    await user.keyboard("{Escape}");
+    expect(onOpenChange).not.toHaveBeenCalledWith(false);
   });
 
   it("scrolls a freshly expanded row into view and wires aria-controls", async () => {

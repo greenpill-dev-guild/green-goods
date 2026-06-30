@@ -16,6 +16,8 @@ import {
   useReviewerGardenIds,
   useReviewerWorks,
   useTimeout,
+  useUIStore,
+  type WorkDashboardTab,
   useUser,
   useWorkApprovals,
   type Work,
@@ -71,8 +73,9 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   // Timer for close animation (auto-cleared on unmount)
   const { set: scheduleTimeout } = useTimeout();
 
-  // State management
-  const [activeTab, setActiveTab] = useState<"drafts" | "pending" | "completed">("pending");
+  // State management — open to the tab the caller requested (e.g. the arrival toast), else default.
+  const initialTab = useUIStore((s) => s.workDashboardInitialTab);
+  const [activeTab, setActiveTab] = useState<WorkDashboardTab>(initialTab ?? "pending");
   const [isClosing, setIsClosing] = useState(false);
   const [pendingFilter, setPendingFilter] = useState<"all" | "needsReview" | "mySubmissions">(
     "all"
@@ -406,7 +409,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
         <StandardTabs
           tabs={tabs}
           activeTab={activeTab}
-          onTabChange={(tabId: string) => setActiveTab(tabId as "drafts" | "pending" | "completed")}
+          onTabChange={(tabId: string) => setActiveTab(tabId as WorkDashboardTab)}
           triggerClassName="text-xs"
         />
 

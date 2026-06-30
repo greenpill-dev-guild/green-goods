@@ -10,8 +10,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const sharedMocks = vi.hoisted(() => ({
   applyUpdate: vi.fn(),
   dismissUpdate: vi.fn(),
-  updateAvailable: vi.fn(),
-  updating: vi.fn(),
+  checking: vi.fn(),
+  downloading: vi.fn(),
+  ready: vi.fn(),
+  applying: vi.fn(),
   stalled: vi.fn(),
   useApp: vi.fn(),
   useServiceWorkerUpdate: vi.fn(),
@@ -20,8 +22,10 @@ const sharedMocks = vi.hoisted(() => ({
 vi.mock("@green-goods/shared", () => ({
   // The notifier binds i18n-aware toasts via createUpdateToasts(formatMessage).
   createUpdateToasts: () => ({
-    available: sharedMocks.updateAvailable,
-    updating: sharedMocks.updating,
+    checking: sharedMocks.checking,
+    downloading: sharedMocks.downloading,
+    ready: sharedMocks.ready,
+    applying: sharedMocks.applying,
     stalled: sharedMocks.stalled,
   }),
   useApp: sharedMocks.useApp,
@@ -41,6 +45,7 @@ describe("PwaUpdateNotifier", () => {
     vi.clearAllMocks();
     sharedMocks.useApp.mockReturnValue({ isPwaPresentation: true });
     sharedMocks.useServiceWorkerUpdate.mockReturnValue({
+      phase: "idle",
       updateAvailable: false,
       isUpdating: false,
       updateStalled: false,
@@ -55,13 +60,14 @@ describe("PwaUpdateNotifier", () => {
     renderNotifier();
 
     expect(sharedMocks.useServiceWorkerUpdate).not.toHaveBeenCalled();
-    expect(sharedMocks.updateAvailable).not.toHaveBeenCalled();
-    expect(sharedMocks.updating).not.toHaveBeenCalled();
+    expect(sharedMocks.ready).not.toHaveBeenCalled();
+    expect(sharedMocks.applying).not.toHaveBeenCalled();
   });
 
-  it("shows the update toast in PWA presentation", () => {
+  it("keeps the automatic checking phase quiet in PWA presentation", () => {
     sharedMocks.useServiceWorkerUpdate.mockReturnValue({
-      updateAvailable: true,
+      phase: "checking",
+      updateAvailable: false,
       isUpdating: false,
       updateStalled: false,
       applyUpdate: sharedMocks.applyUpdate,
@@ -71,14 +77,46 @@ describe("PwaUpdateNotifier", () => {
     renderNotifier();
 
     expect(sharedMocks.useServiceWorkerUpdate).toHaveBeenCalledTimes(1);
-    expect(sharedMocks.updateAvailable).toHaveBeenCalledWith(
+    expect(sharedMocks.checking).not.toHaveBeenCalled();
+    expect(sharedMocks.downloading).not.toHaveBeenCalled();
+  });
+
+  it("shows the downloading toast in PWA presentation", () => {
+    sharedMocks.useServiceWorkerUpdate.mockReturnValue({
+      phase: "downloading",
+      updateAvailable: false,
+      isUpdating: false,
+      updateStalled: false,
+      applyUpdate: sharedMocks.applyUpdate,
+      dismissUpdate: sharedMocks.dismissUpdate,
+    });
+
+    renderNotifier();
+
+    expect(sharedMocks.downloading).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the ready-to-restart toast in PWA presentation", () => {
+    sharedMocks.useServiceWorkerUpdate.mockReturnValue({
+      phase: "ready",
+      updateAvailable: true,
+      isUpdating: false,
+      updateStalled: false,
+      applyUpdate: sharedMocks.applyUpdate,
+      dismissUpdate: sharedMocks.dismissUpdate,
+    });
+
+    renderNotifier();
+
+    expect(sharedMocks.ready).toHaveBeenCalledWith(
       sharedMocks.applyUpdate,
       sharedMocks.dismissUpdate
     );
   });
 
-  it("shows the updating toast in PWA presentation", () => {
+  it("shows the applying toast in PWA presentation", () => {
     sharedMocks.useServiceWorkerUpdate.mockReturnValue({
+      phase: "applying",
       updateAvailable: false,
       isUpdating: true,
       updateStalled: false,
@@ -88,11 +126,12 @@ describe("PwaUpdateNotifier", () => {
 
     renderNotifier();
 
-    expect(sharedMocks.updating).toHaveBeenCalledTimes(1);
+    expect(sharedMocks.applying).toHaveBeenCalledTimes(1);
   });
 
   it("shows the stalled toast in PWA presentation", () => {
     sharedMocks.useServiceWorkerUpdate.mockReturnValue({
+      phase: "stalled",
       updateAvailable: false,
       isUpdating: false,
       updateStalled: true,
@@ -105,8 +144,9 @@ describe("PwaUpdateNotifier", () => {
     expect(sharedMocks.stalled).toHaveBeenCalledWith(sharedMocks.dismissUpdate);
   });
 
-  it("prefers the updating toast over the available toast when both flags are set", () => {
+  it("uses the explicit phase instead of legacy boolean precedence", () => {
     sharedMocks.useServiceWorkerUpdate.mockReturnValue({
+      phase: "applying",
       updateAvailable: true,
       isUpdating: true,
       updateStalled: false,
@@ -116,37 +156,8 @@ describe("PwaUpdateNotifier", () => {
 
     renderNotifier();
 
-    expect(sharedMocks.updating).toHaveBeenCalledTimes(1);
-    expect(sharedMocks.updateAvailable).not.toHaveBeenCalled();
-  });
-
-  it("prefers the stalled toast over the available toast when both flags are set", () => {
-    sharedMocks.useServiceWorkerUpdate.mockReturnValue({
-      updateAvailable: true,
-      isUpdating: false,
-      updateStalled: true,
-      applyUpdate: sharedMocks.applyUpdate,
-      dismissUpdate: sharedMocks.dismissUpdate,
-    });
-
-    renderNotifier();
-
-    expect(sharedMocks.stalled).toHaveBeenCalledTimes(1);
-    expect(sharedMocks.updateAvailable).not.toHaveBeenCalled();
-  });
-
-  it("prefers the updating toast over the stalled toast when both flags are set", () => {
-    sharedMocks.useServiceWorkerUpdate.mockReturnValue({
-      updateAvailable: false,
-      isUpdating: true,
-      updateStalled: true,
-      applyUpdate: sharedMocks.applyUpdate,
-      dismissUpdate: sharedMocks.dismissUpdate,
-    });
-
-    renderNotifier();
-
-    expect(sharedMocks.updating).toHaveBeenCalledTimes(1);
+    expect(sharedMocks.applying).toHaveBeenCalledTimes(1);
+    expect(sharedMocks.ready).not.toHaveBeenCalled();
     expect(sharedMocks.stalled).not.toHaveBeenCalled();
   });
 });

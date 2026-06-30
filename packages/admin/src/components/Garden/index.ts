@@ -4,7 +4,6 @@ export { GardenCommunityCard } from "./GardenCommunityCard";
 export { GardenDomainModal } from "./GardenDomainEditor";
 export { GardenHypercertsPanel } from "./GardenHypercertsPanel";
 export { GardenMetadata } from "./GardenMetadata";
-export { GardenProfileModal } from "./GardenProfileModal";
 export { GardenRolesPanel } from "./GardenRolesPanel";
 export { GardenSettingsEditor } from "./GardenSettingsEditor";
 export { GardenYieldCard } from "./GardenYieldCard";

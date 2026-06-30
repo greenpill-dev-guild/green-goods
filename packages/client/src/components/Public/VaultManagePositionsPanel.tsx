@@ -11,6 +11,7 @@ import {
   useOctantVaultRedeem,
   useTxErrorMessages,
   useUser,
+  useWalletConnectDismissGuard,
   normalizeDecimalInput,
   validateDecimalInput,
 } from "@green-goods/shared";
@@ -102,6 +103,10 @@ function VaultManagePositionsContent({
   const { formatMessage } = useIntl();
   const { authMode, primaryAddress } = useUser();
   const connectedAddress = authMode === "wallet" ? (primaryAddress as Address | null) : null;
+  // Keep this panel open while the wallet modal is opening/open — its
+  // separate-portal focus would otherwise trip Radix outside-dismiss and the
+  // panel would close before the freshly-connected wallet's positions appear.
+  const { markConnecting, shouldBlockDismiss } = useWalletConnectDismissGuard();
   const [dialogOpen, setDialogOpen] = useState(open);
   const [exitAnimationComplete, setExitAnimationComplete] = useState(!open);
   const surfaceRef = useRef<HTMLDivElement | null>(null);
@@ -173,6 +178,12 @@ function VaultManagePositionsContent({
               finishClose();
             }
           }}
+          onInteractOutside={(event) => {
+            if (shouldBlockDismiss()) event.preventDefault();
+          }}
+          onEscapeKeyDown={(event) => {
+            if (shouldBlockDismiss()) event.preventDefault();
+          }}
         >
           <header className="flex items-start justify-between gap-4 border-b border-stroke-soft-200 bg-bg-white-0 px-5 py-5 sm:px-6">
             <div className="min-w-0">
@@ -211,7 +222,11 @@ function VaultManagePositionsContent({
           </header>
 
           <div className="flex-1 overflow-y-auto px-5 py-5 sm:px-6">
-            <ConnectedWalletSection address={connectedAddress} onEndow={onEndow} />
+            <ConnectedWalletSection
+              address={connectedAddress}
+              onEndow={onEndow}
+              onBeforeConnect={markConnecting}
+            />
           </div>
         </Dialog.Content>
       </Dialog.Portal>
@@ -222,9 +237,11 @@ function VaultManagePositionsContent({
 function ConnectedWalletSection({
   address,
   onEndow,
+  onBeforeConnect,
 }: {
   address: Address | null;
   onEndow?: () => void;
+  onBeforeConnect?: () => void;
 }) {
   const { formatMessage } = useIntl();
   const { loginWithWallet } = useAuth();
@@ -249,7 +266,10 @@ function ConnectedWalletSection({
         <EditorialGhostButton
           variant="warm"
           className="mt-5 w-full px-5 py-2.5 text-sm"
-          onClick={() => loginWithWallet()}
+          onClick={() => {
+            onBeforeConnect?.();
+            loginWithWallet();
+          }}
         >
           {formatMessage({
             id: "public.vaults.manage.connected.connectCta",
@@ -467,8 +487,9 @@ function ConnectedVaultPositionRow({
  * Presentational redeem row shared by both owner sources. Default view shows
  * campaign, position value, owned shares, redeemable shares, and estimated WETH
  * proceeds; technical details (vault, token, chain, raw shares, explorer) live
- * behind a disclosure. Redeem is a collapsed control that expands to shares →
- * review → confirm; the actual signing is injected via `onRedeem`.
+ * behind a disclosure. Redeem is a collapsed control that expands to a shares
+ * input and a single Redeem action; the wallet popup is the confirmation, and
+ * the actual signing is injected via `onRedeem`.
  */
 export function VaultPositionRowView({
   position,
@@ -494,7 +515,6 @@ export function VaultPositionRowView({
   const regionId = `${amountInputId}-region`;
   const [expanded, setExpanded] = useState(false);
   const [amountInput, setAmountInput] = useState("");
-  const [showConfirm, setShowConfirm] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const assetDecimals = position.assetDecimals;
   const shareDecimals = position.shareDecimals;
@@ -543,7 +563,7 @@ export function VaultPositionRowView({
     estimatedAssets === null ? unavailableProceedsLabel : displayAssets(estimatedAssets);
   const exceedsAvailable =
     parsedShares > 0n && redeemableShares > 0n && parsedShares > redeemableShares;
-  const disableConfirm =
+  const disableRedeem =
     isRedeeming ||
     Boolean(inputError) ||
     estimatedAssets === null ||
@@ -555,19 +575,17 @@ export function VaultPositionRowView({
 
   const resetInput = () => {
     setAmountInput("");
-    setShowConfirm(false);
     setSuccessMessage("");
     onResetError?.();
   };
 
   const executeRedeem = async () => {
-    if (disableConfirm) return;
+    if (disableRedeem) return;
     if (estimatedAssets === null) return;
     const assetsLabel = displayAssets(estimatedAssets);
     try {
       await onRedeem(parsedShares);
       setAmountInput("");
-      setShowConfirm(false);
       setSuccessMessage(
         formatMessage(
           {
@@ -811,7 +829,6 @@ export function VaultPositionRowView({
               value={amountInput}
               onChange={(event) => {
                 setAmountInput(event.target.value);
-                setShowConfirm(false);
                 setSuccessMessage("");
                 onResetError?.();
               }}
@@ -828,7 +845,6 @@ export function VaultPositionRowView({
               type="button"
               onClick={() => {
                 setAmountInput(formatUnits(redeemableShares, shareDecimals));
-                setShowConfirm(false);
                 setSuccessMessage("");
                 onResetError?.();
               }}
@@ -855,79 +871,37 @@ export function VaultPositionRowView({
               {formatMessage(
                 {
                   id: "public.vaults.manage.withdraw.available",
-                  defaultMessage:
-                    "Available to redeem: {shares}. The estimate updates before confirmation.",
+                  defaultMessage: "Available to redeem: {shares}. Funds return to {destination}.",
                 },
-                { shares: displayShares(redeemableShares) }
+                { shares: displayShares(redeemableShares), destination: destinationLabel }
               )}
             </p>
           )}
 
-          {showConfirm ? (
-            <div className="mt-4 rounded-none border border-stroke-soft-200 bg-bg-white-0 p-4">
-              <p className="font-serif text-lg font-normal text-text-strong-950">
-                {formatMessage({
-                  id: "public.vaults.manage.withdraw.confirmTitle",
-                  defaultMessage: "Confirm redemption",
-                })}
-              </p>
-              <p className="mt-2 text-sm leading-[1.55] text-text-sub-600">
-                {formatMessage(
-                  {
-                    id: "public.vaults.manage.withdraw.confirmBody",
-                    defaultMessage: "Redeem approximately {assets} to {destination}?",
-                  },
-                  {
-                    assets: estimatedAssetsLabel,
-                    destination: destinationLabel,
-                  }
-                )}
-              </p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <EditorialGhostButton
-                  variant="warm"
-                  className="px-5 py-2.5 text-sm"
-                  disabled={disableConfirm}
-                  onClick={() => void executeRedeem()}
-                >
-                  {isRedeeming
-                    ? formatMessage({
-                        id: "public.vaults.manage.withdraw.pending",
-                        defaultMessage: "Redeeming…",
-                      })
-                    : formatMessage({
-                        id: "public.vaults.manage.withdraw.confirm",
-                        defaultMessage: "Confirm",
-                      })}
-                </EditorialGhostButton>
-                <EditorialGhostButton
-                  className="px-5 py-2.5 text-sm"
-                  disabled={isRedeeming}
-                  onClick={() => setShowConfirm(false)}
-                >
-                  {formatMessage({
-                    id: "public.vaults.manage.withdraw.cancel",
-                    defaultMessage: "Cancel",
+          <EditorialGhostButton
+            variant="warm"
+            className="mt-4 w-full px-5 py-2.5 text-sm"
+            disabled={disableRedeem}
+            onClick={() => void executeRedeem()}
+          >
+            {isRedeeming
+              ? formatMessage({
+                  id: "public.vaults.manage.withdraw.pending",
+                  defaultMessage: "Redeeming…",
+                })
+              : parsedShares > 0n && !inputError && estimatedAssets !== null
+                ? formatMessage(
+                    {
+                      id: "public.vaults.manage.withdraw.submitAmount",
+                      defaultMessage: "Redeem {assets}",
+                    },
+                    { assets: estimatedAssetsLabel }
+                  )
+                : formatMessage({
+                    id: "public.vaults.manage.withdraw.submit",
+                    defaultMessage: "Redeem",
                   })}
-                </EditorialGhostButton>
-              </div>
-            </div>
-          ) : (
-            <EditorialGhostButton
-              variant="warm"
-              className="mt-4 w-full px-5 py-2.5 text-sm"
-              disabled={disableConfirm}
-              onClick={() => {
-                setAmountInput((current) => normalizeDecimalInput(current));
-                setShowConfirm(true);
-              }}
-            >
-              {formatMessage({
-                id: "public.vaults.manage.withdraw.review",
-                defaultMessage: "Review redemption",
-              })}
-            </EditorialGhostButton>
-          )}
+          </EditorialGhostButton>
 
           {errorNode}
 

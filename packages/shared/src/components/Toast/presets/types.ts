@@ -146,13 +146,22 @@ export const toastMessageIds = {
 } as const;
 
 export const toastMessageIdsUpdate = {
-  available: {
-    title: "app.toast.update.available.title",
-    message: "app.toast.update.available.message",
+  checking: {
+    title: "app.toast.update.checking.title",
+    message: "app.toast.update.checking.message",
   },
-  updating: {
-    title: "app.toast.update.updating.title",
-    message: "app.toast.update.updating.message",
+  downloading: {
+    title: "app.toast.update.downloading.title",
+    message: "app.toast.update.downloading.message",
+  },
+  ready: {
+    title: "app.toast.update.ready.title",
+    message: "app.toast.update.ready.message",
+    action: "app.toast.update.ready.action",
+  },
+  applying: {
+    title: "app.toast.update.applying.title",
+    message: "app.toast.update.applying.message",
   },
   stalled: {
     title: "app.toast.update.stalled.title",

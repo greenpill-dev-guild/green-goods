@@ -140,9 +140,9 @@ export function getCanvasSheetDialogStyle(isBounded: boolean): CSSProperties {
     margin: 0,
     pointerEvents: "auto",
     // Layering contract: bounded sheets render INSIDE CanvasLayout's sheet
-    // layer (z: var(--z-sheet-layer, 25) — above sticky chrome at 20, below
-    // the nav dock at 30), so these values stack locally within that layer.
-    // Unbounded sheets cover the viewport and sit just under z-overlay (40).
+    // layer, which sits at --z-overlay (40, above the nav dock at 30) so the
+    // scrim can dim the whole viewport. These values just stack locally within
+    // that layer (surface above scrim). Unbounded sheets cover the viewport.
     zIndex: isBounded ? 45 : 50,
   };
 }

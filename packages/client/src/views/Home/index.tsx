@@ -2,6 +2,7 @@ import {
   cn,
   queryKeys,
   toastService,
+  useArrivalState,
   useBrowserNavigation,
   useAuthState,
   useFilteredGardens,
@@ -27,9 +28,7 @@ import { GardenList } from "./GardenList";
 import { WalletDrawer } from "./WalletDrawer";
 import { WalletDrawerIcon } from "./WalletDrawer/Icon";
 import { WorkDashboardIcon } from "./WorkDashboard/Icon";
-
-/** Storage key for welcome prompt - shown once per device */
-const WELCOME_SHOWN_KEY = "greengoods_welcome_shown";
+import { ARRIVAL_TOASTS, type ArrivalActionKind } from "./arrival-toast";
 
 const Home: React.FC = () => {
   const navigate = useNavigateToTop();
@@ -44,6 +43,9 @@ const Home: React.FC = () => {
   const { isOnline } = useOffline();
   const primaryAddress = usePrimaryAddress();
   const normalizedAddress = primaryAddress?.toLowerCase() ?? null;
+
+  // State-aware arrival orientation (replaces the old generic welcome toast).
+  const { kind: arrivalKind, myGardenIds } = useArrivalState();
 
   // Filter state
   const [filters, setFilters] = useState<GardenFiltersState>({ scope: "all", sort: "default" });
@@ -69,14 +71,15 @@ const Home: React.FC = () => {
   const isGardenFilterOpen = useUIStore((s) => s.isGardenFilterOpen);
   const openGardenFilter = useUIStore((s) => s.openGardenFilter);
   const closeGardenFilter = useUIStore((s) => s.closeGardenFilter);
+  const openWorkDashboard = useUIStore((s) => s.openWorkDashboard);
 
   // Ensure proper re-rendering on browser navigation
   useBrowserNavigation();
 
   // Auth state for welcome message
   const { isAuthenticated } = useAuthState();
-  const hasShownWelcomeRef = useRef(false);
-  const { set: scheduleWelcome } = useTimeout();
+  const hasShownArrivalRef = useRef(false);
+  const { set: scheduleArrival } = useTimeout();
 
   // Ref for scrolling to article on card click
   const articleRef = useRef<HTMLElement>(null);
@@ -101,46 +104,75 @@ const Home: React.FC = () => {
     }
   }, [location.pathname, closeGardenFilter]);
 
-  // Show welcome message once for new users - points them to profile for garden discovery
-  useEffect(() => {
-    if (!isAuthenticated || hasShownWelcomeRef.current) return;
-    if (location.pathname !== APP_ROUTES.home) return;
+  // Resolve an arrival action to its concrete client side effect.
+  const runArrivalAction = useCallback(
+    (action: ArrivalActionKind) => {
+      switch (action) {
+        case "openWorkDashboardDrafts":
+          openWorkDashboard("drafts");
+          return;
+        case "openWorkDashboardPending":
+          openWorkDashboard("pending");
+          return;
+        case "startWork":
+          // One garden → jump straight in; several → narrow the list so they pick.
+          if (myGardenIds.length === 1) {
+            navigate(`/home/${myGardenIds[0]}`);
+          } else {
+            setFilters((current) =>
+              current.scope === "mine" ? current : { ...current, scope: "mine" }
+            );
+          }
+          return;
+        case "openHelp":
+          navigate(`${APP_ROUTES.profile}?tab=help`);
+          return;
+      }
+    },
+    [myGardenIds, navigate, openWorkDashboard]
+  );
 
-    // Check localStorage - only show once per device
-    const hasBeenShown = localStorage.getItem(WELCOME_SHOWN_KEY) === "true";
-    if (hasBeenShown) {
-      hasShownWelcomeRef.current = true;
+  // Show a state-aware arrival toast once per browser session, scoped to the signed-in address.
+  // useArrivalState already gates on data confidence, so we fire only when arrivalKind !== "none".
+  useEffect(() => {
+    if (!isAuthenticated || hasShownArrivalRef.current) return;
+    if (location.pathname !== APP_ROUTES.home) return;
+    if (!normalizedAddress || arrivalKind === "none") return;
+
+    const shownKey = `greengoods:arrival-shown:${normalizedAddress}`;
+    if (sessionStorage.getItem(shownKey) === "true") {
+      hasShownArrivalRef.current = true;
       return;
     }
 
-    // Mark as shown BEFORE showing toast (prevents re-triggering)
-    localStorage.setItem(WELCOME_SHOWN_KEY, "true");
-    hasShownWelcomeRef.current = true;
+    // Mark shown BEFORE scheduling so re-renders / remounts this session don't re-fire.
+    sessionStorage.setItem(shownKey, "true");
+    hasShownArrivalRef.current = true;
 
-    // Small delay to let page render first
-    scheduleWelcome(() => {
-      toastService.info({
-        title: intl.formatMessage({
-          id: "app.home.welcome.title",
-          defaultMessage: "Welcome to Green Goods!",
-        }),
-        message: intl.formatMessage({
-          id: "app.home.welcome.message",
-          defaultMessage: "Visit your Profile to discover and join gardens.",
-        }),
+    const spec = ARRIVAL_TOASTS[arrivalKind];
+    // Small delay to let the page render first.
+    scheduleArrival(() => {
+      toastService[spec.status]({
+        title: intl.formatMessage({ id: spec.titleId }),
+        message: intl.formatMessage({ id: spec.messageId }),
         duration: 6000,
         action: {
-          label: intl.formatMessage({
-            id: "app.home.welcome.action",
-            defaultMessage: "Go to Profile",
-          }),
-          onClick: () => navigate(APP_ROUTES.profile),
+          label: intl.formatMessage({ id: spec.actionLabelId }),
+          onClick: () => runArrivalAction(spec.action),
           dismissOnClick: true,
         },
         suppressLogging: true,
       });
-    }, 800);
-  }, [intl, isAuthenticated, location.pathname, navigate, scheduleWelcome]);
+    }, 700);
+  }, [
+    arrivalKind,
+    intl,
+    isAuthenticated,
+    location.pathname,
+    normalizedAddress,
+    runArrivalAction,
+    scheduleArrival,
+  ]);
 
   // Handlers
   const handleRetry = () => {

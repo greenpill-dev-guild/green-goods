@@ -45,6 +45,8 @@ vi.mock("@green-goods/shared", () => ({
   useReviewerGardenIds: () => ({ reviewerGardenIds: [] }),
   useReviewerWorks: () => mockReviewerWorksState,
   useTimeout: () => ({ set: vi.fn((fn: () => void) => fn()) }),
+  useUIStore: (selector: (s: { workDashboardInitialTab?: string }) => unknown) =>
+    selector({ workDashboardInitialTab: undefined }),
   useUser: () => ({ user: { id: "0xabc" } }),
   useWorkApprovals: () => mockWorkApprovalsState,
 }));

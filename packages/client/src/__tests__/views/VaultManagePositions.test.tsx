@@ -80,6 +80,10 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
     ...actual,
     useAuth: () => ({ loginWithWallet: mocks.loginWithWallet }),
     useUser: () => ({ authMode: mocks.authMode, primaryAddress: mocks.primaryAddress }),
+    useWalletConnectDismissGuard: () => ({
+      markConnecting: () => {},
+      shouldBlockDismiss: () => false,
+    }),
     useEnsName: () => ({
       data: mocks.ensName,
       isLoading: false,
@@ -452,19 +456,19 @@ describe("/vaults?manage=positions", () => {
     await user.click(within(row).getByRole("button", { name: "Redeem" }));
 
     const amount = within(row).getByLabelText("Amount to redeem");
-    // Over the max → review stays disabled and an error shows.
+    // Over the max → the redeem button stays disabled and an error shows.
     await user.type(amount, "2");
     expect(within(row).getByText(/no higher than what is redeemable now/i)).toBeInTheDocument();
-    expect(within(row).getByRole("button", { name: "Review redemption" })).toBeDisabled();
+    expect(within(row).getByRole("button", { name: /^Redeem / })).toBeDisabled();
 
-    // Valid amount → review enabled; confirm calls the chain-aware redeem.
+    // Valid amount → the single redeem button (carrying the estimate) enables
+    // and goes straight to the chain-aware redeem; no in-app confirm step.
     await user.clear(amount);
     await user.type(amount, "0.5");
-    const review = within(row).getByRole("button", { name: "Review redemption" });
-    expect(review).toBeEnabled();
-    await user.click(review);
-    expect(within(row).getByText(/approximately 0.6 WETH/i)).toBeInTheDocument();
-    await user.click(within(row).getByRole("button", { name: "Confirm" }));
+    const submit = within(row).getByRole("button", { name: /^Redeem / });
+    expect(submit).toBeEnabled();
+    expect(submit).toHaveAccessibleName(/0\.6 WETH/);
+    await user.click(submit);
 
     await waitFor(() => expect(mocks.redeemMutateAsync).toHaveBeenCalledTimes(1));
     expect(mocks.redeemMutateAsync).toHaveBeenCalledWith(
@@ -508,10 +512,9 @@ describe("/vaults?manage=positions", () => {
       // Locale-independent: exactly "1.5", never "15" (the old comma-strip result).
       expect(amount.value).toBe("1.5");
 
-      const review = within(row).getByRole("button", { name: "Review redemption" });
-      expect(review).toBeEnabled();
-      await user.click(review);
-      await user.click(within(row).getByRole("button", { name: "Confirm" }));
+      const submit = within(row).getByRole("button", { name: /^Redeem / });
+      expect(submit).toBeEnabled();
+      await user.click(submit);
 
       await waitFor(() => expect(mocks.redeemMutateAsync).toHaveBeenCalledTimes(1));
       expect(mocks.redeemMutateAsync).toHaveBeenCalledWith(
@@ -543,9 +546,9 @@ describe("/vaults?manage=positions", () => {
     await user.type(amount, ".001");
     expect(amount.value).toBe(".001");
 
-    await user.click(within(row).getByRole("button", { name: "Review redemption" }));
-    expect(amount.value).toBe("0.001");
-    await user.click(within(row).getByRole("button", { name: "Confirm" }));
+    // No in-app confirm step: parsedShares normalizes the leading-decimal input
+    // internally, so a single submit sends 0.001 shares to the wallet.
+    await user.click(within(row).getByRole("button", { name: /^Redeem / }));
 
     await waitFor(() => expect(mocks.redeemMutateAsync).toHaveBeenCalledTimes(1));
     expect(mocks.redeemMutateAsync).toHaveBeenCalledWith(

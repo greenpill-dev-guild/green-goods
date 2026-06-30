@@ -19,8 +19,10 @@ const mockAppState = {
   availableLocales: ["en", "es"],
 };
 const mockServiceWorkerUpdateState = {
+  phase: "idle",
   updateAvailable: false,
   isUpdating: false,
+  updateStalled: false,
   applyUpdate: vi.fn(),
 };
 
@@ -119,8 +121,10 @@ describe("AppSettings", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockThemeState.theme = "system";
+    mockServiceWorkerUpdateState.phase = "idle";
     mockServiceWorkerUpdateState.updateAvailable = false;
     mockServiceWorkerUpdateState.isUpdating = false;
+    mockServiceWorkerUpdateState.updateStalled = false;
   });
 
   afterEach(() => {
@@ -166,25 +170,49 @@ describe("AppSettings", () => {
     expect(screen.queryByText("Update app")).not.toBeInTheDocument();
     expect(screen.queryByTestId("btn-Refresh")).not.toBeInTheDocument();
     expect(screen.queryByTestId("btn-Update")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("btn-Restart to update")).not.toBeInTheDocument();
   });
 
-  it("renders the update app card when a service worker update is waiting", () => {
+  it("renders the ready update card when a service worker update is waiting", () => {
+    mockServiceWorkerUpdateState.phase = "ready";
     mockServiceWorkerUpdateState.updateAvailable = true;
 
     render(wrap(createElement(AppSettings)));
 
-    expect(screen.getByText("Update app")).toBeInTheDocument();
-    expect(screen.getByText(/a new version is ready/i)).toBeInTheDocument();
-    expect(screen.getByTestId("btn-Update")).toBeInTheDocument();
+    expect(screen.getByText("Ready to restart")).toBeInTheDocument();
+    expect(screen.getByText(/restart green goods to finish updating/i)).toBeInTheDocument();
+    expect(screen.getByTestId("btn-Restart to update")).toBeInTheDocument();
+  });
+
+  it("renders download progress without a restart button", () => {
+    mockServiceWorkerUpdateState.phase = "downloading";
+
+    render(wrap(createElement(AppSettings)));
+
+    expect(screen.getByText("Downloading update")).toBeInTheDocument();
+    expect(screen.getByText(/latest version in the background/i)).toBeInTheDocument();
+    expect(screen.queryByTestId("btn-Restart to update")).not.toBeInTheDocument();
+  });
+
+  it("renders stalled guidance with a retry button", () => {
+    mockServiceWorkerUpdateState.phase = "stalled";
+    mockServiceWorkerUpdateState.updateStalled = true;
+
+    render(wrap(createElement(AppSettings)));
+
+    expect(screen.getByText("Update needs a restart")).toBeInTheDocument();
+    expect(screen.getByText(/close and reopen the app/i)).toBeInTheDocument();
+    expect(screen.getByTestId("btn-Try again")).toBeInTheDocument();
   });
 
   it("applies the waiting service worker update from the update card", async () => {
+    mockServiceWorkerUpdateState.phase = "ready";
     mockServiceWorkerUpdateState.updateAvailable = true;
     const user = userEvent.setup();
 
     render(wrap(createElement(AppSettings)));
 
-    await user.click(screen.getByTestId("btn-Update"));
+    await user.click(screen.getByTestId("btn-Restart to update"));
 
     expect(mockServiceWorkerUpdateState.applyUpdate).toHaveBeenCalledTimes(1);
   });
