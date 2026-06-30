@@ -130,7 +130,12 @@ describe("AuthProvider wallet login bridge", () => {
 
     setAccount(disconnectedAccount);
     mocks.mockUseAccount.mockImplementation(() => accountState);
-    mocks.mockGetAppKit.mockReturnValue({ open: mocks.mockOpenAppKit });
+    mocks.mockGetAppKit.mockReturnValue({
+      open: mocks.mockOpenAppKit,
+      // useWalletModalOpen() reads getState().open and subscribes for changes.
+      getState: () => ({ open: false }),
+      subscribeState: () => () => {},
+    });
 
     actor = createAuthTestActor();
     actor.start();

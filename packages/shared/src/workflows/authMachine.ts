@@ -492,11 +492,13 @@ export const authMachine = authSetup.createMachine({
     // ═══════════════════════════════════════════════════════════════════════════
     wallet_connecting: {
       after: {
-        // Safety timeout: if wallet modal stalls (e.g. mobile app switch),
-        // fall back to unauthenticated after 60 seconds.
-        60_000: {
+        // Safety timeout: if the wallet modal stalls (e.g. mobile app-switch or
+        // an expired WalletConnect session), fall back to unauthenticated. Kept
+        // short so a stuck session doesn't freeze the login UI — the modal-close
+        // subscription handles the common dismissal case faster.
+        20_000: {
           target: "unauthenticated",
-          actions: () => logger.warn("[AuthMachine] wallet_connecting timed out after 60s"),
+          actions: () => logger.warn("[AuthMachine] wallet_connecting timed out after 20s"),
         },
       },
       on: {

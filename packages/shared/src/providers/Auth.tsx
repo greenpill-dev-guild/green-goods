@@ -40,6 +40,7 @@ import { useAccount, useConfig } from "wagmi";
 
 import { getAppKit } from "../config/appkit";
 import { queryClient } from "../config/react-query";
+import { useWalletModalOpen } from "../hooks/auth/useWalletModalOpen";
 import { logger } from "../modules/app/logger";
 import { serviceWorkerManager } from "../modules/app/service-worker";
 import {
@@ -189,6 +190,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Guard to prevent duplicate LOGIN_WALLET events during session restore
   const walletRestoreAttemptedRef = useRef(false);
   const manualWalletLoginPendingRef = useRef(false);
+  // Reflects the Reown AppKit wallet modal open state; the ref tracks the
+  // open->closed edge so we can recover from a dismissed or expired modal.
+  const prevWalletModalOpenRef = useRef(false);
+  const walletModalOpen = useWalletModalOpen();
 
   // Track wallet hydration timeout - give up waiting after 2 seconds
   const [walletHydrationTimedOut, setWalletHydrationTimedOut] = React.useState(false);
@@ -366,6 +371,26 @@ export function AuthProvider({ children }: AuthProviderProps) {
       actor.send({ type: "MODAL_CLOSED" });
     }
   }, [actor, snapshot, isConnected, isConnecting]);
+
+  // ============================================================
+  // WALLET MODAL CLOSE DETECTION
+  // ============================================================
+  // The wagmi-flag safety net above can miss a dismissal when isConnecting does
+  // not reset promptly (WalletConnect QR, mobile app-switch). Subscribing to
+  // AppKit's modal state (via useWalletModalOpen) catches the open->closed edge
+  // directly: if the modal closes while the machine is still waiting in
+  // wallet_connecting, the user cancelled — return to unauthenticated at once.
+  useEffect(() => {
+    if (!actor) return;
+    const wasOpen = prevWalletModalOpenRef.current;
+    prevWalletModalOpenRef.current = walletModalOpen;
+    // Use the LIVE snapshot (not the React one) so a successful connect — which
+    // already moved the machine to authenticated.wallet — is never clobbered.
+    if (wasOpen && !walletModalOpen && actor.getSnapshot().matches("wallet_connecting")) {
+      logger.debug("[AuthProvider] Wallet modal closed while connecting, sending MODAL_CLOSED");
+      actor.send({ type: "MODAL_CLOSED" });
+    }
+  }, [actor, walletModalOpen]);
 
   // ============================================================
   // HELPER: Disconnect wallet
@@ -592,7 +617,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
       snapshot.matches("registering") ||
       snapshot.matches("authenticating") ||
       snapshot.matches("wallet_connecting") ||
-      isConnecting;
+      // Wagmi's `isConnecting` only blocks the UI while the wallet modal is
+      // actually open. Once the user dismisses it (or a WalletConnect QR
+      // expires), the login UI must come back even if wagmi hasn't cleared
+      // isConnecting yet — otherwise the input stays disabled and the wallet
+      // button stays hidden with no way to recover.
+      (isConnecting && walletModalOpen);
 
     // Check for stored credential (indicates existing account in localStorage)
     const storedCredential = hasStoredCredential();
@@ -633,7 +663,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       externalWalletConnected: snapshot.context.externalWalletConnected,
       externalWalletAddress: snapshot.context.externalWalletAddress,
     };
-  }, [snapshot, isConnecting, isConnected, walletHydrationTimedOut]);
+  }, [snapshot, isConnecting, isConnected, walletHydrationTimedOut, walletModalOpen]);
 
   // ============================================================
   // CONTEXT VALUES

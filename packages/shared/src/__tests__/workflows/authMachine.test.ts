@@ -324,6 +324,44 @@ describe("workflows/authMachine", () => {
       expect(actor.getSnapshot().matches("unauthenticated")).toBe(true);
     });
 
+    it("can re-enter wallet_connecting after a dismissed modal (not stuck)", async () => {
+      const machine = createTestMachine();
+      const actor = await startAndSettle(machine);
+
+      // Open the modal, dismiss it, then try again — a cancelled wallet attempt
+      // must never trap the user; LOGIN_WALLET has to work a second time.
+      actor.send({ type: "LOGIN_WALLET" });
+      expect(actor.getSnapshot().matches("wallet_connecting")).toBe(true);
+
+      actor.send({ type: "MODAL_CLOSED" });
+      expect(actor.getSnapshot().matches("unauthenticated")).toBe(true);
+
+      actor.send({ type: "LOGIN_WALLET" });
+      expect(actor.getSnapshot().matches("wallet_connecting")).toBe(true);
+    });
+
+    it("falls back to unauthenticated after the wallet_connecting timeout", async () => {
+      vi.useFakeTimers();
+      try {
+        const machine = createTestMachine();
+        const actor = createActor(machine, {
+          input: { chainId: MOCK_CHAIN_ID, passkeyClient: null },
+        });
+        actor.start();
+        await vi.advanceTimersByTimeAsync(0); // settle initialization
+        expect(actor.getSnapshot().matches("unauthenticated")).toBe(true);
+
+        actor.send({ type: "LOGIN_WALLET" });
+        expect(actor.getSnapshot().matches("wallet_connecting")).toBe(true);
+
+        // A stalled/expired session must not freeze the UI for a full minute.
+        await vi.advanceTimersByTimeAsync(20_000);
+        expect(actor.getSnapshot().matches("unauthenticated")).toBe(true);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
     it("tracks EXTERNAL_WALLET_CONNECTED in unauthenticated state but doesn't auto-authenticate", async () => {
       const machine = createTestMachine();
       const actor = await startAndSettle(machine);
