@@ -3,7 +3,7 @@ import {
   cn,
   useActions,
   useAllAssessments,
-  useAdminStore,
+  useAdminGardenContext,
   useCommandPaletteController,
   useEligibleAdminGardens,
   useRole,
@@ -41,7 +41,7 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
   const { data: actions } = useActions(DEFAULT_CHAIN_ID);
   const { data: assessments } = useAllAssessments(DEFAULT_CHAIN_ID);
   const { role } = useRole();
-  const selectGarden = useAdminStore((state) => state.setSelectedGarden);
+  const { selectGarden } = useAdminGardenContext();
   const commandPaletteData = useMemo(
     () => ({
       eligibleGardens,

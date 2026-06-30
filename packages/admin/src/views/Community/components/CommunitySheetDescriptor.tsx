@@ -27,7 +27,7 @@ export function CommunitySheetDescriptor({
       return {
         title: formatMessage({ id: "app.treasury.title" }),
         content: <GardenVaultView layout="sheet" />,
-        closeTo: adminRoutes.communityTreasury({ gardenAddress }),
+        closeTo: adminRoutes.communityTreasury({ gardenId: gardenAddress }),
       };
     }
 
@@ -35,7 +35,7 @@ export function CommunitySheetDescriptor({
       return {
         title: formatMessage({ id: "app.conviction.title" }),
         content: <GardenStrategiesView layout="sheet" />,
-        closeTo: adminRoutes.communityGovernance({ gardenAddress }),
+        closeTo: adminRoutes.communityGovernance({ gardenId: gardenAddress }),
       };
     }
 
@@ -48,7 +48,7 @@ export function CommunitySheetDescriptor({
               : "app.signal.hypercertPool.title",
         }),
         content: <GardenSignalPoolView layout="sheet" />,
-        closeTo: adminRoutes.communityGovernance({ gardenAddress }),
+        closeTo: adminRoutes.communityGovernance({ gardenId: gardenAddress }),
       };
     }
 

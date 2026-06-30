@@ -224,7 +224,7 @@ export function resolveOpenSectionRoute(
     section,
     itemId,
     hubSort: sortDirection,
-    gardenAddress: hubContext?.gardenAddress,
+    gardenId: hubContext?.gardenId,
   });
 }
 

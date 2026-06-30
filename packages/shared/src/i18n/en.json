@@ -2824,6 +2824,7 @@
   "cockpit.garden.viewSwitcher": "Garden views",
   "cockpit.gardenChip.allGardens": "All Gardens",
   "cockpit.gardenChip.createGarden": "Create Garden",
+  "cockpit.gardenChip.selectGarden": "Select garden",
   "cockpit.hub.action.createAssessment": "Create assessment",
   "cockpit.hub.action.createHypercert": "Create hypercert",
   "cockpit.hub.action.submitWork": "Submit work",

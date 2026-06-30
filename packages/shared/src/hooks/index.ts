@@ -263,6 +263,12 @@ export { useGardenDomains } from "./garden/useGardenDomains";
 export type { EligibleAdminGardensResult } from "./garden/useEligibleAdminGardens";
 export { useEligibleAdminGardens } from "./garden/useEligibleAdminGardens";
 export type {
+  AdminGardenContextResult,
+  AdminGardenContextStatus,
+  AdminGardenNavigationOptions,
+} from "./garden/useAdminGardenContext";
+export { useAdminGardenContext } from "./garden/useAdminGardenContext";
+export type {
   AdminGardenWorkspaceOption,
   AdminGardenWorkspaceSelection,
 } from "./garden/useAdminGardenWorkspaceSelection";

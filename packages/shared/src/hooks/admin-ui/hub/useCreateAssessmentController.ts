@@ -4,10 +4,9 @@ import {
   assessmentStepFields,
   compareAddresses,
   type CreateAssessmentFormData,
-  type Garden as DomainGarden,
   type Step,
   toastService,
-  useAdminStore,
+  useAdminGardenContext,
   useCreateAssessmentForm,
   useCreateAssessmentStore,
   useCreateAssessmentWorkflow,
@@ -24,35 +23,6 @@ import { useNavigate } from "react-router-dom";
 import { isAddress } from "viem";
 import { useAccount } from "wagmi";
 import { useShallow } from "zustand/react/shallow";
-
-type SelectedAdminGarden = ReturnType<typeof useAdminStore.getState>["selectedGarden"];
-
-function toAssessmentGardenFallback(garden: SelectedAdminGarden): DomainGarden | undefined {
-  if (!garden) return undefined;
-
-  const expanded = garden as Partial<DomainGarden>;
-  return {
-    id: garden.id,
-    chainId: garden.chainId,
-    tokenAddress: garden.tokenAddress,
-    tokenID: garden.tokenID,
-    name: garden.name,
-    description: garden.description,
-    location: garden.location,
-    bannerImage: garden.bannerImage,
-    gardeners: garden.gardeners,
-    operators: garden.operators,
-    owners: expanded.owners ?? [],
-    evaluators: expanded.evaluators ?? [],
-    funders: expanded.funders ?? [],
-    communities: expanded.communities ?? [],
-    openJoining: expanded.openJoining,
-    domainMask: expanded.domainMask,
-    assessments: expanded.assessments ?? [],
-    works: expanded.works ?? [],
-    createdAt: garden.createdAt,
-  };
-}
 
 function useCreateAssessmentStepConfigs(): Step[] {
   const { formatMessage } = useIntl();
@@ -122,18 +92,15 @@ export function useCreateAssessmentController() {
   const stepConfigs = useCreateAssessmentStepConfigs();
   const navigate = useNavigate();
   const { address } = useAccount();
-  const selectedGarden = useAdminStore((state) => state.selectedGarden);
+  const { activeGarden, activeGardenId } = useAdminGardenContext();
   const { data: gardens = [] } = useGardens();
   const permissions = useGardenPermissions();
-  const gardenId = selectedGarden?.id ?? null;
+  const gardenId = activeGardenId;
   const garden = useMemo(() => {
     const indexedGarden = gardens.find((item) => compareAddresses(item.id, gardenId));
-    return indexedGarden ?? toAssessmentGardenFallback(selectedGarden);
-  }, [gardens, gardenId, selectedGarden]);
-  const gardenRouteContext = useMemo(
-    () => ({ gardenAddress: garden?.tokenAddress ?? garden?.id }),
-    [garden?.id, garden?.tokenAddress]
-  );
+    return indexedGarden ?? activeGarden ?? undefined;
+  }, [activeGarden, gardens, gardenId]);
+  const gardenRouteContext = useMemo(() => ({ gardenId: garden?.id }), [garden?.id]);
   const canReview = garden ? permissions.canReviewGarden(garden) : false;
 
   const form = useCreateAssessmentStore(useShallow((state) => state.form));

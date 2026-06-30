@@ -61,8 +61,7 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
   const { data: gardens = [], isLoading: gardensLoading } = useGardens();
   const garden = gardens.find((item) => item.id === resolvedGardenId);
   const gardenRouteContext = {
-    gardenAddress:
-      garden?.tokenAddress ?? garden?.id ?? selectedGarden?.tokenAddress ?? resolvedGardenId,
+    gardenId: garden?.id ?? selectedGarden?.id ?? resolvedGardenId,
   };
   const permissions = useGardenPermissions();
   const { primaryAddress } = useUser();

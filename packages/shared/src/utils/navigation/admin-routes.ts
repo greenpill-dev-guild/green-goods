@@ -19,11 +19,15 @@ export type AdminHubSort = "newest" | "oldest";
 export type AdminSearchValue = string | number | boolean | null | undefined;
 
 export interface AdminHubRouteContext {
+  gardenId?: Address | string;
+  /** @deprecated Use gardenId. Kept so old call sites and bookmarks can normalize safely. */
   gardenAddress?: Address | string;
   sort?: AdminHubSort;
 }
 
 export interface AdminGardenRouteContext {
+  gardenId?: Address | string;
+  /** @deprecated Use gardenId. Kept so old call sites and bookmarks can normalize safely. */
   gardenAddress?: Address | string;
   range?: string;
   section?: string;
@@ -31,11 +35,15 @@ export interface AdminGardenRouteContext {
 }
 
 export interface AdminCommunityRouteContext {
+  gardenId?: Address | string;
+  /** @deprecated Use gardenId. Kept so old call sites and bookmarks can normalize safely. */
   gardenAddress?: Address | string;
   item?: string;
 }
 
-export const ADMIN_GARDEN_SHARE_PARAM = "gardenAddress";
+export const ADMIN_GARDEN_ID_PARAM = "gardenId";
+export const ADMIN_GARDEN_LEGACY_SHARE_PARAM = "gardenAddress";
+export const ADMIN_GARDEN_SHARE_PARAM = ADMIN_GARDEN_ID_PARAM;
 
 export const ADMIN_WORKSPACE_ROOTS: Record<AdminWorkspaceId, string> = {
   home: "/",
@@ -75,7 +83,7 @@ function buildHubContextSearch(
   if (!context) return undefined;
 
   return {
-    [ADMIN_GARDEN_SHARE_PARAM]: context.gardenAddress,
+    [ADMIN_GARDEN_ID_PARAM]: context.gardenId ?? context.gardenAddress,
     sort: context.sort,
   };
 }
@@ -86,7 +94,7 @@ function buildGardenContextSearch(
   if (!context) return undefined;
 
   return {
-    [ADMIN_GARDEN_SHARE_PARAM]: context.gardenAddress,
+    [ADMIN_GARDEN_ID_PARAM]: context.gardenId ?? context.gardenAddress,
     range: context.range,
     section: context.section,
     item: context.item,
@@ -99,7 +107,7 @@ function buildCommunityContextSearch(
   if (!context) return undefined;
 
   return {
-    [ADMIN_GARDEN_SHARE_PARAM]: context.gardenAddress,
+    [ADMIN_GARDEN_ID_PARAM]: context.gardenId ?? context.gardenAddress,
     item: context.item,
   };
 }
@@ -228,10 +236,10 @@ export const adminRoutes = {
   actionEdit(actionId: string, search?: Record<string, AdminSearchValue>) {
     return buildAdminHref(`/actions/${encodeSegment(actionId)}/edit`, search);
   },
-  share(pathname: string, gardenAddress: string, search?: Record<string, AdminSearchValue>) {
+  share(pathname: string, gardenId: string, search?: Record<string, AdminSearchValue>) {
     return buildAdminHref(pathname, {
       ...search,
-      [ADMIN_GARDEN_SHARE_PARAM]: gardenAddress,
+      [ADMIN_GARDEN_ID_PARAM]: gardenId,
     });
   },
 };

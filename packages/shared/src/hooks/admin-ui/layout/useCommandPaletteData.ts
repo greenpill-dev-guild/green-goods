@@ -41,7 +41,6 @@ const RESULT_CATEGORY_ORDER: SearchResult["category"][] = [
 interface CommandPaletteDataOptions {
   query: string;
   formatMessage: IntlShape["formatMessage"];
-  selectGarden: (garden: Garden) => void;
 }
 
 interface AssessmentCommandItem {
@@ -78,7 +77,6 @@ export function groupCommandPaletteResults(
 export function useCommandPaletteDataFromSource({
   query,
   formatMessage,
-  selectGarden,
   data,
 }: CommandPaletteDataOptions & { data: CommandPaletteDataSource }) {
   const results = useMemo(
@@ -91,17 +89,8 @@ export function useCommandPaletteDataFromSource({
         eligibleGardens: data.eligibleGardens,
         actions: data.actions,
         assessments: data.assessments,
-        selectGarden,
       }),
-    [
-      data.actions,
-      data.assessments,
-      data.eligibleGardens,
-      data.role,
-      formatMessage,
-      query,
-      selectGarden,
-    ]
+    [data.actions, data.assessments, data.eligibleGardens, data.role, formatMessage, query]
   );
 
   const groups = useMemo(

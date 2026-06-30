@@ -11,12 +11,10 @@ describe("adminRoutes", () => {
   it("builds route-backed Hub work detail links with garden and sort context", () => {
     expect(
       adminRoutes.hubWorkDetail("work-123", {
-        gardenAddress: "0x0000000000000000000000000000000000000abc",
+        gardenId: "0x0000000000000000000000000000000000000abc",
         sort: "newest",
       })
-    ).toBe(
-      "/hub/work/work-123?gardenAddress=0x0000000000000000000000000000000000000abc&sort=newest"
-    );
+    ).toBe("/hub/work/work-123?gardenId=0x0000000000000000000000000000000000000abc&sort=newest");
   });
 
   it("does not preserve legacy Hub item query state", () => {

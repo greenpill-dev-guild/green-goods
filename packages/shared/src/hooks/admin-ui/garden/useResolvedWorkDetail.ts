@@ -2,7 +2,7 @@ import {
   DEFAULT_CHAIN_ID,
   compareAddresses,
   useActions,
-  useAdminGardenWorkspaceSelection,
+  useAdminGardenContext,
   useGardenPermissions,
   useGardens,
   useWorks,
@@ -21,8 +21,7 @@ export function parseWorkMetadata(metadataStr: string): Partial<WorkMetadata> | 
 
 export function useResolvedWorkDetail(workId: string | undefined) {
   const gardenPermissions = useGardenPermissions();
-  const { selectedGarden, setSelectedGarden } = useAdminGardenWorkspaceSelection();
-  const selectedGardenId = selectedGarden?.id ?? null;
+  const { activeGarden, activeGardenId, selectGarden } = useAdminGardenContext();
 
   const { data: gardens = [], isLoading: gardensLoading } = useGardens();
   const matchedGarden = useMemo(
@@ -34,10 +33,11 @@ export function useResolvedWorkDetail(workId: string | undefined) {
         : null,
     [gardens, workId]
   );
-  const gardenId = matchedGarden?.id ?? selectedGardenId;
+  const gardenId = matchedGarden?.id ?? activeGardenId;
   const garden =
     gardens.find((candidateGarden) => compareAddresses(candidateGarden.id, gardenId)) ??
-    matchedGarden;
+    matchedGarden ??
+    (activeGarden && compareAddresses(activeGarden.id, gardenId) ? activeGarden : null);
 
   const { works, isLoading: worksLoading } = useWorks(gardenId ?? "");
   const work =
@@ -57,10 +57,10 @@ export function useResolvedWorkDetail(workId: string | undefined) {
   const isReviewed = work?.status === "approved" || work?.status === "rejected";
 
   useEffect(() => {
-    if (matchedGarden && !compareAddresses(matchedGarden.id, selectedGardenId)) {
-      setSelectedGarden(matchedGarden);
+    if (matchedGarden && !compareAddresses(matchedGarden.id, activeGardenId)) {
+      selectGarden(matchedGarden, { replace: true });
     }
-  }, [matchedGarden, selectedGardenId, setSelectedGarden]);
+  }, [activeGardenId, matchedGarden, selectGarden]);
 
   const metadata = useMemo(
     () => (work?.metadata ? parseWorkMetadata(work.metadata) : null),

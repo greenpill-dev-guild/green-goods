@@ -7,44 +7,42 @@ interface AdminWorkspaceSectionRouteOptions {
   section: string;
   itemId?: string;
   hubSort?: "newest" | "oldest";
+  gardenId?: Address | string;
   gardenAddress?: Address | string;
 }
 
-export function resolveAdminWorkspaceSectionRoute({
-  tab,
-  section,
-  itemId,
-  hubSort,
-  gardenAddress,
-}: AdminWorkspaceSectionRouteOptions) {
+export function resolveAdminWorkspaceSectionRoute(options: AdminWorkspaceSectionRouteOptions) {
+  const { tab, section, itemId, hubSort } = options;
+  const gardenId = options.gardenId ?? options.gardenAddress;
+
   if (tab === "work") {
     if (section === "work" && itemId) {
-      return adminRoutes.hubWorkDetail(itemId, { gardenAddress, sort: hubSort });
+      return adminRoutes.hubWorkDetail(itemId, { gardenId, sort: hubSort });
     }
 
     if (section === "decisions" && itemId) {
-      return adminRoutes.hubHistoryDetail(itemId, { gardenAddress, sort: hubSort });
+      return adminRoutes.hubHistoryDetail(itemId, { gardenId, sort: hubSort });
     }
 
     return section === "decisions"
-      ? adminRoutes.hubHistory({ gardenAddress, sort: hubSort })
-      : adminRoutes.hubWork({ gardenAddress, sort: hubSort });
+      ? adminRoutes.hubHistory({ gardenId, sort: hubSort })
+      : adminRoutes.hubWork({ gardenId, sort: hubSort });
   }
 
   if (tab === "impact") {
-    return adminRoutes.gardenImpact({ gardenAddress, item: itemId, section });
+    return adminRoutes.gardenImpact({ gardenId, item: itemId, section });
   }
 
   if (tab === "overview") {
-    return adminRoutes.gardenOverview({ gardenAddress, item: itemId, section });
+    return adminRoutes.gardenOverview({ gardenId, item: itemId, section });
   }
 
-  if (section === "members") return adminRoutes.communityMembers({ gardenAddress, item: itemId });
+  if (section === "members") return adminRoutes.communityMembers({ gardenId, item: itemId });
   if (section === "cookie-jars" || section === "payouts") {
-    return adminRoutes.communityPayouts({ gardenAddress, item: itemId });
+    return adminRoutes.communityPayouts({ gardenId, item: itemId });
   }
   if (section === "pools" || section === "governance") {
-    return adminRoutes.communityGovernance({ gardenAddress, item: itemId });
+    return adminRoutes.communityGovernance({ gardenId, item: itemId });
   }
-  return adminRoutes.communityTreasury({ gardenAddress, item: itemId });
+  return adminRoutes.communityTreasury({ gardenId, item: itemId });
 }

@@ -37,7 +37,7 @@ export default function GardenStrategiesView({ layout = "page" }: GardenStrategi
 
   const { data: gardens = [], isLoading: gardensLoading } = useGardens();
   const garden = gardens.find((item) => compareAddresses(item.id, gardenId));
-  const gardenRouteContext = { gardenAddress: garden?.tokenAddress ?? garden?.id ?? gardenId };
+  const gardenRouteContext = { gardenId: garden?.id ?? gardenId };
   const permissions = useGardenPermissions();
 
   const {

@@ -55,7 +55,7 @@ export function ImpactTab({
 
   const recentAssessments = assessments.slice(0, 5);
   const recentHypercerts = hypercerts.slice(0, 4);
-  const gardenRouteContext = { gardenAddress: garden.tokenAddress ?? garden.id };
+  const gardenRouteContext = { gardenId: garden.id };
 
   return (
     <div className="garden-tab-shell">

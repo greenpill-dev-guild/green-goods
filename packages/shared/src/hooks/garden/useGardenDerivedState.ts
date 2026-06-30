@@ -252,7 +252,7 @@ export function useGardenDerivedState({
         }
       ),
       timestamp: toMs(work.createdAt),
-      href: adminRoutes.hubWorkDetail(work.id, { gardenAddress }),
+      href: adminRoutes.hubWorkDetail(work.id, { gardenId: gardenAddress }),
       itemId: work.id,
     })),
     ...assessments.map((assessment) => ({
@@ -287,7 +287,7 @@ export function useGardenDerivedState({
         }
       ),
       timestamp: hypercert.mintedAt ? toMs(hypercert.mintedAt) : 0,
-      href: adminRoutes.gardenHypercertDetail(hypercert.id, { gardenAddress }),
+      href: adminRoutes.gardenHypercertDetail(hypercert.id, { gardenId: gardenAddress }),
       itemId: hypercert.id,
     })),
     ...allocations.map((allocation) => ({
@@ -303,7 +303,7 @@ export function useGardenDerivedState({
         }
       ),
       timestamp: toMs(allocation.timestamp),
-      href: adminRoutes.communityTreasury({ gardenAddress, item: allocation.txHash }),
+      href: adminRoutes.communityTreasury({ gardenId: gardenAddress, item: allocation.txHash }),
       itemId: allocation.txHash,
     })),
   ].sort((a, b) => b.timestamp - a.timestamp);

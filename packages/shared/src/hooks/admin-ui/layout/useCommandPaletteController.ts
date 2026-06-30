@@ -50,7 +50,6 @@ export function useCommandPaletteController({
   const { eligibleGardens, groups, results } = useCommandPaletteDataFromSource({
     query: debouncedQuery,
     formatMessage,
-    selectGarden,
     data,
   });
 

@@ -15,7 +15,6 @@ import {
   PROFILE_SHEET_CONTENT_ID,
   SETTINGS_SHEET_CONTENT_ID,
   toAccountSheetContentId,
-  useAdminStore,
   useAdminGardenWorkspaceSelection,
   useAdminRightSheetDescriptor,
   useAuth,
@@ -33,7 +32,6 @@ import {
   resolveAdminWorkspaceSectionRoute,
   useMediaQuery,
   useSheetOrchestrator,
-  useStaleGardenGuard,
   compareAddresses,
   type AccountSheetTab,
   type AdminRightSheetContentId,
@@ -184,15 +182,14 @@ export function CanvasLayout() {
   const location = useLocation();
   const { isAuthenticated, eoaAddress, isReady, authMode } = useAuth();
   const { eligibleGardens, isLoaded: eligibleGardensLoaded } = useEligibleAdminGardens();
+  const { selectedGarden } = useAdminGardenWorkspaceSelection();
 
-  const selectedGarden = useAdminStore((s) => s.selectedGarden);
   const [searchOpen, setSearchOpen] = useState(false);
   const isDesktop = useMediaQuery("(min-width: 600px)");
   const usesFloatingFabNavigation = useMediaQuery("(max-width: 1023px)");
   const permissions = useEffectiveToolbarPermissions();
   const { showWork, showGarden, showCommunity, showActions } = permissions;
   const { setGarden } = useGardenUrlSync();
-  useStaleGardenGuard();
 
   // Sheet orchestrator — manages pane-scoped sheets
   const orchestrator = useSheetOrchestrator();
@@ -575,7 +572,7 @@ function AdminNotificationPanel({ onCloseSheet }: { onCloseSheet: () => void }) 
   const { formatMessage } = useIntl();
   const navigate = useNavigate();
   const { selectedGarden } = useAdminGardenWorkspaceSelection();
-  const selectedGardenAddress = selectedGarden?.tokenAddress ?? selectedGarden?.id;
+  const selectedGardenAddress = selectedGarden?.id;
   const workspace = useGardenDetailData(selectedGarden?.id);
 
   const navigateFromNotification = useCallback(

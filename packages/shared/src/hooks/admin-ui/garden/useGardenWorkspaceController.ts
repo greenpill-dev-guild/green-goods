@@ -36,7 +36,7 @@ export function useGardenWorkspaceController() {
   const { selectedGarden, gardenOptions, handleSelectGarden } = useAdminGardenWorkspaceSelection();
   const { containerRef } = useSheetWidth();
   const gardenStateKey = selectedGarden?.id ?? "";
-  const selectedGardenAddress = selectedGarden?.tokenAddress ?? selectedGarden?.id;
+  const selectedGardenAddress = selectedGarden?.id;
   const getGardenWorkspaceState = useGardenStateStore((state) => state.getGardenWorkspaceState);
   const setGardenWorkspaceState = useGardenStateStore((state) => state.setGardenWorkspaceState);
   const lastHydratedGardenStateKeyRef = useRef<string | null>(null);
@@ -160,8 +160,8 @@ export function useGardenWorkspaceController() {
         return {
           ...event,
           href: event.itemId
-            ? adminRoutes.hubWorkDetail(event.itemId, { gardenAddress: selectedGardenAddress })
-            : adminRoutes.hubWork({ gardenAddress: selectedGardenAddress }),
+            ? adminRoutes.hubWorkDetail(event.itemId, { gardenId: selectedGardenAddress })
+            : adminRoutes.hubWork({ gardenId: selectedGardenAddress }),
         };
       }
 
@@ -177,7 +177,7 @@ export function useGardenWorkspaceController() {
 
       return {
         ...event,
-        href: adminRoutes.communityTreasury({ gardenAddress: selectedGardenAddress }),
+        href: adminRoutes.communityTreasury({ gardenId: selectedGardenAddress }),
       };
     });
   }, [derived.filteredActivityEvents, selectedGarden, selectedGardenAddress]);
@@ -217,7 +217,7 @@ export function useGardenWorkspaceController() {
   const handleTabChange = useCallback(
     (nextView: string) => {
       if (nextView === "settings") {
-        navigate(adminRoutes.gardenSettings({ gardenAddress: selectedGardenAddress }));
+        navigate(adminRoutes.gardenSettings({ gardenId: selectedGardenAddress }));
       } else if (nextView === "activity") {
         // Tier 4: Activity + Members are net-new tabs per audit IA-Garden.
         // First-delivery navigation is path-only; range/garden context is
@@ -226,7 +226,7 @@ export function useGardenWorkspaceController() {
       } else if (nextView === "members") {
         navigate("/garden/members");
       } else {
-        navigate(adminRoutes.gardenOverview({ gardenAddress: selectedGardenAddress, range }));
+        navigate(adminRoutes.gardenOverview({ gardenId: selectedGardenAddress, range }));
       }
     },
     [navigate, range, selectedGardenAddress]

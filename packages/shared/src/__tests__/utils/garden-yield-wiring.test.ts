@@ -64,7 +64,7 @@ describe("deriveGardenYieldWiringState", () => {
       expectedHypercertPoolAddress: undefined,
       resolverHypercertPoolAddress: undefined,
       canRepairFromCommunity: true,
-      repairHref: `/community/governance?gardenAddress=${TEST_GARDEN}`,
+      repairHref: `/community/governance?gardenId=${TEST_GARDEN}`,
     });
     expect(state.issues).toContain("typed-hypercert-pool-missing");
   });
@@ -84,7 +84,7 @@ describe("deriveGardenYieldWiringState", () => {
       expectedHypercertPoolAddress: TEST_HYPERCERT_POOL,
       resolverHypercertPoolAddress: undefined,
       canRepairFromCommunity: true,
-      repairHref: `/community/governance?gardenAddress=${TEST_GARDEN}`,
+      repairHref: `/community/governance?gardenId=${TEST_GARDEN}`,
     });
     expect(state.issues).toEqual(
       expect.arrayContaining([
@@ -108,7 +108,7 @@ describe("deriveGardenYieldWiringState", () => {
       expectedHypercertPoolAddress: TEST_HYPERCERT_POOL,
       resolverHypercertPoolAddress: TEST_OTHER_POOL,
       canRepairFromCommunity: true,
-      repairHref: `/community/governance?gardenAddress=${TEST_GARDEN}`,
+      repairHref: `/community/governance?gardenId=${TEST_GARDEN}`,
     });
     expect(state.issues).toContain("resolver-hypercert-pool-mismatch");
   });

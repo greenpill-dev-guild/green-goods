@@ -18,6 +18,7 @@ import { OPEN_ACCOUNT_SHEET_EVENT } from "@green-goods/shared";
 
 const mockNavigate = vi.fn();
 const mockSetSelectedGarden = vi.fn();
+const mockSelectGarden = vi.fn();
 const mockEligibleGardens = vi.hoisted(() => ({
   current: [
     { id: "garden-1", name: "Chakra Farm", location: "Quito", tokenAddress: "0xAAA" },
@@ -54,6 +55,18 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       scopeKey: "0x123:11155111",
       canCreateGarden: true,
       isLoaded: true,
+    }),
+    useAdminGardenContext: () => ({
+      activeGarden: mockEligibleGardens.current[0] ?? null,
+      activeGardenId: mockEligibleGardens.current[0]?.id ?? null,
+      requestedGardenId: mockEligibleGardens.current[0]?.id ?? null,
+      eligibleGardens: mockEligibleGardens.current,
+      isLoaded: true,
+      isError: false,
+      hasExplicitGarden: true,
+      status: "ready",
+      selectGarden: mockSelectGarden,
+      clearGarden: vi.fn(),
     }),
     useRole: () => ({ role: "deployer" as const }),
   };
@@ -247,7 +260,7 @@ describe("CommandPalette Routes", () => {
     window.removeEventListener(OPEN_ACCOUNT_SHEET_EVENT, settingsHandler as EventListener);
   });
 
-  it("selecting a garden preserves the chosen garden context without forcing a share param", async () => {
+  it("selecting a garden navigates with the chosen canonical garden id", async () => {
     renderWithProviders(
       <MemoryRouter>
         <CommandPalette open={true} />
@@ -263,10 +276,9 @@ describe("CommandPalette Routes", () => {
     expect(gardenButton).toBeTruthy();
     await userEvent.click(gardenButton!);
 
-    expect(mockSetSelectedGarden).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "garden-1", tokenAddress: "0xAAA" })
-    );
-    expect(mockNavigate).toHaveBeenCalledWith("/garden/overview?gardenAddress=0xAAA");
+    expect(mockSetSelectedGarden).not.toHaveBeenCalled();
+    expect(mockSelectGarden).not.toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalledWith("/garden/overview?gardenId=garden-1");
   });
 
   it("does not expose gardens outside the eligible admin set", async () => {

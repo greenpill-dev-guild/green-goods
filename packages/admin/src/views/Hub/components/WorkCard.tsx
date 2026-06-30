@@ -22,7 +22,7 @@ interface WorkCardProps {
 export const WorkCard: React.FC<WorkCardProps> = ({ work, canReview, hubContext }) => {
   const intl = useIntl();
   const workHubContext: AdminHubRouteContext = {
-    gardenAddress: hubContext?.gardenAddress ?? work.gardenAddress,
+    gardenId: hubContext?.gardenId ?? hubContext?.gardenAddress ?? work.gardenAddress,
     sort: hubContext?.sort,
   };
   const workDetailHref = adminRoutes.hubWorkDetail(work.id, workHubContext);

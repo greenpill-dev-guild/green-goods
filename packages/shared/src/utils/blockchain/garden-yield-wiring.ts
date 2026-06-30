@@ -65,7 +65,7 @@ function normalizeNonZeroAddress(
 }
 
 function repairHrefForGarden(gardenAddress: Address): string {
-  return adminRoutes.communityGovernance({ gardenAddress });
+  return adminRoutes.communityGovernance({ gardenId: gardenAddress });
 }
 
 export function deriveGardenYieldWiringState(

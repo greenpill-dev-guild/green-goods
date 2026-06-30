@@ -108,7 +108,7 @@ export function buildCommunityViewActions(
       label: "Manage members",
       labelId: "cockpit.community.action.manageMembers",
       icon: RiUserLine,
-      onClick: () => navigate(adminRoutes.gardenMembers({ gardenAddress })),
+      onClick: () => navigate(adminRoutes.gardenMembers({ gardenId: gardenAddress })),
       variant: "secondary",
       visible: hasSelectedGarden && canManage,
       primary: false,

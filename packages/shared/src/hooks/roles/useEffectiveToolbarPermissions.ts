@@ -10,10 +10,10 @@
 
 import { useMemo } from "react";
 import { compareAddresses, isAddressInList } from "../../utils/blockchain/address";
-import { useAdminStore } from "../../stores/useAdminStore";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useRole } from "../gardener/useRole";
 import { useEligibleAdminGardens } from "../garden/useEligibleAdminGardens";
+import { useAdminGardenContext } from "../garden/useAdminGardenContext";
 
 export interface ToolbarPermissions {
   showWork: boolean;
@@ -33,7 +33,7 @@ const FAIL_OPEN: ToolbarPermissions = {
 
 export function useEffectiveToolbarPermissions(): ToolbarPermissions {
   const address = usePrimaryAddress();
-  const selectedGarden = useAdminStore((s) => s.selectedGarden);
+  const { activeGarden } = useAdminGardenContext();
   const { isDeployer, loading: roleLoading } = useRole();
   const {
     eligibleGardens,
@@ -52,8 +52,8 @@ export function useEffectiveToolbarPermissions(): ToolbarPermissions {
     }
 
     // Determine which gardens to check
-    const scope = selectedGarden
-      ? eligibleGardens.filter((g) => compareAddresses(g.id, selectedGarden.id))
+    const scope = activeGarden
+      ? eligibleGardens.filter((g) => compareAddresses(g.id, activeGarden.id))
       : eligibleGardens;
 
     // Compute aggregated roles across the scope
@@ -93,7 +93,7 @@ export function useEffectiveToolbarPermissions(): ToolbarPermissions {
     };
   }, [
     address,
-    selectedGarden,
+    activeGarden,
     eligibleGardens,
     roleLoading,
     eligibleGardensLoaded,

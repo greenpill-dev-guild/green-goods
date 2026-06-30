@@ -5,37 +5,26 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mockEligibleState = {
+const mockSelectGarden = vi.fn();
+const mockClearGarden = vi.fn();
+const mockContextState = {
+  activeGarden: null as { id: string; name: string; location?: string } | null,
   eligibleGardens: [] as Array<{ id: string; name: string; location?: string }>,
-  resolvedDefaultGarden: null as { id: string; name: string; location?: string } | null,
   isLoaded: true,
 };
-const mockSetSelectedGarden = vi.fn();
-const mockSetUrlGarden = vi.fn();
-const mockSyncedGardenId = { current: null as string | null };
-const mockStoreState = {
-  selectedGarden: null as { id: string; name: string; location?: string } | null,
-  setSelectedGarden: mockSetSelectedGarden,
-};
 
-vi.mock("../../../hooks/garden/useEligibleAdminGardens", () => ({
-  useEligibleAdminGardens: () => mockEligibleState,
-}));
-
-vi.mock("../../../stores/useAdminStore", () => ({
-  useAdminStore: (selector: (state: typeof mockStoreState) => unknown) => selector(mockStoreState),
-}));
-
-vi.mock("../../../hooks/navigation/useGardenUrlSync", () => ({
-  useGardenUrlSync: () => ({
-    gardenId: mockSyncedGardenId.current,
-    tab: null,
-    item: null,
-    setGarden: mockSetUrlGarden,
-    setTab: vi.fn(),
-    setFilter: vi.fn(),
-    openItem: vi.fn(),
-    closeItem: vi.fn(),
+vi.mock("../../../hooks/garden/useAdminGardenContext", () => ({
+  useAdminGardenContext: () => ({
+    activeGarden: mockContextState.activeGarden,
+    activeGardenId: mockContextState.activeGarden?.id ?? null,
+    requestedGardenId: mockContextState.activeGarden?.id ?? null,
+    eligibleGardens: mockContextState.eligibleGardens,
+    isLoaded: mockContextState.isLoaded,
+    isError: false,
+    hasExplicitGarden: Boolean(mockContextState.activeGarden),
+    status: mockContextState.activeGarden ? "ready" : "not-found",
+    selectGarden: mockSelectGarden,
+    clearGarden: mockClearGarden,
   }),
 }));
 
@@ -44,15 +33,13 @@ import { useAdminGardenWorkspaceSelection } from "../../../hooks/garden/useAdmin
 describe("hooks/garden/useAdminGardenWorkspaceSelection", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockEligibleState.eligibleGardens = [];
-    mockEligibleState.resolvedDefaultGarden = null;
-    mockEligibleState.isLoaded = true;
-    mockStoreState.selectedGarden = null;
-    mockSyncedGardenId.current = null;
+    mockContextState.activeGarden = null;
+    mockContextState.eligibleGardens = [];
+    mockContextState.isLoaded = true;
   });
 
   it("maps eligible gardens into workspace options", () => {
-    mockEligibleState.eligibleGardens = [
+    mockContextState.eligibleGardens = [
       { id: "garden-a", name: "Alpha", location: "Lisbon" },
       { id: "garden-b", name: "Beta" },
     ];
@@ -65,9 +52,9 @@ describe("hooks/garden/useAdminGardenWorkspaceSelection", () => {
     ]);
   });
 
-  it("selects the full eligible garden through URL-backed garden sync", () => {
+  it("selects the full eligible garden through route-backed garden context", () => {
     const garden = { id: "garden-a", name: "Alpha", location: "Lisbon" };
-    mockEligibleState.eligibleGardens = [garden];
+    mockContextState.eligibleGardens = [garden];
 
     const { result } = renderHook(() => useAdminGardenWorkspaceSelection());
 
@@ -75,12 +62,11 @@ describe("hooks/garden/useAdminGardenWorkspaceSelection", () => {
       result.current.handleSelectGarden({ id: "garden-a" });
     });
 
-    expect(mockSetUrlGarden).toHaveBeenCalledWith(garden);
-    expect(mockSetSelectedGarden).not.toHaveBeenCalledWith(garden);
+    expect(mockSelectGarden).toHaveBeenCalledWith(garden);
   });
 
-  it("clears selection when the selected option id is not eligible", () => {
-    mockEligibleState.eligibleGardens = [{ id: "garden-a", name: "Alpha" }];
+  it("ignores a selected option id that is not eligible", () => {
+    mockContextState.eligibleGardens = [{ id: "garden-a", name: "Alpha" }];
 
     const { result } = renderHook(() => useAdminGardenWorkspaceSelection());
 
@@ -88,15 +74,15 @@ describe("hooks/garden/useAdminGardenWorkspaceSelection", () => {
       result.current.handleSelectGarden({ id: "garden-missing" });
     });
 
-    expect(mockSetUrlGarden).toHaveBeenCalledWith(null);
+    expect(mockSelectGarden).not.toHaveBeenCalled();
+    expect(mockClearGarden).not.toHaveBeenCalled();
   });
 
-  it("auto-selects the resolved default garden through URL-backed garden sync", async () => {
-    const firstGarden = { id: "garden-a", name: "Alpha" };
-    const persistedGarden = { id: "garden-b", name: "Beta" };
+  it("reports the active route-derived garden through the auto-select callback", async () => {
+    const activeGarden = { id: "garden-b", name: "Beta" };
     const onAutoSelectGarden = vi.fn();
-    mockEligibleState.eligibleGardens = [firstGarden, persistedGarden];
-    mockEligibleState.resolvedDefaultGarden = persistedGarden;
+    mockContextState.eligibleGardens = [activeGarden];
+    mockContextState.activeGarden = activeGarden;
 
     renderHook(() =>
       useAdminGardenWorkspaceSelection({
@@ -106,17 +92,21 @@ describe("hooks/garden/useAdminGardenWorkspaceSelection", () => {
     );
 
     await waitFor(() => {
-      expect(mockSetUrlGarden).toHaveBeenCalledWith(persistedGarden);
+      expect(onAutoSelectGarden).toHaveBeenCalledWith(activeGarden);
     });
-    expect(onAutoSelectGarden).toHaveBeenCalledWith(persistedGarden);
+    expect(mockSelectGarden).not.toHaveBeenCalled();
   });
 
-  it("does not auto-select before eligible gardens are loaded", () => {
-    mockEligibleState.eligibleGardens = [{ id: "garden-a", name: "Alpha" }];
-    mockEligibleState.isLoaded = false;
+  it("does not report auto-selection before eligible gardens are loaded", () => {
+    const onAutoSelectGarden = vi.fn();
+    mockContextState.eligibleGardens = [{ id: "garden-a", name: "Alpha" }];
+    mockContextState.activeGarden = { id: "garden-a", name: "Alpha" };
+    mockContextState.isLoaded = false;
 
-    renderHook(() => useAdminGardenWorkspaceSelection({ autoSelectFirstGarden: true }));
+    renderHook(() =>
+      useAdminGardenWorkspaceSelection({ autoSelectFirstGarden: true, onAutoSelectGarden })
+    );
 
-    expect(mockSetSelectedGarden).not.toHaveBeenCalled();
+    expect(onAutoSelectGarden).not.toHaveBeenCalled();
   });
 });

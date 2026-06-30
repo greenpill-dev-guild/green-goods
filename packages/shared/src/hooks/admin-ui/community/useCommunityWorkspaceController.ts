@@ -58,7 +58,7 @@ export function useCommunityWorkspaceController() {
   const { searchParams } = useCanvasSearchParams();
   const { containerRef } = useSheetWidth();
   const gardenStateKey = selectedGarden?.id ?? "";
-  const selectedGardenAddress = selectedGarden?.tokenAddress ?? selectedGarden?.id;
+  const selectedGardenAddress = selectedGarden?.id;
   const getGardenWorkspaceState = useGardenStateStore((state) => state.getGardenWorkspaceState);
   const setGardenWorkspaceState = useGardenStateStore((state) => state.setGardenWorkspaceState);
   const lastHydratedGardenStateKeyRef = useRef<string | null>(null);
@@ -171,22 +171,22 @@ export function useCommunityWorkspaceController() {
     (nextMode: string) =>
       navigate(
         nextMode === "governance"
-          ? adminRoutes.communityGovernance({ gardenAddress: selectedGardenAddress })
+          ? adminRoutes.communityGovernance({ gardenId: selectedGardenAddress })
           : nextMode === "payouts"
-            ? adminRoutes.communityPayouts({ gardenAddress: selectedGardenAddress })
+            ? adminRoutes.communityPayouts({ gardenId: selectedGardenAddress })
             : nextMode === "members"
-              ? adminRoutes.communityMembers({ gardenAddress: selectedGardenAddress })
-              : adminRoutes.communityTreasury({ gardenAddress: selectedGardenAddress })
+              ? adminRoutes.communityMembers({ gardenId: selectedGardenAddress })
+              : adminRoutes.communityTreasury({ gardenId: selectedGardenAddress })
       ),
     [navigate, selectedGardenAddress]
   );
 
   const clearSection = useCallback(
-    () => navigate(adminRoutes.communityTreasury({ gardenAddress: selectedGardenAddress })),
+    () => navigate(adminRoutes.communityTreasury({ gardenId: selectedGardenAddress })),
     [navigate, selectedGardenAddress]
   );
   const openMembersModal = useCallback(
-    () => navigate(adminRoutes.communityMembers({ gardenAddress: selectedGardenAddress })),
+    () => navigate(adminRoutes.communityMembers({ gardenId: selectedGardenAddress })),
     [navigate, selectedGardenAddress]
   );
   const createPoolsAsync = useCallback(async () => {

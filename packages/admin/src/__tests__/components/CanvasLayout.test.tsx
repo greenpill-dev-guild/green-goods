@@ -335,7 +335,7 @@ describe("CanvasLayout", () => {
     );
 
     expect(mockUseGardenUrlSync).toHaveBeenCalled();
-    expect(mockUseStaleGardenGuard).toHaveBeenCalled();
+    expect(mockUseStaleGardenGuard).not.toHaveBeenCalled();
     expect(screen.getByText("Actions")).toBeInTheDocument();
     expect(screen.getByTestId("active-path")).toHaveTextContent("/actions");
   });

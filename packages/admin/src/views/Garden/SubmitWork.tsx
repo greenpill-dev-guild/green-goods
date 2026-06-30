@@ -55,7 +55,7 @@ function parseHubContext(search: string) {
   const sort = params.get("sort");
 
   return {
-    gardenAddress: params.get("gardenAddress") ?? undefined,
+    gardenId: params.get("gardenId") ?? params.get("gardenAddress") ?? undefined,
     view:
       view === "work" || view === "assess" || view === "certify" || view === "history"
         ? view
@@ -702,7 +702,7 @@ function SubmitWorkPanelContent({
           <AdminButton
             type="button"
             variant="filled"
-            onClick={() => navigate(adminRoutes.gardenSettings({ gardenAddress: garden.id }))}
+            onClick={() => navigate(adminRoutes.gardenSettings({ gardenId: garden.id }))}
           >
             {formatMessage({ id: "app.admin.work.submit.noActionsForDomain.cta" })}
           </AdminButton>

@@ -42,7 +42,7 @@ export const GardenAssessmentsPanel: React.FC<GardenAssessmentsPanelProps> = ({
         </h3>
         <Button variant="secondary" size="sm" asChild>
           <Link
-            to={adminRoutes.gardenImpact({ gardenAddress: gardenId, section: "assessments" })}
+            to={adminRoutes.gardenImpact({ gardenId, section: "assessments" })}
             aria-label={formatMessage({ id: "app.garden.admin.viewAssessments" })}
           >
             {formatMessage({ id: "app.garden.admin.viewAll" })}

@@ -75,6 +75,8 @@ export type {
   AdminWorkspaceId,
 } from "./navigation/admin-routes";
 export {
+  ADMIN_GARDEN_ID_PARAM,
+  ADMIN_GARDEN_LEGACY_SHARE_PARAM,
   ADMIN_GARDEN_SHARE_PARAM,
   ADMIN_WORKSPACE_ROOTS,
   adminRoutes,

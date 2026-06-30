@@ -38,7 +38,6 @@ interface BuildCommandPaletteResultsOptions {
   eligibleGardens: Garden[];
   actions: Action[];
   assessments: AssessmentCommandItem[];
-  selectGarden: (garden: Garden) => void;
 }
 
 /**
@@ -75,7 +74,6 @@ export function buildCommandPaletteResults({
   eligibleGardens,
   actions,
   assessments,
-  selectGarden,
 }: BuildCommandPaletteResultsOptions): SearchResult[] {
   const rawQuery = query.trim();
   const hasQuery = rawQuery.length > 0;
@@ -164,8 +162,7 @@ export function buildCommandPaletteResults({
       {
         id: `garden-${garden.id}`,
         label: garden.name,
-        href: adminRoutes.garden({ gardenAddress: garden.tokenAddress ?? garden.id }),
-        onSelect: () => selectGarden(garden),
+        href: adminRoutes.garden({ gardenId: garden.id }),
         category: "gardens",
         subtitle: garden.location || undefined,
       },
@@ -198,18 +195,16 @@ export function buildCommandPaletteResults({
     );
     if (!matchedGarden) continue;
 
-    const gardenAddress = matchedGarden.tokenAddress ?? matchedGarden.id;
     const gardenName = matchedGarden.name;
     pushIfMatches(
       {
         id: `assessment-${assessment.id}`,
         label: title,
         href: adminRoutes.gardenImpact({
-          gardenAddress,
+          gardenId: matchedGarden.id,
           section: "assessments",
           item: assessment.id,
         }),
-        onSelect: () => selectGarden(matchedGarden),
         category: "assessments",
         subtitle: gardenName,
       },

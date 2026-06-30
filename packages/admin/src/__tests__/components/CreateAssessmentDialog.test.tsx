@@ -7,7 +7,14 @@ import { act, cleanup, render, screen } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { RouterProvider, createMemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DEFAULT_CHAIN_ID, queryKeys, useAdminStore, type Garden } from "@green-goods/shared";
+import {
+  AuthContext,
+  DEFAULT_CHAIN_ID,
+  queryKeys,
+  useAdminStore,
+  type AuthContextType,
+  type Garden,
+} from "@green-goods/shared";
 import { createTestQueryClient } from "@green-goods/shared/testing";
 import CreateAssessment from "@/views/Hub/CreateAssessment";
 
@@ -36,25 +43,68 @@ const SELECTED_GARDEN: Garden = {
 };
 
 vi.mock("wagmi", () => ({
-  useAccount: () => ({ address: OPERATOR }),
+  useAccount: () => ({ address: OPERATOR, isConnected: true, isConnecting: false }),
   useReadContract: () => ({ data: 1 }),
   useWalletClient: () => ({ data: undefined }),
 }));
 
+const authContextValue: AuthContextType = {
+  authMode: "wallet",
+  isReady: true,
+  isAuthenticated: true,
+  isAuthenticating: false,
+  error: null,
+  credential: null,
+  smartAccountAddress: null,
+  smartAccountClient: null,
+  userName: null,
+  hasStoredCredential: false,
+  walletAddress: OPERATOR,
+  eoaAddress: OPERATOR,
+  embeddedAddress: null,
+  externalWalletConnected: true,
+  externalWalletAddress: OPERATOR,
+  createAccount: vi.fn(),
+  loginWithPasskey: vi.fn(),
+  loginWithWallet: vi.fn(),
+  loginWithEmbedded: vi.fn(),
+  signOut: vi.fn(),
+  switchToWallet: vi.fn(),
+  switchToPasskey: vi.fn(),
+  retry: vi.fn(),
+  dismissError: vi.fn(),
+  clearPasskey: vi.fn(),
+  disconnectWallet: vi.fn(),
+};
+
 function renderCreateAssessment() {
   const queryClient = createTestQueryClient();
-  queryClient.setQueryData(queryKeys.gardens.byChain(DEFAULT_CHAIN_ID), []);
+  queryClient.setQueryData(queryKeys.gardens.byChain(DEFAULT_CHAIN_ID), [SELECTED_GARDEN]);
+  queryClient.setQueryData(
+    queryKeys.role.operatorGardens(OPERATOR.toLowerCase(), DEFAULT_CHAIN_ID),
+    [{ id: SELECTED_GARDEN.id, name: SELECTED_GARDEN.name }]
+  );
+  queryClient.setQueryData(
+    queryKeys.role.deploymentPermissions(OPERATOR.toLowerCase(), DEFAULT_CHAIN_ID),
+    {
+      isOwner: false,
+      isInAllowlist: false,
+      canDeploy: false,
+    }
+  );
   const router = createMemoryRouter(
     [{ path: "/hub/assess/create", element: <CreateAssessment /> }],
     {
-      initialEntries: [`/hub/assess/create?gardenAddress=${SELECTED_GARDEN.tokenAddress}`],
+      initialEntries: [`/hub/assess/create?gardenId=${SELECTED_GARDEN.id}`],
     }
   );
 
   return render(
     <QueryClientProvider client={queryClient}>
       <IntlProvider locale="en" messages={{}} onError={() => {}}>
-        <RouterProvider router={router} />
+        <AuthContext.Provider value={authContextValue}>
+          <RouterProvider router={router} />
+        </AuthContext.Provider>
       </IntlProvider>
     </QueryClientProvider>
   );
@@ -64,7 +114,7 @@ describe("CreateAssessment dialog", () => {
   beforeEach(() => {
     useAdminStore.setState({
       selectedChainId: DEFAULT_CHAIN_ID,
-      selectedGarden: SELECTED_GARDEN,
+      selectedGarden: null,
       lastGardenIdsByScope: {},
     });
     Object.defineProperty(window, "matchMedia", {
@@ -87,7 +137,7 @@ describe("CreateAssessment dialog", () => {
     cleanup();
   });
 
-  it("opens the assessment form from the selected garden when the base garden list is stale", async () => {
+  it("opens the assessment form from the route garden id without a Zustand selected garden", async () => {
     await act(async () => {
       renderCreateAssessment();
       await Promise.resolve();

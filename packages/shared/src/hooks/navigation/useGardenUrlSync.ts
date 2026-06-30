@@ -1,9 +1,7 @@
-import { useCallback, useEffect } from "react";
+import { useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
-import { useEligibleAdminGardens } from "../garden/useEligibleAdminGardens";
-import { useAdminStore, type Garden } from "../../stores/useAdminStore";
-import { compareAddresses } from "../../utils/blockchain/address";
-import { ADMIN_GARDEN_SHARE_PARAM } from "../../utils/navigation/admin-routes";
+import type { Garden } from "../../stores/useAdminStore";
+import { useAdminGardenContext } from "../garden/useAdminGardenContext";
 
 type UrlParamValue = string | null | undefined;
 
@@ -18,8 +16,6 @@ const ROUTE_BACKED_ITEM_URL_OPTIONS = {
   preventScrollReset: true,
 } satisfies UpdateParamsOptions;
 
-let pendingGardenAddress: string | null | undefined;
-
 export interface GardenUrlSyncResult {
   gardenId: string | null;
   tab: string | null;
@@ -32,22 +28,16 @@ export interface GardenUrlSyncResult {
 }
 
 /**
- * Keeps canvas URL params and the admin selected garden aligned.
+ * Shared admin canvas URL adapter.
  *
- * - URL -> store: reads `?gardenAddress=<address>`.
- * - Store -> URL: does not mirror garden selection during normal browsing.
+ * - Active garden identity is route-owned by `useAdminGardenContext`.
  * - Tab/filter updates use replace to avoid history pollution.
  * - Non-Hub item open/close uses push so browser back clears focused query state first.
  */
 export function useGardenUrlSync(): GardenUrlSyncResult {
   const [searchParams, setSearchParams] = useSearchParams();
-  const selectedGarden = useAdminStore((s) => s.selectedGarden);
-  const selectedGardenId = selectedGarden?.id ?? null;
-  const setSelectedGarden = useAdminStore((s) => s.setSelectedGarden);
-  const setPersistedGardenId = useAdminStore((s) => s.setPersistedGardenId);
-  const { eligibleGardens, resolvedDefaultGarden, scopeKey, isLoaded } = useEligibleAdminGardens();
+  const { activeGardenId, selectGarden, clearGarden } = useAdminGardenContext();
 
-  const requestedGardenAddress = searchParams.get(ADMIN_GARDEN_SHARE_PARAM);
   const tab = searchParams.get("tab");
   const item = searchParams.get("item");
 
@@ -68,63 +58,15 @@ export function useGardenUrlSync(): GardenUrlSyncResult {
     [setSearchParams]
   );
 
-  const matchingSelectedGarden =
-    selectedGardenId === null
-      ? null
-      : (eligibleGardens.find((garden) => compareAddresses(garden.id, selectedGardenId)) ?? null);
-
-  const matchingUrlGarden =
-    requestedGardenAddress !== null
-      ? (eligibleGardens.find(
-          (garden) =>
-            compareAddresses(garden.tokenAddress, requestedGardenAddress) ||
-            compareAddresses(garden.id, requestedGardenAddress)
-        ) ?? null)
-      : null;
-
-  // URL -> store sync with default resolution.
-  useEffect(() => {
-    if (!isLoaded) return;
-
-    if (pendingGardenAddress !== undefined) {
-      const urlMatchesPending =
-        pendingGardenAddress === null
-          ? requestedGardenAddress === null
-          : compareAddresses(requestedGardenAddress, pendingGardenAddress);
-
-      if (!urlMatchesPending) return;
-      pendingGardenAddress = undefined;
-    }
-
-    const nextGarden = matchingUrlGarden ?? matchingSelectedGarden ?? resolvedDefaultGarden ?? null;
-    const nextGardenId = nextGarden?.id ?? null;
-    const currentGardenId = selectedGardenId ?? null;
-    if (nextGardenId !== currentGardenId && !compareAddresses(nextGardenId, currentGardenId)) {
-      setSelectedGarden(nextGarden);
-    }
-  }, [
-    isLoaded,
-    matchingSelectedGarden,
-    matchingUrlGarden,
-    requestedGardenAddress,
-    resolvedDefaultGarden,
-    selectedGardenId,
-    setSelectedGarden,
-  ]);
-
-  useEffect(() => {
-    if (!scopeKey) return;
-    setPersistedGardenId(scopeKey, selectedGardenId);
-  }, [scopeKey, selectedGardenId, setPersistedGardenId]);
-
   const setGarden = useCallback(
     (garden: Garden | null) => {
-      const nextGardenAddress = garden ? (garden.tokenAddress ?? garden.id) : null;
-      pendingGardenAddress = nextGardenAddress;
-      updateParams({ [ADMIN_GARDEN_SHARE_PARAM]: nextGardenAddress }, REPLACE_URL_PARAMS_OPTIONS);
-      setSelectedGarden(garden);
+      if (garden) {
+        selectGarden(garden);
+        return;
+      }
+      clearGarden();
     },
-    [setSelectedGarden, updateParams]
+    [clearGarden, selectGarden]
   );
 
   const setTab = useCallback(
@@ -153,7 +95,7 @@ export function useGardenUrlSync(): GardenUrlSyncResult {
   }, [updateParams]);
 
   return {
-    gardenId: matchingUrlGarden?.id ?? selectedGardenId ?? null,
+    gardenId: activeGardenId,
     tab,
     item,
     setGarden,

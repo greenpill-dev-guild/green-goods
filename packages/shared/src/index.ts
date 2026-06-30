@@ -428,6 +428,7 @@ export {
   useActionOperations,
   useActions,
   useActionTranslation,
+  useAdminGardenContext,
   useAdminGardenWorkspaceSelection,
   useAddressInput,
   useAllocateHypercertSupport,
@@ -935,6 +936,7 @@ export type { Locale } from "./providers/index";
 export {
   AppKitProvider,
   AppProvider,
+  AuthContext,
   // Unified auth provider (supports both passkey and wallet)
   AuthGate,
   AuthProvider,
@@ -1231,6 +1233,8 @@ export {
   aggregateBadges,
   assertMarketplaceReady,
   annotateGardenSignalPools,
+  ADMIN_GARDEN_ID_PARAM,
+  ADMIN_GARDEN_LEGACY_SHARE_PARAM,
   ADMIN_GARDEN_SHARE_PARAM,
   ADMIN_WORKSPACE_ROOTS,
   adminRoutes,

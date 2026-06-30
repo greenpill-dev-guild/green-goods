@@ -29,7 +29,7 @@ export const GardenHypercertsPanel: React.FC<GardenHypercertsPanelProps> = ({
   canManage,
 }) => {
   const { formatMessage } = useIntl();
-  const gardenRouteContext = { gardenAddress: gardenAddress ?? gardenId };
+  const gardenRouteContext = { gardenId: gardenAddress ?? gardenId };
 
   return (
     <Card>

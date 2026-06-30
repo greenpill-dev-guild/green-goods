@@ -96,7 +96,7 @@ export default function HypercertDetail({
   const { selectedGarden } = useAdminGardenWorkspaceSelection();
   const { data: gardens = [] } = useGardens();
   const garden = gardens.find((item) => compareAddresses(item.id, selectedGarden?.id));
-  const gardenRouteContext = { gardenAddress: garden?.tokenAddress ?? garden?.id };
+  const gardenRouteContext = { gardenId: garden?.id };
   const permissions = useGardenPermissions();
   const canManage = garden ? permissions.canManageGarden(garden) : false;
   const [listingDialogOpen, setListingDialogOpen] = useState(false);

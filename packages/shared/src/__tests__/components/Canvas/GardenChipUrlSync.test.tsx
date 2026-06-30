@@ -128,7 +128,7 @@ describe("GardenChip + useGardenUrlSync integration", () => {
 
   it("renders an interactive chip for two eligible gardens and switches URL plus selected garden", async () => {
     const user = userEvent.setup();
-    renderHarness(`/hub/work?gardenAddress=${TEST_GARDENS[0].tokenAddress}`);
+    renderHarness(`/hub/work?gardenId=${TEST_GARDENS[0].id}`);
 
     const trigger = screen.getByRole("button", { name: /garden one/i });
     expect(trigger).toHaveAttribute("data-slot", "trigger");
@@ -137,10 +137,8 @@ describe("GardenChip + useGardenUrlSync integration", () => {
     await user.click(screen.getByRole("button", { name: "Garden Two" }));
 
     await waitFor(() => {
-      expect(useAdminStore.getState().selectedGarden?.id).toBe(TEST_GARDENS[1].id);
-      expect(screen.getByTestId("garden-url")).toHaveTextContent(
-        `gardenAddress=${TEST_GARDENS[1].tokenAddress}`
-      );
+      expect(screen.getByRole("button", { name: /garden two/i })).toBeInTheDocument();
+      expect(screen.getByTestId("garden-url")).toHaveTextContent(`gardenId=${TEST_GARDENS[1].id}`);
     });
   });
 });

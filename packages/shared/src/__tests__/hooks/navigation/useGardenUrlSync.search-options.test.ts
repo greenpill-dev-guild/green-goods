@@ -69,7 +69,7 @@ describe("useGardenUrlSync search options", () => {
     });
   });
 
-  it("keeps garden and tab updates as replace-only URL updates", () => {
+  it("pushes garden selections while keeping tab updates replace-only", () => {
     const { result } = renderHook(() => useGardenUrlSync());
 
     act(() => {
@@ -79,9 +79,12 @@ describe("useGardenUrlSync search options", () => {
     expect(mockSetSearchParams).toHaveBeenLastCalledWith(expect.any(Function), { replace: true });
 
     act(() => {
-      result.current.setGarden(null);
+      result.current.setGarden({ id: "0x2222222222222222222222222222222222222222" } as any);
     });
 
-    expect(mockSetSearchParams).toHaveBeenLastCalledWith(expect.any(Function), { replace: true });
+    expect(mockSetSearchParams).toHaveBeenLastCalledWith(expect.any(Function), {
+      replace: false,
+      preventScrollReset: true,
+    });
   });
 });

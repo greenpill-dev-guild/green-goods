@@ -92,10 +92,10 @@ export function useHubWorkbenchController() {
   const isDesktop = useMediaQuery("(min-width: 600px)");
   const hubContext = useMemo<AdminHubRouteContext>(
     () => ({
-      gardenAddress: selectedGarden?.tokenAddress ?? selectedGarden?.id,
+      gardenId: selectedGarden?.id,
       sort: sortDirection,
     }),
-    [selectedGarden?.id, selectedGarden?.tokenAddress, sortDirection]
+    [selectedGarden?.id, sortDirection]
   );
 
   useEffect(() => {
@@ -420,12 +420,12 @@ export function useHubWorkbenchController() {
       closeSheet();
       navigate(
         adminRoutes.hubMode(nextStage as HubPipelineStage, {
-          gardenAddress: hubContext.gardenAddress,
+          gardenId: hubContext.gardenId,
           sort: nextStage === "work" || nextStage === "history" ? sortDirection : undefined,
         })
       );
     },
-    [closeSheet, hubContext.gardenAddress, navigate, sortDirection]
+    [closeSheet, hubContext.gardenId, navigate, sortDirection]
   );
 
   return {
