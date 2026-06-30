@@ -623,6 +623,7 @@
   "app.admin.roles.addFailed": "Failed to add {role}",
   "app.admin.roles.adding": "Adding {role}...",
   "app.admin.roles.addressLabel": "Ethereum Address or ENS Name",
+  "app.admin.roles.roleLabel": "Role",
   "app.admin.roles.all": "All {role}",
   "app.admin.roles.confirmRemoveAction": "Remove member",
   "app.admin.roles.confirmRemoveDescription": "Are you sure you want to remove {address} as {role}? This is a blockchain transaction that cannot be undone.",

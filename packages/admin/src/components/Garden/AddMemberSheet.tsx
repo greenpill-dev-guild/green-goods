@@ -1,7 +1,9 @@
 import {
   type Address,
   FormField,
+  type GardenRole,
   logger,
+  NativeSelect,
   parseAndFormatError,
   resolveEnsAddress,
   SheetBody,
@@ -16,6 +18,11 @@ import { FormattedMessage, useIntl } from "react-intl";
 import { isAddress } from "viem";
 import { EnsAddressText } from "@/components/EnsAddressText";
 import { AdminButton } from "../AdminButton";
+
+// Roles addable from the quick "Add member" surface. Owner (privilege escalation)
+// and community (passive) are intentionally managed via the Manage Roles flow.
+const ADD_MEMBER_ROLES = ["gardener", "operator", "evaluator", "funder"] as const;
+type AddMemberRole = (typeof ADD_MEMBER_ROLES)[number];
 
 interface AddMemberSheetProps {
   /** Garden token address — the write target for `useGardenOperations`. */
@@ -48,6 +55,13 @@ export function AddMemberSheet({
 }: AddMemberSheetProps) {
   const { formatMessage } = useIntl();
   const operations = useGardenOperations(gardenAddress);
+  const roleOps: Record<AddMemberRole, typeof operations.addGardener> = {
+    gardener: operations.addGardener,
+    operator: operations.addOperator,
+    evaluator: operations.addEvaluator,
+    funder: operations.addFunder,
+  };
+  const [selectedRole, setSelectedRole] = useState<AddMemberRole>("gardener");
   const [input, setInput] = useState("");
   const [pending, setPending] = useState<Address[]>([]);
   const [error, setError] = useState("");
@@ -150,7 +164,7 @@ export function AddMemberSheet({
       setSubmitResolving(false);
       setSubmitting(true);
       for (const [index, address] of batch.entries()) {
-        const result = await operations.addGardener(address);
+        const result = await roleOps[selectedRole](address);
         processedCount = index + 1;
         if (!result.success) failed.push(address);
       }
@@ -181,6 +195,24 @@ export function AddMemberSheet({
     <>
       <SheetBody>
         <form id={formId} onSubmit={handleSubmit} className="space-y-4">
+          <FormField
+            label={formatMessage({ id: "app.admin.roles.roleLabel", defaultMessage: "Role" })}
+            htmlFor="member-role"
+          >
+            <NativeSelect
+              surface="admin"
+              id="member-role"
+              value={selectedRole}
+              onChange={(e) => setSelectedRole(e.target.value as AddMemberRole)}
+              disabled={busy}
+            >
+              {ADD_MEMBER_ROLES.map((role) => (
+                <option key={role} value={role}>
+                  {formatMessage({ id: `app.roles.${role}` })}
+                </option>
+              ))}
+            </NativeSelect>
+          </FormField>
           <FormField
             label={formatMessage({ id: "app.admin.roles.addressLabel" })}
             htmlFor="member-address"

@@ -623,6 +623,7 @@
   "app.admin.roles.addFailed": "No se pudo agregar {role}",
   "app.admin.roles.adding": "Agregando {role}...",
   "app.admin.roles.addressLabel": "Dirección de Ethereum o nombre ENS",
+  "app.admin.roles.roleLabel": "Rol",
   "app.admin.roles.all": "Todos los {role}",
   "app.admin.roles.confirmRemoveAction": "Eliminar miembro",
   "app.admin.roles.confirmRemoveDescription": "¿Estás seguro de que deseas eliminar a {address} como {role}? Esta es una transacción en blockchain que no se puede deshacer.",
