@@ -70,7 +70,7 @@ export function useGardenUrlSync(): GardenUrlSyncResult {
   const matchingSelectedGarden =
     selectedGardenId === null
       ? null
-      : (eligibleGardens.find((garden) => garden.id === selectedGardenId) ?? null);
+      : (eligibleGardens.find((garden) => compareAddresses(garden.id, selectedGardenId)) ?? null);
 
   const matchingUrlGarden =
     requestedGardenAddress !== null

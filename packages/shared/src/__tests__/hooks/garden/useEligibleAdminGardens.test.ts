@@ -123,6 +123,35 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
     expect(result.current.resolvedDefaultGarden?.id).toBe("garden-b");
   });
 
+  it("resolves the persisted garden when its id casing differs from the eligible list", () => {
+    // Regression guard (PR #543): garden ids are Ethereum addresses. A checksummed
+    // persisted id must still match the lowercase eligible-list id. Strict `===`
+    // silently dropped the match and snapped the default back to the first garden.
+    const ALPHA = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    const BETA_LOWER = "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+    const BETA_CHECKSUMMED = "0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB";
+    mockUseGardens.mockReturnValue({
+      data: [
+        makeGarden(ALPHA, "Alpha Garden", { operators: [ADDR_USER] }),
+        makeGarden(BETA_LOWER, "Beta Garden", { operators: [ADDR_USER] }),
+      ],
+      isFetched: true,
+      isError: false,
+    });
+    mockUseAdminStore.mockImplementation((selector: (state: any) => any) =>
+      selector({
+        lastGardenIdsByScope: {
+          "11155111:0x1111111111111111111111111111111111111111": BETA_CHECKSUMMED,
+        },
+      })
+    );
+
+    const { result } = renderHook(() => useEligibleAdminGardens());
+
+    // Without case-insensitive matching this resolves to ALPHA (alphabetical first).
+    expect(result.current.resolvedDefaultGarden?.id).toBe(BETA_LOWER);
+  });
+
   it("falls back to the alphabetical first eligible garden and reports create permission for deployers", () => {
     mockUseRole.mockReturnValue({ ...defaultRole(), role: "deployer" });
     mockUseGardens.mockReturnValue({

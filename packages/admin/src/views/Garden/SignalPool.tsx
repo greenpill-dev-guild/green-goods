@@ -2,6 +2,7 @@ import {
   type Address,
   Alert,
   adminRoutes,
+  compareAddresses,
   PoolType,
   useAdminGardenWorkspaceSelection,
   useDeregisterHypercert,
@@ -56,7 +57,7 @@ export default function GardenSignalPoolView({ layout = "page" }: GardenSignalPo
   const targetPoolType = isActionPool ? PoolType.Action : PoolType.Hypercert;
 
   const { data: gardens = [], isLoading: gardensLoading } = useGardens();
-  const garden = gardens.find((item) => item.id === gardenId);
+  const garden = gardens.find((item) => compareAddresses(item.id, gardenId));
   const gardenRouteContext = { gardenAddress: garden?.tokenAddress ?? garden?.id ?? gardenId };
   const permissions = useGardenPermissions();
 

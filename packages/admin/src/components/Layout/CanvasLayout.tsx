@@ -34,6 +34,7 @@ import {
   useMediaQuery,
   useSheetOrchestrator,
   useStaleGardenGuard,
+  compareAddresses,
   type AccountSheetTab,
   type AdminRightSheetContentId,
   type AdminWorkspaceSectionTab,
@@ -353,8 +354,8 @@ export function CanvasLayout() {
   const handleSelectGarden = useCallback(
     (garden: { id: string; name: string } | null) => {
       if (garden) {
-        const fullGarden = eligibleGardens.find(
-          (eligibleGarden) => eligibleGarden.id === garden.id
+        const fullGarden = eligibleGardens.find((eligibleGarden) =>
+          compareAddresses(eligibleGarden.id, garden.id)
         );
         setGarden(fullGarden ?? null);
       } else {
