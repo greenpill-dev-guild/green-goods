@@ -127,6 +127,8 @@ Admin canvas recession on bounded sheet open: `translateY(var(--canvas-recede-y,
 
 ## Sheet Slot Anatomy
 
+> **Admin**: the `RightSheet` / `LeftSheet` / `BottomSheet` shells are **retired** — every admin overlay is a centered `AdminDialog`. These slots now compose **inside an `AdminDialog` body** (the dialog supplies scrim, title, and close); `SheetBody` / `SheetFooter` / `SheetDivider` survive as the body/footer primitives. The example below is the client-PWA / shared form — for admin, swap the `<RightSheet>` wrapper for `<AdminDialog>`. Sheet-shell tokens (`--radius-sheet`) apply to client sheets only.
+
 Sheets compose three optional slots inside a `flex flex-col` body container. `<SheetBody>` is the only one that scrolls; `<SheetFooter>` pins via `flex-shrink: 0` so it stays visible while long forms scroll above.
 
 ```tsx
