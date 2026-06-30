@@ -278,7 +278,7 @@ export const GardensList: React.FC<GardensListProps> = ({ primaryAddress }) => {
         }
         confirmLabel={intl.formatMessage({
           id: "app.profile.joinGardenConfirmAction",
-          defaultMessage: "Confirm Join",
+          defaultMessage: "Join",
         })}
         isLoading={isJoining}
       />

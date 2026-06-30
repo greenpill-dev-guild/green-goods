@@ -17,6 +17,7 @@ import {
   WEIGHT_SCHEME_VALUES,
   WeightScheme,
 } from "@green-goods/shared";
+import { RiLoader4Line } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
@@ -157,11 +158,11 @@ function SupportInput({
             type="button"
             onClick={handleAllocate}
             disabled={disabled || isPending || !input.trim()}
-            className="min-h-11 min-w-11 rounded-md bg-primary-action px-4 py-2.5 text-sm font-medium text-primary-action-foreground transition duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:bg-primary-action-hover active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
+            aria-busy={isPending || undefined}
+            className="inline-flex min-h-11 min-w-11 items-center justify-center gap-2 rounded-md bg-primary-action px-4 py-2.5 text-sm font-medium whitespace-nowrap text-primary-action-foreground transition duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:bg-primary-action-hover active:scale-95 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {isPending
-              ? formatMessage({ id: "app.signal.allocating" })
-              : formatMessage({ id: "app.signal.support" })}
+            {isPending && <RiLoader4Line className="h-4 w-4 animate-spin" aria-hidden />}
+            {formatMessage({ id: "app.signal.support" })}
           </button>
         </div>
         {inputError && (

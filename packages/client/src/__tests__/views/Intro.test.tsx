@@ -100,10 +100,12 @@ vi.mock("@/components/Navigation", () => ({
     tabs,
     activeTab,
     onTabChange,
+    triggerClassName,
   }: {
     tabs: Array<{ id: string; label: string }>;
     activeTab: string;
     onTabChange: (id: string) => void;
+    triggerClassName?: string;
   }) =>
     createElement(
       "div",
@@ -115,6 +117,7 @@ vi.mock("@/components/Navigation", () => ({
             key: tab.id,
             "data-testid": `domain-tab-${tab.id}`,
             "data-active": String(tab.id === activeTab),
+            className: triggerClassName,
             onClick: () => onTabChange(tab.id),
           },
           tab.label
@@ -141,7 +144,7 @@ const messages: Record<string, string> = {
   "app.garden.communityOnramp.joining": "Joining...",
   "app.garden.communityOnramp.title": "Join the Community Garden",
   "app.domain.tab.solar": "Solar",
-  "app.domain.tab.agro": "Agro",
+  "app.domain.tab.agro": "Agroforestry",
   "app.domain.tab.waste": "Waste",
 };
 
@@ -345,7 +348,10 @@ describe("WorkIntro", () => {
 
     expect(screen.getByTestId("domain-tabs")).toBeInTheDocument();
     expect(screen.getByTestId(`domain-tab-${Domain.SOLAR}`)).toBeInTheDocument();
-    expect(screen.getByTestId(`domain-tab-${Domain.AGRO}`)).toBeInTheDocument();
+    const agroTab = screen.getByTestId(`domain-tab-${Domain.AGRO}`);
+    expect(agroTab).toBeInTheDocument();
+    expect(agroTab).toHaveTextContent("Agroforestry");
+    expect(agroTab.className).toContain("text-[10px]");
   });
 
   it("hides domain tabs when only one domain exists", () => {

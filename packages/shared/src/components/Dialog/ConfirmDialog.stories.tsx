@@ -189,7 +189,7 @@ export const Loading: Story = {
     title: "Processing Transaction",
     description: "Please wait while the transaction is confirmed on-chain.",
     isLoading: true,
-    confirmLabel: "Confirming...",
+    confirmLabel: "Confirm",
   },
 };
 
@@ -372,6 +372,53 @@ export const MobileSheetGeometry: Story = {
     await waitFor(async () => {
       await expect(dialog.queryByTestId("confirm-dialog")).not.toBeInTheDocument();
     });
+  },
+};
+
+export const MobileLoadingActionGeometry: Story = {
+  tags: ["storybook-ci"],
+  parameters: {
+    viewport: {
+      defaultViewport: "confirmMobile390x844",
+      viewports: CONFIRM_MOBILE_VIEWPORT,
+    },
+  },
+  // storybook-quality-allow state-harness: renders the real ConfirmDialog while keeping the loading state open for mobile action geometry assertions.
+  render: () => (
+    <ConfirmDialogHarness
+      onClose={fn()}
+      onConfirm={fn()}
+      title="Join Garden"
+      description="Garden: Watershed Commons. You'll join as a Gardener and be able to submit work."
+      confirmLabel="Confirmar entrada"
+      cancelLabel="Cancelar"
+      isLoading
+    />
+  ),
+  play: async () => {
+    await expect(window.innerWidth).toBeLessThan(SM_BREAKPOINT_PX);
+
+    const dialog = within(document.body);
+    const surface = await dialog.findByRole(
+      "dialog",
+      {
+        name: /join garden/i,
+      },
+      { timeout: 5_000 }
+    );
+    await waitForSurfaceSettled(surface);
+
+    const confirmButton = dialog.getByRole("button", { name: /confirmar entrada/i });
+    const cancelButton = dialog.getByRole("button", { name: /cancelar/i });
+    const confirmRect = confirmButton.getBoundingClientRect();
+    const cancelRect = cancelButton.getBoundingClientRect();
+
+    await expect(confirmButton).toHaveAttribute("aria-busy", "true");
+    await expect(confirmRect.height).toBeLessThanOrEqual(56);
+    await expect(confirmRect.width).toBeGreaterThan(cancelRect.width - CENTER_TOLERANCE_PX);
+    await expect(document.documentElement.scrollWidth).toBeLessThanOrEqual(
+      window.innerWidth + VIEWPORT_EDGE_TOLERANCE_PX
+    );
   },
 };
 

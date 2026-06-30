@@ -313,13 +313,13 @@ export function ConfirmDialog({
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3 p-4">
+          <div className="flex flex-col gap-3 p-4 sm:flex-row">
             <Dialog.Close asChild>
               <button
                 type="button"
                 disabled={isLoading}
                 onClick={handleCancel}
-                className="flex-1 rounded-lg bg-bg-weak px-4 py-3 text-sm font-medium text-text-strong transition hover:bg-bg-soft disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2"
+                className="min-h-11 w-full min-w-0 rounded-lg bg-bg-weak px-4 py-3 text-sm font-medium text-text-strong transition hover:bg-bg-soft disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2 sm:flex-1"
               >
                 {resolvedCancelLabel}
               </button>
@@ -328,12 +328,13 @@ export function ConfirmDialog({
               type="button"
               onClick={handleConfirm}
               disabled={isLoading}
+              aria-busy={isLoading || undefined}
               className={cn(
-                "flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-medium transition disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2",
+                "flex min-h-11 w-full min-w-0 items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-medium whitespace-nowrap transition disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-base focus-visible:ring-offset-2 sm:flex-1",
                 styles.confirmBtn
               )}
             >
-              {isLoading && <RiLoader4Line className="h-4 w-4 animate-spin" />}
+              {isLoading && <RiLoader4Line className="h-4 w-4 animate-spin" aria-hidden />}
               {resolvedConfirmLabel}
             </button>
           </div>

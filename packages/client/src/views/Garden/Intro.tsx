@@ -7,7 +7,7 @@ import {
   hasDomain,
   localizeAction,
 } from "@green-goods/shared";
-import { RiHammerFill, RiPlantFill, RiUserAddLine } from "@remixicon/react";
+import { RiHammerFill, RiLoader4Line, RiPlantFill, RiUserAddLine } from "@remixicon/react";
 import React, { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { Button } from "@/components/Actions";
@@ -156,6 +156,7 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
           }}
           variant="compact"
           className="mb-2"
+          triggerClassName="px-1 text-[10px] leading-4 sm:px-3 sm:text-label-sm"
         />
       )}
 
@@ -296,18 +297,18 @@ export const WorkIntro: React.FC<WorkIntroProps> = ({
                     size="small"
                     onClick={onJoinCommunityGarden}
                     disabled={isJoiningCommunityGarden}
-                    leadingIcon={<RiUserAddLine className="h-4 w-4" />}
-                    label={
-                      isJoiningCommunityGarden
-                        ? intl.formatMessage({
-                            id: "app.garden.communityOnramp.joining",
-                            defaultMessage: "Joining...",
-                          })
-                        : intl.formatMessage({
-                            id: "app.garden.communityOnramp.action",
-                            defaultMessage: "Join Community Garden",
-                          })
+                    aria-busy={isJoiningCommunityGarden || undefined}
+                    leadingIcon={
+                      isJoiningCommunityGarden ? (
+                        <RiLoader4Line className="h-4 w-4 animate-spin" aria-hidden />
+                      ) : (
+                        <RiUserAddLine className="h-4 w-4" />
+                      )
                     }
+                    label={intl.formatMessage({
+                      id: "app.garden.communityOnramp.action",
+                      defaultMessage: "Join garden",
+                    })}
                     className="w-full"
                   />
                 </div>

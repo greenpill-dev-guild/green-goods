@@ -11,6 +11,7 @@ import {
   useVaultPreview,
   validateDecimalInput,
 } from "@green-goods/shared";
+import { RiLoader4Line } from "@remixicon/react";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { parseUnits } from "viem";
@@ -143,12 +144,14 @@ export function EndowmentDrawer({
     activeTab === "treasury" && primaryAddress ? (
       <Button
         type="button"
-        label={
-          depositMutation.isPending
-            ? formatMessage({ id: "app.treasury.depositing" })
-            : formatMessage({ id: "app.treasury.deposit" })
-        }
+        label={formatMessage({ id: "app.treasury.deposit" })}
         onClick={onDeposit}
+        aria-busy={depositMutation.isPending || undefined}
+        leadingIcon={
+          depositMutation.isPending ? (
+            <RiLoader4Line className="h-4 w-4 animate-spin" aria-hidden />
+          ) : undefined
+        }
         disabled={
           !isOnline ||
           !selectedVault ||
