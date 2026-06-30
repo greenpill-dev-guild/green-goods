@@ -11,26 +11,28 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createTestWrapper } from "../../test-utils";
 
 const TEST_CHAIN_ID = 11155111;
-const TEST_MODULE = "0xModule111111111111111111111111111111111111";
+const TEST_MODULE = "0x1000000000000000000000000000000000000000";
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const TEST_USER = "0x1234567890123456789012345678901234567890";
 
-const GARDENER_GARDEN = "0xGarden1111111111111111111111111111111111";
-const OPERATOR_GARDEN = "0xGarden2222222222222222222222222222222222";
-const OWNER_GARDEN = "0xGarden3333333333333333333333333333333333";
-const EVALUATOR_GARDEN = "0xGarden4444444444444444444444444444444444";
-const FUNDER_GARDEN = "0xGarden5555555555555555555555555555555555";
-const COMMUNITY_GARDEN = "0xGarden6666666666666666666666666666666666";
+const GARDENER_GARDEN = "0x1111111111111111111111111111111111111111";
+const OPERATOR_GARDEN = "0x2222222222222222222222222222222222222222";
+const OWNER_GARDEN = "0x3333333333333333333333333333333333333333";
+const EVALUATOR_GARDEN = "0x4444444444444444444444444444444444444444";
+const FUNDER_GARDEN = "0x5555555555555555555555555555555555555555";
+const COMMUNITY_GARDEN = "0x6666666666666666666666666666666666666666";
 
-const TEST_JAR_1 = "0xJar1111111111111111111111111111111111111";
-const TEST_JAR_2 = "0xJar2222222222222222222222222222222222222";
-const TEST_JAR_3 = "0xJar3333333333333333333333333333333333333";
-const TEST_CURRENCY = "0xCurr111111111111111111111111111111111111";
+const GARDEN_TOKEN = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+
+const TEST_JAR_1 = "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+const TEST_JAR_2 = "0xcccccccccccccccccccccccccccccccccccccccc";
+const TEST_JAR_3 = "0xdddddddddddddddddddddddddddddddddddddddd";
+const TEST_CURRENCY = "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
 
 const mockGardens = [
   {
-    id: "gardener",
-    tokenAddress: GARDENER_GARDEN,
+    id: GARDENER_GARDEN,
+    tokenAddress: GARDEN_TOKEN,
     gardeners: [TEST_USER],
     operators: [],
     owners: [],
@@ -39,8 +41,8 @@ const mockGardens = [
     communities: [],
   },
   {
-    id: "operator",
-    tokenAddress: OPERATOR_GARDEN,
+    id: OPERATOR_GARDEN,
+    tokenAddress: GARDEN_TOKEN,
     gardeners: [],
     operators: [TEST_USER],
     owners: [],
@@ -49,8 +51,8 @@ const mockGardens = [
     communities: [],
   },
   {
-    id: "owner",
-    tokenAddress: OWNER_GARDEN,
+    id: OWNER_GARDEN,
+    tokenAddress: GARDEN_TOKEN,
     gardeners: [],
     operators: [],
     owners: [TEST_USER],
@@ -59,8 +61,8 @@ const mockGardens = [
     communities: [],
   },
   {
-    id: "evaluator",
-    tokenAddress: EVALUATOR_GARDEN,
+    id: EVALUATOR_GARDEN,
+    tokenAddress: GARDEN_TOKEN,
     gardeners: [],
     operators: [],
     owners: [],
@@ -69,8 +71,8 @@ const mockGardens = [
     communities: [],
   },
   {
-    id: "funder",
-    tokenAddress: FUNDER_GARDEN,
+    id: FUNDER_GARDEN,
+    tokenAddress: GARDEN_TOKEN,
     gardeners: [],
     operators: [],
     owners: [],
@@ -79,8 +81,8 @@ const mockGardens = [
     communities: [],
   },
   {
-    id: "community",
-    tokenAddress: COMMUNITY_GARDEN,
+    id: COMMUNITY_GARDEN,
+    tokenAddress: GARDEN_TOKEN,
     gardeners: [],
     operators: [],
     owners: [],
@@ -91,6 +93,7 @@ const mockGardens = [
 ] as const;
 
 let readContractsCallCount = 0;
+const mockReadContractsCalls: Record<string, unknown>[] = [];
 const mockReadContractsResults: Array<{
   data: unknown;
   isLoading: boolean;
@@ -99,6 +102,7 @@ const mockReadContractsResults: Array<{
 vi.mock("wagmi", () => ({
   useReadContracts: (args: Record<string, unknown>) => {
     const index = readContractsCallCount++;
+    mockReadContractsCalls.push(args);
     const enabled = args?.query && (args.query as Record<string, unknown>).enabled;
     if (enabled === false || index >= mockReadContractsResults.length) {
       return { data: undefined, isLoading: false };
@@ -143,6 +147,7 @@ describe("hooks/cookie-jar/useAccessibleCookieJars", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     readContractsCallCount = 0;
+    mockReadContractsCalls.length = 0;
     mockModuleAddress = TEST_MODULE;
     mockReadContractsResults.length = 0;
   });
@@ -216,6 +221,22 @@ describe("hooks/cookie-jar/useAccessibleCookieJars", () => {
     expect(result.current.hasEligibilityReadFailure).toBe(true);
     expect(result.current.jars).toHaveLength(3);
     expect(result.current.jars.map((jar) => jar.gardenAddress)).toEqual([
+      GARDENER_GARDEN.toLowerCase(),
+      OPERATOR_GARDEN.toLowerCase(),
+      OWNER_GARDEN.toLowerCase(),
+    ]);
+
+    const eligibilityContracts = mockReadContractsCalls[0].contracts as Array<{
+      address: string;
+    }>;
+    expect(eligibilityContracts.map((contract) => contract.address)).toEqual(
+      mockGardens.map((garden) => garden.id.toLowerCase())
+    );
+
+    const jarAddressContracts = mockReadContractsCalls[1].contracts as Array<{
+      args: readonly [string];
+    }>;
+    expect(jarAddressContracts.map((contract) => contract.args[0])).toEqual([
       GARDENER_GARDEN.toLowerCase(),
       OPERATOR_GARDEN.toLowerCase(),
       OWNER_GARDEN.toLowerCase(),

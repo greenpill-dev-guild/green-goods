@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useReadContracts } from "wagmi";
 import type { CookieJar } from "../../types/cookie-jar";
-import type { Address } from "../../types/domain";
+import type { Address, Garden } from "../../types/domain";
 import {
   COOKIE_JAR_ABI,
   COOKIE_JAR_MODULE_ABI,
@@ -13,6 +13,10 @@ import { useGardens } from "../blockchain/useBaseLists";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useRole } from "../gardener/useRole";
 import { STALE_TIME_MEDIUM } from "../../config/query-keys";
+
+function getGardenAccountAddress(garden: Garden): Address {
+  return garden.id.toLowerCase() as Address;
+}
 
 /**
  * Aggregates cookie jars across all gardens where the current user is an operator.
@@ -31,7 +35,7 @@ export function useUserCookieJars() {
   const operatorGardens = useMemo(() => {
     if (!gardens || !roleOperatorGardens?.length) return [];
     const opSet = new Set(roleOperatorGardens.map((g) => g.id.toLowerCase()));
-    return gardens.filter((g) => opSet.has(g.tokenAddress.toLowerCase()));
+    return gardens.filter((g) => opSet.has(getGardenAccountAddress(g)));
   }, [gardens, roleOperatorGardens]);
 
   // Step 1: Batch-read jar addresses for each operator garden
@@ -41,7 +45,7 @@ export function useUserCookieJars() {
         address: moduleAddress as Address,
         abi: COOKIE_JAR_MODULE_ABI,
         functionName: "getGardenJars" as const,
-        args: [garden.tokenAddress.toLowerCase() as Address] as const,
+        args: [getGardenAccountAddress(garden)] as const,
       })),
     [operatorGardens, moduleAddress]
   );
@@ -65,7 +69,7 @@ export function useUserCookieJars() {
         if (addr.toLowerCase() !== ZERO_ADDRESS) {
           pairs.push({
             jarAddress: addr,
-            gardenAddress: operatorGardens[i].tokenAddress.toLowerCase() as Address,
+            gardenAddress: getGardenAccountAddress(operatorGardens[i]),
           });
         }
       }

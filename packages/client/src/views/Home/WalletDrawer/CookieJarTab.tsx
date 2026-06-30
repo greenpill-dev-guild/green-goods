@@ -1,4 +1,5 @@
 import {
+  Alert,
   useAccessibleCookieJars,
   ConfirmDialog,
   type CookieJar,
@@ -9,7 +10,7 @@ import {
   useOffline,
   validateDecimalInput,
 } from "@green-goods/shared";
-import { RiErrorWarningLine, RiInboxLine, RiLoader4Line } from "@remixicon/react";
+import { RiArrowDownSLine, RiErrorWarningLine, RiInboxLine, RiLoader4Line } from "@remixicon/react";
 import React, { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits, parseUnits } from "viem";
@@ -31,6 +32,7 @@ function JarCard({ jar, gardenName }: JarCardProps) {
 
   const decimals = jar.decimals;
   const assetSymbol = getVaultAssetSymbol(jar.assetAddress, undefined);
+  const panelId = `cookie-jar-claim-${jar.jarAddress.toLowerCase()}`;
   const inputError = useMemo(
     () => validateDecimalInput(amountInput, decimals),
     [amountInput, decimals]
@@ -63,101 +65,126 @@ function JarCard({ jar, gardenName }: JarCardProps) {
       <button
         type="button"
         onClick={() => setExpanded(!expanded)}
-        className="flex w-full items-center justify-between gap-2"
+        aria-expanded={expanded}
+        aria-controls={panelId}
+        className="flex w-full items-center justify-between gap-3 rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-base/20"
       >
         <div className="min-w-0">
-          <p className="truncate text-sm font-medium text-text-strong-950">
-            {assetSymbol} - {formatTokenAmount(jar.balance, decimals)}
-          </p>
-          <p className="truncate text-xs text-text-soft-400" title={gardenName}>
+          <div className="flex min-w-0 items-center gap-2">
+            <p className="truncate text-sm font-medium text-text-strong-950">
+              {assetSymbol} - {formatTokenAmount(jar.balance, decimals)}
+            </p>
+            {jar.isPaused && (
+              <span className="inline-flex shrink-0 rounded-full bg-warning-lighter px-1.5 py-0.5 text-[10px] font-medium text-warning-dark">
+                {formatMessage({ id: "app.cookieJar.paused" })}
+              </span>
+            )}
+          </div>
+          <p className="mt-0.5 truncate text-xs text-text-soft-400" title={gardenName}>
             {gardenName}
           </p>
         </div>
-        <p className="text-xs text-text-sub-600">
-          {formatMessage({ id: "app.cookieJar.maxWithdrawal" })}:{" "}
-          {formatTokenAmount(jar.maxWithdrawal, decimals)}
-        </p>
+        <div className="flex shrink-0 items-center gap-2 text-right">
+          <p className="text-xs text-text-sub-600">
+            {formatMessage({ id: "app.cookieJar.maxWithdrawal" })}:{" "}
+            {formatTokenAmount(jar.maxWithdrawal, decimals)}
+          </p>
+          <RiArrowDownSLine
+            className={`h-4 w-4 text-text-soft-400 transition-transform ${
+              expanded ? "rotate-180" : ""
+            }`}
+            aria-hidden
+          />
+        </div>
       </button>
 
-      {expanded && !jar.isPaused && (
-        <div className="mt-3 space-y-2 border-t border-stroke-soft-200 pt-3">
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              inputMode="decimal"
-              value={amountInput}
-              onChange={(e) => setAmountInput(e.target.value)}
-              placeholder={formatMessage({ id: "app.cookieJar.amount" })}
-              aria-label={formatMessage({ id: "app.cookieJar.amount" })}
-              aria-invalid={Boolean(inputError)}
-              className={`w-full rounded-md border px-3 py-2.5 text-sm text-text-strong-950 focus:outline-none focus:ring-2 focus:ring-primary-base/20 ${
-                inputError
-                  ? "border-error-base focus:border-error-base"
-                  : "border-stroke-sub-300 bg-bg-white-0 focus:border-primary-base"
-              }`}
-            />
-            <button
-              type="button"
-              onClick={() => {
-                const max = jar.maxWithdrawal < jar.balance ? jar.maxWithdrawal : jar.balance;
-                setAmountInput(formatUnits(max, decimals));
-              }}
-              className="min-h-11 min-w-11 rounded-md border border-stroke-sub-300 bg-bg-white-0 px-3 py-2.5 text-xs font-medium text-text-sub-600 hover:bg-bg-weak-50"
-            >
-              {formatMessage({ id: "app.treasury.max" })}
-            </button>
-          </div>
-          {inputError && (
-            <p className="text-xs text-error-dark" role="alert">
-              {formatMessage({ id: inputError })}
+      {expanded && (
+        <div id={panelId} className="mt-3 space-y-2 border-t border-stroke-soft-200 pt-3">
+          {jar.isPaused ? (
+            <p className="text-sm text-warning-dark">
+              {formatMessage({ id: "app.cookieJar.paused" })}
             </p>
+          ) : (
+            <>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={amountInput}
+                  onChange={(e) => setAmountInput(e.target.value)}
+                  placeholder={formatMessage({ id: "app.cookieJar.amount" })}
+                  aria-label={formatMessage({ id: "app.cookieJar.amount" })}
+                  aria-invalid={Boolean(inputError)}
+                  className={`w-full rounded-md border px-3 py-2.5 text-sm text-text-strong-950 focus:outline-none focus:ring-2 focus:ring-primary-base/20 ${
+                    inputError
+                      ? "border-error-base focus:border-error-base"
+                      : "border-stroke-sub-300 bg-bg-white-0 focus:border-primary-base"
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const max = jar.maxWithdrawal < jar.balance ? jar.maxWithdrawal : jar.balance;
+                    setAmountInput(formatUnits(max, decimals));
+                  }}
+                  className="min-h-11 min-w-11 rounded-md border border-stroke-sub-300 bg-bg-white-0 px-3 py-2.5 text-xs font-medium text-text-sub-600 hover:bg-bg-weak-50"
+                >
+                  {formatMessage({ id: "app.treasury.max" })}
+                </button>
+              </div>
+              {inputError && (
+                <p className="text-xs text-error-dark" role="alert">
+                  {formatMessage({ id: inputError })}
+                </p>
+              )}
+
+              <textarea
+                value={purpose}
+                onChange={(e) => setPurpose(e.target.value)}
+                placeholder={formatMessage({ id: "app.cookieJar.purposePlaceholder" })}
+                aria-label={formatMessage({ id: "app.cookieJar.purpose" })}
+                className="w-full rounded-md border border-stroke-sub-300 bg-bg-white-0 px-3 py-2.5 text-sm text-text-strong-950 placeholder:text-text-soft-400 focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-base/20 resize-none"
+                rows={2}
+              />
+
+              <button
+                type="button"
+                onClick={() => setShowConfirm(true)}
+                disabled={
+                  !isOnline ||
+                  parsedAmount <= 0n ||
+                  parsedAmount > jar.maxWithdrawal ||
+                  parsedAmount > jar.balance ||
+                  !purpose.trim() ||
+                  withdrawMutation.isPending
+                }
+                aria-busy={withdrawMutation.isPending || undefined}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-stroke-sub-300 bg-bg-white-0 px-3 py-2 text-sm font-medium text-text-sub-600 transition hover:bg-bg-weak-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {withdrawMutation.isPending && (
+                  <RiLoader4Line className="h-4 w-4 animate-spin" aria-hidden />
+                )}
+                {formatMessage({ id: "app.cookieJar.withdraw" })}
+              </button>
+
+              <ConfirmDialog
+                isOpen={showConfirm}
+                onClose={() => setShowConfirm(false)}
+                title={formatMessage({ id: "app.cookieJar.confirmWithdrawTitle" })}
+                description={formatMessage(
+                  { id: "app.cookieJar.confirmWithdrawDescription" },
+                  { amount: formatTokenAmount(parsedAmount, decimals), asset: assetSymbol }
+                )}
+                confirmLabel={formatMessage({ id: "app.cookieJar.withdraw" })}
+                variant="warning"
+                isLoading={withdrawMutation.isPending}
+                onConfirm={() => {
+                  setShowConfirm(false);
+                  executeWithdraw();
+                }}
+              />
+            </>
           )}
-
-          <textarea
-            value={purpose}
-            onChange={(e) => setPurpose(e.target.value)}
-            placeholder={formatMessage({ id: "app.cookieJar.purposePlaceholder" })}
-            aria-label={formatMessage({ id: "app.cookieJar.purpose" })}
-            className="w-full rounded-md border border-stroke-sub-300 bg-bg-white-0 px-3 py-2.5 text-sm text-text-strong-950 placeholder:text-text-soft-400 focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-base/20 resize-none"
-            rows={2}
-          />
-
-          <button
-            type="button"
-            onClick={() => setShowConfirm(true)}
-            disabled={
-              !isOnline ||
-              parsedAmount <= 0n ||
-              parsedAmount > jar.maxWithdrawal ||
-              parsedAmount > jar.balance ||
-              !purpose.trim() ||
-              withdrawMutation.isPending
-            }
-            aria-busy={withdrawMutation.isPending || undefined}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-stroke-sub-300 bg-bg-white-0 px-3 py-2 text-sm font-medium text-text-sub-600 transition hover:bg-bg-weak-50 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {withdrawMutation.isPending && (
-              <RiLoader4Line className="h-4 w-4 animate-spin" aria-hidden />
-            )}
-            {formatMessage({ id: "app.cookieJar.withdraw" })}
-          </button>
-
-          <ConfirmDialog
-            isOpen={showConfirm}
-            onClose={() => setShowConfirm(false)}
-            title={formatMessage({ id: "app.cookieJar.confirmWithdrawTitle" })}
-            description={formatMessage(
-              { id: "app.cookieJar.confirmWithdrawDescription" },
-              { amount: formatTokenAmount(parsedAmount, decimals), asset: assetSymbol }
-            )}
-            confirmLabel={formatMessage({ id: "app.cookieJar.withdraw" })}
-            variant="warning"
-            isLoading={withdrawMutation.isPending}
-            onConfirm={() => {
-              setShowConfirm(false);
-              executeWithdraw();
-            }}
-          />
         </div>
       )}
     </div>
@@ -173,6 +200,12 @@ export const CookieJarTab: React.FC = () => {
     unconfirmedGardenCount,
     eligibilityErrorCount,
     hasEligibilityReadFailure,
+    jarAddressErrorCount,
+    hasJarAddressReadFailure,
+    detailErrorCount,
+    hasDetailReadFailure,
+    decimalsErrorCount,
+    hasDecimalsReadFailure,
   } = useAccessibleCookieJars();
   const { data: gardens = [] } = useGardens();
 
@@ -181,7 +214,9 @@ export const CookieJarTab: React.FC = () => {
     const groups = new Map<string, { gardenName: string; jars: CookieJar[] }>();
     for (const jar of jars) {
       const garden = gardens.find(
-        (g) => g.tokenAddress.toLowerCase() === jar.gardenAddress.toLowerCase()
+        (g) =>
+          g.id.toLowerCase() === jar.gardenAddress.toLowerCase() ||
+          g.tokenAddress.toLowerCase() === jar.gardenAddress.toLowerCase()
       );
       const gardenName = garden?.name ?? jar.gardenAddress;
       const key = jar.gardenAddress.toLowerCase();
@@ -229,24 +264,43 @@ export const CookieJarTab: React.FC = () => {
           { count: eligibilityErrorCount || unconfirmedGardenCount }
         )
       : null;
+  const hasPartialReadFailure =
+    hasJarAddressReadFailure || hasDetailReadFailure || hasDecimalsReadFailure;
+  const readFailureCount = jarAddressErrorCount + detailErrorCount + decimalsErrorCount;
+  const partialReadDiagnostic =
+    hasPartialReadFailure && readFailureCount > 0
+      ? formatMessage({ id: "app.cookieJar.partialReadWarning" })
+      : null;
+  const diagnostics = [accessDiagnostic, partialReadDiagnostic].filter(
+    (message): message is string => Boolean(message)
+  );
+  const diagnosticBlock =
+    diagnostics.length > 0 ? (
+      <div className="space-y-2">
+        {diagnostics.map((message) => (
+          <Alert key={message} variant="warning" className="p-3">
+            {message}
+          </Alert>
+        ))}
+      </div>
+    ) : null;
 
   if (jars.length === 0) {
     return (
-      <EmptyState
-        icon={<RiInboxLine />}
-        title={formatMessage({ id: "app.cookieJar.walletEmpty" })}
-        description={formatMessage({ id: "app.cookieJar.walletEmptyDescription" })}
-      />
+      <div className="space-y-4 p-4">
+        {diagnosticBlock}
+        <EmptyState
+          icon={<RiInboxLine />}
+          title={formatMessage({ id: "app.cookieJar.walletEmpty" })}
+          description={formatMessage({ id: "app.cookieJar.walletEmptyDescription" })}
+        />
+      </div>
     );
   }
 
   return (
     <div className="space-y-4 p-4">
-      {accessDiagnostic && (
-        <p className="rounded-md border border-stroke-soft-200 bg-bg-weak-50 px-3 py-2 text-sm text-text-soft-400">
-          {accessDiagnostic}
-        </p>
-      )}
+      {diagnosticBlock}
       {groupedJars.map((group) => (
         <div key={group.gardenName}>
           <h4

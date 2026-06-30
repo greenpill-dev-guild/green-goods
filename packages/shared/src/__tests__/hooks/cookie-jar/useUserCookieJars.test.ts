@@ -13,20 +13,25 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createTestWrapper } from "../../test-utils";
 
 const TEST_CHAIN_ID = 11155111;
-const TEST_MODULE = "0xModule111111111111111111111111111111111111";
+const TEST_MODULE = "0x1000000000000000000000000000000000000000";
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
-const TEST_GARDEN_1 = "0xGarden1111111111111111111111111111111111";
-const TEST_GARDEN_2 = "0xGarden2222222222222222222222222222222222";
-const TEST_JAR_1 = "0xJar1111111111111111111111111111111111111";
-const TEST_JAR_2 = "0xJar2222222222222222222222222222222222222";
-const TEST_CURRENCY = "0xCurr111111111111111111111111111111111111";
+const TEST_GARDEN_1 = "0x1111111111111111111111111111111111111111";
+const TEST_GARDEN_2 = "0x2222222222222222222222222222222222222222";
+const NON_OPERATOR_GARDEN = "0x3333333333333333333333333333333333333333";
+const TEST_GARDEN_TOKEN_1 = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+const TEST_GARDEN_TOKEN_2 = "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+const NON_OPERATOR_TOKEN = "0xcccccccccccccccccccccccccccccccccccccccc";
+const TEST_JAR_1 = "0x4444444444444444444444444444444444444444";
+const TEST_JAR_2 = "0x5555555555555555555555555555555555555555";
+const TEST_CURRENCY = "0x6666666666666666666666666666666666666666";
 
 // ── Mock state ──────────────────────────────────────────────────────────────
 const mockOperatorGardens: Array<{ id: string; name: string }> = [];
 const mockGardens: Array<{ tokenAddress: string; id: string }> = [];
 
 let readContractsCallCount = 0;
+const mockReadContractsCalls: Record<string, unknown>[] = [];
 const mockReadContractsResults: Array<{
   data: unknown;
   isLoading: boolean;
@@ -35,6 +40,7 @@ const mockReadContractsResults: Array<{
 vi.mock("wagmi", () => ({
   useReadContracts: (args: Record<string, unknown>) => {
     const idx = readContractsCallCount++;
+    mockReadContractsCalls.push(args);
     const enabled = args?.query && (args.query as Record<string, unknown>).enabled;
     if (enabled === false || idx >= mockReadContractsResults.length) {
       return { data: undefined, isLoading: false };
@@ -77,6 +83,7 @@ describe("hooks/cookie-jar/useUserCookieJars", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     readContractsCallCount = 0;
+    mockReadContractsCalls.length = 0;
     mockModuleAddress = TEST_MODULE;
     mockReadContractsResults.length = 0;
     mockOperatorGardens.length = 0;
@@ -105,11 +112,10 @@ describe("hooks/cookie-jar/useUserCookieJars", () => {
   });
 
   it("filters gardens to only those where user is operator", () => {
-    const nonOperatorGarden = "0xNonOp111111111111111111111111111111111";
     mockOperatorGardens.push({ id: TEST_GARDEN_1.toLowerCase(), name: "Garden 1" });
     mockGardens.push(
-      { tokenAddress: TEST_GARDEN_1, id: "garden-1" },
-      { tokenAddress: nonOperatorGarden, id: "garden-non-op" }
+      { tokenAddress: TEST_GARDEN_TOKEN_1, id: TEST_GARDEN_1 },
+      { tokenAddress: NON_OPERATOR_TOKEN, id: NON_OPERATOR_GARDEN }
     );
 
     // Step 1: jar addresses — only 1 garden should be queried
@@ -127,6 +133,7 @@ describe("hooks/cookie-jar/useUserCookieJars", () => {
         { result: 3600n, status: "success" },
         { result: false, status: "success" },
         { result: false, status: "success" },
+        { result: 0n, status: "success" },
       ],
       isLoading: false,
     });
@@ -143,6 +150,12 @@ describe("hooks/cookie-jar/useUserCookieJars", () => {
 
     // The hook should only query for operator gardens (1 garden, not 2)
     expect(result.current.moduleConfigured).toBe(true);
+    const jarAddressContracts = mockReadContractsCalls[0].contracts as Array<{
+      args: readonly [string];
+    }>;
+    expect(jarAddressContracts.map((contract) => contract.args[0])).toEqual([
+      TEST_GARDEN_1.toLowerCase(),
+    ]);
   });
 
   it("aggregates jars across multiple operator gardens", () => {
@@ -151,8 +164,8 @@ describe("hooks/cookie-jar/useUserCookieJars", () => {
       { id: TEST_GARDEN_2.toLowerCase(), name: "Garden 2" }
     );
     mockGardens.push(
-      { tokenAddress: TEST_GARDEN_1, id: "garden-1" },
-      { tokenAddress: TEST_GARDEN_2, id: "garden-2" }
+      { tokenAddress: TEST_GARDEN_TOKEN_1, id: TEST_GARDEN_1 },
+      { tokenAddress: TEST_GARDEN_TOKEN_2, id: TEST_GARDEN_2 }
     );
 
     // Step 1: jar addresses for both gardens
@@ -173,12 +186,14 @@ describe("hooks/cookie-jar/useUserCookieJars", () => {
         { result: 3600n, status: "success" },
         { result: false, status: "success" },
         { result: false, status: "success" },
+        { result: 0n, status: "success" },
         { result: TEST_CURRENCY, status: "success" },
         { result: 2000n, status: "success" },
         { result: 1000n, status: "success" },
         { result: 7200n, status: "success" },
         { result: false, status: "success" },
         { result: true, status: "success" },
+        { result: 0n, status: "success" },
       ],
       isLoading: false,
     });
@@ -199,6 +214,10 @@ describe("hooks/cookie-jar/useUserCookieJars", () => {
     expect(result.current.jars).toHaveLength(2);
     expect(result.current.jars[0].jarAddress).toBe(TEST_JAR_1);
     expect(result.current.jars[1].jarAddress).toBe(TEST_JAR_2);
+    expect(result.current.jars.map((jar) => jar.gardenAddress)).toEqual([
+      TEST_GARDEN_1.toLowerCase(),
+      TEST_GARDEN_2.toLowerCase(),
+    ]);
   });
 
   it("returns empty when module not configured", () => {
@@ -214,7 +233,7 @@ describe("hooks/cookie-jar/useUserCookieJars", () => {
 
   it("filters out zero-address jars across all gardens", () => {
     mockOperatorGardens.push({ id: TEST_GARDEN_1.toLowerCase(), name: "Garden 1" });
-    mockGardens.push({ tokenAddress: TEST_GARDEN_1, id: "garden-1" });
+    mockGardens.push({ tokenAddress: TEST_GARDEN_TOKEN_1, id: TEST_GARDEN_1 });
 
     // Jar addresses include a zero address
     mockReadContractsResults.push({
@@ -231,6 +250,7 @@ describe("hooks/cookie-jar/useUserCookieJars", () => {
         { result: 3600n, status: "success" },
         { result: false, status: "success" },
         { result: false, status: "success" },
+        { result: 0n, status: "success" },
       ],
       isLoading: false,
     });
@@ -250,7 +270,7 @@ describe("hooks/cookie-jar/useUserCookieJars", () => {
 
   it("falls back to 18 decimals on failure", () => {
     mockOperatorGardens.push({ id: TEST_GARDEN_1.toLowerCase(), name: "Garden 1" });
-    mockGardens.push({ tokenAddress: TEST_GARDEN_1, id: "garden-1" });
+    mockGardens.push({ tokenAddress: TEST_GARDEN_TOKEN_1, id: TEST_GARDEN_1 });
 
     mockReadContractsResults.push({
       data: [{ result: [TEST_JAR_1], status: "success" }],
@@ -265,6 +285,7 @@ describe("hooks/cookie-jar/useUserCookieJars", () => {
         { result: 3600n, status: "success" },
         { result: false, status: "success" },
         { result: false, status: "success" },
+        { result: 0n, status: "success" },
       ],
       isLoading: false,
     });
@@ -287,7 +308,7 @@ describe("hooks/cookie-jar/useUserCookieJars", () => {
 
   it("sets loading state correctly across all steps", () => {
     mockOperatorGardens.push({ id: TEST_GARDEN_1.toLowerCase(), name: "Garden 1" });
-    mockGardens.push({ tokenAddress: TEST_GARDEN_1, id: "garden-1" });
+    mockGardens.push({ tokenAddress: TEST_GARDEN_TOKEN_1, id: TEST_GARDEN_1 });
 
     // First step is loading
     mockReadContractsResults.push({ data: undefined, isLoading: true });

@@ -21,6 +21,10 @@ interface AccessibleGardenCheck {
   confirmed: boolean;
 }
 
+function getGardenAccountAddress(garden: Garden): Address {
+  return garden.id.toLowerCase() as Address;
+}
+
 /**
  * Aggregates cookie jars across all gardens where the connected user can access
  * the jar onchain. Access is derived from the garden account's role checks and
@@ -39,7 +43,7 @@ export function useAccessibleCookieJars() {
     () =>
       primaryAddress
         ? gardens.map((garden) => ({
-            address: garden.tokenAddress.toLowerCase() as Address,
+            address: getGardenAccountAddress(garden),
             abi: GARDEN_ACCOUNT_ROLE_ABI,
             functionName: "isGardener" as const,
             args: [primaryAddress] as const,
@@ -88,7 +92,7 @@ export function useAccessibleCookieJars() {
         address: moduleAddress as Address,
         abi: COOKIE_JAR_MODULE_ABI,
         functionName: "getGardenJars" as const,
-        args: [garden.tokenAddress.toLowerCase() as Address] as const,
+        args: [getGardenAccountAddress(garden)] as const,
       })),
     [eligibleGardens, moduleAddress]
   );
@@ -115,7 +119,7 @@ export function useAccessibleCookieJars() {
         if (address.toLowerCase() !== ZERO_ADDRESS) {
           pairs.push({
             jarAddress: address,
-            gardenAddress: eligibleGardens[index].tokenAddress.toLowerCase() as Address,
+            gardenAddress: getGardenAccountAddress(eligibleGardens[index]),
           });
         }
       }
