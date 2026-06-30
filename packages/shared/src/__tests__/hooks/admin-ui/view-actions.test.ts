@@ -136,7 +136,7 @@ describe("buildCommunityViewActions — fixed primary", () => {
     });
 
   it("keeps the same action ids and order on every mode", () => {
-    const expected = ["view-public", "manage-members", "deposit-withdraw", "new-proposal"];
+    const expected = ["manage-members", "deposit-withdraw", "new-proposal"];
     for (const mode of COMMUNITY_MODES) {
       expect(visibleIds(buildFor(mode))).toEqual(expected);
     }
@@ -171,14 +171,11 @@ describe("buildCommunityViewActions — fixed primary", () => {
     expect(navigate.mock.calls[0]?.[0]).toContain("/garden/members");
   });
 
-  it("gates deposit-withdraw on ownership and management actions on canManage", () => {
+  it("gates owner and management actions without duplicating the public link", () => {
     expect(visibleIds(buildFor("treasury", { isOwner: false }))).toEqual([
-      "view-public",
       "manage-members",
       "new-proposal",
     ]);
-    expect(visibleIds(buildFor("treasury", { canManage: false, isOwner: false }))).toEqual([
-      "view-public",
-    ]);
+    expect(visibleIds(buildFor("treasury", { canManage: false, isOwner: false }))).toEqual([]);
   });
 });

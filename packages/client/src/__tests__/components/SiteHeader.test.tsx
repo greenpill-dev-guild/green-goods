@@ -65,6 +65,7 @@ describe("SiteHeader", () => {
     mockUseApp.mockReturnValue({
       isMobile: false,
       isInstalled: false,
+      isInstalling: false,
       wasInstalled: false,
       platform: "unknown",
       deferredPrompt: null,
@@ -97,7 +98,14 @@ describe("SiteHeader", () => {
     expect(screen.getAllByText("Install App").length).toBeGreaterThanOrEqual(1);
     // Vaults is intentionally not in the header nav.
     expect(screen.queryByText("Vaults")).toBeNull();
-    expect(mockUseInstallGuidance).toHaveBeenCalledWith("unknown", false, false, null, false);
+    expect(mockUseInstallGuidance).toHaveBeenCalledWith(
+      "unknown",
+      false,
+      false,
+      null,
+      false,
+      false
+    );
     // No wallet CTA in public header.
     expect(screen.queryByText("Connect Wallet")).toBeNull();
   });
@@ -122,6 +130,7 @@ describe("SiteHeader", () => {
     mockUseApp.mockReturnValue({
       isMobile: true,
       isInstalled: true,
+      isInstalling: false,
       wasInstalled: true,
       platform: "unknown",
       deferredPrompt: null,
@@ -144,6 +153,7 @@ describe("SiteHeader", () => {
     mockUseApp.mockReturnValue({
       isMobile: true,
       isInstalled: false,
+      isInstalling: false,
       wasInstalled: true,
       platform: "unknown",
       deferredPrompt: null,
