@@ -309,7 +309,9 @@ export function useCreateAssessmentController() {
   }, [formatMessage, gardenRouteContext, isSuccess, navigate, resetStore]);
 
   const handleCancel = () => {
-    navigate(adminRoutes.gardenImpact({ ...gardenRouteContext, section: "assessments" }));
+    // Return to the Hub the flow was launched from (parity with Submit Work),
+    // not the garden impact view — closing a Hub create-flow must not jump tabs.
+    navigate(adminRoutes.hub(gardenRouteContext));
   };
 
   const handleSubmit = async () => {

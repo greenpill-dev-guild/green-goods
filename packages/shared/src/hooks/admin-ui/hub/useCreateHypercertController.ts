@@ -39,7 +39,9 @@ export function useCreateHypercertController() {
   );
 
   const handleCancel = useCallback(
-    () => navigate(adminRoutes.gardenImpact({ ...gardenRouteContext, section: "hypercerts" })),
+    // Return to the Hub the flow was launched from (parity with Submit Work),
+    // not the garden impact view — closing a Hub create-flow must not jump tabs.
+    () => navigate(adminRoutes.hub(gardenRouteContext)),
     [gardenRouteContext, navigate]
   );
 

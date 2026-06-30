@@ -50,7 +50,11 @@ export function DomainContextStep({
   );
 
   const selectedDomain = form.domain;
-  const guidance = DOMAIN_GUIDANCE[selectedDomain];
+  // Fallback so an unset/out-of-range persisted domain can't crash the step.
+  // A restored draft can carry a stale `domain`; without this guard the later
+  // `guidance.titlePlaceholder` deref throws on first render and the whole
+  // Create Assessment dialog fails to open. Mirrors resolveDomainMetrics.
+  const guidance = DOMAIN_GUIDANCE[selectedDomain] ?? DOMAIN_GUIDANCE[Domain.SOLAR];
 
   // Auto-select domain when garden mask has exactly 1 domain
   useEffect(() => {

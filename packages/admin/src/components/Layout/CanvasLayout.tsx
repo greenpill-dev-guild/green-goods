@@ -253,6 +253,23 @@ export function CanvasLayout() {
     return () => window.removeEventListener(OPEN_ACCOUNT_SHEET_EVENT, handler as EventListener);
   }, [openRightSheetContent]);
 
+  // Safety net for the "page frozen until refresh" lockup: Radix Dialog locks
+  // `body { pointer-events: none }` while a modal is open and clears it on close,
+  // but an action dialog that closes by navigating away can unmount mid-close and
+  // leave the lock stuck — freezing the whole admin. After each navigation, if the
+  // body is still locked AND no modal is actually open, release it. Guarded on
+  // `[data-state="open"]` so it never unlocks behind a legitimately-open dialog
+  // (route-opened flows keep their lock); worst case this is a no-op.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const modalOpen = document.querySelector(
+      '[role="dialog"][data-state="open"],[role="alertdialog"][data-state="open"]'
+    );
+    if (!modalOpen && document.body.style.pointerEvents === "none") {
+      document.body.style.pointerEvents = "";
+    }
+  }, [location.pathname]);
+
   const handleOpenSearch = useCallback(() => setSearchOpen(true), []);
   const openProfile = useCallback(
     () => toggleRightSheetContent(PROFILE_SHEET_CONTENT_ID),
