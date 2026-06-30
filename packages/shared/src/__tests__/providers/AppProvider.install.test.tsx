@@ -30,11 +30,24 @@ describe("AppProvider install confirmation", () => {
   afterEach(() => {
     vi.useRealTimers();
     localStorage.clear();
+    Object.defineProperty(navigator, "getInstalledRelatedApps", {
+      value: undefined,
+      configurable: true,
+    });
   });
 
-  it("shows a localized success toast only when appinstalled fires", () => {
+  function mockInstalledRelatedApps(getApps: () => Promise<Array<{ platform: string }>>) {
+    Object.defineProperty(navigator, "getInstalledRelatedApps", {
+      value: vi.fn(getApps),
+      configurable: true,
+    });
+  }
+
+  it("shows a localized success toast only after appinstalled and readiness confirmation", async () => {
     vi.useFakeTimers();
     localStorage.setItem("gg-language", "es");
+    let installReady = false;
+    mockInstalledRelatedApps(async () => (installReady ? [{ platform: "webapp" }] : []));
 
     render(
       <AppProvider allowPosthogKeyFallback={false}>
@@ -51,8 +64,15 @@ describe("AppProvider install confirmation", () => {
 
     expect(toastMocks.success).not.toHaveBeenCalled();
 
-    act(() => {
-      vi.advanceTimersByTime(4000);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1499);
+    });
+
+    expect(toastMocks.success).not.toHaveBeenCalled();
+    installReady = true;
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1);
     });
 
     expect(toastMocks.success).toHaveBeenCalledTimes(1);
@@ -67,6 +87,8 @@ describe("AppProvider install confirmation", () => {
 
   it("keeps install CTAs in an installing state until the install settles", async () => {
     vi.useFakeTimers();
+    let installReady = false;
+    mockInstalledRelatedApps(async () => (installReady ? [{ platform: "webapp" }] : []));
 
     const prompt = vi.fn(() => Promise.resolve());
     const beforeInstallEvent = new Event("beforeinstallprompt") as BeforeInstallPromptEvent;
@@ -109,19 +131,27 @@ describe("AppProvider install confirmation", () => {
     expect(screen.getByTestId("install-state")).toHaveTextContent("installing");
     expect(screen.getByTestId("is-installing")).toHaveTextContent("yes");
 
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(30000);
+    });
+
+    expect(screen.getByTestId("install-state")).toHaveTextContent("installing");
+
     act(() => {
       window.dispatchEvent(new Event("appinstalled"));
     });
 
     expect(screen.getByTestId("install-state")).toHaveTextContent("installing");
 
-    act(() => {
-      vi.advanceTimersByTime(3999);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1499);
     });
     expect(screen.getByTestId("install-state")).toHaveTextContent("installing");
 
-    act(() => {
-      vi.advanceTimersByTime(1);
+    installReady = true;
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1);
     });
 
     expect(screen.getByTestId("install-state")).toHaveTextContent("installed");

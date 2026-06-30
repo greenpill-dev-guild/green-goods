@@ -6,10 +6,12 @@
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  getPwaInstallCheckRequestId,
   getClientPresentationMode,
   getMobileOperatingSystem,
   isLocalDevicePreviewMode,
   isMobilePlatform,
+  isPwaInstallCheckRequest,
   isStandaloneMode,
 } from "../../utils/app/pwa";
 
@@ -447,5 +449,37 @@ describe("getMobileOperatingSystem", () => {
       expect(isLocalDevicePreviewMode()).toBe(false);
       expect(getClientPresentationMode()).toBe("website");
     });
+  });
+});
+
+describe("PWA install readiness frame marker", () => {
+  beforeEach(() => {
+    mockWindow({
+      location: {
+        href: "https://staging.greengoods.app/actions",
+        hostname: "staging.greengoods.app",
+      },
+    });
+  });
+
+  afterEach(() => {
+    Object.defineProperty(global, "navigator", {
+      value: originalNavigator,
+      writable: true,
+      configurable: true,
+    });
+    Object.defineProperty(global, "window", {
+      value: originalWindow,
+      writable: true,
+      configurable: true,
+    });
+  });
+
+  it("detects scoped install-readiness iframe requests", () => {
+    expect(
+      getPwaInstallCheckRequestId("https://staging.greengoods.app/home?gg_pwa_install_check=abc")
+    ).toBe("abc");
+    expect(isPwaInstallCheckRequest("/home?gg_pwa_install_check=abc")).toBe(true);
+    expect(isPwaInstallCheckRequest("/home")).toBe(false);
   });
 });

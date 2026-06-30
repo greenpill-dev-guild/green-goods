@@ -19,6 +19,8 @@ import {
   isMobilePlatform,
   isStandaloneMode,
   type Platform,
+  respondToPwaInstallCheckRequest,
+  waitForPwaInstallReadiness,
 } from "../utils/app/pwa";
 
 const messages = {
@@ -30,8 +32,9 @@ const messages = {
 const POSTHOG_API_HOST = "https://us.i.posthog.com";
 
 export type InstallState = "idle" | "not-installed" | "installing" | "installed" | "unsupported";
-const INSTALL_READY_SETTLE_MS = 4000;
-const INSTALL_ACCEPTED_FALLBACK_MS = 8000;
+const INSTALL_READY_TIMEOUT_MS = 45000;
+const INSTALL_READY_POLL_MS = 1500;
+const INSTALL_UNSUPPORTED_SETTLE_MS = 12000;
 export const supportedLanguages = ["en", "pt", "es"] as const;
 export type Locale = (typeof supportedLanguages)[number];
 export type { Platform };
@@ -105,12 +108,14 @@ interface AppProviderProps {
   children: React.ReactNode;
   posthogKey?: string;
   allowPosthogKeyFallback?: boolean;
+  installReadinessPath?: string;
 }
 
 export const AppProvider = ({
   children,
   posthogKey,
   allowPosthogKeyFallback = true,
+  installReadinessPath,
 }: AppProviderProps) => {
   // Use provided key or fall back to default client key
   const apiKey = posthogKey || (allowPosthogKeyFallback ? import.meta.env.VITE_POSTHOG_KEY : "");
@@ -119,7 +124,8 @@ export const AppProvider = ({
     : (getBrowserLocale(supportedLanguages, "en") as Locale); // Use helper instead of browserLang
   const [locale, setLocale] = useState<Locale>(defaultLocale as Locale);
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const installSettleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const installConfirmationIdRef = useRef(0);
+  const isMountedRef = useRef(true);
 
   // Track if app was ever installed on this browser (persistent)
   const [wasInstalled, setWasInstalled] = useState<boolean>(() => {
@@ -142,24 +148,6 @@ export const AppProvider = ({
 
   const isStandalone = React.useMemo(() => isStandaloneMode(), []);
 
-  const clearInstallSettleTimer = useCallback(() => {
-    if (installSettleTimerRef.current === null) return;
-    clearTimeout(installSettleTimerRef.current);
-    installSettleTimerRef.current = null;
-  }, []);
-
-  const scheduleInstalledState = useCallback(
-    (delayMs: number, onSettled?: () => void) => {
-      clearInstallSettleTimer();
-      installSettleTimerRef.current = setTimeout(() => {
-        installSettleTimerRef.current = null;
-        setInstalledState("installed");
-        onSettled?.();
-      }, delayMs);
-    },
-    [clearInstallSettleTimer]
-  );
-
   const handleInstallCheck = useCallback((e: BeforeInstallPromptEvent | null) => {
     e?.preventDefault(); // Prevent the automatic prompt
     setDeferredPrompt(e);
@@ -176,11 +164,9 @@ export const AppProvider = ({
     setDeferredPrompt(e as BeforeInstallPromptEvent);
   }, []);
 
-  const handleAppInstalled = useCallback(() => {
-    setInstalledState("installing");
-    setWasInstalled(true);
-    localStorage.setItem("gg-pwa-installed", "true");
-    scheduleInstalledState(INSTALL_READY_SETTLE_MS, () => {
+  const settleInstalledState = useCallback(
+    (readinessResult: string) => {
+      setInstalledState("installed");
       toastService.success({
         id: "app-install-success",
         title: formatAppProviderMessage(locale, installSuccessToastIds.title, "App installed"),
@@ -195,10 +181,34 @@ export const AppProvider = ({
       track("App Installed", {
         platform,
         locale,
-        installState,
+        installState: "installed",
+        readinessResult,
       });
+    },
+    [platform, locale]
+  );
+
+  const confirmInstalledReadiness = useCallback(() => {
+    const confirmationId = installConfirmationIdRef.current + 1;
+    installConfirmationIdRef.current = confirmationId;
+
+    void waitForPwaInstallReadiness({
+      scopedCheckPath: installReadinessPath,
+      timeoutMs: INSTALL_READY_TIMEOUT_MS,
+      intervalMs: INSTALL_READY_POLL_MS,
+      unsupportedFallbackMs: INSTALL_UNSUPPORTED_SETTLE_MS,
+    }).then((readinessResult) => {
+      if (!isMountedRef.current || installConfirmationIdRef.current !== confirmationId) return;
+      settleInstalledState(readinessResult);
     });
-  }, [platform, locale, installState, scheduleInstalledState]);
+  }, [installReadinessPath, settleInstalledState]);
+
+  const handleAppInstalled = useCallback(() => {
+    setInstalledState("installing");
+    setWasInstalled(true);
+    localStorage.setItem("gg-pwa-installed", "true");
+    confirmInstalledReadiness();
+  }, [confirmInstalledReadiness]);
 
   const switchLanguage = useCallback((lang: Locale) => {
     setLocale(lang);
@@ -213,22 +223,25 @@ export const AppProvider = ({
         .then(() => deferredPrompt.userChoice)
         .then((choiceResult) => {
           if (choiceResult.outcome === "accepted") {
-            scheduleInstalledState(INSTALL_ACCEPTED_FALLBACK_MS);
             return;
           }
 
-          clearInstallSettleTimer();
+          installConfirmationIdRef.current += 1;
           setInstalledState(isAppInstalled() ? "installed" : "not-installed");
         })
         .catch(() => {
-          clearInstallSettleTimer();
+          installConfirmationIdRef.current += 1;
           setInstalledState(isAppInstalled() ? "installed" : "not-installed");
         })
         .finally(() => {
           setDeferredPrompt(null); // Clear the saved prompt
         });
     }
-  }, [clearInstallSettleTimer, deferredPrompt, scheduleInstalledState]);
+  }, [deferredPrompt]);
+
+  useEffect(() => {
+    void respondToPwaInstallCheckRequest();
+  }, []);
 
   useEffect(() => {
     // Only run install check if not already detected as installed during initialization
@@ -247,8 +260,11 @@ export const AppProvider = ({
   }, [handleAppInstalled, handleBeforeInstall, handleInstallCheck, installState]);
 
   useEffect(() => {
-    return () => clearInstallSettleTimer();
-  }, [clearInstallSettleTimer]);
+    return () => {
+      isMountedRef.current = false;
+      installConfirmationIdRef.current += 1;
+    };
+  }, []);
 
   const isMobile = isMobilePlatform();
   const isInstalled = installState === "installed";

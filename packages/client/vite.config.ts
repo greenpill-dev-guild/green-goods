@@ -429,6 +429,13 @@ export default defineConfig(async ({ command, mode }) => {
         orientation: "portrait-primary",
         theme_color: pwaBranding.themeColor,
         background_color: pwaBranding.backgroundColor,
+        related_applications: [
+          {
+            platform: "webapp",
+            url: "/manifest.webmanifest",
+            id: pwaBranding.manifestId,
+          },
+        ],
         shortcuts: [
           {
             name: "Home",

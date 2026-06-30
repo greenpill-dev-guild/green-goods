@@ -1,4 +1,9 @@
-import { AppProvider, initGlobalErrorHandlers, initTheme } from "@green-goods/shared";
+import {
+  AppProvider,
+  initGlobalErrorHandlers,
+  initTheme,
+  isPwaInstallCheckRequest,
+} from "@green-goods/shared";
 import { initBrowserSentry } from "@green-goods/shared/sentry";
 import { registerServiceWorkerFromEnv } from "@green-goods/shared/service-worker";
 import { StrictMode } from "react";
@@ -7,6 +12,7 @@ import { HelmetProvider } from "react-helmet-async";
 import App from "@/App.tsx";
 import { AppErrorBoundary } from "@/components/Errors";
 import {
+  APP_ROUTES,
   createPwaRoutingConfig,
   PWA_APP_SCOPE,
   PWA_DEV_SERVICE_WORKER_SCRIPT,
@@ -55,11 +61,16 @@ void registerServiceWorkerFromEnv(
   }
 );
 
+const isInstallReadinessFrame = isPwaInstallCheckRequest();
+
 export const Root = () => (
   <HelmetProvider>
     <AppErrorBoundary>
-      <AppProvider posthogKey={import.meta.env.VITE_POSTHOG_KEY}>
-        <App />
+      <AppProvider
+        posthogKey={import.meta.env.VITE_POSTHOG_KEY}
+        installReadinessPath={APP_ROUTES.home}
+      >
+        {isInstallReadinessFrame ? null : <App />}
       </AppProvider>
     </AppErrorBoundary>
   </HelmetProvider>

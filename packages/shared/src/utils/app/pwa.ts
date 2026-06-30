@@ -28,6 +28,17 @@ interface NavigatorWithStandalone extends Navigator {
   };
 }
 
+interface InstalledRelatedAppInfo {
+  id?: string;
+  platform?: string;
+  url?: string;
+  version?: string;
+}
+
+interface NavigatorWithInstalledRelatedApps extends Navigator {
+  getInstalledRelatedApps?: () => Promise<InstalledRelatedAppInfo[]>;
+}
+
 /**
  * Extended Window interface for non-standard properties
  */
@@ -35,6 +46,10 @@ interface WindowWithExtensions extends Window {
   opera?: string;
   MSStream?: unknown;
 }
+
+const PWA_INSTALL_CHECK_PARAM = "gg_pwa_install_check";
+const PWA_INSTALL_CHECK_RESPONSE_TYPE = "green-goods:pwa-install-check-response";
+const PWA_INSTALL_CHECK_FRAME_TIMEOUT_MS = 5000;
 
 /**
  * Check if the app is running in standalone (PWA) mode.
@@ -76,6 +91,183 @@ export function isAppInstalled(): boolean {
 
   const mockInstalled = import.meta.env.VITE_MOCK_PWA_INSTALLED === "true";
   return mockInstalled || isStandaloneMode();
+}
+
+export function getPwaInstallCheckRequestId(source?: string | URL): string | null {
+  const url = getPresentationUrl(source);
+  const requestId = url?.searchParams.get(PWA_INSTALL_CHECK_PARAM)?.trim() || null;
+  return requestId || null;
+}
+
+export function isPwaInstallCheckRequest(source?: string | URL): boolean {
+  return getPwaInstallCheckRequestId(source) !== null;
+}
+
+function createPwaInstallCheckRequestId(): string {
+  const crypto = globalThis.crypto;
+  if (typeof crypto?.randomUUID === "function") return crypto.randomUUID();
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+function createPwaInstallCheckUrl(scopedCheckPath: string, requestId: string): string {
+  const baseUrl =
+    typeof window !== "undefined" ? window.location.origin : "https://greengoods.local";
+  const url = new URL(scopedCheckPath, baseUrl);
+  url.searchParams.set(PWA_INSTALL_CHECK_PARAM, requestId);
+  return url.toString();
+}
+
+function isCurrentPathWithinScopedCheckPath(scopedCheckPath: string): boolean {
+  if (typeof window === "undefined") return false;
+
+  const scopedUrl = new URL(scopedCheckPath, window.location.origin);
+  const scopePath = scopedUrl.pathname.endsWith("/")
+    ? scopedUrl.pathname
+    : `${scopedUrl.pathname}/`;
+
+  return (
+    window.location.pathname === scopedUrl.pathname ||
+    window.location.pathname.startsWith(scopePath)
+  );
+}
+
+async function readCurrentInstalledRelatedWebApp(): Promise<boolean | null> {
+  if (typeof navigator === "undefined") return null;
+
+  const nav = navigator as NavigatorWithInstalledRelatedApps;
+  if (typeof nav.getInstalledRelatedApps !== "function") return null;
+
+  try {
+    const relatedApps = await nav.getInstalledRelatedApps();
+    return relatedApps.some((app) => app.platform === "webapp");
+  } catch {
+    return null;
+  }
+}
+
+export async function respondToPwaInstallCheckRequest(source?: string | URL): Promise<void> {
+  if (typeof window === "undefined" || window.parent === window) return;
+
+  const requestId = getPwaInstallCheckRequestId(source);
+  if (!requestId) return;
+
+  const installed = await readCurrentInstalledRelatedWebApp();
+  window.parent.postMessage(
+    {
+      type: PWA_INSTALL_CHECK_RESPONSE_TYPE,
+      requestId,
+      installed,
+    },
+    window.location.origin
+  );
+}
+
+async function queryScopedPwaInstallReadiness(scopedCheckPath: string): Promise<boolean | null> {
+  if (typeof window === "undefined" || typeof document === "undefined" || !document.body) {
+    return null;
+  }
+
+  const requestId = createPwaInstallCheckRequestId();
+  const iframe = document.createElement("iframe");
+  iframe.src = createPwaInstallCheckUrl(scopedCheckPath, requestId);
+  iframe.title = "PWA install readiness check";
+  iframe.tabIndex = -1;
+  iframe.setAttribute("aria-hidden", "true");
+  iframe.style.position = "absolute";
+  iframe.style.width = "0";
+  iframe.style.height = "0";
+  iframe.style.border = "0";
+  iframe.style.clip = "rect(0 0 0 0)";
+  iframe.style.clipPath = "inset(50%)";
+  iframe.style.overflow = "hidden";
+
+  return new Promise((resolve) => {
+    let settled = false;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    const cleanup = () => {
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+      window.removeEventListener("message", handleMessage);
+      iframe.remove();
+    };
+
+    const finish = (installed: boolean | null) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve(installed);
+    };
+
+    const handleMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin || event.source !== iframe.contentWindow) return;
+
+      const data = event.data as {
+        type?: string;
+        requestId?: string;
+        installed?: boolean | null;
+      };
+      if (data.type !== PWA_INSTALL_CHECK_RESPONSE_TYPE || data.requestId !== requestId) return;
+
+      finish(typeof data.installed === "boolean" ? data.installed : null);
+    };
+
+    window.addEventListener("message", handleMessage);
+    timeoutId = setTimeout(() => finish(null), PWA_INSTALL_CHECK_FRAME_TIMEOUT_MS);
+    document.body.appendChild(iframe);
+  });
+}
+
+export async function checkPwaInstallReadiness(scopedCheckPath?: string): Promise<boolean | null> {
+  if (scopedCheckPath && !isCurrentPathWithinScopedCheckPath(scopedCheckPath)) {
+    return queryScopedPwaInstallReadiness(scopedCheckPath);
+  }
+
+  return readCurrentInstalledRelatedWebApp();
+}
+
+export type PwaInstallReadinessResult = "confirmed" | "unsupported" | "timed-out";
+
+export interface WaitForPwaInstallReadinessOptions {
+  scopedCheckPath?: string;
+  timeoutMs?: number;
+  intervalMs?: number;
+  unsupportedFallbackMs?: number;
+}
+
+function waitForDuration(delayMs: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, delayMs);
+  });
+}
+
+export async function waitForPwaInstallReadiness({
+  scopedCheckPath,
+  timeoutMs = 45000,
+  intervalMs = 1500,
+  unsupportedFallbackMs = 12000,
+}: WaitForPwaInstallReadinessOptions = {}): Promise<PwaInstallReadinessResult> {
+  const deadline = Date.now() + timeoutMs;
+
+  while (Date.now() < deadline) {
+    const installed = await checkPwaInstallReadiness(scopedCheckPath);
+
+    if (installed === true) return "confirmed";
+
+    if (installed === null) {
+      await waitForDuration(unsupportedFallbackMs);
+      return "unsupported";
+    }
+
+    const remainingMs = deadline - Date.now();
+    if (remainingMs <= 0) break;
+
+    await waitForDuration(Math.min(intervalMs, remainingMs));
+  }
+
+  return "timed-out";
 }
 
 /**

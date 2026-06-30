@@ -108,13 +108,19 @@ export { normalizeToFile } from "./app/normalizeToFile";
 // ============================================================================
 export type { ClientPresentationMode, Platform } from "./app/pwa";
 export {
+  checkPwaInstallReadiness,
   getClientPresentationMode,
   getMobileOperatingSystem,
+  getPwaInstallCheckRequestId,
   isAppInstalled,
   isLocalDevicePreviewMode,
   isMobilePlatform,
+  isPwaInstallCheckRequest,
   isStandaloneMode,
+  respondToPwaInstallCheckRequest,
+  waitForPwaInstallReadiness,
 } from "./app/pwa";
+export type { PwaInstallReadinessResult, WaitForPwaInstallReadinessOptions } from "./app/pwa";
 export type { InstallActionContext } from "./app/installAction";
 export { dispatchInstallAction } from "./app/installAction";
 export { recursiveCloneChildren } from "./app/recursive-clone-children";
