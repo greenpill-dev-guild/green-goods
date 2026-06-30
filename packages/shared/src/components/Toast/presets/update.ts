@@ -54,7 +54,7 @@ export const updateToasts = {
       title: updateDefaults.ready.title,
       message: updateDefaults.ready.message,
       context: "app update",
-      duration: Infinity, // Stay visible until user acts or toast is replaced
+      persistent: true, // Stay visible until user acts or toast is replaced
       action: {
         label: updateDefaults.ready.action,
         onClick: onUpdate,
@@ -83,7 +83,7 @@ export const updateToasts = {
       title: updateDefaults.ready.title,
       message: updateDefaults.ready.message,
       context: "app update",
-      duration: Infinity,
+      persistent: true,
       action: {
         label: updateDefaults.ready.action,
         onClick: onUpdate,
@@ -112,7 +112,7 @@ export const updateToasts = {
       title: updateDefaults.stalled.title,
       message: updateDefaults.stalled.message,
       context: "app update",
-      duration: Infinity,
+      persistent: true,
       closable: true,
       onDismiss,
       suppressLogging: true,
@@ -170,7 +170,7 @@ export function createUpdateToasts(formatMessage: FormatMessageFn) {
           defaultMessage: updateDefaults.ready.message,
         }),
         context: "app update",
-        duration: Infinity,
+        persistent: true,
         action: {
           label: formatMessage({
             id: toastMessageIdsUpdate.ready.action,
@@ -212,7 +212,7 @@ export function createUpdateToasts(formatMessage: FormatMessageFn) {
           defaultMessage: updateDefaults.stalled.message,
         }),
         context: "app update",
-        duration: Infinity,
+        persistent: true,
         closable: true,
         onDismiss,
         suppressLogging: true,

@@ -34,6 +34,15 @@ export interface ToastDescriptor {
   devMessage?: string;
   /** Duration override in milliseconds. */
   duration?: number;
+  /**
+   * Two-tier policy flag. When `true`, the toast never auto-dismisses (it stays
+   * until the user acts or it is replaced) and gains an explicit close (X) by
+   * default. Use for toasts that require acknowledgement or carry an action
+   * (e.g. "Restart to update"). Omit/false for transient "quick notification"
+   * toasts that auto-dismiss after their duration. Equivalent to passing
+   * `duration: Infinity`, but reads as intent at the call site.
+   */
+  persistent?: boolean;
   /** Optional toast action rendered as a subtle button. */
   action?: ToastAction;
   /** Optional flag to silence diagnostics for known, handled errors. */
@@ -60,6 +69,7 @@ interface ResolvedToastDescriptor {
   message: string;
   description?: string;
   duration: number;
+  persistent: boolean;
   action?: ToastAction;
   context?: string;
   error?: unknown;
@@ -120,6 +130,103 @@ const STATUS_ARIA_ROLE: Record<ToastStatus, "status" | "alert"> = {
 const ACTION_BUTTON_BASE =
   "inline-flex items-center text-xs font-medium text-[var(--color-primary-base)] hover:text-[var(--color-primary-dark)] focus:outline-none focus:underline focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--color-primary-base)] rounded transition-colors";
 
+/**
+ * Self-managed auto-dismiss timers.
+ *
+ * We deliberately do NOT rely on react-hot-toast's built-in `duration` for
+ * auto-dismiss. The library drives dismissal from a single global `pausedAt`
+ * flag toggled by the <Toaster> container's mouseenter/mouseleave. On touch
+ * (and any enter-without-matching-leave) that flag latches ON and silently
+ * disables auto-dismiss for EVERY toast until a stray mouseleave clears it —
+ * the "toasts never auto-dismiss, must be tapped" bug.
+ *
+ * Owning the timers here (and passing the library `duration: Infinity`) makes
+ * auto-dismiss immune to that latch. Hover/focus pause is scoped per toast, so a
+ * paused toast can never freeze the dismissal of others, and a hard pause cap
+ * guarantees even a single toast can't get stuck open if its leave never fires.
+ *
+ * This is a module-level service (toasts are fired imperatively), not a React
+ * hook, so raw setTimeout is correct here — lifetimes are bound to toast ids we
+ * explicitly clear on dismiss/replace, not to a component lifecycle.
+ */
+const MAX_PAUSE_MS = 8000;
+
+interface DismissTimer {
+  /** Milliseconds left until dismissal when the timer last (re)started. */
+  remaining: number;
+  /** Timestamp the current running interval started (for pause accounting). */
+  startedAt: number;
+  /** Active dismissal timeout, or null while paused. */
+  runTimer: ReturnType<typeof setTimeout> | null;
+  /** Safety timeout that force-resumes a stuck pause. */
+  capTimer: ReturnType<typeof setTimeout> | null;
+  paused: boolean;
+}
+
+const dismissTimers = new Map<string, DismissTimer>();
+
+function fireDismiss(id: string) {
+  dismissTimers.delete(id);
+  toast.dismiss(id);
+}
+
+/** Cancel and forget the auto-dismiss timer(s). Pass no id to clear all. */
+function clearDismissTimer(id?: string) {
+  const clearEntry = (entry: DismissTimer) => {
+    if (entry.runTimer) clearTimeout(entry.runTimer);
+    if (entry.capTimer) clearTimeout(entry.capTimer);
+  };
+  if (id === undefined) {
+    dismissTimers.forEach(clearEntry);
+    dismissTimers.clear();
+    return;
+  }
+  const entry = dismissTimers.get(id);
+  if (!entry) return;
+  clearEntry(entry);
+  dismissTimers.delete(id);
+}
+
+/** Start (or replace) the auto-dismiss countdown for a toast id. */
+function scheduleDismiss(id: string, duration: number) {
+  clearDismissTimer(id);
+  // Non-finite duration => persistent toast => no auto-dismiss.
+  if (!Number.isFinite(duration)) return;
+  dismissTimers.set(id, {
+    remaining: duration,
+    startedAt: Date.now(),
+    runTimer: setTimeout(() => fireDismiss(id), duration),
+    capTimer: null,
+    paused: false,
+  });
+}
+
+/** Pause the countdown (hover/focus). No-op for persistent/unknown toasts. */
+function pauseDismiss(id: string) {
+  const entry = dismissTimers.get(id);
+  if (!entry || entry.paused || !entry.runTimer) return;
+  clearTimeout(entry.runTimer);
+  entry.runTimer = null;
+  entry.remaining = Math.max(0, entry.remaining - (Date.now() - entry.startedAt));
+  entry.paused = true;
+  // Safety: if the matching leave/blur never arrives (touch sticky-hover, the
+  // element removed under the pointer), force a resume so it can't stick open.
+  entry.capTimer = setTimeout(() => resumeDismiss(id), MAX_PAUSE_MS);
+}
+
+/** Resume a paused countdown with its remaining time. */
+function resumeDismiss(id: string) {
+  const entry = dismissTimers.get(id);
+  if (!entry || !entry.paused) return;
+  if (entry.capTimer) {
+    clearTimeout(entry.capTimer);
+    entry.capTimer = null;
+  }
+  entry.paused = false;
+  entry.startedAt = Date.now();
+  entry.runTimer = setTimeout(() => fireDismiss(id), entry.remaining);
+}
+
 const fallbackTitles: Record<ToastStatus, string> = {
   success: "Success",
   error: "Something went wrong",
@@ -179,6 +286,7 @@ function normalizeDescriptor(descriptor: ToastDescriptor): ResolvedToastDescript
     message,
     description,
     duration,
+    persistent,
     context,
     action,
     error,
@@ -193,6 +301,13 @@ function normalizeDescriptor(descriptor: ToastDescriptor): ResolvedToastDescript
   const normalizedMessage = message ?? buildDefaultMessage(status, context);
   const normalizedTitle = title ?? buildDefaultTitle(status, context);
 
+  // Two-tier policy: persistent toasts never auto-dismiss. Treat an explicit
+  // `duration: Infinity` as persistent too, so existing call sites keep working.
+  const isPersistent = persistent ?? duration === Number.POSITIVE_INFINITY;
+  const resolvedDuration = isPersistent
+    ? Number.POSITIVE_INFINITY
+    : (duration ?? DEFAULT_DURATIONS[status]);
+
   // Default: loading toasts are NOT dismissible, others are
   const normalizedDismissible = dismissible ?? status !== "loading";
 
@@ -202,7 +317,8 @@ function normalizeDescriptor(descriptor: ToastDescriptor): ResolvedToastDescript
     title: normalizedTitle,
     message: normalizedMessage,
     description,
-    duration: duration ?? DEFAULT_DURATIONS[status],
+    duration: resolvedDuration,
+    persistent: isPersistent,
     action,
     context,
     error,
@@ -210,7 +326,8 @@ function normalizeDescriptor(descriptor: ToastDescriptor): ResolvedToastDescript
     suppressLogging,
     icon,
     dismissible: normalizedDismissible,
-    closable: closable ?? false,
+    // Persistent toasts need a way out: give them an explicit close (X) by default.
+    closable: closable ?? isPersistent,
     onDismiss,
   };
 }
@@ -402,6 +519,7 @@ function ToastMessage({
     e.stopPropagation(); // Prevent triggering dismiss when clicking action button
     if (!action) return;
     if (action.dismissOnClick !== false && toastId) {
+      clearDismissTimer(toastId);
       toast.dismiss(toastId);
     }
     action.onClick();
@@ -417,10 +535,23 @@ function ToastMessage({
   const handleClose = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (toastId) {
+      clearDismissTimer(toastId);
       toast.dismiss(toastId);
     }
     onDismiss?.();
   };
+
+  // Hover/focus pauses this toast's auto-dismiss (scoped per toast, with a hard
+  // cap in the timer manager so it can never get stuck open).
+  const pauseHandlers = toastId
+    ? {
+        onPointerEnter: () => pauseDismiss(toastId),
+        onPointerLeave: () => resumeDismiss(toastId),
+        onPointerCancel: () => resumeDismiss(toastId),
+        onFocus: () => pauseDismiss(toastId),
+        onBlur: () => resumeDismiss(toastId),
+      }
+    : undefined;
 
   const closeButton = closable ? (
     <button
@@ -484,8 +615,10 @@ function ToastMessage({
         tabIndex={0}
         className={containerClassName}
         aria-label={ariaLabel}
+        data-testid="toast-content"
         onClick={handleContainerClick}
         onKeyDown={handleKeyDown}
+        {...pauseHandlers}
       >
         {closeButton}
         {title ? <p className="text-sm font-semibold leading-tight">{title}</p> : null}
@@ -535,7 +668,12 @@ function ToastMessage({
   }
 
   return (
-    <div className={containerClassName} aria-label={ariaLabel}>
+    <div
+      className={containerClassName}
+      aria-label={ariaLabel}
+      data-testid="toast-content"
+      {...pauseHandlers}
+    >
       {closeButton}
       {title ? <p className="text-sm font-semibold leading-tight">{title}</p> : null}
       <p className="text-sm leading-snug">{message}</p>
@@ -637,12 +775,16 @@ function showToast(descriptor: ToastDescriptor) {
   const isDebug = isDebugModeEnabled();
   const isError = resolved.status === "error" && resolved.error;
 
-  // In debug mode for errors, increase duration to allow reading/copying
-  const debugDuration = isDebug && isError ? Math.max(resolved.duration, 8000) : resolved.duration;
+  // In debug mode for errors, increase duration to allow reading/copying.
+  // This is the duration WE enforce via our own timer manager (below).
+  const effectiveDuration =
+    isDebug && isError ? Math.max(resolved.duration, 8000) : resolved.duration;
 
   const toastOptions: ToastOptions = {
     id: resolved.id,
-    duration: debugDuration,
+    // Auto-dismiss is owned by our timer manager (scheduleDismiss), not the
+    // library, so it can't be frozen by react-hot-toast's global hover-pause.
+    duration: Number.POSITIVE_INFINITY,
     ariaProps: {
       role: STATUS_ARIA_ROLE[resolved.status],
       "aria-live": resolved.status === "error" ? "assertive" : "polite",
@@ -661,6 +803,7 @@ function showToast(descriptor: ToastDescriptor) {
 
   const toastId = toastFn((toastState: HotToast) => {
     const handleDismiss = () => {
+      clearDismissTimer(toastState.id);
       toast.dismiss(toastState.id);
       resolved.onDismiss?.();
     };
@@ -693,6 +836,9 @@ function showToast(descriptor: ToastDescriptor) {
     );
   }, toastOptions);
 
+  // Own the auto-dismiss. Persistent toasts resolve to Infinity and are skipped.
+  scheduleDismiss(toastId, effectiveDuration);
+
   logDiagnostics(resolved);
   return toastId;
 }
@@ -707,8 +853,14 @@ export const toastService = {
     showToast({ status: "info", ...descriptor }),
   loading: (descriptor: Omit<ToastDescriptor, "status">) =>
     showToast({ status: "loading", ...descriptor }),
-  dismiss: (id?: string) => toast.dismiss(id),
-  dismissAll: () => toast.dismiss(),
+  dismiss: (id?: string) => {
+    clearDismissTimer(id);
+    toast.dismiss(id);
+  },
+  dismissAll: () => {
+    clearDismissTimer();
+    toast.dismiss();
+  },
 };
 
 export type ToastHandle = ReturnType<typeof toastService.show>;
