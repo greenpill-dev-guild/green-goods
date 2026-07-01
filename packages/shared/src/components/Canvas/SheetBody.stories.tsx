@@ -10,7 +10,7 @@ const meta: Meta<typeof SheetBody> = {
     docs: {
       description: {
         component: [
-          "**SheetBody** — the scrollable middle slot for `LeftSheet` / `RightSheet` content.",
+          "**SheetBody** — the scrollable middle slot for dialog / inspector panel content.",
           "",
           "Anatomy from `design_handoff_admin-revamp/screens/sheet-system.css`:",
           "- `flex: 1; min-height: 0; overflow-y: auto` so it grows inside the sheet's flex column",

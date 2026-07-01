@@ -1,8 +1,9 @@
-import { type Address, type LeftSheetConfig, useLeftSheetConfig } from "@green-goods/shared";
+import type { Address } from "@green-goods/shared";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
 import { AddMemberSheet } from "@/components/Garden/AddMemberSheet";
+import { type LeftSheetConfig, useLeftSheetConfig } from "@/components/Layout";
 import HypercertDetail from "@/views/Garden/HypercertDetail";
 
 interface GardenSheetDescriptorProps {
@@ -84,7 +85,8 @@ export function GardenSheetDescriptor({
         ),
         onClose: handleShellCloseAddMember,
         preventClose: addMemberSubmitting,
-        width: "wide",
+        size: "lg",
+        tone: "garden",
       };
     }
 
@@ -93,6 +95,8 @@ export function GardenSheetDescriptor({
         title: formatMessage({ id: "app.hypercerts.detail.title", defaultMessage: "Hypercert" }),
         content: <HypercertDetail layout="sheet" hypercertId={hypercertId} />,
         onClose: () => navigate(closeTo),
+        size: "lg",
+        tone: "garden",
       };
     }
 

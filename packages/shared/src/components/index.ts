@@ -64,10 +64,8 @@ export type { SurfaceProps, SurfaceVariantProps } from "./Surface";
 // Feedback Components
 export type { TxInlineFeedbackProps, TxInlineFeedbackSeverity } from "./feedback/TxInlineFeedback";
 export { TxInlineFeedback } from "./feedback/TxInlineFeedback";
-// Canvas Components (Sheets + Navigation + MainSheet)
+// Canvas Components (Navigation + MainSheet + sheet-slot primitives)
 export {
-  BottomSheet,
-  type BottomSheetProps,
   MainSheet,
   type MainSheetProps,
   EmptyStateShell,
@@ -82,7 +80,6 @@ export {
   type WorkbenchTone,
   type CanvasMobilePrimaryAction,
   FabProvider,
-  LeftSheetProvider,
   useCanvasResponsiveFab,
   useFabConfig,
   useFabConfigValue,
@@ -93,11 +90,6 @@ export {
   useRefreshAction,
   useRefreshActionValue,
   type RefreshActionConfig,
-  useLeftSheetConfig,
-  useLeftSheetConfigValue,
-  useRouteBackedLeftSheetConfig,
-  type LeftSheetConfig,
-  type RouteBackedLeftSheetConfig,
   type ToolbarSlot,
   GardenChip,
   type GardenChipProps,
@@ -117,10 +109,6 @@ export {
   type SheetErrorBoundaryProps,
   SheetFooter,
   type SheetFooterProps,
-  LeftSheet,
-  type LeftSheetProps,
-  RightSheet,
-  type RightSheetProps,
   DISMISS_VELOCITY_THRESHOLD,
   CHOREOGRAPHY_STAGGER_MS,
   AppBar,

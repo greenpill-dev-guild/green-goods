@@ -1,6 +1,7 @@
-import { type Address, adminRoutes, useRouteBackedLeftSheetConfig } from "@green-goods/shared";
+import { type Address, adminRoutes } from "@green-goods/shared";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
+import { useRouteBackedLeftSheetConfig } from "@/components/Layout";
 import GardenSignalPoolView from "@/views/Garden/SignalPool";
 import GardenStrategiesView from "@/views/Garden/Strategies";
 import GardenVaultView from "@/views/Garden/Vault";
@@ -28,6 +29,8 @@ export function CommunitySheetDescriptor({
         title: formatMessage({ id: "app.treasury.title" }),
         content: <GardenVaultView layout="sheet" />,
         closeTo: adminRoutes.communityTreasury({ gardenId: gardenAddress }),
+        size: "lg" as const,
+        tone: "community" as const,
       };
     }
 
@@ -36,6 +39,8 @@ export function CommunitySheetDescriptor({
         title: formatMessage({ id: "app.conviction.title" }),
         content: <GardenStrategiesView layout="sheet" />,
         closeTo: adminRoutes.communityGovernance({ gardenId: gardenAddress }),
+        size: "lg" as const,
+        tone: "community" as const,
       };
     }
 
@@ -49,6 +54,8 @@ export function CommunitySheetDescriptor({
         }),
         content: <GardenSignalPoolView layout="sheet" />,
         closeTo: adminRoutes.communityGovernance({ gardenId: gardenAddress }),
+        size: "lg" as const,
+        tone: "community" as const,
       };
     }
 

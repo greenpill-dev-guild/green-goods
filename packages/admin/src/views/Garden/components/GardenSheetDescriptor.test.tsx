@@ -7,14 +7,17 @@ import { isValidElement, type ComponentProps } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Address, LeftSheetConfig } from "@green-goods/shared";
+import type { Address } from "@green-goods/shared";
+import type { LeftSheetConfig } from "@/components/Layout";
 import { GardenSheetDescriptor } from "./GardenSheetDescriptor";
 
 const { mockUseLeftSheetConfig } = vi.hoisted(() => ({
   mockUseLeftSheetConfig: vi.fn(),
 }));
 
-vi.mock("@green-goods/shared", () => ({
+// The descriptor now publishes through the admin-local left-sheet channel
+// (re-homed from @green-goods/shared), so mock that module's useLeftSheetConfig.
+vi.mock("@/components/Layout", () => ({
   useLeftSheetConfig: mockUseLeftSheetConfig,
 }));
 
