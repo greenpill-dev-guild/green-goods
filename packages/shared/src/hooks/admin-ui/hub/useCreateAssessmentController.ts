@@ -140,7 +140,7 @@ export function useCreateAssessmentController() {
     canRetry,
     draft,
   } = useCreateAssessmentWorkflow({ gardenId: gardenId ?? undefined });
-  const { loadDraft, saveDraft, draftKey } = draft;
+  const { loadDraft, saveDraft, clearDraft, draftKey } = draft;
   const draftPersistenceWarningShownRef = useRef(false);
 
   useEffect(() => {
@@ -331,6 +331,16 @@ export function useCreateAssessmentController() {
     navigate(adminRoutes.hub(gardenRouteContext));
   };
 
+  // Wired to useDirtyClose's onDiscard (parity with useWizardData's
+  // onDiscard: reset) — runs only on an explicit confirmed "Discard", not on
+  // the plain step-1 Cancel button. Neither the in-memory store nor the
+  // auto-saved IndexedDB draft were cleared here before, so the next mount's
+  // restoreDraft() effect silently repopulated the "discarded" fields.
+  const handleDiscard = () => {
+    resetStore();
+    void clearDraft();
+  };
+
   const handleSubmit = async () => {
     const isFormValid = await stepValidation.validateAll();
     if (!isFormValid) {
@@ -414,6 +424,7 @@ export function useCreateAssessmentController() {
     hubContext: gardenRouteContext,
     handleBack: stepValidation.handleBack,
     handleCancel,
+    handleDiscard,
     handleNext: stepValidation.handleNext,
     handleSubmit,
     hasError,

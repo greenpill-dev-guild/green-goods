@@ -3,7 +3,8 @@
  */
 
 import { QueryClientProvider } from "@tanstack/react-query";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { get as idbGet } from "idb-keyval";
 import { IntlProvider } from "react-intl";
 import { RouterProvider, createMemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -12,6 +13,7 @@ import {
   DEFAULT_CHAIN_ID,
   queryKeys,
   useAdminStore,
+  useCreateAssessmentStore,
   type AuthContextType,
   type Garden,
 } from "@green-goods/shared";
@@ -93,7 +95,13 @@ function renderCreateAssessment() {
     }
   );
   const router = createMemoryRouter(
-    [{ path: "/hub/assess/create", element: <CreateAssessment /> }],
+    [
+      { path: "/hub/assess/create", element: <CreateAssessment /> },
+      // Cancel/Discard navigates to the Hub the flow was launched from — a
+      // bare fallback so that navigation resolves cleanly instead of logging
+      // a React Router 404 in tests that exercise the close path.
+      { path: "/hub/*", element: <div /> },
+    ],
     {
       initialEntries: [`/hub/assess/create?gardenId=${SELECTED_GARDEN.id}`],
     }
@@ -146,5 +154,37 @@ describe("CreateAssessment dialog", () => {
     expect(await screen.findByRole("heading", { name: "Domain & Context" })).toBeInTheDocument();
     expect(screen.getByText("Role-Proven Garden")).toBeInTheDocument();
     expect(screen.queryByText("app.garden.admin.notFound")).not.toBeInTheDocument();
+  });
+
+  it("clears the persisted draft and in-memory form when the operator confirms Discard", async () => {
+    await act(async () => {
+      renderCreateAssessment();
+      await Promise.resolve();
+    });
+
+    const titleInput = await screen.findByLabelText(/^Title/);
+    fireEvent.change(titleInput, { target: { value: "Should not survive discard" } });
+
+    // Let the 600ms debounced auto-save actually persist the draft to IndexedDB
+    // before discarding it — otherwise this test can't tell "never saved" apart
+    // from "saved, then correctly cleared".
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 700));
+    });
+
+    const draftKey = `assessment_draft_${SELECTED_GARDEN.id}_${OPERATOR}`;
+    expect(await idbGet(draftKey)).toMatchObject({ title: "Should not survive discard" });
+
+    const dialog = screen.getByRole("dialog", { name: "Submit assessment" });
+    fireEvent.keyDown(dialog, { key: "Escape" });
+
+    const discardButton = await screen.findByRole("button", { name: "Discard" });
+    await act(async () => {
+      fireEvent.click(discardButton);
+      await Promise.resolve();
+    });
+
+    expect(await idbGet(draftKey)).toBeUndefined();
+    expect(useCreateAssessmentStore.getState().form.title).toBe("");
   });
 });

@@ -17,9 +17,10 @@ import { DomainContextStep } from "@/components/Assessment/CreateAssessmentSteps
 import { StrategyKernelStep } from "@/components/Assessment/CreateAssessmentSteps/StrategyKernelStep";
 import { ActionFlowShell } from "@/components/Layout/ActionFlowShell";
 
-// Create Assessment is a create/commit flow rendered as a centered 2xl AdminDialog
-// (bottom-sheet on mobile) through the shared ActionFlowShell grammar, same as
-// Submit Work. Single phase: no target selection, just the stacked configure sections.
+// Create Assessment is a create/commit flow rendered as a centered flow AdminDialog
+// (bottom-sheet on mobile, width from ADMIN_FLOW_DIALOG_CLASS) through the shared
+// ActionFlowShell grammar, same as Submit Work. Single phase: no target selection,
+// just the stacked configure sections.
 export default function CreateAssessment() {
   const { formatMessage } = useIntl();
   const createAssessment = useCreateAssessmentController();
@@ -30,6 +31,7 @@ export default function CreateAssessment() {
   const dirtyClose = useDirtyClose({
     isDirty: createAssessment.isDirty,
     onClose: createAssessment.handleCancel,
+    onDiscard: createAssessment.handleDiscard,
   });
 
   const title = formatMessage({
@@ -193,7 +195,8 @@ export default function CreateAssessment() {
     );
   }
 
-  // Centered 2xl modal with a scrim (bottom-sheet on mobile). The body is
+  // Centered flow modal with a scrim (bottom-sheet on mobile) — width comes
+  // from ADMIN_FLOW_DIALOG_CLASS, not the size prop below. The body is
   // neutralized to a non-scrolling flex column so ActionFlowShell owns the
   // pinned chrome + scrolling body; the AdminDialog close button is the exit
   // (→ controller handleCancel).
@@ -201,7 +204,7 @@ export default function CreateAssessment() {
     <>
       <AdminDialog
         open
-        size="2xl"
+        size="lg"
         variant="flow"
         tone="hub"
         className={ADMIN_FLOW_DIALOG_CLASS}
