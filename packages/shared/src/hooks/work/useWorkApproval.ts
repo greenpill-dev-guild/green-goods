@@ -328,6 +328,10 @@ export function useWorkApproval() {
         title,
         message,
         context: authMode === "wallet" ? "wallet confirmation" : "approval submission",
+        // Wallet mode waits on the human signature, which can exceed any fixed
+        // timeout — keep it up until the flow replaces it. Passkey/offline are
+        // fast, so they keep the default auto-dismiss safety window.
+        persistent: authMode === "wallet",
         suppressLogging: true,
       });
 
