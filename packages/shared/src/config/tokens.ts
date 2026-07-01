@@ -69,9 +69,10 @@ export function getStablecoinSendableTokens(chainId: number): SendableToken[] {
  * Build the full sendable-token list given an already-resolved GOODS address.
  *
  * GOODS leads (hero token) when present and non-zero; the curated stablecoins
- * follow. Supported tokens are de-duped by lowercased address so a future
- * address overlap can never render two identical rows; unsupported rows are
- * always preserved (they share the zero placeholder address).
+ * follow. Tokens with no address on this chain (e.g. GoodDollar on Arbitrum) are
+ * dropped — the Send flow only offers tokens you can actually transfer. Supported
+ * tokens are de-duped by lowercased address so a future address overlap can never
+ * render two identical rows.
  */
 export function buildSendableTokens(
   chainId: number,
@@ -87,7 +88,7 @@ export function buildSendableTokens(
 
   const seen = new Set<string>();
   return tokens.filter((token) => {
-    if (!token.supported) return true;
+    if (!token.supported) return false;
     const key = token.address.toLowerCase();
     if (seen.has(key)) return false;
     seen.add(key);

@@ -17,6 +17,10 @@ interface MemberRowProps {
   roles?: GardenRole[];
   /** Shown under the name when the list mixes gardens (search / flat mode). */
   gardenName?: string;
+  /** Garden names the sender and this member both belong to ("Together in …"). */
+  sharedGardens?: string[];
+  /** Suppress the garden line when a section header already names the garden. */
+  hideGarden?: boolean;
   selected?: boolean;
   onSelect: () => void;
 }
@@ -28,7 +32,15 @@ const MAX_BADGES = 2;
  * Presentational recipient row. Identity (name + avatar) resolves lazily via the
  * shared ENS hooks; the wallet address is the always-available fallback.
  */
-export function MemberRow({ address, roles = [], gardenName, selected, onSelect }: MemberRowProps) {
+export function MemberRow({
+  address,
+  roles = [],
+  gardenName,
+  sharedGardens,
+  hideGarden,
+  selected,
+  onSelect,
+}: MemberRowProps) {
   const { formatMessage } = useIntl();
   const { data: ensName } = useEnsName(address);
   const { data: ensAvatar } = useEnsAvatar(address);
@@ -39,6 +51,15 @@ export function MemberRow({ address, roles = [], gardenName, selected, onSelect 
     .toUpperCase();
   const visibleRoles = roles.slice(0, MAX_BADGES);
   const extraRoles = roles.length - visibleRoles.length;
+
+  // "Gardens you share" wins over a plain garden line; the section header owns the
+  // garden when `hideGarden` is set (frontend-design Rule 17 — don't restate it).
+  const sharedGardensText = sharedGardens?.length ? sharedGardens.join(", ") : null;
+  const contextLine = sharedGardensText
+    ? formatMessage({ id: "app.send.recipient.sharedGardens" }, { gardens: sharedGardensText })
+    : !hideGarden && gardenName
+      ? gardenName
+      : null;
 
   return (
     <button
@@ -63,9 +84,9 @@ export function MemberRow({ address, roles = [], gardenName, selected, onSelect 
         <p className="truncate text-sm font-medium text-text-strong-950" title={displayName}>
           {displayName}
         </p>
-        {gardenName ? (
-          <p className="truncate text-xs text-text-soft-400" title={gardenName}>
-            {gardenName}
+        {contextLine ? (
+          <p className="truncate text-xs text-text-soft-400" title={contextLine}>
+            {contextLine}
           </p>
         ) : null}
       </div>

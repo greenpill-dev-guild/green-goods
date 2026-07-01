@@ -82,9 +82,7 @@ export function AmountStep({
                   </div>
                   <div className="flex shrink-0 items-center gap-2 text-right">
                     <span className="text-xs text-text-sub-600">
-                      {token.supported
-                        ? formatTokenAmount(token.balance ?? 0n, token.decimals)
-                        : formatMessage({ id: "app.send.token.unavailable" })}
+                      {formatTokenAmount(token.balance ?? 0n, token.decimals)}
                     </span>
                     {selected ? (
                       <RiCheckLine className="h-4 w-4 text-primary-base" aria-hidden />

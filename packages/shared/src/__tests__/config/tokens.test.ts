@@ -46,7 +46,7 @@ describe("sendable token registry", () => {
     expect(buildSendableTokens(ARBITRUM, ZERO).some((t) => t.symbol === "GOODS")).toBe(false);
   });
 
-  it("keeps supported tokens unique by address while preserving unsupported rows", () => {
+  it("keeps supported tokens unique by address and drops unsupported ones", () => {
     const tokens = buildSendableTokens(ARBITRUM, GOODS);
 
     const supportedAddresses = tokens
@@ -54,7 +54,9 @@ describe("sendable token registry", () => {
       .map((token) => token.address.toLowerCase());
     expect(new Set(supportedAddresses).size).toBe(supportedAddresses.length);
 
-    // The unsupported GoodDollar row is still surfaced (so the UI can show it disabled).
-    expect(tokens.some((token) => token.symbol === "G$" && !token.supported)).toBe(true);
+    // GoodDollar has no Arbitrum address, so it is not offered as a sendable token.
+    expect(tokens.some((token) => token.symbol === "G$")).toBe(false);
+    // Every token in the sendable list is transferable on this chain.
+    expect(tokens.every((token) => token.supported)).toBe(true);
   });
 });

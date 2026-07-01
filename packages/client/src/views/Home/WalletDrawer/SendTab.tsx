@@ -6,22 +6,31 @@ import {
   formatTokenAmount,
   type SendableTokenBalance,
   useCurrentChain,
+  useEnsName,
   useOffline,
   useSendableTokens,
   useSendToken,
   useUser,
 } from "@green-goods/shared";
-import { RiArrowLeftLine, RiLoader4Line } from "@remixicon/react";
-import React, { useMemo, useState } from "react";
+import { RiArrowLeftLine, RiLoader4Line, RiPencilLine } from "@remixicon/react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits } from "viem";
 import { AmountStep } from "./Send/AmountStep";
+import { ReceiveView } from "./Send/ReceiveView";
 import { RecipientPicker } from "./Send/RecipientPicker";
 import { ReviewStep } from "./Send/ReviewStep";
 import type { SelectedRecipient, SendStep } from "./Send/types";
 import { validateSendAmount } from "./Send/validation";
 
-export const SendTab: React.FC = () => {
+type WalletMode = "send" | "receive";
+
+interface SendTabProps {
+  /** Bumped by the parent when the Tokens tab is (re)selected, to reset to step 1. */
+  resetNonce?: number;
+}
+
+export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
   const { formatMessage } = useIntl();
   const { primaryAddress } = useUser();
   const chainId = useCurrentChain();
@@ -29,12 +38,28 @@ export const SendTab: React.FC = () => {
   const { tokens, isLoading } = useSendableTokens(primaryAddress as Address | null, chainId);
   const sendMutation = useSendToken();
 
+  const [mode, setMode] = useState<WalletMode>("send");
   const [step, setStep] = useState<SendStep>("recipient");
   const [recipient, setRecipient] = useState<SelectedRecipient | null>(null);
   const [selectedToken, setSelectedToken] = useState<SendableTokenBalance | null>(null);
   const [amountInput, setAmountInput] = useState("");
   const [note, setNote] = useState("");
   const [showConfirm, setShowConfirm] = useState(false);
+
+  // Re-tapping the Tokens tab returns to step 1 (keeping the chosen recipient so
+  // the user can simply pick someone else) and back to the Send side.
+  useEffect(() => {
+    if (resetNonce === undefined) return;
+    setMode("send");
+    setStep("recipient");
+  }, [resetNonce]);
+
+  // Always resolve the recipient's ENS name for display — garden members carry no
+  // pre-resolved name, so without this the "Sending to" line shows a raw address.
+  const { data: resolvedEnsName } = useEnsName(recipient?.address ?? undefined);
+  const recipientDisplayName = recipient
+    ? resolvedEnsName || recipient.ensName || formatAddress(recipient.address)
+    : "";
 
   const validation = useMemo(
     () => validateSendAmount(selectedToken, amountInput),
@@ -62,8 +87,6 @@ export const SendTab: React.FC = () => {
       { onSuccess: () => resetForm() }
     );
   };
-
-  const recipientLabel = recipient ? recipient.ensName || formatAddress(recipient.address) : "";
 
   // Action-bar enabled state per step.
   const canAdvance =
@@ -93,76 +116,122 @@ export const SendTab: React.FC = () => {
 
   return (
     <div className="flex min-h-full flex-col">
-      <div className="flex-1">
-        {step !== "recipient" && recipient ? (
-          <p className="truncate px-4 pt-4 text-xs text-text-soft-400" title={recipient.address}>
-            {formatMessage({ id: "app.send.recipient.selected" })}: {recipientLabel}
-          </p>
-        ) : null}
-
-        {step === "recipient" ? (
-          <RecipientPicker
-            selectedAddress={recipient?.address}
-            onSelect={(next) => {
-              setRecipient(next);
-              setStep("amount");
-            }}
-          />
-        ) : null}
-
-        {step === "amount" ? (
-          <AmountStep
-            tokens={tokens}
-            isLoading={isLoading}
-            selectedToken={selectedToken}
-            onSelectToken={setSelectedToken}
-            amountInput={amountInput}
-            onAmountChange={setAmountInput}
-            validation={validation}
-            onMax={handleMax}
-          />
-        ) : null}
-
-        {step === "review" && recipient && selectedToken ? (
-          <ReviewStep
-            recipient={recipient}
-            token={selectedToken}
-            parsedAmount={validation.parsedAmount}
-            note={note}
-            onNoteChange={setNote}
-            isOnline={isOnline}
-          />
-        ) : null}
-      </div>
-
-      {/* Sticky action bar (the drawer footer is parent-owned, so SendTab owns its own). */}
-      <div className="sticky bottom-0 mt-auto flex items-center gap-2 border-t border-stroke-soft-200 bg-bg-white-0 p-4">
-        {step !== "recipient" ? (
-          <button
-            type="button"
-            onClick={onBack}
-            className="flex min-h-11 items-center gap-1 rounded-md border border-stroke-sub-300 bg-bg-white-0 px-3 py-2 text-sm font-medium text-text-sub-600 hover:bg-bg-weak-50"
-          >
-            <RiArrowLeftLine className="h-4 w-4" aria-hidden />
-            {formatMessage({ id: "app.send.back" })}
-          </button>
-        ) : null}
-        <button
-          type="button"
-          onClick={onPrimary}
-          disabled={!canAdvance}
-          aria-busy={sendMutation.isPending || undefined}
-          className={cn(
-            "inline-flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60",
-            "bg-primary-base text-static-white hover:bg-primary-darker"
-          )}
+      {/* Send / Receive toggle */}
+      <div className="p-4 pb-0">
+        <div
+          role="tablist"
+          aria-label={formatMessage({ id: "app.wallet.tab.tokens" })}
+          className="flex rounded-lg border border-stroke-soft-200 bg-bg-weak-50 p-0.5"
         >
-          {sendMutation.isPending ? (
-            <RiLoader4Line className="h-4 w-4 animate-spin" aria-hidden />
-          ) : null}
-          {primaryLabel}
-        </button>
+          {(["send", "receive"] as const).map((value) => (
+            <button
+              key={value}
+              type="button"
+              role="tab"
+              aria-selected={mode === value}
+              onClick={() => setMode(value)}
+              className={cn(
+                "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition",
+                mode === value
+                  ? "bg-bg-white-0 text-text-strong-950 shadow-sm"
+                  : "text-text-sub-600 hover:text-text-strong-950"
+              )}
+            >
+              {formatMessage({
+                id: value === "send" ? "app.send.mode.send" : "app.send.mode.receive",
+              })}
+            </button>
+          ))}
+        </div>
       </div>
+
+      {mode === "receive" ? (
+        <ReceiveView />
+      ) : (
+        <>
+          <div className="flex-1">
+            {step !== "recipient" && recipient ? (
+              <button
+                type="button"
+                onClick={() => setStep("recipient")}
+                title={recipient.address}
+                className="flex w-full items-center gap-1 px-4 pt-4 text-left text-xs text-text-soft-400 hover:text-text-sub-600"
+              >
+                <span className="min-w-0 flex-1 truncate">
+                  {formatMessage({ id: "app.send.recipient.selected" })}: {recipientDisplayName}
+                </span>
+                <RiPencilLine className="h-3.5 w-3.5 shrink-0" aria-hidden />
+              </button>
+            ) : null}
+
+            {step === "recipient" ? (
+              <RecipientPicker
+                selectedAddress={recipient?.address}
+                onSelect={(next) => {
+                  setRecipient(next);
+                  setStep("amount");
+                }}
+              />
+            ) : null}
+
+            {step === "amount" ? (
+              <AmountStep
+                tokens={tokens}
+                isLoading={isLoading}
+                selectedToken={selectedToken}
+                onSelectToken={setSelectedToken}
+                amountInput={amountInput}
+                onAmountChange={setAmountInput}
+                validation={validation}
+                onMax={handleMax}
+              />
+            ) : null}
+
+            {step === "review" && recipient && selectedToken ? (
+              <ReviewStep
+                recipient={recipient}
+                recipientLabel={recipientDisplayName}
+                token={selectedToken}
+                parsedAmount={validation.parsedAmount}
+                note={note}
+                onNoteChange={setNote}
+                isOnline={isOnline}
+                onEditRecipient={() => setStep("recipient")}
+                onEditAmount={() => setStep("amount")}
+              />
+            ) : null}
+          </div>
+
+          {/* Sticky action bar (the drawer footer is parent-owned, so SendTab owns its own). */}
+          <div className="sticky bottom-0 mt-auto flex items-center gap-2 border-t border-stroke-soft-200 bg-bg-white-0 p-4">
+            {step !== "recipient" ? (
+              <button
+                type="button"
+                onClick={onBack}
+                className="flex min-h-11 items-center gap-1 rounded-md border border-stroke-sub-300 bg-bg-white-0 px-3 py-2 text-sm font-medium text-text-sub-600 hover:bg-bg-weak-50"
+              >
+                <RiArrowLeftLine className="h-4 w-4" aria-hidden />
+                {formatMessage({ id: "app.send.back" })}
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={onPrimary}
+              disabled={!canAdvance}
+              aria-busy={sendMutation.isPending || undefined}
+              className={cn(
+                "inline-flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60",
+                "bg-primary-base text-static-white hover:bg-primary-darker"
+              )}
+            >
+              {sendMutation.isPending ? (
+                <RiLoader4Line className="h-4 w-4 animate-spin" aria-hidden />
+              ) : null}
+              {primaryLabel}
+            </button>
+          </div>
+        </>
+      )}
 
       {recipient && selectedToken ? (
         <ConfirmDialog
@@ -178,7 +247,7 @@ export const SendTab: React.FC = () => {
             {
               amount: formatTokenAmount(validation.parsedAmount, selectedToken.decimals),
               symbol: selectedToken.symbol,
-              recipient: recipientLabel,
+              recipient: recipientDisplayName,
             }
           )}
           confirmLabel={formatMessage({ id: "app.send.sendCta" })}

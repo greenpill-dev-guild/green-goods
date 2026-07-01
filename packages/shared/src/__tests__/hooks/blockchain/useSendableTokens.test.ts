@@ -67,16 +67,15 @@ describe("hooks/blockchain/useSendableTokens", () => {
     expect(usdc?.errored).toBe(false);
   });
 
-  it("surfaces GoodDollar as unsupported on Arbitrum without reading its balance", async () => {
+  it("omits GoodDollar on Arbitrum — unsupported tokens are not offered", async () => {
     const { result } = renderHook(() => useSendableTokens(ACCOUNT, 42161), {
       wrapper: makeWrapper(),
     });
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
-    const goodDollar = result.current.tokens.find((t) => t.symbol === "G$");
-    expect(goodDollar?.supported).toBe(false);
-    expect(goodDollar?.balance).toBeNull();
-    expect(goodDollar?.errored).toBe(false);
+    expect(result.current.tokens.some((t) => t.symbol === "G$")).toBe(false);
+    // Every token offered is supported/sendable on this chain.
+    expect(result.current.tokens.every((t) => t.supported)).toBe(true);
   });
 
   it("is disabled without an account and reads nothing", () => {

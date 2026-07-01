@@ -256,12 +256,18 @@ export {
 
 // Send-flow recipient aggregation (pure helpers)
 export {
+  buildRecipientDirectory,
   buildSendRecipientGroups,
   flattenRecipientMembers,
+  sharedGardenNames,
 } from "./utils/app/send-recipients";
 export type {
+  DirectoryMember,
   FlatRecipientMember,
+  RecipientDirectory,
   RecipientGardenGroup,
+  RecipientGardenMembership,
+  RecipientGardenSummary,
   RecipientMember,
 } from "./utils/app/send-recipients";
 

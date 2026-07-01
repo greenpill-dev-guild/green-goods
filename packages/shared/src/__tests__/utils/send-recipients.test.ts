@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import type { Address, Garden } from "../../types/domain";
-import { buildSendRecipientGroups, flattenRecipientMembers } from "../../utils/app/send-recipients";
+import {
+  buildRecipientDirectory,
+  buildSendRecipientGroups,
+  flattenRecipientMembers,
+  sharedGardenNames,
+} from "../../utils/app/send-recipients";
 
 const SELF = "0x1111111111111111111111111111111111111111" as Address;
 const ALICE = "0x2222222222222222222222222222222222222222" as Address;
@@ -75,5 +80,36 @@ describe("flattenRecipientMembers", () => {
     const alice = flat.filter((m) => m.address === ALICE);
     expect(alice).toHaveLength(1);
     expect(flat.map((m) => m.address).sort()).toEqual([ALICE, BOB].sort());
+  });
+});
+
+describe("buildRecipientDirectory", () => {
+  it("splits my gardens from others and indexes members by address", () => {
+    const directory = buildRecipientDirectory(
+      [
+        garden({ id: "0xmine", name: "Mine", gardeners: [SELF, ALICE] }),
+        garden({ id: "0xother", name: "Other", gardeners: [ALICE, BOB] }),
+      ],
+      SELF
+    );
+
+    expect(directory.myGardens.map((g) => g.gardenName)).toEqual(["Mine"]);
+    expect(directory.otherGardens.map((g) => g.gardenName)).toEqual(["Other"]);
+    // Alice belongs to both gardens.
+    expect(directory.byAddress.get(ALICE.toLowerCase())?.gardens).toHaveLength(2);
+  });
+
+  it("computes the gardens the sender and a member share", () => {
+    const directory = buildRecipientDirectory(
+      [
+        garden({ id: "0xmine", name: "Mine", gardeners: [SELF, ALICE] }),
+        garden({ id: "0xother", name: "Other", gardeners: [ALICE, BOB] }),
+      ],
+      SELF
+    );
+
+    // Alice shares "Mine" with the sender; Bob shares nothing.
+    expect(sharedGardenNames(directory, ALICE)).toEqual(["Mine"]);
+    expect(sharedGardenNames(directory, BOB)).toEqual([]);
   });
 });

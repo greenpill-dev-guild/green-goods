@@ -114,3 +114,89 @@ export function flattenRecipientMembers(groups: RecipientGardenGroup[]): FlatRec
   }
   return flat;
 }
+
+/** One garden a member belongs to, with the roles they hold there. */
+export interface RecipientGardenMembership {
+  gardenId: string;
+  gardenName: string;
+  isMine: boolean;
+  roles: GardenRole[];
+}
+
+/** A recipient across the whole directory, with per-garden membership. */
+export interface DirectoryMember {
+  address: Address;
+  /** Every garden this member belongs to (mine and others). */
+  gardens: RecipientGardenMembership[];
+  /** Gardens the current user and this member both belong to. */
+  sharedGardens: RecipientGardenMembership[];
+}
+
+/** A garden row for the "browse all gardens" drill-down list. */
+export interface RecipientGardenSummary {
+  gardenId: string;
+  gardenName: string;
+  memberCount: number;
+  isMine: boolean;
+}
+
+export interface RecipientDirectory {
+  /** Gardens the current user is a member of — members shown inline. */
+  myGardens: RecipientGardenGroup[];
+  /** Gardens the current user is NOT in — for garden-first drill-down. */
+  otherGardens: RecipientGardenGroup[];
+  /** Address (lowercased) → membership + shared-garden context. */
+  byAddress: Map<string, DirectoryMember>;
+}
+
+/**
+ * Build the recipient directory for the Send picker.
+ *
+ * Splits gardens into "mine" (members shown directly) and "others" (browsed via a
+ * garden-first drill-down), and indexes every member by address so the UI can show
+ * which gardens the sender and recipient share ("gardens you share") without a
+ * global member directory (which doesn't exist).
+ */
+export function buildRecipientDirectory(
+  gardens: Garden[] | undefined,
+  self?: Address | string | null
+): RecipientDirectory {
+  const groups = buildSendRecipientGroups(gardens, self);
+  const byAddress = new Map<string, DirectoryMember>();
+
+  for (const group of groups) {
+    for (const member of group.members) {
+      const key = member.address.toLowerCase();
+      const membership: RecipientGardenMembership = {
+        gardenId: group.gardenId,
+        gardenName: group.gardenName,
+        isMine: group.isMine,
+        roles: member.roles,
+      };
+      const existing = byAddress.get(key);
+      if (existing) {
+        existing.gardens.push(membership);
+        if (group.isMine) existing.sharedGardens.push(membership);
+      } else {
+        byAddress.set(key, {
+          address: member.address,
+          gardens: [membership],
+          sharedGardens: group.isMine ? [membership] : [],
+        });
+      }
+    }
+  }
+
+  return {
+    myGardens: groups.filter((group) => group.isMine),
+    otherGardens: groups.filter((group) => !group.isMine),
+    byAddress,
+  };
+}
+
+/** Garden names the current user shares with a member, for the "Together in …" line. */
+export function sharedGardenNames(directory: RecipientDirectory, address: Address): string[] {
+  return (
+    directory.byAddress.get(address.toLowerCase())?.sharedGardens.map((g) => g.gardenName) ?? []
+  );
+}

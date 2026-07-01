@@ -131,4 +131,36 @@ describe("SendTab", () => {
     expect(screen.getByText("You're offline. Reconnect to send.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Send" })).toBeDisabled();
   });
+
+  it("shows the wallet QR code on the Receive tab", async () => {
+    const user = userEvent.setup();
+    render(<SendTab />);
+    await user.click(screen.getByRole("tab", { name: "Receive" }));
+
+    expect(screen.getByRole("img", { name: "Your wallet QR code" })).toBeInTheDocument();
+  });
+
+  it("returns to the recipient step when the reset nonce changes (tab re-tap)", async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(<SendTab resetNonce={0} />);
+    await user.click(await screen.findByRole("button", { name: /alice\.eth/i }));
+    expect(screen.getByText(/Sending to/i)).toBeInTheDocument();
+
+    rerender(<SendTab resetNonce={1} />);
+
+    expect(await screen.findByRole("button", { name: /alice\.eth/i })).toBeInTheDocument();
+    expect(screen.queryByText(/Sending to/i)).not.toBeInTheDocument();
+  });
+
+  it("lets you edit the recipient from the review step", async () => {
+    const user = userEvent.setup();
+    render(<SendTab />);
+    await pickMemberAndToken(user, /GOODS/);
+    await user.click(screen.getByRole("button", { name: "Review" }));
+
+    // The "To" row is the first tappable "Change" affordance on the review step.
+    await user.click(screen.getAllByRole("button", { name: "Change" })[0]);
+
+    expect(await screen.findByRole("button", { name: /alice\.eth/i })).toBeInTheDocument();
+  });
 });
