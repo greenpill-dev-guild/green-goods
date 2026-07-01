@@ -69,7 +69,11 @@ export const InstallCta: React.FC = () => {
     });
   }, [guidance.scenario, guidance.manualInstructions, platform, intl]);
 
-  if (!isMobile || isInstalled) return null;
+  // Hide once the app is installed — either detected live (isInstalled) or
+  // remembered on Android, where guidance resolves to "open-app". The profile
+  // has no install work to offer in that state, and the card has no open-app
+  // affordance, so rendering it would show an actionless "Install" card.
+  if (!isMobile || isInstalled || guidance.primaryAction.type === "open-app") return null;
 
   return (
     <>

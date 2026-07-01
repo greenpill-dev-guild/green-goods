@@ -257,6 +257,29 @@ export function useInstallGuidance(
     // Manual installation available (Safari on iOS, or Android without prompt)
     const manualInstructions = getManualInstallSteps(platform, browserInfo.browser);
 
+    // Android keeps a previously-installed PWA's WebAPK registered even though the
+    // browser tab can never observe `display-mode: standalone`. So once we've seen
+    // an install on this browser (`wasInstalled`), surface "Open App" instead of
+    // reinstall steps — the CTA then persists across reloads, and the click is a
+    // real navigation to the in-scope start URL that Chrome/Android link-capturing
+    // hands off to the installed app. iOS has no link capturing (and no WebAPK), so
+    // it keeps the manual reinstall guidance below.
+    if (wasInstalled && platform === "android") {
+      return {
+        browserInfo,
+        scenario: "already-installed",
+        primaryAction: {
+          type: "open-app",
+          label: "Open App",
+        },
+        secondaryAction: null,
+        showBrowserOption: false,
+        manualInstructions: null,
+        browserSwitchReason: null,
+        openInBrowserUrl: null,
+      };
+    }
+
     // A remembered install is not proof the PWA is still installed. Mobile browsers
     // can keep local install history after the app is removed, so keep reinstall
     // guidance available unless the current installed check confirms it is present.

@@ -23,6 +23,7 @@ const mockAppState = {
 
 const mockGuidanceState = {
   scenario: "manual-instructions" as string,
+  primaryAction: { type: "show-manual-steps" as string, label: "Install App" },
   manualInstructions: null as any,
   browserSwitchReason: null as string | null,
   openInBrowserUrl: null as string | null,
@@ -75,6 +76,7 @@ describe("InstallCta", () => {
     mockAppState.wasInstalled = false;
     mockAppState.platform = "android";
     mockGuidanceState.scenario = "manual-instructions";
+    mockGuidanceState.primaryAction = { type: "show-manual-steps", label: "Install App" };
     mockGuidanceState.manualInstructions = null;
     mockGuidanceState.browserSwitchReason = null;
     mockGuidanceState.openInBrowserUrl = null;
@@ -93,6 +95,15 @@ describe("InstallCta", () => {
 
   it("returns null when already installed", () => {
     mockAppState.isInstalled = true;
+
+    const { container } = render(wrap(createElement(InstallCta)));
+    expect(container.innerHTML).toBe("");
+  });
+
+  it("returns null when guidance resolves to open-app (remembered install)", () => {
+    mockAppState.wasInstalled = true;
+    mockGuidanceState.scenario = "already-installed";
+    mockGuidanceState.primaryAction = { type: "open-app", label: "Open App" };
 
     const { container } = render(wrap(createElement(InstallCta)));
     expect(container.innerHTML).toBe("");

@@ -231,7 +231,7 @@ describe("hooks/app/useInstallGuidance", () => {
       expect(result.current.manualInstructions![0].icon).toBe("share");
     });
 
-    it("keeps reinstall guidance primary when wasInstalled is true but not currently installed", () => {
+    it("keeps iOS reinstall guidance primary when wasInstalled is true but not currently installed", () => {
       mockDetect.mockReturnValue(safariBrowser);
       mockCanTrigger.mockReturnValue(false);
 
@@ -242,6 +242,22 @@ describe("hooks/app/useInstallGuidance", () => {
       expect(result.current.primaryAction.label).toBe("Install App");
       expect(result.current.secondaryAction?.type).toBe("continue-in-browser");
       expect(result.current.secondaryAction?.label).toBe("Continue in Browser");
+    });
+
+    it("surfaces Open App on Android once the PWA was installed on this browser", () => {
+      // Android WebAPKs stay registered after install, but the browser tab can
+      // never see display-mode: standalone. `wasInstalled` is the persistent
+      // signal that keeps the CTA on "Open App" across reloads (link-capturing
+      // then hands the click off to the installed app).
+      mockDetect.mockReturnValue(chromeBrowser);
+      mockCanTrigger.mockReturnValue(false);
+
+      const { result } = renderHook(() => useInstallGuidance("android", false, true, null, true));
+
+      expect(result.current.scenario).toBe("already-installed");
+      expect(result.current.primaryAction.type).toBe("open-app");
+      expect(result.current.primaryAction.label).toBe("Open App");
+      expect(result.current.secondaryAction).toBeNull();
     });
 
     it("provides Android Chrome manual steps", () => {
