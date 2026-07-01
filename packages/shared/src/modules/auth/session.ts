@@ -173,6 +173,19 @@ export function clearEmbeddedAddress(): void {
   localStorage.removeItem(EMBEDDED_ADDRESS_KEY);
 }
 
+/**
+ * Clear only the active auth session while preserving passkey recovery metadata.
+ *
+ * This is used for explicit logout-style boundaries where the app should not
+ * silently restore a session, but the same-device credential cache should still
+ * support the next user-initiated passkey login.
+ */
+export function clearActiveSessionAuth(): void {
+  clearAuthMode();
+  clearEmbeddedAddress();
+  setSignedOutSentinel();
+}
+
 // ============================================================================
 // SIGN OUT
 // ============================================================================

@@ -11,6 +11,10 @@ import {
   restoreExceptionTopLevelProps,
   track,
 } from "../modules/app/posthog";
+import { queryClient } from "../config/react-query";
+import { logger } from "../modules/app/logger";
+import { serviceWorkerManager } from "../modules/app/service-worker";
+import { clearActiveSessionAuth } from "../modules/auth/session";
 import {
   type ClientPresentationMode,
   getClientPresentationMode,
@@ -31,7 +35,6 @@ const POSTHOG_API_HOST = "https://us.i.posthog.com";
 
 export type InstallState = "idle" | "not-installed" | "installing" | "installed" | "unsupported";
 const INSTALL_READY_SETTLE_MS = 4000;
-const INSTALL_ACCEPTED_FALLBACK_MS = 8000;
 export const supportedLanguages = ["en", "pt", "es"] as const;
 export type Locale = (typeof supportedLanguages)[number];
 export type { Platform };
@@ -40,6 +43,14 @@ const installSuccessToastIds = {
   title: "app.toast.install.success.title",
   message: "app.toast.install.success.message",
 } as const;
+
+function clearInstalledAppSessionState() {
+  clearActiveSessionAuth();
+  queryClient.clear();
+  serviceWorkerManager.clearAllCaches().catch((error) => {
+    logger.warn("[AppProvider] clearAllCaches failed after app install", { error });
+  });
+}
 
 export interface AppDataProps {
   isMobile: boolean;
@@ -177,8 +188,13 @@ export const AppProvider = ({
   }, []);
 
   const handleAppInstalled = useCallback(() => {
+    const wasPreviouslyInstalled = localStorage.getItem("gg-pwa-installed") === "true";
+
     setInstalledState("installing");
     setWasInstalled(true);
+    if (wasPreviouslyInstalled) {
+      clearInstalledAppSessionState();
+    }
     localStorage.setItem("gg-pwa-installed", "true");
     scheduleInstalledState(INSTALL_READY_SETTLE_MS, () => {
       toastService.success({
@@ -212,10 +228,7 @@ export const AppProvider = ({
         .prompt()
         .then(() => deferredPrompt.userChoice)
         .then((choiceResult) => {
-          if (choiceResult.outcome === "accepted") {
-            scheduleInstalledState(INSTALL_ACCEPTED_FALLBACK_MS);
-            return;
-          }
+          if (choiceResult.outcome === "accepted") return;
 
           clearInstallSettleTimer();
           setInstalledState(isAppInstalled() ? "installed" : "not-installed");
@@ -228,7 +241,7 @@ export const AppProvider = ({
           setDeferredPrompt(null); // Clear the saved prompt
         });
     }
-  }, [clearInstallSettleTimer, deferredPrompt, scheduleInstalledState]);
+  }, [clearInstallSettleTimer, deferredPrompt]);
 
   useEffect(() => {
     // Only run install check if not already detected as installed during initialization

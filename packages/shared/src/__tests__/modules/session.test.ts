@@ -40,6 +40,7 @@ Object.defineProperty(global, "localStorage", {
 
 import {
   AUTH_MODE_STORAGE_KEY,
+  clearActiveSessionAuth,
   clearAllAuth,
   clearEmbeddedAddress,
   clearSignedOutSentinel,
@@ -49,12 +50,14 @@ import {
   getEmbeddedAddress,
   getStoredSmartAccountAddress,
   hasSignedOutSentinel,
+  RP_ID_STORAGE_KEY,
   SIGNED_OUT_STORAGE_KEY,
   SMART_ACCOUNT_ADDRESS_STORAGE_KEY,
   setAuthMode,
   setEmbeddedAddress,
   setSignedOutSentinel,
   setStoredSmartAccountAddress,
+  USERNAME_STORAGE_KEY,
 } from "../../modules/auth/session";
 
 // ============================================================================
@@ -190,6 +193,30 @@ describe("modules/auth/session", () => {
       expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(EMBEDDED_ADDRESS_KEY);
       expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(SMART_ACCOUNT_ADDRESS_STORAGE_KEY);
       expect(mockLocalStorage.removeItem).toHaveBeenCalledWith(AUTH_MODE_STORAGE_KEY);
+    });
+  });
+
+  describe("clearActiveSessionAuth", () => {
+    it("clears active session state but preserves passkey recovery metadata", () => {
+      const TEST_ADDRESS = "0x1234567890123456789012345678901234567890";
+      const credential = JSON.stringify({ id: "credential-id", publicKey: "0x1234" });
+
+      mockLocalStorage.setItem(AUTH_MODE_STORAGE_KEY, "passkey");
+      mockLocalStorage.setItem(EMBEDDED_ADDRESS_KEY, TEST_ADDRESS);
+      mockLocalStorage.setItem(USERNAME_STORAGE_KEY, "afo");
+      mockLocalStorage.setItem("greengoods_credential", credential);
+      mockLocalStorage.setItem(RP_ID_STORAGE_KEY, "greengoods.app");
+      mockLocalStorage.setItem(SMART_ACCOUNT_ADDRESS_STORAGE_KEY, TEST_ADDRESS);
+
+      clearActiveSessionAuth();
+
+      expect(getAuthMode()).toBeNull();
+      expect(getEmbeddedAddress()).toBeNull();
+      expect(hasSignedOutSentinel()).toBe(true);
+      expect(mockLocalStorage.getItem(USERNAME_STORAGE_KEY)).toBe("afo");
+      expect(mockLocalStorage.getItem("greengoods_credential")).toBe(credential);
+      expect(mockLocalStorage.getItem(RP_ID_STORAGE_KEY)).toBe("greengoods.app");
+      expect(mockLocalStorage.getItem(SMART_ACCOUNT_ADDRESS_STORAGE_KEY)).toBe(TEST_ADDRESS);
     });
   });
 });
