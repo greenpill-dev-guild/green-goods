@@ -3,6 +3,8 @@
 > **Status:** Audit deliverable (findings + improvement outline). **Not** an execution plan — no fixes are started by this document.
 > **Date:** 2026-06-30 · **Author:** Claude Code session (six parallel Explore audits + targeted verification)
 
+> ⚠️ **Post-hoc verification (2026-07-01) refuted parts of this document — read [`plan.md` § Plan audit log](./plan.md) before citing it.** Headline corrections: em-dash count is **156**, not 163 (55/46/55); F6.3 and F6.4 were **already fixed/present** (`8aa68f49`, `design-research.md:81-82`); F4.2's Garden-skeleton example and F4.5's back-discard premise don't hold in code; F3.1's Assessment/SignalPool/Vault refs are wrong (only ActionDetail confirmed); the Phase-2 "in-flight" commits have all landed. The body below is kept unmodified as the historical record.
+
 ## Context
 
 Afo asked for a deep audit across six areas and an outline of the improvements we can make:
