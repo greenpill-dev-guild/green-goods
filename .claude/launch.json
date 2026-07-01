@@ -12,6 +12,18 @@
         "/Users/afo/Code/greenpill/green-goods/presentations/red-coop-2026-05-22"
       ],
       "port": 4599
+    },
+    {
+      "name": "storybook",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "--filter", "@green-goods/shared", "storybook"],
+      "port": 3004
+    },
+    {
+      "name": "admin",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "--filter", "@green-goods/admin", "dev"],
+      "port": 3002
     }
   ]
 }
