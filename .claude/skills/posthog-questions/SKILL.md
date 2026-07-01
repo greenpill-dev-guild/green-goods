@@ -6,8 +6,8 @@ version: "1.2.0"
 status: active
 packages: ["all"]
 dependencies: []
-last_updated: "2026-05-24"
-last_verified: "2026-05-24"
+last_updated: "2026-07-01"
+last_verified: "2026-07-01"
 ---
 
 # PostHog Curated Questions
@@ -31,6 +31,30 @@ Default flow:
 2. Use the concrete invocation path documented below.
 3. Keep public/shared outputs limited to fields marked public in the question schema.
 4. Add a new question here before wiring a new PostHog read elsewhere.
+
+## Question index
+
+All 17 questions at a glance. Names are the stable identifiers consumers reference; each links to its full entry (HogQL, bind variables, output schema, consumers) below. ⚠️ = private-only default, 🚫 = blocked (do not run).
+
+| Question | Lens | Privacy default | Answers |
+|---|---|---|---|
+| [`errors.recent`](#errorsrecent) | product-quality | public-safe (aggregates) | Recent JS exceptions grouped by message + URL with affected-session counts |
+| [`errors.detail`](#errorsdetail) | product-quality | ⚠️ private-only | Full detail for one error hash incl. top stack frame + replay links |
+| [`errors.recurring`](#errorsrecurring) | product-quality | public-safe | Distinct-session count per error hash over 30 days (bug-intake roll-up input) |
+| [`errors.match-bug-report`](#errorsmatch-bug-report) | product-quality | ⚠️ private-only | Fuzzy match between a verbatim bug-report quote and recent errors/events |
+| [`replay.user-sessions`](#replayuser-sessions) | product-quality | ⚠️ private-only | Recent sessions for a known reporter with replay links |
+| [`release.error-rate-delta`](#releaseerror-rate-delta) | product-quality | public-safe | Error rate per 1k events, 24h before vs after a deploy |
+| [`release.sync-success-rate-delta`](#releasesync-success-rate-delta) | product-quality | public-safe | Offline-job success rate before vs after a deploy |
+| [`quality.top-failures`](#qualitytop-failures) | product-quality | public-safe | Top 10 errors ranked by affected-user count |
+| [`funnel.onboarding`](#funnelonboarding) | growth-bd | public-safe | Passkey register → garden join → first work submission funnel |
+| [`funnel.work-repeat`](#funnelwork-repeat) | growth-bd | public-safe | % of first-time submitters who submit a second work within 7 days |
+| [`retention.curve`](#retentioncurve) | growth-bd | public-safe | D1/D7/D30 retention by weekly cohort |
+| [`gardens.engagement-summary`](#gardensengagement-summary) | growth-bd | public-safe | Per-garden 7-day active members + work submitted |
+| [`gardens.dormant`](#gardensdormant) | growth-bd | public-safe | Gardens with zero work in the last 7/14/30 days |
+| [`gardens.operator-activity`](#gardensoperator-activity) | growth-bd | public counts / ⚠️ private operator identity | Work approvals per operator per week, as anonymous aggregates |
+| [`actions.template-creation-rate`](#actionstemplate-creation-rate) | growth-bd | 🚫 blocked | Action-template creation rate (required event never fires — do not run) |
+| [`failures.conversion-kill`](#failuresconversion-kill) | growth-bd | public-safe | Per-step failure rate for `*_failed` vs `*_success` event pairs |
+| [`web.acquisition-summary`](#webacquisition-summary) | growth-bd | public-safe | Sessions by source/UTM medium for grant/BD reporting |
 
 ## Architecture (Option C, locked)
 
@@ -74,6 +98,8 @@ The eventual connector wrapper resolves the name against this file: if a Saved-I
 Until that wrapper exists, the connector invocation above is what a Claude routine should actually contain. Reviewing a routine: any HogQL block must match a HogQL block in this file verbatim, or it's a `routine-self-audit` violation.
 
 ## Privacy boundary
+
+> ⚠️ **Hard boundary — non-negotiable.** Applies to every question below and every consumer (routine, skill, agent), on every shared surface (Linear body, Discord, PR, doc). A question's `public-safe` default never overrides this table. When unsure, treat a field as private.
 
 The same boundary the bug-intake routine uses, applied to every consumer. Never violate this even when a question's default privacy is `public-safe`.
 

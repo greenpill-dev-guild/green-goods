@@ -5,9 +5,11 @@ argument-hint: "[package|PR|file ...] [--mode report_only|verify_only|apply_fixe
 version: "2.1.0"
 status: active
 packages: ["all"]
-dependencies: []
-last_updated: "2026-04-24"
-last_verified: "2026-04-24"
+# Lens dependencies: review folds these in when the diff exposes their signals
+# (see § Internal Lenses + Lens Activation Matrix). Changing one changes review.
+dependencies: ["architecture", "principles", "testing", "audit"]
+last_updated: "2026-07-01"
+last_verified: "2026-07-01"
 ---
 
 # Review Skill

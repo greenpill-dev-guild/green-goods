@@ -183,27 +183,9 @@ Avoid giant scorecards across every named principle. They create noise and encou
 
 ## Linear Routing After Acceptance
 
-This skill is read-only. Do not create or mutate Linear records while producing a principles
-report. After the user accepts a finding for tracking:
-
-- Accepted implementation, refactor, QA, or maintenance work becomes a Linear Issue using the
-  Accepted Product Work structure. Team: Product.
-- Accepted research questions, evidence gathering, or recommendations become a Linear Issue using
-  the Accepted Research Task structure. Team: Research.
-- Raw user or partner signal belongs in Customer Needs until it is accepted as product work or
-  research.
-
-Routing rules:
-
-- `.plans` remains the Green Goods execution truth. If a principles finding is mirrored from a
-  `.plans` item, include the `.plans` link and label the Linear issue `source:plans`.
-- Attach to an active bounded project only when the scope clearly matches. Do not route new work
-  into completed/staging umbrella projects such as `Green Goods`, `Coop`, `Network Website`, or
-  `Cookie Jar`; otherwise leave the issue unprojected.
-- Use only these label namespaces: `protocol:*`, `package:*`, `activity:*`,
-  `funding:*`, `source:*`, `agent:*`.
-- Keep private, security-sensitive, user-identifying, replay, wallet, email, and session details
-  out of public Linear issue bodies.
+This skill is read-only while producing a principles report. All routing after acceptance
+(team, `.plans`/`source:plans`, projects, labels, privacy, prompt-before-create) follows the
+shared core: [`.claude/context/linear-routing-rules.md`](../../context/linear-routing-rules.md).
 
 ## Green Goods Heuristics
 
