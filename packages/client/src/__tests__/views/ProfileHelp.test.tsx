@@ -17,19 +17,33 @@ describe("ProfileHelp", () => {
   it("renders journey categories, the docs guide link, and surfaced/new topics", () => {
     render(wrap(createElement(ProfileHelp)));
 
-    // Category headers
-    expect(screen.getByText("Getting started")).toBeInTheDocument();
-    expect(screen.getByText("Documenting work")).toBeInTheDocument();
-    expect(screen.getByText("Account & identity")).toBeInTheDocument();
-    expect(screen.getByText("How it works")).toBeInTheDocument();
+    // Category headers (Title Case; "How it works" dissolved into Funds & Wallet / Privacy & Data)
+    expect(screen.getByText("Getting Started")).toBeInTheDocument();
+    expect(screen.getByText("Documenting Work")).toBeInTheDocument();
+    expect(screen.getByText("Funds & Wallet")).toBeInTheDocument();
+    expect(screen.getByText("Account & Identity")).toBeInTheDocument();
+    expect(screen.getByText("Privacy & Data")).toBeInTheDocument();
+    expect(screen.queryByText("How it works")).not.toBeInTheDocument();
 
-    // Newly authored + surfaced topics are present
+    // Newly authored + surfaced topics are present; the install FAQ was dropped
     expect(screen.getByTestId("faq-content-signingIn")).toBeInTheDocument();
-    expect(screen.getByTestId("faq-content-installingApp")).toBeInTheDocument();
     expect(screen.getByTestId("faq-content-syncTroubleshooting")).toBeInTheDocument();
     expect(screen.getByTestId("faq-content-trackingStatus")).toBeInTheDocument();
     expect(screen.getByTestId("faq-content-smartAccountAddress")).toBeInTheDocument();
     expect(screen.getByTestId("faq-content-whatIsImpact")).toBeInTheDocument();
+    expect(screen.queryByTestId("faq-content-installingApp")).not.toBeInTheDocument();
+
+    // New Funds & Wallet + Privacy & Data topics render
+    expect(screen.getByTestId("faq-content-cookieJars")).toBeInTheDocument();
+    expect(screen.getByTestId("faq-content-sendingFunds")).toBeInTheDocument();
+    expect(screen.getByTestId("faq-content-onChainData")).toBeInTheDocument();
+    expect(screen.getByTestId("faq-content-photoStorage")).toBeInTheDocument();
+
+    // Account/app-management + declined-work topics render
+    expect(screen.getByTestId("faq-content-profileName")).toBeInTheDocument();
+    expect(screen.getByTestId("faq-content-changeLanguage")).toBeInTheDocument();
+    expect(screen.getByTestId("faq-content-switchingAccounts")).toBeInTheDocument();
+    expect(screen.getByTestId("faq-content-workDeclined")).toBeInTheDocument();
 
     // Docs guide link in the hub points at the public gardener guide
     const docsLink = screen.getByRole("link", { name: /Gardener guide/i });

@@ -33,8 +33,8 @@ const faqCategories: FaqCategory[] = [
     id: "gettingStarted",
     topics: [
       "whatIsGreenGoods",
+      "whatIsImpact",
       "signingIn",
-      "installingApp",
       "gardensAndOperators",
       "howToGetInvolved",
     ],
@@ -48,15 +48,28 @@ const faqCategories: FaqCategory[] = [
       "syncTroubleshooting",
       "reviewAndApproval",
       "trackingStatus",
+      "workDeclined",
+      "whatAreAssessments",
     ],
   },
   {
-    id: "account",
-    topics: ["smartAccountAddress", "badgesAndIdentity", "dataStorage"],
+    id: "fundsWallet",
+    topics: ["walletDrawer", "cookieJars", "sendingFunds", "pools"],
   },
   {
-    id: "howItWorks",
-    topics: ["whatIsImpact", "whatIsEAS"],
+    id: "account",
+    topics: [
+      "smartAccountAddress",
+      "profileName",
+      "badgesAndIdentity",
+      "changeLanguage",
+      "switchingAccounts",
+      "accountRecovery",
+    ],
+  },
+  {
+    id: "privacyData",
+    topics: ["dataStorage", "onChainData", "photoStorage", "whatIsEAS"],
   },
 ];
 
