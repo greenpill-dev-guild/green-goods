@@ -19,6 +19,7 @@ const createGardenView = lazyView(() => import("@/views/Garden/CreateGarden"));
 const createAssessmentView = lazyView(() => import("@/views/Hub/CreateAssessment"));
 const createHypercertView = lazyView(() => import("@/views/Hub/CreateHypercert"));
 const submitWorkView = lazyView(() => import("@/views/Garden/SubmitWork"));
+const manageMembersView = lazyView(() => import("@/views/Garden/ManageMembers"));
 
 function preserveSearch(search: string, omitKeys: string[] = []): string {
   if (!search) return "";
@@ -171,8 +172,11 @@ export const adminCanvasRoutes: RouteObject[] = [
         lazy: gardenView,
       },
       {
+        // Manage Members is a create/commit-style action flow, not a
+        // browsable workspace tab — its own full surface (centered dialog),
+        // mirroring createAssessmentView / createHypercertView / submitWorkView.
         path: "members",
-        lazy: gardenView,
+        lazy: manageMembersView,
       },
       {
         // Legacy /garden/impact retained so existing URLs and external links
@@ -243,8 +247,12 @@ export const adminCanvasRoutes: RouteObject[] = [
         lazy: communityView,
       },
       {
+        // Legacy path — the People tab was retired in favor of "Manage
+        // members" opening the roles flow directly. Old bookmarks/links to
+        // /community/members still resolve to that same flow rather than
+        // 404ing (parity with /garden/impact's legacy retention above).
         path: "members",
-        lazy: communityView,
+        lazy: manageMembersView,
       },
     ],
   },

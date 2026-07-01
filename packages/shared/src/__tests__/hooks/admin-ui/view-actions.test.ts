@@ -30,8 +30,8 @@ import { buildHubViewActions, type HubPipelineStage } from "../../../hooks/admin
 const GARDEN = "0xabcabcabcabcabcabcabcabcabcabcabcabcabca";
 
 const HUB_STAGES: HubPipelineStage[] = ["work", "assess", "certify", "history"];
-const GARDEN_VIEWS: GardenWorkspaceView[] = ["overview", "activity", "members", "settings"];
-const COMMUNITY_MODES: CommunityWorkspaceMode[] = ["treasury", "governance", "payouts", "members"];
+const GARDEN_VIEWS: GardenWorkspaceView[] = ["overview", "activity", "settings"];
+const COMMUNITY_MODES: CommunityWorkspaceMode[] = ["treasury", "governance", "payouts"];
 
 function visibleIds(actions: Array<{ id: string; visible?: boolean }>): string[] {
   return actions.filter((action) => action.visible !== false).map((action) => action.id);
@@ -162,7 +162,7 @@ describe("buildCommunityViewActions — fixed primary", () => {
 
   it("links Manage members to the Garden members management surface", () => {
     const navigate = vi.fn();
-    buildCommunityViewActions("members", true, false, true, navigate, {
+    buildCommunityViewActions("treasury", true, false, true, navigate, {
       gardenAddress: GARDEN,
     })
       .find((action) => action.id === "manage-members")

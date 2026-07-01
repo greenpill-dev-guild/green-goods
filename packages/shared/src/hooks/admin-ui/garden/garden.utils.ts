@@ -73,14 +73,16 @@ export function buildGardenHeaderStats({
 
 /**
  * Per Tier 4 of the admin design handoff (audit IA-Garden decision):
- * Overview / Activity / Members / Settings. The legacy "impact" tab was
- * dropped — Hub Certify + History abstracts hypercert flow.
+ * Overview / Activity / Settings. The legacy "impact" tab was dropped — Hub
+ * Certify + History abstracts hypercert flow. Members was a fourth tab under
+ * this decision; it's since been retired as a browsable destination in favor
+ * of "Manage members" opening the roles flow directly (/garden/members is
+ * now that flow's route, not a workspace tab — see views.tsx).
  */
-export type GardenWorkspaceView = "overview" | "activity" | "members" | "settings";
+export type GardenWorkspaceView = "overview" | "activity" | "settings";
 
 export function resolveGardenView(pathname: string): GardenWorkspaceView {
   if (pathname.startsWith("/garden/activity")) return "activity";
-  if (pathname.startsWith("/garden/members")) return "members";
   if (pathname.startsWith("/garden/settings")) return "settings";
   return "overview";
 }

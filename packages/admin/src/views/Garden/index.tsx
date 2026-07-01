@@ -97,13 +97,6 @@ export default function GardenView() {
               }),
             },
             {
-              id: "members",
-              label: formatMessage({
-                id: "cockpit.garden.members",
-                defaultMessage: "Members",
-              }),
-            },
-            {
               id: "settings",
               label: formatMessage({
                 id: "cockpit.garden.settings",

@@ -17,7 +17,6 @@ export default function CommunityView() {
   const { formatMessage } = useIntl();
   const community = useCommunityWorkspaceController();
   const isDesktop = useMediaQuery("(min-width: 1024px)");
-  const totalPeople = community.derived.directoryEntries.length;
 
   // Paid-out magnitudes by asset. The Payouts tab badge is a count, but the
   // header cannot add base units across WETH/USDC/etc. as one token total.
@@ -76,16 +75,16 @@ export default function CommunityView() {
         title={formatMessage({ id: "cockpit.community.title", defaultMessage: "Community" })}
         description={formatMessage({
           id: "cockpit.community.description",
-          defaultMessage: "Treasury, governance, payouts, and the people around the garden.",
+          defaultMessage: "Treasury, governance, and payouts for the garden's community.",
         })}
         metadata={
           headerStats.length > 0 ? <MetaStrip items={headerStats} density="inline" /> : undefined
         }
         actions={
           isDesktop && community.desktopActions.length > 0 ? (
-            // Stable trio: positions frozen across modes; Treasury fills
-            // Deposit / withdraw, Governance fills New proposal, People fills
-            // Manage members. Payouts stays outlined (its panel owns actions).
+            // Stable trio, always visible regardless of mode: Manage members,
+            // Deposit / withdraw (owner-gated), New proposal (fixed primary).
+            // Payouts stays outlined (its panel owns actions).
             <AdminViewActions items={community.desktopActions} />
           ) : undefined
         }
@@ -123,18 +122,6 @@ export default function CommunityView() {
                 defaultMessage: "Payouts",
               }),
               count: community.allocations.length || undefined,
-            },
-            {
-              // Internal id stays "members" (controller, route resolver, and
-              // backend hooks all key off it). The user-facing label is "People"
-              // per the IA-Community decision in audit §5 — broader community of
-              // funders + supporters + contributors, not a garden roster.
-              id: "members",
-              label: formatMessage({
-                id: "cockpit.community.people",
-                defaultMessage: "People",
-              }),
-              count: totalPeople || undefined,
             },
           ]}
         />

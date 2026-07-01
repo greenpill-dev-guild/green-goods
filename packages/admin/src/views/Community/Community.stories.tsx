@@ -178,8 +178,7 @@ export const YieldPayouts: Story = {
   decorators: communityDecorators(),
 };
 
-export const Members: Story = {
-  tags: ["visual-harness"],
-  args: { initialPath: "/community/members" },
-  decorators: communityDecorators(),
-};
+// People tab retired — "Manage members" now opens the roles flow directly
+// (views/Garden/ManageMembers.tsx) rather than a browsable Community tab.
+// /community/members still resolves (legacy path, see routes/views.tsx) but
+// renders that flow, not CommunityView, so it has no story here.

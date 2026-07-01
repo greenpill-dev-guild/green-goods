@@ -1,28 +1,20 @@
 import {
   type Address,
-  AddressDisplay,
-  Button,
   Card,
-  EmptyState,
   ErrorBoundary,
   formatTokenAmount,
   type GardenDetailTab,
   type GardenRole,
   type GardenSignalPool,
-  type RoleDirectoryEntry,
   type TabBadgeSeverity,
   type YieldAllocation,
 } from "@green-goods/shared";
-import { RiArrowRightSLine, RiSearchLine, RiUserLine, RiUserSettingsLine } from "@remixicon/react";
-import { useMemo, useState } from "react";
+import { RiArrowRightSLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
-import { AdminFilterChip } from "@/components/AdminFilterChip";
-import { AdminTextField } from "@/components/AdminTextField";
 import { EnsAddressText } from "@/components/EnsAddressText";
 import { GardenCommunityCard } from "@/components/Garden/GardenCommunityCard";
-import { GardenRolesModals } from "@/components/Garden/GardenRolesModals";
 import { GardenYieldCard } from "@/components/Garden/GardenYieldCard";
 import { getRoleLabel } from "@/components/Garden/gardenUtils";
 import { CookieJarPayoutPanel } from "@/views/Hub/components/CookieJarPayoutPanel";
@@ -53,27 +45,10 @@ export interface CommunityTabProps {
   allocationsLoading: boolean;
   roleSummary: Array<{ role: GardenRole; count: number; firstMember?: Address }>;
   roleIcons: Record<GardenRole, React.ComponentType<{ className?: string }>>;
-  filteredDirectory: RoleDirectoryEntry[];
-  visibleDirectory: RoleDirectoryEntry[];
-  memberSearch: string;
-  setMemberSearch: (search: string) => void;
+  /** Navigates to the Manage Members flow (Garden → Members), scoped to one role. */
   openMembersModal: (type: GardenRole) => void;
-  /** Full member roster by role — feeds the in-context Manage Roles modal
-   *  stack so role management happens without leaving the Community tab. */
-  roleMembers: Record<GardenRole, Address[]>;
   scheduleBackgroundRefetch: () => void;
 }
-
-/** Read-only role chip palette — mirrors the Garden Members chip colors so a
- *  person reads the same across both surfaces. */
-const PEOPLE_ROLE_CHIP_CLASSES: Record<GardenRole, string> = {
-  owner: "bg-warning-lighter text-warning-dark",
-  operator: "bg-success-lighter text-success-dark",
-  evaluator: "bg-feature-lighter text-feature-dark",
-  gardener: "bg-information-lighter text-information-dark",
-  funder: "bg-primary-lighter text-primary-dark",
-  community: "bg-bg-weak text-text-sub",
-};
 
 export function CommunityTab({
   garden,
@@ -97,28 +72,10 @@ export function CommunityTab({
   allocationsLoading,
   roleSummary,
   roleIcons,
-  filteredDirectory,
-  visibleDirectory,
-  memberSearch,
-  setMemberSearch,
   openMembersModal,
-  roleMembers,
   scheduleBackgroundRefetch,
 }: CommunityTabProps) {
   const { formatMessage } = useIntl();
-  const [manageRolesOpen, setManageRolesOpen] = useState(false);
-
-  // Tier-6 alignment with handoff filter-chip pattern. Community People tab
-  // gets a 5-chip rail mirroring Garden Members (All / Operators / Evaluators
-  // / Gardeners / Funders). Roles that aren't represented in the current
-  // directory data still render — they collapse the list to empty per the
-  // "stub the rest as inert" direction lock from the audit.
-  const [peopleFilter, setPeopleFilter] = useState<"all" | GardenRole>("all");
-  const isPeopleMode = section === "members";
-  const filteredVisibleDirectory = useMemo(() => {
-    if (peopleFilter === "all") return visibleDirectory;
-    return visibleDirectory.filter((entry) => entry.roles.includes(peopleFilter));
-  }, [peopleFilter, visibleDirectory]);
 
   const isLoading = communityLoading || allocationsLoading || vaultsLoading;
 
@@ -254,155 +211,6 @@ export function CommunityTab({
               </Card>
             )}
 
-            {(section === undefined || section === "members") && (
-              <Card>
-                <Card.Header className="flex-wrap gap-3">
-                  <div>
-                    <h3 className="label-md text-text-strong sm:text-lg">
-                      {formatMessage({ id: "app.garden.detail.community.membersTitle" })}
-                    </h3>
-                    <p className="mt-1 body-sm text-text-sub">
-                      {formatMessage({ id: "app.garden.detail.community.membersDescription" })}
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    {!isPeopleMode && filteredDirectory.length > 8 ? (
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => openSection("community", "members")}
-                      >
-                        {formatMessage({ id: "app.garden.admin.viewAll" })}
-                      </Button>
-                    ) : null}
-                    {canManage ? (
-                      // Role management is in-context now — opens the Manage
-                      // Roles modal stack without leaving Community.
-                      <AdminButton
-                        type="button"
-                        variant="outlined"
-                        size="sm"
-                        leadingIcon={<RiUserSettingsLine />}
-                        onClick={() => setManageRolesOpen(true)}
-                      >
-                        {formatMessage({
-                          id: "cockpit.community.action.manageMembers",
-                          defaultMessage: "Manage members",
-                        })}
-                      </AdminButton>
-                    ) : null}
-                  </div>
-                </Card.Header>
-                <Card.Body>
-                  <div className="mb-3 space-y-3">
-                    <AdminTextField
-                      label={formatMessage({
-                        id: "app.garden.detail.community.memberSearch",
-                      })}
-                      variant="outlined"
-                      type="search"
-                      value={memberSearch}
-                      onChange={(event) => setMemberSearch(event.target.value)}
-                      placeholder={formatMessage({
-                        id: "app.garden.detail.community.memberSearch",
-                      })}
-                      leadingIcon={RiSearchLine}
-                    />
-                    <div
-                      className="flex flex-wrap gap-1.5"
-                      role="group"
-                      aria-label={formatMessage({
-                        id: "cockpit.community.people.filterAria",
-                        defaultMessage: "Filter people by role",
-                      })}
-                    >
-                      {(
-                        [
-                          {
-                            id: "all",
-                            labelId: "cockpit.community.people.filter.all",
-                            fallback: "All",
-                          },
-                          {
-                            id: "operator",
-                            labelId: "cockpit.community.people.filter.operators",
-                            fallback: "Operators",
-                          },
-                          {
-                            id: "evaluator",
-                            labelId: "cockpit.community.people.filter.evaluators",
-                            fallback: "Evaluators",
-                          },
-                          {
-                            id: "gardener",
-                            labelId: "cockpit.community.people.filter.gardeners",
-                            fallback: "Gardeners",
-                          },
-                          {
-                            id: "funder",
-                            labelId: "cockpit.community.people.filter.funders",
-                            fallback: "Funders",
-                          },
-                        ] as ReadonlyArray<{
-                          id: "all" | GardenRole;
-                          labelId: string;
-                          fallback: string;
-                        }>
-                      ).map((chip) => (
-                        <AdminFilterChip
-                          key={chip.id}
-                          label={formatMessage({ id: chip.labelId, defaultMessage: chip.fallback })}
-                          selected={peopleFilter === chip.id}
-                          onToggle={() => setPeopleFilter(chip.id)}
-                        />
-                      ))}
-                    </div>
-                  </div>
-
-                  {filteredVisibleDirectory.length === 0 ? (
-                    <EmptyState
-                      icon={<RiUserLine className="h-6 w-6" />}
-                      title={formatMessage({ id: "app.garden.detail.community.membersEmpty" })}
-                    />
-                  ) : (
-                    <div className="space-y-2">
-                      {filteredVisibleDirectory.map((entry) => (
-                        <AdminCard variant="outlined" key={entry.address} className="px-3 py-2.5">
-                          <div className="flex min-w-0 items-center justify-between gap-3">
-                            <AddressDisplay address={entry.address} className="min-w-0 flex-1" />
-                            <div
-                              className="flex flex-wrap items-center justify-end gap-1"
-                              aria-label={formatMessage({
-                                id: "cockpit.garden.members.rolesLabel",
-                                defaultMessage: "Roles",
-                              })}
-                            >
-                              {/* Read-only role indicators. The previous
-                                  AdminButtons navigated back to this same
-                                  route — a no-op pretending People manages
-                                  roles. Management lives on Garden → Members. */}
-                              {entry.roles.map((role) => {
-                                const label = getRoleLabel(role, formatMessage);
-                                return (
-                                  <span
-                                    key={`${entry.address}-${role}`}
-                                    data-role-chip={role}
-                                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-label-sm font-medium ${PEOPLE_ROLE_CHIP_CLASSES[role]}`}
-                                  >
-                                    {label.singular}
-                                  </span>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        </AdminCard>
-                      ))}
-                    </div>
-                  )}
-                </Card.Body>
-              </Card>
-            )}
-
             {(section === undefined || section === "cookie-jars" || section === "payouts") && (
               <CookieJarPayoutPanel
                 gardenAddress={garden.id as Address}
@@ -508,20 +316,6 @@ export function CommunityTab({
                 {roleSummary.map((entry) => {
                   const roleLabel = getRoleLabel(entry.role, formatMessage);
                   const Icon = roleIcons[entry.role];
-                  // On the People mode these rows would navigate to the route
-                  // the operator is already on — render plain count rows there
-                  // and keep the navigation affordance on the other modes.
-                  if (isPeopleMode) {
-                    return (
-                      <div key={entry.role} className="garden-stat-row w-full">
-                        <span className="inline-flex items-center gap-1.5 garden-stat-row-label">
-                          <Icon className="h-3.5 w-3.5" />
-                          {roleLabel.plural}
-                        </span>
-                        <span className="garden-stat-row-value">{entry.count}</span>
-                      </div>
-                    );
-                  }
                   return (
                     <AdminButton
                       key={entry.role}
@@ -547,14 +341,6 @@ export function CommunityTab({
           </div>
         </aside>
       </div>
-
-      <GardenRolesModals
-        gardenAddress={garden.id as Address}
-        roleMembers={roleMembers}
-        canManage={canManage}
-        open={manageRolesOpen}
-        onClose={() => setManageRolesOpen(false)}
-      />
     </div>
   );
 }

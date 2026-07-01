@@ -174,9 +174,7 @@ export function useCommunityWorkspaceController() {
           ? adminRoutes.communityGovernance({ gardenId: selectedGardenAddress })
           : nextMode === "payouts"
             ? adminRoutes.communityPayouts({ gardenId: selectedGardenAddress })
-            : nextMode === "members"
-              ? adminRoutes.communityMembers({ gardenId: selectedGardenAddress })
-              : adminRoutes.communityTreasury({ gardenId: selectedGardenAddress })
+            : adminRoutes.communityTreasury({ gardenId: selectedGardenAddress })
       ),
     [navigate, selectedGardenAddress]
   );
@@ -185,8 +183,11 @@ export function useCommunityWorkspaceController() {
     () => navigate(adminRoutes.communityTreasury({ gardenId: selectedGardenAddress })),
     [navigate, selectedGardenAddress]
   );
+  // Manage Members is a direct action (Garden → Members flow dialog), not a
+  // Community tab — this navigates away to the same route the "Manage
+  // members" header action already targets.
   const openMembersModal = useCallback(
-    () => navigate(adminRoutes.communityMembers({ gardenId: selectedGardenAddress })),
+    () => navigate(adminRoutes.gardenMembers({ gardenId: selectedGardenAddress })),
     [navigate, selectedGardenAddress]
   );
   const createPoolsAsync = useCallback(async () => {

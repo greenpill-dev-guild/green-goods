@@ -287,6 +287,7 @@ export * from "./hooks/admin-ui/community/useCommunityWorkspaceController";
 export * from "./hooks/admin-ui/garden/garden.utils";
 export * from "./hooks/admin-ui/garden/useCreateGardenController";
 export * from "./hooks/admin-ui/garden/useGardenWorkspaceController";
+export * from "./hooks/admin-ui/garden/useManageMembersController";
 export * from "./hooks/admin-ui/garden/useResolvedWorkDetail";
 export * from "./hooks/admin-ui/hub/hub.filters";
 export * from "./hooks/admin-ui/hub/hub.utils";

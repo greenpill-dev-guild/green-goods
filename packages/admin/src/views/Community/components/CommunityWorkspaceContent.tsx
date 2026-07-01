@@ -84,16 +84,7 @@ export function CommunityWorkspaceContent({ workspace }: CommunityWorkspaceConte
           funder: RiMoneyDollarCircleLine,
           community: RiGroupLine,
         }}
-        filteredDirectory={workspace.derived.filteredDirectory}
-        visibleDirectory={
-          workspace.mode === "members"
-            ? workspace.derived.filteredDirectory
-            : workspace.derived.visibleDirectory
-        }
-        memberSearch={workspace.memberSearch}
-        setMemberSearch={workspace.setMemberSearch}
         openMembersModal={workspace.openMembersModal}
-        roleMembers={workspace.roleMembers}
         scheduleBackgroundRefetch={workspace.scheduleBackgroundRefetch}
       />
     </div>

@@ -19,7 +19,6 @@ import {
 } from "@/components/Layout/CanvasRouteState";
 import { OverviewTab } from "./OverviewTab";
 import { GardenDomainSummaryRow } from "./GardenDetailHelpers";
-import { GardenMembersPanel } from "./GardenMembersPanel";
 
 interface GardenWorkspaceContentProps {
   workspace: ReturnType<typeof useGardenWorkspaceController>;
@@ -103,21 +102,6 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
         />
       ) : null}
 
-      {workspace.view === "members" ? (
-        <GardenMembersPanel
-          gardenAddress={workspace.garden.id as Address}
-          gardenName={workspace.garden.name}
-          gardeners={workspace.garden.gardeners}
-          operators={workspace.garden.operators ?? []}
-          evaluators={workspace.garden.evaluators ?? []}
-          funders={workspace.garden.funders ?? []}
-          owners={workspace.garden.owners ?? []}
-          roleMembers={workspace.roleMembers}
-          canManage={workspace.canManage}
-          onOpenAddMember={workspace.openAddMember}
-        />
-      ) : null}
-
       {/* Garden settings live in a centered dialog (parity with the other
           action flows), opened by the Settings tab / "Edit garden" action and
           rendered over the Overview behind it. Deep-linking to /garden/settings
@@ -127,7 +111,7 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
         onOpenChange={(open) => {
           if (!open) workspace.handleTabChange("overview");
         }}
-        size="2xl"
+        size="lg"
         tone="garden"
         title={formatMessage({
           id: "app.garden.profile.modal.title",

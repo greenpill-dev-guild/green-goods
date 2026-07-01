@@ -59,16 +59,9 @@ const STORYBOOK_EMPTY_DOMAIN_GARDEN = {
   ...STORYBOOK_PRIMARY_ADMIN_GARDEN,
   domainMask: 0,
 } satisfies SharedGarden;
-const STORYBOOK_LONG_NAME_GARDEN = {
-  ...STORYBOOK_PRIMARY_ADMIN_GARDEN,
-  name: "RioRainforestLabStewardshipCollectiveWithAVeryLongGardenNameThatStillWrapsInMembers",
-} satisfies SharedGarden;
 
 const STORYBOOK_EMPTY_DOMAIN_GARDENS = STORYBOOK_ADMIN_GARDENS.map((garden) =>
   garden.id === STORYBOOK_EMPTY_DOMAIN_GARDEN.id ? STORYBOOK_EMPTY_DOMAIN_GARDEN : garden
-);
-const STORYBOOK_LONG_NAME_GARDENS = STORYBOOK_ADMIN_GARDENS.map((garden) =>
-  garden.id === STORYBOOK_LONG_NAME_GARDEN.id ? STORYBOOK_LONG_NAME_GARDEN : garden
 );
 const STORYBOOK_SECONDARY_ADMIN_GARDEN = STORYBOOK_ADMIN_GARDENS[1] as SharedGarden;
 const STORYBOOK_SECONDARY_ADMIN_GARDEN_ID =
@@ -77,10 +70,6 @@ const STORYBOOK_SECONDARY_ADMIN_GARDEN_ID =
 const STORYBOOK_EMPTY_DOMAIN_SEEDS: ReadonlyArray<readonly [QueryKey, unknown]> =
   STORYBOOK_ADMIN_SHELL_SEEDS.map(([key, data]) =>
     data === STORYBOOK_ADMIN_GARDENS ? [key, STORYBOOK_EMPTY_DOMAIN_GARDENS] : [key, data]
-  );
-const STORYBOOK_LONG_NAME_SEEDS: ReadonlyArray<readonly [QueryKey, unknown]> =
-  STORYBOOK_ADMIN_SHELL_SEEDS.map(([key, data]) =>
-    data === STORYBOOK_ADMIN_GARDENS ? [key, STORYBOOK_LONG_NAME_GARDENS] : [key, data]
   );
 const STORYBOOK_SECONDARY_GARDEN_SEEDS: ReadonlyArray<readonly [QueryKey, unknown]> = [
   ...STORYBOOK_ADMIN_SHELL_SEEDS,
@@ -158,61 +147,9 @@ export const Activity: Story = {
   decorators: gardenDecorators(),
 };
 
-export const Members: Story = {
-  tags: ["visual-harness"],
-  args: { initialPath: "/garden/members" },
-  decorators: gardenDecorators(),
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    await expect(
-      await canvas.findByRole(
-        "heading",
-        { name: "Members of Rio Rainforest Lab" },
-        ADMIN_ROUTE_STORY_QUERY_OPTIONS
-      )
-    ).toBeVisible();
-    await expect(
-      await canvas.findByText(
-        "This roster is scoped to the selected garden.",
-        undefined,
-        ADMIN_ROUTE_STORY_QUERY_OPTIONS
-      )
-    ).toBeVisible();
-    await expect(
-      await canvas.findByText(
-        /gardeners in this garden/,
-        undefined,
-        ADMIN_ROUTE_STORY_QUERY_OPTIONS
-      )
-    ).toBeVisible();
-  },
-};
-
-export const MembersLongGardenName: Story = {
-  tags: ["visual-harness"],
-  args: { initialPath: "/garden/members" },
-  decorators: gardenDecorators({
-    garden: STORYBOOK_LONG_NAME_GARDEN,
-    seeds: STORYBOOK_LONG_NAME_SEEDS,
-  }),
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    await expect(
-      await canvas.findByRole(
-        "heading",
-        { name: /Members of RioRainforestLabStewardshipCollective/ },
-        ADMIN_ROUTE_STORY_QUERY_OPTIONS
-      )
-    ).toBeVisible();
-    await expect(
-      await canvas.findByText(
-        /gardeners in this garden/,
-        undefined,
-        ADMIN_ROUTE_STORY_QUERY_OPTIONS
-      )
-    ).toBeVisible();
-  },
-};
+// Members tab retired — "Manage members" now opens the roles flow directly
+// as its own route (views/Garden/ManageMembers.tsx) rather than a browsable
+// Garden workspace tab.
 
 export const Settings: Story = {
   tags: ["visual-harness"],

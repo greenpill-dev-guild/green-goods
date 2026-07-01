@@ -67,12 +67,11 @@ export function buildCommunityHeaderStats({
   return items;
 }
 
-export type CommunityWorkspaceMode = "treasury" | "governance" | "payouts" | "members";
+export type CommunityWorkspaceMode = "treasury" | "governance" | "payouts";
 
 export function resolveCommunityMode(pathname: string): CommunityWorkspaceMode {
   if (pathname.startsWith("/community/governance")) return "governance";
   if (pathname.startsWith("/community/payouts")) return "payouts";
-  if (pathname.startsWith("/community/members")) return "members";
   return "treasury";
 }
 
