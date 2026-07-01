@@ -174,7 +174,7 @@ export function DepositModal({
     <AdminDialog
       open={isOpen}
       onOpenChange={(open) => !open && onClose()}
-      size="lg"
+      size="md"
       title={formatMessage({ id: "app.treasury.deposit" })}
       description={formatMessage({ id: "app.treasury.depositDescription" })}
       preventClose={depositMutation.isPending}

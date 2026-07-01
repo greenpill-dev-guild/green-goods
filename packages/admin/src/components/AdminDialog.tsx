@@ -22,7 +22,7 @@ export interface AdminDialogProps {
   icon?: ComponentType<{ className?: string }> | ReactNode;
   children: ReactNode;
   actions?: ReactNode;
-  size?: "sm" | "md" | "lg" | "xl" | "2xl";
+  size?: "sm" | "md" | "lg";
   variant?: "standard" | "confirm" | "palette" | "flow";
   bodyClassName?: string;
   actionsClassName?: string;
@@ -58,12 +58,20 @@ export interface AdminConfirmDialogProps {
   icon?: ReactNode;
 }
 
+// Three tiers by action weight (not five — a modal's size should read as a
+// signal of what kind of action it is, not an arbitrary per-modal choice):
+//   sm — reserved for variant="confirm"/alert dialogs, which already get a
+//        fixed width from variantClasses.confirm below, independent of size.
+//   md — a simple, single-purpose action: one form, one concern (add a
+//        member, deposit/withdraw, edit one field).
+//   lg — richer single-view content: lists with per-item actions, multi-field
+//        forms, or multi-column layouts. Multi-step flows (Submit Work,
+//        Create Assessment, Create Hypercert) are a category of their own —
+//        see ADMIN_FLOW_DIALOG_CLASS below, not this scale.
 const sizeClasses: Record<NonNullable<AdminDialogProps["size"]>, string> = {
   sm: "sm:max-w-sm",
   md: "sm:max-w-md",
-  lg: "sm:max-w-lg",
-  xl: "sm:max-w-2xl",
-  "2xl": "sm:max-w-4xl lg:max-w-5xl",
+  lg: "sm:max-w-2xl lg:max-w-4xl",
 };
 
 const variantClasses: Record<NonNullable<AdminDialogProps["variant"]>, string> = {

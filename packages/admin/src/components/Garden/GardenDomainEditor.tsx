@@ -107,7 +107,7 @@ export function GardenDomainModal({ isOpen, onClose, gardenAddress }: GardenDoma
     <AdminDialog
       open={isOpen}
       onOpenChange={(open) => !open && handleCancel()}
-      size="lg"
+      size="md"
       title={formatMessage({ id: "app.garden.detail.editDomainsTitle" })}
       description={formatMessage({ id: "app.garden.detail.editDomainsDescription" })}
       preventClose={isPending}

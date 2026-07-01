@@ -110,7 +110,7 @@ export function CookieJarManageModal({
       <AdminDialog
         open={isOpen}
         onOpenChange={(open) => !open && !isPending && onClose()}
-        size="2xl"
+        size="lg"
         tone="hub"
         title={formatMessage({
           id: "app.cookieJar.manageModal.title",

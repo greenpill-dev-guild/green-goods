@@ -5,10 +5,11 @@ import { AdminDialog, ADMIN_FLOW_DIALOG_CLASS } from "@/components/AdminDialog";
 import { HypercertWizard } from "@/components/Hypercerts/HypercertWizard";
 import { ActionFlowShell } from "@/components/Layout/ActionFlowShell";
 
-// Create Hypercert is a create/commit flow rendered as a centered 2xl AdminDialog
-// (bottom-sheet on mobile), same as Submit Work and Create Assessment. The wizard
-// owns its own ActionFlowShell chrome (header + scrolling steps + pinned actions);
-// the AdminDialog close button is the exit (→ controller handleCancel).
+// Create Hypercert is a create/commit flow rendered as a centered flow AdminDialog
+// (bottom-sheet on mobile, width from ADMIN_FLOW_DIALOG_CLASS), same as Submit Work
+// and Create Assessment. The wizard owns its own ActionFlowShell chrome (header +
+// scrolling steps + pinned actions); the AdminDialog close button is the exit
+// (→ controller handleCancel).
 export default function CreateHypercert() {
   const { formatMessage } = useIntl();
   const createHypercert = useCreateHypercertController();
@@ -49,10 +50,16 @@ export default function CreateHypercert() {
   return (
     <AdminDialog
       open
-      size="2xl"
+      size="lg"
       variant="flow"
       tone="hub"
       className={ADMIN_FLOW_DIALOG_CLASS}
+      // No local dirty-close guard here (unlike Submit Work / Create Assessment's
+      // useDirtyClose in "state" mode) — HypercertWizard's useWizardData already
+      // wires useDirtyClose in "route" mode (blockRouteChange: true), which
+      // intercepts the navigate() this handleCancel triggers via a router
+      // blocker and raises the same DiscardChangesDialog. Adding a second guard
+      // here would double-prompt on close.
       onOpenChange={(next) => {
         if (!next) createHypercert.handleCancel();
       }}

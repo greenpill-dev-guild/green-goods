@@ -136,7 +136,7 @@ export function WithdrawModal({
     <AdminDialog
       open={isOpen}
       onOpenChange={(open) => !open && onClose()}
-      size="lg"
+      size="md"
       title={formatMessage({ id: "app.treasury.withdraw" })}
       description={formatMessage({ id: "app.treasury.withdrawDescription" })}
       preventClose={withdrawMutation.isPending}

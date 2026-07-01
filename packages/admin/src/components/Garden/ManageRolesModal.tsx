@@ -32,7 +32,7 @@ export function ManageRolesModal({
     <AdminDialog
       open={isOpen}
       onOpenChange={(open) => !open && onClose()}
-      size="2xl"
+      size="lg"
       title={formatMessage({
         id: "app.garden.roles.modal.title",
         defaultMessage: "Manage Roles",

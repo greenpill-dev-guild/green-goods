@@ -286,13 +286,15 @@ export const PaletteVariant: Story = {
 };
 
 /**
- * Flow variant — the centered 2xl host for the admin action flows (Submit Work,
- * Create Assessment, Create Hypercert). AdminDialog suppresses its own structured
- * header and zeroes its padding so the consumer owns the chrome through
- * ActionFlowShell: one pinned header (context + title), one scrolling body, one
- * pinned footer. A bounded, centered card with a 32% scrim on desktop; a
- * bottom-sheet on mobile — never a fullscreen takeover. The play test guards the
- * single-header contract: the AdminDialog structured header must stay suppressed.
+ * Flow variant — the centered flow-dialog host for the admin action flows (Submit
+ * Work, Create Assessment, Create Hypercert, Manage Members). AdminDialog suppresses
+ * its own structured header and zeroes its padding so the consumer owns the chrome
+ * through ActionFlowShell: one pinned header (context + title), one scrolling body,
+ * one pinned footer. A bounded, centered card with a 32% scrim on desktop; a
+ * bottom-sheet on mobile — never a fullscreen takeover. Width comes from
+ * ADMIN_FLOW_DIALOG_CLASS (or an equivalent className override), not the size prop.
+ * The play test guards the single-header contract: the AdminDialog structured
+ * header must stay suppressed.
  */
 const FLOW_SECTIONS = ["Action details", "Time & notes", "Evidence photos", "Review"];
 
@@ -301,7 +303,7 @@ export const FlowVariant: Story = {
   render: () => (
     <AdminDialog
       open
-      size="2xl"
+      size="lg"
       variant="flow"
       className="min-h-[90dvh] sm:min-h-0 sm:!max-w-3xl lg:!max-w-3xl"
       onOpenChange={() => undefined}

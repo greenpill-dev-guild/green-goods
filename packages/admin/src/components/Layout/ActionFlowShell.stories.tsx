@@ -67,7 +67,7 @@ const meta: Meta<typeof ActionFlowShell> = {
     docs: {
       description: {
         component:
-          'Shared chrome for admin action flows: pinned header (back-arrow + context + title), one scrolling body, and an optional pinned footer. Solid surfaces only — no glass — per the Controlled Chrome boundary. Renders inside a centered AdminDialog (size="2xl" variant="flow"), a bottom-sheet on mobile; it is the only title bar in the flow.',
+          'Shared chrome for admin action flows: pinned header (back-arrow + context + title), one scrolling body, and an optional pinned footer. Solid surfaces only — no glass — per the Controlled Chrome boundary. Renders inside a centered AdminDialog (variant="flow", width from ADMIN_FLOW_DIALOG_CLASS), a bottom-sheet on mobile; it is the only title bar in the flow.',
       },
     },
   },

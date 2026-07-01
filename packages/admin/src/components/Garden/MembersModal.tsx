@@ -61,7 +61,7 @@ export function MembersModal({
     <AdminDialog
       open={isOpen}
       onOpenChange={(open) => !open && onClose()}
-      size="xl"
+      size="lg"
       title={title}
       description={formatMessage(
         { id: "app.admin.garden.members.count" },

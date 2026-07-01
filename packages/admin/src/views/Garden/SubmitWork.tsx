@@ -1058,7 +1058,8 @@ export default function SubmitWork() {
   const close = () => navigate(adminRoutes.hub(hubContext));
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
 
-  // Centered 2xl modal with a scrim (bottom-sheet on mobile). The dialog body is
+  // Centered flow modal with a scrim (bottom-sheet on mobile) — width comes from
+  // ADMIN_FLOW_DIALOG_CLASS, not the size prop below. The dialog body is
   // neutralized to a flex column with no scroll of its own — ActionFlowShell owns
   // the pinned chrome + scrolling body inside it. The X / backdrop routes through a
   // discard confirm so a submission can't be lost to an accidental close; the
@@ -1067,7 +1068,7 @@ export default function SubmitWork() {
     <>
       <AdminDialog
         open
-        size="2xl"
+        size="lg"
         variant="flow"
         tone="garden"
         className={ADMIN_FLOW_DIALOG_CLASS}
