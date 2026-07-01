@@ -1950,7 +1950,7 @@ export function CampaignCookieJarPanel() {
           defaultMessage:
             "Review the public link, update campaign metadata, and sync garden operator access.",
         })}
-        className="sm:max-w-3xl"
+        size="lg"
         actions={
           <>
             <AdminButton type="button" variant="text" onClick={() => setSelectedCampaign(null)}>
