@@ -1,3 +1,4 @@
+import { HydrationFallback } from "@green-goods/shared/components";
 import { lazy, Suspense } from "react";
 import { Outlet } from "react-router-dom";
 import { PwaUpdateNotifier } from "@/components/Communication/PwaUpdateNotifier";
@@ -6,7 +7,7 @@ const WalletRuntimeProviders = lazy(() => import("./WalletRuntimeProviders"));
 
 export default function PwaRuntime() {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<HydrationFallback appName="Green Goods" />}>
       <WalletRuntimeProviders>
         <PwaUpdateNotifier />
         <Outlet />
