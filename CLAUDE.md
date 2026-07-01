@@ -36,6 +36,16 @@ Per-package: `bun run test`, `bun build`, `bun lint` (check each package.json fo
 
 **Contracts** (never use raw `forge` commands): `bun build` (adaptive changed-target compile), `bun build:changed` (changed Solidity only), `bun build:target -- src/...` (single-target compile), `bun build:full` (CI/deploy only), `bun run test:fork` (needs RPC URLs). For Arbitrum deploy/upgrade operations, use the named root `contracts:*` scripts; they set `FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer`, clear unrelated Pinata upload secret resolution, and encode the current proxy-owner sender where required.
 
+## Validation Intent Ladder
+
+Use the lightest honest proof for the user's intent. QA fixes, checkpoint
+validation, and merge readiness are different modes.
+
+- **QA Speed Mode**: default for "QA mode", "quick fix", "get this to staging", and small visible/content/control fixes. Run targeted test file(s) or the package-local command that proves the touched behavior. Add package-local typecheck/build only when route wiring, render/build output, exported types, or runtime contracts move. For visible UI, use authenticated Brave rendered proof when available; if that path is unavailable, report browser QA as blocked rather than replacing it with isolated Playwright. Do not run full `bun run test`, full `bun build`, or `ci-local --quick` just to close an isolated QA fix.
+- **Repo Quick Gate**: run `node scripts/dev/ci-local.js --quick` for cross-package/shared-impact changes, after several QA fixes as a coordinator checkpoint, or when shared exports, hook signatures, provider contracts, data shapes, or mutation flows move.
+- **Ship Gate**: run `bun format && bun lint && bun run test && bun build` plus conditional design/vocab/contract checks only for explicit ship/PR/commit/merge/release readiness, critical surfaces, or when asked to prove the branch is ready.
+- **Multiple agents in QA mode**: each agent runs targeted proof for its own lane; one coordinator runs Repo Quick Gate or Ship Gate at checkpoints before merge/release.
+
 ## Architecture
 
 Green Goods is an **offline-first, single-chain** platform for documenting regenerative work on-chain. Bun monorepo.
@@ -169,6 +179,8 @@ import deployment from '../../../contracts/deployments/11155111-latest.json';
 
 **Verify Before Claiming Success**: Before reporting that a fix works, a setting takes effect, or a behavior holds, produce evidence in the same turn — the command output, the passing test, the rendered DOM through the authenticated Brave QA profile, the re-read file showing the change. "Should work", "probably fixed", and unrun commands are not evidence. If a CLI flag is unfamiliar, read `--help` or the source before invoking it; do not invent flags. If you cannot verify (no test, no live DOM, no observable signal), say "I can't verify this without X" and stop rather than declaring success. Untested fixes and hallucinated commands have produced more reverts in this repo than any other failure mode.
 
+**QA Speed Mode**: When the user is actively QAing staging or asks for a small quick fix, prove the narrow behavior first: targeted tests, direct file re-read, and authenticated rendered proof for visible UI. Escalate to Repo Quick Gate or Ship Gate only when the Validation Intent Ladder calls for it. A QA-speed pass is not a merge/release readiness claim.
+
 **User-Observed UI Regression Debugging**: Bug reports trigger the debug skill automatically. When the reported symptom is something the user can see or touch — cannot click, cannot select, missing selected border/state, collapsed or blank cards, invisible content, broken scroll/refresh, visible-but-unusable controls — start from the rendered surface before tracing data flow. First reproduce or simulate the exact visible/clickable symptom with the real component path, inspect DOM geometry and computed styles (bounding rect, width/height, opacity, display, pointer-events, z-index, overflow, disabled state, selected classes, border/ring), verify whether click/tap changes state, trace visible element → card/button/input → wrapper/carousel/sheet/dialog → state setter, and check recent component commits with `git log --follow` or focused `git show`. Only move into providers, query hooks, auth, or indexer/data explanations after proving the rendered surface is intact. If text/data exists in the DOM but the control is collapsed, invisible, untappable, or lacks selected visual state, treat it as a component/CSS regression until browser or DOM evidence proves otherwise.
 
 **Research, Plan, Implement**: For ambiguous, multi-package, or high-risk work, research first, record evidence, plan the smallest implementation path, surface human judgment points, then edit. If the session goes down the wrong path, summarize only the useful findings and restart with clean context instead of carrying contaminated assumptions forward.
@@ -290,6 +302,7 @@ This repo runs multiple concurrent Claude/Codex sessions on the same tree and `d
 - **Investigate before destroying.** `git for-each-ref --sort=-committerdate refs/heads/ | head -10`, `ls ~/.codex/worktrees/`, and `git log -3 -- <file>` show what other agents are doing.
 - **Bulk destructive ops always need fresh user OK in the current turn** — multi-file `git checkout HEAD --`, `rm -rf` of `.plans/`/`packages/`/`docs/`, `git add -A`/`git add .`, `git push --force`.
 - **When dispatching a sub-agent**, tell them this repo runs concurrent agents and they must stay in the paths listed in their handoff. Surface unexpected state in their report instead of "fixing" it.
+- **For QA-mode sub-agents**, require targeted proof for the assigned lane and leave broad validation to the coordinating checkpoint unless the assignment explicitly asks for a wider gate.
 - **Pattern-matching is the trap.** A wider-than-expected diff after a sub-agent run is often parallel agents' work, not the dispatched agent's scope creep. Verify before assuming.
 
 ## Git Workflow
@@ -300,7 +313,7 @@ This repo runs multiple concurrent Claude/Codex sessions on the same tree and `d
 - Types: feat, fix, refactor, chore, docs, test, perf, ci
 - Scopes: contracts, indexer, shared, client, admin, agent, claude
 
-**Validation before committing**: `bun format && bun lint && bun run test && bun build`
+**Validation before committing**: `bun format && bun lint && bun run test && bun build`. This is the Ship Gate, not the default loop for every QA-speed fix.
 
 ## Codex Dispatch
 

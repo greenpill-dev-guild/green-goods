@@ -53,7 +53,7 @@ When you are dispatched from a Linear issue (delegated/assigned, labeled `agent:
 - **Codex-ready gate.** Start implementing only if the issue gives all of: clear **acceptance criteria**, a named **surface / `package:*`**, and **validation** (explicit commands, or inferable from the Validation Ladder below). If any is missing, the scope is ambiguous, or it asks for a cross-lane or architecture decision — **stop and comment on the issue with what's missing; do not guess.** A vague issue is a no-op, not a green light. This is the Linear entry to the same audit-then-ship rhythm in `## Codex Workflow`.
 - **Executor, not orchestrator.** Implement only the issue's scoped unit. Cross-lane order and coupling live in `.plans/<feature>/status.json` + the human — do not reorder lanes, pull in sibling lanes, or expand past the acceptance criteria. Coupled-feature order: shared/types + contracts → state/API → UI.
 - **Branch + PR.** Work on the integration branch named in the issue or its lane, not a fresh ad-hoc branch. The PR body must link the issue — `Closes PRD-NNN` (or `Linear: PRD-NNN`); that link is the issue↔PR source of truth. One issue per PR; keep unattended-maintenance PRs as drafts with the right labels (see `## Scope Constraints For Automated Maintenance`); never self-merge. `critical` and `packages/contracts` surfaces get extra human/Claude review.
-- **Before the PR**, run the lightest Validation Ladder rung that proves the change (`node scripts/dev/ci-local.js --quick` minimum; add `bun run lint:vocab` + design checks for frontend) and produce evidence per `## Verify Before Claiming Success`. Honor the privacy boundary above and `## Multi-Agent Repo Safety`.
+- **Before the PR**, run the Ship Gate from `## Validation Intent Ladder` and produce evidence per `## Verify Before Claiming Success`. Honor the privacy boundary above and `## Multi-Agent Repo Safety`.
 
 ## Codex Workflow
 
@@ -97,6 +97,16 @@ This repo runs multiple concurrent Codex/Claude sessions on the same tree and `d
 ## Verify Before Claiming Success
 
 Before reporting that a fix works, a setting takes effect, or a behavior holds, produce evidence in the same turn — the command output, the passing test, the rendered DOM, the re-read file showing the change. "Should work", "probably fixed", and unrun commands are not evidence. If a CLI flag is unfamiliar, read `--help` or the source before invoking it; do not invent flags. If you cannot verify (no test, no live DOM, no observable signal), say "I can't verify this without X" and stop rather than declaring success. Untested fixes and hallucinated commands have produced more reverts in this repo than any other failure mode.
+
+## Validation Intent Ladder
+
+Use the lightest honest proof for the current intent. Do not collapse QA fixes,
+checkpoint validation, and merge readiness into one default command.
+
+- **QA Speed Mode** — default when the user says "QA mode", "quick fix", "get this to staging", or asks for a small visible/content/control fix. Run the targeted test file(s) or package-local command that covers the touched behavior. Add package-local typecheck/build only when the change affects route wiring, render/build output, exported types, or runtime contracts. For visible UI, capture rendered proof through authenticated Brave when available; if the required Brave path is unavailable, report browser QA as blocked instead of substituting isolated Playwright. Do not run full `bun run test`, full `bun build`, or `ci-local --quick` just to finish an isolated QA fix.
+- **Repo Quick Gate** — use `node scripts/dev/ci-local.js --quick` for cross-package/shared-impact changes, checkpoint validation after several QA fixes, or when touched shared exports, hook signatures, provider contracts, data shapes, or mutation flows can affect multiple apps. This is broader than QA Speed Mode and is not the default for every small fix.
+- **Ship Gate** — use the full ship pipeline (`bun format && bun lint && bun run test && bun build`, plus conditional design/vocab/contract checks) only for explicit ship/PR/commit/merge/release readiness, critical surfaces, or when the user asks to prove the branch is ready. Keep this gate strict; do not use QA Speed Mode to claim merge or release readiness.
+- **Multiple agents in QA mode** — each agent runs targeted proof for its own lane and reports blockers. A coordinator or final checkpoint runs Repo Quick Gate or Ship Gate before merge/release instead of every agent duplicating broad validation.
 
 ## User-Observed UI Regression Debugging
 
@@ -170,6 +180,7 @@ When you see a layout bug that "looks like" a missing class, first check: was th
 ## Validation Ladder
 
 - Codex drift check: `node scripts/quality/check-codex-docs.js`
+- QA Speed Mode: targeted package/file tests plus package-local typecheck/build only when the touched behavior needs it
 - Quick repo verification: `node scripts/dev/ci-local.js --quick`
 - Full-local dev proof: `bun run dev` followed by `bun run dev:smoke:full` proves browser surfaces, local agent, local indexer/Hasura/Postgres, Anvil fork chain id 42161, deployed bytecode, and funded Anvil accounts without submitting transactions.
 - Production-backed local proof: `bun run dev:prod` followed by `bun run dev:prod:smoke` if you need local browser apps against Arbitrum One, hosted production indexer, and the production agent at https://agent.greengoods.app. Use `bun run dev:prod:mirror:health` before mirror mode; set the Envio API token env var for reliable live-indexer catch-up. The smoke is read-only; wallet-confirmed writes in this mode are real Arbitrum transactions.
@@ -178,6 +189,13 @@ When you see a layout bug that "looks like" a missing class, first check: was th
 - Lint fix: `bun format && bun lint`
 - Full tests: `bun run test`
 - Full build: `VITE_CHAIN_ID=11155111 bun run build` _(Sepolia is the deterministic validation chain — overrides local environment files so the build is reproducible across machines without requiring Arbitrum-specific deployment artifacts)_
+
+## Test Suite Speed Follow-Up
+
+Do not refactor or delete tests as part of QA-speed guidance updates. Track a
+separate test-suite speed audit when needed: measure the slowest package tests,
+identify large multi-scenario files, and propose focused splits or lighter
+default runners with evidence.
 
 ## Package Guides
 

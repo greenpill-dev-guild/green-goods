@@ -45,6 +45,17 @@ Write code before the test? Delete it. Start over. No exceptions.
 - Throwaway prototypes
 - Generated code
 - Configuration files
+- Copy-only, visual-only, or narrow QA-speed fixes where direct rendered proof is stronger and a new test would be brittle or slower than the fix
+
+### QA Speed Proof Limits
+
+QA Speed Mode is still evidence-driven, but it can use `not_applicable` or
+`proof_limit` instead of forcing a new test for every small fix.
+
+- Use `not_applicable` when behavior did not change: copy edits, docs, static config, or visual token/class adjustments with no logic path.
+- Use `proof_limit` when a targeted automated test would be brittle or slower than direct proof: one-off visual layout fixes, staging-only QA observations, or authenticated browser-only states.
+- Always record the substitute proof: file re-read, targeted existing test, package-local typecheck/build when needed, or authenticated Brave rendered proof for visible UI.
+- Do not use QA Speed Mode for critical auth/crypto/job-queue/mutation behavior, shared public API changes, or release readiness; those still need tests and the appropriate gate.
 
 ### Red-Green-Refactor
 
@@ -319,10 +330,11 @@ Before marking work complete:
 - [ ] All tests pass
 - [ ] Tests use real code (mocks only if unavoidable)
 - [ ] Edge cases and errors covered
+- [ ] If QA Speed Mode applies, documented `not_applicable` or `proof_limit` with substitute evidence
 
 ### Validation Commands
-- [ ] Run `bun format && bun lint && bun run test` — no errors/warnings
-- [ ] Package-specific: `cd packages/[pkg] && npx tsc --noEmit`
+- [ ] QA Speed Mode: targeted test/proof plus package-local typecheck/build only when needed
+- [ ] Ship Gate: `bun format && bun lint && bun run test && bun build` when claiming branch readiness
 
 ### Documentation & Communication
 - [ ] Update relevant documentation when behavior changes
@@ -332,7 +344,7 @@ Before marking work complete:
 - [ ] Coverage meets package target (70-100% depending on criticality)
 - [ ] For contracts: ≥80% test pass rate (testnet), 100% (mainnet)
 
-Can't check all boxes? You skipped TDD. Start over.
+Can't check all boxes and no QA Speed `not_applicable`/`proof_limit` applies? You skipped TDD. Start over.
 
 ## Anti-Patterns
 
@@ -340,7 +352,8 @@ Can't check all boxes? You skipped TDD. Start over.
 - Keeping placeholder assertions (`expect(true).toBe(true)`)
 - Ignoring cleanup tests for timers/listeners/async hooks
 - Using brittle snapshots where behavioral assertions are required
-- Declaring completion without running `bun run test`, `bun lint`, and build checks
+- Declaring ship readiness without running `bun run test`, `bun lint`, and build checks
+- Using QA Speed Mode to skip tests for behavior-changing critical paths
 
 ## Related Skills
 

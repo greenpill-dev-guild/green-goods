@@ -36,6 +36,9 @@ types, i18n, and Storybook-backed shared UI building blocks.
 
 - Shared changes frequently fan out into `client`, `admin`, and `agent`. If you change a hook
   signature, data shape, or exported utility, run repo-level quick verification from the root.
+- In QA Speed Mode for an internal shared fix, run the targeted shared test plus `bun run typecheck`
+  when types/contracts are touched. Escalate to root quick verification only when exports, hook
+  signatures, provider contracts, shared data shapes, or mutation flows can affect consumers.
 - When changing test helpers or hook contracts, keep tests aligned before downstream package fixes.
 - Storybook is the source of truth for shared UI foundations; keep stories aligned when primitives change.
 - Local agentic browser QA must use the authenticated Brave QA profile. Codex: use the Codex browser-extension path and claim the already-open Brave tab/window. Claude Code: use the Claude Code Chrome/Chromium extension path (`claude --chrome` or `/chrome`) and select the authenticated Brave profile/tab when it is installed, connected, and able to control the already-open Brave window. Do not fall back merely because the extension is branded Chrome. If the Brave extension path is unavailable or not connected, use Claude computer-use/visible desktop control of the already-open Brave window; if neither can reach authenticated Brave, report QA as blocked. Use this for admin, PWA, extension, wallet/passkey, staging-session, installed-app, and profile-dependent verification.
@@ -44,6 +47,7 @@ types, i18n, and Storybook-backed shared UI building blocks.
 
 ## Validation
 
+- QA Speed Mode: targeted `bun run test -- src/...`; add `bun run typecheck` when shared types/contracts move
 - Package loop: `bun run test && bun run typecheck`
 - UI/stories touched: `bun run check:stories`
 - Cross-package impact: from repo root run `node scripts/dev/ci-local.js --quick`

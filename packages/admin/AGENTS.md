@@ -76,7 +76,7 @@ foundations.
 - Use `AdminDialog` / `AdminConfirmDialog`, `RightSheet`, `LeftSheet`, or `BottomSheet` for modal and sheet flows instead of ad-hoc shells. `DialogShell` remains available for shared or non-admin surfaces, but admin dashboard dialogs should use the admin wrappers. Full-surface create/commit flows (Submit Work, Create Assessment, Create Hypercert) are centered `AdminDialog` (`size="2xl" variant="flow"`) modals hosting `ActionFlowShell` — not fullscreen takeovers or routes.
 - Do not edit the admin UI standards (`admin.mdx`, `packages/admin/DESIGN.md`, `.claude/skills/design/*`) in the same commit as the code they govern. A change to an archetype rule — which surface is a modal vs a sheet vs a route, which primitive a flow uses — is its own commit/PR with its own review, so a wrong implementation cannot quietly rewrite the standard to bless itself. (Static gates check token hygiene, not whether a standard still describes good UI.)
 - New user-facing strings must be translated in all three locale files.
-- New or changed admin UI components/views must add or update Storybook stories in the same change. Run `bun run --filter @green-goods/shared check:stories`; run `bun run --filter @green-goods/shared test:stories:ci` when adding `storybook-ci` stories; run `bun run --filter @green-goods/shared build-storybook` for Storybook-impacting changes.
+- New or changed shared admin primitives, major variants, or Storybook-covered surfaces must add or update stories in the same change. Run `bun run --filter @green-goods/shared check:stories`; run `bun run --filter @green-goods/shared test:stories:ci` when adding `storybook-ci` stories; run `bun run --filter @green-goods/shared build-storybook` for Storybook-impacting changes. Do not require Storybook checks for a route-local QA fix that does not touch a shared primitive, story, token, or Storybook-covered surface.
 
 ## Codex Notes
 
@@ -84,6 +84,7 @@ foundations.
 - Keep reusable components and config helpers in `@green-goods/shared`. Admin owns only canvas shell, account surfaces, and admin-only workflows.
 - Keep admin routes canonical: primary surfaces `/hub`, `/garden`, `/community`, `/actions`; Hub deep links stay under `/hub/work/*`; secondary route families should match the contract in `admin.mdx`.
 - The default admin Vitest run excludes `src/__tests__/views/**` and a few heavy tests. Treat `bun run build` as a required validation step for route and view work until a dedicated view test runner exists.
+- In QA Speed Mode, run the targeted view/component/model test when one covers the fix and capture authenticated rendered proof for visible UI. Use `bun run build` when route wiring, view imports, or build output could break; do not run Storybook checks unless shared primitives/stories/tokens moved.
 - Permission and role changes often originate in shared code; use the root quick verification
   loop when shared contracts or shared hooks move.
 - Local agentic browser QA must use the authenticated Brave QA profile. Codex: use the Codex browser-extension path and claim the already-open Brave tab/window. Claude Code: use the Claude Code Chrome/Chromium extension path (`claude --chrome` or `/chrome`) and select the authenticated Brave profile/tab when it is installed, connected, and able to control the already-open Brave window. Do not fall back merely because the extension is branded Chrome. If the Brave extension path is unavailable or not connected, use Claude computer-use/visible desktop control of the already-open Brave window; if neither can reach authenticated Brave, report QA as blocked. Use this for admin, PWA, extension, wallet/passkey, staging-session, installed-app, and profile-dependent verification.
@@ -92,5 +93,6 @@ foundations.
 
 ## Validation
 
+- QA Speed Mode: targeted admin test or rendered proof; add `bun run build` for route/view/build risk
 - Package loop: `bun run test && bun run build`
 - Broader impact: from repo root run `node scripts/dev/ci-local.js --quick`

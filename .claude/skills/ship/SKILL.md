@@ -28,6 +28,10 @@ Pre-merge gate for Green Goods. Validates that the current branch is safe to pus
 | "stage but don't commit" | Validate + stage applicable files, stop before commit |
 | "open a PR" | Validate + create PR via `gh pr create` |
 
+Do not activate this skill for "QA mode", "quick fix", "get this to staging", or
+similar requests unless the user also asks to commit, open a PR, merge, release,
+or prove the branch is ready. Those requests use QA Speed Mode from `CLAUDE.md`.
+
 ---
 
 ## Iron Law
@@ -37,6 +41,11 @@ NO COMPLETION CLAIMS WITHOUT FRESH VERIFICATION EVIDENCE
 ```
 
 If `bun format && bun lint && bun run test && bun build` didn't run cleanly in this invocation, do not say the branch is ready.
+
+This iron law applies to ship/PR/commit/merge/release readiness claims. It does
+not require every narrow QA-speed fix to run the full pipeline before handoff;
+QA-speed handoffs must clearly say which targeted proof ran and must not claim
+the branch is ready to ship.
 
 Red flags that mean STOP:
 - Using "should", "probably", "seems to" about validation state
@@ -215,6 +224,7 @@ Use this exact shape. Tables and short sentences — no prose.
 | Commit `.env`, credentials, or binaries > 5MB | Safety check — refuse |
 | Force-push anywhere without explicit user permission | Destructive action — confirm first |
 | Amend commits not authored in this branch | Destroys prior-author attribution |
+| Treat "get this to QA/staging" as ship readiness | QA Speed Mode uses targeted proof; ship runs only for explicit commit/PR/merge/release readiness |
 | Turn every ship check into a PR | Not all work needs a PR; match scope to request |
 
 ---
