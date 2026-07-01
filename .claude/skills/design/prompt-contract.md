@@ -27,7 +27,23 @@ The canonical admin overlay is the centered **`AdminDialog`** (M3 basic dialog: 
 - **Side sheets are retired.** The old `LeftSheet` / `RightSheet` / `BottomSheet` canvas inspectors are no longer a pattern. Never propose a slide-in side panel for a detail or creation flow — propose an `AdminDialog`. Because the dialog portals to `<body>` (out of the `[data-tone]` scope), always pass the workspace `tone`.
 - **Glass stays on Navigation/FAB only.** With sheet shells gone, the only glass surfaces in the cockpit are the `NavigationBar` and `AdminFab`. The `AppBar` root and every dialog surface are solid M3 — never frosted.
 - **`AdminDialog` is still a mobile bottom-sheet** in its responsive presentation (it slides up from the bottom on narrow viewports). That is the dialog adapting — not the retired side-sheet system. `SheetBody` / `SheetFooter` / `SheetDivider` survive as layout primitives *inside* a dialog body.
-- Full-surface action flows (Submit Work, Create Assessment, Create Hypercert, Create/Edit Action) use `AdminDialog size="2xl" variant="flow"` wrapping `ActionFlowShell`.
+- Full-surface action flows (Submit Work, Create Assessment, Create Hypercert, Create/Edit Action) use `AdminDialog variant="flow"` + `className={ADMIN_FLOW_DIALOG_CLASS}` wrapping `ActionFlowShell` — see the size standard below (`xl`/`2xl` tiers no longer exist).
+
+### Dialog size & variant standard (shipped scale — do not invent tiers)
+
+`AdminDialog` has a **3-tier size scale**. Size is a signal of what kind of action the dialog hosts, not a per-modal aesthetic choice (rationale comments live beside `sizeClasses` in `packages/admin/src/components/AdminDialog.tsx`):
+
+| Size | Hosts | Examples |
+|------|-------|----------|
+| `sm` | Reserved for confirm/alert dialogs (`variant="confirm"` fixes its own width independent of size) | Discard changes?, destructive confirms |
+| `md` (default) | A simple single-purpose action — one form, one concern | Add member, deposit, withdraw, edit one field |
+| `lg` | Richer single-view content — lists with per-item actions, multi-field forms, multi-column layouts | Work detail, action create/edit, manage roles |
+
+- **Multi-step flows are a category, not a size.** Submit Work / Create Assessment / Create Hypercert use `size="lg" variant="flow" className={ADMIN_FLOW_DIALOG_CLASS}` — a stable ~90dvh mobile sheet / 85dvh desktop card whose class constant lives beside `AdminDialog` so the three flows cannot drift. Never re-derive those dimensions per flow.
+- **Variants:** `standard` (default) · `confirm` (use `AdminConfirmDialog`) · `palette` (command palette only) · `flow` (the three action flows).
+- **Tone is required on workspace-owned dialogs.** The dialog portals to `<body>`, escaping the route's `[data-tone]` scope — pass the workspace `tone` (`hub`/`garden`/`community`/`actions`) or the accent falls back to the neutral `home` default.
+- **Never** pass an out-of-scale size (`xl`/`2xl` were removed in the three-tier collapse) or an ad-hoc `max-w-*` override; the only sanctioned width override is `ADMIN_FLOW_DIALOG_CLASS`. Enforced by `packages/admin/src/__tests__/components/AdminDialogStandard.guard.test.ts`.
+- **Mobile modal safety is built in** (viewport-capped width + bottom-sheet presentation at 375px) — consumers must not restate `max-w-[calc(100vw-2rem)]`-style guards from `.claude/rules/frontend-design.md` Rule 14; the base component owns it.
 
 ## Action Surfaces Confirm Before Discarding
 
@@ -62,7 +78,7 @@ Use these terms when describing admin UI:
 | `data landscape` | Garden — monitoring and exploration |
 | `single-mode operations surface` | Community — single dominant workflow |
 | `AdminDialog inspector` | Centered overlay for config & alerts (notifications, settings, account) **and** every detail/inspection flow; full-viewport scrim, bottom-sheet on mobile |
-| `ActionFlowShell` | Full-surface creation/commit flows (Submit Work, Create Assessment, Create Hypercert, Create/Edit Action) — inner chrome of a centered `AdminDialog` (`size="2xl" variant="flow"`); bottom-sheet on mobile |
+| `ActionFlowShell` | Full-surface creation/commit flows (Submit Work, Create Assessment, Create Hypercert, Create/Edit Action) — inner chrome of a centered `AdminDialog` (`variant="flow"` + `ADMIN_FLOW_DIALOG_CLASS`); bottom-sheet on mobile |
 | `workspace tint` | Subtle atmospheric color — Hub=blue, Garden=green, Community=orange, Actions=red |
 | `workbench list` | Primary data surface inside MainSheet |
 | `stage rail` | Inline secondary actions/filters adjacent to the workspace |
@@ -115,7 +131,7 @@ AI design tools MUST map generated output to these existing exports. Do not inve
 | `CanvasLayout` | CSS Grid root — named areas: `canvas-area-top`, `canvas-area-bottom`, inner cells |
 | `AppBar` | Admin top context bar, Z3 — garden context, search, settings, avatar; transparent root over the workspace canvas |
 | `MainSheet` | Z2 — dominant workspace; `isReceded` prop triggers canvas recession on sheet open |
-| `ActionFlowShell` | Full-surface action-flow chrome — pinned header + scrolling body + pinned footer; rendered inside a centered `AdminDialog` (`size="2xl" variant="flow"`), bottom-sheet on mobile |
+| `ActionFlowShell` | Full-surface action-flow chrome — pinned header + scrolling body + pinned footer; rendered inside a centered `AdminDialog` (`variant="flow"` + `ADMIN_FLOW_DIALOG_CLASS`), bottom-sheet on mobile |
 | `AdminDialog` | Centered overlay — **every** action and detail/inspection flow (config, alerts, profile, settings, notifications, work/assessment/hypercert/action detail, create/edit). Full-viewport scrim; bottom-sheet on mobile; pass workspace `tone`. Replaces the retired `LeftSheet`/`RightSheet`/`BottomSheet`. |
 | `NavigationBar` | Bottom workspace tabs — Hub, Garden, Community, Actions; symbol-first; role-adaptive |
 | `AdminFab` | Per-workspace primary action, capsule shape, integrated via `FabProvider` |
@@ -127,7 +143,7 @@ AI design tools MUST map generated output to these existing exports. Do not inve
 All follow M3 v0.192 anatomy exactly — do not override dimensions, state layers, or shape scale.
 
 **Shared primitives** (import from `@green-goods/shared`):
-- Admin dashboard dialogs use `AdminDialog` / `AdminConfirmDialog` (centered M3, scrim, pinned `actions`; `palette` variant for the command palette, `flow` variant at `size="2xl"` for full-surface action flows). `DialogShell` is for shared or non-admin (client PWA) surfaces only — do not use it for admin dashboard dialogs. See the admin.mdx Dialog Contract.
+- Admin dashboard dialogs use `AdminDialog` / `AdminConfirmDialog` (centered M3, scrim, pinned `actions`; `palette` variant for the command palette, `flow` variant + `ADMIN_FLOW_DIALOG_CLASS` for full-surface action flows). `DialogShell` is for shared or non-admin (client PWA) surfaces only — do not use it for admin dashboard dialogs. See the admin.mdx Dialog Contract.
 - Identity / data display: `AddressDisplay`, `DomainBadge`, `StatusBadge`, `Alert`.
 
 **Reference composition**: `/hub` route. Model new admin surfaces on it. `DashboardLayout` / `Sidebar` / `Header` are legacy — do not start from them.
