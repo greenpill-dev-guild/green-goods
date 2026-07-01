@@ -24,11 +24,30 @@
 | P1.6 lens dependencies | ✅ | review/SKILL.md frontmatter `dependencies: ["architecture","principles","testing","audit"]` (matches existing pattern in other skills); frontmatter check green |
 | P1.7 .claude/rules audit | ✅ | contracts.md/indexer.md/typescript.md verified live (all scripts+helpers exist). **Drift fixed**: frontend-design Rules 1/2 (no view imports PageHeader — re-anchored to CanvasRouteFrame/CanvasRouteHeader + AdminViewActions), Rule 14 (dialog primitives own mobile safety; ad-hoc max-w now guard-failed), Rules 15/16 (FormField/Alert import from shared, not `@/components/ui`); react-patterns Rule 13 (provider chains rewritten to actual entry files incl. route-level WalletRuntimeProviders) |
 
-## Wave A′ (gated)
+### Wave A PR + ship gate
+
+- **PR [#602](https://github.com/greenpill-dev-guild/green-goods/pull/602)** opened, targets develop.
+- Ship Gate green on Wave A's own code: `bun format` ✓ · `bun lint` (0 errors) ✓ · `bun run test` (8 pkgs exit 0; admin 468) ✓ · `bun run build` ✓ · `check:design-md` ✓ · `check:design-tokens` ✓ · `check:stories`+`check:story-quality` ✓.
+- **Pre-existing develop blocker discovered:** develop's required **CI Gate** (aggregates Design Guardrails + Storybook, `.github/workflows/ci-gate.yml:53`) is **red for every PR** from 4 debts admin-merged past it. I cleared 3 (the admin-dialog Storybook debts, in Wave A's domain — commit `c3c82062`). The 4th remains: **Design Guardrails / `SendTab.tsx:238`** — `bg-primary-base text-static-white` (bright-green + white) is an unapproved contrast-risk; the sanctioned fix is `text-primary-accent-foreground`, which resolves to `--green-950` (dark green), i.e. **a real visual change to a `critical` wallet CTA on another session's landed file → Afo decision, not bundled into Wave A.** Until resolved, #602's CI Gate stays red on this one inherited item (Wave A's own code passes everything).
+
+## Wave A′ (gated) — P0A sheet migration
+
+**Gate: PASSED** (evaluated 2026-07-01). Working tree clean on `packages/admin/**` + `packages/shared/src/components/Canvas/**`; develop static at plan-docs commit; no admin/Canvas commits in the last 73 min except mine; other branches 2-3 days stale; codex worktrees stale on their branches.
+
+**Admin typecheck baseline captured** (advisor's load-bearing prerequisite): `bun build` does NOT typecheck admin (solution-style tsconfig + `-p` → 0 files; that's how `size="xl"` shipped). `tsc -b packages/admin/tsconfig.json` gives a real check but surfaces ~385 pre-existing `.stories.tsx`/lib-target errors. Baseline saved to `admin-tsc-baseline.txt` (509 lines); **exactly 1 pre-existing error in P0A's blast radius** (`CanvasLayout.tsx:199 'sheetLayerRoot' unused` — P0A should remove it). P0A proof = `tsc -b` diff shows **zero new errors** over baseline. Wiring a permanent admin-typecheck gate = scope expansion → flag to Afo.
 
 | Task | Status | Evidence |
 |---|---|---|
-| P0A.1–P0A.4 sheet migration | ⬜ gate not yet evaluated | — |
+| P0A.1 normalize descriptors | ⬜ starting | — |
+| P0A.2 collapse CanvasLeftSheet bridge | ⬜ | — |
+| P0A.3 delete renderers + prune barrels | ⬜ | — |
+| P0A.4 update tests/stories | ⬜ | — |
+
+## Pending Afo decisions (batched for when Afo returns)
+
+1. **SendTab CI unblock (Design Guardrails):** approve the `text-static-white`→`text-primary-accent-foreground` (dark-green) swap on the Send CTA, keep white via an audited exception, or a different treatment? Blocks develop's CI Gate for all PRs.
+2. **P2.4 donate/claim success affordance:** transient toast (current) vs a success panel/receipt like endow?
+3. **P4.1 onboarding join path:** is there a product-defined "request/join a garden" flow to wire to?
 
 ## Wave B / C / D / E
 
