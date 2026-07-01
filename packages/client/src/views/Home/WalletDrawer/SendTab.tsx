@@ -17,16 +17,23 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits } from "viem";
 import { AmountStep } from "./Send/AmountStep";
+import { BalanceView } from "./Send/BalanceView";
 import { ReceiveView } from "./Send/ReceiveView";
 import { RecipientPicker } from "./Send/RecipientPicker";
 import { ReviewStep } from "./Send/ReviewStep";
 import type { SelectedRecipient, SendStep } from "./Send/types";
 import { validateSendAmount } from "./Send/validation";
 
-type WalletMode = "send" | "receive";
+type WalletMode = "balance" | "send" | "receive";
+
+const WALLET_MODES: ReadonlyArray<{ value: WalletMode; labelId: string }> = [
+  { value: "balance", labelId: "app.send.mode.balance" },
+  { value: "send", labelId: "app.send.mode.send" },
+  { value: "receive", labelId: "app.send.mode.receive" },
+];
 
 interface SendTabProps {
-  /** Bumped by the parent when the Tokens tab is (re)selected, to reset to step 1. */
+  /** Bumped by the parent when the Tokens tab is (re)selected, to reset to Balance. */
   resetNonce?: number;
 }
 
@@ -38,7 +45,7 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
   const { tokens, isLoading } = useSendableTokens(primaryAddress as Address | null, chainId);
   const sendMutation = useSendToken();
 
-  const [mode, setMode] = useState<WalletMode>("send");
+  const [mode, setMode] = useState<WalletMode>("balance");
   const [step, setStep] = useState<SendStep>("recipient");
   const [recipient, setRecipient] = useState<SelectedRecipient | null>(null);
   const [selectedToken, setSelectedToken] = useState<SendableTokenBalance | null>(null);
@@ -46,11 +53,11 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
   const [note, setNote] = useState("");
   const [showConfirm, setShowConfirm] = useState(false);
 
-  // Re-tapping the Tokens tab returns to step 1 (keeping the chosen recipient so
-  // the user can simply pick someone else) and back to the Send side.
+  // Re-tapping the Tokens tab returns to the Balance home (keeping any chosen
+  // recipient so a resumed send isn't destroyed).
   useEffect(() => {
     if (resetNonce === undefined) return;
-    setMode("send");
+    setMode("balance");
     setStep("recipient");
   }, [resetNonce]);
 
@@ -78,6 +85,13 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
     if (selectedToken?.balance) {
       setAmountInput(formatUnits(selectedToken.balance, selectedToken.decimals));
     }
+  };
+
+  // From the Balance list: jump into the send flow with the token pre-selected.
+  const startSendWithToken = (token: SendableTokenBalance) => {
+    setSelectedToken(token);
+    setStep("recipient");
+    setMode("send");
   };
 
   const executeSend = () => {
@@ -123,7 +137,7 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
           aria-label={formatMessage({ id: "app.wallet.tab.tokens" })}
           className="flex rounded-lg border border-stroke-soft-200 bg-bg-weak-50 p-0.5"
         >
-          {(["send", "receive"] as const).map((value) => (
+          {WALLET_MODES.map(({ value, labelId }) => (
             <button
               key={value}
               type="button"
@@ -137,15 +151,15 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
                   : "text-text-sub-600 hover:text-text-strong-950"
               )}
             >
-              {formatMessage({
-                id: value === "send" ? "app.send.mode.send" : "app.send.mode.receive",
-              })}
+              {formatMessage({ id: labelId })}
             </button>
           ))}
         </div>
       </div>
 
-      {mode === "receive" ? (
+      {mode === "balance" ? (
+        <BalanceView tokens={tokens} isLoading={isLoading} onSend={startSendWithToken} />
+      ) : mode === "receive" ? (
         <ReceiveView />
       ) : (
         <>

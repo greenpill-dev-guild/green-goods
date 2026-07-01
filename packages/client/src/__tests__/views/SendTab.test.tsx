@@ -75,6 +75,8 @@ vi.mock("@green-goods/shared", async () => {
 import { SendTab } from "../../views/Home/WalletDrawer/SendTab";
 
 async function pickMemberAndToken(user: ReturnType<typeof userEvent.setup>, tokenName: RegExp) {
+  // The Tokens tab opens on Balance — switch to the Send flow first.
+  await user.click(screen.getByRole("tab", { name: "Send" }));
   await user.click(await screen.findByRole("button", { name: /alice\.eth/i }));
   await user.click(await screen.findByRole("button", { name: tokenName }));
   await user.type(screen.getByRole("textbox", { name: "How much" }), "10");
@@ -89,6 +91,9 @@ describe("SendTab", () => {
   it("walks recipient → token+amount → review and confirms a GOODS send", async () => {
     const user = userEvent.setup();
     render(<SendTab />);
+
+    // Enter the Send flow (the tab opens on Balance).
+    await user.click(screen.getByRole("tab", { name: "Send" }));
 
     // Step 1: pick a fellow garden member.
     await user.click(await screen.findByRole("button", { name: /alice\.eth/i }));
@@ -140,15 +145,17 @@ describe("SendTab", () => {
     expect(screen.getByRole("img", { name: "Your wallet QR code" })).toBeInTheDocument();
   });
 
-  it("returns to the recipient step when the reset nonce changes (tab re-tap)", async () => {
+  it("returns to the Balance view when the reset nonce changes (tab re-tap)", async () => {
     const user = userEvent.setup();
     const { rerender } = render(<SendTab resetNonce={0} />);
+    await user.click(screen.getByRole("tab", { name: "Send" }));
     await user.click(await screen.findByRole("button", { name: /alice\.eth/i }));
     expect(screen.getByText(/Sending to/i)).toBeInTheDocument();
 
     rerender(<SendTab resetNonce={1} />);
 
-    expect(await screen.findByRole("button", { name: /alice\.eth/i })).toBeInTheDocument();
+    // The send flow reset — back on the Balance list.
+    expect(await screen.findByRole("button", { name: "Send GOODS" })).toBeInTheDocument();
     expect(screen.queryByText(/Sending to/i)).not.toBeInTheDocument();
   });
 
@@ -162,5 +169,23 @@ describe("SendTab", () => {
     await user.click(screen.getAllByRole("button", { name: "Change" })[0]);
 
     expect(await screen.findByRole("button", { name: /alice\.eth/i })).toBeInTheDocument();
+  });
+
+  it("opens on the Balance view listing holdings", async () => {
+    render(<SendTab />);
+    expect(await screen.findByRole("button", { name: "Send GOODS" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Send USDC" })).toBeInTheDocument();
+  });
+
+  it("starts a pre-filled send from a Balance token", async () => {
+    const user = userEvent.setup();
+    render(<SendTab />);
+
+    // Tap GOODS in the Balance list → send flow with GOODS pre-selected.
+    await user.click(await screen.findByRole("button", { name: "Send GOODS" }));
+    await user.click(await screen.findByRole("button", { name: /alice\.eth/i }));
+
+    // The amount step is reached directly, with the token already chosen.
+    expect(screen.getByRole("textbox", { name: "How much" })).toBeInTheDocument();
   });
 });

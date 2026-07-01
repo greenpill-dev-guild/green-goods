@@ -30,7 +30,8 @@ function getGardenAccountAddress(garden: Garden): Address {
  * the jar onchain. Access is derived from the garden account's role checks and
  * intentionally fails closed when eligibility cannot be confirmed.
  */
-export function useAccessibleCookieJars() {
+export function useAccessibleCookieJars(options?: { enabled?: boolean }) {
+  const enabled = options?.enabled ?? true;
   const chainId = useCurrentChain();
   const primaryAddress = usePrimaryAddress() as Address | null;
   const { data: gardens = [] } = useGardens();
@@ -56,7 +57,7 @@ export function useAccessibleCookieJars() {
     contracts: eligibilityContracts,
     allowFailure: true,
     query: {
-      enabled: moduleConfigured && Boolean(primaryAddress) && gardens.length > 0,
+      enabled: enabled && moduleConfigured && Boolean(primaryAddress) && gardens.length > 0,
       staleTime: STALE_TIME_MEDIUM,
     },
   });
