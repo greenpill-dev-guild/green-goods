@@ -123,14 +123,43 @@ function JarCard({ jar, gardenName }: JarCardProps) {
                 error={inputError ? formatMessage({ id: inputError }) : null}
               />
 
-              <textarea
-                value={purpose}
-                onChange={(e) => setPurpose(e.target.value)}
-                placeholder={formatMessage({ id: "app.cookieJar.purposePlaceholder" })}
-                aria-label={formatMessage({ id: "app.cookieJar.purpose" })}
-                className="w-full rounded-md border border-stroke-sub-300 bg-bg-white-0 px-3 py-2.5 text-sm text-text-strong-950 placeholder:text-text-soft-400 focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-base/20 resize-none"
-                rows={2}
-              />
+              <div className="space-y-1">
+                <label
+                  htmlFor={`${panelId}-purpose`}
+                  className="block text-xs font-medium text-text-sub-600"
+                >
+                  {formatMessage({ id: "app.cookieJar.purpose" })}{" "}
+                  <span aria-hidden="true" className="text-error-dark">
+                    *
+                  </span>
+                </label>
+                <textarea
+                  id={`${panelId}-purpose`}
+                  value={purpose}
+                  onChange={(e) => setPurpose(e.target.value)}
+                  placeholder={formatMessage({ id: "app.cookieJar.purposePlaceholder" })}
+                  required
+                  aria-required="true"
+                  className="w-full rounded-md border border-stroke-sub-300 bg-bg-white-0 px-3 py-2.5 text-sm text-text-strong-950 placeholder:text-text-soft-400 focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-base/20 resize-none"
+                  rows={2}
+                />
+                <p className="text-xs text-text-soft-400">
+                  {formatMessage({
+                    id: "app.cookieJar.purposeHelp",
+                    defaultMessage:
+                      "Briefly say what this withdrawal is for. It's recorded with the payout.",
+                  })}
+                </p>
+              </div>
+
+              {!isOnline ? (
+                <p className="text-xs text-warning-dark" role="status">
+                  {formatMessage({
+                    id: "app.cookieJar.withdrawOffline",
+                    defaultMessage: "Offline. Withdrawals need a connection to reach the jar.",
+                  })}
+                </p>
+              ) : null}
 
               <button
                 type="button"
@@ -217,13 +246,21 @@ export const CookieJarTab: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="space-y-2.5 animate-pulse p-4">
-        {Array.from({ length: 2 }, (_, i) => (
-          <div key={i} className="flex items-center gap-3">
-            <div className="h-3 flex-1 rounded bg-bg-weak-50" />
-            <div className="h-3 w-16 rounded bg-bg-weak-50" />
-          </div>
-        ))}
+      <div className="space-y-2.5 p-4" role="status">
+        <p className="text-xs text-text-soft-400">
+          {formatMessage({
+            id: "app.cookieJar.loading",
+            defaultMessage: "Checking which cookie jars you can access…",
+          })}
+        </p>
+        <div className="space-y-2.5 animate-pulse" aria-hidden="true">
+          {Array.from({ length: 2 }, (_, i) => (
+            <div key={i} className="flex items-center gap-3">
+              <div className="h-3 flex-1 rounded bg-bg-weak-50" />
+              <div className="h-3 w-16 rounded bg-bg-weak-50" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }

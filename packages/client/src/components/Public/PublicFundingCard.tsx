@@ -741,6 +741,12 @@ function IdleBody(props: IdleBodyProps) {
               )
             : undefined
         }
+        wethStaleSevere={
+          isWeth &&
+          ethUsd.isStale &&
+          ethUsd.updatedAt > 0 &&
+          Math.floor(Date.now() / 1000) - ethUsd.updatedAt > 120
+        }
         wethUnavailable={!isWethDenomination && isWeth && conversionUnavailable}
       />
 
@@ -862,6 +868,8 @@ interface AmountInputProps {
   /** USD-mode estimate ("≈ 0.0066 WETH at $3,000.00/ETH"). */
   wethSubtitle?: string;
   wethStaleSubtitle?: string;
+  /** Escalates the stale note to warning severity (price older than ~2 minutes). */
+  wethStaleSevere?: boolean;
   wethUnavailable?: boolean;
 }
 
@@ -876,6 +884,7 @@ export function AmountInput({
   usdSubtitle,
   wethSubtitle,
   wethStaleSubtitle,
+  wethStaleSevere = false,
   wethUnavailable,
 }: AmountInputProps) {
   const { formatMessage } = useIntl();
@@ -937,7 +946,16 @@ export function AmountInput({
           </p>
         ) : null}
         {wethStaleSubtitle ? (
-          <p className="text-xs text-text-soft-400 italic" data-testid="weth-stale">
+          <p
+            className={
+              wethStaleSevere
+                ? "text-xs font-medium text-warning-dark"
+                : "text-xs text-text-soft-400 italic"
+            }
+            role={wethStaleSevere ? "status" : undefined}
+            data-testid="weth-stale"
+            data-severity={wethStaleSevere ? "warning" : "info"}
+          >
             {wethStaleSubtitle}
           </p>
         ) : null}

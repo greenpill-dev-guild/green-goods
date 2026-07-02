@@ -43,13 +43,25 @@ export function AmountStep({
         </h4>
 
         {isLoading ? (
-          <div className="space-y-2.5 animate-pulse">
-            {Array.from({ length: 3 }, (_, index) => (
-              <div key={index} className="h-12 rounded-lg bg-bg-weak-50" />
-            ))}
+          <div className="space-y-2.5" role="status">
+            <p className="text-xs text-text-soft-400">
+              {formatMessage({
+                id: "app.send.token.loading",
+                defaultMessage: "Checking your token balances…",
+              })}
+            </p>
+            <div className="space-y-2.5 animate-pulse" aria-hidden="true">
+              {Array.from({ length: 3 }, (_, index) => (
+                <div key={index} className="h-12 rounded-lg bg-bg-weak-50" />
+              ))}
+            </div>
           </div>
         ) : (
-          <div className="space-y-2">
+          <div
+            className="space-y-2"
+            role="group"
+            aria-label={formatMessage({ id: "app.send.token.title" })}
+          >
             {tokens.map((token) => {
               const selectable = tokenIsSelectable(token);
               const selected = selectedToken?.address.toLowerCase() === token.address.toLowerCase();

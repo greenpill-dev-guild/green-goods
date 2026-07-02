@@ -11,7 +11,6 @@ interface ReviewStepProps {
   parsedAmount: bigint;
   note: string;
   onNoteChange: (value: string) => void;
-  isOnline: boolean;
   onEditRecipient: () => void;
   onEditAmount: () => void;
 }
@@ -65,7 +64,6 @@ export function ReviewStep({
   parsedAmount,
   note,
   onNoteChange,
-  isOnline,
   onEditRecipient,
   onEditAmount,
 }: ReviewStepProps) {
@@ -122,9 +120,8 @@ export function ReviewStep({
         </Alert>
       ) : null}
 
-      {!isOnline ? (
-        <Alert variant="warning">{formatMessage({ id: "app.send.review.offline" })}</Alert>
-      ) : null}
+      {/* Offline is announced once, by the flow-level banner in SendTab (it is
+          visible on every step, including this one), so no duplicate here. */}
     </div>
   );
 }

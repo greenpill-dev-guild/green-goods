@@ -90,6 +90,7 @@ export const AppBar = () => {
               to={path}
               key={title}
               viewTransition
+              aria-current={isActive ? "page" : undefined}
               className={cn(
                 "flex flex-col items-center",
                 isActive && "active tab-active text-primary focus:outline-hidden",

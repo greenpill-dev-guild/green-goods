@@ -1,5 +1,6 @@
 import {
   type Address,
+  Alert,
   ConfirmDialog,
   cn,
   formatAddress,
@@ -164,6 +165,14 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
       ) : (
         <>
           <div className="flex-1">
+            {/* Offline is surfaced up front, not only at the review step —
+                the send cannot complete without a connection, so the user
+                should know before building the transaction. */}
+            {!isOnline ? (
+              <div className="px-4 pt-4">
+                <Alert variant="warning">{formatMessage({ id: "app.send.review.offline" })}</Alert>
+              </div>
+            ) : null}
             {step !== "recipient" && recipient ? (
               <button
                 type="button"
@@ -209,7 +218,6 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
                 parsedAmount={validation.parsedAmount}
                 note={note}
                 onNoteChange={setNote}
-                isOnline={isOnline}
                 onEditRecipient={() => setStep("recipient")}
                 onEditAmount={() => setStep("amount")}
               />
