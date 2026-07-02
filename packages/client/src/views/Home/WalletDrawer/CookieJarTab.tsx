@@ -4,16 +4,17 @@ import {
   ConfirmDialog,
   type CookieJar,
   formatTokenAmount,
+  FormattedAmountInput,
   getVaultAssetSymbol,
   useCookieJarWithdraw,
+  useFormattedAmountInput,
   useGardens,
   useOffline,
-  validateDecimalInput,
 } from "@green-goods/shared";
 import { RiArrowDownSLine, RiErrorWarningLine, RiInboxLine, RiLoader4Line } from "@remixicon/react";
 import React, { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { formatUnits, parseUnits } from "viem";
+import { formatUnits } from "viem";
 import { EmptyState } from "@/components/Communication";
 
 interface JarCardProps {
@@ -33,19 +34,9 @@ function JarCard({ jar, gardenName }: JarCardProps) {
   const decimals = jar.decimals;
   const assetSymbol = getVaultAssetSymbol(jar.assetAddress, undefined);
   const panelId = `cookie-jar-claim-${jar.jarAddress.toLowerCase()}`;
-  const inputError = useMemo(
-    () => validateDecimalInput(amountInput, decimals),
-    [amountInput, decimals]
-  );
-
-  const parsedAmount = useMemo(() => {
-    if (!amountInput.trim() || inputError) return 0n;
-    try {
-      return parseUnits(amountInput, decimals);
-    } catch {
-      return 0n;
-    }
-  }, [amountInput, inputError, decimals]);
+  const amountState = useFormattedAmountInput(amountInput, decimals);
+  const inputError = amountState.formatErrorId;
+  const parsedAmount = amountState.parsedAmount ?? 0n;
 
   const executeWithdraw = () => {
     withdrawMutation.mutate(
@@ -106,37 +97,31 @@ function JarCard({ jar, gardenName }: JarCardProps) {
             </p>
           ) : (
             <>
-              <div className="flex items-center gap-2">
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  value={amountInput}
-                  onChange={(e) => setAmountInput(e.target.value)}
-                  placeholder={formatMessage({ id: "app.cookieJar.amount" })}
-                  aria-label={formatMessage({ id: "app.cookieJar.amount" })}
-                  aria-invalid={Boolean(inputError)}
-                  className={`w-full rounded-md border px-3 py-2.5 text-sm text-text-strong-950 focus:outline-none focus:ring-2 focus:ring-primary-base/20 ${
-                    inputError
-                      ? "border-error-base focus:border-error-base"
-                      : "border-stroke-sub-300 bg-bg-white-0 focus:border-primary-base"
-                  }`}
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    const max = jar.maxWithdrawal < jar.balance ? jar.maxWithdrawal : jar.balance;
-                    setAmountInput(formatUnits(max, decimals));
-                  }}
-                  className="min-h-11 min-w-11 rounded-md border border-stroke-sub-300 bg-bg-white-0 px-3 py-2.5 text-xs font-medium text-text-sub-600 hover:bg-bg-weak-50"
-                >
-                  {formatMessage({ id: "app.treasury.max" })}
-                </button>
-              </div>
-              {inputError && (
-                <p className="text-xs text-error-dark" role="alert">
-                  {formatMessage({ id: inputError })}
-                </p>
-              )}
+              <FormattedAmountInput
+                value={amountInput}
+                onValueChange={setAmountInput}
+                placeholder={formatMessage({ id: "app.cookieJar.amount" })}
+                aria-label={formatMessage({ id: "app.cookieJar.amount" })}
+                inputClassName={`w-full rounded-md border px-3 py-2.5 text-sm text-text-strong-950 focus:outline-none focus:ring-2 focus:ring-primary-base/20 ${
+                  inputError
+                    ? "border-error-base focus:border-error-base"
+                    : "border-stroke-sub-300 bg-bg-white-0 focus:border-primary-base"
+                }`}
+                endSlot={
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const max = jar.maxWithdrawal < jar.balance ? jar.maxWithdrawal : jar.balance;
+                      setAmountInput(formatUnits(max, decimals));
+                    }}
+                    className="min-h-11 min-w-11 rounded-md border border-stroke-sub-300 bg-bg-white-0 px-3 py-2.5 text-xs font-medium text-text-sub-600 hover:bg-bg-weak-50"
+                  >
+                    {formatMessage({ id: "app.treasury.max" })}
+                  </button>
+                }
+                errorClassName="mt-2 text-xs text-error-dark"
+                error={inputError ? formatMessage({ id: inputError }) : null}
+              />
 
               <textarea
                 value={purpose}

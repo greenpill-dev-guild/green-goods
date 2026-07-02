@@ -64,6 +64,11 @@ export type { SurfaceProps, SurfaceVariantProps } from "./Surface";
 // Feedback Components
 export type { TxInlineFeedbackProps, TxInlineFeedbackSeverity } from "./feedback/TxInlineFeedback";
 export { TxInlineFeedback } from "./feedback/TxInlineFeedback";
+export type {
+  TransactionSuccessAffordanceProps,
+  TransactionSuccessMode,
+} from "./feedback/TransactionSuccessAffordance";
+export { TransactionSuccessAffordance } from "./feedback/TransactionSuccessAffordance";
 // Canvas Components (Navigation + MainSheet + sheet-slot primitives)
 export {
   MainSheet,
@@ -157,6 +162,8 @@ export { CheckboxGroup, FormCheckbox } from "./Form/FormCheckbox";
 export type { FormFieldWrapperProps } from "./Form/FormFieldWrapper";
 export type { FormFieldProps } from "./Form/FormFieldWrapper";
 export { FormField, FormFieldWrapper } from "./Form/FormFieldWrapper";
+export type { FormattedAmountInputProps, FormattedAmountState } from "./Form/FormattedAmountInput";
+export { FormattedAmountInput, useFormattedAmountInput } from "./Form/FormattedAmountInput";
 export type { FormInputProps } from "./Form/FormInput";
 export { FormInput } from "./Form/FormInput";
 export type {
