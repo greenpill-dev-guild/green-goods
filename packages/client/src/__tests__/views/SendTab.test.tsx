@@ -168,6 +168,19 @@ describe("SendTab", () => {
     expect(screen.queryByText(/Sending to/i)).not.toBeInTheDocument();
   });
 
+  it("lands back on the Balance view after a successful send", async () => {
+    mockSend.mockImplementation((_params, opts) => opts?.onSuccess?.());
+    const user = userEvent.setup();
+    render(<SendTab />);
+    await pickMemberAndToken(user, /GOODS/);
+    await user.click(screen.getByRole("button", { name: "Review" }));
+    await user.click(screen.getByRole("button", { name: "Send" }));
+    await user.click(screen.getByTestId("confirm-send"));
+
+    expect(await screen.findByRole("button", { name: /^Send GOODS/ })).toBeInTheDocument();
+    expect(screen.queryByText(/Sending to/i)).not.toBeInTheDocument();
+  });
+
   it("lets you edit the recipient from the review step", async () => {
     const user = userEvent.setup();
     render(<SendTab />);

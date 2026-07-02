@@ -67,7 +67,7 @@ export function MemberRow({
       onClick={onSelect}
       aria-pressed={selected}
       className={cn(
-        "flex w-full items-center gap-3 rounded-lg border p-2.5 text-left transition",
+        "flex w-full items-center gap-3 rounded-lg border p-2.5 text-left transition duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
         selected
           ? "border-primary-base bg-primary-base/10"
           : "border-stroke-soft-200 bg-bg-white-0 hover:bg-bg-weak-50"

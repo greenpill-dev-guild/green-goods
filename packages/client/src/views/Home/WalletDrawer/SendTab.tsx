@@ -77,7 +77,10 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
     [selectedToken, amountInput]
   );
 
+  // After a completed send, land on Balance: the updated holdings sit next to
+  // the success toast, closing the loop.
   const resetForm = () => {
+    setMode("balance");
     setStep("recipient");
     setRecipient(null);
     setSelectedToken(null);
@@ -149,7 +152,7 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
               aria-selected={mode === value}
               onClick={() => setMode(value)}
               className={cn(
-                "min-h-11 flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition",
+                "min-h-11 flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
                 mode === value
                   ? "bg-bg-white-0 text-text-strong-950 shadow-sm"
                   : "text-text-sub-600 hover:text-text-strong-950"
@@ -252,7 +255,7 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
               disabled={!canAdvance}
               aria-busy={sendMutation.isPending || undefined}
               className={cn(
-                "inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60",
+                "inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium transition duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] disabled:cursor-not-allowed disabled:opacity-60",
                 "bg-primary-base text-primary-accent-foreground hover:bg-primary-darker"
               )}
             >
