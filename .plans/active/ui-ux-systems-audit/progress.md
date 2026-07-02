@@ -36,12 +36,21 @@
 
 **Admin typecheck baseline captured** (advisor's load-bearing prerequisite): `bun build` does NOT typecheck admin (solution-style tsconfig + `-p` → 0 files; that's how `size="xl"` shipped). `tsc -b packages/admin/tsconfig.json` gives a real check but surfaces ~385 pre-existing `.stories.tsx`/lib-target errors. Baseline saved to `admin-tsc-baseline.txt` (509 lines); **exactly 1 pre-existing error in P0A's blast radius** (`CanvasLayout.tsx:199 'sheetLayerRoot' unused` — P0A should remove it). P0A proof = `tsc -b` diff shows **zero new errors** over baseline. Wiring a permanent admin-typecheck gate = scope expansion → flag to Afo.
 
+Dispatched a focused subagent (id `aaad82a6ef4f083f5`) for the refactor; verifying its output myself + owning runtime QA.
+
 | Task | Status | Evidence |
 |---|---|---|
-| P0A.1 normalize descriptors | ⬜ starting | — |
-| P0A.2 collapse CanvasLeftSheet bridge | ⬜ | — |
-| P0A.3 delete renderers + prune barrels | ⬜ | — |
-| P0A.4 update tests/stories | ⬜ | — |
+| P0A.1 normalize descriptors | ✅ (verified) | 4 descriptors drop `width`, emit `size`+`tone` into the admin-local channel. |
+| P0A.2 collapse CanvasLeftSheet bridge | ✅ (verified) | Subagent moved the `LeftSheetContext` plumbing admin-local to `components/Layout/leftSheetChannel.tsx` (carries size+tone as AdminDialog props, keeps hook names). `CanvasLayout` renders `LeftInspectorDialog` → `<AdminDialog size={config?.size ?? "lg"} tone={config?.tone ?? fallbackTone}>`. Read every line; clean. |
+| P0A.3 delete renderers + prune barrels | ✅ (verified) | Deleted LeftSheet/RightSheet/BottomSheet/CanvasSheetInternals/LeftSheetContext + 4 stories + 6 tests; pruned all 3 barrels. Net −3,243 lines. KEEP list intact (SheetBody/Footer/Divider, right-sheet descriptor/orchestrator system, which have zero imports of the deleted renderers — verified). |
+| P0A.4 update tests/stories | 🔄 subagent finishing (round 2) | **Its first pass was INCOMPLETE — I caught 9 downstream files still referencing deleted symbols** via the typecheck-signature diff (3 stories import deleted `RightSheet` → TS2305; 3 stories assert `data-component="LeftSheet"/"BottomSheet"` now rendering as AdminDialog; 2 moved-symbol imports; 6 dead CSS rules). Resumed the subagent with the precise list + production AdminDialog patterns + "rewire, don't gut assertions." **Then: my final verification (typecheck-diff zero-new, admin+shared tests, build, story CI) + RUNTIME QA of the 11 inspector flows in Brave.** |
+
+**Verification method that caught the gap:** `tsc -b` signature-diff (`file(line,col):TScode`, message stripped to kill TS union-order noise) vs `admin-tsc-baseline.txt`. Real new errors = 3× TS2305 `RightSheet` + 4× benign `DiscardChangesDialog.stories` story-noise.
+
+### Afo decisions — ANSWERED (2026-07-01)
+1. **SendTab CI:** "do the best option that keeps our UI consistent" → I'll evaluate live in Brave: the sanctioned `text-primary-accent-foreground` is dark-green (low contrast on green), so "keep UI consistent" likely means restyling the CTA to an approved darker-green surface that keeps legible white text (matching other primary CTAs), QA'd live — decide at Wave C/D when I'm in the client surface. Handle as a small separate `fix(client)` to unblock develop's CI Gate.
+2. **P2.4 donate/claim success:** **transient toast** (via two-tier toast.service). Simplifies P2.4 + P5.4 — no receipt to build.
+3. **P4.1 onboarding:** **no product-defined flow yet** → add a first-run CTA routing to the best existing surface (browse public gardens / login-to-join), flag where a real join flow is still needed. Don't invent a join mechanism.
 
 ## Pending Afo decisions (batched for when Afo returns)
 
