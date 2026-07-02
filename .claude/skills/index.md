@@ -4,6 +4,43 @@
 
 ---
 
+## Which skill? (decision tree)
+
+```text
+What is the intent?
+│
+├─ Picking up / orienting ──────────────→ /status  (--resume on a work branch)
+│
+├─ A bug, error, or failing test is being described
+│     └→ debug fires PASSIVELY (no slash) — reproduce first, then root-cause.
+│        "production down"/"hotfix" → incident mode · pasted red test → tdd mode
+│
+├─ Judging a specific diff / PR / package ──→ /review [scope]
+│
+├─ Scope is ambiguous or multi-issue ("audit X then fix what matters")
+│     └→ /audit-then-ship — explicit + gated: read-only findings →
+│        user locks scope → fix only locked items → ship
+│
+├─ "Is our guidance/plans/docs/design stale?" ──→ /drift check [scope]
+│
+├─ Accepted cleanup at scale ──────────────→ /clean  (only after /drift or
+│                                             /audit-then-ship proves it)
+├─ Shaping / breaking down / orchestrating work
+│     └→ describe the intent in words — plan fires passively
+│
+└─ Prove the branch is ready to merge ─────→ ship (fires via /audit-then-ship
+                                              Phase 4, or ask explicitly)
+```
+
+**Precedence — `debug` vs `audit-then-ship`:** `debug` is passive and immediate — it fires
+as soon as a bug is described, even mid-conversation, and owns reproduction + root cause.
+`audit-then-ship` never self-triggers — it is explicit and scope-gated. When both could apply
+(a bug report inside a broader "audit this area" ask), let `debug` reproduce the concrete
+failure first; graduate to `/audit-then-ship` when the user wants a scoped multi-issue fix
+pass. The two do not run concurrently on the same surface.
+
+---
+
 ## Command Skills (User-Invocable)
 
 | Skill | Invoke With | Use For |

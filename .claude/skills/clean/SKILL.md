@@ -309,7 +309,7 @@ digraph clean_flow {
     dispatch [label="Dispatch 8 agents\n(parallel, worktree-isolated)" shape=box];
     reports [label="Collect reports\n(.plans/clean/)" shape=box];
     merge [label="Merge worktrees\n(resolve conflicts)" shape=box];
-    validate [label="Validate\nbun format && bun lint\nbun run test && bun build" shape=box];
+    validate [label="Validate\nShip Gate\n(validation-pipeline.md)" shape=box];
     codex [label="Codex final review\n(regression + miss hunt,\nparallel lanes)" shape=box];
     triage [label="Triage Codex findings\n(auto-revert regressions,\nuser-confirm misses)" shape=box];
     summary [label="Summary to user\n(changes, findings, skipped,\nCodex callouts)" shape=box];
@@ -330,7 +330,7 @@ digraph clean_flow {
 2. **Verify provenance** — each report must show `stale_base: no`; if not, stop for re-dispatch or explicit stale-base salvage approval
 3. **Merge worktrees** — if conflicts arise, prefer the agent whose concern is more central (e.g., Agent 2's type move over Agent 1's dedup of that same type), but never apply blanket "take ours" / "take theirs" without a recorded reason
 4. **Write merge audit** — if any conflict, stale-base salvage, dropped stash, or no-op cherry-pick occurred, write `.plans/clean/merge-audit.md`
-5. **Full validation**: `bun format && bun lint && bun run test && bun build`
+5. **Full validation**: the Ship Gate (`.claude/context/validation-pipeline.md`)
 6. **Post-merge residue checks**: `git diff --check`, targeted removed-symbol scans, package `bunx tsc --noEmit`, and `bunx knip --reporter compact` for unused export/dependency drift
 7. **Fix regressions** — if tests fail, revert the specific change that broke them
 8. **Codex final review** — dispatch the two Codex lanes (see § Codex Final Review). Skipped under `--dry-run` or `--no-codex`.
@@ -455,28 +455,10 @@ Each lane writes its `codex-result.md` (per `.codex/output-schema.json`) inside 
 
 ### Linear follow-up routing
 
-`.plans` remains the cleanup execution record. Do not use GitHub's issue tracker for cleanup
-backlog work. Create or update Linear records only after the user accepts a cleanup finding for
-tracking:
-
-- Accepted implementation, QA, maintenance, regression, or cleanup follow-up: Linear Issue using
-  the Accepted Product Work structure. Team: Product.
-- Accepted research, evidence gathering, or recommendation follow-up: Linear Issue using the
-  Accepted Research Task structure. Team: Research.
-- Raw customer or telemetry signal discovered during cleanup belongs in Customer Needs, not a
-  product issue, until accepted.
-
-Routing rules:
-
-- If a cleanup finding is mirrored from `.plans/clean/`, include the `.plans` link and label the
-  Linear issue `source:plans`.
-- Attach to an active bounded project only when the scope clearly matches. Do not route new work
-  into completed/staging umbrella projects such as `Green Goods`, `Coop`, `Network Website`, or
-  `Cookie Jar`; otherwise leave the issue unprojected.
-- Use only these label namespaces: `protocol:*`, `package:*`, `activity:*`,
-  `funding:*`, `source:*`, `agent:*`.
-- Keep private, security-sensitive, user-identifying, replay, wallet, email, and session details
-  out of public Linear issue bodies.
+All routing (team, `.plans`/`source:plans`, projects, labels, privacy, prompt-before-create)
+follows the shared core: [`.claude/context/linear-routing-rules.md`](../../context/linear-routing-rules.md).
+Cleanup-specific delta: mirrored findings come from `.plans/clean/`, which remains the cleanup
+execution record.
 
 ### Triage rules (Claude reads, decides, acts)
 

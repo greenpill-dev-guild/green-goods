@@ -217,7 +217,7 @@ Implementation steps must be granular enough for agents to execute reliably. Fol
 2. **Gather git context**: `git status`, `git diff --stat`
 3. **File-by-file status**: DONE / PARTIAL / NOT DONE
 4. **Requirements coverage table**
-5. **Run validation**: `bun format && bun lint && bun run test && bun build`
+5. **Run validation**: the Ship Gate (`.claude/context/validation-pipeline.md`)
 
 ---
 
@@ -430,9 +430,8 @@ This gives Claude and future contributors unambiguous constraints without readin
 
 ## Validation Commands
 
-```bash
-bun format && bun lint && bun run test && bun build
-```
+The Ship Gate — canonical definition in
+[`.claude/context/validation-pipeline.md`](../../context/validation-pipeline.md).
 
 ## Key Principles
 

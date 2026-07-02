@@ -703,7 +703,10 @@ function CanvasLeftSheet({ tone }: { tone: "hub" | "garden" | "community" | "act
       }}
       title={config?.title ?? ""}
       tone={tone}
-      size={config?.width === "wide" ? "xl" : "lg"}
+      // Post-size-collapse (77170588) the scale is sm/md/lg; the descriptors'
+      // legacy `width: "wide"` no longer maps to a wider tier — every inspector
+      // flow renders at lg until Phase 0A drops the width prop entirely.
+      size="lg"
       preventClose={config?.preventClose}
     >
       {config?.content}

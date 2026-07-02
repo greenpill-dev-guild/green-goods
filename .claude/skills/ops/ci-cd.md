@@ -205,12 +205,10 @@ DEPLOY_*            -- Deployment credentials
 
 ### Pre-Commit Validation
 
-Run the same checks locally before pushing:
+Run the same checks locally before pushing — the Ship Gate, canonically defined in
+[`.claude/context/validation-pipeline.md`](../../context/validation-pipeline.md):
 
 ```bash
-# Full validation (same as CI)
-bun format && bun lint && bun run test && bun build
-
 # Quick check (just the essentials)
 bun lint && bun run test
 ```
@@ -270,5 +268,5 @@ What CI/CD work?
 |                                      -> Use environment protection
 |
 +--> Testing CI locally? ----------> Local CI Simulation (above)
-                                       -> bun format && bun lint && bun run test && bun build
+                                       -> Ship Gate (context/validation-pipeline.md)
 ```

@@ -107,7 +107,7 @@ function renderCreateAssessment() {
     }
   );
 
-  return render(
+  render(
     <QueryClientProvider client={queryClient}>
       <IntlProvider locale="en" messages={{}} onError={() => {}}>
         <AuthContext.Provider value={authContextValue}>
@@ -116,6 +116,8 @@ function renderCreateAssessment() {
       </IntlProvider>
     </QueryClientProvider>
   );
+
+  return router;
 }
 
 describe("CreateAssessment dialog", () => {
@@ -186,5 +188,26 @@ describe("CreateAssessment dialog", () => {
 
     expect(await idbGet(draftKey)).toBeUndefined();
     expect(useCreateAssessmentStore.getState().form.title).toBe("");
+  });
+
+  it("closes straight back to the Hub when the form is pristine (no discard prompt)", async () => {
+    let router: ReturnType<typeof renderCreateAssessment> | undefined;
+    await act(async () => {
+      router = renderCreateAssessment();
+      await Promise.resolve();
+    });
+
+    const dialog = await screen.findByRole("dialog", { name: "Submit assessment" });
+    await act(async () => {
+      fireEvent.keyDown(dialog, { key: "Escape" });
+      await Promise.resolve();
+    });
+
+    // Pristine form: Escape must not raise the discard confirm — it exits
+    // directly to the Hub workbench the flow was launched from (controller
+    // handleCancel → adminRoutes.hub → the default /hub/work stage).
+    expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: "Submit assessment" })).not.toBeInTheDocument();
+    expect(router?.state.location.pathname).toBe("/hub/work");
   });
 });

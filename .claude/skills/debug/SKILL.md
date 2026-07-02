@@ -485,14 +485,15 @@ After debugging provide:
 
 ## Linear Routing
 
-This skill is read-only on Linear. After a bug is reproduced and root-caused:
+This skill is read-only on Linear while debugging. The shared routing core (team routing,
+`.plans`/`source:plans`, projects, labels, privacy, prompt-before-create) lives at
+[`.claude/context/linear-routing-rules.md`](../../context/linear-routing-rules.md).
+
+Debug-specific deltas, applied after a bug is reproduced and root-caused:
 
 - Raw user/telemetry signal → Linear **Customer Need** (Product team) using the structured body shape (Source / Customer type / Need statement / Evidence / Disposition).
-- Accepted fixes, QA follow-ups, or product investigations → Linear **Issue** (Product team), labels: `activity:qa` + relevant `package:*` + `protocol:*`.
-- Accepted research questions or evidence-gathering → Linear **Issue** (Research team), labels: `activity:research`.
-- If the bug originated in a `.plans` item, link it and label the Linear record `source:plans`.
-- Detailed routing rules + PostHog/Sentry↔Linear privacy boundary live in [posthog.md](./posthog.md).
-- Always prompt the user before creating any Linear record — never auto-write.
+- Accepted fixes, QA follow-ups, or product investigations → Product Issue with `activity:qa` + relevant `package:*` + `protocol:*`.
+- The PostHog/Sentry↔Linear privacy specifics live in [posthog.md](./posthog.md).
 
 ## Anti-Patterns
 

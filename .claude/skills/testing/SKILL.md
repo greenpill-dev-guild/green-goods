@@ -334,7 +334,7 @@ Before marking work complete:
 
 ### Validation Commands
 - [ ] QA Speed Mode: targeted test/proof plus package-local typecheck/build only when needed
-- [ ] Ship Gate: `bun format && bun lint && bun run test && bun build` when claiming branch readiness
+- [ ] Ship Gate (`.claude/context/validation-pipeline.md`) when claiming branch readiness
 
 ### Documentation & Communication
 - [ ] Update relevant documentation when behavior changes
