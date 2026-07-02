@@ -127,3 +127,10 @@ for `/actions`).
 
 **No regressions surfaced** in any dialog reached this pass — the P0A channel move preserved
 open/close/tone/size behaviour end-to-end.
+
+### Pass 2 addendum (same session, after the classifier recovered)
+
+| Dialog | Trigger | size / variant / tone | Result |
+|---|---|---|---|
+| **Vault Deposit** (`DepositModal.tsx`) | Vault dialog → Deposit | `md` / standard / `home` (neutral default) | ✅ Opens stacked over the Endowment inspector; scrim, header/body, close, focus trap, amount input present. Note: rides the neutral `home` tone default rather than `community` — acceptable (deliberate default), flagged as a consistency nit for a future tone pass. |
+| **Signal Pool** (route-backed descriptor) | deep-link `/community/governance/signal-pool/priority` | `lg` / standard / `community` | ✅ Opens from deep-link through the admin-local channel ("Hypercert Signal Pool"). |
