@@ -87,6 +87,11 @@ Not started. See plan.md for task tables.
 
 ### Standing follow-ups (not plan tasks, discovered this session)
 
+> **Planned 2026-07-02:** all items below (+ the census pass-2 leftovers and P3.5) were re-verified
+> at HEAD and turned into an audited execution plan with Afo-ratified decisions —
+> [`.plans/active/uiux-followups/plan.md`](../uiux-followups/plan.md). Execute from there, not
+> from this list.
+
 1. **Admin has no working whole-package typecheck** — `bun build`'s tsc step checks 0 files (solution-style tsconfig + plain `-p`). Baseline + signature-diff pattern established (`admin-tsc-baseline.txt`); wiring a real gate (fix `ox` resolution, exclude stories or add storybook types) is its own task.
 2. **Storybook `test:stories:ci` play-function timeouts** on #602's first run (~15 admin canvas stories, all ~5s = timeout signature, on stories the branch didn't touch). Fresh CI run triggered by the cherry-pick push will give a second data point; if it repeats, suspect CI-runner resource contention, not the stories.
 3. Vault Deposit dialog rides the neutral `home` tone (not `community`) — a deliberate default, logged as a consistency nit.
