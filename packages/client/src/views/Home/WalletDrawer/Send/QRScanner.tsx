@@ -127,6 +127,10 @@ export function QRScanner({ onResult, onClose }: QRScannerProps) {
         // biome-ignore lint/a11y/useMediaCaption: live camera preview has no caption track
         <video
           ref={videoRef}
+          aria-label={formatMessage({
+            id: "app.send.qr.videoLabel",
+            defaultMessage: "Live camera preview for scanning a wallet QR code",
+          })}
           className={cn("aspect-square w-full rounded-md bg-bg-weak-50 object-cover")}
           muted
           playsInline

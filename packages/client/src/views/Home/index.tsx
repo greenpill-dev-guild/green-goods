@@ -209,6 +209,14 @@ const Home: React.FC = () => {
 
   return (
     <article ref={articleRef} className="mb-6">
+      {location.pathname === APP_ROUTES.home && !isOnline ? (
+        <p className="px-4 pt-2 text-center text-xs text-text-soft-400" role="status">
+          {intl.formatMessage({
+            id: "app.home.pullToRefreshOffline",
+            defaultMessage: "Offline. Pull to refresh is paused until you reconnect.",
+          })}
+        </p>
+      ) : null}
       {location.pathname === APP_ROUTES.home && (
         <PullToRefresh
           onRefresh={handlePullToRefresh}
@@ -269,6 +277,7 @@ const Home: React.FC = () => {
               scope={filters.scope}
               isFilterActive={isFilterActive}
               hasUserAddress={Boolean(normalizedAddress)}
+              onBrowseAll={() => handleScopeChange("all")}
             />
           </div>
           <GardensFilterDrawer

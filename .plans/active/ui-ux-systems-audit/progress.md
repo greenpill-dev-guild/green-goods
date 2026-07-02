@@ -91,3 +91,13 @@ Not started. See plan.md for task tables.
 2. **Storybook `test:stories:ci` play-function timeouts** on #602's first run (~15 admin canvas stories, all ~5s = timeout signature, on stories the branch didn't touch). Fresh CI run triggered by the cherry-pick push will give a second data point; if it repeats, suspect CI-runner resource contention, not the stories.
 3. Vault Deposit dialog rides the neutral `home` tone (not `community`) — a deliberate default, logged as a consistency nit.
 4. GardenVaultView legacy test was fixed in #606; the P0A subagent also flagged it as a task chip earlier — chip can be dismissed once #606 merges.
+
+## P5.1 em-dash review log (2026-07-01, Wave D)
+
+53 en keys carried em-dashes (33 `public.*` / 17 `app.*` / 3 other). Decision per class:
+
+**Converted (8 keys, en+es+pt mirrored):** `public.gardenDialog.notes.empty` + `.helper` (period/comma read better), `app.error.boundary.action.copyManual` (period), `app.garden.settings.bannerDraft` (dash → `·` middot: compact status caption), `app.garden.settings.saveFailedMessage` (period), `app.home.work.offlineInfo` + `.pendingUpload` (period — the plan's named candidate), `app.login.toast.fallbackAccountDescription` (appositive comma).
+
+**Kept (dash is doing real work):** all 9 editorial `§ NN — title` kickers (typographic register of the public site), persona role/body lines (`public.home.personas.*` — intentional editorial voice), glossary term bodies (`public.glossary.term.*`), fund/actions ledes, `app.admin.*` strings (admin untouched per plan scope), `app.admin.work.submit.review.empty` (a literal `—` empty-value placeholder, presentational), and `app.admin.assessment.*` placeholders (admin + example-text register).
+
+**P5.2 warm rewrites (en+es+pt):** `public.fund.card.conversionUnavailable` ("ETH price unavailable" → "Waiting on the ETH price…" — it's a submit-label, must stay short), `public.fund.card.wethUnavailable` (human phrasing + a next step), `public.fund.endowments.connect.lede` (functional → warm, names what the reader gets).
