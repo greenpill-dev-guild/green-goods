@@ -11,7 +11,7 @@ types, i18n, and Storybook-backed shared UI building blocks.
 
 - `/Users/afo/Code/greenpill/green-goods/docs/docs/builders/packages/admin.mdx` is the consumer contract for admin UI.
 - Reusable admin UI foundations belong here before they become package-local copies.
-- Prefer extending shared `AppBar`, `NavigationBar`, `GardenChip`, `MainSheet`, `LeftSheet`, `RightSheet`, `BottomSheet`, `Alert`, `Card`, `DialogShell`, `FormField`, `ListToolbar`, `SortSelect`, and `StatusBadge`.
+- Prefer extending shared `AppBar`, `NavigationBar`, `GardenChip`, `MainSheet`, `Alert`, `Card`, `DialogShell`, `FormField`, `ListToolbar`, `SortSelect`, and `StatusBadge`. (The Canvas `LeftSheet`/`RightSheet`/`BottomSheet` renderers are deleted — admin overlays are centered `AdminDialog`s owned by the admin package.)
 - New shared primitives and major variants need barrel exports, tests, and Storybook coverage in the same change.
 
 ## Commands

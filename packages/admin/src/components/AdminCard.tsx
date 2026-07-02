@@ -10,8 +10,6 @@ export const adminCardVariants = tv({
   base: [
     // Shape: corner-medium (12dp)
     "rounded-[var(--m3-shape-md)]",
-    // Padding
-    "p-4",
     // Transition
     "transition-shadow duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]",
   ],
@@ -27,6 +25,14 @@ export const adminCardVariants = tv({
         "shadow-[var(--m3-elevation-0)]",
         "ring-1 ring-inset ring-[rgb(var(--m3-outline-variant))]",
       ],
+    },
+    // One density ladder instead of per-view `className="p-3"` overrides:
+    // default = M3 card padding (16dp), compact = dense stat/list tiles (12dp),
+    // none = flush wrapper for edge-to-edge content (tables, media, lists).
+    density: {
+      default: "p-4",
+      compact: "p-3",
+      none: "p-0",
     },
     interactive: {
       true: ["m3-state-layer", "cursor-pointer", "[--state-layer-color:var(--m3-on-surface)]"],
@@ -55,6 +61,7 @@ export const adminCardVariants = tv({
   ],
   defaultVariants: {
     variant: "elevated",
+    density: "default",
     interactive: false,
   },
 });
@@ -88,6 +95,7 @@ export interface AdminCardProps
 export function AdminCard({
   className,
   variant,
+  density,
   interactive = false,
   children,
   style,
@@ -99,7 +107,7 @@ export function AdminCard({
   return (
     <div
       data-component="AdminCard"
-      className={cn("relative", adminCardVariants({ variant, interactive }), className)}
+      className={cn("relative", adminCardVariants({ variant, density, interactive }), className)}
       style={style}
       {...props}
     >

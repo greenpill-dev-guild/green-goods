@@ -127,12 +127,12 @@ Admin canvas recession on bounded sheet open: `translateY(var(--canvas-recede-y,
 
 ## Sheet Slot Anatomy
 
-> **Admin**: the `RightSheet` / `LeftSheet` / `BottomSheet` shells are **retired** — every admin overlay is a centered `AdminDialog`. These slots now compose **inside an `AdminDialog` body** (the dialog supplies scrim, title, and close); `SheetBody` / `SheetFooter` / `SheetDivider` survive as the body/footer primitives. The example below is the client-PWA / shared form — for admin, swap the `<RightSheet>` wrapper for `<AdminDialog>`. Sheet-shell tokens (`--radius-sheet`) apply to client sheets only.
+> **Admin**: the `RightSheet` / `LeftSheet` / `BottomSheet` renderers are **deleted** — every admin overlay is a centered `AdminDialog` (the dialog supplies scrim, title, and close). `SheetBody` / `SheetFooter` / `SheetDivider` survive as the body/footer layout primitives *inside* the dialog. Sheet-shell tokens (`--radius-sheet`) apply to the client PWA's own sheet patterns (`PwaSheet`, wallet drawer) only.
 
-Sheets compose three optional slots inside a `flex flex-col` body container. `<SheetBody>` is the only one that scrolls; `<SheetFooter>` pins via `flex-shrink: 0` so it stays visible while long forms scroll above.
+The slots compose inside a `flex flex-col` body container. `<SheetBody>` is the only one that scrolls; `<SheetFooter>` pins via `flex-shrink: 0` so it stays visible while long forms scroll above.
 
 ```tsx
-<RightSheet open onClose={...} title="Account">
+<AdminDialog open onOpenChange={...} title="Account" tone="hub" size="lg">
   <SheetBody padded={true}>
     {sections}
     <SheetDivider />
@@ -143,7 +143,7 @@ Sheets compose three optional slots inside a `flex flex-col` body container. `<S
     <div style={{ flex: 1 }} />
     <Button form="my-form" type="submit">Save</Button>
   </SheetFooter>
-</RightSheet>
+</AdminDialog>
 ```
 
 | Slot | Anatomy |
@@ -152,7 +152,7 @@ Sheets compose three optional slots inside a `flex flex-col` body container. `<S
 | `SheetFooter` | `padding: 12px 16px`, hairline top border, `display: flex; gap: 8px`, raised bg, pins via `flex-shrink: 0` |
 | `SheetDivider` | 1px hairline with `16px 0` margin, `role="separator"` |
 
-Sheet shell tokens: `--radius-sheet: 24px` (LeftSheet/RightSheet outer), `--canvas-blur-sheet-open: 6px` (MainSheet filter when any sheet open), `--e-float` (sheet elevation). MainSheet exposes `data-sheet-open="true|false"` for downstream styling.
+Sheet shell tokens: `--radius-sheet: 24px` (client sheet shells, e.g. `PwaSheet`), `--canvas-blur-sheet-open: 6px` + `--e-float` (client sheet depth). The admin canvas no longer recedes — depth comes from the AdminDialog's own scrim.
 
 ## Tabs (segmented-card)
 

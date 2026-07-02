@@ -12,21 +12,21 @@ foundations.
 
 - Read `/Users/afo/Code/greenpill/green-goods/docs/docs/builders/packages/admin.mdx` before changing routes, layouts, or page structure.
 - The canonical shell is `CanvasLayout`.
-- The Wave 3 shell is `AppBar + .workspace-canvas + MainSheet + NavigationBar`, with `LeftSheet`, `RightSheet`, and `BottomSheet` layered off that canvas instead of separate page chrome.
+- The Wave 3 shell is `AppBar + .workspace-canvas + MainSheet + NavigationBar`, with every overlay rendering as a centered `AdminDialog` (the `LeftSheet`/`RightSheet`/`BottomSheet` renderers are deleted).
 - In admin docs, `AppBar` means the shared Canvas top context bar: sticky `z-sticky h-14`, `GardenChip` on the left, and desktop search, settings, notifications, and `UserAvatar` on the right.
 - `NavigationBar` is pure navigation only. Use the canonical items `Hub`, `Garden`, `Community`, and `Actions`; do not add leading or trailing slots.
 - Do not use the client/PWA `AppBar` pattern for admin. Keep admin workspace navigation on `NavigationBar`.
 - `ConnectShell` is the disconnected full-screen state with a centered connect prompt and no navigation.
-- Shared owns `AppBar`, `NavigationBar`, `GardenChip`, `MainSheet`, `LeftSheet`, `RightSheet`, `BottomSheet`, and `SheetErrorBoundary`. Admin owns `CanvasLayout`, `AccountProfilePanel`, `AccountSettingsPanel`, `AccountSurface`, `UserAvatar`, `UserMenu`, `ConnectShell`, `CommandPalette`, and `PageHeader`.
+- Shared owns `AppBar`, `NavigationBar`, `GardenChip`, `MainSheet`, and `SheetErrorBoundary`. Admin owns `CanvasLayout`, `AdminDialog`, the left-inspector channel (`components/Layout/leftSheetChannel.tsx`), `AccountProfilePanel`, `AccountSettingsPanel`, `AccountSurface`, `UserAvatar`, `UserMenu`, `ConnectShell`, `CommandPalette`, and `PageHeader`.
 - Treat `DashboardLayout`, `Sidebar`, and `Header` as legacy migration code for new admin work.
 - Prefer the primitives below before composing raw `rounded border bg shadow` layouts.
 - Use `.surface-section`, `.surface-inset`, `.surface-card`, and `.workspace-canvas` before inventing one-off shell or page surface wrappers.
-- Use `AccountSurface` inside the admin `RightSheet` registry for authenticated account/profile/settings flows; otherwise prefer `LeftSheet`, `RightSheet`, `BottomSheet`, `AdminDialog`, or `AdminConfirmDialog`.
+- Desktop account/profile/settings flows route through the right-sheet registry into the AdminDialog account inspector; `AccountSurface` is the mobile account route. Every other overlay uses `AdminDialog` or `AdminConfirmDialog`.
 
 ## Cockpit UI Mode
 
 - Admin is an operator cockpit, not a marketing surface. Default to utility copy, not brand or campaign copy.
-- Default route composition is `PageHeader` -> primary workspace -> optional secondary inspector (`LeftSheet`, `RightSheet`, or `BottomSheet`).
+- Default route composition is `PageHeader` -> primary workspace -> optional secondary inspector (a centered `AdminDialog`).
 - Start from task flow and information hierarchy, not from `Card`.
 - Use cards or elevated surfaces only when they represent a discrete record, action target, or bounded interactive unit.
 - Prefer one dominant workspace surface per route. Avoid nested stacks of bordered panels that turn the page into a card mosaic.
@@ -39,9 +39,8 @@ foundations.
 - `AppBar`
 - `NavigationBar`
 - `MainSheet`
-- `LeftSheet`
-- `RightSheet`
-- `BottomSheet`
+- `AdminDialog`
+- `AdminConfirmDialog`
 - `GardenChip`
 - `CommandPalette`
 - `AccountProfilePanel`
@@ -73,7 +72,7 @@ foundations.
 - Every privileged action must flow through permission checks such as `useRole` or
   `useGardenPermissions`.
 - Wrap user-visible write actions in the shared toast workflow instead of ad-hoc transaction UI.
-- Use `AdminDialog` / `AdminConfirmDialog`, `RightSheet`, `LeftSheet`, or `BottomSheet` for modal and sheet flows instead of ad-hoc shells. `DialogShell` remains available for shared or non-admin surfaces, but admin dashboard dialogs should use the admin wrappers. Full-surface create/commit flows (Submit Work, Create Assessment, Create Hypercert) are centered `AdminDialog` (`variant="flow"` + `ADMIN_FLOW_DIALOG_CLASS`) modals hosting `ActionFlowShell` — not fullscreen takeovers or routes. Dialog sizes follow the three-tier scale (`sm` confirm · `md` single-purpose · `lg` rich single-view) enforced by the `AdminDialogStandard.guard` test.
+- Use `AdminDialog` / `AdminConfirmDialog` for every modal flow instead of ad-hoc shells (the sheet renderers are deleted). `DialogShell` remains available for shared or non-admin surfaces, but admin dashboard dialogs should use the admin wrappers. Full-surface create/commit flows (Submit Work, Create Assessment, Create Hypercert) are centered `AdminDialog` (`variant="flow"` + `ADMIN_FLOW_DIALOG_CLASS`) modals hosting `ActionFlowShell` — not fullscreen takeovers or routes. Dialog sizes follow the three-tier scale (`sm` confirm · `md` single-purpose · `lg` rich single-view) enforced by the `AdminDialogStandard.guard` test.
 - Do not edit the admin UI standards (`admin.mdx`, `packages/admin/DESIGN.md`, `.claude/skills/design/*`) in the same commit as the code they govern. A change to an archetype rule — which surface is a modal vs a sheet vs a route, which primitive a flow uses — is its own commit/PR with its own review, so a wrong implementation cannot quietly rewrite the standard to bless itself. (Static gates check token hygiene, not whether a standard still describes good UI.)
 - New user-facing strings must be translated in all three locale files.
 - New or changed shared admin primitives, major variants, or Storybook-covered surfaces must add or update stories in the same change. Run `bun run --filter @green-goods/shared check:stories`; run `bun run --filter @green-goods/shared test:stories:ci` when adding `storybook-ci` stories; run `bun run --filter @green-goods/shared build-storybook` for Storybook-impacting changes. Do not require Storybook checks for a route-local QA fix that does not touch a shared primitive, story, token, or Storybook-covered surface.

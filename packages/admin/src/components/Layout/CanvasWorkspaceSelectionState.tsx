@@ -32,7 +32,7 @@ export function CanvasWorkspaceSelectionState({
         <Card className="mx-auto max-w-xl">
           <Card.Body className="flex flex-col items-center py-12 text-center">
             <SeedlingIllustration className="h-24 w-24" />
-            <h2 className="mt-4 text-lg font-semibold text-text-strong">
+            <h2 className="mt-4 text-title-md text-text-strong">
               {formatMessage({
                 id: "cockpit.workspace.noGardens",
                 defaultMessage: "No gardens yet",

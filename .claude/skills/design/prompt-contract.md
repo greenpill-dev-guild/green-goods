@@ -104,6 +104,31 @@ The categories below are contract-specific framing — *why* admin output should
 - **Glass is restricted** to Navigation/FAB. Sheet shells are retired; the admin `AppBar` root and all dialog surfaces remain solid.
 - **Typography** — Plus Jakarta Sans across the cockpit.
 
+### Motion Scheme
+
+Admin uses the **Standard** motion scheme only — never Expressive. Route content, canvas tone
+changes, FAB menus, dialogs, and interaction state ride the admin motion role aliases
+(`--admin-motion-*`) layered on the canonical `--spring-*` tokens. The full two-scheme spec
+(token table, durations, when Expressive is permitted on client surfaces) is canonical in
+[language.md § Motion System](./language.md#motion-system) — reference it, don't restate values.
+
+### Workspace Tone
+
+Each workspace tints its canvas: Hub=blue, Garden=green, Community=orange, Actions=red. The
+mechanism is a `[data-tone]` attribute on the CanvasLayout root that sets the `--tone-*` custom
+properties (`--tone-canvas`, `--tone-action`, `--tone-on-surface-accent`); components read
+`var(--tone-action, var(--m3-primary))` so they fall back to the M3 accent when unscoped.
+**Portals escape the scope** — anything portaled to `<body>` (dialogs, poppers) must re-establish
+tone via the `tone` prop or it silently falls back. Tint is atmosphere only (canvas + subtle
+accents), never content surfaces.
+
+### Never rename `--color-primary`
+
+The codebase token `--color-primary` resolves to the **tertiary accent role** (garden green,
+1-3% volume) — not the primary ink role. It is a historical internal name; role vocabulary lives
+in the docs, the token stays as-is. Do not "fix" the name, and do not reach for it as if it were
+the dominant brand color.
+
 ## Copy Voice
 
 Admin copy is **utility-only**. Status language and task framing — never marketing, never narrative.
@@ -136,9 +161,9 @@ AI design tools MUST map generated output to these existing exports. Do not inve
 | `NavigationBar` | Bottom workspace tabs — Hub, Garden, Community, Actions; symbol-first; role-adaptive |
 | `AdminFab` | Per-workspace primary action, capsule shape, integrated via `FabProvider` |
 
-**M3 wrappers** (`packages/admin/src/components/Admin*.tsx`, 13 total):
+**M3 wrappers** (`packages/admin/src/components/Admin*.tsx` — the filesystem is the count of record; 15 today):
 
-`AdminBadge` · `AdminButton` · `AdminCard` · `AdminCheckbox` · `AdminDialog` · `AdminFab` · `AdminFilterChip` · `AdminLinearProgress` · `AdminListItem` · `AdminSearchToolbar` · `AdminTabRail` · `AdminTextField` · `AdminTooltip`
+`AdminBadge` · `AdminButton` · `AdminCard` · `AdminCheckbox` · `AdminDialog` · `AdminFab` · `AdminFilterChip` · `AdminLinearProgress` · `AdminListItem` · `AdminSearchToolbar` · `AdminSortSelect` · `AdminTabRail` · `AdminTextField` · `AdminTooltip` · `AdminViewActions`
 
 All follow M3 v0.192 anatomy exactly — do not override dimensions, state layers, or shape scale.
 

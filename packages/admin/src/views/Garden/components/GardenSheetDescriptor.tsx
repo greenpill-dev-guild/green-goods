@@ -85,7 +85,9 @@ export function GardenSheetDescriptor({
         ),
         onClose: handleShellCloseAddMember,
         preventClose: addMemberSubmitting,
-        size: "lg",
+        // Simple single-purpose action (one role select + one address field)
+        // → md per the dialog size taxonomy; the rich inspectors stay lg.
+        size: "md",
         tone: "garden",
       };
     }

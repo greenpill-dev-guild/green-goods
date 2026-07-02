@@ -2,10 +2,10 @@ import {
   type Address,
   Alert,
   EmptyState,
-  Surface,
   type AdminWorkspaceSectionTab,
   type useGardenWorkspaceController,
 } from "@green-goods/shared";
+import { AdminCard } from "@/components/AdminCard";
 import { RiImageLine, RiPulseLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { AdminDialog } from "@/components/AdminDialog";
@@ -142,7 +142,7 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
             {/* Identity preview — surfaces the banner + name that otherwise sit
                 below the fold in the form, and gives the right panel a job
                 (QA: the panel read as underutilized). */}
-            <Surface elevation="ground" padding="none" className="overflow-hidden">
+            <AdminCard variant="filled" density="none" className="overflow-hidden">
               {workspace.garden.bannerImage ? (
                 <img
                   src={workspace.garden.bannerImage}
@@ -166,17 +166,17 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
                   </p>
                 ) : null}
               </div>
-            </Surface>
+            </AdminCard>
 
             {/* Domain management lives inside the settings dialog (QA: the
                 edit-domains row no longer floats above every garden tab). */}
-            <Surface elevation="ground" padding="none" className="overflow-hidden">
+            <AdminCard variant="filled" density="none" className="overflow-hidden">
               <GardenDomainSummaryRow
                 domainMask={workspace.garden.domainMask}
                 canManage={workspace.canManage}
                 onEditDomains={workspace.openDomainEditor}
               />
-            </Surface>
+            </AdminCard>
 
             <Alert variant="info">
               {formatMessage({

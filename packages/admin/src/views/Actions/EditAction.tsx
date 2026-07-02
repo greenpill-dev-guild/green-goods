@@ -5,7 +5,6 @@ import {
   buildActionInstructionsV2,
   DEFAULT_CHAIN_ID,
   defaultTemplate,
-  Surface,
   fromDateTimeLocalValue,
   getActionEditDraftPath,
   getFileByHash,
@@ -33,6 +32,7 @@ import { z } from "zod";
 import { InstructionsBuilder } from "@/components/Action/InstructionsBuilder";
 import { ActionTranslationEditor } from "@/components/Action/ActionTranslationEditor";
 import { AdminButton } from "@/components/AdminButton";
+import { AdminCard } from "@/components/AdminCard";
 import { AdminTextField } from "@/components/AdminTextField";
 import {
   CanvasRouteContent,
@@ -306,9 +306,9 @@ export default function EditAction({ layout = "page" }: EditActionProps = {}) {
           sticky
         />
         <CanvasRouteContent maxWidthClassName="max-w-5xl" className="mt-4">
-          <Surface elevation="raised" padding="default" role="status" aria-live="polite">
+          <AdminCard role="status" aria-live="polite">
             <p className="text-text-sub">{formatMessage({ id: "app.actions.loading" })}</p>
-          </Surface>
+          </AdminCard>
         </CanvasRouteContent>
       </CanvasRouteFrame>
     );
@@ -335,9 +335,9 @@ export default function EditAction({ layout = "page" }: EditActionProps = {}) {
           sticky
         />
         <CanvasRouteContent maxWidthClassName="max-w-5xl" className="mt-4">
-          <Surface elevation="raised" padding="default" className="text-center">
+          <AdminCard className="text-center">
             <p className="text-text-sub">{formatMessage({ id: "app.actions.notFound" })}</p>
-          </Surface>
+          </AdminCard>
         </CanvasRouteContent>
       </CanvasRouteFrame>
     );
@@ -403,7 +403,7 @@ export default function EditAction({ layout = "page" }: EditActionProps = {}) {
       className={layout === "sheet" ? "p-4" : "mt-4"}
     >
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <Surface elevation="raised" padding="default" className="space-y-4">
+        <AdminCard className="space-y-4">
           <div>
             <h3 className="text-lg font-semibold text-text-strong">
               {formatMessage({ id: "app.actions.edit.basicInfo" })}
@@ -445,9 +445,9 @@ export default function EditAction({ layout = "page" }: EditActionProps = {}) {
               />
             </div>
           </div>
-        </Surface>
+        </AdminCard>
 
-        <Surface elevation="raised" padding="default" className="space-y-4">
+        <AdminCard className="space-y-4">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="text-lg font-semibold text-text-strong">
               {formatMessage({ id: "app.actions.edit.instructionsConfig" })}
@@ -489,20 +489,16 @@ export default function EditAction({ layout = "page" }: EditActionProps = {}) {
               }}
             />
           ) : null}
-        </Surface>
+        </AdminCard>
 
-        <Surface
-          elevation="raised"
-          padding="default"
-          className="flex flex-col gap-3 sm:flex-row sm:justify-end"
-        >
+        <AdminCard className="flex flex-col gap-3 sm:flex-row sm:justify-end">
           <AdminButton type="submit" variant="filled" disabled={isLoading} loading={isLoading}>
             {formatMessage({ id: "app.actions.edit.saveChanges" })}
           </AdminButton>
           <AdminButton type="button" variant="outlined" onClick={() => navigate(actionDetailHref)}>
             {formatMessage({ id: "app.common.cancel" })}
           </AdminButton>
-        </Surface>
+        </AdminCard>
       </form>
     </CanvasRouteContent>
   );

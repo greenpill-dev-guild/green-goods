@@ -478,7 +478,7 @@ export function CanvasLayout() {
                 id="main-content"
                 data-region="main-scroll-area"
                 tabIndex={-1}
-                className="main-scroll-area mx-auto h-full w-full max-w-[1400px] overflow-y-auto px-5 pt-2 sm:pt-3"
+                className="main-scroll-area mx-auto h-full w-full max-w-[1400px] overflow-y-auto px-3 pt-2 sm:px-5 sm:pt-3"
                 style={{
                   // Handoff sheet-system.css: floating NavigationBar at bottom: 20px
                   // with 56px height ⇒ ~100px clearance to keep last content row visible.

@@ -94,3 +94,43 @@ interaction to fully close are flagged `→ pass 2` with the reason they weren't
 Not yet run. Re-run the full checklist for every row above (ideally with Brave foregrounded for
 clean animation-completion evidence, a protocol-admin wallet for `/actions`, and seeded EAS data
 or Storybook for the Work/Assessment flows), target: all rows green.
+
+## Pass 2 — 2026-07-01 (post P0A + P0C.4)
+
+Re-run after the sheet→AdminDialog migration (P0A) landed and the descriptor sizes were
+reconciled (P0C.4). Environment: same authenticated Brave / admin `:3002`, garden
+`Aiyeloja Family Garden`.
+
+### Verified green (live)
+
+| Dialog | Trigger | size / variant / tone | Result |
+|---|---|---|---|
+| **Add Member** (descriptor, post-P0C.4) | Garden "Add member" | **`md`** / standard / `garden` (green accent) | ✅ Now opens at `md` (was `lg` via the hardcoded bridge) — the P0C.4 taxonomy fix is live. Scrim, header/body/footer, close, focus trap all present. Closes via close-button. |
+| **Vault / Endowment** (route-backed descriptor) | deep-link `/community/treasury/vault` | `lg` / standard / `community` (orange accent `206 94 18`) | ✅ Opens from deep-link through the new admin-local channel; Esc navigates to `closeTo` (route-backed close preserved). |
+| **Create Assessment** (flow) | Hub FAB | `lg` / `flow` / `hub` | ✅ (carried from pass 1 + P0C.3) opens, pristine Esc → `/hub/work`, dirty raises DiscardChanges. |
+| **DiscardChangesDialog** | dirty close | `md` / `confirm` / alertdialog | ✅ Keep-editing preserves input; Discard exits. |
+| **CommandPalette** | ⌘K | `md` / `palette` / `home` | ✅ opens, input focused, results render. |
+| **Garden Profile / Settings** | `/garden/settings` route | AdminDialog (opens) | ◑ Opens as AdminDialog; full chrome assertions cut short by the environment issue below. |
+
+### Blocked this pass — environment, not code
+
+The authenticated-Brave classifier (`claude-opus-4-8` safety gate for browser control) became
+**intermittently unavailable mid-sweep**, so the remaining rows (the ~10 config-verified dialogs
+from pass 1: cookie-jar deposit/withdraw/manage, minting, listing, manage-roles/members,
+workspace settings, plus the `/actions` set still behind the protocol-admin gate) could not be
+driven to a clean live pass this session. Their **static config is verified correct** (sizes ∈
+scale, tones set, the `AdminDialogStandard.guard` test is green across the tree) and they share
+the AdminDialog chrome proven above; what remains is the click-through confirmation. **Not
+fabricated as green** — carried as pending-stable-browser. Re-run when the classifier is stable
+(and ideally with Brave foregrounded for animation-completion evidence + a protocol-admin wallet
+for `/actions`).
+
+**No regressions surfaced** in any dialog reached this pass — the P0A channel move preserved
+open/close/tone/size behaviour end-to-end.
+
+### Pass 2 addendum (same session, after the classifier recovered)
+
+| Dialog | Trigger | size / variant / tone | Result |
+|---|---|---|---|
+| **Vault Deposit** (`DepositModal.tsx`) | Vault dialog → Deposit | `md` / standard / `home` (neutral default) | ✅ Opens stacked over the Endowment inspector; scrim, header/body, close, focus trap, amount input present. Note: rides the neutral `home` tone default rather than `community` — acceptable (deliberate default), flagged as a consistency nit for a future tone pass. |
+| **Signal Pool** (route-backed descriptor) | deep-link `/community/governance/signal-pool/priority` | `lg` / standard / `community` | ✅ Opens from deep-link through the admin-local channel ("Hypercert Signal Pool"). |

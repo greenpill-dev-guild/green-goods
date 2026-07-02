@@ -82,9 +82,8 @@ CSS Grid with named areas:
 └──────────────────────────────────────────┘
 ```
 
-- **LeftSheet:** Action-oriented (creation flows, wizards)
-- **RightSheet:** Config, alerts, profile, settings — pane-scoped content routing via sheet orchestrator. Profile and settings are separate sheet contents on desktop; the tabbed account surface is reserved for the mobile account route.
-- **MainSheet recession:** `isReceded` prop triggers scale + blur when sheets open
+- **Overlays:** every action and detail/inspection flow is a centered `AdminDialog` (the side-sheet renderers are deleted). Creation flows and inspectors publish through the admin left-inspector channel; config/alerts/profile/settings route through the right-sheet registry into the AdminDialog account inspector. Profile and settings are separate inspector contents on desktop; the tabbed account surface is reserved for the mobile account route.
+- **MainSheet recession:** retired — the canvas stays at rest; depth comes from the dialog's own scrim (the `isReceded` prop is no longer passed).
 
 ---
 
@@ -128,8 +127,8 @@ Admin dashboard modals use AdminDialog or AdminConfirmDialog. Desktop renders as
 - **AppBar** (top context bar, Z3): GardenChip selector, search, settings, notifications, avatar
 - **NavigationBar** (bottom, Z3): Workspace tabs — Hub, Garden, Community, Actions. Symbol-first. Role-adaptive visibility via permissions.
 - **AdminFab**: Per-workspace primary action, capsule shape. Integrated into NavigationBar via FabProvider.
-- **Desktop profile**: On desktop, Profile redirects to Hub and opens RightSheet with profile content.
-- **Controlled Chrome**: NavigationBar/FAB and Left/Right/Bottom sheet shells use subtle liquid material. The AppBar root is transparent while child controls can carry their own solid/hover states. Page content, tables, forms, and route cards do not use glass.
+- **Desktop profile**: On desktop, Profile redirects to Hub and opens the AdminDialog account inspector with profile content.
+- **Controlled Chrome**: only NavigationBar/FAB use subtle liquid material (the sheet shells are retired; every dialog surface is solid M3). The AppBar root is transparent while child controls can carry their own solid/hover states. Page content, tables, forms, and route cards do not use glass.
 
 ---
 
