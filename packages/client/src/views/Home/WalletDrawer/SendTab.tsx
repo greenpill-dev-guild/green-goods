@@ -235,7 +235,7 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
               aria-busy={sendMutation.isPending || undefined}
               className={cn(
                 "inline-flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60",
-                "bg-primary-base text-static-white hover:bg-primary-darker"
+                "bg-primary-base text-primary-accent-foreground hover:bg-primary-darker"
               )}
             >
               {sendMutation.isPending ? (
