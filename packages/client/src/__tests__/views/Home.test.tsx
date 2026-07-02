@@ -15,7 +15,7 @@ vi.mock("@green-goods/shared", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
   queryKeys: { gardens: { all: ["gardens"] } },
   toastService: { info: vi.fn(), error: vi.fn(), success: vi.fn() },
-  useArrivalState: () => ({ kind: "none", myGardenIds: [] }),
+  useArrivalState: () => ({ kind: "none", myGardenIds: [], needsReviewCount: 0 }),
   useAuthState: () => ({
     isAuthenticated: true,
   }),

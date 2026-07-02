@@ -39,12 +39,14 @@ export const workApprovalsKeys = {
 
 export const approvalsKeys = {
   all: ["greengoods", "approvals"] as const,
-  byOperatorGardens: (gardenIds: string[]) =>
+  // Recipients = gardens ∪ candidate works' gardeners (see utils/work/pending-review.ts);
+  // lowercased for key stability across checksum casings.
+  forWorkReview: (recipients: string[]) =>
     [
       "greengoods",
       "approvals",
-      "byOperatorGardens",
-      JSON.stringify([...gardenIds].sort()),
+      "forWorkReview",
+      JSON.stringify(recipients.map((recipient) => recipient.toLowerCase()).sort()),
     ] as const,
   byMyWorkGardens: (userAddress: string | undefined, gardenIds: string[]) =>
     [
@@ -58,6 +60,9 @@ export const approvalsKeys = {
 
 export const operatorWorksKeys = {
   all: ["greengoods", "operatorWorks"] as const,
+  // "v2": queryFn shape changed from Work[] to { works, failedGardenIds }. The persisted-cache
+  // buster only rotates per release (VITE_APP_VERSION), so a same-version cache could hydrate
+  // the old array shape under the old key — a new key makes old entries miss instead of mis-parse.
   byAddress: (address: Address | undefined, gardenIds: string[]) =>
-    ["greengoods", "operatorWorks", address, JSON.stringify([...gardenIds].sort())] as const,
+    ["greengoods", "operatorWorks", "v2", address, JSON.stringify([...gardenIds].sort())] as const,
 } as const;

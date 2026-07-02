@@ -1,8 +1,12 @@
 import {
   type Address,
   cn,
+  collectApprovalRecipientsForWorks,
+  collectApprovedWorkUIDs,
+  DEFAULT_RETRY_COUNT,
   fetchApprovalsByRecipients,
   filterByTimeRange,
+  filterPendingNeedsReview,
   hapticLight,
   logger,
   queryKeys,
@@ -17,11 +21,11 @@ import {
   useReviewerWorks,
   useTimeout,
   useUIStore,
-  type WorkDashboardTab,
   useUser,
   useWorkApprovals,
   type Work,
-  DEFAULT_RETRY_COUNT,
+  type WorkDashboardPendingFilter,
+  type WorkDashboardTab,
 } from "@green-goods/shared";
 import { RiCheckLine, RiCloseLine, RiDraftLine, RiTaskLine } from "@remixicon/react";
 import { useQuery } from "@tanstack/react-query";
@@ -73,12 +77,15 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   // Timer for close animation (auto-cleared on unmount)
   const { set: scheduleTimeout } = useTimeout();
 
-  // State management — open to the tab the caller requested (e.g. the arrival toast), else default.
+  // State management — open to the tab/filter the caller requested (e.g. the arrival toast),
+  // else defaults. Store presets are consumed once at mount; an already-open dashboard
+  // intentionally ignores later store writes.
   const initialTab = useUIStore((s) => s.workDashboardInitialTab);
+  const initialPendingFilter = useUIStore((s) => s.workDashboardInitialPendingFilter);
   const [activeTab, setActiveTab] = useState<WorkDashboardTab>(initialTab ?? "pending");
   const [isClosing, setIsClosing] = useState(false);
-  const [pendingFilter, setPendingFilter] = useState<"all" | "needsReview" | "mySubmissions">(
-    "all"
+  const [pendingFilter, setPendingFilter] = useState<WorkDashboardPendingFilter>(
+    initialPendingFilter ?? "all"
   );
   const [completedFilter, setCompletedFilter] = useState<"reviewedByYou" | "myWorkReviewed">(
     "reviewedByYou"
@@ -124,27 +131,35 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     [completedApprovals]
   );
 
-  // Fetch ALL approvals for operator gardens to filter out work reviewed by ANY operator
-  const { data: allOperatorGardenApprovals = [] } = useQuery({
-    queryKey: queryKeys.approvals.byOperatorGardens(reviewerGardenIds),
-    queryFn: () => fetchApprovalsByRecipients(reviewerGardenIds),
-    enabled: reviewerGardenIds.length > 0,
+  // Fetch approvals covering ALL reviewers of the candidate works. Recipients must span
+  // both attestation conventions (PWA attests to the garden, the agent bot to the work's
+  // gardener) or agent-approved works linger as false "needs review" residue.
+  const approvalRecipients = useMemo(
+    () => collectApprovalRecipientsForWorks(reviewerGardenIds, operatorWorks || []),
+    [reviewerGardenIds, operatorWorks]
+  );
+  const { data: reviewExclusionApprovals = [] } = useQuery({
+    queryKey: queryKeys.approvals.forWorkReview(approvalRecipients),
+    queryFn: () => fetchApprovalsByRecipients(approvalRecipients),
+    enabled: reviewerGardenIds.length > 0 && (operatorWorks || []).length > 0,
     staleTime: STALE_TIME_MEDIUM,
     retry: DEFAULT_RETRY_COUNT,
   });
 
   // Set of work IDs that have been approved/rejected by ANY operator
   const alreadyReviewedByAnyone = useMemo(
-    () => new Set((allOperatorGardenApprovals || []).map((a) => a.workUID)),
-    [allOperatorGardenApprovals]
+    () => collectApprovedWorkUIDs(reviewExclusionApprovals || []),
+    [reviewExclusionApprovals]
   );
 
   const operatorWorksById = useMemo(() => buildWorkMap(operatorWorks || []), [operatorWorks]);
 
-  // Pending work needing your review (from gardens you operate, excluding your own submissions)
-  // Filter out works that have been reviewed by ANY operator, not just the current user
-  const pendingNeedsReview = (operatorWorks || []).filter(
-    (w) => !alreadyReviewedByAnyone.has(w.id) && !isUserAddress(w.gardenerAddress)
+  // Pending work needing your review (from gardens you operate): not reviewed by ANY
+  // operator and not your own submission — shared derivation, same as the arrival toast.
+  const pendingNeedsReview = filterPendingNeedsReview(
+    operatorWorks || [],
+    alreadyReviewedByAnyone,
+    activeAddress
   );
 
   // Completed approvals (approved/rejected by you) - convert to Work shape for MinimalWorkCard

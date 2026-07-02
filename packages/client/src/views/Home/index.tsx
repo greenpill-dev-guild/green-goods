@@ -3,8 +3,8 @@ import {
   queryKeys,
   toastService,
   useArrivalState,
-  useBrowserNavigation,
   useAuthState,
+  useBrowserNavigation,
   useFilteredGardens,
   useGardens,
   useLoadingWithMinDuration,
@@ -23,12 +23,12 @@ import { Outlet, useLocation, useMatch } from "react-router-dom";
 import { PullToRefresh } from "@/components/Inputs";
 import { APP_ROUTES } from "@/config/pwa-routing";
 import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
+import { ARRIVAL_TOASTS, type ArrivalActionKind } from "./arrival-toast";
 import { type GardenFiltersState, GardensFilterDrawer } from "./GardenFilters";
 import { GardenList } from "./GardenList";
 import { WalletDrawer } from "./WalletDrawer";
 import { WalletDrawerIcon } from "./WalletDrawer/Icon";
 import { WorkDashboardIcon } from "./WorkDashboard/Icon";
-import { ARRIVAL_TOASTS, type ArrivalActionKind } from "./arrival-toast";
 
 const Home: React.FC = () => {
   const navigate = useNavigateToTop();
@@ -45,7 +45,7 @@ const Home: React.FC = () => {
   const normalizedAddress = primaryAddress?.toLowerCase() ?? null;
 
   // State-aware arrival orientation (replaces the old generic welcome toast).
-  const { kind: arrivalKind, myGardenIds } = useArrivalState();
+  const { kind: arrivalKind, myGardenIds, needsReviewCount } = useArrivalState();
 
   // Filter state
   const [filters, setFilters] = useState<GardenFiltersState>({ scope: "all", sort: "default" });
@@ -114,6 +114,9 @@ const Home: React.FC = () => {
         case "openWorkDashboardPending":
           openWorkDashboard("pending");
           return;
+        case "openWorkDashboardNeedsReview":
+          openWorkDashboard("pending", "needsReview");
+          return;
         case "startWork":
           // One garden → jump straight in; several → narrow the list so they pick.
           if (myGardenIds.length === 1) {
@@ -154,7 +157,8 @@ const Home: React.FC = () => {
     scheduleArrival(() => {
       toastService[spec.status]({
         title: intl.formatMessage({ id: spec.titleId }),
-        message: intl.formatMessage({ id: spec.messageId }),
+        // `count` backs the review message's plural; other messages ignore unused values.
+        message: intl.formatMessage({ id: spec.messageId }, { count: needsReviewCount }),
         duration: 6000,
         action: {
           label: intl.formatMessage({ id: spec.actionLabelId }),
@@ -169,6 +173,7 @@ const Home: React.FC = () => {
     intl,
     isAuthenticated,
     location.pathname,
+    needsReviewCount,
     normalizedAddress,
     runArrivalAction,
     scheduleArrival,

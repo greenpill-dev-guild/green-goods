@@ -6,6 +6,7 @@ import type { ArrivalKind } from "@green-goods/shared";
  */
 export type ArrivalActionKind =
   | "openWorkDashboardPending"
+  | "openWorkDashboardNeedsReview"
   | "openWorkDashboardDrafts"
   | "startWork"
   | "openHelp";
@@ -23,6 +24,9 @@ export interface ArrivalToastSpec {
  * Maps each actionable arrival kind to its copy + single next action. `none` resolves to no toast,
  * so it is intentionally excluded. The `*Id` values are literal `app.home.arrival.*` strings so the
  * shared locale-coverage gate's source-usage scan can see them.
+ *
+ * The `review` message carries a `{count}` placeholder — Home formats it with the
+ * `needsReviewCount` from useArrivalState.
  */
 export const ARRIVAL_TOASTS: Record<Exclude<ArrivalKind, "none">, ArrivalToastSpec> = {
   queue: {
@@ -39,11 +43,25 @@ export const ARRIVAL_TOASTS: Record<Exclude<ArrivalKind, "none">, ArrivalToastSp
     actionLabelId: "app.home.arrival.draft.action",
     action: "openWorkDashboardDrafts",
   },
-  member: {
+  review: {
     status: "info",
-    titleId: "app.home.arrival.member.title",
-    messageId: "app.home.arrival.member.message",
-    actionLabelId: "app.home.arrival.member.action",
+    titleId: "app.home.arrival.review.title",
+    messageId: "app.home.arrival.review.message",
+    actionLabelId: "app.home.arrival.review.action",
+    action: "openWorkDashboardNeedsReview",
+  },
+  operatorClear: {
+    status: "info",
+    titleId: "app.home.arrival.operatorClear.title",
+    messageId: "app.home.arrival.operatorClear.message",
+    actionLabelId: "app.home.arrival.operatorClear.action",
+    action: "startWork",
+  },
+  gardener: {
+    status: "info",
+    titleId: "app.home.arrival.gardener.title",
+    messageId: "app.home.arrival.gardener.message",
+    actionLabelId: "app.home.arrival.gardener.action",
     action: "startWork",
   },
   signedIn: {

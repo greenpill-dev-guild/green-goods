@@ -7,6 +7,9 @@ const DEBUG_MODE_STORAGE_KEY = "green-goods:debug-mode";
 /** Tabs of the client Work Dashboard modal — lets callers open it to a specific tab. */
 export type WorkDashboardTab = "drafts" | "pending" | "completed";
 
+/** Filters of the Work Dashboard's Pending tab — lets callers deep-link a preset. */
+export type WorkDashboardPendingFilter = "all" | "needsReview" | "mySubmissions";
+
 export type UIState = {
   // Global offline/queue indicators
   isOfflineBannerVisible: boolean;
@@ -16,7 +19,9 @@ export type UIState = {
   isWorkDashboardOpen: boolean;
   /** Tab the dashboard should open to (consumed once on mount); undefined = default tab. */
   workDashboardInitialTab?: WorkDashboardTab;
-  openWorkDashboard: (tab?: WorkDashboardTab) => void;
+  /** Pending-tab filter to preset (consumed once on mount); undefined = default ("all"). */
+  workDashboardInitialPendingFilter?: WorkDashboardPendingFilter;
+  openWorkDashboard: (tab?: WorkDashboardTab, pendingFilter?: WorkDashboardPendingFilter) => void;
   closeWorkDashboard: () => void;
 
   // Garden filter drawer controls (client)
@@ -51,7 +56,15 @@ export const useUIStore = create<UIState>()(
 
       isWorkDashboardOpen: false,
       workDashboardInitialTab: undefined,
-      openWorkDashboard: (tab) => set({ isWorkDashboardOpen: true, workDashboardInitialTab: tab }),
+      workDashboardInitialPendingFilter: undefined,
+      // Both initial fields are overwritten on EVERY open (undefined when omitted) — that is
+      // the staleness contract: a bare icon-open must not inherit the previous deep-link.
+      openWorkDashboard: (tab, pendingFilter) =>
+        set({
+          isWorkDashboardOpen: true,
+          workDashboardInitialTab: tab,
+          workDashboardInitialPendingFilter: pendingFilter,
+        }),
       closeWorkDashboard: () => set({ isWorkDashboardOpen: false }),
 
       isGardenFilterOpen: false,

@@ -1,6 +1,19 @@
 // Utilities — EXPLICIT EXPORTS for tree-shaking
 
 // ============================================================================
+// QUERY INVALIDATION
+// ============================================================================
+export type {
+  InvalidationDelay,
+  ProgressiveInvalidationOptions,
+} from "../config/query-keys/schedule";
+export {
+  INVALIDATION_DELAYS,
+  scheduleInvalidation,
+  scheduleInvalidationForKey,
+  scheduleProgressiveInvalidation,
+} from "../config/query-keys/schedule";
+// ============================================================================
 // ACTION
 // ============================================================================
 export {
@@ -45,45 +58,6 @@ export {
   gardenHasMember,
   resolveGardenMemberKey,
 } from "./app/garden";
-export {
-  aggregateCampaignCookieJarOperators,
-  buildCampaignCookieJarCampaigns,
-  buildCampaignCookieJarMetadata,
-  CAMPAIGN_COOKIE_JAR_PAYOUT_ASSET_IDS,
-  CAMPAIGN_COOKIE_JAR_METADATA_KIND,
-  deriveCampaignCookieJarClaimState,
-  diffCampaignCookieJarAllowlist,
-  getCampaignCookieJarPayoutAsset,
-  getCampaignCookieJarPayoutAssets,
-  getDefaultCampaignCookieJarPayoutAsset,
-  normalizeCampaignAddress,
-  normalizeCampaignMetadataUrl,
-  parseCampaignAddressList,
-  parseCampaignCookieJarFallbacks,
-  parseCampaignCookieJarMetadata,
-} from "./cookie-jar-campaign";
-export type {
-  CampaignCookieJarPayoutAsset,
-  CampaignCookieJarPayoutAssetId,
-} from "./cookie-jar-campaign";
-export type {
-  AdminCommunityRouteContext,
-  AdminGardenRouteContext,
-  AdminHubRouteContext,
-  AdminSearchValue,
-  AdminSignalPoolType,
-  AdminWorkspaceId,
-} from "./navigation/admin-routes";
-export {
-  ADMIN_GARDEN_ID_PARAM,
-  ADMIN_GARDEN_LEGACY_SHARE_PARAM,
-  ADMIN_GARDEN_SHARE_PARAM,
-  ADMIN_WORKSPACE_ROOTS,
-  adminRoutes,
-  buildAdminHref,
-  getAdminWorkspaceForPath,
-  getAdminWorkspaceRoot,
-} from "./navigation/admin-routes";
 // ============================================================================
 // HAPTIC FEEDBACK (Vibration API)
 // ============================================================================
@@ -100,6 +74,8 @@ export {
   resetHapticsState,
   setHapticsEnabled,
 } from "./app/haptics";
+export type { InstallActionContext } from "./app/installAction";
+export { dispatchInstallAction } from "./app/installAction";
 // ============================================================================
 // FILES
 // ============================================================================
@@ -117,8 +93,6 @@ export {
   isMobilePlatform,
   isStandaloneMode,
 } from "./app/pwa";
-export type { InstallActionContext } from "./app/installAction";
-export { dispatchInstallAction } from "./app/installAction";
 export { recursiveCloneChildren } from "./app/recursive-clone-children";
 export { getTag } from "./app/tags";
 export type { FormatAddressOptions, FormatAddressVariant } from "./app/text";
@@ -144,9 +118,9 @@ export {
   ERC20_SYMBOL_ABI,
   GARDEN_ACCOUNT_ROLE_ABI,
   GARDENS_MODULE_ABI,
-  YIELD_RESOLVER_ABI,
   OCTANT_MODULE_ABI,
   OCTANT_VAULT_ABI,
+  YIELD_RESOLVER_ABI,
 } from "./blockchain/abis";
 // ============================================================================
 // ADDRESS
@@ -179,8 +153,8 @@ export {
 // CONTRACTS (ABIs & clients)
 // ============================================================================
 export {
-  assertMarketplaceReady,
   ActionRegistryABI,
+  assertMarketplaceReady,
   createClients,
   deriveMarketplaceReadiness,
   formatMarketplaceReadinessError,
@@ -200,17 +174,6 @@ export type {
 export { resolveEnsAddress, resolveEnsName, suggestSlug, validateSlug } from "./blockchain/ens";
 export type { GardenRole, RoleColorScheme } from "./blockchain/garden-roles";
 export {
-  annotateGardenSignalPools,
-  deriveGardenYieldWiringState,
-} from "./blockchain/garden-yield-wiring";
-export type {
-  GardenYieldWiringIssue,
-  GardenYieldWiringReadStatus,
-  GardenYieldWiringSnapshot,
-  GardenYieldWiringState,
-  GardenYieldWiringStatus,
-} from "./blockchain/garden-yield-wiring";
-export {
   GARDEN_ROLE_COLORS,
   GARDEN_ROLE_FUNCTIONS,
   GARDEN_ROLE_I18N_KEYS,
@@ -220,19 +183,45 @@ export {
   getRoleLabel,
   ROLE_COLOR_CLASSES,
 } from "./blockchain/garden-roles";
+export type {
+  GardenYieldWiringIssue,
+  GardenYieldWiringReadStatus,
+  GardenYieldWiringSnapshot,
+  GardenYieldWiringState,
+  GardenYieldWiringStatus,
+} from "./blockchain/garden-yield-wiring";
+export {
+  annotateGardenSignalPools,
+  deriveGardenYieldWiringState,
+} from "./blockchain/garden-yield-wiring";
+export type { OctantVaultRedeemCallVariant } from "./blockchain/octant-vault-redeem";
+export {
+  getOctantVaultRedeemCallShape,
+  OCTANT_VAULT_REDEEM_CALL_SHAPES,
+} from "./blockchain/octant-vault-redeem";
 // ============================================================================
 // BLOCKCHAIN POLLING
 // ============================================================================
 export { pollQueriesAfterTransaction, pollQueryAfterTransaction } from "./blockchain/polling";
+export {
+  formatUsdCents,
+  formatUsdPrice,
+  getEthUsdFeedAddress,
+  PRICE_FEED_DECIMALS,
+  PRICE_FEED_STALE_THRESHOLD_S,
+  parseUsdToCents,
+  usdCentsToWei,
+  weiToUsdCents,
+} from "./blockchain/price-feeds";
 // ============================================================================
 // CONTRACT
 // ============================================================================
 export type { SimulationResult } from "./blockchain/simulation";
 export { simulateJoinGarden, simulateTransaction } from "./blockchain/simulation";
 export {
-  formatTokenAmount,
   AAVE_V3_POOL,
   DEFAULT_WITHDRAW_MAX_LOSS_BPS,
+  formatTokenAmount,
   getDepositLimitLabel,
   getNetDeposited,
   getVaultAssetDecimals,
@@ -244,21 +233,6 @@ export {
   normalizeDecimalInput,
   validateDecimalInput,
 } from "./blockchain/vaults";
-export type { OctantVaultRedeemCallVariant } from "./blockchain/octant-vault-redeem";
-export {
-  getOctantVaultRedeemCallShape,
-  OCTANT_VAULT_REDEEM_CALL_SHAPES,
-} from "./blockchain/octant-vault-redeem";
-export {
-  formatUsdCents,
-  formatUsdPrice,
-  getEthUsdFeedAddress,
-  parseUsdToCents,
-  PRICE_FEED_DECIMALS,
-  PRICE_FEED_STALE_THRESHOLD_S,
-  usdCentsToWei,
-  weiToUsdCents,
-} from "./blockchain/price-feeds";
 // ============================================================================
 // COMPRESSION (Native Compression Streams API)
 // ============================================================================
@@ -272,6 +246,27 @@ export {
   getCompressionRatio,
   isCompressionSupported,
 } from "./compression";
+export type {
+  CampaignCookieJarPayoutAsset,
+  CampaignCookieJarPayoutAssetId,
+} from "./cookie-jar-campaign";
+export {
+  aggregateCampaignCookieJarOperators,
+  buildCampaignCookieJarCampaigns,
+  buildCampaignCookieJarMetadata,
+  CAMPAIGN_COOKIE_JAR_METADATA_KIND,
+  CAMPAIGN_COOKIE_JAR_PAYOUT_ASSET_IDS,
+  deriveCampaignCookieJarClaimState,
+  diffCampaignCookieJarAllowlist,
+  getCampaignCookieJarPayoutAsset,
+  getCampaignCookieJarPayoutAssets,
+  getDefaultCampaignCookieJarPayoutAsset,
+  normalizeCampaignAddress,
+  normalizeCampaignMetadataUrl,
+  parseCampaignAddressList,
+  parseCampaignCookieJarFallbacks,
+  parseCampaignCookieJarMetadata,
+} from "./cookie-jar-campaign";
 // ============================================================================
 // DEBUG
 // ============================================================================
@@ -284,20 +279,6 @@ export { createDispatchAdapter } from "./dispatch-adapter";
 // DOMAIN BITMASK
 // ============================================================================
 export { expandDomainMask, hasDomain } from "./domain";
-// ============================================================================
-// GARDEN DETAIL
-// ============================================================================
-export {
-  aggregateBadges,
-  DOMAIN_LABEL_IDS,
-  getMedian,
-  getSeverityRank,
-  hoursSince,
-  parseGardenDetailTab,
-  parseGardenRange,
-  RANGE_TO_MS,
-  toMs,
-} from "./garden-detail";
 // ============================================================================
 // EAS
 // ============================================================================
@@ -365,18 +346,37 @@ export {
   normalizeTimeSpentMinutes,
 } from "./form/normalizers";
 // ============================================================================
-// QUERY INVALIDATION
+// GARDEN DETAIL
 // ============================================================================
-export type {
-  InvalidationDelay,
-  ProgressiveInvalidationOptions,
-} from "../config/query-keys/schedule";
 export {
-  INVALIDATION_DELAYS,
-  scheduleInvalidation,
-  scheduleInvalidationForKey,
-  scheduleProgressiveInvalidation,
-} from "../config/query-keys/schedule";
+  aggregateBadges,
+  DOMAIN_LABEL_IDS,
+  getMedian,
+  getSeverityRank,
+  hoursSince,
+  parseGardenDetailTab,
+  parseGardenRange,
+  RANGE_TO_MS,
+  toMs,
+} from "./garden-detail";
+export type {
+  AdminCommunityRouteContext,
+  AdminGardenRouteContext,
+  AdminHubRouteContext,
+  AdminSearchValue,
+  AdminSignalPoolType,
+  AdminWorkspaceId,
+} from "./navigation/admin-routes";
+export {
+  ADMIN_GARDEN_ID_PARAM,
+  ADMIN_GARDEN_LEGACY_SHARE_PARAM,
+  ADMIN_GARDEN_SHARE_PARAM,
+  ADMIN_WORKSPACE_ROOTS,
+  adminRoutes,
+  buildAdminHref,
+  getAdminWorkspaceForPath,
+  getAdminWorkspaceRoot,
+} from "./navigation/admin-routes";
 // ============================================================================
 // SCHEDULER (Native Scheduler API for cooperative multitasking)
 // ============================================================================
@@ -477,5 +477,10 @@ export {
   imageCompressor,
 } from "./work/image-compression";
 export { convertJobsToWorks, fetchOfflineWorks } from "./work/offline";
+export {
+  collectApprovalRecipientsForWorks,
+  collectApprovedWorkUIDs,
+  filterPendingNeedsReview,
+} from "./work/pending-review";
 export type { WorkData } from "./work/workActions";
 export { downloadWorkData, downloadWorkMedia, shareWork } from "./work/workActions";
