@@ -97,7 +97,7 @@ The left column is what the user says. The right column is the internal statemen
 | "The card on Hub feels tight." | `AdminCard in /hub WorkSubmissions → spacing: expected p-4 (16dp) per M3 card anatomy, currently p-3 (12dp)` |
 | "The top bar looks flat on Garden." | `canvas-area-top in /garden → hierarchy: AppBar lacks elevation-3 + --blur-material-regular separation from MainSheet below` |
 | "The tabs on Community snap weirdly." | `AdminTabRail in /community → motion: sliding indicator uses ease-out 200ms instead of --spring-medium-* tokens` |
-| "The input label looks wrong at phone width." | `AdminTextField (outlined) in LeftSheet create-garden form → responsive: floating-label notch overlaps outline below 400px container width` |
+| "The input label looks wrong at phone width." | `AdminTextField (outlined) in AdminDialog create-garden form → responsive: floating-label notch overlaps outline below 400px container width` |
 | "Something's off but I can't tell what." | Tier 3 — agent asks which workspace/region to focus on, then Tier 1s again. |
 
 ## Why this exists

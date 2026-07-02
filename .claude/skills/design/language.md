@@ -152,6 +152,29 @@ From Apple's Liquid Glass talk — watch for these as you build:
 3. **Near device edges** — On phone, use capsule + extra margin near screen edge. On tablet/desktop, use concentric shape aligned to window edge.
 4. **Mixing shape types** — Don't put a capsule button inside a fixed-radius container if the radii clash. The capsule's geometry naturally supports concentricity.
 
+### Concentricity Reference (copy this shape)
+
+The rule is `child_radius = parent_radius − padding`. A concrete before/after with real numbers:
+
+```css
+/* ❌ Before — flared corners: the child's 24px radius exceeds what the
+   parent's geometry allows (24px parent − 16px padding = 8px budget). */
+.parent { border-radius: 24px; padding: 16px; }   /* --radius-2xl */
+.child  { border-radius: 24px; }                   /* clashes at every corner */
+
+/* ✅ After — concentric: child radius = parent radius − padding. */
+.parent { border-radius: 24px; padding: 16px; }    /* --radius-2xl */
+.child  { border-radius: 8px; }                    /* 24 − 16 = 8 → --radius-md */
+
+/* ✅ Token form — derive instead of hardcoding the arithmetic. */
+.child  { border-radius: calc(var(--radius-2xl) - var(--space-4)); }
+```
+
+Sanity check while building: at any nesting level, the visual gap between the
+child's corner curve and the parent's corner curve should be even all the way
+around the bend. If the gap pinches (child too square) or flares (child too
+round), re-derive from the formula rather than eyeballing a token.
+
 ---
 
 ## Motion System
@@ -244,6 +267,8 @@ Green Goods uses a **four-role volume hierarchy** anchored in the root `DESIGN.m
 | **Tertiary (accent)** | 1-3% | Garden green — #1FC16B | `--color-primary` | CTAs, active states, value-flow moments |
 
 **Rule:** Tertiary (green) is third in volume but first in visual pull. The bright flower — draws the eye *because* everything else is quiet. Flooding the screen with green is the #1 degen-aesthetic failure mode.
+
+> **Enforcement honesty:** the volume hierarchy is a **review-time principle — there is no automated checker yet.** `check:design-tokens` catches raw color literals and material-boundary violations, and the PWA token audit flags specific bright-green contrast risks, but nothing measures per-screen color volume. Reviewers apply the 80/8/3/1 split by eye during the design-review lenses; treat any screen where green reads as a surface rather than an accent as a finding.
 
 > **Token-name caveat:** the codebase label `--color-primary` is an internal string — it resolves to the **tertiary role** (green as accent). This file, root `DESIGN.md`, and AI-prompt vocabulary all use role names. The internal token stays as-is; no rename needed.
 
@@ -361,7 +386,7 @@ Contextual page-level actions. The admin cockpit's primary action surface.
 
 ### Sheets
 
-> **Admin cockpit exception**: the operator cockpit (`packages/admin`) has **retired side sheets** — every admin action and detail/inspection flow is a centered `AdminDialog` (full-viewport scrim; bottom-sheet on mobile). See [prompt-contract.md § Overlays: Centered AdminDialog Everywhere](./prompt-contract.md). The sheet motion below applies to the **client PWA** (wallet drawer, mobile detail flows) and the shared primitives; `SheetBody` / `SheetFooter` / `SheetDivider` also survive as layout primitives *inside* an `AdminDialog` body.
+> **Admin cockpit exception**: the operator cockpit (`packages/admin`) has **retired side sheets** — the shared sheet renderers are deleted and every admin action and detail/inspection flow is a centered `AdminDialog` (full-viewport scrim; bottom-sheet on mobile). See [prompt-contract.md § Overlays: Centered AdminDialog Everywhere](./prompt-contract.md). The sheet motion below applies to the **client PWA's own sheet patterns** (wallet drawer, `PwaSheet`, mobile detail flows); `SheetBody` / `SheetFooter` / `SheetDivider` survive as layout primitives *inside* an `AdminDialog` body.
 
 Detail surfaces that slide from the edge, anchored to their trigger (source-anchored interaction):
 
