@@ -2,9 +2,11 @@
 
 > Follow-up work left behind by the six-wave UI/UX & systems session (PRs #602–#609, all merged
 > to develop 2026-07-01/02). Every item below was re-verified at HEAD `46f97b454` on 2026-07-02.
-> Source docs: `.plans/active/ui-ux-systems-audit/progress.md` (§ Standing follow-ups),
-> `dialog-census.md` (pass 1 + 2). Branch cadence: one branch + PR per slice, targeting develop;
-> `gh` always with `--repo greenpill-dev-guild/green-goods`.
+> Source docs: the archived wave hub `.plans/archive/ui-ux-systems-audit/` (progress.md
+> § Standing follow-ups) and `dialog-census.md` (pass 1 + 2), which now lives **in this hub**
+> alongside `admin-tsc-baseline.txt` — both moved here 2026-07-02 when the wave hub archived,
+> because Slices 2 and 4 still write to them. Branch cadence: one branch + PR per slice,
+> targeting develop; `gh` always with `--repo greenpill-dev-guild/green-goods`.
 
 ## Context
 
@@ -84,8 +86,9 @@ Branch `fix/develop-ci-debts-2`. Everything else stacks on this being green.
   excludes nothing. Remove the views exclusion locally so local == CI (the delta is ~12 tests;
   CI runs the full 480 in ~4 min). If a specific file is pathological locally, keep a single-file
   exclusion with a comment, mirrored in CI. First check why `3ed012e14` added it.
-- Update `.plans/active/ui-ux-systems-audit/progress.md` standing-follow-ups section: mark these
-  items and link this plan.
+- ~~Update the wave hub's progress.md standing-follow-ups section~~ — DONE at plan-commit time
+  (`d6dea1d7a` added the pointer; the hub is now archived at
+  `.plans/archive/ui-ux-systems-audit/` with a banner pointing back here).
 
 **Acceptance:** `cd packages/admin && bun run test:coverage` exits 0 locally; fresh develop push
 run shows Admin workflow + Design Guardrails green (Storybook smoke stays red until Slice 1 —
@@ -200,6 +203,8 @@ the admin gate flags it — correct, given admin's browser budget.
    → 0 (the vacuous-gate proof, for the PR body); `bun run typecheck` → 0 errors; seeded-error
    canary in admin src AND in a shared file in the closure → both fail the gate (proves the
    cross-package reach), then revert; `bun run build` parity; CI step green on the PR.
+7. Retire `admin-tsc-baseline.txt` (in this hub) once the gate is green — the signature-diff
+   workflow it anchored is superseded by the real gate. Delete it in the 2a PR.
 
 **2b — client gate (M–L, after 2a):** same three config flips in
 `packages/client/tsconfig.app.json` (**no story exclusion** — client stories are clean, free
