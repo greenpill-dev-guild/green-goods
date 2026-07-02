@@ -1226,9 +1226,10 @@
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
     border-radius: var(--shape-xl);
-    /* Horizontal padding mirrors the AppBar paddingInline (20px) so eyebrow,
-       title, tabs, and search align with AppBar text at any viewport. */
-    padding: 0.875rem 1rem 1.25rem;
+    /* Symmetric padding — one value per breakpoint so header, tabs, and body
+       content share an even inset (the old 14/16/20px asymmetry read as a
+       misalignment on dense views). */
+    padding: 1rem;
     box-shadow: var(--edge-rest), var(--elevation-2);
   }
 
@@ -1364,13 +1365,13 @@
 
   @media (min-width: 600px) {
     .canvas-route-card {
-      padding: 1.125rem 1.25rem 1.5rem;
+      padding: 1.25rem;
     }
   }
 
   @media (min-width: 1024px) {
     .canvas-route-card {
-      padding: 1.25rem 1.25rem 1.75rem;
+      padding: 1.5rem;
     }
   }
 

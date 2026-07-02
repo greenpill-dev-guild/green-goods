@@ -145,7 +145,7 @@ export function OverviewTab({
               </Card.Header>
               <Card.Body>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-3" aria-live="polite">
-                  <AdminCard variant="outlined" className="p-3">
+                  <AdminCard variant="outlined" density="compact">
                     <p className="label-xs text-text-soft">
                       {formatMessage({
                         id: "app.garden.detail.metric.lastActivity",
@@ -161,7 +161,7 @@ export function OverviewTab({
                           })}
                     </p>
                   </AdminCard>
-                  <AdminCard variant="outlined" className="p-3">
+                  <AdminCard variant="outlined" density="compact">
                     <p className="label-xs text-text-soft">
                       {formatMessage({ id: "app.garden.detail.metric.impactVelocity" })}
                     </p>
@@ -182,7 +182,7 @@ export function OverviewTab({
                           )}
                     </p>
                   </AdminCard>
-                  <AdminCard variant="outlined" className="p-3">
+                  <AdminCard variant="outlined" density="compact">
                     <p className="label-xs text-text-soft">
                       {formatMessage({ id: "app.garden.detail.metric.executionThroughput" })}
                     </p>

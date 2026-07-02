@@ -139,7 +139,7 @@ export default function GardenAssessment() {
                 {/* Type badge */}
                 {assessmentType && (
                   <span
-                    className={`mb-3 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${badgeStyle}`}
+                    className={`mb-3 inline-flex items-center rounded-full px-2.5 py-0.5 text-label-md ${badgeStyle}`}
                   >
                     {assessmentType}
                   </span>
@@ -147,7 +147,7 @@ export default function GardenAssessment() {
 
                 {/* Date range */}
                 {(attestation.parsed?.startDate || attestation.parsed?.endDate) && (
-                  <div className="mt-2 flex items-center gap-1.5 text-xs text-text-soft">
+                  <div className="mt-2 flex items-center gap-1.5 text-label-sm text-text-soft">
                     <RiCalendarLine className="h-3.5 w-3.5 shrink-0" />
                     <span>
                       {formatDateRange(attestation.parsed?.startDate, attestation.parsed?.endDate)}

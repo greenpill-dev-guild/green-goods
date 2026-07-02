@@ -9,7 +9,6 @@ import {
   getActionLifecycleState,
   getActionsListSearch,
   StatusBadge,
-  Surface,
   formatDateTime,
   ImageWithFallback,
   localizeAction,
@@ -90,7 +89,7 @@ export function ActionDetailPanel({
   if (!action) {
     return (
       <div className="p-4">
-        <Surface elevation="raised" padding="default" className="space-y-3 text-center">
+        <AdminCard className="space-y-3 text-center">
           <p className="text-sm text-text-sub">{formatMessage({ id: "app.actions.notFound" })}</p>
           <Button size="sm" variant="secondary" onClick={onClose}>
             {formatMessage({
@@ -98,7 +97,7 @@ export function ActionDetailPanel({
               defaultMessage: "Back to actions",
             })}
           </Button>
-        </Surface>
+        </AdminCard>
       </div>
     );
   }
@@ -130,7 +129,7 @@ export function ActionDetailPanel({
         </div>
       </div>
 
-      <Surface elevation="raised" padding="default" className="space-y-6">
+      <AdminCard className="space-y-6">
         <div className="space-y-4">
           <div>
             <h2 className="label-md text-text-strong sm:text-lg">
@@ -184,9 +183,9 @@ export function ActionDetailPanel({
             </AdminCard>
           </dl>
         </div>
-      </Surface>
+      </AdminCard>
 
-      <Surface elevation="raised" padding="default" className="space-y-4">
+      <AdminCard className="space-y-4">
         <div className="flex items-center gap-2">
           <RiFileListLine className="h-4 w-4 text-text-soft" />
           <h3 className="text-sm font-semibold text-text-strong">
@@ -215,9 +214,9 @@ export function ActionDetailPanel({
             })}
           </p>
         )}
-      </Surface>
+      </AdminCard>
 
-      <Surface elevation="raised" padding="default" className="space-y-4">
+      <AdminCard className="space-y-4">
         <div className="flex items-center gap-2">
           <RiImageLine className="h-4 w-4 text-text-soft" />
           <h3 className="text-sm font-semibold text-text-strong">
@@ -250,7 +249,7 @@ export function ActionDetailPanel({
             })}
           </p>
         )}
-      </Surface>
+      </AdminCard>
     </div>
   );
 }
@@ -321,9 +320,9 @@ export default function ActionDetail() {
           sticky
         />
         <CanvasRouteContent maxWidthClassName="max-w-[960px]" className="mt-4">
-          <Surface elevation="raised" padding="default" className="text-center">
+          <AdminCard className="text-center">
             <p className="text-sm text-text-sub">{formatMessage({ id: "app.actions.notFound" })}</p>
-          </Surface>
+          </AdminCard>
         </CanvasRouteContent>
       </CanvasRouteFrame>
     );
@@ -376,7 +375,7 @@ export default function ActionDetail() {
 
       <CanvasRouteContent maxWidthClassName="max-w-[1200px]" className="mt-4">
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
-          <Surface elevation="raised" padding="default" className="space-y-6">
+          <AdminCard className="space-y-6">
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(18rem,1fr)]">
               <div className="space-y-4">
                 <div>
@@ -437,7 +436,7 @@ export default function ActionDetail() {
                 </dl>
               </div>
 
-              <Surface elevation="ground" padding="default" className="space-y-3">
+              <AdminCard variant="filled" className="space-y-3">
                 <div className="flex items-center gap-2">
                   <RiFileListLine className="h-4 w-4 text-text-soft" />
                   <h3 className="text-sm font-semibold text-text-strong">
@@ -478,12 +477,12 @@ export default function ActionDetail() {
                     </p>
                   )}
                 </div>
-              </Surface>
+              </AdminCard>
             </div>
-          </Surface>
+          </AdminCard>
 
           <div className="space-y-4">
-            <Surface elevation="raised" padding="default" className="space-y-4">
+            <AdminCard className="space-y-4">
               <div className="flex items-center gap-2">
                 <RiImageLine className="h-4 w-4 text-text-soft" />
                 <div>
@@ -525,7 +524,7 @@ export default function ActionDetail() {
                   })}
                 </p>
               )}
-            </Surface>
+            </AdminCard>
           </div>
         </div>
       </CanvasRouteContent>

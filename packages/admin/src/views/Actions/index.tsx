@@ -10,13 +10,13 @@ import {
   LIFECYCLE_TABS,
   localizeAction,
   MetaStrip,
-  Surface,
   useActionsController,
   useMediaQuery,
   useRefreshAction,
   WorkbenchCard,
 } from "@green-goods/shared";
 import { AdminFilterChip } from "@/components/AdminFilterChip";
+import { AdminCard } from "@/components/AdminCard";
 import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
 import { AdminSortSelect } from "@/components/AdminSortSelect";
 import { AdminTabRail } from "@/components/AdminTabRail";
@@ -159,13 +159,7 @@ export default function Actions() {
 
       <CanvasRouteContent data-region="workspace-actions-content" className="flex flex-col gap-3">
         {actions.isLoading ? (
-          <Surface
-            elevation="solid-raised"
-            padding="none"
-            className="space-y-3 p-4 sm:p-5"
-            role="status"
-            aria-live="polite"
-          >
+          <AdminCard className="space-y-3" role="status" aria-live="polite">
             <span className="sr-only">
               {intl.formatMessage({
                 id: "admin.actions.loadingMessage",
@@ -175,11 +169,11 @@ export default function Actions() {
             {Array.from({ length: 6 }).map((_, index) => (
               <div key={`action-skeleton-${index}`} className="h-20 rounded-sm skeleton-shimmer" />
             ))}
-          </Surface>
+          </AdminCard>
         ) : null}
 
         {!actions.isLoading && actions.actions.length === 0 ? (
-          <Surface elevation="solid-raised" padding="none">
+          <AdminCard density="none">
             <EmptyState
               icon={<RiFileListLine className="h-6 w-6" />}
               title={intl.formatMessage({
@@ -202,13 +196,13 @@ export default function Actions() {
                   : undefined
               }
             />
-          </Surface>
+          </AdminCard>
         ) : null}
 
         {!actions.isLoading &&
         actions.actions.length > 0 &&
         actions.stageFilteredActions.length === 0 ? (
-          <Surface elevation="solid-raised" padding="none">
+          <AdminCard density="none">
             <EmptyState
               icon={<RiFileListLine className="h-6 w-6" />}
               title={intl.formatMessage({
@@ -223,7 +217,7 @@ export default function Actions() {
                 onClick: actions.resetFilters,
               }}
             />
-          </Surface>
+          </AdminCard>
         ) : null}
 
         {!actions.isLoading && actions.stageFilteredActions.length > 0 ? (

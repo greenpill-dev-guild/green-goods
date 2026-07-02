@@ -56,7 +56,7 @@ function CookieJarManageModalHarness({
     >
       <div className="space-y-3">
         {jars.map((jar) => (
-          <AdminCard variant="outlined" key={jar.jarAddress} className="p-3">
+          <AdminCard variant="outlined" key={jar.jarAddress} density="compact">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <p className="text-sm font-medium text-text-strong">{jar.symbol}</p>
