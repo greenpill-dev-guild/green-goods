@@ -97,4 +97,25 @@ describe("FormattedAmountInput", () => {
     );
     expect(screen.getByRole("button", { name: "Max" })).toBeInTheDocument();
   });
+
+  it("keeps shared-owned row layout out of Tailwind utility classes", () => {
+    render(
+      <FormattedAmountInput
+        value=""
+        onValueChange={() => {}}
+        aria-label="Amount"
+        endSlot={<button type="button">Max</button>}
+      />
+    );
+
+    const input = screen.getByRole("textbox", { name: "Amount" });
+    const row = input.parentElement as HTMLElement;
+
+    expect(row).toHaveStyle({
+      display: "flex",
+      alignItems: "center",
+      gap: "0.5rem",
+    });
+    expect(row.className).toBe("");
+  });
 });

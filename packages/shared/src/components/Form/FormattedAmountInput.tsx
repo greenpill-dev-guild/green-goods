@@ -1,8 +1,20 @@
-import { useId, useMemo, type InputHTMLAttributes, type ReactNode } from "react";
+import {
+  useId,
+  useMemo,
+  type CSSProperties,
+  type InputHTMLAttributes,
+  type ReactNode,
+} from "react";
 import { parseUnits } from "viem";
 
 import { validateDecimalInput } from "../../utils/blockchain/vaults";
 import { cn } from "../../utils/styles/cn";
+
+const amountInputRowStyle: CSSProperties = {
+  display: "flex",
+  alignItems: "center",
+  gap: "0.5rem",
+};
 
 export interface FormattedAmountState {
   /** Parsed base-unit amount, or null while empty/invalid. */
@@ -99,7 +111,7 @@ export function FormattedAmountInput({
 
   return (
     <div data-component="FormattedAmountInput" className={containerClassName}>
-      <div className="flex items-center gap-2">
+      <div style={amountInputRowStyle}>
         <input
           {...inputProps}
           id={inputId}

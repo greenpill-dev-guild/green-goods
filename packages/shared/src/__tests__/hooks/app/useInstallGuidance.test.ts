@@ -244,11 +244,13 @@ describe("hooks/app/useInstallGuidance", () => {
       expect(result.current.secondaryAction?.label).toBe("Continue in Browser");
     });
 
-    it("surfaces Open App on Android once the PWA was installed on this browser", () => {
+    it("keeps Open App primary on Android remembered installs while preserving reinstall fallback", () => {
       // Android WebAPKs stay registered after install, but the browser tab can
       // never see display-mode: standalone. `wasInstalled` is the persistent
       // signal that keeps the CTA on "Open App" across reloads (link-capturing
-      // then hands the click off to the installed app).
+      // then hands the click off to the installed app). It is not proof the app
+      // still exists, so stale remembered installs must keep manual reinstall
+      // help available.
       mockDetect.mockReturnValue(chromeBrowser);
       mockCanTrigger.mockReturnValue(false);
 
@@ -257,7 +259,11 @@ describe("hooks/app/useInstallGuidance", () => {
       expect(result.current.scenario).toBe("already-installed");
       expect(result.current.primaryAction.type).toBe("open-app");
       expect(result.current.primaryAction.label).toBe("Open App");
-      expect(result.current.secondaryAction).toBeNull();
+      expect(result.current.secondaryAction?.type).toBe("show-manual-steps");
+      expect(result.current.secondaryAction?.label).toBe("Install again");
+      expect(result.current.showBrowserOption).toBe(true);
+      expect(result.current.manualInstructions).toBeDefined();
+      expect(result.current.manualInstructions![0].icon).toBe("menu");
     });
 
     it("provides Android Chrome manual steps", () => {

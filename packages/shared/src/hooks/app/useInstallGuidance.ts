@@ -259,11 +259,14 @@ export function useInstallGuidance(
 
     // Android keeps a previously-installed PWA's WebAPK registered even though the
     // browser tab can never observe `display-mode: standalone`. So once we've seen
-    // an install on this browser (`wasInstalled`), surface "Open App" instead of
-    // reinstall steps — the CTA then persists across reloads, and the click is a
-    // real navigation to the in-scope start URL that Chrome/Android link-capturing
-    // hands off to the installed app. iOS has no link capturing (and no WebAPK), so
-    // it keeps the manual reinstall guidance below.
+    // an install on this browser (`wasInstalled`), keep "Open App" as the primary
+    // action — the click is a real navigation to the in-scope start URL that
+    // Chrome/Android link-capturing hands off to the installed app.
+    //
+    // Remembered install state can also be stale after the user removes the
+    // WebAPK, so keep manual reinstall guidance attached as a secondary path.
+    // iOS has no link capturing (and no WebAPK), so it keeps the manual reinstall
+    // guidance as the primary path below.
     if (wasInstalled && platform === "android") {
       return {
         browserInfo,
@@ -272,9 +275,13 @@ export function useInstallGuidance(
           type: "open-app",
           label: "Open App",
         },
-        secondaryAction: null,
-        showBrowserOption: false,
-        manualInstructions: null,
+        secondaryAction: {
+          type: "show-manual-steps",
+          label: "Install again",
+          description: "If the app was removed",
+        },
+        showBrowserOption: true,
+        manualInstructions,
         browserSwitchReason: null,
         openInBrowserUrl: null,
       };

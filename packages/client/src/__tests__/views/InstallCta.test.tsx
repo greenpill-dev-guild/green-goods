@@ -100,13 +100,19 @@ describe("InstallCta", () => {
     expect(container.innerHTML).toBe("");
   });
 
-  it("returns null when guidance resolves to open-app (remembered install)", () => {
+  it("shows manual recovery when guidance resolves to open-app from a remembered install", () => {
     mockAppState.wasInstalled = true;
     mockGuidanceState.scenario = "already-installed";
     mockGuidanceState.primaryAction = { type: "open-app", label: "Open App" };
+    mockGuidanceState.manualInstructions = [
+      { title: "Open Chrome", description: "Open in Chrome" },
+      { title: "Install", description: "Menu → Install app" },
+    ];
 
-    const { container } = render(wrap(createElement(InstallCta)));
-    expect(container.innerHTML).toBe("");
+    render(wrap(createElement(InstallCta)));
+
+    expect(screen.getByText("Install Green Goods")).toBeInTheDocument();
+    expect(screen.getByText(/open in chrome.*menu → install app/i)).toBeInTheDocument();
   });
 
   it("shows install header on mobile when not installed", () => {

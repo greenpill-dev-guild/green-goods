@@ -168,7 +168,7 @@ describe("GardenSettingsEditor explicit save", () => {
     const file = new File(["banner"], "banner.png", { type: "image/png" });
     fireEvent.change(input as HTMLInputElement, { target: { files: [file] } });
 
-    expect(await screen.findByText("Preview — uploads on save")).toBeInTheDocument();
+    expect(await screen.findByText("Preview · uploads on save")).toBeInTheDocument();
     expect(mockUploadFileToIPFS).not.toHaveBeenCalled();
     expect(mockUpdateBannerImage).not.toHaveBeenCalled();
 

@@ -69,11 +69,10 @@ export const InstallCta: React.FC = () => {
     });
   }, [guidance.scenario, guidance.manualInstructions, platform, intl]);
 
-  // Hide once the app is installed — either detected live (isInstalled) or
-  // remembered on Android, where guidance resolves to "open-app". The profile
-  // has no install work to offer in that state, and the card has no open-app
-  // affordance, so rendering it would show an actionless "Install" card.
-  if (!isMobile || isInstalled || guidance.primaryAction.type === "open-app") return null;
+  // Hide only once the app is detected live. Android remembered installs keep
+  // Open App primary on public CTAs, but the same remembered signal can be stale
+  // after uninstall, so Profile should still offer the manual reinstall path.
+  if (!isMobile || isInstalled) return null;
 
   return (
     <>
