@@ -1,10 +1,11 @@
 /**
  * Login View Tests
  *
- * Tests simplified login UI:
- * - New users: passkey-first primary (gardener-default path), wallet secondary
- * - Existing users: personalized passkey primary, wallet secondary
- * - Passkey creation mode toggle
+ * Tests the three-screen login model on one scaffold:
+ * - Entry: primary (Create account / personalized Continue as), wallet
+ *   secondary, Recover link
+ * - Create form (two-step: entry → form): input, Create account, Back
+ * - Recover form (flat: recover or Back — no separate-account fork)
  * - Shared message zone (info/helper vs error)
  */
 
@@ -124,7 +125,9 @@ vi.mock("@/components/Layout", () => ({
         },
         buttonLabel || "Create Account"
       ),
-      secondaryAction &&
+      // Mirrors the real component: the secondary renders on entry screens only.
+      !usernameInput &&
+        secondaryAction &&
         createElement(
           "button",
           {
@@ -150,16 +153,6 @@ vi.mock("@/components/Layout", () => ({
           value: usernameInput.value,
           onChange: usernameInput.onChange,
         }),
-      usernameInput?.onCancel &&
-        createElement(
-          "button",
-          {
-            "data-testid": "cancel-passkey-create",
-            onClick: usernameInput.onCancel,
-            type: "button",
-          },
-          "Cancel"
-        ),
       infoMessage &&
         !errorMessage &&
         createElement("p", { "data-testid": "info-message" }, infoMessage),
@@ -200,7 +193,7 @@ const renderWithRouter = (initialRoute = "/home/login") => {
 
 // ─── New User (no stored credential) ─────────────────────────────────────────
 
-describe("Login View - New User (progressive disclosure)", () => {
+describe("Login View - New User (two-step create)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockHasStoredCredential = false;
@@ -223,17 +216,48 @@ describe("Login View - New User (progressive disclosure)", () => {
     expect(screen.getByTestId("splash-screen")).toBeInTheDocument();
   });
 
-  it("shows account creation as the primary first-install action", () => {
+  it("shows the entry screen without an input: create, wallet, recover", () => {
     renderWithRouter();
+
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Create account");
+    expect(screen.getByTestId("primary-button")).toBeEnabled();
+    expect(screen.queryByTestId("username-input")).not.toBeInTheDocument();
+    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Sign in with a wallet");
+    expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Recover with username");
+    expect(screen.queryByTestId("info-message")).not.toBeInTheDocument();
+  });
+
+  it("opens the create form from the entry primary and returns via Back", async () => {
+    const user = userEvent.setup();
+    renderWithRouter();
+
+    await user.click(screen.getByTestId("primary-button"));
 
     expect(screen.getByTestId("primary-button")).toHaveTextContent("Create account");
     expect(screen.getByTestId("primary-button")).toBeDisabled();
     expect(screen.getByTestId("username-input")).toBeInTheDocument();
-    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Sign in with a wallet");
-    expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Recover with username");
-    // The input's helper lives in the shared message zone (the sr-only label
-    // plus this visible instruction replace the old above-input hint).
+    // Form screens drop the wallet secondary; Back is the tertiary.
+    expect(screen.queryByTestId("secondary-button")).not.toBeInTheDocument();
+    expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Back");
+    // The input's visible instruction lives in the shared message zone.
     expect(screen.getByTestId("info-message")).toHaveTextContent(/synced passkey/i);
+
+    await user.click(screen.getByTestId("tertiary-button"));
+
+    expect(screen.queryByTestId("username-input")).not.toBeInTheDocument();
+    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Sign in with a wallet");
+  });
+
+  it("creates an account from the create form", async () => {
+    const user = userEvent.setup();
+    renderWithRouter();
+
+    await user.click(screen.getByTestId("primary-button"));
+    await user.type(screen.getByTestId("username-input"), "newgardener");
+    await user.click(screen.getByTestId("primary-button"));
+
+    expect(mockCreateAccount).toHaveBeenCalledWith("newgardener");
+    expect(mockLoginWithPasskey).not.toHaveBeenCalled();
   });
 
   it("keeps legacy local account creation when passkey server is disabled", async () => {
@@ -241,10 +265,13 @@ describe("Login View - New User (progressive disclosure)", () => {
     mockPasskeyServerEnabled = false;
     renderWithRouter();
 
+    // Entry: no recover link without a passkey server.
     expect(screen.getByTestId("primary-button")).toHaveTextContent("Create account");
-    expect(screen.getByTestId("username-input")).toBeInTheDocument();
     expect(screen.getByTestId("secondary-button")).toHaveTextContent("Sign in with a wallet");
     expect(screen.queryByTestId("tertiary-button")).not.toBeInTheDocument();
+
+    await user.click(screen.getByTestId("primary-button"));
+
     // Local-only mode keeps the re-enrollment explainer in the message zone.
     expect(screen.getByTestId("info-message")).toHaveTextContent(/same-device sign-in/i);
 
@@ -252,21 +279,17 @@ describe("Login View - New User (progressive disclosure)", () => {
     await user.click(screen.getByTestId("primary-button"));
 
     expect(mockCreateAccount).toHaveBeenCalledWith("legacyuser");
-    expect(mockLoginWithPasskey).not.toHaveBeenCalled();
   });
 
-  it("shows Sign in with a wallet as secondary action", () => {
+  it("calls loginWithWallet from the entry secondary", async () => {
+    const user = userEvent.setup();
     renderWithRouter();
-    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Sign in with a wallet");
+
+    await user.click(screen.getByTestId("secondary-button"));
+    expect(mockLoginWithWallet).toHaveBeenCalled();
   });
 
-  it("does not show separate-account entry before recovery has failed", () => {
-    renderWithRouter();
-    expect(screen.getByTestId("primary-button")).not.toHaveTextContent("Create separate account");
-    expect(screen.getByTestId("info-message")).not.toHaveTextContent(/different address/i);
-  });
-
-  it("opens username recovery from an explicit recovery action", async () => {
+  it("opens the recover form from the entry recover link", async () => {
     const user = userEvent.setup();
     renderWithRouter();
 
@@ -274,19 +297,10 @@ describe("Login View - New User (progressive disclosure)", () => {
 
     expect(screen.getByTestId("primary-button")).toHaveTextContent("Recover with passkey");
     expect(screen.getByTestId("username-input")).toBeInTheDocument();
-    // Recovery is a sub-flow: no wallet here, slot C stays empty until a failed
-    // attempt, and the clean "Back" exit lives in the tertiary.
+    // Flat sub-flow: no wallet, no fork — just Back.
     expect(screen.queryByTestId("secondary-button")).not.toBeInTheDocument();
     expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Back");
     expect(screen.getByTestId("info-message")).toHaveTextContent(/synced passkeys/i);
-  });
-
-  it("calls loginWithWallet when secondary button clicked from default new-user mode", async () => {
-    const user = userEvent.setup();
-    renderWithRouter();
-
-    await user.click(screen.getByTestId("secondary-button"));
-    expect(mockLoginWithWallet).toHaveBeenCalled();
   });
 
   it("recovers by username through passkey login", async () => {
@@ -298,6 +312,27 @@ describe("Login View - New User (progressive disclosure)", () => {
     await user.click(screen.getByTestId("primary-button"));
 
     expect(mockLoginWithPasskey).toHaveBeenCalledWith("testuser");
+  });
+
+  it("failed recovery shows the error with no separate-account fork", async () => {
+    const user = userEvent.setup();
+    mockLoginWithPasskey.mockRejectedValueOnce(new Error("No passkey credential found"));
+    renderWithRouter();
+
+    await user.click(screen.getByTestId("tertiary-button"));
+    await user.type(screen.getByTestId("username-input"), "missinguser");
+    await user.click(screen.getByTestId("primary-button"));
+
+    expect(await screen.findByTestId("error-message")).toHaveTextContent(/no passkey found/i);
+    // Recovery is flat: the user retries or goes Back — nothing else appears.
+    expect(screen.queryByTestId("secondary-button")).not.toBeInTheDocument();
+    expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Back");
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Recover with passkey");
+
+    // Back returns to the entry screen where a fresh account can be created.
+    await user.click(screen.getByTestId("tertiary-button"));
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Create account");
+    expect(screen.queryByTestId("error-message")).not.toBeInTheDocument();
   });
 
   it("blocks recovery before ceremony when the RP/origin context is unsupported", async () => {
@@ -332,65 +367,7 @@ describe("Login View - New User (progressive disclosure)", () => {
     expect(await screen.findByTestId("error-message")).toHaveTextContent(/something went wrong/i);
   });
 
-  it("requires explicit confirmation before separate account creation", async () => {
-    const user = userEvent.setup();
-    mockLoginWithPasskey.mockRejectedValueOnce(new Error("No passkey credential found"));
-    renderWithRouter();
-
-    await user.click(screen.getByTestId("tertiary-button"));
-    await user.type(screen.getByTestId("username-input"), "missinguser");
-    await user.click(screen.getByTestId("primary-button"));
-    await screen.findByTestId("error-message");
-    await user.click(screen.getByTestId("secondary-button"));
-
-    expect(screen.getByTestId("primary-button")).toHaveTextContent("Continue to new account");
-    expect(screen.getByTestId("info-message")).toHaveTextContent(/different address/i);
-    expect(mockCreateAccount).not.toHaveBeenCalled();
-
-    await user.click(screen.getByTestId("primary-button"));
-
-    expect(screen.getByTestId("primary-button")).toHaveTextContent("Create separate account");
-    expect(screen.getByTestId("username-input")).toBeInTheDocument();
-    // Sub-flow: Back to recovery moved to the tertiary; no wallet secondary.
-    expect(screen.queryByTestId("secondary-button")).not.toBeInTheDocument();
-    expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Back to recovery");
-  });
-
-  it("creates a separate account only after confirmation", async () => {
-    const user = userEvent.setup();
-    mockLoginWithPasskey.mockRejectedValueOnce(new Error("No passkey credential found"));
-    renderWithRouter();
-
-    await user.click(screen.getByTestId("tertiary-button"));
-    await user.type(screen.getByTestId("username-input"), "missinguser");
-    await user.click(screen.getByTestId("primary-button"));
-    await screen.findByTestId("error-message");
-    await user.click(screen.getByTestId("secondary-button"));
-    await user.click(screen.getByTestId("primary-button"));
-    await user.click(screen.getByTestId("primary-button"));
-
-    expect(mockCreateAccount).toHaveBeenCalledWith("missinguser");
-  });
-
-  it("failed recovery exposes guarded new-account confirmation path", async () => {
-    const user = userEvent.setup();
-    mockLoginWithPasskey.mockRejectedValueOnce(new Error("No passkey credential found"));
-    renderWithRouter();
-
-    await user.click(screen.getByTestId("tertiary-button"));
-    await user.type(screen.getByTestId("username-input"), "missinguser");
-    await user.click(screen.getByTestId("primary-button"));
-
-    expect(await screen.findByTestId("error-message")).toHaveTextContent(/no passkey found/i);
-    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Create separate account");
-
-    await user.click(screen.getByTestId("secondary-button"));
-
-    expect(screen.getByTestId("primary-button")).toHaveTextContent("Continue to new account");
-    expect(screen.getByTestId("info-message")).toHaveTextContent(/different address/i);
-  });
-
-  it("keeps guarded recovery fallback when auth error arrives after passkey dispatch", async () => {
+  it("shows the recovery error when the auth error arrives after passkey dispatch", async () => {
     const user = userEvent.setup();
     mockLoginWithPasskey.mockResolvedValueOnce(undefined);
     const view = renderWithRouter();
@@ -405,13 +382,13 @@ describe("Login View - New User (progressive disclosure)", () => {
     view.rerender(createLoginTree());
 
     expect(await screen.findByTestId("error-message")).toHaveTextContent(/no passkey found/i);
-    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Create separate account");
+    expect(screen.queryByTestId("secondary-button")).not.toBeInTheDocument();
   });
 });
 
 // ─── Existing User (has stored credential) ───────────────────────────────────
 
-describe("Login View - Existing User (progressive disclosure)", () => {
+describe("Login View - Existing User (entry screen)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockHasStoredCredential = true;
@@ -428,6 +405,7 @@ describe("Login View - Existing User (progressive disclosure)", () => {
   it("shows Sign in with passkey as primary for returning users", () => {
     renderWithRouter();
     expect(screen.getByTestId("primary-button")).toHaveTextContent("Sign in with passkey");
+    expect(screen.queryByTestId("username-input")).not.toBeInTheDocument();
   });
 
   it("personalizes the primary with the stored username", () => {
@@ -461,7 +439,7 @@ describe("Login View - Existing User (progressive disclosure)", () => {
     expect(screen.queryByTestId("tertiary-button")).not.toBeInTheDocument();
   });
 
-  it("opens username recovery and returns to one-tap sign-in", async () => {
+  it("opens the recover form and returns to one-tap sign-in via Back", async () => {
     const user = userEvent.setup();
     renderWithRouter();
 
@@ -469,16 +447,15 @@ describe("Login View - Existing User (progressive disclosure)", () => {
 
     expect(screen.getByTestId("primary-button")).toHaveTextContent("Recover with passkey");
     expect(screen.getByTestId("username-input")).toBeInTheDocument();
-    // Sub-flow: the exit lives in the tertiary; no wallet or secondary here.
     expect(screen.queryByTestId("secondary-button")).not.toBeInTheDocument();
-    expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Back to sign in");
+    expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Back");
 
     await user.click(screen.getByTestId("tertiary-button"));
 
     expect(screen.getByTestId("primary-button")).toHaveTextContent("Sign in with passkey");
   });
 
-  it("never exposes separate-account creation from existing-account recovery", async () => {
+  it("keeps recovery flat for returning users too", async () => {
     const user = userEvent.setup();
     mockLoginWithPasskey.mockRejectedValueOnce(new Error("No passkey credential found"));
     renderWithRouter();
@@ -489,11 +466,8 @@ describe("Login View - Existing User (progressive disclosure)", () => {
 
     expect(mockLoginWithPasskey).toHaveBeenCalledWith("synceduser");
     expect(await screen.findByTestId("error-message")).toHaveTextContent(/no passkey found/i);
-    // The local credential stays the same-device fallback; replacing it is
-    // only offered from the no-local-cache flow. No separate-account secondary
-    // appears, and the tertiary stays the exit back to one-tap sign-in.
     expect(screen.queryByTestId("secondary-button")).not.toBeInTheDocument();
-    expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Back to sign in");
+    expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Back");
   });
 
   it("calls loginWithPasskey when primary button clicked", async () => {
@@ -512,7 +486,7 @@ describe("Login View - Existing User (progressive disclosure)", () => {
     expect(mockLoginWithWallet).toHaveBeenCalled();
   });
 
-  it("keeps the message zone empty for returning users", () => {
+  it("keeps the message zone empty on the entry screen", () => {
     renderWithRouter();
     expect(screen.queryByTestId("info-message")).not.toBeInTheDocument();
     expect(screen.queryByTestId("error-message")).not.toBeInTheDocument();

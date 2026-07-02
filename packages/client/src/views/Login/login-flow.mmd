@@ -1,57 +1,55 @@
 %% Green Goods PWA passkey login/signup flow (as implemented in views/Login/index.tsx).
-%% Create-account-first for new installs; same-device one-tap for returning users
-%% (personalized "Continue as <name>" when a stored name exists); recovery is a
-%% progressive opt-in SUB-FLOW (no wallet there — Back returns to an entry panel
-%% that has it). Every panel renders the same slot skeleton: input · primary ·
-%% secondary · shared message zone (error wins over helper info) · tertiary, all
-%% fixed-height — no layout shift, in-flight attempts spin INSIDE the primary.
+%% Three screens on one scaffold, two control slots each. ENTRY: primary in
+%% slot 1 (Create account for new users; personalized "Continue as <name>" for
+%% returning), wallet in slot 2, Recover link. FORM screens (create / recover):
+%% input in slot 1, primary in slot 2, Back link — the primary moves down one
+%% slot only on deliberate navigation. Recovery is FLAT: it succeeds, or the
+%% error shows and the user retries or goes Back (a fresh account is created
+%% through the normal create flow; the server rejects registered names). Errors
+%% and helper copy share one fixed-height message zone per screen — no layout
+%% shift anywhere; in-flight attempts spin INSIDE the primary.
 flowchart TD
     Start(["Open Green Goods PWA"]) --> Ready{"Auth ready?"}
-    Ready -->|Restoring session| Loading["Boot splash · spinner in the primary slot"]
+    Ready -->|Restoring session| Boot["Boot splash · spinner in slot 1"]
     Ready -->|Already authenticated| App(["Enter app"])
     Ready -->|Unauthenticated| Stored{"Passkey saved on this device?"}
 
-    %% Returning user — same-device one-tap (entry panel: wallet stays)
-    Stored -->|Yes| Returning["Sign in panel<br/>Primary: Continue as &lt;name&gt; (or Sign in with passkey)<br/>Secondary: Sign in with a wallet<br/>Tertiary: Recover with username"]
-    Returning -->|Continue with passkey| LocalPrompt["Platform passkey prompt"]
+    %% Entry screens — wallet lives here
+    Stored -->|No| EntryNew["Entry (first install)<br/>Slot 1: Create account<br/>Slot 2: Sign in with a wallet<br/>Link: Recover with username"]
+    Stored -->|Yes| EntryBack["Entry (returning)<br/>Slot 1: Continue as &lt;name&gt; (or Sign in with passkey)<br/>Slot 2: Sign in with a wallet<br/>Link: Recover with username"]
+
+    EntryBack -->|Continue with passkey| LocalPrompt["Platform passkey prompt"]
     LocalPrompt -->|Verified| App
-    LocalPrompt -->|Cancelled / failed| PanelErr
+    LocalPrompt -->|Cancelled / failed| EntryErr["Message zone error — same screen"]
+    EntryErr -.retry.-> EntryBack
 
-    %% First install — Create account is the default (entry panel: wallet stays)
-    Stored -->|No| Create["Create account panel (default)<br/>Username field · helper in message zone<br/>Primary: Create account<br/>Secondary: Sign in with a wallet<br/>Tertiary: Recover with username"]
-    Create -->|Create account| CreatePrompt["Platform passkey prompt"]
+    %% Two-step create: entry → form
+    EntryNew -->|Create account| CreateForm["Create form<br/>Slot 1: username input · hint in message zone<br/>Slot 2: Create account<br/>Link: Back"]
+    CreateForm -->|Back| EntryNew
+    CreateForm -->|Create account| CreatePrompt["Platform passkey prompt"]
     CreatePrompt -->|Saved| App
-    CreatePrompt -->|Name already taken| PanelErr
-    CreatePrompt -->|Cancelled / failed| PanelErr
+    CreatePrompt -->|Name already taken / cancelled / failed| CreateErr["Message zone error — same form"]
+    CreateErr -.retry.-> CreateForm
 
-    %% Progressive recovery — opt-in SUB-FLOW (no wallet; Back exits)
-    Returning -->|Recover with username| Recover["Recover panel<br/>Username / ENS field · recovery info in message zone<br/>Primary: Recover with passkey<br/>Secondary: (empty until a failed attempt)<br/>Tertiary: Back"]
-    Create -->|Recover with username| Recover
-    Recover -->|Back| Stored
-    Recover -->|Recover with passkey| Lookup{"Username on passkey server?"}
+    %% Flat recovery: recover, or go Back
+    EntryNew -->|Recover with username| RecoverForm["Recover form<br/>Slot 1: username / ENS input · recovery info in message zone<br/>Slot 2: Recover with passkey<br/>Link: Back"]
+    EntryBack -->|Recover with username| RecoverForm
+    RecoverForm -->|Back| Stored
+    RecoverForm -->|Recover with passkey| Lookup{"Username on passkey server?"}
     Lookup -->|Credential found| RecoverPrompt["Platform passkey prompt"]
     RecoverPrompt -->|Verified| App
-    RecoverPrompt -->|Cancelled / failed| PanelErr
-    Lookup -->|No credential| NotFound["Message zone (error wins):<br/>No passkey found for that username<br/>Secondary unlocks: Create separate account"]
-    Lookup -->|Server unavailable| ServerErr["Message zone (error wins):<br/>Passkey recovery is temporarily unavailable"]
+    RecoverPrompt -->|Cancelled / failed| RecoverErr
+    Lookup -->|No credential / server unavailable| RecoverErr["Message zone error — same form<br/>retry, or Back to entry to create a fresh account"]
+    RecoverErr -.retry.-> RecoverForm
+    RecoverErr -.Back.-> Stored
 
-    %% Errors take over the panel's shared message zone (fixed height)
-    PanelErr["Shared message zone — same panel, fixed height, error wins"]
-    PanelErr -.try again.-> Stored
-    NotFound -.try again.-> Recover
-    ServerErr -.try again.-> Recover
-
-    %% Separate account after a failed recovery (guarded, two-step sub-flow)
-    NotFound -->|Create separate account| ConfirmNew{"Confirm new account<br/>different-address warning in message zone<br/>Tertiary: Back to recovery"}
-    ServerErr -->|Create separate account| ConfirmNew
-    ConfirmNew -->|Continue to new account| Create
-    ConfirmNew -->|Back to recovery| Recover
-
-    %% Wallet fallback lives on the ENTRY panels only
-    Returning -->|Wallet| Wallet["Connect external wallet"]
-    Create -->|Wallet| Wallet
+    %% Wallet fallback from the entry screens
+    EntryNew -->|Wallet| Wallet["Connect external wallet"]
+    EntryBack -->|Wallet| Wallet
     Wallet -->|Connected| App
 
     %% Local-only deployments (passkey server disabled)
-    Stored -->|No · recovery server disabled| CreateLocal["Create account panel (local-only)<br/>re-enrollment explainer in message zone<br/>no recovery tertiary"]
-    CreateLocal -->|Create account| CreatePrompt
+    Stored -->|No · server disabled| EntryLocal["Entry (local-only)<br/>same slots, no Recover link"]
+    EntryLocal -->|Create account| CreateFormLocal["Create form<br/>re-enrollment explainer in message zone"]
+    CreateFormLocal -->|Create account| CreatePrompt
+    CreateFormLocal -->|Back| EntryLocal

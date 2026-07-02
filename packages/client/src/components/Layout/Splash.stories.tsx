@@ -69,15 +69,16 @@ const meta: Meta<typeof Splash> = {
     usernameInput: {
       control: "object",
       description:
-        "Configuration for the username input (slot A). Label is screen-reader-only; the visible instruction is the infoMessage.",
+        "Form-screen input. When set, slot 1 holds the input and the primary moves to slot 2. Label is screen-reader-only; the visible instruction is the infoMessage.",
     },
     secondaryAction: {
       control: "object",
-      description: "Secondary (stroke) action in slot C, e.g. wallet fallback",
+      description:
+        "Entry-screen secondary (slot 2), e.g. wallet fallback. Ignored on form screens.",
     },
     tertiaryAction: {
       control: "object",
-      description: "Tertiary text link, e.g. progressive 'Recover with username' or Back",
+      description: "Tertiary text link — 'Recover with username' on entry, 'Back' on forms",
     },
   },
 };
@@ -106,10 +107,7 @@ export const WithUsernameInput: Story = {
       placeholder: "Choose a username",
     },
     infoMessage: "This username identifies your passkey on our server",
-    secondaryAction: {
-      label: "I already have an account",
-      onSelect: () => {},
-    },
+    tertiaryAction: { label: "Back", onClick: () => {} },
   },
 };
 
@@ -176,6 +174,7 @@ export const LoginDisabled: Story = {
       onChange: () => {},
       placeholder: "Choose a username",
     },
+    tertiaryAction: { label: "Back", onClick: () => {} },
   },
 };
 
@@ -277,14 +276,13 @@ export const Mobile: Story = {
 // AUTH STATES
 //
 // Every story below composes the REAL Splash component (no synthetic panel) with
-// the trimmed production copy from `@green-goods/shared` i18n `app.login.*`. Each
-// state the passkey login must handle maps to a distinct Splash prop set, so a
-// reviewer can sign off the full matrix without running the wallet/auth stack.
+// the trimmed production copy from `@green-goods/shared` i18n `app.login.*`.
 //
-// Slot model recap: slot A (input) · slot B (primary) · slot C (secondary) ·
-// message zone (error XOR info) · tertiary. Entry screens keep the wallet in
-// slot C; sub-flows (recovery, separate-account) drop it — Back lives in the
-// tertiary and slot C only carries the post-failure separate-account offer.
+// Slot model recap: two control slots on one scaffold. ENTRY screens put the
+// primary in slot 1 and the wallet secondary in slot 2; FORM screens (create /
+// recover) put the input in slot 1 and the primary in slot 2. The message zone
+// shows error XOR info; the tertiary is "Recover with username" on entry and
+// "Back" on forms. Recovery is flat — no separate-account fork.
 // ─────────────────────────────────────────────────────────────────────────────
 
 type SplashStoryArgs = NonNullable<Story["args"]>;
@@ -305,9 +303,6 @@ const COPY = {
   recoveryPlaceholder: "Enter your username or ENS handle",
   recoveryInfo:
     "Synced passkeys recover on supported providers. Local-only passkeys work on this device.",
-  createSeparateButton: "Create separate account",
-  backToRecovery: "Back to recovery",
-  separateHint: "This creates a different address. Use recovery if you already made a passkey.",
   loadingAuth: "Signing you in...",
   err: {
     noPasskey: "No passkey found for that username.",
@@ -332,7 +327,7 @@ const LONGEST_ERROR = "La recuperación con passkey no está disponible temporal
  * and the play assertion fails.
  */
 const OVERFLOW_ERROR =
-  "We couldn't find a passkey for that username. Retry, use a same-device fallback if you have one, or confirm before creating a separate account.";
+  "We couldn't find a passkey for that username. Retry, use a same-device fallback if you have one, or go back and create a fresh account.";
 
 /**
  * Longest info string that can occupy the message zone, across locales (the
@@ -343,8 +338,25 @@ const OVERFLOW_ERROR =
 const LONGEST_INFO =
   "Mantiene el acceso en el mismo dispositivo. Puede requerir reinscripción si se borra el almacenamiento del navegador.";
 
-/** New-user front door (server mode): input + create primary + wallet secondary. */
-const createArgs: SplashStoryArgs = {
+/** Entry, first install: Create account (slot 1) · wallet (slot 2) · Recover link. */
+const entryNewArgs: SplashStoryArgs = {
+  login: () => {},
+  buttonLabel: COPY.createButton,
+  secondaryAction: { label: COPY.wallet, onSelect: () => {} },
+  tertiaryAction: { label: COPY.recoverWithUsername, onClick: () => {} },
+};
+
+/** Entry, returning: personalized one-tap (slot 1) · wallet (slot 2) · Recover link. */
+const entryReturningArgs: SplashStoryArgs = {
+  login: () => {},
+  buttonLabel: COPY.continueAs,
+  buttonTitle: COPY.continueAs,
+  secondaryAction: { label: COPY.wallet, onSelect: () => {} },
+  tertiaryAction: { label: COPY.recoverWithUsername, onClick: () => {} },
+};
+
+/** Create form: input (slot 1) · Create account (slot 2) · Back link. */
+const createFormArgs: SplashStoryArgs = {
   login: () => {},
   buttonLabel: COPY.createButton,
   usernameInput: {
@@ -355,16 +367,11 @@ const createArgs: SplashStoryArgs = {
     minLength: 3,
   },
   infoMessage: COPY.usernameHint,
-  secondaryAction: { label: COPY.wallet, onSelect: () => {} },
-  tertiaryAction: { label: COPY.recoverWithUsername, onClick: () => {} },
+  tertiaryAction: { label: COPY.back, onClick: () => {} },
 };
 
-/**
- * Recovery sub-flow as it renders in production: input + recovery info in the
- * message zone, NO wallet (Back returns to an entry screen that has it), slot C
- * empty until a failed attempt unlocks the separate-account offer.
- */
-const recoverArgs: SplashStoryArgs = {
+/** Recover form: input (slot 1) · Recover with passkey (slot 2) · Back link. */
+const recoverFormArgs: SplashStoryArgs = {
   login: () => {},
   buttonLabel: COPY.recoverButton,
   usernameInput: {
@@ -377,85 +384,48 @@ const recoverArgs: SplashStoryArgs = {
   tertiaryAction: { label: COPY.back, onClick: () => {} },
 };
 
-/** Recovery after a failed attempt: the error owns the zone, slot C offers separate-account. */
-const recoverFailedArgs: SplashStoryArgs = {
-  ...recoverArgs,
-  errorMessage: COPY.err.noPasskey,
-  secondaryAction: { label: COPY.createSeparateButton, onSelect: () => {} },
+/** First install — entry screen; Create account navigates to the create form. */
+export const EntryFirstInstall: Story = {
+  name: "Auth · Entry (first install)",
+  args: entryNewArgs,
 };
 
-/** Returning user with a same-device passkey — personalized one-tap sign in. */
-const returningArgs: SplashStoryArgs = {
-  login: () => {},
-  buttonLabel: COPY.continueAs,
-  buttonTitle: COPY.continueAs,
-  secondaryAction: { label: COPY.wallet, onSelect: () => {} },
-  tertiaryAction: { label: COPY.recoverWithUsername, onClick: () => {} },
+/** Returning user — personalized one-tap sign in on the entry screen. */
+export const EntryReturning: Story = {
+  name: "Auth · Entry (returning)",
+  args: entryReturningArgs,
 };
 
-/** Separate-account creation after a failed recovery — sub-flow, no wallet. */
-const separateCreateArgs: SplashStoryArgs = {
-  login: () => {},
-  buttonLabel: COPY.createSeparateButton,
-  usernameInput: {
-    value: "",
-    onChange: () => {},
-    label: COPY.newAccountLabel,
-    placeholder: COPY.newAccountPlaceholder,
-    minLength: 3,
-  },
-  infoMessage: COPY.separateHint,
-  tertiaryAction: { label: COPY.backToRecovery, onClick: () => {} },
+/** Create form — reached from the entry screen's Create account. */
+export const CreateAccountForm: Story = {
+  name: "Auth · Create account form",
+  args: createFormArgs,
 };
 
-/** First install — account creation is the default, not recovery. */
-export const CreateAccountDefault: Story = {
-  name: "Auth · Create account (first install)",
-  args: createArgs,
-};
-
-/** Returning user with a same-device passkey — personalized one-tap sign in. */
-export const ReturningPasskey: Story = {
-  name: "Auth · Returning (same device)",
-  args: returningArgs,
-};
-
-/** Progressive recovery — sign in on a new device with the username + synced passkey. */
-export const SignInWithUsername: Story = {
+/** Recover form — flat flow: recover, or Back to entry. */
+export const RecoverForm: Story = {
   name: "Auth · Recover with username",
-  args: recoverArgs,
-};
-
-/** Separate-account creation after a failed recovery (input + warning in the zone). */
-export const SeparateAccountCreate: Story = {
-  name: "Auth · Separate account (after recovery)",
-  args: separateCreateArgs,
+  args: recoverFormArgs,
 };
 
 export const UsernameNotFound: Story = {
   name: "Auth · Error · username not found",
-  args: recoverFailedArgs,
+  args: { ...recoverFormArgs, errorMessage: COPY.err.noPasskey },
 };
 
 export const ServerUnavailable: Story = {
   name: "Auth · Error · passkey server unavailable",
-  args: { ...recoverFailedArgs, errorMessage: COPY.err.network },
+  args: { ...recoverFormArgs, errorMessage: COPY.err.network },
 };
 
 export const UsernameTaken: Story = {
   name: "Auth · Error · name already taken",
-  args: { ...createArgs, errorMessage: COPY.err.recoveryNameTaken },
+  args: { ...createFormArgs, errorMessage: COPY.err.recoveryNameTaken },
 };
 
 export const PasskeyCancelled: Story = {
   name: "Auth · Error · passkey prompt cancelled",
-  args: {
-    login: () => {},
-    buttonLabel: COPY.signInButton,
-    secondaryAction: { label: COPY.wallet, onSelect: () => {} },
-    tertiaryAction: { label: COPY.recoverWithUsername, onClick: () => {} },
-    errorMessage: COPY.err.cancelled,
-  },
+  args: { ...entryReturningArgs, errorMessage: COPY.err.cancelled },
 };
 
 /** In-flight auth attempt — spinner INSIDE the primary, title carries the message. */
@@ -469,7 +439,7 @@ export const LoadingPending: Story = {
   },
 };
 
-/** Wallet fallback — secondary action when passkeys are unavailable or declined. */
+/** Wallet fallback — slot 2 secondary on the entry screens. */
 export const WalletFallback: Story = {
   name: "Auth · Wallet fallback",
   args: {
@@ -481,18 +451,18 @@ export const WalletFallback: Story = {
 
 /** Single-glance catalog of every auth state on the real component. */
 const CATALOG: ReadonlyArray<{ label: string; args: SplashStoryArgs }> = [
-  { label: "Create account (default)", args: createArgs },
-  { label: "Returning · same device", args: returningArgs },
-  { label: "Recover with username", args: recoverArgs },
-  { label: "Separate account", args: separateCreateArgs },
-  { label: "Error · not found (recovery failed)", args: recoverFailedArgs },
+  { label: "Entry · first install", args: entryNewArgs },
+  { label: "Entry · returning", args: entryReturningArgs },
+  { label: "Create account form", args: createFormArgs },
+  { label: "Recover with username", args: recoverFormArgs },
+  { label: "Error · not found", args: { ...recoverFormArgs, errorMessage: COPY.err.noPasskey } },
   {
     label: "Error · server unavailable",
-    args: { ...recoverFailedArgs, errorMessage: COPY.err.network },
+    args: { ...recoverFormArgs, errorMessage: COPY.err.network },
   },
   {
     label: "Error · name taken",
-    args: { ...createArgs, errorMessage: COPY.err.recoveryNameTaken },
+    args: { ...createFormArgs, errorMessage: COPY.err.recoveryNameTaken },
   },
   { label: "Error · cancelled", args: PasskeyCancelled.args as SplashStoryArgs },
   { label: "Loading", args: LoadingPending.args as SplashStoryArgs },
@@ -524,9 +494,9 @@ export const FlowDiagram: Story = {
     <div className="mx-auto max-w-4xl p-4">
       <h2 className="text-lg font-semibold text-text-strong-950">Passkey login flow</h2>
       <p className="mt-1 mb-4 text-sm text-text-sub-600">
-        Create-account-first for new installs, same-device one-tap for returning users, progressive
-        recovery, wallet fallback on entry screens. Errors and helper copy share one reserved
-        (fixed-height) message zone per panel.
+        Two-step create (entry → form), personalized one-tap for returning users, flat recovery
+        (recover or go Back — no separate-account fork), wallet on the entry screens. Errors and
+        helper copy share one reserved (fixed-height) message zone per screen.
       </p>
       <pre
         data-testid="login-flow-mermaid"
@@ -540,21 +510,24 @@ export const FlowDiagram: Story = {
 
 /**
  * Layout-stability proof (CI-enforced via the storybook-ci tag). Renders the REAL
- * component in every state that must agree — create, returning, recover (with the
- * worst-case localized info), the longest real error, a deliberately over-long
- * (~4-line) error, an in-flight attempt (spinner INSIDE the primary), and the
- * boot LoadingSplash — each pinned to a real 375px phone width. The play function
- * asserts, with real (non-zero) browser geometry:
+ * component in every screen shape that must agree — both entry variants, the
+ * create form, the recover form (with the worst-case localized info), the
+ * longest real error, a deliberately over-long (~4-line) error, an in-flight
+ * form attempt (spinner INSIDE the primary), and the boot LoadingSplash — each
+ * pinned to a real 375px phone width. The play function asserts, with real
+ * (non-zero) browser geometry:
  *
  *   1. the LOGO sits at the same Y in EVERY state, including the boot swap;
- *   2. SLOT B (the primary anchor zone) sits at the same Y in EVERY state, and the
- *      primary BUTTON itself holds across all Splash states INCLUDING loading —
- *      the in-button spinner means the pin is now truly universal;
- *   3. the USERNAME INPUT (slot A) sits at the same Y wherever it renders;
+ *   2. BOTH SLOT ZONES sit at the same Y in every state — the skeleton never
+ *      moves; the primary lives in slot 1 on entry screens and slot 2 on form
+ *      screens, pinned within each cluster, and the entry→form move is EXACTLY
+ *      one slot (the slot-zone delta);
+ *   3. the USERNAME INPUT (slot 1 on form screens) sits at the same Y wherever
+ *      it renders, including mid-attempt;
  *   4. the shared MESSAGE ZONE holds the longest localized info string and the
  *      longest real error without overflowing (es/pt-proof), the error always
  *      wins the zone over info, and over-long copy scrolls INSIDE while the
- *      tertiary link stays pinned;
+ *      Back tertiary stays pinned;
  *   5. the full error text stays in the accessibility tree.
  *
  * Offsets are measured relative to each panel's own top, so the panels' page
@@ -568,24 +541,27 @@ export const LayoutStability: Story = {
     // the shared Storybook's Tailwind scan (known gotcha), which would collapse
     // the panel and skew the geometry. Inline style pins a real 375px phone width.
     <div className="flex flex-col gap-4 p-4">
-      <div data-testid="panel-create" style={{ width: 375 }}>
-        <Splash {...createArgs} />
+      <div data-testid="panel-entry-new" style={{ width: 375 }}>
+        <Splash {...entryNewArgs} />
       </div>
-      <div data-testid="panel-returning" style={{ width: 375 }}>
-        <Splash {...returningArgs} />
+      <div data-testid="panel-entry-returning" style={{ width: 375 }}>
+        <Splash {...entryReturningArgs} />
+      </div>
+      <div data-testid="panel-create" style={{ width: 375 }}>
+        <Splash {...createFormArgs} />
       </div>
       <div data-testid="panel-recover" style={{ width: 375 }}>
-        <Splash {...recoverArgs} infoMessage={LONGEST_INFO} />
+        <Splash {...recoverFormArgs} infoMessage={LONGEST_INFO} />
       </div>
       <div data-testid="panel-error" style={{ width: 375 }}>
-        <Splash {...recoverFailedArgs} infoMessage={LONGEST_INFO} errorMessage={LONGEST_ERROR} />
+        <Splash {...recoverFormArgs} infoMessage={LONGEST_INFO} errorMessage={LONGEST_ERROR} />
       </div>
       <div data-testid="panel-overflow" style={{ width: 375 }}>
-        <Splash {...recoverFailedArgs} infoMessage={LONGEST_INFO} errorMessage={OVERFLOW_ERROR} />
+        <Splash {...recoverFormArgs} infoMessage={LONGEST_INFO} errorMessage={OVERFLOW_ERROR} />
       </div>
       <div data-testid="panel-loading" style={{ width: 375 }}>
         <Splash
-          {...recoverArgs}
+          {...recoverFormArgs}
           infoMessage={LONGEST_INFO}
           loadingState="welcome"
           message={COPY.loadingAuth}
@@ -602,27 +578,27 @@ export const LayoutStability: Story = {
     const panelTop = (id: string) => canvas.getByTestId(id).getBoundingClientRect().top;
     const logoOffset = (id: string) =>
       scope(id).getByRole("img").getBoundingClientRect().top - panelTop(id);
-    const slotBOffset = (id: string) =>
-      scope(id).getByTestId("action-slot-primary").getBoundingClientRect().top - panelTop(id);
+    const slotOneOffset = (id: string) =>
+      scope(id).getByTestId("splash-slot-one").getBoundingClientRect().top - panelTop(id);
+    const slotTwoOffset = (id: string) =>
+      scope(id).getByTestId("splash-slot-two").getBoundingClientRect().top - panelTop(id);
     const primaryOffset = (id: string) =>
       scope(id).getByTestId("login-button").getBoundingClientRect().top - panelTop(id);
     const inputOffset = (id: string) =>
       scope(id).getByTestId("username-input").getBoundingClientRect().top - panelTop(id);
 
     const allPanels = [
+      "panel-entry-new",
+      "panel-entry-returning",
       "panel-create",
-      "panel-returning",
       "panel-recover",
       "panel-error",
       "panel-overflow",
       "panel-loading",
       "panel-boot",
     ];
-    // Every panel except the boot swap renders the primary button — including
-    // the in-flight panel, where the spinner lives INSIDE the button.
-    const splashPanels = allPanels.filter((id) => id !== "panel-boot");
-    // Slot A is filled on every recover/create-family panel, incl. mid-attempt.
-    const inputPanels = [
+    const entryPanels = ["panel-entry-new", "panel-entry-returning"];
+    const formPanels = [
       "panel-create",
       "panel-recover",
       "panel-error",
@@ -631,48 +607,62 @@ export const LayoutStability: Story = {
     ];
 
     // 1) Real browser geometry — guards against a vacuous (all-zero) jsdom pass.
-    const createLogo = scope("panel-create").getByRole("img").getBoundingClientRect();
-    const createPrimary = scope("panel-create").getByTestId("login-button").getBoundingClientRect();
-    await expect(createLogo.height).toBeGreaterThan(0);
-    await expect(createPrimary.height).toBeGreaterThan(0);
+    const entryLogo = scope("panel-entry-new").getByRole("img").getBoundingClientRect();
+    const entryPrimary = scope("panel-entry-new")
+      .getByTestId("login-button")
+      .getBoundingClientRect();
+    await expect(entryLogo.height).toBeGreaterThan(0);
+    await expect(entryPrimary.height).toBeGreaterThan(0);
 
     // 2) Logo Y is identical across EVERY state, including the boot swap.
-    const logoBase = logoOffset("panel-create");
+    const logoBase = logoOffset("panel-entry-new");
     for (const id of allPanels) {
       await expect(Math.abs(logoOffset(id) - logoBase)).toBeLessThanOrEqual(1);
     }
 
-    // 3) Slot B (the primary anchor zone) is identical across EVERY state, and
-    //    the primary button itself holds across all Splash states — input
-    //    present or not, loading or not. The invariant is universal now.
-    const slotBBase = slotBOffset("panel-create");
+    // 3) Both slot ZONES are identical across every state — the skeleton never
+    //    moves, whatever occupies it.
+    const slotOneBase = slotOneOffset("panel-entry-new");
+    const slotTwoBase = slotTwoOffset("panel-entry-new");
     for (const id of allPanels) {
-      await expect(Math.abs(slotBOffset(id) - slotBBase)).toBeLessThanOrEqual(1);
-    }
-    const primaryBase = primaryOffset("panel-create");
-    for (const id of splashPanels) {
-      await expect(Math.abs(primaryOffset(id) - primaryBase)).toBeLessThanOrEqual(1);
+      await expect(Math.abs(slotOneOffset(id) - slotOneBase)).toBeLessThanOrEqual(1);
+      await expect(Math.abs(slotTwoOffset(id) - slotTwoBase)).toBeLessThanOrEqual(1);
     }
 
-    // 4) Slot A: the username input sits at the same Y wherever it renders.
+    // 4) Primary pin per cluster: slot 1 on entry screens, slot 2 on form
+    //    screens (including mid-attempt, where the spinner lives INSIDE the
+    //    button), and the entry→form move is exactly the slot delta.
+    const entryPrimaryBase = primaryOffset("panel-entry-new");
+    for (const id of entryPanels) {
+      await expect(Math.abs(primaryOffset(id) - entryPrimaryBase)).toBeLessThanOrEqual(1);
+    }
+    const formPrimaryBase = primaryOffset("panel-create");
+    for (const id of formPanels) {
+      await expect(Math.abs(primaryOffset(id) - formPrimaryBase)).toBeLessThanOrEqual(1);
+    }
+    const slotDelta = slotTwoBase - slotOneBase;
+    await expect(Math.abs(formPrimaryBase - entryPrimaryBase - slotDelta)).toBeLessThanOrEqual(2);
+
+    // 5) Slot 1 on form screens: the username input sits at the same Y wherever
+    //    it renders, including mid-attempt.
     const inputBase = inputOffset("panel-create");
-    for (const id of inputPanels) {
+    for (const id of formPanels) {
       await expect(Math.abs(inputOffset(id) - inputBase)).toBeLessThanOrEqual(1);
     }
 
-    // 5) The message zone holds the longest localized INFO and the longest real
+    // 6) The message zone holds the longest localized INFO and the longest real
     //    ERROR without overflowing — proves the zone fits es/pt, not just en.
     const infoZone = scope("panel-recover").getByTestId("splash-message-zone");
     await expect(infoZone.scrollHeight).toBeLessThanOrEqual(infoZone.clientHeight + 1);
     const errorZone = scope("panel-error").getByTestId("splash-message-zone");
     await expect(errorZone.scrollHeight).toBeLessThanOrEqual(errorZone.clientHeight + 1);
 
-    // 6) Error wins the zone: when an error shows, the info node is not rendered.
+    // 7) Error wins the zone: when an error shows, the info node is not rendered.
     await expect(scope("panel-error").queryByTestId("info-message")).toBeNull();
     await expect(scope("panel-recover").queryByTestId("info-message")).not.toBeNull();
 
-    // 7) The zone is a fixed-height clamp: the tertiary (Back, shared by the
-    //    recover family) holds across the longest real error and a ~4-line
+    // 8) The zone is a fixed-height clamp: the Back tertiary (shared by the
+    //    form family) holds across the longest real error and a ~4-line
     //    overflow error, and the full error text stays in the accessibility tree.
     const tertiaryOffset = (id: string) =>
       scope(id).getByRole("button", { name: COPY.back }).getBoundingClientRect().top - panelTop(id);

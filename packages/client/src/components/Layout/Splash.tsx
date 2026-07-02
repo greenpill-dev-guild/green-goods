@@ -45,16 +45,23 @@ interface SplashProps {
   message?: string;
   errorMessage?: string | null;
   /**
-   * Info/helper copy for the shared message zone (input hints, explainers,
-   * separate-account warnings). The error always wins the zone; info returns
-   * when the error clears.
+   * Info/helper copy for the shared message zone (input hints, explainers).
+   * The error always wins the zone; info returns when the error clears.
    */
   infoMessage?: string;
+  /** Entry screens only — ignored (not rendered) when usernameInput is set. */
   secondaryAction?: SecondaryActionConfig;
   tertiaryAction?: TertiaryActionConfig;
   usernameInput?: UsernameInputConfig;
 }
 
+/**
+ * Slot assignment is screen-shaped, not state-shaped:
+ *   entry screens (no usernameInput): slot 1 = primary · slot 2 = secondary
+ *   form screens (usernameInput set): slot 1 = input   · slot 2 = primary
+ * The primary moves between slots only on deliberate navigation; within a
+ * screen every async change (error, loading) keeps all geometry fixed.
+ */
 export const Splash: React.FC<SplashProps> = ({
   login,
   isLoggingIn = false,
@@ -101,83 +108,86 @@ export const Splash: React.FC<SplashProps> = ({
       : "text-text-soft-400 opacity-0 pointer-events-none"
   );
 
+  const inputElement = usernameInput ? (
+    <>
+      {/* Visible per-field labels left the slot heights uneven, so the label is
+          screen-reader-only; the visible instruction for the field lives in the
+          shared message zone (aria-describedby). */}
+      <label htmlFor={usernameInputId} className="sr-only">
+        {usernameInput.label ||
+          intl.formatMessage({
+            id: "app.login.username.label",
+            defaultMessage: "Username or ENS handle",
+          })}
+      </label>
+      <input
+        id={usernameInputId}
+        type="text"
+        value={usernameInput.value ?? ""}
+        onChange={usernameInput.onChange ?? (() => {})}
+        placeholder={usernameInput.placeholder || "Choose a username"}
+        minLength={usernameInput.minLength}
+        autoComplete={usernameInput.autoComplete || "username"}
+        aria-describedby={usernameDescription || undefined}
+        aria-invalid={Boolean(errorMessage)}
+        data-testid="username-input"
+        className="w-full h-11 px-4 rounded-full border border-stroke-soft-200 bg-bg-white-0 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-alpha-24 text-center text-text-strong-950 placeholder:text-text-soft-400"
+        disabled={busy}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && login && !isLoginDisabled && !busy) {
+            login();
+          }
+          if (e.key === "Escape" && usernameInput.onCancel) {
+            usernameInput.onCancel();
+          }
+        }}
+      />
+    </>
+  ) : null;
+
+  const primaryButton = login ? (
+    <Button
+      onClick={login}
+      disabled={isLoggingIn || isLoginDisabled}
+      isLoading={Boolean(loadingState)}
+      className={cn("w-full", effectsTransition)}
+      shape="pilled"
+      data-testid="login-button"
+      label={buttonLabel}
+      title={buttonTitle}
+    />
+  ) : null;
+
+  // Secondary renders only on entry screens; the reserve pattern (opacity +
+  // tabIndex + aria-hidden) keeps the slot stable when no action is offered.
+  const secondaryButton = usernameInput ? null : (
+    <Button
+      variant="primary"
+      mode="stroke"
+      size="small"
+      shape="pilled"
+      onClick={secondaryAction?.onSelect}
+      disabled={!secondaryAction || secondaryAction.isDisabled || busy}
+      label={secondaryAction?.label || "Login with wallet"}
+      data-testid="secondary-action-button"
+      className={cn(
+        "w-full",
+        effectsTransition,
+        secondaryAction && !secondaryAction.isDisabled && !busy
+          ? "opacity-100"
+          : "opacity-0 pointer-events-none"
+      )}
+      aria-hidden={!secondaryAction}
+      tabIndex={secondaryAction ? 0 : -1}
+    />
+  );
+
   return (
     <SplashScaffold
       pulse={!!loadingState}
       title={displayMessage}
-      slotA={
-        usernameInput ? (
-          <>
-            {/* Visible per-field labels left the slot heights uneven, so the
-                label is screen-reader-only; the visible instruction for the
-                field lives in the shared message zone (aria-describedby). */}
-            <label htmlFor={usernameInputId} className="sr-only">
-              {usernameInput.label ||
-                intl.formatMessage({
-                  id: "app.login.username.label",
-                  defaultMessage: "Username or ENS handle",
-                })}
-            </label>
-            <input
-              id={usernameInputId}
-              type="text"
-              value={usernameInput.value ?? ""}
-              onChange={usernameInput.onChange ?? (() => {})}
-              placeholder={usernameInput.placeholder || "Choose a username"}
-              minLength={usernameInput.minLength}
-              autoComplete={usernameInput.autoComplete || "username"}
-              aria-describedby={usernameDescription || undefined}
-              aria-invalid={Boolean(errorMessage)}
-              data-testid="username-input"
-              className="w-full h-11 px-4 rounded-full border border-stroke-soft-200 bg-bg-white-0 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-alpha-24 text-center text-text-strong-950 placeholder:text-text-soft-400"
-              disabled={busy}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && login && !isLoginDisabled && !busy) {
-                  login();
-                }
-                if (e.key === "Escape" && usernameInput.onCancel) {
-                  usernameInput.onCancel();
-                }
-              }}
-            />
-          </>
-        ) : undefined
-      }
-      slotB={
-        login && (
-          <Button
-            onClick={login}
-            disabled={isLoggingIn || isLoginDisabled}
-            isLoading={Boolean(loadingState)}
-            className={cn("w-full", effectsTransition)}
-            shape="pilled"
-            data-testid="login-button"
-            label={buttonLabel}
-            title={buttonTitle}
-          />
-        )
-      }
-      slotC={
-        <Button
-          variant="primary"
-          mode="stroke"
-          size="small"
-          shape="pilled"
-          onClick={secondaryAction?.onSelect}
-          disabled={!secondaryAction || secondaryAction.isDisabled || busy}
-          label={secondaryAction?.label || "Login with wallet"}
-          data-testid="secondary-action-button"
-          className={cn(
-            "w-full",
-            effectsTransition,
-            secondaryAction && !secondaryAction.isDisabled && !busy
-              ? "opacity-100"
-              : "opacity-0 pointer-events-none"
-          )}
-          aria-hidden={!secondaryAction}
-          tabIndex={secondaryAction ? 0 : -1}
-        />
-      }
+      slotOne={usernameInput ? inputElement : primaryButton}
+      slotTwo={usernameInput ? primaryButton : secondaryButton}
       message={
         <>
           {/* ERROR — the zone's only live region. Always mounted and toggled via
