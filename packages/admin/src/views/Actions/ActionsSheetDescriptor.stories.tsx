@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react";
 import { DEFAULT_CHAIN_ID, queryKeys, type Action } from "@green-goods/shared";
-import { expect, waitFor, within } from "storybook/test";
+import { expect, within } from "storybook/test";
 import {
   STORYBOOK_ADMIN_ACTIONS,
   STORYBOOK_ADMIN_DEPLOYER_SEEDS,
@@ -73,84 +73,18 @@ function actionsDescriptorDecorators() {
   ];
 }
 
-function expectDesktopSheetClearance({
-  appBar,
-  canvasElement,
-  dialog,
-  navigation,
-  sheet,
-}: {
-  appBar: HTMLElement;
-  canvasElement: HTMLElement;
-  dialog: HTMLElement;
-  navigation: HTMLElement;
-  sheet: HTMLElement;
-}) {
-  const appBarRect = appBar.getBoundingClientRect();
-  const canvasRect = canvasElement.getBoundingClientRect();
-  const dialogRect = dialog.getBoundingClientRect();
-  const navigationRect = navigation.getBoundingClientRect();
-  const sheetRect = sheet.getBoundingClientRect();
-
-  expect(dialogRect.top).toBeGreaterThanOrEqual(appBarRect.bottom);
-  expect(dialogRect.bottom).toBeLessThanOrEqual(navigationRect.top);
-  expect(sheetRect.left).toBeGreaterThanOrEqual(canvasRect.left);
-  expect(sheetRect.top).toBeGreaterThanOrEqual(appBarRect.bottom);
-  expect(sheetRect.bottom).toBeLessThanOrEqual(navigationRect.top);
-}
-
-function expectMobileBottomSheetClearance({
-  appBar,
-  canvasElement,
-  dialog,
-  navigation,
-  sheet,
-}: {
-  appBar: HTMLElement;
-  canvasElement: HTMLElement;
-  dialog: HTMLElement;
-  navigation: HTMLElement;
-  sheet: HTMLElement;
-}) {
-  const appBarRect = appBar.getBoundingClientRect();
-  const canvasRect = canvasElement.getBoundingClientRect();
-  const dialogRect = dialog.getBoundingClientRect();
-  const navigationRect = navigation.getBoundingClientRect();
-  const sheetRect = sheet.getBoundingClientRect();
-
-  expect(Math.round(window.innerWidth)).toBe(390);
-  expect(Math.round(window.innerHeight)).toBe(844);
-  expect(dialogRect.top).toBeGreaterThanOrEqual(appBarRect.bottom);
-  expect(dialogRect.bottom).toBeLessThanOrEqual(navigationRect.top);
-  expect(sheetRect.left).toBeGreaterThanOrEqual(canvasRect.left);
-  expect(sheetRect.right).toBeLessThanOrEqual(canvasRect.right);
-  expect(sheetRect.top).toBeGreaterThanOrEqual(appBarRect.bottom);
-  expect(sheetRect.bottom).toBeLessThanOrEqual(navigationRect.top);
-}
-
-function getAppBarRoot(canvasElement: HTMLElement): HTMLElement {
-  const appBar = canvasElement.querySelector<HTMLElement>(
-    '[data-component="AppBar"][data-slot="root"]'
-  );
-  expect(appBar).not.toBeNull();
-  return appBar as HTMLElement;
-}
-
 export const RouteBackedDetail: Story = {
   tags: ["storybook-ci"],
   args: { initialPath: "/actions/action-canopy-baseline?sort=recent" },
   decorators: actionsDescriptorDecorators(),
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    const leftSheet = await canvas.findByTestId(
-      "left-sheet",
-      undefined,
-      ADMIN_ROUTE_STORY_QUERY_OPTIONS
-    );
-    await expect(leftSheet).toHaveAttribute("data-component", "LeftSheet");
-    await expect(leftSheet).toHaveAttribute("data-width", "default");
+  play: async ({ canvasElement: _canvasElement }) => {
+    // Left/bottom canvas sheets are retired — the inspector now renders as an
+    // AdminDialog that portals to document.body (role="dialog").
+    const body = within(document.body);
+    const inspector = await body.findByRole("dialog", undefined, ADMIN_ROUTE_STORY_QUERY_OPTIONS);
+    await expect(inspector).toHaveAttribute("data-component", "AdminDialog");
     await expect(
-      await within(leftSheet).findByText(
+      await within(inspector).findByText(
         "Canopy baseline",
         undefined,
         ADMIN_ROUTE_STORY_QUERY_OPTIONS
@@ -163,28 +97,12 @@ export const RouteBackedCreate: Story = {
   tags: ["storybook-ci"],
   args: { initialPath: "/actions/create?sort=recent" },
   decorators: actionsDescriptorDecorators(),
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    const leftSheet = await canvas.findByTestId(
-      "left-sheet",
-      undefined,
-      ADMIN_ROUTE_STORY_QUERY_OPTIONS
-    );
-    await expect(leftSheet).toHaveAttribute("data-component", "LeftSheet");
-    await expect(leftSheet).toHaveAttribute("data-width", "wide");
-    await waitFor(
-      () =>
-        expectDesktopSheetClearance({
-          appBar: getAppBarRoot(canvasElement),
-          canvasElement,
-          dialog: canvas.getByTestId("left-sheet-dialog"),
-          navigation: canvas.getByRole("navigation"),
-          sheet: leftSheet,
-        }),
-      ADMIN_ROUTE_STORY_QUERY_OPTIONS
-    );
+  play: async ({ canvasElement: _canvasElement }) => {
+    const body = within(document.body);
+    const inspector = await body.findByRole("dialog", undefined, ADMIN_ROUTE_STORY_QUERY_OPTIONS);
+    await expect(inspector).toHaveAttribute("data-component", "AdminDialog");
     await expect(
-      await within(leftSheet).findByRole(
+      await within(inspector).findByRole(
         "heading",
         { name: "Create action" },
         ADMIN_ROUTE_STORY_QUERY_OPTIONS
@@ -203,27 +121,15 @@ export const RouteBackedCreateMobile: Story = {
       viewports: ADMIN_MOBILE_390_VIEWPORT,
     },
   },
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    const bottomSheet = await canvas.findByTestId(
-      "bottom-sheet",
-      undefined,
-      ADMIN_ROUTE_STORY_QUERY_OPTIONS
-    );
-    await expect(bottomSheet).toHaveAttribute("data-component", "BottomSheet");
-    await waitFor(
-      () =>
-        expectMobileBottomSheetClearance({
-          appBar: getAppBarRoot(canvasElement),
-          canvasElement,
-          dialog: canvas.getByTestId("bottom-sheet-dialog"),
-          navigation: canvas.getByRole("navigation"),
-          sheet: bottomSheet,
-        }),
-      ADMIN_ROUTE_STORY_QUERY_OPTIONS
-    );
+  play: async ({ canvasElement: _canvasElement }) => {
+    // On mobile the AdminDialog presents as a bottom sheet (built into the
+    // dialog), still portaled to document.body with role="dialog".
+    const body = within(document.body);
+    const inspector = await body.findByRole("dialog", undefined, ADMIN_ROUTE_STORY_QUERY_OPTIONS);
+    await expect(inspector).toHaveAttribute("data-component", "AdminDialog");
+    await expect(inspector).toHaveAttribute("data-mobile", "sheet");
     await expect(
-      await within(bottomSheet).findByRole(
+      await within(inspector).findByRole(
         "heading",
         { name: "Create action" },
         ADMIN_ROUTE_STORY_QUERY_OPTIONS
@@ -236,17 +142,12 @@ export const RouteBackedEdit: Story = {
   tags: ["storybook-ci"],
   args: { initialPath: "/actions/action-canopy-baseline/edit?sort=recent" },
   decorators: actionsDescriptorDecorators(),
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    const leftSheet = await canvas.findByTestId(
-      "left-sheet",
-      undefined,
-      ADMIN_ROUTE_STORY_QUERY_OPTIONS
-    );
-    await expect(leftSheet).toHaveAttribute("data-component", "LeftSheet");
-    await expect(leftSheet).toHaveAttribute("data-width", "wide");
+  play: async ({ canvasElement: _canvasElement }) => {
+    const body = within(document.body);
+    const inspector = await body.findByRole("dialog", undefined, ADMIN_ROUTE_STORY_QUERY_OPTIONS);
+    await expect(inspector).toHaveAttribute("data-component", "AdminDialog");
     await expect(
-      await within(leftSheet).findByText(
+      await within(inspector).findByText(
         "Edit Canopy baseline",
         undefined,
         ADMIN_ROUTE_STORY_QUERY_OPTIONS

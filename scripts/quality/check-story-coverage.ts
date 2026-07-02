@@ -91,6 +91,13 @@ const NON_VISUAL_ADMIN_COMPONENTS = new Set<string>([
   // (AddMemberModal / MembersModal / ManageRolesModal), and its writes are not
   // deterministically seedable in Storybook. Reviewed through those children.
   "components/Garden/GardenRolesModals.tsx",
+
+  // Non-visual left-inspector channel: a React context + hooks
+  // (LeftSheetProvider / useLeftSheetConfig / useRouteBackedLeftSheetConfig)
+  // that carry descriptor config up to CanvasLayout's AdminDialog. No rendered
+  // UI of its own — the dialog it drives is covered by CanvasLayout stories.
+  // Re-homed here from the retired shared Canvas/LeftSheetContext.tsx.
+  "components/Layout/leftSheetChannel.tsx",
 ]);
 
 /**
@@ -163,12 +170,12 @@ const NON_VISUAL_ADMIN_VIEWS = new Set<string>([
   "Hub/components/HubStageContent.tsx",
 ]);
 
-const NON_VISUAL_SHARED_COMPONENTS = new Set([
-  // Internal Canvas sheet lifecycle/header/drag helpers. Visual coverage stays
-  // on LeftSheet, RightSheet, BottomSheet, MainSheet, and CanvasLayout stories.
-  "Canvas/CanvasSheetInternals.tsx",
-  "Canvas/LeftSheetContext.tsx",
-]);
+// Currently empty: the former entries (Canvas/CanvasSheetInternals.tsx,
+// Canvas/LeftSheetContext.tsx) were removed when the shared Canvas side sheets
+// were retired in favor of the admin AdminDialog inspector. Kept declared so the
+// shared-component coverage pass can reference it; add non-visual shared paths
+// here with a why-comment if one appears.
+const NON_VISUAL_SHARED_COMPONENTS = new Set<string>([]);
 
 /**
  * Visual harness stories are useful, but they do not prove real-component

@@ -1,7 +1,6 @@
 import {
   NOTIFICATIONS_SHEET_CONTENT_ID,
   PROFILE_SHEET_CONTENT_ID,
-  RightSheet,
   SETTINGS_SHEET_CONTENT_ID,
   isAdminRightSheetContentId,
   toAccountSheetContentId,
@@ -11,6 +10,7 @@ import {
 import type { Meta, StoryObj } from "@storybook/react";
 import { useCallback, useState } from "react";
 import { expect, userEvent, within } from "storybook/test";
+import { AdminDialog } from "@/components/AdminDialog";
 import { STORYBOOK_ADMIN_SHELL_SEEDS } from "../../../../shared/.storybook/adminFixtures";
 import {
   withAdminIdentity,
@@ -33,7 +33,6 @@ const SHEET_OPTIONS: Array<{ id: AdminRightSheetContentId; label: string }> = [
 
 function RightSheetRegistryHarness({ initialContentId }: RightSheetRegistryHarnessProps) {
   const [contentId, setContentId] = useState<AdminRightSheetContentId | null>(initialContentId);
-  const [overlayRoot, setOverlayRoot] = useState<HTMLDivElement | null>(null);
   const renderAccountProfile = useCallback(() => <AccountProfilePanel />, []);
   const renderAccountSettings = useCallback(() => <AccountSettingsPanel />, []);
   const descriptor = useAdminRightSheetDescriptor({
@@ -49,7 +48,7 @@ function RightSheetRegistryHarness({ initialContentId }: RightSheetRegistryHarne
   };
 
   return (
-    <div ref={setOverlayRoot} className="relative h-full overflow-hidden">
+    <div className="relative h-full overflow-hidden">
       <main className="main-scroll-area flex h-full flex-col gap-4 p-6">
         <section className="surface-section space-y-4">
           <div>
@@ -57,7 +56,7 @@ function RightSheetRegistryHarness({ initialContentId }: RightSheetRegistryHarne
             <h2 className="text-title-md text-text-strong">Account and notifications inspector</h2>
             <p className="mt-2 max-w-xl text-body-md text-text-sub">
               Opens the same descriptor hook used by CanvasLayout, then renders the resolved content
-              in the shared RightSheet.
+              in the shared AdminDialog (the right sheet is retired).
             </p>
           </div>
 
@@ -98,22 +97,24 @@ function RightSheetRegistryHarness({ initialContentId }: RightSheetRegistryHarne
         </section>
       </main>
 
-      <RightSheet
+      <AdminDialog
         open={descriptor !== null}
-        onClose={() => setContentId(null)}
-        title={descriptor?.title}
-        container={overlayRoot}
-        width={descriptor?.width ?? "default"}
+        onOpenChange={(next) => {
+          if (!next) setContentId(null);
+        }}
+        title={descriptor?.title ?? ""}
+        tone="hub"
+        size="lg"
       >
         {descriptor?.content}
-      </RightSheet>
+      </AdminDialog>
     </div>
   );
 }
 
 const meta: Meta<typeof RightSheetRegistryHarness> = {
   title: "Admin/Shell/RightSheetRegistry",
-  // storybook-quality-allow state-harness: owns open state while exercising the real descriptor hook and RightSheet.
+  // storybook-quality-allow state-harness: owns open state while exercising the real descriptor hook and AdminDialog.
   component: RightSheetRegistryHarness,
   tags: ["autodocs", "storybook-ci"],
   parameters: {
@@ -121,7 +122,7 @@ const meta: Meta<typeof RightSheetRegistryHarness> = {
     docs: {
       description: {
         component:
-          "Composition story for the admin right-sheet registry. It exercises the real descriptor hook, separated profile/settings account panels, notification panel, and bounded RightSheet orchestration used by CanvasLayout.",
+          "Composition story for the admin right-sheet registry. It exercises the real descriptor hook, separated profile/settings account panels, notification panel, and the AdminDialog inspector used by CanvasLayout (the right sheet is retired).",
       },
     },
   },
@@ -180,24 +181,26 @@ export const StateCatalog: Story = {
     const canvas = within(canvasElement);
     const body = within(document.body);
 
-    const profileSheet = await body.findByTestId("right-sheet");
+    // The right sheet is retired — the descriptor content now renders in the
+    // AdminDialog inspector, which portals to document.body with role="dialog".
+    const profileSheet = await body.findByRole("dialog");
     await expect(within(profileSheet).getByRole("heading", { name: "Profile" })).toBeVisible();
     await expect(within(profileSheet).queryByRole("tab")).not.toBeInTheDocument();
 
     await userEvent.click(canvas.getByRole("button", { name: "Open Settings" }));
-    const settingsSheet = await body.findByTestId("right-sheet");
+    const settingsSheet = await body.findByRole("dialog");
     await expect(within(settingsSheet).getByRole("heading", { name: "Settings" })).toBeVisible();
     await expect(within(settingsSheet).getByRole("heading", { name: "Theme" })).toBeVisible();
     await expect(within(settingsSheet).queryByRole("tab")).not.toBeInTheDocument();
 
     await userEvent.click(canvas.getByRole("button", { name: "Open Profile" }));
-    const reopenedProfileSheet = await body.findByTestId("right-sheet");
+    const reopenedProfileSheet = await body.findByRole("dialog");
     await expect(
       within(reopenedProfileSheet).getByRole("heading", { name: "Profile" })
     ).toBeVisible();
 
     await userEvent.click(canvas.getByRole("button", { name: "Open Notifications" }));
-    const notificationsSheet = await body.findByTestId("right-sheet");
+    const notificationsSheet = await body.findByRole("dialog");
     const notificationsPanel = within(notificationsSheet);
     await expect(notificationsPanel.getByRole("heading", { name: "Notifications" })).toBeVisible();
     await expect(notificationsPanel.queryByText("Failed to load")).not.toBeInTheDocument();

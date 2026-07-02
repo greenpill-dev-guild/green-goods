@@ -257,7 +257,10 @@ vi.mock("@/components/ConnectButton", () => ({
 
 vi.mock("@/components/Layout/PageTransition", async () => {
   const ReactModule = await import("react");
-  const { useRouteBackedLeftSheetConfig } = await import("@green-goods/shared");
+  // useRouteBackedLeftSheetConfig was re-homed from @green-goods/shared to the
+  // admin-local left-sheet channel; import it from there so it publishes into
+  // the same provider instance CanvasLayout mounts.
+  const { useRouteBackedLeftSheetConfig } = await import("@/components/Layout/leftSheetChannel");
 
   return {
     PageTransition: () => {

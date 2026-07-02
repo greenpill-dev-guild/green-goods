@@ -53,7 +53,7 @@ const TONE_CLASSES: Record<
 };
 
 /**
- * Notification panel — rendered inside the RightSheet.
+ * Notification panel — rendered inside the account/notification AdminDialog inspector.
  *
  * Anatomy aligned to handoff `screens/sheet-system.{jsx,css}` NOTIFICATIONS:
  * - 36×36 colored icon wrapper per item

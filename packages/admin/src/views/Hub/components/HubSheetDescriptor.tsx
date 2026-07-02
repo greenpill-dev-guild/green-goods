@@ -3,13 +3,13 @@ import {
   type AdminHubRouteContext,
   adminRoutes,
   SheetBody,
-  useRouteBackedLeftSheetConfig,
   type ActivityEvent,
   type Work,
 } from "@green-goods/shared";
 import { useCallback, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
+import { useRouteBackedLeftSheetConfig } from "@/components/Layout";
 import { WorkDetailPanel } from "@/views/Garden/WorkDetail";
 import { HubCertificationInspector } from "./HubCertificationInspector";
 import { HubHistoryInspector } from "./HubHistoryInspector";
@@ -193,9 +193,11 @@ export function HubSheetDescriptor({
             content: sheetDescriptor.content,
             closeTo,
             onBeforeClose,
-            // Hub deep-link sheets carry forms and media evidence — the
-            // default left-sheet width cramps them (QA refinement pass).
-            width: "wide" as const,
+            // Hub deep-link inspectors carry forms and media evidence — render
+            // at the richer `lg` dialog tier (QA refinement pass). `hub` tone
+            // keeps the operator-blue accent inside the portaled dialog.
+            size: "lg" as const,
+            tone: "hub" as const,
           }
         : null,
     [closeTo, onBeforeClose, sheetDescriptor]

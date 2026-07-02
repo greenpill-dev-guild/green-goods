@@ -2,7 +2,6 @@ import {
   FabProvider,
   RefreshActionProvider,
   GardenChip,
-  LeftSheetProvider,
   MainSheet,
   NavigationBar,
   AppBar,
@@ -24,7 +23,6 @@ import {
   useGardenDerivedState,
   useGardenDetailData,
   useGardenUrlSync,
-  useLeftSheetConfigValue,
   adminRoutes,
   formatRelativeTime,
   getAdminWorkspaceForPath,
@@ -46,6 +44,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminDialog } from "@/components/AdminDialog";
 import { useLocation, useNavigate } from "react-router-dom";
+import { LeftSheetProvider, useLeftSheetConfigValue } from "./leftSheetChannel";
 import { AccountProfilePanel } from "./AccountProfilePanel";
 import { AccountSettingsPanel } from "./AccountSettingsPanel";
 import { CommandPalette } from "./CommandPalette";
@@ -194,12 +193,6 @@ export function CanvasLayout() {
   // Sheet orchestrator — manages pane-scoped sheets
   const orchestrator = useSheetOrchestrator();
   const { activeContentId, activeSheet, closeSheet, openSheet } = orchestrator;
-  // State-driven sheet layer: sheets need to re-render once the canvas-level
-  // portal root mounts so they stay bounded between AppBar and NavigationBar.
-  const [sheetLayerRoot, setSheetLayerRoot] = useState<HTMLDivElement | null>(null);
-  const sheetLayerRef = useCallback((node: HTMLDivElement | null) => {
-    setSheetLayerRoot(node);
-  }, []);
   const pendingDesktopAccountTabRef = useRef<AccountSheetTab | null>(null);
   const openRightSheetContent = useCallback(
     (contentId: AdminRightSheetContentId) => {
@@ -524,21 +517,6 @@ export function CanvasLayout() {
               )}
             </div>
 
-            <div
-              ref={sheetLayerRef}
-              className="admin-canvas-sheet-layer pointer-events-none absolute inset-0 overflow-hidden"
-              // Sits at the overlay level (above --z-nav: 30) so an open sheet's
-              // scrim dims the full viewport — AppBar + nav included — matching
-              // AdminDialog (fixed inset-0 at --z-overlay). When no sheet is open
-              // the layer is empty + pointer-events-none, so the floating nav
-              // stays interactive; the scrim only captures clicks while open.
-              style={{ zIndex: "var(--z-overlay, 40)" }}
-              data-component="CanvasLayout"
-              data-slot="sheet-layer"
-              data-state={activeSheet ?? "idle"}
-              data-testid="canvas-sheet-layer"
-            />
-
             {/* Account / notification inspector — centered AdminDialog (the
                 right sheet retired). The same orchestrator contentId drives
                 open/close. Tone is the neutral operator "hub" accent: this is
@@ -557,8 +535,11 @@ export function CanvasLayout() {
               {rightSheetDescriptor?.content}
             </AdminDialog>
 
-            {/* Persistent left/bottom sheet — content declared by views via useLeftSheetConfig */}
-            <CanvasLeftSheet tone={leftDialogTone} />
+            {/* Persistent left-inspector dialog — content declared by views via
+                useLeftSheetConfig. Renders directly as an AdminDialog (the
+                left/bottom canvas sheets are retired), reading the descriptor's
+                own size + workspace tone. */}
+            <LeftInspectorDialog fallbackTone={leftDialogTone} />
 
             <CommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
           </div>
@@ -684,14 +665,23 @@ const FabAwareNavigationBar = memo(function FabAwareNavigationBar(props: {
 FabAwareNavigationBar.displayName = "FabAwareNavigationBar";
 
 /**
- * Bridge: reads left-inspector config from LeftSheetContext and renders it as a
- * centered AdminDialog — the left/bottom canvas sheets are retired, AdminDialog
- * is the canonical admin overlay (bottom-sheet presentation on mobile is built
- * in). Persistent across route transitions — views declare content via
- * useLeftSheetConfig(). Closing runs `config.onClose`; route-backed configs
- * navigate to their `closeTo`, so deep-link + back-nav are preserved.
+ * Reads the left-inspector config from the admin left-sheet channel and renders
+ * it as a centered AdminDialog — the left/bottom canvas sheets are retired, so
+ * AdminDialog is the canonical admin overlay (bottom-sheet presentation on
+ * mobile is built in). Persistent across route transitions — views declare
+ * content via useLeftSheetConfig(). Closing runs `config.onClose`; route-backed
+ * configs navigate to their `closeTo`, so deep-link + back-nav are preserved.
+ *
+ * Size + tone come from the descriptor's config (post-`77170588` the scale is
+ * sm/md/lg); size defaults to `lg` — the richest single-view tier that every
+ * inspector flow used before the size-collapse — and tone falls back to the
+ * active workspace accent when a config omits it.
  */
-function CanvasLeftSheet({ tone }: { tone: "hub" | "garden" | "community" | "actions" }) {
+function LeftInspectorDialog({
+  fallbackTone,
+}: {
+  fallbackTone: "hub" | "garden" | "community" | "actions";
+}) {
   const config = useLeftSheetConfigValue();
   const isOpen = config !== null;
 
@@ -702,11 +692,8 @@ function CanvasLeftSheet({ tone }: { tone: "hub" | "garden" | "community" | "act
         if (!next) config?.onClose?.();
       }}
       title={config?.title ?? ""}
-      tone={tone}
-      // Post-size-collapse (77170588) the scale is sm/md/lg; the descriptors'
-      // legacy `width: "wide"` no longer maps to a wider tier — every inspector
-      // flow renders at lg until Phase 0A drops the width prop entirely.
-      size="lg"
+      tone={config?.tone ?? fallbackTone}
+      size={config?.size ?? "lg"}
       preventClose={config?.preventClose}
     >
       {config?.content}

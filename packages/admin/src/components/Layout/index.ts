@@ -13,6 +13,11 @@ export {
 export { CanvasWorkspaceSelectionState } from "./CanvasWorkspaceSelectionState";
 export { CommandPalette } from "./CommandPalette";
 export { ConnectShell } from "./ConnectShell";
+export {
+  useLeftSheetConfig,
+  useRouteBackedLeftSheetConfig,
+  type LeftSheetConfig,
+} from "./leftSheetChannel";
 export { PageHeader } from "./PageHeader";
 export { UserAvatar } from "./UserAvatar";
 export { UserMenu } from "./UserMenu";

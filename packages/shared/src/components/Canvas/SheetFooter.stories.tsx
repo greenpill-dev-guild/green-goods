@@ -12,7 +12,7 @@ const meta: Meta<typeof SheetFooter> = {
     docs: {
       description: {
         component: [
-          "**SheetFooter** — pinned action footer for `LeftSheet` / `RightSheet`.",
+          "**SheetFooter** — pinned action footer for dialog / inspector panels.",
           "",
           "Anatomy from `design_handoff_admin-revamp/screens/sheet-system.css`:",
           "- `padding: 12px 16px`",
