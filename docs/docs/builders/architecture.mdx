@@ -46,7 +46,7 @@ Green Goods is an **offline-first, single-chain** platform for documenting regen
 
 ## System context
 
-How all packages connect end-to-end: contracts emit events, the indexer materializes them into GraphQL, and frontends read through shared hooks.
+Green Goods is an offline-first, single-chain monorepo. Data flows in one direction: on-chain **contracts** emit events, the **indexer** (Envio) materializes those into GraphQL, and the **frontends** (Client PWA for gardeners, Admin Dashboard for operators) read everything through the **`@green-goods/shared`** hook layer — no frontend talks to a data source directly. The diagram below groups the packages into four colour-coded layers, top to bottom: frontends (green), the shared logic layer (blue), data sources (amber), and the on-chain contracts (pink). Read it as a dependency stack — each layer depends only on the one beneath it.
 
 ```mermaid
 graph TB
