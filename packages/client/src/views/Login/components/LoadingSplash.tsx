@@ -11,11 +11,12 @@ interface LoadingSplashProps {
 }
 
 /**
- * Full-screen spinner shown DURING an auth attempt. It renders through the same
- * `SplashScaffold` as `Splash` and leaves the username/callout, error, notice, and
- * tertiary slots empty (but reserved). So the logo sits at the EXACT same Y and the
- * spinner lands in the SAME slot the login button occupied — the Splash↔LoadingSplash
- * swap morphs the button into the spinner in place, with no logo or layout jump.
+ * Full-screen spinner for the pre-auth BOOT state (`!isReady`), before any
+ * login screen exists to host an in-button spinner. It renders through the
+ * same `SplashScaffold` as `Splash` with only the title and slot B filled, so
+ * the logo and the primary slot sit at the EXACT same Y as every login state.
+ * (In-flight auth attempts no longer swap to this component — the primary
+ * button shows its own spinner in place.)
  */
 export function LoadingSplash({ loadingState, message }: LoadingSplashProps) {
   const { formatMessage } = useIntl();
@@ -39,15 +40,13 @@ export function LoadingSplash({ loadingState, message }: LoadingSplashProps) {
     <SplashScaffold
       pulse
       title={displayMessage}
-      action={
-        <div className="w-full h-10 flex items-center justify-center">
-          <div
-            className={cn(
-              "h-10 w-10 animate-spin rounded-full border-4 border-primary-alpha-24",
-              pwaStatusStyles.primary.spinnerBorder
-            )}
-          />
-        </div>
+      slotB={
+        <div
+          className={cn(
+            "h-10 w-10 animate-spin rounded-full border-4 border-primary-alpha-24",
+            pwaStatusStyles.primary.spinnerBorder
+          )}
+        />
       }
     />
   );

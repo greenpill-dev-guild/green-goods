@@ -3,9 +3,9 @@
  *
  * Tests simplified login UI:
  * - New users: passkey-first primary (gardener-default path), wallet secondary
- * - Existing users: passkey primary, wallet secondary
+ * - Existing users: personalized passkey primary, wallet secondary
  * - Passkey creation mode toggle
- * - Address continuity notice
+ * - Shared message zone (info/helper vs error)
  */
 
 import { cleanup, render, screen } from "@testing-library/react";
@@ -33,6 +33,7 @@ let mockAuthError: Error | null = null;
 let mockPasskeyServerEnabled = true;
 let mockIsAuthenticated = false;
 let mockAuthUserName: string | null = null;
+let mockStoredUsername: string | null = null;
 
 vi.mock("@green-goods/shared", () => ({
   toastService: {
@@ -44,6 +45,7 @@ vi.mock("@green-goods/shared", () => ({
   copyToClipboard: vi.fn(),
   classifyPasskeyCeremonyContext: mockClassifyPasskeyCeremonyContext,
   isPasskeyServerEnabled: () => mockPasskeyServerEnabled,
+  getStoredUsername: () => mockStoredUsername,
   normalizePasskeyAccountIdentifier: (value: string) =>
     value.trim().replace(/^@+/, "").toLowerCase(),
   useInstallGuidance: () => ({
@@ -78,33 +80,34 @@ vi.mock("@green-goods/shared", () => ({
   APP_NAME: "Green Goods",
 }));
 
-// Mock LoadingSplash component
+// Mock LoadingSplash component (boot state only)
 vi.mock("@/views/Login/components/LoadingSplash", () => ({
   LoadingSplash: ({ loadingState, message }: { loadingState: string; message?: string }) =>
     createElement("div", { "data-testid": "loading-splash" }, message || loadingState),
 }));
 
-// Mock Splash component to simplify testing — renders all action tiers + notice + info callout
+// Mock Splash component to simplify testing — renders all action tiers + the
+// shared message zone (error wins over info, mirroring the real component)
 vi.mock("@/components/Layout", () => ({
   Splash: ({
     login,
     buttonLabel,
+    buttonTitle,
     errorMessage,
     secondaryAction,
     tertiaryAction,
-    notice,
     usernameInput,
-    infoCallout,
+    infoMessage,
     isLoginDisabled,
   }: {
     login?: () => void;
     buttonLabel?: string;
+    buttonTitle?: string;
     errorMessage?: string | null;
     secondaryAction?: { label: string; onSelect: () => void };
     tertiaryAction?: { label: string; onClick?: () => void };
-    notice?: string;
     usernameInput?: { value: string; onChange: (e: unknown) => void; onCancel?: () => void };
-    infoCallout?: string;
+    infoMessage?: string;
     isLoginDisabled?: boolean;
   }) =>
     createElement(
@@ -117,6 +120,7 @@ vi.mock("@/components/Layout", () => ({
           onClick: login,
           type: "button",
           disabled: isLoginDisabled,
+          title: buttonTitle,
         },
         buttonLabel || "Create Account"
       ),
@@ -156,8 +160,9 @@ vi.mock("@/components/Layout", () => ({
           },
           "Cancel"
         ),
-      infoCallout && createElement("p", { "data-testid": "info-callout" }, infoCallout),
-      notice && createElement("p", { "data-testid": "notice" }, notice),
+      infoMessage &&
+        !errorMessage &&
+        createElement("p", { "data-testid": "info-message" }, infoMessage),
       errorMessage && createElement("p", { "data-testid": "error-message" }, errorMessage)
     ),
 }));
@@ -201,6 +206,7 @@ describe("Login View - New User (progressive disclosure)", () => {
     mockHasStoredCredential = false;
     mockAuthError = null;
     mockPasskeyServerEnabled = true;
+    mockStoredUsername = null;
     mockClassifyPasskeyCeremonyContext.mockReturnValue({
       supported: true,
       rpId: "greengoods.app",
@@ -225,10 +231,9 @@ describe("Login View - New User (progressive disclosure)", () => {
     expect(screen.getByTestId("username-input")).toBeInTheDocument();
     expect(screen.getByTestId("secondary-button")).toHaveTextContent("Sign in with a wallet");
     expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Recover with username");
-    // The passwordless callout was dropped on first-create — it duplicated the
-    // cross-device hint and crowded the screen.
-    expect(screen.queryByTestId("info-callout")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("notice")).not.toBeInTheDocument();
+    // The input's helper lives in the shared message zone (the sr-only label
+    // plus this visible instruction replace the old above-input hint).
+    expect(screen.getByTestId("info-message")).toHaveTextContent(/synced passkey/i);
   });
 
   it("keeps legacy local account creation when passkey server is disabled", async () => {
@@ -240,7 +245,8 @@ describe("Login View - New User (progressive disclosure)", () => {
     expect(screen.getByTestId("username-input")).toBeInTheDocument();
     expect(screen.getByTestId("secondary-button")).toHaveTextContent("Sign in with a wallet");
     expect(screen.queryByTestId("tertiary-button")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("notice")).not.toBeInTheDocument();
+    // Local-only mode keeps the re-enrollment explainer in the message zone.
+    expect(screen.getByTestId("info-message")).toHaveTextContent(/same-device sign-in/i);
 
     await user.type(screen.getByTestId("username-input"), "legacyuser");
     await user.click(screen.getByTestId("primary-button"));
@@ -257,7 +263,7 @@ describe("Login View - New User (progressive disclosure)", () => {
   it("does not show separate-account entry before recovery has failed", () => {
     renderWithRouter();
     expect(screen.getByTestId("primary-button")).not.toHaveTextContent("Create separate account");
-    expect(screen.queryByTestId("notice")).not.toBeInTheDocument();
+    expect(screen.getByTestId("info-message")).not.toHaveTextContent(/different address/i);
   });
 
   it("opens username recovery from an explicit recovery action", async () => {
@@ -268,11 +274,11 @@ describe("Login View - New User (progressive disclosure)", () => {
 
     expect(screen.getByTestId("primary-button")).toHaveTextContent("Recover with passkey");
     expect(screen.getByTestId("username-input")).toBeInTheDocument();
-    // Full-recovery focus: the secondary is now a clean "Back" exit, not a
-    // "Create account" nudge.
-    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Back");
-    expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Sign in with a wallet");
-    expect(screen.getByTestId("info-callout")).toHaveTextContent(/synced passkeys/i);
+    // Recovery is a sub-flow: no wallet here, slot C stays empty until a failed
+    // attempt, and the clean "Back" exit lives in the tertiary.
+    expect(screen.queryByTestId("secondary-button")).not.toBeInTheDocument();
+    expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Back");
+    expect(screen.getByTestId("info-message")).toHaveTextContent(/synced passkeys/i);
   });
 
   it("calls loginWithWallet when secondary button clicked from default new-user mode", async () => {
@@ -326,11 +332,6 @@ describe("Login View - New User (progressive disclosure)", () => {
     expect(await screen.findByTestId("error-message")).toHaveTextContent(/something went wrong/i);
   });
 
-  it("does not show address continuity notice during first-time account creation", () => {
-    renderWithRouter();
-    expect(screen.queryByTestId("notice")).not.toBeInTheDocument();
-  });
-
   it("requires explicit confirmation before separate account creation", async () => {
     const user = userEvent.setup();
     mockLoginWithPasskey.mockRejectedValueOnce(new Error("No passkey credential found"));
@@ -343,13 +344,16 @@ describe("Login View - New User (progressive disclosure)", () => {
     await user.click(screen.getByTestId("secondary-button"));
 
     expect(screen.getByTestId("primary-button")).toHaveTextContent("Continue to new account");
-    expect(screen.getByTestId("info-callout")).toHaveTextContent(/different address/i);
+    expect(screen.getByTestId("info-message")).toHaveTextContent(/different address/i);
     expect(mockCreateAccount).not.toHaveBeenCalled();
 
     await user.click(screen.getByTestId("primary-button"));
 
     expect(screen.getByTestId("primary-button")).toHaveTextContent("Create separate account");
     expect(screen.getByTestId("username-input")).toBeInTheDocument();
+    // Sub-flow: Back to recovery moved to the tertiary; no wallet secondary.
+    expect(screen.queryByTestId("secondary-button")).not.toBeInTheDocument();
+    expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Back to recovery");
   });
 
   it("creates a separate account only after confirmation", async () => {
@@ -383,7 +387,7 @@ describe("Login View - New User (progressive disclosure)", () => {
     await user.click(screen.getByTestId("secondary-button"));
 
     expect(screen.getByTestId("primary-button")).toHaveTextContent("Continue to new account");
-    expect(screen.getByTestId("info-callout")).toHaveTextContent(/different address/i);
+    expect(screen.getByTestId("info-message")).toHaveTextContent(/different address/i);
   });
 
   it("keeps guarded recovery fallback when auth error arrives after passkey dispatch", async () => {
@@ -413,6 +417,7 @@ describe("Login View - Existing User (progressive disclosure)", () => {
     mockHasStoredCredential = true;
     mockAuthError = null;
     mockPasskeyServerEnabled = true;
+    mockStoredUsername = null;
   });
 
   afterEach(() => {
@@ -421,6 +426,21 @@ describe("Login View - Existing User (progressive disclosure)", () => {
   });
 
   it("shows Sign in with passkey as primary for returning users", () => {
+    renderWithRouter();
+    expect(screen.getByTestId("primary-button")).toHaveTextContent("Sign in with passkey");
+  });
+
+  it("personalizes the primary with the stored username", () => {
+    mockStoredUsername = "gardener.eth";
+    renderWithRouter();
+    const primary = screen.getByTestId("primary-button");
+    expect(primary).toHaveTextContent("Continue as gardener.eth");
+    // Full label doubles as the hover title for when the pill truncates.
+    expect(primary).toHaveAttribute("title", "Continue as gardener.eth");
+  });
+
+  it("falls back to the generic label when the stored username is blank", () => {
+    mockStoredUsername = "   ";
     renderWithRouter();
     expect(screen.getByTestId("primary-button")).toHaveTextContent("Sign in with passkey");
   });
@@ -449,9 +469,11 @@ describe("Login View - Existing User (progressive disclosure)", () => {
 
     expect(screen.getByTestId("primary-button")).toHaveTextContent("Recover with passkey");
     expect(screen.getByTestId("username-input")).toBeInTheDocument();
-    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Back to sign in");
+    // Sub-flow: the exit lives in the tertiary; no wallet or secondary here.
+    expect(screen.queryByTestId("secondary-button")).not.toBeInTheDocument();
+    expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Back to sign in");
 
-    await user.click(screen.getByTestId("secondary-button"));
+    await user.click(screen.getByTestId("tertiary-button"));
 
     expect(screen.getByTestId("primary-button")).toHaveTextContent("Sign in with passkey");
   });
@@ -468,9 +490,10 @@ describe("Login View - Existing User (progressive disclosure)", () => {
     expect(mockLoginWithPasskey).toHaveBeenCalledWith("synceduser");
     expect(await screen.findByTestId("error-message")).toHaveTextContent(/no passkey found/i);
     // The local credential stays the same-device fallback; replacing it is
-    // only offered from the no-local-cache flow.
-    expect(screen.getByTestId("secondary-button")).toHaveTextContent("Back to sign in");
-    expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Sign in with a wallet");
+    // only offered from the no-local-cache flow. No separate-account secondary
+    // appears, and the tertiary stays the exit back to one-tap sign-in.
+    expect(screen.queryByTestId("secondary-button")).not.toBeInTheDocument();
+    expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Back to sign in");
   });
 
   it("calls loginWithPasskey when primary button clicked", async () => {
@@ -489,16 +512,10 @@ describe("Login View - Existing User (progressive disclosure)", () => {
     expect(mockLoginWithWallet).toHaveBeenCalled();
   });
 
-  it("shows address continuity notice", () => {
+  it("keeps the message zone empty for returning users", () => {
     renderWithRouter();
-    expect(screen.getByTestId("notice")).toHaveTextContent(
-      "Creating a separate account gives you a different address."
-    );
-  });
-
-  it("does not show passkey explainer for returning users", () => {
-    renderWithRouter();
-    expect(screen.queryByTestId("info-callout")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("info-message")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("error-message")).not.toBeInTheDocument();
   });
 });
 
@@ -515,6 +532,7 @@ describe("Login View - fallback account surfacing", () => {
     mockPasskeyServerEnabled = true;
     mockIsAuthenticated = false;
     mockAuthUserName = null;
+    mockStoredUsername = null;
     mockClassifyPasskeyCeremonyContext.mockReturnValue({
       supported: true,
       rpId: "greengoods.app",

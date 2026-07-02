@@ -1,54 +1,57 @@
 %% Green Goods PWA passkey login/signup flow (as implemented in views/Login/index.tsx).
-%% Create-account-first for new installs; same-device one-tap for returning users;
-%% recovery is a progressive opt-in; every error stays in the panel's reserved slot
-%% (fixed height — no layout shift); wallet is the fallback from any panel.
+%% Create-account-first for new installs; same-device one-tap for returning users
+%% (personalized "Continue as <name>" when a stored name exists); recovery is a
+%% progressive opt-in SUB-FLOW (no wallet there — Back returns to an entry panel
+%% that has it). Every panel renders the same slot skeleton: input · primary ·
+%% secondary · shared message zone (error wins over helper info) · tertiary, all
+%% fixed-height — no layout shift, in-flight attempts spin INSIDE the primary.
 flowchart TD
     Start(["Open Green Goods PWA"]) --> Ready{"Auth ready?"}
-    Ready -->|Restoring session| Loading["Loading splash · spinner"]
+    Ready -->|Restoring session| Loading["Boot splash · spinner in the primary slot"]
     Ready -->|Already authenticated| App(["Enter app"])
     Ready -->|Unauthenticated| Stored{"Passkey saved on this device?"}
 
-    %% Returning user — same-device one-tap
-    Stored -->|Yes| Returning["Sign in panel<br/>Primary: Sign in with passkey<br/>Secondary: Sign in with a wallet<br/>Tertiary: Recover with username"]
-    Returning -->|Sign in with passkey| LocalPrompt["Platform passkey prompt"]
+    %% Returning user — same-device one-tap (entry panel: wallet stays)
+    Stored -->|Yes| Returning["Sign in panel<br/>Primary: Continue as &lt;name&gt; (or Sign in with passkey)<br/>Secondary: Sign in with a wallet<br/>Tertiary: Recover with username"]
+    Returning -->|Continue with passkey| LocalPrompt["Platform passkey prompt"]
     LocalPrompt -->|Verified| App
     LocalPrompt -->|Cancelled / failed| PanelErr
 
-    %% First install — Create account is the default
-    Stored -->|No| Create["Create account panel (default)<br/>Username field<br/>Primary: Create account<br/>Secondary: Sign in with a wallet<br/>Tertiary: Recover with username"]
+    %% First install — Create account is the default (entry panel: wallet stays)
+    Stored -->|No| Create["Create account panel (default)<br/>Username field · helper in message zone<br/>Primary: Create account<br/>Secondary: Sign in with a wallet<br/>Tertiary: Recover with username"]
     Create -->|Create account| CreatePrompt["Platform passkey prompt"]
     CreatePrompt -->|Saved| App
     CreatePrompt -->|Name already taken| PanelErr
     CreatePrompt -->|Cancelled / failed| PanelErr
 
-    %% Progressive recovery — opt-in from either panel
-    Returning -->|Recover with username| Recover["Recover panel<br/>Username / ENS field<br/>Primary: Recover with passkey<br/>Secondary: Create account · Tertiary: wallet"]
+    %% Progressive recovery — opt-in SUB-FLOW (no wallet; Back exits)
+    Returning -->|Recover with username| Recover["Recover panel<br/>Username / ENS field · recovery info in message zone<br/>Primary: Recover with passkey<br/>Secondary: (empty until a failed attempt)<br/>Tertiary: Back"]
     Create -->|Recover with username| Recover
+    Recover -->|Back| Stored
     Recover -->|Recover with passkey| Lookup{"Username on passkey server?"}
     Lookup -->|Credential found| RecoverPrompt["Platform passkey prompt"]
     RecoverPrompt -->|Verified| App
     RecoverPrompt -->|Cancelled / failed| PanelErr
-    Lookup -->|No credential| NotFound["Reserved error slot:<br/>No passkey found for that username"]
-    Lookup -->|Server unavailable| ServerErr["Reserved error slot:<br/>Passkey recovery is temporarily unavailable"]
+    Lookup -->|No credential| NotFound["Message zone (error wins):<br/>No passkey found for that username<br/>Secondary unlocks: Create separate account"]
+    Lookup -->|Server unavailable| ServerErr["Message zone (error wins):<br/>Passkey recovery is temporarily unavailable"]
 
-    %% Errors stay in the same panel's reserved (fixed-height) slot
-    PanelErr["Reserved error slot — same panel, fixed height"]
+    %% Errors take over the panel's shared message zone (fixed height)
+    PanelErr["Shared message zone — same panel, fixed height, error wins"]
     PanelErr -.try again.-> Stored
     NotFound -.try again.-> Recover
     ServerErr -.try again.-> Recover
 
-    %% Separate account after a failed recovery (guarded, two-step)
-    NotFound -->|Create separate account| ConfirmNew{"Confirm new account<br/>different-address notice"}
+    %% Separate account after a failed recovery (guarded, two-step sub-flow)
+    NotFound -->|Create separate account| ConfirmNew{"Confirm new account<br/>different-address warning in message zone<br/>Tertiary: Back to recovery"}
     ServerErr -->|Create separate account| ConfirmNew
     ConfirmNew -->|Continue to new account| Create
     ConfirmNew -->|Back to recovery| Recover
 
-    %% Wallet fallback from any panel
+    %% Wallet fallback lives on the ENTRY panels only
     Returning -->|Wallet| Wallet["Connect external wallet"]
     Create -->|Wallet| Wallet
-    Recover -->|Wallet| Wallet
     Wallet -->|Connected| App
 
     %% Local-only deployments (passkey server disabled)
-    Stored -->|No · recovery server disabled| CreateLocal["Create account panel (local-only)<br/>no recovery tertiary"]
+    Stored -->|No · recovery server disabled| CreateLocal["Create account panel (local-only)<br/>re-enrollment explainer in message zone<br/>no recovery tertiary"]
     CreateLocal -->|Create account| CreatePrompt

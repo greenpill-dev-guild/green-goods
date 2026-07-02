@@ -843,6 +843,7 @@ export {
   filterAttestationsByAssessment,
   getApprovedAttestations,
   getAuthMode,
+  getStoredUsername,
   forgetOctantVaultCardWalletPositions,
   getOctantVaultAssetDisplayPolicy,
   getOctantVaultCampaignBySlug,
