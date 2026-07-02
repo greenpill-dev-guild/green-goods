@@ -23,7 +23,7 @@ export const WalletDrawer: React.FC<WalletDrawerProps> = ({ isOpen, onClose }) =
   // on-chain role/jar reads don't run while the drawer is closed.
   const { jars } = useAccessibleCookieJars({ enabled: isOpen });
   const claimableCookies = useMemo(
-    () => jars.filter((jar) => jar.maxWithdrawal > 0n && !jar.isPaused).length,
+    () => jars.filter((jar) => jar.maxWithdrawal > 0n && jar.balance > 0n && !jar.isPaused).length,
     [jars]
   );
 
