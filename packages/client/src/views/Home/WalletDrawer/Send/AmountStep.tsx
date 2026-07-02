@@ -98,8 +98,24 @@ export function AmountStep({
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-2 text-right">
-                    <span className="text-xs text-text-sub-600">
-                      {formatTokenAmount(token.balance ?? 0n, token.decimals)}
+                    <span
+                      className="text-xs text-text-sub-600"
+                      title={
+                        token.balance === null
+                          ? formatMessage({ id: "app.balance.unavailable" })
+                          : undefined
+                      }
+                    >
+                      {token.balance === null ? (
+                        <>
+                          <span aria-hidden>—</span>
+                          <span className="sr-only">
+                            {formatMessage({ id: "app.balance.unavailable" })}
+                          </span>
+                        </>
+                      ) : (
+                        formatTokenAmount(token.balance, token.decimals)
+                      )}
                     </span>
                     {selected ? (
                       <RiCheckLine className="h-4 w-4 text-primary-base" aria-hidden />
@@ -153,7 +169,9 @@ export function AmountStep({
         </section>
       ) : null}
 
-      {!isLoading && tokens.length > 0 && tokens.every((token) => !tokenIsSelectable(token)) ? (
+      {/* Vacuously true for an empty list, so "nothing to send" covers both
+          all-zero balances and no tokens at all. */}
+      {!isLoading && tokens.every((token) => !tokenIsSelectable(token)) ? (
         <p className="text-xs text-text-soft-400">
           {formatMessage({ id: "app.send.token.zeroBalance" })}
         </p>

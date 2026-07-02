@@ -43,7 +43,10 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
   const { primaryAddress } = useUser();
   const chainId = useCurrentChain();
   const { isOnline } = useOffline();
-  const { tokens, isLoading } = useSendableTokens(primaryAddress as Address | null, chainId);
+  const { tokens, isLoading, isError, refetch } = useSendableTokens(
+    primaryAddress as Address | null,
+    chainId
+  );
   const sendMutation = useSendToken();
 
   const [mode, setMode] = useState<WalletMode>("balance");
@@ -159,7 +162,14 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
       </div>
 
       {mode === "balance" ? (
-        <BalanceView tokens={tokens} isLoading={isLoading} onSend={startSendWithToken} />
+        <BalanceView
+          tokens={tokens}
+          isLoading={isLoading}
+          isError={isError}
+          isOnline={isOnline}
+          onRetry={refetch}
+          onSend={startSendWithToken}
+        />
       ) : mode === "receive" ? (
         <ReceiveView />
       ) : (

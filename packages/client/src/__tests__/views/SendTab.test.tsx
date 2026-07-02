@@ -34,7 +34,15 @@ const usdcToken = {
 };
 
 const mockSend = vi.fn();
+const mockRefetch = vi.fn();
 let mockIsOnline = true;
+
+type MockToken = Omit<typeof goodsToken, "balance"> & { balance: bigint | null };
+let mockTokensState: { tokens: MockToken[]; isLoading: boolean; isError: boolean } = {
+  tokens: [goodsToken, usdcToken],
+  isLoading: false,
+  isError: false,
+};
 
 vi.mock("@green-goods/shared", async () => {
   const actual = await vi.importActual<typeof import("@green-goods/shared")>("@green-goods/shared");
@@ -67,7 +75,7 @@ vi.mock("@green-goods/shared", async () => {
     useEnsName: () => ({ data: "alice.eth" }),
     useEnsAvatar: () => ({ data: null }),
     useEnsAddress: () => ({ data: null, isFetching: false }),
-    useSendableTokens: () => ({ tokens: [goodsToken, usdcToken], isLoading: false }),
+    useSendableTokens: () => ({ ...mockTokensState, refetch: mockRefetch }),
     useSendToken: () => ({ mutate: mockSend, isPending: false }),
   };
 });
@@ -86,6 +94,7 @@ describe("SendTab", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockIsOnline = true;
+    mockTokensState = { tokens: [goodsToken, usdcToken], isLoading: false, isError: false };
   });
 
   it("walks recipient → token+amount → review and confirms a GOODS send", async () => {
@@ -155,7 +164,7 @@ describe("SendTab", () => {
     rerender(<SendTab resetNonce={1} />);
 
     // The send flow reset — back on the Balance list.
-    expect(await screen.findByRole("button", { name: "Send GOODS" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /^Send GOODS/ })).toBeInTheDocument();
     expect(screen.queryByText(/Sending to/i)).not.toBeInTheDocument();
   });
 
@@ -173,8 +182,69 @@ describe("SendTab", () => {
 
   it("opens on the Balance view listing holdings", async () => {
     render(<SendTab />);
-    expect(await screen.findByRole("button", { name: "Send GOODS" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Send USDC" })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /^Send GOODS/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Send USDC/ })).toBeInTheDocument();
+  });
+
+  it("shows a load error with retry — never a fake empty state — when balances fail", async () => {
+    mockTokensState = { tokens: [], isLoading: false, isError: true };
+    const user = userEvent.setup();
+    render(<SendTab />);
+
+    expect(await screen.findByText("Couldn't load your balances")).toBeInTheDocument();
+    expect(screen.queryByText("No tokens yet")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Retry" }));
+    expect(mockRefetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("explains offline instead of claiming an empty wallet when nothing is cached", () => {
+    mockIsOnline = false;
+    mockTokensState = { tokens: [], isLoading: false, isError: true };
+    render(<SendTab />);
+
+    expect(
+      screen.getByText("You're offline — balances can't refresh right now.")
+    ).toBeInTheDocument();
+    expect(screen.queryByText("No tokens yet")).not.toBeInTheDocument();
+    // Retry is pointless without a connection.
+    expect(screen.queryByRole("button", { name: "Retry" })).not.toBeInTheDocument();
+  });
+
+  it("keeps cached balances visible offline, with a status note", () => {
+    mockIsOnline = false;
+    render(<SendTab />);
+
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "You're offline — balances can't refresh right now."
+    );
+    expect(screen.getByRole("button", { name: /^Send GOODS/ })).toBeInTheDocument();
+  });
+
+  it("shows a dash — not a zero — when a token balance can't be read", () => {
+    mockTokensState = {
+      tokens: [{ ...goodsToken, balance: null, errored: true }],
+      isLoading: false,
+      isError: false,
+    };
+    render(<SendTab />);
+
+    expect(
+      screen.getByRole("button", { name: "Send GOODS · Balance unavailable" })
+    ).toBeInTheDocument();
+    expect(screen.getByText("—")).toBeInTheDocument();
+    expect(screen.getByText("Some balances couldn't load.")).toBeInTheDocument();
+  });
+
+  it("tells you there's nothing to send when the token list is empty mid-flow", async () => {
+    mockTokensState = { tokens: [], isLoading: false, isError: false };
+    const user = userEvent.setup();
+    render(<SendTab />);
+
+    await user.click(screen.getByRole("tab", { name: "Send" }));
+    await user.click(await screen.findByRole("button", { name: /alice\.eth/i }));
+
+    expect(screen.getByText("No tokens to send yet.")).toBeInTheDocument();
   });
 
   it("starts a pre-filled send from a Balance token", async () => {
@@ -182,7 +252,7 @@ describe("SendTab", () => {
     render(<SendTab />);
 
     // Tap GOODS in the Balance list → send flow with GOODS pre-selected.
-    await user.click(await screen.findByRole("button", { name: "Send GOODS" }));
+    await user.click(await screen.findByRole("button", { name: /^Send GOODS/ }));
     await user.click(await screen.findByRole("button", { name: /alice\.eth/i }));
 
     // The amount step is reached directly, with the token already chosen.
