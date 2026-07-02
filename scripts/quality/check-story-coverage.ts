@@ -85,6 +85,12 @@ const NON_VISUAL_ADMIN_COMPONENTS = new Set<string>([
   // Section, DOMAIN_GUIDANCE, etc.). Rendered through the step stories.
   "components/Assessment/CreateAssessmentSteps/shared.tsx",
 
+  // Thin wallet-bound adapter: wires the Manage Roles modal + AddMember /
+  // Members / ManageRoles sub-modals to `useGardenOperations` writes. It owns
+  // no distinct visual contract of its own — each sub-modal has its own story
+  // (AddMemberModal / MembersModal / ManageRolesModal), and its writes are not
+  // deterministically seedable in Storybook. Reviewed through those children.
+  "components/Garden/GardenRolesModals.tsx",
 ]);
 
 /**
@@ -118,6 +124,12 @@ const NON_VISUAL_ADMIN_VIEWS = new Set<string>([
   "Hub/CreateAssessment.tsx",
   "Hub/CreateHypercert.tsx",
   "Hub/index.tsx",
+  // Route-level Manage Members flow (route-driven, added by the Manage Members
+  // refactor). A controller composition around AddMember/Members/ManageRoles
+  // sub-modals gated on wallet-bound useGardenOperations writes — reviewed
+  // through its child dialogs, not a whole-route story. Same class as the
+  // other route-level flow views above.
+  "Garden/ManageMembers.tsx",
   "NotFound.tsx",
   "Profile/index.tsx",
 
