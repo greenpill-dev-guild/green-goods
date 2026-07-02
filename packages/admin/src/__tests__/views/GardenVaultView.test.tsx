@@ -101,7 +101,7 @@ describe("GardenVaultView", () => {
 
     expect(screen.getByTestId("page-header")).toHaveAttribute(
       "data-back-link",
-      "/community/treasury?gardenAddress=garden-1"
+      "/community/treasury?gardenId=garden-1"
     );
   });
 });
