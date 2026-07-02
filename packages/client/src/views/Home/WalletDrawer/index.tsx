@@ -66,7 +66,11 @@ export const WalletDrawer: React.FC<WalletDrawerProps> = ({ isOpen, onClose }) =
       {activeTab === "cookie-jar" && <CookieJarTab />}
       {activeTab === "send" && <SendTab resetNonce={sendResetNonce} />}
       {activeTab === "pools" && (
-        <ComingSoonStub tabName={formatMessage({ id: "app.wallet.tab.commitments" })} />
+        <ComingSoonStub
+          tabName={formatMessage({ id: "app.wallet.tab.commitments" })}
+          description={formatMessage({ id: "app.wallet.commitments.comingSoon" })}
+          icon={<RiHandCoinLine />}
+        />
       )}
     </ModalDrawer>
   );

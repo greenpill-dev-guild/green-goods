@@ -16,9 +16,10 @@ import { formatUnits, parseUnits } from "viem";
 export interface CookieJarCardProps {
   jar: CookieJar;
   gardenAddress: Address;
+  gardenName: string;
 }
 
-export function CookieJarCard({ jar, gardenAddress }: CookieJarCardProps) {
+export function CookieJarCard({ jar, gardenAddress, gardenName }: CookieJarCardProps) {
   const { formatMessage } = useIntl();
   const { isOnline } = useOffline();
   const withdrawMutation = useCookieJarWithdraw(gardenAddress);
@@ -167,7 +168,11 @@ export function CookieJarCard({ jar, gardenAddress }: CookieJarCardProps) {
             title={formatMessage({ id: "app.cookieJar.confirmWithdrawTitle" })}
             description={formatMessage(
               { id: "app.cookieJar.confirmWithdrawDescription" },
-              { amount: formatTokenAmount(parsedAmount, decimals), asset: assetSymbol }
+              {
+                amount: formatTokenAmount(parsedAmount, decimals),
+                asset: assetSymbol,
+                garden: gardenName,
+              }
             )}
             confirmLabel={formatMessage({ id: "app.cookieJar.withdraw" })}
             variant="warning"

@@ -156,7 +156,7 @@ function JarCard({ jar, gardenName }: JarCardProps) {
                   {formatMessage({
                     id: "app.cookieJar.purposeHelp",
                     defaultMessage:
-                      "Briefly say what this withdrawal is for. It's recorded with the payout.",
+                      "Briefly say what this claim is for. It's recorded with the payout.",
                   })}
                 </p>
               </div>
@@ -165,7 +165,7 @@ function JarCard({ jar, gardenName }: JarCardProps) {
                 <p className="text-xs text-warning-dark" role="status">
                   {formatMessage({
                     id: "app.cookieJar.withdrawOffline",
-                    defaultMessage: "Offline. Withdrawals need a connection to reach the jar.",
+                    defaultMessage: "Offline. Claims need a connection to reach the jar.",
                   })}
                 </p>
               ) : null}
@@ -196,7 +196,11 @@ function JarCard({ jar, gardenName }: JarCardProps) {
                 title={formatMessage({ id: "app.cookieJar.confirmWithdrawTitle" })}
                 description={formatMessage(
                   { id: "app.cookieJar.confirmWithdrawDescription" },
-                  { amount: formatTokenAmount(parsedAmount, decimals), asset: assetSymbol }
+                  {
+                    amount: formatTokenAmount(parsedAmount, decimals),
+                    asset: assetSymbol,
+                    garden: gardenName,
+                  }
                 )}
                 confirmLabel={formatMessage({ id: "app.cookieJar.withdraw" })}
                 variant="warning"

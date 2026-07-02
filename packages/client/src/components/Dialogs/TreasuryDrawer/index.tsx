@@ -202,6 +202,7 @@ export function EndowmentDrawer({
       {activeTab === "cookie-jar" && (
         <CookieJarTabContent
           gardenAddress={gardenAddress}
+          gardenName={gardenName}
           jars={cookieJars}
           isLoading={jarsLoading}
           isError={Boolean(jarsError)}

@@ -4,6 +4,7 @@
  */
 
 import { within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithProviders as render, screen } from "../test-utils";
 
@@ -91,5 +92,17 @@ describe("WalletDrawer", () => {
     const cookiesTab = within(screen.getByTestId("tab-cookie-jar"));
     expect(cookiesTab.queryByText("0")).not.toBeInTheDocument();
     expect(cookiesTab.queryByText("2")).not.toBeInTheDocument();
+  });
+
+  it("shows a calm promise on the Commitments coming-soon tab", async () => {
+    const user = userEvent.setup();
+    render(<WalletDrawer isOpen onClose={() => {}} />);
+
+    await user.click(screen.getByTestId("tab-pools"));
+
+    expect(screen.getByRole("heading", { name: "Commitments" })).toBeInTheDocument();
+    expect(
+      screen.getByText("Make and honor shared promises with your gardens — coming soon.")
+    ).toBeInTheDocument();
   });
 });

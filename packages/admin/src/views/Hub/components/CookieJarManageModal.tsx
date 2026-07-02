@@ -1,6 +1,7 @@
 import {
   type Address,
   type CookieJar,
+  formatAddress,
   formatTokenAmount,
   getVaultAssetSymbol,
   NativeSelect,
@@ -11,6 +12,7 @@ import {
   useCookieJarUpdateInterval,
   useCookieJarUpdateMaxWithdrawal,
   useGardenCookieJars,
+  useGardens,
 } from "@green-goods/shared";
 import { RiCheckLine, RiCloseLine, RiPencilLine } from "@remixicon/react";
 import { AdminButton } from "@/components/AdminButton";
@@ -50,6 +52,16 @@ export function CookieJarManageModal({
   const { jars } = useGardenCookieJars(gardenAddress, {
     enabled: Boolean(gardenAddress) && isOpen,
   });
+
+  // Name the garden in the emergency-withdraw confirmation so the operator
+  // sees exactly whose jar is being drained.
+  const { data: gardens = [] } = useGardens();
+  const gardenName =
+    gardens.find(
+      (garden) =>
+        garden.id.toLowerCase() === gardenAddress.toLowerCase() ||
+        garden.tokenAddress.toLowerCase() === gardenAddress.toLowerCase()
+    )?.name ?? formatAddress(gardenAddress);
 
   const pauseMutation = useCookieJarPause(gardenAddress);
   const unpauseMutation = useCookieJarUnpause(gardenAddress);
@@ -368,13 +380,14 @@ export function CookieJarManageModal({
         description={formatMessage(
           {
             id: "app.cookieJar.confirmWithdrawDescription",
-            defaultMessage: "Withdraw {amount} {asset} from the cookie jar?",
+            defaultMessage: "Take {amount} {asset} from {garden}'s cookie jar?",
           },
           {
             amount: emergencyJar
               ? formatTokenAmount(emergencyJar.balance, emergencyJar.decimals)
               : "0",
             asset: emergencyJar ? getVaultAssetSymbol(emergencyJar.assetAddress, undefined) : "",
+            garden: gardenName,
           }
         )}
         confirmLabel={formatMessage({
