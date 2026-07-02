@@ -328,8 +328,10 @@ export interface SubmitWorkParams {
 
 export interface SubmitApprovalParams {
   privateKey: Hex;
-  gardenerAddress: string;
+  /** EAS recipient — the garden, matching work attestations and PWA approval paths. */
+  gardenAddress: string;
   actionUID: number;
+  /** On-chain work attestation UID (from the work receipt's Attested event). */
   workUID: string;
   approved: boolean;
   feedback?: string;

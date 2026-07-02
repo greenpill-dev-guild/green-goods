@@ -50,6 +50,7 @@ import {
   type Hex,
   http,
   parseAbiItem,
+  parseEventLogs,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import type {
@@ -107,6 +108,13 @@ const ERC20_TRANSFER_EVENT = parseAbiItem(
   "event Transfer(address indexed from, address indexed to, uint256 value)"
 );
 
+const EAS_ATTESTED_EVENT = parseAbiItem(
+  "event Attested(address indexed recipient, address indexed attester, bytes32 uid, bytes32 indexed schemaUID)"
+);
+
+/** How long to wait for the work attestation receipt before failing the approval flow. */
+const WORK_RECEIPT_TIMEOUT_MS = 120_000;
+
 // ============================================================================
 // BLOCKCHAIN CLASS
 // ============================================================================
@@ -134,7 +142,7 @@ class Blockchain {
   // SUBMISSIONS
   // ==========================================================================
 
-  async submitWork(params: SubmitWorkParams): Promise<Hex> {
+  async submitWork(params: SubmitWorkParams): Promise<{ txHash: Hex; workUID: Hex }> {
     const { submitWorkBot } = await import("@green-goods/shared/modules/work/bot-submission");
     const account = privateKeyToAccount(params.privateKey);
 
@@ -144,7 +152,7 @@ class Blockchain {
       transport: http(this.rpcUrl),
     });
 
-    const tx = await submitWorkBot(
+    const txHash = await submitWorkBot(
       walletClient as Parameters<typeof submitWorkBot>[0],
       this.publicClient as Parameters<typeof submitWorkBot>[1],
       {
@@ -165,7 +173,25 @@ class Blockchain {
       params.media || []
     );
 
-    return tx;
+    // A follow-up approval must reference the on-chain work attestation UID — a local
+    // id would orphan the approval for every EAS consumer. The UID only exists once the
+    // attest tx mines, so wait for the receipt and read it from the Attested event.
+    // Fail loud on timeout/revert/missing event: an unlinkable approval is the defect
+    // this exists to prevent, never a fallback.
+    const receipt = await this.publicClient.waitForTransactionReceipt({
+      hash: txHash,
+      timeout: WORK_RECEIPT_TIMEOUT_MS,
+    });
+    if (receipt.status !== "success") {
+      throw new Error(`Work attestation transaction reverted: ${txHash}`);
+    }
+    const attested = parseEventLogs({ abi: [EAS_ATTESTED_EVENT], logs: receipt.logs });
+    const workUID = attested[0]?.args.uid;
+    if (!workUID) {
+      throw new Error(`Work attestation receipt has no Attested event: ${txHash}`);
+    }
+
+    return { txHash, workUID };
   }
 
   async submitApproval(params: SubmitApprovalParams): Promise<Hex> {
@@ -189,7 +215,8 @@ class Blockchain {
         confidence: params.approved ? 1 : 0, // LOW for approvals, NONE for rejections
         verificationMethod: 1, // Bitmask: 0x01 = bot-verified
       },
-      params.gardenerAddress as Address,
+      // EAS recipient = garden, matching work attestations and PWA approval paths.
+      params.gardenAddress as Address,
       this.chainId
     );
 

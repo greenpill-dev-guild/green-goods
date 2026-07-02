@@ -719,8 +719,9 @@ vi.mock("@green-goods/shared", () => ({
     chainId,
     rpcUrl: `https://example.invalid/${chainId}/${alchemyKey}`,
   }),
-  submitApprovalBot: vi.fn().mockResolvedValue({ hash: "0x" + "0".repeat(64) }),
-  submitWorkBot: vi.fn().mockResolvedValue({ hash: "0x" + "0".repeat(64) }),
+  // Both bot functions resolve a bare tx hash (Hex), matching bot-submission.ts.
+  submitApprovalBot: vi.fn().mockResolvedValue("0x" + "0".repeat(64)),
+  submitWorkBot: vi.fn().mockResolvedValue("0x" + "0".repeat(64)),
 
   // Config constants
   DEFAULT_CHAIN_ID: 11155111,
