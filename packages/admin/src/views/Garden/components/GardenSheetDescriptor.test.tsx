@@ -2,12 +2,11 @@
  * @vitest-environment jsdom
  */
 
-import { act, render, waitFor } from "@testing-library/react";
-import { isValidElement, type ComponentProps } from "react";
+import { render } from "@testing-library/react";
+import { isValidElement } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Address } from "@green-goods/shared";
 import type { LeftSheetConfig } from "@/components/Layout";
 import { GardenSheetDescriptor } from "./GardenSheetDescriptor";
 
@@ -15,169 +14,49 @@ const { mockUseLeftSheetConfig } = vi.hoisted(() => ({
   mockUseLeftSheetConfig: vi.fn(),
 }));
 
-// The descriptor now publishes through the admin-local left-sheet channel
+// The descriptor publishes through the admin-local left-sheet channel
 // (re-homed from @green-goods/shared), so mock that module's useLeftSheetConfig.
 vi.mock("@/components/Layout", () => ({
   useLeftSheetConfig: mockUseLeftSheetConfig,
-}));
-
-vi.mock("@/components/Garden/AddMemberSheet", () => ({
-  AddMemberSheet: () => null,
 }));
 
 vi.mock("@/views/Garden/HypercertDetail", () => ({
   default: () => null,
 }));
 
-const GARDEN_A = "0x1111111111111111111111111111111111111111" as Address;
-const GARDEN_B = "0x2222222222222222222222222222222222222222" as Address;
-
-type DescriptorProps = ComponentProps<typeof GardenSheetDescriptor>;
-
-function renderDescriptor(overrides: Partial<DescriptorProps> = {}) {
-  const props: DescriptorProps = {
-    hypercertId: undefined,
-    closeTo: "/garden",
-    addMemberOpen: true,
-    onCloseAddMember: vi.fn(),
-    gardenAddress: GARDEN_A,
-    ...overrides,
-  };
-
-  return {
-    props,
-    view: render(
-      <IntlProvider
-        locale="en"
-        messages={{
-          "app.hypercerts.detail.title": "Hypercert",
-          "cockpit.garden.action.addMember": "Add member",
-        }}
-      >
-        <MemoryRouter>
-          <GardenSheetDescriptor {...props} />
-        </MemoryRouter>
-      </IntlProvider>
-    ),
-  };
+function renderDescriptor(hypercertId: string | undefined) {
+  return render(
+    <IntlProvider locale="en" messages={{ "app.hypercerts.detail.title": "Hypercert" }}>
+      <MemoryRouter>
+        <GardenSheetDescriptor hypercertId={hypercertId} closeTo="/garden" />
+      </MemoryRouter>
+    </IntlProvider>
+  );
 }
 
-function getCurrentConfig(): LeftSheetConfig {
-  const config = mockUseLeftSheetConfig.mock.calls.at(-1)?.[0] as LeftSheetConfig | null;
-  expect(config).not.toBeNull();
-  return config as LeftSheetConfig;
+function getCurrentConfig(): LeftSheetConfig | null {
+  return mockUseLeftSheetConfig.mock.calls.at(-1)?.[0] as LeftSheetConfig | null;
 }
 
-function getAddMemberSheetProps(config: LeftSheetConfig): {
-  gardenAddress: Address;
-  onClose: () => void;
-  onRequestClose?: () => void;
-  onSubmittingChange?: (submitting: boolean) => void;
-} {
-  expect(isValidElement(config.content)).toBe(true);
-  return config.content.props as {
-    gardenAddress: Address;
-    onClose: () => void;
-    onRequestClose?: () => void;
-    onSubmittingChange?: (submitting: boolean) => void;
-  };
-}
-
-describe("GardenSheetDescriptor add-member sheet", () => {
+describe("GardenSheetDescriptor", () => {
   beforeEach(() => {
     mockUseLeftSheetConfig.mockClear();
   });
 
-  it("blocks add-member close paths while writes are submitting", () => {
-    const onCloseAddMember = vi.fn();
-    renderDescriptor({ onCloseAddMember });
+  it("publishes the route-backed hypercert sheet when a hypercert id is present", () => {
+    renderDescriptor("hc-1");
 
-    const sheetProps = getAddMemberSheetProps(getCurrentConfig());
-
-    act(() => {
-      sheetProps.onSubmittingChange?.(true);
-    });
-
-    expect(getCurrentConfig().preventClose).toBe(true);
-
-    getCurrentConfig().onClose();
-    expect(onCloseAddMember).not.toHaveBeenCalled();
-
-    getAddMemberSheetProps(getCurrentConfig()).onRequestClose?.();
-    expect(onCloseAddMember).not.toHaveBeenCalled();
-
-    act(() => {
-      sheetProps.onSubmittingChange?.(false);
-    });
-
-    expect(getCurrentConfig().preventClose).toBe(false);
-
-    getAddMemberSheetProps(getCurrentConfig()).onRequestClose?.();
-    expect(onCloseAddMember).toHaveBeenCalledTimes(1);
+    const config = getCurrentConfig();
+    expect(config).not.toBeNull();
+    expect(config?.title).toBe("Hypercert");
+    expect(config?.size).toBe("lg");
+    expect(config?.tone).toBe("garden");
+    expect(isValidElement(config?.content)).toBe(true);
   });
 
-  it("lets successful add-member writes close after the guarded submit phase", () => {
-    const onCloseAddMember = vi.fn();
-    renderDescriptor({ onCloseAddMember });
+  it("publishes no sheet when there is nothing to inspect", () => {
+    renderDescriptor(undefined);
 
-    const sheetProps = getAddMemberSheetProps(getCurrentConfig());
-
-    act(() => {
-      sheetProps.onSubmittingChange?.(true);
-    });
-
-    sheetProps.onClose();
-    expect(onCloseAddMember).toHaveBeenCalledTimes(1);
-  });
-
-  it("prioritizes the one-click add-member sheet over an open hypercert sheet", () => {
-    renderDescriptor({ hypercertId: "hc-1", addMemberOpen: true });
-
-    expect(getCurrentConfig().title).toBe("Add member");
-    expect(getAddMemberSheetProps(getCurrentConfig()).gardenAddress).toBe(GARDEN_A);
-  });
-
-  it("closes the idle add-member sheet when the selected garden changes", async () => {
-    const onCloseAddMember = vi.fn();
-    const { props, view } = renderDescriptor({ onCloseAddMember });
-
-    expect(getAddMemberSheetProps(getCurrentConfig()).gardenAddress).toBe(GARDEN_A);
-
-    view.rerender(
-      <IntlProvider
-        locale="en"
-        messages={{
-          "app.hypercerts.detail.title": "Hypercert",
-          "cockpit.garden.action.addMember": "Add member",
-        }}
-      >
-        <MemoryRouter>
-          <GardenSheetDescriptor {...props} gardenAddress={GARDEN_B} />
-        </MemoryRouter>
-      </IntlProvider>
-    );
-
-    await waitFor(() => expect(onCloseAddMember).toHaveBeenCalledTimes(1));
-  });
-
-  it("closes the idle add-member sheet when the selected garden clears", async () => {
-    const onCloseAddMember = vi.fn();
-    const { props, view } = renderDescriptor({ onCloseAddMember });
-
-    view.rerender(
-      <IntlProvider
-        locale="en"
-        messages={{
-          "app.hypercerts.detail.title": "Hypercert",
-          "cockpit.garden.action.addMember": "Add member",
-        }}
-      >
-        <MemoryRouter>
-          <GardenSheetDescriptor {...props} gardenAddress={undefined} />
-        </MemoryRouter>
-      </IntlProvider>
-    );
-
-    await waitFor(() => expect(onCloseAddMember).toHaveBeenCalledTimes(1));
+    expect(getCurrentConfig()).toBeNull();
   });
 });
