@@ -5,9 +5,10 @@ import {
   type useGardenWorkspaceController,
 } from "@green-goods/shared";
 import { AdminCard } from "@/components/AdminCard";
-import { RiImageLine, RiPulseLine } from "@remixicon/react";
+import { RiCupLine, RiImageLine, RiPulseLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
+import { AdminButton } from "@/components/AdminButton";
 import { AdminDialog } from "@/components/AdminDialog";
 import { GardenDomainModal } from "@/components/Garden/GardenDomainEditor";
 import { GardenMetadata } from "@/components/Garden/GardenMetadata";
@@ -15,6 +16,7 @@ import {
   type GardenBannerPreview,
   GardenSettingsEditor,
 } from "@/components/Garden/GardenSettingsEditor";
+import { CookieJarManageModal } from "@/views/Hub/components/CookieJarManageModal";
 import {
   CanvasRouteErrorState,
   CanvasWorkspaceLoadingState,
@@ -32,6 +34,9 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
   // The settings form reports its banner draft here so the identity preview
   // card is the single place the image renders (saved, staged, or removed).
   const [bannerPreview, setBannerPreview] = useState<GardenBannerPreview | null>(null);
+  // Jar management is garden configuration — it opens from this dialog
+  // (moved off the Community payout surface, which keeps deposits/withdrawals).
+  const [cookieJarsOpen, setCookieJarsOpen] = useState(false);
 
   if (!workspace.selectedGarden) {
     return (
@@ -194,6 +199,39 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
               />
             </AdminCard>
 
+            {workspace.canManage ? (
+              <AdminCard variant="filled" density="none" className="overflow-hidden">
+                <div className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0 space-y-1">
+                    <p className="label-xs text-text-soft">
+                      {formatMessage({
+                        id: "app.cookieJar.settingsRow.label",
+                        defaultMessage: "Cookie jars",
+                      })}
+                    </p>
+                    <p className="text-xs text-text-sub">
+                      {formatMessage({
+                        id: "app.cookieJar.settingsRow.description",
+                        defaultMessage: "Pause state, withdrawal limits, and cooldowns",
+                      })}
+                    </p>
+                  </div>
+                  <AdminButton
+                    type="button"
+                    variant="tonal"
+                    size="sm"
+                    leadingIcon={<RiCupLine />}
+                    onClick={() => setCookieJarsOpen(true)}
+                  >
+                    {formatMessage({
+                      id: "app.cookieJar.manageJars",
+                      defaultMessage: "Manage Jars",
+                    })}
+                  </AdminButton>
+                </div>
+              </AdminCard>
+            ) : null}
+
             {/* On-chain identifiers fill the column beside the form instead of
                 dangling below the grid. */}
             <GardenMetadata
@@ -210,6 +248,15 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
           isOpen={workspace.domainEditorOpen}
           onClose={workspace.closeDomainEditor}
           gardenAddress={workspace.garden.id as Address}
+        />
+      ) : null}
+      {workspace.canManage ? (
+        <CookieJarManageModal
+          isOpen={cookieJarsOpen}
+          onClose={() => setCookieJarsOpen(false)}
+          gardenAddress={workspace.garden.id as Address}
+          canManage={workspace.canManage}
+          isOwner={workspace.isOwner}
         />
       ) : null}
     </div>

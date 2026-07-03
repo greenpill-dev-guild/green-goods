@@ -99,7 +99,8 @@ export const ADMIN_FLOW_DIALOG_CLASS =
   "min-h-[90dvh] sm:min-h-0 sm:h-[85dvh] sm:!max-w-3xl lg:!max-w-5xl";
 
 const closeButtonClasses = cn(
-  "absolute right-4 top-4 z-10",
+  // Centered on the compact header title row (py-3 + text-lg leading-7).
+  "absolute right-3 top-1.5 z-10",
   "flex h-10 w-10 items-center justify-center",
   "rounded-full",
   "m3-state-layer",
@@ -113,19 +114,21 @@ const closeButtonClasses = cn(
 // ============================================================================
 
 /**
- * AdminDialog - M3 Basic Dialog
+ * AdminDialog - M3 Basic Dialog, unified on the action-flow chrome
  *
- * Implements Material Design 3 basic dialog anatomy:
- * - Shape: corner-extra-large (28dp) via --m3-shape-xl
- * - Surface: surface-container-high
- * - Elevation: shadow level 3
- * - Scrim: on-surface at 32% opacity
- * - Headline: text-headline-sm, on-surface
- * - Body: text-body-md, on-surface-variant
- * - Actions: right-aligned row of M3 text buttons
- * - Optional icon: centered above headline, on-surface-variant
- * - Close button: absolute top-right, circular state layer
- * - Animations: fade + zoom on open/close
+ * Every variant shares the Submit Work reference anatomy (the flow dialogs'
+ * ActionFlowShell grammar), so standard/confirm/palette dialogs read as the
+ * same product as the flows:
+ * - Shape: corner-extra-large (28dp) via --m3-shape-xl; surface-container-high;
+ *   elevation 3; scrim on-surface/32%
+ * - Header: hairline-bottom bar (px-4 py-3 sm:px-6, border-stroke-soft) with
+ *   an optional inline icon, text-lg semibold title, text-sm description
+ * - Body: the scrollable region between header and footer (px-4 py-4 sm:px-6)
+ * - Actions: pinned footer bar — hairline top border on --surface-raised
+ *   (the SheetFooter anatomy the flows use), buttons right-aligned
+ * - Close button: absolute top-right, centered on the title row
+ * - palette/flow suppress the structured header/padding and own their chrome
+ * - Animations: sheet slide-up (mobile) / zoom (desktop) on open/close
  */
 export function AdminDialog({
   open,
@@ -228,10 +231,12 @@ export function AdminDialog({
             // Tailwind animate-*/slide-in-*/zoom-* classes — tailwindcss-animate is
             // not loaded in this build, so they emit no CSS (dead classes).
             "focus:outline-none",
+            // Structured regions own their padding (header/body/footer bars);
+            // overflow-hidden clips the footer's raised background to the
+            // rounded corners. Body scrolling happens inside the body slot.
+            "overflow-hidden p-0",
             sizeClasses[size],
             variantClasses[variant],
-            // Padding: 24dp default; palette + flow own their inner chrome.
-            variant === "palette" || variant === "flow" ? "p-0" : "p-6",
             className
           )}
           onPointerDownOutside={(event) => {
@@ -255,35 +260,35 @@ export function AdminDialog({
           ) : null}
 
           {hasStructuredHeader ? (
-            <div data-slot="header" className="shrink-0">
-              {/* Optional icon - centered above headline */}
-              {iconNode ? (
-                <div className="mb-4 flex justify-center" aria-hidden="true">
-                  {iconNode}
+            <header
+              data-slot="header"
+              className={cn(
+                "shrink-0 border-b border-stroke-soft px-4 py-3 sm:px-6",
+                // Clearance for the absolute close button on the title row.
+                !hideCloseButton && "pr-14"
+              )}
+            >
+              <div className="flex items-start gap-3">
+                {iconNode ? (
+                  <span className="mt-0.5 shrink-0" aria-hidden="true">
+                    {iconNode}
+                  </span>
+                ) : null}
+                <div className="min-w-0">
+                  <Dialog.Title className="text-lg font-semibold leading-7 text-[rgb(var(--m3-on-surface))]">
+                    {title}
+                  </Dialog.Title>
+                  <Dialog.Description
+                    className={cn(
+                      description ? "mt-0.5 text-sm" : "sr-only",
+                      "text-[rgb(var(--m3-on-surface-variant))]"
+                    )}
+                  >
+                    {description ?? title}
+                  </Dialog.Description>
                 </div>
-              ) : null}
-
-              {/* Headline */}
-              <Dialog.Title
-                className={cn(
-                  "text-headline-sm font-semibold leading-tight",
-                  "text-[rgb(var(--m3-on-surface))]",
-                  // Right padding so text doesn't overlap close button
-                  !hideCloseButton && "pr-10"
-                )}
-              >
-                {title}
-              </Dialog.Title>
-
-              <Dialog.Description
-                className={cn(
-                  description ? "mt-4 text-body-md" : "sr-only",
-                  "text-[rgb(var(--m3-on-surface-variant))]"
-                )}
-              >
-                {description ?? title}
-              </Dialog.Description>
-            </div>
+              </div>
+            </header>
           ) : (
             <>
               <Dialog.Title className="sr-only">{title}</Dialog.Title>
@@ -297,20 +302,21 @@ export function AdminDialog({
             className={cn(
               "min-h-0 flex-1 overflow-y-auto text-body-md",
               "text-[rgb(var(--m3-on-surface-variant))]",
-              variant === "palette" || variant === "flow" ? "" : "-mx-6 mt-4 px-6",
+              variant === "palette" || variant === "flow" ? "" : "px-4 py-4 sm:px-6",
               bodyClassName
             )}
           >
             {children}
           </div>
 
-          {/* Actions - right-aligned row, pinned below the scrollable body */}
+          {/* Actions — pinned footer bar (the flows' SheetFooter anatomy):
+              hairline top border on the raised surface, buttons right-aligned. */}
           {actions ? (
             <div
               data-slot="actions"
               data-testid="admin-dialog-actions"
               className={cn(
-                "mt-6 flex shrink-0 flex-col-reverse gap-2 sm:flex-row sm:justify-end",
+                "flex shrink-0 flex-col-reverse gap-2 border-t border-[color:var(--hairline)] bg-[var(--surface-raised)] px-4 py-3 sm:flex-row sm:items-center sm:justify-end sm:px-6",
                 actionsClassName
               )}
             >

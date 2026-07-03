@@ -212,11 +212,7 @@ export function CommunityTab({
             )}
 
             {(section === undefined || section === "cookie-jars" || section === "payouts") && (
-              <CookieJarPayoutPanel
-                gardenAddress={garden.id as Address}
-                canManage={canManage}
-                isOwner={isOwner}
-              />
+              <CookieJarPayoutPanel gardenAddress={garden.id as Address} />
             )}
 
             {(section === undefined || section === "yield" || section === "treasury") && (

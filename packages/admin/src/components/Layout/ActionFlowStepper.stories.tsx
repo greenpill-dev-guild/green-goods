@@ -2,10 +2,10 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { ActionFlowStepper } from "./ActionFlowStepper";
 
 const STEPS = [
-  { id: "action", title: "Action" },
-  { id: "media", title: "Media" },
-  { id: "details", title: "Details" },
-  { id: "review", title: "Review" },
+  { id: "action", title: "Action", description: "Choose what work to log" },
+  { id: "media", title: "Media", description: "Add photos of the work" },
+  { id: "details", title: "Details", description: "Fill in the action's fields" },
+  { id: "review", title: "Review", description: "Check everything before submitting" },
 ];
 
 const meta = {

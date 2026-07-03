@@ -37,9 +37,7 @@ function SectionHeader({ labelId, onEdit }: { labelId: string; onEdit?: () => vo
   const { formatMessage } = useIntl();
   return (
     <div className="flex items-center justify-between">
-      <p className="text-xs uppercase tracking-wide text-text-soft">
-        {formatMessage({ id: labelId })}
-      </p>
+      <p className="label-xs text-text-soft">{formatMessage({ id: labelId })}</p>
       {onEdit && (
         <button
           type="button"
@@ -78,7 +76,7 @@ export function HypercertPreview({
 
   if (!metadata) {
     return (
-      <div className="rounded-lg border border-stroke-soft bg-bg-white p-6 text-sm text-text-sub">
+      <div className="surface-inset flex min-h-40 items-center justify-center p-6 text-sm text-text-sub">
         {formatMessage({ id: "app.hypercerts.preview.empty" })}
       </div>
     );
@@ -91,7 +89,7 @@ export function HypercertPreview({
     <div className={cn("space-y-6", isMinting && "pointer-events-none opacity-60")}>
       {/* Hypercert Card Preview and Details */}
       <div className="grid gap-4 md:grid-cols-[1.2fr_1fr]">
-        <div className="overflow-hidden rounded-xl border border-stroke-soft bg-bg-white shadow-sm">
+        <div className="surface-inset overflow-hidden p-0">
           <div className="relative aspect-square bg-bg-weak">
             <ImageWithFallback
               src={metadata.image}
@@ -118,9 +116,9 @@ export function HypercertPreview({
           </div>
         </div>
 
-        <div className="space-y-4 rounded-xl border border-stroke-soft bg-bg-white p-4 shadow-sm">
+        <div className="surface-inset space-y-4">
           <div>
-            <p className="text-xs uppercase tracking-wide text-text-soft">
+            <p className="label-xs text-text-soft">
               {formatMessage({ id: "app.hypercerts.preview.garden" })}
             </p>
             <p className="text-sm font-medium text-text-strong">{gardenName}</p>
@@ -139,13 +137,13 @@ export function HypercertPreview({
           </div>
           <div className="grid gap-3">
             <div>
-              <p className="text-xs uppercase tracking-wide text-text-soft">
+              <p className="label-xs text-text-soft">
                 {formatMessage({ id: "app.hypercerts.preview.workTimeframe" })}
               </p>
               <p className="text-sm text-text-strong">{workTimeframe}</p>
             </div>
             <div>
-              <p className="text-xs uppercase tracking-wide text-text-soft">
+              <p className="label-xs text-text-soft">
                 {formatMessage({ id: "app.hypercerts.preview.impactTimeframe" })}
               </p>
               <p className={cn("text-sm text-text-strong", !impactTimeframe && "text-text-sub")}>
@@ -154,7 +152,7 @@ export function HypercertPreview({
             </div>
           </div>
           <div>
-            <p className="text-xs uppercase tracking-wide text-text-soft">
+            <p className="label-xs text-text-soft">
               {formatMessage({ id: "app.hypercerts.preview.totalUnits" })}
             </p>
             <p className="text-sm text-text-strong">{totalUnits.toLocaleString()}</p>
@@ -164,7 +162,7 @@ export function HypercertPreview({
 
       {/* Distribution Section */}
       {allowlist.length > 0 && (
-        <div className="rounded-xl border border-stroke-soft bg-bg-white p-4 shadow-sm">
+        <div className="surface-inset">
           <SectionHeader
             labelId="app.hypercerts.preview.distribution"
             onEdit={onEditDistribution}
@@ -208,11 +206,11 @@ export function HypercertPreview({
 
       {/* Assessment Link + SDG Alignment */}
       {selectedAssessment && (
-        <div className="rounded-xl border border-stroke-soft bg-bg-white p-4 shadow-sm space-y-4">
+        <div className="surface-inset space-y-4">
           <div className="flex items-start gap-3">
             <RiFileTextLine className="mt-0.5 h-5 w-5 flex-shrink-0 text-primary-base" />
             <div className="min-w-0 flex-1">
-              <p className="text-xs uppercase tracking-wide text-text-soft">
+              <p className="label-xs text-text-soft">
                 {formatMessage({ id: "app.hypercerts.preview.assessment" })}
               </p>
               <p className="mt-1 text-sm font-medium text-text-strong">
@@ -240,7 +238,7 @@ export function HypercertPreview({
           {/* SDG Alignment */}
           {selectedAssessment.sdgTargets.length > 0 && (
             <div>
-              <p className="text-xs uppercase tracking-wide text-text-soft mb-2">
+              <p className="label-xs text-text-soft mb-2">
                 {formatMessage({ id: "app.hypercerts.preview.sdgAlignment" })}
               </p>
               <div className="flex flex-wrap gap-1.5">
@@ -265,7 +263,7 @@ export function HypercertPreview({
           {/* Verification Summary (SMART Outcomes) */}
           {selectedAssessment.smartOutcomes.length > 0 && (
             <div>
-              <p className="text-xs uppercase tracking-wide text-text-soft mb-2">
+              <p className="label-xs text-text-soft mb-2">
                 {formatMessage({ id: "app.hypercerts.preview.outcomes" })}
               </p>
               <div className="space-y-1.5">

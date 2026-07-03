@@ -1,5 +1,4 @@
 import { Confidence, type Work, type WorkMetadata, VerificationMethod } from "@green-goods/shared";
-import { RiFileList3Line } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { z } from "zod";
 
@@ -45,22 +44,31 @@ export function parseWorkMetadata(metadataStr: string): Partial<WorkMetadata> | 
 // Sub-components
 // ─────────────────────────────────────────────────────────────
 
+/**
+ * Definition row — label left, value right on one line (dialog interior
+ * grammar §3.3). Halves the vertical footprint of the old stacked icon rows
+ * that made the review dialog read as whitespace.
+ */
 export function DetailRow({
   icon,
   label,
   value,
 }: {
-  icon: React.ReactNode;
+  icon?: React.ReactNode;
   label: string;
   value: React.ReactNode;
 }) {
   return (
-    <div className="flex items-start gap-3">
-      <div className="mt-0.5 flex-shrink-0 text-text-soft">{icon}</div>
-      <div className="min-w-0 flex-1">
-        <p className="text-xs font-medium text-text-soft">{label}</p>
-        <div className="mt-0.5 text-sm text-text-strong">{value}</div>
-      </div>
+    <div className="flex items-baseline justify-between gap-4">
+      <p className="flex shrink-0 items-center gap-1.5 text-xs font-medium text-text-soft">
+        {icon ? (
+          <span aria-hidden className="self-center [&>svg]:h-3.5 [&>svg]:w-3.5">
+            {icon}
+          </span>
+        ) : null}
+        {label}
+      </p>
+      <div className="min-w-0 text-right text-sm text-text-strong">{value}</div>
     </div>
   );
 }
@@ -122,15 +130,7 @@ export function renderMetadataDetails(metadata: Partial<WorkMetadata>): React.Re
   return (
     <>
       {entries.map((entry) => (
-        <div key={entry.label} className="flex items-start gap-3">
-          <div className="mt-0.5 flex-shrink-0 text-text-soft">
-            <RiFileList3Line className="h-4 w-4" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-medium text-text-soft">{entry.label}</p>
-            <p className="mt-0.5 text-sm text-text-strong">{entry.value}</p>
-          </div>
-        </div>
+        <DetailRow key={entry.label} label={entry.label} value={entry.value} />
       ))}
     </>
   );

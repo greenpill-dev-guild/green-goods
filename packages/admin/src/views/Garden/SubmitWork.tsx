@@ -25,6 +25,7 @@ import {
   type AuthStateValue,
   useAuthState,
   useBeforeUnloadWhilePending,
+  useDirtyClose,
   useGardenPermissions,
   useGardens,
   useStepFocus,
@@ -40,8 +41,9 @@ import { Controller } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AdminButton } from "@/components/AdminButton";
-import { AdminConfirmDialog, AdminDialog, ADMIN_FLOW_DIALOG_CLASS } from "@/components/AdminDialog";
+import { AdminDialog, ADMIN_FLOW_DIALOG_CLASS } from "@/components/AdminDialog";
 import { AdminLinearProgress } from "@/components/AdminLinearProgress";
+import { DiscardChangesDialog } from "@/components/DiscardChangesDialog";
 import { AdminTabRail } from "@/components/AdminTabRail";
 import { AdminTextField } from "@/components/AdminTextField";
 import { ActionFlowShell } from "@/components/Layout/ActionFlowShell";
@@ -245,6 +247,13 @@ export interface SubmitWorkPanelProps {
   onSuccess?: () => void;
   onCancel?: () => void;
   auth?: SubmitWorkAuthSnapshot;
+  /**
+   * Reports whether the operator has user-meaningful content (typed form
+   * fields or staged media) so the hosting dialog can guard accidental
+   * closes. Selecting an action alone is one recoverable click — it does not
+   * count as dirty (parity with Create Assessment's pristine-close contract).
+   */
+  onDirtyChange?: (dirty: boolean) => void;
 }
 
 const ADMIN_WORK_MEDIA_COMPRESSION_THRESHOLD_KB = 1024;
@@ -307,6 +316,7 @@ function SubmitWorkPanelContent({
   layout = "page",
   onSuccess,
   onCancel,
+  onDirtyChange,
   auth,
 }: Omit<SubmitWorkPanelProps, "auth"> & { auth: SubmitWorkAuthSnapshot }) {
   const { formatMessage } = useIntl();
@@ -371,7 +381,7 @@ function SubmitWorkPanelContent({
     register,
     control,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isDirty: formIsDirty },
     reset: resetForm,
   } = form;
 
@@ -381,6 +391,14 @@ function SubmitWorkPanelContent({
   const [isPreparingMedia, setIsPreparingMedia] = useState(false);
   // Stepped flow position (1=Action, 2=Media, 3=Details, 4=Review).
   const [currentStep, setCurrentStep] = useState(1);
+
+  // Dirty = typed form content or staged media (not mere action selection) —
+  // drives the hosting dialog's discard guard.
+  const panelDirty = formIsDirty || images.length > 0;
+  useEffect(() => {
+    onDirtyChange?.(panelDirty);
+    return () => onDirtyChange?.(false);
+  }, [onDirtyChange, panelDirty]);
   const canSubmit = garden ? canManageGarden(garden) : false;
   const isLoadingData = Boolean(gardensLoading || actionsLoading);
 
@@ -718,18 +736,34 @@ function SubmitWorkPanelContent({
     {
       id: "action",
       title: formatMessage({ id: "app.admin.work.submit.step.action", defaultMessage: "Action" }),
+      description: formatMessage({
+        id: "app.admin.work.submit.step.action.hint",
+        defaultMessage: "Choose what work to log",
+      }),
     },
     {
       id: "media",
       title: formatMessage({ id: "app.admin.work.submit.step.media", defaultMessage: "Media" }),
+      description: formatMessage({
+        id: "app.admin.work.submit.step.media.hint",
+        defaultMessage: "Add photos of the work",
+      }),
     },
     {
       id: "details",
       title: formatMessage({ id: "app.admin.work.submit.step.details", defaultMessage: "Details" }),
+      description: formatMessage({
+        id: "app.admin.work.submit.step.details.hint",
+        defaultMessage: "Fill in the action's fields",
+      }),
     },
     {
       id: "review",
       title: formatMessage({ id: "app.admin.work.submit.step.review", defaultMessage: "Review" }),
+      description: formatMessage({
+        id: "app.admin.work.submit.step.review.hint",
+        defaultMessage: "Check everything before submitting",
+      }),
     },
   ];
   const activeStepId = stepConfigs[currentStep - 1]?.id ?? "action";
@@ -1054,16 +1088,25 @@ export default function SubmitWork() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const hubContext = parseHubContext(location.search);
-  const close = () => navigate(adminRoutes.hub(hubContext));
-  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  const close = useCallback(
+    () => navigate(adminRoutes.hub(parseHubContext(location.search))),
+    [navigate, location.search]
+  );
+  const [panelDirty, setPanelDirty] = useState(false);
+  // Confirm before an accidental X / scrim / Escape discards typed content —
+  // and ONLY then: a pristine close exits straight to the Hub (parity with
+  // Create Assessment's clean-close contract). The shared DiscardChangesDialog
+  // carries the flow-wide copy; no inline duplicate.
+  const dirtyClose = useDirtyClose({
+    isDirty: panelDirty,
+    onClose: close,
+    onDiscard: close,
+  });
 
   // Centered flow modal with a scrim (bottom-sheet on mobile) — width comes from
   // ADMIN_FLOW_DIALOG_CLASS, not the size prop below. The dialog body is
   // neutralized to a flex column with no scroll of its own — ActionFlowShell owns
-  // the pinned chrome + scrolling body inside it. The X / backdrop routes through a
-  // discard confirm so a submission can't be lost to an accidental close; the
-  // explicit Cancel button still exits directly.
+  // the pinned chrome + scrolling body inside it.
   return (
     <>
       <AdminDialog
@@ -1072,36 +1115,22 @@ export default function SubmitWork() {
         variant="flow"
         tone="garden"
         className={ADMIN_FLOW_DIALOG_CLASS}
-        onOpenChange={(next) => {
-          if (!next) setShowDiscardConfirm(true);
-        }}
+        onOpenChange={dirtyClose.onOpenChange}
         title={formatMessage({ id: "app.admin.work.submit.title" })}
         description={formatMessage({ id: "app.admin.work.submit.description" })}
         bodyClassName="flex min-h-0 flex-col !overflow-hidden"
       >
-        <SubmitWorkPanel layout="dialog" onSuccess={close} onCancel={close} />
+        <SubmitWorkPanel
+          layout="dialog"
+          onSuccess={close}
+          onCancel={close}
+          onDirtyChange={setPanelDirty}
+        />
       </AdminDialog>
-      <AdminConfirmDialog
-        isOpen={showDiscardConfirm}
-        onClose={() => setShowDiscardConfirm(false)}
-        onConfirm={close}
-        title={formatMessage({
-          id: "app.admin.flow.discardChanges.title",
-          defaultMessage: "Discard changes?",
-        })}
-        description={formatMessage({
-          id: "app.admin.flow.discardChanges.description",
-          defaultMessage: "Any unsaved changes will be lost.",
-        })}
-        confirmLabel={formatMessage({
-          id: "app.admin.flow.discardChanges.confirm",
-          defaultMessage: "Discard",
-        })}
-        cancelLabel={formatMessage({
-          id: "app.admin.flow.discardChanges.cancel",
-          defaultMessage: "Keep editing",
-        })}
-        variant="warning"
+      <DiscardChangesDialog
+        open={dirtyClose.confirmOpen}
+        onKeepEditing={dirtyClose.cancelClose}
+        onDiscard={dirtyClose.confirmClose}
       />
     </>
   );

@@ -848,7 +848,21 @@
   }
 
   .gg-control-select {
-    appearance: auto;
+    /* Custom chevron with breathing room — the browser-default arrow sits
+       flush against the control edge with no inset. Same glyph light + dark
+       via a mid-gray stroke; padding reserves its lane so option text never
+       runs beneath it. */
+    appearance: none;
+    padding-right: 2.25rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23737373' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1rem 1rem;
+  }
+
+  :root[data-theme="dark"] .gg-control-select,
+  [data-theme="dark"] .gg-control-select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a3a3a3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   }
 
   .gg-control-trigger {

@@ -15,6 +15,12 @@ import { useIntl } from "react-intl";
 export interface ActionFlowStep {
   id: string;
   title: string;
+  /**
+   * Short supporting line (~5 words) rendered under the title in the vertical
+   * desktop rail — fills the rail's whitespace and previews what each step
+   * asks for. The compact horizontal (mobile) stepper stays title-only.
+   */
+  description?: string;
 }
 
 export interface ActionFlowStepperProps {
@@ -132,6 +138,9 @@ export function ActionFlowStepper({
                 >
                   {step.title}
                 </p>
+                {step.description ? (
+                  <p className="mt-0.5 line-clamp-2 text-xs text-text-soft">{step.description}</p>
+                ) : null}
               </div>
             </li>
           );

@@ -43,7 +43,7 @@ function ReviewCard({
   return (
     <AdminCard variant="outlined">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-text-sub">{title}</h3>
+        <h3 className="label-xs text-text-sub">{title}</h3>
         {onEdit && editText ? (
           <button
             type="button"

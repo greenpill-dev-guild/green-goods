@@ -123,7 +123,9 @@ export function CookieJarManageModal({
         open={isOpen}
         onOpenChange={(open) => !open && !isPending && onClose()}
         size="lg"
-        tone="hub"
+        // Jar management is garden configuration — it mounts from the Garden
+        // Profile dialog, so it carries the garden workspace tone.
+        tone="garden"
         title={formatMessage({
           id: "app.cookieJar.manageModal.title",
           defaultMessage: "Manage Cookie Jars",
