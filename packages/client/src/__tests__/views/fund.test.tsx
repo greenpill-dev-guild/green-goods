@@ -495,9 +495,9 @@ describe("FundPage", () => {
     expect(hero.compareDocumentPosition(vaults) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(vaults.compareDocumentPosition(paths) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(paths.compareDocumentPosition(gardens) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(screen.getByText("§ 01 — Endowment engine")).toBeInTheDocument();
-    expect(screen.getByText("§ 02 — Endowment path")).toBeInTheDocument();
-    expect(screen.getByText("§ 03 — Choose where to endow")).toBeInTheDocument();
+    expect(screen.getByText("§ 01: Endowment engine")).toBeInTheDocument();
+    expect(screen.getByText("§ 02: Ways to support")).toBeInTheDocument();
+    expect(screen.getByText("§ 03: Choose where to endow")).toBeInTheDocument();
   });
 
   it("wires the vault stats section into the reveal lifecycle", () => {
@@ -518,7 +518,7 @@ describe("FundPage", () => {
     expect(daiCard).toHaveTextContent("2,005 DAI");
     expect(daiCard).toHaveTextContent("APR");
     expect(daiCard).toHaveTextContent("5.10%");
-    expect(daiCard).toHaveTextContent("Ready to harvest");
+    expect(daiCard).toHaveTextContent("Yield ready for Gardens");
     expect(daiCard).toHaveTextContent("5 DAI");
     expect(daiCard).toHaveTextContent("Routed to Gardens");
     expect(daiCard).toHaveTextContent("20 DAI");
@@ -532,7 +532,7 @@ describe("FundPage", () => {
     expect(ethCard).toHaveTextContent("1.25 ETH");
     expect(ethCard).toHaveTextContent("APR");
     expect(ethCard).toHaveTextContent("2.50%");
-    expect(ethCard).toHaveTextContent("Ready to harvest");
+    expect(ethCard).toHaveTextContent("Yield ready for Gardens");
     expect(ethCard).toHaveTextContent("0.05 ETH");
     expect(ethCard).toHaveTextContent("Routed to Gardens");
     expect(ethCard).toHaveTextContent("0.1 ETH");
@@ -555,7 +555,7 @@ describe("FundPage", () => {
 
     const daiCard = screen.getByText("DAI endowment balance").closest("article");
     expect(daiCard).toHaveTextContent("Live yield unavailable");
-    expect(daiCard).not.toHaveTextContent("Ready to harvest 0 DAI");
+    expect(daiCard).not.toHaveTextContent("Yield ready 0 DAI");
     expect(screen.queryByText("Accruing now 0 DAI")).toBeNull();
   });
 
