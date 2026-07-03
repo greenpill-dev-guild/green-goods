@@ -238,7 +238,7 @@ export default function ActionsGallery() {
         })}
       />
 
-      {/* § 01 — Four domains explainer */}
+      {/* § 01: Four domains explainer */}
       <section
         ref={domainsRef}
         data-revealed={domainsRevealed}
@@ -250,7 +250,7 @@ export default function ActionsGallery() {
             <EditorialKicker className="mb-3">
               {formatMessage({
                 id: "public.actions.domains.kicker",
-                defaultMessage: "§ 01 — Four domains",
+                defaultMessage: "§ 01: Four domains",
               })}
             </EditorialKicker>
             <EditorialHeading id="public-actions-domains-title">
@@ -296,7 +296,7 @@ export default function ActionsGallery() {
         </div>
       </section>
 
-      {/* § 02 — Eight forms of value */}
+      {/* § 02: Eight forms of value */}
       <section
         ref={capitalsRef}
         data-revealed={capitalsRevealed}
@@ -308,20 +308,20 @@ export default function ActionsGallery() {
             <EditorialKicker className="mb-3">
               {formatMessage({
                 id: "public.actions.capitals.kicker",
-                defaultMessage: "§ 02 — Eight forms of value",
+                defaultMessage: "§ 02: Eight forms of value",
               })}
             </EditorialKicker>
             <EditorialHeading id="public-actions-capitals-title">
               {formatMessage({
                 id: "public.actions.capitals.title",
-                defaultMessage: "What we measure when work happens.",
+                defaultMessage: "The kinds of value work creates.",
               })}
             </EditorialHeading>
             <EditorialLede className="mt-4 max-w-2xl">
               {formatMessage({
                 id: "public.actions.capitals.lede",
                 defaultMessage:
-                  "Beneath each domain, work creates value across eight capitals — not just dollars or carbon, but the felt fabric of healthy places.",
+                  "Beneath each domain, work creates eight kinds of value: not just money or carbon, but soil, skill, trust, and story.",
               })}
             </EditorialLede>
           </header>
@@ -341,7 +341,7 @@ export default function ActionsGallery() {
         </div>
       </section>
 
-      {/* § 03 — Field guide */}
+      {/* § 03: Field guide */}
       <section
         ref={guideRef}
         data-revealed={guideRevealed}
@@ -353,7 +353,7 @@ export default function ActionsGallery() {
             <EditorialKicker className="mb-3">
               {formatMessage({
                 id: "public.actions.fieldGuide.kicker",
-                defaultMessage: "§ 03 — Field guide",
+                defaultMessage: "§ 03: Field guide",
               })}
             </EditorialKicker>
             <EditorialHeading id="public-actions-grid-title">
@@ -442,7 +442,7 @@ export default function ActionsGallery() {
             {formatMessage({
               id: "public.actions.dialog.participate",
               defaultMessage:
-                "Install the Green Goods app to log Work for this Action with your Garden.",
+                "Install the Green Goods app, join a Garden, and log Work for this Action.",
             })}
           </p>
           <PublicInstallAction>

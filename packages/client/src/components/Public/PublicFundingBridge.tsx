@@ -32,7 +32,7 @@ export function PublicFundingBridge() {
             <EditorialKicker className="mb-5">
               {formatMessage({
                 id: "public.home.funding.kicker",
-                defaultMessage: "§ 04: Support Gardens",
+                defaultMessage: "§ 05: Support Gardens",
               })}
             </EditorialKicker>
             <EditorialHeading id="public-funding-bridge-title">
@@ -91,7 +91,7 @@ export function PublicFundingBridge() {
                   {formatMessage({
                     id: "public.home.funding.endowBody",
                     defaultMessage:
-                      "Make a long-term deposit. The principal stays; the yield supports the Garden's Work.",
+                      "Make a long-term deposit. The principal stays in place and remains withdrawable, and the yield supports the Garden's Work.",
                   })}
                 </p>
               </article>
@@ -110,7 +110,7 @@ export function PublicFundingBridge() {
                 {formatMessage({
                   id: "public.home.funding.note",
                   defaultMessage:
-                    "Both paths support the Garden directly. They are not tax-deductible, charitable, or nonprofit-backed unless separately configured. Long-term deposits depend on the underlying token and provider, so values and access can vary.",
+                    "Both paths support the Garden directly. They are not tax-deductible, charitable, or nonprofit-backed unless separately configured. Deposit value can move with the underlying token, and withdrawals can take time.",
                 })}
               </p>
             </div>

@@ -38,7 +38,7 @@ const TERMS: readonly GlossaryTerm[] = [
     defaultLabel: "Action",
     bodyId: "public.glossary.term.action.body",
     defaultBody:
-      "A documented activity a gardener can perform — the unit of work template. Each Action names what to do, what to capture, and what proof comes next.",
+      "A documented activity a gardener can perform: the reusable template for Work. Each Action names what to do, what to capture, and what proof comes next.",
     docsPath: "/glossary#action",
   },
   {
@@ -47,7 +47,7 @@ const TERMS: readonly GlossaryTerm[] = [
     defaultLabel: "Assessment",
     bodyId: "public.glossary.term.assessment.body",
     defaultBody:
-      "The diagnosis-and-plan stage of a Garden's season — written by operators and evaluators to name what the place needs and what counts as good.",
+      "The diagnosis-and-plan stage of a Garden's season, written by operators and evaluators to name what the place needs and what counts as good.",
     docsPath: "/glossary#assessment",
   },
   {
@@ -56,7 +56,7 @@ const TERMS: readonly GlossaryTerm[] = [
     defaultLabel: "Cookie Jar",
     bodyId: "public.glossary.term.cookieJar.body",
     defaultBody:
-      "A shared fund where supporters donate to a Garden's near-term Work. Cookie Jars are allowlist-gated so the right hands can claim from them.",
+      "A shared fund where supporters give to a Garden's near-term Work. Only approved members can claim from a jar, so the funds reach the right hands.",
     docsPath: "/glossary#cookie-jar",
   },
   {
@@ -65,7 +65,7 @@ const TERMS: readonly GlossaryTerm[] = [
     defaultLabel: "Evaluator",
     bodyId: "public.glossary.term.evaluator.body",
     defaultBody:
-      "A domain expert who reviews submitted Work and signs off with a confidence band and verification method. Their care is what turns a field log into evidence.",
+      "A trusted reviewer, from any background, who checks submitted Work and signs off with a confidence band and verification method. Their care is what turns a field log into evidence.",
     docsPath: "/glossary#evaluator",
   },
   {
@@ -83,7 +83,7 @@ const TERMS: readonly GlossaryTerm[] = [
     defaultLabel: "Gardener",
     bodyId: "public.glossary.term.gardener.body",
     defaultBody:
-      "A person who documents Work in the field — soil turned, seedlings planted, hours given — using the Green Goods app, even offline.",
+      "A person who documents Work in the field with the Green Goods app, even offline: soil turned, seedlings planted, hours given.",
     docsPath: "/glossary#gardener",
   },
   {
@@ -101,7 +101,7 @@ const TERMS: readonly GlossaryTerm[] = [
     defaultLabel: "Operator",
     bodyId: "public.glossary.term.operator.body",
     defaultBody:
-      "The person who runs a Garden — assembling the season's plan, accepting gardeners, and confirming the Work that gets recorded.",
+      "The person who runs a Garden: assembling the season's plan, accepting gardeners, and confirming the Work that gets recorded.",
     docsPath: "/glossary#operator",
   },
   {
@@ -119,7 +119,7 @@ const TERMS: readonly GlossaryTerm[] = [
     defaultLabel: "Work",
     bodyId: "public.glossary.term.work.body",
     defaultBody:
-      "A specific instance of an Action performed by a gardener — captured with photo, description, and metadata, then attested on-chain after operator approval.",
+      "One Action carried out by a gardener, captured with a photo and description, then recorded on the blockchain after operator approval.",
     docsPath: "/glossary#work",
   },
 ] as const;
@@ -175,7 +175,7 @@ export default function GlossaryPage() {
             <EditorialKicker className="mb-3">
               {formatMessage({
                 id: "public.glossary.kicker",
-                defaultMessage: "§ 01 — Terms",
+                defaultMessage: "§ 01: Terms",
               })}
             </EditorialKicker>
             <EditorialHeading id="public-glossary-terms-title">

@@ -40,10 +40,10 @@ const PERSONAS: readonly PersonaEntry[] = [
     nameId: "public.home.personas.gardener.name",
     defaultName: "Gardeners",
     roleId: "public.home.personas.gardener.role",
-    defaultRole: "Document the work — soil turned, seedlings planted, hours given.",
+    defaultRole: "Document the work: soil turned, seedlings planted, hours given.",
     bodyId: "public.home.personas.gardener.body",
     defaultBody:
-      "A gardener walks a place every season — mapping soil, planting trees, capturing what was done. The Green Goods app turns those moments into a public record without taking the gardener out of the field.",
+      "A gardener walks a place every season, mapping soil, planting trees, capturing what was done. The Green Goods app turns those moments into a public record without taking the gardener out of the field.",
     ctaId: "public.home.personas.gardener.cta",
     defaultCta: "Install the field app",
     cta: { type: "install" },
@@ -53,10 +53,10 @@ const PERSONAS: readonly PersonaEntry[] = [
     nameId: "public.home.personas.operator.name",
     defaultName: "Operators",
     roleId: "public.home.personas.operator.role",
-    defaultRole: "Run the garden — assemble the season's plan, accept gardeners, confirm the work.",
+    defaultRole: "Run the garden: assemble the season's plan, accept gardeners, confirm the work.",
     bodyId: "public.home.personas.operator.body",
     defaultBody:
-      "Operators are the steady hand of a garden — the one who calls the season's plan, who decides what counts, who approves a gardener's first work. They are the connective tissue between a place's intentions and its proof.",
+      "Operators are the steady hand of a garden: the one who calls the season's plan, who decides what counts, who approves a gardener's first work. They are the connective tissue between a place's intentions and its proof.",
     ctaId: "public.home.personas.operator.cta",
     defaultCta: "Read the operator guide",
     cta: { type: "external", href: "https://docs.greengoods.app/community/operator-guide" },
@@ -66,10 +66,10 @@ const PERSONAS: readonly PersonaEntry[] = [
     nameId: "public.home.personas.evaluator.name",
     defaultName: "Evaluators",
     roleId: "public.home.personas.evaluator.role",
-    defaultRole: "Verify the record — review submitted work, sign off on confidence and method.",
+    defaultRole: "Verify the record. Review submitted Work, sign off on confidence and method.",
     bodyId: "public.home.personas.evaluator.body",
     defaultBody:
-      "Evaluators are the trust layer of the public record — domain experts who review submitted work, sign off with a confidence band, and name the verification method behind each approval. Their care is what turns a field log into evidence.",
+      "Evaluators are the trust layer of the public record. They come from many backgrounds, review submitted Work, sign off with a confidence band, and name the verification method behind each approval. Their care is what turns a field log into evidence.",
     ctaId: "public.home.personas.evaluator.cta",
     defaultCta: "Read the evaluator guide",
     cta: { type: "external", href: "https://docs.greengoods.app/community/evaluator-guide" },
@@ -79,10 +79,10 @@ const PERSONAS: readonly PersonaEntry[] = [
     nameId: "public.home.personas.funder.name",
     defaultName: "Funders",
     roleId: "public.home.personas.funder.role",
-    defaultRole: "Resource the work — fund a vault, sponsor an action, hold an Impact Certificate.",
+    defaultRole: "Resource the work. Endow a Garden Vault or give directly to its shared fund.",
     bodyId: "public.home.personas.funder.body",
     defaultBody:
-      "Funders make seasons possible — by donating directly to a Garden's shared fund, by endowing a vault whose yield supports many seasons, or by holding an Impact Certificate as a record of regenerative outcomes. Each path lands with a Garden, not a platform.",
+      "Funders make seasons possible. Some give directly to a Garden's shared fund for the work at hand. Others endow a vault whose yield supports the Garden season after season. Every path lands with a Garden, not a platform.",
     ctaId: "public.home.personas.funder.cta",
     defaultCta: "See how contributions land",
     cta: { type: "internal", to: "/fund" },
@@ -92,12 +92,12 @@ const PERSONAS: readonly PersonaEntry[] = [
     nameId: "public.home.personas.community.name",
     defaultName: "Community",
     roleId: "public.home.personas.community.role",
-    defaultRole: "Show up locally — visit, witness, mentor, share the season's story.",
+    defaultRole: "Show up locally: visit, witness, mentor, share the season's story.",
     bodyId: "public.home.personas.community.body",
     defaultBody:
-      "A garden is held by the people around it — neighbors who visit on a Saturday, elders who mentor a first season, friends who share the season's story. Community shows up in the places where the work happens, and the public record is for them too.",
+      "A garden is held by the people around it: neighbors who visit on a Saturday, elders who mentor a first season, friends who share the season's story. Community shows up in the places where the work happens, and the public record is for them too.",
     ctaId: "public.home.personas.community.cta",
-    defaultCta: "Find a garden near you",
+    defaultCta: "Browse all Gardens",
     cta: { type: "internal", to: "/gardens" },
   },
 ] as const;
@@ -238,7 +238,7 @@ export function PublicWhoTendsAGarden() {
           <EditorialKicker className="mb-3">
             {formatMessage({
               id: "public.home.personas.kicker",
-              defaultMessage: "§ — Who tends a garden",
+              defaultMessage: "§ 04: Who tends a Garden",
             })}
           </EditorialKicker>
           <EditorialHeading id="public-home-personas-title">

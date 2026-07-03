@@ -164,7 +164,7 @@ export default function GardenDetail() {
               {formatMessage({
                 id: "public.gardenDetail.fund.description",
                 defaultMessage:
-                  "Donate directly to the Garden's Cookie Jar, or Endow the Vault — a long-term deposit designed to keep its principal while yield supports the Garden.",
+                  "Donate to the Garden's shared fund (its Cookie Jar), or Endow the Vault, a long-term deposit that stays withdrawable while its yield supports the Garden.",
               })}
             </p>
             <Link
