@@ -1,10 +1,14 @@
 /**
  * @vitest-environment jsdom
+ *
+ * Submit Work flow-dialog close contract (parity with CreateAssessmentDialog):
+ * a pristine dialog closes straight back to the Hub with no discard prompt.
+ * The old wrapper raised the Discard confirm unconditionally on every
+ * Esc/X/scrim close — this is the regression test for the fixed behavior.
  */
 
 import { QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { get as idbGet } from "idb-keyval";
 import { IntlProvider } from "react-intl";
 import { RouterProvider, createMemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -13,12 +17,11 @@ import {
   DEFAULT_CHAIN_ID,
   queryKeys,
   useAdminStore,
-  useCreateAssessmentStore,
   type AuthContextType,
   type Garden,
 } from "@green-goods/shared";
 import { createTestQueryClient } from "@green-goods/shared/testing";
-import CreateAssessment from "@/views/Hub/CreateAssessment";
+import SubmitWork from "@/views/Garden/SubmitWork";
 
 const OPERATOR = "0x9999999999999999999999999999999999999999";
 
@@ -48,7 +51,23 @@ vi.mock("wagmi", () => ({
   useAccount: () => ({ address: OPERATOR, isConnected: true, isConnecting: false }),
   useReadContract: () => ({ data: 1 }),
   useWalletClient: () => ({ data: undefined }),
+  useWriteContract: () => ({ writeContractAsync: vi.fn(), isPending: false }),
+  useConfig: () => ({}),
+  useSwitchChain: () => ({ switchChainAsync: vi.fn() }),
+  usePublicClient: () => undefined,
 }));
+
+// SubmitWorkPanel resolves its auth snapshot through the auth state machine
+// (useAuthState/useUser), which needs the full AuthProvider tree — stub just
+// those two reads; everything else stays real.
+vi.mock("@green-goods/shared", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@green-goods/shared")>();
+  return {
+    ...actual,
+    useAuthState: () => ({ isAuthenticated: true, authMode: "wallet" }),
+    useUser: () => ({ primaryAddress: OPERATOR }),
+  };
+});
 
 const authContextValue: AuthContextType = {
   authMode: "wallet",
@@ -79,32 +98,24 @@ const authContextValue: AuthContextType = {
   disconnectWallet: vi.fn(),
 };
 
-function renderCreateAssessment() {
+function renderSubmitWork() {
   const queryClient = createTestQueryClient();
   queryClient.setQueryData(queryKeys.gardens.byChain(DEFAULT_CHAIN_ID), [SELECTED_GARDEN]);
+  queryClient.setQueryData(queryKeys.actions.byChain(DEFAULT_CHAIN_ID), []);
   queryClient.setQueryData(
     queryKeys.role.operatorGardens(OPERATOR.toLowerCase(), DEFAULT_CHAIN_ID),
     [{ id: SELECTED_GARDEN.id, name: SELECTED_GARDEN.name }]
   );
   queryClient.setQueryData(
     queryKeys.role.deploymentPermissions(OPERATOR.toLowerCase(), DEFAULT_CHAIN_ID),
-    {
-      isOwner: false,
-      isInAllowlist: false,
-      canDeploy: false,
-    }
+    { isOwner: false, isInAllowlist: false, canDeploy: false }
   );
   const router = createMemoryRouter(
     [
-      { path: "/hub/assess/create", element: <CreateAssessment /> },
-      // Cancel/Discard navigates to the Hub the flow was launched from — a
-      // bare fallback so that navigation resolves cleanly instead of logging
-      // a React Router 404 in tests that exercise the close path.
+      { path: "/hub/work/submit", element: <SubmitWork /> },
       { path: "/hub/*", element: <div /> },
     ],
-    {
-      initialEntries: [`/hub/assess/create?gardenId=${SELECTED_GARDEN.id}`],
-    }
+    { initialEntries: [`/hub/work/submit?gardenId=${SELECTED_GARDEN.id}`] }
   );
 
   render(
@@ -120,7 +131,7 @@ function renderCreateAssessment() {
   return router;
 }
 
-describe("CreateAssessment dialog", () => {
+describe("SubmitWork dialog", () => {
   beforeEach(() => {
     useAdminStore.setState({
       selectedChainId: DEFAULT_CHAIN_ID,
@@ -147,67 +158,25 @@ describe("CreateAssessment dialog", () => {
     cleanup();
   });
 
-  it("opens the assessment form from the route garden id without a Zustand selected garden", async () => {
+  it("closes straight back to the Hub when nothing was entered (no discard prompt)", async () => {
+    let router: ReturnType<typeof renderSubmitWork> | undefined;
     await act(async () => {
-      renderCreateAssessment();
+      router = renderSubmitWork();
       await Promise.resolve();
     });
 
-    expect(await screen.findByRole("heading", { name: "Domain & Context" })).toBeInTheDocument();
-    expect(screen.getByText("Role-Proven Garden")).toBeInTheDocument();
-    expect(screen.queryByText("app.garden.admin.notFound")).not.toBeInTheDocument();
-  });
-
-  it("clears the persisted draft and in-memory form when the operator confirms Discard", async () => {
-    await act(async () => {
-      renderCreateAssessment();
-      await Promise.resolve();
-    });
-
-    const titleInput = await screen.findByLabelText(/^Title/);
-    fireEvent.change(titleInput, { target: { value: "Should not survive discard" } });
-
-    // Let the 600ms debounced auto-save actually persist the draft to IndexedDB
-    // before discarding it — otherwise this test can't tell "never saved" apart
-    // from "saved, then correctly cleared".
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 700));
-    });
-
-    const draftKey = `assessment_draft_${SELECTED_GARDEN.id}_${OPERATOR}`;
-    expect(await idbGet(draftKey)).toMatchObject({ title: "Should not survive discard" });
-
-    const dialog = screen.getByRole("dialog", { name: "Submit Assessment" });
-    fireEvent.keyDown(dialog, { key: "Escape" });
-
-    const discardButton = await screen.findByRole("button", { name: "Discard" });
-    await act(async () => {
-      fireEvent.click(discardButton);
-      await Promise.resolve();
-    });
-
-    expect(await idbGet(draftKey)).toBeUndefined();
-    expect(useCreateAssessmentStore.getState().form.title).toBe("");
-  });
-
-  it("closes straight back to the Hub when the form is pristine (no discard prompt)", async () => {
-    let router: ReturnType<typeof renderCreateAssessment> | undefined;
-    await act(async () => {
-      router = renderCreateAssessment();
-      await Promise.resolve();
-    });
-
-    const dialog = await screen.findByRole("dialog", { name: "Submit Assessment" });
+    const dialog = await screen.findByRole("dialog", { name: "app.admin.work.submit.title" });
     await act(async () => {
       fireEvent.keyDown(dialog, { key: "Escape" });
       await Promise.resolve();
     });
 
-    // Pristine form: Escape must not raise the discard confirm — it exits
-    // directly to the Hub workbench the flow was launched from (controller
-    // handleCancel → adminRoutes.hub → the default /hub/work stage).
+    // Pristine flow: Escape must exit directly (the old wrapper raised the
+    // Discard confirm even for an untouched dialog).
     expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("dialog", { name: "Submit Assessment" })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("dialog", { name: "app.admin.work.submit.title" })
+    ).not.toBeInTheDocument();
     expect(router?.state.location.pathname).toBe("/hub/work");
   });
 });

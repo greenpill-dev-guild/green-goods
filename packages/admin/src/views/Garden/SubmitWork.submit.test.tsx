@@ -540,6 +540,35 @@ describe("SubmitWorkPanel submit behavior", () => {
     expect(mockMutate).not.toHaveBeenCalled();
   });
 
+  it("reports dirty to the host when media is staged, clean again when removed", async () => {
+    const onDirtyChange = vi.fn();
+    const { container } = render(
+      <TestProviders>
+        <SubmitWorkPanel layout="page" onDirtyChange={onDirtyChange} />
+      </TestProviders>
+    );
+
+    // Auto-selecting the only action is one recoverable click — not dirty.
+    await waitFor(() => {
+      expect(onDirtyChange).toHaveBeenLastCalledWith(false);
+    });
+
+    const fileInput = container.querySelector('input[type="file"]');
+    expect(fileInput).not.toBeNull();
+    const file = new File(["img"], "photo.png", { type: "image/png" });
+    fireEvent.change(fileInput as HTMLInputElement, { target: { files: [file] } });
+
+    // Staged media = user-meaningful content → the host's discard guard arms.
+    await waitFor(() => {
+      expect(onDirtyChange).toHaveBeenLastCalledWith(true);
+    });
+
+    fireEvent.click(await screen.findByRole("button", { name: "photo.png" }));
+    await waitFor(() => {
+      expect(onDirtyChange).toHaveBeenLastCalledWith(false);
+    });
+  });
+
   it("allows optional media actions with minImageCount 0 to submit without images", async () => {
     mockState.actions = [createAction({ required: false, minImageCount: 0 })];
     const user = userEvent.setup();

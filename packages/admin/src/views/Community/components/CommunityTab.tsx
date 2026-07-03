@@ -25,7 +25,6 @@ export interface CommunityTabProps {
   garden: { id: string; name: string };
   gardenId: string;
   canManage: boolean;
-  isOwner: boolean;
   section: string | undefined;
   showSectionStateCard?: boolean;
   clearSection: () => void;
@@ -54,7 +53,6 @@ export function CommunityTab({
   garden,
   gardenId,
   canManage,
-  isOwner,
   section,
   showSectionStateCard = true,
   clearSection,
@@ -212,11 +210,7 @@ export function CommunityTab({
             )}
 
             {(section === undefined || section === "cookie-jars" || section === "payouts") && (
-              <CookieJarPayoutPanel
-                gardenAddress={garden.id as Address}
-                canManage={canManage}
-                isOwner={isOwner}
-              />
+              <CookieJarPayoutPanel gardenAddress={garden.id as Address} />
             )}
 
             {(section === undefined || section === "yield" || section === "treasury") && (

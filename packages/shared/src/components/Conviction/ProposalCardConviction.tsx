@@ -45,7 +45,10 @@ export function ProposalCardConviction({
       <div className="flex flex-col gap-1.5">
         <h3
           id={headingId}
-          className="text-title-md font-semibold text-text-strong line-clamp-2"
+          // title-sm: these cards render three-up in the dense governance grid
+          // (and inside dialogs), where title-md read oversized next to the
+          // panel's own headings.
+          className="text-title-sm font-semibold text-text-strong line-clamp-2"
           title={proposal.title}
         >
           {proposal.title}

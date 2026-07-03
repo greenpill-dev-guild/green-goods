@@ -251,7 +251,7 @@ export default function GardenSignalPoolView({ layout = "page" }: GardenSignalPo
               <p className="text-xs text-text-soft">{formatMessage({ id: countLabelKey })}</p>
               {/* Value slots keep their final geometry while loading — a
                   shimmer block the size of the number, never swapped-in text. */}
-              <p className="mt-1 text-xl font-semibold text-text-strong">
+              <p className="mt-1 text-lg font-semibold text-text-strong">
                 {itemsLoading ? (
                   <span className="block h-7 w-12 rounded-md skeleton-shimmer" aria-hidden />
                 ) : (
@@ -263,7 +263,7 @@ export default function GardenSignalPoolView({ layout = "page" }: GardenSignalPo
               <p className="text-xs text-text-soft">
                 {formatMessage({ id: "app.signal.weightsRecordedLabel" })}
               </p>
-              <p className="mt-1 text-xl font-semibold text-text-strong">
+              <p className="mt-1 text-lg font-semibold text-text-strong">
                 {weightsLoading ? (
                   <span className="block h-7 w-12 rounded-md skeleton-shimmer" aria-hidden />
                 ) : (
