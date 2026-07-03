@@ -2694,8 +2694,6 @@
   "cockpit.community.action.manageMembers": "Manage members",
   "cockpit.community.action.newProposal": "New proposal",
   "cockpit.community.action.viewPublic": "View public",
-  "cockpit.community.allGardensRedirect.message": "Showing {name}. Use the garden chip to switch.",
-  "cockpit.community.allGardensRedirect.title": "Community is per-garden",
   "cockpit.community.cookies": "Cookies",
   "cockpit.community.cookies.advanced": "Advanced",
   "cockpit.community.cookies.assetDecimals": "{symbol} - {decimals} decimals",

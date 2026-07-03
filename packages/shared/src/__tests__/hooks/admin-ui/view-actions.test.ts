@@ -160,7 +160,7 @@ describe("buildCommunityViewActions — fixed primary", () => {
     expect(navigate.mock.calls[0]?.[0]).toContain(GARDEN);
   });
 
-  it("links Manage members to the Garden members management surface", () => {
+  it("links Manage members to the community-owned members flow", () => {
     const navigate = vi.fn();
     buildCommunityViewActions("treasury", true, false, true, navigate, {
       gardenAddress: GARDEN,
@@ -168,7 +168,9 @@ describe("buildCommunityViewActions — fixed primary", () => {
       .find((action) => action.id === "manage-members")
       ?.onClick();
     expect(navigate).toHaveBeenCalledTimes(1);
-    expect(navigate.mock.calls[0]?.[0]).toContain("/garden/members");
+    // Community owns membership — the flow must stay under /community so the
+    // NavigationBar tab does not flip to Garden while the dialog is open.
+    expect(navigate.mock.calls[0]?.[0]).toContain("/community/members");
   });
 
   it("gates owner and management actions without duplicating the public link", () => {
