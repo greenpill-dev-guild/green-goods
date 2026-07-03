@@ -28,6 +28,7 @@ import {
   getAdminWorkspaceForPath,
   getAdminWorkspaceRoot,
   resolveAdminWorkspaceSectionRoute,
+  useDocumentEvent,
   useMediaQuery,
   useSheetOrchestrator,
   compareAddresses,
@@ -44,6 +45,7 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminDialog } from "@/components/AdminDialog";
 import { useLocation, useNavigate } from "react-router-dom";
+import { releaseStuckDialogArtifacts } from "./dialogCloseSafetyNet";
 import { LeftSheetProvider, useLeftSheetConfigValue } from "./leftSheetChannel";
 import { AccountProfilePanel } from "./AccountProfilePanel";
 import { AccountSettingsPanel } from "./AccountSettingsPanel";
@@ -242,22 +244,23 @@ export function CanvasLayout() {
     return () => window.removeEventListener(OPEN_ACCOUNT_SHEET_EVENT, handler as EventListener);
   }, [openRightSheetContent]);
 
-  // Safety net for the "page frozen until refresh" lockup: Radix Dialog locks
-  // `body { pointer-events: none }` while a modal is open and clears it on close,
-  // but an action dialog that closes by navigating away can unmount mid-close and
-  // leave the lock stuck — freezing the whole admin. After each navigation, if the
-  // body is still locked AND no modal is actually open, release it. Guarded on
-  // `[data-state="open"]` so it never unlocks behind a legitimately-open dialog
-  // (route-opened flows keep their lock); worst case this is a no-op.
+  // Safety net for the "page frozen until refresh" lockup (see
+  // dialogCloseSafetyNet.ts): runs after each navigation — an action dialog
+  // that closes by navigating away can unmount mid-close and leave Radix's
+  // body pointer-events lock stuck. No-op while any dialog is open.
   useEffect(() => {
     if (typeof document === "undefined") return;
-    const modalOpen = document.querySelector(
-      '[role="dialog"][data-state="open"],[role="alertdialog"][data-state="open"]'
-    );
-    if (!modalOpen && document.body.style.pointerEvents === "none") {
-      document.body.style.pointerEvents = "";
-    }
+    releaseStuckDialogArtifacts(document);
   }, [location.pathname]);
+
+  // …and when the tab becomes visible again: hidden tabs freeze CSS
+  // animations, so a close that happened in the background never fired
+  // animationend — its exit node and the body lock are still here.
+  useDocumentEvent("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      releaseStuckDialogArtifacts(document);
+    }
+  });
 
   const handleOpenSearch = useCallback(() => setSearchOpen(true), []);
   const openProfile = useCallback(
