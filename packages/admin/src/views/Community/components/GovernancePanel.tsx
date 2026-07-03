@@ -1,5 +1,4 @@
 import {
-  ConvictionMeter,
   EmptyState,
   type GardenSignalPool,
   PoolType,
@@ -75,12 +74,19 @@ export function GovernancePanel({ pools, gardenId }: GovernancePanelProps) {
   }
 
   if (isLoading && proposals.length === 0) {
+    // Skeleton mirrors the loaded structure — allocator block, section
+    // heading, then the proposal card grid at card height — so content
+    // landing replaces shimmer in place instead of reflowing the panel.
     return (
-      <div className="space-y-3" data-component="GovernancePanel" data-state="loading">
-        <div className="h-32 rounded-[var(--r-lg,16px)] skeleton-shimmer" />
-        <div className="h-24 rounded-[var(--r-lg,16px)] skeleton-shimmer" />
-        <div className="h-24 rounded-[var(--r-lg,16px)] skeleton-shimmer" />
-      </div>
+      <section className="space-y-4" data-component="GovernancePanel" data-state="loading">
+        <div className="h-28 rounded-[var(--r-lg,16px)] skeleton-shimmer" />
+        <div className="h-6 w-36 rounded-md skeleton-shimmer" />
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3" data-slot="proposal-grid">
+          <div className="h-48 rounded-[var(--r-lg,16px)] skeleton-shimmer" />
+          <div className="h-48 rounded-[var(--r-lg,16px)] skeleton-shimmer" />
+          <div className="h-48 rounded-[var(--r-lg,16px)] skeleton-shimmer" />
+        </div>
+      </section>
     );
   }
 
@@ -144,25 +150,6 @@ export function GovernancePanel({ pools, gardenId }: GovernancePanelProps) {
         {proposals.map((proposal) => (
           <ProposalCardConviction key={proposal.id} proposal={proposal} />
         ))}
-      </div>
-
-      <div className="rounded-[var(--r-md,12px)] bg-[var(--surface-quiet,rgb(var(--bg-soft-200)))] p-3 text-label-sm text-text-soft">
-        {formatMessage({
-          id: "cockpit.community.governance.firstDelivery.note",
-          defaultMessage:
-            "First delivery: threshold + accrual rates use conservative defaults until the pool-config hook lands. Hypercert metadata resolves from the garden's hypercert registry.",
-        })}
-        {/* Render meter as a small visual debug aid for the first proposal */}
-        {proposals[0] ? (
-          <div className="mt-2">
-            <ConvictionMeter
-              conviction={proposals[0].conviction}
-              threshold={proposals[0].threshold}
-              dailyAccrual={proposals[0].dailyAccrual}
-              status={proposals[0].status}
-            />
-          </div>
-        ) : null}
       </div>
     </section>
   );

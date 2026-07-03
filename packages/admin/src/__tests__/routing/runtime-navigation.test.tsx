@@ -11,6 +11,7 @@ import {
   type RouteObject,
 } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
+import { getAdminWorkspaceForPath } from "@green-goods/shared";
 import { adminCanvasRoutes } from "@/routes/views";
 import { renderWithProviders, waitFor } from "../test-utils";
 
@@ -123,6 +124,26 @@ describe("admin canvas runtime navigation", () => {
     });
 
     expect(router.state.location.search).toBe("?gardenAddress=0xAAA&item=deposit-1");
+  });
+
+  it("serves Manage Members from the Community workspace and redirects the legacy garden path", async () => {
+    // Canonical route renders in place — no redirect, workspace stays Community.
+    const canonical = renderAdminCanvasRoute("/community/members?gardenId=0xAAA");
+    await waitFor(() => {
+      expect(canonical.state.location.pathname).toBe("/community/members");
+    });
+    expect(canonical.state.location.search).toBe("?gardenId=0xAAA");
+    expect(getAdminWorkspaceForPath(canonical.state.location.pathname)).toBe("community");
+
+    // Legacy /garden/members deep links land on the canonical community route
+    // with their garden context intact (membership is community-owned — the
+    // NavigationBar tab must not flip to Garden).
+    const legacy = renderAdminCanvasRoute("/garden/members?gardenId=0xAAA");
+    await waitFor(() => {
+      expect(legacy.state.location.pathname).toBe("/community/members");
+    });
+    expect(legacy.state.location.search).toBe("?gardenId=0xAAA");
+    expect(getAdminWorkspaceForPath(legacy.state.location.pathname)).toBe("community");
   });
 
   it("keeps /actions as the canonical action registry with shareable filters", async () => {

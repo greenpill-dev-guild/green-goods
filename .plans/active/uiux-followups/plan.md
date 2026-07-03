@@ -264,6 +264,14 @@ adjudicates ~7 latent runtime-bug candidates.
 
 ### Slice 3 — Small admin dialog fixes: vault tone + occluded-close (F6a + F4)
 
+> **F4 landed elsewhere (2026-07-02):** the admin dialog quality pass (branch
+> `fix/admin-dialog-p0`, plan `~/.claude/plans/i-need-a-serious-glittery-hennessy.md`)
+> shipped the instant-exit + generalized safety net (AdminDialog `data-instant-exit`
+> on hidden-tab closes; `dialogCloseSafetyNet.ts` run on navigation AND
+> visibilitychange; CSS `animation: none + display: none` for marked closed nodes;
+> unit tests included). Do not re-implement F4 here — only **F6a (tone)** remains
+> for this slice, and that same pass plans it as its P2.1.
+
 Branch `fix/admin-dialog-tone-and-hidden-close`. Two small, related admin-dialog touches.
 
 **F6a — vault modal tone (`sensitive`, S):**

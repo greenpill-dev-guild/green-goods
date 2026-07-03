@@ -85,19 +85,19 @@ describe("buildHubViewActions — fixed primary", () => {
 });
 
 describe("buildGardenViewActions — fixed primary", () => {
-  const buildFor = (view: GardenWorkspaceView, onAddMember = vi.fn()) =>
-    buildGardenViewActions(view, true, true, vi.fn(), { gardenAddress: GARDEN }, onAddMember);
+  const buildFor = (view: GardenWorkspaceView) =>
+    buildGardenViewActions(view, true, true, vi.fn(), { gardenAddress: GARDEN });
 
   it("keeps the same action ids and order on every view", () => {
-    const expected = ["view-public", "add-member", "edit-garden"];
+    const expected = ["view-public", "edit-garden"];
     for (const view of GARDEN_VIEWS) {
       expect(visibleIds(buildFor(view))).toEqual(expected);
     }
   });
 
-  it("declares add-member as the fixed primary on every view", () => {
+  it("declares edit-garden as the fixed primary on every view", () => {
     for (const view of GARDEN_VIEWS) {
-      expect(primaryIds(buildFor(view))).toEqual(["add-member"]);
+      expect(primaryIds(buildFor(view))).toEqual(["edit-garden"]);
     }
   });
 
@@ -107,18 +107,12 @@ describe("buildGardenViewActions — fixed primary", () => {
     }
   });
 
-  it("opens the add-member flow in one click from any view (no select-then-act)", () => {
-    const addMember = vi.fn();
-
+  it("dropped the header add-member action — membership is community-owned", () => {
+    // Membership lives at /community/members (Manage Members → Add members);
+    // the Garden header must not re-grow a parallel add path.
     for (const view of GARDEN_VIEWS) {
-      const navigate = vi.fn();
-      buildGardenViewActions(view, true, true, navigate, { gardenAddress: GARDEN }, addMember)
-        .find((action) => action.id === "add-member")
-        ?.onClick();
-      // First click opens directly — never a navigate-to-tab detour.
-      expect(navigate).not.toHaveBeenCalled();
+      expect(buildFor(view).some((action) => action.id === "add-member")).toBe(false);
     }
-    expect(addMember).toHaveBeenCalledTimes(GARDEN_VIEWS.length);
   });
 
   it("leaves only the public link for viewers who cannot manage", () => {
@@ -160,7 +154,7 @@ describe("buildCommunityViewActions — fixed primary", () => {
     expect(navigate.mock.calls[0]?.[0]).toContain(GARDEN);
   });
 
-  it("links Manage members to the Garden members management surface", () => {
+  it("links Manage members to the community-owned members flow", () => {
     const navigate = vi.fn();
     buildCommunityViewActions("treasury", true, false, true, navigate, {
       gardenAddress: GARDEN,
@@ -168,7 +162,9 @@ describe("buildCommunityViewActions — fixed primary", () => {
       .find((action) => action.id === "manage-members")
       ?.onClick();
     expect(navigate).toHaveBeenCalledTimes(1);
-    expect(navigate.mock.calls[0]?.[0]).toContain("/garden/members");
+    // Community owns membership — the flow must stay under /community so the
+    // NavigationBar tab does not flip to Garden while the dialog is open.
+    expect(navigate.mock.calls[0]?.[0]).toContain("/community/members");
   });
 
   it("gates owner and management actions without duplicating the public link", () => {

@@ -89,7 +89,8 @@ export function communitySectionForMode(mode: CommunityWorkspaceMode) {
  *
  * - New proposal opens the hypercert signal-pool sheet.
  * - Deposit / withdraw stays owner-gated and secondary.
- * - Manage members links to the Garden Members management surface.
+ * - Manage members opens the community-owned members flow (/community/members)
+ *   so the workspace stays on Community while the dialog is open.
  */
 export function buildCommunityViewActions(
   mode: CommunityWorkspaceMode,
@@ -107,7 +108,7 @@ export function buildCommunityViewActions(
       label: "Manage members",
       labelId: "cockpit.community.action.manageMembers",
       icon: RiUserLine,
-      onClick: () => navigate(adminRoutes.gardenMembers({ gardenId: gardenAddress })),
+      onClick: () => navigate(adminRoutes.communityMembers({ gardenId: gardenAddress })),
       variant: "secondary",
       visible: hasSelectedGarden && canManage,
       primary: false,

@@ -8,7 +8,8 @@ import { useNavigate } from "react-router-dom";
  * a possibly-stale Zustand selection). `useGardenDetailData` already does its
  * own id-based garden resolution plus `canManage`/`roleMembers`, so this
  * controller is a thin wrapper: resolve garden context, decide where "close"
- * goes.
+ * goes. Membership is community-owned: the flow lives at /community/members
+ * and close returns to the Community workspace it opened over.
  */
 export function useManageMembersController() {
   const navigate = useNavigate();
@@ -17,7 +18,7 @@ export function useManageMembersController() {
   const gardenRouteContext = useMemo(() => ({ gardenId: garden?.id }), [garden?.id]);
 
   const handleCancel = () => {
-    navigate(adminRoutes.gardenOverview(gardenRouteContext));
+    navigate(adminRoutes.community(gardenRouteContext));
   };
 
   return {

@@ -5,6 +5,8 @@ import {
   type KeyboardEventHandler,
   type ReactNode,
   isValidElement,
+  useEffect,
+  useState,
 } from "react";
 import { useIntl } from "react-intl";
 import { cn, logger } from "@green-goods/shared";
@@ -149,10 +151,28 @@ export function AdminDialog({
   tone = "home",
 }: AdminDialogProps) {
   const { formatMessage } = useIntl();
+  // Hidden tabs freeze CSS animations, so a close that happens while the tab
+  // is backgrounded would never fire animationend — Radix Presence keeps the
+  // exit node (and its body pointer-events lock) forever. Closing with
+  // data-instant-exit set drops the exit animation entirely so Radix unmounts
+  // synchronously. Reset on the next open.
+  const [instantExit, setInstantExit] = useState(false);
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen && preventClose) return;
+    setInstantExit(!nextOpen && document.visibilityState === "hidden");
     onOpenChange(nextOpen);
   };
+  // Programmatic closes (parent flips `open` without a user gesture) bypass
+  // handleOpenChange — catch those too when they happen in a hidden tab. The
+  // attribute lands one commit after the closed state, where it cancels the
+  // already-frozen animation (the CSS also display:none's the node).
+  useEffect(() => {
+    if (open) {
+      setInstantExit(false);
+    } else if (document.visibilityState === "hidden") {
+      setInstantExit(true);
+    }
+  }, [open]);
   // Palette + flow let the consumer own the visible header chrome; the
   // structured header (icon/title/description) is suppressed and the title is
   // kept screen-reader-only for the Radix dialog a11y contract.
@@ -171,6 +191,7 @@ export function AdminDialog({
         <Dialog.Overlay
           data-component="AdminDialog"
           data-slot="overlay"
+          data-instant-exit={instantExit || undefined}
           className={cn(
             "fixed inset-0 z-overlay",
             "bg-[rgb(var(--m3-on-surface)/0.32)]"
@@ -189,6 +210,7 @@ export function AdminDialog({
           data-tone={tone}
           data-mobile="sheet"
           data-size={size}
+          data-instant-exit={instantExit || undefined}
           role={role}
           className={cn(
             // Mobile sheet, desktop centered dialog.

@@ -313,6 +313,17 @@ body:has(.admin-m3) [data-component="ConfirmDialog"][data-slot="surface"] {
   }
 }
 
+/* Instant exit — set by AdminDialog when a close happens in a hidden tab
+ * (frozen animations would never fire animationend, so Radix would keep the
+ * exit node and its body pointer-events lock forever), and by the
+ * dialogCloseSafetyNet when it finds an already-stuck exit node. No animation
+ * lets Radix unmount synchronously; display:none belts-and-braces a node whose
+ * exit was already frozen mid-animation so it can never sit half-visible. */
+[data-component="AdminDialog"][data-instant-exit][data-state="closed"] {
+  animation: none !important;
+  display: none !important;
+}
+
 /* Content lists/cards within MainSheet — solid surface-container-low */
 .admin-m3 .canvas-area-main .glass-raised {
   backdrop-filter: none;
