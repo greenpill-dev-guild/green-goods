@@ -1,6 +1,6 @@
 # Green Goods
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/greenpill-dev-guild/green-goods/releases)
+[![Version](https://img.shields.io/github/v/release/greenpill-dev-guild/green-goods)](https://github.com/greenpill-dev-guild/green-goods/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 **Bringing community and environmental actions onchain to better measure, track and reward impact.**

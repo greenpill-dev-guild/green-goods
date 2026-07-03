@@ -4,7 +4,7 @@ Operator canvas for Green Goods stewards and deployers.
 
 ## Contract
 
-- Admin UI contract: [/Users/afo/Code/greenpill/green-goods/docs/docs/builders/packages/admin.mdx](/Users/afo/Code/greenpill/green-goods/docs/docs/builders/packages/admin.mdx)
+- Admin UI contract: [Admin Dashboard docs](https://docs.greengoods.app/builders/packages/admin) (source: [`docs/docs/builders/packages/admin.mdx`](../../docs/docs/builders/packages/admin.mdx))
 - Canonical shell: `CanvasLayout`
 - Canonical routes: `/hub`, `/garden`, `/community`, `/actions`, `/profile`
 - Secondary admin flows stay under `/garden/create`, `/garden/impact/*`, and `/community/*`

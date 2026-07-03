@@ -4,7 +4,7 @@ sidebar_label: Reporting and GAP
 slug: /community/operator-guide/reporting-and-gap
 audience: operator
 owner: docs
-last_verified: 2026-02-18
+last_verified: 2026-07-03
 feature_status: Live
 goal: "Complete Reporting and GAP with clear, role-specific next actions."
 difficulty: "standard"
@@ -45,9 +45,9 @@ import {FeatureState, NextBestAction, StatusBadge, StepFlow} from "@site/src/com
 />
 
 <FeatureState
-  title="v1 endowment/governance metrics"
-  status="Implemented (activation pending deployment)"
-  summary="Vault/cookie/signal data models exist but full on-chain/indexer activation is pending non-zero deployments."
+  title="Endowment and governance metrics"
+  status="Implemented (activation pending indexing)"
+  summary="Cookie jar activity and vault lifecycle events (creation, harvests, yield splits) are indexed on Arbitrum and can feed reports today. Per-vault deposit and withdrawal indexing is still rolling out, so vault balance metrics may lag until it lands."
 />
 
 ## Monthly reporting loop
@@ -55,7 +55,7 @@ import {FeatureState, NextBestAction, StatusBadge, StepFlow} from "@site/src/com
 <StepFlow
   steps={[
     {title: "Collect period scope", detail: "Select chain, gardens, and date range."},
-    {title: "Export approved work", detail: "Pull EAS approval-linked records for the period."},
+    {title: "Export approved work", detail: "Collect the period's approved work from your garden's history in the admin dashboard, or pull approval records from the indexer and EAS."},
     {title: "Map frameworks", detail: "Tag outputs to SDG/GAP or funder schemas."},
     {title: "Publish package", detail: "Share methods, caveats, and attestation references."},
   ]}

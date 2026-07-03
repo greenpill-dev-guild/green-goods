@@ -4,7 +4,7 @@ sidebar_label: Troubleshooting
 slug: /community/operator-guide/troubleshooting
 audience: operator
 owner: docs
-last_verified: 2026-02-18
+last_verified: 2026-07-03
 feature_status: Live
 goal: "Complete Operator Troubleshooting with clear, role-specific next actions."
 difficulty: "advanced"
@@ -39,16 +39,16 @@ import {FeatureState, NextBestAction, StatusBadge} from "@site/src/components/do
 
 <FeatureState
   title="Route exists but action fails"
-  status="Implemented (activation pending deployment)"
-  summary="Several v1 flows are wired in UI but blocked by zero-address module deployments."
+  status="Live"
+  summary="On Arbitrum the v1 modules are deployed, so start with roles, inputs, and the selected chain. On other networks some modules may still be zero-address."
 >
   Check `packages/contracts/deployments/*-latest.json` and `packages/indexer/config.yaml` before treating as runtime bug.
 </FeatureState>
 
 <FeatureState
   title="Indexer mismatch"
-  status="Implemented (activation pending deployment)"
-  summary="New module events will not appear until indexer contract addresses are non-zero and deployed."
+  status="Implemented (activation pending indexing)"
+  summary="Most module events are indexed on Arbitrum. Per-vault deposit and withdrawal events still await indexer registration, so vault balances can lag the chain."
 >
   Compare deployed addresses and indexer network config, then redeploy indexer if needed.
 </FeatureState>

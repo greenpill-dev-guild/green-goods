@@ -4,9 +4,9 @@ sidebar_label: Offline Sync and Drafts
 slug: /community/gardener-guide/offline-sync-and-drafts
 audience: gardener
 owner: docs
-last_verified: 2026-02-18
+last_verified: 2026-07-03
 feature_status: Live
-goal: "Complete Offline Sync and Drafts with clear, role-specific next actions."
+goal: "Explain what happens to drafts and queued submissions when a gardener works offline."
 difficulty: "standard"
 estimated_time: "5 minutes to understand behavior."
 prereqs: "Existing account and at least one draft/submission attempt."
@@ -23,38 +23,35 @@ keywords:
   - queue
 ---
 
-import {FeatureState, NextBestAction, StatusBadge} from "@site/src/components/docs";
+import {NextBestAction, StatusBadge} from "@site/src/components/docs";
 
 # Offline Sync and Drafts
 
 <StatusBadge status="Live" />
 
-## How it works
+You can document work with no signal at all. Green Goods saves everything on your phone and sends it when you are back online. Much of the work happens where connectivity is weakest, so the app treats your device as the source of truth and the network as optional. Here is what that looks like in practice.
 
-<FeatureState
-  title="Draft persistence"
-  status="Live"
-  summary="Draft data and media references are stored locally so you can resume later."
-/>
+## Saving in the field
 
-<FeatureState
-  title="Queued submissions"
-  status="Live"
-  summary="When submit cannot complete online, work is queued and retried after reconnection."
-/>
+- Every submission you start is saved on your device as a draft, including its photos.
+- Drafts stay on your phone until you submit or delete them. Closing the app does not lose them.
+- You can leave a draft half finished and come back to it later from the work flow.
 
-<FeatureState
-  title="Automatic sync"
-  status="Live"
-  summary="Queued jobs flush when connectivity and signing conditions are available."
-/>
+One habit worth keeping: when you reopen a draft after a long gap, glance at the photos to confirm they are still attached before you submit.
 
-## Practical guidance
+## When you come back online
 
-1. Save progress before leaving field conditions.
-2. Reopen drafts and verify media is still attached.
-3. Check queue/upload states before repeating submissions.
-4. If a job fails repeatedly, retry from dashboard with corrected data.
+- Submissions made without a connection wait in a queue on your device.
+- When your phone finds a connection again, the queue sends automatically. You do not need to resubmit anything.
+- Watch the status on each item in your work list. **Uploading** or **Queued** means it is still on its way. **Pending** means it arrived and is waiting for operator review.
+
+To confirm a submission landed and see its on-chain record, use [Track Status and Attestations](./track-status-and-attestations).
+
+## When something will not send
+
+- A submission that keeps failing usually has a fixable cause: very large photos, a connection that dropped mid upload, or a role or permission problem in the garden.
+- Open the item from your work list and retry it. If the same error repeats, [Common Errors](./common-errors) explains the messages you might see and what to do about each one.
+- If nothing works, ask your garden operator for help. Nothing is lost while you wait: the draft and its media stay safe on your device.
 
 <NextBestAction
   title="Next best action"

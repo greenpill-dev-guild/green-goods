@@ -843,12 +843,12 @@ echo $CELO_RPC_URL
 
 ## Documentation
 
-📖 **[Contracts Documentation](https://docs.greengoods.app/developer/architecture/contracts-package)** — Complete contracts architecture guide
+📖 **[Contracts Documentation](https://docs.greengoods.app/builders/packages/contracts)** — Contracts package architecture guide
 
 **Essential Guides:**
-- 📘 [Contracts Handbook](https://docs.greengoods.app/developer/contracts-handbook) — Deployment, upgrades, schema management
-- 🏗️ [Architecture Overview](https://docs.greengoods.app/developer/architecture) — System design and package relationships
-- ✅ [Testing Guide](https://docs.greengoods.app/developer/testing) — Testing strategy and best practices
+- 📘 [Contract Deployments](https://docs.greengoods.app/builders/deployments/contracts-deploy) — Deployment, upgrades, schema management
+- 🏗️ [Architecture Overview](https://docs.greengoods.app/builders/architecture) — System design and package relationships
+- ✅ [Testing Guide](https://docs.greengoods.app/builders/testing/forge) — Contract testing strategy and best practices
 
 **Configuration Files:**
 - 📝 [Schema Definitions](./config/schemas.json) — EAS schema configuration
