@@ -947,6 +947,7 @@
   "app.cookieJar.minDeposit": "Depósito mínimo",
   "app.cookieJar.moduleNotConfigured": "Los tarros de galletas no están disponibles en este momento",
   "app.cookieJar.noJars": "No se encontraron Cookie Jars para este jardín",
+  "app.cookieJar.noJarsHint": "Los tarros se crean desde campañas y aparecen aquí una vez desplegados.",
   "app.cookieJar.noJarsDescription": "Los Cookie Jars configurados para este jardín aparecerán aquí.",
   "app.cookieJar.partialReadWarning": "No se pudieron confirmar algunos detalles de Cookie Jar. Los saldos disponibles se muestran abajo.",
   "app.cookieJar.pause": "Pausar tarro",

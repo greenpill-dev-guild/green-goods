@@ -101,6 +101,8 @@ export function CookieJarWithdrawModal({
     <AdminDialog
       open={isOpen}
       onOpenChange={(open) => !open && !isPending && onClose()}
+      // Workspace tone — mounted from the Community payouts panel.
+      tone="community"
       title={formatMessage({
         id: "app.cookieJar.withdrawModal.title",
         defaultMessage: "Cookie Jar Withdrawal",

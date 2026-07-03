@@ -947,6 +947,7 @@
   "app.cookieJar.minDeposit": "Depósito mínimo",
   "app.cookieJar.moduleNotConfigured": "Os potes de cookies não estão disponíveis no momento",
   "app.cookieJar.noJars": "Nenhum Cookie Jar encontrado para este jardim",
+  "app.cookieJar.noJarsHint": "Os potes são criados a partir de campanhas e aparecem aqui depois de implantados.",
   "app.cookieJar.noJarsDescription": "Os Cookie Jars configurados para este jardim aparecerão aqui.",
   "app.cookieJar.partialReadWarning": "Alguns detalhes de Cookie Jar não puderam ser confirmados. Os saldos disponíveis aparecem abaixo.",
   "app.cookieJar.pause": "Pausar pote",

@@ -947,6 +947,7 @@
   "app.cookieJar.minDeposit": "Min Deposit",
   "app.cookieJar.moduleNotConfigured": "Cookie jars aren't available right now",
   "app.cookieJar.noJars": "No Cookie Jars found for this garden",
+  "app.cookieJar.noJarsHint": "Jars are created from campaigns and appear here once deployed.",
   "app.cookieJar.noJarsDescription": "Configured Cookie Jars for this garden will appear here.",
   "app.cookieJar.partialReadWarning": "Some Cookie Jar details could not be confirmed. Available balances are shown below.",
   "app.cookieJar.pause": "Pause Jar",
