@@ -31,10 +31,15 @@ const greenWillMocks = vi.hoisted(() => {
   };
 });
 
-vi.mock("@green-goods/shared", async () => {
+vi.mock("@green-goods/shared", async (importOriginal) => {
   const React = await import("react");
+  // Spread the real module first so utility exports the components under test
+  // pull in transitively (cn via AdminCard broke this factory once) never
+  // re-break the manual stubs below — they still win by key order.
+  const actual = await importOriginal<typeof import("@green-goods/shared")>();
 
   return {
+    ...actual,
     DEFAULT_CHAIN_ID: 11155111,
     FormInput: ({
       id,
