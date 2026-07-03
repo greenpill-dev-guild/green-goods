@@ -248,8 +248,14 @@ adjudicates ~7 latent runtime-bug candidates.
 > shipped the instant-exit + generalized safety net (AdminDialog `data-instant-exit`
 > on hidden-tab closes; `dialogCloseSafetyNet.ts` run on navigation AND
 > visibilitychange; CSS `animation: none + display: none` for marked closed nodes;
-> unit tests included). Do not re-implement F4 here — only **F6a (tone)** remains
-> for this slice, and that same pass plans it as its P2.1.
+> unit tests included).
+>
+> **F6a landed too (2026-07-03, same pass, PR #613):** Vault Deposit/Withdraw and
+> CookieJar Deposit/Withdraw carry `community` (their real mounting surfaces —
+> note: jar *management* moved to the Garden Profile dialog with `garden` tone,
+> superseding this slice's `hub` assumption), CreateListing `garden`, Minting
+> `hub`, GardenDomainEditor `garden`. **This slice is fully superseded — do not
+> re-implement.** Slice 4's census pass should still re-verify tones live.
 
 Branch `fix/admin-dialog-tone-and-hidden-close`. Two small, related admin-dialog touches.
 
