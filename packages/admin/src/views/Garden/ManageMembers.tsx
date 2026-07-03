@@ -86,6 +86,11 @@ export default function ManageMembers() {
         onAddMembers={() => setAddOpen(true)}
       />
       <AddMembersDialog
+        // Keyed by garden so a mid-dialog garden change (URL param sync,
+        // back/forward) remounts the dialog and clears the staged batch —
+        // addresses staged under one garden must never commit to another
+        // (parity with the retired descriptor's close-on-switch guard).
+        key={gardenAddress}
         open={addOpen}
         onClose={() => setAddOpen(false)}
         tone="community"
