@@ -316,7 +316,11 @@ export function AdminDialog({
               data-slot="actions"
               data-testid="admin-dialog-actions"
               className={cn(
-                "flex shrink-0 flex-col-reverse gap-2 border-t border-[color:var(--hairline)] bg-[var(--surface-raised)] px-4 py-3 sm:flex-row sm:items-center sm:justify-end sm:px-6",
+                // Hairline + raised tokens carry fallbacks so the footer stays
+                // correct in contexts that don't load admin index.css (Storybook
+                // renders stories without it — an unset var would fall back to
+                // currentColor and paint a near-black border).
+                "flex shrink-0 flex-col-reverse gap-2 border-t border-[color:var(--hairline,rgb(var(--stroke-soft-200)))] bg-[var(--surface-raised,rgb(var(--bg-white-0)))] px-4 py-3 sm:flex-row sm:items-center sm:justify-end sm:px-6",
                 actionsClassName
               )}
             >
