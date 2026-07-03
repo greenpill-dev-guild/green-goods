@@ -100,7 +100,28 @@ a CI-debt fix, but `bun run test` must pass for admin+shared).
 
 ### Slice 1 — Root-cause the 15 Storybook interaction failures (F2)
 
-Branch `fix/storybook-interaction-ci`. The failing set at HEAD (job `84677076333`):
+> **Diagnosis fork RESOLVED (2026-07-03, dialog-pass session):** ran the exact CI
+> entry point locally with the repo `.env` on the dialog-pass tip — **16 failed /
+> 110 passed**, near-identical set (none of the pass's new stories fail). Local
+> repro with full env ⇒ **the fix is the stories' data layer, NOT CI env** —
+> branch A of Step 1 below. Warm-start facts for the executing session:
+> - Error taxonomy across the 16: 11× TestingLibraryElementError (seeded data
+>   never renders — e.g. Hub Work Queue can't find "Canopy transect upload",
+>   Garden Overview can't find "Rio Rainforest Lab", SubmitWork can't find the
+>   "Next" button), 4× plain Error, 1× AssertionError.
+> - Seeding architecture is sound in principle: `withSeededQueryClient`
+>   (`shared/.storybook/decorators.tsx:368`, staleTime Infinity/retry false) +
+>   `STORYBOOK_ADMIN_SHELL_SEEDS` (`adminFixtures.ts:287` — gardens/actions/
+>   assessments/works.merged/hypercerts keys).
+> - Two concrete suspect classes to probe first: (1) query-key drift between
+>   fixture keys and what the hooks derive at runtime — especially address
+>   casing inside keys (the #543 compareAddresses→=== family; `works.merged(
+>   gardenId, chainId)` is exact-string matched); (2) post-processing network
+>   calls that run even on seeded data — `useWorks`'s `computeWorksWithStatus`
+>   calls `getWorkApprovals(undefined, chainId)` (EAS) with only a warn-once
+>   catch, and siblings may hang the render instead of degrading.
+> - Reminder: a `| tail` pipeline eats the runner's exit code — check the
+>   summary lines, not the pipeline status.
 
 | File | Failing tests |
 |---|---|
