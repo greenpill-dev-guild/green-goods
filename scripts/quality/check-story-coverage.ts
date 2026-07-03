@@ -85,13 +85,6 @@ const NON_VISUAL_ADMIN_COMPONENTS = new Set<string>([
   // Section, DOMAIN_GUIDANCE, etc.). Rendered through the step stories.
   "components/Assessment/CreateAssessmentSteps/shared.tsx",
 
-  // Thin wallet-bound adapter: wires the Manage Roles modal + AddMember /
-  // Members / ManageRoles sub-modals to `useGardenOperations` writes. It owns
-  // no distinct visual contract of its own — each sub-modal has its own story
-  // (AddMemberModal / MembersModal / ManageRolesModal), and its writes are not
-  // deterministically seedable in Storybook. Reviewed through those children.
-  "components/Garden/GardenRolesModals.tsx",
-
   // Non-visual left-inspector channel: a React context + hooks
   // (LeftSheetProvider / useLeftSheetConfig / useRouteBackedLeftSheetConfig)
   // that carry descriptor config up to CanvasLayout's AdminDialog. No rendered
