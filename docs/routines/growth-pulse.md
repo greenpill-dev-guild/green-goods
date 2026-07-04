@@ -24,7 +24,7 @@ connectors:
   - posthog
   - linear
   - google-calendar
-model: claude-opus-4-7[1m]
+model: claude-opus-4-8[1m]
 status: active  # 2026-05-25 — weekly digest posts to Linear (initiative status update), no GitHub PR. Consolidates metrics digest + guild-weekly-checkin numbers + guild-product-development-synthesis growth signals
 ---
 
