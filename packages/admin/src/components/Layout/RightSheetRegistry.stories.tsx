@@ -10,7 +10,7 @@ import {
 } from "@green-goods/shared";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useCallback, useState } from "react";
-import { expect, userEvent, within } from "storybook/test";
+import { expect, userEvent, waitFor, within } from "storybook/test";
 import { AdminSideSheet } from "@/components/AdminSideSheet";
 import { STORYBOOK_ADMIN_SHELL_SEEDS } from "../../../../shared/.storybook/adminFixtures";
 import {
@@ -220,26 +220,38 @@ export const StateCatalog: Story = {
     const canvas = within(canvasElement);
     const body = within(document.body);
 
-    // The three global surfaces render in the AdminSideSheet, which portals
-    // to document.body with role="dialog".
+    // The three global surfaces render in the AdminSideSheet — a modal Radix
+    // dialog that aria-hides the rest of the page while open (portaled to
+    // document.body with role="dialog"). So after asserting each sheet's
+    // content, close it via its own in-dialog Close button and wait for it to
+    // leave the DOM before returning to the canvas triggers; that mirrors real
+    // use, where one global sheet is open at a time.
+    const closeOpenSheet = async () => {
+      const openSheet = await body.findByRole("dialog");
+      await userEvent.click(within(openSheet).getByRole("button", { name: "Close" }));
+      await waitFor(() => {
+        expect(body.queryByRole("dialog")).not.toBeInTheDocument();
+      });
+    };
+
+    // Profile opens on mount.
     const profileSheet = await body.findByRole("dialog");
     await expect(within(profileSheet).getByRole("heading", { name: "Profile" })).toBeVisible();
     await expect(within(profileSheet).getByRole("heading", { name: "Your gardens" })).toBeVisible();
     await expect(within(profileSheet).queryByRole("tab")).not.toBeInTheDocument();
+    await closeOpenSheet();
+    await expect(canvas.getByTestId("right-sheet-current")).toHaveTextContent("none");
 
+    // Settings.
     await userEvent.click(canvas.getByRole("button", { name: "Open Settings" }));
     const settingsSheet = await body.findByRole("dialog");
     await expect(within(settingsSheet).getByRole("heading", { name: "Settings" })).toBeVisible();
     await expect(within(settingsSheet).getByRole("heading", { name: "Theme" })).toBeVisible();
     await expect(within(settingsSheet).getByRole("heading", { name: "Language" })).toBeVisible();
     await expect(within(settingsSheet).queryByRole("tab")).not.toBeInTheDocument();
+    await closeOpenSheet();
 
-    await userEvent.click(canvas.getByRole("button", { name: "Open Profile" }));
-    const reopenedProfileSheet = await body.findByRole("dialog");
-    await expect(
-      within(reopenedProfileSheet).getByRole("heading", { name: "Profile" })
-    ).toBeVisible();
-
+    // Notifications.
     await userEvent.click(canvas.getByRole("button", { name: "Open Notifications" }));
     const notificationsSheet = await body.findByRole("dialog");
     const notificationsPanel = within(notificationsSheet);
@@ -247,9 +259,7 @@ export const StateCatalog: Story = {
     await expect(notificationsPanel.getByText("Updates for Milpa Alta")).toBeVisible();
     await expect(notificationsPanel.getByText("Needs attention")).toBeVisible();
     await expect(notificationsPanel.getByText("Recent activity")).toBeVisible();
-
-    const closeButton = notificationsPanel.getByRole("button", { name: "Close" });
-    await userEvent.click(closeButton);
+    await closeOpenSheet();
     await expect(canvas.getByTestId("right-sheet-current")).toHaveTextContent("none");
   },
 };
