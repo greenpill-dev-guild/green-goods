@@ -13,7 +13,7 @@ env-vars:
   - DISCORD_USER_ID_AFO
 connectors:
   - github # read-only: open PRs, commit range, existing releases/tags
-model: claude-opus-4-7[1m]
+model: claude-opus-4-8[1m]
 allow-unrestricted-branch-pushes: false # read + draft only; no commits, no PRs, no tags
 last_updated: "2026-06-23"
 ---
