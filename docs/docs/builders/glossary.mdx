@@ -35,7 +35,7 @@ A carbon-negative blockchain focused on mobile-first financial tools and regener
 A Solidity opcode that deploys contracts to deterministic addresses based on the deployer address, salt, and bytecode hash. Green Goods uses CREATE2 for predictable contract deployments across different networks, ensuring consistent addresses for core infrastructure.
 
 ### Envio
-A blockchain event indexer that listens to on-chain events and exposes indexed data via GraphQL API. Green Goods uses Envio HyperIndex to track garden creation, work submissions, approvals, and membership changes, enabling fast queries without direct blockchain calls.
+A blockchain event indexer that listens to on-chain events and exposes indexed data via GraphQL API. Green Goods uses Envio HyperIndex to track gardens, actions, roles and membership, vault activity, hypercerts, and badges. Work submissions and approvals are EAS attestations, queried directly from EAS rather than the indexer.
 
 ### ERC-721
 The Ethereum standard for non-fungible tokens (NFTs). Green Goods uses ERC-721 for Garden tokens, where each garden is a unique NFT that can be owned, transferred, and linked to a Tokenbound Account (ERC-6551).

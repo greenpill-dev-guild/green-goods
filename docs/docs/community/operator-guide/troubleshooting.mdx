@@ -47,10 +47,10 @@ import {FeatureState, NextBestAction, StatusBadge} from "@site/src/components/do
 
 <FeatureState
   title="Indexer mismatch"
-  status="Implemented (activation pending indexing)"
-  summary="Most module events are indexed on Arbitrum. Per-vault deposit and withdrawal events still await indexer registration, so vault balances can lag the chain."
+  status="Live"
+  summary="Vault activity is indexed on Arbitrum through dynamic vault registration, so a wrong balance is more likely indexer sync lag than missing coverage. Cookie jar per-jar deposit and withdrawal activity is not indexed and will not appear regardless of sync."
 >
-  Compare deployed addresses and indexer network config, then redeploy indexer if needed.
+  Check indexer sync lag and dynamic vault registration first, then compare deployed addresses and indexer network config before assuming a runtime bug.
 </FeatureState>
 
 ## Escalation packet
