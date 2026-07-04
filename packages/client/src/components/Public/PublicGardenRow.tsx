@@ -5,10 +5,10 @@ import {
   type PublicGardenVaultSummary,
   type PublicVaultSummaryAsset,
 } from "@green-goods/shared";
+import type { PublicFundingIntentKind } from "@green-goods/shared/public-contracts";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 import { ImageWithFallback } from "@/components/Display";
-import type { PublicFundingIntentKind } from "@green-goods/shared/public-contracts";
 import { EditorialGhostButton, EditorialKicker, EditorialPrimaryButton } from "./atoms";
 import { GardenCoverFallback } from "./GardenCoverFallback";
 
@@ -34,9 +34,11 @@ function aggregateGardenerCount(garden: PublicGardenSummary): number {
 /**
  * PublicGardenRow — compact horizontal Garden card used in the Fund-page grid.
  *
- * Anatomy: small thumbnail (left) → garden name + meta (center) → Endow CTA
- * (right). Tapping the thumbnail/title block routes to the public Garden detail
- * page; tapping the CTA opens the funding card with the Endow intent pre-set.
+ * Anatomy: small thumbnail (left) → garden name + meta (center) → Donate +
+ * Endow CTAs (right). Tapping the thumbnail/title block routes to the public
+ * Garden detail page; tapping a CTA opens the funding card with the matching
+ * intent pre-set. The two paths are explained once in the § 02 "Ways to
+ * support" section, so the buttons carry no per-card helper captions.
  *
  * Density tuned for funder-mode scanning (smaller padding than discovery
  * cards on /gardens) so two cards fit per desktop row at sm:grid-cols-2.
@@ -136,43 +138,19 @@ export function PublicGardenRow({ garden, vaultSummary, onSupport }: PublicGarde
       </Link>
 
       <div className="flex shrink-0 flex-col items-stretch justify-center gap-3">
-        <div className="flex flex-col items-stretch gap-1">
-          <EditorialPrimaryButton
-            onClick={() => onSupport(garden, "donate")}
-            className="px-4 py-2 text-xs sm:text-sm"
-            aria-describedby={`${garden.id}-donate-helper`}
-          >
-            {formatMessage({ id: "public.fund.dialog.donate.title", defaultMessage: "Donate" })}
-          </EditorialPrimaryButton>
-          <p
-            id={`${garden.id}-donate-helper`}
-            className="max-w-24 text-center text-[10px] leading-[1.25] text-text-soft-400"
-          >
-            {formatMessage({
-              id: "public.fund.gardenDonateHelper",
-              defaultMessage: "Shared fund support",
-            })}
-          </p>
-        </div>
-        <div className="flex flex-col items-stretch gap-1">
-          <EditorialGhostButton
-            variant="warm"
-            onClick={() => onSupport(garden, "endow")}
-            className="px-4 py-2 text-xs sm:text-sm"
-            aria-describedby={`${garden.id}-endow-helper`}
-          >
-            {formatMessage({ id: "public.fund.dialog.endow.title", defaultMessage: "Endow" })}
-          </EditorialGhostButton>
-          <p
-            id={`${garden.id}-endow-helper`}
-            className="max-w-24 text-center text-[10px] leading-[1.25] text-text-soft-400"
-          >
-            {formatMessage({
-              id: "public.fund.gardenEndowHelper",
-              defaultMessage: "Garden Vault endowment",
-            })}
-          </p>
-        </div>
+        <EditorialPrimaryButton
+          onClick={() => onSupport(garden, "donate")}
+          className="px-4 py-2 text-xs sm:text-sm"
+        >
+          {formatMessage({ id: "public.fund.dialog.donate.title", defaultMessage: "Donate" })}
+        </EditorialPrimaryButton>
+        <EditorialGhostButton
+          variant="warm"
+          onClick={() => onSupport(garden, "endow")}
+          className="px-4 py-2 text-xs sm:text-sm"
+        >
+          {formatMessage({ id: "public.fund.dialog.endow.title", defaultMessage: "Endow" })}
+        </EditorialGhostButton>
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
-import type { ReactNode } from "react";
 import { cn } from "@green-goods/shared";
+import type { ReactNode } from "react";
+import { useLocation } from "react-router-dom";
 import { EditorialDivider, EditorialHeading, EditorialKicker, EditorialLede } from "./atoms";
 
 /**
@@ -18,7 +19,12 @@ import { EditorialDivider, EditorialHeading, EditorialKicker, EditorialLede } fr
  *
  * Animation: the panel rises (`editorial-hero-in`) and the kicker /
  * heading / lede / actions stagger in (`editorial-fade-up-1/2/3`). All
- * gated behind `prefers-reduced-motion`.
+ * gated behind `prefers-reduced-motion` — and played on the arrival
+ * history entry only. Replaying the entrance on every in-app navigation
+ * made the card blink during the `vt-header` shared-element morph: the
+ * incoming card sits at opacity 0 through its 280ms animation delay while
+ * the browser cross-fades the old hero into it. Later navigations render
+ * the card fully composed so the view transition alone carries the motion.
  */
 export interface PublicEditorialHeroProps {
   /** Fullscreen home hero or shorter banner hero for sub-pages. */
@@ -82,6 +88,11 @@ export function PublicEditorialHero({
   publicationMark,
 }: PublicEditorialHeroProps) {
   const isBanner = variant === "banner";
+  // React Router keys the very first history entry "default"; every in-app
+  // navigation mints a fresh key. Restricting the entrance animation to the
+  // arrival entry keeps it render-pure (StrictMode-safe, unlike a module
+  // flag) while later view switches paint the card immediately.
+  const animateEntrance = useLocation().key === "default";
 
   return (
     <section
@@ -133,33 +144,45 @@ export function PublicEditorialHero({
       >
         <div className="px-6 sm:px-10">
           <div className="mx-auto max-w-7xl">
-            <div className="editorial-hero-in pointer-events-auto max-w-[31rem] bg-bg-weak-50 p-6 shadow-[var(--shadow-editorial-panel)] sm:p-8 lg:max-w-[33.5rem] lg:p-10">
+            <div
+              className={cn(
+                "pointer-events-auto max-w-[31rem] bg-bg-weak-50 p-6 shadow-[var(--shadow-editorial-panel)] sm:p-8 lg:max-w-[33.5rem] lg:p-10",
+                animateEntrance && "editorial-hero-in"
+              )}
+            >
               {kicker ? (
-                <EditorialKicker className="editorial-fade-up-1 mb-3">{kicker}</EditorialKicker>
+                <EditorialKicker className={cn(animateEntrance && "editorial-fade-up-1", "mb-3")}>
+                  {kicker}
+                </EditorialKicker>
               ) : null}
               <EditorialHeading
                 id={titleId}
                 as="h1"
                 size="display"
                 className={cn(
-                  "editorial-fade-up-1",
+                  animateEntrance && "editorial-fade-up-1",
                   !isBanner && "md:text-[3.35rem] lg:text-[4rem]"
                 )}
               >
                 {title}
               </EditorialHeading>
               {lede ? (
-                <div className="editorial-fade-up-2 mt-4 max-w-prose">
+                <div className={cn(animateEntrance && "editorial-fade-up-2", "mt-4 max-w-prose")}>
                   <EditorialLede>{lede}</EditorialLede>
                 </div>
               ) : null}
               {actions ? (
-                <div className="editorial-fade-up-3 mt-6 flex flex-wrap items-center gap-3">
+                <div
+                  className={cn(
+                    animateEntrance && "editorial-fade-up-3",
+                    "mt-6 flex flex-wrap items-center gap-3"
+                  )}
+                >
                   {actions}
                 </div>
               ) : null}
               {disclaimer ? (
-                <div className="editorial-fade-up-3 mt-6">
+                <div className={cn(animateEntrance && "editorial-fade-up-3", "mt-6")}>
                   <EditorialDivider />
                   <p className="mt-3 font-serif text-xs italic leading-relaxed text-text-soft-400">
                     <span className="mr-1 not-italic font-mono uppercase tracking-[0.16em]">
@@ -170,7 +193,7 @@ export function PublicEditorialHero({
                 </div>
               ) : null}
               {publicationMark ? (
-                <div className="editorial-fade-up-3 mt-6">
+                <div className={cn(animateEntrance && "editorial-fade-up-3", "mt-6")}>
                   <EditorialDivider />
                   <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10.5px] font-medium uppercase tracking-[0.18em] text-text-soft-400">
                     {publicationMark}

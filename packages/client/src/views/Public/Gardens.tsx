@@ -62,7 +62,7 @@ export default function GardensGallery() {
         lede={formatMessage({
           id: "public.gardens.heroLede",
           defaultMessage:
-            "Each Garden is a real place where a community documents regenerative Work across solar, agroforestry, education, and waste. Anyone can read the record they build, and Gardens with open membership welcome new gardeners through the app.",
+            "Each Garden is a real place where a community documents regenerative Work across solar, agroforestry, education, and waste. Anyone can read the record they build.",
         })}
       />
 

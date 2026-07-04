@@ -1,8 +1,8 @@
 import {
   formatApy,
   formatTokenAmount,
-  type PublicGardenVaultSummary,
   type PublicGardenSummary,
+  type PublicGardenVaultSummary,
   type PublicVaultSummary,
   type PublicVaultSummaryAsset,
   useInViewReveal,
@@ -20,8 +20,8 @@ import {
   EditorialNumeral,
   EditorialTitleAccent,
 } from "@/components/Public/atoms";
-import { PublicEndowmentPanel } from "@/components/Public/PublicEndowmentPanel";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
+import { PublicEndowmentPanel } from "@/components/Public/PublicEndowmentPanel";
 import { PublicFooter } from "@/components/Public/PublicFooter";
 import { PublicFundingReceipt } from "@/components/Public/PublicFundingReceipt";
 import { PublicGardenRow } from "@/components/Public/PublicGardenRow";
@@ -348,20 +348,21 @@ function getGardenVaultSummary(
  * Fund — public garden funding gateway.
  *
  * Editorial recomposition:
- *   Hero → § 01 Vault overview → § 02 Endow path context
- *   with always-visible tax / risk disclosures → § 03 Compact garden grid
- *   with per-card Endow CTAs and the wallet-owned Manage Endowments
- *   panel entry → optional receipt / stale-link banner → Footer.
+ *   Hero → § 01 Vault overview → § 02 Ways to support (Donate first,
+ *   Endow second) with always-visible tax / risk disclosures → § 03 Compact
+ *   garden grid with per-card Donate + Endow CTAs and the wallet-owned
+ *   Manage Endowments panel entry → optional receipt / stale-link banner
+ *   → Footer.
  *
  * Behavior contract:
  * - `?intent=<id>` triggers receipt mode (reads X-GG-Receipt-Token from session).
  * - `?garden=<id-or-slug>` resolves via `publicGardenHelpers.deriveSlug`. Stale,
  *   missing, zero-match, or ambiguous queries fall back to the regular Fund
  *   layout with a localized non-blocking message.
- * - Each Garden row exposes an Endow CTA that opens PublicFundingCard (single
- *   editorial card with amount-first input, visual token picker, and inline
- *   wallet-connect through the smart submit button). Donate remains deferred
- *   out of the NYC vault/endow sprint and is not exposed from this page.
+ * - Each Garden row exposes Donate and Endow CTAs that open PublicFundingCard
+ *   (single editorial card with amount-first input, visual token picker, and
+ *   inline wallet-connect through the smart submit button) with the matching
+ *   intent pre-set. Donate leads; Endow follows.
  * - `?manage=endowments` opens the wallet-owned public endowment panel.
  * - No public address lookup or admin controls.
  */
@@ -482,7 +483,7 @@ function FundPageContent() {
         lede={formatMessage({
           id: "public.fund.heroLede",
           defaultMessage:
-            "Endow a Garden Vault so yield can support the Garden over many seasons. Each contribution lands with the selected Garden vault, not a platform account.",
+            "Donate to a Garden's shared fund today, or endow its Vault so yield supports the Garden over many seasons. Every contribution lands with the Garden, not a platform account.",
         })}
       />
 
@@ -521,7 +522,7 @@ function FundPageContent() {
         </section>
       ) : null}
 
-      {/* § 02 — Endow path context */}
+      {/* § 02 — Ways to support: Donate + Endow path context */}
       <section
         ref={pathsRef}
         data-revealed={pathsRevealed}
@@ -547,14 +548,28 @@ function FundPageContent() {
             <EditorialHeading id="public-fund-paths-title">
               {formatMessage({
                 id: "public.fund.paths.title",
-                defaultMessage: "Endow for many seasons.",
+                defaultMessage: "Donate now, or Endow for many seasons.",
               })}
             </EditorialHeading>
           </header>
 
-          <div className="mt-12 max-w-2xl">
+          <div className="mt-12 grid grid-cols-1 gap-12 md:grid-cols-2 md:gap-16">
             <SupportPath
               numeral="1."
+              titleId="public.fund.paths.donateTitle"
+              defaultTitle="Donate"
+              ledeId="public.fund.paths.donateLede"
+              defaultLede="Direct support that reaches a Garden's shared fund today and funds the season's most immediate work."
+              routesId="public.fund.paths.donateRoutes"
+              defaultRoutes="Goes to this Garden's shared fund."
+              bestForId="public.fund.paths.donateBestFor"
+              defaultBestFor="Immediate needs and near-term work."
+              learnMoreId="public.fund.paths.donateLearnMore"
+              defaultLearnMore="How direct support works"
+              learnMoreHref="https://docs.greengoods.app/community/funder-guide"
+            />
+            <SupportPath
+              numeral="2."
               titleId="public.fund.paths.endowTitle"
               defaultTitle="Endow"
               ledeId="public.fund.paths.endowLede"
@@ -580,7 +595,7 @@ function FundPageContent() {
               {formatMessage({
                 id: "public.fund.dialog.taxDisclaimer",
                 defaultMessage:
-                  "Endow supports the Garden directly. It is not tax-deductible, charitable, or nonprofit-backed unless separately configured.",
+                  "Both paths support the Garden directly. Neither is tax-deductible, charitable, or nonprofit-backed unless separately configured.",
               })}
             </p>
             <p className="mt-2">
@@ -601,7 +616,7 @@ function FundPageContent() {
         </div>
       </section>
 
-      {/* § 03 — Choose a Garden to endow */}
+      {/* § 03 — Choose a Garden to donate to or endow */}
       <section
         ref={gardensRef}
         data-revealed={gardensRevealed}
@@ -615,13 +630,13 @@ function FundPageContent() {
                 <EditorialKicker className="mb-3">
                   {formatMessage({
                     id: "public.fund.gardens.kicker",
-                    defaultMessage: "§ 03: Choose where to endow",
+                    defaultMessage: "§ 03: Choose a Garden",
                   })}
                 </EditorialKicker>
                 <EditorialHeading id="public-fund-gardens-title">
                   {formatMessage({
                     id: "public.fund.gardens.title",
-                    defaultMessage: "Gardens accepting endowments this season.",
+                    defaultMessage: "Gardens accepting support this season.",
                   })}
                 </EditorialHeading>
               </div>

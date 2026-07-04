@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { Outlet, ScrollRestoration, useLocation } from "react-router-dom";
 import { SiteHeader } from "@/components/Navigation/SiteHeader";
+import { publicCuration } from "@/content/publicCuration";
 
 const PUBLIC_SCROLL_ROOT_ID = "client-scroll-root";
 const PUBLIC_SCROLL_PRESERVED_SEARCH_PARAMS = new Set(["manage"]);
@@ -186,6 +187,35 @@ function usePublicRouteScrollReset() {
 }
 
 /**
+ * Warm every curated hero image once after the landing view paints. Each
+ * public view swaps in its own hero, and the `vt-header` shared-element
+ * morph cross-fades the old hero into the new one — if the incoming image
+ * hasn't loaded yet, the morph lands on the deep-navy backdrop and reads as
+ * a dark flash on the first visit to each view. The set is a handful of
+ * local webp files, and the browser cache dedupes the current view's image.
+ * Skipped under Save-Data.
+ */
+function useWarmPublicHeroImages() {
+  useEffect(() => {
+    const connection = (navigator as Navigator & { connection?: { saveData?: boolean } })
+      .connection;
+    if (connection?.saveData) return;
+
+    const sources = new Set<string>([
+      publicCuration.heroImagePath,
+      ...Object.values(publicCuration.viewHeroImages).filter(
+        (src): src is string => typeof src === "string"
+      ),
+    ]);
+    for (const src of sources) {
+      const image = new Image();
+      image.decoding = "async";
+      image.src = src;
+    }
+  }, []);
+}
+
+/**
  * PublicShell — layout wrapper for public routes (no auth required).
  *
  * Provides the SiteHeader (top navigation) and a main content area.
@@ -193,6 +223,7 @@ function usePublicRouteScrollReset() {
  */
 export default function PublicShell() {
   usePublicRouteScrollReset();
+  useWarmPublicHeroImages();
 
   return (
     <div className="flex min-h-screen flex-col bg-bg-white-0">
