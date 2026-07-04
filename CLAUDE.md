@@ -208,7 +208,7 @@ Full skills: `design` (direction) + `ui` (implementation). Load explicitly when 
 - Client only: `operator cockpit`, `utility copy`, `KPI tile`, `dashboard`, `Plus Jakarta Sans`.
 
 **Component palettes** (do not invent component names — flag missing primitives instead):
-- Admin: 13 `Admin*` wrappers + `CanvasLayout` / `AppBar` / `MainSheet` / `LeftSheet` / `RightSheet` / `BottomSheet` / `NavigationBar` / `AdminFab`. Full list: `.claude/skills/design/prompt-contract.md § Canonical Component Palette`.
+- Admin: the `Admin*` M3 wrappers (filesystem is the count of record) + `CanvasLayout` / `AppBar` / `MainSheet` / `ActionFlowShell` / `NavigationBar` / `AdminFab`; every overlay is a centered `AdminDialog` (side sheets retired). Full list: `.claude/skills/design/prompt-contract.md § Canonical Component Palette`.
 - Client: `@green-goods/shared` primitives + presentation-mode loaders / `PublicShell` / `PwaRuntime` / `AppShell` / `SiteHeader` / `AppBar`. Full list: `.claude/skills/design/client-prompt-contract.md § Canonical Component Palette`.
 
 **Validation**: `bun run check:design-md` (root + dialect DesignMD lint) · `bun run check:design-generated` (DesignMD generated artifacts) · `bun run check:design-tokens` (spec ↔ theme.css drift + version coupling) · `bun run lint:vocab` (banned terms). When a component, story, or Storybook-covered surface changes, also run `bun run --filter @green-goods/shared check:stories` and `bun run --filter @green-goods/shared check:story-quality`.
