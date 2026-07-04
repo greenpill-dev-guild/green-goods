@@ -106,7 +106,7 @@ const closeButtonClasses = cn(
   "m3-state-layer",
   "[--state-layer-color:var(--m3-on-surface)]",
   "text-[rgb(var(--m3-on-surface-variant))]",
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-action,var(--m3-primary)))]"
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]"
 );
 
 // ============================================================================
@@ -359,7 +359,7 @@ export function AdminConfirmDialog({
     icon ??
     (isDanger || isWarning ? (
       <RiAlertLine
-        className={cn("h-6 w-6", isDanger ? "text-[rgb(var(--m3-error))]" : "text-warning-base")}
+        className={cn("h-6 w-6", isDanger ? "text-[rgb(var(--m3-error))]" : "text-warning-dark")}
       />
     ) : null);
 

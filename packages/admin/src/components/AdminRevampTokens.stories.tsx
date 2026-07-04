@@ -66,7 +66,11 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 const SURFACE_TOKENS: SwatchSpec[] = [
-  { name: "canvas", cssVar: "--canvas", note: "#FAF8F5 in light, neutral-950 in dark" },
+  {
+    name: "canvas",
+    cssVar: "--canvas",
+    note: "warm linen (m3 container) in light, warm ladder floor in dark",
+  },
   { name: "ink", cssVar: "--ink", note: "primary text" },
   { name: "stone", cssVar: "--stone", note: "secondary text / muted labels" },
   { name: "surface-raised", cssVar: "--surface-raised", note: "elevated cards" },
@@ -214,7 +218,8 @@ export const ToneStrengthMatrix: Story = {
       description: {
         story:
           "Each tone (hub/garden/community/actions) at three strengths. " +
-          "off → no wash (canvas only). subtle → 50% saturation (default in dark mode). default → full spec. " +
+          "off → no wash (canvas only). subtle → 50% saturation. default → full spec, the default in both modes " +
+          "(dark formerly defaulted to subtle; flipped when the dark wash chroma was raised to legible levels). " +
           "Tone touches the canvas only — never headers, cards, buttons, or status colors.",
       },
     },

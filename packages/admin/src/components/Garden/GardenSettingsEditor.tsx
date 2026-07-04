@@ -292,7 +292,7 @@ export function GardenSettingsEditor({
             className={cn(
               "mt-1 text-right text-xs tabular-nums",
               draft.name.length > GARDEN_NAME_MAX_LENGTH * 0.85
-                ? "text-warning-base"
+                ? "text-warning-dark"
                 : "text-text-soft"
             )}
           >

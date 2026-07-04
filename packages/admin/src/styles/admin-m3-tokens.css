@@ -41,21 +41,32 @@
    * M3 Surface Color Aliases — Light Mode
    * Maps to design system tokens from @green-goods/shared/styles/theme.css
    * -------------------------------------------------------------------------- */
+  /* Light surface ladder — warm linen family (constant hue ~85, chroma
+   * .005–.012), replacing flat-gray Tailwind neutrals. DESIGN.md's canvas is
+   * linen #FAF8F5; dark mode already carries the warm ladder (hue ~65), so
+   * light matching it restores Warm Earth parity. Cards/sheets stay white.
+   * OKLCH intent in comments; shipped as RGB triplets (consumers rgb(var())).
+   * Ink ≥11.3 and the control outline ≥3.5 on every step (audit-verified). */
   --m3-surface: var(--bg-white-0);
-  --m3-surface-dim: var(--neutral-200);
+  --m3-surface-dim: 235 231 224;             /* oklch(93% .010 85) */
   --m3-surface-container-lowest: 255 255 255;
-  --m3-surface-container-low: var(--neutral-50);
-  --m3-surface-container: var(--neutral-100);
-  --m3-surface-container-high: var(--neutral-200);
-  --m3-surface-container-highest: var(--neutral-300);
+  --m3-surface-container-low: 252 250 246;   /* oklch(98.5% .005 85) */
+  --m3-surface-container: 247 244 239;       /* oklch(96.8% .007 85) */
+  --m3-surface-container-high: 236 233 226;  /* oklch(93.5% .010 85) */
+  --m3-surface-container-highest: 226 222 213; /* oklch(90% .012 85) */
   --m3-on-surface: var(--text-strong-950);
   --m3-on-surface-variant: var(--text-sub-600);
-  --m3-outline: var(--stroke-sub-300);
+  /* Control-grade outline (4.8:1 on white): text-field/chip/outlined-button
+   * boundaries. The old neutral-300 measured 1.49:1 — a decorative hairline
+   * doing a control job. Decorative edges keep --m3-outline-variant. */
+  --m3-outline: var(--neutral-500);
   --m3-outline-variant: var(--stroke-soft-200);
   --m3-inverse-surface: var(--neutral-900);
   --m3-inverse-on-surface: var(--neutral-100);
   --m3-inverse-primary: var(--green-200);
-  --m3-primary: var(--tone-primary, var(--green-500));
+  /* No-tone fallback is green-800, not green-500: --m3-primary doubles as
+   * on-surface text/link color, and green-500 measures 2.36 on white. */
+  --m3-primary: var(--tone-primary, var(--green-800));
   --m3-on-primary: var(--tone-on-primary, 255 255 255);
   --m3-primary-container: var(--tone-primary-container, var(--green-100));
   --m3-on-primary-container: var(--tone-on-primary-container, var(--green-900));
@@ -63,7 +74,9 @@
   --m3-on-secondary-container: var(--neutral-900);
   --m3-tertiary-container: var(--warning-lighter);
   --m3-on-tertiary-container: var(--warning-dark);
-  --m3-error: var(--error-base);
+  /* red-700 (admin handoff 185 28 28): white text at 6.4 — the old error-base
+   * (224 56 53) measured 4.39 on the danger confirm button. */
+  --m3-error: var(--red-700);
   --m3-on-error: 255 255 255;
   --m3-error-container: var(--error-lighter);
   --m3-on-error-container: var(--error-dark);
@@ -89,7 +102,7 @@
  * Enforced by scripts/design/check-tokens.sh.
  * -------------------------------------------------------------------------- */
 .admin-m3 {
-  --m3-primary: var(--tone-primary, var(--green-500));
+  --m3-primary: var(--tone-primary, var(--green-800));
   --m3-on-primary: var(--tone-on-primary, 255 255 255);
   --m3-primary-container: var(--tone-primary-container, var(--green-100));
   --m3-on-primary-container: var(--tone-on-primary-container, var(--green-900));
@@ -113,7 +126,7 @@
  * `[data-tone]` scopes), so one rule covers both modes.
  * -------------------------------------------------------------------------- */
 [data-tone] {
-  --m3-primary: var(--tone-primary, var(--green-500));
+  --m3-primary: var(--tone-primary, var(--green-800));
   --m3-on-primary: var(--tone-on-primary, 255 255 255);
   --m3-primary-container: var(--tone-primary-container, var(--green-100));
   --m3-on-primary-container: var(--tone-on-primary-container, var(--green-900));
@@ -155,8 +168,18 @@
 
   --m3-on-surface: var(--text-strong-950);
   --m3-on-surface-variant: var(--text-sub-600);
-  --m3-outline: var(--stroke-sub-300);
+  /* Control-grade outline for dark (7.7:1 vs surface, 6.1 vs dialog): the
+   * remapped stroke-sub-300 (neutral-700) measured 1.89:1. */
+  --m3-outline: var(--neutral-400);
   --m3-outline-variant: var(--stroke-soft-200);
+  /* Dark error flips strategy (M3-dark convention): lighter red fill
+   * (admin remap 248 113 113) with ink text = 6.2; the old red-600 fill with
+   * ink text measured 4.09, and as icon/text on the canvas 4.03. */
+  --m3-error: var(--red-500);
+  /* Must live HERE, not only in theme.css's dark block: this file's :root
+   * declaration is unlayered and beats theme's @layer dark override, so
+   * without this line dark on-error resolves to the light-mode white. */
+  --m3-on-error: var(--neutral-950);
   --m3-inverse-surface: var(--neutral-100);
   --m3-inverse-on-surface: var(--neutral-900);
   --m3-inverse-primary: var(--green-700);

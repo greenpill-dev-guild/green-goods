@@ -54,7 +54,7 @@ function dotClasses(completed: boolean, isCurrent: boolean) {
 // dot + spacing intact, just enlarges the touch/click + focus-ring area for the
 // mobile completed-step jump (WCAG 2.5.5).
 const JUMP_CLASS =
-  "-m-3 rounded-full p-3 transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-action,var(--primary-action)))] focus-visible:ring-offset-1";
+  "-m-3 rounded-full p-3 transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--primary-action)))] focus-visible:ring-offset-1";
 
 export function ActionFlowStepper({
   steps,

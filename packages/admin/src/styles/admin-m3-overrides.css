@@ -324,6 +324,17 @@ body:has(.admin-m3) [data-component="ConfirmDialog"][data-slot="surface"] {
   display: none !important;
 }
 
+/* Dark-mode check glyph — ink stroke instead of the component's white data-URI.
+ * Dark checked fills are LIGHT (pastel --m3-primary -200 step; light-red
+ * --m3-error), so the white glyph measures ~1.3–2.1:1 — invisible. Ink
+ * (neutral-950 #0C0A09) measures ≥6:1 on both, mirroring how --m3-on-primary /
+ * --m3-on-error flip to ink in dark. Same mechanism as the .gg-control-select
+ * chevron (theme.css): a per-theme data-URI swap. Unlayered on purpose so it
+ * beats the Tailwind utility that sets the white glyph. */
+[data-theme="dark"] [data-component="AdminCheckbox"][data-slot="input"]:checked {
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%230C0A09%22%20stroke-width%3D%223%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M20%206L9%2017l-5-5%22%2F%3E%3C%2Fsvg%3E");
+}
+
 /* Content lists/cards within MainSheet — solid surface-container-low */
 .admin-m3 .canvas-area-main .glass-raised {
   backdrop-filter: none;

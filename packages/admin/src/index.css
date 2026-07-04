@@ -255,7 +255,9 @@
   --edge-hover: 0 0 0 1px rgba(31, 193, 107, 0.20);
   --edge-active: 0 0 0 1px rgba(31, 193, 107, 0.30);
   --edge-disabled: 0 0 0 1px rgba(0, 0, 0, 0.03);
-  --edge-focus: 0 0 0 3px rgba(31, 193, 107, 0.20);
+  /* Focus edge rides the workspace focus-ring role (green fallback outside a
+   * tone). The old brand-green @20% alpha measured 1.19:1 — invisible. */
+  --edge-focus: 0 0 0 2px rgb(var(--tone-focus-ring, var(--green-800)));
 
   /* Warm Earth surface tokens — encode warm-stone (light) / cool-slate (dark) intent.
    * Use instead of hardcoded rgb(255 255 255) or raw --neutral-0 in glass surfaces. */
@@ -343,7 +345,7 @@
   --edge-hover: 0 0 0 1px rgba(31, 193, 107, 0.30);
   --edge-active: 0 0 0 1px rgba(31, 193, 107, 0.40);
   --edge-disabled: 0 0 0 1px rgba(255, 255, 255, 0.04);
-  --edge-focus: 0 0 0 3px rgba(31, 193, 107, 0.30);
+  --edge-focus: 0 0 0 2px rgb(var(--tone-focus-ring, var(--green-200)));
 
   /* Warm card surfaces — alias onto the M3 ladder (single dark surface source of
    * truth). Was cold blue-slate (22 25 33 / 17 19 27, hue ~250), which made
@@ -434,10 +436,14 @@
 
 /* Garden — Green. Uses a forest action tone for the cockpit's strongest CTA. */
 [data-tone="garden"] {
-  --tone-primary: var(--green-600);
+  /* Dual-safe forest green (light applies the dark block's dual-use rule):
+   * green-600 failed as white-text fill (2.85) and as link text (2.85); the
+   * green-700 CTA failed AA with white (4.29). green-800 measures 5.72 both
+   * directions; hover deepens to green-900 (7.19). */
+  --tone-primary: var(--green-800);
   --tone-on-primary: 255 255 255;
-  --tone-action: var(--green-700);
-  --tone-action-hover: var(--green-800);
+  --tone-action: var(--green-800);
+  --tone-action-hover: var(--green-900);
   --tone-on-action: 255 255 255;
   --tone-primary-container: var(--green-100);
   --tone-on-primary-container: var(--green-900);
@@ -478,7 +484,9 @@
 
 /* Actions — Red */
 [data-tone="actions"] {
-  --tone-primary: var(--red-500);
+  /* red-500 (handoff 224 56 53) measured 4.39 as a white-text fill and as
+   * accent text on white — red-700 is dual-safe at 6.4 both directions. */
+  --tone-primary: var(--red-700);
   --tone-on-primary: 255 255 255;
   --tone-action: var(--red-700);
   --tone-action-hover: var(--red-800);
@@ -495,7 +503,9 @@
 
 /* Home — Stone/Neutral (unauthenticated) */
 [data-tone="home"] {
-  --tone-primary: 120 113 108;
+  /* neutral-600 (was -500): the stone accent measured 4.40 as text on the
+   * card — one step deeper clears body-text AA (5.9 card / 7.6 white). */
+  --tone-primary: 87 83 78;
   --tone-on-primary: 255 255 255;
   --tone-action: 68 64 60;
   --tone-action-hover: 41 37 36;
@@ -508,6 +518,18 @@
   --tone-surface-variant: 245 245 244;
   --tone-on-surface-accent: 68 64 60;
   --tone-surface-tint-color: rgb(120 113 108 / 8%);
+}
+
+/* Focus-ring role — the one token components use for focus indicators.
+ * Light: the deep filled-action step (≥5:1 on light surfaces). Dark: the bright
+ * on-surface accent (≥11:1) — deep fills measure 2.3–2.7 against dark surfaces,
+ * below the 3:1 non-text minimum, so the ring flips to the text-accent step.
+ * Resolves per-element via the tone indirection, exactly like --m3-primary. */
+[data-tone] {
+  --tone-focus-ring: var(--tone-action);
+}
+[data-theme="dark"] [data-tone] {
+  --tone-focus-ring: var(--tone-on-surface-accent);
 }
 
 /* Dark mode workspace accents — deliberate, AA-verified (not a light inversion).
@@ -1738,7 +1760,9 @@
  * ============================================================================ */
 :root {
   /* Surface aliases — DesignMD colors.neutral = #FAF8F5 */
-  --canvas: rgb(var(--neutral-100) / 1);
+  /* Warm linen (M3 container step) — was flat gray neutral-100; DESIGN.md
+   * specifies linen, and dark mode already carries the warm ladder. */
+  --canvas: rgb(var(--m3-surface-container));
   --ink: rgb(var(--neutral-800));
   --stone: rgb(var(--neutral-500));
   --on-surface-muted: rgb(var(--neutral-600));
@@ -1864,6 +1888,41 @@
   color: rgb(var(--green-200));
 }
 
+/* Contrast-safe rendering for the `-base`-as-text pattern (LIGHT + both-mode).
+ *
+ * ~53 admin call sites color text/icons with mid-scale `-base` steps that
+ * measure 2.2–4.4:1 — below AA. Rather than chase every call site (and every
+ * future one), re-point the classes at admin scope, mirroring the dark-mode
+ * `.text-primary-*` overrides above:
+ *   - text-primary-base → --primary-dark (5.7:1 light; the dark block above
+ *     still wins in dark with green-300).
+ *   - state `-base` text → the `-dark` aliases, which already flip per mode
+ *     (red-950/orange-950/green-950/blue-950 in light; -400 steps in dark),
+ *     so one mode-agnostic rule covers both themes.
+ * `-base` steps remain correct for FILLS (bg-*) — only text is re-pointed.
+ * New code should write `text-*-dark` directly; these rules are the backstop.
+ * `:is(.admin-m3, [data-tone])` so portaled dialogs (data-tone, no .admin-m3)
+ * are covered; [data-tone] is admin-only, so the client PWA is untouched. */
+:is(.admin-m3, [data-tone]) :where(.text-primary-base) {
+  color: rgb(var(--primary-dark));
+}
+
+:is(.admin-m3, [data-tone]) :where(.text-error-base) {
+  color: rgb(var(--error-dark));
+}
+
+:is(.admin-m3, [data-tone]) :where(.text-warning-base) {
+  color: rgb(var(--warning-dark));
+}
+
+:is(.admin-m3, [data-tone]) :where(.text-success-base) {
+  color: rgb(var(--success-dark));
+}
+
+:is(.admin-m3, [data-tone]) :where(.text-information-base) {
+  color: rgb(var(--information-dark));
+}
+
 /* ============================================================================
  * TONE SYSTEM (Tier 1a — additive)
  * Per-view canvas wash. Tone is a peripheral signal that touches:
@@ -1921,6 +1980,11 @@
  * to --sky-* so info badges in admin also shift to the handoff azure.
  * ============================================================================ */
 .admin-m3 {
+  /* Link-hover step: the generated DesignMD tertiary-action-hover resolves to
+   * a green measuring 4.29:1 on white — one step deeper (green-900, 7.19)
+   * keeps the resting→hover darkening while clearing body-text AA. Dark mode
+   * re-points the .text-primary-* classes separately below. */
+  --primary-darker: var(--green-900);
   /* Amber (warning) — handoff #D97706 anchor, full scale extrapolated from Tailwind amber */
   --orange-50: 255 251 235;
   --orange-100: 254 243 199;

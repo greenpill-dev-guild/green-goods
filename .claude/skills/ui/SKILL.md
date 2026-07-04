@@ -2,14 +2,15 @@
 name: ui
 user-invocable: false
 description: UI implementation — TailwindCSS v4, Radix UI primitives, accessibility, Storybook, i18n, diagrams. Implements the direction set by the `design` skill. Use for theming, component composition, accessibility compliance, stories, internationalization, or creating diagrams.
-version: "1.5.0"
-design_token_version: "2.4.0"
+version: "1.6.0"
+design_token_version: "2.5.0"
 status: active
 packages: ["shared", "client", "admin"]
 dependencies: ["design"]
-last_updated: "2026-06-30"
-last_verified: "2026-06-30"
+last_updated: "2026-07-03"
+last_verified: "2026-07-03"
 changelog:
+  - "1.6.0 — design_token_version → 2.5.0 (mirrors design skill). Implementers: focus rings use --tone-focus-ring (never --tone-action, which fails 3:1 in dark); text/icons use state -dark steps (-base is fill-only; admin-scope class backstops exist but write -dark directly); light admin surfaces are the linen ladder in admin-m3-tokens.css; m3-outline is control-grade (form fields/chips/outlined buttons), m3-outline-variant stays decorative."
   - "1.5.0 — design_token_version → 2.4.0 (mirrors design skill). Admin dark-mode token values changed: warm M3 surface ladder + ring-forward --m3-elevation-*/--elevation-* dark overrides in admin-m3-tokens.css/index.css, rewritten dark [data-tone] blocks, raised canvas wash. Implementers: dark accents follow the dual-use-safe rule (--tone-primary stays light; saturation lives in --tone-action). See design/language.md § Dark Mode Palette (Admin)."
   - "1.4.1 — Added 10-step New Component Runbook (single golden path replacing scattered steps). Part 3 Dialogs now names DialogShell (shared, default) and AdminDialog (admin, strict M3) with file paths. Admin Cockpit Mode trimmed to ui-implementation specifics, pointing back to design/SKILL.md § Admin Cockpit Carve-Out as canonical. Registry design_token_version synced to 2.3.0 (was drifted at 2.2.0). Spring motion tokens now real in theme.css."
   - "1.4.0 — Added view-transitions.md (inherited from former design/implementation.md — execution details belong here, not in design). design_token_version pinned to design skill 2.3.0. Material tokens (--color-material-*, --blur-material-*) now implemented in theme.css; compliance guidance should reference them over hardcoded glass values."

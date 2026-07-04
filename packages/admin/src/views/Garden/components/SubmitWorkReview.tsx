@@ -49,7 +49,7 @@ function ReviewCard({
             type="button"
             onClick={onEdit}
             aria-label={`${editText} ${title}`}
-            className="rounded text-xs font-medium text-[rgb(var(--tone-on-surface-accent,var(--m3-primary)))] transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-action,var(--primary-action)))]"
+            className="rounded text-xs font-medium text-[rgb(var(--tone-on-surface-accent,var(--m3-primary)))] transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--primary-action)))]"
           >
             {editText}
           </button>
