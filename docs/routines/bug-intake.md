@@ -27,7 +27,7 @@ connectors:
   - linear  # use whichever Linear surface the harness provides (MCP, native connector, or LINEAR_API_KEY)
   - posthog  # read-only PostHog connector; primary path for telemetry enrichment
   - vercel  # read-only deploy correlation — surface deploy timing + diff in Customer Need bodies when a recent prod deploy temporally aligns with the report
-model: claude-opus-4-7[1m]
+model: claude-opus-4-8[1m]
 allow-unrestricted-branch-pushes: false  # Linear records only, no PRs, no GitHub issues
 ---
 
