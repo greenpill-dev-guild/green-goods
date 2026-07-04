@@ -318,11 +318,22 @@ describe("FundPage", () => {
     expect(screen.queryByRole("button", { name: "Support" })).toBeNull();
   });
 
-  it("keeps /fund Donate as shared fund support and Endow as endowment support", () => {
+  it("explains Donate and Endow once in Ways to support, with Donate leading", () => {
     renderView();
 
+    const donatePath = screen.getByRole("heading", { level: 3, name: "Donate" });
+    const endowPath = screen.getByRole("heading", { level: 3, name: "Endow" });
+    expect(
+      donatePath.compareDocumentPosition(endowPath) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+
     expect(screen.getAllByText(/Garden's shared fund/i).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Garden Vault endowment/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Garden's Vault endowment/i).length).toBeGreaterThan(0);
+
+    // The rows keep bare CTAs — the two paths are explained once in § 02,
+    // not restated as helper captions under every card.
+    expect(screen.queryByText("Shared fund support")).toBeNull();
+    expect(screen.queryByText("Garden Vault endowment")).toBeNull();
 
     for (const garden of mockGardens) {
       const row = screen.getByRole("group", {
@@ -330,9 +341,7 @@ describe("FundPage", () => {
       });
 
       expect(within(row).getByRole("button", { name: "Donate" })).toBeEnabled();
-      expect(within(row).getByText("Shared fund support")).toBeInTheDocument();
       expect(within(row).getByRole("button", { name: "Endow" })).toBeEnabled();
-      expect(within(row).getByText("Garden Vault endowment")).toBeInTheDocument();
     }
   });
 
@@ -367,7 +376,7 @@ describe("FundPage", () => {
   it("places Manage Endowments as a text button in the Garden selection section", () => {
     renderView();
     const gardenSection = screen
-      .getByRole("heading", { name: /Gardens accepting endowments/i })
+      .getByRole("heading", { name: /Gardens accepting support/i })
       .closest("section");
 
     expect(gardenSection).not.toBeNull();
@@ -482,22 +491,22 @@ describe("FundPage", () => {
     });
   });
 
-  it("renders the standalone vault section between the hero and Endow context", () => {
+  it("renders the standalone vault section between the hero and the support paths", () => {
     renderView();
 
     const hero = screen.getByRole("heading", { level: 1 });
     const vaults = screen.getByRole("heading", {
       name: /Endowment capital already supporting Gardens/i,
     });
-    const paths = screen.getByRole("heading", { name: /Endow for many seasons/i });
-    const gardens = screen.getByRole("heading", { name: /Gardens accepting endowments/i });
+    const paths = screen.getByRole("heading", { name: /Donate now, or Endow for many seasons/i });
+    const gardens = screen.getByRole("heading", { name: /Gardens accepting support/i });
 
     expect(hero.compareDocumentPosition(vaults) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(vaults.compareDocumentPosition(paths) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(paths.compareDocumentPosition(gardens) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(screen.getByText("§ 01: Endowment engine")).toBeInTheDocument();
     expect(screen.getByText("§ 02: Ways to support")).toBeInTheDocument();
-    expect(screen.getByText("§ 03: Choose where to endow")).toBeInTheDocument();
+    expect(screen.getByText("§ 03: Choose a Garden")).toBeInTheDocument();
   });
 
   it("wires the vault stats section into the reveal lifecycle", () => {
