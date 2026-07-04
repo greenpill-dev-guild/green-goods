@@ -14,7 +14,7 @@ environment: green-goods-routines
 network-access: trusted
 connectors:
   - vercel
-model: claude-opus-4-7[1m]
+model: claude-opus-4-8[1m]
 ---
 
 # Prompt
