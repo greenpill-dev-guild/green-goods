@@ -110,7 +110,11 @@ describe("route folding", () => {
     expect(canvasLayout).toContain("AccountProfilePanel");
     expect(canvasLayout).toContain("AccountSettingsPanel");
     expect(rightSheetDescriptor).not.toContain("renderAccountSurface");
-    expect(rightSheetDescriptor).toContain("NotificationPanel");
+    // Notification rendering lives in CanvasLayout (it owns the garden-scoped
+    // data wiring); the descriptor stays a pure contentId→content mapping and
+    // delegates through the injected renderNotifications callback.
+    expect(rightSheetDescriptor).toContain("renderNotifications");
+    expect(canvasLayout).toContain("NotificationPanel");
   });
 
   it("Hub canonical builders preserve only garden and sort context", () => {
