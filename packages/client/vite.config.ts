@@ -534,13 +534,60 @@ export default defineConfig(async ({ command, mode }) => {
     },
     // Optimize dependency pre-bundling
     optimizeDeps: {
-      // Include CJS packages that need named exports extracted
+      // `@green-goods/shared` is excluded (served as source for HMR), so Vite's
+      // startup scanner never crawls its bare imports. Pre-bundle shared's
+      // runtime dep surface up front — otherwise a cold cache discovers these
+      // at request time and broadcasts "optimized dependencies changed.
+      // reloading", a full-page reload that kills in-flight lazy-route
+      // navigation. Keep in sync with packages/admin/vite.config.ts.
       include: [
         "react",
         "react-dom",
         "posthog-js",
+        "posthog-js/react",
         "@sentry/react",
+        // ── @green-goods/shared runtime surface ──
         "@ethereum-attestation-service/eas-sdk",
+        "@hypercerts-org/contracts",
+        "@hypercerts-org/marketplace-sdk",
+        "@hypercerts-org/sdk",
+        "@radix-ui/react-dropdown-menu",
+        "@radix-ui/react-popover",
+        "@radix-ui/react-select",
+        "@react-spring/web",
+        "@reown/appkit-adapter-wagmi",
+        "@reown/appkit/react",
+        "@storacha/client",
+        "@storacha/client/principal/ed25519",
+        "@storacha/client/proof",
+        "@use-gesture/react",
+        "@wagmi/core",
+        "@xstate/react",
+        "browser-image-compression",
+        "clsx",
+        "ethers",
+        "gql.tada",
+        "graphql-request",
+        // heic-to lives only under shared's node_modules (bun isolated
+        // linker), so it needs the linked-package `>` resolution form.
+        "@green-goods/shared > heic-to/csp",
+        "idb",
+        "idb-keyval",
+        "permissionless",
+        "permissionless/accounts",
+        "permissionless/clients/passkeyServer",
+        "permissionless/clients/pimlico",
+        "react-day-picker",
+        "react-hot-toast",
+        "react-select",
+        "tailwind-merge",
+        "tailwind-variants",
+        "viem/account-abstraction",
+        "viem/chains",
+        "xstate",
+        "zustand",
+        "zustand/middleware",
+        "zustand/react/shallow",
       ],
       // Exclude local packages and ESM-only packages
       exclude: ["@green-goods/shared"],
