@@ -88,7 +88,7 @@ export function PublicProofBand({
               {formatMessage({
                 id: "public.home.proof.body",
                 defaultMessage:
-                  "This isn't a dashboard. These are confirmed counts: gardens attended, hands at work, entries logged, assessments held. Public, verifiable.",
+                  "This isn't a dashboard. These are confirmed counts: gardens tended, hands at work, entries logged, assessments recorded. Public, verifiable.",
               })}
             </EditorialLede>
           </div>
@@ -124,7 +124,7 @@ export function PublicProofBand({
               value={gardens}
               isLoading={isLoading}
               labelId="public.home.proof.gardens"
-              defaultLabel="Gardens attended"
+              defaultLabel="Gardens tended"
               noteId="public.home.proof.gardensNote"
               defaultNote="Active places under continuous documentation."
             />
@@ -148,9 +148,9 @@ export function PublicProofBand({
               value={assessments}
               isLoading={isLoading}
               labelId="public.home.proof.assessments"
-              defaultLabel="Assessments held"
+              defaultLabel="Assessments recorded"
               noteId="public.home.proof.assessmentsNote"
-              defaultNote="Independent evaluator confirmations, anchored to a public reference."
+              defaultNote="Season baselines each Garden sets before the work begins, anchored to a public reference."
             />
           </dl>
         )}

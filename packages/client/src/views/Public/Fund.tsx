@@ -123,7 +123,7 @@ function VaultAggregationSection({ summary }: { summary: PublicVaultSummary }) {
           <EditorialKicker className="mb-3">
             {formatMessage({
               id: "public.fund.vaults.kicker",
-              defaultMessage: "§ 01 — Endowment engine",
+              defaultMessage: "§ 01: Endowment engine",
             })}
           </EditorialKicker>
           <EditorialHeading id="public-fund-vaults-title">
@@ -136,7 +136,7 @@ function VaultAggregationSection({ summary }: { summary: PublicVaultSummary }) {
             {formatMessage({
               id: "public.fund.vaults.lede",
               defaultMessage:
-                "Endow adds long-term capital to Garden Vault endowments; Donate sends support directly to a Garden's shared fund.",
+                "Endow places a long-term deposit in a Garden's Vault. Donate sends support straight to a Garden's shared fund.",
             })}
           </p>
         </header>
@@ -276,7 +276,7 @@ function VaultAssetCard({ asset }: { asset: PublicVaultSummaryAsset }) {
         <VaultMetric
           label={formatMessage({
             id: "public.fund.vaults.readyToHarvest",
-            defaultMessage: "Ready to harvest",
+            defaultMessage: "Yield ready for Gardens",
           })}
           value={readyToHarvestValue}
         />
@@ -541,7 +541,7 @@ function FundPageContent() {
             <EditorialKicker className="mb-3">
               {formatMessage({
                 id: "public.fund.paths.kicker",
-                defaultMessage: "§ 02 — Endowment path",
+                defaultMessage: "§ 02: Ways to support",
               })}
             </EditorialKicker>
             <EditorialHeading id="public-fund-paths-title">
@@ -558,11 +558,11 @@ function FundPageContent() {
               titleId="public.fund.paths.endowTitle"
               defaultTitle="Endow"
               ledeId="public.fund.paths.endowLede"
-              defaultLede="A Garden Vault endowment designed so the deposit can remain while support reaches the Garden over many seasons."
+              defaultLede="A long-term deposit in the Garden's Vault. The principal stays in place and remains withdrawable. The yield supports the Garden's Work season after season, not a personal return."
               routesId="public.fund.paths.endowRoutes"
-              defaultRoutes="Stays in the Garden's Vault endowment."
+              defaultRoutes="The Garden's Vault endowment. The principal remains withdrawable."
               bestForId="public.fund.paths.endowBestFor"
-              defaultBestFor="Long-term support that compounds."
+              defaultBestFor="Long-term support that keeps working."
               learnMoreId="public.fund.paths.endowLearnMore"
               defaultLearnMore="Learn about Octant V2 vaults"
               learnMoreHref="https://octant.build"
@@ -594,7 +594,7 @@ function FundPageContent() {
               {formatMessage({
                 id: "public.fund.dialog.endow.risk",
                 defaultMessage:
-                  "Heads up: long-term deposits depend on the underlying token and provider, so values and access can vary.",
+                  "Heads up: deposit value can move with the underlying token, and withdrawals can take time.",
               })}
             </p>
           </aside>
@@ -615,7 +615,7 @@ function FundPageContent() {
                 <EditorialKicker className="mb-3">
                   {formatMessage({
                     id: "public.fund.gardens.kicker",
-                    defaultMessage: "§ 03 — Choose where to endow",
+                    defaultMessage: "§ 03: Choose where to endow",
                   })}
                 </EditorialKicker>
                 <EditorialHeading id="public-fund-gardens-title">
