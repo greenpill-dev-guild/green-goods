@@ -8,26 +8,36 @@ Stable vocabulary and never-use list for prompting AI design tools or coding age
 
 Paste this sentence (or a trimmed version) into every AI design prompt for admin surfaces:
 
-> Green Goods admin is a **restrained operator cockpit** expressing the **Warm Earth** design language through M3 anatomy — not raw M3, and not the expressive client dialect. Use `CanvasLayout` with an admin `AppBar` top context bar, one dominant `MainSheet` workspace, a bottom `NavigationBar`, and **centered `AdminDialog` overlays for every action and detail/inspection flow** (side sheets are retired). Components follow **Material 3 anatomy** with **Plus Jakarta Sans**. Dense surfaces are **solid, not frosted**. **Workspace tint** is subtle atmosphere only. Prefer **workbench rows, lists, tabs, and inspectors** over nested cards. **Utility copy only.**
+> Green Goods admin is a **restrained operator cockpit** expressing the **Warm Earth** design language through M3 anatomy — not raw M3, and not the expressive client dialect. Use `CanvasLayout` with an admin `AppBar` top context bar, one dominant `MainSheet` workspace, a bottom `NavigationBar`, and **centered `AdminDialog` overlays for every workspace action and detail/inspection flow**. The only exception: the **three global AppBar surfaces (Profile, Settings, Notifications) open a right-docked `AdminSideSheet`** on desktop. Components follow **Material 3 anatomy** with **Plus Jakarta Sans**. Dense surfaces are **solid, not frosted**. **Workspace tint** is subtle atmosphere only. Prefer **workbench rows, lists, tabs, and inspectors** over nested cards. **Utility copy only.**
 
 ## Admin is Restrained Warm Earth, Not Raw M3
 
 The admin cockpit and the client PWA are both Warm Earth. The difference is expressiveness, not foundation:
 
 - **Shared baseline**: concentric geometry, spring motion tokens, role hierarchy (canvas/ink/stone/green accent), 4 disclosure layers, 5 Z-layers, material system.
-- **Admin subset**: Standard motion scheme (never Expressive), glass restricted to Navigation/FAB (sheet shells retired), transparent admin `AppBar` root over the workspace canvas, capsule shape only for primary CTAs/FABs, solid surfaces over blur everywhere else (including every dialog surface), no organic/hero shapes, no decorative color.
+- **Admin subset**: Standard motion scheme (never Expressive), glass restricted to Navigation/FAB (every dialog and side-sheet surface is solid), transparent admin `AppBar` root over the workspace canvas, capsule shape only for primary CTAs/FABs, solid surfaces over blur everywhere else, no organic/hero shapes, no decorative color.
 - **Why**: operators scanning a queue need motion that aids, not entertains. The cockpit inherits warmth; it does not perform it.
 
 If you would not ship a move on Linear, GitHub, or Stripe Dashboard, it does not belong in the cockpit — regardless of what the Warm Earth language permits in client flows.
 
-## Overlays: Centered `AdminDialog` Everywhere
+## Overlays: Centered `AdminDialog` + the Three Global Side Sheets
 
-The canonical admin overlay is the centered **`AdminDialog`** (M3 basic dialog: surface-container-high, a 32% scrim covering the **full viewport**, right-aligned M3 action row, bottom-sheet on mobile). It hosts **every** admin action *and* every detail/inspection flow — work review, assessment, hypercert, action create/edit/detail, garden settings, member management, notifications, profile, settings, cookie jar, vault.
+The canonical admin overlay is the centered **`AdminDialog`** (M3 basic dialog: surface-container-high, a 32% scrim covering the **full viewport**, right-aligned M3 action row, bottom-sheet on mobile). It hosts **every** workspace action *and* every detail/inspection flow — work review, assessment, hypercert, action create/edit/detail, garden settings, member management, cookie jar, vault.
 
-- **Side sheets are retired.** The old `LeftSheet` / `RightSheet` / `BottomSheet` canvas inspectors are no longer a pattern. Never propose a slide-in side panel for a detail or creation flow — propose an `AdminDialog`. Because the dialog portals to `<body>` (out of the `[data-tone]` scope), always pass the workspace `tone`.
-- **Glass stays on Navigation/FAB only.** With sheet shells gone, the only glass surfaces in the cockpit are the `NavigationBar` and `AdminFab`. The `AppBar` root and every dialog surface are solid M3 — never frosted.
-- **`AdminDialog` is still a mobile bottom-sheet** in its responsive presentation (it slides up from the bottom on narrow viewports). That is the dialog adapting — not the retired side-sheet system. `SheetBody` / `SheetFooter` / `SheetDivider` survive as layout primitives *inside* a dialog body.
+- **Workspace side sheets stay retired.** The old `LeftSheet` / `RightSheet` / `BottomSheet` canvas inspectors are not a pattern. Never propose a slide-in side panel for a workspace detail or creation flow — propose an `AdminDialog`. Because the dialog portals to `<body>` (out of the `[data-tone]` scope), always pass the workspace `tone`.
+- **Glass stays on Navigation/FAB only.** The only glass surfaces in the cockpit are the `NavigationBar` and `AdminFab`. The `AppBar` root, every dialog surface, and the side sheet are solid M3 — never frosted.
+- **`AdminDialog` is still a mobile bottom-sheet** in its responsive presentation (it slides up from the bottom on narrow viewports). That is the dialog adapting — not the retired side-sheet system. `SheetBody` / `SheetFooter` / `SheetDivider` survive as layout primitives *inside* a dialog or side-sheet body.
 - Full-surface action flows (Submit Work, Create Assessment, Create Hypercert, Create/Edit Action) use `AdminDialog variant="flow"` + `className={ADMIN_FLOW_DIALOG_CLASS}` wrapping `ActionFlowShell` — see the size standard below (`xl`/`2xl` tiers no longer exist).
+
+### Side sheets: the three global surfaces (shipped scope — do not extend)
+
+**`AdminSideSheet`** is the M3 modal side sheet for the **three global AppBar surfaces only** — Profile, Settings, Notifications. It is AdminDialog's sibling (same scrim, hairline header, absolute close button, tone prop, instant-exit handling), with side-sheet geometry:
+
+- **≥640px**: right-docked, full height, rounded inner (left) corners, slides in from the right edge; one shared width (`--canvas-right-sheet-width`, clamp 380–560px). Solid `surface-container-high` — never glass.
+- **<640px**: identical presentation to AdminDialog's mobile bottom sheet. On mobile only the notification bell opens it — Profile and Settings live in the Profile tab (`/profile`, tabs **Account | Settings**; "Account" is the mobile name for the desktop Profile sheet content).
+- **Global chrome tone**: these surfaces are account chrome, not workspace content — they pass `tone="hub"` (neutral operator accent), never the active garden's tint.
+- **Content contract**: panels own their body — compose `SheetBody` (scrolling middle) and optionally `SheetFooter` (pinned bar) inside the sheet; the shell adds no padding, so panel and shell padding never stack.
+- **Scope is enforced**: only `CanvasLayout` may render `<AdminSideSheet`, and the right-sheet registry is locked to the three content ids — `packages/admin/src/__tests__/components/AdminSideSheetStandard.guard.test.ts`. Adding a fourth side-sheet surface is a design decision, not a code edit.
 
 ### Dialog size & variant standard (shipped scale — do not invent tiers)
 
@@ -95,13 +105,13 @@ The categories below are contract-specific framing — *why* admin output should
 - **Marketing / promo framing** — admin is operator-internal; no banners, no landing-page energy.
 - **Gallery / mosaic / floating-stats framing** — admin shows workbench rows and inspectors, not curated visual layouts.
 - **Decorative gradient framing** — decoration without function; admin uses solid surfaces.
-- **Glass / liquid / frosted outside Navigation/FAB** — sheet shells are retired; the AppBar root remains transparent; dense surfaces and every dialog must be solid.
+- **Glass / liquid / frosted outside Navigation/FAB** — the AppBar root remains transparent; dense surfaces, every dialog, and the side sheet must be solid.
 
 ## Materials & Motion (admin)
 
 - **M3 strict anatomy** (v0.192) — exact dimensions, state layers (8%/12%/12%/16%), shapes, color roles.
 - **Spring motion** — the single permitted deviation from M3 standard easing. Uses `--spring-*` tokens.
-- **Glass is restricted** to Navigation/FAB. Sheet shells are retired; the admin `AppBar` root and all dialog surfaces remain solid.
+- **Glass is restricted** to Navigation/FAB. The admin `AppBar` root, all dialog surfaces, and the `AdminSideSheet` remain solid.
 - **Typography** — Plus Jakarta Sans across the cockpit.
 
 ### Motion Scheme
@@ -154,16 +164,17 @@ AI design tools MUST map generated output to these existing exports. Do not inve
 | Component | Role |
 |-----------|------|
 | `CanvasLayout` | CSS Grid root — named areas: `canvas-area-top`, `canvas-area-bottom`, inner cells |
-| `AppBar` | Admin top context bar, Z3 — garden context, search, settings, avatar; transparent root over the workspace canvas |
+| `AppBar` | Admin top context bar, Z3 — garden context, search, and the three global actions (notifications, settings, profile) that open side sheets; transparent root over the workspace canvas |
 | `MainSheet` | Z2 — dominant workspace; `isReceded` prop triggers canvas recession on sheet open |
 | `ActionFlowShell` | Full-surface action-flow chrome — pinned header + scrolling body + pinned footer; rendered inside a centered `AdminDialog` (`variant="flow"` + `ADMIN_FLOW_DIALOG_CLASS`), bottom-sheet on mobile |
-| `AdminDialog` | Centered overlay — **every** action and detail/inspection flow (config, alerts, profile, settings, notifications, work/assessment/hypercert/action detail, create/edit). Full-viewport scrim; bottom-sheet on mobile; pass workspace `tone`. Replaces the retired `LeftSheet`/`RightSheet`/`BottomSheet`. |
-| `NavigationBar` | Bottom workspace tabs — Hub, Garden, Community, Actions; symbol-first; role-adaptive |
+| `AdminDialog` | Centered overlay — **every** workspace action and detail/inspection flow (config, alerts, work/assessment/hypercert/action detail, create/edit). Full-viewport scrim; bottom-sheet on mobile; pass workspace `tone`. Replaces the retired `LeftSheet`/`RightSheet`/`BottomSheet` for workspace flows. |
+| `AdminSideSheet` | Right-docked modal side sheet — **only** the three global AppBar surfaces (Profile, Settings, Notifications). Bottom-sheet presentation on mobile (bell only); `tone="hub"`; scope enforced by `AdminSideSheetStandard.guard`. |
+| `NavigationBar` | Bottom workspace tabs — Hub, Garden, Community, Actions (+ mobile-only Profile tab); symbol-first; role-adaptive |
 | `AdminFab` | Per-workspace primary action, capsule shape, integrated via `FabProvider` |
 
-**M3 wrappers** (`packages/admin/src/components/Admin*.tsx` — the filesystem is the count of record; 15 today):
+**M3 wrappers** (`packages/admin/src/components/Admin*.tsx` — the filesystem is the count of record; 16 today):
 
-`AdminBadge` · `AdminButton` · `AdminCard` · `AdminCheckbox` · `AdminDialog` · `AdminFab` · `AdminFilterChip` · `AdminLinearProgress` · `AdminListItem` · `AdminSearchToolbar` · `AdminSortSelect` · `AdminTabRail` · `AdminTextField` · `AdminTooltip` · `AdminViewActions`
+`AdminBadge` · `AdminButton` · `AdminCard` · `AdminCheckbox` · `AdminDialog` · `AdminFab` · `AdminFilterChip` · `AdminLinearProgress` · `AdminListItem` · `AdminSearchToolbar` · `AdminSideSheet` · `AdminSortSelect` · `AdminTabRail` · `AdminTextField` · `AdminTooltip` · `AdminViewActions`
 
 All follow M3 v0.192 anatomy exactly — do not override dimensions, state layers, or shape scale.
 

@@ -47,13 +47,13 @@ The admin package is the Green Goods operator canvas. This page is the single UI
 
 - `CanvasLayout` is the canonical shell.
 - The shell is `AppBar + .workspace-canvas + MainSheet + NavigationBar`.
-- `AppBar` is the sticky `z-sticky h-14` context region with `GardenChip` on the left and search, settings, notifications, and profile controls on the right.
-- `NavigationBar` is navigation only. The canonical items are `Hub`, `Garden`, `Community`, and `Actions`.
-- Controlled Chrome is the admin material boundary: subtle liquid glass is permitted on NavigationBar/FAB and sheet shells. The AppBar root stays transparent so the workspace canvas tone reads behind it. Route cards, forms, tables, lists, and dense content stay solid.
+- `AppBar` is the sticky `z-sticky h-14` context region with `GardenChip` on the left and search, notifications, settings, and profile controls on the right. The three global actions open the `AdminSideSheet`; settings and profile are desktop-only (on mobile those surfaces live in the Profile tab, and the bell remains).
+- `NavigationBar` is navigation only. The canonical items are `Hub`, `Garden`, `Community`, and `Actions` (plus the mobile-only Profile tab).
+- Controlled Chrome is the admin material boundary: subtle liquid glass is permitted on NavigationBar/FAB only. The AppBar root stays transparent so the workspace canvas tone reads behind it. Route cards, forms, tables, lists, dense content, dialogs, and the account side sheet stay solid.
 - `ConnectShell` is the disconnected full-screen state with a centered connect prompt and no navigation.
-- Admin owns `CanvasLayout`, `CommandPalette`, `AccountProfilePanel`, `AccountSettingsPanel`, `AccountSurface`, `UserAvatar`, `UserMenu`, `ConnectShell`, and `PageHeader`.
-- Desktop account panels render `AccountProfilePanel` and `AccountSettingsPanel` as separate contents of the AdminDialog account inspector (routed through the right-sheet registry). `AccountSurface` remains the route-level tabbed account surface for mobile profile navigation.
-- Shared owns `AppBar`, `NavigationBar`, `GardenChip`, `MainSheet`, and `SheetErrorBoundary`. The `LeftSheet`/`RightSheet`/`BottomSheet` renderers are deleted — every admin overlay is a centered `AdminDialog`.
+- Admin owns `CanvasLayout`, `AdminSideSheet`, `CommandPalette`, `AccountProfilePanel`, `AccountSettingsPanel`, `AccountSurface`, `ConnectShell`, and `PageHeader`.
+- Account panels render `AccountProfilePanel` and `AccountSettingsPanel` as separate contents of the `AdminSideSheet` account inspector (routed through the right-sheet registry). `AccountSurface` remains the route-level tabbed account surface for mobile profile navigation — tabs **Account | Settings** ("Account" is the mobile name for the desktop Profile sheet content; notifications never appear as a tab).
+- Shared owns `AppBar`, `NavigationBar`, `GardenChip`, `MainSheet`, `NotificationPanel`, and `SheetErrorBoundary`. The `LeftSheet`/`RightSheet`/`BottomSheet` renderers are deleted — every workspace overlay is a centered `AdminDialog`; the three global AppBar surfaces are the one `AdminSideSheet` exception.
 
 ## Preferred Primitives
 
@@ -63,7 +63,6 @@ The admin package is the Green Goods operator canvas. This page is the single UI
 - `GardenChip`
 - `CommandPalette`
 - `AccountSettingsPanel`
-- `UserAvatar`
 - `ConnectShell`
 - `PageHeader`
 - `ListToolbar`
@@ -74,6 +73,7 @@ The admin package is the Green Goods operator canvas. This page is the single UI
 - `FormField`
 - `AdminDialog`
 - `AdminConfirmDialog`
+- `AdminSideSheet`
 
 ## Surface Primitives
 
@@ -93,6 +93,7 @@ The admin package is the Green Goods operator canvas. This page is the single UI
 - `AdminDialog` sizes follow a three-tier scale by action weight — `sm` is reserved for confirm/alert dialogs, `md` (the default) hosts a simple single-purpose action (one form, one concern), `lg` hosts richer single-view content (lists with per-item actions, multi-field or multi-column layouts). `xl`/`2xl` tiers no longer exist. A guard test (`packages/admin/src/__tests__/components/AdminDialogStandard.guard.test.ts`) fails any consumer passing an out-of-scale size or an ad-hoc `max-w-*` override.
 - Full-surface action flows (Submit Work, Create Assessment, Create Hypercert) use the `flow` variant of `AdminDialog` with `size="lg"` and the shared `ADMIN_FLOW_DIALOG_CLASS` sizing constant. The `flow` variant suppresses the structured header and inner padding so the shared `ActionFlowShell` owns the visible header + scrolling body + pinned footer; it stays a centered, scrim-backed modal (bottom-sheet on mobile), not a fullscreen takeover.
 - `DialogShell` remains available for shared or non-admin surfaces. Do not use it for admin dashboard dialogs.
+- The three global AppBar surfaces (Profile, Settings, Notifications) are the one side-sheet exception: `AdminSideSheet` shares the dialog chrome (scrim, hairline header, close button, `tone`, instant-exit) with side-sheet geometry — right-docked full height with rounded inner corners at ≥640px, an AdminDialog-identical bottom sheet below. Panels compose `SheetBody` / `SheetFooter` inside it (the shell adds no padding). Usage is locked to `CanvasLayout` and the registry to the three content ids by `packages/admin/src/__tests__/components/AdminSideSheetStandard.guard.test.ts`.
 
 ### Dialog interior grammar
 
@@ -110,7 +111,7 @@ Every variant shares one chrome — the action-flow reference anatomy — so sta
 ## Canvas UI Heuristics
 
 - Admin is an operator canvas. Use utility copy and operational hierarchy over marketing language.
-- Default page sequence is `PageHeader`, then the primary workspace, then any secondary inspector or side sheet.
+- Default page sequence is `PageHeader`, then the primary workspace, then any secondary inspector (a centered `AdminDialog`).
 - Start with layout and flow before introducing cards or elevated panels.
 - Cards and elevated surfaces are for discrete records, action targets, and bounded interaction zones. They are not the default page structure.
 - Prefer one dominant workspace surface per route and plain layout within it. Avoid nested stacks of rounded bordered panels.

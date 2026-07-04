@@ -394,7 +394,7 @@ Contextual page-level actions. The admin cockpit's primary action surface.
 
 ### Sheets
 
-> **Admin cockpit exception**: the operator cockpit (`packages/admin`) has **retired side sheets** — the shared sheet renderers are deleted and every admin action and detail/inspection flow is a centered `AdminDialog` (full-viewport scrim; bottom-sheet on mobile). See [prompt-contract.md § Overlays: Centered AdminDialog Everywhere](./prompt-contract.md). The sheet motion below applies to the **client PWA's own sheet patterns** (wallet drawer, `PwaSheet`, mobile detail flows); `SheetBody` / `SheetFooter` / `SheetDivider` survive as layout primitives *inside* an `AdminDialog` body.
+> **Admin cockpit exception**: the operator cockpit (`packages/admin`) has **retired workspace side sheets** — the shared sheet renderers are deleted and every workspace action and detail/inspection flow is a centered `AdminDialog` (full-viewport scrim; bottom-sheet on mobile). The one sanctioned side sheet is **`AdminSideSheet`**, reserved for the three global AppBar surfaces (Profile, Settings, Notifications): right-docked and solid on desktop, AdminDialog-identical bottom sheet on mobile. See [prompt-contract.md § Overlays](./prompt-contract.md). The sheet motion below applies to the **client PWA's own sheet patterns** (wallet drawer, `PwaSheet`, mobile detail flows); `SheetBody` / `SheetFooter` / `SheetDivider` survive as layout primitives *inside* an `AdminDialog` or `AdminSideSheet` body.
 
 Detail surfaces that slide from the edge, anchored to their trigger (source-anchored interaction):
 

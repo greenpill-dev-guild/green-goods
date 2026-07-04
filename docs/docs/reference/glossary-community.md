@@ -78,7 +78,7 @@ The 4 places where people interact with Green Goods. Each has a canonical identi
 
 | Term | Type | Allowed surfaces | Definition |
 |------|------|------------------|------------|
-| **Admin** | surface | self | Operator cockpit. `packages/admin`. Restrained M3 v0.192 anatomy, Plus Jakarta Sans, transparent admin AppBar root, Controlled Chrome glass only on Navigation/FAB and sheet shells, solid dense surfaces everywhere else. Litmus: appropriate for Linear / GitHub / Stripe Dashboard. |
+| **Admin** | surface | self | Operator cockpit. `packages/admin`. Restrained M3 v0.192 anatomy, Plus Jakarta Sans, transparent admin AppBar root, Controlled Chrome glass only on Navigation/FAB, solid dense surfaces everywhere else (dialogs and the account side sheet included). Litmus: appropriate for Linear / GitHub / Stripe Dashboard. |
 | **Client PWA** | surface | self | Gardener-facing app. `packages/client`. Warm Earth garden-journal feel, Inter typography, bottom AppBar (installed PWA) or SiteHeader hamburger (browser). Hero moments live here, never in admin. |
 | **Agent** | surface | self | Conversational gardener interface — telegram, SMS, WhatsApp. `packages/agent`. Natural-language Work submission, status pings, garden updates. No visual chrome. |
 | **Public browser** | surface | self | Public-facing web for funders / community members. Editorial typography (Fraunces / Lora / Newsreader for headlines, Inter for body). Garden discovery, impact pages, funding flows. Never appears in installed PWA. |
@@ -134,9 +134,9 @@ Source: `prompt_vocabulary_admin_banned` in [`banned-vocabulary.json`](https://g
 |--------|-----------|-----------|
 | `hero moment` | admin only | Hero moments are reserved for celebratory client PWA flows (garden creation, first work submission, Hypercert mint). The admin cockpit stays restrained. |
 | `gallery` | admin only | Marketing-page framing. Admin shows workbench rows, lists, and inspectors — not curated visual galleries. |
-| `decorative gradient` | admin only | Decoration without function. Admin uses solid surfaces; material treatment is reserved for Navigation/FAB and sheet shells. |
+| `decorative gradient` | admin only | Decoration without function. Admin uses solid surfaces; material treatment is reserved for Navigation/FAB. |
 | `marketing banner` | admin only | Promotional surface framing. Admin is operator-internal — no banners, no landing-page energy. |
-| `AppBar glass` / `glass outside Navigation/FAB and sheet shells` | admin only | The admin AppBar root stays transparent over the workspace canvas. Liquid / frosted material treatment is restricted to Navigation/FAB and sheet shells; dense data surfaces must be solid for legibility and operator focus. |
+| `AppBar glass` / `glass outside Navigation/FAB` | admin only | The admin AppBar root stays transparent over the workspace canvas. Liquid / frosted material treatment is restricted to Navigation/FAB; dense data surfaces, dialogs, and the account side sheet must be solid for legibility and operator focus. |
 
 The full prompt-vocabulary admin ban list (including `hero section`, `celebration`, `masonry gallery`, `ambient gradient wash`, `promo band`, `landing-page`, `dashboard card mosaic`, `feature cards`, `floating stats`, `stat chips floating above content`, `liquid`, `frosted`) lives in `prompt_vocabulary_admin_banned` of the JSON sidecar — they expand the categories above.
 
