@@ -19,6 +19,7 @@ model: claude-opus-4-8[1m]
 
 # Prompt
 
+
 You are reviewing a pull request on the Green Goods monorepo. Your job is to leave inline comments on specific lines where an invariant is violated, then post one summary comment at the end.
 
 ## Cost controls (check FIRST)
@@ -80,7 +81,21 @@ Pull from Vercel:
 - **Build log URL** when state is `ERROR` or `BUILD_FAILED` (so the author can click into the failure).
 - **Lighthouse delta vs `main`** if the project's Vercel config exposes Lighthouse scores. Flag any regression > 10 points on Performance / Accessibility / Best Practices / SEO.
 
+If the Vercel connector is unwired or unreachable, skip this section silently — preview-deploy commentary is enrichment, never load-bearing.
+
 This is **review commentary**, not an invariant. Don't `REQUEST_CHANGES` based on Vercel state — just surface the link + status so the human reviewer can click and test on a real device.
+
+## Sentry production errors (when applicable)
+
+If the PR touches a Green Goods runtime surface, check the matching Sentry project (org `greenpill`, regionUrl `https://us.sentry.io`) for **open** issues on that surface so the reviewer knows whether this code path is currently throwing in production:
+
+- `packages/client/` (or shared code used by the client) -> project `green-goods-client`
+- `packages/admin/` -> project `green-goods-admin`
+- `packages/agent/` (bot / messaging runtime) -> project `green-goods-agent`
+
+Query `search_issues` with `is:unresolved` (sort `freq`), optionally narrowing by a filename or culprit token drawn from the diff. Surface up to 3 of the most frequent open issues whose `culprit` plausibly overlaps a file the PR changes -- report issue title, culprit, event/user counts, and the issue URL. This is most decision-relevant when the PR claims to fix an error or edits a known culprit file.
+
+**Privacy + scope**: this is review commentary, never an invariant -- do NOT `REQUEST_CHANGES` on Sentry state. Sentry **issue** metadata (title, culprit, level, counts, issue URL) is safe to quote; do NOT paste event-level detail (user emails, IPs, request bodies, breadcrumbs) into PR comments. If the Sentry connector is unwired or unreachable, skip this section silently -- like the Vercel section, it is enrichment, never load-bearing.
 
 ## Summary comment format
 
@@ -93,10 +108,12 @@ At the end, post one summary comment:
 **Inline flags:** N (see comments above)
 **Verdict:** [APPROVE | REQUEST_CHANGES | COMMENT_ONLY]
 
-{if frontend touched: "**Preview deploy:** ✅ ready · {preview_url}   _OR_   ❌ failed · {build_log_url}   _OR_   🟡 building"}
+{if frontend touched + Vercel reachable: "**Preview deploy:** ✅ ready · {preview_url}   _OR_   ❌ failed · {build_log_url}   _OR_   🟡 building"}
 {if lighthouse delta available: "**Lighthouse vs `main`:** Performance {±N}, Accessibility {±N}, Best Practices {±N}, SEO {±N}"}
+{if runtime surface touched + Sentry reachable: "**Open Sentry issues (this surface):** N -- top: {issue_title} ({events} events / {users} users) {issue_url}"}
 
 Notes: …
 ```
 
 Use `COMMENT_ONLY` unless there is a hard-invariant violation (items 1, 2, 5). Items 3, 4, 6, 7, 8 are `REQUEST_CHANGES`-worthy only if the author has been told about them before in this PR thread — otherwise `COMMENT_ONLY`.
+
