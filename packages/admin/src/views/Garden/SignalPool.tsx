@@ -96,7 +96,9 @@ export default function GardenSignalPoolView({ layout = "page" }: GardenSignalPo
     ? "app.signal.actionPool.description"
     : "app.signal.hypercertPool.description";
   const emptyKey = isActionPool ? "app.signal.actionPool.noActions" : "app.signal.noHypercerts";
-  const countKey = isActionPool ? "app.signal.actionPool.actionCount" : "app.signal.hypercertCount";
+  const countLabelKey = isActionPool
+    ? "app.signal.actionPool.countLabel"
+    : "app.signal.hypercertPool.countLabel";
   const idRequiredKey = isActionPool
     ? "app.signal.actionPool.actionIdRequired"
     : "app.conviction.hypercertIdRequired";
@@ -246,23 +248,27 @@ export default function GardenSignalPoolView({ layout = "page" }: GardenSignalPo
               </p>
             </div>
             <div className="surface-inset">
-              <p className="text-xs text-text-soft">
-                {formatMessage({ id: countKey }, { count: 0 }).replace(/^0\s*/, "")}
-              </p>
-              <p className="mt-1 text-xl font-semibold text-text-strong">
-                {itemsLoading ? formatMessage({ id: "app.common.loading" }) : registeredIds.length}
+              <p className="text-xs text-text-soft">{formatMessage({ id: countLabelKey })}</p>
+              {/* Value slots keep their final geometry while loading — a
+                  shimmer block the size of the number, never swapped-in text. */}
+              <p className="mt-1 text-lg font-semibold text-text-strong">
+                {itemsLoading ? (
+                  <span className="block h-7 w-12 rounded-md skeleton-shimmer" aria-hidden />
+                ) : (
+                  registeredIds.length
+                )}
               </p>
             </div>
             <div className="surface-inset">
               <p className="text-xs text-text-soft">
-                {formatMessage({ id: "app.signal.conviction" })}
+                {formatMessage({ id: "app.signal.weightsRecordedLabel" })}
               </p>
-              <p className="mt-1 text-xl font-semibold text-text-strong">
-                {weightsLoading
-                  ? formatMessage({ id: "app.common.loading" })
-                  : weights.length > 0
-                    ? formatMessage({ id: "app.signal.conviction" })
-                    : formatMessage({ id: emptyKey })}
+              <p className="mt-1 text-lg font-semibold text-text-strong">
+                {weightsLoading ? (
+                  <span className="block h-7 w-12 rounded-md skeleton-shimmer" aria-hidden />
+                ) : (
+                  weights.length
+                )}
               </p>
             </div>
           </section>
@@ -278,13 +284,21 @@ export default function GardenSignalPoolView({ layout = "page" }: GardenSignalPo
               </p>
             </div>
 
-            <div className="p-4 sm:p-6">
+            <div className="min-h-52 p-4 sm:p-6">
               {itemsLoading || weightsLoading ? (
-                <p className="py-4 text-center text-sm text-text-soft" role="status">
-                  {formatMessage({ id: "app.signal.loading" })}
-                </p>
+                // Skeleton rows match the loaded row height so the section
+                // does not shift when weights land.
+                <div
+                  className="space-y-2"
+                  role="status"
+                  aria-label={formatMessage({ id: "app.signal.loading" })}
+                >
+                  <div className="h-16 rounded-md skeleton-shimmer" />
+                  <div className="h-16 rounded-md skeleton-shimmer" />
+                  <div className="h-16 rounded-md skeleton-shimmer" />
+                </div>
               ) : registeredIds.length === 0 ? (
-                <p className="py-4 text-center text-sm text-text-soft">
+                <p className="flex min-h-40 items-center justify-center text-center text-sm text-text-soft">
                   {formatMessage({ id: emptyKey })}
                 </p>
               ) : (

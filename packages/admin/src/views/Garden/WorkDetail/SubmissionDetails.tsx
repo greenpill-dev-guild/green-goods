@@ -26,7 +26,7 @@ export function SubmissionDetails({
         {formatMessage({ id: "app.work.detail.submissionDetails" })}
       </h3>
 
-      <div className="mt-4 space-y-3">
+      <div className="mt-4 space-y-2">
         {/* Action */}
         <DetailRow
           icon={<RiFileList3Line className="h-4 w-4" />}

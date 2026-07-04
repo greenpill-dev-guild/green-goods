@@ -1,0 +1,105 @@
+/**
+ * ManageMembersDialog Component Tests
+ *
+ * The single membership surface: flat roster + role filter chips + remove +
+ * the Add Members entry ("keep it simple" collapse of the old roles stack).
+ */
+
+import { screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { createElement } from "react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { Address, GardenRole } from "@green-goods/shared";
+import { renderWithProviders as render } from "../../test-utils";
+
+vi.mock("@green-goods/shared", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@green-goods/shared")>();
+  return {
+    ...actual,
+    AddressDisplay: ({ address, className }: { address: string; className?: string }) =>
+      createElement("span", { className, "data-testid": "address-display" }, address.slice(0, 10)),
+  };
+});
+
+import { ManageMembersDialog } from "../../../components/Garden/ManageMembersDialog";
+
+const OWNER = "0x1111111111111111111111111111111111111111" as Address;
+const GARDENER_A = "0x4444444444444444444444444444444444444444" as Address;
+const GARDENER_B = "0x5555555555555555555555555555555555555555" as Address;
+
+const roleMembers: Record<GardenRole, Address[]> = {
+  owner: [OWNER],
+  operator: [],
+  evaluator: [],
+  gardener: [GARDENER_A, GARDENER_B],
+  funder: [],
+  community: [],
+};
+
+describe("components/Garden/ManageMembersDialog", () => {
+  const defaultProps = {
+    open: true,
+    onClose: vi.fn(),
+    roleMembers,
+    canManage: true,
+    isLoading: false,
+    onRemoveMember: vi.fn(),
+    onAddMembers: vi.fn(),
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("renders one flat roster across all roles with the member count", () => {
+    render(createElement(ManageMembersDialog, defaultProps));
+
+    expect(screen.getByText("3 members across all roles")).toBeInTheDocument();
+    expect(screen.getAllByTestId("address-display")).toHaveLength(3);
+  });
+
+  it("filters the roster by role via the filter chips", async () => {
+    const user = userEvent.setup();
+    render(createElement(ManageMembersDialog, defaultProps));
+
+    await user.click(screen.getByRole("button", { name: /Gardeners · 2/ }));
+    expect(screen.getAllByTestId("address-display")).toHaveLength(2);
+
+    // Toggling the active chip returns to the full roster.
+    await user.click(screen.getByRole("button", { name: /Gardeners · 2/ }));
+    expect(screen.getAllByTestId("address-display")).toHaveLength(3);
+  });
+
+  it("shows the empty state when a role filter has no members", async () => {
+    const user = userEvent.setup();
+    render(createElement(ManageMembersDialog, defaultProps));
+
+    await user.click(screen.getByRole("button", { name: /Operators · 0/ }));
+    expect(screen.getByText("No members found")).toBeInTheDocument();
+  });
+
+  it("removes a member with its role from the row action", async () => {
+    const user = userEvent.setup();
+    render(createElement(ManageMembersDialog, defaultProps));
+
+    const ownerRow = screen.getByText(OWNER.slice(0, 10)).closest("li") as HTMLElement;
+    await user.click(within(ownerRow).getByRole("button", { name: "Remove Owner" }));
+
+    expect(defaultProps.onRemoveMember).toHaveBeenCalledWith(OWNER, "owner");
+  });
+
+  it("opens the Add Members flow from the footer action", async () => {
+    const user = userEvent.setup();
+    render(createElement(ManageMembersDialog, defaultProps));
+
+    await user.click(screen.getByRole("button", { name: "Add members" }));
+    expect(defaultProps.onAddMembers).toHaveBeenCalledTimes(1);
+  });
+
+  it("hides write affordances for read-only viewers", () => {
+    render(createElement(ManageMembersDialog, { ...defaultProps, canManage: false }));
+
+    expect(screen.queryByRole("button", { name: "Add members" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Remove/ })).not.toBeInTheDocument();
+  });
+});

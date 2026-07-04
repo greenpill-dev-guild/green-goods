@@ -144,6 +144,11 @@ export const AdminButton = React.forwardRef<HTMLButtonElement, AdminButtonProps>
       leadingIcon,
       disabled,
       children,
+      // Native buttons default to type="submit", so an AdminButton inside any
+      // <form> would submit it (full page reload) unless every call site
+      // remembers type="button". Default to the safe type; submit buttons opt
+      // in explicitly. Not forwarded to asChild clones (anchors have no type).
+      type = "button",
       ...props
     },
     ref
@@ -194,6 +199,7 @@ export const AdminButton = React.forwardRef<HTMLButtonElement, AdminButtonProps>
         className={classes}
         disabled={disabled || loading}
         aria-busy={loading || undefined}
+        type={type}
         {...props}
       >
         {content}

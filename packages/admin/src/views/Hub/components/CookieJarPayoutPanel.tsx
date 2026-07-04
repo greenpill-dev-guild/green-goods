@@ -5,25 +5,21 @@ import {
   getVaultAssetSymbol,
   useGardenCookieJars,
 } from "@green-goods/shared";
-import { RiCupLine, RiHandCoinLine, RiSettings3Line, RiWalletLine } from "@remixicon/react";
+import { RiCupLine, RiHandCoinLine, RiWalletLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 import { CookieJarDepositModal } from "./CookieJarDepositModal";
-import { CookieJarManageModal } from "./CookieJarManageModal";
 import { CookieJarWithdrawModal } from "./CookieJarWithdrawModal";
 
+// Payouts own deposits/withdrawals only. Jar MANAGEMENT (pause, limits,
+// cooldowns, emergency withdraw) is garden configuration and lives in the
+// Garden Profile dialog (GardenWorkspaceContent), not on the payout surface.
 interface CookieJarPayoutPanelProps {
   gardenAddress: Address;
-  canManage: boolean;
-  isOwner: boolean;
 }
 
-export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
-  gardenAddress,
-  canManage,
-  isOwner,
-}) => {
+export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({ gardenAddress }) => {
   const { formatMessage } = useIntl();
 
   const {
@@ -36,7 +32,6 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
 
   const [withdrawOpen, setWithdrawOpen] = useState(false);
   const [depositOpen, setDepositOpen] = useState(false);
-  const [manageOpen, setManageOpen] = useState(false);
 
   if (!jarsModuleConfigured || jarsLoading || jars.length === 0) return null;
 
@@ -110,19 +105,6 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
                 defaultMessage: "Fund Jars",
               })}
             </AdminButton>
-            {canManage && (
-              <AdminButton
-                variant="text"
-                size="md"
-                leadingIcon={<RiSettings3Line />}
-                onClick={() => setManageOpen(true)}
-              >
-                {formatMessage({
-                  id: "app.cookieJar.manageJars",
-                  defaultMessage: "Manage Jars",
-                })}
-              </AdminButton>
-            )}
           </div>
         </Card.Body>
       </Card>
@@ -137,13 +119,6 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
         isOpen={depositOpen}
         onClose={() => setDepositOpen(false)}
         gardenAddress={gardenAddress}
-      />
-      <CookieJarManageModal
-        isOpen={manageOpen}
-        onClose={() => setManageOpen(false)}
-        gardenAddress={gardenAddress}
-        canManage={canManage}
-        isOwner={isOwner}
       />
     </>
   );

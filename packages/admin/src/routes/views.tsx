@@ -83,6 +83,15 @@ const CommunityIndexRedirect = () => {
   );
 };
 
+const GardenMembersRedirect = () => {
+  const location = useLocation();
+  // Manage Members is community-owned — old /garden/members links land on the
+  // canonical /community/members route with their garden context intact.
+  return (
+    <Navigate to={`${adminRoutes.communityMembers()}${preserveSearch(location.search)}`} replace />
+  );
+};
+
 export const adminCanvasRoutes: RouteObject[] = [
   {
     path: "hub",
@@ -172,11 +181,10 @@ export const adminCanvasRoutes: RouteObject[] = [
         lazy: gardenView,
       },
       {
-        // Manage Members is a create/commit-style action flow, not a
-        // browsable workspace tab — its own full surface (centered dialog),
-        // mirroring createAssessmentView / createHypercertView / submitWorkView.
+        // Membership is community-owned — redirect retained so existing
+        // /garden/members bookmarks and deep links do not 404.
         path: "members",
-        lazy: manageMembersView,
+        element: <GardenMembersRedirect />,
       },
       {
         // Legacy /garden/impact retained so existing URLs and external links
@@ -247,10 +255,11 @@ export const adminCanvasRoutes: RouteObject[] = [
         lazy: communityView,
       },
       {
-        // Legacy path — the People tab was retired in favor of "Manage
-        // members" opening the roles flow directly. Old bookmarks/links to
-        // /community/members still resolve to that same flow rather than
-        // 404ing (parity with /garden/impact's legacy retention above).
+        // Canonical Manage Members route — a create/commit-style action flow
+        // (centered dialog over the Community workspace), mirroring
+        // createAssessmentView / createHypercertView / submitWorkView.
+        // Community owns membership, so the NavigationBar tab stays on
+        // Community while the dialog is open.
         path: "members",
         lazy: manageMembersView,
       },

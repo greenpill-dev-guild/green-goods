@@ -66,7 +66,7 @@ export function VaultEventHistory({ gardenAddress }: VaultEventHistoryProps) {
           <div className="hidden overflow-x-auto sm:block">
             <table className="min-w-full divide-y divide-stroke-soft text-sm">
               <thead>
-                <tr className="text-left text-xs uppercase tracking-wide text-text-soft">
+                <tr className="text-left label-xs text-text-soft">
                   <th className="py-2 pr-4">{formatMessage({ id: "app.treasury.type" })}</th>
                   <th className="py-2 pr-4">{formatMessage({ id: "app.treasury.asset" })}</th>
                   <th className="py-2 pr-4">{formatMessage({ id: "app.treasury.amount" })}</th>

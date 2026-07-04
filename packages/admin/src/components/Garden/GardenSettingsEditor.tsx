@@ -1,12 +1,9 @@
 import {
   type Address,
-  Card,
   cn,
   FileUploadField,
   FormField,
   GARDEN_NAME_MAX_LENGTH,
-  GardenBannerFallback,
-  ImageWithFallback,
   imageCompressor,
   logger,
   resolveIPFSUrl,
@@ -27,6 +24,14 @@ import { useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 
+/** What the hosting surface should show as the banner right now. */
+export interface GardenBannerPreview {
+  /** Resolved image URL, or null when there is no banner (none or removed). */
+  src: string | null;
+  /** True while a locally staged file is previewing (uploads on Save). */
+  isDraft: boolean;
+}
+
 interface GardenSettingsEditorProps {
   gardenAddress: Address;
   garden: {
@@ -39,6 +44,12 @@ interface GardenSettingsEditorProps {
   };
   canManage: boolean;
   isOwner: boolean;
+  /**
+   * Reports the current banner (saved, staged draft, or removed) so the
+   * hosting dialog's identity preview card can render it — the form itself
+   * carries upload/remove controls only, never a second image.
+   */
+  onBannerPreviewChange?: (preview: GardenBannerPreview) => void;
 }
 
 interface SettingsDraft {
@@ -79,6 +90,7 @@ export function GardenSettingsEditor({
   garden,
   canManage,
   isOwner,
+  onBannerPreviewChange,
 }: GardenSettingsEditorProps) {
   const { formatMessage } = useIntl();
 
@@ -155,6 +167,13 @@ export function GardenSettingsEditor({
   const resolvedSavedBanner =
     garden.bannerImage && !draft.bannerRemoved ? resolveIPFSUrl(garden.bannerImage) : "";
   const previewSrc = bannerPreviewUrl ?? resolvedSavedBanner;
+  const bannerIsDraft = Boolean(draft.bannerFile);
+
+  // Keep the hosting surface's identity preview in sync with the draft —
+  // the image renders there (once), not inside this form.
+  useEffect(() => {
+    onBannerPreviewChange?.({ src: previewSrc || null, isDraft: bannerIsDraft });
+  }, [bannerIsDraft, onBannerPreviewChange, previewSrc]);
 
   const handleCancel = () => {
     setDraft(draftFromGarden(garden));
@@ -230,22 +249,11 @@ export function GardenSettingsEditor({
   const disabledProfileField = !canEditProfile || isSaving;
 
   return (
-    <Card data-component="GardenSettingsEditor">
-      <Card.Header>
-        <h3 className="label-md text-text-strong">
-          {formatMessage({
-            id: "app.garden.settings.title",
-            defaultMessage: "Garden Settings",
-          })}
-        </h3>
-        <p className="mt-1 text-xs text-text-sub">
-          {formatMessage({
-            id: "app.garden.settings.explicitSave",
-            defaultMessage: "Changes stay local until you save them.",
-          })}
-        </p>
-      </Card.Header>
-      <Card.Body className="space-y-5">
+    // Form sections render directly — the hosting dialog's header owns the
+    // title, so the editor carries no Card chrome of its own (no double
+    // header inside a dialog).
+    <section data-component="GardenSettingsEditor">
+      <div className="space-y-5">
         <FormField
           label={formatMessage({ id: "app.garden.settings.name", defaultMessage: "Name" })}
           htmlFor="garden-settings-name"
@@ -315,7 +323,9 @@ export function GardenSettingsEditor({
 
         <div className="border-t border-stroke-soft" />
 
-        {/* Banner image — local draft preview; uploads on Save. */}
+        {/* Banner image — upload/remove controls only. The image itself
+            renders once, on the hosting dialog's identity preview card (via
+            onBannerPreviewChange); a staged file shows here as a filename. */}
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-2">
             <p className="label-xs text-text-soft">
@@ -344,26 +354,15 @@ export function GardenSettingsEditor({
             ) : null}
           </div>
 
-          <div className="relative h-28 w-full overflow-hidden rounded-lg">
-            {previewSrc ? (
-              <ImageWithFallback
-                src={previewSrc}
-                alt={formatMessage({ id: "app.garden.detail.bannerAlt" }, { name: garden.name })}
-                className="h-28 w-full object-cover"
-                backgroundFallback={<GardenBannerFallback name={garden.name} />}
-              />
-            ) : (
-              <GardenBannerFallback name={garden.name} />
-            )}
-            {draft.bannerFile ? (
-              <span className="absolute bottom-2 right-2 rounded-full bg-bg-white/90 px-2 py-0.5 text-[11px] font-medium text-text-sub shadow-[var(--edge-rest)]">
-                {formatMessage({
-                  id: "app.garden.settings.bannerDraft",
-                  defaultMessage: "Preview — uploads on save",
-                })}
-              </span>
-            ) : null}
-          </div>
+          {draft.bannerFile ? (
+            <p className="truncate text-xs text-text-sub" title={draft.bannerFile.name}>
+              {draft.bannerFile.name} ·{" "}
+              {formatMessage({
+                id: "app.garden.settings.bannerDraft",
+                defaultMessage: "Preview · uploads on save",
+              })}
+            </p>
+          ) : null}
 
           {canEditProfile ? (
             <FileUploadField
@@ -444,10 +443,10 @@ export function GardenSettingsEditor({
             className="w-24 text-right"
           />
         </div>
-      </Card.Body>
+      </div>
 
       {canEditAnything ? (
-        <Card.Footer className="flex flex-wrap items-center justify-between gap-3">
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-stroke-soft pt-4">
           <p
             className={cn("text-xs", isDirty ? "text-warning-dark" : "text-text-soft")}
             aria-live="polite"
@@ -494,8 +493,8 @@ export function GardenSettingsEditor({
               })}
             </AdminButton>
           </div>
-        </Card.Footer>
+        </div>
       ) : null}
-    </Card>
+    </section>
   );
 }

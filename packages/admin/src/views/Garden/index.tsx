@@ -1,5 +1,4 @@
 import {
-  type Address,
   buildGardenHeaderStats,
   MetaStrip,
   useGardenWorkspaceController,
@@ -48,9 +47,6 @@ export default function GardenView() {
       <GardenSheetDescriptor
         hypercertId={garden.hypercertId}
         closeTo={garden.hypercertSheetCloseTo}
-        addMemberOpen={garden.addMemberOpen}
-        onCloseAddMember={garden.closeAddMember}
-        gardenAddress={garden.garden?.id as Address | undefined}
       />
 
       <CanvasRouteHeader

@@ -4,7 +4,7 @@ import {
   type MetaStripItem,
   type ViewAction,
 } from "@green-goods/shared";
-import { RiExternalLinkLine, RiSettings3Line, RiUserAddLine } from "@remixicon/react";
+import { RiExternalLinkLine, RiSettings3Line } from "@remixicon/react";
 
 /**
  * Inputs for the Garden header stats slot. Pulled directly off the values the
@@ -88,14 +88,14 @@ export function resolveGardenView(pathname: string): GardenWorkspaceView {
 }
 
 /**
- * Garden view-level actions — stable trio: the same set renders on every
- * view, in the same order, so positions never shift between tabs. Add member
- * is the fixed primary; the remaining actions stay secondary/ghost so emphasis
- * no longer follows the active view:
+ * Garden view-level actions — stable pair: the same set renders on every
+ * view, in the same order, so positions never shift between tabs. Edit garden
+ * is the fixed primary; View public stays ghost because it leaves the admin
+ * context.
  *
- * - Add member opens the left-sheet write path in one click from any view.
- * - Edit garden navigates to Settings, where the form owns Save/Cancel.
- * - View public stays ghost because it leaves the admin context.
+ * Membership actions live on the Community workspace (Manage Members →
+ * Add members at /community/members) — the Garden header no longer carries
+ * an add-member entry.
  *
  * Domains are garden configuration and are edited from the Settings form,
  * not from the header (QA refinement pass — decision 4).
@@ -108,8 +108,7 @@ export function buildGardenViewActions(
   canManage: boolean,
   hasSelectedGarden: boolean,
   navigate: (path: string) => void,
-  routeContext?: AdminGardenRouteContext,
-  onAddMember?: () => void
+  routeContext?: AdminGardenRouteContext
 ): ViewAction[] {
   const gardenAddress = routeContext?.gardenAddress;
   return [
@@ -129,28 +128,14 @@ export function buildGardenViewActions(
       visible: hasSelectedGarden && Boolean(gardenAddress),
     },
     {
-      id: "add-member",
-      label: "Add member",
-      labelId: "cockpit.garden.action.addMember",
-      icon: RiUserAddLine,
-      // Opens the add-member left sheet in ONE click from any Garden view: the
-      // sheet is declared at the always-mounted workspace shell
-      // (GardenSheetDescriptor) and driven by controller state, so it no longer
-      // navigates to the members tab first and waits for a second click.
-      onClick: () => onAddMember?.(),
-      variant: "primary",
-      visible: hasSelectedGarden && canManage,
-      primary: true,
-    },
-    {
       id: "edit-garden",
       label: "Edit garden",
       labelId: "cockpit.garden.action.editGarden",
       icon: RiSettings3Line,
       onClick: () => navigate(adminRoutes.gardenSettings(routeContext)),
-      variant: "secondary",
+      variant: "primary",
       visible: hasSelectedGarden && canManage,
-      primary: false,
+      primary: true,
     },
   ];
 }

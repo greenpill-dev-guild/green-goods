@@ -59,7 +59,6 @@ export function CommunityWorkspaceContent({ workspace }: CommunityWorkspaceConte
         garden={{ id: workspace.garden.id, name: workspace.garden.name }}
         gardenId={workspace.gardenId}
         canManage={workspace.canManage}
-        isOwner={workspace.isOwner}
         section={workspace.section}
         showSectionStateCard={false}
         clearSection={workspace.clearSection}

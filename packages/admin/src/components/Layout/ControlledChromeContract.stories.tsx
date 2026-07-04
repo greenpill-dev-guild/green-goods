@@ -134,16 +134,16 @@ function ControlledChromeContract({ theme }: ControlledChromeContractProps) {
             label: "Actions",
             actions: [
               {
-                id: "edit-domains",
+                id: "edit-garden",
                 icon: RiSeedlingLine,
-                label: "Edit domains",
-                labelId: "cockpit.garden.action.editDomains",
+                label: "Edit garden",
+                labelId: "cockpit.garden.action.editGarden",
               },
               {
-                id: "add-member",
+                id: "view-public",
                 icon: RiTeamLine,
-                label: "Add member",
-                labelId: "cockpit.garden.action.addMember",
+                label: "View public",
+                labelId: "cockpit.garden.action.viewPublic",
               },
             ],
             onAction: fn(),

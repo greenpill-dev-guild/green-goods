@@ -1,5 +1,5 @@
 import { Button, Card, formatTokenAmount } from "@green-goods/shared";
-import { RiCupLine, RiHandCoinLine, RiSettings3Line, RiWalletLine } from "@remixicon/react";
+import { RiCupLine, RiHandCoinLine, RiWalletLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "storybook/test";
 
@@ -20,10 +20,9 @@ interface MockJarChip {
 
 interface MockPayoutPanelProps {
   jars: MockJarChip[];
-  canManage: boolean;
 }
 
-function CookieJarPayoutPanelHarness({ jars, canManage }: MockPayoutPanelProps) {
+function CookieJarPayoutPanelHarness({ jars }: MockPayoutPanelProps) {
   if (jars.length === 0) return null;
 
   return (
@@ -68,12 +67,6 @@ function CookieJarPayoutPanelHarness({ jars, canManage }: MockPayoutPanelProps) 
             <RiWalletLine className="h-4 w-4" />
             Fund Jars
           </Button>
-          {canManage && (
-            <Button variant="ghost" size="md" onClick={fn()}>
-              <RiSettings3Line className="h-4 w-4" />
-              Manage Jars
-            </Button>
-          )}
         </div>
       </Card.Body>
     </Card>
@@ -117,28 +110,18 @@ type Story = StoryObj<typeof CookieJarPayoutPanelHarness>;
 export const WithJars: Story = {
   args: {
     jars: JARS,
-    canManage: true,
-  },
-};
-
-export const ManagerWithoutOwnerControls: Story = {
-  args: {
-    jars: JARS,
-    canManage: false,
   },
 };
 
 export const WithPausedJar: Story = {
   args: {
     jars: [JARS[0], { ...JARS[1], isPaused: true }],
-    canManage: true,
   },
 };
 
 export const EmptyHidden: Story = {
   args: {
     jars: [],
-    canManage: true,
   },
   parameters: {
     docs: {
