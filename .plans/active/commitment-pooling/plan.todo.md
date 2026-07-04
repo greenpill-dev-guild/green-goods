@@ -25,7 +25,35 @@ Linear mirror: project [Green Goods Commitment Pooling](https://linear.app/green
 | 11 | Seasons & Campaigns project converted in place; legacy season issues composted with pointer comments | Seasons and campaigns are cycle types inside the pool; separate project inverted the dependency. |
 | 12 | Out of scope everywhere: Celo, settlement contracts, Sarafu integration, bridging, G$ movement, leaderboards | Locked register; Architecture 2 split-state stands. |
 
-Full register: 27 decisions in the approved session plan, mirrored into the specs.
+### Full decision register (2026-07-03 alignment session, 27 decisions)
+
+1. Spec home: all artifacts in `.plans/active/commitment-pooling/`; no docs-site promotion.
+2. Linear issue depth: workstream-sized issues, one per package workstream per track.
+3. Community interface: NEW package `packages/community` (own PWA, three tabs, Passkey, consumes shared).
+4. Git ending: conventional commits on the session branch plus a PR to develop.
+5. EAS bridge: WorkApprovalResolver hook (try/catch, non-blocking) plus operator `syncApprovedWork` fallback.
+6. State weight: hybrid; hard transitions on-chain (seed, offer/request, accept, evidence count, ReadyForConfirmation, Fulfilled, cancel/expire, dispute flag, cycle open/close/compost, pool pause); Draft and review-soft states derived.
+7. v3 authorship: baseline = evaluator or operator; delta/re-assessment = Evaluator Hat only; testimony = Community Hat only.
+8. Protocol pool: the root garden's pool (tokenId 1), poolType PROTOCOL, cross-garden claim reach.
+9. PWA placement: pool flows in the Garden tab; personal commitments + pending confirmations in the WalletDrawer pools tab; Home gets at most a summary card.
+10. Admin placement: garden-pool flows in the Garden workspace; NEW Pools workspace for the protocol pool console and cross-garden overview; Hub gains a confirmation queue.
+11. Seasons & Campaigns project: converted in place to "Green Goods Commitment Pooling" (supersedes the create-new-project instruction).
+12. Legacy season issues: composted aggressively with pointer comments; RESR-13 to the July milestone; RESR-15/RESR-4/PRD-275 stay linked research; PRD-344/495/347 rehomed out.
+13. Docs staleness: logged in corrections-log plus a Linear docs issue; no docs edits in the spec session.
+14. Commitments are NOT EAS attestations; module-native records; EAS gains exactly two schemas (assessment v3, community testimony).
+15. Voucher-shaped from day one: commitment units as non-transferable token-like accounting so Model B vouchers attach 1:1 later.
+16. Companion register contract: `CommitmentPoolingModule` (control plane) plus non-transferable ERC-1155-style `CommitmentRegister` (classes, balances, quotas), supersedes PRD-649's single-artifact stance.
+17. Clean room: Grassroots Economics paper and public docs only; never the AGPL Sarafu source.
+18. Rewards: declared reward reference plus operator-executed payout plus rewardPaid event; the module never custodies funds; zero CookieJar changes.
+19. Claim mode per commitment: open-claim or approval-gated, set at seeding; protocol pool defaults approval-gated, garden campaigns default open-claim.
+20. Meta evidence: lightweight evidence object (IPFS CID via module event, offline-queueable) for SupportService/OperatorCaptured; counterparty confirmation IS the review; DomainImpact keeps the full MDR path.
+21. Editorial: extend the GardenDialog with the pool story and add /impact aggregates; no new public routes.
+22. August docs workstreams: glossary + architecture freshness plus operator and gardener guides; no Document B docs page; no spec promotion.
+23. Issue tree: August build workstreams are children of PRD-650; PRD-649 closes when the contract spec merges; PRD-651 stays gated; July and September issues sit flat with milestones.
+24. Agent lanes pre-assigned: contracts/indexer/state-api Codex-eligible; UI, editorial, and docs lanes Claude-only; QA pass 1 Codex, QA pass 2 Claude.
+25. July tracking: update the existing methodology survey (RESR-53, stays in Impact Framework) rather than duplicating; create scoping-survey and activations issues; lightweight tracking table in a project doc.
+26. Schema registration timing: assessment v3 + testimony register as the FIRST PR chain of the August track so baselines exist before cycle 1 opens.
+27. Hero moments: commitment Fulfilled and cycle close/compost, client PWA only.
 
 ## Research / Plan Gate
 
