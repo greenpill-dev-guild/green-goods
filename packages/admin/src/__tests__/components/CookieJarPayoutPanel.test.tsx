@@ -45,33 +45,23 @@ describe("CookieJarPayoutPanel", () => {
     vi.clearAllMocks();
   });
 
-  it("renders jar balance and action buttons for admins", () => {
-    renderWithProviders(
-      <CookieJarPayoutPanel gardenAddress={"0xgarden" as `0x${string}`} canManage isOwner={false} />
-    );
+  it("renders jar balance and payout action buttons", () => {
+    renderWithProviders(<CookieJarPayoutPanel gardenAddress={"0xgarden" as `0x${string}`} />);
 
     // The panel shows the jar balance badge
     expect(screen.getByText(/5/)).toBeInTheDocument();
     expect(screen.getByText(/0xasset/)).toBeInTheDocument();
 
-    // Action buttons are rendered
+    // Payout actions only — deposits and withdrawals
     expect(screen.getByRole("button", { name: /Claim/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Fund Jars/ })).toBeInTheDocument();
-    // Manage Jars is shown when canManage is true
-    expect(screen.getByRole("button", { name: /Manage Jars/ })).toBeInTheDocument();
   });
 
-  it("hides Manage Jars button when canManage is false", () => {
-    renderWithProviders(
-      <CookieJarPayoutPanel
-        gardenAddress={"0xgarden" as `0x${string}`}
-        canManage={false}
-        isOwner={false}
-      />
-    );
+  it("carries no jar-management affordance (management lives in the Garden Profile dialog)", () => {
+    renderWithProviders(<CookieJarPayoutPanel gardenAddress={"0xgarden" as `0x${string}`} />);
 
-    expect(screen.getByRole("button", { name: /Claim/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Fund Jars/ })).toBeInTheDocument();
+    // Pause/limits/cooldowns moved to GardenWorkspaceContent's cookie-jars
+    // row — the payout surface must not re-grow a parallel manage path.
     expect(screen.queryByRole("button", { name: /Manage Jars/ })).not.toBeInTheDocument();
   });
 });

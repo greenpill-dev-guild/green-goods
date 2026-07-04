@@ -78,7 +78,7 @@ export function PublicGetInTouch() {
               defaultMessage:
                 json.status === "already_subscribed"
                   ? "You're already on the list. Thanks for sticking with us."
-                  : "Thanks for subscribing. Updates land a few times a season.",
+                  : "Thanks for subscribing. A letter lands about once a season.",
             }),
             context: "public.home.getInTouch",
             suppressLogging: true,
@@ -109,7 +109,7 @@ export function PublicGetInTouch() {
           <EditorialKicker tone="dark" className="mb-5">
             {formatMessage({
               id: "public.home.getInTouch.kicker",
-              defaultMessage: "§ 05: Get In Touch",
+              defaultMessage: "§ 06: Get in touch",
             })}
           </EditorialKicker>
           <EditorialHeading id="public-get-in-touch-title" tone="dark">
@@ -193,7 +193,7 @@ export function PublicGetInTouch() {
               >
                 {formatMessage({
                   id: "public.home.getInTouch.success.inline",
-                  defaultMessage: "Thanks. Check your inbox to confirm.",
+                  defaultMessage: "Thanks. You're on the list.",
                 })}
               </p>
             ) : null}
@@ -212,7 +212,7 @@ export function PublicGetInTouch() {
             <p id="public-subscribe-help" className="sr-only">
               {formatMessage({
                 id: "public.home.getInTouch.help",
-                defaultMessage: "Single opt-in subscription. Email stays server-side.",
+                defaultMessage: "One signup, no hoops. Your email stays with us.",
               })}
             </p>
           </form>

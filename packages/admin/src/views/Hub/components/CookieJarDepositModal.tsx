@@ -111,6 +111,8 @@ export function CookieJarDepositModal({
     <AdminDialog
       open={isOpen}
       onOpenChange={(open) => !open && !isPending && onClose()}
+      // Workspace tone — mounted from the Community payouts panel.
+      tone="community"
       title={formatMessage({
         id: "app.cookieJar.depositModal.title",
         defaultMessage: "Fund Cookie Jar",

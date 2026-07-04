@@ -36,7 +36,7 @@ export interface PublicEditorialHeroProps {
   imageAlt?: string;
   /** Optional fallback image (e.g. `publicCuration.fallbackImagePaths[0]`). */
   imageFallbackSrc?: string;
-  /** Tracked uppercase label above the headline (e.g. `Living Archive`). */
+  /** Tracked uppercase label above the headline (e.g. `§ 01: Living archive`). */
   kicker?: ReactNode;
   /** Editorial headline (Fraunces). Required. */
   title: ReactNode;

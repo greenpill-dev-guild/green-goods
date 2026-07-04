@@ -145,6 +145,7 @@ const allowedIdenticalProductValues = new Set([
   "Vaults",
   "WETH",
   "§ 01 Cookie jars",
+  "§ 01: Cookie jars",
 ]);
 // "{hours} h" / "{hours}h" — the hour symbol "h" is identical across en/es/pt, so a
 // compact "{n} h" value is legitimately locale-identical (the optional space matches

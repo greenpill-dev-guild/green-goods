@@ -282,8 +282,10 @@ export const RealProviderShell: Story = {
     await userEvent.click(settingsTrigger ?? canvas.getByRole("button", { name: "Notifications" }));
     // The right sheet is retired — account/notification content now renders in
     // the AdminDialog inspector, which portals to document.body (role="dialog").
+    // Scope by accessible name: the shell can leave other portaled dialogs mounted,
+    // so target the inspector whose title matches, not just the first dialog.
     const body = within(document.body);
-    const inspector = await body.findByRole("dialog");
+    const inspector = await body.findByRole("dialog", { name: sheetHeading });
     await expect(within(inspector).getByRole("heading", { name: sheetHeading })).toBeVisible();
     await userEvent.click(within(inspector).getByRole("button", { name: "Close" }));
   },

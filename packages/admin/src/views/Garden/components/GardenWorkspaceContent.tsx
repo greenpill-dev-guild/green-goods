@@ -1,17 +1,22 @@
 import {
   type Address,
-  Alert,
   EmptyState,
   type AdminWorkspaceSectionTab,
   type useGardenWorkspaceController,
 } from "@green-goods/shared";
 import { AdminCard } from "@/components/AdminCard";
-import { RiImageLine, RiPulseLine } from "@remixicon/react";
+import { RiCupLine, RiImageLine, RiPulseLine } from "@remixicon/react";
+import { useState } from "react";
 import { useIntl } from "react-intl";
+import { AdminButton } from "@/components/AdminButton";
 import { AdminDialog } from "@/components/AdminDialog";
 import { GardenDomainModal } from "@/components/Garden/GardenDomainEditor";
 import { GardenMetadata } from "@/components/Garden/GardenMetadata";
-import { GardenSettingsEditor } from "@/components/Garden/GardenSettingsEditor";
+import {
+  type GardenBannerPreview,
+  GardenSettingsEditor,
+} from "@/components/Garden/GardenSettingsEditor";
+import { CookieJarManageModal } from "@/views/Hub/components/CookieJarManageModal";
 import {
   CanvasRouteErrorState,
   CanvasWorkspaceLoadingState,
@@ -26,6 +31,12 @@ interface GardenWorkspaceContentProps {
 
 export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProps) {
   const { formatMessage } = useIntl();
+  // The settings form reports its banner draft here so the identity preview
+  // card is the single place the image renders (saved, staged, or removed).
+  const [bannerPreview, setBannerPreview] = useState<GardenBannerPreview | null>(null);
+  // Jar management is garden configuration — it opens from this dialog
+  // (moved off the Community payout surface, which keeps deposits/withdrawals).
+  const [cookieJarsOpen, setCookieJarsOpen] = useState(false);
 
   if (!workspace.selectedGarden) {
     return (
@@ -136,24 +147,34 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
             }}
             canManage={workspace.canManage}
             isOwner={workspace.isOwner}
+            onBannerPreviewChange={setBannerPreview}
           />
 
           <div className="space-y-4">
-            {/* Identity preview — surfaces the banner + name that otherwise sit
-                below the fold in the form, and gives the right panel a job
-                (QA: the panel read as underutilized). */}
+            {/* Identity preview — the single place the banner renders (saved
+                or staged draft, reported by the form), plus name/location. */}
             <AdminCard variant="filled" density="none" className="overflow-hidden">
-              {workspace.garden.bannerImage ? (
-                <img
-                  src={workspace.garden.bannerImage}
-                  alt=""
-                  className="h-28 w-full object-cover"
-                />
-              ) : (
-                <div className="flex h-28 w-full items-center justify-center bg-bg-soft text-text-soft">
-                  <RiImageLine className="h-6 w-6" />
-                </div>
-              )}
+              <div className="relative">
+                {(bannerPreview ? bannerPreview.src : workspace.garden.bannerImage) ? (
+                  <img
+                    src={(bannerPreview ? bannerPreview.src : workspace.garden.bannerImage) ?? ""}
+                    alt=""
+                    className="h-28 w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-28 w-full items-center justify-center bg-bg-soft text-text-soft">
+                    <RiImageLine className="h-6 w-6" />
+                  </div>
+                )}
+                {bannerPreview?.isDraft ? (
+                  <span className="absolute bottom-2 right-2 rounded-full bg-bg-white/90 px-2 py-0.5 text-[11px] font-medium text-text-sub shadow-[var(--edge-rest)]">
+                    {formatMessage({
+                      id: "app.garden.settings.bannerDraft",
+                      defaultMessage: "Preview · uploads on save",
+                    })}
+                  </span>
+                ) : null}
+              </div>
               <div className="space-y-1 p-3 text-sm text-text-sub">
                 <h3 className="label-md text-text-strong">{workspace.garden.name}</h3>
                 {workspace.garden.location ? <p>{workspace.garden.location}</p> : null}
@@ -178,28 +199,64 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
               />
             </AdminCard>
 
-            <Alert variant="info">
-              {formatMessage({
-                id: "cockpit.garden.settingsHint",
-                defaultMessage:
-                  "Profile, joining rules, and membership limits now live in the canvas garden workspace.",
-              })}
-            </Alert>
+            {workspace.canManage ? (
+              <AdminCard variant="filled" density="none" className="overflow-hidden">
+                <div className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0 space-y-1">
+                    <p className="label-xs text-text-soft">
+                      {formatMessage({
+                        id: "app.cookieJar.settingsRow.label",
+                        defaultMessage: "Cookie jars",
+                      })}
+                    </p>
+                    <p className="text-xs text-text-sub">
+                      {formatMessage({
+                        id: "app.cookieJar.settingsRow.description",
+                        defaultMessage: "Pause state, withdrawal limits, and cooldowns",
+                      })}
+                    </p>
+                  </div>
+                  <AdminButton
+                    type="button"
+                    variant="tonal"
+                    size="sm"
+                    leadingIcon={<RiCupLine />}
+                    onClick={() => setCookieJarsOpen(true)}
+                  >
+                    {formatMessage({
+                      id: "app.cookieJar.manageJars",
+                      defaultMessage: "Manage Jars",
+                    })}
+                  </AdminButton>
+                </div>
+              </AdminCard>
+            ) : null}
+
+            {/* On-chain identifiers fill the column beside the form instead of
+                dangling below the grid. */}
+            <GardenMetadata
+              gardenId={workspace.garden.id as Address}
+              tokenAddress={workspace.garden.tokenAddress as Address}
+              tokenId={BigInt(workspace.garden.tokenID)}
+              chainId={workspace.garden.chainId}
+            />
           </div>
         </div>
-
-        <GardenMetadata
-          gardenId={workspace.garden.id as Address}
-          tokenAddress={workspace.garden.tokenAddress as Address}
-          tokenId={BigInt(workspace.garden.tokenID)}
-          chainId={workspace.garden.chainId}
-        />
       </AdminDialog>
       {workspace.canManage ? (
         <GardenDomainModal
           isOpen={workspace.domainEditorOpen}
           onClose={workspace.closeDomainEditor}
           gardenAddress={workspace.garden.id as Address}
+        />
+      ) : null}
+      {workspace.canManage ? (
+        <CookieJarManageModal
+          isOpen={cookieJarsOpen}
+          onClose={() => setCookieJarsOpen(false)}
+          gardenAddress={workspace.garden.id as Address}
+          canManage={workspace.canManage}
+          isOwner={workspace.isOwner}
         />
       ) : null}
     </div>

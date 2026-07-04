@@ -62,7 +62,7 @@ export default function GardensGallery() {
         lede={formatMessage({
           id: "public.gardens.heroLede",
           defaultMessage:
-            "Each Garden is a real place where a community documents regenerative Work across solar, agroforestry, education, and waste. The public record they build is meant to hold up under reading.",
+            "Each Garden is a real place where a community documents regenerative Work across solar, agroforestry, education, and waste. Anyone can read the record they build, and Gardens with open membership welcome new gardeners through the app.",
         })}
       />
 
@@ -77,12 +77,15 @@ export default function GardensGallery() {
           <header className="editorial-cascade flex flex-col gap-6 border-b border-stroke-soft-200 pb-6 sm:flex-row sm:items-end sm:justify-between sm:gap-8">
             <div>
               <EditorialKicker className="mb-3">
-                {formatMessage({ id: "public.gardens.kicker", defaultMessage: "Living Archive" })}
+                {formatMessage({
+                  id: "public.gardens.kicker",
+                  defaultMessage: "§ 01: Living archive",
+                })}
               </EditorialKicker>
               <EditorialHeading id="public-gardens-archive-title">
                 {formatMessage({
                   id: "public.gardens.archiveTitle",
-                  defaultMessage: "Browse every Garden under documentation.",
+                  defaultMessage: "Browse every Garden keeping a public record.",
                 })}
               </EditorialHeading>
             </div>

@@ -84,7 +84,7 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
     >
       {/* Garden Smart Account */}
       <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-text-soft">
+        <div className="flex items-center gap-2 label-xs text-text-soft">
           <RiWallet3Line className="h-3.5 w-3.5 flex-shrink-0" />
           <span className="truncate">
             {formatMessage({
@@ -139,7 +139,7 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
 
       {/* Garden NFT */}
       <div className="flex flex-col gap-2">
-        <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-text-soft">
+        <div className="flex items-center gap-2 label-xs text-text-soft">
           <RiNftLine className="h-3.5 w-3.5 flex-shrink-0" />
           <span className="truncate">
             {formatMessage({ id: "admin.gardenMetadata.gardenNFT", defaultMessage: "Garden NFT" })}
@@ -191,7 +191,7 @@ export const GardenMetadata: React.FC<GardenMetadataProps> = ({
 
       {/* Quick Actions */}
       <div className="flex flex-col gap-2 md:col-span-2 lg:col-span-1">
-        <div className="text-xs uppercase tracking-wide text-text-soft">
+        <div className="label-xs text-text-soft">
           {formatMessage({
             id: "admin.gardenMetadata.externalLinks",
             defaultMessage: "External Links",

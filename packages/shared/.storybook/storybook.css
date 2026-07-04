@@ -66,6 +66,7 @@
   --admin-motion-sheet: var(--spring-spatial-fast);
   --admin-motion-state: var(--spring-effects-fast);
   --surface-raised: rgb(var(--neutral-0));
+  --hairline: rgb(var(--neutral-800) / 0.08);
   --outline: rgb(var(--neutral-800) / 0.10);
 }
 
@@ -88,6 +89,11 @@
   --admin-appbar-shadow: 0 1px 0 rgb(var(--neutral-50) / 0.08);
   --admin-sheet-bg: rgb(var(--neutral-900) / 0.86);
   --admin-speed-dial-shadow: 0 16px 30px rgb(var(--static-black) / 0.42), var(--edge-rest);
+  /* Unscoped (not .admin-m3-gated) so PORTALED admin dialogs — which escape
+     the .admin-m3 subtree — keep the dark footer/hairline. Mirrors the
+     unscoped [data-theme="dark"] block in packages/admin/src/index.css. */
+  --surface-raised: rgb(var(--neutral-900));
+  --hairline: rgb(var(--neutral-50) / 0.08);
 }
 
 :is(.admin-m3[data-theme="dark"], [data-theme="dark"] .admin-m3) {

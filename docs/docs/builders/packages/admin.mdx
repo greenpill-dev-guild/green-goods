@@ -94,6 +94,19 @@ The admin package is the Green Goods operator canvas. This page is the single UI
 - Full-surface action flows (Submit Work, Create Assessment, Create Hypercert) use the `flow` variant of `AdminDialog` with `size="lg"` and the shared `ADMIN_FLOW_DIALOG_CLASS` sizing constant. The `flow` variant suppresses the structured header and inner padding so the shared `ActionFlowShell` owns the visible header + scrolling body + pinned footer; it stays a centered, scrim-backed modal (bottom-sheet on mobile), not a fullscreen takeover.
 - `DialogShell` remains available for shared or non-admin surfaces. Do not use it for admin dashboard dialogs.
 
+### Dialog interior grammar
+
+Every variant shares one chrome — the action-flow reference anatomy — so standard, confirm, and palette dialogs read as the same product as the flows:
+
+- **Chrome.** Header is a hairline-bottom bar (`px-4 py-3 sm:px-6`) with an optional inline icon, a `text-lg` semibold **Title Case** title, and a `text-sm` sentence-case description. The body is the scrollable region between header and footer. The `actions` slot renders as a pinned footer bar — hairline top border on `--surface-raised` (the same anatomy `SheetFooter` gives the flows). `AdminDialog` owns all of this; consumers never rebuild header or footer chrome.
+- **One header, one footer.** Interior content never repeats a heading the dialog header states (no `Card.Header` inside a dialog), and a non-flow dialog that passes `actions` must not also nest a `SheetFooter`. Both are guard-tested.
+- **Body sections** separate with `space-y-4`/`space-y-6`; section labels use the `label-xs`/`label-md` utilities in sentence case — no ad-hoc `uppercase tracking-wide`. Label/value pairs render as one-line definition rows (label left in `text-text-soft`, value right), not stacked icon rows.
+- **Two-column layouts** are `lg`-only, using the established grids (`lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]` or the WorkDetail 3/2 split): form/primary content left, load-bearing preview/meta right. `md` and mobile always collapse to one column.
+- **Loading reserves final geometry.** Skeletons match the rendered component's dimensions (the same card/row shapes in `skeleton-shimmer`, or explicit min-heights); never swap "Loading…" text into a value slot. A dialog's first paint fixes its height for the data it awaits.
+- **Empty states** use the shared `EmptyState` (icon + title + description) centered in the reserved region — never bare text stretched to fill.
+- **Open-state pattern.** Dialogs stay mounted with a controlled `open`; `{cond ? <Dialog isOpen /> : null}` skips the exit animation (close flash) and is forbidden. Closes that can never animate (hidden tab) are handled centrally by AdminDialog's instant-exit + the CanvasLayout close safety net.
+- **Tone.** Every dialog passes the `tone` of its mounting workspace (the portal escapes `[data-tone]`); accent and status color inside dialogs go through `--tone-*`/`--m3-*` indirection only, so the `[data-theme="dark"]` ladder controls dark variants centrally. The account inspector deliberately stays on the neutral `hub` tone (global chrome, not workspace content).
+
 ## Canvas UI Heuristics
 
 - Admin is an operator canvas. Use utility copy and operational hierarchy over marketing language.

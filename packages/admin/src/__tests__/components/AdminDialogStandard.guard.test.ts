@@ -140,7 +140,33 @@ export function collectViolations(source: string, filePath: string): string[] {
         `${where} — variant="flow" without ADMIN_FLOW_DIALOG_CLASS; flow dialogs must share the centralized sizing constant`
       );
     }
+
+    // Interior grammar (dialog quality pass) 5: the AdminDialog `actions`
+    // slot already renders the pinned SheetFooter anatomy, so a non-flow
+    // dialog that passes `actions` AND nests a <SheetFooter in the same file
+    // is stacking two footers — the pre-unification mixed chrome. (Flow
+    // dialogs and bridge-rendered inspector content legitimately use
+    // SheetFooter as their own pinned bar.)
+    if (
+      /\bactions=/.test(tag) &&
+      !/\bvariant="flow"/.test(tag) &&
+      source.includes("<SheetFooter")
+    ) {
+      violations.push(
+        `${where} — dialog passes an actions footer while the file also renders <SheetFooter; one footer only (the actions slot carries the pinned anatomy)`
+      );
+    }
   }
+
+  // Interior grammar 6: no Card.Header inside a dialog-rendering file — the
+  // dialog header owns the title, and a Card.Header beneath it is the
+  // double-header drift the quality pass removed (Garden Profile).
+  if (source.includes("<AdminDialog") && source.includes("Card.Header")) {
+    violations.push(
+      `${filePath} — Card.Header in a file that renders AdminDialog; the dialog header owns the title (no double chrome inside dialogs)`
+    );
+  }
+
   return violations;
 }
 
@@ -175,6 +201,26 @@ describe("AdminDialog size/variant standard", () => {
     expect(violations.join("\n")).toContain("dynamically");
     expect(violations.join("\n")).toContain("max-w-*");
     expect(violations.join("\n")).toContain("ADMIN_FLOW_DIALOG_CLASS");
+  });
+
+  it("detects seeded interior-grammar violations (self-check)", () => {
+    const doubleFooterSeed = `<AdminDialog open size="md" title="x" actions={<button>ok</button>}>
+      <SheetFooter>dup</SheetFooter>
+    </AdminDialog>`;
+    expect(collectViolations(doubleFooterSeed, "views/Bad.tsx").join("\n")).toContain(
+      "one footer only"
+    );
+
+    // Flow dialogs own their chrome via ActionFlowShell — SheetFooter is fine.
+    const flowSeed = `<AdminDialog open size="lg" variant="flow" className={ADMIN_FLOW_DIALOG_CLASS} title="x">
+      <SheetFooter>flow footer</SheetFooter>
+    </AdminDialog>`;
+    expect(collectViolations(flowSeed, "views/Flow.tsx")).toEqual([]);
+
+    const cardHeaderSeed = `<AdminDialog open title="x"><Card><Card.Header>dup</Card.Header></Card></AdminDialog>`;
+    expect(collectViolations(cardHeaderSeed, "views/Bad.tsx").join("\n")).toContain(
+      "double chrome"
+    );
   });
 
   it("finds no violations across admin source", () => {

@@ -103,12 +103,12 @@ export const publicSocialPreviews = {
     cardTitleAccent: "evidence",
     cardTitleLines: ["See how Garden", "work becomes", "evidence."],
     cardLede:
-      "Green Goods turns documented regenerative Work into evidence the public can read. Assessments come first, then Work, and when ready, an Impact Certificate that sources every claim.",
+      "Green Goods turns documented regenerative Work into evidence the public can read. Assessments come first, then Work, and when ready, an Impact Certificate that ties every claim to its source.",
     cardLedeLines: [
       "Green Goods turns documented regenerative Work",
       "into evidence the public can read. Assessments come",
       "first, then Work, and when ready, an Impact Certificate",
-      "that sources every claim.",
+      "that ties every claim to its source.",
     ],
     heroImagePath: "/images/hero-impact.webp",
     socialImageAlt: "Green Goods Impact route social preview",
@@ -141,12 +141,12 @@ export const publicSocialPreviews = {
     cardTitleAccent: "Gardens",
     cardTitleLines: ["Explore the", "Gardens growing", "the public record."],
     cardLede:
-      "Each Garden is a real place where a community documents regenerative Work across solar, agroforestry, education, and waste. The public record they build is meant to hold up under reading.",
+      "Each Garden is a real place where a community documents regenerative Work across solar, agroforestry, education, and waste. Gardens with open membership welcome new gardeners through the app.",
     cardLedeLines: [
       "Each Garden is a real place where a community",
       "documents regenerative Work across solar,",
-      "agroforestry, education, and waste. The public record",
-      "they build is meant to hold up under reading.",
+      "agroforestry, education, and waste. Gardens with",
+      "open membership welcome new gardeners through the app.",
     ],
     heroImagePath: "/images/hero-garden.webp",
     socialImageAlt: "Green Goods Gardens route social preview",

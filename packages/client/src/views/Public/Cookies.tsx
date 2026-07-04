@@ -307,7 +307,7 @@ function CookiesCampaignSurface() {
             <EditorialKicker className="mb-3">
               {formatMessage({
                 id: "public.cookies.gridKicker",
-                defaultMessage: "§ 01 Cookie jars",
+                defaultMessage: "§ 01: Cookie jars",
               })}
             </EditorialKicker>
             <EditorialHeading id="public-cookies-grid-title">

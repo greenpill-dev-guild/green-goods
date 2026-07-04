@@ -1,6 +1,7 @@
 import {
   type Address,
   type CookieJar,
+  EmptyState,
   formatAddress,
   formatTokenAmount,
   getVaultAssetSymbol,
@@ -14,7 +15,7 @@ import {
   useGardenCookieJars,
   useGardens,
 } from "@green-goods/shared";
-import { RiCheckLine, RiCloseLine, RiPencilLine } from "@remixicon/react";
+import { RiCheckLine, RiCloseLine, RiCupLine, RiPencilLine } from "@remixicon/react";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
 import { AdminConfirmDialog, AdminDialog } from "@/components/AdminDialog";
@@ -123,7 +124,9 @@ export function CookieJarManageModal({
         open={isOpen}
         onOpenChange={(open) => !open && !isPending && onClose()}
         size="lg"
-        tone="hub"
+        // Jar management is garden configuration — it mounts from the Garden
+        // Profile dialog, so it carries the garden workspace tone.
+        tone="garden"
         title={formatMessage({
           id: "app.cookieJar.manageModal.title",
           defaultMessage: "Manage Cookie Jars",
@@ -359,12 +362,19 @@ export function CookieJarManageModal({
           })}
 
           {jars.length === 0 && (
-            <p className="py-6 text-center text-sm text-text-soft">
-              {formatMessage({
-                id: "app.cookieJar.noJars",
-                defaultMessage: "No cookie jars found for this garden",
-              })}
-            </p>
+            <div className="flex min-h-40 items-center justify-center">
+              <EmptyState
+                icon={<RiCupLine className="h-6 w-6" />}
+                title={formatMessage({
+                  id: "app.cookieJar.noJars",
+                  defaultMessage: "No cookie jars found for this garden",
+                })}
+                description={formatMessage({
+                  id: "app.cookieJar.noJarsHint",
+                  defaultMessage: "Jars are created from campaigns and appear here once deployed.",
+                })}
+              />
+            </div>
           )}
         </div>
       </AdminDialog>

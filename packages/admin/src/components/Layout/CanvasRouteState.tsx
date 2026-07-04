@@ -1,4 +1,4 @@
-import { Alert } from "@green-goods/shared";
+import { Alert, cn } from "@green-goods/shared";
 import { CanvasWorkspaceSelectionState } from "./CanvasWorkspaceSelectionState";
 
 export interface CanvasWorkspaceOption {
@@ -16,6 +16,9 @@ interface CanvasWorkspaceSelectionGateProps {
 interface CanvasRouteErrorStateProps {
   message: string;
   variant?: "error" | "warning" | "info" | "success";
+  /** Match the hosting route's content width (e.g. "max-w-6xl") so the alert
+   * aligns with the header above it instead of stretching full-bleed. */
+  maxWidthClassName?: string;
 }
 
 export function CanvasWorkspaceSelectionGate({
@@ -45,9 +48,13 @@ export function CanvasWorkspaceLoadingState() {
   );
 }
 
-export function CanvasRouteErrorState({ message, variant = "error" }: CanvasRouteErrorStateProps) {
+export function CanvasRouteErrorState({
+  message,
+  variant = "error",
+  maxWidthClassName,
+}: CanvasRouteErrorStateProps) {
   return (
-    <div className="mt-6">
+    <div className={cn("mt-6", maxWidthClassName && `mx-auto w-full ${maxWidthClassName}`)}>
       <Alert variant={variant}>{message}</Alert>
     </div>
   );

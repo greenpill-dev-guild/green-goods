@@ -100,7 +100,28 @@ a CI-debt fix, but `bun run test` must pass for admin+shared).
 
 ### Slice 1 — Root-cause the 15 Storybook interaction failures (F2)
 
-Branch `fix/storybook-interaction-ci`. The failing set at HEAD (job `84677076333`):
+> **Diagnosis fork RESOLVED (2026-07-03, dialog-pass session):** ran the exact CI
+> entry point locally with the repo `.env` on the dialog-pass tip — **16 failed /
+> 110 passed**, near-identical set (none of the pass's new stories fail). Local
+> repro with full env ⇒ **the fix is the stories' data layer, NOT CI env** —
+> branch A of Step 1 below. Warm-start facts for the executing session:
+> - Error taxonomy across the 16: 11× TestingLibraryElementError (seeded data
+>   never renders — e.g. Hub Work Queue can't find "Canopy transect upload",
+>   Garden Overview can't find "Rio Rainforest Lab", SubmitWork can't find the
+>   "Next" button), 4× plain Error, 1× AssertionError.
+> - Seeding architecture is sound in principle: `withSeededQueryClient`
+>   (`shared/.storybook/decorators.tsx:368`, staleTime Infinity/retry false) +
+>   `STORYBOOK_ADMIN_SHELL_SEEDS` (`adminFixtures.ts:287` — gardens/actions/
+>   assessments/works.merged/hypercerts keys).
+> - Two concrete suspect classes to probe first: (1) query-key drift between
+>   fixture keys and what the hooks derive at runtime — especially address
+>   casing inside keys (the #543 compareAddresses→=== family; `works.merged(
+>   gardenId, chainId)` is exact-string matched); (2) post-processing network
+>   calls that run even on seeded data — `useWorks`'s `computeWorksWithStatus`
+>   calls `getWorkApprovals(undefined, chainId)` (EAS) with only a warn-once
+>   catch, and siblings may hang the render instead of degrading.
+> - Reminder: a `| tail` pipeline eats the runner's exit code — check the
+>   summary lines, not the pipeline status.
 
 | File | Failing tests |
 |---|---|
@@ -242,6 +263,20 @@ durable value in this plan: it converts a vacuous green gate into a real cross-p
 adjudicates ~7 latent runtime-bug candidates.
 
 ### Slice 3 — Small admin dialog fixes: vault tone + occluded-close (F6a + F4)
+
+> **F4 landed elsewhere (2026-07-02):** the admin dialog quality pass (branch
+> `fix/admin-dialog-p0`, plan `~/.claude/plans/i-need-a-serious-glittery-hennessy.md`)
+> shipped the instant-exit + generalized safety net (AdminDialog `data-instant-exit`
+> on hidden-tab closes; `dialogCloseSafetyNet.ts` run on navigation AND
+> visibilitychange; CSS `animation: none + display: none` for marked closed nodes;
+> unit tests included).
+>
+> **F6a landed too (2026-07-03, same pass, PR #613):** Vault Deposit/Withdraw and
+> CookieJar Deposit/Withdraw carry `community` (their real mounting surfaces —
+> note: jar *management* moved to the Garden Profile dialog with `garden` tone,
+> superseding this slice's `hub` assumption), CreateListing `garden`, Minting
+> `hub`, GardenDomainEditor `garden`. **This slice is fully superseded — do not
+> re-implement.** Slice 4's census pass should still re-verify tones live.
 
 Branch `fix/admin-dialog-tone-and-hidden-close`. Two small, related admin-dialog touches.
 

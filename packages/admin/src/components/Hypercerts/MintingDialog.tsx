@@ -34,6 +34,8 @@ export function MintingDialog({
         if (!open && isFailed && onCancel) onCancel();
       }}
       size="lg"
+      // Workspace tone — mounted from the Create Hypercert flow.
+      tone="hub"
       title={formatMessage({ id: "app.hypercerts.mint.dialog.title" })}
       preventClose={isInProgress}
       hideCloseButton={!isFailed}

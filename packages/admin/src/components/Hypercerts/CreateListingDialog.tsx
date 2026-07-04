@@ -134,6 +134,8 @@ export function CreateListingDialog({
         if (!next) handleClose();
       }}
       size="lg"
+      // Workspace tone — mounted from the garden hypercert inspector.
+      tone="garden"
       title={formatMessage({ id: "app.listing.title", defaultMessage: "List for Yield" })}
       icon={<RiExchangeDollarLine className="h-6 w-6 text-[rgb(var(--m3-primary))]" />}
       preventClose={isCreating}

@@ -177,7 +177,7 @@ describe("CreateAssessment dialog", () => {
     const draftKey = `assessment_draft_${SELECTED_GARDEN.id}_${OPERATOR}`;
     expect(await idbGet(draftKey)).toMatchObject({ title: "Should not survive discard" });
 
-    const dialog = screen.getByRole("dialog", { name: "Submit assessment" });
+    const dialog = screen.getByRole("dialog", { name: "Submit Assessment" });
     fireEvent.keyDown(dialog, { key: "Escape" });
 
     const discardButton = await screen.findByRole("button", { name: "Discard" });
@@ -197,7 +197,7 @@ describe("CreateAssessment dialog", () => {
       await Promise.resolve();
     });
 
-    const dialog = await screen.findByRole("dialog", { name: "Submit assessment" });
+    const dialog = await screen.findByRole("dialog", { name: "Submit Assessment" });
     await act(async () => {
       fireEvent.keyDown(dialog, { key: "Escape" });
       await Promise.resolve();
@@ -207,7 +207,7 @@ describe("CreateAssessment dialog", () => {
     // directly to the Hub workbench the flow was launched from (controller
     // handleCancel → adminRoutes.hub → the default /hub/work stage).
     expect(screen.queryByRole("button", { name: "Discard" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("dialog", { name: "Submit assessment" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: "Submit Assessment" })).not.toBeInTheDocument();
     expect(router?.state.location.pathname).toBe("/hub/work");
   });
 });

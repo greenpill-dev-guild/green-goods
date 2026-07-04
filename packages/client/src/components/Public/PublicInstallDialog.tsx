@@ -81,7 +81,7 @@ export function PublicInstallDialog({
     : isBraveLaunch
       ? "Brave adds Green Goods as a home-screen app instead of launching it from this button. Tap the Green Goods icon on your home screen to open it."
       : isBraveInstall
-        ? "Brave saves Green Goods as a home-screen shortcut instead of installing the full app. Open this page in Chrome, then tap Install to add the real app."
+        ? "Brave saves Green Goods as a home-screen shortcut instead of installing the full app. Open this page in Chrome, then tap Install to add the full app."
         : "Use your browser's install controls. If this browser cannot install apps, open this page in Safari or Chrome first.";
 
   return (
