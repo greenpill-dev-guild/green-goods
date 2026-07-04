@@ -105,6 +105,7 @@ export function AccountSettingsPanel({ className }: AccountSettingsPanelProps) {
                 type="button"
                 onClick={() => setTheme(value)}
                 data-state={isActive ? "active" : "inactive"}
+                aria-pressed={isActive}
                 className={cn(
                   "account-theme-option",
                   "flex min-h-11 items-center justify-between rounded-[var(--radius-md)] px-4 py-3 text-left transition-[background-color,box-shadow,color] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]",
@@ -139,6 +140,7 @@ export function AccountSettingsPanel({ className }: AccountSettingsPanelProps) {
                 type="button"
                 onClick={() => switchLanguage(availableLocale as Locale)}
                 data-state={isActive ? "active" : "inactive"}
+                aria-pressed={isActive}
                 lang={availableLocale}
                 className={cn(
                   "account-theme-option",
