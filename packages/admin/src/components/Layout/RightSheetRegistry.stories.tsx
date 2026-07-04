@@ -1,5 +1,6 @@
 import {
   NOTIFICATIONS_SHEET_CONTENT_ID,
+  NotificationPanel,
   PROFILE_SHEET_CONTENT_ID,
   SETTINGS_SHEET_CONTENT_ID,
   isAdminRightSheetContentId,
@@ -10,7 +11,7 @@ import {
 import type { Meta, StoryObj } from "@storybook/react";
 import { useCallback, useState } from "react";
 import { expect, userEvent, within } from "storybook/test";
-import { AdminDialog } from "@/components/AdminDialog";
+import { AdminSideSheet } from "@/components/AdminSideSheet";
 import { STORYBOOK_ADMIN_SHELL_SEEDS } from "../../../../shared/.storybook/adminFixtures";
 import {
   withAdminIdentity,
@@ -31,14 +32,52 @@ const SHEET_OPTIONS: Array<{ id: AdminRightSheetContentId; label: string }> = [
   { id: NOTIFICATIONS_SHEET_CONTENT_ID, label: "Notifications" },
 ];
 
+/** Deterministic notifications fixture — CanvasLayout owns the live data wiring. */
+function StoryNotificationsPanel() {
+  return (
+    <NotificationPanel
+      scopeLabel="Updates for Milpa Alta"
+      sections={[
+        {
+          id: "needs-attention",
+          title: "Needs attention",
+          items: [
+            {
+              id: "alert-work",
+              title: "3 work submissions need review",
+              tone: "critical",
+              onSelect: () => undefined,
+            },
+          ],
+        },
+        {
+          id: "recent-activity",
+          title: "Recent activity",
+          items: [
+            {
+              id: "activity-mint",
+              title: "Impact report minted",
+              description: "Hypercert created for October work.",
+              meta: "2h ago",
+              tone: "info",
+            },
+          ],
+        },
+      ]}
+    />
+  );
+}
+
 function RightSheetRegistryHarness({ initialContentId }: RightSheetRegistryHarnessProps) {
   const [contentId, setContentId] = useState<AdminRightSheetContentId | null>(initialContentId);
   const renderAccountProfile = useCallback(() => <AccountProfilePanel />, []);
   const renderAccountSettings = useCallback(() => <AccountSettingsPanel />, []);
+  const renderNotifications = useCallback(() => <StoryNotificationsPanel />, []);
   const descriptor = useAdminRightSheetDescriptor({
     contentId,
     renderAccountProfile,
     renderAccountSettings,
+    renderNotifications,
   });
 
   const openRegisteredContent = (nextContentId: string) => {
@@ -56,7 +95,8 @@ function RightSheetRegistryHarness({ initialContentId }: RightSheetRegistryHarne
             <h2 className="text-title-md text-text-strong">Account and notifications inspector</h2>
             <p className="mt-2 max-w-xl text-body-md text-text-sub">
               Opens the same descriptor hook used by CanvasLayout, then renders the resolved content
-              in the shared AdminDialog (the right sheet is retired).
+              in the AdminSideSheet — the three global AppBar surfaces are the only sanctioned side
+              sheets.
             </p>
           </div>
 
@@ -97,24 +137,23 @@ function RightSheetRegistryHarness({ initialContentId }: RightSheetRegistryHarne
         </section>
       </main>
 
-      <AdminDialog
+      <AdminSideSheet
         open={descriptor !== null}
         onOpenChange={(next) => {
           if (!next) setContentId(null);
         }}
         title={descriptor?.title ?? ""}
         tone="hub"
-        size="lg"
       >
         {descriptor?.content}
-      </AdminDialog>
+      </AdminSideSheet>
     </div>
   );
 }
 
 const meta: Meta<typeof RightSheetRegistryHarness> = {
   title: "Admin/Shell/RightSheetRegistry",
-  // storybook-quality-allow state-harness: owns open state while exercising the real descriptor hook and AdminDialog.
+  // storybook-quality-allow state-harness: owns open state while exercising the real descriptor hook and AdminSideSheet.
   component: RightSheetRegistryHarness,
   tags: ["autodocs", "storybook-ci"],
   parameters: {
@@ -122,7 +161,7 @@ const meta: Meta<typeof RightSheetRegistryHarness> = {
     docs: {
       description: {
         component:
-          "Composition story for the admin right-sheet registry. It exercises the real descriptor hook, separated profile/settings account panels, notification panel, and the AdminDialog inspector used by CanvasLayout (the right sheet is retired).",
+          "Composition story for the admin right-sheet registry. It exercises the real descriptor hook, the Account and Settings panels, a deterministic notifications fixture, and the AdminSideSheet the three global AppBar surfaces render in (right-docked on desktop, bottom sheet on mobile).",
       },
     },
   },
@@ -181,16 +220,18 @@ export const StateCatalog: Story = {
     const canvas = within(canvasElement);
     const body = within(document.body);
 
-    // The right sheet is retired — the descriptor content now renders in the
-    // AdminDialog inspector, which portals to document.body with role="dialog".
+    // The three global surfaces render in the AdminSideSheet, which portals
+    // to document.body with role="dialog".
     const profileSheet = await body.findByRole("dialog");
     await expect(within(profileSheet).getByRole("heading", { name: "Profile" })).toBeVisible();
+    await expect(within(profileSheet).getByRole("heading", { name: "Your gardens" })).toBeVisible();
     await expect(within(profileSheet).queryByRole("tab")).not.toBeInTheDocument();
 
     await userEvent.click(canvas.getByRole("button", { name: "Open Settings" }));
     const settingsSheet = await body.findByRole("dialog");
     await expect(within(settingsSheet).getByRole("heading", { name: "Settings" })).toBeVisible();
     await expect(within(settingsSheet).getByRole("heading", { name: "Theme" })).toBeVisible();
+    await expect(within(settingsSheet).getByRole("heading", { name: "Language" })).toBeVisible();
     await expect(within(settingsSheet).queryByRole("tab")).not.toBeInTheDocument();
 
     await userEvent.click(canvas.getByRole("button", { name: "Open Profile" }));
@@ -203,15 +244,11 @@ export const StateCatalog: Story = {
     const notificationsSheet = await body.findByRole("dialog");
     const notificationsPanel = within(notificationsSheet);
     await expect(notificationsPanel.getByRole("heading", { name: "Notifications" })).toBeVisible();
-    await expect(notificationsPanel.queryByText("Failed to load")).not.toBeInTheDocument();
+    await expect(notificationsPanel.getByText("Updates for Milpa Alta")).toBeVisible();
+    await expect(notificationsPanel.getByText("Needs attention")).toBeVisible();
+    await expect(notificationsPanel.getByText("Recent activity")).toBeVisible();
 
     const closeButton = notificationsPanel.getByRole("button", { name: "Close" });
-    const notificationActions = notificationsPanel
-      .getAllByRole("button")
-      .filter((button) => button !== closeButton);
-    const hasEmptyState = notificationsPanel.queryByText("No notifications") !== null;
-    await expect(hasEmptyState || notificationActions.length > 0).toBe(true);
-
     await userEvent.click(closeButton);
     await expect(canvas.getByTestId("right-sheet-current")).toHaveTextContent("none");
   },

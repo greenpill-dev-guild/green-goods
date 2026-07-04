@@ -223,6 +223,7 @@
  * strict M3 tokens, with legacy selectors retained for any shared/non-admin
  * dialog that is mounted from an admin route. */
 body:has(.admin-m3) [data-component="AdminDialog"][data-slot="surface"],
+body:has(.admin-m3) [data-component="AdminSideSheet"][data-slot="surface"],
 body:has(.admin-m3) [data-component="DialogShell"][data-slot="surface"],
 body:has(.admin-m3) [data-component="ConfirmDialog"][data-slot="surface"] {
   background: rgb(var(--m3-surface-container-high));
@@ -304,11 +305,58 @@ body:has(.admin-m3) [data-component="ConfirmDialog"][data-slot="surface"] {
   }
 }
 
+/* ============================================================================
+ * AdminSideSheet motion — the three global AppBar surfaces (Profile,
+ * Settings, Notifications). Mobile keeps the dialog's bottom-sheet slide
+ * (same keyframes, same composition with the Tailwind `translate` centering);
+ * ≥640px slides in from the right edge as an M3 modal side sheet.
+ * ============================================================================ */
+
+@keyframes adminSideSheetIn {
+  from { transform: translateX(100%); opacity: 0.85; }
+  60%  { transform: translateX(-1.5%); opacity: 1; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+@keyframes adminSideSheetOut {
+  from { transform: translateX(0); opacity: 1; }
+  to   { transform: translateX(100%); opacity: 0.85; }
+}
+
+[data-component="AdminSideSheet"][data-slot="overlay"][data-state="open"] {
+  animation: scrimFadeIn var(--spring-effects-duration) var(--spring-effects-easing) both;
+}
+[data-component="AdminSideSheet"][data-slot="overlay"][data-state="closed"] {
+  animation: scrimFadeOut var(--spring-effects-fast-duration) var(--spring-effects-fast-easing) both;
+}
+
+/* Surface — mobile bottom-sheet slide by default; ≥640px swaps to the
+ * right-edge slide (matching the sm: breakpoint AdminSideSheet.tsx uses). */
+[data-component="AdminSideSheet"][data-slot="surface"][data-state="open"] {
+  animation: adminDialogSheetIn var(--spring-spatial-slow-duration)
+    var(--spring-spatial-slow-easing) both;
+}
+[data-component="AdminSideSheet"][data-slot="surface"][data-state="closed"] {
+  animation: adminDialogSheetOut var(--spring-spatial-duration)
+    var(--spring-spatial-easing) both;
+}
+
+@media (min-width: 640px) {
+  [data-component="AdminSideSheet"][data-slot="surface"][data-state="open"] {
+    animation: adminSideSheetIn var(--spring-spatial-slow-duration)
+      var(--spring-spatial-slow-easing) both;
+  }
+  [data-component="AdminSideSheet"][data-slot="surface"][data-state="closed"] {
+    animation: adminSideSheetOut var(--spring-spatial-duration)
+      var(--spring-spatial-easing) both;
+  }
+}
+
 /* Reduced motion — disable the enter/exit animation (mirrors the shared
  * dialog block in utilities.css). The `to`/forwards fill still resolves the
  * resting transform, so the surface lands centered, just without motion. */
 @media (prefers-reduced-motion: reduce) {
-  [data-component="AdminDialog"][data-slot] {
+  [data-component="AdminDialog"][data-slot],
+  [data-component="AdminSideSheet"][data-slot] {
     animation-duration: 0ms !important;
   }
 }
@@ -319,7 +367,8 @@ body:has(.admin-m3) [data-component="ConfirmDialog"][data-slot="surface"] {
  * dialogCloseSafetyNet when it finds an already-stuck exit node. No animation
  * lets Radix unmount synchronously; display:none belts-and-braces a node whose
  * exit was already frozen mid-animation so it can never sit half-visible. */
-[data-component="AdminDialog"][data-instant-exit][data-state="closed"] {
+[data-component="AdminDialog"][data-instant-exit][data-state="closed"],
+[data-component="AdminSideSheet"][data-instant-exit][data-state="closed"] {
   animation: none !important;
   display: none !important;
 }

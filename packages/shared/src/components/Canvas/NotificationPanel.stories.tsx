@@ -15,7 +15,8 @@ const meta: Meta<typeof NotificationPanel> = {
     docs: {
       description: {
         component: [
-          "**NotificationPanel** — list rendered inside the right-sheet bell. Anatomy",
+          "**NotificationPanel** — feed rendered inside the notifications side sheet",
+          "(desktop) and its bottom-sheet presentation (mobile bell). Anatomy",
           "aligned to `design_handoff_admin-revamp/screens/sheet-system.{jsx,css}`",
           "NOTIFICATIONS:",
           "",
@@ -24,6 +25,9 @@ const meta: Meta<typeof NotificationPanel> = {
           "- Title 13/600, body 12/400, meta 11/500 tabular-nums",
           "- `actionLabel` (when paired with `onSelect`) renders a tone-action labeled button",
           "  on the right ('Review' / 'View'); falling back to a quiet chevron when unset.",
+          "- Optional `sections` (quiet sentence-case label headings) separate actionable",
+          "  alerts from passive activity; `scopeLabel` names the garden the feed follows.",
+          "- Loading renders pulse skeleton rows in the row anatomy.",
           "",
           "**Accessibility**:",
           "- Tone color is supplemental — title text is the primary accessible label",
@@ -260,7 +264,54 @@ export const WithActionLabels: Story = {
   ),
 };
 
-/** Loading state — inline spinner placeholder while items resolve. */
+/** Grouped feed — "Needs attention" alerts above "Recent activity", scoped to a garden. */
+export const GroupedSections: Story = {
+  render: () => (
+    <Frame>
+      <NotificationPanel
+        scopeLabel="Updates for Milpa Alta"
+        sections={[
+          {
+            id: "needs-attention",
+            title: "Needs attention",
+            items: [
+              baseItem(
+                "s1",
+                "3 work submissions need review",
+                "Oldest has waited 2 days.",
+                "",
+                "critical"
+              ),
+              baseItem("s2", "Impact report is stale", "Last minted 34 days ago.", "", "warn"),
+            ],
+          },
+          {
+            id: "recent-activity",
+            title: "Recent activity",
+            items: [
+              baseItem(
+                "s3",
+                "Impact report minted",
+                "Hypercert created for October work.",
+                "2h ago",
+                "info"
+              ),
+              baseItem(
+                "s4",
+                "New member joined",
+                "ana.eth accepted the gardener invite.",
+                "Yesterday",
+                "info"
+              ),
+            ],
+          },
+        ]}
+      />
+    </Frame>
+  ),
+};
+
+/** Loading state — pulse skeleton rows in the row anatomy while items resolve. */
 export const LoadingState: Story = {
   render: () => (
     <Frame>
