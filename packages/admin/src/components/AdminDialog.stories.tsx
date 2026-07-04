@@ -354,9 +354,11 @@ export const FlowVariant: Story = {
       '[data-component="AdminDialog"][data-slot="surface"]'
     );
     await waitFor(() => expect(surface).not.toBeNull());
-    // Bounded, centered 2xl card driven by the flow variant — not a fullscreen takeover.
+    // Bounded, centered card driven by the flow variant — not a fullscreen takeover.
+    // The flow variant sizes itself through FLOW_SIZE; the size scale collapsed to
+    // sm/md/lg, so the surface reports the "lg" tier.
     await expect(surface).toHaveAttribute("data-variant", "flow");
-    await expect(surface).toHaveAttribute("data-size", "2xl");
+    await expect(surface).toHaveAttribute("data-size", "lg");
     // Single header: the flow variant suppresses AdminDialog's structured header
     // (data-slot="header"), so ActionFlowShell's header is the only title bar.
     await expect(surface?.querySelector('[data-slot="header"]')).toBeNull();
@@ -608,10 +610,14 @@ export const MobileSheetGeometry: Story = {
       await expect(closeRect.left).toBeGreaterThan(surfaceRect.left + surfaceRect.width / 2);
       // Sits above the scrollable body — does not overlap content.
       await expect(closeRect.bottom).toBeLessThanOrEqual(bodyRect.top + VIEWPORT_EDGE_TOLERANCE_PX);
-      // Headline reserves right padding so its text never runs under the button.
+      // Headline text stays clear of the absolute close button. Clearance now
+      // lives on the header row (pr-14 on the title bar), not on the title's own
+      // paddingRight, so assert the geometry directly: the title never extends
+      // under the close button.
       const title = within(surface).getByRole("heading", { name: /mobile bottom sheet/i });
-      await expect(Number.parseFloat(getComputedStyle(title).paddingRight)).toBeGreaterThanOrEqual(
-        36
+      const titleRect = title.getBoundingClientRect();
+      await expect(titleRect.right).toBeLessThanOrEqual(
+        closeRect.left + VIEWPORT_EDGE_TOLERANCE_PX
       );
     }
   },
