@@ -1955,7 +1955,15 @@ export function CampaignCookieJarPanel() {
         preventClose={syncAllowlist.isPending || updateMetadata.isPending}
         actions={
           <>
-            <AdminButton type="button" variant="text" onClick={() => setSelectedCampaign(null)}>
+            {/* Disabled while a write is in flight: the sync/metadata hooks
+                report errors inline, so a Cancel-close mid-write would render
+                the failure into a dialog nobody can see. */}
+            <AdminButton
+              type="button"
+              variant="text"
+              onClick={() => setSelectedCampaign(null)}
+              disabled={syncAllowlist.isPending || updateMetadata.isPending}
+            >
               {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
             </AdminButton>
             <AdminButton
