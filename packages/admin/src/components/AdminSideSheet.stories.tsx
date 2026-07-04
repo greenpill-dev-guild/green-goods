@@ -104,21 +104,23 @@ export const Default: Story = {
     const surface = getOpenSurface();
     await waitForSheetSettled(surface);
     const rect = surface.getBoundingClientRect();
+    // A fixed element with right:0 / bottom:0 docks to the layout viewport
+    // (documentElement.clientWidth/clientHeight) — NOT innerWidth/innerHeight,
+    // which include the scrollbar and would read ~15px off whenever the story
+    // canvas scrolls, failing a correct component.
+    const vw = document.documentElement.clientWidth;
+    const vh = document.documentElement.clientHeight;
 
-    if (window.innerWidth >= SM_BREAKPOINT_PX) {
+    if (vw >= SM_BREAKPOINT_PX) {
       // Right-docked, full height.
-      await expect(Math.abs(rect.right - window.innerWidth)).toBeLessThanOrEqual(EDGE_TOLERANCE_PX);
+      await expect(Math.abs(rect.right - vw)).toBeLessThanOrEqual(EDGE_TOLERANCE_PX);
       await expect(Math.abs(rect.top)).toBeLessThanOrEqual(EDGE_TOLERANCE_PX);
-      await expect(Math.abs(rect.bottom - window.innerHeight)).toBeLessThanOrEqual(
-        EDGE_TOLERANCE_PX
-      );
+      await expect(Math.abs(rect.bottom - vh)).toBeLessThanOrEqual(EDGE_TOLERANCE_PX);
       // One shared width token, never wider than 560px + tolerance.
       await expect(rect.width).toBeLessThanOrEqual(560 + EDGE_TOLERANCE_PX);
     } else {
       // Bottom sheet below the sm breakpoint.
-      await expect(Math.abs(rect.bottom - window.innerHeight)).toBeLessThanOrEqual(
-        EDGE_TOLERANCE_PX
-      );
+      await expect(Math.abs(rect.bottom - vh)).toBeLessThanOrEqual(EDGE_TOLERANCE_PX);
       await expect(rect.top).toBeGreaterThan(0);
     }
   },
@@ -144,13 +146,14 @@ export const MobileBottomSheet: Story = {
     const surface = getOpenSurface();
     await waitForSheetSettled(surface);
     const rect = surface.getBoundingClientRect();
+    // Measure against the layout viewport (excludes scrollbar) — see Default.
+    const vw = document.documentElement.clientWidth;
+    const vh = document.documentElement.clientHeight;
 
-    if (window.innerWidth < SM_BREAKPOINT_PX) {
-      await expect(Math.abs(rect.bottom - window.innerHeight)).toBeLessThanOrEqual(
-        EDGE_TOLERANCE_PX
-      );
-      // Docked to the bottom edge, not the right rail.
-      await expect(rect.width).toBeGreaterThan(window.innerWidth * 0.9);
+    if (vw < SM_BREAKPOINT_PX) {
+      await expect(Math.abs(rect.bottom - vh)).toBeLessThanOrEqual(EDGE_TOLERANCE_PX);
+      // Docked to the bottom edge, spanning nearly the full width (not the right rail).
+      await expect(rect.width).toBeGreaterThan(vw * 0.9);
     }
   },
 };
