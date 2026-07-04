@@ -50,6 +50,12 @@ interface GardenSettingsEditorProps {
    * carries upload/remove controls only, never a second image.
    */
   onBannerPreviewChange?: (preview: GardenBannerPreview) => void;
+  /**
+   * Reports draft dirtiness and save-in-flight so the hosting dialog can
+   * guard its close (confirm-before-discard when dirty, hard-block while
+   * saving) — the form owns the draft, the dialog owns the close.
+   */
+  onDirtyStateChange?: (state: { isDirty: boolean; isSaving: boolean }) => void;
 }
 
 interface SettingsDraft {
@@ -91,6 +97,7 @@ export function GardenSettingsEditor({
   canManage,
   isOwner,
   onBannerPreviewChange,
+  onDirtyStateChange,
 }: GardenSettingsEditorProps) {
   const { formatMessage } = useIntl();
 
@@ -174,6 +181,10 @@ export function GardenSettingsEditor({
   useEffect(() => {
     onBannerPreviewChange?.({ src: previewSrc || null, isDraft: bannerIsDraft });
   }, [bannerIsDraft, onBannerPreviewChange, previewSrc]);
+
+  useEffect(() => {
+    onDirtyStateChange?.({ isDirty, isSaving });
+  }, [isDirty, isSaving, onDirtyStateChange]);
 
   const handleCancel = () => {
     setDraft(draftFromGarden(garden));

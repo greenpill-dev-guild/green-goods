@@ -16,14 +16,38 @@ import { describe, expect, it } from "vitest";
  *   2. no consumer smuggles an ad-hoc `max-w-*` width override through
  *      `className` (the only sanctioned width override is the shared
  *      ADMIN_FLOW_DIALOG_CLASS constant),
- *   3. every `variant="flow"` dialog uses ADMIN_FLOW_DIALOG_CLASS, and
+ *   3. every `variant="flow"` dialog uses ADMIN_FLOW_DIALOG_CLASS,
  *   4. the guard's own idea of the scale stays anchored to the source of
  *      truth (sizeClasses in AdminDialog.tsx) — adding a tier fails here
- *      first, forcing the contract doc + this guard to move together.
+ *      first, forcing the contract doc + this guard to move together, and
+ *   5. every consumer re-establishes the workspace tone (the dialog portals
+ *      to <body>, escaping CanvasLayout's [data-tone] scope — an omitted
+ *      tone silently falls back to the neutral accent; the 2026-07 audit
+ *      caught exactly one such straggler after the #613 tone pass).
  */
 
 const ADMIN_SRC = join(__dirname, "..", "..");
 const VALID_SIZES = new Set(["sm", "md", "lg"]);
+const VALID_TONES = new Set(["hub", "garden", "community", "actions", "home"]);
+
+/**
+ * Files whose `<AdminDialog` sites are deliberately neutral — the only
+ * sanctioned omissions of the tone prop. Everything else must declare where
+ * it lives.
+ */
+const TONE_EXEMPT_FILES = [
+  // AdminConfirmDialog wrapper: confirms are transient alerts riding the
+  // neutral default by design (DiscardChanges, destructive confirms).
+  "components/AdminDialog.tsx",
+  // Command palette: global chrome available from every workspace — neutral
+  // by design (variant="palette").
+  "components/Layout/CommandPalette.tsx",
+];
+
+function isToneExempt(filePath: string): boolean {
+  const normalized = filePath.split("\\").join("/");
+  return TONE_EXEMPT_FILES.some((exempt) => normalized.endsWith(exempt));
+}
 
 function collectTsxFiles(dir: string): string[] {
   const out: string[] = [];
@@ -141,6 +165,24 @@ export function collectViolations(source: string, filePath: string): string[] {
       );
     }
 
+    // Tone (prompt-contract § Dialog size & variant standard): the dialog
+    // portals out of the [data-tone] scope, so every non-exempt consumer must
+    // pass tone explicitly — a literal from the shipped set, or an expression
+    // (descriptor bridges resolve tone dynamically).
+    if (!isToneExempt(filePath)) {
+      const toneLiteral = tag.match(/\btone="([^"]*)"/);
+      const hasToneExpression = /\btone=\{/.test(tag);
+      if (!toneLiteral && !hasToneExpression) {
+        violations.push(
+          `${where} — no tone prop; the dialog portals out of [data-tone], so omitting tone silently falls back to the neutral accent (pass the workspace tone, or allowlist a deliberately-neutral file in TONE_EXEMPT_FILES)`
+        );
+      } else if (toneLiteral && !VALID_TONES.has(toneLiteral[1])) {
+        violations.push(
+          `${where} — tone="${toneLiteral[1]}" is outside the shipped set (hub|garden|community|actions|home)`
+        );
+      }
+    }
+
     // Interior grammar (dialog quality pass) 5: the AdminDialog `actions`
     // slot already renders the pinned SheetFooter anatomy, so a non-flow
     // dialog that passes `actions` AND nests a <SheetFooter in the same file
@@ -186,13 +228,13 @@ describe("AdminDialog size/variant standard", () => {
 
   it("detects seeded violations (self-check)", () => {
     const seeded = `
-      <AdminDialog open size="xl" title="bad">
-      <AdminDialog open size={wide ? "2xl" : "lg"} title="bad">
-      <AdminDialog open size={dynamicSize} title="bad">
-      <AdminDialog open className="p-0 max-w-5xl" title="bad">
-      <AdminDialog open variant="flow" title="bad">
-      <AdminDialog open size="lg" variant="flow" className={ADMIN_FLOW_DIALOG_CLASS} title="good">
-      <AdminDialog open size="md" onOpenChange={(next) => { if (!next) close(); }} title="good">
+      <AdminDialog open size="xl" tone="hub" title="bad">
+      <AdminDialog open size={wide ? "2xl" : "lg"} tone="hub" title="bad">
+      <AdminDialog open size={dynamicSize} tone="hub" title="bad">
+      <AdminDialog open className="p-0 max-w-5xl" tone="hub" title="bad">
+      <AdminDialog open variant="flow" tone="hub" title="bad">
+      <AdminDialog open size="lg" variant="flow" tone="hub" className={ADMIN_FLOW_DIALOG_CLASS} title="good">
+      <AdminDialog open size="md" tone="hub" onOpenChange={(next) => { if (!next) close(); }} title="good">
     `;
     const violations = collectViolations(seeded, "seed.tsx");
     expect(violations).toHaveLength(5);
@@ -201,6 +243,26 @@ describe("AdminDialog size/variant standard", () => {
     expect(violations.join("\n")).toContain("dynamically");
     expect(violations.join("\n")).toContain("max-w-*");
     expect(violations.join("\n")).toContain("ADMIN_FLOW_DIALOG_CLASS");
+  });
+
+  it("detects seeded tone violations (self-check)", () => {
+    // Missing tone on a non-exempt file → violation.
+    const missing = `<AdminDialog open size="md" title="bad">`;
+    expect(collectViolations(missing, "views/Bad.tsx").join("\n")).toContain("no tone prop");
+
+    // Out-of-set literal → violation.
+    const invalid = `<AdminDialog open size="md" tone="brand" title="bad">`;
+    expect(collectViolations(invalid, "views/Bad.tsx").join("\n")).toContain(
+      'tone="brand" is outside the shipped set'
+    );
+
+    // Expressions are fine — descriptor bridges resolve tone dynamically.
+    const expression = `<AdminDialog open size="lg" tone={config?.tone ?? fallbackTone} title="good">`;
+    expect(collectViolations(expression, "components/Layout/CanvasLayout.tsx")).toEqual([]);
+
+    // Deliberately-neutral files are exempt.
+    const palette = `<AdminDialog open variant="palette" title="palette">`;
+    expect(collectViolations(palette, "components/Layout/CommandPalette.tsx")).toEqual([]);
   });
 
   it("detects seeded interior-grammar violations (self-check)", () => {
@@ -212,7 +274,7 @@ describe("AdminDialog size/variant standard", () => {
     );
 
     // Flow dialogs own their chrome via ActionFlowShell — SheetFooter is fine.
-    const flowSeed = `<AdminDialog open size="lg" variant="flow" className={ADMIN_FLOW_DIALOG_CLASS} title="x">
+    const flowSeed = `<AdminDialog open size="lg" variant="flow" tone="hub" className={ADMIN_FLOW_DIALOG_CLASS} title="x">
       <SheetFooter>flow footer</SheetFooter>
     </AdminDialog>`;
     expect(collectViolations(flowSeed, "views/Flow.tsx")).toEqual([]);

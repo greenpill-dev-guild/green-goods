@@ -1951,6 +1951,8 @@ export function CampaignCookieJarPanel() {
             "Review the public link, update campaign metadata, and sync garden operator access.",
         })}
         size="lg"
+        tone="community"
+        preventClose={syncAllowlist.isPending || updateMetadata.isPending}
         actions={
           <>
             <AdminButton type="button" variant="text" onClick={() => setSelectedCampaign(null)}>
