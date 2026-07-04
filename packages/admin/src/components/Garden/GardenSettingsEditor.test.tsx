@@ -205,6 +205,44 @@ describe("GardenSettingsEditor explicit save", () => {
     });
   });
 
+  it("reports the dirty state to the hosting dialog on edit and cancel", async () => {
+    const user = userEvent.setup();
+    const onDirtyStateChange = vi.fn();
+    renderEditor({ onDirtyStateChange });
+
+    expect(onDirtyStateChange).toHaveBeenLastCalledWith({ isDirty: false, isSaving: false });
+
+    const nameInput = screen.getByLabelText(/Name/);
+    await user.clear(nameInput);
+    await user.type(nameInput, "New Garden Name");
+
+    expect(onDirtyStateChange).toHaveBeenLastCalledWith({ isDirty: true, isSaving: false });
+
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(onDirtyStateChange).toHaveBeenLastCalledWith({ isDirty: false, isSaving: false });
+  });
+
+  it("reports save-in-flight so the hosting dialog can hard-block close", async () => {
+    const user = userEvent.setup();
+    const onDirtyStateChange = vi.fn();
+    renderEditor({ onDirtyStateChange });
+
+    const nameInput = screen.getByLabelText(/Name/);
+    await user.clear(nameInput);
+    await user.type(nameInput, "Renamed Garden");
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() => {
+      expect(onDirtyStateChange).toHaveBeenCalledWith({ isDirty: true, isSaving: true });
+    });
+    await waitFor(() => {
+      expect(onDirtyStateChange).toHaveBeenLastCalledWith(
+        expect.objectContaining({ isSaving: false })
+      );
+    });
+  });
+
   it("blocks Save while the name is empty and explains why", async () => {
     const user = userEvent.setup();
     renderEditor();
