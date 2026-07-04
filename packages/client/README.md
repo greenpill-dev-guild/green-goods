@@ -4,12 +4,12 @@ This package contains the frontend application for Green Goods, a Progressive We
 
 > **Dependency Management**: use the [dependency-management skill](../../.claude/skills/dependency-management/SKILL.md) for package upgrades, lockfile updates, and vulnerability audits.
 
-📖 **[Client Documentation](https://docs.greengoods.app/developer/architecture/client-package)** — Complete client architecture and development guide
+📖 **[Client Documentation](https://docs.greengoods.app/builders/packages/client)** — Client package architecture and development guide
 
 **Essential Guides:**
-- 🌱 [Gardener Quickstart](https://docs.greengoods.app/welcome/quickstart-gardener) — Get started as a gardener
-- 📱 [Offline Architecture](https://docs.greengoods.app/developer/architecture/client-package#offline-first-architecture) — Job queue and PWA patterns
-- 🔐 [Authentication Guide](https://docs.greengoods.app/developer/architecture/client-package#authentication) — Passkey and wallet auth flows
+- 🌱 [Gardener Quickstart](https://docs.greengoods.app/community/gardener-guide/joining-a-garden) — Get started as a gardener
+- 📱 [Offline Work Submission](https://docs.greengoods.app/builders/journeys/work-submission) — Job queue, offline sync, and PWA patterns
+- 🔐 [Authentication](https://docs.greengoods.app/builders/integrations/passkey) — Passkey and wallet auth flows
 
 ## Getting Started
 

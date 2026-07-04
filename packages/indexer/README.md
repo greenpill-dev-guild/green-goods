@@ -4,7 +4,7 @@ This package contains the Envio indexer for Green Goods contracts. It exposes a 
 
 > **Dependency Management**: follow the [dependency-management skill](../../.claude/skills/dependency-management/SKILL.md) before updating indexer dependencies or regenerating lockfiles.
 
-📖 **[Indexer Documentation](https://docs.greengoods.app/developer/architecture/indexer-package)** — Complete indexer architecture and development guide
+📖 **[Indexer Documentation](https://docs.greengoods.app/builders/packages/indexer)** — Indexer architecture and development guide
 
 ---
 
