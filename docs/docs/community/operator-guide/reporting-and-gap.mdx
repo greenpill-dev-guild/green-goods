@@ -47,7 +47,7 @@ import {FeatureState, NextBestAction, StatusBadge, StepFlow} from "@site/src/com
 <FeatureState
   title="Endowment and governance metrics"
   status="Implemented (activation pending indexing)"
-  summary="Cookie jar activity and vault lifecycle events (creation, harvests, yield splits) are indexed on Arbitrum and can feed reports today. Per-vault deposit and withdrawal indexing is still rolling out, so vault balance metrics may lag until it lands."
+  summary="Vault lifecycle events (creation, harvests, yield splits) and cookie jar creation are indexed on Arbitrum and can feed reports. Per-jar deposit and withdrawal activity and per-vault balances are not indexed yet, so those metrics stay empty until that coverage lands."
 />
 
 ## Monthly reporting loop
@@ -55,7 +55,7 @@ import {FeatureState, NextBestAction, StatusBadge, StepFlow} from "@site/src/com
 <StepFlow
   steps={[
     {title: "Collect period scope", detail: "Select chain, gardens, and date range."},
-    {title: "Export approved work", detail: "Collect the period's approved work from your garden's history in the admin dashboard, or pull approval records from the indexer and EAS."},
+    {title: "Export approved work", detail: "Collect the period's approved work from your garden's history in the admin dashboard. Approval records come from EAS through the shared EAS data layer, not the indexer."},
     {title: "Map frameworks", detail: "Tag outputs to SDG/GAP or funder schemas."},
     {title: "Publish package", detail: "Share methods, caveats, and attestation references."},
   ]}

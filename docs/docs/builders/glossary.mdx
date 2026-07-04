@@ -29,7 +29,7 @@ A production Ethereum Layer 2 network where Green Goods is deployed. Arbitrum of
 A node in the ERC-4337 account abstraction system that collects UserOperations from multiple users, bundles them into a single transaction, and submits them to the blockchain. Green Goods uses Pimlico as its bundler service, enabling gasless transactions for gardeners.
 
 ### Celo
-A carbon-negative blockchain focused on mobile-first financial tools and regenerative finance. Green Goods production runs on Arbitrum One; a Celo deployment exists, and Celo is the planned mint chain for GreenWill badges, with qualifying source activity coming from Celo or Arbitrum.
+A carbon-negative blockchain focused on mobile-first financial tools and regenerative finance. Green Goods production runs on Arbitrum One, and GreenWill badges are issued on Arbitrum. A separate, partial Celo deployment exists (core contracts only, no GreenWill), so treat Arbitrum as the source of truth for live features.
 
 ### CREATE2
 A Solidity opcode that deploys contracts to deterministic addresses based on the deployer address, salt, and bytecode hash. Green Goods uses CREATE2 for predictable contract deployments across different networks, ensuring consistent addresses for core infrastructure.
