@@ -82,7 +82,7 @@ CSS Grid with named areas:
 └──────────────────────────────────────────┘
 ```
 
-- **Overlays:** every action and detail/inspection flow is a centered `AdminDialog` (the side-sheet renderers are deleted). Creation flows and inspectors publish through the admin left-inspector channel; config/alerts/profile/settings route through the right-sheet registry into the AdminDialog account inspector. Profile and settings are separate inspector contents on desktop; the tabbed account surface is reserved for the mobile account route.
+- **Overlays:** every workspace action and detail/inspection flow is a centered `AdminDialog` (the old side-sheet renderers are deleted). Creation flows and inspectors publish through the admin left-inspector channel. The three global AppBar surfaces (profile/settings/notifications) route through the right-sheet registry into the `AdminSideSheet` inspector — right-docked on desktop, bottom sheet on mobile. Profile and settings are separate sheet contents on desktop; the tabbed account surface (Account | Settings) is reserved for the mobile account route.
 - **MainSheet recession:** retired — the canvas stays at rest; depth comes from the dialog's own scrim (the `isReceded` prop is no longer passed).
 
 ---
@@ -116,9 +116,9 @@ Storybook may still expose legacy `--ws-*` aliases inside isolated admin frames,
 
 All admin-specific components use **Admin* adapter wrappers** following M3 v0.192 exactly. Zero changes to the shared package.
 
-Components: AdminButton, AdminCard, AdminCheckbox, AdminDialog, AdminFab, AdminLinearProgress, AdminListItem, AdminBadge, AdminTooltip, AdminFilterChip, AdminSearchToolbar, AdminTabRail, AdminTextField.
+Components: AdminButton, AdminCard, AdminCheckbox, AdminDialog, AdminFab, AdminLinearProgress, AdminListItem, AdminBadge, AdminSideSheet, AdminTooltip, AdminFilterChip, AdminSearchToolbar, AdminTabRail, AdminTextField.
 
-Admin dashboard modals use AdminDialog or AdminConfirmDialog. Desktop renders as a centered M3 dialog; mobile renders as a bottom sheet. Pinned actions sit below the scrollable body so cancel, save, confirm, retry, and close controls remain visible. The command palette uses the AdminDialog palette variant. DialogShell remains for shared or non-admin surfaces, not admin dashboard modals.
+Admin dashboard modals use AdminDialog or AdminConfirmDialog. Desktop renders as a centered M3 dialog; mobile renders as a bottom sheet. Pinned actions sit below the scrollable body so cancel, save, confirm, retry, and close controls remain visible. The command palette uses the AdminDialog palette variant. DialogShell remains for shared or non-admin surfaces, not admin dashboard modals. The three global AppBar surfaces (Profile, Settings, Notifications) are the one side-sheet exception: they render in AdminSideSheet — right-docked full-height on desktop, AdminDialog-identical bottom sheet on mobile — with usage locked to CanvasLayout by AdminSideSheetStandard.guard.
 
 ---
 
@@ -127,8 +127,8 @@ Admin dashboard modals use AdminDialog or AdminConfirmDialog. Desktop renders as
 - **AppBar** (top context bar, Z3): GardenChip selector, search, settings, notifications, avatar
 - **NavigationBar** (bottom, Z3): Workspace tabs — Hub, Garden, Community, Actions. Symbol-first. Role-adaptive visibility via permissions.
 - **AdminFab**: Per-workspace primary action, capsule shape. Integrated into NavigationBar via FabProvider.
-- **Desktop profile**: On desktop, Profile redirects to Hub and opens the AdminDialog account inspector with profile content.
-- **Controlled Chrome**: only NavigationBar/FAB use subtle liquid material (the sheet shells are retired; every dialog surface is solid M3). The AppBar root is transparent while child controls can carry their own solid/hover states. Page content, tables, forms, and route cards do not use glass.
+- **Desktop profile**: On desktop, Profile redirects to Hub and opens the AdminSideSheet account inspector with profile content.
+- **Controlled Chrome**: only NavigationBar/FAB use subtle liquid material (every dialog surface and the account side sheet are solid M3). The AppBar root is transparent while child controls can carry their own solid/hover states. Page content, tables, forms, and route cards do not use glass.
 
 ---
 
