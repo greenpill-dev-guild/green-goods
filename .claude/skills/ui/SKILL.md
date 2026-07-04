@@ -61,17 +61,17 @@ The design identity (**restrained operator cockpit**, why-it's-different-from-cl
 
 UI-level implementation rules that follow from that identity:
 
-- **Layout default**: `PageHeader` → one primary workspace → optional secondary context in a sheet or rail. Start from layout and flow before reaching for `Card`.
+- **Layout default**: `CanvasRouteFrame` + `CanvasRouteHeader` → one primary workspace → secondary context and every detail/inspection flow in a centered `AdminDialog` (the side-sheet renderers are retired). Start from layout and flow before reaching for `Card`.
 - **Card usage**: cards and elevated surfaces are for records or bounded interactions, not the default page structure. Prefer one dominant workspace surface per route. Avoid nested stacks of rounded bordered panels.
 - **Tokens**: shared semantic tokens + one workspace accent. No decorative gradients behind routine product UI.
 - **Reference composition**: admin `/hub` route is the canonical cockpit layout — model new admin surfaces on it.
-- **Dialogs**: use `DialogShell` from `@green-goods/shared` by default; reserve `AdminDialog` for strict M3 flows (see Part 3).
+- **Dialogs**: use `AdminDialog` / `AdminConfirmDialog` for **every** admin dashboard dialog — pass the workspace `tone` (the portal escapes `[data-tone]`). `DialogShell` is for client PWA and shared (non-admin) surfaces only; never use it in admin (see Part 3 + [`design/prompt-contract.md § Overlays`](../design/prompt-contract.md)).
 
 ---
 
 ## Part 2: Component Development Workflow
 
-1. **Check existing patterns** (`CanvasLayout`, `AccountSurface`, `RightSheet`, `PageHeader`, `ListToolbar`, `SortSelect`, `Surface`, `Card`, `Alert`, `FormField`)
+1. **Check existing patterns** (`CanvasLayout`, `AccountSurface`, `AdminDialog`, `CanvasRouteFrame`/`CanvasRouteHeader`, `ListToolbar`, `SortSelect`, `Surface`, `Card`, `Alert`, `FormField`)
 2. **Develop reusable components in Storybook first** (`bun run storybook` in packages/shared)
 3. **Follow Radix UI + tailwind-variants patterns** (see [radix-ui.md](./radix-ui.md))
 4. **Run compliance checklist** before integration (see [compliance.md](./compliance.md))

@@ -277,6 +277,17 @@ adjudicates ~7 latent runtime-bug candidates.
 > superseding this slice's `hub` assumption), CreateListing `garden`, Minting
 > `hub`, GardenDomainEditor `garden`. **This slice is fully superseded — do not
 > re-implement.** Slice 4's census pass should still re-verify tones live.
+>
+> **Audit addendum landed (2026-07-03, branch `fix/admin-design-system-contradictions`):**
+> a fresh design-system audit caught the two stragglers the quality pass missed and
+> closed them — Garden Settings dialog now guards dirty close (`useDirtyClose` route
+> mode + `DiscardChangesDialog` + `preventClose` while saving; editor reports
+> `onDirtyStateChange`), CampaignCookieJarPanel manage dialog gained
+> `tone="community"` + `preventClose` during sync/metadata mutations. The
+> `AdminDialogStandard.guard` now also enforces tone presence on every non-exempt
+> `<AdminDialog` site (allowlist: AdminConfirmDialog wrapper, CommandPalette), so
+> the #613 tone work can't silently regress. Stale guidance aligned in the same
+> pass (ui/SKILL.md dialog default + pattern list, CLAUDE.md palette line).
 
 Branch `fix/admin-dialog-tone-and-hidden-close`. Two small, related admin-dialog touches.
 

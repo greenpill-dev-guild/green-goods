@@ -2,6 +2,7 @@ import {
   type Address,
   EmptyState,
   type AdminWorkspaceSectionTab,
+  useDirtyClose,
   type useGardenWorkspaceController,
 } from "@green-goods/shared";
 import { AdminCard } from "@/components/AdminCard";
@@ -10,6 +11,7 @@ import { useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminDialog } from "@/components/AdminDialog";
+import { DiscardChangesDialog } from "@/components/DiscardChangesDialog";
 import { GardenDomainModal } from "@/components/Garden/GardenDomainEditor";
 import { GardenMetadata } from "@/components/Garden/GardenMetadata";
 import {
@@ -37,6 +39,20 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
   // Jar management is garden configuration — it opens from this dialog
   // (moved off the Community payout surface, which keeps deposits/withdrawals).
   const [cookieJarsOpen, setCookieJarsOpen] = useState(false);
+  // The settings form reports dirtiness/saving up so this dialog can guard its
+  // close per the dialog contract (confirm-before-discard, hard-block during
+  // save). Gated on the settings view so a stale report can't block later
+  // navigation after the dialog is gone.
+  const [settingsForm, setSettingsForm] = useState({ isDirty: false, isSaving: false });
+  const settingsOpen = workspace.view === "settings";
+  // The dialog closes by navigating (handleTabChange → navigate), so route
+  // mode makes the router blocker the single confirm trigger — X, scrim,
+  // Escape, back button, and nav links raise one prompt, never two.
+  const settingsDirtyClose = useDirtyClose({
+    isDirty: settingsOpen && settingsForm.isDirty,
+    onClose: () => workspace.handleTabChange("overview"),
+    blockRouteChange: true,
+  });
 
   if (!workspace.selectedGarden) {
     return (
@@ -118,10 +134,9 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
           rendered over the Overview behind it. Deep-linking to /garden/settings
           opens it directly; closing returns to the Overview. */}
       <AdminDialog
-        open={workspace.view === "settings"}
-        onOpenChange={(open) => {
-          if (!open) workspace.handleTabChange("overview");
-        }}
+        open={settingsOpen}
+        onOpenChange={settingsDirtyClose.onOpenChange}
+        preventClose={settingsForm.isSaving}
         size="lg"
         tone="garden"
         title={formatMessage({
@@ -148,6 +163,7 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
             canManage={workspace.canManage}
             isOwner={workspace.isOwner}
             onBannerPreviewChange={setBannerPreview}
+            onDirtyStateChange={setSettingsForm}
           />
 
           <div className="space-y-4">
@@ -243,6 +259,11 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
           </div>
         </div>
       </AdminDialog>
+      <DiscardChangesDialog
+        open={settingsDirtyClose.confirmOpen}
+        onKeepEditing={settingsDirtyClose.cancelClose}
+        onDiscard={settingsDirtyClose.confirmClose}
+      />
       {workspace.canManage ? (
         <GardenDomainModal
           isOpen={workspace.domainEditorOpen}
