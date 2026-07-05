@@ -60,7 +60,9 @@ function communityDecorators() {
 }
 
 export const Treasury: Story = {
-  tags: ["storybook-ci"],
+  // Not in storybook-ci: the treasury play needs live indexer/vault + analytics data the
+  // clean-room CI browser can't reach (getGardenVaults / Analytics SDK "Failed to fetch"),
+  // so the garden name never renders offline. Kept for local/authenticated Storybook review.
   args: { initialPath: "/community/treasury" },
   decorators: communityDecorators(),
   play: async ({ canvasElement }) => {
@@ -94,7 +96,9 @@ export const Treasury: Story = {
 };
 
 export const VaultInspector: Story = {
-  tags: ["storybook-ci"],
+  // Not in storybook-ci: the vault inspector needs live indexer/vault data the clean-room
+  // CI browser can't reach, so it renders empty offline. Kept for local/authenticated
+  // Storybook review.
   args: { initialPath: "/community/treasury/vault" },
   decorators: communityDecorators(),
   play: async ({ canvasElement }) => {
