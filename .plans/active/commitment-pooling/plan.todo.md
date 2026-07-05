@@ -6,7 +6,7 @@
 **Created**: `2026-07-03`
 **Last Updated**: `2026-07-04`
 
-Linear mirror: project [Green Goods Commitment Pooling](https://linear.app/greenpill-dev-guild/project/green-goods-commitment-pooling-4bc53572f354) (converted in place from Seasons & Campaigns). Every plan item below names its Linear issue. Milestones: July dry run (2026-07-31), August release (2026-08-31, hard commitment), September community interface (2026-09-30). Specs in this folder: `corrections-log.md`, `contract-spec.md`, `uiux-spec.md`.
+Linear mirror: project [Green Goods Commitment Pooling](https://linear.app/greenpill-dev-guild/project/green-goods-commitment-pooling-4bc53572f354) (converted in place from Seasons & Campaigns). Every plan item below names its Linear issue. Milestones: July dry run (2026-07-31), August release (2026-08-31, hard commitment), September community interface (2026-09-30). Specs in this folder: `corrections-log.md`, `contract-spec.md`, `uiux-spec.md`, plus design artifacts `diagrams.md` (topology, sequences, state machines, indexer ERD delta) and `wireframes.md` (low-fi, all four surfaces).
 
 ## Decision Log
 
@@ -24,6 +24,7 @@ Linear mirror: project [Green Goods Commitment Pooling](https://linear.app/green
 | 10 | Clean room: Grassroots Economics paper + public docs only, never AGPL Sarafu source | RESR-57 D3 + non-AGPL constraint. |
 | 11 | Seasons & Campaigns project converted in place; legacy season issues composted with pointer comments | Seasons and campaigns are cycle types inside the pool; separate project inverted the dependency. |
 | 12 | Out of scope everywhere: Celo, settlement contracts, Sarafu integration, bridging, G$ movement, leaderboards | Locked register; Architecture 2 split-state stands. |
+| 13 | Design artifacts live in this folder: low-fi in-repo wireframes for all four surfaces (`wireframes.md`) + mermaid diagrams (`diagrams.md`) + the consolidated permission matrix (contract-spec §6.1); docs-site promotion rides PRD-680 at ship | User alignment 2026-07-04 (post-#619 audit): understand flows on screens before build; low fidelity on purpose; the docs site describes what is live. |
 
 ### Full decision register (2026-07-03 alignment session, 27 decisions)
 
@@ -62,6 +63,7 @@ Linear mirror: project [Green Goods Commitment Pooling](https://linear.app/green
 - [x] Human judgment points surfaced and decided: 27 alignment decisions (2026-07-03) + approved Linear change set (2026-07-04)
 - [x] Out of scope defined: Celo/settlement/Sarafu/bridging/G$ movement; no commitment EAS schema; no claim flow in the community interface v1
 - [x] Lightest honest validation chosen per lane (see Validation)
+- [x] Design artifacts landed 2026-07-04: permission matrix (contract-spec §6.1 gating table), `diagrams.md` (7 mermaid diagrams, all validated), `wireframes.md` (20 low-fi frames, four surfaces + cross-surface flow map)
 
 ## Requirements Coverage
 

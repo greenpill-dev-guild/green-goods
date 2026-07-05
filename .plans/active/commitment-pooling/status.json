@@ -16,6 +16,8 @@
     "corrections_log": "corrections-log.md",
     "contract_spec": "contract-spec.md",
     "uiux_spec": "uiux-spec.md",
+    "diagrams": "diagrams.md",
+    "wireframes": "wireframes.md",
     "plan": "plan.todo.md"
   },
   "linear": {
