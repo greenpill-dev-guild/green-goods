@@ -46,6 +46,32 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
   };
 });
 
+// Stub the confirm dialog to a lightweight element. The real DiscardChangesDialog
+// mounts the Radix AdminConfirmDialog → AdminDialog stack (portals + scroll-lock),
+// which spikes worker memory under v8 coverage and OOMs the run. This test only
+// asserts the guard *wiring* (dirty close → confirm shows → Discard closes); the
+// real dialog's rendering is covered by its own story/tests.
+vi.mock("../../../components/DiscardChangesDialog", () => ({
+  DiscardChangesDialog: ({
+    open,
+    onKeepEditing,
+    onDiscard,
+  }: {
+    open: boolean;
+    onKeepEditing: () => void;
+    onDiscard: () => void;
+  }) =>
+    open
+      ? createElement(
+          "div",
+          { role: "alertdialog" },
+          createElement("span", null, "Discard changes?"),
+          createElement("button", { type: "button", onClick: onKeepEditing }, "Keep editing"),
+          createElement("button", { type: "button", onClick: onDiscard }, "Discard")
+        )
+      : null,
+}));
+
 import { CreateListingDialog } from "../../../components/Hypercerts/CreateListingDialog";
 
 const DEFAULT_HOOK_STATE = {

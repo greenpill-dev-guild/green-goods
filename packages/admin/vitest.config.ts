@@ -133,16 +133,6 @@ export default defineConfig({
       },
     },
     pool: "threads",
-    poolOptions: {
-      threads: {
-        // v8 coverage instruments the full imported graph per worker thread;
-        // the heavier dialog tests (which mount stacked Radix dialogs pulling
-        // broadly from the shared barrel) spike a single worker past the
-        // default heap and trip ERR_WORKER_OUT_OF_MEMORY. Raise the worker heap
-        // so the coverage run has headroom as the suite grows.
-        execArgv: ["--max-old-space-size=8192"],
-      },
-    },
     isolate: true,
     server: {
       deps: {
