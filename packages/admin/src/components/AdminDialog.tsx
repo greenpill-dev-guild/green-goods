@@ -58,6 +58,8 @@ export interface AdminConfirmDialogProps {
   variant?: "default" | "warning" | "danger";
   isLoading?: boolean;
   icon?: ReactNode;
+  /** Workspace tone, forwarded to the portaled surface (see AdminDialogProps.tone). */
+  tone?: AdminDialogProps["tone"];
 }
 
 // Three tiers by action weight (not five — a modal's size should read as a
@@ -349,6 +351,7 @@ export function AdminConfirmDialog({
   variant = "default",
   isLoading = false,
   icon,
+  tone,
 }: AdminConfirmDialogProps) {
   const { formatMessage } = useIntl();
   const resolvedConfirmLabel = confirmLabel ?? formatMessage({ id: "app.common.confirm" });
@@ -400,6 +403,7 @@ export function AdminConfirmDialog({
       description={description}
       icon={iconNode}
       variant="confirm"
+      tone={tone}
       role={isDanger || isWarning ? "alertdialog" : "dialog"}
       preventClose={isLoading}
       hideCloseButton={isLoading}

@@ -1,11 +1,15 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { ReactNode } from "react";
-import { IntlProvider } from "react-intl";
+import { type ReactNode, useCallback, useRef, useState } from "react";
+import { IntlProvider, useIntl } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import enMessages from "../../../../shared/src/i18n/en.json";
 import { resolveIPFSUrl } from "../../../../shared/src/modules/data/ipfs/resolve";
-import { GardenSettingsEditor } from "./GardenSettingsEditor";
+import {
+  GardenSettingsEditor,
+  type GardenSettingsEditorHandle,
+  type GardenSettingsFormState,
+} from "./GardenSettingsEditor";
 
 const gardenAddress = "0xAbCdEf1234567890aBcDeF1234567890aBcDeF12" as `0x${string}`;
 
@@ -60,6 +64,85 @@ const GARDEN = {
   maxGardeners: 0,
 };
 
+/**
+ * Test harness that reproduces the hosting dialog's pinned footer. The editor
+ * no longer renders Save/Cancel/dirty-status itself (the hosting `AdminDialog`
+ * owns the pinned actions bar and drives them through the imperative handle +
+ * `onDirtyStateChange`), so the harness re-provides that footer exactly as
+ * `GardenWorkspaceContent` does — keeping the editor's real contract (draft
+ * management + imperative save/cancel + dirty reporting) under test.
+ */
+function EditorHarness({
+  overrides,
+}: {
+  overrides: Partial<Parameters<typeof GardenSettingsEditor>[0]>;
+}) {
+  const { formatMessage } = useIntl();
+  const editorRef = useRef<GardenSettingsEditorHandle>(null);
+  const [form, setForm] = useState<GardenSettingsFormState>({
+    isDirty: false,
+    isSaving: false,
+    hasValidationError: false,
+    dirtyCount: 0,
+    canEdit: false,
+  });
+
+  // Keep the callback identity STABLE. GardenSettingsEditor lists
+  // onDirtyStateChange in its effect deps (mirroring the real consumer, which
+  // passes a stable state setter), so an inline callback — a new reference every
+  // render — would refire the effect → setForm → re-render → refire, an infinite
+  // loop that bloats memory and OOMs the coverage worker. Ref-capture overrides
+  // so the callback never changes identity.
+  const overridesRef = useRef(overrides);
+  overridesRef.current = overrides;
+  const handleDirtyStateChange = useCallback((state: GardenSettingsFormState) => {
+    setForm(state);
+    overridesRef.current.onDirtyStateChange?.(state);
+  }, []);
+
+  return (
+    <>
+      <GardenSettingsEditor
+        ref={editorRef}
+        gardenAddress={gardenAddress}
+        garden={GARDEN}
+        canManage
+        isOwner
+        {...overrides}
+        onDirtyStateChange={handleDirtyStateChange}
+      />
+      {form.canEdit ? (
+        <div>
+          <p data-slot="dirty-state">
+            {form.isSaving
+              ? formatMessage({ id: "app.garden.settings.saving" })
+              : form.isDirty
+                ? formatMessage(
+                    { id: "app.garden.settings.unsavedChanges" },
+                    { count: form.dirtyCount }
+                  )
+                : formatMessage({ id: "app.garden.settings.allSaved" })}
+          </p>
+          <button
+            type="button"
+            onClick={() => editorRef.current?.cancel()}
+            disabled={!form.isDirty || form.isSaving}
+          >
+            {formatMessage({ id: "app.common.cancel" })}
+          </button>
+          <button
+            type="button"
+            onClick={() => void editorRef.current?.save()}
+            disabled={!form.isDirty || form.hasValidationError || form.isSaving}
+          >
+            {formatMessage({ id: "app.garden.settings.saveChanges" })}
+          </button>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
 function renderEditor(overrides: Partial<Parameters<typeof GardenSettingsEditor>[0]> = {}) {
   const Providers = ({ children }: { children: ReactNode }) => (
     <IntlProvider locale="en" messages={enMessages}>
@@ -67,16 +150,7 @@ function renderEditor(overrides: Partial<Parameters<typeof GardenSettingsEditor>
     </IntlProvider>
   );
 
-  return render(
-    <GardenSettingsEditor
-      gardenAddress={gardenAddress}
-      garden={GARDEN}
-      canManage
-      isOwner
-      {...overrides}
-    />,
-    { wrapper: Providers }
-  );
+  return render(<EditorHarness overrides={overrides} />, { wrapper: Providers });
 }
 
 function allMutations() {
@@ -210,17 +284,23 @@ describe("GardenSettingsEditor explicit save", () => {
     const onDirtyStateChange = vi.fn();
     renderEditor({ onDirtyStateChange });
 
-    expect(onDirtyStateChange).toHaveBeenLastCalledWith({ isDirty: false, isSaving: false });
+    expect(onDirtyStateChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({ isDirty: false, isSaving: false })
+    );
 
     const nameInput = screen.getByLabelText(/Name/);
     await user.clear(nameInput);
     await user.type(nameInput, "New Garden Name");
 
-    expect(onDirtyStateChange).toHaveBeenLastCalledWith({ isDirty: true, isSaving: false });
+    expect(onDirtyStateChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({ isDirty: true, isSaving: false })
+    );
 
     await user.click(screen.getByRole("button", { name: "Cancel" }));
 
-    expect(onDirtyStateChange).toHaveBeenLastCalledWith({ isDirty: false, isSaving: false });
+    expect(onDirtyStateChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({ isDirty: false, isSaving: false })
+    );
   });
 
   it("reports save-in-flight so the hosting dialog can hard-block close", async () => {
@@ -234,7 +314,9 @@ describe("GardenSettingsEditor explicit save", () => {
     await user.click(screen.getByRole("button", { name: "Save changes" }));
 
     await waitFor(() => {
-      expect(onDirtyStateChange).toHaveBeenCalledWith({ isDirty: true, isSaving: true });
+      expect(onDirtyStateChange).toHaveBeenCalledWith(
+        expect.objectContaining({ isDirty: true, isSaving: true })
+      );
     });
     await waitFor(() => {
       expect(onDirtyStateChange).toHaveBeenLastCalledWith(

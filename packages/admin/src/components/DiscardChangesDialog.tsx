@@ -1,5 +1,5 @@
 import { useIntl } from "react-intl";
-import { AdminConfirmDialog } from "@/components/AdminDialog";
+import { AdminConfirmDialog, type AdminConfirmDialogProps } from "@/components/AdminDialog";
 
 interface DiscardChangesDialogProps {
   /** Whether the confirm is showing — pair with `useDirtyClose().confirmOpen`. */
@@ -8,6 +8,12 @@ interface DiscardChangesDialogProps {
   onKeepEditing: () => void;
   /** "Discard" — pair with `useDirtyClose().confirmClose`. */
   onDiscard: () => void;
+  /**
+   * Workspace tone for the portaled confirm — pass the same tone as the dialog
+   * being discarded so the pair reads as one surface (portals escape
+   * `[data-tone]`).
+   */
+  tone?: AdminConfirmDialogProps["tone"];
 }
 
 /**
@@ -20,6 +26,7 @@ export function DiscardChangesDialog({
   open,
   onKeepEditing,
   onDiscard,
+  tone,
 }: DiscardChangesDialogProps) {
   const { formatMessage } = useIntl();
   return (
@@ -27,6 +34,7 @@ export function DiscardChangesDialog({
       isOpen={open}
       onClose={onKeepEditing}
       onConfirm={onDiscard}
+      tone={tone}
       title={formatMessage({
         id: "app.admin.flow.discardChanges.title",
         defaultMessage: "Discard changes?",

@@ -4,6 +4,7 @@ import {
   DOMAIN_COLORS,
   Domain,
   expandDomainMask,
+  useDirtyClose,
   useGardenDomains,
   useSetGardenDomains,
 } from "@green-goods/shared";
@@ -12,6 +13,7 @@ import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminDialog } from "../AdminDialog";
 import { AdminButton } from "../AdminButton";
+import { DiscardChangesDialog } from "../DiscardChangesDialog";
 
 const DOMAINS = [
   {
@@ -103,72 +105,84 @@ export function GardenDomainModal({ isOpen, onClose, gardenAddress }: GardenDoma
     onClose();
   };
 
+  // Confirm-before-discard: unsaved domain selection confirms on X/scrim/
+  // Escape. The footer Cancel still exits directly per the dialog contract.
+  const dirtyClose = useDirtyClose({ isDirty: hasChanges, onClose: handleCancel });
+
   return (
-    <AdminDialog
-      open={isOpen}
-      onOpenChange={(open) => !open && handleCancel()}
-      size="md"
-      // Workspace tone — mounted from the Garden Profile dialog.
-      tone="garden"
-      title={formatMessage({ id: "app.garden.detail.editDomainsTitle" })}
-      description={formatMessage({ id: "app.garden.detail.editDomainsDescription" })}
-      preventClose={isPending}
-      actions={
-        <>
-          <AdminButton type="button" disabled={isPending} onClick={handleCancel} variant="text">
-            {formatMessage({ id: "app.common.cancel" })}
-          </AdminButton>
-          <AdminButton
-            type="button"
-            onClick={handleSave}
-            disabled={isPending || !hasChanges || selected.length === 0}
-            loading={isPending}
-          >
-            {formatMessage({ id: "app.garden.domains.save", defaultMessage: "Save domains" })}
-          </AdminButton>
-        </>
-      }
-    >
-      {isLoadingDomains ? (
-        <div className="flex items-center justify-center py-8">
-          <RiLoader4Line className="h-6 w-6 animate-spin text-text-soft" />
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          {DOMAINS.map(({ value, labelId, defaultLabel, descriptionId, defaultDescription }) => {
-            const isSelected = selected.includes(value);
-            return (
-              <button
-                key={value}
-                type="button"
-                disabled={isPending}
-                onClick={() => toggleDomain(value)}
-                className={cn(
-                  "flex flex-col items-start gap-1 rounded-lg border px-3 py-2.5 text-sm transition-colors text-left",
-                  isSelected
-                    ? "border-primary-base bg-primary-alpha-10 text-text-strong"
-                    : "border-stroke-soft bg-bg-white text-text-sub hover:border-stroke-strong",
-                  isPending && "cursor-not-allowed opacity-50"
-                )}
-              >
-                <span className="flex items-center gap-2">
-                  <span
-                    className="h-3 w-3 shrink-0 rounded-full"
-                    style={{ backgroundColor: DOMAIN_COLORS[value] }}
-                  />
-                  {formatMessage({ id: labelId, defaultMessage: defaultLabel })}
-                </span>
-                <span className="pl-5 text-xs text-text-soft">
-                  {formatMessage({
-                    id: descriptionId,
-                    defaultMessage: defaultDescription,
-                  })}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </AdminDialog>
+    <>
+      <AdminDialog
+        open={isOpen}
+        onOpenChange={dirtyClose.onOpenChange}
+        size="md"
+        // Workspace tone — mounted from the Garden Profile dialog.
+        tone="garden"
+        title={formatMessage({ id: "app.garden.detail.editDomainsTitle" })}
+        description={formatMessage({ id: "app.garden.detail.editDomainsDescription" })}
+        preventClose={isPending}
+        actions={
+          <>
+            <AdminButton type="button" disabled={isPending} onClick={handleCancel} variant="text">
+              {formatMessage({ id: "app.common.cancel" })}
+            </AdminButton>
+            <AdminButton
+              type="button"
+              onClick={handleSave}
+              disabled={isPending || !hasChanges || selected.length === 0}
+              loading={isPending}
+            >
+              {formatMessage({ id: "app.garden.domains.save", defaultMessage: "Save domains" })}
+            </AdminButton>
+          </>
+        }
+      >
+        {isLoadingDomains ? (
+          <div className="flex items-center justify-center py-8">
+            <RiLoader4Line className="h-6 w-6 animate-spin text-text-soft" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {DOMAINS.map(({ value, labelId, defaultLabel, descriptionId, defaultDescription }) => {
+              const isSelected = selected.includes(value);
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => toggleDomain(value)}
+                  className={cn(
+                    "flex flex-col items-start gap-1 rounded-lg border px-3 py-2.5 text-sm transition-colors text-left",
+                    isSelected
+                      ? "border-primary-base bg-primary-alpha-10 text-text-strong"
+                      : "border-stroke-soft bg-bg-white text-text-sub hover:border-stroke-strong",
+                    isPending && "cursor-not-allowed opacity-50"
+                  )}
+                >
+                  <span className="flex items-center gap-2">
+                    <span
+                      className="h-3 w-3 shrink-0 rounded-full"
+                      style={{ backgroundColor: DOMAIN_COLORS[value] }}
+                    />
+                    {formatMessage({ id: labelId, defaultMessage: defaultLabel })}
+                  </span>
+                  <span className="pl-5 text-xs text-text-soft">
+                    {formatMessage({
+                      id: descriptionId,
+                      defaultMessage: defaultDescription,
+                    })}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </AdminDialog>
+      <DiscardChangesDialog
+        open={dirtyClose.confirmOpen}
+        onKeepEditing={dirtyClose.cancelClose}
+        onDiscard={dirtyClose.confirmClose}
+        tone="garden"
+      />
+    </>
   );
 }

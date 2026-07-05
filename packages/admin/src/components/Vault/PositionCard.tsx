@@ -255,6 +255,7 @@ export function PositionCard({
         confirmLabel={formatMessage({ id: "app.treasury.emergencyPause" })}
         cancelLabel={formatMessage({ id: "app.wizard.cancel" })}
         variant="danger"
+        tone="garden"
         isLoading={emergencyPause.isPending}
       />
     </Card>

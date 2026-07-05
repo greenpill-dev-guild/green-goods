@@ -1,6 +1,7 @@
 import {
   type Address,
   formatTokenAmount,
+  FormField,
   getVaultAssetSymbol,
   NativeSelect,
   Textarea,
@@ -107,6 +108,10 @@ export function CookieJarWithdrawModal({
         id: "app.cookieJar.withdrawModal.title",
         defaultMessage: "Cookie Jar Withdrawal",
       })}
+      description={formatMessage({
+        id: "app.cookieJar.withdrawModal.description",
+        defaultMessage: "Withdraw from a jar and record what the funds are for.",
+      })}
       preventClose={isPending}
       actions={
         <>
@@ -126,19 +131,15 @@ export function CookieJarWithdrawModal({
     >
       <div className="space-y-4">
         {/* Jar select */}
-        <div>
-          <label
-            htmlFor="withdraw-jar-select"
-            className="block text-sm font-medium text-text-strong"
-          >
-            {formatMessage({ id: "app.cookieJar.title", defaultMessage: "Cookie Jar" })}
-          </label>
+        <FormField
+          label={formatMessage({ id: "app.cookieJar.title", defaultMessage: "Cookie Jar" })}
+          htmlFor="withdraw-jar-select"
+        >
           <NativeSelect
             id="withdraw-jar-select"
             surface="admin"
             value={withdrawJar}
             onChange={(e) => setWithdrawJar(e.target.value)}
-            className="mt-1.5 w-full rounded-lg border border-stroke-sub bg-bg-white px-3 py-2.5 text-sm text-text-strong focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-base/40"
           >
             <option value="">--</option>
             {activeJars.map((jar) => (
@@ -148,14 +149,15 @@ export function CookieJarWithdrawModal({
               </option>
             ))}
           </NativeSelect>
-        </div>
+        </FormField>
 
         {/* Amount + Max */}
-        <div>
-          <label htmlFor="withdraw-amount" className="block text-sm font-medium text-text-strong">
-            {formatMessage({ id: "app.cookieJar.amount", defaultMessage: "Amount" })}
-          </label>
-          <div className="mt-1.5 flex items-center gap-2">
+        <FormField
+          label={formatMessage({ id: "app.cookieJar.amount", defaultMessage: "Amount" })}
+          htmlFor="withdraw-amount"
+          error={withdrawInputError ? formatMessage({ id: withdrawInputError }) : undefined}
+        >
+          <div className="flex items-center gap-2">
             <TextInput
               id="withdraw-amount"
               surface="admin"
@@ -165,11 +167,7 @@ export function CookieJarWithdrawModal({
               onChange={(e) => setWithdrawAmount(e.target.value)}
               placeholder="0.00"
               aria-invalid={Boolean(withdrawInputError)}
-              className={`w-full rounded-lg border px-3 py-2.5 text-sm text-text-strong focus:outline-none focus:ring-2 focus:ring-primary-base/40 ${
-                withdrawInputError
-                  ? "border-error-base focus:border-error-base"
-                  : "border-stroke-sub bg-bg-white focus:border-primary-base"
-              }`}
+              invalid={Boolean(withdrawInputError)}
             />
             <AdminButton
               variant="outlined"
@@ -187,18 +185,13 @@ export function CookieJarWithdrawModal({
               {formatMessage({ id: "app.treasury.max", defaultMessage: "Max" })}
             </AdminButton>
           </div>
-          {withdrawInputError && (
-            <p className="mt-1.5 text-xs text-error-dark" role="alert">
-              {formatMessage({ id: withdrawInputError })}
-            </p>
-          )}
-        </div>
+        </FormField>
 
         {/* Purpose */}
-        <div>
-          <label htmlFor="withdraw-purpose" className="block text-sm font-medium text-text-strong">
-            {formatMessage({ id: "app.cookieJar.purpose", defaultMessage: "Purpose" })}
-          </label>
+        <FormField
+          label={formatMessage({ id: "app.cookieJar.purpose", defaultMessage: "Purpose" })}
+          htmlFor="withdraw-purpose"
+        >
           <Textarea
             id="withdraw-purpose"
             surface="admin"
@@ -208,10 +201,9 @@ export function CookieJarWithdrawModal({
               id: "app.cookieJar.purposePlaceholder",
               defaultMessage: "Describe what these funds will be used for...",
             })}
-            className="mt-1.5 w-full resize-none rounded-lg border border-stroke-sub bg-bg-white px-3 py-2.5 text-sm text-text-strong placeholder:text-text-soft focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-base/40"
             rows={2}
           />
-        </div>
+        </FormField>
 
         {/* Error feedback */}
         <TxInlineFeedback

@@ -16,6 +16,7 @@ import { ActionsHarvestStep } from "@/components/Assessment/CreateAssessmentStep
 import { DomainContextStep } from "@/components/Assessment/CreateAssessmentSteps/DomainContextStep";
 import { StrategyKernelStep } from "@/components/Assessment/CreateAssessmentSteps/StrategyKernelStep";
 import { ActionFlowShell } from "@/components/Layout/ActionFlowShell";
+import { FlowStepHeader } from "@/components/Layout/FlowStepHeader";
 
 // Create Assessment is a create/commit flow rendered as a centered flow AdminDialog
 // (bottom-sheet on mobile, width from ADMIN_FLOW_DIALOG_CLASS) through the shared
@@ -182,12 +183,7 @@ export default function CreateAssessment() {
         <ErrorBoundary context="CreateAssessment.Wizard">
           <div ref={stepRef} tabIndex={-1} className="space-y-4 outline-none">
             {activeStep ? (
-              <div>
-                <h2 className="text-base font-semibold text-text-strong">{activeStep.title}</h2>
-                {activeStep.description ? (
-                  <p className="mt-0.5 text-sm text-text-sub">{activeStep.description}</p>
-                ) : null}
-              </div>
+              <FlowStepHeader title={activeStep.title} description={activeStep.description} />
             ) : null}
             {feedbackNode}
             {activeStep ? stepRegistry[activeStep.id as keyof typeof stepRegistry] : null}
@@ -225,6 +221,7 @@ export default function CreateAssessment() {
         open={dirtyClose.confirmOpen}
         onKeepEditing={dirtyClose.cancelClose}
         onDiscard={dirtyClose.confirmClose}
+        tone="hub"
       />
     </>
   );

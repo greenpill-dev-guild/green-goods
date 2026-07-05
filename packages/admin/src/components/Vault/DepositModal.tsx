@@ -175,8 +175,8 @@ export function DepositModal({
       open={isOpen}
       onOpenChange={(open) => !open && onClose()}
       size="md"
-      // Workspace tone — mounted from the community treasury inspector.
-      tone="community"
+      // Workspace tone — mounted from the Garden vault view.
+      tone="garden"
       title={formatMessage({ id: "app.treasury.deposit" })}
       description={formatMessage({ id: "app.treasury.depositDescription" })}
       preventClose={depositMutation.isPending}
@@ -307,7 +307,9 @@ export function DepositModal({
             <p>
               {formatMessage({ id: "app.treasury.estimatedShares" })}:{" "}
               <span className="font-medium text-text-strong">
-                {preview ? `${formatTokenAmount(preview.previewShares, 18)} shares` : "--"}
+                {preview
+                  ? `${formatTokenAmount(preview.previewShares, 18)} ${formatMessage({ id: "app.treasury.shares", defaultMessage: "shares" })}`
+                  : "--"}
               </span>
             </p>
             <p>

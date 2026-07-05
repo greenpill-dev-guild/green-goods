@@ -20,7 +20,7 @@ import {
   useUpdateGardenName,
 } from "@green-goods/shared";
 import { RiCloseLine } from "@remixicon/react";
-import { useEffect, useRef, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 
@@ -30,6 +30,29 @@ export interface GardenBannerPreview {
   src: string | null;
   /** True while a locally staged file is previewing (uploads on Save). */
   isDraft: boolean;
+}
+
+/**
+ * Draft state the form reports up so the hosting dialog can render the pinned
+ * footer (status line + Cancel/Save) and guard its close.
+ */
+export interface GardenSettingsFormState {
+  isDirty: boolean;
+  isSaving: boolean;
+  /** True while a field fails validation — Save must stay disabled. */
+  hasValidationError: boolean;
+  /** Count of edited fields — feeds the footer's unsaved-changes line. */
+  dirtyCount: number;
+  /** Whether the operator can edit anything — hides the footer when false. */
+  canEdit: boolean;
+}
+
+/** Imperative surface for the hosting dialog's pinned footer buttons. */
+export interface GardenSettingsEditorHandle {
+  /** Save the dirty fields (no-op when pristine, invalid, or already saving). */
+  save: () => Promise<void>;
+  /** Reset the draft to the last saved values. */
+  cancel: () => void;
 }
 
 interface GardenSettingsEditorProps {
@@ -51,11 +74,12 @@ interface GardenSettingsEditorProps {
    */
   onBannerPreviewChange?: (preview: GardenBannerPreview) => void;
   /**
-   * Reports draft dirtiness and save-in-flight so the hosting dialog can
-   * guard its close (confirm-before-discard when dirty, hard-block while
-   * saving) — the form owns the draft, the dialog owns the close.
+   * Reports draft dirtiness, save-in-flight, and validation so the hosting
+   * dialog can guard its close (confirm-before-discard when dirty, hard-block
+   * while saving) and drive its pinned footer — the form owns the draft, the
+   * dialog owns the close and the footer.
    */
-  onDirtyStateChange?: (state: { isDirty: boolean; isSaving: boolean }) => void;
+  onDirtyStateChange?: (state: GardenSettingsFormState) => void;
 }
 
 interface SettingsDraft {
@@ -89,16 +113,17 @@ function draftFromGarden(garden: GardenSettingsEditorProps["garden"]): SettingsD
  * Save. Save runs only the dirty fields through their existing per-field
  * mutations (each keeps its own loading/success toast), and the banner file
  * shows a local object-URL preview until Save uploads it. Cancel resets the
- * draft to the last saved values.
+ * draft to the last saved values. Save/Cancel render in the hosting dialog's
+ * pinned footer (via the imperative handle) so they never scroll away with
+ * the form.
  */
-export function GardenSettingsEditor({
-  gardenAddress,
-  garden,
-  canManage,
-  isOwner,
-  onBannerPreviewChange,
-  onDirtyStateChange,
-}: GardenSettingsEditorProps) {
+export const GardenSettingsEditor = forwardRef<
+  GardenSettingsEditorHandle,
+  GardenSettingsEditorProps
+>(function GardenSettingsEditor(
+  { gardenAddress, garden, canManage, isOwner, onBannerPreviewChange, onDirtyStateChange },
+  ref
+) {
   const { formatMessage } = useIntl();
 
   const updateName = useUpdateGardenName();
@@ -182,9 +207,17 @@ export function GardenSettingsEditor({
     onBannerPreviewChange?.({ src: previewSrc || null, isDraft: bannerIsDraft });
   }, [bannerIsDraft, onBannerPreviewChange, previewSrc]);
 
+  const dirtyCount = dirtyFields.length;
+
   useEffect(() => {
-    onDirtyStateChange?.({ isDirty, isSaving });
-  }, [isDirty, isSaving, onDirtyStateChange]);
+    onDirtyStateChange?.({
+      isDirty,
+      isSaving,
+      hasValidationError,
+      dirtyCount,
+      canEdit: canEditAnything,
+    });
+  }, [isDirty, isSaving, hasValidationError, dirtyCount, canEditAnything, onDirtyStateChange]);
 
   const handleCancel = () => {
     setDraft(draftFromGarden(garden));
@@ -256,6 +289,10 @@ export function GardenSettingsEditor({
       setIsSaving(false);
     }
   };
+
+  // The hosting dialog's pinned footer drives Save/Cancel through this handle
+  // so the buttons live outside the scrolling body (AdminDialog `actions`).
+  useImperativeHandle(ref, () => ({ save: handleSave, cancel: handleCancel }));
 
   const disabledProfileField = !canEditProfile || isSaving;
 
@@ -455,57 +492,8 @@ export function GardenSettingsEditor({
           />
         </div>
       </div>
-
-      {canEditAnything ? (
-        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-stroke-soft pt-4">
-          <p
-            className={cn("text-xs", isDirty ? "text-warning-dark" : "text-text-soft")}
-            aria-live="polite"
-            data-slot="dirty-state"
-          >
-            {isSaving
-              ? formatMessage({
-                  id: "app.garden.settings.saving",
-                  defaultMessage: "Saving changes…",
-                })
-              : isDirty
-                ? formatMessage(
-                    {
-                      id: "app.garden.settings.unsavedChanges",
-                      defaultMessage:
-                        "{count, plural, one {# unsaved change} other {# unsaved changes}}",
-                    },
-                    { count: dirtyFields.length }
-                  )
-                : formatMessage({
-                    id: "app.garden.settings.allSaved",
-                    defaultMessage: "All changes saved",
-                  })}
-          </p>
-          <div className="flex items-center gap-2">
-            <AdminButton
-              type="button"
-              variant="text"
-              onClick={handleCancel}
-              disabled={!isDirty || isSaving}
-            >
-              {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-            </AdminButton>
-            <AdminButton
-              type="button"
-              variant="filled"
-              onClick={() => void handleSave()}
-              disabled={!isDirty || hasValidationError || isSaving}
-              loading={isSaving}
-            >
-              {formatMessage({
-                id: "app.garden.settings.saveChanges",
-                defaultMessage: "Save changes",
-              })}
-            </AdminButton>
-          </div>
-        </div>
-      ) : null}
     </section>
   );
-}
+});
+
+GardenSettingsEditor.displayName = "GardenSettingsEditor";

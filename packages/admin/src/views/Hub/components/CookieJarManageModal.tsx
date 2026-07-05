@@ -405,6 +405,7 @@ export function CookieJarManageModal({
           defaultMessage: "Emergency Withdraw",
         })}
         variant="danger"
+        tone="garden"
         isLoading={emergencyWithdrawMutation.isPending}
         onConfirm={() => {
           if (!emergencyJar) return;

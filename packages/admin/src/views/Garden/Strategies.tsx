@@ -223,6 +223,7 @@ export default function GardenStrategiesView({ layout = "page" }: GardenStrategi
       title={formatMessage({ id: "app.conviction.confirmRemoveStrategy" })}
       description={formatMessage({ id: "app.conviction.confirmRemoveStrategyDescription" })}
       variant="danger"
+      tone="garden"
       onConfirm={() => {
         if (confirmRemoveIndex !== null) {
           handleRemoveStrategy(confirmRemoveIndex, () => setConfirmRemoveIndex(null));
