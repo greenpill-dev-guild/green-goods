@@ -46,32 +46,6 @@ vi.mock("@/components/EnsAddressText", () => ({
     createElement("span", { "data-testid": "staged-address" }, address.slice(0, 10)),
 }));
 
-// Stub the confirm dialog to a lightweight element. The real DiscardChangesDialog
-// mounts the Radix AdminConfirmDialog → AdminDialog stack (portals + scroll-lock),
-// which spikes worker memory under v8 coverage and OOMs the run. These tests only
-// assert the guard *wiring* (dirty close → confirm shows → Discard closes); the
-// real dialog's rendering is covered by its own story/tests.
-vi.mock("../../../components/DiscardChangesDialog", () => ({
-  DiscardChangesDialog: ({
-    open,
-    onKeepEditing,
-    onDiscard,
-  }: {
-    open: boolean;
-    onKeepEditing: () => void;
-    onDiscard: () => void;
-  }) =>
-    open
-      ? createElement(
-          "div",
-          { role: "alertdialog" },
-          createElement("span", null, "Discard changes?"),
-          createElement("button", { type: "button", onClick: onKeepEditing }, "Keep editing"),
-          createElement("button", { type: "button", onClick: onDiscard }, "Discard")
-        )
-      : null,
-}));
-
 import { AddMembersDialog } from "../../../components/Garden/AddMembersDialog";
 
 const ADDRESS_A = "0x1111111111111111111111111111111111111111" as Address;
