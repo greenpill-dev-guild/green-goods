@@ -20,6 +20,7 @@ import { DistributionConfig } from "@/components/Hypercerts/Steps/DistributionCo
 import { HypercertPreview } from "@/components/Hypercerts/Steps/HypercertPreview";
 import { MetadataEditor } from "@/components/Hypercerts/Steps/MetadataEditor";
 import { ActionFlowShell } from "@/components/Layout/ActionFlowShell";
+import { FlowStepHeader } from "@/components/Layout/FlowStepHeader";
 
 export type { HypercertCompletionData };
 export type { HypercertWizardProps };
@@ -105,6 +106,7 @@ export function HypercertWizard({
         open={wizard.showLeaveConfirm}
         onKeepEditing={wizard.handleCancelLeave}
         onDiscard={wizard.handleConfirmLeave}
+        tone="hub"
       />
       <AdminConfirmDialog
         isOpen={wizard.showRestoreDraft}
@@ -123,6 +125,7 @@ export function HypercertWizard({
         description={formatMessage({ id: "app.hypercerts.wizard.restore.description" })}
         confirmLabel={formatMessage({ id: "app.hypercerts.wizard.restore.confirm" })}
         cancelLabel={formatMessage({ id: "app.hypercerts.wizard.restore.cancel" })}
+        tone="hub"
         onCancel={async () => {
           try {
             await wizard.clearDraft();
@@ -205,12 +208,7 @@ export function HypercertWizard({
             data-region={`hypercert-step-${activeStep.id}`}
             className="space-y-4 outline-none"
           >
-            <div>
-              <h2 className="text-base font-semibold text-text-strong">{activeStep.title}</h2>
-              {activeStep.description ? (
-                <p className="mt-0.5 text-sm text-text-sub">{activeStep.description}</p>
-              ) : null}
-            </div>
+            <FlowStepHeader title={activeStep.title} description={activeStep.description} />
             {validationMessage ? <Alert variant="warning">{validationMessage}</Alert> : null}
             {sectionContent[activeStep.id as keyof typeof sectionContent]}
           </div>

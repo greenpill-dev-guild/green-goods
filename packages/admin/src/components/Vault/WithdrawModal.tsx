@@ -137,8 +137,8 @@ export function WithdrawModal({
       open={isOpen}
       onOpenChange={(open) => !open && onClose()}
       size="md"
-      // Workspace tone — mounted from the community treasury inspector.
-      tone="community"
+      // Workspace tone — mounted from the Garden vault view.
+      tone="garden"
       title={formatMessage({ id: "app.treasury.withdraw" })}
       description={formatMessage({ id: "app.treasury.withdrawDescription" })}
       preventClose={withdrawMutation.isPending}

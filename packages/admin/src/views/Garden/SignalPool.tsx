@@ -393,6 +393,7 @@ export default function GardenSignalPoolView({ layout = "page" }: GardenSignalPo
       title={formatMessage({ id: confirmDeregisterKey })}
       description={formatMessage({ id: confirmDeregisterDescKey })}
       variant="danger"
+      tone="garden"
       onConfirm={() => {
         if (poolAddress && confirmDeregister !== null) {
           deregisterMutation.mutate(

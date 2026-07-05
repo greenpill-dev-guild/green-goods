@@ -14,11 +14,30 @@ import { renderWithProviders as render } from "../../test-utils";
 
 vi.mock("@green-goods/shared", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@green-goods/shared")>();
+  const { useState } = await import("react");
   return {
     ...actual,
     // Hex-only tests: ENS lookups stay inert so no network/query wiring is hit.
     useEnsAddress: () => ({ data: undefined, isFetching: false }),
     resolveEnsAddress: vi.fn(async () => null),
+    // Faithful state-mode reimplementation of useDirtyClose minus the
+    // router-bound useBlocker (renderWithProviders has no data router).
+    useDirtyClose: ({ isDirty, onClose }: { isDirty: boolean; onClose: () => void }) => {
+      const [confirmOpen, setConfirmOpen] = useState(false);
+      return {
+        onOpenChange: (open: boolean) => {
+          if (open) return;
+          if (isDirty) setConfirmOpen(true);
+          else onClose();
+        },
+        confirmOpen,
+        cancelClose: () => setConfirmOpen(false),
+        confirmClose: () => {
+          setConfirmOpen(false);
+          onClose();
+        },
+      };
+    },
   };
 });
 
@@ -115,5 +134,39 @@ describe("components/Garden/AddMembersDialog", () => {
     await waitFor(() => {
       expect(defaultProps.onAdd).toHaveBeenCalledWith("gardener", ADDRESS_A);
     });
+  });
+
+  it("confirms before discarding a staged batch on dialog dismiss", async () => {
+    const user = userEvent.setup();
+    render(createElement(AddMembersDialog, defaultProps));
+
+    const input = screen.getByLabelText(/Ethereum Address or ENS Name/);
+    await user.type(input, ADDRESS_A);
+    await user.click(screen.getByRole("button", { name: "Add" }));
+    await waitFor(() => {
+      expect(screen.getByTestId("staged-address")).toBeInTheDocument();
+    });
+
+    // Escape (X/scrim equivalent) raises the discard confirm instead of closing.
+    await user.keyboard("{Escape}");
+    expect(await screen.findByText("Discard changes?")).toBeInTheDocument();
+    expect(defaultProps.onClose).not.toHaveBeenCalled();
+
+    // Confirming the discard performs the real close.
+    await user.click(screen.getByRole("button", { name: "Discard" }));
+    await waitFor(() => {
+      expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it("lets the footer Cancel exit directly without a discard confirm", async () => {
+    const user = userEvent.setup();
+    render(createElement(AddMembersDialog, defaultProps));
+
+    await user.type(screen.getByLabelText(/Ethereum Address or ENS Name/), ADDRESS_A);
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(screen.queryByText("Discard changes?")).not.toBeInTheDocument();
+    expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
   });
 });

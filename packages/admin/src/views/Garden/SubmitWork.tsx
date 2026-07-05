@@ -47,6 +47,7 @@ import { DiscardChangesDialog } from "@/components/DiscardChangesDialog";
 import { AdminTabRail } from "@/components/AdminTabRail";
 import { AdminTextField } from "@/components/AdminTextField";
 import { ActionFlowShell } from "@/components/Layout/ActionFlowShell";
+import { FlowStepHeader } from "@/components/Layout/FlowStepHeader";
 import { type ActionFlowStep } from "@/components/Layout/ActionFlowStepper";
 import { ActionChooserGrid } from "./components/ActionChooserGrid";
 import { SubmitWorkReview } from "./components/SubmitWorkReview";
@@ -879,14 +880,10 @@ function SubmitWorkPanelContent({
   if (activeStepId === "action") {
     stepBody = (
       <div className="space-y-4">
-        <div className="space-y-1">
-          <h2 className="text-base font-semibold text-text-strong">
-            {formatMessage({ id: "app.admin.work.submit.chooseActionTitle" })}
-          </h2>
-          <p className="text-sm text-text-sub">
-            {formatMessage({ id: "app.admin.work.submit.chooseActionDescription" })}
-          </p>
-        </div>
+        <FlowStepHeader
+          title={formatMessage({ id: "app.admin.work.submit.chooseActionTitle" })}
+          description={formatMessage({ id: "app.admin.work.submit.chooseActionDescription" })}
+        />
         {chooserDomains.length > 1 ? (
           <AdminTabRail
             ariaLabel={formatMessage({ id: "app.admin.assessment.domainAction.domainTitle" })}
@@ -933,13 +930,13 @@ function SubmitWorkPanelContent({
   } else if (activeStepId === "media") {
     stepBody = (
       <div className="space-y-4">
-        <div className="space-y-1">
-          <h2 className="text-base font-semibold text-text-strong">
-            {selectedAction?.mediaInfo?.title ||
-              formatMessage({ id: "app.admin.work.submit.section.photos" })}
-          </h2>
-          <p className="text-sm text-text-sub">{photoRequirementText}</p>
-        </div>
+        <FlowStepHeader
+          title={
+            selectedAction?.mediaInfo?.title ||
+            formatMessage({ id: "app.admin.work.submit.section.photos" })
+          }
+          description={photoRequirementText}
+        />
         <FileUploadField
           label={formatMessage({ id: "app.admin.work.submit.media" })}
           helpText={formatMessage({ id: "app.admin.work.submit.mediaHint" })}
@@ -959,16 +956,14 @@ function SubmitWorkPanelContent({
     );
   } else if (activeStepId === "details") {
     stepBody = (
-      <div className="space-y-5">
-        <div className="space-y-1">
-          <h2 className="text-base font-semibold text-text-strong">
-            {selectedAction?.details?.title ||
-              formatMessage({ id: "app.admin.work.submit.section.details" })}
-          </h2>
-          {selectedAction?.title ? (
-            <p className="text-sm text-text-sub">{selectedAction.title}</p>
-          ) : null}
-        </div>
+      <div className="space-y-4">
+        <FlowStepHeader
+          title={
+            selectedAction?.details?.title ||
+            formatMessage({ id: "app.admin.work.submit.section.details" })
+          }
+          description={selectedAction?.title}
+        />
         {selectedAction?.inputs.some((input) => input.required) ? (
           <p className="text-xs text-text-sub">
             {formatMessage({
@@ -1131,6 +1126,7 @@ export default function SubmitWork() {
         open={dirtyClose.confirmOpen}
         onKeepEditing={dirtyClose.cancelClose}
         onDiscard={dirtyClose.confirmClose}
+        tone="garden"
       />
     </>
   );

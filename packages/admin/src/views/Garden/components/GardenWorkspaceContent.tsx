@@ -1,5 +1,6 @@
 import {
   type Address,
+  cn,
   EmptyState,
   type AdminWorkspaceSectionTab,
   useDirtyClose,
@@ -7,7 +8,7 @@ import {
 } from "@green-goods/shared";
 import { AdminCard } from "@/components/AdminCard";
 import { RiCupLine, RiImageLine, RiPulseLine } from "@remixicon/react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminDialog } from "@/components/AdminDialog";
@@ -17,6 +18,8 @@ import { GardenMetadata } from "@/components/Garden/GardenMetadata";
 import {
   type GardenBannerPreview,
   GardenSettingsEditor,
+  type GardenSettingsEditorHandle,
+  type GardenSettingsFormState,
 } from "@/components/Garden/GardenSettingsEditor";
 import { CookieJarManageModal } from "@/views/Hub/components/CookieJarManageModal";
 import {
@@ -39,11 +42,21 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
   // Jar management is garden configuration — it opens from this dialog
   // (moved off the Community payout surface, which keeps deposits/withdrawals).
   const [cookieJarsOpen, setCookieJarsOpen] = useState(false);
-  // The settings form reports dirtiness/saving up so this dialog can guard its
-  // close per the dialog contract (confirm-before-discard, hard-block during
-  // save). Gated on the settings view so a stale report can't block later
-  // navigation after the dialog is gone.
-  const [settingsForm, setSettingsForm] = useState({ isDirty: false, isSaving: false });
+  // The settings form reports dirtiness/saving/validation up so this dialog
+  // can guard its close per the dialog contract (confirm-before-discard,
+  // hard-block during save) and render the pinned footer. Gated on the
+  // settings view so a stale report can't block later navigation after the
+  // dialog is gone.
+  const [settingsForm, setSettingsForm] = useState<GardenSettingsFormState>({
+    isDirty: false,
+    isSaving: false,
+    hasValidationError: false,
+    dirtyCount: 0,
+    canEdit: false,
+  });
+  // Drives the footer's Save/Cancel — the form owns the draft, the dialog owns
+  // the pinned actions bar.
+  const settingsEditorRef = useRef<GardenSettingsEditorHandle>(null);
   const settingsOpen = workspace.view === "settings";
   // The dialog closes by navigating (handleTabChange → navigate), so route
   // mode makes the router blocker the single confirm trigger — X, scrim,
@@ -148,9 +161,69 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
           defaultMessage: "Update settings, metadata, and on-chain identifiers",
         })}
         bodyClassName="space-y-6"
+        actions={
+          settingsForm.canEdit ? (
+            <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <p
+                className={cn(
+                  "text-xs",
+                  settingsForm.isDirty ? "text-warning-dark" : "text-text-soft"
+                )}
+                aria-live="polite"
+                data-slot="dirty-state"
+              >
+                {settingsForm.isSaving
+                  ? formatMessage({
+                      id: "app.garden.settings.saving",
+                      defaultMessage: "Saving changes…",
+                    })
+                  : settingsForm.isDirty
+                    ? formatMessage(
+                        {
+                          id: "app.garden.settings.unsavedChanges",
+                          defaultMessage:
+                            "{count, plural, one {# unsaved change} other {# unsaved changes}}",
+                        },
+                        { count: settingsForm.dirtyCount }
+                      )
+                    : formatMessage({
+                        id: "app.garden.settings.allSaved",
+                        defaultMessage: "All changes saved",
+                      })}
+              </p>
+              <div className="flex items-center justify-end gap-2">
+                <AdminButton
+                  type="button"
+                  variant="text"
+                  onClick={() => settingsEditorRef.current?.cancel()}
+                  disabled={!settingsForm.isDirty || settingsForm.isSaving}
+                >
+                  {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
+                </AdminButton>
+                <AdminButton
+                  type="button"
+                  variant="filled"
+                  onClick={() => void settingsEditorRef.current?.save()}
+                  disabled={
+                    !settingsForm.isDirty ||
+                    settingsForm.hasValidationError ||
+                    settingsForm.isSaving
+                  }
+                  loading={settingsForm.isSaving}
+                >
+                  {formatMessage({
+                    id: "app.garden.settings.saveChanges",
+                    defaultMessage: "Save changes",
+                  })}
+                </AdminButton>
+              </div>
+            </div>
+          ) : undefined
+        }
       >
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
           <GardenSettingsEditor
+            ref={settingsEditorRef}
             gardenAddress={workspace.garden.id as Address}
             garden={{
               name: workspace.garden.name,
@@ -263,6 +336,7 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
         open={settingsDirtyClose.confirmOpen}
         onKeepEditing={settingsDirtyClose.cancelClose}
         onDiscard={settingsDirtyClose.confirmClose}
+        tone="garden"
       />
       {workspace.canManage ? (
         <GardenDomainModal

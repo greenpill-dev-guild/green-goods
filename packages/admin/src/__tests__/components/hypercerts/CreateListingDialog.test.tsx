@@ -11,6 +11,7 @@ const mockLoggerError = vi.fn();
 
 vi.mock("@green-goods/shared", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@green-goods/shared")>();
+  const { useState } = await import("react");
   return {
     ...actual,
     Alert: ({ children }: { children: ReactNode }) =>
@@ -24,6 +25,24 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       error: (...args: unknown[]) => mockLoggerError(...args),
     },
     useCreateListing: (...args: unknown[]) => mockUseCreateListing(...args),
+    // Faithful state-mode reimplementation of useDirtyClose minus the
+    // router-bound useBlocker (renderWithProviders has no data router).
+    useDirtyClose: ({ isDirty, onClose }: { isDirty: boolean; onClose: () => void }) => {
+      const [confirmOpen, setConfirmOpen] = useState(false);
+      return {
+        onOpenChange: (open: boolean) => {
+          if (open) return;
+          if (isDirty) setConfirmOpen(true);
+          else onClose();
+        },
+        confirmOpen,
+        cancelClose: () => setConfirmOpen(false),
+        confirmClose: () => {
+          setConfirmOpen(false);
+          onClose();
+        },
+      };
+    },
   };
 });
 
@@ -95,5 +114,32 @@ describe("components/Hypercerts/CreateListingDialog", () => {
 
     expect(mockReset).toHaveBeenCalled();
     expect(screen.getByRole("button", { name: /sign & list/i })).toBeInTheDocument();
+  });
+
+  it("confirms before discarding edited pricing on dialog dismiss", async () => {
+    const onOpenChange = vi.fn();
+    render(
+      createElement(CreateListingDialog, {
+        open: true,
+        onOpenChange,
+        gardenAddress: "0x1111111111111111111111111111111111111111",
+        hypercertId: 1n,
+        fractionId: 2n,
+      })
+    );
+
+    const user = userEvent.setup();
+
+    // Edit a field so the configure form is dirty, then dismiss via Escape.
+    await user.type(screen.getByLabelText(/price per unit/i), "9");
+    await user.keyboard("{Escape}");
+
+    expect(await screen.findByText("Discard changes?")).toBeInTheDocument();
+    expect(onOpenChange).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Discard" }));
+    await waitFor(() => {
+      expect(onOpenChange).toHaveBeenCalledWith(false);
+    });
   });
 });
