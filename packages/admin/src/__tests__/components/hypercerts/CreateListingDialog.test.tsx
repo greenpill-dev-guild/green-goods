@@ -46,6 +46,27 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
   };
 });
 
+// Stub the confirm to a plain element. The real DiscardChangesDialog mounts the
+// Radix AdminConfirmDialog stack, whose portal content flickers out when opened
+// over the already-open host dialog in jsdom (making "Discard changes?"
+// unfindable). This test asserts the guard wiring (dirty close → confirm shows
+// → Discard runs the close); the real dialog is covered by its own story.
+vi.mock("../../../components/DiscardChangesDialog", () => ({
+  DiscardChangesDialog: ({ open, onDiscard }: { open: boolean; onDiscard: () => void }) =>
+    open
+      ? createElement(
+          "div",
+          { role: "alertdialog" },
+          createElement("span", null, "Discard changes?"),
+          createElement(
+            "button",
+            { type: "button", "data-testid": "confirm-discard", onClick: onDiscard },
+            "Discard"
+          )
+        )
+      : null,
+}));
+
 import { CreateListingDialog } from "../../../components/Hypercerts/CreateListingDialog";
 
 const DEFAULT_HOOK_STATE = {
@@ -137,7 +158,7 @@ describe("components/Hypercerts/CreateListingDialog", () => {
     expect(await screen.findByText("Discard changes?")).toBeInTheDocument();
     expect(onOpenChange).not.toHaveBeenCalled();
 
-    await user.click(screen.getByRole("button", { name: "Discard" }));
+    await user.click(screen.getByTestId("confirm-discard"));
     await waitFor(() => {
       expect(onOpenChange).toHaveBeenCalledWith(false);
     });
