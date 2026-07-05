@@ -2,7 +2,7 @@
 
 **Feature Slug**: `commitment-pooling`
 **Stage**: `active`
-**Status**: `ACTIVE: specs approved, Linear restructured, implementation not started`
+**Status**: `ACTIVE: plan approved, spec in progress, Linear restructured, implementation not started`
 **Created**: `2026-07-03`
 **Last Updated**: `2026-07-04`
 
