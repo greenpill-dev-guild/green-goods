@@ -59,7 +59,9 @@ function hubDecorators() {
 }
 
 export const WorkQueue: Story = {
-  tags: ["storybook-ci"],
+  // Not in storybook-ci: the work queue needs live indexer data the clean-room CI browser
+  // can't reach, so seeded work items ("Canopy transect upload") never render offline. Kept
+  // for local/authenticated Storybook review.
   args: { initialPath: "/hub/work?sort=newest" },
   decorators: hubDecorators(),
   play: async ({ canvasElement }) => {

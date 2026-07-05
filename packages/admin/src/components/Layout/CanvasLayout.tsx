@@ -37,6 +37,7 @@ import {
   type AdminWorkspaceSectionTab,
   type NavigationBarProps,
   type NotificationPanelItem,
+  type NotificationPanelSection,
   type OpenAccountSheetEventDetail,
   type ToolbarSlot,
 } from "@green-goods/shared";
@@ -44,6 +45,7 @@ import { RiUserLine } from "@remixicon/react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminDialog } from "@/components/AdminDialog";
+import { AdminSideSheet } from "@/components/AdminSideSheet";
 import { useLocation, useNavigate } from "react-router-dom";
 import { releaseStuckDialogArtifacts } from "./dialogCloseSafetyNet";
 import { LeftSheetProvider, useLeftSheetConfigValue } from "./leftSheetChannel";
@@ -520,23 +522,26 @@ export function CanvasLayout() {
               )}
             </div>
 
-            {/* Account / notification inspector — centered AdminDialog (the
-                right sheet retired). The same orchestrator contentId drives
-                open/close. Tone is the neutral operator "hub" accent: this is
-                global account chrome, not workspace content, so it should not
-                inherit the active garden's tint, and the dialog portals out of
-                CanvasLayout's [data-tone] scope. */}
-            <AdminDialog
+            {/* Account / notification inspector — the three global AppBar
+                surfaces (Profile, Settings, Notifications) render as an
+                AdminSideSheet: right-docked on desktop, AdminDialog-identical
+                bottom sheet on mobile (where only the notification bell can
+                open it — Profile/Settings live in the Profile tab there). The
+                same orchestrator contentId drives open/close. Tone is the
+                neutral operator "hub" accent: this is global account chrome,
+                not workspace content, so it should not inherit the active
+                garden's tint, and the sheet portals out of CanvasLayout's
+                [data-tone] scope. */}
+            <AdminSideSheet
               open={activeSheet === "right" && rightSheetDescriptor !== null}
               onOpenChange={(next) => {
                 if (!next) closeSheet();
               }}
               title={rightSheetDescriptor?.title ?? ""}
               tone="hub"
-              size="lg"
             >
               {rightSheetDescriptor?.content}
-            </AdminDialog>
+            </AdminSideSheet>
 
             {/* Persistent left-inspector dialog — content declared by views via
                 useLeftSheetConfig. Renders directly as an AdminDialog (the
@@ -603,41 +608,69 @@ function AdminNotificationPanel({ onCloseSheet }: { onCloseSheet: () => void }) 
     openSection,
   });
 
-  const items = useMemo<NotificationPanelItem[]>(() => {
+  const sections = useMemo<NotificationPanelSection[]>(() => {
     if (!workspace.garden) return [];
 
-    const alertItems = derived.overviewAlerts.map((alert) => ({
+    // Actionable alerts and passive activity are different kinds of work —
+    // grouped so the review queue never visually blends into the audit trail.
+    const alertItems: NotificationPanelItem[] = derived.overviewAlerts.map((alert) => ({
       id: `alert-${alert.key}`,
       title: alert.label,
-      description: selectedGarden?.name,
       tone: alert.severity,
       onSelect: alert.onAction,
     }));
 
-    const activityItems = derived.activityEvents.slice(0, 5).map((event) => {
-      const href = event.href;
-      return {
-        id: event.id,
-        title: event.title,
-        description: event.description,
-        meta: formatRelativeTime(event.timestamp),
-        tone: "info" as const,
-        onSelect: href ? () => navigateFromNotification(href) : undefined,
-      };
-    });
+    const activityItems: NotificationPanelItem[] = derived.activityEvents
+      .slice(0, 8)
+      .map((event) => {
+        const href = event.href;
+        return {
+          id: event.id,
+          title: event.title,
+          description: event.description,
+          meta: formatRelativeTime(event.timestamp),
+          tone: "info" as const,
+          onSelect: href ? () => navigateFromNotification(href) : undefined,
+        };
+      });
 
-    return [...alertItems, ...activityItems].slice(0, 8);
+    return [
+      {
+        id: "needs-attention",
+        title: formatMessage({
+          id: "cockpit.notifications.needsAttention",
+          defaultMessage: "Needs attention",
+        }),
+        items: alertItems,
+      },
+      {
+        id: "recent-activity",
+        title: formatMessage({
+          id: "cockpit.notifications.recentActivity",
+          defaultMessage: "Recent activity",
+        }),
+        items: activityItems,
+      },
+    ];
   }, [
     derived.activityEvents,
     derived.overviewAlerts,
+    formatMessage,
     navigateFromNotification,
-    selectedGarden,
     workspace.garden,
   ]);
 
+  const scopeLabel = selectedGarden
+    ? formatMessage(
+        { id: "cockpit.notifications.scope", defaultMessage: "Updates for {garden}" },
+        { garden: selectedGarden.name }
+      )
+    : undefined;
+
   return (
     <NotificationPanel
-      items={items}
+      sections={sections}
+      scopeLabel={scopeLabel}
       isLoading={
         workspace.fetching ||
         workspace.fetchingAssessments ||

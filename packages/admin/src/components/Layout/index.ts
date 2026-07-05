@@ -19,5 +19,3 @@ export {
   type LeftSheetConfig,
 } from "./leftSheetChannel";
 export { PageHeader } from "./PageHeader";
-export { UserAvatar } from "./UserAvatar";
-export { UserMenu } from "./UserMenu";

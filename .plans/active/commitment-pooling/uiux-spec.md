@@ -335,6 +335,8 @@ Read-only, aggregate-only. No leaderboards, no ranked lists, no participant-leve
 
 ## 8. Surface 4: Community interface (September, wireframe + view alignment, decision #3)
 
+> **Amendment 2026-07-04 — §8.1–§8.4 below are superseded, retained only as historical wireframe context.** The canonical community-surface spec is now `.plans/active/community-interface/spec.md` (Linear: Community Signals & Engagement); on any conflict, that spec wins. Read §8.1–§8.4 as the original September sketch, not the build contract. The specific supersessions: tabs are **Needs / Create / Profile**, not the Home/Signals/Profile model described in §8.1 (the pool story folds into the Needs board header + per-need detail threads); solution-proposal objects are dropped (§8.2/§8.4 — solutions arrive as commitments); the §8.2 signal-data-layer open question is resolved — signals are `NeedSignal` EAS attestations, ActionSignalPool stays dormant; the §8.3 claim-flow question stays resolved (no claim flow); discovery adds global read-only browse (my garden remains the scoped default). PRD-682/683 bodies amended accordingly.
+
 ### 8.1 Package and shell
 
 NET-NEW package `packages/community`: its own PWA, consumes `@green-goods/shared` (hooks, tokens, primitives), Passkey auth reusing the client login flow pattern (`packages/client/src/views/Login/`). Three-tab bottom navigation mirroring the client AppBar convention (`packages/client/src/components/Layout/AppBar.tsx:35-59`) so shared auth, shell, and sync scaffolding transfer directly.

@@ -25,7 +25,7 @@ connectors:
   - linear
   - posthog
   - vercel
-model: claude-opus-4-7[1m]
+model: claude-opus-4-8[1m]
 ---
 
 # Prompt

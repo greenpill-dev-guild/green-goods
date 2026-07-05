@@ -127,7 +127,7 @@ Admin canvas recession on bounded sheet open: `translateY(var(--canvas-recede-y,
 
 ## Sheet Slot Anatomy
 
-> **Admin**: the `RightSheet` / `LeftSheet` / `BottomSheet` renderers are **deleted** — every admin overlay is a centered `AdminDialog` (the dialog supplies scrim, title, and close). `SheetBody` / `SheetFooter` / `SheetDivider` survive as the body/footer layout primitives *inside* the dialog. Sheet-shell tokens (`--radius-sheet`) apply to the client PWA's own sheet patterns (`PwaSheet`, wallet drawer) only.
+> **Admin**: the `RightSheet` / `LeftSheet` / `BottomSheet` renderers are **deleted** — every workspace overlay is a centered `AdminDialog` (the dialog supplies scrim, title, and close). The one exception is **`AdminSideSheet`**, reserved for the three global AppBar surfaces (Profile, Settings, Notifications): right-docked on desktop, bottom sheet on mobile, same chrome as the dialog. `SheetBody` / `SheetFooter` / `SheetDivider` survive as the body/footer layout primitives *inside* both. Sheet-shell tokens (`--radius-sheet`) apply to the client PWA's own sheet patterns (`PwaSheet`, wallet drawer) only.
 
 The slots compose inside a `flex flex-col` body container. `<SheetBody>` is the only one that scrolls; `<SheetFooter>` pins via `flex-shrink: 0` so it stays visible while long forms scroll above.
 
