@@ -5,6 +5,8 @@
 **Created**: 2026-07-03
 **Companions**: `corrections-log.md` (verified repo facts, exact UIDs and addresses), `uiux-spec.md` (surface flows), `plan.todo.md` (execution plan). This spec is the contract-layer source of truth for the August release build track.
 
+> **Amendment 2026-07-04 (approved)**: the commitment record, `CreateCommitmentParams`, and `CommitmentCreated` gain an additive `bytes32 needUID` reference (0 = none) linking a commitment to the community Need that motivated it. Additive reference field beside `assessmentUID`; no state-machine change; the module stores it as-is and never reads EAS for it. Specced before the August build starts so it ships in the initial deploy, not as an upgrade. Owning spec: `.plans/active/community-interface/spec.md` (§11).
+
 Every technical claim below carries a repo file path (relative to repo root) or a NET-NEW marker. All contract names, functions, events, and entities introduced here are NET-NEW unless a path says otherwise. Format mirrors the house implementation-spec style of `docs/docs/builders/specs/greenwill-gif-implementation-spec-2026-03.md` (Purpose, Scope, Canonical Implementation Decisions, System Components, per-contract Contract Work, Package-Level Backlog, Launch Milestones).
 
 ---
@@ -290,6 +292,7 @@ interface ICommitmentPoolingModule {
         uint32 confirmationCount;
         bool requiresAssessment;
         bytes32 assessmentUID;           // attached v2/v3 assessment; zero until attached
+        bytes32 needUID;                 // community Need this commitment addresses; 0 = none (amendment 2026-07-04)
         string metadataCID;              // terms/description payload (IPFS)
         DeclaredReward reward;
         bool rewardPaid;
@@ -314,6 +317,7 @@ interface ICommitmentPoolingModule {
         bool requiresAssessment;
         uint64 dueDate;
         string metadataCID;
+        bytes32 needUID;                 // 0 = none; stored as-is, module never reads EAS (amendment 2026-07-04)
         address[] confirmers;            // empty = counterparty rule
         uint32 confirmationThreshold;    // ignored (forced 1) when confirmers is empty
         DeclaredReward reward;
@@ -369,7 +373,8 @@ interface ICommitmentPoolingModule {
         string unitLabel,
         uint256 targetUnits,
         uint32 requiredApprovedWorkCount,
-        uint64 dueDate
+        uint64 dueDate,
+        bytes32 needUID              // 0 = none; non-indexed (3-indexed budget spent); Envio reads params regardless (amendment 2026-07-04)
     );
     event RewardDeclared(uint256 indexed commitmentId, address source, address token, uint256 amount);
     event ConfirmerRuleSet(uint256 indexed commitmentId, address[] confirmers, uint32 threshold);

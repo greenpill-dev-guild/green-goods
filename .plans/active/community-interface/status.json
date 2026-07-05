@@ -1,0 +1,199 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "community-interface",
+    "title": "Community Needs Interface",
+    "kind": "feature",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "planned",
+    "priority": "p2",
+    "created_at": "2026-07-04",
+    "updated_at": "2026-07-04"
+  },
+  "links": {
+    "corrections_log": "corrections-log.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "companion_hub": "../commitment-pooling/"
+  },
+  "linear": {
+    "project": "Community Signals & Engagement",
+    "projectId": "7a4f2562-c629-4911-a7d6-947ab3195435",
+    "initiative": "Impact Methodologies & Evaluator Flywheel",
+    "researchDocument": "Community Needs Interface — research pass (compass)",
+    "milestones": {
+      "needs_substrate": "2026-08-31",
+      "september_needs_app": "2026-09-30",
+      "post_pilot_hardening": "2026-12-31"
+    },
+    "amendedInCommitmentPooling": ["PRD-672", "PRD-673", "PRD-679", "PRD-682", "PRD-683"],
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": "2026-07-04"
+  },
+  "taxonomy": {
+    "initiative": "impact-methodologies-evaluator-flywheel",
+    "tracks": ["needs-substrate", "september-needs-app", "post-pilot-hardening"],
+    "work_types": ["implementation", "ops", "docs", "qa"],
+    "surfaces": ["contracts", "indexer", "shared", "agent", "admin", "client", "community", "docs"],
+    "depends_on_features": ["commitment-pooling"]
+  },
+  "notes": [
+    "Vocabulary is Need, never problem — code and copy alike (decision #1).",
+    "Four EAS schemas (Need, NeedSignal, NeedStatus, FundingAttribution); commitments stay module-native (CP decision-register addendum #28).",
+    "EAS is never indexed by Envio: status derivation is an app-side join of easscan reads and Envio commitment entities carrying needUID.",
+    "Operator moderation is NeedStatus states, never EAS revocation (attester-only); Need/NeedSignal revocability grants only self-retraction/un-signal.",
+    "The needUID commitment field was amended into the CP contract-spec on 2026-07-04, before the August build, so it ships in the initial deploy.",
+    "No claim flow, no leaderboards, no funding-ranked boards, no per-need escrow, no push notifications; the gathering is the notification layer.",
+    "status.json is authoritative; branch names are automation signals.",
+    ".plans/ is the durable repo truth; the Linear project mirrors this hub 1:1."
+  ],
+  "lanes": {
+    "contracts": {
+      "owner": "codex",
+      "status": "todo",
+      "branch": "codex/contracts/community-interface",
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "linear_issues": ["PRD-687"],
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": { "command": "", "evidence": "" },
+        "green": { "command": "", "evidence": "" },
+        "note": "Starts after the PRD-671 chain merges (registration conventions)."
+      },
+      "skill_tags": ["contracts"]
+    },
+    "indexer": {
+      "owner": "codex",
+      "status": "todo",
+      "branch": "codex/indexer/community-interface",
+      "depends_on": ["contracts"],
+      "handoff": "handoffs/codex-indexer.md",
+      "linear_issues": ["PRD-688"],
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": { "command": "", "evidence": "" },
+        "green": { "command": "", "evidence": "" },
+        "note": "Folds into PRD-673 if that CP lane is unstarted at pickup."
+      },
+      "skill_tags": ["indexer"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "todo",
+      "branch": "codex/state-api/community-interface",
+      "depends_on": ["contracts"],
+      "handoff": "handoffs/codex-state-api.md",
+      "linear_issues": ["PRD-690"],
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": { "command": "", "evidence": "" },
+        "green": { "command": "", "evidence": "" },
+        "note": "Also depends on CP PRD-674 interfaces; the voice feasibility spike has no dependencies and can start any time."
+      },
+      "skill_tags": ["react", "tanstack-query", "data-layer"]
+    },
+    "ops_paymaster": {
+      "owner": "human",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["contracts"],
+      "handoff": "handoffs/ops-paymaster.md",
+      "linear_issues": ["PRD-689"],
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "not_applicable",
+        "red": { "command": "", "evidence": "" },
+        "green": { "command": "", "evidence": "" },
+        "note": "Pimlico dashboard config + burst test; must be live before the first sponsored community write (gates qa_dogfood)."
+      },
+      "skill_tags": ["ops", "web3"]
+    },
+    "ui_admin": {
+      "owner": "claude",
+      "status": "todo",
+      "branch": "claude/ui-admin/community-interface",
+      "depends_on": ["state_api"],
+      "handoff": "handoffs/claude-ui-admin.md",
+      "linear_issues": ["PRD-691"],
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": { "command": "", "evidence": "" },
+        "green": { "command": "", "evidence": "" },
+        "note": "Also depends on CP PRD-676 (seeding console) for the seed-from-signal boundary with PRD-683."
+      },
+      "skill_tags": ["ui", "design", "react"]
+    },
+    "funder_lens": {
+      "owner": "claude",
+      "status": "todo",
+      "branch": "claude/funder-lens/community-interface",
+      "depends_on": ["state_api"],
+      "handoff": "handoffs/claude-funder-lens.md",
+      "linear_issues": ["PRD-692"],
+      "tdd": {
+        "mode": "optional",
+        "status": "pending",
+        "red": { "command": "", "evidence": "" },
+        "green": { "command": "", "evidence": "" },
+        "note": "Editorial surface in packages/client; route decision vs CP decision #21 recorded here."
+      },
+      "skill_tags": ["ui", "design"]
+    },
+    "docs": {
+      "owner": "claude",
+      "status": "todo",
+      "branch": "claude/docs/community-interface",
+      "depends_on": ["ui_admin"],
+      "handoff": "handoffs/claude-docs.md",
+      "linear_issues": ["PRD-693"],
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "not_applicable",
+        "red": { "command": "", "evidence": "" },
+        "green": { "command": "", "evidence": "" },
+        "note": "Docs lane; validation is docs build + vocab lint + glossary anchor check."
+      },
+      "skill_tags": ["docs"]
+    },
+    "qa_dogfood": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "claude/qa-dogfood/community-interface",
+      "depends_on": ["ui_admin", "funder_lens", "state_api", "ops_paymaster"],
+      "handoff": "handoffs/qa-dogfood-readout.md",
+      "linear_issues": ["PRD-694"],
+      "skill_tags": ["testing", "review"]
+    },
+    "hardening": {
+      "owner": "human",
+      "status": "parked",
+      "branch": null,
+      "depends_on": ["qa_dogfood"],
+      "handoff": null,
+      "linear_issues": ["PRD-695", "PRD-696"],
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "not_applicable",
+        "red": { "command": "", "evidence": "" },
+        "green": { "command": "", "evidence": "" },
+        "note": "Evidence-gated: PRD-695 needs batch-mint pain evidence; PRD-696 needs the PRD-694 readout."
+      },
+      "skill_tags": ["contracts", "research"]
+    }
+  },
+  "history": [
+    {
+      "date": "2026-07-04",
+      "event": "Research pass ground-truthed (corrections-log.md), 8 decisions locked with Afo (vocabulary Need, CSE build home, new hub, Needs/Create/Profile IA, donate/endowment + FundingAttribution, local-first voice, global discovery, no claim flow). spec.md authored; CP hub amended (needUID, decision #28, §8 supersession); Linear scoped: CSE project graduated, 3 milestones, PRD-687..696 created, PRD-672/673/679/682/683 amended, research doc archived."
+    }
+  ]
+}
