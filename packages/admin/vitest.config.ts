@@ -132,7 +132,16 @@ export default defineConfig({
         },
       },
     },
-    pool: "threads",
+    // Forks (child processes) reclaim memory per file with `isolate`, unlike the
+    // threads pool where each worker thread persists and accumulates v8 coverage
+    // data across the files it runs until it trips ERR_WORKER_OUT_OF_MEMORY on a
+    // large suite. `--max-old-space-size` also actually applies to forks.
+    pool: "forks",
+    poolOptions: {
+      forks: {
+        execArgv: ["--max-old-space-size=4096"],
+      },
+    },
     isolate: true,
     server: {
       deps: {
