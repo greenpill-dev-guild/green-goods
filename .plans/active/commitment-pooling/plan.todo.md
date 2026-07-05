@@ -55,6 +55,10 @@ Linear mirror: project [Green Goods Commitment Pooling](https://linear.app/green
 26. Schema registration timing: assessment v3 + testimony register as the FIRST PR chain of the August track so baselines exist before cycle 1 opens.
 27. Hero moments: commitment Fulfilled and cycle close/compost, client PWA only.
 
+**Addendum (2026-07-04 needs-layer alignment):**
+
+28. Needs layer: EAS gains four additional schemas (Need, NeedSignal, NeedStatus, FundingAttribution), owned by the Community Signals & Engagement project and specced in `.plans/active/community-interface/`. Amends the letter of #14's "exactly two schemas"; the spirit holds — commitments remain module-native, never EAS. The commitment record gains an additive `bytes32 needUID` (0 = none; see the contract-spec amendment note), specced before the August build so it ships in the initial deploy.
+
 ## Research / Plan Gate
 
 - [x] Research evidence recorded: `corrections-log.md` (every Document A repo claim verified, corrected, or superseded, with file paths)
@@ -113,8 +117,10 @@ Sequencing (build order contracts, indexer, shared, then apps in parallel):
 
 ### Track C: September community interface
 
-- [ ] PRD-682 packages/community scaffold (after PRD-674 substrate; wireframes in `uiux-spec.md`)
+- [ ] PRD-682 packages/community scaffold (after PRD-674 substrate; wireframes in `uiux-spec.md`, amended 2026-07-04)
 - [ ] PRD-683 signals intake into the seeding console (after PRD-676/682)
+
+The needs layer PRD-682/683 consume (Need/NeedSignal/NeedStatus/FundingAttribution schemas, shared substrate, admin triage, funder lens) is planned and tracked separately: hub `.plans/active/community-interface/`, Linear project **Community Signals & Engagement**. PRD-682/683 bodies amended 2026-07-04 to reference it; decision #28 records the schema-count amendment.
 
 ## TDD / Proof Order
 
