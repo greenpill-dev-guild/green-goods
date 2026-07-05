@@ -59,7 +59,7 @@ No `domain` field — domain is protocol vocabulary the operator tags at triage 
 |---|---|---|
 | `needUID` | `bytes32` | The Need. |
 | `status` | `uint8` | 1 acknowledged · 2 merged · 3 hidden · 4 declined. (Research doc's 1/5 numbering superseded.) |
-| `domain` | `uint8` | 0–3 (Schemas.sol enum: SOLAR/AGRO/EDU/WASTE); meaningful on acknowledged, resolver bounds it always. |
+| `domain` | `uint8` | 0–3 (Schemas.sol enum: SOLAR/AGRO/EDU/WASTE). Carries the operator's tag on **acknowledged**; on merge/hide/decline it is ignored by readers (pass 0) — the resolver bounds it `<= 3` in every case, and the canonical domain for a need is always read from its latest acknowledged status. |
 | `noteCID` | `string` | Merge target needUID, dignified-decline reason, or hide rationale. `""` allowed on acknowledge. |
 
 **`FundingAttribution`** — attester: funder wallet (app-composed, post-tx); revocable **false**; no hat gate.
@@ -118,7 +118,7 @@ Three steps, mirroring the MDR draft grammar (`DraftStep` precedent `intro|media
 
 **Transcription strategy (decision 6).** Local first: Web Speech dictation during capture (on-device recognition where the language pack exists — availability is user-agent/device dependent, es/pt offline not guaranteed; a feasibility spike on TAS-class Android devices is part of the shared workstream, including whether a WASM route is viable). Fallback: at queue flush, if the payload has audio but no text and the device is online, one **pre-attest server transcription call** (reusing the agent package's existing transcription capability behind a small authenticated endpoint); on any failure or timeout the attestation proceeds audio-only — transcription never blocks. Because `statementCID` is immutable once attested, the reviewed-transcript rule is: text captured live (typed or dictated, member-editable in `editing`) rides the CID; a flush-time server transcript rides the CID marked `transcriptionSource: "server"`; anything transcribed after attestation is display-layer only and labeled auto-generated. Subtitle-first: every audio clip renders with its transcript or an explicit "audio only" chip.
 
-**Queue behavior**: submission enqueues a `need` job (IndexedDB, existing retry semantics: 1s base ×2, cap 60s, 5 retries, flush mutex); optimistic "shared with your garden" card; if the member's Community Hat hasn't landed yet from the batch mint, the normal backoff holds the write — no new machinery.
+**Queue behavior**: submission enqueues a `need` job (IndexedDB, existing retry semantics: 1s base ×2, cap 60s, 5 retries, flush mutex); optimistic "shared with your garden" card. **Pending-hat handling (small explicit machinery, not "just retries")**: the standard 5-retry window is ~30s of wall-clock, far shorter than operator-paced batch minting at a gathering, so the first write cannot rely on plain backoff to outlast the hat. The client already observes Community-Hat membership (indexer/hooks); a first write from a not-yet-hatted account enters a distinct **`waiting_for_hat`** job state that does not consume the retry budget — the job is deferred (not attempted) until the hat is observed, then enqueued fresh with the full retry allowance. This is the one new job-state addition the substrate lane (PRD-690) owns; everything after the hat lands reuses the existing queue unchanged.
 
 ## 6. Signal mechanics and horizon routing
 
@@ -132,7 +132,7 @@ Distinct from yield conviction (HypercertSignalPool) — the two never mix. Acti
 
 ## 7. Onboarding (QR, lazy join, batch mint)
 
-Browse is free: the QR from a gardener opens the garden's needs board read-only, in-browser, no install. Join happens lazily on first action (signal or need): passkey prompt → one biometric → counterfactual ERC-4337 smart account (Pimlico, sponsored) → join request lands in the operator's queue → first write queues locally. Operator batch-mints Community Hats from the admin console (`Hats.batchMintHats` on the singleton — the module mints individually today, the console calls the protocol directly); the held job flushes on normal retry once the hat lands. PWA install is an optional prompt after the first successful action, never a precondition. Per-inviter caps and revocation are **operator policy off-chain in v1**; the on-chain eligibility module is a hardening milestone (§16).
+Browse is free: the QR from a gardener opens the garden's needs board read-only, in-browser, no install. Join happens lazily on first action (signal or need): passkey prompt → one biometric → counterfactual ERC-4337 smart account (Pimlico, sponsored) → join request lands in the operator's queue → first write queues locally. Operator batch-mints Community Hats from the admin console (`Hats.batchMintHats` on the singleton — the module mints individually today, the console calls the protocol directly); the first write sits in the `waiting_for_hat` state (§5) and is enqueued for real once the client observes the hat, so it never fails on the ~30s retry window during the human-paced mint. PWA install is an optional prompt after the first successful action, never a precondition. Per-inviter caps and revocation are **operator policy off-chain in v1**; the on-chain eligibility module is a hardening milestone (§16).
 
 ## 8. App IA — `packages/community` (amends uiux-spec §8)
 

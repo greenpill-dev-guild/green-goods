@@ -939,7 +939,7 @@ Contract blocks (event signatures match the 6.1/6.2 interfaces; enum params surf
       - event: CycleClosed(uint256 indexed cycleId, uint256 indexed poolId)
       - event: CycleComposted(uint256 indexed cycleId, uint256 indexed poolId)
       - event: CycleCancelled(uint256 indexed cycleId, uint256 indexed poolId, string reasonCID)
-      - event: CommitmentCreated(uint256 indexed commitmentId, uint256 indexed poolId, uint256 indexed cycleId, address creator, address recordedBy, uint8 direction, uint8 commitmentType, uint8 claimType, uint8 claimMode, string unitLabel, uint256 targetUnits, uint32 requiredApprovedWorkCount, uint64 dueDate)
+      - event: CommitmentCreated(uint256 indexed commitmentId, uint256 indexed poolId, uint256 indexed cycleId, address creator, address recordedBy, uint8 direction, uint8 commitmentType, uint8 claimType, uint8 claimMode, string unitLabel, uint256 targetUnits, uint32 requiredApprovedWorkCount, uint64 dueDate, bytes32 needUID)
       - event: RewardDeclared(uint256 indexed commitmentId, address source, address token, uint256 amount)
       - event: ConfirmerRuleSet(uint256 indexed commitmentId, address[] confirmers, uint32 threshold)
       - event: ClaimRequested(uint256 indexed commitmentId, address indexed claimant, uint8 kind, address gardenContext)
@@ -1093,6 +1093,7 @@ type Commitment {
   confirmers: [String!]!
   requiresAssessment: Boolean!
   assessmentUID: String
+  needUID: String # community Need this commitment addresses; null/zero when none (amendment 2026-07-04)
   workUIDs: [String!]!
   evidenceCIDs: [String!]!
   dueDate: BigInt!
