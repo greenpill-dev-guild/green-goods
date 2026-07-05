@@ -130,9 +130,9 @@ describe("components/Hypercerts/CreateListingDialog", () => {
 
     const user = userEvent.setup();
 
-    // Edit a field so the configure form is dirty, then dismiss via Escape.
+    // Edit a field so the configure form is dirty, then close via the dialog X.
     await user.type(screen.getByLabelText(/price per unit/i), "9");
-    await user.keyboard("{Escape}");
+    await user.click(screen.getByRole("button", { name: "Close" }));
 
     expect(await screen.findByText("Discard changes?")).toBeInTheDocument();
     expect(onOpenChange).not.toHaveBeenCalled();

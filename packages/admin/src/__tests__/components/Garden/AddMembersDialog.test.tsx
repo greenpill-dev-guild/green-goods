@@ -147,8 +147,9 @@ describe("components/Garden/AddMembersDialog", () => {
       expect(screen.getByTestId("staged-address")).toBeInTheDocument();
     });
 
-    // Escape (X/scrim equivalent) raises the discard confirm instead of closing.
-    await user.keyboard("{Escape}");
+    // Closing via the dialog X raises the discard confirm instead of dropping
+    // the staged batch (the X/scrim/Escape close vector the contract guards).
+    await user.click(screen.getByRole("button", { name: "Close" }));
     expect(await screen.findByText("Discard changes?")).toBeInTheDocument();
     expect(defaultProps.onClose).not.toHaveBeenCalled();
 
