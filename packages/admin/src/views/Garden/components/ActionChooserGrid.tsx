@@ -118,7 +118,7 @@ export function ActionChooserGrid({
               // for the cockpit. transition-all + spatial-fast mirrors AdminButton.
               "transition-all duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]",
               "active:scale-[0.99]",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-action,var(--primary-action)))]",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--primary-action)))]",
               // Selected/hover follow the workspace tone — matches the stepper + CTA.
               selected
                 ? "border-[rgb(var(--tone-action,var(--primary-action)))] bg-[rgb(var(--tone-action,var(--primary-action))/0.1)]"

@@ -34,9 +34,11 @@ export default function CreateAssessment() {
     onDiscard: createAssessment.handleDiscard,
   });
 
+  // Dialog title (Title Case) — distinct from the sentence-case submit button
+  // label (app.assessment.submitAssessment) the footer keeps.
   const title = formatMessage({
-    id: "app.assessment.submitAssessment",
-    defaultMessage: "Submit assessment",
+    id: "cockpit.assessment.createTitle",
+    defaultMessage: "Submit Assessment",
   });
 
   const stepRegistry = {

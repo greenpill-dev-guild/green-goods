@@ -21,10 +21,13 @@ function renderWithIntl(ui: React.ReactElement) {
 }
 
 describe("NotificationPanel", () => {
-  it("renders loading state", () => {
+  it("renders skeleton loading state with an accessible label", () => {
     renderWithIntl(<NotificationPanel isLoading />);
 
-    expect(screen.getByRole("status")).toHaveTextContent("Loading...");
+    const status = screen.getByRole("status");
+    expect(status).toHaveAccessibleName("Loading...");
+    // Skeleton rows reserve the row anatomy instead of swapping in text.
+    expect(status.querySelectorAll(".animate-pulse").length).toBeGreaterThan(0);
   });
 
   it("renders empty state when there are no items", () => {
@@ -65,5 +68,36 @@ describe("NotificationPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: /3 work submissions need review/i }));
 
     expect(onSelect).toHaveBeenCalledTimes(1);
+  });
+
+  it("renders grouped sections with a scope label and skips empty sections", () => {
+    renderWithIntl(
+      <NotificationPanel
+        scopeLabel="Updates for Garden One"
+        sections={[
+          {
+            id: "needs-attention",
+            title: "Needs attention",
+            items: [{ id: "alert-1", title: "3 work submissions need review", tone: "critical" }],
+          },
+          { id: "recent-activity", title: "Recent activity", items: [] },
+        ]}
+      />
+    );
+
+    expect(screen.getByText("Updates for Garden One")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Needs attention" })).toBeInTheDocument();
+    expect(screen.getByText("3 work submissions need review")).toBeInTheDocument();
+    expect(screen.queryByText("Recent activity")).not.toBeInTheDocument();
+  });
+
+  it("falls back to the empty state when every section is empty", () => {
+    renderWithIntl(
+      <NotificationPanel
+        sections={[{ id: "needs-attention", title: "Needs attention", items: [] }]}
+      />
+    );
+
+    expect(screen.getByText("No notifications")).toBeInTheDocument();
   });
 });

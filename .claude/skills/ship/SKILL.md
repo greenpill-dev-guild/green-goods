@@ -40,7 +40,7 @@ or prove the branch is ready. Those requests use QA Speed Mode from `CLAUDE.md`.
 NO COMPLETION CLAIMS WITHOUT FRESH VERIFICATION EVIDENCE
 ```
 
-If `bun format && bun lint && bun run test && bun build` didn't run cleanly in this invocation, do not say the branch is ready.
+If the full Ship Gate ([`.claude/context/validation-pipeline.md`](../../context/validation-pipeline.md)) didn't run cleanly in this invocation, do not say the branch is ready.
 
 This iron law applies to ship/PR/commit/merge/release readiness claims. It does
 not require every narrow QA-speed fix to run the full pipeline before handoff;

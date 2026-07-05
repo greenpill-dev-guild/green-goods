@@ -265,7 +265,7 @@ export function RecipientPicker({ selectedAddress, onSelect }: RecipientPickerPr
                   key={group.gardenId}
                   type="button"
                   onClick={() => setBrowseGardenId(group.gardenId)}
-                  className="flex w-full items-center justify-between gap-3 rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-2.5 text-left transition hover:bg-bg-weak-50"
+                  className="flex w-full items-center justify-between gap-3 rounded-lg border border-stroke-soft-200 bg-bg-white-0 p-2.5 text-left transition duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] hover:bg-bg-weak-50"
                 >
                   <div className="min-w-0">
                     <p

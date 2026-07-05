@@ -19,6 +19,9 @@ export interface PublicInstallActionRenderProps {
   disabled: boolean;
   dataInstallAction: InstallAction["type"];
   onClick: MouseEventHandler<HTMLElement>;
+  hasInstallFallback: boolean;
+  fallbackLabel: string;
+  onInstallFallbackClick: MouseEventHandler<HTMLElement>;
 }
 
 export interface PublicInstallActionProps {
@@ -72,6 +75,16 @@ export function PublicInstallAction({ children, forceOpenApp = false }: PublicIn
   const isOpenApp =
     !isInstallPending &&
     (forceOpenApp || (isMobile && (isInstalled || guidance.primaryAction.type === "open-app")));
+  const hasInstallFallback =
+    isOpenApp &&
+    isMobile &&
+    !isInstalled &&
+    guidance.secondaryAction?.type === "show-manual-steps" &&
+    Boolean(guidance.manualInstructions?.length);
+  const fallbackLabel = formatMessage({
+    id: "public.nav.installAgain",
+    defaultMessage: "Install again",
+  });
   const dataInstallAction = isInstallPending
     ? "installing"
     : isOpenApp
@@ -137,6 +150,11 @@ export function PublicInstallAction({ children, forceOpenApp = false }: PublicIn
     ]
   );
 
+  const handleInstallFallbackClick = useCallback<MouseEventHandler<HTMLElement>>((event) => {
+    event.preventDefault();
+    setDialogMode("mobileSteps");
+  }, []);
+
   const handleDialogPrimaryAction = useCallback<MouseEventHandler<HTMLButtonElement>>(
     async (event) => {
       await dispatchInstallAction(event);
@@ -156,6 +174,9 @@ export function PublicInstallAction({ children, forceOpenApp = false }: PublicIn
         disabled: isInstallPending,
         dataInstallAction,
         onClick: handleClick,
+        hasInstallFallback,
+        fallbackLabel,
+        onInstallFallbackClick: handleInstallFallbackClick,
       })}
       <PublicInstallDialog
         open={dialogMode !== null}

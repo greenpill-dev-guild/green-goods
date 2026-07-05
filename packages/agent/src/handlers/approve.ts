@@ -113,7 +113,7 @@ export async function handleApprove(
 
     // Step 1: Submit work using GARDENER's key (they are the work attester)
     // This prevents self-attestation: work.attester != approval.attester
-    const workTx = await blockchain.submitWork({
+    const { txHash: workTx, workUID } = await blockchain.submitWork({
       privateKey: gardenerUser.privateKey as Hex,
       gardenAddress,
       actionUID: pendingWork.actionUID,
@@ -126,12 +126,14 @@ export async function handleApprove(
       },
     });
 
-    // Step 2: Approve using OPERATOR's key (different attester = no self-attestation)
+    // Step 2: Approve using OPERATOR's key (different attester = no self-attestation).
+    // Recipient = garden and workUID = the on-chain attestation UID, so the approval is
+    // visible and linkable to every EAS consumer (dashboard Needs Review, arrival toast).
     const approvalTx = await blockchain.submitApproval({
       privateKey: user.privateKey as Hex,
-      gardenerAddress: pendingWork.gardenerAddress,
+      gardenAddress,
       actionUID: pendingWork.actionUID,
-      workUID: workId, // Local work ID for reference
+      workUID,
       approved: true,
       feedback: PROTOCOL_APPROVAL_FEEDBACK,
     });
@@ -148,6 +150,7 @@ export async function handleApprove(
         gardenerAddress: pendingWork.gardenerAddress,
         actionUID: pendingWork.actionUID,
         workTx,
+        workUID,
         approvalTx,
       }
     );

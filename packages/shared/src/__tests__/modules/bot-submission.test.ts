@@ -208,7 +208,7 @@ describe("modules/work/bot-submission", () => {
       const result = await submitApprovalBot(
         mockWalletClient,
         mockApprovalDraft,
-        "0xGardenerAddress",
+        "0xGardenAddress",
         11155111
       );
 
@@ -225,7 +225,7 @@ describe("modules/work/bot-submission", () => {
         feedback: "Excellent planting technique!",
       };
 
-      await submitApprovalBot(mockWalletClient, draftWithFeedback, "0xGardener", 11155111);
+      await submitApprovalBot(mockWalletClient, draftWithFeedback, "0xGarden", 11155111);
 
       expect(encodeWorkApprovalData).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -244,7 +244,7 @@ describe("modules/work/bot-submission", () => {
         feedback: "Plants were not watered properly",
       };
 
-      await submitApprovalBot(mockWalletClient, rejectionDraft, "0xGardener", 11155111);
+      await submitApprovalBot(mockWalletClient, rejectionDraft, "0xGarden", 11155111);
 
       expect(encodeWorkApprovalData).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -255,20 +255,22 @@ describe("modules/work/bot-submission", () => {
       );
     });
 
-    it("passes gardener address to transaction builder", async () => {
-      const gardenerAddress = "0xGardener123456789012345678901234567890";
+    it("attests with the garden as EAS recipient (matching work attestations + PWA paths)", async () => {
+      // Recipient-scoped approval queries key on garden addresses; a gardener recipient
+      // makes the approval invisible to them (the historical bot defect this pins against).
+      const gardenAddress = "0xGarden1234567890123456789012345678901234";
 
-      await submitApprovalBot(mockWalletClient, mockApprovalDraft, gardenerAddress, 11155111);
+      await submitApprovalBot(mockWalletClient, mockApprovalDraft, gardenAddress, 11155111);
 
       expect(buildApprovalAttestTx).toHaveBeenCalledWith(
         expect.anything(),
-        gardenerAddress,
+        gardenAddress,
         expect.anything()
       );
     });
 
     it("uses correct chain for transaction", async () => {
-      await submitApprovalBot(mockWalletClient, mockApprovalDraft, "0xGardener", 11155111);
+      await submitApprovalBot(mockWalletClient, mockApprovalDraft, "0xGarden", 11155111);
 
       expect(mockWalletClient.sendTransaction).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -283,7 +285,7 @@ describe("modules/work/bot-submission", () => {
       mockWalletClient.sendTransaction.mockRejectedValueOnce(error);
 
       await expect(
-        submitApprovalBot(mockWalletClient, mockApprovalDraft, "0xGardener", 11155111)
+        submitApprovalBot(mockWalletClient, mockApprovalDraft, "0xGarden", 11155111)
       ).rejects.toThrow("Approval transaction failed");
     });
 
@@ -295,7 +297,7 @@ describe("modules/work/bot-submission", () => {
         feedback: "",
       };
 
-      await submitApprovalBot(mockWalletClient, draftNoFeedback, "0xGardener", 11155111);
+      await submitApprovalBot(mockWalletClient, draftNoFeedback, "0xGarden", 11155111);
 
       expect(encodeWorkApprovalData).toHaveBeenCalledWith(
         expect.objectContaining({

@@ -117,6 +117,51 @@ vi.mock("@green-goods/shared", async () => {
     usePublicGardens: () => mockUsePublicGardens(),
     useUser: () => mockUseUser(),
     validateDecimalInput: () => null,
+    useFormattedAmountInput: (value: string) => {
+      const trimmed = value.trim();
+      let parsedAmount: bigint | null = null;
+      if (trimmed && /^\d+(\.\d+)?$/.test(trimmed)) {
+        // 18-decimal parse mirroring the real hook closely enough for gating.
+        const [whole, frac = ""] = trimmed.split(".");
+        parsedAmount = BigInt(whole + frac.padEnd(18, "0").slice(0, 18));
+      }
+      return {
+        parsedAmount,
+        formatErrorId: null,
+        exceeds: false,
+        isEmpty: trimmed.length === 0,
+      };
+    },
+    FormattedAmountInput: ({
+      value,
+      onValueChange,
+      error,
+      endSlot,
+      inputClassName: _inputClassName,
+      errorClassName: _errorClassName,
+      containerClassName: _containerClassName,
+      ...props
+    }: {
+      value: string;
+      onValueChange: (next: string) => void;
+      error?: React.ReactNode;
+      endSlot?: React.ReactNode;
+      inputClassName?: string;
+      errorClassName?: string;
+      containerClassName?: string;
+    } & Omit<React.InputHTMLAttributes<HTMLInputElement>, "value" | "onChange" | "type">) => (
+      <div>
+        <input
+          type="text"
+          value={value}
+          onChange={(event) => onValueChange(event.target.value)}
+          {...props}
+        />
+        {endSlot}
+        {error ? <p role="alert">{error}</p> : null}
+      </div>
+    ),
+    TransactionSuccessAffordance: () => null,
   };
 });
 

@@ -105,13 +105,9 @@ Apply only the approved fixes, in order. For each:
 
 ## Phase 4 — Ship (default; skip with `--no-ship`)
 
-Hand off to the `ship` skill (`.claude/skills/ship/SKILL.md`). Run the full pipeline:
-
-```bash
-bun format && bun lint && bun run test && bun build
-```
-
-Plus scope-conditional checks (design tokens, vocab lint, contracts fork) per `ship` Step 6.
+Hand off to the `ship` skill (`.claude/skills/ship/SKILL.md`). Run the full Ship Gate as
+defined in [`.claude/context/validation-pipeline.md`](../../context/validation-pipeline.md),
+plus scope-conditional checks (design tokens, vocab lint, contracts fork) per `ship` Step 6.
 
 **Do not declare done until the ship pipeline reports green with output you can paste.** If any stage fails, the run is incomplete — return to Phase 3 to address the failure (still inside the locked scope, unless the failure surfaces a new issue, in which case re-open Phase 2 with the new finding).
 

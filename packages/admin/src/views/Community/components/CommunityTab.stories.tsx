@@ -68,7 +68,6 @@ const meta: Meta<typeof CommunityTab> = {
     garden: { id: GARDEN_ID, name: "Rio Rainforest Lab" },
     gardenId: GARDEN_ID,
     canManage: true,
-    isOwner: true,
     section: undefined,
     showSectionStateCard: true,
     clearSection: fn(),
@@ -123,6 +122,5 @@ export const NoPools: Story = {
 export const ReadOnly: Story = {
   args: {
     canManage: false,
-    isOwner: false,
   },
 };

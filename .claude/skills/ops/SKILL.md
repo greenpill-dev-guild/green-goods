@@ -41,10 +41,10 @@ bun run test                 # Run all tests (CRITICAL: not `bun test`)
 bun build                    # Build everything (respects dependency order)
 bun dev                      # Start all services via PM2
 bun dev:stop                 # Stop all services
-
-# Full validation (run before committing or pushing)
-bun format && bun lint && bun run test && bun build
 ```
+
+Full pre-commit/pre-push validation = the Ship Gate — canonical definition in
+[`.claude/context/validation-pipeline.md`](../../context/validation-pipeline.md).
 
 ### Deployment Commands
 
@@ -224,8 +224,8 @@ What ops work?
 |     --> migration.md
 |     --> create or update the owning plan hub first
 |
-+-- Pre-commit validation? ---------> Quick Reference (Part 1)
-      bun format && bun lint && bun run test && bun build
++-- Pre-commit validation? ---------> Ship Gate
+      (.claude/context/validation-pipeline.md)
 ```
 
 ---

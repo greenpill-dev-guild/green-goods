@@ -15,6 +15,12 @@ import { useIntl } from "react-intl";
 export interface ActionFlowStep {
   id: string;
   title: string;
+  /**
+   * Short supporting line (~5 words) rendered under the title in the vertical
+   * desktop rail — fills the rail's whitespace and previews what each step
+   * asks for. The compact horizontal (mobile) stepper stays title-only.
+   */
+  description?: string;
 }
 
 export interface ActionFlowStepperProps {
@@ -48,7 +54,7 @@ function dotClasses(completed: boolean, isCurrent: boolean) {
 // dot + spacing intact, just enlarges the touch/click + focus-ring area for the
 // mobile completed-step jump (WCAG 2.5.5).
 const JUMP_CLASS =
-  "-m-3 rounded-full p-3 transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-action,var(--primary-action)))] focus-visible:ring-offset-1";
+  "-m-3 rounded-full p-3 transition-transform active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--primary-action)))] focus-visible:ring-offset-1";
 
 export function ActionFlowStepper({
   steps,
@@ -132,6 +138,9 @@ export function ActionFlowStepper({
                 >
                   {step.title}
                 </p>
+                {step.description ? (
+                  <p className="mt-0.5 line-clamp-2 text-xs text-text-soft">{step.description}</p>
+                ) : null}
               </div>
             </li>
           );

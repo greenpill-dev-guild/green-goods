@@ -209,10 +209,10 @@ bun script/deploy.ts core --network sepolia --broadcast --force
 ---
 
 **📖 For detailed documentation, see:**
-- Full Deployment Guide: [Contracts Handbook](https://docs.greengoods.app/developer/contracts-handbook)
-- Upgrade Guide: [Contracts Handbook](https://docs.greengoods.app/developer/contracts-handbook)
-- Environment Setup: [Developer Quickstart](https://docs.greengoods.app/welcome/quickstart-developer)
-- Troubleshooting: [Developer Quickstart](https://docs.greengoods.app/welcome/quickstart-developer)
+- Full Deployment Guide: [Contracts Handbook](https://docs.greengoods.app/builders/deployments/contracts-deploy)
+- Upgrade Guide: [Contracts Handbook](https://docs.greengoods.app/builders/deployments/contracts-deploy)
+- Environment Setup: [Environment Management](https://docs.greengoods.app/builders/env-management)
+- Troubleshooting: [Getting Started](https://docs.greengoods.app/builders/getting-started)
 
 
 ## HatsModule Operational Notes
@@ -324,9 +324,9 @@ Green Goods integrates with the **Karma Grantee Accountability Protocol (GAP)** 
 - Identity-first security - all resolvers verify roles before any logic
 
 **Documentation:**
-- User Guide: [Karma GAP Integration](https://docs.greengoods.app/developer/karma-gap)
-- Implementation: [Karma GAP Integration](https://docs.greengoods.app/developer/karma-gap)
-- Upgrade Guide: [Contracts Handbook](https://docs.greengoods.app/developer/contracts-handbook)
+- User Guide: [Karma GAP Integration](https://docs.greengoods.app/builders/integrations/karma)
+- Implementation: [Karma GAP Integration](https://docs.greengoods.app/builders/integrations/karma)
+- Upgrade Guide: [Contracts Handbook](https://docs.greengoods.app/builders/deployments/contracts-deploy)
 - KarmaLib Source: `src/lib/Karma.sol`
 - Interfaces: `src/interfaces/IKarmaGap.sol`
 
@@ -359,7 +359,7 @@ bun script/deploy.ts core --network sepolia --broadcast --update-schemas
 bun script/deploy.ts core --network sepolia --broadcast --force
 ```
 
-See the [Contracts Handbook](https://docs.greengoods.app/developer/contracts-handbook) for schema versioning strategy and deployment troubleshooting.
+See the [Contracts Handbook](https://docs.greengoods.app/builders/deployments/contracts-deploy) for schema versioning strategy and deployment troubleshooting.
 
 ## Configuration
 
@@ -484,7 +484,7 @@ forge script script/Upgrade.s.sol:Upgrade \
   --network arbitrum --broadcast
 ```
 
-See the [Contracts Handbook](https://docs.greengoods.app/developer/contracts-handbook) for the complete upgrade guide.
+See the [Contracts Handbook](https://docs.greengoods.app/builders/deployments/contracts-deploy) for the complete upgrade guide.
 
 ### When to Deploy vs Upgrade
 
@@ -500,7 +500,7 @@ See the [Contracts Handbook](https://docs.greengoods.app/developer/contracts-han
 
 ### Documentation
 
-See the [Contracts Handbook](https://docs.greengoods.app/developer/contracts-handbook) for the complete upgrade guide including:
+See the [Contracts Handbook](https://docs.greengoods.app/builders/deployments/contracts-deploy) for the complete upgrade guide including:
 - Deploy vs Upgrade decision matrix
 - Storage gap usage
 - Multisig upgrade process
@@ -843,12 +843,12 @@ echo $CELO_RPC_URL
 
 ## Documentation
 
-📖 **[Contracts Documentation](https://docs.greengoods.app/developer/architecture/contracts-package)** — Complete contracts architecture guide
+📖 **[Contracts Documentation](https://docs.greengoods.app/builders/packages/contracts)** — Complete contracts architecture guide
 
 **Essential Guides:**
-- 📘 [Contracts Handbook](https://docs.greengoods.app/developer/contracts-handbook) — Deployment, upgrades, schema management
-- 🏗️ [Architecture Overview](https://docs.greengoods.app/developer/architecture) — System design and package relationships
-- ✅ [Testing Guide](https://docs.greengoods.app/developer/testing) — Testing strategy and best practices
+- 📘 [Contracts Handbook](https://docs.greengoods.app/builders/deployments/contracts-deploy) — Deployment, upgrades, schema management
+- 🏗️ [Architecture Overview](https://docs.greengoods.app/builders/architecture) — System design and package relationships
+- ✅ [Testing Guide](https://docs.greengoods.app/builders/testing/forge) — Testing strategy and best practices
 
 **Configuration Files:**
 - 📝 [Schema Definitions](./config/schemas.json) — EAS schema configuration

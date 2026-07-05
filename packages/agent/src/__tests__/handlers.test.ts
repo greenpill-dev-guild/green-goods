@@ -630,7 +630,9 @@ describe("handleApprove", () => {
       privateKey: "0x" + "b".repeat(64),
       address: pendingWork.gardenerAddress,
     });
-    const submitWork = vi.spyOn(blockchain, "submitWork").mockResolvedValue(`0x${"c".repeat(64)}`);
+    const submitWork = vi
+      .spyOn(blockchain, "submitWork")
+      .mockResolvedValue({ txHash: `0x${"c".repeat(64)}`, workUID: `0x${"e".repeat(64)}` });
     const submitApproval = vi
       .spyOn(blockchain, "submitApproval")
       .mockResolvedValue(`0x${"d".repeat(64)}`);
@@ -668,7 +670,10 @@ describe("handleApprove", () => {
       address: pendingWork.gardenerAddress,
       locale: "pt-BR",
     });
-    const submitWork = vi.spyOn(blockchain, "submitWork").mockResolvedValue(`0x${"c".repeat(64)}`);
+    const workUID = `0x${"e".repeat(64)}`;
+    const submitWork = vi
+      .spyOn(blockchain, "submitWork")
+      .mockResolvedValue({ txHash: `0x${"c".repeat(64)}`, workUID });
     const submitApproval = vi
       .spyOn(blockchain, "submitApproval")
       .mockResolvedValue(`0x${"d".repeat(64)}`);
@@ -687,8 +692,14 @@ describe("handleApprove", () => {
     expect(submitWork).toHaveBeenCalledWith(
       expect.objectContaining({ actionTitle: "Work Submission" })
     );
+    // The approval must reference the on-chain work UID (not the local queue id) and
+    // attest to the garden as EAS recipient (matching work attestations + PWA paths).
     expect(submitApproval).toHaveBeenCalledWith(
-      expect.objectContaining({ feedback: "Approved via bot" })
+      expect.objectContaining({
+        feedback: "Approved via bot",
+        gardenAddress: pendingWork.gardenAddress,
+        workUID,
+      })
     );
     expect(notifyGardener).toHaveBeenCalledWith(
       pendingWork.gardenerPlatform,

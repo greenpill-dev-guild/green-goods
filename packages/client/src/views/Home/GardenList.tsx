@@ -17,6 +17,8 @@ interface GardenListProps {
   scope: GardenFilterScope;
   isFilterActive: boolean;
   hasUserAddress: boolean;
+  /** First-run path: switch the list to every garden so a new user can find one to join. */
+  onBrowseAll?: () => void;
 }
 
 export function GardenList({
@@ -31,6 +33,7 @@ export function GardenList({
   scope,
   isFilterActive,
   hasUserAddress,
+  onBrowseAll,
 }: GardenListProps) {
   const intl = useIntl();
   const hasCachedData = gardens.length > 0 || (!showSkeleton && !timedOut && !isError);
@@ -104,13 +107,38 @@ export function GardenList({
 
   if (!gardens.length) {
     if (scope === "mine" && hasUserAddress) {
+      // First-run dead-end fix: give the new user a real next step instead of
+      // a bare message. There is no product-defined join flow yet, so the CTA
+      // routes to the closest existing surface — the all-gardens list, where
+      // open-joining gardens can be joined and others name their operators.
       return (
-        <p className="grid place-items-center text-center text-sm italic text-text-sub-600">
-          {intl.formatMessage({
-            id: "app.home.gardens.mineEmpty",
-            defaultMessage: "You don't steward any gardens yet.",
-          })}
-        </p>
+        <div className="grid place-items-center gap-3 py-6 text-center">
+          <p className="text-sm italic text-text-sub-600">
+            {intl.formatMessage({
+              id: "app.home.gardens.mineEmpty",
+              defaultMessage: "You don't steward any gardens yet.",
+            })}
+          </p>
+          <p className="max-w-xs text-xs text-text-soft-400">
+            {intl.formatMessage({
+              id: "app.home.gardens.mineEmptyHint",
+              defaultMessage:
+                "Find a garden with open joining, or ask a garden's operator to add you.",
+            })}
+          </p>
+          {onBrowseAll ? (
+            <button
+              type="button"
+              onClick={onBrowseAll}
+              className="rounded-full bg-primary-action px-4 py-2 text-sm font-medium text-primary-action-foreground transition hover:bg-primary-action-hover"
+            >
+              {intl.formatMessage({
+                id: "app.home.gardens.mineEmptyCta",
+                defaultMessage: "Browse all gardens",
+              })}
+            </button>
+          ) : null}
+        </div>
       );
     }
 

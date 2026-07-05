@@ -175,6 +175,8 @@ export function DepositModal({
       open={isOpen}
       onOpenChange={(open) => !open && onClose()}
       size="md"
+      // Workspace tone — mounted from the community treasury inspector.
+      tone="community"
       title={formatMessage({ id: "app.treasury.deposit" })}
       description={formatMessage({ id: "app.treasury.depositDescription" })}
       preventClose={depositMutation.isPending}

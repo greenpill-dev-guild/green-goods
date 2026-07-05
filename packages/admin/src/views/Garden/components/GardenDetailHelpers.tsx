@@ -248,7 +248,11 @@ interface AlertRowProps {
 
 export function AlertRow({ severity, label, actionLabel, onAction }: AlertRowProps) {
   return (
-    <AdminCard variant="outlined" className="flex items-start justify-between gap-3 px-3 py-2.5">
+    <AdminCard
+      variant="outlined"
+      density="compact"
+      className="flex items-start justify-between gap-3"
+    >
       <div className="flex min-w-0 items-start gap-2">
         <RiAlertLine className={`mt-0.5 h-4 w-4 flex-shrink-0 ${ALERT_LABEL_CLASSES[severity]}`} />
         <p className="text-sm text-text-sub">{label}</p>

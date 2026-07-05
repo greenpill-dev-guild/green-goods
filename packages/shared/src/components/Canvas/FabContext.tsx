@@ -52,7 +52,7 @@ export function FabProvider({ children }: { children: ReactNode }) {
  *   icon: RiAddLine,
  *   label: "Create",
  *   actions: [{ id: "submit-work", icon: RiFileAddLine, label: "Submit Work", labelId: "hub.fab.submitWork" }],
- *   onAction: (id) => { if (id === "submit-work") openLeftSheet(); },
+ *   onAction: (id) => { if (id === "submit-work") openSubmitWorkDialog(); },
  * });
  * ```
  */

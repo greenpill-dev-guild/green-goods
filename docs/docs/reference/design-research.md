@@ -3,7 +3,7 @@ title: Design & Research
 slug: /reference/design-research
 audience: all
 owner: docs
-last_verified: 2026-04-02
+last_verified: 2026-07-03
 feature_status: Live
 source_of_truth:
   - docs/docs/community/operator-guide/creating-a-garden.mdx
@@ -13,6 +13,8 @@ source_of_truth:
 # Design & Research
 
 Design resources, research materials, and product vision documents for Green Goods.
+
+**Researching impact methodology? Read these four in order.** The [Regenerative Design Framework](/reference/regenerative-design-framework) sets the design lens. The [Glossary](/glossary) defines the four action domains and the entities every record uses. [How It Works](/community/how-it-works) explains the work and approval attestations that count as evidence. [Reporting and GAP](/community/operator-guide/reporting-and-gap) shows how approved work rolls up into reports funders can read. The materials below are the source documents behind that chain.
 
 ---
 

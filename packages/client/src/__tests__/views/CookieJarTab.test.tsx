@@ -14,6 +14,7 @@ const TEST_TOKEN = "0x3333333333333333333333333333333333333333" as const;
 
 const mockWithdrawMutate = vi.fn();
 const mockUseAccessibleCookieJars = vi.fn();
+let mockIsOnline = true;
 
 const testJar = {
   jarAddress: TEST_JAR,
@@ -40,7 +41,7 @@ vi.mock("@green-goods/shared", async () => {
     useGardens: () => ({
       data: [{ id: TEST_GARDEN, tokenAddress: TEST_GARDEN_TOKEN, name: "Garden Alpha" }],
     }),
-    useOffline: () => ({ isOnline: true }),
+    useOffline: () => ({ isOnline: mockIsOnline }),
     useAccessibleCookieJars: () => mockUseAccessibleCookieJars(),
   };
 });
@@ -50,6 +51,7 @@ import { CookieJarTab } from "../../views/Home/WalletDrawer/CookieJarTab";
 describe("CookieJarTab", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockIsOnline = true;
     mockUseAccessibleCookieJars.mockReturnValue({
       jars: [testJar],
       isLoading: false,
@@ -62,20 +64,48 @@ describe("CookieJarTab", () => {
     });
   });
 
-  it("renders balances using each jar's actual decimals", () => {
+  it("leads with the claimable-now amount using each jar's actual decimals", () => {
     render(<CookieJarTab />);
 
-    // formatTokenAmount truncates to 4 fraction digits by default:
-    // 123456 / 10^6 = 0.123456 → displayed as "0.1234"
-    expect(screen.getByText("USDC - 0.1234")).toBeInTheDocument();
-    expect(screen.getAllByText("Garden Alpha")).toHaveLength(2);
-    expect(screen.getByText(/Available now:\s*0\.1/i)).toBeInTheDocument();
+    // The card leads with what can be claimed right now: min(maxWithdrawal,
+    // balance) = min(100000, 123456) = 100000 / 10^6 → "0.1".
+    expect(screen.getByText("0.1 USDC")).toBeInTheDocument();
+    expect(screen.getByText("Available now")).toBeInTheDocument();
+    // The group header names the garden once; the card no longer restates it.
+    expect(screen.getAllByText("Garden Alpha")).toHaveLength(1);
+  });
+
+  it("caps the claimable-now figure at the jar's remaining balance", () => {
+    mockUseAccessibleCookieJars.mockReturnValue({
+      jars: [{ ...testJar, balance: 50000n }],
+      isLoading: false,
+      moduleConfigured: true,
+      eligibleGardenCount: 1,
+      confirmedGardenCount: 1,
+      unconfirmedGardenCount: 0,
+      eligibilityErrorCount: 0,
+      hasEligibilityReadFailure: false,
+    });
+
+    render(<CookieJarTab />);
+
+    // The jar holds less (0.05) than the per-claim cap (0.1) — never overstate.
+    expect(screen.getByText("0.05 USDC")).toBeInTheDocument();
+  });
+
+  it("shows the jar's total holdings as detail once expanded", async () => {
+    const user = userEvent.setup();
+    render(<CookieJarTab />);
+
+    await user.click(screen.getByRole("button", { name: /0\.1 USDC/i }));
+
+    expect(screen.getByText("Jar holds 0.1234 USDC")).toBeInTheDocument();
   });
 
   it("groups jars by the Garden account id instead of the Garden token address", () => {
     render(<CookieJarTab />);
 
-    expect(screen.getAllByText("Garden Alpha")).toHaveLength(2);
+    expect(screen.getAllByText("Garden Alpha")).toHaveLength(1);
     expect(screen.queryByText(TEST_GARDEN)).not.toBeInTheDocument();
   });
 
@@ -84,7 +114,7 @@ describe("CookieJarTab", () => {
 
     render(<CookieJarTab />);
 
-    await user.click(screen.getByRole("button", { name: /USDC - 0\.1234/i }));
+    await user.click(screen.getByRole("button", { name: /0\.1 USDC/i }));
     await user.click(screen.getByRole("button", { name: "Max" }));
 
     expect(screen.getByRole("textbox", { name: "How much" })).toHaveValue("0.1");
@@ -108,6 +138,28 @@ describe("CookieJarTab", () => {
     expect(
       screen.getByText("Cookie jars you can claim from will appear here.")
     ).toBeInTheDocument();
+  });
+
+  it("explains offline instead of claiming there are no jars", () => {
+    mockIsOnline = false;
+    mockUseAccessibleCookieJars.mockReturnValue({
+      jars: [],
+      isLoading: false,
+      moduleConfigured: true,
+      eligibleGardenCount: 0,
+      confirmedGardenCount: 0,
+      unconfirmedGardenCount: 0,
+      eligibilityErrorCount: 0,
+      hasEligibilityReadFailure: false,
+    });
+
+    render(<CookieJarTab />);
+
+    // Offline reads fail closed — an empty list proves nothing.
+    expect(
+      screen.getByText("You're offline — cookie jars can't refresh right now.")
+    ).toBeInTheDocument();
+    expect(screen.queryByText("No cookie jars yet")).not.toBeInTheDocument();
   });
 
   it("shows access diagnostics before empty copy when eligibility could not be confirmed", () => {
@@ -172,7 +224,7 @@ describe("CookieJarTab", () => {
     const warning = screen.getByText(
       "Some Cookie Jar details could not be confirmed. Available balances are shown below."
     );
-    const jar = screen.getByText("USDC - 0.1234");
+    const jar = screen.getByText("0.1 USDC");
     expect(warning).toBeInTheDocument();
     expect(Boolean(warning.compareDocumentPosition(jar) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(
       true
@@ -224,7 +276,7 @@ describe("CookieJarTab", () => {
 
     render(<CookieJarTab />);
 
-    const jarToggle = screen.getByRole("button", { name: /USDC - 0\.1234/i });
+    const jarToggle = screen.getByRole("button", { name: /0\.1 USDC/i });
     expect(jarToggle).toHaveAttribute("aria-expanded", "false");
     expect(screen.getByText("Paused")).toBeInTheDocument();
 

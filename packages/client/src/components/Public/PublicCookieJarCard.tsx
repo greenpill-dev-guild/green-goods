@@ -6,22 +6,25 @@ import {
   classifyTxError,
   cn,
   formatTokenAmount,
+  FormattedAmountInput,
   ImageWithFallback,
   isMeaningfulTxErrorMessage,
   type PublicGardenSummary,
   resolveIPFSUrl,
+  TransactionSuccessAffordance,
   TxInlineFeedback,
   useAuth,
   useCampaignCookieJar,
   useCampaignCookieJarDeposit,
   useCampaignCookieJarWithdraw,
+  useFormattedAmountInput,
   useUser,
-  validateDecimalInput,
 } from "@green-goods/shared";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
-import { formatUnits, parseUnits } from "viem";
+import { formatUnits } from "viem";
 import { useBalance } from "wagmi";
+import { WalletConnectButton } from "@/components/WalletConnectButton";
 
 export type CookieJarBucket = "for-you" | "active" | "unresolved";
 
@@ -455,8 +458,10 @@ function CampaignCookieJarInlineActions({
   const claimableAmount = getClaimableAmount(jar);
   const decimals = jar.decimals;
   const symbol = jar.symbol;
-  const depositError = validateDecimalInput(depositAmount, decimals);
-  const claimInputError = fixedClaim ? null : validateDecimalInput(claimAmount, decimals);
+  const depositState = useFormattedAmountInput(depositAmount, decimals);
+  const claimState = useFormattedAmountInput(claimAmount, decimals);
+  const depositError = depositState.formatErrorId;
+  const claimInputError = fixedClaim ? null : claimState.formatErrorId;
   const depositErrorMessage = depositError
     ? formatMessage({ id: depositError, defaultMessage: "Enter a valid amount." })
     : null;
@@ -464,24 +469,8 @@ function CampaignCookieJarInlineActions({
     ? formatMessage({ id: claimInputError, defaultMessage: "Enter a valid amount." })
     : null;
 
-  const parsedDeposit = useMemo(() => {
-    if (!depositAmount.trim() || depositError) return 0n;
-    try {
-      return parseUnits(depositAmount, decimals);
-    } catch {
-      return 0n;
-    }
-  }, [decimals, depositAmount, depositError]);
-
-  const parsedClaim = useMemo(() => {
-    if (fixedClaim) return claimableAmount;
-    if (!claimAmount.trim() || claimInputError) return 0n;
-    try {
-      return parseUnits(claimAmount, decimals);
-    } catch {
-      return 0n;
-    }
-  }, [claimAmount, claimInputError, claimableAmount, decimals, fixedClaim]);
+  const parsedDeposit = depositState.parsedAmount ?? 0n;
+  const parsedClaim = fixedClaim ? claimableAmount : (claimState.parsedAmount ?? 0n);
 
   const belowMinDeposit = parsedDeposit > 0n && parsedDeposit < jar.minDeposit;
   const claimTooLarge = !fixedClaim && parsedClaim > 0n && parsedClaim > jar.maxWithdrawal;
@@ -584,18 +573,40 @@ function CampaignCookieJarInlineActions({
             defaultMessage: "Connect a wallet to check claim access and add funds.",
           })}
         </p>
-        <Button className="mt-4" onClick={() => loginWithWallet()}>
-          {formatMessage({
-            id: "public.cookies.connectWallet",
-            defaultMessage: "Connect wallet",
-          })}
-        </Button>
+        <WalletConnectButton className="mt-4" />
       </div>
     );
   }
 
   return (
     <div className="mt-auto grid gap-4 border-t border-stroke-soft-200 pt-4">
+      {/* Success affordances (Afo decision: transient toast, not a receipt).
+          Display-only — the mutations' own onSuccess callbacks keep owning the
+          input resets. */}
+      <TransactionSuccessAffordance
+        mode="toast"
+        show={claimMutation.isSuccess}
+        title={formatMessage({
+          id: "public.cookies.toast.claimSuccessTitle",
+          defaultMessage: "Cookies claimed",
+        })}
+        message={formatMessage({
+          id: "public.cookies.toast.claimSuccessMessage",
+          defaultMessage: "The claim went through. Funds are on the way to your wallet.",
+        })}
+      />
+      <TransactionSuccessAffordance
+        mode="toast"
+        show={depositMutation.isSuccess}
+        title={formatMessage({
+          id: "public.cookies.toast.depositSuccessTitle",
+          defaultMessage: "Deposit received",
+        })}
+        message={formatMessage({
+          id: "public.cookies.toast.depositSuccessMessage",
+          defaultMessage: "Thank you! Your deposit is in the jar.",
+        })}
+      />
       <div className="grid gap-3">
         <div className="flex items-center justify-between gap-3">
           <p className="font-mono text-[10.5px] font-medium uppercase tracking-[0.16em] text-text-soft-400">
@@ -618,12 +629,11 @@ function CampaignCookieJarInlineActions({
                 defaultMessage: "Amount to claim",
               })}
             </span>
-            <input
+            <FormattedAmountInput
               id={claimId}
               value={claimAmount}
-              onChange={(event) => setClaimAmount(event.target.value)}
-              inputMode="decimal"
-              className="mt-2 w-full rounded-lg border border-stroke-soft-200 bg-bg-white-0 px-3 py-2 text-sm text-text-strong-950 outline-none focus:border-primary-base focus:ring-2 focus:ring-primary-base/30"
+              onValueChange={setClaimAmount}
+              inputClassName="mt-2 w-full rounded-lg border border-stroke-soft-200 bg-bg-white-0 px-3 py-2 text-sm text-text-strong-950 outline-none focus:border-primary-base focus:ring-2 focus:ring-primary-base/30"
               placeholder="0.00"
             />
           </label>
@@ -669,12 +679,11 @@ function CampaignCookieJarInlineActions({
               defaultMessage: "Deposit amount",
             })}
           </span>
-          <input
+          <FormattedAmountInput
             id={depositId}
             value={depositAmount}
-            onChange={(event) => setDepositAmount(event.target.value)}
-            inputMode="decimal"
-            className="mt-2 w-full rounded-lg border border-stroke-soft-200 bg-bg-white-0 px-3 py-2 text-sm text-text-strong-950 outline-none focus:border-primary-base focus:ring-2 focus:ring-primary-base/30"
+            onValueChange={setDepositAmount}
+            inputClassName="mt-2 w-full rounded-lg border border-stroke-soft-200 bg-bg-white-0 px-3 py-2 text-sm text-text-strong-950 outline-none focus:border-primary-base focus:ring-2 focus:ring-primary-base/30"
             placeholder="0.00"
           />
         </label>

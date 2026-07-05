@@ -84,8 +84,8 @@ bun run lint:vocab            # banned terms in i18n strings (streak/countdown/l
 AI design tools should map output to these exports. Full palette lives in the prompt contracts; here's the quick locator.
 
 **Admin** (`packages/admin/src/components/`):
-- Layout shell: `CanvasLayout`, `AppBar` (admin top context bar), `MainSheet`, `LeftSheet`, `RightSheet`, `BottomSheet`, `NavigationBar`, `AdminFab`
-- M3 wrappers (13): `AdminBadge`, `AdminButton`, `AdminCard`, `AdminCheckbox`, `AdminDialog`, `AdminFab`, `AdminFilterChip`, `AdminLinearProgress`, `AdminListItem`, `AdminSearchToolbar`, `AdminTabRail`, `AdminTextField`, `AdminTooltip`
+- Layout shell: `CanvasLayout`, `AppBar` (admin top context bar), `MainSheet`, `NavigationBar`, `AdminFab` (the old side-sheet renderers are deleted — every workspace overlay is a centered `AdminDialog`; the three global AppBar surfaces render in `AdminSideSheet`)
+- M3 wrappers (count derives from `packages/admin/src/components/Admin*.tsx` — 16 today): `AdminBadge`, `AdminButton`, `AdminCard`, `AdminCheckbox`, `AdminDialog`, `AdminFab`, `AdminFilterChip`, `AdminLinearProgress`, `AdminListItem`, `AdminSearchToolbar`, `AdminSideSheet`, `AdminSortSelect`, `AdminTabRail`, `AdminTextField`, `AdminTooltip`, `AdminViewActions`
 
 **Client / shared** (`packages/shared/src/components/`, exported from `@green-goods/shared`):
 - Shell: presentation-mode loaders, `PublicShell` (browser), `PwaRuntime` / `AppShell` (installed PWA), `SiteHeader` (browser), `AppBar` (installed PWA)

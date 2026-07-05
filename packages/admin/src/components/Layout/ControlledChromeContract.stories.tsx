@@ -3,12 +3,10 @@ import {
   GardenChip,
   MainSheet,
   NavigationBar,
-  RightSheet,
   type ToolbarSlot,
 } from "@green-goods/shared";
 import { RiAddLine, RiAppsLine, RiHammerLine, RiSeedlingLine, RiTeamLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
-import { useState } from "react";
 import { expect, fn, within } from "storybook/test";
 import { withCanvasFrame } from "../../../../shared/.storybook/decorators";
 import { expectAdminShellDarkPalette } from "../../views/storybookPaletteAssertions";
@@ -74,7 +72,6 @@ function expectTransparentAppBar(element: Element) {
 
 function ControlledChromeContract({ theme }: ControlledChromeContractProps) {
   const garden = { id: "rio", name: "Rio Rainforest Lab" };
-  const [sheetLayer, setSheetLayer] = useState<HTMLDivElement | null>(null);
 
   return (
     <div
@@ -137,34 +134,22 @@ function ControlledChromeContract({ theme }: ControlledChromeContractProps) {
             label: "Actions",
             actions: [
               {
-                id: "edit-domains",
+                id: "edit-garden",
                 icon: RiSeedlingLine,
-                label: "Edit domains",
-                labelId: "cockpit.garden.action.editDomains",
+                label: "Edit garden",
+                labelId: "cockpit.garden.action.editGarden",
               },
               {
-                id: "add-member",
+                id: "view-public",
                 icon: RiTeamLine,
-                label: "Add member",
-                labelId: "cockpit.garden.action.addMember",
+                label: "View public",
+                labelId: "cockpit.garden.action.viewPublic",
               },
             ],
             onAction: fn(),
           }}
         />
       </div>
-
-      <div
-        ref={setSheetLayer}
-        className="admin-canvas-sheet-layer pointer-events-none absolute inset-0 z-raised overflow-hidden"
-        data-component="CanvasLayout"
-        data-slot="sheet-layer"
-      />
-      {sheetLayer ? (
-        <RightSheet open onClose={fn()} title="Settings" container={sheetLayer}>
-          <div className="p-4 text-body-sm text-text-sub">Sheet shell material boundary</div>
-        </RightSheet>
-      ) : null}
     </div>
   );
 }
@@ -187,7 +172,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Executable admin material contract: AppBar root stays transparent, Navigation/FAB and sheet shells carry Controlled Chrome, and dense route content stays solid in light and dark themes.",
+          "Executable admin material contract: AppBar root stays transparent, Navigation/FAB carry Controlled Chrome, and dense route content stays solid in light and dark themes (side sheets are retired — the AdminDialog inspector owns its own scrim).",
       },
     },
   },
@@ -209,14 +194,12 @@ export const LightContract: Story = {
     const canvas = within(canvasElement);
     const appBar = await canvas.findByRole("banner");
     const nav = await canvas.findByRole("navigation");
-    const sheet = await canvas.findByTestId("right-sheet");
     const content = await canvas.findByTestId("solid-content");
 
     await expect(appBar).toHaveAttribute("data-component", "AppBar");
     expectTransparentAppBar(appBar);
     expectAdminShellDarkPalette(canvasElement);
     expect(chromeBackdropValue(nav)).toContain("blur");
-    expect(chromeBackdropValue(sheet)).toContain("blur");
     expect(chromeBackdropValue(content)).toBe("none");
     expect(content.className).not.toMatch(/glass|backdrop/i);
   },
@@ -231,14 +214,12 @@ export const DarkContract: Story = {
     const canvas = within(canvasElement);
     const appBar = await canvas.findByRole("banner");
     const nav = await canvas.findByRole("navigation");
-    const sheet = await canvas.findByTestId("right-sheet");
     const content = await canvas.findByTestId("solid-content");
 
     await expect(appBar).toHaveAttribute("data-component", "AppBar");
     expectTransparentAppBar(appBar);
     expectAdminShellDarkPalette(canvasElement);
     expect(chromeBackdropValue(nav)).toContain("blur");
-    expect(chromeBackdropValue(sheet)).toContain("blur");
     expect(chromeBackdropValue(content)).toBe("none");
     expect(content.className).not.toMatch(/glass|backdrop/i);
   },

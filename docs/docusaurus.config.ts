@@ -287,6 +287,7 @@ const config: Config = {
           {from: ['/gardener/track-status-and-attestations'], to: '/community/gardener-guide/track-status-and-attestations'},
 
           // evaluator/ legacy routes now point to visible docs until evaluator flows return
+          {from: ['/community/evaluator-guide'], to: '/community/how-it-works'},
           {from: ['/evaluator/verify-attestation-chains'], to: '/builders/integrations/eas'},
           {from: ['/evaluator/get-started'], to: '/community/how-it-works'},
           {from: ['/evaluator/cross-framework-mapping'], to: '/community/operator-guide/reporting-and-gap'},
@@ -418,6 +419,8 @@ const config: Config = {
             { label: 'How It Works', to: '/community/how-it-works' },
             { label: 'Why We Build', to: '/community/why-we-build' },
             { label: 'Gardener Guide', to: '/community/gardener-guide/joining-a-garden' },
+            { label: 'Operator Guide', to: '/community/operator-guide/' },
+            { label: 'Funder Guide', to: '/community/funder-guide/' },
           ],
         },
         {

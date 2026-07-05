@@ -2,7 +2,6 @@ import {
   FabProvider,
   RefreshActionProvider,
   GardenChip,
-  LeftSheetProvider,
   MainSheet,
   NavigationBar,
   AppBar,
@@ -24,12 +23,12 @@ import {
   useGardenDerivedState,
   useGardenDetailData,
   useGardenUrlSync,
-  useLeftSheetConfigValue,
   adminRoutes,
   formatRelativeTime,
   getAdminWorkspaceForPath,
   getAdminWorkspaceRoot,
   resolveAdminWorkspaceSectionRoute,
+  useDocumentEvent,
   useMediaQuery,
   useSheetOrchestrator,
   compareAddresses,
@@ -38,6 +37,7 @@ import {
   type AdminWorkspaceSectionTab,
   type NavigationBarProps,
   type NotificationPanelItem,
+  type NotificationPanelSection,
   type OpenAccountSheetEventDetail,
   type ToolbarSlot,
 } from "@green-goods/shared";
@@ -45,7 +45,10 @@ import { RiUserLine } from "@remixicon/react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminDialog } from "@/components/AdminDialog";
+import { AdminSideSheet } from "@/components/AdminSideSheet";
 import { useLocation, useNavigate } from "react-router-dom";
+import { releaseStuckDialogArtifacts } from "./dialogCloseSafetyNet";
+import { LeftSheetProvider, useLeftSheetConfigValue } from "./leftSheetChannel";
 import { AccountProfilePanel } from "./AccountProfilePanel";
 import { AccountSettingsPanel } from "./AccountSettingsPanel";
 import { CommandPalette } from "./CommandPalette";
@@ -194,12 +197,6 @@ export function CanvasLayout() {
   // Sheet orchestrator — manages pane-scoped sheets
   const orchestrator = useSheetOrchestrator();
   const { activeContentId, activeSheet, closeSheet, openSheet } = orchestrator;
-  // State-driven sheet layer: sheets need to re-render once the canvas-level
-  // portal root mounts so they stay bounded between AppBar and NavigationBar.
-  const [sheetLayerRoot, setSheetLayerRoot] = useState<HTMLDivElement | null>(null);
-  const sheetLayerRef = useCallback((node: HTMLDivElement | null) => {
-    setSheetLayerRoot(node);
-  }, []);
   const pendingDesktopAccountTabRef = useRef<AccountSheetTab | null>(null);
   const openRightSheetContent = useCallback(
     (contentId: AdminRightSheetContentId) => {
@@ -249,22 +246,23 @@ export function CanvasLayout() {
     return () => window.removeEventListener(OPEN_ACCOUNT_SHEET_EVENT, handler as EventListener);
   }, [openRightSheetContent]);
 
-  // Safety net for the "page frozen until refresh" lockup: Radix Dialog locks
-  // `body { pointer-events: none }` while a modal is open and clears it on close,
-  // but an action dialog that closes by navigating away can unmount mid-close and
-  // leave the lock stuck — freezing the whole admin. After each navigation, if the
-  // body is still locked AND no modal is actually open, release it. Guarded on
-  // `[data-state="open"]` so it never unlocks behind a legitimately-open dialog
-  // (route-opened flows keep their lock); worst case this is a no-op.
+  // Safety net for the "page frozen until refresh" lockup (see
+  // dialogCloseSafetyNet.ts): runs after each navigation — an action dialog
+  // that closes by navigating away can unmount mid-close and leave Radix's
+  // body pointer-events lock stuck. No-op while any dialog is open.
   useEffect(() => {
     if (typeof document === "undefined") return;
-    const modalOpen = document.querySelector(
-      '[role="dialog"][data-state="open"],[role="alertdialog"][data-state="open"]'
-    );
-    if (!modalOpen && document.body.style.pointerEvents === "none") {
-      document.body.style.pointerEvents = "";
-    }
+    releaseStuckDialogArtifacts(document);
   }, [location.pathname]);
+
+  // …and when the tab becomes visible again: hidden tabs freeze CSS
+  // animations, so a close that happened in the background never fired
+  // animationend — its exit node and the body lock are still here.
+  useDocumentEvent("visibilitychange", () => {
+    if (document.visibilityState === "visible") {
+      releaseStuckDialogArtifacts(document);
+    }
+  });
 
   const handleOpenSearch = useCallback(() => setSearchOpen(true), []);
   const openProfile = useCallback(
@@ -485,7 +483,7 @@ export function CanvasLayout() {
                 id="main-content"
                 data-region="main-scroll-area"
                 tabIndex={-1}
-                className="main-scroll-area mx-auto h-full w-full max-w-[1400px] overflow-y-auto px-5 pt-2 sm:pt-3"
+                className="main-scroll-area mx-auto h-full w-full max-w-[1400px] overflow-y-auto px-3 pt-2 sm:px-5 sm:pt-3"
                 style={{
                   // Handoff sheet-system.css: floating NavigationBar at bottom: 20px
                   // with 56px height ⇒ ~100px clearance to keep last content row visible.
@@ -524,41 +522,32 @@ export function CanvasLayout() {
               )}
             </div>
 
-            <div
-              ref={sheetLayerRef}
-              className="admin-canvas-sheet-layer pointer-events-none absolute inset-0 overflow-hidden"
-              // Sits at the overlay level (above --z-nav: 30) so an open sheet's
-              // scrim dims the full viewport — AppBar + nav included — matching
-              // AdminDialog (fixed inset-0 at --z-overlay). When no sheet is open
-              // the layer is empty + pointer-events-none, so the floating nav
-              // stays interactive; the scrim only captures clicks while open.
-              style={{ zIndex: "var(--z-overlay, 40)" }}
-              data-component="CanvasLayout"
-              data-slot="sheet-layer"
-              data-state={activeSheet ?? "idle"}
-              data-testid="canvas-sheet-layer"
-            />
-
-            {/* Account / notification inspector — centered AdminDialog (the
-                right sheet retired). The same orchestrator contentId drives
-                open/close. Tone is the neutral operator "hub" accent: this is
-                global account chrome, not workspace content, so it should not
-                inherit the active garden's tint, and the dialog portals out of
-                CanvasLayout's [data-tone] scope. */}
-            <AdminDialog
+            {/* Account / notification inspector — the three global AppBar
+                surfaces (Profile, Settings, Notifications) render as an
+                AdminSideSheet: right-docked on desktop, AdminDialog-identical
+                bottom sheet on mobile (where only the notification bell can
+                open it — Profile/Settings live in the Profile tab there). The
+                same orchestrator contentId drives open/close. Tone is the
+                neutral operator "hub" accent: this is global account chrome,
+                not workspace content, so it should not inherit the active
+                garden's tint, and the sheet portals out of CanvasLayout's
+                [data-tone] scope. */}
+            <AdminSideSheet
               open={activeSheet === "right" && rightSheetDescriptor !== null}
               onOpenChange={(next) => {
                 if (!next) closeSheet();
               }}
               title={rightSheetDescriptor?.title ?? ""}
               tone="hub"
-              size="lg"
             >
               {rightSheetDescriptor?.content}
-            </AdminDialog>
+            </AdminSideSheet>
 
-            {/* Persistent left/bottom sheet — content declared by views via useLeftSheetConfig */}
-            <CanvasLeftSheet tone={leftDialogTone} />
+            {/* Persistent left-inspector dialog — content declared by views via
+                useLeftSheetConfig. Renders directly as an AdminDialog (the
+                left/bottom canvas sheets are retired), reading the descriptor's
+                own size + workspace tone. */}
+            <LeftInspectorDialog fallbackTone={leftDialogTone} />
 
             <CommandPalette open={searchOpen} onOpenChange={setSearchOpen} />
           </div>
@@ -619,41 +608,69 @@ function AdminNotificationPanel({ onCloseSheet }: { onCloseSheet: () => void }) 
     openSection,
   });
 
-  const items = useMemo<NotificationPanelItem[]>(() => {
+  const sections = useMemo<NotificationPanelSection[]>(() => {
     if (!workspace.garden) return [];
 
-    const alertItems = derived.overviewAlerts.map((alert) => ({
+    // Actionable alerts and passive activity are different kinds of work —
+    // grouped so the review queue never visually blends into the audit trail.
+    const alertItems: NotificationPanelItem[] = derived.overviewAlerts.map((alert) => ({
       id: `alert-${alert.key}`,
       title: alert.label,
-      description: selectedGarden?.name,
       tone: alert.severity,
       onSelect: alert.onAction,
     }));
 
-    const activityItems = derived.activityEvents.slice(0, 5).map((event) => {
-      const href = event.href;
-      return {
-        id: event.id,
-        title: event.title,
-        description: event.description,
-        meta: formatRelativeTime(event.timestamp),
-        tone: "info" as const,
-        onSelect: href ? () => navigateFromNotification(href) : undefined,
-      };
-    });
+    const activityItems: NotificationPanelItem[] = derived.activityEvents
+      .slice(0, 8)
+      .map((event) => {
+        const href = event.href;
+        return {
+          id: event.id,
+          title: event.title,
+          description: event.description,
+          meta: formatRelativeTime(event.timestamp),
+          tone: "info" as const,
+          onSelect: href ? () => navigateFromNotification(href) : undefined,
+        };
+      });
 
-    return [...alertItems, ...activityItems].slice(0, 8);
+    return [
+      {
+        id: "needs-attention",
+        title: formatMessage({
+          id: "cockpit.notifications.needsAttention",
+          defaultMessage: "Needs attention",
+        }),
+        items: alertItems,
+      },
+      {
+        id: "recent-activity",
+        title: formatMessage({
+          id: "cockpit.notifications.recentActivity",
+          defaultMessage: "Recent activity",
+        }),
+        items: activityItems,
+      },
+    ];
   }, [
     derived.activityEvents,
     derived.overviewAlerts,
+    formatMessage,
     navigateFromNotification,
-    selectedGarden,
     workspace.garden,
   ]);
 
+  const scopeLabel = selectedGarden
+    ? formatMessage(
+        { id: "cockpit.notifications.scope", defaultMessage: "Updates for {garden}" },
+        { garden: selectedGarden.name }
+      )
+    : undefined;
+
   return (
     <NotificationPanel
-      items={items}
+      sections={sections}
+      scopeLabel={scopeLabel}
       isLoading={
         workspace.fetching ||
         workspace.fetchingAssessments ||
@@ -684,14 +701,23 @@ const FabAwareNavigationBar = memo(function FabAwareNavigationBar(props: {
 FabAwareNavigationBar.displayName = "FabAwareNavigationBar";
 
 /**
- * Bridge: reads left-inspector config from LeftSheetContext and renders it as a
- * centered AdminDialog — the left/bottom canvas sheets are retired, AdminDialog
- * is the canonical admin overlay (bottom-sheet presentation on mobile is built
- * in). Persistent across route transitions — views declare content via
- * useLeftSheetConfig(). Closing runs `config.onClose`; route-backed configs
- * navigate to their `closeTo`, so deep-link + back-nav are preserved.
+ * Reads the left-inspector config from the admin left-sheet channel and renders
+ * it as a centered AdminDialog — the left/bottom canvas sheets are retired, so
+ * AdminDialog is the canonical admin overlay (bottom-sheet presentation on
+ * mobile is built in). Persistent across route transitions — views declare
+ * content via useLeftSheetConfig(). Closing runs `config.onClose`; route-backed
+ * configs navigate to their `closeTo`, so deep-link + back-nav are preserved.
+ *
+ * Size + tone come from the descriptor's config (post-`77170588` the scale is
+ * sm/md/lg); size defaults to `lg` — the richest single-view tier that every
+ * inspector flow used before the size-collapse — and tone falls back to the
+ * active workspace accent when a config omits it.
  */
-function CanvasLeftSheet({ tone }: { tone: "hub" | "garden" | "community" | "actions" }) {
+function LeftInspectorDialog({
+  fallbackTone,
+}: {
+  fallbackTone: "hub" | "garden" | "community" | "actions";
+}) {
   const config = useLeftSheetConfigValue();
   const isOpen = config !== null;
 
@@ -702,8 +728,8 @@ function CanvasLeftSheet({ tone }: { tone: "hub" | "garden" | "community" | "act
         if (!next) config?.onClose?.();
       }}
       title={config?.title ?? ""}
-      tone={tone}
-      size={config?.width === "wide" ? "xl" : "lg"}
+      tone={config?.tone ?? fallbackTone}
+      size={config?.size ?? "lg"}
       preventClose={config?.preventClose}
     >
       {config?.content}

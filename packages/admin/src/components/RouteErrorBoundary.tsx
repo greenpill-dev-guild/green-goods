@@ -6,6 +6,38 @@ import { useIntl } from "react-intl";
 import { isRouteErrorResponse, useNavigate, useRouteError } from "react-router-dom";
 
 /**
+ * One-shot self-heal for stale-deployment chunk errors: after a deploy
+ * replaces the hashed chunks, every already-open session fails its next lazy
+ * route load. Reloading once fetches the fresh manifest and lands back on the
+ * requested URL — no manual "Reload" click. The sessionStorage guard (keyed by
+ * failing path) makes a genuinely-broken chunk fall through to the error card
+ * on its second failure instead of reload-looping.
+ */
+const CHUNK_RELOAD_GUARD_KEY = "gg-admin-chunk-reload";
+/** A repeat failure inside this window means the chunk is really broken. */
+const CHUNK_RELOAD_GUARD_WINDOW_MS = 60_000;
+
+export function attemptChunkAutoRecovery(): boolean {
+  try {
+    const raw = sessionStorage.getItem(CHUNK_RELOAD_GUARD_KEY);
+    if (raw) {
+      const [guardPath, at] = raw.split("|");
+      const recent = Date.now() - Number(at) < CHUNK_RELOAD_GUARD_WINDOW_MS;
+      if (guardPath === location.pathname && recent) {
+        return false;
+      }
+    }
+    sessionStorage.setItem(CHUNK_RELOAD_GUARD_KEY, `${location.pathname}|${Date.now()}`);
+    window.location.reload();
+    return true;
+  } catch {
+    // Storage unavailable (rare) — fall through to the manual card rather
+    // than risking a reload loop we cannot guard.
+    return false;
+  }
+}
+
+/**
  * Route-level error boundary for React Router.
  *
  * Catches errors that React Error Boundaries cannot:
@@ -40,9 +72,18 @@ export default function RouteErrorBoundary() {
       boundaryName: "RouteErrorBoundary",
       isNetwork: isNetwork || isChunkError,
     });
+
+    // Stale-deployment self-heal: reload once per failing path before ever
+    // showing the manual card (the reload interrupts render, so the card
+    // below only appears on a repeat failure).
+    if (isChunkError) {
+      attemptChunkAutoRecovery();
+    }
   }, [error, isChunkError, isNetwork, isNotFound]);
 
-  // Chunk errors = stale deployment, hard reload fixes it
+  // Chunk errors = stale deployment, hard reload fixes it. Reaching this
+  // render twice for the same path means the auto-recovery already spent its
+  // one shot — show the manual card.
   if (isChunkError) {
     return (
       <ErrorCard

@@ -1,13 +1,13 @@
 import {
   adminRoutes,
   localizeAction,
-  useRouteBackedLeftSheetConfig,
   type Action,
   type ActionsRouteState,
 } from "@green-goods/shared";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
+import { useRouteBackedLeftSheetConfig } from "@/components/Layout";
 import { ActionDetailPanel } from "./ActionDetail";
 import CreateAction from "./CreateAction";
 import EditAction from "./EditAction";
@@ -37,7 +37,6 @@ export function ActionsSheetDescriptor({
           defaultMessage: "Create action",
         }),
         content: <CreateAction layout="sheet" />,
-        width: "wide" as const,
       };
     }
 
@@ -87,7 +86,6 @@ export function ActionsSheetDescriptor({
             onEdit={() => undefined}
           />
         ),
-        width: "wide" as const,
       };
     }
 
@@ -101,7 +99,10 @@ export function ActionsSheetDescriptor({
             title: sheetDescriptor.title,
             content: sheetDescriptor.content,
             closeTo: routeState.closeTo,
-            width: sheetDescriptor.width,
+            // Action create/detail/edit inspectors carry forms — render at the
+            // richer `lg` dialog tier with the Actions workspace tone.
+            size: "lg" as const,
+            tone: "actions" as const,
           }
         : null,
     [routeState.closeTo, routeState.contentId, sheetDescriptor]

@@ -14,10 +14,12 @@ export function ReceiveView() {
 
   if (!primaryAddress) {
     return (
-      <EmptyState
-        icon={<RiWallet3Line />}
-        title={formatMessage({ id: "app.receive.unavailable" })}
-      />
+      <div className="p-4">
+        <EmptyState
+          icon={<RiWallet3Line />}
+          title={formatMessage({ id: "app.receive.unavailable" })}
+        />
+      </div>
     );
   }
 

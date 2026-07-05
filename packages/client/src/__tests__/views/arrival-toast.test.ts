@@ -10,7 +10,7 @@ import { describe, expect, it } from "vitest";
 
 import { ARRIVAL_TOASTS } from "../../views/Home/arrival-toast";
 
-const KINDS = ["queue", "draft", "member", "signedIn"] as const;
+const KINDS = ["queue", "draft", "review", "operatorClear", "gardener", "signedIn"] as const;
 
 describe("ARRIVAL_TOASTS", () => {
   it("covers every actionable arrival kind (none is intentionally excluded)", () => {
@@ -20,7 +20,9 @@ describe("ARRIVAL_TOASTS", () => {
   it("routes each kind to the expected next action", () => {
     expect(ARRIVAL_TOASTS.queue.action).toBe("openWorkDashboardPending");
     expect(ARRIVAL_TOASTS.draft.action).toBe("openWorkDashboardDrafts");
-    expect(ARRIVAL_TOASTS.member.action).toBe("startWork");
+    expect(ARRIVAL_TOASTS.review.action).toBe("openWorkDashboardNeedsReview");
+    expect(ARRIVAL_TOASTS.operatorClear.action).toBe("startWork");
+    expect(ARRIVAL_TOASTS.gardener.action).toBe("startWork");
     expect(ARRIVAL_TOASTS.signedIn.action).toBe("openHelp");
   });
 

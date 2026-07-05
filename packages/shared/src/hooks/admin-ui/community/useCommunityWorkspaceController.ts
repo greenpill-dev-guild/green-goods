@@ -1,6 +1,5 @@
 import {
   adminRoutes,
-  toastService,
   useAdminGardenWorkspaceSelection,
   useCanvasSearchParams,
   useGardenDerivedState,
@@ -29,31 +28,10 @@ export function useCommunityWorkspaceController() {
   const location = useLocation();
   const { poolType } = useParams<{ poolType?: string }>();
   const mode = resolveCommunityMode(location.pathname);
-  const hasShownAllGardensToastRef = useRef(false);
-  const handleAutoSelectGarden = useCallback(
-    (garden: { name: string }) => {
-      if (hasShownAllGardensToastRef.current) return;
-
-      hasShownAllGardensToastRef.current = true;
-      toastService.info({
-        title: formatMessage({
-          id: "cockpit.community.allGardensRedirect.title",
-          defaultMessage: "Community is per-garden",
-        }),
-        message: formatMessage(
-          {
-            id: "cockpit.community.allGardensRedirect.message",
-            defaultMessage: "Showing {name}. Use the garden chip to switch.",
-          },
-          { name: garden.name }
-        ),
-      });
-    },
-    [formatMessage]
-  );
+  // Auto-select stays silent: the AppBar GardenChip already declares the active
+  // garden (chrome is canonical — no toast redeclaring it on every entry).
   const { selectedGarden, gardenOptions, handleSelectGarden } = useAdminGardenWorkspaceSelection({
     autoSelectFirstGarden: true,
-    onAutoSelectGarden: handleAutoSelectGarden,
   });
   const { searchParams } = useCanvasSearchParams();
   const { containerRef } = useSheetWidth();
@@ -183,11 +161,10 @@ export function useCommunityWorkspaceController() {
     () => navigate(adminRoutes.communityTreasury({ gardenId: selectedGardenAddress })),
     [navigate, selectedGardenAddress]
   );
-  // Manage Members is a direct action (Garden → Members flow dialog), not a
-  // Community tab — this navigates away to the same route the "Manage
-  // members" header action already targets.
+  // Manage Members is a community-owned action flow (/community/members) —
+  // the dialog opens over the Community workspace without switching tabs.
   const openMembersModal = useCallback(
-    () => navigate(adminRoutes.gardenMembers({ gardenId: selectedGardenAddress })),
+    () => navigate(adminRoutes.communityMembers({ gardenId: selectedGardenAddress })),
     [navigate, selectedGardenAddress]
   );
   const createPoolsAsync = useCallback(async () => {

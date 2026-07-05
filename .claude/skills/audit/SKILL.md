@@ -127,7 +127,8 @@ bun run --filter '@green-goods/client' build
 bun run --filter '@green-goods/agent' typecheck
 bun lint
 bash .claude/scripts/validate-hook-location.sh
-node .claude/scripts/check-i18n-completeness.mjs
+# i18n gate: 4-part locale coverage (parity, counts, source-usage, identical-string quality)
+bun run --filter '@green-goods/shared' test src/__tests__/i18n/locale-coverage.test.ts
 grep -rn "TODO\|FIXME\|HACK" --include="*.ts" packages/
 ```
 
@@ -357,30 +358,16 @@ Update Known Issues Registry: add findings at 5+ cycles or MONITORED, update dat
 
 ### Linear Issue Routing
 
-Use the Greenpill Linear template library structure:
+Team routing (Product vs Research vs Customer Need), `.plans`/`source:plans` linkage, project
+routing, label namespaces, prompt-before-create, and the privacy boundary follow the shared
+core: [`.claude/context/linear-routing-rules.md`](../../context/linear-routing-rules.md).
 
-- **Accepted Product Work**: implementation, QA, maintenance, product bug fixes, cleanup work
-  with an accepted delivery outcome. Team: Product.
-- **Accepted Research Task**: research questions, evidence gathering, recommendations, or
-  decision support before product scope is accepted. Team: Research.
+Audit-specific deltas:
 
-Issue bodies should include the relevant template sections: Outcome or Research question,
-Protocol context, Scope boundary or Evidence to gather, Acceptance criteria or Expected output,
-Validation or Routing recommendation, Privacy note when applicable, and Links.
-
-Routing rules:
-
-- `.plans` remains the execution truth. If an accepted audit finding is mirrored from
-  `.plans/audits/`, include the `.plans` link and label `source:plans`.
-- Do not route new work into completed/staging umbrella projects such as `Green Goods`, `Coop`,
-  `Network Website`, or `Cookie Jar`.
-- Attach to an active bounded project only when the scope clearly matches. Otherwise leave the
-  issue unprojected and correctly labeled.
-- Use only these label namespaces: `protocol:*`, `package:*`, `activity:*`,
-  `funding:*`, `source:*`, `agent:*`.
-- Keep private, security-sensitive, exploit-enabling, replay, session, wallet, email, or
-  user-identifying details out of public Linear issue bodies. Store sensitive context only in the
-  private audit notes or handoff the user explicitly approves.
+- Issue bodies include the relevant Greenpill template sections: Outcome or Research question,
+  Protocol context, Scope boundary or Evidence to gather, Acceptance criteria or Expected output,
+  Validation or Routing recommendation, Privacy note when applicable, and Links.
+- Mirrored findings come from `.plans/audits/`.
 
 ---
 
@@ -391,7 +378,7 @@ When `--loop` is passed: audit -> fix -> re-audit cycle.
 1. Run full audit (Parts 0-9)
 2. User decides per finding: Fix / Accept / Defer / Skip
 3. Apply fixes (max 3 per iteration by risk score)
-4. Re-validate: `bun format && bun lint`, `bun run test`, `bun build` on affected packages
+4. Re-validate with the Ship Gate (see `.claude/context/validation-pipeline.md`) on affected packages
 5. Report delta (fixed, regressions, remaining)
 6. Repeat until: no Critical/High remain, 3 iterations hit, or user stops
 

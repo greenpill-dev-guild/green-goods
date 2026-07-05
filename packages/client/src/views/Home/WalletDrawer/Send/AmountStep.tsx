@@ -1,4 +1,9 @@
-import { cn, formatTokenAmount, type SendableTokenBalance } from "@green-goods/shared";
+import {
+  cn,
+  formatTokenAmount,
+  FormattedAmountInput,
+  type SendableTokenBalance,
+} from "@green-goods/shared";
 import { RiCheckLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import type { AmountValidation } from "./validation";
@@ -38,13 +43,25 @@ export function AmountStep({
         </h4>
 
         {isLoading ? (
-          <div className="space-y-2.5 animate-pulse">
-            {Array.from({ length: 3 }, (_, index) => (
-              <div key={index} className="h-12 rounded-lg bg-bg-weak-50" />
-            ))}
+          <div className="space-y-2.5" role="status">
+            <p className="text-xs text-text-soft-400">
+              {formatMessage({
+                id: "app.send.token.loading",
+                defaultMessage: "Checking your token balances…",
+              })}
+            </p>
+            <div className="space-y-2.5 animate-pulse" aria-hidden="true">
+              {Array.from({ length: 3 }, (_, index) => (
+                <div key={index} className="h-12 rounded-lg bg-bg-weak-50" />
+              ))}
+            </div>
           </div>
         ) : (
-          <div className="space-y-2">
+          <div
+            className="space-y-2"
+            role="group"
+            aria-label={formatMessage({ id: "app.send.token.title" })}
+          >
             {tokens.map((token) => {
               const selectable = tokenIsSelectable(token);
               const selected = selectedToken?.address.toLowerCase() === token.address.toLowerCase();
@@ -56,7 +73,7 @@ export function AmountStep({
                   onClick={() => onSelectToken(token)}
                   aria-pressed={selected}
                   className={cn(
-                    "flex w-full items-center justify-between gap-3 rounded-lg border p-3 text-left transition",
+                    "flex w-full items-center justify-between gap-3 rounded-lg border p-3 text-left transition duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
                     selected
                       ? "border-primary-base bg-primary-base/10"
                       : "border-stroke-soft-200 bg-bg-white-0 hover:bg-bg-weak-50",
@@ -81,8 +98,24 @@ export function AmountStep({
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-2 text-right">
-                    <span className="text-xs text-text-sub-600">
-                      {formatTokenAmount(token.balance ?? 0n, token.decimals)}
+                    <span
+                      className="text-xs text-text-sub-600"
+                      title={
+                        token.balance === null
+                          ? formatMessage({ id: "app.balance.unavailable" })
+                          : undefined
+                      }
+                    >
+                      {token.balance === null ? (
+                        <>
+                          <span aria-hidden>—</span>
+                          <span className="sr-only">
+                            {formatMessage({ id: "app.balance.unavailable" })}
+                          </span>
+                        </>
+                      ) : (
+                        formatTokenAmount(token.balance, token.decimals)
+                      )}
                     </span>
                     {selected ? (
                       <RiCheckLine className="h-4 w-4 text-primary-base" aria-hidden />
@@ -100,47 +133,45 @@ export function AmountStep({
           <h4 className="text-xs font-medium uppercase tracking-wide text-text-soft-400">
             {formatMessage({ id: "app.send.amount.label" })}
           </h4>
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              inputMode="decimal"
-              value={amountInput}
-              onChange={(event) => onAmountChange(event.target.value)}
-              placeholder="0.0"
-              aria-label={formatMessage({ id: "app.send.amount.label" })}
-              aria-invalid={Boolean(validation.formatErrorId || validation.insufficient)}
-              className={cn(
-                "w-full rounded-md border px-3 py-2.5 text-sm text-text-strong-950 focus:outline-none focus:ring-2 focus:ring-primary-base/20",
-                validation.formatErrorId || validation.insufficient
-                  ? "border-error-base focus:border-error-base"
-                  : "border-stroke-sub-300 bg-bg-white-0 focus:border-primary-base"
-              )}
-            />
-            <button
-              type="button"
-              onClick={onMax}
-              className="min-h-11 min-w-11 rounded-md border border-stroke-sub-300 bg-bg-white-0 px-3 py-2.5 text-xs font-medium text-text-sub-600 hover:bg-bg-weak-50"
-            >
-              {formatMessage({ id: "app.treasury.max" })}
-            </button>
-          </div>
-          {validation.formatErrorId ? (
-            <p className="text-xs text-error-dark" role="alert">
-              {formatMessage({ id: validation.formatErrorId })}
-            </p>
-          ) : null}
-          {validation.insufficient ? (
-            <p className="text-xs text-error-dark" role="alert">
-              {formatMessage(
-                { id: "app.send.amount.insufficient" },
-                { symbol: selectedToken.symbol }
-              )}
-            </p>
-          ) : null}
+          <FormattedAmountInput
+            value={amountInput}
+            onValueChange={onAmountChange}
+            placeholder="0.0"
+            aria-label={formatMessage({ id: "app.send.amount.label" })}
+            aria-invalid={Boolean(validation.formatErrorId || validation.insufficient)}
+            inputClassName={cn(
+              "w-full rounded-md border px-3 py-2.5 text-sm text-text-strong-950 focus:outline-none focus:ring-2 focus:ring-primary-base/20",
+              validation.formatErrorId || validation.insufficient
+                ? "border-error-base focus:border-error-base"
+                : "border-stroke-sub-300 bg-bg-white-0 focus:border-primary-base"
+            )}
+            endSlot={
+              <button
+                type="button"
+                onClick={onMax}
+                className="min-h-11 min-w-11 rounded-md border border-stroke-sub-300 bg-bg-white-0 px-3 py-2.5 text-xs font-medium text-text-sub-600 hover:bg-bg-weak-50"
+              >
+                {formatMessage({ id: "app.treasury.max" })}
+              </button>
+            }
+            errorClassName="mt-2 text-xs text-error-dark"
+            error={
+              validation.formatErrorId
+                ? formatMessage({ id: validation.formatErrorId })
+                : validation.insufficient
+                  ? formatMessage(
+                      { id: "app.send.amount.insufficient" },
+                      { symbol: selectedToken.symbol }
+                    )
+                  : null
+            }
+          />
         </section>
       ) : null}
 
-      {!isLoading && tokens.length > 0 && tokens.every((token) => !tokenIsSelectable(token)) ? (
+      {/* Vacuously true for an empty list, so "nothing to send" covers both
+          all-zero balances and no tokens at all. */}
+      {!isLoading && tokens.every((token) => !tokenIsSelectable(token)) ? (
         <p className="text-xs text-text-soft-400">
           {formatMessage({ id: "app.send.token.zeroBalance" })}
         </p>

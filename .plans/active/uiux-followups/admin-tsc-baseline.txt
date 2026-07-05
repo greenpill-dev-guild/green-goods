@@ -1,0 +1,509 @@
+node_modules/.bun/ox@0.11.1+10bb0f8eb665a8bc/node_modules/ox/core/Base64.ts(81,28): error TS2550: Property 'replaceAll' does not exist on type 'string'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2021' or later.
+node_modules/.bun/ox@0.11.1+10bb0f8eb665a8bc/node_modules/ox/core/Errors.ts(27,12): error TS4113: This member cannot have an 'override' modifier because it is not declared in the base class 'Error'.
+node_modules/.bun/ox@0.11.1+10bb0f8eb665a8bc/node_modules/ox/core/Errors.ts(89,20): error TS2554: Expected 0-1 arguments, but got 2.
+node_modules/.bun/ox@0.11.1+10bb0f8eb665a8bc/node_modules/ox/core/Secp256k1.ts(395,23): error TS2345: Argument of type '{ prefix: number; x: bigint; y: bigint; } | { prefix: number; x: bigint; y?: undefined; } | undefined' is not assignable to parameter of type '{ prefix: number; x: bigint; y: bigint; } | { prefix: number; x: bigint; y?: undefined; }'.
+node_modules/.bun/ox@0.11.1+10bb0f8eb665a8bc/node_modules/ox/tempo/KeyAuthorization.ts(487,34): error TS2345: Argument of type 'BaseTuple | readonly [chainId: `0x${string}`, keyType: `0x${string}`, keyId: string, expiry: `0x${string}`] | readonly [chainId: `0x${string}`, keyType: `0x${string}`, keyId: string, expiry: `0x${string}`, limits: readonly [token: string, limit: `0x${string}`][]] | readonly [chainId: `0x${string}`, keyType: `0x${str...' is not assignable to parameter of type 'RecursiveArray<`0x${string}`>'.
+node_modules/.bun/ox@0.11.1+10bb0f8eb665a8bc/node_modules/ox/tempo/SignatureEnvelope.ts(828,7): error TS2345: Argument of type 'string' is not assignable to parameter of type '`0x${string}`'.
+node_modules/.bun/ox@0.11.1+10bb0f8eb665a8bc/node_modules/ox/tempo/TokenId.ts(54,33): error TS2345: Argument of type 'string' is not assignable to parameter of type '`0x${string}`'.
+node_modules/.bun/ox@0.11.1+10bb0f8eb665a8bc/node_modules/ox/tempo/TxEnvelopeTempo.ts(661,17): error TS2345: Argument of type 'readonly [`0x${string}`, `0x${string}`, `0x${string}`, `0x${string}`, string[][], readonly [address: string, storageKeys: readonly `0x${string}`[]][], `0x${string}`, `0x${string}`, `0x${string}`, `0x${string}`, string, string | Tuple, readonly (readonly [chainId: `0x${string}`, address: `0x${string}`, nonce: `0x${st...' is not assignable to parameter of type 'RecursiveArray<`0x${string}`>'.
+node_modules/.bun/ox@0.12.1+10bb0f8eb665a8bc/node_modules/ox/core/AbiParameters.ts(284,7): error TS2322: Type 'string' is not assignable to type '`0x${string}`'.
+node_modules/.bun/ox@0.12.1+10bb0f8eb665a8bc/node_modules/ox/core/Base64.ts(81,28): error TS2550: Property 'replaceAll' does not exist on type 'string'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2021' or later.
+node_modules/.bun/ox@0.12.1+10bb0f8eb665a8bc/node_modules/ox/core/Errors.ts(27,12): error TS4113: This member cannot have an 'override' modifier because it is not declared in the base class 'Error'.
+node_modules/.bun/ox@0.12.1+10bb0f8eb665a8bc/node_modules/ox/core/Errors.ts(89,20): error TS2554: Expected 0-1 arguments, but got 2.
+node_modules/.bun/ox@0.12.1+10bb0f8eb665a8bc/node_modules/ox/core/Secp256k1.ts(395,23): error TS2345: Argument of type '{ prefix: number; x: bigint; y: bigint; } | { prefix: number; x: bigint; y?: undefined; } | undefined' is not assignable to parameter of type '{ prefix: number; x: bigint; y: bigint; } | { prefix: number; x: bigint; y?: undefined; }'.
+node_modules/.bun/ox@0.12.1+10bb0f8eb665a8bc/node_modules/ox/tempo/KeyAuthorization.ts(487,34): error TS2345: Argument of type 'BaseTuple | readonly [chainId: `0x${string}`, keyType: `0x${string}`, keyId: string, expiry: `0x${string}`] | readonly [chainId: `0x${string}`, keyType: `0x${string}`, keyId: string, expiry: `0x${string}`, limits: readonly [token: string, limit: `0x${string}`][]] | readonly [chainId: `0x${string}`, keyType: `0x${str...' is not assignable to parameter of type 'RecursiveArray<`0x${string}`>'.
+node_modules/.bun/ox@0.12.1+10bb0f8eb665a8bc/node_modules/ox/tempo/SignatureEnvelope.ts(828,7): error TS2345: Argument of type 'string' is not assignable to parameter of type '`0x${string}`'.
+node_modules/.bun/ox@0.12.1+10bb0f8eb665a8bc/node_modules/ox/tempo/TokenId.ts(56,33): error TS2345: Argument of type 'string' is not assignable to parameter of type '`0x${string}`'.
+node_modules/.bun/ox@0.12.1+10bb0f8eb665a8bc/node_modules/ox/tempo/TxEnvelopeTempo.ts(687,17): error TS2345: Argument of type 'readonly [`0x${string}`, `0x${string}`, `0x${string}`, `0x${string}`, string[][], readonly [address: string, storageKeys: readonly `0x${string}`[]][], `0x${string}`, `0x${string}`, `0x${string}`, `0x${string}`, string, string | Tuple, readonly (readonly [chainId: `0x${string}`, address: `0x${string}`, nonce: `0x${st...' is not assignable to parameter of type 'RecursiveArray<`0x${string}`>'.
+node_modules/.bun/permissionless@0.2.57+be1805240c5526fc/node_modules/permissionless/accounts/biconomy/toBiconomySmartAccount.ts(165,52): error TS2345: Argument of type 'string' is not assignable to parameter of type '`0x${string}`'.
+node_modules/.bun/permissionless@0.2.57+be1805240c5526fc/node_modules/permissionless/accounts/biconomy/toBiconomySmartAccount.ts(222,5): error TS2322: Type '{ client: Client<Transport, Chain | undefined, JsonRpcAccount | { address: string; nonceManager?: NonceManager | undefined; sign?: ((parameters: { ...; }) => Promise<...>) | undefined; ... 6 more ...; type: "local"; } | undefined>; ... 17 more ...; type: "smart"; } | { ...; }' is not assignable to type 'ToBiconomySmartAccountReturnType'.
+node_modules/.bun/permissionless@0.2.57+be1805240c5526fc/node_modules/permissionless/accounts/biconomy/toBiconomySmartAccount.ts(275,9): error TS2322: Type '(data: `0x${string}`) => Promise<{ to: string; value: bigint; data: `0x${string}`; }[]>' is not assignable to type '(data: `0x${string}`) => Promise<readonly Call[]>'.
+node_modules/.bun/permissionless@0.2.57+be1805240c5526fc/node_modules/permissionless/accounts/etherspot/toEtherspotSmartAccount.ts(292,15): error TS2322: Type '(callData: `0x${string}`) => Promise<readonly { to: string; value?: bigint | undefined; data?: `0x${string}` | undefined; }[]>' is not assignable to type '(data: `0x${string}`) => Promise<readonly Call[]>'.
+node_modules/.bun/permissionless@0.2.57+be1805240c5526fc/node_modules/permissionless/accounts/etherspot/utils/getNonceKey.ts(12,13): error TS2322: Type 'string' is not assignable to type '`0x${string}`'.
+node_modules/.bun/permissionless@0.2.57+be1805240c5526fc/node_modules/permissionless/accounts/kernel/toKernelSmartAccount.ts(232,9): error TS2322: Type 'string' is not assignable to type '`0x${string}`'.
+node_modules/.bun/permissionless@0.2.57+be1805240c5526fc/node_modules/permissionless/accounts/kernel/toKernelSmartAccount.ts(588,13): error TS2322: Type 'string' is not assignable to type '`0x${string}`'.
+node_modules/.bun/permissionless@0.2.57+be1805240c5526fc/node_modules/permissionless/accounts/kernel/toKernelSmartAccount.ts(684,15): error TS2322: Type '(callData: `0x${string}`) => Promise<readonly { to: string; value?: bigint | undefined; data?: `0x${string}` | undefined; }[]>' is not assignable to type '(data: `0x${string}`) => Promise<readonly Call[]>'.
+node_modules/.bun/permissionless@0.2.57+be1805240c5526fc/node_modules/permissionless/accounts/kernel/utils/getNonceKey.ts(26,13): error TS2322: Type 'string' is not assignable to type '`0x${string}`'.
+node_modules/.bun/permissionless@0.2.57+be1805240c5526fc/node_modules/permissionless/accounts/kernel/utils/signMessage.ts(71,24): error TS2345: Argument of type 'number | undefined' is not assignable to parameter of type 'string | number | bigint | boolean'.
+node_modules/.bun/permissionless@0.2.57+be1805240c5526fc/node_modules/permissionless/accounts/light/toLightSmartAccount.ts(319,15): error TS2322: Type '(callData: `0x${string}`) => Promise<{ to: string; value: bigint; data: `0x${string}`; }[]>' is not assignable to type '(data: `0x${string}`) => Promise<readonly Call[]>'.
+node_modules/.bun/permissionless@0.2.57+be1805240c5526fc/node_modules/permissionless/accounts/nexus/toNexusSmartAccount.ts(193,5): error TS2322: Type '{ client: Client<Transport, Chain | undefined, JsonRpcAccount | { address: string; nonceManager?: NonceManager | undefined; sign?: ((parameters: { ...; }) => Promise<...>) | undefined; ... 6 more ...; type: "local"; } | undefined>; ... 17 more ...; type: "smart"; } | { ...; }' is not assignable to type 'ToNexusSmartAccountReturnType'.
+node_modules/.bun/permissionless@0.2.57+be1805240c5526fc/node_modules/permissionless/accounts/nexus/toNexusSmartAccount.ts(236,17): error TS2322: Type 'string' is not assignable to type '`0x${string}` | ByteArray'.
+node_modules/.bun/permissionless@0.2.57+be1805240c5526fc/node_modules/permissionless/accounts/nexus/toNexusSmartAccount.ts(244,29): error TS2345: Argument of type '`0x${string}` | ByteArray' is not assignable to parameter of type 'string | number | bigint | boolean'.
+node_modules/.bun/permissionless@0.2.57+be1805240c5526fc/node_modules/permissionless/accounts/nexus/toNexusSmartAccount.ts(258,15): error TS2322: Type '(callData: `0x${string}`) => Promise<readonly { to: string; value?: bigint | undefined; data?: `0x${string}` | undefined; }[]>' is not assignable to type '(data: `0x${string}`) => Promise<readonly Call[]>'.
+node_modules/.bun/permissionless@0.2.57+be1805240c5526fc/node_modules/permissionless/accounts/safe/signUserOperation.ts(179,17): error TS2322: Type 'string' is not assignable to type '`0x${string}`'.
+node_modules/.bun/permissionless@0.2.57+be1805240c5526fc/node_modules/permissionless/accounts/safe/signUserOperation.ts(186,9): error TS2322: Type '`0x${string}` | ByteArray' is not assignable to type '`0x${string}`'.
+node_modules/.bun/permissionless@0.2.57+be1805240c5526fc/node_modules/permissionless/accounts/safe/toSafeSmartAccount.ts(1298,25): error TS2345: Argument of type 'string' is not assignable to parameter of type '`0x${string}`'.
+node_modules/.bun/permissionless@0.2.57+be1805240c5526fc/node_modules/permissionless/accounts/safe/toSafeSmartAccount.ts(1452,9): error TS2322: Type '{ to: string; data: string; value: bigint; }[]' is not assignable to type '{ to: string; data: `0x${string}`; value: bigint; }[]'.
+node_modules/.bun/permissionless@0.2.57+be1805240c5526fc/node_modules/permissionless/accounts/safe/toSafeSmartAccount.ts(1593,33): error TS2322: Type '{ module: string; initData: string; }[]' is not assignable to type 'readonly { module: string; initData: `0x${string}`; }[]'.
+node_modules/.bun/permissionless@0.2.57+be1805240c5526fc/node_modules/permissionless/accounts/safe/toSafeSmartAccount.ts(1668,15): error TS2322: Type '(callData: `0x${string}`) => Promise<readonly { to: string; value?: bigint | undefined; data?: `0x${string}` | undefined; }[]>' is not assignable to type '(data: `0x${string}`) => Promise<readonly Call[]>'.
+node_modules/.bun/permissionless@0.2.57+be1805240c5526fc/node_modules/permissionless/accounts/safe/toSafeSmartAccount.ts(584,13): error TS2322: Type 'string' is not assignable to type '`0x${string}`'.
+node_modules/.bun/permissionless@0.2.57+be1805240c5526fc/node_modules/permissionless/accounts/safe/toSafeSmartAccount.ts(664,17): error TS2322: Type '{ module: string; initData: string; }[]' is not assignable to type 'readonly { module: string; initData: `0x${string}`; }[]'.
+node_modules/.bun/permissionless@0.2.57+be1805240c5526fc/node_modules/permissionless/accounts/safe/toSafeSmartAccount.ts(668,17): error TS2322: Type '{ module: string; initData: string; }[]' is not assignable to type 'readonly { module: string; initData: `0x${string}`; }[]'.
+node_modules/.bun/permissionless@0.2.57+be1805240c5526fc/node_modules/permissionless/accounts/safe/toSafeSmartAccount.ts(672,17): error TS2322: Type '{ module: string; initData: string; }[]' is not assignable to type 'readonly { module: string; initData: `0x${string}`; }[]'.
+node_modules/.bun/permissionless@0.2.57+be1805240c5526fc/node_modules/permissionless/accounts/safe/toSafeSmartAccount.ts(819,21): error TS2322: Type '{ module: string; initData: string; }[]' is not assignable to type 'readonly { module: string; initData: `0x${string}`; }[]'.
+node_modules/.bun/permissionless@0.2.57+be1805240c5526fc/node_modules/permissionless/accounts/safe/toSafeSmartAccount.ts(898,25): error TS2345: Argument of type '{ operation: 0 | 1; to: Address; data: Address; value: bigint; }' is not assignable to parameter of type '{ to: string; data: `0x${string}`; value: bigint; operation: 0 | 1; }'.
+node_modules/.bun/permissionless@0.2.57+be1805240c5526fc/node_modules/permissionless/accounts/safe/toSafeSmartAccount.ts(925,15): error TS2322: Type 'string' is not assignable to type '`0x${string}` | ByteArray'.
+node_modules/.bun/permissionless@0.2.57+be1805240c5526fc/node_modules/permissionless/accounts/simple/toSimpleSmartAccount.ts(337,9): error TS2322: Type '(callData: `0x${string}`) => Promise<{ to: string; data: `0x${string}`; value?: bigint | undefined; }[]>' is not assignable to type '(data: `0x${string}`) => Promise<readonly Call[]>'.
+node_modules/.bun/permissionless@0.2.57+be1805240c5526fc/node_modules/permissionless/accounts/thirdweb/toThirdwebSmartAccount.ts(167,15): error TS2322: Type '(callData: `0x${string}`) => Promise<{ to: string; data: `0x${string}`; value?: bigint | undefined; }[]>' is not assignable to type '(data: `0x${string}`) => Promise<readonly Call[]>'.
+node_modules/.bun/permissionless@0.2.57+be1805240c5526fc/node_modules/permissionless/accounts/trust/toTrustSmartAccount.ts(149,17): error TS2322: Type 'string' is not assignable to type '`0x${string}`'.
+node_modules/.bun/permissionless@0.2.57+be1805240c5526fc/node_modules/permissionless/accounts/trust/toTrustSmartAccount.ts(177,15): error TS2322: Type '(callData: `0x${string}`) => Promise<{ to: string; data: `0x${string}`; value?: bigint | undefined; }[]>' is not assignable to type '(data: `0x${string}`) => Promise<readonly Call[]>'.
+node_modules/.bun/permissionless@0.2.57+be1805240c5526fc/node_modules/permissionless/actions/passkeyServer/startRegistration.ts(119,13): error TS2322: Type 'Bytes' is not assignable to type 'BufferSource | undefined'.
+node_modules/.bun/permissionless@0.2.57+be1805240c5526fc/node_modules/permissionless/utils/encode7579Calls.ts(108,17): error TS2322: Type 'string' is not assignable to type '`0x${string}`'.
+node_modules/.bun/permissionless@0.2.57+be1805240c5526fc/node_modules/permissionless/utils/getPackedUserOperation.ts(10,15): error TS2322: Type 'string' is not assignable to type '`0x${string}` | ByteArray'.
+node_modules/.bun/permissionless@0.2.57+be1805240c5526fc/node_modules/permissionless/utils/getPackedUserOperation.ts(114,9): error TS2322: Type '`0x${string}` | ByteArray' is not assignable to type '`0x${string}`'.
+node_modules/.bun/permissionless@0.2.57+be1805240c5526fc/node_modules/permissionless/utils/getPackedUserOperation.ts(119,9): error TS2322: Type '`0x${string}` | ByteArray' is not assignable to type '`0x${string}`'.
+node_modules/.bun/permissionless@0.2.57+be1805240c5526fc/node_modules/permissionless/utils/getPackedUserOperation.ts(68,15): error TS2322: Type 'string' is not assignable to type '`0x${string}` | ByteArray'.
+packages/admin/src/components/Action/ActionTranslationEditor.stories.tsx(209,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Action/ActionTranslationEditor.stories.tsx(7,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Action/ActionTranslationEditor.tsx(288,48): error TS2339: Property 'inputs' does not exist on type 'NonNullable<{ title?: string | undefined; description?: string | undefined; needed?: string[] | undefined; optional?: string[] | undefined; } | { title?: string | undefined; description?: string | undefined; feedbackPlaceholder?: string | undefined; inputs?: ActionInstructionInputTranslation[] | undefined; } | { ......'.
+packages/admin/src/components/Action/CreateActionSteps/BasicsStep.stories.tsx(18,7): error TS2741: Property 'translations' is missing in type '{ title: string; slug: string; domain: 0; startTime: Date; endTime: Date; capitals: never[]; media: never[]; instructionConfig: { description: string; uiConfig: { media: { title: string; description: string; ... 4 more ...; optional: never[]; }; details: { ...; }; review: { ...; }; }; }; }' but required in type '{ title: string; slug: string; domain: 0 | 1 | 2 | 3; startTime: Date; endTime: Date; capitals: number[]; media: File[]; instructionConfig: { description: string; uiConfig: { media: { ...; }; details: { ...; }; review: { ...; }; }; }; translations: Partial<...>; }'.
+packages/admin/src/components/Action/CreateActionSteps/BasicsStep.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Action/CreateActionSteps/BasicsStep.stories.tsx(58,5): error TS2322: Type 'Resolver<{ title: string; slug: string; domain: unknown; startTime: unknown; endTime: unknown; capitals: number[]; media: File[]; instructionConfig: { description: string; uiConfig: { media: { title: string; description: string; ... 4 more ...; optional: string[]; }; details: { ...; }; review: { ...; }; }; }; transl...' is not assignable to type 'Resolver<{ title: string; slug: string; domain: 0 | 1 | 2 | 3; startTime: Date; endTime: Date; capitals: number[]; media: File[]; instructionConfig: { description: string; uiConfig: { media: { ...; }; details: { ...; }; review: { ...; }; }; }; translations: Partial<...>; }, any, { ...; }>'.
+packages/admin/src/components/Action/CreateActionSteps/BasicsStep.stories.tsx(69,22): error TS2322: Type 'UseFormReturn<{ title: string; slug: string; domain: 0 | 1 | 2 | 3; startTime: Date; endTime: Date; capitals: number[]; media: File[]; instructionConfig: { description: string; uiConfig: { media: { ...; }; details: { ...; }; review: { ...; }; }; }; translations: Partial<...>; }, any, TFieldValues>' is not assignable to type 'UseFormReturn<{ title: string; slug: string; domain: 0 | 1 | 2 | 3; startTime: Date; endTime: Date; capitals: number[]; media: File[]; instructionConfig: { description: string; uiConfig: { media: { ...; }; details: { ...; }; review: { ...; }; }; }; translations: Partial<...>; }>'.
+packages/admin/src/components/Action/CreateActionSteps/BasicsStep.stories.tsx(86,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Action/CreateActionSteps/CapitalsStep.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Action/CreateActionSteps/CapitalsStep.stories.tsx(36,5): error TS2322: Type 'Resolver<{ title: string; slug: string; domain: unknown; startTime: unknown; endTime: unknown; capitals: number[]; media: File[]; instructionConfig: { description: string; uiConfig: { media: { title: string; description: string; ... 4 more ...; optional: string[]; }; details: { ...; }; review: { ...; }; }; }; transl...' is not assignable to type 'Resolver<{ title: string; slug: string; domain: 0 | 1 | 2 | 3; startTime: Date; endTime: Date; capitals: number[]; media: File[]; instructionConfig: { description: string; uiConfig: { media: { ...; }; details: { ...; }; review: { ...; }; }; }; translations: Partial<...>; }, any, { ...; }>'.
+packages/admin/src/components/Action/CreateActionSteps/CapitalsStep.stories.tsx(39,24): error TS2322: Type 'UseFormReturn<{ title: string; slug: string; domain: 0 | 1 | 2 | 3; startTime: Date; endTime: Date; capitals: number[]; media: File[]; instructionConfig: { description: string; uiConfig: { media: { ...; }; details: { ...; }; review: { ...; }; }; }; translations: Partial<...>; }, any, TFieldValues>' is not assignable to type 'UseFormReturn<{ title: string; slug: string; domain: 0 | 1 | 2 | 3; startTime: Date; endTime: Date; capitals: number[]; media: File[]; instructionConfig: { description: string; uiConfig: { media: { ...; }; details: { ...; }; review: { ...; }; }; }; translations: Partial<...>; }>'.
+packages/admin/src/components/Action/CreateActionSteps/CapitalsStep.stories.tsx(56,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Action/CreateActionSteps/CapitalsStep.stories.tsx(7,7): error TS2741: Property 'translations' is missing in type '{ title: string; slug: string; domain: 0; startTime: Date; endTime: Date; capitals: never[]; media: never[]; instructionConfig: { description: string; uiConfig: { media: { title: string; description: string; ... 4 more ...; optional: never[]; }; details: { ...; }; review: { ...; }; }; }; }' but required in type '{ title: string; slug: string; domain: 0 | 1 | 2 | 3; startTime: Date; endTime: Date; capitals: number[]; media: File[]; instructionConfig: { description: string; uiConfig: { media: { ...; }; details: { ...; }; review: { ...; }; }; }; translations: Partial<...>; }'.
+packages/admin/src/components/Action/CreateActionSteps/CapitalsStep.tsx(124,11): error TS2322: Type '{ id: string; currentFiles: File[]; onFilesChange: (files: File[]) => void; onRemoveFile: (index: number) => void; accept: string; multiple: true; showPreview: true; compress: true; }' is not assignable to type 'IntrinsicAttributes & FileUploadFieldProps'.
+packages/admin/src/components/Action/CreateActionSteps/InstructionsStep.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Action/CreateActionSteps/InstructionsStep.stories.tsx(53,5): error TS2322: Type 'Resolver<{ title: string; slug: string; domain: unknown; startTime: unknown; endTime: unknown; capitals: number[]; media: File[]; instructionConfig: { description: string; uiConfig: { media: { title: string; description: string; ... 4 more ...; optional: string[]; }; details: { ...; }; review: { ...; }; }; }; transl...' is not assignable to type 'Resolver<{ title: string; slug: string; domain: 0 | 1 | 2 | 3; startTime: Date; endTime: Date; capitals: number[]; media: File[]; instructionConfig: { description: string; uiConfig: { media: { ...; }; details: { ...; }; review: { ...; }; }; }; translations: Partial<...>; }, any, { ...; }>'.
+packages/admin/src/components/Action/CreateActionSteps/InstructionsStep.stories.tsx(56,28): error TS2322: Type 'UseFormReturn<{ title: string; slug: string; domain: 0 | 1 | 2 | 3; startTime: Date; endTime: Date; capitals: number[]; media: File[]; instructionConfig: { description: string; uiConfig: { media: { ...; }; details: { ...; }; review: { ...; }; }; }; translations: Partial<...>; }, any, TFieldValues>' is not assignable to type 'UseFormReturn<{ title: string; slug: string; domain: 0 | 1 | 2 | 3; startTime: Date; endTime: Date; capitals: number[]; media: File[]; instructionConfig: { description: string; uiConfig: { media: { ...; }; details: { ...; }; review: { ...; }; }; }; translations: Partial<...>; }>'.
+packages/admin/src/components/Action/CreateActionSteps/InstructionsStep.stories.tsx(7,7): error TS2741: Property 'translations' is missing in type '{ title: string; slug: string; domain: 0; startTime: Date; endTime: Date; capitals: never[]; media: never[]; instructionConfig: { description: string; uiConfig: { media: { title: string; description: string; ... 4 more ...; optional: string[]; }; details: { ...; }; review: { ...; }; }; }; }' but required in type '{ title: string; slug: string; domain: 0 | 1 | 2 | 3; startTime: Date; endTime: Date; capitals: number[]; media: File[]; instructionConfig: { description: string; uiConfig: { media: { ...; }; details: { ...; }; review: { ...; }; }; }; translations: Partial<...>; }'.
+packages/admin/src/components/Action/CreateActionSteps/InstructionsStep.stories.tsx(73,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Action/CreateActionSteps/ReviewStep.stories.tsx(15,9): error TS2322: Type '{ title: string; slug: string; domain: 0 | 1 | 2 | 3; startTime: Date; endTime: Date; capitals: number[]; media: File[]; instructionConfig: { description: string; uiConfig: { media: { ...; }; details: { ...; }; review: { ...; }; }; }; translations?: Partial<...> | undefined; }' is not assignable to type '{ title: string; slug: string; domain: 0 | 1 | 2 | 3; startTime: Date; endTime: Date; capitals: number[]; media: File[]; instructionConfig: { description: string; uiConfig: { media: { ...; }; details: { ...; }; review: { ...; }; }; }; translations: Partial<...>; }'.
+packages/admin/src/components/Action/CreateActionSteps/ReviewStep.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Action/CreateActionSteps/ReviewStep.stories.tsx(66,5): error TS2322: Type 'Resolver<{ title: string; slug: string; domain: unknown; startTime: unknown; endTime: unknown; capitals: number[]; media: File[]; instructionConfig: { description: string; uiConfig: { media: { title: string; description: string; ... 4 more ...; optional: string[]; }; details: { ...; }; review: { ...; }; }; }; transl...' is not assignable to type 'Resolver<{ title: string; slug: string; domain: 0 | 1 | 2 | 3; startTime: Date; endTime: Date; capitals: number[]; media: File[]; instructionConfig: { description: string; uiConfig: { media: { ...; }; details: { ...; }; review: { ...; }; }; }; translations: Partial<...>; }, any, { ...; }>'.
+packages/admin/src/components/Action/CreateActionSteps/ReviewStep.stories.tsx(69,22): error TS2322: Type 'UseFormReturn<{ title: string; slug: string; domain: 0 | 1 | 2 | 3; startTime: Date; endTime: Date; capitals: number[]; media: File[]; instructionConfig: { description: string; uiConfig: { media: { ...; }; details: { ...; }; review: { ...; }; }; }; translations: Partial<...>; }, any, TFieldValues>' is not assignable to type 'UseFormReturn<{ title: string; slug: string; domain: 0 | 1 | 2 | 3; startTime: Date; endTime: Date; capitals: number[]; media: File[]; instructionConfig: { description: string; uiConfig: { media: { ...; }; details: { ...; }; review: { ...; }; }; }; translations: Partial<...>; }>'.
+packages/admin/src/components/Action/CreateActionSteps/ReviewStep.stories.tsx(86,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Action/DetailsConfigSection.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Action/DetailsConfigSection.stories.tsx(66,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Action/InstructionsBuilder.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Action/InstructionsBuilder.stories.tsx(76,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Action/MediaConfigSection.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Action/MediaConfigSection.stories.tsx(47,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Action/ReviewConfigSection.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Action/ReviewConfigSection.stories.tsx(27,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/AdminBadge.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/AdminBadge.stories.tsx(42,12): error TS7006: Parameter 'args' implicitly has an 'any' type.
+packages/admin/src/components/AdminBadge.stories.tsx(52,12): error TS7006: Parameter 'args' implicitly has an 'any' type.
+packages/admin/src/components/AdminBadge.stories.tsx(62,12): error TS7006: Parameter 'args' implicitly has an 'any' type.
+packages/admin/src/components/AdminButton.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/AdminCard.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/AdminCard.stories.tsx(63,12): error TS7006: Parameter 'args' implicitly has an 'any' type.
+packages/admin/src/components/AdminCard.stories.tsx(72,12): error TS7006: Parameter 'args' implicitly has an 'any' type.
+packages/admin/src/components/AdminCard.stories.tsx(81,12): error TS7006: Parameter 'args' implicitly has an 'any' type.
+packages/admin/src/components/AdminCard.stories.tsx(90,12): error TS7006: Parameter 'args' implicitly has an 'any' type.
+packages/admin/src/components/AdminCheckbox.stories.tsx(1,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/AdminDialog.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/AdminDialog.stories.tsx(4,41): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/components/AdminFab.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/AdminFilterChip.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/AdminLinearProgress.stories.tsx(1,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/AdminLinearProgress.stories.tsx(45,12): error TS7006: Parameter 'args' implicitly has an 'any' type.
+packages/admin/src/components/AdminLinearProgress.stories.tsx(54,12): error TS7006: Parameter 'args' implicitly has an 'any' type.
+packages/admin/src/components/AdminListItem.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/AdminListItem.stories.tsx(39,12): error TS7006: Parameter 'args' implicitly has an 'any' type.
+packages/admin/src/components/AdminListItem.stories.tsx(53,12): error TS7006: Parameter 'args' implicitly has an 'any' type.
+packages/admin/src/components/AdminListItem.stories.tsx(69,12): error TS7006: Parameter 'args' implicitly has an 'any' type.
+packages/admin/src/components/AdminRevampTokens.stories.tsx(1,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/AdminSearchToolbar.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/AdminSortSelect.stories.tsx(1,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/AdminSortSelect.stories.tsx(2,20): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/components/AdminTabRail.stories.tsx(109,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/components/AdminTabRail.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/AdminTabRail.stories.tsx(4,43): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/components/AdminTextField.stories.tsx(168,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/components/AdminTextField.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/AdminTextField.stories.tsx(3,43): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/components/AdminTextField.stories.tsx(32,12): error TS7006: Parameter 'args' implicitly has an 'any' type.
+packages/admin/src/components/AdminTextField.stories.tsx(41,12): error TS7006: Parameter 'args' implicitly has an 'any' type.
+packages/admin/src/components/AdminTextField.stories.tsx(55,12): error TS7006: Parameter 'args' implicitly has an 'any' type.
+packages/admin/src/components/AdminTextField.stories.tsx(70,12): error TS7006: Parameter 'args' implicitly has an 'any' type.
+packages/admin/src/components/AdminTooltip.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/AdminViewActions.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/AdminViewActions.stories.tsx(3,20): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/components/Assessment/CreateAssessmentSteps/ActionsHarvestStep.stories.tsx(107,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Assessment/CreateAssessmentSteps/ActionsHarvestStep.stories.tsx(119,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Assessment/CreateAssessmentSteps/ActionsHarvestStep.stories.tsx(137,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Assessment/CreateAssessmentSteps/ActionsHarvestStep.stories.tsx(152,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Assessment/CreateAssessmentSteps/ActionsHarvestStep.stories.tsx(9,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Assessment/CreateAssessmentSteps/ActionsHarvestStep.stories.tsx(94,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Assessment/CreateAssessmentSteps/DomainContextStep.stories.tsx(111,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Assessment/CreateAssessmentSteps/DomainContextStep.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Assessment/CreateAssessmentSteps/DomainContextStep.stories.tsx(54,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Assessment/CreateAssessmentSteps/DomainContextStep.stories.tsx(67,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Assessment/CreateAssessmentSteps/DomainContextStep.stories.tsx(80,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Assessment/CreateAssessmentSteps/DomainContextStep.stories.tsx(90,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Assessment/CreateAssessmentSteps/StrategyKernelStep.stories.tsx(115,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Assessment/CreateAssessmentSteps/StrategyKernelStep.stories.tsx(55,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Assessment/CreateAssessmentSteps/StrategyKernelStep.stories.tsx(68,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Assessment/CreateAssessmentSteps/StrategyKernelStep.stories.tsx(7,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Assessment/CreateAssessmentSteps/StrategyKernelStep.stories.tsx(81,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Assessment/CreateAssessmentSteps/StrategyKernelStep.stories.tsx(91,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/ConnectButton.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/EnsAddressText.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/EnsAddressText.stories.tsx(41,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Garden/AddMemberModal.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Garden/AddMemberModal.stories.tsx(3,20): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/components/Garden/AddMemberSheet.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Garden/AddMemberSheet.stories.tsx(3,20): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/components/Garden/AddMemberSheet.tsx(4,8): error TS6133: 'GardenRole' is declared but its value is never read.
+packages/admin/src/components/Garden/CreateGardenSteps/DetailsStep.stories.tsx(119,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Garden/CreateGardenSteps/DetailsStep.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Garden/CreateGardenSteps/DetailsStep.stories.tsx(43,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Garden/CreateGardenSteps/DetailsStep.stories.tsx(63,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Garden/CreateGardenSteps/DetailsStep.stories.tsx(79,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Garden/CreateGardenSteps/DetailsStep.stories.tsx(95,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Garden/CreateGardenSteps/ReviewStep.stories.tsx(112,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Garden/CreateGardenSteps/ReviewStep.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Garden/CreateGardenSteps/ReviewStep.stories.tsx(53,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Garden/CreateGardenSteps/ReviewStep.stories.tsx(66,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Garden/CreateGardenSteps/ReviewStep.stories.tsx(87,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Garden/CreateGardenSteps/TeamStep.stories.tsx(103,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Garden/CreateGardenSteps/TeamStep.stories.tsx(121,23): error TS2322: Type '{ showValidation: boolean; }' is not assignable to type 'IntrinsicAttributes'.
+packages/admin/src/components/Garden/CreateGardenSteps/TeamStep.stories.tsx(133,23): error TS2322: Type '{ showValidation: boolean; }' is not assignable to type 'IntrinsicAttributes'.
+packages/admin/src/components/Garden/CreateGardenSteps/TeamStep.stories.tsx(142,23): error TS2322: Type '{ showValidation: boolean; }' is not assignable to type 'IntrinsicAttributes'.
+packages/admin/src/components/Garden/CreateGardenSteps/TeamStep.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Garden/CreateGardenSteps/TeamStep.stories.tsx(48,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Garden/CreateGardenSteps/TeamStep.stories.tsx(68,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Garden/CreateGardenSteps/TeamStep.stories.tsx(84,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Garden/GardenAssessmentsPanel.stories.tsx(1,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Garden/GardenCommunityCard.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Garden/GardenCommunityCard.stories.tsx(3,20): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/components/Garden/GardenCommunityCard.tsx(116,20): error TS7053: Element implicitly has an 'any' type because expression of type 'number' can't be used to index type 'Record<WeightScheme, WeightSchemeConfig>'.
+packages/admin/src/components/Garden/GardenCommunityCard.tsx(120,20): error TS7053: Element implicitly has an 'any' type because expression of type 'number' can't be used to index type 'Record<WeightScheme, WeightSchemeConfig>'.
+packages/admin/src/components/Garden/GardenCommunityCard.tsx(124,20): error TS7053: Element implicitly has an 'any' type because expression of type 'number' can't be used to index type 'Record<WeightScheme, WeightSchemeConfig>'.
+packages/admin/src/components/Garden/GardenDomainEditor.stories.tsx(3,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Garden/GardenDomainEditor.stories.tsx(5,20): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/components/Garden/GardenHypercertsPanel.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Garden/GardenMetadata.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Garden/GardenMetadata.stories.tsx(31,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Garden/GardenRolesPanel.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Garden/GardenRolesPanel.stories.tsx(3,20): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/components/Garden/GardenSettingsEditor.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Garden/GardenSettingsEditor.stories.tsx(24,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Garden/GardenYieldCard.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Garden/ManageRolesModal.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Garden/ManageRolesModal.stories.tsx(3,20): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/components/Garden/MembersModal.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Garden/MembersModal.stories.tsx(3,20): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/components/Hypercerts/ActiveListingsTable.stories.tsx(7,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Hypercerts/ActiveListingsTable.stories.tsx(8,20): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/components/Hypercerts/CreateListingDialog.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Hypercerts/CreateListingDialog.stories.tsx(3,20): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/components/Hypercerts/DistributionChart.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Hypercerts/DistributionChart.stories.tsx(38,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Hypercerts/DistributionChart.tsx(109,23): error TS2339: Property 'percentage' does not exist on type 'PieLabelRenderProps'.
+packages/admin/src/components/Hypercerts/HypercertWizard/index.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Hypercerts/HypercertWizard/index.stories.tsx(3,20): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/components/Hypercerts/HypercertWizard/index.tsx(54,11): error TS2322: Type 'EASGardenAssessment[] | undefined' is not assignable to type 'GardenAssessment[] | undefined'.
+packages/admin/src/components/Hypercerts/HypercertWizard/index.tsx(68,11): error TS2322: Type 'EASGardenAssessment | null' is not assignable to type 'GardenAssessment | null | undefined'.
+packages/admin/src/components/Hypercerts/HypercertWizard/index.tsx(94,11): error TS2322: Type 'EASGardenAssessment | null' is not assignable to type 'GardenAssessment | null | undefined'.
+packages/admin/src/components/Hypercerts/MarketplaceApprovalGate.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Hypercerts/MarketplaceApprovalGate.stories.tsx(37,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Hypercerts/MintingDialog.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Hypercerts/MintingDialog.stories.tsx(3,20): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/components/Hypercerts/Steps/AttestationSelector.stories.tsx(8,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Hypercerts/Steps/AttestationSelector.stories.tsx(9,20): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/components/Hypercerts/Steps/DistributionConfig.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Hypercerts/Steps/DistributionConfig.stories.tsx(31,7): error TS2322: Type 'Dispatch<SetStateAction<"value" | "custom" | "count" | "equal">>' is not assignable to type '(mode: DistributionMode) => void'.
+packages/admin/src/components/Hypercerts/Steps/DistributionConfig.stories.tsx(51,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Hypercerts/Steps/HypercertPreview.stories.tsx(10,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Hypercerts/Steps/HypercertPreview.stories.tsx(11,20): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/components/Hypercerts/Steps/HypercertPreview.stories.tsx(24,5): error TS2741: Property 'name' is missing in type '{ value: string[]; excludes: never[]; }' but required in type 'ScopeDefinition'.
+packages/admin/src/components/Hypercerts/Steps/HypercertPreview.stories.tsx(25,5): error TS2741: Property 'name' is missing in type '{ value: string[]; excludes: never[]; }' but required in type 'ScopeDefinition'.
+packages/admin/src/components/Hypercerts/Steps/HypercertPreview.stories.tsx(26,5): error TS2741: Property 'name' is missing in type '{ value: [number, number]; display_value: string; }' but required in type 'TimeframeDefinition'.
+packages/admin/src/components/Hypercerts/Steps/HypercertPreview.stories.tsx(27,5): error TS2741: Property 'name' is missing in type '{ value: [number, number]; display_value: string; }' but required in type 'TimeframeDefinition'.
+packages/admin/src/components/Hypercerts/Steps/HypercertPreview.stories.tsx(28,5): error TS2741: Property 'name' is missing in type '{ value: string[]; excludes: never[]; }' but required in type 'ScopeDefinition'.
+packages/admin/src/components/Hypercerts/Steps/HypercertPreview.stories.tsx(29,5): error TS2741: Property 'name' is missing in type '{ value: string[]; excludes: never[]; }' but required in type 'ScopeDefinition'.
+packages/admin/src/components/Hypercerts/Steps/MetadataEditor.stories.tsx(107,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Hypercerts/Steps/MetadataEditor.stories.tsx(28,3): error TS2739: Type '{}' is missing the following properties from type 'OutcomeMetrics': predefined, custom
+packages/admin/src/components/Hypercerts/Steps/MetadataEditor.stories.tsx(8,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Hypercerts/Steps/MetadataEditor.tsx(144,9): error TS2322: Type 'Element' is not assignable to type 'string'.
+packages/admin/src/components/Hypercerts/Steps/MetadataEditor.tsx(172,13): error TS2322: Type 'Element' is not assignable to type 'string'.
+packages/admin/src/components/Hypercerts/Steps/MintProgress.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Hypercerts/Steps/MintProgress.stories.tsx(37,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Hypercerts/TradeHistoryTable.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Layout/AccountProfilePanel.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Layout/AccountProfilePanel.stories.tsx(3,32): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/components/Layout/AccountProfilePanel.stories.tsx(59,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Layout/AccountProfilePanel.stories.tsx(80,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/components/Layout/AccountSettingsPanel.stories.tsx(102,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/components/Layout/AccountSettingsPanel.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Layout/AccountSettingsPanel.stories.tsx(4,32): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/components/Layout/AccountSettingsPanel.stories.tsx(81,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Layout/AccountSurface.stories.tsx(1,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Layout/AccountSurface.stories.tsx(25,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Layout/AccountSurface.stories.tsx(54,12): error TS7006: Parameter 'args' implicitly has an 'any' type.
+packages/admin/src/components/Layout/AccountSurface.stories.tsx(58,12): error TS7006: Parameter 'args' implicitly has an 'any' type.
+packages/admin/src/components/Layout/AccountSurface.stories.tsx(6,38): error TS2307: Cannot find module './accountSheet.events' or its corresponding type declarations.
+packages/admin/src/components/Layout/ActionFlowShell.stories.tsx(1,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Layout/ActionFlowShell.stories.tsx(3,20): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/components/Layout/ActionFlowShell.stories.tsx(60,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Layout/ActionFlowStepper.stories.tsx(1,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Layout/ActionFlowStepper.stories.tsx(17,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Layout/ActionFlowStepper.stories.tsx(54,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Layout/AdminAccessStateRenderer.stories.tsx(1,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Layout/AdminAccessStateRenderer.stories.tsx(2,20): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/components/Layout/AdminToneGallery.stories.tsx(1,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Layout/AdminToneGallery.stories.tsx(3,20): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/components/Layout/CanvasGardenAccessState.stories.tsx(1,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Layout/CanvasGardenAccessState.stories.tsx(2,20): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/components/Layout/CanvasIndexerErrorState.stories.tsx(1,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Layout/CanvasIndexerErrorState.stories.tsx(2,47): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/components/Layout/CanvasIndexerErrorState.stories.tsx(63,18): error TS7031: Binding element 'args' implicitly has an 'any' type.
+packages/admin/src/components/Layout/CanvasIndexerErrorState.stories.tsx(63,24): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/components/Layout/CanvasIndexerErrorState.stories.tsx(78,12): error TS7006: Parameter 'args' implicitly has an 'any' type.
+packages/admin/src/components/Layout/CanvasLayout.stories.tsx(10,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Layout/CanvasLayout.stories.tsx(102,18): error TS2322: Type '{ children: Element; isReceded: boolean; }' is not assignable to type 'IntrinsicAttributes & MainSheetProps'.
+packages/admin/src/components/Layout/CanvasLayout.stories.tsx(13,56): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/components/Layout/CanvasLayout.stories.tsx(248,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/components/Layout/CanvasLayout.stories.tsx(311,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/components/Layout/CanvasLayout.stories.tsx(338,12): error TS7006: Parameter 'args' implicitly has an 'any' type.
+packages/admin/src/components/Layout/CanvasLayout.stories.tsx(346,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/components/Layout/CanvasLayout.stories.tsx(360,12): error TS7006: Parameter 'args' implicitly has an 'any' type.
+packages/admin/src/components/Layout/CanvasLayout.stories.tsx(375,12): error TS7006: Parameter 'args' implicitly has an 'any' type.
+packages/admin/src/components/Layout/CanvasLayout.tsx(199,10): error TS6133: 'sheetLayerRoot' is declared but its value is never read.
+packages/admin/src/components/Layout/CanvasRouteFrame.stories.tsx(1,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Layout/CanvasRouteFrame.tsx(23,28): error TS2339: Property 'data-component' does not exist on type 'Omit<DetailedHTMLProps<HTMLAttributes<HTMLDivElement>, HTMLDivElement>, "ref">'.
+packages/admin/src/components/Layout/CanvasRouteFrame.tsx(42,3): error TS2339: Property 'data-component' does not exist on type 'CanvasRouteContentProps'.
+packages/admin/src/components/Layout/CanvasRouteFrame.tsx(43,3): error TS2339: Property 'data-region' does not exist on type 'CanvasRouteContentProps'.
+packages/admin/src/components/Layout/CanvasRouteState.stories.tsx(1,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Layout/CanvasRouteState.stories.tsx(2,20): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/components/Layout/CanvasWorkspaceSelectionState.stories.tsx(1,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Layout/CanvasWorkspaceSelectionState.stories.tsx(2,20): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/components/Layout/CommandPalette.stories.tsx(11,52): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/components/Layout/CommandPalette.stories.tsx(389,12): error TS7006: Parameter 'args' implicitly has an 'any' type.
+packages/admin/src/components/Layout/CommandPalette.stories.tsx(394,12): error TS7006: Parameter 'args' implicitly has an 'any' type.
+packages/admin/src/components/Layout/CommandPalette.stories.tsx(402,12): error TS7006: Parameter 'args' implicitly has an 'any' type.
+packages/admin/src/components/Layout/CommandPalette.stories.tsx(412,12): error TS7006: Parameter 'args' implicitly has an 'any' type.
+packages/admin/src/components/Layout/CommandPalette.stories.tsx(425,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/components/Layout/CommandPalette.stories.tsx(8,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Layout/ConnectShell.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Layout/ControlledChromeContract.stories.tsx(10,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Layout/ControlledChromeContract.stories.tsx(103,18): error TS2322: Type '{ children: Element; isReceded: boolean; }' is not assignable to type 'IntrinsicAttributes & MainSheetProps'.
+packages/admin/src/components/Layout/ControlledChromeContract.stories.tsx(12,36): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/components/Layout/ControlledChromeContract.stories.tsx(208,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/components/Layout/ControlledChromeContract.stories.tsx(230,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/components/Layout/FormFlow.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Layout/FormFlow.stories.tsx(3,20): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/components/Layout/FormFlow.stories.tsx(75,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Layout/PageHeader.stories.tsx(166,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Layout/PageHeader.stories.tsx(8,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Layout/PageTransition.stories.tsx(1,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Layout/RightSheetRegistry.stories.tsx(11,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Layout/RightSheetRegistry.stories.tsx(13,43): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/components/Layout/RightSheetRegistry.stories.tsx(179,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/components/Layout/RightSheetRegistry.stories.tsx(208,16): error TS7006: Parameter 'button' implicitly has an 'any' type.
+packages/admin/src/components/Layout/SeedlingIllustration.stories.tsx(1,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Layout/UserAvatar.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Layout/UserAvatar.stories.tsx(3,20): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/components/Layout/UserAvatar.stories.tsx(31,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Layout/UserMenu.stories.tsx(10,20): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/components/Layout/UserMenu.stories.tsx(101,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Layout/UserMenu.stories.tsx(9,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/RouteErrorBoundary.stories.tsx(1,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Vault/DepositModal.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Vault/DepositModal.stories.tsx(3,20): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/components/Vault/FunderRow.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Vault/FunderRow.stories.tsx(49,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Vault/GardenSupporters.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Vault/GardenSupporters.stories.tsx(95,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Vault/ImpactFunders.stories.tsx(122,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Vault/ImpactFunders.stories.tsx(3,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Vault/PositionCard.stories.tsx(158,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/components/Vault/PositionCard.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Vault/PositionCard.stories.tsx(3,20): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/components/Vault/PositionCardEmergencyPause.stories.tsx(1,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Vault/PositionCardEmergencyPause.stories.tsx(102,12): error TS7006: Parameter 'args' implicitly has an 'any' type.
+packages/admin/src/components/Vault/PositionCardEmergencyPause.stories.tsx(104,18): error TS7031: Binding element 'args' implicitly has an 'any' type.
+packages/admin/src/components/Vault/PositionCardEmergencyPause.stories.tsx(104,24): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/components/Vault/PositionCardEmergencyPause.stories.tsx(120,45): error TS7006: Parameter 'animation' implicitly has an 'any' type.
+packages/admin/src/components/Vault/PositionCardEmergencyPause.stories.tsx(3,56): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/components/Vault/VaultEventHistory.stories.tsx(8,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Vault/WithdrawModal.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/components/Vault/WithdrawModal.stories.tsx(3,20): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/main.tsx(63,7): error TS2322: Type 'QueryPersister' is not assignable to type 'Persister'.
+packages/admin/src/routes/IndexRoute.stories.tsx(1,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/routes/IndexRoute.stories.tsx(104,3): error TS2322: Type 'string' is not assignable to type '`0x${string}`'.
+packages/admin/src/routes/IndexRoute.stories.tsx(14,36): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/routes/IndexRoute.stories.tsx(179,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/routes/IndexRoute.stories.tsx(190,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/routes/IndexRoute.stories.tsx(200,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/routes/IndexRoute.stories.tsx(212,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/routes/IndexRoute.stories.tsx(222,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/routes/IndexRoute.stories.tsx(256,18): error TS2322: Type '{ children: Element; isReceded: boolean; }' is not assignable to type 'IntrinsicAttributes & MainSheetProps'.
+packages/admin/src/routes/IndexRoute.stories.tsx(71,3): error TS2322: Type 'string' is not assignable to type '`0x${string}`'.
+packages/admin/src/routes/IndexRoute.stories.tsx(72,3): error TS2322: Type 'string' is not assignable to type '`0x${string}`'.
+packages/admin/src/routes/IndexRoute.stories.tsx(75,3): error TS2322: Type 'string' is not assignable to type '`0x${string}`'.
+packages/admin/src/views/Actions/Actions.stories.tsx(1,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/views/Actions/Actions.stories.tsx(2,41): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/views/Actions/Actions.stories.tsx(66,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/views/Actions/Actions.stories.tsx(86,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/views/Actions/ActionsSheetDescriptor.stories.tsx(1,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/views/Actions/ActionsSheetDescriptor.stories.tsx(143,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/views/Actions/ActionsSheetDescriptor.stories.tsx(166,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/views/Actions/ActionsSheetDescriptor.stories.tsx(206,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/views/Actions/ActionsSheetDescriptor.stories.tsx(239,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/views/Actions/ActionsSheetDescriptor.stories.tsx(3,41): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/views/Actions/EditAction.tsx(129,5): error TS2322: Type 'Resolver<{ title: string; startTime: unknown; endTime: unknown; }, any, { title: string; startTime: Date; endTime: Date; }>' is not assignable to type 'Resolver<{ title: string; startTime: Date; endTime: Date; }, any, { title: string; startTime: Date; endTime: Date; }>'.
+packages/admin/src/views/Actions/EditAction.tsx(250,9): error TS2345: Argument of type 'EditActionSessionDraft' is not assignable to parameter of type 'Record<string, unknown>'.
+packages/admin/src/views/Actions/EditAction.tsx(276,7): error TS2345: Argument of type 'EditActionSessionDraft' is not assignable to parameter of type 'Record<string, unknown>'.
+packages/admin/src/views/Actions/EditAction.tsx(405,41): error TS2345: Argument of type '(data: EditActionFormData) => Promise<void>' is not assignable to parameter of type 'SubmitHandler<TFieldValues>'.
+packages/admin/src/views/Actions/index.tsx(72,7): error TS2322: Type '{ (this: void, descriptor: MessageDescriptor, values?: Record<string, PrimitiveType | FormatXMLElementFn<string, string>> | undefined, opts?: Options | undefined): string; (this: void, descriptor: MessageDescriptor, values?: Record<...> | undefined, opts?: Options | undefined): ReactNode[]; }' is not assignable to type '(descriptor: { id: string; defaultMessage?: string | undefined; }, values?: Record<string, unknown> | undefined) => string'.
+packages/admin/src/views/Community/Community.stories.tsx(1,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/views/Community/Community.stories.tsx(100,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/views/Community/Community.stories.tsx(151,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/views/Community/Community.stories.tsx(2,41): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/views/Community/Community.stories.tsx(66,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/views/Community/components/CommunityTab.stories.tsx(10,20): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/views/Community/components/CommunityTab.stories.tsx(9,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/views/Community/components/CommunityTab.tsx(150,17): error TS2322: Type 'unknown' is not assignable to type 'Community | undefined'.
+packages/admin/src/views/Community/components/CommunityTab.tsx(156,17): error TS2322: Type '() => void' is not assignable to type '() => Promise<void>'.
+packages/admin/src/views/Community/components/GovernancePanel.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/views/Community/index.tsx(49,9): error TS2322: Type '{ (this: void, descriptor: MessageDescriptor, values?: Record<string, PrimitiveType | FormatXMLElementFn<string, string>> | undefined, opts?: Options | undefined): string; (this: void, descriptor: MessageDescriptor, values?: Record<...> | undefined, opts?: Options | undefined): ReactNode[]; }' is not assignable to type '(descriptor: { id: string; defaultMessage?: string | undefined; }, values?: Record<string, unknown> | undefined) => string'.
+packages/admin/src/views/Cookies/Cookies.stories.tsx(1,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/views/Cookies/Cookies.stories.tsx(121,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/views/Cookies/Cookies.stories.tsx(135,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/views/Cookies/Cookies.stories.tsx(2,32): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/views/Cookies/components/CampaignCookieJarPanel.stories.tsx(1,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/views/Cookies/components/CampaignCookieJarPanel.tsx(265,17): error TS2740: Type 'Pick<Garden, "name" | "id" | "tokenAddress">' is missing the following properties from type 'Garden': chainId, tokenID, description, createdAt, and 10 more.
+packages/admin/src/views/Cookies/components/CampaignCookieJarPanel.tsx(581,33): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+packages/admin/src/views/Garden/Assessment.tsx(72,45): error TS2339: Property 'decodedDataJson' does not exist on type 'EASGardenAssessment'.
+packages/admin/src/views/Garden/Garden.stories.tsx(1,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/views/Garden/Garden.stories.tsx(119,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/views/Garden/Garden.stories.tsx(164,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/views/Garden/Garden.stories.tsx(217,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/views/Garden/Garden.stories.tsx(236,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/views/Garden/Garden.stories.tsx(251,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/views/Garden/Garden.stories.tsx(269,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/views/Garden/Garden.stories.tsx(9,52): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/views/Garden/SignalPool.tsx(113,41): error TS2345: Argument of type '{ gardenId: string | null; }' is not assignable to parameter of type 'AdminCommunityRouteContext'.
+packages/admin/src/views/Garden/SignalPool.tsx(130,9): error TS2345: Argument of type '{ gardenId: string | null; }' is not assignable to parameter of type 'AdminCommunityRouteContext'.
+packages/admin/src/views/Garden/Strategies.tsx(53,41): error TS2345: Argument of type '{ gardenId: string | null; }' is not assignable to parameter of type 'AdminCommunityRouteContext'.
+packages/admin/src/views/Garden/SubmitWork.stories.tsx(1,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/views/Garden/SubmitWork.stories.tsx(22,47): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/views/Garden/SubmitWork.stories.tsx(292,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/views/Garden/SubmitWork.stories.tsx(308,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/views/Garden/SubmitWork.stories.tsx(332,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/views/Garden/SubmitWork.stories.tsx(355,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/views/Garden/SubmitWork.stories.tsx(372,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/views/Garden/SubmitWork.stories.tsx(383,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/views/Garden/SubmitWork.tsx(184,93): error TS2345: Argument of type 'string' is not assignable to parameter of type 'string & Record<string, unknown>'.
+packages/admin/src/views/Garden/SubmitWork.tsx(195,52): error TS2769: No overload matches this call.
+packages/admin/src/views/Garden/Vault.tsx(299,61): error TS2345: Argument of type 'string | undefined' is not assignable to parameter of type 'string'.
+packages/admin/src/views/Garden/Vault.tsx(304,35): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+packages/admin/src/views/Garden/WorkDetail/ReviewForm.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/views/Garden/WorkDetail/ReviewForm.stories.tsx(3,20): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/views/Garden/WorkDetail/ReviewForm.stories.tsx(44,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/views/Garden/WorkDetail/SubmissionDetails.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/views/Garden/WorkDetail/SubmissionDetails.stories.tsx(47,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/views/Garden/WorkDetail/index.tsx(121,30): error TS2322: Type 'WorkDisplayStatus' is not assignable to type '"approved" | "pending" | "rejected"'.
+packages/admin/src/views/Garden/WorkDetail/index.tsx(224,11): error TS2322: Type '{ message: string; maxWidthClassName: string; }' is not assignable to type 'IntrinsicAttributes & CanvasRouteErrorStateProps'.
+packages/admin/src/views/Garden/WorkDetail/index.tsx(241,50): error TS2322: Type 'WorkDisplayStatus' is not assignable to type '"approved" | "pending" | "rejected"'.
+packages/admin/src/views/Garden/WorkTab.tsx(169,15): error TS2322: Type '{ id: string; title?: string | undefined; status: string; createdAt: number; }[]' is not assignable to type 'Work[]'.
+packages/admin/src/views/Garden/components/ActionChooserGrid.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/views/Garden/components/ActionChooserGrid.stories.tsx(4,43): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/views/Garden/components/ActionChooserGrid.stories.tsx(81,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/views/Garden/components/GardenWorkspaceContent.tsx(135,46): error TS2551: Property 'maxGardeners' does not exist on type 'Garden'. Did you mean 'gardeners'?
+packages/admin/src/views/Garden/components/GardenWorkspaceContent.tsx(67,11): error TS2322: Type '(updates: { tab?: AdminWorkspaceSectionTab; range?: string; section?: string; item?: string; }, replace?: boolean) => void' is not assignable to type '(updates: Partial<Record<"range" | "section" | "item" | "tab", string | undefined>>, replace?: boolean | undefined) => void'.
+packages/admin/src/views/Garden/components/ImpactTab.stories.tsx(1,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/views/Garden/components/ImpactTab.stories.tsx(2,20): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/views/Garden/components/ImpactTab.tsx(170,15): error TS2322: Type '{ id: string; title?: string | undefined; mintedAt?: number | undefined; }[]' is not assignable to type 'HypercertRecord[]'.
+packages/admin/src/views/Garden/components/OverviewTab.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/views/Garden/components/OverviewTab.stories.tsx(3,20): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/views/Garden/components/SubmitWorkReview.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/views/Garden/components/SubmitWorkReview.stories.tsx(40,17): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/views/Garden/index.tsx(31,9): error TS2322: Type '{ (this: void, descriptor: MessageDescriptor, values?: Record<string, PrimitiveType | FormatXMLElementFn<string, string>> | undefined, opts?: Options | undefined): string; (this: void, descriptor: MessageDescriptor, values?: Record<...> | undefined, opts?: Options | undefined): ReactNode[]; }' is not assignable to type '(descriptor: { id: string; defaultMessage?: string | undefined; }, values?: Record<string, unknown> | undefined) => string'.
+packages/admin/src/views/Hub/Hub.stories.tsx(1,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/views/Hub/Hub.stories.tsx(105,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/views/Hub/Hub.stories.tsx(126,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/views/Hub/Hub.stories.tsx(2,41): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/views/Hub/Hub.stories.tsx(65,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/views/Hub/components/CookieJarDepositModal.stories.tsx(11,20): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/views/Hub/components/CookieJarDepositModal.stories.tsx(9,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/views/Hub/components/CookieJarManageModal.stories.tsx(6,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/views/Hub/components/CookieJarManageModal.stories.tsx(7,20): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/views/Hub/components/CookieJarPayoutPanel.stories.tsx(3,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/views/Hub/components/CookieJarPayoutPanel.stories.tsx(4,20): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/views/Hub/components/CookieJarWithdrawModal.stories.tsx(11,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/views/Hub/components/CookieJarWithdrawModal.stories.tsx(13,20): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/views/Hub/components/HubAssessmentQueue.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/views/Hub/components/HubAssessmentQueue.stories.tsx(3,20): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/views/Hub/components/HubCertificationInspector.stories.tsx(1,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/views/Hub/components/HubCertificationInspector.stories.tsx(19,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/views/Hub/components/HubCertificationInspector.stories.tsx(2,36): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/views/Hub/components/HubCertificationInspector.stories.tsx(45,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/views/Hub/components/HubCertificationQueue.stories.tsx(1,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/views/Hub/components/HubCertificationQueue.stories.tsx(2,20): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/views/Hub/components/HubHistoryInspector.stories.tsx(1,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/views/Hub/components/HubHistoryInspector.stories.tsx(3,32): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/views/Hub/components/HubHistoryInspector.stories.tsx(40,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/views/Hub/components/HubHistoryInspector.stories.tsx(64,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/views/Hub/components/HubHistoryQueue.stories.tsx(1,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/views/Hub/components/HubHistoryQueue.stories.tsx(3,20): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/views/Hub/components/HubStageContent.tsx(114,7): error TS2322: Type '{ items: GardenActivityEvent[]; worksLoading: boolean; fetchingAssessments: boolean; hypercertsLoading: boolean; allocationsLoading: boolean; hasDataError: boolean; selectedHistoryEventId: string | undefined; selectedWorkItemId: string | undefined; onOpenHistoryEvent: (event: GardenActivityEvent) => void; }' is not assignable to type 'IntrinsicAttributes & HubHistoryQueueProps'.
+packages/admin/src/views/Hub/components/HubWorkCard.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/views/Hub/components/HubWorkCard.stories.tsx(33,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/views/Hub/components/HubWorkQueue.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/views/Hub/components/HubWorkQueue.stories.tsx(3,20): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/views/Hub/components/HubWorkbenchSkeletonRows.stories.tsx(1,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/views/Hub/components/MediaEvidence.stories.tsx(1,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/views/Hub/components/MediaEvidence.stories.tsx(18,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/views/Hub/components/WorkCard.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/views/Hub/components/WorkCard.stories.tsx(45,6): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/admin/src/views/Hub/components/WorkSubmissionsView.stories.tsx(2,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/views/Hub/components/WorkSubmissionsView.stories.tsx(3,20): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/views/Hub/components/WorkSubmissionsView.tsx(221,27): error TS2322: Type 'Work' is not assignable to type 'EASWork & { status?: "approved" | "pending" | "rejected" | undefined; }'.
+packages/admin/src/views/Hub/index.tsx(38,7): error TS2322: Type '{ (this: void, descriptor: MessageDescriptor, values?: Record<string, PrimitiveType | FormatXMLElementFn<string, string>> | undefined, opts?: Options | undefined): string; (this: void, descriptor: MessageDescriptor, values?: Record<...> | undefined, opts?: Options | undefined): ReactNode[]; }' is not assignable to type '(descriptor: { id: string; defaultMessage?: string | undefined; }, values?: Record<string, unknown> | undefined) => string'.
+packages/admin/src/views/Profile/Profile.stories.tsx(1,37): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/admin/src/views/Profile/Profile.stories.tsx(113,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/views/Profile/Profile.stories.tsx(3,32): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/admin/src/views/Profile/Profile.stories.tsx(99,18): error TS7031: Binding element 'canvasElement' implicitly has an 'any' type.
+packages/admin/src/views/storybookCanvasHarness.tsx(21,3): error TS2322: Type '({ HydrateFallback: ComponentType<{}> | (() => Element); children: RouteObject[] | undefined; caseSensitive?: boolean | undefined; path?: string | undefined; ... 13 more ...; lazy?: LazyRouteDefinition<...> | undefined; } | { ...; })[]' is not assignable to type 'RouteObject[]'.
+packages/admin/src/views/storybookPaletteAssertions.ts(1,24): error TS2307: Cannot find module 'storybook/test' or its corresponding type declarations.
+packages/shared/.storybook/decorators.tsx(1,32): error TS2307: Cannot find module '@storybook/react' or its corresponding type declarations.
+packages/shared/.storybook/decorators.tsx(10,28): error TS2307: Cannot find module 'storybook/preview-api' or its corresponding type declarations.
+packages/shared/.storybook/decorators.tsx(101,44): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/shared/.storybook/decorators.tsx(101,51): error TS7006: Parameter 'context' implicitly has an 'any' type.
+packages/shared/.storybook/decorators.tsx(117,52): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/shared/.storybook/decorators.tsx(117,59): error TS7006: Parameter 'context' implicitly has an 'any' type.
+packages/shared/.storybook/decorators.tsx(126,38): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/shared/.storybook/decorators.tsx(142,11): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/shared/.storybook/decorators.tsx(160,11): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/shared/.storybook/decorators.tsx(243,11): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/shared/.storybook/decorators.tsx(250,52): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/shared/.storybook/decorators.tsx(289,38): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/shared/.storybook/decorators.tsx(302,40): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/shared/.storybook/decorators.tsx(314,46): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/shared/.storybook/decorators.tsx(314,53): error TS7006: Parameter 'context' implicitly has an 'any' type.
+packages/shared/.storybook/decorators.tsx(323,11): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/shared/.storybook/decorators.tsx(323,18): error TS7006: Parameter 'context' implicitly has an 'any' type.
+packages/shared/.storybook/decorators.tsx(341,49): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/shared/.storybook/decorators.tsx(341,56): error TS7006: Parameter 'context' implicitly has an 'any' type.
+packages/shared/.storybook/decorators.tsx(371,11): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/shared/.storybook/decorators.tsx(371,18): error TS7006: Parameter 'context' implicitly has an 'any' type.
+packages/shared/.storybook/decorators.tsx(399,11): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/shared/.storybook/decorators.tsx(399,18): error TS7006: Parameter 'context' implicitly has an 'any' type.
+packages/shared/.storybook/decorators.tsx(95,37): error TS7006: Parameter 'Story' implicitly has an 'any' type.
+packages/shared/src/components/Progress/SyncIndicator.tsx(13,8): error TS6133: 'React' is declared but its value is never read.
+packages/shared/src/hooks/admin-ui/community/community.utils.ts(95,3): error TS6133: 'mode' is declared but its value is never read.
+packages/shared/src/hooks/admin-ui/garden/garden.utils.ts(107,3): error TS6133: 'view' is declared but its value is never read.
+packages/shared/src/hooks/admin-ui/hub/hub.utils.ts(242,3): error TS6133: 'stage' is declared but its value is never read.
+packages/shared/src/hooks/garden/useUpdateGarden.ts(58,26): error TS6133: 'params' is declared but its value is never read.
+packages/shared/src/hooks/roles/useEffectiveToolbarPermissions.ts(62,9): error TS6133: 'isOwner' is declared but its value is never read.
+packages/shared/src/hooks/work/useWorkMutation.ts(593,41): error TS2550: Property 'cause' does not exist on type 'Error'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2022' or later.
+packages/shared/src/hooks/work/useWorkMutation.ts(593,72): error TS2550: Property 'cause' does not exist on type 'Error'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2022' or later.
+packages/shared/src/hooks/work/useWorkMutation.ts(91,37): error TS2550: Property 'cause' does not exist on type 'Error'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2022' or later.
+packages/shared/src/hooks/work/useWorkMutation.ts(91,68): error TS2550: Property 'cause' does not exist on type 'Error'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2022' or later.
+packages/shared/src/modules/app/error-categories.ts(213,21): error TS2550: Property 'cause' does not exist on type 'Error'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2022' or later.
+packages/shared/src/modules/app/error-categories.ts(213,62): error TS2550: Property 'cause' does not exist on type 'Error'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2022' or later.
+packages/shared/src/modules/transactions/chain-guard.ts(39,42): error TS2339: Property 'cause' does not exist on type 'WalletChainMismatchError'.
+packages/shared/src/modules/transactions/wallet-sender.ts(54,11): error TS6133: 'erc7677ProxyUrl' is declared but its value is never read.
+packages/shared/src/modules/work/bot-submission.ts(12,3): error TS6133: 'publicClient' is declared but its value is never read.
+packages/shared/src/modules/work/media-processing.ts(1,32): error TS2307: Cannot find module 'heic-to/csp' or its corresponding type declarations.
+packages/shared/src/modules/work/wallet-submission/types.ts(40,20): error TS2554: Expected 0-1 arguments, but got 2.
+packages/shared/src/utils/errors/categorize-error.ts(112,15): error TS2550: Property 'cause' does not exist on type 'Error'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2022' or later.
+packages/shared/src/utils/errors/categorize-error.ts(113,37): error TS2550: Property 'cause' does not exist on type 'Error'. Do you need to change your target library? Try changing the 'lib' compiler option to 'es2022' or later.

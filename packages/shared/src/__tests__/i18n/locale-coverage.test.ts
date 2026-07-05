@@ -1,7 +1,7 @@
-import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import * as ts from "typescript";
+import { describe, expect, it } from "vitest";
 
 import en from "../../i18n/en.json";
 import es from "../../i18n/es.json";
@@ -76,6 +76,7 @@ const descriptorIdPropNames = new Set([
   "errorId",
   "successId",
   "ariaLabelId",
+  "actionLabelId",
 ]);
 const allowedIdenticalLocalizedKeys = new Set([
   "app.admin.nav.cookieJars",
@@ -144,6 +145,7 @@ const allowedIdenticalProductValues = new Set([
   "Vaults",
   "WETH",
   "§ 01 Cookie jars",
+  "§ 01: Cookie jars",
 ]);
 // "{hours} h" / "{hours}h" — the hour symbol "h" is identical across en/es/pt, so a
 // compact "{n} h" value is legitimately locale-identical (the optional space matches

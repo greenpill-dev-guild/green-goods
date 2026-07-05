@@ -177,23 +177,6 @@
   color: rgb(var(--m3-on-surface-variant));
 }
 
-/* Bottom Sheet — M3 shape + surface */
-.admin-m3 [data-component="BottomSheet"][data-slot="surface"] {
-  border-radius: var(--m3-shape-xl) var(--m3-shape-xl) 0 0;
-  box-shadow: var(--m3-elevation-4);
-}
-
-/* Side Sheet — Warm-Earth handoff radius (--radius-sheet=24px) + M3 elevation */
-.admin-m3 [data-component="RightSheet"][data-slot="surface"] {
-  border-radius: var(--radius-sheet, var(--m3-shape-lg)) 0 0 var(--radius-sheet, var(--m3-shape-lg));
-  box-shadow: var(--e-float, var(--m3-elevation-3));
-}
-
-.admin-m3 [data-component="LeftSheet"][data-slot="surface"] {
-  border-radius: 0 var(--radius-sheet, var(--m3-shape-lg)) var(--radius-sheet, var(--m3-shape-lg)) 0;
-  box-shadow: var(--e-float, var(--m3-elevation-3));
-}
-
 /* Toast / Snackbar — M3 inverse surface */
 .admin-m3 [data-hot-toast] > div {
   background: rgb(var(--m3-inverse-surface)) !important;
@@ -236,29 +219,11 @@
   background: transparent;
 }
 
-/* Sheets — liquid shell, solid inner content supplied by panels/SheetBody.
- * A subtle workspace wash (--tone-surface-tint-color: rgb(hue / 8–10%)) is
- * layered OVER the neutral --admin-sheet-bg so the sheet quietly carries the
- * active view's hue (sheets sit inside [data-tone], so the wash resolves to the
- * current workspace; falls back to transparent when no tone is set). */
-.admin-m3 [data-component="RightSheet"][data-slot="surface"].glass-floating,
-.admin-m3 [data-component="LeftSheet"][data-slot="surface"].glass-floating,
-.admin-m3 [data-component="BottomSheet"][data-slot="surface"].glass-floating {
-  backdrop-filter: blur(var(--admin-chrome-blur)) saturate(1.14);
-  -webkit-backdrop-filter: blur(var(--admin-chrome-blur)) saturate(1.14);
-  background:
-    linear-gradient(
-      var(--tone-surface-tint-color, transparent),
-      var(--tone-surface-tint-color, transparent)
-    ),
-    var(--admin-sheet-bg);
-  border-color: var(--admin-chrome-border);
-}
-
 /* Dialog portals render outside .admin-m3. Keep portal surfaces mapped to
  * strict M3 tokens, with legacy selectors retained for any shared/non-admin
  * dialog that is mounted from an admin route. */
 body:has(.admin-m3) [data-component="AdminDialog"][data-slot="surface"],
+body:has(.admin-m3) [data-component="AdminSideSheet"][data-slot="surface"],
 body:has(.admin-m3) [data-component="DialogShell"][data-slot="surface"],
 body:has(.admin-m3) [data-component="ConfirmDialog"][data-slot="surface"] {
   background: rgb(var(--m3-surface-container-high));
@@ -340,13 +305,83 @@ body:has(.admin-m3) [data-component="ConfirmDialog"][data-slot="surface"] {
   }
 }
 
+/* ============================================================================
+ * AdminSideSheet motion — the three global AppBar surfaces (Profile,
+ * Settings, Notifications). Mobile keeps the dialog's bottom-sheet slide
+ * (same keyframes, same composition with the Tailwind `translate` centering);
+ * ≥640px slides in from the right edge as an M3 modal side sheet.
+ * ============================================================================ */
+
+@keyframes adminSideSheetIn {
+  from { transform: translateX(100%); opacity: 0.85; }
+  60%  { transform: translateX(-1.5%); opacity: 1; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+@keyframes adminSideSheetOut {
+  from { transform: translateX(0); opacity: 1; }
+  to   { transform: translateX(100%); opacity: 0.85; }
+}
+
+[data-component="AdminSideSheet"][data-slot="overlay"][data-state="open"] {
+  animation: scrimFadeIn var(--spring-effects-duration) var(--spring-effects-easing) both;
+}
+[data-component="AdminSideSheet"][data-slot="overlay"][data-state="closed"] {
+  animation: scrimFadeOut var(--spring-effects-fast-duration) var(--spring-effects-fast-easing) both;
+}
+
+/* Surface — mobile bottom-sheet slide by default; ≥640px swaps to the
+ * right-edge slide (matching the sm: breakpoint AdminSideSheet.tsx uses). */
+[data-component="AdminSideSheet"][data-slot="surface"][data-state="open"] {
+  animation: adminDialogSheetIn var(--spring-spatial-slow-duration)
+    var(--spring-spatial-slow-easing) both;
+}
+[data-component="AdminSideSheet"][data-slot="surface"][data-state="closed"] {
+  animation: adminDialogSheetOut var(--spring-spatial-duration)
+    var(--spring-spatial-easing) both;
+}
+
+@media (min-width: 640px) {
+  [data-component="AdminSideSheet"][data-slot="surface"][data-state="open"] {
+    animation: adminSideSheetIn var(--spring-spatial-slow-duration)
+      var(--spring-spatial-slow-easing) both;
+  }
+  [data-component="AdminSideSheet"][data-slot="surface"][data-state="closed"] {
+    animation: adminSideSheetOut var(--spring-spatial-duration)
+      var(--spring-spatial-easing) both;
+  }
+}
+
 /* Reduced motion — disable the enter/exit animation (mirrors the shared
  * dialog block in utilities.css). The `to`/forwards fill still resolves the
  * resting transform, so the surface lands centered, just without motion. */
 @media (prefers-reduced-motion: reduce) {
-  [data-component="AdminDialog"][data-slot] {
+  [data-component="AdminDialog"][data-slot],
+  [data-component="AdminSideSheet"][data-slot] {
     animation-duration: 0ms !important;
   }
+}
+
+/* Instant exit — set by AdminDialog when a close happens in a hidden tab
+ * (frozen animations would never fire animationend, so Radix would keep the
+ * exit node and its body pointer-events lock forever), and by the
+ * dialogCloseSafetyNet when it finds an already-stuck exit node. No animation
+ * lets Radix unmount synchronously; display:none belts-and-braces a node whose
+ * exit was already frozen mid-animation so it can never sit half-visible. */
+[data-component="AdminDialog"][data-instant-exit][data-state="closed"],
+[data-component="AdminSideSheet"][data-instant-exit][data-state="closed"] {
+  animation: none !important;
+  display: none !important;
+}
+
+/* Dark-mode check glyph — ink stroke instead of the component's white data-URI.
+ * Dark checked fills are LIGHT (pastel --m3-primary -200 step; light-red
+ * --m3-error), so the white glyph measures ~1.3–2.1:1 — invisible. Ink
+ * (neutral-950 #0C0A09) measures ≥6:1 on both, mirroring how --m3-on-primary /
+ * --m3-on-error flip to ink in dark. Same mechanism as the .gg-control-select
+ * chevron (theme.css): a per-theme data-URI swap. Unlayered on purpose so it
+ * beats the Tailwind utility that sets the white glyph. */
+[data-theme="dark"] [data-component="AdminCheckbox"][data-slot="input"]:checked {
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%230C0A09%22%20stroke-width%3D%223%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M20%206L9%2017l-5-5%22%2F%3E%3C%2Fsvg%3E");
 }
 
 /* Content lists/cards within MainSheet — solid surface-container-low */
@@ -357,10 +392,7 @@ body:has(.admin-m3) [data-component="ConfirmDialog"][data-slot="surface"] {
 }
 
 @media (prefers-contrast: more) {
-  .admin-m3 .canvas-navigation-bar,
-  .admin-m3 [data-component="RightSheet"][data-slot="surface"].glass-floating,
-  .admin-m3 [data-component="LeftSheet"][data-slot="surface"].glass-floating,
-  .admin-m3 [data-component="BottomSheet"][data-slot="surface"].glass-floating {
+  .admin-m3 .canvas-navigation-bar {
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
     background: rgb(var(--m3-surface-container));

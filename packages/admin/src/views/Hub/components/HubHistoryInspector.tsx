@@ -3,9 +3,9 @@ import {
   HUB_HISTORY_STATUS_CLASSNAME,
   SheetBody,
   SheetFooter,
-  Surface,
   type ActivityEvent,
 } from "@green-goods/shared";
+import { AdminCard } from "@/components/AdminCard";
 import { RiExternalLinkLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
@@ -23,7 +23,7 @@ export function HubHistoryInspector({ event }: { event: ActivityEvent }) {
   return (
     <>
       <SheetBody padded={true} className="flex flex-col gap-4">
-        <Surface elevation="solid-raised" padding="compact" className="flex flex-col gap-3">
+        <AdminCard density="compact" className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-2">
             <span className={HUB_HISTORY_STATUS_CLASSNAME}>{categoryLabel}</span>
             <span className="text-xs text-text-soft">{formatRelativeTime(event.timestamp)}</span>
@@ -32,7 +32,7 @@ export function HubHistoryInspector({ event }: { event: ActivityEvent }) {
             <h3 className="text-lg font-semibold text-text-strong">{event.title}</h3>
             <p className="mt-1 text-sm text-text-sub">{event.description}</p>
           </div>
-        </Surface>
+        </AdminCard>
 
         {event.href ? (
           <p className="text-sm text-text-sub">

@@ -305,7 +305,67 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
     },
     // Optimize dependency pre-bundling
     optimizeDeps: {
-      include: ["react", "react-dom", "posthog-js", "@sentry/react", "multiformats"],
+      // `@green-goods/shared` is excluded (served as source for HMR), so Vite's
+      // startup scanner never crawls its bare imports. Without the explicit
+      // include list below, every one of shared's runtime deps is "discovered"
+      // at request time on a cold cache, and each discovery broadcasts
+      // "✨ optimized dependencies changed. reloading" — a full-page reload that
+      // kills whatever in-flight lazy-route navigation the operator just
+      // clicked (the long-standing "Create Assessment flashes and refreshes"
+      // bug). Pre-bundling them at startup makes interaction-time discovery
+      // impossible. Keep in sync with packages/client/vite.config.ts; when a
+      // new bare import lands in shared, add it here (watch the dev log for
+      // "new dependencies optimized" — that line means this list has drifted).
+      include: [
+        "react",
+        "react-dom",
+        "posthog-js",
+        "posthog-js/react",
+        "@sentry/react",
+        "multiformats",
+        // ── @green-goods/shared runtime surface ──
+        "@ethereum-attestation-service/eas-sdk",
+        "@hypercerts-org/contracts",
+        "@hypercerts-org/marketplace-sdk",
+        "@hypercerts-org/sdk",
+        "@radix-ui/react-dropdown-menu",
+        "@radix-ui/react-popover",
+        "@radix-ui/react-select",
+        "@react-spring/web",
+        "@reown/appkit-adapter-wagmi",
+        "@reown/appkit/react",
+        "@storacha/client",
+        "@storacha/client/principal/ed25519",
+        "@storacha/client/proof",
+        "@use-gesture/react",
+        "@wagmi/core",
+        "@xstate/react",
+        "browser-image-compression",
+        "clsx",
+        "ethers",
+        "gql.tada",
+        "graphql-request",
+        // heic-to lives only under shared's node_modules (bun isolated
+        // linker), so it needs the linked-package `>` resolution form.
+        "@green-goods/shared > heic-to/csp",
+        "idb",
+        "idb-keyval",
+        "permissionless",
+        "permissionless/accounts",
+        "permissionless/clients/passkeyServer",
+        "permissionless/clients/pimlico",
+        "react-day-picker",
+        "react-hot-toast",
+        "react-select",
+        "tailwind-merge",
+        "tailwind-variants",
+        "viem/account-abstraction",
+        "viem/chains",
+        "xstate",
+        "zustand",
+        "zustand/middleware",
+        "zustand/react/shallow",
+      ],
       exclude: ["@green-goods/shared"],
     },
     // Fix CommonJS resolution for ESM packages

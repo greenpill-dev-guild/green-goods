@@ -23,7 +23,7 @@ export const WalletDrawer: React.FC<WalletDrawerProps> = ({ isOpen, onClose }) =
   // on-chain role/jar reads don't run while the drawer is closed.
   const { jars } = useAccessibleCookieJars({ enabled: isOpen });
   const claimableCookies = useMemo(
-    () => jars.filter((jar) => jar.maxWithdrawal > 0n && !jar.isPaused).length,
+    () => jars.filter((jar) => jar.maxWithdrawal > 0n && jar.balance > 0n && !jar.isPaused).length,
     [jars]
   );
 
@@ -66,7 +66,11 @@ export const WalletDrawer: React.FC<WalletDrawerProps> = ({ isOpen, onClose }) =
       {activeTab === "cookie-jar" && <CookieJarTab />}
       {activeTab === "send" && <SendTab resetNonce={sendResetNonce} />}
       {activeTab === "pools" && (
-        <ComingSoonStub tabName={formatMessage({ id: "app.wallet.tab.commitments" })} />
+        <ComingSoonStub
+          tabName={formatMessage({ id: "app.wallet.tab.commitments" })}
+          description={formatMessage({ id: "app.wallet.commitments.comingSoon" })}
+          icon={<RiHandCoinLine />}
+        />
       )}
     </ModalDrawer>
   );

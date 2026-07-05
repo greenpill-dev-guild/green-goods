@@ -2,14 +2,15 @@
 name: design
 user-invocable: false
 description: "Design philosophy for adaptive, spatial interfaces. Paradigm selection, material language, interaction patterns, inclusive design, ecosystem thinking, and progressive immersion strategy. Use for design direction, visual language decisions, and spatial UI planning."
-version: "2.5.0"
-token_version: "2.4.0"
+version: "2.6.0"
+token_version: "2.5.0"
 status: active
 packages: ["shared", "client", "admin"]
 dependencies: []
-last_updated: "2026-06-30"
-last_verified: "2026-06-30"
+last_updated: "2026-07-03"
+last_verified: "2026-07-03"
 changelog:
+  - "2.6.0 — token_version → 2.5.0. Light mode joins the dual-use contrast discipline (190-pair audit): light garden/actions/home tone primaries deepened to dual-safe steps; new --tone-focus-ring role (action in light, on-surface-accent in dark) adopted by 6 components + --edge-focus; light M3 ladder re-pointed from gray neutrals to the warm linen family (hue ~85); m3-outline strengthened to control-grade both modes; m3-error re-stepped (red-700+white light, light-red+ink dark); state rule codified: -dark for text/icons, -base for fills only, with admin-scope class backstops."
   - "2.5.0 — token_version → 2.4.0. Deliberate admin dark-mode palette (not a light inversion): warm surface ladder (higher elevation = lighter), ring-forward elevation, dual-use-safe per-view accents (light --tone-primary for on-surface text, deep white-safe --tone-action for fills), raised canvas wash. New § Dark Mode Palette (Admin) in language.md with an AA contrast table; new check:design-tokens dark-parity guard."
   - "2.4.1 — Added ai-ui-brief.md as the saved reusable prompt contract for UI/CSS/design generation. Removed stale tool-specific references and replaced missing legacy surface-map routing with repo-owned DesignMD + surface dialect routing."
   - "2.4.0 — Removed project-specific AI-design-tool skills. AI-design platforms change too fast to encode per-platform; the durable contract is platform-agnostic and now lives in this file under § Working with AI Design Tools. ARCHITECTURE.md collapsed from a four-skill stack to a two-skill stack."

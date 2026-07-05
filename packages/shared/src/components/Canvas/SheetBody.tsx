@@ -22,7 +22,7 @@ const paddedStyle: CSSProperties = {
 };
 
 /**
- * SheetBody — scrollable middle slot for LeftSheet / RightSheet content.
+ * SheetBody — scrollable middle slot for dialog / inspector panel content.
  * Handoff anatomy: hidden scrollbar, optional `20px 16px` padding (use
  * `padded={false}` for edge-to-edge lists like NotificationsContent).
  */

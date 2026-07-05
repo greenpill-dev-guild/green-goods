@@ -60,18 +60,36 @@ function renderAction() {
           onClick,
           disabled,
           dataInstallAction,
+          hasInstallFallback,
+          fallbackLabel,
+          onInstallFallbackClick,
         }: PublicInstallActionRenderProps) =>
           createElement(
-            "button",
-            {
-              type: "button",
-              disabled,
-              onClick,
-              "data-href": href,
-              "data-install-action": dataInstallAction,
-              "data-testid": "cta",
-            },
-            label
+            "div",
+            null,
+            createElement(
+              "button",
+              {
+                type: "button",
+                disabled,
+                onClick,
+                "data-href": href,
+                "data-install-action": dataInstallAction,
+                "data-testid": "cta",
+              },
+              label
+            ),
+            hasInstallFallback
+              ? createElement(
+                  "button",
+                  {
+                    type: "button",
+                    onClick: onInstallFallbackClick,
+                    "data-testid": "fallback",
+                  },
+                  fallbackLabel
+                )
+              : null
           ),
       })
     )
@@ -196,5 +214,45 @@ describe("PublicInstallAction", () => {
       new URL("/home", window.location.origin).toString()
     );
     expect(screen.getByTestId("cta")).toHaveAttribute("data-install-action", "open-app");
+  });
+
+  it("keeps Open App primary for remembered Android installs and exposes reinstall help", () => {
+    mockUseIsBraveBrowser.mockReturnValue(false);
+    mockUseApp.mockReturnValue({
+      isMobile: true,
+      platform: "android",
+      isInstalled: false,
+      isInstalling: false,
+      wasInstalled: true,
+      deferredPrompt: null,
+      promptInstall: vi.fn(),
+    });
+    mockUseInstallGuidance.mockReturnValue({
+      scenario: "already-installed",
+      primaryAction: { type: "open-app", label: "Open App" },
+      secondaryAction: { type: "show-manual-steps", label: "Install again" },
+      browserInfo: { browser: "chrome" },
+      showBrowserOption: true,
+      manualInstructions: [
+        {
+          stepNumber: 1,
+          icon: "menu",
+          title: "Step 1",
+          description: "Tap **Menu**.",
+        },
+      ],
+      browserSwitchReason: null,
+      openInBrowserUrl: null,
+    });
+
+    renderAction();
+
+    expect(screen.getByTestId("cta")).toHaveTextContent("Open App");
+    expect(screen.getByTestId("fallback")).toHaveTextContent("Install again");
+
+    fireEvent.click(screen.getByTestId("fallback"));
+
+    expect(screen.getByText("Install Green Goods on this phone")).toBeInTheDocument();
+    expect(mockInstallHandler).not.toHaveBeenCalled();
   });
 });

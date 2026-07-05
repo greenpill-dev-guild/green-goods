@@ -6,6 +6,7 @@ import { CookieJarCard } from "./CookieJarCard";
 
 export interface CookieJarTabContentProps {
   gardenAddress: Address;
+  gardenName: string;
   jars: CookieJar[];
   isLoading: boolean;
   isError: boolean;
@@ -15,6 +16,7 @@ export interface CookieJarTabContentProps {
 
 export function CookieJarTabContent({
   gardenAddress,
+  gardenName,
   jars,
   isLoading,
   isError,
@@ -74,7 +76,12 @@ export function CookieJarTabContent({
         </p>
       ) : null}
       {jars.map((jar) => (
-        <CookieJarCard key={jar.jarAddress} jar={jar} gardenAddress={gardenAddress} />
+        <CookieJarCard
+          key={jar.jarAddress}
+          jar={jar}
+          gardenAddress={gardenAddress}
+          gardenName={gardenName}
+        />
       ))}
     </div>
   );

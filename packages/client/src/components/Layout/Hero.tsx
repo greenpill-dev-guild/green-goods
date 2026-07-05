@@ -2,7 +2,6 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { QRCodeCanvas } from "qrcode.react";
 import { type FC, useCallback, useEffect, useState } from "react";
 import { DeviceFrameset } from "react-device-frameset";
-import { useNavigate } from "react-router-dom";
 import "react-device-frameset/styles/marvel-devices.min.css";
 
 import {
@@ -26,6 +25,7 @@ import {
   RiUploadLine,
 } from "@remixicon/react";
 import { FormattedMessage, useIntl } from "react-intl";
+import { createPwaLaunchUrl } from "@/config/pwa-routing";
 
 interface HeroProps {
   handleSubscribe: (e: React.FormEvent<HTMLFormElement>) => void;
@@ -33,7 +33,6 @@ interface HeroProps {
 
 export const Hero: FC<HeroProps> = () => {
   const intl = useIntl();
-  const navigate = useNavigate();
   const {
     isMobile,
     platform,
@@ -109,12 +108,17 @@ export const Hero: FC<HeroProps> = () => {
         handleCopyUrl();
         break;
       case "open-app":
-        navigate("/home");
+        // Real (full-document) navigation to the absolute in-scope start URL, not
+        // a client-side navigate(). The landing page is outside the "/home" WebAPK
+        // scope, so this "/" -> "/home" scope crossing is what Chrome/Android
+        // link-capturing can hand off to the installed app. A React Router
+        // navigate() stays in the tab and Android never sees it.
+        window.location.assign(createPwaLaunchUrl(window.location.origin));
         break;
       default:
         break;
     }
-  }, [guidance, promptInstall, handleCopyUrl, navigate]);
+  }, [guidance, promptInstall, handleCopyUrl]);
 
   return (
     <>

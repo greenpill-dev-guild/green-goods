@@ -69,6 +69,9 @@ export const InstallCta: React.FC = () => {
     });
   }, [guidance.scenario, guidance.manualInstructions, platform, intl]);
 
+  // Hide only once the app is detected live. Android remembered installs keep
+  // Open App primary on public CTAs, but the same remembered signal can be stale
+  // after uninstall, so Profile should still offer the manual reinstall path.
   if (!isMobile || isInstalled) return null;
 
   return (

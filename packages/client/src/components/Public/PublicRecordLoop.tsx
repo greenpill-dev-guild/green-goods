@@ -19,7 +19,7 @@ const STEPS: readonly LoopStep[] = [
     defaultTitle: "Assess the place.",
     bodyId: "public.home.loop.assessBody",
     defaultBody:
-      "A Garden gathers gardeners, operators, evaluators, and (ideally) funders around a real place. Together they read where it is and where it's meant to go.",
+      "A Garden gathers gardeners, operators, evaluators, and (ideally) funders around a real place. Before work starts they record a baseline: what the place needs, and what good looks like.",
     to: "/impact",
   },
   {
@@ -37,7 +37,7 @@ const STEPS: readonly LoopStep[] = [
     defaultTitle: "Verify impact.",
     bodyId: "public.home.loop.verifyBody",
     defaultBody:
-      "Operators bundle the approved Work into an Impact Certificate. Evaluators, from many backgrounds and not only topical experts, then verify what the certificate claims.",
+      "Operators bundle the approved Work into an Impact Certificate. Evaluators from many backgrounds then verify what the certificate claims, signing off on method and confidence.",
     to: "/impact",
   },
   {

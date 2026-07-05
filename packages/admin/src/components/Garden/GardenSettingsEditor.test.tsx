@@ -159,16 +159,25 @@ describe("GardenSettingsEditor explicit save", () => {
     }
   });
 
-  it("previews a selected banner locally and uploads to IPFS only on Save", async () => {
+  it("stages a selected banner as a draft and uploads to IPFS only on Save", async () => {
     const user = userEvent.setup();
-    const { container } = renderEditor();
+    const onBannerPreviewChange = vi.fn();
+    const { container } = renderEditor({ onBannerPreviewChange });
 
     const input = container.querySelector('input[type="file"]');
     expect(input).not.toBeNull();
     const file = new File(["banner"], "banner.png", { type: "image/png" });
     fireEvent.change(input as HTMLInputElement, { target: { files: [file] } });
 
-    expect(await screen.findByText("Preview — uploads on save")).toBeInTheDocument();
+    // The form shows the staged filename (the image itself renders on the
+    // hosting dialog's identity card, reported through the preview callback).
+    expect(await screen.findByText(/banner\.png/)).toBeInTheDocument();
+    expect(screen.getByText(/uploads on save/)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(onBannerPreviewChange).toHaveBeenCalledWith(
+        expect.objectContaining({ isDraft: true })
+      );
+    });
     expect(mockUploadFileToIPFS).not.toHaveBeenCalled();
     expect(mockUpdateBannerImage).not.toHaveBeenCalled();
 
@@ -193,6 +202,44 @@ describe("GardenSettingsEditor explicit save", () => {
     await user.click(screen.getByRole("button", { name: "Save changes" }));
     await waitFor(() => {
       expect(mockSetOpenJoining).toHaveBeenCalledWith({ gardenAddress, value: true });
+    });
+  });
+
+  it("reports the dirty state to the hosting dialog on edit and cancel", async () => {
+    const user = userEvent.setup();
+    const onDirtyStateChange = vi.fn();
+    renderEditor({ onDirtyStateChange });
+
+    expect(onDirtyStateChange).toHaveBeenLastCalledWith({ isDirty: false, isSaving: false });
+
+    const nameInput = screen.getByLabelText(/Name/);
+    await user.clear(nameInput);
+    await user.type(nameInput, "New Garden Name");
+
+    expect(onDirtyStateChange).toHaveBeenLastCalledWith({ isDirty: true, isSaving: false });
+
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(onDirtyStateChange).toHaveBeenLastCalledWith({ isDirty: false, isSaving: false });
+  });
+
+  it("reports save-in-flight so the hosting dialog can hard-block close", async () => {
+    const user = userEvent.setup();
+    const onDirtyStateChange = vi.fn();
+    renderEditor({ onDirtyStateChange });
+
+    const nameInput = screen.getByLabelText(/Name/);
+    await user.clear(nameInput);
+    await user.type(nameInput, "Renamed Garden");
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() => {
+      expect(onDirtyStateChange).toHaveBeenCalledWith({ isDirty: true, isSaving: true });
+    });
+    await waitFor(() => {
+      expect(onDirtyStateChange).toHaveBeenLastCalledWith(
+        expect.objectContaining({ isSaving: false })
+      );
     });
   });
 

@@ -129,7 +129,16 @@ export const SiteHeader = () => {
 
   return (
     <PublicInstallAction>
-      {({ label, href, onClick, disabled, dataInstallAction }) => (
+      {({
+        label,
+        href,
+        onClick,
+        disabled,
+        dataInstallAction,
+        hasInstallFallback,
+        fallbackLabel,
+        onInstallFallbackClick,
+      }) => (
         <>
           <header
             ref={headerRef}
@@ -288,6 +297,15 @@ export const SiteHeader = () => {
                   >
                     {label}
                   </a>
+                  {hasInstallFallback ? (
+                    <button
+                      type="button"
+                      onClick={onInstallFallbackClick}
+                      className="mt-3 w-full cursor-pointer rounded-lg border border-stroke-soft-200 bg-bg-white-0 px-4 py-3 text-center text-sm font-medium text-text-sub-600 transition-colors hover:bg-bg-weak-50 hover:text-text-strong-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
+                    >
+                      {fallbackLabel}
+                    </button>
+                  ) : null}
                 </div>
               </nav>
             </div>

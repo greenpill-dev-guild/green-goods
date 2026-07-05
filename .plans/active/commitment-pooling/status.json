@@ -1,0 +1,239 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "commitment-pooling",
+    "title": "Commitment Pooling",
+    "kind": "feature",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "planned",
+    "priority": "p1",
+    "created_at": "2026-07-03",
+    "updated_at": "2026-07-04"
+  },
+  "links": {
+    "corrections_log": "corrections-log.md",
+    "contract_spec": "contract-spec.md",
+    "uiux_spec": "uiux-spec.md",
+    "plan": "plan.todo.md"
+  },
+  "linear": {
+    "parentIssue": "PRD-650",
+    "architectureRecord": "PRD-649",
+    "project": "Green Goods Commitment Pooling",
+    "projectId": "fa1b7a04-6eee-4f43-a861-07d8205aa0bf",
+    "initiative": "Sustainability & Monetization + Impact Methodologies & Evaluator Flywheel",
+    "milestones": {
+      "july_dry_run": "2026-07-31",
+      "august_release": "2026-08-31",
+      "september_community_interface": "2026-09-30"
+    },
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": "2026-07-04",
+    "lanes": {
+      "contracts": ["PRD-671", "PRD-672"],
+      "indexer": ["PRD-673"],
+      "state_api": ["PRD-674", "PRD-679"],
+      "ui_client": ["PRD-675"],
+      "ui_admin": ["PRD-676", "PRD-677", "PRD-679", "PRD-683"],
+      "editorial": ["PRD-678"],
+      "docs": ["PRD-680", "PRD-681"],
+      "july_dry_run": ["RESR-53", "RESR-62", "RESR-63", "RESR-13"],
+      "community": ["PRD-682"]
+    }
+  },
+  "taxonomy": {
+    "initiative": "sustainability-monetization",
+    "tracks": ["july-dry-run", "august-release", "september-community-interface"],
+    "work_types": ["research", "implementation", "docs"],
+    "surfaces": ["contracts", "indexer", "shared", "client", "admin", "docs", "community"],
+    "depends_on_features": []
+  },
+  "notes": [
+    "Commitments are module-native records; EAS gains exactly two schemas (assessment v3, community testimony). No commitment EAS schema.",
+    "CommitmentPoolingModule + non-transferable ERC-1155-style CommitmentRegister; settlement later wraps register classes on the same poolId (PRD-651, gated).",
+    "Clean room: Grassroots Economics paper and public docs only; never the AGPL Sarafu source.",
+    "Out of scope for all lanes: Celo, settlement contracts, Sarafu integration, bridging, G$ movement, leaderboards.",
+    "Agent eligibility (2026-07-03): contracts/indexer/state_api Codex-eligible; ui/editorial/docs Claude-only; qa_pass_1 Codex, qa_pass_2 Claude. Per-issue dispatch stays with Afo.",
+    "status.json is authoritative; branch names are automation signals.",
+    ".plans/ is the durable repo truth; the Linear project mirrors this hub 1:1."
+  ],
+  "lanes": {
+    "contracts": {
+      "owner": "codex",
+      "status": "todo",
+      "branch": "codex/contracts/commitment-pooling",
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "linear_issues": ["PRD-671", "PRD-672"],
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": { "command": "", "evidence": "" },
+        "green": { "command": "", "evidence": "" },
+        "note": ""
+      },
+      "skill_tags": ["contracts"]
+    },
+    "indexer": {
+      "owner": "codex",
+      "status": "todo",
+      "branch": "codex/indexer/commitment-pooling",
+      "depends_on": ["contracts"],
+      "handoff": "handoffs/codex-indexer.md",
+      "linear_issues": ["PRD-673"],
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": { "command": "", "evidence": "" },
+        "green": { "command": "", "evidence": "" },
+        "note": ""
+      },
+      "skill_tags": ["indexer"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "todo",
+      "branch": "codex/state-api/commitment-pooling",
+      "depends_on": ["contracts", "indexer"],
+      "handoff": "handoffs/codex-state-api.md",
+      "linear_issues": ["PRD-674", "PRD-679"],
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": { "command": "", "evidence": "" },
+        "green": { "command": "", "evidence": "" },
+        "note": ""
+      },
+      "skill_tags": ["react", "tanstack-query", "data-layer"]
+    },
+    "ui_client": {
+      "owner": "claude",
+      "status": "todo",
+      "branch": "claude/ui-client/commitment-pooling",
+      "depends_on": ["state_api"],
+      "handoff": "handoffs/claude-ui-client.md",
+      "linear_issues": ["PRD-675"],
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": { "command": "", "evidence": "" },
+        "green": { "command": "", "evidence": "" },
+        "note": ""
+      },
+      "skill_tags": ["ui", "design", "react"]
+    },
+    "ui_admin": {
+      "owner": "claude",
+      "status": "todo",
+      "branch": "claude/ui-admin/commitment-pooling",
+      "depends_on": ["state_api"],
+      "handoff": "handoffs/claude-ui-admin.md",
+      "linear_issues": ["PRD-676", "PRD-677", "PRD-679", "PRD-683"],
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": { "command": "", "evidence": "" },
+        "green": { "command": "", "evidence": "" },
+        "note": ""
+      },
+      "skill_tags": ["ui", "design", "react"]
+    },
+    "editorial": {
+      "owner": "claude",
+      "status": "todo",
+      "branch": "claude/editorial/commitment-pooling",
+      "depends_on": ["state_api"],
+      "handoff": "handoffs/claude-editorial.md",
+      "linear_issues": ["PRD-678"],
+      "tdd": {
+        "mode": "optional",
+        "status": "pending",
+        "red": { "command": "", "evidence": "" },
+        "green": { "command": "", "evidence": "" },
+        "note": ""
+      },
+      "skill_tags": ["ui", "design"]
+    },
+    "docs": {
+      "owner": "claude",
+      "status": "todo",
+      "branch": "claude/docs/commitment-pooling",
+      "depends_on": [],
+      "handoff": "handoffs/claude-docs.md",
+      "linear_issues": ["PRD-680", "PRD-681"],
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "not_applicable",
+        "red": { "command": "", "evidence": "" },
+        "green": { "command": "", "evidence": "" },
+        "note": "Docs lane; validation is docs build + vocab lint + anchor check."
+      },
+      "skill_tags": ["docs"]
+    },
+    "july_dry_run": {
+      "owner": "human",
+      "status": "todo",
+      "branch": null,
+      "depends_on": [],
+      "handoff": null,
+      "linear_issues": ["RESR-53", "RESR-62", "RESR-63", "RESR-13"],
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "not_applicable",
+        "red": { "command": "", "evidence": "" },
+        "green": { "command": "", "evidence": "" },
+        "note": "Operational track on existing rails; tracked in the Linear project doc 'July dry run: proto-commitment tracking'."
+      },
+      "skill_tags": ["research"]
+    },
+    "community": {
+      "owner": "claude",
+      "status": "todo",
+      "branch": "claude/community/commitment-pooling",
+      "depends_on": ["state_api"],
+      "handoff": "handoffs/claude-community.md",
+      "linear_issues": ["PRD-682"],
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": { "command": "", "evidence": "" },
+        "green": { "command": "", "evidence": "" },
+        "note": "September track; starts after the August substrate lands."
+      },
+      "skill_tags": ["ui", "react", "design"]
+    },
+    "qa_pass_1": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "codex/qa-pass-1/commitment-pooling",
+      "depends_on": ["ui_client", "ui_admin", "editorial", "state_api", "contracts", "indexer"],
+      "handoff": "handoffs/codex-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "claude/qa-pass-2/commitment-pooling",
+      "branch_trigger": "codex/qa-pass-1/commitment-pooling",
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/claude-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "date": "2026-07-03",
+      "event": "Verification, alignment (27 decisions), and specs authored (corrections-log.md, contract-spec.md, uiux-spec.md)."
+    },
+    {
+      "date": "2026-07-04",
+      "event": "Linear restructure executed: Seasons & Campaigns converted to Green Goods Commitment Pooling; milestones + 15 workstream issues created; legacy season issues composted; HoA records corrected."
+    }
+  ]
+}

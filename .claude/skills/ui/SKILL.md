@@ -2,14 +2,15 @@
 name: ui
 user-invocable: false
 description: UI implementation — TailwindCSS v4, Radix UI primitives, accessibility, Storybook, i18n, diagrams. Implements the direction set by the `design` skill. Use for theming, component composition, accessibility compliance, stories, internationalization, or creating diagrams.
-version: "1.5.0"
-design_token_version: "2.4.0"
+version: "1.6.0"
+design_token_version: "2.5.0"
 status: active
 packages: ["shared", "client", "admin"]
 dependencies: ["design"]
-last_updated: "2026-06-30"
-last_verified: "2026-06-30"
+last_updated: "2026-07-03"
+last_verified: "2026-07-03"
 changelog:
+  - "1.6.0 — design_token_version → 2.5.0 (mirrors design skill). Implementers: focus rings use --tone-focus-ring (never --tone-action, which fails 3:1 in dark); text/icons use state -dark steps (-base is fill-only; admin-scope class backstops exist but write -dark directly); light admin surfaces are the linen ladder in admin-m3-tokens.css; m3-outline is control-grade (form fields/chips/outlined buttons), m3-outline-variant stays decorative."
   - "1.5.0 — design_token_version → 2.4.0 (mirrors design skill). Admin dark-mode token values changed: warm M3 surface ladder + ring-forward --m3-elevation-*/--elevation-* dark overrides in admin-m3-tokens.css/index.css, rewritten dark [data-tone] blocks, raised canvas wash. Implementers: dark accents follow the dual-use-safe rule (--tone-primary stays light; saturation lives in --tone-action). See design/language.md § Dark Mode Palette (Admin)."
   - "1.4.1 — Added 10-step New Component Runbook (single golden path replacing scattered steps). Part 3 Dialogs now names DialogShell (shared, default) and AdminDialog (admin, strict M3) with file paths. Admin Cockpit Mode trimmed to ui-implementation specifics, pointing back to design/SKILL.md § Admin Cockpit Carve-Out as canonical. Registry design_token_version synced to 2.3.0 (was drifted at 2.2.0). Spring motion tokens now real in theme.css."
   - "1.4.0 — Added view-transitions.md (inherited from former design/implementation.md — execution details belong here, not in design). design_token_version pinned to design skill 2.3.0. Material tokens (--color-material-*, --blur-material-*) now implemented in theme.css; compliance guidance should reference them over hardcoded glass values."
@@ -61,17 +62,17 @@ The design identity (**restrained operator cockpit**, why-it's-different-from-cl
 
 UI-level implementation rules that follow from that identity:
 
-- **Layout default**: `PageHeader` → one primary workspace → optional secondary context in a sheet or rail. Start from layout and flow before reaching for `Card`.
+- **Layout default**: `CanvasRouteFrame` + `CanvasRouteHeader` → one primary workspace → secondary context and every detail/inspection flow in a centered `AdminDialog` (the side-sheet renderers are retired). Start from layout and flow before reaching for `Card`.
 - **Card usage**: cards and elevated surfaces are for records or bounded interactions, not the default page structure. Prefer one dominant workspace surface per route. Avoid nested stacks of rounded bordered panels.
 - **Tokens**: shared semantic tokens + one workspace accent. No decorative gradients behind routine product UI.
 - **Reference composition**: admin `/hub` route is the canonical cockpit layout — model new admin surfaces on it.
-- **Dialogs**: use `DialogShell` from `@green-goods/shared` by default; reserve `AdminDialog` for strict M3 flows (see Part 3).
+- **Dialogs**: use `AdminDialog` / `AdminConfirmDialog` for **every** admin dashboard dialog — pass the workspace `tone` (the portal escapes `[data-tone]`). `DialogShell` is for client PWA and shared (non-admin) surfaces only; never use it in admin (see Part 3 + [`design/prompt-contract.md § Overlays`](../design/prompt-contract.md)).
 
 ---
 
 ## Part 2: Component Development Workflow
 
-1. **Check existing patterns** (`CanvasLayout`, `AccountSurface`, `RightSheet`, `PageHeader`, `ListToolbar`, `SortSelect`, `Surface`, `Card`, `Alert`, `FormField`)
+1. **Check existing patterns** (`CanvasLayout`, `AccountSurface`, `AdminDialog`, `CanvasRouteFrame`/`CanvasRouteHeader`, `ListToolbar`, `SortSelect`, `Surface`, `Card`, `Alert`, `FormField`)
 2. **Develop reusable components in Storybook first** (`bun run storybook` in packages/shared)
 3. **Follow Radix UI + tailwind-variants patterns** (see [radix-ui.md](./radix-ui.md))
 4. **Run compliance checklist** before integration (see [compliance.md](./compliance.md))
@@ -110,7 +111,7 @@ All UI patterns use **Radix UI primitives** + **tailwind-variants** (`tv()`). Se
 
 - **Dialogs**: two project wrappers sit on top of Radix `Dialog.*`:
   - **`DialogShell`** — the **client / shared** default. `packages/shared/src/components/Dialog/ConfirmDialog.tsx`, exported from `@green-goods/shared`. Props: `open`, `onOpenChange`, `title`, `description?`, `icon?`, `size` (`md|lg|xl|2xl`), `children`, `preventClose?`. Mobile bottom-sheet + desktop centered, `glass-floating`, handles `z-overlay`/`z-modal`. Use for client PWA and shared (non-admin) dialogs — never for admin dashboard dialogs.
-  - **`AdminDialog`** — the **admin dashboard** default, strict M3. `packages/admin/src/components/AdminDialog.tsx`. Props: `open`, `onOpenChange`, `title`, `description?`, `icon?`, `children`, `actions?`, `size` (`sm|md|lg|xl|2xl`), `variant` (`standard|confirm|palette|flow`). Uses `--m3-shape-xl`, `--m3-surface-container-high`, `--m3-elevation-3`, 32% scrim. Use for all admin dashboard dialogs; the `palette` variant backs the command palette and the `flow` variant at `size="2xl"` backs full-surface action flows (Submit Work, Create Assessment, Create Hypercert).
+  - **`AdminDialog`** — the **admin dashboard** default, strict M3. `packages/admin/src/components/AdminDialog.tsx`. Props: `open`, `onOpenChange`, `title`, `description?`, `icon?`, `children`, `actions?`, `size` (`sm|md|lg` — three tiers by action weight: `sm` confirm/alert, `md` single-purpose action, `lg` richer single-view), `variant` (`standard|confirm|palette|flow`), `tone` (workspace accent — required in-portal). Uses `--m3-shape-xl`, `--m3-surface-container-high`, `--m3-elevation-3`, 32% scrim. Use for all admin dashboard dialogs; the `palette` variant backs the command palette and the `flow` variant + `ADMIN_FLOW_DIALOG_CLASS` (with `size="lg"`) backs full-surface action flows (Submit Work, Create Assessment, Create Hypercert). Size standard + enforcement: `.claude/skills/design/prompt-contract.md § Dialog size & variant standard`.
   - Raw Radix `Dialog.*` namespace only when neither wrapper fits — see [radix-ui.md](./radix-ui.md) for composition rules.
 - **StatusBadge**: `tv()` with `status` variants (active, pending, failed, offline) mapping to semantic colors with dark mode
 - **Cards**: Compound pattern (`Card`, `Card.Header`, `Card.Body`, `Card.Footer`) with `tv()` variants for `interactive` and `elevated` -- used for GardenCard, WorkCard, ActionCard

@@ -23,9 +23,26 @@ let mockWorkApprovalsState = {
 
 vi.mock("@green-goods/shared", () => ({
   cn: (...args: unknown[]) => args.filter(Boolean).join(" "),
+  collectApprovalRecipientsForWorks: (gardenIds: string[]) => gardenIds,
+  collectApprovedWorkUIDs: (approvals: Array<{ workUID: string }>) =>
+    new Set(approvals.map((approval) => approval.workUID)),
   DEFAULT_RETRY_COUNT: 0,
   fetchApprovalsByRecipients: vi.fn(async () => []),
   filterByTimeRange: (items: unknown[]) => items,
+  filterPendingNeedsReview: (
+    works: Array<{ id: string; gardenerAddress?: string }>,
+    approvedWorkUIDs: Set<string>,
+    viewerAddress?: string
+  ) =>
+    works.filter(
+      (work) =>
+        !approvedWorkUIDs.has(work.id) &&
+        !(
+          work.gardenerAddress &&
+          viewerAddress &&
+          work.gardenerAddress.toLowerCase() === viewerAddress.toLowerCase()
+        )
+    ),
   hapticLight: vi.fn(),
   isUserAddress: (address?: string, activeAddress?: string) =>
     Boolean(address && activeAddress && address.toLowerCase() === activeAddress.toLowerCase()),
@@ -33,7 +50,7 @@ vi.mock("@green-goods/shared", () => ({
   queryKeys: {
     approvals: {
       byMyWorkGardens: (...args: unknown[]) => ["approvals", "mine", ...args],
-      byOperatorGardens: (...args: unknown[]) => ["approvals", "operator", ...args],
+      forWorkReview: (...args: unknown[]) => ["approvals", "forWorkReview", ...args],
     },
   },
   STALE_TIME_MEDIUM: 30_000,

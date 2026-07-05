@@ -1,10 +1,11 @@
 // Read-only summary for the final "Review" step of the Submit Work flow. Mirrors
-// the client PWA's review-before-submit moment, but built from admin Surface +
+// the client PWA's review-before-submit moment, but built from AdminCard +
 // M3/semantic tokens (no client component imports, no glass). Values are read
 // from the react-hook-form snapshot; media previews use object URLs revoked on
 // unmount. Each section header carries an Edit control that jumps back to its
 // step so a value can be corrected without walking the flow again.
-import { Surface, type Action } from "@green-goods/shared";
+import type { Action } from "@green-goods/shared";
+import { AdminCard } from "@/components/AdminCard";
 import { type ReactNode, useEffect, useMemo } from "react";
 import { useIntl } from "react-intl";
 
@@ -40,22 +41,22 @@ function ReviewCard({
   children: ReactNode;
 }) {
   return (
-    <Surface className="rounded-xl border border-stroke-soft bg-bg-white p-4">
+    <AdminCard variant="outlined">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-text-sub">{title}</h3>
+        <h3 className="label-xs text-text-sub">{title}</h3>
         {onEdit && editText ? (
           <button
             type="button"
             onClick={onEdit}
             aria-label={`${editText} ${title}`}
-            className="rounded text-xs font-medium text-[rgb(var(--tone-on-surface-accent,var(--m3-primary)))] transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-action,var(--primary-action)))]"
+            className="rounded text-xs font-medium text-[rgb(var(--tone-on-surface-accent,var(--m3-primary)))] transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--primary-action)))]"
           >
             {editText}
           </button>
         ) : null}
       </div>
       {children}
-    </Surface>
+    </AdminCard>
   );
 }
 

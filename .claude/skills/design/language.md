@@ -152,6 +152,29 @@ From Apple's Liquid Glass talk — watch for these as you build:
 3. **Near device edges** — On phone, use capsule + extra margin near screen edge. On tablet/desktop, use concentric shape aligned to window edge.
 4. **Mixing shape types** — Don't put a capsule button inside a fixed-radius container if the radii clash. The capsule's geometry naturally supports concentricity.
 
+### Concentricity Reference (copy this shape)
+
+The rule is `child_radius = parent_radius − padding`. A concrete before/after with real numbers:
+
+```css
+/* ❌ Before — flared corners: the child's 24px radius exceeds what the
+   parent's geometry allows (24px parent − 16px padding = 8px budget). */
+.parent { border-radius: 24px; padding: 16px; }   /* --radius-2xl */
+.child  { border-radius: 24px; }                   /* clashes at every corner */
+
+/* ✅ After — concentric: child radius = parent radius − padding. */
+.parent { border-radius: 24px; padding: 16px; }    /* --radius-2xl */
+.child  { border-radius: 8px; }                    /* 24 − 16 = 8 → --radius-md */
+
+/* ✅ Token form — derive instead of hardcoding the arithmetic. */
+.child  { border-radius: calc(var(--radius-2xl) - var(--space-4)); }
+```
+
+Sanity check while building: at any nesting level, the visual gap between the
+child's corner curve and the parent's corner curve should be even all the way
+around the bend. If the gap pinches (child too square) or flares (child too
+round), re-derive from the formula rather than eyeballing a token.
+
 ---
 
 ## Motion System
@@ -245,6 +268,8 @@ Green Goods uses a **four-role volume hierarchy** anchored in the root `DESIGN.m
 
 **Rule:** Tertiary (green) is third in volume but first in visual pull. The bright flower — draws the eye *because* everything else is quiet. Flooding the screen with green is the #1 degen-aesthetic failure mode.
 
+> **Enforcement honesty:** the volume hierarchy is a **review-time principle — there is no automated checker yet.** `check:design-tokens` catches raw color literals and material-boundary violations, and the PWA token audit flags specific bright-green contrast risks, but nothing measures per-screen color volume. Reviewers apply the 80/8/3/1 split by eye during the design-review lenses; treat any screen where green reads as a surface rather than an accent as a finding.
+
 > **Token-name caveat:** the codebase label `--color-primary` is an internal string — it resolves to the **tertiary role** (green as accent). This file, root `DESIGN.md`, and AI-prompt vocabulary all use role names. The internal token stays as-is; no rename needed.
 
 ### Supporting Accents
@@ -328,6 +353,14 @@ Admin dark mode is a **deliberate palette, not a light inversion**. Three rules 
 
 **Contrast invariant:** filled actions carry white text and MUST clear AA (≥4.5:1) — this forces *deep* steps, so "vivid" can never come from brightening the fill. Accent-text `-200` steps clear AA on the `surface-container` card (≥11.7:1). A `check:design-tokens` dark-parity guard enforces light/dark tone-block and elevation parity.
 
+**Light mode follows the same discipline** (applied 2026-07-03 after a 190-pair audit):
+
+- **Dual-safe light tones** — light garden is `green-800` (5.7:1 both as white-text fill and as text on white; green-600/700 failed one or both), light actions `red-700` (6.4), light home `neutral-600`. Hub and community light already passed and are unchanged.
+- **Light surfaces are the linen ladder** — the M3 containers ride a warm linen family (constant hue ~85, chroma .005–.012, in `admin-m3-tokens.css`), not gray Tailwind neutrals; cards and sheets stay white. This mirrors dark's hue-65 ladder so both modes carry Warm Earth.
+- **`--tone-focus-ring`** is the only token for focus indicators: = `--tone-action` in light, = `--tone-on-surface-accent` in dark (deep fills measure 2.3–2.7 against dark surfaces — below the 3:1 non-text minimum). Never ring with `--tone-action` directly.
+- **State roles:** `-dark` steps for text/icons (they flip per mode: `-950` in light, `-400` in dark), `-lighter`+`-dark` for badges, `-base` for **fills only**. Admin-scope class backstops re-point stray `text-*-base` usages, but new code writes `text-*-dark`. The brand green `#1FC16B` (`--primary-base`) is a fill-only accent — never text; links use `--primary-dark`.
+- **`--m3-error`** is `red-700`+white in light, a light red (`248 113 113`)+ink in dark (the M3-dark error convention). **`--m3-outline`** is control-grade (≥3:1: form fields, chips, outlined buttons); `--m3-outline-variant` stays the decorative hairline.
+
 ---
 
 ## Component Patterns
@@ -361,7 +394,7 @@ Contextual page-level actions. The admin cockpit's primary action surface.
 
 ### Sheets
 
-> **Admin cockpit exception**: the operator cockpit (`packages/admin`) has **retired side sheets** — every admin action and detail/inspection flow is a centered `AdminDialog` (full-viewport scrim; bottom-sheet on mobile). See [prompt-contract.md § Overlays: Centered AdminDialog Everywhere](./prompt-contract.md). The sheet motion below applies to the **client PWA** (wallet drawer, mobile detail flows) and the shared primitives; `SheetBody` / `SheetFooter` / `SheetDivider` also survive as layout primitives *inside* an `AdminDialog` body.
+> **Admin cockpit exception**: the operator cockpit (`packages/admin`) has **retired workspace side sheets** — the shared sheet renderers are deleted and every workspace action and detail/inspection flow is a centered `AdminDialog` (full-viewport scrim; bottom-sheet on mobile). The one sanctioned side sheet is **`AdminSideSheet`**, reserved for the three global AppBar surfaces (Profile, Settings, Notifications): right-docked and solid on desktop, AdminDialog-identical bottom sheet on mobile. See [prompt-contract.md § Overlays](./prompt-contract.md). The sheet motion below applies to the **client PWA's own sheet patterns** (wallet drawer, `PwaSheet`, mobile detail flows); `SheetBody` / `SheetFooter` / `SheetDivider` survive as layout primitives *inside* an `AdminDialog` or `AdminSideSheet` body.
 
 Detail surfaces that slide from the edge, anchored to their trigger (source-anchored interaction):
 

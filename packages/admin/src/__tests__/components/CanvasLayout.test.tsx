@@ -157,21 +157,29 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
     useAuth: () => mockAuthState.current,
     NotificationPanel: ({
       items = [],
+      sections = [],
+      scopeLabel,
       isLoading = false,
     }: {
       items?: Array<{ id: string; title: string }>;
+      sections?: Array<{ id: string; title: string; items: Array<{ id: string; title: string }> }>;
+      scopeLabel?: string;
       isLoading?: boolean;
-    }) => (
-      <div
-        data-testid="notification-panel"
-        data-count={String(items.length)}
-        data-loading={String(isLoading)}
-      >
-        {items.map((item) => (
-          <div key={item.id}>{item.title}</div>
-        ))}
-      </div>
-    ),
+    }) => {
+      const allItems = [...items, ...sections.flatMap((section) => section.items)];
+      return (
+        <div
+          data-testid="notification-panel"
+          data-count={String(allItems.length)}
+          data-loading={String(isLoading)}
+        >
+          {scopeLabel ? <div>{scopeLabel}</div> : null}
+          {allItems.map((item) => (
+            <div key={item.id}>{item.title}</div>
+          ))}
+        </div>
+      );
+    },
     formatRelativeTime: () => "5 minutes ago",
     useAdminGardenWorkspaceSelection: () => ({
       eligibleGardens: mockEligibleAdminGardens.current.eligibleGardens,
@@ -257,7 +265,10 @@ vi.mock("@/components/ConnectButton", () => ({
 
 vi.mock("@/components/Layout/PageTransition", async () => {
   const ReactModule = await import("react");
-  const { useRouteBackedLeftSheetConfig } = await import("@green-goods/shared");
+  // useRouteBackedLeftSheetConfig was re-homed from @green-goods/shared to the
+  // admin-local left-sheet channel; import it from there so it publishes into
+  // the same provider instance CanvasLayout mounts.
+  const { useRouteBackedLeftSheetConfig } = await import("@/components/Layout/leftSheetChannel");
 
   return {
     PageTransition: () => {
@@ -474,7 +485,7 @@ describe("CanvasLayout", () => {
     );
   });
 
-  it("opens settings content in a centered dialog from the desktop settings trigger", async () => {
+  it("opens settings content in a side sheet from the desktop settings trigger", async () => {
     Object.defineProperty(window, "matchMedia", {
       writable: true,
       value: vi.fn().mockImplementation((query: string) => ({
@@ -500,11 +511,11 @@ describe("CanvasLayout", () => {
     await user.click(screen.getByRole("button", { name: "Open Settings" }));
 
     await waitFor(() => {
-      expect(screen.getByTestId("admin-dialog-body")).toBeInTheDocument();
+      expect(screen.getByTestId("admin-side-sheet-content")).toBeInTheDocument();
     });
   });
 
-  it("opens profile content in a centered dialog from the desktop profile trigger", async () => {
+  it("opens profile content in a side sheet from the desktop profile trigger", async () => {
     Object.defineProperty(window, "matchMedia", {
       writable: true,
       value: vi.fn().mockImplementation((query: string) => ({
@@ -530,11 +541,11 @@ describe("CanvasLayout", () => {
     await user.click(screen.getByRole("button", { name: "Open Profile" }));
 
     await waitFor(() => {
-      expect(screen.getByTestId("admin-dialog-body")).toBeInTheDocument();
+      expect(screen.getByTestId("admin-side-sheet-content")).toBeInTheDocument();
     });
   });
 
-  it("opens data-backed notifications content in a centered dialog", async () => {
+  it("opens data-backed notifications content in a side sheet", async () => {
     const user = userEvent.setup();
 
     renderWithProviders(
@@ -546,7 +557,7 @@ describe("CanvasLayout", () => {
     await user.click(screen.getByRole("button", { name: "Open Notifications" }));
 
     await waitFor(() => {
-      expect(screen.getByTestId("admin-dialog-body")).toBeInTheDocument();
+      expect(screen.getByTestId("admin-side-sheet-content")).toBeInTheDocument();
     });
     expect(screen.getByTestId("notification-panel")).toHaveAttribute("data-loading", "false");
     expect(screen.getByText("3 work submissions need review")).toBeInTheDocument();
@@ -574,7 +585,7 @@ describe("CanvasLayout", () => {
     await user.click(screen.getByRole("button", { name: "Open Notifications" }));
 
     await waitFor(() => {
-      expect(screen.getByTestId("admin-dialog-body")).toBeInTheDocument();
+      expect(screen.getByTestId("admin-side-sheet-content")).toBeInTheDocument();
     });
     expect(screen.getByTestId("notification-panel")).toHaveAttribute("data-count", "0");
   });
@@ -591,7 +602,7 @@ describe("CanvasLayout", () => {
     await waitFor(() => {
       expect(useSheetOrchestratorStore.getState().activeSheet).toBeNull();
     });
-    expect(screen.queryByTestId("admin-dialog-body")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("admin-side-sheet-content")).not.toBeInTheDocument();
   });
 
   it("does not apply pl-20 padding on main content", () => {

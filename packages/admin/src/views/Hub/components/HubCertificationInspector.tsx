@@ -5,8 +5,8 @@ import {
   HUB_META_PILL_CLASSNAME,
   SheetBody,
   SheetFooter,
-  Surface,
 } from "@green-goods/shared";
+import { AdminCard } from "@/components/AdminCard";
 import { RiExternalLinkLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
@@ -31,7 +31,7 @@ export function HubCertificationInspector({
   return (
     <>
       <SheetBody padded={true} className="flex flex-col gap-4">
-        <Surface elevation="solid-raised" padding="compact" className="flex flex-col gap-3">
+        <AdminCard density="compact" className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center gap-2">
             <span className={HUB_CERTIFY_STATUS_CLASSNAME}>
               {canMint
@@ -75,7 +75,7 @@ export function HubCertificationInspector({
               {formatMessage({ id: "cockpit.hub.tab.certify", defaultMessage: "Certify" })}
             </span>
           </div>
-        </Surface>
+        </AdminCard>
 
         {canMint ? (
           <p className="text-sm text-text-sub">

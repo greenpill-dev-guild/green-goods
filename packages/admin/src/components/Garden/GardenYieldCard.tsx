@@ -92,7 +92,7 @@ export const GardenYieldCard: React.FC<GardenYieldCardProps> = ({
           </p>
           <Link
             to={repairHref}
-            className="text-xs font-medium text-primary-base hover:text-primary-darker"
+            className="text-xs font-medium text-primary-dark hover:text-primary-darker"
           >
             {formatMessage({ id: "app.yield.wiring.repairLink" })}
           </Link>

@@ -47,13 +47,13 @@ The admin package is the Green Goods operator canvas. This page is the single UI
 
 - `CanvasLayout` is the canonical shell.
 - The shell is `AppBar + .workspace-canvas + MainSheet + NavigationBar`.
-- `AppBar` is the sticky `z-sticky h-14` context region with `GardenChip` on the left and search, settings, notifications, and profile controls on the right.
-- `NavigationBar` is navigation only. The canonical items are `Hub`, `Garden`, `Community`, and `Actions`.
-- Controlled Chrome is the admin material boundary: subtle liquid glass is permitted on NavigationBar/FAB and sheet shells. The AppBar root stays transparent so the workspace canvas tone reads behind it. Route cards, forms, tables, lists, and dense content stay solid.
+- `AppBar` is the sticky `z-sticky h-14` context region with `GardenChip` on the left and search, notifications, settings, and profile controls on the right. The three global actions open the `AdminSideSheet`; settings and profile are desktop-only (on mobile those surfaces live in the Profile tab, and the bell remains).
+- `NavigationBar` is navigation only. The canonical items are `Hub`, `Garden`, `Community`, and `Actions` (plus the mobile-only Profile tab).
+- Controlled Chrome is the admin material boundary: subtle liquid glass is permitted on NavigationBar/FAB only. The AppBar root stays transparent so the workspace canvas tone reads behind it. Route cards, forms, tables, lists, dense content, dialogs, and the account side sheet stay solid.
 - `ConnectShell` is the disconnected full-screen state with a centered connect prompt and no navigation.
-- Admin owns `CanvasLayout`, `CommandPalette`, `AccountProfilePanel`, `AccountSettingsPanel`, `AccountSurface`, `UserAvatar`, `UserMenu`, `ConnectShell`, and `PageHeader`.
-- Desktop account sheets render `AccountProfilePanel` and `AccountSettingsPanel` as separate right-sheet contents. `AccountSurface` remains the route-level tabbed account surface for mobile profile navigation.
-- Shared owns `AppBar`, `NavigationBar`, `GardenChip`, `MainSheet`, `LeftSheet`, `RightSheet`, `BottomSheet`, and `SheetErrorBoundary`.
+- Admin owns `CanvasLayout`, `AdminSideSheet`, `CommandPalette`, `AccountProfilePanel`, `AccountSettingsPanel`, `AccountSurface`, `ConnectShell`, and `PageHeader`.
+- Account panels render `AccountProfilePanel` and `AccountSettingsPanel` as separate contents of the `AdminSideSheet` account inspector (routed through the right-sheet registry). `AccountSurface` remains the route-level tabbed account surface for mobile profile navigation — tabs **Account | Settings** ("Account" is the mobile name for the desktop Profile sheet content; notifications never appear as a tab).
+- Shared owns `AppBar`, `NavigationBar`, `GardenChip`, `MainSheet`, `NotificationPanel`, and `SheetErrorBoundary`. The `LeftSheet`/`RightSheet`/`BottomSheet` renderers are deleted — every workspace overlay is a centered `AdminDialog`; the three global AppBar surfaces are the one `AdminSideSheet` exception.
 
 ## Preferred Primitives
 
@@ -63,11 +63,7 @@ The admin package is the Green Goods operator canvas. This page is the single UI
 - `GardenChip`
 - `CommandPalette`
 - `AccountSettingsPanel`
-- `UserAvatar`
 - `ConnectShell`
-- `LeftSheet`
-- `RightSheet`
-- `BottomSheet`
 - `PageHeader`
 - `ListToolbar`
 - `SortSelect`
@@ -77,6 +73,7 @@ The admin package is the Green Goods operator canvas. This page is the single UI
 - `FormField`
 - `AdminDialog`
 - `AdminConfirmDialog`
+- `AdminSideSheet`
 
 ## Surface Primitives
 
@@ -93,13 +90,28 @@ The admin package is the Green Goods operator canvas. This page is the single UI
 - Form and detail content scrolls inside the dialog body, not on the page behind the scrim.
 - Every admin dialog must expose a visible surface above the scrim, a non-zero panel rect, accessible title and description wiring, a close or cancel affordance, reduced-motion-safe behavior, and visible pinned actions when there is something to commit or cancel.
 - The command palette uses the `palette` variant of `AdminDialog` so search behavior and keyboard navigation live inside the same admin modal contract.
-- Full-surface action flows (Submit Work, Create Assessment, Create Hypercert) use the `flow` variant of `AdminDialog` at `size="2xl"`. The `flow` variant suppresses the structured header and inner padding so the shared `ActionFlowShell` owns the visible header + scrolling body + pinned footer; it stays a centered, scrim-backed modal (bottom-sheet on mobile), not a fullscreen takeover.
+- `AdminDialog` sizes follow a three-tier scale by action weight — `sm` is reserved for confirm/alert dialogs, `md` (the default) hosts a simple single-purpose action (one form, one concern), `lg` hosts richer single-view content (lists with per-item actions, multi-field or multi-column layouts). `xl`/`2xl` tiers no longer exist. A guard test (`packages/admin/src/__tests__/components/AdminDialogStandard.guard.test.ts`) fails any consumer passing an out-of-scale size or an ad-hoc `max-w-*` override.
+- Full-surface action flows (Submit Work, Create Assessment, Create Hypercert) use the `flow` variant of `AdminDialog` with `size="lg"` and the shared `ADMIN_FLOW_DIALOG_CLASS` sizing constant. The `flow` variant suppresses the structured header and inner padding so the shared `ActionFlowShell` owns the visible header + scrolling body + pinned footer; it stays a centered, scrim-backed modal (bottom-sheet on mobile), not a fullscreen takeover.
 - `DialogShell` remains available for shared or non-admin surfaces. Do not use it for admin dashboard dialogs.
+- The three global AppBar surfaces (Profile, Settings, Notifications) are the one side-sheet exception: `AdminSideSheet` shares the dialog chrome (scrim, hairline header, close button, `tone`, instant-exit) with side-sheet geometry — right-docked full height with rounded inner corners at ≥640px, an AdminDialog-identical bottom sheet below. Panels compose `SheetBody` / `SheetFooter` inside it (the shell adds no padding). Usage is locked to `CanvasLayout` and the registry to the three content ids by `packages/admin/src/__tests__/components/AdminSideSheetStandard.guard.test.ts`.
+
+### Dialog interior grammar
+
+Every variant shares one chrome — the action-flow reference anatomy — so standard, confirm, and palette dialogs read as the same product as the flows:
+
+- **Chrome.** Header is a hairline-bottom bar (`px-4 py-3 sm:px-6`) with an optional inline icon, a `text-lg` semibold **Title Case** title, and a `text-sm` sentence-case description. The body is the scrollable region between header and footer. The `actions` slot renders as a pinned footer bar — hairline top border on `--surface-raised` (the same anatomy `SheetFooter` gives the flows). `AdminDialog` owns all of this; consumers never rebuild header or footer chrome.
+- **One header, one footer.** Interior content never repeats a heading the dialog header states (no `Card.Header` inside a dialog), and a non-flow dialog that passes `actions` must not also nest a `SheetFooter`. Both are guard-tested.
+- **Body sections** separate with `space-y-4`/`space-y-6`; section labels use the `label-xs`/`label-md` utilities in sentence case — no ad-hoc `uppercase tracking-wide`. Label/value pairs render as one-line definition rows (label left in `text-text-soft`, value right), not stacked icon rows.
+- **Two-column layouts** are `lg`-only, using the established grids (`lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]` or the WorkDetail 3/2 split): form/primary content left, load-bearing preview/meta right. `md` and mobile always collapse to one column.
+- **Loading reserves final geometry.** Skeletons match the rendered component's dimensions (the same card/row shapes in `skeleton-shimmer`, or explicit min-heights); never swap "Loading…" text into a value slot. A dialog's first paint fixes its height for the data it awaits.
+- **Empty states** use the shared `EmptyState` (icon + title + description) centered in the reserved region — never bare text stretched to fill.
+- **Open-state pattern.** Dialogs stay mounted with a controlled `open`; `{cond ? <Dialog isOpen /> : null}` skips the exit animation (close flash) and is forbidden. Closes that can never animate (hidden tab) are handled centrally by AdminDialog's instant-exit + the CanvasLayout close safety net.
+- **Tone.** Every dialog passes the `tone` of its mounting workspace (the portal escapes `[data-tone]`); accent and status color inside dialogs go through `--tone-*`/`--m3-*` indirection only, so the `[data-theme="dark"]` ladder controls dark variants centrally. The account inspector deliberately stays on the neutral `hub` tone (global chrome, not workspace content).
 
 ## Canvas UI Heuristics
 
 - Admin is an operator canvas. Use utility copy and operational hierarchy over marketing language.
-- Default page sequence is `PageHeader`, then the primary workspace, then any secondary inspector or side sheet.
+- Default page sequence is `PageHeader`, then the primary workspace, then any secondary inspector (a centered `AdminDialog`).
 - Start with layout and flow before introducing cards or elevated panels.
 - Cards and elevated surfaces are for discrete records, action targets, and bounded interaction zones. They are not the default page structure.
 - Prefer one dominant workspace surface per route and plain layout within it. Avoid nested stacks of rounded bordered panels.
@@ -113,7 +125,7 @@ The admin package is the Green Goods operator canvas. This page is the single UI
 
 - Every primary route must answer one operator question, not three.
 - The first viewport must show: route title, one short scope sentence, current garden context when applicable, one control row, and the first actionable content.
-- Default page anatomy is `PageHeader` -> one dominant workspace canvas -> optional secondary inspector (`LeftSheet`, `RightSheet`, `BottomSheet`, or a single rail).
+- Default page anatomy is `PageHeader` -> one dominant workspace canvas -> optional secondary inspector (a centered `AdminDialog` or a single rail).
 - Use one control grammar per route. Choose one of: stage tabs, view tabs, or a list toolbar. Do not stack multiple competing switchers and banners above the workspace.
 - Use at most one strong CTA in the header. If a FAB exists for the route, the header should not duplicate the same creation action.
 - View-level actions must flow through `ViewAction` + `AdminViewActions` on desktop and the same action set through `useViewActions` for tablet/mobile FAB speed dial. Do not add duplicate inline edit buttons inside route bodies for the same action; contextual row actions are allowed when the row is the only discoverable setting control.
@@ -129,8 +141,8 @@ The admin package is the Green Goods operator canvas. This page is the single UI
 
 - `/hub` is the primary canvas workspace. Its primary object is the Hub workbench with Work, Assess, Certify, and History modes.
 - `/hub` is the gold-standard canvas route for composition, depth, responsive adaptation, and tactile state behavior.
-- `/hub` defaults to one dominant workbench surface under the stage rail. Detail, review, and read-only handoff flows belong in bounded `LeftSheet`, `RightSheet`, or `BottomSheet` inspectors. Full-surface creation/commit flows (Submit Work, Create Assessment, Create Hypercert) open as a centered `AdminDialog` (`size="2xl" variant="flow"`) with a scrim — a bottom-sheet on mobile — hosting the shared `ActionFlowShell` grammar (pinned header + scrolling body + pinned footer), not a Hub inspector sheet. They are centered modals: never a fullscreen takeover, an edge-to-edge surface, or a non-modal route.
-- Read-only Hub deep links (`/hub/work/:workId`, `/hub/certify/:assessmentId`, `/hub/history/:historyEventId`) are bounded inspector sheets that render through the Hub controller and preserve shareable `gardenAddress` and `sort` query state. Full-surface creation/commit deep links (`/hub/work/submit`, `/hub/assess/create`, `/hub/certify/create`) open the centered action-flow dialog (bottom-sheet on mobile), not inspector sheets. Hub mode belongs to the path, not a `view` query parameter.
+- `/hub` defaults to one dominant workbench surface under the stage rail. Detail, review, and read-only handoff flows open as centered `AdminDialog` inspectors (`size="lg"`, workspace tone). Full-surface creation/commit flows (Submit Work, Create Assessment, Create Hypercert) open as a centered `AdminDialog` (`variant="flow"` + `ADMIN_FLOW_DIALOG_CLASS`) with a scrim — a bottom-sheet on mobile — hosting the shared `ActionFlowShell` grammar (pinned header + scrolling body + pinned footer). Both are centered modals: never a fullscreen takeover, an edge-to-edge surface, or a non-modal route.
+- Read-only Hub deep links (`/hub/work/:workId`, `/hub/certify/:assessmentId`, `/hub/history/:historyEventId`) are `AdminDialog` inspectors that render through the Hub controller and preserve shareable `gardenAddress` and `sort` query state. Full-surface creation/commit deep links (`/hub/work/submit`, `/hub/assess/create`, `/hub/certify/create`) open the centered action-flow dialog (bottom-sheet on mobile), not inspector sheets. Hub mode belongs to the path, not a `view` query parameter.
 - `Certify` stays visible for evaluator-only users as a read-only handoff state. Owner or operator authority unlocks mint actions.
 - `/garden` is the situational overview of a single garden. Its primary object is health, activity, and impact state.
 - `/community` is the operations workspace for membership, treasury, pools, and yield. Only one of those modes should dominate the canvas at a time.

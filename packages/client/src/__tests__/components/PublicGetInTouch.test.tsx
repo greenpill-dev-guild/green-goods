@@ -46,7 +46,7 @@ const messages: Record<string, string> = {
     "Quiet dispatches from the Gardens: what's planted, what's tended, what's ready to be funded. No urgency. No tracking. One opt-in.",
   "public.home.getInTouch.emailLabel": "Your email",
   "public.home.getInTouch.emailPlaceholder": "you@example.com",
-  "public.home.getInTouch.help": "Single opt-in subscription. Email stays server-side.",
+  "public.home.getInTouch.help": "One signup, no hoops. Your email stays with us.",
   "public.home.getInTouch.kicker": "Section 05: Get In Touch",
   "public.home.getInTouch.scheduleCall": "Schedule a call",
   "public.home.getInTouch.scheduleIntro":
@@ -54,7 +54,7 @@ const messages: Record<string, string> = {
   "public.home.getInTouch.submit": "Subscribe",
   "public.home.getInTouch.submitting": "Subscribing...",
   "public.home.getInTouch.success.subscribed":
-    "Thanks for subscribing. Updates land a few times a season.",
+    "Thanks for subscribing. A letter lands about once a season.",
   "public.home.getInTouch.success.title": "We'll keep you posted",
   "public.home.getInTouch.title": "A letter, once a season.",
 };

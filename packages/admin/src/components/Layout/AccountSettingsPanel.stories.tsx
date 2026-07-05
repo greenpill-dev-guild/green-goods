@@ -1,4 +1,4 @@
-import { RiComputerLine, RiLogoutBoxLine, RiMoonLine, RiSunLine } from "@remixicon/react";
+import { RiComputerLine, RiMoonLine, RiSunLine } from "@remixicon/react";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { expect, within } from "storybook/test";
@@ -58,16 +58,6 @@ function MockAccountSettingsPanel({ initialTheme, network }: MockAccountSettings
           {network}
         </div>
       </section>
-
-      <section className="rounded-xl bg-bg-white p-2 shadow-[var(--edge-rest),var(--elevation-1)]">
-        <button
-          type="button"
-          className="flex w-full items-center justify-between rounded-lg px-4 py-3 text-sm font-medium text-error-base transition-colors hover:bg-error-lighter"
-        >
-          Disconnect
-          <RiLogoutBoxLine className="h-4 w-4" aria-hidden="true" />
-        </button>
-      </section>
     </div>
   );
 }
@@ -88,7 +78,7 @@ const meta: Meta<typeof AccountSettingsPanel> = {
     docs: {
       description: {
         component:
-          "Real `AccountSettingsPanel` rendered with Storybook auth and theme state. Static selected-theme references are marked as visual harnesses.",
+          "Real `AccountSettingsPanel` rendered with Storybook auth and theme state — Appearance, Language, Network, and About sections (identity actions live in the Account panel). Static selected-theme references are marked as visual harnesses.",
       },
     },
   },
@@ -105,9 +95,15 @@ export const Default: Story = {
     const footer = canvasElement.querySelector('[data-component="SheetFooter"]');
 
     await expect(body).not.toBeNull();
-    await expect(footer).not.toBeNull();
+    // Disconnect moved to the Account panel — settings hold preferences only.
+    await expect(footer).toBeNull();
     await expect(await canvas.findByRole("heading", { name: "Theme" })).toBeVisible();
+    await expect(await canvas.findByRole("heading", { name: "Language" })).toBeVisible();
     await expect(await canvas.findByRole("heading", { name: "Network" })).toBeVisible();
+    await expect(await canvas.findByRole("heading", { name: "About" })).toBeVisible();
+    await expect(canvas.getByRole("button", { name: "English" })).toBeVisible();
+    await expect(canvas.getByRole("link", { name: /Documentation/ })).toBeVisible();
+    await expect(canvas.queryByText("Disconnect")).not.toBeInTheDocument();
   },
 };
 

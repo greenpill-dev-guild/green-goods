@@ -108,6 +108,8 @@ export function GardenDomainModal({ isOpen, onClose, gardenAddress }: GardenDoma
       open={isOpen}
       onOpenChange={(open) => !open && handleCancel()}
       size="md"
+      // Workspace tone — mounted from the Garden Profile dialog.
+      tone="garden"
       title={formatMessage({ id: "app.garden.detail.editDomainsTitle" })}
       description={formatMessage({ id: "app.garden.detail.editDomainsDescription" })}
       preventClose={isPending}

@@ -3,12 +3,12 @@ import {
   DEFAULT_CHAIN_ID,
   FormInput,
   formatDate,
-  Surface,
   useEnsName,
   useGreenWillBadgeDefinitions,
   useGreenWillBadges,
   useGreenWillRecentGrants,
 } from "@green-goods/shared";
+import { AdminCard } from "@/components/AdminCard";
 import { RiAwardLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
@@ -144,7 +144,7 @@ export function GreenWillPanel() {
     badgeLookupFeedback.tone === "error" ? "text-sm text-error-base" : "text-sm text-text-sub-600";
 
   return (
-    <Surface elevation="ground" padding="compact" className="flex flex-col gap-4">
+    <AdminCard variant="filled" density="compact" className="flex flex-col gap-4">
       <div className="flex items-start gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
           <RiAwardLine className="h-5 w-5 text-primary" />
@@ -167,7 +167,7 @@ export function GreenWillPanel() {
       </div>
 
       <div className="grid gap-4 xl:grid-cols-2">
-        <Surface elevation="solid-ground" padding="compact" className="flex flex-col gap-3">
+        <AdminCard variant="filled" density="compact" className="flex flex-col gap-3">
           <div className="flex items-center justify-between gap-3">
             <h3 className="text-sm font-medium text-text-strong-950">
               {intl.formatMessage({
@@ -237,9 +237,9 @@ export function GreenWillPanel() {
               ))}
             </div>
           )}
-        </Surface>
+        </AdminCard>
 
-        <Surface elevation="solid-ground" padding="compact" className="flex flex-col gap-3">
+        <AdminCard variant="filled" density="compact" className="flex flex-col gap-3">
           <h3 className="text-sm font-medium text-text-strong-950">
             {intl.formatMessage({
               id: "admin.greenWill.recentGrants",
@@ -284,10 +284,10 @@ export function GreenWillPanel() {
               ))}
             </div>
           )}
-        </Surface>
+        </AdminCard>
       </div>
 
-      <Surface elevation="solid-ground" padding="compact" className="flex flex-col gap-3">
+      <AdminCard variant="filled" density="compact" className="flex flex-col gap-3">
         <h3 className="text-sm font-medium text-text-strong-950">
           {intl.formatMessage({
             id: "admin.greenWill.lookup",
@@ -344,7 +344,7 @@ export function GreenWillPanel() {
             ))}
           </div>
         ) : null}
-      </Surface>
-    </Surface>
+      </AdminCard>
+    </AdminCard>
   );
 }

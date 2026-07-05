@@ -1,5 +1,6 @@
 import {
   type Address,
+  Alert,
   ConfirmDialog,
   cn,
   formatAddress,
@@ -42,7 +43,10 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
   const { primaryAddress } = useUser();
   const chainId = useCurrentChain();
   const { isOnline } = useOffline();
-  const { tokens, isLoading } = useSendableTokens(primaryAddress as Address | null, chainId);
+  const { tokens, isLoading, isError, refetch } = useSendableTokens(
+    primaryAddress as Address | null,
+    chainId
+  );
   const sendMutation = useSendToken();
 
   const [mode, setMode] = useState<WalletMode>("balance");
@@ -73,7 +77,10 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
     [selectedToken, amountInput]
   );
 
+  // After a completed send, land on Balance: the updated holdings sit next to
+  // the success toast, closing the loop.
   const resetForm = () => {
+    setMode("balance");
     setStep("recipient");
     setRecipient(null);
     setSelectedToken(null);
@@ -145,7 +152,7 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
               aria-selected={mode === value}
               onClick={() => setMode(value)}
               className={cn(
-                "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition",
+                "min-h-11 flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
                 mode === value
                   ? "bg-bg-white-0 text-text-strong-950 shadow-sm"
                   : "text-text-sub-600 hover:text-text-strong-950"
@@ -158,12 +165,27 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
       </div>
 
       {mode === "balance" ? (
-        <BalanceView tokens={tokens} isLoading={isLoading} onSend={startSendWithToken} />
+        <BalanceView
+          tokens={tokens}
+          isLoading={isLoading}
+          isError={isError}
+          isOnline={isOnline}
+          onRetry={refetch}
+          onSend={startSendWithToken}
+        />
       ) : mode === "receive" ? (
         <ReceiveView />
       ) : (
         <>
           <div className="flex-1">
+            {/* Offline is surfaced up front, not only at the review step —
+                the send cannot complete without a connection, so the user
+                should know before building the transaction. */}
+            {!isOnline ? (
+              <div className="px-4 pt-4">
+                <Alert variant="warning">{formatMessage({ id: "app.send.review.offline" })}</Alert>
+              </div>
+            ) : null}
             {step !== "recipient" && recipient ? (
               <button
                 type="button"
@@ -209,7 +231,6 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
                 parsedAmount={validation.parsedAmount}
                 note={note}
                 onNoteChange={setNote}
-                isOnline={isOnline}
                 onEditRecipient={() => setStep("recipient")}
                 onEditAmount={() => setStep("amount")}
               />
@@ -234,8 +255,8 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
               disabled={!canAdvance}
               aria-busy={sendMutation.isPending || undefined}
               className={cn(
-                "inline-flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60",
-                "bg-primary-base text-static-white hover:bg-primary-darker"
+                "inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium transition duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] disabled:cursor-not-allowed disabled:opacity-60",
+                "bg-primary-base text-primary-accent-foreground hover:bg-primary-darker"
               )}
             >
               {sendMutation.isPending ? (
