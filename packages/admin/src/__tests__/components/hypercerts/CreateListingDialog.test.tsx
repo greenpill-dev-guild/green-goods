@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement, type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -158,7 +158,9 @@ describe("components/Hypercerts/CreateListingDialog", () => {
     expect(await screen.findByText("Discard changes?")).toBeInTheDocument();
     expect(onOpenChange).not.toHaveBeenCalled();
 
-    await user.click(screen.getByTestId("confirm-discard"));
+    // fireEvent (not user.click) because the stubbed confirm renders inline,
+    // outside the still-open host dialog's Radix scroll-lock (pointer-events:none).
+    fireEvent.click(screen.getByTestId("confirm-discard"));
     await waitFor(() => {
       expect(onOpenChange).toHaveBeenCalledWith(false);
     });

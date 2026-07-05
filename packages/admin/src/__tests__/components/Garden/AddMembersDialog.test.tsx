@@ -5,7 +5,7 @@
  * list, the batch commits on submit, and failed writes stay staged for retry.
  */
 
-import { screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -174,8 +174,10 @@ describe("components/Garden/AddMembersDialog", () => {
     expect(await screen.findByText("Discard changes?")).toBeInTheDocument();
     expect(defaultProps.onClose).not.toHaveBeenCalled();
 
-    // Confirming the discard performs the real close.
-    await user.click(screen.getByTestId("confirm-discard"));
+    // Confirming the discard performs the real close. fireEvent (not user.click)
+    // because the stubbed confirm renders inline, outside the still-open host
+    // dialog's Radix scroll-lock, which sets pointer-events:none around it.
+    fireEvent.click(screen.getByTestId("confirm-discard"));
     await waitFor(() => {
       expect(defaultProps.onClose).toHaveBeenCalledTimes(1);
     });
