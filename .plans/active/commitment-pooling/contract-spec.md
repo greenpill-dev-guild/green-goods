@@ -615,6 +615,54 @@ interface ICommitmentPoolingModule {
 }
 ```
 
+#### Permission matrix (the gating table)
+
+Consolidated view of every mutating entry point across both contracts plus the two new resolvers; the per-function doc comments in the interface above remain the enforcement detail. Role legend: **steward** = pool steward via `_requirePoolSteward` (garden operator/owner through hatsModule, module owner fallback; the protocol pool resolves to root-garden hats). **member** = wearer of any of the six garden role hats (`IHatsModule.GardenRole`) in the relevant garden. Pause interplay: module-wide `setPaused` blocks every mutating module function except `resolveDispute` and `cancelCommitment` (stewards can always wind down); pool-level `Paused` additionally blocks new commitments, claims, and confirmations on that pool only.
+
+| Group | Function | Authorized caller | State / other gates |
+|---|---|---|---|
+| Pool | `onGardenMinted` | GardenToken only | idempotent; creates a Garden-type pool in NotReady |
+| Pool | `registerPool` | Protocol type: module owner · Garden type: garden operator/owner or module owner | one pool per garden (`PoolExists`) |
+| Pool | `setPoolCharter` | steward | — |
+| Pool | `markPoolReady` | steward | NotReady only; charter CID non-empty |
+| Pool | `openPool` / `pausePool` / `resumePool` / `closePool` / `compostPool` / `reopenPool` | steward | transitions exactly per the §5.1 table |
+| Cycle | `seedCycle` | steward | pool Ready or Open; bps sum == 10_000; valid time window |
+| Cycle | `openCycle` | steward | pool Open; cycle Seeded |
+| Cycle | `closeCycle` / `compostCycle` | steward | Open → Reconciled → Composted |
+| Cycle | `cancelCycle` | steward | from Seeded or Open; reason CID |
+| Commitment | `createCommitment` | own Offer/Request: member of the pool garden · SeasonCampaign + OperatorCaptured: steward · protocol-pool commitments: root-garden steward or module owner | pool Open; OperatorCaptured must set `onBehalfOf` |
+| Commitment | `setDeclaredReward` / `setConfirmerRule` | steward | pre-acceptance only |
+| Commitment | `claimCommitment` | garden pool: member of the pool garden · protocol pool ClaimType.Garden: operator/owner of the claiming garden (`gardenContext`) · protocol pool ClaimType.Individual: member of `gardenContext` | state Offered/Requested; claimant != creator (`SelfCounterparty`); Open mode transitions to Accepted, ApprovalGated only emits `ClaimRequested` |
+| Commitment | `acceptClaim` | steward | ApprovalGated path; re-validates the named claimant's eligibility |
+| Linkage | `linkWork` | counterparty, creator, or steward | verifies the work attestation via EAS (schema + recipient); one work maps to at most one commitment |
+| Linkage | `unlinkWork` | steward | only while the approval is not yet counted |
+| Linkage | `onWorkApproved` | WorkApprovalResolver only | never reverts; no-op when unlinked or already counted |
+| Linkage | `syncApprovedWork` | steward | verifies each approval on EAS; dedupes via `approvalCounted` |
+| Evidence | `attachEvidence` | creator, counterparty, or steward | offline-queueable |
+| Evidence | `attachAssessment` | steward or garden evaluator | verifies assessment attestation (v2 or v3 UID; recipient == pool garden) |
+| Confirmation | `submitForConfirmation` | counterparty, creator, or steward | requiredApprovedWorkCount == 0; at least 1 evidence attached |
+| Confirmation | `markReadyForConfirmation` | steward | override path; reason emitted and visible |
+| Confirmation | `confirmFulfillment` | named confirmer, or the counterparty under the default rule | state ReadyForConfirmation; the unit provider is blocked (`SelfConfirmation`); once per confirmer (`AlreadyConfirmed`) |
+| Confirmation | `confirmFulfillmentAsFallback` | steward | mandatory reason |
+| Exit | `cancelCommitment` | creator (from Offered/Requested) · steward (from Accepted) | reason CID; never from ReadyForConfirmation except via dispute resolution; allowed while module paused |
+| Exit | `expireCommitment` | anyone (permissionless) | past dueDate, or cycle endTime when dueDate == 0 |
+| Dispute | `raiseDispute` | creator, counterparty, named confirmer, or steward | from Accepted / ReadyForConfirmation / Expired |
+| Dispute | `resolveDispute` | steward | Reconciled resolution only when the cycle is already Reconciled; allowed while module paused |
+| Reward | `recordRewardPaid` | steward | state Fulfilled; single record per commitment in MVP |
+| Module admin | `setGardenToken` / `setHatsModule` / `setCommitmentRegister` / `setWorkApprovalResolver` / `setEAS` / `setSchemaUIDs` / `setPaused` | module owner | — |
+| Register | `registerClass` / `setQuota` / `setProviderExposureCap` / `commitUnits` / `releaseUnits` / `fulfillUnits` | CommitmentPoolingModule only (`NotModule`) | quota + provider exposure-cap guards (§6.2) |
+| Register admin | `setModule` | register owner (protocol multisig) | — |
+| Upgrades | `_authorizeUpgrade` on module, register, and both new resolvers | respective owner (protocol multisig) | UUPS convention repo-wide |
+
+EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the access-control picture:
+
+| Attestation | Authorized attester |
+|---|---|
+| Assessment v3 — Baseline | garden evaluator OR operator (analog capture preserved, v2 parity) |
+| Assessment v3 — Delta / Technical | garden evaluator only |
+| Community testimony | Community Hat only (first real attestation gate for that hat) |
+| Work / WorkApproval (existing) | unchanged: gardener-or-operator / operator with no self-attestation |
+
 #### Behavior notes an implementer must not miss
 
 - **Confirmer rule storage**: `confirmers` array persisted in `commitmentConfirmers`; empty array means the counterparty confirms (threshold forced to 1 and the group resolves to `[counterparty]` at acceptance time). The named group is data, not a hat (documented divergence from the Hats-everything pattern; the group is operator-set at seeding, locked).
