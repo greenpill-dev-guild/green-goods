@@ -141,10 +141,10 @@ export const publicSocialPreviews = {
     cardTitleAccent: "Gardens",
     cardTitleLines: ["Explore the", "Gardens growing", "the public record."],
     cardLede:
-      "Each Garden is a real place where a community documents regenerative Work across solar, agroforestry, education, and waste. Gardens with open membership welcome new gardeners through the app.",
+      "Each Garden is a real place where a community documents regenerative work across solar, agroforestry, education, and waste. Gardens with open membership welcome new gardeners through the app.",
     cardLedeLines: [
       "Each Garden is a real place where a community",
-      "documents regenerative Work across solar,",
+      "documents regenerative work across solar,",
       "agroforestry, education, and waste. Gardens with",
       "open membership welcome new gardeners through the app.",
     ],
