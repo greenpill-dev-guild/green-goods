@@ -6,7 +6,7 @@
 **Created**: `2026-07-03`
 **Last Updated**: `2026-07-04`
 
-Linear mirror: project [Green Goods Commitment Pooling](https://linear.app/greenpill-dev-guild/project/green-goods-commitment-pooling-4bc53572f354) (converted in place from Seasons & Campaigns). Every plan item below names its Linear issue. Milestones: July dry run (2026-07-31), August release (2026-08-31, hard commitment), September community interface (2026-09-30). Specs in this folder: `corrections-log.md`, `contract-spec.md`, `uiux-spec.md`.
+Linear mirror: project [Green Goods Commitment Pooling](https://linear.app/greenpill-dev-guild/project/green-goods-commitment-pooling-4bc53572f354) (converted in place from Seasons & Campaigns). Every plan item below names its Linear issue. Milestones: July dry run (2026-07-31), August release (2026-08-31, hard commitment), September community interface (2026-09-30). Specs in this folder: `corrections-log.md`, `contract-spec.md`, `uiux-spec.md`, `settlement-spec.md` (G$ split-state settlement, August), plus design artifacts `diagrams.md` (topology, sequences, state machines, indexer ERD delta, settlement D8–D10) and `wireframes.md` (low-fi, all four surfaces).
 
 ## Decision Log
 
@@ -24,6 +24,11 @@ Linear mirror: project [Green Goods Commitment Pooling](https://linear.app/green
 | 10 | Clean room: Grassroots Economics paper + public docs only, never AGPL Sarafu source | RESR-57 D3 + non-AGPL constraint. |
 | 11 | Seasons & Campaigns project converted in place; legacy season issues composted with pointer comments | Seasons and campaigns are cycle types inside the pool; separate project inverted the dependency. |
 | 12 | Out of scope everywhere: Celo, settlement contracts, Sarafu integration, bridging, G$ movement, leaderboards | Locked register; Architecture 2 split-state stands. |
+| 13 | Design artifacts live in this folder: low-fi in-repo wireframes for all four surfaces (`wireframes.md`) + mermaid diagrams (`diagrams.md`) + the consolidated permission matrix (contract-spec §6.1); docs-site promotion rides PRD-680 at ship | User alignment 2026-07-04 (post-#619 audit): understand flows on screens before build; low fidelity on purpose; the docs site describes what is live. |
+| 14 | G$ split-state settlement enters the **August release**: NET-NEW `SettlementModule` on Arbitrum (garden-account-anchored authorization, disbursement queue, `Queued → Executing → Settled / Failed → requeue / Cancelled` states, Celo execution refs) + Celo Safes executing via Zodiac-scoped signers ([PRD-686](https://linear.app/greenpill-dev-guild/issue/PRD-686), `settlement-spec.md`). Partially supersedes #12 — still out: bridged G$ (never), bridge value authority (post-August, capped), Sarafu integration (deferred hybrid), Model B vouchers (PRD-651) | User decisions 2026-07-04 (second alignment): Architecture 2 formalized on-chain; permissions stay on Arbitrum where Hats lives, never mirrored to Celo; a failed Celo leg never un-confirms a promise. |
+| 15 | Fund topology: HoA stream → Dev Guild Working Capital Safe → GG protocol Safe (settlement account of the protocol pool) → garden Celo Safes → members. **One Safe per garden, 1:1, owned by the garden account, for every garden in the protocol** — deployed on demand (deterministic script, batch-capable for the 13 live gardens, or admin "Set up settlement account" trigger), never launch-blocking. Funding hops recorded as Funding disbursements; `registerSettlementAccount` is the canonical garden↔Safe mapping | User-confirmed HoA disbursement path + 1:1 correction, 2026-07-04. |
+| 16 | Members receive G$ at same-address smart accounts on Celo; week-1 AA verification spike (factory + bundler + paymaster on 42220); named fallback = garden-custody accounting (counsel flag only if activated) | User decision 2026-07-04; settlement-spec §5. |
+| 17 | The app becomes multi-chain this iteration: primary chain (`VITE_CHAIN_ID`) + settlement chain (Celo 42220). Status reads from the indexer, balance reads via a second viem client, member sends with sponsored gas; CLAUDE.md Single-Chain principle amendment rides the implementation PR | User decision 2026-07-04; settlement-spec §5. |
 
 ### Full decision register (2026-07-03 alignment session, 27 decisions)
 
@@ -66,6 +71,8 @@ Linear mirror: project [Green Goods Commitment Pooling](https://linear.app/green
 - [x] Human judgment points surfaced and decided: 27 alignment decisions (2026-07-03) + approved Linear change set (2026-07-04)
 - [x] Out of scope defined: Celo/settlement/Sarafu/bridging/G$ movement; no commitment EAS schema; no claim flow in the community interface v1
 - [x] Lightest honest validation chosen per lane (see Validation)
+- [x] Design artifacts landed 2026-07-04: permission matrix (contract-spec §6.1 gating table), `diagrams.md` (7 mermaid diagrams, all validated), `wireframes.md` (20 low-fi frames, four surfaces + cross-surface flow map)
+- [x] Settlement scoping landed 2026-07-04: `settlement-spec.md` (SettlementModule, Safe topology, member receipt, multi-chain tiers, failure states) + diagrams D8–D10 + [PRD-686](https://linear.app/greenpill-dev-guild/issue/PRD-686)
 
 ## Requirements Coverage
 
@@ -80,6 +87,7 @@ Linear mirror: project [Green Goods Commitment Pooling](https://linear.app/green
 | Admin: Pools workspace + Hub confirmation queue | `ui_admin` | [PRD-677](https://linear.app/greenpill-dev-guild/issue/PRD-677) | ⏳ |
 | Editorial: GardenDialog pool story + /impact aggregates | `editorial` | [PRD-678](https://linear.app/greenpill-dev-guild/issue/PRD-678) | ⏳ |
 | Hypercert cut-over: fulfilled-commitment bundling + allocation presets | `state_api` + `ui_admin` | [PRD-679](https://linear.app/greenpill-dev-guild/issue/PRD-679) | ⏳ |
+| G$ split-state settlement: SettlementModule + Celo Safes + multi-chain app | `settlement` | [PRD-686](https://linear.app/greenpill-dev-guild/issue/PRD-686) | ⏳ |
 | Docs: glossary + architecture freshness | `docs` | [PRD-680](https://linear.app/greenpill-dev-guild/issue/PRD-680) | ⏳ |
 | Docs: operator seeding guide + gardener promises guide | `docs` | [PRD-681](https://linear.app/greenpill-dev-guild/issue/PRD-681) | ⏳ |
 | July: methodology survey (proto-commitment #1) | `july_dry_run` | [RESR-53](https://linear.app/greenpill-dev-guild/issue/RESR-53) (homed in Impact Framework, linked) | ⏳ |
@@ -114,6 +122,8 @@ Sequencing (build order contracts, indexer, shared, then apps in parallel):
 6. [ ] PRD-680 + PRD-681 docs (PRD-680 can start any time; PRD-681 needs shipped surfaces for screenshots)
 7. [ ] Gated broadcast step: GardenToken upgrade + module/register deploy + schema registrations on Arbitrum One (post-broadcast blockers: artifact addresses, indexer config, schema UIDs)
 8. [ ] Cycle 1 opens: operator-curated seeding from the July mandate artifacts
+9. [ ] PRD-686 settlement (PR chain 2.5): starts after PRD-672's interface freeze (the module only reads the pooling module), runs parallel with PRD-673/674. Week-1 gates: Celo AA spike + GoodDollar written confirmations. Celo Safe tooling runs alongside (deterministic deploy-then-register script + admin trigger; one Safe per garden 1:1, on-demand rollout; Zodiac Roles + Allowance config, executor keys); SettlementModule deploy + protocol-pool settlement-account registration join the gated broadcast step
+10. [ ] Settlement exit proof: first real G$ disbursement end to end — queued on Arbitrum, executed from a garden Celo Safe, `recordSettled(celoTxHash)`, status visible in the PWA reward row
 
 ### Track C: September community interface
 
@@ -142,6 +152,14 @@ Agent eligibility per the 2026-07-03 decision: contracts / indexer / state-api l
 - [ ] Respect deployment ordering, storage-layout baselines, and upgrade safety (GardenToken gap 37 to 36)
 - [ ] Record RED/GREEN proof or a proof-limit note before marking the lane complete
 - [ ] Write `handoffs/codex-contracts.md`
+
+### Settlement (`codex/settlement/commitment-pooling`): PRD-686
+
+- [ ] `SettlementModule` + tests per `settlement-spec.md` §3; zero changes to the pooling module or register; bun wrappers only
+- [ ] Week-1 gate outcomes recorded in the handoff: Celo AA spike (same-address accounts + paymaster on 42220) and GoodDollar written confirmations
+- [ ] Indexer settlement entities per settlement-spec §6; shared multi-chain substrate per §5 coordinated with the state-api lane; admin/PWA surface increments coordinated with the ui lanes
+- [ ] Record RED/GREEN proof or a proof-limit note before marking the lane complete
+- [ ] Write `handoffs/codex-settlement.md`
 
 ### Indexer (`codex/indexer/commitment-pooling`): PRD-673
 
@@ -200,4 +218,4 @@ Per the Validation Intent Ladder: lane work uses targeted proof; the coordinator
 
 ## Boundary
 
-No implementation code starts from this plan without the per-issue dispatch. Celo, settlement contracts, Sarafu integration, bridging, and G$ movement are out of scope for every lane. Garden-to-garden ships post-MVP via the reserved counterpartyPoolId amendment.
+No implementation code starts from this plan without the per-issue dispatch. G$ split-state settlement is IN scope for August via [PRD-686](https://linear.app/greenpill-dev-guild/issue/PRD-686) (`settlement-spec.md`, decision #14). Still out of scope for every lane: bridged G$ (never), bridge value authority (post-August, capped, only if operator burden binds), Sarafu integration (deferred hybrid experiment), Model B vouchers and `settlementAdapter`/`settlementEnabled` activation (PRD-651), indexing Celo/G$ state, leaderboards. Garden-to-garden ships post-MVP via the reserved counterpartyPoolId amendment.
