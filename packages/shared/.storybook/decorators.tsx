@@ -8,7 +8,8 @@ import React, { useEffect, useMemo, useState } from "react";
 import { IntlProvider } from "react-intl";
 import { MemoryRouter, type MemoryRouterProps } from "react-router-dom";
 import { useGlobals } from "storybook/preview-api";
-import { WagmiProvider, createConfig, http, mock } from "wagmi";
+import { custom } from "viem";
+import { WagmiProvider, createConfig, mock } from "wagmi";
 import { arbitrum, arbitrumSepolia, mainnet, sepolia } from "wagmi/chains";
 import { JobQueueProvider } from "../src/providers/JobQueue";
 import { WorkProvider } from "../src/providers/Work";
@@ -257,16 +258,56 @@ export const withAdminPrimitiveFrame: Decorator = (Story) => (
 );
 
 /**
+ * Non-networking RPC transport for Storybook. Every call resolves instantly to
+ * a benign response so `useReadContract` / module-address lookups settle into
+ * the undefined/empty state the reading hooks already fall back to (they catch
+ * the read failure, log it, and continue) — WITHOUT a real network round-trip.
+ *
+ * The previous `http()` transport (no URL) pointed at each chain's default
+ * public RPC. In Storybook's network-isolated CI sandbox those calls fail with
+ * "Failed to fetch" after a delay, which both spams the console and — because
+ * the reads hang before failing — leaves components stuck in loading/error
+ * states long enough to break interaction-test assertions. An instant mock
+ * transport keeps reads deterministic and offline. `eth_call` returns empty
+ * data ("0x"), which viem surfaces as "no data" → the hooks' existing catch
+ * path yields undefined, exactly the intended "reads resolve to empty" behavior.
+ */
+function storybookMockTransport(chainId: number) {
+  return custom({
+    request: async ({ method }: { method: string }) => {
+      switch (method) {
+        case "eth_chainId":
+          return `0x${chainId.toString(16)}`;
+        case "net_version":
+          return String(chainId);
+        case "eth_blockNumber":
+        case "eth_gasPrice":
+        case "eth_estimateGas":
+        case "eth_getBalance":
+          return "0x0";
+        case "eth_call":
+          // Empty return data — the reading hooks treat this as undefined.
+          return "0x";
+        default:
+          return null;
+      }
+    },
+  });
+}
+
+/**
  * Minimal WagmiProvider for Storybook. Uses a mock connector so that
  * `useAccount`, `useReadContract`, and wagmi mutation hooks resolve
  * without throwing. Contract reads return undefined → components render
- * their loading / empty states. Writes are inert.
+ * their loading / empty states. Writes are inert. Multicall batching is off so
+ * each read is its own `eth_call` and one empty response can't fail a batch.
  */
 const STORYBOOK_MOCK_ADDRESS = DEV_MOCK_AUTH_ADDRESSES.operator;
 
 function createStorybookWagmiConfig(address: `0x${string}` = STORYBOOK_MOCK_ADDRESS) {
   return createConfig({
     chains: [arbitrum, arbitrumSepolia, mainnet, sepolia],
+    batch: { multicall: false },
     connectors: [
       mock({
         accounts: [address],
@@ -274,10 +315,10 @@ function createStorybookWagmiConfig(address: `0x${string}` = STORYBOOK_MOCK_ADDR
       }),
     ],
     transports: {
-      [arbitrum.id]: http(),
-      [arbitrumSepolia.id]: http(),
-      [mainnet.id]: http(),
-      [sepolia.id]: http(),
+      [arbitrum.id]: storybookMockTransport(arbitrum.id),
+      [arbitrumSepolia.id]: storybookMockTransport(arbitrumSepolia.id),
+      [mainnet.id]: storybookMockTransport(mainnet.id),
+      [sepolia.id]: storybookMockTransport(sepolia.id),
     },
   });
 }
