@@ -34,6 +34,7 @@ export {
   NotificationPanel,
   type NotificationPanelItem,
   type NotificationPanelProps,
+  type NotificationPanelSection,
   type NotificationPanelTone,
 } from "./NotificationPanel";
 export { SheetBody, type SheetBodyProps } from "./SheetBody";

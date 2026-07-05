@@ -6,7 +6,6 @@ import {
   RiSettings3Line,
   RiUserLine,
 } from "@remixicon/react";
-import * as Popover from "@radix-ui/react-popover";
 import type React from "react";
 import { useIntl } from "react-intl";
 import { useMediaQuery } from "../../hooks/ui/useMediaQuery";
@@ -80,7 +79,7 @@ export interface AppBarProps {
   sheetContext?: { label: string; onBack: () => void };
   onOpenSearch?: () => void;
   onOpenSettings?: () => void;
-  /** Open notifications in right sheet (desktop) — bell icon triggers this */
+  /** Opens the notifications side sheet (bottom-sheet presentation on mobile). */
   onOpenNotifications?: () => void;
   onOpenProfile?: () => void;
 }
@@ -93,11 +92,15 @@ export interface AppBarProps {
  * Sticky top bar for the admin canvas layout (M3 AppBar).
  *
  * - Left side: GardenChip (or sheetContext back-arrow + label when a sheet is open)
- * - Right side: Search, Notifications, Settings, User avatar — all with identical styling
+ * - Right side: Search, Notifications, Settings, Profile — all with identical styling
+ * - The three global actions open AdminSideSheets on desktop (>=600px)
  * - z-index 40 per D49
  * - h-14 (56px)
  *
- * On mobile, search icon is hidden to save space (notifications + settings + avatar remain).
+ * On mobile the search icon is hidden and CanvasLayout omits the settings and
+ * profile callbacks (those surfaces live in the Profile tab); refresh + the
+ * notification bell remain, and the bell opens the sheet's bottom-sheet
+ * presentation.
  */
 export function AppBar({
   gardenChip,
@@ -182,8 +185,9 @@ export function AppBar({
             </TopBarIconButton>
           )}
 
-          {/* Notification bell — desktop: opens right sheet, mobile: popover fallback */}
-          {onOpenNotifications ? (
+          {/* Notification bell — opens the notifications side sheet (bottom
+            sheet on mobile). Rendered on every viewport. */}
+          {onOpenNotifications && (
             <TopBarIconButton
               slot="notifications-button"
               tooltip={formatMessage({
@@ -194,44 +198,6 @@ export function AppBar({
             >
               <RiNotification3Line className="h-5 w-5" />
             </TopBarIconButton>
-          ) : (
-            <Popover.Root>
-              <Popover.Trigger asChild>
-                <button
-                  type="button"
-                  aria-label={formatMessage({
-                    id: "cockpit.topBar.notifications",
-                    defaultMessage: "Notifications",
-                  })}
-                  className={ICON_BTN}
-                  data-component="AppBar"
-                  data-slot="notifications-button"
-                >
-                  <RiNotification3Line className="h-5 w-5" />
-                </button>
-              </Popover.Trigger>
-              <Popover.Portal>
-                <Popover.Content
-                  side="bottom"
-                  align="end"
-                  sideOffset={4}
-                  className={cn(
-                    "z-overlay rounded-xl bg-bg-white px-4 py-3 shadow-elevation-3",
-                    "text-sm text-text-sub",
-                    "animate-in fade-in-0 zoom-in-95 data-[side=bottom]:slide-in-from-top-2",
-                    "duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]"
-                  )}
-                  style={{ boxShadow: "var(--edge-rest), var(--elevation-3)" }}
-                  data-component="AppBar"
-                  data-slot="notifications-popover"
-                >
-                  {formatMessage({
-                    id: "cockpit.topBar.noNotifications",
-                    defaultMessage: "No notifications yet",
-                  })}
-                </Popover.Content>
-              </Popover.Portal>
-            </Popover.Root>
           )}
 
           {/* Settings */}

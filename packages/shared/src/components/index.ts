@@ -105,6 +105,7 @@ export {
   NotificationPanel,
   type NotificationPanelItem,
   type NotificationPanelProps,
+  type NotificationPanelSection,
   type NotificationPanelTone,
   SheetBody,
   type SheetBodyProps,

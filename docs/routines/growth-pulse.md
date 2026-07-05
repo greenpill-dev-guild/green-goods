@@ -24,7 +24,7 @@ connectors:
   - posthog
   - linear
   - google-calendar
-model: claude-opus-4-7[1m]
+model: claude-opus-4-8[1m]
 status: active  # 2026-05-25 — weekly digest posts to Linear (initiative status update), no GitHub PR. Consolidates metrics digest + guild-weekly-checkin numbers + guild-product-development-synthesis growth signals
 ---
 
@@ -105,41 +105,38 @@ If the PostHog connector is unavailable or the expected project ID env vars are 
 ### Discord post to `#growth` (primary)
 
 ```
-{if any_anomaly_red OR any_novel_failure: "<@${DISCORD_USER_ID_AFO}> "}**Growth Pulse — Week {YYYY-WW}**
+{if any_anomaly_red OR any_novel_failure: "<@${DISCORD_USER_ID_AFO}> "}**📈 Growth Pulse — Week {YYYY-WW}**
 
-📈 **Onboarding funnel ({window})**
-• Registered: {N} ({±N% WoW})
-• Joined a garden: {M} ({register_to_join_pct}%)
-• First work submitted: {F} ({join_to_first_work_pct}%)
+{if any_anomaly_red OR a top conversion-kill is above threshold — this block LEADS; omit it entirely on a clean week:}
+**🔴 Watch**
+- **{red anomaly or worst conversion-kill step}** — {1-line what it is} → {Linear URL}
 
-🔁 **Early retention**
-• First-time users (last 30d): {N}
-• Repeat within 7d: {M} ({repeat_pct}%)
+**Onboarding funnel** ({window})
+- Registered: **{N}** ({±N% WoW})
+- Joined a garden: **{M}** ({register_to_join_pct}%)
+- First work submitted: **{F}** ({join_to_first_work_pct}%)
 
-🌱 **Garden engagement (last 7d)**
-• Active gardens: {A} of {T} known
-• Top 3 by work submitted: {garden_name} ({N work}), …
-• Dormant ≥ 7d: {D7}, ≥ 14d: {D14}, ≥ 30d: {D30}
+**🔁 Early retention**
+- First-time users (30d): **{N}**  ·  repeat within 7d: **{M}** ({repeat_pct}%)
 
-🛠 **Action templates** (on-chain · indexer `Action`)
-• Created last week: {N}
-• 4-week trend: {↑ / → / ↓}
-{if newest Action.createdAt ≥ 21d ago: "• ⚠ no new template in {weeks}w (last: {YYYY-MM-DD})"}
+**🌱 Garden engagement** (7d)
+- Active: **{A}** of {T}  ·  dormant ≥7d **{D7}** · ≥14d **{D14}** · ≥30d **{D30}**
+- Top by work: {garden_name} ({N}), {garden_name} ({N}), {garden_name} ({N})
 
-⚠ **Conversion-kill failures (7d)**
-• {step}: {failure_pct}% ({failed_count}/{total_attempts})
-• … (top 3 by failure_pct)
+**🛠 Action templates** (on-chain · indexer `Action`)
+- Created last week: **{N}**  ·  4-week trend {↑ / → / ↓}
+{if newest Action.createdAt ≥ 21d ago: "- ⚠ no new template in {weeks}w (last {YYYY-MM-DD})"}
 
-📋 **Anomalies (Linear)**
-• {anomaly_count} new this run, {open_count} open on the Product team (`activity:qa` + `protocol:green-goods`)
-{bullets — at most 3 — for new anomalies with Linear URL}
+**⚠️ Conversion-kill (7d)** — top 3 by failure rate
+- {step}: **{failure_pct}%** ({failed_count}/{total_attempts})
 
-{if funnel_thin AND open_p0_qa: "🔎 **Funnel context**: {step(s)} thin — {N} open P0 `activity:qa` defect(s) on {surface} ({PRD-ids}) likely suppress conversion before instrumented steps."}
+**📋 Anomalies** — {anomaly_count} new · {open_count} open (`activity:qa` + `protocol:green-goods`)
+{bullets — at most 3 — new anomalies with Linear URL. Omit this whole block when zero new AND zero open.}
 
-{if intent_verdict != "coherent": "🧭 **Intent**: {drifting|unclear} — {underserved_stage or 'plans glance unavailable'}"}
+{if funnel_thin AND open_p0_qa: "**🔎 Funnel context** — {step(s)} thin; {N} open P0 `activity:qa` defect(s) on {surface} ({PRD-ids}) likely suppress conversion before instrumented steps."}
+{if intent_verdict != "coherent": "**🧭 Intent** — {drifting|unclear}: {underserved_stage or 'plans glance unavailable'}"}
 
-📄 **Full digest (Linear)**: {linear_status_update_url}
-
+**📄 Full digest** → {linear_status_update_url}
 {if any_failure: "⚠ Failures this run: {short list}"}
 ```
 

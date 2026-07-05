@@ -102,7 +102,7 @@ export const ProfileRoute: Story = {
       await canvas.findByRole("heading", { name: "Account" }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
     ).toBeVisible();
     await expect(
-      await canvas.findByRole("tab", { name: "Profile" }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
+      await canvas.findByRole("tab", { name: "Account" }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
     ).toHaveAttribute("aria-selected", "true");
   },
 };

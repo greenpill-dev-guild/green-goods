@@ -86,7 +86,7 @@ If the user's description can't be mapped to a canonical `Admin*` wrapper or reg
 | `a11y` | Missing `aria-label`, role, focus trap, keyboard trap, missing `prefers-reduced-motion`. | StatusBadge + FormField + Alert components. |
 | `token-drift` | Raw color/radius/duration used where a token should be. Surfaced by `bun run check:design-tokens` / `bun run lint:vocab`. | `CLAUDE.md § Design System` banned vocabulary. |
 | `surface-identity` | Admin has glass outside the admin `AppBar`, or client copy leaks into admin, or vice versa. | `prompt-contract.md § Never Use`. |
-| `missing-primitive` | A composition that SHOULD use a canonical `Admin*` wrapper uses raw HTML instead. | 13 `Admin*` wrappers in `prompt-contract.md`. |
+| `missing-primitive` | A composition that SHOULD use a canonical `Admin*` wrapper uses raw HTML instead. | The `Admin*` wrappers in `prompt-contract.md` (filesystem is the count of record). |
 
 ## Casual → resolved examples
 
@@ -98,6 +98,7 @@ The left column is what the user says. The right column is the internal statemen
 | "The top bar looks flat on Garden." | `canvas-area-top in /garden → hierarchy: AppBar lacks elevation-3 + --blur-material-regular separation from MainSheet below` |
 | "The tabs on Community snap weirdly." | `AdminTabRail in /community → motion: sliding indicator uses ease-out 200ms instead of --spring-medium-* tokens` |
 | "The input label looks wrong at phone width." | `AdminTextField (outlined) in AdminDialog create-garden form → responsive: floating-label notch overlaps outline below 400px container width` |
+| "The notifications panel feels like one big list." | `NotificationPanel in AdminSideSheet (AppBar bell) → hierarchy: expected "Needs attention" / "Recent activity" section grouping, currently flat` |
 | "Something's off but I can't tell what." | Tier 3 — agent asks which workspace/region to focus on, then Tier 1s again. |
 
 ## Why this exists

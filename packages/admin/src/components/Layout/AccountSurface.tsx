@@ -37,10 +37,14 @@ export function AccountTabList({ activeTab, onTabChange, className }: AccountTab
       idBase="account"
       tabs={ACCOUNT_TABS.map((tab) => ({
         id: tab,
+        // The identity tab is "Account" in the product vocabulary (it holds
+        // the same content as the desktop Profile sheet); the internal tab id
+        // stays "profile" so deep links (?tab=) and the sheet registry are
+        // unchanged.
         label:
           tab === "settings"
             ? formatMessage({ id: "cockpit.settings.title", defaultMessage: "Settings" })
-            : formatMessage({ id: "cockpit.nav.profile", defaultMessage: "Profile" }),
+            : formatMessage({ id: "cockpit.nav.account", defaultMessage: "Account" }),
       }))}
       className={cn("w-full", className)}
     />

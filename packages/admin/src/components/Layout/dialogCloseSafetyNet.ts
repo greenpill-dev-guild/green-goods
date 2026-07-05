@@ -26,7 +26,7 @@ export function releaseStuckDialogArtifacts(doc: Document = document): void {
   // also display:none's it), so Radix's presence tracking can resolve and the
   // ghost never blocks or flashes.
   for (const node of doc.querySelectorAll(
-    '[data-component="AdminDialog"][data-state="closed"]:not([data-instant-exit])'
+    '[data-component="AdminDialog"][data-state="closed"]:not([data-instant-exit]),[data-component="AdminSideSheet"][data-state="closed"]:not([data-instant-exit])'
   )) {
     node.setAttribute("data-instant-exit", "");
   }
