@@ -4,7 +4,7 @@
 **Stage**: `active`
 **Created**: 2026-07-04
 **Companions**: `contract-spec.md` (the pooling module + register this attaches to — **zero changes to those contracts here**), `diagrams.md` D8–D10 (fund-flow topology, settlement sequence, disbursement state machine), `uiux-spec.md` (surface grammar), `corrections-log.md`.
-**Decision basis**: Architecture 2 (split-state) locked in the Linear doc "G$ in Green Goods: Bridged vs. Split-State Settlement", re-affirmed by the Architecture 3 re-score; user decisions 2026-07-04 (plan decision log #14–#17): settlement enters the **August release**, per-garden Celo Safes from the start (two gardens at launch), member receipt via same-address smart accounts, app goes multi-chain this iteration.
+**Decision basis**: Architecture 2 (split-state) locked in the Linear doc "G$ in Green Goods: Bridged vs. Split-State Settlement", re-affirmed by the Architecture 3 re-score; user decisions 2026-07-04 (plan decision log #14–#17): settlement enters the **August release**, **one Celo Safe per garden (1:1 with the garden account, every garden in the protocol, deployed on demand)**, member receipt via same-address smart accounts, app goes multi-chain this iteration.
 
 **What stays true from the locked register**: no bridged G$, ever. No bridge holds value authority in August. Sarafu integration stays deferred (hybrid option, post-August). Model B vouchers stay gated on [PRD-651](https://linear.app/greenpill-dev-guild/issue/PRD-651). Gardeners never sign cross-chain transactions in the field — member *sends* are explicit wallet actions on the settlement chain, never part of the offline field loop.
 
@@ -19,8 +19,8 @@ All commitment truth stays on Arbitrum. A NET-NEW **`SettlementModule`** on Arbi
 ```text
 House of Alignment stream (Celo, G$)
   → Dev Guild Working Capital Safe (Celo, exists, receiving today)
-    → Green Goods protocol Safe (Celo, exists)          ← settlement account of the PROTOCOL pool (root garden)
-      → Garden Celo Safes (NET-NEW, 2 gardens at launch) ← settlement accounts of garden pools
+    → Green Goods protocol Safe (Celo, exists)              ← settlement account of the PROTOCOL pool (root garden)
+      → Garden Celo Safes (NET-NEW, ONE per garden, 1:1)     ← settlement accounts of garden pools, deployed on demand
         → Members (same-address smart accounts on Celo)
 ```
 
@@ -108,7 +108,8 @@ struct Batch { address garden; uint32 count; DisbursementState state; bytes32 ex
 
 ## 4. Celo side (ops + Safe modules, no new GG contracts)
 
-- **Safes**: GG protocol Safe (exists) + two garden Safes at launch (created via Safe factory on Celo). Each is *attributed* to its Arbitrum garden account via `registerSettlementAccount` — that registration is the canonical garden↔Safe mapping (gap 2 from the audit, closed).
+- **Safes — one per garden, 1:1, every garden in the protocol**: GG protocol Safe (exists) covers the protocol pool; each garden gets exactly one Celo Safe owned by (attributed to) its garden account. Deployment is **on-demand, not launch-blocking**: a checked-in **script path** (batch-capable — the 13 live gardens can be rolled out in one ops pass) and an **admin trigger** ("Set up settlement account" on the Garden Pool tab settlement card) both call the same deploy-then-register flow. Deploy via the Safe proxy factory with a **salt derived from the garden account address**, so every garden's Safe address is deterministic and predictable before deployment. `registerSettlementAccount` records it — that registration is the canonical garden↔Safe mapping (gap 2 from the audit, closed).
+- **Owner set at deployment**: `[gardenAccount, executor key(s)]`, threshold 1. The garden account is a **structural owner** — it cannot sign on Celo today, but listing it makes the 1:1 ownership real on-chain and becomes actionable the day the bridge-executor module lands (the garden account then literally commands its Safe cross-chain). Executor keys do the signing in August, scoped by the modules below.
 - **Signer scoping (Zodiac Roles Modifier)**: executor keys may only call `transfer` on the G$ token from the Safe — no arbitrary execution. **Allowance module**: per-period spending caps per Safe, the Celo-side twin of the register's exposure caps. Configuration is ops work with a checked-in runbook (one-shot doc in this folder at execution time, per repo script policy).
 - **Ownership nuance (named honestly)**: an Arbitrum ERC-6551 account cannot sign on Celo. "Owned by the garden account" is realized as: authorization anchored on the garden account + Hats on Arbitrum (the module), execution by Zodiac-scoped signers on Celo. The post-August upgrade named now: a **bridge-executor Safe module** (Hyperlane/LayerZero-validated messages from the SettlementModule) makes garden-account triggering literal — gated on the locked "no bridge value authority until operator burden binds" rule, and bounded by the same Allowance caps when it comes.
 - **Gas**: executor keys hold CELO; funding source = GG protocol Safe ops budget. Member receipts are pure ERC-20 transfers (no member gas). Member *sends* use sponsored gas (§5).
@@ -167,9 +168,9 @@ SettlementModule work runs as **PR chain 2.5** — parallel with PRD-673/674 onc
 
 1. Week 1 spike: Celo AA verification (§5) + GoodDollar written confirmations (token address, reporting expectations — the two still-open items now that the HoA→WC Safe flow is confirmed fact).
 2. `Settlement.sol` + tests + deploy plumbing (artifact keys `settlementModule`) + indexer block/entities.
-3. Ops: two garden Safes + Zodiac config + executor keys; `registerSettlementAccount` for protocol + two gardens post-broadcast.
+3. Safe deployment tooling: the deterministic deploy-then-register script (batch-capable for the 13 live gardens) + the admin "Set up settlement account" trigger; Zodiac config + executor keys; `registerSettlementAccount` for the protocol pool post-broadcast, garden Safes rolled out on demand.
 4. Shared substrate (chain registry, hooks, `transfer` kind) → admin queue/batch surfaces → PWA reward-status + wallet G$.
-5. Exit criteria added to Milestone 2: first real G$ disbursement queued on Arbitrum, executed from a garden Safe on Celo, `recordSettled` with the Celo tx hash, status visible in the PWA.
+5. Exit criteria added to Milestone 2: first real G$ disbursement queued on Arbitrum, executed from an on-demand-deployed garden Safe on Celo, `recordSettled` with the Celo tx hash, status visible in the PWA.
 
 **Honest risk note**: this widens the August hard commitment by roughly a contracts sub-lane + a shared/admin increment. The two highest-risk externalities (Celo AA support; GoodDollar written confirmations) are front-loaded as week-1 gates with named fallbacks, so a failed gate degrades the member-receipt leg without threatening the pooling release itself.
 

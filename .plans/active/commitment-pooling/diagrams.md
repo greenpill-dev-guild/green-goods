@@ -337,8 +337,7 @@ flowchart TD
   HOA["House of Alignment<br/>G$ stream (Celo)"]
   WC["Dev Guild Working Capital Safe<br/>(Celo, exists, receiving today)"]
   GG["Green Goods protocol Safe (Celo, exists)<br/>settlement account of the PROTOCOL pool"]
-  GS1["Garden Celo Safe A<br/>(launch garden 1, NET-NEW)"]
-  GS2["Garden Celo Safe B<br/>(launch garden 2, NET-NEW)"]
+  GS["Garden Celo Safes NET-NEW<br/>ONE per garden, 1:1, owned by the garden account<br/>deployed on demand (script or admin trigger,<br/>deterministic salt from the garden account)"]
   MEM["Members<br/>same-address smart accounts (Celo)"]
 
   subgraph ARB["Arbitrum control plane"]
@@ -349,17 +348,14 @@ flowchart TD
 
   HOA -->|stream| WC
   WC -->|"funding hop (recorded as Funding disbursement)"| GG
-  GG -->|"funding hop (recorded)"| GS1
-  GG -->|"funding hop (recorded)"| GS2
+  GG -->|"funding hop (recorded)"| GS
   GG -->|"protocol-pool disbursements"| MEM
-  GS1 -->|"garden disbursements"| MEM
-  GS2 -->|"garden disbursements"| MEM
+  GS -->|"garden disbursements"| MEM
 
   HATS --> SM
   CPM2 -->|"Fulfilled read at queue time"| SM
   SM -. "queued batches authorize execution<br/>(human executor in August;<br/>bridge-executor module post-August)" .-> GG
-  SM -. " " .-> GS1
-  SM -. " " .-> GS2
+  SM -. " " .-> GS
   GG -. "recordSettled(celoTxHash)" .-> SM
 ```
 

@@ -3,7 +3,7 @@
 **Feature Slug**: `commitment-pooling`
 **Stage**: `active`
 **Created**: 2026-07-04
-**Companions**: `uiux-spec.md` (canonical flows — every frame here implements a section of it, referenced per frame), `contract-spec.md` (module vocabulary), `diagrams.md` (state machines these screens render).
+**Companions**: `uiux-spec.md` (canonical flows — every frame here implements a section of it, referenced per frame), `contract-spec.md` (module vocabulary), `settlement-spec.md` (settlement surfaces, §6 deltas here), `diagrams.md` (state machines these screens render).
 **Fidelity**: deliberately low. Boxes, labels, and navigation only — structure and flow, not visual design. Warm Earth expression, spacing, and component polish happen at implementation time per the `design`/`ui` skills; admin frames stay restrained per the prompt contract. All copy shown is placeholder English; every string ships as en/es/pt keys per uiux-spec §10.
 **Grounding rule**: component names in `{braces}` are canonical (shared primitives, `Admin*` wrappers, or NET-NEW primitives flagged in uiux-spec §9). Routes are the NET-NEW routes uiux-spec §5.1/§6.1 defines. Nothing here invents a component, route, or term the specs don't already carry.
 
@@ -542,7 +542,64 @@ Entry: a fulfilled commitment aimed at the community. Community-Hat gated; EAS t
 
 ---
 
-## 6. Coverage check
+## 6. Settlement deltas (August, settlement-spec §7)
+
+G$ split-state settlement surfaces per `settlement-spec.md`. W21–W23 are new frames; W2 and W10 take copy/action deltas only (noted, not redrawn).
+
+**W2 delta (PWA commitment detail, reward row)** — three settlement states via the precedence rule (settlement record beats pooling `rewardPaid` when a disbursement exists): "support on its way" (Queued/Executing) · "support arrived ↗" with Celo reference (Settled) · "still arranging support — your promise is recorded" (Failed; calm tone, never an error). **W10 delta (admin commitment dialog)** — for G$-rewarded commitments, "Record payout" becomes "Queue disbursement" feeding W21's queue.
+
+### W21 — Garden Pool tab: Settlement section (delta to W7)
+
+New `{AdminCard}` on `/garden/pool`, below the cycle console.
+
+```text
+┌─ Settlement (Celo) ────────────────────────────────────────────────────┐
+│ no settlement account yet   [ Set up settlement account ]              │  admin trigger → deterministic
+│                                                                        │  Safe deploy + register (script
+│  — once registered —                                                   │  path exists for batch rollout)
+│ Safe celo:0x9a…4f (active) · balance 1,240 G$ · allowance 500 G$/wk    │
+│ owner: this garden's account · executors: 2                            │
+│ Disbursements                                                          │
+│ ≡ Maria — 20 G$    (Queued)                        [ add to batch ]    │
+│ ≡ João — 15 G$     (Failed: reason ▸) [ Requeue ] [ Cancel… ]          │  reasons always visible
+│ ≡ Ana — 20 G$      (Settled ↗ celo tx)                                 │
+│ [ Create batch (2) ]                                                   │  ▸ W22
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+### W22 — Batch execution console (inside W12 Pools funding view and per-garden)
+
+`{AdminDialog}` opened from W21 / the Pools workspace funding view.
+
+```text
+┌── Execute batch #12 — Rocinha ───────────────────────────┐
+│ 2 disbursements · 35 G$ · from Safe celo:0x9a…4f         │
+│ ≡ Maria — 20 G$ → 0x12…9a                                │
+│ ≡ João — 15 G$ → 0x77…3c                                 │
+│ [ Open in Safe app ↗ ]                                   │  August: signing happens in the
+│ [ Mark executing ]                                       │  Safe app; in-app Safe SDK is
+│ then [ Record settled — tx hash… ]                       │  post-August polish
+│ or   [ Record failed — reason… ]                         │
+└──────────────────────────────────────────────────────────┘
+```
+
+### W23 — WalletDrawer: G$ section + member send (delta to W5)
+
+```text
+├──────────────────────────────────────────────┤
+│ Support received (G$ · Celo)          128 G$ │
+│ ≡ +20 G$ — Prune the north beds  (arrived ↗) │
+│ [ Send G$ ]                                  │  ▸ send sheet below
+├──────────────────────────────────────────────┤
+│ Send G$                                      │  {DialogShell}; explicit online
+│ to [ address or member… ]  amount [    ] G$  │  action — never enters the
+│ "Sent from your account on Celo.             │  offline field queue; gas is
+│  No gas needed."                             │  sponsored (members hold no CELO)
+│ [ Send ]                                     │
+└──────────────────────────────────────────────┘
+```
+
+## 7. Coverage check
 
 | uiux-spec section | Frame |
 |---|---|
@@ -565,3 +622,7 @@ Entry: a fulfilled commitment aimed at the community. Community-Hat gated; EAS t
 | §7.1 garden pool story | W15 |
 | §7.3 /impact section | W16 |
 | §8.2 community views | W17–W20 |
+| settlement-spec §7 reward-status copy (PWA) | W2 delta note (§6) |
+| settlement-spec §7 admin settlement card + disbursement queue | W21 |
+| settlement-spec §7 batch execution console | W22 |
+| settlement-spec §7 wallet G$ + member send | W23 |
