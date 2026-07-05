@@ -3,7 +3,7 @@
 **Feature Slug**: `commitment-pooling`
 **Stage**: `active`
 **Created**: 2026-07-04
-**Companions**: `contract-spec.md` (source of truth for every contract name, function, event, and state), `uiux-spec.md` (surface flows), `wireframes.md` (screens). These diagrams are execution reference for implementers and reviewers; they introduce nothing the specs do not already define.
+**Companions**: `contract-spec.md` (source of truth for every contract name, function, event, and state), `settlement-spec.md` (SettlementModule + Celo Safe topology, D8–D10), `uiux-spec.md` (surface flows), `wireframes.md` (screens). These diagrams are execution reference for implementers and reviewers; they introduce nothing the specs do not already define.
 
 **Docs-site promotion**: these diagrams live here until the August release ships. Promotion into `docs/docs/builders/architecture/` (sequence-diagrams, ERD, plus a commitment journey doc) rides [PRD-680](https://linear.app/greenpill-dev-guild/issue/PRD-680); see §8 for the two *edits* to existing docs diagrams that ship at the same time.
 
@@ -16,6 +16,9 @@
 | D5 | Cycle state machine (on-chain + derived) | contract-spec §5.2 |
 | D6 | Commitment state machine (on-chain + derived) | contract-spec §5.3 |
 | D7 | Indexer entity delta (ERD) | contract-spec §8.2 |
+| D8 | G$ fund-flow topology (HoA → Safes → members) | settlement-spec §2, §4 |
+| D9 | Settlement sequence with failure/retry | settlement-spec §3.3 |
+| D10 | Disbursement state machine | settlement-spec §3.2–3.3 |
 
 **Legend for state diagrams**: solid = on-chain state (a named module function performs the transition and emits the listed event); dashed = derived state (indexer/app computes it from events; the chain never stores it); grey dashed = app-only (IndexedDB draft, no chain or indexer presence).
 
@@ -325,7 +328,97 @@ Full field lists: contract-spec §8.2. The four locked aggregates stay numerator
 
 ---
 
-## 8. Edits to EXISTING docs diagrams at ship (PRD-680 scope)
+## D8. G$ fund-flow topology (settlement, August)
+
+Split-state settlement per `settlement-spec.md`: authorization on Arbitrum (garden-account-anchored, Hats-gated), execution on Celo from garden-attributed Safes with Zodiac-scoped signers. Canonical G$ never leaves Celo; no bridge carries value authority.
+
+```mermaid
+flowchart TD
+  HOA["House of Alignment<br/>G$ stream (Celo)"]
+  WC["Dev Guild Working Capital Safe<br/>(Celo, exists, receiving today)"]
+  GG["Green Goods protocol Safe (Celo, exists)<br/>settlement account of the PROTOCOL pool"]
+  GS1["Garden Celo Safe A<br/>(launch garden 1, NET-NEW)"]
+  GS2["Garden Celo Safe B<br/>(launch garden 2, NET-NEW)"]
+  MEM["Members<br/>same-address smart accounts (Celo)"]
+
+  subgraph ARB["Arbitrum control plane"]
+    HATS["Hats<br/>steward gates"]
+    CPM2["CommitmentPoolingModule<br/>Fulfilled commitments"]
+    SM["SettlementModule NET-NEW<br/>accounts · queue · states · executionRefs"]
+  end
+
+  HOA -->|stream| WC
+  WC -->|"funding hop (recorded as Funding disbursement)"| GG
+  GG -->|"funding hop (recorded)"| GS1
+  GG -->|"funding hop (recorded)"| GS2
+  GG -->|"protocol-pool disbursements"| MEM
+  GS1 -->|"garden disbursements"| MEM
+  GS2 -->|"garden disbursements"| MEM
+
+  HATS --> SM
+  CPM2 -->|"Fulfilled read at queue time"| SM
+  SM -. "queued batches authorize execution<br/>(human executor in August;<br/>bridge-executor module post-August)" .-> GG
+  SM -. " " .-> GS1
+  SM -. " " .-> GS2
+  GG -. "recordSettled(celoTxHash)" .-> SM
+```
+
+## D9. Settlement sequence with failure/retry
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor OP as Steward (Arbitrum)
+  actor EX as Executor (Celo Safe signer)
+  participant SM as SettlementModule (Arbitrum)
+  participant CPM as CommitmentPoolingModule
+  participant SAFE as Garden Celo Safe (Zodiac-scoped)
+  participant GD as G$ token (Celo)
+  participant MEM as Member smart account (Celo)
+  participant IDX as Indexer
+
+  Note over SM: prerequisite: registerSettlementAccount(garden, 42220, safe)
+  OP->>SM: queueDisbursement(commitmentId, recipient, G$, amount)
+  SM->>CPM: getCommitment — state must be Fulfilled
+  SM-->>IDX: DisbursementQueued (PWA reward row: "support on its way")
+  EX->>SM: createBatch(garden, ids) then markExecuting(batchId)
+  SM-->>IDX: BatchExecuting
+  EX->>SAFE: execute batch (Roles-scoped: G$ transfer only, Allowance-capped)
+  SAFE->>GD: transfer(recipient, amount)
+  GD->>MEM: G$ received at counterfactual address (no member gas)
+  alt execution succeeds
+    EX->>SM: recordBatchSettled(batchId, celoTxHash)
+    SM-->>IDX: DisbursementSettled (PWA: "support arrived")
+  else execution fails
+    EX->>SM: recordFailed(id, reasonCID)
+    SM-->>IDX: DisbursementFailed (PWA: "still arranging support — your promise is recorded")
+    OP->>SM: requeue(id) — attempts increments
+    SM-->>IDX: DisbursementRequeued
+  end
+```
+
+## D10. Disbursement state machine (all module-native, on-chain)
+
+```mermaid
+stateDiagram-v2
+  direction LR
+  [*] --> Queued : queueDisbursement / queueFunding (steward)
+  Queued --> Executing : markExecuting (executor)
+  Executing --> Settled : recordSettled(executionRef)
+  Queued --> Settled : recordSettled (manual single, executionRef)
+  Executing --> Failed : recordFailed(reasonCID)
+  Failed --> Queued : requeue (steward, attempts increments)
+  Queued --> Cancelled : cancelDisbursement(reasonCID)
+  Failed --> Cancelled : cancelDisbursement(reasonCID)
+  Settled --> [*]
+  Cancelled --> [*] : frees the commitment for a fresh queue
+```
+
+A failed Celo leg never touches commitment state — `Fulfilled` on the pooling module is permanent; only the disbursement record cycles. Reward-status precedence for UI: settlement-module record when a disbursement exists, else pooling-module `rewardPaid` (settlement-spec §3.3).
+
+---
+
+## Appendix: Edits to EXISTING docs diagrams at ship (PRD-680 scope)
 
 Not performed now — the docs site describes what is live. Flagged on the Linear issue so they ship with the release:
 

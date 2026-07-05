@@ -16,6 +16,7 @@
     "corrections_log": "corrections-log.md",
     "contract_spec": "contract-spec.md",
     "uiux_spec": "uiux-spec.md",
+    "settlement_spec": "settlement-spec.md",
     "diagrams": "diagrams.md",
     "wireframes": "wireframes.md",
     "plan": "plan.todo.md"
@@ -35,6 +36,7 @@
     "lastSyncedAt": "2026-07-04",
     "lanes": {
       "contracts": ["PRD-671", "PRD-672"],
+      "settlement": ["PRD-686"],
       "indexer": ["PRD-673"],
       "state_api": ["PRD-674", "PRD-679"],
       "ui_client": ["PRD-675"],
@@ -77,6 +79,22 @@
         "note": ""
       },
       "skill_tags": ["contracts"]
+    },
+    "settlement": {
+      "owner": "codex",
+      "status": "todo",
+      "branch": "codex/settlement/commitment-pooling",
+      "depends_on": ["contracts"],
+      "handoff": "handoffs/codex-settlement.md",
+      "linear_issues": ["PRD-686"],
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": { "command": "", "evidence": "" },
+        "green": { "command": "", "evidence": "" },
+        "note": ""
+      },
+      "skill_tags": ["contracts", "web3"]
     },
     "indexer": {
       "owner": "codex",
