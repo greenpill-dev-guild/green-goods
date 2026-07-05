@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { type ReactNode, useRef, useState } from "react";
+import { type ReactNode, useCallback, useRef, useState } from "react";
 import { IntlProvider, useIntl } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import enMessages from "../../../../shared/src/i18n/en.json";
@@ -87,6 +87,19 @@ function EditorHarness({
     canEdit: false,
   });
 
+  // Keep the callback identity STABLE. GardenSettingsEditor lists
+  // onDirtyStateChange in its effect deps (mirroring the real consumer, which
+  // passes a stable state setter), so an inline callback — a new reference every
+  // render — would refire the effect → setForm → re-render → refire, an infinite
+  // loop that bloats memory and OOMs the coverage worker. Ref-capture overrides
+  // so the callback never changes identity.
+  const overridesRef = useRef(overrides);
+  overridesRef.current = overrides;
+  const handleDirtyStateChange = useCallback((state: GardenSettingsFormState) => {
+    setForm(state);
+    overridesRef.current.onDirtyStateChange?.(state);
+  }, []);
+
   return (
     <>
       <GardenSettingsEditor
@@ -96,10 +109,7 @@ function EditorHarness({
         canManage
         isOwner
         {...overrides}
-        onDirtyStateChange={(state) => {
-          setForm(state);
-          overrides.onDirtyStateChange?.(state);
-        }}
+        onDirtyStateChange={handleDirtyStateChange}
       />
       {form.canEdit ? (
         <div>
