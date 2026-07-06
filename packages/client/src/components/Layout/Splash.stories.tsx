@@ -295,6 +295,7 @@ const COPY = {
   recoverButton: "Recover with passkey",
   wallet: "Sign in with a wallet",
   recoverWithUsername: "Recover with username",
+  haveAccount: "Already have an account?",
   newAccountLabel: "Display name for new account",
   newAccountPlaceholder: "e.g. alice or alice.eth",
   back: "Back",
@@ -338,12 +339,12 @@ const OVERFLOW_ERROR =
 const LONGEST_INFO =
   "Mantiene el acceso en el mismo dispositivo. Puede requerir reinscripción si se borra el almacenamiento del navegador.";
 
-/** Entry, first install: Create account (slot 1) · wallet (slot 2) · Recover link. */
+/** Entry, first install: Create account (slot 1) · wallet (slot 2) · existing-account link. */
 const entryNewArgs: SplashStoryArgs = {
   login: () => {},
   buttonLabel: COPY.createButton,
   secondaryAction: { label: COPY.wallet, onSelect: () => {} },
-  tertiaryAction: { label: COPY.recoverWithUsername, onClick: () => {} },
+  tertiaryAction: { label: COPY.haveAccount, onClick: () => {} },
 };
 
 /** Entry, returning: personalized one-tap (slot 1) · wallet (slot 2) · Recover link. */

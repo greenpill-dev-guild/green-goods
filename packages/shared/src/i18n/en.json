@@ -1966,6 +1966,7 @@
   "app.login.button.connectWallet": "Sign in with a wallet",
   "app.login.button.continueAs": "Continue as {name}",
   "app.login.button.createAccount": "Create account",
+  "app.login.button.haveAccount": "Already have an account?",
   "app.login.button.loginPasskey": "Sign in with passkey",
   "app.login.button.loginWallet": "Sign in with wallet",
   "app.login.button.recoverPasskey": "Recover with passkey",

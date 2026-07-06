@@ -616,10 +616,21 @@ export function Login() {
           browserGuidanceTertiaryAction ||
           (passkeyServerEnabled
             ? {
-                label: intl.formatMessage({
-                  id: "app.login.button.recoverWithUsername",
-                  defaultMessage: "Recover with username",
-                }),
+                // Returning users (a local passkey exists) can "recover" — a
+                // broken/rotated credential. First-time-on-this-device users
+                // haven't lost anything to recover, but the bucket includes an
+                // existing user on a new device/browser, whose only way in is
+                // this same username lookup — so the door stays, reframed as
+                // signing into an existing account rather than recovery.
+                label: hasExistingAccount
+                  ? intl.formatMessage({
+                      id: "app.login.button.recoverWithUsername",
+                      defaultMessage: "Recover with username",
+                    })
+                  : intl.formatMessage({
+                      id: "app.login.button.haveAccount",
+                      defaultMessage: "Already have an account?",
+                    }),
                 onClick: goToRecover,
               }
             : undefined)

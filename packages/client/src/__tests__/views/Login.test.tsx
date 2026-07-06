@@ -223,7 +223,9 @@ describe("Login View - New User (two-step create)", () => {
     expect(screen.getByTestId("primary-button")).toBeEnabled();
     expect(screen.queryByTestId("username-input")).not.toBeInTheDocument();
     expect(screen.getByTestId("secondary-button")).toHaveTextContent("Sign in with a wallet");
-    expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Recover with username");
+    // First-timers get the reframed "existing account" link, not "Recover…";
+    // recovery-by-username still exists for existing users on a new device.
+    expect(screen.getByTestId("tertiary-button")).toHaveTextContent("Already have an account?");
     expect(screen.queryByTestId("info-message")).not.toBeInTheDocument();
   });
 
