@@ -10,7 +10,7 @@
     "overall_status": "planned",
     "priority": "p2",
     "created_at": "2026-07-04",
-    "updated_at": "2026-07-04"
+    "updated_at": "2026-07-05"
   },
   "links": {
     "corrections_log": "corrections-log.md",
@@ -30,7 +30,7 @@
     },
     "amendedInCommitmentPooling": ["PRD-672", "PRD-673", "PRD-679", "PRD-682", "PRD-683"],
     "syncDirection": "plans_to_linear_visibility",
-    "lastSyncedAt": "2026-07-04"
+    "lastSyncedAt": "2026-07-05"
   },
   "taxonomy": {
     "initiative": "impact-methodologies-evaluator-flywheel",
@@ -72,7 +72,7 @@
       "branch": "codex/indexer/community-interface",
       "depends_on": ["contracts"],
       "handoff": "handoffs/codex-indexer.md",
-      "linear_issues": ["PRD-688"],
+      "linear_issues": ["PRD-687"],
       "tdd": {
         "mode": "required",
         "status": "pending",
@@ -88,7 +88,7 @@
       "branch": "codex/state-api/community-interface",
       "depends_on": ["contracts"],
       "handoff": "handoffs/codex-state-api.md",
-      "linear_issues": ["PRD-690"],
+      "linear_issues": ["PRD-687"],
       "tdd": {
         "mode": "required",
         "status": "pending",
@@ -104,7 +104,7 @@
       "branch": null,
       "depends_on": ["contracts"],
       "handoff": "handoffs/ops-paymaster.md",
-      "linear_issues": ["PRD-689"],
+      "linear_issues": ["PRD-687"],
       "tdd": {
         "mode": "not_applicable",
         "status": "not_applicable",
@@ -136,7 +136,7 @@
       "branch": "claude/funder-lens/community-interface",
       "depends_on": ["state_api"],
       "handoff": "handoffs/claude-funder-lens.md",
-      "linear_issues": ["PRD-692"],
+      "linear_issues": ["PRD-691"],
       "tdd": {
         "mode": "optional",
         "status": "pending",
@@ -152,7 +152,7 @@
       "branch": "claude/docs/community-interface",
       "depends_on": ["ui_admin"],
       "handoff": "handoffs/claude-docs.md",
-      "linear_issues": ["PRD-693"],
+      "linear_issues": ["PRD-691"],
       "tdd": {
         "mode": "not_applicable",
         "status": "not_applicable",
@@ -170,7 +170,7 @@
       "branch": "claude/qa-dogfood/community-interface",
       "depends_on": ["ui_admin", "funder_lens", "state_api", "ops_paymaster"],
       "handoff": "handoffs/qa-dogfood-readout.md",
-      "linear_issues": ["PRD-694"],
+      "linear_issues": ["PRD-691"],
       "skill_tags": ["testing", "review"]
     },
     "hardening": {
@@ -194,6 +194,10 @@
     {
       "date": "2026-07-04",
       "event": "Research pass ground-truthed (corrections-log.md), 8 decisions locked with Afo (vocabulary Need, CSE build home, new hub, Needs/Create/Profile IA, donate/endowment + FundingAttribution, local-first voice, global discovery, no claim flow). spec.md authored; CP hub amended (needUID, decision #28, §8 supersession); Linear scoped: CSE project graduated, 3 milestones, PRD-687..696 created, PRD-672/673/679/682/683 amended, research doc archived."
+    },
+    {
+      "date": "2026-07-05",
+      "event": "Linear consolidated: per-lane children PRD-688/689/690 closed into PRD-687 (needs substrate), PRD-692/693/694 into PRD-691 (September needs app); status.json + plan.todo.md re-pointed to the parents. .plans/ is the lane-level source of truth."
     }
   ]
 }

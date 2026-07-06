@@ -10,7 +10,7 @@
     "overall_status": "planned",
     "priority": "p1",
     "created_at": "2026-07-03",
-    "updated_at": "2026-07-04"
+    "updated_at": "2026-07-05"
   },
   "links": {
     "corrections_log": "corrections-log.md",
@@ -33,18 +33,27 @@
       "september_community_interface": "2026-09-30"
     },
     "syncDirection": "plans_to_linear_visibility",
-    "lastSyncedAt": "2026-07-04",
+    "lastSyncedAt": "2026-07-05",
     "lanes": {
-      "contracts": ["PRD-671", "PRD-672"],
+      "contracts": ["PRD-650"],
       "settlement": ["PRD-686"],
-      "indexer": ["PRD-673"],
-      "state_api": ["PRD-674", "PRD-679"],
-      "ui_client": ["PRD-675"],
-      "ui_admin": ["PRD-676", "PRD-677", "PRD-679", "PRD-683"],
-      "editorial": ["PRD-678"],
-      "docs": ["PRD-680", "PRD-681"],
-      "july_dry_run": ["RESR-53", "RESR-62", "RESR-63", "RESR-13"],
+      "indexer": ["PRD-650"],
+      "state_api": ["PRD-650"],
+      "ui_client": ["PRD-650"],
+      "ui_admin": ["PRD-650", "PRD-682"],
+      "editorial": ["PRD-650"],
+      "docs": ["PRD-650"],
+      "july_dry_run": ["RESR-62", "RESR-53"],
       "community": ["PRD-682"]
+    },
+    "consolidatedTrackers": {
+      "note": "Per-lane children closed 2026-07-05; lanes roll up to these parent trackers. Lane detail = plan.todo.md.",
+      "august_proof": "PRD-650",
+      "august_settlement": "PRD-686",
+      "september_interface": "PRD-682",
+      "july_dry_run": "RESR-62",
+      "needs_substrate": "PRD-687",
+      "needs_app": "PRD-691"
     }
   },
   "taxonomy": {
@@ -70,7 +79,7 @@
       "branch": "codex/contracts/commitment-pooling",
       "depends_on": [],
       "handoff": "handoffs/codex-contracts.md",
-      "linear_issues": ["PRD-671", "PRD-672"],
+      "linear_issues": ["PRD-650"],
       "tdd": {
         "mode": "required",
         "status": "pending",
@@ -102,7 +111,7 @@
       "branch": "codex/indexer/commitment-pooling",
       "depends_on": ["contracts"],
       "handoff": "handoffs/codex-indexer.md",
-      "linear_issues": ["PRD-673"],
+      "linear_issues": ["PRD-650"],
       "tdd": {
         "mode": "required",
         "status": "pending",
@@ -118,7 +127,7 @@
       "branch": "codex/state-api/commitment-pooling",
       "depends_on": ["contracts", "indexer"],
       "handoff": "handoffs/codex-state-api.md",
-      "linear_issues": ["PRD-674", "PRD-679"],
+      "linear_issues": ["PRD-650"],
       "tdd": {
         "mode": "required",
         "status": "pending",
@@ -134,7 +143,7 @@
       "branch": "claude/ui-client/commitment-pooling",
       "depends_on": ["state_api"],
       "handoff": "handoffs/claude-ui-client.md",
-      "linear_issues": ["PRD-675"],
+      "linear_issues": ["PRD-650"],
       "tdd": {
         "mode": "required",
         "status": "pending",
@@ -150,7 +159,7 @@
       "branch": "claude/ui-admin/commitment-pooling",
       "depends_on": ["state_api"],
       "handoff": "handoffs/claude-ui-admin.md",
-      "linear_issues": ["PRD-676", "PRD-677", "PRD-679", "PRD-683"],
+      "linear_issues": ["PRD-650", "PRD-682"],
       "tdd": {
         "mode": "required",
         "status": "pending",
@@ -166,7 +175,7 @@
       "branch": "claude/editorial/commitment-pooling",
       "depends_on": ["state_api"],
       "handoff": "handoffs/claude-editorial.md",
-      "linear_issues": ["PRD-678"],
+      "linear_issues": ["PRD-650"],
       "tdd": {
         "mode": "optional",
         "status": "pending",
@@ -182,7 +191,7 @@
       "branch": "claude/docs/commitment-pooling",
       "depends_on": [],
       "handoff": "handoffs/claude-docs.md",
-      "linear_issues": ["PRD-680", "PRD-681"],
+      "linear_issues": ["PRD-650"],
       "tdd": {
         "mode": "not_applicable",
         "status": "not_applicable",
@@ -198,7 +207,7 @@
       "branch": null,
       "depends_on": [],
       "handoff": null,
-      "linear_issues": ["RESR-53", "RESR-62", "RESR-63", "RESR-13"],
+      "linear_issues": ["RESR-62", "RESR-53"],
       "tdd": {
         "mode": "not_applicable",
         "status": "not_applicable",
@@ -254,6 +263,10 @@
     {
       "date": "2026-07-04",
       "event": "Linear restructure executed: Seasons & Campaigns converted to Green Goods Commitment Pooling; milestones + 15 workstream issues created; legacy season issues composted; HoA records corrected."
+    },
+    {
+      "date": "2026-07-05",
+      "event": "Linear consolidated to parent trackers: per-lane children (PRD-671..681, PRD-683, PRD-688..694, RESR-63/13) closed into PRD-650/PRD-682/PRD-687/PRD-691/RESR-62; status.json + plan.todo.md re-pointed to the parents. .plans/ is the lane-level source of truth."
     }
   ]
 }

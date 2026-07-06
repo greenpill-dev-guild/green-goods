@@ -2,11 +2,13 @@
 
 **Feature Slug**: `community-interface`
 **Stage**: `active`
-**Status**: `ACTIVE: spec aligned + Linear scoped 2026-07-04; implementation not started`
+**Status**: `ACTIVE: spec aligned 2026-07-04; Linear consolidated to parent trackers 2026-07-05; implementation not started`
 **Created**: 2026-07-04
-**Last Updated**: 2026-07-04
+**Last Updated**: 2026-07-05
 
 Linear mirror: project [Community Signals & Engagement](https://linear.app/greenpill-dev-guild/project/community-signals-and-engagement-083dd7e556c2) (graduated from scoping-only to build home 2026-07-04). Milestones: Needs substrate (rides August, 2026-08-31), September needs app (2026-09-30), Post-pilot hardening (2026-12-31). The September app delivery records (PRD-682/683) stay in [Green Goods Commitment Pooling](https://linear.app/greenpill-dev-guild/project/green-goods-commitment-pooling-4bc53572f354), amended 2026-07-04. Specs in this folder: `spec.md`, `corrections-log.md`.
+
+> **Linear consolidation (2026-07-05).** Per-lane workstream issues were closed into two parent **trackers**; **this plan is the lane-level execution truth**. Trackers: **PRD-687** needs substrate (absorbs PRD-688 indexer, PRD-689 paymaster, PRD-690 shared) and **PRD-691** September needs app (absorbs PRD-692 funder lens, PRD-693 docs, PRD-694 QA/dogfood). Kept as-is: parked hardening **PRD-695/696** and scoping record **RESR-64**; the September delivery records **PRD-682/683** in Commitment Pooling now roll up under that project's **PRD-682** tracker. The per-lane `PRD-6xx` IDs in the tables below are **historical labels** for the closed child issues.
 
 ## Decision Log (locked 2026-07-04, full rationale in spec.md §1)
 

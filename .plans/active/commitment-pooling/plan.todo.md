@@ -2,11 +2,13 @@
 
 **Feature Slug**: `commitment-pooling`
 **Stage**: `active`
-**Status**: `ACTIVE: plan approved, spec in progress, Linear restructured, implementation not started`
+**Status**: `ACTIVE: plan approved, spec in progress, Linear consolidated to parent trackers (2026-07-05), implementation not started`
 **Created**: `2026-07-03`
-**Last Updated**: `2026-07-04`
+**Last Updated**: `2026-07-05`
 
-Linear mirror: project [Green Goods Commitment Pooling](https://linear.app/greenpill-dev-guild/project/green-goods-commitment-pooling-4bc53572f354) (converted in place from Seasons & Campaigns). Every plan item below names its Linear issue. Milestones: July dry run (2026-07-31), August release (2026-08-31, hard commitment), September community interface (2026-09-30). Specs in this folder: `corrections-log.md`, `contract-spec.md`, `uiux-spec.md`, `settlement-spec.md` (G$ split-state settlement, August), plus design artifacts `diagrams.md` (topology, sequences, state machines, indexer ERD delta, settlement D8–D10) and `wireframes.md` (low-fi, all four surfaces).
+Linear mirror: project [Green Goods Commitment Pooling](https://linear.app/greenpill-dev-guild/project/green-goods-commitment-pooling-4bc53572f354) (converted in place from Seasons & Campaigns). Milestones: July dry run (2026-07-31), August release (2026-08-31, hard commitment), September community interface (2026-09-30). Specs in this folder: `corrections-log.md`, `contract-spec.md`, `uiux-spec.md`, `settlement-spec.md` (G$ split-state settlement, August), plus design artifacts `diagrams.md` (topology, sequences, state machines, indexer ERD delta, settlement D8–D10) and `wireframes.md` (low-fi, all four surfaces).
+
+> **Linear consolidation (2026-07-05).** To keep Linear minimal, the per-lane workstream issues were closed into a small set of parent **trackers**; **this plan is the lane-level execution truth**. Trackers: **PRD-650** August proof MVP (absorbs PRD-671→681), **PRD-686** G$ split-state settlement, **PRD-682** September community interface (absorbs PRD-683), **RESR-62** July dry run (absorbs RESR-63 + RESR-13; RESR-53 stays in Impact Framework). Needs-layer trackers **PRD-687** substrate (absorbs PRD-688/689/690) and **PRD-691** app (absorbs PRD-692/693/694) live in the **Community Signals & Engagement** project. Kept as-is: **PRD-649** (architecture record), **PRD-651** (deferred Model-B settlement), research records **RESR-57/58/64**, parked **PRD-695/696**, and the linked-research issues **RESR-15/RESR-4/PRD-275**. The per-lane `PRD-6xx` / `RESR-xx` IDs in the tables below are **historical labels** for the closed child issues — dispatch reads the lanes here and rolls up to the parent tracker, not to those closed IDs.
 
 ## Decision Log
 
