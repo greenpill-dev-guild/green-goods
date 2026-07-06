@@ -15,7 +15,7 @@
 - Verify passkey server unavailable does not wipe session data or force account creation.
 - Verify `VITE_PASSKEY_SERVER_ENABLED=false` keeps legacy/local behavior available.
 - Verify missing local credential cache shows username/ENS-handle recovery before server lookup.
-- Verify failed recovery followed by guarded new-account confirmation copy.
+- Verify failed recovery stays on the recovery form with retry/back only and does not create, authenticate, or prompt a separate new account.
 - Verify production RP/origin posture and staging/prod passkey-server isolation evidence are attached.
 - Verify unsupported/in-app browser contexts do not start a passkey ceremony.
 - Verify address mismatch fails closed if it can be simulated.
@@ -23,9 +23,10 @@
   whose local cache holds account A, a second user recovering account B by
   username fails closed with the address-mismatch copy. There is deliberately no
   in-Login way to clear A's cached metadata (`clearPasskey` is only reachable
-  while authenticated); B's paths on that device are wallet sign-in or guarded
-  separate-account creation. Record it as PASS when the mismatch copy shows and
-  nothing is cleared. A guarded "use a different account on this device" reset
+  while authenticated); B's paths on that device are wallet sign-in or returning
+  to entry before starting a separate create-account flow. Record it as PASS
+  when the mismatch copy shows and nothing is cleared. A guarded
+  "use a different account on this device" reset
   is a follow-up product decision, out of scope for this pass.
 - Username-mismatch fallback surfacing (added 2026-06-10): when the server has
   no credential for the typed name (or is unreachable) and the device falls back

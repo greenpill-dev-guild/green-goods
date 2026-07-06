@@ -54,7 +54,7 @@ Implement Pimlico passkey-server-first auth continuity in `packages/shared`.
 - Updated auth telemetry payloads to source/outcome/reason codes only; no username, credential ID, wallet address, or smart-account address.
 - Updated client login recovery UI:
   - missing local cache shows username/ENS recovery before lookup.
-  - failed recovery shows retry/fallback guidance and a guarded separate-account confirmation before new account creation.
+  - failed recovery shows retry/fallback guidance and keeps account creation out of the recovery sub-flow.
   - unsupported browser/in-app-browser guidance blocks passkey ceremonies before starting registration/login.
   - one-tap passkey login remains for users with a local credential.
   - new strings added to `en`, `es`, and `pt`.
@@ -82,13 +82,20 @@ Implement Pimlico passkey-server-first auth continuity in `packages/shared`.
 - CAVEAT: `bun run check:design-generated` failed on unrelated stale generated artifact `docs/docs/builders/packages/client-pwa-token-audit.generated.md`.
 - CAVEAT: `node scripts/harness/plan-hub.mjs validate` failed on unrelated malformed active hub `.plans/active/sentry-stack-observability`; no feature-scoped validate command exists.
 
+### 2026-07-06 Fix Validation
+
+- GREEN: `bun run --cwd packages/shared test -- src/__tests__/workflows/authServices.test.ts src/__tests__/modules/app/error-categories.test.ts src/__tests__/modules/app/sentry-redaction.test.ts` passed: 3 files, 44 tests.
+- GREEN: `bun run --cwd packages/shared test -- src/__tests__/config/passkeyServer.test.ts src/__tests__/workflows/authServices.test.ts src/__tests__/modules/session.test.ts src/__tests__/workflows/authMachine.test.ts src/__tests__/hooks/useAuth.test.ts src/__tests__/modules/app/error-categories.test.ts src/__tests__/modules/app/sentry-redaction.test.ts` passed: 7 files, 117 tests.
+- GREEN: `bun run --cwd packages/client test -- src/__tests__/views/Login.test.tsx src/__tests__/manifest/pwa-routing.test.ts src/__tests__/manifest/pwa-manifest.test.ts src/__tests__/manifest/vercel-routing.test.ts src/__tests__/routes/PwaRuntime.test.tsx src/__tests__/views/InstallCta.test.tsx src/__tests__/components/PublicInstallAction.test.tsx` passed: 7 files, 54 tests.
+- GREEN: `bun run --cwd packages/shared typecheck` passed.
+
 ### Browser Proof
 
 Using the in-app Browser against `https://127.0.0.1:5173/home/login?presentation=pwa`:
 
-- Default no-local-cache state rendered username/ENS recovery input, synced/legacy passkey guidance, disabled recovery until input, wallet fallback, separate-account link, and address-continuity notice.
-- Failed recovery with no local cache and flag-off behavior rendered a recoverable error, retained the typed username, kept retry/fallback actions visible, and exposed guarded separate-account creation without overlap on a 1280x720 viewport.
-- Separate-account confirmation rendered explicit copy that the new account uses a different address and will not recover access tied to the previous passkey, with `Continue to new account` and `Back to recovery` actions.
+- Default no-local-cache state rendered username/ENS recovery input, synced/legacy passkey guidance, disabled recovery until input, wallet fallback, and entry/create separation without an in-recovery account-creation fork.
+- Failed recovery with no local cache rendered a recoverable error, retained the typed username, and kept retry/back visible without exposing a separate-account fork on the recovery surface.
+- Fresh account creation remains available only by returning to the entry screen and choosing the normal create-account flow.
 
 ### Remaining QA Risks
 
@@ -97,6 +104,17 @@ Using the in-app Browser against `https://127.0.0.1:5173/home/login?presentation
 - Address mismatch is unit-simulated; live mismatch proof depends on QA harness capability.
 - Legacy local-only hosted-server import/migration is explicitly not implemented or proven.
 - `PRD-540` can start QA pass 1 from this handoff; `PRD-541` remains blocked until QA pass 1 completes.
+
+### Support Runbook
+
+| Failure category | User-facing behavior | Support / rollback action |
+|---|---|---|
+| `cancelled` | Keep the user on the current login/recovery form with retry available. | No escalation needed unless repeated across browsers/devices. |
+| `credential_not_found` | Recovery stays on retry/back; no account is created or authenticated from the recovery sub-flow. | Confirm the typed recovery name, provider passkey sync, and whether the user can use same-device passkey login. |
+| `legacy_fallback` | Same-device cached passkey can authenticate only when it has a stored local username; missing username fails closed instead of adopting the typed recovery name. | Ask the user to use the saved passkey entry path or re-enroll from an authenticated session. |
+| `server_unavailable` | Local fallback may be used only when safe local metadata exists; otherwise recovery fails recoverably without clearing local data. | If incident-wide, set `VITE_PASSKEY_SERVER_ENABLED=false`, redeploy, and verify same-device passkey login remains available. |
+| `unsupported_context` | Passkey ceremony is blocked before launch and browser guidance is shown. | Have the user open the supported browser/PWA context for the same RP/origin. |
+| `address_mismatch` | Authentication fails closed; stored credential, username, and expected-address data are preserved. | Do not instruct the user to clear passkeys as a first step; escalate as account-continuity investigation. |
 
 ## Boundaries
 

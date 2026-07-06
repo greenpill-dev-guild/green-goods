@@ -7,7 +7,7 @@
 3. Legacy safety: existing local-only users retain same-device access and receive re-enrollment guidance.
 4. Failure safety: passkey server or network failures do not delete stored credentials, usernames, or auth-mode state.
 5. Rollout safety: `VITE_PASSKEY_SERVER_ENABLED` is false by default and enabled first in staging with QA evidence before production.
-6. Account creation guardrail: failed recovery never routes users directly into creating a separate smart-account address without explicit confirmation copy.
+6. Account creation guardrail: failed recovery never routes users directly into creating a separate smart-account address; the recovery form offers retry/back only, and account creation remains a separate entry/create flow.
 7. Origin safety: production passkey ceremonies use approved HTTPS origin(s), RP ID `greengoods.app`, and no preview/localhost credentials.
 8. Address safety: recovered credentials must rebuild the expected smart-account address; mismatch fails closed.
 9. Observability safety: recovery telemetry uses reason codes and source/outcome flags without raw username, credential ID, wallet address, or smart-account address.
@@ -21,7 +21,7 @@
 | AC-2 | Server-backed login | Login by username retrieves/verifies server credential and rebuilds the same smart-account address | `state_api` | targeted auth test |
 | AC-3 | Legacy fallback | Local-only credential can still authenticate on the same device when no server credential exists | `state_api`, `ui` | targeted auth test + UI proof |
 | AC-4 | Username recovery prompt | Missing local credential cache opens username/ENS-handle recovery before server-backed lookup | `ui`, `state_api` | UI proof + targeted auth test |
-| AC-5 | Guarded new account | Failed recovery requires explicit separate-address confirmation before account creation | `ui` | QA screenshot or handoff note |
+| AC-5 | Flat failed recovery | Failed recovery stays on the recovery form with retry/back only and does not create, authenticate, or prompt a separate new account | `ui` | QA screenshot or handoff note |
 | AC-6 | Rollout flag | Passkey-server path is disabled by default and can be enabled for staging QA | `state_api` | env/config test or build proof |
 | AC-7 | Canonical origin/RP | Production RP/origin and staging/prod isolation are documented and validated before prod enablement | `state_api`, `qa_pass_1` | config evidence + QA note |
 | AC-8 | Address continuity | Server-backed registration/login rebuilds the same expected smart-account address and mismatch fails closed | `state_api`, `qa_pass_2` | targeted auth test |
@@ -35,7 +35,7 @@
 - Unit: shared auth service and auth machine tests for registration, login, rollout flag off, no-server-credential fallback, server failure, address mismatch, unsupported context classification, telemetry payload shape, and storage preservation.
 - Integration: passkey-server client mocks at the shared auth boundary.
 - E2E / Playwright: use existing passkey mock project where it can honestly cover the flow; record any provider-sync behavior that requires manual device testing.
-- Manual checks: desktop Chrome, Android Chrome/PWA, iOS Safari/PWA if available, installed PWA, browser-to-installed-PWA, local storage clear/reinstall, unsupported/in-app browser negative cases, passkey server unavailable, and failed recovery followed by guarded new-account creation.
+- Manual checks: desktop Chrome, Android Chrome/PWA, iOS Safari/PWA if available, installed PWA, browser-to-installed-PWA, local storage clear/reinstall, unsupported/in-app browser negative cases, passkey server unavailable, and failed recovery staying on retry/back without a new-account fork.
 - TDD proof: RED/GREEN commands and evidence are recorded in lane handoffs and summarized in `status.json`.
 - Production readiness proof: attach staging flag evidence, Pimlico dashboard/config notes, rollback instructions, and docs/support cleanup evidence before enabling production.
 

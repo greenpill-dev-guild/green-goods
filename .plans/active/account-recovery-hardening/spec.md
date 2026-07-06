@@ -18,7 +18,7 @@ Implement a passkey-server-first auth path for Green Goods using Pimlico's hoste
 4. Never clear stored passkey credentials or username only because the passkey server is unavailable or a network request fails.
 5. Keep the release scope clear: account continuity for synced passkeys is in scope; same-address recovery after total passkey loss is follow-up research.
 6. If local credential cache is missing, show a username/ENS-handle recovery prompt before server lookup instead of routing directly to account creation.
-7. Any account creation path after failed recovery must explicitly confirm that it creates a separate smart-account address.
+7. Failed recovery must not offer or start a new-account fork. The recovery surface stays flat with retry/back only; if the user later creates an account from the normal entry/create flow, that is separate by design.
 
 ## Gap Closure Decisions
 
@@ -82,6 +82,6 @@ Implement a passkey-server-first auth path for Green Goods using Pimlico's hoste
 - Risk: `permissionless@0.2.57` APIs may differ from docs for `0.3.5`.
 - Mitigation: implement against installed types first; upgrade only if typecheck/tests prove the current API is insufficient.
 - Risk: server lookup may return credential metadata that builds a different smart-account address than the user's expected account.
-- Mitigation: treat address mismatch as a hard auth failure and require explicit separate-account confirmation if the user chooses to continue.
+- Mitigation: treat address mismatch as a hard auth failure; recovery stays on retry/back and never silently creates or authenticates a different account.
 - Risk: current docs and test names overstate server-backed passkey readiness.
 - Mitigation: add docs/test cleanup to release gates so production support does not rely on stale IndexedDB/ENS recovery claims.
