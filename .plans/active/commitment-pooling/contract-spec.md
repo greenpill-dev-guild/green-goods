@@ -32,7 +32,8 @@ The system lets gardens and the protocol run pools of commitments: offers and re
 
 ### Out of scope
 
-- Celo anything. Settlement contracts, settlement adapters beyond a reserved address field, voucher transfers, value custody, swap or redemption mechanics (Model B activates these later on the same poolId).
+- Celo anything. Settlement contracts, settlement adapters beyond a reserved address field, voucher transfers, value custody, swap or redemption mechanics (the transferable-voucher layer activates these later on the same poolId; PRD-651).
+- Borrow-and-repay (mutual credit). A post-August companion `CreditRegister` (records-only, no-custody, interest-free) is specced separately in `credit-spec.md` — additive, zero pooling-module/register changes; out of scope for this spec.
 - Sarafu integration or any reading of Sarafu source code (AGPL clean-room, decision #17; grounding is the Grassroots Economics paper and public docs only).
 - Bridging, G$ movement, GoodDollar rails (zero G$ references exist in production code, `corrections-log.md` H7).
 - Leaderboards, rankings, comparison views, countdown or streak mechanics of any kind.
@@ -47,7 +48,7 @@ Settled for v1 unless explicitly revised. Numbers in parentheses reference the l
 1. **Commitments are NOT EAS attestations** (#14). Commitment records are module-native storage plus events, shaped by the Grassroots Economics commitment-pooling register grammar. This supersedes Document A and the original PRD-649/650 "commitment schema + FulfillmentConfirmation resolver" language. EAS registrations shrink to exactly two: assessment v3 and community testimony.
 2. **Module-event-driven lifecycle because EAS is not indexed.** Envio indexes only Green Goods core contracts; EAS attestations are queried from easscan directly (`packages/indexer/schema.graphql:282-288`, `corrections-log.md` §2 Envio boundary row). Every commitment state and all four locked stats must be derivable from `CommitmentPoolingModule` and `CommitmentRegister` events alone.
 3. **Hybrid state weight** (#6). Hard transitions on-chain: pool register/ready/open/pause/close/compost, cycle seed/open/close/compost/cancel, commitment create (offer/request), accept, approved-work count, ReadyForConfirmation, confirm to Fulfilled, cancel, expire, dispute raise/resolve, reward record. Draft states live in app IndexedDB; Active, EvidenceSubmitted, PartiallyApproved, InProgress, Reviewing, and Reconciled are derived app/indexer-side from events. Full locked vocabulary is preserved across layers (section 5 table).
-4. **Two-contract shape** (#15, #16). `CommitmentPoolingModule` is the control plane (pool registry, cycles, curation, claim modes, permissions, stat events). `CommitmentRegister` is voucher-shaped, non-transferable, ERC-1155-style unit accounting so Model B settlement vouchers can wrap classes 1:1 on the same poolId later. Supersedes PRD-649's single-artifact V1 stance (user-approved). poolId semantics unchanged.
+4. **Two-contract shape** (#15, #16). `CommitmentPoolingModule` is the control plane (pool registry, cycles, curation, claim modes, permissions, stat events). `CommitmentRegister` is voucher-shaped, non-transferable, ERC-1155-style unit accounting so transferable settlement vouchers can wrap classes 1:1 on the same poolId later. Supersedes PRD-649's single-artifact V1 stance (user-approved). poolId semantics unchanged.
 5. **EAS bridge** (#5). `WorkApprovalResolver.onAttest` calls `module.onWorkApproved(...)` in try/catch (non-blocking, module optional), mirroring the existing GAP side effect (`packages/contracts/src/resolvers/WorkApproval.sol:179-183`). Operator-callable `syncApprovedWork` is the catch-up fallback. Work attestations cannot carry commitment refs (schema immutable, `corrections-log.md` H2), so linkage is module-side: claimant or operator links workUID to commitmentId before or after approval; the resolver hook only counts approvals for pre-linked workUIDs. Trust model: operator-curated linkage.
 6. **v3 authorship split** (#7). Baseline assessment: evaluator OR operator (analog capture preserved, matches today's `packages/contracts/src/resolvers/Assessment.sol:114-121`). Delta/re-assessment and technical assessment: Evaluator Hat only. Community testimony: Community Hat only (`packages/contracts/src/interfaces/IGardenAccessControl.sol:45` provides `isCommunity`).
 7. **Protocol pool = root garden pool** (#8). The root garden (`packages/contracts/deployments/42161-latest.json:40-43`: `0xf401f34378384713222d1d21f63359cc4E8a858a`, tokenId 1) anchors the protocol pool with `poolType = Protocol`. Cross-garden claiming: claimant is a GardenAccount or a hat-wearing individual; the claimant field is an address plus a ClaimType kind enum. Protocol-pool stewardship reuses root-garden Hats.
@@ -250,7 +251,7 @@ interface ICommitmentPoolingModule {
         bool settlementEnabled;    // RESERVED: always false in MVP
         string charterCID;         // policy/charter metadata (IPFS)
         uint256 activeCycleId;     // 0 = none
-        address settlementAdapter; // RESERVED: always zero in MVP (Model B)
+        address settlementAdapter; // RESERVED: always zero in MVP (transferable-voucher layer)
     }
 
     struct Cycle {
@@ -684,7 +685,7 @@ EAS authorship, enforced by the resolvers (§6.4.3), for completeness of the acc
 
 #### Objective
 
-A non-transferable, ERC-1155-STYLE unit ledger internal to our own contract: commitment classes, committed/fulfilled balances per account, quotas, and exposure caps. It does NOT inherit ERC-1155 and exposes no transfer or approval surface of any kind; balances move only through module calls. This is the voucher-shaped substrate (decisions #15, #16) that Model B settlement vouchers later wrap 1:1 on the same poolId.
+A non-transferable, ERC-1155-STYLE unit ledger internal to our own contract: commitment classes, committed/fulfilled balances per account, quotas, and exposure caps. It does NOT inherit ERC-1155 and exposes no transfer or approval surface of any kind; balances move only through module calls. This is the voucher-shaped substrate (decisions #15, #16) that transferable settlement vouchers later wrap 1:1 on the same poolId.
 
 #### Grassroots Economics grounding (clean-room, decision #17)
 
@@ -692,11 +693,11 @@ Design vocabulary comes from Ruddick's "Commitment Pooling: an Economic Protocol
 
 - **Curation**: which commitments enter the pool's register. Implemented as steward-gated `createCommitment`/`acceptClaim` on the module plus module-only `registerClass` here; nothing enters the register except through curated module paths.
 - **Limiting**: hard caps per asset in the pool. Implemented as the per-class `quota` (defaults to the commitment's targetUnits) and the per-pool `providerExposureCap` on open committed units per account. `openExposureUnits` is the safety gauge the aggregates surface.
-- **Valuing**: relative value against a reference asset. Deliberately NOT implemented in MVP (no swaps, no relative pricing, units are per-commitment labels with no global conversion). Named here as the reserved third primitive that Model B activates on the same classes.
+- **Valuing**: relative value against a reference asset. Deliberately NOT implemented in MVP (no swaps, no relative pricing, units are per-commitment labels with no global conversion). Named here as the reserved third primitive that the transferable-voucher layer activates on the same classes.
 
-The GE pool step sequence (seed round, exchange in/out, redemption, cross exchange) maps to MVP as: seed = class registration at curated creation; the exchange and redemption steps stay out of scope until settlement (Model B) wraps these balances as transferable vouchers via the pool's reserved `settlementAdapter`.
+The GE pool step sequence (seed round, exchange in/out, redemption, cross exchange) maps to MVP as: seed = class registration at curated creation; the exchange and redemption steps stay out of scope until the transferable-voucher layer wraps these balances as transferable vouchers via the pool's reserved `settlementAdapter`.
 
-#### Model B attachment path (spec-now, build-later)
+#### Transferable-voucher attachment path (spec-now, build-later)
 
 - `classId == commitmentId` in MVP (1:1). The classId space is `uint256` and module-controlled, so later class kinds (per provider + unit label groupings) can join without migration.
 - A future settlement adapter (address reserved on the Pool struct) reads `fulfilledOf`/`committedOf` and issues transferable vouchers per class on the same poolId. The register itself never gains transfer functions; wrapping happens in the adapter's own token contract.
@@ -730,7 +731,7 @@ pragma solidity ^0.8.25;
 ///         pooling. No transfer, no approval, no custody: balances move only
 ///         through the CommitmentPoolingModule. Grounded in the Grassroots
 ///         Economics register grammar (curation, limiting, valuing); valuing
-///         is reserved for Model B settlement.
+///         is reserved for the transferable-voucher settlement layer.
 interface ICommitmentRegister {
     // ═════════════════════════════ Types ═════════════════════════════
 
@@ -805,7 +806,7 @@ Scaffold: `UUPSUpgradeable + OwnableUpgradeable`, `_disableInitializers()`, init
 - Quota and exposure-cap reverts covered by unit tests; `openUnitsOf` matches the sum of live committed balances per pool.
 - Register mutations revert `NotModule` for every caller except the wired module.
 - Storage layout test (6 named + 44 gap) and `check-storage-layout.sh` entry `CommitmentRegister:src/registries/Commitment.sol` added.
-- Model B attachment documented: a reviewer can point at the classId, the reserved settlementAdapter field, and the fulfilled balances and see the 1:1 wrap path without register changes.
+- Transferable-voucher attachment documented: a reviewer can point at the classId, the reserved settlementAdapter field, and the fulfilled balances and see the 1:1 wrap path without register changes.
 
 ### 6.3 GardenToken wiring (live UUPS upgrade)
 

@@ -6,7 +6,7 @@
 **Companions**: `contract-spec.md` (the pooling module + register this attaches to — **zero changes to those contracts here**), `diagrams.md` D8–D10 (fund-flow topology, settlement sequence, disbursement state machine), `uiux-spec.md` (surface grammar), `corrections-log.md`.
 **Decision basis**: Architecture 2 (split-state) locked in the Linear doc "G$ in Green Goods: Bridged vs. Split-State Settlement", re-affirmed by the Architecture 3 re-score; user decisions 2026-07-04 (plan decision log #14–#17): settlement enters the **August release**, **one Celo Safe per garden (1:1 with the garden account, every garden in the protocol, deployed on demand)**, member receipt via same-address smart accounts, app goes multi-chain this iteration.
 
-**What stays true from the locked register**: no bridged G$, ever. No bridge holds value authority in August. Sarafu integration stays deferred (hybrid option, post-August). Model B vouchers stay gated on [PRD-651](https://linear.app/greenpill-dev-guild/issue/PRD-651). Gardeners never sign cross-chain transactions in the field — member *sends* are explicit wallet actions on the settlement chain, never part of the offline field loop.
+**What stays true from the locked register**: no bridged G$, ever. No bridge holds value authority in August. Sarafu integration stays deferred (hybrid option, post-August). Transferable settlement vouchers stay gated on [PRD-651](https://linear.app/greenpill-dev-guild/issue/PRD-651). Gardeners never sign cross-chain transactions in the field — member *sends* are explicit wallet actions on the settlement chain, never part of the offline field loop.
 
 ---
 
@@ -97,7 +97,7 @@ struct Batch { address garden; uint32 count; DisbursementState state; bytes32 ex
 **Deliberate non-couplings**:
 - The module **never custodies funds and never calls Celo** — it is a ledger with teeth (state machine + permissions), exactly the shape the split-state doc recommends.
 - It does **not** call `commitmentPoolingModule.recordRewardPaid`. `rewardPaid` on the pooling module remains the record for **Arbitrum rails** (jar/treasury); `DisbursementSettled` is the record for **Celo G$ legs**. Shared selectors present one "reward status" per commitment by precedence: settlement-module record if a disbursement exists, else pooling-module `rewardPaid`. Never double-count.
-- `Pool.settlementEnabled` / `Pool.settlementAdapter` on the pooling module **stay reserved for Model B vouchers and stay untouched** (false/zero). August settlement presence is derived from `settlementAccounts[garden].active` on this module. Implementers must not flip the pooling-module flag.
+- `Pool.settlementEnabled` / `Pool.settlementAdapter` on the pooling module **stay reserved for transferable settlement vouchers and stay untouched** (false/zero). August settlement presence is derived from `settlementAccounts[garden].active` on this module. Implementers must not flip the pooling-module flag.
 
 ### 3.4 Acceptance criteria
 
@@ -176,4 +176,6 @@ SettlementModule work runs as **PR chain 2.5** — parallel with PRD-673/674 onc
 
 ## 9. Out of scope (unchanged by this spec)
 
-Bridged G$ (never). Bridge value authority (post-August, capped, only if operator burden binds). Sarafu pool integration (deferred hybrid — Phase-1.5 experiment gated on GE conversation + ERC-777 audit). Model B vouchers and `settlementAdapter` activation (PRD-651, all its hard gates stand). Indexing Celo/G$ state. Settlement controls in the September community interface.
+Bridged G$ (never). Bridge value authority (post-August, capped, only if operator burden binds). Sarafu pool integration (deferred hybrid — Phase-1.5 experiment gated on GE conversation + ERC-777 audit). Transferable settlement vouchers and `settlementAdapter` activation (PRD-651, all its hard gates stand). Indexing Celo/G$ state. Settlement controls in the September community interface.
+
+> **Borrow-and-repay touchpoint (post-August, `credit-spec.md`).** A companion `CreditRegister` may disburse **G$ micro-loans** as a `SettlementModule` disbursement (the advance down-leg) and record the repayment on Arbitrum — repayment stays **record-only** (no upward disbursement, no bridge). One small seam to resolve when it lands: either add `DisbursementKind.LoanPrincipal` (§3.2) **or** let `queueDisbursement` accept a `commitmentId == 0` credit disbursement (it currently gates on a Fulfilled commitment, §3.3). Out of scope for this spec; flagged so the seam is a conscious choice, not a surprise.
