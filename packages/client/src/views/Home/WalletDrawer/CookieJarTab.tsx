@@ -28,6 +28,21 @@ interface JarCardProps {
   gardenName: string;
 }
 
+function getClaimableNow(jar: CookieJar) {
+  return jar.maxWithdrawal < jar.balance ? jar.maxWithdrawal : jar.balance;
+}
+
+function isClaimableJar(jar: CookieJar) {
+  return !jar.isPaused && getClaimableNow(jar) > 0n;
+}
+
+function compareClaimableFirst(left: CookieJar, right: CookieJar) {
+  const leftClaimable = isClaimableJar(left);
+  const rightClaimable = isClaimableJar(right);
+  if (leftClaimable === rightClaimable) return 0;
+  return leftClaimable ? -1 : 1;
+}
+
 function JarCard({ jar, gardenName }: JarCardProps) {
   const { formatMessage } = useIntl();
   const { isOnline } = useOffline();
@@ -41,7 +56,7 @@ function JarCard({ jar, gardenName }: JarCardProps) {
   const assetSymbol = getVaultAssetSymbol(jar.assetAddress, undefined);
   // What a gardener can actually take right now: the per-claim cap, bounded by
   // what the jar still holds.
-  const claimableNow = jar.maxWithdrawal < jar.balance ? jar.maxWithdrawal : jar.balance;
+  const claimableNow = getClaimableNow(jar);
   const panelId = `cookie-jar-claim-${jar.jarAddress.toLowerCase()}`;
   const amountState = useFormattedAmountInput(amountInput, decimals);
   const inputError = amountState.formatErrorId;
@@ -255,7 +270,17 @@ export const CookieJarTab: React.FC = () => {
         groups.set(key, { gardenName, jars: [jar] });
       }
     }
-    return Array.from(groups.values());
+    return Array.from(groups.values())
+      .map((group) => ({
+        ...group,
+        jars: [...group.jars].sort(compareClaimableFirst),
+      }))
+      .sort((left, right) => {
+        const leftClaimable = left.jars.some(isClaimableJar);
+        const rightClaimable = right.jars.some(isClaimableJar);
+        if (leftClaimable === rightClaimable) return 0;
+        return leftClaimable ? -1 : 1;
+      });
   }, [jars, gardens]);
 
   if (isLoading) {

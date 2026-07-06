@@ -93,6 +93,30 @@ describe("CookieJarTab", () => {
     expect(screen.getByText("0.05 USDC")).toBeInTheDocument();
   });
 
+  it("orders claimable jars before drained jars", () => {
+    mockUseAccessibleCookieJars.mockReturnValue({
+      jars: [
+        { ...testJar, balance: 0n },
+        { ...testJar, jarAddress: "0x4444444444444444444444444444444444444444" },
+      ],
+      isLoading: false,
+      moduleConfigured: true,
+      eligibleGardenCount: 1,
+      confirmedGardenCount: 1,
+      unconfirmedGardenCount: 0,
+      eligibilityErrorCount: 0,
+      hasEligibilityReadFailure: false,
+    });
+
+    render(<CookieJarTab />);
+
+    const claimableJar = screen.getByText("0.1 USDC");
+    const drainedJar = screen.getByText("0 USDC");
+    expect(
+      Boolean(claimableJar.compareDocumentPosition(drainedJar) & Node.DOCUMENT_POSITION_FOLLOWING)
+    ).toBe(true);
+  });
+
   it("shows the jar's total holdings as detail once expanded", async () => {
     const user = userEvent.setup();
     render(<CookieJarTab />);
