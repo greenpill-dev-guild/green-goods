@@ -15,6 +15,7 @@ import {
   getExistingIdempotencyResponse,
   idempotencyInProgressResponse,
 } from "./idempotency";
+import { publicPermissionReason } from "./permission-reason";
 
 const log = loggers.handlers;
 const PROTOCOL_WORK_ACTION_TITLE = "Work Submission";
@@ -81,7 +82,7 @@ export async function handleApprove(
     return {
       response: {
         text: agentMessage(message.locale, "approve.permissionWithReason", {
-          reason: verification.reason,
+          reason: publicPermissionReason(message.locale, verification.reason),
         }),
         parseMode: "markdown",
       },

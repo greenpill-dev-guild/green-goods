@@ -52,6 +52,7 @@ import {
   parseAbiItem,
   parseEventLogs,
 } from "viem";
+import { getEASConfig } from "@green-goods/shared/config/blockchain";
 import { privateKeyToAccount } from "viem/accounts";
 import type {
   GardenInfo,
@@ -185,10 +186,20 @@ class Blockchain {
     if (receipt.status !== "success") {
       throw new Error(`Work attestation transaction reverted: ${txHash}`);
     }
+    const easConfig = getEASConfig(this.chainId);
+    const expectedEasAddress = easConfig.EAS.address.toLowerCase();
+    const expectedWorkSchemaUID = easConfig.WORK.uid.toLowerCase();
+    const expectedGardenAddress = params.gardenAddress.toLowerCase();
     const attested = parseEventLogs({ abi: [EAS_ATTESTED_EVENT], logs: receipt.logs });
-    const workUID = attested[0]?.args.uid;
+    const workAttestation = attested.find(
+      (event) =>
+        event.address.toLowerCase() === expectedEasAddress &&
+        event.args.schemaUID.toLowerCase() === expectedWorkSchemaUID &&
+        event.args.recipient.toLowerCase() === expectedGardenAddress
+    );
+    const workUID = workAttestation?.args.uid;
     if (!workUID) {
-      throw new Error(`Work attestation receipt has no Attested event: ${txHash}`);
+      throw new Error(`Work attestation receipt has no matching Work Attested event: ${txHash}`);
     }
 
     return { txHash, workUID };
@@ -259,8 +270,9 @@ class Blockchain {
       if (message.includes("could not be found") || message.includes("not a contract")) {
         return { verified: false, reason: "Garden contract not found at this address" };
       }
-      log.error({ gardenAddress, error: message }, "Operator verification failed");
-      return { verified: false, reason: `Verification failed: ${message}` };
+      const errorName = error instanceof Error ? error.name : typeof error;
+      log.error({ gardenAddress, errorName }, "Operator verification failed");
+      return { verified: false };
     }
   }
 
@@ -292,9 +304,9 @@ class Blockchain {
         reason: isGard ? undefined : "Address is not a gardener in this garden",
       };
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error";
-      log.error({ gardenAddress, error: message }, "Gardener verification failed");
-      return { verified: false, reason: `Verification failed: ${message}` };
+      const errorName = error instanceof Error ? error.name : typeof error;
+      log.error({ gardenAddress, errorName }, "Gardener verification failed");
+      return { verified: false };
     }
   }
 

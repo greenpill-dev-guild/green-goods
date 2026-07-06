@@ -33,6 +33,9 @@ const enMessages = {
   "error.authorization": "You don't have permission for this action.",
   "error.externalService": "Service temporarily unavailable ({service}). Please try again later.",
   "error.internal": "An unexpected error occurred. Please try again.",
+  "permission.reason.gardenNotFound": "Garden contract not found at this address.",
+  "permission.reason.notGardener": "This address is not a gardener in this garden.",
+  "permission.reason.notOperator": "This address is not an operator for this garden.",
   "help.basic":
     '🌿 *Green Goods Bot Help*\n\n*Basic Commands:*\n/start - Create wallet & get started\n/join <address> - Join a garden\n/status - Check your current status\n\n*Submitting Work:*\nSimply send a text or voice message describing your work!\nExample: "I planted 5 trees today"\n\n*Reporting Bugs and Ideas:*\nPost freely in the Bug Reports or Ideas/Feedback topics in the Green Goods chat — the team picks them up automatically.\n\n',
   "help.footer": "_Need help? Contact @GreenGoodsSupport_",
@@ -167,6 +170,9 @@ const agentMessages: Record<AgentLocale, Record<AgentMessageKey, string>> = {
     "error.externalService":
       "Servicio temporalmente no disponible ({service}). Inténtalo de nuevo más tarde.",
     "error.internal": "Ocurrió un error inesperado. Inténtalo de nuevo.",
+    "permission.reason.gardenNotFound": "No se encontró un contrato de jardín en esta dirección.",
+    "permission.reason.notGardener": "Esta dirección no es jardinera en este jardín.",
+    "permission.reason.notOperator": "Esta dirección no es operadora de este jardín.",
     "help.basic":
       '🌿 *Ayuda del bot de Green Goods*\n\n*Comandos básicos:*\n/start - Crear billetera y empezar\n/join <address> - Unirse a un jardín\n/status - Ver tu estado actual\n\n*Enviar trabajo:*\nEnvía un texto o mensaje de voz describiendo tu trabajo.\nEjemplo: "Hoy planté 5 árboles"\n\n*Reportar errores e ideas:*\nPublica libremente en los temas de Bug Reports o Ideas/Feedback del chat de Green Goods; el equipo los recoge automáticamente.\n\n',
     "help.footer": "_¿Necesitas ayuda? Contacta a @GreenGoodsSupport_",
@@ -296,6 +302,9 @@ const agentMessages: Record<AgentLocale, Record<AgentMessageKey, string>> = {
     "error.externalService":
       "Serviço temporariamente indisponível ({service}). Tente novamente mais tarde.",
     "error.internal": "Ocorreu um erro inesperado. Tente novamente.",
+    "permission.reason.gardenNotFound": "Contrato do jardim não encontrado neste endereço.",
+    "permission.reason.notGardener": "Este endereço não é jardineiro neste jardim.",
+    "permission.reason.notOperator": "Este endereço não é operador deste jardim.",
     "help.basic":
       '🌿 *Ajuda do bot Green Goods*\n\n*Comandos básicos:*\n/start - Criar carteira e começar\n/join <address> - Entrar em um jardim\n/status - Ver seu status atual\n\n*Enviar trabalho:*\nEnvie um texto ou mensagem de voz descrevendo seu trabalho.\nExemplo: "Plantei 5 árvores hoje"\n\n*Reportar erros e ideias:*\nPublique livremente nos tópicos Bug Reports ou Ideas/Feedback no chat Green Goods; a equipe acompanha automaticamente.\n\n',
     "help.footer": "_Precisa de ajuda? Contate @GreenGoodsSupport_",
