@@ -165,7 +165,7 @@ AI design tools MUST map generated output to these existing exports. Do not inve
 |-----------|------|
 | `CanvasLayout` | CSS Grid root — named areas: `canvas-area-top`, `canvas-area-bottom`, inner cells |
 | `AppBar` | Admin top context bar, Z3 — garden context, search, and the three global actions (notifications, settings, profile) that open side sheets; transparent root over the workspace canvas |
-| `MainSheet` | Z2 — dominant workspace; `isReceded` prop triggers canvas recession on sheet open |
+| `MainSheet` | Z2 — dominant workspace; stays visually at rest while centered workspace dialogs open |
 | `ActionFlowShell` | Full-surface action-flow chrome — pinned header + scrolling body + pinned footer; rendered inside a centered `AdminDialog` (`variant="flow"` + `ADMIN_FLOW_DIALOG_CLASS`), bottom-sheet on mobile |
 | `AdminDialog` | Centered overlay — **every** workspace action and detail/inspection flow (config, alerts, work/assessment/hypercert/action detail, create/edit). Full-viewport scrim; bottom-sheet on mobile; pass workspace `tone`. Replaces the retired `LeftSheet`/`RightSheet`/`BottomSheet` for workspace flows. |
 | `AdminSideSheet` | Right-docked modal side sheet — **only** the three global AppBar surfaces (Profile, Settings, Notifications). Bottom-sheet presentation on mobile (bell only); `tone="hub"`; scope enforced by `AdminSideSheetStandard.guard`. |

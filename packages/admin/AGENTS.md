@@ -20,6 +20,7 @@ foundations.
 - Shared owns `AppBar`, `NavigationBar`, `GardenChip`, `MainSheet`, `NotificationPanel`, and `SheetErrorBoundary`. Admin owns `CanvasLayout`, `AdminDialog`, `AdminSideSheet`, the left-inspector channel (`components/Layout/leftSheetChannel.tsx`), `AccountProfilePanel`, `AccountSettingsPanel`, `AccountSurface`, `ConnectShell`, `CommandPalette`, and `PageHeader`.
 - Treat `DashboardLayout`, `Sidebar`, and `Header` as legacy migration code for new admin work.
 - Prefer the primitives below before composing raw `rounded border bg shadow` layouts.
+- Treat `packages/admin/src/components/Admin*.tsx` as the admin wrapper inventory; use those wrappers before local control styling.
 - Use `.surface-section`, `.surface-inset`, `.surface-card`, and `.workspace-canvas` before inventing one-off shell or page surface wrappers.
 - The account/profile/settings/notifications flows route through the right-sheet registry into the `AdminSideSheet` inspector (right-docked on desktop; bottom sheet on mobile, where only the bell opens it). `AccountSurface` is the mobile account route with **Account | Settings** tabs ("Account" is the mobile name for the desktop Profile sheet content; there is no notifications tab). Every other overlay uses `AdminDialog` or `AdminConfirmDialog` — side-sheet scope is enforced by `AdminSideSheetStandard.guard.test.ts`.
 
@@ -32,6 +33,7 @@ foundations.
 - Prefer one dominant workspace surface per route. Avoid nested stacks of bordered panels that turn the page into a card mosaic.
 - Avoid hero sections, decorative promo banners, decorative gradients behind routine UI, and ornamental icon rows.
 - Keep color restrained: shared semantic tokens, one workspace accent, strong typography, minimal chrome.
+- Color roles are split by job: `--tone-action` for filled action backgrounds, `--tone-on-action` for text/icons on those fills, `--tone-on-surface-accent` for colored text/icons on solid surfaces, and `--tone-focus-ring` for focus indicators.
 - Treat `/hub` as the reference cockpit surface for new admin page composition.
 
 ## Preferred Primitives

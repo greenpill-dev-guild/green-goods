@@ -227,7 +227,7 @@ Motion is built into components, not applied externally:
 |-----------|--------|-------------|
 | **Buttons** | Shape morph on press (capsule → squircle or squircle → tighter) | `--spring-spatial-fast` |
 | **Cards** | Hover lift (scale 1.008) + press (scale 0.985 + radius tighten) | `--spring-spatial-fast` |
-| **Sheets** | Slide from source element, canvas recedes | `--spring-spatial` |
+| **Client/PWA sheets** | Slide from source element; client shell depth may respond | `--spring-spatial` |
 | **Navigation** | Active indicator slides with spring transition | `--spring-spatial` |
 | **Progress (wavy)** | Organic wave motion on track | `--spring-effects-slow` |
 | **Loading indicator** | Organic shape rotation/pulse | `--spring-effects-slow` |
@@ -396,14 +396,14 @@ Contextual page-level actions. The admin cockpit's primary action surface.
 
 > **Admin cockpit exception**: the operator cockpit (`packages/admin`) has **retired workspace side sheets** — the shared sheet renderers are deleted and every workspace action and detail/inspection flow is a centered `AdminDialog` (full-viewport scrim; bottom-sheet on mobile). The one sanctioned side sheet is **`AdminSideSheet`**, reserved for the three global AppBar surfaces (Profile, Settings, Notifications): right-docked and solid on desktop, AdminDialog-identical bottom sheet on mobile. See [prompt-contract.md § Overlays](./prompt-contract.md). The sheet motion below applies to the **client PWA's own sheet patterns** (wallet drawer, `PwaSheet`, mobile detail flows); `SheetBody` / `SheetFooter` / `SheetDivider` survive as layout primitives *inside* an `AdminDialog` or `AdminSideSheet` body.
 
-Detail surfaces that slide from the edge, anchored to their trigger (source-anchored interaction):
+Client detail surfaces that slide from the edge, anchored to their trigger (source-anchored interaction):
 
 | Type | Motion | Use |
 |------|--------|-----|
-| **Side sheet** (desktop) | `translateX(±100%→0)` with `--spring-spatial` | Work review, settings, garden context, member management |
+| **Side sheet** (desktop) | `translateX(±100%→0)` with `--spring-spatial` | Client/PWA contextual sheets |
 | **Bottom sheet** (mobile) | `translateY(100%→0)` with `--spring-spatial` | Same content, adapted for vertical screen |
 
-Admin canvas recedes when a bounded sheet opens: `translateY(var(--canvas-recede-y, 8px)) + opacity(var(--canvas-opacity-receded, 0.95)) + blur(var(--canvas-blur-receded, 1.5px))`. Parallel admin sheets avoid dark scrims; viewport dialogs and installed-PWA sheets may use the shared scrim token when they interrupt the main flow.
+Admin workspace action/detail flows open in centered `AdminDialog`; the admin canvas stays at rest, and depth comes from the dialog's scrim/elevation. The three global AppBar surfaces use solid `AdminSideSheet`. Installed-PWA sheets may use the shared scrim token when they interrupt the main flow.
 
 ### Navigation
 
@@ -447,10 +447,10 @@ Glass material shifts as user engagement deepens. This replaces the binary "tran
 | **Parallel task** (side panel) | Lighter glass, no dimming | Task happens alongside main flow — maintain context |
 
 **Dimming vs separation** (from Liquid Glass):
-- **Dimming layer** for modal interruption: sheet opens, canvas dims behind it. The user's attention is redirected.
-- **Glass separation** for parallel tasks: panel slides in, canvas recedes slightly but stays visible. The user maintains awareness of both contexts.
+- **Dimming layer** for modal interruption: a dialog/sheet opens and the user's attention is redirected.
+- **Glass separation** for parallel client tasks: panel depth keeps the user aware of both contexts.
 
-This maps to the spatial architecture's canvas recession states: bounded admin sheet-active uses `translateY(var(--canvas-recede-y, 8px)) + opacity(var(--canvas-opacity-receded, 0.95)) + blur(var(--canvas-blur-receded, 1.5px))`, with full restoration on dismiss.
+Admin carve-out: routine admin overlays are not parallel glass panels. Workspace action/detail flows use centered `AdminDialog`, and global AppBar surfaces use solid `AdminSideSheet`.
 
 ### Source-Anchored Interactions
 

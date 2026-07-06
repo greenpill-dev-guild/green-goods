@@ -54,7 +54,7 @@ The admin uses Material Design 3 v0.192 as its **strict structural backbone** �
 - Shape scale: none (0px), xs (4px), sm (8px), md (12px), lg (16px), xl (28px), full (9999px). Use admin-prefixed `--admin-radius-*` tokens for these M3-only shapes; shared `--radius-*` aliases remain the DesignMD-generated Warm Earth runtime scale.
 - M3 elevation scale (0-5) with specific shadow values
 - **Spring motion (`--spring-*`) is the sole permitted deviation** from M3 standard easing
-- **Controlled Chrome Liquid Glass** — subtle glass is allowed only on Navigation/FAB and sheet shells; the AppBar root stays transparent so the canvas tone reads behind it. Route cards, forms, tables, lists, and dense content stay solid.
+- **Controlled Chrome Liquid Glass** — subtle glass is allowed only on Navigation/FAB chrome; the AppBar root stays transparent so the canvas tone reads behind it. Dialogs, side sheets, route cards, forms, tables, lists, and dense content stay solid.
 - **Admin motion roles** are tokenized through runtime aliases: route content uses `--admin-motion-route-content-*`, canvas tone changes use `--admin-motion-canvas-tone-*`, FAB menus use `--admin-motion-fab-menu`, and interactive state changes use `--admin-motion-state`.
 
 **Why strict:** M3+unbounded glass produced inconsistent UI. Strict M3 provides discipline; Controlled Chrome gives spatial depth to persistent shell surfaces without making operational content translucent.
@@ -73,9 +73,9 @@ CSS Grid with named areas:
 │  (AppBar)                                │    search, settings, avatar
 ├──────┬───────────────────────┬───────────┤
 │      │                       │           │
-│ Left │     MainSheet         │  Right    │  ← MainSheet (Z2): workspace content
-│Sheet │     (content zone)    │  Sheet    │    Recedes when sheets open
-│      │                       │           │    (scale 0.97 + blur 2px)
+│      │     MainSheet         │           │  ← MainSheet (Z2): workspace content
+│      │     (content zone)    │           │    Stays at rest when dialogs open
+│      │                       │           │
 ├──────┴───────────────────────┴───────────┤
 │  canvas-area-bottom                      │  ← NavigationBar (Z3): workspace
 │  (NavigationBar + AdminFab)              │    switching + primary FAB action
@@ -98,7 +98,7 @@ CSS Grid with named areas:
 
 ## Workspace Tinting
 
-Runtime tone tokens (`--tone-primary`, `--tone-on-primary`, `--tone-action`, `--tone-on-action`) support per-workspace color atmosphere and contrast-safe actions:
+Runtime tone tokens support per-workspace color atmosphere and contrast-safe actions:
 
 | Workspace | Tint Color | Action Color | Purpose |
 |-----------|------------|--------------|---------|
@@ -108,7 +108,16 @@ Runtime tone tokens (`--tone-primary`, `--tone-on-primary`, `--tone-action`, `--
 | Actions | Red (`--red-500`) | Deep red (`--red-700`) | Action configuration, templates |
 | Home | Stone/Neutral (`120 113 108`) | Deep stone (`68 64 60`) | Unauthenticated landing |
 
-Storybook may still expose legacy `--ws-*` aliases inside isolated admin frames, but runtime admin surfaces use `--tone-*`. The tint is environmental — barely perceptible warmth in the canvas, not a colored header bar. Filled text-bearing actions use the action color so white text passes contrast.
+Storybook may still expose legacy `--ws-*` aliases inside isolated admin frames, but runtime admin surfaces use `--tone-*`. The tint is environmental — barely perceptible warmth in the canvas, not a colored header bar.
+
+Color roles:
+
+- `--tone-action` is for filled action backgrounds.
+- `--tone-on-action` is the text/icon color on filled action backgrounds.
+- `--tone-on-surface-accent` is for colored text/icons on solid surfaces.
+- `--tone-focus-ring` is the only focus-ring role; it resolves to action tone in light mode and on-surface accent in dark mode.
+- `--m3-outline` is the control-grade boundary for fields, chips, and outlined buttons.
+- `--m3-outline-variant` is a decorative hairline, not a control boundary.
 
 ---
 
@@ -116,7 +125,7 @@ Storybook may still expose legacy `--ws-*` aliases inside isolated admin frames,
 
 All admin-specific components use **Admin* adapter wrappers** following M3 v0.192 exactly. Zero changes to the shared package.
 
-Components: AdminButton, AdminCard, AdminCheckbox, AdminDialog, AdminFab, AdminLinearProgress, AdminListItem, AdminBadge, AdminSideSheet, AdminTooltip, AdminFilterChip, AdminSearchToolbar, AdminTabRail, AdminTextField.
+Components: AdminBadge, AdminButton, AdminCard, AdminCheckbox, AdminDialog, AdminFab, AdminFilterChip, AdminLinearProgress, AdminListItem, AdminSearchToolbar, AdminSideSheet, AdminSortSelect, AdminTabRail, AdminTextField, AdminTooltip, AdminViewActions.
 
 Admin dashboard modals use AdminDialog or AdminConfirmDialog. Desktop renders as a centered M3 dialog; mobile renders as a bottom sheet. Pinned actions sit below the scrollable body so cancel, save, confirm, retry, and close controls remain visible. The command palette uses the AdminDialog palette variant. DialogShell remains for shared or non-admin surfaces, not admin dashboard modals. The three global AppBar surfaces (Profile, Settings, Notifications) are the one side-sheet exception: they render in AdminSideSheet — right-docked full-height on desktop, AdminDialog-identical bottom sheet on mobile — with usage locked to CanvasLayout by AdminSideSheetStandard.guard.
 

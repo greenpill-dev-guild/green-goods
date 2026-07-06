@@ -65,15 +65,24 @@ The admin package is the Green Goods operator canvas. This page is the single UI
 - `AccountSettingsPanel`
 - `ConnectShell`
 - `PageHeader`
-- `ListToolbar`
-- `SortSelect`
-- `Card`
-- `Alert`
-- `StatusBadge`
-- `FormField`
+- `AdminBadge`
+- `AdminButton`
+- `AdminCard`
+- `AdminCheckbox`
 - `AdminDialog`
+- `AdminFab`
+- `AdminFilterChip`
+- `AdminLinearProgress`
+- `AdminListItem`
+- `AdminSearchToolbar`
 - `AdminConfirmDialog`
 - `AdminSideSheet`
+- `AdminSortSelect`
+- `AdminTabRail`
+- `AdminTextField`
+- `AdminTooltip`
+- `AdminViewActions`
+- Shared foundations where appropriate: `ListToolbar`, `SortSelect`, `Card`, `Alert`, `StatusBadge`, `FormField`
 
 ## Surface Primitives
 
@@ -108,6 +117,16 @@ Every variant shares one chrome — the action-flow reference anatomy — so sta
 - **Open-state pattern.** Dialogs stay mounted with a controlled `open`; `{cond ? <Dialog isOpen /> : null}` skips the exit animation (close flash) and is forbidden. Closes that can never animate (hidden tab) are handled centrally by AdminDialog's instant-exit + the CanvasLayout close safety net.
 - **Tone.** Every dialog passes the `tone` of its mounting workspace (the portal escapes `[data-tone]`); accent and status color inside dialogs go through `--tone-*`/`--m3-*` indirection only, so the `[data-theme="dark"]` ladder controls dark variants centrally. The account inspector deliberately stays on the neutral `hub` tone (global chrome, not workspace content).
 
+## Admin Color Roles
+
+- `--tone-action` is for filled action backgrounds. It uses deep steps so white text clears contrast in light and dark mode.
+- `--tone-on-action` is the text/icon color on filled action backgrounds.
+- `--tone-on-surface-accent` is for colored text/icons on solid surfaces.
+- `--tone-focus-ring` is the only focus-ring role. It resolves to action tone in light mode and on-surface accent in dark mode so keyboard focus remains visible.
+- `--m3-outline` is the control-grade boundary for fields, chips, and outlined buttons.
+- `--m3-outline-variant` is a decorative hairline. Do not use it as the only boundary for a control.
+- Shared Canvas components consumed by admin cannot rely on arbitrary Tailwind utility classes authored in `packages/shared/src`; admin does not scan that package for generated utilities. Use inline token styles or admin CSS overrides for shared Canvas color/layout behaviors that must render inside admin.
+
 ## Canvas UI Heuristics
 
 - Admin is an operator canvas. Use utility copy and operational hierarchy over marketing language.
@@ -116,7 +135,7 @@ Every variant shares one chrome — the action-flow reference anatomy — so sta
 - Cards and elevated surfaces are for discrete records, action targets, and bounded interaction zones. They are not the default page structure.
 - Prefer one dominant workspace surface per route and plain layout within it. Avoid nested stacks of rounded bordered panels.
 - Avoid hero sections, decorative promo callouts, and decorative gradients behind routine product UI.
-- Use route-tint atmosphere, transparent AppBar continuity, Controlled Chrome depth on navigation/sheets, and high-contrast state accents to establish hierarchy without turning the UI into a promo surface.
+- Use route-tint atmosphere, transparent AppBar continuity, Controlled Chrome depth on Navigation/FAB, and high-contrast state accents to establish hierarchy without turning the UI into a promo surface.
 - Use `/hub` as the reference implementation for canvas composition and interaction density.
 - `bun run check:design-tokens` enforces the material boundary: admin source must not add glass, backdrop blur, or decorative gradients outside `packages/admin/src/index.css` and `admin-m3-overrides.css`.
 - Route content, canvas tone changes, FAB menus, sheets, and interaction state use the admin motion role aliases (`--admin-motion-*`) layered on top of the canonical `--spring-*` tokens.
@@ -136,6 +155,21 @@ Every variant shares one chrome — the action-flow reference anatomy — so sta
 - Keep imagery subordinate to status, title, and actions unless the operator is explicitly reviewing media itself.
 - Reduced-motion support is mandatory. Stage changes, row selection, and sheet open/close must retain state clarity without relying on travel or spring lift.
 - Route and tab changes should animate only the named route content group. AppBar, Navigation/FAB, and the canvas root stay visually stationary.
+
+## Admin Route Recipe
+
+Use this as the default assembly order for a new or refreshed primary admin route:
+
+1. Start with `CanvasRouteFrame` and the route header. The title names the workspace; the description states scope or freshness.
+2. Put view-level actions in `AdminViewActions` on desktop and the matching `useViewActions` action set for tablet/mobile FAB speed dial.
+3. Choose one control grammar: stage tabs, view tabs, or a list toolbar. Do not stack tabs, banners, and competing switchers above the work area.
+4. Use `AdminSearchToolbar`, `AdminSortSelect`, `AdminFilterChip`, and `AdminTabRail` for search, sorting, filtering, and route-local modes.
+5. Build one dominant workspace surface. Prefer rows, sections, and dense work areas over card mosaics.
+6. Use cards only for discrete records, bounded workflows, or detail modules that need separation.
+7. Open workspace action/detail flows in centered `AdminDialog`; use `variant="flow"` with `size="lg"` and `ADMIN_FLOW_DIALOG_CLASS` for full-surface creation/commit flows.
+8. Use `AdminSideSheet` only for the three global AppBar surfaces: Profile, Settings, Notifications.
+9. Keep loading, empty, disabled, and error states calm and operational. Empty states should preserve final geometry and explain the next action.
+10. Reject hero sections, promotional gallery framing, decorative gradients, ad-hoc dialog widths, nested card stacks, and glass outside Navigation/FAB chrome.
 
 ## Route Roles
 
