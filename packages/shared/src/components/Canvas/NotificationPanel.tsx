@@ -132,7 +132,7 @@ function NotificationRow({ item }: { item: NotificationPanelItem }) {
   return item.onSelect ? (
     <button
       type="button"
-      className={`${ROW_CLASSES} transition-colors hover:border-primary-base hover:bg-bg-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-action,var(--green-800)))]`}
+      className={`${ROW_CLASSES} transition-colors hover:border-primary-base hover:bg-bg-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--tone-action,var(--green-800))))]`}
       onClick={item.onSelect}
       data-unread={item.unread ? "true" : "false"}
     >

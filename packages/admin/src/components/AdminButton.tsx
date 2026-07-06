@@ -25,7 +25,7 @@ export const adminButtonVariants = tv({
     // State layer (pseudo-element overlay defined in admin-m3-tokens.css)
     "m3-state-layer",
     // Focus ring
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--m3-primary))] focus-visible:ring-offset-2",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))] focus-visible:ring-offset-2",
     // Disabled
     "disabled:pointer-events-none",
     "disabled:bg-[rgb(var(--m3-on-surface)/0.12)] disabled:text-[rgb(var(--m3-on-surface)/0.38)] disabled:shadow-none",

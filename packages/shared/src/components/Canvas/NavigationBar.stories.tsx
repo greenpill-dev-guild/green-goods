@@ -1,5 +1,3 @@
-import type { Meta, StoryObj } from "@storybook/react";
-import { expect, fn, userEvent, within } from "storybook/test";
 import {
   RiAddLine,
   RiClipboardLine,
@@ -8,6 +6,8 @@ import {
   RiSeedlingLine,
   RiTeamLine,
 } from "@remixicon/react";
+import type { Meta, StoryObj } from "@storybook/react";
+import { expect, fn, userEvent, within } from "storybook/test";
 import { NavigationBar, type ToolbarSlot } from "./NavigationBar";
 
 const workSlot: ToolbarSlot = {
@@ -57,6 +57,35 @@ const submitWorkFab = {
       icon: RiLeafLine,
       label: "Submit work",
       labelId: "app.admin.work.submitWork",
+    },
+  ],
+  onAction: fn(),
+};
+
+// Multi-action FAB — collapses to a neutral "+" opener that fans out a speed
+// dial. The primary action lives only inside the dial (never duplicated on the
+// collapsed button).
+const speedDialFab = {
+  icon: RiAddLine,
+  label: "Create",
+  actions: [
+    {
+      id: "submit-work",
+      icon: RiLeafLine,
+      label: "Submit work",
+      labelId: "app.admin.work.submitWork",
+    },
+    {
+      id: "create-assessment",
+      icon: RiClipboardLine,
+      label: "Create assessment",
+      labelId: "cockpit.hub.action.createAssessment",
+    },
+    {
+      id: "create-hypercert",
+      icon: RiSeedlingLine,
+      label: "Create hypercert",
+      labelId: "cockpit.hub.action.createHypercert",
     },
   ],
   onAction: fn(),
@@ -162,6 +191,34 @@ export const Mobile: Story = {
   },
   parameters: {
     viewport: { defaultViewport: "mobile1" },
+  },
+};
+
+// Multi-action FAB on mobile: a neutral "+" opener that fans out the speed dial.
+// Guards the fix for the collapsed button reading "Submit work" and duplicating
+// it inside the dial.
+export const MobileSpeedDial: Story = {
+  args: {
+    slots: primarySlots,
+    activePath: "/hub",
+    onNavigate: fn(),
+    fab: speedDialFab,
+  },
+  parameters: {
+    viewport: { defaultViewport: "mobile1" },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    // Collapsed FAB is a neutral "+" opener — it must NOT surface the primary
+    // action's label (the bug: "Submit work" showed on the button AND in the dial).
+    const opener = canvas.getByRole("button", { name: /open actions/i });
+    await expect(opener).toHaveAttribute("aria-haspopup", "menu");
+    await expect(opener).not.toHaveTextContent(/submit work/i);
+    // Opening the dial reveals each action once (no duplicated primary).
+    await userEvent.click(opener);
+    await expect(opener).toHaveAttribute("aria-expanded", "true");
+    await canvas.findByRole("button", { name: /submit work/i });
+    await canvas.findByRole("button", { name: /create hypercert/i });
   },
 };
 

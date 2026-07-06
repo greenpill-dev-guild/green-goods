@@ -2854,6 +2854,7 @@
   "cockpit.community.treasury": "Treasury",
   "cockpit.community.treasuryPlaceholder": "Treasury overview will be displayed here",
   "cockpit.community.viewSwitcher": "Community views",
+  "cockpit.fab.openActions": "Open actions",
   "cockpit.garden.action.editDomains": "Edit domains",
   "cockpit.garden.action.editGarden": "Edit garden",
   "cockpit.garden.action.viewPublic": "View public",

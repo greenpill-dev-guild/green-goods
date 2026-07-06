@@ -30,6 +30,28 @@
 
 .admin-m3 [data-slot="fab-button"] {
   box-shadow: var(--admin-chrome-shadow);
+  /* Focus-ring colour for the shared FabButton. The component keeps the
+     `focus-visible:ring-2` utility, but its tone-coloured `ring-[…]` colour
+     utility is dropped by admin's content scan (packages/shared isn't scanned),
+     so colour the Tailwind ring here via its custom property. */
+  --tw-ring-color: rgb(var(--tone-focus-ring, var(--primary-action)));
+}
+
+/* Smooth the "+" → "×" rotation of the multi-action FAB glyph. The shared
+   component's arbitrary `duration-[…] ease-[…]` utilities don't generate in
+   admin (same scan gap), so the transition lives here; reduced-motion below.
+   Tailwind v4's `rotate-45` sets the CSS `rotate` property (not `transform`),
+   so transition `rotate`; `transform` is kept for robustness. */
+.admin-m3 [data-slot="fab-button"] svg {
+  transition:
+    rotate var(--spring-spatial-fast),
+    transform var(--spring-spatial-fast);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-m3 [data-slot="fab-button"] svg {
+    transition: none;
+  }
 }
 
 .admin-m3 .speed-dial-item:hover {

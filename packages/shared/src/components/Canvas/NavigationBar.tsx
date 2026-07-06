@@ -1,3 +1,4 @@
+import { RiAddLine } from "@remixicon/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { cn } from "../../utils/styles/cn";
@@ -67,7 +68,7 @@ function NavItem({ slot, isActive, onNavigate, label, mobile = false }: NavItemP
           : "min-w-[4.25rem] rounded-[1.1rem] px-3 py-2",
         "transition-[background-color,color,box-shadow] duration-[var(--spring-effects-duration)] ease-[var(--spring-effects-easing)]",
         "motion-reduce:transition-none",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-tint,59_130_246))]",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--tone-tint,59_130_246)))]",
         isActive
           ? "bg-[rgb(var(--tone-primary-container,var(--blue-100)))] text-[rgb(var(--tone-on-primary-container,var(--blue-900)))] shadow-[inset_0_0_0_1px_rgb(var(--tone-tint,59_130_246)/0.18),0_16px_30px_rgb(var(--tone-tint,59_130_246)/0.18)]"
           : "text-text-sub hover:bg-white/60 hover:text-text-strong"
@@ -117,8 +118,15 @@ interface FabButtonProps {
 function FabButton({ config, mobileFloating = false }: FabButtonProps) {
   const { formatMessage } = useIntl();
   const [speedDialOpen, setSpeedDialOpen] = useState(false);
+  const [focusedSpeedDialActionId, setFocusedSpeedDialActionId] = useState<string | null>(null);
+  const speedDialShadow =
+    "var(--admin-speed-dial-shadow, var(--elevation-3, 0 12px 28px rgb(15 23 42 / 0.16)))";
   const isSingleAction = config.actions.length <= 1;
-  const FabIcon = config.icon;
+  // Multi-action FABs present a neutral "+" opener (rotates to "×" on open), not
+  // any one action's glyph — so the collapsed button reads as "open the menu",
+  // never as a duplicate of the primary action inside the dial. Single-action
+  // FABs keep their own action icon (direct-fire, no menu).
+  const FabIcon = isSingleAction ? config.icon : RiAddLine;
   const floatingActionLabel =
     isSingleAction && config.actions[0]
       ? formatMessage({ id: config.actions[0].labelId })
@@ -136,6 +144,7 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
     (actionId: string) => {
       config.onAction(actionId);
       setSpeedDialOpen(false);
+      setFocusedSpeedDialActionId(null);
     },
     [config]
   );
@@ -181,14 +190,23 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
                   "border",
                   "text-sm font-medium text-text-strong",
                   "transition-all",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-tint,59_130_246))]",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--tone-tint,59_130_246)))]",
                   "speed-dial-item",
                   "motion-reduce:animate-none"
                 )}
                 style={{
                   background: "var(--admin-speed-dial-bg, var(--color-material-regular))",
                   borderColor: "var(--admin-speed-dial-border, rgb(var(--stroke-soft-200)))",
-                  boxShadow: "var(--admin-speed-dial-shadow, var(--elevation-3))",
+                  boxShadow:
+                    focusedSpeedDialActionId === action.id
+                      ? `0 0 0 2px rgb(var(--tone-focus-ring, var(--tone-tint, 59 130 246))), ${speedDialShadow}`
+                      : speedDialShadow,
+                }}
+                onFocus={() => setFocusedSpeedDialActionId(action.id)}
+                onBlur={() => {
+                  setFocusedSpeedDialActionId((current) =>
+                    current === action.id ? null : current
+                  );
                 }}
                 aria-label={formatMessage({ id: action.labelId })}
                 data-slot="speed-dial-item"
@@ -202,34 +220,46 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
         </div>
       )}
 
-      {/* FAB button */}
+      {/*
+        FAB button. Colour is delivered via inline style, not Tailwind utilities:
+        this component lives in packages/shared, which the admin/client builds do
+        NOT scan, so `bg-[…]`/`text-[…]`/`border-[…]` colour utilities silently
+        fail to generate there (CLAUDE.md "Known Gotchas") — that was the
+        dark-icon-on-tone-background bug. Same reason the layer positioning below
+        uses inline style. Tokens resolve correctly in light + dark; the focus-ring
+        colour and icon-rotation transition live in admin CSS keyed on
+        [data-slot="fab-button"]. Shadows and the decorative 35%-white border stay
+        as class utilities (Storybook fidelity); in admin the shadow comes from
+        --admin-chrome-shadow and the border falls back to currentColor.
+      */}
       <button
         type="button"
         onClick={handleClick}
-        aria-label={config.label}
+        aria-label={
+          isSingleAction ? config.label : formatMessage({ id: "cockpit.fab.openActions" })
+        }
+        aria-haspopup={isSingleAction ? undefined : "menu"}
         aria-expanded={speedDialOpen || undefined}
         data-slot="fab-button"
         data-state={speedDialOpen ? "open" : "closed"}
+        style={{
+          background: "rgb(var(--tone-action, var(--primary-action)))",
+          color: "rgb(var(--tone-on-action, var(--primary-action-foreground)))",
+        }}
         className={cn(
           "flex cursor-pointer items-center justify-center rounded-full border border-white/35",
           mobileFloating ? "h-14 gap-2 px-5" : "h-12 w-12",
-          "bg-[rgb(var(--tone-action,var(--primary-action)))] text-[rgb(var(--tone-on-action,var(--primary-action-foreground)))] shadow-[0_20px_34px_rgba(15,23,42,0.24),inset_0_0_0_1px_rgba(255,255,255,0.24)]",
+          "shadow-[0_20px_34px_rgba(15,23,42,0.24),inset_0_0_0_1px_rgba(255,255,255,0.24)]",
           "transition-all hover:scale-105 hover:shadow-[0_24px_40px_rgba(15,23,42,0.28),inset_0_0_0_1px_rgba(255,255,255,0.28)]",
           mobileFloating &&
             "shadow-[0_24px_44px_rgb(var(--tone-tint,59_130_246)/0.32),inset_0_0_0_1px_rgba(255,255,255,0.24)]",
           "active:scale-95",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-action,var(--primary-action)))] focus-visible:ring-offset-2",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
           "motion-reduce:transition-none"
         )}
       >
-        <FabIcon
-          className={cn(
-            "h-5 w-5 transition-transform duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
-            "motion-reduce:transition-none",
-            speedDialOpen && "rotate-45"
-          )}
-        />
-        {mobileFloating && (
+        <FabIcon className={cn("h-5 w-5", speedDialOpen && "rotate-45")} />
+        {mobileFloating && isSingleAction && (
           <span className="text-sm font-semibold tracking-[-0.01em]">{floatingActionLabel}</span>
         )}
       </button>

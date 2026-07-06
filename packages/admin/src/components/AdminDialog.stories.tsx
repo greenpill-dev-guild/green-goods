@@ -4,7 +4,7 @@ import { type ComponentType, type ReactNode, useState } from "react";
 import { expect, waitFor, within } from "storybook/test";
 import { withAdminPrimitiveFrame } from "../../../shared/.storybook/decorators";
 import { AdminButton } from "./AdminButton";
-import { AdminConfirmDialog, AdminDialog } from "./AdminDialog";
+import { ADMIN_FLOW_DIALOG_CLASS, AdminConfirmDialog, AdminDialog } from "./AdminDialog";
 import { ActionFlowShell } from "./Layout/ActionFlowShell";
 
 const meta: Meta<typeof AdminDialog> = {
@@ -291,8 +291,8 @@ export const PaletteVariant: Story = {
  * its own structured header and zeroes its padding so the consumer owns the chrome
  * through ActionFlowShell: one pinned header (context + title), one scrolling body,
  * one pinned footer. A bounded, centered card with a 32% scrim on desktop; a
- * bottom-sheet on mobile — never a fullscreen takeover. Width comes from
- * ADMIN_FLOW_DIALOG_CLASS (or an equivalent className override), not the size prop.
+ * bottom-sheet on mobile — never a fullscreen takeover. Width comes from the
+ * shared ADMIN_FLOW_DIALOG_CLASS constant, not a local max-width override.
  * The play test guards the single-header contract: the AdminDialog structured
  * header must stay suppressed.
  */
@@ -305,7 +305,7 @@ export const FlowVariant: Story = {
       open
       size="lg"
       variant="flow"
-      className="min-h-[90dvh] sm:min-h-0 sm:!max-w-3xl lg:!max-w-3xl"
+      className={ADMIN_FLOW_DIALOG_CLASS}
       onOpenChange={() => undefined}
       title="Submit work"
       description="Capture the action, evidence, and notes for a new contribution."

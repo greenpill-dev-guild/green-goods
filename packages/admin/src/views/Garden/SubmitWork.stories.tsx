@@ -231,7 +231,7 @@ const meta: Meta<typeof SubmitWorkPanel> = {
     docs: {
       description: {
         component:
-          "SubmitWork hosted in the centered 2xl AdminDialog (a centered card on desktop, a bottom-sheet on mobile), plus inline panel states with deterministic admin garden/action fixtures.",
+          "SubmitWork hosted in the centered AdminDialog flow host (a centered card on desktop, a bottom-sheet on mobile), plus inline panel states with deterministic admin garden/action fixtures.",
       },
     },
   },
@@ -341,7 +341,7 @@ export const DomainFilter: Story = {
   },
 };
 
-// Centered 2xl AdminDialog housing (portals to document body) — visual review of
+// Centered AdminDialog flow housing (portals to document body) — visual review of
 // the real flow inside its modal host: single header, scrolling body, pinned footer.
 export const DialogShell: Story = {
   render: () => <SubmitWorkRouteStory />,

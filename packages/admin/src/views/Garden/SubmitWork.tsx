@@ -225,9 +225,10 @@ function getMinRequiredImages(action: Action | null) {
 }
 
 // "page" = standalone panel with no dialog chrome (tests, inline embedding);
-// "dialog" = hosted in the centered 2xl AdminDialog at /hub/work/submit (a centered
-// card on desktop, a bottom-sheet on mobile). Both render the same workflow body
-// through ActionFlowShell — only the outer shell + close-button reservation differ.
+// "dialog" = hosted in the centered AdminDialog flow host at /hub/work/submit
+// (a centered card on desktop, a bottom-sheet on mobile). Both render the same
+// workflow body through ActionFlowShell — only the outer shell + close-button
+// reservation differ.
 type SubmitWorkLayout = "page" | "dialog";
 type MediaFeedback = { variant: "warning" | "error"; message: string };
 type SubmitWorkAuthSnapshot = Pick<AuthStateValue, "authMode" | "isAuthenticated"> & {

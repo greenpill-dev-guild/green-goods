@@ -97,7 +97,7 @@ function ControlledChromeContract({ theme }: ControlledChromeContractProps) {
         />
       </div>
 
-      <MainSheet isReceded={false}>
+      <MainSheet>
         <main className="main-scroll-area mx-auto h-full w-full max-w-[960px] overflow-y-auto px-5 pt-4">
           <section className="canvas-route-card surface-section p-5" data-testid="solid-content">
             <div className="flex flex-col gap-4">

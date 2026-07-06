@@ -324,8 +324,40 @@ if [[ -n "$ADMIN_CHROME_VIOLATIONS" ]]; then
   echo "❌ Admin Controlled Chrome violation found:"
   echo "$ADMIN_CHROME_VIOLATIONS" | sed 's/^/  /'
   echo
-  echo "Admin glass/backdrop blur and decorative gradients must stay in the approved chrome contract: Navigation/FAB and sheet shells via packages/admin/src/index.css or admin-m3-overrides.css; the AppBar root stays transparent."
+  echo "Admin glass/backdrop blur and decorative gradients must stay in the approved chrome contract: Navigation/FAB chrome only via packages/admin/src/index.css or admin-m3-overrides.css; the AppBar root stays transparent and dialogs/side sheets stay solid."
   echo "Route cards, forms, tables, records, and dense content must use solid semantic surfaces."
+  exit 1
+fi
+
+# ----------------------------------------------------------------------------
+# Admin focus-ring role guard
+#
+# `--tone-focus-ring` is the focus indicator role. In light mode it resolves to
+# the deep action step; in dark mode it flips to the bright on-surface accent.
+# Old direct focus rings (`--tone-action`, `--tone-primary`, `--tone-tint`, or
+# `--m3-primary`) can look fine in light mode but miss the 3:1 non-text focus
+# threshold in dark mode. The guard covers admin-owned UI plus shared Canvas
+# chrome that admin consumes.
+# ----------------------------------------------------------------------------
+LEGACY_ADMIN_FOCUS_RING_PATTERN='focus-visible:ring-\[rgb\(var\(--(m3-primary|tone-action|tone-tint|tone-primary)|--tw-ring-color:[[:space:]]*rgb\(var\(--tone-action'
+
+collect_admin_focus_ring_violations() {
+  grep -RInE --include='*.ts' --include='*.tsx' --include='*.css' \
+    --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=build \
+    --exclude-dir=storybook-static --exclude-dir=.next --exclude-dir=coverage \
+    "$LEGACY_ADMIN_FOCUS_RING_PATTERN" packages/admin/src packages/shared/src/components/Canvas 2>/dev/null \
+    | sed -E 's#^([^:]+):[0-9]+:[[:space:]]*#\1	#' \
+    | sed -E 's#[[:space:]]+# #g; s#[[:space:]]+$##' \
+    | sort -u
+}
+
+ADMIN_FOCUS_RING_VIOLATIONS="$(collect_admin_focus_ring_violations || true)"
+if [[ -n "$ADMIN_FOCUS_RING_VIOLATIONS" ]]; then
+  echo "❌ Admin focus-ring token violation found:"
+  echo "$ADMIN_FOCUS_RING_VIOLATIONS" | sed 's/^/  /'
+  echo
+  echo "Admin-facing focus indicators must use --tone-focus-ring, with a fallback only as the second var() argument."
+  echo "Example: focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]"
   exit 1
 fi
 
@@ -333,7 +365,7 @@ fi
 # Action-flow modality guard
 #
 # Full-surface admin create/commit flows (Submit Work, Create Assessment, Create
-# Hypercert) render as a centered AdminDialog (size="2xl" variant="flow") with a
+# Hypercert) render as a centered AdminDialog (size="lg" variant="flow") with a
 # scrim — a bottom-sheet on mobile. The retired `size="fullscreen"` was a Radix
 # modal whose scale-transition revealed the scrim at the viewport edge ("things
 # on the edges"); it is removed from AdminDialog. Fail if it reappears so the
@@ -347,7 +379,7 @@ if [[ -n "$FULLSCREEN_DIALOG_HITS" ]]; then
   echo "❌ Retired AdminDialog size=\"fullscreen\" found:"
   echo "$FULLSCREEN_DIALOG_HITS" | sed 's/^/  /'
   echo
-  echo "Full-surface action flows use a centered AdminDialog (size=\"2xl\" variant=\"flow\") with a scrim and a bottom-sheet mobile presentation — not a fullscreen modal takeover."
+  echo "Full-surface action flows use a centered AdminDialog (size=\"lg\" variant=\"flow\") with ADMIN_FLOW_DIALOG_CLASS, a scrim, and a bottom-sheet mobile presentation — not a fullscreen modal takeover."
   exit 1
 fi
 
@@ -440,5 +472,6 @@ echo "✅ DesignMD radius outputs present in $GENERATED_CSS."
 echo "✅ admin M3 variable usages resolve to defined tokens."
 echo "✅ no new raw cubic-bezier, duration, color, radius literals, or primitive palette utilities outside token-definition or audited baseline files."
 echo "✅ admin Controlled Chrome guard passed: glass/blur/gradients stay in approved shell CSS."
+echo "✅ admin focus-ring guard passed: focus indicators use --tone-focus-ring."
 echo "✅ action-flow modality guard passed: no retired AdminDialog size=\"fullscreen\" usage."
 echo "✅ token_version coupled across design skill, ui skill, and registry (${DESIGN_VER})."

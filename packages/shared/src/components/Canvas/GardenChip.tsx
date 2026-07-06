@@ -101,7 +101,7 @@ export function GardenChip({
             "transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
             "motion-reduce:transition-none",
             "hover:bg-bg-weak",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-action,var(--green-800)))]"
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--tone-action,var(--green-800))))]"
           )}
           style={{
             background: "var(--surface-raised, rgb(var(--bg-white-0)))",

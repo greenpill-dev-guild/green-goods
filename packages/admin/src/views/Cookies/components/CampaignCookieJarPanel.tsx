@@ -462,7 +462,7 @@ function CampaignJarListRow({
   return (
     <button
       type="button"
-      className="grid w-full gap-4 border-b border-[rgb(var(--m3-outline-variant))] px-4 py-4 text-left transition-colors last:border-b-0 hover:bg-[rgb(var(--m3-on-surface)/0.04)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--m3-primary))] sm:grid-cols-[4rem_minmax(0,1fr)_auto]"
+      className="grid w-full gap-4 border-b border-[rgb(var(--m3-outline-variant))] px-4 py-4 text-left transition-colors last:border-b-0 hover:bg-[rgb(var(--m3-on-surface)/0.04)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))] sm:grid-cols-[4rem_minmax(0,1fr)_auto]"
       onClick={() => onSelect(campaign)}
       aria-label={formatMessage(
         {
@@ -546,7 +546,7 @@ function CampaignCookieJarAssetPicker({
             onClick={() => onSelect(asset.id)}
             className={[
               "min-h-[6rem] rounded-[var(--m3-shape-md)] border p-4 text-left transition",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--m3-primary))]",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]",
               selected
                 ? "border-[rgb(var(--m3-primary))] bg-[rgb(var(--m3-primary-container)/0.45)]"
                 : "border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface))]",
