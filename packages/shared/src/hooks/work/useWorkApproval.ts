@@ -100,6 +100,7 @@ export function useWorkApproval() {
           queryKey: queryKeys.works.merged(lastGardenRef.current, chainId),
         });
       }
+      queryClient.invalidateQueries({ queryKey: queryKeys.approvals.all });
     }, [queryClient, chainId]),
     INDEXER_LAG_SCHEDULE_MS
   );
@@ -457,6 +458,9 @@ export function useWorkApproval() {
         });
         queryClient.invalidateQueries({
           queryKey: queryKeys.workApprovals.all,
+        });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.approvals.all,
         });
 
         // Schedule progressive follow-up invalidations for indexer lag (non-blocking)

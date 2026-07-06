@@ -11,6 +11,13 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+const { mockSharedQueryClient } = vi.hoisted(() => ({
+  mockSharedQueryClient: {
+    invalidateQueries: vi.fn(),
+    setQueriesData: vi.fn(),
+  },
+}));
+
 // Mock job queue module - inline factory to avoid hoisting issues
 vi.mock("../../modules/job-queue", () => ({
   jobQueue: {
@@ -72,10 +79,7 @@ vi.mock("../../components/toast", () => ({
 }));
 
 vi.mock("../../config/react-query", () => ({
-  queryClient: {
-    invalidateQueries: vi.fn(),
-    setQueriesData: vi.fn(),
-  },
+  queryClient: mockSharedQueryClient,
 }));
 
 vi.mock("../../config/blockchain", () => ({
@@ -83,6 +87,7 @@ vi.mock("../../config/blockchain", () => ({
 }));
 
 import { queueToasts } from "../../components/toast";
+import { queryKeys } from "../../config/query-keys";
 import { useAuth } from "../../hooks/auth/useAuth";
 import { usePrimaryAddress } from "../../hooks/auth/usePrimaryAddress";
 import { useUser } from "../../hooks/auth/useUser";
@@ -298,6 +303,38 @@ describe("providers/JobQueueProvider", () => {
       unmount();
 
       expect(mockUnsubscribe).toHaveBeenCalled();
+    });
+
+    it("invalidates recipient-scoped approval reads when an approval job completes", async () => {
+      let subscribedHandler: ((event: unknown) => void) | undefined;
+      mockJobQueue.subscribe.mockImplementation((handler: (event: unknown) => void) => {
+        subscribedHandler = handler;
+        return vi.fn();
+      });
+
+      renderHook(() => useJobQueue(), { wrapper: createWrapper() });
+
+      await act(async () => {
+        subscribedHandler?.({
+          type: "job_completed",
+          txHash: "0xabc",
+          job: {
+            kind: "approval",
+            chainId: 11155111,
+            payload: {
+              workUID: "work-1",
+              approved: true,
+            },
+          },
+        });
+        await Promise.resolve();
+      });
+
+      await waitFor(() => {
+        expect(mockSharedQueryClient.invalidateQueries).toHaveBeenCalledWith({
+          queryKey: queryKeys.approvals.all,
+        });
+      });
     });
   });
 

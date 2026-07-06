@@ -189,6 +189,7 @@ const JobQueueProviderInner: React.FC<JobQueueProviderProps> = ({ children }) =>
             queryKey: queryKeys.workApprovals.byAttester(currentUserAddress, DEFAULT_CHAIN_ID),
           });
         }
+        queryClient.invalidateQueries({ queryKey: queryKeys.approvals.all });
 
         // Update work status in cache if available
         const workUID = approvalPayload.workUID;

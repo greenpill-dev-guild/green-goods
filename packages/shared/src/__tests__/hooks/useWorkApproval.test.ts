@@ -83,6 +83,7 @@ vi.mock("../../hooks/blockchain/useTransactionSender", () => ({
 }));
 
 import { toastService } from "../../components/toast";
+import { queryKeys } from "../../config/query-keys";
 import { useWorkApproval } from "../../hooks/work/useWorkApproval";
 import { jobQueue } from "../../modules/job-queue";
 import { submitApprovalDirectly } from "../../modules/work/wallet-submission";
@@ -152,6 +153,24 @@ describe("hooks/work/useWorkApproval", () => {
         11155111
       );
       expect(submitApprovalToQueue).not.toHaveBeenCalled();
+    });
+
+    it("invalidates recipient-scoped approval reads after wallet approval succeeds", async () => {
+      (submitApprovalDirectly as any).mockResolvedValue(MOCK_TX_HASH);
+      const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+
+      const { result } = renderHook(() => useWorkApproval(), {
+        wrapper: createWrapper(),
+      });
+
+      const work = createMockWork();
+      const draft = createMockWorkApprovalDraft({ approved: true });
+
+      await act(async () => {
+        await result.current.mutateAsync({ draft, work });
+      });
+
+      expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: queryKeys.approvals.all });
     });
   });
 

@@ -89,6 +89,7 @@ export function useBatchWorkApproval() {
         queryClient.invalidateQueries({ queryKey: queryKeys.works.online(addr, chainId) });
         queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(addr, chainId) });
       }
+      queryClient.invalidateQueries({ queryKey: queryKeys.approvals.all });
     }, [queryClient, chainId]),
     INDEXER_LAG_SCHEDULE_MS
   );
@@ -245,6 +246,7 @@ export function useBatchWorkApproval() {
         queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(addr, chainId) });
       }
       queryClient.invalidateQueries({ queryKey: queryKeys.workApprovals.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.approvals.all });
 
       // Schedule progressive follow-up invalidations for indexer lag (non-blocking)
       lastGardenAddressesRef.current = gardenAddresses;

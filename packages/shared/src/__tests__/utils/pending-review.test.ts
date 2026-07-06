@@ -42,9 +42,9 @@ describe("filterPendingNeedsReview", () => {
     expect(filterPendingNeedsReview(works, new Set(), VIEWER.toLowerCase())).toEqual([]);
   });
 
-  it("excludes agent-approved works when the approval set was built recipient-agnostically", () => {
-    // The agent bot attests approvals with recipient = gardener (not garden). As long as the
-    // approvals were fetched for gardens ∪ candidate gardeners, the workUID set excludes them.
+  it("excludes historical gardener-recipient bot approvals once they are fetched", () => {
+    // New bot approvals use recipient = garden; old bot approvals with recipient = gardener are
+    // immutable. Fetching gardens ∪ candidate gardeners lets the workUID set exclude both.
     const agentApprovedWork = makeWork("w-agent", OTHER_GARDENER);
     const approvedUIDs = collectApprovedWorkUIDs([makeApproval("w-agent")]);
 

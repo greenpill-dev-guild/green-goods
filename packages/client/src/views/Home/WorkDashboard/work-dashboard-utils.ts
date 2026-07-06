@@ -50,11 +50,17 @@ interface CompletedApproval {
 /** Shape of a received approval from fetchApprovalsByRecipients. */
 interface ReceivedApproval {
   workUID: string;
-  actionUID: string;
+  actionUID: number | string;
   gardenerAddress: string;
   feedback?: string;
   createdAt: number;
   approved: boolean;
+}
+
+function toActionUID(value: number | string | undefined) {
+  if (typeof value === "number") return value;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 /**
@@ -80,19 +86,25 @@ export function approvalsToCompletedWorks(approvals: CompletedApproval[]): Work[
 /**
  * Convert received approvals (your work reviewed by others) to Work shape.
  */
-export function receivedApprovalsToWorks(approvals: ReceivedApproval[]): Work[] {
-  return approvals.map((a) => ({
-    id: a.workUID,
-    title: `Work ${String(a.workUID || "").slice(0, 8)}...`,
-    actionUID: a.actionUID,
-    gardenerAddress: a.gardenerAddress,
-    gardenAddress: "",
-    feedback: a.feedback || "",
-    metadata: "",
-    media: [],
-    createdAt: a.createdAt,
-    status: a.approved ? ("approved" as const) : ("rejected" as const),
-  }));
+export function receivedApprovalsToWorks(
+  approvals: ReceivedApproval[],
+  originalWorksById: Map<string, Work> = new Map()
+): Work[] {
+  return approvals.map((a) => {
+    const originalWork = originalWorksById.get(a.workUID);
+    return {
+      id: a.workUID,
+      title: originalWork?.title || `Work ${String(a.workUID || "").slice(0, 8)}...`,
+      actionUID: originalWork?.actionUID ?? toActionUID(a.actionUID),
+      gardenerAddress: originalWork?.gardenerAddress ?? a.gardenerAddress,
+      gardenAddress: originalWork?.gardenAddress ?? "",
+      feedback: a.feedback ?? "",
+      metadata: originalWork?.metadata ?? "",
+      media: originalWork?.media ?? [],
+      createdAt: a.createdAt,
+      status: a.approved ? ("approved" as const) : ("rejected" as const),
+    };
+  });
 }
 
 /**

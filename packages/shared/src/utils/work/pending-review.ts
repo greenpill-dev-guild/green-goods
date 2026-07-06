@@ -11,12 +11,10 @@ import { isUserAddress } from "../blockchain/address";
 
 /**
  * Build the recipient set that provably covers every approval attested for the given
- * candidate works. Approvals are not recipient-normalized on-chain: PWA paths attest
- * with recipient = garden, while the agent bot path attests with recipient = the
- * work's gardener (see modules/work/bot-submission.ts). Recipient-scoped fetching by
- * garden ids alone therefore permanently misses agent-made approvals, leaving
- * agent-approved works as false "needs review" residue. Gardens ∪ candidate works'
- * gardeners closes that class for all shipped attestation paths.
+ * candidate works. New work-approval paths attest with recipient = garden, but
+ * historical bot approvals used recipient = the work's gardener. Recipient-scoped
+ * fetching by gardens ∪ candidate works' gardeners preserves those immutable legacy
+ * approvals without leaving old agent-reviewed work as false "needs review" residue.
  */
 export function collectApprovalRecipientsForWorks(gardenIds: string[], works: Work[]): string[] {
   const recipients = new Map<string, string>();
