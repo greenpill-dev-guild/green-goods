@@ -308,6 +308,10 @@ type BuildPasskeySessionOptions = {
   enforceExpectedAddress?: boolean;
 };
 
+type LocalCacheAuthOptions = {
+  requireStoredUsername?: boolean;
+};
+
 async function buildAndCachePasskeySession(
   credential: P256Credential,
   userName: string,
@@ -476,12 +480,19 @@ async function authenticatePasskeyWithServer(
 
 async function authenticatePasskeyFromLocalCache(
   userName: string | null,
-  chainId: number
+  chainId: number,
+  options: LocalCacheAuthOptions = {}
 ): Promise<PasskeySessionResult> {
   const credential = getStoredCredential();
 
   if (!credential) {
     throw new Error("No passkey found. Please create a new account.");
+  }
+
+  const storedUsername = getStoredUsername();
+
+  if (options.requireStoredUsername && userName && !storedUsername) {
+    throw new Error("No passkey credential found for that username.");
   }
 
   const credentialIdBytes = decodeCredentialId(credential.id);
@@ -513,7 +524,7 @@ async function authenticatePasskeyFromLocalCache(
     throw new Error("Passkey authentication was cancelled");
   }
 
-  const resolvedUsername = getStoredUsername() || userName || "";
+  const resolvedUsername = storedUsername || userName || "";
 
   return buildAndCachePasskeySession(credential, resolvedUsername, chainId);
 }
@@ -723,7 +734,9 @@ export const authenticatePasskeyService = fromPromise<PasskeySessionResult, Pass
             logger.warn("[Auth] Passkey server returned no credentials; using local fallback");
             attemptSource = "local_cache";
             result = {
-              ...(await authenticatePasskeyFromLocalCache(userName, chainId)),
+              ...(await authenticatePasskeyFromLocalCache(userName, chainId, {
+                requireStoredUsername: true,
+              })),
               source: "local_cache",
             };
           } else {
@@ -744,7 +757,9 @@ export const authenticatePasskeyService = fromPromise<PasskeySessionResult, Pass
             });
             attemptSource = "local_cache";
             result = {
-              ...(await authenticatePasskeyFromLocalCache(userName, chainId)),
+              ...(await authenticatePasskeyFromLocalCache(userName, chainId, {
+                requireStoredUsername: true,
+              })),
               source: "local_cache",
             };
           } else {

@@ -898,8 +898,9 @@ describe("workflows/authServices (Pimlico Server Flow)", () => {
       expect(Array.from(new Uint8Array(credentialId))).toEqual([0xde, 0xad, 0xbe, 0xef]);
     });
 
-    it("uses legacy same-device fallback when the server has no credential but local cache exists", async () => {
+    it("uses legacy same-device fallback when the server has no credential but named local cache exists", async () => {
       mockStoredCredential = MOCK_CREDENTIAL;
+      mockStoredUsername = MOCK_USERNAME;
       mockPasskeyServerClient.getCredentials.mockResolvedValue([]);
       mockCredentials.get.mockResolvedValue({
         id: MOCK_CREDENTIAL.id,
@@ -917,6 +918,22 @@ describe("workflows/authServices (Pimlico Server Flow)", () => {
       expect(mockPasskeyServerClient.startAuthentication).not.toHaveBeenCalled();
       expect(result.credential).toEqual(MOCK_CREDENTIAL);
       expect(result.smartAccountAddress).toBe(MOCK_SMART_ACCOUNT_ADDRESS);
+    });
+
+    it("does not adopt a recovery username when local fallback has no stored username", async () => {
+      mockStoredCredential = MOCK_CREDENTIAL;
+      mockStoredUsername = null;
+      mockPasskeyServerClient.getCredentials.mockResolvedValue([]);
+
+      await expect(
+        invokeService(authenticatePasskeyService, {
+          userName: "mistyped-recovery-name",
+          chainId: MOCK_CHAIN_ID,
+        })
+      ).rejects.toThrow("No passkey credential found for that username.");
+
+      expect(mockCredentials.get).not.toHaveBeenCalled();
+      expect(setStoredUsername).not.toHaveBeenCalledWith("mistyped-recovery-name");
     });
 
     it("does not overwrite the cached username when local fallback handles a recovery lookup", async () => {
@@ -986,6 +1003,7 @@ describe("workflows/authServices (Pimlico Server Flow)", () => {
 
     it("falls back to the local credential when challenge issuance times out", async () => {
       mockStoredCredential = MOCK_CREDENTIAL;
+      mockStoredUsername = MOCK_USERNAME;
       const timeoutError = new Error("The request took too long to respond.");
       timeoutError.name = "TimeoutError";
       mockPasskeyServerClient.startAuthentication.mockRejectedValue(timeoutError);
@@ -1024,6 +1042,7 @@ describe("workflows/authServices (Pimlico Server Flow)", () => {
       // fallback; the user then dismisses that ceremony. The failure happened
       // on the local path and telemetry must say so.
       mockStoredCredential = MOCK_CREDENTIAL;
+      mockStoredUsername = MOCK_USERNAME;
       mockPasskeyServerClient.getCredentials.mockResolvedValue([]);
       const cancelError = new Error("The operation either timed out or was not allowed.");
       cancelError.name = "NotAllowedError";
