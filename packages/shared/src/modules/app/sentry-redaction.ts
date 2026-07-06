@@ -7,12 +7,14 @@ const EMAIL_PATTERN = /\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi;
 const JWT_PATTERN = /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g;
 const WALLET_PATTERN = /0x[a-fA-F0-9]{40}/g;
 const URL_PATTERN = /\bhttps?:\/\/[^\s"'<>]+/g;
+const SENSITIVE_ASSIGNMENT_PATTERN =
+  /\b(api[_-]?key|apikey|token|credential[_-]?id|credentialId|wallet[_-]?address|smart[_-]?account[_-]?address)=([^&\s"'<>]+)/gi;
 const MAX_STRING_LENGTH = 4_000;
 const MAX_ARRAY_LENGTH = 50;
 const MAX_DEPTH = 8;
 
 const SENSITIVE_KEY_PATTERN =
-  /(authorization|cookie|token|secret|password|private|session|jwt|api[_-]?key|platform[_-]?id|sender|wallet|address|email|distinct|replay|user[_-]?id|chat[_-]?id|thread[_-]?id)/i;
+  /(authorization|cookie|token|secret|password|private|session|jwt|api[_-]?key|platform[_-]?id|sender|credential|wallet|address|email|distinct|replay|user[_-]?id|chat[_-]?id|thread[_-]?id)/i;
 
 export type RedactedSentryValue =
   | null
@@ -27,6 +29,7 @@ export function redactSentryString(value: string): string {
     .replace(JWT_PATTERN, REDACTED_TOKEN)
     .replace(EMAIL_PATTERN, REDACTED_EMAIL)
     .replace(WALLET_PATTERN, REDACTED_WALLET)
+    .replace(SENSITIVE_ASSIGNMENT_PATTERN, (_match, key: string) => `${key}=${REDACTED}`)
     .replace(URL_PATTERN, redactUrl)
     .slice(0, MAX_STRING_LENGTH);
 }

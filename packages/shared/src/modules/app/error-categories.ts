@@ -14,6 +14,7 @@ import { logger } from "./logger";
 import { getAppContext } from "./posthog";
 import { getBreadcrumbs } from "./error-breadcrumbs";
 import { captureExternalError } from "./external-error-reporters";
+import { redactSentryString, sanitizeSentryContext } from "./sentry-redaction";
 
 const IS_DEV = import.meta.env.DEV;
 const IS_DEBUG = import.meta.env.VITE_POSTHOG_DEBUG === "true";
@@ -136,6 +137,15 @@ function generateErrorFingerprint(error: Error, context: ErrorContext): string {
   return parts.join("::");
 }
 
+function redactErrorForTracking(error: Error): Error {
+  const redactedError = new Error(redactSentryString(error.message));
+  redactedError.name = redactSentryString(error.name || "Error");
+  if (error.stack) {
+    redactedError.stack = redactSentryString(error.stack);
+  }
+  return redactedError;
+}
+
 // ============================================================================
 // CORE ERROR TRACKING
 // ============================================================================
@@ -213,7 +223,7 @@ export function trackError(error: unknown, context: ErrorContext = {}): void {
     normalizedError.cause instanceof Error ? normalizedError.cause.message : undefined;
 
   // Build the error properties
-  const properties: Record<string, unknown> = {
+  const rawProperties: Record<string, unknown> = {
     // App context (version and environment)
     app_version: appContext.app_version,
     environment: appContext.environment,
@@ -261,16 +271,20 @@ export function trackError(error: unknown, context: ErrorContext = {}): void {
     ...metadata,
   };
 
+  const authTelemetry = category === "auth";
+  const properties = authTelemetry ? sanitizeSentryContext(rawProperties) : rawProperties;
+  const capturedError = authTelemetry ? redactErrorForTracking(normalizedError) : normalizedError;
+
   const fingerprint = String(properties.error_fingerprint);
 
   if (source !== "window.onerror" && source !== "unhandledrejection") {
-    captureExternalError(normalizedError, {
+    captureExternalError(capturedError, {
       severity,
       category,
       source,
       userAction,
-      gardenAddress,
-      txHash,
+      gardenAddress: authTelemetry ? undefined : gardenAddress,
+      txHash: authTelemetry ? undefined : txHash,
       authMode,
       isOffline,
       recoverable: recoverable ?? parsedContractError?.recoverable,
