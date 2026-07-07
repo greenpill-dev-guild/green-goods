@@ -2119,7 +2119,7 @@
   "app.profile.help.faq.howToLearnMore.question": "¿Cómo puedo aprender más sobre Green Goods?",
   "app.profile.help.faq.offlineSupport.answer": "Sí. Los borradores permanecen en tu dispositivo mientras estás sin conexión, incluidas fotos y notas. Cuando te reconectas, Green Goods sube el trabajo guardado para que puedas seguir avanzando en campo.",
   "app.profile.help.faq.offlineSupport.question": "¿Puedo usar la app sin conexión?",
-  "app.profile.help.faq.onChainData.answer": "Cuando se aprueba un trabajo, Green Goods escribe un registro público en Arbitrum: la acción, los comentarios y la confianza del operador, y enlaces a tu evidencia. Tu identidad no queda en la blockchain. El registro muestra solo la dirección de tu cuenta de Green Goods, nunca tu nombre, correo o teléfono.",
+  "app.profile.help.faq.onChainData.answer": "Cuando se aprueba un trabajo, Green Goods escribe un registro público en Arbitrum: la acción, los comentarios y la confianza del operador y los enlaces a tu evidencia. Tu identidad no queda en la blockchain. El registro muestra solo la dirección de tu cuenta de Green Goods, nunca tu nombre, correo o teléfono.",
   "app.profile.help.faq.onChainData.question": "¿Qué se guarda en la blockchain?",
   "app.profile.help.faq.photoStorage.answer": "Tus fotos y notas de audio se suben a IPFS, una red pública donde los archivos se comparten mediante un enlace de contenido y no se pueden borrar una vez subidos. Agrega solo evidencia que no te importe hacer pública y evita capturar información personal sensible en tus fotos o notas.",
   "app.profile.help.faq.photoStorage.question": "¿Qué pasa con mis fotos?",

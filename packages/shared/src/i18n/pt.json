@@ -2119,7 +2119,7 @@
   "app.profile.help.faq.howToLearnMore.question": "Como posso aprender mais sobre Green Goods?",
   "app.profile.help.faq.offlineSupport.answer": "Sim. Rascunhos ficam no seu dispositivo enquanto você está offline, incluindo fotos e notas. Quando reconectar, o Green Goods envia o trabalho salvo para que você continue avançando em campo.",
   "app.profile.help.faq.offlineSupport.question": "Posso usar o app offline?",
-  "app.profile.help.faq.onChainData.answer": "Quando um trabalho é aprovado, o Green Goods grava um registro público na Arbitrum: a ação, os comentários e a confiança do operador, e links para sua evidência. Sua identidade não fica na blockchain. O registro mostra apenas o endereço da sua conta Green Goods, nunca seu nome, e-mail ou telefone.",
+  "app.profile.help.faq.onChainData.answer": "Quando um trabalho é aprovado, o Green Goods grava um registro público na Arbitrum: a ação, os comentários e a confiança do operador e os links para sua evidência. Sua identidade não fica na blockchain. O registro mostra apenas o endereço da sua conta Green Goods, nunca seu nome, e-mail ou telefone.",
   "app.profile.help.faq.onChainData.question": "O que é salvo na blockchain?",
   "app.profile.help.faq.photoStorage.answer": "Suas fotos e notas de áudio vão para o IPFS, uma rede pública onde os arquivos são compartilhados por um link de conteúdo e não podem ser apagados depois de enviados. Adicione apenas evidências que você não se importe de tornar públicas e evite capturar informações pessoais sensíveis nas suas fotos ou notas.",
   "app.profile.help.faq.photoStorage.question": "O que acontece com minhas fotos?",
