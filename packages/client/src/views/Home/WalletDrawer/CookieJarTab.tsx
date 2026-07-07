@@ -22,6 +22,7 @@ import React, { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits } from "viem";
 import { EmptyState } from "@/components/Communication";
+import { WALLET_DRAWER_SCROLL_CLASSNAME } from "./classnames";
 
 interface JarCardProps {
   jar: CookieJar;
@@ -285,7 +286,7 @@ export const CookieJarTab: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className={WALLET_DRAWER_SCROLL_CLASSNAME}>
         <div className="space-y-2.5 p-4" role="status">
           <p className="text-xs text-text-soft-400">
             {formatMessage({
@@ -308,7 +309,7 @@ export const CookieJarTab: React.FC = () => {
 
   if (!moduleConfigured) {
     return (
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className={WALLET_DRAWER_SCROLL_CLASSNAME}>
         <EmptyState
           tone="warning"
           icon={<RiErrorWarningLine />}
@@ -352,7 +353,7 @@ export const CookieJarTab: React.FC = () => {
 
   if (jars.length === 0) {
     return (
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className={WALLET_DRAWER_SCROLL_CLASSNAME}>
         <div className="space-y-4 p-4">
           {diagnosticBlock}
           {/* Offline reads fail closed, so an empty list proves nothing — say
@@ -375,7 +376,7 @@ export const CookieJarTab: React.FC = () => {
   }
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto">
+    <div className={WALLET_DRAWER_SCROLL_CLASSNAME}>
       <div className="space-y-4 p-4">
         {diagnosticBlock}
         {groupedJars.map((group) => (

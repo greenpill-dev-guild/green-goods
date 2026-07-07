@@ -3,6 +3,7 @@ import { RiCoinsLine, RiGiftLine, RiHandCoinLine } from "@remixicon/react";
 import React, { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { ModalDrawer, type ModalDrawerTab } from "@/components/Dialogs/ModalDrawer";
+import { WALLET_DRAWER_SCROLL_CLASSNAME } from "./classnames";
 import { ComingSoonStub } from "./ComingSoonStub";
 import { CookieJarTab } from "./CookieJarTab";
 import { SendTab } from "./SendTab";
@@ -66,7 +67,7 @@ export const WalletDrawer: React.FC<WalletDrawerProps> = ({ isOpen, onClose }) =
       {activeTab === "cookie-jar" && <CookieJarTab />}
       {activeTab === "send" && <SendTab resetNonce={sendResetNonce} />}
       {activeTab === "pools" && (
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className={WALLET_DRAWER_SCROLL_CLASSNAME}>
           <ComingSoonStub
             tabName={formatMessage({ id: "app.wallet.tab.commitments" })}
             description={formatMessage({ id: "app.wallet.commitments.comingSoon" })}

@@ -17,6 +17,7 @@ import { RiArrowLeftLine, RiLoader4Line, RiPencilLine } from "@remixicon/react";
 import React, { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits } from "viem";
+import { WALLET_DRAWER_SCROLL_CLASSNAME } from "./classnames";
 import { AmountStep } from "./Send/AmountStep";
 import { BalanceView } from "./Send/BalanceView";
 import { ReceiveView } from "./Send/ReceiveView";
@@ -168,7 +169,7 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
       </div>
 
       {mode === "balance" ? (
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className={WALLET_DRAWER_SCROLL_CLASSNAME}>
           <BalanceView
             tokens={tokens}
             isLoading={isLoading}
@@ -179,12 +180,12 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
           />
         </div>
       ) : mode === "receive" ? (
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className={WALLET_DRAWER_SCROLL_CLASSNAME}>
           <ReceiveView />
         </div>
       ) : (
         <>
-          <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className={WALLET_DRAWER_SCROLL_CLASSNAME}>
             {!isOnline ? (
               <div className="px-4 pt-4">
                 <Alert variant="warning">{formatMessage({ id: "app.send.review.offline" })}</Alert>
