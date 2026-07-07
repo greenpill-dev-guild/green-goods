@@ -2123,7 +2123,7 @@
   "app.profile.help.faq.onChainData.question": "¿Qué se guarda en la blockchain?",
   "app.profile.help.faq.photoStorage.answer": "Tus fotos y notas de audio se suben a IPFS, una red pública donde los archivos se comparten mediante un enlace de contenido y no se pueden borrar una vez subidos. Agrega solo evidencia que no te importe hacer pública y evita capturar información personal sensible en tus fotos o notas.",
   "app.profile.help.faq.photoStorage.question": "¿Qué pasa con mis fotos?",
-  "app.profile.help.faq.pools.answer": "Las pools llegarán pronto. Serán una forma de reunir fondos y compromisos para metas compartidas del jardín, y las encontrarás en Fondos del jardín cuando estén listos.",
+  "app.profile.help.faq.pools.answer": "Las pools llegarán pronto. Serán una forma de reunir fondos y compromisos para metas compartidas del jardín, y las encontrarás en Fondos del jardín cuando estén listas.",
   "app.profile.help.faq.pools.question": "¿Qué son las pools?",
   "app.profile.help.faq.profileName.answer": "Abre tu Perfil para reclamar un nombre personal de Green Goods. Escribe el nombre que quieras, comprueba que esté disponible y toca Reclamar nombre. Queda ligado a tu trabajo y tarda entre 15 y 20 minutos en registrarse. Tu foto se toma de tu avatar de ENS si tienes uno y, si no, se muestra una predeterminada.",
   "app.profile.help.faq.profileName.question": "¿Cómo configuro mi nombre y mi foto?",
