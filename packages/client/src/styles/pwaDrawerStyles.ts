@@ -41,7 +41,8 @@ export const pwaDrawerStyles = {
   tabInactive: pwaStatusStyles.neutral.text,
   tabBadge: pwaStatusStyles.primary.badge,
   tabIndicator: pwaStatusStyles.primary.progress,
-  footer: "flex-shrink-0 border-t border-stroke-soft-200 bg-[var(--color-material-solid)] p-4",
+  footer:
+    "flex-shrink-0 border-t border-stroke-soft-200 bg-[var(--color-material-solid)] px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))]",
   closeButtonBase:
     "group rounded-full border border-stroke-soft-200 transition-[color,border-color,background-color,box-shadow,transform] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)] flex-shrink-0 tap-feedback hover:bg-bg-weak-50 focus:outline-none focus-visible:shadow-button-primary-focus active:border-primary active:scale-95",
   closeIcon:

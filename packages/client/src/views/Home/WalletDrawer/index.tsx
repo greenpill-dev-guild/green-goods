@@ -60,17 +60,19 @@ export const WalletDrawer: React.FC<WalletDrawerProps> = ({ isOpen, onClose }) =
         setActiveTab(id);
         if (id === "send") setSendResetNonce((nonce) => nonce + 1);
       }}
-      contentClassName="overflow-y-auto p-0"
+      contentClassName="flex min-h-0 flex-col overflow-hidden p-0"
       maxHeight="95vh"
     >
       {activeTab === "cookie-jar" && <CookieJarTab />}
       {activeTab === "send" && <SendTab resetNonce={sendResetNonce} />}
       {activeTab === "pools" && (
-        <ComingSoonStub
-          tabName={formatMessage({ id: "app.wallet.tab.commitments" })}
-          description={formatMessage({ id: "app.wallet.commitments.comingSoon" })}
-          icon={<RiHandCoinLine />}
-        />
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <ComingSoonStub
+            tabName={formatMessage({ id: "app.wallet.tab.commitments" })}
+            description={formatMessage({ id: "app.wallet.commitments.comingSoon" })}
+            icon={<RiHandCoinLine />}
+          />
+        </div>
       )}
     </ModalDrawer>
   );

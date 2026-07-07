@@ -34,6 +34,11 @@ export type UIState = {
   openEndowmentDrawer: () => void;
   closeEndowmentDrawer: () => void;
 
+  // Wallet drawer controls (client)
+  isWalletDrawerOpen: boolean;
+  openWalletDrawer: () => void;
+  closeWalletDrawer: () => void;
+
   // Computed helper to check if any drawer is open (for AppBar hiding)
   isAnyDrawerOpen: () => boolean;
 
@@ -75,8 +80,15 @@ export const useUIStore = create<UIState>()(
       openEndowmentDrawer: () => set({ isEndowmentDrawerOpen: true }),
       closeEndowmentDrawer: () => set({ isEndowmentDrawerOpen: false }),
 
+      isWalletDrawerOpen: false,
+      openWalletDrawer: () => set({ isWalletDrawerOpen: true }),
+      closeWalletDrawer: () => set({ isWalletDrawerOpen: false }),
+
       isAnyDrawerOpen: () =>
-        get().isWorkDashboardOpen || get().isGardenFilterOpen || get().isEndowmentDrawerOpen,
+        get().isWorkDashboardOpen ||
+        get().isGardenFilterOpen ||
+        get().isEndowmentDrawerOpen ||
+        get().isWalletDrawerOpen,
 
       sidebarOpen: false,
       setSidebarOpen: (open) => set({ sidebarOpen: open }),

@@ -64,14 +64,14 @@ const Home: React.FC = () => {
     normalizedAddress
   );
 
-  // Wallet drawer state
-  const [isWalletDrawerOpen, setIsWalletDrawerOpen] = useState(false);
-
   // UI state from store
   const isGardenFilterOpen = useUIStore((s) => s.isGardenFilterOpen);
   const openGardenFilter = useUIStore((s) => s.openGardenFilter);
   const closeGardenFilter = useUIStore((s) => s.closeGardenFilter);
   const openWorkDashboard = useUIStore((s) => s.openWorkDashboard);
+  const isWalletDrawerOpen = useUIStore((s) => s.isWalletDrawerOpen);
+  const openWalletDrawer = useUIStore((s) => s.openWalletDrawer);
+  const closeWalletDrawer = useUIStore((s) => s.closeWalletDrawer);
 
   // Ensure proper re-rendering on browser navigation
   useBrowserNavigation();
@@ -97,12 +97,13 @@ const Home: React.FC = () => {
     }
   }, [location.pathname, resetLoadingState]);
 
-  // Close filter drawer when navigating away
+  // Close home drawers when navigating away
   useEffect(() => {
     if (location.pathname !== APP_ROUTES.home) {
       closeGardenFilter();
+      closeWalletDrawer();
     }
-  }, [location.pathname, closeGardenFilter]);
+  }, [location.pathname, closeGardenFilter, closeWalletDrawer]);
 
   // Resolve an arrival action to its concrete client side effect.
   const runArrivalAction = useCallback(
@@ -265,7 +266,7 @@ const Home: React.FC = () => {
                   </span>
                 )}
               </button>
-              <WalletDrawerIcon onClick={() => setIsWalletDrawerOpen(true)} />
+              <WalletDrawerIcon onClick={openWalletDrawer} />
               <WorkDashboardIcon />
             </div>
           </div>
@@ -299,7 +300,7 @@ const Home: React.FC = () => {
         </PullToRefresh>
       )}
       <Outlet />
-      <WalletDrawer isOpen={isWalletDrawerOpen} onClose={() => setIsWalletDrawerOpen(false)} />
+      <WalletDrawer isOpen={isWalletDrawerOpen} onClose={closeWalletDrawer} />
     </article>
   );
 };
