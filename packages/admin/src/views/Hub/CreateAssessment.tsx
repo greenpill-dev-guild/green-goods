@@ -32,6 +32,8 @@ export default function CreateAssessment() {
   const dirtyClose = useDirtyClose({
     isDirty: createAssessment.isDirty,
     onClose: createAssessment.handleCancel,
+    blockRouteChange: true,
+    preventRouteChange: createAssessment.isSubmitting,
     onDiscard: createAssessment.handleDiscard,
   });
 
@@ -207,6 +209,7 @@ export default function CreateAssessment() {
         tone="hub"
         className={ADMIN_FLOW_DIALOG_CLASS}
         onOpenChange={dirtyClose.onOpenChange}
+        preventClose={createAssessment.isSubmitting}
         title={title}
         description={formatMessage({
           id: "cockpit.assessment.createDescription",

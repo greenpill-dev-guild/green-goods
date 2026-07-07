@@ -31,7 +31,7 @@ Two NET-NEW contracts, two live upgrades, two new EAS schema/resolver pairs. Com
 ```mermaid
 flowchart LR
   subgraph apps["Apps: client PWA · admin · editorial · community"]
-    Q["Offline job queue<br/>IndexedDB + XState<br/>5 new job kinds"]
+    Q["Shared action substrate<br/>5 offline queue kinds<br/>+ online G$ transfer"]
   end
 
   IDX["Envio indexer<br/>CommitmentPool · CommitmentCycle<br/>Commitment · CommitmentEvent"]
@@ -354,7 +354,7 @@ flowchart TD
 
   HATS --> SM
   CPM2 -->|"Fulfilled read at queue time"| SM
-  SM -. "queued batches authorize execution<br/>(human executor in August;<br/>bridge-executor module post-August)" .-> GG
+  SM -. "queued batches authorize execution<br/>(human executor in August base;<br/>bridge-executor stretch, else post-August)" .-> GG
   SM -. " " .-> GS
   GG -. "recordSettled(celoTxHash)" .-> SM
 ```

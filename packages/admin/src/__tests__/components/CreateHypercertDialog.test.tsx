@@ -3,7 +3,7 @@
  */
 
 import { QueryClientProvider } from "@tanstack/react-query";
-import { act, cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { IntlProvider } from "react-intl";
 import { RouterProvider, createMemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -12,6 +12,7 @@ import {
   DEFAULT_CHAIN_ID,
   queryKeys,
   useAdminStore,
+  useHypercertWizardStore,
   type AuthContextType,
   type Garden,
 } from "@green-goods/shared";
@@ -77,12 +78,15 @@ const authContextValue: AuthContextType = {
   disconnectWallet: vi.fn(),
 };
 
-function renderCreateHypercert() {
+function renderCreateHypercert({ seedGarden = true }: { seedGarden?: boolean } = {}) {
   const queryClient = createTestQueryClient();
-  queryClient.setQueryData(queryKeys.gardens.byChain(DEFAULT_CHAIN_ID), [SELECTED_GARDEN]);
+  queryClient.setQueryData(
+    queryKeys.gardens.byChain(DEFAULT_CHAIN_ID),
+    seedGarden ? [SELECTED_GARDEN] : []
+  );
   queryClient.setQueryData(
     queryKeys.role.operatorGardens(OPERATOR.toLowerCase(), DEFAULT_CHAIN_ID),
-    [{ id: SELECTED_GARDEN.id, name: SELECTED_GARDEN.name }]
+    seedGarden ? [{ id: SELECTED_GARDEN.id, name: SELECTED_GARDEN.name }] : []
   );
   queryClient.setQueryData(
     queryKeys.role.deploymentPermissions(OPERATOR.toLowerCase(), DEFAULT_CHAIN_ID),
@@ -93,13 +97,16 @@ function renderCreateHypercert() {
     }
   );
   const router = createMemoryRouter(
-    [{ path: "/hub/certify/create", element: <CreateHypercert /> }],
+    [
+      { path: "/hub/certify/create", element: <CreateHypercert /> },
+      { path: "/hub/*", element: <div /> },
+    ],
     {
       initialEntries: [`/hub/certify/create?gardenId=${SELECTED_GARDEN.id}`],
     }
   );
 
-  return render(
+  render(
     <QueryClientProvider client={queryClient}>
       <IntlProvider locale="en" messages={{}} onError={() => {}}>
         <AuthContext.Provider value={authContextValue}>
@@ -108,6 +115,8 @@ function renderCreateHypercert() {
       </IntlProvider>
     </QueryClientProvider>
   );
+
+  return router;
 }
 
 describe("CreateHypercert dialog", () => {
@@ -133,6 +142,7 @@ describe("CreateHypercert dialog", () => {
   });
 
   afterEach(() => {
+    useHypercertWizardStore.getState().reset();
     useAdminStore.setState({ selectedGarden: null, lastGardenIdsByScope: {} });
     cleanup();
   });
@@ -148,5 +158,80 @@ describe("CreateHypercert dialog", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Role-Proven Garden")).toBeInTheDocument();
     expect(screen.queryByText("app.hypercerts.create.notFound")).not.toBeInTheDocument();
+  });
+
+  it("blocks route navigation while hypercert minting is pending", async () => {
+    let router: ReturnType<typeof renderCreateHypercert> | undefined;
+    await act(async () => {
+      router = renderCreateHypercert();
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      useHypercertWizardStore.getState().setMintingState({ status: "pending" });
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      void router?.navigate("/hub/work");
+      await Promise.resolve();
+    });
+
+    expect(router?.state.location.pathname).toBe("/hub/certify/create");
+    expect(router?.state.location.search).toBe(`?gardenId=${SELECTED_GARDEN.id}`);
+  });
+
+  it("locks the shell close path while hypercert minting is pending", async () => {
+    let router: ReturnType<typeof renderCreateHypercert> | undefined;
+    await act(async () => {
+      router = renderCreateHypercert();
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      useHypercertWizardStore.getState().setMintingState({ status: "pending" });
+      await Promise.resolve();
+    });
+
+    const dialog = await screen.findByRole("dialog", {
+      name: "app.hypercerts.create.title",
+    });
+
+    expect(screen.getByLabelText(/close/i)).toBeDisabled();
+
+    fireEvent.keyDown(dialog, { key: "Escape" });
+
+    expect(router?.state.location.pathname).toBe("/hub/certify/create");
+    expect(dialog).toBeInTheDocument();
+  });
+
+  it("locks the shell close path while restored pending mint state waits for garden data", async () => {
+    let router: ReturnType<typeof renderCreateHypercert> | undefined;
+    await act(async () => {
+      useHypercertWizardStore.getState().setMintingState({ status: "pending" });
+      router = renderCreateHypercert({ seedGarden: false });
+      await Promise.resolve();
+    });
+
+    const dialog = await screen.findByRole("dialog", {
+      name: "app.hypercerts.create.title",
+    });
+
+    expect(screen.getAllByText("app.hypercerts.create.notFound").length).toBeGreaterThan(0);
+    expect(screen.getByLabelText(/close/i)).toBeDisabled();
+
+    fireEvent.keyDown(dialog, { key: "Escape" });
+
+    expect(router?.state.location.pathname).toBe("/hub/certify/create");
+    expect(router?.state.location.search).toBe(`?gardenId=${SELECTED_GARDEN.id}`);
+    expect(dialog).toBeInTheDocument();
+
+    await act(async () => {
+      void router?.navigate("/hub/work");
+      await Promise.resolve();
+    });
+
+    expect(router?.state.location.pathname).toBe("/hub/certify/create");
+    expect(router?.state.location.search).toBe(`?gardenId=${SELECTED_GARDEN.id}`);
   });
 });

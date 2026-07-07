@@ -33,7 +33,7 @@ Self-confirmation is blocked everywhere. Counterparty confirmation is the review
 
 ## 2. The one-pool UX invariant
 
-One pool UX across capability levels (UX Brief, locked). The base surface every member sees: offer support, request help, submit evidence, confirm promise kept, see open and fulfilled commitments, see readiness plus season/campaign progress. Settlement controls are additive and progressively disclosed later behind the pool's `settlementEnabled` capability flag; they are never a separate product, tab, or app. Every screen in this spec is designed so a settlement row can be added without moving anything.
+One pool UX across capability levels (UX Brief, locked). The base surface every member sees: offer support, request help, submit evidence, confirm promise kept, see open and fulfilled commitments, see readiness plus season/campaign progress. August G$ settlement status and operator queue surfaces are additive through `SettlementModule` and `settlementAccounts[garden].active`; app lanes must not flip the pooling module's reserved `settlementEnabled` flag. Transferable-voucher controls are progressively disclosed later behind `settlementEnabled`; they are never a separate product, tab, or app. Every screen in this spec is designed so a settlement row can be added without moving anything.
 
 ## 3. Copy system
 
@@ -185,7 +185,7 @@ Full Warm Earth amplification per the scaffold's grammar; `prefers-reduced-motio
 
 ### 5.11 Per-action offline behavior (core deliverable)
 
-Queue substrate (verified): IndexedDB + XState, exactly two kinds today (`work`, `approval`; `packages/shared/src/types/job-queue.ts:89-92`), `MAX_RETRIES = 5` (`packages/shared/src/modules/job-queue/index.ts:88,247-248`), kind dispatch is a branch in `processJob` (`index.ts:277-288`), executors in `modules/job-queue/job-executors.ts`. New kinds extend `JobKindMap` and the dispatch branch; naming follows the existing single-noun convention.
+Queue substrate (verified): IndexedDB + XState, exactly two kinds today (`work`, `approval`; `packages/shared/src/types/job-queue.ts:89-92`), `MAX_RETRIES = 5` (`packages/shared/src/modules/job-queue/index.ts:88,247-248`), kind dispatch is a branch in `processJob` (`index.ts:277-288`), executors in `modules/job-queue/job-executors.ts`. New offline kinds (`commitment`, `claim`, `evidence`, `workLink`, `confirmation`) extend `JobKindMap` and the dispatch branch; `transfer` is a shared online wallet action kind that bypasses the offline field queue. Naming follows the existing single-noun convention.
 
 NET-NEW job kinds and per-action behavior:
 
@@ -196,6 +196,7 @@ NET-NEW job kinds and per-action behavior:
 | Attach lightweight evidence | `evidence` | `{ commitmentId, gardenAddress, note?, link?, media?: File[] }` (files serialized per `SerializedFileData`) | Evidence row appears with uploading state | Row-level spinner + queued badge; media held in IndexedDB | Row failed state, retry per row; media never silently dropped | `queryKeys.pools.commitment(commitmentId)` |
 | Link work to commitment | `workLink` | `{ commitmentId, workUID, gardenAddress }` (or deferred: `meta.commitmentId` on a `work` job spawns this after work syncs) | Linked-work row appears with pending chip | Chip "linking" | Row failed state + retry; work itself is unaffected | `queryKeys.pools.commitment(commitmentId)`, `queryKeys.works.*` (existing family) |
 | Confirm fulfillment | `confirmation` | `{ commitmentId, gardenAddress, confirmed: boolean, reason?, fallbackByOperator?: boolean }` | Progress meter ticks; inbox row shows "confirmation queued" | Inbox + detail show queued chip; Fulfilled hero deferred to sync completion | Tick reverts + failed banner with retry; never double-enqueue for same commitment (dedupe by commitmentId + userAddress) | `queryKeys.pools.commitment(commitmentId)`, `queryKeys.pools.pendingConfirmations(userAddress)`, `queryKeys.pools.stats(poolId)` |
+| Send G$ | `transfer` | `{ chainId: 42220, token, to, amount }` | Wallet row shows wallet-pending state after submit; balance refresh waits for tx confirmation | Online-only wallet action; never enters the offline field queue and never shows queued badge | Wallet rejection / tx failure surfaces inline with retry CTA; no MAX_RETRIES job replay | `queryKeys.settlement.memberBalance(userAddress)`, `queryKeys.settlement.disbursements(userAddress)` |
 | Submit work | `work` (existing, unchanged) | Existing `WorkJobPayload` (`job-queue.ts:57-68`) + optional `meta.commitmentId` | Existing behavior | Existing SyncStatusBar behavior (`packages/shared/src/components/SyncStatusBar.tsx`) | Existing | Existing `worksKeys` + `queryKeys.pools.commitment` when meta carries linkage |
 
 Query-key family: NET-NEW `poolsKeys` module at `packages/shared/src/config/query-keys/pools.ts` (pool, cycles, commitments, commitment, mine, pendingConfirmations, stats), registered in `packages/shared/src/config/query-keys/registry.ts:11-39` as `queryKeys.pools`.
@@ -419,7 +420,7 @@ PostHog project routing per repo rule: client PWA + editorial + community events
 - `cycle_opened` / `cycle_closed` / `cycle_composted` {cycle_type, allocation_preset}
 - `reward_paid_recorded` {rail: "cookie_jar"|"treasury"}
 - `pool_signal_created` / `pool_signal_upvoted` (community interface, September)
-- Offline queue health rides the existing job analytics (`packages/shared/src/modules/job-queue/job-analytics.ts`): new kinds inherit job_added/completed/failed tracking automatically.
+- Offline queue health rides the existing job analytics (`packages/shared/src/modules/job-queue/job-analytics.ts`): the five offline queue kinds inherit job_added/completed/failed tracking automatically. Online wallet `transfer` uses transaction lifecycle analytics, not job replay analytics.
 
 Privacy boundary: no counterparty addresses, commitment titles, or reason texts in event properties; counts, enums, and booleans only (matches the Linear/PostHog privacy rule in CLAUDE.md).
 
@@ -439,7 +440,7 @@ Privacy boundary: no counterparty addresses, commitment titles, or reason texts 
 2. **Non-custodial phrasing for operator-assisted capture**: fixed pattern "Recorded by {operator} on your behalf. The promise stays yours." on both the admin capture flow header (§6.5) and the member's commitment detail chip (§5.3). The member is always the named source on the record; the recorder is metadata.
 3. **Public stats for small communities**: threshold rule in §7.2 (rates only at >= 5 due commitments and >= 3 distinct promisers; counts-only sentences below). Applies to editorial and the PWA Home card; in-garden members always see full numbers.
 4. **Which commitment types may live outside a domain action**: SupportService and OperatorCaptured always may (evidence + confirmation is their proof); SeasonCampaign may when seeded as non-impact (deferrable assessment per the Lifecycle gates); DomainImpact never (action linkage is enforced by the creation flow, §5.4 step 3, and the seeding console, §6.3 step 2).
-5. **Where settlement controls will later sit**: behind the pool's `settlementEnabled` flag, additively: admin Garden Pool tab gains a Settlement section (curation/limits/valuing per the GE grammar) below the cycle console; PWA commitment detail's declared-reward row grows settlement rows; the Pools workspace funding view becomes the protocol settlement console. No new tabs, routes stay, one pool UX (§2).
+5. **Where settlement controls sit**: August G$ settlement uses `SettlementModule` state and `settlementAccounts[garden].active`, not the reserved pool `settlementEnabled` flag. Admin Garden Pool gains a Settlement account / queue section below the cycle console; PWA commitment detail's declared-reward row grows settlement-status rows; the Pools workspace funding view becomes the protocol settlement console. Later transferable-voucher controls sit behind `settlementEnabled` when PRD-651 unblocks. No new tabs, routes stay, one pool UX (§2).
 
 ---
 

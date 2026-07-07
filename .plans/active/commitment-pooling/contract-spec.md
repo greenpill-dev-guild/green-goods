@@ -32,10 +32,10 @@ The system lets gardens and the protocol run pools of commitments: offers and re
 
 ### Out of scope
 
-- Celo anything. Settlement contracts, settlement adapters beyond a reserved address field, voucher transfers, value custody, swap or redemption mechanics (the transferable-voucher layer activates these later on the same poolId; PRD-651).
-- Borrow-and-repay (mutual credit). A post-August companion `CreditRegister` (records-only, no-custody, interest-free) is specced separately in `credit-spec.md` — additive, zero pooling-module/register changes; out of scope for this spec.
+- Celo/G$ execution inside the core pooling module or register. August G$ split-state settlement is in scope separately via `settlement-spec.md` / PRD-686; the core pooling contracts never custody G$, call Celo, or flip `settlementEnabled`.
+- Borrow-and-repay (mutual credit). A blocked follow-on companion `CreditRegister` (records-only, no-custody, interest-free) is specced separately in `credit-spec.md` — additive, zero pooling-module/register changes; out of scope for this spec and not dispatchable without a new scope lock.
 - Sarafu integration or any reading of Sarafu source code (AGPL clean-room, decision #17; grounding is the Grassroots Economics paper and public docs only).
-- Bridging, G$ movement, GoodDollar rails (zero G$ references exist in production code, `corrections-log.md` H7).
+- Bridged G$, bridge custody/unbounded value authority, and GoodDollar rails inside the pooling module. Operator-executed G$ settlement lives in `SettlementModule`; bridge-executor automation is an August stretch owned by the settlement lane, else post-August.
 - Leaderboards, rankings, comparison views, countdown or streak mechanics of any kind.
 - A separate aggregator contract (PRD-649 locked: aggregates come from events, not an on-chain aggregator).
 - CookieJar contract changes (decision #18: rewards are declared references plus operator-executed payouts on existing rails).
@@ -1250,7 +1250,7 @@ Default is Model 1. Guidance (not chain-enforced): keep the treasury class at a 
 
 ## 10. Package-Level Backlog
 
-Each block below is shaped to map 1:1 onto one Linear workstream issue (acceptance criteria + surface + validation hint), children of PRD-650 for the August build per decision #23. Repo build order applies: contracts -> shared -> indexer -> client/admin/agent surfaces (root CLAUDE.md Build Order; indexer needs contract ABIs, frontends need shared).
+Each block below is shaped as a package-level implementation surface with acceptance criteria and validation hints. Historical PRD-671..681 child issue labels roll up to the parent trackers named in `plan.todo.md`; do not create or update child Linear issues unless Afo explicitly expands the Linear footprint. Repo build order applies: contracts -> shared -> indexer -> client/admin/agent surfaces (root CLAUDE.md Build Order; indexer needs contract ABIs, frontends need shared).
 
 ### `packages/contracts` PR chain 1: schemas and resolvers (FIRST, decision #26)
 
@@ -1278,9 +1278,9 @@ Acceptance: local Docker stack replays a scripted Sepolia fixture and produces c
 
 ### `packages/shared`
 
-Deliverables: domain types (`CommitmentPool`, `CommitmentCycle`, `Commitment`, allocation preset constants; `Address` type per repo rules); ABI + address exports from the deployment artifact (import pattern per root CLAUDE.md Contract Integration); query hooks + `queryKeys.*` entries; derived-state selectors implementing the section 5 overlays (Active, EvidenceSubmitted, PartiallyApproved, InProgress, Reviewing, Reconciled) and the 8.4 rate math; **four new job-queue kinds**: `commitment` (create offer/request), `claim` (claim/accept), `evidence` (attach evidence CID), `confirm` (confirm fulfillment), extending the exactly-two-kinds baseline (`packages/shared/src/types/job-queue.ts` + `packages/shared/src/modules/job-queue/`, `corrections-log.md` §6); mutation hooks with `createMutationErrorHandler`.
+Deliverables: domain types (`CommitmentPool`, `CommitmentCycle`, `Commitment`, allocation preset constants; `Address` type per repo rules); ABI + address exports from the deployment artifact (import pattern per root CLAUDE.md Contract Integration); query hooks + `queryKeys.*` entries; derived-state selectors implementing the section 5 overlays (Active, EvidenceSubmitted, PartiallyApproved, InProgress, Reviewing, Reconciled) and the 8.4 rate math; **six August action/job kinds**: offline queue kinds `commitment` (create offer/request), `claim` (claim/accept), `evidence` (attach evidence CID), `workLink` (link approved work), and `confirmation` (confirm fulfillment), plus online-only wallet action `transfer` (settlement-chain G$ send), extending the exactly-two-kinds baseline where applicable (`packages/shared/src/types/job-queue.ts` + `packages/shared/src/modules/job-queue/`, `corrections-log.md` §6); mutation hooks with `createMutationErrorHandler`.
 
-Acceptance: hooks exported from the barrel only; job kinds run through the existing IndexedDB + XState machine with MAX_RETRIES parity; locale keys mirrored es/pt (repo i18n gate); `bun run --filter @green-goods/shared test` green.
+Acceptance: hooks exported from the barrel only; the five offline pool job kinds (`commitment`, `claim`, `evidence`, `workLink`, `confirmation`) run through the existing IndexedDB + XState machine with MAX_RETRIES parity; `transfer` is an online-only settlement wallet action with no offline queue entry and no MAX_RETRIES replay (per `uiux-spec.md` §4.2 and `settlement-spec.md` §5); locale keys mirrored es/pt (repo i18n gate); `bun run --filter @green-goods/shared test` green.
 
 ### `packages/admin`
 
@@ -1290,7 +1290,7 @@ Acceptance: every module write goes through shared mutation hooks; no direct con
 
 ### `packages/client`
 
-Deliverables (full flows in `uiux-spec.md`): offer/request creation, browse/claim, work linkage through the existing MDR flow, evidence capture, counterparty confirmation, commitment + cycle views in the Garden tab; personal commitments + pending-confirmations panel on the Profile wallet surface; Fulfilled and cycle-close hero moments (decision #27, client only). All field actions offline-queued via the four new job kinds.
+Deliverables (full flows in `uiux-spec.md`): offer/request creation, browse/claim, work linkage through the existing MDR flow, evidence capture, counterparty confirmation, commitment + cycle views in the Garden tab; personal commitments + pending-confirmations panel on the Profile wallet surface; settlement reward status + G$ send affordance per `settlement-spec.md`; Fulfilled and cycle-close hero moments (decision #27, client only). The five August offline job kinds cover field actions where applicable; G$ send is an explicit online wallet action on Celo.
 
 Acceptance: offline queue proof for each field action; mutual-aid copy only (banned-vocab lint passes).
 
@@ -1309,15 +1309,15 @@ Exit criteria: methodology + scoping surveys complete (mandate artifact per gard
 
 ### Milestone 2: August release (the hard commitment)
 
-Goal: pools, cycles, commitments, confirmations, aggregates, and commitment-bundled Hypercerts live on Arbitrum One.
+Goal: pools, cycles, commitments, confirmations, aggregates, commitment-bundled Hypercerts, and the first operator-executed G$ settlement leg live with proof on Arbitrum One plus the Celo value leg.
 Exit criteria, in dependency order:
 
 1. Schemas registered on Sepolia + Arbitrum with resolvers live (PR chain 1); baselines attestable before cycle 1 opens.
 2. Module + register deployed, wired, storage baselines committed (PR chain 2).
 3. GardenToken + WorkApprovalResolver upgraded on 42161; protocol pool + 13 garden pools registered (PR chain 3).
-4. Indexer serving the four aggregates from events alone.
-5. Shared substrate (types, hooks, four job kinds) consumed by admin + client + editorial surfaces.
-6. First real cycle seeded and opened with an allocation preset; first commitment fulfilled with counterparty confirmation; first `RewardPaid` recorded.
+4. Indexer serving the four core aggregates plus settlement/disbursement status from Green Goods core events alone.
+5. Shared substrate (types, hooks, five offline queue job kinds plus online wallet `transfer`, settlement selectors) consumed by admin + client + editorial surfaces.
+6. First real cycle seeded and opened with an allocation preset; first commitment fulfilled with counterparty confirmation; first Arbitrum-rail `RewardPaid` recorded; first G$ disbursement queued on Arbitrum, executed from a garden Celo Safe, `recordSettled(celoTxHash)`, and visible in the PWA reward row.
 
 ### Milestone 3: September community interface
 
@@ -1344,7 +1344,3 @@ Carried verbatim from the session-plan skeleton (1-6), plus findings from this p
 ---
 
 Build order restated for the August track: contracts (schemas -> module/register -> upgrades) -> indexer -> shared -> admin + client PWA + editorial in parallel -> September community interface. The July dry run needs none of it.
-
-
-
-

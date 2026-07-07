@@ -16,6 +16,12 @@ export interface UseDirtyCloseOptions {
    */
   blockRouteChange?: boolean;
   /**
+   * When true, cancel route-driven closes outright instead of showing the
+   * discard confirm. Use for pending writes where leaving cannot be made safe
+   * by discarding local draft state.
+   */
+  preventRouteChange?: boolean;
+  /**
    * Optional cleanup run when the operator confirms discard (e.g. reset the
    * wizard store), before the close/navigation proceeds.
    */
@@ -50,6 +56,7 @@ export function useDirtyClose({
   isDirty,
   onClose,
   blockRouteChange = false,
+  preventRouteChange = false,
   onDiscard,
 }: UseDirtyCloseOptions): UseDirtyCloseResult {
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -58,11 +65,14 @@ export function useDirtyClose({
   // Inert when blockRouteChange is false (predicate always returns false).
   const blocker = useBlocker(
     ({ currentLocation, nextLocation }) =>
-      blockRouteChange && isDirty && currentLocation.pathname !== nextLocation.pathname
+      blockRouteChange &&
+      (isDirty || preventRouteChange) &&
+      (currentLocation.pathname !== nextLocation.pathname ||
+        currentLocation.search !== nextLocation.search)
   );
 
   useWindowEvent("beforeunload", (event) => {
-    if (!blockRouteChange || !isDirty) return;
+    if (!blockRouteChange || (!isDirty && !preventRouteChange)) return;
     event.preventDefault();
     // Modern browsers ignore custom messages; this triggers the native prompt.
     event.returnValue = "";
@@ -70,16 +80,23 @@ export function useDirtyClose({
 
   useEffect(() => {
     if (blocker.state === "blocked") {
+      if (preventRouteChange) {
+        blocker.reset?.();
+        blockerRef.current = null;
+        setConfirmOpen(false);
+        return;
+      }
       blockerRef.current = blocker;
       setConfirmOpen(true);
     }
-  }, [blocker]);
+  }, [blocker, preventRouteChange]);
 
   const onOpenChange = useCallback(
     (open: boolean) => {
       if (open) return;
       // Route mode: let onClose navigate; the blocker raises the confirm.
       if (blockRouteChange) {
+        if (preventRouteChange) return;
         onClose();
         return;
       }
@@ -90,7 +107,7 @@ export function useDirtyClose({
       }
       onClose();
     },
-    [blockRouteChange, isDirty, onClose]
+    [blockRouteChange, isDirty, onClose, preventRouteChange]
   );
 
   const cancelClose = useCallback(() => {

@@ -5,7 +5,7 @@
  * the Add Members entry ("keep it simple" collapse of the old roles stack).
  */
 
-import { screen, within } from "@testing-library/react";
+import { fireEvent, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -94,6 +94,19 @@ describe("components/Garden/ManageMembersDialog", () => {
 
     await user.click(screen.getByRole("button", { name: "Add members" }));
     expect(defaultProps.onAddMembers).toHaveBeenCalledTimes(1);
+  });
+
+  it("locks close and add-member affordances while a member write is loading", async () => {
+    render(createElement(ManageMembersDialog, { ...defaultProps, isLoading: true }));
+
+    for (const closeButton of screen.getAllByRole("button", { name: "Close" })) {
+      expect(closeButton).toBeDisabled();
+    }
+    expect(screen.getByRole("button", { name: "Add members" })).toBeDisabled();
+
+    fireEvent.keyDown(screen.getByRole("dialog", { name: "Manage Members" }), { key: "Escape" });
+
+    expect(defaultProps.onClose).not.toHaveBeenCalled();
   });
 
   it("hides write affordances for read-only viewers", () => {

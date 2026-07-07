@@ -1,9 +1,26 @@
-import { Alert, useCreateHypercertController } from "@green-goods/shared";
+import {
+  Alert,
+  isHypercertMintingInProgress,
+  useCreateHypercertController,
+  useDirtyClose,
+  useHypercertWizardStore,
+} from "@green-goods/shared";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { AdminDialog, ADMIN_FLOW_DIALOG_CLASS } from "@/components/AdminDialog";
 import { HypercertWizard } from "@/components/Hypercerts/HypercertWizard";
 import { ActionFlowShell } from "@/components/Layout/ActionFlowShell";
+
+function PendingHypercertRouteGuard({ active }: { active: boolean }) {
+  useDirtyClose({
+    isDirty: false,
+    onClose: () => undefined,
+    blockRouteChange: true,
+    preventRouteChange: active,
+  });
+
+  return null;
+}
 
 // Create Hypercert is a create/commit flow rendered as a centered flow AdminDialog
 // (bottom-sheet on mobile, width from ADMIN_FLOW_DIALOG_CLASS), same as Submit Work
@@ -13,6 +30,11 @@ import { ActionFlowShell } from "@/components/Layout/ActionFlowShell";
 export default function CreateHypercert() {
   const { formatMessage } = useIntl();
   const createHypercert = useCreateHypercertController();
+  const isMintingInProgress = useHypercertWizardStore((state) =>
+    isHypercertMintingInProgress(state.mintingState.status)
+  );
+  const preventClose = isMintingInProgress;
+  const wizardMounted = Boolean(createHypercert.garden && createHypercert.canManage);
 
   const title = formatMessage({ id: "app.hypercerts.create.title" });
 
@@ -48,26 +70,28 @@ export default function CreateHypercert() {
   }
 
   return (
-    <AdminDialog
-      open
-      size="lg"
-      variant="flow"
-      tone="hub"
-      className={ADMIN_FLOW_DIALOG_CLASS}
-      // No local dirty-close guard here (unlike Submit Work / Create Assessment's
-      // useDirtyClose in "state" mode) — HypercertWizard's useWizardData already
-      // wires useDirtyClose in "route" mode (blockRouteChange: true), which
-      // intercepts the navigate() this handleCancel triggers via a router
-      // blocker and raises the same DiscardChangesDialog. Adding a second guard
-      // here would double-prompt on close.
-      onOpenChange={(next) => {
-        if (!next) createHypercert.handleCancel();
-      }}
-      title={title}
-      description={description}
-      bodyClassName="flex min-h-0 flex-col !overflow-hidden"
-    >
-      {body}
-    </AdminDialog>
+    <>
+      {wizardMounted ? null : <PendingHypercertRouteGuard active={isMintingInProgress} />}
+      <AdminDialog
+        open
+        size="lg"
+        variant="flow"
+        tone="hub"
+        className={ADMIN_FLOW_DIALOG_CLASS}
+        // No local dirty-close prompt here (unlike Submit Work / Create Assessment's
+        // useDirtyClose in "state" mode). HypercertWizard owns the route blocker once
+        // it mounts; the shell guard above covers restored pending state before
+        // garden/permission data resolves.
+        onOpenChange={(next) => {
+          if (!next) createHypercert.handleCancel();
+        }}
+        preventClose={preventClose}
+        title={title}
+        description={description}
+        bodyClassName="flex min-h-0 flex-col !overflow-hidden"
+      >
+        {body}
+      </AdminDialog>
+    </>
   );
 }

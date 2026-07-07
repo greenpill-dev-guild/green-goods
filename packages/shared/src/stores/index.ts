@@ -48,7 +48,11 @@ export type {
   MintingState,
   MintingStatus,
 } from "./useHypercertWizardStore";
-export { useHypercertWizardStore } from "./useHypercertWizardStore";
+export {
+  HYPERCERT_MINTING_IN_PROGRESS_STATUSES,
+  isHypercertMintingInProgress,
+  useHypercertWizardStore,
+} from "./useHypercertWizardStore";
 // Sheet Orchestrator Store
 export type {
   SheetOrchestratorState,

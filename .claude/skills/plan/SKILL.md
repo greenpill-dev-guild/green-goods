@@ -229,12 +229,18 @@ For active implementation work, Linear sync is the default first step before cod
 agent dispatch.
 
 1. Run `node scripts/harness/plan-hub.mjs linear-sync --feature <feature-slug> --json`.
-2. If the manifest shows a missing parent or actionable lane issue, create or update the Linear
-   mirror before work begins. Parent and lane issues must carry `source:plans` and
-   `protocol:green-goods`; use Linear only for visibility, prioritization, and coordination.
-3. Record the canonical identifiers back to the hub with
-   `node scripts/harness/plan-hub.mjs record-linear --feature <feature-slug> --parent PRD-123 --lane ui=PRD-124 --actor <agent>`.
-4. Keep `.plans/<stage>/<feature-slug>/status.json` as execution truth. Lane status, TDD proof,
+2. Respect `manifest.laneSyncMode`. When it is `parent_only`, create or update only the parent
+   mirror and do not create lane issues unless Afo explicitly expands the Linear footprint. Record
+   that mode with `--lane-sync-mode parent_only`.
+3. When `manifest.laneSyncMode` is `lane_issues` and the manifest shows a missing parent or
+   actionable lane issue, create or update the Linear mirror before work begins. Parent and lane
+   issues must carry `source:plans` and `protocol:green-goods`; use Linear only for visibility,
+   prioritization, and coordination.
+4. Record the canonical identifiers back to the hub. Parent-only example:
+   `node scripts/harness/plan-hub.mjs record-linear --feature <feature-slug> --parent PRD-123 --lane-sync-mode parent_only --actor <agent>`.
+   Lane-issue example:
+   `node scripts/harness/plan-hub.mjs record-linear --feature <feature-slug> --parent PRD-123 --lane ui=PRD-124 --lane-sync-mode lane_issues --actor <agent>`.
+5. Keep `.plans/<stage>/<feature-slug>/status.json` as execution truth. Lane status, TDD proof,
    handoffs, and validation evidence belong in `.plans` first.
 
 Any prompt for an agent starting active implementation work should begin with the same

@@ -256,6 +256,8 @@ export interface SubmitWorkPanelProps {
    * count as dirty (parity with Create Assessment's pristine-close contract).
    */
   onDirtyChange?: (dirty: boolean) => void;
+  /** Reports wallet/media work in flight so the route dialog can block shell closes. */
+  onBusyChange?: (busy: boolean) => void;
 }
 
 const ADMIN_WORK_MEDIA_COMPRESSION_THRESHOLD_KB = 1024;
@@ -319,6 +321,7 @@ function SubmitWorkPanelContent({
   onSuccess,
   onCancel,
   onDirtyChange,
+  onBusyChange,
   auth,
 }: Omit<SubmitWorkPanelProps, "auth"> & { auth: SubmitWorkAuthSnapshot }) {
   const { formatMessage } = useIntl();
@@ -441,6 +444,11 @@ function SubmitWorkPanelContent({
   });
 
   useBeforeUnloadWhilePending(mutation.isPending || isPreparingMedia);
+  const busy = mutation.isPending || isPreparingMedia;
+  useEffect(() => {
+    onBusyChange?.(busy);
+    return () => onBusyChange?.(false);
+  }, [busy, onBusyChange]);
 
   // Auto-select when exactly one action is eligible — skip the Action chooser and
   // land the operator straight on the Media step.
@@ -694,7 +702,6 @@ function SubmitWorkPanelContent({
   // the pinned footer) can target the form via the `form="..."` attribute.
   const formId = "submit-work-form";
   const hasActions = availableActions.length > 0;
-  const busy = mutation.isPending || isPreparingMedia;
   const photoRequirementText = selectedAction?.mediaInfo?.required
     ? formatMessage(
         { id: "app.admin.work.submit.photosRequired" },
@@ -1089,6 +1096,7 @@ export default function SubmitWork() {
     [navigate, location.search]
   );
   const [panelDirty, setPanelDirty] = useState(false);
+  const [panelBusy, setPanelBusy] = useState(false);
   // Confirm before an accidental X / scrim / Escape discards typed content —
   // and ONLY then: a pristine close exits straight to the Hub (parity with
   // Create Assessment's clean-close contract). The shared DiscardChangesDialog
@@ -1096,6 +1104,8 @@ export default function SubmitWork() {
   const dirtyClose = useDirtyClose({
     isDirty: panelDirty,
     onClose: close,
+    blockRouteChange: true,
+    preventRouteChange: panelBusy,
     onDiscard: close,
   });
 
@@ -1112,6 +1122,7 @@ export default function SubmitWork() {
         tone="garden"
         className={ADMIN_FLOW_DIALOG_CLASS}
         onOpenChange={dirtyClose.onOpenChange}
+        preventClose={panelBusy}
         title={formatMessage({ id: "app.admin.work.submit.title" })}
         description={formatMessage({ id: "app.admin.work.submit.description" })}
         bodyClassName="flex min-h-0 flex-col !overflow-hidden"
@@ -1121,6 +1132,7 @@ export default function SubmitWork() {
           onSuccess={close}
           onCancel={close}
           onDirtyChange={setPanelDirty}
+          onBusyChange={setPanelBusy}
         />
       </AdminDialog>
       <DiscardChangesDialog

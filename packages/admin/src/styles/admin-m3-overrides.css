@@ -54,8 +54,14 @@
   }
 }
 
-.admin-m3 .speed-dial-item:hover {
+.admin-m3 .speed-dial-item:hover:not(:focus-visible) {
   box-shadow: var(--admin-chrome-shadow) !important;
+}
+
+.admin-m3 .speed-dial-item:focus-visible {
+  box-shadow:
+    0 0 0 2px rgb(var(--tone-focus-ring, var(--tone-tint, 59 130 246))),
+    var(--admin-speed-dial-shadow, var(--admin-chrome-shadow, var(--elevation-3))) !important;
 }
 
 /* Desktop: floating pill — compact M3 Expressive anatomy.
@@ -268,7 +274,7 @@ body:has(.admin-m3) [data-component="ConfirmDialog"][data-slot="surface"] {
  * automatically and these keyframes must NOT re-bake translate(-50%, …) into
  * `transform`, or the surface would translate twice and land off-center.
  *
- * Replaces the prior dead Tailwind animate-*/slide-in-*/zoom-* classes
+ * Replaces the prior dead Tailwind animate, slide-in, and zoom classes
  * (tailwindcss-animate is not loaded in this build, so they emitted no CSS).
  * ============================================================================ */
 

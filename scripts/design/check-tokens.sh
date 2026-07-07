@@ -339,7 +339,7 @@ fi
 # threshold in dark mode. The guard covers admin-owned UI plus shared Canvas
 # chrome that admin consumes.
 # ----------------------------------------------------------------------------
-LEGACY_ADMIN_FOCUS_RING_PATTERN='focus-visible:ring-\[rgb\(var\(--(m3-primary|tone-action|tone-tint|tone-primary)|--tw-ring-color:[[:space:]]*rgb\(var\(--tone-action'
+LEGACY_ADMIN_FOCUS_RING_PATTERN='focus-visible:ring-\[rgb\(var\(--(m3-primary|tone-action|tone-tint|tone-primary)|--tw-ring-color:[[:space:]]*rgb\(var\(--(m3-primary|tone-action|tone-tint|tone-primary)'
 
 collect_admin_focus_ring_violations() {
   grep -RInE --include='*.ts' --include='*.tsx' --include='*.css' \

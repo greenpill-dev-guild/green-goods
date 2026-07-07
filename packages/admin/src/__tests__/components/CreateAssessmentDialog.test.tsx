@@ -3,7 +3,7 @@
  */
 
 import { QueryClientProvider } from "@tanstack/react-query";
-import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { get as idbGet } from "idb-keyval";
 import { IntlProvider } from "react-intl";
 import { RouterProvider, createMemoryRouter } from "react-router-dom";
@@ -19,6 +19,10 @@ import {
 } from "@green-goods/shared";
 import { createTestQueryClient } from "@green-goods/shared/testing";
 import CreateAssessment from "@/views/Hub/CreateAssessment";
+
+const createAssessmentControllerOverride = vi.hoisted(() => ({
+  current: null as null | (() => unknown),
+}));
 
 const OPERATOR = "0x9999999999999999999999999999999999999999";
 
@@ -49,6 +53,17 @@ vi.mock("wagmi", () => ({
   useReadContract: () => ({ data: 1 }),
   useWalletClient: () => ({ data: undefined }),
 }));
+
+vi.mock("@green-goods/shared", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@green-goods/shared")>();
+  return {
+    ...actual,
+    useCreateAssessmentController: (() =>
+      createAssessmentControllerOverride.current
+        ? createAssessmentControllerOverride.current()
+        : actual.useCreateAssessmentController()) as typeof actual.useCreateAssessmentController,
+  };
+});
 
 const authContextValue: AuthContextType = {
   authMode: "wallet",
@@ -122,6 +137,7 @@ function renderCreateAssessment() {
 
 describe("CreateAssessment dialog", () => {
   beforeEach(() => {
+    useCreateAssessmentStore.getState().reset();
     useAdminStore.setState({
       selectedChainId: DEFAULT_CHAIN_ID,
       selectedGarden: null,
@@ -143,6 +159,8 @@ describe("CreateAssessment dialog", () => {
   });
 
   afterEach(() => {
+    createAssessmentControllerOverride.current = null;
+    useCreateAssessmentStore.getState().reset();
     useAdminStore.setState({ selectedGarden: null, lastGardenIdsByScope: {} });
     cleanup();
   });
@@ -188,6 +206,113 @@ describe("CreateAssessment dialog", () => {
 
     expect(await idbGet(draftKey)).toBeUndefined();
     expect(useCreateAssessmentStore.getState().form.title).toBe("");
+  });
+
+  it("blocks route context changes while the assessment draft is dirty", async () => {
+    let router: ReturnType<typeof renderCreateAssessment> | undefined;
+    await act(async () => {
+      router = renderCreateAssessment();
+      await Promise.resolve();
+    });
+
+    const titleInput = await screen.findByLabelText(/^Title/);
+    fireEvent.change(titleInput, { target: { value: "Route-backed draft" } });
+
+    await act(async () => {
+      void router?.navigate(
+        "/hub/assess/create?gardenId=0x2222222222222222222222222222222222222222"
+      );
+      await Promise.resolve();
+    });
+
+    expect(await screen.findByRole("button", { name: "Discard" })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(router?.state.location.pathname).toBe("/hub/assess/create");
+      expect(router?.state.location.search).toBe(`?gardenId=${SELECTED_GARDEN.id}`);
+    });
+  });
+
+  it("does not fire the close path while assessment submission is pending", async () => {
+    const handleCancel = vi.fn();
+    createAssessmentControllerOverride.current = () => ({
+      canRetry: false,
+      canReview: false,
+      currentStep: 0,
+      goToStep: vi.fn(),
+      errorMessage: "",
+      errorTitle: "",
+      garden: undefined,
+      gardenRouteContext: {},
+      hubContext: {},
+      handleBack: vi.fn(),
+      handleCancel,
+      handleDiscard: vi.fn(),
+      handleNext: vi.fn(),
+      handleSubmit: vi.fn(),
+      hasError: false,
+      isDirty: false,
+      isSubmitting: true,
+      normalizedGardenDomainMask: undefined,
+      resetWorkflow: vi.fn(),
+      retry: vi.fn(),
+      showValidation: false,
+      stepConfigs: [],
+      txErrorView: { title: "", message: "", severity: "error" },
+    });
+
+    await act(async () => {
+      renderCreateAssessment();
+      await Promise.resolve();
+    });
+
+    const dialog = await screen.findByRole("dialog", { name: "Submit Assessment" });
+    expect(screen.getByLabelText(/close/i)).toBeDisabled();
+
+    fireEvent.keyDown(dialog, { key: "Escape" });
+
+    expect(handleCancel).not.toHaveBeenCalled();
+  });
+
+  it("blocks route navigation while assessment submission is pending", async () => {
+    createAssessmentControllerOverride.current = () => ({
+      canRetry: false,
+      canReview: false,
+      currentStep: 0,
+      goToStep: vi.fn(),
+      errorMessage: "",
+      errorTitle: "",
+      garden: undefined,
+      gardenRouteContext: {},
+      hubContext: {},
+      handleBack: vi.fn(),
+      handleCancel: vi.fn(),
+      handleDiscard: vi.fn(),
+      handleNext: vi.fn(),
+      handleSubmit: vi.fn(),
+      hasError: false,
+      isDirty: false,
+      isSubmitting: true,
+      normalizedGardenDomainMask: undefined,
+      resetWorkflow: vi.fn(),
+      retry: vi.fn(),
+      showValidation: false,
+      stepConfigs: [],
+      txErrorView: { title: "", message: "", severity: "error" },
+    });
+    let router: ReturnType<typeof renderCreateAssessment> | undefined;
+
+    await act(async () => {
+      router = renderCreateAssessment();
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      void router?.navigate("/hub/work");
+      await Promise.resolve();
+    });
+
+    expect(router?.state.location.pathname).toBe("/hub/assess/create");
+    expect(router?.state.location.search).toBe(`?gardenId=${SELECTED_GARDEN.id}`);
   });
 
   it("closes straight back to the Hub when the form is pristine (no discard prompt)", async () => {

@@ -142,6 +142,20 @@ export interface MintingState {
   signalPoolAddress: string | null;
 }
 
+export const HYPERCERT_MINTING_IN_PROGRESS_STATUSES: readonly MintingStatus[] = [
+  "uploading_metadata",
+  "uploading_allowlist",
+  "building_userop",
+  "awaiting_signature",
+  "submitting",
+  "pending",
+  "registering_proposal",
+] as const;
+
+export function isHypercertMintingInProgress(status: MintingState["status"]): boolean {
+  return HYPERCERT_MINTING_IN_PROGRESS_STATUSES.includes(status);
+}
+
 export interface HypercertWizardStore {
   currentStep: number;
   selectedAttestationIds: string[];
@@ -235,17 +249,7 @@ const emptyMintingState: MintingState = {
 function persistMintingState(state: MintingState): void {
   if (typeof window === "undefined") return;
 
-  const inProgressStatuses: MintingStatus[] = [
-    "uploading_metadata",
-    "uploading_allowlist",
-    "building_userop",
-    "awaiting_signature",
-    "submitting",
-    "pending",
-    "registering_proposal",
-  ];
-
-  if (inProgressStatuses.includes(state.status)) {
+  if (isHypercertMintingInProgress(state.status)) {
     try {
       sessionStorage.setItem(MINTING_STATE_STORAGE_KEY, JSON.stringify(state));
       logger.debug("[HypercertWizardStore] Minting state persisted to sessionStorage", {

@@ -16,6 +16,7 @@ import {
   useHypercertContributorWeights,
   useHypercertDraft,
   useHypercerts,
+  isHypercertMintingInProgress,
   useDirtyClose,
   useHypercertWizardStore,
   useMintHypercert,
@@ -88,9 +89,12 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
     updateMetadata(prefill);
   }, [selectedAssessment, updateMetadata]);
 
+  const isSubmitting = isHypercertMintingInProgress(mintingState.status);
+
   // Track if the operator has made changes worth protecting.
   const hasUnsavedChanges = useMemo(() => {
-    // Don't block if minting is in progress or completed
+    // Pending chain/indexer confirmation is protected by preventRouteChange;
+    // confirmed mints have no draft left to guard.
     if (["pending", "confirmed"].includes(mintingState.status)) return false;
     // Block if user has selected attestations or moved past step 1
     return selectedAttestationIds.length > 0 || currentStep > 1;
@@ -108,6 +112,7 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
     isDirty: hasUnsavedChanges,
     onClose: () => undefined,
     blockRouteChange: true,
+    preventRouteChange: isSubmitting,
     onDiscard: reset,
   });
 
@@ -314,13 +319,6 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
   ]);
 
   const steps = useWizardSteps(formatMessage);
-
-  const isSubmitting = [
-    "uploading_metadata",
-    "uploading_allowlist",
-    "building_userop",
-    "pending",
-  ].includes(mintingState.status);
 
   const nextDisabled = !(canProceed?.(currentStep) ?? false);
   const submitLabel =

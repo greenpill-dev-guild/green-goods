@@ -64,8 +64,9 @@ export function ManageMembersDialog({
     <AdminDialog
       open={open}
       onOpenChange={(next) => {
-        if (!next) onClose();
+        if (!next && !isLoading) onClose();
       }}
+      preventClose={isLoading}
       size="lg"
       tone={tone}
       title={formatMessage({
@@ -81,7 +82,7 @@ export function ManageMembersDialog({
       )}
       actions={
         <>
-          <AdminButton type="button" variant="text" onClick={onClose}>
+          <AdminButton type="button" variant="text" onClick={onClose} disabled={isLoading}>
             {formatMessage({ id: "admin.common.close", defaultMessage: "Close" })}
           </AdminButton>
           {canManage ? (
@@ -90,6 +91,7 @@ export function ManageMembersDialog({
               variant="filled"
               leadingIcon={<RiUserAddLine />}
               onClick={onAddMembers}
+              disabled={isLoading}
             >
               {formatMessage({ id: "admin.addMember.openAction", defaultMessage: "Add members" })}
             </AdminButton>
