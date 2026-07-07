@@ -23,7 +23,7 @@ function PendingHypercertRouteGuard({ active }: { active: boolean }) {
 }
 
 // Create Hypercert is a create/commit flow rendered as a centered flow AdminDialog
-// (bottom-sheet on mobile, width from ADMIN_FLOW_DIALOG_CLASS), same as Submit Work
+// (full-width bottom-sheet on mobile, width from ADMIN_FLOW_DIALOG_CLASS), same as Submit Work
 // and Create Assessment. The wizard owns its own ActionFlowShell chrome (header +
 // scrolling steps + pinned actions); the AdminDialog close button is the exit
 // (→ controller handleCancel).

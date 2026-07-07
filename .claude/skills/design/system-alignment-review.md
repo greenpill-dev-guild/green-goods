@@ -69,7 +69,7 @@ HARD CONSTRAINTS — read before producing any finding.
    ```bash
    bun run check:design-generated   # root DesignMD front matter ↔ generated artifacts
    bun run check:design-tokens      # Warm Earth spec ↔ theme.css ↔ version coupling
-   bun run lint:vocab               # banned terms in i18n strings
+   bun run lint:vocab               # lint-enforced banned terms in i18n strings only
    cd packages/shared && bun run check:stories         # story coverage for shared + curated admin
    cd packages/shared && bun run check:story-quality   # admin/shared Canvas story determinism
    ```
@@ -126,7 +126,7 @@ Before proposing any fix, surface these as explicit questions — do not resolve
 - Spec changes to root `DESIGN.md` front matter (tokens, role vocabulary, palette volumes).
 - Renaming or removing a surface DESIGN.md dialect.
 - Promotion of an aspirational token (e.g., something in `language.md` that has no `theme.css` counterpart) to a runtime token — this can cascade to every consumer.
-- Banned-vocabulary additions or removals — those change `lint:vocab` behavior and block PRs.
+- Lint-enforced banned-vocabulary additions or removals — those change `lint:vocab` behavior and block PRs. Prompt-vocabulary lists are guidance-only.
 - Any change to `.claude/registry/skills.json` sub_files, triggers, or aliases beyond the design-system routing this skill adds.
 
 ## Refusal condition

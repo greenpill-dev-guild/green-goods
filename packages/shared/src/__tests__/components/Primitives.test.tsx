@@ -9,6 +9,7 @@
 
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useEffect, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("react-intl", () => ({
@@ -27,8 +28,11 @@ import {
   EmptyStateShell,
   WorkbenchRow,
   FabProvider,
+  RefreshActionProvider,
   useCanvasResponsiveFab,
   useFabConfigValue,
+  useRefreshAction,
+  useRefreshActionValue,
 } from "../../components";
 import { useCanvasMobileChromeHidden } from "../../components/Canvas/useCanvasMobileChromeHidden";
 
@@ -74,6 +78,67 @@ function ResponsiveFabProbe({
       <MobileActionSlot action={mobileAction} />
     </>
   );
+}
+
+function UnstableFabRegistrationProbe({
+  onProviderConfig,
+  onAction,
+}: {
+  onProviderConfig: (config: FabConfig) => void;
+  onAction: (actionId: string, tick: number) => void;
+}) {
+  const [tick, setTick] = useState(0);
+  const config: FabConfig = {
+    icon: StubIcon,
+    label: "Submit",
+    actions: [{ id: "submit", icon: StubIcon, label: "Submit work", labelId: "fab.submit" }],
+    onAction: (actionId) => onAction(actionId, tick),
+  };
+  const activeConfig = useFabConfigValue();
+  useCanvasResponsiveFab({ fab: config, isDesktop: false });
+
+  useEffect(() => {
+    if (!activeConfig) return;
+    onProviderConfig(activeConfig);
+  }, [activeConfig, onProviderConfig]);
+
+  useEffect(() => {
+    if (tick < 3) setTick((current) => current + 1);
+  }, [tick]);
+
+  useEffect(() => {
+    if (tick !== 3 || !activeConfig) return;
+    activeConfig.onAction("submit");
+  }, [activeConfig, tick]);
+
+  return <div data-testid="fab-registration-tick">{tick}</div>;
+}
+
+function UnstableRefreshRegistrationProbe({
+  onProviderConfig,
+  onRefresh,
+}: {
+  onProviderConfig: (config: ReturnType<typeof useRefreshActionValue>) => void;
+  onRefresh: (tick: number) => void;
+}) {
+  const [tick, setTick] = useState(0);
+  const activeConfig = useRefreshActionValue();
+  useRefreshAction({ onRefresh: () => onRefresh(tick), isFetching: false });
+
+  useEffect(() => {
+    onProviderConfig(activeConfig);
+  }, [activeConfig, onProviderConfig]);
+
+  useEffect(() => {
+    if (tick < 3) setTick((current) => current + 1);
+  }, [tick]);
+
+  useEffect(() => {
+    if (tick !== 3 || !activeConfig) return;
+    activeConfig.onRefresh();
+  }, [activeConfig, tick]);
+
+  return <div data-testid="refresh-registration-tick">{tick}</div>;
 }
 
 describe("Canvas Primitives", () => {
@@ -162,6 +227,47 @@ describe("Canvas Primitives", () => {
     expect(onAction).toHaveBeenCalledWith("submit");
   });
 
+  it("keeps mobile actions visible in a desktop browser resized to phone width", async () => {
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      value: 692,
+    });
+    Object.defineProperty(window.screen, "height", {
+      configurable: true,
+      value: 956,
+    });
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      value: vi.fn().mockImplementation((query: string) => ({
+        matches: query === "(pointer: coarse)" ? false : false,
+        media: query,
+        onchange: null,
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    });
+
+    const config: FabConfig = {
+      icon: StubIcon,
+      label: "Submit",
+      actions: [{ id: "submit", icon: StubIcon, label: "Submit work", labelId: "fab.submit" }],
+      onAction: vi.fn(),
+    };
+
+    render(
+      <FabProvider>
+        <ResponsiveFabProbe config={config} isDesktop={false} />
+      </FabProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /submit work/i })).toBeInTheDocument();
+    });
+  });
+
   it("hides the mobile action when an editable field receives focus", async () => {
     const config: FabConfig = {
       icon: StubIcon,
@@ -203,5 +309,49 @@ describe("Canvas Primitives", () => {
 
     expect(screen.getByTestId("fab-config-state")).toHaveTextContent("none");
     expect(screen.queryByRole("button", { name: /submit work/i })).toBeNull();
+  });
+
+  it("does not re-publish equivalent FAB config objects on every render", async () => {
+    const onProviderConfig = vi.fn();
+    const onAction = vi.fn();
+
+    render(
+      <FabProvider>
+        <UnstableFabRegistrationProbe
+          onProviderConfig={onProviderConfig}
+          onAction={onAction}
+        />
+      </FabProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("fab-registration-tick")).toHaveTextContent("3");
+    });
+
+    expect(onProviderConfig).toHaveBeenCalledTimes(1);
+    expect(onAction).toHaveBeenCalledWith("submit", 3);
+  });
+
+  it("does not re-publish equivalent refresh config objects on every render", async () => {
+    const onProviderConfig = vi.fn();
+    const onRefresh = vi.fn();
+
+    render(
+      <RefreshActionProvider>
+        <UnstableRefreshRegistrationProbe
+          onProviderConfig={onProviderConfig}
+          onRefresh={onRefresh}
+        />
+      </RefreshActionProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId("refresh-registration-tick")).toHaveTextContent("3");
+    });
+
+    expect(onProviderConfig).toHaveBeenCalledTimes(2);
+    expect(onProviderConfig.mock.calls[0]?.[0]).toBeNull();
+    expect(onProviderConfig.mock.calls[1]?.[0]).toBeTruthy();
+    expect(onRefresh).toHaveBeenCalledWith(3);
   });
 });

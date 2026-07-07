@@ -231,7 +231,7 @@ const meta: Meta<typeof SubmitWorkPanel> = {
     docs: {
       description: {
         component:
-          "SubmitWork hosted in the centered AdminDialog flow host (a centered card on desktop, a bottom-sheet on mobile), plus inline panel states with deterministic admin garden/action fixtures.",
+          "SubmitWork hosted in the AdminDialog flow host (a centered card on desktop, a full-width bottom-sheet on mobile), plus inline panel states with deterministic admin garden/action fixtures.",
       },
     },
   },

@@ -60,10 +60,30 @@ export function useFabConfig(config: FabConfig | null) {
   const { setConfig } = useContext(FabContext);
   const configRef = useRef(config);
   configRef.current = config;
+  const stableOnAction = useCallback((actionId: string) => {
+    configRef.current?.onAction(actionId);
+  }, []);
+  const configSignature = config
+    ? [
+        "present",
+        config.label,
+        config.icon.displayName ?? config.icon.name ?? "icon",
+        config.actions
+          .map((action) =>
+            [
+              action.id,
+              action.label,
+              action.labelId,
+              action.disabled ? "disabled" : "enabled",
+              action.icon.displayName ?? action.icon.name ?? "icon",
+            ].join("\u0001")
+          )
+          .join("\u0002"),
+      ].join("\u0003")
+    : "none";
 
-  // Set on mount / update, clear on unmount
+  // Clear on unmount so the next route never inherits stale actions.
   useEffect(() => {
-    setConfig(configRef.current);
     return () => setConfig(null);
   }, [setConfig]);
 
@@ -71,15 +91,34 @@ export function useFabConfig(config: FabConfig | null) {
   const update = useCallback(
     (newConfig: FabConfig | null) => {
       configRef.current = newConfig;
-      setConfig(newConfig);
+      setConfig(
+        newConfig
+          ? {
+              ...newConfig,
+              actions: newConfig.actions.map((action) => ({ ...action })),
+              onAction: stableOnAction,
+            }
+          : null
+      );
     },
-    [setConfig]
+    [setConfig, stableOnAction]
   );
 
-  // Sync config changes after initial mount
+  // Sync only when the rendered FAB shape changes. The action callback itself
+  // is read from configRef so unstable closures do not churn provider state.
   useEffect(() => {
-    setConfig(config);
-  }, [config, setConfig]);
+    const currentConfig = configRef.current;
+    if (!currentConfig) {
+      setConfig(null);
+      return;
+    }
+
+    setConfig({
+      ...currentConfig,
+      actions: currentConfig.actions.map((action) => ({ ...action })),
+      onAction: stableOnAction,
+    });
+  }, [configSignature, setConfig, stableOnAction]);
 
   return { update };
 }

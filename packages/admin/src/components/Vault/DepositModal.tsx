@@ -23,7 +23,7 @@ import { useIntl } from "react-intl";
 import { encodeFunctionData, formatUnits } from "viem";
 import { useBalance, useEstimateGas, useGasPrice } from "wagmi";
 import { AdminButton } from "@/components/AdminButton";
-import { AdminDialog } from "@/components/AdminDialog";
+import { AdminDialog, type AdminDialogProps } from "@/components/AdminDialog";
 import { ConnectButton } from "@/components/ConnectButton";
 
 const VAULT_DEPOSIT_ABI = [
@@ -45,6 +45,7 @@ interface DepositModalProps {
   gardenAddress: Address;
   vaults: GardenVault[];
   defaultAsset?: string;
+  tone?: AdminDialogProps["tone"];
 }
 
 export function DepositModal({
@@ -53,6 +54,7 @@ export function DepositModal({
   gardenAddress,
   vaults,
   defaultAsset,
+  tone = "garden",
 }: DepositModalProps) {
   const { formatMessage } = useIntl();
   const { primaryAddress } = useUser();
@@ -175,8 +177,7 @@ export function DepositModal({
       open={isOpen}
       onOpenChange={(open) => !open && onClose()}
       size="md"
-      // Workspace tone — mounted from the Garden vault view.
-      tone="garden"
+      tone={tone}
       title={formatMessage({ id: "app.treasury.deposit" })}
       description={formatMessage({ id: "app.treasury.depositDescription" })}
       preventClose={depositMutation.isPending}
@@ -256,7 +257,7 @@ export function DepositModal({
                 : "--"
             }`}
           >
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
               <TextInput
                 surface="admin"
                 id="deposit-amount"
@@ -270,10 +271,12 @@ export function DepositModal({
                 aria-required="true"
                 aria-invalid={Boolean(amountError)}
                 invalid={Boolean(amountError)}
+                className="min-w-0 flex-1"
               />
               <Button
                 variant="secondary"
                 size="sm"
+                className="w-full sm:w-auto"
                 onClick={() => {
                   if (!balance) return;
                   form.setValue("amount", formatUnits(balance.value, balance.decimals), {

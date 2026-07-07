@@ -115,10 +115,12 @@ Set these in Vercel project settings:
 | Variable | Required | Purpose |
 |----------|----------|---------|
 | `VITE_CHAIN_ID` | Yes | Target blockchain |
+| `VITE_API_BASE_URL` | Yes | Browser API origin for agent-signed Pinata upload URLs and public API calls |
+| `VITE_PINATA_GATEWAY_URL` | Recommended | Public Pinata gateway for reading IPFS media |
 | `VITE_PIMLICO_API_KEY` | Yes | Passkey authentication |
 | `VITE_WALLETCONNECT_PROJECT_ID` | Yes | Wallet connections |
-| `VITE_STORACHA_KEY` | Yes | IPFS storage |
-| `VITE_STORACHA_PROOF` | Yes | IPFS storage auth |
+
+Do not set `PINATA_JWT` on browser app deployments. Browser uploads call the agent/API through `VITE_API_BASE_URL`; the agent or server-side scripts hold `PINATA_JWT` or `PINATA_JWT_OP_REF` and create short-lived Pinata signed upload URLs.
 
 **Single chain rule:** Each Vercel deployment targets ONE chain set by `VITE_CHAIN_ID` at build time.
 
@@ -129,12 +131,17 @@ Set these in Vercel project settings:
 ### Pre-Build Env Check
 
 ```bash
-# Check required VITE_ variables exist
-for var in VITE_CHAIN_ID VITE_PIMLICO_API_KEY VITE_WALLETCONNECT_PROJECT_ID VITE_STORACHA_KEY VITE_STORACHA_PROOF; do
+# Check required browser-facing variables exist
+for var in VITE_CHAIN_ID VITE_API_BASE_URL VITE_PIMLICO_API_KEY VITE_WALLETCONNECT_PROJECT_ID VITE_PINATA_GATEWAY_URL; do
   if [ -z "$(grep "^${var}=" .env)" ]; then
     echo "MISSING: $var"
   fi
 done
+
+# Upload-capable QA also needs server/API upload authority.
+if ! grep -q '^PINATA_JWT=' .env && ! grep -q '^PINATA_JWT_OP_REF=' .env; then
+  echo "MISSING: PINATA_JWT or PINATA_JWT_OP_REF for upload-capable QA"
+fi
 ```
 
 ### Chain-Specific Validation

@@ -2,20 +2,21 @@
 
 **Feature Slug**: `community-interface`
 **Stage**: `active`
-**Status**: `ACTIVE: spec aligned 2026-07-04; Linear consolidated to parent trackers 2026-07-05; implementation not started`
+**Status**: `ACTIVE: spec aligned 2026-07-04; Linear consolidated to parent trackers 2026-07-05; plan-hub sync anchored 2026-07-07; implementation not started`
 **Created**: 2026-07-04
-**Last Updated**: 2026-07-05
+**Last Updated**: 2026-07-07
 
-Linear mirror: project [Community Signals & Engagement](https://linear.app/greenpill-dev-guild/project/community-signals-and-engagement-083dd7e556c2) (graduated from scoping-only to build home 2026-07-04). Milestones: Needs substrate (rides August, 2026-08-31), September needs app (2026-09-30), Post-pilot hardening (2026-12-31). The September app delivery records (PRD-682/683) stay in [Green Goods Commitment Pooling](https://linear.app/greenpill-dev-guild/project/green-goods-commitment-pooling-4bc53572f354), amended 2026-07-04. Specs in this folder: `spec.md`, `corrections-log.md`.
+Linear mirror: project [Community Needs & Signals](https://linear.app/greenpill-dev-guild/project/community-signals-and-engagement-083dd7e556c2) (graduated from scoping-only to build home 2026-07-04). Milestones: Needs substrate (rides August, 2026-08-31), September needs app (2026-09-30), Post-pilot hardening (2026-12-31). The September app delivery records (PRD-682/683) stay in [Green Goods Commitment Pooling](https://linear.app/greenpill-dev-guild/project/green-goods-commitment-pooling-4bc53572f354), amended 2026-07-04. Specs in this folder: `spec.md`, `corrections-log.md`.
 
-> **Linear consolidation (2026-07-05).** Per-lane workstream issues were closed into two parent **trackers**; **this plan is the lane-level execution truth**. Trackers: **PRD-687** needs substrate (absorbs PRD-688 indexer, PRD-689 paymaster, PRD-690 shared) and **PRD-691** September needs app (absorbs PRD-692 funder lens, PRD-693 docs, PRD-694 QA/dogfood). Kept as-is: parked hardening **PRD-695/696** and scoping record **RESR-64**; the September delivery records **PRD-682/683** in Commitment Pooling now roll up under that project's **PRD-682** tracker. The per-lane `PRD-6xx` IDs in the tables below are **historical labels** for the closed child issues.
+> **Linear consolidation (2026-07-05).** Per-lane workstream issues were closed into two parent **trackers**; **this plan is the lane-level execution truth**. Trackers: **PRD-687** needs substrate (absorbs PRD-688 indexer, PRD-689 paymaster, PRD-690 shared) and **PRD-691** September needs app (absorbs PRD-692 funder lens, PRD-693 docs, PRD-694 QA/dogfood). Kept as-is: parked hardening **PRD-695/696** and scoping record **RESR-64**; the September delivery records **PRD-682/683** in Commitment Pooling now roll up under that project's **PRD-682** tracker. The table below separates active parent trackers from historical child labels; dispatch reads the active tracker plus this plan, not the closed child issue.
+> **Plan-hub sync (2026-07-07).** `status.json` records **PRD-687** as the single `linear.parentIssue` because plan-hub supports one parent mirror in `parent_only` mode. **PRD-691** remains the active September needs app tracker in `consolidatedTrackers` and the table below; no lane-child issues should be recreated without explicit approval.
 
 ## Decision Log (locked 2026-07-04, full rationale in spec.md §1)
 
 | # | Decision |
 |---|---|
 | 1 | Vocabulary is **Need** (never "problem") in code and copy: schemas Need/NeedSignal/NeedStatus, field `needUID`, tab Needs, es Necesidades / pt Necessidades. |
-| 2 | Community Signals & Engagement is the build home; PRD-682/683 stay in Commitment Pooling, amended in place; cross-project blocked-by relations wire the dependency. |
+| 2 | Community Needs & Signals is the build home; PRD-682/683 stay in Commitment Pooling, amended in place; cross-project blocked-by relations wire the dependency. |
 | 3 | Spec home is this hub; the commitment-pooling hub carries only the `needUID` amendment + §8 supersession note (+ decision-register addendum #28). |
 | 4 | App IA: Needs / Create (center, voice-first) / Profile; pool story folds into the board header + detail threads; solution-proposal objects dropped. |
 | 5 | Fund action: embedded donate + endowment (the /fund paths) in need context; `FundingAttribution` attestation in v1; funded-toward on detail only, never a sort key; no per-need escrow. |
@@ -35,18 +36,18 @@ Sub-decisions: Need/NeedSignal revocable (self-retraction/un-signal only — EAS
 
 ## Requirements Coverage
 
-| Requirement | Lane | Linear issue | Status |
-|---|---|---|---|
-| Need/NeedSignal/NeedStatus/FundingAttribution schemas + resolvers + registration | `contracts` | [PRD-687](https://linear.app/greenpill-dev-guild/issue/PRD-687) | ⏳ |
-| needUID on commitment entities + need-keyed aggregates | `indexer` | [PRD-688](https://linear.app/greenpill-dev-guild/issue/PRD-688) | ⏳ |
-| Pimlico sponsorship policy for need/signal/testimony writes | `ops_paymaster` | [PRD-689](https://linear.app/greenpill-dev-guild/issue/PRD-689) | ⏳ |
-| Shared substrate: job kinds, needs hooks + derivation join, voice dictation & transcription | `state_api` | [PRD-690](https://linear.app/greenpill-dev-guild/issue/PRD-690) | ⏳ |
-| Admin: need triage, moderation, batch-mint console, gathering view | `ui_admin` | [PRD-691](https://linear.app/greenpill-dev-guild/issue/PRD-691) | ⏳ |
-| Funder lens: global needs gallery + donate/endowment embed + FundingAttribution | `funder_lens` | [PRD-692](https://linear.app/greenpill-dev-guild/issue/PRD-692) | ⏳ |
-| Docs: community guide + operator triage guide + glossary entries | `docs` | [PRD-693](https://linear.app/greenpill-dev-guild/issue/PRD-693) | ⏳ |
-| QA/dogfood: TAS pilot run, PostHog metrics readiness, offline proof | `qa_dogfood` | [PRD-694](https://linear.app/greenpill-dev-guild/issue/PRD-694) | ⏳ |
-| Hardening (parked): on-chain eligibility module | `hardening` | [PRD-695](https://linear.app/greenpill-dev-guild/issue/PRD-695) | 🅿️ |
-| Hardening (parked): deeper on-chain funding attribution | `hardening` | [PRD-696](https://linear.app/greenpill-dev-guild/issue/PRD-696) | 🅿️ |
+| Requirement | Lane | Active tracker | Historical child label | Status |
+|---|---|---|---|---|
+| Need/NeedSignal/NeedStatus/FundingAttribution schemas + resolvers + registration | `contracts` | [PRD-687](https://linear.app/greenpill-dev-guild/issue/PRD-687) | none (parent tracker) | ⏳ |
+| needUID on commitment entities + need-keyed aggregates | `indexer` | [PRD-687](https://linear.app/greenpill-dev-guild/issue/PRD-687) | [PRD-688](https://linear.app/greenpill-dev-guild/issue/PRD-688) | ⏳ |
+| Pimlico sponsorship policy for need/signal/testimony writes | `ops_paymaster` | [PRD-687](https://linear.app/greenpill-dev-guild/issue/PRD-687) | [PRD-689](https://linear.app/greenpill-dev-guild/issue/PRD-689) | ⏳ |
+| Shared substrate: job kinds, needs hooks + derivation join, voice dictation & transcription | `state_api` | [PRD-687](https://linear.app/greenpill-dev-guild/issue/PRD-687) | [PRD-690](https://linear.app/greenpill-dev-guild/issue/PRD-690) | ⏳ |
+| Admin: need triage, moderation, batch-mint console, gathering view | `ui_admin` | [PRD-691](https://linear.app/greenpill-dev-guild/issue/PRD-691) | none (parent tracker) | ⏳ |
+| Funder lens: global needs gallery + donate/endowment embed + FundingAttribution | `funder_lens` | [PRD-691](https://linear.app/greenpill-dev-guild/issue/PRD-691) | [PRD-692](https://linear.app/greenpill-dev-guild/issue/PRD-692) | ⏳ |
+| Docs: community guide + operator triage guide + glossary entries | `docs` | [PRD-691](https://linear.app/greenpill-dev-guild/issue/PRD-691) | [PRD-693](https://linear.app/greenpill-dev-guild/issue/PRD-693) | ⏳ |
+| QA/dogfood: TAS pilot run, PostHog metrics readiness, offline proof | `qa_dogfood` | [PRD-691](https://linear.app/greenpill-dev-guild/issue/PRD-691) | [PRD-694](https://linear.app/greenpill-dev-guild/issue/PRD-694) | ⏳ |
+| Hardening (parked): on-chain eligibility module | `hardening` | [PRD-695](https://linear.app/greenpill-dev-guild/issue/PRD-695) | none | 🅿️ |
+| Hardening (parked): deeper on-chain funding attribution | `hardening` | [PRD-696](https://linear.app/greenpill-dev-guild/issue/PRD-696) | none | 🅿️ |
 
 Amended in place in Commitment Pooling (2026-07-04): [PRD-672](https://linear.app/greenpill-dev-guild/issue/PRD-672) (`needUID` additive field), [PRD-673](https://linear.app/greenpill-dev-guild/issue/PRD-673) (persist needUID; PRD-688 folds in if unstarted), [PRD-679](https://linear.app/greenpill-dev-guild/issue/PRD-679) (Hypercert lists needUIDs), [PRD-682](https://linear.app/greenpill-dev-guild/issue/PRD-682) (IA, signal layer, creation flow, discovery; blocked by PRD-690), [PRD-683](https://linear.app/greenpill-dev-guild/issue/PRD-683) (horizon routing, traceability; blocked by PRD-691).
 

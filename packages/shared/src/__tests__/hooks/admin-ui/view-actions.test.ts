@@ -7,7 +7,7 @@
  *
  *   1. id/order stability across tabs (button positions never shift),
  *   2. exactly one fixed `primary` per view — Hub→submit-work,
- *      Garden→add-member, Community→new-proposal — independent of the tab,
+ *      Garden→edit-garden, Community→register-hypercert — independent of the tab,
  *   3. the primary opens its flow directly on first click (no select-then-act),
  *   4. real targets only (no self-nav, no removed edit-domains header action),
  *   5. role/ownership gating still blanks unavailable actions.
@@ -82,6 +82,29 @@ describe("buildHubViewActions — fixed primary", () => {
     expect(primaryIds(actions)).toEqual(["create-assessment"]);
     expect(actions.find((action) => action.id === "create-assessment")?.variant).toBe("primary");
   });
+
+  it("drops list sort state when opening Hub creation flows", () => {
+    const navigate = vi.fn();
+    const actions = buildHubViewActions("work", true, true, navigate, {
+      gardenAddress: GARDEN,
+      sort: "newest",
+    });
+
+    for (const id of ["submit-work", "create-assessment", "create-hypercert"]) {
+      actions.find((action) => action.id === id)?.onClick();
+    }
+
+    expect(navigate).toHaveBeenCalledTimes(3);
+    for (const [target] of navigate.mock.calls) {
+      expect(target).toContain(GARDEN);
+      expect(target).not.toContain("sort=");
+    }
+    expect(navigate.mock.calls.map(([target]) => target.split("?")[0])).toEqual([
+      "/hub/work/submit",
+      "/hub/assess/create",
+      "/hub/certify/create",
+    ]);
+  });
 });
 
 describe("buildGardenViewActions — fixed primary", () => {
@@ -130,25 +153,29 @@ describe("buildCommunityViewActions — fixed primary", () => {
     });
 
   it("keeps the same action ids and order on every mode", () => {
-    const expected = ["manage-members", "deposit-withdraw", "new-proposal"];
+    const expected = ["manage-members", "deposit-withdraw", "register-hypercert"];
     for (const mode of COMMUNITY_MODES) {
       expect(visibleIds(buildFor(mode))).toEqual(expected);
     }
   });
 
-  it("declares new-proposal as the fixed primary on every mode", () => {
+  it("declares register-hypercert as the fixed primary on every mode", () => {
     for (const mode of COMMUNITY_MODES) {
-      expect(primaryIds(buildFor(mode))).toEqual(["new-proposal"]);
+      expect(primaryIds(buildFor(mode))).toEqual(["register-hypercert"]);
     }
   });
 
-  it("routes the governance action to the hypercert signal pool register flow", () => {
+  it("labels and routes the governance action to the hypercert signal pool register flow", () => {
     const navigate = vi.fn();
     const actions = buildCommunityViewActions("governance", true, false, true, navigate, {
       gardenAddress: GARDEN,
     });
 
-    actions.find((action) => action.id === "new-proposal")?.onClick();
+    const action = actions.find((item) => item.id === "register-hypercert");
+    expect(action?.label).toBe("Register hypercert");
+    expect(action?.labelId).toBe("cockpit.community.action.registerHypercert");
+
+    action?.onClick();
     expect(navigate).toHaveBeenCalledTimes(1);
     expect(navigate.mock.calls[0]?.[0]).toContain("/community/governance/signal-pool/hypercert");
     expect(navigate.mock.calls[0]?.[0]).toContain(GARDEN);
@@ -167,10 +194,23 @@ describe("buildCommunityViewActions — fixed primary", () => {
     expect(navigate.mock.calls[0]?.[0]).toContain("/community/members");
   });
 
+  it("links Deposit / withdraw to the route-backed treasury vault surface", () => {
+    const navigate = vi.fn();
+    buildCommunityViewActions("treasury", true, true, true, navigate, {
+      gardenAddress: GARDEN,
+    })
+      .find((action) => action.id === "deposit-withdraw")
+      ?.onClick();
+
+    expect(navigate).toHaveBeenCalledTimes(1);
+    expect(navigate.mock.calls[0]?.[0]).toContain("/community/treasury/vault");
+    expect(navigate.mock.calls[0]?.[0]).toContain(GARDEN);
+  });
+
   it("gates owner and management actions without duplicating the public link", () => {
     expect(visibleIds(buildFor("treasury", { isOwner: false }))).toEqual([
       "manage-members",
-      "new-proposal",
+      "register-hypercert",
     ]);
     expect(visibleIds(buildFor("treasury", { canManage: false, isOwner: false }))).toEqual([]);
   });

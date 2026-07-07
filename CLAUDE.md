@@ -202,16 +202,16 @@ Full skills: `design` (direction) + `ui` (implementation). Load explicitly when 
 
 **4-role volume hierarchy**: canvas 80–90% / ink 8–15% / stone 3–5% / accent green 1–3%. Flooding the screen with green is the #1 failure mode. Codebase token `--color-primary` resolves to the **tertiary accent** role — do not rename.
 
-**Banned vocabulary** (enforced by `bun run lint:vocab` on i18n strings; canonical source: [`docs/docs/reference/glossary-community.md § Banned Vocabulary`](docs/docs/reference/glossary-community.md), machine-readable sidecar: [`docs/docs/reference/banned-vocabulary.json`](docs/docs/reference/banned-vocabulary.json)):
-- Any surface: `streak`, `countdown`, `leaderboard`, `FOMO`, growth-hacking language (`urgent`, `limited time`, `re-engagement`, `retention hook`).
-- Admin only: `hero moment`, `gallery`, `decorative gradient`, `marketing banner`, AppBar glass, glass outside Navigation/FAB.
-- Client only: `operator cockpit`, `utility copy`, `KPI tile`, `dashboard`, `Plus Jakarta Sans`.
+**Banned vocabulary and prompt-only wording** (canonical source: [`docs/docs/reference/glossary-community.md § Banned Vocabulary`](docs/docs/reference/glossary-community.md), machine-readable sidecar: [`docs/docs/reference/banned-vocabulary.json`](docs/docs/reference/banned-vocabulary.json)):
+- Lint-enforced i18n terms (`bun run lint:vocab` reads `linter_enforced.terms`): `streak`, `countdown`, `leaderboard`, `FOMO`, growth-hacking language (`urgent`, `limited time`, `re-engagement`, `retention hook`).
+- Admin prompt-only vocabulary (documentation for AI/design prompts, not parsed by `lint:vocab`): `hero moment`, `gallery`, `decorative gradient`, `marketing banner`, AppBar glass, glass outside Navigation/FAB.
+- Client prompt-only vocabulary (documentation for AI/design prompts, not parsed by `lint:vocab`): `operator cockpit`, `utility copy`, `KPI tile`, `dashboard`, `Plus Jakarta Sans`.
 
 **Component palettes** (do not invent component names — flag missing primitives instead):
 - Admin: the `Admin*` M3 wrappers (filesystem is the count of record) + `CanvasLayout` / `AppBar` / `MainSheet` / `ActionFlowShell` / `NavigationBar` / `AdminFab`; every workspace overlay is a centered `AdminDialog`; the three global AppBar surfaces (Profile, Settings, Notifications) are `AdminSideSheet`s — desktop right-docked, mobile bottom sheet (bell only; Profile/Settings live in the mobile Profile tab as Account | Settings). Full list: `.claude/skills/design/prompt-contract.md § Canonical Component Palette`.
 - Client: `@green-goods/shared` primitives + presentation-mode loaders / `PublicShell` / `PwaRuntime` / `AppShell` / `SiteHeader` / `AppBar`. Full list: `.claude/skills/design/client-prompt-contract.md § Canonical Component Palette`.
 
-**Validation**: `bun run check:design-md` (root + dialect DesignMD lint) · `bun run check:design-generated` (DesignMD generated artifacts) · `bun run check:design-tokens` (spec ↔ theme.css drift + version coupling) · `bun run lint:vocab` (banned terms). When a component, story, or Storybook-covered surface changes, also run `bun run --filter @green-goods/shared check:stories` and `bun run --filter @green-goods/shared check:story-quality`.
+**Validation**: `bun run check:design-md` (root + dialect DesignMD lint) · `bun run check:design-generated` (DesignMD generated artifacts) · `bun run check:design-tokens` (spec ↔ theme.css drift + version coupling) · `bun run lint:vocab` (lint-enforced i18n terms only). When a component, story, or Storybook-covered surface changes, also run `bun run --filter @green-goods/shared check:stories` and `bun run --filter @green-goods/shared check:story-quality`.
 
 **PR review**: 4-lens checklist at `.claude/skills/design/review-checklist.md` — Regenerative → Spatial → Ecosystem → Compliance. Quick pass = Lenses 1 + 4. Full pass (new view) = all four.
 

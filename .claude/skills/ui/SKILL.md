@@ -95,7 +95,7 @@ Linear golden path from blank file to merge-ready. Collapses the rules otherwise
 | 5 | **Primitive** | Compose from Radix + `tv()`. Dialogs → `DialogShell` (default) or `AdminDialog` (strict M3). | [radix-ui.md](./radix-ui.md), Part 3 below |
 | 6 | **Responsive** | Container queries (`@container`, `@[480px]:`) for component-internal layout; `sm:` / `md:` for page-level. | [compliance.md](./compliance.md), [tailwindcss.md](./tailwindcss.md) |
 | 7 | **A11y** | Label every input, associate errors via `aria-describedby`, color is never the sole indicator, hit targets ≥ 44px, focus management via Radix. | [compliance.md](./compliance.md) |
-| 8 | **i18n** | Every user-facing string via `intl.formatMessage` / `FormattedMessage`. Update `en.json`, `es.json`, `pt.json`. No banned vocabulary. | [i18n.md](./i18n.md), `bun run lint:vocab` |
+| 8 | **i18n** | Every user-facing string via `intl.formatMessage` / `FormattedMessage`. Update `en.json`, `es.json`, `pt.json`. No `lint:vocab` terms; keep prompt-only surface vocabulary out of generated admin/client copy. | [i18n.md](./i18n.md), `bun run lint:vocab` |
 | 9 | **Storybook** | CSF3 story, `tags: ["autodocs"]`, include default + loading + error + empty variants + dark mode. | [storybook.md](./storybook.md) |
 | 10 | **Review** | Run the four-lens review on self: Regenerative → Spatial → Ecosystem → Compliance. `bun run check:design-tokens` before merge. | [design/review-checklist.md](../design/review-checklist.md) |
 

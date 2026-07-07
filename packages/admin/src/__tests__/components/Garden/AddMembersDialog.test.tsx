@@ -157,6 +157,17 @@ describe("components/Garden/AddMembersDialog", () => {
     });
   });
 
+  it("keeps invalid typed entries from becoming commit-ready", async () => {
+    const user = userEvent.setup();
+    render(createElement(AddMembersDialog, defaultProps));
+
+    await user.type(screen.getByLabelText(/Ethereum Address or ENS Name/), "not-a-wallet");
+
+    expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Add 0 members" })).toBeDisabled();
+    expect(defaultProps.onAdd).not.toHaveBeenCalled();
+  });
+
   it("confirms before discarding a staged batch on dialog dismiss", async () => {
     const user = userEvent.setup();
     render(createElement(AddMembersDialog, defaultProps));

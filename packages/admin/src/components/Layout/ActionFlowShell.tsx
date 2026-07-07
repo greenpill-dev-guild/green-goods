@@ -55,7 +55,7 @@ export interface ActionFlowShellProps {
  * context + title), a body row (an optional desktop step-rail + a single
  * scrolling `SheetBody`), and an optional pinned footer (`SheetFooter`). Fills
  * its parent's height, so the footer pins whenever the parent is height-bounded —
- * true for the centered `AdminDialog` (`variant="flow"`) that hosts these flows.
+ * true for the `AdminDialog` (`variant="flow"`) that hosts these flows.
  *
  * The stepper is owned here (not passed in) so the shell can render it both ways:
  * a compact horizontal row in the header on mobile, and a labelled vertical rail
@@ -85,7 +85,7 @@ export function ActionFlowShell({
       data-component="ActionFlowShell"
       data-layout={layout}
       // `h-full` + `flex-1` fill the height-bounded AdminDialog body (centered
-      // card on desktop, bottom-sheet on mobile) so the footer pins.
+      // card on desktop, full-width bottom-sheet on mobile) so the footer pins.
       className="flex h-full min-h-0 flex-1 flex-col bg-[rgb(var(--m3-surface))]"
     >
       <header
@@ -171,7 +171,11 @@ export function ActionFlowShell({
         </SheetBody>
       </div>
 
-      {footer ? <SheetFooter data-region="action-flow-footer">{footer}</SheetFooter> : null}
+      {footer ? (
+        <SheetFooter style={{ paddingBottom: "calc(12px + env(safe-area-inset-bottom))" }}>
+          {footer}
+        </SheetFooter>
+      ) : null}
     </div>
   );
 }

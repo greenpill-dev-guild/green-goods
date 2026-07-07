@@ -63,6 +63,18 @@ export function AddMembersDialog({
     { enabled: shouldResolveEns }
   );
   const busy = submitResolving || submitting || isLoading;
+  const typedResolvedAddress = useMemo<Address | null>(() => {
+    if (!trimmed) return null;
+    if (isHexAddress) return trimmed as Address;
+    return resolvedEnsAddress && isAddress(resolvedEnsAddress)
+      ? (resolvedEnsAddress as Address)
+      : null;
+  }, [isHexAddress, resolvedEnsAddress, trimmed]);
+  const typedAddressAlreadyStaged = typedResolvedAddress
+    ? pending.some((entry) => entry.toLowerCase() === typedResolvedAddress.toLowerCase())
+    : false;
+  const typedEntryCommitReady = Boolean(typedResolvedAddress) && !typedAddressAlreadyStaged;
+  const typedInputInvalid = Boolean(trimmed) && !resolvingEns && !typedResolvedAddress;
 
   const resetDraft = () => {
     setInput("");
@@ -177,7 +189,7 @@ export function AddMembersDialog({
   };
 
   const formId = "admin-add-members-dialog";
-  const batchCount = pending.length + (trimmed ? 1 : 0);
+  const batchCount = pending.length + (typedEntryCommitReady ? 1 : 0);
   const closeAndReset = () => {
     resetDraft();
     onClose();
@@ -186,7 +198,7 @@ export function AddMembersDialog({
   // operator input, so X/scrim/Escape confirm first. The footer Cancel still
   // exits directly per the dialog contract.
   const dirtyClose = useDirtyClose({
-    isDirty: batchCount > 0,
+    isDirty: pending.length > 0 || Boolean(trimmed),
     onClose: closeAndReset,
   });
   const handleOpenChange = (next: boolean) => {
@@ -216,7 +228,7 @@ export function AddMembersDialog({
               type="submit"
               form={formId}
               loading={submitResolving || submitting}
-              disabled={busy || batchCount === 0 || (shouldResolveEns && resolvingEns)}
+              disabled={busy || batchCount === 0 || typedInputInvalid || resolvingEns}
             >
               {formatMessage(
                 {
@@ -253,8 +265,8 @@ export function AddMembersDialog({
             htmlFor="member-address"
             error={error || undefined}
           >
-            <div className="flex items-stretch gap-2">
-              <div className="relative flex-1">
+            <div className="flex flex-col items-stretch gap-2 sm:flex-row">
+              <div className="relative min-w-0 flex-1">
                 <TextInput
                   surface="admin"
                   id="member-address"
@@ -270,8 +282,8 @@ export function AddMembersDialog({
                     defaultMessage: "0x... or name.eth",
                   })}
                   disabled={busy}
-                  aria-invalid={!!error}
-                  invalid={!!error}
+                  aria-invalid={!!error || typedInputInvalid}
+                  invalid={!!error || typedInputInvalid}
                 />
                 <button
                   type="button"
@@ -290,8 +302,9 @@ export function AddMembersDialog({
                 type="button"
                 variant="tonal"
                 onClick={() => handleAddToList()}
-                disabled={busy || !trimmed || (shouldResolveEns && resolvingEns)}
+                disabled={busy || !typedEntryCommitReady || resolvingEns}
                 leadingIcon={<RiAddLine />}
+                className="w-full sm:w-auto"
               >
                 {formatMessage({ id: "admin.addMember.addToList", defaultMessage: "Add" })}
               </AdminButton>

@@ -10,7 +10,7 @@
     "overall_status": "planned",
     "priority": "p2",
     "created_at": "2026-07-04",
-    "updated_at": "2026-07-05"
+    "updated_at": "2026-07-07"
   },
   "links": {
     "corrections_log": "corrections-log.md",
@@ -19,7 +19,8 @@
     "companion_hub": "../commitment-pooling/"
   },
   "linear": {
-    "project": "Community Signals & Engagement",
+    "parentIssue": "PRD-687",
+    "project": "Community Needs & Signals",
     "projectId": "7a4f2562-c629-4911-a7d6-947ab3195435",
     "initiative": "Impact Methodologies & Evaluator Flywheel",
     "researchDocument": "Community Needs Interface — research pass (compass)",
@@ -30,13 +31,29 @@
     },
     "amendedInCommitmentPooling": ["PRD-672", "PRD-673", "PRD-679", "PRD-682", "PRD-683"],
     "syncDirection": "plans_to_linear_visibility",
+    "laneSyncMode": "parent_only",
+    "consolidatedTrackers": {
+      "note": "Per-lane children closed 2026-07-05; detailed execution truth stays in this hub. PRD-687 is the canonical plan-hub parent mirror because plan-hub supports one parent issue; PRD-691 remains the active September needs app tracker.",
+      "needs_substrate": "PRD-687",
+      "september_needs_app": "PRD-691",
+      "hardening": ["PRD-695", "PRD-696"]
+    },
     "lastSyncedAt": "2026-07-05"
   },
   "taxonomy": {
-    "initiative": "impact-methodologies-evaluator-flywheel",
-    "tracks": ["needs-substrate", "september-needs-app", "post-pilot-hardening"],
-    "work_types": ["implementation", "ops", "docs", "qa"],
-    "surfaces": ["contracts", "indexer", "shared", "agent", "admin", "client", "community", "docs"],
+    "initiative": "protocol-readiness",
+    "tracks": ["contracts", "indexer", "shared", "agent", "admin", "client", "docs", "ops"],
+    "work_types": ["implementation", "ops", "qa", "research"],
+    "surfaces": [
+      "packages/contracts",
+      "packages/indexer",
+      "packages/shared",
+      "packages/agent",
+      "packages/admin",
+      "packages/client",
+      "docs/docs",
+      ".plans/active/commitment-pooling"
+    ],
     "depends_on_features": ["commitment-pooling"]
   },
   "notes": [
@@ -66,22 +83,6 @@
       },
       "skill_tags": ["contracts"]
     },
-    "indexer": {
-      "owner": "codex",
-      "status": "todo",
-      "branch": "codex/indexer/community-interface",
-      "depends_on": ["contracts"],
-      "handoff": "handoffs/codex-indexer.md",
-      "linear_issues": ["PRD-687"],
-      "tdd": {
-        "mode": "required",
-        "status": "pending",
-        "red": { "command": "", "evidence": "" },
-        "green": { "command": "", "evidence": "" },
-        "note": "Folds into PRD-673 if that CP lane is unstarted at pickup."
-      },
-      "skill_tags": ["indexer"]
-    },
     "state_api": {
       "owner": "codex",
       "status": "todo",
@@ -94,75 +95,113 @@
         "status": "pending",
         "red": { "command": "", "evidence": "" },
         "green": { "command": "", "evidence": "" },
-        "note": "Also depends on CP PRD-674 interfaces; the voice feasibility spike has no dependencies and can start any time."
+        "note": "Machine lane aggregates indexer, shared substrate, agent transcription fallback, and voice feasibility. Also depends on CP PRD-674 interfaces."
       },
-      "skill_tags": ["react", "tanstack-query", "data-layer"]
+      "skill_tags": ["react", "tanstack-query", "data-layer", "indexer"]
     },
-    "ops_paymaster": {
-      "owner": "human",
-      "status": "todo",
-      "branch": null,
-      "depends_on": ["contracts"],
-      "handoff": "handoffs/ops-paymaster.md",
-      "linear_issues": ["PRD-687"],
-      "tdd": {
-        "mode": "not_applicable",
-        "status": "not_applicable",
-        "red": { "command": "", "evidence": "" },
-        "green": { "command": "", "evidence": "" },
-        "note": "Pimlico dashboard config + burst test; must be live before the first sponsored community write (gates qa_dogfood)."
-      },
-      "skill_tags": ["ops", "web3"]
-    },
-    "ui_admin": {
+    "ui": {
       "owner": "claude",
       "status": "todo",
-      "branch": "claude/ui-admin/community-interface",
+      "branch": "claude/ui/community-interface",
       "depends_on": ["state_api"],
-      "handoff": "handoffs/claude-ui-admin.md",
+      "handoff": "handoffs/claude-ui.md",
       "linear_issues": ["PRD-691"],
       "tdd": {
         "mode": "required",
         "status": "pending",
         "red": { "command": "", "evidence": "" },
         "green": { "command": "", "evidence": "" },
-        "note": "Also depends on CP PRD-676 (seeding console) for the seed-from-signal boundary with PRD-683."
+        "note": "Machine lane aggregates admin triage, funder lens, docs-facing UI dependencies, and September app surfaces. Detailed sub-lane proof belongs in execution_sub_lanes handoffs."
       },
       "skill_tags": ["ui", "design", "react"]
     },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "claude/qa-pass-1/community-interface",
+      "depends_on": ["contracts", "state_api", "ui"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "handoff_note": "Runs after required execution sub-lane handoffs exist, including ops/paymaster and dogfood proof or proof-limit notes.",
+      "skill_tags": ["testing", "review", "visual-qa"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "codex/qa-pass-2/community-interface",
+      "branch_trigger": "claude/qa-pass-1/community-interface",
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "handoff_note": "Regression QA after human-flow proof: re-run plan-hub validation, targeted gates, and status/handoff consistency checks.",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "execution_sub_lanes": {
+    "indexer": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": "codex/indexer/community-interface",
+      "depends_on": ["contracts"],
+      "handoff": "handoffs/codex-indexer.md",
+      "linear_issues": ["PRD-687"],
+      "acceptance": "needUID + aggregates per spec §4; folds into PRD-673 if that CP lane is unstarted at pickup."
+    },
+    "state_api": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": "codex/state-api/community-interface",
+      "depends_on": ["contracts", "indexer"],
+      "handoff": "handoffs/codex-state-api.md",
+      "linear_issues": ["PRD-687"],
+      "acceptance": "Shared job kinds, hooks, app-side derivation join, voice dictation/transcription, and locale substrate."
+    },
+    "ops_paymaster": {
+      "machine_lane": "state_api",
+      "owner": "human",
+      "status": "todo",
+      "branch": null,
+      "depends_on": ["contracts"],
+      "handoff": "handoffs/ops-paymaster.md",
+      "linear_issues": ["PRD-687"],
+      "acceptance": "Pimlico dashboard policy + burst test; live before the first sponsored community write."
+    },
+    "ui_admin": {
+      "machine_lane": "ui",
+      "owner": "claude",
+      "status": "todo",
+      "branch": "claude/ui-admin/community-interface",
+      "depends_on": ["state_api"],
+      "handoff": "handoffs/claude-ui-admin.md",
+      "linear_issues": ["PRD-691"],
+      "acceptance": "Need triage, moderation, batch-mint console, gathering view, and PRD-683 seed-from-signal boundary with CP PRD-676."
+    },
     "funder_lens": {
+      "machine_lane": "ui",
       "owner": "claude",
       "status": "todo",
       "branch": "claude/funder-lens/community-interface",
       "depends_on": ["state_api"],
       "handoff": "handoffs/claude-funder-lens.md",
       "linear_issues": ["PRD-691"],
-      "tdd": {
-        "mode": "optional",
-        "status": "pending",
-        "red": { "command": "", "evidence": "" },
-        "green": { "command": "", "evidence": "" },
-        "note": "Editorial surface in packages/client; route decision vs CP decision #21 recorded here."
-      },
-      "skill_tags": ["ui", "design"]
+      "acceptance": "Client public funder lens, global needs gallery, donate/endowment embed, and FundingAttribution display."
     },
     "docs": {
+      "machine_lane": "ui",
       "owner": "claude",
       "status": "todo",
       "branch": "claude/docs/community-interface",
       "depends_on": ["ui_admin"],
       "handoff": "handoffs/claude-docs.md",
       "linear_issues": ["PRD-691"],
-      "tdd": {
-        "mode": "not_applicable",
-        "status": "not_applicable",
-        "red": { "command": "", "evidence": "" },
-        "green": { "command": "", "evidence": "" },
-        "note": "Docs lane; validation is docs build + vocab lint + glossary anchor check."
-      },
-      "skill_tags": ["docs"]
+      "acceptance": "Community guide, operator triage guide, glossary anchors, docs build, vocab lint, and screenshot readiness once surfaces exist."
     },
     "qa_dogfood": {
+      "machine_lane": "qa_pass_1",
       "owner": "claude",
       "status": "blocked",
       "ready_when_dependencies_met": true,
@@ -171,23 +210,20 @@
       "depends_on": ["ui_admin", "funder_lens", "state_api", "ops_paymaster"],
       "handoff": "handoffs/qa-dogfood-readout.md",
       "linear_issues": ["PRD-691"],
-      "skill_tags": ["testing", "review"]
-    },
+      "acceptance": "TAS pilot run, PostHog metrics readiness, offline proof, authenticated Brave admin proof, and real-device PWA loop."
+    }
+  },
+  "follow_on": {
     "hardening": {
       "owner": "human",
-      "status": "parked",
+      "status": "blocked",
+      "manual_blocked": true,
+      "blocked_reason": "Post-pilot only. PRD-695 requires written evidence that off-chain batch-mint policy failed a real garden; PRD-696 requires the PRD-694 readout.",
       "branch": null,
       "depends_on": ["qa_dogfood"],
       "handoff": null,
       "linear_issues": ["PRD-695", "PRD-696"],
-      "tdd": {
-        "mode": "not_applicable",
-        "status": "not_applicable",
-        "red": { "command": "", "evidence": "" },
-        "green": { "command": "", "evidence": "" },
-        "note": "Evidence-gated: PRD-695 needs batch-mint pain evidence; PRD-696 needs the PRD-694 readout."
-      },
-      "skill_tags": ["contracts", "research"]
+      "acceptance_when_unblocked": "On-chain eligibility module and deeper funding attribution only after the evidence gates above are met."
     }
   },
   "history": [
@@ -198,6 +234,10 @@
     {
       "date": "2026-07-05",
       "event": "Linear consolidated: per-lane children PRD-688/689/690 closed into PRD-687 (needs substrate), PRD-692/693/694 into PRD-691 (September needs app); status.json + plan.todo.md re-pointed to the parents. .plans/ is the lane-level source of truth."
+    },
+    {
+      "date": "2026-07-07",
+      "event": "Plan-hub sync safety reconciled: parent_only mode now records PRD-687 as the canonical parentIssue so linear-sync updates an existing tracker instead of proposing a new parent; PRD-691 remains tracked in consolidatedTrackers and plan.todo.md as the active September needs app tracker."
     }
   ]
 }

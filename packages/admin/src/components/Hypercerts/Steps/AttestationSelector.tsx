@@ -277,7 +277,12 @@ export function AttestationSelector({
 
       {!isLoading && !hasError && filtered.length === 0 && (
         <div className="rounded-lg border border-stroke-soft bg-bg-white p-6 text-sm text-text-sub">
-          {formatMessage({ id: "app.hypercerts.attestations.empty" })}
+          {formatMessage({
+            id:
+              attestations.length === 0
+                ? "app.hypercerts.attestations.emptyUnavailable"
+                : "app.hypercerts.attestations.empty",
+          })}
         </div>
       )}
 

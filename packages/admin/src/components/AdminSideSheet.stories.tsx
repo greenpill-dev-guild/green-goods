@@ -22,7 +22,7 @@ const meta: Meta<typeof AdminSideSheet> = {
           "geometry differs.",
           "",
           "**Responsive**: right-docked full-height panel at >= 640px,",
-          "AdminDialog-identical bottom sheet below (the mobile notification",
+          "compact inset bottom sheet below (the mobile notification",
           "bell keeps its glance-and-dismiss behavior).",
           "",
           "**Scope**: workspace action/detail/creation overlays stay centered",
@@ -133,7 +133,7 @@ export const MobileBottomSheet: Story = {
     docs: {
       description: {
         story:
-          "Below 640px the side sheet presents as an AdminDialog-identical bottom sheet — this is how the mobile notification bell renders.",
+          "Below 640px the side sheet presents as a compact inset bottom sheet — this is how the mobile notification bell renders.",
       },
     },
   },

@@ -67,6 +67,7 @@ export default function CommunityView() {
         isVaultRoute={community.isVaultRoute}
         isStrategiesRoute={community.isStrategiesRoute}
         isSignalPoolRoute={community.isSignalPoolRoute}
+        vaultAction={community.vaultAction}
         poolType={community.poolType}
         gardenAddress={community.selectedGardenAddress}
       />
@@ -83,7 +84,7 @@ export default function CommunityView() {
         actions={
           isDesktop && community.desktopActions.length > 0 ? (
             // Stable trio, always visible regardless of mode: Manage members,
-            // Deposit / withdraw (owner-gated), New proposal (fixed primary).
+            // Deposit / withdraw (owner-gated), Register hypercert (fixed primary).
             // Payouts stays outlined (its panel owns actions).
             <AdminViewActions items={community.desktopActions} />
           ) : undefined

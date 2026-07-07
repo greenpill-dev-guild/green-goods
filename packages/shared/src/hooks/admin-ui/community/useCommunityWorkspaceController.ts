@@ -42,11 +42,15 @@ export function useCommunityWorkspaceController() {
   const lastHydratedGardenStateKeyRef = useRef<string | null>(null);
   const [memberSearch, setMemberSearchState] = useState("");
 
-  const isVaultRoute = location.pathname.startsWith("/community/treasury/vault");
+  const isVaultDepositRoute = location.pathname.startsWith("/community/treasury/vault/deposit");
+  const isVaultWithdrawRoute = location.pathname.startsWith("/community/treasury/vault/withdraw");
+  const vaultAction = isVaultDepositRoute ? "deposit" : isVaultWithdrawRoute ? "withdraw" : null;
+  const isVaultRoute =
+    location.pathname.startsWith("/community/treasury/vault") && vaultAction === null;
   const isStrategiesRoute = location.pathname.startsWith("/community/governance/strategies");
   const isSignalPoolRoute = location.pathname.startsWith("/community/governance/signal-pool/");
   const selectedItem = searchParams.get("item") ?? poolType ?? null;
-  const sheetOpen = isVaultRoute || isStrategiesRoute || isSignalPoolRoute;
+  const sheetOpen = isVaultRoute || vaultAction !== null || isStrategiesRoute || isSignalPoolRoute;
 
   useEffect(() => {
     if (lastHydratedGardenStateKeyRef.current === gardenStateKey) return;
@@ -110,6 +114,7 @@ export function useCommunityWorkspaceController() {
   const { desktopActions } = useViewActions({
     actions: viewActions,
     isDesktop,
+    blocked: sheetOpen,
   });
 
   const openSection = useCallback(
@@ -203,6 +208,7 @@ export function useCommunityWorkspaceController() {
     isSignalPoolRoute,
     isStrategiesRoute,
     isVaultRoute,
+    vaultAction,
     memberSearch,
     mode,
     openMembersModal,

@@ -88,6 +88,16 @@ function buildHubContextSearch(
   };
 }
 
+function buildHubCreationContextSearch(
+  context?: AdminHubRouteContext
+): Record<string, AdminSearchValue> | undefined {
+  if (!context) return undefined;
+
+  return {
+    [ADMIN_GARDEN_ID_PARAM]: context.gardenId ?? context.gardenAddress,
+  };
+}
+
 function buildGardenContextSearch(
   context?: AdminGardenRouteContext
 ): Record<string, AdminSearchValue> | undefined {
@@ -138,10 +148,10 @@ export const adminRoutes = {
     return buildAdminHref(`/hub/work/${encodeSegment(workId)}`, buildHubContextSearch(context));
   },
   hubWorkSubmit(context?: AdminHubRouteContext) {
-    return buildAdminHref("/hub/work/submit", buildHubContextSearch(context));
+    return buildAdminHref("/hub/work/submit", buildHubCreationContextSearch(context));
   },
   hubAssessCreate(context?: AdminHubRouteContext) {
-    return buildAdminHref("/hub/assess/create", buildHubContextSearch(context));
+    return buildAdminHref("/hub/assess/create", buildHubCreationContextSearch(context));
   },
   hubCertifyDetail(assessmentId: string, context?: AdminHubRouteContext) {
     return buildAdminHref(
@@ -150,7 +160,7 @@ export const adminRoutes = {
     );
   },
   hubCertifyCreate(context?: AdminHubRouteContext) {
-    return buildAdminHref("/hub/certify/create", buildHubContextSearch(context));
+    return buildAdminHref("/hub/certify/create", buildHubCreationContextSearch(context));
   },
   garden(context?: AdminGardenRouteContext) {
     return this.gardenOverview(context);
@@ -202,6 +212,18 @@ export const adminRoutes = {
   },
   communityTreasuryVault(context?: AdminCommunityRouteContext) {
     return buildAdminHref("/community/treasury/vault", buildCommunityContextSearch(context));
+  },
+  communityTreasuryVaultDeposit(context?: AdminCommunityRouteContext) {
+    return buildAdminHref(
+      "/community/treasury/vault/deposit",
+      buildCommunityContextSearch(context)
+    );
+  },
+  communityTreasuryVaultWithdraw(context?: AdminCommunityRouteContext) {
+    return buildAdminHref(
+      "/community/treasury/vault/withdraw",
+      buildCommunityContextSearch(context)
+    );
   },
   communityGovernanceStrategies(context?: AdminCommunityRouteContext) {
     return buildAdminHref("/community/governance/strategies", buildCommunityContextSearch(context));

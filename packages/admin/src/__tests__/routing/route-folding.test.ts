@@ -67,15 +67,20 @@ describe("route folding", () => {
     const hubRouteBlock =
       routeViews.match(/path:\s*"hub"[\s\S]*?(?=\n\s*\{\s*path:\s*"garden")/)?.[0] ?? "";
 
+    expect(hubRouteBlock).toContain('path: "work/submit"');
+    expect(hubRouteBlock.indexOf('path: "work/submit"')).toBeLessThan(
+      hubRouteBlock.indexOf('path: "work"')
+    );
     expect(hubRouteBlock).toContain('path: "work"');
     expect(hubRouteBlock).toContain('path: ":workId"');
-    expect(hubRouteBlock).toContain('path: "submit"');
     // Submit Work resolves through its own dedicated view, not the Hub sheet.
     expect(routeViews).toContain(
       'const submitWorkView = lazyView(() => import("@/views/Garden/SubmitWork"));'
     );
     expect(hubRouteBlock).toContain("lazy: submitWorkView");
+    expect(hubRouteBlock).toContain('path: "assess/create"');
     expect(hubRouteBlock).toContain('path: "assess"');
+    expect(hubRouteBlock).toContain('path: "certify/create"');
     expect(hubRouteBlock).toContain('path: "certify"');
     expect(hubRouteBlock).toContain('path: "history"');
     expect(hubRouteBlock).toContain('path: ":historyEventId"');
@@ -131,7 +136,13 @@ describe("route folding", () => {
       "return buildAdminHref(`/hub/work/${encodeSegment(workId)}`, buildHubContextSearch(context));"
     );
     expect(adminRoutesSource).toContain(
-      'return buildAdminHref("/hub/work/submit", buildHubContextSearch(context));'
+      'return buildAdminHref("/hub/work/submit", buildHubCreationContextSearch(context));'
+    );
+    expect(adminRoutesSource).toContain(
+      'return buildAdminHref("/hub/assess/create", buildHubCreationContextSearch(context));'
+    );
+    expect(adminRoutesSource).toContain(
+      'return buildAdminHref("/hub/certify/create", buildHubCreationContextSearch(context));'
     );
     expect(adminRoutesSource).toContain("hubHistoryDetail(eventId: string");
     expect(adminRoutesSource).toContain("`/hub/history/${encodeSegment(eventId)}`");
@@ -194,6 +205,8 @@ describe("route folding", () => {
     expect(gardenBlock).not.toContain('import("@/views/Gardens/Garden/HypercertDetail")');
 
     expect(communityBlock).toContain('path: "vault"');
+    expect(communityBlock).toContain('path: "vault/deposit"');
+    expect(communityBlock).toContain('path: "vault/withdraw"');
     expect(communityBlock).toContain('path: "strategies"');
     expect(communityBlock).toContain('path: "signal-pool/:poolType"');
     expect(routeViews).toContain(

@@ -217,7 +217,7 @@ Implementation steps must be granular enough for agents to execute reliably. Fol
 2. **Gather git context**: `git status`, `git diff --stat`
 3. **File-by-file status**: DONE / PARTIAL / NOT DONE
 4. **Requirements coverage table**
-5. **Run validation**: the Ship Gate (`.claude/context/validation-pipeline.md`)
+5. **Run validation according to intent**: use the Validation Intent Ladder in `CLAUDE.md`; QA Speed Mode for narrow progress proof, Repo Quick Gate for cross-package checkpoints, and Ship Gate only for explicit ship/PR/merge/release readiness.
 
 ---
 
@@ -436,7 +436,8 @@ This gives Claude and future contributors unambiguous constraints without readin
 
 ## Validation Commands
 
-The Ship Gate — canonical definition in
+Use `CLAUDE.md § Validation Intent Ladder` to choose the rung. The command definitions
+for QA Speed Mode examples, Repo Quick Gate, and the full Ship Gate live in
 [`.claude/context/validation-pipeline.md`](../../context/validation-pipeline.md).
 
 ## Key Principles

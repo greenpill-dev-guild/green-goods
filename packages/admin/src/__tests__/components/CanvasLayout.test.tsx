@@ -642,7 +642,7 @@ describe("CanvasLayout", () => {
     );
 
     // Left/bottom sheets retired — the left-inspector config now renders as a
-    // centered AdminDialog (full-screen scrim, not bounded to the sheet layer).
+    // AdminDialog (full-screen scrim, not bounded to the sheet layer).
     const dialog = await screen.findByTestId("admin-dialog-body");
     expect(dialog).toHaveTextContent("Inspector content");
   });

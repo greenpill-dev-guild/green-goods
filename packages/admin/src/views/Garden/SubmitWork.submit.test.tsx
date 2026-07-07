@@ -646,6 +646,41 @@ describe("SubmitWorkPanel submit behavior", () => {
     });
   });
 
+  it("does not submit just by reaching the review step", async () => {
+    const user = userEvent.setup();
+
+    const { container } = render(
+      <TestProviders>
+        <SubmitWorkPanel layout="page" />
+      </TestProviders>
+    );
+
+    uploadFile(container);
+    await advanceToReview(user);
+
+    expect(await screen.findByRole("button", { name: "Submit Work" })).toBeInTheDocument();
+    expect(mockMutate).not.toHaveBeenCalled();
+  });
+
+  it("does not submit an optional-media action when review is reached with no files", async () => {
+    mockState.actions = [createAction({ required: false, minImageCount: 0 })];
+    const user = userEvent.setup();
+
+    const { container } = render(
+      <TestProviders>
+        <SubmitWorkPanel layout="page" />
+      </TestProviders>
+    );
+
+    await advanceToReview(user);
+
+    expect(await screen.findByRole("button", { name: "Submit Work" })).toBeEnabled();
+    const form = container.querySelector("form");
+    expect(form).not.toBeNull();
+    fireEvent.submit(form as HTMLFormElement);
+    expect(mockMutate).not.toHaveBeenCalled();
+  });
+
   it("compresses normalized media before submitting", async () => {
     const user = userEvent.setup();
     const compressedFile = new File(["compressed"], "large-compressed.jpg", {

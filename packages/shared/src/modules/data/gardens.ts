@@ -269,12 +269,7 @@ export async function getConvictionWeightsFromSubgraph(
   );
 
   if (error) {
-    logger.error("[gardens] Failed to fetch conviction weights", {
-      error: error.message,
-      poolAddress,
-      chainId,
-    });
-    return [];
+    throw new Error(`Failed to fetch conviction weights: ${error.message}`);
   }
 
   return (data?.cvproposals ?? []).map((proposal) => ({
@@ -319,12 +314,7 @@ export async function getRegisteredHypercertsFromSubgraph(
   );
 
   if (error) {
-    logger.error("[gardens] Failed to fetch registered hypercerts", {
-      error: error.message,
-      poolAddress,
-      chainId,
-    });
-    return [];
+    throw new Error(`Failed to fetch registered hypercerts: ${error.message}`);
   }
 
   return (data?.cvproposals ?? []).map((p) => BigInt(p.proposalNumber));
@@ -408,13 +398,7 @@ export async function getMemberPowerFromSubgraph(
   );
 
   if (error) {
-    logger.error("[gardens] Failed to fetch member power", {
-      error: error.message,
-      poolAddress,
-      voterAddress,
-      chainId,
-    });
-    return empty;
+    throw new Error(`Failed to fetch member power: ${error.message}`);
   }
 
   const memberStrategy = data?.memberStrategies?.[0];

@@ -1,5 +1,5 @@
 import { RiAddLine } from "@remixicon/react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { cn } from "../../utils/styles/cn";
 import { useCanvasMobileChromeHidden } from "./useCanvasMobileChromeHidden";
@@ -24,6 +24,7 @@ export interface FabAction {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   labelId: string;
+  disabled?: boolean;
 }
 
 export interface FabConfig {
@@ -119,9 +120,15 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
   const { formatMessage } = useIntl();
   const [speedDialOpen, setSpeedDialOpen] = useState(false);
   const [focusedSpeedDialActionId, setFocusedSpeedDialActionId] = useState<string | null>(null);
+  const fabButtonRef = useRef<HTMLButtonElement>(null);
+  const speedDialActionRefs = useRef(new Map<string, HTMLButtonElement>());
   const speedDialShadow =
     "var(--admin-speed-dial-shadow, var(--elevation-3, 0 12px 28px rgb(15 23 42 / 0.16)))";
   const isSingleAction = config.actions.length <= 1;
+  const enabledSpeedDialActions = useMemo(
+    () => config.actions.filter((action) => !action.disabled),
+    [config.actions]
+  );
   // Multi-action FABs present a neutral "+" opener (rotates to "×" on open), not
   // any one action's glyph — so the collapsed button reads as "open the menu",
   // never as a duplicate of the primary action inside the dial. Single-action
@@ -140,14 +147,78 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
     }
   }, [isSingleAction, config]);
 
+  const closeSpeedDial = useCallback(() => {
+    setSpeedDialOpen(false);
+    setFocusedSpeedDialActionId(null);
+  }, []);
+
+  const focusSpeedDialAction = useCallback((actionId: string) => {
+    const actionNode = speedDialActionRefs.current.get(actionId);
+    if (!actionNode) return;
+
+    actionNode.focus();
+    setFocusedSpeedDialActionId(actionId);
+  }, []);
+
   const handleAction = useCallback(
-    (actionId: string) => {
+    (action: FabAction) => {
+      if (action.disabled) return;
+
+      const actionId = action.id;
       config.onAction(actionId);
-      setSpeedDialOpen(false);
-      setFocusedSpeedDialActionId(null);
+      closeSpeedDial();
     },
-    [config]
+    [closeSpeedDial, config]
   );
+
+  const handleSpeedDialKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeSpeedDial();
+        fabButtonRef.current?.focus();
+        return;
+      }
+
+      const enabledActionIds = enabledSpeedDialActions.map((action) => action.id);
+      if (enabledActionIds.length === 0) return;
+
+      const currentActionId =
+        (event.target as HTMLElement)
+          .closest<HTMLElement>("[data-slot='speed-dial-item']")
+          ?.getAttribute("data-item-id") ?? focusedSpeedDialActionId;
+      const currentIndex = currentActionId ? enabledActionIds.indexOf(currentActionId) : -1;
+      let nextIndex: number | null = null;
+
+      if (event.key === "ArrowDown" || event.key === "ArrowRight") {
+        nextIndex = currentIndex === -1 ? 0 : (currentIndex + 1) % enabledActionIds.length;
+      } else if (event.key === "ArrowUp" || event.key === "ArrowLeft") {
+        nextIndex =
+          currentIndex === -1
+            ? enabledActionIds.length - 1
+            : (currentIndex - 1 + enabledActionIds.length) % enabledActionIds.length;
+      } else if (event.key === "Home") {
+        nextIndex = 0;
+      } else if (event.key === "End") {
+        nextIndex = enabledActionIds.length - 1;
+      }
+
+      if (nextIndex === null) return;
+
+      event.preventDefault();
+      focusSpeedDialAction(enabledActionIds[nextIndex]!);
+    },
+    [closeSpeedDial, enabledSpeedDialActions, focusSpeedDialAction, focusedSpeedDialActionId]
+  );
+
+  useEffect(() => {
+    if (!speedDialOpen || isSingleAction) return;
+
+    const firstEnabledAction = enabledSpeedDialActions[0];
+    if (!firstEnabledAction) return;
+
+    focusSpeedDialAction(firstEnabledAction.id);
+  }, [enabledSpeedDialActions, focusSpeedDialAction, isSingleAction, speedDialOpen]);
 
   return (
     <div
@@ -174,9 +245,29 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
       {/* Speed dial items — animate upward from FAB */}
       {speedDialOpen && !isSingleAction && (
         <div
-          className="absolute bottom-full right-0 mb-2 flex flex-col-reverse items-end gap-2"
+          className="speed-dial-list"
+          style={{
+            position: "absolute",
+            right: 0,
+            bottom: "100%",
+            marginBottom: "0.5rem",
+            display: "flex",
+            flexDirection: "column-reverse",
+            alignItems: "flex-end",
+            gap: "0.5rem",
+            maxHeight:
+              "calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 9.5rem)",
+            maxWidth: "calc(100vw - 2rem)",
+            overflowX: "hidden",
+            overflowY: "auto",
+            overscrollBehavior: "contain",
+            paddingBlock: "0.125rem",
+          }}
           data-slot="speed-dial"
           data-state="open"
+          role="menu"
+          aria-label={config.label}
+          onKeyDown={handleSpeedDialKeyDown}
         >
           {config.actions.map((action) => {
             const ActionIcon = action.icon;
@@ -184,17 +275,28 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
               <button
                 key={action.id}
                 type="button"
-                onClick={() => handleAction(action.id)}
+                role="menuitem"
+                ref={(node) => {
+                  if (node) {
+                    speedDialActionRefs.current.set(action.id, node);
+                  } else {
+                    speedDialActionRefs.current.delete(action.id);
+                  }
+                }}
+                onClick={() => handleAction(action)}
+                disabled={action.disabled}
                 className={cn(
-                  "flex cursor-pointer items-center gap-2 rounded-full px-3 py-2",
+                  "flex min-h-11 cursor-pointer items-center gap-2 rounded-full px-3 py-2",
                   "border",
                   "text-sm font-medium text-text-strong",
                   "transition-all",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--tone-tint,59_130_246)))]",
+                  "disabled:cursor-not-allowed disabled:opacity-55",
                   "speed-dial-item",
                   "motion-reduce:animate-none"
                 )}
                 style={{
+                  maxWidth: "calc(100vw - 2rem)",
                   background: "var(--admin-speed-dial-bg, var(--color-material-regular))",
                   borderColor: "var(--admin-speed-dial-border, rgb(var(--stroke-soft-200)))",
                   boxShadow:
@@ -211,9 +313,12 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
                 aria-label={formatMessage({ id: action.labelId })}
                 data-slot="speed-dial-item"
                 data-item-id={action.id}
+                data-disabled={action.disabled ? "true" : undefined}
               >
                 <ActionIcon className="h-4 w-4" />
-                <span>{formatMessage({ id: action.labelId })}</span>
+                <span className="min-w-0 whitespace-normal text-left leading-snug">
+                  {formatMessage({ id: action.labelId })}
+                </span>
               </button>
             );
           })}
@@ -233,6 +338,7 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
         --admin-chrome-shadow and the border falls back to currentColor.
       */}
       <button
+        ref={fabButtonRef}
         type="button"
         onClick={handleClick}
         aria-label={
@@ -269,6 +375,7 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
         <button
           type="button"
           className="fixed inset-0 z-[-1] cursor-default"
+          style={{ position: "fixed", inset: 0, zIndex: -1, cursor: "default" }}
           onClick={() => setSpeedDialOpen(false)}
           aria-hidden="true"
           tabIndex={-1}
@@ -437,6 +544,16 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
           data-component="NavigationBar"
           data-slot="mobile"
           data-state="visible"
+          // Inline-style position: admin/client builds do not scan shared JSX for
+          // arbitrary `bottom-[...]` or `inset-x-*` classes. Keep only the visual
+          // treatment in classes so Storybook stays close to the shared source.
+          style={{
+            position: "fixed",
+            left: "0.75rem",
+            right: "0.75rem",
+            bottom: "max(0.75rem, env(safe-area-inset-bottom))",
+            zIndex: "var(--z-nav)",
+          }}
           className={cn(
             "canvas-navigation-bar fixed inset-x-3 bottom-[max(0.75rem,env(safe-area-inset-bottom))] z-nav flex items-start gap-1.5 rounded-2xl px-2 py-2",
             "border border-stroke-soft-200 bg-bg-white-0 shadow-[var(--edge-rest),_var(--elevation-3)]"

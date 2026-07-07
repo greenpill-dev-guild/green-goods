@@ -135,8 +135,10 @@ export function loadConfig(): Config {
 
     // API
     botApiToken: process.env.BOT_API_TOKEN,
-    publicAllowedOrigins:
-      process.env.AGENT_ALLOWED_ORIGINS ?? process.env.AGENT_PUBLIC_ALLOWED_ORIGINS,
+    publicAllowedOrigins: firstNonEmpty(
+      process.env.AGENT_ALLOWED_ORIGINS,
+      process.env.AGENT_PUBLIC_ALLOWED_ORIGINS
+    ),
     trustedProxyHops: process.env.AGENT_TRUSTED_PROXY_HOPS
       ? parseInt(process.env.AGENT_TRUSTED_PROXY_HOPS, 10)
       : undefined,
@@ -182,6 +184,10 @@ function parsePositiveInteger(value: string | undefined): number | undefined {
   if (!value?.trim()) return undefined;
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : undefined;
+}
+
+function firstNonEmpty(...values: Array<string | undefined>): string | undefined {
+  return values.find((value) => Boolean(value?.trim()));
 }
 
 function parseSampleRate(value: string | undefined, fallback: number): number {

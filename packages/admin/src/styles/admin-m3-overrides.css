@@ -267,19 +267,20 @@ body:has(.admin-m3) [data-component="ConfirmDialog"][data-slot="surface"] {
  * driven (--spring-*) so there are no raw duration/easing literals.
  *
  * These keyframes animate ONLY the motion delta (slide on Y, or scale) via the
- * `transform` property. AdminDialog.tsx centers the surface with Tailwind v4
- * translate utilities ("-translate-x-1/2"; plus "sm:-translate-y-1/2" >= 640px),
- * which compile to the independent `translate` CSS property — NOT `transform`.
- * Because `translate` and `transform` compose, the centering is preserved
- * automatically and these keyframes must NOT re-bake translate(-50%, …) into
- * `transform`, or the surface would translate twice and land off-center.
+ * `transform` property. AdminDialog.tsx uses Tailwind v4 translate utilities
+ * only where a variant is centered (compact mobile dialogs and all desktop
+ * dialogs); full-width mobile action sheets have no X translate. Tailwind v4
+ * compiles translate utilities to the independent `translate` CSS property —
+ * NOT `transform`. Because `translate` and `transform` compose, these keyframes
+ * must NOT re-bake translate(-50%, …) into `transform`, or centered variants
+ * would translate twice and land off-center.
  *
  * Replaces the prior dead Tailwind animate, slide-in, and zoom classes
  * (tailwindcss-animate is not loaded in this build, so they emitted no CSS).
  * ============================================================================ */
 
 /* Mobile bottom sheet — slide up from below, 2% overshoot for spring feel.
- * X centering comes from the Tailwind `translate` property; we only move Y. */
+ * X placement comes from AdminDialog.tsx geometry; we only move Y. */
 @keyframes adminDialogSheetIn {
   from { transform: translateY(100%); opacity: 0.85; }
   60%  { transform: translateY(-2%); opacity: 1; }
@@ -336,7 +337,7 @@ body:has(.admin-m3) [data-component="ConfirmDialog"][data-slot="surface"] {
 /* ============================================================================
  * AdminSideSheet motion — the three global AppBar surfaces (Profile,
  * Settings, Notifications). Mobile keeps the dialog's bottom-sheet slide
- * (same keyframes, same composition with the Tailwind `translate` centering);
+ * (same keyframes, same composition with the compact Tailwind `translate` centering);
  * ≥640px slides in from the right edge as an M3 modal side sheet.
  * ============================================================================ */
 

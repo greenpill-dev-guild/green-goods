@@ -90,12 +90,13 @@ export function useHubWorkbenchController() {
     activeContentId,
   });
   const isDesktop = useMediaQuery("(min-width: 600px)");
+  const selectedGardenId = selectedGarden?.id;
   const hubContext = useMemo<AdminHubRouteContext>(
     () => ({
-      gardenId: selectedGarden?.id,
+      gardenId: selectedGardenId,
       sort: sortDirection,
     }),
-    [selectedGarden?.id, sortDirection]
+    [selectedGardenId, sortDirection]
   );
 
   useEffect(() => {
@@ -357,8 +358,10 @@ export function useHubWorkbenchController() {
 
   const viewActions = useMemo(
     () =>
-      selectedGarden ? buildHubViewActions(stage, canManage, canReview, navigate, hubContext) : [],
-    [canManage, canReview, hubContext, navigate, selectedGarden, stage]
+      selectedGardenId
+        ? buildHubViewActions(stage, canManage, canReview, navigate, hubContext)
+        : [],
+    [canManage, canReview, hubContext, navigate, selectedGardenId, stage]
   );
 
   const { desktopActions } = useViewActions({
@@ -370,9 +373,14 @@ export function useHubWorkbenchController() {
   // Mobile/tablet: refresh icon in the AppBar (next to notifications). Desktop
   // keeps refresh implicit — the action set in the page header is the only
   // chrome the operator needs.
-  useRefreshAction(
-    selectedGarden && !isDesktop ? { onRefresh: handleRefresh, isFetching: worksFetching } : null
+  const mobileRefreshAction = useMemo(
+    () =>
+      selectedGardenId && !isDesktop
+        ? { onRefresh: handleRefresh, isFetching: worksFetching }
+        : null,
+    [handleRefresh, isDesktop, selectedGardenId, worksFetching]
   );
+  useRefreshAction(mobileRefreshAction);
 
   const resultCount = getHubResultCount(stage, {
     pendingWorks: pendingWorks.length,

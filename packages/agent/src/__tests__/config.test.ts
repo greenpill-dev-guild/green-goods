@@ -116,6 +116,8 @@ describe("loadConfig analytics env", () => {
   const ORIGINAL_SENTRY_TRACES_SAMPLE_RATE = process.env.SENTRY_TRACES_SAMPLE_RATE;
   const ORIGINAL_SENTRY_RELEASE = process.env.SENTRY_RELEASE;
   const ORIGINAL_FLY_MACHINE_VERSION = process.env.FLY_MACHINE_VERSION;
+  const ORIGINAL_AGENT_ALLOWED_ORIGINS = process.env.AGENT_ALLOWED_ORIGINS;
+  const ORIGINAL_AGENT_PUBLIC_ALLOWED_ORIGINS = process.env.AGENT_PUBLIC_ALLOWED_ORIGINS;
 
   afterEach(() => {
     if (ORIGINAL_NODE_ENV === undefined) delete process.env.NODE_ENV;
@@ -141,6 +143,13 @@ describe("loadConfig analytics env", () => {
     else process.env.SENTRY_RELEASE = ORIGINAL_SENTRY_RELEASE;
     if (ORIGINAL_FLY_MACHINE_VERSION === undefined) delete process.env.FLY_MACHINE_VERSION;
     else process.env.FLY_MACHINE_VERSION = ORIGINAL_FLY_MACHINE_VERSION;
+    if (ORIGINAL_AGENT_ALLOWED_ORIGINS === undefined) delete process.env.AGENT_ALLOWED_ORIGINS;
+    else process.env.AGENT_ALLOWED_ORIGINS = ORIGINAL_AGENT_ALLOWED_ORIGINS;
+    if (ORIGINAL_AGENT_PUBLIC_ALLOWED_ORIGINS === undefined) {
+      delete process.env.AGENT_PUBLIC_ALLOWED_ORIGINS;
+    } else {
+      process.env.AGENT_PUBLIC_ALLOWED_ORIGINS = ORIGINAL_AGENT_PUBLIC_ALLOWED_ORIGINS;
+    }
   });
 
   it("uses POSTHOG_AGENT_KEY as the only agent analytics token", () => {
@@ -200,5 +209,14 @@ describe("loadConfig analytics env", () => {
     const config = loadConfig();
 
     expect(config.sentryDsn).toBe("https://standard@sentry.io/1");
+  });
+
+  it("uses the public origin alias when the canonical origin env is blank", () => {
+    process.env.AGENT_ALLOWED_ORIGINS = "";
+    process.env.AGENT_PUBLIC_ALLOWED_ORIGINS = "https://admin.greengoods.app";
+
+    const config = loadConfig();
+
+    expect(config.publicAllowedOrigins).toBe("https://admin.greengoods.app");
   });
 });

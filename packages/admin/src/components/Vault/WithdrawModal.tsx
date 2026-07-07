@@ -22,7 +22,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits, parseUnits } from "viem";
 import { AdminButton } from "@/components/AdminButton";
-import { AdminDialog } from "@/components/AdminDialog";
+import { AdminDialog, type AdminDialogProps } from "@/components/AdminDialog";
 
 interface WithdrawModalProps {
   isOpen: boolean;
@@ -30,6 +30,7 @@ interface WithdrawModalProps {
   gardenAddress: Address;
   vaults: GardenVault[];
   defaultAsset?: string;
+  tone?: AdminDialogProps["tone"];
 }
 
 export function WithdrawModal({
@@ -38,6 +39,7 @@ export function WithdrawModal({
   gardenAddress,
   vaults,
   defaultAsset,
+  tone = "garden",
 }: WithdrawModalProps) {
   const { formatMessage } = useIntl();
   const { primaryAddress } = useUser();
@@ -137,8 +139,7 @@ export function WithdrawModal({
       open={isOpen}
       onOpenChange={(open) => !open && onClose()}
       size="md"
-      // Workspace tone — mounted from the Garden vault view.
-      tone="garden"
+      tone={tone}
       title={formatMessage({ id: "app.treasury.withdraw" })}
       description={formatMessage({ id: "app.treasury.withdrawDescription" })}
       preventClose={withdrawMutation.isPending}
@@ -229,7 +230,7 @@ export function WithdrawModal({
           htmlFor="withdraw-amount"
           error={amountError ? formatMessage({ id: amountError }) : undefined}
         >
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <TextInput
               surface="admin"
               id="withdraw-amount"
@@ -241,10 +242,12 @@ export function WithdrawModal({
               aria-required="true"
               aria-invalid={Boolean(amountError)}
               invalid={Boolean(amountError)}
+              className="min-w-0 flex-1"
             />
             <Button
               variant="secondary"
               size="sm"
+              className="w-full sm:w-auto"
               onClick={() => setAmountInput(formatUnits(maxWithdrawable, assetDecimals))}
             >
               {formatMessage({ id: "app.treasury.max" })}

@@ -101,6 +101,14 @@ export const adminCanvasRoutes: RouteObject[] = [
         element: <HubIndexRedirect />,
       },
       {
+        // Submit Work is a creation/commit flow — its own full surface
+        // (desktop full-screen dialog / mobile full-page route), not a Hub
+        // inspector sheet. Keep this flattened before /work/:workId so the
+        // static action route cannot be interpreted as a work id.
+        path: "work/submit",
+        lazy: submitWorkView,
+      },
+      {
         path: "work",
         children: [
           {
@@ -111,14 +119,11 @@ export const adminCanvasRoutes: RouteObject[] = [
             path: ":workId",
             lazy: hubView,
           },
-          {
-            // Submit Work is a creation/commit flow — its own full surface
-            // (desktop full-screen dialog / mobile full-page route), not a Hub
-            // inspector sheet. Mirrors createAssessmentView / createHypercertView.
-            path: "submit",
-            lazy: submitWorkView,
-          },
         ],
+      },
+      {
+        path: "assess/create",
+        lazy: createAssessmentView,
       },
       {
         path: "assess",
@@ -127,11 +132,11 @@ export const adminCanvasRoutes: RouteObject[] = [
             index: true,
             lazy: hubView,
           },
-          {
-            path: "create",
-            lazy: createAssessmentView,
-          },
         ],
+      },
+      {
+        path: "certify/create",
+        lazy: createHypercertView,
       },
       {
         path: "certify",
@@ -143,10 +148,6 @@ export const adminCanvasRoutes: RouteObject[] = [
           {
             path: ":assessmentId",
             lazy: hubView,
-          },
-          {
-            path: "create",
-            lazy: createHypercertView,
           },
         ],
       },
@@ -229,6 +230,14 @@ export const adminCanvasRoutes: RouteObject[] = [
           },
           {
             path: "vault",
+            lazy: communityView,
+          },
+          {
+            path: "vault/deposit",
+            lazy: communityView,
+          },
+          {
+            path: "vault/withdraw",
             lazy: communityView,
           },
         ],

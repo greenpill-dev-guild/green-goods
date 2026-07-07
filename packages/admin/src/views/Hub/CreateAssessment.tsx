@@ -19,7 +19,7 @@ import { ActionFlowShell } from "@/components/Layout/ActionFlowShell";
 import { FlowStepHeader } from "@/components/Layout/FlowStepHeader";
 
 // Create Assessment is a create/commit flow rendered as a centered flow AdminDialog
-// (bottom-sheet on mobile, width from ADMIN_FLOW_DIALOG_CLASS) through the shared
+// (full-width bottom-sheet on mobile, width from ADMIN_FLOW_DIALOG_CLASS) through the shared
 // ActionFlowShell grammar, same as Submit Work. Single phase: no target selection,
 // just the stacked configure sections.
 export default function CreateAssessment() {
@@ -195,7 +195,7 @@ export default function CreateAssessment() {
     );
   }
 
-  // Centered flow modal with a scrim (bottom-sheet on mobile) — width comes
+  // Flow modal with a scrim (full-width bottom-sheet on mobile) — width comes
   // from ADMIN_FLOW_DIALOG_CLASS, not the size prop below. The body is
   // neutralized to a non-scrolling flex column so ActionFlowShell owns the
   // pinned chrome + scrolling body; the AdminDialog close button is the exit

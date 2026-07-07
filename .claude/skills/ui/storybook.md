@@ -14,7 +14,7 @@ Storybook is the local component documentation, state catalog, and light regress
 
 | Command | Purpose |
 |---------|---------|
-| `cd packages/shared && bun run storybook` | Start the unified Storybook dev server on port 6006 |
+| `cd packages/shared && bun run storybook` | Start the unified Storybook dev server on port 3004 |
 | `cd packages/shared && bun run build-storybook` | Build the static Storybook artifact |
 | `cd packages/shared && bun run check:stories` | Verify required shared and curated admin surfaces have stories |
 | `cd packages/shared && bun run check:story-quality` | Verify admin/shared Canvas stories are deterministic and agent-readable |

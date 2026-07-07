@@ -54,15 +54,15 @@ const closeButtonClasses = cn(
  *   in from the right edge. Width reuses the `--canvas-right-sheet-width`
  *   token (one width for every sheet — per-content widths read as
  *   inconsistent chrome).
- * - <640px: identical presentation to AdminDialog's mobile bottom sheet, so
- *   the notification bell keeps today's glance-and-dismiss behavior.
+ * - <640px: compact inset bottom sheet, so the notification bell keeps today's
+ *   glance-and-dismiss behavior while workspace AdminDialogs can use full width.
  *
  * Content contract: children own the body — panels compose `SheetBody`
  * (scrolling middle) and optionally `SheetFooter` (pinned bottom bar) inside
  * the sheet's flex column. The sheet itself does not pad or scroll, so panel
  * padding never compounds with shell padding.
  *
- * Scope contract: workspace action/detail/inspection overlays stay centered
+ * Scope contract: workspace action/detail/inspection overlays stay in
  * `AdminDialog`s. Side sheets are reserved for the three global surfaces —
  * enforced by AdminSideSheetStandard.guard.test.ts.
  */
@@ -122,8 +122,8 @@ export function AdminSideSheet({
           data-mobile="sheet"
           data-instant-exit={instantExit || undefined}
           className={cn(
-            // Mobile: bottom sheet (identical geometry to AdminDialog's mobile
-            // presentation). Desktop ≥640px: right-docked full-height panel.
+            // Mobile: compact inset bottom sheet. Desktop ≥640px:
+            // right-docked full-height panel.
             "fixed bottom-0 left-1/2 z-modal flex max-h-[calc(100dvh-1rem)] w-full max-w-[calc(100vw-1rem)] -translate-x-1/2 flex-col",
             "rounded-t-[var(--m3-shape-xl)]",
             "sm:top-0 sm:right-0 sm:left-auto sm:max-h-none sm:max-w-none sm:translate-x-0",

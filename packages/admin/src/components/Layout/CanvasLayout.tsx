@@ -524,7 +524,7 @@ export function CanvasLayout() {
 
             {/* Account / notification inspector — the three global AppBar
                 surfaces (Profile, Settings, Notifications) render as an
-                AdminSideSheet: right-docked on desktop, AdminDialog-identical
+                AdminSideSheet: right-docked on desktop, compact inset
                 bottom sheet on mobile (where only the notification bell can
                 open it — Profile/Settings live in the Profile tab there). The
                 same orchestrator contentId drives open/close. Tone is the
@@ -702,7 +702,7 @@ FabAwareNavigationBar.displayName = "FabAwareNavigationBar";
 
 /**
  * Reads the left-inspector config from the admin left-sheet channel and renders
- * it as a centered AdminDialog — the left/bottom canvas sheets are retired, so
+ * it as an AdminDialog — the left/bottom canvas sheets are retired, so
  * AdminDialog is the canonical admin overlay (bottom-sheet presentation on
  * mobile is built in). Persistent across route transitions — views declare
  * content via useLeftSheetConfig(). Closing runs `config.onClose`; route-backed
