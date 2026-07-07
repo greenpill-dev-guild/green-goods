@@ -830,7 +830,7 @@
   "app.community.creatingPools": "Criando pools...",
   "app.community.loading": "Carregando dados da comunidade...",
   "app.community.noCommunity": "Nenhuma comunidade configurada para este jardim",
-  "app.community.noPoolsYet": "As pools de sinalização ainda não foram criados. São necessários para votação por convicção e sinalização de ações.",
+  "app.community.noPoolsYet": "As pools de sinalização ainda não foram criadas. São necessárias para votação por convicção e sinalização de ações.",
   "app.community.pools": "Pools de sinal",
   "app.community.poolsCreated": "Pools de sinalização criados com sucesso",
   "app.community.poolsCreateFailed": "Falha ao criar pools de sinalização",
