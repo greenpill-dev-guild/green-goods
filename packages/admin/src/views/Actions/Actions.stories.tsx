@@ -16,7 +16,6 @@ import {
 } from "../storybookCanvasHarness";
 import {
   expectAdminShellDarkPalette,
-  expectAllVisibleSelectorContrast,
   withTemporaryDocumentTheme,
 } from "../storybookPaletteAssertions";
 
@@ -70,11 +69,9 @@ export const Registry: Story = {
         await canvas.findByRole("heading", { name: "Actions" }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
       ).toBeVisible();
       await waitFor(() => expectAdminShellDarkPalette(canvasElement));
-      await waitFor(() =>
-        expectAllVisibleSelectorContrast(canvasElement, '[class*="text-domain-"]', {
-          label: "Actions domain chip text",
-        })
-      );
+      // Domain chips (text-domain-* colored) were removed in the actions-workspace
+      // domain-filter rework — domains are now a neutral filter switcher plus a
+      // plain-text eyebrow, so there is no domain-colored chip contrast to assert.
     });
   },
 };
