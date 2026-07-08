@@ -22,6 +22,7 @@ import React, { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits } from "viem";
 import { EmptyState } from "@/components/Communication";
+import { WALLET_DRAWER_SCROLL_CLASSNAME } from "./classnames";
 
 interface JarCardProps {
   jar: CookieJar;
@@ -285,20 +286,22 @@ export const CookieJarTab: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="space-y-2.5 p-4" role="status">
-        <p className="text-xs text-text-soft-400">
-          {formatMessage({
-            id: "app.cookieJar.loading",
-            defaultMessage: "Checking which cookie jars you can access…",
-          })}
-        </p>
-        <div className="space-y-2.5 animate-pulse" aria-hidden="true">
-          {Array.from({ length: 2 }, (_, i) => (
-            <div key={i} className="flex items-center gap-3">
-              <div className="h-3 flex-1 rounded bg-bg-weak-50" />
-              <div className="h-3 w-16 rounded bg-bg-weak-50" />
-            </div>
-          ))}
+      <div className={WALLET_DRAWER_SCROLL_CLASSNAME}>
+        <div className="space-y-2.5 p-4" role="status">
+          <p className="text-xs text-text-soft-400">
+            {formatMessage({
+              id: "app.cookieJar.loading",
+              defaultMessage: "Checking which cookie jars you can access…",
+            })}
+          </p>
+          <div className="space-y-2.5 animate-pulse" aria-hidden="true">
+            {Array.from({ length: 2 }, (_, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <div className="h-3 flex-1 rounded bg-bg-weak-50" />
+                <div className="h-3 w-16 rounded bg-bg-weak-50" />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -306,11 +309,13 @@ export const CookieJarTab: React.FC = () => {
 
   if (!moduleConfigured) {
     return (
-      <EmptyState
-        tone="warning"
-        icon={<RiErrorWarningLine />}
-        title={formatMessage({ id: "app.cookieJar.moduleNotConfigured" })}
-      />
+      <div className={WALLET_DRAWER_SCROLL_CLASSNAME}>
+        <EmptyState
+          tone="warning"
+          icon={<RiErrorWarningLine />}
+          title={formatMessage({ id: "app.cookieJar.moduleNotConfigured" })}
+        />
+      </div>
     );
   }
 
@@ -348,44 +353,48 @@ export const CookieJarTab: React.FC = () => {
 
   if (jars.length === 0) {
     return (
-      <div className="space-y-4 p-4">
-        {diagnosticBlock}
-        {/* Offline reads fail closed, so an empty list proves nothing — say
+      <div className={WALLET_DRAWER_SCROLL_CLASSNAME}>
+        <div className="space-y-4 p-4">
+          {diagnosticBlock}
+          {/* Offline reads fail closed, so an empty list proves nothing — say
             offline instead of claiming there are no jars. */}
-        {!isOnline ? (
-          <EmptyState
-            icon={<RiWifiOffLine />}
-            title={formatMessage({ id: "app.cookieJar.walletOffline" })}
-          />
-        ) : (
-          <EmptyState
-            icon={<RiInboxLine />}
-            title={formatMessage({ id: "app.cookieJar.walletEmpty" })}
-            description={formatMessage({ id: "app.cookieJar.walletEmptyDescription" })}
-          />
-        )}
+          {!isOnline ? (
+            <EmptyState
+              icon={<RiWifiOffLine />}
+              title={formatMessage({ id: "app.cookieJar.walletOffline" })}
+            />
+          ) : (
+            <EmptyState
+              icon={<RiInboxLine />}
+              title={formatMessage({ id: "app.cookieJar.walletEmpty" })}
+              description={formatMessage({ id: "app.cookieJar.walletEmptyDescription" })}
+            />
+          )}
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4 p-4">
-      {diagnosticBlock}
-      {groupedJars.map((group) => (
-        <div key={group.gardenName}>
-          <h4
-            className="mb-2 truncate text-xs font-medium text-text-soft-400 uppercase tracking-wide"
-            title={group.gardenName}
-          >
-            {group.gardenName}
-          </h4>
-          <div className="space-y-2">
-            {group.jars.map((jar) => (
-              <JarCard key={jar.jarAddress} jar={jar} gardenName={group.gardenName} />
-            ))}
+    <div className={WALLET_DRAWER_SCROLL_CLASSNAME}>
+      <div className="space-y-4 p-4">
+        {diagnosticBlock}
+        {groupedJars.map((group) => (
+          <div key={group.gardenName}>
+            <h4
+              className="mb-2 truncate text-xs font-medium text-text-soft-400 uppercase tracking-wide"
+              title={group.gardenName}
+            >
+              {group.gardenName}
+            </h4>
+            <div className="space-y-2">
+              {group.jars.map((jar) => (
+                <JarCard key={jar.jarAddress} jar={jar} gardenName={group.gardenName} />
+              ))}
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 };
