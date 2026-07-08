@@ -832,7 +832,7 @@
   "app.community.noCommunity": "No hay comunidad configurada para este jardín",
   "app.community.noPoolsYet": "Las pools de señalización aún no se han creado. Se requieren para votación por convicción y señalización de acciones.",
   "app.community.pools": "Pools de señal",
-  "app.community.poolsCreated": "Pools de señalización creados exitosamente",
+  "app.community.poolsCreated": "Pools de señalización creadas exitosamente",
   "app.community.poolsCreateFailed": "Error al crear pools de señalización",
   "app.community.poolType.action": "Señalización de acciones",
   "app.community.poolType.hypercert": "Curación de hypercerts",
