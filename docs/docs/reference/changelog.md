@@ -3,7 +3,7 @@ title: Changelog / Release Notes
 slug: /reference/changelog
 audience: all
 owner: docs
-last_verified: 2026-06-23
+last_verified: 2026-07-08
 feature_status: Live
 source_of_truth:
   - https://github.com/greenpill-dev-guild/green-goods/releases
@@ -25,6 +25,16 @@ The complete, auto-generated changelog lives on [GitHub Releases](https://github
 ---
 
 ## 2026
+
+### v1.2.0 - July 2026
+
+**Our most polished release yet — reliability and polish across the app, website, and operator dashboard**
+
+- **Client PWA** — hardened sign-in and account recovery (recover from a dismissed or expired wallet prompt); accessible wallet and cookie jar flows (see your balance, send tokens, and claim from cookie jars); a refreshed Help section in Profile; smoother installs and updates for a more mature, robust app.
+- **Editorial website** — a new `/vaults` route to crowdfund the work happening in a Garden's Vault; more robust Donate and Endow flows for Gardens, with clearer ways to manage the support you give.
+- **Operator dashboard** — a major UI polish pass across the operator cockpit (design, look, and feel); smoother navigation and operator flows for managing Gardens; polished content throughout.
+
+Full notes: [GitHub Releases](https://github.com/greenpill-dev-guild/green-goods/releases).
 
 ### v1.1.0 - June 2026
 
