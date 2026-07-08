@@ -12,7 +12,7 @@ import { GardenSheetDescriptor } from "./components/GardenSheetDescriptor";
 import { GardenWorkspaceContent } from "./components/GardenWorkspaceContent";
 import { useIntl } from "react-intl";
 
-// Paradigm: Mixed — overview = Data Landscape, impact = Data Landscape, settings = Command Surface.
+// Paradigm: Data Landscape — health, impact, and activity readouts. Settings opens as a dialog.
 
 export default function GardenView() {
   const { formatMessage } = useIntl();
@@ -54,15 +54,13 @@ export default function GardenView() {
         description={formatMessage({
           id: "cockpit.garden.description",
           defaultMessage:
-            "What's growing in this garden — overview, activity, gardeners, and settings.",
+            "Internal tracking for garden health, outcome proof, and recent activity.",
         })}
         metadata={
           headerStats.length > 0 ? <MetaStrip items={headerStats} density="inline" /> : undefined
         }
         actions={
           isDesktop && garden.desktopActions.length > 0 ? (
-            // Stable trio: positions frozen across views; Members fills Add
-            // member, Settings fills Edit garden, read surfaces stay outlined.
             <AdminViewActions items={garden.desktopActions} />
           ) : undefined
         }
@@ -78,25 +76,26 @@ export default function GardenView() {
           onChange={garden.handleTabChange}
           tabs={[
             {
-              id: "overview",
+              id: "health",
               label: formatMessage({
-                id: "cockpit.garden.overview",
-                defaultMessage: "Overview",
+                id: "cockpit.garden.health",
+                defaultMessage: "Health",
               }),
               count: garden.derived.overviewAlerts.length || undefined,
+            },
+            {
+              id: "impact",
+              label: formatMessage({
+                id: "cockpit.garden.impact",
+                defaultMessage: "Impact",
+              }),
+              count: garden.derived.impactBadge.count,
             },
             {
               id: "activity",
               label: formatMessage({
                 id: "cockpit.garden.activity",
                 defaultMessage: "Activity",
-              }),
-            },
-            {
-              id: "settings",
-              label: formatMessage({
-                id: "cockpit.garden.settings",
-                defaultMessage: "Settings",
               }),
             },
           ]}

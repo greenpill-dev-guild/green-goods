@@ -10,9 +10,9 @@ const mockUseLocation = vi.fn();
 vi.mock("@green-goods/shared", () => ({
   cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
   adminRoutes: {
-    communityTreasury: (search?: Record<string, string>) => {
+    communityEndowment: (search?: Record<string, string>) => {
       const query = search ? new URLSearchParams(search).toString() : "";
-      return query ? `/community/treasury?${query}` : "/community/treasury";
+      return query ? `/community/endowment?${query}` : "/community/endowment";
     },
   },
   useAdminStore: (selector: (state: any) => any) =>
@@ -84,7 +84,7 @@ describe("GardenVaultView", () => {
     });
   });
 
-  it("links back to community treasury when opened from the treasury card", () => {
+  it("links back to community treasury when opened from a legacy treasury return", () => {
     mockUseLocation.mockReturnValue({ state: { returnTo: "/community/treasury" } });
 
     renderWithProviders(<GardenVaultView />);
@@ -95,14 +95,14 @@ describe("GardenVaultView", () => {
     );
   });
 
-  it("defaults back to the selected garden treasury card without explicit return state", () => {
+  it("defaults back to the selected garden endowment card without explicit return state", () => {
     mockUseLocation.mockReturnValue({ state: null });
 
     renderWithProviders(<GardenVaultView />);
 
     expect(screen.getByTestId("page-header")).toHaveAttribute(
       "data-back-link",
-      "/community/treasury?gardenId=garden-1"
+      "/community/endowment?gardenId=garden-1"
     );
   });
 });

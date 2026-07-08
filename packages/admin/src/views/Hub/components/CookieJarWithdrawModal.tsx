@@ -22,12 +22,14 @@ interface CookieJarWithdrawModalProps {
   isOpen: boolean;
   onClose: () => void;
   gardenAddress: Address;
+  defaultJarAddress?: Address | null;
 }
 
 export function CookieJarWithdrawModal({
   isOpen,
   onClose,
   gardenAddress,
+  defaultJarAddress = null,
 }: CookieJarWithdrawModalProps) {
   const { formatMessage } = useIntl();
 
@@ -44,15 +46,17 @@ export function CookieJarWithdrawModal({
 
   useEffect(() => {
     if (!isOpen) return;
-    setWithdrawJar("");
+    setWithdrawJar(defaultJarAddress ?? "");
     setWithdrawAmount("");
     setWithdrawPurpose("");
     resetWithdrawMutation();
-  }, [isOpen, resetWithdrawMutation]);
+  }, [defaultJarAddress, isOpen, resetWithdrawMutation]);
+
+  const activeJars = useMemo(() => jars.filter((jar) => !jar.isPaused), [jars]);
 
   const selectedWithdrawJar = useMemo(
-    () => jars.find((j) => j.jarAddress === withdrawJar),
-    [jars, withdrawJar]
+    () => activeJars.find((j) => j.jarAddress === withdrawJar),
+    [activeJars, withdrawJar]
   );
 
   const withdrawDecimals = selectedWithdrawJar?.decimals ?? 18;
@@ -78,7 +82,20 @@ export function CookieJarWithdrawModal({
 
   const withdrawTxError = useTxErrorMessages(withdrawMutation.error);
 
-  const activeJars = jars.filter((j) => !j.isPaused);
+  useEffect(() => {
+    if (!isOpen) return;
+    if (withdrawJar && activeJars.some((jar) => jar.jarAddress === withdrawJar)) return;
+    if (defaultJarAddress && activeJars.some((jar) => jar.jarAddress === defaultJarAddress)) {
+      setWithdrawJar(defaultJarAddress);
+      return;
+    }
+    if (activeJars.length === 1) {
+      setWithdrawJar(activeJars[0].jarAddress);
+      return;
+    }
+    if (withdrawJar) setWithdrawJar("");
+  }, [activeJars, defaultJarAddress, isOpen, withdrawJar]);
+
   const isPending = withdrawMutation.isPending;
   const handleWithdraw = () => {
     if (!selectedWithdrawJar || parsedWithdrawAmount <= 0n) return;

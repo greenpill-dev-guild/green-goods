@@ -208,9 +208,9 @@ export function AdminDialog({
           data-component="AdminDialog"
           data-slot="overlay"
           data-instant-exit={instantExit || undefined}
+          style={{ background: "var(--admin-modal-scrim, rgb(0 0 0 / 0.32))" }}
           className={cn(
-            "fixed inset-0 z-overlay",
-            "bg-[rgb(var(--m3-on-surface)/0.32)]"
+            "fixed inset-0 z-overlay"
             // Scrim fade is driven by the [data-component="AdminDialog"][data-slot="overlay"]
             // rules in admin-m3-overrides.css (keyed off Radix's data-state). Do NOT re-add
             // Tailwind `animate-*`/`fade-*` classes here — the tailwindcss-animate plugin is

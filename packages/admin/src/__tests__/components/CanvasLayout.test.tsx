@@ -355,7 +355,7 @@ describe("CanvasLayout", () => {
   it.each([
     ["/hub/work/attestation-1", "/hub"],
     ["/hub/work/submit", "/hub"],
-    ["/community/treasury/vault", "/community"],
+    ["/community/endowment/vault", "/community"],
     ["/garden/impact/hypercerts/hc-123", "/garden"],
     ["/actions/action-1", "/actions"],
     ["/profile", "/profile"],

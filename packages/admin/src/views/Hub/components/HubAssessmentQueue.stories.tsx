@@ -1,4 +1,4 @@
-import type { Address, Work } from "@green-goods/shared";
+import { Domain, type Address, type HubActionSummary, type Work } from "@green-goods/shared";
 import type { Meta, StoryObj } from "@storybook/react";
 import { fn } from "storybook/test";
 import { FIXTURE_IMAGE_AGROFORESTRY, daysAgo } from "../../../../../shared/.storybook/fixtures";
@@ -28,10 +28,10 @@ const APPROVED_WORK: Work[] = [
   work("w3", "Led composting workshop", 9, 3),
 ];
 
-const ACTIONS_MAP = new Map<number, { title: string }>([
-  [1, { title: "Planting event" }],
-  [2, { title: "Riverbank cleanup" }],
-  [3, { title: "Education workshop" }],
+const ACTIONS_MAP = new Map<number, HubActionSummary>([
+  [1, { title: "Planting event", domain: Domain.AGRO }],
+  [2, { title: "Riverbank cleanup", domain: Domain.WASTE }],
+  [3, { title: "Education workshop", domain: Domain.EDU }],
 ]);
 
 const meta: Meta<typeof HubAssessmentQueue> = {
@@ -49,6 +49,7 @@ const meta: Meta<typeof HubAssessmentQueue> = {
   args: {
     actionsMap: ACTIONS_MAP,
     selectedWorkId: undefined,
+    selectedGardenName: "Rio Rainforest Lab",
     onOpenWorkDetail: fn(),
   },
 };

@@ -50,8 +50,8 @@ const closeButtonClasses = cn(
  * hairline header, absolute close button, tone re-establishment, instant-exit
  * hidden-tab handling) and swaps only the geometry.
  *
- * - ≥640px: right-docked within the canvas chrome bounds (below AppBar, above
- *   NavigationBar), rounded all around, and slides in from the right edge.
+ * - ≥640px: right-docked below AppBar and extended to the viewport bottom,
+ *   rounded all around, and slides in from the right edge.
  *   Width reuses the `--canvas-right-sheet-width` token (one width for every
  *   sheet — per-content widths read as inconsistent chrome).
  * - <640px: compact inset bottom sheet, so the notification bell keeps today's
@@ -105,9 +105,9 @@ export function AdminSideSheet({
           data-component="AdminSideSheet"
           data-slot="overlay"
           data-instant-exit={instantExit || undefined}
+          style={{ background: "var(--admin-modal-scrim, rgb(0 0 0 / 0.32))" }}
           className={cn(
-            "fixed inset-0 z-overlay",
-            "bg-[rgb(var(--m3-on-surface)/0.32)]"
+            "fixed inset-0 z-overlay"
             // Scrim fade is driven by the [data-component="AdminSideSheet"]
             // [data-slot="overlay"] rules in admin-m3-overrides.css (keyed off
             // Radix's data-state) — same convention as AdminDialog.
@@ -123,7 +123,7 @@ export function AdminSideSheet({
           data-instant-exit={instantExit || undefined}
           className={cn(
             // Mobile: compact inset bottom sheet. Desktop ≥640px:
-            // right-docked within the canvas chrome bounds.
+            // right-docked below AppBar and extended to the viewport bottom.
             "fixed bottom-0 left-1/2 z-modal flex max-h-[calc(100dvh-1rem)] w-full max-w-[calc(100vw-1rem)] -translate-x-1/2 flex-col",
             "rounded-t-[var(--m3-shape-xl)]",
             "sm:top-[var(--admin-sheet-top)] sm:right-[var(--admin-sheet-side-inset)] sm:bottom-[var(--admin-sheet-bottom)] sm:left-auto sm:max-h-none sm:max-w-none sm:translate-x-0",

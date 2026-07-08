@@ -295,6 +295,14 @@ describe("useBatchWorkSync", () => {
         expect(result.current.data?.hash).toBe(MOCK_TX_HASH);
       });
       expect(mockEncodeWorkData).toHaveBeenCalledTimes(2);
+      expect(mockEncodeWorkData).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "Test Work" }),
+        11155111,
+        expect.objectContaining({
+          authMode: "wallet",
+          gardenAddress: MOCK_ADDRESSES.garden,
+        })
+      );
       expect(mockBuildBatchWorkAttestTx).toHaveBeenCalledOnce();
       expect(mockWalletClient.sendTransaction).toHaveBeenCalledOnce();
       expect(mockEnsureWagmiWalletChain).toHaveBeenCalledWith({}, 11155111);

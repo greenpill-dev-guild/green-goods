@@ -59,4 +59,40 @@ describe("adminRoutes", () => {
       "/cookies/deploy?source=campaign"
     );
   });
+
+  it("uses health as the canonical Garden readout route while preserving overview aliases", () => {
+    const context = { gardenId: "0x0000000000000000000000000000000000000abc", range: "30d" };
+
+    expect(adminRoutes.garden()).toBe("/garden/health");
+    expect(adminRoutes.gardenHealth(context)).toBe(
+      "/garden/health?gardenId=0x0000000000000000000000000000000000000abc&range=30d"
+    );
+    expect(adminRoutes.gardenOverview(context)).toBe(adminRoutes.gardenHealth(context));
+  });
+
+  it("uses endowment and payouts as canonical Community money routes while preserving legacy aliases", () => {
+    const context = { gardenId: "0x0000000000000000000000000000000000000abc", item: "deposit-1" };
+
+    expect(adminRoutes.community()).toBe("/community/members");
+    expect(adminRoutes.communityEndowment(context)).toBe(
+      "/community/endowment?gardenId=0x0000000000000000000000000000000000000abc&item=deposit-1"
+    );
+    expect(adminRoutes.communityResources(context)).toBe(adminRoutes.communityEndowment(context));
+    expect(adminRoutes.communityTreasury(context)).toBe(adminRoutes.communityEndowment(context));
+    expect(adminRoutes.communityPayouts(context)).toBe(
+      "/community/payouts?gardenId=0x0000000000000000000000000000000000000abc&item=deposit-1"
+    );
+    expect(adminRoutes.communityCoordination(context)).toBe(
+      "/community/coordination?gardenId=0x0000000000000000000000000000000000000abc&item=deposit-1"
+    );
+    expect(adminRoutes.communityGovernance(context)).toBe(
+      adminRoutes.communityCoordination(context)
+    );
+    expect(adminRoutes.communityEndowmentVault(context)).toBe(
+      "/community/endowment/vault?gardenId=0x0000000000000000000000000000000000000abc&item=deposit-1"
+    );
+    expect(adminRoutes.communityTreasuryVault(context)).toBe(
+      adminRoutes.communityEndowmentVault(context)
+    );
+  });
 });

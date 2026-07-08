@@ -1,10 +1,6 @@
-import {
-  adminRoutes,
-  Button,
-  TxInlineFeedback,
-  useCreateGardenController,
-} from "@green-goods/shared";
+import { adminRoutes, TxInlineFeedback, useCreateGardenController } from "@green-goods/shared";
 import { useIntl } from "react-intl";
+import { AdminButton } from "@/components/AdminButton";
 import { DetailsStep } from "@/components/Garden/CreateGardenSteps/DetailsStep";
 import { ReviewStep } from "@/components/Garden/CreateGardenSteps/ReviewStep";
 import { TeamStep } from "@/components/Garden/CreateGardenSteps/TeamStep";
@@ -52,27 +48,28 @@ export default function CreateGarden() {
             message={createGarden.errorMessage}
             reserveClassName="min-h-[8.25rem]"
             action={
-              <Button variant="secondary" size="sm" onClick={createGarden.retry}>
+              <AdminButton variant="tonal" size="sm" onClick={createGarden.retry}>
                 {intl.formatMessage({
                   id: "admin.garden.deploy.retry",
                   defaultMessage: "Retry deployment",
                 })}
-              </Button>
+              </AdminButton>
             }
           />
         }
         actions={
           <>
-            <Button
+            <AdminButton
               type="button"
-              variant="secondary"
+              variant="outlined"
               onClick={createGarden.handleCancel}
               disabled={createGarden.isSubmitting}
             >
               {intl.formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-            </Button>
-            <Button
+            </AdminButton>
+            <AdminButton
               type="button"
+              variant="filled"
               onClick={createGarden.handleSubmit}
               disabled={createGarden.isSubmitting}
               loading={createGarden.isSubmitting}
@@ -81,7 +78,7 @@ export default function CreateGarden() {
                 id: "admin.garden.form.deploy",
                 defaultMessage: "Deploy garden",
               })}
-            </Button>
+            </AdminButton>
           </>
         }
       />

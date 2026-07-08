@@ -1,14 +1,21 @@
 import {
   Alert,
+  cn,
   EmptyState,
   EmptyStateShell,
+  formatDateTime,
   formatRelativeTime,
-  WorkbenchList,
-  WorkbenchRow,
   type ActivityEvent,
 } from "@green-goods/shared";
-import { RiCheckboxCircleLine, RiFileList3Line, RiInboxLine, RiMedalLine } from "@remixicon/react";
+import {
+  RiArrowRightLine,
+  RiCheckboxCircleLine,
+  RiFileList3Line,
+  RiInboxLine,
+  RiMedalLine,
+} from "@remixicon/react";
 import { useIntl } from "react-intl";
+import { adminCardVariants } from "@/components/AdminCard";
 import { HubWorkbenchSkeletonRows } from "./HubWorkbenchSkeletonRows";
 
 interface HubHistoryQueueProps {
@@ -50,7 +57,7 @@ export function HubHistoryQueue({
   }
 
   if (worksLoading || fetchingAssessments || hypercertsLoading || allocationsLoading) {
-    return <HubWorkbenchSkeletonRows count={4} />;
+    return <HubWorkbenchSkeletonRows count={4} variant="card" />;
   }
 
   if (items.length === 0) {
@@ -73,9 +80,9 @@ export function HubHistoryQueue({
   }
 
   return (
-    <WorkbenchList>
+    <ul className="hub-history-feed" role="list">
       {items.map((event) => {
-        const leadingIcon =
+        const LeadingIcon =
           event.category === "work"
             ? RiCheckboxCircleLine
             : event.category === "impact"
@@ -89,21 +96,59 @@ export function HubHistoryQueue({
               ? formatMessage({ id: "cockpit.garden.impact", defaultMessage: "Impact" })
               : formatMessage({ id: "cockpit.nav.community", defaultMessage: "Community" });
 
+        const selected =
+          selectedHistoryEventId === event.id ||
+          (selectedWorkId !== undefined && event.itemId === selectedWorkId);
+        const exactTimestamp = formatDateTime(event.timestamp, {
+          dateStyle: "medium",
+          timeStyle: "short",
+        });
+
         return (
-          <WorkbenchRow
-            key={event.id}
-            eyebrow={categoryLabel}
-            title={event.title}
-            description={event.description}
-            meta={[formatRelativeTime(event.timestamp)]}
-            statusLabel={categoryLabel}
-            statusTone="history"
-            leadingIcon={leadingIcon}
-            selected={selectedHistoryEventId === event.id || selectedWorkId === event.itemId}
-            onClick={() => onOpenHistoryEvent(event)}
-          />
+          <li key={event.id} className="min-w-0">
+            <button
+              type="button"
+              data-selected={selected ? "true" : "false"}
+              onClick={() => onOpenHistoryEvent(event)}
+              className={cn(
+                adminCardVariants({ variant: "elevated", density: "none", interactive: true }),
+                "hub-history-card group grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-start gap-3 p-3 text-left",
+                "outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--tone-primary,var(--primary-base))))] focus-visible:ring-offset-2"
+              )}
+            >
+              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[var(--m3-shape-md)] bg-bg-soft text-text-sub shadow-[var(--edge-rest)]">
+                <LeadingIcon className="h-5 w-5" aria-hidden="true" />
+              </span>
+
+              <span className="hub-history-copy min-w-0 space-y-1">
+                <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span className="inline-flex rounded-full bg-bg-soft px-2 py-0.5 text-label-sm font-medium text-text-sub shadow-[var(--edge-rest)]">
+                    {categoryLabel}
+                  </span>
+                  <time
+                    dateTime={new Date(event.timestamp).toISOString()}
+                    title={exactTimestamp}
+                    className="text-label-sm text-text-soft"
+                  >
+                    {formatRelativeTime(event.timestamp)}
+                  </time>
+                </span>
+
+                <span className="block text-title-sm font-semibold leading-5 text-text-strong">
+                  {event.title}
+                </span>
+                <span className="block text-body-sm leading-5 text-text-sub">
+                  {event.description}
+                </span>
+              </span>
+
+              <span className="inline-flex shrink-0 pt-1 text-text-soft transition-colors group-hover:text-primary-dark">
+                <RiArrowRightLine className="h-4 w-4" aria-hidden="true" />
+              </span>
+            </button>
+          </li>
         );
       })}
-    </WorkbenchList>
+    </ul>
   );
 }

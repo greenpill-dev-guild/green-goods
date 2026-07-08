@@ -25,7 +25,7 @@ const routeContext = `gardenId=${STORYBOOK_PRIMARY_ADMIN_GARDEN.id}&item=${prima
 function RouteBackedVaultActionStory({ action }: RouteBackedVaultActionStoryProps) {
   return (
     <StorybookAdminCanvasRoute
-      initialPath={`/community/treasury/vault/${action}?${routeContext}`}
+      initialPath={`/community/endowment/vault/${action}?${routeContext}`}
     />
   );
 }
@@ -48,7 +48,7 @@ const meta: Meta<typeof RouteBackedVaultActionStory> = {
     docs: {
       description: {
         component:
-          "Route-backed Community treasury deposit and withdraw dialog wrapper, exercised through the real CanvasLayout shell with seeded garden and vault query data.",
+          "Route-backed Community endowment deposit and withdraw dialog wrapper, exercised through the real CanvasLayout shell with seeded garden and vault query data.",
       },
     },
   },

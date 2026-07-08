@@ -4,7 +4,6 @@ import {
   ConfidenceSelector,
   ErrorBoundary,
   logger,
-  MethodSelector,
   parseAndFormatError,
   Textarea,
   toastService,
@@ -12,6 +11,7 @@ import {
   uploadJSONToIPFS,
   useEnsName,
   useWorkApproval,
+  VerificationMethod,
   type Work,
   type WorkApprovalDraft,
 } from "@green-goods/shared";
@@ -22,7 +22,6 @@ import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 import { formatEnsAddressName } from "@/components/EnsAddressText";
 import {
-  getDefaultMethodForDomain,
   ReviewSummary,
   workApprovalSchema,
   type WorkApprovalFormData,
@@ -43,7 +42,6 @@ interface ReviewFormProps {
 export function ReviewForm({
   work,
   gardenName,
-  actionSlug,
   actionEndTime,
   canReview,
   canApproveOrReject,
@@ -55,23 +53,20 @@ export function ReviewForm({
   const { data: gardenerEnsName } = useEnsName(work.gardenerAddress);
   const gardenerDisplayName = formatEnsAddressName(work.gardenerAddress, gardenerEnsName);
 
-  const defaultMethod = getDefaultMethodForDomain(actionSlug);
   const isActionExpired = typeof actionEndTime === "number" && actionEndTime < Date.now();
 
   const { control, watch, getValues } = useForm<WorkApprovalFormData>({
     resolver: zodResolver(workApprovalSchema),
     defaultValues: {
       confidence: Confidence.NONE,
-      verificationMethod: defaultMethod,
+      verificationMethod: VerificationMethod.HUMAN,
       feedback: "",
     },
   });
 
   const confidence = watch("confidence");
-  const verificationMethod = watch("verificationMethod");
   const hasLowConfidenceHint = confidence < Confidence.LOW;
-  const hasMissingVerificationMethodHint = verificationMethod === 0;
-  const hasApprovalValidationHints = hasLowConfidenceHint || hasMissingVerificationMethodHint;
+  const hasApprovalValidationHints = hasLowConfidenceHint;
 
   // Audio recording state
   const [reviewAudioFile, setReviewAudioFile] = useState<File | null>(null);
@@ -84,7 +79,7 @@ export function ReviewForm({
     // Validate form data manually since approval/rejection isn't a form field
     const formData = {
       confidence: approved ? confidence : Confidence.NONE,
-      verificationMethod: approved ? verificationMethod : 0,
+      verificationMethod: approved ? VerificationMethod.HUMAN : 0,
       feedback: getValues("feedback"),
     };
 
@@ -92,10 +87,6 @@ export function ReviewForm({
     if (approved) {
       if (formData.confidence < Confidence.LOW) {
         // Can't approve with NONE confidence
-        return;
-      }
-      if (formData.verificationMethod === 0) {
-        // Must select at least 1 verification method
         return;
       }
     }
@@ -257,30 +248,6 @@ export function ReviewForm({
                   />
                 </div>
 
-                {/* Method Selector */}
-                <div>
-                  <span
-                    className="mb-1.5 block text-sm font-medium text-text-strong"
-                    id="method-label"
-                  >
-                    {formatMessage({ id: "app.work.detail.verificationMethods" })}
-                    <span className="ml-1 text-xs text-text-soft">
-                      ({formatMessage({ id: "app.work.detail.selectAllThatApply" })})
-                    </span>
-                  </span>
-                  <Controller
-                    name="verificationMethod"
-                    control={control}
-                    render={({ field }) => (
-                      <MethodSelector
-                        value={field.value}
-                        onChange={field.onChange}
-                        aria-labelledby="method-label"
-                      />
-                    )}
-                  />
-                </div>
-
                 {/* Feedback textarea */}
                 <div>
                   <label
@@ -374,11 +341,6 @@ export function ReviewForm({
                     {hasLowConfidenceHint && (
                       <p className="text-xs text-warning-dark">
                         {formatMessage({ id: "app.work.detail.hint.lowConfidence" })}
-                      </p>
-                    )}
-                    {hasMissingVerificationMethodHint && (
-                      <p className="text-xs text-warning-dark">
-                        {formatMessage({ id: "app.work.detail.hint.missingMethod" })}
                       </p>
                     )}
                   </div>

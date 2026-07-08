@@ -60,7 +60,7 @@ const meta: Meta<typeof CommunityTab> = {
     docs: {
       description: {
         component:
-          "Community tab of the garden detail route. Composes `GardenCommunityCard`, `GardenYieldCard`, and the role-summary grid. All inputs are plain props so every section state is reviewable.",
+          "Community tab of the garden detail route. Reviews the recovered IA for member directory, coordination proposals, direct endowment vaults, and per-jar payouts with contextual right rails.",
       },
     },
   },

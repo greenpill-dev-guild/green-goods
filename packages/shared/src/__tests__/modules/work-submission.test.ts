@@ -143,6 +143,11 @@ describe("modules/work-submission", () => {
     );
     expect(tx.txHash.startsWith("0xoffline_")).toBe(true);
     expect(jobQueue.addJob).toHaveBeenCalled();
+    expect(vi.mocked(jobQueue.addJob).mock.calls[0]?.[1]).toEqual(
+      expect.objectContaining({
+        title: "Act",
+      })
+    );
   });
 
   it("queues approval jobs", async () => {

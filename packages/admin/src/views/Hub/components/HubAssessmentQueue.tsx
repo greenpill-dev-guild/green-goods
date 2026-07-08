@@ -2,38 +2,41 @@ import {
   Alert,
   EmptyState,
   EmptyStateShell,
-  formatRelativeTime,
-  resolveIPFSUrl,
+  type HubActionSummary,
   type Work,
   useEnsName,
-  WorkbenchList,
-  WorkbenchRow,
 } from "@green-goods/shared";
 import { RiFileList3Line } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { formatEnsAddressName } from "@/components/EnsAddressText";
+import { HubWorkCard } from "./HubWorkCard";
 import { HubWorkbenchSkeletonRows } from "./HubWorkbenchSkeletonRows";
 
 interface HubAssessmentQueueProps {
   items: Work[];
   worksLoading: boolean;
   hasDataError: boolean;
-  actionsMap: Map<number, { title: string }>;
+  actionsMap: Map<number, HubActionSummary>;
+  selectedGardenName?: string;
   selectedWorkId: string | undefined;
   onOpenWorkDetail: (workId: string) => void;
 }
 
 interface HubAssessmentQueueItemProps {
   work: Work;
-  actionTitle?: string;
+  actionSummary?: HubActionSummary;
+  selectedGardenName?: string;
   selected: boolean;
+  eagerImages?: boolean;
   onOpenWorkDetail: (workId: string) => void;
 }
 
 function HubAssessmentQueueItem({
   work,
-  actionTitle,
+  actionSummary,
+  selectedGardenName,
   selected,
+  eagerImages,
   onOpenWorkDetail,
 }: HubAssessmentQueueItemProps) {
   const { formatMessage } = useIntl();
@@ -41,29 +44,20 @@ function HubAssessmentQueueItem({
   const gardenerDisplayName = formatEnsAddressName(work.gardenerAddress, ensName);
 
   return (
-    <WorkbenchRow
-      eyebrow={formatMessage({ id: "cockpit.hub.tab.assess", defaultMessage: "Assess" })}
-      title={
-        work.title ||
-        formatMessage({
-          id: "app.admin.work.untitledWork",
-          defaultMessage: "Untitled Work",
-        })
+    <HubWorkCard
+      work={work}
+      actionDomain={actionSummary?.domain}
+      actionTitle={actionSummary?.title}
+      gardenName={
+        selectedGardenName ?? formatMessage({ id: "cockpit.nav.hub", defaultMessage: "Hub" })
       }
-      description={actionTitle ? `${actionTitle} · ${gardenerDisplayName}` : gardenerDisplayName}
-      // Garden name removed from meta — chrome already shows it (Rule 17).
-      meta={[
-        formatMessage({ id: "app.admin.work.filter.approved", defaultMessage: "Approved" }),
-        formatRelativeTime(work.createdAt),
-      ]}
+      gardenerDisplayName={gardenerDisplayName}
       statusLabel={formatMessage({
         id: "app.admin.work.filter.approved",
         defaultMessage: "Approved",
       })}
-      statusTone="approved"
-      leadingIcon={RiFileList3Line}
-      thumbnailSrc={work.media[0] ? `${resolveIPFSUrl(work.media[0])}?w=160&h=160` : null}
       selected={selected}
+      eagerImages={eagerImages}
       onClick={() => onOpenWorkDetail(work.id)}
     />
   );
@@ -74,6 +68,7 @@ export function HubAssessmentQueue({
   worksLoading,
   hasDataError,
   actionsMap,
+  selectedGardenName,
   selectedWorkId,
   onOpenWorkDetail,
 }: HubAssessmentQueueProps) {
@@ -93,7 +88,7 @@ export function HubAssessmentQueue({
   }
 
   if (worksLoading) {
-    return <HubWorkbenchSkeletonRows count={5} />;
+    return <HubWorkbenchSkeletonRows count={5} variant="media-card" />;
   }
 
   if (items.length === 0) {
@@ -115,19 +110,22 @@ export function HubAssessmentQueue({
   }
 
   return (
-    <WorkbenchList>
-      {items.map((work) => {
-        const actionTitle = actionsMap.get(work.actionUID)?.title;
+    <ul className="hub-workbench-grid" role="list">
+      {items.map((work, index) => {
+        const actionSummary = actionsMap.get(work.actionUID);
         return (
-          <HubAssessmentQueueItem
-            key={work.id}
-            work={work}
-            actionTitle={actionTitle}
-            selected={selectedWorkId === work.id}
-            onOpenWorkDetail={onOpenWorkDetail}
-          />
+          <li key={work.id} className="min-w-0">
+            <HubAssessmentQueueItem
+              work={work}
+              actionSummary={actionSummary}
+              selectedGardenName={selectedGardenName}
+              selected={selectedWorkId === work.id}
+              eagerImages={index < 6}
+              onOpenWorkDetail={onOpenWorkDetail}
+            />
+          </li>
         );
       })}
-    </WorkbenchList>
+    </ul>
   );
 }

@@ -42,7 +42,7 @@ export function VaultActionRouteDialog({ action, gardenAddress }: VaultActionRou
   } = useGardenVaults(dialogGardenId, {
     enabled: Boolean(action && dialogGardenId),
   });
-  const closeTo = adminRoutes.communityTreasuryVault({ gardenId: dialogGardenId });
+  const closeTo = adminRoutes.communityEndowmentVault({ gardenId: dialogGardenId });
   const handleClose = useCallback(() => navigate(closeTo), [closeTo, navigate]);
 
   if (!action) return null;

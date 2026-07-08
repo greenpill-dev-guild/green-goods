@@ -76,16 +76,13 @@ export default function CommunityView() {
         title={formatMessage({ id: "cockpit.community.title", defaultMessage: "Community" })}
         description={formatMessage({
           id: "cockpit.community.description",
-          defaultMessage: "Treasury, governance, and payouts for the garden's community.",
+          defaultMessage: "Members, coordination, endowment, and payouts for the garden community.",
         })}
         metadata={
           headerStats.length > 0 ? <MetaStrip items={headerStats} density="inline" /> : undefined
         }
         actions={
           isDesktop && community.desktopActions.length > 0 ? (
-            // Stable trio, always visible regardless of mode: Manage members,
-            // Deposit / withdraw (owner-gated), Register hypercert (fixed primary).
-            // Payouts stays outlined (its panel owns actions).
             <AdminViewActions items={community.desktopActions} />
           ) : undefined
         }
@@ -101,20 +98,28 @@ export default function CommunityView() {
           onChange={community.handleModeChange}
           tabs={[
             {
-              id: "treasury",
+              id: "members",
               label: formatMessage({
-                id: "cockpit.community.treasury",
-                defaultMessage: "Treasury",
+                id: "cockpit.community.members",
+                defaultMessage: "Members",
               }),
-              count: community.derived.hasVaults ? 1 : undefined,
+              count: community.derived.directoryEntries.length || undefined,
             },
             {
-              id: "governance",
+              id: "coordination",
               label: formatMessage({
-                id: "cockpit.community.governance",
-                defaultMessage: "Governance",
+                id: "cockpit.community.coordination",
+                defaultMessage: "Coordination",
               }),
               count: community.pools.length || undefined,
+            },
+            {
+              id: "endowment",
+              label: formatMessage({
+                id: "cockpit.community.endowment",
+                defaultMessage: "Endowment",
+              }),
+              count: community.derived.hasVaults ? 1 : undefined,
             },
             {
               id: "payouts",

@@ -1,4 +1,4 @@
-import type { ActivityEvent, HubPipelineStage, Work } from "@green-goods/shared";
+import type { ActivityEvent, HubActionSummary, HubPipelineStage, Work } from "@green-goods/shared";
 import { HubAssessmentQueue } from "./HubAssessmentQueue";
 import { HubCertificationQueue } from "./HubCertificationQueue";
 import { HubHistoryQueue } from "./HubHistoryQueue";
@@ -25,7 +25,8 @@ interface HubStageContentProps {
   hasDataError: boolean;
   normalizedSearch: string;
   debouncedSearch: string;
-  actionsMap: Map<number, { title: string }>;
+  actionsMap: Map<number, HubActionSummary>;
+  selectedGardenName?: string;
   selectedWorkId: string | undefined;
   selectedCertificationId: string | undefined;
   selectedHistoryEventId: string | undefined;
@@ -50,6 +51,7 @@ export function HubStageContent({
   normalizedSearch,
   debouncedSearch,
   actionsMap,
+  selectedGardenName,
   selectedWorkId,
   selectedCertificationId,
   selectedHistoryEventId,
@@ -68,6 +70,7 @@ export function HubStageContent({
         normalizedSearch={normalizedSearch}
         debouncedSearch={debouncedSearch}
         actionsMap={actionsMap}
+        selectedGardenName={selectedGardenName}
         selectedWorkId={selectedWorkId}
         onOpenWorkDetail={onOpenWorkDetail}
         onClearSearch={onClearSearch}
@@ -82,6 +85,7 @@ export function HubStageContent({
         worksLoading={worksLoading}
         hasDataError={hasDataError}
         actionsMap={actionsMap}
+        selectedGardenName={selectedGardenName}
         selectedWorkId={selectedWorkId}
         onOpenWorkDetail={onOpenWorkDetail}
       />
@@ -111,7 +115,7 @@ export function HubStageContent({
       allocationsLoading={allocationsLoading}
       hasDataError={hasDataError}
       selectedHistoryEventId={selectedHistoryEventId}
-      selectedWorkItemId={selectedWorkId}
+      selectedWorkId={selectedWorkId}
       onOpenHistoryEvent={onOpenHistoryEvent}
     />
   );

@@ -1,18 +1,17 @@
 /**
- * View-action grammar tests — one fixed primary per view.
+ * View-action grammar tests.
  *
- * Every workspace builder returns the SAME action set, in the SAME order, on
- * every tab, and declares ONE fixed primary action (filled, rendered rightmost
- * by AdminViewActions) that does NOT move with the active tab. These tests pin:
+ * Hub, Garden, and Community keep fixed header actions. Community exposes the
+ * same four coordination actions on every tab, with tab bodies carrying the
+ * detail work.
  *
  *   1. id/order stability across tabs (button positions never shift),
- *   2. exactly one fixed `primary` per view — Hub→submit-work,
- *      Garden→edit-garden, Community→register-hypercert — independent of the tab,
+ *   2. exactly one `primary` per active action set,
  *   3. the primary opens its flow directly on first click (no select-then-act),
  *   4. real targets only (no self-nav, no removed edit-domains header action),
  *   5. role/ownership gating still blanks unavailable actions.
  *
- * Supersedes the earlier "stable trio, active-tab filled" grammar.
+ * Supersedes the earlier tab-specific Community action grammar.
  */
 
 import { describe, expect, it, vi } from "vitest";
@@ -30,8 +29,7 @@ import { buildHubViewActions, type HubPipelineStage } from "../../../hooks/admin
 const GARDEN = "0xabcabcabcabcabcabcabcabcabcabcabcabcabca";
 
 const HUB_STAGES: HubPipelineStage[] = ["work", "assess", "certify", "history"];
-const GARDEN_VIEWS: GardenWorkspaceView[] = ["overview", "activity", "settings"];
-const COMMUNITY_MODES: CommunityWorkspaceMode[] = ["treasury", "governance", "payouts"];
+const GARDEN_VIEWS: GardenWorkspaceView[] = ["health", "impact", "activity"];
 
 function visibleIds(actions: Array<{ id: string; visible?: boolean }>): string[] {
   return actions.filter((action) => action.visible !== false).map((action) => action.id);
@@ -139,79 +137,113 @@ describe("buildGardenViewActions — fixed primary", () => {
   });
 
   it("leaves only the public link for viewers who cannot manage", () => {
-    const actions = buildGardenViewActions("overview", false, true, vi.fn(), {
+    const actions = buildGardenViewActions("health", false, true, vi.fn(), {
       gardenAddress: GARDEN,
     });
     expect(visibleIds(actions)).toEqual(["view-public"]);
   });
 });
 
-describe("buildCommunityViewActions — fixed primary", () => {
+describe("buildCommunityViewActions — fixed Community header", () => {
   const buildFor = (mode: CommunityWorkspaceMode, { canManage = true, isOwner = true } = {}) =>
     buildCommunityViewActions(mode, canManage, isOwner, true, vi.fn(), {
       gardenAddress: GARDEN,
     });
 
   it("keeps the same action ids and order on every mode", () => {
-    const expected = ["manage-members", "deposit-withdraw", "register-hypercert"];
-    for (const mode of COMMUNITY_MODES) {
+    const expected = ["add-member", "register-proposal", "deposit-withdraw", "fund-payout-jar"];
+    for (const mode of ["members", "coordination", "endowment", "payouts"] as const) {
       expect(visibleIds(buildFor(mode))).toEqual(expected);
     }
   });
 
-  it("declares register-hypercert as the fixed primary on every mode", () => {
-    for (const mode of COMMUNITY_MODES) {
-      expect(primaryIds(buildFor(mode))).toEqual(["register-hypercert"]);
+  it("declares Add member as the fixed primary on every mode", () => {
+    for (const mode of ["members", "coordination", "endowment", "payouts"] as const) {
+      expect(primaryIds(buildFor(mode))).toEqual(["add-member"]);
     }
   });
 
-  it("labels and routes the governance action to the hypercert signal pool register flow", () => {
+  it("renders only Add member as the filled desktop action", () => {
+    const actions = buildFor("members");
+
+    expect(
+      actions.filter((action) => action.visible !== false && action.variant === "primary")
+    ).toEqual([expect.objectContaining({ id: "add-member" })]);
+    expect(
+      actions
+        .filter((action) => action.visible !== false && action.id !== "add-member")
+        .map((action) => action.variant)
+    ).toEqual(["secondary", "secondary", "secondary"]);
+  });
+
+  it("labels and routes Register proposal to the coordination signal pool flow", () => {
     const navigate = vi.fn();
-    const actions = buildCommunityViewActions("governance", true, false, true, navigate, {
+    const actions = buildCommunityViewActions("coordination", true, false, true, navigate, {
       gardenAddress: GARDEN,
     });
 
-    const action = actions.find((item) => item.id === "register-hypercert");
-    expect(action?.label).toBe("Register hypercert");
-    expect(action?.labelId).toBe("cockpit.community.action.registerHypercert");
+    const action = actions.find((item) => item.id === "register-proposal");
+    expect(action?.label).toBe("Register proposal");
+    expect(action?.labelId).toBe("cockpit.community.action.registerProposal");
 
     action?.onClick();
     expect(navigate).toHaveBeenCalledTimes(1);
-    expect(navigate.mock.calls[0]?.[0]).toContain("/community/governance/signal-pool/hypercert");
+    expect(navigate.mock.calls[0]?.[0]).toContain("/community/coordination/signal-pool/hypercert");
     expect(navigate.mock.calls[0]?.[0]).toContain(GARDEN);
   });
 
-  it("links Manage members to the community-owned members flow", () => {
+  it("links Add member to the community-owned members flow", () => {
     const navigate = vi.fn();
-    buildCommunityViewActions("treasury", true, false, true, navigate, {
+    buildCommunityViewActions("members", true, false, true, navigate, {
       gardenAddress: GARDEN,
     })
-      .find((action) => action.id === "manage-members")
+      .find((action) => action.id === "add-member")
       ?.onClick();
     expect(navigate).toHaveBeenCalledTimes(1);
     // Community owns membership — the flow must stay under /community so the
     // NavigationBar tab does not flip to Garden while the dialog is open.
     expect(navigate.mock.calls[0]?.[0]).toContain("/community/members");
+    expect(navigate.mock.calls[0]?.[0]).toContain("item=add-member");
   });
 
-  it("links Deposit / withdraw to the route-backed treasury vault surface", () => {
+  it("links Deposit / withdraw to the route-backed endowment vault surface", () => {
     const navigate = vi.fn();
-    buildCommunityViewActions("treasury", true, true, true, navigate, {
+    buildCommunityViewActions("endowment", true, true, true, navigate, {
       gardenAddress: GARDEN,
     })
       .find((action) => action.id === "deposit-withdraw")
       ?.onClick();
 
     expect(navigate).toHaveBeenCalledTimes(1);
-    expect(navigate.mock.calls[0]?.[0]).toContain("/community/treasury/vault");
+    expect(navigate.mock.calls[0]?.[0]).toContain("/community/endowment/vault");
+    expect(navigate.mock.calls[0]?.[0]).toContain(GARDEN);
+  });
+
+  it("links Fund payout jar to the route-backed payouts surface", () => {
+    const navigate = vi.fn();
+    buildCommunityViewActions("payouts", true, true, true, navigate, {
+      gardenAddress: GARDEN,
+    })
+      .find((action) => action.id === "fund-payout-jar")
+      ?.onClick();
+
+    expect(navigate).toHaveBeenCalledTimes(1);
+    expect(navigate.mock.calls[0]?.[0]).toContain("/community/payouts");
+    expect(navigate.mock.calls[0]?.[0]).toContain("item=fund-jar");
     expect(navigate.mock.calls[0]?.[0]).toContain(GARDEN);
   });
 
   it("gates owner and management actions without duplicating the public link", () => {
-    expect(visibleIds(buildFor("treasury", { isOwner: false }))).toEqual([
-      "manage-members",
-      "register-hypercert",
+    expect(visibleIds(buildFor("endowment", { canManage: false, isOwner: true }))).toEqual([
+      "deposit-withdraw",
     ]);
-    expect(visibleIds(buildFor("treasury", { canManage: false, isOwner: false }))).toEqual([]);
+    expect(visibleIds(buildFor("members", { canManage: true, isOwner: false }))).toEqual([
+      "add-member",
+      "register-proposal",
+      "fund-payout-jar",
+    ]);
+    expect(visibleIds(buildFor("coordination", { canManage: false, isOwner: false }))).toEqual(
+      []
+    );
   });
 });

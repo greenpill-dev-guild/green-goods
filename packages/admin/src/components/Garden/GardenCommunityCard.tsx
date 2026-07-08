@@ -52,6 +52,7 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
   const weightSchemeLabel = community ? WeightScheme[community.weightScheme] : undefined;
 
   const { wiringState, wiringStatus, repairHref } = useGardenYieldWiringState(_gardenId as Address);
+  const gardenRouteContext = { gardenId: _gardenId };
   const showWiringSection = Boolean(community) && pools.length > 0;
   const expectedHypercertPoolKnown = Boolean(wiringState?.expectedHypercertPoolAddress);
   const canShowReconnectLink =
@@ -216,7 +217,7 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
             {canManage && (
               <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
                 <Link
-                  to={adminRoutes.communityGovernanceSignalPool("hypercert")}
+                  to={adminRoutes.communityCoordinationSignalPool("hypercert", gardenRouteContext)}
                   className="text-xs font-medium text-primary-dark hover:text-primary-darker"
                 >
                   {formatMessage({ id: "app.signal.viewHypercertPool" })}
@@ -225,7 +226,7 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
                   &middot;
                 </span>
                 <Link
-                  to={adminRoutes.communityGovernanceSignalPool("action")}
+                  to={adminRoutes.communityCoordinationSignalPool("action", gardenRouteContext)}
                   className="text-xs font-medium text-primary-dark hover:text-primary-darker"
                 >
                   {formatMessage({ id: "app.signal.viewActionPool" })}
@@ -234,7 +235,7 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
                   &middot;
                 </span>
                 <Link
-                  to={adminRoutes.communityGovernanceStrategies()}
+                  to={adminRoutes.communityCoordinationStrategies(gardenRouteContext)}
                   className="text-xs font-medium text-primary-dark hover:text-primary-darker"
                 >
                   {formatMessage({ id: "app.conviction.manageStrategies" })}

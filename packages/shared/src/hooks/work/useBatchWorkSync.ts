@@ -23,6 +23,7 @@ import type { Job, WorkJobPayload } from "../../types/job-queue";
 import { TX_RECEIPT_TIMEOUT_MS } from "../../utils/blockchain/polling";
 import { encodeWorkData } from "../../utils/eas/encoders";
 import { buildBatchWorkAttestTx } from "../../utils/eas/transaction-builder";
+import { resolveWorkSubmissionTitle } from "../../utils/work/workTitles";
 import { usePrimaryAddress } from "../auth/usePrimaryAddress";
 import { useUser } from "../auth/useUser";
 import { queryKeys } from "../../config/query-keys";
@@ -39,14 +40,17 @@ interface EncodedWorkJob {
   attestationData: `0x${string}`;
 }
 
-function toWorkDraft(payload: WorkJobPayload, mediaFiles: File[], createdAt: number): WorkDraft {
+function toWorkDraft(payload: WorkJobPayload, mediaFiles: File[]): WorkDraft {
   // Separate audio from visual media
   const audioFiles = mediaFiles.filter((f) => f.type.startsWith("audio/"));
   const visualFiles = mediaFiles.filter((f) => !f.type.startsWith("audio/"));
 
   return {
     actionUID: payload.actionUID,
-    title: payload.title || `Action ${payload.actionUID} - ${new Date(createdAt).toISOString()}`,
+    title: resolveWorkSubmissionTitle({
+      draftTitle: payload.title,
+      actionUID: payload.actionUID,
+    }),
     feedback: payload.feedback,
     media: visualFiles,
     details: payload.details ?? {},
@@ -92,7 +96,7 @@ export function useBatchWorkSync() {
         pendingJobs.map(async ({ job, images }): Promise<EncodedWorkJob> => {
           const payload = job.payload as WorkJobPayload;
           const mediaFiles = images.map((image) => image.file);
-          const draft = toWorkDraft(payload, mediaFiles, job.createdAt);
+          const draft = toWorkDraft(payload, mediaFiles);
 
           const attestationData = await encodeWorkData(draft, chainId, {
             gardenAddress: payload.gardenAddress,

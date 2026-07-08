@@ -108,7 +108,7 @@ describe("modules/work/bot-submission", () => {
 
       expect(encodeWorkData).toHaveBeenCalledWith(
         expect.objectContaining({
-          title: expect.stringContaining("Community Cleanup"),
+          title: "Community Cleanup",
           actionUID: 42,
         }),
         11155111

@@ -482,5 +482,10 @@ export {
   collectApprovedWorkUIDs,
   filterPendingNeedsReview,
 } from "./work/pending-review";
+export {
+  resolveWorkSubmissionTitle,
+  stripGeneratedWorkTitleTimestamp,
+} from "./work/workTitles";
+export type { ResolveWorkSubmissionTitleInput } from "./work/workTitles";
 export type { WorkData } from "./work/workActions";
 export { downloadWorkData, downloadWorkMedia, shareWork } from "./work/workActions";

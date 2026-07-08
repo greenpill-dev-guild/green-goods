@@ -24,7 +24,7 @@ interface CommunityCanvasStoryProps {
   initialPath?: string;
 }
 
-function CommunityCanvasStory({ initialPath = "/community/treasury" }: CommunityCanvasStoryProps) {
+function CommunityCanvasStory({ initialPath = "/community/endowment" }: CommunityCanvasStoryProps) {
   return <StorybookAdminCanvasRoute initialPath={initialPath} />;
 }
 
@@ -37,7 +37,7 @@ const meta: Meta<typeof CommunityCanvasStory> = {
     docs: {
       description: {
         component:
-          "Seeded Community workspace coverage through the real CanvasLayout shell, including treasury, governance pools, payouts, members, and route-backed detail entry points.",
+          "Seeded Community workspace coverage through the real CanvasLayout shell, including members, coordination pools, endowment vaults, payouts, and route-backed detail entry points.",
       },
     },
   },
@@ -59,11 +59,11 @@ function communityDecorators() {
   ];
 }
 
-export const Treasury: Story = {
-  // Not in storybook-ci: the treasury play needs live indexer/vault + analytics data the
+export const Endowment: Story = {
+  // Not in storybook-ci: the endowment play needs live indexer/vault + analytics data the
   // clean-room CI browser can't reach (getGardenVaults / Analytics SDK "Failed to fetch"),
   // so the garden name never renders offline. Kept for local/authenticated Storybook review.
-  args: { initialPath: "/community/treasury" },
+  args: { initialPath: "/community/endowment" },
   decorators: communityDecorators(),
   play: async ({ canvasElement }) => {
     await withTemporaryDocumentTheme("dark", async () => {
@@ -99,7 +99,7 @@ export const VaultInspector: Story = {
   // Not in storybook-ci: the vault inspector needs live indexer/vault data the clean-room
   // CI browser can't reach, so it renders empty offline. Kept for local/authenticated
   // Storybook review.
-  args: { initialPath: "/community/treasury/vault" },
+  args: { initialPath: "/community/endowment/vault" },
   decorators: communityDecorators(),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
@@ -142,14 +142,14 @@ export const VaultInspector: Story = {
   },
 };
 
-export const GovernancePools: Story = {
+export const CoordinationPools: Story = {
   tags: ["visual-harness"],
-  args: { initialPath: "/community/governance" },
+  args: { initialPath: "/community/coordination" },
   decorators: communityDecorators(),
 };
 
-export const GovernanceStrategiesInspector: Story = {
-  args: { initialPath: "/community/governance/strategies" },
+export const CoordinationStrategiesInspector: Story = {
+  args: { initialPath: "/community/coordination/strategies" },
   decorators: communityDecorators(),
   play: async ({ canvasElement: _canvasElement }) => {
     const body = within(document.body);
@@ -167,7 +167,7 @@ export const GovernanceStrategiesInspector: Story = {
 
 export const SignalPoolInspector: Story = {
   tags: ["visual-harness"],
-  args: { initialPath: "/community/governance/signal-pool/action" },
+  args: { initialPath: "/community/coordination/signal-pool/action" },
   decorators: communityDecorators(),
 };
 

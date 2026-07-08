@@ -3,6 +3,7 @@ import { getEASConfig } from "../../config/blockchain";
 import type { Address, WorkApprovalDraft, WorkDraft } from "../../types/domain";
 import { encodeWorkApprovalData, encodeWorkData } from "../../utils/eas/encoders";
 import { buildApprovalAttestTx, buildWorkAttestTx } from "../../utils/eas/transaction-builder";
+import { resolveWorkSubmissionTitle } from "../../utils/work/workTitles";
 
 /**
  * Submit work using a provided WalletClient (Node.js compatible)
@@ -29,7 +30,7 @@ export async function submitWorkBot(
   const attestationData = await encodeWorkData(
     {
       ...draft,
-      title: `${actionTitle} - ${new Date().toISOString()}`,
+      title: resolveWorkSubmissionTitle({ draftTitle: draft.title, actionTitle, actionUID }),
       actionUID,
       media: mediaFiles,
     },

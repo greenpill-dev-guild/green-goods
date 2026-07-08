@@ -5,7 +5,12 @@ import {
   type MetaStripItem,
   type ViewAction,
 } from "@green-goods/shared";
-import { RiMedalLine, RiMoneyDollarCircleLine, RiUserLine } from "@remixicon/react";
+import {
+  RiHandCoinLine,
+  RiMedalLine,
+  RiMoneyDollarCircleLine,
+  RiUserAddLine,
+} from "@remixicon/react";
 
 /**
  * Inputs for the Community header stats slot.
@@ -22,8 +27,8 @@ export interface CommunityHeaderStatsInput {
 
 /**
  * Build the inline MetaStrip items rendered in the Community header. The tab
- * rail already carries the People / Governance / Payouts *counts*, so the
- * header complements them with the treasury *magnitudes* the tabs don't show.
+ * rail already carries the workspace counts, so the header complements them
+ * with the endowment and payout magnitudes the tabs do not show.
  * Returns [] when no garden is selected so the metadata slot stays clean during
  * the workspace selection gate. Per audit §5.6, the slot must NOT include the
  * garden name.
@@ -48,7 +53,7 @@ export function buildCommunityHeaderStats({
       value: formatTokenAmount(vaultNetDeposited),
       label: formatMessage({
         id: "cockpit.community.stats.treasury",
-        defaultMessage: "treasury",
+        defaultMessage: "endowment",
       }),
     },
   ];
@@ -67,33 +72,34 @@ export function buildCommunityHeaderStats({
   return items;
 }
 
-export type CommunityWorkspaceMode = "treasury" | "governance" | "payouts";
+export type CommunityWorkspaceMode = "members" | "coordination" | "endowment" | "payouts";
 
 export function resolveCommunityMode(pathname: string): CommunityWorkspaceMode {
-  if (pathname.startsWith("/community/governance")) return "governance";
+  if (pathname.startsWith("/community/members")) return "members";
+  if (
+    pathname.startsWith("/community/coordination") ||
+    pathname.startsWith("/community/governance")
+  ) {
+    return "coordination";
+  }
   if (pathname.startsWith("/community/payouts")) return "payouts";
-  return "treasury";
+  return "endowment";
 }
 
 export function communitySectionForMode(mode: CommunityWorkspaceMode) {
-  if (mode === "governance") return "governance";
-  if (mode === "payouts") return "cookie-jars";
-  return mode;
+  if (mode === "members") return "members";
+  if (mode === "coordination") return "coordination";
+  if (mode === "payouts") return "payouts";
+  return "endowment";
 }
 
 /**
- * Community view-level actions — stable trio: the same set renders on every
- * mode, in the same order, so positions never shift between tabs. Register
- * hypercert is the fixed primary; the remaining actions stay secondary/ghost
- * so emphasis no longer follows the active mode:
- *
- * - Register hypercert opens the hypercert signal-pool sheet.
- * - Deposit / withdraw stays owner-gated and secondary.
- * - Manage members opens the community-owned members flow (/community/members)
- *   so the workspace stays on Community while the dialog is open.
+ * Community view-level actions. The set is stable across Community tabs so
+ * desktop button positions and the mobile FAB speed dial do not shift while
+ * operators move between Members, Coordination, Endowment, and Payouts.
  */
 export function buildCommunityViewActions(
-  mode: CommunityWorkspaceMode,
+  _mode: CommunityWorkspaceMode,
   canManage: boolean,
   isOwner: boolean,
   hasSelectedGarden: boolean,
@@ -102,36 +108,48 @@ export function buildCommunityViewActions(
 ): ViewAction[] {
   const gardenAddress = routeContext?.gardenAddress;
   // "View public" lives once, on the Garden workspace — not duplicated here.
-  return [
+  const actions: ViewAction[] = [
     {
-      id: "manage-members",
-      label: "Manage members",
-      labelId: "cockpit.community.action.manageMembers",
-      icon: RiUserLine,
-      onClick: () => navigate(adminRoutes.communityMembers({ gardenId: gardenAddress })),
+      id: "add-member",
+      label: "Add member",
+      labelId: "cockpit.community.action.addMember",
+      icon: RiUserAddLine,
+      onClick: () =>
+        navigate(adminRoutes.communityMembers({ gardenId: gardenAddress, item: "add-member" })),
+      variant: "primary",
+      visible: hasSelectedGarden && canManage,
+      primary: true,
+    },
+    {
+      id: "register-proposal",
+      label: "Register proposal",
+      labelId: "cockpit.community.action.registerProposal",
+      icon: RiMedalLine,
+      onClick: () =>
+        navigate(adminRoutes.communityCoordinationSignalPool("hypercert", routeContext)),
       variant: "secondary",
       visible: hasSelectedGarden && canManage,
-      primary: false,
     },
     {
       id: "deposit-withdraw",
       label: "Deposit / withdraw",
       labelId: "cockpit.community.action.depositWithdraw",
       icon: RiMoneyDollarCircleLine,
-      onClick: () => navigate(adminRoutes.communityTreasuryVault(routeContext)),
+      onClick: () => navigate(adminRoutes.communityEndowmentVault(routeContext)),
       variant: "secondary",
       visible: hasSelectedGarden && isOwner,
-      primary: false,
     },
     {
-      id: "register-hypercert",
-      label: "Register hypercert",
-      labelId: "cockpit.community.action.registerHypercert",
-      icon: RiMedalLine,
-      onClick: () => navigate(adminRoutes.communityGovernanceSignalPool("hypercert", routeContext)),
-      variant: "primary",
+      id: "fund-payout-jar",
+      label: "Fund payout jar",
+      labelId: "cockpit.community.action.fundPayoutJar",
+      icon: RiHandCoinLine,
+      onClick: () =>
+        navigate(adminRoutes.communityPayouts({ gardenId: gardenAddress, item: "fund-jar" })),
+      variant: "secondary",
       visible: hasSelectedGarden && canManage,
-      primary: true,
     },
   ];
+
+  return actions;
 }

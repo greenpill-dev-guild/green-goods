@@ -29,9 +29,9 @@ export function CommunitySheetDescriptor({
   const communitySheet = useMemo(() => {
     if (isVaultRoute) {
       return {
-        title: formatMessage({ id: "app.treasury.title" }),
+        title: formatMessage({ id: "cockpit.community.endowment" }),
         content: <GardenVaultView layout="sheet" />,
-        closeTo: adminRoutes.communityTreasury({ gardenId: gardenAddress }),
+        closeTo: adminRoutes.communityEndowment({ gardenId: gardenAddress }),
         size: "lg" as const,
         tone: "community" as const,
       };
@@ -41,7 +41,7 @@ export function CommunitySheetDescriptor({
       return {
         title: formatMessage({ id: "app.conviction.title" }),
         content: <GardenStrategiesView layout="sheet" />,
-        closeTo: adminRoutes.communityGovernance({ gardenId: gardenAddress }),
+        closeTo: adminRoutes.communityCoordination({ gardenId: gardenAddress }),
         size: "lg" as const,
         tone: "community" as const,
       };
@@ -56,7 +56,7 @@ export function CommunitySheetDescriptor({
               : "app.signal.hypercertPool.title",
         }),
         content: <GardenSignalPoolView layout="sheet" />,
-        closeTo: adminRoutes.communityGovernance({ gardenId: gardenAddress }),
+        closeTo: adminRoutes.communityCoordination({ gardenId: gardenAddress }),
         size: "lg" as const,
         tone: "community" as const,
       };

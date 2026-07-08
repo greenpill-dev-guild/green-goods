@@ -42,13 +42,26 @@ export function useCommunityWorkspaceController() {
   const lastHydratedGardenStateKeyRef = useRef<string | null>(null);
   const [memberSearch, setMemberSearchState] = useState("");
 
-  const isVaultDepositRoute = location.pathname.startsWith("/community/treasury/vault/deposit");
-  const isVaultWithdrawRoute = location.pathname.startsWith("/community/treasury/vault/withdraw");
+  const isVaultDepositRoute =
+    location.pathname.startsWith("/community/endowment/vault/deposit") ||
+    location.pathname.startsWith("/community/resources/vault/deposit") ||
+    location.pathname.startsWith("/community/treasury/vault/deposit");
+  const isVaultWithdrawRoute =
+    location.pathname.startsWith("/community/endowment/vault/withdraw") ||
+    location.pathname.startsWith("/community/resources/vault/withdraw") ||
+    location.pathname.startsWith("/community/treasury/vault/withdraw");
   const vaultAction = isVaultDepositRoute ? "deposit" : isVaultWithdrawRoute ? "withdraw" : null;
   const isVaultRoute =
-    location.pathname.startsWith("/community/treasury/vault") && vaultAction === null;
-  const isStrategiesRoute = location.pathname.startsWith("/community/governance/strategies");
-  const isSignalPoolRoute = location.pathname.startsWith("/community/governance/signal-pool/");
+    (location.pathname.startsWith("/community/endowment/vault") ||
+      location.pathname.startsWith("/community/resources/vault") ||
+      location.pathname.startsWith("/community/treasury/vault")) &&
+    vaultAction === null;
+  const isStrategiesRoute =
+    location.pathname.startsWith("/community/coordination/strategies") ||
+    location.pathname.startsWith("/community/governance/strategies");
+  const isSignalPoolRoute =
+    location.pathname.startsWith("/community/coordination/signal-pool/") ||
+    location.pathname.startsWith("/community/governance/signal-pool/");
   const selectedItem = searchParams.get("item") ?? poolType ?? null;
   const sheetOpen = isVaultRoute || vaultAction !== null || isStrategiesRoute || isSignalPoolRoute;
 
@@ -153,22 +166,39 @@ export function useCommunityWorkspaceController() {
   const handleModeChange = useCallback(
     (nextMode: string) =>
       navigate(
-        nextMode === "governance"
-          ? adminRoutes.communityGovernance({ gardenId: selectedGardenAddress })
-          : nextMode === "payouts"
-            ? adminRoutes.communityPayouts({ gardenId: selectedGardenAddress })
-            : adminRoutes.communityTreasury({ gardenId: selectedGardenAddress })
+        nextMode === "coordination"
+          ? adminRoutes.communityCoordination({ gardenId: selectedGardenAddress })
+          : nextMode === "endowment"
+            ? adminRoutes.communityEndowment({ gardenId: selectedGardenAddress })
+            : nextMode === "payouts"
+              ? adminRoutes.communityPayouts({ gardenId: selectedGardenAddress })
+              : adminRoutes.communityMembers({ gardenId: selectedGardenAddress })
       ),
     [navigate, selectedGardenAddress]
   );
 
   const clearSection = useCallback(
-    () => navigate(adminRoutes.communityTreasury({ gardenId: selectedGardenAddress })),
+    () =>
+      navigate(
+        mode === "coordination"
+          ? adminRoutes.communityCoordination({ gardenId: selectedGardenAddress })
+          : mode === "payouts"
+            ? adminRoutes.communityPayouts({ gardenId: selectedGardenAddress })
+            : mode === "members"
+              ? adminRoutes.communityMembers({ gardenId: selectedGardenAddress })
+              : adminRoutes.communityEndowment({ gardenId: selectedGardenAddress })
+      ),
+    [mode, navigate, selectedGardenAddress]
+  );
+  // Manage Members opens over the Members workspace and leaves the tab visible.
+  const openMembersModal = useCallback(
+    () =>
+      navigate(
+        adminRoutes.communityMembers({ gardenId: selectedGardenAddress, item: "manage-members" })
+      ),
     [navigate, selectedGardenAddress]
   );
-  // Manage Members is a community-owned action flow (/community/members) —
-  // the dialog opens over the Community workspace without switching tabs.
-  const openMembersModal = useCallback(
+  const closeMembersModal = useCallback(
     () => navigate(adminRoutes.communityMembers({ gardenId: selectedGardenAddress })),
     [navigate, selectedGardenAddress]
   );
@@ -189,6 +219,7 @@ export function useCommunityWorkspaceController() {
     allocationsLoading,
     canManage,
     clearSection,
+    closeMembersModal,
     community,
     communityLoading,
     containerRef,
@@ -218,10 +249,12 @@ export function useCommunityWorkspaceController() {
     roleMembers,
     scheduleBackgroundRefetch,
     section,
+    selectedItem,
     selectedGarden,
     selectedGardenAddress,
     setMemberSearch,
     vaultNetDeposited,
     vaultsLoading,
+    visibleDirectory: derived.visibleDirectory,
   };
 }

@@ -34,15 +34,18 @@ export function resolveAdminWorkspaceSectionRoute(options: AdminWorkspaceSection
   }
 
   if (tab === "overview") {
-    return adminRoutes.gardenOverview({ gardenId, item: itemId, section });
+    return adminRoutes.gardenHealth({ gardenId, item: itemId, section });
   }
 
   if (section === "members") return adminRoutes.communityMembers({ gardenId, item: itemId });
-  if (section === "cookie-jars" || section === "payouts") {
+  if (section === "cookie-jars" || section === "payouts" || section === "yield") {
     return adminRoutes.communityPayouts({ gardenId, item: itemId });
   }
-  if (section === "pools" || section === "governance") {
-    return adminRoutes.communityGovernance({ gardenId, item: itemId });
+  if (section === "pools" || section === "governance" || section === "coordination") {
+    return adminRoutes.communityCoordination({ gardenId, item: itemId });
   }
-  return adminRoutes.communityTreasury({ gardenId, item: itemId });
+  if (section === "resources" || section === "endowment" || section === "treasury") {
+    return adminRoutes.communityEndowment({ gardenId, item: itemId });
+  }
+  return adminRoutes.communityEndowment({ gardenId, item: itemId });
 }

@@ -19,7 +19,7 @@ export const adminButtonVariants = tv({
     // overrides only the border COLOR.
     "border border-transparent",
     // Typography
-    "text-label-lg font-medium",
+    "text-label-lg font-medium capitalize",
     // Motion
     "transition-all duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]",
     // State layer (pseudo-element overlay defined in admin-m3-tokens.css)
@@ -34,12 +34,11 @@ export const adminButtonVariants = tv({
     variant: {
       // Filled — highest emphasis. Uses the workspace's `--tone-action` so each
       // view feels distinct (Hub blue / Garden green / Community orange /
-      // Actions red / Home stone). Hover lifts 1px with elevation-2 for the
-      // same tactile feel as the secondary outlined buttons.
+      // Actions red / Home stone). Hover keeps geometry stable and uses
+      // elevation/state-layer feedback instead of translating the control.
       filled: [
         "bg-[rgb(var(--tone-action,var(--primary-action)))] [color:rgb(var(--tone-on-action,var(--primary-action-foreground)))]",
         "shadow-[var(--m3-elevation-1)] hover:shadow-[var(--m3-elevation-2)]",
-        "hover:-translate-y-[1px] active:translate-y-0",
         "[--state-layer-color:var(--tone-on-action,var(--primary-action-foreground))]",
       ],
       // Tonal — medium emphasis
@@ -54,13 +53,12 @@ export const adminButtonVariants = tv({
         "shadow-[var(--m3-elevation-1)] hover:shadow-[var(--m3-elevation-2)]",
         "[--state-layer-color:var(--m3-primary)]",
       ],
-      // Outlined — low emphasis with border. Matches the filled hover (1px lift
-      // + elevation gain) so the primary↔secondary pair behaves identically.
+      // Outlined — low emphasis with border. Matches the filled hover through
+      // elevation gain, without moving the button box.
       outlined: [
         "bg-transparent [color:rgb(var(--tone-on-surface-accent,var(--m3-primary)))]",
         "border-[rgb(var(--m3-outline))]",
         "shadow-[var(--m3-elevation-0)] hover:shadow-[var(--m3-elevation-1)]",
-        "hover:-translate-y-[1px] active:translate-y-0",
         "[--state-layer-color:var(--m3-primary)]",
       ],
       // Text — lowest emphasis

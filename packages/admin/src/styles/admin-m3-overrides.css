@@ -261,6 +261,103 @@ body:has(.admin-m3) [data-component="ConfirmDialog"][data-slot="surface"] {
   box-shadow: var(--m3-elevation-3);
 }
 
+/* Shared controls that still appear inside admin routes/dialogs inherit the
+ * cockpit token roles while they are migrated to Admin* wrappers. */
+.admin-m3 .gg-button,
+body:has(.admin-m3) [data-component="AdminDialog"][data-slot="surface"] .gg-button,
+body:has(.admin-m3) [data-component="AdminSideSheet"][data-slot="surface"] .gg-button {
+  border-radius: var(--m3-shape-full);
+  font-size: var(--type-label-lg);
+  line-height: var(--type-label-lg-lh);
+  letter-spacing: var(--type-label-lg-ls);
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.admin-m3 .gg-button:focus-visible,
+body:has(.admin-m3) [data-component="AdminDialog"][data-slot="surface"] .gg-button:focus-visible,
+body:has(.admin-m3) [data-component="AdminSideSheet"][data-slot="surface"] .gg-button:focus-visible {
+  box-shadow: 0 0 0 3px rgb(var(--tone-focus-ring, var(--m3-primary)) / 0.2);
+}
+
+.admin-m3 .gg-button-primary,
+.admin-m3 .gg-button-primary.gg-button-filled,
+body:has(.admin-m3) [data-component="AdminDialog"][data-slot="surface"] .gg-button-primary,
+body:has(.admin-m3) [data-component="AdminDialog"][data-slot="surface"] .gg-button-primary.gg-button-filled,
+body:has(.admin-m3) [data-component="AdminSideSheet"][data-slot="surface"] .gg-button-primary,
+body:has(.admin-m3) [data-component="AdminSideSheet"][data-slot="surface"] .gg-button-primary.gg-button-filled {
+  background: rgb(var(--tone-action, var(--m3-primary)));
+  color: rgb(var(--tone-on-action, var(--m3-on-primary)));
+}
+
+.admin-m3 .gg-button-primary:hover,
+.admin-m3 .gg-button-primary.gg-button-filled:hover,
+body:has(.admin-m3) [data-component="AdminDialog"][data-slot="surface"] .gg-button-primary:hover,
+body:has(.admin-m3) [data-component="AdminDialog"][data-slot="surface"] .gg-button-primary.gg-button-filled:hover,
+body:has(.admin-m3) [data-component="AdminSideSheet"][data-slot="surface"] .gg-button-primary:hover,
+body:has(.admin-m3) [data-component="AdminSideSheet"][data-slot="surface"] .gg-button-primary.gg-button-filled:hover {
+  background: color-mix(in srgb, rgb(var(--tone-action, var(--m3-primary))) 92%, rgb(var(--m3-on-surface)) 8%);
+}
+
+.admin-m3 .gg-button-secondary,
+.admin-m3 .gg-button-neutral.gg-button-stroke,
+body:has(.admin-m3) [data-component="AdminDialog"][data-slot="surface"] .gg-button-secondary,
+body:has(.admin-m3) [data-component="AdminDialog"][data-slot="surface"] .gg-button-neutral.gg-button-stroke,
+body:has(.admin-m3) [data-component="AdminSideSheet"][data-slot="surface"] .gg-button-secondary,
+body:has(.admin-m3) [data-component="AdminSideSheet"][data-slot="surface"] .gg-button-neutral.gg-button-stroke {
+  border-color: rgb(var(--m3-outline));
+  background: rgb(var(--m3-surface-container-low));
+  color: rgb(var(--m3-on-surface));
+}
+
+.admin-m3 .gg-button-secondary:hover,
+.admin-m3 .gg-button-neutral.gg-button-stroke:hover,
+body:has(.admin-m3) [data-component="AdminDialog"][data-slot="surface"] .gg-button-secondary:hover,
+body:has(.admin-m3) [data-component="AdminDialog"][data-slot="surface"] .gg-button-neutral.gg-button-stroke:hover,
+body:has(.admin-m3) [data-component="AdminSideSheet"][data-slot="surface"] .gg-button-secondary:hover,
+body:has(.admin-m3) [data-component="AdminSideSheet"][data-slot="surface"] .gg-button-neutral.gg-button-stroke:hover {
+  background: rgb(var(--m3-surface-container));
+  color: rgb(var(--m3-on-surface));
+}
+
+.admin-m3 .gg-button-ghost,
+.admin-m3 .gg-button-neutral.gg-button-ghost,
+.admin-m3 .gg-button-primary.gg-button-ghost,
+body:has(.admin-m3) [data-component="AdminDialog"][data-slot="surface"] .gg-button-ghost,
+body:has(.admin-m3) [data-component="AdminDialog"][data-slot="surface"] .gg-button-neutral.gg-button-ghost,
+body:has(.admin-m3) [data-component="AdminDialog"][data-slot="surface"] .gg-button-primary.gg-button-ghost,
+body:has(.admin-m3) [data-component="AdminSideSheet"][data-slot="surface"] .gg-button-ghost,
+body:has(.admin-m3) [data-component="AdminSideSheet"][data-slot="surface"] .gg-button-neutral.gg-button-ghost,
+body:has(.admin-m3) [data-component="AdminSideSheet"][data-slot="surface"] .gg-button-primary.gg-button-ghost {
+  background: transparent;
+  color: rgb(var(--tone-on-surface-accent, var(--m3-primary)));
+}
+
+.admin-m3 .gg-switch[data-surface="admin"] {
+  border-color: rgb(var(--m3-outline));
+  background: rgb(var(--m3-surface-container-highest));
+  box-shadow: inset 0 0 0 1px rgb(var(--m3-outline) / 0.18);
+}
+
+.admin-m3 .gg-switch[data-surface="admin"]:focus-visible {
+  box-shadow:
+    0 0 0 3px rgb(var(--tone-focus-ring, var(--m3-primary)) / 0.22),
+    inset 0 0 0 1px rgb(var(--m3-outline) / 0.18);
+}
+
+.admin-m3 .gg-switch[data-surface="admin"][data-state="checked"] {
+  border-color: rgb(var(--tone-action, var(--m3-primary)));
+  background: rgb(var(--tone-action, var(--m3-primary)));
+}
+
+.admin-m3 .gg-switch[data-surface="admin"] .gg-switch-thumb {
+  background: rgb(var(--m3-surface));
+}
+
+.admin-m3 .gg-switch[data-surface="admin"][data-state="checked"] .gg-switch-thumb {
+  background: rgb(var(--tone-on-action, var(--m3-on-primary)));
+}
+
 /* ============================================================================
  * AdminDialog motion — admin-owned enter/exit animation
  *

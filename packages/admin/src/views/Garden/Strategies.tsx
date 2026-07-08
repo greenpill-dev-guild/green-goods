@@ -50,7 +50,7 @@ export default function GardenStrategiesView({ layout = "page" }: GardenStrategi
 
   const { mutate: setStrategies, isPending: isSaving } = useSetConvictionStrategies();
   const communityBackLink = {
-    to: adminRoutes.communityGovernance(gardenRouteContext),
+    to: adminRoutes.communityCoordination(gardenRouteContext),
     label: formatMessage({ id: "cockpit.nav.community", defaultMessage: "Community" }),
   };
 

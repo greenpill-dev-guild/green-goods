@@ -168,16 +168,15 @@ describe("route folding", () => {
     const router = readSource(routerPath);
 
     // The router should NOT have a separate /endowments route.
-    // Treasury functionality should be accessible via /community/treasury.
+    // Endowment functionality should be accessible via /community/endowment.
     const pathDefinitions = router.match(/path:\s*["']endowments["']/g) ?? [];
     expect(pathDefinitions.length).toBe(0);
   });
 
-  it("Community/Treasury component imports endowment hooks", () => {
+  it("Community endowment workspace imports endowment hooks", () => {
     const communityView = readSource(communityViewPath);
 
-    // After folding, the Community view should handle endowment/treasury
-    // display inline. It should reference endowment-related imports or logic.
+    // After folding, the Community view should handle endowment display inline.
     // This verifies the fold happened — endowment UI is within Community.
     expect(communityView).toMatch(/endowment|treasury|vault/i);
   });
@@ -185,8 +184,10 @@ describe("route folding", () => {
   it("router exposes strategies only as a /community nested route", () => {
     const routeViews = readSource(routeViewsPath);
 
-    // Strategy display belongs to Community/Governance.
+    // Strategy display belongs to Community/Coordination, with Governance
+    // retained as a legacy URL alias.
     expect(routeViews).toMatch(/path:\s*["']community["']/);
+    expect(routeViews).toMatch(/path:\s*["']coordination["']/);
     expect(routeViews).toMatch(/path:\s*["']governance["']/);
     expect(routeViews).toMatch(/path:\s*["']strategies["']/);
     expect(routeViews).not.toMatch(/path:\s*["']gardens["']/);

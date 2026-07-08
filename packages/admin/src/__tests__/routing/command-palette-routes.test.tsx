@@ -278,7 +278,7 @@ describe("CommandPalette Routes", () => {
 
     expect(mockSetSelectedGarden).not.toHaveBeenCalled();
     expect(mockSelectGarden).not.toHaveBeenCalled();
-    expect(mockNavigate).toHaveBeenCalledWith("/garden/overview?gardenId=garden-1");
+    expect(mockNavigate).toHaveBeenCalledWith("/garden/health?gardenId=garden-1");
   });
 
   it("does not expose gardens outside the eligible admin set", async () => {

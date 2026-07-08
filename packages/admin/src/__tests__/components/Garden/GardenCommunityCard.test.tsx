@@ -17,7 +17,7 @@ const GARDEN_ID = "0x1111111111111111111111111111111111111111";
 const HYPERCERT_POOL = "0x2222222222222222222222222222222222222222";
 const ACTION_POOL = "0x3333333333333333333333333333333333333333";
 const RESOLVER_POOL_OTHER = "0x4444444444444444444444444444444444444444";
-const REPAIR_HREF = `/community/governance?gardenAddress=${GARDEN_ID}`;
+const REPAIR_HREF = `/community/coordination?gardenAddress=${GARDEN_ID}`;
 
 const baseProps = {
   community: { weightScheme: 0 },
@@ -82,7 +82,7 @@ describe("GardenCommunityCard yield wiring", () => {
     expect(screen.queryByText("Connect to yield")).not.toBeInTheDocument();
   });
 
-  it("missing-resolver-wiring with known expected pool: shows Connect to yield link to /community/governance", () => {
+  it("missing-resolver-wiring with known expected pool: shows Connect to yield link to /community/coordination", () => {
     mockWiring({
       wiringStatus: "missing-resolver-wiring",
       wiringState: {
@@ -101,7 +101,7 @@ describe("GardenCommunityCard yield wiring", () => {
 
     const link = screen.getByRole("link", { name: /Connect to yield/i });
     expect(link).toBeInTheDocument();
-    expect(link.getAttribute("href")).toContain("/community/governance");
+    expect(link.getAttribute("href")).toContain("/community/coordination");
     expect(link.getAttribute("href")).toContain(`gardenAddress=${GARDEN_ID}`);
   });
 

@@ -154,25 +154,25 @@ describe("admin canvas runtime navigation", () => {
     expect(router.state.location.search).toBe("?gardenAddress=0xAAA&sort=oldest");
   });
 
-  it("redirects /garden to overview and drops retired view query state", async () => {
+  it("redirects /garden to health and drops retired view query state", async () => {
     const router = renderAdminCanvasRoute(
       "/garden?view=impact&gardenAddress=0xAAA&range=30d&section=activity"
     );
 
     await waitFor(() => {
-      expect(router.state.location.pathname).toBe("/garden/overview");
+      expect(router.state.location.pathname).toBe("/garden/health");
     });
 
     expect(router.state.location.search).toBe("?gardenAddress=0xAAA&range=30d&section=activity");
   });
 
-  it("redirects /community to treasury and drops retired card/pool query state", async () => {
+  it("redirects /community to members and drops retired card/pool query state", async () => {
     const router = renderAdminCanvasRoute(
       "/community?gardenAddress=0xAAA&card=vault&pool=hypercert&item=deposit-1"
     );
 
     await waitFor(() => {
-      expect(router.state.location.pathname).toBe("/community/treasury");
+      expect(router.state.location.pathname).toBe("/community/members");
     });
 
     expect(router.state.location.search).toBe("?gardenAddress=0xAAA&item=deposit-1");
@@ -295,8 +295,12 @@ describe("admin canvas runtime navigation", () => {
     }
   });
 
-  it("keeps treasury deposit and withdraw flows under the Community workspace", async () => {
+  it("keeps endowment deposit and withdraw flows under the Community workspace", async () => {
     for (const path of [
+      "/community/endowment/vault/deposit?gardenId=0xAAA&item=0xBBB",
+      "/community/endowment/vault/withdraw?gardenId=0xAAA&item=0xBBB",
+      "/community/resources/vault/deposit?gardenId=0xAAA&item=0xBBB",
+      "/community/resources/vault/withdraw?gardenId=0xAAA&item=0xBBB",
       "/community/treasury/vault/deposit?gardenId=0xAAA&item=0xBBB",
       "/community/treasury/vault/withdraw?gardenId=0xAAA&item=0xBBB",
     ]) {

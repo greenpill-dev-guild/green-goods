@@ -176,6 +176,7 @@ export default function HubView() {
                   normalizedSearch={hub.normalizedSearch}
                   debouncedSearch={hub.debouncedSearch}
                   actionsMap={hub.actionsMap}
+                  selectedGardenName={hub.selectedGarden?.name}
                   selectedWorkId={hub.selectedWork?.id}
                   selectedCertificationId={hub.selectedCertification?.id}
                   selectedHistoryEventId={hub.selectedHistoryEvent?.id}

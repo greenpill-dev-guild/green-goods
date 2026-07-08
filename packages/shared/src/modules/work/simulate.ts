@@ -8,6 +8,7 @@ import { debugError, debugLog } from "../../utils/debug";
 import { NO_EXPIRATION, ZERO_BYTES32 } from "../../utils/eas/constants";
 import { encodeWorkApprovalData, simulateWorkData } from "../../utils/eas/encoders";
 import { parseContractError } from "../../utils/errors/contract-errors";
+import { resolveWorkSubmissionTitle } from "../../utils/work/workTitles";
 
 export interface SimulateWorkSubmissionParams {
   draft: WorkDraft;
@@ -94,7 +95,7 @@ export async function simulateWorkSubmission({
     const simulationData = simulateWorkData(
       {
         ...draft,
-        title: `${actionTitle} - ${new Date().toISOString()}`,
+        title: resolveWorkSubmissionTitle({ draftTitle: draft.title, actionTitle, actionUID }),
         actionUID,
         media: images,
       },

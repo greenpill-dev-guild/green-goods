@@ -29,11 +29,7 @@ import {
   CanvasRouteFrame,
   CanvasRouteHeader,
 } from "@/components/Layout/CanvasRouteFrame";
-import {
-  GardenSupporters,
-  PositionCard,
-  VaultEventHistory,
-} from "@/components/Vault";
+import { GardenSupporters, PositionCard, VaultEventHistory } from "@/components/Vault";
 
 type VaultRouteState = {
   returnTo?: string;
@@ -133,8 +129,8 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
     };
   }, [formatMessage, routeState?.returnLabelId, routeState?.returnTo]);
   const treasuryBackLink = contextualBackLink ?? {
-    to: adminRoutes.communityTreasury(gardenRouteContext),
-    label: formatMessage({ id: "app.admin.nav.treasury" }),
+    to: adminRoutes.communityEndowment(gardenRouteContext),
+    label: formatMessage({ id: "cockpit.community.endowment" }),
   };
 
   if (gardensLoading) {
@@ -146,7 +142,7 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
       <CanvasRouteFrame>
         <CanvasRouteHeader
           maxWidthClassName="max-w-6xl"
-          title={formatMessage({ id: "app.treasury.title" })}
+          title={formatMessage({ id: "cockpit.community.endowment" })}
           description={formatMessage({ id: "app.treasury.loadingGarden" })}
           backLink={treasuryBackLink}
         />
@@ -163,7 +159,7 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
       <CanvasRouteFrame>
         <CanvasRouteHeader
           maxWidthClassName="max-w-6xl"
-          title={formatMessage({ id: "app.treasury.title" })}
+          title={formatMessage({ id: "cockpit.community.endowment" })}
           description={formatMessage({ id: "app.treasury.gardenNotFound" })}
           backLink={treasuryBackLink}
         />
@@ -246,7 +242,7 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
               isModuleOwner={isModuleOwner}
               onDeposit={(assetAddress) => {
                 navigate(
-                  adminRoutes.communityTreasuryVaultDeposit({
+                  adminRoutes.communityEndowmentVaultDeposit({
                     ...gardenRouteContext,
                     item: assetAddress,
                   })
@@ -254,7 +250,7 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
               }}
               onWithdraw={(assetAddress) => {
                 navigate(
-                  adminRoutes.communityTreasuryVaultWithdraw({
+                  adminRoutes.communityEndowmentVaultWithdraw({
                     ...gardenRouteContext,
                     item: assetAddress,
                   })
@@ -268,10 +264,18 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
       {!vaultsLoading && vaults.length > 0 && <GardenSupporters gardenAddress={gardenAddress} />}
 
       {!vaultsLoading && vaults.length > 0 && (
-        <section className="surface-section">
-          <h3 className="label-sm text-text-strong">
-            {formatMessage({ id: "app.explorer.contractDetails" })}
-          </h3>
+        <details className="surface-section group">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+            <h3 className="label-sm text-text-strong">
+              {formatMessage({ id: "app.explorer.contractDetails" })}
+            </h3>
+            <span className="body-xs text-text-soft group-open:hidden">
+              {formatMessage({ id: "app.actions.view" })}
+            </span>
+            <span className="body-xs text-text-soft hidden group-open:inline">
+              {formatMessage({ id: "app.common.close" })}
+            </span>
+          </summary>
           <div className="mt-3 space-y-2 text-sm">
             {vaults.map((vault) => (
               <div
@@ -326,7 +330,7 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
               </div>
             )}
           </div>
-        </section>
+        </details>
       )}
 
       <VaultEventHistory gardenAddress={gardenAddress} />
@@ -341,11 +345,8 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
     <CanvasRouteFrame>
       <CanvasRouteHeader
         maxWidthClassName="max-w-6xl"
-        title={formatMessage({ id: "app.treasury.title" })}
-        description={formatMessage(
-          { id: "app.treasury.gardenTreasuryDescription" },
-          { gardenName: garden.name }
-        )}
+        title={formatMessage({ id: "cockpit.community.endowment" })}
+        description={formatMessage({ id: "cockpit.community.endowment.description" })}
         backLink={treasuryBackLink}
         sticky
       />

@@ -112,7 +112,7 @@ export default function GardenSignalPoolView({ layout = "page" }: GardenSignalPo
     ? "app.signal.actionPool.confirmDeregisterDescription"
     : "app.signal.hypercertPool.confirmDeregisterDescription";
   const communityBackLink = {
-    to: adminRoutes.communityGovernance(gardenRouteContext),
+    to: adminRoutes.communityCoordination(gardenRouteContext),
     label: formatMessage({ id: "cockpit.nav.community", defaultMessage: "Community" }),
   };
   const poolTabs = [
@@ -127,7 +127,7 @@ export default function GardenSignalPoolView({ layout = "page" }: GardenSignalPo
   ];
   const handlePoolTabChange = (nextPoolType: string) =>
     navigate(
-      adminRoutes.communityGovernanceSignalPool(
+      adminRoutes.communityCoordinationSignalPool(
         nextPoolType === "action" ? "action" : "hypercert",
         gardenRouteContext
       )

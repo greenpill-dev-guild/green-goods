@@ -51,8 +51,11 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
         containerRef: { current: null },
         derived: {
           overviewAlerts: [],
+          domainLabels: [],
+          impactBadge: { severity: "none" },
           gardenHealthLabel: "Healthy",
           approvedInRangeCount: 0,
+          approvedInLastThirtyDays: 0,
           impactVelocityDelta: 0,
           medianReviewAgeHours: 0,
           pendingWorks: [],
@@ -84,8 +87,9 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
         gardenAddress,
         gardenOptions: [],
         handleSelectGarden: vi.fn(),
+        handleSettingsClose: () => navigate("/garden/health"),
         handleTabChange: (nextView: string) =>
-          navigate(nextView === "settings" ? "/garden/settings" : "/garden/overview"),
+          navigate(nextView === "settings" ? "/garden/settings" : "/garden/health"),
         hypercertId: undefined,
         hypercerts: [],
         hypercertSheetCloseTo: "/garden",
@@ -101,9 +105,14 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
         },
         selectedItem: undefined,
         setActivityFilter: vi.fn(),
+        settingsOpen: location.pathname.endsWith("/settings"),
         treasuryBalance: "0",
         updateOverviewQueryState: vi.fn(),
-        view: location.pathname.endsWith("/settings") ? "settings" : "overview",
+        view: location.pathname.endsWith("/impact")
+          ? "impact"
+          : location.pathname.endsWith("/activity")
+            ? "activity"
+            : "health",
       };
     },
     useCanvasSearchParams: () => ({
@@ -170,8 +179,11 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
     }),
     useGardenDerivedState: () => ({
       overviewAlerts: [],
+      domainLabels: [],
+      impactBadge: { severity: "none" },
       gardenHealthLabel: "Healthy",
       approvedInRangeCount: 0,
+      approvedInLastThirtyDays: 0,
       impactVelocityDelta: 0,
       medianReviewAgeHours: 0,
       pendingWorks: [],
@@ -254,7 +266,7 @@ describe("garden domain recovery UI", () => {
     const router = createMemoryRouter(
       [
         { path: "/garden/settings", element: <GardenWorkspaceHarness /> },
-        { path: "/garden/overview", element: <div>Overview route</div> },
+        { path: "/garden/health", element: <div>Health route</div> },
       ],
       { initialEntries: ["/garden/settings"] }
     );
@@ -279,7 +291,7 @@ describe("garden domain recovery UI", () => {
     expect(screen.getByRole("button", { name: "Save domains" })).toBeVisible();
   });
 
-  it("closes pristine garden settings straight to overview with no discard prompt", async () => {
+  it("closes pristine garden settings straight to health with no discard prompt", async () => {
     const user = userEvent.setup();
 
     renderWorkspaceAtSettings();
@@ -288,7 +300,7 @@ describe("garden domain recovery UI", () => {
 
     await user.keyboard("{Escape}");
 
-    expect(await screen.findByText("Overview route")).toBeVisible();
+    expect(await screen.findByText("Health route")).toBeVisible();
     expect(screen.queryByText("Discard Changes?")).not.toBeInTheDocument();
   });
 
@@ -305,10 +317,10 @@ describe("garden domain recovery UI", () => {
     await user.click(screen.getByRole("button", { name: "Keep editing" }));
 
     expect(screen.getByRole("dialog", { name: "Garden Profile" })).toBeVisible();
-    expect(screen.queryByText("Overview route")).not.toBeInTheDocument();
+    expect(screen.queryByText("Health route")).not.toBeInTheDocument();
   });
 
-  it("discards dirty garden settings to overview on confirm", async () => {
+  it("discards dirty garden settings to health on confirm", async () => {
     const user = userEvent.setup();
 
     renderWorkspaceAtSettings();
@@ -317,7 +329,7 @@ describe("garden domain recovery UI", () => {
     await user.keyboard("{Escape}");
     await user.click(await screen.findByRole("button", { name: "Discard" }));
 
-    expect(await screen.findByText("Overview route")).toBeVisible();
+    expect(await screen.findByText("Health route")).toBeVisible();
   });
 
   it("hard-blocks closing garden settings while a save is in flight", async () => {

@@ -12,8 +12,8 @@ export type AdminWorkspaceId =
 export type AdminSignalPoolType = "hypercert" | "action";
 export type AdminHubMode = "work" | "assess" | "certify" | "history";
 export type AdminHubView = AdminHubMode;
-export type AdminGardenMode = "overview" | "activity" | "members" | "impact" | "settings";
-export type AdminCommunityMode = "treasury" | "governance" | "payouts" | "members";
+export type AdminGardenMode = "health" | "activity" | "impact" | "settings";
+export type AdminCommunityMode = "members" | "coordination" | "endowment" | "payouts";
 export type AdminHubSort = "newest" | "oldest";
 
 export type AdminSearchValue = string | number | boolean | null | undefined;
@@ -163,19 +163,24 @@ export const adminRoutes = {
     return buildAdminHref("/hub/certify/create", buildHubCreationContextSearch(context));
   },
   garden(context?: AdminGardenRouteContext) {
-    return this.gardenOverview(context);
+    return this.gardenHealth(context);
   },
   gardenMode(mode: AdminGardenMode, context?: AdminGardenRouteContext) {
     return buildAdminHref(`/garden/${mode}`, buildGardenContextSearch(context));
   },
+  gardenHealth(context?: AdminGardenRouteContext) {
+    return this.gardenMode("health", context);
+  },
+  /** @deprecated Use gardenHealth. Retained for old call sites and bookmarks. */
   gardenOverview(context?: AdminGardenRouteContext) {
-    return this.gardenMode("overview", context);
+    return this.gardenHealth(context);
   },
   gardenActivity(context?: AdminGardenRouteContext) {
     return this.gardenMode("activity", context);
   },
+  /** @deprecated Membership now belongs to Community. */
   gardenMembers(context?: AdminGardenRouteContext) {
-    return this.gardenMode("members", context);
+    return buildAdminHref("/garden/members", buildGardenContextSearch(context));
   },
   gardenImpact(context?: AdminGardenRouteContext) {
     return this.gardenMode("impact", context);
@@ -193,49 +198,87 @@ export const adminRoutes = {
     );
   },
   community(context?: AdminCommunityRouteContext) {
-    return this.communityTreasury(context);
+    return this.communityMembers(context);
   },
   communityMode(mode: AdminCommunityMode, context?: AdminCommunityRouteContext) {
     return buildAdminHref(`/community/${mode}`, buildCommunityContextSearch(context));
   },
-  communityTreasury(context?: AdminCommunityRouteContext) {
-    return this.communityMode("treasury", context);
+  communityMembers(context?: AdminCommunityRouteContext) {
+    return this.communityMode("members", context);
   },
-  communityGovernance(context?: AdminCommunityRouteContext) {
-    return this.communityMode("governance", context);
+  communityCoordination(context?: AdminCommunityRouteContext) {
+    return this.communityMode("coordination", context);
+  },
+  communityEndowment(context?: AdminCommunityRouteContext) {
+    return this.communityMode("endowment", context);
   },
   communityPayouts(context?: AdminCommunityRouteContext) {
     return this.communityMode("payouts", context);
   },
-  communityMembers(context?: AdminCommunityRouteContext) {
-    return this.communityMode("members", context);
+  /** @deprecated Use communityEndowment. */
+  communityTreasury(context?: AdminCommunityRouteContext) {
+    return this.communityEndowment(context);
   },
+  /** @deprecated Use communityCoordination. */
+  communityGovernance(context?: AdminCommunityRouteContext) {
+    return this.communityCoordination(context);
+  },
+  /** @deprecated Use communityEndowment. */
+  communityResources(context?: AdminCommunityRouteContext) {
+    return this.communityEndowment(context);
+  },
+  communityEndowmentVault(context?: AdminCommunityRouteContext) {
+    return buildAdminHref("/community/endowment/vault", buildCommunityContextSearch(context));
+  },
+  communityEndowmentVaultDeposit(context?: AdminCommunityRouteContext) {
+    return buildAdminHref(
+      "/community/endowment/vault/deposit",
+      buildCommunityContextSearch(context)
+    );
+  },
+  communityEndowmentVaultWithdraw(context?: AdminCommunityRouteContext) {
+    return buildAdminHref(
+      "/community/endowment/vault/withdraw",
+      buildCommunityContextSearch(context)
+    );
+  },
+  /** @deprecated Use communityEndowmentVault. */
   communityTreasuryVault(context?: AdminCommunityRouteContext) {
-    return buildAdminHref("/community/treasury/vault", buildCommunityContextSearch(context));
+    return this.communityEndowmentVault(context);
   },
+  /** @deprecated Use communityEndowmentVaultDeposit. */
   communityTreasuryVaultDeposit(context?: AdminCommunityRouteContext) {
-    return buildAdminHref(
-      "/community/treasury/vault/deposit",
-      buildCommunityContextSearch(context)
-    );
+    return this.communityEndowmentVaultDeposit(context);
   },
+  /** @deprecated Use communityEndowmentVaultWithdraw. */
   communityTreasuryVaultWithdraw(context?: AdminCommunityRouteContext) {
+    return this.communityEndowmentVaultWithdraw(context);
+  },
+  communityCoordinationStrategies(context?: AdminCommunityRouteContext) {
     return buildAdminHref(
-      "/community/treasury/vault/withdraw",
+      "/community/coordination/strategies",
       buildCommunityContextSearch(context)
     );
   },
-  communityGovernanceStrategies(context?: AdminCommunityRouteContext) {
-    return buildAdminHref("/community/governance/strategies", buildCommunityContextSearch(context));
-  },
-  communityGovernanceSignalPool(
+  communityCoordinationSignalPool(
     poolType: AdminSignalPoolType,
     context?: AdminCommunityRouteContext
   ) {
     return buildAdminHref(
-      `/community/governance/signal-pool/${encodeSegment(poolType)}`,
+      `/community/coordination/signal-pool/${encodeSegment(poolType)}`,
       buildCommunityContextSearch(context)
     );
+  },
+  /** @deprecated Use communityCoordinationStrategies. */
+  communityGovernanceStrategies(context?: AdminCommunityRouteContext) {
+    return this.communityCoordinationStrategies(context);
+  },
+  /** @deprecated Use communityCoordinationSignalPool. */
+  communityGovernanceSignalPool(
+    poolType: AdminSignalPoolType,
+    context?: AdminCommunityRouteContext
+  ) {
+    return this.communityCoordinationSignalPool(poolType, context);
   },
   actions(search?: Record<string, AdminSearchValue>) {
     return buildAdminHref("/actions", search);

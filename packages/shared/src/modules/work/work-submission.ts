@@ -1,5 +1,6 @@
 import type { Action, Address, Work, WorkApprovalDraft, WorkDraft } from "../../types/domain";
 import { getActionTitle } from "../../utils/action/parsers";
+import { resolveWorkSubmissionTitle } from "../../utils/work/workTitles";
 import { serviceWorkerManager } from "../app/service-worker";
 import { createOfflineTxHash, jobQueue } from "../job-queue";
 
@@ -45,7 +46,7 @@ export async function submitWorkToQueue(
     "work",
     {
       ...draft,
-      title: `${actionTitle} - ${new Date().toISOString()}`,
+      title: resolveWorkSubmissionTitle({ draftTitle: draft.title, actionTitle, actionUID }),
       actionUID,
       gardenAddress,
       media: images,

@@ -1,13 +1,11 @@
 import {
   type Address,
   cn,
-  EmptyState,
-  type AdminWorkspaceSectionTab,
   useDirtyClose,
   type useGardenWorkspaceController,
 } from "@green-goods/shared";
 import { AdminCard } from "@/components/AdminCard";
-import { RiCupLine, RiImageLine, RiPulseLine } from "@remixicon/react";
+import { RiImageLine } from "@remixicon/react";
 import { useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
@@ -21,13 +19,13 @@ import {
   type GardenSettingsEditorHandle,
   type GardenSettingsFormState,
 } from "@/components/Garden/GardenSettingsEditor";
-import { CookieJarManageModal } from "@/views/Hub/components/CookieJarManageModal";
 import {
   CanvasRouteErrorState,
   CanvasWorkspaceLoadingState,
   CanvasWorkspaceSelectionGate,
 } from "@/components/Layout/CanvasRouteState";
 import { OverviewTab } from "./OverviewTab";
+import { ImpactTab } from "./ImpactTab";
 import { GardenDomainSummaryRow } from "./GardenDetailHelpers";
 
 interface GardenWorkspaceContentProps {
@@ -39,9 +37,6 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
   // The settings form reports its banner draft here so the identity preview
   // card is the single place the image renders (saved, staged, or removed).
   const [bannerPreview, setBannerPreview] = useState<GardenBannerPreview | null>(null);
-  // Jar management is garden configuration — it opens from this dialog
-  // (moved off the Community payout surface, which keeps deposits/withdrawals).
-  const [cookieJarsOpen, setCookieJarsOpen] = useState(false);
   // The settings form reports dirtiness/saving/validation up so this dialog
   // can guard its close per the dialog contract (confirm-before-discard,
   // hard-block during save) and render the pinned footer. Gated on the
@@ -57,13 +52,13 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
   // Drives the footer's Save/Cancel — the form owns the draft, the dialog owns
   // the pinned actions bar.
   const settingsEditorRef = useRef<GardenSettingsEditorHandle>(null);
-  const settingsOpen = workspace.view === "settings";
+  const settingsOpen = workspace.settingsOpen;
   // The dialog closes by navigating (handleTabChange → navigate), so route
   // mode makes the router blocker the single confirm trigger — X, scrim,
   // Escape, back button, and nav links raise one prompt, never two.
   const settingsDirtyClose = useDirtyClose({
     isDirty: settingsOpen && settingsForm.isDirty,
-    onClose: () => workspace.handleTabChange("overview"),
+    onClose: workspace.handleSettingsClose,
     blockRouteChange: true,
   });
 
@@ -97,20 +92,15 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
 
   return (
     <div className="mt-4 min-h-0 flex-1 space-y-4">
-      {workspace.view === "overview" || workspace.view === "settings" ? (
+      {workspace.view === "health" || workspace.view === "activity" ? (
         <OverviewTab
+          mode={workspace.view}
           section={workspace.section}
           selectedItem={workspace.selectedItem}
           selectedRange={workspace.range}
           clearSection={workspace.clearSection}
           openSection={workspace.openSection}
           updateQueryState={workspace.updateOverviewQueryState}
-          setTab={(tab) =>
-            workspace.openSection(
-              tab as AdminWorkspaceSectionTab,
-              tab === "community" ? "treasury" : "queue"
-            )
-          }
           overviewAlerts={workspace.derived.overviewAlerts}
           gardenHealthLabel={workspace.derived.gardenHealthLabel}
           approvedInRangeCount={workspace.derived.approvedInRangeCount}
@@ -127,25 +117,30 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
         />
       ) : null}
 
-      {workspace.view === "activity" ? (
-        <EmptyState
-          icon={<RiPulseLine className="h-6 w-6" />}
-          title={formatMessage({
-            id: "cockpit.garden.activity.empty.title",
-            defaultMessage: "Activity feed coming soon",
-          })}
-          description={formatMessage({
-            id: "cockpit.garden.activity.empty.description",
-            defaultMessage:
-              "Submitted Work, plot updates, plantings, and milestones will surface here as the gardener-floor of this Garden.",
-          })}
+      {workspace.view === "impact" ? (
+        <ImpactTab
+          garden={workspace.garden}
+          gardenId={workspace.garden.id}
+          canManage={false}
+          canReview={workspace.canReview}
+          section={workspace.section}
+          selectedItem={workspace.selectedItem}
+          clearSection={workspace.clearSection}
+          openSection={workspace.openSection}
+          assessments={workspace.assessments}
+          fetchingAssessments={workspace.fetchingAssessments}
+          assessmentsError={workspace.assessmentsError}
+          hypercerts={workspace.hypercerts}
+          hypercertsLoading={workspace.hypercertsLoading}
+          domainLabels={workspace.derived.domainLabels}
+          approvedInLastThirtyDays={workspace.derived.approvedInLastThirtyDays}
         />
       ) : null}
 
       {/* Garden settings live in a centered dialog (parity with the other
-          action flows), opened by the Settings tab / "Edit garden" action and
+          action flows), opened by the "Edit garden" action and
           rendered over the Overview behind it. Deep-linking to /garden/settings
-          opens it directly; closing returns to the Overview. */}
+          opens it directly; closing returns to Health. */}
       <AdminDialog
         open={settingsOpen}
         onOpenChange={settingsDirtyClose.onOpenChange}
@@ -288,39 +283,6 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
               />
             </AdminCard>
 
-            {workspace.canManage ? (
-              <AdminCard variant="filled" density="none" className="overflow-hidden">
-                <div className="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="min-w-0 space-y-1">
-                    <p className="label-xs text-text-soft">
-                      {formatMessage({
-                        id: "app.cookieJar.settingsRow.label",
-                        defaultMessage: "Cookie jars",
-                      })}
-                    </p>
-                    <p className="text-xs text-text-sub">
-                      {formatMessage({
-                        id: "app.cookieJar.settingsRow.description",
-                        defaultMessage: "Pause state, withdrawal limits, and cooldowns",
-                      })}
-                    </p>
-                  </div>
-                  <AdminButton
-                    type="button"
-                    variant="tonal"
-                    size="sm"
-                    leadingIcon={<RiCupLine />}
-                    onClick={() => setCookieJarsOpen(true)}
-                  >
-                    {formatMessage({
-                      id: "app.cookieJar.manageJars",
-                      defaultMessage: "Manage Jars",
-                    })}
-                  </AdminButton>
-                </div>
-              </AdminCard>
-            ) : null}
-
             {/* On-chain identifiers fill the column beside the form instead of
                 dangling below the grid. */}
             <GardenMetadata
@@ -343,15 +305,6 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
           isOpen={workspace.domainEditorOpen}
           onClose={workspace.closeDomainEditor}
           gardenAddress={workspace.garden.id as Address}
-        />
-      ) : null}
-      {workspace.canManage ? (
-        <CookieJarManageModal
-          isOpen={cookieJarsOpen}
-          onClose={() => setCookieJarsOpen(false)}
-          gardenAddress={workspace.garden.id as Address}
-          canManage={workspace.canManage}
-          isOwner={workspace.isOwner}
         />
       ) : null}
     </div>

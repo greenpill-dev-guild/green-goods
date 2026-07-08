@@ -327,9 +327,7 @@
   --admin-sheet-side-inset: 1rem;
   --admin-sheet-mobile-side-inset: 0.75rem;
   --admin-sheet-top: calc(var(--admin-appbar-height, 3.5rem) + var(--admin-sheet-top-gap, 0.5rem));
-  --admin-sheet-bottom: calc(
-    var(--admin-nav-offset-desktop, 20px) + var(--admin-nav-height-desktop, 3.5rem) + var(--admin-sheet-bottom-gap-desktop, 1.5rem)
-  );
+  --admin-sheet-bottom: 0rem;
   --admin-side-sheet-width: min(var(--canvas-right-sheet-width, clamp(380px, 30vw, 560px)), calc(100vw - 3rem));
   --admin-main-bottom-clearance-desktop: calc(
     var(--admin-nav-offset-desktop, 12px) + var(--admin-nav-height-desktop, 3.5rem) + 1rem
@@ -769,8 +767,8 @@
   input::placeholder,
   textarea::placeholder {
     color: rgb(var(--text-soft-400));
-    font-size: var(--type-body-md, 0.875rem);
-    line-height: var(--type-body-md-lh, 1.25rem);
+    font-size: var(--type-body-sm, 0.75rem);
+    line-height: var(--type-body-sm-lh, 1rem);
     font-weight: 400;
   }
 }
@@ -1335,16 +1333,46 @@
      scan does not reach, so they silently no-op in admin's build. Own those here
      (base layout/colour utilities that DO ship stay in the components).
      Verified against admin dist (packages/admin/dist/assets/*.css). */
+  .hub-workbench-grid {
+    display: grid;
+    width: 100%;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr));
+    justify-content: stretch;
+    align-items: stretch;
+    gap: 0.875rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  .hub-workbench-grid > li {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .hub-history-feed {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
   .workbench-row,
-  .workbench-card {
+  .workbench-card,
+  .hub-work-card,
+  .hub-history-card {
     transition-property: background-color, transform, box-shadow, filter;
-    transition-duration: var(--spring-spatial-fast-duration, 200ms);
-    transition-timing-function: var(--spring-spatial-fast-easing, cubic-bezier(0.34, 1.56, 0.64, 1));
+    transition-duration: var(--spring-spatial-fast-duration);
+    transition-timing-function: var(--spring-spatial-fast-easing);
   }
 
   @media (prefers-reduced-motion: reduce) {
     .workbench-row,
-    .workbench-card {
+    .workbench-card,
+    .hub-work-card,
+    .hub-history-card {
       transition: none;
     }
   }
@@ -1352,6 +1380,16 @@
   /* Selected row gains a container tint; the focus ring ships via Tailwind. */
   .workbench-row[data-selected="true"] {
     background-color: rgb(var(--tone-primary-container) / 0.12);
+  }
+
+  .workbench-card[data-selected="true"],
+  .hub-work-card[data-selected="true"],
+  .hub-history-card[data-selected="true"] {
+    box-shadow: var(--edge-focus), var(--elevation-2);
+  }
+
+  .hub-history-copy {
+    overflow-wrap: anywhere;
   }
 
   /* Clickable surfaces lift on hover (row → elevation-1, card → elevation-2)
@@ -1367,8 +1405,20 @@
     box-shadow: var(--edge-hover), var(--elevation-2);
   }
 
+  .hub-work-card:hover {
+    transform: translateY(-0.125rem);
+    box-shadow: var(--edge-hover), var(--m3-elevation-2);
+  }
+
+  .hub-history-card:hover {
+    transform: translateY(-0.125rem);
+    box-shadow: var(--edge-hover), var(--m3-elevation-2);
+  }
+
   .workbench-row-clickable:active,
-  .workbench-card-clickable:active {
+  .workbench-card-clickable:active,
+  .hub-work-card:active,
+  .hub-history-card:active {
     transform: translateY(0);
     box-shadow: var(--edge-rest);
   }
@@ -1693,14 +1743,29 @@
   background-color: rgb(var(--neutral-400) / 0.8);
 }
 
+.admin-section-title {
+  color: rgb(var(--m3-on-surface));
+  font-size: var(--type-title-md, 1rem);
+  line-height: var(--type-title-md-lh, 1.5rem);
+  letter-spacing: var(--type-title-md-ls, 0.009375rem);
+  font-weight: 600;
+}
+
+.admin-section-title--compact {
+  font-size: var(--type-title-sm, 0.875rem);
+  line-height: var(--type-title-sm-lh, 1.25rem);
+  letter-spacing: var(--type-title-sm-ls, 0.00625rem);
+}
+
 .admin-m3 [data-component="AdminSearchToolbar"] input::placeholder,
-.admin-m3 [data-component="AdminTextField"] input::placeholder,
-.admin-m3 [data-component="AdminTextField"] textarea::placeholder,
+.admin-m3 [data-component="AdminTextField"] input:not(.placeholder-transparent)::placeholder,
+.admin-m3 [data-component="AdminTextField"] textarea:not(.placeholder-transparent)::placeholder,
 .admin-m3 [data-component="CommandPaletteSearch"] input::placeholder,
 .admin-m3 .gg-control[data-surface="admin"]::placeholder {
-  color: rgb(var(--m3-on-surface-variant) / 0.62);
-  font-size: var(--type-body-md, 0.875rem);
-  line-height: var(--type-body-md-lh, 1.25rem);
+  color: rgb(var(--m3-on-surface-variant) / 0.56);
+  font-size: var(--type-body-sm, 0.75rem);
+  line-height: var(--type-body-sm-lh, 1rem);
+  letter-spacing: var(--type-body-sm-ls, 0.025rem);
   font-weight: 400;
 }
 

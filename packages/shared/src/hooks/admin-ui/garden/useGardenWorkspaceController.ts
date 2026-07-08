@@ -44,6 +44,7 @@ export function useGardenWorkspaceController() {
   const [domainEditorOpen, setDomainEditorOpen] = useState(false);
 
   const view = resolveGardenView(location.pathname);
+  const settingsOpen = location.pathname.startsWith("/garden/settings");
   const range = parseGardenRange(searchParams.get("range"));
   const section = searchParams.get("section") ?? undefined;
   const selectedItem = searchParams.get("item") ?? undefined;
@@ -63,7 +64,7 @@ export function useGardenWorkspaceController() {
       activeMode: view,
       filter: activityFilter,
       selectedItem: selectedItem ?? hypercertId ?? null,
-      sheetOpen: Boolean(hypercertId),
+      sheetOpen: Boolean(hypercertId) || settingsOpen,
     });
   }, [
     activityFilter,
@@ -72,6 +73,7 @@ export function useGardenWorkspaceController() {
     selectedGarden,
     selectedItem,
     setGardenWorkspaceState,
+    settingsOpen,
     view,
   ]);
 
@@ -108,7 +110,7 @@ export function useGardenWorkspaceController() {
   const { desktopActions } = useViewActions({
     actions: viewActions,
     isDesktop,
-    blocked: Boolean(hypercertId) || domainEditorOpen,
+    blocked: Boolean(hypercertId) || domainEditorOpen || settingsOpen,
   });
 
   const openSection = useCallback(
@@ -168,7 +170,7 @@ export function useGardenWorkspaceController() {
 
       return {
         ...event,
-        href: adminRoutes.communityTreasury({ gardenId: selectedGardenAddress }),
+        href: adminRoutes.communityEndowment({ gardenId: selectedGardenAddress }),
       };
     });
   }, [derived.filteredActivityEvents, selectedGarden, selectedGardenAddress]);
@@ -209,15 +211,19 @@ export function useGardenWorkspaceController() {
     (nextView: string) => {
       if (nextView === "settings") {
         navigate(adminRoutes.gardenSettings({ gardenId: selectedGardenAddress }));
+      } else if (nextView === "impact") {
+        navigate(adminRoutes.gardenImpact({ gardenId: selectedGardenAddress, range }));
       } else if (nextView === "activity") {
-        // Tier 4: Activity is a net-new tab per audit IA-Garden. First-delivery
-        // navigation is path-only; range/garden context is carried in the
-        // workspace controller, not the URL.
-        navigate("/garden/activity");
+        navigate(adminRoutes.gardenActivity({ gardenId: selectedGardenAddress, range }));
       } else {
-        navigate(adminRoutes.gardenOverview({ gardenId: selectedGardenAddress, range }));
+        navigate(adminRoutes.gardenHealth({ gardenId: selectedGardenAddress, range }));
       }
     },
+    [navigate, range, selectedGardenAddress]
+  );
+
+  const handleSettingsClose = useCallback(
+    () => navigate(adminRoutes.gardenHealth({ gardenId: selectedGardenAddress, range })),
     [navigate, range, selectedGardenAddress]
   );
 
@@ -259,6 +265,7 @@ export function useGardenWorkspaceController() {
     gardenOptions,
     hypercertSheetCloseTo,
     handleSelectGarden,
+    handleSettingsClose,
     handleTabChange,
     hypercertId,
     hypercerts,
@@ -273,6 +280,7 @@ export function useGardenWorkspaceController() {
     selectedGarden,
     selectedItem,
     setActivityFilter,
+    settingsOpen,
     treasuryBalance: formatTokenAmount(vaultNetDeposited),
     updateOverviewQueryState,
     view,

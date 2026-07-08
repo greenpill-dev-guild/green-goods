@@ -23,12 +23,14 @@ interface CookieJarDepositModalProps {
   isOpen: boolean;
   onClose: () => void;
   gardenAddress: Address;
+  defaultJarAddress?: Address | null;
 }
 
 export function CookieJarDepositModal({
   isOpen,
   onClose,
   gardenAddress,
+  defaultJarAddress = null,
 }: CookieJarDepositModalProps) {
   const { formatMessage } = useIntl();
   const { primaryAddress } = useUser();
@@ -45,10 +47,21 @@ export function CookieJarDepositModal({
 
   useEffect(() => {
     if (!isOpen) return;
-    setDepositJar("");
+    setDepositJar(defaultJarAddress ?? "");
     setDepositAmount("");
     resetDepositMutation();
-  }, [isOpen, resetDepositMutation]);
+  }, [defaultJarAddress, isOpen, resetDepositMutation]);
+
+  useEffect(() => {
+    if (!isOpen || depositJar) return;
+    if (defaultJarAddress && jars.some((jar) => jar.jarAddress === defaultJarAddress)) {
+      setDepositJar(defaultJarAddress);
+      return;
+    }
+    if (jars.length === 1) {
+      setDepositJar(jars[0].jarAddress);
+    }
+  }, [defaultJarAddress, depositJar, isOpen, jars]);
 
   const selectedDepositJar = useMemo(
     () => jars.find((j) => j.jarAddress === depositJar),
