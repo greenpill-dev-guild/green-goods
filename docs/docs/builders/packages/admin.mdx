@@ -76,6 +76,7 @@ The admin package is the Green Goods operator canvas. This page is the single UI
 - `AdminListItem`
 - `AdminSearchToolbar`
 - `AdminSelectableCard`
+- `AdminChoiceGroup`
 - `AdminConfirmDialog`
 - `AdminSideSheet`
 - `AdminSortSelect`
@@ -90,6 +91,7 @@ The admin package is the Green Goods operator canvas. This page is the single UI
 - Use `WorkbenchCard` for workbench records, action queue items, assessment queue items, and other records operators scan, compare, and act on in a grid or list.
 - Use `AdminCard` for compact modules, stats, settings, status panels, and supporting detail regions.
 - Use `AdminSelectableCard` for richer exclusive or multi-select choices where the option needs a title, description, icon, or metadata.
+- Use `AdminChoiceGroup` for compact single-select preferences and context switches inside dense panels.
 - Use `AdminTabRail` for route-local exclusive modes or tabs.
 - Use `AdminFilterChip` for compact toolbar filters.
 - Avoid adding new direct shared `Card` usage in admin route work unless the route is intentionally consuming an existing shared, non-admin surface.
@@ -112,7 +114,7 @@ The admin package is the Green Goods operator canvas. This page is the single UI
 - `AdminDialog` sizes follow a three-tier scale by action weight — `sm` is reserved for confirm/alert dialogs, `md` (the default) hosts a simple single-purpose action (one form, one concern), `lg` hosts richer single-view content (lists with per-item actions, multi-field or multi-column layouts). `xl`/`2xl` tiers no longer exist. A guard test (`packages/admin/src/__tests__/components/AdminDialogStandard.guard.test.ts`) fails any consumer passing an out-of-scale size or an ad-hoc `max-w-*` override.
 - Full-surface action flows (Submit Work, Create Assessment, Create Hypercert) use the `flow` variant of `AdminDialog` with `size="lg"` and the shared `ADMIN_FLOW_DIALOG_CLASS` sizing constant. The `flow` variant suppresses the structured header and inner padding so the shared `ActionFlowShell` owns the visible header + scrolling body + pinned footer; it stays a centered, scrim-backed modal on desktop and a full-width bottom sheet on mobile, not a fullscreen takeover.
 - `DialogShell` remains available for shared or non-admin surfaces. Do not use it for admin dashboard dialogs.
-- The three global AppBar surfaces (Profile, Settings, Notifications) are the one side-sheet exception: `AdminSideSheet` shares the dialog chrome (scrim, hairline header, close button, `tone`, instant-exit) with side-sheet geometry — right-docked full height with rounded inner corners at ≥640px, and the compact inset bottom-sheet geometry below. Panels compose `SheetBody` / `SheetFooter` inside it (the shell adds no padding). Usage is locked to `CanvasLayout` and the registry to the three content ids by `packages/admin/src/__tests__/components/AdminSideSheetStandard.guard.test.ts`.
+- The three global AppBar surfaces (Profile, Settings, Notifications) are the one side-sheet exception: `AdminSideSheet` shares the dialog chrome (scrim, hairline header, close button, `tone`, instant-exit) with side-sheet geometry — right-docked within the canvas chrome bounds at ≥640px, and the compact inset bottom-sheet geometry below. Panels compose `SheetBody` / `SheetFooter` inside it (the shell adds no padding). Usage is locked to `CanvasLayout` and the registry to the three content ids by `packages/admin/src/__tests__/components/AdminSideSheetStandard.guard.test.ts`.
 
 ### Dialog interior grammar
 

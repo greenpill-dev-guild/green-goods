@@ -12,7 +12,7 @@ import {
 import { RiComputerLine, RiExternalLinkLine, RiMoonLine, RiSunLine } from "@remixicon/react";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
-import { AdminSelectableCard } from "../AdminSelectableCard";
+import { AdminChoiceGroup } from "../AdminChoiceGroup";
 
 const THEME_OPTIONS = [
   { value: "light" as const, icon: RiSunLine, labelId: "cockpit.settings.lightMode" },
@@ -97,20 +97,17 @@ export function AccountSettingsPanel({ className }: AccountSettingsPanelProps) {
               "Choose the canvas atmosphere that feels best for long review sessions.",
           })}
         />
-        <div className="grid gap-2 sm:grid-cols-3">
-          {THEME_OPTIONS.map(({ value, icon: Icon, labelId }) => {
-            const isActive = theme === value;
-            return (
-              <AdminSelectableCard
-                key={value}
-                onClick={() => setTheme(value)}
-                selected={isActive}
-                title={formatMessage({ id: labelId })}
-                leadingVisual={<Icon className="h-4 w-4" aria-hidden="true" />}
-              />
-            );
-          })}
-        </div>
+        <AdminChoiceGroup
+          ariaLabel={formatMessage({ id: "cockpit.settings.theme", defaultMessage: "Theme" })}
+          value={theme}
+          onChange={(nextTheme) => setTheme(nextTheme as typeof theme)}
+          columns={3}
+          options={THEME_OPTIONS.map(({ value, icon: Icon, labelId }) => ({
+            value,
+            label: formatMessage({ id: labelId }),
+            leadingVisual: <Icon className="h-4 w-4" aria-hidden="true" />,
+          }))}
+        />
       </section>
 
       <SheetDivider />
@@ -124,20 +121,17 @@ export function AccountSettingsPanel({ className }: AccountSettingsPanelProps) {
             defaultMessage: "Choose the language for the operator canvas.",
           })}
         />
-        <div className="grid gap-2 sm:grid-cols-3">
-          {availableLocales.map((availableLocale) => {
-            const isActive = locale === availableLocale;
-            return (
-              <AdminSelectableCard
-                key={availableLocale}
-                onClick={() => switchLanguage(availableLocale as Locale)}
-                lang={availableLocale}
-                selected={isActive}
-                title={LOCALE_LABELS[availableLocale] ?? availableLocale.toUpperCase()}
-              />
-            );
-          })}
-        </div>
+        <AdminChoiceGroup
+          ariaLabel={formatMessage({ id: "cockpit.settings.language", defaultMessage: "Language" })}
+          value={locale}
+          onChange={(nextLocale) => switchLanguage(nextLocale as Locale)}
+          columns={3}
+          options={availableLocales.map((availableLocale) => ({
+            value: availableLocale,
+            label: LOCALE_LABELS[availableLocale] ?? availableLocale.toUpperCase(),
+            lang: availableLocale,
+          }))}
+        />
       </section>
 
       <SheetDivider />

@@ -21,7 +21,7 @@ const meta: Meta<typeof AdminSideSheet> = {
           "tone re-establishment, and instant-exit handling - only the",
           "geometry differs.",
           "",
-          "**Responsive**: right-docked full-height panel at >= 640px,",
+          "**Responsive**: right-docked canvas-embedded panel at >= 640px,",
           "compact inset bottom sheet below (the mobile notification",
           "bell keeps its glance-and-dismiss behavior).",
           "",
@@ -112,10 +112,12 @@ export const Default: Story = {
     const vh = document.documentElement.clientHeight;
 
     if (vw >= SM_BREAKPOINT_PX) {
-      // Right-docked, full height.
-      await expect(Math.abs(rect.right - vw)).toBeLessThanOrEqual(EDGE_TOLERANCE_PX);
-      await expect(Math.abs(rect.top)).toBeLessThanOrEqual(EDGE_TOLERANCE_PX);
-      await expect(Math.abs(rect.bottom - vh)).toBeLessThanOrEqual(EDGE_TOLERANCE_PX);
+      // Right-docked within the canvas chrome bounds, not full viewport height.
+      await expect(rect.right).toBeGreaterThan(vw - 48);
+      await expect(rect.right).toBeLessThanOrEqual(vw);
+      await expect(rect.top).toBeGreaterThan(0);
+      await expect(rect.bottom).toBeLessThan(vh);
+      await expect(rect.height).toBeLessThan(vh);
       // One shared width token, never wider than 560px + tolerance.
       await expect(rect.width).toBeLessThanOrEqual(560 + EDGE_TOLERANCE_PX);
     } else {

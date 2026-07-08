@@ -515,6 +515,9 @@ describe("CanvasLayout", () => {
     await waitFor(() => {
       expect(screen.getByTestId("admin-side-sheet-content")).toBeInTheDocument();
     });
+    expect(screen.getByRole("dialog").className).toContain("sm:top-[var(--admin-sheet-top)]");
+    expect(screen.getByRole("dialog").className).toContain("sm:bottom-[var(--admin-sheet-bottom)]");
+    expect(screen.getByRole("dialog").className).toContain("sm:w-[var(--admin-side-sheet-width)]");
   });
 
   it("opens profile content in a side sheet from the desktop profile trigger", async () => {

@@ -2724,6 +2724,7 @@
   "cockpit.community.cookies": "Cookies",
   "cockpit.community.cookies.advanced": "Avançado",
   "cockpit.community.cookies.assetDecimals": "{symbol} - {decimals} decimais",
+  "cockpit.community.cookies.assetPicker": "Ativo de pagamento",
   "cockpit.community.cookies.assetUnavailable": "{asset} ainda não está disponível nesta rede.",
   "cockpit.community.cookies.backToJars": "Voltar para cookie jars",
   "cockpit.community.cookies.campaignDescription": "Descrição da campanha",

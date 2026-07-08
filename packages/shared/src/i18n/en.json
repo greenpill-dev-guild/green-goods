@@ -2724,6 +2724,7 @@
   "cockpit.community.cookies": "Cookies",
   "cockpit.community.cookies.advanced": "Advanced",
   "cockpit.community.cookies.assetDecimals": "{symbol} - {decimals} decimals",
+  "cockpit.community.cookies.assetPicker": "Payout asset",
   "cockpit.community.cookies.assetUnavailable": "{asset} is not available on this network yet.",
   "cockpit.community.cookies.backToJars": "Back to cookie jars",
   "cockpit.community.cookies.campaignDescription": "Campaign description",

@@ -12,7 +12,7 @@ foundations.
 
 - Read `/Users/afo/Code/greenpill/green-goods/docs/docs/builders/packages/admin.mdx` before changing routes, layouts, or page structure.
 - The canonical shell is `CanvasLayout`.
-- The Wave 3 shell is `AppBar + .workspace-canvas + MainSheet + NavigationBar`, with every workspace overlay rendering as a centered `AdminDialog` (the `LeftSheet`/`RightSheet`/`BottomSheet` renderers are deleted). The three global AppBar surfaces (Profile, Settings, Notifications) render in `AdminSideSheet` — right-docked on desktop, bottom sheet on mobile.
+- The Wave 3 shell is `AppBar + .workspace-canvas + MainSheet + NavigationBar`, with every workspace overlay rendering as a centered `AdminDialog` (the `LeftSheet`/`RightSheet`/`BottomSheet` renderers are deleted). The three global AppBar surfaces (Profile, Settings, Notifications) render in `AdminSideSheet` — right-docked within the canvas chrome bounds on desktop, bottom sheet on mobile.
 - In admin docs, `AppBar` means the shared Canvas top context bar: sticky `z-sticky h-14`, `GardenChip` on the left, and search plus the notifications / settings / profile icon actions on the right (settings and profile are desktop-only; mobile keeps the bell).
 - `NavigationBar` is pure navigation only. Use the canonical items `Hub`, `Garden`, `Community`, and `Actions`; do not add leading or trailing slots.
 - Do not use the client/PWA `AppBar` pattern for admin. Keep admin workspace navigation on `NavigationBar`.
@@ -22,7 +22,7 @@ foundations.
 - Prefer the primitives below before composing raw `rounded border bg shadow` layouts.
 - Treat `packages/admin/src/components/Admin*.tsx` as the admin wrapper inventory; use those wrappers before local control styling.
 - Use `.surface-section`, `.surface-inset`, `.surface-card`, and `.workspace-canvas` before inventing one-off shell or page surface wrappers.
-- The account/profile/settings/notifications flows route through the right-sheet registry into the `AdminSideSheet` inspector (right-docked on desktop; bottom sheet on mobile, where only the bell opens it). `AccountSurface` is the mobile account route with **Account | Settings** tabs ("Account" is the mobile name for the desktop Profile sheet content; there is no notifications tab). Every other overlay uses `AdminDialog` or `AdminConfirmDialog` — side-sheet scope is enforced by `AdminSideSheetStandard.guard.test.ts`.
+- The account/profile/settings/notifications flows route through the right-sheet registry into the `AdminSideSheet` inspector (right-docked within the canvas chrome bounds on desktop; bottom sheet on mobile, where only the bell opens it). `AccountSurface` is the mobile account route with **Account | Settings** tabs ("Account" is the mobile name for the desktop Profile sheet content; there is no notifications tab). Every other overlay uses `AdminDialog` or `AdminConfirmDialog` — side-sheet scope is enforced by `AdminSideSheetStandard.guard.test.ts`.
 
 ## Cockpit UI Mode
 
@@ -44,6 +44,10 @@ foundations.
 - `AdminDialog`
 - `AdminConfirmDialog`
 - `AdminSideSheet`
+- `AdminChoiceGroup`
+- `AdminSelectableCard`
+- `AdminTabRail`
+- `AdminFilterChip`
 - `GardenChip`
 - `CommandPalette`
 - `AccountProfilePanel`
@@ -57,8 +61,6 @@ foundations.
 - `Alert`
 - `StatusBadge`
 - `FormField`
-- `AdminDialog`
-- `AdminConfirmDialog`
 
 ## Commands
 

@@ -330,6 +330,7 @@
   --admin-sheet-bottom: calc(
     var(--admin-nav-offset-desktop, 20px) + var(--admin-nav-height-desktop, 3.5rem) + var(--admin-sheet-bottom-gap-desktop, 1.5rem)
   );
+  --admin-side-sheet-width: min(var(--canvas-right-sheet-width, clamp(380px, 30vw, 560px)), calc(100vw - 3rem));
   --admin-main-bottom-clearance-desktop: calc(
     var(--admin-nav-offset-desktop, 12px) + var(--admin-nav-height-desktop, 3.5rem) + 1rem
   );

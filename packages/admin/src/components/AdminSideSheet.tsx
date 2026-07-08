@@ -50,10 +50,10 @@ const closeButtonClasses = cn(
  * hairline header, absolute close button, tone re-establishment, instant-exit
  * hidden-tab handling) and swaps only the geometry.
  *
- * - ≥640px: right-docked, full height, rounded inner (left) corners, slides
- *   in from the right edge. Width reuses the `--canvas-right-sheet-width`
- *   token (one width for every sheet — per-content widths read as
- *   inconsistent chrome).
+ * - ≥640px: right-docked within the canvas chrome bounds (below AppBar, above
+ *   NavigationBar), rounded all around, and slides in from the right edge.
+ *   Width reuses the `--canvas-right-sheet-width` token (one width for every
+ *   sheet — per-content widths read as inconsistent chrome).
  * - <640px: compact inset bottom sheet, so the notification bell keeps today's
  *   glance-and-dismiss behavior while workspace AdminDialogs can use full width.
  *
@@ -123,12 +123,12 @@ export function AdminSideSheet({
           data-instant-exit={instantExit || undefined}
           className={cn(
             // Mobile: compact inset bottom sheet. Desktop ≥640px:
-            // right-docked full-height panel.
+            // right-docked within the canvas chrome bounds.
             "fixed bottom-0 left-1/2 z-modal flex max-h-[calc(100dvh-1rem)] w-full max-w-[calc(100vw-1rem)] -translate-x-1/2 flex-col",
             "rounded-t-[var(--m3-shape-xl)]",
-            "sm:top-0 sm:right-0 sm:left-auto sm:max-h-none sm:max-w-none sm:translate-x-0",
-            "sm:w-[min(var(--canvas-right-sheet-width,clamp(380px,30vw,560px)),calc(100vw-3rem))]",
-            "sm:rounded-l-[var(--m3-shape-xl)] sm:rounded-tr-none",
+            "sm:top-[var(--admin-sheet-top)] sm:right-[var(--admin-sheet-side-inset)] sm:bottom-[var(--admin-sheet-bottom)] sm:left-auto sm:max-h-none sm:max-w-none sm:translate-x-0",
+            "sm:w-[var(--admin-side-sheet-width)]",
+            "sm:rounded-[var(--m3-shape-xl)]",
             // Solid surface + elevation 3 — dense surfaces stay solid; glass
             // remains Navigation/FAB-only.
             "bg-[rgb(var(--m3-surface-container-high))]",
