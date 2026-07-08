@@ -4,7 +4,7 @@ sidebar_label: Releasing
 slug: /builders/deployments/releasing
 audience: developer
 owner: docs
-last_verified: 2026-06-23
+last_verified: 2026-07-08
 feature_status: Live
 source_of_truth:
   - .github/workflows/release.yml
@@ -49,7 +49,7 @@ git switch -c release/july-2026-v1.2.0 origin/develop   # cut the tested snapsho
 bun run version:bump 1.2.0                           # unify all package versions
 # add the curated changelog entry, then run the gates:
 bun run format:check && bun run lint && bun run test && bun run build
-git commit -am "chore(release): v1.2.0 (July 2026)" && git push -u origin release/july-2026
+git commit -am "chore(release): v1.2.0 (July 2026)" && git push -u origin release/july-2026-v1.2.0
 gh pr create --base main --title "Release July 2026 — v1.2.0"
 # once CI is green and the PR merges, tag the merged main HEAD:
 git switch main && git pull && git tag -a v1.2.0 -m "July 2026" && git push origin v1.2.0
@@ -63,13 +63,29 @@ A production bug mid-month branches from `main` (not `develop`), bumps a patch (
 
 ## Back-merge — every time
 
-After every release and every hotfix, merge `main` back into `develop` (admin fast-path below; otherwise open a quick back-merge PR, since `develop` is protected):
+After every release and every hotfix, merge `main` back into `develop`. **Use the direct-push fast-path** — as a maintainer you push straight to `develop`:
 
 ```bash
+git fetch origin                                      # refresh origin/main after the release merged
 git switch develop && git pull && git merge origin/main && git push
 ```
 
 This keeps `main` an ancestor of `develop` — the check that it worked is an empty `git log origin/develop..origin/main`.
+
+:::danger Never open a back-merge PR whose head is `main`
+The repo has `delete_branch_on_merge: true`, so GitHub deletes a PR's **head** branch when the PR merges. A back-merge PR with `main` as the head therefore **deletes `main`** on merge — the org-admin bypass sails straight past main's `restrict-deletions` rule. This is exactly what deleted `main` during this release's back-merge; it had to be restored from the reflog.
+
+If the direct push above is somehow unavailable and you must go through a PR, push `main` to a **throwaway** branch and PR *that* into `develop` — never `main` itself:
+
+```bash
+DATE=$(date +%Y-%m-%d)
+git fetch origin                                      # copy the current main, not a stale local ref
+git push origin origin/main:refs/heads/backmerge/main-$DATE
+gh pr create --repo greenpill-dev-guild/green-goods \
+  --base develop --head "backmerge/main-$DATE" \
+  --title "Back-merge main → develop"
+```
+:::
 
 ## The changelog
 
