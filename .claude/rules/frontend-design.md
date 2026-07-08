@@ -91,7 +91,7 @@ Entity references in lists (gardens, actions) include small thumbnails (40px) us
 
 ## Rule 9: Typography Utilities
 
-Use `label-md`, `body-md` utilities from theme.css instead of raw Tailwind text sizes for form labels and body text.
+Use `label-md`, `body-md` utilities from theme.css instead of raw Tailwind text sizes for form labels and body text. Mind the role split: `label-xs text-text-soft` is the **eyebrow / metadata** token (card overlines, definition-list keys, section meta) — it is **not** a form-field label. The title that labels a control goes through `FormField` / `AdminSettingRow` (see Rule 15).
 
 ## Rule 10: Icon Sizing Convention
 
@@ -132,19 +132,36 @@ modal (avoid building these) needs `max-w-[calc(100vw-2rem)] sm:max-w-lg` to sur
 
 Use the `FormField` component from `@green-goods/shared` for label+input+error patterns
 (admin-local `components/ui` shims are forbidden — admin.mdx Migration Rules). Mark required
-fields.
+fields. For an inline **setting row** (field title on the left, a `Switch` or compact control on
+the right), use the admin `AdminSettingRow` primitive — it carries the same label token as
+`FormField`, so a toggle row never reads smaller or greyer than the stacked fields beside it.
+
+**A field-input label is never a hand-rolled eyebrow.** Labelling an input, toggle, or
+selectable-card group with `label-xs text-text-soft` (the eyebrow/metadata token) makes that
+field read visibly smaller and greyer than the `FormField` labels next to it — the Garden Profile
+dialog regressed exactly this way. Route every field label through `FormField` or
+`AdminSettingRow`.
 
 ```tsx
-// Bad
+// Bad — hand-rolled eyebrow token as a field label
+<p className="label-xs text-text-soft">Open joining</p>
+<Switch ... />
+
 <label>Name</label>
 <input {...register('name')} />
 {errors.name && <p>{errors.name.message}</p>}
 
-// Good
+// Good — canonical label primitives
 import { FormField } from "@green-goods/shared";
+import { AdminSettingRow } from "@/components/AdminSettingRow";
+
 <FormField label="Name" required error={errors.name?.message}>
   <input {...register('name')} />
 </FormField>
+
+<AdminSettingRow labelId="open-joining" label="Open joining" description="…">
+  <Switch aria-labelledby="open-joining" ... />
+</AdminSettingRow>
 ```
 
 ## Rule 16: Alert/Error Boxes
