@@ -19,12 +19,7 @@ vi.mock("@green-goods/shared", () => ({
     MEDIUM: 2,
     HIGH: 3,
   },
-  ConfidenceSelector: ({
-    onChange,
-  }: {
-    value: number;
-    onChange: (value: number) => void;
-  }) => (
+  ConfidenceSelector: ({ onChange }: { value: number; onChange: (value: number) => void }) => (
     <button type="button" onClick={() => onChange(2)}>
       Set medium confidence
     </button>
@@ -42,9 +37,10 @@ vi.mock("@green-goods/shared", () => ({
     error: vi.fn(),
   },
   parseAndFormatError: () => ({ message: "Failed", parsed: { isKnown: false } }),
-  Textarea: ({ surface: _surface, ...props }: React.ComponentProps<"textarea"> & { surface?: string }) => (
-    <textarea {...props} />
-  ),
+  Textarea: ({
+    surface: _surface,
+    ...props
+  }: React.ComponentProps<"textarea"> & { surface?: string }) => <textarea {...props} />,
   toastService: {
     error: vi.fn(),
   },

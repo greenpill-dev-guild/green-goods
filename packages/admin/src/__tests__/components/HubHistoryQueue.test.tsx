@@ -21,9 +21,7 @@ const EVENT: ActivityEvent = {
   itemId: "work-1",
 };
 
-function renderHistoryQueue(
-  props: Partial<React.ComponentProps<typeof HubHistoryQueue>> = {}
-) {
+function renderHistoryQueue(props: Partial<React.ComponentProps<typeof HubHistoryQueue>> = {}) {
   return render(
     <IntlProvider locale="en" messages={enMessages}>
       <HubHistoryQueue

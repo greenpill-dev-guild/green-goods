@@ -231,9 +231,7 @@ export function HubWorkCard({
           title={`${gardenerDisplayName} · ${gardenName}`}
         >
           {visibleActionTitle ? (
-            <p className="line-clamp-2 font-medium leading-5 text-text-sub">
-              {visibleActionTitle}
-            </p>
+            <p className="line-clamp-2 font-medium leading-5 text-text-sub">{visibleActionTitle}</p>
           ) : null}
           <p
             className={cn(

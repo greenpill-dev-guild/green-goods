@@ -242,8 +242,6 @@ describe("buildCommunityViewActions — fixed Community header", () => {
       "register-proposal",
       "fund-payout-jar",
     ]);
-    expect(visibleIds(buildFor("coordination", { canManage: false, isOwner: false }))).toEqual(
-      []
-    );
+    expect(visibleIds(buildFor("coordination", { canManage: false, isOwner: false }))).toEqual([]);
   });
 });

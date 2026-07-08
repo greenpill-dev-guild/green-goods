@@ -21,11 +21,7 @@ import { Controller, useForm } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 import { formatEnsAddressName } from "@/components/EnsAddressText";
-import {
-  ReviewSummary,
-  workApprovalSchema,
-  type WorkApprovalFormData,
-} from "./helpers";
+import { ReviewSummary, workApprovalSchema, type WorkApprovalFormData } from "./helpers";
 
 interface ReviewFormProps {
   work: Work;
