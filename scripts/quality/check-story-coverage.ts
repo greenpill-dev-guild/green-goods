@@ -198,6 +198,10 @@ const AUDITED_HARNESS_ONLY_STORIES = new Map<string, string>([
     "real card reads several vault, balance, and transaction hooks; visual state matrix is fixture-driven",
   ],
   [
+    "admin/components/Vault/VaultContractDetails.tsx",
+    "self-fetches garden vaults via useGardenVaults and resolves addresses through EnsAddressText; wagmi/ENS reads are not seedable in Storybook, so the harness renders the row layout from plain props",
+  ],
+  [
     "admin/views/Hub/components/CookieJarDepositModal.tsx",
     "real modal reads wallet balances and garden cookie jars before mutating deposit flows",
   ],

@@ -2,7 +2,7 @@
  * View-action grammar tests.
  *
  * Hub, Garden, and Community keep fixed header actions. Community exposes the
- * same four coordination actions on every tab, with tab bodies carrying the
+ * same three coordination actions on every tab, with tab bodies carrying the
  * detail work.
  *
  *   1. id/order stability across tabs (button positions never shift),
@@ -151,7 +151,7 @@ describe("buildCommunityViewActions — fixed Community header", () => {
     });
 
   it("keeps the same action ids and order on every mode", () => {
-    const expected = ["add-member", "register-proposal", "deposit-withdraw", "fund-payout-jar"];
+    const expected = ["add-member", "deposit-withdraw", "fund-payout-jar"];
     for (const mode of ["members", "coordination", "endowment", "payouts"] as const) {
       expect(visibleIds(buildFor(mode))).toEqual(expected);
     }
@@ -173,23 +173,7 @@ describe("buildCommunityViewActions — fixed Community header", () => {
       actions
         .filter((action) => action.visible !== false && action.id !== "add-member")
         .map((action) => action.variant)
-    ).toEqual(["secondary", "secondary", "secondary"]);
-  });
-
-  it("labels and routes Register proposal to the coordination signal pool flow", () => {
-    const navigate = vi.fn();
-    const actions = buildCommunityViewActions("coordination", true, false, true, navigate, {
-      gardenAddress: GARDEN,
-    });
-
-    const action = actions.find((item) => item.id === "register-proposal");
-    expect(action?.label).toBe("Register proposal");
-    expect(action?.labelId).toBe("cockpit.community.action.registerProposal");
-
-    action?.onClick();
-    expect(navigate).toHaveBeenCalledTimes(1);
-    expect(navigate.mock.calls[0]?.[0]).toContain("/community/coordination/signal-pool/hypercert");
-    expect(navigate.mock.calls[0]?.[0]).toContain(GARDEN);
+    ).toEqual(["secondary", "secondary"]);
   });
 
   it("links Add member to the community-owned members flow", () => {
@@ -239,7 +223,6 @@ describe("buildCommunityViewActions — fixed Community header", () => {
     ]);
     expect(visibleIds(buildFor("members", { canManage: true, isOwner: false }))).toEqual([
       "add-member",
-      "register-proposal",
       "fund-payout-jar",
     ]);
     expect(visibleIds(buildFor("coordination", { canManage: false, isOwner: false }))).toEqual([]);
