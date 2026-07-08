@@ -176,7 +176,7 @@ Set these variables as GitHub repository secrets:
 | `POSTHOG_CLIENT_ENV_ID` | PostHog environment ID for the client app |
 | `POSTHOG_CLI_TOKEN` | PostHog token with source-map upload permissions |
 
-Production Vercel deploys do not require these PostHog variables. The GitHub Actions source-map upload job fails closed if the PostHog source-map variables are missing. `GG_ENABLE_SOURCEMAPS` is an upload-lane flag, not a durable frontend Vercel setting; current Vite source-map emission is still coupled to `SENTRY_AUTH_TOKEN`, so keep client Sentry integration variables only where Sentry upload or log-drain integration is intentionally enabled.
+Production Vercel deploys do not require these PostHog variables. The GitHub Actions source-map upload job fails closed if the PostHog source-map variables are missing. `GG_ENABLE_SOURCEMAPS` is an upload-lane flag, not a durable frontend Vercel setting: the flag now makes the production build emit source maps (as `hidden`) and skip the public-map strip, so it must never be set on a Vercel project — it would publish browser source maps. Keep client Sentry integration variables only where Sentry upload or log-drain integration is intentionally enabled.
 
 ## Resources
 

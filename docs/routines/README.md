@@ -166,8 +166,10 @@ cannot cross-wire the two browser apps.
 
 Frontend source-map ownership is split today: PostHog source-map uploads run from GitHub
 Actions with `POSTHOG_CLI_TOKEN` plus the app-specific PostHog environment ID, while Vite
-currently emits maps only when `SENTRY_AUTH_TOKEN` is present. `GG_ENABLE_SOURCEMAPS` is an
-upload-lane flag, not a durable Vercel project variable. Keep client Sentry integration
+emits maps whenever `GG_ENABLE_SOURCEMAPS=true` (the upload lane sets it) or the Sentry
+upload path is active. `GG_ENABLE_SOURCEMAPS` is an upload-lane flag, not a durable Vercel
+project variable — the app build only strips public `.map` files when it is unset, so setting
+it on a Vercel project would publish browser source maps. Keep client Sentry integration
 variables only where Sentry upload or log-drain integration is intentionally enabled, and do
 not keep orphaned source-map flags on admin.
 
