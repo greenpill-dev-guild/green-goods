@@ -5,13 +5,12 @@ import {
   type useGardenWorkspaceController,
 } from "@green-goods/shared";
 import { AdminCard } from "@/components/AdminCard";
-import { RiImageLine } from "@remixicon/react";
+import { RiArrowGoBackLine, RiCloseLine, RiImageLine } from "@remixicon/react";
 import { useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminDialog } from "@/components/AdminDialog";
 import { DiscardChangesDialog } from "@/components/DiscardChangesDialog";
-import { GardenDomainModal } from "@/components/Garden/GardenDomainEditor";
 import { GardenMetadata } from "@/components/Garden/GardenMetadata";
 import {
   type GardenBannerPreview,
@@ -26,7 +25,6 @@ import {
 } from "@/components/Layout/CanvasRouteState";
 import { OverviewTab } from "./OverviewTab";
 import { ImpactTab } from "./ImpactTab";
-import { GardenDomainSummaryRow } from "./GardenDetailHelpers";
 
 interface GardenWorkspaceContentProps {
   workspace: ReturnType<typeof useGardenWorkspaceController>;
@@ -89,6 +87,14 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
       />
     );
   }
+
+  // The identity preview card renders whatever banner the settings form reports
+  // (saved, staged draft, or staged removal); before the form mounts, fall back
+  // to the saved image so there is no placeholder flash.
+  const bannerSrc = bannerPreview ? bannerPreview.src : workspace.garden.bannerImage || null;
+  const bannerIsDraft = bannerPreview?.isDraft ?? false;
+  const bannerRemovalStaged = bannerPreview?.isStagedRemoval ?? false;
+  const bannerCanRemove = bannerPreview?.canRemove ?? false;
 
   return (
     <div className="mt-4 min-h-0 flex-1 space-y-4">
@@ -190,8 +196,8 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
                 <AdminButton
                   type="button"
                   variant="text"
-                  onClick={() => settingsEditorRef.current?.cancel()}
-                  disabled={!settingsForm.isDirty || settingsForm.isSaving}
+                  onClick={() => settingsDirtyClose.onOpenChange(false)}
+                  disabled={settingsForm.isSaving}
                 >
                   {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
                 </AdminButton>
@@ -225,6 +231,7 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
               description: workspace.garden.description,
               location: workspace.garden.location,
               bannerImage: workspace.garden.bannerImage,
+              domainMask: workspace.garden.domainMask,
               openJoining: workspace.garden.openJoining,
               maxGardeners: workspace.garden.maxGardeners,
             }}
@@ -235,52 +242,71 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
           />
 
           <div className="space-y-4">
-            {/* Identity preview — the single place the banner renders (saved
-                or staged draft, reported by the form), plus name/location. */}
+            {/* Identity preview — the single place the banner renders (saved,
+                staged draft, or staged removal, reported by the form), plus the
+                garden name and location. Remove / Undo sit on the image so a
+                pending removal is always visible. */}
             <AdminCard variant="filled" density="none" className="overflow-hidden">
               <div className="relative">
-                {(bannerPreview ? bannerPreview.src : workspace.garden.bannerImage) ? (
-                  <img
-                    src={(bannerPreview ? bannerPreview.src : workspace.garden.bannerImage) ?? ""}
-                    alt=""
-                    className="h-28 w-full object-cover"
-                  />
+                {bannerRemovalStaged ? (
+                  <div className="flex h-28 w-full flex-col items-center justify-center gap-1 bg-bg-soft px-3 text-center text-text-soft">
+                    <RiImageLine className="h-5 w-5" />
+                    <span className="text-xs">
+                      {formatMessage({
+                        id: "app.garden.settings.bannerWillBeRemoved",
+                        defaultMessage: "Will be removed on save",
+                      })}
+                    </span>
+                    <AdminButton
+                      type="button"
+                      variant="text"
+                      size="sm"
+                      leadingIcon={<RiArrowGoBackLine />}
+                      onClick={() => settingsEditorRef.current?.undoBannerRemoval()}
+                    >
+                      {formatMessage({ id: "app.common.undo", defaultMessage: "Undo" })}
+                    </AdminButton>
+                  </div>
+                ) : bannerSrc ? (
+                  <>
+                    <img src={bannerSrc} alt="" className="h-28 w-full object-cover" />
+                    {bannerCanRemove ? (
+                      <AdminButton
+                        type="button"
+                        variant="text"
+                        size="sm"
+                        leadingIcon={<RiCloseLine />}
+                        onClick={() => settingsEditorRef.current?.stageBannerRemoval()}
+                        className="absolute right-2 top-2 bg-bg-white/90 text-text-sub shadow-[var(--edge-rest)] hover:bg-bg-white"
+                      >
+                        {formatMessage({ id: "app.common.remove", defaultMessage: "Remove" })}
+                      </AdminButton>
+                    ) : null}
+                    {bannerIsDraft ? (
+                      <span className="absolute bottom-2 right-2 rounded-full bg-bg-white/90 px-2 py-0.5 text-[11px] font-medium text-text-sub shadow-[var(--edge-rest)]">
+                        {formatMessage({
+                          id: "app.garden.settings.bannerDraft",
+                          defaultMessage: "Preview · uploads on save",
+                        })}
+                      </span>
+                    ) : null}
+                  </>
                 ) : (
                   <div className="flex h-28 w-full items-center justify-center bg-bg-soft text-text-soft">
                     <RiImageLine className="h-6 w-6" />
                   </div>
                 )}
-                {bannerPreview?.isDraft ? (
-                  <span className="absolute bottom-2 right-2 rounded-full bg-bg-white/90 px-2 py-0.5 text-[11px] font-medium text-text-sub shadow-[var(--edge-rest)]">
-                    {formatMessage({
-                      id: "app.garden.settings.bannerDraft",
-                      defaultMessage: "Preview · uploads on save",
-                    })}
-                  </span>
-                ) : null}
               </div>
               <div className="space-y-1 p-3 text-sm text-text-sub">
-                <h3 className="label-md text-text-strong">{workspace.garden.name}</h3>
-                {workspace.garden.location ? <p>{workspace.garden.location}</p> : null}
-                {workspace.community ? (
-                  <p>
-                    {formatMessage({
-                      id: "cockpit.garden.communityConnected",
-                      defaultMessage: "Community connected",
-                    })}
+                <h3 className="label-md truncate text-text-strong" title={workspace.garden.name}>
+                  {workspace.garden.name}
+                </h3>
+                {workspace.garden.location ? (
+                  <p className="truncate" title={workspace.garden.location}>
+                    {workspace.garden.location}
                   </p>
                 ) : null}
               </div>
-            </AdminCard>
-
-            {/* Domain management lives inside the settings dialog (QA: the
-                edit-domains row no longer floats above every garden tab). */}
-            <AdminCard variant="filled" density="none" className="overflow-hidden">
-              <GardenDomainSummaryRow
-                domainMask={workspace.garden.domainMask}
-                canManage={workspace.canManage}
-                onEditDomains={workspace.openDomainEditor}
-              />
             </AdminCard>
 
             {/* On-chain identifiers fill the column beside the form instead of
@@ -300,13 +326,6 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
         onDiscard={settingsDirtyClose.confirmClose}
         tone="garden"
       />
-      {workspace.canManage ? (
-        <GardenDomainModal
-          isOpen={workspace.domainEditorOpen}
-          onClose={workspace.closeDomainEditor}
-          gardenAddress={workspace.garden.id as Address}
-        />
-      ) : null}
     </div>
   );
 }

@@ -7,7 +7,6 @@ import { MemoryRouter, Route, RouterProvider, Routes, createMemoryRouter } from 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import enMessages from "../../../../shared/src/i18n/en.json";
 import { useGardenWorkspaceController } from "@green-goods/shared";
-import { GardenDomainSummaryRow } from "./components/GardenDetailHelpers";
 import { GardenWorkspaceContent } from "./components/GardenWorkspaceContent";
 import { SubmitWorkPanel } from "./SubmitWork";
 
@@ -26,13 +25,11 @@ const { mockCanManageGarden, settingsEditorProbe } = vi.hoisted(() => ({
 
 vi.mock("@green-goods/shared", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  const React = await import("react");
   const Router = await import("react-router-dom");
 
   return {
     ...actual,
     useGardenWorkspaceController: () => {
-      const [domainEditorOpen, setDomainEditorOpen] = React.useState(false);
       // Route-faithful stub: the real controller derives the view from the
       // pathname and closes the settings dialog by navigating — the dirty-close
       // guard's router blocker only exists on that navigation path.
@@ -46,7 +43,6 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
         canReview: false,
         canvasActivityEvents: [],
         clearSection: vi.fn(),
-        closeDomainEditor: () => setDomainEditorOpen(false),
         community: null,
         containerRef: { current: null },
         derived: {
@@ -62,7 +58,6 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
           filteredActivityEvents: [],
         },
         desktopActions: [],
-        domainEditorOpen,
         error: null,
         fetching: false,
         fetchingAssessments: false,
@@ -94,7 +89,6 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
         hypercerts: [],
         hypercertSheetCloseTo: "/garden",
         isOwner: true,
-        openDomainEditor: () => setDomainEditorOpen(true),
         openSection: vi.fn(),
         range: "30d",
         section: undefined,
@@ -278,19 +272,6 @@ describe("garden domain recovery UI", () => {
     return router;
   }
 
-  it("opens the existing domain editor from the garden settings Domains row", async () => {
-    const user = userEvent.setup();
-
-    renderWorkspaceAtSettings();
-
-    expect(screen.getByText("No domains configured")).toBeVisible();
-
-    await user.click(screen.getByRole("button", { name: "Edit domains" }));
-
-    expect(screen.getByRole("dialog", { name: "Edit Domains" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "Save domains" })).toBeVisible();
-  });
-
   it("closes pristine garden settings straight to health with no discard prompt", async () => {
     const user = userEvent.setup();
 
@@ -342,39 +323,6 @@ describe("garden domain recovery UI", () => {
 
     expect(screen.getByRole("dialog", { name: "Garden Profile" })).toBeVisible();
     expect(screen.queryByText("Discard Changes?")).not.toBeInTheDocument();
-  });
-
-  it("shows the empty-domain status with an inline edit action for managers", () => {
-    render(
-      <TestProviders>
-        <GardenDomainSummaryRow domainMask={0} canManage onEditDomains={vi.fn()} />
-      </TestProviders>
-    );
-
-    expect(screen.getByText("No domains configured")).toBeVisible();
-    expect(screen.getByRole("button", { name: "Edit domains" })).toBeVisible();
-  });
-
-  it("keeps the inline edit action hidden for read-only operators", () => {
-    render(
-      <TestProviders>
-        <GardenDomainSummaryRow domainMask={0} canManage={false} onEditDomains={vi.fn()} />
-      </TestProviders>
-    );
-
-    expect(screen.getByText("No domains configured")).toBeVisible();
-    expect(screen.queryByRole("button", { name: "Edit domains" })).not.toBeInTheDocument();
-  });
-
-  it("keeps configured domain labels status-only", () => {
-    render(
-      <TestProviders>
-        <GardenDomainSummaryRow domainMask={1} canManage={false} onEditDomains={vi.fn()} />
-      </TestProviders>
-    );
-
-    expect(screen.queryByText("No domains configured")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Edit domains" })).not.toBeInTheDocument();
   });
 
   it("routes Submit Work's empty domain state back to garden settings", async () => {

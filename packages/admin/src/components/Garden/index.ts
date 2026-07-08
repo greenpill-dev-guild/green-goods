@@ -1,7 +1,6 @@
 export { AddMembersDialog } from "./AddMembersDialog";
 export { GardenAssessmentsPanel } from "./GardenAssessmentsPanel";
 export { GardenCommunityCard } from "./GardenCommunityCard";
-export { GardenDomainModal } from "./GardenDomainEditor";
 export { GardenHypercertsPanel } from "./GardenHypercertsPanel";
 export { GardenMetadata } from "./GardenMetadata";
 export { GardenSettingsEditor } from "./GardenSettingsEditor";

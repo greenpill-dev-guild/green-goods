@@ -19,10 +19,10 @@ import { useIntl } from "react-intl";
 import { useNavigate, useParams } from "react-router-dom";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminConfirmDialog } from "@/components/AdminDialog";
+import { AdminInlineField } from "@/components/AdminInlineField";
 import { EnsAddressText } from "@/components/EnsAddressText";
 import { AdminLinearProgress } from "@/components/AdminLinearProgress";
 import { AdminTabRail } from "@/components/AdminTabRail";
-import { AdminTextField } from "@/components/AdminTextField";
 import {
   CanvasRouteContent,
   CanvasRouteFrame,
@@ -39,11 +39,23 @@ import {
  * Both pool types share the same contract ABI (registerHypercert/deregisterHypercert)
  * because "hypercertId" at the contract level is a generic proposal identifier.
  */
+type SignalPoolType = "hypercert" | "action";
+
 interface GardenSignalPoolViewProps {
-  layout?: "page" | "sheet";
+  layout?: "page" | "sheet" | "inline";
+  /**
+   * When embedded inline (Coordination tab) the parent owns the active pool
+   * type; falls back to the `:poolType` route param for the standalone routes.
+   */
+  poolType?: SignalPoolType;
+  onPoolTypeChange?: (next: SignalPoolType) => void;
 }
 
-export default function GardenSignalPoolView({ layout = "page" }: GardenSignalPoolViewProps = {}) {
+export default function GardenSignalPoolView({
+  layout = "page",
+  poolType,
+  onPoolTypeChange,
+}: GardenSignalPoolViewProps = {}) {
   const { poolType: poolTypeParam } = useParams<{ poolType: string }>();
   const { formatMessage } = useIntl();
   const navigate = useNavigate();
@@ -53,7 +65,8 @@ export default function GardenSignalPoolView({ layout = "page" }: GardenSignalPo
   const { selectedGarden } = useAdminGardenWorkspaceSelection();
   const gardenId = selectedGarden?.id ?? null;
 
-  const isActionPool = poolTypeParam === "action";
+  const activePoolType = poolType ?? poolTypeParam;
+  const isActionPool = activePoolType === "action";
   const targetPoolType = isActionPool ? PoolType.Action : PoolType.Hypercert;
 
   const { data: gardens = [], isLoading: gardensLoading } = useGardens();
@@ -74,6 +87,7 @@ export default function GardenSignalPoolView({ layout = "page" }: GardenSignalPo
     hypercertIds: registeredIds,
     isLoading: itemsLoading,
     isError: itemsError,
+    refetch: refetchItems,
   } = useRegisteredHypercerts(poolAddress, {
     enabled: Boolean(poolAddress),
   });
@@ -86,9 +100,16 @@ export default function GardenSignalPoolView({ layout = "page" }: GardenSignalPo
     weights,
     isLoading: weightsLoading,
     isError: weightsError,
+    refetch: refetchWeights,
   } = useHypercertConviction(poolAddress, {
     enabled: Boolean(poolAddress),
   });
+
+  const hasReadError = itemsError || weightsError;
+  const retryReads = () => {
+    void refetchItems();
+    void refetchWeights();
+  };
 
   // i18n key helpers based on pool type
   const titleKey = isActionPool ? "app.signal.actionPool.title" : "app.signal.hypercertPool.title";
@@ -125,16 +146,19 @@ export default function GardenSignalPoolView({ layout = "page" }: GardenSignalPo
       label: formatMessage({ id: "app.signal.viewActionPool" }),
     },
   ];
-  const handlePoolTabChange = (nextPoolType: string) =>
-    navigate(
-      adminRoutes.communityCoordinationSignalPool(
-        nextPoolType === "action" ? "action" : "hypercert",
-        gardenRouteContext
-      )
-    );
+  const handlePoolTabChange = (nextPoolType: string) => {
+    const next: SignalPoolType = nextPoolType === "action" ? "action" : "hypercert";
+    // Inline (Coordination tab) owns the toggle locally; the standalone routes
+    // still navigate so deep links and the browser back button keep working.
+    if (onPoolTypeChange) {
+      onPoolTypeChange(next);
+      return;
+    }
+    navigate(adminRoutes.communityCoordinationSignalPool(next, gardenRouteContext));
+  };
 
   if (gardensLoading) {
-    if (layout === "sheet") {
+    if (layout !== "page") {
       return <Alert variant="info">{formatMessage({ id: "app.signal.loading" })}</Alert>;
     }
 
@@ -151,7 +175,7 @@ export default function GardenSignalPoolView({ layout = "page" }: GardenSignalPo
   }
 
   if (!garden) {
-    if (layout === "sheet") {
+    if (layout !== "page") {
       return (
         <Alert variant="error">{formatMessage({ id: "app.conviction.gardenNotFound" })}</Alert>
       );
@@ -217,7 +241,7 @@ export default function GardenSignalPoolView({ layout = "page" }: GardenSignalPo
 
   const content = (
     <>
-      {layout === "sheet" ? (
+      {layout !== "page" ? (
         <AdminTabRail
           ariaLabel={formatMessage({ id: "app.community.pools" })}
           activeId={isActionPool ? "action" : "hypercert"}
@@ -231,9 +255,8 @@ export default function GardenSignalPoolView({ layout = "page" }: GardenSignalPo
         <Alert variant="info">{formatMessage({ id: "app.signal.poolNotFound" })}</Alert>
       )}
 
-      {(itemsError || weightsError) && (
-        <Alert variant="error">{formatMessage({ id: "app.conviction.errorLoadingFailed" })}</Alert>
-      )}
+      {/* Read errors render inside the weights section below (never as a banner
+          above content) so a failed load does not shift the layout. */}
 
       {poolAddress && (
         <>
@@ -252,7 +275,9 @@ export default function GardenSignalPoolView({ layout = "page" }: GardenSignalPo
               {/* Value slots keep their final geometry while loading — a
                   shimmer block the size of the number, never swapped-in text. */}
               <p className="mt-1 text-lg font-semibold text-text-strong">
-                {itemsLoading ? (
+                {itemsError ? (
+                  <span className="text-text-soft">—</span>
+                ) : itemsLoading ? (
                   <span className="block h-7 w-12 rounded-md skeleton-shimmer" aria-hidden />
                 ) : (
                   registeredIds.length
@@ -264,7 +289,9 @@ export default function GardenSignalPoolView({ layout = "page" }: GardenSignalPo
                 {formatMessage({ id: "app.signal.weightsRecordedLabel" })}
               </p>
               <p className="mt-1 text-lg font-semibold text-text-strong">
-                {weightsLoading ? (
+                {weightsError ? (
+                  <span className="text-text-soft">—</span>
+                ) : weightsLoading ? (
                   <span className="block h-7 w-12 rounded-md skeleton-shimmer" aria-hidden />
                 ) : (
                   weights.length
@@ -285,7 +312,18 @@ export default function GardenSignalPoolView({ layout = "page" }: GardenSignalPo
             </div>
 
             <div className="min-h-52 p-4 sm:p-6">
-              {itemsLoading || weightsLoading ? (
+              {hasReadError ? (
+                // Read failures fill this reserved region (they never mount as a
+                // banner above content) so a failed load does not shift layout.
+                <div className="flex min-h-40 flex-col items-center justify-center gap-3 text-center">
+                  <p className="text-sm text-text-soft">
+                    {formatMessage({ id: "app.conviction.errorLoadingFailed" })}
+                  </p>
+                  <AdminButton type="button" variant="tonal" size="sm" onClick={retryReads}>
+                    {formatMessage({ id: "app.common.retry" })}
+                  </AdminButton>
+                </div>
+              ) : itemsLoading || weightsLoading ? (
                 // Skeleton rows match the loaded row height so the section
                 // does not shift when weights land.
                 <div
@@ -345,40 +383,41 @@ export default function GardenSignalPoolView({ layout = "page" }: GardenSignalPo
                 </div>
               )}
 
-              {/* Register item form */}
-              {canManage && (
-                <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-                  <AdminTextField
-                    label={formatMessage({
-                      id: isActionPool
-                        ? "app.signal.actionPool.actionIdPlaceholder"
-                        : "app.signal.hypercertPool.hypercertIdPlaceholder",
-                    })}
-                    variant="outlined"
-                    value={newItemId}
-                    onChange={(e) => {
-                      setNewItemId(e.target.value);
-                      setInputError("");
-                    }}
-                    placeholder={formatMessage({
-                      id: isActionPool
-                        ? "app.signal.actionPool.actionIdPlaceholder"
-                        : "app.signal.hypercertPool.hypercertIdPlaceholder",
-                    })}
-                    error={inputError || undefined}
-                    className="min-w-0 flex-1"
-                  />
-                  <AdminButton
-                    type="button"
-                    variant="filled"
-                    className="w-full sm:w-auto"
-                    onClick={handleRegister}
-                    disabled={!newItemId.trim() || registerMutation.isPending}
-                    loading={registerMutation.isPending}
-                  >
-                    {formatMessage({ id: "app.conviction.register" })}
-                  </AdminButton>
-                </div>
+              {/* Register item form — hidden while a read failed so the
+                  duplicate check against registeredIds stays trustworthy. */}
+              {canManage && !hasReadError && (
+                <AdminInlineField
+                  className="mt-4"
+                  label={formatMessage({
+                    id: isActionPool
+                      ? "app.signal.actionPool.actionIdLabel"
+                      : "app.signal.hypercertPool.hypercertIdLabel",
+                  })}
+                  value={newItemId}
+                  onChange={(next) => {
+                    setNewItemId(next);
+                    setInputError("");
+                  }}
+                  onSubmit={handleRegister}
+                  placeholder={formatMessage({
+                    id: isActionPool
+                      ? "app.signal.actionPool.actionIdPlaceholder"
+                      : "app.signal.hypercertPool.hypercertIdPlaceholder",
+                  })}
+                  inputMode="numeric"
+                  error={inputError || undefined}
+                  action={
+                    <AdminButton
+                      type="button"
+                      variant="filled"
+                      onClick={handleRegister}
+                      disabled={!newItemId.trim() || registerMutation.isPending}
+                      loading={registerMutation.isPending}
+                    >
+                      {formatMessage({ id: "app.conviction.register" })}
+                    </AdminButton>
+                  }
+                />
               )}
             </div>
           </section>
@@ -406,7 +445,7 @@ export default function GardenSignalPoolView({ layout = "page" }: GardenSignalPo
     />
   );
 
-  if (layout === "sheet") {
+  if (layout === "sheet" || layout === "inline") {
     return (
       <div className="space-y-6 overflow-x-hidden">
         {content}

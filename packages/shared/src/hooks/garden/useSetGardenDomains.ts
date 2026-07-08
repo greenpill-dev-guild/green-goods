@@ -3,6 +3,7 @@ import { useIntl } from "react-intl";
 import { toastService } from "../../components/toast";
 import type { Address, Domain } from "../../types/domain";
 import { ActionRegistryABI, getNetworkContracts } from "../../utils/blockchain/contracts";
+import { queryKeys } from "../../config/query-keys";
 import { createMutationErrorHandler } from "../../utils/errors/mutation-error-handler";
 import { useCurrentChain } from "../blockchain/useChainConfig";
 import { useContractTxSender } from "../blockchain/useContractTxSender";
@@ -68,6 +69,9 @@ export function useSetGardenDomains() {
       queryClient.invalidateQueries({
         queryKey: ["readContract", { functionName: "gardenDomains", args: [params.gardenAddress] }],
       });
+      // Also refresh the gardens list so consumers that read garden.domainMask
+      // (the settings dialog's inline domain selector) re-baseline after a save.
+      queryClient.invalidateQueries({ queryKey: queryKeys.gardens.all });
     },
     onError: (error, _params, context) => {
       if (context?.toastId) toastService.dismiss(context.toastId);

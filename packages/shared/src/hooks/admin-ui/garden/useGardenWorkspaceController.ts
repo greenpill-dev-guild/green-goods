@@ -41,7 +41,6 @@ export function useGardenWorkspaceController() {
   const setGardenWorkspaceState = useGardenStateStore((state) => state.setGardenWorkspaceState);
   const lastHydratedGardenStateKeyRef = useRef<string | null>(null);
   const [activityFilter, setActivityFilterState] = useState<ActivityFilter>("all");
-  const [domainEditorOpen, setDomainEditorOpen] = useState(false);
 
   const view = resolveGardenView(location.pathname);
   const settingsOpen = location.pathname.startsWith("/garden/settings");
@@ -98,8 +97,6 @@ export function useGardenWorkspaceController() {
   } = useGardenDetailData(selectedGarden?.id);
 
   const isDesktop = useMediaQuery("(min-width: 1024px)");
-  const openDomainEditor = useCallback(() => setDomainEditorOpen(true), []);
-  const closeDomainEditor = useCallback(() => setDomainEditorOpen(false), []);
   const viewActions = useMemo(
     () =>
       buildGardenViewActions(view, canManage, Boolean(selectedGarden), navigate, {
@@ -110,7 +107,7 @@ export function useGardenWorkspaceController() {
   const { desktopActions } = useViewActions({
     actions: viewActions,
     isDesktop,
-    blocked: Boolean(hypercertId) || domainEditorOpen || settingsOpen,
+    blocked: Boolean(hypercertId) || settingsOpen,
   });
 
   const openSection = useCallback(
@@ -257,7 +254,6 @@ export function useGardenWorkspaceController() {
     containerRef,
     derived,
     desktopActions,
-    domainEditorOpen,
     error,
     fetching,
     fetchingAssessments,
@@ -271,8 +267,6 @@ export function useGardenWorkspaceController() {
     hypercerts,
     hypercertsLoading,
     isOwner,
-    closeDomainEditor,
-    openDomainEditor,
     openSection,
     range,
     roleMembers,

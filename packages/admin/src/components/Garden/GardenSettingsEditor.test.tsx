@@ -4,6 +4,7 @@ import { type ReactNode, useCallback, useRef, useState } from "react";
 import { IntlProvider, useIntl } from "react-intl";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import enMessages from "../../../../shared/src/i18n/en.json";
+import { Domain } from "../../../../shared/src/types/domain";
 import { resolveIPFSUrl } from "../../../../shared/src/modules/data/ipfs/resolve";
 import {
   GardenSettingsEditor,
@@ -20,6 +21,7 @@ const {
   mockUpdateBannerImage,
   mockSetOpenJoining,
   mockSetMaxGardeners,
+  mockSetGardenDomains,
   mockUploadFileToIPFS,
 } = vi.hoisted(() => ({
   mockUpdateName: vi.fn().mockResolvedValue("0x1"),
@@ -28,6 +30,7 @@ const {
   mockUpdateBannerImage: vi.fn().mockResolvedValue("0x1"),
   mockSetOpenJoining: vi.fn().mockResolvedValue("0x1"),
   mockSetMaxGardeners: vi.fn().mockResolvedValue("0x1"),
+  mockSetGardenDomains: vi.fn().mockResolvedValue("0x1"),
   mockUploadFileToIPFS: vi.fn().mockResolvedValue({ cid: "bafysettingsbanner" }),
 }));
 
@@ -47,6 +50,7 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
     useUpdateGardenBannerImage: asMutation(mockUpdateBannerImage),
     useSetOpenJoining: asMutation(mockSetOpenJoining),
     useSetMaxGardeners: asMutation(mockSetMaxGardeners),
+    useSetGardenDomains: asMutation(mockSetGardenDomains),
     uploadFileToIPFS: mockUploadFileToIPFS,
     imageCompressor: {
       ...actual.imageCompressor,
@@ -60,17 +64,18 @@ const GARDEN = {
   description: "Community-driven restoration.",
   location: "Rio de Janeiro, Brazil",
   bannerImage: "",
+  domainMask: 0,
   openJoining: false,
   maxGardeners: 0,
 };
 
 /**
- * Test harness that reproduces the hosting dialog's pinned footer. The editor
- * no longer renders Save/Cancel/dirty-status itself (the hosting `AdminDialog`
- * owns the pinned actions bar and drives them through the imperative handle +
- * `onDirtyStateChange`), so the harness re-provides that footer exactly as
- * `GardenWorkspaceContent` does — keeping the editor's real contract (draft
- * management + imperative save/cancel + dirty reporting) under test.
+ * Test harness that reproduces the hosting dialog's pinned footer plus the
+ * banner card's Remove/Undo controls. The editor renders neither itself (the
+ * hosting `AdminDialog` owns the footer and its identity preview card owns
+ * banner Remove/Undo, driving both through the imperative handle +
+ * `onDirtyStateChange`), so the harness re-provides them exactly as
+ * `GardenWorkspaceContent` does — keeping the editor's real contract under test.
  */
 function EditorHarness({
   overrides,
@@ -125,17 +130,18 @@ function EditorHarness({
           </p>
           <button
             type="button"
-            onClick={() => editorRef.current?.cancel()}
-            disabled={!form.isDirty || form.isSaving}
-          >
-            {formatMessage({ id: "app.common.cancel" })}
-          </button>
-          <button
-            type="button"
             onClick={() => void editorRef.current?.save()}
             disabled={!form.isDirty || form.hasValidationError || form.isSaving}
           >
             {formatMessage({ id: "app.garden.settings.saveChanges" })}
+          </button>
+          {/* Banner Remove/Undo live on the hosting card in production; the
+              harness drives the same imperative handle. */}
+          <button type="button" onClick={() => editorRef.current?.stageBannerRemoval()}>
+            stage-remove
+          </button>
+          <button type="button" onClick={() => editorRef.current?.undoBannerRemoval()}>
+            undo-remove
           </button>
         </div>
       ) : null}
@@ -161,6 +167,7 @@ function allMutations() {
     mockUpdateBannerImage,
     mockSetOpenJoining,
     mockSetMaxGardeners,
+    mockSetGardenDomains,
   ];
 }
 
@@ -213,24 +220,8 @@ describe("GardenSettingsEditor explicit save", () => {
     expect(mockUpdateDescription).not.toHaveBeenCalled();
     expect(mockSetOpenJoining).not.toHaveBeenCalled();
     expect(mockSetMaxGardeners).not.toHaveBeenCalled();
+    expect(mockSetGardenDomains).not.toHaveBeenCalled();
     expect(mockUpdateBannerImage).not.toHaveBeenCalled();
-  });
-
-  it("resets the draft on Cancel without writing", async () => {
-    const user = userEvent.setup();
-    renderEditor();
-
-    const nameInput = screen.getByLabelText(/Name/);
-    await user.clear(nameInput);
-    await user.type(nameInput, "Throwaway Edit");
-    await user.click(screen.getByRole("button", { name: "Cancel" }));
-
-    expect(screen.getByLabelText(/Name/)).toHaveValue(GARDEN.name);
-    expect(screen.getByText("All changes saved")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Save changes" })).toBeDisabled();
-    for (const mutation of allMutations()) {
-      expect(mutation).not.toHaveBeenCalled();
-    }
   });
 
   it("stages a selected banner as a draft and uploads to IPFS only on Save", async () => {
@@ -266,11 +257,52 @@ describe("GardenSettingsEditor explicit save", () => {
     });
   });
 
+  it("stages a saved banner for removal via the handle and clears it on Save", async () => {
+    const user = userEvent.setup();
+    const onBannerPreviewChange = vi.fn();
+    renderEditor({
+      garden: { ...GARDEN, bannerImage: "https://example.com/banner.png" },
+      onBannerPreviewChange,
+    });
+
+    await user.click(screen.getByRole("button", { name: "stage-remove" }));
+
+    await waitFor(() => {
+      expect(onBannerPreviewChange).toHaveBeenLastCalledWith(
+        expect.objectContaining({ isStagedRemoval: true })
+      );
+    });
+
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    await waitFor(() => {
+      expect(mockUpdateBannerImage).toHaveBeenCalledWith({ gardenAddress, value: "" });
+    });
+  });
+
+  it("undoing a staged banner removal reports it and writes nothing", async () => {
+    const user = userEvent.setup();
+    const onBannerPreviewChange = vi.fn();
+    renderEditor({
+      garden: { ...GARDEN, bannerImage: "https://example.com/banner.png" },
+      onBannerPreviewChange,
+    });
+
+    await user.click(screen.getByRole("button", { name: "stage-remove" }));
+    await user.click(screen.getByRole("button", { name: "undo-remove" }));
+
+    await waitFor(() => {
+      expect(onBannerPreviewChange).toHaveBeenLastCalledWith(
+        expect.objectContaining({ isStagedRemoval: false })
+      );
+    });
+    expect(mockUpdateBannerImage).not.toHaveBeenCalled();
+  });
+
   it("toggling open joining stays local until Save", async () => {
     const user = userEvent.setup();
     renderEditor();
 
-    await user.click(screen.getByRole("switch", { name: "Open Joining" }));
+    await user.click(screen.getByRole("switch", { name: "Open joining" }));
     expect(mockSetOpenJoining).not.toHaveBeenCalled();
 
     await user.click(screen.getByRole("button", { name: "Save changes" }));
@@ -279,7 +311,53 @@ describe("GardenSettingsEditor explicit save", () => {
     });
   });
 
-  it("reports the dirty state to the hosting dialog on edit and cancel", async () => {
+  it("reveals the cap field when Limit gardeners is on and saves the number", async () => {
+    const user = userEvent.setup();
+    renderEditor();
+
+    // No cap field until the operator opts into limiting.
+    expect(screen.queryByLabelText("Maximum gardeners")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("switch", { name: "Limit gardeners" }));
+    const capInput = screen.getByLabelText("Maximum gardeners");
+    await user.type(capInput, "25");
+
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    await waitFor(() => {
+      expect(mockSetMaxGardeners).toHaveBeenCalledWith({ gardenAddress, value: 25 });
+    });
+  });
+
+  it("turning Limit gardeners off saves 0 (unlimited)", async () => {
+    const user = userEvent.setup();
+    renderEditor({ garden: { ...GARDEN, maxGardeners: 50 } });
+
+    // A limited garden shows the toggle on with its cap prefilled.
+    expect(screen.getByLabelText("Maximum gardeners")).toHaveValue(50);
+
+    await user.click(screen.getByRole("switch", { name: "Limit gardeners" }));
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    await waitFor(() => {
+      expect(mockSetMaxGardeners).toHaveBeenCalledWith({ gardenAddress, value: 0 });
+    });
+  });
+
+  it("selects a domain inline and saves it with the rest on Save", async () => {
+    const user = userEvent.setup();
+    renderEditor();
+
+    await user.click(screen.getByRole("button", { name: /Solar/ }));
+
+    await user.click(screen.getByRole("button", { name: "Save changes" }));
+    await waitFor(() => {
+      expect(mockSetGardenDomains).toHaveBeenCalledWith({
+        gardenAddress,
+        domains: [Domain.SOLAR],
+      });
+    });
+  });
+
+  it("reports the dirty state to the hosting dialog on edit", async () => {
     const user = userEvent.setup();
     const onDirtyStateChange = vi.fn();
     renderEditor({ onDirtyStateChange });
@@ -294,12 +372,6 @@ describe("GardenSettingsEditor explicit save", () => {
 
     expect(onDirtyStateChange).toHaveBeenLastCalledWith(
       expect.objectContaining({ isDirty: true, isSaving: false })
-    );
-
-    await user.click(screen.getByRole("button", { name: "Cancel" }));
-
-    expect(onDirtyStateChange).toHaveBeenLastCalledWith(
-      expect.objectContaining({ isDirty: false, isSaving: false })
     );
   });
 
