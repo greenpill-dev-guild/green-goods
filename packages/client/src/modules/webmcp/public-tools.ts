@@ -37,6 +37,7 @@ const publicRouteDescriptions = {
   "/": "Public Green Goods overview and editorial homepage.",
   "/fund": "Public funding and endowment explainer for supporting Gardens.",
   "/impact": "Public impact narrative and proof-of-work overview.",
+  "/vaults": "Public Octant vault campaign crowdfunding surface.",
   "/gardens": "Public Garden directory and discovery surface.",
   "/actions": "Public Action directory and regenerative work template surface.",
   "/cookies": "Public Cookie Jar explainer and funding route surface.",

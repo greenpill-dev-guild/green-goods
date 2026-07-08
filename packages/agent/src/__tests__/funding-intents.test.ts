@@ -1,10 +1,16 @@
-import { describe, expect, it } from "vitest";
+import fs from "fs";
+import os from "os";
+import path from "path";
+import { afterEach, describe, expect, it } from "vitest";
+import { closeDB, getDB, initDB } from "../services/db";
 import {
   type FundingIntentRecord,
   MemoryFundingIntentStore,
   redactFundingReceipt,
   sweepFundingIntents,
 } from "../services/funding-intents";
+
+let activeDbDir: string | undefined;
 
 const baseRecord: FundingIntentRecord = {
   id: "fi_sweep",
@@ -29,6 +35,13 @@ const baseRecord: FundingIntentRecord = {
   createdAt: "2026-04-27T12:00:00.000Z",
   updatedAt: "2026-04-27T12:00:00.000Z",
 };
+
+afterEach(async () => {
+  await closeDB();
+  if (!activeDbDir) return;
+  fs.rmSync(activeDbDir, { recursive: true, force: true });
+  activeDbDir = undefined;
+});
 
 describe("funding intent sweep", () => {
   it("expires abandoned started and pending_provider intents through listPending", async () => {
@@ -62,6 +75,41 @@ describe("funding intent sweep", () => {
   });
 });
 
+describe("funding intent SQLite persistence", () => {
+  it("persists route-local Endow receipt fields across create and update", async () => {
+    activeDbDir = fs.mkdtempSync(path.join(os.tmpdir(), "green-goods-funding-intents-"));
+    initDB(path.join(activeDbDir, "funding-intents.db"));
+
+    const db = getDB();
+    const created = await db.createFundingIntent({
+      ...baseRecord,
+      id: "fi_vaults",
+      destinationType: "vault",
+      fundingIntent: "endow",
+      clientRequestId: "client-request-vaults",
+      sourceRoute: "/vaults",
+      managementUrl: "/vaults?manage=positions",
+      receiverAddress: "0x3333333333333333333333333333333333333333",
+      quotedAssetAmount: "25000000",
+      minAssetAmount: "25000000",
+    });
+
+    expect((await db.getFundingIntent(created.id))?.sourceRoute).toBe("/vaults");
+    expect((await db.getFundingIntent(created.id))?.managementUrl).toBe("/vaults?manage=positions");
+
+    await db.updateFundingIntent({
+      ...created,
+      status: "pending_onchain",
+      updatedAt: "2026-04-27T12:05:00.000Z",
+    });
+
+    const updated = await db.getFundingIntent(created.id);
+    expect(updated?.status).toBe("pending_onchain");
+    expect(updated?.sourceRoute).toBe("/vaults");
+    expect(updated?.managementUrl).toBe("/vaults?manage=positions");
+  });
+});
+
 describe("redactFundingReceipt", () => {
   it("routes Endow receipts to public endowment management", () => {
     const receipt = redactFundingReceipt({
@@ -72,6 +120,19 @@ describe("redactFundingReceipt", () => {
 
     expect(receipt.appManagementCta).toBe("manage_endowments");
     expect(receipt.managementUrl).toBe("/fund?manage=endowments");
+  });
+
+  it("routes /vaults Endow receipts to route-local position management", () => {
+    const receipt = redactFundingReceipt({
+      ...baseRecord,
+      destinationType: "vault",
+      fundingIntent: "endow",
+      sourceRoute: "/vaults",
+      managementUrl: "/vaults?manage=positions",
+    });
+
+    expect(receipt.appManagementCta).toBe("manage_endowments");
+    expect(receipt.managementUrl).toBe("/vaults?manage=positions");
   });
 
   it("does not add a management CTA for Donate receipts", () => {

@@ -11,7 +11,7 @@
  *
  * ### Indexer-scope gaps surfaced here
  *
- * The Stitch design surfaces several quantifiable metrics that **are not**
+ * The external visual handoff surfaces several quantifiable metrics that **are not**
  * derivable from the current Envio + EAS sources. They appear in the return
  * type as `undefined` so consuming pages can render placeholder copy until
  * upstream data arrives:

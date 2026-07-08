@@ -1,6 +1,8 @@
 import {
   type Address,
   type CookieJar,
+  EmptyState,
+  formatAddress,
   formatTokenAmount,
   getVaultAssetSymbol,
   NativeSelect,
@@ -11,8 +13,9 @@ import {
   useCookieJarUpdateInterval,
   useCookieJarUpdateMaxWithdrawal,
   useGardenCookieJars,
+  useGardens,
 } from "@green-goods/shared";
-import { RiCheckLine, RiCloseLine, RiPencilLine } from "@remixicon/react";
+import { RiCheckLine, RiCloseLine, RiCupLine, RiPencilLine } from "@remixicon/react";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
 import { AdminConfirmDialog, AdminDialog } from "@/components/AdminDialog";
@@ -50,6 +53,16 @@ export function CookieJarManageModal({
   const { jars } = useGardenCookieJars(gardenAddress, {
     enabled: Boolean(gardenAddress) && isOpen,
   });
+
+  // Name the garden in the emergency-withdraw confirmation so the operator
+  // sees exactly whose jar is being drained.
+  const { data: gardens = [] } = useGardens();
+  const gardenName =
+    gardens.find(
+      (garden) =>
+        garden.id.toLowerCase() === gardenAddress.toLowerCase() ||
+        garden.tokenAddress.toLowerCase() === gardenAddress.toLowerCase()
+    )?.name ?? formatAddress(gardenAddress);
 
   const pauseMutation = useCookieJarPause(gardenAddress);
   const unpauseMutation = useCookieJarUnpause(gardenAddress);
@@ -110,6 +123,10 @@ export function CookieJarManageModal({
       <AdminDialog
         open={isOpen}
         onOpenChange={(open) => !open && !isPending && onClose()}
+        size="lg"
+        // Jar management is garden configuration — it mounts from the Garden
+        // Profile dialog, so it carries the garden workspace tone.
+        tone="garden"
         title={formatMessage({
           id: "app.cookieJar.manageModal.title",
           defaultMessage: "Manage Cookie Jars",
@@ -124,8 +141,8 @@ export function CookieJarManageModal({
           {jars.map((jar) => {
             const symbol = getVaultAssetSymbol(jar.assetAddress, undefined);
             return (
-              <AdminCard variant="outlined" key={jar.jarAddress} className="p-3">
-                <div className="flex items-center justify-between">
+              <AdminCard variant="outlined" key={jar.jarAddress} className="p-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium text-text-strong">{symbol}</p>
                     <span
@@ -146,7 +163,7 @@ export function CookieJarManageModal({
                           })}
                     </span>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     {canManage && (
                       <AdminButton
                         variant="tonal"
@@ -345,12 +362,19 @@ export function CookieJarManageModal({
           })}
 
           {jars.length === 0 && (
-            <p className="py-6 text-center text-sm text-text-soft">
-              {formatMessage({
-                id: "app.cookieJar.noJars",
-                defaultMessage: "No cookie jars found for this garden",
-              })}
-            </p>
+            <div className="flex min-h-40 items-center justify-center">
+              <EmptyState
+                icon={<RiCupLine className="h-6 w-6" />}
+                title={formatMessage({
+                  id: "app.cookieJar.noJars",
+                  defaultMessage: "No cookie jars found for this garden",
+                })}
+                description={formatMessage({
+                  id: "app.cookieJar.noJarsHint",
+                  defaultMessage: "Jars are created from campaigns and appear here once deployed.",
+                })}
+              />
+            </div>
           )}
         </div>
       </AdminDialog>
@@ -366,13 +390,14 @@ export function CookieJarManageModal({
         description={formatMessage(
           {
             id: "app.cookieJar.confirmWithdrawDescription",
-            defaultMessage: "Withdraw {amount} {asset} from the cookie jar?",
+            defaultMessage: "Take {amount} {asset} from {garden}'s cookie jar?",
           },
           {
             amount: emergencyJar
               ? formatTokenAmount(emergencyJar.balance, emergencyJar.decimals)
               : "0",
             asset: emergencyJar ? getVaultAssetSymbol(emergencyJar.assetAddress, undefined) : "",
+            garden: gardenName,
           }
         )}
         confirmLabel={formatMessage({
@@ -380,6 +405,7 @@ export function CookieJarManageModal({
           defaultMessage: "Emergency Withdraw",
         })}
         variant="danger"
+        tone="garden"
         isLoading={emergencyWithdrawMutation.isPending}
         onConfirm={() => {
           if (!emergencyJar) return;

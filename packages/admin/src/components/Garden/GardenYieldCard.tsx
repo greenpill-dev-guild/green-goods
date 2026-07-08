@@ -1,6 +1,5 @@
 import {
   type Address,
-  Button,
   DEFAULT_SPLIT_CONFIG,
   formatDate,
   formatTokenAmount,
@@ -12,6 +11,7 @@ import { RiAlertLine, RiPieChart2Line, RiQuestionLine } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
+import { AdminButton } from "@/components/AdminButton";
 
 interface GardenYieldCardProps {
   allocations: YieldAllocation[];
@@ -72,9 +72,7 @@ export const GardenYieldCard: React.FC<GardenYieldCardProps> = ({
             <RiPieChart2Line className="h-5 w-5 text-primary-dark" />
           </div>
           <div>
-            <h3 className="label-md text-text-strong sm:text-lg">
-              {formatMessage({ id: "app.yield.title" })}
-            </h3>
+            <h3 className="admin-section-title">{formatMessage({ id: "app.yield.title" })}</h3>
             <p className="mt-0.5 text-sm text-text-sub">
               {formatMessage({ id: "app.yield.splitConfig" })}
             </p>
@@ -92,7 +90,7 @@ export const GardenYieldCard: React.FC<GardenYieldCardProps> = ({
           </p>
           <Link
             to={repairHref}
-            className="text-xs font-medium text-primary-base hover:text-primary-darker"
+            className="text-xs font-medium text-primary-dark hover:text-primary-darker"
           >
             {formatMessage({ id: "app.yield.wiring.repairLink" })}
           </Link>
@@ -179,7 +177,9 @@ export const GardenYieldCard: React.FC<GardenYieldCardProps> = ({
       </div>
 
       <div className="mt-4 border-t border-stroke-soft pt-4">
-        <h4 className="label-sm text-text-strong">{formatMessage({ id: "app.yield.history" })}</h4>
+        <h4 className="admin-section-title admin-section-title--compact">
+          {formatMessage({ id: "app.yield.history" })}
+        </h4>
         {allocationsLoading ? (
           <div className="mt-2 space-y-2" role="status" aria-live="polite">
             <span className="sr-only">{formatMessage({ id: "app.yield.history" })}</span>
@@ -230,8 +230,8 @@ export const GardenYieldCard: React.FC<GardenYieldCardProps> = ({
               </div>
             ))}
             {allocations.length > INITIAL_ALLOCATION_COUNT && !showAllAllocations && (
-              <Button
-                variant="secondary"
+              <AdminButton
+                variant="tonal"
                 size="sm"
                 className="mt-1 w-full"
                 onClick={() => setShowAllAllocations(true)}
@@ -240,7 +240,7 @@ export const GardenYieldCard: React.FC<GardenYieldCardProps> = ({
                   { id: "app.yield.showAll", defaultMessage: "Show all {count} allocations" },
                   { count: allocations.length }
                 )}
-              </Button>
+              </AdminButton>
             )}
           </div>
         )}

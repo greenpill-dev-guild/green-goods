@@ -2,10 +2,11 @@ import {
   type Address,
   adminRoutes,
   assessmentStepFields,
+  compareAddresses,
   type CreateAssessmentFormData,
   type Step,
   toastService,
-  useAdminStore,
+  useAdminGardenContext,
   useCreateAssessmentForm,
   useCreateAssessmentStore,
   useCreateAssessmentWorkflow,
@@ -91,19 +92,20 @@ export function useCreateAssessmentController() {
   const stepConfigs = useCreateAssessmentStepConfigs();
   const navigate = useNavigate();
   const { address } = useAccount();
-  const selectedGarden = useAdminStore((state) => state.selectedGarden);
+  const { activeGarden, activeGardenId } = useAdminGardenContext();
   const { data: gardens = [] } = useGardens();
   const permissions = useGardenPermissions();
-  const gardenId = selectedGarden?.id ?? null;
-  const garden = useMemo(() => gardens.find((item) => item.id === gardenId), [gardens, gardenId]);
-  const gardenRouteContext = useMemo(
-    () => ({ gardenAddress: garden?.tokenAddress ?? garden?.id }),
-    [garden?.id, garden?.tokenAddress]
-  );
+  const gardenId = activeGardenId;
+  const garden = useMemo(() => {
+    const indexedGarden = gardens.find((item) => compareAddresses(item.id, gardenId));
+    return indexedGarden ?? activeGarden ?? undefined;
+  }, [activeGarden, gardens, gardenId]);
+  const gardenRouteContext = useMemo(() => ({ gardenId: garden?.id }), [garden?.id]);
   const canReview = garden ? permissions.canReviewGarden(garden) : false;
 
   const form = useCreateAssessmentStore(useShallow((state) => state.form));
   const currentStep = useCreateAssessmentStore((state) => state.currentStep);
+  const goToStep = useCreateAssessmentStore((state) => state.goToStep);
   const setField = useCreateAssessmentStore((state) => state.setField);
   const nextStep = useCreateAssessmentStore((state) => state.nextStep);
   const previousStep = useCreateAssessmentStore((state) => state.previousStep);
@@ -138,7 +140,7 @@ export function useCreateAssessmentController() {
     canRetry,
     draft,
   } = useCreateAssessmentWorkflow({ gardenId: gardenId ?? undefined });
-  const { loadDraft, saveDraft, draftKey } = draft;
+  const { loadDraft, saveDraft, clearDraft, draftKey } = draft;
   const draftPersistenceWarningShownRef = useRef(false);
 
   useEffect(() => {
@@ -286,6 +288,34 @@ export function useCreateAssessmentController() {
   const isSubmitting = state.matches("submitting");
   const hasError = state.matches("error");
   const isSuccess = state.matches("success");
+  // Dirty = the operator has progressed past the first step or entered any
+  // meaningful field. Gates the confirm-before-discard on close (useDirtyClose).
+  // Suppressed while submitting/succeeded so the close-to-Hub flow isn't blocked.
+  const isDirty = useMemo(() => {
+    if (isSubmitting || isSuccess) return false;
+    if (currentStep > 0) return true;
+    // The default form seeds one empty SMART-outcome row so the wizard renders
+    // an editable row immediately (createDefaultAssessmentForm) — that
+    // placeholder is not operator input, or every untouched close would raise
+    // the discard confirm.
+    const hasMeaningfulSmartOutcome =
+      form.smartOutcomes.length > 1 ||
+      form.smartOutcomes.some(
+        (outcome) =>
+          outcome.description.trim().length > 0 ||
+          outcome.metric.trim().length > 0 ||
+          outcome.target !== 0
+      );
+    return (
+      form.title.trim().length > 0 ||
+      form.description.trim().length > 0 ||
+      form.location.trim().length > 0 ||
+      form.diagnosis.trim().length > 0 ||
+      hasMeaningfulSmartOutcome ||
+      form.selectedActionUIDs.length > 0 ||
+      form.sdgTargets.length > 0
+    );
+  }, [currentStep, form, isSubmitting, isSuccess]);
   const txError = useTxErrorMessages(state.context.error);
 
   useEffect(() => {
@@ -308,7 +338,19 @@ export function useCreateAssessmentController() {
   }, [formatMessage, gardenRouteContext, isSuccess, navigate, resetStore]);
 
   const handleCancel = () => {
-    navigate(adminRoutes.gardenImpact({ ...gardenRouteContext, section: "assessments" }));
+    // Return to the Hub the flow was launched from (parity with Submit Work),
+    // not the garden impact view — closing a Hub create-flow must not jump tabs.
+    navigate(adminRoutes.hub(gardenRouteContext));
+  };
+
+  // Wired to useDirtyClose's onDiscard (parity with useWizardData's
+  // onDiscard: reset) — runs only on an explicit confirmed "Discard", not on
+  // the plain step-1 Cancel button. Neither the in-memory store nor the
+  // auto-saved IndexedDB draft were cleared here before, so the next mount's
+  // restoreDraft() effect silently repopulated the "discarded" fields.
+  const handleDiscard = () => {
+    resetStore();
+    void clearDraft();
   };
 
   const handleSubmit = async () => {
@@ -386,6 +428,7 @@ export function useCreateAssessmentController() {
     canRetry,
     canReview,
     currentStep,
+    goToStep,
     errorMessage: txError.message,
     errorTitle: txError.title,
     garden,
@@ -393,9 +436,11 @@ export function useCreateAssessmentController() {
     hubContext: gardenRouteContext,
     handleBack: stepValidation.handleBack,
     handleCancel,
+    handleDiscard,
     handleNext: stepValidation.handleNext,
     handleSubmit,
     hasError,
+    isDirty,
     isSubmitting,
     normalizedGardenDomainMask,
     resetWorkflow,

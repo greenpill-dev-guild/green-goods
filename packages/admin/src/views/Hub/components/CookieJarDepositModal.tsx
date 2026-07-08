@@ -1,8 +1,8 @@
 import {
   type Address,
   formatTokenAmount,
+  FormField,
   getVaultAssetSymbol,
-  NativeSelect,
   TextInput,
   TxInlineFeedback,
   useCookieJarDeposit,
@@ -12,6 +12,7 @@ import {
   validateDecimalInput,
 } from "@green-goods/shared";
 import { AdminButton } from "@/components/AdminButton";
+import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
 import { AdminDialog } from "@/components/AdminDialog";
 import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
@@ -22,12 +23,14 @@ interface CookieJarDepositModalProps {
   isOpen: boolean;
   onClose: () => void;
   gardenAddress: Address;
+  defaultJarAddress?: Address | null;
 }
 
 export function CookieJarDepositModal({
   isOpen,
   onClose,
   gardenAddress,
+  defaultJarAddress = null,
 }: CookieJarDepositModalProps) {
   const { formatMessage } = useIntl();
   const { primaryAddress } = useUser();
@@ -44,10 +47,21 @@ export function CookieJarDepositModal({
 
   useEffect(() => {
     if (!isOpen) return;
-    setDepositJar("");
+    setDepositJar(defaultJarAddress ?? "");
     setDepositAmount("");
     resetDepositMutation();
-  }, [isOpen, resetDepositMutation]);
+  }, [defaultJarAddress, isOpen, resetDepositMutation]);
+
+  useEffect(() => {
+    if (!isOpen || depositJar) return;
+    if (defaultJarAddress && jars.some((jar) => jar.jarAddress === defaultJarAddress)) {
+      setDepositJar(defaultJarAddress);
+      return;
+    }
+    if (jars.length === 1) {
+      setDepositJar(jars[0].jarAddress);
+    }
+  }, [defaultJarAddress, depositJar, isOpen, jars]);
 
   const selectedDepositJar = useMemo(
     () => jars.find((j) => j.jarAddress === depositJar),
@@ -83,12 +97,6 @@ export function CookieJarDepositModal({
 
   const depositTxError = useTxErrorMessages(depositMutation.error);
 
-  const belowMinDeposit =
-    selectedDepositJar &&
-    !depositInputError &&
-    parsedDepositAmount > 0n &&
-    parsedDepositAmount < selectedDepositJar.minDeposit;
-
   const isPending = depositMutation.isPending;
   const handleDeposit = () => {
     if (!selectedDepositJar || parsedDepositAmount <= 0n) return;
@@ -111,9 +119,15 @@ export function CookieJarDepositModal({
     <AdminDialog
       open={isOpen}
       onOpenChange={(open) => !open && !isPending && onClose()}
+      // Workspace tone — mounted from the Community payouts panel.
+      tone="community"
       title={formatMessage({
         id: "app.cookieJar.depositModal.title",
         defaultMessage: "Fund Cookie Jar",
+      })}
+      description={formatMessage({
+        id: "app.cookieJar.depositModal.description",
+        defaultMessage: "Fund a jar from your connected wallet.",
       })}
       preventClose={isPending}
       actions={
@@ -124,50 +138,61 @@ export function CookieJarDepositModal({
           <AdminButton
             type="button"
             loading={isPending}
-            disabled={!selectedDepositJar || parsedDepositAmount <= 0n || Boolean(belowMinDeposit)}
+            disabled={!selectedDepositJar || parsedDepositAmount <= 0n}
             onClick={handleDeposit}
           >
-            {isPending
-              ? formatMessage({
-                  id: "app.cookieJar.depositing",
-                  defaultMessage: "Depositing...",
-                })
-              : formatMessage({ id: "app.cookieJar.deposit", defaultMessage: "Deposit" })}
+            {formatMessage({ id: "app.cookieJar.deposit", defaultMessage: "Deposit" })}
           </AdminButton>
         </>
       }
     >
       <div className="space-y-4">
-        {/* Jar select */}
-        <div>
-          <label
-            htmlFor="deposit-jar-select"
-            className="block text-sm font-medium text-text-strong"
+        {/* Jar switcher — compact single-select between the garden's jars (e.g. DAI / WETH) */}
+        {jars.length > 1 && (
+          <FormField
+            label={formatMessage({ id: "app.cookieJar.title", defaultMessage: "Cookie Jar" })}
           >
-            {formatMessage({ id: "app.cookieJar.title", defaultMessage: "Cookie Jar" })}
-          </label>
-          <NativeSelect
-            id="deposit-jar-select"
-            surface="admin"
-            value={depositJar}
-            onChange={(e) => setDepositJar(e.target.value)}
-            className="mt-1.5 w-full rounded-lg border border-stroke-sub bg-bg-white px-3 py-2.5 text-sm text-text-strong focus:border-primary-base focus:outline-none focus:ring-2 focus:ring-primary-base/40"
-          >
-            <option value="">--</option>
-            {jars.map((jar) => (
-              <option key={jar.jarAddress} value={jar.jarAddress}>
-                {getVaultAssetSymbol(jar.assetAddress, undefined)} (
-                {formatTokenAmount(jar.balance, jar.decimals)})
-              </option>
-            ))}
-          </NativeSelect>
-        </div>
+            <AdminChoiceGroup
+              ariaLabel={formatMessage({
+                id: "app.cookieJar.title",
+                defaultMessage: "Cookie Jar",
+              })}
+              columns={2}
+              value={depositJar || null}
+              onChange={setDepositJar}
+              options={jars.map((jar) => {
+                const jarSymbol = getVaultAssetSymbol(jar.assetAddress, undefined);
+                return {
+                  value: jar.jarAddress,
+                  label: jarSymbol,
+                  description: `${formatTokenAmount(jar.balance, jar.decimals)} ${jarSymbol}`,
+                };
+              })}
+            />
+          </FormField>
+        )}
+
+        {/* Amount in the jar — the prominent number for the selected jar */}
+        {selectedDepositJar && (
+          <div className="rounded-lg bg-bg-weak px-4 py-3">
+            <p className="text-xs font-medium text-text-soft">
+              {formatMessage({ id: "app.cookieJar.balance", defaultMessage: "Jar Balance" })}
+            </p>
+            <p className="mt-1 text-2xl font-semibold tabular-nums text-text-strong">
+              {formatTokenAmount(selectedDepositJar.balance, selectedDepositJar.decimals)}{" "}
+              <span className="text-base font-medium text-text-sub">
+                {getVaultAssetSymbol(selectedDepositJar.assetAddress, undefined)}
+              </span>
+            </p>
+          </div>
+        )}
 
         {/* Amount */}
-        <div>
-          <label htmlFor="deposit-amount" className="block text-sm font-medium text-text-strong">
-            {formatMessage({ id: "app.cookieJar.amount", defaultMessage: "Amount" })}
-          </label>
+        <FormField
+          label={formatMessage({ id: "app.cookieJar.amount", defaultMessage: "Amount" })}
+          htmlFor="deposit-amount"
+          error={depositInputError ? formatMessage({ id: depositInputError }) : undefined}
+        >
           <TextInput
             id="deposit-amount"
             surface="admin"
@@ -177,37 +202,11 @@ export function CookieJarDepositModal({
             onChange={(e) => setDepositAmount(e.target.value)}
             placeholder="0.00"
             aria-invalid={Boolean(depositInputError)}
-            className={`mt-1.5 w-full rounded-lg border px-3 py-2.5 text-sm text-text-strong focus:outline-none focus:ring-2 focus:ring-primary-base/40 ${
-              depositInputError
-                ? "border-error-base focus:border-error-base"
-                : "border-stroke-sub bg-bg-white focus:border-primary-base"
-            }`}
+            invalid={Boolean(depositInputError)}
           />
-          {depositInputError && (
-            <p className="mt-1.5 text-xs text-error-dark" role="alert">
-              {formatMessage({ id: depositInputError })}
-            </p>
-          )}
-          {belowMinDeposit && (
-            <p className="mt-1.5 text-xs text-error-dark" role="alert">
-              {formatMessage(
-                {
-                  id: "app.cookieJar.belowMinDeposit",
-                  defaultMessage: "Minimum deposit is {amount} {asset}",
-                },
-                {
-                  amount: formatTokenAmount(
-                    selectedDepositJar.minDeposit,
-                    selectedDepositJar.decimals
-                  ),
-                  asset: getVaultAssetSymbol(selectedDepositJar.assetAddress, undefined),
-                }
-              )}
-            </p>
-          )}
-        </div>
+        </FormField>
 
-        {/* Wallet balance + min deposit info */}
+        {/* Wallet balance */}
         <div className="space-y-1">
           <p className="text-xs text-text-soft">
             {formatMessage({
@@ -219,16 +218,6 @@ export function CookieJarDepositModal({
               ? `${formatTokenAmount(walletBalance.value, walletBalance.decimals)} ${walletBalance.symbol}`
               : "--"}
           </p>
-          {selectedDepositJar && selectedDepositJar.minDeposit > 0n && (
-            <p className="text-xs text-text-soft">
-              {formatMessage({
-                id: "app.cookieJar.minDeposit",
-                defaultMessage: "Min Deposit",
-              })}
-              : {formatTokenAmount(selectedDepositJar.minDeposit, selectedDepositJar.decimals)}{" "}
-              {getVaultAssetSymbol(selectedDepositJar.assetAddress, undefined)}
-            </p>
-          )}
         </div>
 
         {/* Error feedback */}

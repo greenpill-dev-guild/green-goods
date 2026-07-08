@@ -17,6 +17,8 @@ export const PRICE_FEED_DECIMALS = 8;
 const USD_CENTS_SCALE = 100n;
 
 const ETH_USD_FEED: Record<number, Address | undefined> = {
+  // Ethereum mainnet — Octant V2 vault route
+  1: "0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419" as Address,
   // Arbitrum mainnet — production target
   42161: "0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612" as Address,
   // Sepolia — testnet
@@ -61,6 +63,26 @@ export function usdCentsToWei(
 }
 
 /**
+ * Convert native-token wei to USD cents using a Chainlink price answer — the
+ * exact inverse of {@link usdCentsToWei}. Powers the live USD estimate shown
+ * when a supporter enters a WETH amount directly (PRD-519 endow denomination
+ * toggle), so the dollar value tracks the typed token amount.
+ *
+ * @param wei - Token amount in wei
+ * @param priceAnswer - Raw Chainlink answer (price * 10^PRICE_FEED_DECIMALS)
+ * @param tokenDecimals - Decimals of the source token (WETH = 18)
+ */
+export function weiToUsdCents(wei: bigint, priceAnswer: bigint, tokenDecimals: number): bigint {
+  if (priceAnswer <= 0n || wei <= 0n) return 0n;
+  // cents = (wei * priceAnswer * 100) / (10^tokenDecimals * 10^PRICE_FEED_DECIMALS)
+  // Mirror of usdCentsToWei: priceAnswer encodes price * 10^8, USD_CENTS_SCALE
+  // restores the cents factor the wei amount does not carry.
+  const numerator = wei * priceAnswer * USD_CENTS_SCALE;
+  const denominator = 10n ** BigInt(tokenDecimals) * 10n ** BigInt(PRICE_FEED_DECIMALS);
+  return numerator / denominator;
+}
+
+/**
  * Format a Chainlink USD price answer for display ("$3,712.45").
  *
  * @param priceAnswer - Raw Chainlink answer (price * 10^PRICE_FEED_DECIMALS)
@@ -89,8 +111,9 @@ export function formatUsdPrice(priceAnswer: bigint, locale?: string): string {
 export function parseUsdToCents(input: string): bigint | null {
   const trimmed = input.trim();
   if (!trimmed) return null;
-  if (!/^\d+(?:\.\d{1,2})?$/.test(trimmed)) return null;
-  const [whole, fraction = ""] = trimmed.split(".");
+  const normalized = trimmed.startsWith(".") ? `0${trimmed}` : trimmed;
+  if (!/^\d+(?:\.\d{1,2})?$/.test(normalized)) return null;
+  const [whole, fraction = ""] = normalized.split(".");
   const paddedFraction = fraction.padEnd(2, "0");
   return BigInt(whole) * 100n + BigInt(paddedFraction);
 }

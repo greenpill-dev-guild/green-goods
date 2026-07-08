@@ -20,7 +20,7 @@ function parseHubContext(search: string) {
   const sort = params.get("sort");
 
   return {
-    gardenAddress: params.get("gardenAddress") ?? undefined,
+    gardenId: params.get("gardenId") ?? params.get("gardenAddress") ?? undefined,
     view:
       view === "work" || view === "assess" || view === "certify" || view === "history"
         ? view
@@ -76,11 +76,18 @@ export function WorkDetailPanel({ workId, layout = "page", onSuccess }: WorkDeta
 
   if (resolved.isLoading) {
     if (layout === "sheet") {
+      // Mirrors the loaded two-column structure so content lands in place.
       return (
         <div className="space-y-4 p-1" aria-busy="true">
-          <div className="h-48 animate-pulse rounded-2xl bg-bg-soft" />
-          <div className="h-40 animate-pulse rounded-2xl bg-bg-soft" />
-          <div className="h-56 animate-pulse rounded-2xl bg-bg-soft" />
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+            <div className="space-y-4 lg:col-span-3">
+              <div className="h-48 animate-pulse rounded-2xl bg-bg-soft" />
+              <div className="h-40 animate-pulse rounded-2xl bg-bg-soft" />
+            </div>
+            <div className="lg:col-span-2">
+              <div className="h-72 animate-pulse rounded-2xl bg-bg-soft" />
+            </div>
+          </div>
         </div>
       );
     }
@@ -126,34 +133,44 @@ export function WorkDetailPanel({ workId, layout = "page", onSuccess }: WorkDeta
   );
 
   if (layout === "sheet") {
+    // Two-column inside the lg review dialog: evidence + submission facts on
+    // the left, the decision form pinned in view on the right (mirrors the
+    // page layout; stacks below lg — the dialog body is the scroll container,
+    // so sticky offsets against it).
     return (
       <div className="flex flex-col gap-4 p-1">
         {sheetTopline}
-        <section className="surface-inset sm:p-6">
-          <MediaEvidence
-            media={work.media}
-            audioNoteCids={resolved.audioNoteCids}
-            actionTitle={action?.title}
-          />
-        </section>
-        <SubmissionDetails
-          work={work}
-          gardenName={garden.name}
-          actionTitle={action?.title}
-          actionSlug={action?.slug}
-          metadata={metadata}
-        />
-        <ReviewForm
-          work={work}
-          gardenName={garden.name}
-          actionSlug={action?.slug}
-          actionEndTime={action?.endTime}
-          canReview={canReview}
-          canApproveOrReject={canApproveOrReject}
-          isReviewed={isReviewed}
-          layout="sheet"
-          onSuccess={onSuccess}
-        />
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-5 lg:items-start">
+          <div className="space-y-4 lg:col-span-3">
+            <section className="surface-inset sm:p-6">
+              <MediaEvidence
+                media={work.media}
+                audioNoteCids={resolved.audioNoteCids}
+                actionTitle={action?.title}
+              />
+            </section>
+            <SubmissionDetails
+              work={work}
+              gardenName={garden.name}
+              actionTitle={action?.title}
+              actionSlug={action?.slug}
+              metadata={metadata}
+            />
+          </div>
+          <div className="lg:sticky lg:top-0 lg:col-span-2">
+            <ReviewForm
+              work={work}
+              gardenName={garden.name}
+              actionSlug={action?.slug}
+              actionEndTime={action?.endTime}
+              canReview={canReview}
+              canApproveOrReject={canApproveOrReject}
+              isReviewed={isReviewed}
+              layout="sheet"
+              onSuccess={onSuccess}
+            />
+          </div>
+        </div>
       </div>
     );
   }

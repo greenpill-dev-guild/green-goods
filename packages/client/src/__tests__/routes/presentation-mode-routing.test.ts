@@ -187,6 +187,7 @@ describe("presentation-mode route guards", () => {
       "/gardens/decleanup",
       "/impact",
       "/fund",
+      "/vaults",
       "/actions",
       "/cookies",
     ]) {

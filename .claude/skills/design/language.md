@@ -152,6 +152,29 @@ From Apple's Liquid Glass talk — watch for these as you build:
 3. **Near device edges** — On phone, use capsule + extra margin near screen edge. On tablet/desktop, use concentric shape aligned to window edge.
 4. **Mixing shape types** — Don't put a capsule button inside a fixed-radius container if the radii clash. The capsule's geometry naturally supports concentricity.
 
+### Concentricity Reference (copy this shape)
+
+The rule is `child_radius = parent_radius − padding`. A concrete before/after with real numbers:
+
+```css
+/* ❌ Before — flared corners: the child's 24px radius exceeds what the
+   parent's geometry allows (24px parent − 16px padding = 8px budget). */
+.parent { border-radius: 24px; padding: 16px; }   /* --radius-2xl */
+.child  { border-radius: 24px; }                   /* clashes at every corner */
+
+/* ✅ After — concentric: child radius = parent radius − padding. */
+.parent { border-radius: 24px; padding: 16px; }    /* --radius-2xl */
+.child  { border-radius: 8px; }                    /* 24 − 16 = 8 → --radius-md */
+
+/* ✅ Token form — derive instead of hardcoding the arithmetic. */
+.child  { border-radius: calc(var(--radius-2xl) - var(--space-4)); }
+```
+
+Sanity check while building: at any nesting level, the visual gap between the
+child's corner curve and the parent's corner curve should be even all the way
+around the bend. If the gap pinches (child too square) or flares (child too
+round), re-derive from the formula rather than eyeballing a token.
+
 ---
 
 ## Motion System
@@ -204,7 +227,7 @@ Motion is built into components, not applied externally:
 |-----------|--------|-------------|
 | **Buttons** | Shape morph on press (capsule → squircle or squircle → tighter) | `--spring-spatial-fast` |
 | **Cards** | Hover lift (scale 1.008) + press (scale 0.985 + radius tighten) | `--spring-spatial-fast` |
-| **Sheets** | Slide from source element, canvas recedes | `--spring-spatial` |
+| **Client/PWA sheets** | Slide from source element; client shell depth may respond | `--spring-spatial` |
 | **Navigation** | Active indicator slides with spring transition | `--spring-spatial` |
 | **Progress (wavy)** | Organic wave motion on track | `--spring-effects-slow` |
 | **Loading indicator** | Organic shape rotation/pulse | `--spring-effects-slow` |
@@ -244,6 +267,8 @@ Green Goods uses a **four-role volume hierarchy** anchored in the root `DESIGN.m
 | **Tertiary (accent)** | 1-3% | Garden green — #1FC16B | `--color-primary` | CTAs, active states, value-flow moments |
 
 **Rule:** Tertiary (green) is third in volume but first in visual pull. The bright flower — draws the eye *because* everything else is quiet. Flooding the screen with green is the #1 degen-aesthetic failure mode.
+
+> **Enforcement honesty:** the volume hierarchy is a **review-time principle — there is no automated checker yet.** `check:design-tokens` catches raw color literals and material-boundary violations, and the PWA token audit flags specific bright-green contrast risks, but nothing measures per-screen color volume. Reviewers apply the 80/8/3/1 split by eye during the design-review lenses; treat any screen where green reads as a surface rather than an accent as a finding.
 
 > **Token-name caveat:** the codebase label `--color-primary` is an internal string — it resolves to the **tertiary role** (green as accent). This file, root `DESIGN.md`, and AI-prompt vocabulary all use role names. The internal token stays as-is; no rename needed.
 
@@ -299,6 +324,43 @@ Colors must read well through translucent glass surfaces. Considerations:
 - **Tinted glass**: Subtle color tint in glass material shifts how content colors appear. Test accent colors through all 5 material thicknesses.
 - **Dark mode**: Glass materials need higher opacity in dark mode (already handled in material tokens). Colors shift to lighter tints for readability.
 
+### Dark Mode Palette (Admin)
+
+Admin dark mode is a **deliberate palette, not a light inversion**. Three rules carry it; all values live in admin-scoped files (`packages/admin/src/index.css`, `admin-m3-tokens.css`) so the client PWA is untouched. Toggle is `[data-theme="dark"]` on `<html>`.
+
+**1 — Warm surface ladder (Warm Earth at low lightness).** Surfaces keep a constant warm hue (~65 OKLCH) with raised chroma so they read warm even when dark. Following the M3-dark convention, **higher elevation = lighter** — the card sits a clear lightness step above the canvas, so separation comes from *tonal lift, not a drop shadow* (black shadows are invisible on near-black).
+
+| Role (`--m3-*`) | OKLCH intent | RGB triplet | Job |
+|---|---|---|---|
+| `surface` / `surface-dim` | `16% .012 65` | `17 12 8` | Canvas floor |
+| `surface-container-lowest` | `13% .010 65` | `10 7 4` | Sunken wells |
+| `surface-container-low` | `19% .014 65` | `24 19 13` | Quiet grouping |
+| `surface-container` | `22% .015 65` | `32 25 19` | **Default card** |
+| `surface-container-high` | `26% .016 65` | `42 35 28` | Sheet / dialog |
+| `surface-container-highest` | `30% .018 65` | `52 44 36` | Active / hover, chips |
+
+**2 — Ring-forward elevation.** Depth is a warm-white hairline ring (`--neutral-50` at 6–16%, scaling with level) plus a small black blur only for chrome floating over content — never a black drop shadow as the primary cue. The canvas wash carries each workspace's hue at L≈17% (just under the card) with chroma ~0.024 (community ~0.034); the dark `--tone-strength` default is `1` (the wash chroma is too low to oversaturate).
+
+**3 — Per-view accents (dual-use-safe).** `--tone-primary` feeds `--m3-primary`, which components consume **both** as a white-text fill **and** as on-surface text/icon/link color. So `--tone-primary` stays **light** (the `-200` step, readable as text on the dark card); saturation lives in `--tone-action` (deep, white-text filled CTA) and vividness in the wash + bright accent text. Never set `--tone-primary` to a deep step — it would make tone-colored links/icons unreadable.
+
+| Tone | Filled action (white-safe) | Accent text on card | Container / on |
+|---|---|---|---|
+| hub (blue) | `blue-700` · 7.3:1 | `blue-200` · 11.7:1 | `blue-900` / `blue-100` |
+| garden (green) | `green-800` · 5.7:1 | `green-200` · 14.4:1 | `green-900` / `green-100` |
+| community (amber/gold) | `orange-700` · 5.0:1 (deep amber — gold identity from wash/accent, not the fill) | `yellow-200` · 14.9:1 | `yellow-900` / `yellow-100` |
+| actions (red) | `red-700` · 6.5:1 | `red-200` · 12.0:1 | `red-900` / `red-100` |
+| home (stone) | `neutral-600` · 7.6:1 | `neutral-300` · 11.7:1 | `neutral-700` / `neutral-100` |
+
+**Contrast invariant:** filled actions carry white text and MUST clear AA (≥4.5:1) — this forces *deep* steps, so "vivid" can never come from brightening the fill. Accent-text `-200` steps clear AA on the `surface-container` card (≥11.7:1). A `check:design-tokens` dark-parity guard enforces light/dark tone-block and elevation parity.
+
+**Light mode follows the same discipline** (applied 2026-07-03 after a 190-pair audit):
+
+- **Dual-safe light tones** — light garden is `green-800` (5.7:1 both as white-text fill and as text on white; green-600/700 failed one or both), light actions `red-700` (6.4), light home `neutral-600`. Hub and community light already passed and are unchanged.
+- **Light surfaces are the linen ladder** — the M3 containers ride a warm linen family (constant hue ~85, chroma .005–.012, in `admin-m3-tokens.css`), not gray Tailwind neutrals; cards and sheets stay white. This mirrors dark's hue-65 ladder so both modes carry Warm Earth.
+- **`--tone-focus-ring`** is the only token for focus indicators: = `--tone-action` in light, = `--tone-on-surface-accent` in dark (deep fills measure 2.3–2.7 against dark surfaces — below the 3:1 non-text minimum). Never ring with `--tone-action` directly.
+- **State roles:** `-dark` steps for text/icons (they flip per mode: `-950` in light, `-400` in dark), `-lighter`+`-dark` for badges, `-base` for **fills only**. Admin-scope class backstops re-point stray `text-*-base` usages, but new code writes `text-*-dark`. The brand green `#1FC16B` (`--primary-base`) is a fill-only accent — never text; links use `--primary-dark`.
+- **`--m3-error`** is `red-700`+white in light, a light red (`248 113 113`)+ink in dark (the M3-dark error convention). **`--m3-outline`** is control-grade (≥3:1: form fields, chips, outlined buttons); `--m3-outline-variant` stays the decorative hairline.
+
 ---
 
 ## Component Patterns
@@ -332,14 +394,16 @@ Contextual page-level actions. The admin cockpit's primary action surface.
 
 ### Sheets
 
-Detail surfaces that slide from the edge, anchored to their trigger (source-anchored interaction):
+> **Admin cockpit exception**: the operator cockpit (`packages/admin`) has **retired workspace side sheets** — the shared sheet renderers are deleted and every workspace action and detail/inspection flow is a centered `AdminDialog` (full-viewport scrim; bottom-sheet on mobile). The one sanctioned side sheet is **`AdminSideSheet`**, reserved for the three global AppBar surfaces (Profile, Settings, Notifications): right-docked and solid on desktop, AdminDialog-identical bottom sheet on mobile. See [prompt-contract.md § Overlays](./prompt-contract.md). The sheet motion below applies to the **client PWA's own sheet patterns** (wallet drawer, `PwaSheet`, mobile detail flows); `SheetBody` / `SheetFooter` / `SheetDivider` survive as layout primitives *inside* an `AdminDialog` or `AdminSideSheet` body.
+
+Client detail surfaces that slide from the edge, anchored to their trigger (source-anchored interaction):
 
 | Type | Motion | Use |
 |------|--------|-----|
-| **Side sheet** (desktop) | `translateX(±100%→0)` with `--spring-spatial` | Work review, settings, garden context, member management |
+| **Side sheet** (desktop) | `translateX(±100%→0)` with `--spring-spatial` | Client/PWA contextual sheets |
 | **Bottom sheet** (mobile) | `translateY(100%→0)` with `--spring-spatial` | Same content, adapted for vertical screen |
 
-Admin canvas recedes when a bounded sheet opens: `translateY(var(--canvas-recede-y, 8px)) + opacity(var(--canvas-opacity-receded, 0.95)) + blur(var(--canvas-blur-receded, 1.5px))`. Parallel admin sheets avoid dark scrims; viewport dialogs and installed-PWA sheets may use the shared scrim token when they interrupt the main flow.
+Admin workspace action/detail flows open in centered `AdminDialog`; the admin canvas stays at rest, and depth comes from the dialog's scrim/elevation. The three global AppBar surfaces use solid `AdminSideSheet`. Installed-PWA sheets may use the shared scrim token when they interrupt the main flow.
 
 ### Navigation
 
@@ -383,10 +447,10 @@ Glass material shifts as user engagement deepens. This replaces the binary "tran
 | **Parallel task** (side panel) | Lighter glass, no dimming | Task happens alongside main flow — maintain context |
 
 **Dimming vs separation** (from Liquid Glass):
-- **Dimming layer** for modal interruption: sheet opens, canvas dims behind it. The user's attention is redirected.
-- **Glass separation** for parallel tasks: panel slides in, canvas recedes slightly but stays visible. The user maintains awareness of both contexts.
+- **Dimming layer** for modal interruption: a dialog/sheet opens and the user's attention is redirected.
+- **Glass separation** for parallel client tasks: panel depth keeps the user aware of both contexts.
 
-This maps to the spatial architecture's canvas recession states: bounded admin sheet-active uses `translateY(var(--canvas-recede-y, 8px)) + opacity(var(--canvas-opacity-receded, 0.95)) + blur(var(--canvas-blur-receded, 1.5px))`, with full restoration on dismiss.
+Admin carve-out: routine admin overlays are not parallel glass panels. Workspace action/detail flows use centered `AdminDialog`, and global AppBar surfaces use solid `AdminSideSheet`.
 
 ### Source-Anchored Interactions
 

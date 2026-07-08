@@ -94,7 +94,7 @@ export function validateDecimalInput(input: string, decimals: number): string | 
   const trimmed = input.trim();
   if (!trimmed) return null;
 
-  if (!/^\d+(?:\.\d*)?$/.test(trimmed)) {
+  if (!/^(?:\d+(?:\.\d*)?|\.\d+)$/.test(trimmed)) {
     return "app.treasury.invalidAmount";
   }
 
@@ -104,6 +104,12 @@ export function validateDecimalInput(input: string, decimals: number): string | 
   }
 
   return null;
+}
+
+export function normalizeDecimalInput(input: string): string {
+  const trimmed = input.trim();
+  if (/^\.\d+$/.test(trimmed)) return `0${trimmed}`;
+  return trimmed;
 }
 
 export function getNetDeposited(totalDeposited: bigint, totalWithdrawn: bigint): bigint {

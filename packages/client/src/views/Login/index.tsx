@@ -1,7 +1,11 @@
 import {
+  classifyPasskeyCeremonyContext,
   copyToClipboard,
   debugError,
+  getStoredUsername,
   type InstallGuidance,
+  isPasskeyServerEnabled,
+  normalizePasskeyAccountIdentifier,
   type Platform,
   toastService,
   trackAuthError,
@@ -9,7 +13,7 @@ import {
   useAuth,
   useInstallGuidance,
 } from "@green-goods/shared";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { type IntlShape, useIntl } from "react-intl";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
@@ -17,6 +21,18 @@ import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { type LoadingState, Splash } from "@/components/Layout";
 import { APP_ROUTES } from "@/config/pwa-routing";
 import { LoadingSplash } from "@/views/Login/components/LoadingSplash";
+
+/**
+ * The login surface is three screens on one scaffold:
+ *   entry   — primary (Create account / Continue as <name>) · wallet · Recover link
+ *   create  — username input · Create account · Back link
+ *   recover — username input · Recover with passkey · Back link
+ * Form screens are reached only by deliberate navigation from entry; Back
+ * always returns to entry. Recovery is flat: it either succeeds or the user
+ * goes Back — creating a fresh account happens through the normal create flow
+ * (the passkey server still rejects already-registered names).
+ */
+type LoginScreen = "entry" | "create" | "recover";
 
 /** Get the browser guidance label based on scenario and platform */
 function getBrowserGuidanceLabel(
@@ -55,41 +71,75 @@ const getFriendlyErrorMessage = (err: unknown, intl: IntlShape): string => {
     });
 
   const msg = err.message.toLowerCase();
-  if (msg.includes("cancel") || msg.includes("abort") || msg.includes("user deny")) {
+  // "not allowed" covers WebAuthn NotAllowedError messages ("The operation
+  // either timed out or was not allowed.") raised when the user dismisses
+  // the platform passkey prompt.
+  if (
+    msg.includes("cancel") ||
+    msg.includes("abort") ||
+    msg.includes("user deny") ||
+    msg.includes("not allowed")
+  ) {
     return intl.formatMessage({
       id: "app.login.error.cancelled",
-      defaultMessage: "Sign in was cancelled. Try again when you're ready.",
+      defaultMessage: "Sign in was cancelled.",
     });
   }
-  if (msg.includes("not support") || msg.includes("unavailable")) {
+  if (
+    msg.includes("expected account address") ||
+    msg.includes("address mismatch") ||
+    msg.includes("did not match the expected account")
+  ) {
     return intl.formatMessage({
-      id: "app.login.error.passkeyUnavailable",
-      defaultMessage:
-        "Passkeys aren't available on this device. Try signing in with a wallet instead.",
+      id: "app.login.error.addressMismatch",
+      defaultMessage: "That passkey is for a different account.",
+    });
+  }
+  if (msg.includes("already registered") || msg.includes("recovery name")) {
+    return intl.formatMessage({
+      id: "app.login.error.recoveryNameTaken",
+      defaultMessage: "That name is already registered.",
     });
   }
   if (msg.includes("network") || msg.includes("timeout") || msg.includes("fetch")) {
     return intl.formatMessage({
       id: "app.login.error.network",
-      defaultMessage: "Connection issue. Check your internet and try again.",
+      defaultMessage: "Passkey recovery is temporarily unavailable.",
     });
   }
-  if (msg.includes("no passkey found") || msg.includes("no credentials")) {
+  if (
+    msg.includes("not support") ||
+    msg.includes("unsupported browser") ||
+    msg.includes("passkey unavailable") ||
+    msg.includes("passkeys aren't available") ||
+    msg.includes("passkeys are not available") ||
+    msg.includes("webauthn unavailable")
+  ) {
+    return intl.formatMessage({
+      id: "app.login.error.passkeyUnavailable",
+      defaultMessage: "Passkeys aren't available in this browser.",
+    });
+  }
+  if (
+    msg.includes("no passkey found") ||
+    msg.includes("no passkey credential") ||
+    msg.includes("no credential")
+  ) {
     return intl.formatMessage({
       id: "app.login.error.noPasskey",
-      defaultMessage: "No passkey was found on this device. You can create a new account instead.",
+      defaultMessage: "No passkey found for that username.",
     });
   }
   if (msg.includes("credential") || msg.includes("passkey")) {
     return intl.formatMessage({
       id: "app.login.error.passkeyVerification",
-      defaultMessage: "We couldn't verify your passkey. Try again or sign in with a wallet.",
+      defaultMessage: "We couldn't verify your passkey.",
     });
   }
   if (msg.includes("at least 3 characters")) {
     return intl.formatMessage({
       id: "app.login.error.usernameTooShort",
-      defaultMessage: "Please enter a display name with at least 3 characters.",
+      defaultMessage: "Display name must be at least 3 characters.",
     });
   }
   return intl.formatMessage({
@@ -109,25 +159,63 @@ export function Login() {
     isAuthenticated,
     isReady,
     hasStoredCredential,
+    userName: authenticatedUserName,
     error: authError,
   } = useAuth();
 
   // Get platform/browser info for installation guidance
-  const { platform, isMobile, isInstalled, wasInstalled, deferredPrompt } = useApp();
+  const { platform, isMobile, isInstalled, isInstalling, wasInstalled, deferredPrompt } = useApp();
   const guidance = useInstallGuidance(
     platform,
     isInstalled,
     wasInstalled,
     deferredPrompt,
-    isMobile
+    isMobile,
+    isInstalling
   );
 
   const [loadingState, setLoadingState] = useState<LoadingState | null>(null);
   const [loadingMessage, setLoadingMessage] = useState<string | undefined>();
   const [loginError, setLoginError] = useState<string | null>(null);
   const [username, setUsername] = useState("");
-  // Progressive disclosure: toggle between wallet-primary and passkey-create modes (new users only)
-  const [showPasskeyCreate, setShowPasskeyCreate] = useState(false);
+  const [recoveryUsername, setRecoveryUsername] = useState("");
+  const [screen, setScreen] = useState<LoginScreen>("entry");
+  const passkeyServerEnabled = isPasskeyServerEnabled();
+
+  // Name typed into the last username-recovery attempt. When the server has
+  // no credential for it (or is unreachable) the auth service deliberately
+  // falls back to the credential cached on this device, which can belong to a
+  // different name — surface that on success instead of letting the session
+  // silently land on another account.
+  const recoveryAttemptNameRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const attempted = recoveryAttemptNameRef.current;
+    recoveryAttemptNameRef.current = null;
+    if (!attempted || !authenticatedUserName) return;
+    if (
+      normalizePasskeyAccountIdentifier(authenticatedUserName) ===
+      normalizePasskeyAccountIdentifier(attempted)
+    ) {
+      return;
+    }
+    toastService.show({
+      status: "info",
+      title: intl.formatMessage({
+        id: "app.login.toast.fallbackAccountTitle",
+        defaultMessage: "Signed in with this device's passkey",
+      }),
+      description: intl.formatMessage(
+        {
+          id: "app.login.toast.fallbackAccountDescription",
+          defaultMessage:
+            "No passkey matched “{requested}”, so you're signed in as {actual} — the account saved on this device.",
+        },
+        { requested: attempted, actual: authenticatedUserName }
+      ),
+    });
+  }, [isAuthenticated, authenticatedUserName, intl]);
 
   // Handle browser switch action (for wrong browser/in-app browser scenarios)
   const handleBrowserSwitch = useCallback(async () => {
@@ -187,29 +275,52 @@ export function Login() {
     }
   }, [authError, isAuthenticating, intl]);
 
-  const handleAuthError = (err: unknown, operation: "login" | "create") => {
+  const unsupportedPasskeyContext =
+    isMobile && (guidance.scenario === "wrong-browser" || guidance.scenario === "in-app-browser");
+
+  const blockUnsupportedPasskeyCeremony = useCallback(() => {
+    const ceremonyContext = classifyPasskeyCeremonyContext();
+
+    if (!unsupportedPasskeyContext && ceremonyContext.supported) {
+      return false;
+    }
+
+    setLoadingState(null);
+    setLoadingMessage(undefined);
+    setLoginError(
+      intl.formatMessage({
+        id: "app.login.error.unsupportedBrowser",
+        defaultMessage: "Open Green Goods in the recommended browser.",
+      })
+    );
+    return true;
+  }, [intl, unsupportedPasskeyContext]);
+
+  const handleAuthError = (err: unknown, operation: "login" | "recover" | "create") => {
     setLoadingState(null);
     setLoadingMessage(undefined);
     debugError("Authentication failed", err);
     setLoginError(getFriendlyErrorMessage(err, intl));
 
-    // Check if user intentionally cancelled (don't track as error)
+    // Check if user intentionally cancelled (don't track as error).
+    // "not allowed" covers WebAuthn NotAllowedError prompt dismissals.
     const isUserCancellation =
       err instanceof Error &&
       (err.message.toLowerCase().includes("cancel") ||
         err.message.toLowerCase().includes("abort") ||
-        err.message.toLowerCase().includes("user deny"));
+        err.message.toLowerCase().includes("user deny") ||
+        err.message.toLowerCase().includes("not allowed"));
 
     if (!isUserCancellation) {
       trackAuthError(err, {
         source: "Login.handleAuthError",
-        userAction:
-          operation === "create" ? "creating account with passkey" : "logging in with passkey",
+        userAction: `${operation} with passkey`,
         authMode: "passkey",
         recoverable: true,
         metadata: {
           operation,
           has_stored_credential: hasStoredCredential,
+          guidance_scenario: guidance.scenario || "none",
         },
       });
     }
@@ -217,7 +328,10 @@ export function Login() {
 
   // Login with existing passkey
   const handlePasskeyLogin = async () => {
+    if (blockUnsupportedPasskeyCeremony()) return;
+
     setLoginError(null);
+    recoveryAttemptNameRef.current = null;
     setLoadingMessage(
       intl.formatMessage({
         id: "app.login.loading.authenticating",
@@ -232,19 +346,52 @@ export function Login() {
     }
   };
 
+  const handlePasskeyRecovery = async () => {
+    if (blockUnsupportedPasskeyCeremony()) return;
+
+    const trimmedUsername = recoveryUsername.trim();
+    if (trimmedUsername.length < 3) {
+      setLoginError(
+        intl.formatMessage({
+          id: "app.login.error.usernameTooShort",
+          defaultMessage: "Display name must be at least 3 characters.",
+        })
+      );
+      return;
+    }
+
+    setLoginError(null);
+    recoveryAttemptNameRef.current = trimmedUsername;
+    setLoadingMessage(
+      intl.formatMessage({
+        id: "app.login.loading.recovering",
+        defaultMessage: "Looking up your passkey...",
+      })
+    );
+    setLoadingState("welcome");
+    try {
+      await loginWithPasskey?.(trimmedUsername);
+    } catch (err) {
+      handleAuthError(err, "recover");
+    }
+  };
+
   // Create new passkey account with required username (minimum 3 characters)
   const handleCreateAccount = async () => {
+    if (blockUnsupportedPasskeyCeremony()) return;
+
     const trimmedUsername = username.trim();
     if (trimmedUsername.length < 3) {
       setLoginError(
         intl.formatMessage({
           id: "app.login.error.usernameTooShort",
-          defaultMessage: "Please enter a display name with at least 3 characters.",
+          defaultMessage: "Display name must be at least 3 characters.",
         })
       );
       return;
     }
     setLoginError(null);
+    recoveryAttemptNameRef.current = null;
     setLoadingMessage(
       intl.formatMessage({
         id: "app.login.loading.creatingWallet",
@@ -259,22 +406,40 @@ export function Login() {
     }
   };
 
+  // Screen navigation — deliberate, error-clearing. Back always lands on entry.
+  const goToEntry = () => {
+    setLoginError(null);
+    setScreen("entry");
+  };
+  const goToCreate = () => {
+    setLoginError(null);
+    setScreen("create");
+  };
+  const goToRecover = () => {
+    setLoginError(null);
+    setScreen("recover");
+  };
+
   // Validation: username must be at least 3 characters for new accounts
   const isUsernameValid = username.trim().length >= 3;
+  const isRecoveryUsernameValid = recoveryUsername.trim().length >= 3;
 
   // Login with wallet
   const handleWalletLogin = () => {
     setLoginError(null);
+    recoveryAttemptNameRef.current = null;
     loginWithWallet?.();
   };
 
   if (isNestedRoute) return <Outlet />;
   if (!isReady) return <LoadingSplash loadingState="welcome" />;
   if (isAuthenticated) return <Navigate to={redirectTo} replace />;
-  if (loadingState) return <LoadingSplash loadingState={loadingState} message={loadingMessage} />;
+  // In-flight passkey attempts never swap the tree: each screen's Splash stays
+  // mounted and shows the spinner inside the primary button (loadingState and
+  // loadingMessage thread through below).
 
   // Build tertiary action for browser guidance when in wrong browser
-  // Browser guidance takes priority over wallet tertiary when present
+  // Browser guidance takes priority over the recover link when present
   const browserGuidanceTertiaryAction =
     isMobile && (guidance.scenario === "wrong-browser" || guidance.scenario === "in-app-browser")
       ? {
@@ -283,34 +448,13 @@ export function Login() {
         }
       : undefined;
 
-  // Wallet action reused as the secondary path when passkey is primary
-  const walletAction = {
+  const backTertiaryAction = {
     label: intl.formatMessage({
-      id: "app.login.button.connectWallet",
-      defaultMessage: "Sign in with a wallet",
+      id: "app.login.button.back",
+      defaultMessage: "Back",
     }),
-    onSelect: handleWalletLogin,
+    onClick: goToEntry,
   };
-
-  // Address continuity notice shown across all login modes
-  const addressContinuityNotice = intl.formatMessage({
-    id: "app.login.notice.addressContinuity",
-    defaultMessage: "Each sign-in method creates a separate account.",
-  });
-
-  // ─── Progressive disclosure: action hierarchy depends on user state ─────────
-  //
-  // Returning user (has stored passkey):
-  //   Primary: Login with Passkey (muscle memory)
-  //   Secondary: Connect Wallet
-  //
-  // New user (no credential), default mode:
-  //   Primary: Create your account (passkey-first; gardener-clear default)
-  //   Secondary: Sign in with a wallet
-  //
-  // New user, passkey create mode (showPasskeyCreate=true):
-  //   Primary: Create Account (with username input)
-  //   Secondary: Sign in with a wallet
 
   const helmet = (
     <Helmet>
@@ -331,83 +475,166 @@ export function Login() {
     </Helmet>
   );
 
-  // ─── Returning user: passkey primary ────────────────────────────────────────
-  if (hasExistingAccount) {
-    return (
-      <>
-        {helmet}
-        <Splash
-          login={handlePasskeyLogin}
-          isLoggingIn={isAuthenticating}
-          buttonLabel={intl.formatMessage({
-            id: "app.login.button.loginPasskey",
-            defaultMessage: "Sign in with passkey",
-          })}
-          errorMessage={!isAuthenticating ? loginError : null}
-          secondaryAction={walletAction}
-          tertiaryAction={browserGuidanceTertiaryAction}
-          notice={addressContinuityNotice}
-        />
-      </>
-    );
-  }
-
-  // ─── New user, passkey create mode ──────────────────────────────────────────
-  if (showPasskeyCreate) {
+  // ─── Create form: input (slot 1) · Create account (slot 2) · Back ───────────
+  if (screen === "create" && !hasExistingAccount) {
     return (
       <>
         {helmet}
         <Splash
           login={handleCreateAccount}
           isLoggingIn={isAuthenticating}
+          loadingState={loadingState ?? undefined}
+          message={loadingMessage}
           buttonLabel={intl.formatMessage({
             id: "app.login.button.createAccount",
             defaultMessage: "Create account",
           })}
           errorMessage={!isAuthenticating ? loginError : null}
-          secondaryAction={walletAction}
-          tertiaryAction={browserGuidanceTertiaryAction}
           usernameInput={{
             value: username,
             onChange: (e) => setUsername(e.target.value),
+            label: intl.formatMessage({
+              id: "app.login.username.newAccountLabel",
+              defaultMessage: "Display name for new account",
+            }),
             placeholder: intl.formatMessage({
               id: "app.login.username.placeholder",
-              defaultMessage: "Enter a display name",
-            }),
-            hint: intl.formatMessage({
-              id: "app.login.username.hint",
-              defaultMessage: "Required — at least 3 characters",
+              defaultMessage: "e.g. alice or alice.eth",
             }),
             minLength: 3,
-            onCancel: () => setShowPasskeyCreate(false),
+            onCancel: goToEntry,
           }}
           isLoginDisabled={!isUsernameValid}
-          notice={addressContinuityNotice}
-          infoCallout={intl.formatMessage({
-            id: "app.login.passkey.explainer",
-            defaultMessage:
-              "Passkeys let you sign in securely from this device — no passwords to remember.",
-          })}
+          infoMessage={
+            passkeyServerEnabled
+              ? intl.formatMessage({
+                  id: "app.login.username.hint",
+                  defaultMessage: "Use this name later with a synced passkey on another device.",
+                })
+              : intl.formatMessage({
+                  // Local-only mode keeps the re-enrollment explainer instead
+                  // of the generic cross-device hint.
+                  id: "app.login.passkey.localExplainer",
+                  defaultMessage:
+                    "Keeps same-device sign-in. May need re-enrollment if browser storage is cleared.",
+                })
+          }
+          tertiaryAction={backTertiaryAction}
         />
       </>
     );
   }
 
-  // ─── New user, default mode: passkey-first (gardener-clear) ─────────────────
+  // ─── Recover form: input (slot 1) · Recover with passkey (slot 2) · Back ────
+  // Flat flow: it succeeds, or the error shows and the user retries or goes
+  // Back. A fresh account is created through the normal create flow instead of
+  // an in-recovery fork; the passkey server still rejects registered names.
+  if (screen === "recover" && passkeyServerEnabled) {
+    return (
+      <>
+        {helmet}
+        <Splash
+          login={handlePasskeyRecovery}
+          isLoggingIn={isAuthenticating}
+          loadingState={loadingState ?? undefined}
+          message={loadingMessage}
+          buttonLabel={intl.formatMessage({
+            id: "app.login.button.recoverPasskey",
+            defaultMessage: "Recover with passkey",
+          })}
+          errorMessage={!isAuthenticating ? loginError : null}
+          usernameInput={{
+            value: recoveryUsername,
+            onChange: (e) => setRecoveryUsername(e.target.value),
+            label: intl.formatMessage({
+              id: "app.login.recovery.label",
+              defaultMessage: "Username or ENS handle",
+            }),
+            placeholder: intl.formatMessage({
+              id: "app.login.recovery.placeholder",
+              defaultMessage: "Enter your username or ENS handle",
+            }),
+            minLength: 3,
+            onCancel: goToEntry,
+          }}
+          isLoginDisabled={!isRecoveryUsernameValid}
+          infoMessage={intl.formatMessage({
+            id: "app.login.recovery.info",
+            defaultMessage:
+              "Synced passkeys recover on supported providers. Local-only passkeys work on this device.",
+          })}
+          tertiaryAction={backTertiaryAction}
+        />
+      </>
+    );
+  }
+
+  // ─── Entry: primary (slot 1) · wallet (slot 2) · Recover link ───────────────
+  // Returning users get the personalized one-tap sign-in; new users get Create
+  // account, which navigates to the create form. Detection is credential-based,
+  // so the stored name can be blank/stale — fall back to the generic label. The
+  // pill truncates long/ENS names (Button wraps the label in a truncating
+  // span); buttonTitle carries the full text.
+  const storedName = hasExistingAccount ? getStoredUsername()?.trim() : undefined;
+  const personalizedLabel = storedName
+    ? intl.formatMessage(
+        { id: "app.login.button.continueAs", defaultMessage: "Continue as {name}" },
+        { name: storedName }
+      )
+    : undefined;
+
   return (
     <>
       {helmet}
       <Splash
-        login={() => setShowPasskeyCreate(true)}
+        login={hasExistingAccount ? handlePasskeyLogin : goToCreate}
         isLoggingIn={isAuthenticating}
-        buttonLabel={intl.formatMessage({
-          id: "app.login.button.createPasskeyAccount",
-          defaultMessage: "Create your account",
-        })}
+        loadingState={loadingState ?? undefined}
+        message={loadingMessage}
+        buttonLabel={
+          hasExistingAccount
+            ? (personalizedLabel ??
+              intl.formatMessage({
+                id: "app.login.button.loginPasskey",
+                defaultMessage: "Sign in with passkey",
+              }))
+            : intl.formatMessage({
+                id: "app.login.button.createAccount",
+                defaultMessage: "Create account",
+              })
+        }
+        buttonTitle={personalizedLabel}
         errorMessage={!isAuthenticating ? loginError : null}
-        secondaryAction={walletAction}
-        tertiaryAction={browserGuidanceTertiaryAction}
-        notice={addressContinuityNotice}
+        secondaryAction={{
+          label: intl.formatMessage({
+            id: "app.login.button.connectWallet",
+            defaultMessage: "Sign in with a wallet",
+          }),
+          onSelect: handleWalletLogin,
+        }}
+        tertiaryAction={
+          browserGuidanceTertiaryAction ||
+          (passkeyServerEnabled
+            ? {
+                // Returning users (a local passkey exists) can "recover" — a
+                // broken/rotated credential. First-time-on-this-device users
+                // haven't lost anything to recover, but the bucket includes an
+                // existing user on a new device/browser, whose only way in is
+                // this same username lookup — so the door stays, reframed as
+                // signing into an existing account rather than recovery.
+                label: hasExistingAccount
+                  ? intl.formatMessage({
+                      id: "app.login.button.recoverWithUsername",
+                      defaultMessage: "Recover with username",
+                    })
+                  : intl.formatMessage({
+                      id: "app.login.button.haveAccount",
+                      defaultMessage: "Already have an account?",
+                    }),
+                onClick: goToRecover,
+              }
+            : undefined)
+        }
       />
     </>
   );

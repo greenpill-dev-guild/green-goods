@@ -1,10 +1,12 @@
 import {
+  buildHubHeaderStats,
   HUB_STAGE_RAIL_ID,
-  NativeSelect,
+  MetaStrip,
   useHubWorkbenchController,
   useMediaQuery,
 } from "@green-goods/shared";
 import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
+import { AdminSortSelect } from "@/components/AdminSortSelect";
 import { AdminTabRail } from "@/components/AdminTabRail";
 import { AdminViewActions } from "@/components/AdminViewActions";
 import {
@@ -13,6 +15,7 @@ import {
   CanvasRouteHeader,
 } from "@/components/Layout/CanvasRouteFrame";
 import { CanvasWorkspaceSelectionState } from "@/components/Layout/CanvasWorkspaceSelectionState";
+import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { HubSheetDescriptor, HubStageContent } from "./components";
 
@@ -20,6 +23,27 @@ export default function HubView() {
   const { formatMessage } = useIntl();
   const hub = useHubWorkbenchController();
   const isDesktop = useMediaQuery("(min-width: 1024px)");
+
+  const headerStats = useMemo(() => {
+    if (hub.worksLoading) return [];
+    return buildHubHeaderStats({
+      hasSelectedGarden: Boolean(hub.selectedGarden),
+      // Queue aging, not stage depth: the stage tab rail already shows the
+      // per-stage counts, so the header surfaces what to triage first. Both
+      // counts are unfiltered, so an active search never shifts them. The
+      // derived warning count includes critical items, so keep waiting as the
+      // exclusive 24-72h bucket.
+      overdueCount: hub.pendingCriticalCount,
+      waitingCount: Math.max(0, hub.pendingWarningCount - hub.pendingCriticalCount),
+      formatMessage,
+    });
+  }, [
+    hub.selectedGarden,
+    hub.worksLoading,
+    hub.pendingCriticalCount,
+    hub.pendingWarningCount,
+    formatMessage,
+  ]);
 
   return (
     <CanvasRouteFrame
@@ -56,7 +80,7 @@ export default function HubView() {
         />
       ) : (
         <div
-          className="hub-route-stack"
+          className="hub-route-stack flex min-h-0 flex-1 flex-col"
           role="tabpanel"
           id={`${HUB_STAGE_RAIL_ID}-panel`}
           aria-labelledby={`${HUB_STAGE_RAIL_ID}-tab-${hub.stage}`}
@@ -69,10 +93,17 @@ export default function HubView() {
               defaultMessage:
                 "Review submitted work, run assessments, and certify impact across your gardens.",
             })}
+            metadata={
+              headerStats.length > 0 ? (
+                <MetaStrip items={headerStats} density="inline" />
+              ) : undefined
+            }
             variant="canvas"
             sticky
             actions={
               isDesktop && hub.desktopActions.length > 0 ? (
+                // Stable trio: positions frozen across stages, the active
+                // stage's creation action renders filled.
                 <AdminViewActions items={hub.desktopActions} />
               ) : undefined
             }
@@ -83,31 +114,11 @@ export default function HubView() {
                 placeholder={hub.searchPlaceholder}
               >
                 {(hub.stage === "work" || hub.stage === "history") && (
-                  <label className="flex h-10 shrink-0 items-center gap-2 whitespace-nowrap rounded-[var(--m3-shape-full)] border border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface-container))] pl-3 pr-2 text-body-md text-[rgb(var(--m3-on-surface-variant))]">
-                    <span className="whitespace-nowrap">
-                      {formatMessage({
-                        id: "app.admin.sortSelect.sortBy",
-                        defaultMessage: "Sort by",
-                      })}
-                    </span>
-                    <NativeSelect
-                      surface="admin"
-                      controlSize="sm"
-                      value={hub.sortDirection}
-                      onChange={(event) => hub.updateSearch({ sort: event.target.value }, false)}
-                      aria-label={formatMessage({
-                        id: "app.admin.sortSelect.sortBy",
-                        defaultMessage: "Sort by",
-                      })}
-                      className="h-full min-h-0 rounded-full border-0 bg-transparent py-0 pl-1 pr-8 text-body-md text-text-strong shadow-none"
-                    >
-                      {hub.sortOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </NativeSelect>
-                  </label>
+                  <AdminSortSelect
+                    value={hub.sortDirection}
+                    onChange={(value) => hub.updateSearch({ sort: value }, false)}
+                    options={hub.sortOptions}
+                  />
                 )}
               </AdminSearchToolbar>
             }
@@ -131,7 +142,7 @@ export default function HubView() {
 
           <CanvasRouteContent
             data-region="workspace-hub-content"
-            className="hub-route-content flex flex-col gap-4 sm:gap-5"
+            className="hub-route-content flex flex-1 flex-col gap-4 sm:gap-5"
           >
             <section className="hub-results-shell" aria-label={hub.stageTitle}>
               <div aria-live="polite" className="sr-only">
@@ -146,7 +157,11 @@ export default function HubView() {
                   )}
               </div>
 
-              <div key={hub.stage} className="hub-results-pane motion-reduce:animate-none">
+              {/* No `key={hub.stage}` here: HubStageContent already switches on
+                  the `stage` prop, so a keyed remount only tore down and
+                  rebuilt the DOM mid route View-Transition (the tab-change
+                  glitch). The route transition in PageTransition owns motion. */}
+              <div className="hub-results-pane">
                 <HubStageContent
                   stage={hub.stage}
                   pendingWorks={hub.pendingWorks}
@@ -161,6 +176,7 @@ export default function HubView() {
                   normalizedSearch={hub.normalizedSearch}
                   debouncedSearch={hub.debouncedSearch}
                   actionsMap={hub.actionsMap}
+                  selectedGardenName={hub.selectedGarden?.name}
                   selectedWorkId={hub.selectedWork?.id}
                   selectedCertificationId={hub.selectedCertification?.id}
                   selectedHistoryEventId={hub.selectedHistoryEvent?.id}

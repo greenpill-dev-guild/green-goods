@@ -113,10 +113,6 @@ self.addEventListener("fetch", (event) => {
   event.stopImmediatePropagation?.();
 });
 
-self.addEventListener("install", () => {
-  self.skipWaiting();
-});
-
 // Clear stale runtime caches and refresh public website tabs when a new worker activates.
 self.addEventListener("activate", (event) => {
   event.waitUntil(activateServiceWorker());

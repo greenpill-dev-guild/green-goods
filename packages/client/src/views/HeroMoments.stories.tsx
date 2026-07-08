@@ -10,7 +10,7 @@ import { withClientAppRuntime, withInstalledPwa } from "../../../shared/.storybo
  * pins the moment to its canonical surface and the amplification grammar
  * (shape × color × motion × typography × material).
  *
- * Read this story when prompting Stitch / Claude Design / Figma Make for a
+ * Read this story when prompting AI design tools or coding agents for a
  * client celebratory flow — it is the positive vocabulary anchor that the
  * client prompt contract references but never visualizes.
  *

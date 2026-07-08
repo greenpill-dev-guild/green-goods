@@ -67,6 +67,7 @@ export type InstallScenario =
   | "manual-install-available" // Right browser, show manual steps
   | "wrong-browser" // Need to switch browsers
   | "in-app-browser" // In WebView, must open in real browser
+  | "installing" // Native prompt accepted, browser is finishing installation
   | "already-installed" // PWA is already installed
   | "desktop" // Desktop browser, show mobile prompt
   | "unsupported"; // Platform doesn't support PWA
@@ -81,6 +82,7 @@ export interface InstallAction {
     | "open-in-browser" // Open URL in different browser
     | "copy-url" // Copy URL for manual paste
     | "continue-in-browser" // Skip install, use web
+    | "installing" // Installation is pending; no click action
     | "open-app"; // Already installed, open the app
   label: string;
   description?: string;
@@ -104,7 +106,8 @@ export function useInstallGuidance(
   isInstalled: boolean,
   wasInstalled: boolean,
   deferredPrompt: BeforeInstallPromptEvent | null,
-  isMobile: boolean
+  isMobile: boolean,
+  isInstalling = false
 ): InstallGuidance {
   return useMemo(() => {
     // Desktop scenario
@@ -116,6 +119,22 @@ export function useInstallGuidance(
           type: "continue-in-browser",
           label: "Open on Mobile",
           description: "Scan QR or visit on your phone",
+        },
+        secondaryAction: null,
+        showBrowserOption: false,
+        manualInstructions: null,
+        browserSwitchReason: null,
+        openInBrowserUrl: null,
+      };
+    }
+
+    if (isInstalling) {
+      return {
+        browserInfo: detectMobileBrowser(platform),
+        scenario: "installing",
+        primaryAction: {
+          type: "installing",
+          label: "Installing...",
         },
         secondaryAction: null,
         showBrowserOption: false,
@@ -179,8 +198,10 @@ export function useInstallGuidance(
       };
     }
 
-    // Wrong browser for platform
-    if (!browserInfo.isRecommendedBrowser && !browserInfo.supportsNativePWA) {
+    // Wrong browser for Green Goods' install policy. Android is Chrome-only
+    // for now; iOS is Safari-only. Do not fall through to manual/native install
+    // just because another browser reports partial PWA support.
+    if (!browserInfo.isRecommendedBrowser) {
       const openUrl = getOpenInBrowserUrl(platform, recommendedBrowser.browser);
 
       return {
@@ -213,7 +234,7 @@ export function useInstallGuidance(
       };
     }
 
-    // Native install prompt available (Chrome/Edge/Samsung on Android)
+    // Native install prompt available (Chrome on Android)
     if (deferredPrompt && canTriggerInstallPrompt(browserInfo)) {
       return {
         browserInfo,
@@ -236,18 +257,50 @@ export function useInstallGuidance(
     // Manual installation available (Safari on iOS, or Android without prompt)
     const manualInstructions = getManualInstallSteps(platform, browserInfo.browser);
 
-    // User has already installed the PWA — primary CTA is "Open App", not "Install".
-    if (wasInstalled) {
+    // Android keeps a previously-installed PWA's WebAPK registered even though the
+    // browser tab can never observe `display-mode: standalone`. So once we've seen
+    // an install on this browser (`wasInstalled`), keep "Open App" as the primary
+    // action — the click is a real navigation to the in-scope start URL that
+    // Chrome/Android link-capturing hands off to the installed app.
+    //
+    // Remembered install state can also be stale after the user removes the
+    // WebAPK, so keep manual reinstall guidance attached as a secondary path.
+    // iOS has no link capturing (and no WebAPK), so it keeps the manual reinstall
+    // guidance as the primary path below.
+    if (wasInstalled && platform === "android") {
       return {
         browserInfo,
-        scenario: "manual-install-available",
+        scenario: "already-installed",
         primaryAction: {
           type: "open-app",
           label: "Open App",
         },
         secondaryAction: {
           type: "show-manual-steps",
-          label: "Reinstall",
+          label: "Install again",
+          description: "If the app was removed",
+        },
+        showBrowserOption: true,
+        manualInstructions,
+        browserSwitchReason: null,
+        openInBrowserUrl: null,
+      };
+    }
+
+    // A remembered install is not proof the PWA is still installed. Mobile browsers
+    // can keep local install history after the app is removed, so keep reinstall
+    // guidance available unless the current installed check confirms it is present.
+    if (wasInstalled) {
+      return {
+        browserInfo,
+        scenario: "manual-install-available",
+        primaryAction: {
+          type: "show-manual-steps",
+          label: "Install App",
+        },
+        secondaryAction: {
+          type: "continue-in-browser",
+          label: "Continue in Browser",
         },
         showBrowserOption: true,
         manualInstructions,
@@ -272,7 +325,7 @@ export function useInstallGuidance(
       browserSwitchReason: null,
       openInBrowserUrl: null,
     };
-  }, [platform, isInstalled, wasInstalled, deferredPrompt, isMobile]);
+  }, [platform, isInstalled, wasInstalled, deferredPrompt, isMobile, isInstalling]);
 }
 
 /**
@@ -365,18 +418,4 @@ function getManualInstallSteps(platform: Platform, browser: MobileBrowser): Manu
       description: 'Look for "Add to Home Screen" or "Install".',
     },
   ];
-}
-
-/**
- * Declaration for BeforeInstallPromptEvent (not in standard TS types)
- */
-declare global {
-  interface BeforeInstallPromptEvent extends Event {
-    readonly platforms: string[];
-    readonly userChoice: Promise<{
-      outcome: "accepted" | "dismissed";
-      platform: string;
-    }>;
-    prompt(): Promise<void>;
-  }
 }

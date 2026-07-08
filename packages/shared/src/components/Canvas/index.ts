@@ -1,7 +1,4 @@
-export { BottomSheet, type BottomSheetProps } from "./BottomSheet";
-export { LeftSheet, type LeftSheetProps } from "./LeftSheet";
-export { MainSheet, useCanvasPortal, type MainSheetProps } from "./MainSheet";
-export { RightSheet, type RightSheetProps } from "./RightSheet";
+export { MainSheet, type MainSheetProps } from "./MainSheet";
 export { EmptyStateShell } from "./EmptyStateShell";
 export { MetaStrip, type MetaStripItem, type MetaStripProps } from "./MetaStrip";
 export {
@@ -11,6 +8,7 @@ export {
 } from "./useCanvasResponsiveFab";
 export { useViewActions } from "./useViewActions";
 export type { ViewAction, ViewActionsConfig } from "./viewActions.types";
+export { WorkbenchCard, type WorkbenchCardProps } from "./WorkbenchCard";
 export { WorkbenchList } from "./WorkbenchList";
 export {
   WorkbenchRow,
@@ -24,14 +22,6 @@ export {
   useRefreshActionValue,
   type RefreshActionConfig,
 } from "./RefreshActionContext";
-export {
-  LeftSheetProvider,
-  useLeftSheetConfig,
-  useLeftSheetConfigValue,
-  useRouteBackedLeftSheetConfig,
-  type LeftSheetConfig,
-  type RouteBackedLeftSheetConfig,
-} from "./LeftSheetContext";
 export { GardenChip, type GardenChipProps } from "./GardenChip";
 export {
   NavigationBar,
@@ -44,16 +34,13 @@ export {
   NotificationPanel,
   type NotificationPanelItem,
   type NotificationPanelProps,
+  type NotificationPanelSection,
   type NotificationPanelTone,
 } from "./NotificationPanel";
 export { SheetBody, type SheetBodyProps } from "./SheetBody";
 export { SheetDivider, type SheetDividerProps } from "./SheetDivider";
 export { SheetErrorBoundary, type SheetErrorBoundaryProps } from "./SheetErrorBoundary";
 export { SheetFooter, type SheetFooterProps } from "./SheetFooter";
-export {
-  SPRING_CONFIGS,
-  DISMISS_VELOCITY_THRESHOLD,
-  CHOREOGRAPHY_STAGGER_MS,
-} from "./springConfig";
+export { DISMISS_VELOCITY_THRESHOLD, CHOREOGRAPHY_STAGGER_MS } from "./springConfig";
 export { AppBar, type AppBarProps } from "./AppBar";
 export { useCanvasMobileChromeHidden } from "./useCanvasMobileChromeHidden";

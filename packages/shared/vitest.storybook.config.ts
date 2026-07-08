@@ -51,7 +51,6 @@ const storybookBrowserOptimizerIncludes = [
   "@radix-ui/react-dialog",
   "@radix-ui/react-popover",
   "@radix-ui/react-select",
-  "@react-spring/web",
   "@reown/appkit-adapter-wagmi",
   "@reown/appkit/react",
   "@remixicon/react",

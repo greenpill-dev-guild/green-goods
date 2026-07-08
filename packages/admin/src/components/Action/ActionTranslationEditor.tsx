@@ -530,15 +530,10 @@ export function ActionTranslationEditor({
             void handleGenerateDraft();
           }}
         >
-          {generatingLocale === activeLocale
-            ? formatMessage({
-                id: "app.admin.actions.translations.generating",
-                defaultMessage: "Generating...",
-              })
-            : formatMessage({
-                id: "app.admin.actions.translations.generateDraft",
-                defaultMessage: "Generate draft",
-              })}
+          {formatMessage({
+            id: "app.admin.actions.translations.generateDraft",
+            defaultMessage: "Generate draft",
+          })}
         </AdminButton>
         <AdminButton
           type="button"

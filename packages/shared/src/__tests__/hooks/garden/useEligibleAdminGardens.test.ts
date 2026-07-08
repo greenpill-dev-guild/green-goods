@@ -61,6 +61,7 @@ function defaultRole() {
     role: "user" as const,
     operatorGardens: [] as Array<{ id: string; name: string }>,
     loading: false,
+    gardensError: false,
   };
 }
 
@@ -120,6 +121,35 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
 
     expect(result.current.persistedGardenId).toBe("garden-b");
     expect(result.current.resolvedDefaultGarden?.id).toBe("garden-b");
+  });
+
+  it("resolves the persisted garden when its id casing differs from the eligible list", () => {
+    // Regression guard (PR #543): garden ids are Ethereum addresses. A checksummed
+    // persisted id must still match the lowercase eligible-list id. Strict `===`
+    // silently dropped the match and snapped the default back to the first garden.
+    const ALPHA = "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+    const BETA_LOWER = "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+    const BETA_CHECKSUMMED = "0xBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB";
+    mockUseGardens.mockReturnValue({
+      data: [
+        makeGarden(ALPHA, "Alpha Garden", { operators: [ADDR_USER] }),
+        makeGarden(BETA_LOWER, "Beta Garden", { operators: [ADDR_USER] }),
+      ],
+      isFetched: true,
+      isError: false,
+    });
+    mockUseAdminStore.mockImplementation((selector: (state: any) => any) =>
+      selector({
+        lastGardenIdsByScope: {
+          "11155111:0x1111111111111111111111111111111111111111": BETA_CHECKSUMMED,
+        },
+      })
+    );
+
+    const { result } = renderHook(() => useEligibleAdminGardens());
+
+    // Without case-insensitive matching this resolves to ALPHA (alphabetical first).
+    expect(result.current.resolvedDefaultGarden?.id).toBe(BETA_LOWER);
   });
 
   it("falls back to the alphabetical first eligible garden and reports create permission for deployers", () => {
@@ -213,6 +243,28 @@ describe("hooks/garden/useEligibleAdminGardens", () => {
     const { result } = renderHook(() => useEligibleAdminGardens());
 
     expect(result.current.isError).toBe(true);
+  });
+
+  it("surfaces useRole.gardensError so an operator-gardens outage renders an error branch, not no-access", () => {
+    // The exact masking this fixes: the base list looks clean (empty, no error)
+    // but the address-filtered operator-gardens query failed. Previously that
+    // produced isError=false → "No garden access yet" instead of a retry.
+    mockUseGardens.mockReturnValue({ data: [], isFetched: true, isError: false });
+    mockUseRole.mockReturnValue({ ...defaultRole(), gardensError: true });
+
+    const { result } = renderHook(() => useEligibleAdminGardens());
+
+    expect(result.current.isError).toBe(true);
+  });
+
+  it("preserves the deployer create-garden path during an operator-gardens outage", () => {
+    mockUseGardens.mockReturnValue({ data: [], isFetched: true, isError: false });
+    mockUseRole.mockReturnValue({ ...defaultRole(), role: "deployer", gardensError: true });
+
+    const { result } = renderHook(() => useEligibleAdminGardens());
+
+    expect(result.current.canCreateGarden).toBe(true);
+    expect(result.current.isError).toBe(false);
   });
 
   it("reports isLoaded false while the role query is still loading", () => {

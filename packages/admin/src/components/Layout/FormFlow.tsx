@@ -10,10 +10,21 @@ export interface FormFlowSection {
 
 export interface FormFlowProps {
   sections: FormFlowSection[];
-  actions: ReactNode;
+  /**
+   * Footer actions. Required for `page`/`sheet` layouts (they render a footer).
+   * Omitted for `bare`, where a host shell (e.g. ActionFlowShell) owns the
+   * pinned footer.
+   */
+  actions?: ReactNode;
   intro?: ReactNode;
   feedback?: ReactNode;
-  layout?: "page" | "sheet";
+  /**
+   * `page` (default) — centered column + bottom action Surface.
+   * `sheet` — SheetBody + pinned SheetFooter.
+   * `bare` — sections (+ intro/feedback) only; no outer column padding and no
+   *   footer. The host shell owns width, padding, and the pinned footer.
+   */
+  layout?: "page" | "sheet" | "bare";
   className?: string;
   "aria-label"?: string;
 }
@@ -83,6 +94,21 @@ export function FormFlow({
       </div>
     </>
   );
+
+  // Bare layout: sections (+ intro/feedback) only. The host shell (e.g.
+  // ActionFlowShell) supplies the reading column, padding, and pinned footer.
+  if (layout === "bare") {
+    return (
+      <div
+        data-component="FormFlow"
+        data-layout="bare"
+        aria-label={ariaLabel}
+        className={className}
+      >
+        {sectionsBlock}
+      </div>
+    );
+  }
 
   // Sheet layout: SheetBody (scrolls) + pinned SheetFooter so the actions
   // stay reachable on long forms. Per handoff `sheet-system.css` anatomy.

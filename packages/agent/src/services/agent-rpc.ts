@@ -1,4 +1,4 @@
-import { getNetworkConfig } from "@green-goods/shared";
+import { getNetworkConfig } from "@green-goods/shared/config/blockchain";
 
 export type AgentRpcEnv = Pick<
   NodeJS.ProcessEnv,

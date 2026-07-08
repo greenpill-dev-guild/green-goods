@@ -73,8 +73,9 @@ type PendingWork = Work & { _isPending?: boolean; _pendingUntilMs?: number };
  *     <button
  *       onClick={handleApprove}
  *       disabled={approvalMutation.isPending}
+ *       aria-busy={approvalMutation.isPending || undefined}
  *     >
- *       {approvalMutation.isPending ? "Submitting..." : "Approve"}
+ *       Approve
  *     </button>
  *   );
  * }
@@ -99,6 +100,7 @@ export function useWorkApproval() {
           queryKey: queryKeys.works.merged(lastGardenRef.current, chainId),
         });
       }
+      queryClient.invalidateQueries({ queryKey: queryKeys.approvals.all });
     }, [queryClient, chainId]),
     INDEXER_LAG_SCHEDULE_MS
   );
@@ -327,6 +329,10 @@ export function useWorkApproval() {
         title,
         message,
         context: authMode === "wallet" ? "wallet confirmation" : "approval submission",
+        // Wallet mode waits on the human signature, which can exceed any fixed
+        // timeout — keep it up until the flow replaces it. Passkey/offline are
+        // fast, so they keep the default auto-dismiss safety window.
+        persistent: authMode === "wallet",
         suppressLogging: true,
       });
 
@@ -452,6 +458,9 @@ export function useWorkApproval() {
         });
         queryClient.invalidateQueries({
           queryKey: queryKeys.workApprovals.all,
+        });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.approvals.all,
         });
 
         // Schedule progressive follow-up invalidations for indexer lag (non-blocking)

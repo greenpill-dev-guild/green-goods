@@ -48,7 +48,13 @@ export function useFocusTrap(
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key !== "Tab") return;
 
-      const focusable = container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR);
+      // The button/input/textarea/select/anchor clauses match natively focusable
+      // elements regardless of an explicit tabindex="-1", so a scrim like
+      // `<button tabIndex={-1}>` would slip in as a tab stop. Drop anything the
+      // author removed from the tab order so wrap targets stay real.
+      const focusable = Array.from(
+        container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)
+      ).filter((el) => el.tabIndex >= 0);
       if (focusable.length === 0) return;
 
       const first = focusable[0];

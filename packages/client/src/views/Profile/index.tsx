@@ -10,6 +10,7 @@ import {
 import { RiAwardLine, RiHeadphoneLine, RiSettings2Fill } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
+import { useSearchParams } from "react-router-dom";
 import { Profile as UserProfile } from "@/components/Features";
 import { type StandardTab, StandardTabs } from "@/components/Navigation";
 import { ProfileAccount } from "./Account";
@@ -29,7 +30,13 @@ const Profile: React.FC = () => {
   const { userName } = useAuthState();
   const { profile } = useGardenerProfile();
   const intl = useIntl();
-  const [activeTab, setActiveTab] = useState<"account" | "badges" | "help">("account");
+
+  // Allow deep-linking a tab via ?tab= (e.g. the arrival toast's "Open Help" → ?tab=help).
+  const [searchParams] = useSearchParams();
+  const requestedTab = searchParams.get("tab");
+  const initialTab: "account" | "badges" | "help" =
+    requestedTab === "help" || requestedTab === "badges" ? requestedTab : "account";
+  const [activeTab, setActiveTab] = useState<"account" | "badges" | "help">(initialTab);
 
   const primaryAddress = user?.id;
 

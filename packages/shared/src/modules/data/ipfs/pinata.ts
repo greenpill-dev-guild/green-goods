@@ -5,6 +5,8 @@ import {
   getPinataJwt,
   getPinataUploadSignUrl,
   getPinataUploadsApiBaseUrl,
+  PINATA_UPLOAD_SIGN_TIMEOUT_MS,
+  PINATA_UPLOAD_TIMEOUT_MS,
   PROVIDER_VERIFICATION_ATTEMPTS,
   PROVIDER_VERIFICATION_TIMEOUT_MS,
   trimTrailingSlashes,
@@ -30,6 +32,43 @@ type UploadSignResponse =
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isAbortError(error: unknown): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "name" in error &&
+    (error as { name?: unknown }).name === "AbortError"
+  );
+}
+
+/**
+ * Issues a fetch that aborts after `timeoutMs`, converting the abort into a
+ * clear, retryable error. Without this, a stalled upload connection (common on
+ * weak mobile networks) hangs forever with no surfaced error — the work-media
+ * "Uploading…" spinner never resolves. Mirrors the AbortController idiom used by
+ * `verifyGatewayAvailability` below.
+ */
+async function fetchWithTimeout(
+  input: string,
+  init: RequestInit,
+  timeoutMs: number,
+  timeoutMessage: string
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } catch (error) {
+    if (isAbortError(error)) {
+      throw new Error(timeoutMessage);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 function buildPinataMetadata(
@@ -92,18 +131,23 @@ async function requestSignedUploadUrl(
     throw new Error("IPFS upload signer endpoint is not configured");
   }
 
-  const response = await fetch(signUrl, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      filename: options.name ?? file.name,
-      mimeType: file.type,
-      size: file.size,
-      category: options.category,
-      source: options.source,
-      gardenAddress: options.gardenAddress,
-    }),
-  });
+  const response = await fetchWithTimeout(
+    signUrl,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        filename: options.name ?? file.name,
+        mimeType: file.type,
+        size: file.size,
+        category: options.category,
+        source: options.source,
+        gardenAddress: options.gardenAddress,
+      }),
+    },
+    PINATA_UPLOAD_SIGN_TIMEOUT_MS,
+    "Upload signing timed out. Check your connection and try again."
+  );
 
   let payload: UploadSignResponse | null = null;
   try {
@@ -138,10 +182,15 @@ async function uploadFileWithSignedPinataUrl(
   formData.append("network", "public");
   formData.append("file", file);
 
-  const response = await fetch(signedUrl, {
-    method: "POST",
-    body: formData,
-  });
+  const response = await fetchWithTimeout(
+    signedUrl,
+    {
+      method: "POST",
+      body: formData,
+    },
+    PINATA_UPLOAD_TIMEOUT_MS,
+    "Media upload timed out. Check your connection and try again."
+  );
 
   return parsePinataUploadResponse(response, file.name);
 }
@@ -180,13 +229,18 @@ export async function uploadFileWithPinata(
     formData.append("keyvalues", JSON.stringify(keyvalues));
   }
 
-  const response = await fetch(`${getPinataUploadsApiBaseUrl()}/files`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${jwt}`,
+  const response = await fetchWithTimeout(
+    `${getPinataUploadsApiBaseUrl()}/files`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${jwt}`,
+      },
+      body: formData,
     },
-    body: formData,
-  });
+    PINATA_UPLOAD_TIMEOUT_MS,
+    "Media upload timed out. Check your connection and try again."
+  );
 
   return parsePinataUploadResponse(response, file.name);
 }

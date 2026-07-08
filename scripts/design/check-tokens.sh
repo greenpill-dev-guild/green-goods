@@ -324,16 +324,154 @@ if [[ -n "$ADMIN_CHROME_VIOLATIONS" ]]; then
   echo "❌ Admin Controlled Chrome violation found:"
   echo "$ADMIN_CHROME_VIOLATIONS" | sed 's/^/  /'
   echo
-  echo "Admin glass/backdrop blur and decorative gradients must stay in the approved chrome contract: Navigation/FAB and sheet shells via packages/admin/src/index.css or admin-m3-overrides.css; the AppBar root stays transparent."
+  echo "Admin glass/backdrop blur and decorative gradients must stay in the approved chrome contract: Navigation/FAB chrome only via packages/admin/src/index.css or admin-m3-overrides.css; the AppBar root stays transparent and dialogs/side sheets stay solid."
   echo "Route cards, forms, tables, records, and dense content must use solid semantic surfaces."
   exit 1
 fi
 
+# ----------------------------------------------------------------------------
+# Admin focus-ring role guard
+#
+# `--tone-focus-ring` is the focus indicator role. In light mode it resolves to
+# the deep action step; in dark mode it flips to the bright on-surface accent.
+# Old direct focus rings (`--tone-action`, `--tone-primary`, `--tone-tint`, or
+# `--m3-primary`) can look fine in light mode but miss the 3:1 non-text focus
+# threshold in dark mode. The guard covers admin-owned UI plus shared Canvas
+# chrome that admin consumes.
+# ----------------------------------------------------------------------------
+LEGACY_ADMIN_FOCUS_RING_PATTERN='focus-visible:ring-\[rgb\(var\(--(m3-primary|tone-action|tone-tint|tone-primary)|--tw-ring-color:[[:space:]]*rgb\(var\(--(m3-primary|tone-action|tone-tint|tone-primary)'
+
+collect_admin_focus_ring_violations() {
+  grep -RInE --include='*.ts' --include='*.tsx' --include='*.css' \
+    --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=build \
+    --exclude-dir=storybook-static --exclude-dir=.next --exclude-dir=coverage \
+    "$LEGACY_ADMIN_FOCUS_RING_PATTERN" packages/admin/src packages/shared/src/components/Canvas 2>/dev/null \
+    | sed -E 's#^([^:]+):[0-9]+:[[:space:]]*#\1	#' \
+    | sed -E 's#[[:space:]]+# #g; s#[[:space:]]+$##' \
+    | sort -u
+}
+
+ADMIN_FOCUS_RING_VIOLATIONS="$(collect_admin_focus_ring_violations || true)"
+if [[ -n "$ADMIN_FOCUS_RING_VIOLATIONS" ]]; then
+  echo "❌ Admin focus-ring token violation found:"
+  echo "$ADMIN_FOCUS_RING_VIOLATIONS" | sed 's/^/  /'
+  echo
+  echo "Admin-facing focus indicators must use --tone-focus-ring, with a fallback only as the second var() argument."
+  echo "Example: focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]"
+  exit 1
+fi
+
+# ----------------------------------------------------------------------------
+# Action-flow modality guard
+#
+# Full-surface admin create/commit flows (Submit Work, Create Assessment, Create
+# Hypercert) render as a centered AdminDialog (size="lg" variant="flow") with a
+# scrim — a bottom-sheet on mobile. The retired `size="fullscreen"` was a Radix
+# modal whose scale-transition revealed the scrim at the viewport edge ("things
+# on the edges"); it is removed from AdminDialog. Fail if it reappears so the
+# lexical trap (the word "fullscreen" → a fullscreen modal) cannot return.
+# ----------------------------------------------------------------------------
+FULLSCREEN_DIALOG_HITS="$(grep -RInE 'size=("fullscreen"|\{[[:space:]]*"fullscreen")' \
+  --include='*.ts' --include='*.tsx' \
+  --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=build \
+  packages/admin/src 2>/dev/null || true)"
+if [[ -n "$FULLSCREEN_DIALOG_HITS" ]]; then
+  echo "❌ Retired AdminDialog size=\"fullscreen\" found:"
+  echo "$FULLSCREEN_DIALOG_HITS" | sed 's/^/  /'
+  echo
+  echo "Full-surface action flows use a centered AdminDialog (size=\"lg\" variant=\"flow\") with ADMIN_FLOW_DIALOG_CLASS, a scrim, and a bottom-sheet mobile presentation — not a fullscreen modal takeover."
+  exit 1
+fi
+
+# ----------------------------------------------------------------------------
+# Workspace tone propagation guard
+#
+# Two regressions shipped silently before this guard existed:
+#   1. The tone-derived M3 roles (--m3-primary etc.) were declared ONLY at
+#      :root, so var(--tone-primary) substituted above the [data-tone] element
+#      and locked to the green fallback — "everything admin rendered green"
+#      while only the canvas + filled button (which read --tone-action directly)
+#      picked up the workspace hue. The fix re-declares them at .admin-m3 scope
+#      (the same element that sets --tone-primary).
+#   2. Tone-colored TEXT needs a contrast-safe step (--tone-on-surface-accent);
+#      the mid --tone-primary step fails AA as text on white (green-600 ≈ 2.85).
+# A passing story is not proof the tint reaches the DOM — these checks are.
+# ----------------------------------------------------------------------------
+ADMIN_INDEX_CSS="packages/admin/src/index.css"
+
+# (1) --m3-primary must be re-declared inside a `.admin-m3` rule, not only :root.
+if ! awk '
+  /^[^{}]*\{/ { in_admin = ($0 ~ /\.admin-m3/) }
+  /\}/        { in_admin = 0 }
+  in_admin && /--m3-primary:[[:space:]]*var\(--tone-primary/ { found = 1 }
+  END { exit(found ? 0 : 1) }
+' "$ADMIN_M3_TOKENS"; then
+  echo "❌ Workspace tone scoping regression: --m3-primary is not re-declared at .admin-m3 scope in $ADMIN_M3_TOKENS."
+  echo "   Without a .admin-m3 { --m3-primary: var(--tone-primary, …) } block, var(--tone-primary) resolves at :root (unset)"
+  echo "   and every --m3-primary consumer locks to the green fallback regardless of the active workspace."
+  exit 1
+fi
+
+# (2) Every tone block that defines --tone-action must also define a
+#     contrast-safe --tone-on-surface-accent (text/outline/icon role).
+TONE_ACTION_COUNT="$(grep -cE '^[[:space:]]*--tone-action:' "$ADMIN_INDEX_CSS" || true)"
+TONE_ACCENT_COUNT="$(grep -cE '^[[:space:]]*--tone-on-surface-accent:' "$ADMIN_INDEX_CSS" || true)"
+if [[ "$TONE_ACTION_COUNT" -eq 0 || "$TONE_ACCENT_COUNT" -ne "$TONE_ACTION_COUNT" ]]; then
+  echo "❌ Tone accent role drift in $ADMIN_INDEX_CSS: ${TONE_ACTION_COUNT} --tone-action vs ${TONE_ACCENT_COUNT} --tone-on-surface-accent declarations."
+  echo "   Every [data-tone] block (light + dark) must define a contrast-safe --tone-on-surface-accent for tone-colored text/outline/icon."
+  exit 1
+fi
+
+# ----------------------------------------------------------------------------
+# Dark-mode parity guard
+#
+# Admin dark mode is a deliberate palette, not a light inversion. Two regressions
+# this guard prevents:
+#   1. A workspace tone shipping LIGHT-only (no [data-theme="dark"] block) so it
+#      silently falls back to inverted/green in dark.
+#   2. An elevation ladder with NO dark override — the original bug: every
+#      --m3-elevation-* / --elevation-* was a pure-black drop shadow, invisible
+#      on near-black surfaces, so dark cards had zero separation.
+# ----------------------------------------------------------------------------
+# (1) Each of the 5 workspace tones needs BOTH a light and a dark definition block.
+#     Anchor `{` to end-of-line so the single-line wash assignments
+#     (`[data-tone="X"] { --tone-canvas: … }`) are excluded — only the multi-line
+#     `--tone-*` definition blocks count.
+LIGHT_TONE_BLOCKS="$(grep -cE '^\[data-tone="(hub|garden|community|actions|home)"\] \{ *$' "$ADMIN_INDEX_CSS" || true)"
+DARK_TONE_BLOCKS="$(grep -cE '^\[data-theme="dark"\] \[data-tone="(hub|garden|community|actions|home)"\] \{ *$' "$ADMIN_INDEX_CSS" || true)"
+if [[ "$LIGHT_TONE_BLOCKS" -lt 5 || "$DARK_TONE_BLOCKS" -ne "$LIGHT_TONE_BLOCKS" ]]; then
+  echo "❌ Dark tone parity drift in $ADMIN_INDEX_CSS: ${LIGHT_TONE_BLOCKS} light [data-tone] blocks vs ${DARK_TONE_BLOCKS} dark blocks (expected 5 each)."
+  echo "   Every workspace tone must define a deliberate [data-theme=\"dark\"] [data-tone=\"…\"] block, not inherit the light values."
+  exit 1
+fi
+
+# (2) Elevation levels 1–5 must each have a [data-theme="dark"] override in both
+#     the admin M3 ladder (admin-m3-tokens.css) and the tonal ladder (index.css).
+check_dark_elevation() {
+  dark_levels="$(awk -v tok="$2" '
+    /^[^{}]*\{/ { in_dark = ($0 ~ /\[data-theme="dark"\]/) }
+    /\}/        { in_dark = 0 }
+    in_dark && $0 ~ (tok "-[1-5]:") { n++ }
+    END { print n + 0 }
+  ' "$1")"
+  if [[ "$dark_levels" -lt 5 ]]; then
+    echo "❌ Dark elevation gap: ${2}-[1-5] has only ${dark_levels}/5 [data-theme=\"dark\"] overrides in ${1}."
+    echo "   Black drop shadows are invisible on dark surfaces — each elevation level needs a ring-forward dark override."
+    exit 1
+  fi
+}
+check_dark_elevation "$ADMIN_M3_TOKENS" "--m3-elevation"
+check_dark_elevation "$ADMIN_INDEX_CSS" "--elevation"
+
 node scripts/design/check-css-custom-properties.mjs
 
 echo "✅ check-design-tokens: ${#EXPECTED_TOKENS[@]} runtime tokens present in theme.css."
+echo "✅ dark-mode parity guard: ${DARK_TONE_BLOCKS}/5 dark tone blocks; elevation levels 1–5 have dark overrides."
+echo "✅ workspace tone propagation guard: --m3-primary re-declared at .admin-m3 scope; ${TONE_ACCENT_COUNT} --tone-on-surface-accent roles present."
 echo "✅ DesignMD radius outputs present in $GENERATED_CSS."
 echo "✅ admin M3 variable usages resolve to defined tokens."
 echo "✅ no new raw cubic-bezier, duration, color, radius literals, or primitive palette utilities outside token-definition or audited baseline files."
 echo "✅ admin Controlled Chrome guard passed: glass/blur/gradients stay in approved shell CSS."
+echo "✅ admin focus-ring guard passed: focus indicators use --tone-focus-ring."
+echo "✅ action-flow modality guard passed: no retired AdminDialog size=\"fullscreen\" usage."
 echo "✅ token_version coupled across design skill, ui skill, and registry (${DESIGN_VER})."

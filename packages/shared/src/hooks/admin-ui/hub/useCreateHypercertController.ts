@@ -1,20 +1,23 @@
-import { adminRoutes, useAdminStore, useGardenPermissions, useGardens } from "@green-goods/shared";
+import {
+  adminRoutes,
+  compareAddresses,
+  useAdminGardenContext,
+  useGardenPermissions,
+  useGardens,
+} from "@green-goods/shared";
 import { useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import type { HypercertCompletionData } from "../hypercerts/types";
 
 export function useCreateHypercertController() {
   const navigate = useNavigate();
-  const selectedGarden = useAdminStore((state) => state.selectedGarden);
+  const { activeGarden, activeGardenId } = useAdminGardenContext();
   const { data: gardens = [] } = useGardens();
-  const garden = useMemo(
-    () => gardens.find((item) => item.id === selectedGarden?.id),
-    [gardens, selectedGarden?.id]
-  );
-  const gardenRouteContext = useMemo(
-    () => ({ gardenAddress: garden?.tokenAddress ?? garden?.id }),
-    [garden?.id, garden?.tokenAddress]
-  );
+  const garden = useMemo(() => {
+    const indexedGarden = gardens.find((item) => compareAddresses(item.id, activeGardenId));
+    return indexedGarden ?? activeGarden ?? undefined;
+  }, [activeGarden, activeGardenId, gardens]);
+  const gardenRouteContext = useMemo(() => ({ gardenId: garden?.id }), [garden?.id]);
   const permissions = useGardenPermissions();
   const canManage = garden ? permissions.canManageGarden(garden) : false;
 
@@ -39,7 +42,9 @@ export function useCreateHypercertController() {
   );
 
   const handleCancel = useCallback(
-    () => navigate(adminRoutes.gardenImpact({ ...gardenRouteContext, section: "hypercerts" })),
+    // Return to the Hub the flow was launched from (parity with Submit Work),
+    // not the garden impact view — closing a Hub create-flow must not jump tabs.
+    () => navigate(adminRoutes.hub(gardenRouteContext)),
     [gardenRouteContext, navigate]
   );
 

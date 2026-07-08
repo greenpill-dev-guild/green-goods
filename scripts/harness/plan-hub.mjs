@@ -43,6 +43,7 @@ const TDD_TERMINAL_STATUSES = new Set(["passed", "completed"]);
 const VALID_TDD_MODES = new Set(["required", "not_applicable", "proof_limit", "legacy_unrecorded"]);
 const VALID_TDD_STATUSES = new Set(["pending", "red_recorded", "green_recorded"]);
 const TDD_POLICY_STARTED_AT = Date.parse("2026-05-01T00:00:00.000Z");
+const HANDOFF_FILE_POLICY_STARTED_AT = Date.parse("2026-07-06T00:00:00.000Z");
 const VALID_TAXONOMY_INITIATIVES = new Set([
   "agent-platform",
   "design-system",
@@ -97,6 +98,8 @@ const LANE_BRANCHES = {
   qa_pass_2: (slug) => `codex/qa-pass-2/${slug}`,
 };
 const LINEAR_SYNC_DIRECTION = "plans_to_linear_visibility";
+const LINEAR_LANE_SYNC_MODES = new Set(["lane_issues", "parent_only"]);
+const DEFAULT_LINEAR_LANE_SYNC_MODE = "lane_issues";
 const LINEAR_BASE_LABELS = ["protocol:green-goods", "source:plans"];
 const LINEAR_PARENT_ACTIVITY_LABEL = "activity:architecture";
 const LINEAR_LANE_SKIP_STATUSES = new Set(["n/a", "skipped", "passed", "completed"]);
@@ -123,12 +126,6 @@ const LANE_PACKAGE_TRACK_PRIORITIES = {
   state_api: ["shared", "indexer", "agent", "contracts", "docs", "admin", "client-browser", "client-pwa", "client"],
   contracts: ["contracts"],
 };
-const INITIATIVE_TO_TASK_LABEL = {
-  "environmental-data": "task:data-input",
-  reputation: "task:reputation-identity",
-  seasons: "task:local-onboarding",
-  "yield-to-impact": "task:funding-pathway",
-};
 
 function usage() {
   console.log(`Usage:
@@ -138,7 +135,7 @@ function usage() {
   node scripts/harness/plan-hub.mjs set-lane --feature <feature-slug> --lane <lane> --status <status> [--actor human] [--branch <branch>] [--note "text"]
   node scripts/harness/plan-hub.mjs record-tdd --feature <feature-slug> --lane <ui|state-api|contracts> --red-command "..." --red-evidence "..." --green-command "..." --green-evidence "..." [--actor human]
   node scripts/harness/plan-hub.mjs linear-sync --feature <feature-slug> [--json]
-  node scripts/harness/plan-hub.mjs record-linear --feature <feature-slug> [--parent PRD-123] [--lane ui=PRD-124] [--lane state-api=PRD-125] [--project <name-or-id>] [--initiative <name-or-id>] [--actor human]
+  node scripts/harness/plan-hub.mjs record-linear --feature <feature-slug> [--parent PRD-123] [--lane ui=PRD-124] [--lane state-api=PRD-125] [--lane-sync-mode <lane_issues|parent_only>] [--project <name-or-id>] [--initiative <name-or-id>] [--actor human]
   node scripts/harness/plan-hub.mjs summary [--initiative <initiative>] [--track <track>] [--json]
   node scripts/harness/plan-hub.mjs check-branch --feature <feature-slug> --lane <lane>
   node scripts/harness/plan-hub.mjs validate`);
@@ -437,6 +434,22 @@ function linearLaneIssue(linear, laneName) {
   return normalizedLinearIssue(linear?.lanes?.[laneName]?.issue);
 }
 
+function linearLaneSyncMode(linear) {
+  return linear?.laneSyncMode || DEFAULT_LINEAR_LANE_SYNC_MODE;
+}
+
+function normalizeLinearLaneSyncMode(value) {
+  if (value === undefined || value === null || value === false) {
+    return null;
+  }
+
+  if (typeof value !== "string" || !LINEAR_LANE_SYNC_MODES.has(value)) {
+    fail(`Invalid linear lane sync mode "${value}". Expected one of: ${Array.from(LINEAR_LANE_SYNC_MODES).join(", ")}`);
+  }
+
+  return value;
+}
+
 function uniqueSorted(values) {
   return Array.from(new Set(values.filter((value) => hasText(value)))).sort();
 }
@@ -466,17 +479,22 @@ function packageLabelsForTracks(tracks, laneName = null) {
   return [];
 }
 
-function taskLabelForStatus(status) {
-  return INITIATIVE_TO_TASK_LABEL[status.taxonomy?.initiative] || null;
+function isResearchOnly(status) {
+  const workTypes = status.taxonomy?.work_types;
+  return (
+    Array.isArray(workTypes) &&
+    workTypes.length > 0 &&
+    workTypes.every((workType) => workType === "research")
+  );
 }
 
 function linearLabelsForStatus(status, activityLabel, laneName = null) {
-  return uniqueSorted([
-    ...LINEAR_BASE_LABELS,
-    activityLabel,
-    ...packageLabelsForTracks(status.taxonomy?.tracks, laneName),
-    taskLabelForStatus(status),
-  ]);
+  // package:* is a code-surface tag; omit it on research-only plans (Research team) —
+  // they describe a research question, not work inside a code package.
+  const packageLabels = isResearchOnly(status)
+    ? []
+    : packageLabelsForTracks(status.taxonomy?.tracks, laneName);
+  return uniqueSorted([...LINEAR_BASE_LABELS, activityLabel, ...packageLabels]);
 }
 
 function linearPriorityForStatus(status) {
@@ -494,10 +512,7 @@ function linearPriorityForStatus(status) {
 }
 
 function linearTeamForStatus(status) {
-  const workTypes = status.taxonomy?.work_types;
-  return Array.isArray(workTypes) && workTypes.length > 0 && workTypes.every((workType) => workType === "research")
-    ? "Research"
-    : "Product";
+  return isResearchOnly(status) ? "Research" : "Product";
 }
 
 function linearStateForStage(stage) {
@@ -532,13 +547,17 @@ function linearProjectForStatus(status, warnings) {
   return null;
 }
 
-function buildLinearParentDescription(status) {
+function buildLinearParentDescription(status, laneSyncMode = DEFAULT_LINEAR_LANE_SYNC_MODE) {
   const source = planRelativeDir(status);
+  const laneSyncPolicy = laneSyncMode === "parent_only"
+    ? "Plan-level tracker for Linear visibility. Keep execution detail, lane truth, and handoffs in `.plans`; this mirror intentionally does not create or update lane issues."
+    : "Plan-level tracker for Linear visibility. Keep execution detail and lane truth in `.plans/status.json`; child issues track actionable lanes.";
+
   return [
     `Source plan: \`${source}\``,
     `Status JSON: \`${source}status.json\``,
     "",
-    "Plan-level tracker for Linear visibility. Keep execution detail and lane truth in `.plans/status.json`; child issues track actionable lanes.",
+    laneSyncPolicy,
   ].join("\n");
 }
 
@@ -556,6 +575,10 @@ function buildLinearLaneDescription(status, laneName, lane) {
 }
 
 function linearLaneIsActionable(status, laneName) {
+  if (status.feature.stage !== "active") {
+    return false;
+  }
+
   const lane = status.lanes[laneName];
   if (!lane || LINEAR_LANE_SKIP_STATUSES.has(lane.status)) {
     return false;
@@ -576,6 +599,7 @@ function buildLinearSyncManifest(status) {
   const normalized = refreshLaneStatuses(structuredClone(status));
   const warnings = [];
   const linear = normalized.linear || {};
+  const laneSyncMode = linearLaneSyncMode(linear);
   const parentIssue = canonicalLinearParentIssue(linear);
   const project = linearProjectForStatus(normalized, warnings);
   const team = linearTeamForStatus(normalized);
@@ -598,40 +622,42 @@ function buildLinearSyncManifest(status) {
     priority,
     labels: linearLabelsForStatus(normalized, LINEAR_PARENT_ACTIVITY_LABEL),
     project,
-    description: buildLinearParentDescription(normalized),
+    description: buildLinearParentDescription(normalized, laneSyncMode),
   };
 
-  const lanes = Object.keys(LANE_BRANCHES)
-    .filter((laneName) => linearLaneIsActionable(normalized, laneName))
-    .map((laneName) => {
-      const lane = normalized.lanes[laneName];
-      const issue = linearLaneIssue(linear, laneName);
-      if (!issue) {
-        warnings.push(`Plan is missing Linear issue for lane ${laneName}.`);
-      }
+  const lanes = laneSyncMode === "parent_only"
+    ? []
+    : Object.keys(LANE_BRANCHES)
+      .filter((laneName) => linearLaneIsActionable(normalized, laneName))
+      .map((laneName) => {
+        const lane = normalized.lanes[laneName];
+        const issue = linearLaneIssue(linear, laneName);
+        if (!issue) {
+          warnings.push(`Plan is missing Linear issue for lane ${laneName}.`);
+        }
 
-      return {
-        lane: laneName,
-        action: issue ? "update" : "create",
-        issue,
-        parentId: parentIssue,
-        parentRef: "parent",
-        title: `${LANE_DISPLAY_NAMES[laneName]}: ${normalized.feature.title}`,
-        team,
-        state: linearStateForLane(normalized, lane),
-        priority,
-        labels: linearLabelsForStatus(
-          normalized,
-          laneName === "qa_pass_1" || laneName === "qa_pass_2" ? "activity:qa" : "activity:build",
-          laneName,
-        ),
-        project,
-        description: buildLinearLaneDescription(normalized, laneName, lane),
-        branch: lane.branch || null,
-        handoff: lane.handoff,
-        dependsOn: Array.isArray(lane.depends_on) ? lane.depends_on : [],
-      };
-    });
+        return {
+          lane: laneName,
+          action: issue ? "update" : "create",
+          issue,
+          parentId: parentIssue,
+          parentRef: "parent",
+          title: `${LANE_DISPLAY_NAMES[laneName]}: ${normalized.feature.title}`,
+          team,
+          state: linearStateForLane(normalized, lane),
+          priority,
+          labels: linearLabelsForStatus(
+            normalized,
+            laneName === "qa_pass_1" || laneName === "qa_pass_2" ? "activity:qa" : "activity:build",
+            laneName,
+          ),
+          project,
+          description: buildLinearLaneDescription(normalized, laneName, lane),
+          branch: lane.branch || null,
+          handoff: lane.handoff,
+          dependsOn: Array.isArray(lane.depends_on) ? lane.depends_on : [],
+        };
+      });
 
   return {
     version: 1,
@@ -647,6 +673,7 @@ function buildLinearSyncManifest(status) {
       project,
       initiative: normalizedLinearIssue(linear.initiative),
     },
+    laneSyncMode,
     parent,
     lanes,
     warnings,
@@ -670,6 +697,14 @@ function validateLinear(status, errors) {
     linear.syncDirection !== LINEAR_SYNC_DIRECTION
   ) {
     errors.push(`linear.syncDirection must be "${LINEAR_SYNC_DIRECTION}"`);
+  }
+
+  if (
+    linear.laneSyncMode !== undefined &&
+    linear.laneSyncMode !== null &&
+    !LINEAR_LANE_SYNC_MODES.has(linear.laneSyncMode)
+  ) {
+    errors.push(`linear.laneSyncMode must be one of ${Array.from(LINEAR_LANE_SYNC_MODES).join(", ")}`);
   }
 
   for (const field of ["issue", "parentIssue", "project", "initiative", "lastSyncedAt"]) {
@@ -848,6 +883,12 @@ function validateLegacyTdd(status, laneName, lane, stage, errors) {
   }
 }
 
+function requiresHandoffFile(status) {
+  const createdAt = Date.parse(status.workflow.created_at);
+
+  return Number.isFinite(createdAt) && createdAt >= HANDOFF_FILE_POLICY_STARTED_AT;
+}
+
 function validateLaneTdd(status, laneName, lane, stage, errors) {
   if (!IMPLEMENTATION_LANES.has(laneName)) {
     return;
@@ -1010,6 +1051,8 @@ function validateFeatureStatus(status, featureDirPath, stage, knownSlugs = forma
 
     if (!lane.handoff.startsWith("handoffs/")) {
       errors.push(`lane "${laneName}" handoff must live under handoffs/`);
+    } else if (requiresHandoffFile(status) && !existsSync(join(featureDirPath, lane.handoff))) {
+      errors.push(`lane "${laneName}" handoff file is missing: ${lane.handoff}`);
     }
 
     validateLaneTdd(status, laneName, lane, stage, errors);
@@ -1049,6 +1092,11 @@ function scaffoldFeature(slug, flags) {
   applyTemplate("eval.md", targetDir, replacements);
   applyTemplate("status.json", targetDir, replacements);
   applyTemplate(join("handoffs", "README.md"), targetDir, replacements);
+  applyTemplate(join("handoffs", "claude-ui.md"), targetDir, replacements);
+  applyTemplate(join("handoffs", "codex-state-api.md"), targetDir, replacements);
+  applyTemplate(join("handoffs", "codex-contracts.md"), targetDir, replacements);
+  applyTemplate(join("handoffs", "claude-qa-pass-1.md"), targetDir, replacements);
+  applyTemplate(join("handoffs", "codex-qa-pass-2.md"), targetDir, replacements);
 
   const statusFile = statusPathForDir(targetDir);
   const status = loadJson(statusFile);
@@ -1320,11 +1368,12 @@ function recordLinear(flags) {
   const actor = flags.actor || "human";
   const parentIssue = normalizedLinearIssue(flags.parent);
   const laneIssues = valuesForFlag(flags, "lane").map(parseLaneIssueSpec);
+  const laneSyncMode = normalizeLinearLaneSyncMode(flags["lane-sync-mode"]);
   const project = normalizedLinearIssue(flags.project);
   const initiative = normalizedLinearIssue(flags.initiative);
 
-  if (!parentIssue && laneIssues.length === 0 && !project && !initiative) {
-    fail("record-linear requires --parent, --lane, --project, or --initiative.");
+  if (!parentIssue && laneIssues.length === 0 && !laneSyncMode && !project && !initiative) {
+    fail("record-linear requires --parent, --lane, --lane-sync-mode, --project, or --initiative.");
   }
 
   const found = findFeature(slug);
@@ -1335,9 +1384,20 @@ function recordLinear(flags) {
       ? status.linear
       : {};
     const hasLegacyParentAlias = !normalizedLinearIssue(linear.parentIssue) && normalizedLinearIssue(linear.issue);
+    const effectiveLaneSyncMode = laneSyncMode || linearLaneSyncMode(linear);
+
+    if (laneIssues.length > 0 && effectiveLaneSyncMode === "parent_only") {
+      validationErrors = [
+        "record-linear cannot record lane issue IDs while linear.laneSyncMode is parent_only. Pass --lane-sync-mode lane_issues only after explicitly expanding the Linear footprint.",
+      ];
+      return;
+    }
 
     linear.syncDirection = LINEAR_SYNC_DIRECTION;
     linear.lastSyncedAt = nowIso();
+    if (laneSyncMode) {
+      linear.laneSyncMode = laneSyncMode;
+    }
     if (parentIssue) {
       linear.parentIssue = parentIssue;
     } else if (hasLegacyParentAlias) {

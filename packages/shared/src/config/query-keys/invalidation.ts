@@ -156,5 +156,11 @@ export const queryInvalidation = {
     return [queryKeys.assessments.all];
   },
 
+  /** Refresh sendable-token balances after a token send (direct RPC reads). */
+  onTokenSent: (account: string, chainId: number) => [
+    queryKeys.tokens.balances(account, chainId),
+    queryKeys.tokens.all,
+  ],
+
   ...financeInvalidation,
 };

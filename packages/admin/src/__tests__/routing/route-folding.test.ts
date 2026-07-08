@@ -67,10 +67,20 @@ describe("route folding", () => {
     const hubRouteBlock =
       routeViews.match(/path:\s*"hub"[\s\S]*?(?=\n\s*\{\s*path:\s*"garden")/)?.[0] ?? "";
 
+    expect(hubRouteBlock).toContain('path: "work/submit"');
+    expect(hubRouteBlock.indexOf('path: "work/submit"')).toBeLessThan(
+      hubRouteBlock.indexOf('path: "work"')
+    );
     expect(hubRouteBlock).toContain('path: "work"');
     expect(hubRouteBlock).toContain('path: ":workId"');
-    expect(hubRouteBlock).toContain('path: "submit"');
+    // Submit Work resolves through its own dedicated view, not the Hub sheet.
+    expect(routeViews).toContain(
+      'const submitWorkView = lazyView(() => import("@/views/Garden/SubmitWork"));'
+    );
+    expect(hubRouteBlock).toContain("lazy: submitWorkView");
+    expect(hubRouteBlock).toContain('path: "assess/create"');
     expect(hubRouteBlock).toContain('path: "assess"');
+    expect(hubRouteBlock).toContain('path: "certify/create"');
     expect(hubRouteBlock).toContain('path: "certify"');
     expect(hubRouteBlock).toContain('path: "history"');
     expect(hubRouteBlock).toContain('path: ":historyEventId"');
@@ -80,14 +90,14 @@ describe("route folding", () => {
     expect(hubRouteBlock).not.toMatch(/SubmitWork/);
   });
 
-  it("Work view owns the bounded Hub detail and submit panels", () => {
-    // Panels are composed in the Hub sheet descriptor; content-id constants live with route helpers.
+  it("Hub sheet descriptor owns only the read/review inspectors", () => {
+    // Inspector panels are composed in the Hub sheet descriptor; Submit Work is
+    // a creation/commit flow with its own route, so it is no longer a Hub sheet.
     const hubSheetDescriptor = readSource(hubSheetDescriptorPath);
     const sheetRegistry = readSource(sheetRegistryPath);
 
     expect(hubSheetDescriptor).toContain("WorkDetailPanel");
-    expect(hubSheetDescriptor).toContain("SubmitWorkPanel");
-    expect(sheetRegistry).toContain("hub:submit-work");
+    expect(hubSheetDescriptor).not.toContain("SubmitWorkPanel");
     expect(sheetRegistry).toContain("hub:work-detail:");
     expect(sheetRegistry).toContain("hub:history:");
     expect(sheetRegistry).toContain("ADMIN_ROUTE_SHEET_REGISTRY");
@@ -105,7 +115,11 @@ describe("route folding", () => {
     expect(canvasLayout).toContain("AccountProfilePanel");
     expect(canvasLayout).toContain("AccountSettingsPanel");
     expect(rightSheetDescriptor).not.toContain("renderAccountSurface");
-    expect(rightSheetDescriptor).toContain("NotificationPanel");
+    // Notification rendering lives in CanvasLayout (it owns the garden-scoped
+    // data wiring); the descriptor stays a pure contentId→content mapping and
+    // delegates through the injected renderNotifications callback.
+    expect(rightSheetDescriptor).toContain("renderNotifications");
+    expect(canvasLayout).toContain("NotificationPanel");
   });
 
   it("Hub canonical builders preserve only garden and sort context", () => {
@@ -122,7 +136,13 @@ describe("route folding", () => {
       "return buildAdminHref(`/hub/work/${encodeSegment(workId)}`, buildHubContextSearch(context));"
     );
     expect(adminRoutesSource).toContain(
-      'return buildAdminHref("/hub/work/submit", buildHubContextSearch(context));'
+      'return buildAdminHref("/hub/work/submit", buildHubCreationContextSearch(context));'
+    );
+    expect(adminRoutesSource).toContain(
+      'return buildAdminHref("/hub/assess/create", buildHubCreationContextSearch(context));'
+    );
+    expect(adminRoutesSource).toContain(
+      'return buildAdminHref("/hub/certify/create", buildHubCreationContextSearch(context));'
     );
     expect(adminRoutesSource).toContain("hubHistoryDetail(eventId: string");
     expect(adminRoutesSource).toContain("`/hub/history/${encodeSegment(eventId)}`");
@@ -148,16 +168,15 @@ describe("route folding", () => {
     const router = readSource(routerPath);
 
     // The router should NOT have a separate /endowments route.
-    // Treasury functionality should be accessible via /community/treasury.
+    // Endowment functionality should be accessible via /community/endowment.
     const pathDefinitions = router.match(/path:\s*["']endowments["']/g) ?? [];
     expect(pathDefinitions.length).toBe(0);
   });
 
-  it("Community/Treasury component imports endowment hooks", () => {
+  it("Community endowment workspace imports endowment hooks", () => {
     const communityView = readSource(communityViewPath);
 
-    // After folding, the Community view should handle endowment/treasury
-    // display inline. It should reference endowment-related imports or logic.
+    // After folding, the Community view should handle endowment display inline.
     // This verifies the fold happened — endowment UI is within Community.
     expect(communityView).toMatch(/endowment|treasury|vault/i);
   });
@@ -165,8 +184,10 @@ describe("route folding", () => {
   it("router exposes strategies only as a /community nested route", () => {
     const routeViews = readSource(routeViewsPath);
 
-    // Strategy display belongs to Community/Governance.
+    // Strategy display belongs to Community/Coordination, with Governance
+    // retained as a legacy URL alias.
     expect(routeViews).toMatch(/path:\s*["']community["']/);
+    expect(routeViews).toMatch(/path:\s*["']coordination["']/);
     expect(routeViews).toMatch(/path:\s*["']governance["']/);
     expect(routeViews).toMatch(/path:\s*["']strategies["']/);
     expect(routeViews).not.toMatch(/path:\s*["']gardens["']/);
@@ -185,6 +206,8 @@ describe("route folding", () => {
     expect(gardenBlock).not.toContain('import("@/views/Gardens/Garden/HypercertDetail")');
 
     expect(communityBlock).toContain('path: "vault"');
+    expect(communityBlock).toContain('path: "vault/deposit"');
+    expect(communityBlock).toContain('path: "vault/withdraw"');
     expect(communityBlock).toContain('path: "strategies"');
     expect(communityBlock).toContain('path: "signal-pool/:poolType"');
     expect(routeViews).toContain(

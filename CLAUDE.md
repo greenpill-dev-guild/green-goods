@@ -36,6 +36,16 @@ Per-package: `bun run test`, `bun build`, `bun lint` (check each package.json fo
 
 **Contracts** (never use raw `forge` commands): `bun build` (adaptive changed-target compile), `bun build:changed` (changed Solidity only), `bun build:target -- src/...` (single-target compile), `bun build:full` (CI/deploy only), `bun run test:fork` (needs RPC URLs). For Arbitrum deploy/upgrade operations, use the named root `contracts:*` scripts; they set `FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer`, clear unrelated Pinata upload secret resolution, and encode the current proxy-owner sender where required.
 
+## Validation Intent Ladder
+
+Use the lightest honest proof for the user's intent. QA fixes, checkpoint
+validation, and merge readiness are different modes.
+
+- **QA Speed Mode**: default for "QA mode", "quick fix", "get this to staging", and small visible/content/control fixes. Run targeted test file(s) or the package-local command that proves the touched behavior. Add package-local typecheck/build only when route wiring, render/build output, exported types, or runtime contracts move. For visible UI, use authenticated Brave rendered proof when available; if that path is unavailable, report browser QA as blocked rather than replacing it with isolated Playwright. Do not run full `bun run test`, full `bun build`, or `ci-local --quick` just to close an isolated QA fix.
+- **Repo Quick Gate**: run `node scripts/dev/ci-local.js --quick` for cross-package/shared-impact changes, after several QA fixes as a coordinator checkpoint, or when shared exports, hook signatures, provider contracts, data shapes, or mutation flows move.
+- **Ship Gate**: run `bun format && bun lint && bun run test && bun build` plus conditional design/vocab/contract checks only for explicit ship/PR/commit/merge/release readiness, critical surfaces, or when asked to prove the branch is ready.
+- **Multiple agents in QA mode**: each agent runs targeted proof for its own lane; one coordinator runs Repo Quick Gate or Ship Gate at checkpoints before merge/release.
+
 ## Architecture
 
 Green Goods is an **offline-first, single-chain** platform for documenting regenerative work on-chain. Bun monorepo.
@@ -89,11 +99,11 @@ Superpowers plans save to `.plans/active/<feature-name>/plan.todo.md` (not the s
 
 The `docs/` directory contains a Docusaurus site with product documentation, user guides, and developer references. When investigating domain questions, architecture decisions, or user-facing behavior, consult:
 
-- System architecture (diagrams): `docs/docs/developers/architecture.mdx`
-- Domain glossary: `docs/docs/glossary.md`
-- Impact model (CIDS): `docs/docs/concepts/impact-model.mdx`
-- Strategy and goals: `docs/docs/concepts/strategy-and-goals.mdx`
-- Entity matrix: `docs/docs/developers/reference/entity-matrix.mdx`
+- System architecture (diagrams): `docs/docs/builders/architecture.mdx`
+- Domain glossary: `docs/docs/reference/glossary-community.md`
+- Impact model & Eight Forms of Capital: `docs/docs/reference/design-research.md`
+- Action domains, goals & schema registry: `docs/docs/builders/specs/v1-0.mdx`
+- Entity matrix (⚠️ intentional draft — `unlisted`, `feature_status: Planned`; a vocabulary aid, not a canonical contract): `docs/docs/builders/integrations/entity-matrix.mdx`
 
 Package-specific context files (`.claude/context/*.md`) include additional documentation references relevant to each package.
 
@@ -107,7 +117,7 @@ Linear (workspace `greenpill-dev-guild`) is the durable backlog as of 2026-05-09
 
 **Project routing**: new Issues default unprojected on the Product team. Graduate into a bounded active project only when one already exists for the work; never route new work into a project whose status is Completed.
 
-**Canonical label families** (only these): `protocol:* / package:* / activity:* / task:* / source:* / agent:* / funding:*`. Retired and not to be reintroduced: `area:*`, `work:*`, `automation:*`, `health:*`, `grant:*`. The `agent:*` family distinguishes `agent:claude` (interactive Claude Code) from `agent:routine` (cron'd routine writes) — they are not synonymous.
+**Canonical label families** (only these): `protocol:* / package:* / activity:* / source:* / agent:* / funding:*`. Retired and not to be reintroduced: `area:*`, `work:*`, `task:*`, `automation:*`, `health:*`, `grant:*`. The `agent:*` family distinguishes `agent:claude` (interactive Claude Code) from `agent:routine` (cron'd routine writes) — they are not synonymous.
 
 **Cloud routines that write Linear** (cron'd at [claude.ai/code/routines](https://claude.ai/code/routines), per-routine docs in [`docs/routines/`](docs/routines/README.md)): `bug-intake`, `health-watch`, `growth-pulse`. **Local skills aware of Linear**: `/audit`, `/clean`, `/principles`, `/plan`, `/debug`, `/drift` — all prompt before creating Linear records.
 
@@ -167,7 +177,9 @@ import deployment from '../../../contracts/deployments/11155111-latest.json';
 
 **Investigate Before Answering**: Never speculate about code you have not opened. If referencing a specific file, you MUST read it before answering. Give grounded, hallucination-free answers based on actual file contents, not assumptions about what code might look like.
 
-**Verify Before Claiming Success**: Before reporting that a fix works, a setting takes effect, or a behavior holds, produce evidence in the same turn — the command output, the passing test, the rendered DOM via Brave-backed browser MCP, the re-read file showing the change. "Should work", "probably fixed", and unrun commands are not evidence. If a CLI flag is unfamiliar, read `--help` or the source before invoking it; do not invent flags. If you cannot verify (no test, no live DOM, no observable signal), say "I can't verify this without X" and stop rather than declaring success. Untested fixes and hallucinated commands have produced more reverts in this repo than any other failure mode.
+**Verify Before Claiming Success**: Before reporting that a fix works, a setting takes effect, or a behavior holds, produce evidence in the same turn — the command output, the passing test, the rendered DOM through the authenticated Brave QA profile, the re-read file showing the change. "Should work", "probably fixed", and unrun commands are not evidence. If a CLI flag is unfamiliar, read `--help` or the source before invoking it; do not invent flags. If you cannot verify (no test, no live DOM, no observable signal), say "I can't verify this without X" and stop rather than declaring success. Untested fixes and hallucinated commands have produced more reverts in this repo than any other failure mode.
+
+**QA Speed Mode**: When the user is actively QAing staging or asks for a small quick fix, prove the narrow behavior first: targeted tests, direct file re-read, and authenticated rendered proof for visible UI. Escalate to Repo Quick Gate or Ship Gate only when the Validation Intent Ladder calls for it. A QA-speed pass is not a merge/release readiness claim.
 
 **User-Observed UI Regression Debugging**: Bug reports trigger the debug skill automatically. When the reported symptom is something the user can see or touch — cannot click, cannot select, missing selected border/state, collapsed or blank cards, invisible content, broken scroll/refresh, visible-but-unusable controls — start from the rendered surface before tracing data flow. First reproduce or simulate the exact visible/clickable symptom with the real component path, inspect DOM geometry and computed styles (bounding rect, width/height, opacity, display, pointer-events, z-index, overflow, disabled state, selected classes, border/ring), verify whether click/tap changes state, trace visible element → card/button/input → wrapper/carousel/sheet/dialog → state setter, and check recent component commits with `git log --follow` or focused `git show`. Only move into providers, query hooks, auth, or indexer/data explanations after proving the rendered surface is intact. If text/data exists in the DOM but the control is collapsed, invisible, untappable, or lacks selected visual state, treat it as a component/CSS regression until browser or DOM evidence proves otherwise.
 
@@ -182,7 +194,7 @@ Full skills: `design` (direction) + `ui` (implementation). Load explicitly when 
 **Language**: Warm Earth — M3 Expressive × Liquid Glass. Canonical spec: `.claude/skills/design/language.md`. Scannable cheat sheet: `.claude/skills/design/quick-reference.md`. Ecosystem map: `.claude/skills/design/ARCHITECTURE.md`.
 
 **Surface identities (never mix)**:
-- **Admin** (`packages/admin`) — restrained operator cockpit. M3 strict anatomy (v0.192), Plus Jakarta Sans, transparent admin `AppBar` root, Controlled Chrome glass only on Navigation/FAB and sheet shells, solid dense surfaces everywhere else. Use `Admin*` wrappers. Litmus: appropriate for Linear / GitHub / Stripe Dashboard?
+- **Admin** (`packages/admin`) — restrained operator cockpit. M3 strict anatomy (v0.192), Plus Jakarta Sans, transparent admin `AppBar` root, Controlled Chrome glass only on Navigation/FAB, solid dense surfaces everywhere else (dialogs and the account side sheet included). Use `Admin*` wrappers. Litmus: appropriate for Linear / GitHub / Stripe Dashboard?
 - **Client PWA** (`packages/client`) — warm garden-journal feel. Full Warm Earth expression. Inter typography. Bottom `AppBar` (installed PWA) / `SiteHeader` hamburger (browser). Hero moments live here, never in admin.
 - **Shared** (`packages/shared`) — primitives + tokens in `src/styles/theme.css`. All React hooks live here (`@green-goods/shared`).
 
@@ -190,31 +202,32 @@ Full skills: `design` (direction) + `ui` (implementation). Load explicitly when 
 
 **4-role volume hierarchy**: canvas 80–90% / ink 8–15% / stone 3–5% / accent green 1–3%. Flooding the screen with green is the #1 failure mode. Codebase token `--color-primary` resolves to the **tertiary accent** role — do not rename.
 
-**Banned vocabulary** (enforced by `bun run lint:vocab` on i18n strings; canonical source: [`docs/docs/reference/glossary-community.md § Banned Vocabulary`](docs/docs/reference/glossary-community.md), machine-readable sidecar: [`docs/docs/reference/banned-vocabulary.json`](docs/docs/reference/banned-vocabulary.json)):
-- Any surface: `streak`, `countdown`, `leaderboard`, `FOMO`, growth-hacking language (`urgent`, `limited time`, `re-engagement`, `retention hook`).
-- Admin only: `hero moment`, `gallery`, `decorative gradient`, `marketing banner`, AppBar glass, glass outside Navigation/FAB and sheet shells.
-- Client only: `operator cockpit`, `utility copy`, `KPI tile`, `dashboard`, `Plus Jakarta Sans`.
+**Banned vocabulary and prompt-only wording** (canonical source: [`docs/docs/reference/glossary-community.md § Banned Vocabulary`](docs/docs/reference/glossary-community.md), machine-readable sidecar: [`docs/docs/reference/banned-vocabulary.json`](docs/docs/reference/banned-vocabulary.json)):
+- Lint-enforced i18n terms (`bun run lint:vocab` reads `linter_enforced.terms`): `streak`, `countdown`, `leaderboard`, `FOMO`, growth-hacking language (`urgent`, `limited time`, `re-engagement`, `retention hook`).
+- Admin prompt-only vocabulary (documentation for AI/design prompts, not parsed by `lint:vocab`): `hero moment`, `gallery`, `decorative gradient`, `marketing banner`, AppBar glass, glass outside Navigation/FAB.
+- Client prompt-only vocabulary (documentation for AI/design prompts, not parsed by `lint:vocab`): `operator cockpit`, `utility copy`, `KPI tile`, `dashboard`, `Plus Jakarta Sans`.
 
 **Component palettes** (do not invent component names — flag missing primitives instead):
-- Admin: 13 `Admin*` wrappers + `CanvasLayout` / `AppBar` / `MainSheet` / `LeftSheet` / `RightSheet` / `BottomSheet` / `NavigationBar` / `AdminFab`. Full list: `.claude/skills/design/prompt-contract.md § Canonical Component Palette`.
+- Admin: the `Admin*` M3 wrappers (filesystem is the count of record) + `CanvasLayout` / `AppBar` / `MainSheet` / `ActionFlowShell` / `NavigationBar` / `AdminFab`; every workspace overlay is a centered `AdminDialog`; the three global AppBar surfaces (Profile, Settings, Notifications) are `AdminSideSheet`s — desktop right-docked, mobile bottom sheet (bell only; Profile/Settings live in the mobile Profile tab as Account | Settings). Full list: `.claude/skills/design/prompt-contract.md § Canonical Component Palette`.
 - Client: `@green-goods/shared` primitives + presentation-mode loaders / `PublicShell` / `PwaRuntime` / `AppShell` / `SiteHeader` / `AppBar`. Full list: `.claude/skills/design/client-prompt-contract.md § Canonical Component Palette`.
 
-**Validation**: `bun run check:design-md` (root + dialect DesignMD lint) · `bun run check:design-generated` (DesignMD generated artifacts) · `bun run check:design-tokens` (spec ↔ theme.css drift + version coupling) · `bun run lint:vocab` (banned terms). When a component, story, or Storybook-covered surface changes, also run `bun run --filter @green-goods/shared check:stories` and `bun run --filter @green-goods/shared check:story-quality`.
+**Validation**: `bun run check:design-md` (root + dialect DesignMD lint) · `bun run check:design-generated` (DesignMD generated artifacts) · `bun run check:design-tokens` (spec ↔ theme.css drift + version coupling) · `bun run lint:vocab` (lint-enforced i18n terms only). When a component, story, or Storybook-covered surface changes, also run `bun run --filter @green-goods/shared check:stories` and `bun run --filter @green-goods/shared check:story-quality`.
 
 **PR review**: 4-lens checklist at `.claude/skills/design/review-checklist.md` — Regenerative → Spatial → Ecosystem → Compliance. Quick pass = Lenses 1 + 4. Full pass (new view) = all four.
 
 ## Agentic Modern Web Standard
 
-- Baseline target: Baseline Widely Available. Before frontend, UI, CSS, accessibility, browser proof, or web-design changes, use repo-installed Modern Web Guidance through `bun run agentic:guidance` to search and retrieve current Chrome guidance as documentation/source material only; Green Goods browser proof still runs in Brave. Then apply Warm Earth and the package-level design rules.
+- Baseline target: Baseline Widely Available. Before frontend, UI, CSS, accessibility, browser proof, or web-design changes, use repo-installed Modern Web Guidance through `bun run agentic:guidance` to search and retrieve current Chrome guidance as documentation/source material only; Green Goods local QA uses the authenticated Brave QA profile, while CI clean-room browser proof uses Brave only as non-authenticated evidence. Then apply Warm Earth and the package-level design rules.
 - Prefer semantic HTML, native controls, platform CSS, and browser primitives before custom JavaScript. Keep headings, landmarks, form labels, accessible names, focus order, visible focus, touch targets, loading/error/empty states, and reduced-motion behavior legible to humans, assistive tech, and browser agents.
-- Run `bun run agentic:check` as the hard guidance-readiness front door for repo-installed Modern Web Guidance, design docs, token drift, agent guidance, and shared Storybook story quality. Use `bun run agentic:verify` for Storybook-backed component proof, and `bun run agentic:browser-proof` for built-route proof across client, admin, and docs when layout, interaction, motion, or public routes change. The route proof writes screenshots, accessibility summaries, `/llms.txt` status, reduced-motion state, console/page errors, overflow checks, and WebMCP discovery to `.codex-artifacts/agentic-browser-proof/`; run `bun run lighthouse` when the heavier Lighthouse lane is needed. `dev-surfaces` remains the cross-repo/global doctor for shared Modern Web Guidance cache refresh, Brave, and MCP readiness.
-- For local human/agent browser walkthroughs, WebMCP validation, extension review, visual debugging, and DevTools MCP proof, use Brave with an isolated/non-default profile. Do not silently fall back to any non-Brave browser for Green Goods browser proof.
-- Brave DevTools MCP is project-configured in `.mcp.json` through `scripts/mcp/brave-devtools.mjs`; use it as the Brave-backed DevTools MCP path for live browser debugging, rendered DOM proof, console/network/performance inspection, screenshots, traces, and WebMCP discovery when troubleshooting Green Goods. The wrapper calls the upstream `chrome-devtools-mcp` package because that is the protocol package name, but the browser executable must be Brave. It rejects Google Chrome, Chrome for Testing, Chromium, and Edge paths. The wrapper uses the repo Node 22 toolchain, Brave browser discovery, isolated browser profiles, localhost HTTPS support, WebMCP debug category, and WebMCP testing flags. Native WebMCP discovery requires a Brave build that exposes `navigator.modelContext`. WebMCP v1 is implemented only for public-safe client/browser routes via `packages/client/src/modules/webmcp/public-tools.ts`; do not expose secrets, private data, hidden admin actions, onchain writes, destructive operations, or background-only actions as WebMCP tools.
+- Run `bun run agentic:check` as the hard guidance-readiness front door for repo-installed Modern Web Guidance, design docs, token drift, agent guidance, and shared Storybook story quality. For local built-route QA across client, admin, and docs, use the authenticated Brave QA profile through the live authenticated-browser path below. Treat `bun run agentic:verify`, `bun run agentic:browser-proof`, and `bun run lighthouse` as CI/clean-room or code-level proof only unless they attach to authenticated Brave; do not report them as local authenticated verification. `dev-surfaces` remains the cross-repo/global doctor for shared Modern Web Guidance cache refresh, Brave, and MCP readiness.
+- Local agentic browser QA must use the authenticated Brave QA profile. Codex: use the Codex browser-extension path and claim the already-open Brave tab/window. Claude Code: use the Claude Code Chrome/Chromium extension path (`claude --chrome` or `/chrome`) and select the authenticated Brave profile/tab when it is installed, connected, and able to control the already-open Brave window. Do not fall back merely because the extension is branded Chrome. If the Brave extension path is unavailable or not connected, use Claude computer-use/visible desktop control of the already-open Brave window; if neither can reach authenticated Brave, report QA as blocked. Use this for admin, PWA, extension, wallet/passkey, staging-session, installed-app, and profile-dependent verification.
+- Do not use isolated Browser, Playwright, or DevTools MCP profiles for local QA. Existing isolated browser-proof commands are CI/clean-room checks only and must not be reported as authenticated verification. If authenticated Brave access is blocked, stop and report QA as blocked.
+- Brave DevTools MCP is project-configured in `.mcp.json` through `scripts/mcp/brave-devtools.mjs`, but do not use it for local QA, live admin/PWA verification, rendered DOM proof, screenshots, traces, or success claims because it can launch a separate non-authenticated profile. The wrapper calls the upstream `chrome-devtools-mcp` package because that is the protocol package name, but the browser executable must be Brave. It rejects Google Chrome, Chrome for Testing, Chromium, and Edge paths. Use this wrapper only for CI/clean-room public-route checks or explicit non-authenticated protocol debugging, and label any result as non-authenticated evidence. Native WebMCP discovery requires a Brave build that exposes `navigator.modelContext`. WebMCP v1 is implemented only for public-safe client/browser routes via `packages/client/src/modules/webmcp/public-tools.ts`; do not expose secrets, private data, hidden admin actions, onchain writes, destructive operations, or background-only actions as WebMCP tools.
 
 **Admin UI defect resolution**: When the user reports anything off on an admin surface — however casually ("the card on Hub feels tight", "that thing at the top", "the tabs look weird on mobile") — do **not** guess and do **not** ask them to formalize the report. Resolve to a canonical `Admin*` wrapper or canvas region first, then edit. Escalate in order:
 
-1. **Brave MCP live DOM** — if an admin tab is open in Brave through a Brave-backed browser MCP, use the available tab context, JavaScript, or page-read tool to read `data-component` / `data-variant` / `data-region` / `data-workspace` on the rendered page. This is the preferred path because the user runs admin review in Brave first.
-2. **Grep fallback** — `grep -rn 'data-component="AdminX"' packages/admin/src/views/<workspace>/` when the page isn't open or Brave-backed browser MCP is unavailable. Map casual terms ("card", "tabs", "search") via the table in the grammar file.
+1. **Authenticated Brave live DOM** — if an admin tab is open in the authenticated Brave QA profile, use the Codex browser-extension path or the Claude Code Chrome/Chromium extension path (`claude --chrome` or `/chrome`) to read `data-component` / `data-variant` / `data-region` / `data-workspace` on the rendered page when either extension is installed and connected to the authenticated Brave profile/tab. Use Claude computer-use/visible desktop control only when the Brave extension path is unavailable or not connected. This is the preferred path because the user runs admin review in Brave first.
+2. **Code fallback** — `rg -n 'data-component="AdminX"' packages/admin/src/views/<workspace>/` when the page is not open or authenticated Brave access is unavailable. Map casual terms ("card", "tabs", "search") via the table in the grammar file. If rendered authenticated proof is required and Brave access is blocked, report QA as blocked rather than switching to an isolated browser.
 3. **Ask** — only if 1 + 2 don't narrow to a single candidate. Ask in terms the user recognizes (component name + view), never ask them to write the grammar.
 
 Full resolution workflow, casual-term mapping, and defect-type taxonomy: `.claude/skills/design/defect-grammar.md`. Ground every edit with an internal `<Component> in <route/region> → <defect-type>: <expected> vs <actual>` statement — user never has to write it.
@@ -284,10 +297,12 @@ Use `npx pm2 list` to see live status, `npx pm2 logs <name> --nostream` to inspe
 
 This repo runs multiple concurrent Claude/Codex sessions on the same tree and `develop`. Treat working-tree changes you didn't author this session as another agent's work-in-progress.
 
+- **Stay on the current branch unless explicitly told otherwise.** Do not create or switch branches unless the user asks for that branch action in the current turn; branch changes can confuse other agents and put their work on the wrong branch.
 - **Stash unknown diffs, don't revert.** `git stash push -u -m "..."` is recoverable; `git checkout HEAD --`, `rm -rf`, and `git reset --hard` are not.
 - **Investigate before destroying.** `git for-each-ref --sort=-committerdate refs/heads/ | head -10`, `ls ~/.codex/worktrees/`, and `git log -3 -- <file>` show what other agents are doing.
 - **Bulk destructive ops always need fresh user OK in the current turn** — multi-file `git checkout HEAD --`, `rm -rf` of `.plans/`/`packages/`/`docs/`, `git add -A`/`git add .`, `git push --force`.
 - **When dispatching a sub-agent**, tell them this repo runs concurrent agents and they must stay in the paths listed in their handoff. Surface unexpected state in their report instead of "fixing" it.
+- **For QA-mode sub-agents**, require targeted proof for the assigned lane and leave broad validation to the coordinating checkpoint unless the assignment explicitly asks for a wider gate.
 - **Pattern-matching is the trap.** A wider-than-expected diff after a sub-agent run is often parallel agents' work, not the dispatched agent's scope creep. Verify before assuming.
 
 ## Git Workflow
@@ -298,7 +313,7 @@ This repo runs multiple concurrent Claude/Codex sessions on the same tree and `d
 - Types: feat, fix, refactor, chore, docs, test, perf, ci
 - Scopes: contracts, indexer, shared, client, admin, agent, claude
 
-**Validation before committing**: `bun format && bun lint && bun run test && bun build`
+**Validation before committing**: `bun format && bun lint && bun run test && bun build`. This is the Ship Gate, not the default loop for every QA-speed fix.
 
 ## Codex Dispatch
 

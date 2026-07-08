@@ -100,9 +100,9 @@ interface ProofMarker {
 function ProofMarkers({ markers }: { markers: readonly ProofMarker[] }) {
   const { formatMessage } = useIntl();
   return (
-    <dl className="grid grid-cols-2 gap-x-12 gap-y-10 md:grid-cols-4 md:gap-x-16">
+    <dl className="grid grid-cols-2 gap-x-6 gap-y-10 sm:gap-x-12 md:grid-cols-4 md:gap-x-16">
       {markers.map(({ labelId, defaultLabel, value, isLoading, noteId, defaultNote }) => (
-        <div key={labelId} className="flex flex-col gap-3">
+        <div key={labelId} className="flex min-w-0 flex-col gap-3">
           <dt className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-text-soft-400">
             {formatMessage({ id: labelId, defaultMessage: defaultLabel })}
           </dt>
@@ -283,7 +283,7 @@ export default function ImpactPage() {
         lede={formatMessage({
           id: "public.impact.heroLede",
           defaultMessage:
-            "Green Goods turns documented regenerative Work into evidence the public can read. Assessments come first, then Work, and when ready, an Impact Certificate that sources every claim.",
+            "Green Goods turns documented regenerative Work into evidence the public can read. Assessments come first, then Work, and when ready, an Impact Certificate that ties every claim to its source.",
         })}
       />
 
@@ -298,7 +298,7 @@ export default function ImpactPage() {
             <EditorialKicker className="mb-3">
               {formatMessage({
                 id: "public.impact.proof.kicker",
-                defaultMessage: "§ 01 — Proof markers",
+                defaultMessage: "§ 01: Proof markers",
               })}
             </EditorialKicker>
             <EditorialHeading id="public-impact-proof-title">
@@ -324,7 +324,7 @@ export default function ImpactPage() {
                 value: counts.attestationCount,
                 isLoading: stats.isLoading,
                 noteId: "public.impact.proof.assessmentsNote",
-                defaultNote: "Source-backed evaluator confirmations.",
+                defaultNote: "Baselines recorded before Work begins.",
               },
               {
                 labelId: "public.impact.totalGardens",
@@ -350,7 +350,7 @@ export default function ImpactPage() {
       <PublicEvidencePipeline
         kicker={formatMessage({
           id: "public.impact.pipeline.kicker",
-          defaultMessage: "§ 02 — The cycle",
+          defaultMessage: "§ 02: The cycle",
         })}
         title={formatMessage({
           id: "public.impact.pipeline.title",
@@ -375,7 +375,7 @@ export default function ImpactPage() {
             <EditorialKicker className="mb-3">
               {formatMessage({
                 id: "public.impact.ledger.kicker",
-                defaultMessage: "§ 03 — Evidence ledger",
+                defaultMessage: "§ 03: Evidence ledger",
               })}
             </EditorialKicker>
             <EditorialHeading id="public-impact-ledger-title">
@@ -615,7 +615,7 @@ export default function ImpactPage() {
                 {formatMessage({
                   id: "public.impact.evidence.sourceLimitReached",
                   defaultMessage:
-                    "We're showing a capped slice for v1; deeper history will arrive as aggregation matures.",
+                    "We show the most recent records for now. Deeper history will open up as the ledger grows.",
                 })}
               </p>
             </div>

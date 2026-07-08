@@ -372,7 +372,9 @@
 
   --text-strong-950: var(--neutral-950);
   --text-sub-600: var(--neutral-600);
-  --text-soft-400: var(--neutral-400);
+  /* neutral-500 (stone, ~4.8:1 on white) not -400 (2.52:1) — tertiary text must
+     clear WCAG 1.4.3 AA. Dark mode keeps -400 (light-on-dark already passes). */
+  --text-soft-400: var(--neutral-500);
   --text-disabled-300: var(--neutral-300);
   --text-white-0: var(--neutral-0);
 
@@ -458,6 +460,9 @@
   --z-base: 0;
   --z-raised: 10;
   --z-sticky: 20;
+  /* Canvas sheet layer: above sticky chrome so opening sheets never start a
+   * frame beneath the PageHeader/AppBar, below the nav dock. */
+  --z-sheet-layer: 25;
   --z-nav: 30;
 	  --z-overlay: 40;
 	  --z-modal: 50;
@@ -772,7 +777,9 @@
     min-height: 2.75rem;
     border: 1px solid rgb(var(--stroke-sub-300));
     border-radius: var(--radius-xl);
-    background: rgb(var(--bg-white-0));
+    /* background-color (not the shorthand) so .gg-control-select's chevron
+       background-image survives — the shorthand resets background-image. */
+    background-color: rgb(var(--bg-white-0));
     color: rgb(var(--text-strong-950));
     font-size: var(--text-paragraph-md);
     line-height: var(--text-paragraph-md--line-height);
@@ -825,8 +832,12 @@
 
   .gg-control[data-surface="admin"] {
     border-color: rgb(var(--stroke-sub-300));
-    border-radius: var(--m3-shape-md, var(--radius-lg));
-    background: rgb(var(--m3-surface, var(--bg-white-0)));
+    /* 8px to match the admin text fields (AdminTextField) — keeps every admin
+       input at one corner radius rather than fields at 8px and textareas at 12px. */
+    border-radius: var(--m3-shape-sm, var(--radius-md));
+    /* background-color (not the shorthand) so .gg-control-select's chevron
+       background-image survives — the shorthand resets background-image. */
+    background-color: rgb(var(--m3-surface, var(--bg-white-0)));
     color: rgb(var(--m3-on-surface, var(--text-strong-950)));
   }
 
@@ -841,7 +852,21 @@
   }
 
   .gg-control-select {
-    appearance: auto;
+    /* Custom chevron with breathing room — the browser-default arrow sits
+       flush against the control edge with no inset. Same glyph light + dark
+       via a mid-gray stroke; padding reserves its lane so option text never
+       runs beneath it. */
+    appearance: none;
+    padding-right: 2.25rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23737373' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1rem 1rem;
+  }
+
+  :root[data-theme="dark"] .gg-control-select,
+  [data-theme="dark"] .gg-control-select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a3a3a3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   }
 
   .gg-control-trigger {
@@ -1737,10 +1762,14 @@
      content carries its own bottom padding to avoid being covered by the
      floating pill. */
   .workspace-canvas-grid {
-    --canvas-right-sheet-width: clamp(320px, 28vw, 480px);
-    --canvas-right-sheet-width-wide: clamp(420px, 36vw, 640px);
-    --canvas-left-sheet-width: clamp(320px, 28vw, 480px);
-    --canvas-left-sheet-width-wide: clamp(420px, 36vw, 640px);
+    /* Right sheets share ONE width (QA refinement: per-content widths read as
+       inconsistent chrome); the wide variant stays for left-sheet workflows. */
+    --canvas-right-sheet-width: clamp(380px, 30vw, 560px);
+    --canvas-right-sheet-width-wide: clamp(380px, 30vw, 560px);
+    /* Left sheets host creation/submission forms — widened (QA: the work
+       submission sheet read as cramped at the old 420–640 wide preset). */
+    --canvas-left-sheet-width: clamp(360px, 30vw, 540px);
+    --canvas-left-sheet-width-wide: clamp(460px, 40vw, 720px);
     display: grid;
     grid-template-areas:
       "top    top    top"

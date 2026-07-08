@@ -186,6 +186,7 @@ describe("wallet-submission", () => {
       expect(mockEnsureWagmiWalletChain).toHaveBeenCalledWith({}, mockChainId);
       expect(encoders.encodeWorkData).toHaveBeenCalledWith(
         expect.objectContaining({
+          title: "Test Work",
           feedback: "Test feedback",
           actionUID: 123,
           media: mockImages,

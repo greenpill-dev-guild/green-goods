@@ -15,6 +15,7 @@ import { DEBUG_ENABLED, debugError, debugLog } from "../../../utils/debug";
 import { encodeWorkData } from "../../../utils/eas/encoders";
 import { buildWorkAttestTx } from "../../../utils/eas/transaction-builder";
 import { extractErrorMessage } from "../../../utils/errors/extract-message";
+import { resolveWorkSubmissionTitle } from "../../../utils/work/workTitles";
 import {
   pollQueriesAfterTransaction,
   TX_RECEIPT_TIMEOUT_MS,
@@ -79,7 +80,11 @@ export async function submitWorkDirectly(
   onProgress?.("uploading", "Uploading media to IPFS...");
   debugLog("[WalletSubmission] Encoding work data and uploading to IPFS");
 
-  const workTitle = `${actionTitle} - ${new Date().toISOString()}`;
+  const workTitle = resolveWorkSubmissionTitle({
+    draftTitle: draft.title,
+    actionTitle,
+    actionUID,
+  });
   let attestationData: `0x${string}`;
   try {
     attestationData = await encodeWorkData(

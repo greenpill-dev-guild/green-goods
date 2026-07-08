@@ -258,7 +258,9 @@ export function StrategyKernelStep({ showValidation, isSubmitting }: StrategyKer
   const updateSmartOutcome = useCreateAssessmentStore((s) => s.updateSmartOutcome);
 
   const domainEnum = form.domain;
-  const guidance = DOMAIN_GUIDANCE[domainEnum];
+  // Fallback so an unset/out-of-range persisted domain can't crash the step
+  // (mirrors resolveDomainMetrics' `?? Domain.SOLAR` guard below).
+  const guidance = DOMAIN_GUIDANCE[domainEnum] ?? DOMAIN_GUIDANCE[Domain.SOLAR];
   const metrics = resolveDomainMetrics(intl, domainEnum);
   const cynefinOptions = resolveCynefinOptions(intl);
 

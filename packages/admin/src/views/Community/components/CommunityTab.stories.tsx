@@ -2,7 +2,6 @@ import {
   type Address,
   type GardenRole,
   PoolType,
-  type RoleDirectoryEntry,
   type TabBadgeSeverity,
   type YieldAllocation,
 } from "@green-goods/shared";
@@ -16,9 +15,7 @@ import { CommunityTab } from "./CommunityTab";
 const GARDEN_ID = "0x1234567890123456789012345678901234567890";
 const OWNER = "0x1111111111111111111111111111111111111111" as Address;
 const OPERATOR_A = "0x2222222222222222222222222222222222222222" as Address;
-const OPERATOR_B = "0x3333333333333333333333333333333333333333" as Address;
 const GARDENER_A = "0x5555555555555555555555555555555555555555" as Address;
-const GARDENER_B = "0x6666666666666666666666666666666666666666" as Address;
 const TREASURY_ASSET = "0xaf88d065e77c8cC2239327C5EDb3A432268e5831" as Address;
 
 const roleIcons = {
@@ -29,14 +26,6 @@ const roleIcons = {
   funder: RiMedalLine,
   community: RiUserLine,
 } as const satisfies Record<GardenRole, React.ComponentType<{ className?: string }>>;
-
-const DIRECTORY: RoleDirectoryEntry[] = [
-  { address: OWNER, roles: ["owner"] },
-  { address: OPERATOR_A, roles: ["operator"] },
-  { address: OPERATOR_B, roles: ["operator"] },
-  { address: GARDENER_A, roles: ["gardener"] },
-  { address: GARDENER_B, roles: ["gardener"] },
-];
 
 const ALLOCATIONS: YieldAllocation[] = [
   {
@@ -71,7 +60,7 @@ const meta: Meta<typeof CommunityTab> = {
     docs: {
       description: {
         component:
-          "Community tab of the garden detail route. Composes `GardenCommunityCard`, `GardenYieldCard`, the role-summary grid, and the member directory. All inputs are plain props so every section state is reviewable.",
+          "Community tab of the garden detail route. Reviews the recovered IA for member directory, coordination proposals, direct endowment vaults, and per-jar payouts with contextual right rails.",
       },
     },
   },
@@ -79,7 +68,6 @@ const meta: Meta<typeof CommunityTab> = {
     garden: { id: GARDEN_ID, name: "Rio Rainforest Lab" },
     gardenId: GARDEN_ID,
     canManage: true,
-    isOwner: true,
     section: undefined,
     showSectionStateCard: true,
     clearSection: fn(),
@@ -107,10 +95,6 @@ const meta: Meta<typeof CommunityTab> = {
       { role: "community", count: 3 },
     ],
     roleIcons,
-    filteredDirectory: DIRECTORY,
-    visibleDirectory: DIRECTORY.slice(0, 4),
-    memberSearch: "",
-    setMemberSearch: fn(),
     openMembersModal: fn(),
     scheduleBackgroundRefetch: fn(),
   },
@@ -129,12 +113,6 @@ export const Loading: Story = {
   },
 };
 
-export const MembersSection: Story = {
-  args: {
-    section: "members",
-  },
-};
-
 export const NoPools: Story = {
   args: {
     pools: [],
@@ -144,6 +122,5 @@ export const NoPools: Story = {
 export const ReadOnly: Story = {
   args: {
     canManage: false,
-    isOwner: false,
   },
 };

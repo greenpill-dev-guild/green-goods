@@ -54,7 +54,7 @@ The admin uses Material Design 3 v0.192 as its **strict structural backbone** �
 - Shape scale: none (0px), xs (4px), sm (8px), md (12px), lg (16px), xl (28px), full (9999px). Use admin-prefixed `--admin-radius-*` tokens for these M3-only shapes; shared `--radius-*` aliases remain the DesignMD-generated Warm Earth runtime scale.
 - M3 elevation scale (0-5) with specific shadow values
 - **Spring motion (`--spring-*`) is the sole permitted deviation** from M3 standard easing
-- **Controlled Chrome Liquid Glass** — subtle glass is allowed only on Navigation/FAB and sheet shells; the AppBar root stays transparent so the canvas tone reads behind it. Route cards, forms, tables, lists, and dense content stay solid.
+- **Controlled Chrome Liquid Glass** — subtle glass is allowed only on Navigation/FAB chrome; the AppBar root stays transparent so the canvas tone reads behind it. Dialogs, side sheets, route cards, forms, tables, lists, and dense content stay solid.
 - **Admin motion roles** are tokenized through runtime aliases: route content uses `--admin-motion-route-content-*`, canvas tone changes use `--admin-motion-canvas-tone-*`, FAB menus use `--admin-motion-fab-menu`, and interactive state changes use `--admin-motion-state`.
 
 **Why strict:** M3+unbounded glass produced inconsistent UI. Strict M3 provides discipline; Controlled Chrome gives spatial depth to persistent shell surfaces without making operational content translucent.
@@ -73,18 +73,17 @@ CSS Grid with named areas:
 │  (AppBar)                                │    search, settings, avatar
 ├──────┬───────────────────────┬───────────┤
 │      │                       │           │
-│ Left │     MainSheet         │  Right    │  ← MainSheet (Z2): workspace content
-│Sheet │     (content zone)    │  Sheet    │    Recedes when sheets open
-│      │                       │           │    (scale 0.97 + blur 2px)
+│      │     MainSheet         │           │  ← MainSheet (Z2): workspace content
+│      │     (content zone)    │           │    Stays at rest when dialogs open
+│      │                       │           │
 ├──────┴───────────────────────┴───────────┤
 │  canvas-area-bottom                      │  ← NavigationBar (Z3): workspace
 │  (NavigationBar + AdminFab)              │    switching + primary FAB action
 └──────────────────────────────────────────┘
 ```
 
-- **LeftSheet:** Action-oriented (creation flows, wizards)
-- **RightSheet:** Config, alerts, profile, settings — pane-scoped content routing via sheet orchestrator. Profile and settings are separate sheet contents on desktop; the tabbed account surface is reserved for the mobile account route.
-- **MainSheet recession:** `isReceded` prop triggers scale + blur when sheets open
+- **Overlays:** every workspace action and detail/inspection flow is a centered `AdminDialog` (the old side-sheet renderers are deleted). Creation flows and inspectors publish through the admin left-inspector channel. The three global AppBar surfaces (profile/settings/notifications) route through the right-sheet registry into the `AdminSideSheet` inspector — right-docked within the canvas chrome bounds on desktop, bottom sheet on mobile. Profile and settings are separate sheet contents on desktop; the tabbed account surface (Account | Settings) is reserved for the mobile account route.
+- **MainSheet recession:** retired — the canvas stays at rest; depth comes from the dialog's own scrim (the `isReceded` prop is no longer passed).
 
 ---
 
@@ -99,7 +98,7 @@ CSS Grid with named areas:
 
 ## Workspace Tinting
 
-Runtime tone tokens (`--tone-primary`, `--tone-on-primary`, `--tone-action`, `--tone-on-action`) support per-workspace color atmosphere and contrast-safe actions:
+Runtime tone tokens support per-workspace color atmosphere and contrast-safe actions:
 
 | Workspace | Tint Color | Action Color | Purpose |
 |-----------|------------|--------------|---------|
@@ -109,7 +108,16 @@ Runtime tone tokens (`--tone-primary`, `--tone-on-primary`, `--tone-action`, `--
 | Actions | Red (`--red-500`) | Deep red (`--red-700`) | Action configuration, templates |
 | Home | Stone/Neutral (`120 113 108`) | Deep stone (`68 64 60`) | Unauthenticated landing |
 
-Storybook may still expose legacy `--ws-*` aliases inside isolated admin frames, but runtime admin surfaces use `--tone-*`. The tint is environmental — barely perceptible warmth in the canvas, not a colored header bar. Filled text-bearing actions use the action color so white text passes contrast.
+Storybook may still expose legacy `--ws-*` aliases inside isolated admin frames, but runtime admin surfaces use `--tone-*`. The tint is environmental — barely perceptible warmth in the canvas, not a colored header bar.
+
+Color roles:
+
+- `--tone-action` is for filled action backgrounds.
+- `--tone-on-action` is the text/icon color on filled action backgrounds.
+- `--tone-on-surface-accent` is for colored text/icons on solid surfaces.
+- `--tone-focus-ring` is the only focus-ring role; it resolves to action tone in light mode and on-surface accent in dark mode.
+- `--m3-outline` is the control-grade boundary for fields, chips, and outlined buttons.
+- `--m3-outline-variant` is a decorative hairline, not a control boundary.
 
 ---
 
@@ -117,9 +125,19 @@ Storybook may still expose legacy `--ws-*` aliases inside isolated admin frames,
 
 All admin-specific components use **Admin* adapter wrappers** following M3 v0.192 exactly. Zero changes to the shared package.
 
-Components: AdminButton, AdminCard, AdminCheckbox, AdminDialog, AdminFab, AdminLinearProgress, AdminListItem, AdminBadge, AdminTooltip, AdminFilterChip, AdminSearchToolbar, AdminTabRail, AdminTextField.
+Components: AdminBadge, AdminButton, AdminCard, AdminCheckbox, AdminChoiceGroup, AdminDialog, AdminFab, AdminFilterChip, AdminLinearProgress, AdminListItem, AdminSearchToolbar, AdminSelectableCard, AdminSideSheet, AdminSortSelect, AdminTabRail, AdminTextField, AdminTooltip, AdminViewActions.
 
-Admin dashboard modals use AdminDialog or AdminConfirmDialog. Desktop renders as a centered M3 dialog; mobile renders as a bottom sheet. Pinned actions sit below the scrollable body so cancel, save, confirm, retry, and close controls remain visible. The command palette uses the AdminDialog palette variant. DialogShell remains for shared or non-admin surfaces, not admin dashboard modals.
+### Card and selection grammar
+
+- `WorkbenchCard` is for workbench records and action/assessment queue items that operators scan, compare, and act on in a grid or list.
+- `AdminCard` is for compact modules, stats, settings, status panels, and supporting detail regions.
+- `AdminSelectableCard` is for richer exclusive or multi-select choices where the option needs a title, description, icon, or metadata.
+- `AdminChoiceGroup` is for compact single-select preferences and context switches inside dense panels.
+- `AdminTabRail` is the exclusive mode/tab control for route-local views.
+- `AdminFilterChip` is the compact filter grammar for toggles inside toolbars.
+- Avoid new direct shared `Card` usage in admin route work unless the route is intentionally consuming an existing shared, non-admin surface.
+
+Admin dashboard modals use AdminDialog or AdminConfirmDialog. Desktop renders as a centered M3 dialog; mobile renders as a bottom sheet. Pinned actions sit below the scrollable body so cancel, save, confirm, retry, and close controls remain visible. The command palette uses the AdminDialog palette variant. DialogShell remains for shared or non-admin surfaces, not admin dashboard modals. The three global AppBar surfaces (Profile, Settings, Notifications) are the one side-sheet exception: they render in AdminSideSheet — right-docked within the canvas chrome bounds on desktop, AdminDialog-identical bottom sheet on mobile — with usage locked to CanvasLayout by AdminSideSheetStandard.guard.
 
 ---
 
@@ -128,8 +146,8 @@ Admin dashboard modals use AdminDialog or AdminConfirmDialog. Desktop renders as
 - **AppBar** (top context bar, Z3): GardenChip selector, search, settings, notifications, avatar
 - **NavigationBar** (bottom, Z3): Workspace tabs — Hub, Garden, Community, Actions. Symbol-first. Role-adaptive visibility via permissions.
 - **AdminFab**: Per-workspace primary action, capsule shape. Integrated into NavigationBar via FabProvider.
-- **Desktop profile**: On desktop, Profile redirects to Hub and opens RightSheet with profile content.
-- **Controlled Chrome**: NavigationBar/FAB and Left/Right/Bottom sheet shells use subtle liquid material. The AppBar root is transparent while child controls can carry their own solid/hover states. Page content, tables, forms, and route cards do not use glass.
+- **Desktop profile**: On desktop, Profile redirects to Hub and opens the AdminSideSheet account inspector with profile content.
+- **Controlled Chrome**: only NavigationBar/FAB use subtle liquid material (every dialog surface and the account side sheet are solid M3). The AppBar root is transparent while child controls can carry their own solid/hover states. Page content, tables, forms, and route cards do not use glass.
 
 ---
 

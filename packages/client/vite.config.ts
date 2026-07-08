@@ -5,9 +5,15 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { existsSync, readdirSync, readFileSync, rmSync } from "fs";
 import { resolve } from "path";
+import { resolveTunnelHmrConfig } from "../../scripts/lib/vite-tunnel-hmr.js";
 import { defineConfig, loadEnv, type Plugin } from "vite";
 import mkcert from "vite-plugin-mkcert";
 import { VitePWA, type VitePWAOptions } from "vite-plugin-pwa";
+import {
+  createPwaManifestBranding,
+  resolvePwaManifestFlavor,
+  type PwaManifestBranding,
+} from "./src/config/pwa-manifest";
 import { APP_ROUTES, createPwaRoutingConfig } from "./src/config/pwa-routing";
 import { createPublicSocialPreviewPlugin } from "./vite/social-preview";
 
@@ -36,6 +42,27 @@ function resolveClientSentryDsn(): string | undefined {
     envValue("PUBLIC_SENTRY_CLIENT_DSN") ||
     envValue("PUBLIC_SENTRY_DSN") ||
     projectScopedSentryDsn(CLIENT_VERCEL_PROJECT_ID)
+  );
+}
+
+function normalizeSentryEnvironment(value: string | undefined): string | undefined {
+  const environment = value?.trim().toLowerCase();
+  if (!environment) return undefined;
+  if (environment === "prod") return "production";
+  return environment;
+}
+
+function resolveSentryEnvironment(mode: string): string {
+  return (
+    normalizeSentryEnvironment(envValue("SENTRY_ENVIRONMENT")) ||
+    normalizeSentryEnvironment(envValue("VITE_SENTRY_ENVIRONMENT")) ||
+    normalizeSentryEnvironment(envValue("VERCEL_TARGET_ENV")) ||
+    normalizeSentryEnvironment(envValue("VITE_VERCEL_TARGET_ENV")) ||
+    normalizeSentryEnvironment(envValue("VERCEL_ENV")) ||
+    normalizeSentryEnvironment(envValue("VITE_VERCEL_ENV")) ||
+    normalizeSentryEnvironment(envValue("APP_ENV")) ||
+    normalizeSentryEnvironment(mode) ||
+    "development"
   );
 }
 
@@ -71,6 +98,40 @@ function deleteSentrySourceMapsPlugin(outDir: string): Plugin {
     },
     closeBundle() {
       cleanup();
+    },
+  };
+}
+
+function pwaHtmlMetadataPlugin(branding: PwaManifestBranding): Plugin {
+  const appleIcon = (sizes: string) => {
+    const icon = branding.appleTouchIcons.find((candidate) => candidate.sizes === sizes);
+    if (!icon) throw new Error(`Missing ${sizes} apple touch icon for ${branding.flavor} PWA`);
+    return icon.src;
+  };
+
+  const replacements = {
+    "%PWA_APP_NAME%": branding.name,
+    "%PWA_APPLE_ICON_57%": appleIcon("57x57"),
+    "%PWA_APPLE_ICON_60%": appleIcon("60x60"),
+    "%PWA_APPLE_ICON_72%": appleIcon("72x72"),
+    "%PWA_APPLE_ICON_120%": appleIcon("120x120"),
+    "%PWA_APPLE_ICON_144%": appleIcon("144x144"),
+    "%PWA_APPLE_ICON_180%": appleIcon("180x180"),
+    "%PWA_BROWSER_ICON%": branding.browserIcon,
+    "%PWA_MS_TILE_COLOR%": branding.msTileColor,
+    "%PWA_MS_TILE_IMAGE%": branding.msTileImage,
+    "%PWA_THEME_COLOR_LIGHT%": branding.htmlThemeColorLight,
+    "%PWA_THEME_COLOR_DARK%": branding.htmlThemeColorDark,
+  };
+
+  return {
+    name: "green-goods-pwa-html-metadata",
+    transformIndexHtml(html) {
+      let transformedHtml = html;
+      for (const [token, value] of Object.entries(replacements)) {
+        transformedHtml = transformedHtml.split(token).join(value);
+      }
+      return transformedHtml;
     },
   };
 }
@@ -131,6 +192,7 @@ export default defineConfig(async ({ command, mode }) => {
       ? `${url}${url.includes("?") ? "&" : "?"}gg_v=${encodeURIComponent(shortAppVersion)}`
       : url;
   const pwaStartUrl = versionedUrl(pwaRouting.startUrl);
+  const pwaBranding = createPwaManifestBranding(resolvePwaManifestFlavor(process.env));
 
   // Skip mkcert in devcontainer, CI, or when SKIP_MKCERT is set
   // SKIP_MKCERT is useful when sudo is broken (e.g., "you do not exist in passwd database")
@@ -148,6 +210,7 @@ export default defineConfig(async ({ command, mode }) => {
   }
   const enableSourceMaps = shouldUploadSentrySourceMaps;
   const sentryDsn = resolveClientSentryDsn();
+  const sentryEnvironment = resolveSentryEnvironment(mode);
   // Env-parity gate (PRD-567): a production deploy must ship with a resolvable
   // Sentry DSN, or error tracking silently no-ops — the May Sentry thrash. This
   // reuses the value resolved above, so it only fires when Sentry would truly be
@@ -202,8 +265,11 @@ export default defineConfig(async ({ command, mode }) => {
     };
   }
 
+  const tunnelHmr = resolveTunnelHmrConfig(rootDir);
+
   const plugins = [
     devTunnelPlugin(),
+    pwaHtmlMetadataPlugin(pwaBranding),
     // Only use mkcert for HTTPS when not in devcontainer, CI, or explicitly skipped
     ...(isDevContainer || isCI || skipMkcert ? [] : [mkcert()]),
     tailwindcss(),
@@ -217,26 +283,7 @@ export default defineConfig(async ({ command, mode }) => {
     }),
     createPublicSocialPreviewPlugin(isIPFSBuild),
     VitePWA({
-      includeAssets: [
-        "favicon.ico",
-        "apple-icon.png",
-        "icon-192.png",
-        "icon.png",
-        "icon-512.png",
-        "maskable-icon-512.png",
-        "images/android-icon-36x36.png",
-        "images/android-icon-48x48.png",
-        "images/android-icon-72x72.png",
-        "images/android-icon-144x144.png",
-        "images/apple-icon-57x57.png",
-        "images/apple-icon-60x60.png",
-        "images/apple-icon-72x72.png",
-        "images/apple-icon-120x120.png",
-        "images/apple-icon-144x144.png",
-        "images/ms-icon-70x70.png",
-        "images/ms-icon-144x144.png",
-        "images/ms-icon-310x310.png",
-      ],
+      includeAssets: pwaBranding.includeAssets,
       injectRegister: false,
       registerType: "prompt",
       workbox: {
@@ -245,11 +292,34 @@ export default defineConfig(async ({ command, mode }) => {
         // avoid SW minification on Bun so `bun run build` remains deterministic.
         mode: isBunRuntime ? "development" : nodeEnv,
         disableDevLogs: true,
-        maximumFileSizeToCacheInBytes: 10 * 1024 * 1024,
-        globPatterns: ["**/*.{html,js,css,ico,png,svg}"],
+        maximumFileSizeToCacheInBytes: 2 * 1024 * 1024,
+        globPatterns: ["index.html", "assets/*.{js,css}"],
+        globIgnores: [
+          "**/*.map",
+          "assets/Actions-*.js",
+          "assets/Cookies-*.js",
+          "assets/EditorialReadDeeper-*.js",
+          "assets/Fund-*.js",
+          "assets/Gardens-*.js",
+          "assets/Glossary-*.js",
+          "assets/Impact-*.js",
+          "assets/Public*.js",
+          "assets/TopNav-*.js",
+          "assets/index-*.js",
+          "assets/socials-*.js",
+          "social/**",
+          "social-*.png",
+          "actions/index.html",
+          "cookies/index.html",
+          "fund/index.html",
+          "gardens/index.html",
+          "glossary/index.html",
+          "impact/index.html",
+          "landing/index.html",
+        ],
         cleanupOutdatedCaches: true,
-        clientsClaim: true,
-        skipWaiting: true,
+        clientsClaim: false,
+        skipWaiting: false,
         // The browser-origin worker is scoped to /home, so the app shell fallback
         // only owns installed-app routes while public/editorial routes stay in the browser.
         navigateFallback: "index.html",
@@ -270,10 +340,9 @@ export default defineConfig(async ({ command, mode }) => {
             // Note: 'self' refers to the ServiceWorkerGlobalScope when running, but here we construct the config.
             // We use a regex that matches relative paths (same origin) ending in .js
             urlPattern: /^\/.*\.js$/,
-            handler: "NetworkFirst",
+            handler: "CacheFirst",
             options: {
               cacheName: "js-cache",
-              networkTimeoutSeconds: 3,
               cacheableResponse: { statuses: [0, 200] },
             },
           },
@@ -346,48 +415,38 @@ export default defineConfig(async ({ command, mode }) => {
         ],
       },
       manifest: {
-        id: pwaRouting.manifestId,
-        name: "Green Goods",
-        short_name: "Green Goods",
+        id: pwaBranding.manifestId,
+        name: pwaBranding.name,
+        short_name: pwaBranding.shortName,
+        ...(pwaBranding.description ? { description: pwaBranding.description } : {}),
         // Window Controls Overlay: Native desktop app feel (removes browser titlebar)
         // Falls back to standalone on mobile or unsupported browsers
         display_override: ["window-controls-overlay", "standalone"],
-        icons: [
-          { src: "images/android-icon-72x72.png", sizes: "72x72", type: "image/png" },
-          { src: "images/android-icon-144x144.png", sizes: "144x144", type: "image/png" },
-          { src: "icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
-          { src: "icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
-          {
-            src: "maskable-icon-512.png",
-            sizes: "512x512",
-            type: "image/png",
-            purpose: "maskable",
-          },
-        ],
+        icons: pwaBranding.manifestIcons,
         start_url: pwaStartUrl,
         scope: pwaRouting.manifestScope,
         display: "standalone",
         orientation: "portrait-primary",
-        theme_color: "#fff",
-        background_color: "#fff",
+        theme_color: pwaBranding.themeColor,
+        background_color: pwaBranding.backgroundColor,
         shortcuts: [
           {
             name: "Home",
             description: "View Gardens",
             url: pwaRouting.shortcutUrl(APP_ROUTES.home),
-            icons: [{ src: "icon-192.png", sizes: "192x192", type: "image/png" }],
+            icons: [{ src: pwaBranding.shortcutIcon, sizes: "192x192", type: "image/png" }],
           },
           {
             name: "Garden",
             description: "Upload your work",
             url: pwaRouting.shortcutUrl(APP_ROUTES.garden),
-            icons: [{ src: "icon-192.png", sizes: "192x192", type: "image/png" }],
+            icons: [{ src: pwaBranding.shortcutIcon, sizes: "192x192", type: "image/png" }],
           },
           {
             name: "Profile",
             description: "View your profile",
             url: pwaRouting.shortcutUrl(APP_ROUTES.profile),
-            icons: [{ src: "icon-192.png", sizes: "192x192", type: "image/png" }],
+            icons: [{ src: pwaBranding.shortcutIcon, sizes: "192x192", type: "image/png" }],
           },
         ],
         categories: [],
@@ -433,6 +492,7 @@ export default defineConfig(async ({ command, mode }) => {
       "import.meta.env.PROD": JSON.stringify(nodeEnv === "production"),
       "import.meta.env.VITE_APP_VERSION": JSON.stringify(shortAppVersion),
       "import.meta.env.VITE_SENTRY_CLIENT_DSN": JSON.stringify(sentryDsn ?? ""),
+      "import.meta.env.VITE_SENTRY_ENVIRONMENT": JSON.stringify(sentryEnvironment),
       "process.env.NODE_ENV": JSON.stringify(nodeEnv),
     },
     esbuild: {
@@ -474,13 +534,60 @@ export default defineConfig(async ({ command, mode }) => {
     },
     // Optimize dependency pre-bundling
     optimizeDeps: {
-      // Include CJS packages that need named exports extracted
+      // `@green-goods/shared` is excluded (served as source for HMR), so Vite's
+      // startup scanner never crawls its bare imports. Pre-bundle shared's
+      // runtime dep surface up front — otherwise a cold cache discovers these
+      // at request time and broadcasts "optimized dependencies changed.
+      // reloading", a full-page reload that kills in-flight lazy-route
+      // navigation. Keep in sync with packages/admin/vite.config.ts.
       include: [
         "react",
         "react-dom",
         "posthog-js",
+        "posthog-js/react",
         "@sentry/react",
+        // ── @green-goods/shared runtime surface ──
         "@ethereum-attestation-service/eas-sdk",
+        "@hypercerts-org/contracts",
+        "@hypercerts-org/marketplace-sdk",
+        "@hypercerts-org/sdk",
+        "@radix-ui/react-dropdown-menu",
+        "@radix-ui/react-popover",
+        "@radix-ui/react-select",
+        "@react-spring/web",
+        "@reown/appkit-adapter-wagmi",
+        "@reown/appkit/react",
+        "@storacha/client",
+        "@storacha/client/principal/ed25519",
+        "@storacha/client/proof",
+        "@use-gesture/react",
+        "@wagmi/core",
+        "@xstate/react",
+        "browser-image-compression",
+        "clsx",
+        "ethers",
+        "gql.tada",
+        "graphql-request",
+        // heic-to lives only under shared's node_modules (bun isolated
+        // linker), so it needs the linked-package `>` resolution form.
+        "@green-goods/shared > heic-to/csp",
+        "idb",
+        "idb-keyval",
+        "permissionless",
+        "permissionless/accounts",
+        "permissionless/clients/passkeyServer",
+        "permissionless/clients/pimlico",
+        "react-day-picker",
+        "react-hot-toast",
+        "react-select",
+        "tailwind-merge",
+        "tailwind-variants",
+        "viem/account-abstraction",
+        "viem/chains",
+        "xstate",
+        "zustand",
+        "zustand/middleware",
+        "zustand/react/shallow",
       ],
       // Exclude local packages and ESM-only packages
       exclude: ["@green-goods/shared"],
@@ -490,12 +597,16 @@ export default defineConfig(async ({ command, mode }) => {
       strictPort: true,
       host: true,
       open: false,
-      hmr: { overlay: true },
+      // cloudflared quick tunnels change hostname each run; allow remote Host headers in dev.
+      allowedHosts: tunnelHmr ? true : undefined,
+      hmr: tunnelHmr ? { overlay: true, ...tunnelHmr } : { overlay: true },
       // Polling is only required on Docker bind mounts and some network filesystems.
       // On macOS native FSEvents the default watcher is much cheaper than polling
       // every 100ms across hundreds of files. Opt in with VITE_USE_POLLING=true.
-      watch:
-        process.env.VITE_USE_POLLING === "true" ? { usePolling: true, interval: 100 } : undefined,
+      watch: {
+        ignored: ["**/dev-dist/**"],
+        ...(process.env.VITE_USE_POLLING === "true" ? { usePolling: true, interval: 100 } : {}),
+      },
       proxy: {
         "/api/graphql": {
           target: indexerProxyTarget,

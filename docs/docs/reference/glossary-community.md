@@ -4,7 +4,7 @@ slug: /glossary
 sidebar_label: Glossary
 audience: all
 owner: docs
-last_verified: 2026-04-25
+last_verified: 2026-07-03
 feature_status: Live
 source_of_truth:
   - docs/docs/reference/banned-vocabulary.json
@@ -48,7 +48,7 @@ The 10 entities the system tracks. Use the canonical form in code (types, hooks,
 | **Garden** | entity | admin · client · agent · public · docs | A community of gardeners doing regenerative work in a place. ERC-721 NFT bound to a Tokenbound Account that owns a Vault and operator/gardener Hats. |
 | **Action** | entity | admin · client · agent · public · docs | A documented activity a gardener can perform — the unit of work template (e.g. "Plant native species", "Remove invasive growth"). |
 | **Work** | entity | admin · client · agent · public · docs | A specific instance of an Action performed by a gardener, captured with photo + description + metadata, attested on-chain after operator approval. |
-| **Assessment** | entity | admin · client · public · docs | An evaluator's verification of submitted Work — confirms the Work happened, attaches confidence, links to evidence. Drives Hypercert minting. |
+| **Assessment** | entity | admin · client · public · docs | A garden's baseline and strategy, set up front (typically at onboarding): the domain, diagnosis, SMART-outcome targets, selected Actions, and reporting period that work is later measured against. It defines what success looks like *before* the work — it is **not** a review of submitted Work (that is Work Approval). |
 | **Hypercert** | entity | admin · client · public · docs | An on-chain claim of impact bundling approved Work into a fractional impact certificate. Funders hold fractions; gardeners hold contribution credit. |
 | **Vault** | entity | admin · client · public · docs | The garden's treasury. Funders deposit; the garden's Tokenbound Account holds; yield splits flow to operators / gardeners / community per configured ratios. |
 | **Cookie Jar** | entity | admin · client · public · docs | A garden-scoped emergency or discretionary fund with rate-limited withdrawals. Allowlisted members can claim within the configured cap. |
@@ -78,7 +78,7 @@ The 4 places where people interact with Green Goods. Each has a canonical identi
 
 | Term | Type | Allowed surfaces | Definition |
 |------|------|------------------|------------|
-| **Admin** | surface | self | Operator cockpit. `packages/admin`. Restrained M3 v0.192 anatomy, Plus Jakarta Sans, transparent admin AppBar root, Controlled Chrome glass only on Navigation/FAB and sheet shells, solid dense surfaces everywhere else. Litmus: appropriate for Linear / GitHub / Stripe Dashboard. |
+| **Admin** | surface | self | Operator cockpit. `packages/admin`. Restrained M3 v0.192 anatomy, Plus Jakarta Sans, transparent admin AppBar root, Controlled Chrome glass only on Navigation/FAB, solid dense surfaces everywhere else (dialogs and the account side sheet included). Litmus: appropriate for Linear / GitHub / Stripe Dashboard. |
 | **Client PWA** | surface | self | Gardener-facing app. `packages/client`. Warm Earth garden-journal feel, Inter typography, bottom AppBar (installed PWA) or SiteHeader hamburger (browser). Hero moments live here, never in admin. |
 | **Agent** | surface | self | Conversational gardener interface — telegram, SMS, WhatsApp. `packages/agent`. Natural-language Work submission, status pings, garden updates. No visual chrome. |
 | **Public browser** | surface | self | Public-facing web for funders / community members. Editorial typography (Fraunces / Lora / Newsreader for headlines, Inter for body). Garden discovery, impact pages, funding flows. Never appears in installed PWA. |
@@ -101,7 +101,7 @@ The voice and tone framework (Grounded · Inviting · Honest · Active) lives in
 
 ## Banned Vocabulary
 
-Three categories. Lint-enforced bans run on every commit and CI; AI-prompt bans are documentation surfaces consumed by Stitch / Claude Design / Figma Make / Antigravity.
+Three categories. Lint-enforced bans run on every commit and CI; AI-prompt bans are documentation surfaces consumed by AI design tools and coding agents.
 
 The structured machine-readable source is [`docs/docs/reference/banned-vocabulary.json`](https://github.com/greenpill-dev-guild/green-goods/blob/main/docs/docs/reference/banned-vocabulary.json). The tables below mirror the JSON for human readers.
 
@@ -126,7 +126,7 @@ The 4 terms tagged `growth-hacking umbrella` are what `CLAUDE.md` and design bri
 
 ### Admin-Only Banned (AI Prompt Vocabulary)
 
-Banned in AI-prompt vocabulary when generating admin-cockpit screens. Not a runtime check — these are documentation surfaces for Stitch / Claude Design / Figma Make / Antigravity.
+Banned in AI-prompt vocabulary when generating admin-cockpit screens. Not a runtime check — these are documentation surfaces for AI design tools and coding agents.
 
 Source: `prompt_vocabulary_admin_banned` in [`banned-vocabulary.json`](https://github.com/greenpill-dev-guild/green-goods/blob/main/docs/docs/reference/banned-vocabulary.json), and [`.claude/skills/design/prompt-contract.md § Never Use`](https://github.com/greenpill-dev-guild/green-goods/blob/main/.claude/skills/design/prompt-contract.md).
 
@@ -134,9 +134,9 @@ Source: `prompt_vocabulary_admin_banned` in [`banned-vocabulary.json`](https://g
 |--------|-----------|-----------|
 | `hero moment` | admin only | Hero moments are reserved for celebratory client PWA flows (garden creation, first work submission, Hypercert mint). The admin cockpit stays restrained. |
 | `gallery` | admin only | Marketing-page framing. Admin shows workbench rows, lists, and inspectors — not curated visual galleries. |
-| `decorative gradient` | admin only | Decoration without function. Admin uses solid surfaces; material treatment is reserved for Navigation/FAB and sheet shells. |
+| `decorative gradient` | admin only | Decoration without function. Admin uses solid surfaces; material treatment is reserved for Navigation/FAB. |
 | `marketing banner` | admin only | Promotional surface framing. Admin is operator-internal — no banners, no landing-page energy. |
-| `AppBar glass` / `glass outside Navigation/FAB and sheet shells` | admin only | The admin AppBar root stays transparent over the workspace canvas. Liquid / frosted material treatment is restricted to Navigation/FAB and sheet shells; dense data surfaces must be solid for legibility and operator focus. |
+| `AppBar glass` / `glass outside Navigation/FAB` | admin only | The admin AppBar root stays transparent over the workspace canvas. Liquid / frosted material treatment is restricted to Navigation/FAB; dense data surfaces, dialogs, and the account side sheet must be solid for legibility and operator focus. |
 
 The full prompt-vocabulary admin ban list (including `hero section`, `celebration`, `masonry gallery`, `ambient gradient wash`, `promo band`, `landing-page`, `dashboard card mosaic`, `feature cards`, `floating stats`, `stat chips floating above content`, `liquid`, `frosted`) lives in `prompt_vocabulary_admin_banned` of the JSON sidecar — they expand the categories above.
 
@@ -178,11 +178,20 @@ The structured tables above are the canonical vocabulary contract. The longer en
 ### Action
 A task or bounty available for gardeners to complete within a garden. Actions define specific regenerative activities (like planting trees, litter cleanup, or biodiversity surveys) with clear instructions, metrics, and optional time windows. Each action is registered on-chain and tracks completion statistics.
 
+### Assessment
+A garden's baseline and strategy, created up front (typically at onboarding): the domain, a diagnosis of the current situation, SMART-outcome targets, the selected actions, and the reporting period. It sets what success looks like *before* the work it frames, so that later work approvals and impact certificates have a baseline to measure against. It is not a review of submitted work — that is [Work Approval](#work-approval).
+
 ### Attestation
 An on-chain record created using the Ethereum Attestation Service (EAS). Green Goods uses three attestation types: work submissions, work approvals, and garden assessments. Attestations are permanent, cryptographically signed records that prove specific claims about impact work.
 
 ### Community Member
 Local residents living in the bioregion affected by a Garden's Work. Community Members use public signal and conviction flows to attest that Work exists and is healthy, hold the Garden accountable, and prioritize future Actions.
+
+### Cookie Jar
+A garden-scoped fund for small, frequent payouts. Supporters put money in, and allowlisted members (like active gardeners) can withdraw up to a capped amount per period. Cookie jars cover near-term operational needs, while the [Vault](#vault) holds the garden's long-term endowment.
+
+### Domain
+The category of regenerative work a garden does — *where* the work happens. Green Goods recognizes four action domains: **Agroforestry**, **Waste Management**, **Solar (Hub Development)**, and **Education** (the on-chain `Domain` enum: `SOLAR`, `AGRO`, `EDU`, `WASTE`). A domain is neither an outcome nor a form of capital — carbon and biodiversity, for example, are [outcomes](#outcome), not domains.
 
 ### EAS (Ethereum Attestation Service)
 A protocol for making on-chain and off-chain attestations about any subject. Green Goods uses EAS to create verifiable records of gardener work, operator approvals, and garden assessments. Learn more at [attest.sh](https://attest.sh).
@@ -200,6 +209,8 @@ A holistic framework for measuring wealth and impact beyond money:
 
 Green Goods assessments track impact across all eight capitals.
 
+> The numbering above is presentational. The canonical machine ordering is the `Capital` enum: Social (0), Material (1), Financial (2), Living (3), Intellectual (4), Experiential (5), Spiritual (6), Cultural (7).
+
 ### Evaluator
 Impact assessors who verify work quality, create garden assessments, and certify impact across the Eight Forms of Capital. Evaluators ensure that reported work meets quality standards and provide the trust layer between field operations and funding.
 
@@ -209,17 +220,26 @@ Capital allocators who deposit into Octant Vaults, purchase Hypercerts, and cont
 ### Garden
 A community hub for regenerative work, represented as an NFT using the ERC-6551 Tokenbound Account standard. Each Garden has its own smart contract account that can hold assets, manage members, and coordinate impact work. Gardens are localized to specific bioregions and serve as hubs for coordinating regenerative and community action.
 
-### Garden Operator
+### Garden Operator {#operator}
 Trusted coordinators who manage gardens and validate gardener submissions. Operators review work submissions, approve or reject them with feedback, and oversee garden membership. Operators have elevated permissions within assigned gardens, and garden creation depends on current permission policy.
 
 ### Gardener
 Community members who perform on-the-ground regenerative work. Gardeners submit work through the Green Goods PWA using the MDR (Media-Details-Review) workflow, documenting their contributions with photos and metrics. Gardeners can belong to multiple gardens and earn recognition for verified work.
 
+### Hat
+A Hats Protocol role token that defines what someone can do in a garden. Operator hats can approve Work, gardener hats can submit Work, and evaluator hats can attest to impact. Because roles are on-chain tokens, permissions stay transparent and portable across the tools a garden uses.
+
 ### Hypercert
 A semi-fungible token representing a claim of impact work. Hypercerts enable retroactive funding by allowing impact to be certified, tracked, and fractionally owned. In Green Goods, hypercert mint/list workflows are implemented but may be activation-pending depending on deployment and indexing status. Note: "Impact Tokens" are the broader concept (verified impact work tokenized via Karma GAP attestations), while Hypercerts are the specific tokenized certificates that represent fractional ownership of those impact claims. Learn more at [hypercerts.org](https://hypercerts.org) and [Mint and List Hypercerts](/community/operator-guide/creating-impact-certificates).
 
+### Impact Certificate
+The community-facing name for a [Hypercert](#hypercert): a bundle of a garden's approved Work, minted as a certificate that funders can hold fractions of. If you see "Impact Certificate" in the app and "Hypercert" in technical docs, they are the same thing.
+
 ### Impact Token
 A token representing verified impact work that can be traded, funded, or used to unlock benefits. Green Goods uses Karma GAP attestations as the foundation for impact tokenization. Impact Tokens are the broader concept; see [Hypercert](#hypercert) for the specific tokenized certificate implementation.
+
+### Indicator
+A measurable signal of progress toward an [outcome](#outcome) — the unit a metric is counted in (trees planted, kWh generated, kg diverted, participants verified).
 
 ### IPFS (InterPlanetary File System)
 A distributed file storage system. Green Goods stores work photos, metadata, and action instructions in IPFS through the Pinata-backed upload path, with content identifiers (CIDs) referenced in on-chain attestations.
@@ -238,6 +258,9 @@ This pattern ensures high-quality documentation and reduces submission errors.
 ### On-Chain
 Data or transactions permanently recorded on a blockchain. Green Goods stores attestations on-chain for verifiability, while larger data (photos, metadata) is stored off-chain in IPFS and referenced by on-chain records.
 
+### Outcome
+The change an impact claim asserts — what will change and by how much. In Green Goods, outcomes are the SMART targets set in an [assessment](#assessment) and filled by approved work over the reporting period. Outcomes accrue to the [Eight Forms of Capital](#eight-forms-of-capital); they are not [domains](#domain).
+
 ### Owner
 Administrators with full control over garden configuration, role assignments, and governance settings. Owners can promote gardeners to operators, configure actions, and manage the garden's on-chain infrastructure.
 
@@ -254,10 +277,19 @@ Smart contracts that execute custom logic when attestations are created. Green G
 A structured template that defines the format of an attestation. Green Goods uses three schemas:
 - **Work Submission Schema**: Captures gardener work with media and metadata
 - **Work Approval Schema**: Records operator validation decisions
-- **Assessment Schema**: Documents garden-level impact across 8 forms of capital
+- **Assessment Schema**: Records a garden's baseline strategy kernel — domain, diagnosis, SMART-outcome targets, selected actions, and reporting period — set up front, before the work it frames
+
+### Season
+A bounded period, typically a quarter, during which a garden runs a coordinated set of Actions and Assessments. Seasons give gardens a shared rhythm for planning, documenting, and reporting. They are a pacing tool, never a countdown.
 
 ### Smart Account (Account Abstraction)
 A smart contract-based wallet that enables gasless transactions, social recovery, and improved UX. Green Goods gardeners use Kernel smart accounts powered by Pimlico, allowing them to submit work without paying gas fees or managing seed phrases.
+
+### Vault
+A garden's long-term treasury, powered by Octant. Funders deposit assets that stay in place as principal, and the yield those assets generate is harvested and split to support operators, gardeners, and community initiatives. Depositors can withdraw their principal later; see [Endow a Garden](/community/funder-guide/funding-a-garden) for how it works.
+
+### Work
+A specific instance of an [Action](#action) performed by a gardener, captured with photos, a description, and metrics, then submitted for review. Approved Work becomes a permanent on-chain attestation. Work is the umbrella term; [Work Submission](#work-submission) and [Work Approval](#work-approval) are its two halves.
 
 ### Work Approval
 The validation process where operators review gardener work submissions and either approve or reject them with constructive feedback. Approved work creates on-chain attestations that serve as permanent, verifiable records of impact. Approvals trigger Karma GAP impact attestations automatically.

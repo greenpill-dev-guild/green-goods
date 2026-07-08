@@ -139,7 +139,7 @@ export default function GardenAssessment() {
                 {/* Type badge */}
                 {assessmentType && (
                   <span
-                    className={`mb-3 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${badgeStyle}`}
+                    className={`mb-3 inline-flex items-center rounded-full px-2.5 py-0.5 text-label-md ${badgeStyle}`}
                   >
                     {assessmentType}
                   </span>
@@ -147,7 +147,7 @@ export default function GardenAssessment() {
 
                 {/* Date range */}
                 {(attestation.parsed?.startDate || attestation.parsed?.endDate) && (
-                  <div className="mt-2 flex items-center gap-1.5 text-xs text-text-soft">
+                  <div className="mt-2 flex items-center gap-1.5 text-label-sm text-text-soft">
                     <RiCalendarLine className="h-3.5 w-3.5 shrink-0" />
                     <span>
                       {formatDateRange(attestation.parsed?.startDate, attestation.parsed?.endDate)}
@@ -192,12 +192,12 @@ export default function GardenAssessment() {
         title={formatMessage({ id: "app.garden.admin.assessmentsTitle" })}
         description={formatMessage({ id: "app.garden.admin.assessmentsDescription" })}
         backLink={{
-          to: adminRoutes.gardenImpact({ gardenAddress: id, section: "assessments" }),
+          to: adminRoutes.gardenImpact({ gardenId: id, section: "assessments" }),
           label: formatMessage({ id: "app.garden.admin.backToGardens" }),
         }}
         actions={
           <Button size="sm" asChild>
-            <Link to={adminRoutes.hubAssessCreate({ gardenAddress: id })}>
+            <Link to={adminRoutes.hubAssessCreate({ gardenId: id })}>
               <RiAddLine className="mr-1.5 h-4 w-4" />
               {formatMessage({ id: "app.garden.admin.newAssessment" })}
             </Link>

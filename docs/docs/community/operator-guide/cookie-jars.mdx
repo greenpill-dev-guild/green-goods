@@ -4,11 +4,11 @@ sidebar_label: Cookie Jars
 slug: /community/operator-guide/cookie-jars
 audience: operator
 owner: docs
-last_verified: 2026-02-18
-feature_status: Implemented (activation pending deployment)
+last_verified: 2026-07-03
+feature_status: Live
 goal: "Complete Cookie Jars with clear, role-specific next actions."
 difficulty: "standard"
-estimated_time: "15-25 minutes once activated."
+estimated_time: "15-25 minutes."
 prereqs: "Endowment policy and role assignments."
 next_steps: "./managing-governance"
 persona_context: "Operators coordinating gardens, approvals, and governance/endowment execution."
@@ -34,20 +34,20 @@ import {
 
 # Cookie Jars
 
-<StatusBadge status="Implemented (activation pending deployment)" />
+<StatusBadge status="Live" />
 
 ## Current state
 
 <FeatureState
   title="Admin + hooks"
-  status="Implemented (activation pending deployment)"
-  summary="Creation/admin/deposit/withdraw hooks are implemented and exported in shared package."
+  status="Live"
+  summary="Creating, funding, and managing cookie jars works today from the admin dashboard, backed by shared hooks."
 />
 
 <FeatureState
-  title="Deployment readiness"
-  status="Implemented (activation pending deployment)"
-  summary="`cookieJarModule` remains zero-address in latest deployment artifacts and indexer config."
+  title="Deployment status"
+  status="Live"
+  summary="Cookie jar contracts are deployed on Arbitrum, and jar creation is indexed. Garden jars are provisioned automatically when a garden is minted, so a garden with no jar was likely minted before cookie jar support; campaign jars are created through the deployer and ops flow, not a per-operator action. Note: per-jar deposit and withdrawal activity is not indexed, so it does not show up in reports."
 />
 
 ## Target operator flow

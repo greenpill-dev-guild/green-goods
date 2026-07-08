@@ -1,7 +1,7 @@
-import { describe, expect, it } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import * as ts from "typescript";
+import { describe, expect, it } from "vitest";
 
 import en from "../../i18n/en.json";
 import es from "../../i18n/es.json";
@@ -76,24 +76,33 @@ const descriptorIdPropNames = new Set([
   "errorId",
   "successId",
   "ariaLabelId",
+  "actionLabelId",
 ]);
 const allowedIdenticalLocalizedKeys = new Set([
   "app.admin.nav.cookieJars",
   "app.community.weightScheme.linear",
   "cockpit.community.stats.pools",
   "public.fund.vaults.vaultCount",
+  // Vault checkout reuses the product term "Endowment" untranslated, matching the
+  // surrounding es/pt vault copy (e.g. "Endowment confirmado."); the app.* namespace
+  // still translates it (es: "Dotación"), so this stays key-scoped rather than global.
+  "public.vaults.cardEndow.positionHolder",
+  "public.vaults.cardEndow.status.deposit",
 ]);
 const allowedIdenticalProductValues = new Set([
   "%",
   "0x...",
   "Admin",
   "APR",
+  "Card Endow",
   "Cookie Jar",
   "Cookie Jars",
   "Cookies",
   "DAI",
+  "Decentral Park",
   "Docs",
   "EAS",
+  "Email",
   "ENS",
   "Endow",
   "Endowments",
@@ -101,6 +110,7 @@ const allowedIdenticalProductValues = new Set([
   "Feedback",
   "GitHub",
   "Green Goods",
+  "Greenpill Network",
   "GreenWill",
   "ha",
   "Hub",
@@ -113,15 +123,20 @@ const allowedIdenticalProductValues = new Set([
   "kWh",
   "Linear (1-2-3)",
   "m²",
+  "ManeNet DAO",
   "Marketplace",
   "Offline",
   "Onchain",
   "Order ID",
   "Pools",
+  "Protocol Guild",
   "Slug",
   "Solar",
   "Stablecoin",
   "Telegram",
+  "Thirdweb Bridge",
+  "Token",
+  "Tokens",
   "tokens",
   "Tx",
   "Twitter",
@@ -130,8 +145,12 @@ const allowedIdenticalProductValues = new Set([
   "Vaults",
   "WETH",
   "§ 01 Cookie jars",
+  "§ 01: Cookie jars",
 ]);
-const allowedIdenticalValuePatterns = [/^[\d\W]+$/, /^\d+d$/, /^\{[^}]+\}$/, /^\{[^}]+\}h$/];
+// "{hours} h" / "{hours}h" — the hour symbol "h" is identical across en/es/pt, so a
+// compact "{n} h" value is legitimately locale-identical (the optional space matches
+// the actual en.json formatting).
+const allowedIdenticalValuePatterns = [/^[\d\W]+$/, /^\d+d$/, /^\{[^}]+\}$/, /^\{[^}]+\} ?h$/];
 const localeAllowedIdenticalValues: Record<string, Set<string>> = {
   es: new Set([
     " - Error",

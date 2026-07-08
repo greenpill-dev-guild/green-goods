@@ -6,7 +6,9 @@ import type {
   FundingIntentStatus,
   FundingTransactionAttempt,
   PublicFundingReceipt,
+  PublicFundingManagementUrl,
   PublicPaymentMethod,
+  PublicFundingSourceRoute,
 } from "@green-goods/shared/public-contracts";
 import * as db from "./db";
 
@@ -34,6 +36,8 @@ export interface FundingIntentRecord {
   quoteExpiresAt: string;
   checkoutExpiresAt?: string;
   receiverAddress?: Address;
+  sourceRoute?: PublicFundingSourceRoute;
+  managementUrl?: PublicFundingManagementUrl;
   quotedAssetAmount?: string;
   minAssetAmount?: string;
   fundedAssetAmount?: string;
@@ -197,6 +201,8 @@ export function createIdempotencyFingerprint(
     request.token.trim().toLowerCase(),
     request.availabilityKey,
     provider,
+    request.receiverAddress?.trim().toLowerCase() ?? "",
+    request.sourceRoute ?? "/fund",
     normalizeEmailHash(request.payerEmail) ?? "",
   ];
 
@@ -204,6 +210,12 @@ export function createIdempotencyFingerprint(
 }
 
 export function redactFundingReceipt(record: FundingIntentRecord): PublicFundingReceipt {
+  const managementUrl =
+    record.fundingIntent === "endow"
+      ? (record.managementUrl ??
+        (record.sourceRoute === "/vaults" ? "/vaults?manage=positions" : "/fund?manage=endowments"))
+      : undefined;
+
   return {
     id: record.id,
     status: record.status,
@@ -230,7 +242,7 @@ export function redactFundingReceipt(record: FundingIntentRecord): PublicFunding
     quoteExpiresAt: record.quoteExpiresAt,
     updatedAt: record.updatedAt,
     appManagementCta: record.fundingIntent === "endow" ? "manage_endowments" : undefined,
-    managementUrl: record.fundingIntent === "endow" ? "/fund?manage=endowments" : undefined,
+    managementUrl,
     failureCode: record.failureCode,
   };
 }

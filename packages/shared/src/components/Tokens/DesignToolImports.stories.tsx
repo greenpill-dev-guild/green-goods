@@ -80,7 +80,7 @@ const meta = {
     docs: {
       description: {
         component:
-          "Import map for Google Stitch, Claude Design, Storybook MCP, and other tools that need Green Goods styles plus component states.",
+          "Import map for AI design tools, coding agents, Storybook MCP, and other consumers that need Green Goods styles plus component states.",
       },
     },
   },
@@ -149,7 +149,7 @@ export const ToolRecipes: Story = {
   render: () => (
     <div className="grid min-w-0 gap-4 lg:grid-cols-3">
       <article className="min-w-0 rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-5">
-        <h2 className="break-words text-title-h5 text-text-strong-950">Google Stitch</h2>
+        <h2 className="break-words text-title-h5 text-text-strong-950">AI Design Tools</h2>
         <p className="mt-3 min-w-0 break-words text-paragraph-sm text-text-sub-600">
           Import <code>DESIGN.md</code>, <code>DESIGN.browser.md</code>, and{" "}
           <code>design-md.generated.json</code>. Treat Storybook as the component catalog, not a
@@ -158,7 +158,7 @@ export const ToolRecipes: Story = {
       </article>
 
       <article className="min-w-0 rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-5">
-        <h2 className="break-words text-title-h5 text-text-strong-950">Claude Design</h2>
+        <h2 className="break-words text-title-h5 text-text-strong-950">Coding Agents</h2>
         <p className="mt-3 min-w-0 break-words text-paragraph-sm text-text-sub-600">
           Load the design README, the two DesignMD files, and <code>index.json</code>. Use the
           browser dialect unless the work explicitly targets installed PWA or admin.

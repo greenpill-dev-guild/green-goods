@@ -5,6 +5,8 @@ import {
   type KeyboardEventHandler,
   type ReactNode,
   isValidElement,
+  useEffect,
+  useState,
 } from "react";
 import { useIntl } from "react-intl";
 import { cn, logger } from "@green-goods/shared";
@@ -22,8 +24,8 @@ export interface AdminDialogProps {
   icon?: ComponentType<{ className?: string }> | ReactNode;
   children: ReactNode;
   actions?: ReactNode;
-  size?: "sm" | "md" | "lg" | "xl" | "2xl";
-  variant?: "standard" | "confirm" | "palette";
+  size?: "sm" | "md" | "lg";
+  variant?: "standard" | "confirm" | "palette" | "flow";
   bodyClassName?: string;
   actionsClassName?: string;
   hideCloseButton?: boolean;
@@ -31,6 +33,15 @@ export interface AdminDialogProps {
   role?: "dialog" | "alertdialog";
   onKeyDown?: KeyboardEventHandler<HTMLDivElement>;
   className?: string;
+  /**
+   * Workspace tone for the portaled surface. The dialog portals to <body>,
+   * escaping CanvasLayout's `[data-tone]` scope, so the per-view accent
+   * (`--tone-*`) is otherwise unset inside the dialog and falls back to green.
+   * Setting it re-establishes the tone in-portal — the action flows pass their
+   * workspace so Hub flows read blue, Garden green, etc. Consumers must read
+   * `--tone-action` / `--tone-on-surface-accent` (not `--m3-primary`).
+   */
+  tone?: "hub" | "garden" | "community" | "actions" | "home";
 }
 
 export interface AdminConfirmDialogProps {
@@ -47,30 +58,67 @@ export interface AdminConfirmDialogProps {
   variant?: "default" | "warning" | "danger";
   isLoading?: boolean;
   icon?: ReactNode;
+  /** Workspace tone, forwarded to the portaled surface (see AdminDialogProps.tone). */
+  tone?: AdminDialogProps["tone"];
 }
 
+// Three tiers by action weight (not five — a modal's size should read as a
+// signal of what kind of action it is, not an arbitrary per-modal choice):
+//   sm — reserved for variant="confirm"/alert dialogs, which already get a
+//        fixed width from variantClasses.confirm below, independent of size.
+//   md — a simple, single-purpose action: one form, one concern (add a
+//        member, deposit/withdraw, edit one field).
+//   lg — richer single-view content: lists with per-item actions, multi-field
+//        forms, or multi-column layouts. Multi-step flows (Submit Work,
+//        Create Assessment, Create Hypercert) are a category of their own —
+//        see ADMIN_FLOW_DIALOG_CLASS below, not this scale.
 const sizeClasses: Record<NonNullable<AdminDialogProps["size"]>, string> = {
   sm: "sm:max-w-sm",
   md: "sm:max-w-md",
-  lg: "sm:max-w-lg",
-  xl: "sm:max-w-2xl",
-  "2xl": "sm:max-w-4xl lg:max-w-5xl",
+  lg: "sm:max-w-2xl lg:max-w-4xl",
 };
 
 const variantClasses: Record<NonNullable<AdminDialogProps["variant"]>, string> = {
   standard: "",
   confirm: "sm:max-w-md",
   palette: "admin-dialog--palette sm:max-w-2xl p-0",
+  // Full-surface action flow (Submit Work, Create Assessment, Create Hypercert):
+  // the consumer (ActionFlowShell / wizard) owns the visible header + scrolling
+  // body + pinned footer, so the structured header and inner padding are
+  // suppressed. `overflow-hidden` clips the inner square chrome to the dialog's
+  // corner radius. A centered, bounded card — not a fullscreen takeover.
+  flow: "overflow-hidden",
 };
 
+// Shared sizing for the full-surface action-flow dialogs (Submit Work, Create
+// Assessment, Create Hypercert): a ~90dvh full-width bottom-sheet on mobile, a
+// centered max-w-3xl→5xl card on desktop with a STABLE 85dvh height so async content
+// (e.g. the hypercert attestation list resolving on step 1) can't resize the
+// dialog mid-open — the body scrolls inside and the footer stays pinned, the way
+// ActionFlowShell is designed. Centralized so the three flows can't drift (the
+// literal lives here in admin/src so the Tailwind scan reaches it).
+export const ADMIN_FLOW_DIALOG_CLASS =
+  "min-h-[90dvh] sm:min-h-0 sm:h-[85dvh] sm:!max-w-3xl lg:!max-w-5xl";
+
+const compactMobileSheetClasses = cn(
+  "fixed bottom-0 left-1/2 z-modal flex max-h-[calc(100dvh-1rem)] w-full max-w-[calc(100vw-1rem)] -translate-x-1/2 flex-col",
+  "sm:bottom-auto sm:top-1/2 sm:max-h-[calc(100dvh-2rem)] sm:-translate-y-1/2"
+);
+
+const fullWidthMobileSheetClasses = cn(
+  "fixed inset-x-0 bottom-0 z-modal flex max-h-[calc(100dvh-1rem)] w-[100dvw] max-w-none flex-col",
+  "sm:inset-x-auto sm:left-1/2 sm:bottom-auto sm:top-1/2 sm:w-full sm:max-h-[calc(100dvh-2rem)] sm:-translate-x-1/2 sm:-translate-y-1/2"
+);
+
 const closeButtonClasses = cn(
-  "absolute right-4 top-4 z-10",
+  // Centered on the compact header title row (py-3 + text-lg leading-7).
+  "absolute right-3 top-1.5 z-10",
   "flex h-10 w-10 items-center justify-center",
   "rounded-full",
   "m3-state-layer",
   "[--state-layer-color:var(--m3-on-surface)]",
   "text-[rgb(var(--m3-on-surface-variant))]",
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-action,var(--m3-primary)))]"
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]"
 );
 
 // ============================================================================
@@ -78,19 +126,21 @@ const closeButtonClasses = cn(
 // ============================================================================
 
 /**
- * AdminDialog - M3 Basic Dialog
+ * AdminDialog - M3 Basic Dialog, unified on the action-flow chrome
  *
- * Implements Material Design 3 basic dialog anatomy:
- * - Shape: corner-extra-large (28dp) via --m3-shape-xl
- * - Surface: surface-container-high
- * - Elevation: shadow level 3
- * - Scrim: on-surface at 32% opacity
- * - Headline: text-headline-sm, on-surface
- * - Body: text-body-md, on-surface-variant
- * - Actions: right-aligned row of M3 text buttons
- * - Optional icon: centered above headline, on-surface-variant
- * - Close button: absolute top-right, circular state layer
- * - Animations: fade + zoom on open/close
+ * Every variant shares the Submit Work reference anatomy (the flow dialogs'
+ * ActionFlowShell grammar), so standard/confirm/palette dialogs read as the
+ * same product as the flows:
+ * - Shape: corner-extra-large (28dp) via --m3-shape-xl; surface-container-high;
+ *   elevation 3; scrim on-surface/32%
+ * - Header: hairline-bottom bar (px-4 py-3 sm:px-6, border-stroke-soft) with
+ *   an optional inline icon, text-lg semibold title, text-sm description
+ * - Body: the scrollable region between header and footer (px-4 py-4 sm:px-6)
+ * - Actions: pinned footer bar — hairline top border on --surface-raised
+ *   (the SheetFooter anatomy the flows use), buttons right-aligned
+ * - Close button: absolute top-right, centered on the title row
+ * - palette/flow suppress the structured header/padding and own their chrome
+ * - Animations: sheet slide-up (mobile) / zoom (desktop) on open/close
  */
 export function AdminDialog({
   open,
@@ -109,13 +159,40 @@ export function AdminDialog({
   role = "dialog",
   onKeyDown,
   className,
+  // Default to the neutral "home" tone so a dialog that omits `tone` still
+  // renders a deliberate accent in-portal instead of falling back to green
+  // (the portal escapes CanvasLayout's [data-tone] scope — see the prop doc).
+  // Action flows pass their own workspace tone, so they are unaffected.
+  tone = "home",
 }: AdminDialogProps) {
   const { formatMessage } = useIntl();
+  // Hidden tabs freeze CSS animations, so a close that happens while the tab
+  // is backgrounded would never fire animationend — Radix Presence keeps the
+  // exit node (and its body pointer-events lock) forever. Closing with
+  // data-instant-exit set drops the exit animation entirely so Radix unmounts
+  // synchronously. Reset on the next open.
+  const [instantExit, setInstantExit] = useState(false);
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen && preventClose) return;
+    setInstantExit(!nextOpen && document.visibilityState === "hidden");
     onOpenChange(nextOpen);
   };
-  const hasStructuredHeader = variant !== "palette";
+  // Programmatic closes (parent flips `open` without a user gesture) bypass
+  // handleOpenChange — catch those too when they happen in a hidden tab. The
+  // attribute lands one commit after the closed state, where it cancels the
+  // already-frozen animation (the CSS also display:none's the node).
+  useEffect(() => {
+    if (open) {
+      setInstantExit(false);
+    } else if (document.visibilityState === "hidden") {
+      setInstantExit(true);
+    }
+  }, [open]);
+  // Palette + flow let the consumer own the visible header chrome; the
+  // structured header (icon/title/description) is suppressed and the title is
+  // kept screen-reader-only for the Radix dialog a11y contract.
+  const hasStructuredHeader = variant !== "palette" && variant !== "flow";
+  const hasFullWidthMobileSheet = variant === "standard" || variant === "flow";
   const iconNode =
     typeof Icon === "function" ? (
       <Icon className="h-6 w-6 text-[rgb(var(--m3-on-surface-variant))]" />
@@ -130,9 +207,10 @@ export function AdminDialog({
         <Dialog.Overlay
           data-component="AdminDialog"
           data-slot="overlay"
+          data-instant-exit={instantExit || undefined}
+          style={{ background: "var(--admin-modal-scrim, rgb(0 0 0 / 0.32))" }}
           className={cn(
-            "fixed inset-0 z-overlay",
-            "bg-[rgb(var(--m3-on-surface)/0.32)]"
+            "fixed inset-0 z-overlay"
             // Scrim fade is driven by the [data-component="AdminDialog"][data-slot="overlay"]
             // rules in admin-m3-overrides.css (keyed off Radix's data-state). Do NOT re-add
             // Tailwind `animate-*`/`fade-*` classes here — the tailwindcss-animate plugin is
@@ -145,27 +223,32 @@ export function AdminDialog({
           data-component="AdminDialog"
           data-slot="surface"
           data-variant={variant}
+          data-tone={tone}
           data-mobile="sheet"
+          data-size={size}
+          data-instant-exit={instantExit || undefined}
           role={role}
           className={cn(
-            // Mobile sheet, desktop centered dialog.
-            "fixed bottom-0 left-1/2 z-modal flex max-h-[calc(100dvh-1rem)] w-full max-w-[calc(100vw-1rem)] -translate-x-1/2 flex-col",
-            "rounded-t-[var(--m3-shape-xl)] sm:bottom-auto sm:top-1/2 sm:max-h-[calc(100dvh-2rem)] sm:-translate-y-1/2 sm:rounded-[var(--m3-shape-xl)]",
+            // Mobile: standard + flow are true full-width action sheets; compact
+            // surfaces (confirm + palette) keep the inset sheet. Desktop centers all.
+            hasFullWidthMobileSheet ? fullWidthMobileSheetClasses : compactMobileSheetClasses,
+            "rounded-t-[var(--m3-shape-xl)] sm:rounded-[var(--m3-shape-xl)]",
             // Surface
             "bg-[rgb(var(--m3-surface-container-high))]",
             // Elevation 3
             "shadow-[var(--m3-elevation-3)]",
-            // Padding: 24dp by default; palette manages its own inner chrome.
-            variant === "palette" ? "p-0" : "p-6",
-            // Enter/exit motion (mobile sheet slide-up, desktop zoom) is driven by the
-            // [data-component="AdminDialog"][data-slot="surface"][data-state] rules in
-            // admin-m3-overrides.css. Those keyframes animate only `transform`; the
-            // centering above uses Tailwind's independent `translate` property, which
-            // composes with `transform` so the surface stays centered. Do NOT re-add
-            // Tailwind `animate-*`/`slide-in-*`/`zoom-*` classes here — tailwindcss-animate
-            // is not loaded in this build, so they emit no CSS (dead classes).
-            // Focus outline suppression (handled per-element)
+            // Enter/exit motion (mobile sheet slide-up, desktop zoom) is driven by
+            // the [data-component="AdminDialog"][data-slot="surface"][data-state]
+            // rules in admin-m3-overrides.css. Those keyframes animate only
+            // `transform`; the centering uses Tailwind's independent `translate`
+            // property, which composes so the surface stays centered. Do NOT re-add
+            // Tailwind animate-*/slide-in-*/zoom-* classes — tailwindcss-animate is
+            // not loaded in this build, so they emit no CSS (dead classes).
             "focus:outline-none",
+            // Structured regions own their padding (header/body/footer bars);
+            // overflow-hidden clips the footer's raised background to the
+            // rounded corners. Body scrolling happens inside the body slot.
+            "overflow-hidden p-0",
             sizeClasses[size],
             variantClasses[variant],
             className
@@ -191,35 +274,35 @@ export function AdminDialog({
           ) : null}
 
           {hasStructuredHeader ? (
-            <div data-slot="header" className="shrink-0">
-              {/* Optional icon - centered above headline */}
-              {iconNode ? (
-                <div className="mb-4 flex justify-center" aria-hidden="true">
-                  {iconNode}
+            <header
+              data-slot="header"
+              className={cn(
+                "shrink-0 border-b border-stroke-soft px-4 py-3 sm:px-6",
+                // Clearance for the absolute close button on the title row.
+                !hideCloseButton && "pr-14"
+              )}
+            >
+              <div className="flex items-start gap-3">
+                {iconNode ? (
+                  <span className="mt-0.5 shrink-0" aria-hidden="true">
+                    {iconNode}
+                  </span>
+                ) : null}
+                <div className="min-w-0">
+                  <Dialog.Title className="text-lg font-semibold leading-7 text-[rgb(var(--m3-on-surface))]">
+                    {title}
+                  </Dialog.Title>
+                  <Dialog.Description
+                    className={cn(
+                      description ? "mt-0.5 text-sm" : "sr-only",
+                      "text-[rgb(var(--m3-on-surface-variant))]"
+                    )}
+                  >
+                    {description ?? title}
+                  </Dialog.Description>
                 </div>
-              ) : null}
-
-              {/* Headline */}
-              <Dialog.Title
-                className={cn(
-                  "text-headline-sm font-semibold leading-tight",
-                  "text-[rgb(var(--m3-on-surface))]",
-                  // Right padding so text doesn't overlap close button
-                  !hideCloseButton && "pr-10"
-                )}
-              >
-                {title}
-              </Dialog.Title>
-
-              <Dialog.Description
-                className={cn(
-                  description ? "mt-4 text-body-md" : "sr-only",
-                  "text-[rgb(var(--m3-on-surface-variant))]"
-                )}
-              >
-                {description ?? title}
-              </Dialog.Description>
-            </div>
+              </div>
+            </header>
           ) : (
             <>
               <Dialog.Title className="sr-only">{title}</Dialog.Title>
@@ -233,20 +316,25 @@ export function AdminDialog({
             className={cn(
               "min-h-0 flex-1 overflow-y-auto text-body-md",
               "text-[rgb(var(--m3-on-surface-variant))]",
-              variant === "palette" ? "" : "-mx-6 mt-4 px-6",
+              variant === "palette" || variant === "flow" ? "" : "px-4 py-4 sm:px-6",
               bodyClassName
             )}
           >
             {children}
           </div>
 
-          {/* Actions - right-aligned row, pinned below the scrollable body */}
+          {/* Actions — pinned footer bar (the flows' SheetFooter anatomy):
+              hairline top border on the raised surface, buttons right-aligned. */}
           {actions ? (
             <div
               data-slot="actions"
               data-testid="admin-dialog-actions"
               className={cn(
-                "mt-6 flex shrink-0 flex-col-reverse gap-2 sm:flex-row sm:justify-end",
+                // Hairline + raised tokens carry fallbacks so the footer stays
+                // correct in contexts that don't load admin index.css (Storybook
+                // renders stories without it — an unset var would fall back to
+                // currentColor and paint a near-black border).
+                "flex shrink-0 flex-col-reverse gap-2 border-t border-[color:var(--hairline,rgb(var(--stroke-soft-200)))] bg-[var(--surface-raised,rgb(var(--bg-white-0)))] px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:flex-row sm:items-center sm:justify-end sm:px-6 sm:py-3",
                 actionsClassName
               )}
             >
@@ -275,6 +363,7 @@ export function AdminConfirmDialog({
   variant = "default",
   isLoading = false,
   icon,
+  tone,
 }: AdminConfirmDialogProps) {
   const { formatMessage } = useIntl();
   const resolvedConfirmLabel = confirmLabel ?? formatMessage({ id: "app.common.confirm" });
@@ -285,7 +374,7 @@ export function AdminConfirmDialog({
     icon ??
     (isDanger || isWarning ? (
       <RiAlertLine
-        className={cn("h-6 w-6", isDanger ? "text-[rgb(var(--m3-error))]" : "text-warning-base")}
+        className={cn("h-6 w-6", isDanger ? "text-[rgb(var(--m3-error))]" : "text-warning-dark")}
       />
     ) : null);
 
@@ -326,6 +415,7 @@ export function AdminConfirmDialog({
       description={description}
       icon={iconNode}
       variant="confirm"
+      tone={tone}
       role={isDanger || isWarning ? "alertdialog" : "dialog"}
       preventClose={isLoading}
       hideCloseButton={isLoading}

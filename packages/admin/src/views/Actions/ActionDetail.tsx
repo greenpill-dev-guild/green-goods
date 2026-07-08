@@ -1,7 +1,9 @@
 import {
+  ACTION_CAPITAL_LABEL_IDS,
   ActionBannerFallback,
   Button,
   DEFAULT_CHAIN_ID,
+  DOMAIN_CONFIG,
   type Domain,
   type Action,
   type LifecycleStage,
@@ -9,7 +11,6 @@ import {
   getActionLifecycleState,
   getActionsListSearch,
   StatusBadge,
-  Surface,
   formatDateTime,
   ImageWithFallback,
   localizeAction,
@@ -19,13 +20,14 @@ import {
 import { RiEditLine, RiFileListLine, RiImageLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { Link, useLocation, useParams } from "react-router-dom";
+import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
 import {
   CanvasRouteContent,
   CanvasRouteFrame,
   CanvasRouteHeader,
 } from "@/components/Layout/CanvasRouteFrame";
-import { useMemo } from "react";
+import { type ReactNode, useMemo } from "react";
 
 interface ActionDetailMediaTileProps {
   src?: string;
@@ -52,6 +54,15 @@ function ActionDetailMediaTile({ src, alt, domain, title }: ActionDetailMediaTil
           <ActionBannerFallback domain={domain} title={title} className="rounded-lg" />
         }
       />
+    </div>
+  );
+}
+
+function DetailField({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div>
+      <dt className="label-xs text-text-soft">{label}</dt>
+      <dd className="mt-1 text-sm font-semibold text-text-strong">{children}</dd>
     </div>
   );
 }
@@ -90,15 +101,15 @@ export function ActionDetailPanel({
   if (!action) {
     return (
       <div className="p-4">
-        <Surface elevation="raised" padding="default" className="space-y-3 text-center">
+        <AdminCard className="space-y-3 text-center">
           <p className="text-sm text-text-sub">{formatMessage({ id: "app.actions.notFound" })}</p>
-          <Button size="sm" variant="secondary" onClick={onClose}>
+          <AdminButton size="sm" variant="outlined" onClick={onClose}>
             {formatMessage({
               id: "app.actions.backToActions",
               defaultMessage: "Back to actions",
             })}
-          </Button>
-        </Surface>
+          </AdminButton>
+        </AdminCard>
       </div>
     );
   }
@@ -110,147 +121,147 @@ export function ActionDetailPanel({
     defaultMessage:
       lifecycle === "active" ? "Active" : lifecycle === "upcoming" ? "Upcoming" : "Completed",
   });
+  const domainLabel = formatMessage({
+    id: DOMAIN_CONFIG[action.domain]?.labelId ?? "app.admin.nav.actions",
+  });
+  const DomainIcon = DOMAIN_CONFIG[action.domain]?.icon;
 
   return (
-    <div className="space-y-4 p-4">
-      <div className="space-y-3">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0 space-y-2">
-            <StatusBadge variant={getLifecycleVariant(lifecycle)}>{lifecycleLabel}</StatusBadge>
-            <p className="text-sm text-text-sub">
-              {displayAction.description || formatMessage({ id: "admin.actions.noDescription" })}
-            </p>
-          </div>
-          {canManageActions ? (
-            <Button size="sm" onClick={onEdit}>
-              <RiEditLine className="h-4 w-4" />
-              {formatMessage({ id: "app.actions.edit" })}
-            </Button>
-          ) : null}
-        </div>
+    <div className="space-y-4 p-4 sm:p-5">
+      {/* Status + compact Edit — Edit no longer owns a full-width row. */}
+      <div className="flex items-start justify-between gap-3">
+        <StatusBadge variant={getLifecycleVariant(lifecycle)}>{lifecycleLabel}</StatusBadge>
+        {canManageActions ? (
+          <AdminButton
+            size="sm"
+            variant="outlined"
+            leadingIcon={<RiEditLine className="h-4 w-4" />}
+            onClick={onEdit}
+          >
+            {formatMessage({ id: "app.actions.edit" })}
+          </AdminButton>
+        ) : null}
       </div>
 
-      <Surface elevation="raised" padding="default" className="space-y-6">
-        <div className="space-y-4">
-          <div>
-            <h2 className="label-md text-text-strong sm:text-lg">
-              {formatMessage({ id: "app.actions.detail.details" })}
-            </h2>
-            <p className="mt-1 text-sm text-text-sub">
+      {/* Media leads on mobile (DOM-first); becomes the right rail on desktop. */}
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1.9fr)_minmax(15rem,1fr)]">
+        <section className="space-y-3 xl:order-2">
+          <div className="flex items-center gap-2">
+            <RiImageLine className="h-4 w-4 text-text-soft" />
+            <h3 className="text-sm font-semibold text-text-strong">
+              {formatMessage({ id: "app.actions.detail.media" })}
+            </h3>
+          </div>
+          {displayAction.media.length > 0 ? (
+            <div className="grid grid-cols-2 gap-3 xl:grid-cols-1">
+              {displayAction.media.map((url, index) => (
+                <ActionDetailMediaTile
+                  key={`${url}-${index}`}
+                  src={url}
+                  alt={formatMessage(
+                    {
+                      id: "app.actions.detail.mediaAlt",
+                      defaultMessage: "Action media {index}",
+                    },
+                    { index: index + 1 }
+                  )}
+                  domain={action.domain}
+                  title={displayAction.title}
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-text-sub">
               {formatMessage({
-                id: "cockpit.actions.detailDescription",
-                defaultMessage:
-                  "Review lifecycle details and the submission requirements for this action.",
+                id: "cockpit.actions.noMedia",
+                defaultMessage: "No media attached",
               })}
             </p>
-          </div>
+          )}
+        </section>
 
-          <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <AdminCard variant="outlined" className="px-4 py-3">
-              <dt className="text-xs text-text-soft">
-                {formatMessage({ id: "cockpit.actions.lifecycle", defaultMessage: "Lifecycle" })}
-              </dt>
-              <dd className="mt-1 text-sm font-semibold text-text-strong">{lifecycleLabel}</dd>
-            </AdminCard>
-            <AdminCard variant="outlined" className="px-4 py-3">
-              <dt className="text-xs text-text-soft">
+        <div className="space-y-5 xl:order-1">
+          <p className="text-sm text-text-sub">
+            {displayAction.description || formatMessage({ id: "admin.actions.noDescription" })}
+          </p>
+
+          <dl className="grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">
+            <DetailField label={formatMessage({ id: "app.admin.actions.create.domainLabel" })}>
+              <span className="inline-flex items-center gap-1.5">
+                {DomainIcon ? <DomainIcon className="h-4 w-4 text-text-soft" /> : null}
+                {domainLabel}
+              </span>
+            </DetailField>
+            <DetailField
+              label={formatMessage({
+                id: "cockpit.actions.lifecycle",
+                defaultMessage: "Lifecycle",
+              })}
+            >
+              {lifecycleLabel}
+            </DetailField>
+            <DetailField label={formatMessage({ id: "app.actions.detail.startTime" })}>
+              {formatDateTime(action.startTime)}
+            </DetailField>
+            <DetailField label={formatMessage({ id: "app.actions.detail.endTime" })}>
+              {formatDateTime(action.endTime)}
+            </DetailField>
+            <div className="sm:col-span-2">
+              <dt className="label-xs text-text-soft">
                 {formatMessage({ id: "app.actions.detail.capitals" })}
               </dt>
-              <dd className="mt-1 text-sm font-semibold text-text-strong">
-                {formatMessage(
-                  {
-                    id: "app.actions.detail.capitalsForms",
-                    defaultMessage: "{count} capital forms",
-                  },
-                  { count: action.capitals.length }
+              <dd className="mt-1.5">
+                {action.capitals.length > 0 ? (
+                  <div className="flex flex-wrap gap-1.5">
+                    {action.capitals.map((capital) => (
+                      <span
+                        key={capital}
+                        className="inline-flex items-center rounded-full bg-bg-soft px-2.5 py-1 text-body-sm font-medium text-text-sub"
+                      >
+                        {formatMessage({ id: ACTION_CAPITAL_LABEL_IDS[capital] })}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <span className="text-sm text-text-sub">—</span>
                 )}
               </dd>
-            </AdminCard>
-            <AdminCard variant="outlined" className="px-4 py-3">
-              <dt className="text-xs text-text-soft">
-                {formatMessage({ id: "app.actions.detail.startTime" })}
-              </dt>
-              <dd className="mt-1 text-sm font-semibold text-text-strong">
-                {formatDateTime(action.startTime)}
-              </dd>
-            </AdminCard>
-            <AdminCard variant="outlined" className="px-4 py-3">
-              <dt className="text-xs text-text-soft">
-                {formatMessage({ id: "app.actions.detail.endTime" })}
-              </dt>
-              <dd className="mt-1 text-sm font-semibold text-text-strong">
-                {formatDateTime(action.endTime)}
-              </dd>
-            </AdminCard>
+            </div>
           </dl>
-        </div>
-      </Surface>
 
-      <Surface elevation="raised" padding="default" className="space-y-4">
-        <div className="flex items-center gap-2">
-          <RiFileListLine className="h-4 w-4 text-text-soft" />
-          <h3 className="text-sm font-semibold text-text-strong">
-            {formatMessage({
-              id: "cockpit.actions.requirements",
-              defaultMessage: "Submission requirements",
-            })}
-          </h3>
+          <section className="space-y-2">
+            <div className="flex items-center gap-2">
+              <RiFileListLine className="h-4 w-4 text-text-soft" />
+              <h3 className="text-sm font-semibold text-text-strong">
+                {formatMessage({
+                  id: "cockpit.actions.requirements",
+                  defaultMessage: "Submission requirements",
+                })}
+              </h3>
+            </div>
+            {displayAction.inputs.length > 0 ? (
+              <ul className="divide-y divide-stroke-soft overflow-hidden rounded-lg border border-stroke-soft">
+                {displayAction.inputs.map((input) => (
+                  <li
+                    key={input.key}
+                    className="flex items-center justify-between gap-2 px-3 py-2.5"
+                  >
+                    <span className="text-sm font-medium text-text-strong">{input.title}</span>
+                    <span className="text-xs text-text-soft">{input.type}</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-text-sub">
+                {formatMessage({
+                  id: "cockpit.actions.noInputs",
+                  defaultMessage: "No form fields configured",
+                })}
+              </p>
+            )}
+          </section>
         </div>
-        {displayAction.inputs.length > 0 ? (
-          <div className="space-y-2">
-            {displayAction.inputs.map((input) => (
-              <AdminCard variant="outlined" key={input.key} className="px-3 py-2.5">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-medium text-text-strong">{input.title}</p>
-                  <span className="text-xs text-text-soft">{input.type}</span>
-                </div>
-              </AdminCard>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-text-sub">
-            {formatMessage({
-              id: "cockpit.actions.noInputs",
-              defaultMessage: "No form fields configured",
-            })}
-          </p>
-        )}
-      </Surface>
-
-      <Surface elevation="raised" padding="default" className="space-y-4">
-        <div className="flex items-center gap-2">
-          <RiImageLine className="h-4 w-4 text-text-soft" />
-          <h3 className="text-sm font-semibold text-text-strong">
-            {formatMessage({ id: "app.actions.detail.media" })}
-          </h3>
-        </div>
-        {displayAction.media.length > 0 ? (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {displayAction.media.map((url, index) => (
-              <ActionDetailMediaTile
-                key={`${url}-${index}`}
-                src={url}
-                alt={formatMessage(
-                  {
-                    id: "app.actions.detail.mediaAlt",
-                    defaultMessage: "Action media {index}",
-                  },
-                  { index: index + 1 }
-                )}
-                domain={action.domain}
-                title={displayAction.title}
-              />
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-text-sub">
-            {formatMessage({
-              id: "cockpit.actions.noMedia",
-              defaultMessage: "No media attached",
-            })}
-          </p>
-        )}
-      </Surface>
+      </div>
     </div>
   );
 }
@@ -321,9 +332,9 @@ export default function ActionDetail() {
           sticky
         />
         <CanvasRouteContent maxWidthClassName="max-w-[960px]" className="mt-4">
-          <Surface elevation="raised" padding="default" className="text-center">
+          <AdminCard className="text-center">
             <p className="text-sm text-text-sub">{formatMessage({ id: "app.actions.notFound" })}</p>
-          </Surface>
+          </AdminCard>
         </CanvasRouteContent>
       </CanvasRouteFrame>
     );
@@ -376,7 +387,7 @@ export default function ActionDetail() {
 
       <CanvasRouteContent maxWidthClassName="max-w-[1200px]" className="mt-4">
         <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
-          <Surface elevation="raised" padding="default" className="space-y-6">
+          <AdminCard className="space-y-6">
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(18rem,1fr)]">
               <div className="space-y-4">
                 <div>
@@ -437,7 +448,7 @@ export default function ActionDetail() {
                 </dl>
               </div>
 
-              <Surface elevation="ground" padding="default" className="space-y-3">
+              <AdminCard variant="filled" className="space-y-3">
                 <div className="flex items-center gap-2">
                   <RiFileListLine className="h-4 w-4 text-text-soft" />
                   <h3 className="text-sm font-semibold text-text-strong">
@@ -478,12 +489,12 @@ export default function ActionDetail() {
                     </p>
                   )}
                 </div>
-              </Surface>
+              </AdminCard>
             </div>
-          </Surface>
+          </AdminCard>
 
           <div className="space-y-4">
-            <Surface elevation="raised" padding="default" className="space-y-4">
+            <AdminCard className="space-y-4">
               <div className="flex items-center gap-2">
                 <RiImageLine className="h-4 w-4 text-text-soft" />
                 <div>
@@ -525,7 +536,7 @@ export default function ActionDetail() {
                   })}
                 </p>
               )}
-            </Surface>
+            </AdminCard>
           </div>
         </div>
       </CanvasRouteContent>

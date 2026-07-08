@@ -39,6 +39,8 @@ contract SepoliaENSForkTest is Test {
     uint256 public protocolHatId;
 
     function _tryFork() internal returns (bool) {
+        if (block.chainid == 11_155_111) return true;
+
         string memory rpc;
         try vm.envString("SEPOLIA_FORK_RPC_URL") returns (string memory value) {
             rpc = value;

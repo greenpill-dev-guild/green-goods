@@ -2,7 +2,7 @@
  * SiteHeader Component Tests
  *
  * Tests the public website header for the editorial public browser:
- * - Desktop: nav order Gardens / Impact / Fund / Actions + Install/Open App CTA
+ * - Desktop: nav order Gardens / Impact / Vaults / Fund / Actions + Install/Open App CTA
  * - Mobile: hamburger button (aria-expanded toggling)
  * - Drawer: opens, closes on Escape, mirrors nav + Install/Open App
  * - Wallet connect is intentionally absent from public header chrome
@@ -28,8 +28,10 @@ vi.mock("@green-goods/shared", () => ({
   APP_NAME: "Green Goods",
   cn: (...args: any[]) => args.filter(Boolean).join(" "),
   useApp: mockUseApp,
+  useIsBraveBrowser: () => false,
   useInstallGuidance: mockUseInstallGuidance,
   usePublicInstallHandler: mockUsePublicInstallHandler,
+  useTunnelUrl: () => null,
   useEventListener: vi.fn(),
 }));
 
@@ -39,6 +41,7 @@ const messages: Record<string, string> = {
   "public.nav.gardens": "Gardens",
   "public.nav.actions": "Actions",
   "public.nav.impact": "Impact",
+  "public.nav.vaults": "Vaults",
   "public.nav.fund": "Fund",
   "public.nav.installApp": "Install App",
   "public.nav.openApp": "Open App",
@@ -62,6 +65,7 @@ describe("SiteHeader", () => {
     mockUseApp.mockReturnValue({
       isMobile: false,
       isInstalled: false,
+      isInstalling: false,
       wasInstalled: false,
       platform: "unknown",
       deferredPrompt: null,
@@ -92,7 +96,16 @@ describe("SiteHeader", () => {
     expect(screen.getAllByText("Fund").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Actions").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("Install App").length).toBeGreaterThanOrEqual(1);
-    expect(mockUseInstallGuidance).toHaveBeenCalledWith("unknown", false, false, null, false);
+    // Vaults is intentionally not in the header nav.
+    expect(screen.queryByText("Vaults")).toBeNull();
+    expect(mockUseInstallGuidance).toHaveBeenCalledWith(
+      "unknown",
+      false,
+      false,
+      null,
+      false,
+      false
+    );
     // No wallet CTA in public header.
     expect(screen.queryByText("Connect Wallet")).toBeNull();
   });
@@ -117,6 +130,7 @@ describe("SiteHeader", () => {
     mockUseApp.mockReturnValue({
       isMobile: true,
       isInstalled: true,
+      isInstalling: false,
       wasInstalled: true,
       platform: "unknown",
       deferredPrompt: null,
@@ -133,6 +147,40 @@ describe("SiteHeader", () => {
     });
     renderHeader();
     expect(screen.getAllByText("Open App").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("renders Install App when mobile history says installed but the PWA is gone", () => {
+    mockUseApp.mockReturnValue({
+      isMobile: true,
+      isInstalled: false,
+      isInstalling: false,
+      wasInstalled: true,
+      platform: "unknown",
+      deferredPrompt: null,
+      promptInstall: vi.fn(),
+    });
+    mockUseInstallGuidance.mockReturnValue({
+      scenario: "manual-install-available",
+      primaryAction: { type: "show-manual-steps", label: "Install App" },
+      secondaryAction: { type: "continue-in-browser", label: "Continue in Browser" },
+      browserInfo: { browser: "unknown" },
+      showBrowserOption: true,
+      manualInstructions: [
+        {
+          stepNumber: 1,
+          icon: "menu",
+          title: "Step 1",
+          description: "Open the browser menu.",
+        },
+      ],
+      browserSwitchReason: null,
+      openInBrowserUrl: null,
+    });
+
+    renderHeader();
+
+    expect(screen.getAllByText("Install App").length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByText("Open App")).not.toBeInTheDocument();
   });
 
   it("desktop install CTA opens the QR handoff dialog", () => {
@@ -183,7 +231,7 @@ describe("SiteHeader", () => {
   });
 
   it("renders transparent on every public route (not just home)", () => {
-    for (const route of ["/", "/gardens", "/impact", "/fund", "/actions"]) {
+    for (const route of ["/", "/gardens", "/impact", "/vaults", "/fund", "/actions"]) {
       cleanup();
       renderHeader(route);
       const header = document.querySelector("header");

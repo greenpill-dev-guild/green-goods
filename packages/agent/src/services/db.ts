@@ -54,6 +54,8 @@ interface FundingIntentRow {
   quoteExpiresAt: string;
   checkoutExpiresAt: string | null;
   receiverAddress: FundingIntentRecord["receiverAddress"] | null;
+  sourceRoute: FundingIntentRecord["sourceRoute"] | null;
+  managementUrl: FundingIntentRecord["managementUrl"] | null;
   quotedAssetAmount: string | null;
   minAssetAmount: string | null;
   fundedAssetAmount: string | null;
@@ -112,6 +114,8 @@ function serializeFundingIntent(record: FundingIntentRecord): SqlValue[] {
     record.quoteExpiresAt,
     record.checkoutExpiresAt ?? null,
     record.receiverAddress ?? null,
+    record.sourceRoute ?? null,
+    record.managementUrl ?? null,
     record.quotedAssetAmount ?? null,
     record.minAssetAmount ?? null,
     record.fundedAssetAmount ?? null,
@@ -222,6 +226,8 @@ function deserializeFundingIntent(row: FundingIntentRow): FundingIntentRecord {
     quoteExpiresAt: row.quoteExpiresAt,
     checkoutExpiresAt: row.checkoutExpiresAt ?? undefined,
     receiverAddress: row.receiverAddress ?? undefined,
+    sourceRoute: row.sourceRoute ?? undefined,
+    managementUrl: row.managementUrl ?? undefined,
     quotedAssetAmount: row.quotedAssetAmount ?? undefined,
     minAssetAmount: row.minAssetAmount ?? undefined,
     fundedAssetAmount: row.fundedAssetAmount ?? undefined,
@@ -392,6 +398,8 @@ class DB {
         quoteExpiresAt TEXT NOT NULL,
         checkoutExpiresAt TEXT,
         receiverAddress TEXT,
+        sourceRoute TEXT,
+        managementUrl TEXT,
         quotedAssetAmount TEXT,
         minAssetAmount TEXT,
         fundedAssetAmount TEXT,
@@ -418,6 +426,8 @@ class DB {
 
     this.ensureColumn("funding_intents", "providerSessionId", "TEXT");
     this.ensureColumn("funding_intents", "providerPaymentId", "TEXT");
+    this.ensureColumn("funding_intents", "sourceRoute", "TEXT");
+    this.ensureColumn("funding_intents", "managementUrl", "TEXT");
     this.ensureColumn("funding_intent_events", "providerEventId", "TEXT");
     this.ensureColumn("users", "locale", "TEXT");
 
@@ -1061,10 +1071,11 @@ class DB {
           fundingIntent, paymentMethod, availabilityKey, clientRequestId, idempotencyFingerprint,
           amountUsd, chainId, token, provider, providerSessionId, providerPaymentId, status,
           payerEmailHash, receiptTokenHash,
-          quoteExpiresAt, checkoutExpiresAt, receiverAddress, quotedAssetAmount, minAssetAmount,
+          quoteExpiresAt, checkoutExpiresAt, receiverAddress, sourceRoute, managementUrl,
+          quotedAssetAmount, minAssetAmount,
           fundedAssetAmount, fundingTxHash, failureCode, checkoutSession, transactionAttempts,
           createdAt, updatedAt
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .run(...serializeFundingIntent(record));
     return record;
@@ -1093,9 +1104,9 @@ class DB {
           clientRequestId = ?, idempotencyFingerprint = ?, amountUsd = ?, chainId = ?,
           token = ?, provider = ?, providerSessionId = ?, providerPaymentId = ?, status = ?,
           payerEmailHash = ?, receiptTokenHash = ?, quoteExpiresAt = ?, checkoutExpiresAt = ?,
-          receiverAddress = ?, quotedAssetAmount = ?, minAssetAmount = ?, fundedAssetAmount = ?,
-          fundingTxHash = ?, failureCode = ?, checkoutSession = ?, transactionAttempts = ?,
-          createdAt = ?, updatedAt = ?
+          receiverAddress = ?, sourceRoute = ?, managementUrl = ?, quotedAssetAmount = ?,
+          minAssetAmount = ?, fundedAssetAmount = ?, fundingTxHash = ?, failureCode = ?,
+          checkoutSession = ?, transactionAttempts = ?, createdAt = ?, updatedAt = ?
          WHERE id = ?`
       )
       .run(...serializeFundingIntentForUpdate(record));

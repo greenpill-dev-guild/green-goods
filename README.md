@@ -1,6 +1,6 @@
 # Green Goods
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/greenpill-dev-guild/green-goods/releases)
+[![Version](https://img.shields.io/github/v/tag/greenpill-dev-guild/green-goods)](https://github.com/greenpill-dev-guild/green-goods/releases)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 **Bringing community and environmental actions onchain to better measure, track and reward impact.**
@@ -41,6 +41,14 @@ npm run setup
 
 After setup, use `bun` for repo scripts and package operations. `npm run setup` is the only documented npm entrypoint because fresh machines may not have Bun yet.
 
+For isolated worktrees, containers, or agent-owned checkouts, use the same npm bridge with the isolated profile:
+
+```bash
+npm run setup -- --profile isolated
+```
+
+The isolated profile can bootstrap Bun when Node/npm and network access are available, then uses `bun install --frozen-lockfile` once Bun is present. It avoids host-only setup such as Docker checks, Foundry installation, service starts/stops, browser launches, and sibling-worktree cleanup.
+
 #### Environment defaults
 
 Green Goods uses a single root `.env`, materialized from `.env.template` via the [1Password CLI](https://developer.1password.com/docs/cli/) (`op inject`). Bun, Vite, and Node read it natively — no per-command secret fetch.
@@ -56,11 +64,16 @@ bun run env:check            # validate .env satisfies .env.schema
 | Variable | Needed for | Default setup state |
 | --- | --- | --- |
 | `APP_ENV` | Local tooling mode | Generated as `development` |
+| `GG_WORKSPACE_PROFILE` | Setup posture for host, isolated worktree, or cloud/container runtime | `host`; use `isolated` for worktree/container flows |
+| `GG_SETUP_INSTALL` | Dependency install policy for setup | `auto`; use `skip` for pre-baked containers |
+| `GG_SETUP_ENV_MODE` | Baseline `.env` creation policy for setup | `auto`; isolated auto creates non-secret web defaults |
 | `VITE_CHAIN_ID` | Client/admin chain selection | Generated for Sepolia |
 | `VITE_DEV_CHAIN_MODE` | Optional local fork marker | Set by the repo-native dev stack for Green Goods fork mode |
 | `VITE_LOCAL_FORK_RPC_URL` | Optional local fork RPC | Set by the repo-native dev stack to `http://127.0.0.1:3009` |
 | `VITE_ENVIO_INDEXER_URL` | Local indexer reads | Generated for local GraphQL; needs the indexer running for live local data |
-| `VITE_PINATA_JWT` | Upload-capable media | Add only when testing uploads |
+| `VITE_API_BASE_URL` | Upload-capable media browser API origin | Generated for the local agent; set to the deployed agent for upload-capable QA |
+| `PINATA_JWT` / `PINATA_JWT_OP_REF` | Server/API Pinata upload authority | Add through `.env.template` / 1Password for upload-capable QA; never embed this in browser bundles |
+| `VITE_PINATA_GATEWAY_URL` | Public Pinata gateway for reading media | Generated from the shared gateway default |
 | `VITE_PIMLICO_API_KEY` | Passkey auth | Add only when testing passkey flows |
 | `VITE_WALLETCONNECT_PROJECT_ID` | Wallet auth | Add only when testing wallet flows |
 | `TELEGRAM_BOT_TOKEN` | Agent service | Add only when running a useful local agent |
@@ -125,7 +138,8 @@ should fail on indexer lag instead of pretending the local mirror is current.
 ### Stack Overview
 
 - Node.js 22+ provides `npm` for first-clone setup.
-- `npm run setup` installs Bun, installs dependencies, and creates the root `.env`.
+- `npm run setup` installs or confirms Bun, installs dependencies, and prints the env-sync path.
+- `npm run setup -- --profile isolated` is the portable worktree/container profile; it can write a non-secret baseline `.env`.
 - Bun is the workspace runtime after setup.
 - `.env.schema` (key contract) + `.env.template` (1Password refs) materialize `.env` via `bun run env:sync` (`op inject`).
 - The repo-native PM2 stack manages normal single-repo local dev services.
@@ -327,6 +341,15 @@ use `bun run dev`.
 ```bash
 bun run dev:stop
 ```
+
+#### Clean local artifacts
+
+```bash
+bun run dev:clean:dry
+bun run dev:clean
+```
+
+`dev:clean` only removes disposable build, test, cache, docs, Storybook, tunnel, tmp, and Turbo artifacts from the current checkout. It does not stop PM2/Docker services, remove dependencies, touch env files, or clean sibling worktrees.
 
 ## Contributing
 

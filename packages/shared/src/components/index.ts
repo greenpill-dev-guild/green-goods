@@ -64,24 +64,27 @@ export type { SurfaceProps, SurfaceVariantProps } from "./Surface";
 // Feedback Components
 export type { TxInlineFeedbackProps, TxInlineFeedbackSeverity } from "./feedback/TxInlineFeedback";
 export { TxInlineFeedback } from "./feedback/TxInlineFeedback";
-// Canvas Components (Sheets + Navigation + MainSheet)
+export type {
+  TransactionSuccessAffordanceProps,
+  TransactionSuccessMode,
+} from "./feedback/TransactionSuccessAffordance";
+export { TransactionSuccessAffordance } from "./feedback/TransactionSuccessAffordance";
+// Canvas Components (Navigation + MainSheet + sheet-slot primitives)
 export {
-  BottomSheet,
-  type BottomSheetProps,
   MainSheet,
   type MainSheetProps,
   EmptyStateShell,
   MetaStrip,
   type MetaStripItem,
   type MetaStripProps,
+  WorkbenchCard,
+  type WorkbenchCardProps,
   WorkbenchList,
   WorkbenchRow,
   type WorkbenchRowProps,
   type WorkbenchTone,
   type CanvasMobilePrimaryAction,
   FabProvider,
-  LeftSheetProvider,
-  useCanvasPortal,
   useCanvasResponsiveFab,
   useFabConfig,
   useFabConfigValue,
@@ -92,11 +95,6 @@ export {
   useRefreshAction,
   useRefreshActionValue,
   type RefreshActionConfig,
-  useLeftSheetConfig,
-  useLeftSheetConfigValue,
-  useRouteBackedLeftSheetConfig,
-  type LeftSheetConfig,
-  type RouteBackedLeftSheetConfig,
   type ToolbarSlot,
   GardenChip,
   type GardenChipProps,
@@ -107,6 +105,7 @@ export {
   NotificationPanel,
   type NotificationPanelItem,
   type NotificationPanelProps,
+  type NotificationPanelSection,
   type NotificationPanelTone,
   SheetBody,
   type SheetBodyProps,
@@ -116,11 +115,6 @@ export {
   type SheetErrorBoundaryProps,
   SheetFooter,
   type SheetFooterProps,
-  LeftSheet,
-  type LeftSheetProps,
-  RightSheet,
-  type RightSheetProps,
-  SPRING_CONFIGS,
   DISMISS_VELOCITY_THRESHOLD,
   CHOREOGRAPHY_STAGGER_MS,
   AppBar,
@@ -138,6 +132,7 @@ export {
 // Dialog Components
 export { ConfirmDialog, type ConfirmDialogProps } from "./Dialog";
 export { DialogShell, type DialogShellProps } from "./Dialog";
+export { PwaSheet, type PwaSheetProps } from "./Dialog";
 export { ImagePreviewDialog, type ImagePreviewDialogProps } from "./Dialog";
 // Display Components
 export {
@@ -168,6 +163,8 @@ export { CheckboxGroup, FormCheckbox } from "./Form/FormCheckbox";
 export type { FormFieldWrapperProps } from "./Form/FormFieldWrapper";
 export type { FormFieldProps } from "./Form/FormFieldWrapper";
 export { FormField, FormFieldWrapper } from "./Form/FormFieldWrapper";
+export type { FormattedAmountInputProps, FormattedAmountState } from "./Form/FormattedAmountInput";
+export { FormattedAmountInput, useFormattedAmountInput } from "./Form/FormattedAmountInput";
 export type { FormInputProps } from "./Form/FormInput";
 export { FormInput } from "./Form/FormInput";
 export type {
@@ -275,7 +272,7 @@ export {
   workToasts,
 } from "./Toast/presets";
 // Toast Components
-export type { ToastViewportProps } from "./Toast/ToastViewport";
+export type { ToastViewportProps, ToastViewportVariant } from "./Toast/ToastViewport";
 export { ToastViewport } from "./Toast/ToastViewport";
 export type {
   ToastAction,

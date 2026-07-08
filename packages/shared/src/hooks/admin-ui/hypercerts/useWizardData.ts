@@ -16,13 +16,13 @@ import {
   useHypercertContributorWeights,
   useHypercertDraft,
   useHypercerts,
+  isHypercertMintingInProgress,
+  useDirtyClose,
   useHypercertWizardStore,
   useMintHypercert,
-  useWindowEvent,
 } from "@green-goods/shared";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
-import { type Blocker, useBlocker } from "react-router-dom";
 import { zeroAddress } from "viem";
 import { getErrorMessageKey, type HypercertCompletionData } from "./types";
 import { useValidationMessage, useWizardSteps } from "./wizardSteps";
@@ -89,50 +89,32 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
     updateMetadata(prefill);
   }, [selectedAssessment, updateMetadata]);
 
-  // State for confirm dialog when blocking navigation
-  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
-  const blockerRef = useRef<Blocker | null>(null);
+  const isSubmitting = isHypercertMintingInProgress(mintingState.status);
 
-  // Track if user has made changes worth protecting
+  // Track if the operator has made changes worth protecting.
   const hasUnsavedChanges = useMemo(() => {
-    // Don't block if minting is in progress or completed
+    // Pending chain/indexer confirmation is protected by preventRouteChange;
+    // confirmed mints have no draft left to guard.
     if (["pending", "confirmed"].includes(mintingState.status)) return false;
     // Block if user has selected attestations or moved past step 1
     return selectedAttestationIds.length > 0 || currentStep > 1;
   }, [selectedAttestationIds.length, currentStep, mintingState.status]);
 
-  // Block React Router navigation when there are unsaved changes
-  const blocker = useBlocker(
-    ({ currentLocation, nextLocation }) =>
-      hasUnsavedChanges && currentLocation.pathname !== nextLocation.pathname
-  );
-
-  useWindowEvent("beforeunload", (event) => {
-    if (!hasUnsavedChanges) return;
-    event.preventDefault();
-    // Modern browsers ignore custom messages, but this triggers the dialog
-    event.returnValue = "";
+  // Confirm before navigating away from an in-progress mint. The shared hook
+  // owns the React Router blocker + beforeunload guard and raises the confirm;
+  // `onDiscard` resets the wizard store on confirm (parity with the prior
+  // bespoke guard). The wizard closes by navigating, so `onClose` is inert.
+  const {
+    confirmOpen: showLeaveConfirm,
+    cancelClose: handleCancelLeave,
+    confirmClose: handleConfirmLeave,
+  } = useDirtyClose({
+    isDirty: hasUnsavedChanges,
+    onClose: () => undefined,
+    blockRouteChange: true,
+    preventRouteChange: isSubmitting,
+    onDiscard: reset,
   });
-
-  useEffect(() => {
-    if (blocker.state === "blocked") {
-      blockerRef.current = blocker;
-      setShowLeaveConfirm(true);
-    }
-  }, [blocker]);
-
-  const handleConfirmLeave = useCallback(() => {
-    reset();
-    blockerRef.current?.proceed?.();
-    setShowLeaveConfirm(false);
-    blockerRef.current = null;
-  }, [reset]);
-
-  const handleCancelLeave = useCallback(() => {
-    blockerRef.current?.reset?.();
-    setShowLeaveConfirm(false);
-    blockerRef.current = null;
-  }, []);
 
   const { peekDraft, loadDraft, clearDraft } = useHypercertDraft(gardenId, operatorAddress, {
     enabled: draftReady && Boolean(gardenId && operatorAddress),
@@ -337,13 +319,6 @@ export function useWizardData({ gardenId, gardenName, onComplete }: UseWizardDat
   ]);
 
   const steps = useWizardSteps(formatMessage);
-
-  const isSubmitting = [
-    "uploading_metadata",
-    "uploading_allowlist",
-    "building_userop",
-    "pending",
-  ].includes(mintingState.status);
 
   const nextDisabled = !(canProceed?.(currentStep) ?? false);
   const submitLabel =

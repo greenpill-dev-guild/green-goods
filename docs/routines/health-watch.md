@@ -25,7 +25,7 @@ connectors:
   - linear
   - posthog
   - vercel
-model: claude-opus-4-7[1m]
+model: claude-opus-4-8[1m]
 ---
 
 # Prompt
@@ -61,6 +61,8 @@ Each category maps to a Linear label combination — old `health:*` GitHub label
 | Contracts state drift | `package:contracts` |
 | Agent service down/unreachable | `package:agent` |
 | Client-side error spike | `package:client` or `package:admin` (whichever PostHog project surged) |
+
+**Codex hand-off:** most health anomalies are operational (indexer/agent/contract state) and stay `agent:routine` for a human. Only when an accepted health Issue is a **code fix that clears the Codex-ready bar** (clear surface + concrete suggested fix + validation; never `package:contracts` or shared auth — see [`README.md` § Codex hand-off](README.md)) swap `agent:routine`→`agent:codex`, and delegate to Codex when it also clears the autonomous-confident bar.
 
 ### 1. Indexer
 

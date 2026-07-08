@@ -40,6 +40,23 @@ export interface BrowserInfo {
   displayName: string;
 }
 
+interface NavigatorWithUserAgentData extends Navigator {
+  userAgentData?: {
+    brands?: Array<{
+      brand: string;
+      version?: string;
+    }>;
+  };
+}
+
+function hasUserAgentBrand(nav: NavigatorWithUserAgentData, pattern: RegExp): boolean {
+  return nav.userAgentData?.brands?.some(({ brand }) => pattern.test(brand)) ?? false;
+}
+
+function hasUserAgentBrands(nav: NavigatorWithUserAgentData): boolean {
+  return (nav.userAgentData?.brands?.length ?? 0) > 0;
+}
+
 /**
  * Detect if running in an in-app browser (WebView)
  * These browsers typically can't install PWAs at all
@@ -82,7 +99,10 @@ export function detectMobileBrowser(
     };
   }
 
-  const ua = navigator.userAgent;
+  const nav = navigator as NavigatorWithUserAgentData;
+  const ua = nav.userAgent;
+  const isBraveBrand = hasUserAgentBrand(nav, /Brave/i);
+  const isGoogleChromeBrand = hasUserAgentBrand(nav, /^Google Chrome$/i);
 
   // Check for in-app browsers first (highest priority)
   if (detectInAppBrowser(ua)) {
@@ -145,7 +165,7 @@ export function detectMobileBrowser(
     }
 
     // Brave on iOS
-    if (/Brave/i.test(ua)) {
+    if (/Brave/i.test(ua) || isBraveBrand) {
       return {
         browser: "brave",
         supportsNativePWA: false,
@@ -169,7 +189,11 @@ export function detectMobileBrowser(
     // Safari (default on iOS if no other browser detected)
     // Safari doesn't have a unique identifier - it's the absence of others
     // Must exclude: CriOS (Chrome), FxiOS (Firefox), EdgiOS (Edge), OPiOS/OPT (Opera), Brave, DuckDuckGo
-    if (/Safari/i.test(ua) && !/CriOS|FxiOS|EdgiOS|OPiOS|OPT\/|Brave|DuckDuckGo/i.test(ua)) {
+    if (
+      /Safari/i.test(ua) &&
+      !/CriOS|FxiOS|EdgiOS|OPiOS|OPT\/|Brave|DuckDuckGo/i.test(ua) &&
+      !isBraveBrand
+    ) {
       return {
         browser: "safari",
         supportsNativePWA: true,
@@ -226,7 +250,7 @@ export function detectMobileBrowser(
     }
 
     // Brave on Android - NOT recommended for PWA
-    if (/Brave/i.test(ua)) {
+    if (/Brave/i.test(ua) || isBraveBrand) {
       return {
         browser: "brave",
         supportsNativePWA: false, // Partial support, not reliable
@@ -258,8 +282,15 @@ export function detectMobileBrowser(
       };
     }
 
-    // Google Chrome on Android - THE ONLY browser with full PWA support
-    if (/Chrome/i.test(ua) && !/Edg|OPR|Brave|SamsungBrowser/i.test(ua)) {
+    // Google Chrome on Android - THE ONLY browser with full PWA support.
+    // When Client Hints brands are present, treat them as authoritative:
+    // Chromium-only or alternate Chromium brands must not pass as Chrome.
+    const hasBrands = hasUserAgentBrands(nav);
+    const isChromeUserAgent =
+      /Chrome/i.test(ua) && !/Edg|OPR|Brave|SamsungBrowser/i.test(ua) && !isBraveBrand;
+    const isGoogleChrome = hasBrands ? isGoogleChromeBrand : isChromeUserAgent;
+
+    if (isGoogleChrome && isChromeUserAgent) {
       return {
         browser: "chrome",
         supportsNativePWA: true,
@@ -363,5 +394,9 @@ export function canTriggerInstallPrompt(browserInfo: BrowserInfo): boolean {
   if (browserInfo.isInAppBrowser) return false;
 
   // Only Chrome has reliable PWA install prompt support
-  return browserInfo.browser === "chrome";
+  return (
+    browserInfo.browser === "chrome" &&
+    browserInfo.supportsNativePWA &&
+    browserInfo.isRecommendedBrowser
+  );
 }

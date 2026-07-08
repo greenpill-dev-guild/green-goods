@@ -54,11 +54,21 @@ export { getGardensSubgraphUrl } from "./gardens-subgraph";
 
 // From passkeyServer.ts (client-only passkey utilities)
 export {
+  buildPasskeyRecoveryContext,
+  classifyPasskeyCeremonyContext,
   createPasskey,
+  createPasskeyServerClient,
   getPasskeyRpId,
   isPasskeyAvailable,
+  isPasskeyServerEnabled,
+  normalizePasskeyAccountIdentifier,
   PASSKEY_RP_ID,
   PASSKEY_RP_NAME,
+} from "./passkeyServer";
+export type {
+  PasskeyCeremonyBlockReason,
+  PasskeyCeremonyContextStatus,
+  PasskeyRecoveryContext,
 } from "./passkeyServer";
 // From pimlico.ts
 export {
@@ -85,3 +95,11 @@ export { getSDGLabel, SDG_TARGETS } from "./sdg";
 // From domain.ts
 export type { DomainStyle } from "./domain";
 export { DOMAIN_CONFIG } from "./domain";
+
+// From tokens.ts — sendable-token registry for the "Send" flow
+export type { SendableToken } from "./tokens";
+export {
+  buildSendableTokens,
+  getStablecoinSendableTokens,
+  GOODS_TOKEN_META,
+} from "./tokens";

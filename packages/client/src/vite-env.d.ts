@@ -6,6 +6,7 @@ interface ImportMetaEnv {
   readonly VITE_LOCAL_FORK_RPC_URL?: string;
   readonly VITE_ENABLE_ANVIL_WALLETS?: string;
   readonly VITE_WALLETCONNECT_PROJECT_ID: string;
+  readonly VITE_THIRDWEB_CLIENT_ID?: string;
   readonly VITE_PIMLICO_API_KEY?: string;
   readonly VITE_PASSKEY_RP_ID?: string;
   readonly VITE_PASSKEY_SERVER_ENABLED?: string;
@@ -22,6 +23,7 @@ interface ImportMetaEnv {
   readonly VITE_PINATA_GATEWAY_URL?: string;
   readonly VITE_CAMPAIGN_COOKIE_JARS?: string;
   readonly VITE_SENTRY_CLIENT_DSN?: string;
+  readonly VITE_SENTRY_ENVIRONMENT?: string;
   readonly VITE_SENTRY_DEBUG?: string;
 }
 

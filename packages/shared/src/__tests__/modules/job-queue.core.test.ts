@@ -51,6 +51,7 @@ vi.mock("../../config/blockchain", async (importOriginal) => {
 
 import { jobQueue, jobQueueDB } from "../../modules/job-queue";
 import type { TransactionSender } from "../../modules/transactions/types";
+import { encodeWorkData } from "../../utils/eas/encoders";
 
 // Test user address for scoped queue operations
 const TEST_USER_ADDRESS = "0xTestUser123";
@@ -145,6 +146,11 @@ describe("modules/job-queue", () => {
 
     expect(result.processed).toBe(1);
     expect(result.failed).toBe(0);
+    expect(encodeWorkData).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Test" }),
+      11155111,
+      expect.objectContaining({ gardenAddress: "0x123" })
+    );
     expect(mockSender.sendContractCall).toHaveBeenCalledTimes(1);
     const stats = await jobQueue.getStats(TEST_USER_ADDRESS);
     expect(stats.pending).toBe(0);

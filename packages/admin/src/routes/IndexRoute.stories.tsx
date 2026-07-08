@@ -253,7 +253,7 @@ function HomeShellHarness({ children }: { children: ReactNode }) {
           }
         />
       </div>
-      <MainSheet isReceded={false}>
+      <MainSheet>
         <main id="main-content" tabIndex={-1} className="main-scroll-area h-full overflow-y-auto">
           {children}
         </main>

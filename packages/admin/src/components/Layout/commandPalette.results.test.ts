@@ -28,8 +28,6 @@ function assessment(id: string, gardenAddress: string, title: string): GardenAss
 
 describe("buildCommandPaletteResults", () => {
   it("routes assessment results through the eligible garden context", () => {
-    const selectGarden = vi.fn();
-
     const results = buildCommandPaletteResults({
       query: "soil",
       role: "deployer",
@@ -40,19 +38,15 @@ describe("buildCommandPaletteResults", () => {
       assessments: [
         assessment("assessment-1", "0x0000000000000000000000000000000000000aaa", "Soil health"),
       ],
-      selectGarden,
     });
 
     expect(results).toEqual([
       expect.objectContaining({
         id: "assessment-assessment-1",
-        href: "/garden/impact?gardenAddress=0x0000000000000000000000000000000000000aaa&section=assessments&item=assessment-1",
+        href: "/garden/impact?gardenId=garden-1&section=assessments&item=assessment-1",
         subtitle: "Chakra Farm",
       }),
     ]);
-
-    results[0]?.onSelect?.();
-    expect(selectGarden).toHaveBeenCalledWith(eligibleGarden);
   });
 
   it("omits assessments outside the eligible admin garden set", () => {
@@ -66,7 +60,6 @@ describe("buildCommandPaletteResults", () => {
       assessments: [
         assessment("assessment-2", "0x0000000000000000000000000000000000000bbb", "Water health"),
       ],
-      selectGarden: vi.fn(),
     });
 
     expect(results.some((result) => result.id === "assessment-assessment-2")).toBe(false);
@@ -104,7 +97,6 @@ describe("buildCommandPaletteResults", () => {
       eligibleGardens: [eligibleGarden],
       actions: [{ id: "action-1", title: "Mulch day", startTime: null } as Action],
       assessments: [],
-      selectGarden: vi.fn(),
     });
 
     expect(results.some((result) => result.category === "actions")).toBe(false);
@@ -142,7 +134,6 @@ describe("buildCommandPaletteResults", () => {
       eligibleGardens: [],
       actions: [],
       assessments: [],
-      selectGarden: vi.fn(),
     });
     const deployerResults = buildCommandPaletteResults({
       query: "cookie",
@@ -152,7 +143,6 @@ describe("buildCommandPaletteResults", () => {
       eligibleGardens: [],
       actions: [],
       assessments: [],
-      selectGarden: vi.fn(),
     });
 
     expect(operatorResults).toEqual([expect.objectContaining({ id: "page-community" })]);

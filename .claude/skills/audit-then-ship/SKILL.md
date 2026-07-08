@@ -31,6 +31,11 @@ The codified version of how the user actually works: investigate first, get expl
 | `/audit-then-ship --no-ship` | Stop after fixes, skip the ship pipeline (rare; prefer the default) |
 | "audit X then fix Y" / "review X and apply" | Passive trigger |
 
+Do not activate this skill for concrete QA-mode fixes such as "quick fix",
+"get this to staging", or "fix this while I QA" unless the user explicitly asks
+for an audit/review phase or final ship gate. For those, use the repo's QA Speed
+Mode: focused fix, targeted proof, and coordinator checkpoint validation.
+
 ---
 
 ## Phase 1 — Investigate (read-only)
@@ -88,7 +93,7 @@ Hard rules:
 Apply only the approved fixes, in order. For each:
 
 1. Make the edit.
-2. **Verify the change in the same turn**: re-read the file, run the targeted test, or read the rendered DOM (Brave-backed browser MCP) for UI changes. No "should work" claims. (See CLAUDE.md → *Verify Before Claiming Success*.)
+2. **Verify the change in the same turn**: re-read the file, run the targeted test, or read the rendered DOM through the authenticated Brave QA profile for UI changes. No "should work" claims. (See CLAUDE.md → *Verify Before Claiming Success*.)
 3. Move to the next.
 
 **If you discover a new issue mid-fix**:
@@ -100,15 +105,16 @@ Apply only the approved fixes, in order. For each:
 
 ## Phase 4 — Ship (default; skip with `--no-ship`)
 
-Hand off to the `ship` skill (`.claude/skills/ship/SKILL.md`). Run the full pipeline:
-
-```bash
-bun format && bun lint && bun run test && bun build
-```
-
-Plus scope-conditional checks (design tokens, vocab lint, contracts fork) per `ship` Step 6.
+Hand off to the `ship` skill (`.claude/skills/ship/SKILL.md`). Run the full Ship Gate as
+defined in [`.claude/context/validation-pipeline.md`](../../context/validation-pipeline.md),
+plus scope-conditional checks (design tokens, vocab lint, contracts fork) per `ship` Step 6.
 
 **Do not declare done until the ship pipeline reports green with output you can paste.** If any stage fails, the run is incomplete — return to Phase 3 to address the failure (still inside the locked scope, unless the failure surfaces a new issue, in which case re-open Phase 2 with the new finding).
+
+If the user's approved scope is explicitly a QA-speed handoff rather than
+ship/PR/merge readiness, stop after Phase 3 with targeted evidence and label the
+Ship Pipeline as "not run - QA Speed Mode". Do not claim the branch is ready to
+ship in that report.
 
 ---
 

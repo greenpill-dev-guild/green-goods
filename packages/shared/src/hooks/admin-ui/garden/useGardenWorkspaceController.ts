@@ -20,10 +20,6 @@ import {
   type AdminWorkspaceSectionTab,
 } from "../navigation/workspaceNavigation";
 import { buildGardenViewActions, resolveGardenView } from "./garden.utils";
-import {
-  bindCanvasScrollPositionPersistence,
-  restoreCanvasScrollPosition,
-} from "../navigation/workspaceScroll";
 
 type ActivityFilter = "all" | "work" | "impact" | "community";
 
@@ -40,14 +36,14 @@ export function useGardenWorkspaceController() {
   const { selectedGarden, gardenOptions, handleSelectGarden } = useAdminGardenWorkspaceSelection();
   const { containerRef } = useSheetWidth();
   const gardenStateKey = selectedGarden?.id ?? "";
-  const selectedGardenAddress = selectedGarden?.tokenAddress ?? selectedGarden?.id;
+  const selectedGardenAddress = selectedGarden?.id;
   const getGardenWorkspaceState = useGardenStateStore((state) => state.getGardenWorkspaceState);
   const setGardenWorkspaceState = useGardenStateStore((state) => state.setGardenWorkspaceState);
   const lastHydratedGardenStateKeyRef = useRef<string | null>(null);
   const [activityFilter, setActivityFilterState] = useState<ActivityFilter>("all");
-  const [domainEditorOpen, setDomainEditorOpen] = useState(false);
 
   const view = resolveGardenView(location.pathname);
+  const settingsOpen = location.pathname.startsWith("/garden/settings");
   const range = parseGardenRange(searchParams.get("range"));
   const section = searchParams.get("section") ?? undefined;
   const selectedItem = searchParams.get("item") ?? undefined;
@@ -57,7 +53,6 @@ export function useGardenWorkspaceController() {
 
     const persistedState = getGardenWorkspaceState(gardenStateKey, "garden");
     setActivityFilterState(parseActivityFilter(persistedState.filter));
-    restoreCanvasScrollPosition(persistedState.scrollPosition);
     lastHydratedGardenStateKeyRef.current = gardenStateKey;
   }, [gardenStateKey, getGardenWorkspaceState]);
 
@@ -68,7 +63,7 @@ export function useGardenWorkspaceController() {
       activeMode: view,
       filter: activityFilter,
       selectedItem: selectedItem ?? hypercertId ?? null,
-      sheetOpen: Boolean(hypercertId),
+      sheetOpen: Boolean(hypercertId) || settingsOpen,
     });
   }, [
     activityFilter,
@@ -77,16 +72,9 @@ export function useGardenWorkspaceController() {
     selectedGarden,
     selectedItem,
     setGardenWorkspaceState,
+    settingsOpen,
     view,
   ]);
-
-  useEffect(() => {
-    if (!selectedGarden) return;
-
-    return bindCanvasScrollPositionPersistence((scrollPosition) => {
-      setGardenWorkspaceState(gardenStateKey, "garden", { scrollPosition });
-    });
-  }, [gardenStateKey, selectedGarden, setGardenWorkspaceState]);
 
   const {
     garden,
@@ -104,29 +92,22 @@ export function useGardenWorkspaceController() {
     allocations,
     works,
     hypercerts,
+    hypercertsLoading,
     roleMembers,
   } = useGardenDetailData(selectedGarden?.id);
 
   const isDesktop = useMediaQuery("(min-width: 1024px)");
-  const openDomainEditor = useCallback(() => setDomainEditorOpen(true), []);
-  const closeDomainEditor = useCallback(() => setDomainEditorOpen(false), []);
   const viewActions = useMemo(
     () =>
-      buildGardenViewActions(
-        view,
-        canManage,
-        Boolean(selectedGarden),
-        navigate,
-        {
-          gardenAddress: selectedGardenAddress,
-        },
-        openDomainEditor
-      ),
-    [canManage, navigate, openDomainEditor, selectedGarden, selectedGardenAddress, view]
+      buildGardenViewActions(view, canManage, Boolean(selectedGarden), navigate, {
+        gardenAddress: selectedGardenAddress,
+      }),
+    [canManage, navigate, selectedGarden, selectedGardenAddress, view]
   );
   const { desktopActions } = useViewActions({
     actions: viewActions,
     isDesktop,
+    blocked: Boolean(hypercertId) || settingsOpen,
   });
 
   const openSection = useCallback(
@@ -169,8 +150,8 @@ export function useGardenWorkspaceController() {
         return {
           ...event,
           href: event.itemId
-            ? adminRoutes.hubWorkDetail(event.itemId, { gardenAddress: selectedGardenAddress })
-            : adminRoutes.hubWork({ gardenAddress: selectedGardenAddress }),
+            ? adminRoutes.hubWorkDetail(event.itemId, { gardenId: selectedGardenAddress })
+            : adminRoutes.hubWork({ gardenId: selectedGardenAddress }),
         };
       }
 
@@ -186,7 +167,7 @@ export function useGardenWorkspaceController() {
 
       return {
         ...event,
-        href: adminRoutes.communityTreasury({ gardenAddress: selectedGardenAddress }),
+        href: adminRoutes.communityEndowment({ gardenId: selectedGardenAddress }),
       };
     });
   }, [derived.filteredActivityEvents, selectedGarden, selectedGardenAddress]);
@@ -226,18 +207,20 @@ export function useGardenWorkspaceController() {
   const handleTabChange = useCallback(
     (nextView: string) => {
       if (nextView === "settings") {
-        navigate(adminRoutes.gardenSettings({ gardenAddress: selectedGardenAddress }));
+        navigate(adminRoutes.gardenSettings({ gardenId: selectedGardenAddress }));
+      } else if (nextView === "impact") {
+        navigate(adminRoutes.gardenImpact({ gardenId: selectedGardenAddress, range }));
       } else if (nextView === "activity") {
-        // Tier 4: Activity + Members are net-new tabs per audit IA-Garden.
-        // First-delivery navigation is path-only; range/garden context is
-        // carried in the workspace controller, not the URL.
-        navigate("/garden/activity");
-      } else if (nextView === "members") {
-        navigate("/garden/members");
+        navigate(adminRoutes.gardenActivity({ gardenId: selectedGardenAddress, range }));
       } else {
-        navigate(adminRoutes.gardenOverview({ gardenAddress: selectedGardenAddress, range }));
+        navigate(adminRoutes.gardenHealth({ gardenId: selectedGardenAddress, range }));
       }
     },
+    [navigate, range, selectedGardenAddress]
+  );
+
+  const handleSettingsClose = useCallback(
+    () => navigate(adminRoutes.gardenHealth({ gardenId: selectedGardenAddress, range })),
     [navigate, range, selectedGardenAddress]
   );
 
@@ -271,7 +254,6 @@ export function useGardenWorkspaceController() {
     containerRef,
     derived,
     desktopActions,
-    domainEditorOpen,
     error,
     fetching,
     fetchingAssessments,
@@ -279,18 +261,20 @@ export function useGardenWorkspaceController() {
     gardenOptions,
     hypercertSheetCloseTo,
     handleSelectGarden,
+    handleSettingsClose,
     handleTabChange,
     hypercertId,
     hypercerts,
+    hypercertsLoading,
     isOwner,
-    closeDomainEditor,
-    openDomainEditor,
     openSection,
     range,
+    roleMembers,
     section,
     selectedGarden,
     selectedItem,
     setActivityFilter,
+    settingsOpen,
     treasuryBalance: formatTokenAmount(vaultNetDeposited),
     updateOverviewQueryState,
     view,

@@ -5,6 +5,7 @@ import {
   createPublicImpactSlice,
   derivePublicGardenSlug,
   PUBLIC_FUNDING_AVAILABILITY_REASON_SEMANTICS,
+  PUBLIC_AGENT_ROUTES,
   resolveFundGardenReference,
   type Address,
 } from "../public-contracts";
@@ -28,6 +29,26 @@ describe("@green-goods/shared/public-contracts", () => {
   it("builds the canonical normalized availabilityKey v1", () => {
     expect(buildPublicFundingAvailabilityKey(baseAvailabilityInput)).toBe(
       `v1:${gardenA}:cookieJar:0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:donate:card:11155111:${token}:thirdweb`
+    );
+  });
+
+  it("adds route scope to availabilityKey only when a source route is explicit", () => {
+    expect(
+      buildPublicFundingAvailabilityKey({
+        ...baseAvailabilityInput,
+        destinationType: "vault",
+        fundingIntent: "endow",
+        sourceRoute: "/vaults",
+      })
+    ).toBe(
+      `v2:/vaults:${gardenA}:vault:0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb:endow:card:11155111:${token}:thirdweb`
+    );
+  });
+
+  it("publishes a concrete funding-intent proof route instead of relying on the receipt wildcard", () => {
+    expect(PUBLIC_AGENT_ROUTES.fundingIntentProof).toBe("/public/funding-intents/proof");
+    expect(PUBLIC_AGENT_ROUTES.fundingIntentProof).not.toBe(
+      PUBLIC_AGENT_ROUTES.fundingIntentReceipt
     );
   });
 
@@ -65,6 +86,55 @@ describe("@green-goods/shared/public-contracts", () => {
       registry.resolve({
         ...baseAvailabilityInput,
         destinationAddress: gardenB,
+      }).state
+    ).toBe("hidden");
+  });
+
+  it("keeps Card Donate proof from unlocking Card Endow", () => {
+    const registry = createProviderProofRegistry([
+      {
+        ...baseAvailabilityInput,
+        state: "live",
+        proofReference: "spike:cookie-jar-donate-sepolia-2026-04-27",
+      },
+    ]);
+
+    expect(registry.resolve(baseAvailabilityInput).state).toBe("live");
+    expect(
+      registry.resolve({
+        ...baseAvailabilityInput,
+        destinationType: "vault",
+        fundingIntent: "endow",
+      }).state
+    ).toBe("hidden");
+  });
+
+  it("keeps /fund and /vaults provider proofs route-local when sourceRoute is explicit", () => {
+    const registry = createProviderProofRegistry([
+      {
+        ...baseAvailabilityInput,
+        destinationType: "vault",
+        fundingIntent: "endow",
+        sourceRoute: "/fund",
+        state: "live",
+        proofReference: "spike:fund-vault-endow-sepolia-2026-06-02",
+      },
+    ]);
+
+    expect(
+      registry.resolve({
+        ...baseAvailabilityInput,
+        destinationType: "vault",
+        fundingIntent: "endow",
+        sourceRoute: "/fund",
+      }).state
+    ).toBe("live");
+    expect(
+      registry.resolve({
+        ...baseAvailabilityInput,
+        destinationType: "vault",
+        fundingIntent: "endow",
+        sourceRoute: "/vaults",
       }).state
     ).toBe("hidden");
   });

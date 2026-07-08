@@ -68,6 +68,7 @@ vi.mock("@remixicon/react", async (importOriginal) => {
 });
 
 vi.mock("viem", () => ({
+  getAddress: (address: string) => address,
   formatUnits: (value: bigint, decimals: number) => {
     const str = value.toString();
     if (decimals === 0) return str;

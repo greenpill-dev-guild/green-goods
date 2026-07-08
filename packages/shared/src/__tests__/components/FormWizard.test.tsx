@@ -262,7 +262,7 @@ describe("components/Form/FormWizard", () => {
       expect(screen.getByText("Cancel")).toBeDisabled();
     });
 
-    it("shows loading state on Submit when isSubmitting is true", () => {
+    it("keeps the Submit label stable while isSubmitting is true", () => {
       render(
         createElement(FormWizard, {
           ...defaultProps,
@@ -272,7 +272,9 @@ describe("components/Form/FormWizard", () => {
         })
       );
 
-      expect(screen.getByText("Submitting…")).toBeInTheDocument();
+      const submitButton = screen.getByRole("button", { name: "Submit" });
+      expect(submitButton).toBeDisabled();
+      expect(submitButton).toHaveAttribute("aria-busy", "true");
     });
   });
 

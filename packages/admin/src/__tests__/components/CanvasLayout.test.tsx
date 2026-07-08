@@ -99,6 +99,7 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       gardens: Array<{ id: string; name: string }>;
       selectedGarden: { id: string; name: string } | null;
       onSelectGarden: (garden: { id: string; name: string } | null) => void;
+      showCreateGardenAction?: boolean;
     }) => {
       mockGardenChipProps(props);
       return (
@@ -157,21 +158,29 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
     useAuth: () => mockAuthState.current,
     NotificationPanel: ({
       items = [],
+      sections = [],
+      scopeLabel,
       isLoading = false,
     }: {
       items?: Array<{ id: string; title: string }>;
+      sections?: Array<{ id: string; title: string; items: Array<{ id: string; title: string }> }>;
+      scopeLabel?: string;
       isLoading?: boolean;
-    }) => (
-      <div
-        data-testid="notification-panel"
-        data-count={String(items.length)}
-        data-loading={String(isLoading)}
-      >
-        {items.map((item) => (
-          <div key={item.id}>{item.title}</div>
-        ))}
-      </div>
-    ),
+    }) => {
+      const allItems = [...items, ...sections.flatMap((section) => section.items)];
+      return (
+        <div
+          data-testid="notification-panel"
+          data-count={String(allItems.length)}
+          data-loading={String(isLoading)}
+        >
+          {scopeLabel ? <div>{scopeLabel}</div> : null}
+          {allItems.map((item) => (
+            <div key={item.id}>{item.title}</div>
+          ))}
+        </div>
+      );
+    },
     formatRelativeTime: () => "5 minutes ago",
     useAdminGardenWorkspaceSelection: () => ({
       eligibleGardens: mockEligibleAdminGardens.current.eligibleGardens,
@@ -257,7 +266,10 @@ vi.mock("@/components/ConnectButton", () => ({
 
 vi.mock("@/components/Layout/PageTransition", async () => {
   const ReactModule = await import("react");
-  const { useRouteBackedLeftSheetConfig } = await import("@green-goods/shared");
+  // useRouteBackedLeftSheetConfig was re-homed from @green-goods/shared to the
+  // admin-local left-sheet channel; import it from there so it publishes into
+  // the same provider instance CanvasLayout mounts.
+  const { useRouteBackedLeftSheetConfig } = await import("@/components/Layout/leftSheetChannel");
 
   return {
     PageTransition: () => {
@@ -335,7 +347,7 @@ describe("CanvasLayout", () => {
     );
 
     expect(mockUseGardenUrlSync).toHaveBeenCalled();
-    expect(mockUseStaleGardenGuard).toHaveBeenCalled();
+    expect(mockUseStaleGardenGuard).not.toHaveBeenCalled();
     expect(screen.getByText("Actions")).toBeInTheDocument();
     expect(screen.getByTestId("active-path")).toHaveTextContent("/actions");
   });
@@ -343,7 +355,7 @@ describe("CanvasLayout", () => {
   it.each([
     ["/hub/work/attestation-1", "/hub"],
     ["/hub/work/submit", "/hub"],
-    ["/community/treasury/vault", "/community"],
+    ["/community/endowment/vault", "/community"],
     ["/garden/impact/hypercerts/hc-123", "/garden"],
     ["/actions/action-1", "/actions"],
     ["/profile", "/profile"],
@@ -398,6 +410,7 @@ describe("CanvasLayout", () => {
     expect(mockGardenChipProps).toHaveBeenCalledWith(
       expect.objectContaining({
         gardens: [{ id: "garden-1", name: "Garden One" }],
+        showCreateGardenAction: false,
       })
     );
     expect(mockAppBarProps.mock.calls[0]?.[0]).toEqual(
@@ -474,7 +487,7 @@ describe("CanvasLayout", () => {
     );
   });
 
-  it("opens RightSheet with settings content from the desktop settings trigger", async () => {
+  it("opens settings content in a side sheet from the desktop settings trigger", async () => {
     Object.defineProperty(window, "matchMedia", {
       writable: true,
       value: vi.fn().mockImplementation((query: string) => ({
@@ -500,11 +513,14 @@ describe("CanvasLayout", () => {
     await user.click(screen.getByRole("button", { name: "Open Settings" }));
 
     await waitFor(() => {
-      expect(screen.getByTestId("right-sheet")).toBeInTheDocument();
+      expect(screen.getByTestId("admin-side-sheet-content")).toBeInTheDocument();
     });
+    expect(screen.getByRole("dialog").className).toContain("sm:top-[var(--admin-sheet-top)]");
+    expect(screen.getByRole("dialog").className).toContain("sm:bottom-[var(--admin-sheet-bottom)]");
+    expect(screen.getByRole("dialog").className).toContain("sm:w-[var(--admin-side-sheet-width)]");
   });
 
-  it("opens RightSheet with profile content from the desktop profile trigger", async () => {
+  it("opens profile content in a side sheet from the desktop profile trigger", async () => {
     Object.defineProperty(window, "matchMedia", {
       writable: true,
       value: vi.fn().mockImplementation((query: string) => ({
@@ -530,11 +546,11 @@ describe("CanvasLayout", () => {
     await user.click(screen.getByRole("button", { name: "Open Profile" }));
 
     await waitFor(() => {
-      expect(screen.getByTestId("right-sheet")).toBeInTheDocument();
+      expect(screen.getByTestId("admin-side-sheet-content")).toBeInTheDocument();
     });
   });
 
-  it("opens RightSheet with data-backed notifications content", async () => {
+  it("opens data-backed notifications content in a side sheet", async () => {
     const user = userEvent.setup();
 
     renderWithProviders(
@@ -546,7 +562,7 @@ describe("CanvasLayout", () => {
     await user.click(screen.getByRole("button", { name: "Open Notifications" }));
 
     await waitFor(() => {
-      expect(screen.getByTestId("right-sheet")).toBeInTheDocument();
+      expect(screen.getByTestId("admin-side-sheet-content")).toBeInTheDocument();
     });
     expect(screen.getByTestId("notification-panel")).toHaveAttribute("data-loading", "false");
     expect(screen.getByText("3 work submissions need review")).toBeInTheDocument();
@@ -574,7 +590,7 @@ describe("CanvasLayout", () => {
     await user.click(screen.getByRole("button", { name: "Open Notifications" }));
 
     await waitFor(() => {
-      expect(screen.getByTestId("right-sheet")).toBeInTheDocument();
+      expect(screen.getByTestId("admin-side-sheet-content")).toBeInTheDocument();
     });
     expect(screen.getByTestId("notification-panel")).toHaveAttribute("data-count", "0");
   });
@@ -591,7 +607,7 @@ describe("CanvasLayout", () => {
     await waitFor(() => {
       expect(useSheetOrchestratorStore.getState().activeSheet).toBeNull();
     });
-    expect(screen.queryByTestId("right-sheet")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("admin-side-sheet-content")).not.toBeInTheDocument();
   });
 
   it("does not apply pl-20 padding on main content", () => {
@@ -617,7 +633,7 @@ describe("CanvasLayout", () => {
     expect(main?.getAttribute("style")).toContain("padding-bottom");
   });
 
-  it("bounds the mobile bottom sheet to the canvas sheet layer", async () => {
+  it("renders a left-inspector config as a centered dialog", async () => {
     mockRouteLeftSheetConfig.current = {
       title: "Mobile inspector",
       content: <div>Inspector content</div>,
@@ -630,11 +646,10 @@ describe("CanvasLayout", () => {
       </MemoryRouter>
     );
 
-    const sheetLayer = await screen.findByTestId("canvas-sheet-layer");
-    const dialog = await screen.findByTestId("bottom-sheet-dialog");
-
-    expect(dialog).toHaveAttribute("data-boundary", "bounded");
-    expect(sheetLayer).toContainElement(dialog);
+    // Left/bottom sheets retired — the left-inspector config now renders as a
+    // AdminDialog (full-screen scrim, not bounded to the sheet layer).
+    const dialog = await screen.findByTestId("admin-dialog-body");
+    expect(dialog).toHaveTextContent("Inspector content");
   });
 });
 

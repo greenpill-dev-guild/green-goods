@@ -8,6 +8,7 @@ import {
 import {
   type AdminHubRouteContext,
   adminRoutes,
+  type MetaStripItem,
   type useGardenDerivedState,
 } from "@green-goods/shared";
 import type { ViewAction } from "../../../components/Canvas/viewActions.types";
@@ -41,11 +42,62 @@ export {
 export const HUB_STAGE_RAIL_ID = "hub-stage";
 
 export const HUB_META_PILL_CLASSNAME =
-  "inline-flex items-center rounded-full bg-bg-white/80 px-2.5 py-[0.34rem] text-[0.74rem] font-semibold text-text-sub shadow-[var(--edge-rest)]";
+  "inline-flex items-center rounded-full bg-bg-white/80 px-2.5 py-1 text-label-sm font-semibold text-text-sub shadow-[var(--edge-rest)]";
 export const HUB_CERTIFY_STATUS_CLASSNAME =
-  "inline-flex items-center rounded-full bg-primary-alpha-10 px-2.5 py-1 text-[0.72rem] font-bold tracking-[0.01em] text-text-strong";
+  "inline-flex items-center rounded-full bg-primary-alpha-10 px-2.5 py-1 text-label-sm font-bold text-text-strong";
 export const HUB_HISTORY_STATUS_CLASSNAME =
-  "inline-flex items-center rounded-full bg-bg-white/85 px-2.5 py-1 text-[0.72rem] font-bold tracking-[0.01em] text-text-sub shadow-[var(--edge-rest)]";
+  "inline-flex items-center rounded-full bg-bg-white/85 px-2.5 py-1 text-label-sm font-bold text-text-sub shadow-[var(--edge-rest)]";
+
+// ============================================================================
+// Header Stats — Hub
+// ============================================================================
+
+export interface HubHeaderStatsInput {
+  hasSelectedGarden: boolean;
+  overdueCount: number;
+  waitingCount: number;
+  formatMessage: (
+    descriptor: { id: string; defaultMessage?: string },
+    values?: Record<string, unknown>
+  ) => string;
+}
+
+/**
+ * Inline MetaStrip items for the Hub header. The stage tab rail already shows
+ * queue *depth* per stage, so the header complements it with queue *aging* —
+ * the pending work an operator should triage first — rather than re-stating the
+ * same per-stage counts. Returns [] before a garden is selected so the slot
+ * stays clean on the selection gate. Stat shape (2 items): overdue (pending
+ * work older than 72h) · waiting (older than 24h). Both are unfiltered (search
+ * never narrows them), so they stay stable while results filter.
+ */
+export function buildHubHeaderStats({
+  hasSelectedGarden,
+  overdueCount,
+  waitingCount,
+  formatMessage,
+}: HubHeaderStatsInput): MetaStripItem[] {
+  if (!hasSelectedGarden) return [];
+
+  return [
+    {
+      id: "overdue",
+      value: String(overdueCount),
+      label: formatMessage({
+        id: "cockpit.hub.stats.overdue",
+        defaultMessage: "overdue",
+      }),
+    },
+    {
+      id: "waiting",
+      value: String(waitingCount),
+      label: formatMessage({
+        id: "cockpit.hub.stats.waiting",
+        defaultMessage: "waiting",
+      }),
+    },
+  ];
+}
 
 // ============================================================================
 // Utility Functions
@@ -172,7 +224,7 @@ export function resolveOpenSectionRoute(
     section,
     itemId,
     hubSort: sortDirection,
-    gardenAddress: hubContext?.gardenAddress,
+    gardenId: hubContext?.gardenId,
   });
 }
 
@@ -180,10 +232,11 @@ export function resolveOpenSectionRoute(
 // View Actions — Hub
 // ============================================================================
 //
-// Hub exposes a fixed action set across all stages (Work / Assess / Certify /
-// History). The active stage chooses which action is "primary" (filled, FAB
-// main button); the others render as outlined siblings on desktop and
-// speed-dial children on mobile.
+// Stable trio: the same creation actions render on every stage, in the same
+// order, so button positions never shift as the operator moves between tabs.
+// Submit work is the fixed primary across Work, Assess, Certify, and History;
+// the assessment and hypercert actions stay secondary so emphasis no longer
+// follows the active stage.
 
 export function buildHubViewActions(
   stage: HubPipelineStage,
@@ -195,33 +248,33 @@ export function buildHubViewActions(
   return [
     {
       id: "submit-work",
-      label: "Submit Work",
+      label: "Submit work",
       labelId: "cockpit.hub.action.submitWork",
       icon: RiAddLine,
       onClick: () => navigate(adminRoutes.hubWorkSubmit(hubContext)),
       variant: "primary",
       visible: canManage,
-      primary: stage === "work",
+      primary: true,
     },
     {
       id: "create-assessment",
-      label: "Create Assessment",
+      label: "Create assessment",
       labelId: "cockpit.hub.action.createAssessment",
       icon: RiCheckLine,
       onClick: () => navigate(adminRoutes.hubAssessCreate(hubContext)),
-      variant: stage === "assess" ? "primary" : "secondary",
+      variant: canManage ? "secondary" : "primary",
       visible: canReview,
-      primary: stage === "assess",
+      primary: !canManage,
     },
     {
       id: "create-hypercert",
-      label: "Create Hypercert",
+      label: "Create hypercert",
       labelId: "cockpit.hub.action.createHypercert",
       icon: RiMedalLine,
       onClick: () => navigate(adminRoutes.hubCertifyCreate(hubContext)),
-      variant: stage === "certify" ? "primary" : "secondary",
+      variant: "secondary",
       visible: canManage,
-      primary: stage === "certify",
+      primary: false,
     },
   ];
 }

@@ -17,7 +17,7 @@ const baseStyle: CSSProperties = {
 };
 
 /**
- * SheetFooter — bottom slot for LeftSheet / RightSheet (Save / Cancel /
+ * SheetFooter — bottom slot for dialog / inspector panels (Save / Cancel /
  * Sign out actions). Handoff anatomy: `12px 16px` padding, hairline top
  * border, `gap: 8px`.
  */

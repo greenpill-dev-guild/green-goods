@@ -4,7 +4,7 @@ sidebar_label: Codex
 slug: /builders/agentic/codex
 audience: developer
 owner: docs
-last_verified: 2026-05-11
+last_verified: 2026-06-18
 feature_status: Live
 source_of_truth:
   - AGENTS.md
@@ -21,7 +21,7 @@ graph TB
     subgraph Config["Codex Config"]
         TOML["config.toml\nfallback, model, sandbox"]
         ENV["environment.toml\nversioned env metadata"]
-        Hooks["hooks disabled\nno prompt rewrite"]
+        Hooks["hooks enabled\ncontext + policy checks"]
     end
 
     subgraph Sandbox["Workspace Sandbox"]
@@ -37,7 +37,7 @@ graph TB
     Sandbox -->|output| PR["Draft PR\nmax 20 files"]
 ```
 
-OpenAI Codex is used for automated maintenance tasks in the Green Goods monorepo. The repo-scoped configuration is intentionally small: `AGENTS.md` is the primary context, `CLAUDE.md` is the fallback, the default model is GPT-5.5, Codex hooks are disabled by default, and the workspace-write sandbox disables network access.
+OpenAI Codex is used for automated maintenance tasks in the Green Goods monorepo. The repo-scoped configuration is intentionally small: `AGENTS.md` is the primary context, `CLAUDE.md` is the fallback, the default model is GPT-5.5, the local environment delegates lifecycle work to repo scripts, the workspace-write sandbox disables network access, and hooks add repo-specific context and policy checks around tool use.
 
 ## Configuration
 
@@ -52,40 +52,102 @@ project_doc_max_bytes = 40960
 
 # Default model for automated tasks
 model = "gpt-5.5"
-model_reasoning_effort = "xhigh"
 
 [features]
-codex_hooks = false
+hooks = true
 
 # Sandbox: no network access during agent execution
 [sandbox_workspace_write]
 network_access = false
+
+[shell_environment_policy]
+inherit = "all"
+exclude = ["AWS_*", "AZURE_*", "ANTHROPIC_*", "OPENAI_API_KEY"]
+
+[shell_environment_policy.set]
+CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS = "1"
 ```
 
 Key settings:
 - **`project_doc_fallback_filenames`** -- Codex reads `AGENTS.md` by default; falls back to `CLAUDE.md` for directories without an `AGENTS.md`
 - **`project_doc_max_bytes`** -- Up to 40 KB of project guidance is loaded when fallback docs are needed
 - **`model`** -- `gpt-5.5` is the current project default for automation runs
-- **`codex_hooks = false`** -- prompt-submit rewriting is intentionally disabled; prompts are interpreted directly against `AGENTS.md`, package guides, and `.plans/`
+- **`hooks = true`** -- project hooks are enabled for supported Codex surfaces; prompts are interpreted directly against `AGENTS.md`, package guides, and `.plans/`
 - **`network_access = false`** -- The workspace-write sandbox has no internet access during execution
+- **`shell_environment_policy`** -- The shell inherits normal environment variables but excludes broad cloud/API credential patterns and sets the Claude agent-teams experiment flag for compatibility with repo automation
 
 ### Environment Metadata (`environment.toml`)
 
-The checked-in environment file currently records only the environment identity:
+The checked-in environment file declares the local environment identity and delegates setup/cleanup to the repo-owned lifecycle scripts:
 
 ```toml
 version = 1
 name = "green-goods"
 
 [setup]
-script = ""
+script = '''
+set -e
+
+# Trust this worktree's exact mise config, prepend mise and Bun shims, then:
+npm run setup -- --profile isolated
+'''
+
+[cleanup]
+script = '''
+set -e
+
+# Trust this worktree's exact mise config, prepend mise and Bun shims, then:
+bun run dev:clean
+'''
 ```
 
-There is no project-scoped bootstrap script defined in `.codex/environments/environment.toml` at the moment. Any additional setup is handled outside this file.
+Codex worktrees use the same generic isolated setup profile as other container
+or worktree flows:
+
+```bash
+npm run setup -- --profile isolated
+```
+
+The environment file is intentionally a thin launcher, not a Codex-specific
+setup implementation. It prepends the repo's mise and Bun shim locations because
+Codex local-environment shells are not guaranteed to be login shells, and first
+trusts the exact worktree `.mise.toml` so shimmed `npm`/`bun` calls can load the
+repo tool versions. `.mise.toml` pins Node 22 and Bun 1.3; all workspace behavior lives in `scripts/dev/setup.js` and
+`scripts/dev/clean.js`.
+The isolated setup profile starts from Node/npm, can bootstrap Bun when network
+access is available, then uses the Bun workspace runtime once it is installed or
+confirmed. It avoids host-only effects such as Foundry installation, Docker
+checks, service starts/stops, browser launches, secret resolution, and
+sibling-worktree cleanup. Cleanup removes disposable artifacts from the current
+checkout only and does not touch secrets, dependencies, services, or sibling
+worktrees.
+
+Indexer-generated files are not baked into the Codex environment launcher.
+`setup-generated` runs `pnpm install` inside `packages/indexer/generated`, so it
+needs a network-enabled setup step or already-cached generated dependencies.
+During the no-network agent phase, use these paths only when that generated
+package is already available:
+
+```bash
+node scripts/dev/ci-local.js --generate-indexer
+# or
+cd packages/indexer && bun run codegen && bun run setup-generated
+```
 
 ### Hooks
 
-No project Codex hooks are currently registered. The previous prompt-submit normalization hook was removed because it could infer task contracts from pasted source material instead of the user's actual request. The shared rules live in `AGENTS.md`, package-local `AGENTS.md`, `.plans/`, and the builder docs.
+Project Codex hooks are enabled through `.codex/hooks.json`:
+
+- `SessionStart` loads Green Goods Codex context on startup, resume, and compaction.
+- `PreToolUse` checks Bash commands and edit/write operations before they run.
+- `PostToolUse` adds Green Goods post-edit context after file edits.
+- `Stop` checks final stop context before Codex finishes a turn.
+
+These hooks are policy and context checks, not prompt rewriting. The previous
+prompt-submit normalization hook was removed because it could infer task
+contracts from pasted source material instead of the user's actual request. The
+shared rules live in `AGENTS.md`, package-local `AGENTS.md`, `.plans/`, and the
+builder docs.
 
 ## Use Cases
 
@@ -108,14 +170,12 @@ When running automated maintenance tasks via Codex (or any automated agent), con
 
 ## Skills Discovery
 
-Codex discovers skills from its standard locations (`$HOME/.agents/skills`, bundled, admin paths, and the repo-scoped `.agents/skills` tree when present). Green Goods keeps Claude and Codex on the same shared skill surface through a generated mirror:
+Codex discovers skills from its standard locations (`$HOME/.agents/skills`, bundled, admin paths, and the repo-scoped `.agents/skills` tree when present). In Green Goods, `.agents/skills` is a symlink to the canonical `.claude/skills`, so Claude Code and Codex share one skill tree — there is no generated mirror and nothing to sync:
 
 - Canonical source: `.claude/skills`
-- Codex-visible mirror: `.agents/skills`
-- Regenerate mirror: `bun run skills:sync`
-- Check mirror drift: `bun run check:skills`
+- Codex-visible path: `.agents/skills` → symlink → `.claude/skills`
 
-Do not hand-edit `.agents/skills`; changes there will be overwritten by the sync script. Do not replace `.agents/skills` with a symlink. A symlink would remove copy drift, but it also means accidental Codex skill imports or experiments under `.agents/skills` can mutate the canonical Claude tree directly.
+Edit skills in `.claude/skills`; Codex sees the same files through the symlink (it officially follows symlinked skill folders). Do not convert `.agents/skills` back into a real directory or a second copy — that reintroduces the copy drift this symlink removes.
 
 For design-system work, Codex should still follow the repo design source path explicitly: start with `AGENTS.md`, then read the root `DESIGN.md`, the affected surface `DESIGN.md`, `.agents/skills/design/ARCHITECTURE.md`, and the relevant Storybook or package builder doc before editing UI.
 

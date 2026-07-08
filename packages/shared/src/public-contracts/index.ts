@@ -87,6 +87,8 @@ export type FundingDestinationType = "cookieJar" | "vault";
 export type PublicFundingIntentKind = "donate" | "endow";
 export type PublicPaymentMethod = "card" | "wallet";
 export type PublicFundingProvider = "thirdweb";
+export type PublicFundingSourceRoute = "/fund" | "/vaults";
+export type PublicFundingManagementUrl = "/fund?manage=endowments" | "/vaults?manage=positions";
 
 export type CreateFundingIntentRequest = {
   gardenId: string;
@@ -99,6 +101,10 @@ export type CreateFundingIntentRequest = {
   token: Address;
   availabilityKey: string;
   clientRequestId: string;
+  /** Required for Card Endow so vault shares land in the recovered wallet owner. */
+  receiverAddress?: Address;
+  /** Public route that created the receipt. Defaults to /fund for compatibility. */
+  sourceRoute?: PublicFundingSourceRoute;
   payerEmail?: string;
   locale?: PublicLocale;
 };
@@ -123,6 +129,7 @@ export type ClientCheckoutPayload = {
     gardenId: string;
     destinationType: FundingDestinationType;
     fundingIntent: PublicFundingIntentKind;
+    sourceRoute?: PublicFundingSourceRoute;
   };
 };
 
@@ -154,7 +161,7 @@ export type PublicFundingReceipt = {
   quoteExpiresAt?: string;
   updatedAt: string;
   appManagementCta?: "install_app" | "open_app" | "manage_endowments";
-  managementUrl?: "/fund?manage=endowments";
+  managementUrl?: PublicFundingManagementUrl;
   failureCode?: "expired" | "provider_failed" | "onchain_failed" | "reconciliation_failed";
 };
 
@@ -167,7 +174,7 @@ export type CreateFundingIntentResponse =
       checkoutSession?: ClientCheckoutSession;
       quoteExpiresAt: string;
       receiptToken: string;
-      receiptUrl: `/fund?intent=${string}#receiptToken=${string}`;
+      receiptUrl: `${PublicFundingSourceRoute}?intent=${string}#receiptToken=${string}`;
       publicReceipt: PublicFundingReceipt;
     }
   | PublicApiError;
@@ -179,6 +186,40 @@ export type ReadFundingIntentReceiptRequest = {
 
 export type ReadFundingIntentReceiptResponse =
   | { ok: true; publicReceipt: PublicFundingReceipt }
+  | PublicApiError;
+
+export type SubmitFundingIntentProofRequest = {
+  gardenId: string;
+  gardenName?: string;
+  destinationType: "vault";
+  destinationAddress: Address;
+  fundingIntent: "endow";
+  paymentMethod: "card";
+  provider: "thirdweb";
+  sourceRoute: "/vaults";
+  chainId: number;
+  token: Address;
+  availabilityKey: string;
+  clientRequestId: string;
+  receiverAddress: Address;
+  receiverCustody: "user_owned_recovered_wallet";
+  amount: string;
+  transactionHash: `0x${string}`;
+  shareBalance: string;
+  payerEmail?: string;
+  locale?: PublicLocale;
+};
+
+export type SubmitFundingIntentProofResponse =
+  | {
+      ok: true;
+      id: string;
+      status: "funded" | "funded_late";
+      provider: "thirdweb";
+      receiptToken: string;
+      receiptUrl: `${PublicFundingSourceRoute}?intent=${string}#receiptToken=${string}`;
+      publicReceipt: PublicFundingReceipt;
+    }
   | PublicApiError;
 
 export type FundingTransactionRole =
@@ -213,6 +254,10 @@ export type ThirdwebNormalizedFundingEvent = {
   providerSessionId?: string;
   providerPaymentId?: string;
   fundingIntentId?: string;
+  destinationType?: FundingDestinationType;
+  fundingIntent?: PublicFundingIntentKind;
+  paymentMethod?: PublicPaymentMethod;
+  sourceRoute?: PublicFundingSourceRoute;
   eventType:
     | "session_created"
     | "payment_submitted"
@@ -232,6 +277,7 @@ export type ThirdwebNormalizedFundingEvent = {
 export const PUBLIC_AGENT_ROUTES = {
   subscribe: "/public/subscribe",
   fundingIntents: "/public/funding-intents",
+  fundingIntentProof: "/public/funding-intents/proof",
   fundingIntentReceipt: "/public/funding-intents/:id",
   uploadSign: "/api/uploads/sign",
   thirdwebWebhook: "/webhooks/thirdweb",
@@ -256,6 +302,7 @@ export type PublicFundingAvailabilityKeyInput = {
   chainId: number | string;
   token: Address | string;
   provider: PublicFundingProvider;
+  sourceRoute?: PublicFundingSourceRoute;
 };
 
 export type PublicFundingAvailability = PublicFundingAvailabilityKeyInput & {
@@ -320,6 +367,21 @@ export function buildPublicFundingAvailabilityKey(
   const destinationAddress = normalizeAddressLike(input.destinationAddress);
   const chainId = String(input.chainId).trim();
   const token = normalizeAddressLike(input.token);
+  if (input.sourceRoute) {
+    return [
+      "v2",
+      input.sourceRoute,
+      gardenKey,
+      input.destinationType,
+      destinationAddress,
+      input.fundingIntent,
+      input.paymentMethod,
+      chainId,
+      token,
+      input.provider,
+    ].join(":");
+  }
+
   return [
     "v1",
     gardenKey,
@@ -396,7 +458,44 @@ export function createProviderProofRegistry(entries: readonly ProviderProofEntry
   };
 }
 
-export const PUBLIC_PROVIDER_PROOF_ENTRIES: readonly ProviderProofEntry[] = [];
+const GREENPILL_NYC_OCTANT_VAULT = "0xaC8F844CEA2Fd75B7A5514f11974895B334fd9A5" as const;
+const EVMAVERICKS_OCTANT_VAULT = "0x0bCe8c16974FFD3B410A32365c5bCf27a5A630Fc" as const;
+const ETHEREUM_WETH = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2" as const;
+
+/**
+ * Live entries must stay in lockstep with the client Card Endow allowlist
+ * (`CARD_ENDOW_PRODUCTION_CAMPAIGN_SLUGS` in the /vaults checkout): every
+ * campaign the client exposes for Card Endow needs a matching live entry here,
+ * or the agent proof route rejects the receipt AFTER value moved.
+ */
+export const PUBLIC_PROVIDER_PROOF_ENTRIES: readonly ProviderProofEntry[] = [
+  {
+    gardenKey: "greenpill-nyc",
+    destinationType: "vault",
+    destinationAddress: GREENPILL_NYC_OCTANT_VAULT,
+    fundingIntent: "endow",
+    paymentMethod: "card",
+    chainId: 1,
+    token: ETHEREUM_WETH,
+    provider: "thirdweb",
+    sourceRoute: "/vaults",
+    state: "live",
+    proofReference: "production:greenpill-nyc-card-endow-proof-route-2026-06-03",
+  },
+  {
+    gardenKey: "evmavericks",
+    destinationType: "vault",
+    destinationAddress: EVMAVERICKS_OCTANT_VAULT,
+    fundingIntent: "endow",
+    paymentMethod: "card",
+    chainId: 1,
+    token: ETHEREUM_WETH,
+    provider: "thirdweb",
+    sourceRoute: "/vaults",
+    state: "live",
+    proofReference: "production:evmavericks-card-endow-proof-route-2026-06-12",
+  },
+];
 export const publicProviderProofRegistry = createProviderProofRegistry(
   PUBLIC_PROVIDER_PROOF_ENTRIES
 );

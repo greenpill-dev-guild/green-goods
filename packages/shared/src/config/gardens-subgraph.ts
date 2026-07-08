@@ -16,10 +16,13 @@ import { ENV } from "../lib/env";
 // Studio endpoints (free, rate-limited)
 // ---------------------------------------------------------------------------
 
-const STUDIO_URLS: Record<SupportedChainId, string> = {
+const DEFAULT_STUDIO_URL =
+  "https://api.studio.thegraph.com/query/70985/gardens-v-2-sepolia/version/latest";
+
+const STUDIO_URLS: Partial<Record<SupportedChainId, string>> = {
   42161: "https://api.studio.thegraph.com/query/102093/gardens-v2---arbitrum/version/latest",
   42220: "https://api.studio.thegraph.com/query/102093/gardens-v2---celo/version/latest",
-  11155111: "https://api.studio.thegraph.com/query/70985/gardens-v-2-sepolia/version/latest",
+  11155111: DEFAULT_STUDIO_URL,
 };
 
 // ---------------------------------------------------------------------------
@@ -53,5 +56,5 @@ export function getGardensSubgraphUrl(chainId: number): string {
     return `${GATEWAY_BASE}/${apiKey}/subgraphs/id/${gatewayId}`;
   }
 
-  return STUDIO_URLS[chainId as SupportedChainId] ?? STUDIO_URLS[11155111];
+  return STUDIO_URLS[chainId as SupportedChainId] ?? DEFAULT_STUDIO_URL;
 }

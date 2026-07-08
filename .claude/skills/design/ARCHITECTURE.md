@@ -13,7 +13,7 @@ One-page map. Read this first when you need design context — it points to the 
 
 Dependency chain: `ui → design → root DESIGN.md front matter → generated artifacts → runtime projections`.
 
-**AI design tools** (Stitch, Claude Design, Figma Make, Antigravity, etc.) are platform-agnostic consumers of this stack — fed `DESIGN.md` + the surface-specific prompt contract, their output is mapped back to existing components. No platform-specific skill — see `design/SKILL.md § Working with AI Design Tools` for the contract.
+**AI design tools and coding agents** are platform-agnostic consumers of this stack — fed `ai-ui-brief.md` + `DESIGN.md` + the surface-specific prompt contract, their output is mapped back to existing components. No platform-specific skill — see `design/SKILL.md § Working with AI Design Tools` for the contract.
 
 ---
 
@@ -29,6 +29,7 @@ Root `DESIGN.md` front matter is the canonical DesignMD token source. Surface `D
 | `packages/client/DESIGN.browser.md` | Public browser site, editorial browser treatment |
 | `docs/DESIGN.md` | Docusaurus documentation dialect, Manrope/Bricolage/IBM Plex Mono |
 | `design/language.md` | Implementation guide — shape, motion, color, material, hero moments |
+| `design/ai-ui-brief.md` | Reusable AI UI/CSS build brief and external reference role map |
 | `design/quick-reference.md` | One-page scannable cheat sheet (derivative of language.md) |
 | `packages/shared/src/styles/design-md.generated.css` | Generated DesignMD CSS projection |
 | `packages/shared/src/styles/theme.css` | Runtime consumer — springs, materials, blur, colors |
@@ -42,6 +43,7 @@ Root `DESIGN.md` front matter is the canonical DesignMD token source. Surface `D
 |---------|-----------|
 | DesignMD color/radius values | Root `DESIGN.md` front matter |
 | Runtime spring/material usage | `design/quick-reference.md` → `language.md` for full detail |
+| Reusable UI/CSS prompt for agents | `design/ai-ui-brief.md` |
 | Prompt vocabulary for any AI design tool | `design/prompt-contract.md` (admin) or `client-prompt-contract.md` (client) |
 | How to feed an AI design tool the right context | `design/SKILL.md § Working with AI Design Tools` |
 | Decision: which paradigm for this surface? | `design/SKILL.md § Paradigm Selection` |
@@ -72,7 +74,7 @@ Root `DESIGN.md` front matter is the canonical DesignMD token source. Surface `D
 ```bash
 bun run check:design-generated # verifies DesignMD generated artifacts are current
 bun run check:design-tokens   # verifies implementation tokens and versions are synced
-bun run lint:vocab            # banned terms in i18n strings (streak/countdown/leaderboard/FOMO/…)
+bun run lint:vocab            # lint-enforced banned terms in i18n strings only
 ```
 
 ---
@@ -82,12 +84,12 @@ bun run lint:vocab            # banned terms in i18n strings (streak/countdown/l
 AI design tools should map output to these exports. Full palette lives in the prompt contracts; here's the quick locator.
 
 **Admin** (`packages/admin/src/components/`):
-- Layout shell: `CanvasLayout`, `AppBar` (admin top context bar), `MainSheet`, `LeftSheet`, `RightSheet`, `BottomSheet`, `NavigationBar`, `AdminFab`
-- M3 wrappers (13): `AdminBadge`, `AdminButton`, `AdminCard`, `AdminCheckbox`, `AdminDialog`, `AdminFab`, `AdminFilterChip`, `AdminLinearProgress`, `AdminListItem`, `AdminSearchToolbar`, `AdminTabRail`, `AdminTextField`, `AdminTooltip`
+- Layout shell: `CanvasLayout`, `AppBar` (admin top context bar), `MainSheet`, `NavigationBar`, `AdminFab` (the old side-sheet renderers are deleted — every workspace overlay is a centered `AdminDialog`; the three global AppBar surfaces render in `AdminSideSheet`)
+- M3 wrappers (count derives from `packages/admin/src/components/Admin*.tsx` — 16 today): `AdminBadge`, `AdminButton`, `AdminCard`, `AdminCheckbox`, `AdminDialog`, `AdminFab`, `AdminFilterChip`, `AdminLinearProgress`, `AdminListItem`, `AdminSearchToolbar`, `AdminSideSheet`, `AdminSortSelect`, `AdminTabRail`, `AdminTextField`, `AdminTooltip`, `AdminViewActions`
 
 **Client / shared** (`packages/shared/src/components/`, exported from `@green-goods/shared`):
 - Shell: presentation-mode loaders, `PublicShell` (browser), `PwaRuntime` / `AppShell` (installed PWA), `SiteHeader` (browser), `AppBar` (installed PWA)
-- Dialogs: `DialogShell` (default across client + admin)
+- Dialogs: `DialogShell` (client / shared default; admin dashboard dialogs use `AdminDialog`)
 - Cards / status: `Card`, `StatCard`, `StatusBadge`, `Alert`
 - Primitives: `Button`, `Skeleton`, `Spinner`, `FileUploadField`, `ListPrimitives`, `Surface`, `SyncStatusBar`, `AddressDisplay`, `DomainBadge`
 
@@ -111,6 +113,7 @@ If you're editing more than one component, changing layout composition, creating
 
 - [SKILL.md](./SKILL.md) — Design philosophy, paradigms, decision tree
 - [language.md](./language.md) — Implementation guide
+- [ai-ui-brief.md](./ai-ui-brief.md) — Reusable AI UI/CSS prompt contract and reference role map
 - [quick-reference.md](./quick-reference.md) — One-page cheat sheet
 - [review-checklist.md](./review-checklist.md) — 4-lens PR review (per-change)
 - [stack-review.md](./stack-review.md) — Narrow self-audit of `design/` + `ui/` skill stack only

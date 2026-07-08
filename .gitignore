@@ -103,7 +103,7 @@ out/
 **/out/
 
 # Vite dev build output
-dev-dist
+**/dev-dist/
 
 # Gatsby files
 .cache/
@@ -146,6 +146,7 @@ dev-dist
 .vercel
 .codex-artifacts/
 tmp/
+.tmp/
 
 # Playwright test results
 test-results/
@@ -153,9 +154,6 @@ playwright-report/
 tests/test-results/
 tests/playwright-report/
 session-state.md
-
-# Stitch downloaded assets (fetched per-session, not committed)
-.stitch/designs/
 
 # Lighthouse CI results
 .lighthouseci/

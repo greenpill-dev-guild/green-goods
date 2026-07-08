@@ -47,7 +47,7 @@ export const WorkDashboardIcon: React.FC<WorkDashboardIconProps> = ({ className 
   return (
     <>
       <button
-        onClick={openWorkDashboard}
+        onClick={() => openWorkDashboard()}
         className={cn(
           "relative p-1 rounded-lg border",
           "transition-[color,border-color,box-shadow,transform] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]",

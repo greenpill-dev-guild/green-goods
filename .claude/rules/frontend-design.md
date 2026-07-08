@@ -8,23 +8,31 @@ paths:
 
 Rules for all frontend code in admin and client packages.
 
-## Rule 1: Header Consistency
+## Rule 1: Header Consistency (admin canvas routes)
 
-All views MUST use `PageHeader` from `@/components/Layout/PageHeader`. Never use custom h1/p headers.
+Admin views render their header through `CanvasRouteFrame` + `CanvasRouteHeader` (PageHeader
+under the hood — views no longer import `PageHeader` directly). Never hand-roll h1/p headers.
+Client views use the client shell patterns (`SiteHeader` / `AppShell`), not PageHeader.
 
 ```tsx
 // Bad
 <h1 className="text-2xl font-bold">{title}</h1>
 <p className="text-gray-500">{description}</p>
 
-// Good
-import { PageHeader } from "@/components/Layout/PageHeader";
-<PageHeader title={title} description={description} sticky />
+// Good — canvas route composition
+import { CanvasRouteFrame, CanvasRouteHeader } from "@/components/Layout";
+<CanvasRouteFrame>
+  <CanvasRouteHeader title={title} description={description} />
+  {/* route content */}
+</CanvasRouteFrame>
 ```
 
 ## Rule 2: Action Bar Separation
 
-Actions go in `PageHeader.actions` prop (rendered on a separate row below title). Never place actions on the title line.
+Actions go in the header's `actions` slot (a separate row, never beside the title). View-level
+actions flow through `ViewAction` + `AdminViewActions` on desktop and the same action set via
+`useViewActions` for the tablet/mobile FAB speed dial — do not duplicate them inline in route
+bodies.
 
 ```tsx
 // Bad — actions beside title
@@ -33,8 +41,8 @@ Actions go in `PageHeader.actions` prop (rendered on a separate row below title)
   <button>Create</button>
 </div>
 
-// Good — actions in PageHeader
-<PageHeader title={title} actions={<Button>Create</Button>} />
+// Good — actions in the header slot
+<CanvasRouteHeader title={title} actions={<AdminViewActions actions={viewActions} />} />
 ```
 
 ## Rule 3: Container Queries
@@ -83,7 +91,7 @@ Entity references in lists (gardens, actions) include small thumbnails (40px) us
 
 ## Rule 9: Typography Utilities
 
-Use `label-md`, `body-md` utilities from theme.css instead of raw Tailwind text sizes for form labels and body text.
+Use `label-md`, `body-md` utilities from theme.css instead of raw Tailwind text sizes for form labels and body text. Mind the role split: `label-xs text-text-soft` is the **eyebrow / metadata** token (card overlines, definition-list keys, section meta) — it is **not** a form-field label. The title that labels a control goes through `FormField` / `AdminSettingRow` (see Rule 15).
 
 ## Rule 10: Icon Sizing Convention
 
@@ -114,27 +122,51 @@ Never use raw Tailwind colors (`bg-neutral-*`, `text-gray-*`). Always use semant
 
 ## Rule 14: Modal Mobile Safety
 
-Modals must use `max-w-[calc(100vw-2rem)] sm:max-w-lg` to prevent overflow on 375px viewports.
+Use the project dialog primitives — they own mobile safety. `AdminDialog` (admin) and
+`DialogShell` (client/shared) already cap width to the viewport and present as a bottom sheet
+on narrow viewports; consumers must NOT restate `max-w-*` overrides (the admin
+`AdminDialogStandard.guard` test fails ad-hoc `max-w-*` on AdminDialog). Only a hand-rolled
+modal (avoid building these) needs `max-w-[calc(100vw-2rem)] sm:max-w-lg` to survive 375px.
 
 ## Rule 15: Form Fields
 
-Use `FormField` component from `@/components/ui/FormField` for label+input+error patterns. Mark required fields.
+Use the `FormField` component from `@green-goods/shared` for label+input+error patterns
+(admin-local `components/ui` shims are forbidden — admin.mdx Migration Rules). Mark required
+fields. For an inline **setting row** (field title on the left, a `Switch` or compact control on
+the right), use the admin `AdminSettingRow` primitive — it carries the same label token as
+`FormField`, so a toggle row never reads smaller or greyer than the stacked fields beside it.
+
+**A field-input label is never a hand-rolled eyebrow.** Labelling an input, toggle, or
+selectable-card group with `label-xs text-text-soft` (the eyebrow/metadata token) makes that
+field read visibly smaller and greyer than the `FormField` labels next to it — the Garden Profile
+dialog regressed exactly this way. Route every field label through `FormField` or
+`AdminSettingRow`.
 
 ```tsx
-// Bad
+// Bad — hand-rolled eyebrow token as a field label
+<p className="label-xs text-text-soft">Open joining</p>
+<Switch ... />
+
 <label>Name</label>
 <input {...register('name')} />
 {errors.name && <p>{errors.name.message}</p>}
 
-// Good
+// Good — canonical label primitives
+import { FormField } from "@green-goods/shared";
+import { AdminSettingRow } from "@/components/AdminSettingRow";
+
 <FormField label="Name" required error={errors.name?.message}>
   <input {...register('name')} />
 </FormField>
+
+<AdminSettingRow labelId="open-joining" label="Open joining" description="…">
+  <Switch aria-labelledby="open-joining" ... />
+</AdminSettingRow>
 ```
 
 ## Rule 16: Alert/Error Boxes
 
-Use `Alert` component from `@/components/ui/Alert` for all error/warning/info boxes. Never use inline styled divs.
+Use the `Alert` component from `@green-goods/shared` for all error/warning/info boxes. Never use inline styled divs.
 
 ```tsx
 // Bad

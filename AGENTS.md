@@ -38,13 +38,22 @@ Linear (workspace `greenpill-dev-guild`) is the durable backlog as of 2026-05-09
 
 **Project routing**: new Issues default unprojected on the Product team. Graduate into a bounded active project only when one already exists for the work; never route new work into a project whose status is Completed.
 
-**Canonical label families** (only these): `protocol:* / package:* / activity:* / task:* / source:* / agent:* / funding:*`. Retired and not to be reintroduced: `area:*`, `work:*`, `automation:*`, `health:*`, `grant:*`. The `agent:*` family distinguishes `agent:claude` (interactive Claude Code), `agent:codex` (Codex), and `agent:routine` (cron'd routine writes) — they are not synonymous.
+**Canonical label families** (only these): `protocol:* / package:* / activity:* / source:* / agent:* / funding:*`. Retired and not to be reintroduced: `area:*`, `work:*`, `task:*`, `automation:*`, `health:*`, `grant:*`. The `agent:*` family distinguishes `agent:claude` (interactive Claude Code), `agent:codex` (Codex), and `agent:routine` (cron'd routine writes) — they are not synonymous.
 
 **Cloud routines that write Linear** (cron'd at claude.ai/code/routines, per-routine docs in `docs/routines/`): `bug-intake`, `health-watch`, `growth-pulse`. Codex does not run these — they are Claude Code routines. Codex consumes the Linear surface they produce.
 
 **Linear MCP** is wired into the Codex environment; it is the same Linear MCP that Claude Code uses. No project `.mcp.json` config needed. Use it for read/query, triage/promote, state transitions, and branch-context loading.
 
 **Privacy boundary** (PostHog evidence in Linear bodies): error message + hash + counts OK; replay URLs, session IDs, distinct IDs, wallet addresses, and reporter identifiers stay out.
+
+## Linear-Spawned Issue Contract
+
+When you are dispatched from a Linear issue (delegated/assigned, labeled `agent:codex`), **that issue is your spec.** Read it in full, plus this file and — if the issue references a `.plans/<feature>/` lane — that lane's `status.json` and todo.
+
+- **Codex-ready gate.** Start implementing only if the issue gives all of: clear **acceptance criteria**, a named **surface / `package:*`**, and **validation** (explicit commands, or inferable from the Validation Ladder below). If any is missing, the scope is ambiguous, or it asks for a cross-lane or architecture decision — **stop and comment on the issue with what's missing; do not guess.** A vague issue is a no-op, not a green light. This is the Linear entry to the same audit-then-ship rhythm in `## Codex Workflow`.
+- **Executor, not orchestrator.** Implement only the issue's scoped unit. Cross-lane order and coupling live in `.plans/<feature>/status.json` + the human — do not reorder lanes, pull in sibling lanes, or expand past the acceptance criteria. Coupled-feature order: shared/types + contracts → state/API → UI.
+- **Branch + PR.** Work on the integration branch named in the issue or its lane, not a fresh ad-hoc branch. The PR body must link the issue — `Closes PRD-NNN` (or `Linear: PRD-NNN`); that link is the issue↔PR source of truth. One issue per PR; keep unattended-maintenance PRs as drafts with the right labels (see `## Scope Constraints For Automated Maintenance`); never self-merge. `critical` and `packages/contracts` surfaces get extra human/Claude review.
+- **Before the PR**, run the Ship Gate from `## Validation Intent Ladder` and produce evidence per `## Verify Before Claiming Success`. Honor the privacy boundary above and `## Multi-Agent Repo Safety`.
 
 ## Codex Workflow
 
@@ -79,6 +88,7 @@ indexer config become **post-broadcast blockers**.
 
 This repo runs multiple concurrent Codex/Claude sessions on the same tree and `develop`. Treat working-tree changes you didn't author this session as another agent's work-in-progress.
 
+- Stay on the current branch for interactive work, which during release/staging prep should be `develop`. Do not create or switch branches unless the user explicitly asks for that branch action in the current turn; branch changes can confuse other agents and risk their work being saved to the wrong place.
 - Stash unknown diffs, don't revert: `git stash push -u -m "..."` is recoverable; `git checkout HEAD --`, `rm -rf`, and `git reset --hard` are not.
 - Investigate first: `git for-each-ref --sort=-committerdate refs/heads/ | head -10`, `ls ~/.codex/worktrees/`, `git log -3 -- <file>`.
 - Bulk destructive ops always need fresh user OK in the current turn — multi-file `git checkout HEAD --`, `rm -rf` of `.plans/`/`packages/`/`docs/`, `git add -A`/`git add .`, `git push --force`.
@@ -87,6 +97,16 @@ This repo runs multiple concurrent Codex/Claude sessions on the same tree and `d
 ## Verify Before Claiming Success
 
 Before reporting that a fix works, a setting takes effect, or a behavior holds, produce evidence in the same turn — the command output, the passing test, the rendered DOM, the re-read file showing the change. "Should work", "probably fixed", and unrun commands are not evidence. If a CLI flag is unfamiliar, read `--help` or the source before invoking it; do not invent flags. If you cannot verify (no test, no live DOM, no observable signal), say "I can't verify this without X" and stop rather than declaring success. Untested fixes and hallucinated commands have produced more reverts in this repo than any other failure mode.
+
+## Validation Intent Ladder
+
+Use the lightest honest proof for the current intent. Do not collapse QA fixes,
+checkpoint validation, and merge readiness into one default command.
+
+- **QA Speed Mode** — default when the user says "QA mode", "quick fix", "get this to staging", or asks for a small visible/content/control fix. Run the targeted test file(s) or package-local command that covers the touched behavior. Add package-local typecheck/build only when the change affects route wiring, render/build output, exported types, or runtime contracts. For visible UI, capture rendered proof through authenticated Brave when available; if the required Brave path is unavailable, report browser QA as blocked instead of substituting isolated Playwright. Do not run full `bun run test`, full `bun build`, or `ci-local --quick` just to finish an isolated QA fix.
+- **Repo Quick Gate** — use `node scripts/dev/ci-local.js --quick` for cross-package/shared-impact changes, checkpoint validation after several QA fixes, or when touched shared exports, hook signatures, provider contracts, data shapes, or mutation flows can affect multiple apps. This is broader than QA Speed Mode and is not the default for every small fix.
+- **Ship Gate** — use the full ship pipeline (`bun format && bun lint && bun run test && bun build`, plus conditional design/vocab/contract checks) only for explicit ship/PR/commit/merge/release readiness, critical surfaces, or when the user asks to prove the branch is ready. Keep this gate strict; do not use QA Speed Mode to claim merge or release readiness.
+- **Multiple agents in QA mode** — each agent runs targeted proof for its own lane and reports blockers. A coordinator or final checkpoint runs Repo Quick Gate or Ship Gate before merge/release instead of every agent duplicating broad validation.
 
 ## User-Observed UI Regression Debugging
 
@@ -122,16 +142,16 @@ browser or DOM evidence proves otherwise.
 
 Single design language across frontend packages, with distinct admin, installed PWA, public browser, and docs surfaces. Full detail in `.claude/skills/design/`. One-page map: `.claude/skills/design/ARCHITECTURE.md`.
 
-**Admin** (`packages/admin`) — restrained operator cockpit. M3 strict anatomy (v0.192). Plus Jakarta Sans. The admin `AppBar` root stays transparent over the workspace canvas; glass is reserved for Navigation/FAB and sheet shells. Use `Admin*` wrappers from `packages/admin/src/components/Admin*.tsx` (13 total: `AdminBadge`, `AdminButton`, `AdminCard`, `AdminCheckbox`, `AdminDialog`, `AdminFab`, `AdminFilterChip`, `AdminLinearProgress`, `AdminListItem`, `AdminSearchToolbar`, `AdminTabRail`, `AdminTextField`, `AdminTooltip`). Litmus: Linear / GitHub / Stripe-appropriate?
+**Admin** (`packages/admin`) — restrained operator cockpit. M3 strict anatomy (v0.192). Plus Jakarta Sans. The admin `AppBar` root stays transparent over the workspace canvas; glass is reserved for Navigation/FAB chrome only. Dialogs, side sheets, route cards, forms, tables, lists, and dense content stay solid. Use `Admin*` wrappers from `packages/admin/src/components/Admin*.tsx` (count derives from the filesystem; 16 today). Litmus: Linear / GitHub / Stripe-appropriate?
 
 **Client** (`packages/client`) — adaptive shell. Browser = `SiteHeader` + hamburger. Installed PWA = bottom `AppBar` (Home / Garden / Profile). Never mix. Inter across PWA; editorial serif only on public browser site. Hero moments (garden creation, first submission, hypercert mint, vault deposit, seasonal transitions, assessment completion, role milestone) live here, never in admin.
 
 **Tokens** — root `DESIGN.md` front matter is the canonical DesignMD token source; generated `--gg-*` tokens and runtime aliases live in `packages/shared/src/styles/theme.css`. Never hardcode `cubic-bezier`, `duration`, or raw color / radius values. Use `--spring-*` (6 tokens), `--color-*`, `--radius-*`, `--color-material-*`, `--blur-material-*`. Concentricity: `child_radius = parent_radius − padding`. 4-role volume hierarchy: canvas 80–90% / ink 8–15% / stone 3–5% / accent green 1–3%.
 
-**Banned vocabulary** (enforced in i18n by `bun run lint:vocab`):
-- Any surface: `streak`, `countdown`, `leaderboard`, `FOMO`.
-- Admin only: `hero moment`, `gallery`, `decorative gradient`, AppBar glass, glass outside Navigation/FAB and sheet shells.
-- Client only: `operator cockpit`, `utility copy`, `Plus Jakarta Sans`, `KPI tile`, `dashboard`.
+**Banned vocabulary and prompt-only wording**:
+- Lint-enforced i18n terms (`bun run lint:vocab`, from `docs/docs/reference/banned-vocabulary.json` → `linter_enforced.terms`): `streak`, `countdown`, `leaderboard`, `FOMO`, `urgent`, `limited time`, `re-engagement`, `retention hook`.
+- Admin prompt-only vocabulary (not parsed by `lint:vocab`): `hero moment`, `gallery`, `decorative gradient`, AppBar glass, glass outside Navigation/FAB chrome.
+- Client prompt-only vocabulary (not parsed by `lint:vocab`): `operator cockpit`, `utility copy`, `Plus Jakarta Sans`, `KPI tile`, `dashboard`.
 
 **Additional validation steps**: `bun run check:design-md` (root + dialect DesignMD lint), `bun run check:design-generated` (root DesignMD ↔ generated artifacts), `bun run check:design-tokens` (runtime projection guard + version coupling), and `bun run lint:vocab` (i18n vocabulary guard). Add these to the Validation Ladder for frontend work; when a component, story, or Storybook-covered surface changes, also run `bun run --filter @green-goods/shared check:stories` and `bun run --filter @green-goods/shared check:story-quality`.
 
@@ -139,11 +159,12 @@ Single design language across frontend packages, with distinct admin, installed 
 
 ## Agentic Modern Web Standard
 
-- Baseline target: Baseline Widely Available. Before frontend, UI, CSS, accessibility, browser proof, or web-design changes, use repo-installed Modern Web Guidance through `bun run agentic:guidance` to search and retrieve current Chrome guidance as documentation/source material only; Green Goods browser proof still runs in Brave. Then apply the repo's Warm Earth and package-level design rules.
+- Baseline target: Baseline Widely Available. Before frontend, UI, CSS, accessibility, browser proof, or web-design changes, use repo-installed Modern Web Guidance through `bun run agentic:guidance` to search and retrieve current Chrome guidance as documentation/source material only; Green Goods local QA uses the authenticated Brave QA profile, while CI clean-room browser proof uses Brave only as non-authenticated evidence. Then apply the repo's Warm Earth and package-level design rules.
 - Prefer semantic HTML, native controls, platform CSS, and browser primitives before custom JavaScript. Keep headings, landmarks, form labels, accessible names, focus order, visible focus, touch targets, loading/error/empty states, and reduced-motion behavior legible to humans, assistive tech, and browser agents.
-- Run `bun run agentic:check` as the hard guidance-readiness front door for repo-installed Modern Web Guidance, design docs, token drift, Codex/skill guidance, and shared Storybook story quality. Use `bun run agentic:verify` for Storybook-backed component proof, and `bun run agentic:browser-proof` for built-route proof across client, admin, and docs when layout, interaction, motion, or public routes change. The route proof writes screenshots, accessibility summaries, `/llms.txt` status, reduced-motion state, console/page errors, overflow checks, and WebMCP discovery to `.codex-artifacts/agentic-browser-proof/`; run `bun run lighthouse` when the heavier Lighthouse lane is needed. `dev-surfaces` remains the cross-repo/global doctor for shared Modern Web Guidance cache refresh, Brave, and MCP readiness.
-- For local human/agent browser walkthroughs, WebMCP validation, extension review, visual debugging, and DevTools MCP proof, use Brave with an isolated/non-default profile. Do not silently fall back to any non-Brave browser for Green Goods browser proof.
-- Brave DevTools MCP is project-configured in `.mcp.json` through `scripts/mcp/brave-devtools.mjs`; use it as the Brave-backed DevTools MCP path for live browser debugging, rendered DOM proof, console/network/performance inspection, screenshots, traces, and WebMCP discovery when troubleshooting Green Goods. The wrapper calls the upstream `chrome-devtools-mcp` package because that is the protocol package name, but the browser executable must be Brave. It rejects Google Chrome, Chrome for Testing, Chromium, and Edge paths. The wrapper uses the repo Node 22 toolchain, Brave browser discovery, isolated browser profiles, localhost HTTPS support, WebMCP debug category, and WebMCP testing flags. Native WebMCP discovery requires a Brave build that exposes `navigator.modelContext`. WebMCP v1 is implemented only for public-safe client/browser routes via `packages/client/src/modules/webmcp/public-tools.ts`; do not expose secrets, private data, hidden admin actions, onchain writes, destructive operations, or background-only actions as WebMCP tools.
+- Run `bun run agentic:check` as the hard guidance-readiness front door for repo-installed Modern Web Guidance, design docs, token drift, Codex/skill guidance, and shared Storybook story quality. For local built-route QA across client, admin, and docs, use the authenticated Brave QA profile through the live authenticated-browser path below. Treat `bun run agentic:verify`, `bun run agentic:browser-proof`, and `bun run lighthouse` as CI/clean-room or code-level proof only unless they attach to authenticated Brave; do not report them as local authenticated verification. `dev-surfaces` remains the cross-repo/global doctor for shared Modern Web Guidance cache refresh, Brave, and MCP readiness.
+- Local agentic browser QA must use the authenticated Brave QA profile. Codex: use the Codex browser-extension path and claim the already-open Brave tab/window. Claude Code: use the Claude Code Chrome/Chromium extension path (`claude --chrome` or `/chrome`) and select the authenticated Brave profile/tab when it is installed, connected, and able to control the already-open Brave window. Do not fall back merely because the extension is branded Chrome. If the Brave extension path is unavailable or not connected, use Claude computer-use/visible desktop control of the already-open Brave window; if neither can reach authenticated Brave, report QA as blocked. Use this for admin, PWA, extension, wallet/passkey, staging-session, installed-app, and profile-dependent verification.
+- Do not use isolated Browser, Playwright, or DevTools MCP profiles for local QA. Existing isolated browser-proof commands are CI/clean-room checks only and must not be reported as authenticated verification. If authenticated Brave access is blocked, stop and report QA as blocked.
+- Brave DevTools MCP is project-configured in `.mcp.json` through `scripts/mcp/brave-devtools.mjs`, but do not use it for local QA, live admin/PWA verification, rendered DOM proof, screenshots, traces, or success claims because it can launch a separate non-authenticated profile. The wrapper calls the upstream `chrome-devtools-mcp` package because that is the protocol package name, but the browser executable must be Brave. It rejects Google Chrome, Chrome for Testing, Chromium, and Edge paths. Use this wrapper only for CI/clean-room public-route checks or explicit non-authenticated protocol debugging, and label any result as non-authenticated evidence. Native WebMCP discovery requires a Brave build that exposes `navigator.modelContext`. WebMCP v1 is implemented only for public-safe client/browser routes via `packages/client/src/modules/webmcp/public-tools.ts`; do not expose secrets, private data, hidden admin actions, onchain writes, destructive operations, or background-only actions as WebMCP tools.
 
 ## Known Gotchas
 
@@ -159,7 +180,7 @@ When you see a layout bug that "looks like" a missing class, first check: was th
 ## Validation Ladder
 
 - Codex drift check: `node scripts/quality/check-codex-docs.js`
-- Skill mirror check: `bun run check:skills`
+- QA Speed Mode: targeted package/file tests plus package-local typecheck/build only when the touched behavior needs it
 - Quick repo verification: `node scripts/dev/ci-local.js --quick`
 - Full-local dev proof: `bun run dev` followed by `bun run dev:smoke:full` proves browser surfaces, local agent, local indexer/Hasura/Postgres, Anvil fork chain id 42161, deployed bytecode, and funded Anvil accounts without submitting transactions.
 - Production-backed local proof: `bun run dev:prod` followed by `bun run dev:prod:smoke` if you need local browser apps against Arbitrum One, hosted production indexer, and the production agent at https://agent.greengoods.app. Use `bun run dev:prod:mirror:health` before mirror mode; set the Envio API token env var for reliable live-indexer catch-up. The smoke is read-only; wallet-confirmed writes in this mode are real Arbitrum transactions.
@@ -168,6 +189,13 @@ When you see a layout bug that "looks like" a missing class, first check: was th
 - Lint fix: `bun format && bun lint`
 - Full tests: `bun run test`
 - Full build: `VITE_CHAIN_ID=11155111 bun run build` _(Sepolia is the deterministic validation chain — overrides local environment files so the build is reproducible across machines without requiring Arbitrum-specific deployment artifacts)_
+
+## Test Suite Speed Follow-Up
+
+Do not refactor or delete tests as part of QA-speed guidance updates. Track a
+separate test-suite speed audit when needed: measure the slowest package tests,
+identify large multi-scenario files, and propose focused splits or lighter
+default runners with evidence.
 
 ## Package Guides
 
@@ -196,12 +224,11 @@ When Codex is running unattended maintenance work:
 
 ## Shared Skill Surface
 
-`.claude/skills` is the canonical repo skill source. `.agents/skills` is a generated Codex-visible mirror, not a hand-edited tree.
+`.claude/skills` is the canonical repo skill source. `.agents/skills` is a symlink to it (`.agents/skills -> ../.claude/skills`), so Claude Code and Codex read one shared skill tree — there is no generated mirror and nothing to keep in sync.
 
-- Update `.claude/skills` first when changing shared skills.
-- Run `bun run skills:sync` after skill edits to regenerate `.agents/skills`.
-- Run `bun run check:skills` before claiming the skill surface is aligned.
-- Do not replace `.agents/skills` with a symlink. A symlink hides drift, but it also lets accidental Codex skill imports write directly into the canonical Claude tree.
+- Edit skills in `.claude/skills`; Codex sees the same files through the `.agents/skills` symlink.
+- Codex officially follows symlinked skill folders, so no `skills:sync` regeneration or `check:skills` drift gate is needed.
+- Do not convert `.agents/skills` back into a real directory or a second copy — that reintroduces the copy drift this symlink removes.
 
 ## Scripts
 

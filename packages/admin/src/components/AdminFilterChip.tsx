@@ -54,7 +54,7 @@ export function AdminFilterChip({
         // State layer
         "m3-state-layer",
         // Focus ring
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--m3-primary))]",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]",
         // Motion
         "transition-colors duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]",
         // Disabled

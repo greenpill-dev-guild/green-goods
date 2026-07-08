@@ -1,41 +1,36 @@
-import { type Address, adminRoutes, useRouteBackedLeftSheetConfig } from "@green-goods/shared";
+import { type Address, adminRoutes } from "@green-goods/shared";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
+import { useRouteBackedLeftSheetConfig } from "@/components/Layout";
 import GardenSignalPoolView from "@/views/Garden/SignalPool";
 import GardenStrategiesView from "@/views/Garden/Strategies";
-import GardenVaultView from "@/views/Garden/Vault";
+import { VaultActionRouteDialog, type VaultActionRoute } from "./VaultActionRouteDialog";
 
 interface CommunitySheetDescriptorProps {
-  isVaultRoute: boolean;
   isStrategiesRoute: boolean;
   isSignalPoolRoute: boolean;
+  vaultAction: VaultActionRoute | null;
   poolType: string | undefined;
   gardenAddress?: Address | string;
 }
 
 export function CommunitySheetDescriptor({
-  isVaultRoute,
   isStrategiesRoute,
   isSignalPoolRoute,
+  vaultAction,
   poolType,
   gardenAddress,
 }: CommunitySheetDescriptorProps) {
   const { formatMessage } = useIntl();
 
   const communitySheet = useMemo(() => {
-    if (isVaultRoute) {
-      return {
-        title: formatMessage({ id: "app.treasury.title" }),
-        content: <GardenVaultView layout="sheet" />,
-        closeTo: adminRoutes.communityTreasury({ gardenAddress }),
-      };
-    }
-
     if (isStrategiesRoute) {
       return {
         title: formatMessage({ id: "app.conviction.title" }),
         content: <GardenStrategiesView layout="sheet" />,
-        closeTo: adminRoutes.communityGovernance({ gardenAddress }),
+        closeTo: adminRoutes.communityCoordination({ gardenId: gardenAddress }),
+        size: "lg" as const,
+        tone: "community" as const,
       };
     }
 
@@ -48,14 +43,16 @@ export function CommunitySheetDescriptor({
               : "app.signal.hypercertPool.title",
         }),
         content: <GardenSignalPoolView layout="sheet" />,
-        closeTo: adminRoutes.communityGovernance({ gardenAddress }),
+        closeTo: adminRoutes.communityCoordination({ gardenId: gardenAddress }),
+        size: "lg" as const,
+        tone: "community" as const,
       };
     }
 
     return null;
-  }, [formatMessage, gardenAddress, isSignalPoolRoute, isStrategiesRoute, isVaultRoute, poolType]);
+  }, [formatMessage, gardenAddress, isSignalPoolRoute, isStrategiesRoute, poolType]);
 
   useRouteBackedLeftSheetConfig(communitySheet);
 
-  return null;
+  return <VaultActionRouteDialog action={vaultAction} gardenAddress={gardenAddress} />;
 }

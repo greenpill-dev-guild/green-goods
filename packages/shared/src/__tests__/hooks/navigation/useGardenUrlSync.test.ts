@@ -7,7 +7,7 @@
 
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { createElement, Fragment, type ReactNode } from "react";
-import { MemoryRouter, useLocation } from "react-router-dom";
+import { MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createMockGarden, createTestQueryClient } from "../../test-utils";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -97,21 +97,18 @@ describe("useGardenUrlSync", () => {
     mockIsLoaded.current = true;
   });
 
-  it("reads garden address from URL ?gardenAddress= param", () => {
+  it("reads garden id from canonical URL ?gardenId= param without Zustand selection", () => {
     const garden = createMockGarden({
       id: "garden-123",
       tokenAddress: "0x1230000000000000000000000000000000000123",
     });
     mockEligibleGardens.current = [garden];
-    // Simulate that the store already reflects the URL garden (steady state)
-    mockSelectedGardenId.current = "garden-123";
 
-    const wrapper = createRouterWrapper([
-      "/hub?gardenAddress=0x1230000000000000000000000000000000000123",
-    ]);
+    const wrapper = createRouterWrapper(["/hub?gardenId=garden-123"]);
     const { result } = renderHook(() => useGardenUrlSync(), { wrapper });
 
     expect(result.current.gardenId).toBe("garden-123");
+    expect(mockSetSelectedGarden).not.toHaveBeenCalled();
   });
 
   it("reads tab from URL ?tab= param", () => {
@@ -135,7 +132,7 @@ describe("useGardenUrlSync", () => {
     expect(result.current.tab).toBe("actions");
   });
 
-  it("setGarden replaces a stale gardenAddress while preserving unrelated search params", async () => {
+  it("setGarden writes canonical gardenId, preserves unrelated search params, and pushes history", async () => {
     const greenGarden = createMockGarden({
       id: "garden-green",
       name: "Green Goods Community Garden",
@@ -147,25 +144,36 @@ describe("useGardenUrlSync", () => {
       tokenAddress: "0xbbb0000000000000000000000000000000000bbb",
     });
     mockEligibleGardens.current = [greenGarden, growGarden];
-    mockSelectedGarden.current = greenGarden;
-    mockSelectedGardenId.current = greenGarden.id;
 
-    const wrapper = createRouterWrapper([
-      `/hub/work?gardenAddress=${greenGarden.tokenAddress}&sort=oldest`,
-    ]);
-    const { result } = renderHook(() => useGardenUrlSync(), { wrapper });
+    const wrapper = createRouterWrapper([`/hub/work?gardenId=${greenGarden.id}&sort=oldest`]);
+    const { result } = renderHook(
+      () => ({
+        sync: useGardenUrlSync(),
+        navigate: useNavigate(),
+      }),
+      { wrapper }
+    );
 
     act(() => {
-      result.current.setGarden(growGarden);
+      result.current.sync.setGarden(growGarden);
     });
 
     await waitFor(() => {
-      expect(result.current.gardenId).toBe(growGarden.id);
+      expect(result.current.sync.gardenId).toBe(growGarden.id);
     });
 
-    expect(mockSetSelectedGarden).toHaveBeenLastCalledWith(growGarden);
-    expect(mockLocationSearch.current).toContain(`gardenAddress=${growGarden.tokenAddress}`);
+    expect(mockSetSelectedGarden).not.toHaveBeenCalled();
+    expect(mockLocationSearch.current).toContain(`gardenId=${growGarden.id}`);
     expect(mockLocationSearch.current).toContain("sort=oldest");
+
+    act(() => {
+      result.current.navigate(-1);
+    });
+
+    await waitFor(() => {
+      expect(result.current.sync.gardenId).toBe(greenGarden.id);
+      expect(mockLocationSearch.current).toContain(`gardenId=${greenGarden.id}`);
+    });
   });
 
   it("openItem adds ?item= param to URL for non-Hub canvas filters", () => {
@@ -194,7 +202,7 @@ describe("useGardenUrlSync", () => {
     expect(result.current.item).toBeNull();
   });
 
-  it("syncs garden selection to useAdminStore", () => {
+  it("does not duplicate the route garden into useAdminStore selectedGarden", () => {
     const garden = createMockGarden({
       id: "garden-sync",
       tokenAddress: "0x4560000000000000000000000000000000000456",
@@ -202,19 +210,14 @@ describe("useGardenUrlSync", () => {
     mockEligibleGardens.current = [garden];
     mockIsLoaded.current = true;
 
-    const wrapper = createRouterWrapper([
-      "/hub?gardenAddress=0x4560000000000000000000000000000000000456",
-    ]);
+    const wrapper = createRouterWrapper(["/hub?gardenId=garden-sync"]);
 
     renderHook(() => useGardenUrlSync(), { wrapper });
 
-    // The hook should call setSelectedGarden with the matching garden
-    expect(mockSetSelectedGarden).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "garden-sync" })
-    );
+    expect(mockSetSelectedGarden).not.toHaveBeenCalled();
   });
 
-  it("prefers a valid URL garden over the resolved default garden", () => {
+  it("normalizes a legacy gardenAddress URL over the resolved default garden", async () => {
     const urlGarden = createMockGarden({
       id: "garden-url",
       tokenAddress: "0x7890000000000000000000000000000000000789",
@@ -227,34 +230,37 @@ describe("useGardenUrlSync", () => {
       "/hub?gardenAddress=0x7890000000000000000000000000000000000789",
     ]);
 
-    renderHook(() => useGardenUrlSync(), { wrapper });
+    const { result } = renderHook(() => useGardenUrlSync(), { wrapper });
 
-    expect(mockSetSelectedGarden).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "garden-url" })
-    );
+    await waitFor(() => {
+      expect(result.current.gardenId).toBe("garden-url");
+      expect(mockLocationSearch.current).toContain("gardenId=garden-url");
+    });
+    expect(mockLocationSearch.current).not.toContain("gardenAddress=");
+    expect(mockSetSelectedGarden).not.toHaveBeenCalled();
   });
 
-  it("falls back to the resolved default garden when the URL has no garden param", () => {
+  it("normalizes the resolved default garden into the URL when the route has no garden id", async () => {
     const defaultGarden = createMockGarden({ id: "garden-default" });
     mockEligibleGardens.current = [defaultGarden];
     mockResolvedDefaultGarden.current = defaultGarden;
 
     const wrapper = createRouterWrapper(["/hub"]);
 
-    const { rerender } = renderHook(() => useGardenUrlSync(), { wrapper });
+    const { result } = renderHook(() => useGardenUrlSync(), { wrapper });
 
-    rerender();
-
-    expect(mockSetSelectedGarden).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "garden-default" })
-    );
+    await waitFor(() => {
+      expect(result.current.gardenId).toBe("garden-default");
+      expect(mockLocationSearch.current).toContain("gardenId=garden-default");
+    });
+    expect(mockSetSelectedGarden).not.toHaveBeenCalled();
     expect(mockSetPersistedGardenId).toHaveBeenCalledWith(
       "11155111:0x1111111111111111111111111111111111111111",
       "garden-default"
     );
   });
 
-  it("ignores an invalid gardenAddress and keeps the resolved default garden", () => {
+  it("keeps an explicit invalid garden id unresolved instead of falling back to a different garden", () => {
     const defaultGarden = createMockGarden({
       id: "garden-default",
       tokenAddress: "0x9990000000000000000000000000000000000999",
@@ -262,14 +268,11 @@ describe("useGardenUrlSync", () => {
     mockEligibleGardens.current = [defaultGarden];
     mockResolvedDefaultGarden.current = defaultGarden;
 
-    const wrapper = createRouterWrapper([
-      "/hub?gardenAddress=0x0000000000000000000000000000000000000001",
-    ]);
+    const wrapper = createRouterWrapper(["/hub?gardenId=garden-missing"]);
 
-    renderHook(() => useGardenUrlSync(), { wrapper });
+    const { result } = renderHook(() => useGardenUrlSync(), { wrapper });
 
-    expect(mockSetSelectedGarden).toHaveBeenCalledWith(
-      expect.objectContaining({ id: "garden-default" })
-    );
+    expect(result.current.gardenId).toBeNull();
+    expect(mockSetSelectedGarden).not.toHaveBeenCalled();
   });
 });

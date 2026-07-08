@@ -26,7 +26,7 @@ The product is considering removing passkeys because the current experience can 
 - Out of scope: a Green Goods-owned passkey server, a new centralized user database, Kernel guardian/signer recovery implementation, and ENS L2 sender admin recovery implementation.
 - Related follow-up: `.plans/backlog/ens-l2-sender-admin-recovery/` stays the username-recovery dependency for operator-assisted exact-name repair.
 - Related research: Kernel guardian recovery is real, but is treated as a non-blocking spike because it requires account/plugin setup before loss and is not a small config flip in the current `permissionless` Kernel flow.
-- Guardrail: any path that creates a new account after failed recovery must explicitly say it creates a separate smart-account address.
+- Guardrail: failed recovery stays in the recovery surface with retry/back only. Fresh account creation remains a separate entry/create flow and must not be started implicitly from recovery.
 - Production readiness gate: the implementation must prove canonical RP/origin configuration, address continuity, outage rollback, privacy-safe telemetry, and stale passkey docs cleanup before production enablement.
 - Related spec: `docs/docs/builders/specs/passkey-server-hardening-and-recovery-ready-auth-2026-03.md` remains an unlisted reference, but this active hub is the release execution truth.
 

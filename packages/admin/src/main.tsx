@@ -33,12 +33,16 @@ declare global {
   }
 }
 
+const adminAppUrl =
+  import.meta.env.VITE_ADMIN_APP_URL ||
+  (typeof window !== "undefined" ? window.location.origin : "https://admin.greengoods.app");
+
 // Initialize theme system
 const cleanupTheme = initTheme();
 
 initBrowserSentry({
   dsn: import.meta.env.VITE_SENTRY_ADMIN_DSN,
-  environment: import.meta.env.MODE,
+  environment: import.meta.env.VITE_SENTRY_ENVIRONMENT || import.meta.env.MODE,
   release: import.meta.env.VITE_APP_VERSION
     ? `green-goods-admin@${import.meta.env.VITE_APP_VERSION}`
     : undefined,
@@ -67,7 +71,7 @@ export const Root = () => (
         metadata={{
           name: "Green Goods Admin",
           description: "Garden management canvas for the Green Goods protocol",
-          url: "https://admin.greengoods.app",
+          url: adminAppUrl,
           icons: ["https://greengoods.app/icon.png"],
         }}
         defaultChainId={DEFAULT_CHAIN_ID}

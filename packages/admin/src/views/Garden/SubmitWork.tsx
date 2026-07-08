@@ -3,47 +3,62 @@ import {
   type Address,
   Alert,
   adminRoutes,
-  Button,
-  Card,
-  DEFAULT_CHAIN_ID,
-  type Domain,
+  compareAddresses,
+  Domain,
   expandDomainMask,
   FileUploadField,
   FormField,
   findActionByUID,
   getActionTitle,
+  imageCompressor,
+  isOfflineTxHash,
   logger,
+  normalizeWorkMediaFiles,
   NativeSelect,
   parseActionUID,
-  parseAndFormatError,
-  queryKeys,
-  SheetBody,
-  SheetFooter,
-  submitWorkDirectly,
   Textarea,
   toastService,
+  TxInlineFeedback,
+  validationToasts,
   useAdminGardenWorkspaceSelection,
   useActions,
+  type AuthStateValue,
   useAuthState,
   useBeforeUnloadWhilePending,
+  useDirtyClose,
   useGardenPermissions,
   useGardens,
+  useStepFocus,
+  useUser,
   useWorkForm,
+  useWorkMutation,
   type WorkInput,
 } from "@green-goods/shared";
-import { RiUploadCloudLine } from "@remixicon/react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { validateWorkSubmissionContext } from "@green-goods/shared/modules";
+import { RiSeedlingLine, RiUploadCloudLine } from "@remixicon/react";
+import {
+  type FormEvent,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Controller } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AdminButton } from "@/components/AdminButton";
+import { AdminDialog, ADMIN_FLOW_DIALOG_CLASS } from "@/components/AdminDialog";
+import { AdminLinearProgress } from "@/components/AdminLinearProgress";
+import { DiscardChangesDialog } from "@/components/DiscardChangesDialog";
+import { AdminTabRail } from "@/components/AdminTabRail";
 import { AdminTextField } from "@/components/AdminTextField";
-import {
-  CanvasRouteContent,
-  CanvasRouteFrame,
-  CanvasRouteHeader,
-} from "@/components/Layout/CanvasRouteFrame";
+import { ActionFlowShell } from "@/components/Layout/ActionFlowShell";
+import { FlowStepHeader } from "@/components/Layout/FlowStepHeader";
+import { type ActionFlowStep } from "@/components/Layout/ActionFlowStepper";
+import { ActionChooserGrid } from "./components/ActionChooserGrid";
+import { SubmitWorkReview } from "./components/SubmitWorkReview";
 
 function parseHubContext(search: string) {
   const params = new URLSearchParams(search);
@@ -51,7 +66,7 @@ function parseHubContext(search: string) {
   const sort = params.get("sort");
 
   return {
-    gardenAddress: params.get("gardenAddress") ?? undefined,
+    gardenId: params.get("gardenId") ?? params.get("gardenAddress") ?? undefined,
     view:
       view === "work" || view === "assess" || view === "certify" || view === "history"
         ? view
@@ -212,28 +227,123 @@ function DynamicWorkFields({
   );
 }
 
-type SubmitWorkLayout = "page" | "sheet";
+function getMinRequiredImages(action: Action | null) {
+  if (!action?.mediaInfo?.required) return 0;
+  return action.mediaInfo.minImageCount ?? 1;
+}
+
+// "page" = standalone panel with no dialog chrome (tests, inline embedding);
+// "dialog" = hosted in the AdminDialog flow host at /hub/work/submit
+// (a centered card on desktop, a full-width bottom-sheet on mobile). Both render the same
+// workflow body through ActionFlowShell — only the outer shell + close-button
+// reservation differ.
+type SubmitWorkLayout = "page" | "dialog";
+type MediaFeedback = { variant: "warning" | "error"; message: string };
+type SubmitWorkAuthSnapshot = Pick<AuthStateValue, "authMode" | "isAuthenticated"> & {
+  primaryAddress: Address | null | undefined;
+};
+
+// Domain → shared i18n label key (reuses the Create Assessment domain labels so
+// the chooser filter and the assessment domain picker stay in lockstep).
+const DOMAIN_TAB_KEYS: Record<Domain, string> = {
+  [Domain.SOLAR]: "app.admin.assessment.domainAction.domain.solar",
+  [Domain.AGRO]: "app.admin.assessment.domainAction.domain.agroforestry",
+  [Domain.EDU]: "app.admin.assessment.domainAction.domain.education",
+  [Domain.WASTE]: "app.admin.assessment.domainAction.domain.waste",
+};
 
 export interface SubmitWorkPanelProps {
   layout?: SubmitWorkLayout;
   onSuccess?: () => void;
   onCancel?: () => void;
+  auth?: SubmitWorkAuthSnapshot;
+  /**
+   * Reports whether the operator has user-meaningful content (typed form
+   * fields or staged media) so the hosting dialog can guard accidental
+   * closes. Selecting an action alone is one recoverable click — it does not
+   * count as dirty (parity with Create Assessment's pristine-close contract).
+   */
+  onDirtyChange?: (dirty: boolean) => void;
+  /** Reports wallet/media work in flight so the route dialog can block shell closes. */
+  onBusyChange?: (busy: boolean) => void;
 }
 
-export function SubmitWorkPanel({ layout = "page", onSuccess, onCancel }: SubmitWorkPanelProps) {
+const ADMIN_WORK_MEDIA_COMPRESSION_THRESHOLD_KB = 1024;
+const ADMIN_WORK_MEDIA_COMPRESSION_OPTIONS = {
+  maxSizeMB: 0.8,
+  maxWidthOrHeight: 2048,
+  initialQuality: 0.8,
+  useWebWorker: true,
+} as const;
+
+async function compressAdminWorkMediaFiles(
+  files: File[],
+  onProgress: (progress: number) => void
+): Promise<File[]> {
+  const filesToCompress = files
+    .map((file, index) => ({ file, index }))
+    .filter(({ file }) =>
+      imageCompressor.shouldCompress(file, ADMIN_WORK_MEDIA_COMPRESSION_THRESHOLD_KB)
+    );
+
+  if (filesToCompress.length === 0) return files;
+
+  const compressed = await imageCompressor.compressImages(
+    filesToCompress.map(({ file }) => file),
+    ADMIN_WORK_MEDIA_COMPRESSION_OPTIONS,
+    (progress) => onProgress(progress)
+  );
+
+  const preparedFiles = files.slice();
+  compressed.forEach((result, compressedIndex) => {
+    const originalIndex = filesToCompress[compressedIndex]?.index;
+    if (originalIndex !== undefined) {
+      preparedFiles[originalIndex] = result.file;
+    }
+  });
+
+  return preparedFiles;
+}
+
+function isOffline() {
+  return typeof navigator !== "undefined" && navigator.onLine === false;
+}
+
+export function SubmitWorkPanel({ auth, ...props }: SubmitWorkPanelProps) {
+  if (auth) {
+    return <SubmitWorkPanelContent {...props} auth={auth} />;
+  }
+
+  return <SubmitWorkPanelWithAuth {...props} />;
+}
+
+function SubmitWorkPanelWithAuth(props: Omit<SubmitWorkPanelProps, "auth">) {
+  const { isAuthenticated, authMode } = useAuthState();
+  const { primaryAddress } = useUser();
+
+  return <SubmitWorkPanelContent {...props} auth={{ authMode, isAuthenticated, primaryAddress }} />;
+}
+
+function SubmitWorkPanelContent({
+  layout = "page",
+  onSuccess,
+  onCancel,
+  onDirtyChange,
+  onBusyChange,
+  auth,
+}: Omit<SubmitWorkPanelProps, "auth"> & { auth: SubmitWorkAuthSnapshot }) {
   const { formatMessage } = useIntl();
   const navigate = useNavigate();
-  const queryClient = useQueryClient();
   const { selectedGarden } = useAdminGardenWorkspaceSelection();
   const gardenId = selectedGarden?.id ?? null;
 
-  const { data: gardens = [] } = useGardens();
-  const { data: actions = [] } = useActions();
-  const { isAuthenticated } = useAuthState();
+  const { data: gardens = [], isLoading: gardensLoading } = useGardens();
+  const { data: actions = [], isLoading: actionsLoading } = useActions();
+  const { authMode, isAuthenticated, primaryAddress } = auth;
   const { canManageGarden } = useGardenPermissions();
 
   const garden = useMemo(
-    () => gardens.find((candidate) => candidate.id === gardenId),
+    () => gardens.find((candidate) => compareAddresses(candidate.id, gardenId)),
     [gardens, gardenId]
   );
   const gardenDomains = useMemo<Set<Domain>>(
@@ -244,321 +354,759 @@ export function SubmitWorkPanel({ layout = "page", onSuccess, onCancel }: Submit
     () => actions.filter((action) => gardenDomains.has(action.domain)),
     [actions, gardenDomains]
   );
+  // Domain filter for the action chooser — shown only when the garden's eligible
+  // actions span more than one domain (mirrors the client's domain tabs).
+  const [actionDomain, setActionDomain] = useState<Domain | "all">("all");
+  const chooserDomains = useMemo(
+    () =>
+      Array.from(new Set(availableActions.map((action) => action.domain))).sort((a, b) => a - b),
+    [availableActions]
+  );
+  // Guard a stale filter when the garden switches under the open dialog: if the
+  // previously-selected domain isn't among the new garden's domains, fall back to
+  // "all" so the chooser never renders an empty radiogroup. Drives both the
+  // visible actions and the filter tab's active state.
+  const effectiveDomain =
+    actionDomain !== "all" && chooserDomains.includes(actionDomain) ? actionDomain : "all";
+  const visibleActions = useMemo(
+    () =>
+      effectiveDomain === "all"
+        ? availableActions
+        : availableActions.filter((action) => action.domain === effectiveDomain),
+    [availableActions, effectiveDomain]
+  );
 
   const [selectedActionId, setSelectedActionId] = useState("");
+  const selectedActionIdRef = useRef(selectedActionId);
+  selectedActionIdRef.current = selectedActionId;
   const selectedAction = useMemo<Action | null>(() => {
     if (!selectedActionId) return null;
     const uid = parseActionUID(selectedActionId);
     return findActionByUID(actions, uid);
   }, [selectedActionId, actions]);
+  const selectedActionUID = useMemo(
+    () => (selectedAction ? parseActionUID(selectedAction.id) : null),
+    [selectedAction]
+  );
 
   const form = useWorkForm(selectedAction?.inputs);
   const {
     register,
     control,
     handleSubmit,
-    formState: { errors },
+    formState: { errors, isDirty: formIsDirty },
     reset: resetForm,
   } = form;
 
   const [images, setImages] = useState<File[]>([]);
   const [progressMessage, setProgressMessage] = useState("");
+  const [mediaFeedback, setMediaFeedback] = useState<MediaFeedback | null>(null);
+  const [isPreparingMedia, setIsPreparingMedia] = useState(false);
+  const submitIntentRef = useRef(false);
+  // Stepped flow position (1=Action, 2=Media, 3=Details, 4=Review).
+  const [currentStep, setCurrentStep] = useState(1);
+
+  // Dirty = typed form content or staged media (not mere action selection) —
+  // drives the hosting dialog's discard guard.
+  const panelDirty = formIsDirty || images.length > 0;
+  useEffect(() => {
+    onDirtyChange?.(panelDirty);
+    return () => onDirtyChange?.(false);
+  }, [onDirtyChange, panelDirty]);
   const canSubmit = garden ? canManageGarden(garden) : false;
+  const isLoadingData = Boolean(gardensLoading || actionsLoading);
 
-  const mutation = useMutation({
-    mutationFn: async (formData: Record<string, unknown>) => {
-      if (!garden || !selectedAction) {
-        throw new Error("Garden and action must be selected");
-      }
-
-      const actionUID = parseActionUID(selectedAction.id);
-      if (actionUID === null) {
-        throw new Error("Invalid action ID");
-      }
-
-      const actionTitle = getActionTitle(actions, actionUID);
-      const { feedback, timeSpentMinutes, ...details } = formData;
-      const draft = {
-        actionUID,
-        title: actionTitle,
-        timeSpentMinutes: typeof timeSpentMinutes === "number" ? timeSpentMinutes : 0,
-        feedback: typeof feedback === "string" ? feedback : "",
-        media: images,
-        details: details as Record<string, unknown>,
-      };
-
-      setProgressMessage(formatMessage({ id: "app.admin.work.submit.progress.validating" }));
-
-      return submitWorkDirectly(
-        draft,
-        garden.id as Address,
-        actionUID,
-        actionTitle,
-        DEFAULT_CHAIN_ID,
-        images,
-        {
-          onProgress: (stage, message) => {
-            const i18nKey = `app.admin.work.submit.progress.${stage}`;
-            setProgressMessage(formatMessage({ id: i18nKey, defaultMessage: message }));
-          },
-        }
-      );
+  const mutation = useWorkMutation({
+    authMode,
+    gardenAddress: garden?.id ? (garden.id as Address) : null,
+    actionUID: selectedActionUID,
+    actions,
+    userAddress: primaryAddress ?? null,
+    completeClientFlow: false,
+    allowOfflineQueue: false,
+    onProgress: (stage, message) => {
+      const i18nKey = `app.admin.work.submit.progress.${stage}`;
+      setProgressMessage(formatMessage({ id: i18nKey, defaultMessage: message }));
     },
-    onSuccess: () => {
+    onSuccess: (txHash) => {
+      if (typeof txHash === "string" && isOfflineTxHash(txHash)) {
+        toastService.error({
+          title: formatMessage({ id: "app.admin.work.submit.queuedError.title" }),
+          message: formatMessage({ id: "app.admin.work.submit.queuedError.message" }),
+          context: "admin work submission",
+        });
+        return;
+      }
+
       toastService.success({
         title: formatMessage({ id: "app.admin.work.submit.success" }),
       });
 
-      if (garden) {
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.works.online(garden.id as Address, DEFAULT_CHAIN_ID),
-        });
-        queryClient.invalidateQueries({
-          queryKey: queryKeys.works.merged(garden.id as Address, DEFAULT_CHAIN_ID),
-        });
-      }
-
       onSuccess?.();
     },
     onError: (error: unknown) => {
-      setProgressMessage("");
-      const { title, message } = parseAndFormatError(error);
       logger.error("Admin work submission failed", { error });
-
-      toastService.error({
-        title: title || formatMessage({ id: "app.admin.work.submit.error" }),
-        message,
-        context: "admin work submission",
-        error,
-      });
     },
     onSettled: () => {
       setProgressMessage("");
     },
   });
 
-  useBeforeUnloadWhilePending(mutation.isPending);
+  useBeforeUnloadWhilePending(mutation.isPending || isPreparingMedia);
+  const busy = mutation.isPending || isPreparingMedia;
+  useEffect(() => {
+    onBusyChange?.(busy);
+    return () => onBusyChange?.(false);
+  }, [busy, onBusyChange]);
 
-  const onSubmit = handleSubmit((data) => {
-    if (!selectedAction) return;
-    mutation.mutate(data as Record<string, unknown>);
+  // Auto-select when exactly one action is eligible — skip the Action chooser and
+  // land the operator straight on the Media step.
+  useEffect(() => {
+    if (!selectedActionId && availableActions.length === 1) {
+      setSelectedActionId(availableActions[0].id);
+      setCurrentStep((step) => (step === 1 ? 2 : step));
+    }
+  }, [availableActions, selectedActionId]);
+
+  // Move focus into the newly revealed step region on step change (shared hook,
+  // also used by Create Assessment + Create Hypercert) so keyboard + SR users
+  // follow the flow instead of staying on the Next button.
+  const phaseRef = useStepFocus<HTMLDivElement>(currentStep);
+
+  const submitValidatedDraft = handleSubmit((data) => {
+    if (!garden || !selectedAction || selectedActionUID === null) return;
+
+    const validationErrors = validateWorkSubmissionContext(
+      garden.id as Address,
+      selectedActionUID,
+      images,
+      {
+        minRequired: getMinRequiredImages(selectedAction),
+      }
+    );
+
+    if (validationErrors.length > 0) {
+      validationToasts.formError(validationErrors[0]);
+      return;
+    }
+
+    if (isOffline()) {
+      toastService.error({
+        title: formatMessage({ id: "app.admin.garden.create.offline.title" }),
+        message: formatMessage({
+          id: "app.admin.work.submit.offline.message",
+          defaultMessage: "Reconnect to the internet before submitting work.",
+        }),
+        context: "admin work submission",
+      });
+      return;
+    }
+
+    setMediaFeedback(null);
+
+    const actionTitle = getActionTitle(actions, selectedActionUID);
+    const { feedback, timeSpentMinutes, ...details } = data as Record<string, unknown>;
+    const draft = {
+      actionUID: selectedActionUID,
+      title: actionTitle,
+      timeSpentMinutes: typeof timeSpentMinutes === "number" ? timeSpentMinutes : 0,
+      feedback: typeof feedback === "string" ? feedback : "",
+      media: images,
+      details: details as Record<string, unknown>,
+    };
+
+    setProgressMessage(formatMessage({ id: "app.admin.work.submit.progress.validating" }));
+    mutation.mutate({ draft, images: images.slice() });
   });
+
+  const handleFormSubmit = (event: FormEvent<HTMLFormElement>) => {
+    if (!submitIntentRef.current) {
+      event.preventDefault();
+      return;
+    }
+
+    submitIntentRef.current = false;
+    void submitValidatedDraft(event);
+  };
+
+  const armSubmitIntent = () => {
+    submitIntentRef.current = true;
+  };
 
   const handleActionChange = (actionId: string) => {
     setSelectedActionId(actionId);
     resetForm();
     setImages([]);
+    setMediaFeedback(null);
+    setProgressMessage("");
+    mutation.reset();
   };
 
-  const renderState = (variant: "error" | "warning", messageId: string) => {
-    const state = <Alert variant={variant}>{formatMessage({ id: messageId })}</Alert>;
+  const handleFilesChange = useCallback(
+    async (newFiles: File[]) => {
+      setMediaFeedback(null);
+      if (newFiles.length === 0) return;
 
-    return layout === "page" ? (
-      <CanvasRouteContent maxWidthClassName="max-w-2xl" className="mt-6">
-        {state}
-      </CanvasRouteContent>
-    ) : (
-      state
-    );
-  };
+      const actionIdAtStart = selectedActionIdRef.current;
+      const isCurrentAction = () => selectedActionIdRef.current === actionIdAtStart;
 
-  if (!garden) {
-    return renderState("error", "app.garden.admin.notFound");
-  }
+      setIsPreparingMedia(true);
+      setProgressMessage(formatMessage({ id: "admin.fileUpload.processing" }, { progress: 0 }));
 
-  if (!isAuthenticated) {
-    return renderState("warning", "app.admin.work.submit.connectWallet");
-  }
+      try {
+        const normalized = await normalizeWorkMediaFiles(newFiles, {
+          onHeicConversionStarted: () => {
+            setProgressMessage(formatMessage({ id: "app.garden.upload.convertingHeic" }));
+          },
+        });
+        if (!isCurrentAction()) return;
 
-  if (!canSubmit) {
-    return renderState("warning", "app.admin.work.submit.noPermission");
-  }
+        const acceptedFiles = normalized.accepted.map((item) => item.file);
+        if (acceptedFiles.length > 0) {
+          const preparedFiles = await compressAdminWorkMediaFiles(acceptedFiles, (progress) => {
+            setProgressMessage(
+              formatMessage(
+                { id: "admin.fileUpload.processing", defaultMessage: "Processing... {progress}%" },
+                { progress: Math.round(progress) }
+              )
+            );
+          });
+          if (!isCurrentAction()) return;
+          setImages((prev) => [...prev, ...preparedFiles]);
+        }
 
-  // Stable form id so the sheet-mode SheetFooter submit button can target the
-  // form via the `form="..."` attribute (handoff sheet anatomy: pinned footer
-  // sits OUTSIDE the form element and triggers submit by id).
-  const formId = "submit-work-form";
+        const unsupportedCount = normalized.rejected.filter(
+          (item) => item.reason === "unsupported"
+        ).length;
+        const conversionFailureCount = normalized.rejected.filter(
+          (item) => item.reason === "heic_conversion_failed"
+        ).length;
+        const messages: string[] = [];
 
-  const formCard = (
-    <form id={formId} onSubmit={onSubmit}>
-      <Card>
-        <Card.Body className="space-y-5">
-          <FormField
-            label={formatMessage({ id: "app.admin.work.submit.selectAction" })}
-            htmlFor="action-select"
-            required
-          >
-            {availableActions.length === 0 ? (
-              <Alert
-                variant="info"
-                action={
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() =>
-                      navigate(adminRoutes.gardenSettings({ gardenAddress: garden.id }))
-                    }
-                  >
-                    {formatMessage({ id: "app.admin.work.submit.noActionsForDomain.cta" })}
-                  </Button>
-                }
-              >
-                {formatMessage({ id: "app.admin.work.submit.noActionsForDomain" })}
-              </Alert>
-            ) : (
-              <NativeSelect
-                surface="admin"
-                id="action-select"
-                value={selectedActionId}
-                onChange={(event) => handleActionChange(event.target.value)}
-              >
-                <option value="">
-                  {formatMessage({ id: "app.admin.work.submit.selectActionPlaceholder" })}
-                </option>
-                {availableActions.map((action) => (
-                  <option key={action.id} value={action.id}>
-                    {action.title}
-                  </option>
-                ))}
-              </NativeSelect>
-            )}
-          </FormField>
+        if (unsupportedCount > 0) {
+          const message = formatMessage(
+            {
+              id: "app.garden.upload.unsupportedMediaMessage",
+              defaultMessage:
+                "{count, plural, one {That file is not a supported photo or video.} other {# files are not supported photos or videos.}}",
+            },
+            { count: unsupportedCount }
+          );
+          messages.push(message);
+          toastService.info({
+            title: formatMessage({
+              id: "app.garden.upload.unsupportedMediaTitle",
+              defaultMessage: "Some files were not added",
+            }),
+            message,
+            context: "admin media upload",
+          });
+        }
 
-          {selectedAction && selectedAction.inputs.length > 0 ? (
-            <DynamicWorkFields
-              inputs={selectedAction.inputs}
-              control={control}
-              register={register}
-              errors={errors as Record<string, { message?: string } | undefined>}
-            />
-          ) : null}
+        if (conversionFailureCount > 0) {
+          const message = formatMessage(
+            {
+              id: "app.garden.upload.conversionFailedMessage",
+              defaultMessage:
+                "{count, plural, one {Try that photo again or choose a different image.} other {Try those photos again or choose different images.}}",
+            },
+            { count: conversionFailureCount }
+          );
+          messages.push(message);
+          toastService.error({
+            title: formatMessage({
+              id: "app.garden.upload.conversionFailedTitle",
+              defaultMessage: "HEIC photo could not be converted",
+            }),
+            message,
+            context: "admin media upload",
+          });
+        }
 
-          {selectedAction ? (
-            <>
-              <AdminTextField
-                label={formatMessage({ id: "app.admin.work.submit.timeSpent" })}
-                id="timeSpentMinutes"
-                type="number"
-                variant="outlined"
-                error={errors.timeSpentMinutes?.message}
-                helperText={formatMessage({ id: "app.admin.work.submit.timeSpentHint" })}
-                placeholder={formatMessage({ id: "app.admin.work.submit.timeSpentPlaceholder" })}
-                inputProps={{ step: "0.25", min: 0 }}
-                {...register("timeSpentMinutes")}
-              />
-
-              <FormField
-                label={formatMessage({ id: "app.admin.work.submit.feedback" })}
-                htmlFor="feedback"
-                error={errors.feedback?.message}
-              >
-                <Textarea
-                  surface="admin"
-                  id="feedback"
-                  rows={3}
-                  placeholder={formatMessage({ id: "app.admin.work.submit.feedbackPlaceholder" })}
-                  aria-invalid={!!errors.feedback}
-                  invalid={!!errors.feedback}
-                  className="resize-y"
-                  {...register("feedback")}
-                />
-              </FormField>
-
-              <FileUploadField
-                label={formatMessage({ id: "app.admin.work.submit.media" })}
-                helpText={formatMessage({ id: "app.admin.work.submit.mediaHint" })}
-                accept="image/*"
-                multiple
-                compress
-                showPreview
-                currentFiles={images}
-                onFilesChange={(newFiles) => setImages((prev) => [...prev, ...newFiles])}
-                onRemoveFile={(index) => setImages((prev) => prev.filter((_, i) => i !== index))}
-                disabled={mutation.isPending}
-              />
-            </>
-          ) : null}
-        </Card.Body>
-
-        {selectedAction && layout === "page" ? (
-          <Card.Footer className="flex items-center justify-between gap-3">
-            <div className="min-w-0 flex-1">
-              {progressMessage ? (
-                <p className="truncate text-sm text-text-sub">{progressMessage}</p>
-              ) : null}
-            </div>
-            <div className="flex gap-3">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => onCancel?.()}
-                disabled={mutation.isPending}
-              >
-                {formatMessage({ id: "app.wizard.cancel", defaultMessage: "Cancel" })}
-              </Button>
-              <Button
-                type="submit"
-                loading={mutation.isPending}
-                disabled={mutation.isPending || availableActions.length === 0}
-              >
-                <RiUploadCloudLine className="h-4 w-4" />
-                {mutation.isPending
-                  ? formatMessage({ id: "app.admin.work.submit.submitting" })
-                  : formatMessage({ id: "app.admin.work.submit.submit" })}
-              </Button>
-            </div>
-          </Card.Footer>
-        ) : null}
-      </Card>
-    </form>
+        if (messages.length > 0) {
+          setMediaFeedback({
+            variant: conversionFailureCount > 0 ? "error" : "warning",
+            message: messages.join(" "),
+          });
+        }
+      } catch (error) {
+        logger.error("Admin media processing failed", { error });
+        const message = formatMessage({
+          id: "app.garden.upload.compressionFailedMessage",
+          defaultMessage: "Try fewer or smaller images, or check your connection.",
+        });
+        setMediaFeedback({ variant: "error", message });
+        toastService.error({
+          title: formatMessage({
+            id: "app.garden.upload.compressionFailedTitle",
+            defaultMessage: "Couldn't process those images",
+          }),
+          message,
+          context: "admin media upload",
+          error,
+        });
+      } finally {
+        setIsPreparingMedia(false);
+        setProgressMessage("");
+      }
+    },
+    [formatMessage]
   );
 
-  if (layout === "page") {
+  const title = formatMessage({ id: "app.admin.work.submit.title" });
+  const exitLabel = formatMessage({ id: "app.admin.work.submit.backToGarden" });
+  // On the mobile route the shell's back-arrow is the only way out, so it exits
+  // the flow; in the desktop dialog the AdminDialog close button owns exit, so a
+  // first-phase back-arrow is omitted.
+  const exitBack = layout === "page" ? () => onCancel?.() : undefined;
+
+  // Loading must win over the empty/not-found branches — both `garden` and
+  // `availableActions` are legitimately absent while the lists are still
+  // fetching, so resolving them early would flash a false empty state.
+  if (isLoadingData) {
     return (
-      <CanvasRouteContent maxWidthClassName="max-w-2xl" className="mt-6">
-        {formCard}
-      </CanvasRouteContent>
+      <ActionFlowShell layout={layout} title={title}>
+        <div role="status" aria-busy="true" className="space-y-4">
+          <span className="sr-only">{formatMessage({ id: "app.admin.work.submit.loading" })}</span>
+          <div className="h-7 w-2/3 rounded-lg skeleton-shimmer" />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {[0, 1, 2, 3].map((index) => (
+              <div
+                key={index}
+                className="h-28 rounded-lg skeleton-shimmer"
+                style={{ animationDelay: `${index * 0.05}s` }}
+              />
+            ))}
+          </div>
+        </div>
+      </ActionFlowShell>
     );
   }
 
-  // Sheet layout: SheetBody (scrolls) + pinned SheetFooter. The form lives
-  // inside SheetBody so its inputs scroll naturally; the submit button uses
-  // `form={formId}` to trigger submit even though it sits outside the form.
-  return (
-    <>
-      <SheetBody padded={false} className="p-1">
-        {formCard}
-      </SheetBody>
-      {selectedAction ? (
-        <SheetFooter>
-          <Button
+  if (!garden) {
+    return (
+      <ActionFlowShell layout={layout} title={title} onBack={exitBack} backLabel={exitLabel}>
+        <Alert variant="error">{formatMessage({ id: "app.garden.admin.notFound" })}</Alert>
+      </ActionFlowShell>
+    );
+  }
+  if (!isAuthenticated) {
+    return (
+      <ActionFlowShell
+        layout={layout}
+        title={title}
+        context={garden.name}
+        onBack={exitBack}
+        backLabel={exitLabel}
+      >
+        <Alert variant="warning">
+          {formatMessage({ id: "app.admin.work.submit.connectWallet" })}
+        </Alert>
+      </ActionFlowShell>
+    );
+  }
+  if (!canSubmit) {
+    return (
+      <ActionFlowShell
+        layout={layout}
+        title={title}
+        context={garden.name}
+        onBack={exitBack}
+        backLabel={exitLabel}
+      >
+        <Alert variant="warning">
+          {formatMessage({ id: "app.admin.work.submit.noPermission" })}
+        </Alert>
+      </ActionFlowShell>
+    );
+  }
+
+  // Stable form id so the footer submit button (rendered outside the <form> in
+  // the pinned footer) can target the form via the `form="..."` attribute.
+  const formId = "submit-work-form";
+  const hasActions = availableActions.length > 0;
+  const photoRequirementText = selectedAction?.mediaInfo?.required
+    ? formatMessage(
+        { id: "app.admin.work.submit.photosRequired" },
+        { count: getMinRequiredImages(selectedAction) }
+      )
+    : formatMessage({ id: "app.admin.work.submit.photosOptional" });
+
+  if (!hasActions) {
+    return (
+      <ActionFlowShell
+        layout={layout}
+        title={title}
+        context={garden.name}
+        onBack={exitBack}
+        backLabel={exitLabel}
+      >
+        <div className="flex flex-col items-center gap-3 rounded-lg border border-stroke-soft bg-bg-white p-8 text-center">
+          <RiSeedlingLine className="h-10 w-10 text-text-soft" aria-hidden="true" />
+          <p className="text-sm font-semibold text-text-strong">
+            {formatMessage({ id: "app.admin.work.submit.noActionsForDomain" })}
+          </p>
+          <p className="max-w-sm text-xs text-text-sub">
+            {formatMessage({ id: "app.admin.work.submit.noActionsForDomainHint" })}
+          </p>
+          <AdminButton
             type="button"
-            variant="secondary"
-            onClick={() => onCancel?.()}
-            disabled={mutation.isPending}
+            variant="filled"
+            onClick={() => navigate(adminRoutes.gardenSettings({ gardenId: garden.id }))}
           >
-            {formatMessage({ id: "app.wizard.cancel", defaultMessage: "Cancel" })}
-          </Button>
-          <div className="min-w-0 flex-1">
-            {progressMessage ? (
-              <p className="truncate text-sm text-text-sub">{progressMessage}</p>
-            ) : null}
-          </div>
-          <Button
+            {formatMessage({ id: "app.admin.work.submit.noActionsForDomain.cta" })}
+          </AdminButton>
+        </div>
+      </ActionFlowShell>
+    );
+  }
+
+  // Stepped flow: Action → Media → Details → Review. The selected action's form
+  // fields live on the Details step, but react-hook-form keeps unmounted-field
+  // values, so Review + submit read the full snapshot.
+  const stepConfigs: ActionFlowStep[] = [
+    {
+      id: "action",
+      title: formatMessage({ id: "app.admin.work.submit.step.action", defaultMessage: "Action" }),
+      description: formatMessage({
+        id: "app.admin.work.submit.step.action.hint",
+        defaultMessage: "Choose what work to log",
+      }),
+    },
+    {
+      id: "media",
+      title: formatMessage({ id: "app.admin.work.submit.step.media", defaultMessage: "Media" }),
+      description: formatMessage({
+        id: "app.admin.work.submit.step.media.hint",
+        defaultMessage: "Add photos of the work",
+      }),
+    },
+    {
+      id: "details",
+      title: formatMessage({ id: "app.admin.work.submit.step.details", defaultMessage: "Details" }),
+      description: formatMessage({
+        id: "app.admin.work.submit.step.details.hint",
+        defaultMessage: "Fill in the action's fields",
+      }),
+    },
+    {
+      id: "review",
+      title: formatMessage({ id: "app.admin.work.submit.step.review", defaultMessage: "Review" }),
+      description: formatMessage({
+        id: "app.admin.work.submit.step.review.hint",
+        defaultMessage: "Check everything before submitting",
+      }),
+    },
+  ];
+  const activeStepId = stepConfigs[currentStep - 1]?.id ?? "action";
+  const isFirstStep = currentStep === 1;
+  const isLastStep = currentStep === stepConfigs.length;
+
+  // Select in place (no auto-advance) — selecting marks the card and the footer
+  // Next advances, so a misclick is recoverable and the selected state is visible.
+  // Switching to a different action resets the draft.
+  const handleSelectAction = (actionId: string) => {
+    if (!actionId) return;
+    if (actionId !== selectedActionId) handleActionChange(actionId);
+  };
+
+  const goBack = () => {
+    if (busy) return;
+    setCurrentStep((step) => Math.max(1, step - 1));
+  };
+  const goNext = async () => {
+    if (busy) return;
+    // Gate the required photos at the Media step — otherwise the operator only
+    // learns at submit, after walking Details + Review. Reuses the inline media
+    // Alert (role="alert"), not a deferred toast.
+    if (activeStepId === "media") {
+      const minRequired = getMinRequiredImages(selectedAction);
+      if (minRequired > 0 && images.length < minRequired) {
+        setMediaFeedback({
+          variant: "error",
+          message: formatMessage(
+            {
+              id: "app.admin.work.submit.mediaRequiredError",
+              defaultMessage:
+                "{count, plural, one {Add at least # photo to continue.} other {Add at least # photos to continue.}}",
+            },
+            { count: minRequired }
+          ),
+        });
+        return;
+      }
+    }
+    // Validate the work form before leaving Details for Review.
+    if (activeStepId === "details") {
+      const valid = await form.trigger();
+      if (!valid) return;
+    }
+    setCurrentStep((step) => Math.min(stepConfigs.length, step + 1));
+  };
+  const handleStepJump = (step: number) => {
+    if (busy || step >= currentStep) return;
+    setCurrentStep(step);
+  };
+
+  const nextDisabled = busy || (activeStepId === "action" && !selectedAction);
+
+  const footer = (
+    // Mobile: status on top, a compact secondary, then a full-width primary CTA
+    // (thumb-reachable, in the client-PWA spirit). Desktop: status left, the
+    // button pair right — the original row. SheetFooter is a fixed inline-flex
+    // row, so this single w-full child owns the responsive layout.
+    <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center">
+      <div className="min-w-0 space-y-1.5 sm:flex-1" aria-live="polite">
+        {busy ? (
+          <AdminLinearProgress
+            ariaLabel={progressMessage || formatMessage({ id: "app.admin.work.submit.submitting" })}
+          />
+        ) : null}
+        {progressMessage ? (
+          <p className="truncate text-sm text-text-sub" title={progressMessage}>
+            {progressMessage}
+          </p>
+        ) : null}
+      </div>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
+        <AdminButton
+          type="button"
+          variant={isFirstStep ? "text" : "outlined"}
+          onClick={isFirstStep ? () => onCancel?.() : goBack}
+          disabled={busy}
+          className="self-start sm:self-auto"
+        >
+          {isFirstStep
+            ? formatMessage({ id: "app.wizard.cancel", defaultMessage: "Cancel" })
+            : formatMessage({ id: "app.common.back", defaultMessage: "Back" })}
+        </AdminButton>
+        {isLastStep ? (
+          <AdminButton
             type="submit"
             form={formId}
-            loading={mutation.isPending}
-            disabled={mutation.isPending || availableActions.length === 0}
+            variant="filled"
+            loading={busy}
+            disabled={busy}
+            onClick={armSubmitIntent}
+            leadingIcon={<RiUploadCloudLine />}
+            className="w-full sm:w-auto"
           >
-            <RiUploadCloudLine className="h-4 w-4" />
-            {mutation.isPending
-              ? formatMessage({ id: "app.admin.work.submit.submitting" })
-              : formatMessage({ id: "app.admin.work.submit.submit" })}
-          </Button>
-        </SheetFooter>
-      ) : null}
-    </>
+            {formatMessage({ id: "app.admin.work.submit.submit" })}
+          </AdminButton>
+        ) : (
+          <AdminButton
+            type="button"
+            variant="filled"
+            onClick={() => void goNext()}
+            disabled={nextDisabled}
+            className="w-full sm:w-auto"
+          >
+            {formatMessage({ id: "app.common.next", defaultMessage: "Next" })}
+          </AdminButton>
+        )}
+      </div>
+    </div>
+  );
+
+  let stepBody: ReactNode = null;
+  if (activeStepId === "action") {
+    stepBody = (
+      <div className="space-y-4">
+        <FlowStepHeader
+          title={formatMessage({ id: "app.admin.work.submit.chooseActionTitle" })}
+          description={formatMessage({ id: "app.admin.work.submit.chooseActionDescription" })}
+        />
+        {chooserDomains.length > 1 ? (
+          <AdminTabRail
+            ariaLabel={formatMessage({ id: "app.admin.assessment.domainAction.domainTitle" })}
+            activeId={effectiveDomain === "all" ? "all" : String(effectiveDomain)}
+            onChange={(id) => setActionDomain(id === "all" ? "all" : (Number(id) as Domain))}
+            tabs={[
+              {
+                id: "all",
+                label: formatMessage({
+                  id: "app.admin.work.submit.allActions",
+                  defaultMessage: "All",
+                }),
+              },
+              ...chooserDomains.map((domain) => ({
+                id: String(domain),
+                label: formatMessage({ id: DOMAIN_TAB_KEYS[domain] }),
+                count: availableActions.filter((action) => action.domain === domain).length,
+              })),
+            ]}
+          />
+        ) : null}
+        {/* SR-only live status — the domain tablist swaps the radiogroup with no
+            inherent announcement, so report the visible count when the filter
+            changes (the tablist→radiogroup pair has no aria-controls bridge). */}
+        <p className="sr-only" aria-live="polite">
+          {formatMessage(
+            {
+              id: "app.admin.work.submit.actionCount",
+              defaultMessage:
+                "{count, plural, one {# action available} other {# actions available}}",
+            },
+            { count: visibleActions.length }
+          )}
+        </p>
+        <ActionChooserGrid
+          actions={visibleActions}
+          selectedActionId={selectedActionId}
+          onSelect={handleSelectAction}
+          disabled={busy}
+          groupLabel={formatMessage({ id: "app.admin.work.submit.selectAction" })}
+        />
+      </div>
+    );
+  } else if (activeStepId === "media") {
+    stepBody = (
+      <div className="space-y-4">
+        <FlowStepHeader
+          title={
+            selectedAction?.mediaInfo?.title ||
+            formatMessage({ id: "app.admin.work.submit.section.photos" })
+          }
+          description={photoRequirementText}
+        />
+        <FileUploadField
+          label={formatMessage({ id: "app.admin.work.submit.media" })}
+          helpText={formatMessage({ id: "app.admin.work.submit.mediaHint" })}
+          accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.heic,.heif"
+          multiple
+          compress={false}
+          showPreview
+          currentFiles={images}
+          onFilesChange={handleFilesChange}
+          onRemoveFile={(index) => setImages((prev) => prev.filter((_, i) => i !== index))}
+          disabled={busy}
+        />
+        {mediaFeedback ? (
+          <Alert variant={mediaFeedback.variant}>{mediaFeedback.message}</Alert>
+        ) : null}
+      </div>
+    );
+  } else if (activeStepId === "details") {
+    stepBody = (
+      <div className="space-y-4">
+        <FlowStepHeader
+          title={
+            selectedAction?.details?.title ||
+            formatMessage({ id: "app.admin.work.submit.section.details" })
+          }
+          description={selectedAction?.title}
+        />
+        {selectedAction?.inputs.some((input) => input.required) ? (
+          <p className="text-xs text-text-sub">
+            {formatMessage({
+              id: "app.admin.work.submit.requiredLegend",
+              defaultMessage: "* Required field",
+            })}
+          </p>
+        ) : null}
+        {selectedAction && selectedAction.inputs.length > 0 ? (
+          <DynamicWorkFields
+            inputs={selectedAction.inputs}
+            control={control}
+            register={register}
+            errors={errors as Record<string, { message?: string } | undefined>}
+          />
+        ) : null}
+        <AdminTextField
+          label={formatMessage({ id: "app.admin.work.submit.timeSpent" })}
+          id="timeSpentMinutes"
+          type="number"
+          variant="outlined"
+          error={errors.timeSpentMinutes?.message}
+          helperText={formatMessage({ id: "app.admin.work.submit.timeSpentHint" })}
+          placeholder={formatMessage({ id: "app.admin.work.submit.timeSpentPlaceholder" })}
+          inputProps={{ step: "0.25", min: 0 }}
+          {...register("timeSpentMinutes")}
+        />
+        <FormField
+          label={formatMessage({ id: "app.admin.work.submit.feedback" })}
+          htmlFor="feedback"
+          error={errors.feedback?.message}
+        >
+          <Textarea
+            surface="admin"
+            id="feedback"
+            rows={3}
+            placeholder={formatMessage({ id: "app.admin.work.submit.feedbackPlaceholder" })}
+            aria-invalid={!!errors.feedback}
+            invalid={!!errors.feedback}
+            className="resize-y"
+            {...register("feedback")}
+          />
+        </FormField>
+      </div>
+    );
+  } else if (selectedAction) {
+    stepBody = (
+      <SubmitWorkReview
+        action={selectedAction}
+        images={images}
+        values={form.getValues() as Record<string, unknown>}
+        photoRequirementText={photoRequirementText}
+        onEditStep={(step) => {
+          if (!busy) setCurrentStep(step);
+        }}
+      />
+    );
+  }
+
+  return (
+    <ActionFlowShell
+      layout={layout}
+      title={title}
+      context={garden.name}
+      steps={stepConfigs}
+      currentStep={currentStep}
+      onStepClick={handleStepJump}
+      footer={footer}
+    >
+      <form id={formId} onSubmit={handleFormSubmit}>
+        <div
+          ref={phaseRef}
+          tabIndex={-1}
+          key={activeStepId}
+          className="action-flow-fade space-y-4 outline-none"
+        >
+          {mutation.isError ? (
+            <TxInlineFeedback
+              visible
+              severity="error"
+              title={formatMessage({ id: "app.admin.work.submit.failureTitle" })}
+              message={formatMessage({ id: "app.admin.work.submit.failureMessage" })}
+              reserveClassName="min-h-0"
+              action={
+                <div className="flex flex-wrap gap-2">
+                  <AdminButton
+                    type="button"
+                    variant="outlined"
+                    size="sm"
+                    onClick={() => void submitValidatedDraft()}
+                    disabled={busy}
+                  >
+                    {formatMessage({ id: "app.admin.work.submit.retry" })}
+                  </AdminButton>
+                  <AdminButton
+                    type="button"
+                    variant="text"
+                    size="sm"
+                    onClick={() => mutation.reset()}
+                    disabled={busy}
+                  >
+                    {formatMessage({ id: "app.admin.work.submit.editDetails" })}
+                  </AdminButton>
+                </div>
+              }
+            />
+          ) : null}
+          {stepBody}
+        </div>
+      </form>
+    </ActionFlowShell>
   );
 }
 
@@ -567,25 +1115,56 @@ export default function SubmitWork() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const hubContext = parseHubContext(location.search);
+  const close = useCallback(
+    () => navigate(adminRoutes.hub(parseHubContext(location.search))),
+    [navigate, location.search]
+  );
+  const [panelDirty, setPanelDirty] = useState(false);
+  const [panelBusy, setPanelBusy] = useState(false);
+  // Confirm before an accidental X / scrim / Escape discards typed content —
+  // and ONLY then: a pristine close exits straight to the Hub (parity with
+  // Create Assessment's clean-close contract). The shared DiscardChangesDialog
+  // carries the flow-wide copy; no inline duplicate.
+  const dirtyClose = useDirtyClose({
+    isDirty: panelDirty,
+    onClose: close,
+    blockRouteChange: true,
+    preventRouteChange: panelBusy,
+    onDiscard: close,
+  });
 
+  // Flow modal with a scrim (full-width bottom-sheet on mobile) — width comes from
+  // ADMIN_FLOW_DIALOG_CLASS, not the size prop below. The dialog body is
+  // neutralized to a flex column with no scroll of its own — ActionFlowShell owns
+  // the pinned chrome + scrolling body inside it.
   return (
-    <CanvasRouteFrame>
-      <CanvasRouteHeader
-        maxWidthClassName="max-w-2xl"
+    <>
+      <AdminDialog
+        open
+        size="lg"
+        variant="flow"
+        tone="garden"
+        className={ADMIN_FLOW_DIALOG_CLASS}
+        onOpenChange={dirtyClose.onOpenChange}
+        preventClose={panelBusy}
         title={formatMessage({ id: "app.admin.work.submit.title" })}
         description={formatMessage({ id: "app.admin.work.submit.description" })}
-        backLink={{
-          to: adminRoutes.hub(hubContext),
-          label: formatMessage({ id: "app.admin.work.submit.backToGarden" }),
-        }}
-        sticky
+        bodyClassName="flex min-h-0 flex-col !overflow-hidden"
+      >
+        <SubmitWorkPanel
+          layout="dialog"
+          onSuccess={close}
+          onCancel={close}
+          onDirtyChange={setPanelDirty}
+          onBusyChange={setPanelBusy}
+        />
+      </AdminDialog>
+      <DiscardChangesDialog
+        open={dirtyClose.confirmOpen}
+        onKeepEditing={dirtyClose.cancelClose}
+        onDiscard={dirtyClose.confirmClose}
+        tone="garden"
       />
-      <SubmitWorkPanel
-        layout="page"
-        onSuccess={() => navigate(adminRoutes.hub(hubContext))}
-        onCancel={() => navigate(adminRoutes.hub(hubContext))}
-      />
-    </CanvasRouteFrame>
+    </>
   );
 }

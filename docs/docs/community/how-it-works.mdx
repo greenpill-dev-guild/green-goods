@@ -153,13 +153,13 @@ The attestation chain creates an **unbroken trail** from field work to certified
 
 ```mermaid
 graph LR
+    A["Assessment<br/>(Garden baseline and targets)"] -.->|frames and measures| WA
     W["Work Attestation<br/>(Gardener submits)"] -->|reviewed by| WA["Work Approval<br/>(Operator verifies)"]
-    WA -->|aggregated into| A["Assessment<br/>(Evaluator certifies)"]
-    A -->|minted as| H["Hypercert<br/>(Impact certificate)"]
+    WA -->|bundled and minted as| H["Hypercert<br/>(bundles approved work)"]
 
+    style A fill:#a855f7,stroke:#9333ea,color:#fff
     style W fill:#22c55e,stroke:#16a34a,color:#fff
     style WA fill:#3b82f6,stroke:#2563eb,color:#fff
-    style A fill:#a855f7,stroke:#9333ea,color:#fff
     style H fill:#f59e0b,stroke:#d97706,color:#fff
 ```
 

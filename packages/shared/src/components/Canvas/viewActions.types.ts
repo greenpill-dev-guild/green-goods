@@ -4,11 +4,12 @@ import type { ComponentType } from "react";
  * One action a workspace exposes — rendered inline in the page header on
  * desktop (≥1024px) and as a FAB speed-dial action on tablet/mobile.
  *
- * Exactly one action in a set may carry `primary: true`. That action drives
- * the main FAB button (single-action mode if it's the only visible action,
- * speed-dial main if there are siblings) and renders as the rightmost filled
- * button on desktop. All other actions render as outlined / ghost / danger
- * variants depending on their `variant`.
+ * Stable-trio grammar: a workspace declares the SAME action set, in the SAME
+ * order, on every tab; positions never shift. At most one action per tab
+ * carries `primary: true` — the tab whose workflow it opens — and renders
+ * filled with the workspace tone; it also drives the main FAB button on
+ * mobile. Tabs with no `primary` (read surfaces) show every action outlined
+ * / ghost and declare no FAB.
  */
 export interface ViewAction {
   id: string;
@@ -33,9 +34,9 @@ export interface ViewAction {
   visible?: boolean;
   disabled?: boolean;
   /**
-   * Marks this action as the primary FAB button. Exactly one action per set
-   * should set this. If none is marked, the first visible action becomes
-   * primary by default.
+   * Marks this action as the active tab's filled action and the primary FAB
+   * button. At most one action per tab sets this; when none is marked the
+   * tab is a read surface — all actions render outlined and no FAB shows.
    */
   primary?: boolean;
 }

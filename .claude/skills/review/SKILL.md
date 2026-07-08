@@ -5,9 +5,11 @@ argument-hint: "[package|PR|file ...] [--mode report_only|verify_only|apply_fixe
 version: "2.1.0"
 status: active
 packages: ["all"]
-dependencies: []
-last_updated: "2026-04-24"
-last_verified: "2026-04-24"
+# Lens dependencies: review folds these in when the diff exposes their signals
+# (see § Internal Lenses + Lens Activation Matrix). Changing one changes review.
+dependencies: ["architecture", "principles", "testing", "audit"]
+last_updated: "2026-07-01"
+last_verified: "2026-07-01"
 ---
 
 # Review Skill
@@ -50,7 +52,7 @@ Always resolve scope **before** inspecting code, and state the resolved scope in
 
 ### Linear context (when branch matches the Linear convention)
 
-After scope resolution, if the current branch matches `<user>/<team-key>-<id>-<slug>` (e.g., `afo/prd-370-...`, `afo/resr-3-...`), pull the linked Issue via the Linear MCP and surface its title, acceptance criteria (if present in the body), and any `task:*` / `activity:*` labels in the Summary. Use this to focus the review — a branch tied to `activity:qa` should weight correctness; one tied to `activity:architecture` should weight boundaries; one tied to `task:funding-pathway` should weight funder-legibility of any user-facing copy. If the branch does not parse to a Linear ID, skip — do not block on it.
+After scope resolution, if the current branch matches `<user>/<team-key>-<id>-<slug>` (e.g., `afo/prd-370-...`, `afo/resr-3-...`), pull the linked Issue via the Linear MCP and surface its title, acceptance criteria (if present in the body), and any `activity:*` labels in the Summary. Use this to focus the review — a branch tied to `activity:qa` should weight correctness; one tied to `activity:architecture` should weight boundaries. If the branch does not parse to a Linear ID, skip — do not block on it.
 
 ### Valid package scopes
 

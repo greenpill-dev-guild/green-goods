@@ -13,6 +13,7 @@ const PUBLIC_WEBSITE_PATHS = new Set([
   "/glossary",
   "/impact",
   "/landing",
+  "/vaults",
 ]);
 const PUBLIC_WEBSITE_PREFIXES = ["/gardens/"];
 

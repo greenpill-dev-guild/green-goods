@@ -147,7 +147,7 @@ Replay URLs, session IDs, distinct IDs, wallet/user identifiers, and reporter id
 - Attach to an active bounded project only when the scope clearly matches. Do not route new work
   into completed/staging umbrella projects such as `Green Goods`, `Coop`, `Network Website`, or
   `Cookie Jar`; otherwise leave the issue unprojected.
-- Use only these label namespaces: `protocol:*`, `package:*`, `activity:*`, `task:*`,
+- Use only these label namespaces: `protocol:*`, `package:*`, `activity:*`,
   `funding:*`, `source:*`, `agent:*`.
 - Replay URLs, session IDs, emails, wallet addresses, distinct IDs, reporter identifiers, and
   private source links stay out of public Linear issue bodies and Customer Need summaries.

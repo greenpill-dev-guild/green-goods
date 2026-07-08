@@ -24,7 +24,7 @@ interface CommunityCanvasStoryProps {
   initialPath?: string;
 }
 
-function CommunityCanvasStory({ initialPath = "/community/treasury" }: CommunityCanvasStoryProps) {
+function CommunityCanvasStory({ initialPath = "/community/endowment" }: CommunityCanvasStoryProps) {
   return <StorybookAdminCanvasRoute initialPath={initialPath} />;
 }
 
@@ -37,7 +37,7 @@ const meta: Meta<typeof CommunityCanvasStory> = {
     docs: {
       description: {
         component:
-          "Seeded Community workspace coverage through the real CanvasLayout shell, including treasury, governance pools, payouts, members, and route-backed detail entry points.",
+          "Seeded Community workspace coverage through the real CanvasLayout shell, including members, coordination pools, endowment vaults, payouts, and route-backed detail entry points.",
       },
     },
   },
@@ -59,9 +59,11 @@ function communityDecorators() {
   ];
 }
 
-export const Treasury: Story = {
-  tags: ["storybook-ci"],
-  args: { initialPath: "/community/treasury" },
+export const Endowment: Story = {
+  // Not in storybook-ci: the endowment play needs live indexer/vault + analytics data the
+  // clean-room CI browser can't reach (getGardenVaults / Analytics SDK "Failed to fetch"),
+  // so the garden name never renders offline. Kept for local/authenticated Storybook review.
+  args: { initialPath: "/community/endowment" },
   decorators: communityDecorators(),
   play: async ({ canvasElement }) => {
     await withTemporaryDocumentTheme("dark", async () => {
@@ -94,30 +96,67 @@ export const Treasury: Story = {
 };
 
 export const VaultInspector: Story = {
-  tags: ["visual-harness"],
-  args: { initialPath: "/community/treasury/vault" },
-  decorators: communityDecorators(),
-};
-
-export const GovernancePools: Story = {
-  tags: ["visual-harness"],
-  args: { initialPath: "/community/governance" },
-  decorators: communityDecorators(),
-};
-
-export const GovernanceStrategiesInspector: Story = {
-  args: { initialPath: "/community/governance/strategies" },
+  // Not in storybook-ci: the vault inspector needs live indexer/vault data the clean-room
+  // CI browser can't reach, so it renders empty offline. Kept for local/authenticated
+  // Storybook review.
+  args: { initialPath: "/community/endowment/vault" },
   decorators: communityDecorators(),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    const leftSheet = await canvas.findByTestId(
-      "left-sheet",
-      undefined,
-      ADMIN_ROUTE_STORY_QUERY_OPTIONS
-    );
-    await expect(leftSheet).toHaveAttribute("data-component", "LeftSheet");
+
     await expect(
-      await within(leftSheet).findByText(
+      await canvas.findByRole(
+        "button",
+        { name: /Rio Rainforest Lab/ },
+        ADMIN_ROUTE_STORY_QUERY_OPTIONS
+      )
+    ).toBeVisible();
+    // Left/bottom canvas sheets are retired — the inspector now renders as an
+    // AdminDialog portaled to document.body (role="dialog").
+    const body = within(document.body);
+    const inspector = await body.findByRole("dialog", undefined, ADMIN_ROUTE_STORY_QUERY_OPTIONS);
+    await expect(inspector).toHaveAttribute("data-component", "AdminDialog");
+    await expect(
+      await within(inspector).findByText(
+        "Total value locked",
+        undefined,
+        ADMIN_ROUTE_STORY_QUERY_OPTIONS
+      )
+    ).toBeVisible();
+    await expect(
+      await within(inspector).findByText(
+        "Net deposited",
+        undefined,
+        ADMIN_ROUTE_STORY_QUERY_OPTIONS
+      )
+    ).toBeVisible();
+    await expect(
+      (
+        await within(inspector).findAllByText(
+          "Depositors",
+          undefined,
+          ADMIN_ROUTE_STORY_QUERY_OPTIONS
+        )
+      ).length
+    ).toBeGreaterThan(0);
+  },
+};
+
+export const CoordinationPools: Story = {
+  tags: ["visual-harness"],
+  args: { initialPath: "/community/coordination" },
+  decorators: communityDecorators(),
+};
+
+export const CoordinationStrategiesInspector: Story = {
+  args: { initialPath: "/community/coordination/strategies" },
+  decorators: communityDecorators(),
+  play: async ({ canvasElement: _canvasElement }) => {
+    const body = within(document.body);
+    const inspector = await body.findByRole("dialog", undefined, ADMIN_ROUTE_STORY_QUERY_OPTIONS);
+    await expect(inspector).toHaveAttribute("data-component", "AdminDialog");
+    await expect(
+      await within(inspector).findByText(
         "Conviction Voting",
         undefined,
         ADMIN_ROUTE_STORY_QUERY_OPTIONS
@@ -128,7 +167,7 @@ export const GovernanceStrategiesInspector: Story = {
 
 export const SignalPoolInspector: Story = {
   tags: ["visual-harness"],
-  args: { initialPath: "/community/governance/signal-pool/action" },
+  args: { initialPath: "/community/coordination/signal-pool/action" },
   decorators: communityDecorators(),
 };
 
@@ -138,8 +177,7 @@ export const YieldPayouts: Story = {
   decorators: communityDecorators(),
 };
 
-export const Members: Story = {
-  tags: ["visual-harness"],
-  args: { initialPath: "/community/members" },
-  decorators: communityDecorators(),
-};
+// People tab retired — "Manage members" now opens the roles flow directly
+// (views/Garden/ManageMembers.tsx) rather than a browsable Community tab.
+// /community/members still resolves (legacy path, see routes/views.tsx) but
+// renders that flow, not CommunityView, so it has no story here.

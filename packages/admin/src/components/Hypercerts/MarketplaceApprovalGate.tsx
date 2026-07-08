@@ -137,19 +137,11 @@ function ApprovalGateInner({ children }: { children: React.ReactNode }) {
             type="button"
             onClick={() => grantApprovals()}
             disabled={isGranting}
+            loading={isGranting}
+            leadingIcon={<RiShieldCheckLine className="h-4 w-4" />}
             className="mt-4"
           >
-            {isGranting ? (
-              <>
-                <RiLoader4Line className="h-4 w-4 animate-spin" />
-                {formatMessage({ id: "app.marketplace.approving", defaultMessage: "Approving..." })}
-              </>
-            ) : (
-              <>
-                <RiShieldCheckLine className="h-4 w-4" />
-                {formatMessage({ id: "app.marketplace.approveAll", defaultMessage: "Approve All" })}
-              </>
-            )}
+            {formatMessage({ id: "app.marketplace.approveAll", defaultMessage: "Approve All" })}
           </AdminButton>
         </div>
       </div>

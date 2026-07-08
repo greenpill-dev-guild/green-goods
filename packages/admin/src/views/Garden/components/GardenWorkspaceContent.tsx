@@ -1,27 +1,30 @@
 import {
   type Address,
-  AddressDisplay,
-  Alert,
-  EmptyState,
-  GARDEN_ROLE_I18N_KEYS,
-  type GardenRole,
-  Surface,
-  type AdminWorkspaceSectionTab,
+  cn,
+  useDirtyClose,
   type useGardenWorkspaceController,
 } from "@green-goods/shared";
-import { RiPulseLine, RiTeamLine } from "@remixicon/react";
-import { useMemo, useState } from "react";
+import { AdminCard } from "@/components/AdminCard";
+import { RiArrowGoBackLine, RiCloseLine, RiImageLine } from "@remixicon/react";
+import { useRef, useState } from "react";
 import { useIntl } from "react-intl";
-import { AdminFilterChip } from "@/components/AdminFilterChip";
-import { GardenDomainModal } from "@/components/Garden/GardenDomainEditor";
-import { GardenSettingsEditor } from "@/components/Garden/GardenSettingsEditor";
+import { AdminButton } from "@/components/AdminButton";
+import { AdminDialog } from "@/components/AdminDialog";
+import { DiscardChangesDialog } from "@/components/DiscardChangesDialog";
+import { GardenMetadata } from "@/components/Garden/GardenMetadata";
+import {
+  type GardenBannerPreview,
+  GardenSettingsEditor,
+  type GardenSettingsEditorHandle,
+  type GardenSettingsFormState,
+} from "@/components/Garden/GardenSettingsEditor";
 import {
   CanvasRouteErrorState,
   CanvasWorkspaceLoadingState,
   CanvasWorkspaceSelectionGate,
 } from "@/components/Layout/CanvasRouteState";
 import { OverviewTab } from "./OverviewTab";
-import { GardenDomainSummaryRow } from "./GardenDetailHelpers";
+import { ImpactTab } from "./ImpactTab";
 
 interface GardenWorkspaceContentProps {
   workspace: ReturnType<typeof useGardenWorkspaceController>;
@@ -29,6 +32,33 @@ interface GardenWorkspaceContentProps {
 
 export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProps) {
   const { formatMessage } = useIntl();
+  // The settings form reports its banner draft here so the identity preview
+  // card is the single place the image renders (saved, staged, or removed).
+  const [bannerPreview, setBannerPreview] = useState<GardenBannerPreview | null>(null);
+  // The settings form reports dirtiness/saving/validation up so this dialog
+  // can guard its close per the dialog contract (confirm-before-discard,
+  // hard-block during save) and render the pinned footer. Gated on the
+  // settings view so a stale report can't block later navigation after the
+  // dialog is gone.
+  const [settingsForm, setSettingsForm] = useState<GardenSettingsFormState>({
+    isDirty: false,
+    isSaving: false,
+    hasValidationError: false,
+    dirtyCount: 0,
+    canEdit: false,
+  });
+  // Drives the footer's Save/Cancel — the form owns the draft, the dialog owns
+  // the pinned actions bar.
+  const settingsEditorRef = useRef<GardenSettingsEditorHandle>(null);
+  const settingsOpen = workspace.settingsOpen;
+  // The dialog closes by navigating (handleTabChange → navigate), so route
+  // mode makes the router blocker the single confirm trigger — X, scrim,
+  // Escape, back button, and nav links raise one prompt, never two.
+  const settingsDirtyClose = useDirtyClose({
+    isDirty: settingsOpen && settingsForm.isDirty,
+    onClose: workspace.handleSettingsClose,
+    blockRouteChange: true,
+  });
 
   if (!workspace.selectedGarden) {
     return (
@@ -58,27 +88,25 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
     );
   }
 
+  // The identity preview card renders whatever banner the settings form reports
+  // (saved, staged draft, or staged removal); before the form mounts, fall back
+  // to the saved image so there is no placeholder flash.
+  const bannerSrc = bannerPreview ? bannerPreview.src : workspace.garden.bannerImage || null;
+  const bannerIsDraft = bannerPreview?.isDraft ?? false;
+  const bannerRemovalStaged = bannerPreview?.isStagedRemoval ?? false;
+  const bannerCanRemove = bannerPreview?.canRemove ?? false;
+
   return (
-    <div className="mt-4 space-y-4">
-      <GardenDomainSummaryRow
-        domainMask={workspace.garden.domainMask}
-        canManage={workspace.canManage}
-        onEditDomains={workspace.openDomainEditor}
-      />
-      {workspace.view === "overview" ? (
+    <div className="mt-4 min-h-0 flex-1 space-y-4">
+      {workspace.view === "health" || workspace.view === "activity" ? (
         <OverviewTab
+          mode={workspace.view}
           section={workspace.section}
           selectedItem={workspace.selectedItem}
           selectedRange={workspace.range}
           clearSection={workspace.clearSection}
           openSection={workspace.openSection}
           updateQueryState={workspace.updateOverviewQueryState}
-          setTab={(tab) =>
-            workspace.openSection(
-              tab as AdminWorkspaceSectionTab,
-              tab === "community" ? "treasury" : "queue"
-            )
-          }
           overviewAlerts={workspace.derived.overviewAlerts}
           gardenHealthLabel={workspace.derived.gardenHealthLabel}
           approvedInRangeCount={workspace.derived.approvedInRangeCount}
@@ -95,337 +123,209 @@ export function GardenWorkspaceContent({ workspace }: GardenWorkspaceContentProp
         />
       ) : null}
 
-      {workspace.view === "activity" ? (
-        <EmptyState
-          icon={<RiPulseLine className="h-6 w-6" />}
-          title={formatMessage({
-            id: "cockpit.garden.activity.empty.title",
-            defaultMessage: "Activity feed coming soon",
-          })}
-          description={formatMessage({
-            id: "cockpit.garden.activity.empty.description",
-            defaultMessage:
-              "Submitted Work, plot updates, plantings, and milestones will surface here as the gardener-floor of this Garden.",
-          })}
+      {workspace.view === "impact" ? (
+        <ImpactTab
+          garden={workspace.garden}
+          gardenId={workspace.garden.id}
+          canManage={false}
+          canReview={workspace.canReview}
+          section={workspace.section}
+          selectedItem={workspace.selectedItem}
+          clearSection={workspace.clearSection}
+          openSection={workspace.openSection}
+          assessments={workspace.assessments}
+          fetchingAssessments={workspace.fetchingAssessments}
+          assessmentsError={workspace.assessmentsError}
+          hypercerts={workspace.hypercerts}
+          hypercertsLoading={workspace.hypercertsLoading}
+          domainLabels={workspace.derived.domainLabels}
+          approvedInLastThirtyDays={workspace.derived.approvedInLastThirtyDays}
         />
       ) : null}
 
-      {workspace.view === "members" ? (
-        <GardenMembersList
-          gardeners={workspace.garden.gardeners}
-          operators={workspace.garden.operators ?? []}
-          evaluators={workspace.garden.evaluators ?? []}
-          funders={workspace.garden.funders ?? []}
-          owners={workspace.garden.owners ?? []}
-          gardenName={workspace.garden.name}
-        />
-      ) : null}
-
-      {workspace.view === "settings" ? (
+      {/* Garden settings live in a centered dialog (parity with the other
+          action flows), opened by the "Edit garden" action and
+          rendered over the Overview behind it. Deep-linking to /garden/settings
+          opens it directly; closing returns to Health. */}
+      <AdminDialog
+        open={settingsOpen}
+        onOpenChange={settingsDirtyClose.onOpenChange}
+        preventClose={settingsForm.isSaving}
+        size="lg"
+        tone="garden"
+        title={formatMessage({
+          id: "app.garden.profile.modal.title",
+          defaultMessage: "Garden Profile",
+        })}
+        description={formatMessage({
+          id: "app.garden.profile.modal.description",
+          defaultMessage: "Update settings, metadata, and on-chain identifiers",
+        })}
+        bodyClassName="space-y-6"
+        actions={
+          settingsForm.canEdit ? (
+            <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <p
+                className={cn(
+                  "text-xs",
+                  settingsForm.isDirty ? "text-warning-dark" : "text-text-soft"
+                )}
+                aria-live="polite"
+                data-slot="dirty-state"
+              >
+                {settingsForm.isSaving
+                  ? formatMessage({
+                      id: "app.garden.settings.saving",
+                      defaultMessage: "Saving changes…",
+                    })
+                  : settingsForm.isDirty
+                    ? formatMessage(
+                        {
+                          id: "app.garden.settings.unsavedChanges",
+                          defaultMessage:
+                            "{count, plural, one {# unsaved change} other {# unsaved changes}}",
+                        },
+                        { count: settingsForm.dirtyCount }
+                      )
+                    : formatMessage({
+                        id: "app.garden.settings.allSaved",
+                        defaultMessage: "All changes saved",
+                      })}
+              </p>
+              <div className="flex items-center justify-end gap-2">
+                <AdminButton
+                  type="button"
+                  variant="text"
+                  onClick={() => settingsDirtyClose.onOpenChange(false)}
+                  disabled={settingsForm.isSaving}
+                >
+                  {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
+                </AdminButton>
+                <AdminButton
+                  type="button"
+                  variant="filled"
+                  onClick={() => void settingsEditorRef.current?.save()}
+                  disabled={
+                    !settingsForm.isDirty ||
+                    settingsForm.hasValidationError ||
+                    settingsForm.isSaving
+                  }
+                  loading={settingsForm.isSaving}
+                >
+                  {formatMessage({
+                    id: "app.garden.settings.saveChanges",
+                    defaultMessage: "Save changes",
+                  })}
+                </AdminButton>
+              </div>
+            </div>
+          ) : undefined
+        }
+      >
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(18rem,1fr)]">
           <GardenSettingsEditor
+            ref={settingsEditorRef}
             gardenAddress={workspace.garden.id as Address}
             garden={{
               name: workspace.garden.name,
               description: workspace.garden.description,
               location: workspace.garden.location,
               bannerImage: workspace.garden.bannerImage,
+              domainMask: workspace.garden.domainMask,
               openJoining: workspace.garden.openJoining,
               maxGardeners: workspace.garden.maxGardeners,
             }}
             canManage={workspace.canManage}
             isOwner={workspace.isOwner}
+            onBannerPreviewChange={setBannerPreview}
+            onDirtyStateChange={setSettingsForm}
           />
 
           <div className="space-y-4">
-            <Alert variant="info">
-              {formatMessage({
-                id: "cockpit.garden.settingsHint",
-                defaultMessage:
-                  "Profile, joining rules, and membership limits now live in the canvas garden workspace.",
-              })}
-            </Alert>
+            {/* Identity preview — the single place the banner renders (saved,
+                staged draft, or staged removal, reported by the form), plus the
+                garden name and location. Remove / Undo sit on the image so a
+                pending removal is always visible. */}
+            <AdminCard variant="filled" density="none" className="overflow-hidden">
+              <div className="relative">
+                {bannerRemovalStaged ? (
+                  <div className="flex h-28 w-full flex-col items-center justify-center gap-1 bg-bg-soft px-3 text-center text-text-soft">
+                    <RiImageLine className="h-5 w-5" />
+                    <span className="text-xs">
+                      {formatMessage({
+                        id: "app.garden.settings.bannerWillBeRemoved",
+                        defaultMessage: "Will be removed on save",
+                      })}
+                    </span>
+                    <AdminButton
+                      type="button"
+                      variant="text"
+                      size="sm"
+                      leadingIcon={<RiArrowGoBackLine />}
+                      onClick={() => settingsEditorRef.current?.undoBannerRemoval()}
+                    >
+                      {formatMessage({ id: "app.common.undo", defaultMessage: "Undo" })}
+                    </AdminButton>
+                  </div>
+                ) : bannerSrc ? (
+                  <>
+                    <img src={bannerSrc} alt="" className="h-28 w-full object-cover" />
+                    {bannerCanRemove ? (
+                      <AdminButton
+                        type="button"
+                        variant="text"
+                        size="sm"
+                        leadingIcon={<RiCloseLine />}
+                        onClick={() => settingsEditorRef.current?.stageBannerRemoval()}
+                        className="absolute right-2 top-2 bg-bg-white/90 text-text-sub shadow-[var(--edge-rest)] hover:bg-bg-white"
+                      >
+                        {formatMessage({ id: "app.common.remove", defaultMessage: "Remove" })}
+                      </AdminButton>
+                    ) : null}
+                    {bannerIsDraft ? (
+                      <span className="absolute bottom-2 right-2 rounded-full bg-bg-white/90 px-2 py-0.5 text-[11px] font-medium text-text-sub shadow-[var(--edge-rest)]">
+                        {formatMessage({
+                          id: "app.garden.settings.bannerDraft",
+                          defaultMessage: "Preview · uploads on save",
+                        })}
+                      </span>
+                    ) : null}
+                  </>
+                ) : (
+                  <div className="flex h-28 w-full items-center justify-center bg-bg-soft text-text-soft">
+                    <RiImageLine className="h-6 w-6" />
+                  </div>
+                )}
+              </div>
+              <div className="space-y-1 p-3 text-sm text-text-sub">
+                <h3 className="label-md truncate text-text-strong" title={workspace.garden.name}>
+                  {workspace.garden.name}
+                </h3>
+                {workspace.garden.location ? (
+                  <p className="truncate" title={workspace.garden.location}>
+                    {workspace.garden.location}
+                  </p>
+                ) : null}
+              </div>
+            </AdminCard>
 
-            <Surface
-              elevation="ground"
-              padding="compact"
-              className="space-y-2 text-sm text-text-sub"
-            >
-              <h3 className="label-md text-text-strong">
-                {formatMessage({
-                  id: "cockpit.garden.contextCard",
-                  defaultMessage: "Garden context",
-                })}
-              </h3>
-              <p>
-                <span className="font-medium text-text-strong">{workspace.garden.name}</span>
-              </p>
-              {workspace.garden.location ? <p>{workspace.garden.location}</p> : null}
-              {workspace.community ? (
-                <p>
-                  {formatMessage({
-                    id: "cockpit.garden.communityConnected",
-                    defaultMessage: "Community connected",
-                  })}
-                </p>
-              ) : null}
-            </Surface>
+            {/* On-chain identifiers fill the column beside the form instead of
+                dangling below the grid. */}
+            <GardenMetadata
+              gardenId={workspace.garden.id as Address}
+              tokenAddress={workspace.garden.tokenAddress as Address}
+              tokenId={BigInt(workspace.garden.tokenID)}
+              chainId={workspace.garden.chainId}
+            />
           </div>
         </div>
-      ) : null}
-      {workspace.canManage ? (
-        <GardenDomainModal
-          isOpen={workspace.domainEditorOpen}
-          onClose={workspace.closeDomainEditor}
-          gardenAddress={workspace.garden.id as Address}
-        />
-      ) : null}
-    </div>
-  );
-}
-
-interface GardenMembersListProps {
-  gardeners: Address[];
-  operators: Address[];
-  evaluators: Address[];
-  funders: Address[];
-  owners: Address[];
-  gardenName: string;
-}
-
-/**
- * Tier 5c shipped real Members tab data; cleanup A5 extends the chip strip
- * from operator-only to operator / gardener / evaluator / funder / owner per
- * the audit-then-ship plan handoff. Uses AddressDisplay for ENS resolution +
- * truncation; the chip palette intentionally preserves operator=success from
- * Tier 5c instead of switching to GARDEN_ROLE_COLORS.operator=info, which
- * would silently change the visual identity of every existing row.
- */
-type GardenMembersFilter = "all" | "operators" | "reviewers" | "gardeners" | "pending";
-
-/**
- * Roles displayed as chips on each member row, in canonical privilege order.
- * "community" is excluded — Members tab focuses on active roster, not
- * passive community participants.
- */
-const MEMBER_ROLE_DISPLAY_ORDER = [
-  "owner",
-  "operator",
-  "evaluator",
-  "gardener",
-  "funder",
-] as const satisfies readonly GardenRole[];
-
-type MemberDisplayRole = (typeof MEMBER_ROLE_DISPLAY_ORDER)[number];
-
-const MEMBER_ROLE_CHIP_CLASSES: Record<MemberDisplayRole, string> = {
-  owner: "bg-warning-lighter text-warning-dark",
-  operator: "bg-success-lighter text-success-dark",
-  evaluator: "bg-feature-lighter text-feature-dark",
-  gardener: "bg-information-lighter text-information-dark",
-  funder: "bg-primary-lighter text-primary-dark",
-};
-
-export interface MemberRoleSets {
-  owner: Set<string>;
-  operator: Set<string>;
-  evaluator: Set<string>;
-  gardener: Set<string>;
-  funder: Set<string>;
-}
-
-/**
- * Build lowercase role sets from per-role address arrays. Exported for unit
- * tests so the role-derivation contract is pinned without rendering the row.
- */
-export function buildMemberRoleSets(input: {
-  owners: Address[];
-  operators: Address[];
-  evaluators: Address[];
-  gardeners: Address[];
-  funders: Address[];
-}): MemberRoleSets {
-  return {
-    owner: new Set(input.owners.map((address) => address.toLowerCase())),
-    operator: new Set(input.operators.map((address) => address.toLowerCase())),
-    evaluator: new Set(input.evaluators.map((address) => address.toLowerCase())),
-    gardener: new Set(input.gardeners.map((address) => address.toLowerCase())),
-    funder: new Set(input.funders.map((address) => address.toLowerCase())),
-  };
-}
-
-/**
- * Roles a member holds, returned in MEMBER_ROLE_DISPLAY_ORDER so chip rows
- * are visually stable across members. Address comparison is lowercase-safe.
- */
-export function memberRolesForAddress(address: Address, sets: MemberRoleSets): MemberDisplayRole[] {
-  const lower = address.toLowerCase();
-  return MEMBER_ROLE_DISPLAY_ORDER.filter((role) => sets[role].has(lower));
-}
-
-const GARDEN_MEMBERS_FILTERS: ReadonlyArray<{
-  id: GardenMembersFilter;
-  labelId: string;
-  defaultMessage: string;
-}> = [
-  { id: "all", labelId: "cockpit.garden.members.filter.all", defaultMessage: "All" },
-  {
-    id: "operators",
-    labelId: "cockpit.garden.members.filter.operators",
-    defaultMessage: "Operators",
-  },
-  {
-    id: "reviewers",
-    labelId: "cockpit.garden.members.filter.reviewers",
-    defaultMessage: "Reviewers",
-  },
-  {
-    id: "gardeners",
-    labelId: "cockpit.garden.members.filter.gardeners",
-    defaultMessage: "Gardeners",
-  },
-  { id: "pending", labelId: "cockpit.garden.members.filter.pending", defaultMessage: "Pending" },
-];
-
-function GardenMembersList({
-  gardeners,
-  operators,
-  evaluators,
-  funders,
-  owners,
-  gardenName,
-}: GardenMembersListProps) {
-  const { formatMessage } = useIntl();
-  const [filter, setFilter] = useState<GardenMembersFilter>("all");
-
-  const roleSets = useMemo(
-    () => buildMemberRoleSets({ owners, operators, evaluators, gardeners, funders }),
-    [gardeners, operators, evaluators, funders, owners]
-  );
-
-  const visibleGardeners = useMemo(() => {
-    // Filter chips: All / Operators / Reviewers / Gardeners / Pending.
-    // Cleanup A5 wires Reviewers to the evaluator role (was an empty stub
-    // before the role-set extension). "Gardeners" narrows to members whose
-    // only display role is "gardener" — operators-and-evaluators-and-funders
-    // surface in their own chip filters. Pending stays inert; no pending-
-    // member data exists yet.
-    if (filter === "operators") {
-      return gardeners.filter((address) => roleSets.operator.has(address.toLowerCase()));
-    }
-    if (filter === "reviewers") {
-      return gardeners.filter((address) => roleSets.evaluator.has(address.toLowerCase()));
-    }
-    if (filter === "gardeners") {
-      return gardeners.filter((address) => {
-        const roles = memberRolesForAddress(address, roleSets);
-        return roles.length === 1 && roles[0] === "gardener";
-      });
-    }
-    if (filter === "pending") {
-      return [];
-    }
-    return gardeners;
-  }, [filter, gardeners, roleSets]);
-
-  if (gardeners.length === 0) {
-    return (
-      <EmptyState
-        icon={<RiTeamLine className="h-6 w-6" />}
-        title={formatMessage({
-          id: "cockpit.garden.members.empty.title",
-          defaultMessage: "No gardeners yet",
-        })}
-        description={formatMessage(
-          {
-            id: "cockpit.garden.members.empty.solo.description",
-            defaultMessage:
-              "{name} is open for joining — gardeners will appear here as they sign up.",
-          },
-          { name: gardenName }
-        )}
+      </AdminDialog>
+      <DiscardChangesDialog
+        open={settingsDirtyClose.confirmOpen}
+        onKeepEditing={settingsDirtyClose.cancelClose}
+        onDiscard={settingsDirtyClose.confirmClose}
+        tone="garden"
       />
-    );
-  }
-
-  return (
-    <div className="space-y-3" data-component="GardenMembersList">
-      <header className="flex items-baseline justify-between gap-3">
-        <h2 className="text-title-md font-semibold text-text-strong">
-          {formatMessage({
-            id: "cockpit.garden.members.title",
-            defaultMessage: "Gardeners",
-          })}
-        </h2>
-        <p className="text-label-sm font-medium text-text-soft tabular-nums">
-          {formatMessage(
-            {
-              id: "cockpit.garden.members.count",
-              defaultMessage: "{count, plural, one {# gardener} other {# gardeners}}",
-            },
-            { count: gardeners.length }
-          )}
-        </p>
-      </header>
-
-      <div className="flex flex-wrap gap-1.5" role="group" aria-label="Member filters">
-        {GARDEN_MEMBERS_FILTERS.map((chip) => (
-          <AdminFilterChip
-            key={chip.id}
-            selected={filter === chip.id}
-            onClick={() => setFilter(chip.id)}
-          >
-            {formatMessage({ id: chip.labelId, defaultMessage: chip.defaultMessage })}
-          </AdminFilterChip>
-        ))}
-      </div>
-
-      <ul className="flex flex-col gap-2" role="list">
-        {visibleGardeners.length === 0 ? (
-          <li className="rounded-[var(--r-md,12px)] border border-dashed border-stroke-soft px-3 py-4 text-center text-label-sm text-text-soft">
-            {formatMessage({
-              id: "cockpit.garden.members.filterEmpty",
-              defaultMessage: "No members in this filter yet.",
-            })}
-          </li>
-        ) : null}
-        {visibleGardeners.map((address) => {
-          const memberRoles = memberRolesForAddress(address, roleSets);
-          const primaryRole = memberRoles[0] ?? "gardener";
-          return (
-            <li
-              key={address}
-              data-slot="member-row"
-              data-role={primaryRole}
-              className="flex items-center justify-between gap-3 rounded-[var(--r-md,12px)] border border-stroke-soft bg-bg-white-0 px-3 py-2.5 shadow-[var(--edge-rest)]"
-            >
-              <AddressDisplay address={address} className="min-w-0 flex-1" />
-              {memberRoles.length > 0 ? (
-                <div
-                  className="flex flex-wrap items-center justify-end gap-1"
-                  aria-label={formatMessage({
-                    id: "cockpit.garden.members.rolesLabel",
-                    defaultMessage: "Roles",
-                  })}
-                >
-                  {memberRoles.map((role) => {
-                    const label = formatMessage({ id: GARDEN_ROLE_I18N_KEYS[role].singular });
-                    return (
-                      <span
-                        key={role}
-                        data-role-chip={role}
-                        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-label-sm font-medium ${MEMBER_ROLE_CHIP_CLASSES[role]}`}
-                      >
-                        {label}
-                      </span>
-                    );
-                  })}
-                </div>
-              ) : null}
-            </li>
-          );
-        })}
-      </ul>
     </div>
   );
 }

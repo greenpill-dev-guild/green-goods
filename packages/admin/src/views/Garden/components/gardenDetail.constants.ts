@@ -9,7 +9,7 @@ export const TAB_SECTIONS: Record<GardenDetailTab, string[]> = {
   overview: ["health", "activity"],
   impact: ["hypercerts", "assessments", "reporting"],
   work: ["queue", "decisions", "history"],
-  community: ["treasury", "yield", "cookie-jars", "pools", "members"],
+  community: ["endowment", "payouts", "coordination", "members"],
 };
 
 export const BADGE_TONE_CLASSES: Record<Exclude<TabBadgeSeverity, "none">, string> = {
@@ -22,4 +22,6 @@ export const ALERT_LABEL_CLASSES: Record<Exclude<TabBadgeSeverity, "none">, stri
   critical: "text-error-dark",
 };
 
-export const SECTION_CARD_MIN_HEIGHT = "min-h-[18rem] flex-1";
+export const SECTION_CARD_MIN_HEIGHT = "min-h-[14rem]";
+export const ACTIVITY_CARD_CLASS = "min-h-[24rem] flex-1";
+export const IMPACT_HYPERCERT_CARD_CLASS = "min-h-[24rem] lg:min-h-[calc(100svh-22rem)] flex-1";

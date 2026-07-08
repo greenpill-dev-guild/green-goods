@@ -102,7 +102,10 @@ export function AdminAccessStateRenderer({ state, ready }: AdminAccessStateRende
         <main id="main-content" tabIndex={-1} className="main-scroll-area h-full overflow-y-auto">
           <CanvasIndexerErrorState
             onRetry={() => {
-              void queryClient.invalidateQueries({ queryKey: queryKeys.gardens.byChain(chainId) });
+              void Promise.all([
+                queryClient.invalidateQueries({ queryKey: queryKeys.gardens.byChain(chainId) }),
+                queryClient.invalidateQueries({ queryKey: queryKeys.role.all }),
+              ]);
             }}
           />
         </main>
@@ -140,7 +143,7 @@ function AdminAccessHomeShell({ children }: { children: ReactNode }) {
           }
         />
       </div>
-      <MainSheet isReceded={false}>{children}</MainSheet>
+      <MainSheet>{children}</MainSheet>
       <div className="canvas-area-bottom" />
     </div>
   );

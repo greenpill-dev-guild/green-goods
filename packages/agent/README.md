@@ -2,7 +2,7 @@
 
 Platform-agnostic bot for Green Goods. Currently supports Telegram, with architecture designed for Discord and WhatsApp.
 
-📖 **[Agent Documentation](https://docs.greengoods.app/developer/architecture/telegram-bot)** — Complete bot architecture and deployment guide
+📖 **[Agent Documentation](https://docs.greengoods.app/builders/packages/agent)** — Bot architecture and deployment guide
 
 ## Quick Start
 

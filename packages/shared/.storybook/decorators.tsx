@@ -171,8 +171,10 @@ export function withCanvasFrame({
 const installedPwaContext = {
   isMobile: true,
   isInstalled: true,
+  isInstalling: false,
   isPwaPresentation: true,
   isStandalone: true,
+  installState: "installed",
   presentationMode: "pwa",
   wasInstalled: true,
   platform: "ios",

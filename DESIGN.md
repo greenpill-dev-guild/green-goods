@@ -100,7 +100,7 @@ components:
 
 # Green Goods Design System
 
-> Creative brief for AI design tools. Paste this file (plus a surface-specific DESIGN.md) into Stitch, Figma AI, or Claude Design to produce on-brand output.
+> Creative brief for AI design tools and coding agents. Pair this file with `.claude/skills/design/ai-ui-brief.md` plus a surface-specific DESIGN.md to produce on-brand output.
 >
 > **Usage:** pair this root file with a dialect file: `packages/admin/DESIGN.md`, `packages/client/DESIGN.pwa.md`, `packages/client/DESIGN.browser.md`, or `docs/DESIGN.md`.
 >
@@ -235,8 +235,8 @@ Full specs in [`.claude/skills/design/language.md`](.claude/skills/design/langua
 
 - **Shape** — *Fixed* (badges, avatars), *Capsule* (primary CTA, icon buttons), *Concentric* (nested: `child_radius = parent_radius − padding`). Shape alone creates hierarchy — capsule reads as primary next to squircle secondary.
 - **Motion** — Named spring tokens only (`--spring-spatial`, `--spring-spatial-fast`, `--spring-effects`, etc.). Never hardcoded `cubic-bezier` or `duration`. Things settle like a leaf on water.
-- **Material** — Five thicknesses (ultrathin 20% / thin 40% / regular 65% / thick 85% / solid 100%). Match thickness to content density. Never body text on ultrathin. Admin limits glass to Navigation/FAB and sheet shells; the admin `AppBar` root stays transparent.
-- **Elevation** — Five Z-layers (Z0 substrate → Z4 overlay). Admin canvas recedes on bounded sheet open (`translateY(var(--canvas-recede-y, 8px)) + opacity(var(--canvas-opacity-receded, 0.95)) + blur(var(--canvas-blur-receded, 1.5px))`). Avoid dark scrims for parallel admin sheets; viewport dialogs and PWA sheets may use the shared scrim token.
+- **Material** — Five thicknesses (ultrathin 20% / thin 40% / regular 65% / thick 85% / solid 100%). Match thickness to content density. Never body text on ultrathin. Admin limits glass to Navigation/FAB chrome only; the admin `AppBar` root stays transparent and dialogs/side sheets stay solid.
+- **Elevation** — Five Z-layers (Z0 substrate → Z4 overlay). Admin workspace action/detail flows open in centered `AdminDialog`; the canvas stays at rest and depth comes from the dialog scrim/elevation. Global AppBar surfaces use solid `AdminSideSheet`. Viewport dialogs and PWA sheets may use the shared scrim token.
 - **Progressive disclosure** — Four layers: Glance (<1s) → Scan (1-3s) → Engage (3s+) → Deep Dive (intentional).
 - **Hero moments** — Garden creation, first submission, hypercert mint. Amplify shape + color + motion + typography + material together. Succession-aware: pioneer=simple, intermediate=moderate, climax=full.
 

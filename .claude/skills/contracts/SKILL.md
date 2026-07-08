@@ -146,8 +146,7 @@ Rules: pack storage variables into single slots, always bound loop iterations, u
 bun deploy:testnet
 bun script/deploy.ts core --network sepolia --broadcast
 
-# NEVER use direct forge commands
-# forge script script/Deploy.s.sol --broadcast --rpc-url $RPC
+# NEVER paste or run a direct forge deployment command here; add or use a Bun wrapper.
 ```
 
 **Why:** deploy.ts loads root `.env`, uses Foundry keystore, auto-updates Envio indexer config, handles verification.
@@ -214,7 +213,7 @@ testE2E_        // Multi-contract flows
 
 - **Reentrancy**: Follow checks-effects-interactions (CEI) pattern; use `ReentrancyGuardUpgradeable` for complex flows
 - **Access control**: Green Goods uses Hats Protocol for role-based access — verify hat-based permissions on all privileged operations
-- **Storage collisions (UUPS)**: Run `forge inspect <Contract> storage-layout` before every upgrade; add new variables at end only, reduce gap accordingly
+- **Storage collisions (UUPS)**: Confirm storage layout before every upgrade using an approved Bun wrapper or a dedicated contracts tooling follow-up; do not run raw `forge inspect` directly from this skill. Add new variables at end only, reduce gap accordingly.
 - **Initializer safety**: `_disableInitializers()` in constructor, `initializer` modifier on `initialize()`, protect `_authorizeUpgrade` with `onlyOwner`
 - **Frontrunning**: Use deadline parameters on time-sensitive operations, nonces for replay protection
 - **Fuzz testing**: Mandatory for mainnet — use `testFuzz_` prefix
@@ -225,7 +224,7 @@ testE2E_        // Multi-contract flows
 - [ ] **Reentrancy**: All external calls follow checks-effects-interactions
 - [ ] **Access control**: Every state-changing function has authorization
 - [ ] **Input validation**: All parameters validated (zero address, bounds, overflow)
-- [ ] **Storage layout**: `forge inspect` confirms no collisions after upgrade
+- [ ] **Storage layout**: storage-layout proof from an approved Bun wrapper or contracts tooling follow-up confirms no collisions after upgrade
 - [ ] **Initializer safety**: `_disableInitializers()` in constructor, `initializer` modifier
 - [ ] **Event emission**: All state changes emit events (indexer depends on this)
 - [ ] **Integer safety**: Solidity 0.8+ handles overflow, but check unchecked blocks

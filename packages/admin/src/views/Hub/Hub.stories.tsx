@@ -59,7 +59,9 @@ function hubDecorators() {
 }
 
 export const WorkQueue: Story = {
-  tags: ["storybook-ci"],
+  // Not in storybook-ci: the work queue needs live indexer data the clean-room CI browser
+  // can't reach, so seeded work items ("Canopy transect upload") never render offline. Kept
+  // for local/authenticated Storybook review.
   args: { initialPath: "/hub/work?sort=newest" },
   decorators: hubDecorators(),
   play: async ({ canvasElement }) => {
@@ -89,22 +91,9 @@ export const WorkDetail: Story = {
   decorators: hubDecorators(),
 };
 
-export const SubmitWorkSheet: Story = {
-  args: { initialPath: "/hub/work/submit?sort=newest" },
-  decorators: hubDecorators(),
-  play: async ({ canvasElement }) => {
-    const canvas = within(canvasElement);
-    const leftSheet = await canvas.findByTestId(
-      "left-sheet",
-      undefined,
-      ADMIN_ROUTE_STORY_QUERY_OPTIONS
-    );
-    await expect(leftSheet).toHaveAttribute("data-component", "LeftSheet");
-    await expect(
-      await within(leftSheet).findByText("Submit Work", undefined, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
-    ).toBeVisible();
-  },
-};
+// Submit Work is no longer a Hub left sheet — it owns its own route
+// (/hub/work/submit → submitWorkView). Its states are covered by
+// SubmitWork.stories.tsx (full-screen dialog / page / inline panel).
 
 export const AssessQueue: Story = {
   tags: ["visual-harness"],

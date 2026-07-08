@@ -5,7 +5,7 @@
  * generates media URLs for images, renders audio notes, and shows dynamic details.
  */
 
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { createElement } from "react";
 import { IntlProvider } from "react-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -13,18 +13,31 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 // Track calls to mediaResourceManager and AudioPlayer
 const mockGetOrCreateUrl = vi.fn((file: File, trackingId: string) => `blob:mock-${file.name}`);
 
-vi.mock("@green-goods/shared", async () => {
-  const actual = await vi.importActual<typeof import("@green-goods/shared")>("@green-goods/shared");
-  return {
-    ...actual,
-    mediaResourceManager: {
-      getOrCreateUrl: (...args: unknown[]) => mockGetOrCreateUrl(...(args as [File, string])),
-      cleanupUrls: vi.fn(),
-    },
-    AudioPlayer: ({ file }: { file: File }) =>
-      createElement("div", { "data-testid": `audio-player-${file.name}` }, file.name),
-  };
-});
+vi.mock("@green-goods/shared", () => ({
+  AudioPlayer: ({ file }: { file: File }) =>
+    createElement("div", { "data-testid": `audio-player-${file.name}` }, file.name),
+  cn: (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" "),
+  Domain: {
+    SOLAR: 0,
+    AGRO: 1,
+    EDU: 2,
+    WASTE: 3,
+  },
+  formatTimeSpent: (minutes?: number) => {
+    if (!minutes) return "";
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    if (hours > 0 && remainingMinutes > 0) return `${hours}h ${remainingMinutes}m`;
+    if (hours > 0) return `${hours}h`;
+    return `${remainingMinutes}m`;
+  },
+  getWorkMediaId: (file: File) => `media-${file.name}-${file.size}-${file.lastModified}`,
+  isVideoFile: (file: File) => file.type.startsWith("video/"),
+  mediaResourceManager: {
+    getOrCreateUrl: (...args: unknown[]) => mockGetOrCreateUrl(...(args as [File, string])),
+    cleanupUrls: vi.fn(),
+  },
+}));
 
 // Mock WorkView to expose the props it receives for assertion
 vi.mock("@/components/Features/Work", () => ({
@@ -35,6 +48,7 @@ vi.mock("@/components/Features/Work", () => ({
     actionTitle,
     media,
     details,
+    onMediaError,
   }: {
     title: string;
     info: string;
@@ -42,6 +56,7 @@ vi.mock("@/components/Features/Work", () => ({
     actionTitle: string;
     media?: string[];
     details: Array<{ label: string; value: string }>;
+    onMediaError?: (url: string, index: number) => void;
   }) =>
     createElement("div", { "data-testid": "work-view" }, [
       createElement("span", { key: "title", "data-testid": "review-title" }, title),
@@ -64,12 +79,22 @@ vi.mock("@/components/Features/Work", () => ({
           )
         )
       ),
+      createElement(
+        "button",
+        {
+          key: "media-error",
+          type: "button",
+          "data-testid": "trigger-review-media-error",
+          onClick: () => onMediaError?.(media?.[0] ?? "", 0),
+        },
+        "Trigger media error"
+      ),
     ]),
 }));
 
 // Import after mocks
 import type { Action, Address, Garden } from "@green-goods/shared";
-import { Domain } from "@green-goods/shared";
+import { Domain, getWorkMediaId } from "@green-goods/shared";
 import { WorkReview } from "../../views/Garden/Review";
 
 const messages: Record<string, string> = {
@@ -78,6 +103,10 @@ const messages: Record<string, string> = {
   "app.garden.review.timeSpent": "Time Spent",
   "app.garden.review.description": "Description",
   "app.garden.review.audioNotes": "Audio Notes",
+  "app.garden.review.previewFailedMessage":
+    "{count, plural, one {Remove the broken item before submitting again. Your details will stay here.} other {Remove the broken items before submitting again. Your details will stay here.}}",
+  "app.garden.review.previewFailedTitle": "Some media previews failed",
+  "app.garden.review.removeBrokenMedia": "Remove broken media",
   "app.garden.review.video": "Video",
 };
 
@@ -225,5 +254,36 @@ describe("WorkReview", () => {
 
     expect(screen.getByTestId("audio-player-note.webm")).toBeInTheDocument();
     expect(screen.getByText("Audio Notes")).toBeInTheDocument();
+  });
+
+  it("reports Review photo preview failures by file identity", () => {
+    const photo = new File(["img"], "photo.jpg", { type: "image/jpeg" });
+    const onPreviewFailed = vi.fn();
+
+    renderReview({ images: [photo], onPreviewFailed });
+
+    fireEvent.click(screen.getByTestId("trigger-review-media-error"));
+
+    expect(onPreviewFailed).toHaveBeenCalledWith(photo, "review");
+  });
+
+  it("keeps details visible when broken media is removable", () => {
+    const photo = new File(["img"], "photo.jpg", { type: "image/jpeg" });
+    const onRemoveBrokenMedia = vi.fn();
+
+    renderReview({
+      images: [photo],
+      values: { treeCount: 15 },
+      brokenMediaIds: new Set([getWorkMediaId(photo)]),
+      onRemoveBrokenMedia,
+    });
+
+    expect(screen.getByText("Some media previews failed")).toBeInTheDocument();
+    expect(screen.getByTestId("detail-Trees Planted")).toHaveTextContent("15");
+
+    fireEvent.click(screen.getByRole("button", { name: "Remove broken media" }));
+
+    expect(onRemoveBrokenMedia).toHaveBeenCalledWith("review");
+    expect(screen.getByTestId("detail-Trees Planted")).toHaveTextContent("15");
   });
 });

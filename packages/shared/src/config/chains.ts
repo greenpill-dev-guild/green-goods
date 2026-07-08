@@ -1,6 +1,7 @@
-import { arbitrum, type Chain, celo, sepolia } from "viem/chains";
+import { arbitrum, type Chain, celo, mainnet, sepolia } from "viem/chains";
 
 export const SUPPORTED_CHAINS = {
+  1: mainnet,
   42161: arbitrum,
   11155111: sepolia,
   42220: celo,

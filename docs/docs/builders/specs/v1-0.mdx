@@ -180,7 +180,13 @@ The product architecture serves a 5-sided marketplace, ensuring checks and balan
 
 ### 3.4 Action Domains and Target Outcomes
 
-Green Goods is not a generic impact tracking tool. It is purpose-built to capture and verify specific categories of regenerative work emerging from Greenpill Network chapters and aligned initiatives. The protocol optimizes for five core action domains that reflect where local communities are actively creating value.
+:::note Current canonical domains (updated 2026-06)
+This v1.0 PRD specifies **five** action domains. Green Goods production implements **four**: **Solar (Hub Development)**, **Agroforestry**, **Education**, and **Waste Management** (the `Domain` enum `SOLAR · AGRO · EDU · WASTE`). **Domain 5 — Mutual Credit and Farmer Verification** was offered in Season-1 onboarding but never received an action set or an enum value; it remains a deferred *build-vs-drop* decision, not an implemented domain. The canonical domain vocabulary is the Impact-Claim Domain Taxonomy + Glossary v1 (Impact Framework v0.1 Refresh). The five-domain text below is retained as the original product record.
+:::
+
+Green Goods is not a generic impact tracking tool. It is purpose-built to capture and verify specific categories of regenerative work emerging from Greenpill Network chapters and aligned initiatives.
+
+_The five domains below are the original v1.0 product record. Production ships four of them today — see the reconciliation note above; the enum is `SOLAR · AGRO · EDU · WASTE`. Read this section as the historical specification, not current behavior._ As originally specified, the protocol optimized for five core action domains reflecting where local communities were actively creating value.
 
 #### Domain 1: Solar Infrastructure (DePIN Pillar)
 
@@ -1274,7 +1280,7 @@ The due dates below are original planning dates from the v1 draft. Reconfirm own
 | GitHub Repository | [github.com/greenpill-dev-guild/green-goods](https://github.com/greenpill-dev-guild/green-goods) | Monorepo codebase |
 | Revnet Whitepaper | [github.com/rev-net/whitepaper](https://github.com/rev-net/whitepaper) | Economic mechanics |
 | Hypercerts Docs | [hypercerts.org/docs](https://hypercerts.org/docs) | Impact certificate standard |
-| Octant V2 Docs | [docs.v2.octant.build](https://docs.v2.octant.build) | Yield vault architecture |
+| Octant YDS Docs | [docs.v2.octant.build](https://docs.v2.octant.build/docs/developers/yield_donating_strategy/) | Yield donating strategy architecture |
 | Karma GAP | [karmahq.xyz](https://www.karmahq.xyz) | Grantee accountability protocol |
 | Juicebox V4 Docs | [docs.juicebox.money/dev](https://docs.juicebox.money/dev) | Revnet implementation |
 | CIDS Specification | [commonapproach.org/cids](https://commonapproach.org/cids) | Impact data standard |

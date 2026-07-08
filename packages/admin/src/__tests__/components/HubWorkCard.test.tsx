@@ -110,6 +110,65 @@ describe("HubWorkCard", () => {
     expect(container.querySelectorAll("img")).toHaveLength(0);
   });
 
+  it("renders the work state without duplicating the stage action label", () => {
+    renderCard({ statusLabel: "Pending" });
+    expect(screen.getByText("Pending")).toBeInTheDocument();
+    expect(screen.queryByText("Review")).not.toBeInTheDocument();
+  });
+
+  it("renders a friendly submitted date instead of an ISO timestamp", () => {
+    const { container } = renderCard({
+      work: {
+        id: "0xdate",
+        title: "Friendly date",
+        actionUID: 1,
+        gardenerAddress: "0x1234567890abcdef1234567890abcdef12345678" as `0x${string}`,
+        gardenAddress: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd" as `0x${string}`,
+        feedback: "",
+        metadata: "{}",
+        media: [],
+        createdAt: new Date("2026-07-08T12:34:00Z").getTime() / 1000,
+        status: "pending",
+      },
+    });
+
+    expect(screen.getByText(/Submitted · Jul 8, 2026/)).toBeInTheDocument();
+    expect(container.textContent).not.toContain("2026-07-08T12:34:00.000Z");
+  });
+
+  it("strips generated ISO timestamp suffixes from legacy work titles", () => {
+    const { container } = renderCard({
+      actionTitle: "Community Cleanup",
+      work: {
+        id: "0xgenerated-title",
+        title: "Community Cleanup - 2026-07-08T12:34:00.000Z",
+        actionUID: 1,
+        gardenerAddress: "0x1234567890abcdef1234567890abcdef12345678" as `0x${string}`,
+        gardenAddress: "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd" as `0x${string}`,
+        feedback: "",
+        metadata: "{}",
+        media: [],
+        createdAt: new Date("2026-07-08T12:34:00Z").getTime() / 1000,
+        status: "pending",
+      },
+    });
+
+    expect(screen.getByRole("heading", { name: "Community Cleanup" })).toBeInTheDocument();
+    expect(screen.getAllByText("Community Cleanup")).toHaveLength(1);
+    expect(container.textContent).not.toContain("2026-07-08T12:34:00.000Z");
+  });
+
+  it("does not scale images on hover", () => {
+    const { container } = renderCard();
+    const image = container.querySelector("img");
+    expect(image?.className).not.toContain("scale");
+  });
+
+  it("uses a flush card density so media reaches the card edge", () => {
+    renderCard();
+    expect(screen.getByRole("button").className).toContain("p-0");
+  });
+
   it("calls onClick when clicked", () => {
     const onClick = vi.fn();
     renderCard({ onClick });

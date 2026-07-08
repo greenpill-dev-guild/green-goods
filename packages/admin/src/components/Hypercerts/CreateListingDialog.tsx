@@ -2,17 +2,20 @@ import {
   type Address,
   Alert,
   type CreateListingParams,
+  FormField,
   LISTING_DEFAULTS,
   type ListingStep,
   logger,
   NativeSelect,
   TextInput,
   useCreateListing,
+  useDirtyClose,
 } from "@green-goods/shared";
 import { RiCheckLine, RiExchangeDollarLine, RiLoader4Line } from "@remixicon/react";
 import { AdminButton } from "../AdminButton";
 import { AdminCheckbox } from "../AdminCheckbox";
 import { AdminDialog } from "../AdminDialog";
+import { DiscardChangesDialog } from "../DiscardChangesDialog";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useIntl } from "react-intl";
@@ -67,7 +70,7 @@ export function CreateListingDialog({
   const {
     register,
     handleSubmit,
-    formState: { errors: formErrors },
+    formState: { errors: formErrors, isDirty },
   } = useForm<ListingFormValues>({
     defaultValues: {
       currency: zeroAddress, // Native/WETH
@@ -122,165 +125,183 @@ export function CreateListingDialog({
     }
   };
 
+  // Confirm-before-discard: pricing edits are unsaved operator input until the
+  // order is signed. Only the configure phase guards — once submission starts,
+  // preventClose owns the close and a finished/failed run has nothing to lose.
+  const dirtyClose = useDirtyClose({
+    isDirty: phase === "configure" && isDirty,
+    onClose: handleClose,
+  });
+
   const sellLeftoverRegistration = register("sellLeftover");
   const visibleError = error ?? submissionError;
   const isErrorState = step === "error" || visibleError !== null;
   const formId = "admin-create-listing-form";
 
   return (
-    <AdminDialog
-      open={open}
-      onOpenChange={(next) => {
-        if (!next) handleClose();
-      }}
-      size="lg"
-      title={formatMessage({ id: "app.listing.title", defaultMessage: "List for Yield" })}
-      icon={<RiExchangeDollarLine className="h-6 w-6 text-[rgb(var(--m3-primary))]" />}
-      preventClose={isCreating}
-      hideCloseButton={isCreating}
-      actions={
-        phase === "configure" ? (
-          <>
-            <AdminButton type="button" variant="text" onClick={handleClose}>
-              {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-            </AdminButton>
-            <AdminButton type="submit" form={formId}>
-              {formatMessage({
-                id: "app.listing.signAndList",
-                defaultMessage: "Sign & List",
-              })}
-            </AdminButton>
-          </>
-        ) : (
-          <>
-            {(step === "done" || isErrorState) && (
+    <>
+      <AdminDialog
+        open={open}
+        onOpenChange={dirtyClose.onOpenChange}
+        size="lg"
+        // Workspace tone — mounted from the garden hypercert inspector.
+        tone="garden"
+        title={formatMessage({ id: "app.listing.title", defaultMessage: "List for Yield" })}
+        icon={RiExchangeDollarLine}
+        preventClose={isCreating}
+        hideCloseButton={isCreating}
+        actions={
+          phase === "configure" ? (
+            <>
               <AdminButton type="button" variant="text" onClick={handleClose}>
-                {step === "done"
-                  ? formatMessage({ id: "app.common.done", defaultMessage: "Done" })
-                  : formatMessage({ id: "app.common.close", defaultMessage: "Close" })}
+                {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
               </AdminButton>
-            )}
-            {isErrorState && (
-              <AdminButton
-                type="button"
-                onClick={() => {
-                  setSubmissionError(null);
-                  reset();
-                  setPhase("configure");
-                }}
-              >
-                {formatMessage({ id: "app.common.tryAgain", defaultMessage: "Try Again" })}
+              <AdminButton type="submit" form={formId}>
+                {formatMessage({
+                  id: "app.listing.signAndList",
+                  defaultMessage: "Sign & List",
+                })}
               </AdminButton>
-            )}
-          </>
-        )
-      }
-    >
-      {phase === "configure" ? (
-        <form id={formId} onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          {/* Price per unit */}
-          <div>
-            <label className="block text-sm font-medium text-text-strong mb-1">
-              {formatMessage({
+            </>
+          ) : (
+            <>
+              {(step === "done" || isErrorState) && (
+                <AdminButton type="button" variant="text" onClick={handleClose}>
+                  {step === "done"
+                    ? formatMessage({ id: "app.common.done", defaultMessage: "Done" })
+                    : formatMessage({ id: "app.common.close", defaultMessage: "Close" })}
+                </AdminButton>
+              )}
+              {isErrorState && (
+                <AdminButton
+                  type="button"
+                  onClick={() => {
+                    setSubmissionError(null);
+                    reset();
+                    setPhase("configure");
+                  }}
+                >
+                  {formatMessage({ id: "app.common.tryAgain", defaultMessage: "Try Again" })}
+                </AdminButton>
+              )}
+            </>
+          )
+        }
+      >
+        {phase === "configure" ? (
+          <form id={formId} onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+            {/* Price per unit */}
+            <FormField
+              label={formatMessage({
                 id: "app.listing.pricePerUnit",
                 defaultMessage: "Price per Unit (ETH)",
               })}
-            </label>
-            <TextInput
-              surface="admin"
-              type="text"
-              {...register("pricePerUnit", {
-                required: formatMessage({
-                  id: "app.listing.priceRequired",
-                  defaultMessage: "Price is required",
-                }),
+              htmlFor="listing-price-per-unit"
+              error={formErrors.pricePerUnit?.message}
+            >
+              <TextInput
+                id="listing-price-per-unit"
+                surface="admin"
+                type="text"
+                {...register("pricePerUnit", {
+                  required: formatMessage({
+                    id: "app.listing.priceRequired",
+                    defaultMessage: "Price is required",
+                  }),
+                })}
+                invalid={Boolean(formErrors.pricePerUnit)}
+                placeholder="0.00001"
+              />
+            </FormField>
+
+            {/* Min / Max units row */}
+            <div className="grid grid-cols-2 gap-3">
+              <FormField
+                label={formatMessage({ id: "app.listing.minUnits", defaultMessage: "Min Units" })}
+                htmlFor="listing-min-units"
+              >
+                <TextInput
+                  id="listing-min-units"
+                  surface="admin"
+                  type="text"
+                  {...register("minUnits")}
+                  placeholder="1"
+                />
+              </FormField>
+              <FormField
+                label={formatMessage({ id: "app.listing.maxUnits", defaultMessage: "Max Units" })}
+                htmlFor="listing-max-units"
+              >
+                <TextInput
+                  id="listing-max-units"
+                  surface="admin"
+                  type="text"
+                  {...register("maxUnits")}
+                  placeholder={formatMessage({
+                    id: "app.listing.maxUnitsPlaceholder",
+                    defaultMessage: "Unlimited",
+                  })}
+                />
+              </FormField>
+            </div>
+
+            {/* Duration */}
+            <FormField
+              label={formatMessage({ id: "app.listing.duration", defaultMessage: "Duration" })}
+              htmlFor="listing-duration"
+            >
+              <NativeSelect
+                id="listing-duration"
+                surface="admin"
+                {...register("durationDays", { valueAsNumber: true })}
+              >
+                {DURATION_VALUES.map((days) => (
+                  <option key={days} value={days}>
+                    {formatMessage(
+                      { id: "app.listing.durationDays", defaultMessage: "{days} days" },
+                      { days }
+                    )}
+                  </option>
+                ))}
+              </NativeSelect>
+            </FormField>
+
+            {/* Sell leftover toggle */}
+            <AdminCheckbox
+              ref={sellLeftoverRegistration.ref}
+              name={sellLeftoverRegistration.name}
+              onChange={sellLeftoverRegistration.onChange}
+              label={formatMessage({
+                id: "app.listing.sellLeftover",
+                defaultMessage: "Sell leftover fraction",
               })}
-              className="w-full rounded-md border border-stroke-soft bg-bg-white px-3 py-2 text-sm text-text-strong focus:border-primary-base focus:outline-none focus:ring-1 focus:ring-primary-base"
-              placeholder="0.00001"
+              className="[&>span:nth-child(2)>span]:text-sm [&>span:nth-child(2)>span]:text-text-sub"
             />
-            {formErrors.pricePerUnit && (
-              <p className="mt-1 text-xs text-error-base">{formErrors.pricePerUnit.message}</p>
+          </form>
+        ) : (
+          <div className="space-y-4">
+            <ListingProgress step={step} />
+
+            {visibleError && <Alert variant="error">{visibleError.message}</Alert>}
+
+            {step === "done" && (
+              <Alert variant="success">
+                {formatMessage({
+                  id: "app.listing.createdSuccessfully",
+                  defaultMessage: "Listing created successfully!",
+                })}
+              </Alert>
             )}
           </div>
-
-          {/* Min / Max units row */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-text-strong mb-1">
-                {formatMessage({ id: "app.listing.minUnits", defaultMessage: "Min Units" })}
-              </label>
-              <TextInput
-                surface="admin"
-                type="text"
-                {...register("minUnits")}
-                className="w-full rounded-md border border-stroke-soft bg-bg-white px-3 py-2 text-sm text-text-strong focus:border-primary-base focus:outline-none focus:ring-1 focus:ring-primary-base"
-                placeholder="1"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-text-strong mb-1">
-                {formatMessage({ id: "app.listing.maxUnits", defaultMessage: "Max Units" })}
-              </label>
-              <TextInput
-                surface="admin"
-                type="text"
-                {...register("maxUnits")}
-                className="w-full rounded-md border border-stroke-soft bg-bg-white px-3 py-2 text-sm text-text-strong focus:border-primary-base focus:outline-none focus:ring-1 focus:ring-primary-base"
-                placeholder="Unlimited"
-              />
-            </div>
-          </div>
-
-          {/* Duration */}
-          <div>
-            <label className="block text-sm font-medium text-text-strong mb-1">
-              {formatMessage({ id: "app.listing.duration", defaultMessage: "Duration" })}
-            </label>
-            <NativeSelect
-              surface="admin"
-              {...register("durationDays", { valueAsNumber: true })}
-              className="w-full rounded-md border border-stroke-soft bg-bg-white px-3 py-2 text-sm text-text-strong focus:border-primary-base focus:outline-none focus:ring-1 focus:ring-primary-base"
-            >
-              {DURATION_VALUES.map((days) => (
-                <option key={days} value={days}>
-                  {formatMessage(
-                    { id: "app.listing.durationDays", defaultMessage: "{days} days" },
-                    { days }
-                  )}
-                </option>
-              ))}
-            </NativeSelect>
-          </div>
-
-          {/* Sell leftover toggle */}
-          <AdminCheckbox
-            ref={sellLeftoverRegistration.ref}
-            name={sellLeftoverRegistration.name}
-            onChange={sellLeftoverRegistration.onChange}
-            label={formatMessage({
-              id: "app.listing.sellLeftover",
-              defaultMessage: "Sell leftover fraction",
-            })}
-            className="[&>span:nth-child(2)>span]:text-sm [&>span:nth-child(2)>span]:text-text-sub"
-          />
-        </form>
-      ) : (
-        <div className="space-y-4">
-          <ListingProgress step={step} />
-
-          {visibleError && <Alert variant="error">{visibleError.message}</Alert>}
-
-          {step === "done" && (
-            <Alert variant="success">
-              {formatMessage({
-                id: "app.listing.createdSuccessfully",
-                defaultMessage: "Listing created successfully!",
-              })}
-            </Alert>
-          )}
-        </div>
-      )}
-    </AdminDialog>
+        )}
+      </AdminDialog>
+      <DiscardChangesDialog
+        open={dirtyClose.confirmOpen}
+        onKeepEditing={dirtyClose.cancelClose}
+        onDiscard={dirtyClose.confirmClose}
+        tone="garden"
+      />
+    </>
   );
 }
 

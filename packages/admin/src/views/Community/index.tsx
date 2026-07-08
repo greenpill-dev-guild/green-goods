@@ -1,6 +1,7 @@
 import {
   buildCommunityHeaderStats,
   MetaStrip,
+  type Address,
   useCommunityWorkspaceController,
   useMediaQuery,
 } from "@green-goods/shared";
@@ -16,22 +17,42 @@ export default function CommunityView() {
   const { formatMessage } = useIntl();
   const community = useCommunityWorkspaceController();
   const isDesktop = useMediaQuery("(min-width: 1024px)");
-  const totalPeople = community.derived.directoryEntries.length;
+
+  // Paid-out magnitudes by asset. The Payouts tab badge is a count, but the
+  // header cannot add base units across WETH/USDC/etc. as one token total.
+  const distributedAmountsByAsset = useMemo(
+    () =>
+      Array.from(
+        community.allocations
+          .reduce((totals, allocation) => {
+            const current = totals.get(allocation.assetAddress) ?? 0n;
+            totals.set(
+              allocation.assetAddress,
+              current +
+                allocation.cookieJarAmount +
+                allocation.fractionsAmount +
+                allocation.juiceboxAmount
+            );
+            return totals;
+          }, new Map<Address, bigint>())
+          .values()
+      ),
+    [community.allocations]
+  );
 
   const headerStats = useMemo(
     () =>
       buildCommunityHeaderStats({
         hasSelectedGarden: Boolean(community.selectedGarden),
-        peopleCount: totalPeople,
-        poolCount: community.pools.length,
         vaultNetDeposited: community.vaultNetDeposited,
+        distributedAmounts: community.allocationsLoading ? null : distributedAmountsByAsset,
         formatMessage,
       }),
     [
       community.selectedGarden,
-      totalPeople,
-      community.pools.length,
+      community.allocationsLoading,
       community.vaultNetDeposited,
+      distributedAmountsByAsset,
       formatMessage,
     ]
   );
@@ -43,9 +64,9 @@ export default function CommunityView() {
       data-region="workspace-community"
     >
       <CommunitySheetDescriptor
-        isVaultRoute={community.isVaultRoute}
         isStrategiesRoute={community.isStrategiesRoute}
         isSignalPoolRoute={community.isSignalPoolRoute}
+        vaultAction={community.vaultAction}
         poolType={community.poolType}
         gardenAddress={community.selectedGardenAddress}
       />
@@ -54,7 +75,7 @@ export default function CommunityView() {
         title={formatMessage({ id: "cockpit.community.title", defaultMessage: "Community" })}
         description={formatMessage({
           id: "cockpit.community.description",
-          defaultMessage: "Treasury, governance, payouts, and the people around the garden.",
+          defaultMessage: "Members, coordination, endowment, and payouts for the garden community.",
         })}
         metadata={
           headerStats.length > 0 ? <MetaStrip items={headerStats} density="inline" /> : undefined
@@ -76,20 +97,28 @@ export default function CommunityView() {
           onChange={community.handleModeChange}
           tabs={[
             {
-              id: "treasury",
+              id: "members",
               label: formatMessage({
-                id: "cockpit.community.treasury",
-                defaultMessage: "Treasury",
+                id: "cockpit.community.members",
+                defaultMessage: "Members",
               }),
-              count: community.derived.hasVaults ? 1 : undefined,
+              count: community.derived.directoryEntries.length || undefined,
             },
             {
-              id: "governance",
+              id: "coordination",
               label: formatMessage({
-                id: "cockpit.community.governance",
-                defaultMessage: "Governance",
+                id: "cockpit.community.coordination",
+                defaultMessage: "Coordination",
               }),
               count: community.pools.length || undefined,
+            },
+            {
+              id: "endowment",
+              label: formatMessage({
+                id: "cockpit.community.endowment",
+                defaultMessage: "Endowment",
+              }),
+              count: community.derived.hasVaults ? 1 : undefined,
             },
             {
               id: "payouts",
@@ -98,18 +127,6 @@ export default function CommunityView() {
                 defaultMessage: "Payouts",
               }),
               count: community.allocations.length || undefined,
-            },
-            {
-              // Internal id stays "members" (controller, route resolver, and
-              // backend hooks all key off it). The user-facing label is "People"
-              // per the IA-Community decision in audit §5 — broader community of
-              // funders + supporters + contributors, not a garden roster.
-              id: "members",
-              label: formatMessage({
-                id: "cockpit.community.people",
-                defaultMessage: "People",
-              }),
-              count: totalPeople || undefined,
             },
           ]}
         />

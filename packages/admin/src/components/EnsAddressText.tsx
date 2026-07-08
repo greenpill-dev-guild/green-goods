@@ -75,7 +75,7 @@ export function EnsAddressWithCopy({
         aria-label={formatMessage({ id: "app.common.copyAddress" })}
       >
         {copied ? (
-          <RiCheckLine className="h-3 w-3 text-success-base" />
+          <RiCheckLine className="h-3 w-3 text-success-dark" />
         ) : (
           <RiFileCopyLine className="h-3 w-3" />
         )}

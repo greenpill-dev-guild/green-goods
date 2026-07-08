@@ -1,28 +1,19 @@
 import {
   adminRoutes,
   type AdminCommunityRouteContext,
-  type FabConfig,
   formatTokenAmount,
   type MetaStripItem,
   type ViewAction,
 } from "@green-goods/shared";
-import {
-  RiAddLine,
-  RiExternalLinkLine,
-  RiHandCoinLine,
-  RiMoneyDollarCircleLine,
-  RiUserLine,
-  RiUserVoiceLine,
-} from "@remixicon/react";
+import { RiHandCoinLine, RiMoneyDollarCircleLine, RiUserAddLine } from "@remixicon/react";
 
 /**
  * Inputs for the Community header stats slot.
  */
 export interface CommunityHeaderStatsInput {
   hasSelectedGarden: boolean;
-  peopleCount: number;
-  poolCount: number;
   vaultNetDeposited: bigint;
+  distributedAmounts: readonly bigint[] | null;
   formatMessage: (
     descriptor: { id: string; defaultMessage?: string },
     values?: Record<string, unknown>
@@ -30,78 +21,80 @@ export interface CommunityHeaderStatsInput {
 }
 
 /**
- * Cleanup A6: build the inline MetaStrip items rendered in the Community
- * header after Tier 4 dropped the garden-name re-declaration. Returns [] when
- * no garden is selected so the metadata slot stays clean during the workspace
- * selection gate. Per audit §5.6, the slot must NOT include the garden name.
+ * Build the inline MetaStrip items rendered in the Community header. The tab
+ * rail already carries the workspace counts, so the header complements them
+ * with the endowment and payout magnitudes the tabs do not show.
+ * Returns [] when no garden is selected so the metadata slot stays clean during
+ * the workspace selection gate. Per audit §5.6, the slot must NOT include the
+ * garden name.
  *
- * Stat shape (3 items): people count · signal pool count · treasury balance.
+ * Stat shape: treasury balance · total distributed when allocations are loaded
+ * and the distribution is a single asset. Loading or multi-asset allocations
+ * intentionally omit the distributed item until the header has truthful data
+ * and an asset-specific display, because base units cannot be summed across
+ * assets.
  */
 export function buildCommunityHeaderStats({
   hasSelectedGarden,
-  peopleCount,
-  poolCount,
   vaultNetDeposited,
+  distributedAmounts,
   formatMessage,
 }: CommunityHeaderStatsInput): MetaStripItem[] {
   if (!hasSelectedGarden) return [];
 
-  return [
-    {
-      id: "people",
-      value: String(peopleCount),
-      label: formatMessage(
-        {
-          id: "cockpit.community.stats.people",
-          defaultMessage: "{count, plural, one {person} other {people}}",
-        },
-        { count: peopleCount }
-      ),
-    },
-    {
-      id: "pools",
-      value: String(poolCount),
-      label: formatMessage(
-        {
-          id: "cockpit.community.stats.pools",
-          defaultMessage: "{count, plural, one {pool} other {pools}}",
-        },
-        { count: poolCount }
-      ),
-    },
+  const items: MetaStripItem[] = [
     {
       id: "treasury",
       value: formatTokenAmount(vaultNetDeposited),
       label: formatMessage({
         id: "cockpit.community.stats.treasury",
-        defaultMessage: "treasury",
+        defaultMessage: "endowment",
       }),
     },
   ];
+
+  if (distributedAmounts !== null && distributedAmounts.length <= 1) {
+    items.push({
+      id: "distributed",
+      value: formatTokenAmount(distributedAmounts[0] ?? 0n),
+      label: formatMessage({
+        id: "cockpit.community.stats.distributed",
+        defaultMessage: "distributed",
+      }),
+    });
+  }
+
+  return items;
 }
 
-export type CommunityWorkspaceMode = "treasury" | "governance" | "payouts" | "members";
+export type CommunityWorkspaceMode = "members" | "coordination" | "endowment" | "payouts";
 
 export function resolveCommunityMode(pathname: string): CommunityWorkspaceMode {
-  if (pathname.startsWith("/community/governance")) return "governance";
-  if (pathname.startsWith("/community/payouts")) return "payouts";
   if (pathname.startsWith("/community/members")) return "members";
-  return "treasury";
+  if (
+    pathname.startsWith("/community/coordination") ||
+    pathname.startsWith("/community/governance")
+  ) {
+    return "coordination";
+  }
+  if (pathname.startsWith("/community/payouts")) return "payouts";
+  return "endowment";
 }
 
 export function communitySectionForMode(mode: CommunityWorkspaceMode) {
-  if (mode === "governance") return "governance";
-  if (mode === "payouts") return "cookie-jars";
-  return mode;
+  if (mode === "members") return "members";
+  if (mode === "coordination") return "coordination";
+  if (mode === "payouts") return "payouts";
+  return "endowment";
 }
 
 /**
- * Community view-level actions. Reference design pairs a primary "New proposal"
- * with a "View public" ghost button; we extend with role/treasury actions per
- * user request (Manage roles, Deposit / withdraw, Manage payouts). On desktop
- * AdminViewActions inlines the top 3 and folds the rest into an overflow kebab.
+ * Community view-level actions. The set is stable across Community tabs so
+ * desktop button positions and the mobile FAB speed dial do not shift while
+ * operators move between Members, Coordination, Endowment, and Payouts.
  */
 export function buildCommunityViewActions(
+  _mode: CommunityWorkspaceMode,
   canManage: boolean,
   isOwner: boolean,
   hasSelectedGarden: boolean,
@@ -109,97 +102,39 @@ export function buildCommunityViewActions(
   routeContext?: AdminCommunityRouteContext
 ): ViewAction[] {
   const gardenAddress = routeContext?.gardenAddress;
-  return [
+  // "View public" lives once, on the Garden workspace — not duplicated here.
+  const actions: ViewAction[] = [
     {
-      id: "view-public",
-      label: "View public",
-      labelId: "cockpit.community.action.viewPublic",
-      icon: RiExternalLinkLine,
-      onClick: () => {
-        if (!gardenAddress) return;
-        const url = `/gardens/${encodeURIComponent(gardenAddress)}`;
-        window.open(url, "_blank", "noopener,noreferrer");
-      },
-      variant: "ghost",
-      visible: hasSelectedGarden && Boolean(gardenAddress),
-    },
-    {
-      id: "manage-roles",
-      label: "Manage roles",
-      labelId: "cockpit.community.action.manageRoles",
-      icon: RiUserLine,
-      onClick: () => navigate(adminRoutes.communityMembers(routeContext)),
-      variant: "secondary",
+      id: "add-member",
+      label: "Add member",
+      labelId: "cockpit.community.action.addMember",
+      icon: RiUserAddLine,
+      onClick: () =>
+        navigate(adminRoutes.communityMembers({ gardenId: gardenAddress, item: "add-member" })),
+      variant: "primary",
       visible: hasSelectedGarden && canManage,
+      primary: true,
     },
     {
       id: "deposit-withdraw",
       label: "Deposit / withdraw",
       labelId: "cockpit.community.action.depositWithdraw",
       icon: RiMoneyDollarCircleLine,
-      onClick: () => navigate(adminRoutes.communityTreasuryVault(routeContext)),
+      onClick: () => navigate(adminRoutes.communityEndowmentVault(routeContext)),
       variant: "secondary",
       visible: hasSelectedGarden && isOwner,
     },
     {
-      id: "manage-payouts",
-      label: "Manage payouts",
-      labelId: "cockpit.community.action.managePayouts",
+      id: "fund-payout-jar",
+      label: "Fund Cookie Jar",
+      labelId: "cockpit.community.action.fundPayoutJar",
       icon: RiHandCoinLine,
-      onClick: () => navigate(adminRoutes.communityPayouts(routeContext)),
+      onClick: () =>
+        navigate(adminRoutes.communityPayouts({ gardenId: gardenAddress, item: "fund-jar" })),
       variant: "secondary",
       visible: hasSelectedGarden && canManage,
     },
-    {
-      id: "new-proposal",
-      label: "New proposal",
-      labelId: "cockpit.community.action.newProposal",
-      icon: RiUserVoiceLine,
-      onClick: () => navigate(adminRoutes.communityGovernance(routeContext)),
-      variant: "primary",
-      visible: hasSelectedGarden && canManage,
-      primary: true,
-    },
   ];
-}
 
-/** @deprecated Use `buildCommunityViewActions` + `useViewActions` instead. */
-export function buildCommunityFabConfig(
-  canManage: boolean,
-  hasSelectedGarden: boolean,
-  navigate: (path: string) => void,
-  routeContext?: AdminCommunityRouteContext
-): FabConfig | null {
-  if (!hasSelectedGarden || !canManage) return null;
-
-  return {
-    icon: RiAddLine,
-    label: "Community Actions",
-    actions: [
-      {
-        id: "new-proposal",
-        icon: RiUserVoiceLine,
-        label: "New proposal",
-        labelId: "cockpit.community.fab.newProposal",
-      },
-      {
-        id: "add-member",
-        icon: RiUserLine,
-        label: "Add member",
-        labelId: "cockpit.community.fab.addMember",
-      },
-      {
-        id: "manage-vault",
-        icon: RiMoneyDollarCircleLine,
-        label: "Manage vault",
-        labelId: "cockpit.community.fab.manageVault",
-      },
-    ],
-    onAction: (actionId: string) => {
-      if (actionId === "new-proposal") navigate(adminRoutes.communityGovernance(routeContext));
-      else if (actionId === "add-member") navigate(adminRoutes.communityMembers(routeContext));
-      else if (actionId === "manage-vault")
-        navigate(adminRoutes.communityTreasuryVault(routeContext));
-    },
-  };
+  return actions;
 }

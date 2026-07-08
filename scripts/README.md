@@ -24,7 +24,8 @@ scripts/
 ### `dev/` — local dev workflow
 | Script | Caller | Purpose |
 |---|---|---|
-| `setup.js` | `bun run setup` | First-clone setup; checks deps, installs, configures env |
+| `setup.js` | `npm run setup`, `bun run setup`, `setup:host`, `setup:isolated`, `setup:cloud` | First-clone and workspace setup; checks deps, bootstraps Bun when allowed, installs dependencies, and handles host/isolated/cloud env posture |
+| `clean.js` | `bun run dev:clean`, `bun run dev:clean:dry` | Remove disposable build/test/cache artifacts from the current checkout only; never stops services, removes dependencies, touches env files, or inspects sibling worktrees |
 | `doctor.js` | `bun run dev:doctor` / `setup:doctor` / `dev:prod:health` / `dev:prod:mirror:health` | Non-mutating readiness check (ports, tools, env, profiles) |
 | `env-template-init.js` | `bun run env:template:init` | Generate `.env.template` skeleton from `.env.schema` (one-shot) |
 | `env-sync.js` | `bun run env:sync` | Run `op inject` against `.env.template` to materialize `.env` |
@@ -59,6 +60,8 @@ scripts/
 | `check-story-quality.ts` | `design.yml` (via `packages/shared` script) | Storybook story-quality lints |
 | `check-docs-design-parity.mjs` | `bun run check:docs-design-parity` | `docs/DESIGN.md` ↔ `docs/src/css/custom.css` role-accent + section-accent parity (light + dark) |
 | `check-react-patterns.js` | `bun run lint:rules` | Repo-specific React, TypeScript, import, and frontend-pattern lint rules with a generated baseline |
+| `check-browser-verification-policy.mjs` | `bun run check:browser-verification-policy`, `bun run agentic:check` | Verify authenticated Brave QA guidance across canonical agent docs, reject stale local isolated-browser guidance, and enforce browser-proof guard wiring |
+| `require-authenticated-browser-qa.mjs` | `bun run browser-proof:routes` via `agentic:browser-proof` | Block local isolated browser-proof runs unless `CI=true`, so clean-room proof cannot be reported as authenticated local QA |
 
 ### `design/` — design system enforcement
 | Script | Caller | Purpose |
@@ -86,6 +89,7 @@ scripts/
 | `ipfs-repin.ts` | `bun run ipfs:repin[:audit]` | Re-pin / audit Pinata content |
 | `upload-action-images.ts` | `bun run upload:action-images[:dry-run]` | Upload action images to IPFS |
 | `upload-sourcemaps.js` | `bun run sourcemaps[:dry-run]`, `client.yml`, `admin.yml` | Build sourcemap-enabled bundles in GitHub Actions, upload maps to PostHog, then remove local map files |
+| `bump-version.mjs` | `bun run version:bump <x.y.z> [--dry-run]` | Surgically set the `"version"` field across root + 6 package.json files to a target semver (unified versioning for monthly releases / hotfixes); one-line diff per file |
 
 ### `agents/` — agent query surfaces
 | Script | Caller | Purpose |
@@ -101,7 +105,6 @@ scripts/
 | `plan-hub.test.mjs` | `node --test scripts/harness/plan-hub.test.mjs` | Black-box fixture checks for plan-hub schema, taxonomy, summaries, and TDD proof gates |
 | `log-automation-run.mjs` | `.plans/_automation/*` prompts | Append plan-run telemetry under `.plans/_automation/runs/` |
 | `parse-docx-feedback.ts` | `doc-feedback` skill | Parse a Google Doc downloaded as `.docx` into markdown with body + comments + tracked changes |
-| `sync-agent-skills.mjs` | `bun run skills:sync`, `bun run check:skills` | Regenerate the Codex-visible `.agents/skills` mirror from canonical `.claude/skills` and fail on drift |
 
 ### `postinstall/`
 | Script | Caller | Purpose |

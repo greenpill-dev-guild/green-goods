@@ -3,7 +3,7 @@
  *
  * Verifies the GardenChip renders a static label for single gardens,
  * opens a popover dropdown for multi-garden selection, and handles
- * "All Gardens" and "Create Garden" interactions.
+ * garden and "Create Garden" interactions.
  *
  * @vitest-environment jsdom
  */
@@ -18,6 +18,7 @@ vi.mock("react-intl", () => ({
     formatMessage: ({ id }: { id: string }) => {
       const messages: Record<string, string> = {
         "cockpit.gardenChip.allGardens": "All Gardens",
+        "cockpit.gardenChip.selectGarden": "Select garden",
         "cockpit.gardenChip.createGarden": "Create Garden",
       };
       return messages[id] ?? id;
@@ -82,13 +83,14 @@ describe("GardenChip", () => {
     expect(trigger).toHaveAttribute("data-slot", "trigger");
   });
 
-  it("shows 'All Gardens' when selectedGarden is null", () => {
+  it("shows a selection prompt, not All Gardens, when selectedGarden is null", () => {
     render(
       <GardenChip gardens={[GARDEN_A, GARDEN_B]} selectedGarden={null} onSelectGarden={() => {}} />
     );
 
     const trigger = screen.getByRole("button");
-    expect(trigger.textContent).toContain("All Gardens");
+    expect(trigger.textContent).toContain("Select garden");
+    expect(trigger.textContent).not.toContain("All Gardens");
   });
 
   it("opens dropdown on click and shows all options", async () => {
@@ -103,19 +105,15 @@ describe("GardenChip", () => {
 
     await user.click(screen.getByRole("button"));
 
-    // Should see "All Gardens", both garden names, and "Create Garden"
+    // Should see both garden names and "Create Garden"; there is no all-gardens mode.
     // "Wildflower Meadow" appears in both the trigger chip and the dropdown list
-    expect(screen.getByText("All Gardens")).toBeTruthy();
+    expect(screen.queryByText("All Gardens")).toBeNull();
     expect(screen.getAllByText("Wildflower Meadow").length).toBeGreaterThanOrEqual(2);
     expect(screen.getByText("Urban Composting")).toBeTruthy();
     expect(screen.getByText("Create Garden")).toBeTruthy();
-    expect(screen.getByText("All Gardens").closest("button")).toHaveAttribute(
-      "data-slot",
-      "option"
-    );
   });
 
-  it("calls onSelectGarden(null) when 'All Gardens' is clicked", async () => {
+  it("does not render an All Gardens option", async () => {
     const onSelectGarden = vi.fn();
     render(
       <GardenChip
@@ -127,11 +125,8 @@ describe("GardenChip", () => {
 
     await user.click(screen.getByRole("button"));
 
-    // The dropdown "All Gardens" button
-    const allGardensBtn = screen.getByText("All Gardens").closest("button")!;
-    await user.click(allGardensBtn);
-
-    expect(onSelectGarden).toHaveBeenCalledWith(null);
+    expect(screen.queryByText("All Gardens")).toBeNull();
+    expect(onSelectGarden).not.toHaveBeenCalled();
   });
 
   it("calls onSelectGarden with the garden when a garden option is clicked", async () => {
@@ -185,6 +180,24 @@ describe("GardenChip", () => {
     expect(screen.queryByText("Create Garden")).toBeNull();
   });
 
+  it("hides 'Create Garden' when showCreateGardenAction is false", async () => {
+    const onCreateGarden = vi.fn();
+    render(
+      <GardenChip
+        gardens={[GARDEN_A, GARDEN_B]}
+        selectedGarden={GARDEN_A}
+        onSelectGarden={() => {}}
+        onCreateGarden={onCreateGarden}
+        showCreateGardenAction={false}
+      />
+    );
+
+    await user.click(screen.getByRole("button"));
+
+    expect(screen.queryByText("Create Garden")).toBeNull();
+    expect(onCreateGarden).not.toHaveBeenCalled();
+  });
+
   it("truncates long garden names with title attribute", () => {
     const longNameGarden = {
       id: "0x3333",
@@ -205,16 +218,32 @@ describe("GardenChip", () => {
     expect(truncatedSpan).toBeTruthy();
   });
 
-  it("applies max-width constraint to the chip container", () => {
+  it("keeps the trigger compact and sizes the menu from the longest garden name", async () => {
     render(
       <GardenChip
-        gardens={[GARDEN_A, GARDEN_B]}
+        gardens={[
+          GARDEN_A,
+          {
+            id: "0x3333",
+            name: "A Very Long Garden Name Used For Width Sizing",
+          },
+        ]}
         selectedGarden={GARDEN_A}
         onSelectGarden={() => {}}
       />
     );
 
     const trigger = screen.getByRole("button");
-    expect(trigger.className).toContain("max-w-sm");
+    expect(trigger.style.width).toBe("");
+    expect(trigger.style.maxWidth).toBe("calc(100vw - 2rem)");
+
+    await user.click(trigger);
+
+    const menu = document.querySelector<HTMLElement>(
+      "[data-component='GardenChip'][data-slot='menu']"
+    );
+    expect(menu).toBeTruthy();
+    expect(menu?.style.width).toBe("max-content");
+    expect(menu?.style.maxWidth).toBe("calc(100vw - 2rem)");
   });
 });

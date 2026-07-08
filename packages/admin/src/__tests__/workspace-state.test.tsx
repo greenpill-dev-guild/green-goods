@@ -86,6 +86,22 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       signOut: vi.fn(),
     }),
     useEligibleAdminGardens: () => mockEligibleAdminGardens.current,
+    // CanvasLayout also calls useAdminGardenWorkspaceSelection directly
+    // (independent of useEligibleAdminGardens above) — unstubbed, it falls
+    // through to the real hook, which chains into useAdminGardenContext ->
+    // usePrimaryAddress -> wagmi's useAccount(), and this test has no
+    // WagmiProvider.
+    useAdminGardenWorkspaceSelection: () => ({
+      eligibleGardens: mockEligibleAdminGardens.current.eligibleGardens,
+      selectedGarden: mockEligibleAdminGardens.current.resolvedDefaultGarden,
+      setSelectedGarden: vi.fn(),
+      gardenOptions: mockEligibleAdminGardens.current.eligibleGardens.map((g) => ({
+        id: g.id,
+        name: g.name,
+        location: g.location,
+      })),
+      handleSelectGarden: vi.fn(),
+    }),
     useEffectiveToolbarPermissions: () => ({
       showWork: true,
       showGarden: true,

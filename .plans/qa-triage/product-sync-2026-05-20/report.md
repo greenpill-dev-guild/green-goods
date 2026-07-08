@@ -1,5 +1,8 @@
 # /qa-triage report — Product Sync 2026-05-20 (fixture dry-run)
 
+## Freshness note — 2026-06-02
+This artifact is a synthetic fixture dry-run. It did not write Linear records or QA Sheet rows, and its `PRD-XXX` placeholders are not accepted issue links. Any historical `task:*` label examples in this fixture are stale metadata from the test run; current Linear hygiene uses only `protocol:*`, `package:*`, `activity:*`, `source:*`, `agent:*`, and `funding:*`.
+
 ## Source
 `.claude/skills/qa-triage/fixtures/example-product-sync.md` · synthetic, dated 2026-05-20 (future). Mode: `--fixture --dry-run`.
 

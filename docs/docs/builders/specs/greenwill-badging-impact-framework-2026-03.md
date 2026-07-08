@@ -1,5 +1,5 @@
 ---
-title: "GreenWill Badging + GPIF Analysis (March 2026)"
+title: "GreenWill Badging + GIF Analysis (March 2026)"
 sidebar_label: GreenWill Badging
 slug: /builders/specs/greenwill-badging-impact-framework-2026-03
 unlisted: true
@@ -9,7 +9,7 @@ last_verified: 2026-03-19
 feature_status: Planned
 ---
 
-# GreenWill Badging + GPIF Analysis
+# GreenWill Badging + GIF Analysis
 
 ## Executive Summary
 
@@ -69,9 +69,9 @@ My recommendation is to launch V1 with an **asynchronous badge issuer** that wat
 
 ---
 
-## The GPIF Lens: What The Badge System Should Actually Do
+## The GIF Lens: What The Badge System Should Actually Do
 
-The attached GPIF documents make one thing very clear: Green Goods is not trying to build a generic loyalty program. It is trying to build a regenerative verification and coordination layer.
+The attached GIF documents make one thing very clear: Green Goods is not trying to build a generic loyalty program. It is trying to build a regenerative verification and coordination layer.
 
 That means badges should do four jobs:
 
@@ -80,7 +80,7 @@ That means badges should do four jobs:
 - make trust **portable**
 - make the impact cycle **legible**
 
-### Use the GPIF “3s” as the badge logic
+### Use the GIF “3s” as the badge logic
 
 The framework repeatedly centers:
 
@@ -90,13 +90,13 @@ The framework repeatedly centers:
 
 This maps cleanly to badges:
 
-| GPIF axis | What the badge should recognize | Example badge family |
+| GIF axis | What the badge should recognize | Example badge family |
 |---|---|---|
 | Purpose | alignment, commitment, entry into a season, role acceptance | seasonal commitment, operator stewardship |
 | Practice | actual behavior inside MDR and domain work | first submission, first approval, domain badge |
 | Progress | outcomes, funding, assessments, impact asset creation | assessment author, funder, harvest badges |
 
-### Use the GPIF “4s” as the seasonal design language
+### Use the GIF “4s” as the seasonal design language
 
 The framework’s seasonal structure is one of the strongest opportunities in the whole system:
 
@@ -1142,7 +1142,7 @@ That combination is much closer to Green Goods than copying any one NFT or gamif
 
 Green Goods is in a strong position to launch a badge system because the platform already produces real evidence, real review, real roles, and real funding traces.
 
-The right V1 is not a maximal system. It is a **small, emotionally legible, automatically issued, GPIF-aligned credential layer** that:
+The right V1 is not a maximal system. It is a **small, emotionally legible, automatically issued, GIF-aligned credential layer** that:
 
 - celebrates first contributions
 - respects domain differences

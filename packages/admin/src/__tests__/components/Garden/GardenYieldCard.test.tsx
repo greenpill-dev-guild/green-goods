@@ -33,7 +33,7 @@ import { useGardenYieldWiringState } from "@green-goods/shared";
 
 const GARDEN_ID = "0x1111111111111111111111111111111111111111";
 const HYPERCERT_POOL = "0x2222222222222222222222222222222222222222";
-const REPAIR_HREF = `/community/governance?gardenAddress=${GARDEN_ID}`;
+const REPAIR_HREF = `/community/coordination?gardenAddress=${GARDEN_ID}`;
 
 function mockWiring(override: Partial<ReturnType<typeof useGardenYieldWiringState>> = {}): void {
   vi.mocked(useGardenYieldWiringState).mockReturnValue({
@@ -113,7 +113,7 @@ describe("GardenYieldCard wiring deep link", () => {
 
     const link = screen.getByRole("link", { name: /Reconnect from Community/i });
     expect(link).toBeInTheDocument();
-    expect(link.getAttribute("href")).toContain("/community/governance");
+    expect(link.getAttribute("href")).toContain("/community/coordination");
     expect(link.getAttribute("href")).toContain(`gardenAddress=${GARDEN_ID}`);
     expect(screen.queryByRole("button", { name: /Connect to yield/i })).not.toBeInTheDocument();
   });

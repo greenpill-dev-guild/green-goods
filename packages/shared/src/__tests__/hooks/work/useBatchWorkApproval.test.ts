@@ -432,7 +432,7 @@ describe("useBatchWorkApproval", () => {
         await result.current.mutateAsync(items);
       });
 
-      // Should invalidate works.online, works.merged, and workApprovals.all
+      // Should invalidate works.online, works.merged, workApprovals.all, and recipient-scoped approvals.
       const invalidatedKeys = invalidateSpy.mock.calls.map((c) => c[0]?.queryKey);
       expect(invalidatedKeys).toContainEqual(
         queryKeys.works.online(MOCK_ADDRESSES.garden, TEST_CHAIN_ID)
@@ -441,6 +441,7 @@ describe("useBatchWorkApproval", () => {
         queryKeys.works.merged(MOCK_ADDRESSES.garden, TEST_CHAIN_ID)
       );
       expect(invalidatedKeys).toContainEqual(queryKeys.workApprovals.all);
+      expect(invalidatedKeys).toContainEqual(queryKeys.approvals.all);
 
       invalidateSpy.mockRestore();
     });

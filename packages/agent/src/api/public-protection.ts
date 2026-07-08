@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 export type PublicRouteClass =
   | "subscribe"
   | "funding_create"
+  | "funding_proof"
   | "receipt_read"
   | "upload_sign"
   | "webhook_pre"
@@ -33,6 +34,7 @@ export interface RateLimitResult {
 export const PUBLIC_RATE_LIMIT_POLICIES = {
   subscribe: { limit: 5, windowMs: 60 * 60 * 1000 },
   funding_create: { limit: 10, windowMs: 10 * 60 * 1000 },
+  funding_proof: { limit: 10, windowMs: 10 * 60 * 1000 },
   receipt_read: { limit: 60, windowMs: 10 * 60 * 1000 },
   upload_sign: { limit: 20, windowMs: 60 * 1000 },
   webhook_pre: { limit: 300, windowMs: 60 * 1000 },
@@ -118,8 +120,45 @@ export function parseAllowedOrigins(value?: string): Set<string> {
   );
 }
 
+export const LOCAL_DEVELOPMENT_PUBLIC_ORIGINS = [
+  "http://localhost:3001",
+  "https://localhost:3001",
+  "http://127.0.0.1:3001",
+  "https://127.0.0.1:3001",
+  "http://localhost:3002",
+  "https://localhost:3002",
+  "http://127.0.0.1:3002",
+  "https://127.0.0.1:3002",
+] as const;
+
+export function resolveAllowedOrigins(
+  value?: string,
+  options: { includeDevelopmentDefaults?: boolean } = {}
+): Set<string> {
+  const configuredOrigins = parseAllowedOrigins(value);
+  if (configuredOrigins.size > 0 || !options.includeDevelopmentDefaults) {
+    return configuredOrigins;
+  }
+
+  return new Set(LOCAL_DEVELOPMENT_PUBLIC_ORIGINS);
+}
+
+function isGreenGoodsVercelPreviewOrigin(origin: string): boolean {
+  try {
+    const { hostname, protocol } = new URL(origin);
+    if (protocol !== "https:") return false;
+    return /^green-goods(?:-[a-z0-9-]+)?-greenpilldevguild\.vercel\.app$/.test(
+      hostname.toLowerCase()
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function isOriginAllowed(request: Request, allowedOrigins: Set<string>): boolean {
   if (allowedOrigins.size === 0) return false;
   const origin = normalizePublicOrigin(request.headers.get("origin"));
-  return origin !== "none" && allowedOrigins.has(origin);
+  return (
+    origin !== "none" && (allowedOrigins.has(origin) || isGreenGoodsVercelPreviewOrigin(origin))
+  );
 }

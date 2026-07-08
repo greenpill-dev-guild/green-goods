@@ -1,12 +1,12 @@
 import {
   type Address,
-  Button,
   TextInput,
   useAddressInput,
   useCreateGardenStore,
 } from "@green-goods/shared";
 import { RiAddLine, RiDeleteBinLine } from "@remixicon/react";
 import { FormattedMessage, useIntl } from "react-intl";
+import { AdminButton } from "@/components/AdminButton";
 import { EnsAddressText } from "@/components/EnsAddressText";
 
 export function TeamStep() {
@@ -69,15 +69,15 @@ export function TeamStep() {
             aria-describedby="operator-error"
             className="flex-1 font-mono"
           />
-          <Button
-            variant="secondary"
+          <AdminButton
+            variant="tonal"
             size="sm"
             onClick={operatorInput.handleAdd}
             disabled={operatorInput.shouldResolveEns && operatorInput.resolvingEns}
+            leadingIcon={<RiAddLine />}
           >
-            <RiAddLine className="h-4 w-4" />{" "}
             {formatMessage({ id: "app.common.add", defaultMessage: "Add" })}
-          </Button>
+          </AdminButton>
         </div>
         {operatorInput.shouldResolveEns && (
           <p className="mt-2 text-xs text-text-soft">
@@ -153,15 +153,15 @@ export function TeamStep() {
             aria-describedby="gardener-error"
             className="flex-1 font-mono"
           />
-          <Button
-            variant="secondary"
+          <AdminButton
+            variant="tonal"
             size="sm"
             onClick={gardenerInput.handleAdd}
             disabled={gardenerInput.shouldResolveEns && gardenerInput.resolvingEns}
+            leadingIcon={<RiAddLine />}
           >
-            <RiAddLine className="h-4 w-4" />{" "}
             {formatMessage({ id: "app.common.add", defaultMessage: "Add" })}
-          </Button>
+          </AdminButton>
         </div>
         {gardenerInput.shouldResolveEns && (
           <p className="mt-2 text-xs text-text-soft">

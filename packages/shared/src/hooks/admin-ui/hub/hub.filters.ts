@@ -1,7 +1,8 @@
 import { formatAddress, type Work } from "@green-goods/shared";
 import type { ActivityEvent, SortDirection } from "./hub.utils";
+import type { HubActionSummary } from "./hub.workbenchModel";
 
-type ActionsMap = Map<number, { title: string }>;
+type ActionsMap = Map<number, HubActionSummary>;
 
 interface Assessment {
   id: string;

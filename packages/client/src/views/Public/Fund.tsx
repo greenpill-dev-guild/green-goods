@@ -1,8 +1,8 @@
 import {
   formatApy,
   formatTokenAmount,
-  type PublicGardenVaultSummary,
   type PublicGardenSummary,
+  type PublicGardenVaultSummary,
   type PublicVaultSummary,
   type PublicVaultSummaryAsset,
   useInViewReveal,
@@ -15,14 +15,13 @@ import { useIntl } from "react-intl";
 import { useSearchParams } from "react-router-dom";
 import {
   EditorialHeading,
-  EditorialGhostLink,
   EditorialKicker,
   EditorialLinkArrow,
   EditorialNumeral,
   EditorialTitleAccent,
 } from "@/components/Public/atoms";
-import { PublicEndowmentPanel } from "@/components/Public/PublicEndowmentPanel";
 import { PublicEditorialHero } from "@/components/Public/PublicEditorialHero";
+import { PublicEndowmentPanel } from "@/components/Public/PublicEndowmentPanel";
 import { PublicFooter } from "@/components/Public/PublicFooter";
 import { PublicFundingReceipt } from "@/components/Public/PublicFundingReceipt";
 import { PublicGardenRow } from "@/components/Public/PublicGardenRow";
@@ -100,12 +99,17 @@ function SupportPath({
   );
 }
 
+// The endowment engine always supports these two assets, so the metrics
+// section keeps their cards visible even when the live figures cannot be
+// fetched — a blank section reads as "broken" rather than "no data yet".
+const VAULT_PLACEHOLDER_SYMBOLS = ["DAI", "ETH"] as const;
+
 function VaultAggregationSection({ summary }: { summary: PublicVaultSummary }) {
   const { formatMessage } = useIntl();
   const { ref: sectionRef, revealed } = useInViewReveal<HTMLElement>();
-  if (!summary.hasVaults && !summary.isLoading) return null;
 
   const assets = summary.assets;
+  const showSkeleton = assets.length === 0 && summary.isLoading;
 
   return (
     <section
@@ -119,7 +123,7 @@ function VaultAggregationSection({ summary }: { summary: PublicVaultSummary }) {
           <EditorialKicker className="mb-3">
             {formatMessage({
               id: "public.fund.vaults.kicker",
-              defaultMessage: "§ 01 — Endowment engine",
+              defaultMessage: "§ 01: Endowment engine",
             })}
           </EditorialKicker>
           <EditorialHeading id="public-fund-vaults-title">
@@ -132,7 +136,7 @@ function VaultAggregationSection({ summary }: { summary: PublicVaultSummary }) {
             {formatMessage({
               id: "public.fund.vaults.lede",
               defaultMessage:
-                "Endow adds long-term capital to these vaults; Donate sends support directly to a Garden's shared fund.",
+                "Endow places a long-term deposit in a Garden's Vault. Donate sends support straight to a Garden's shared fund.",
             })}
           </p>
         </header>
@@ -143,7 +147,7 @@ function VaultAggregationSection({ summary }: { summary: PublicVaultSummary }) {
               <VaultAssetCard key={`${asset.chainId}:${asset.asset}`} asset={asset} />
             ))}
           </div>
-        ) : (
+        ) : showSkeleton ? (
           <div className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-2" aria-hidden="true">
             {[0, 1].map((index) => (
               <div
@@ -161,9 +165,60 @@ function VaultAggregationSection({ summary }: { summary: PublicVaultSummary }) {
               </div>
             ))}
           </div>
+        ) : (
+          <div className="mt-10 grid grid-cols-1 gap-5 md:grid-cols-2">
+            {VAULT_PLACEHOLDER_SYMBOLS.map((symbol) => (
+              <VaultAssetUnavailableCard key={symbol} symbol={symbol} errored={summary.isError} />
+            ))}
+          </div>
         )}
       </div>
     </section>
+  );
+}
+
+function VaultAssetUnavailableCard({ symbol, errored }: { symbol: string; errored: boolean }) {
+  const { formatMessage } = useIntl();
+  return (
+    <article className="border border-stroke-soft-200 bg-bg-white-0 p-5 shadow-[var(--shadow-editorial-card)]">
+      <p className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-text-soft-400">
+        {formatMessage(
+          {
+            id: "public.fund.vaults.assetTitle",
+            defaultMessage: "{asset} endowment balance",
+          },
+          { asset: symbol }
+        )}
+      </p>
+      <div className="mt-5">
+        <p className="font-mono text-[11px] uppercase tracking-[0.16em] text-text-soft-400">
+          {formatMessage({
+            id: "public.fund.vaults.currentBalance",
+            defaultMessage: "Current balance",
+          })}
+        </p>
+        <p
+          className="mt-2 font-serif text-3xl font-normal leading-none tracking-[-0.018em] text-text-soft-400 md:text-4xl"
+          aria-hidden="true"
+        >
+          —
+        </p>
+      </div>
+      <p
+        className="mt-6 border-t border-stroke-soft-200 pt-4 text-sm leading-[1.55] text-text-sub-600"
+        role={errored ? "alert" : undefined}
+      >
+        {errored
+          ? formatMessage({
+              id: "public.fund.vaults.metricsError",
+              defaultMessage: "We couldn't load these endowment metrics. Refresh to try again.",
+            })
+          : formatMessage({
+              id: "public.fund.vaults.metricsEmpty",
+              defaultMessage: "No endowment activity on this network yet.",
+            })}
+      </p>
+    </article>
   );
 }
 
@@ -221,7 +276,7 @@ function VaultAssetCard({ asset }: { asset: PublicVaultSummaryAsset }) {
         <VaultMetric
           label={formatMessage({
             id: "public.fund.vaults.readyToHarvest",
-            defaultMessage: "Ready to harvest",
+            defaultMessage: "Yield ready for Gardens",
           })}
           value={readyToHarvestValue}
         />
@@ -293,19 +348,21 @@ function getGardenVaultSummary(
  * Fund — public garden funding gateway.
  *
  * Editorial recomposition:
- *   Hero → § 01 Vault overview → § 02 Donate vs Endow explanatory diptych
- *   with always-visible tax / risk disclosures → § 03 Compact garden grid
- *   with per-card Donate / Endow CTAs and the wallet-owned Manage Endowments
- *   panel entry → optional receipt / stale-link banner → Footer.
+ *   Hero → § 01 Vault overview → § 02 Ways to support (Donate first,
+ *   Endow second) with always-visible tax / risk disclosures → § 03 Compact
+ *   garden grid with per-card Donate + Endow CTAs and the wallet-owned
+ *   Manage Endowments panel entry → optional receipt / stale-link banner
+ *   → Footer.
  *
  * Behavior contract:
  * - `?intent=<id>` triggers receipt mode (reads X-GG-Receipt-Token from session).
  * - `?garden=<id-or-slug>` resolves via `publicGardenHelpers.deriveSlug`. Stale,
  *   missing, zero-match, or ambiguous queries fall back to the regular Fund
  *   layout with a localized non-blocking message.
- * - Each Garden row exposes Donate + Endow CTAs that open PublicFundingCard
+ * - Each Garden row exposes Donate and Endow CTAs that open PublicFundingCard
  *   (single editorial card with amount-first input, visual token picker, and
- *   inline wallet-connect through the smart submit button).
+ *   inline wallet-connect through the smart submit button) with the matching
+ *   intent pre-set. Donate leads; Endow follows.
  * - `?manage=endowments` opens the wallet-owned public endowment panel.
  * - No public address lookup or admin controls.
  */
@@ -332,6 +389,7 @@ function FundPageContent() {
     intent: PublicFundingIntentKind;
   } | null>(null);
   const [isEndowmentPanelOpen, setEndowmentPanelOpen] = useState(false);
+  const isEndowmentPanelClosePendingRef = useRef(false);
   const hasWalletRuntime = Boolean(selectorState);
   const { ref: pathsRef, revealed: pathsRevealed } = useInViewReveal<HTMLElement>();
   const { ref: gardensRef, revealed: gardensRevealed } = useInViewReveal<HTMLElement>();
@@ -352,31 +410,51 @@ function FundPageContent() {
   }, [matchedGardenId]);
 
   useEffect(() => {
-    setEndowmentPanelOpen(manageQuery === "endowments");
+    if (manageQuery === "endowments") {
+      isEndowmentPanelClosePendingRef.current = false;
+      setEndowmentPanelOpen(true);
+      return;
+    }
+
+    setEndowmentPanelOpen(false);
   }, [manageQuery]);
 
   const closeSelector = useCallback(() => setSelectorState(null), []);
 
-  const manageEndowmentsTo = useMemo(() => {
+  const handleManageEndowmentsClick = useCallback(() => {
     const nextParams = new URLSearchParams(searchParams);
     nextParams.set("manage", "endowments");
-    return {
-      pathname: "/fund",
-      search: `?${nextParams.toString()}`,
-    };
-  }, [searchParams]);
+    isEndowmentPanelClosePendingRef.current = false;
+    setEndowmentPanelOpen(true);
+    setSearchParams(nextParams, { preventScrollReset: true });
+  }, [searchParams, setSearchParams]);
 
   const handleEndowmentPanelOpenChange = useCallback(
     (open: boolean) => {
+      if (open) {
+        isEndowmentPanelClosePendingRef.current = false;
+        setEndowmentPanelOpen(true);
+        return;
+      }
+
       setEndowmentPanelOpen(open);
-      if (!open && searchParams.get("manage") === "endowments") {
-        const nextParams = new URLSearchParams(searchParams);
-        nextParams.delete("manage");
-        setSearchParams(nextParams, { replace: true });
+      if (searchParams.get("manage") === "endowments") {
+        isEndowmentPanelClosePendingRef.current = true;
       }
     },
-    [searchParams, setSearchParams]
+    [searchParams]
   );
+
+  const handleEndowmentPanelExitComplete = useCallback(() => {
+    if (!isEndowmentPanelClosePendingRef.current) return;
+
+    isEndowmentPanelClosePendingRef.current = false;
+    if (searchParams.get("manage") === "endowments") {
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete("manage");
+      setSearchParams(nextParams, { replace: true, preventScrollReset: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const handleSupport = useCallback(
     (garden: PublicGardenSummary, intent: PublicFundingIntentKind) => {
@@ -405,7 +483,7 @@ function FundPageContent() {
         lede={formatMessage({
           id: "public.fund.heroLede",
           defaultMessage:
-            "Donate to a Garden's immediate Work, or Endow a Vault so yield supports the Garden over many seasons. Every contribution lands with a Garden, not a platform.",
+            "Donate to a Garden's shared fund today, or endow its Vault so yield supports the Garden over many seasons. Every contribution lands with the Garden, not a platform account.",
         })}
       />
 
@@ -444,7 +522,7 @@ function FundPageContent() {
         </section>
       ) : null}
 
-      {/* § 01 — Donate vs Endow editorial diptych */}
+      {/* § 02 — Ways to support: Donate + Endow path context */}
       <section
         ref={pathsRef}
         data-revealed={pathsRevealed}
@@ -464,7 +542,7 @@ function FundPageContent() {
             <EditorialKicker className="mb-3">
               {formatMessage({
                 id: "public.fund.paths.kicker",
-                defaultMessage: "§ 02 — Ways to support",
+                defaultMessage: "§ 02: Ways to support",
               })}
             </EditorialKicker>
             <EditorialHeading id="public-fund-paths-title">
@@ -481,9 +559,9 @@ function FundPageContent() {
               titleId="public.fund.paths.donateTitle"
               defaultTitle="Donate"
               ledeId="public.fund.paths.donateLede"
-              defaultLede="Direct support reaching a Garden's shared fund today — funding the work right in front of them."
+              defaultLede="Direct support that reaches a Garden's shared fund today and funds the season's most immediate work."
               routesId="public.fund.paths.donateRoutes"
-              defaultRoutes="Goes to the Garden's shared fund."
+              defaultRoutes="Goes to this Garden's shared fund."
               bestForId="public.fund.paths.donateBestFor"
               defaultBestFor="Immediate needs and near-term work."
               learnMoreId="public.fund.paths.donateLearnMore"
@@ -495,11 +573,11 @@ function FundPageContent() {
               titleId="public.fund.paths.endowTitle"
               defaultTitle="Endow"
               ledeId="public.fund.paths.endowLede"
-              defaultLede="A Vault designed so the deposit can remain while yield supports the Garden over many seasons."
+              defaultLede="A long-term deposit in the Garden's Vault that stays withdrawable, its yield supporting the Garden season after season — not a personal return."
               routesId="public.fund.paths.endowRoutes"
-              defaultRoutes="Stays in the Garden's Vault."
+              defaultRoutes="Goes to this Garden's Vault endowment."
               bestForId="public.fund.paths.endowBestFor"
-              defaultBestFor="Long-term support that compounds."
+              defaultBestFor="Long-term support that keeps working."
               learnMoreId="public.fund.paths.endowLearnMore"
               defaultLearnMore="Learn about Octant V2 vaults"
               learnMoreHref="https://octant.build"
@@ -517,7 +595,7 @@ function FundPageContent() {
               {formatMessage({
                 id: "public.fund.dialog.taxDisclaimer",
                 defaultMessage:
-                  "Both paths support the Garden directly. They are not tax-deductible, charitable, or nonprofit-backed unless separately configured.",
+                  "Both paths support the Garden directly. Neither is tax-deductible, charitable, or nonprofit-backed unless separately configured.",
               })}
             </p>
             <p className="mt-2">
@@ -531,14 +609,14 @@ function FundPageContent() {
               {formatMessage({
                 id: "public.fund.dialog.endow.risk",
                 defaultMessage:
-                  "Heads up: long-term deposits depend on the underlying token and provider, so values and access can vary.",
+                  "Heads up: deposit value can move with the underlying token, and withdrawals can take time.",
               })}
             </p>
           </aside>
         </div>
       </section>
 
-      {/* § 03 — Choose a Garden to support */}
+      {/* § 03 — Choose a Garden to donate to or endow */}
       <section
         ref={gardensRef}
         data-revealed={gardensRevealed}
@@ -552,7 +630,7 @@ function FundPageContent() {
                 <EditorialKicker className="mb-3">
                   {formatMessage({
                     id: "public.fund.gardens.kicker",
-                    defaultMessage: "§ 03 — Choose where to apply your support",
+                    defaultMessage: "§ 03: Choose a Garden",
                   })}
                 </EditorialKicker>
                 <EditorialHeading id="public-fund-gardens-title">
@@ -562,27 +640,29 @@ function FundPageContent() {
                   })}
                 </EditorialHeading>
               </div>
-              <EditorialGhostLink
-                to={manageEndowmentsTo}
-                variant="warm"
-                className="w-full px-5 py-2.5 text-sm sm:w-auto"
+              <button
+                type="button"
+                onClick={handleManageEndowmentsClick}
+                aria-expanded={isEndowmentPanelOpen}
+                aria-haspopup="dialog"
+                className="inline-flex min-h-11 w-fit items-center border-b border-primary-action/35 text-left text-sm font-medium text-primary-action transition-colors hover:border-primary-action-hover hover:text-primary-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-4 focus-visible:ring-offset-bg-weak-50 sm:mt-1"
               >
                 {formatMessage({
                   id: "public.fund.manageEndowments.cta",
                   defaultMessage: "Manage Endowments",
                 })}
-              </EditorialGhostLink>
+              </button>
             </div>
           </header>
 
           {isLoading ? (
             <div
-              className="mt-8 grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-2 2xl:grid-cols-3"
+              className="mt-8 grid grid-cols-1 gap-x-6 gap-y-6 sm:auto-rows-fr sm:grid-cols-2"
               aria-hidden="true"
             >
               {[0, 1, 2, 3].map((i) => (
                 <div key={i} className="flex items-stretch gap-4 py-4 sm:gap-5">
-                  <div className="h-20 w-20 shrink-0 animate-pulse bg-editorial-warm" />
+                  <div className="h-20 w-28 shrink-0 animate-pulse bg-editorial-warm sm:h-24 sm:w-36" />
                   <div className="flex flex-1 flex-col justify-center gap-2">
                     <div className="h-3 w-24 animate-pulse bg-stroke-soft-200/60" />
                     <div className="h-5 w-3/4 animate-pulse bg-stroke-soft-200/60" />
@@ -590,7 +670,6 @@ function FundPageContent() {
                   </div>
                   <div className="flex shrink-0 flex-col justify-center gap-2">
                     <div className="h-9 w-20 animate-pulse rounded-full bg-stroke-soft-200/60" />
-                    <div className="h-9 w-20 animate-pulse rounded-full bg-stroke-soft-200/40" />
                   </div>
                 </div>
               ))}
@@ -600,7 +679,7 @@ function FundPageContent() {
               <p className="font-serif text-xl italic text-text-soft-400">
                 {formatMessage({
                   id: "public.fund.empty",
-                  defaultMessage: "Funding destinations will appear here as Gardens enable them.",
+                  defaultMessage: "Endowment destinations will appear here as Gardens enable them.",
                 })}
               </p>
               <div className="mt-6 flex flex-wrap gap-x-6 gap-y-3">
@@ -619,7 +698,10 @@ function FundPageContent() {
               </div>
             </div>
           ) : (
-            <div className="mt-8 grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-2 2xl:grid-cols-3">
+            <div
+              className="mt-8 grid grid-cols-1 gap-x-6 gap-y-6 sm:auto-rows-fr sm:grid-cols-2"
+              data-testid="public-fund-garden-grid"
+            >
               {orderedGardens.map((garden) => {
                 const isMatchedHighlight =
                   resolved.status === "match" && resolved.garden?.id === garden.id;
@@ -629,8 +711,8 @@ function FundPageContent() {
                     ref={isMatchedHighlight ? matchHighlightRef : undefined}
                     className={
                       isMatchedHighlight
-                        ? "ring-2 ring-primary-action ring-offset-4 ring-offset-bg-weak-50"
-                        : undefined
+                        ? "h-full min-w-0 ring-2 ring-primary-action ring-offset-4 ring-offset-bg-weak-50"
+                        : "h-full min-w-0"
                     }
                   >
                     <PublicGardenRow
@@ -678,6 +760,7 @@ function FundPageContent() {
 
       <PublicEndowmentPanel
         open={isEndowmentPanelOpen}
+        onExitComplete={handleEndowmentPanelExitComplete}
         onOpenChange={handleEndowmentPanelOpenChange}
       />
     </>

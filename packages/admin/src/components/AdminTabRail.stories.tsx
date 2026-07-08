@@ -28,7 +28,7 @@ const meta: Meta<typeof AdminTabRail> = {
           "- Roving tabindex (active tab is the only one tabbable)",
           "- Keyboard nav: ArrowLeft/ArrowRight cycle, Home/End jump (skip disabled tabs)",
           "- Tone color is supplemental — `aria-selected` is the primary state announcement",
-          "- Focus ring uses `var(--tone-action, var(--m3-primary))`",
+          "- Focus ring uses `var(--tone-focus-ring, var(--m3-primary))` (action color in light, bright accent in dark)",
         ].join("\n"),
       },
     },

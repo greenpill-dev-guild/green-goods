@@ -9,6 +9,7 @@ import {
 import { expandDomainMask } from "../../utils/domain";
 import { formatDate } from "../../utils/time";
 import { formatTokenAmount } from "../../utils/blockchain/vaults";
+import { stripGeneratedWorkTitleTimestamp } from "../../utils/work/workTitles";
 import type {
   ActivityFilter,
   GardenActivityEvent,
@@ -209,14 +210,14 @@ export function useGardenDerivedState({
           key: "treasury-critical",
           severity: "critical" as const,
           label: formatMessage({ id: "app.garden.detail.alert.treasuryEmpty" }),
-          onAction: () => openSection("community", "treasury"),
+          onAction: () => openSection("community", "endowment"),
         }
       : treasurySeverity === "warn"
         ? {
             key: "treasury-warning",
             severity: "warn" as const,
             label: formatMessage({ id: "app.garden.detail.alert.treasuryMissing" }),
-            onAction: () => openSection("community", "treasury"),
+            onAction: () => openSection("community", "endowment"),
           }
         : null,
     hasNoDomains
@@ -243,7 +244,9 @@ export function useGardenDerivedState({
     ...works.map((work) => ({
       id: `work-${work.id}`,
       category: "work" as const,
-      title: work.title || formatMessage({ id: "app.admin.work.untitledWork" }),
+      title:
+        stripGeneratedWorkTitleTimestamp(work.title ?? "") ||
+        formatMessage({ id: "app.admin.work.untitledWork" }),
       description: formatMessage(
         { id: "app.garden.detail.activity.workStatus" },
         {
@@ -252,7 +255,7 @@ export function useGardenDerivedState({
         }
       ),
       timestamp: toMs(work.createdAt),
-      href: adminRoutes.hubWorkDetail(work.id, { gardenAddress }),
+      href: adminRoutes.hubWorkDetail(work.id, { gardenId: gardenAddress }),
       itemId: work.id,
     })),
     ...assessments.map((assessment) => ({
@@ -287,7 +290,7 @@ export function useGardenDerivedState({
         }
       ),
       timestamp: hypercert.mintedAt ? toMs(hypercert.mintedAt) : 0,
-      href: adminRoutes.gardenHypercertDetail(hypercert.id, { gardenAddress }),
+      href: adminRoutes.gardenHypercertDetail(hypercert.id, { gardenId: gardenAddress }),
       itemId: hypercert.id,
     })),
     ...allocations.map((allocation) => ({
@@ -303,7 +306,7 @@ export function useGardenDerivedState({
         }
       ),
       timestamp: toMs(allocation.timestamp),
-      href: adminRoutes.communityTreasury({ gardenAddress, item: allocation.txHash }),
+      href: adminRoutes.communityPayouts({ gardenId: gardenAddress, item: allocation.txHash }),
       itemId: allocation.txHash,
     })),
   ].sort((a, b) => b.timestamp - a.timestamp);

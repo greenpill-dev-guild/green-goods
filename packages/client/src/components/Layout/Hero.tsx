@@ -2,7 +2,6 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { QRCodeCanvas } from "qrcode.react";
 import { type FC, useCallback, useEffect, useState } from "react";
 import { DeviceFrameset } from "react-device-frameset";
-import { useNavigate } from "react-router-dom";
 import "react-device-frameset/styles/marvel-devices.min.css";
 
 import {
@@ -11,6 +10,7 @@ import {
   useInstallGuidance,
   useIsDarkMode,
   useTimeout,
+  useTunnelUrl,
 } from "@green-goods/shared";
 import {
   RiAddBoxLine,
@@ -25,34 +25,7 @@ import {
   RiUploadLine,
 } from "@remixicon/react";
 import { FormattedMessage, useIntl } from "react-intl";
-
-// Exception to hook boundary: dev-only, non-exported, single-use infrastructure
-function useTunnelUrl(): string | null {
-  const [url, setUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!import.meta.env.DEV) return;
-
-    let cancelled = false;
-    const poll = () => {
-      fetch("/__dev/tunnel")
-        .then((r) => r.json())
-        .then((d) => {
-          if (!cancelled && d.url) setUrl(d.url);
-        })
-        .catch(() => {});
-    };
-
-    poll();
-    const id = setInterval(poll, 5000);
-    return () => {
-      cancelled = true;
-      clearInterval(id);
-    };
-  }, []);
-
-  return url;
-}
+import { createPwaLaunchUrl } from "@/config/pwa-routing";
 
 interface HeroProps {
   handleSubscribe: (e: React.FormEvent<HTMLFormElement>) => void;
@@ -60,8 +33,15 @@ interface HeroProps {
 
 export const Hero: FC<HeroProps> = () => {
   const intl = useIntl();
-  const navigate = useNavigate();
-  const { isMobile, platform, deferredPrompt, promptInstall, isInstalled, wasInstalled } = useApp();
+  const {
+    isMobile,
+    platform,
+    deferredPrompt,
+    promptInstall,
+    isInstalled,
+    isInstalling,
+    wasInstalled,
+  } = useApp();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
   const [copyError, setCopyError] = useState(false);
@@ -78,7 +58,8 @@ export const Hero: FC<HeroProps> = () => {
     isInstalled,
     wasInstalled,
     deferredPrompt,
-    isMobile
+    isMobile,
+    isInstalling
   );
 
   // Auto-reset copy states after 2 seconds (auto-cleared on unmount)
@@ -113,6 +94,8 @@ export const Hero: FC<HeroProps> = () => {
       case "native-install":
         promptInstall();
         break;
+      case "installing":
+        break;
       case "show-manual-steps":
         setIsModalOpen(true);
         break;
@@ -125,12 +108,17 @@ export const Hero: FC<HeroProps> = () => {
         handleCopyUrl();
         break;
       case "open-app":
-        navigate("/home");
+        // Real (full-document) navigation to the absolute in-scope start URL, not
+        // a client-side navigate(). The landing page is outside the "/home" WebAPK
+        // scope, so this "/" -> "/home" scope crossing is what Chrome/Android
+        // link-capturing can hand off to the installed app. A React Router
+        // navigate() stays in the tab and Android never sees it.
+        window.location.assign(createPwaLaunchUrl(window.location.origin));
         break;
       default:
         break;
     }
-  }, [guidance, promptInstall, handleCopyUrl, navigate]);
+  }, [guidance, promptInstall, handleCopyUrl]);
 
   return (
     <>
@@ -227,9 +215,13 @@ export const Hero: FC<HeroProps> = () => {
               <button
                 type="button"
                 onClick={handlePrimaryAction}
-                className="px-6 py-4 bg-primary-action text-primary-action-foreground rounded-full w-full font-bold shadow-sm active:scale-95 transition-transform flex items-center justify-center gap-2"
+                disabled={guidance.primaryAction.type === "installing"}
+                className="px-6 py-4 bg-primary-action text-primary-action-foreground rounded-full w-full font-bold shadow-sm active:scale-95 transition-transform flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {guidance.primaryAction.type === "native-install" && (
+                  <RiDownloadLine className="w-5 h-5" />
+                )}
+                {guidance.primaryAction.type === "installing" && (
                   <RiDownloadLine className="w-5 h-5" />
                 )}
                 {guidance.primaryAction.type === "show-manual-steps" && (
@@ -257,7 +249,12 @@ export const Hero: FC<HeroProps> = () => {
                         id: "app.hero.copyFailed",
                         defaultMessage: "Copy failed",
                       })
-                    : guidance.primaryAction.label}
+                    : guidance.primaryAction.type === "installing"
+                      ? intl.formatMessage({
+                          id: "app.hero.installing",
+                          defaultMessage: "Installing...",
+                        })
+                      : guidance.primaryAction.label}
               </button>
 
               {/* Secondary Action - Continue in Browser */}

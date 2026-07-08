@@ -1,14 +1,11 @@
 import {
-  AAVE_V3_POOL,
   type Address,
   Alert,
   adminRoutes,
   formatTokenAmount,
-  getBlockExplorerAddressUrl,
   getNetDeposited,
   getNetworkContracts,
   getVaultAssetSymbol,
-  isZeroAddress,
   OCTANT_MODULE_ABI,
   useAdminGardenWorkspaceSelection,
   useCurrentChain,
@@ -17,24 +14,21 @@ import {
   useGardenVaults,
   useUser,
 } from "@green-goods/shared";
-import { RiExternalLinkLine } from "@remixicon/react";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useIntl } from "react-intl";
-import { useLocation, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useReadContract } from "wagmi";
 import { AdminButton } from "@/components/AdminButton";
-import { EnsAddressText } from "@/components/EnsAddressText";
 import {
   CanvasRouteContent,
   CanvasRouteFrame,
   CanvasRouteHeader,
 } from "@/components/Layout/CanvasRouteFrame";
 import {
-  DepositModal,
   GardenSupporters,
   PositionCard,
+  VaultContractDetails,
   VaultEventHistory,
-  WithdrawModal,
 } from "@/components/Vault";
 
 type VaultRouteState = {
@@ -49,20 +43,16 @@ interface GardenVaultViewProps {
 export default function GardenVaultView({ layout = "page" }: GardenVaultViewProps = {}) {
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
+  const navigate = useNavigate();
   const { formatMessage } = useIntl();
   const { selectedGarden } = useAdminGardenWorkspaceSelection();
-  const [depositAsset, setDepositAsset] = useState<string | undefined>(undefined);
-  const [withdrawAsset, setWithdrawAsset] = useState<string | undefined>(undefined);
-  const [depositOpen, setDepositOpen] = useState(false);
-  const [withdrawOpen, setWithdrawOpen] = useState(false);
   const routeState = (location.state as VaultRouteState | null) ?? null;
   const resolvedGardenId = id ?? selectedGarden?.id;
 
   const { data: gardens = [], isLoading: gardensLoading } = useGardens();
   const garden = gardens.find((item) => item.id === resolvedGardenId);
   const gardenRouteContext = {
-    gardenAddress:
-      garden?.tokenAddress ?? garden?.id ?? selectedGarden?.tokenAddress ?? resolvedGardenId,
+    gardenId: garden?.id ?? selectedGarden?.id ?? resolvedGardenId,
   };
   const permissions = useGardenPermissions();
   const { primaryAddress } = useUser();
@@ -139,8 +129,8 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
     };
   }, [formatMessage, routeState?.returnLabelId, routeState?.returnTo]);
   const treasuryBackLink = contextualBackLink ?? {
-    to: adminRoutes.communityTreasury(gardenRouteContext),
-    label: formatMessage({ id: "app.admin.nav.treasury" }),
+    to: adminRoutes.communityEndowment(gardenRouteContext),
+    label: formatMessage({ id: "cockpit.community.endowment" }),
   };
 
   if (gardensLoading) {
@@ -152,7 +142,7 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
       <CanvasRouteFrame>
         <CanvasRouteHeader
           maxWidthClassName="max-w-6xl"
-          title={formatMessage({ id: "app.treasury.title" })}
+          title={formatMessage({ id: "cockpit.community.endowment" })}
           description={formatMessage({ id: "app.treasury.loadingGarden" })}
           backLink={treasuryBackLink}
         />
@@ -169,7 +159,7 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
       <CanvasRouteFrame>
         <CanvasRouteHeader
           maxWidthClassName="max-w-6xl"
-          title={formatMessage({ id: "app.treasury.title" })}
+          title={formatMessage({ id: "cockpit.community.endowment" })}
           description={formatMessage({ id: "app.treasury.gardenNotFound" })}
           backLink={treasuryBackLink}
         />
@@ -180,6 +170,10 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
   const gardenAddress = garden.id as Address;
   const canManage = permissions.canManageGarden(garden);
   const canEmergencyPause = permissions.isOwnerOfGarden(garden);
+  // layout="sheet" is only rendered by the endowment tab, which supplies a right rail that owns
+  // the contract-details reference and wants a compact inline history (recent activity above the
+  // fold). layout="page" (standalone) keeps both inline and shows the full history.
+  const isEmbedded = layout === "sheet";
   const content = (
     <>
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -251,123 +245,46 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
               canEmergencyPause={canEmergencyPause}
               isModuleOwner={isModuleOwner}
               onDeposit={(assetAddress) => {
-                setDepositAsset(assetAddress);
-                setDepositOpen(true);
+                navigate(
+                  adminRoutes.communityEndowmentVaultDeposit({
+                    ...gardenRouteContext,
+                    item: assetAddress,
+                  })
+                );
               }}
               onWithdraw={(assetAddress) => {
-                setWithdrawAsset(assetAddress);
-                setWithdrawOpen(true);
+                navigate(
+                  adminRoutes.communityEndowmentVaultWithdraw({
+                    ...gardenRouteContext,
+                    item: assetAddress,
+                  })
+                );
               }}
             />
           ))}
         </section>
       )}
 
+      <VaultEventHistory gardenAddress={gardenAddress} initialVisibleCount={isEmbedded ? 5 : 20} />
+
       {!vaultsLoading && vaults.length > 0 && <GardenSupporters gardenAddress={gardenAddress} />}
 
-      {!vaultsLoading && vaults.length > 0 && (
-        <section className="surface-section">
-          <h3 className="label-sm text-text-strong">
-            {formatMessage({ id: "app.explorer.contractDetails" })}
-          </h3>
-          <div className="mt-3 space-y-2 text-sm">
-            {vaults.map((vault) => (
-              <div
-                key={`contract-${vault.id}`}
-                className="flex items-center justify-between rounded-md border border-stroke-soft bg-bg-weak px-3 py-2"
-              >
-                <span className="text-text-sub">
-                  {getVaultAssetSymbol(vault.asset, vault.chainId)}{" "}
-                  {formatMessage({ id: "app.explorer.vault" })}
-                </span>
-                <a
-                  href={getBlockExplorerAddressUrl(chainId, vault.vaultAddress)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 body-xs text-primary-base hover:underline"
-                >
-                  <EnsAddressText address={vault.vaultAddress} />
-                  <RiExternalLinkLine className="h-3 w-3" />
-                </a>
-              </div>
-            ))}
-            {!isZeroAddress(octantModuleAddress) && (
-              <div className="flex items-center justify-between rounded-md border border-stroke-soft bg-bg-weak px-3 py-2">
-                <span className="text-text-sub">
-                  {formatMessage({ id: "app.explorer.vaultRegistry" })}
-                </span>
-                <a
-                  href={getBlockExplorerAddressUrl(chainId, octantModuleAddress)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 body-xs text-primary-base hover:underline"
-                >
-                  <EnsAddressText address={octantModuleAddress} />
-                  <RiExternalLinkLine className="h-3 w-3" />
-                </a>
-              </div>
-            )}
-            {AAVE_V3_POOL[chainId] && (
-              <div className="flex items-center justify-between rounded-md border border-stroke-soft bg-bg-weak px-3 py-2">
-                <span className="text-text-sub">
-                  {formatMessage({ id: "app.explorer.aavePool" })}
-                </span>
-                <a
-                  href={getBlockExplorerAddressUrl(chainId, AAVE_V3_POOL[chainId])}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 body-xs text-primary-base hover:underline"
-                >
-                  <EnsAddressText address={AAVE_V3_POOL[chainId]} />
-                  <RiExternalLinkLine className="h-3 w-3" />
-                </a>
-              </div>
-            )}
-          </div>
-        </section>
+      {!isEmbedded && !vaultsLoading && vaults.length > 0 && (
+        <VaultContractDetails gardenAddress={gardenAddress} />
       )}
-
-      <VaultEventHistory gardenAddress={gardenAddress} />
-    </>
-  );
-
-  const modals = (
-    <>
-      <DepositModal
-        isOpen={depositOpen}
-        onClose={() => setDepositOpen(false)}
-        gardenAddress={gardenAddress}
-        vaults={vaults}
-        defaultAsset={depositAsset}
-      />
-      <WithdrawModal
-        isOpen={withdrawOpen}
-        onClose={() => setWithdrawOpen(false)}
-        gardenAddress={gardenAddress}
-        vaults={vaults}
-        defaultAsset={withdrawAsset}
-      />
     </>
   );
 
   if (layout === "sheet") {
-    return (
-      <div className="flex flex-col gap-section">
-        {content}
-        {modals}
-      </div>
-    );
+    return <div className="flex flex-col gap-section overflow-x-hidden">{content}</div>;
   }
 
   return (
     <CanvasRouteFrame>
       <CanvasRouteHeader
         maxWidthClassName="max-w-6xl"
-        title={formatMessage({ id: "app.treasury.title" })}
-        description={formatMessage(
-          { id: "app.treasury.gardenTreasuryDescription" },
-          { gardenName: garden.name }
-        )}
+        title={formatMessage({ id: "cockpit.community.endowment" })}
+        description={formatMessage({ id: "cockpit.community.endowment.description" })}
         backLink={treasuryBackLink}
         sticky
       />
@@ -375,7 +292,6 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
       <CanvasRouteContent maxWidthClassName="max-w-6xl" className="mt-6 flex flex-col gap-section">
         {content}
       </CanvasRouteContent>
-      {modals}
     </CanvasRouteFrame>
   );
 }

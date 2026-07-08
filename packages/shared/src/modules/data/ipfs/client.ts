@@ -36,6 +36,11 @@ export const DEFAULT_PINATA_UPLOADS_API_BASE_URL = "https://uploads.pinata.cloud
 export const IPFS_FALLBACK_GATEWAYS = ["https://gateway.pinata.cloud", "https://ipfs.io"];
 export const PROVIDER_VERIFICATION_ATTEMPTS = 3;
 export const PROVIDER_VERIFICATION_TIMEOUT_MS = 5_000;
+// Uploads send file bodies, so they get a longer ceiling than the gateway HEAD
+// checks above — generous enough not to abort a legitimately slow mobile upload,
+// but bounded so a stalled connection fails retryably instead of hanging forever.
+export const PINATA_UPLOAD_TIMEOUT_MS = 60_000;
+export const PINATA_UPLOAD_SIGN_TIMEOUT_MS = 15_000;
 export const DEFAULT_AVATAR = "/images/avatar.png";
 
 // ============================================================================

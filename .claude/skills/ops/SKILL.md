@@ -22,7 +22,7 @@ Unified operations guide covering deployment, CI/CD, git workflow, dependency ma
 |--------|--------|----------|
 | Deploy, release, broadcast, mainnet, testnet, Vercel, indexer deploy | Deployment | [deployment.md](./deployment.md) |
 | CI, GitHub Actions, workflow, pipeline, caching, status checks | CI/CD | [ci-cd.md](./ci-cd.md) |
-| Branch, commit, merge, rebase, PR, release tag, changelog | Git | [git-workflow.md](./git-workflow.md) |
+| Branch, commit, merge, rebase, PR, release tag, changelog, monthly release, hotfix, back-merge | Git | [git-workflow.md](./git-workflow.md) |
 | Dependencies, lockfile, `bun install`, audit, upgrade, workspace | Dependencies | [dependency-management.md](./dependency-management.md) |
 | Format, Biome, import sorting, Prettier migration | Formatting | [biome.md](./biome.md) |
 | Vite, build config, HMR, env vars, plugins, bundle | Build Tool | [vite.md](./vite.md) |
@@ -41,10 +41,10 @@ bun run test                 # Run all tests (CRITICAL: not `bun test`)
 bun build                    # Build everything (respects dependency order)
 bun dev                      # Start all services via PM2
 bun dev:stop                 # Stop all services
-
-# Full validation (run before committing or pushing)
-bun format && bun lint && bun run test && bun build
 ```
+
+Full pre-commit/pre-push validation = the Ship Gate — canonical definition in
+[`.claude/context/validation-pipeline.md`](../../context/validation-pipeline.md).
 
 ### Deployment Commands
 
@@ -224,8 +224,8 @@ What ops work?
 |     --> migration.md
 |     --> create or update the owning plan hub first
 |
-+-- Pre-commit validation? ---------> Quick Reference (Part 1)
-      bun format && bun lint && bun run test && bun build
++-- Pre-commit validation? ---------> Ship Gate
+      (.claude/context/validation-pipeline.md)
 ```
 
 ---

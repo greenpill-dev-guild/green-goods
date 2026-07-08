@@ -4,6 +4,7 @@ import { useIntl } from "react-intl";
 import { Link } from "react-router-dom";
 
 import { Button } from "../Actions";
+import { SplashScaffold } from "./SplashScaffold";
 import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
 
 export type LoadingState = "welcome" | "joining-garden" | "default";
@@ -23,10 +24,11 @@ interface TertiaryActionConfig {
 interface UsernameInputConfig {
   value: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  label?: string;
   placeholder?: string;
-  hint?: string;
   onCancel?: () => void;
   minLength?: number;
+  autoComplete?: string;
 }
 
 interface SplashProps {
@@ -34,31 +36,45 @@ interface SplashProps {
   isLoggingIn?: boolean;
   isLoginDisabled?: boolean;
   buttonLabel?: string;
+  /**
+   * Full untruncated primary label (e.g. the complete stored username) exposed
+   * as the button's hover/tooltip title when the pill truncates.
+   */
+  buttonTitle?: string;
   loadingState?: LoadingState;
   message?: string;
   errorMessage?: string | null;
+  /**
+   * Info/helper copy for the shared message zone (input hints, explainers).
+   * The error always wins the zone; info returns when the error clears.
+   */
+  infoMessage?: string;
+  /** Entry screens only — ignored (not rendered) when usernameInput is set. */
   secondaryAction?: SecondaryActionConfig;
   tertiaryAction?: TertiaryActionConfig;
   usernameInput?: UsernameInputConfig;
-  /** Small muted text displayed below error area (e.g. address continuity notice) */
-  notice?: string;
-  /** Info callout text shown above action buttons (e.g. passkey explainer) */
-  infoCallout?: string;
 }
 
+/**
+ * Slot assignment is screen-shaped, not state-shaped:
+ *   entry screens (no usernameInput): slot 1 = primary · slot 2 = secondary
+ *   form screens (usernameInput set): slot 1 = input   · slot 2 = primary
+ * The primary moves between slots only on deliberate navigation; within a
+ * screen every async change (error, loading) keeps all geometry fixed.
+ */
 export const Splash: React.FC<SplashProps> = ({
   login,
   isLoggingIn = false,
   isLoginDisabled = false,
   buttonLabel = "Login",
+  buttonTitle,
   loadingState,
   message,
   errorMessage,
+  infoMessage,
   secondaryAction,
   tertiaryAction,
   usernameInput,
-  notice,
-  infoCallout,
 }) => {
   const intl = useIntl();
   const stateMessages = {
@@ -68,187 +84,130 @@ export const Splash: React.FC<SplashProps> = ({
   };
 
   const displayMessage = loadingState ? message || stateMessages[loadingState] : APP_NAME;
-  const showUsernameInput = usernameInput && !loadingState;
+  // Passkey attempts set loadingState; wallet attempts only flip isLoggingIn
+  // (the AppKit modal carries its own progress UI, so the primary stays a
+  // plain disabled button there).
+  const busy = Boolean(loadingState) || isLoggingIn;
+  const usernameInputId = "login-username";
+  const infoMessageId = "login-username-hint";
+  const errorMessageId = "login-error-message";
+  const showError = Boolean(errorMessage) && !loadingState;
+  const showInfo = Boolean(infoMessage) && !showError && !loadingState;
+  const usernameDescription = [
+    showInfo ? infoMessageId : null,
+    showError && usernameInput ? errorMessageId : null,
+  ]
+    .filter(Boolean)
+    .join(" ");
   const effectsTransition =
     "transition-[opacity,color,border-color,background-color,box-shadow] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]";
-  const revealTransition =
-    "transition-[max-height,opacity,margin] duration-[var(--spring-spatial-duration)] ease-[var(--spring-spatial-easing)]";
+  const tertiaryClassName = cn(
+    "text-xs underline transition-[color,opacity] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
+    !busy
+      ? "text-foreground hover:text-primary opacity-100"
+      : "text-text-soft-400 opacity-0 pointer-events-none"
+  );
+
+  const inputElement = usernameInput ? (
+    <>
+      {/* Visible per-field labels left the slot heights uneven, so the label is
+          screen-reader-only; the visible instruction for the field lives in the
+          shared message zone (aria-describedby). */}
+      <label htmlFor={usernameInputId} className="sr-only">
+        {usernameInput.label ||
+          intl.formatMessage({
+            id: "app.login.username.label",
+            defaultMessage: "Username or ENS handle",
+          })}
+      </label>
+      <input
+        id={usernameInputId}
+        type="text"
+        value={usernameInput.value ?? ""}
+        onChange={usernameInput.onChange ?? (() => {})}
+        placeholder={usernameInput.placeholder || "Choose a username"}
+        minLength={usernameInput.minLength}
+        autoComplete={usernameInput.autoComplete || "username"}
+        aria-describedby={usernameDescription || undefined}
+        aria-invalid={Boolean(errorMessage)}
+        data-testid="username-input"
+        className="w-full h-11 px-4 rounded-full border border-stroke-soft-200 bg-bg-white-0 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-alpha-24 text-center text-text-strong-950 placeholder:text-text-soft-400"
+        disabled={busy}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && login && !isLoginDisabled && !busy) {
+            login();
+          }
+          if (e.key === "Escape" && usernameInput.onCancel) {
+            usernameInput.onCancel();
+          }
+        }}
+      />
+    </>
+  ) : null;
+
+  const primaryButton = login ? (
+    <Button
+      onClick={login}
+      disabled={isLoggingIn || isLoginDisabled}
+      isLoading={Boolean(loadingState)}
+      className={cn("w-full", effectsTransition)}
+      shape="pilled"
+      data-testid="login-button"
+      label={buttonLabel}
+      title={buttonTitle}
+    />
+  ) : null;
+
+  // Secondary renders only on entry screens; the reserve pattern (opacity +
+  // tabIndex + aria-hidden) keeps the slot stable when no action is offered.
+  const secondaryButton = usernameInput ? null : (
+    <Button
+      variant="primary"
+      mode="stroke"
+      size="small"
+      shape="pilled"
+      onClick={secondaryAction?.onSelect}
+      disabled={!secondaryAction || secondaryAction.isDisabled || busy}
+      label={secondaryAction?.label || "Login with wallet"}
+      data-testid="secondary-action-button"
+      className={cn(
+        "w-full",
+        effectsTransition,
+        secondaryAction && !secondaryAction.isDisabled && !busy
+          ? "opacity-100"
+          : "opacity-0 pointer-events-none"
+      )}
+      aria-hidden={!secondaryAction}
+      tabIndex={secondaryAction ? 0 : -1}
+    />
+  );
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-bg-white-0 px-4 pb-12 pt-[12vh]">
-      {/* Fixed-size container - prevents layout shift */}
-      <div className="flex w-full max-w-sm flex-col items-center">
-        {/* ─────────────────────────────────────────────────────────────────────
-            LOGO SECTION - Always visible, never moves
-        ───────────────────────────────────────────────────────────────────── */}
-        <div className="flex-shrink-0 mb-6">
-          <img
-            src="/icon.png"
-            alt={APP_NAME}
-            width={240}
-            height={240}
-            className={cn(
-              "transition-opacity duration-[var(--spring-effects-slow-duration)] ease-[var(--spring-effects-slow-easing)]",
-              loadingState && "animate-pulse"
-            )}
-          />
-        </div>
-
-        {/* ─────────────────────────────────────────────────────────────────────
-            TITLE/MESSAGE - Fixed height container
-        ───────────────────────────────────────────────────────────────────── */}
-        <div className="h-8 flex items-center justify-center mb-6">
-          <h3 className={cn("text-center font-bold text-primary", effectsTransition)}>
-            {displayMessage}
-          </h3>
-        </div>
-
-        {/* ─────────────────────────────────────────────────────────────────────
-            USERNAME INPUT - Reserved space with CSS transitions
-            Uses max-height + opacity for smooth show/hide without layout shift
-        ───────────────────────────────────────────────────────────────────── */}
-        <div
-          className={cn(
-            "w-full overflow-hidden",
-            revealTransition,
-            showUsernameInput ? "max-h-24 opacity-100 mb-4" : "max-h-0 opacity-0 mb-0"
-          )}
-        >
-          <input
-            type="text"
-            value={usernameInput?.value ?? ""}
-            onChange={usernameInput?.onChange ?? (() => {})}
-            placeholder={usernameInput?.placeholder || "Choose a username"}
-            minLength={usernameInput?.minLength}
-            data-testid="username-input"
-            className="w-full px-4 py-3 rounded-full border border-stroke-soft-200 bg-bg-white-0 focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary-alpha-24 text-center text-text-strong-950 placeholder:text-text-soft-400"
-            disabled={isLoggingIn || !showUsernameInput}
-            tabIndex={showUsernameInput ? 0 : -1}
-            aria-hidden={!showUsernameInput}
-            onKeyDown={(e) => {
-              if (!showUsernameInput) return;
-              if (e.key === "Enter" && login && !isLoginDisabled) {
-                login();
-              }
-              if (e.key === "Escape" && usernameInput?.onCancel) {
-                usernameInput.onCancel();
-              }
-            }}
-          />
-          <p
-            className={cn(
-              "mt-2 text-center text-xs text-text-sub-600 transition-opacity duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
-              showUsernameInput ? "opacity-100" : "opacity-0"
-            )}
-          >
-            {usernameInput?.hint || "This username identifies your passkey on our server"}
-          </p>
-        </div>
-
-        {/* ─────────────────────────────────────────────────────────────────────
-            INFO CALLOUT - Expandable educational text (e.g. passkey explainer)
-        ───────────────────────────────────────────────────────────────────── */}
-        <div
-          className={cn(
-            "w-full overflow-hidden",
-            revealTransition,
-            infoCallout && !loadingState ? "max-h-24 opacity-100 mb-4" : "max-h-0 opacity-0 mb-0"
-          )}
-        >
-          <p
-            data-testid="info-callout"
-            className={cn(
-              "w-full rounded-lg border px-4 py-3 text-xs text-text-sub-600 text-center",
-              pwaStatusStyles.primary.surface,
-              pwaStatusStyles.primary.border
-            )}
-          >
-            {infoCallout}
-          </p>
-        </div>
-
-        {/* ─────────────────────────────────────────────────────────────────────
-            ACTION BUTTONS - Fixed height container for stability
-        ───────────────────────────────────────────────────────────────────── */}
-        <div className="w-full flex flex-col items-center gap-3 h-[100px]">
-          {/* Primary button / Loader */}
-          <div className="w-full h-10 flex items-center justify-center">
-            {loadingState ? (
-              <div
-                className={cn(
-                  "h-10 w-10 animate-spin rounded-full border-4 border-primary-alpha-24",
-                  pwaStatusStyles.primary.spinnerBorder
-                )}
-              />
-            ) : (
-              login && (
-                <Button
-                  onClick={login}
-                  disabled={isLoggingIn || isLoginDisabled}
-                  className={cn("w-full", effectsTransition)}
-                  shape="pilled"
-                  data-testid="login-button"
-                  label={buttonLabel}
-                />
-              )
-            )}
-          </div>
-
-          {/* Secondary action - Uses opacity for smooth transition */}
-          <div className="w-full h-10 flex items-center justify-center">
-            <Button
-              variant="primary"
-              mode="stroke"
-              size="small"
-              shape="pilled"
-              onClick={secondaryAction?.onSelect}
-              disabled={
-                !secondaryAction || secondaryAction.isDisabled || isLoggingIn || !!loadingState
-              }
-              label={secondaryAction?.label || "Login with wallet"}
-              data-testid="secondary-action-button"
-              className={cn(
-                "w-full",
-                effectsTransition,
-                !loadingState && secondaryAction && !secondaryAction.isDisabled && !isLoggingIn
-                  ? "opacity-100"
-                  : "opacity-0 pointer-events-none"
-              )}
-              aria-hidden={!!loadingState || !secondaryAction}
-              tabIndex={!loadingState && secondaryAction ? 0 : -1}
-            />
-          </div>
-        </div>
-
-        {/* ─────────────────────────────────────────────────────────────────────
-            CONTEXT MESSAGE - Fixed height for loading states
-        ───────────────────────────────────────────────────────────────────── */}
-        <div className="h-6 flex items-center justify-center mt-2">
-          <p
-            className={cn(
-              "max-w-sm text-center text-sm text-text-sub-600 transition-opacity duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
-              loadingState === "joining-garden" ? "opacity-100" : "opacity-0"
-            )}
-          >
-            {intl.formatMessage({
-              id: "app.login.splash.joiningGardenHint",
-              defaultMessage: "Confirm on your device when prompted",
-            })}
-          </p>
-        </div>
-
-        {/* ─────────────────────────────────────────────────────────────────────
-            ERROR MESSAGE - Fixed height with smooth reveal
-        ───────────────────────────────────────────────────────────────────── */}
-        <div className="relative w-full h-16 mt-2">
+    <SplashScaffold
+      pulse={!!loadingState}
+      title={displayMessage}
+      slotOne={usernameInput ? inputElement : primaryButton}
+      slotTwo={usernameInput ? primaryButton : secondaryButton}
+      message={
+        <>
+          {/* ERROR — the zone's only live region. Always mounted and toggled via
+              `visibility` (not conditional render): the reveal still animates,
+              the hidden state drops out of the accessibility tree, and a stable
+              live region announces reliably. Absolutely positioned so its
+              hidden box never displaces the info node below.
+              Inline styles are a deliberate Rule 16 (shared Alert) exception:
+              Alert's mandatory icon + p-4 + text-sm overflows this fixed-height
+              zone with worst-case es/pt copy, and its role remounts alert↔status,
+              which breaks the stable-live-region design. */}
           <div
+            id={errorMessageId}
             role="alert"
             aria-live="polite"
             className={cn(
-              "absolute left-0 right-0 top-0 w-full transition-[opacity,transform] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
-              errorMessage && !loadingState
-                ? "opacity-100 translate-y-0"
-                : "opacity-0 -translate-y-2 pointer-events-none"
+              "absolute inset-x-0 top-0 w-full transition-[opacity,transform,visibility] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
+              showError
+                ? "visible opacity-100 translate-y-0"
+                : "invisible opacity-0 -translate-y-2 pointer-events-none"
             )}
           >
             <div className="flex w-full items-start gap-2 rounded-lg border border-error-light bg-error-lighter p-3 text-sm text-error-dark">
@@ -258,60 +217,55 @@ export const Splash: React.FC<SplashProps> = ({
                   defaultMessage: "Error:",
                 })}
               </span>
-              <span>{errorMessage || "\u00A0"}</span>
+              <span>{errorMessage || " "}</span>
             </div>
           </div>
-        </div>
 
-        {/* ─────────────────────────────────────────────────────────────────────
-            NOTICE - Small muted text (e.g. address continuity)
-        ───────────────────────────────────────────────────────────────────── */}
-        {notice && !loadingState && (
-          <p className="text-center text-xs text-text-sub-600 mt-1 mb-1">{notice}</p>
-        )}
-
-        {/* ─────────────────────────────────────────────────────────────────────
-            TERTIARY ACTION - Fixed height
-        ───────────────────────────────────────────────────────────────────── */}
-        <div className="h-5 flex items-center justify-center mt-2">
-          {tertiaryAction ? (
-            tertiaryAction.onClick ? (
-              <button
-                type="button"
-                onClick={tertiaryAction.onClick}
-                className={cn(
-                  "text-xs underline transition-[color,opacity] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
-                  !loadingState && !isLoggingIn
-                    ? "text-foreground hover:text-primary opacity-100"
-                    : "text-text-soft-400 opacity-0 pointer-events-none"
-                )}
-                tabIndex={!loadingState && !isLoggingIn ? 0 : -1}
-                aria-hidden={!!loadingState || isLoggingIn}
-                disabled={!!loadingState || isLoggingIn}
-              >
-                {tertiaryAction.label}
-              </button>
-            ) : (
-              <Link
-                to={tertiaryAction.href || "#"}
-                viewTransition
-                className={cn(
-                  "text-xs underline transition-[color,opacity] duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
-                  !loadingState && !isLoggingIn
-                    ? "text-foreground hover:text-primary opacity-100"
-                    : "text-text-soft-400 opacity-0 pointer-events-none"
-                )}
-                tabIndex={!loadingState && !isLoggingIn ? 0 : -1}
-                aria-hidden={!!loadingState || isLoggingIn}
-              >
-                {tertiaryAction.label}
-              </Link>
-            )
-          ) : (
-            <span className="text-xs text-transparent">{"\u00A0"}</span>
+          {/* INFO — plain content, never announced. Hidden whenever the error
+              owns the zone. */}
+          {showInfo && (
+            <p
+              id={infoMessageId}
+              data-testid="info-message"
+              className={cn(
+                "w-full rounded-lg border px-4 py-3 text-xs text-text-sub-600 text-center",
+                pwaStatusStyles.primary.surface,
+                pwaStatusStyles.primary.border
+              )}
+            >
+              {infoMessage}
+            </p>
           )}
-        </div>
-      </div>
-    </div>
+        </>
+      }
+      tertiary={
+        tertiaryAction ? (
+          tertiaryAction.onClick ? (
+            <button
+              type="button"
+              onClick={tertiaryAction.onClick}
+              className={tertiaryClassName}
+              tabIndex={!busy ? 0 : -1}
+              aria-hidden={busy}
+              disabled={busy}
+            >
+              {tertiaryAction.label}
+            </button>
+          ) : (
+            <Link
+              to={tertiaryAction.href || "#"}
+              viewTransition
+              className={tertiaryClassName}
+              tabIndex={!busy ? 0 : -1}
+              aria-hidden={busy}
+            >
+              {tertiaryAction.label}
+            </Link>
+          )
+        ) : (
+          <span className="text-xs text-transparent"> </span>
+        )
+      }
+    />
   );
 };

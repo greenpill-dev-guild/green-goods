@@ -20,14 +20,20 @@ import {
   trackWorkSubmissionFailed,
   trackWorkSubmissionStarted,
   trackWorkSubmissionSuccess,
+  trackWorkWalletRequestExpired,
+  trackWorkWalletRequestFailed,
+  trackWorkWalletRequestStarted,
 } from "../../modules/app/analytics-events";
 import {
   addBreadcrumb,
   trackContractError,
   trackUploadError,
 } from "../../modules/app/error-tracking";
-import { WorkSubmissionError } from "../../modules/work/wallet-submission/types";
-import { jobQueue } from "../../modules/job-queue";
+import {
+  WorkSubmissionError,
+  type WalletSubmissionStage,
+} from "../../modules/work/wallet-submission/types";
+import { isOfflineTxHash, jobQueue } from "../../modules/job-queue";
 import { simulateWorkSubmission } from "../../modules/work/simulate";
 import { submitWorkDirectly } from "../../modules/work/wallet-submission";
 import { submitWorkToQueue } from "../../modules/work/work-submission";
@@ -37,19 +43,33 @@ import type { Action, Address, Work, WorkDraft } from "../../types/domain";
 import { getActionTitle } from "../../utils/action/parsers";
 import { hapticError, hapticSuccess } from "../../utils/app/haptics";
 import { DEBUG_ENABLED, debugError, debugLog } from "../../utils/debug";
-import { parseAndFormatError } from "../../utils/errors/contract-errors";
+import { parseAndFormatError, parseContractError } from "../../utils/errors/contract-errors";
 import { INDEXER_LAG_SCHEDULE_MS, queryKeys } from "../../config/query-keys";
 import { useTransactionSender } from "../blockchain/useTransactionSender";
 import { useSafeMutation } from "../utils/useSafeMutation";
 import { useProgressiveInvalidation, useTimeout } from "../utils/useTimeout";
 
-interface UseWorkMutationOptions {
+export interface UseWorkMutationOptions {
   authMode: "wallet" | "passkey" | "embedded" | null;
   gardenAddress: Address | null;
   actionUID: number | null;
   actions: Action[];
   /** User address (smart account or wallet) for scoping jobs */
   userAddress: Address | null;
+  /**
+   * Client PWA completion behavior is on by default. Admin and other consumers
+   * can opt out while still using the shared submission pipeline.
+   */
+  completeClientFlow?: boolean;
+  /**
+   * Client PWA queue fallback is on by default. Admin consumers can disable it
+   * so a wallet/network failure never looks like a completed admin submission.
+   */
+  allowOfflineQueue?: boolean;
+  onProgress?: (stage: WalletSubmissionStage, message: string) => void;
+  onSuccess?: (txHash: `0x${string}` | string) => void;
+  onError?: (error: unknown) => void;
+  onSettled?: () => void;
 }
 
 /**
@@ -64,6 +84,12 @@ interface UseWorkMutationOptions {
 function isNetworkError(error: unknown): boolean {
   // Upload-phase errors should surface to the user, not silently queue
   if (error instanceof WorkSubmissionError && error.phase === "upload") {
+    return false;
+  }
+
+  const originalError =
+    error instanceof Error && error.cause instanceof Error ? error.cause : error;
+  if (parseContractError(originalError).name === "WalletRequestExpired") {
     return false;
   }
 
@@ -92,11 +118,24 @@ function isNetworkError(error: unknown): boolean {
  * @returns Mutation instance
  */
 export function useWorkMutation(options: UseWorkMutationOptions) {
-  const { authMode, gardenAddress, actionUID, actions, userAddress } = options;
+  const {
+    authMode,
+    gardenAddress,
+    actionUID,
+    actions,
+    userAddress,
+    completeClientFlow = true,
+    allowOfflineQueue = true,
+    onProgress,
+    onSuccess,
+    onError,
+    onSettled,
+  } = options;
   const sender = useTransactionSender();
   const chainId = DEFAULT_CHAIN_ID;
   const queryClient = useQueryClient();
   const openWorkDashboard = useUIStore((s) => s.openWorkDashboard);
+  const walletRequestStartedJourneyRef = useRef<string | null>(null);
 
   // Use managed timeout for toast dismissal to ensure cleanup on unmount
   const { set: scheduleToastDismiss } = useTimeout();
@@ -118,6 +157,8 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
 
   const mutation = useMutation({
     mutationFn: async ({ draft, images }: { draft: WorkDraft; images: File[] }) => {
+      const workSubmissionJourneyId = useWorkFlowStore.getState().ensureWorkSubmissionJourneyId();
+
       // Validate required context before submission
       if (!gardenAddress) {
         throw new Error("Garden must be selected before submitting work");
@@ -153,6 +194,10 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
       if (authMode === "wallet") {
         // Check if offline - wallet users also queue when offline
         if (!navigator.onLine) {
+          if (!allowOfflineQueue) {
+            throw new Error("Offline queue is disabled for this submission surface");
+          }
+
           if (DEBUG_ENABLED) {
             debugLog("[WorkMutation] Wallet user offline - queuing work", {
               gardenAddress,
@@ -182,6 +227,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
           });
         }
         try {
+          walletRequestStartedJourneyRef.current = null;
           return await submitWorkDirectly(
             draft,
             gardenAddress,
@@ -191,17 +237,37 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
             images,
             {
               onProgress: (stage, message) => {
+                if (
+                  stage === "confirming" &&
+                  walletRequestStartedJourneyRef.current !== workSubmissionJourneyId
+                ) {
+                  walletRequestStartedJourneyRef.current = workSubmissionJourneyId;
+                  trackWorkWalletRequestStarted({
+                    workSubmissionJourneyId,
+                    authMode,
+                    chainId,
+                    actionUID,
+                    imageCount: images.length,
+                    submissionPhase: "wallet_request",
+                  });
+                }
+
                 // Map wallet submission stages to toast updates
                 if (stage === "complete") {
                   walletProgressToasts.success();
                 } else {
                   showWalletProgress(stage, message);
                 }
+                onProgress?.(stage, message);
               },
             }
           );
         } catch (error) {
           if (isNetworkError(error)) {
+            if (!allowOfflineQueue) {
+              throw error;
+            }
+
             // Genuine network error during transaction phase — fall back to queue.
             // Insert an optimistic entry so the work is visible in the UI
             // (onMutate skips this for online wallet users, expecting submitWorkDirectly
@@ -251,6 +317,10 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
           }
           throw error;
         }
+      }
+
+      if (!allowOfflineQueue) {
+        throw new Error("Offline queue is disabled for this submission surface");
       }
 
       if (DEBUG_ENABLED) {
@@ -324,6 +394,8 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
       return offlineTxHash;
     },
     onMutate: async (variables) => {
+      const workSubmissionJourneyId = useWorkFlowStore.getState().ensureWorkSubmissionJourneyId();
+
       if (DEBUG_ENABLED && variables) {
         debugLog("[WorkMutation] Starting work submission", {
           gardenAddress,
@@ -340,13 +412,15 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         actionTitle,
         authMode,
         imageCount: variables?.images.length ?? 0,
+        workSubmissionJourneyId,
       });
       trackWorkSubmissionStarted({
-        gardenAddress: gardenAddress ?? "",
         actionUID: actionUID ?? 0,
-        actionTitle,
         authMode,
         imageCount: variables?.images.length ?? 0,
+        workSubmissionJourneyId,
+        chainId,
+        submissionPhase: "review",
       });
 
       // --- Optimistic cache insertion ---
@@ -365,7 +439,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
           queryKeys.works.merged(gardenAddress, chainId)
         );
 
-        if (!isWalletOnline) {
+        if (allowOfflineQueue && !isWalletOnline) {
           // Insert an optimistic Work entry so it appears instantly in lists
           const optimisticWork: Work = {
             id: `0xoffline_optimistic_${Date.now()}`,
@@ -400,7 +474,7 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
       // --- Toasts ---
       const isOffline = !navigator.onLine;
 
-      if (isOffline) {
+      if (allowOfflineQueue && isOffline) {
         workToasts.savedOffline();
       } else if (authMode !== "wallet") {
         // For wallet mode, progress toasts are shown via onProgress callback
@@ -412,26 +486,30 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
       return { previousMerged };
     },
     onSuccess: (txHash) => {
-      const isOfflineHash = typeof txHash === "string" && txHash.startsWith("0xoffline_");
+      const isOfflineHash = typeof txHash === "string" && isOfflineTxHash(txHash);
+      const workSubmissionJourneyId = useWorkFlowStore.getState().ensureWorkSubmissionJourneyId();
 
       // Provide haptic feedback for successful submission
       hapticSuccess();
 
       // Track submission success
       trackWorkSubmissionSuccess({
-        gardenAddress: gardenAddress ?? "",
         actionUID: actionUID ?? 0,
-        txHash: String(txHash ?? ""),
         authMode,
         wasOffline: isOfflineHash,
+        workSubmissionJourneyId,
+        chainId,
+        submissionPhase: "success",
       });
 
-      // Mark submission as complete (triggers checkmark animation in Garden view)
-      // The Garden view useEffect will handle:
-      // 1. Clearing the draft
-      // 2. Navigating to /home
-      // 3. Opening the work dashboard
-      useWorkFlowStore.getState().setSubmissionCompleted(true);
+      if (completeClientFlow) {
+        // Mark submission as complete (triggers checkmark animation in Garden view)
+        // The Garden view useEffect will handle:
+        // 1. Clearing the draft
+        // 2. Navigating to /home
+        // 3. Opening the work dashboard
+        useWorkFlowStore.getState().setSubmissionCompleted(true);
+      }
 
       if (isOfflineHash) {
         // Offline: dismiss info toast after brief delay
@@ -460,9 +538,13 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
         scheduleFollowUp();
       }
 
-      // Open work dashboard immediately - navigation will follow from Garden view
-      // This creates a fluid transition: success checkmark → dashboard slides up → navigate
-      openWorkDashboard();
+      if (completeClientFlow) {
+        // Open work dashboard immediately - navigation will follow from Garden view.
+        // This creates a fluid transition: success checkmark -> dashboard slides up -> navigate.
+        openWorkDashboard();
+      }
+
+      onSuccess?.(txHash);
 
       if (DEBUG_ENABLED) {
         debugLog("[WorkMutation] Work submission completed", {
@@ -475,6 +557,8 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
       }
     },
     onError: (error: unknown, variables, context) => {
+      const workSubmissionJourneyId = useWorkFlowStore.getState().ensureWorkSubmissionJourneyId();
+
       // Provide haptic feedback for error
       hapticError();
 
@@ -513,22 +597,44 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
 
       // Track submission failure - funnel event
       trackWorkSubmissionFailed({
-        gardenAddress: gardenAddress ?? "",
         actionUID: actionUID ?? 0,
-        error:
-          parsed.message ||
-          (originalError instanceof Error ? originalError.message : "Unknown error"),
+        error: parsed.name,
         authMode,
+        imageCount: variables?.images.length ?? 0,
+        workSubmissionJourneyId,
+        chainId,
+        submissionPhase: phase,
+        parsedErrorFamily: parsed.name,
       });
+
+      if (authMode === "wallet" && parsed.name === "WalletRequestExpired") {
+        trackWorkWalletRequestExpired({
+          workSubmissionJourneyId,
+          authMode,
+          chainId,
+          actionUID: actionUID ?? undefined,
+          imageCount: variables?.images.length ?? 0,
+          submissionPhase: phase,
+          parsedErrorFamily: parsed.name,
+        });
+      } else if (authMode === "wallet" && phase === "transaction") {
+        trackWorkWalletRequestFailed({
+          workSubmissionJourneyId,
+          authMode,
+          chainId,
+          actionUID: actionUID ?? undefined,
+          imageCount: variables?.images.length ?? 0,
+          submissionPhase: phase,
+          parsedErrorFamily: parsed.name,
+        });
+      }
 
       // Route tracking by phase: upload failures go to storage category,
       // transaction failures go to contract category
       if (phase === "upload") {
         trackUploadError(originalError, {
           uploadCategory: "file_upload",
-          uploadBatchId,
           source: "useWorkMutation",
-          gardenAddress: gardenAddress ?? undefined,
           authMode,
           userAction: "submitting work",
           severity: "error",
@@ -542,7 +648,6 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
       } else {
         trackContractError(originalError, {
           source: "useWorkMutation",
-          gardenAddress: gardenAddress ?? undefined,
           authMode,
           userAction: "submitting work",
           metadata: {
@@ -551,7 +656,6 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
             parsedErrorName: parsed.name,
             isKnown: parsed.isKnown,
             submission_phase: phase,
-            upload_batch_id: uploadBatchId,
           },
         });
       }
@@ -603,6 +707,11 @@ export function useWorkMutation(options: UseWorkMutationOptions) {
           message: displayMessage,
         });
       }
+
+      onError?.(error);
+    },
+    onSettled: () => {
+      onSettled?.();
     },
   });
 

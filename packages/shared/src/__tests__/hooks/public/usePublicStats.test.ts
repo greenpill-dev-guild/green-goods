@@ -130,7 +130,7 @@ describe("usePublicStats", () => {
     });
 
     const stats = result.current.data;
-    // The Stitch design's "Carbon Sequestered", "Water Retention", "Species
+    // The external visual handoff's "Carbon Sequestered", "Water Retention", "Species
     // Planted", and "SQ FT" metrics rely on IoT/oracle data that isn't in the
     // Envio core indexer. The hook surfaces the gap explicitly so pages can
     // render placeholder copy.

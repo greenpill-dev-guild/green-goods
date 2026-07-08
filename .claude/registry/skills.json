@@ -265,6 +265,9 @@
         "mycelium",
         "review checklist",
         "design review",
+        "AI UI brief",
+        "UI brief",
+        "AI UI prompt",
         "prompt contract",
         "client prompt",
         "admin prompt",
@@ -280,10 +283,11 @@
         "full repo design system review"
       ],
       "dependencies": [],
-      "token_version": "2.3.0",
+      "token_version": "2.5.0",
       "sub_files": [
         "ARCHITECTURE.md",
         "language.md",
+        "ai-ui-brief.md",
         "prompt-contract.md",
         "client-prompt-contract.md",
         "quick-reference.md",
@@ -316,7 +320,7 @@
         "view transitions API"
       ],
       "dependencies": ["design"],
-      "design_token_version": "2.3.0",
+      "design_token_version": "2.5.0",
       "sub_files": [
         "tailwindcss.md",
         "radix-ui.md",

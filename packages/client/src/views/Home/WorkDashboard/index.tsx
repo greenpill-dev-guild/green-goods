@@ -1,8 +1,12 @@
 import {
   type Address,
   cn,
+  collectApprovalRecipientsForWorks,
+  collectApprovedWorkUIDs,
+  DEFAULT_RETRY_COUNT,
   fetchApprovalsByRecipients,
   filterByTimeRange,
+  filterPendingNeedsReview,
   hapticLight,
   logger,
   queryKeys,
@@ -16,10 +20,12 @@ import {
   useReviewerGardenIds,
   useReviewerWorks,
   useTimeout,
+  useUIStore,
   useUser,
   useWorkApprovals,
   type Work,
-  DEFAULT_RETRY_COUNT,
+  type WorkDashboardPendingFilter,
+  type WorkDashboardTab,
 } from "@green-goods/shared";
 import { RiCheckLine, RiCloseLine, RiDraftLine, RiTaskLine } from "@remixicon/react";
 import { useQuery } from "@tanstack/react-query";
@@ -71,11 +77,15 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   // Timer for close animation (auto-cleared on unmount)
   const { set: scheduleTimeout } = useTimeout();
 
-  // State management
-  const [activeTab, setActiveTab] = useState<"drafts" | "pending" | "completed">("pending");
+  // State management — open to the tab/filter the caller requested (e.g. the arrival toast),
+  // else defaults. Store presets are consumed once at mount; an already-open dashboard
+  // intentionally ignores later store writes.
+  const initialTab = useUIStore((s) => s.workDashboardInitialTab);
+  const initialPendingFilter = useUIStore((s) => s.workDashboardInitialPendingFilter);
+  const [activeTab, setActiveTab] = useState<WorkDashboardTab>(initialTab ?? "pending");
   const [isClosing, setIsClosing] = useState(false);
-  const [pendingFilter, setPendingFilter] = useState<"all" | "needsReview" | "mySubmissions">(
-    "all"
+  const [pendingFilter, setPendingFilter] = useState<WorkDashboardPendingFilter>(
+    initialPendingFilter ?? "all"
   );
   const [completedFilter, setCompletedFilter] = useState<"reviewedByYou" | "myWorkReviewed">(
     "reviewedByYou"
@@ -121,27 +131,52 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     [completedApprovals]
   );
 
-  // Fetch ALL approvals for operator gardens to filter out work reviewed by ANY operator
-  const { data: allOperatorGardenApprovals = [] } = useQuery({
-    queryKey: queryKeys.approvals.byOperatorGardens(reviewerGardenIds),
-    queryFn: () => fetchApprovalsByRecipients(reviewerGardenIds),
-    enabled: reviewerGardenIds.length > 0,
+  // Fetch approvals covering ALL reviewers of the candidate works. New approvals use
+  // recipient = garden; historical bot approvals may use recipient = gardener, so the
+  // helper includes both garden ids and candidate gardeners.
+  const approvalRecipients = useMemo(
+    () => collectApprovalRecipientsForWorks(reviewerGardenIds, operatorWorks || []),
+    [reviewerGardenIds, operatorWorks]
+  );
+  const reviewExclusionQueryEnabled =
+    reviewerGardenIds.length > 0 && (operatorWorks || []).length > 0;
+  const {
+    data: reviewExclusionApprovals = [],
+    isLoading: isLoadingReviewExclusionApprovals,
+    isFetching: isFetchingReviewExclusionApprovals,
+    isError: isErrorReviewExclusionApprovals,
+    isSuccess: isSuccessReviewExclusionApprovals,
+    refetch: refetchReviewExclusionApprovals,
+  } = useQuery({
+    queryKey: queryKeys.approvals.forWorkReview(approvalRecipients),
+    queryFn: () => fetchApprovalsByRecipients(approvalRecipients),
+    enabled: reviewExclusionQueryEnabled,
     staleTime: STALE_TIME_MEDIUM,
     retry: DEFAULT_RETRY_COUNT,
   });
+  const isReviewExclusionReady = !reviewExclusionQueryEnabled || isSuccessReviewExclusionApprovals;
+  const isWaitingForReviewExclusionApprovals =
+    reviewExclusionQueryEnabled && !isReviewExclusionReady && !isErrorReviewExclusionApprovals;
 
   // Set of work IDs that have been approved/rejected by ANY operator
   const alreadyReviewedByAnyone = useMemo(
-    () => new Set((allOperatorGardenApprovals || []).map((a) => a.workUID)),
-    [allOperatorGardenApprovals]
+    () =>
+      isReviewExclusionReady
+        ? collectApprovedWorkUIDs(reviewExclusionApprovals || [])
+        : new Set<string>(),
+    [isReviewExclusionReady, reviewExclusionApprovals]
   );
 
   const operatorWorksById = useMemo(() => buildWorkMap(operatorWorks || []), [operatorWorks]);
 
-  // Pending work needing your review (from gardens you operate, excluding your own submissions)
-  // Filter out works that have been reviewed by ANY operator, not just the current user
-  const pendingNeedsReview = (operatorWorks || []).filter(
-    (w) => !alreadyReviewedByAnyone.has(w.id) && !isUserAddress(w.gardenerAddress)
+  // Pending work needing your review (from gardens you operate): not reviewed by ANY
+  // operator and not your own submission — shared derivation, same as the arrival toast.
+  const pendingNeedsReview = useMemo(
+    () =>
+      isReviewExclusionReady
+        ? filterPendingNeedsReview(operatorWorks || [], alreadyReviewedByAnyone, activeAddress)
+        : [],
+    [operatorWorks, alreadyReviewedByAnyone, activeAddress, isReviewExclusionReady]
   );
 
   // Completed approvals (approved/rejected by you) - convert to Work shape for MinimalWorkCard
@@ -151,6 +186,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   );
 
   const myWorkGardenIds = useMemo(() => extractWorkGardenIds(myWorks || []), [myWorks]);
+  const myWorksById = useMemo(() => buildWorkMap(myWorks || []), [myWorks]);
 
   // Fetch approvals scoped to gardens where the user has submitted work.
   const {
@@ -168,7 +204,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   });
 
   // Build a set of the user's work IDs for efficient lookup
-  const myWorkIds = useMemo(() => new Set((myWorks || []).map((w) => w.id)), [myWorks]);
+  const myWorkIds = useMemo(() => new Set(myWorksById.keys()), [myWorksById]);
 
   // Filter approvals to only those for the user's works
   const myReceivedApprovals = useMemo(
@@ -199,8 +235,8 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
         : combinedPending;
 
   const completedMyWorkReviewed: Work[] = useMemo(
-    () => receivedApprovalsToWorks(myReceivedApprovals || []),
-    [myReceivedApprovals]
+    () => receivedApprovalsToWorks(myReceivedApprovals || [], myWorksById),
+    [myReceivedApprovals, myWorksById]
   );
 
   const completedWork =
@@ -242,6 +278,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
     refetchOperatorWorks();
     refetchMyWorks();
     refetchApprovals();
+    refetchReviewExclusionApprovals();
   };
 
   const handleRefreshCompleted = () => {
@@ -251,14 +288,21 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
   };
 
   // Combined error states
-  const pendingQueryErrored = hasError || isErrorOperatorWorks || isErrorMyWorks;
+  const pendingQueryErrored =
+    hasError || isErrorOperatorWorks || isErrorMyWorks || isErrorReviewExclusionApprovals;
   const hasPendingError = pendingQueryErrored && filteredPending.length === 0;
   const hasCompletedError = hasError || isErrorMyApprovals;
 
   // Combined fetching states
-  const isFetchingPending = isFetchingOperatorWorks || isFetchingMyWorks;
+  const isFetchingPending =
+    isFetchingOperatorWorks || isFetchingMyWorks || isFetchingReviewExclusionApprovals;
   const isLoadingPending =
-    (isLoading || isLoadingOperatorWorks || isLoadingMyWorks) && filteredPending.length === 0;
+    (isLoading ||
+      isLoadingOperatorWorks ||
+      isLoadingMyWorks ||
+      isLoadingReviewExclusionApprovals ||
+      isWaitingForReviewExclusionApprovals) &&
+    filteredPending.length === 0;
   const isFetchingCompleted = isFetchingMyApprovals;
 
   const fmt = (id: string, defaultMessage: string) => intl.formatMessage({ id, defaultMessage });
@@ -406,7 +450,7 @@ export const WorkDashboard: React.FC<WorkDashboardProps> = ({ className, onClose
         <StandardTabs
           tabs={tabs}
           activeTab={activeTab}
-          onTabChange={(tabId: string) => setActiveTab(tabId as "drafts" | "pending" | "completed")}
+          onTabChange={(tabId: string) => setActiveTab(tabId as WorkDashboardTab)}
           triggerClassName="text-xs"
         />
 

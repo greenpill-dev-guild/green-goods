@@ -62,15 +62,26 @@ vi.mock("@green-goods/shared", () => ({
     ...props
   }: React.HTMLAttributes<HTMLElement> & { as?: React.ElementType }) =>
     React.createElement(Component, props, children),
+  ErrorBoundary: ({ children }: { children: React.ReactNode }) => children,
+  useStepFocus: () => ({ current: null }),
+  useDirtyClose: () => ({
+    onOpenChange: vi.fn(),
+    confirmOpen: false,
+    cancelClose: vi.fn(),
+    confirmClose: vi.fn(),
+  }),
   useCreateActionController: () => ({
     currentStep: 0,
     domainOptions: [],
     form: {
       handleSubmit: (handler: (data: Record<string, unknown>) => void) => () => handler({}),
     },
+    goToStep: vi.fn(),
     handleBack: vi.fn(),
     handleCancel: () => mockNavigate("/actions"),
+    handleDiscard: vi.fn(),
     handleNext: vi.fn(),
+    isDirty: false,
     isLoading: false,
     onSubmit: vi.fn(),
     stepConfigs: [
@@ -171,6 +182,51 @@ vi.mock("@/components/Action/CreateActionSteps", () => ({
   ReviewStep: () => React.createElement("div", { "data-testid": "review-step" }, "Review Step"),
 }));
 
+// Mock the flow chrome — the wizard grammar is exercised by ActionFlowShell's
+// own tests; here we only assert CreateAction wires the active step + footer.
+vi.mock("@/components/Layout/ActionFlowShell", () => ({
+  ActionFlowShell: ({
+    title,
+    children,
+    footer,
+  }: {
+    title: string;
+    children: React.ReactNode;
+    footer?: React.ReactNode;
+  }) =>
+    React.createElement(
+      "div",
+      null,
+      React.createElement("h1", null, title),
+      React.createElement("div", null, children),
+      React.createElement("div", null, footer)
+    ),
+}));
+
+vi.mock("@/components/Layout/FlowStepHeader", () => ({
+  FlowStepHeader: ({ title }: { title: React.ReactNode }) => React.createElement("h2", null, title),
+}));
+
+vi.mock("@/components/AdminDialog", () => ({
+  AdminDialog: ({ children }: { children: React.ReactNode }) =>
+    React.createElement("div", { role: "dialog" }, children),
+  ADMIN_FLOW_DIALOG_CLASS: "",
+}));
+
+vi.mock("@/components/AdminButton", () => ({
+  AdminButton: ({
+    children,
+    onClick,
+    loading,
+    type = "button",
+    disabled,
+  }: React.ButtonHTMLAttributes<HTMLButtonElement> & { loading?: boolean }) =>
+    React.createElement("button", { type, onClick, disabled }, loading ? "Loading..." : children),
+}));
+
+vi.mock("@/components/AdminLinearProgress", () => ({ AdminLinearProgress: () => null }));
+vi.mock("@/components/DiscardChangesDialog", () => ({ DiscardChangesDialog: () => null }));
+
 vi.mock("@remixicon/react", () => {
   const Icon = (props: unknown) => React.createElement("span", props as object);
   return new Proxy({}, { get: () => Icon });
@@ -209,34 +265,33 @@ describe("views/Actions/CreateAction", () => {
   });
 
   describe("rendering", () => {
-    it("renders all form flow sections", () => {
+    it("renders only the active step (Basics), not later steps", () => {
       renderWithIntl(React.createElement(CreateAction));
 
       expect(screen.getByTestId("basics-step")).toBeInTheDocument();
-      expect(screen.getByTestId("capitals-step")).toBeInTheDocument();
-      expect(screen.getByTestId("instructions-step")).toBeInTheDocument();
-      expect(screen.getByTestId("review-step")).toBeInTheDocument();
+      expect(screen.queryByTestId("capitals-step")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("instructions-step")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("review-step")).not.toBeInTheDocument();
     });
 
-    it("renders section titles from the create action steps", () => {
+    it("renders the active step heading only", () => {
       renderWithIntl(React.createElement(CreateAction));
 
       expect(screen.getByRole("heading", { name: "Basics" })).toBeInTheDocument();
-      expect(screen.getByRole("heading", { name: "Capitals & Media" })).toBeInTheDocument();
-      expect(screen.getByRole("heading", { name: "Instructions" })).toBeInTheDocument();
-      expect(screen.getByRole("heading", { name: "Review" })).toBeInTheDocument();
+      expect(screen.queryByRole("heading", { name: "Review" })).not.toBeInTheDocument();
     });
 
-    it("does not render wizard navigation controls", () => {
+    it("renders stepped navigation: Next + Cancel on the first step, no Back", () => {
       renderWithIntl(React.createElement(CreateAction));
 
-      expect(screen.queryByRole("button", { name: "Continue" })).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Next" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Cancel" })).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "Back" })).not.toBeInTheDocument();
     });
   });
 
   describe("cancel", () => {
-    it("navigates to /actions when Cancel is clicked", async () => {
+    it("navigates to /actions when Cancel is clicked on the first step", async () => {
       const user = userEvent.setup();
       renderWithIntl(React.createElement(CreateAction));
 

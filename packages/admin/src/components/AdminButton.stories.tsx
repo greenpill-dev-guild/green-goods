@@ -120,8 +120,14 @@ const ButtonToneMatrix = ({ theme }: { theme: "light" | "dark" }) => (
             <AdminButton variant="tonal" size="sm">
               Tonal
             </AdminButton>
+            <AdminButton variant="elevated" size="sm">
+              Elevated
+            </AdminButton>
             <AdminButton variant="outlined" size="sm">
               Outlined
+            </AdminButton>
+            <AdminButton variant="text" size="sm" leadingIcon={<RiArrowRightLine />}>
+              Text
             </AdminButton>
           </div>
         </div>

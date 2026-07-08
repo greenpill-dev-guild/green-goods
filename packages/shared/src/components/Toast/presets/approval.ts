@@ -44,6 +44,9 @@ export const approvalToasts = {
       title: approvalDefaults.walletConfirm.title,
       message: approvalDefaults.walletConfirm.message,
       context: "wallet confirmation",
+      // Human-wait stage: signing can exceed any fixed timeout, so don't
+      // auto-dismiss. The flow replaces this on sign/reject/error.
+      persistent: true,
       suppressLogging: true,
     }),
 
@@ -136,6 +139,9 @@ export function createApprovalToasts(formatMessage: FormatMessageFn) {
           defaultMessage: approvalDefaults.walletConfirm.message,
         }),
         context: "wallet confirmation",
+        // Human-wait stage: signing can exceed any fixed timeout, so don't
+        // auto-dismiss. The flow replaces this on sign/reject/error.
+        persistent: true,
         suppressLogging: true,
       }),
 

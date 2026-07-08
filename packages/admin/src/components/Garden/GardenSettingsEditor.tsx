@@ -1,12 +1,12 @@
 import {
   type Address,
-  Button,
-  Card,
   cn,
+  DOMAIN_COLORS,
+  Domain,
+  expandDomainMask,
   FileUploadField,
+  FormField,
   GARDEN_NAME_MAX_LENGTH,
-  GardenBannerFallback,
-  ImageWithFallback,
   imageCompressor,
   logger,
   resolveIPFSUrl,
@@ -15,6 +15,7 @@ import {
   TextInput,
   toastService,
   uploadFileToIPFS,
+  useSetGardenDomains,
   useSetMaxGardeners,
   useSetOpenJoining,
   useUpdateGardenBannerImage,
@@ -22,9 +23,47 @@ import {
   useUpdateGardenLocation,
   useUpdateGardenName,
 } from "@green-goods/shared";
-import { RiCloseLine, RiEditLine, RiLoader4Line, RiSaveLine } from "@remixicon/react";
-import { useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { useIntl } from "react-intl";
+import { AdminSelectableCard } from "@/components/AdminSelectableCard";
+import { AdminSettingRow } from "@/components/AdminSettingRow";
+
+/** What the hosting surface should show as the banner right now. */
+export interface GardenBannerPreview {
+  /** Resolved image URL, or null when there is no banner (none or removed). */
+  src: string | null;
+  /** True while a locally staged file is previewing (uploads on Save). */
+  isDraft: boolean;
+  /** True when a saved banner is staged for removal on Save. */
+  isStagedRemoval: boolean;
+  /** True when there is an image the operator is allowed to remove. */
+  canRemove: boolean;
+}
+
+/**
+ * Draft state the form reports up so the hosting dialog can render the pinned
+ * footer (status line + Cancel/Save) and guard its close.
+ */
+export interface GardenSettingsFormState {
+  isDirty: boolean;
+  isSaving: boolean;
+  /** True while a field fails validation — Save must stay disabled. */
+  hasValidationError: boolean;
+  /** Count of edited fields — feeds the footer's unsaved-changes line. */
+  dirtyCount: number;
+  /** Whether the operator can edit anything — hides the footer when false. */
+  canEdit: boolean;
+}
+
+/** Imperative surface for the hosting dialog's footer + banner preview card. */
+export interface GardenSettingsEditorHandle {
+  /** Save the dirty fields (no-op when pristine, invalid, or already saving). */
+  save: () => Promise<void>;
+  /** Stage the saved banner for removal (host preview card's Remove control). */
+  stageBannerRemoval: () => void;
+  /** Undo a staged banner removal (host preview card's Undo control). */
+  undoBannerRemoval: () => void;
+}
 
 interface GardenSettingsEditorProps {
   gardenAddress: Address;
@@ -33,430 +72,559 @@ interface GardenSettingsEditorProps {
     description: string;
     location: string;
     bannerImage: string;
+    domainMask?: number;
     openJoining?: boolean;
     maxGardeners?: number;
   };
   canManage: boolean;
   isOwner: boolean;
+  /**
+   * Reports the current banner (saved, staged draft, or staged removal) so the
+   * hosting dialog's identity preview card can render it and its Remove/Undo
+   * controls — the form itself carries the uploader only, never a second image.
+   */
+  onBannerPreviewChange?: (preview: GardenBannerPreview) => void;
+  /**
+   * Reports draft dirtiness, save-in-flight, and validation so the hosting
+   * dialog can guard its close (confirm-before-discard when dirty, hard-block
+   * while saving) and drive its pinned footer — the form owns the draft, the
+   * dialog owns the close and the footer.
+   */
+  onDirtyStateChange?: (state: GardenSettingsFormState) => void;
 }
 
-interface EditableFieldProps {
-  label: string;
-  value: string;
-  onSave: (value: string) => void;
-  isPending: boolean;
-  canEdit: boolean;
-  multiline?: boolean;
-  maxLength?: number;
+/** The four action domains a garden can document. Selected inline in the
+ * settings draft and written on Save via `useSetGardenDomains`. */
+const DOMAIN_OPTIONS = [
+  {
+    value: Domain.SOLAR,
+    labelId: "app.garden.create.domain.solar",
+    defaultLabel: "Solar",
+    descriptionId: "app.garden.create.domain.solar.description",
+    defaultDescription: "Track solar panel installations, kWh generated, and maintenance",
+  },
+  {
+    value: Domain.AGRO,
+    labelId: "app.garden.create.domain.agro",
+    defaultLabel: "Agroforestry",
+    descriptionId: "app.garden.create.domain.agro.description",
+    defaultDescription: "Document tree planting, harvests, and land stewardship",
+  },
+  {
+    value: Domain.EDU,
+    labelId: "app.garden.create.domain.edu",
+    defaultLabel: "Education",
+    descriptionId: "app.garden.create.domain.edu.description",
+    defaultDescription: "Record workshops, trainings, and knowledge sharing",
+  },
+  {
+    value: Domain.WASTE,
+    labelId: "app.garden.create.domain.waste",
+    defaultLabel: "Waste",
+    descriptionId: "app.garden.create.domain.waste.description",
+    defaultDescription: "Log waste collection, recycling, and composting activities",
+  },
+] as const;
+
+interface SettingsDraft {
+  name: string;
+  description: string;
+  location: string;
+  openJoining: boolean;
+  /** Whether a gardener cap applies — off means unlimited (saves 0). */
+  limitGardeners: boolean;
+  /** The cap as a string while editing (only meaningful when limited). */
+  maxGardeners: string;
+  domains: Domain[];
+  /** Locally selected banner file — uploads to IPFS only on Save. */
+  bannerFile: File | null;
+  /** Marks the saved banner for removal on Save. */
+  bannerRemoved: boolean;
 }
 
-function EditableField({
-  label,
-  value,
-  onSave,
-  isPending,
-  canEdit,
-  multiline,
-  maxLength,
-}: EditableFieldProps) {
-  const { formatMessage } = useIntl();
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(value);
-
-  const handleSave = () => {
-    if (draft.trim() !== value) {
-      onSave(draft.trim());
-    }
-    setEditing(false);
+function draftFromGarden(garden: GardenSettingsEditorProps["garden"]): SettingsDraft {
+  const max = garden.maxGardeners ?? 0;
+  return {
+    name: garden.name,
+    description: garden.description,
+    location: garden.location,
+    openJoining: !!garden.openJoining,
+    limitGardeners: max > 0,
+    maxGardeners: max > 0 ? String(max) : "",
+    domains: expandDomainMask(garden.domainMask ?? 0),
+    bannerFile: null,
+    bannerRemoved: false,
   };
+}
 
-  const handleCancel = () => {
-    setDraft(value);
-    setEditing(false);
-  };
-
-  if (!editing) {
-    return (
-      <div className="group flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <p className="label-xs text-text-soft">{label}</p>
-          <p
-            className={cn(
-              "mt-1 max-w-prose text-sm text-text-strong",
-              !value && "italic text-text-sub",
-              multiline && "line-clamp-3"
-            )}
-            title={value || undefined}
-          >
-            {value ||
-              formatMessage({ id: "app.garden.settings.notSet", defaultMessage: "Not set" })}
-          </p>
-        </div>
-        {canEdit && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setDraft(value);
-              setEditing(true);
-            }}
-            className="mt-4 h-auto min-w-0 shrink-0 rounded-md p-1.5 text-text-soft opacity-0 transition-opacity hover:bg-bg-weak hover:text-text-strong group-hover:opacity-100"
-            aria-label={formatMessage(
-              { id: "app.garden.settings.edit", defaultMessage: "Edit {field}" },
-              { field: label }
-            )}
-          >
-            <RiEditLine className="h-4 w-4" />
-          </Button>
-        )}
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-2">
-      <p className="label-xs text-text-soft">{label}</p>
-      {multiline ? (
-        <Textarea
-          surface="admin"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          rows={3}
-          className="w-full rounded-lg border border-stroke-sub bg-bg-white px-3 py-2 text-sm text-text-strong focus:border-primary-base focus:outline-none focus:ring-1 focus:ring-primary-base"
-        />
-      ) : (
-        <TextInput
-          surface="admin"
-          type="text"
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          maxLength={maxLength}
-          className="w-full rounded-lg border border-stroke-sub bg-bg-white px-3 py-2 text-sm text-text-strong focus:border-primary-base focus:outline-none focus:ring-1 focus:ring-primary-base"
-        />
-      )}
-      {maxLength && (
-        <p
-          className={cn(
-            "text-right text-xs tabular-nums",
-            draft.length > maxLength
-              ? "text-error-base"
-              : draft.length > maxLength * 0.85
-                ? "text-warning-base"
-                : "text-text-soft"
-          )}
-        >
-          {draft.length}/{maxLength}
-        </p>
-      )}
-      <div className="flex gap-2">
-        <Button size="sm" onClick={handleSave} disabled={isPending || draft.trim() === value}>
-          {isPending ? (
-            <RiLoader4Line className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <RiSaveLine className="mr-1.5 h-3.5 w-3.5" />
-          )}
-          {formatMessage({ id: "app.common.save", defaultMessage: "Save" })}
-        </Button>
-        <Button size="sm" variant="secondary" onClick={handleCancel} disabled={isPending}>
-          {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
-        </Button>
-      </div>
-    </div>
-  );
+function sameDomains(a: Domain[], b: Domain[]): boolean {
+  return a.length === b.length && a.every((domain) => b.includes(domain));
 }
 
 /**
- * Banner image field with upload-to-IPFS + live preview (PRD-513).
+ * Explicit-save garden settings form.
  *
- * Replaces the prior text-only URL field, which rendered the saved value as a
- * bare link with no preview, leaving operators unable to see the image they
- * uploaded. Mirrors the create-flow uploader (`DetailsStep.handleBannerUpload`)
- * and routes the on-chain write through `useUpdateGardenBannerImage`, which owns
- * the loading/success toast and cache invalidation.
+ * Every field edits a local draft; nothing reaches IPFS or the chain until
+ * Save. Save runs only the dirty fields through their existing per-field
+ * mutations (each keeps its own loading/success toast), and the banner file
+ * shows a local object-URL preview until Save uploads it. The hosting dialog's
+ * footer drives Save through the imperative handle, and its identity preview
+ * card drives banner Remove/Undo through the same handle, so those controls
+ * never scroll away with the form.
  */
-function BannerImageField({
-  gardenAddress,
-  bannerImage,
-  gardenName,
-  canEdit,
-}: {
-  gardenAddress: Address;
-  bannerImage: string;
-  gardenName: string;
-  canEdit: boolean;
-}) {
+export const GardenSettingsEditor = forwardRef<
+  GardenSettingsEditorHandle,
+  GardenSettingsEditorProps
+>(function GardenSettingsEditor(
+  { gardenAddress, garden, canManage, isOwner, onBannerPreviewChange, onDirtyStateChange },
+  ref
+) {
   const { formatMessage } = useIntl();
+
+  const updateName = useUpdateGardenName();
+  const updateDescription = useUpdateGardenDescription();
+  const updateLocation = useUpdateGardenLocation();
   const updateBannerImage = useUpdateGardenBannerImage();
-  const [isUploading, setIsUploading] = useState(false);
-  // Optimistic preview: resolved URL of the image we just uploaded, shown
-  // immediately while the on-chain update confirms and re-indexes.
-  const [pendingPreview, setPendingPreview] = useState<string | null>(null);
+  const setOpenJoining = useSetOpenJoining();
+  const setMaxGardeners = useSetMaxGardeners();
+  const setGardenDomains = useSetGardenDomains();
 
-  const resolvedCurrent = bannerImage ? resolveIPFSUrl(bannerImage) : "";
-  const previewSrc = pendingPreview ?? resolvedCurrent;
-  const isPending = isUploading || updateBannerImage.isPending;
+  const [draft, setDraft] = useState<SettingsDraft>(() => draftFromGarden(garden));
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleUpload = async (files: File[]) => {
-    let file = files[0];
-    if (!file) return;
+  // Local preview for a freshly selected banner file. Revoked on change and
+  // unmount so draft previews never leak object URLs.
+  const [bannerPreviewUrl, setBannerPreviewUrl] = useState<string | null>(null);
+  useEffect(() => {
+    if (!draft.bannerFile) {
+      setBannerPreviewUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(draft.bannerFile);
+    setBannerPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [draft.bannerFile]);
 
-    setIsUploading(true);
+  // Adopt refreshed garden values (post-save invalidation, garden switch)
+  // whenever the operator has no pending edits — never clobber a dirty draft.
+  const gardenSnapshot = JSON.stringify([
+    garden.name,
+    garden.description,
+    garden.location,
+    garden.bannerImage,
+    garden.domainMask ?? 0,
+    !!garden.openJoining,
+    garden.maxGardeners ?? 0,
+  ]);
+  const lastSnapshotRef = useRef(gardenSnapshot);
+
+  // Plain per-render computation — compares against the saved values.
+  const baseline = draftFromGarden(garden);
+  const baselineMax = Number(garden.maxGardeners ?? 0);
+  const effectiveMax = draft.limitGardeners ? Number(draft.maxGardeners) : 0;
+
+  const dirtyFields: string[] = [];
+  if (draft.name.trim() !== baseline.name) dirtyFields.push("name");
+  if (draft.description.trim() !== baseline.description) dirtyFields.push("description");
+  if (draft.location.trim() !== baseline.location) dirtyFields.push("location");
+  if (draft.openJoining !== baseline.openJoining) dirtyFields.push("openJoining");
+  if (effectiveMax !== baselineMax) dirtyFields.push("maxGardeners");
+  if (!sameDomains(draft.domains, baseline.domains)) dirtyFields.push("domains");
+  if (draft.bannerFile || draft.bannerRemoved) dirtyFields.push("banner");
+  const isDirty = dirtyFields.length > 0;
+
+  useEffect(() => {
+    if (lastSnapshotRef.current === gardenSnapshot) return;
+    lastSnapshotRef.current = gardenSnapshot;
+    if (!isDirty && !isSaving) {
+      setDraft(draftFromGarden(garden));
+    }
+    // The snapshot-equality guard above is the real trigger; isDirty/isSaving/
+    // garden are listed so the guard always reads current values (no stale
+    // closure) and the effect no longer needs an exhaustive-deps suppression.
+  }, [gardenSnapshot, isDirty, isSaving, garden]);
+
+  const canEditProfile = canManage;
+  const canEditName = isOwner;
+  const canEditAnything = canEditProfile || canEditName;
+
+  const nameInvalid = canEditName && draft.name.trim().length === 0;
+  const maxGardenersInvalid =
+    draft.limitGardeners &&
+    (draft.maxGardeners.trim() === "" ||
+      !Number.isInteger(Number(draft.maxGardeners)) ||
+      Number(draft.maxGardeners) < 1);
+  // Unreachable via the min-one toggle guard, but keeps Save honest if a garden
+  // ever reaches an empty selection through some other path.
+  const domainsInvalid = dirtyFields.includes("domains") && draft.domains.length === 0;
+  const hasValidationError = nameInvalid || maxGardenersInvalid || domainsInvalid;
+
+  const resolvedSavedBanner =
+    garden.bannerImage && !draft.bannerRemoved ? resolveIPFSUrl(garden.bannerImage) : "";
+  const previewSrc = bannerPreviewUrl ?? resolvedSavedBanner;
+  const bannerIsDraft = Boolean(draft.bannerFile);
+  const bannerStagedRemoval = draft.bannerRemoved && !draft.bannerFile;
+  const canRemoveBanner = canEditProfile && Boolean(previewSrc);
+
+  // Keep the hosting surface's identity preview in sync with the draft — the
+  // image renders there (once), not inside this form.
+  useEffect(() => {
+    onBannerPreviewChange?.({
+      src: previewSrc || null,
+      isDraft: bannerIsDraft,
+      isStagedRemoval: bannerStagedRemoval,
+      canRemove: canRemoveBanner,
+    });
+  }, [bannerIsDraft, bannerStagedRemoval, canRemoveBanner, onBannerPreviewChange, previewSrc]);
+
+  const dirtyCount = dirtyFields.length;
+
+  useEffect(() => {
+    onDirtyStateChange?.({
+      isDirty,
+      isSaving,
+      hasValidationError,
+      dirtyCount,
+      canEdit: canEditAnything,
+    });
+  }, [isDirty, isSaving, hasValidationError, dirtyCount, canEditAnything, onDirtyStateChange]);
+
+  const handleSave = async () => {
+    if (!isDirty || hasValidationError || isSaving) return;
+
+    setIsSaving(true);
     try {
-      if (imageCompressor.shouldCompress(file, 1024)) {
-        const result = await imageCompressor.compressImage(file, {
-          maxSizeMB: 0.8,
-          maxWidthOrHeight: 2048,
-        });
-        file = result.file;
+      // Each dirty field reuses its existing mutation (own toast + cache
+      // invalidation). Sequential on purpose: one wallet confirmation at a
+      // time, and a failure stops the run with the draft intact.
+      if (dirtyFields.includes("name")) {
+        await updateName.mutateAsync({ gardenAddress, value: draft.name.trim() });
+      }
+      if (dirtyFields.includes("description")) {
+        await updateDescription.mutateAsync({ gardenAddress, value: draft.description.trim() });
+      }
+      if (dirtyFields.includes("location")) {
+        await updateLocation.mutateAsync({ gardenAddress, value: draft.location.trim() });
+      }
+      if (dirtyFields.includes("openJoining")) {
+        await setOpenJoining.mutateAsync({ gardenAddress, value: draft.openJoining });
+      }
+      if (dirtyFields.includes("maxGardeners")) {
+        await setMaxGardeners.mutateAsync({ gardenAddress, value: effectiveMax });
+      }
+      if (dirtyFields.includes("domains")) {
+        await setGardenDomains.mutateAsync({ gardenAddress, domains: draft.domains });
+      }
+      if (dirtyFields.includes("banner")) {
+        if (draft.bannerFile) {
+          let file = draft.bannerFile;
+          if (imageCompressor.shouldCompress(file, 1024)) {
+            const result = await imageCompressor.compressImage(file, {
+              maxSizeMB: 0.8,
+              maxWidthOrHeight: 2048,
+            });
+            file = result.file;
+          }
+          const uploadResult = await uploadFileToIPFS(file);
+          await updateBannerImage.mutateAsync({
+            gardenAddress,
+            value: resolveIPFSUrl(uploadResult.cid),
+          });
+        } else if (draft.bannerRemoved) {
+          await updateBannerImage.mutateAsync({ gardenAddress, value: "" });
+        }
       }
 
-      const uploadResult = await uploadFileToIPFS(file);
-      const ipfsUrl = resolveIPFSUrl(uploadResult.cid);
-
-      setPendingPreview(ipfsUrl);
-      // Roll the optimistic preview back if the on-chain write fails, so the UI
-      // never contradicts the mutation's own error toast (sensitive write surface).
-      updateBannerImage.mutate(
-        { gardenAddress, value: ipfsUrl },
-        { onError: () => setPendingPreview(null) }
-      );
+      // Clear banner draft state; field values stay and become the new
+      // baseline when the invalidated garden query refreshes the props.
+      setDraft((current) => ({ ...current, bannerFile: null, bannerRemoved: false }));
     } catch (error) {
-      logger.error("Banner upload failed", { error, source: "GardenSettingsEditor" });
+      // Contract mutations already toast their own parsed errors; the IPFS
+      // upload path is the one failure with no mutation toast of its own.
+      logger.error("Garden settings save failed", { error, source: "GardenSettingsEditor" });
       toastService.error({
         title: formatMessage({
           id: "app.garden.create.uploadFailed",
           defaultMessage: "Upload failed",
         }),
         message: formatMessage({
-          id: "app.garden.create.uploadFailedMessage",
-          defaultMessage: "Could not upload banner image. Please try again.",
+          id: "app.garden.settings.saveFailedMessage",
+          defaultMessage: "Your edits are still here — review the error and save again.",
         }),
-        context: "banner upload",
+        context: "garden settings save",
         error,
       });
     } finally {
-      setIsUploading(false);
+      setIsSaving(false);
     }
   };
 
-  const handleRemove = () => {
-    setPendingPreview(null);
-    updateBannerImage.mutate({ gardenAddress, value: "" });
+  // The hosting dialog's pinned footer drives Save through this handle, and its
+  // identity preview card drives banner Remove/Undo — so those controls live
+  // outside the scrolling form body.
+  useImperativeHandle(ref, () => ({
+    save: handleSave,
+    stageBannerRemoval: () =>
+      setDraft((current) => ({
+        ...current,
+        bannerFile: null,
+        bannerRemoved: Boolean(garden.bannerImage),
+      })),
+    undoBannerRemoval: () => setDraft((current) => ({ ...current, bannerRemoved: false })),
+  }));
+
+  const disabledProfileField = !canEditProfile || isSaving;
+
+  const toggleDomain = (domain: Domain) => {
+    setDraft((current) => {
+      if (current.domains.includes(domain)) {
+        // Keep at least one domain — a garden with none can document no work.
+        if (current.domains.length <= 1) return current;
+        return { ...current, domains: current.domains.filter((entry) => entry !== domain) };
+      }
+      return { ...current, domains: [...current.domains, domain] };
+    });
   };
 
   return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between gap-2">
-        <p className="label-xs text-text-soft">
-          {formatMessage({
+    // Form sections render directly — the hosting dialog's header owns the
+    // title, so the editor carries no Card chrome of its own (no double
+    // header inside a dialog).
+    <section data-component="GardenSettingsEditor">
+      <div className="space-y-5">
+        <FormField
+          label={formatMessage({ id: "app.garden.settings.name", defaultMessage: "Name" })}
+          htmlFor="garden-settings-name"
+          required={canEditName}
+          error={
+            nameInvalid
+              ? formatMessage({
+                  id: "app.garden.settings.nameRequired",
+                  defaultMessage: "Garden name is required",
+                })
+              : undefined
+          }
+        >
+          <TextInput
+            surface="admin"
+            id="garden-settings-name"
+            type="text"
+            value={draft.name}
+            onChange={(e) => setDraft((current) => ({ ...current, name: e.target.value }))}
+            maxLength={GARDEN_NAME_MAX_LENGTH}
+            disabled={!canEditName || isSaving}
+            aria-invalid={nameInvalid || undefined}
+          />
+          <p
+            className={cn(
+              "mt-1 text-right text-xs tabular-nums",
+              draft.name.length > GARDEN_NAME_MAX_LENGTH * 0.85
+                ? "text-warning-dark"
+                : "text-text-soft"
+            )}
+          >
+            {draft.name.length}/{GARDEN_NAME_MAX_LENGTH}
+          </p>
+        </FormField>
+
+        <FormField
+          label={formatMessage({
+            id: "app.garden.settings.descriptionLabel",
+            defaultMessage: "Description",
+          })}
+          htmlFor="garden-settings-description"
+        >
+          <Textarea
+            surface="admin"
+            id="garden-settings-description"
+            value={draft.description}
+            onChange={(e) => setDraft((current) => ({ ...current, description: e.target.value }))}
+            rows={5}
+            disabled={disabledProfileField}
+            className="resize-y"
+          />
+        </FormField>
+
+        <FormField
+          label={formatMessage({ id: "app.garden.settings.location", defaultMessage: "Location" })}
+          htmlFor="garden-settings-location"
+        >
+          <TextInput
+            surface="admin"
+            id="garden-settings-location"
+            type="text"
+            value={draft.location}
+            onChange={(e) => setDraft((current) => ({ ...current, location: e.target.value }))}
+            disabled={disabledProfileField}
+          />
+        </FormField>
+
+        <div className="border-t border-stroke-soft" />
+
+        {/* Banner image — the uploader only. The image itself renders once, on
+            the hosting dialog's identity preview card (via onBannerPreviewChange),
+            where its Remove/Undo controls also live; a staged file shows here as
+            a filename. */}
+        <FormField
+          label={formatMessage({
             id: "app.garden.create.bannerImageLabel",
             defaultMessage: "Banner image",
           })}
-        </p>
-        {canEdit && previewSrc ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={handleRemove}
-            disabled={isPending}
-            className="h-auto min-w-0 shrink-0 rounded-md px-1.5 py-1 text-text-soft hover:bg-bg-weak hover:text-text-strong"
-          >
-            {isPending ? (
-              <RiLoader4Line className="mr-1 h-3.5 w-3.5 animate-spin" />
-            ) : (
-              <RiCloseLine className="mr-1 h-3.5 w-3.5" />
-            )}
-            {formatMessage({ id: "app.common.remove", defaultMessage: "Remove" })}
-          </Button>
-        ) : null}
-      </div>
+        >
+          {draft.bannerFile ? (
+            <p className="truncate text-body-sm text-text-sub-600" title={draft.bannerFile.name}>
+              {draft.bannerFile.name} ·{" "}
+              {formatMessage({
+                id: "app.garden.settings.bannerDraft",
+                defaultMessage: "Preview · uploads on save",
+              })}
+            </p>
+          ) : null}
 
-      <div className="h-28 w-full overflow-hidden rounded-lg">
-        {previewSrc ? (
-          <ImageWithFallback
-            src={previewSrc}
-            alt={formatMessage({ id: "app.garden.detail.bannerAlt" }, { name: gardenName })}
-            className="h-28 w-full object-cover"
-            backgroundFallback={<GardenBannerFallback name={gardenName} />}
-          />
-        ) : (
-          <GardenBannerFallback name={gardenName} />
-        )}
-      </div>
-
-      {canEdit ? (
-        <FileUploadField
-          accept="image/*"
-          showPreview={false}
-          disabled={isPending}
-          helpText={formatMessage({
-            id: "app.garden.create.bannerImageHelp",
-            defaultMessage: "Upload a hero image showcasing the garden (optional)",
-          })}
-          onFilesChange={handleUpload}
-        />
-      ) : null}
-    </div>
-  );
-}
-
-export function GardenSettingsEditor({
-  gardenAddress,
-  garden,
-  canManage,
-  isOwner,
-}: GardenSettingsEditorProps) {
-  const { formatMessage } = useIntl();
-
-  const updateName = useUpdateGardenName();
-  const updateDescription = useUpdateGardenDescription();
-  const updateLocation = useUpdateGardenLocation();
-  const setOpenJoining = useSetOpenJoining();
-  const setMaxGardeners = useSetMaxGardeners();
-
-  const [maxInput, setMaxInput] = useState(String(garden.maxGardeners ?? 0));
-
-  return (
-    <Card>
-      <Card.Header>
-        <h3 className="label-md text-text-strong">
-          {formatMessage({
-            id: "app.garden.settings.title",
-            defaultMessage: "Garden Settings",
-          })}
-        </h3>
-        <p className="mt-1 text-xs text-text-sub">
-          {formatMessage({
-            id: "app.garden.settings.description",
-            defaultMessage: "Update garden profile and configuration",
-          })}
-        </p>
-      </Card.Header>
-      <Card.Body className="space-y-4">
-        <EditableField
-          label={formatMessage({ id: "app.garden.settings.name", defaultMessage: "Name" })}
-          value={garden.name}
-          onSave={(v) => updateName.mutate({ gardenAddress, value: v })}
-          isPending={updateName.isPending}
-          canEdit={isOwner}
-          maxLength={GARDEN_NAME_MAX_LENGTH}
-        />
+          {canEditProfile ? (
+            <FileUploadField
+              accept="image/*"
+              showPreview={false}
+              disabled={isSaving}
+              helpText={formatMessage({
+                id: "app.garden.create.bannerImageHelp",
+                defaultMessage: "Upload a banner image showcasing the garden (optional)",
+              })}
+              onFilesChange={(files) => {
+                const file = files[0];
+                if (!file) return;
+                setDraft((current) => ({ ...current, bannerFile: file, bannerRemoved: false }));
+              }}
+            />
+          ) : null}
+        </FormField>
 
         <div className="border-t border-stroke-soft" />
 
-        <EditableField
+        {/* Open joining */}
+        <AdminSettingRow
+          labelId="garden-settings-open-joining-label"
           label={formatMessage({
-            id: "app.garden.settings.description",
-            defaultMessage: "Description",
+            id: "app.garden.settings.openJoining",
+            defaultMessage: "Open joining",
           })}
-          value={garden.description}
-          onSave={(v) => updateDescription.mutate({ gardenAddress, value: v })}
-          isPending={updateDescription.isPending}
-          canEdit={canManage}
-          multiline
-        />
-
-        <div className="border-t border-stroke-soft" />
-
-        <EditableField
-          label={formatMessage({ id: "app.garden.settings.location", defaultMessage: "Location" })}
-          value={garden.location}
-          onSave={(v) => updateLocation.mutate({ gardenAddress, value: v })}
-          isPending={updateLocation.isPending}
-          canEdit={canManage}
-        />
-
-        <div className="border-t border-stroke-soft" />
-
-        <BannerImageField
-          gardenAddress={gardenAddress}
-          bannerImage={garden.bannerImage}
-          gardenName={garden.name}
-          canEdit={canManage}
-        />
-
-        <div className="border-t border-stroke-soft" />
-
-        {/* Open Joining Toggle */}
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="label-xs text-text-soft">
-              {formatMessage({
-                id: "app.garden.settings.openJoining",
-                defaultMessage: "Open Joining",
-              })}
-            </p>
-            <p className="mt-1 text-xs text-text-sub">
-              {formatMessage({
-                id: "app.garden.settings.openJoiningDescription",
-                defaultMessage: "Allow anyone to join this garden without an invitation",
-              })}
-            </p>
-          </div>
+          description={formatMessage({
+            id: "app.garden.settings.openJoiningDescription",
+            defaultMessage: "Allow anyone to join this garden without an invitation",
+          })}
+        >
           <Switch
-            disabled={!canManage || setOpenJoining.isPending}
-            checked={!!garden.openJoining}
-            onCheckedChange={() =>
-              setOpenJoining.mutate({ gardenAddress, value: !garden.openJoining })
+            disabled={disabledProfileField}
+            checked={draft.openJoining}
+            onCheckedChange={(checked) =>
+              setDraft((current) => ({ ...current, openJoining: checked === true }))
             }
             surface="admin"
-            className={cn(
-              (!canManage || setOpenJoining.isPending) && "cursor-not-allowed opacity-50"
-            )}
+            aria-labelledby="garden-settings-open-joining-label"
+            className={cn(disabledProfileField && "cursor-not-allowed opacity-50")}
           />
+        </AdminSettingRow>
+
+        <div className="border-t border-stroke-soft" />
+
+        {/* Limit gardeners — a toggle that reveals the cap field. Off saves 0
+            (unlimited); no magic number in the input. */}
+        <div className="space-y-3">
+          <AdminSettingRow
+            labelId="garden-settings-limit-gardeners-label"
+            label={formatMessage({
+              id: "app.garden.settings.limitGardeners",
+              defaultMessage: "Limit gardeners",
+            })}
+            description={formatMessage({
+              id: "app.garden.settings.maxGardenersDescription",
+              defaultMessage: "Cap how many gardeners can join. Off means unlimited.",
+            })}
+          >
+            <Switch
+              disabled={disabledProfileField}
+              checked={draft.limitGardeners}
+              onCheckedChange={(checked) =>
+                setDraft((current) => ({ ...current, limitGardeners: checked === true }))
+              }
+              surface="admin"
+              aria-labelledby="garden-settings-limit-gardeners-label"
+              className={cn(disabledProfileField && "cursor-not-allowed opacity-50")}
+            />
+          </AdminSettingRow>
+
+          {draft.limitGardeners ? (
+            <FormField
+              label={formatMessage({
+                id: "app.garden.settings.maxGardeners",
+                defaultMessage: "Maximum gardeners",
+              })}
+              htmlFor="garden-settings-max-gardeners"
+            >
+              <TextInput
+                surface="admin"
+                id="garden-settings-max-gardeners"
+                type="number"
+                min={1}
+                step={1}
+                value={draft.maxGardeners}
+                onChange={(e) =>
+                  setDraft((current) => ({ ...current, maxGardeners: e.target.value }))
+                }
+                disabled={disabledProfileField}
+                aria-invalid={maxGardenersInvalid || undefined}
+                className="w-32"
+              />
+            </FormField>
+          ) : null}
         </div>
 
         <div className="border-t border-stroke-soft" />
 
-        {/* Max Gardeners */}
-        <div className="group flex items-center justify-between gap-4">
-          <div>
-            <p className="label-xs text-text-soft">
-              {formatMessage({
-                id: "app.garden.settings.maxGardeners",
-                defaultMessage: "Max Gardeners",
-              })}
-            </p>
-            <p className="mt-1 text-xs text-text-sub">
-              {formatMessage({
-                id: "app.garden.settings.maxGardenersDescription",
-                defaultMessage: "0 means unlimited",
-              })}
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <TextInput
-              surface="admin"
-              type="number"
-              min={0}
-              value={maxInput}
-              onChange={(e) => setMaxInput(e.target.value)}
-              disabled={!canManage || setMaxGardeners.isPending}
-              className="w-20 rounded-lg border border-stroke-sub bg-bg-white px-2 py-1.5 text-right text-sm text-text-strong focus:border-primary-base focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
-            />
-            {canManage && Number(maxInput) !== (garden.maxGardeners ?? 0) && (
-              <Button
-                size="sm"
-                onClick={() =>
-                  setMaxGardeners.mutate({
-                    gardenAddress,
-                    value: Number(maxInput),
+        {/* Domains — selected inline; saved with the rest on Save changes. */}
+        <FormField
+          label={formatMessage({ id: "app.garden.detail.domains", defaultMessage: "Domains" })}
+          hint={
+            canEditProfile
+              ? draft.domains.length === 0
+                ? formatMessage({
+                    id: "app.garden.settings.domainsRequired",
+                    defaultMessage: "Select at least one domain",
                   })
-                }
-                disabled={setMaxGardeners.isPending}
-              >
-                {setMaxGardeners.isPending ? (
-                  <RiLoader4Line className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  formatMessage({ id: "app.common.save", defaultMessage: "Save" })
-                )}
-              </Button>
+                : formatMessage({
+                    id: "app.garden.settings.domainsHint",
+                    defaultMessage: "Choose what this garden documents.",
+                  })
+              : undefined
+          }
+        >
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {DOMAIN_OPTIONS.map(
+              ({ value, labelId, defaultLabel, descriptionId, defaultDescription }) => (
+                <AdminSelectableCard
+                  key={value}
+                  disabled={disabledProfileField}
+                  onClick={() => toggleDomain(value)}
+                  selected={draft.domains.includes(value)}
+                  title={formatMessage({ id: labelId, defaultMessage: defaultLabel })}
+                  description={formatMessage({
+                    id: descriptionId,
+                    defaultMessage: defaultDescription,
+                  })}
+                  leadingVisual={
+                    <span
+                      className="h-3 w-3 shrink-0 rounded-full"
+                      style={{ backgroundColor: DOMAIN_COLORS[value] }}
+                    />
+                  }
+                />
+              )
             )}
           </div>
-        </div>
-      </Card.Body>
-    </Card>
+        </FormField>
+      </div>
+    </section>
   );
-}
+});
+
+GardenSettingsEditor.displayName = "GardenSettingsEditor";

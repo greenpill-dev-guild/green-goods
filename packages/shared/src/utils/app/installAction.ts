@@ -69,6 +69,10 @@ export async function dispatchInstallAction(
       return true;
     }
 
+    case "installing": {
+      return true;
+    }
+
     case "open-app": {
       if (typeof window !== "undefined") {
         window.location.href = "/home";

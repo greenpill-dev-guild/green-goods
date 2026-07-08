@@ -16,16 +16,18 @@ import {
   useUser,
   useVaultPreview,
   useVaultWithdraw,
+  useWalletConnectDismissGuard,
   validateDecimalInput,
 } from "@green-goods/shared";
 import { RiCloseLine } from "@remixicon/react";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits, parseUnits } from "viem";
 import { EditorialGhostButton } from "./atoms";
 
 export interface PublicEndowmentPanelProps {
   open: boolean;
+  onExitComplete?: () => void;
   onOpenChange: (open: boolean) => void;
 }
 
@@ -33,7 +35,45 @@ function formatDisplayAmount(value: bigint, decimals: number, symbol: string): s
   return `${formatTokenAmount(value, decimals, 4, undefined, true)} ${symbol}`;
 }
 
-export function PublicEndowmentPanel({ open, onOpenChange }: PublicEndowmentPanelProps) {
+const EXIT_ANIMATION_BUFFER_MS = 50;
+const EXIT_ANIMATION_FALLBACK_MS = 300;
+
+function parseCssTimeToMs(value: string): number | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (trimmed.endsWith("ms")) return Number.parseFloat(trimmed);
+  if (trimmed.endsWith("s")) return Number.parseFloat(trimmed) * 1000;
+  return null;
+}
+
+function parseCssTimeListToMs(value: string): number[] {
+  return value
+    .split(",")
+    .map(parseCssTimeToMs)
+    .filter((time): time is number => time !== null && Number.isFinite(time));
+}
+
+function getExitAnimationDurationMs(element: HTMLElement | null): number {
+  if (typeof window === "undefined" || !element) return EXIT_ANIMATION_FALLBACK_MS;
+
+  const styles = window.getComputedStyle(element);
+  const durations = parseCssTimeListToMs(styles.animationDuration);
+  const delays = parseCssTimeListToMs(styles.animationDelay);
+
+  const totals = durations.map((duration, index) => {
+    const delay = delays[index] ?? delays[delays.length - 1] ?? 0;
+    return duration + delay;
+  });
+  const longestDuration = Math.max(...totals, 0);
+
+  return longestDuration > 0 ? longestDuration : EXIT_ANIMATION_FALLBACK_MS;
+}
+
+export function PublicEndowmentPanel({
+  open,
+  onExitComplete,
+  onOpenChange,
+}: PublicEndowmentPanelProps) {
   const { formatMessage } = useIntl();
   const { primaryAddress } = useUser();
   // Connect via wallet auth (stores "wallet" intent so the auth machine logs in
@@ -41,21 +81,89 @@ export function PublicEndowmentPanel({ open, onOpenChange }: PublicEndowmentPane
   // otherwise endowment positions stay unreachable for a freshly-connected
   // public wallet (shared root cause with PRD-497).
   const { loginWithWallet } = useAuth();
+  // Keep this panel open while the wallet modal is opening/open — its
+  // separate-portal focus would otherwise trip Radix outside-dismiss and the
+  // panel would close before the freshly-connected wallet's positions appear.
+  const { markConnecting, shouldBlockDismiss } = useWalletConnectDismissGuard();
   const portfolio = usePublicEndowmentPositions(primaryAddress as Address | undefined, {
     enabled: open && Boolean(primaryAddress),
   });
+  const [dialogOpen, setDialogOpen] = useState(open);
+  const [exitAnimationComplete, setExitAnimationComplete] = useState(!open);
+  const surfaceRef = useRef<HTMLDivElement | null>(null);
+  const exitFallbackRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const motionState = open ? "open" : exitAnimationComplete ? "idle" : "closed";
+
+  const clearExitFallback = useCallback(() => {
+    if (exitFallbackRef.current) {
+      clearTimeout(exitFallbackRef.current);
+      exitFallbackRef.current = null;
+    }
+  }, []);
+
+  const finishClose = useCallback(() => {
+    clearExitFallback();
+    setExitAnimationComplete(true);
+    setDialogOpen(false);
+    onExitComplete?.();
+  }, [clearExitFallback, onExitComplete]);
+
+  useEffect(() => {
+    if (open) {
+      clearExitFallback();
+      setExitAnimationComplete(false);
+      setDialogOpen(true);
+      return;
+    }
+
+    if (!dialogOpen) return;
+
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      finishClose();
+      return;
+    }
+
+    setExitAnimationComplete(false);
+    exitFallbackRef.current = setTimeout(
+      finishClose,
+      getExitAnimationDurationMs(surfaceRef.current) + EXIT_ANIMATION_BUFFER_MS
+    );
+
+    return clearExitFallback;
+  }, [clearExitFallback, dialogOpen, finishClose, open]);
+
+  useEffect(() => clearExitFallback, [clearExitFallback]);
 
   return (
-    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+    <Dialog.Root open={dialogOpen} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-overlay bg-static-black/40" />
+        <Dialog.Overlay
+          data-component="PublicEndowmentPanel"
+          data-motion-state={motionState}
+          data-slot="overlay"
+          className="public-endowment-overlay fixed inset-0 z-overlay bg-static-black/40"
+        />
         <Dialog.Content
           data-component="PublicEndowmentPanel"
+          data-motion-state={motionState}
+          data-slot="surface"
+          ref={surfaceRef}
           className={cn(
-            "fixed z-modal flex max-h-[86vh] w-full flex-col overflow-hidden border border-stroke-soft-200 bg-bg-weak-50 text-text-strong-950 shadow-[var(--shadow-editorial-panel)] focus:outline-none",
-            "inset-x-0 bottom-0 rounded-t-3xl",
-            "sm:inset-x-auto sm:inset-y-4 sm:right-4 sm:max-h-[calc(100vh-2rem)] sm:w-[min(34rem,calc(100vw-2rem))] sm:rounded-3xl"
+            "public-endowment-panel fixed z-modal flex max-h-[86vh] w-full flex-col overflow-hidden rounded-none border border-x-0 border-b-0 border-stroke-soft-200 bg-bg-weak-50 text-text-strong-950 shadow-[var(--shadow-editorial-panel)] focus:outline-none",
+            "inset-x-0 bottom-0",
+            "sm:inset-x-auto sm:inset-y-0 sm:right-0 sm:h-screen sm:max-h-screen sm:w-[min(34rem,100vw)] sm:border-y-0 sm:border-l sm:border-r-0"
           )}
+          onAnimationEnd={(event) => {
+            if (event.target === event.currentTarget && !open) {
+              finishClose();
+            }
+          }}
+          onInteractOutside={(event) => {
+            if (shouldBlockDismiss()) event.preventDefault();
+          }}
+          onEscapeKeyDown={(event) => {
+            if (shouldBlockDismiss()) event.preventDefault();
+          }}
         >
           <header className="flex items-start justify-between gap-4 border-b border-stroke-soft-200 bg-bg-white-0 px-5 py-5 sm:px-6">
             <div className="min-w-0">
@@ -120,7 +228,10 @@ export function PublicEndowmentPanel({ open, onOpenChange }: PublicEndowmentPane
                 <EditorialGhostButton
                   variant="warm"
                   className="mt-5 w-full px-5 py-2.5 text-sm"
-                  onClick={() => loginWithWallet()}
+                  onClick={() => {
+                    markConnecting();
+                    loginWithWallet();
+                  }}
                 >
                   {formatMessage({
                     id: "public.fund.endowments.connect.cta",
@@ -328,10 +439,9 @@ function EndowmentAssetRow({ position, ownerAddress, onRefresh }: EndowmentAsset
   const expandedRegionRef = useRef<HTMLDivElement>(null);
   const [expanded, setExpanded] = useState(false);
   const [amountInput, setAmountInput] = useState("");
-  const [showConfirm, setShowConfirm] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
 
-  // When a row expands, the revealed amount input + Review/Confirm controls can
+  // When a row expands, the revealed amount input + Withdraw control can
   // fall below the scroll fold of the panel body — most acutely for the last
   // position in a tall portfolio inside the mobile bottom sheet. Nudge the
   // freshly revealed region into the body's scroll viewport. `block: "nearest"`
@@ -385,7 +495,7 @@ function EndowmentAssetRow({ position, ownerAddress, onRefresh }: EndowmentAsset
         });
   const exceedsAvailable =
     parsedAmount > 0n && maxWithdrawable > 0n && parsedAmount > maxWithdrawable;
-  const disableConfirm =
+  const disableWithdraw =
     withdrawMutation.isPending ||
     Boolean(inputError) ||
     parsedAmount <= 0n ||
@@ -395,7 +505,7 @@ function EndowmentAssetRow({ position, ownerAddress, onRefresh }: EndowmentAsset
   const amountLabel = formatDisplayAmount(parsedAmount, position.decimals, position.assetSymbol);
 
   const executeWithdraw = () => {
-    if (disableConfirm) return;
+    if (disableWithdraw) return;
     withdrawMutation.mutate(
       {
         gardenAddress: position.gardenAddress,
@@ -409,7 +519,6 @@ function EndowmentAssetRow({ position, ownerAddress, onRefresh }: EndowmentAsset
       {
         onSuccess: async () => {
           setAmountInput("");
-          setShowConfirm(false);
           setSuccessMessage(
             formatMessage(
               {
@@ -517,7 +626,6 @@ function EndowmentAssetRow({ position, ownerAddress, onRefresh }: EndowmentAsset
               value={amountInput}
               onChange={(event) => {
                 setAmountInput(event.target.value);
-                setShowConfirm(false);
                 setSuccessMessage("");
                 withdrawMutation.reset();
               }}
@@ -533,7 +641,6 @@ function EndowmentAssetRow({ position, ownerAddress, onRefresh }: EndowmentAsset
               type="button"
               onClick={() => {
                 setAmountInput(formatUnits(maxWithdrawable, position.decimals));
-                setShowConfirm(false);
                 setSuccessMessage("");
                 withdrawMutation.reset();
               }}
@@ -576,65 +683,26 @@ function EndowmentAssetRow({ position, ownerAddress, onRefresh }: EndowmentAsset
             </p>
           )}
 
-          {showConfirm ? (
-            <div className="mt-4 rounded-2xl border border-stroke-soft-200 bg-bg-white-0 p-4">
-              <p className="font-serif text-lg font-normal text-text-strong-950">
-                {formatMessage({
-                  id: "public.fund.endowments.withdraw.confirmTitle",
-                  defaultMessage: "Confirm withdrawal",
-                })}
-              </p>
-              <p className="mt-2 text-sm leading-[1.55] text-text-sub-600">
-                {formatMessage(
+          <EditorialGhostButton
+            variant="warm"
+            className="mt-4 w-full px-5 py-2.5 text-sm"
+            disabled={disableWithdraw}
+            aria-busy={withdrawMutation.isPending || undefined}
+            onClick={executeWithdraw}
+          >
+            {parsedAmount > 0n && !inputError
+              ? formatMessage(
                   {
-                    id: "public.fund.endowments.withdraw.confirmBody",
-                    defaultMessage: "Return {amount} to your connected wallet?",
+                    id: "public.fund.endowments.withdraw.submitAmount",
+                    defaultMessage: "Withdraw {amount}",
                   },
                   { amount: amountLabel }
-                )}
-              </p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                <EditorialGhostButton
-                  variant="warm"
-                  className="px-5 py-2.5 text-sm"
-                  disabled={disableConfirm}
-                  onClick={executeWithdraw}
-                >
-                  {withdrawMutation.isPending
-                    ? formatMessage({
-                        id: "public.fund.endowments.withdraw.pending",
-                        defaultMessage: "Withdrawing…",
-                      })
-                    : formatMessage({
-                        id: "public.fund.endowments.withdraw.confirm",
-                        defaultMessage: "Confirm",
-                      })}
-                </EditorialGhostButton>
-                <EditorialGhostButton
-                  className="px-5 py-2.5 text-sm"
-                  disabled={withdrawMutation.isPending}
-                  onClick={() => setShowConfirm(false)}
-                >
-                  {formatMessage({
-                    id: "public.fund.endowments.withdraw.cancel",
-                    defaultMessage: "Cancel",
-                  })}
-                </EditorialGhostButton>
-              </div>
-            </div>
-          ) : (
-            <EditorialGhostButton
-              variant="warm"
-              className="mt-4 w-full px-5 py-2.5 text-sm"
-              disabled={disableConfirm}
-              onClick={() => setShowConfirm(true)}
-            >
-              {formatMessage({
-                id: "public.fund.endowments.withdraw.review",
-                defaultMessage: "Review withdrawal",
-              })}
-            </EditorialGhostButton>
-          )}
+                )
+              : formatMessage({
+                  id: "public.fund.endowments.withdraw.submit",
+                  defaultMessage: "Withdraw",
+                })}
+          </EditorialGhostButton>
 
           {withdrawMutation.error ? (
             <Alert

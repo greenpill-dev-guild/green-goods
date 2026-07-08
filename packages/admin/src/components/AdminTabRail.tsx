@@ -137,7 +137,7 @@ export function AdminTabRail({
             onKeyDown={(event) => handleKeyDown(event, tab.id)}
             className={cn(
               "relative inline-flex items-center justify-center",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-action,var(--m3-primary)))]",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]",
               tab.disabled && "pointer-events-none opacity-[0.38]"
             )}
             style={{

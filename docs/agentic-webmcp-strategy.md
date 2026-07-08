@@ -1,6 +1,6 @@
 # Green Goods WebMCP Strategy
 
-Status: implemented for local Brave-backed DevTools MCP plus public-safe client WebMCP v1. Runtime WebMCP tools are limited to visible public browser routes; private, admin, wallet, onchain, signing, telemetry, and persistence tools remain forbidden.
+Status: implemented for clean-room DevTools MCP plus public-safe client WebMCP v1. Runtime WebMCP tools are limited to visible public browser routes; private, admin, wallet, onchain, signing, telemetry, and persistence tools remain forbidden.
 
 ## Candidate Visible Tools
 
@@ -21,19 +21,19 @@ Status: implemented for local Brave-backed DevTools MCP plus public-safe client 
 - Any authenticated, financial, wallet, publishing, signing, transaction, or persistence action must stay outside WebMCP until a human-confirmation design and policy test suite exists.
 - Read-only tools may describe visible state; they must not infer private state from local storage, indexed databases, API calls, telemetry, or environment configuration.
 
-## Brave DevTools MCP Proof Profile
+## Clean-Room DevTools MCP Proof Profile
 
 - Project MCP config lives in `.mcp.json` and exposes `brave-devtools` through `scripts/mcp/brave-devtools.mjs`, which starts the upstream `chrome-devtools-mcp@latest` protocol package against Brave only with a compatible Node 22 toolchain, isolated profile, stable viewport, page-id routing, structured output, redacted network headers, localhost HTTPS support, WebMCP debugging category, WebMCP testing flags, and external usage/CrUX calls disabled. The package name is not permission to use Google Chrome, Chrome for Testing, Chromium, or Edge; the wrapper rejects non-Brave executable paths.
-- Prefer the repo browser lane first: route screenshots/DOM, accessibility summaries, console/page errors, overflow, `/llms.txt`, reduced-motion state, Storybook or route-entry evidence, and WebMCP discovery.
-- Use Brave DevTools MCP only as an additional proof pass for browser-runtime issues, network/performance traces, rendered admin/client DOM, or WebMCP discovery checks that the repo lane cannot explain.
-- Run MCP proof from an isolated or non-default Brave profile. Do not connect agent tooling to a normal profile when the inspected surface can expose wallet state, admin sessions, private garden data, telemetry identifiers, cookies, local storage, or private tabs.
+- Prefer the repo clean-room browser lane first for public route screenshots/DOM, accessibility summaries, console/page errors, overflow, `/llms.txt`, reduced-motion state, Storybook or route-entry evidence, and WebMCP discovery.
+- Use DevTools MCP only for CI/clean-room public-route checks or explicit non-authenticated protocol debugging. Local authenticated QA for admin, PWA, wallet, or private-data surfaces must use the authenticated Brave QA profile and connected browser-extension path.
+- Run MCP proof from an isolated Brave profile. Do not connect agent tooling to a normal profile when the inspected surface can expose wallet state, admin sessions, private garden data, telemetry identifiers, cookies, local storage, or private tabs.
 - The proof bundle for any runtime candidate must include: route/surface, viewport, screenshot, DOM or accessibility snapshot, console/page error summary, network/performance notes when relevant, `/llms.txt` result, reduced-motion result, and `list_webmcp_tools` output.
 
 ## Proof Before Runtime
 
-- `bun run agentic:check`, `bun run agentic:browser-proof`, and the relevant Storybook or Lighthouse lane must pass for the affected surfaces.
+- `bun run agentic:check`, `CI=true bun run agentic:browser-proof`, and the relevant Storybook or Lighthouse lane must pass for the affected public clean-room surfaces.
 - Browser proof must record screenshots, accessibility summaries, console/page errors, overflow, `/llms.txt`, reduced-motion status, and WebMCP discovery status.
-- Brave-backed DevTools MCP or Puppeteer WebMCP must verify expected tool discovery, schema validity, graceful errors, user confirmation boundaries, and absence of forbidden tools. Native WebMCP discovery requires a Brave build with `navigator.modelContext`; built-route browser proof also injects a model-context probe to verify Green Goods registers its public tools when the browser API is present.
+- Clean-room DevTools MCP or Puppeteer WebMCP must verify expected tool discovery, schema validity, graceful errors, user confirmation boundaries, and absence of forbidden tools. Native WebMCP discovery requires a Brave build with `navigator.modelContext`; built-route browser proof also injects a model-context probe to verify Green Goods registers its public tools when the browser API is present.
 - Tool evals must prove agents choose the right tool, with the right parameters, for visible user journeys before any runtime rollout.
 
 ## Runtime Expansion Approval Spec

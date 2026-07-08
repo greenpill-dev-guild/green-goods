@@ -1,0 +1,43 @@
+# Categorization for `gh release create --generate-notes` (see .github/workflows/release.yml).
+#
+# NOTE: GitHub's generated release notes group by PR *labels* only — there is no
+# conventional-commit *title* regex. PRs in this repo are usually unlabeled
+# (Linear is the tracker, GitHub is for code review), so most items land in the
+# "Other Changes" catch-all — and that is fine: each line is the PR title, which
+# already carries the conventional-commit prefix (feat:/fix:/docs:), so the flat
+# list stays readable. Apply the labels below to PRs only when you want true
+# grouping. No labeler automation is added.
+changelog:
+  exclude:
+    labels:
+      - ignore-for-release
+      - dependencies
+    authors:
+      - dependabot
+      - github-actions
+  categories:
+    - title: "🚀 Features"
+      labels:
+        - feature
+        - enhancement
+    - title: "🐛 Fixes"
+      labels:
+        - bug
+        - fix
+        - hotfix
+    - title: "📚 Documentation"
+      labels:
+        - documentation
+        - docs
+    - title: "🧰 Maintenance & CI"
+      labels:
+        - chore
+        - ci
+        - refactor
+    - title: "🔗 Contracts & Protocol"
+      labels:
+        - contracts
+        - protocol
+    - title: "Other Changes"
+      labels:
+        - "*"

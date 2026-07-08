@@ -1,6 +1,6 @@
 # AI Prompt Contract — Client Surface
 
-Stable vocabulary and never-use list for prompting AI design tools (Stitch, Antigravity, Claude Design, Figma Make) to generate client PWA screens that align with the Green Goods garden-journal voice.
+Stable vocabulary and never-use list for prompting AI design tools or coding agents to generate client PWA screens that align with the Green Goods garden-journal voice.
 
 > **Companion**: The `admin` surface uses a restrained operator cockpit dialect. See [prompt-contract.md](./prompt-contract.md) for admin-specific framing. This file is client-specific — gardener-facing PWA framing.
 
@@ -48,10 +48,11 @@ The categories below are contract-specific framing — *why* client output shoul
 ## Materials & Motion (client)
 
 - **Full Warm Earth expression** is permitted — capsule + squircle + concentric shapes, spring motion, hero moments, expressive color.
-- **Glass material is allowed across client surfaces**, unlike admin where glass is restricted to Navigation/FAB and sheet shells while the admin `AppBar` root stays transparent. Match thickness to content density (see [materials.md](./materials.md)).
+- **Glass material is allowed across client surfaces**, unlike admin where glass is restricted to Navigation/FAB (the admin sheet shells are retired and its `AppBar` root stays transparent). Match thickness to content density (see [materials.md](./materials.md)).
 - **Spring motion is the default easing** — never hardcoded cubic-bezier or duration values.
 - **Typography** — Inter across the PWA. Editorial serif (Fraunces/Lora/Newsreader) only on the public browser site, never in the installed PWA.
 - **Succession-aware** — pioneer gardens get simple hero moments, climax gardens get full expression.
+- **Never rename `--color-primary`** — the codebase token resolves to the **tertiary accent role** (garden green, 1-3% volume), not the primary ink role. The name is historical; keep it, and don't treat it as the dominant brand color when prompting or generating UI.
 
 ## Copy Voice
 
@@ -118,12 +119,12 @@ AI design tools MUST map generated output to these existing exports. Do not inve
 ## Companion Files
 
 - [prompt-contract.md](./prompt-contract.md) — Admin cockpit prompt contract (sister file)
+- [ai-ui-brief.md](./ai-ui-brief.md) — Reusable AI UI/CSS build brief and external reference role map
 - [language.md](./language.md) — Full Warm Earth design language (shapes, motion, color, hero moments)
 - [SKILL.md](./SKILL.md) — Design philosophy, paradigms, client/admin carve-outs
 - Root `DESIGN.md` — Canonical Warm Earth DesignMD tokens + creative brief
 - `packages/client/DESIGN.pwa.md` — Installed PWA DesignMD dialect
 - `packages/client/DESIGN.browser.md` — Public browser DesignMD dialect
-- `.stitch/config.json` — Surface routing for AI design tools
 
 ## Why This Contract Exists
 

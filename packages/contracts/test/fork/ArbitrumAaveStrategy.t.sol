@@ -16,6 +16,8 @@ contract ArbitrumAaveStrategyForkTest is Test {
     address internal constant ADAI = 0x82E64f49Ed5EC1bC6e43DAD4FC8Af9bb3A2312EE;
 
     function _tryFork() internal returns (bool) {
+        if (block.chainid == 42_161) return true;
+
         string memory rpc;
         try vm.envString("ARBITRUM_FORK_RPC_URL") returns (string memory value) {
             rpc = value;

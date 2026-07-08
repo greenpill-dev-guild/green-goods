@@ -19,6 +19,7 @@ export type WorkDraftState = {
 export type WorkFlowState = WorkDraftState & {
   activeTab: WorkTab;
   submissionCompleted: boolean;
+  workSubmissionJourneyId: string | null;
   /** Selected domain for domain-centric action filtering */
   selectedDomain: Domain | null;
   /** Tracks object URLs created from images for proper cleanup */
@@ -26,6 +27,8 @@ export type WorkFlowState = WorkDraftState & {
 
   setActiveTab: (tab: WorkTab) => void;
   setSubmissionCompleted: (completed: boolean) => void;
+  ensureWorkSubmissionJourneyId: () => string;
+  clearWorkSubmissionJourneyId: () => void;
 
   setGardenAddress: (id: Address | null) => void;
   setActionUID: (uid: number | null) => void;
@@ -54,15 +57,32 @@ const initial: WorkDraftState = {
   audioNotes: [],
 };
 
+function createWorkSubmissionJourneyId(): string {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `work_journey_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+}
+
 export const useWorkFlowStore = create<WorkFlowState>((set, get) => ({
   ...initial,
   activeTab: WorkTab.Intro,
   submissionCompleted: false,
+  workSubmissionJourneyId: null,
   selectedDomain: null,
   imageObjectUrls: [],
 
   setActiveTab: (tab) => set({ activeTab: tab }),
   setSubmissionCompleted: (completed) => set({ submissionCompleted: completed }),
+  ensureWorkSubmissionJourneyId: () => {
+    const existing = get().workSubmissionJourneyId;
+    if (existing) return existing;
+
+    const workSubmissionJourneyId = createWorkSubmissionJourneyId();
+    set({ workSubmissionJourneyId });
+    return workSubmissionJourneyId;
+  },
+  clearWorkSubmissionJourneyId: () => set({ workSubmissionJourneyId: null }),
   setGardenAddress: (id) => set({ gardenAddress: id }),
   setActionUID: (uid) => set({ actionUID: uid }),
   setFeedback: (text) => set({ feedback: text }),
@@ -97,6 +117,7 @@ export const useWorkFlowStore = create<WorkFlowState>((set, get) => ({
       ...initial,
       activeTab: WorkTab.Intro,
       submissionCompleted: false,
+      workSubmissionJourneyId: null,
       selectedDomain: null,
       imageObjectUrls: [],
     });

@@ -79,6 +79,14 @@ bun run dev                           # starts the full repo-native local stack
 bun run dev:smoke:web                 # confirms browser surfaces respond locally
 ```
 
+For isolated worktrees, containers, or agent-owned checkouts, use the same npm bridge with the isolated profile:
+
+```bash
+npm run setup -- --profile isolated
+```
+
+The isolated profile requires Node.js 22+ and Git first. It can bootstrap Bun when network access is available, then uses `bun install --frozen-lockfile` after Bun is present. It avoids host-only setup such as Docker checks, Foundry installation, service starts/stops, browser launches, and sibling-worktree cleanup.
+
 When you intentionally need local browser apps against live production
 infrastructure, use `bun run dev:prod` instead of `bun run dev`. That mode is
 documented below because wallet-confirmed writes are real Arbitrum
@@ -90,13 +98,22 @@ transactions.
 
 ### What `npm run setup` does
 
-The setup script (`scripts/dev/setup.js`) runs through three steps:
+The setup script (`scripts/dev/setup.js`) runs through four steps:
 
-1. **Dependency check** -- verifies Node.js 22+ and Git, installs Bun if needed, and warns about missing workflow-specific tools.
-2. **Install packages** -- runs `bun install` across all workspaces if `node_modules` does not exist yet.
-3. **Next steps** -- prints the env-sync, doctor, frontend stack, full stack, and test commands.
+1. **Dependency check** -- verifies Node.js 22+ and Git, installs Bun when the selected profile allows it, and warns about missing workflow-specific tools.
+2. **Install packages** -- runs `bun install` for host setup, or `bun install --frozen-lockfile` for isolated/cloud setup when dependencies are not already present.
+3. **Environment posture** -- leaves host/cloud env materialization to the documented `env:sync` path, while isolated setup can write a non-secret baseline `.env` for web checks.
+4. **Next steps** -- prints the doctor, stack, smoke, test, and cleanup commands for the selected profile.
 
 Environment files are materialized separately by `bun run env:sync` (which runs `op inject` against `.env.template`). See [Required Secrets & Variables](#required-secrets--variables) below.
+
+### Workspace setup profiles
+
+| Profile | Command | Use for | Side effects |
+| --- | --- | --- | --- |
+| Host | `npm run setup` or `bun run setup:host` | First-clone local machine setup | Can install Bun and Foundry, checks Docker, runs `bun install`, prints env-sync next steps |
+| Isolated | `npm run setup -- --profile isolated` or `bun run setup:isolated` | Worktrees, containers, and agent-owned checkouts | Can install Bun, uses frozen lockfile install, can create non-secret baseline `.env`, avoids host/service/browser/sibling-worktree effects |
+| Cloud | `bun run setup:cloud` | Pre-baked remote runtimes with injected secrets | Expects Bun in the image, uses frozen lockfile install, never writes `.env` |
 
 ### Role profiles
 
@@ -129,6 +146,9 @@ For details on regenerating the template (e.g. after a new key lands in `.env.sc
 | Variable | Role |
 | --- | --- |
 | `APP_ENV` | Environment selector (`development`, `test`, `staging`, `production`) |
+| `GG_WORKSPACE_PROFILE` | Non-secret setup posture (`host`, `isolated`, `cloud`) |
+| `GG_SETUP_INSTALL` | Setup install policy (`auto`, `always`, `skip`) |
+| `GG_SETUP_ENV_MODE` | Setup env materialization policy (`auto`, `baseline`, `skip`) |
 | `VITE_CHAIN_ID` | Sets the target chain at build time (`42161` for Arbitrum, `11155111` for Sepolia) |
 | `VITE_DEV_CHAIN_MODE` | Optional dev override. `bun run dev` sets `arbitrum_fork`; keep blank in shared env files. |
 | `VITE_LOCAL_FORK_RPC_URL` | Optional local fork RPC. The Green Goods dev stack sets `http://127.0.0.1:3009`. |
@@ -231,7 +251,10 @@ the smoke should fail rather than claim the local mirror is current.
 | `storybook` | `packages/shared` | 3004 |
 | `anvil-arbitrum` | `packages/contracts` | 3009 |
 
-Stop everything with `bun run dev:stop`.
+Stop everything with `bun run dev:stop`. To remove only disposable artifacts in
+the current checkout, use `bun run dev:clean:dry` first, then `bun run dev:clean`.
+The cleanup script does not stop shared services, remove dependencies, touch env
+files, or inspect sibling worktrees.
 
 ### Production-backed local stack
 

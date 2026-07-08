@@ -217,7 +217,7 @@ Implementation steps must be granular enough for agents to execute reliably. Fol
 2. **Gather git context**: `git status`, `git diff --stat`
 3. **File-by-file status**: DONE / PARTIAL / NOT DONE
 4. **Requirements coverage table**
-5. **Run validation**: `bun format && bun lint && bun run test && bun build`
+5. **Run validation according to intent**: use the Validation Intent Ladder in `CLAUDE.md`; QA Speed Mode for narrow progress proof, Repo Quick Gate for cross-package checkpoints, and Ship Gate only for explicit ship/PR/merge/release readiness.
 
 ---
 
@@ -229,12 +229,18 @@ For active implementation work, Linear sync is the default first step before cod
 agent dispatch.
 
 1. Run `node scripts/harness/plan-hub.mjs linear-sync --feature <feature-slug> --json`.
-2. If the manifest shows a missing parent or actionable lane issue, create or update the Linear
-   mirror before work begins. Parent and lane issues must carry `source:plans` and
-   `protocol:green-goods`; use Linear only for visibility, prioritization, and coordination.
-3. Record the canonical identifiers back to the hub with
-   `node scripts/harness/plan-hub.mjs record-linear --feature <feature-slug> --parent PRD-123 --lane ui=PRD-124 --actor <agent>`.
-4. Keep `.plans/<stage>/<feature-slug>/status.json` as execution truth. Lane status, TDD proof,
+2. Respect `manifest.laneSyncMode`. When it is `parent_only`, create or update only the parent
+   mirror and do not create lane issues unless Afo explicitly expands the Linear footprint. Record
+   that mode with `--lane-sync-mode parent_only`.
+3. When `manifest.laneSyncMode` is `lane_issues` and the manifest shows a missing parent or
+   actionable lane issue, create or update the Linear mirror before work begins. Parent and lane
+   issues must carry `source:plans` and `protocol:green-goods`; use Linear only for visibility,
+   prioritization, and coordination.
+4. Record the canonical identifiers back to the hub. Parent-only example:
+   `node scripts/harness/plan-hub.mjs record-linear --feature <feature-slug> --parent PRD-123 --lane-sync-mode parent_only --actor <agent>`.
+   Lane-issue example:
+   `node scripts/harness/plan-hub.mjs record-linear --feature <feature-slug> --parent PRD-123 --lane ui=PRD-124 --lane-sync-mode lane_issues --actor <agent>`.
+5. Keep `.plans/<stage>/<feature-slug>/status.json` as execution truth. Lane status, TDD proof,
    handoffs, and validation evidence belong in `.plans` first.
 
 Any prompt for an agent starting active implementation work should begin with the same
@@ -309,7 +315,7 @@ Rules:
   `Coop`, `Network Website`, or `Cookie Jar`.
 - If no active bounded project clearly matches, leave the Linear issue unprojected and correctly
   labeled.
-- Use only these label namespaces: `protocol:*`, `package:*`, `activity:*`, `task:*`,
+- Use only these label namespaces: `protocol:*`, `package:*`, `activity:*`,
   `funding:*`, `source:*`, `agent:*`.
 
 ### Progress Updates
@@ -430,9 +436,9 @@ This gives Claude and future contributors unambiguous constraints without readin
 
 ## Validation Commands
 
-```bash
-bun format && bun lint && bun run test && bun build
-```
+Use `CLAUDE.md § Validation Intent Ladder` to choose the rung. The command definitions
+for QA Speed Mode examples, Repo Quick Gate, and the full Ship Gate live in
+[`.claude/context/validation-pipeline.md`](../../context/validation-pipeline.md).
 
 ## Key Principles
 

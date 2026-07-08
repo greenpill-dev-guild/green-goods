@@ -18,6 +18,7 @@ const profileView = lazyView(() => import("@/views/Profile"));
 const createGardenView = lazyView(() => import("@/views/Garden/CreateGarden"));
 const createAssessmentView = lazyView(() => import("@/views/Hub/CreateAssessment"));
 const createHypercertView = lazyView(() => import("@/views/Hub/CreateHypercert"));
+const submitWorkView = lazyView(() => import("@/views/Garden/SubmitWork"));
 
 function preserveSearch(search: string, omitKeys: string[] = []): string {
   if (!search) return "";
@@ -65,7 +66,7 @@ const GardenIndexRedirect = () => {
   const location = useLocation();
   return (
     <Navigate
-      to={`${adminRoutes.gardenOverview()}${preserveSearch(location.search, ["view"])}`}
+      to={`${adminRoutes.gardenHealth()}${preserveSearch(location.search, ["view"])}`}
       replace
     />
   );
@@ -75,9 +76,28 @@ const CommunityIndexRedirect = () => {
   const location = useLocation();
   return (
     <Navigate
-      to={`${adminRoutes.communityTreasury()}${preserveSearch(location.search, ["card", "pool"])}`}
+      to={`${adminRoutes.communityMembers()}${preserveSearch(location.search, ["card", "pool"])}`}
       replace
     />
+  );
+};
+
+const GardenOverviewRedirect = () => {
+  const location = useLocation();
+  return (
+    <Navigate
+      to={`${adminRoutes.gardenHealth()}${preserveSearch(location.search, ["view"])}`}
+      replace
+    />
+  );
+};
+
+const GardenMembersRedirect = () => {
+  const location = useLocation();
+  // Manage Members is community-owned — old /garden/members links land on the
+  // canonical /community/members route with their garden context intact.
+  return (
+    <Navigate to={`${adminRoutes.communityMembers()}${preserveSearch(location.search)}`} replace />
   );
 };
 
@@ -90,6 +110,14 @@ export const adminCanvasRoutes: RouteObject[] = [
         element: <HubIndexRedirect />,
       },
       {
+        // Submit Work is a creation/commit flow — its own full surface
+        // (desktop full-screen dialog / mobile full-page route), not a Hub
+        // inspector sheet. Keep this flattened before /work/:workId so the
+        // static action route cannot be interpreted as a work id.
+        path: "work/submit",
+        lazy: submitWorkView,
+      },
+      {
         path: "work",
         children: [
           {
@@ -100,11 +128,11 @@ export const adminCanvasRoutes: RouteObject[] = [
             path: ":workId",
             lazy: hubView,
           },
-          {
-            path: "submit",
-            lazy: hubView,
-          },
         ],
+      },
+      {
+        path: "assess/create",
+        lazy: createAssessmentView,
       },
       {
         path: "assess",
@@ -113,11 +141,11 @@ export const adminCanvasRoutes: RouteObject[] = [
             index: true,
             lazy: hubView,
           },
-          {
-            path: "create",
-            lazy: createAssessmentView,
-          },
         ],
+      },
+      {
+        path: "certify/create",
+        lazy: createHypercertView,
       },
       {
         path: "certify",
@@ -129,10 +157,6 @@ export const adminCanvasRoutes: RouteObject[] = [
           {
             path: ":assessmentId",
             lazy: hubView,
-          },
-          {
-            path: "create",
-            lazy: createHypercertView,
           },
         ],
       },
@@ -159,22 +183,26 @@ export const adminCanvasRoutes: RouteObject[] = [
         element: <GardenIndexRedirect />,
       },
       {
-        path: "overview",
+        path: "health",
         lazy: gardenView,
+      },
+      {
+        path: "overview",
+        element: <GardenOverviewRedirect />,
       },
       {
         path: "activity",
         lazy: gardenView,
       },
       {
+        // Membership is community-owned — redirect retained so existing
+        // /garden/members bookmarks and deep links do not 404.
         path: "members",
-        lazy: gardenView,
+        element: <GardenMembersRedirect />,
       },
       {
-        // Legacy /garden/impact retained so existing URLs and external links
-        // do not 404. resolveGardenView falls back to "overview" for these
-        // paths after the Tier 4 IA change (audit IA-Garden decision); the
-        // hypercert sheet still opens via GardenSheetDescriptor.
+        // Legacy /garden/impact remains canonical for outcome/proof readouts
+        // and hypercert deep links.
         path: "impact",
         children: [
           {
@@ -205,20 +233,11 @@ export const adminCanvasRoutes: RouteObject[] = [
         element: <CommunityIndexRedirect />,
       },
       {
-        path: "treasury",
-        children: [
-          {
-            index: true,
-            lazy: communityView,
-          },
-          {
-            path: "vault",
-            lazy: communityView,
-          },
-        ],
+        path: "members",
+        lazy: communityView,
       },
       {
-        path: "governance",
+        path: "coordination",
         children: [
           {
             index: true,
@@ -235,12 +254,92 @@ export const adminCanvasRoutes: RouteObject[] = [
         ],
       },
       {
+        path: "endowment",
+        children: [
+          {
+            index: true,
+            lazy: communityView,
+          },
+          {
+            path: "vault",
+            lazy: communityView,
+          },
+          {
+            path: "vault/deposit",
+            lazy: communityView,
+          },
+          {
+            path: "vault/withdraw",
+            lazy: communityView,
+          },
+        ],
+      },
+      {
         path: "payouts",
         lazy: communityView,
       },
       {
-        path: "members",
-        lazy: communityView,
+        // Legacy resources URLs alias into Endowment until external links move.
+        path: "resources",
+        children: [
+          {
+            index: true,
+            lazy: communityView,
+          },
+          {
+            path: "vault",
+            lazy: communityView,
+          },
+          {
+            path: "vault/deposit",
+            lazy: communityView,
+          },
+          {
+            path: "vault/withdraw",
+            lazy: communityView,
+          },
+        ],
+      },
+      {
+        // Legacy treasury URLs alias into Endowment until external links move.
+        path: "treasury",
+        children: [
+          {
+            index: true,
+            lazy: communityView,
+          },
+          {
+            path: "vault",
+            lazy: communityView,
+          },
+          {
+            path: "vault/deposit",
+            lazy: communityView,
+          },
+          {
+            path: "vault/withdraw",
+            lazy: communityView,
+          },
+        ],
+      },
+      {
+        // Legacy governance URLs alias into Coordination until external links
+        // move to /community/coordination.
+        path: "governance",
+        children: [
+          {
+            index: true,
+            lazy: communityView,
+          },
+          {
+            path: "strategies",
+            lazy: communityView,
+          },
+          {
+            path: "signal-pool/:poolType",
+            lazy: communityView,
+          },
+        ],
       },
     ],
   },

@@ -8,12 +8,12 @@ How Claude (and subagents) resolve casual admin-UI defect reports to an exact DO
 
 When the user reports anything off on an admin surface, the agent MUST resolve to a canonical `Admin*` wrapper or canvas region before proposing an edit. Never guess. Escalate in this order:
 
-### Tier 1 — Live DOM via Brave-Backed Browser MCP (preferred)
+### Tier 1 — Live DOM via Authenticated Brave QA (preferred)
 
-If an admin tab is open in Brave through a Brave-backed browser MCP, read the rendered DOM to locate the target:
+If an admin tab is open in the authenticated Brave QA profile and the Codex or Claude browser-extension path can control it, read the rendered DOM to locate the target:
 
 ```js
-// Via the available Brave-backed browser MCP JavaScript tool
+// Via the authenticated Brave browser-extension JavaScript tool
 Array.from(document.querySelectorAll('[data-component], [data-region]')).map(el => ({
   component: el.dataset.component,
   variant: el.dataset.variant,
@@ -45,7 +45,7 @@ Narrow candidates by:
 | "the tooltip" | `data-component="AdminTooltip"` |
 | "the badge" / "notification dot" | `data-component="AdminBadge"` |
 
-### Tier 2 — Static grep (Brave-backed browser MCP unavailable, or page not open)
+### Tier 2 — Static grep (authenticated Brave access unavailable, or page not open)
 
 ```bash
 grep -rn 'data-component="Admin<X>"' packages/admin/src/views/<workspace>/
@@ -84,9 +84,9 @@ If the user's description can't be mapped to a canonical `Admin*` wrapper or reg
 | `typography` | Wrong role (`label-sm` vs `label-lg`), weight, line-height, font (Plus Jakarta vs Inter). | Role token in `theme.css`. |
 | `responsive` | Breaks at a specific width/container size, overflow, missing truncation. | Container queries (`@[Npx]:`), Rule 11 breakpoints. |
 | `a11y` | Missing `aria-label`, role, focus trap, keyboard trap, missing `prefers-reduced-motion`. | StatusBadge + FormField + Alert components. |
-| `token-drift` | Raw color/radius/duration used where a token should be. Surfaced by `bun run check:design-tokens` / `bun run lint:vocab`. | `CLAUDE.md § Design System` banned vocabulary. |
+| `token-drift` | Raw color/radius/duration used where a token should be. Surfaced by `bun run check:design-tokens`; copy/vocabulary drift is a separate `lint:vocab` i18n check. | `CLAUDE.md § Design System` tokens. |
 | `surface-identity` | Admin has glass outside the admin `AppBar`, or client copy leaks into admin, or vice versa. | `prompt-contract.md § Never Use`. |
-| `missing-primitive` | A composition that SHOULD use a canonical `Admin*` wrapper uses raw HTML instead. | 13 `Admin*` wrappers in `prompt-contract.md`. |
+| `missing-primitive` | A composition that SHOULD use a canonical `Admin*` wrapper uses raw HTML instead. | The `Admin*` wrappers in `prompt-contract.md` (filesystem is the count of record). |
 
 ## Casual → resolved examples
 
@@ -97,14 +97,15 @@ The left column is what the user says. The right column is the internal statemen
 | "The card on Hub feels tight." | `AdminCard in /hub WorkSubmissions → spacing: expected p-4 (16dp) per M3 card anatomy, currently p-3 (12dp)` |
 | "The top bar looks flat on Garden." | `canvas-area-top in /garden → hierarchy: AppBar lacks elevation-3 + --blur-material-regular separation from MainSheet below` |
 | "The tabs on Community snap weirdly." | `AdminTabRail in /community → motion: sliding indicator uses ease-out 200ms instead of --spring-medium-* tokens` |
-| "The input label looks wrong at phone width." | `AdminTextField (outlined) in LeftSheet create-garden form → responsive: floating-label notch overlaps outline below 400px container width` |
+| "The input label looks wrong at phone width." | `AdminTextField (outlined) in AdminDialog create-garden form → responsive: floating-label notch overlaps outline below 400px container width` |
+| "The notifications panel feels like one big list." | `NotificationPanel in AdminSideSheet (AppBar bell) → hierarchy: expected "Needs attention" / "Recent activity" section grouping, currently flat` |
 | "Something's off but I can't tell what." | Tier 3 — agent asks which workspace/region to focus on, then Tier 1s again. |
 
 ## Why this exists
 
 Design-system updates do not automatically propagate to casual issue reports. Before `data-component` / `data-region` / `data-workspace`, a description like "the thing looks off" forced the agent to guess between 5+ candidate components; guesses miss, which is how "updates to the design system don't seem to address identified issues" happens.
 
-The data attributes make the DOM self-identifying. This file tells the agent to **read them** (via Brave-backed browser MCP or grep) **before editing**, so casual user input maps to exact canonical targets. The grammar is a tool the agent uses on itself, not a vocabulary imposed on the user.
+The data attributes make the DOM self-identifying. This file tells the agent to **read them** (via authenticated Brave QA or grep) **before editing**, so casual user input maps to exact canonical targets. The grammar is a tool the agent uses on itself, not a vocabulary imposed on the user.
 
 ## Related
 
@@ -113,4 +114,4 @@ The data attributes make the DOM self-identifying. This file tells the agent to 
 - [language.md](./language.md) — full Warm Earth token + motion spec
 - Project rules: `.claude/rules/frontend-design.md`
 - Tooling: `bun run check:design-tokens`, `bun run lint:vocab`
-- Brave-backed browser MCP tools: use the project `.mcp.json` `brave-devtools` server or a Brave-attached Claude browser extension. Never use Google Chrome, Chrome for Testing, Chromium, or Edge for Green Goods browser proof.
+- Authenticated Brave QA: use the Codex browser-extension path or the Claude Code Chrome/Chromium extension path against the already-open authenticated Brave profile/tab. If that access is blocked, report QA as blocked rather than switching to an isolated Browser, Playwright, or DevTools MCP profile.

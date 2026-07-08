@@ -2,16 +2,14 @@ import {
   Alert,
   EmptyState,
   EmptyStateShell,
-  formatRelativeTime,
-  resolveIPFSUrl,
+  type HubActionSummary,
   type Work,
   useEnsName,
-  WorkbenchList,
-  WorkbenchRow,
 } from "@green-goods/shared";
-import { RiCheckboxCircleLine, RiInboxLine, RiSearchLine } from "@remixicon/react";
+import { RiCheckboxCircleLine, RiSearchLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { formatEnsAddressName } from "@/components/EnsAddressText";
+import { HubWorkCard } from "./HubWorkCard";
 import { HubWorkbenchSkeletonRows } from "./HubWorkbenchSkeletonRows";
 
 interface HubWorkQueueProps {
@@ -20,7 +18,8 @@ interface HubWorkQueueProps {
   hasDataError: boolean;
   normalizedSearch: string;
   debouncedSearch: string;
-  actionsMap: Map<number, { title: string }>;
+  actionsMap: Map<number, HubActionSummary>;
+  selectedGardenName?: string;
   selectedWorkId: string | undefined;
   onOpenWorkDetail: (workId: string) => void;
   onClearSearch: () => void;
@@ -28,15 +27,19 @@ interface HubWorkQueueProps {
 
 interface HubWorkQueueItemProps {
   work: Work;
-  actionTitle?: string;
+  actionSummary?: HubActionSummary;
+  selectedGardenName?: string;
   selected: boolean;
+  eagerImages?: boolean;
   onOpenWorkDetail: (workId: string) => void;
 }
 
 function HubWorkQueueItem({
   work,
-  actionTitle,
+  actionSummary,
+  selectedGardenName,
   selected,
+  eagerImages,
   onOpenWorkDetail,
 }: HubWorkQueueItemProps) {
   const { formatMessage } = useIntl();
@@ -44,31 +47,20 @@ function HubWorkQueueItem({
   const gardenerDisplayName = formatEnsAddressName(work.gardenerAddress, ensName);
 
   return (
-    <WorkbenchRow
-      // Eyebrow names the stage, not the garden — chrome (AppBar GardenChip)
-      // already declares the garden context. See Rule 17.
-      eyebrow={formatMessage({ id: "cockpit.hub.tab.review", defaultMessage: "Review" })}
-      title={
-        work.title ||
-        formatMessage({
-          id: "app.admin.work.untitledWork",
-          defaultMessage: "Untitled Work",
-        })
+    <HubWorkCard
+      work={work}
+      actionDomain={actionSummary?.domain}
+      actionTitle={actionSummary?.title}
+      gardenName={
+        selectedGardenName ?? formatMessage({ id: "cockpit.nav.hub", defaultMessage: "Hub" })
       }
-      description={actionTitle ? `${actionTitle} · ${gardenerDisplayName}` : gardenerDisplayName}
-      meta={[
-        formatMessage({ id: "app.admin.work.filter.pending", defaultMessage: "Pending" }),
-        formatRelativeTime(work.createdAt),
-        `${work.media.length} media`,
-      ]}
+      gardenerDisplayName={gardenerDisplayName}
       statusLabel={formatMessage({
         id: "app.admin.work.filter.pending",
         defaultMessage: "Pending",
       })}
-      statusTone="pending"
-      leadingIcon={RiInboxLine}
-      thumbnailSrc={work.media[0] ? `${resolveIPFSUrl(work.media[0])}?w=160&h=160` : null}
       selected={selected}
+      eagerImages={eagerImages}
       onClick={() => onOpenWorkDetail(work.id)}
     />
   );
@@ -81,6 +73,7 @@ export function HubWorkQueue({
   normalizedSearch,
   debouncedSearch,
   actionsMap,
+  selectedGardenName,
   selectedWorkId,
   onOpenWorkDetail,
   onClearSearch,
@@ -101,7 +94,7 @@ export function HubWorkQueue({
   }
 
   if (worksLoading) {
-    return <HubWorkbenchSkeletonRows count={5} />;
+    return <HubWorkbenchSkeletonRows count={5} variant="media-card" />;
   }
 
   if (normalizedSearch && items.length === 0) {
@@ -149,19 +142,22 @@ export function HubWorkQueue({
   }
 
   return (
-    <WorkbenchList>
-      {items.map((work) => {
-        const actionTitle = actionsMap.get(work.actionUID)?.title;
+    <ul className="hub-workbench-grid" role="list">
+      {items.map((work, index) => {
+        const actionSummary = actionsMap.get(work.actionUID);
         return (
-          <HubWorkQueueItem
-            key={work.id}
-            work={work}
-            actionTitle={actionTitle}
-            selected={selectedWorkId === work.id}
-            onOpenWorkDetail={onOpenWorkDetail}
-          />
+          <li key={work.id} className="min-w-0">
+            <HubWorkQueueItem
+              work={work}
+              actionSummary={actionSummary}
+              selectedGardenName={selectedGardenName}
+              selected={selectedWorkId === work.id}
+              eagerImages={index < 6}
+              onOpenWorkDetail={onOpenWorkDetail}
+            />
+          </li>
         );
       })}
-    </WorkbenchList>
+    </ul>
   );
 }

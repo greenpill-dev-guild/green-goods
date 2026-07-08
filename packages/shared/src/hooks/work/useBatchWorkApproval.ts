@@ -89,6 +89,7 @@ export function useBatchWorkApproval() {
         queryClient.invalidateQueries({ queryKey: queryKeys.works.online(addr, chainId) });
         queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(addr, chainId) });
       }
+      queryClient.invalidateQueries({ queryKey: queryKeys.approvals.all });
     }, [queryClient, chainId]),
     INDEXER_LAG_SCHEDULE_MS
   );
@@ -201,6 +202,10 @@ export function useBatchWorkApproval() {
         title: authMode === "wallet" ? "Confirm in your wallet" : "Submitting batch...",
         message: `Processing ${message}...`,
         context: "batch approval",
+        // Wallet mode waits on the human signature, which can exceed any fixed
+        // timeout — keep it up until the flow replaces it. Passkey/offline are
+        // fast, so they keep the default auto-dismiss safety window.
+        persistent: authMode === "wallet",
       });
 
       return { previousStates };
@@ -241,6 +246,7 @@ export function useBatchWorkApproval() {
         queryClient.invalidateQueries({ queryKey: queryKeys.works.merged(addr, chainId) });
       }
       queryClient.invalidateQueries({ queryKey: queryKeys.workApprovals.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.approvals.all });
 
       // Schedule progressive follow-up invalidations for indexer lag (non-blocking)
       lastGardenAddressesRef.current = gardenAddresses;

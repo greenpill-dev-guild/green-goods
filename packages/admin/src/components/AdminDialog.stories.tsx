@@ -4,7 +4,8 @@ import { type ComponentType, type ReactNode, useState } from "react";
 import { expect, waitFor, within } from "storybook/test";
 import { withAdminPrimitiveFrame } from "../../../shared/.storybook/decorators";
 import { AdminButton } from "./AdminButton";
-import { AdminConfirmDialog, AdminDialog } from "./AdminDialog";
+import { ADMIN_FLOW_DIALOG_CLASS, AdminConfirmDialog, AdminDialog } from "./AdminDialog";
+import { ActionFlowShell } from "./Layout/ActionFlowShell";
 
 const meta: Meta<typeof AdminDialog> = {
   title: "Admin/Primitives/AdminDialog",
@@ -20,8 +21,8 @@ const meta: Meta<typeof AdminDialog> = {
           "text, and action slot.",
           "",
           "**Tone-aware** - focus ring on the close button consumes",
-          "`var(--tone-action, var(--m3-primary))` so it tints to the active",
-          "workspace.",
+          "`var(--tone-focus-ring, var(--m3-primary))` so it tints to the active",
+          "workspace (action color in light, bright accent in dark).",
           "",
           "**Accessibility**: native `<dialog>` via Radix; Escape closes; focus",
           "trapped while open; focus returns to trigger on close.",
@@ -246,7 +247,7 @@ export const MobileSheetContract: Story = {
   render: () => (
     <DialogPreview
       title="Edit domains"
-      description="Mobile uses the sheet presentation while desktop remains centered."
+      description="Mobile action dialogs use a full-width sheet while desktop remains centered."
       body="The body scrolls inside the AdminDialog surface and actions stay pinned below it."
       confirmLabel="Save"
     />
@@ -282,6 +283,90 @@ export const PaletteVariant: Story = {
       </AdminDialog>
     </div>
   ),
+};
+
+/**
+ * Flow variant — the action-flow dialog host for the admin action flows (Submit
+ * Work, Create Assessment, Create Hypercert, Manage Members). AdminDialog suppresses
+ * its own structured header and zeroes its padding so the consumer owns the chrome
+ * through ActionFlowShell: one pinned header (context + title), one scrolling body,
+ * one pinned footer. A bounded, centered card with a 32% scrim on desktop; a
+ * full-width bottom sheet on mobile — never a fullscreen takeover. Width comes
+ * from the shared ADMIN_FLOW_DIALOG_CLASS constant, not a local max-width override.
+ * The play test guards the single-header contract: the AdminDialog structured
+ * header must stay suppressed.
+ */
+const FLOW_SECTIONS = ["Action details", "Time & notes", "Evidence photos", "Review"];
+
+export const FlowVariant: Story = {
+  tags: ["storybook-ci"],
+  render: () => (
+    <AdminDialog
+      open
+      size="lg"
+      variant="flow"
+      className={ADMIN_FLOW_DIALOG_CLASS}
+      onOpenChange={() => undefined}
+      title="Submit work"
+      description="Capture the action, evidence, and notes for a new contribution."
+      bodyClassName="flex min-h-0 flex-col !overflow-hidden"
+    >
+      <ActionFlowShell
+        layout="dialog"
+        title="Submit work"
+        context="Rio Rainforest Lab"
+        footer={
+          <>
+            <div className="min-w-0 flex-1" aria-live="polite" />
+            <div className="flex gap-2">
+              <AdminButton variant="text" onClick={() => undefined}>
+                Cancel
+              </AdminButton>
+              <AdminButton variant="filled" onClick={() => undefined}>
+                Submit work
+              </AdminButton>
+            </div>
+          </>
+        }
+      >
+        <div className="space-y-6">
+          {FLOW_SECTIONS.map((sectionTitle, index) => (
+            <section
+              key={sectionTitle}
+              className="space-y-3 rounded-[var(--m3-shape-lg)] border border-stroke-soft p-4"
+            >
+              <div className="flex items-center gap-3">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-bg-weak text-xs font-semibold text-text-sub">
+                  {`0${index + 1}`}
+                </span>
+                <h2 className="text-base font-semibold text-text-strong">{sectionTitle}</h2>
+              </div>
+              <div className="h-10 w-full rounded-lg border border-stroke-soft bg-bg-white" />
+              <div className="h-20 w-full rounded-lg border border-stroke-soft bg-bg-white" />
+            </section>
+          ))}
+        </div>
+      </ActionFlowShell>
+    </AdminDialog>
+  ),
+  play: async () => {
+    const surface = document.querySelector<HTMLElement>(
+      '[data-component="AdminDialog"][data-slot="surface"]'
+    );
+    await waitFor(() => expect(surface).not.toBeNull());
+    // Flow variant drives the action-flow host — centered on desktop,
+    // full-width bottom sheet on mobile, never a fullscreen takeover.
+    // The flow variant sizes itself through FLOW_SIZE; the size scale collapsed to
+    // sm/md/lg, so the surface reports the "lg" tier.
+    await expect(surface).toHaveAttribute("data-variant", "flow");
+    await expect(surface).toHaveAttribute("data-size", "lg");
+    // Single header: the flow variant suppresses AdminDialog's structured header
+    // (data-slot="header"), so ActionFlowShell's header is the only title bar.
+    await expect(surface?.querySelector('[data-slot="header"]')).toBeNull();
+    await expect(surface?.querySelector('[data-region="action-flow-header"]')).not.toBeNull();
+    // ActionFlowShell pins its footer through the shared SheetFooter.
+    await expect(surface?.querySelector('[data-component="SheetFooter"]')).not.toBeNull();
+  },
 };
 
 export const ConfirmVariant: Story = {
@@ -415,9 +500,9 @@ export const DesktopGeometry: Story = {
 };
 
 /**
- * Mobile bottom-sheet geometry at a real 390x844 viewport. Regression-guards
- * mobile sheet overflow, off-bottom sheets, hidden/floating footers, and the
- * close-button overlap defect.
+ * Mobile full-width bottom-sheet geometry at a real 390x844 viewport.
+ * Regression-guards mobile sheet overflow, off-bottom sheets, hidden/floating
+ * footers, and the close-button overlap defect.
  */
 export const MobileSheetGeometry: Story = {
   tags: ["storybook-ci"],
@@ -436,9 +521,8 @@ export const MobileSheetGeometry: Story = {
   ),
   play: async () => {
     // Mobile regime: viewport is below the `sm` (640px) breakpoint, so the
-    // bottom-sheet layout is active. Assert the breakpoint boundary, not an
-    // exact pixel width — robust to viewport-definition / device-pixel-ratio
-    // changes while still proving the desktop centered layout is NOT in play.
+    // full-width bottom-sheet layout is active and the desktop centered layout
+    // is NOT in play.
     await expect(window.innerWidth).toBeLessThan(SM_BREAKPOINT_PX);
 
     const surface = await within(document.body).findByRole("dialog", {
@@ -467,14 +551,14 @@ export const MobileSheetGeometry: Story = {
       await expect(Math.abs(rect.bottom - window.innerHeight)).toBeLessThanOrEqual(
         CENTER_TOLERANCE_PX
       );
-      // Horizontally centered (left-1/2 -translate-x-1/2 applies at every width).
-      const centerX = (rect.left + rect.right) / 2;
-      await expect(Math.abs(centerX - window.innerWidth / 2)).toBeLessThanOrEqual(
+      // True full-width bottom sheet: both horizontal edges meet the viewport.
+      await expect(Math.abs(rect.left)).toBeLessThanOrEqual(VIEWPORT_EDGE_TOLERANCE_PX);
+      await expect(Math.abs(rect.right - window.innerWidth)).toBeLessThanOrEqual(
+        VIEWPORT_EDGE_TOLERANCE_PX
+      );
+      await expect(Math.abs(rect.width - window.innerWidth)).toBeLessThanOrEqual(
         CENTER_TOLERANCE_PX
       );
-      // No horizontal overflow off either edge.
-      await expect(rect.left).toBeGreaterThanOrEqual(-VIEWPORT_EDGE_TOLERANCE_PX);
-      await expect(rect.right).toBeLessThanOrEqual(window.innerWidth + VIEWPORT_EDGE_TOLERANCE_PX);
     });
 
     // The page itself does not scroll horizontally.
@@ -526,10 +610,14 @@ export const MobileSheetGeometry: Story = {
       await expect(closeRect.left).toBeGreaterThan(surfaceRect.left + surfaceRect.width / 2);
       // Sits above the scrollable body — does not overlap content.
       await expect(closeRect.bottom).toBeLessThanOrEqual(bodyRect.top + VIEWPORT_EDGE_TOLERANCE_PX);
-      // Headline reserves right padding so its text never runs under the button.
+      // Headline text stays clear of the absolute close button. Clearance now
+      // lives on the header row (pr-14 on the title bar), not on the title's own
+      // paddingRight, so assert the geometry directly: the title never extends
+      // under the close button.
       const title = within(surface).getByRole("heading", { name: /mobile bottom sheet/i });
-      await expect(Number.parseFloat(getComputedStyle(title).paddingRight)).toBeGreaterThanOrEqual(
-        36
+      const titleRect = title.getBoundingClientRect();
+      await expect(titleRect.right).toBeLessThanOrEqual(
+        closeRect.left + VIEWPORT_EDGE_TOLERANCE_PX
       );
     }
   },

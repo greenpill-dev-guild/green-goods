@@ -3,7 +3,6 @@ import {
   GardenChip,
   MainSheet,
   NavigationBar,
-  RightSheet,
   type ToolbarSlot,
 } from "@green-goods/shared";
 import { RiAppsLine, RiHammerLine, RiSeedlingLine, RiTeamLine } from "@remixicon/react";
@@ -11,6 +10,7 @@ import type { Meta, StoryObj } from "@storybook/react";
 import { useMemo, useState } from "react";
 import { Route, Routes } from "react-router-dom";
 import { expect, fn, userEvent, waitFor, within } from "storybook/test";
+import { AdminDialog } from "@/components/AdminDialog";
 import {
   STORYBOOK_ADMIN_DEPLOYER_SEEDS,
   STORYBOOK_ADMIN_SHELL_SEEDS,
@@ -99,7 +99,7 @@ function CanvasLayoutVisualHarness({ empty = false, activePath }: MockCanvasLayo
           onOpenProfile={fn()}
         />
       </div>
-      <MainSheet isReceded={settingsOpen}>
+      <MainSheet>
         <main className="h-full overflow-y-auto p-6">
           {empty ? (
             <section className="flex min-h-full items-center justify-center text-center">
@@ -128,9 +128,17 @@ function CanvasLayoutVisualHarness({ empty = false, activePath }: MockCanvasLayo
       <div className="canvas-area-bottom">
         <NavigationBar slots={slots} activePath={activePath} onNavigate={fn()} />
       </div>
-      <RightSheet open={settingsOpen} onClose={() => setSettingsOpen(false)} title="Settings">
+      <AdminDialog
+        open={settingsOpen}
+        onOpenChange={(next) => {
+          if (!next) setSettingsOpen(false);
+        }}
+        title="Settings"
+        tone="hub"
+        size="lg"
+      >
         <div className="p-5 text-sm text-text-sub">Account settings and network details.</div>
-      </RightSheet>
+      </AdminDialog>
     </>
   );
 }
@@ -241,7 +249,7 @@ export const RealProviderShell: Story = {
     docs: {
       description: {
         story:
-          "CI-covered real CanvasLayout composition. It exercises auth, router outlet rendering, garden selection, navigation chrome, right-sheet orchestration, and the real CommandPalette entry point against deterministic Storybook seeds.",
+          "CI-covered real CanvasLayout composition. It exercises auth, router outlet rendering, garden selection, navigation chrome, the AdminDialog account inspector (the right sheet is retired), and the real CommandPalette entry point against deterministic Storybook seeds.",
       },
     },
   },
@@ -272,16 +280,14 @@ export const RealProviderShell: Story = {
     const settingsTrigger = canvas.queryByRole("button", { name: "Open settings" });
     const sheetHeading = settingsTrigger ? "Settings" : "Notifications";
     await userEvent.click(settingsTrigger ?? canvas.getByRole("button", { name: "Notifications" }));
-    const rightSheet = await canvas.findByTestId("right-sheet");
-    const sheetLayer = await canvas.findByTestId("canvas-sheet-layer");
-    const mainSheet = await canvas.findByTestId("main-sheet");
-
-    await expect(rightSheet).toHaveAttribute("data-component", "RightSheet");
-    await expect(rightSheet).toHaveAttribute("data-boundary", "bounded");
-    await expect(sheetLayer).toHaveAttribute("data-state", "right");
-    await waitFor(() => expect(mainSheet).toHaveAttribute("data-state", "receded"));
-    await expect(within(rightSheet).getByRole("heading", { name: sheetHeading })).toBeVisible();
-    await userEvent.click(within(rightSheet).getByRole("button", { name: "Close" }));
+    // The right sheet is retired — account/notification content now renders in
+    // the AdminDialog inspector, which portals to document.body (role="dialog").
+    // Scope by accessible name: the shell can leave other portaled dialogs mounted,
+    // so target the inspector whose title matches, not just the first dialog.
+    const body = within(document.body);
+    const inspector = await body.findByRole("dialog", { name: sheetHeading });
+    await expect(within(inspector).getByRole("heading", { name: sheetHeading })).toBeVisible();
+    await userEvent.click(within(inspector).getByRole("button", { name: "Close" }));
   },
 };
 
@@ -345,11 +351,12 @@ export const Populated: Story = {
     const canvas = within(canvasElement);
     await expect(canvas.getByRole("banner")).toHaveAttribute("data-component", "AppBar");
     await userEvent.click(canvas.getByRole("button", { name: /open settings/i }));
-    await expect(await canvas.findByTestId("right-sheet")).toHaveAttribute(
-      "data-component",
-      "RightSheet"
-    );
-    await userEvent.click(canvas.getByTestId("right-sheet-close"));
+    // Settings opens the AdminDialog inspector (right sheet retired) — it portals
+    // to document.body with role="dialog".
+    const body = within(document.body);
+    const inspector = await body.findByRole("dialog");
+    await expect(within(inspector).getByRole("heading", { name: "Settings" })).toBeVisible();
+    await userEvent.click(within(inspector).getByRole("button", { name: "Close" }));
   },
 };
 

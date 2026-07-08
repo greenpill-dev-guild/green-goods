@@ -12,6 +12,12 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+const workMutationStoreMocks = vi.hoisted(() => ({
+  openWorkDashboard: vi.fn(),
+  setSubmissionCompleted: vi.fn(),
+  ensureWorkSubmissionJourneyId: vi.fn(() => "journey-123"),
+}));
+
 // Mock modules
 vi.mock("../../modules/work/wallet-submission", () => ({
   submitWorkDirectly: vi.fn(),
@@ -22,6 +28,7 @@ vi.mock("../../modules/work/work-submission", () => ({
 }));
 
 vi.mock("../../modules/job-queue", () => ({
+  isOfflineTxHash: (txHash: string) => txHash.startsWith("0xoffline_"),
   jobQueue: {
     processJob: vi.fn(),
   },
@@ -53,13 +60,14 @@ vi.mock("../../components/toast", () => ({
 }));
 
 vi.mock("../../stores/useUIStore", () => ({
-  useUIStore: vi.fn(() => vi.fn()),
+  useUIStore: vi.fn(() => workMutationStoreMocks.openWorkDashboard),
 }));
 
 vi.mock("../../stores/useWorkFlowStore", () => ({
   useWorkFlowStore: {
     getState: vi.fn(() => ({
-      setSubmissionCompleted: vi.fn(),
+      setSubmissionCompleted: workMutationStoreMocks.setSubmissionCompleted,
+      ensureWorkSubmissionJourneyId: workMutationStoreMocks.ensureWorkSubmissionJourneyId,
     })),
   },
 }));
@@ -89,6 +97,9 @@ vi.mock("../../modules/app/analytics-events", () => ({
   trackWorkSubmissionStarted: vi.fn(),
   trackWorkSubmissionSuccess: vi.fn(),
   trackWorkSubmissionFailed: vi.fn(),
+  trackWorkWalletRequestStarted: vi.fn(),
+  trackWorkWalletRequestExpired: vi.fn(),
+  trackWorkWalletRequestFailed: vi.fn(),
 }));
 
 // Mock useTransactionSender to avoid wagmi provider dependency
@@ -104,19 +115,52 @@ vi.mock("../../hooks/blockchain/useTransactionSender", () => ({
 }));
 
 vi.mock("../../utils/errors/contract-errors", () => ({
-  parseContractError: vi.fn((error: unknown) => ({
-    raw: error instanceof Error ? error.message : String(error),
-    name: "UnknownError",
-    message: "Something went wrong",
-    isKnown: false,
-    recoverable: true,
-    suggestedAction: "retry",
-  })),
-  parseAndFormatError: vi.fn(() => ({
-    title: "Error",
-    message: "Something went wrong",
-    parsed: { isKnown: false, name: "unknown", recoverable: true },
-  })),
+  parseContractError: vi.fn((error: unknown) => {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.toLowerCase().includes("request expired")) {
+      return {
+        raw: message,
+        name: "WalletRequestExpired",
+        message: "Wallet request expired before it was confirmed.",
+        action: "Submit again from Review when you're ready.",
+        isKnown: true,
+        recoverable: true,
+        suggestedAction: "retry",
+      };
+    }
+    return {
+      raw: message,
+      name: "UnknownError",
+      message: "Something went wrong",
+      isKnown: false,
+      recoverable: true,
+      suggestedAction: "retry",
+    };
+  }),
+  parseAndFormatError: vi.fn((error: unknown) => {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.toLowerCase().includes("request expired")) {
+      return {
+        title: "Wallet Request Expired",
+        message:
+          "Wallet request expired before it was confirmed. Submit again from Review when you're ready.",
+        parsed: {
+          raw: message,
+          name: "WalletRequestExpired",
+          message: "Wallet request expired before it was confirmed.",
+          action: "Submit again from Review when you're ready.",
+          isKnown: true,
+          recoverable: true,
+          suggestedAction: "retry",
+        },
+      };
+    }
+    return {
+      title: "Error",
+      message: "Something went wrong",
+      parsed: { isKnown: false, name: "UnknownError", recoverable: true },
+    };
+  }),
   isNotGardenMemberError: vi.fn(() => false),
   isAlreadyGardenerError: vi.fn(() => false),
   formatErrorForToast: vi.fn(() => ({ title: "Error", message: "Something went wrong" })),
@@ -128,6 +172,10 @@ import { jobQueue } from "../../modules/job-queue";
 import { submitWorkDirectly } from "../../modules/work/wallet-submission";
 import { WorkSubmissionError } from "../../modules/work/wallet-submission/types";
 import { submitWorkToQueue } from "../../modules/work/work-submission";
+import {
+  trackWorkWalletRequestExpired,
+  trackWorkWalletRequestStarted,
+} from "../../modules/app/analytics-events";
 import {
   createMockAction,
   createMockFiles,
@@ -153,6 +201,7 @@ describe("hooks/work/useWorkMutation", () => {
       },
     });
     vi.clearAllMocks();
+    workMutationStoreMocks.ensureWorkSubmissionJourneyId.mockReturnValue("journey-123");
 
     // Default: online
     Object.defineProperty(navigator, "onLine", {
@@ -200,6 +249,89 @@ describe("hooks/work/useWorkMutation", () => {
       );
       expect(submitWorkToQueue).not.toHaveBeenCalled();
     });
+
+    it("tracks when the wallet request starts", async () => {
+      mock(submitWorkDirectly).mockImplementation(
+        async (_draft, _garden, _actionUID, _actionTitle, _chainId, _images, options) => {
+          options?.onProgress?.("confirming", "Confirm in your wallet...");
+          return MOCK_TX_HASH;
+        }
+      );
+
+      const { result } = renderHook(() => useWorkMutation(defaultOptions), {
+        wrapper: createWrapper(),
+      });
+
+      await act(async () => {
+        await result.current.mutateAsync({
+          draft: createMockWorkDraft(),
+          images: createMockFiles(2),
+        });
+      });
+
+      expect(trackWorkWalletRequestStarted).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workSubmissionJourneyId: "journey-123",
+          authMode: "wallet",
+          chainId: 11155111,
+          actionUID: 1,
+          imageCount: 2,
+          submissionPhase: "wallet_request",
+        })
+      );
+    });
+
+    it("exposes wallet progress to reusable hook consumers", async () => {
+      const onProgress = vi.fn();
+      mock(submitWorkDirectly).mockImplementation(
+        async (_draft, _garden, _actionUID, _actionTitle, _chainId, _images, options) => {
+          options?.onProgress?.("uploading", "Uploading media to IPFS...");
+          return MOCK_TX_HASH;
+        }
+      );
+
+      const { result } = renderHook(() => useWorkMutation({ ...defaultOptions, onProgress }), {
+        wrapper: createWrapper(),
+      });
+
+      await act(async () => {
+        await result.current.mutateAsync({
+          draft: createMockWorkDraft(),
+          images: createMockFiles(1),
+        });
+      });
+
+      expect(onProgress).toHaveBeenCalledWith("uploading", "Uploading media to IPFS...");
+    });
+
+    it("lets admin-style consumers opt out of client completion side effects", async () => {
+      const onSuccess = vi.fn();
+      const onSettled = vi.fn();
+      mock(submitWorkDirectly).mockResolvedValue(MOCK_TX_HASH);
+
+      const { result } = renderHook(
+        () =>
+          useWorkMutation({
+            ...defaultOptions,
+            completeClientFlow: false,
+            onSuccess,
+            onSettled,
+          }),
+        { wrapper: createWrapper() }
+      );
+
+      await act(async () => {
+        await result.current.mutateAsync({
+          draft: createMockWorkDraft(),
+          images: createMockFiles(1),
+        });
+      });
+
+      expect(onSuccess).toHaveBeenCalledWith(MOCK_TX_HASH);
+      expect(onSettled).toHaveBeenCalled();
+      expect(workMutationStoreMocks.setSubmissionCompleted).not.toHaveBeenCalled();
+      expect(workMutationStoreMocks.openWorkDashboard).not.toHaveBeenCalled();
+    });
   });
 
   describe("Wallet mode - offline", () => {
@@ -226,6 +358,30 @@ describe("hooks/work/useWorkMutation", () => {
       expect(submitWorkToQueue).toHaveBeenCalled();
       expect(submitWorkDirectly).not.toHaveBeenCalled();
       expect(workToasts.savedOffline).toHaveBeenCalled();
+    });
+
+    it("lets admin-style consumers disable offline queue fallback", async () => {
+      Object.defineProperty(navigator, "onLine", { value: false });
+
+      const { result } = renderHook(
+        () => useWorkMutation({ ...defaultOptions, allowOfflineQueue: false }),
+        {
+          wrapper: createWrapper(),
+        }
+      );
+
+      await act(async () => {
+        await expect(
+          result.current.mutateAsync({
+            draft: createMockWorkDraft(),
+            images: createMockFiles(1),
+          })
+        ).rejects.toThrow("Offline queue is disabled");
+      });
+
+      expect(submitWorkToQueue).not.toHaveBeenCalled();
+      expect(submitWorkDirectly).not.toHaveBeenCalled();
+      expect(workToasts.savedOffline).not.toHaveBeenCalled();
     });
   });
 
@@ -448,6 +604,82 @@ describe("hooks/work/useWorkMutation", () => {
       // Transaction-phase network errors SHOULD fall back to queue
       expect(submitWorkToQueue).toHaveBeenCalled();
       expect(txHash).toBe("0xoffline_fallback");
+    });
+
+    it("does not fall back to queue for transaction errors when disabled", async () => {
+      const txError = new WorkSubmissionError(
+        "Network error - please check your connection",
+        "transaction",
+        "batch-no-queue",
+        new Error("network connection failed")
+      );
+      mock(submitWorkDirectly).mockRejectedValue(txError);
+
+      const { result } = renderHook(
+        () => useWorkMutation({ ...defaultOptions, allowOfflineQueue: false }),
+        {
+          wrapper: createWrapper(),
+        }
+      );
+
+      await act(async () => {
+        await expect(
+          result.current.mutateAsync({
+            draft: createMockWorkDraft(),
+            images: createMockFiles(1),
+          })
+        ).rejects.toThrow("Network error");
+      });
+
+      expect(submitWorkToQueue).not.toHaveBeenCalled();
+      await waitFor(() => {
+        expect(result.current.isError).toBe(true);
+      });
+    });
+
+    it("keeps wallet request expiry on the direct Review retry path", async () => {
+      const expiredError = new WorkSubmissionError(
+        "Wallet request expired",
+        "transaction",
+        "batch-expired",
+        new Error("request expired")
+      );
+      mock(submitWorkDirectly).mockRejectedValue(expiredError);
+
+      const { result } = renderHook(() => useWorkMutation(defaultOptions), {
+        wrapper: createWrapper(),
+      });
+
+      await act(async () => {
+        try {
+          await result.current.mutateAsync({
+            draft: createMockWorkDraft(),
+            images: createMockFiles(2),
+          });
+        } catch {
+          // Expected to throw so the Review step can keep the same draft state.
+        }
+      });
+
+      expect(submitWorkToQueue).not.toHaveBeenCalled();
+      expect(trackWorkWalletRequestExpired).toHaveBeenCalledWith(
+        expect.objectContaining({
+          workSubmissionJourneyId: "journey-123",
+          authMode: "wallet",
+          chainId: 11155111,
+          actionUID: 1,
+          imageCount: 2,
+          submissionPhase: "transaction",
+          parsedErrorFamily: "WalletRequestExpired",
+        })
+      );
+      expect(walletProgressToasts.error).toHaveBeenCalledWith(
+        expect.stringContaining("Wallet request expired"),
+        true
+      );
+      await waitFor(() => {
+        expect(result.current.isError).toBe(true);
+      });
     });
 
     it("inserts optimistic entry when wallet submission falls back to queue", async () => {

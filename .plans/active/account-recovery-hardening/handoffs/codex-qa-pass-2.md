@@ -10,7 +10,7 @@
 
 - Confirm `status.json` marks `qa_pass_1` passed before starting.
 - Re-run targeted shared auth tests chosen by the implementation lane.
-- Confirm rollout-flag-off behavior, server-unavailable behavior, and guarded new-account confirmation are covered by QA pass 1 evidence or follow-up tests.
+- Confirm rollout-flag-off behavior, server-unavailable behavior, and flat failed-recovery retry/back behavior are covered by QA pass 1 evidence or follow-up tests.
 - Confirm canonical RP/origin evidence, address-continuity proof, privacy-safe telemetry, and docs/support cleanup are complete.
 - Run `node scripts/harness/plan-hub.mjs validate`.
 - Run `bun run build:shared`.

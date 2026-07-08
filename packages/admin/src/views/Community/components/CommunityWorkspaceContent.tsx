@@ -54,16 +54,17 @@ export function CommunityWorkspaceContent({ workspace }: CommunityWorkspaceConte
   }
 
   return (
-    <div className="mt-4">
+    <div className="mt-4 min-h-0 flex-1">
       <CommunityTab
+        mode={workspace.mode}
         garden={{ id: workspace.garden.id, name: workspace.garden.name }}
         gardenId={workspace.gardenId}
         canManage={workspace.canManage}
-        isOwner={workspace.isOwner}
         section={workspace.section}
+        selectedItem={workspace.selectedItem}
         showSectionStateCard={false}
         clearSection={workspace.clearSection}
-        openSection={workspace.openSection}
+        closeMembersModal={workspace.closeMembersModal}
         community={workspace.community}
         communityLoading={workspace.communityLoading}
         pools={workspace.pools}
@@ -76,6 +77,10 @@ export function CommunityWorkspaceContent({ workspace }: CommunityWorkspaceConte
         allocations={workspace.allocations}
         allocationsLoading={workspace.allocationsLoading}
         roleSummary={workspace.derived.roleSummary}
+        roleMembers={workspace.roleMembers}
+        visibleDirectory={workspace.visibleDirectory}
+        memberSearch={workspace.memberSearch}
+        setMemberSearch={workspace.setMemberSearch}
         roleIcons={{
           owner: RiShieldCheckLine,
           operator: RiUserLine,
@@ -84,15 +89,6 @@ export function CommunityWorkspaceContent({ workspace }: CommunityWorkspaceConte
           funder: RiMoneyDollarCircleLine,
           community: RiGroupLine,
         }}
-        filteredDirectory={workspace.derived.filteredDirectory}
-        visibleDirectory={
-          workspace.mode === "members"
-            ? workspace.derived.filteredDirectory
-            : workspace.derived.visibleDirectory
-        }
-        memberSearch={workspace.memberSearch}
-        setMemberSearch={workspace.setMemberSearch}
-        openMembersModal={workspace.openMembersModal}
         scheduleBackgroundRefetch={workspace.scheduleBackgroundRefetch}
       />
     </div>

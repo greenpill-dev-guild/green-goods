@@ -24,7 +24,6 @@ import { renderWithProviders, screen, userEvent, waitFor } from "../test-utils";
 const mockOrchestrator = vi.hoisted(() => ({
   activeSheet: null as "left" | "right" | null,
   activeContentId: null as string | null,
-  isReceded: false,
   openSheet: vi.fn(),
   closeSheet: vi.fn(),
   onNavigateAway: vi.fn().mockResolvedValue(undefined),
@@ -142,7 +141,6 @@ describe("PageTransition", () => {
     vi.clearAllMocks();
     mockOrchestrator.activeSheet = null;
     mockOrchestrator.activeContentId = null;
-    mockOrchestrator.isReceded = false;
     mockOrchestrator.onNavigateAway.mockResolvedValue(undefined);
     mockOrchestrator.onNavigateArrive.mockReturnValue(null);
   });
@@ -182,7 +180,6 @@ describe("PageTransition", () => {
     // Sheet is open on initial render
     mockOrchestrator.activeSheet = "right";
     mockOrchestrator.activeContentId = "members";
-    mockOrchestrator.isReceded = true;
 
     renderPageTransition();
     const user = userEvent.setup();
@@ -345,10 +342,14 @@ describe("PageTransition", () => {
   it("keeps Hub stage tab pane changes motionless", () => {
     const css = readFileSync(resolve(__dirname, "../../index.css"), "utf-8");
 
-    expect(css).toMatch(
-      /\.hub-results-pane\s*{[^}]*animation:\s*none;[^}]*transition:\s*none;[^}]*transform:\s*none;/s
-    );
+    // The pane no longer carries `key={hub.stage}`, so a stage switch doesn't
+    // remount the subtree — there is nothing to animate. The CSS must not
+    // (re)introduce a pane animation or transition that would make tab changes
+    // move; the earlier `animation/transition/transform: none` suppression was
+    // guarding against a remount that no longer happens.
     expect(css).not.toContain("hub-fade-in");
+    expect(css).not.toMatch(/\.hub-results-pane\s*{[^}]*animation:/s);
+    expect(css).not.toMatch(/\.hub-results-pane\s*{[^}]*transition:/s);
   });
 
   it("keeps persistent navigation active-state changes motionless", () => {
@@ -374,5 +375,48 @@ describe("PageTransition", () => {
 
     // startViewTransition should not be called for same-path navigation
     expect(mockStartViewTransition).not.toHaveBeenCalled();
+  });
+
+  it("swaps instantly without a cross-fade for same-view tab changes", async () => {
+    // Both paths live under the same top-level view (/hub/*), i.e. a tab change.
+    renderPageTransition("/hub/history", ["/hub/history", "/hub/work/item-7"]);
+    const user = userEvent.setup();
+
+    await user.click(screen.getByTestId("nav-/hub/work/item-7"));
+
+    // Outlet still swaps and arrive bookkeeping runs, but no View Transitions
+    // cross-fade fires for an intra-view tab change.
+    await waitFor(() => {
+      expect(mockOrchestrator.onNavigateArrive).toHaveBeenCalledWith("/hub/work/item-7");
+    });
+    expect(mockStartViewTransition).not.toHaveBeenCalled();
+  });
+
+  it("resets scroll to top on a view change but not on a same-view tab change", async () => {
+    const main = document.createElement("main");
+    main.id = "main-content";
+    const scrollTo = vi.fn();
+    main.scrollTo = scrollTo as unknown as typeof main.scrollTo;
+    document.body.appendChild(main);
+
+    try {
+      renderPageTransition("/hub/history", ["/hub/history", "/hub/work/item-7", "/page-b"]);
+      const user = userEvent.setup();
+
+      // Same view (hub → hub): scroll position is preserved.
+      await user.click(screen.getByTestId("nav-/hub/work/item-7"));
+      await waitFor(() => {
+        expect(mockOrchestrator.onNavigateArrive).toHaveBeenCalledWith("/hub/work/item-7");
+      });
+      expect(scrollTo).not.toHaveBeenCalled();
+
+      // Cross view (hub → page-b): the new view lands at the top.
+      await user.click(screen.getByTestId("nav-/page-b"));
+      await waitFor(() => {
+        expect(scrollTo).toHaveBeenCalledWith({ top: 0 });
+      });
+    } finally {
+      document.body.removeChild(main);
+    }
   });
 });

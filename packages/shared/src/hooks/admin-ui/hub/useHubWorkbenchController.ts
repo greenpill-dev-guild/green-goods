@@ -45,10 +45,6 @@ import {
   resolveHubRouteSelection,
   resolveHubRouteState,
 } from "./hub.workbenchModel";
-import {
-  bindCanvasScrollPositionPersistence,
-  restoreCanvasScrollPosition,
-} from "../navigation/workspaceScroll";
 
 export function useHubWorkbenchController() {
   const { formatMessage } = useIntl();
@@ -94,12 +90,13 @@ export function useHubWorkbenchController() {
     activeContentId,
   });
   const isDesktop = useMediaQuery("(min-width: 600px)");
+  const selectedGardenId = selectedGarden?.id;
   const hubContext = useMemo<AdminHubRouteContext>(
     () => ({
-      gardenAddress: selectedGarden?.tokenAddress ?? selectedGarden?.id,
+      gardenId: selectedGardenId,
       sort: sortDirection,
     }),
-    [selectedGarden?.id, selectedGarden?.tokenAddress, sortDirection]
+    [selectedGardenId, sortDirection]
   );
 
   useEffect(() => {
@@ -107,7 +104,6 @@ export function useHubWorkbenchController() {
 
     const persistedState = getGardenWorkspaceState(gardenStateKey, "hub");
     setSearchTerm(persistedState.search);
-    restoreCanvasScrollPosition(persistedState.scrollPosition);
     lastHydratedGardenStateKeyRef.current = gardenStateKey;
   }, [gardenStateKey, getGardenWorkspaceState]);
 
@@ -136,7 +132,7 @@ export function useHubWorkbenchController() {
   const canCertify = canReview;
   const canBrowseHistory = canManage || canReview;
 
-  const { stage, stages } = useMemo(
+  const { stage, stages, stageCounts } = useMemo(
     () =>
       buildHubStageModel({
         requestedStage,
@@ -288,14 +284,6 @@ export function useHubWorkbenchController() {
   ]);
 
   useEffect(() => {
-    if (!selectedGarden) return;
-
-    return bindCanvasScrollPositionPersistence((scrollPosition) => {
-      setGardenWorkspaceState(gardenStateKey, "hub", { scrollPosition });
-    });
-  }, [gardenStateKey, selectedGarden, setGardenWorkspaceState]);
-
-  useEffect(() => {
     if (!routeSheetContentId || !routeSheetSide) {
       if (isRouteSheetContentId(activeContentId)) {
         closeSheet();
@@ -370,8 +358,10 @@ export function useHubWorkbenchController() {
 
   const viewActions = useMemo(
     () =>
-      selectedGarden ? buildHubViewActions(stage, canManage, canReview, navigate, hubContext) : [],
-    [canManage, canReview, hubContext, navigate, selectedGarden, stage]
+      selectedGardenId
+        ? buildHubViewActions(stage, canManage, canReview, navigate, hubContext)
+        : [],
+    [canManage, canReview, hubContext, navigate, selectedGardenId, stage]
   );
 
   const { desktopActions } = useViewActions({
@@ -383,9 +373,14 @@ export function useHubWorkbenchController() {
   // Mobile/tablet: refresh icon in the AppBar (next to notifications). Desktop
   // keeps refresh implicit — the action set in the page header is the only
   // chrome the operator needs.
-  useRefreshAction(
-    selectedGarden && !isDesktop ? { onRefresh: handleRefresh, isFetching: worksFetching } : null
+  const mobileRefreshAction = useMemo(
+    () =>
+      selectedGardenId && !isDesktop
+        ? { onRefresh: handleRefresh, isFetching: worksFetching }
+        : null,
+    [handleRefresh, isDesktop, selectedGardenId, worksFetching]
   );
+  useRefreshAction(mobileRefreshAction);
 
   const resultCount = getHubResultCount(stage, {
     pendingWorks: pendingWorks.length,
@@ -433,12 +428,12 @@ export function useHubWorkbenchController() {
       closeSheet();
       navigate(
         adminRoutes.hubMode(nextStage as HubPipelineStage, {
-          gardenAddress: hubContext.gardenAddress,
+          gardenId: hubContext.gardenId,
           sort: nextStage === "work" || nextStage === "history" ? sortDirection : undefined,
         })
       );
     },
-    [closeSheet, hubContext.gardenAddress, navigate, sortDirection]
+    [closeSheet, hubContext.gardenId, navigate, sortDirection]
   );
 
   return {
@@ -467,6 +462,8 @@ export function useHubWorkbenchController() {
     hypercertsLoading,
     isSubmitRoute,
     normalizedSearch,
+    pendingCriticalCount: derived.pendingCriticalCount,
+    pendingWarningCount: derived.pendingWarningCount,
     pendingWorks,
     refreshAgoText,
     resultCount,
@@ -485,6 +482,7 @@ export function useHubWorkbenchController() {
     sortDirection,
     sortOptions,
     stage,
+    stageCounts,
     stageTitle,
     stages,
     updateSearch,

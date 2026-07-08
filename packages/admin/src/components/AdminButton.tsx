@@ -12,14 +12,20 @@ export const adminButtonVariants = tv({
     // Layout & shape
     "inline-flex items-center justify-center gap-2 whitespace-nowrap",
     "rounded-[var(--m3-shape-full)]",
+    // Geometry parity — every variant carries a 1px border box so the box never
+    // changes width when a button swaps filled↔outlined (e.g. the active-tab
+    // action). Auto-width buttons grow by the border, so without this the
+    // outlined variant rendered 2px wider than filled (measured). Outlined
+    // overrides only the border COLOR.
+    "border border-transparent",
     // Typography
-    "text-label-lg font-medium",
+    "text-label-lg font-medium capitalize",
     // Motion
     "transition-all duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]",
     // State layer (pseudo-element overlay defined in admin-m3-tokens.css)
     "m3-state-layer",
     // Focus ring
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--m3-primary))] focus-visible:ring-offset-2",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))] focus-visible:ring-offset-2",
     // Disabled
     "disabled:pointer-events-none",
     "disabled:bg-[rgb(var(--m3-on-surface)/0.12)] disabled:text-[rgb(var(--m3-on-surface)/0.38)] disabled:shadow-none",
@@ -28,12 +34,11 @@ export const adminButtonVariants = tv({
     variant: {
       // Filled — highest emphasis. Uses the workspace's `--tone-action` so each
       // view feels distinct (Hub blue / Garden green / Community orange /
-      // Actions red / Home stone). Hover lifts 1px with elevation-2 for the
-      // same tactile feel as the secondary outlined buttons.
+      // Actions red / Home stone). Hover keeps geometry stable and uses
+      // elevation/state-layer feedback instead of translating the control.
       filled: [
         "bg-[rgb(var(--tone-action,var(--primary-action)))] [color:rgb(var(--tone-on-action,var(--primary-action-foreground)))]",
         "shadow-[var(--m3-elevation-1)] hover:shadow-[var(--m3-elevation-2)]",
-        "hover:-translate-y-[1px] active:translate-y-0",
         "[--state-layer-color:var(--tone-on-action,var(--primary-action-foreground))]",
       ],
       // Tonal — medium emphasis
@@ -44,20 +49,21 @@ export const adminButtonVariants = tv({
       ],
       // Elevated — medium emphasis with surface tint
       elevated: [
-        "bg-[rgb(var(--m3-surface-container-low))] [color:rgb(var(--m3-primary))]",
+        "bg-[rgb(var(--m3-surface-container-low))] [color:rgb(var(--tone-on-surface-accent,var(--m3-primary)))]",
         "shadow-[var(--m3-elevation-1)] hover:shadow-[var(--m3-elevation-2)]",
         "[--state-layer-color:var(--m3-primary)]",
       ],
-      // Outlined — low emphasis with border
+      // Outlined — low emphasis with border. Matches the filled hover through
+      // elevation gain, without moving the button box.
       outlined: [
-        "bg-transparent [color:rgb(var(--m3-primary))]",
-        "border border-[rgb(var(--m3-outline))]",
-        "shadow-[var(--m3-elevation-0)]",
+        "bg-transparent [color:rgb(var(--tone-on-surface-accent,var(--m3-primary)))]",
+        "border-[rgb(var(--m3-outline))]",
+        "shadow-[var(--m3-elevation-0)] hover:shadow-[var(--m3-elevation-1)]",
         "[--state-layer-color:var(--m3-primary)]",
       ],
       // Text — lowest emphasis
       text: [
-        "bg-transparent [color:rgb(var(--m3-primary))]",
+        "bg-transparent [color:rgb(var(--tone-on-surface-accent,var(--m3-primary)))]",
         "shadow-[var(--m3-elevation-0)]",
         "[--state-layer-color:var(--m3-primary)]",
       ],
@@ -136,6 +142,11 @@ export const AdminButton = React.forwardRef<HTMLButtonElement, AdminButtonProps>
       leadingIcon,
       disabled,
       children,
+      // Native buttons default to type="submit", so an AdminButton inside any
+      // <form> would submit it (full page reload) unless every call site
+      // remembers type="button". Default to the safe type; submit buttons opt
+      // in explicitly. Not forwarded to asChild clones (anchors have no type).
+      type = "button",
       ...props
     },
     ref
@@ -186,6 +197,7 @@ export const AdminButton = React.forwardRef<HTMLButtonElement, AdminButtonProps>
         className={classes}
         disabled={disabled || loading}
         aria-busy={loading || undefined}
+        type={type}
         {...props}
       >
         {content}

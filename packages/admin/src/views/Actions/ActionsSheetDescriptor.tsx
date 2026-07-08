@@ -1,13 +1,13 @@
 import {
   adminRoutes,
   localizeAction,
-  useRouteBackedLeftSheetConfig,
   type Action,
   type ActionsRouteState,
 } from "@green-goods/shared";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
+import { useRouteBackedLeftSheetConfig } from "@/components/Layout";
 import { ActionDetailPanel } from "./ActionDetail";
 import CreateAction from "./CreateAction";
 import EditAction from "./EditAction";
@@ -30,17 +30,9 @@ export function ActionsSheetDescriptor({
   const navigate = useNavigate();
 
   const sheetDescriptor = useMemo(() => {
-    if (routeState.kind === "create") {
-      return {
-        title: formatMessage({
-          id: "admin.actions.createAction",
-          defaultMessage: "Create action",
-        }),
-        content: <CreateAction layout="sheet" />,
-        width: "wide" as const,
-      };
-    }
-
+    // Create is a full-surface stepped wizard — it self-hosts its own
+    // `AdminDialog variant="flow"` (returned below), so it does not flow through
+    // the shared route-backed dialog channel like detail/edit do.
     if (routeState.kind === "detail") {
       const action = actions.find((record) => record.id === routeState.actionId);
       const displayAction = action ? localizeAction(action, intl.locale) : null;
@@ -87,7 +79,6 @@ export function ActionsSheetDescriptor({
             onEdit={() => undefined}
           />
         ),
-        width: "wide" as const,
       };
     }
 
@@ -101,13 +92,21 @@ export function ActionsSheetDescriptor({
             title: sheetDescriptor.title,
             content: sheetDescriptor.content,
             closeTo: routeState.closeTo,
-            width: sheetDescriptor.width,
+            // Action create/detail/edit inspectors carry forms — render at the
+            // richer `lg` dialog tier with the Actions workspace tone.
+            size: "lg" as const,
+            tone: "actions" as const,
           }
         : null,
     [routeState.closeTo, routeState.contentId, sheetDescriptor]
   );
 
   useRouteBackedLeftSheetConfig(routeBackedSheetConfig);
+
+  // Create renders as its own centered flow dialog over the still-mounted list.
+  if (routeState.kind === "create") {
+    return <CreateAction />;
+  }
 
   return null;
 }

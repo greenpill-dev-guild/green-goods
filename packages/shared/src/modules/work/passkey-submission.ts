@@ -9,6 +9,7 @@ import {
   buildBatchApprovalAttestTx,
   buildWorkAttestTx,
 } from "../../utils/eas/transaction-builder";
+import { resolveWorkSubmissionTitle } from "../../utils/work/workTitles";
 import { simulateWorkSubmission } from "./simulate";
 
 function assertSmartAccount(
@@ -79,7 +80,7 @@ export async function submitWorkWithPasskey({
   const attestationData = await encodeWorkData(
     {
       ...draft,
-      title: `${actionTitle} - ${new Date().toISOString()}`,
+      title: resolveWorkSubmissionTitle({ draftTitle: draft.title, actionTitle, actionUID }),
       actionUID,
       media: images,
     },

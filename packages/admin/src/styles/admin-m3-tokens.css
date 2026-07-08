@@ -41,21 +41,32 @@
    * M3 Surface Color Aliases — Light Mode
    * Maps to design system tokens from @green-goods/shared/styles/theme.css
    * -------------------------------------------------------------------------- */
+  /* Light surface ladder — warm linen family (constant hue ~85, chroma
+   * .005–.012), replacing flat-gray Tailwind neutrals. DESIGN.md's canvas is
+   * linen #FAF8F5; dark mode already carries the warm ladder (hue ~65), so
+   * light matching it restores Warm Earth parity. Cards/sheets stay white.
+   * OKLCH intent in comments; shipped as RGB triplets (consumers rgb(var())).
+   * Ink ≥11.3 and the control outline ≥3.5 on every step (audit-verified). */
   --m3-surface: var(--bg-white-0);
-  --m3-surface-dim: var(--neutral-200);
+  --m3-surface-dim: 235 231 224;             /* oklch(93% .010 85) */
   --m3-surface-container-lowest: 255 255 255;
-  --m3-surface-container-low: var(--neutral-50);
-  --m3-surface-container: var(--neutral-100);
-  --m3-surface-container-high: var(--neutral-200);
-  --m3-surface-container-highest: var(--neutral-300);
+  --m3-surface-container-low: 252 250 246;   /* oklch(98.5% .005 85) */
+  --m3-surface-container: 247 244 239;       /* oklch(96.8% .007 85) */
+  --m3-surface-container-high: 236 233 226;  /* oklch(93.5% .010 85) */
+  --m3-surface-container-highest: 226 222 213; /* oklch(90% .012 85) */
   --m3-on-surface: var(--text-strong-950);
   --m3-on-surface-variant: var(--text-sub-600);
-  --m3-outline: var(--stroke-sub-300);
+  /* Control-grade outline (4.8:1 on white): text-field/chip/outlined-button
+   * boundaries. The old neutral-300 measured 1.49:1 — a decorative hairline
+   * doing a control job. Decorative edges keep --m3-outline-variant. */
+  --m3-outline: var(--neutral-500);
   --m3-outline-variant: var(--stroke-soft-200);
   --m3-inverse-surface: var(--neutral-900);
   --m3-inverse-on-surface: var(--neutral-100);
   --m3-inverse-primary: var(--green-200);
-  --m3-primary: var(--tone-primary, var(--green-500));
+  /* No-tone fallback is green-800, not green-500: --m3-primary doubles as
+   * on-surface text/link color, and green-500 measures 2.36 on white. */
+  --m3-primary: var(--tone-primary, var(--green-800));
   --m3-on-primary: var(--tone-on-primary, 255 255 255);
   --m3-primary-container: var(--tone-primary-container, var(--green-100));
   --m3-on-primary-container: var(--tone-on-primary-container, var(--green-900));
@@ -63,10 +74,63 @@
   --m3-on-secondary-container: var(--neutral-900);
   --m3-tertiary-container: var(--warning-lighter);
   --m3-on-tertiary-container: var(--warning-dark);
-  --m3-error: var(--error-base);
+  /* red-700 (admin handoff 185 28 28): white text at 6.4 — the old error-base
+   * (224 56 53) measured 4.39 on the danger confirm button. */
+  --m3-error: var(--red-700);
   --m3-on-error: 255 255 255;
   --m3-error-container: var(--error-lighter);
   --m3-on-error-container: var(--error-dark);
+  --admin-modal-scrim: rgb(var(--neutral-950) / 0.36);
+}
+
+/* --------------------------------------------------------------------------
+ * Tone-derived primary roles — RE-DECLARED at `.admin-m3` scope (scoping fix)
+ *
+ * `--m3-primary` (and the primary-container pair) indirect through
+ * `--tone-primary`, which is set per-workspace on the `[data-tone]` element —
+ * the SAME element that carries `.admin-m3` (see CanvasLayout). Declaring these
+ * only at `:root` (above) substitutes `var(--tone-primary)` at `:root`, where
+ * it is unset, so the value locks to the green fallback and that COMPUTED green
+ * inherits DOWN past the `[data-tone]` element that would have tinted it — which
+ * is why "everything was green" while only the canvas + filled button (which
+ * read `--tone-action` directly) picked up the workspace hue.
+ *
+ * Re-declaring them here, on the element that also sets `--tone-primary`,
+ * resolves the indirection in-scope, so every consumer that reads `--m3-primary`
+ * (secondary buttons, checkbox, progress, text-field accents, list selection)
+ * tints to the active workspace. Do NOT delete this as a "duplicate of :root":
+ * the `:root` copy is the no-tone fallback; THIS copy is what makes tone work.
+ * Enforced by scripts/design/check-tokens.sh.
+ * -------------------------------------------------------------------------- */
+.admin-m3 {
+  --m3-primary: var(--tone-primary, var(--green-800));
+  --m3-on-primary: var(--tone-on-primary, 255 255 255);
+  --m3-primary-container: var(--tone-primary-container, var(--green-100));
+  --m3-on-primary-container: var(--tone-on-primary-container, var(--green-900));
+}
+
+/* --------------------------------------------------------------------------
+ * Portal escape hatch for the tone-derived primary roles.
+ *
+ * The `.admin-m3` block above is what tones `--m3-primary` per-workspace, but it
+ * only fires where `.admin-m3` is on the tree. The AdminDialog action-flow
+ * surfaces (`variant="flow"`) portal to <body> — OUTSIDE `.admin-m3` — and only
+ * re-establish `[data-tone]` (via the dialog's `tone` prop). So in-portal,
+ * `--m3-primary` fell back to the no-tone green and every consumer that reads it
+ * (AdminButton focus ring, AdminLinearProgress bar, AdminCheckbox, …) rendered
+ * green inside a blue/red/amber flow — while `--tone-action` consumers toned
+ * correctly. This bare `[data-tone]` rule re-derives the primary roles from the
+ * tone the portal DOES carry. It is a NO-OP in-canvas (those elements carry both
+ * `.admin-m3` and `[data-tone]`, and both resolve to `var(--tone-primary)`); the
+ * `:is(...[data-theme="dark"]...)` block below keeps higher specificity in dark.
+ * Theme is handled by `--tone-primary` itself (light/dark variants on the
+ * `[data-tone]` scopes), so one rule covers both modes.
+ * -------------------------------------------------------------------------- */
+[data-tone] {
+  --m3-primary: var(--tone-primary, var(--green-800));
+  --m3-on-primary: var(--tone-on-primary, 255 255 255);
+  --m3-primary-container: var(--tone-primary-container, var(--green-100));
+  --m3-on-primary-container: var(--tone-on-primary-container, var(--green-900));
 }
 
 /* --------------------------------------------------------------------------
@@ -74,19 +138,49 @@
  * Overrides for [data-theme="dark"] adaptive dark palette
  * -------------------------------------------------------------------------- */
 [data-theme="dark"] {
-  /* Surface ladder — derive from --bg-* semantic tokens (remapped in theme.css)
-   * to stay in sync with the M3-aligned dark surface hierarchy (tones 4→22) */
-  --m3-surface: var(--bg-white-0);
-  --m3-surface-dim: var(--bg-white-0);
-  --m3-surface-container-lowest: var(--neutral-975);
-  --m3-surface-container-low: var(--bg-weak-50);
-  --m3-surface-container: var(--bg-soft-200);
-  --m3-surface-container-high: var(--bg-sub-300);
-  --m3-surface-container-highest: var(--bg-surface-800);
+  /* Deliberate warm-dark surface ladder (Warm Earth — constant warm hue ~65,
+   * raised chroma so surfaces read warm even at low lightness). OKLCH is the
+   * authoritative intent (in comments); the shipped value is the computed RGB
+   * triplet because every consumer reads `rgb(var(--m3-surface…))`.
+   * M3-dark convention: HIGHER elevation = LIGHTER. The default card
+   * (`--m3-surface-container`) sits ~6 L* above the canvas (`--m3-surface`), so
+   * card↔canvas separation comes from a lightness STEP, not a (black, invisible)
+   * drop shadow. This replaces the previous cold blue-slate derivation. */
+  --m3-surface: 17 12 8;                 /* oklch(16% .012 65) — canvas floor */
+  --m3-surface-dim: 17 12 8;             /* oklch(16% .012 65) — = surface in dark */
+  --m3-surface-bright: 57 49 41;         /* oklch(32% .018 65) — ladder top */
+  --m3-surface-container-lowest: 10 7 4; /* oklch(13% .010 65) — sunken wells */
+  --m3-surface-container-low: 24 19 13;  /* oklch(19% .014 65) — quiet grouping */
+  --m3-surface-container: 32 25 19;      /* oklch(22% .015 65) — DEFAULT CARD */
+  --m3-surface-container-high: 42 35 28; /* oklch(26% .016 65) — sheet/dialog inner */
+  --m3-surface-container-highest: 52 44 36; /* oklch(30% .018 65) — active/hover, chips */
+
+  /* M3 elevation — DARK override (the `:root` ladder above is light-only: pure
+   * black drop shadows that are invisible on near-black). In M3-dark, depth is a
+   * warm-white RING that scales with elevation; a small black blur is retained
+   * only to help glass/sheets that float OVER content read as lifted. Paired with
+   * the lightness STEP in the surface ladder, this restores card separation. */
+  --m3-elevation-0: none;
+  --m3-elevation-1: 0 0 0 1px rgb(var(--neutral-50) / 0.06);
+  --m3-elevation-2: 0 1px 2px rgb(0 0 0 / 0.5), 0 0 0 1px rgb(var(--neutral-50) / 0.09);
+  --m3-elevation-3: 0 4px 12px rgb(0 0 0 / 0.55), 0 0 0 1px rgb(var(--neutral-50) / 0.12);
+  --m3-elevation-4: 0 8px 24px rgb(0 0 0 / 0.6), 0 0 0 1px rgb(var(--neutral-50) / 0.14);
+  --m3-elevation-5: 0 16px 40px rgb(0 0 0 / 0.6), 0 0 0 1px rgb(var(--neutral-50) / 0.16);
+
   --m3-on-surface: var(--text-strong-950);
   --m3-on-surface-variant: var(--text-sub-600);
-  --m3-outline: var(--stroke-sub-300);
+  /* Control-grade outline for dark (7.7:1 vs surface, 6.1 vs dialog): the
+   * remapped stroke-sub-300 (neutral-700) measured 1.89:1. */
+  --m3-outline: var(--neutral-400);
   --m3-outline-variant: var(--stroke-soft-200);
+  /* Dark error flips strategy (M3-dark convention): lighter red fill
+   * (admin remap 248 113 113) with ink text = 6.2; the old red-600 fill with
+   * ink text measured 4.09, and as icon/text on the canvas 4.03. */
+  --m3-error: var(--red-500);
+  /* Must live HERE, not only in theme.css's dark block: this file's :root
+   * declaration is unlayered and beats theme's @layer dark override, so
+   * without this line dark on-error resolves to the light-mode white. */
+  --m3-on-error: var(--neutral-950);
   --m3-inverse-surface: var(--neutral-100);
   --m3-inverse-on-surface: var(--neutral-900);
   --m3-inverse-primary: var(--green-700);
@@ -100,6 +194,15 @@
   --m3-on-tertiary-container: var(--warning-dark);
   --m3-error-container: var(--error-light);
   --m3-on-error-container: var(--error-dark);
+  --admin-modal-scrim: rgb(0 0 0 / 0.62);
+}
+
+/* Dark-mode pair of the tone-derived re-declaration above (same scoping fix). */
+:is(.admin-m3[data-theme="dark"], [data-theme="dark"] .admin-m3) {
+  --m3-primary: var(--tone-primary, var(--green-200));
+  --m3-on-primary: var(--tone-on-primary, var(--green-900));
+  --m3-primary-container: var(--tone-primary-container, var(--green-900));
+  --m3-on-primary-container: var(--tone-on-primary-container, var(--green-100));
 }
 
 /* --------------------------------------------------------------------------

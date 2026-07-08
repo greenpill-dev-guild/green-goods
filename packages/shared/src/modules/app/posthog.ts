@@ -266,12 +266,20 @@ function getSessionId(): string {
 // CORE TRACKING
 // ============================================================================
 
+export interface TrackOptions {
+  includeSessionId?: boolean;
+}
+
 /**
  * Track a custom event with automatic enrichment.
  *
  * Safe to call even if PostHog isn't initialized - will no-op in dev or if not ready.
  */
-export function track(event: string, properties: Record<string, unknown> = {}) {
+export function track(
+  event: string,
+  properties: Record<string, unknown> = {},
+  options: TrackOptions = {}
+) {
   // Throttle diagnostic events
   if (shouldThrottleEvent(event)) {
     if (IS_DEBUG) {
@@ -290,7 +298,7 @@ export function track(event: string, properties: Record<string, unknown> = {}) {
             ?.effectiveType || "unknown"
         : "unknown",
     timestamp: Date.now(),
-    session_id: getSessionId(),
+    ...(options.includeSessionId === false ? {} : { session_id: getSessionId() }),
   };
 
   if (IS_DEBUG) {

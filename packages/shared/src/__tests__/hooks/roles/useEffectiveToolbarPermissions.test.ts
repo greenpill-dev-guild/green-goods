@@ -27,6 +27,11 @@ vi.mock("../../../hooks/garden/useEligibleAdminGardens", () => ({
   useEligibleAdminGardens: () => mockUseEligibleAdminGardens(),
 }));
 
+const mockUseAdminGardenContext = vi.fn();
+vi.mock("../../../hooks/garden/useAdminGardenContext", () => ({
+  useAdminGardenContext: () => mockUseAdminGardenContext(),
+}));
+
 const mockUseAdminStore = vi.fn();
 vi.mock("../../../stores/useAdminStore", () => ({
   useAdminStore: (selector: (state: unknown) => unknown) => mockUseAdminStore(selector),
@@ -98,6 +103,10 @@ function setupDefaults(
     isLoaded: eligibleGardensLoaded,
     isError: eligibleGardensError,
     hasStaleBaseList,
+  });
+  mockUseAdminGardenContext.mockReturnValue({
+    activeGarden: selectedGarden,
+    activeGardenId: selectedGarden?.id ?? null,
   });
 }
 

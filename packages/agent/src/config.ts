@@ -5,7 +5,7 @@
  * Uses getDefaultChain from shared package for chain configuration.
  */
 
-import { getDefaultChain } from "@green-goods/shared";
+import { getDefaultChain } from "@green-goods/shared/config/blockchain";
 import type { Chain } from "viem";
 import { arbitrum, celo, optimism, sepolia } from "viem/chains";
 import { logger } from "./services/logger";
@@ -57,10 +57,9 @@ export interface Config {
   // Public provider integrations
   pinataJwt?: string;
   pinataUploadsApiBaseUrl?: string;
-  lumaApiKey?: string;
-  lumaCalendarId?: string;
-  lumaGreenGoodsTagId?: string;
-  lumaGreenGoodsTagName?: string;
+  resendApiKey?: string;
+  resendGreenGoodsSegmentId?: string;
+  resendGreenGoodsTopicId?: string;
   thirdwebWebhookSecret?: string;
   thirdwebClientId?: string;
   thirdwebSecretKey?: string;
@@ -136,8 +135,10 @@ export function loadConfig(): Config {
 
     // API
     botApiToken: process.env.BOT_API_TOKEN,
-    publicAllowedOrigins:
-      process.env.AGENT_ALLOWED_ORIGINS ?? process.env.AGENT_PUBLIC_ALLOWED_ORIGINS,
+    publicAllowedOrigins: firstNonEmpty(
+      process.env.AGENT_ALLOWED_ORIGINS,
+      process.env.AGENT_PUBLIC_ALLOWED_ORIGINS
+    ),
     trustedProxyHops: process.env.AGENT_TRUSTED_PROXY_HOPS
       ? parseInt(process.env.AGENT_TRUSTED_PROXY_HOPS, 10)
       : undefined,
@@ -153,10 +154,9 @@ export function loadConfig(): Config {
     // Public provider integrations
     pinataJwt: process.env.PINATA_JWT,
     pinataUploadsApiBaseUrl: process.env.PINATA_UPLOADS_API_URL,
-    lumaApiKey: process.env.LUMA_API_KEY,
-    lumaCalendarId: process.env.LUMA_CALENDAR_ID,
-    lumaGreenGoodsTagId: process.env.LUMA_GREEN_GOODS_TAG_ID,
-    lumaGreenGoodsTagName: process.env.LUMA_GREEN_GOODS_TAG_NAME,
+    resendApiKey: process.env.RESEND_API_KEY,
+    resendGreenGoodsSegmentId: process.env.RESEND_GREEN_GOODS_SEGMENT_ID,
+    resendGreenGoodsTopicId: process.env.RESEND_GREEN_GOODS_TOPIC_ID,
     thirdwebWebhookSecret: process.env.THIRDWEB_WEBHOOK_SECRET,
     thirdwebClientId: process.env.VITE_THIRDWEB_CLIENT_ID,
     thirdwebSecretKey: process.env.THIRDWEB_SECRET_KEY,
@@ -184,6 +184,10 @@ function parsePositiveInteger(value: string | undefined): number | undefined {
   if (!value?.trim()) return undefined;
   const parsed = Number(value);
   return Number.isInteger(parsed) && parsed > 0 ? parsed : undefined;
+}
+
+function firstNonEmpty(...values: Array<string | undefined>): string | undefined {
+  return values.find((value) => Boolean(value?.trim()));
 }
 
 function parseSampleRate(value: string | undefined, fallback: number): number {

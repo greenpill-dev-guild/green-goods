@@ -10,7 +10,7 @@
     "overall_status": "backlog",
     "priority": "p2",
     "created_at": "2026-04-25T05:11:42.581Z",
-    "updated_at": "2026-05-03T19:17:16.238Z"
+    "updated_at": "2026-06-27T00:28:08.421Z"
   },
   "links": {
     "brief": "brief.md",
@@ -87,6 +87,22 @@
       "status": "rescoped",
       "branch": null,
       "note": "Scoped as the follow-up read-only design-system alignment review after deleting the old implementation plan."
+    },
+    {
+      "timestamp": "2026-06-26T00:00:00.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "dependency_cleared",
+      "branch": null,
+      "note": "Removed stale dependency on archived css-maintainability-polish."
+    },
+    {
+      "timestamp": "2026-06-27T00:28:08.421Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
     }
   ],
   "taxonomy": {
@@ -94,6 +110,12 @@
     "tracks": ["admin", "client-browser", "client-pwa", "shared", "docs"],
     "work_types": ["review"],
     "surfaces": ["DESIGN.md", "packages/shared", "packages/admin", "packages/client", "docs"],
-    "depends_on_features": ["css-maintainability-polish"]
+    "depends_on_features": []
+  },
+  "linear": {
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": "2026-06-27T00:28:08.421Z",
+    "parentIssue": "PRD-644",
+    "lanes": {}
   }
 }

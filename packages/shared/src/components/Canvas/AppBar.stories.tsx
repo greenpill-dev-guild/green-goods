@@ -50,7 +50,7 @@ const meta = {
     },
     onOpenNotifications: {
       description:
-        "Callback for the notification button. When omitted, the button opens the local popover fallback.",
+        "Callback for the notification bell. When provided, the bell appears and opens the notifications side sheet (bottom sheet on mobile).",
     },
     onOpenProfile: {
       description: "Callback for the profile button. When provided, the person icon appears.",
@@ -151,9 +151,9 @@ export const StateCatalog: Story = {
 
       <section>
         <h3 className="mb-3 px-4 text-sm font-semibold text-text-sub">
-          Local notifications popover fallback
+          Mobile action set (no settings/profile — those live in the Profile tab)
         </h3>
-        <AppBar gardenChip={gardenChipElement} onOpenSearch={fn()} onOpenSettings={fn()} />
+        <AppBar gardenChip={gardenChipElement} onOpenNotifications={fn()} />
       </section>
     </div>
   ),

@@ -28,7 +28,9 @@ export const AppBar = () => {
   const isWorkDashboardOpen = useUIStore((s) => s.isWorkDashboardOpen);
   const isGardenFilterOpen = useUIStore((s) => s.isGardenFilterOpen);
   const isEndowmentDrawerOpen = useUIStore((s) => s.isEndowmentDrawerOpen);
-  const isAnyDrawerOpen = isWorkDashboardOpen || isGardenFilterOpen || isEndowmentDrawerOpen;
+  const isWalletDrawerOpen = useUIStore((s) => s.isWalletDrawerOpen);
+  const isAnyDrawerOpen =
+    isWorkDashboardOpen || isGardenFilterOpen || isEndowmentDrawerOpen || isWalletDrawerOpen;
   // Browser mode shows SiteHeader only (D6); bottom nav is PWA-only
   const shouldHideBar = !isPwaPresentation || isGarden || isWorkDetail || isAnyDrawerOpen;
 
@@ -90,6 +92,7 @@ export const AppBar = () => {
               to={path}
               key={title}
               viewTransition
+              aria-current={isActive ? "page" : undefined}
               className={cn(
                 "flex flex-col items-center",
                 isActive && "active tab-active text-primary focus:outline-hidden",

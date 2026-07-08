@@ -126,7 +126,7 @@ paths:
   - "packages/client/src/components/**"
 ```
 
-The Storybook/design gate runs `check:design-md`, `check:design-generated`, `check:design-tokens`, `lint:vocab`, `check:stories`, `check:story-quality`, `test:stories:ci`, and `build-storybook`. Chromatic publishes only when `CHROMATIC_PROJECT_TOKEN` is configured.
+The Storybook/design gate runs `check:design-md`, `check:design-generated`, `check:design-tokens`, `lint:vocab`, `check:stories`, `check:story-quality`, `test:stories:ci`, and `build-storybook`. Chromatic publishes only when the Design workflow is manually dispatched with `publish_chromatic` enabled and `CHROMATIC_PROJECT_TOKEN` is configured.
 
 ### Deployment Workflows
 

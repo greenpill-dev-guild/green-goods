@@ -1,13 +1,13 @@
 {
   "version": 1,
-  "updated_at": "2026-04-21",
+  "updated_at": "2026-07-04",
   "entries": [
     {
       "file": "packages/contracts/test/fork/CrossChainENS.t.sol",
       "pattern": "vm.store",
       "reason": "ENS base node ownership cannot be transferred to ephemeral test accounts on public forks; vm.store is required to exercise receiver flow.",
       "owner": "contracts-core",
-      "expires_on": "2026-06-30",
+      "expires_on": "2026-09-30",
       "network_scope": ["mainnet"],
       "classification": "necessary",
       "replacement_recommendation": "Replace with delegated test-owned ENS test node when available."
@@ -17,7 +17,7 @@
       "pattern": "vm.store",
       "reason": "Mainnet ENS receiver tests require simulated control of greengoods.eth without private-key ownership in CI.",
       "owner": "contracts-core",
-      "expires_on": "2026-06-30",
+      "expires_on": "2026-09-30",
       "network_scope": ["mainnet"],
       "classification": "necessary",
       "replacement_recommendation": "Use a dedicated CI ENS node delegation path if introduced."

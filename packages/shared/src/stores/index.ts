@@ -30,18 +30,6 @@ export {
   resetCreateGardenStore,
   useCreateGardenStore,
 } from "./useCreateGardenStore";
-// Hypercert Wizard Store
-export type {
-  HypercertWizardStore,
-  MintingState,
-  MintingStatus,
-} from "./useHypercertWizardStore";
-export { useHypercertWizardStore } from "./useHypercertWizardStore";
-// UI Store
-export { type UIState, useUIStore } from "./useUIStore";
-// Work Flow Store
-export type { WorkDraftState, WorkFlowState } from "./useWorkFlowStore";
-export { useWorkFlowStore } from "./useWorkFlowStore";
 // Garden State Store (per-garden UI state — Phase 2)
 export type {
   GardenState,
@@ -54,6 +42,17 @@ export {
   GARDEN_STATE_STORAGE_KEY,
   useGardenStateStore,
 } from "./useGardenStateStore";
+// Hypercert Wizard Store
+export type {
+  HypercertWizardStore,
+  MintingState,
+  MintingStatus,
+} from "./useHypercertWizardStore";
+export {
+  HYPERCERT_MINTING_IN_PROGRESS_STATUSES,
+  isHypercertMintingInProgress,
+  useHypercertWizardStore,
+} from "./useHypercertWizardStore";
 // Sheet Orchestrator Store
 export type {
   SheetOrchestratorState,
@@ -63,5 +62,15 @@ export {
   SHEET_STATE_STORAGE_KEY,
   useSheetOrchestratorStore,
 } from "./useSheetOrchestratorStore";
+// UI Store
+export {
+  type UIState,
+  useUIStore,
+  type WorkDashboardPendingFilter,
+  type WorkDashboardTab,
+} from "./useUIStore";
+// Work Flow Store
+export type { WorkDraftState, WorkFlowState } from "./useWorkFlowStore";
+export { useWorkFlowStore } from "./useWorkFlowStore";
 // Work Flow Types
 export { WorkTab } from "./workFlowTypes";

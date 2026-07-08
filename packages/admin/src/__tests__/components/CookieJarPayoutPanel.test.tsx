@@ -45,33 +45,27 @@ describe("CookieJarPayoutPanel", () => {
     vi.clearAllMocks();
   });
 
-  it("renders jar balance and action buttons for admins", () => {
-    renderWithProviders(
-      <CookieJarPayoutPanel gardenAddress={"0xgarden" as `0x${string}`} canManage isOwner={false} />
-    );
+  it("renders each jar as an operational payout card", () => {
+    renderWithProviders(<CookieJarPayoutPanel gardenAddress={"0xgarden" as `0x${string}`} />);
 
-    // The panel shows the jar balance badge
+    expect(screen.getByText("Active")).toBeInTheDocument();
+    expect(screen.getByText("Jar Balance")).toBeInTheDocument();
+    expect(screen.getByText("Available now")).toBeInTheDocument();
+    expect(screen.getByText("Withdrawal Cooldown")).toBeInTheDocument();
+    expect(screen.getByText("1h")).toBeInTheDocument();
+
+    // The card shows the jar asset and balance details in multiple slots.
     expect(screen.getByText(/5/)).toBeInTheDocument();
-    expect(screen.getByText(/0xasset/)).toBeInTheDocument();
+    expect(screen.getAllByText(/0xasset/).length).toBeGreaterThan(0);
 
-    // Action buttons are rendered
+    // Focused payout actions live on the jar card.
+    expect(screen.getByRole("button", { name: /Deposit/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Claim/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Fund Jars/ })).toBeInTheDocument();
-    // Manage Jars is shown when canManage is true
-    expect(screen.getByRole("button", { name: /Manage Jars/ })).toBeInTheDocument();
   });
 
-  it("hides Manage Jars button when canManage is false", () => {
-    renderWithProviders(
-      <CookieJarPayoutPanel
-        gardenAddress={"0xgarden" as `0x${string}`}
-        canManage={false}
-        isOwner={false}
-      />
-    );
+  it("does not expose a separate dense jar-management console", () => {
+    renderWithProviders(<CookieJarPayoutPanel gardenAddress={"0xgarden" as `0x${string}`} />);
 
-    expect(screen.getByRole("button", { name: /Claim/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Fund Jars/ })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Manage Jars/ })).not.toBeInTheDocument();
   });
 });

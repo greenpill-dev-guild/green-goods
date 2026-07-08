@@ -50,8 +50,12 @@ export default function Home() {
   const heroActions = isMobile ? (
     <>
       <PublicInstallAction>
-        {({ label, onClick, dataInstallAction }) => (
-          <EditorialPrimaryButton onClick={onClick} data-install-action={dataInstallAction}>
+        {({ label, onClick, disabled, dataInstallAction }) => (
+          <EditorialPrimaryButton
+            onClick={onClick}
+            disabled={disabled}
+            data-install-action={dataInstallAction}
+          >
             {label}
           </EditorialPrimaryButton>
         )}

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { test } from "node:test";
@@ -306,7 +306,7 @@ test("archive hubs do not require taxonomy", () =>
     assert.equal(runPlanHub(root, ["validate"]).status, 0);
   }));
 
-test("linear-sync manifest creates a parent and actionable implementation lane issues", () =>
+test("linear-sync manifest keeps backlog hubs parent-only", () =>
   withFixture((root) => {
     assert.equal(runPlanHub(root, ["scaffold", "linear-fixture", "--stage", "backlog"]).status, 0);
     const status = readStatus(root, "backlog", "linear-fixture");
@@ -333,13 +333,40 @@ test("linear-sync manifest creates a parent and actionable implementation lane i
       "package:client",
       "protocol:green-goods",
       "source:plans",
-      "task:funding-pathway",
     ]);
+    assert.deepEqual(manifest.lanes, []);
+    assert.match(manifest.warnings.join("\n"), /missing Linear parent issue/);
+    assert.match(manifest.warnings.join("\n"), /unprojected/);
+    assert.doesNotMatch(manifest.warnings.join("\n"), /missing Linear issue for lane/);
+  }));
+
+test("linear-sync manifest creates actionable lane issues for active hubs", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "active-linear-fixture", "--stage", "active"]).status, 0);
+    const status = readStatus(root, "active", "active-linear-fixture");
+    status.taxonomy = {
+      initiative: "yield-to-impact",
+      tracks: ["client", "shared"],
+      work_types: ["implementation", "qa"],
+      surfaces: ["packages/client", "packages/shared"],
+      depends_on_features: [],
+    };
+    status.lanes.contracts.status = "n/a";
+    writeStatus(root, "active", "active-linear-fixture", status);
+
+    const result = runPlanHub(root, ["linear-sync", "--feature", "active-linear-fixture", "--json"]);
+    assert.equal(result.status, 0, result.stderr);
+
+    const manifest = JSON.parse(result.stdout);
+    assert.equal(manifest.feature.slug, "active-linear-fixture");
+    assert.equal(manifest.feature.path, ".plans/active/active-linear-fixture/");
+    assert.equal(manifest.parent.action, "create");
+    assert.equal(manifest.parent.title, "plan: Active Linear Fixture");
     assert.deepEqual(
       manifest.lanes.map((lane) => [lane.lane, lane.action, lane.title, lane.state]),
       [
-        ["ui", "create", "UI: Linear Fixture", "Backlog"],
-        ["state_api", "create", "State/API: Linear Fixture", "Backlog"],
+        ["ui", "create", "UI: Active Linear Fixture", "Todo"],
+        ["state_api", "create", "State/API: Active Linear Fixture", "Todo"],
       ],
     );
     assert.deepEqual(manifest.lanes[0].labels, [
@@ -347,14 +374,12 @@ test("linear-sync manifest creates a parent and actionable implementation lane i
       "package:client",
       "protocol:green-goods",
       "source:plans",
-      "task:funding-pathway",
     ]);
     assert.deepEqual(manifest.lanes[1].labels, [
       "activity:build",
       "package:shared",
       "protocol:green-goods",
       "source:plans",
-      "task:funding-pathway",
     ]);
     assert.match(manifest.warnings.join("\n"), /missing Linear parent issue/);
     assert.match(manifest.warnings.join("\n"), /missing Linear issue for lane ui/);
@@ -363,8 +388,8 @@ test("linear-sync manifest creates a parent and actionable implementation lane i
 
 test("linear-sync chooses package labels by lane for cross-package plans", () =>
   withFixture((root) => {
-    assert.equal(runPlanHub(root, ["scaffold", "lane-label-fixture", "--stage", "backlog"]).status, 0);
-    const status = readStatus(root, "backlog", "lane-label-fixture");
+    assert.equal(runPlanHub(root, ["scaffold", "lane-label-fixture", "--stage", "active"]).status, 0);
+    const status = readStatus(root, "active", "lane-label-fixture");
     status.taxonomy = {
       initiative: "agent-platform",
       tracks: ["agent", "client", "contracts", "shared"],
@@ -372,7 +397,7 @@ test("linear-sync chooses package labels by lane for cross-package plans", () =>
       surfaces: ["packages/agent", "packages/client", "packages/contracts", "packages/shared"],
       depends_on_features: [],
     };
-    writeStatus(root, "backlog", "lane-label-fixture", status);
+    writeStatus(root, "active", "lane-label-fixture", status);
 
     const result = runPlanHub(root, ["linear-sync", "--feature", "lane-label-fixture", "--json"]);
     assert.equal(result.status, 0, result.stderr);
@@ -392,6 +417,40 @@ test("linear-sync chooses package labels by lane for cross-package plans", () =>
         state_api: "package:shared",
         contracts: "package:contracts",
       },
+    );
+  }));
+
+test("linear-sync omits package labels on research-only plans", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "research-only-linear", "--stage", "backlog"]).status, 0);
+    const status = readStatus(root, "backlog", "research-only-linear");
+    status.taxonomy = {
+      initiative: "environmental-data",
+      tracks: ["contracts", "shared"],
+      work_types: ["research"],
+      surfaces: [],
+      depends_on_features: [],
+    };
+    for (const laneName of ["ui", "state_api", "contracts"]) {
+      status.lanes[laneName].status = "n/a";
+      status.lanes[laneName].tdd = {
+        mode: "not_applicable",
+        status: "pending",
+        red: { command: "", evidence: "" },
+        green: { command: "", evidence: "" },
+        note: "Research-only hub, no implementation lane.",
+      };
+    }
+    status.lanes.qa_pass_1.status = "n/a";
+    status.lanes.qa_pass_2.status = "n/a";
+    writeStatus(root, "backlog", "research-only-linear", status);
+
+    const result = runPlanHub(root, ["linear-sync", "--feature", "research-only-linear", "--json"]);
+    assert.equal(result.status, 0, result.stderr);
+    const manifest = JSON.parse(result.stdout);
+    assert.ok(
+      manifest.parent.labels.every((label) => !label.startsWith("package:")),
+      `research-only parent should carry no package: label, got: ${manifest.parent.labels.join(", ")}`,
     );
   }));
 
@@ -526,6 +585,70 @@ test("ready-lane list exposes linear sync warnings before implementation handoff
     assert.match(item.linear_sync_warnings.join("\n"), /missing Linear issue for lane state_api/);
   }));
 
+test("parent-only lane sync suppresses active lane issue actions and warnings", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "parent-only-linear", "--stage", "active"]).status, 0);
+    const status = readStatus(root, "active", "parent-only-linear");
+    status.linear = {
+      parentIssue: "PRD-900",
+      syncDirection: "plans_to_linear_visibility",
+      laneSyncMode: "parent_only",
+      lastSyncedAt: "2026-07-06T00:00:00.000Z",
+    };
+    writeStatus(root, "active", "parent-only-linear", status);
+
+    const sync = runPlanHub(root, ["linear-sync", "--feature", "parent-only-linear", "--json"]);
+    assert.equal(sync.status, 0, sync.stderr);
+    const manifest = JSON.parse(sync.stdout);
+    assert.equal(manifest.parent.issue, "PRD-900");
+    assert.match(manifest.parent.description, /intentionally does not create or update lane issues/);
+    assert.equal(manifest.laneSyncMode, "parent_only");
+    assert.deepEqual(manifest.lanes, []);
+    assert.equal(manifest.warnings.some((warning) => warning.includes("Plan is missing Linear issue for lane")), false);
+
+    const list = runPlanHub(root, [
+      "list",
+      "--agent",
+      "codex",
+      "--lane",
+      "state-api",
+      "--stage",
+      "active",
+      "--json",
+    ]);
+    assert.equal(list.status, 0, list.stderr);
+    const [item] = JSON.parse(list.stdout);
+    assert.equal(item.slug, "parent-only-linear");
+    assert.equal(item.linear_sync_warnings.some((warning) => warning.includes("Plan is missing Linear issue for lane")), false);
+  }));
+
+test("linear lane sync mode must be recognized", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "bad-linear-mode", "--stage", "active"]).status, 0);
+    const status = readStatus(root, "active", "bad-linear-mode");
+    status.linear = {
+      parentIssue: "PRD-901",
+      syncDirection: "plans_to_linear_visibility",
+      laneSyncMode: "compact",
+      lastSyncedAt: "2026-07-06T00:00:00.000Z",
+    };
+    writeStatus(root, "active", "bad-linear-mode", status);
+
+    const result = runPlanHub(root, ["validate"]);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /linear.laneSyncMode/);
+  }));
+
+test("validate fails when a referenced lane handoff file is missing", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "missing-handoff", "--stage", "active"]).status, 0);
+    rmSync(join(root, ".plans", "active", "missing-handoff", "handoffs", "codex-contracts.md"));
+
+    const result = runPlanHub(root, ["validate"]);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /lane "contracts" handoff file is missing: handoffs\/codex-contracts.md/);
+  }));
+
 test("record-linear writes parent and lane issue ids into status.json", () =>
   withFixture((root) => {
     assert.equal(runPlanHub(root, ["scaffold", "record-linear-fixture", "--stage", "backlog"]).status, 0);
@@ -550,6 +673,93 @@ test("record-linear writes parent and lane issue ids into status.json", () =>
     assert.equal(status.linear.lanes.state_api.issue, "PRD-502");
     assert.equal(status.history.at(-1).status, "linear_recorded");
     assert.equal(runPlanHub(root, ["validate"]).status, 0);
+  }));
+
+test("record-linear persists parent-only lane sync mode", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "parent-only-record-linear", "--stage", "active"]).status, 0);
+
+    const result = runPlanHub(root, [
+      "record-linear",
+      "--feature",
+      "parent-only-record-linear",
+      "--parent",
+      "PRD-910",
+      "--lane-sync-mode",
+      "parent_only",
+    ]);
+    assert.equal(result.status, 0, result.stderr);
+
+    const status = readStatus(root, "active", "parent-only-record-linear");
+    assert.equal(status.linear.parentIssue, "PRD-910");
+    assert.equal(status.linear.laneSyncMode, "parent_only");
+
+    const sync = runPlanHub(root, ["linear-sync", "--feature", "parent-only-record-linear", "--json"]);
+    assert.equal(sync.status, 0, sync.stderr);
+    const manifest = JSON.parse(sync.stdout);
+    assert.equal(manifest.laneSyncMode, "parent_only");
+    assert.deepEqual(manifest.lanes, []);
+  }));
+
+test("record-linear rejects lane ids while parent-only sync is effective", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "parent-only-lane-rejected", "--stage", "active"]).status, 0);
+    const status = readStatus(root, "active", "parent-only-lane-rejected");
+    status.linear = {
+      parentIssue: "PRD-920",
+      syncDirection: "plans_to_linear_visibility",
+      laneSyncMode: "parent_only",
+      lastSyncedAt: "2026-07-06T00:00:00.000Z",
+    };
+    writeStatus(root, "active", "parent-only-lane-rejected", status);
+
+    const result = runPlanHub(root, [
+      "record-linear",
+      "--feature",
+      "parent-only-lane-rejected",
+      "--lane",
+      "ui=PRD-921",
+    ]);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /cannot record lane issue IDs while linear\.laneSyncMode is parent_only/);
+    assert.equal(existsSync(join(root, ".plans", "active", "parent-only-lane-rejected", ".status.lock")), false);
+
+    const retry = runPlanHub(root, [
+      "record-linear",
+      "--feature",
+      "parent-only-lane-rejected",
+      "--parent",
+      "PRD-922",
+    ]);
+    assert.equal(retry.status, 0, retry.stderr);
+  }));
+
+test("record-linear requires explicit lane issue mode to expand parent-only sync", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "parent-only-lane-expanded", "--stage", "active"]).status, 0);
+    const status = readStatus(root, "active", "parent-only-lane-expanded");
+    status.linear = {
+      parentIssue: "PRD-930",
+      syncDirection: "plans_to_linear_visibility",
+      laneSyncMode: "parent_only",
+      lastSyncedAt: "2026-07-06T00:00:00.000Z",
+    };
+    writeStatus(root, "active", "parent-only-lane-expanded", status);
+
+    const result = runPlanHub(root, [
+      "record-linear",
+      "--feature",
+      "parent-only-lane-expanded",
+      "--lane-sync-mode",
+      "lane_issues",
+      "--lane",
+      "ui=PRD-931",
+    ]);
+    assert.equal(result.status, 0, result.stderr);
+
+    const updated = readStatus(root, "active", "parent-only-lane-expanded");
+    assert.equal(updated.linear.laneSyncMode, "lane_issues");
+    assert.equal(updated.linear.lanes.ui.issue, "PRD-931");
   }));
 
 test("record-linear backfills parentIssue from legacy linear.issue when only lanes are recorded", () =>

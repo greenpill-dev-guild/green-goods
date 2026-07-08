@@ -3,7 +3,7 @@ title: Design & Research
 slug: /reference/design-research
 audience: all
 owner: docs
-last_verified: 2026-04-02
+last_verified: 2026-07-03
 feature_status: Live
 source_of_truth:
   - docs/docs/community/operator-guide/creating-a-garden.mdx
@@ -13,6 +13,8 @@ source_of_truth:
 # Design & Research
 
 Design resources, research materials, and product vision documents for Green Goods.
+
+**Researching impact methodology? Read these four in order.** The [Regenerative Design Framework](/reference/regenerative-design-framework) sets the design lens. The [Glossary](/glossary) defines the four action domains and the entities every record uses. [How It Works](/community/how-it-works) explains the work and approval attestations that count as evidence. [Reporting and GAP](/community/operator-guide/reporting-and-gap) shows how approved work rolls up into reports funders can read. The materials below are the source documents behind that chain.
 
 ---
 
@@ -78,6 +80,8 @@ Green Goods uses a holistic framework for impact measurement:
 7. **Spiritual Capital**: Meaning, purpose
 8. **Cultural Capital**: Traditions, identity
 
+> The numbering above is presentational. The canonical machine ordering is the `Capital` enum — Social (0), Material (1), Financial (2), Living (3), Intellectual (4), Experiential (5), Spiritual (6), Cultural (7).
+
 **Origin**: From Ethan Roland and Gregory Landua's work in regenerative design.
 
 **Application in Green Goods**:
@@ -123,7 +127,7 @@ Green Goods uses a holistic framework for impact measurement:
 
 **Who she is**: Environmental researcher partnered with AgroforestDAO in Minas Gerais, Brazil. Evaluates garden impact seasonally, not daily. Comfortable with data queries and attestation chains. Needs structured rubrics that map to academic and compliance frameworks.
 
-**A day in her life**: At the end of the growing season, Dr. Chen logs into the evaluator view and reviews the past quarter's work submissions across 3 gardens. She creates an assessment using the Eight Forms of Capital rubric, scoring each capital dimension with evidence references. She exports the assessment data as CSV for her research paper and verifies the attestation chain to confirm nothing was tampered with since submission.
+**A day in her life**: At the end of the growing season, Dr. Chen logs into the evaluator view and reviews the past quarter's approved work across 3 gardens against each garden's assessment baseline. She scores the realized impact across the Eight Forms of Capital rubric with evidence references, exports the data as CSV for her research paper, and verifies the attestation chain to confirm nothing was tampered with since submission.
 
 **What success feels like**: "I have a publishable dataset with cryptographic provenance that I can cite in a peer-reviewed journal." The data export maps cleanly to her research methodology.
 

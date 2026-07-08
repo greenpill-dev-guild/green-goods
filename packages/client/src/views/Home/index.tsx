@@ -2,8 +2,9 @@ import {
   cn,
   queryKeys,
   toastService,
-  useBrowserNavigation,
+  useArrivalState,
   useAuthState,
+  useBrowserNavigation,
   useFilteredGardens,
   useGardens,
   useLoadingWithMinDuration,
@@ -22,14 +23,12 @@ import { Outlet, useLocation, useMatch } from "react-router-dom";
 import { PullToRefresh } from "@/components/Inputs";
 import { APP_ROUTES } from "@/config/pwa-routing";
 import { pwaStatusStyles } from "@/styles/pwaStatusStyles";
+import { ARRIVAL_TOASTS, type ArrivalActionKind } from "./arrival-toast";
 import { type GardenFiltersState, GardensFilterDrawer } from "./GardenFilters";
 import { GardenList } from "./GardenList";
 import { WalletDrawer } from "./WalletDrawer";
 import { WalletDrawerIcon } from "./WalletDrawer/Icon";
 import { WorkDashboardIcon } from "./WorkDashboard/Icon";
-
-/** Storage key for welcome prompt - shown once per device */
-const WELCOME_SHOWN_KEY = "greengoods_welcome_shown";
 
 const Home: React.FC = () => {
   const navigate = useNavigateToTop();
@@ -44,6 +43,9 @@ const Home: React.FC = () => {
   const { isOnline } = useOffline();
   const primaryAddress = usePrimaryAddress();
   const normalizedAddress = primaryAddress?.toLowerCase() ?? null;
+
+  // State-aware arrival orientation (replaces the old generic welcome toast).
+  const { kind: arrivalKind, myGardenIds, needsReviewCount } = useArrivalState();
 
   // Filter state
   const [filters, setFilters] = useState<GardenFiltersState>({ scope: "all", sort: "default" });
@@ -62,21 +64,22 @@ const Home: React.FC = () => {
     normalizedAddress
   );
 
-  // Wallet drawer state
-  const [isWalletDrawerOpen, setIsWalletDrawerOpen] = useState(false);
-
   // UI state from store
   const isGardenFilterOpen = useUIStore((s) => s.isGardenFilterOpen);
   const openGardenFilter = useUIStore((s) => s.openGardenFilter);
   const closeGardenFilter = useUIStore((s) => s.closeGardenFilter);
+  const openWorkDashboard = useUIStore((s) => s.openWorkDashboard);
+  const isWalletDrawerOpen = useUIStore((s) => s.isWalletDrawerOpen);
+  const openWalletDrawer = useUIStore((s) => s.openWalletDrawer);
+  const closeWalletDrawer = useUIStore((s) => s.closeWalletDrawer);
 
   // Ensure proper re-rendering on browser navigation
   useBrowserNavigation();
 
   // Auth state for welcome message
   const { isAuthenticated } = useAuthState();
-  const hasShownWelcomeRef = useRef(false);
-  const { set: scheduleWelcome } = useTimeout();
+  const hasShownArrivalRef = useRef(false);
+  const { set: scheduleArrival } = useTimeout();
 
   // Ref for scrolling to article on card click
   const articleRef = useRef<HTMLElement>(null);
@@ -94,53 +97,88 @@ const Home: React.FC = () => {
     }
   }, [location.pathname, resetLoadingState]);
 
-  // Close filter drawer when navigating away
+  // Close home drawers when navigating away
   useEffect(() => {
     if (location.pathname !== APP_ROUTES.home) {
       closeGardenFilter();
+      closeWalletDrawer();
     }
-  }, [location.pathname, closeGardenFilter]);
+  }, [location.pathname, closeGardenFilter, closeWalletDrawer]);
 
-  // Show welcome message once for new users - points them to profile for garden discovery
+  // Resolve an arrival action to its concrete client side effect.
+  const runArrivalAction = useCallback(
+    (action: ArrivalActionKind) => {
+      switch (action) {
+        case "openWorkDashboardDrafts":
+          openWorkDashboard("drafts");
+          return;
+        case "openWorkDashboardPending":
+          openWorkDashboard("pending");
+          return;
+        case "openWorkDashboardNeedsReview":
+          openWorkDashboard("pending", "needsReview");
+          return;
+        case "startWork":
+          // One garden → jump straight in; several → narrow the list so they pick.
+          if (myGardenIds.length === 1) {
+            navigate(`/home/${myGardenIds[0]}`);
+          } else {
+            setFilters((current) =>
+              current.scope === "mine" ? current : { ...current, scope: "mine" }
+            );
+          }
+          return;
+        case "openHelp":
+          navigate(`${APP_ROUTES.profile}?tab=help`);
+          return;
+      }
+    },
+    [myGardenIds, navigate, openWorkDashboard]
+  );
+
+  // Show a state-aware arrival toast once per browser session, scoped to the signed-in address.
+  // useArrivalState already gates on data confidence, so we fire only when arrivalKind !== "none".
   useEffect(() => {
-    if (!isAuthenticated || hasShownWelcomeRef.current) return;
+    if (!isAuthenticated || hasShownArrivalRef.current) return;
     if (location.pathname !== APP_ROUTES.home) return;
+    if (!normalizedAddress || arrivalKind === "none") return;
 
-    // Check localStorage - only show once per device
-    const hasBeenShown = localStorage.getItem(WELCOME_SHOWN_KEY) === "true";
-    if (hasBeenShown) {
-      hasShownWelcomeRef.current = true;
+    const shownKey = `greengoods:arrival-shown:${normalizedAddress}`;
+    if (sessionStorage.getItem(shownKey) === "true") {
+      hasShownArrivalRef.current = true;
       return;
     }
 
-    // Mark as shown BEFORE showing toast (prevents re-triggering)
-    localStorage.setItem(WELCOME_SHOWN_KEY, "true");
-    hasShownWelcomeRef.current = true;
+    // Mark shown BEFORE scheduling so re-renders / remounts this session don't re-fire.
+    sessionStorage.setItem(shownKey, "true");
+    hasShownArrivalRef.current = true;
 
-    // Small delay to let page render first
-    scheduleWelcome(() => {
-      toastService.info({
-        title: intl.formatMessage({
-          id: "app.home.welcome.title",
-          defaultMessage: "Welcome to Green Goods!",
-        }),
-        message: intl.formatMessage({
-          id: "app.home.welcome.message",
-          defaultMessage: "Visit your Profile to discover and join gardens.",
-        }),
+    const spec = ARRIVAL_TOASTS[arrivalKind];
+    // Small delay to let the page render first.
+    scheduleArrival(() => {
+      toastService[spec.status]({
+        title: intl.formatMessage({ id: spec.titleId }),
+        // `count` backs the review message's plural; other messages ignore unused values.
+        message: intl.formatMessage({ id: spec.messageId }, { count: needsReviewCount }),
         duration: 6000,
         action: {
-          label: intl.formatMessage({
-            id: "app.home.welcome.action",
-            defaultMessage: "Go to Profile",
-          }),
-          onClick: () => navigate(APP_ROUTES.profile),
+          label: intl.formatMessage({ id: spec.actionLabelId }),
+          onClick: () => runArrivalAction(spec.action),
           dismissOnClick: true,
         },
         suppressLogging: true,
       });
-    }, 800);
-  }, [intl, isAuthenticated, location.pathname, navigate, scheduleWelcome]);
+    }, 700);
+  }, [
+    arrivalKind,
+    intl,
+    isAuthenticated,
+    location.pathname,
+    needsReviewCount,
+    normalizedAddress,
+    runArrivalAction,
+    scheduleArrival,
+  ]);
 
   // Handlers
   const handleRetry = () => {
@@ -177,6 +215,14 @@ const Home: React.FC = () => {
 
   return (
     <article ref={articleRef} className="mb-6">
+      {location.pathname === APP_ROUTES.home && !isOnline ? (
+        <p className="px-4 pt-2 text-center text-xs text-text-soft-400" role="status">
+          {intl.formatMessage({
+            id: "app.home.pullToRefreshOffline",
+            defaultMessage: "Offline. Pull to refresh is paused until you reconnect.",
+          })}
+        </p>
+      ) : null}
       {location.pathname === APP_ROUTES.home && (
         <PullToRefresh
           onRefresh={handlePullToRefresh}
@@ -220,7 +266,7 @@ const Home: React.FC = () => {
                   </span>
                 )}
               </button>
-              <WalletDrawerIcon onClick={() => setIsWalletDrawerOpen(true)} />
+              <WalletDrawerIcon onClick={openWalletDrawer} />
               <WorkDashboardIcon />
             </div>
           </div>
@@ -237,6 +283,7 @@ const Home: React.FC = () => {
               scope={filters.scope}
               isFilterActive={isFilterActive}
               hasUserAddress={Boolean(normalizedAddress)}
+              onBrowseAll={() => handleScopeChange("all")}
             />
           </div>
           <GardensFilterDrawer
@@ -253,7 +300,7 @@ const Home: React.FC = () => {
         </PullToRefresh>
       )}
       <Outlet />
-      <WalletDrawer isOpen={isWalletDrawerOpen} onClose={() => setIsWalletDrawerOpen(false)} />
+      <WalletDrawer isOpen={isWalletDrawerOpen} onClose={closeWalletDrawer} />
     </article>
   );
 };

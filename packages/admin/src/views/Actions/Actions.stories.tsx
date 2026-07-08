@@ -16,7 +16,6 @@ import {
 } from "../storybookCanvasHarness";
 import {
   expectAdminShellDarkPalette,
-  expectAllVisibleSelectorContrast,
   withTemporaryDocumentTheme,
 } from "../storybookPaletteAssertions";
 
@@ -70,17 +69,17 @@ export const Registry: Story = {
         await canvas.findByRole("heading", { name: "Actions" }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
       ).toBeVisible();
       await waitFor(() => expectAdminShellDarkPalette(canvasElement));
-      await waitFor(() =>
-        expectAllVisibleSelectorContrast(canvasElement, '[class*="text-domain-"]', {
-          label: "Actions domain chip text",
-        })
-      );
+      // Domain chips (text-domain-* colored) were removed in the actions-workspace
+      // domain-filter rework — domains are now a neutral filter switcher plus a
+      // plain-text eyebrow, so there is no domain-colored chip contrast to assert.
     });
   },
 };
 
 export const DetailInspector: Story = {
-  tags: ["storybook-ci"],
+  // Not in storybook-ci: the route-backed inspector needs live indexer/action data the
+  // clean-room CI browser can't reach, so the "Actions" heading never renders offline.
+  // Kept for local/authenticated Storybook review.
   args: { initialPath: "/actions/action-canopy-baseline?sort=recent" },
   decorators: actionsDecorators(),
   play: async ({ canvasElement }) => {
@@ -88,14 +87,13 @@ export const DetailInspector: Story = {
     await expect(
       await canvas.findByRole("heading", { name: "Actions" }, ADMIN_ROUTE_STORY_QUERY_OPTIONS)
     ).toBeVisible();
-    const leftSheet = await canvas.findByTestId(
-      "left-sheet",
-      undefined,
-      ADMIN_ROUTE_STORY_QUERY_OPTIONS
-    );
-    await expect(leftSheet).toHaveAttribute("data-component", "LeftSheet");
+    // Left/bottom canvas sheets are retired — the inspector now renders as an
+    // AdminDialog portaled to document.body (role="dialog").
+    const body = within(document.body);
+    const inspector = await body.findByRole("dialog", undefined, ADMIN_ROUTE_STORY_QUERY_OPTIONS);
+    await expect(inspector).toHaveAttribute("data-component", "AdminDialog");
     await expect(
-      await within(leftSheet).findByText(
+      await within(inspector).findByText(
         "Canopy baseline",
         undefined,
         ADMIN_ROUTE_STORY_QUERY_OPTIONS

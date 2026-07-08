@@ -54,7 +54,7 @@ while IFS= read -r file; do
     CONTEXT="${CONTEXT}- Shared auth/queue/mutation surface touched (${file}); verify failure states, retries/replays, and user-visible recovery paths.\n"
   fi
 
-  if printf '%s' "$file" | grep -qE '(^|/)(package\.json|bun\.lockb|bun\.lock|pnpm-lock\.yaml|package-lock\.json|yarn\.lock)$|^\.github/workflows/|^\.codex/|^\.claude/'; then
+  if printf '%s' "$file" | grep -qE '(^|/)(package\.json|bun\.lockb|bun\.lock|pnpm-lock\.yaml|package-lock\.json|yarn\.lock)$|^\.github/workflows/|^\.codex/|^\.claude/|^\.agents/skills'; then
     CONTEXT="${CONTEXT}- Workflow/dependency/agent config surface touched (${file}); keep scope tight and call out validation explicitly.\n"
   fi
 done <<<"$FILES"

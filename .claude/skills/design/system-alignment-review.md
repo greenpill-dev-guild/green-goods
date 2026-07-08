@@ -27,7 +27,8 @@ Canonical authorities, ordered by precedence:
 3. `packages/shared/src/styles/theme.css` — runtime projection consumed by all three frontends.
 4. `packages/shared/src/styles/design-md.generated.{css,json}` — generated artifacts from root DesignMD.
 5. `.claude/skills/design/language.md` — implementation guide projected from root DesignMD.
-6. `.claude/skills/design/prompt-contract.md` / `client-prompt-contract.md` — AI-tool vocabulary.
+6. `.claude/skills/design/ai-ui-brief.md` — reusable AI UI/CSS build brief and reference role map.
+7. `.claude/skills/design/prompt-contract.md` / `client-prompt-contract.md` — AI-tool vocabulary.
 
 If prose disagrees with a higher-precedence source, the prose is the drift, not the source.
 
@@ -36,7 +37,7 @@ If prose disagrees with a higher-precedence source, the prose is the drift, not 
 **In scope:**
 
 1. **DesignMD sources** — root `DESIGN.md` front matter vs surface dialects (`packages/admin/DESIGN.md`, `packages/client/DESIGN.md`, `packages/client/DESIGN.pwa.md`, `packages/client/DESIGN.browser.md`, `docs/DESIGN.md`).
-2. **Warm Earth design language** — `.claude/skills/design/language.md`, `quick-reference.md`, `materials.md`, `spatial.md`, prompt contracts.
+2. **Warm Earth design language** — `.claude/skills/design/language.md`, `ai-ui-brief.md`, `quick-reference.md`, `materials.md`, `spatial.md`, prompt contracts.
 3. **Runtime tokens** — `packages/shared/src/styles/theme.css`, `design-md.generated.css`, `design-md.generated.json`, `packages/client/src/styles/*.css`.
 4. **Storybook** — `packages/shared/.storybook/**`, `packages/shared/src/components/Tokens/**`, cross-package story coverage.
 5. **Admin surface** — `packages/admin/DESIGN.md`, `packages/admin/AGENTS.md`, `Admin*` wrappers, `docs/docs/builders/packages/admin.mdx`.
@@ -68,7 +69,7 @@ HARD CONSTRAINTS — read before producing any finding.
    ```bash
    bun run check:design-generated   # root DesignMD front matter ↔ generated artifacts
    bun run check:design-tokens      # Warm Earth spec ↔ theme.css ↔ version coupling
-   bun run lint:vocab               # banned terms in i18n strings
+   bun run lint:vocab               # lint-enforced banned terms in i18n strings only
    cd packages/shared && bun run check:stories         # story coverage for shared + curated admin
    cd packages/shared && bun run check:story-quality   # admin/shared Canvas story determinism
    ```
@@ -125,7 +126,7 @@ Before proposing any fix, surface these as explicit questions — do not resolve
 - Spec changes to root `DESIGN.md` front matter (tokens, role vocabulary, palette volumes).
 - Renaming or removing a surface DESIGN.md dialect.
 - Promotion of an aspirational token (e.g., something in `language.md` that has no `theme.css` counterpart) to a runtime token — this can cascade to every consumer.
-- Banned-vocabulary additions or removals — those change `lint:vocab` behavior and block PRs.
+- Lint-enforced banned-vocabulary additions or removals — those change `lint:vocab` behavior and block PRs. Prompt-vocabulary lists are guidance-only.
 - Any change to `.claude/registry/skills.json` sub_files, triggers, or aliases beyond the design-system routing this skill adds.
 
 ## Refusal condition
@@ -137,6 +138,7 @@ If nothing in Section 1 meets all constraints, say so. "Design system is aligned
 - [SKILL.md](./SKILL.md) — design philosophy, paradigms, routing
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — skill-stack map and DesignMD source/projection table
 - [language.md](./language.md) — implementation guide projected from root DesignMD
+- [ai-ui-brief.md](./ai-ui-brief.md) — reusable AI UI/CSS build brief and reference role map
 - [review-checklist.md](./review-checklist.md) — PR-level 4-lens review (different scope)
 - [stack-review.md](./stack-review.md) — narrow `design/` + `ui/` skill stack self-audit (different scope)
 - [prompt-contract.md](./prompt-contract.md), [client-prompt-contract.md](./client-prompt-contract.md) — AI-tool vocabulary

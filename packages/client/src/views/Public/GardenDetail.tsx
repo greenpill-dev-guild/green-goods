@@ -164,7 +164,7 @@ export default function GardenDetail() {
               {formatMessage({
                 id: "public.gardenDetail.fund.description",
                 defaultMessage:
-                  "Donate directly to the Garden's Cookie Jar, or Endow the Vault — a long-term deposit designed to keep its principal while yield supports the Garden.",
+                  "Donate to the Garden's shared fund (its Cookie Jar), or Endow the Vault, a long-term deposit that stays withdrawable while its yield supports the Garden.",
               })}
             </p>
             <Link
@@ -212,12 +212,13 @@ export default function GardenDetail() {
             })}
           </Link>
           <PublicInstallAction>
-            {({ label, href, onClick, dataInstallAction }) => (
+            {({ label, href, onClick, disabled, dataInstallAction }) => (
               <a
                 href={href}
                 onClick={onClick}
+                aria-disabled={disabled || undefined}
                 data-install-action={dataInstallAction}
-                className="cursor-pointer rounded-full border border-stroke-soft-200 bg-bg-white-0 px-5 py-3 text-center text-sm font-medium text-text-strong-950 hover:bg-bg-weak-50"
+                className={`cursor-pointer rounded-full border border-stroke-soft-200 bg-bg-white-0 px-5 py-3 text-center text-sm font-medium text-text-strong-950 hover:bg-bg-weak-50 ${disabled ? "cursor-not-allowed opacity-70" : ""}`}
               >
                 {label}
               </a>

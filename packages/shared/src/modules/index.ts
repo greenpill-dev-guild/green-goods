@@ -2,6 +2,10 @@
 
 export {
   ANALYTICS_EVENTS,
+  trackAdminActionCreateFailed,
+  // Admin: action events
+  trackAdminActionCreateStarted,
+  trackAdminActionCreateSuccess,
   trackAdminDeployFailed,
   // Admin: deployment events
   trackAdminDeployStarted,
@@ -48,6 +52,9 @@ export {
   // Work submission events
   trackWorkSubmissionStarted,
   trackWorkSubmissionSuccess,
+  trackWorkWalletRequestExpired,
+  trackWorkWalletRequestFailed,
+  trackWorkWalletRequestStarted,
 } from "./app/analytics-events";
 // ============================================================================
 // APP / ERROR TRACKING
@@ -120,12 +127,21 @@ export {
   clearStoredRpId,
   // Username (Pimlico server)
   clearStoredUsername,
+  clearStoredSmartAccountAddress,
+  // Signed-out sentinel (explicit sign-out durability)
+  clearSignedOutSentinel,
   getAuthMode,
+  getStoredSmartAccountAddress,
   getStoredUsername,
+  hasSignedOutSentinel,
   hasStoredUsername,
   // RP ID (Android passkey compatibility)
   RP_ID_STORAGE_KEY,
+  SIGNED_OUT_STORAGE_KEY,
+  SMART_ACCOUNT_ADDRESS_STORAGE_KEY,
   setAuthMode,
+  setSignedOutSentinel,
+  setStoredSmartAccountAddress,
   setStoredRpId,
   setStoredUsername,
   USERNAME_STORAGE_KEY,
@@ -234,6 +250,126 @@ export {
   getVaultEvents,
 } from "./data/vaults";
 // ============================================================================
+// VAULT CROWDFUNDING
+// ============================================================================
+export {
+  createOctantVaultWalletEndowReceiver,
+  EVMAVERICKS_REQUIRED_MANIFEST_FIELDS,
+  getOctantVaultCampaignBySlug,
+  getOctantVaultAssetDisplayPolicy,
+  hasRequiredOctantVaultFundingBalance,
+  getOctantVaultCampaignCopy,
+  getOctantVaultCampaignCopyMessageIds,
+  getOctantVaultCampaigns,
+  getOctantVaultCampaignTransactionState,
+  GREENPILL_NYC_REQUIRED_MANIFEST_FIELDS,
+  isOctantVaultCampaignTransactionReady,
+  meetsOctantVaultCardEndowUsdMinimum,
+  OCTANT_VAULT_CAMPAIGN_COPY_MESSAGE_IDS,
+  OCTANT_VAULT_CAMPAIGN_MANIFEST,
+  OCTANT_VAULT_CARD_ENDOW_MIN_USD_CENTS,
+  OCTANT_VAULT_MANIFEST_FIELD_LABEL_MESSAGE_IDS,
+  OCTANT_VAULT_MANIFEST_FIELD_LABELS,
+  OCTANT_VAULT_ROUTE_MANAGEMENT_URL,
+  prepareOctantVaultCardEndowFallbackPlan,
+  prepareOctantVaultCardEndowReadiness,
+  prepareOctantVaultWalletEndow,
+  validateOctantVaultCardEndowManifest,
+  validateOctantVaultCardEndowProof,
+  validateOctantVaultCardEndowReceiver,
+  validateOctantVaultCardOnrampCompletion,
+  validateOctantVaultCardOnrampQuote,
+  validateOctantVaultCampaignManifest,
+  validateOctantVaultRouteManageProof,
+  validateOctantVaultShareOwnershipProof,
+} from "./vault-crowdfunding";
+export type {
+  OctantVaultCardDonateIntentKind,
+  OctantVaultCardDonateProof,
+  OctantVaultCardOnrampCompletionError,
+  OctantVaultCardOnrampCompletionExpectation,
+  OctantVaultCardOnrampCompletionInput,
+  OctantVaultCardOnrampCompletionValidation,
+  OctantVaultCardOnrampQuoteError,
+  OctantVaultCardOnrampQuoteInput,
+  OctantVaultCardOnrampQuoteValidation,
+  OctantVaultCardOnrampRouteExpectation,
+  OctantVaultCardEndowIntentKind,
+  OctantVaultCardEndowProof,
+  OctantVaultCardEndowProofExpectation,
+  OctantVaultCardEndowProofInput,
+  OctantVaultCardEndowProofValidation,
+  OctantVaultCardEndowProofValidationError,
+  OctantVaultCardEndowFallbackApprovalTransaction,
+  OctantVaultCardEndowFallbackDepositTransaction,
+  OctantVaultCardEndowFallbackFundingStep,
+  OctantVaultCardEndowFallbackPlan,
+  OctantVaultCardEndowFallbackPlanError,
+  OctantVaultCardEndowFallbackPlanInput,
+  OctantVaultCardEndowFallbackPreparation,
+  OctantVaultCardEndowFallbackReceiptExpectation,
+  OctantVaultCardEndowFallbackShareVerification,
+  OctantVaultCardEndowFallbackTransactionRole,
+  OctantVaultCardEndowFallbackUserTransaction,
+  OctantVaultCardEndowReadiness,
+  OctantVaultCardEndowReadinessError,
+  OctantVaultCardEndowReadinessInput,
+  OctantVaultCardEndowReceiver,
+  OctantVaultCardEndowReceiverCustody,
+  OctantVaultCardEndowReceiverInput,
+  OctantVaultCardEndowReceiverValidation,
+  OctantVaultCardEndowReceiverValidationError,
+  OctantVaultCardEndowTuple,
+  OctantVaultCardProof,
+  OctantVaultCardProofAsset,
+  OctantVaultCardProofIntentKind,
+  OctantVaultCardProvider,
+  OctantVaultCampaignAssetManifest,
+  OctantVaultCampaignCopy,
+  OctantVaultCampaignCopyField,
+  OctantVaultCampaignCopyMessageIds,
+  OctantVaultCampaignFixtureRole,
+  OctantVaultCampaignManifest,
+  OctantVaultCampaignManifestStatus,
+  OctantVaultCampaignManifestValidation,
+  OctantVaultCampaignSlug,
+  OctantVaultCampaignTargetProtocol,
+  OctantVaultCampaignTransactionState,
+  OctantVaultEndowReceiver,
+  KnownOctantVaultCampaignSlug,
+  OctantVaultManifest,
+  OctantVaultManifestField,
+  OctantVaultManifestFieldLabelMessageIds,
+  OctantVaultPaymentMethod,
+  OctantVaultRouteManageProofError,
+  OctantVaultRouteManageProofInput,
+  OctantVaultRouteManageProofValidation,
+  OctantVaultShareOwnershipProofError,
+  OctantVaultShareOwnershipProofInput,
+  OctantVaultShareOwnershipProofValidation,
+  OctantVaultStrategyFactoryEvidence,
+  OctantVaultYieldSource,
+  OctantVaultYieldSourceKind,
+  OctantVaultTransactionHash,
+  OctantVaultWalletEndowPreparation,
+  OctantVaultWalletEndowPreparationError,
+  OctantVaultWalletEndowPreparationInput,
+  OctantVaultWalletEndowPreparedTransaction,
+  OctantVaultWalletEndowIntentKind,
+  OctantVaultWalletEndowReceiver,
+} from "./vault-crowdfunding";
+export {
+  forgetOctantVaultCardWalletPositions,
+  getOctantVaultCardWalletOwners,
+  getOctantVaultCardWalletPositionRefs,
+  getOctantVaultPendingFundedCardWalletRefs,
+  rememberOctantVaultCardWalletPosition,
+} from "./octant-vault-card-wallet-cache";
+export type {
+  OctantVaultCardWalletPositionRef,
+  OctantVaultCardWalletPositionStatus,
+} from "./octant-vault-card-wallet-cache";
+// ============================================================================
 // JOB QUEUE
 // ============================================================================
 export {
@@ -277,6 +413,30 @@ export { runTranslationDiagnostics } from "./translation/diagnostics";
 // ============================================================================
 export { submitApprovalBot, submitWorkBot } from "./work/bot-submission";
 // ============================================================================
+// WORK / MEDIA PROCESSING
+// ============================================================================
+export type {
+  AcceptedWorkMediaFile,
+  ConvertedWorkMediaFile,
+  MediaRejectedReason,
+  RejectedWorkMediaFile,
+  SafeMediaMetadata,
+  WorkMediaKind,
+  WorkMediaProcessingResult,
+  WorkMediaSource,
+} from "./work/media-processing";
+export {
+  getFileExtension,
+  getMediaKind,
+  getSafeMediaBatchMetadata,
+  getSafeMediaMetadata,
+  getSizeBucket,
+  getWorkMediaId,
+  HEIC_JPEG_QUALITY,
+  isVideoFile,
+  normalizeWorkMediaFiles,
+} from "./work/media-processing";
+// ============================================================================
 // TRANSACTIONS
 // ============================================================================
 export type {
@@ -313,4 +473,5 @@ export { submitWorkDirectly } from "./work/wallet-submission";
 export {
   getSubmissionStatusText,
   validateApprovalDraft,
+  validateWorkSubmissionContext,
 } from "./work/work-submission";

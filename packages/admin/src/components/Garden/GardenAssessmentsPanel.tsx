@@ -42,7 +42,7 @@ export const GardenAssessmentsPanel: React.FC<GardenAssessmentsPanelProps> = ({
         </h3>
         <Button variant="secondary" size="sm" asChild>
           <Link
-            to={adminRoutes.gardenImpact({ gardenAddress: gardenId, section: "assessments" })}
+            to={adminRoutes.gardenImpact({ gardenId, section: "assessments" })}
             aria-label={formatMessage({ id: "app.garden.admin.viewAssessments" })}
           >
             {formatMessage({ id: "app.garden.admin.viewAll" })}
@@ -55,7 +55,7 @@ export const GardenAssessmentsPanel: React.FC<GardenAssessmentsPanelProps> = ({
             {formatMessage({ id: "app.garden.admin.loadingAssessments" })}
           </p>
         ) : error ? (
-          <p className="py-4 text-center text-sm text-error-base" role="alert">
+          <p className="py-4 text-center text-sm text-error-dark" role="alert">
             {formatMessage({ id: "app.garden.admin.assessmentsFailed" })}:{" "}
             {error instanceof Error ? error.message : ""}
           </p>

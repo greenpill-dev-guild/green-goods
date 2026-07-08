@@ -3,8 +3,7 @@ import {
   EmptyState,
   EmptyStateShell,
   formatRelativeTime,
-  WorkbenchList,
-  WorkbenchRow,
+  WorkbenchCard,
 } from "@green-goods/shared";
 import { RiMedalLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
@@ -53,7 +52,7 @@ export function HubCertificationQueue({
   }
 
   if (fetchingAssessments || hypercertsLoading) {
-    return <HubWorkbenchSkeletonRows count={3} />;
+    return <HubWorkbenchSkeletonRows count={3} variant="card" />;
   }
 
   if (items.length === 0) {
@@ -75,56 +74,57 @@ export function HubCertificationQueue({
   }
 
   return (
-    <WorkbenchList>
+    <ul className="hub-workbench-grid" role="list">
       {items.map((assessment) => {
         const hasMintAuthority = canManage;
         return (
-          <WorkbenchRow
-            key={assessment.id}
-            eyebrow={formatMessage({ id: "cockpit.hub.tab.certify", defaultMessage: "Certify" })}
-            title={
-              assessment.title ||
-              formatMessage({
-                id: "app.garden.admin.assessmentFallback",
-                defaultMessage: "Assessment",
-              })
-            }
-            description={
-              hasMintAuthority
-                ? formatMessage({
-                    id: "cockpit.hub.certify.queueDescription",
-                    defaultMessage:
-                      "Open the certification inspector to validate the package before minting.",
-                  })
-                : formatMessage({
-                    id: "cockpit.hub.certify.readOnlyDescription",
-                    defaultMessage:
-                      "You can review the certification handoff here, but only garden owners or operators can mint the hypercert.",
-                  })
-            }
-            meta={[
-              assessment.assessmentType ||
-                formatMessage({ id: "cockpit.garden.impact", defaultMessage: "Impact" }),
-              formatRelativeTime(assessment.createdAt),
-            ]}
-            statusLabel={
-              hasMintAuthority
-                ? formatMessage({
-                    id: "cockpit.hub.certify.readyLabel",
-                    defaultMessage: "Ready to certify",
-                  })
-                : formatMessage({
-                    id: "cockpit.hub.certify.readOnlyLabel",
-                    defaultMessage: "Read-only handoff",
-                  })
-            }
-            statusTone="certify"
-            leadingIcon={RiMedalLine}
-            selected={selectedCertificationId === assessment.id}
-            onClick={() => onOpenCertification(assessment.id)}
-          />
+          <li key={assessment.id} className="min-w-0">
+            <WorkbenchCard
+              eyebrow={formatMessage({ id: "cockpit.hub.tab.certify", defaultMessage: "Certify" })}
+              title={
+                assessment.title ||
+                formatMessage({
+                  id: "app.garden.admin.assessmentFallback",
+                  defaultMessage: "Assessment",
+                })
+              }
+              description={
+                hasMintAuthority
+                  ? formatMessage({
+                      id: "cockpit.hub.certify.queueDescription",
+                      defaultMessage:
+                        "Open the certification inspector to validate the package before minting.",
+                    })
+                  : formatMessage({
+                      id: "cockpit.hub.certify.readOnlyDescription",
+                      defaultMessage:
+                        "You can review the certification handoff here, but only garden owners or operators can mint the hypercert.",
+                    })
+              }
+              meta={[
+                assessment.assessmentType ||
+                  formatMessage({ id: "cockpit.garden.impact", defaultMessage: "Impact" }),
+                formatRelativeTime(assessment.createdAt),
+              ]}
+              statusLabel={
+                hasMintAuthority
+                  ? formatMessage({
+                      id: "cockpit.hub.certify.readyLabel",
+                      defaultMessage: "Ready to certify",
+                    })
+                  : formatMessage({
+                      id: "cockpit.hub.certify.readOnlyLabel",
+                      defaultMessage: "Read-only handoff",
+                    })
+              }
+              statusTone="certify"
+              leadingIcon={RiMedalLine}
+              selected={selectedCertificationId === assessment.id}
+              onClick={() => onOpenCertification(assessment.id)}
+            />
+          </li>
         );
       })}
-    </WorkbenchList>
+    </ul>
   );
 }

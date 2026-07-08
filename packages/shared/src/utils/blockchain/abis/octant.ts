@@ -114,6 +114,31 @@ export const OCTANT_VAULT_ABI = [
       { name: "shares", type: "uint256" },
       { name: "receiver", type: "address" },
       { name: "owner", type: "address" },
+      { name: "maxLoss", type: "uint256" },
+      { name: "strategies", type: "address[]" },
+    ],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "redeem",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "shares", type: "uint256" },
+      { name: "receiver", type: "address" },
+      { name: "owner", type: "address" },
+      { name: "maxLoss", type: "uint256" },
+    ],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "redeem",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "shares", type: "uint256" },
+      { name: "receiver", type: "address" },
+      { name: "owner", type: "address" },
     ],
     outputs: [{ name: "", type: "uint256" }],
   },
@@ -154,6 +179,13 @@ export const OCTANT_VAULT_ABI = [
   },
   {
     type: "function",
+    name: "previewRedeem",
+    stateMutability: "view",
+    inputs: [{ name: "shares", type: "uint256" }],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
     name: "maxDeposit",
     stateMutability: "view",
     inputs: [{ name: "receiver", type: "address" }],
@@ -185,6 +217,13 @@ export const OCTANT_VAULT_ABI = [
   },
   {
     type: "function",
+    name: "dragonRouter",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ name: "", type: "address" }],
+  },
+  {
+    type: "function",
     name: "totalAssets",
     stateMutability: "view",
     inputs: [],
@@ -213,6 +252,23 @@ export const OCTANT_VAULT_ABI = [
       { name: "maxLoss", type: "uint256" },
       { name: "strategies", type: "address[]" },
     ],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "maxRedeem",
+    stateMutability: "view",
+    inputs: [
+      { name: "owner", type: "address" },
+      { name: "maxLoss", type: "uint256" },
+    ],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "maxRedeem",
+    stateMutability: "view",
+    inputs: [{ name: "owner", type: "address" }],
     outputs: [{ name: "", type: "uint256" }],
   },
   {

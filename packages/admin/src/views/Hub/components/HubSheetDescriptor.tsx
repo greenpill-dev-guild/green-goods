@@ -3,15 +3,13 @@ import {
   type AdminHubRouteContext,
   adminRoutes,
   SheetBody,
-  SUBMIT_WORK_CONTENT_ID,
-  useRouteBackedLeftSheetConfig,
   type ActivityEvent,
   type Work,
 } from "@green-goods/shared";
 import { useCallback, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useNavigate } from "react-router-dom";
-import { SubmitWorkPanel } from "@/views/Garden/SubmitWork";
+import { useRouteBackedLeftSheetConfig } from "@/components/Layout";
 import { WorkDetailPanel } from "@/views/Garden/WorkDetail";
 import { HubCertificationInspector } from "./HubCertificationInspector";
 import { HubHistoryInspector } from "./HubHistoryInspector";
@@ -75,7 +73,6 @@ function SheetResolutionState({
  * Calls useLeftSheetConfig internally — render this component inside HubView.
  */
 export function HubSheetDescriptor({
-  routeSheetContentId,
   routeWorkId,
   routeCertificationId,
   routeHistoryEventId,
@@ -98,19 +95,9 @@ export function HubSheetDescriptor({
   }, [onBeforeClose, onNavigateToBase]);
 
   const sheetDescriptor = useMemo(() => {
-    if (routeSheetContentId === SUBMIT_WORK_CONTENT_ID) {
-      return {
-        title: formatMessage({ id: "app.admin.work.submit.title", defaultMessage: "Submit Work" }),
-        content: (
-          <SubmitWorkPanel
-            layout="sheet"
-            onSuccess={handlePanelClose}
-            onCancel={handlePanelClose}
-          />
-        ),
-      };
-    }
-
+    // Submit Work is no longer a Hub inspector sheet — it owns its own route
+    // (/hub/work/submit → submitWorkView). This descriptor only resolves the
+    // read/review inspectors (work detail, certification, history).
     const resolvedWorkDetailId = routeWorkId ?? activeWorkDetailId;
 
     if (resolvedWorkDetailId) {
@@ -192,7 +179,6 @@ export function HubSheetDescriptor({
     activeWorkDetailId,
     routeCertificationId,
     routeHistoryEventId,
-    routeSheetContentId,
     routeWorkId,
     selectedCertification,
     selectedHistoryEvent,
@@ -207,6 +193,11 @@ export function HubSheetDescriptor({
             content: sheetDescriptor.content,
             closeTo,
             onBeforeClose,
+            // Hub deep-link inspectors carry forms and media evidence — render
+            // at the richer `lg` dialog tier (QA refinement pass). `hub` tone
+            // keeps the operator-blue accent inside the portaled dialog.
+            size: "lg" as const,
+            tone: "hub" as const,
           }
         : null,
     [closeTo, onBeforeClose, sheetDescriptor]

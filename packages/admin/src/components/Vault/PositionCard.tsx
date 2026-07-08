@@ -16,6 +16,7 @@ import {
   useVaultPreview,
   ZERO_ADDRESS,
 } from "@green-goods/shared";
+import { RiExternalLinkLine } from "@remixicon/react";
 import { useState } from "react";
 import { useIntl } from "react-intl";
 import { useReadContracts } from "wagmi";
@@ -134,10 +135,11 @@ export function PositionCard({
           href={getBlockExplorerAddressUrl(chainId, vault.vaultAddress)}
           target="_blank"
           rel="noreferrer"
-          className="mt-1 inline-block text-xs text-primary-base hover:underline"
+          className="mt-1 inline-flex items-center gap-1 text-xs text-primary-base hover:underline"
         >
           {formatMessage({ id: "app.explorer.viewVault" })}:{" "}
           <EnsAddressText address={vault.vaultAddress} />
+          <RiExternalLinkLine className="h-3 w-3" />
         </a>
       </div>
 
@@ -187,7 +189,7 @@ export function PositionCard({
 
       <div className="mt-4 grid grid-cols-2 gap-2">
         <AdminButton
-          variant="tonal"
+          variant="filled"
           size="sm"
           onClick={() => onDeposit(vault.asset)}
           disabled={!vaultAcceptingDeposits}
@@ -199,7 +201,7 @@ export function PositionCard({
         >
           {formatMessage({ id: "app.treasury.deposit" })}
         </AdminButton>
-        <AdminButton variant="tonal" size="sm" onClick={() => onWithdraw(vault.asset)}>
+        <AdminButton variant="outlined" size="sm" onClick={() => onWithdraw(vault.asset)}>
           {formatMessage({ id: "app.treasury.withdraw" })}
         </AdminButton>
       </div>
@@ -225,7 +227,7 @@ export function PositionCard({
         <div className="mt-2">
           <div className="grid grid-cols-2 gap-2">
             <AdminButton
-              variant="filled"
+              variant="outlined"
               size="sm"
               onClick={onHarvest}
               disabled={harvest.isPending}
@@ -255,6 +257,7 @@ export function PositionCard({
         confirmLabel={formatMessage({ id: "app.treasury.emergencyPause" })}
         cancelLabel={formatMessage({ id: "app.wizard.cancel" })}
         variant="danger"
+        tone="community"
         isLoading={emergencyPause.isPending}
       />
     </Card>

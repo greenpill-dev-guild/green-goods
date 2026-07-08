@@ -292,9 +292,10 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
                 size="small"
                 onClick={handleENSRelease}
                 disabled={!isOnline || ensRelease.isPending || releasingSlug === existingSlug}
+                aria-busy={ensRelease.isPending || undefined}
                 leadingIcon={
                   ensRelease.isPending ? (
-                    <RiLoader4Line className="w-4 animate-spin" />
+                    <RiLoader4Line className="w-4 animate-spin" aria-hidden />
                   ) : isReleaseUnavailable ? (
                     <RiHeadphoneLine className="w-4" />
                   ) : (
@@ -312,20 +313,15 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
                           id: "app.profile.ensChangeRequestButton",
                           defaultMessage: "Request username change",
                         })
-                      : ensRelease.isPending
+                      : releasingSlug === existingSlug
                         ? intl.formatMessage({
-                            id: "app.profile.releasingENS",
-                            defaultMessage: "Releasing...",
+                            id: "app.profile.releaseStarted",
+                            defaultMessage: "Release started",
                           })
-                        : releasingSlug === existingSlug
-                          ? intl.formatMessage({
-                              id: "app.profile.releaseStarted",
-                              defaultMessage: "Release started",
-                            })
-                          : intl.formatMessage({
-                              id: "app.profile.releaseENSButton",
-                              defaultMessage: "Release username",
-                            })
+                        : intl.formatMessage({
+                            id: "app.profile.releaseENSButton",
+                            defaultMessage: "Release username",
+                          })
                 }
                 className="w-full"
               />
@@ -591,9 +587,10 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
                     isCheckingSlug ||
                     !slugValue
                   }
+                  aria-busy={ensClaim.isPending || undefined}
                   leadingIcon={
                     ensClaim.isPending ? (
-                      <RiLoader4Line className="w-4 animate-spin" />
+                      <RiLoader4Line className="w-4 animate-spin" aria-hidden />
                     ) : (
                       <RiGlobalLine className="w-4" />
                     )
@@ -604,15 +601,10 @@ export const ENSSection: React.FC<ENSSectionProps> = ({ primaryAddress }) => {
                           id: "app.profile.claimOffline",
                           defaultMessage: "Go online to claim",
                         })
-                      : ensClaim.isPending
-                        ? intl.formatMessage({
-                            id: "app.profile.claiming",
-                            defaultMessage: "Claiming...",
-                          })
-                        : intl.formatMessage({
-                            id: "app.profile.claimButton",
-                            defaultMessage: "Claim name",
-                          })
+                      : intl.formatMessage({
+                          id: "app.profile.claimButton",
+                          defaultMessage: "Claim name",
+                        })
                   }
                   className="w-full"
                 />

@@ -2,6 +2,8 @@ import { jobQueueEventBus } from "../job-queue/event-bus";
 import { logger } from "./logger";
 import { track } from "./posthog";
 
+const REACT_QUERY_PERSISTENCE_KEY = "__rq_pc__";
+
 /**
  * Service Worker Manager for Background Sync
  * Provides reliable background sync capabilities using the Service Worker API
@@ -135,10 +137,19 @@ class ServiceWorkerManager {
   }
 
   /**
-   * Clear all SW caches and the React Query IndexedDB store.
+   * Clear all SW caches and React Query persistence stores.
    * Used during sign-out to prevent stale data leaking across sessions.
    */
   async clearAllCaches(): Promise<void> {
+    // Clear localStorage fallback used when IndexedDB persistence is unavailable.
+    if (typeof window !== "undefined" && "localStorage" in window) {
+      try {
+        window.localStorage.removeItem(REACT_QUERY_PERSISTENCE_KEY);
+      } catch (error) {
+        logger.warn("[ServiceWorker] Failed to clear local query persistence", { error });
+      }
+    }
+
     // Clear Cache Storage (SW runtime caches)
     if ("caches" in window) {
       try {

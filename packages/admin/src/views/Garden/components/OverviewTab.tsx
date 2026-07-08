@@ -1,6 +1,5 @@
 import {
   type ActivityFilter,
-  Button,
   Card,
   EmptyState,
   formatRelativeTime,
@@ -16,9 +15,14 @@ import { Link } from "react-router-dom";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
 import { AlertRow, SectionStateCard } from "./GardenDetailHelpers";
-import { RANGE_OPTIONS, SECTION_CARD_MIN_HEIGHT } from "./gardenDetail.constants";
+import {
+  ACTIVITY_CARD_CLASS,
+  RANGE_OPTIONS,
+  SECTION_CARD_MIN_HEIGHT,
+} from "./gardenDetail.constants";
 
 export interface OverviewTabProps {
+  mode: "health" | "activity";
   section: string | undefined;
   selectedItem: string | undefined;
   selectedRange: GardenRange;
@@ -28,7 +32,6 @@ export interface OverviewTabProps {
     updates: Partial<Record<"tab" | "range" | "section" | "item", string | undefined>>,
     replace?: boolean
   ) => void;
-  setTab: (tab: GardenDetailTab) => void;
   overviewAlerts: Array<{
     key: string;
     severity: Exclude<TabBadgeSeverity, "none">;
@@ -50,13 +53,13 @@ export interface OverviewTabProps {
 }
 
 export function OverviewTab({
+  mode,
   section,
   selectedItem,
   selectedRange,
   clearSection,
   openSection,
   updateQueryState,
-  setTab,
   overviewAlerts,
   gardenHealthLabel,
   approvedInRangeCount,
@@ -72,6 +75,9 @@ export function OverviewTab({
   treasuryBalance,
 }: OverviewTabProps) {
   const { formatMessage } = useIntl();
+  const isHealthMode = mode === "health";
+  const isActivityMode = mode === "activity";
+  const activityEventLimit = isActivityMode ? Number.POSITIVE_INFINITY : 8;
 
   if (isLoading) {
     return (
@@ -119,11 +125,11 @@ export function OverviewTab({
             />
           ) : null}
 
-          {(section === undefined || section === "health") && (
+          {isHealthMode && (section === undefined || section === "health") && (
             <Card className={SECTION_CARD_MIN_HEIGHT}>
               <Card.Header className="flex-wrap gap-3">
                 <div>
-                  <h3 className="label-md text-text-strong sm:text-lg">
+                  <h3 className="admin-section-title">
                     {formatMessage({ id: "app.garden.detail.health.title" })}
                   </h3>
                   <p className="mt-1 body-sm text-text-sub">{gardenHealthLabel}</p>
@@ -145,7 +151,7 @@ export function OverviewTab({
               </Card.Header>
               <Card.Body>
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-3" aria-live="polite">
-                  <AdminCard variant="outlined" className="p-3">
+                  <AdminCard variant="outlined" density="compact">
                     <p className="label-xs text-text-soft">
                       {formatMessage({
                         id: "app.garden.detail.metric.lastActivity",
@@ -161,7 +167,7 @@ export function OverviewTab({
                           })}
                     </p>
                   </AdminCard>
-                  <AdminCard variant="outlined" className="p-3">
+                  <AdminCard variant="outlined" density="compact">
                     <p className="label-xs text-text-soft">
                       {formatMessage({ id: "app.garden.detail.metric.impactVelocity" })}
                     </p>
@@ -182,7 +188,7 @@ export function OverviewTab({
                           )}
                     </p>
                   </AdminCard>
-                  <AdminCard variant="outlined" className="p-3">
+                  <AdminCard variant="outlined" density="compact">
                     <p className="label-xs text-text-soft">
                       {formatMessage({ id: "app.garden.detail.metric.executionThroughput" })}
                     </p>
@@ -196,15 +202,41 @@ export function OverviewTab({
                     </p>
                   </AdminCard>
                 </div>
+                <div className="mt-3 grid grid-cols-2 gap-2 lg:grid-cols-4">
+                  <div className="garden-stat-row">
+                    <span className="garden-stat-row-label">
+                      {formatMessage({ id: "app.garden.detail.keyMetrics.pendingWork" })}
+                    </span>
+                    <span className="garden-stat-row-value">{pendingWorkCount}</span>
+                  </div>
+                  <div className="garden-stat-row">
+                    <span className="garden-stat-row-label">
+                      {formatMessage({ id: "app.garden.detail.keyMetrics.assessments30d" })}
+                    </span>
+                    <span className="garden-stat-row-value">{assessmentCount30d}</span>
+                  </div>
+                  <div className="garden-stat-row">
+                    <span className="garden-stat-row-label">
+                      {formatMessage({ id: "app.garden.detail.keyMetrics.activeGardeners" })}
+                    </span>
+                    <span className="garden-stat-row-value">{gardenerCount}</span>
+                  </div>
+                  <div className="garden-stat-row">
+                    <span className="garden-stat-row-label">
+                      {formatMessage({ id: "app.garden.detail.keyMetrics.treasury" })}
+                    </span>
+                    <span className="garden-stat-row-value">{treasuryBalance}</span>
+                  </div>
+                </div>
               </Card.Body>
             </Card>
           )}
 
-          {(section === undefined || section === "activity") && (
-            <Card className={SECTION_CARD_MIN_HEIGHT}>
+          {isActivityMode && (section === undefined || section === "activity") && (
+            <Card className={ACTIVITY_CARD_CLASS}>
               <Card.Header className="flex-wrap gap-3">
                 <div>
-                  <h3 className="label-md text-text-strong sm:text-lg">
+                  <h3 className="admin-section-title">
                     {formatMessage({ id: "app.garden.detail.activity.title" })}
                   </h3>
                   <p className="mt-1 body-sm text-text-sub">
@@ -245,68 +277,78 @@ export function OverviewTab({
                           )
                         : formatMessage({ id: "app.garden.detail.activity.empty" })
                     }
+                    description={formatMessage({
+                      id: "app.garden.detail.activity.emptyDescription",
+                    })}
                   />
                 ) : (
                   <>
-                    <div className="space-y-3">
-                      {filteredActivityEvents
-                        .slice(0, section === "activity" ? 14 : 8)
-                        .map((event) => {
-                          const categoryBorder =
-                            event.category === "work"
-                              ? "border-l-success-base"
-                              : event.category === "impact"
-                                ? "border-l-information-base"
-                                : "border-l-warning-base";
-                          return (
-                            <div
-                              key={event.id}
-                              className={`rounded-lg border border-stroke-soft border-l-4 ${categoryBorder} bg-bg-weak p-3 ${
-                                selectedItem && event.itemId === selectedItem
-                                  ? "ring-1 ring-primary-base"
-                                  : ""
-                              }`}
-                            >
-                              <div className="flex flex-wrap items-start justify-between gap-2">
-                                <div className="min-w-0 flex-1">
-                                  <p
-                                    className="truncate text-sm font-medium text-text-strong"
-                                    title={event.title}
-                                  >
-                                    {event.title}
-                                  </p>
-                                  <p className="mt-1 max-w-prose body-xs text-text-soft">
-                                    {event.description}
-                                  </p>
-                                </div>
-                                <span className="body-xs text-text-soft">
-                                  {formatRelativeTime(event.timestamp)}
-                                </span>
+                    <div className="relative space-y-3 before:absolute before:bottom-3 before:left-[0.6875rem] before:top-3 before:w-px before:bg-stroke-soft">
+                      {filteredActivityEvents.slice(0, activityEventLimit).map((event) => {
+                        const categoryBorder =
+                          event.category === "work"
+                            ? "border-l-success-base"
+                            : event.category === "impact"
+                              ? "border-l-information-base"
+                              : "border-l-warning-base";
+                        return (
+                          <div
+                            key={event.id}
+                            className={`relative ml-6 rounded-lg border border-stroke-soft border-l-4 ${categoryBorder} bg-bg-weak p-3 ${
+                              selectedItem && event.itemId === selectedItem
+                                ? "ring-1 ring-primary-base"
+                                : ""
+                            }`}
+                          >
+                            <span
+                              className="absolute -left-[1.95rem] top-4 h-3 w-3 rounded-full border-2 border-bg-white bg-primary-base"
+                              aria-hidden="true"
+                            />
+                            <div className="flex flex-wrap items-start justify-between gap-2">
+                              <div className="min-w-0 flex-1">
+                                <p className="mb-1 inline-flex rounded-full bg-bg-soft px-2 py-0.5 text-[11px] font-medium text-text-sub">
+                                  {formatMessage({
+                                    id: `app.garden.detail.activity.filter.${event.category}`,
+                                  })}
+                                </p>
+                                <p
+                                  className="truncate text-sm font-medium text-text-strong"
+                                  title={event.title}
+                                >
+                                  {event.title}
+                                </p>
+                                <p className="mt-1 max-w-prose body-xs text-text-soft">
+                                  {event.description}
+                                </p>
                               </div>
-                              {event.href ? (
-                                <div className="mt-2">
-                                  <Link
-                                    to={event.href}
-                                    onClick={() => {
-                                      if (
-                                        event.category === "work" &&
-                                        (!event.href || event.href.startsWith("/hub/work/"))
-                                      ) {
-                                        openSection("work", "work", event.itemId);
-                                      }
-                                    }}
-                                    className="inline-flex items-center gap-1 text-xs font-medium text-primary-base hover:text-primary-darker"
-                                  >
-                                    {formatMessage({ id: "app.garden.detail.activity.view" })}
-                                    <RiArrowRightSLine className="h-4 w-4" />
-                                  </Link>
-                                </div>
-                              ) : null}
+                              <span className="body-xs text-text-soft">
+                                {formatRelativeTime(event.timestamp)}
+                              </span>
                             </div>
-                          );
-                        })}
+                            {event.href ? (
+                              <div className="mt-2">
+                                <Link
+                                  to={event.href}
+                                  onClick={() => {
+                                    if (
+                                      event.category === "work" &&
+                                      (!event.href || event.href.startsWith("/hub/work/"))
+                                    ) {
+                                      openSection("work", "work", event.itemId);
+                                    }
+                                  }}
+                                  className="inline-flex items-center gap-1 text-xs font-medium text-primary-base hover:text-primary-darker"
+                                >
+                                  {formatMessage({ id: "app.garden.detail.activity.view" })}
+                                  <RiArrowRightSLine className="h-4 w-4" />
+                                </Link>
+                              </div>
+                            ) : null}
+                          </div>
+                        );
+                      })}
                     </div>
-                    {filteredActivityEvents.length > (section === "activity" ? 14 : 8) && (
+                    {filteredActivityEvents.length > activityEventLimit && (
                       <AdminButton
                         type="button"
                         variant="text"
@@ -334,7 +376,7 @@ export function OverviewTab({
           <div className="garden-tab-rail-sticky">
             <Card>
               <Card.Header>
-                <h3 className="label-md text-text-strong">
+                <h3 className="admin-section-title admin-section-title--compact">
                   {formatMessage({ id: "app.garden.detail.alerts.title" })}
                 </h3>
               </Card.Header>
@@ -361,67 +403,64 @@ export function OverviewTab({
 
             <Card>
               <Card.Header>
-                <h3 className="label-md text-text-strong">
-                  {formatMessage({ id: "app.garden.detail.keyMetrics" })}
+                <h3 className="admin-section-title admin-section-title--compact">
+                  {isActivityMode
+                    ? formatMessage({ id: "app.garden.detail.keyMetrics" })
+                    : formatMessage({ id: "app.garden.detail.activity.title" })}
                 </h3>
               </Card.Header>
               <Card.Body className="space-y-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => setTab("work")}
-                  className="garden-stat-row group h-auto w-full min-w-0"
-                >
-                  <span className="garden-stat-row-label group-hover:underline">
-                    {formatMessage({ id: "app.garden.detail.keyMetrics.pendingWork" })}
-                  </span>
-                  <span className="inline-flex items-center gap-1">
-                    <span className="garden-stat-row-value">{pendingWorkCount}</span>
-                    <RiArrowRightSLine className="h-4 w-4 text-text-soft" />
-                  </span>
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => setTab("impact")}
-                  className="garden-stat-row group h-auto w-full min-w-0"
-                >
-                  <span className="garden-stat-row-label group-hover:underline">
-                    {formatMessage({ id: "app.garden.detail.keyMetrics.assessments30d" })}
-                  </span>
-                  <span className="inline-flex items-center gap-1">
-                    <span className="garden-stat-row-value">{assessmentCount30d}</span>
-                    <RiArrowRightSLine className="h-4 w-4 text-text-soft" />
-                  </span>
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => setTab("community")}
-                  className="garden-stat-row group h-auto w-full min-w-0"
-                >
-                  <span className="garden-stat-row-label group-hover:underline">
-                    {formatMessage({ id: "app.garden.detail.keyMetrics.activeGardeners" })}
-                  </span>
-                  <span className="inline-flex items-center gap-1">
-                    <span className="garden-stat-row-value">{gardenerCount}</span>
-                    <RiArrowRightSLine className="h-4 w-4 text-text-soft" />
-                  </span>
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={() => openSection("community", "treasury")}
-                  className="garden-stat-row group h-auto w-full min-w-0"
-                >
-                  <span className="garden-stat-row-label group-hover:underline">
-                    {formatMessage({ id: "app.garden.detail.keyMetrics.treasury" })}
-                  </span>
-                  <span className="inline-flex items-center gap-1">
-                    <span className="garden-stat-row-value">{treasuryBalance}</span>
-                    <RiArrowRightSLine className="h-4 w-4 text-text-soft" />
-                  </span>
-                </Button>
+                {isActivityMode ? (
+                  <>
+                    <div className="garden-stat-row">
+                      <span className="garden-stat-row-label">
+                        {formatMessage({ id: "app.garden.detail.keyMetrics.pendingWork" })}
+                      </span>
+                      <span className="garden-stat-row-value">{pendingWorkCount}</span>
+                    </div>
+                    <div className="garden-stat-row">
+                      <span className="garden-stat-row-label">
+                        {formatMessage({ id: "app.garden.detail.keyMetrics.assessments30d" })}
+                      </span>
+                      <span className="garden-stat-row-value">{assessmentCount30d}</span>
+                    </div>
+                    <div className="garden-stat-row">
+                      <span className="garden-stat-row-label">
+                        {formatMessage({ id: "app.garden.detail.keyMetrics.activeGardeners" })}
+                      </span>
+                      <span className="garden-stat-row-value">{gardenerCount}</span>
+                    </div>
+                    <div className="garden-stat-row">
+                      <span className="garden-stat-row-label">
+                        {formatMessage({ id: "app.garden.detail.keyMetrics.treasury" })}
+                      </span>
+                      <span className="garden-stat-row-value">{treasuryBalance}</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {filteredActivityEvents.slice(0, 3).map((event) => (
+                      <button
+                        key={event.id}
+                        type="button"
+                        className="garden-stat-row w-full text-left"
+                        onClick={() => openSection("overview", "activity", event.itemId)}
+                      >
+                        <span className="min-w-0 truncate garden-stat-row-label">
+                          {event.title}
+                        </span>
+                        <span className="shrink-0 garden-stat-row-value">
+                          {formatRelativeTime(event.timestamp)}
+                        </span>
+                      </button>
+                    ))}
+                    {filteredActivityEvents.length === 0 ? (
+                      <p className="body-sm text-text-soft">
+                        {formatMessage({ id: "app.garden.detail.activity.empty" })}
+                      </p>
+                    ) : null}
+                  </>
+                )}
               </Card.Body>
             </Card>
           </div>

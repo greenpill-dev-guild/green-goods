@@ -65,7 +65,8 @@ describe("Hub queue ENS display", () => {
       />
     );
 
-    expect(screen.getByText("Compost · river")).toBeInTheDocument();
+    expect(screen.getByText("Compost")).toBeInTheDocument();
+    expect(screen.getByText("river")).toBeInTheDocument();
   });
 
   it("uses ENS display names in the assessment queue description", () => {
@@ -80,6 +81,7 @@ describe("Hub queue ENS display", () => {
       />
     );
 
-    expect(screen.getByText("Compost · river")).toBeInTheDocument();
+    expect(screen.getByText("Compost")).toBeInTheDocument();
+    expect(screen.getByText("river")).toBeInTheDocument();
   });
 });

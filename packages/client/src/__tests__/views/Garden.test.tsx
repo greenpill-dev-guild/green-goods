@@ -39,6 +39,8 @@ const mockSelection = {
 
 const mockWorkFlowState = {
   submissionCompleted: false,
+  workSubmissionJourneyId: "journey-123",
+  ensureWorkSubmissionJourneyId: vi.fn(() => "journey-123"),
   audioNotes: [] as File[],
   setAudioNotes: vi.fn(),
   setGardenAddress: vi.fn(),
@@ -96,6 +98,7 @@ vi.mock("@green-goods/shared", () => ({
     clearActiveDraft: vi.fn().mockResolvedValue(undefined),
   }),
   useGardenTranslation: () => ({ translatedGarden: null }),
+  useUser: () => ({ authMode: "wallet" }),
   useJoinGarden: () => ({
     joinGarden: vi.fn(),
     isJoining: false,
@@ -139,6 +142,14 @@ vi.mock("@green-goods/shared", () => ({
     description: "Test description",
     inputs: [],
     mediaInfo: { required: false, maxImageCount: 5 },
+  }),
+  parseContractError: () => ({
+    raw: "",
+    name: "UnknownError",
+    message: "Transaction failed. Please try again.",
+    isKnown: false,
+    recoverable: true,
+    suggestedAction: "retry",
   }),
   // offline + timers
   useOffline: () => ({ isOnline: true, pendingCount: 0, syncStatus: "idle" }),

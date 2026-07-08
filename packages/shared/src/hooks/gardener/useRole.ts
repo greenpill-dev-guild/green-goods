@@ -39,8 +39,11 @@ async function fetchOperatorGardens(address: string, chainId: number): Promise<O
   );
 
   if (error) {
+    // Surface the outage to React Query (isError) instead of masking it as an
+    // empty list — a failed fetch and a genuine empty result must stay
+    // distinguishable so the admin can show a retry state, not "no access".
     logger.error("Failed to fetch operator gardens", { source: "useRole", error: error.message });
-    return [];
+    throw error;
   }
 
   return data?.Garden ?? [];
@@ -54,6 +57,12 @@ export interface RoleInfo {
   isOperator: boolean;
   operatorGardens: OperatorGarden[];
   loading: boolean;
+  /**
+   * True when the operator-gardens indexer query failed (network/indexer
+   * outage), as opposed to a successful query that genuinely returned none.
+   * Lets the admin distinguish a retryable error from real "no access".
+   */
+  gardensError: boolean;
   deploymentPermissions: {
     canDeploy: boolean;
     isOwner: boolean;
@@ -78,7 +87,11 @@ export function useRole(): RoleInfo {
   const deploymentRegistry = useDeploymentRegistry();
 
   // Use React Query for fetching operator gardens
-  const { data: operatorGardens = [], isLoading: isFetching } = useQuery({
+  const {
+    data: operatorGardens = [],
+    isLoading: isFetching,
+    isError: gardensError,
+  } = useQuery({
     queryKey: queryKeys.role.operatorGardens(normalizedAddress ?? undefined, chainId),
     queryFn: () => fetchOperatorGardens(normalizedAddress!, chainId),
     enabled: !!normalizedAddress && ready,
@@ -104,6 +117,7 @@ export function useRole(): RoleInfo {
     isOperator,
     operatorGardens,
     loading: !ready || isFetching || deploymentRegistry.loading,
+    gardensError,
     deploymentPermissions: {
       canDeploy: deploymentRegistry.canDeploy,
       isOwner: deploymentRegistry.isOwner,

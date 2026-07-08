@@ -130,6 +130,12 @@ abstract contract ForkTestBase is DeploymentBase, ERC6551Helper {
     /// @param chainName One of: "sepolia", "arbitrum", "celo"
     /// @return success True if fork was created and selected
     function _tryChainFork(string memory chainName) internal returns (bool success) {
+        uint256 expectedChainId = _expectedForkChainId(chainName);
+        if (expectedChainId != 0 && block.chainid == expectedChainId) {
+            forkActive = true;
+            return true;
+        }
+
         string memory rpc = _resolveRpcUrl(chainName);
         if (bytes(rpc).length == 0) return false;
 
@@ -143,6 +149,15 @@ abstract contract ForkTestBase is DeploymentBase, ERC6551Helper {
     /// @notice Require a fork for the given chain and fail loudly when the RPC is missing.
     function _requireChainFork(string memory chainName) internal {
         if (!_tryChainFork(chainName)) revert ForkUnavailable(chainName);
+    }
+
+    /// @notice Resolve a canonical chain id so process-level Foundry forks can be reused.
+    function _expectedForkChainId(string memory chainName) internal pure returns (uint256) {
+        bytes32 chain = keccak256(bytes(chainName));
+        if (chain == keccak256(bytes("arbitrum"))) return 42_161;
+        if (chain == keccak256(bytes("sepolia"))) return 11_155_111;
+        if (chain == keccak256(bytes("celo"))) return 42_220;
+        return 0;
     }
 
     /// @notice Resolve RPC URL for a chain name from environment variables

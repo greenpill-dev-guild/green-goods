@@ -18,6 +18,13 @@ const mockAppState = {
   switchLanguage: vi.fn(),
   availableLocales: ["en", "es"],
 };
+const mockServiceWorkerUpdateState = {
+  phase: "idle",
+  updateAvailable: false,
+  isUpdating: false,
+  updateStalled: false,
+  applyUpdate: vi.fn(),
+};
 
 // Mock @green-goods/shared
 vi.mock("@green-goods/shared", () => ({
@@ -38,6 +45,7 @@ vi.mock("@green-goods/shared", () => ({
   logger: { debug: vi.fn(), error: vi.fn(), info: vi.fn(), warn: vi.fn() },
   toastService: { info: vi.fn(), loading: vi.fn(), success: vi.fn(), error: vi.fn() },
   useApp: () => mockAppState,
+  useServiceWorkerUpdate: () => mockServiceWorkerUpdateState,
   useTheme: () => mockThemeState,
 }));
 
@@ -113,6 +121,10 @@ describe("AppSettings", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockThemeState.theme = "system";
+    mockServiceWorkerUpdateState.phase = "idle";
+    mockServiceWorkerUpdateState.updateAvailable = false;
+    mockServiceWorkerUpdateState.isUpdating = false;
+    mockServiceWorkerUpdateState.updateStalled = false;
   });
 
   afterEach(() => {
@@ -151,31 +163,57 @@ describe("AppSettings", () => {
     expect(screen.getByText(/set your preferred language/i)).toBeInTheDocument();
   });
 
-  it("renders refresh app card", () => {
+  it("does not render the update app card when no service worker update is waiting", () => {
     render(wrap(createElement(AppSettings)));
 
-    expect(screen.getByText("Refresh app")).toBeInTheDocument();
-    expect(screen.getByText(/get the latest updates/i)).toBeInTheDocument();
-    expect(screen.getByTestId("btn-Refresh")).toBeInTheDocument();
+    expect(screen.queryByText("Refresh app")).not.toBeInTheDocument();
+    expect(screen.queryByText("Update app")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("btn-Refresh")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("btn-Update")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("btn-Restart to update")).not.toBeInTheDocument();
   });
 
-  it("shows offline message when refreshing while offline", async () => {
-    // Simulate offline
-    vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
-    const user = userEvent.setup();
-
-    const { toastService } = await import("@green-goods/shared");
+  it("renders the ready update card when a service worker update is waiting", () => {
+    mockServiceWorkerUpdateState.phase = "ready";
+    mockServiceWorkerUpdateState.updateAvailable = true;
 
     render(wrap(createElement(AppSettings)));
 
-    await user.click(screen.getByTestId("btn-Refresh"));
+    expect(screen.getByText("Ready to restart")).toBeInTheDocument();
+    expect(screen.getByText(/restart green goods to finish updating/i)).toBeInTheDocument();
+    expect(screen.getByTestId("btn-Restart to update")).toBeInTheDocument();
+  });
 
-    expect(toastService.info).toHaveBeenCalledWith(
-      expect.objectContaining({
-        context: "appRefresh",
-      })
-    );
+  it("renders download progress without a restart button", () => {
+    mockServiceWorkerUpdateState.phase = "downloading";
 
-    vi.restoreAllMocks();
+    render(wrap(createElement(AppSettings)));
+
+    expect(screen.getByText("Downloading update")).toBeInTheDocument();
+    expect(screen.getByText(/latest version in the background/i)).toBeInTheDocument();
+    expect(screen.queryByTestId("btn-Restart to update")).not.toBeInTheDocument();
+  });
+
+  it("renders stalled guidance with a retry button", () => {
+    mockServiceWorkerUpdateState.phase = "stalled";
+    mockServiceWorkerUpdateState.updateStalled = true;
+
+    render(wrap(createElement(AppSettings)));
+
+    expect(screen.getByText("Update needs a restart")).toBeInTheDocument();
+    expect(screen.getByText(/close and reopen the app/i)).toBeInTheDocument();
+    expect(screen.getByTestId("btn-Try again")).toBeInTheDocument();
+  });
+
+  it("applies the waiting service worker update from the update card", async () => {
+    mockServiceWorkerUpdateState.phase = "ready";
+    mockServiceWorkerUpdateState.updateAvailable = true;
+    const user = userEvent.setup();
+
+    render(wrap(createElement(AppSettings)));
+
+    await user.click(screen.getByTestId("btn-Restart to update"));
+
+    expect(mockServiceWorkerUpdateState.applyUpdate).toHaveBeenCalledTimes(1);
   });
 });

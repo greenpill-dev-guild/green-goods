@@ -34,10 +34,11 @@ function aggregateGardenerCount(garden: PublicGardenSummary): number {
 /**
  * PublicGardenRow — compact horizontal Garden card used in the Fund-page grid.
  *
- * Anatomy: small thumbnail (left) → garden name + meta (center) → stacked
- * Donate/Endow CTAs (right). Tapping the thumbnail/title block routes to the
- * public Garden detail page; tapping a CTA opens the funding method selector
- * with that intent pre-set so the dialog skips its own intent step.
+ * Anatomy: small thumbnail (left) → garden name + meta (center) → Donate +
+ * Endow CTAs (right). Tapping the thumbnail/title block routes to the public
+ * Garden detail page; tapping a CTA opens the funding card with the matching
+ * intent pre-set. The two paths are explained once in the § 02 "Ways to
+ * support" section, so the buttons carry no per-card helper captions.
  *
  * Density tuned for funder-mode scanning (smaller padding than discovery
  * cards on /gardens) so two cards fit per desktop row at sm:grid-cols-2.
@@ -75,6 +76,7 @@ export function PublicGardenRow({ garden, vaultSummary, onSupport }: PublicGarde
 
   return (
     <div
+      data-component="PublicGardenRow"
       role="group"
       aria-label={formatMessage(
         {
@@ -83,38 +85,51 @@ export function PublicGardenRow({ garden, vaultSummary, onSupport }: PublicGarde
         },
         { garden: garden.name || garden.slug }
       )}
-      className="flex items-stretch gap-4 py-4 sm:gap-5"
+      className="flex h-full min-w-0 items-stretch gap-4 py-4 sm:gap-5"
     >
       <Link
         to={`/gardens/${garden.slug}`}
         viewTransition
-        className="group flex min-w-0 flex-1 items-stretch gap-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 sm:gap-5"
+        className="group flex min-w-0 flex-1 basis-0 items-stretch gap-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2 sm:gap-5"
         aria-label={garden.name}
       >
-        <div className="relative h-20 w-20 shrink-0 overflow-hidden bg-editorial-warm">
+        <div
+          data-component="PublicGardenRowMedia"
+          className="relative h-20 w-28 shrink-0 overflow-hidden bg-editorial-warm sm:h-24 sm:w-36"
+        >
           <ImageWithFallback
             src={garden.bannerImage}
             alt=""
             className="h-full w-full object-cover transition-transform group-hover:scale-[1.03]"
-            backgroundFallback={<GardenCoverFallback name={garden.name} slug={garden.slug} />}
+            backgroundFallback={
+              <GardenCoverFallback
+                name={garden.name}
+                slug={garden.slug}
+                initialClassName="text-3xl tracking-[-0.025em] sm:text-4xl lg:text-4xl"
+              />
+            }
           />
         </div>
 
         <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
           {garden.location ? (
-            <EditorialKicker className="-mb-0.5">{garden.location}</EditorialKicker>
+            <EditorialKicker className="-mb-0.5 line-clamp-1 min-w-0 [overflow-wrap:anywhere]">
+              {garden.location}
+            </EditorialKicker>
           ) : null}
           <h3
-            className="font-serif text-lg font-normal leading-[1.15] tracking-[-0.012em] text-text-strong-950 group-hover:text-primary-action"
+            className="min-w-0 font-serif text-lg font-normal leading-[1.15] tracking-[-0.012em] text-text-strong-950 group-hover:text-primary-action"
             title={garden.name}
           >
-            <span className="line-clamp-2">{garden.name || garden.slug}</span>
+            <span className="line-clamp-2 [overflow-wrap:anywhere]">
+              {garden.name || garden.slug}
+            </span>
           </h3>
-          <p className="flex flex-wrap items-center gap-x-2 text-xs text-text-soft-400">
+          <p className="flex min-w-0 flex-wrap items-center gap-x-2 text-xs text-text-soft-400">
             {meta.map((label, index) => (
-              <span key={label} className="flex items-center gap-x-2">
+              <span key={label} className="flex min-w-0 items-center gap-x-2">
                 {index > 0 ? <span aria-hidden="true">·</span> : null}
-                <span>{label}</span>
+                <span className="[overflow-wrap:anywhere]">{label}</span>
               </span>
             ))}
           </p>
@@ -122,7 +137,7 @@ export function PublicGardenRow({ garden, vaultSummary, onSupport }: PublicGarde
         </div>
       </Link>
 
-      <div className="flex shrink-0 flex-col items-stretch justify-center gap-2">
+      <div className="flex shrink-0 flex-col items-stretch justify-center gap-3">
         <EditorialPrimaryButton
           onClick={() => onSupport(garden, "donate")}
           className="px-4 py-2 text-xs sm:text-sm"
@@ -153,10 +168,12 @@ function GardenVaultMetrics({ summary }: { summary?: PublicGardenVaultSummary })
   if (balanceLabels.length === 0) return null;
 
   return (
-    <p className="mt-1 flex flex-wrap items-center gap-x-2 text-[11px] leading-[1.45] text-text-sub-600">
-      <span>{balanceLabels.join(" · ")}</span>
+    <p className="mt-1 flex min-w-0 max-w-full flex-wrap items-center gap-x-2 gap-y-1 text-[11px] leading-[1.45] text-text-sub-600 [overflow-wrap:anywhere]">
+      <span className="min-w-0 max-w-full [overflow-wrap:anywhere]">
+        {balanceLabels.join(" · ")}
+      </span>
       {accruedLabels.length > 0 ? (
-        <span>
+        <span className="min-w-0 max-w-full [overflow-wrap:anywhere]">
           {" · "}
           {formatMessage(
             {

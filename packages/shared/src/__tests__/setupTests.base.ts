@@ -22,9 +22,8 @@ litGlobal.litIssuedWarnings ??= new Set<string>();
 litGlobal.litIssuedWarnings.add("dev-mode");
 
 // Polyfill HTMLDialogElement.showModal/close for jsdom.
-// jsdom doesn't implement the <dialog> top-layer API; our Canvas sheets
-// (BottomSheet, LeftSheet, RightSheet) use native <dialog> for focus trap
-// and Escape handling.
+// jsdom doesn't implement the <dialog> top-layer API, which components that use
+// a native <dialog> for focus trap and Escape handling rely on.
 if (typeof window !== "undefined") {
   const dialogProto = (window as any).HTMLDialogElement?.prototype;
   if (dialogProto) {

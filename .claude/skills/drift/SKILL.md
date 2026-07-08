@@ -60,7 +60,7 @@ Supported scopes: `all`, `guidance`, `plans`, `design`, `docs`, `cleanup`, `qual
 
 | Category | Route |
 |----------|-------|
-| Guidance drift | `audit-then-ship`; approved fixes may run `skills:sync` |
+| Guidance drift | `audit-then-ship` |
 | Plan truth drift | `plan` or `audit-then-ship` |
 | Design-system drift | `design` review or `audit-then-ship` |
 | Docs drift | docs-scoped `audit-then-ship` |
@@ -79,8 +79,8 @@ Use this shape after a drift check:
 ```markdown
 ## Drift Findings — <scope>
 
-1. [MEDIUM] Guidance drift: Skill mirror is stale
-   Evidence: `bun run check:skills`
+1. [MEDIUM] Guidance drift: Codex guidance references a missing script
+   Evidence: `bun run check:codex-guidance`
    Route: `audit-then-ship`
 
 Next: Which findings should I route? Reply with numbers, `clean dry-run <scope>`, or `none`.
@@ -107,7 +107,7 @@ If there are no findings, say the checked scope is aligned and list the commands
 | Don't | Why |
 |-------|-----|
 | Run mutating commands during `/drift check` | Drift detection must be safe on dirty trees |
-| Run `skills:sync`, codegen, formatters, or full clean automatically | Those are fixes, not classification |
+| Run codegen, formatters, or full clean automatically | Those are fixes, not classification |
 | Treat runtime bugs as cleanup drift | User-facing failures belong in `debug` or `review` |
 | Turn every warning into an urgent finding | Accepted warning debt should be reported separately or ignored |
 | Open Linear records without explicit approval | Linear writes are human-approved only |

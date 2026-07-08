@@ -8,6 +8,7 @@ import {
   useOffline,
   validateDecimalInput,
 } from "@green-goods/shared";
+import { RiLoader4Line } from "@remixicon/react";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits, parseUnits } from "viem";
@@ -15,9 +16,10 @@ import { formatUnits, parseUnits } from "viem";
 export interface CookieJarCardProps {
   jar: CookieJar;
   gardenAddress: Address;
+  gardenName: string;
 }
 
-export function CookieJarCard({ jar, gardenAddress }: CookieJarCardProps) {
+export function CookieJarCard({ jar, gardenAddress, gardenName }: CookieJarCardProps) {
   const { formatMessage } = useIntl();
   const { isOnline } = useOffline();
   const withdrawMutation = useCookieJarWithdraw(gardenAddress);
@@ -151,11 +153,13 @@ export function CookieJarCard({ jar, gardenAddress }: CookieJarCardProps) {
               !purpose.trim() ||
               withdrawMutation.isPending
             }
+            aria-busy={withdrawMutation.isPending || undefined}
             className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-stroke-sub-300 bg-bg-white-0 px-3 py-2 text-sm font-medium text-text-sub-600 transition hover:bg-bg-weak-50 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {withdrawMutation.isPending
-              ? formatMessage({ id: "app.cookieJar.withdrawing" })
-              : formatMessage({ id: "app.cookieJar.withdraw" })}
+            {withdrawMutation.isPending && (
+              <RiLoader4Line className="h-4 w-4 animate-spin" aria-hidden />
+            )}
+            {formatMessage({ id: "app.cookieJar.withdraw" })}
           </button>
 
           <ConfirmDialog
@@ -164,7 +168,11 @@ export function CookieJarCard({ jar, gardenAddress }: CookieJarCardProps) {
             title={formatMessage({ id: "app.cookieJar.confirmWithdrawTitle" })}
             description={formatMessage(
               { id: "app.cookieJar.confirmWithdrawDescription" },
-              { amount: formatTokenAmount(parsedAmount, decimals), asset: assetSymbol }
+              {
+                amount: formatTokenAmount(parsedAmount, decimals),
+                asset: assetSymbol,
+                garden: gardenName,
+              }
             )}
             confirmLabel={formatMessage({ id: "app.cookieJar.withdraw" })}
             variant="warning"

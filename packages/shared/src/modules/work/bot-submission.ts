@@ -3,6 +3,7 @@ import { getEASConfig } from "../../config/blockchain";
 import type { Address, WorkApprovalDraft, WorkDraft } from "../../types/domain";
 import { encodeWorkApprovalData, encodeWorkData } from "../../utils/eas/encoders";
 import { buildApprovalAttestTx, buildWorkAttestTx } from "../../utils/eas/transaction-builder";
+import { resolveWorkSubmissionTitle } from "../../utils/work/workTitles";
 
 /**
  * Submit work using a provided WalletClient (Node.js compatible)
@@ -29,7 +30,7 @@ export async function submitWorkBot(
   const attestationData = await encodeWorkData(
     {
       ...draft,
-      title: `${actionTitle} - ${new Date().toISOString()}`,
+      title: resolveWorkSubmissionTitle({ draftTitle: draft.title, actionTitle, actionUID }),
       actionUID,
       media: mediaFiles,
     },
@@ -56,11 +57,17 @@ export async function submitWorkBot(
 
 /**
  * Submit approval using a provided WalletClient (Node.js compatible)
+ *
+ * The EAS recipient MUST be the garden address — the same convention as work
+ * attestations and every PWA approval path. Recipient-scoped approval queries key on
+ * garden addresses, so any other recipient makes the approval invisible to them.
+ * (Historical bot approvals were attested with recipient = gardener; those are
+ * immutable — the read side tolerates both via utils/work/pending-review.ts.)
  */
 export async function submitApprovalBot(
   client: WalletClient,
   draft: WorkApprovalDraft,
-  gardenerAddress: Address,
+  gardenAddress: Address,
   chainId: number
 ): Promise<`0x${string}`> {
   const attestationData = encodeWorkApprovalData(draft, chainId);
@@ -68,7 +75,7 @@ export async function submitApprovalBot(
   const easConfig = getEASConfig(chainId);
   const txParams = buildApprovalAttestTx(
     easConfig,
-    gardenerAddress as `0x${string}`,
+    gardenAddress as `0x${string}`,
     attestationData
   );
 

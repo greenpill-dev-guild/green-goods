@@ -4,6 +4,7 @@ import {
   buildApprovalAttestContractCall,
   buildWorkAttestContractCall,
 } from "../../utils/eas/transaction-builder";
+import { resolveWorkSubmissionTitle } from "../../utils/work/workTitles";
 import type { TransactionSender } from "../transactions/types";
 import { jobQueueDB } from "./db";
 
@@ -19,7 +20,10 @@ export async function executeWorkJob(
   const images = await jobQueueDB.getImagesForJob(jobId);
   const allFiles = images.map((img) => img.file);
   const payload = job.payload as WorkJobPayload;
-  const actionTitle = payload.title || `Action ${payload.actionUID}`;
+  const actionTitle = resolveWorkSubmissionTitle({
+    draftTitle: payload.title,
+    actionUID: payload.actionUID,
+  });
 
   // Separate audio from visual media by MIME type
   const audioFiles = allFiles.filter((f) => f.type.startsWith("audio/"));
@@ -53,7 +57,7 @@ export async function executeWorkJob(
   const attestationData = await encodeWorkData(
     {
       actionUID: payload.actionUID,
-      title: `${actionTitle} - ${new Date().toISOString()}`,
+      title: actionTitle,
       feedback: payload.feedback,
       media: mediaFiles,
       details: payload.details ?? {},

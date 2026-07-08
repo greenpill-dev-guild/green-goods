@@ -79,16 +79,18 @@ describe("AccountInfo passkey warning", () => {
   it("shows passkey persistence warning when authMode is passkey", () => {
     renderAccountInfo();
 
-    expect(screen.getByText("Save a backup before changing browsers")).toBeInTheDocument();
-    expect(screen.getByText(/This sign-in lives on this device only/)).toBeInTheDocument();
-    expect(screen.getByText(/Sign in with a wallet instead/)).toBeInTheDocument();
+    expect(screen.getByText("Recovery depends on your passkey provider")).toBeInTheDocument();
+    expect(screen.getByText(/Keep the same username or ENS handle/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Legacy local-only passkeys keep same-device login only/)
+    ).toBeInTheDocument();
   });
 
   it("does not show passkey warning when authMode is wallet", () => {
     mockAuthMode = "wallet";
     renderAccountInfo();
 
-    expect(screen.queryByText("Save a backup before changing browsers")).not.toBeInTheDocument();
+    expect(screen.queryByText("Recovery depends on your passkey provider")).not.toBeInTheDocument();
   });
 
   it("does not show passkey warning when authMode is null", () => {
@@ -96,7 +98,7 @@ describe("AccountInfo passkey warning", () => {
     mockSmartAccountAddress = null;
     renderAccountInfo();
 
-    expect(screen.queryByText("Save a backup before changing browsers")).not.toBeInTheDocument();
+    expect(screen.queryByText("Recovery depends on your passkey provider")).not.toBeInTheDocument();
   });
 
   it("shows connected wallet state for embedded auth", () => {
@@ -108,13 +110,13 @@ describe("AccountInfo passkey warning", () => {
     expect(screen.getByText("Wallet")).toBeInTheDocument();
     expect(screen.getByText("Connected")).toBeInTheDocument();
     expect(screen.getByText("address-copy")).toBeInTheDocument();
-    expect(screen.queryByText("Save a backup before changing browsers")).not.toBeInTheDocument();
+    expect(screen.queryByText("Recovery depends on your passkey provider")).not.toBeInTheDocument();
   });
 
   it("places the warning before the logout button", () => {
     renderAccountInfo();
 
-    const warning = screen.getByText("Save a backup before changing browsers");
+    const warning = screen.getByText("Recovery depends on your passkey provider");
     const logoutButton = screen.getByText("Logout");
 
     // Warning should appear before logout in DOM order

@@ -1,4 +1,4 @@
-import { screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement, type ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -11,6 +11,7 @@ const mockLoggerError = vi.fn();
 
 vi.mock("@green-goods/shared", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@green-goods/shared")>();
+  const { useState } = await import("react");
   return {
     ...actual,
     Alert: ({ children }: { children: ReactNode }) =>
@@ -24,8 +25,47 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       error: (...args: unknown[]) => mockLoggerError(...args),
     },
     useCreateListing: (...args: unknown[]) => mockUseCreateListing(...args),
+    // Faithful state-mode reimplementation of useDirtyClose minus the
+    // router-bound useBlocker (renderWithProviders has no data router).
+    useDirtyClose: ({ isDirty, onClose }: { isDirty: boolean; onClose: () => void }) => {
+      const [confirmOpen, setConfirmOpen] = useState(false);
+      return {
+        onOpenChange: (open: boolean) => {
+          if (open) return;
+          if (isDirty) setConfirmOpen(true);
+          else onClose();
+        },
+        confirmOpen,
+        cancelClose: () => setConfirmOpen(false),
+        confirmClose: () => {
+          setConfirmOpen(false);
+          onClose();
+        },
+      };
+    },
   };
 });
+
+// Stub the confirm to a plain element. The real DiscardChangesDialog mounts the
+// Radix AdminConfirmDialog stack, whose portal content flickers out when opened
+// over the already-open host dialog in jsdom (making "Discard changes?"
+// unfindable). This test asserts the guard wiring (dirty close → confirm shows
+// → Discard runs the close); the real dialog is covered by its own story.
+vi.mock("../../../components/DiscardChangesDialog", () => ({
+  DiscardChangesDialog: ({ open, onDiscard }: { open: boolean; onDiscard: () => void }) =>
+    open
+      ? createElement(
+          "div",
+          { role: "alertdialog" },
+          createElement("span", null, "Discard changes?"),
+          createElement(
+            "button",
+            { type: "button", "data-testid": "confirm-discard", onClick: onDiscard },
+            "Discard"
+          )
+        )
+      : null,
+}));
 
 import { CreateListingDialog } from "../../../components/Hypercerts/CreateListingDialog";
 
@@ -95,5 +135,34 @@ describe("components/Hypercerts/CreateListingDialog", () => {
 
     expect(mockReset).toHaveBeenCalled();
     expect(screen.getByRole("button", { name: /sign & list/i })).toBeInTheDocument();
+  });
+
+  it("confirms before discarding edited pricing on dialog dismiss", async () => {
+    const onOpenChange = vi.fn();
+    render(
+      createElement(CreateListingDialog, {
+        open: true,
+        onOpenChange,
+        gardenAddress: "0x1111111111111111111111111111111111111111",
+        hypercertId: 1n,
+        fractionId: 2n,
+      })
+    );
+
+    const user = userEvent.setup();
+
+    // Edit a field so the configure form is dirty, then close via the dialog X.
+    await user.type(screen.getByLabelText(/price per unit/i), "9");
+    await user.click(screen.getByRole("button", { name: "Close" }));
+
+    expect(await screen.findByText("Discard changes?")).toBeInTheDocument();
+    expect(onOpenChange).not.toHaveBeenCalled();
+
+    // fireEvent (not user.click) because the stubbed confirm renders inline,
+    // outside the still-open host dialog's Radix scroll-lock (pointer-events:none).
+    fireEvent.click(screen.getByTestId("confirm-discard"));
+    await waitFor(() => {
+      expect(onOpenChange).toHaveBeenCalledWith(false);
+    });
   });
 });

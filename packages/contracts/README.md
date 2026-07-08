@@ -107,11 +107,8 @@ Test against real network state without spending gas:
 bun run test:e2e:celo       # Fork and test Celo mainnet
 bun run test:e2e:arbitrum   # Fork and test Arbitrum mainnet
 
-# Or manually fork with Anvil
-anvil --fork-url $CELO_RPC_URL
-
-# Then run tests on fork
-bun run test:e2e:celo    # or bun run test:e2e:arbitrum / :sepolia
+# For an interactive local Arbitrum fork surface, use the package wrapper
+bun run dev:arbitrum-fork
 ```
 
 **Use when:** Testing upgrades, validating against real state, debugging production issues
@@ -209,10 +206,10 @@ bun script/deploy.ts core --network sepolia --broadcast --force
 ---
 
 **📖 For detailed documentation, see:**
-- Full Deployment Guide: [Contracts Handbook](https://docs.greengoods.app/developer/contracts-handbook)
-- Upgrade Guide: [Contracts Handbook](https://docs.greengoods.app/developer/contracts-handbook)
-- Environment Setup: [Developer Quickstart](https://docs.greengoods.app/welcome/quickstart-developer)
-- Troubleshooting: [Developer Quickstart](https://docs.greengoods.app/welcome/quickstart-developer)
+- Full Deployment Guide: [Contracts Handbook](https://docs.greengoods.app/builders/deployments/contracts-deploy)
+- Upgrade Guide: [Contracts Handbook](https://docs.greengoods.app/builders/deployments/contracts-deploy)
+- Environment Setup: [Environment Management](https://docs.greengoods.app/builders/env-management)
+- Troubleshooting: [Getting Started](https://docs.greengoods.app/builders/getting-started)
 
 
 ## HatsModule Operational Notes
@@ -324,9 +321,9 @@ Green Goods integrates with the **Karma Grantee Accountability Protocol (GAP)** 
 - Identity-first security - all resolvers verify roles before any logic
 
 **Documentation:**
-- User Guide: [Karma GAP Integration](https://docs.greengoods.app/developer/karma-gap)
-- Implementation: [Karma GAP Integration](https://docs.greengoods.app/developer/karma-gap)
-- Upgrade Guide: [Contracts Handbook](https://docs.greengoods.app/developer/contracts-handbook)
+- User Guide: [Karma GAP Integration](https://docs.greengoods.app/builders/integrations/karma)
+- Implementation: [Karma GAP Integration](https://docs.greengoods.app/builders/integrations/karma)
+- Upgrade Guide: [Contracts Handbook](https://docs.greengoods.app/builders/deployments/contracts-deploy)
 - KarmaLib Source: `src/lib/Karma.sol`
 - Interfaces: `src/interfaces/IKarmaGap.sol`
 
@@ -359,7 +356,7 @@ bun script/deploy.ts core --network sepolia --broadcast --update-schemas
 bun script/deploy.ts core --network sepolia --broadcast --force
 ```
 
-See the [Contracts Handbook](https://docs.greengoods.app/developer/contracts-handbook) for schema versioning strategy and deployment troubleshooting.
+See the [Contracts Handbook](https://docs.greengoods.app/builders/deployments/contracts-deploy) for schema versioning strategy and deployment troubleshooting.
 
 ## Configuration
 
@@ -470,21 +467,12 @@ When WorkApprovalResolver or AssessmentResolver contracts are upgraded, a new Ga
 # 1. Deploy new resolvers (if needed)
 bun script/upgrade.ts work-approval-resolver --network arbitrum
 
-# 2. Deploy new GardenAccount implementation
-forge script script/Upgrade.s.sol:Upgrade \
-  --sig "deployNewGardenAccountImplementation(address,address)" \
-  <NEW_WORK_APPROVAL_RESOLVER> \
-  <NEW_ASSESSMENT_RESOLVER> \
-  --network arbitrum --broadcast
-
-# 3. Gardens opt-in to upgrade
-forge script script/Upgrade.s.sol:Upgrade \
-  --sig "upgradeGardenProxy(address,address)" \
-  <GARDEN_PROXY> <NEW_IMPL> \
-  --network arbitrum --broadcast
+# 2. If a GardenAccount implementation or garden proxy opt-in is required,
+# add or use a package bun wrapper for that operation before broadcasting.
+# Do not run raw forge commands from this README.
 ```
 
-See the [Contracts Handbook](https://docs.greengoods.app/developer/contracts-handbook) for the complete upgrade guide.
+See the [Contracts Handbook](https://docs.greengoods.app/builders/deployments/contracts-deploy) for the complete upgrade guide.
 
 ### When to Deploy vs Upgrade
 
@@ -500,7 +488,7 @@ See the [Contracts Handbook](https://docs.greengoods.app/developer/contracts-han
 
 ### Documentation
 
-See the [Contracts Handbook](https://docs.greengoods.app/developer/contracts-handbook) for the complete upgrade guide including:
+See the [Contracts Handbook](https://docs.greengoods.app/builders/deployments/contracts-deploy) for the complete upgrade guide including:
 - Deploy vs Upgrade decision matrix
 - Storage gap usage
 - Multisig upgrade process
@@ -645,13 +633,14 @@ Networks are configured in `deployments/networks.json`. The system automatically
 ```bash
 # Fork testing against live networks
 bun run test:e2e:celo       # Automated fork test
-# Or manually: anvil --fork-url $CELO_RPC_URL
+# Or use the package local Arbitrum fork wrapper
+bun run dev:arbitrum-fork
 
 # Gas profiling
 bun run test:gas
 
 # Coverage analysis
-forge coverage
+bun run test:audit:coverage
 
 # Invariant testing
 bun run test:match test/invariant/InvariantTest.t.sol
@@ -669,10 +658,10 @@ bun run test:match test/invariant/InvariantTest.t.sol
 **Formatting & Linting:**
 ```bash
 # Format Solidity files
-forge fmt
+bun format
 
 # Lint with security rules
-solhint 'src/**/*.sol' 'script/**/*.sol' 'test/**/*.sol'
+bun lint
 
 # Combined format and lint
 bun lint
@@ -764,25 +753,20 @@ bun envio:cleanup
 **Compilation Errors:**
 ```bash
 # Clean and rebuild
-forge clean
-bun build
+bun run clean:artifacts
+bun run build
 
-# Check Solidity version compatibility
-cat foundry.toml | grep solc
-
-# Update Foundry
-foundryup
+# From the repo root, check local tool and env readiness without printing secret values
+bun run dev:doctor
 ```
 
 **Deployment Failures:**
 ```bash
-# Check RPC connectivity
-curl -X POST $CELO_RPC_URL \
-  -H "Content-Type: application/json" \
-  -d '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}'
+# From the repo root, validate required env keys without printing secret values
+bun run env:check
 
-# Check account balance
-cast balance $DEPLOYER_ADDRESS --rpc-url $CELO_RPC_URL
+# Run a non-broadcast preflight through the package wrapper
+bun run deploy:preflight:celo
 ```
 
 **Test Failures:**
@@ -794,32 +778,25 @@ bun run test
 bun run test:match test/unit/YourTestContract.t.sol
 
 # Check coverage
-forge coverage --report lcov
+bun run test:audit:coverage
 ```
 
 **Gas Issues:**
 ```bash
-# Estimate gas for deployment
-forge create src/YourContract.sol:YourContract --estimate
-
 # Profile gas usage
 bun run test:gas
 
-# Check gas limit
-cast block latest --field gasLimit --rpc-url $CELO_RPC_URL
+# Re-run the relevant network preflight through a package wrapper
+bun run deploy:preflight:celo
 ```
 
 **Environment Issues:**
 ```bash
-# Verify keystore exists
-cast wallet list
+# From the repo root, validate configured env keys without printing values
+bun run env:check
 
-# Check keystore address
-cast wallet address --account green-goods-deployer
-
-# Verify RPC URLs
-echo $FOUNDRY_KEYSTORE_ACCOUNT
-echo $CELO_RPC_URL
+# Inspect package deployment status through the wrapper
+bun run status
 ```
 
 ### Performance Optimization
@@ -843,12 +820,12 @@ echo $CELO_RPC_URL
 
 ## Documentation
 
-📖 **[Contracts Documentation](https://docs.greengoods.app/developer/architecture/contracts-package)** — Complete contracts architecture guide
+📖 **[Contracts Documentation](https://docs.greengoods.app/builders/packages/contracts)** — Complete contracts architecture guide
 
 **Essential Guides:**
-- 📘 [Contracts Handbook](https://docs.greengoods.app/developer/contracts-handbook) — Deployment, upgrades, schema management
-- 🏗️ [Architecture Overview](https://docs.greengoods.app/developer/architecture) — System design and package relationships
-- ✅ [Testing Guide](https://docs.greengoods.app/developer/testing) — Testing strategy and best practices
+- 📘 [Contracts Handbook](https://docs.greengoods.app/builders/deployments/contracts-deploy) — Deployment, upgrades, schema management
+- 🏗️ [Architecture Overview](https://docs.greengoods.app/builders/architecture) — System design and package relationships
+- ✅ [Testing Guide](https://docs.greengoods.app/builders/testing/forge) — Testing strategy and best practices
 
 **Configuration Files:**
 - 📝 [Schema Definitions](./config/schemas.json) — EAS schema configuration

@@ -34,6 +34,9 @@ function envValue(key, fallback = "") {
   return process.env[key] || rootEnv[key] || fallback;
 }
 
+const viteEnableSwDev = envValue("VITE_ENABLE_SW_DEV", "false");
+const localAgentApiBaseUrl = "http://127.0.0.1:3005";
+
 module.exports = {
   apps: [
     {
@@ -63,6 +66,7 @@ module.exports = {
         VITE_CHAIN_ID: "42161",
         VITE_LOCAL_FORK_RPC_URL: "http://127.0.0.1:3009",
         VITE_ENABLE_ANVIL_WALLETS: "true",
+        VITE_API_BASE_URL: localAgentApiBaseUrl,
       },
       merge_logs: true,
       autorestart: true,
@@ -83,6 +87,7 @@ module.exports = {
         VITE_CHAIN_ID: "42161",
         VITE_LOCAL_FORK_RPC_URL: "http://127.0.0.1:3009",
         VITE_ENABLE_ANVIL_WALLETS: "true",
+        VITE_API_BASE_URL: localAgentApiBaseUrl,
       },
       merge_logs: true,
       autorestart: true,
@@ -99,7 +104,7 @@ module.exports = {
       cwd: ".",
       env: {
         NODE_ENV: "development",
-        VITE_ENABLE_SW_DEV: "false",
+        VITE_ENABLE_SW_DEV: viteEnableSwDev,
         VITE_DEV_CHAIN_MODE: "arbitrum_fork",
         VITE_CHAIN_ID: "42161",
         VITE_LOCAL_FORK_RPC_URL: "http://127.0.0.1:3009",

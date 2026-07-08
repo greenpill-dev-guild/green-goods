@@ -1,19 +1,10 @@
-import type { SpringConfig } from "@react-spring/web";
-
 /**
- * Shared spring configuration tokens for the canvas animation system.
+ * Shared motion tuning constants for the canvas drag/choreography gestures.
  *
- * - sheet: Sheet slide open/close
- * - recession: MainSheet recession under an open sheet (slower, heavier than sheet)
- * - snappy: FAB press, nav item tap, tooltips
- * - gentle: Choreographed stagger, background transitions
+ * These tune the drag-dismiss velocity threshold and the choreography stagger.
+ * The former react-spring `SPRING_CONFIGS` were removed when the canvas moved to
+ * CSS transitions.
  */
-export const SPRING_CONFIGS = {
-  sheet: { mass: 0.7, tension: 260, friction: 26 } satisfies SpringConfig,
-  recession: { mass: 0.9, tension: 180, friction: 24 } satisfies SpringConfig,
-  snappy: { mass: 0.8, tension: 300, friction: 28 } satisfies SpringConfig,
-  gentle: { mass: 1.2, tension: 120, friction: 20 } satisfies SpringConfig,
-} as const;
 
 /** Velocity threshold (px/ms) for gesture-driven sheet dismiss */
 export const DISMISS_VELOCITY_THRESHOLD = 0.75;

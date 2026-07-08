@@ -50,6 +50,7 @@ import { useReadContracts } from "wagmi";
 import { AdminButton } from "@/components/AdminButton";
 import { AdminCard } from "@/components/AdminCard";
 import { AdminCheckbox } from "@/components/AdminCheckbox";
+import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
 import { AdminDialog } from "@/components/AdminDialog";
 import { EnsAddressText, formatEnsAddressName } from "@/components/EnsAddressText";
 import {
@@ -462,7 +463,7 @@ function CampaignJarListRow({
   return (
     <button
       type="button"
-      className="grid w-full gap-4 border-b border-[rgb(var(--m3-outline-variant))] px-4 py-4 text-left transition-colors last:border-b-0 hover:bg-[rgb(var(--m3-on-surface)/0.04)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--m3-primary))] sm:grid-cols-[4rem_minmax(0,1fr)_auto]"
+      className="grid w-full gap-4 border-b border-[rgb(var(--m3-outline-variant))] px-4 py-4 text-left transition-colors last:border-b-0 hover:bg-[rgb(var(--m3-on-surface)/0.04)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))] sm:grid-cols-[4rem_minmax(0,1fr)_auto]"
       onClick={() => onSelect(campaign)}
       aria-label={formatMessage(
         {
@@ -533,50 +534,32 @@ function CampaignCookieJarAssetPicker({
   const { formatMessage } = useIntl();
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" role="radiogroup">
-      {assets.map((asset) => {
-        const selected = selectedAssetId === asset.id;
-        return (
-          <button
-            key={asset.id}
-            type="button"
-            role="radio"
-            aria-checked={selected}
-            disabled={!asset.supported}
-            onClick={() => onSelect(asset.id)}
-            className={[
-              "min-h-[6rem] rounded-[var(--m3-shape-md)] border p-4 text-left transition",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--m3-primary))]",
-              selected
-                ? "border-[rgb(var(--m3-primary))] bg-[rgb(var(--m3-primary-container)/0.45)]"
-                : "border-[rgb(var(--m3-outline-variant))] bg-[rgb(var(--m3-surface))]",
-              asset.supported
-                ? "hover:border-[rgb(var(--m3-primary))]"
-                : "cursor-not-allowed opacity-55",
-            ].join(" ")}
-          >
-            <span className="flex items-start justify-between gap-3">
-              <span>
-                <span className="block text-title-sm font-semibold text-[rgb(var(--m3-on-surface))]">
-                  {asset.label}
-                </span>
-                <span className="mt-1 block text-body-sm text-[rgb(var(--m3-on-surface-variant))]">
-                  {formatMessage(
-                    {
-                      id: "cockpit.community.cookies.assetDecimals",
-                      defaultMessage: "{symbol} - {decimals} decimals",
-                    },
-                    { symbol: asset.symbol, decimals: asset.decimals }
-                  )}
-                </span>
-              </span>
-              {selected ? (
-                <span className="rounded-full bg-[rgb(var(--m3-primary))] px-2 py-0.5 text-label-sm text-[rgb(var(--m3-on-primary))]">
-                  {formatMessage({ id: "app.action.selected", defaultMessage: "Selected" })}
-                </span>
-              ) : null}
+    <AdminChoiceGroup
+      ariaLabel={formatMessage({
+        id: "cockpit.community.cookies.assetPicker",
+        defaultMessage: "Payout asset",
+      })}
+      value={selectedAssetId}
+      onChange={(assetId) => onSelect(assetId as CampaignCookieJarPayoutAssetId)}
+      columns={4}
+      optionClassName="min-h-24 items-start px-4 py-3"
+      descriptionClassName="line-clamp-none"
+      options={assets.map((asset) => ({
+        value: asset.id,
+        label: asset.label,
+        disabled: !asset.supported,
+        description: (
+          <>
+            <span className="block">
+              {formatMessage(
+                {
+                  id: "cockpit.community.cookies.assetDecimals",
+                  defaultMessage: "{symbol} - {decimals} decimals",
+                },
+                { symbol: asset.symbol, decimals: asset.decimals }
+              )}
             </span>
-            <span className="mt-3 block break-all text-label-sm text-[rgb(var(--m3-on-surface-variant))]">
+            <span className="mt-2 block break-all text-label-sm">
               {asset.supported ? (
                 <EnsAddressText address={asset.address} />
               ) : (
@@ -589,10 +572,10 @@ function CampaignCookieJarAssetPicker({
                 )
               )}
             </span>
-          </button>
-        );
-      })}
-    </div>
+          </>
+        ),
+      }))}
+    />
   );
 }
 
@@ -1950,10 +1933,20 @@ export function CampaignCookieJarPanel() {
           defaultMessage:
             "Review the public link, update campaign metadata, and sync garden operator access.",
         })}
-        className="sm:max-w-3xl"
+        size="lg"
+        tone="community"
+        preventClose={syncAllowlist.isPending || updateMetadata.isPending}
         actions={
           <>
-            <AdminButton type="button" variant="text" onClick={() => setSelectedCampaign(null)}>
+            {/* Disabled while a write is in flight: the sync/metadata hooks
+                report errors inline, so a Cancel-close mid-write would render
+                the failure into a dialog nobody can see. */}
+            <AdminButton
+              type="button"
+              variant="text"
+              onClick={() => setSelectedCampaign(null)}
+              disabled={syncAllowlist.isPending || updateMetadata.isPending}
+            >
               {formatMessage({ id: "app.common.cancel", defaultMessage: "Cancel" })}
             </AdminButton>
             <AdminButton

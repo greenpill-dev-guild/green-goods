@@ -27,7 +27,7 @@ export const IconTrigger: Story = {
       <AdminTooltip content="Open settings">
         <button
           type="button"
-          className="m3-state-layer inline-flex h-10 w-10 items-center justify-center rounded-[var(--m3-shape-full)] bg-[rgb(var(--m3-surface-container-high))] text-[rgb(var(--m3-on-surface))] [--state-layer-color:var(--m3-on-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--m3-primary))]"
+          className="m3-state-layer inline-flex h-10 w-10 items-center justify-center rounded-[var(--m3-shape-full)] bg-[rgb(var(--m3-surface-container-high))] text-[rgb(var(--m3-on-surface))] [--state-layer-color:var(--m3-on-surface)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]"
           aria-label="Settings"
         >
           <RiSettings4Line className="h-5 w-5" />
@@ -43,7 +43,7 @@ export const TextTrigger: Story = {
       <AdminTooltip content="This filter limits the queue to submissions assigned to you.">
         <button
           type="button"
-          className="inline-flex items-center gap-1 rounded-[var(--m3-shape-sm)] px-2 py-1 text-body-md text-[rgb(var(--m3-primary))] underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--m3-primary))]"
+          className="inline-flex items-center gap-1 rounded-[var(--m3-shape-sm)] px-2 py-1 text-body-md text-[rgb(var(--m3-primary))] underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]"
         >
           <RiInformationLine className="h-4 w-4" /> Assignment filter
         </button>

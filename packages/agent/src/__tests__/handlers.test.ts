@@ -614,6 +614,32 @@ describe("handleApprove", () => {
     );
   });
 
+  it("keeps operator verification failure reasons generic for approve users", async () => {
+    const pendingWork = createPendingWork({ id: "work-approve-verification-leak" });
+    const message = createMockMessage({
+      id: "approve-verification-leak-1",
+      content: { type: "command", name: "approve", args: [pendingWork.id] },
+    });
+    const operator = createMockUser({
+      role: "operator",
+      currentGarden: pendingWork.gardenAddress,
+    });
+    const submitWork = vi.spyOn(blockchain, "submitWork");
+
+    vi.spyOn(db, "getPendingWork").mockResolvedValueOnce(pendingWork);
+    vi.spyOn(blockchain, "isOperator").mockResolvedValueOnce({
+      verified: false,
+      reason: "Verification failed: RPC upstream token approve-secret",
+    });
+
+    const result = await handleApprove(message, operator, {});
+
+    expect(result.response.text).toContain("Permission Denied");
+    expect(result.response.text).not.toContain("approve-secret");
+    expect(result.response.text).not.toContain("RPC upstream");
+    expect(submitWork).not.toHaveBeenCalled();
+  });
+
   it("deduplicates repeated approvals by external message id", async () => {
     const workId = "work-duplicate";
     const pendingWork = createPendingWork({ id: workId });
@@ -630,7 +656,9 @@ describe("handleApprove", () => {
       privateKey: "0x" + "b".repeat(64),
       address: pendingWork.gardenerAddress,
     });
-    const submitWork = vi.spyOn(blockchain, "submitWork").mockResolvedValue(`0x${"c".repeat(64)}`);
+    const submitWork = vi
+      .spyOn(blockchain, "submitWork")
+      .mockResolvedValue({ txHash: `0x${"c".repeat(64)}`, workUID: `0x${"e".repeat(64)}` });
     const submitApproval = vi
       .spyOn(blockchain, "submitApproval")
       .mockResolvedValue(`0x${"d".repeat(64)}`);
@@ -668,7 +696,10 @@ describe("handleApprove", () => {
       address: pendingWork.gardenerAddress,
       locale: "pt-BR",
     });
-    const submitWork = vi.spyOn(blockchain, "submitWork").mockResolvedValue(`0x${"c".repeat(64)}`);
+    const workUID = `0x${"e".repeat(64)}`;
+    const submitWork = vi
+      .spyOn(blockchain, "submitWork")
+      .mockResolvedValue({ txHash: `0x${"c".repeat(64)}`, workUID });
     const submitApproval = vi
       .spyOn(blockchain, "submitApproval")
       .mockResolvedValue(`0x${"d".repeat(64)}`);
@@ -687,8 +718,14 @@ describe("handleApprove", () => {
     expect(submitWork).toHaveBeenCalledWith(
       expect.objectContaining({ actionTitle: "Work Submission" })
     );
+    // The approval must reference the on-chain work UID (not the local queue id) and
+    // attest to the garden as EAS recipient (matching work attestations + PWA paths).
     expect(submitApproval).toHaveBeenCalledWith(
-      expect.objectContaining({ feedback: "Approved via bot" })
+      expect.objectContaining({
+        feedback: "Approved via bot",
+        gardenAddress: pendingWork.gardenAddress,
+        workUID,
+      })
     );
     expect(notifyGardener).toHaveBeenCalledWith(
       pendingWork.gardenerPlatform,
@@ -816,6 +853,32 @@ describe("handleReject", () => {
       expect.stringContaining("Seu trabalho foi rejeitado")
     );
     expect(notifyGardener.mock.calls[0]?.[2]).not.toContain("Tu trabajo fue rechazado");
+  });
+
+  it("keeps operator verification failure reasons generic for reject users", async () => {
+    const pendingWork = createPendingWork({ id: "work-reject-verification-leak" });
+    const message = createMockMessage({
+      id: "reject-verification-leak-1",
+      content: { type: "command", name: "reject", args: [pendingWork.id, "not enough detail"] },
+    });
+    const operator = createMockUser({
+      role: "operator",
+      currentGarden: pendingWork.gardenAddress,
+    });
+    const removePendingWork = vi.spyOn(db, "removePendingWork");
+
+    vi.spyOn(db, "getPendingWork").mockResolvedValueOnce(pendingWork);
+    vi.spyOn(blockchain, "isOperator").mockResolvedValueOnce({
+      verified: false,
+      reason: "Verification failed: RPC upstream token reject-secret",
+    });
+
+    const result = await handleReject(message, operator, {});
+
+    expect(result.response.text).toContain("Permission Denied");
+    expect(result.response.text).not.toContain("reject-secret");
+    expect(result.response.text).not.toContain("RPC upstream");
+    expect(removePendingWork).not.toHaveBeenCalled();
   });
 });
 

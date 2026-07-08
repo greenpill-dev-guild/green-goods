@@ -11,6 +11,7 @@ const POPULATED_GARDEN = {
   description: "Community-driven restoration in the Atlantic Forest biome.",
   location: "Rio de Janeiro, Brazil",
   bannerImage: "",
+  domainMask: 3, // Solar + Agroforestry
   openJoining: true,
   maxGardeners: 0,
 };
@@ -31,7 +32,7 @@ const meta: Meta<typeof GardenSettingsEditor> = {
     docs: {
       description: {
         component:
-          "Real `GardenSettingsEditor` rendered against the Storybook mock wagmi connector and `DevAuthProvider`. The banner field is an upload-to-IPFS control with a live preview (PRD-513); the other fields use inline `EditableField` save. The underlying update mutations (`useUpdateGardenName`, `useUpdateGarden{Description,Location,BannerImage}`, `useSetOpenJoining`, `useSetMaxGardeners`) are wired but inert — actions trigger the real mutation which fails silently against the mock transport. Render states (view / edit / read-only) reflect the live component.",
+          "Real `GardenSettingsEditor` rendered against the Storybook mock wagmi connector and `DevAuthProvider`. Explicit-save form: every field (name, description, location, banner, open joining, gardener limit, domains) edits a local draft. The hosting dialog owns the pinned footer (Save changes / Cancel) and the identity preview card that carries banner Remove/Undo — so this isolated story shows the fields and their draft/validation states, not the footer. Banner selection shows a local object-URL preview and uploads to IPFS only during Save. The underlying mutations (`useUpdateGardenName`, `useUpdateGarden{Description,Location,BannerImage}`, `useSetOpenJoining`, `useSetMaxGardeners`, `useSetGardenDomains`) are wired but inert against the mock transport.",
       },
     },
   },
@@ -69,6 +70,7 @@ export const EmptyFields: Story = {
       description: "",
       location: "",
       bannerImage: "",
+      domainMask: 0,
       openJoining: false,
       maxGardeners: 0,
     },

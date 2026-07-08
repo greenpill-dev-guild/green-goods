@@ -1,8 +1,12 @@
-import React, { useState } from "react";
+import { useAccessibleCookieJars } from "@green-goods/shared";
+import { RiCoinsLine, RiGiftLine, RiHandCoinLine } from "@remixicon/react";
+import React, { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { ModalDrawer, type ModalDrawerTab } from "@/components/Dialogs/ModalDrawer";
+import { WALLET_DRAWER_SCROLL_CLASSNAME } from "./classnames";
 import { ComingSoonStub } from "./ComingSoonStub";
 import { CookieJarTab } from "./CookieJarTab";
+import { SendTab } from "./SendTab";
 
 interface WalletDrawerProps {
   isOpen: boolean;
@@ -12,11 +16,35 @@ interface WalletDrawerProps {
 export const WalletDrawer: React.FC<WalletDrawerProps> = ({ isOpen, onClose }) => {
   const { formatMessage } = useIntl();
   const [activeTab, setActiveTab] = useState("cookie-jar");
+  // Bumped whenever the Tokens tab is (re)selected, so re-tapping it resets the
+  // Tokens tab back to its Balance home.
+  const [sendResetNonce, setSendResetNonce] = useState(0);
+
+  // Claimable-jar count for the Cookies tab badge. Gated to drawer-open so the
+  // on-chain role/jar reads don't run while the drawer is closed.
+  const { jars } = useAccessibleCookieJars({ enabled: isOpen });
+  const claimableCookies = useMemo(
+    () => jars.filter((jar) => jar.maxWithdrawal > 0n && jar.balance > 0n && !jar.isPaused).length,
+    [jars]
+  );
 
   const tabs: ModalDrawerTab[] = [
-    { id: "cookie-jar", label: formatMessage({ id: "app.cookieJar.title" }) },
-    { id: "send", label: formatMessage({ id: "app.cookieJar.send" }) },
-    { id: "pools", label: formatMessage({ id: "app.cookieJar.pools" }) },
+    {
+      id: "cookie-jar",
+      label: formatMessage({ id: "app.wallet.tab.cookies" }),
+      icon: <RiGiftLine />,
+      count: claimableCookies,
+    },
+    {
+      id: "send",
+      label: formatMessage({ id: "app.wallet.tab.tokens" }),
+      icon: <RiCoinsLine />,
+    },
+    {
+      id: "pools",
+      label: formatMessage({ id: "app.wallet.tab.commitments" }),
+      icon: <RiHandCoinLine />,
+    },
   ];
 
   return (
@@ -24,21 +52,28 @@ export const WalletDrawer: React.FC<WalletDrawerProps> = ({ isOpen, onClose }) =
       isOpen={isOpen}
       onClose={onClose}
       header={{
-        title: formatMessage({ id: "app.cookieJar.wallet" }),
-        description: formatMessage({ id: "app.cookieJar.walletDescription" }),
+        title: formatMessage({ id: "app.wallet.title" }),
+        description: formatMessage({ id: "app.wallet.subtitle" }),
       }}
       tabs={tabs}
       activeTab={activeTab}
-      onTabChange={setActiveTab}
-      contentClassName="overflow-y-auto p-0"
+      onTabChange={(id) => {
+        setActiveTab(id);
+        if (id === "send") setSendResetNonce((nonce) => nonce + 1);
+      }}
+      contentClassName="flex min-h-0 flex-col overflow-hidden p-0"
       maxHeight="95vh"
     >
       {activeTab === "cookie-jar" && <CookieJarTab />}
-      {activeTab === "send" && (
-        <ComingSoonStub tabName={formatMessage({ id: "app.cookieJar.send" })} />
-      )}
+      {activeTab === "send" && <SendTab resetNonce={sendResetNonce} />}
       {activeTab === "pools" && (
-        <ComingSoonStub tabName={formatMessage({ id: "app.cookieJar.pools" })} />
+        <div className={WALLET_DRAWER_SCROLL_CLASSNAME}>
+          <ComingSoonStub
+            tabName={formatMessage({ id: "app.wallet.tab.commitments" })}
+            description={formatMessage({ id: "app.wallet.commitments.comingSoon" })}
+            icon={<RiHandCoinLine />}
+          />
+        </div>
       )}
     </ModalDrawer>
   );

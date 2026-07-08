@@ -1,6 +1,5 @@
 import {
   adminRoutes,
-  toastService,
   useAdminGardenWorkspaceSelection,
   useCanvasSearchParams,
   useGardenDerivedState,
@@ -22,10 +21,6 @@ import {
   communitySectionForMode,
   resolveCommunityMode,
 } from "./community.utils";
-import {
-  bindCanvasScrollPositionPersistence,
-  restoreCanvasScrollPosition,
-} from "../navigation/workspaceScroll";
 
 export function useCommunityWorkspaceController() {
   const { formatMessage } = useIntl();
@@ -33,53 +28,43 @@ export function useCommunityWorkspaceController() {
   const location = useLocation();
   const { poolType } = useParams<{ poolType?: string }>();
   const mode = resolveCommunityMode(location.pathname);
-  const hasShownAllGardensToastRef = useRef(false);
-  const handleAutoSelectGarden = useCallback(
-    (garden: { name: string }) => {
-      if (hasShownAllGardensToastRef.current) return;
-
-      hasShownAllGardensToastRef.current = true;
-      toastService.info({
-        title: formatMessage({
-          id: "cockpit.community.allGardensRedirect.title",
-          defaultMessage: "Community is per-garden",
-        }),
-        message: formatMessage(
-          {
-            id: "cockpit.community.allGardensRedirect.message",
-            defaultMessage: "Showing {name}. Use the garden chip to switch.",
-          },
-          { name: garden.name }
-        ),
-      });
-    },
-    [formatMessage]
-  );
+  // Auto-select stays silent: the AppBar GardenChip already declares the active
+  // garden (chrome is canonical — no toast redeclaring it on every entry).
   const { selectedGarden, gardenOptions, handleSelectGarden } = useAdminGardenWorkspaceSelection({
     autoSelectFirstGarden: true,
-    onAutoSelectGarden: handleAutoSelectGarden,
   });
   const { searchParams } = useCanvasSearchParams();
   const { containerRef } = useSheetWidth();
   const gardenStateKey = selectedGarden?.id ?? "";
-  const selectedGardenAddress = selectedGarden?.tokenAddress ?? selectedGarden?.id;
+  const selectedGardenAddress = selectedGarden?.id;
   const getGardenWorkspaceState = useGardenStateStore((state) => state.getGardenWorkspaceState);
   const setGardenWorkspaceState = useGardenStateStore((state) => state.setGardenWorkspaceState);
   const lastHydratedGardenStateKeyRef = useRef<string | null>(null);
   const [memberSearch, setMemberSearchState] = useState("");
 
-  const isVaultRoute = location.pathname.startsWith("/community/treasury/vault");
-  const isStrategiesRoute = location.pathname.startsWith("/community/governance/strategies");
-  const isSignalPoolRoute = location.pathname.startsWith("/community/governance/signal-pool/");
+  const isVaultDepositRoute =
+    location.pathname.startsWith("/community/endowment/vault/deposit") ||
+    location.pathname.startsWith("/community/resources/vault/deposit") ||
+    location.pathname.startsWith("/community/treasury/vault/deposit");
+  const isVaultWithdrawRoute =
+    location.pathname.startsWith("/community/endowment/vault/withdraw") ||
+    location.pathname.startsWith("/community/resources/vault/withdraw") ||
+    location.pathname.startsWith("/community/treasury/vault/withdraw");
+  const vaultAction = isVaultDepositRoute ? "deposit" : isVaultWithdrawRoute ? "withdraw" : null;
+  const isStrategiesRoute =
+    location.pathname.startsWith("/community/coordination/strategies") ||
+    location.pathname.startsWith("/community/governance/strategies");
+  const isSignalPoolRoute =
+    location.pathname.startsWith("/community/coordination/signal-pool/") ||
+    location.pathname.startsWith("/community/governance/signal-pool/");
   const selectedItem = searchParams.get("item") ?? poolType ?? null;
-  const sheetOpen = isVaultRoute || isStrategiesRoute || isSignalPoolRoute;
+  const sheetOpen = vaultAction !== null || isStrategiesRoute || isSignalPoolRoute;
 
   useEffect(() => {
     if (lastHydratedGardenStateKeyRef.current === gardenStateKey) return;
 
     const persistedState = getGardenWorkspaceState(gardenStateKey, "community");
     setMemberSearchState(persistedState.search);
-    restoreCanvasScrollPosition(persistedState.scrollPosition);
     lastHydratedGardenStateKeyRef.current = gardenStateKey;
   }, [gardenStateKey, getGardenWorkspaceState]);
 
@@ -101,14 +86,6 @@ export function useCommunityWorkspaceController() {
     setGardenWorkspaceState,
     sheetOpen,
   ]);
-
-  useEffect(() => {
-    if (!selectedGarden) return;
-
-    return bindCanvasScrollPositionPersistence((scrollPosition) => {
-      setGardenWorkspaceState(gardenStateKey, "community", { scrollPosition });
-    });
-  }, [gardenStateKey, selectedGarden, setGardenWorkspaceState]);
 
   const {
     garden,
@@ -137,14 +114,15 @@ export function useCommunityWorkspaceController() {
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const viewActions = useMemo(
     () =>
-      buildCommunityViewActions(canManage, isOwner, Boolean(selectedGarden), navigate, {
+      buildCommunityViewActions(mode, canManage, isOwner, Boolean(selectedGarden), navigate, {
         gardenAddress: selectedGardenAddress,
       }),
-    [canManage, isOwner, navigate, selectedGarden, selectedGardenAddress]
+    [canManage, isOwner, mode, navigate, selectedGarden, selectedGardenAddress]
   );
   const { desktopActions } = useViewActions({
     actions: viewActions,
     isDesktop,
+    blocked: sheetOpen,
   });
 
   const openSection = useCallback(
@@ -183,23 +161,40 @@ export function useCommunityWorkspaceController() {
   const handleModeChange = useCallback(
     (nextMode: string) =>
       navigate(
-        nextMode === "governance"
-          ? adminRoutes.communityGovernance({ gardenAddress: selectedGardenAddress })
-          : nextMode === "payouts"
-            ? adminRoutes.communityPayouts({ gardenAddress: selectedGardenAddress })
-            : nextMode === "members"
-              ? adminRoutes.communityMembers({ gardenAddress: selectedGardenAddress })
-              : adminRoutes.communityTreasury({ gardenAddress: selectedGardenAddress })
+        nextMode === "coordination"
+          ? adminRoutes.communityCoordination({ gardenId: selectedGardenAddress })
+          : nextMode === "endowment"
+            ? adminRoutes.communityEndowment({ gardenId: selectedGardenAddress })
+            : nextMode === "payouts"
+              ? adminRoutes.communityPayouts({ gardenId: selectedGardenAddress })
+              : adminRoutes.communityMembers({ gardenId: selectedGardenAddress })
       ),
     [navigate, selectedGardenAddress]
   );
 
   const clearSection = useCallback(
-    () => navigate(adminRoutes.communityTreasury({ gardenAddress: selectedGardenAddress })),
+    () =>
+      navigate(
+        mode === "coordination"
+          ? adminRoutes.communityCoordination({ gardenId: selectedGardenAddress })
+          : mode === "payouts"
+            ? adminRoutes.communityPayouts({ gardenId: selectedGardenAddress })
+            : mode === "members"
+              ? adminRoutes.communityMembers({ gardenId: selectedGardenAddress })
+              : adminRoutes.communityEndowment({ gardenId: selectedGardenAddress })
+      ),
+    [mode, navigate, selectedGardenAddress]
+  );
+  // Manage Members opens over the Members workspace and leaves the tab visible.
+  const openMembersModal = useCallback(
+    () =>
+      navigate(
+        adminRoutes.communityMembers({ gardenId: selectedGardenAddress, item: "manage-members" })
+      ),
     [navigate, selectedGardenAddress]
   );
-  const openMembersModal = useCallback(
-    () => navigate(adminRoutes.communityMembers({ gardenAddress: selectedGardenAddress })),
+  const closeMembersModal = useCallback(
+    () => navigate(adminRoutes.communityMembers({ gardenId: selectedGardenAddress })),
     [navigate, selectedGardenAddress]
   );
   const createPoolsAsync = useCallback(async () => {
@@ -219,6 +214,7 @@ export function useCommunityWorkspaceController() {
     allocationsLoading,
     canManage,
     clearSection,
+    closeMembersModal,
     community,
     communityLoading,
     containerRef,
@@ -237,19 +233,22 @@ export function useCommunityWorkspaceController() {
     isOwner,
     isSignalPoolRoute,
     isStrategiesRoute,
-    isVaultRoute,
+    vaultAction,
     memberSearch,
     mode,
     openMembersModal,
     openSection,
     pools,
     poolType,
+    roleMembers,
     scheduleBackgroundRefetch,
     section,
+    selectedItem,
     selectedGarden,
     selectedGardenAddress,
     setMemberSearch,
     vaultNetDeposited,
     vaultsLoading,
+    visibleDirectory: derived.visibleDirectory,
   };
 }

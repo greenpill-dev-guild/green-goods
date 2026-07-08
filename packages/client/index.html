@@ -4,6 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="%PWA_APP_NAME%" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta
       key="description"
@@ -34,37 +35,37 @@
     <link
       rel="apple-touch-icon"
       sizes="57x57"
-      href="%BASE_URL%images/apple-icon-57x57.png"
+      href="%BASE_URL%%PWA_APPLE_ICON_57%"
     />
     <link
       rel="apple-touch-icon"
       sizes="60x60"
-      href="%BASE_URL%images/apple-icon-60x60.png"
+      href="%BASE_URL%%PWA_APPLE_ICON_60%"
     />
     <link
       rel="apple-touch-icon"
       sizes="72x72"
-      href="%BASE_URL%images/apple-icon-72x72.png"
+      href="%BASE_URL%%PWA_APPLE_ICON_72%"
     />
     <link
       rel="apple-touch-icon"
       sizes="120x120"
-      href="%BASE_URL%images/apple-icon-120x120.png"
+      href="%BASE_URL%%PWA_APPLE_ICON_120%"
     />
     <link
       rel="apple-touch-icon"
       sizes="144x144"
-      href="%BASE_URL%images/apple-icon-144x144.png"
+      href="%BASE_URL%%PWA_APPLE_ICON_144%"
     />
-    <link rel="apple-touch-icon" sizes="180x180" href="%BASE_URL%apple-icon.png" />
-    <link rel="icon" type="image/png" sizes="192x192" href="%BASE_URL%icon-192.png" />
-    <meta name="msapplication-TileColor" content="#ffffff" />
+    <link rel="apple-touch-icon" sizes="180x180" href="%BASE_URL%%PWA_APPLE_ICON_180%" />
+    <link rel="icon" type="image/png" sizes="192x192" href="%BASE_URL%%PWA_BROWSER_ICON%" />
+    <meta name="msapplication-TileColor" content="%PWA_MS_TILE_COLOR%" />
     <meta
       name="msapplication-TileImage"
-      content="%BASE_URL%images/ms-icon-144x144.png"
+      content="%BASE_URL%%PWA_MS_TILE_IMAGE%"
     />
-    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#171717" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="%PWA_THEME_COLOR_LIGHT%" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="%PWA_THEME_COLOR_DARK%" media="(prefers-color-scheme: dark)" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -83,7 +84,7 @@
       rel="stylesheet"
     />
 
-    <title>Green Goods</title>
+    <title>%PWA_APP_NAME%</title>
     <script>
       // Set theme before render to prevent flash
       (function() {

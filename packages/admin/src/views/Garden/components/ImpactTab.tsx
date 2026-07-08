@@ -1,6 +1,5 @@
 import {
   type Address,
-  Button,
   Card,
   EmptyState,
   adminRoutes,
@@ -14,7 +13,7 @@ import { AdminCard } from "@/components/AdminCard";
 import { GardenAssessmentsPanel } from "@/components/Garden/GardenAssessmentsPanel";
 import { GardenHypercertsPanel } from "@/components/Garden/GardenHypercertsPanel";
 import { SectionStateCard } from "./GardenDetailHelpers";
-import { SECTION_CARD_MIN_HEIGHT } from "./gardenDetail.constants";
+import { IMPACT_HYPERCERT_CARD_CLASS } from "./gardenDetail.constants";
 
 export interface ImpactTabProps {
   garden: { id: string; chainId: number; tokenAddress?: string | null };
@@ -54,8 +53,8 @@ export function ImpactTab({
   const { formatMessage, formatDate } = useIntl();
 
   const recentAssessments = assessments.slice(0, 5);
-  const recentHypercerts = hypercerts.slice(0, 4);
-  const gardenRouteContext = { gardenAddress: garden.tokenAddress ?? garden.id };
+  const recentHypercerts = hypercerts.slice(0, 8);
+  const gardenRouteContext = { gardenId: garden.id };
 
   return (
     <div className="garden-tab-shell">
@@ -73,10 +72,10 @@ export function ImpactTab({
           ) : null}
 
           {(section === undefined || section === "hypercerts") && (
-            <Card className={SECTION_CARD_MIN_HEIGHT}>
+            <Card className={`${IMPACT_HYPERCERT_CARD_CLASS} flex flex-col`}>
               <Card.Header className="flex-wrap gap-3">
                 <div>
-                  <h3 className="label-md text-text-strong sm:text-lg">
+                  <h3 className="admin-section-title">
                     {formatMessage({ id: "app.garden.detail.impact.hypercertHighlights" })}
                   </h3>
                   <p className="mt-1 body-sm text-text-sub">
@@ -85,21 +84,25 @@ export function ImpactTab({
                     })}
                   </p>
                 </div>
-                <Button size="sm" variant="secondary" asChild>
+                <AdminButton size="sm" variant="tonal" asChild>
                   <Link
                     to={adminRoutes.gardenImpact({ ...gardenRouteContext, section: "hypercerts" })}
                   >
                     {formatMessage({ id: "app.garden.admin.viewAll" })}
                   </Link>
-                </Button>
+                </AdminButton>
               </Card.Header>
-              <Card.Body>
+              <Card.Body className="flex flex-1 flex-col">
                 {hypercertsLoading ? (
-                  <div className="space-y-2" role="status" aria-live="polite">
+                  <div
+                    className="grid flex-1 content-start gap-2 xl:grid-cols-2"
+                    role="status"
+                    aria-live="polite"
+                  >
                     <span className="sr-only">
                       {formatMessage({ id: "app.hypercerts.list.title" })}
                     </span>
-                    {[0, 1, 2].map((index) => (
+                    {[0, 1, 2, 3, 4, 5].map((index) => (
                       <div
                         key={index}
                         className="h-14 rounded-lg skeleton-shimmer"
@@ -113,7 +116,7 @@ export function ImpactTab({
                     title={formatMessage({ id: "app.hypercerts.list.empty.title" })}
                   />
                 ) : (
-                  <div className="space-y-2">
+                  <div className="grid flex-1 content-start gap-2 xl:grid-cols-2">
                     {recentHypercerts.map((record) => (
                       <AdminCard
                         variant="outlined"
@@ -178,16 +181,16 @@ export function ImpactTab({
           <div className="garden-tab-rail-sticky">
             <Card>
               <Card.Header className="flex-wrap gap-3">
-                <h3 className="label-md text-text-strong">
+                <h3 className="admin-section-title admin-section-title--compact">
                   {formatMessage({ id: "app.garden.admin.recentAssessments" })}
                 </h3>
-                <Button size="sm" variant="secondary" asChild>
+                <AdminButton size="sm" variant="tonal" asChild>
                   <Link
                     to={adminRoutes.gardenImpact({ ...gardenRouteContext, section: "assessments" })}
                   >
                     {formatMessage({ id: "app.garden.admin.viewAll" })}
                   </Link>
-                </Button>
+                </AdminButton>
               </Card.Header>
               <Card.Body>
                 {fetchingAssessments ? (
@@ -244,7 +247,7 @@ export function ImpactTab({
 
             <Card>
               <Card.Header>
-                <h3 className="label-md text-text-strong">
+                <h3 className="admin-section-title admin-section-title--compact">
                   {formatMessage({ id: "app.garden.detail.impactSummary" })}
                 </h3>
               </Card.Header>

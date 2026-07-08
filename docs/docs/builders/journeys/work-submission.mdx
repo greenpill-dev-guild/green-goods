@@ -113,7 +113,7 @@ stateDiagram-v2
 ## Connections
 
 - Upstream: [Onboarding](./onboarding) — Persona A must have a gardener role + currentGarden before this journey runs.
-- Downstream: [Evaluation](./evaluation) — approved work is the input to garden-level assessments (Hub Assess stage).
+- Related: [Evaluation](./evaluation) — the garden's assessment sets the baseline (diagnosis + SMART targets) that approved work is later measured against; the assessment is not fed by work.
 - Downstream: [Harvest](./harvest) — bundled approved works become the basis for hypercert minting.
 - Storage: see [`packages/shared/src/modules/job-queue/`](https://github.com/greenpill-dev-guild/green-goods/tree/main/packages/shared/src/modules/job-queue) for the offline mechanic and [Local vs Global Balance](../architecture/local-vs-global) for design rationale.
 - Sequence diagram: [Work submission and approval](../architecture/sequence-diagrams#work-submission-and-approval).

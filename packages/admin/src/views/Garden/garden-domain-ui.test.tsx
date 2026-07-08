@@ -1,30 +1,40 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import type { ReactNode } from "react";
 import { IntlProvider } from "react-intl";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { MemoryRouter, Route, RouterProvider, Routes, createMemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import enMessages from "../../../../shared/src/i18n/en.json";
 import { useGardenWorkspaceController } from "@green-goods/shared";
-import { GardenDomainSummaryRow } from "./components/GardenDetailHelpers";
 import { GardenWorkspaceContent } from "./components/GardenWorkspaceContent";
 import { SubmitWorkPanel } from "./SubmitWork";
 
 const gardenAddress = "0xAbCdEf1234567890aBcDeF1234567890aBcDeF12";
 
-const { mockCanManageGarden } = vi.hoisted(() => ({
+const { mockCanManageGarden, settingsEditorProbe } = vi.hoisted(() => ({
   mockCanManageGarden: vi.fn(() => true),
+  // Captures the dirty-state reporter the workspace passes to the (mocked)
+  // settings editor, so tests can drive the dialog's close guard directly.
+  settingsEditorProbe: {
+    reportDirtyState: undefined as
+      | undefined
+      | ((state: { isDirty: boolean; isSaving: boolean }) => void),
+  },
 }));
 
 vi.mock("@green-goods/shared", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@green-goods/shared")>();
-  const React = await import("react");
+  const Router = await import("react-router-dom");
 
   return {
     ...actual,
     useGardenWorkspaceController: () => {
-      const [domainEditorOpen, setDomainEditorOpen] = React.useState(false);
+      // Route-faithful stub: the real controller derives the view from the
+      // pathname and closes the settings dialog by navigating — the dirty-close
+      // guard's router blocker only exists on that navigation path.
+      const navigate = Router.useNavigate();
+      const location = Router.useLocation();
       return {
         activityFilter: "all",
         assessments: [],
@@ -33,20 +43,21 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
         canReview: false,
         canvasActivityEvents: [],
         clearSection: vi.fn(),
-        closeDomainEditor: () => setDomainEditorOpen(false),
         community: null,
         containerRef: { current: null },
         derived: {
           overviewAlerts: [],
+          domainLabels: [],
+          impactBadge: { severity: "none" },
           gardenHealthLabel: "Healthy",
           approvedInRangeCount: 0,
+          approvedInLastThirtyDays: 0,
           impactVelocityDelta: 0,
           medianReviewAgeHours: 0,
           pendingWorks: [],
           filteredActivityEvents: [],
         },
         desktopActions: [],
-        domainEditorOpen,
         error: null,
         fetching: false,
         fetchingAssessments: false,
@@ -71,12 +82,13 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
         gardenAddress,
         gardenOptions: [],
         handleSelectGarden: vi.fn(),
-        handleTabChange: vi.fn(),
+        handleSettingsClose: () => navigate("/garden/health"),
+        handleTabChange: (nextView: string) =>
+          navigate(nextView === "settings" ? "/garden/settings" : "/garden/health"),
         hypercertId: undefined,
         hypercerts: [],
         hypercertSheetCloseTo: "/garden",
         isOwner: true,
-        openDomainEditor: () => setDomainEditorOpen(true),
         openSection: vi.fn(),
         range: "30d",
         section: undefined,
@@ -87,9 +99,14 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
         },
         selectedItem: undefined,
         setActivityFilter: vi.fn(),
+        settingsOpen: location.pathname.endsWith("/settings"),
         treasuryBalance: "0",
         updateOverviewQueryState: vi.fn(),
-        view: "settings",
+        view: location.pathname.endsWith("/impact")
+          ? "impact"
+          : location.pathname.endsWith("/activity")
+            ? "activity"
+            : "health",
       };
     },
     useCanvasSearchParams: () => ({
@@ -156,8 +173,11 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
     }),
     useGardenDerivedState: () => ({
       overviewAlerts: [],
+      domainLabels: [],
+      impactBadge: { severity: "none" },
       gardenHealthLabel: "Healthy",
       approvedInRangeCount: 0,
+      approvedInLastThirtyDays: 0,
       impactVelocityDelta: 0,
       medianReviewAgeHours: 0,
       pendingWorks: [],
@@ -173,7 +193,7 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       ],
     }),
     useActions: () => ({ data: [] }),
-    useAuthState: () => ({ isAuthenticated: true }),
+    useAuthState: () => ({ isAuthenticated: true, authMode: "wallet" }),
     useGardenPermissions: () => ({ canManageGarden: mockCanManageGarden }),
     useBeforeUnloadWhilePending: () => undefined,
     useGardenDomains: () => ({ data: 0n, isLoading: false }),
@@ -181,11 +201,28 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       mutate: vi.fn(),
       isPending: false,
     }),
+    useWorkMutation: () => ({
+      error: null,
+      isPending: false,
+      mutate: vi.fn(),
+    }),
   };
 });
 
 vi.mock("@/components/Garden/GardenSettingsEditor", () => ({
-  GardenSettingsEditor: () => <div data-testid="garden-settings-editor" />,
+  GardenSettingsEditor: (props: {
+    onDirtyStateChange?: (state: { isDirty: boolean; isSaving: boolean }) => void;
+  }) => {
+    settingsEditorProbe.reportDirtyState = props.onDirtyStateChange;
+    return <div data-testid="garden-settings-editor" />;
+  },
+}));
+
+// The settings dialog also hosts the cookie-jar manage modal, whose
+// useGardenCookieJars hook reads wagmi context this harness doesn't provide —
+// out of scope for the domain-editor flow under test.
+vi.mock("@/views/Hub/components/CookieJarManageModal", () => ({
+  CookieJarManageModal: () => null,
 }));
 
 function TestProviders({ children }: { children: ReactNode }) {
@@ -216,58 +253,76 @@ describe("garden domain recovery UI", () => {
     return <GardenWorkspaceContent workspace={workspace} />;
   }
 
-  it("opens the existing domain editor from the garden settings Domains row", async () => {
+  // Data router (not <MemoryRouter>): the settings dialog's dirty-close guard
+  // uses useBlocker, which requires the data-router APIs — same pattern as
+  // CreateAssessmentDialog.test.tsx.
+  function renderWorkspaceAtSettings() {
+    const router = createMemoryRouter(
+      [
+        { path: "/garden/settings", element: <GardenWorkspaceHarness /> },
+        { path: "/garden/health", element: <div>Health route</div> },
+      ],
+      { initialEntries: ["/garden/settings"] }
+    );
+    render(
+      <TestProviders>
+        <RouterProvider router={router} />
+      </TestProviders>
+    );
+    return router;
+  }
+
+  it("closes pristine garden settings straight to health with no discard prompt", async () => {
     const user = userEvent.setup();
 
-    render(
-      <TestProviders>
-        <MemoryRouter initialEntries={["/garden/settings"]}>
-          <Routes>
-            <Route path="/garden/settings" element={<GardenWorkspaceHarness />} />
-          </Routes>
-        </MemoryRouter>
-      </TestProviders>
-    );
+    renderWorkspaceAtSettings();
 
-    expect(screen.getByText("No domains configured")).toBeVisible();
+    expect(screen.getByRole("dialog", { name: "Garden Profile" })).toBeVisible();
 
-    await user.click(screen.getByRole("button", { name: "Edit domains" }));
+    await user.keyboard("{Escape}");
 
-    expect(screen.getByRole("dialog", { name: "Edit Domains" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "Save domains" })).toBeVisible();
+    expect(await screen.findByText("Health route")).toBeVisible();
+    expect(screen.queryByText("Discard Changes?")).not.toBeInTheDocument();
   });
 
-  it("shows the empty-domain status with an inline edit action for managers", () => {
-    render(
-      <TestProviders>
-        <GardenDomainSummaryRow domainMask={0} canManage onEditDomains={vi.fn()} />
-      </TestProviders>
-    );
+  it("prompts before discarding dirty garden settings and keeps editing on cancel", async () => {
+    const user = userEvent.setup();
 
-    expect(screen.getByText("No domains configured")).toBeVisible();
-    expect(screen.getByRole("button", { name: "Edit domains" })).toBeVisible();
+    renderWorkspaceAtSettings();
+    act(() => settingsEditorProbe.reportDirtyState?.({ isDirty: true, isSaving: false }));
+
+    await user.keyboard("{Escape}");
+
+    expect(await screen.findByText("Discard Changes?")).toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: "Keep editing" }));
+
+    expect(screen.getByRole("dialog", { name: "Garden Profile" })).toBeVisible();
+    expect(screen.queryByText("Health route")).not.toBeInTheDocument();
   });
 
-  it("keeps the inline edit action hidden for read-only operators", () => {
-    render(
-      <TestProviders>
-        <GardenDomainSummaryRow domainMask={0} canManage={false} onEditDomains={vi.fn()} />
-      </TestProviders>
-    );
+  it("discards dirty garden settings to health on confirm", async () => {
+    const user = userEvent.setup();
 
-    expect(screen.getByText("No domains configured")).toBeVisible();
-    expect(screen.queryByRole("button", { name: "Edit domains" })).not.toBeInTheDocument();
+    renderWorkspaceAtSettings();
+    act(() => settingsEditorProbe.reportDirtyState?.({ isDirty: true, isSaving: false }));
+
+    await user.keyboard("{Escape}");
+    await user.click(await screen.findByRole("button", { name: "Discard" }));
+
+    expect(await screen.findByText("Health route")).toBeVisible();
   });
 
-  it("keeps configured domain labels status-only", () => {
-    render(
-      <TestProviders>
-        <GardenDomainSummaryRow domainMask={1} canManage={false} onEditDomains={vi.fn()} />
-      </TestProviders>
-    );
+  it("hard-blocks closing garden settings while a save is in flight", async () => {
+    const user = userEvent.setup();
 
-    expect(screen.queryByText("No domains configured")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Edit domains" })).not.toBeInTheDocument();
+    renderWorkspaceAtSettings();
+    act(() => settingsEditorProbe.reportDirtyState?.({ isDirty: true, isSaving: true }));
+
+    await user.keyboard("{Escape}");
+
+    expect(screen.getByRole("dialog", { name: "Garden Profile" })).toBeVisible();
+    expect(screen.queryByText("Discard Changes?")).not.toBeInTheDocument();
   });
 
   it("routes Submit Work's empty domain state back to garden settings", async () => {
@@ -277,7 +332,19 @@ describe("garden domain recovery UI", () => {
       <TestProviders>
         <MemoryRouter initialEntries={["/hub/work/submit"]}>
           <Routes>
-            <Route path="/hub/work/submit" element={<SubmitWorkPanel layout="page" />} />
+            <Route
+              path="/hub/work/submit"
+              element={
+                <SubmitWorkPanel
+                  layout="page"
+                  auth={{
+                    authMode: "wallet",
+                    isAuthenticated: true,
+                    primaryAddress: gardenAddress,
+                  }}
+                />
+              }
+            />
             <Route path="/garden/settings" element={<div>Garden settings route</div>} />
           </Routes>
         </MemoryRouter>

@@ -62,6 +62,17 @@ bun run env:check
 
 The app gracefully degrades when optional values are missing (analytics off, fallback gateways used, etc.) — only a small set of keys are strictly required to boot the dev stack: `APP_ENV`, `VITE_CHAIN_ID`, `VITE_API_BASE_URL`, `VITE_ENVIO_INDEXER_URL`.
 
+## Sentry deployment environment
+
+Client and admin Sentry DSNs resolve during the Vite build, then the browser bundle receives them
+as `VITE_SENTRY_CLIENT_DSN` and `VITE_SENTRY_ADMIN_DSN`. The browser Sentry `environment` tag
+resolves separately from `SENTRY_ENVIRONMENT`, `VERCEL_TARGET_ENV`, `VERCEL_ENV`, `APP_ENV`, and
+finally Vite mode.
+
+For Vercel staging, prefer the custom deployment target so `VERCEL_TARGET_ENV=staging` is available
+at build time. If that system variable is unavailable for a deployment path, set
+`SENTRY_ENVIRONMENT=staging` on the staging environment.
+
 ## Regenerating `.env.template`
 
 Run this when `.env.schema` adds or removes keys, or when the team's 1Password vault structure changes:

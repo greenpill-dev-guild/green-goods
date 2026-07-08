@@ -708,7 +708,8 @@ function printJson() {
     results,
     summary: summary(),
     entrypoints: {
-      firstClone: "bun run setup",
+      firstClone: "npm run setup",
+      isolatedSetup: "npm run setup -- --profile isolated",
       doctor: "bun run dev:doctor -- --profile web",
       webStack: "bun run dev:web",
       webSmoke: "bun run dev:smoke:web",
@@ -718,6 +719,7 @@ function printJson() {
       productionMirrorStack: "bun run dev:prod:mirror",
       productionMirrorHealth: "bun run dev:prod:mirror:health",
       productionSmoke: "bun run dev:prod:smoke",
+      clean: "bun run dev:clean",
       stop: "bun run dev:stack:stop",
     },
   };
@@ -747,7 +749,8 @@ function printText() {
   console.log("- Shared team secrets: edit `.env.template` with `op://Vault/Item/field` refs.");
 
   console.log("\nRecommended entrypoints");
-  console.log("- First clone: bun run setup");
+  console.log("- First clone: npm run setup");
+  console.log("- Isolated worktree/container setup: npm run setup -- --profile isolated");
   console.log("- Doctor profile: bun run dev:doctor -- --profile web");
   console.log("- Full local environment: bun run dev");
   console.log("- Production-backed local environment: bun run dev:prod");
@@ -755,6 +758,7 @@ function printText() {
   console.log("- Production smoke: bun run dev:prod:smoke");
   console.log("- PM2 fallback frontend stack: bun run dev:web");
   console.log("- Web smoke: bun run dev:smoke:web");
+  console.log("- Clean current checkout artifacts: bun run dev:clean");
   console.log("- Stop repo-owned services: bun run dev:stop");
   console.log("- Stop PM2 services directly: bun run dev:stack:stop");
 

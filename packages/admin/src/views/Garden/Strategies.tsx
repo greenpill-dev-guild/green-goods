@@ -3,6 +3,7 @@ import {
   AddressDisplay,
   Alert,
   adminRoutes,
+  compareAddresses,
   useAdminGardenWorkspaceSelection,
   useConvictionStrategies,
   useGardenPermissions,
@@ -35,8 +36,8 @@ export default function GardenStrategiesView({ layout = "page" }: GardenStrategi
   const gardenId = selectedGarden?.id ?? null;
 
   const { data: gardens = [], isLoading: gardensLoading } = useGardens();
-  const garden = gardens.find((item) => item.id === gardenId);
-  const gardenRouteContext = { gardenAddress: garden?.tokenAddress ?? garden?.id ?? gardenId };
+  const garden = gardens.find((item) => compareAddresses(item.id, gardenId));
+  const gardenRouteContext = { gardenId: garden?.id ?? gardenId };
   const permissions = useGardenPermissions();
 
   const {
@@ -49,7 +50,7 @@ export default function GardenStrategiesView({ layout = "page" }: GardenStrategi
 
   const { mutate: setStrategies, isPending: isSaving } = useSetConvictionStrategies();
   const communityBackLink = {
-    to: adminRoutes.communityGovernance(gardenRouteContext),
+    to: adminRoutes.communityCoordination(gardenRouteContext),
     label: formatMessage({ id: "cockpit.nav.community", defaultMessage: "Community" }),
   };
 
@@ -186,7 +187,7 @@ export default function GardenStrategiesView({ layout = "page" }: GardenStrategi
 
           {/* Add strategy form */}
           {canManage && (
-            <div className="mt-4 flex gap-2">
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row">
               <AdminTextField
                 label={formatMessage({ id: "app.conviction.strategyAddress" })}
                 variant="outlined"
@@ -197,11 +198,12 @@ export default function GardenStrategiesView({ layout = "page" }: GardenStrategi
                 }}
                 placeholder={formatMessage({ id: "app.conviction.strategyAddressPlaceholder" })}
                 error={addressError || undefined}
-                className="flex-1"
+                className="min-w-0 flex-1"
               />
               <AdminButton
                 type="button"
                 variant="filled"
+                className="w-full sm:w-auto"
                 onClick={handleAddStrategy}
                 disabled={isSaving || !newAddress.trim()}
                 loading={isSaving}
@@ -222,6 +224,7 @@ export default function GardenStrategiesView({ layout = "page" }: GardenStrategi
       title={formatMessage({ id: "app.conviction.confirmRemoveStrategy" })}
       description={formatMessage({ id: "app.conviction.confirmRemoveStrategyDescription" })}
       variant="danger"
+      tone="garden"
       onConfirm={() => {
         if (confirmRemoveIndex !== null) {
           handleRemoveStrategy(confirmRemoveIndex, () => setConfirmRemoveIndex(null));
@@ -232,7 +235,7 @@ export default function GardenStrategiesView({ layout = "page" }: GardenStrategi
 
   if (layout === "sheet") {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 overflow-x-hidden">
         {content}
         {dialog}
       </div>

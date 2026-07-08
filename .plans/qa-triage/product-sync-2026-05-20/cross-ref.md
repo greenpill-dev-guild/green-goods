@@ -1,6 +1,8 @@
 # Cross-reference — Product Sync 2026-05-20 (fixture)
 
 > Mode: `--fixture --dry-run`. Simulated cross-ref data is taken from the fixture's `<!-- skill-fixture-context: ... -->` HTML comment. **The skill does not currently parse this block** — see gap-validate #2 in `report.md`. For this dry-run I'm hand-applying the simulated state so the rest of the phase flow can be validated.
+Freshness note (2026-06-02): this cross-reference is synthetic fixture metadata only. Proposed `task:*` labels are stale historical examples; do not use them for current Linear routing.
+
 
 ### Item 1 — Camera preview clips on iOS Safari standalone PWA
 

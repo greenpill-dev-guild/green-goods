@@ -16,7 +16,7 @@ import {
   type ViewAction,
 } from "@green-goods/shared";
 import { RiAddLine } from "@remixicon/react";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
@@ -27,10 +27,6 @@ import {
 } from "./actions.utils";
 import { isActionsRouteSheetContentId } from "../navigation/sheetRegistry";
 import { resolveActionsRouteState } from "./actions.workspaceModel";
-import {
-  bindCanvasScrollPositionPersistence,
-  restoreCanvasScrollPosition,
-} from "../navigation/workspaceScroll";
 import type { UserRole } from "../../gardener/useRole";
 
 export function canManageActionsForRole(role: UserRole): boolean {
@@ -45,9 +41,7 @@ export function useActionsController() {
   const { role } = useRole();
   const { data: actions = [], isLoading, isFetching, refetch } = useActions(DEFAULT_CHAIN_ID);
   const canManageActions = canManageActionsForRole(role);
-  const getGardenWorkspaceState = useGardenStateStore((state) => state.getGardenWorkspaceState);
   const setGardenWorkspaceState = useGardenStateStore((state) => state.setGardenWorkspaceState);
-  const hydratedRef = useRef(false);
   const listSearch = useMemo(
     () => getActionsListSearch(new URLSearchParams(location.search)),
     [location.search]
@@ -78,6 +72,7 @@ export function useActionsController() {
   const { desktopActions } = useViewActions({
     actions: viewActions,
     isDesktop,
+    blocked: routeState.contentId !== null,
   });
 
   const { filters: urlFilters, setFilter, resetFilters } = useUrlFilters(ACTION_FILTER_DEFAULTS);
@@ -98,18 +93,27 @@ export function useActionsController() {
     return counts;
   }, [actions]);
 
+  // Per-domain counts for the primary tab rail (mirrors lifecycleCounts). Keyed
+  // by the numeric Domain enum plus an "all" total. Counts the full registry so
+  // each tab shows how many actions live in that domain regardless of search.
+  const domainCounts = useMemo(() => {
+    const counts: Record<string, number> = {
+      all: actions.length,
+      [Domain.SOLAR]: 0,
+      [Domain.AGRO]: 0,
+      [Domain.EDU]: 0,
+      [Domain.WASTE]: 0,
+    };
+    for (const action of actions) {
+      counts[action.domain] = (counts[action.domain] ?? 0) + 1;
+    }
+    return counts;
+  }, [actions]);
+
   const stageFilteredActions = useMemo(() => {
     if (lifecycle === "all") return filteredActions;
     return filteredActions.filter((action) => getActionLifecycleState(action) === lifecycle);
   }, [filteredActions, lifecycle]);
-
-  useEffect(() => {
-    if (hydratedRef.current) return;
-
-    const persistedState = getGardenWorkspaceState(ALL_GARDENS_KEY, "actions");
-    restoreCanvasScrollPosition(persistedState.scrollPosition);
-    hydratedRef.current = true;
-  }, [getGardenWorkspaceState]);
 
   useEffect(() => {
     setGardenWorkspaceState(ALL_GARDENS_KEY, "actions", {
@@ -119,12 +123,6 @@ export function useActionsController() {
       sheetOpen: routeState.contentId !== null,
     });
   }, [filters.sort, lifecycle, routeState.actionId, routeState.contentId, setGardenWorkspaceState]);
-
-  useEffect(() => {
-    return bindCanvasScrollPositionPersistence((scrollPosition) => {
-      setGardenWorkspaceState(ALL_GARDENS_KEY, "actions", { scrollPosition });
-    });
-  }, [setGardenWorkspaceState]);
 
   const openActionDetail = useCallback(
     (actionId: string) => {
@@ -176,6 +174,7 @@ export function useActionsController() {
     canManageActions,
     createActionHref,
     desktopActions,
+    domainCounts,
     filters,
     isLoading,
     isRefreshing,

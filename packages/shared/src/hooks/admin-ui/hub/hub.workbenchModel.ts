@@ -1,4 +1,4 @@
-import type { GardenAssessment } from "@green-goods/shared";
+import type { Domain, GardenAssessment } from "../../../types/domain";
 import type { AdminSheetSide } from "../navigation/sheetRegistry";
 import {
   type HubPipelineStage,
@@ -72,14 +72,28 @@ export interface HubWorkspaceStateInput {
 type ActionTitleLike = {
   id: string | number | bigint;
   title: string;
+  domain?: Domain;
 };
+
+export interface HubActionSummary {
+  title: string;
+  domain?: Domain;
+}
 
 export function normalizeHubSearch(searchTerm: string): string {
   return searchTerm.trim().toLowerCase();
 }
 
 export function buildActionTitleMap(actions: ActionTitleLike[]) {
-  return new Map(actions.map((action) => [Number(action.id), { title: action.title }]));
+  return new Map<number, HubActionSummary>(
+    actions.map((action) => {
+      const summary: HubActionSummary = { title: action.title };
+      if (action.domain !== undefined) {
+        summary.domain = action.domain;
+      }
+      return [Number(action.id), summary];
+    })
+  );
 }
 
 export function resolveHubRouteState({

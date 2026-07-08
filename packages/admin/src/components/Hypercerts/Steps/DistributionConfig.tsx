@@ -1,6 +1,5 @@
 import {
   Alert,
-  Button,
   type AllowlistEntry,
   cn,
   type DistributionMode,
@@ -12,6 +11,8 @@ import {
 import { RiCloseLine } from "@remixicon/react";
 import { useIntl } from "react-intl";
 import { isAddress, zeroAddress } from "viem";
+import { AdminButton } from "@/components/AdminButton";
+import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
 import { EnsAddressWithCopy, formatEnsAddressName } from "@/components/EnsAddressText";
 import { DistributionChart } from "../DistributionChart";
 
@@ -41,19 +42,19 @@ function RemoveRecipientButton({ entry, onRemove }: RemoveRecipientButtonProps) 
   const recipientLabel = entry.label || formatEnsAddressName(entry.address, ensName);
 
   return (
-    <Button
+    <AdminButton
       type="button"
-      variant="ghost"
+      variant="text"
       size="sm"
       onClick={onRemove}
       aria-label={formatMessage(
         { id: "app.hypercerts.distribution.removeRecipient" },
         { address: recipientLabel }
       )}
-      className="h-auto min-w-0 rounded p-1 text-text-sub transition hover:bg-error-lighter hover:text-error-dark focus:outline-none focus:ring-2 focus:ring-error-light"
+      className="h-8 min-w-8 rounded-[var(--m3-shape-sm)] px-2 text-text-sub hover:bg-error-lighter hover:text-error-dark focus-visible:ring-error-light"
     >
       <RiCloseLine className="h-4 w-4" />
-    </Button>
+    </AdminButton>
   );
 }
 
@@ -126,28 +127,17 @@ export function DistributionConfig({
         </div>
       )}
 
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-        {MODE_OPTIONS.map((option) => {
-          const isSelected = option.value === mode;
-          return (
-            <Button
-              key={option.value}
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => onModeChange(option.value)}
-              className={cn(
-                "h-auto min-w-0 rounded-lg border px-3 py-2 text-xs font-medium transition",
-                isSelected
-                  ? "border-primary-base bg-primary-lighter text-primary-dark"
-                  : "border-stroke-sub text-text-sub"
-              )}
-            >
-              {formatMessage({ id: option.labelId })}
-            </Button>
-          );
-        })}
-      </div>
+      <AdminChoiceGroup
+        ariaLabel={formatMessage({ id: "app.hypercerts.distribution.title" })}
+        value={mode}
+        onChange={(value) => onModeChange(value as DistributionMode)}
+        columns={4}
+        options={MODE_OPTIONS.map((option) => ({
+          value: option.value,
+          label: formatMessage({ id: option.labelId }),
+        }))}
+        optionClassName="min-h-10"
+      />
 
       {showError && (
         <Alert variant="error">
@@ -242,15 +232,9 @@ export function DistributionConfig({
       </div>
 
       {mode === "custom" && (
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          onClick={handleAddRecipient}
-          className="rounded-md border border-stroke-sub px-3 py-2 text-xs font-medium text-text-sub transition hover:bg-bg-weak"
-        >
+        <AdminButton type="button" variant="outlined" size="sm" onClick={handleAddRecipient}>
           {formatMessage({ id: "app.hypercerts.distribution.addRecipient" })}
-        </Button>
+        </AdminButton>
       )}
 
       <div className="text-xs text-text-sub">

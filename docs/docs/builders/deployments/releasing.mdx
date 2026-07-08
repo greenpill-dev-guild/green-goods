@@ -1,0 +1,76 @@
+---
+title: Releasing
+sidebar_label: Releasing
+slug: /builders/deployments/releasing
+audience: developer
+owner: docs
+last_verified: 2026-06-23
+feature_status: Live
+source_of_truth:
+  - .github/workflows/release.yml
+  - .github/release.yml
+  - scripts/ops/bump-version.mjs
+  - .claude/skills/ops/git-workflow.md
+  - CONTRIBUTING.md
+keywords:
+  - release
+  - monthly release
+  - changelog
+  - versioning
+  - hotfix
+  - back-merge
+---
+
+# Releasing
+
+Green Goods ships **once a month, at the start of the month**, in step with our two-week cycles (two cycles per release). This is the high-level runbook; command-level git detail lives in [`git-workflow.md`](https://github.com/greenpill-dev-guild/green-goods/blob/main/.claude/skills/ops/git-workflow.md).
+
+## The monthly rhythm
+
+Work lands on `develop` (staging) all month and is QA'd there as it goes. At the **beginning of each month**, once staging is green, we turn what's on `develop` into a release:
+
+1. **Cut** a `release/<month>-<version>` branch from `develop` — this captures the tested snapshot while `develop` keeps moving.
+2. **Finalize** on the branch — version bump, changelog entry, a last run of the gates.
+3. **Ship** — tag `vX.Y.0`, merge into `main` (production); a GitHub Release is generated automatically.
+4. **Back-merge** `main` into `develop` so the release returns to staging.
+5. **Announce** to gardeners.
+
+The [`release-prep` routine](https://github.com/greenpill-dev-guild/green-goods/blob/main/docs/routines/release-prep.md) opens each cycle with a readiness brief so you cut with a clear picture of what's shipping.
+
+## Versioning & naming
+
+- **Semver, minor per month** (`1.1.0` → `1.2.0`); patch for hotfixes (`1.2.1`); major for breaking changes. `bun run version:bump <x.y.z>` keeps all packages on one version.
+- A release is named for the **month it ships in** — branch `release/july-2026-v1.2.0`, tag `v1.2.0`, GitHub Release **July 2026 — v1.2.0**.
+
+## Cutting a release
+
+```bash
+git switch -c release/july-2026-v1.2.0 origin/develop   # cut the tested snapshot
+bun run version:bump 1.2.0                           # unify all package versions
+# add the curated changelog entry, then run the gates:
+bun run format:check && bun run lint && bun run test && bun run build
+git commit -am "chore(release): v1.2.0 (July 2026)" && git push -u origin release/july-2026
+gh pr create --base main --title "Release July 2026 — v1.2.0"
+# once CI is green and the PR merges, tag the merged main HEAD:
+git switch main && git pull && git tag -a v1.2.0 -m "July 2026" && git push origin v1.2.0
+```
+
+Pushing the tag triggers the GitHub Release (auto-generated notes). Then **back-merge**.
+
+## Hotfixes
+
+A production bug mid-month branches from `main` (not `develop`), bumps a patch (`bun run version:bump 1.2.1`), and ships the same way with tag `v1.2.1`. Then back-merge — this is exactly the step that, when skipped, strands a fix on `main`.
+
+## Back-merge — every time
+
+After every release and every hotfix, merge `main` back into `develop` (admin fast-path below; otherwise open a quick back-merge PR, since `develop` is protected):
+
+```bash
+git switch develop && git pull && git merge origin/main && git push
+```
+
+This keeps `main` an ancestor of `develop` — the check that it worked is an empty `git log origin/develop..origin/main`.
+
+## The changelog
+
+[GitHub Releases](https://github.com/greenpill-dev-guild/green-goods/releases) is the canonical, auto-generated changelog. The docs [Changelog](/reference/changelog) is a short, curated summary for gardeners — not a full mirror.

@@ -5,6 +5,7 @@
  * - Renders SiteHeader above route outlet content
  * - /fund route renders within PublicShell
  * - /gardens route renders within PublicShell
+ * - /vaults route renders within PublicShell
  * - No bottom nav (AppBar) visible in browser mode
  *
  * @vitest-environment jsdom
@@ -23,6 +24,7 @@ const mockOpenWalletModal = vi.fn();
 vi.mock("@green-goods/shared", () => ({
   APP_NAME: "Green Goods",
   cn: (...args: any[]) => args.filter(Boolean).join(" "),
+  useTunnelUrl: () => null,
   useAppKit: () => ({ open: mockOpenWalletModal }),
   useApp: () => ({
     isMobile: false,
@@ -31,6 +33,7 @@ vi.mock("@green-goods/shared", () => ({
     deferredPrompt: null,
     promptInstall: vi.fn(),
   }),
+  useIsBraveBrowser: () => false,
   useInstallGuidance: () => ({
     scenario: "desktop",
     primaryAction: { type: "continue-in-browser", label: "Open on Mobile" },
@@ -61,6 +64,7 @@ const messages: Record<string, string> = {
   "public.nav.gardens": "Gardens",
   "public.nav.actions": "Actions",
   "public.nav.impact": "Impact",
+  "public.nav.vaults": "Vaults",
   "public.nav.fund": "Fund",
   "public.nav.installApp": "Install App",
   "public.nav.openApp": "Open App",
@@ -73,10 +77,13 @@ const FundContent = () =>
     "div",
     { "data-testid": "fund-content" },
     "Fund Page Content",
-    createElement(Link, { to: "/gardens" }, "Open gardens")
+    createElement(Link, { to: "/gardens" }, "Open gardens"),
+    createElement(Link, { to: "/fund?manage=endowments" }, "Open endowments")
   );
 const GardensContent = () =>
   createElement("div", { "data-testid": "gardens-content" }, "Gardens Page Content");
+const VaultsContent = () =>
+  createElement("div", { "data-testid": "vaults-content" }, "Vaults Page Content");
 
 function renderShellWithRoute(initialRoute: string) {
   return render(
@@ -96,7 +103,8 @@ function renderShellWithRoute(initialRoute: string) {
               Route,
               { element: createElement(PublicShell) },
               createElement(Route, { path: "fund", element: createElement(FundContent) }),
-              createElement(Route, { path: "gardens", element: createElement(GardensContent) })
+              createElement(Route, { path: "gardens", element: createElement(GardensContent) }),
+              createElement(Route, { path: "vaults", element: createElement(VaultsContent) })
             )
           )
         )
@@ -148,6 +156,15 @@ describe("PublicShell", () => {
     expect(screen.getByText("Gardens Page Content")).toBeInTheDocument();
   });
 
+  it("/vaults route renders within PublicShell", () => {
+    renderShellWithRoute("/vaults");
+
+    expect(document.querySelector("header")).toBeInTheDocument();
+    expect(screen.getByTestId("vaults-content")).toBeInTheDocument();
+    expect(screen.getByText("Vaults Page Content")).toBeInTheDocument();
+    expect(screen.queryByTestId("authenticated-nav")).not.toBeInTheDocument();
+  });
+
   it("resets the public scroll container on route changes", () => {
     renderShellWithRoute("/fund");
 
@@ -159,6 +176,34 @@ describe("PublicShell", () => {
 
     expect(screen.getByTestId("gardens-content")).toBeInTheDocument();
     expect(scrollRoot!.scrollTop).toBe(0);
+  });
+
+  it("preserves the public scroll container on search-only route changes", () => {
+    renderShellWithRoute("/fund");
+
+    const scrollRoot = document.getElementById("client-scroll-root");
+    expect(scrollRoot).toBeInTheDocument();
+    scrollRoot!.scrollTop = 720;
+    fireEvent.scroll(scrollRoot!);
+
+    fireEvent.click(screen.getByRole("link", { name: "Open endowments" }));
+
+    expect(screen.getByTestId("fund-content")).toBeInTheDocument();
+    expect(scrollRoot!.scrollTop).toBe(720);
+  });
+
+  it("preserves the public scroll container when opening management from receipt search params", () => {
+    renderShellWithRoute("/fund?intent=receipt_123");
+
+    const scrollRoot = document.getElementById("client-scroll-root");
+    expect(scrollRoot).toBeInTheDocument();
+    scrollRoot!.scrollTop = 720;
+    fireEvent.scroll(scrollRoot!);
+
+    fireEvent.click(screen.getByRole("link", { name: "Open endowments" }));
+
+    expect(screen.getByTestId("fund-content")).toBeInTheDocument();
+    expect(scrollRoot!.scrollTop).toBe(720);
   });
 
   it("no bottom nav (AppBar) visible in browser mode", () => {

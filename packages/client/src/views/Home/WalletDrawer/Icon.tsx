@@ -1,4 +1,4 @@
-import { cn, useAccessibleCookieJars } from "@green-goods/shared";
+import { cn } from "@green-goods/shared";
 import { RiWallet3Line } from "@remixicon/react";
 import React from "react";
 import { useIntl } from "react-intl";
@@ -11,22 +11,7 @@ interface WalletDrawerIconProps {
 
 export const WalletDrawerIcon: React.FC<WalletDrawerIconProps> = ({ onClick, className }) => {
   const intl = useIntl();
-  const { jars } = useAccessibleCookieJars();
-  const accessibleJarCount = jars.length;
-  const label =
-    accessibleJarCount > 0
-      ? intl.formatMessage(
-          {
-            id: "app.cookieJar.walletWithCount",
-            defaultMessage:
-              "Garden funds, {count, plural, one {# cookie jar available} other {# cookie jars available}}",
-          },
-          { count: accessibleJarCount }
-        )
-      : intl.formatMessage({
-          id: "app.cookieJar.wallet",
-          defaultMessage: "Garden funds",
-        });
+  const label = intl.formatMessage({ id: "app.wallet.title" });
 
   return (
     <button
@@ -45,18 +30,6 @@ export const WalletDrawerIcon: React.FC<WalletDrawerIconProps> = ({ onClick, cla
       aria-label={label}
     >
       <RiWallet3Line className="h-4 w-4" />
-      {accessibleJarCount > 0 && (
-        <span
-          className={cn(
-            "absolute -top-1.5 -right-1.5 inline-flex min-w-[18px] items-center justify-center rounded-full border-2 border-bg-white-0 px-1 text-[10px] font-semibold leading-none",
-            pwaStatusStyles.primary.badge
-          )}
-          data-testid="wallet-badge"
-          aria-hidden="true"
-        >
-          {accessibleJarCount > 9 ? "9+" : accessibleJarCount}
-        </span>
-      )}
     </button>
   );
 };

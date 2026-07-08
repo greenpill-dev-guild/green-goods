@@ -29,7 +29,7 @@ This plan closes that gap with a minimal, focused public surface — not a redes
 ## Approach
 
 1. **Discovery** — read the admin Community / Strategies / SignalPool views to understand the current conviction allocation UX. Identify the minimum viable public allocator surface.
-2. **Public surface** — add a public conviction allocator inside one of the four canonical public routes. Probably `/impact` (since signal allocation is an impact-prioritization act) or `/gardens` (per-garden allocation). **Do NOT add a new route**; layer onto an existing one per `feedback_stitch_visual_only`.
+2. **Public surface** — add a public conviction allocator inside one of the four canonical public routes. Probably `/impact` (since signal allocation is an impact-prioritization act) or `/gardens` (per-garden allocation). **Do NOT add a new route**; layer onto an existing one per the visual-only feedback note.
 3. **Auth boundary** — allocation requires identity (the community member needs an address). Wallet connect at the moment of allocation, not on entry to the surface. Read paths (showing what's allocatable, what's currently funded) are public.
 4. **Mobile-first**: Persona E is on a phone. PWA-native feel inside the browser surface; install path remains the upgrade.
 

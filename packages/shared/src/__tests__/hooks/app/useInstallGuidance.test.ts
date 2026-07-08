@@ -62,6 +62,14 @@ const firefoxBrowser = {
   displayName: "Firefox",
 };
 
+const unsupportedPwaBrowser = {
+  browser: "edge" as const,
+  supportsNativePWA: true,
+  isRecommendedBrowser: false,
+  isInAppBrowser: false,
+  displayName: "Edge",
+};
+
 describe("hooks/app/useInstallGuidance", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -85,6 +93,20 @@ describe("hooks/app/useInstallGuidance", () => {
   });
 
   describe("already installed scenario", () => {
+    it("returns installing while the native install is settling", () => {
+      mockDetect.mockReturnValue(chromeBrowser);
+
+      const { result } = renderHook(() =>
+        useInstallGuidance("android", false, false, null, true, true)
+      );
+
+      expect(result.current.scenario).toBe("installing");
+      expect(result.current.primaryAction.type).toBe("installing");
+      expect(result.current.primaryAction.label).toBe("Installing...");
+      expect(result.current.secondaryAction).toBeNull();
+      expect(result.current.showBrowserOption).toBe(false);
+    });
+
     it("returns already-installed when isInstalled is true", () => {
       mockDetect.mockReturnValue(safariBrowser);
 
@@ -142,6 +164,25 @@ describe("hooks/app/useInstallGuidance", () => {
       expect(result.current.browserSwitchReason).toBeTruthy();
     });
 
+    it("enforces Chrome on Android even if another browser reports PWA support", () => {
+      mockDetect.mockReturnValue(unsupportedPwaBrowser);
+      mockOpenUrl.mockReturnValue(
+        "intent://test#Intent;scheme=https;package=com.android.chrome;end"
+      );
+
+      const mockPrompt = { prompt: vi.fn() } as unknown as BeforeInstallPromptEvent;
+
+      const { result } = renderHook(() =>
+        useInstallGuidance("android", false, false, mockPrompt, true)
+      );
+
+      expect(result.current.scenario).toBe("wrong-browser");
+      expect(result.current.primaryAction.type).toBe("open-in-browser");
+      expect(result.current.primaryAction.label).toBe("Open in Chrome");
+      expect(result.current.browserSwitchReason).toContain("Edge");
+      expect(mockCanTrigger).not.toHaveBeenCalled();
+    });
+
     it("uses copy-url on iOS wrong browser", () => {
       mockDetect.mockReturnValue(firefoxBrowser);
       mockOpenUrl.mockReturnValue(null);
@@ -190,16 +231,39 @@ describe("hooks/app/useInstallGuidance", () => {
       expect(result.current.manualInstructions![0].icon).toBe("share");
     });
 
-    it("shows open-app as primary when wasInstalled is true", () => {
+    it("keeps iOS reinstall guidance primary when wasInstalled is true but not currently installed", () => {
       mockDetect.mockReturnValue(safariBrowser);
       mockCanTrigger.mockReturnValue(false);
 
       const { result } = renderHook(() => useInstallGuidance("ios", false, true, null, true));
 
       expect(result.current.scenario).toBe("manual-install-available");
+      expect(result.current.primaryAction.type).toBe("show-manual-steps");
+      expect(result.current.primaryAction.label).toBe("Install App");
+      expect(result.current.secondaryAction?.type).toBe("continue-in-browser");
+      expect(result.current.secondaryAction?.label).toBe("Continue in Browser");
+    });
+
+    it("keeps Open App primary on Android remembered installs while preserving reinstall fallback", () => {
+      // Android WebAPKs stay registered after install, but the browser tab can
+      // never see display-mode: standalone. `wasInstalled` is the persistent
+      // signal that keeps the CTA on "Open App" across reloads (link-capturing
+      // then hands the click off to the installed app). It is not proof the app
+      // still exists, so stale remembered installs must keep manual reinstall
+      // help available.
+      mockDetect.mockReturnValue(chromeBrowser);
+      mockCanTrigger.mockReturnValue(false);
+
+      const { result } = renderHook(() => useInstallGuidance("android", false, true, null, true));
+
+      expect(result.current.scenario).toBe("already-installed");
       expect(result.current.primaryAction.type).toBe("open-app");
+      expect(result.current.primaryAction.label).toBe("Open App");
       expect(result.current.secondaryAction?.type).toBe("show-manual-steps");
-      expect(result.current.secondaryAction?.label).toBe("Reinstall");
+      expect(result.current.secondaryAction?.label).toBe("Install again");
+      expect(result.current.showBrowserOption).toBe(true);
+      expect(result.current.manualInstructions).toBeDefined();
+      expect(result.current.manualInstructions![0].icon).toBe("menu");
     });
 
     it("provides Android Chrome manual steps", () => {
@@ -221,11 +285,12 @@ describe("hooks/app/useInstallGuidance", () => {
         "manual-install-available",
         "wrong-browser",
         "in-app-browser",
+        "installing",
         "already-installed",
         "desktop",
         "unsupported",
       ];
-      expect(validScenarios).toHaveLength(7);
+      expect(validScenarios).toHaveLength(8);
     });
   });
 });

@@ -52,6 +52,7 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
   const weightSchemeLabel = community ? WeightScheme[community.weightScheme] : undefined;
 
   const { wiringState, wiringStatus, repairHref } = useGardenYieldWiringState(_gardenId as Address);
+  const gardenRouteContext = { gardenId: _gardenId };
   const showWiringSection = Boolean(community) && pools.length > 0;
   const expectedHypercertPoolKnown = Boolean(wiringState?.expectedHypercertPoolAddress);
   const canShowReconnectLink =
@@ -135,7 +136,7 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
         {showWiringSection && wiringStatus === "connected" ? (
           <div className="mt-3 rounded-lg bg-bg-weak p-3">
             <p className="flex items-center gap-1.5 text-sm font-medium text-text-strong">
-              <RiCheckLine className="h-4 w-4 flex-shrink-0 text-success-base" aria-hidden="true" />
+              <RiCheckLine className="h-4 w-4 flex-shrink-0 text-success-dark" aria-hidden="true" />
               {formatMessage({ id: "app.community.yield.connected" })}
             </p>
             <p className="mt-0.5 text-xs text-text-sub">
@@ -156,7 +157,7 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
             {canShowReconnectLink && repairHref ? (
               <Link
                 to={repairHref}
-                className="mt-2 inline-flex text-xs font-medium text-primary-base hover:text-primary-darker"
+                className="mt-2 inline-flex text-xs font-medium text-primary-dark hover:text-primary-darker"
               >
                 {formatMessage({ id: "app.community.yield.connectAction" })}
               </Link>
@@ -216,8 +217,8 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
             {canManage && (
               <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
                 <Link
-                  to={adminRoutes.communityGovernanceSignalPool("hypercert")}
-                  className="text-xs font-medium text-primary-base hover:text-primary-darker"
+                  to={adminRoutes.communityCoordinationSignalPool("hypercert", gardenRouteContext)}
+                  className="text-xs font-medium text-primary-dark hover:text-primary-darker"
                 >
                   {formatMessage({ id: "app.signal.viewHypercertPool" })}
                 </Link>
@@ -225,8 +226,8 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
                   &middot;
                 </span>
                 <Link
-                  to={adminRoutes.communityGovernanceSignalPool("action")}
-                  className="text-xs font-medium text-primary-base hover:text-primary-darker"
+                  to={adminRoutes.communityCoordinationSignalPool("action", gardenRouteContext)}
+                  className="text-xs font-medium text-primary-dark hover:text-primary-darker"
                 >
                   {formatMessage({ id: "app.signal.viewActionPool" })}
                 </Link>
@@ -234,8 +235,8 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
                   &middot;
                 </span>
                 <Link
-                  to={adminRoutes.communityGovernanceStrategies()}
-                  className="text-xs font-medium text-primary-base hover:text-primary-darker"
+                  to={adminRoutes.communityCoordinationStrategies(gardenRouteContext)}
+                  className="text-xs font-medium text-primary-dark hover:text-primary-darker"
                 >
                   {formatMessage({ id: "app.conviction.manageStrategies" })}
                 </Link>
@@ -269,9 +270,7 @@ export const GardenCommunityCard: React.FC<GardenCommunityCardProps> = ({
                 loading={isCreatingPools}
               >
                 {!isCreatingPools && <RiAddLine className="h-4 w-4" />}
-                {isCreatingPools
-                  ? formatMessage({ id: "app.community.creatingPools" })
-                  : formatMessage({ id: "app.community.createPools" })}
+                {formatMessage({ id: "app.community.createPools" })}
               </Button>
             )}
           </div>

@@ -12,7 +12,7 @@ import { GardenSheetDescriptor } from "./components/GardenSheetDescriptor";
 import { GardenWorkspaceContent } from "./components/GardenWorkspaceContent";
 import { useIntl } from "react-intl";
 
-// Paradigm: Mixed — overview = Data Landscape, impact = Data Landscape, settings = Command Surface.
+// Paradigm: Data Landscape — health, impact, and activity readouts. Settings opens as a dialog.
 
 export default function GardenView() {
   const { formatMessage } = useIntl();
@@ -24,15 +24,16 @@ export default function GardenView() {
       buildGardenHeaderStats({
         hasSelectedGarden: Boolean(garden.selectedGarden),
         gardenerCount: garden.garden?.gardeners.length ?? 0,
-        pendingWorkCount: garden.derived.pendingWorks.length,
-        treasuryBalance: garden.treasuryBalance,
+        // The garden's own certified output (hypercerts). Pending work is the
+        // Hub's domain, so the header speaks to legacy, not the review queue.
+        impactCount: garden.hypercertsLoading ? null : garden.hypercerts.length,
         formatMessage,
       }),
     [
       garden.selectedGarden,
       garden.garden?.gardeners.length,
-      garden.derived.pendingWorks.length,
-      garden.treasuryBalance,
+      garden.hypercertsLoading,
+      garden.hypercerts.length,
       formatMessage,
     ]
   );
@@ -53,14 +54,14 @@ export default function GardenView() {
         description={formatMessage({
           id: "cockpit.garden.description",
           defaultMessage:
-            "What's growing in this garden — overview, activity, gardeners, and settings.",
+            "Internal tracking for garden health, outcome proof, and recent activity.",
         })}
         metadata={
           headerStats.length > 0 ? <MetaStrip items={headerStats} density="inline" /> : undefined
         }
         actions={
           isDesktop && garden.desktopActions.length > 0 ? (
-            <AdminViewActions items={garden.desktopActions} maxInline={4} />
+            <AdminViewActions items={garden.desktopActions} />
           ) : undefined
         }
         variant="canvas"
@@ -75,32 +76,26 @@ export default function GardenView() {
           onChange={garden.handleTabChange}
           tabs={[
             {
-              id: "overview",
+              id: "health",
               label: formatMessage({
-                id: "cockpit.garden.overview",
-                defaultMessage: "Overview",
+                id: "cockpit.garden.health",
+                defaultMessage: "Health",
               }),
               count: garden.derived.overviewAlerts.length || undefined,
+            },
+            {
+              id: "impact",
+              label: formatMessage({
+                id: "cockpit.garden.impact",
+                defaultMessage: "Impact",
+              }),
+              count: garden.derived.impactBadge.count,
             },
             {
               id: "activity",
               label: formatMessage({
                 id: "cockpit.garden.activity",
                 defaultMessage: "Activity",
-              }),
-            },
-            {
-              id: "members",
-              label: formatMessage({
-                id: "cockpit.garden.members",
-                defaultMessage: "Members",
-              }),
-            },
-            {
-              id: "settings",
-              label: formatMessage({
-                id: "cockpit.garden.settings",
-                defaultMessage: "Settings",
               }),
             },
           ]}

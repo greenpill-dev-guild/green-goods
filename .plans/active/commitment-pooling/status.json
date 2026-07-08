@@ -1,0 +1,312 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "commitment-pooling",
+    "title": "Commitment Pooling",
+    "kind": "feature",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "active",
+    "priority": "p1",
+    "created_at": "2026-07-03",
+    "updated_at": "2026-07-07"
+  },
+  "links": {
+    "corrections_log": "corrections-log.md",
+    "contract_spec": "contract-spec.md",
+    "uiux_spec": "uiux-spec.md",
+    "settlement_spec": "settlement-spec.md",
+    "credit_spec": "credit-spec.md",
+    "diagrams": "diagrams.md",
+    "wireframes": "wireframes.md",
+    "plan": "plan.todo.md"
+  },
+  "linear": {
+    "parentIssue": "PRD-650",
+    "architectureRecord": "PRD-649",
+    "project": "Green Goods Commitment Pooling",
+    "projectId": "fa1b7a04-6eee-4f43-a861-07d8205aa0bf",
+    "initiative": "Sustainability & Monetization + Impact Methodologies & Evaluator Flywheel",
+    "milestones": {
+      "july_dry_run": "2026-07-31",
+      "august_release": "2026-08-31",
+      "september_community_interface": "2026-09-30"
+    },
+    "syncDirection": "plans_to_linear_visibility",
+    "laneSyncMode": "parent_only",
+    "lastSyncedAt": "2026-07-05",
+    "consolidatedTrackers": {
+      "note": "Per-lane children closed 2026-07-05; lanes roll up to these parent trackers. Lane detail = plan.todo.md.",
+      "august_proof": "PRD-650",
+      "august_settlement": "PRD-686",
+      "september_interface": "PRD-682",
+      "july_dry_run": "RESR-62",
+      "needs_substrate": "PRD-687",
+      "needs_app": "PRD-691"
+    }
+  },
+  "taxonomy": {
+    "initiative": "protocol-readiness",
+    "tracks": ["contracts", "indexer", "shared", "client", "admin", "docs"],
+    "work_types": ["research", "implementation", "qa"],
+    "surfaces": [
+      "packages/contracts",
+      "packages/indexer",
+      "packages/shared",
+      "packages/client",
+      "packages/admin",
+      "docs/docs",
+      ".plans/active/community-interface"
+    ],
+    "depends_on_features": []
+  },
+  "notes": [
+    "Commitments are module-native records; the commitment-pooling release adds exactly two EAS schemas (assessment v3, community testimony). No commitment EAS schema. The separate Needs layer adds four additional EAS schemas in .plans/active/community-interface/ per plan.todo.md addendum #28.",
+    "CommitmentPoolingModule + non-transferable ERC-1155-style CommitmentRegister; settlement later wraps register classes on the same poolId (PRD-651, gated).",
+    "Clean room: Grassroots Economics paper and public docs only; never the AGPL Sarafu source.",
+    "G$ split-state settlement is in scope for August via PRD-686: SettlementModule on Arbitrum, per-garden Celo Safes, operator-executed G$ settlement, multi-chain status reads, and member G$ sends.",
+    "Out of scope for all lanes: bridged G$, bridge custody or unbounded value authority, Sarafu integration, transferable settlement vouchers/settlementAdapter activation, indexing Celo/G$ transfers, garden-to-garden federation, leaderboards, and credit scores. Bridge-executor automation is an August stretch only, otherwise post-August.",
+    "Borrow-and-repay CreditRegister is a blocked follow-on lane: designed in credit-spec.md, not part of the August base MVP, and not dispatchable without an explicit unblock.",
+    "Plan-hub machine lanes are intentionally canonical: contracts, state_api, ui, qa_pass_1, qa_pass_2. Detailed execution sub-lanes live in execution_sub_lanes and plan.todo.md; do not add custom keys to lanes unless plan-hub supports them.",
+    "linear.laneSyncMode is parent_only to preserve the low-noise Linear footprint: PRD-650 remains the single parent mirror, while PRD-686 and PRD-682 context stays in consolidatedTrackers and execution_sub_lanes.",
+    "state_api dispatch is manually gated until pooling contract interfaces and the agreed PRD-673 indexer entity/query contract exist. Final GREEN for the machine state_api lane requires indexer codegen/build evidence and PRD-674 shared substrate proof; full settlement completion must not hard-block state_api because PRD-686 runs parallel with PRD-673/674.",
+    "Machine lane ownership follows plan-hub conventions: Codex owns contracts, state_api, and qa_pass_2; Claude owns ui and qa_pass_1. Detailed sub-lane ownership remains: Codex executes contracts, settlement, indexer, state/API, and blocked credit follow-on; Claude executes client/admin UI, editorial, docs, docs-guides, and community; July dry run stays human-owned. Per-issue dispatch stays with Afo.",
+    "status.json is authoritative; branch names are automation signals.",
+    ".plans/ is the durable repo truth; the Linear project mirrors this hub 1:1."
+  ],
+  "lanes": {
+    "contracts": {
+      "owner": "codex",
+      "status": "todo",
+      "branch": "codex/contracts/commitment-pooling",
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "handoff_note": "Machine lane for PRD-671/672 core contract work. SettlementModule proof stays in execution_sub_lanes.settlement and is summarized here only when it is part of the same Codex handoff.",
+      "linear_issues": ["PRD-650", "PRD-686"],
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": { "command": "", "evidence": "" },
+        "green": { "command": "", "evidence": "" },
+        "note": ""
+      },
+      "skill_tags": ["contracts"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "blocked",
+      "branch": "codex/state-api/commitment-pooling",
+      "depends_on": ["contracts"],
+      "manual_blocked": true,
+      "blocked_reason": "Manual gate: unblock only after pooling contract interfaces and the agreed PRD-673 indexer entity/query contract are recorded; final GREEN still requires indexer codegen/build evidence.",
+      "handoff": "handoffs/codex-state-api.md",
+      "handoff_note": "Machine lane aggregates PRD-673 indexer and PRD-674/679 shared state/API. GREEN requires the agreed PRD-673 entity/query contract, indexer codegen/build evidence, and shared hook/query/job proof.",
+      "linear_issues": ["PRD-650"],
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": { "command": "", "evidence": "" },
+        "green": { "command": "", "evidence": "" },
+        "note": ""
+      },
+      "skill_tags": ["indexer", "react", "tanstack-query", "data-layer"]
+    },
+    "ui": {
+      "owner": "claude",
+      "status": "todo",
+      "branch": "claude/ui/commitment-pooling",
+      "depends_on": ["state_api"],
+      "handoff": "handoffs/claude-ui.md",
+      "handoff_note": "Machine lane aggregates client, admin, editorial, docs, docs-guides, and September community UI sub-lanes. Record detailed proof in the sub-lane handoffs before GREEN.",
+      "linear_issues": ["PRD-650", "PRD-682"],
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": { "command": "", "evidence": "" },
+        "green": { "command": "", "evidence": "" },
+        "note": ""
+      },
+      "skill_tags": ["ui", "react", "design"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": true,
+      "blocked_reason": "Manual gate: unlock only after required execution sub-lane handoffs exist, including settlement exit-proof evidence or an explicit proof-limit note.",
+      "branch": "claude/qa-pass-1/commitment-pooling",
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "codex/qa-pass-2/commitment-pooling",
+      "branch_trigger": "claude/qa-pass-1/commitment-pooling",
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "execution_sub_lanes": {
+    "contracts": {
+      "machine_lane": "contracts",
+      "owner": "codex",
+      "status": "todo",
+      "branch": "codex/contracts/commitment-pooling",
+      "handoff": "handoffs/codex-contracts.md",
+      "linear_issues": ["PRD-650"],
+      "acceptance": "PRD-671/672 core pooling contracts, schema registration path, storage/upgrade safety, and deploy artifact path."
+    },
+    "settlement": {
+      "machine_lane": "contracts",
+      "owner": "codex",
+      "status": "todo",
+      "branch": "codex/settlement/commitment-pooling",
+      "depends_on": ["contracts"],
+      "handoff": "handoffs/codex-settlement.md",
+      "linear_issues": ["PRD-686"],
+      "acceptance": "SettlementModule, per-garden Celo Safe registration path, failure states, written GoodDollar confirmations, and base exit proof. Bridge-executor automation is stretch only."
+    },
+    "indexer": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": "codex/indexer/commitment-pooling",
+      "depends_on": ["contracts"],
+      "handoff": "handoffs/codex-indexer.md",
+      "linear_issues": ["PRD-650"],
+      "acceptance": "Event/entity coverage, chainId composite IDs, entity/query contract freeze for shared, codegen, setup-generated, build, and indexed event-sequence proof."
+    },
+    "state_api": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "todo",
+      "branch": "codex/state-api/commitment-pooling",
+      "depends_on": ["contracts", "indexer"],
+      "handoff": "handoffs/codex-state-api.md",
+      "linear_issues": ["PRD-650"],
+      "acceptance": "Shared types, query keys, hooks, evidence model, five offline queue kinds plus online wallet transfer, settlement selectors, and mutation invalidation flow."
+    },
+    "ui_client": {
+      "machine_lane": "ui",
+      "owner": "claude",
+      "status": "todo",
+      "branch": "claude/ui-client/commitment-pooling",
+      "depends_on": ["state_api"],
+      "handoff": "handoffs/claude-ui-client.md",
+      "linear_issues": ["PRD-650"]
+    },
+    "ui_admin": {
+      "machine_lane": "ui",
+      "owner": "claude",
+      "status": "todo",
+      "branch": "claude/ui-admin/commitment-pooling",
+      "depends_on": ["state_api"],
+      "handoff": "handoffs/claude-ui-admin.md",
+      "linear_issues": ["PRD-650", "PRD-682"]
+    },
+    "editorial": {
+      "machine_lane": "ui",
+      "owner": "claude",
+      "status": "todo",
+      "branch": "claude/editorial/commitment-pooling",
+      "depends_on": ["state_api"],
+      "handoff": "handoffs/claude-editorial.md",
+      "linear_issues": ["PRD-650"]
+    },
+    "docs": {
+      "machine_lane": "ui",
+      "owner": "claude",
+      "status": "todo",
+      "branch": "claude/docs/commitment-pooling",
+      "depends_on": [],
+      "handoff": "handoffs/claude-docs.md",
+      "linear_issues": ["PRD-650"],
+      "acceptance": "Glossary and architecture freshness with docs build, vocab lint, and anchor checks."
+    },
+    "docs_guides": {
+      "machine_lane": "ui",
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "claude/docs-guides/commitment-pooling",
+      "depends_on": ["ui_client", "ui_admin", "settlement"],
+      "handoff": "handoffs/claude-docs-guides.md",
+      "linear_issues": ["PRD-650"],
+      "blocked_reason": "Screenshot-dependent operator/gardener guides wait for shipped client/admin settlement surfaces."
+    },
+    "july_dry_run": {
+      "machine_lane": null,
+      "owner": "human",
+      "status": "todo",
+      "branch": null,
+      "depends_on": [],
+      "handoff": null,
+      "linear_issues": ["RESR-62", "RESR-53"],
+      "acceptance": "Operational track on existing rails; tracked in the Linear project doc 'July dry run: proto-commitment tracking'."
+    },
+    "community": {
+      "machine_lane": "ui",
+      "owner": "claude",
+      "status": "todo",
+      "branch": "claude/community/commitment-pooling",
+      "depends_on": ["state_api"],
+      "handoff": "handoffs/claude-community.md",
+      "linear_issues": ["PRD-682"],
+      "acceptance": "September community interface after the August substrate lands."
+    }
+  },
+  "follow_on": {
+    "credit_register": {
+      "owner": "codex",
+      "status": "blocked",
+      "manual_blocked": true,
+      "blocked_reason": "Follow-on only. CreditRegister is designed in credit-spec.md but is not part of the August base MVP; requires explicit scope unlock after pooling/settlement interfaces settle.",
+      "branch": "codex/credit/commitment-pooling",
+      "depends_on": ["contracts", "settlement"],
+      "handoff": "handoffs/codex-credit-follow-on.md",
+      "linear_issues": [],
+      "acceptance_when_unblocked": "CreditRegister + indexer + shared queryKeys.credit.* + credit job kind + admin/PWA credit surfaces."
+    }
+  },
+  "history": [
+    {
+      "date": "2026-07-03",
+      "event": "Verification, alignment (27 decisions), and specs authored (corrections-log.md, contract-spec.md, uiux-spec.md)."
+    },
+    {
+      "date": "2026-07-04",
+      "event": "Linear restructure executed: Seasons & Campaigns converted to Green Goods Commitment Pooling; milestones + 15 workstream issues created; legacy season issues composted; HoA records corrected."
+    },
+    {
+      "date": "2026-07-05",
+      "event": "Linear consolidated to parent trackers: per-lane children (PRD-671..681, PRD-683, PRD-688..694, RESR-63/13) closed into PRD-650/PRD-682/PRD-687/PRD-691/RESR-62; status.json + plan.todo.md re-pointed to the parents. .plans/ is the lane-level source of truth."
+    },
+    {
+      "date": "2026-07-06",
+      "event": "Settlement scope reconciled: G$ split-state settlement stays in August; bridge-executor automation is an August stretch; CreditRegister added as a blocked follow-on lane."
+    },
+    {
+      "date": "2026-07-06",
+      "event": "Readiness QA tightened status gates: state_api no longer waits for full settlement completion; screenshot-dependent docs split into a blocked docs_guides lane."
+    },
+    {
+      "date": "2026-07-06",
+      "event": "Plan-hub compatibility restored: status.lanes collapsed to canonical contracts/state_api/ui/qa_pass_1/qa_pass_2 keys; detailed execution lanes moved to execution_sub_lanes and credit follow-on moved to follow_on.credit_register."
+    },
+    {
+      "date": "2026-07-06",
+      "event": "Linear sync switched to explicit parent_only mode: PRD-650 stays as the single Linear parent mirror, no lane issue updates are emitted, and state_api is manually gated on PRD-673 entity/query contract evidence."
+    },
+    {
+      "date": "2026-07-07",
+      "event": "Qualified the 'exactly two EAS schemas' note as commitment-pooling-only and pointed to the separate Community Needs four-schema addendum."
+    }
+  ]
+}

@@ -23,4 +23,12 @@ describe("modules/service-worker", () => {
     expect(status).toHaveProperty("isSupported");
     expect(status).toHaveProperty("isRegistered");
   });
+
+  it("removes React Query localStorage persistence when clearing caches", async () => {
+    localStorage.setItem("__rq_pc__", JSON.stringify({ timestamp: Date.now() }));
+
+    await serviceWorkerManager.clearAllCaches();
+
+    expect(localStorage.getItem("__rq_pc__")).toBeNull();
+  });
 });

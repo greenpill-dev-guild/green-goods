@@ -136,6 +136,8 @@ For actual code conflicts:
 
 ## Release Workflow
 
+> **Canonical runbook:** [`docs/docs/builders/deployments/releasing.mdx`](../../../docs/docs/builders/deployments/releasing.mdx) — monthly minor bump, ship-month naming (`release/<ship-month>-vX.Y.0` → `main`, tag `vX.Y.0`), GitHub Releases as the canonical changelog, mandatory `main → develop` back-merge. This section is the quick git reference; the runbook is the source of truth.
+
 ### Tag Format
 
 ```
@@ -197,6 +199,6 @@ git log $(git describe --tags --abbrev=0)..HEAD --pretty=format:"%s" | sort
 
 Before requesting review:
 1. Run `/review` skill (6-pass review)
-2. Full validation: `bun format && bun lint && bun run test && bun build`
+2. Full validation: the Ship Gate (`.claude/context/validation-pipeline.md`)
 3. Self-review the diff once
 4. PR description filled out

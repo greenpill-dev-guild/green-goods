@@ -4,6 +4,12 @@ import { persist } from "zustand/middleware";
 // Storage key for debug mode persistence
 const DEBUG_MODE_STORAGE_KEY = "green-goods:debug-mode";
 
+/** Tabs of the client Work Dashboard modal — lets callers open it to a specific tab. */
+export type WorkDashboardTab = "drafts" | "pending" | "completed";
+
+/** Filters of the Work Dashboard's Pending tab — lets callers deep-link a preset. */
+export type WorkDashboardPendingFilter = "all" | "needsReview" | "mySubmissions";
+
 export type UIState = {
   // Global offline/queue indicators
   isOfflineBannerVisible: boolean;
@@ -11,7 +17,11 @@ export type UIState = {
 
   // Work dashboard/modal controls
   isWorkDashboardOpen: boolean;
-  openWorkDashboard: () => void;
+  /** Tab the dashboard should open to (consumed once on mount); undefined = default tab. */
+  workDashboardInitialTab?: WorkDashboardTab;
+  /** Pending-tab filter to preset (consumed once on mount); undefined = default ("all"). */
+  workDashboardInitialPendingFilter?: WorkDashboardPendingFilter;
+  openWorkDashboard: (tab?: WorkDashboardTab, pendingFilter?: WorkDashboardPendingFilter) => void;
   closeWorkDashboard: () => void;
 
   // Garden filter drawer controls (client)
@@ -23,6 +33,11 @@ export type UIState = {
   isEndowmentDrawerOpen: boolean;
   openEndowmentDrawer: () => void;
   closeEndowmentDrawer: () => void;
+
+  // Wallet drawer controls (client)
+  isWalletDrawerOpen: boolean;
+  openWalletDrawer: () => void;
+  closeWalletDrawer: () => void;
 
   // Computed helper to check if any drawer is open (for AppBar hiding)
   isAnyDrawerOpen: () => boolean;
@@ -45,7 +60,16 @@ export const useUIStore = create<UIState>()(
       setOfflineBannerVisible: (visible) => set({ isOfflineBannerVisible: visible }),
 
       isWorkDashboardOpen: false,
-      openWorkDashboard: () => set({ isWorkDashboardOpen: true }),
+      workDashboardInitialTab: undefined,
+      workDashboardInitialPendingFilter: undefined,
+      // Both initial fields are overwritten on EVERY open (undefined when omitted) — that is
+      // the staleness contract: a bare icon-open must not inherit the previous deep-link.
+      openWorkDashboard: (tab, pendingFilter) =>
+        set({
+          isWorkDashboardOpen: true,
+          workDashboardInitialTab: tab,
+          workDashboardInitialPendingFilter: pendingFilter,
+        }),
       closeWorkDashboard: () => set({ isWorkDashboardOpen: false }),
 
       isGardenFilterOpen: false,
@@ -56,8 +80,15 @@ export const useUIStore = create<UIState>()(
       openEndowmentDrawer: () => set({ isEndowmentDrawerOpen: true }),
       closeEndowmentDrawer: () => set({ isEndowmentDrawerOpen: false }),
 
+      isWalletDrawerOpen: false,
+      openWalletDrawer: () => set({ isWalletDrawerOpen: true }),
+      closeWalletDrawer: () => set({ isWalletDrawerOpen: false }),
+
       isAnyDrawerOpen: () =>
-        get().isWorkDashboardOpen || get().isGardenFilterOpen || get().isEndowmentDrawerOpen,
+        get().isWorkDashboardOpen ||
+        get().isGardenFilterOpen ||
+        get().isEndowmentDrawerOpen ||
+        get().isWalletDrawerOpen,
 
       sidebarOpen: false,
       setSidebarOpen: (open) => set({ sidebarOpen: open }),

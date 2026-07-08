@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-04-25T08:53:00.019Z",
-    "updated_at": "2026-05-10T23:13:14.000Z"
+    "updated_at": "2026-07-07T05:04:07.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -61,17 +61,17 @@
       "handoff_note": "Concrete next lane: after CSS maintainability and UI stabilization, run a deep docs freshness pass, replace scoped docs screenshots/social assets, update MDX references/alt text, and run docs audit/build/vocab plus rendered desktop/mobile checks.",
       "skill_tags": ["docs", "tooling", "testing", "visual-qa"],
       "tdd": {
-        "mode": "required",
+        "mode": "proof_limit",
         "status": "pending",
         "red": {
           "command": "",
           "evidence": ""
         },
         "green": {
-          "command": "",
-          "evidence": ""
+          "command": "bun run docs:audit && bun run build:docs && bun run lint:vocab",
+          "evidence": "Docs/media refresh work has no behavior-level RED test. Fallback proof is docs audit/build/vocab plus scoped rendered desktop/mobile review recorded in the lane handoff."
         },
-        "note": ""
+        "note": "Docs/media-only lane gated on UI readiness; TDD cannot honestly apply until concrete rendered docs/media changes exist."
       },
       "manual_blocked": true
     },
@@ -177,6 +177,14 @@
       "status": "plan_refreshed",
       "branch": "main",
       "note": "Updated docs freshness to run after CSS maintainability/current UI stabilization; state_api is blocked until that readiness gate clears."
+    },
+    {
+      "timestamp": "2026-07-07T05:04:07.000Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "proof_limit_recorded",
+      "branch": "develop",
+      "note": "Kept the lane blocked but changed TDD metadata to proof_limit with docs/media fallback proof commands instead of empty required RED/GREEN fields."
     }
   ],
   "taxonomy": {

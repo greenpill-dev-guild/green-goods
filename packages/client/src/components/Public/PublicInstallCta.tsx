@@ -19,12 +19,13 @@ export function PublicInstallCta({ variant = "section", className = "" }: Public
   if (variant === "compact") {
     return (
       <PublicInstallAction>
-        {({ label, href, onClick, dataInstallAction }) => (
+        {({ label, href, onClick, disabled, dataInstallAction }) => (
           <a
             href={href}
             onClick={onClick}
+            aria-disabled={disabled || undefined}
             data-install-action={dataInstallAction}
-            className={`cursor-pointer rounded-full bg-primary-action px-4 py-2 text-sm font-medium text-primary-action-foreground transition-colors hover:bg-primary-action-hover ${className}`}
+            className={`cursor-pointer rounded-full bg-primary-action px-4 py-2 text-sm font-medium text-primary-action-foreground transition-colors hover:bg-primary-action-hover ${disabled ? "cursor-not-allowed opacity-70" : ""} ${className}`}
           >
             {label}
           </a>
@@ -49,20 +50,41 @@ export function PublicInstallCta({ variant = "section", className = "" }: Public
           {formatMessage({
             id: "public.home.install.description",
             defaultMessage:
-              "Install the Green Goods app to log Work, capture evidence, and follow Gardens you support, even offline.",
+              "Install the Green Goods app to log Work, capture evidence, and keep up with Gardens you support, even offline.",
           })}
         </p>
         <div className="mt-8 flex justify-center">
           <PublicInstallAction>
-            {({ label, href, onClick, dataInstallAction }) => (
-              <a
-                href={href}
-                onClick={onClick}
-                data-install-action={dataInstallAction}
-                className="cursor-pointer rounded-full bg-primary-action px-6 py-3 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover"
-              >
-                {label}
-              </a>
+            {({
+              label,
+              href,
+              onClick,
+              disabled,
+              dataInstallAction,
+              hasInstallFallback,
+              fallbackLabel,
+              onInstallFallbackClick,
+            }) => (
+              <div className="flex flex-col items-center gap-3">
+                <a
+                  href={href}
+                  onClick={onClick}
+                  aria-disabled={disabled || undefined}
+                  data-install-action={dataInstallAction}
+                  className={`cursor-pointer rounded-full bg-primary-action px-6 py-3 text-sm font-semibold text-primary-action-foreground transition-colors hover:bg-primary-action-hover ${disabled ? "cursor-not-allowed opacity-70" : ""}`}
+                >
+                  {label}
+                </a>
+                {hasInstallFallback ? (
+                  <button
+                    type="button"
+                    onClick={onInstallFallbackClick}
+                    className="cursor-pointer text-sm font-medium text-text-sub-600 underline-offset-4 hover:text-text-strong-950 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-action focus-visible:ring-offset-2"
+                  >
+                    {fallbackLabel}
+                  </button>
+                ) : null}
+              </div>
             )}
           </PublicInstallAction>
         </div>

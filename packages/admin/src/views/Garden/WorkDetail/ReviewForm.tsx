@@ -4,7 +4,6 @@ import {
   ConfidenceSelector,
   ErrorBoundary,
   logger,
-  MethodSelector,
   parseAndFormatError,
   Textarea,
   toastService,
@@ -12,6 +11,7 @@ import {
   uploadJSONToIPFS,
   useEnsName,
   useWorkApproval,
+  VerificationMethod,
   type Work,
   type WorkApprovalDraft,
 } from "@green-goods/shared";
@@ -19,13 +19,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useIntl } from "react-intl";
+import { AdminButton } from "@/components/AdminButton";
 import { formatEnsAddressName } from "@/components/EnsAddressText";
-import {
-  getDefaultMethodForDomain,
-  ReviewSummary,
-  workApprovalSchema,
-  type WorkApprovalFormData,
-} from "./helpers";
+import { ReviewSummary, workApprovalSchema, type WorkApprovalFormData } from "./helpers";
 
 interface ReviewFormProps {
   work: Work;
@@ -42,7 +38,6 @@ interface ReviewFormProps {
 export function ReviewForm({
   work,
   gardenName,
-  actionSlug,
   actionEndTime,
   canReview,
   canApproveOrReject,
@@ -54,23 +49,20 @@ export function ReviewForm({
   const { data: gardenerEnsName } = useEnsName(work.gardenerAddress);
   const gardenerDisplayName = formatEnsAddressName(work.gardenerAddress, gardenerEnsName);
 
-  const defaultMethod = getDefaultMethodForDomain(actionSlug);
   const isActionExpired = typeof actionEndTime === "number" && actionEndTime < Date.now();
 
   const { control, watch, getValues } = useForm<WorkApprovalFormData>({
     resolver: zodResolver(workApprovalSchema),
     defaultValues: {
       confidence: Confidence.NONE,
-      verificationMethod: defaultMethod,
+      verificationMethod: VerificationMethod.HUMAN,
       feedback: "",
     },
   });
 
   const confidence = watch("confidence");
-  const verificationMethod = watch("verificationMethod");
   const hasLowConfidenceHint = confidence < Confidence.LOW;
-  const hasMissingVerificationMethodHint = verificationMethod === 0;
-  const hasApprovalValidationHints = hasLowConfidenceHint || hasMissingVerificationMethodHint;
+  const hasApprovalValidationHints = hasLowConfidenceHint;
 
   // Audio recording state
   const [reviewAudioFile, setReviewAudioFile] = useState<File | null>(null);
@@ -83,7 +75,7 @@ export function ReviewForm({
     // Validate form data manually since approval/rejection isn't a form field
     const formData = {
       confidence: approved ? confidence : Confidence.NONE,
-      verificationMethod: approved ? verificationMethod : 0,
+      verificationMethod: approved ? VerificationMethod.HUMAN : 0,
       feedback: getValues("feedback"),
     };
 
@@ -91,10 +83,6 @@ export function ReviewForm({
     if (approved) {
       if (formData.confidence < Confidence.LOW) {
         // Can't approve with NONE confidence
-        return;
-      }
-      if (formData.verificationMethod === 0) {
-        // Must select at least 1 verification method
         return;
       }
     }
@@ -256,30 +244,6 @@ export function ReviewForm({
                   />
                 </div>
 
-                {/* Method Selector */}
-                <div>
-                  <span
-                    className="mb-1.5 block text-sm font-medium text-text-strong"
-                    id="method-label"
-                  >
-                    {formatMessage({ id: "app.work.detail.verificationMethods" })}
-                    <span className="ml-1 text-xs text-text-soft">
-                      ({formatMessage({ id: "app.work.detail.selectAllThatApply" })})
-                    </span>
-                  </span>
-                  <Controller
-                    name="verificationMethod"
-                    control={control}
-                    render={({ field }) => (
-                      <MethodSelector
-                        value={field.value}
-                        onChange={field.onChange}
-                        aria-labelledby="method-label"
-                      />
-                    )}
-                  />
-                </div>
-
                 {/* Feedback textarea */}
                 <div>
                   <label
@@ -361,47 +325,49 @@ export function ReviewForm({
                   </p>
                 </div>
 
-                {/* Action buttons */}
-                <div className="flex gap-3 pt-2">
-                  <button
-                    type="button"
-                    onClick={() => handleApprovalSubmit(true)}
-                    disabled={isSubmitting || hasApprovalValidationHints}
-                    className="flex-1 rounded-lg bg-success-base px-4 py-2.5 text-sm font-medium text-static-white transition hover:bg-success-dark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-success-base focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
+                {/* Validation hints — stable block above the decision row so
+                    the disabled Approve state is explained before the actions
+                    and the buttons never shift as hints resolve. */}
+                {hasApprovalValidationHints ? (
+                  <div
+                    className="space-y-1 rounded-md border border-warning-light bg-warning-lighter/60 p-3"
+                    data-slot="approval-hints"
+                    aria-live="polite"
                   >
-                    {isSubmitting && submittingAction === "approve"
-                      ? formatMessage({
-                          id: "app.work.detail.approving",
-                          defaultMessage: "Approving...",
-                        })
-                      : formatMessage({ id: "app.work.detail.approve" })}
-                  </button>
-                  <button
+                    {hasLowConfidenceHint && (
+                      <p className="text-xs text-warning-dark">
+                        {formatMessage({ id: "app.work.detail.hint.lowConfidence" })}
+                      </p>
+                    )}
+                  </div>
+                ) : null}
+
+                {/* Decision row — M3 button hierarchy: Reject reads clearly
+                    destructive but secondary (outlined, error color role);
+                    Approve is the filled primary and sits rightmost. */}
+                <div className="flex flex-wrap items-center justify-end gap-2 pt-2">
+                  <AdminButton
                     type="button"
+                    variant="outlined"
                     onClick={() => handleApprovalSubmit(false)}
                     disabled={isSubmitting}
-                    className="flex-1 rounded-lg border border-error-base px-4 py-2.5 text-sm font-medium text-error-base transition hover:bg-error-lighter focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error-base focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50"
+                    loading={isSubmitting && submittingAction === "reject"}
+                    className="border-[rgb(var(--m3-error))] [color:rgb(var(--m3-error))] [--state-layer-color:var(--m3-error)] focus-visible:ring-[rgb(var(--m3-error))]"
+                    data-action="reject"
                   >
-                    {isSubmitting && submittingAction === "reject"
-                      ? formatMessage({
-                          id: "app.work.detail.rejecting",
-                          defaultMessage: "Rejecting...",
-                        })
-                      : formatMessage({ id: "app.work.detail.reject" })}
-                  </button>
+                    {formatMessage({ id: "app.work.detail.reject" })}
+                  </AdminButton>
+                  <AdminButton
+                    type="button"
+                    variant="filled"
+                    onClick={() => handleApprovalSubmit(true)}
+                    disabled={isSubmitting || hasApprovalValidationHints}
+                    loading={isSubmitting && submittingAction === "approve"}
+                    data-action="approve"
+                  >
+                    {formatMessage({ id: "app.work.detail.approve" })}
+                  </AdminButton>
                 </div>
-
-                {/* Validation hints */}
-                {hasLowConfidenceHint && (
-                  <p className="text-xs text-warning-base">
-                    {formatMessage({ id: "app.work.detail.hint.lowConfidence" })}
-                  </p>
-                )}
-                {hasMissingVerificationMethodHint && (
-                  <p className="text-xs text-warning-base">
-                    {formatMessage({ id: "app.work.detail.hint.missingMethod" })}
-                  </p>
-                )}
               </form>
             ) : (
               <p className="mt-4 text-sm text-text-soft">

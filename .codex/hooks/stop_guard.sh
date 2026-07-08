@@ -14,7 +14,7 @@ changed_files() {
   } | sort -u
 }
 
-FILES="$(changed_files | grep -E '\.(ts|tsx|js|jsx|css|scss|json|toml|ya?ml)$|(^|/)(package\.json|bun\.lockb|bun\.lock|pnpm-lock\.yaml|package-lock\.json|yarn\.lock)$|^packages/contracts/src/|^\.codex/|^\.claude/|^\.github/workflows/' || true)"
+FILES="$(changed_files | grep -E '\.(ts|tsx|js|jsx|css|scss|json|toml|ya?ml)$|(^|/)(package\.json|bun\.lockb|bun\.lock|pnpm-lock\.yaml|package-lock\.json|yarn\.lock)$|^packages/contracts/src/|^\.codex/|^\.claude/|^\.agents/skills|^\.github/workflows/' || true)"
 [ -n "$FILES" ] || exit 0
 
 SUMMARY="$(printf '%s\n' "$FILES" | head -8 | sed 's/^/- /')"

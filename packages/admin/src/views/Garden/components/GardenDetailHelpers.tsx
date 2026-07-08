@@ -165,57 +165,6 @@ export function GardenHeroBanner({
   );
 }
 
-interface GardenDomainSummaryRowProps {
-  domainMask?: number;
-  canManage?: boolean;
-  onEditDomains?: () => void;
-}
-
-export function GardenDomainSummaryRow({
-  domainMask,
-  canManage = false,
-  onEditDomains,
-}: GardenDomainSummaryRowProps) {
-  const { formatMessage } = useIntl();
-  const domains: Domain[] = typeof domainMask === "number" ? expandDomainMask(domainMask) : [];
-  const canEditDomains = canManage && Boolean(onEditDomains);
-
-  return (
-    <div className="flex flex-col gap-3 border-b border-stroke-soft px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-      <div className="min-w-0 space-y-1.5">
-        <p className="label-xs text-text-soft">
-          {formatMessage({ id: "app.garden.detail.domains" })}
-        </p>
-        <div className="flex flex-wrap items-center gap-1.5">
-          {domains.length > 0 ? (
-            domains.map((domain) => (
-              <span
-                key={domain}
-                className="inline-flex items-center gap-1.5 rounded-full border border-stroke-soft bg-bg-white px-2.5 py-1 text-xs font-medium text-text-strong"
-              >
-                <span
-                  className="h-2 w-2 rounded-full"
-                  style={{ backgroundColor: DOMAIN_COLORS[domain] }}
-                />
-                {formatMessage({ id: DOMAIN_LABEL_IDS[domain] })}
-              </span>
-            ))
-          ) : (
-            <span className="inline-flex items-center rounded-full border border-warning-light bg-warning-lighter px-2.5 py-1 text-xs font-medium text-warning-dark">
-              {formatMessage({ id: "app.garden.detail.domainsNone" })}
-            </span>
-          )}
-        </div>
-      </div>
-      {canEditDomains ? (
-        <AdminButton type="button" variant="outlined" size="sm" onClick={onEditDomains}>
-          {formatMessage({ id: "app.garden.detail.editDomains" })}
-        </AdminButton>
-      ) : null}
-    </div>
-  );
-}
-
 interface SectionStateProps {
   title: string;
   description: string;
@@ -248,7 +197,11 @@ interface AlertRowProps {
 
 export function AlertRow({ severity, label, actionLabel, onAction }: AlertRowProps) {
   return (
-    <AdminCard variant="outlined" className="flex items-start justify-between gap-3 px-3 py-2.5">
+    <AdminCard
+      variant="outlined"
+      density="compact"
+      className="flex items-start justify-between gap-3"
+    >
       <div className="flex min-w-0 items-start gap-2">
         <RiAlertLine className={`mt-0.5 h-4 w-4 flex-shrink-0 ${ALERT_LABEL_CLASSES[severity]}`} />
         <p className="text-sm text-text-sub">{label}</p>

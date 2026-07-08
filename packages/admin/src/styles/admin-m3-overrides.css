@@ -30,23 +30,53 @@
 
 .admin-m3 [data-slot="fab-button"] {
   box-shadow: var(--admin-chrome-shadow);
+  /* Focus-ring colour for the shared FabButton. The component keeps the
+     `focus-visible:ring-2` utility, but its tone-coloured `ring-[…]` colour
+     utility is dropped by admin's content scan (packages/shared isn't scanned),
+     so colour the Tailwind ring here via its custom property. */
+  --tw-ring-color: rgb(var(--tone-focus-ring, var(--primary-action)));
 }
 
-.admin-m3 .speed-dial-item:hover {
+/* Smooth the "+" → "×" rotation of the multi-action FAB glyph. The shared
+   component's arbitrary `duration-[…] ease-[…]` utilities don't generate in
+   admin (same scan gap), so the transition lives here; reduced-motion below.
+   Tailwind v4's `rotate-45` sets the CSS `rotate` property (not `transform`),
+   so transition `rotate`; `transform` is kept for robustness. */
+.admin-m3 [data-slot="fab-button"] svg {
+  transition:
+    rotate var(--spring-spatial-fast),
+    transform var(--spring-spatial-fast);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-m3 [data-slot="fab-button"] svg {
+    transition: none;
+  }
+}
+
+.admin-m3 .speed-dial-item:hover:not(:focus-visible) {
   box-shadow: var(--admin-chrome-shadow) !important;
 }
 
-/* Desktop: floating pill — compact M3 Expressive anatomy.
-   `width: max-content` is declared explicitly here because the shared
-   component's `w-max` Tailwind utility isn't compiled into admin's CSS
-   (admin's content scan doesn't cover packages/shared). Without it,
-   left:0 + right:0 + width:auto → full-viewport width. With it,
-   auto margins recenter the intrinsic-width pill. */
+.admin-m3 .speed-dial-item:focus-visible {
+  box-shadow:
+    0 0 0 2px rgb(var(--tone-focus-ring, var(--tone-tint, 59 130 246))),
+    var(--admin-speed-dial-shadow, var(--admin-chrome-shadow, var(--elevation-3))) !important;
+}
+
+/* Desktop: floating pill with equal tab wells.
+   Geometry lives here because admin's Tailwind content scan does not include
+   packages/shared/src, so shared JSX width utilities are not reliable here. */
 @media (min-width: 600px) {
   .admin-m3 .canvas-navigation-bar {
+    display: grid;
+    grid-template-columns: repeat(var(--admin-nav-item-count, 1), minmax(0, 1fr));
     left: 0;
     right: 0;
-    width: max-content;
+    width: min(
+      calc(var(--admin-nav-item-count, 1) * var(--admin-nav-item-width-desktop, 5.875rem)),
+      calc(100vw - 2rem)
+    );
     max-width: calc(100vw - 2rem);
     margin-left: auto;
     margin-right: auto;
@@ -65,7 +95,7 @@
     bottom: 0;
     min-height: 80px;
     border-radius: 0;
-    padding: 12px 8px calc(env(safe-area-inset-bottom) + 16px);
+    padding: 12px 8px calc(env(safe-area-inset-bottom) + 8px);
     gap: 0;
   }
 }
@@ -83,6 +113,7 @@
 
 @media (min-width: 600px) {
   .admin-m3 .canvas-navigation-bar button {
+    width: 100%;
     min-width: 64px;
     padding: 2px 10px 4px;
     gap: 2px;
@@ -177,23 +208,6 @@
   color: rgb(var(--m3-on-surface-variant));
 }
 
-/* Bottom Sheet — M3 shape + surface */
-.admin-m3 [data-component="BottomSheet"][data-slot="surface"] {
-  border-radius: var(--m3-shape-xl) var(--m3-shape-xl) 0 0;
-  box-shadow: var(--m3-elevation-4);
-}
-
-/* Side Sheet — Warm-Earth handoff radius (--radius-sheet=24px) + M3 elevation */
-.admin-m3 [data-component="RightSheet"][data-slot="surface"] {
-  border-radius: var(--radius-sheet, var(--m3-shape-lg)) 0 0 var(--radius-sheet, var(--m3-shape-lg));
-  box-shadow: var(--e-float, var(--m3-elevation-3));
-}
-
-.admin-m3 [data-component="LeftSheet"][data-slot="surface"] {
-  border-radius: 0 var(--radius-sheet, var(--m3-shape-lg)) var(--radius-sheet, var(--m3-shape-lg)) 0;
-  box-shadow: var(--e-float, var(--m3-elevation-3));
-}
-
 /* Toast / Snackbar — M3 inverse surface */
 .admin-m3 [data-hot-toast] > div {
   background: rgb(var(--m3-inverse-surface)) !important;
@@ -236,24 +250,112 @@
   background: transparent;
 }
 
-/* Sheets — liquid shell, solid inner content supplied by panels/SheetBody */
-.admin-m3 [data-component="RightSheet"][data-slot="surface"].glass-floating,
-.admin-m3 [data-component="LeftSheet"][data-slot="surface"].glass-floating,
-.admin-m3 [data-component="BottomSheet"][data-slot="surface"].glass-floating {
-  backdrop-filter: blur(var(--admin-chrome-blur)) saturate(1.14);
-  -webkit-backdrop-filter: blur(var(--admin-chrome-blur)) saturate(1.14);
-  background: var(--admin-sheet-bg);
-  border-color: var(--admin-chrome-border);
-}
-
 /* Dialog portals render outside .admin-m3. Keep portal surfaces mapped to
  * strict M3 tokens, with legacy selectors retained for any shared/non-admin
  * dialog that is mounted from an admin route. */
 body:has(.admin-m3) [data-component="AdminDialog"][data-slot="surface"],
+body:has(.admin-m3) [data-component="AdminSideSheet"][data-slot="surface"],
 body:has(.admin-m3) [data-component="DialogShell"][data-slot="surface"],
 body:has(.admin-m3) [data-component="ConfirmDialog"][data-slot="surface"] {
   background: rgb(var(--m3-surface-container-high));
   box-shadow: var(--m3-elevation-3);
+}
+
+/* Shared controls that still appear inside admin routes/dialogs inherit the
+ * cockpit token roles while they are migrated to Admin* wrappers. */
+.admin-m3 .gg-button,
+body:has(.admin-m3) [data-component="AdminDialog"][data-slot="surface"] .gg-button,
+body:has(.admin-m3) [data-component="AdminSideSheet"][data-slot="surface"] .gg-button {
+  border-radius: var(--m3-shape-full);
+  font-size: var(--type-label-lg);
+  line-height: var(--type-label-lg-lh);
+  letter-spacing: var(--type-label-lg-ls);
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.admin-m3 .gg-button:focus-visible,
+body:has(.admin-m3) [data-component="AdminDialog"][data-slot="surface"] .gg-button:focus-visible,
+body:has(.admin-m3) [data-component="AdminSideSheet"][data-slot="surface"] .gg-button:focus-visible {
+  box-shadow: 0 0 0 3px rgb(var(--tone-focus-ring, var(--m3-primary)) / 0.2);
+}
+
+.admin-m3 .gg-button-primary,
+.admin-m3 .gg-button-primary.gg-button-filled,
+body:has(.admin-m3) [data-component="AdminDialog"][data-slot="surface"] .gg-button-primary,
+body:has(.admin-m3) [data-component="AdminDialog"][data-slot="surface"] .gg-button-primary.gg-button-filled,
+body:has(.admin-m3) [data-component="AdminSideSheet"][data-slot="surface"] .gg-button-primary,
+body:has(.admin-m3) [data-component="AdminSideSheet"][data-slot="surface"] .gg-button-primary.gg-button-filled {
+  background: rgb(var(--tone-action, var(--m3-primary)));
+  color: rgb(var(--tone-on-action, var(--m3-on-primary)));
+}
+
+.admin-m3 .gg-button-primary:hover,
+.admin-m3 .gg-button-primary.gg-button-filled:hover,
+body:has(.admin-m3) [data-component="AdminDialog"][data-slot="surface"] .gg-button-primary:hover,
+body:has(.admin-m3) [data-component="AdminDialog"][data-slot="surface"] .gg-button-primary.gg-button-filled:hover,
+body:has(.admin-m3) [data-component="AdminSideSheet"][data-slot="surface"] .gg-button-primary:hover,
+body:has(.admin-m3) [data-component="AdminSideSheet"][data-slot="surface"] .gg-button-primary.gg-button-filled:hover {
+  background: color-mix(in srgb, rgb(var(--tone-action, var(--m3-primary))) 92%, rgb(var(--m3-on-surface)) 8%);
+}
+
+.admin-m3 .gg-button-secondary,
+.admin-m3 .gg-button-neutral.gg-button-stroke,
+body:has(.admin-m3) [data-component="AdminDialog"][data-slot="surface"] .gg-button-secondary,
+body:has(.admin-m3) [data-component="AdminDialog"][data-slot="surface"] .gg-button-neutral.gg-button-stroke,
+body:has(.admin-m3) [data-component="AdminSideSheet"][data-slot="surface"] .gg-button-secondary,
+body:has(.admin-m3) [data-component="AdminSideSheet"][data-slot="surface"] .gg-button-neutral.gg-button-stroke {
+  border-color: rgb(var(--m3-outline));
+  background: rgb(var(--m3-surface-container-low));
+  color: rgb(var(--m3-on-surface));
+}
+
+.admin-m3 .gg-button-secondary:hover,
+.admin-m3 .gg-button-neutral.gg-button-stroke:hover,
+body:has(.admin-m3) [data-component="AdminDialog"][data-slot="surface"] .gg-button-secondary:hover,
+body:has(.admin-m3) [data-component="AdminDialog"][data-slot="surface"] .gg-button-neutral.gg-button-stroke:hover,
+body:has(.admin-m3) [data-component="AdminSideSheet"][data-slot="surface"] .gg-button-secondary:hover,
+body:has(.admin-m3) [data-component="AdminSideSheet"][data-slot="surface"] .gg-button-neutral.gg-button-stroke:hover {
+  background: rgb(var(--m3-surface-container));
+  color: rgb(var(--m3-on-surface));
+}
+
+.admin-m3 .gg-button-ghost,
+.admin-m3 .gg-button-neutral.gg-button-ghost,
+.admin-m3 .gg-button-primary.gg-button-ghost,
+body:has(.admin-m3) [data-component="AdminDialog"][data-slot="surface"] .gg-button-ghost,
+body:has(.admin-m3) [data-component="AdminDialog"][data-slot="surface"] .gg-button-neutral.gg-button-ghost,
+body:has(.admin-m3) [data-component="AdminDialog"][data-slot="surface"] .gg-button-primary.gg-button-ghost,
+body:has(.admin-m3) [data-component="AdminSideSheet"][data-slot="surface"] .gg-button-ghost,
+body:has(.admin-m3) [data-component="AdminSideSheet"][data-slot="surface"] .gg-button-neutral.gg-button-ghost,
+body:has(.admin-m3) [data-component="AdminSideSheet"][data-slot="surface"] .gg-button-primary.gg-button-ghost {
+  background: transparent;
+  color: rgb(var(--tone-on-surface-accent, var(--m3-primary)));
+}
+
+.admin-m3 .gg-switch[data-surface="admin"] {
+  border-color: rgb(var(--m3-outline));
+  background: rgb(var(--m3-surface-container-highest));
+  box-shadow: inset 0 0 0 1px rgb(var(--m3-outline) / 0.18);
+}
+
+.admin-m3 .gg-switch[data-surface="admin"]:focus-visible {
+  box-shadow:
+    0 0 0 3px rgb(var(--tone-focus-ring, var(--m3-primary)) / 0.22),
+    inset 0 0 0 1px rgb(var(--m3-outline) / 0.18);
+}
+
+.admin-m3 .gg-switch[data-surface="admin"][data-state="checked"] {
+  border-color: rgb(var(--tone-action, var(--m3-primary)));
+  background: rgb(var(--tone-action, var(--m3-primary)));
+}
+
+.admin-m3 .gg-switch[data-surface="admin"] .gg-switch-thumb {
+  background: rgb(var(--m3-surface));
+}
+
+.admin-m3 .gg-switch[data-surface="admin"][data-state="checked"] .gg-switch-thumb {
+  background: rgb(var(--tone-on-action, var(--m3-on-primary)));
 }
 
 /* ============================================================================
@@ -265,19 +367,20 @@ body:has(.admin-m3) [data-component="ConfirmDialog"][data-slot="surface"] {
  * driven (--spring-*) so there are no raw duration/easing literals.
  *
  * These keyframes animate ONLY the motion delta (slide on Y, or scale) via the
- * `transform` property. AdminDialog.tsx centers the surface with Tailwind v4
- * translate utilities ("-translate-x-1/2"; plus "sm:-translate-y-1/2" >= 640px),
- * which compile to the independent `translate` CSS property — NOT `transform`.
- * Because `translate` and `transform` compose, the centering is preserved
- * automatically and these keyframes must NOT re-bake translate(-50%, …) into
- * `transform`, or the surface would translate twice and land off-center.
+ * `transform` property. AdminDialog.tsx uses Tailwind v4 translate utilities
+ * only where a variant is centered (compact mobile dialogs and all desktop
+ * dialogs); full-width mobile action sheets have no X translate. Tailwind v4
+ * compiles translate utilities to the independent `translate` CSS property —
+ * NOT `transform`. Because `translate` and `transform` compose, these keyframes
+ * must NOT re-bake translate(-50%, …) into `transform`, or centered variants
+ * would translate twice and land off-center.
  *
- * Replaces the prior dead Tailwind animate-*/slide-in-*/zoom-* classes
+ * Replaces the prior dead Tailwind animate, slide-in, and zoom classes
  * (tailwindcss-animate is not loaded in this build, so they emitted no CSS).
  * ============================================================================ */
 
 /* Mobile bottom sheet — slide up from below, 2% overshoot for spring feel.
- * X centering comes from the Tailwind `translate` property; we only move Y. */
+ * X placement comes from AdminDialog.tsx geometry; we only move Y. */
 @keyframes adminDialogSheetIn {
   from { transform: translateY(100%); opacity: 0.85; }
   60%  { transform: translateY(-2%); opacity: 1; }
@@ -331,13 +434,83 @@ body:has(.admin-m3) [data-component="ConfirmDialog"][data-slot="surface"] {
   }
 }
 
+/* ============================================================================
+ * AdminSideSheet motion — the three global AppBar surfaces (Profile,
+ * Settings, Notifications). Mobile keeps the dialog's bottom-sheet slide
+ * (same keyframes, same composition with the compact Tailwind `translate` centering);
+ * ≥640px slides in from the right edge as an M3 modal side sheet.
+ * ============================================================================ */
+
+@keyframes adminSideSheetIn {
+  from { transform: translateX(100%); opacity: 0.85; }
+  60%  { transform: translateX(-1.5%); opacity: 1; }
+  to   { transform: translateX(0); opacity: 1; }
+}
+@keyframes adminSideSheetOut {
+  from { transform: translateX(0); opacity: 1; }
+  to   { transform: translateX(100%); opacity: 0.85; }
+}
+
+[data-component="AdminSideSheet"][data-slot="overlay"][data-state="open"] {
+  animation: scrimFadeIn var(--spring-effects-duration) var(--spring-effects-easing) both;
+}
+[data-component="AdminSideSheet"][data-slot="overlay"][data-state="closed"] {
+  animation: scrimFadeOut var(--spring-effects-fast-duration) var(--spring-effects-fast-easing) both;
+}
+
+/* Surface — mobile bottom-sheet slide by default; ≥640px swaps to the
+ * right-edge slide (matching the sm: breakpoint AdminSideSheet.tsx uses). */
+[data-component="AdminSideSheet"][data-slot="surface"][data-state="open"] {
+  animation: adminDialogSheetIn var(--spring-spatial-slow-duration)
+    var(--spring-spatial-slow-easing) both;
+}
+[data-component="AdminSideSheet"][data-slot="surface"][data-state="closed"] {
+  animation: adminDialogSheetOut var(--spring-spatial-duration)
+    var(--spring-spatial-easing) both;
+}
+
+@media (min-width: 640px) {
+  [data-component="AdminSideSheet"][data-slot="surface"][data-state="open"] {
+    animation: adminSideSheetIn var(--spring-spatial-slow-duration)
+      var(--spring-spatial-slow-easing) both;
+  }
+  [data-component="AdminSideSheet"][data-slot="surface"][data-state="closed"] {
+    animation: adminSideSheetOut var(--spring-spatial-duration)
+      var(--spring-spatial-easing) both;
+  }
+}
+
 /* Reduced motion — disable the enter/exit animation (mirrors the shared
  * dialog block in utilities.css). The `to`/forwards fill still resolves the
  * resting transform, so the surface lands centered, just without motion. */
 @media (prefers-reduced-motion: reduce) {
-  [data-component="AdminDialog"][data-slot] {
+  [data-component="AdminDialog"][data-slot],
+  [data-component="AdminSideSheet"][data-slot] {
     animation-duration: 0ms !important;
   }
+}
+
+/* Instant exit — set by AdminDialog when a close happens in a hidden tab
+ * (frozen animations would never fire animationend, so Radix would keep the
+ * exit node and its body pointer-events lock forever), and by the
+ * dialogCloseSafetyNet when it finds an already-stuck exit node. No animation
+ * lets Radix unmount synchronously; display:none belts-and-braces a node whose
+ * exit was already frozen mid-animation so it can never sit half-visible. */
+[data-component="AdminDialog"][data-instant-exit][data-state="closed"],
+[data-component="AdminSideSheet"][data-instant-exit][data-state="closed"] {
+  animation: none !important;
+  display: none !important;
+}
+
+/* Dark-mode check glyph — ink stroke instead of the component's white data-URI.
+ * Dark checked fills are LIGHT (pastel --m3-primary -200 step; light-red
+ * --m3-error), so the white glyph measures ~1.3–2.1:1 — invisible. Ink
+ * (neutral-950 #0C0A09) measures ≥6:1 on both, mirroring how --m3-on-primary /
+ * --m3-on-error flip to ink in dark. Same mechanism as the .gg-control-select
+ * chevron (theme.css): a per-theme data-URI swap. Unlayered on purpose so it
+ * beats the Tailwind utility that sets the white glyph. */
+[data-theme="dark"] [data-component="AdminCheckbox"][data-slot="input"]:checked {
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%230C0A09%22%20stroke-width%3D%223%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22M20%206L9%2017l-5-5%22%2F%3E%3C%2Fsvg%3E");
 }
 
 /* Content lists/cards within MainSheet — solid surface-container-low */
@@ -348,10 +521,7 @@ body:has(.admin-m3) [data-component="ConfirmDialog"][data-slot="surface"] {
 }
 
 @media (prefers-contrast: more) {
-  .admin-m3 .canvas-navigation-bar,
-  .admin-m3 [data-component="RightSheet"][data-slot="surface"].glass-floating,
-  .admin-m3 [data-component="LeftSheet"][data-slot="surface"].glass-floating,
-  .admin-m3 [data-component="BottomSheet"][data-slot="surface"].glass-floating {
+  .admin-m3 .canvas-navigation-bar {
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
     background: rgb(var(--m3-surface-container));
@@ -375,4 +545,31 @@ body:has(.admin-m3) [data-component="ConfirmDialog"][data-slot="surface"] {
 .admin-m3 [data-component="AdminCard"] > * {
   position: relative;
   z-index: 1;
+}
+
+/* ============================================================================
+ * Action flow phase cross-fade (qualify ↔ configure)
+ * Animates only the content group — the ActionFlowShell header + footer stay
+ * stationary. Reuses the route-content fade keyframe + admin motion tokens
+ * (minimal-cockpit budget). Disabled under reduced motion.
+ * ============================================================================ */
+.action-flow-fade {
+  animation: var(--admin-motion-route-content-duration) var(--admin-motion-route-content-easing) both
+    route-content-fade-in;
+}
+@media (prefers-reduced-motion: reduce) {
+  .action-flow-fade {
+    animation: none;
+  }
+}
+
+/* Reduced motion — the stepper dot color transitions, the 300ms horizontal
+ * connector scaleX fill, and the chooser card press are decorative; zero them
+ * out. There is no universal `*{transition:none}` reset in this repo (only
+ * scoped allow-lists like this one), so the stepper/chooser must opt in here. */
+@media (prefers-reduced-motion: reduce) {
+  [data-component="ActionFlowStepper"] *,
+  [data-component="AdminSelectableCard"] {
+    transition: none !important;
+  }
 }

@@ -1,6 +1,60 @@
 import { WorkbenchList } from "@green-goods/shared";
 
-export function HubWorkbenchSkeletonRows({ count }: { count: number }) {
+export function HubWorkbenchSkeletonRows({
+  count,
+  variant = "row",
+}: {
+  count: number;
+  variant?: "row" | "media-card" | "card";
+}) {
+  if (variant === "media-card" || variant === "card") {
+    const hasMedia = variant === "media-card";
+
+    return (
+      <ul className="hub-workbench-grid" role="list" aria-busy="true">
+        {Array.from({ length: count }).map((_, index) => (
+          <li key={`hub-card-skeleton-${index}`} aria-hidden="true" className="min-w-0">
+            <div className="pointer-events-none h-full rounded-2xl bg-[rgb(var(--m3-surface-container-low))] p-4 shadow-[var(--edge-rest),var(--elevation-1)]">
+              {hasMedia ? (
+                <div className="aspect-[16/9] rounded-xl skeleton-shimmer" />
+              ) : (
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex min-w-0 items-center gap-2">
+                    <div className="h-11 w-11 rounded-xl skeleton-shimmer" />
+                    <div className="h-4 w-20 rounded-full skeleton-shimmer" />
+                  </div>
+                  <div className="h-7 w-24 rounded-full skeleton-shimmer" />
+                </div>
+              )}
+              {hasMedia ? (
+                <div className="mt-4 flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <div className="h-5 w-4/5 rounded-full skeleton-shimmer" />
+                    <div className="h-4 w-2/3 rounded-full skeleton-shimmer" />
+                  </div>
+                  <div className="h-4 w-16 rounded-full skeleton-shimmer" />
+                </div>
+              ) : (
+                <div className="mt-4 space-y-2">
+                  <div className="h-5 w-4/5 rounded-full skeleton-shimmer" />
+                  <div className="h-4 w-full rounded-full skeleton-shimmer" />
+                  <div className="h-4 w-2/3 rounded-full skeleton-shimmer" />
+                </div>
+              )}
+              <div className="mt-4 flex items-center justify-between gap-3">
+                <div className="min-w-0 flex-1 space-y-2">
+                  <div className="h-4 w-3/5 rounded-full skeleton-shimmer" />
+                  <div className="h-4 w-2/5 rounded-full skeleton-shimmer" />
+                </div>
+                <div className="h-7 w-20 rounded-full skeleton-shimmer" />
+              </div>
+            </div>
+          </li>
+        ))}
+      </ul>
+    );
+  }
+
   return (
     <WorkbenchList aria-busy="true">
       {Array.from({ length: count }).map((_, index) => (

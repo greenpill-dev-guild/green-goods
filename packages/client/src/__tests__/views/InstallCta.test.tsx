@@ -23,6 +23,7 @@ const mockAppState = {
 
 const mockGuidanceState = {
   scenario: "manual-instructions" as string,
+  primaryAction: { type: "show-manual-steps" as string, label: "Install App" },
   manualInstructions: null as any,
   browserSwitchReason: null as string | null,
   openInBrowserUrl: null as string | null,
@@ -75,6 +76,7 @@ describe("InstallCta", () => {
     mockAppState.wasInstalled = false;
     mockAppState.platform = "android";
     mockGuidanceState.scenario = "manual-instructions";
+    mockGuidanceState.primaryAction = { type: "show-manual-steps", label: "Install App" };
     mockGuidanceState.manualInstructions = null;
     mockGuidanceState.browserSwitchReason = null;
     mockGuidanceState.openInBrowserUrl = null;
@@ -96,6 +98,21 @@ describe("InstallCta", () => {
 
     const { container } = render(wrap(createElement(InstallCta)));
     expect(container.innerHTML).toBe("");
+  });
+
+  it("shows manual recovery when guidance resolves to open-app from a remembered install", () => {
+    mockAppState.wasInstalled = true;
+    mockGuidanceState.scenario = "already-installed";
+    mockGuidanceState.primaryAction = { type: "open-app", label: "Open App" };
+    mockGuidanceState.manualInstructions = [
+      { title: "Open Chrome", description: "Open in Chrome" },
+      { title: "Install", description: "Menu → Install app" },
+    ];
+
+    render(wrap(createElement(InstallCta)));
+
+    expect(screen.getByText("Install Green Goods")).toBeInTheDocument();
+    expect(screen.getByText(/open in chrome.*menu → install app/i)).toBeInTheDocument();
   });
 
   it("shows install header on mobile when not installed", () => {

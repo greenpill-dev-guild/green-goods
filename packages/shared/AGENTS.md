@@ -11,7 +11,7 @@ types, i18n, and Storybook-backed shared UI building blocks.
 
 - `/Users/afo/Code/greenpill/green-goods/docs/docs/builders/packages/admin.mdx` is the consumer contract for admin UI.
 - Reusable admin UI foundations belong here before they become package-local copies.
-- Prefer extending shared `AppBar`, `NavigationBar`, `GardenChip`, `MainSheet`, `LeftSheet`, `RightSheet`, `BottomSheet`, `Alert`, `Card`, `DialogShell`, `FormField`, `ListToolbar`, `SortSelect`, and `StatusBadge`.
+- Prefer extending shared `AppBar`, `NavigationBar`, `GardenChip`, `MainSheet`, `Alert`, `Card`, `DialogShell`, `FormField`, `ListToolbar`, `SortSelect`, and `StatusBadge`. (The Canvas `LeftSheet`/`RightSheet`/`BottomSheet` renderers are deleted — admin overlays are centered `AdminDialog`s owned by the admin package.)
 - New shared primitives and major variants need barrel exports, tests, and Storybook coverage in the same change.
 
 ## Commands
@@ -36,15 +36,18 @@ types, i18n, and Storybook-backed shared UI building blocks.
 
 - Shared changes frequently fan out into `client`, `admin`, and `agent`. If you change a hook
   signature, data shape, or exported utility, run repo-level quick verification from the root.
+- In QA Speed Mode for an internal shared fix, run the targeted shared test plus `bun run typecheck`
+  when types/contracts are touched. Escalate to root quick verification only when exports, hook
+  signatures, provider contracts, shared data shapes, or mutation flows can affect consumers.
 - When changing test helpers or hook contracts, keep tests aligned before downstream package fixes.
 - Storybook is the source of truth for shared UI foundations; keep stories aligned when primitives change.
-- For local human/agent browser walkthroughs of shared UI, use Brave with an
-  isolated/non-default profile; do not silently fall back to any non-Brave browser for Green Goods
-  browser proof.
+- Local agentic browser QA must use the authenticated Brave QA profile. Codex: use the Codex browser-extension path and claim the already-open Brave tab/window. Claude Code: use the Claude Code Chrome/Chromium extension path (`claude --chrome` or `/chrome`) and select the authenticated Brave profile/tab when it is installed, connected, and able to control the already-open Brave window. Do not fall back merely because the extension is branded Chrome. If the Brave extension path is unavailable or not connected, use Claude computer-use/visible desktop control of the already-open Brave window; if neither can reach authenticated Brave, report QA as blocked. Use this for admin, PWA, extension, wallet/passkey, staging-session, installed-app, and profile-dependent verification.
+- Do not use isolated Browser, Playwright, or DevTools MCP profiles for local QA. Existing isolated browser-proof commands are CI/clean-room checks only and must not be reported as authenticated verification. If authenticated Brave access is blocked, stop and report QA as blocked.
 - **Tailwind v4 gotcha**: utility classes authored in shared JSX (`mx-4`, `w-max`, `self-center`, etc.) are not in admin/client content scans and silently fail to generate in consuming apps. They will look correct in Storybook and broken in the running app. Use inline styles or CSS custom properties for layout in shared components, or apply the utility class in the consumer's JSX. Full detail and commit references in root `AGENTS.md` → "Known Gotchas".
 
 ## Validation
 
+- QA Speed Mode: targeted `bun run test -- src/...`; add `bun run typecheck` when shared types/contracts move
 - Package loop: `bun run test && bun run typecheck`
 - UI/stories touched: `bun run check:stories`
 - Cross-package impact: from repo root run `node scripts/dev/ci-local.js --quick`
