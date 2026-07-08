@@ -317,10 +317,7 @@ describe("Canvas Primitives", () => {
 
     render(
       <FabProvider>
-        <UnstableFabRegistrationProbe
-          onProviderConfig={onProviderConfig}
-          onAction={onAction}
-        />
+        <UnstableFabRegistrationProbe onProviderConfig={onProviderConfig} onAction={onAction} />
       </FabProvider>
     );
 
