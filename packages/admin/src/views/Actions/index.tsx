@@ -161,7 +161,10 @@ export default function Actions() {
         ) : null}
       </CanvasRouteHeader>
 
-      <CanvasRouteContent data-region="workspace-actions-content" className="flex flex-col gap-3">
+      <CanvasRouteContent
+        data-region="workspace-actions-content"
+        className="flex flex-1 flex-col gap-3"
+      >
         {actions.isLoading ? (
           <AdminCard className="space-y-3" role="status" aria-live="polite">
             <span className="sr-only">

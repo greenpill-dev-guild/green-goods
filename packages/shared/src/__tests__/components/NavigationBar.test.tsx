@@ -216,6 +216,14 @@ describe("NavigationBar", () => {
     expect(activeButton).toHaveAttribute("data-item-id", "actions");
   });
 
+  it("exposes desktop item count for equal-width admin nav columns", () => {
+    render(<NavigationBar slots={createSlots()} activePath="/actions" onNavigate={() => {}} />);
+
+    const nav = screen.getByRole("navigation");
+    expect(nav).toHaveAttribute("data-item-count", "3");
+    expect(nav.style.getPropertyValue("--admin-nav-item-count")).toBe("3");
+  });
+
   it("does not set aria-current on inactive slots", () => {
     render(<NavigationBar slots={createSlots()} activePath="/dashboard" onNavigate={() => {}} />);
 

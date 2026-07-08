@@ -27,7 +27,7 @@ export const CanvasRouteFrame = forwardRef<HTMLDivElement, CanvasRouteFrameProps
       ref={ref}
       data-component={dataComponent}
       {...frameProps}
-      className={cn("canvas-route-card", className)}
+      className={cn("canvas-route-card flex min-h-0 flex-col", className)}
     >
       {children}
     </div>
@@ -50,7 +50,7 @@ export function CanvasRouteContent({
       data-region={dataRegion}
       {...contentProps}
       className={cn(
-        "w-full",
+        "min-h-0 w-full",
         maxWidthClassName ? "mx-auto" : undefined,
         maxWidthClassName,
         className

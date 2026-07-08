@@ -312,10 +312,14 @@
     transparent 100%
   );
   --admin-appbar-height: 3.5rem;
+  --admin-main-max-width: min(1680px, calc(100vw - 2rem));
+  --admin-main-inline-gutter: clamp(0.875rem, 1.5vw, 1.5rem);
+  --admin-main-sheet-bottom-gap: 0.5rem;
   /* Nav floats closer to the edge to reclaim vertical space (QA refinement);
      drives both the floating-pill bottom and the sheet-clearance calc below. */
   --admin-nav-offset-desktop: 12px;
   --admin-nav-height-desktop: 3.5rem;
+  --admin-nav-item-width-desktop: 5.875rem;
   --admin-nav-height-mobile: calc(5rem + env(safe-area-inset-bottom));
   --admin-sheet-top-gap: 0.5rem;
   --admin-sheet-bottom-gap-desktop: 1.5rem;
@@ -326,7 +330,9 @@
   --admin-sheet-bottom: calc(
     var(--admin-nav-offset-desktop, 20px) + var(--admin-nav-height-desktop, 3.5rem) + var(--admin-sheet-bottom-gap-desktop, 1.5rem)
   );
-  --admin-main-bottom-clearance-desktop: 6rem;
+  --admin-main-bottom-clearance-desktop: calc(
+    var(--admin-nav-offset-desktop, 12px) + var(--admin-nav-height-desktop, 3.5rem) + 1rem
+  );
   --admin-main-bottom-clearance-mobile: calc(env(safe-area-inset-bottom) + 9rem);
   --admin-main-content-min-height: calc(
     100dvh - var(--admin-appbar-height, 3.5rem) - var(--admin-main-bottom-clearance-desktop)
@@ -762,6 +768,9 @@
   input::placeholder,
   textarea::placeholder {
     color: rgb(var(--text-soft-400));
+    font-size: var(--type-body-md, 0.875rem);
+    line-height: var(--type-body-md-lh, 1.25rem);
+    font-weight: 400;
   }
 }
 
@@ -1248,11 +1257,27 @@
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
     border-radius: var(--shape-xl);
+    min-block-size: var(--admin-main-content-min-height, 100%);
     /* Symmetric padding — one value per breakpoint so header, tabs, and body
        content share an even inset (the old 14/16/20px asymmetry read as a
        misalignment on dense views). */
     padding: 1rem;
     box-shadow: var(--edge-rest), var(--elevation-2);
+  }
+
+  .canvas-route-card > [role="tabpanel"],
+  .canvas-route-card > [data-component="CanvasRouteContent"]:last-child {
+    flex: 1 1 auto;
+    min-block-size: 0;
+  }
+
+  .canvas-route-card > [role="tabpanel"] {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .canvas-route-card > [role="tabpanel"] > [data-component="CanvasRouteContent"]:last-child {
+    flex: 1 1 auto;
   }
 
   .domain-gradient-fallback {
@@ -1292,22 +1317,6 @@
     box-shadow:
       inset 0 0 0 1px rgb(var(--admin-surface-0) / 0.58),
       0 18px 32px rgb(var(--warm-shadow-deep) / 0.14);
-  }
-
-  .account-theme-option {
-    background: rgb(var(--admin-surface-0));
-    box-shadow: var(--edge-rest), var(--e2);
-  }
-
-  .account-theme-option:hover {
-    background: rgb(var(--tone-tint, 59 130 246) / 0.06);
-  }
-
-  .account-theme-option[data-state="active"] {
-    background: rgb(var(--tone-tint, 59 130 246) / 0.14);
-    box-shadow:
-      inset 0 0 0 1px rgb(var(--tone-tint, 59 130 246) / 0.18),
-      0 18px 32px rgb(var(--tone-tint, 59 130 246) / 0.18);
   }
 
   [data-theme="dark"] .workbench-row-clickable:hover {
@@ -1549,14 +1558,22 @@
    * onto PageHeader. */
   .hub-results-shell {
     display: flex;
+    flex: 1 1 auto;
     flex-direction: column;
     gap: 0.75rem;
+    min-height: 0;
   }
 
   .hub-results-pane {
     display: flex;
+    flex: 1 1 auto;
     flex-direction: column;
     gap: 0.75rem;
+    min-height: 0;
+  }
+
+  .hub-results-pane > [data-component="EmptyStateShell"] {
+    --canvas-empty-state-min-height: 100%;
   }
 
   /* `.hub-route-shell` mobile padding: now owned by `.canvas-route-card`. */
@@ -1648,7 +1665,7 @@
 
 .main-scroll-area {
   overflow-x: hidden;
-  min-block-size: min(100%, var(--admin-main-content-min-height));
+  min-block-size: 100%;
   /* PRD-511: the primary content scroller must expose a draggable scrollbar.
      The global `* { scrollbar-width: none }` + `*::-webkit-scrollbar { display: none }`
      in @layer base intentionally strips scrollbar chrome from rails and sheets;
@@ -1673,6 +1690,38 @@
 
 .main-scroll-area::-webkit-scrollbar-thumb:hover {
   background-color: rgb(var(--neutral-400) / 0.8);
+}
+
+.admin-m3 [data-component="AdminSearchToolbar"] input::placeholder,
+.admin-m3 [data-component="AdminTextField"] input::placeholder,
+.admin-m3 [data-component="AdminTextField"] textarea::placeholder,
+.admin-m3 [data-component="CommandPaletteSearch"] input::placeholder,
+.admin-m3 .gg-control[data-surface="admin"]::placeholder {
+  color: rgb(var(--m3-on-surface-variant) / 0.62);
+  font-size: var(--type-body-md, 0.875rem);
+  line-height: var(--type-body-md-lh, 1.25rem);
+  font-weight: 400;
+}
+
+.admin-m3 [data-component="EmptyState"] {
+  padding-block: clamp(3rem, 8vh, 5rem);
+}
+
+.admin-m3 [data-component="EmptyState"] [data-slot="icon"] {
+  width: 4.5rem;
+  height: 4.5rem;
+}
+
+.admin-m3 [data-component="EmptyState"] [data-slot="title"] {
+  font-size: var(--type-title-lg, 1.375rem);
+  line-height: var(--type-title-lg-lh, 1.75rem);
+  font-weight: 600;
+}
+
+.admin-m3 [data-component="EmptyState"] [data-slot="description"] {
+  max-width: 34rem;
+  font-size: var(--type-body-lg, 1rem);
+  line-height: var(--type-body-lg-lh, 1.5rem);
 }
 
 .main-scroll-area::-webkit-scrollbar-track {

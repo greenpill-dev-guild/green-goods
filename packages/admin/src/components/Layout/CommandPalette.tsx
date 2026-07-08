@@ -104,7 +104,10 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
         onKeyDown={handleKeyDown}
       >
         {/* Search input */}
-        <div className="flex items-center gap-3 border-b border-stroke-soft px-4">
+        <div
+          data-component="CommandPaletteSearch"
+          className="flex items-center gap-3 border-b border-stroke-soft px-4"
+        >
           <RiSearchLine className="h-5 w-5 shrink-0 text-text-soft" aria-hidden="true" />
           <input
             ref={inputRef}
@@ -114,7 +117,7 @@ export function CommandPalette({ open: externalOpen, onOpenChange }: CommandPale
               id: "app.admin.nav.searchPlaceholder",
               defaultMessage: "Search pages, gardens, actions...",
             })}
-            className="flex-1 h-10 bg-transparent rounded-sm py-3 text-body-lg text-text-strong placeholder:text-text-soft shadow-[var(--edge-rest)] focus:shadow-[var(--edge-focus)] transition-shadow duration-[var(--spring-effects-fast-duration,150ms)] outline-none"
+            className="flex-1 h-10 bg-transparent rounded-sm py-3 text-body-md text-text-strong placeholder:text-text-soft shadow-[var(--edge-rest)] focus:shadow-[var(--edge-focus)] transition-shadow duration-[var(--spring-effects-fast-duration,150ms)] outline-none"
           />
         </div>
 

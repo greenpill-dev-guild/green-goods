@@ -75,6 +75,7 @@ The admin package is the Green Goods operator canvas. This page is the single UI
 - `AdminLinearProgress`
 - `AdminListItem`
 - `AdminSearchToolbar`
+- `AdminSelectableCard`
 - `AdminConfirmDialog`
 - `AdminSideSheet`
 - `AdminSortSelect`
@@ -83,6 +84,15 @@ The admin package is the Green Goods operator canvas. This page is the single UI
 - `AdminTooltip`
 - `AdminViewActions`
 - Shared foundations where appropriate: `ListToolbar`, `SortSelect`, `Card`, `Alert`, `StatusBadge`, `FormField`
+
+## Card And Selection Grammar
+
+- Use `WorkbenchCard` for workbench records, action queue items, assessment queue items, and other records operators scan, compare, and act on in a grid or list.
+- Use `AdminCard` for compact modules, stats, settings, status panels, and supporting detail regions.
+- Use `AdminSelectableCard` for richer exclusive or multi-select choices where the option needs a title, description, icon, or metadata.
+- Use `AdminTabRail` for route-local exclusive modes or tabs.
+- Use `AdminFilterChip` for compact toolbar filters.
+- Avoid adding new direct shared `Card` usage in admin route work unless the route is intentionally consuming an existing shared, non-admin surface.
 
 ## Surface Primitives
 

@@ -123,8 +123,11 @@ export function AppBar({
       data-state={sheetContext ? "sheet-context" : "default"}
     >
       <div
-        className="mx-auto flex h-14 w-full max-w-[1400px] items-center justify-between"
-        style={{ paddingInline: "20px" }}
+        className="mx-auto flex h-14 w-full items-center justify-between"
+        style={{
+          maxWidth: "var(--admin-main-max-width, 1400px)",
+          paddingInline: "var(--admin-main-inline-gutter, 20px)",
+        }}
         data-slot="row"
       >
         {/* Left side */}

@@ -64,17 +64,19 @@
     var(--admin-speed-dial-shadow, var(--admin-chrome-shadow, var(--elevation-3))) !important;
 }
 
-/* Desktop: floating pill — compact M3 Expressive anatomy.
-   `width: max-content` is declared explicitly here because the shared
-   component's `w-max` Tailwind utility isn't compiled into admin's CSS
-   (admin's content scan doesn't cover packages/shared). Without it,
-   left:0 + right:0 + width:auto → full-viewport width. With it,
-   auto margins recenter the intrinsic-width pill. */
+/* Desktop: floating pill with equal tab wells.
+   Geometry lives here because admin's Tailwind content scan does not include
+   packages/shared/src, so shared JSX width utilities are not reliable here. */
 @media (min-width: 600px) {
   .admin-m3 .canvas-navigation-bar {
+    display: grid;
+    grid-template-columns: repeat(var(--admin-nav-item-count, 1), minmax(0, 1fr));
     left: 0;
     right: 0;
-    width: max-content;
+    width: min(
+      calc(var(--admin-nav-item-count, 1) * var(--admin-nav-item-width-desktop, 5.875rem)),
+      calc(100vw - 2rem)
+    );
     max-width: calc(100vw - 2rem);
     margin-left: auto;
     margin-right: auto;
@@ -111,6 +113,7 @@
 
 @media (min-width: 600px) {
   .admin-m3 .canvas-navigation-bar button {
+    width: 100%;
     min-width: 64px;
     padding: 2px 10px 4px;
     gap: 2px;
@@ -469,7 +472,7 @@ body:has(.admin-m3) [data-component="ConfirmDialog"][data-slot="surface"] {
  * scoped allow-lists like this one), so the stepper/chooser must opt in here. */
 @media (prefers-reduced-motion: reduce) {
   [data-component="ActionFlowStepper"] *,
-  [data-component="ActionChooserCard"] {
+  [data-component="AdminSelectableCard"] {
     transition: none !important;
   }
 }

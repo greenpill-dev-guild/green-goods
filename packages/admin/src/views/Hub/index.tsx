@@ -80,7 +80,7 @@ export default function HubView() {
         />
       ) : (
         <div
-          className="hub-route-stack"
+          className="hub-route-stack flex min-h-0 flex-1 flex-col"
           role="tabpanel"
           id={`${HUB_STAGE_RAIL_ID}-panel`}
           aria-labelledby={`${HUB_STAGE_RAIL_ID}-tab-${hub.stage}`}
@@ -142,7 +142,7 @@ export default function HubView() {
 
           <CanvasRouteContent
             data-region="workspace-hub-content"
-            className="hub-route-content flex flex-col gap-4 sm:gap-5"
+            className="hub-route-content flex flex-1 flex-col gap-4 sm:gap-5"
           >
             <section className="hub-results-shell" aria-label={hub.stageTitle}>
               <div aria-live="polite" className="sr-only">

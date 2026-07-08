@@ -99,6 +99,7 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       gardens: Array<{ id: string; name: string }>;
       selectedGarden: { id: string; name: string } | null;
       onSelectGarden: (garden: { id: string; name: string } | null) => void;
+      showCreateGardenAction?: boolean;
     }) => {
       mockGardenChipProps(props);
       return (
@@ -409,6 +410,7 @@ describe("CanvasLayout", () => {
     expect(mockGardenChipProps).toHaveBeenCalledWith(
       expect.objectContaining({
         gardens: [{ id: "garden-1", name: "Garden One" }],
+        showCreateGardenAction: false,
       })
     );
     expect(mockAppBarProps.mock.calls[0]?.[0]).toEqual(

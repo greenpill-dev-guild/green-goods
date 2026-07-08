@@ -54,7 +54,7 @@ export function CommunityWorkspaceContent({ workspace }: CommunityWorkspaceConte
   }
 
   return (
-    <div className="mt-4">
+    <div className="mt-4 min-h-0 flex-1">
       <CommunityTab
         garden={{ id: workspace.garden.id, name: workspace.garden.name }}
         gardenId={workspace.gardenId}

@@ -12,6 +12,7 @@ import {
 import { RiComputerLine, RiExternalLinkLine, RiMoonLine, RiSunLine } from "@remixicon/react";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
+import { AdminSelectableCard } from "../AdminSelectableCard";
 
 const THEME_OPTIONS = [
   { value: "light" as const, icon: RiSunLine, labelId: "cockpit.settings.lightMode" },
@@ -100,21 +101,13 @@ export function AccountSettingsPanel({ className }: AccountSettingsPanelProps) {
           {THEME_OPTIONS.map(({ value, icon: Icon, labelId }) => {
             const isActive = theme === value;
             return (
-              <button
+              <AdminSelectableCard
                 key={value}
-                type="button"
                 onClick={() => setTheme(value)}
-                data-state={isActive ? "active" : "inactive"}
-                aria-pressed={isActive}
-                className={cn(
-                  "account-theme-option",
-                  "flex min-h-11 items-center justify-between rounded-[var(--radius-md)] px-4 py-3 text-left transition-[background-color,box-shadow,color] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]",
-                  isActive ? "text-[rgb(var(--tone-accent,37_99_235))]" : "text-text-sub"
-                )}
-              >
-                <span className="text-sm font-medium">{formatMessage({ id: labelId })}</span>
-                <Icon className="h-4 w-4" />
-              </button>
+                selected={isActive}
+                title={formatMessage({ id: labelId })}
+                leadingVisual={<Icon className="h-4 w-4" aria-hidden="true" />}
+              />
             );
           })}
         </div>
@@ -135,23 +128,13 @@ export function AccountSettingsPanel({ className }: AccountSettingsPanelProps) {
           {availableLocales.map((availableLocale) => {
             const isActive = locale === availableLocale;
             return (
-              <button
+              <AdminSelectableCard
                 key={availableLocale}
-                type="button"
                 onClick={() => switchLanguage(availableLocale as Locale)}
-                data-state={isActive ? "active" : "inactive"}
-                aria-pressed={isActive}
                 lang={availableLocale}
-                className={cn(
-                  "account-theme-option",
-                  "flex min-h-11 items-center justify-between rounded-[var(--radius-md)] px-4 py-3 text-left transition-[background-color,box-shadow,color] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]",
-                  isActive ? "text-[rgb(var(--tone-accent,37_99_235))]" : "text-text-sub"
-                )}
-              >
-                <span className="text-sm font-medium">
-                  {LOCALE_LABELS[availableLocale] ?? availableLocale.toUpperCase()}
-                </span>
-              </button>
+                selected={isActive}
+                title={LOCALE_LABELS[availableLocale] ?? availableLocale.toUpperCase()}
+              />
             );
           })}
         </div>

@@ -13,8 +13,12 @@ export interface EmptyStateProps {
 
 export function EmptyState({ icon, title, description, action }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center justify-center py-12 text-center">
+    <div
+      data-component="EmptyState"
+      className="flex flex-col items-center justify-center py-12 text-center"
+    >
       <div
+        data-slot="icon"
         className="mb-4 flex h-16 w-16 items-center justify-center rounded-full text-text-soft"
         // Flat warm-earth surface with a tone-tinted ring instead of `glass-raised`
         // — keeps empty-state ornament consistent with the segmented-tab and
@@ -27,8 +31,14 @@ export function EmptyState({ icon, title, description, action }: EmptyStateProps
       >
         {icon}
       </div>
-      <h3 className="text-title-md text-text-strong">{title}</h3>
-      {description && <p className="mt-1 max-w-sm text-body-md text-text-sub">{description}</p>}
+      <h3 data-slot="title" className="text-title-md text-text-strong">
+        {title}
+      </h3>
+      {description && (
+        <p data-slot="description" className="mt-1 max-w-sm text-body-md text-text-sub">
+          {description}
+        </p>
+      )}
       {action && (
         <Button className="mt-4" size="sm" {...action}>
           {action.label}

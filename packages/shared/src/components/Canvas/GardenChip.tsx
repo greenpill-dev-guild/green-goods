@@ -1,6 +1,6 @@
 import * as Popover from "@radix-ui/react-popover";
 import { RiAddLine, RiArrowDownSLine, RiSeedlingLine } from "@remixicon/react";
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { useIntl } from "react-intl";
 import { compareAddresses } from "../../utils/blockchain/address";
 import { cn } from "../../utils/styles/cn";
@@ -14,6 +14,7 @@ export interface GardenChipProps {
   selectedGarden: { id: string; name: string } | null;
   onSelectGarden: (garden: { id: string; name: string } | null) => void;
   onCreateGarden?: () => void;
+  showCreateGardenAction?: boolean;
 }
 
 // ----------------------------------------------------------------------------
@@ -35,6 +36,7 @@ export function GardenChip({
   selectedGarden,
   onSelectGarden,
   onCreateGarden,
+  showCreateGardenAction = true,
 }: GardenChipProps) {
   const { formatMessage } = useIntl();
   const [open, setOpen] = useState(false);
@@ -44,6 +46,15 @@ export function GardenChip({
     formatMessage({ id: "cockpit.gardenChip.selectGarden", defaultMessage: "Select garden" });
 
   const hasMultiple = gardens.length >= 2;
+  const chipTriggerStyle: CSSProperties = {
+    maxWidth: "calc(100vw - 2rem)",
+  };
+  const menuSizingStyle: CSSProperties = {
+    width: "max-content",
+    maxWidth: "calc(100vw - 2rem)",
+    overflow: "hidden",
+  };
+  const showCreateAction = Boolean(onCreateGarden && showCreateGardenAction);
 
   // Static chip when only 1 garden — handoff `.rv-pill`: flat surface-raised
   // background + 1px outline, no elevation shadow. `--surface-raised` and
@@ -59,6 +70,7 @@ export function GardenChip({
         style={{
           background: "var(--surface-raised, rgb(var(--bg-white-0)))",
           border: "1px solid var(--outline, rgb(var(--neutral-800) / 0.10))",
+          ...chipTriggerStyle,
         }}
         data-component="GardenChip"
         data-slot="root"
@@ -81,7 +93,7 @@ export function GardenChip({
         ) : (
           <RiSeedlingLine className="h-4 w-4 shrink-0 text-text-sub" />
         )}
-        <span className="truncate" title={displayName}>
+        <span className="min-w-0 truncate" title={displayName}>
           {displayName}
         </span>
       </span>
@@ -95,7 +107,7 @@ export function GardenChip({
         <button
           type="button"
           className={cn(
-            "inline-flex max-w-sm cursor-pointer items-center gap-1.5 rounded-full",
+            "inline-flex cursor-pointer items-center gap-1.5 rounded-full",
             "px-3 py-1.5",
             "text-label-lg font-medium text-text-strong",
             "transition-colors duration-[var(--spring-effects-fast-duration)] ease-[var(--spring-effects-fast-easing)]",
@@ -106,6 +118,7 @@ export function GardenChip({
           style={{
             background: "var(--surface-raised, rgb(var(--bg-white-0)))",
             border: "1px solid var(--outline, rgb(var(--neutral-800) / 0.10))",
+            ...chipTriggerStyle,
           }}
           data-component="GardenChip"
           data-slot="trigger"
@@ -125,7 +138,7 @@ export function GardenChip({
           ) : (
             <RiSeedlingLine className="h-4 w-4 shrink-0 text-text-sub" />
           )}
-          <span className="truncate" title={displayName}>
+          <span className="min-w-0 truncate" title={displayName}>
             {displayName}
           </span>
           {/* Caret signals the chip is a garden switcher (QA: the pill didn't
@@ -149,11 +162,12 @@ export function GardenChip({
           align="start"
           sideOffset={8}
           className={cn(
-            "z-overlay w-56 rounded-xl glass-floating p-1 shadow-[var(--edge-rest),_var(--elevation-4)]",
+            "z-overlay rounded-xl glass-floating p-1 shadow-[var(--edge-rest),_var(--elevation-4)]",
             "animate-in fade-in-0 zoom-in-95",
             "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95",
             "motion-reduce:animate-none"
           )}
+          style={menuSizingStyle}
           data-component="GardenChip"
           data-slot="menu"
         >
@@ -171,13 +185,13 @@ export function GardenChip({
           ))}
 
           {/* Divider + Create Garden */}
-          {onCreateGarden && (
+          {showCreateAction && (
             <>
               <div className="mx-2 my-1 border-t border-stroke-soft" />
               <button
                 type="button"
                 onClick={() => {
-                  onCreateGarden();
+                  onCreateGarden?.();
                   setOpen(false);
                 }}
                 className={cn(
@@ -229,7 +243,7 @@ function GardenDropdownItem({ label, isSelected, onClick }: GardenDropdownItemPr
       data-slot="option"
       data-state={isSelected ? "selected" : "unselected"}
     >
-      <span className="truncate" title={label}>
+      <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap" title={label}>
         {label}
       </span>
     </button>

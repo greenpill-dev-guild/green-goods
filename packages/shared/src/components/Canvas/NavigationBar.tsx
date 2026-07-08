@@ -1,4 +1,5 @@
 import { RiAddLine } from "@remixicon/react";
+import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { cn } from "../../utils/styles/cn";
@@ -366,7 +367,7 @@ function FabButton({ config, mobileFloating = false }: FabButtonProps) {
       >
         <FabIcon className={cn("h-5 w-5", speedDialOpen && "rotate-45")} />
         {mobileFloating && isSingleAction && (
-          <span className="text-sm font-semibold tracking-[-0.01em]">{floatingActionLabel}</span>
+          <span className="text-sm font-semibold">{floatingActionLabel}</span>
         )}
       </button>
 
@@ -454,6 +455,15 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
   }
 
   const navLabel = formatMessage({ id: "cockpit.nav.mainNavigation" });
+  const desktopNavStyle = {
+    position: "fixed",
+    bottom: "var(--admin-nav-offset-desktop, 20px)",
+    left: 0,
+    right: 0,
+    marginInline: "auto",
+    zIndex: "var(--z-nav)",
+    "--admin-nav-item-count": String(desktopSlots.length),
+  } as CSSProperties;
 
   return (
     <>
@@ -483,7 +493,7 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
               marginLeft: "auto",
               marginRight: "auto",
               width: "100%",
-              maxWidth: "1400px",
+              maxWidth: "var(--admin-main-max-width, 1400px)",
               display: "flex",
               justifyContent: "flex-end",
             }}
@@ -507,19 +517,13 @@ export function NavigationBar({ slots, activePath, onNavigate, fab }: Navigation
           // to compile. Bottom offset reads the admin sheet-system token (single
           // source of truth shared with the sheet-clearance calc); the 20px
           // default preserves the handoff contract for any non-admin consumer.
-          style={{
-            position: "fixed",
-            bottom: "var(--admin-nav-offset-desktop, 20px)",
-            left: 0,
-            right: 0,
-            marginInline: "auto",
-            zIndex: "var(--z-nav)",
-          }}
+          style={desktopNavStyle}
           className={cn(
             "canvas-navigation-bar flex w-max items-center",
             "gap-1.5 rounded-2xl px-2.5 py-2",
             "border border-stroke-soft-200 bg-bg-white-0 shadow-[var(--edge-rest),_var(--elevation-2)]"
           )}
+          data-item-count={desktopSlots.length}
         >
           {desktopSlots.map((slot) => (
             <NavItem
