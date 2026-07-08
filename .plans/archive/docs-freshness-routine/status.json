@@ -4,13 +4,13 @@
     "slug": "docs-freshness-routine",
     "title": "Docs Freshness Routine",
     "kind": "quality",
-    "stage": "active"
+    "stage": "archive"
   },
   "workflow": {
-    "overall_status": "active",
+    "overall_status": "done",
     "priority": "p2",
     "created_at": "2026-04-25T08:53:00.019Z",
-    "updated_at": "2026-07-07T05:04:07.000Z"
+    "updated_at": "2026-07-08T21:30:02.482Z"
   },
   "links": {
     "brief": "brief.md",
@@ -185,6 +185,14 @@
       "status": "proof_limit_recorded",
       "branch": "develop",
       "note": "Kept the lane blocked but changed TDD metadata to proof_limit with docs/media fallback proof commands instead of empty required RED/GREEN fields."
+    },
+    {
+      "timestamp": "2026-07-08T21:30:02.482Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "moved_to_archive",
+      "branch": null,
+      "note": "Moved feature hub from active to archive"
     }
   ],
   "taxonomy": {
