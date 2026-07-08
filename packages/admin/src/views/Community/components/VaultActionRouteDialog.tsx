@@ -42,7 +42,9 @@ export function VaultActionRouteDialog({ action, gardenAddress }: VaultActionRou
   } = useGardenVaults(dialogGardenId, {
     enabled: Boolean(action && dialogGardenId),
   });
-  const closeTo = adminRoutes.communityEndowmentVault({ gardenId: dialogGardenId });
+  // Closing a Deposit/Withdraw form returns to the endowment tab itself — never to the
+  // `/vault` route, which used to re-pop a duplicate jars-inspector dialog on close.
+  const closeTo = adminRoutes.communityEndowment({ gardenId: dialogGardenId });
   const handleClose = useCallback(() => navigate(closeTo), [closeTo, navigate]);
 
   if (!action) return null;

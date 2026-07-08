@@ -4,11 +4,9 @@ import { useIntl } from "react-intl";
 import { useRouteBackedLeftSheetConfig } from "@/components/Layout";
 import GardenSignalPoolView from "@/views/Garden/SignalPool";
 import GardenStrategiesView from "@/views/Garden/Strategies";
-import GardenVaultView from "@/views/Garden/Vault";
 import { VaultActionRouteDialog, type VaultActionRoute } from "./VaultActionRouteDialog";
 
 interface CommunitySheetDescriptorProps {
-  isVaultRoute: boolean;
   isStrategiesRoute: boolean;
   isSignalPoolRoute: boolean;
   vaultAction: VaultActionRoute | null;
@@ -17,7 +15,6 @@ interface CommunitySheetDescriptorProps {
 }
 
 export function CommunitySheetDescriptor({
-  isVaultRoute,
   isStrategiesRoute,
   isSignalPoolRoute,
   vaultAction,
@@ -27,16 +24,6 @@ export function CommunitySheetDescriptor({
   const { formatMessage } = useIntl();
 
   const communitySheet = useMemo(() => {
-    if (isVaultRoute) {
-      return {
-        title: formatMessage({ id: "cockpit.community.endowment" }),
-        content: <GardenVaultView layout="sheet" />,
-        closeTo: adminRoutes.communityEndowment({ gardenId: gardenAddress }),
-        size: "lg" as const,
-        tone: "community" as const,
-      };
-    }
-
     if (isStrategiesRoute) {
       return {
         title: formatMessage({ id: "app.conviction.title" }),
@@ -63,7 +50,7 @@ export function CommunitySheetDescriptor({
     }
 
     return null;
-  }, [formatMessage, gardenAddress, isSignalPoolRoute, isStrategiesRoute, isVaultRoute, poolType]);
+  }, [formatMessage, gardenAddress, isSignalPoolRoute, isStrategiesRoute, poolType]);
 
   useRouteBackedLeftSheetConfig(communitySheet);
 

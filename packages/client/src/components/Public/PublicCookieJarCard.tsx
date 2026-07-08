@@ -472,7 +472,6 @@ function CampaignCookieJarInlineActions({
   const parsedDeposit = depositState.parsedAmount ?? 0n;
   const parsedClaim = fixedClaim ? claimableAmount : (claimState.parsedAmount ?? 0n);
 
-  const belowMinDeposit = parsedDeposit > 0n && parsedDeposit < jar.minDeposit;
   const claimTooLarge = !fixedClaim && parsedClaim > 0n && parsedClaim > jar.maxWithdrawal;
   const claimExceedsBalance = parsedClaim > jar.balance;
   const claimDisabled =
@@ -485,11 +484,7 @@ function CampaignCookieJarInlineActions({
     Boolean(claimInputError) ||
     claimMutation.isPending;
   const depositDisabled =
-    !primaryAddress ||
-    parsedDeposit <= 0n ||
-    Boolean(depositError) ||
-    Boolean(belowMinDeposit) ||
-    depositMutation.isPending;
+    !primaryAddress || parsedDeposit <= 0n || Boolean(depositError) || depositMutation.isPending;
 
   const { data: walletBalance } = useBalance({
     address: primaryAddress as Address | undefined,
@@ -700,21 +695,8 @@ function CampaignCookieJarInlineActions({
           </p>
         ) : null}
 
-        {depositErrorMessage || belowMinDeposit ? (
-          <p className="text-sm text-error-dark">
-            {belowMinDeposit
-              ? formatMessage(
-                  {
-                    id: "app.cookieJar.belowMinDeposit",
-                    defaultMessage: "Minimum deposit is {amount} {asset}",
-                  },
-                  {
-                    amount: formatUnits(jar.minDeposit, decimals),
-                    asset: symbol,
-                  }
-                )
-              : depositErrorMessage}
-          </p>
+        {depositErrorMessage ? (
+          <p className="text-sm text-error-dark">{depositErrorMessage}</p>
         ) : null}
 
         <Button

@@ -48,7 +48,6 @@ describe("CookieJarPayoutPanel", () => {
   it("renders each jar as an operational payout card", () => {
     renderWithProviders(<CookieJarPayoutPanel gardenAddress={"0xgarden" as `0x${string}`} />);
 
-    expect(screen.getByText("Jar 1")).toBeInTheDocument();
     expect(screen.getByText("Active")).toBeInTheDocument();
     expect(screen.getByText("Jar Balance")).toBeInTheDocument();
     expect(screen.getByText("Available now")).toBeInTheDocument();

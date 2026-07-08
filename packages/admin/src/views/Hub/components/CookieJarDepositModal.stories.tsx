@@ -1,11 +1,6 @@
+import { AdminChoiceGroup } from "@/components/AdminChoiceGroup";
 import { AdminDialog } from "@/components/AdminDialog";
-import {
-  Button,
-  formatTokenAmount,
-  NativeSelect,
-  TextInput,
-  TxInlineFeedback,
-} from "@green-goods/shared";
+import { Button, formatTokenAmount, TextInput, TxInlineFeedback } from "@green-goods/shared";
 import type { Meta, StoryObj } from "@storybook/react";
 import { useState } from "react";
 import { fn } from "storybook/test";
@@ -23,7 +18,6 @@ interface MockJar {
   symbol: string;
   balance: bigint;
   decimals: number;
-  minDeposit: bigint;
 }
 
 interface CookieJarDepositModalHarnessProps {
@@ -43,7 +37,7 @@ function CookieJarDepositModalHarness({
   isPending = false,
   error = null,
 }: CookieJarDepositModalHarnessProps) {
-  const [jarAddress, setJarAddress] = useState("");
+  const [jarAddress, setJarAddress] = useState(jars[0]?.jarAddress ?? "");
   const [amount, setAmount] = useState("");
 
   const selected = jars.find((j) => j.jarAddress === jarAddress);
@@ -55,25 +49,32 @@ function CookieJarDepositModalHarness({
       title="Fund Cookie Jar"
     >
       <div className="space-y-4">
-        <div>
-          <label htmlFor="mock-deposit-jar" className="block text-sm font-medium text-text-strong">
-            Cookie Jar
-          </label>
-          <NativeSelect
-            id="mock-deposit-jar"
-            surface="admin"
-            value={jarAddress}
-            onChange={(e) => setJarAddress(e.target.value)}
-            className="mt-1.5 w-full rounded-lg border border-stroke-sub bg-bg-white px-3 py-2.5 text-sm text-text-strong"
-          >
-            <option value="">--</option>
-            {jars.map((jar) => (
-              <option key={jar.jarAddress} value={jar.jarAddress}>
-                {jar.symbol} ({formatTokenAmount(jar.balance, jar.decimals)})
-              </option>
-            ))}
-          </NativeSelect>
-        </div>
+        {jars.length > 1 && (
+          <div>
+            <p className="mb-1.5 block text-sm font-medium text-text-strong">Cookie Jar</p>
+            <AdminChoiceGroup
+              ariaLabel="Cookie Jar"
+              columns={2}
+              value={jarAddress || null}
+              onChange={setJarAddress}
+              options={jars.map((jar) => ({
+                value: jar.jarAddress,
+                label: jar.symbol,
+                description: `${formatTokenAmount(jar.balance, jar.decimals)} ${jar.symbol}`,
+              }))}
+            />
+          </div>
+        )}
+
+        {selected && (
+          <div className="rounded-lg bg-bg-weak px-4 py-3">
+            <p className="text-xs font-medium text-text-soft">Jar Balance</p>
+            <p className="mt-1 text-2xl font-semibold tabular-nums text-text-strong">
+              {formatTokenAmount(selected.balance, selected.decimals)}{" "}
+              <span className="text-base font-medium text-text-sub">{selected.symbol}</span>
+            </p>
+          </div>
+        )}
 
         <div>
           <label
@@ -101,12 +102,6 @@ function CookieJarDepositModalHarness({
               ? `${formatTokenAmount(walletBalance.value, walletBalance.decimals)} ${walletBalance.symbol}`
               : "--"}
           </p>
-          {selected && selected.minDeposit > 0n && (
-            <p className="text-xs text-text-soft">
-              Min Deposit: {formatTokenAmount(selected.minDeposit, selected.decimals)}{" "}
-              {selected.symbol}
-            </p>
-          )}
         </div>
 
         <Button
@@ -134,17 +129,15 @@ function CookieJarDepositModalHarness({
 const JARS: MockJar[] = [
   {
     jarAddress: "0xaaa1",
-    symbol: "USDC",
-    balance: 1_500_000_000n,
-    decimals: 6,
-    minDeposit: 10_000_000n,
+    symbol: "WETH",
+    balance: 2_500_000_000_000_000_000n,
+    decimals: 18,
   },
   {
     jarAddress: "0xaaa2",
     symbol: "DAI",
-    balance: 2_500_000_000_000_000_000_000n,
+    balance: 120_000_000_000_000_000_000n,
     decimals: 18,
-    minDeposit: 0n,
   },
 ];
 
@@ -174,7 +167,7 @@ export const Default: Story = {};
 
 export const WithWalletBalance: Story = {
   args: {
-    walletBalance: { value: 2_000_000_000n, decimals: 6, symbol: "USDC" },
+    walletBalance: { value: 3_100_000_000_000_000_000n, decimals: 18, symbol: "WETH" },
   },
 };
 

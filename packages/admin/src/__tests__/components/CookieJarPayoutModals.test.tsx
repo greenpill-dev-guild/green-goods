@@ -32,7 +32,9 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
           decimals: 6,
           maxWithdrawal: 1_000_000n,
           withdrawalInterval: 3600n,
-          minDeposit: 0n,
+          // Non-zero on-chain minimum (mirrors the jar's hardcoded MIN_DEPOSIT
+          // constant) — the modal must ignore it, never gate deposits on it.
+          minDeposit: 5_000_000_000n,
           isPaused: false,
           emergencyWithdrawalEnabled: false,
         },
@@ -91,6 +93,29 @@ describe("CookieJar payout modals", () => {
     });
 
     expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("surfaces no minimum-deposit gate when the jar reports a large on-chain minimum", () => {
+    // Regression guard: the modal used to read the CookieJar `MIN_DEPOSIT()`
+    // constant (~1 token), display it, and disable deposits below it — blocking
+    // valid sub-1-token deposits even though the contract enforces no floor.
+    // The mock jar reports a large minimum; the modal must ignore it entirely:
+    // no min-deposit line, no minimum error copy. (The Deposit button is now
+    // gated only by a positive amount.)
+    renderWithProviders(
+      <CookieJarDepositModal
+        isOpen
+        onClose={vi.fn()}
+        gardenAddress={GARDEN_ADDRESS}
+        defaultJarAddress={JAR_ADDRESS}
+      />
+    );
+
+    // The jar is selected — the prominent balance tile renders…
+    expect(screen.getByText("Jar Balance")).toBeInTheDocument();
+    // …but the misleading minimum-deposit copy is gone.
+    expect(screen.queryByText(/min\.? deposit/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/minimum deposit/i)).not.toBeInTheDocument();
   });
 
   it("prevents closing the withdraw modal while the withdrawal mutation is pending", () => {

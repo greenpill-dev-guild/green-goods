@@ -5,12 +5,7 @@ import {
   type MetaStripItem,
   type ViewAction,
 } from "@green-goods/shared";
-import {
-  RiHandCoinLine,
-  RiMedalLine,
-  RiMoneyDollarCircleLine,
-  RiUserAddLine,
-} from "@remixicon/react";
+import { RiHandCoinLine, RiMoneyDollarCircleLine, RiUserAddLine } from "@remixicon/react";
 
 /**
  * Inputs for the Community header stats slot.
@@ -121,16 +116,6 @@ export function buildCommunityViewActions(
       primary: true,
     },
     {
-      id: "register-proposal",
-      label: "Register proposal",
-      labelId: "cockpit.community.action.registerProposal",
-      icon: RiMedalLine,
-      onClick: () =>
-        navigate(adminRoutes.communityCoordinationSignalPool("hypercert", routeContext)),
-      variant: "secondary",
-      visible: hasSelectedGarden && canManage,
-    },
-    {
       id: "deposit-withdraw",
       label: "Deposit / withdraw",
       labelId: "cockpit.community.action.depositWithdraw",
@@ -141,7 +126,7 @@ export function buildCommunityViewActions(
     },
     {
       id: "fund-payout-jar",
-      label: "Fund payout jar",
+      label: "Fund Cookie Jar",
       labelId: "cockpit.community.action.fundPayoutJar",
       icon: RiHandCoinLine,
       onClick: () =>

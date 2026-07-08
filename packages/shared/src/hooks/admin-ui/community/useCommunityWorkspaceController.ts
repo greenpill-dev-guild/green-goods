@@ -51,11 +51,6 @@ export function useCommunityWorkspaceController() {
     location.pathname.startsWith("/community/resources/vault/withdraw") ||
     location.pathname.startsWith("/community/treasury/vault/withdraw");
   const vaultAction = isVaultDepositRoute ? "deposit" : isVaultWithdrawRoute ? "withdraw" : null;
-  const isVaultRoute =
-    (location.pathname.startsWith("/community/endowment/vault") ||
-      location.pathname.startsWith("/community/resources/vault") ||
-      location.pathname.startsWith("/community/treasury/vault")) &&
-    vaultAction === null;
   const isStrategiesRoute =
     location.pathname.startsWith("/community/coordination/strategies") ||
     location.pathname.startsWith("/community/governance/strategies");
@@ -63,7 +58,7 @@ export function useCommunityWorkspaceController() {
     location.pathname.startsWith("/community/coordination/signal-pool/") ||
     location.pathname.startsWith("/community/governance/signal-pool/");
   const selectedItem = searchParams.get("item") ?? poolType ?? null;
-  const sheetOpen = isVaultRoute || vaultAction !== null || isStrategiesRoute || isSignalPoolRoute;
+  const sheetOpen = vaultAction !== null || isStrategiesRoute || isSignalPoolRoute;
 
   useEffect(() => {
     if (lastHydratedGardenStateKeyRef.current === gardenStateKey) return;
@@ -238,7 +233,6 @@ export function useCommunityWorkspaceController() {
     isOwner,
     isSignalPoolRoute,
     isStrategiesRoute,
-    isVaultRoute,
     vaultAction,
     memberSearch,
     mode,

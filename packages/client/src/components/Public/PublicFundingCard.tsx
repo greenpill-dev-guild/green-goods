@@ -71,8 +71,6 @@ interface FundingOption {
   destinationAddress: Address;
   /** Chain id (only meaningful for vaults). */
   chainId?: number;
-  /** Donate-only: minimum deposit in token units. */
-  minDeposit?: bigint;
 }
 
 type Status = "loading" | "idle" | "submitting" | "success" | "error";
@@ -128,7 +126,6 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
         assetAddress: jar.assetAddress,
         decimals: jar.decimals,
         destinationAddress: jar.jarAddress,
-        minDeposit: jar.minDeposit,
       }));
     }
     return vaults.map<FundingOption>((v) => ({
@@ -253,9 +250,6 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
     ethUsd.priceAnswer,
   ]);
 
-  const belowMin =
-    isDonate && selected?.minDeposit && tokenAmountWei > 0n && tokenAmountWei < selected.minDeposit;
-
   // Active entry buffer + its setter, chosen by the effective denomination.
   const amountInput = denomination === "weth" ? wethInput : usdInput;
   const handleAmountChange = useCallback(
@@ -286,7 +280,7 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
       loginWithWallet();
       return;
     }
-    if (!selected || tokenAmountWei <= 0n || belowMin || conversionUnavailable) return;
+    if (!selected || tokenAmountWei <= 0n || conversionUnavailable) return;
     setStatus("submitting");
     if (isDonate) {
       cookieJarMutation.mutate(
@@ -320,7 +314,6 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
     loginWithWallet,
     selected,
     tokenAmountWei,
-    belowMin,
     conversionUnavailable,
     isDonate,
     cookieJarMutation,
@@ -436,7 +429,6 @@ export function PublicFundingCard({ open, garden, intent, onClose }: PublicFundi
             tokenAmountWei={tokenAmountWei}
             usdCents={usdCents}
             conversionUnavailable={conversionUnavailable}
-            belowMin={Boolean(belowMin)}
             ethUsd={ethUsd}
             isSubmitting={status === "submitting"}
             isConnecting={isAuthenticating}
@@ -571,7 +563,6 @@ interface IdleBodyProps {
   tokenAmountWei: bigint;
   usdCents: bigint;
   conversionUnavailable: boolean;
-  belowMin: boolean;
   ethUsd: ReturnType<typeof useEthUsdPrice>;
   isSubmitting: boolean;
   /** Wallet login in flight — the submit shows a consistent connect-loading state. */
@@ -596,7 +587,6 @@ function IdleBody(props: IdleBodyProps) {
     tokenAmountWei,
     usdCents,
     conversionUnavailable,
-    belowMin,
     ethUsd,
     isSubmitting,
     isConnecting,
@@ -641,18 +631,6 @@ function IdleBody(props: IdleBodyProps) {
         defaultMessage: "ETH price unavailable",
       });
     }
-    if (belowMin && selected?.minDeposit) {
-      return formatMessage(
-        {
-          id: "public.fund.card.belowMin",
-          defaultMessage: "Minimum {amount} {asset}",
-        },
-        {
-          amount: formatTokenAmount(selected.minDeposit, selected.decimals),
-          asset: selected.symbol,
-        }
-      );
-    }
     const amountLabel = isWethDenomination
       ? formatTokenAmount(tokenAmountWei, selected?.decimals ?? 18, 6)
       : formatUsdCents(usdCents);
@@ -679,7 +657,6 @@ function IdleBody(props: IdleBodyProps) {
     tokenAmountWei,
     usdCents,
     conversionUnavailable,
-    belowMin,
     selected,
     isDonate,
     formatMessage,
@@ -688,7 +665,7 @@ function IdleBody(props: IdleBodyProps) {
   const submitDisabled =
     isSubmitting ||
     (!primaryAddress && isConnecting) ||
-    Boolean(primaryAddress && (tokenAmountWei <= 0n || belowMin || conversionUnavailable));
+    Boolean(primaryAddress && (tokenAmountWei <= 0n || conversionUnavailable));
 
   return (
     <div className="flex flex-col gap-5">

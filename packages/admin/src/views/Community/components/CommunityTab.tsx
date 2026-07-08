@@ -33,6 +33,7 @@ import { AdminCard } from "@/components/AdminCard";
 import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
 import { EnsAddressText } from "@/components/EnsAddressText";
+import { VaultContractDetails } from "@/components/Vault";
 import { AddMembersDialog } from "@/components/Garden/AddMembersDialog";
 import { ManageMembersDialog } from "@/components/Garden/ManageMembersDialog";
 import { getRoleLabel } from "@/components/Garden/gardenUtils";
@@ -709,42 +710,39 @@ export function CommunityTab({
             ) : null}
 
             {mode === "endowment" ? (
-              <Card>
-                <Card.Header>
-                  <h3 className="label-md text-text-strong">
-                    {formatMessage({ id: "cockpit.community.endowment.status" })}
-                  </h3>
-                </Card.Header>
-                <Card.Body className="space-y-2">
-                  <AdminCard variant="outlined" className="px-3 py-2">
-                    <p className="body-xs text-text-soft">
-                      {formatMessage({ id: "app.treasury.totalValueLocked" })}
-                    </p>
-                    <p className="mt-1 text-sm font-semibold text-text-strong">
-                      {hasVaults
-                        ? formatTokenAmount(vaultNetDeposited)
-                        : formatMessage({ id: "app.garden.detail.community.noVault" })}
-                    </p>
-                  </AdminCard>
-                  {treasurySeverity !== "none" ? (
-                    <p
-                      className={`text-sm ${
-                        treasurySeverity === "critical" ? "text-error-dark" : "text-warning-dark"
-                      }`}
-                    >
-                      {treasurySeverity === "critical"
-                        ? formatMessage({ id: "app.garden.detail.alert.treasuryEmpty" })
-                        : formatMessage({ id: "app.garden.detail.alert.treasuryMissing" })}
-                    </p>
-                  ) : null}
-                  <AdminButton asChild variant="text" size="sm" className="h-auto rounded p-0">
-                    <Link to={adminRoutes.communityEndowmentVault(gardenRouteContext)}>
-                      {formatMessage({ id: "app.actions.view" })}
-                      <RiArrowRightSLine className="h-4 w-4" />
-                    </Link>
-                  </AdminButton>
-                </Card.Body>
-              </Card>
+              <>
+                <Card>
+                  <Card.Header>
+                    <h3 className="label-md text-text-strong">
+                      {formatMessage({ id: "cockpit.community.endowment.status" })}
+                    </h3>
+                  </Card.Header>
+                  <Card.Body className="space-y-2">
+                    <AdminCard variant="outlined" className="px-3 py-2">
+                      <p className="body-xs text-text-soft">
+                        {formatMessage({ id: "app.treasury.totalValueLocked" })}
+                      </p>
+                      <p className="mt-1 text-sm font-semibold text-text-strong">
+                        {hasVaults
+                          ? formatTokenAmount(vaultNetDeposited)
+                          : formatMessage({ id: "app.garden.detail.community.noVault" })}
+                      </p>
+                    </AdminCard>
+                    {treasurySeverity !== "none" ? (
+                      <p
+                        className={`text-sm ${
+                          treasurySeverity === "critical" ? "text-error-dark" : "text-warning-dark"
+                        }`}
+                      >
+                        {treasurySeverity === "critical"
+                          ? formatMessage({ id: "app.garden.detail.alert.treasuryEmpty" })
+                          : formatMessage({ id: "app.garden.detail.alert.treasuryMissing" })}
+                      </p>
+                    ) : null}
+                  </Card.Body>
+                </Card>
+                {hasVaults ? <VaultContractDetails gardenAddress={garden.id as Address} /> : null}
+              </>
             ) : null}
 
             {mode === "payouts" ? (

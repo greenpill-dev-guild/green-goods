@@ -64,7 +64,6 @@ export default function CommunityView() {
       data-region="workspace-community"
     >
       <CommunitySheetDescriptor
-        isVaultRoute={community.isVaultRoute}
         isStrategiesRoute={community.isStrategiesRoute}
         isSignalPoolRoute={community.isSignalPoolRoute}
         vaultAction={community.vaultAction}

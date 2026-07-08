@@ -138,7 +138,7 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
 
         <Card.Body className="space-y-3">
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
-            {jars.map((jar, index) => {
+            {jars.map((jar) => {
               const symbol = getVaultAssetSymbol(jar.assetAddress, undefined);
               const availableNow =
                 jar.maxWithdrawal < jar.balance ? jar.maxWithdrawal : jar.balance;
@@ -150,13 +150,9 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="label-xs text-text-soft">
-                        {formatMessage(
-                          { id: "cockpit.community.payouts.jarLabel" },
-                          { index: index + 1 }
-                        )}
-                      </p>
-                      <h4 className="mt-1 text-base font-semibold text-text-strong">{symbol}</h4>
+                      <h4 className="text-lg font-semibold text-text-strong" title={symbol}>
+                        {symbol}
+                      </h4>
                       <p className="mt-1 text-xs text-text-soft">
                         <EnsAddressText address={jar.jarAddress} />
                       </p>
@@ -174,36 +170,30 @@ export const CookieJarPayoutPanel: React.FC<CookieJarPayoutPanelProps> = ({
                     </span>
                   </div>
 
+                  <div className="rounded-lg bg-bg-weak px-4 py-3">
+                    <p className="text-xs font-medium text-text-soft">
+                      {formatMessage({ id: "app.cookieJar.balance" })}
+                    </p>
+                    <p className="mt-1 text-2xl font-semibold tabular-nums text-text-strong">
+                      {formatTokenAmount(jar.balance, jar.decimals)}{" "}
+                      <span className="text-base font-medium text-text-sub">{symbol}</span>
+                    </p>
+                  </div>
+
                   <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div className="rounded-md bg-bg-weak px-3 py-2">
-                      <p className="body-xs text-text-soft">
-                        {formatMessage({ id: "app.cookieJar.balance" })}
-                      </p>
-                      <p className="mt-1 font-semibold text-text-strong">
-                        {formatTokenAmount(jar.balance, jar.decimals)} {symbol}
-                      </p>
-                    </div>
                     <div className="rounded-md bg-bg-weak px-3 py-2">
                       <p className="body-xs text-text-soft">
                         {formatMessage({ id: "app.cookieJar.maxWithdrawal" })}
                       </p>
-                      <p className="mt-1 font-semibold text-text-strong">
+                      <p className="mt-1 font-semibold tabular-nums text-text-strong">
                         {formatTokenAmount(availableNow, jar.decimals)} {symbol}
-                      </p>
-                    </div>
-                    <div className="rounded-md bg-bg-weak px-3 py-2">
-                      <p className="body-xs text-text-soft">
-                        {formatMessage({ id: "app.cookieJar.minDeposit" })}
-                      </p>
-                      <p className="mt-1 font-semibold text-text-strong">
-                        {formatTokenAmount(jar.minDeposit, jar.decimals)} {symbol}
                       </p>
                     </div>
                     <div className="rounded-md bg-bg-weak px-3 py-2">
                       <p className="body-xs text-text-soft">
                         {formatMessage({ id: "app.cookieJar.withdrawalInterval" })}
                       </p>
-                      <p className="mt-1 font-semibold text-text-strong">
+                      <p className="mt-1 font-semibold tabular-nums text-text-strong">
                         {cooldownDisplay(jar.withdrawalInterval)}
                       </p>
                     </div>
