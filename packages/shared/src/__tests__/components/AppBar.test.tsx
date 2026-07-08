@@ -198,7 +198,7 @@ describe("AppBar", () => {
     for (const btn of buttons) {
       expect(btn.className).toContain("focus-visible:ring-2");
       expect(btn.className).toContain(
-        "focus-visible:ring-[rgb(var(--tone-primary,var(--primary-base)))]"
+        "focus-visible:ring-[rgb(var(--tone-focus-ring,var(--tone-primary,var(--primary-base))))]"
       );
     }
   });
