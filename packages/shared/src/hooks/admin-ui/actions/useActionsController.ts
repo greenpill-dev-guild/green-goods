@@ -93,6 +93,23 @@ export function useActionsController() {
     return counts;
   }, [actions]);
 
+  // Per-domain counts for the primary tab rail (mirrors lifecycleCounts). Keyed
+  // by the numeric Domain enum plus an "all" total. Counts the full registry so
+  // each tab shows how many actions live in that domain regardless of search.
+  const domainCounts = useMemo(() => {
+    const counts: Record<string, number> = {
+      all: actions.length,
+      [Domain.SOLAR]: 0,
+      [Domain.AGRO]: 0,
+      [Domain.EDU]: 0,
+      [Domain.WASTE]: 0,
+    };
+    for (const action of actions) {
+      counts[action.domain] = (counts[action.domain] ?? 0) + 1;
+    }
+    return counts;
+  }, [actions]);
+
   const stageFilteredActions = useMemo(() => {
     if (lifecycle === "all") return filteredActions;
     return filteredActions.filter((action) => getActionLifecycleState(action) === lifecycle);
@@ -157,6 +174,7 @@ export function useActionsController() {
     canManageActions,
     createActionHref,
     desktopActions,
+    domainCounts,
     filters,
     isLoading,
     isRefreshing,

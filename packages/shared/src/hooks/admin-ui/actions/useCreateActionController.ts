@@ -133,6 +133,8 @@ export function useCreateActionController() {
     trigger: (fields, options) => form.trigger(fields, options),
     onValidNext: () => setCurrentStep((prev) => Math.min(prev + 1, stepConfigs.length - 1)),
     onBack: () => setCurrentStep((prev) => Math.max(prev - 1, 0)),
+    onStepClick: (stepIndex) =>
+      setCurrentStep(Math.max(0, Math.min(stepIndex, stepConfigs.length - 1))),
   });
   const listSearch = getActionsListSearch(new URLSearchParams(location.search));
   const actionsListHref = adminRoutes.actions(listSearch);
@@ -275,13 +277,25 @@ export function useCreateActionController() {
     navigate(actionsListHref);
   };
 
+  // Discard clears the persisted draft (media + form state) before leaving, so a
+  // confirmed "Discard" from the dialog's close guard doesn't silently resurrect
+  // the abandoned action next time. Plain Cancel keeps the draft for resume.
+  const handleDiscard = () => {
+    clearDraftFormState(ACTION_CREATE_DRAFT_PATH);
+    clearCreateActionMediaDraft(ACTION_CREATE_DRAFT_PATH);
+    navigate(actionsListHref);
+  };
+
   return {
     currentStep,
     domainOptions,
     form,
+    goToStep: stepValidation.handleStepClick,
     handleBack: stepValidation.handleBack,
     handleCancel,
+    handleDiscard,
     handleNext: stepValidation.handleNext,
+    isDirty: form.formState.isDirty,
     isLoading,
     onSubmit,
     stepConfigs,

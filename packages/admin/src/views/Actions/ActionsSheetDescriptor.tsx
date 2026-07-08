@@ -30,16 +30,9 @@ export function ActionsSheetDescriptor({
   const navigate = useNavigate();
 
   const sheetDescriptor = useMemo(() => {
-    if (routeState.kind === "create") {
-      return {
-        title: formatMessage({
-          id: "admin.actions.createAction",
-          defaultMessage: "Create action",
-        }),
-        content: <CreateAction layout="sheet" />,
-      };
-    }
-
+    // Create is a full-surface stepped wizard — it self-hosts its own
+    // `AdminDialog variant="flow"` (returned below), so it does not flow through
+    // the shared route-backed dialog channel like detail/edit do.
     if (routeState.kind === "detail") {
       const action = actions.find((record) => record.id === routeState.actionId);
       const displayAction = action ? localizeAction(action, intl.locale) : null;
@@ -109,6 +102,11 @@ export function ActionsSheetDescriptor({
   );
 
   useRouteBackedLeftSheetConfig(routeBackedSheetConfig);
+
+  // Create renders as its own centered flow dialog over the still-mounted list.
+  if (routeState.kind === "create") {
+    return <CreateAction />;
+  }
 
   return null;
 }

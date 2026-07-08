@@ -1,6 +1,6 @@
 import type { MetaStripItem } from "../../../components/Canvas/MetaStrip";
 import { DOMAIN_CONFIG } from "../../../config/domain";
-import { Domain, type Action } from "../../../types/domain";
+import { Capital, Domain, type Action } from "../../../types/domain";
 
 export const DOMAIN_FILTER_OPTIONS = (
   Object.entries(DOMAIN_CONFIG) as [string, (typeof DOMAIN_CONFIG)[Domain]][]
@@ -9,6 +9,23 @@ export const DOMAIN_FILTER_OPTIONS = (
   labelId: config.labelId,
   colors: config.colors,
 }));
+
+/**
+ * Capital enum → i18n key for its display name. Reuses the labels the Create
+ * Action "Capitals" step already ships (all eight exist in en/es/pt), so action
+ * cards and the detail dialog can name the forms of capital instead of showing
+ * an abstract "{n} capital forms" count.
+ */
+export const ACTION_CAPITAL_LABEL_IDS: Record<Capital, string> = {
+  [Capital.SOCIAL]: "app.admin.actions.create.capitalSocial",
+  [Capital.MATERIAL]: "app.admin.actions.create.capitalMaterial",
+  [Capital.FINANCIAL]: "app.admin.actions.create.capitalFinancial",
+  [Capital.LIVING]: "app.admin.actions.create.capitalLiving",
+  [Capital.INTELLECTUAL]: "app.admin.actions.create.capitalIntellectual",
+  [Capital.EXPERIENTIAL]: "app.admin.actions.create.capitalExperiential",
+  [Capital.SPIRITUAL]: "app.admin.actions.create.capitalSpiritual",
+  [Capital.CULTURAL]: "app.admin.actions.create.capitalCultural",
+};
 
 export const ACTION_FILTER_DEFAULTS: Record<string, string | undefined> = {
   sort: "default",
@@ -33,9 +50,9 @@ export interface ActionsHeaderStatsInput {
 /**
  * Inline MetaStrip items for the Actions header so all four workspace headers
  * share the title · subtitle · stats anatomy. Deliberately registry-level and
- * additive — the lifecycle tab rail already carries the all/active/upcoming/
- * completed counts, so the header summarizes coverage instead (Frontend Rule
- * 17). Stat shape (2 items): total actions · domains covered.
+ * additive — the domain tab rail already carries the per-domain counts, so the
+ * header summarizes coverage instead (Frontend Rule 17). Stat shape (2 items):
+ * total actions · domains covered.
  */
 export function buildActionsHeaderStats({
   totalCount,

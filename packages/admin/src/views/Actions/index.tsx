@@ -1,13 +1,11 @@
 import {
+  ACTION_CAPITAL_LABEL_IDS,
   buildActionsHeaderStats,
-  Domain,
   DOMAIN_CONFIG,
   DOMAIN_FILTER_OPTIONS,
   EmptyState,
-  formatDate,
   getActionLifecycleState,
   getWorkbenchTone,
-  LIFECYCLE_TABS,
   localizeAction,
   MetaStrip,
   useActionsController,
@@ -15,7 +13,6 @@ import {
   useRefreshAction,
   WorkbenchCard,
 } from "@green-goods/shared";
-import { AdminFilterChip } from "@/components/AdminFilterChip";
 import { AdminCard } from "@/components/AdminCard";
 import { AdminSearchToolbar } from "@/components/AdminSearchToolbar";
 import { AdminSortSelect } from "@/components/AdminSortSelect";
@@ -30,34 +27,6 @@ import { RiFileListLine } from "@remixicon/react";
 import { useCallback, useMemo } from "react";
 import { useIntl } from "react-intl";
 import { ActionsSheetDescriptor } from "./ActionsSheetDescriptor";
-
-const ACTION_DOMAIN_CHIP_CLASSNAMES: Record<Domain, { selected: string; idle: string }> = {
-  [Domain.SOLAR]: {
-    selected:
-      "border-domain-solar/30 bg-domain-solar-soft text-domain-solar [--state-layer-color:var(--domain-solar-rgb)]",
-    idle: "border-domain-solar/30 text-domain-solar [--state-layer-color:var(--domain-solar-rgb)]",
-  },
-  [Domain.AGRO]: {
-    selected:
-      "border-domain-agro/30 bg-domain-agro-soft text-domain-agro [--state-layer-color:var(--domain-agro-rgb)]",
-    idle: "border-domain-agro/30 text-domain-agro [--state-layer-color:var(--domain-agro-rgb)]",
-  },
-  [Domain.EDU]: {
-    selected:
-      "border-domain-education/30 bg-domain-education-soft text-domain-education [--state-layer-color:var(--domain-education-rgb)]",
-    idle: "border-domain-education/30 text-domain-education [--state-layer-color:var(--domain-education-rgb)]",
-  },
-  [Domain.WASTE]: {
-    selected:
-      "border-domain-waste/30 bg-domain-waste-soft text-domain-waste [--state-layer-color:var(--domain-waste-rgb)]",
-    idle: "border-domain-waste/30 text-domain-waste [--state-layer-color:var(--domain-waste-rgb)]",
-  },
-};
-
-function getActionDomainChipClassName(domain: Domain, selected: boolean) {
-  const styles = ACTION_DOMAIN_CHIP_CLASSNAMES[domain];
-  return selected ? styles.selected : styles.idle;
-}
 
 export default function Actions() {
   const intl = useIntl();
@@ -125,18 +94,6 @@ export default function Actions() {
                 onChange={(value) => actions.setFilter("sort", value)}
                 options={actions.sortOptions}
               />
-              {DOMAIN_FILTER_OPTIONS.map((tag) => {
-                const selected = actions.filters.domain === tag.value;
-                return (
-                  <AdminFilterChip
-                    key={tag.value}
-                    label={intl.formatMessage({ id: tag.labelId })}
-                    selected={selected}
-                    onToggle={() => actions.toggleDomain(tag.value)}
-                    className={getActionDomainChipClassName(tag.value, selected)}
-                  />
-                );
-              })}
             </AdminSearchToolbar>
           ) : undefined
         }
@@ -144,19 +101,26 @@ export default function Actions() {
         {actions.showToolbar ? (
           <AdminTabRail
             ariaLabel={intl.formatMessage({
-              id: "cockpit.actions.lifecycleSwitcher",
-              defaultMessage: "Filter actions by lifecycle",
+              id: "cockpit.actions.domainSwitcher",
+              defaultMessage: "Filter actions by domain",
             })}
-            activeId={actions.lifecycle}
-            onChange={(next) => actions.setFilter("lifecycle", next === "all" ? undefined : next)}
-            tabs={LIFECYCLE_TABS.map((tab) => ({
-              id: tab.id,
-              label: intl.formatMessage({
-                id: tab.labelId,
-                defaultMessage: tab.defaultLabel,
-              }),
-              count: actions.lifecycleCounts[tab.id] || undefined,
-            }))}
+            activeId={actions.filters.domain === undefined ? "all" : String(actions.filters.domain)}
+            onChange={(next) => actions.setFilter("domain", next === "all" ? undefined : next)}
+            tabs={[
+              {
+                id: "all",
+                label: intl.formatMessage({
+                  id: "cockpit.actions.stage.all",
+                  defaultMessage: "All",
+                }),
+                count: actions.domainCounts.all || undefined,
+              },
+              ...DOMAIN_FILTER_OPTIONS.map((option) => ({
+                id: String(option.value),
+                label: intl.formatMessage({ id: option.labelId }),
+                count: actions.domainCounts[option.value] || undefined,
+              })),
+            ]}
           />
         ) : null}
       </CanvasRouteHeader>
@@ -238,6 +202,18 @@ export default function Actions() {
               const domainLabel = intl.formatMessage({
                 id: DOMAIN_CONFIG[action.domain]?.labelId ?? "app.admin.nav.actions",
               });
+              // Name the forms of capital (up to 3 + overflow) instead of an
+              // abstract "{n} capital forms" count, so cards vary by content.
+              const capitalNames = action.capitals
+                .slice(0, 3)
+                .map((capital) => intl.formatMessage({ id: ACTION_CAPITAL_LABEL_IDS[capital] }));
+              const extraCapitals = action.capitals.length - capitalNames.length;
+              const capitalsSummary =
+                capitalNames.length === 0
+                  ? ""
+                  : extraCapitals > 0
+                    ? `${capitalNames.join(" · ")} +${extraCapitals}`
+                    : capitalNames.join(" · ");
 
               return (
                 <WorkbenchCard
@@ -252,7 +228,6 @@ export default function Actions() {
                     })
                   }
                   meta={[
-                    `${formatDate(action.startTime)} - ${formatDate(action.endTime)}`,
                     intl.formatMessage(
                       {
                         id: "cockpit.actions.inputsCount",
@@ -260,14 +235,8 @@ export default function Actions() {
                       },
                       { count: displayAction.inputs.length }
                     ),
-                    intl.formatMessage(
-                      {
-                        id: "app.actions.detail.capitalsForms",
-                        defaultMessage: "{count} capital forms",
-                      },
-                      { count: action.capitals.length }
-                    ),
-                  ]}
+                    capitalsSummary,
+                  ].filter(Boolean)}
                   statusLabel={intl.formatMessage({
                     id: `cockpit.actions.status.${stage}`,
                     defaultMessage:
@@ -278,7 +247,7 @@ export default function Actions() {
                           : "Completed",
                   })}
                   statusTone={getWorkbenchTone(action)}
-                  leadingIcon={RiFileListLine}
+                  leadingIcon={DOMAIN_CONFIG[action.domain]?.icon ?? RiFileListLine}
                   thumbnailSrc={action.media[0] ?? undefined}
                   onClick={() => actions.openActionDetail(action.id)}
                 />
