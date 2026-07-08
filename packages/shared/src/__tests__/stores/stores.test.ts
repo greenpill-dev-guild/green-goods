@@ -219,6 +219,7 @@ describe("stores/useUIStore", () => {
       isOfflineBannerVisible: false,
       isWorkDashboardOpen: false,
       isGardenFilterOpen: false,
+      isWalletDrawerOpen: false,
       sidebarOpen: false,
       debugMode: false,
     });

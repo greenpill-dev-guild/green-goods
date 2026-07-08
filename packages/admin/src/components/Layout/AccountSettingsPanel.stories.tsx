@@ -101,7 +101,7 @@ export const Default: Story = {
     await expect(await canvas.findByRole("heading", { name: "Language" })).toBeVisible();
     await expect(await canvas.findByRole("heading", { name: "Network" })).toBeVisible();
     await expect(await canvas.findByRole("heading", { name: "About" })).toBeVisible();
-    await expect(canvas.getByRole("button", { name: "English" })).toBeVisible();
+    await expect(canvas.getByRole("radio", { name: "English" })).toBeVisible();
     await expect(canvas.getByRole("link", { name: /Documentation/ })).toBeVisible();
     await expect(canvas.queryByText("Disconnect")).not.toBeInTheDocument();
   },

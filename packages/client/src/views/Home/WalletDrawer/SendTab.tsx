@@ -17,6 +17,7 @@ import { RiArrowLeftLine, RiLoader4Line, RiPencilLine } from "@remixicon/react";
 import React, { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 import { formatUnits } from "viem";
+import { WALLET_DRAWER_SCROLL_CLASSNAME } from "./classnames";
 import { AmountStep } from "./Send/AmountStep";
 import { BalanceView } from "./Send/BalanceView";
 import { ReceiveView } from "./Send/ReceiveView";
@@ -32,6 +33,9 @@ const WALLET_MODES: ReadonlyArray<{ value: WalletMode; labelId: string }> = [
   { value: "send", labelId: "app.send.mode.send" },
   { value: "receive", labelId: "app.send.mode.receive" },
 ];
+
+const SEND_ACTION_BAR_CLASSNAME =
+  "flex shrink-0 items-center gap-2 border-t border-stroke-soft-200 bg-bg-white-0 px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))]";
 
 interface SendTabProps {
   /** Bumped by the parent when the Tokens tab is (re)selected, to reset to Balance. */
@@ -136,9 +140,9 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
   };
 
   return (
-    <div className="flex min-h-full flex-col">
+    <div className="flex min-h-0 flex-1 flex-col">
       {/* Send / Receive toggle */}
-      <div className="p-4 pb-0">
+      <div className="shrink-0 p-4 pb-0">
         <div
           role="tablist"
           aria-label={formatMessage({ id: "app.wallet.tab.tokens" })}
@@ -165,22 +169,23 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
       </div>
 
       {mode === "balance" ? (
-        <BalanceView
-          tokens={tokens}
-          isLoading={isLoading}
-          isError={isError}
-          isOnline={isOnline}
-          onRetry={refetch}
-          onSend={startSendWithToken}
-        />
+        <div className={WALLET_DRAWER_SCROLL_CLASSNAME}>
+          <BalanceView
+            tokens={tokens}
+            isLoading={isLoading}
+            isError={isError}
+            isOnline={isOnline}
+            onRetry={refetch}
+            onSend={startSendWithToken}
+          />
+        </div>
       ) : mode === "receive" ? (
-        <ReceiveView />
+        <div className={WALLET_DRAWER_SCROLL_CLASSNAME}>
+          <ReceiveView />
+        </div>
       ) : (
         <>
-          <div className="flex-1">
-            {/* Offline is surfaced up front, not only at the review step —
-                the send cannot complete without a connection, so the user
-                should know before building the transaction. */}
+          <div className={WALLET_DRAWER_SCROLL_CLASSNAME}>
             {!isOnline ? (
               <div className="px-4 pt-4">
                 <Alert variant="warning">{formatMessage({ id: "app.send.review.offline" })}</Alert>
@@ -236,9 +241,7 @@ export const SendTab: React.FC<SendTabProps> = ({ resetNonce }) => {
               />
             ) : null}
           </div>
-
-          {/* Sticky action bar (the drawer footer is parent-owned, so SendTab owns its own). */}
-          <div className="sticky bottom-0 mt-auto flex items-center gap-2 border-t border-stroke-soft-200 bg-bg-white-0 p-4">
+          <div className={SEND_ACTION_BAR_CLASSNAME}>
             {step !== "recipient" ? (
               <button
                 type="button"

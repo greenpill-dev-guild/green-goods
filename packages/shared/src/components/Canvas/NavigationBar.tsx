@@ -1,6 +1,5 @@
 import { RiAddLine } from "@remixicon/react";
-import type { CSSProperties } from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 import { cn } from "../../utils/styles/cn";
 import { useCanvasMobileChromeHidden } from "./useCanvasMobileChromeHidden";
