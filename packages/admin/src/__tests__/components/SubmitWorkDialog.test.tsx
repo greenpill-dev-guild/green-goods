@@ -351,9 +351,7 @@ describe("SubmitWork dialog", () => {
     await user.type(noteInput, "Mulched the west bed");
 
     await act(async () => {
-      void router?.navigate(
-        "/hub/history?gardenId=0x2222222222222222222222222222222222222222"
-      );
+      void router?.navigate("/hub/history?gardenId=0x2222222222222222222222222222222222222222");
       await Promise.resolve();
     });
 
@@ -395,8 +393,10 @@ describe("SubmitWork dialog", () => {
     ).toBeInTheDocument();
     expect(await screen.findByRole("button", { name: "Next" })).toBeInTheDocument();
     const hookOrderError = consoleError.mock.calls.some((call) =>
-      call.some((arg) =>
-        typeof arg === "string" && arg.includes("Rendered more hooks than during the previous render")
+      call.some(
+        (arg) =>
+          typeof arg === "string" &&
+          arg.includes("Rendered more hooks than during the previous render")
       )
     );
     expect(hookOrderError).toBe(false);

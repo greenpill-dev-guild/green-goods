@@ -29,11 +29,7 @@ import {
   CanvasRouteFrame,
   CanvasRouteHeader,
 } from "@/components/Layout/CanvasRouteFrame";
-import {
-  GardenSupporters,
-  PositionCard,
-  VaultEventHistory,
-} from "@/components/Vault";
+import { GardenSupporters, PositionCard, VaultEventHistory } from "@/components/Vault";
 
 type VaultRouteState = {
   returnTo?: string;
