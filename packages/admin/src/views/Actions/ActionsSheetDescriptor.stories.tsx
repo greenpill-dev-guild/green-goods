@@ -133,13 +133,15 @@ export const RouteBackedCreateMobile: Story = {
     const inspector = await body.findByRole("dialog", undefined, ADMIN_ROUTE_STORY_QUERY_OPTIONS);
     await expect(inspector).toHaveAttribute("data-component", "AdminDialog");
     await expect(inspector).toHaveAttribute("data-mobile", "sheet");
-    await expect(
-      await within(inspector).findByRole(
-        "heading",
-        { name: "Create action" },
-        ADMIN_ROUTE_STORY_QUERY_OPTIONS
-      )
-    ).toBeVisible();
+    // The reworked CreateAction flow titles both the dialog chrome and its first
+    // step "Create action", so scope to the first match rather than asserting a
+    // single heading (see the RouteBackedEdit note on scoping the query).
+    const [createHeading] = await within(inspector).findAllByRole(
+      "heading",
+      { name: "Create action" },
+      ADMIN_ROUTE_STORY_QUERY_OPTIONS
+    );
+    await expect(createHeading).toBeVisible();
   },
 };
 
