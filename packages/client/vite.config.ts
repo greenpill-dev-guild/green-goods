@@ -52,6 +52,16 @@ function normalizeSentryEnvironment(value: string | undefined): string | undefin
   return environment;
 }
 
+function resolveAppVersion(): string {
+  const vercelCommitSha = envValue("VERCEL_GIT_COMMIT_SHA");
+
+  if (envValue("VERCEL") && vercelCommitSha) {
+    return vercelCommitSha;
+  }
+
+  return envValue("VITE_APP_VERSION") || vercelCommitSha || envValue("GITHUB_SHA") || "dev";
+}
+
 function resolveSentryEnvironment(mode: string): string {
   return (
     normalizeSentryEnvironment(envValue("SENTRY_ENVIRONMENT")) ||
@@ -181,11 +191,7 @@ export default defineConfig(async ({ command, mode }) => {
   // Use relative paths for IPFS builds
   const isIPFSBuild = process.env.VITE_USE_HASH_ROUTER === "true";
   const pwaRouting = createPwaRoutingConfig(isIPFSBuild);
-  const appVersion =
-    process.env.VITE_APP_VERSION ||
-    process.env.VERCEL_GIT_COMMIT_SHA ||
-    process.env.GITHUB_SHA ||
-    "dev";
+  const appVersion = resolveAppVersion();
   const shortAppVersion = appVersion.slice(0, 12);
   const versionedUrl = (url: string) =>
     shortAppVersion && shortAppVersion !== "dev"
@@ -285,7 +291,7 @@ export default defineConfig(async ({ command, mode }) => {
     VitePWA({
       includeAssets: pwaBranding.includeAssets,
       injectRegister: false,
-      registerType: "prompt",
+      registerType: "autoUpdate",
       workbox: {
         // Workbox's Rollup/Terser pass can exit early under Bun while writing the
         // generated service worker. Keep the app build in production mode, but
@@ -318,8 +324,8 @@ export default defineConfig(async ({ command, mode }) => {
           "landing/index.html",
         ],
         cleanupOutdatedCaches: true,
-        clientsClaim: false,
-        skipWaiting: false,
+        clientsClaim: true,
+        skipWaiting: true,
         // The browser-origin worker is scoped to /home, so the app shell fallback
         // only owns installed-app routes while public/editorial routes stay in the browser.
         navigateFallback: "index.html",
@@ -335,17 +341,6 @@ export default defineConfig(async ({ command, mode }) => {
         sourcemap: false,
         importScripts: ["sw-custom.js"],
         runtimeCaching: [
-          {
-            // Only cache JS files from the same origin (avoids caching external analytics/ads)
-            // Note: 'self' refers to the ServiceWorkerGlobalScope when running, but here we construct the config.
-            // We use a regex that matches relative paths (same origin) ending in .js
-            urlPattern: /^\/.*\.js$/,
-            handler: "CacheFirst",
-            options: {
-              cacheName: "js-cache",
-              cacheableResponse: { statuses: [0, 200] },
-            },
-          },
           {
             urlPattern: /.*\.(png|jpg|jpeg|svg|gif|webp)$/,
             handler: "CacheFirst",

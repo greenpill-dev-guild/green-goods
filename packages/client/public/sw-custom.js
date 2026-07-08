@@ -11,6 +11,7 @@ const PUBLIC_WEBSITE_PATHS = new Set([
 ]);
 const PUBLIC_WEBSITE_PREFIXES = ["/gardens/"];
 const STALE_RUNTIME_CACHES = ["js-cache", "indexer-cache", "graphql-cache"];
+const INSTALLED_APP_PREFIX = "/home";
 
 function normalizePathname(pathname) {
   const normalized = pathname.replace(/\/+$/, "");
@@ -28,6 +29,34 @@ function isPublicWebsiteUrl(urlString) {
   } catch {
     return false;
   }
+}
+
+function isInstalledAppUrl(urlString) {
+  try {
+    const url = new URL(urlString);
+    const pathname = normalizePathname(url.pathname);
+    return pathname === INSTALLED_APP_PREFIX || pathname.startsWith(`${INSTALLED_APP_PREFIX}/`);
+  } catch {
+    return false;
+  }
+}
+
+function isJavaScriptAssetRequest(request) {
+  try {
+    const url = new URL(request.url);
+    return (
+      request.method === "GET" &&
+      url.origin === self.location.origin &&
+      url.pathname.startsWith("/assets/") &&
+      url.pathname.endsWith(".js")
+    );
+  } catch {
+    return false;
+  }
+}
+
+function isJavaScriptResponse(response) {
+  return response?.headers?.get("content-type")?.includes("javascript") === true;
 }
 
 function isNavigationRequest(request) {
@@ -92,6 +121,26 @@ async function refreshPublicWebsiteClients() {
   );
 }
 
+async function refreshInstalledAppClients() {
+  const windowClients = await self.clients.matchAll({
+    type: "window",
+    includeUncontrolled: true,
+  });
+
+  await Promise.all(
+    windowClients.map((client) => {
+      if (!isInstalledAppUrl(client.url)) return Promise.resolve();
+
+      if (typeof client.navigate === "function") {
+        return client.navigate(client.url);
+      }
+
+      client.postMessage?.({ type: "INSTALLED_APP_CACHE_REFRESH" });
+      return Promise.resolve();
+    })
+  );
+}
+
 async function fetchPublicNavigationFromNetwork(request) {
   try {
     return await fetch(request, { cache: "reload" });
@@ -100,16 +149,57 @@ async function fetchPublicNavigationFromNetwork(request) {
   }
 }
 
+async function fetchJavaScriptAsset(request) {
+  const cached = await caches.match(request);
+  if (isJavaScriptResponse(cached)) return cached;
+
+  try {
+    const response = await fetch(request, { cache: "reload" });
+    if (isJavaScriptResponse(response)) return response;
+  } catch {
+    // Fall through to the reload shim below.
+  }
+
+  return new Response(
+    'try{var k="gg-script-reload-attempt";if(!sessionStorage.getItem(k)){sessionStorage.setItem(k,"1");location.reload();}else{document.dispatchEvent(new CustomEvent("gg-module-load-failed"));}}catch(_){location.reload();}',
+    {
+      headers: {
+        "cache-control": "no-store",
+        "content-type": "application/javascript; charset=utf-8",
+      },
+    }
+  );
+}
+
 async function activateServiceWorker() {
   await claimClients();
-  await Promise.all([clearStaleRuntimeCaches(), refreshPublicWebsiteClients()]);
+  await Promise.all([
+    clearStaleRuntimeCaches(),
+    refreshPublicWebsiteClients(),
+    refreshInstalledAppClients(),
+  ]);
 }
+
+// Activate new app workers immediately. The installed app can otherwise stay
+// on an old cached shell that points at a deleted hashed entry bundle.
+self.addEventListener("install", (event) => {
+  event.waitUntil(self.skipWaiting());
+});
 
 // Public website navigations must never be fulfilled from an old app-shell cache.
 self.addEventListener("fetch", (event) => {
   if (!isNavigationRequest(event.request) || !isPublicWebsiteUrl(event.request.url)) return;
 
   event.respondWith(fetchPublicNavigationFromNetwork(event.request));
+  event.stopImmediatePropagation?.();
+});
+
+// If a stale shell requests an old JS asset and Vercel falls through to HTML,
+// return a tiny JS shim that refreshes once instead of caching HTML as a script.
+self.addEventListener("fetch", (event) => {
+  if (!isJavaScriptAssetRequest(event.request)) return;
+
+  event.respondWith(fetchJavaScriptAsset(event.request));
   event.stopImmediatePropagation?.();
 });
 

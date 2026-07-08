@@ -30,6 +30,7 @@ async function loadServiceWorker() {
     }),
     clients,
     skipWaiting: vi.fn(),
+    location: { origin: "https://www.greengoods.app" },
   };
 
   vm.runInNewContext(await readFile(swCustomPath, "utf8"), {
@@ -87,18 +88,26 @@ describe("client public service worker migration", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("waits on install and skips waiting only after an explicit update message", async () => {
+  it("skips waiting on install so installed apps move to the fresh worker", async () => {
     const { listeners, self } = await loadServiceWorker();
+    let install: Promise<unknown> | undefined;
 
-    expect(listeners.install).toBeUndefined();
-    expect(self.skipWaiting).not.toHaveBeenCalled();
+    listeners.install[0]({
+      waitUntil: vi.fn((promise: Promise<unknown>) => {
+        install = promise;
+      }),
+    });
+
+    await install;
+
+    expect(self.skipWaiting).toHaveBeenCalledTimes(1);
 
     listeners.message[0]({ data: { type: "SKIP_WAITING" } });
 
-    expect(self.skipWaiting).toHaveBeenCalledTimes(1);
+    expect(self.skipWaiting).toHaveBeenCalledTimes(2);
   });
 
-  it("refreshes open public website tabs and preserves PWA tabs on activation", async () => {
+  it("refreshes open public website and installed app tabs on activation", async () => {
     const { caches, clients, listeners } = await loadServiceWorker();
     const publicClient = {
       navigate: vi.fn().mockResolvedValue(undefined),
@@ -132,6 +141,34 @@ describe("client public service worker migration", () => {
     expect(caches.delete).not.toHaveBeenCalledWith("workbox-precache");
     expect(publicClient.navigate).toHaveBeenCalledWith(publicClient.url);
     expect(publicDetailClient.navigate).toHaveBeenCalledWith(publicDetailClient.url);
-    expect(pwaClient.navigate).not.toHaveBeenCalled();
+    expect(pwaClient.navigate).toHaveBeenCalledWith(pwaClient.url);
+  });
+
+  it("serves a reload shim when a JS asset resolves to HTML", async () => {
+    const { fetchMock, listeners } = await loadServiceWorker();
+    const request = {
+      headers: new Headers(),
+      method: "GET",
+      url: "https://www.greengoods.app/assets/index-old.js",
+    };
+    let responsePromise: Promise<Response> | undefined;
+    const respondWith = vi.fn((promise: Promise<Response>) => {
+      responsePromise = promise;
+    });
+    const stopImmediatePropagation = vi.fn();
+
+    fetchMock.mockResolvedValue(
+      new Response("<!doctype html>", {
+        headers: { "content-type": "text/html; charset=utf-8" },
+      })
+    );
+
+    listeners.fetch[1]({ request, respondWith, stopImmediatePropagation });
+
+    expect(respondWith).toHaveBeenCalledTimes(1);
+    expect(stopImmediatePropagation).toHaveBeenCalledTimes(1);
+    await expect(responsePromise?.then((response) => response.text())).resolves.toContain(
+      "gg-script-reload-attempt"
+    );
   });
 });
