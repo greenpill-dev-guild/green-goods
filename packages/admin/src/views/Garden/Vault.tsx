@@ -1,14 +1,11 @@
 import {
-  AAVE_V3_POOL,
   type Address,
   Alert,
   adminRoutes,
   formatTokenAmount,
-  getBlockExplorerAddressUrl,
   getNetDeposited,
   getNetworkContracts,
   getVaultAssetSymbol,
-  isZeroAddress,
   OCTANT_MODULE_ABI,
   useAdminGardenWorkspaceSelection,
   useCurrentChain,
@@ -17,19 +14,22 @@ import {
   useGardenVaults,
   useUser,
 } from "@green-goods/shared";
-import { RiExternalLinkLine } from "@remixicon/react";
 import { useMemo } from "react";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useReadContract } from "wagmi";
 import { AdminButton } from "@/components/AdminButton";
-import { EnsAddressText } from "@/components/EnsAddressText";
 import {
   CanvasRouteContent,
   CanvasRouteFrame,
   CanvasRouteHeader,
 } from "@/components/Layout/CanvasRouteFrame";
-import { GardenSupporters, PositionCard, VaultEventHistory } from "@/components/Vault";
+import {
+  GardenSupporters,
+  PositionCard,
+  VaultContractDetails,
+  VaultEventHistory,
+} from "@/components/Vault";
 
 type VaultRouteState = {
   returnTo?: string;
@@ -170,6 +170,10 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
   const gardenAddress = garden.id as Address;
   const canManage = permissions.canManageGarden(garden);
   const canEmergencyPause = permissions.isOwnerOfGarden(garden);
+  // layout="sheet" is only rendered by the endowment tab, which supplies a right rail that owns
+  // the contract-details reference and wants a compact inline history (recent activity above the
+  // fold). layout="page" (standalone) keeps both inline and shows the full history.
+  const isEmbedded = layout === "sheet";
   const content = (
     <>
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -261,79 +265,13 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
         </section>
       )}
 
+      <VaultEventHistory gardenAddress={gardenAddress} initialVisibleCount={isEmbedded ? 5 : 20} />
+
       {!vaultsLoading && vaults.length > 0 && <GardenSupporters gardenAddress={gardenAddress} />}
 
-      {!vaultsLoading && vaults.length > 0 && (
-        <details className="surface-section group">
-          <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
-            <h3 className="label-sm text-text-strong">
-              {formatMessage({ id: "app.explorer.contractDetails" })}
-            </h3>
-            <span className="body-xs text-text-soft group-open:hidden">
-              {formatMessage({ id: "app.actions.view" })}
-            </span>
-            <span className="body-xs text-text-soft hidden group-open:inline">
-              {formatMessage({ id: "app.common.close" })}
-            </span>
-          </summary>
-          <div className="mt-3 space-y-2 text-sm">
-            {vaults.map((vault) => (
-              <div
-                key={`contract-${vault.id}`}
-                className="flex items-center justify-between rounded-md border border-stroke-soft bg-bg-weak px-3 py-2"
-              >
-                <span className="text-text-sub">
-                  {getVaultAssetSymbol(vault.asset, vault.chainId)}{" "}
-                  {formatMessage({ id: "app.explorer.vault" })}
-                </span>
-                <a
-                  href={getBlockExplorerAddressUrl(chainId, vault.vaultAddress)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 body-xs text-primary-base hover:underline"
-                >
-                  <EnsAddressText address={vault.vaultAddress} />
-                  <RiExternalLinkLine className="h-3 w-3" />
-                </a>
-              </div>
-            ))}
-            {!isZeroAddress(octantModuleAddress) && (
-              <div className="flex items-center justify-between rounded-md border border-stroke-soft bg-bg-weak px-3 py-2">
-                <span className="text-text-sub">
-                  {formatMessage({ id: "app.explorer.vaultRegistry" })}
-                </span>
-                <a
-                  href={getBlockExplorerAddressUrl(chainId, octantModuleAddress)}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 body-xs text-primary-base hover:underline"
-                >
-                  <EnsAddressText address={octantModuleAddress} />
-                  <RiExternalLinkLine className="h-3 w-3" />
-                </a>
-              </div>
-            )}
-            {AAVE_V3_POOL[chainId] && (
-              <div className="flex items-center justify-between rounded-md border border-stroke-soft bg-bg-weak px-3 py-2">
-                <span className="text-text-sub">
-                  {formatMessage({ id: "app.explorer.aavePool" })}
-                </span>
-                <a
-                  href={getBlockExplorerAddressUrl(chainId, AAVE_V3_POOL[chainId])}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1 body-xs text-primary-base hover:underline"
-                >
-                  <EnsAddressText address={AAVE_V3_POOL[chainId]} />
-                  <RiExternalLinkLine className="h-3 w-3" />
-                </a>
-              </div>
-            )}
-          </div>
-        </details>
+      {!isEmbedded && !vaultsLoading && vaults.length > 0 && (
+        <VaultContractDetails gardenAddress={gardenAddress} />
       )}
-
-      <VaultEventHistory gardenAddress={gardenAddress} />
     </>
   );
 

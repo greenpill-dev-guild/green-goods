@@ -15,6 +15,11 @@ import { EnsAddressText } from "@/components/EnsAddressText";
 
 interface VaultEventHistoryProps {
   gardenAddress: Address;
+  /**
+   * How many rows to show before the "load more" affordance. Defaults to 20 (the standalone
+   * view); the endowment tab passes a smaller count so recent activity stays above the fold.
+   */
+  initialVisibleCount?: number;
 }
 
 const EVENT_BADGE_CLASS: Record<string, string> = {
@@ -31,11 +36,14 @@ const EVENT_TYPE_I18N: Record<string, string> = {
   EMERGENCY_PAUSED: "app.treasury.eventType.EMERGENCY_PAUSED",
 };
 
-export function VaultEventHistory({ gardenAddress }: VaultEventHistoryProps) {
+export function VaultEventHistory({
+  gardenAddress,
+  initialVisibleCount = 20,
+}: VaultEventHistoryProps) {
   const { formatMessage } = useIntl();
   const chainId = useCurrentChain();
   const { events, isLoading } = useVaultEvents(gardenAddress, { limit: 200, enabled: true });
-  const [visibleCount, setVisibleCount] = useState(20);
+  const [visibleCount, setVisibleCount] = useState(initialVisibleCount);
 
   const blockExplorer = useMemo(() => getNetworkConfig(chainId).blockExplorer, [chainId]);
   const visibleEvents = useMemo(() => events.slice(0, visibleCount), [events, visibleCount]);
@@ -189,7 +197,7 @@ export function VaultEventHistory({ gardenAddress }: VaultEventHistoryProps) {
             <div className="mt-4">
               <button
                 type="button"
-                onClick={() => setVisibleCount((count) => count + 20)}
+                onClick={() => setVisibleCount((count) => count + initialVisibleCount)}
                 className="rounded-md border border-stroke-sub bg-bg-white px-3 py-1.5 text-sm font-medium text-text-sub hover:bg-bg-weak"
               >
                 {formatMessage({ id: "app.treasury.loadMore" })}

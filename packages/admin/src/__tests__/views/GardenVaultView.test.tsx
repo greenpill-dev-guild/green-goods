@@ -59,6 +59,7 @@ vi.mock("@/components/Vault", () => ({
   DepositModal: () => null,
   WithdrawModal: () => null,
   PositionCard: () => null,
+  VaultContractDetails: () => null,
   VaultEventHistory: () => null,
 }));
 
