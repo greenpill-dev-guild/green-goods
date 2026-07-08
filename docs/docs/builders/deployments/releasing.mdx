@@ -66,6 +66,7 @@ A production bug mid-month branches from `main` (not `develop`), bumps a patch (
 After every release and every hotfix, merge `main` back into `develop`. **Use the direct-push fast-path** — as a maintainer you push straight to `develop`:
 
 ```bash
+git fetch origin                                      # refresh origin/main after the release merged
 git switch develop && git pull && git merge origin/main && git push
 ```
 
@@ -78,6 +79,7 @@ If the direct push above is somehow unavailable and you must go through a PR, pu
 
 ```bash
 DATE=$(date +%Y-%m-%d)
+git fetch origin                                      # copy the current main, not a stale local ref
 git push origin origin/main:refs/heads/backmerge/main-$DATE
 gh pr create --repo greenpill-dev-guild/green-goods \
   --base develop --head "backmerge/main-$DATE" \
