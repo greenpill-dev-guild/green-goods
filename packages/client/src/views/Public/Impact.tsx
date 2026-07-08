@@ -100,9 +100,9 @@ interface ProofMarker {
 function ProofMarkers({ markers }: { markers: readonly ProofMarker[] }) {
   const { formatMessage } = useIntl();
   return (
-    <dl className="grid grid-cols-2 gap-x-12 gap-y-10 md:grid-cols-4 md:gap-x-16">
+    <dl className="grid grid-cols-2 gap-x-6 gap-y-10 sm:gap-x-12 md:grid-cols-4 md:gap-x-16">
       {markers.map(({ labelId, defaultLabel, value, isLoading, noteId, defaultNote }) => (
-        <div key={labelId} className="flex flex-col gap-3">
+        <div key={labelId} className="flex min-w-0 flex-col gap-3">
           <dt className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-text-soft-400">
             {formatMessage({ id: labelId, defaultMessage: defaultLabel })}
           </dt>

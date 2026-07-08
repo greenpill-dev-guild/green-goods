@@ -636,7 +636,7 @@ export function CommunityTab({
                               <p className="body-xs text-text-soft">
                                 {formatMessage({ id: labelId })}
                               </p>
-                              <p className="mt-1 text-sm text-text-strong">
+                              <div className="mt-1 text-sm text-text-strong">
                                 {pool ? (
                                   <AddressDisplay address={pool.poolAddress} className="text-sm" />
                                 ) : (
@@ -644,7 +644,7 @@ export function CommunityTab({
                                     id: "cockpit.community.coordination.poolMissing",
                                   })
                                 )}
-                              </p>
+                              </div>
                             </div>
                             {pool ? (
                               <Link
