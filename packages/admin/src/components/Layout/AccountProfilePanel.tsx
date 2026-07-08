@@ -20,10 +20,16 @@ import {
   useSheetOrchestratorStore,
   type UserRole,
 } from "@green-goods/shared";
-import { RiExternalLinkLine, RiLogoutBoxLine, RiWallet3Line } from "@remixicon/react";
+import {
+  RiExternalLinkLine,
+  RiLogoutBoxLine,
+  RiSeedlingLine,
+  RiWallet3Line,
+} from "@remixicon/react";
 import { useCallback, type ReactNode } from "react";
 import { useIntl } from "react-intl";
 import { formatEnsAddressName } from "@/components/EnsAddressText";
+import { AdminChoiceGroup } from "../AdminChoiceGroup";
 
 const ROLE_LABEL_MESSAGES: Record<UserRole, { defaultMessage: string; id: string }> = {
   deployer: {
@@ -106,6 +112,11 @@ export function AccountProfilePanel({ className }: AccountProfilePanelProps) {
     eoaAddress && ensName ? formatEnsAddressName(eoaAddress as Address, ensName) : null;
   const headline = ensDisplayName ?? (eoaAddress ? formatAddress(eoaAddress) : roleLabel);
   const avatarFallback = getInitials(ensDisplayName ?? eoaAddress ?? roleLabel);
+  const selectedGardenChoiceId =
+    selectedGarden && eligibleGardens.length > 0
+      ? (eligibleGardens.find((garden) => compareAddresses(garden.id, selectedGarden.id))?.id ??
+        selectedGarden.id)
+      : null;
 
   const handleSelectGarden = useCallback(
     (gardenId: string) => {
@@ -194,44 +205,19 @@ export function AccountProfilePanel({ className }: AccountProfilePanelProps) {
             </p>
           </div>
           {eligibleGardens.length > 0 ? (
-            <ul className="flex flex-col gap-1.5">
-              {eligibleGardens.map((garden) => {
-                const isSelected = selectedGarden
-                  ? compareAddresses(garden.id, selectedGarden.id)
-                  : false;
-                return (
-                  <li key={garden.id}>
-                    <button
-                      type="button"
-                      onClick={() => handleSelectGarden(garden.id)}
-                      aria-pressed={isSelected}
-                      className={cn(
-                        "flex min-h-11 w-full items-center justify-between gap-3 rounded-[var(--radius-md)] border px-3 py-2 text-left",
-                        "transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--m3-primary)))]",
-                        isSelected
-                          ? "border-[rgb(var(--tone-accent,37_99_235))] bg-bg-soft"
-                          : "border-stroke-soft bg-bg-white-0 hover:bg-bg-soft"
-                      )}
-                    >
-                      <span
-                        className="truncate text-sm font-medium text-text-strong"
-                        title={garden.name}
-                      >
-                        {garden.name}
-                      </span>
-                      {isSelected ? (
-                        <span className="shrink-0 text-xs font-medium text-[rgb(var(--tone-accent,37_99_235))]">
-                          {formatMessage({
-                            id: "cockpit.account.selected",
-                            defaultMessage: "Selected",
-                          })}
-                        </span>
-                      ) : null}
-                    </button>
-                  </li>
-                );
+            <AdminChoiceGroup
+              ariaLabel={formatMessage({
+                id: "cockpit.account.gardens",
+                defaultMessage: "Your gardens",
               })}
-            </ul>
+              value={selectedGardenChoiceId}
+              onChange={handleSelectGarden}
+              options={eligibleGardens.map((garden) => ({
+                value: garden.id,
+                label: garden.name,
+                leadingVisual: <RiSeedlingLine className="h-4 w-4" aria-hidden="true" />,
+              }))}
+            />
           ) : (
             <p className="text-sm text-text-sub">
               {formatMessage({

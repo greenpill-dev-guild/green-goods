@@ -120,6 +120,29 @@ export function parseAllowedOrigins(value?: string): Set<string> {
   );
 }
 
+export const LOCAL_DEVELOPMENT_PUBLIC_ORIGINS = [
+  "http://localhost:3001",
+  "https://localhost:3001",
+  "http://127.0.0.1:3001",
+  "https://127.0.0.1:3001",
+  "http://localhost:3002",
+  "https://localhost:3002",
+  "http://127.0.0.1:3002",
+  "https://127.0.0.1:3002",
+] as const;
+
+export function resolveAllowedOrigins(
+  value?: string,
+  options: { includeDevelopmentDefaults?: boolean } = {}
+): Set<string> {
+  const configuredOrigins = parseAllowedOrigins(value);
+  if (configuredOrigins.size > 0 || !options.includeDevelopmentDefaults) {
+    return configuredOrigins;
+  }
+
+  return new Set(LOCAL_DEVELOPMENT_PUBLIC_ORIGINS);
+}
+
 function isGreenGoodsVercelPreviewOrigin(origin: string): boolean {
   try {
     const { hostname, protocol } = new URL(origin);

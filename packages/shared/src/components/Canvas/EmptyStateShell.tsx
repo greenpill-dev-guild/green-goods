@@ -13,9 +13,14 @@ export function EmptyStateShell({
     <Surface
       elevation="ground"
       radius="xl"
+      data-component="EmptyStateShell"
       className={cn("flex items-center justify-center p-6", className)}
       style={{
-        minHeight: "min(24rem, 48vh)",
+        display: "flex",
+        flex: "1 1 auto",
+        alignItems: "center",
+        justifyContent: "center",
+        minHeight: "var(--canvas-empty-state-min-height, 24rem)",
         boxShadow: "var(--edge-rest)",
         background: "var(--admin-empty-state-bg, var(--color-material-thin))",
       }}

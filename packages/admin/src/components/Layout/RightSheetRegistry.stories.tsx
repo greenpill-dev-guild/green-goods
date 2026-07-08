@@ -161,7 +161,7 @@ const meta: Meta<typeof RightSheetRegistryHarness> = {
     docs: {
       description: {
         component:
-          "Composition story for the admin right-sheet registry. It exercises the real descriptor hook, the Account and Settings panels, a deterministic notifications fixture, and the AdminSideSheet the three global AppBar surfaces render in (right-docked on desktop, bottom sheet on mobile).",
+          "Composition story for the admin right-sheet registry. It exercises the real descriptor hook, the Account and Settings panels, a deterministic notifications fixture, and the AdminSideSheet the three global AppBar surfaces render in (canvas-embedded on desktop, bottom sheet on mobile).",
       },
     },
   },

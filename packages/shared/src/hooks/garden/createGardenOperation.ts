@@ -201,6 +201,8 @@ export function createGardenOperation(
   onOptimisticUpdate?: OptimisticUpdateCallback
 ): (targetAddress: Address) => Promise<GardenOperationResult> {
   return async (targetAddress: Address): Promise<GardenOperationResult> => {
+    let optimisticUpdate: GardenOperationResult["optimisticUpdate"];
+
     if (!walletClient || !address) {
       return {
         success: false,
@@ -271,7 +273,7 @@ export function createGardenOperation(
       }
 
       // Step 2: Apply optimistic update before transaction
-      const optimisticUpdate = {
+      optimisticUpdate = {
         memberType: config.memberType,
         operationType: config.operationType,
         targetAddress,
@@ -326,6 +328,7 @@ export function createGardenOperation(
 
       return {
         success: false,
+        optimisticUpdate,
         error: {
           name: parsed.name,
           message: parsed.message,

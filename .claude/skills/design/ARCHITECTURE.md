@@ -74,7 +74,7 @@ Root `DESIGN.md` front matter is the canonical DesignMD token source. Surface `D
 ```bash
 bun run check:design-generated # verifies DesignMD generated artifacts are current
 bun run check:design-tokens   # verifies implementation tokens and versions are synced
-bun run lint:vocab            # banned terms in i18n strings (streak/countdown/leaderboard/FOMO/…)
+bun run lint:vocab            # lint-enforced banned terms in i18n strings only
 ```
 
 ---

@@ -5,11 +5,13 @@ import { useRouteBackedLeftSheetConfig } from "@/components/Layout";
 import GardenSignalPoolView from "@/views/Garden/SignalPool";
 import GardenStrategiesView from "@/views/Garden/Strategies";
 import GardenVaultView from "@/views/Garden/Vault";
+import { VaultActionRouteDialog, type VaultActionRoute } from "./VaultActionRouteDialog";
 
 interface CommunitySheetDescriptorProps {
   isVaultRoute: boolean;
   isStrategiesRoute: boolean;
   isSignalPoolRoute: boolean;
+  vaultAction: VaultActionRoute | null;
   poolType: string | undefined;
   gardenAddress?: Address | string;
 }
@@ -18,6 +20,7 @@ export function CommunitySheetDescriptor({
   isVaultRoute,
   isStrategiesRoute,
   isSignalPoolRoute,
+  vaultAction,
   poolType,
   gardenAddress,
 }: CommunitySheetDescriptorProps) {
@@ -64,5 +67,5 @@ export function CommunitySheetDescriptor({
 
   useRouteBackedLeftSheetConfig(communitySheet);
 
-  return null;
+  return <VaultActionRouteDialog action={vaultAction} gardenAddress={gardenAddress} />;
 }

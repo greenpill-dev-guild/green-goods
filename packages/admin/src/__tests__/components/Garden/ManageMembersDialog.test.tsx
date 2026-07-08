@@ -43,7 +43,7 @@ describe("components/Garden/ManageMembersDialog", () => {
     roleMembers,
     canManage: true,
     isLoading: false,
-    onRemoveMember: vi.fn(),
+    onRemoveMember: vi.fn(async () => ({ success: true })),
     onAddMembers: vi.fn(),
   };
 
@@ -78,14 +78,40 @@ describe("components/Garden/ManageMembersDialog", () => {
     expect(screen.getByText("No members found")).toBeInTheDocument();
   });
 
-  it("removes a member with its role from the row action", async () => {
+  it("confirms before removing a member from the row action", async () => {
     const user = userEvent.setup();
     render(createElement(ManageMembersDialog, defaultProps));
 
     const ownerRow = screen.getByText(OWNER.slice(0, 10)).closest("li") as HTMLElement;
     await user.click(within(ownerRow).getByRole("button", { name: "Remove Owner" }));
 
+    expect(defaultProps.onRemoveMember).not.toHaveBeenCalled();
+
+    const confirm = await screen.findByRole("alertdialog", {
+      name: "Confirm member removal",
+    });
+    expect(confirm).toHaveTextContent(OWNER.slice(0, 6));
+
+    await user.click(within(confirm).getByRole("button", { name: "Cancel" }));
+    expect(defaultProps.onRemoveMember).not.toHaveBeenCalled();
+
+    await user.click(within(ownerRow).getByRole("button", { name: "Remove Owner" }));
+    await user.click(await screen.findByRole("button", { name: "Remove member" }));
+
     expect(defaultProps.onRemoveMember).toHaveBeenCalledWith(OWNER, "owner");
+  });
+
+  it("keeps the roster visible and reports a failed confirmed removal", async () => {
+    const user = userEvent.setup();
+    const onRemoveMember = vi.fn(async () => ({ success: false }));
+    render(createElement(ManageMembersDialog, { ...defaultProps, onRemoveMember }));
+
+    const ownerRow = screen.getByText(OWNER.slice(0, 10)).closest("li") as HTMLElement;
+    await user.click(within(ownerRow).getByRole("button", { name: "Remove Owner" }));
+    await user.click(await screen.findByRole("button", { name: "Remove member" }));
+
+    expect(await screen.findByText("Failed to remove Owner")).toBeInTheDocument();
+    expect(screen.getAllByTestId("address-display")).toHaveLength(3);
   });
 
   it("opens the Add Members flow from the footer action", async () => {

@@ -44,6 +44,7 @@ vi.mock("wagmi", () => ({
 vi.mock("react-router-dom", () => ({
   useParams: () => ({ id: "garden-1" }),
   useLocation: () => mockUseLocation(),
+  useNavigate: () => vi.fn(),
 }));
 
 vi.mock("@/components/Layout/PageHeader", () => ({

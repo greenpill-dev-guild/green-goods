@@ -12,10 +12,10 @@ Use **TodoWrite** when available. If unavailable, keep a Markdown checklist in t
 
 ### Slither (Primary)
 
-```bash
-# Install
-pip3 install slither-analyzer
+Use only when Slither is already installed or explicitly approved for the current
+session. Do not install Python tooling from this skill.
 
+```bash
 # Run full analysis
 cd packages/contracts
 slither src/ --config-file slither.config.json
@@ -31,11 +31,10 @@ slither src/ --json report.json        # Machine-readable
 
 ### Aderyn (Rust-based, faster)
 
-```bash
-# Install
-brew install cyfrin/tap/aderyn
-cyfrinup
+Use only when Aderyn is already installed or explicitly approved for the current
+session. Do not install external audit tooling from this skill.
 
+```bash
 # Run analysis
 cd packages/contracts
 aderyn src/
@@ -44,21 +43,19 @@ aderyn src/
 aderyn src/GardenAccount.sol src/GardenToken.sol
 ```
 
-### Foundry Built-in Checks
+### Bun-Wrapped Foundry Checks
 
 ```bash
-# Storage layout inspection (upgrade safety)
-forge inspect GardenAccount storage-layout
+# Gas report through the package wrapper
+bun run test:gas
 
-# Function selectors (check for collisions)
-forge inspect GardenAccount methods
-
-# Gas snapshot for regression detection
-forge snapshot
-
-# Invariant testing
-forge test --match-contract InvariantTest -vvv
+# Invariant testing through the package test wrapper
+bun run test -- --match-contract InvariantTest -vvv
 ```
+
+Storage-layout and selector inspection still need an approved Bun wrapper before
+they become executable checklist items. Until that wrapper exists, record them as a
+contracts tooling follow-up rather than running raw `forge inspect` from this skill.
 
 | Tool | Speed | Depth | Best For |
 |------|-------|-------|----------|
@@ -82,7 +79,7 @@ forge test --match-contract InvariantTest -vvv
 | **Denial of Service** | Slither `dos-*` detectors | Medium — unbounded loops |
 | **Tx Origin Auth** | Slither `tx-origin` | Low — not used |
 | **Delegatecall Injection** | Slither `delegatecall-loop` | High — UUPS proxies |
-| **Storage Collision** | `forge inspect` storage layout | High — UUPS upgrades |
+| **Storage Collision** | Approved storage-layout wrapper or contracts tooling follow-up | High — UUPS upgrades |
 | **Signature Replay** | Manual review of EIP-712 usage | Medium — EAS attestations |
 
 ### Reentrancy Protection
@@ -180,14 +177,9 @@ function approveWork(uint256 workId) external {
 ### Storage Layout Safety
 
 ```bash
-# Before ANY upgrade, verify storage compatibility
-forge inspect GardenAccount storage-layout > layout-before.txt
-
-# After changes
-forge inspect GardenAccount storage-layout > layout-after.txt
-
-# Compare — slots must match for existing variables
-diff layout-before.txt layout-after.txt
+# Before ANY upgrade, verify storage compatibility with an approved Bun wrapper.
+# If no wrapper exists for the target contract, stop and create a contracts
+# tooling follow-up instead of running raw forge commands from agent guidance.
 ```
 
 ### Upgrade Security Rules
@@ -221,7 +213,7 @@ function _authorizeUpgrade(address) internal override {}
 - [ ] `_authorizeUpgrade` still requires DAO hat
 - [ ] Initializer not re-callable (`initializer` modifier)
 - [ ] All tests pass against upgrade scenario
-- [ ] Dry run on testnet fork: `forge script --fork-url $RPC`
+- [ ] Dry run on testnet fork through an existing Bun deploy/upgrade dry-run wrapper; add a wrapper first if the target operation has no checked-in wrapper.
 
 ---
 

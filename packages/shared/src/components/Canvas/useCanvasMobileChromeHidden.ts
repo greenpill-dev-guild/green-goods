@@ -16,8 +16,13 @@ export function useCanvasMobileChromeHidden() {
   const updateKeyboardState = useCallback(() => {
     if (typeof window === "undefined") return;
 
+    const hasVisualViewport = Boolean(viewport);
+    const coarsePointer =
+      window.matchMedia?.("(pointer: coarse)").matches ??
+      (typeof navigator !== "undefined" && navigator.maxTouchPoints > 0);
     const visualViewportOpen = viewport ? viewport.height < window.innerHeight * 0.78 : false;
-    const resizedWindowOpen = window.innerHeight < window.screen.height * 0.74;
+    const resizedWindowOpen =
+      !hasVisualViewport && coarsePointer && window.innerHeight < window.screen.height * 0.74;
     setKeyboardOpen(visualViewportOpen || resizedWindowOpen);
   }, [viewport]);
 

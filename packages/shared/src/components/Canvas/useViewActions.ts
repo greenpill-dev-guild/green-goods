@@ -78,9 +78,11 @@ export function useViewActions({
           icon: action.icon,
           label: action.label,
           labelId: action.labelId,
+          disabled: action.disabled,
         })),
       onAction: (actionId: string) => {
         const target = visibleActions.find((action) => action.id === actionId);
+        if (target?.disabled) return;
         target?.onClick();
       },
     };

@@ -370,6 +370,37 @@ describe("createGardenOperation", () => {
       expect(result.success).toBe(false);
       expect(mockParseContractError).toHaveBeenCalled();
     });
+
+    it("returns optimistic update metadata when a transaction throws after optimistic apply", async () => {
+      const walletClient = createMockWalletClient();
+      walletClient.writeContract.mockRejectedValue(new Error("Tx reverted"));
+      const onOptimisticUpdate = vi.fn();
+
+      const operation = createGardenOperation(
+        GARDEN_ID,
+        createConfig({ operationType: "remove" }),
+        walletClient,
+        USER_ADDRESS,
+        CHAIN_ID,
+        createMockExecuteWithToast(),
+        mockSetIsLoading,
+        onOptimisticUpdate
+      );
+
+      const result = await operation(TARGET_ADDRESS);
+
+      expect(onOptimisticUpdate).toHaveBeenCalledWith({
+        memberType: "gardener",
+        operationType: "remove",
+        targetAddress: TARGET_ADDRESS,
+      });
+      expect(result.success).toBe(false);
+      expect(result.optimisticUpdate).toEqual({
+        memberType: "gardener",
+        operationType: "remove",
+        targetAddress: TARGET_ADDRESS,
+      });
+    });
   });
 });
 

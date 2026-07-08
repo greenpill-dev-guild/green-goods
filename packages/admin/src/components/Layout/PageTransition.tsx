@@ -1,5 +1,5 @@
 import { isRouteSheetRestorable, useSheetOrchestrator } from "@green-goods/shared";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { useLocation, useOutlet } from "react-router-dom";
 
 /**
@@ -18,7 +18,6 @@ function getViewKey(pathname: string): string {
 export function PageTransition() {
   const location = useLocation();
   const outlet = useOutlet();
-  const [renderedOutlet, setRenderedOutlet] = useState(outlet);
   const prevPathRef = useRef(location.pathname);
   const orchestrator = useSheetOrchestrator();
   const transitionTokenRef = useRef(0);
@@ -33,7 +32,6 @@ export function PageTransition() {
     const newPath = location.pathname;
 
     if (prevPath === newPath) {
-      setRenderedOutlet((currentOutlet) => (currentOutlet === outlet ? currentOutlet : outlet));
       return;
     }
 
@@ -53,9 +51,8 @@ export function PageTransition() {
         await orch.onNavigateAway(prevPath);
       }
 
-      const commitOutletSwap = () => {
+      const commitRouteArrival = () => {
         if (isCancelled || transitionTokenRef.current !== transitionToken) return;
-        setRenderedOutlet(outlet);
         prevPathRef.current = newPath;
         if (isViewChange) {
           // Every workspace switch lands at the top. The canvas scroll
@@ -70,10 +67,10 @@ export function PageTransition() {
       // Cross-fade using the View Transitions API — view switches only; tab
       // changes within a view swap instantly for a smoother feel.
       if (isViewChange && document.startViewTransition) {
-        const transition = document.startViewTransition(commitOutletSwap);
+        const transition = document.startViewTransition(commitRouteArrival);
         await transition.finished;
       } else {
-        commitOutletSwap();
+        commitRouteArrival();
       }
 
       if (isCancelled || transitionTokenRef.current !== transitionToken) return;
@@ -93,7 +90,7 @@ export function PageTransition() {
     return () => {
       isCancelled = true;
     };
-  }, [location.pathname, location.search, outlet]);
+  }, [location.pathname]);
 
-  return renderedOutlet;
+  return outlet;
 }

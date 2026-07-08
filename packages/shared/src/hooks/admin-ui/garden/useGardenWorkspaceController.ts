@@ -108,6 +108,7 @@ export function useGardenWorkspaceController() {
   const { desktopActions } = useViewActions({
     actions: viewActions,
     isDesktop,
+    blocked: Boolean(hypercertId) || domainEditorOpen,
   });
 
   const openSection = useCallback(

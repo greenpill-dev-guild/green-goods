@@ -143,7 +143,7 @@ Each lens has a manual review pass. Some lenses also have automation that runs t
 
 | Lens | Manual Review | Automation | Status |
 |------|--------------|-----------|--------|
-| **1 — Regenerative** | Motivation filter + degen/regen pattern table | `bun run lint:vocab` — grep over `packages/*/src/i18n/*.json` for banned terms (`streak`, `countdown`, `leaderboard`, `FOMO`) | **Wired** |
+| **1 — Regenerative** | Motivation filter + degen/regen pattern table | `bun run lint:vocab` — scans `packages/*/src/i18n/*.json` for `linter_enforced.terms` from `docs/docs/reference/banned-vocabulary.json`; prompt-only admin/client vocabulary is documentation, not a runtime check | **Wired** |
 | **2 — Spatial** | Paradigm declared, material thickness matches content density | Chromatic visual regression on paradigm-tagged stories; `@container` coverage lint | **Proposed** |
 | **3 — Ecosystem** | Archetype mapping, cascade visibility, surrogate flows | Playwright role-based flows (gardener / operator / evaluator / funder); vitest surrogate-path tests; indexer archetype-span checks | **Proposed** |
 | **4 — Compliance** | WCAG 2.1 AA, i18n readiness, responsive breakpoints | `@storybook/addon-a11y` (installed, not CI-gating); viewport tests at 320/768/1280; i18n-key coverage lint; `prefers-reduced-motion` vitest matcher | **Partial** — addon installed, no CI gate |
@@ -152,7 +152,7 @@ Each lens has a manual review pass. Some lenses also have automation that runs t
 ### Quick wiring reference — currently runnable
 
 ```bash
-# Lens 1 — banned vocabulary in user-facing strings
+# Lens 1 — lint-enforced banned vocabulary in user-facing i18n strings
 bun run lint:vocab
 
 # Cross-cutting — Warm Earth token spec ↔ theme.css + version coupling
@@ -175,7 +175,7 @@ To move rows out of **Proposed** / **Partial**:
 A checklist agents run once per PR catches what we remember. Automated checks catch what we forget. The combination is the whole system — manual review for judgment, CI for vigilance. Keep this table honest: every row marked **Wired** must execute without error from a clean checkout.
 
 **Implementation notes**:
-- `lint:vocab` runs `scripts/design/check-vocab.sh` against `packages/*/src/i18n/*.json`. Biome's linter is disabled repo-wide so a shell grep is the practical substitute; wire it into pre-commit + CI.
+- `lint:vocab` runs `scripts/design/check-vocab.sh` against `packages/*/src/i18n/*.json` and reads only `linter_enforced.terms` from `docs/docs/reference/banned-vocabulary.json`. Biome's linter is disabled repo-wide so a shell grep is the practical substitute; wire it into pre-commit + CI.
 - `check:design-tokens` runs `scripts/design/check-tokens.sh`, which verifies every spec'd Warm Earth token (springs, materials, border) exists in `theme.css` AND that `token_version` is in sync across `design/SKILL.md`, `ui/SKILL.md`, and `.claude/registry/skills.json`.
 
 ---

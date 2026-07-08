@@ -5,7 +5,7 @@ import {
   type MetaStripItem,
   type ViewAction,
 } from "@green-goods/shared";
-import { RiMoneyDollarCircleLine, RiUserLine, RiUserVoiceLine } from "@remixicon/react";
+import { RiMedalLine, RiMoneyDollarCircleLine, RiUserLine } from "@remixicon/react";
 
 /**
  * Inputs for the Community header stats slot.
@@ -83,11 +83,11 @@ export function communitySectionForMode(mode: CommunityWorkspaceMode) {
 
 /**
  * Community view-level actions — stable trio: the same set renders on every
- * mode, in the same order, so positions never shift between tabs. New proposal
- * is the fixed primary; the remaining actions stay secondary/ghost so emphasis
- * no longer follows the active mode:
+ * mode, in the same order, so positions never shift between tabs. Register
+ * hypercert is the fixed primary; the remaining actions stay secondary/ghost
+ * so emphasis no longer follows the active mode:
  *
- * - New proposal opens the hypercert signal-pool sheet.
+ * - Register hypercert opens the hypercert signal-pool sheet.
  * - Deposit / withdraw stays owner-gated and secondary.
  * - Manage members opens the community-owned members flow (/community/members)
  *   so the workspace stays on Community while the dialog is open.
@@ -124,10 +124,10 @@ export function buildCommunityViewActions(
       primary: false,
     },
     {
-      id: "new-proposal",
-      label: "New proposal",
-      labelId: "cockpit.community.action.newProposal",
-      icon: RiUserVoiceLine,
+      id: "register-hypercert",
+      label: "Register hypercert",
+      labelId: "cockpit.community.action.registerHypercert",
+      icon: RiMedalLine,
       onClick: () => navigate(adminRoutes.communityGovernanceSignalPool("hypercert", routeContext)),
       variant: "primary",
       visible: hasSelectedGarden && canManage,

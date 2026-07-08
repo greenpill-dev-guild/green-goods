@@ -63,6 +63,7 @@ export default function Actions() {
   const intl = useIntl();
   const actions = useActionsController();
   const isDesktop = useMediaQuery("(min-width: 1024px)");
+  const { isRefreshing, refetch } = actions;
 
   const headerStats = useMemo(() => {
     if (actions.isLoading) return [];
@@ -74,12 +75,15 @@ export default function Actions() {
   }, [actions.actions, actions.isLoading, intl.formatMessage]);
 
   const handleRefresh = useCallback(() => {
-    void actions.refetch();
-  }, [actions]);
-  // Mobile/tablet: refresh elevates to the AppBar next to notifications.
-  useRefreshAction(
-    !isDesktop ? { onRefresh: handleRefresh, isFetching: actions.isRefreshing } : null
+    void refetch();
+  }, [refetch]);
+
+  const mobileRefreshAction = useMemo(
+    () => (!isDesktop ? { onRefresh: handleRefresh, isFetching: isRefreshing } : null),
+    [handleRefresh, isDesktop, isRefreshing]
   );
+  // Mobile/tablet: refresh elevates to the AppBar next to notifications.
+  useRefreshAction(mobileRefreshAction);
 
   return (
     <CanvasRouteFrame data-component="ActionsWorkspace" data-region="workspace-actions">
@@ -157,7 +161,10 @@ export default function Actions() {
         ) : null}
       </CanvasRouteHeader>
 
-      <CanvasRouteContent data-region="workspace-actions-content" className="flex flex-col gap-3">
+      <CanvasRouteContent
+        data-region="workspace-actions-content"
+        className="flex flex-1 flex-col gap-3"
+      >
         {actions.isLoading ? (
           <AdminCard className="space-y-3" role="status" aria-live="polite">
             <span className="sr-only">

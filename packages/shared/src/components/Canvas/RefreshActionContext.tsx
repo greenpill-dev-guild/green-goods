@@ -50,23 +50,30 @@ export function useRefreshAction(config: RefreshActionConfig | null) {
   const { setConfig } = useContext(RefreshActionContext);
   const configRef = useRef(config);
   configRef.current = config;
+  const stableOnRefresh = useCallback(() => {
+    configRef.current?.onRefresh();
+  }, []);
+  const configSignature = config
+    ? ["present", config.isFetching ? "fetching" : "idle", config.labelId ?? ""].join("\u0001")
+    : "none";
 
   useEffect(() => {
-    setConfig(configRef.current);
     return () => setConfig(null);
   }, [setConfig]);
 
-  // Sync prop changes after initial mount.
+  // Sync prop changes that affect the rendered AppBar control. The refresh
+  // callback itself stays current via configRef without forcing provider churn.
   useEffect(() => {
-    setConfig(config);
-  }, [config, setConfig]);
+    const currentConfig = configRef.current;
+    setConfig(currentConfig ? { ...currentConfig, onRefresh: stableOnRefresh } : null);
+  }, [configSignature, setConfig, stableOnRefresh]);
 
   return useCallback(
     (next: RefreshActionConfig | null) => {
       configRef.current = next;
-      setConfig(next);
+      setConfig(next ? { ...next, onRefresh: stableOnRefresh } : null);
     },
-    [setConfig]
+    [setConfig, stableOnRefresh]
   );
 }
 

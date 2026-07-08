@@ -1,9 +1,10 @@
 import { PUBLIC_AGENT_ROUTES } from "@green-goods/shared/public-contracts";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createServer } from "../api/server";
-import { InMemoryPublicRateLimiter } from "../api/public-protection";
+import { InMemoryPublicRateLimiter, resolveAllowedOrigins } from "../api/public-protection";
 
 const ORIGIN = "https://greengoods.app";
+const LOCAL_ADMIN_ORIGIN = "https://127.0.0.1:3002";
 const NOW = Date.parse("2026-04-28T12:00:00.000Z");
 
 function jsonHeaders(extra: Record<string, string> = {}) {
@@ -95,6 +96,67 @@ describe("upload signing API", () => {
       filename: "leaf-photo.png",
       keyvalues: {
         category: "file_upload",
+        source: "upload-signer-test",
+        gardenAddress: "0x1111111111111111111111111111111111111111",
+      },
+    });
+  });
+
+  it("signs JSON metadata uploads from the local admin origin when development defaults are enabled", async () => {
+    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(
+      new Response(JSON.stringify({ data: "https://uploads.pinata.test/v3/files/signed" }), {
+        status: 200,
+      })
+    );
+    const app = createServer(
+      {
+        isAIReady: () => true,
+        allowedOrigins: resolveAllowedOrigins(undefined, {
+          includeDevelopmentDefaults: true,
+        }),
+        publicRateLimiter: new InMemoryPublicRateLimiter(),
+        now: () => NOW,
+        uploadSigning: {
+          pinataJwt: "pinata-secret",
+          pinataUploadsApiBaseUrl: "https://uploads.pinata.test/v3",
+          ttlSeconds: 45,
+          maxFileSize: 1_000_000,
+          allowedMimeTypes: ["image/*", "application/json"],
+          fetch: fetchMock,
+        },
+      },
+      { logger: false }
+    );
+
+    const preflight = await app.request(PUBLIC_AGENT_ROUTES.uploadSign, {
+      method: "OPTIONS",
+      headers: { origin: LOCAL_ADMIN_ORIGIN },
+    });
+    expect(preflight.status).toBe(204);
+    expect(preflight.headers.get("access-control-allow-origin")).toBe(LOCAL_ADMIN_ORIGIN);
+
+    const response = await app.request(PUBLIC_AGENT_ROUTES.uploadSign, {
+      method: "POST",
+      headers: jsonHeaders({ origin: LOCAL_ADMIN_ORIGIN }),
+      body: JSON.stringify(
+        validRequest({
+          filename: "metadata.json",
+          mimeType: "application/json",
+          size: 128,
+          category: "json_upload",
+        })
+      ),
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("access-control-allow-origin")).toBe(LOCAL_ADMIN_ORIGIN);
+
+    const pinataBody = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
+    expect(pinataBody).toMatchObject({
+      filename: "metadata.json",
+      allow_mime_types: ["image/*", "application/json"],
+      keyvalues: {
+        category: "json_upload",
         source: "upload-signer-test",
         gardenAddress: "0x1111111111111111111111111111111111111111",
       },

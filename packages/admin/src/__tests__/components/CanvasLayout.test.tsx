@@ -99,6 +99,7 @@ vi.mock("@green-goods/shared", async (importOriginal) => {
       gardens: Array<{ id: string; name: string }>;
       selectedGarden: { id: string; name: string } | null;
       onSelectGarden: (garden: { id: string; name: string } | null) => void;
+      showCreateGardenAction?: boolean;
     }) => {
       mockGardenChipProps(props);
       return (
@@ -409,6 +410,7 @@ describe("CanvasLayout", () => {
     expect(mockGardenChipProps).toHaveBeenCalledWith(
       expect.objectContaining({
         gardens: [{ id: "garden-1", name: "Garden One" }],
+        showCreateGardenAction: false,
       })
     );
     expect(mockAppBarProps.mock.calls[0]?.[0]).toEqual(
@@ -513,6 +515,9 @@ describe("CanvasLayout", () => {
     await waitFor(() => {
       expect(screen.getByTestId("admin-side-sheet-content")).toBeInTheDocument();
     });
+    expect(screen.getByRole("dialog").className).toContain("sm:top-[var(--admin-sheet-top)]");
+    expect(screen.getByRole("dialog").className).toContain("sm:bottom-[var(--admin-sheet-bottom)]");
+    expect(screen.getByRole("dialog").className).toContain("sm:w-[var(--admin-side-sheet-width)]");
   });
 
   it("opens profile content in a side sheet from the desktop profile trigger", async () => {
@@ -642,7 +647,7 @@ describe("CanvasLayout", () => {
     );
 
     // Left/bottom sheets retired — the left-inspector config now renders as a
-    // centered AdminDialog (full-screen scrim, not bounded to the sheet layer).
+    // AdminDialog (full-screen scrim, not bounded to the sheet layer).
     const dialog = await screen.findByTestId("admin-dialog-body");
     expect(dialog).toHaveTextContent("Inspector content");
   });

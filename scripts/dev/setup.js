@@ -368,7 +368,7 @@ function writeBaselineEnv() {
     `GG_WORKSPACE_PROFILE=${options.profile}`,
     "APP_ENV=development",
     "VITE_CHAIN_ID=11155111",
-    "VITE_API_BASE_URL=http://localhost:3000",
+    "VITE_API_BASE_URL=http://127.0.0.1:3005",
     "VITE_ENVIO_INDEXER_URL=http://localhost:3006/v1/graphql",
     "",
   ];

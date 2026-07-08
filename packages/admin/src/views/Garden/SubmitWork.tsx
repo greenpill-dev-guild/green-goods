@@ -36,7 +36,15 @@ import {
 } from "@green-goods/shared";
 import { validateWorkSubmissionContext } from "@green-goods/shared/modules";
 import { RiSeedlingLine, RiUploadCloudLine } from "@remixicon/react";
-import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  type FormEvent,
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Controller } from "react-hook-form";
 import { useIntl } from "react-intl";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -225,8 +233,8 @@ function getMinRequiredImages(action: Action | null) {
 }
 
 // "page" = standalone panel with no dialog chrome (tests, inline embedding);
-// "dialog" = hosted in the centered AdminDialog flow host at /hub/work/submit
-// (a centered card on desktop, a bottom-sheet on mobile). Both render the same
+// "dialog" = hosted in the AdminDialog flow host at /hub/work/submit
+// (a centered card on desktop, a full-width bottom-sheet on mobile). Both render the same
 // workflow body through ActionFlowShell — only the outer shell + close-button
 // reservation differ.
 type SubmitWorkLayout = "page" | "dialog";
@@ -394,6 +402,7 @@ function SubmitWorkPanelContent({
   const [progressMessage, setProgressMessage] = useState("");
   const [mediaFeedback, setMediaFeedback] = useState<MediaFeedback | null>(null);
   const [isPreparingMedia, setIsPreparingMedia] = useState(false);
+  const submitIntentRef = useRef(false);
   // Stepped flow position (1=Action, 2=Media, 3=Details, 4=Review).
   const [currentStep, setCurrentStep] = useState(1);
 
@@ -464,7 +473,7 @@ function SubmitWorkPanelContent({
   // follow the flow instead of staying on the Next button.
   const phaseRef = useStepFocus<HTMLDivElement>(currentStep);
 
-  const onSubmit = handleSubmit((data) => {
+  const submitValidatedDraft = handleSubmit((data) => {
     if (!garden || !selectedAction || selectedActionUID === null) return;
 
     const validationErrors = validateWorkSubmissionContext(
@@ -509,6 +518,20 @@ function SubmitWorkPanelContent({
     setProgressMessage(formatMessage({ id: "app.admin.work.submit.progress.validating" }));
     mutation.mutate({ draft, images: images.slice() });
   });
+
+  const handleFormSubmit = (event: FormEvent<HTMLFormElement>) => {
+    if (!submitIntentRef.current) {
+      event.preventDefault();
+      return;
+    }
+
+    submitIntentRef.current = false;
+    void submitValidatedDraft(event);
+  };
+
+  const armSubmitIntent = () => {
+    submitIntentRef.current = true;
+  };
 
   const handleActionChange = (actionId: string) => {
     setSelectedActionId(actionId);
@@ -864,6 +887,7 @@ function SubmitWorkPanelContent({
             variant="filled"
             loading={busy}
             disabled={busy}
+            onClick={armSubmitIntent}
             leadingIcon={<RiUploadCloudLine />}
             className="w-full sm:w-auto"
           >
@@ -1041,7 +1065,7 @@ function SubmitWorkPanelContent({
       onStepClick={handleStepJump}
       footer={footer}
     >
-      <form id={formId} onSubmit={onSubmit}>
+      <form id={formId} onSubmit={handleFormSubmit}>
         <div
           ref={phaseRef}
           tabIndex={-1}
@@ -1061,7 +1085,7 @@ function SubmitWorkPanelContent({
                     type="button"
                     variant="outlined"
                     size="sm"
-                    onClick={() => void onSubmit()}
+                    onClick={() => void submitValidatedDraft()}
                     disabled={busy}
                   >
                     {formatMessage({ id: "app.admin.work.submit.retry" })}
@@ -1109,7 +1133,7 @@ export default function SubmitWork() {
     onDiscard: close,
   });
 
-  // Centered flow modal with a scrim (bottom-sheet on mobile) — width comes from
+  // Flow modal with a scrim (full-width bottom-sheet on mobile) — width comes from
   // ADMIN_FLOW_DIALOG_CLASS, not the size prop below. The dialog body is
   // neutralized to a flex column with no scroll of its own — ActionFlowShell owns
   // the pinned chrome + scrolling body inside it.

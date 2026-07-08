@@ -44,7 +44,7 @@ HARD CONSTRAINTS — read before producing any finding.
    ```bash
    bun run check:design-generated # root DesignMD front matter ↔ generated artifacts
    bun run check:design-tokens   # implementation tokens ↔ theme.css ↔ version coupling
-   bun run lint:vocab            # banned terms in i18n strings
+   bun run lint:vocab            # lint-enforced banned terms in i18n strings only
    ```
    If both pass, "token drift" and "vocabulary drift" are not real findings. Verify the registry matches the directory:
    ```bash

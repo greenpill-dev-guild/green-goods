@@ -247,7 +247,7 @@ export const MobileSheetContract: Story = {
   render: () => (
     <DialogPreview
       title="Edit domains"
-      description="Mobile uses the sheet presentation while desktop remains centered."
+      description="Mobile action dialogs use a full-width sheet while desktop remains centered."
       body="The body scrolls inside the AdminDialog surface and actions stay pinned below it."
       confirmLabel="Save"
     />
@@ -286,13 +286,13 @@ export const PaletteVariant: Story = {
 };
 
 /**
- * Flow variant — the centered flow-dialog host for the admin action flows (Submit
+ * Flow variant — the action-flow dialog host for the admin action flows (Submit
  * Work, Create Assessment, Create Hypercert, Manage Members). AdminDialog suppresses
  * its own structured header and zeroes its padding so the consumer owns the chrome
  * through ActionFlowShell: one pinned header (context + title), one scrolling body,
  * one pinned footer. A bounded, centered card with a 32% scrim on desktop; a
- * bottom-sheet on mobile — never a fullscreen takeover. Width comes from the
- * shared ADMIN_FLOW_DIALOG_CLASS constant, not a local max-width override.
+ * full-width bottom sheet on mobile — never a fullscreen takeover. Width comes
+ * from the shared ADMIN_FLOW_DIALOG_CLASS constant, not a local max-width override.
  * The play test guards the single-header contract: the AdminDialog structured
  * header must stay suppressed.
  */
@@ -354,7 +354,8 @@ export const FlowVariant: Story = {
       '[data-component="AdminDialog"][data-slot="surface"]'
     );
     await waitFor(() => expect(surface).not.toBeNull());
-    // Bounded, centered card driven by the flow variant — not a fullscreen takeover.
+    // Flow variant drives the action-flow host — centered on desktop,
+    // full-width bottom sheet on mobile, never a fullscreen takeover.
     // The flow variant sizes itself through FLOW_SIZE; the size scale collapsed to
     // sm/md/lg, so the surface reports the "lg" tier.
     await expect(surface).toHaveAttribute("data-variant", "flow");
@@ -499,9 +500,9 @@ export const DesktopGeometry: Story = {
 };
 
 /**
- * Mobile bottom-sheet geometry at a real 390x844 viewport. Regression-guards
- * mobile sheet overflow, off-bottom sheets, hidden/floating footers, and the
- * close-button overlap defect.
+ * Mobile full-width bottom-sheet geometry at a real 390x844 viewport.
+ * Regression-guards mobile sheet overflow, off-bottom sheets, hidden/floating
+ * footers, and the close-button overlap defect.
  */
 export const MobileSheetGeometry: Story = {
   tags: ["storybook-ci"],
@@ -520,9 +521,8 @@ export const MobileSheetGeometry: Story = {
   ),
   play: async () => {
     // Mobile regime: viewport is below the `sm` (640px) breakpoint, so the
-    // bottom-sheet layout is active. Assert the breakpoint boundary, not an
-    // exact pixel width — robust to viewport-definition / device-pixel-ratio
-    // changes while still proving the desktop centered layout is NOT in play.
+    // full-width bottom-sheet layout is active and the desktop centered layout
+    // is NOT in play.
     await expect(window.innerWidth).toBeLessThan(SM_BREAKPOINT_PX);
 
     const surface = await within(document.body).findByRole("dialog", {
@@ -551,14 +551,14 @@ export const MobileSheetGeometry: Story = {
       await expect(Math.abs(rect.bottom - window.innerHeight)).toBeLessThanOrEqual(
         CENTER_TOLERANCE_PX
       );
-      // Horizontally centered (left-1/2 -translate-x-1/2 applies at every width).
-      const centerX = (rect.left + rect.right) / 2;
-      await expect(Math.abs(centerX - window.innerWidth / 2)).toBeLessThanOrEqual(
+      // True full-width bottom sheet: both horizontal edges meet the viewport.
+      await expect(Math.abs(rect.left)).toBeLessThanOrEqual(VIEWPORT_EDGE_TOLERANCE_PX);
+      await expect(Math.abs(rect.right - window.innerWidth)).toBeLessThanOrEqual(
+        VIEWPORT_EDGE_TOLERANCE_PX
+      );
+      await expect(Math.abs(rect.width - window.innerWidth)).toBeLessThanOrEqual(
         CENTER_TOLERANCE_PX
       );
-      // No horizontal overflow off either edge.
-      await expect(rect.left).toBeGreaterThanOrEqual(-VIEWPORT_EDGE_TOLERANCE_PX);
-      await expect(rect.right).toBeLessThanOrEqual(window.innerWidth + VIEWPORT_EDGE_TOLERANCE_PX);
     });
 
     // The page itself does not scroll horizontally.

@@ -194,4 +194,59 @@ describe("useGardenOperations", () => {
     expect(typeof result.current.addCommunity).toBe("function");
     expect(typeof result.current.removeCommunity).toBe("function");
   });
+
+  it("rolls back failed optimistic member removals", async () => {
+    const targetAddress = "0x5555555555555555555555555555555555555555";
+    let cachedGardens = [
+      {
+        id: gardenId,
+        gardeners: [targetAddress.toLowerCase()],
+      },
+    ];
+    const queryClient = {
+      getQueryData: vi.fn(() => cachedGardens),
+      setQueryData: vi.fn((_key: unknown, nextData: typeof cachedGardens) => {
+        cachedGardens = nextData;
+      }),
+      invalidateQueries: vi.fn(),
+    };
+
+    mockUseQueryClient.mockReturnValue(queryClient);
+    mockCreateGardenOperation.mockImplementation(
+      (
+        _gardenId: string,
+        config: { memberType: string; operationType: "add" | "remove" },
+        _walletClient: unknown,
+        _address: unknown,
+        _chainId: unknown,
+        _executeWithToast: unknown,
+        _setIsLoading: unknown,
+        onOptimisticUpdate?: (update: {
+          memberType: string;
+          operationType: "add" | "remove";
+          targetAddress: string;
+        }) => void
+      ) =>
+        vi.fn(async (address: string) => {
+          if (config.memberType === "gardener" && config.operationType === "remove") {
+            const optimisticUpdate = {
+              memberType: "gardener",
+              operationType: "remove" as const,
+              targetAddress: address,
+            };
+            onOptimisticUpdate?.(optimisticUpdate);
+            return { success: false, optimisticUpdate };
+          }
+
+          return { success: true };
+        })
+    );
+
+    const { result } = renderHook(() => useGardenOperations(gardenId));
+
+    await result.current.removeGardener(targetAddress);
+
+    expect(queryClient.setQueryData).toHaveBeenCalledTimes(2);
+    expect(cachedGardens[0]?.gardeners).toEqual([targetAddress.toLowerCase()]);
+  });
 });

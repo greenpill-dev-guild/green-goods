@@ -19,6 +19,7 @@ import {
 import { RiCheckLine, RiCloseLine, RiLoader4Line } from "@remixicon/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useIntl } from "react-intl";
+import { AdminSelectableCard } from "../../AdminSelectableCard";
 
 type DetailField = "name" | "slug" | "description" | "location";
 
@@ -232,7 +233,7 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
             maxLength={GARDEN_NAME_MAX_LENGTH}
             placeholder={formatMessage({
               id: "admin.details.namePlaceholder",
-              defaultMessage: "eg. Rio rainforest lab",
+              defaultMessage: "e.g., Rio rainforest lab",
             })}
             aria-required="true"
             aria-invalid={showFieldError("name") && !!detailsErrors.name}
@@ -304,7 +305,7 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
             onBlur={() => handleFieldBlur("slug")}
             placeholder={formatMessage({
               id: "admin.details.slugPlaceholder",
-              defaultMessage: "eg. rio-rainforest-lab",
+              defaultMessage: "e.g., rio-rainforest-lab",
             })}
             inputMode="text"
             autoCapitalize="none"
@@ -449,31 +450,22 @@ export function DetailsStep({ showValidation }: DetailsStepProps) {
             ({ value, labelId, defaultLabel, descriptionId, defaultDescription }) => {
               const isSelected = domains.includes(value);
               return (
-                <button
+                <AdminSelectableCard
                   key={value}
-                  type="button"
                   onClick={() => toggleDomain(value)}
-                  className={cn(
-                    "flex flex-col items-start gap-1 rounded-lg border px-3 py-2.5 text-sm transition-colors text-left",
-                    isSelected
-                      ? "border-primary-base bg-primary-alpha-10 text-text-strong"
-                      : "border-stroke-soft bg-bg-white text-text-sub hover:border-stroke-strong"
-                  )}
-                >
-                  <span className="flex items-center gap-2">
+                  selected={isSelected}
+                  title={formatMessage({ id: labelId, defaultMessage: defaultLabel })}
+                  description={formatMessage({
+                    id: descriptionId,
+                    defaultMessage: defaultDescription,
+                  })}
+                  leadingVisual={
                     <span
                       className="h-3 w-3 shrink-0 rounded-full"
                       style={{ backgroundColor: DOMAIN_COLORS[value] }}
                     />
-                    {formatMessage({ id: labelId, defaultMessage: defaultLabel })}
-                  </span>
-                  <span className="pl-5 text-xs text-text-soft">
-                    {formatMessage({
-                      id: descriptionId,
-                      defaultMessage: defaultDescription,
-                    })}
-                  </span>
-                </button>
+                  }
+                />
               );
             }
           )}

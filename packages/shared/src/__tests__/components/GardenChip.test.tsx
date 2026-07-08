@@ -180,6 +180,24 @@ describe("GardenChip", () => {
     expect(screen.queryByText("Create Garden")).toBeNull();
   });
 
+  it("hides 'Create Garden' when showCreateGardenAction is false", async () => {
+    const onCreateGarden = vi.fn();
+    render(
+      <GardenChip
+        gardens={[GARDEN_A, GARDEN_B]}
+        selectedGarden={GARDEN_A}
+        onSelectGarden={() => {}}
+        onCreateGarden={onCreateGarden}
+        showCreateGardenAction={false}
+      />
+    );
+
+    await user.click(screen.getByRole("button"));
+
+    expect(screen.queryByText("Create Garden")).toBeNull();
+    expect(onCreateGarden).not.toHaveBeenCalled();
+  });
+
   it("truncates long garden names with title attribute", () => {
     const longNameGarden = {
       id: "0x3333",
@@ -200,16 +218,32 @@ describe("GardenChip", () => {
     expect(truncatedSpan).toBeTruthy();
   });
 
-  it("applies max-width constraint to the chip container", () => {
+  it("keeps the trigger compact and sizes the menu from the longest garden name", async () => {
     render(
       <GardenChip
-        gardens={[GARDEN_A, GARDEN_B]}
+        gardens={[
+          GARDEN_A,
+          {
+            id: "0x3333",
+            name: "A Very Long Garden Name Used For Width Sizing",
+          },
+        ]}
         selectedGarden={GARDEN_A}
         onSelectGarden={() => {}}
       />
     );
 
     const trigger = screen.getByRole("button");
-    expect(trigger.className).toContain("max-w-sm");
+    expect(trigger.style.width).toBe("");
+    expect(trigger.style.maxWidth).toBe("calc(100vw - 2rem)");
+
+    await user.click(trigger);
+
+    const menu = document.querySelector<HTMLElement>(
+      "[data-component='GardenChip'][data-slot='menu']"
+    );
+    expect(menu).toBeTruthy();
+    expect(menu?.style.width).toBe("max-content");
+    expect(menu?.style.maxWidth).toBe("calc(100vw - 2rem)");
   });
 });

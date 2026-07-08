@@ -9,7 +9,7 @@
  */
 
 import { createServer, createThirdwebCheckoutClient, startServer } from "./api/server";
-import { parseAllowedOrigins } from "./api/public-protection";
+import { resolveAllowedOrigins } from "./api/public-protection";
 import { getConfig } from "./config";
 import { createGroupCaptureHandler, handleMessage, setHandlerContext } from "./handlers";
 import {
@@ -112,7 +112,9 @@ async function main(): Promise<void> {
     telegramBot: bot,
     subscriptionClient,
     fundingIntents: createSqliteFundingIntentStore(),
-    allowedOrigins: parseAllowedOrigins(config.publicAllowedOrigins),
+    allowedOrigins: resolveAllowedOrigins(config.publicAllowedOrigins, {
+      includeDevelopmentDefaults: config.isDevelopment,
+    }),
     trustedProxy: {
       hops: config.trustedProxyHops,
       cidrs: config.trustedProxyCidrs?.split(",").map((cidr) => cidr.trim()),

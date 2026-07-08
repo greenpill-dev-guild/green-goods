@@ -2,7 +2,11 @@ import { RiSearchLine } from "@remixicon/react";
 import { describe, expect, it, vi } from "vitest";
 import { fireEvent, renderWithProviders, screen } from "../test-utils";
 import { AdminButton } from "../../components/AdminButton";
-import { AdminConfirmDialog, AdminDialog } from "../../components/AdminDialog";
+import {
+  ADMIN_FLOW_DIALOG_CLASS,
+  AdminConfirmDialog,
+  AdminDialog,
+} from "../../components/AdminDialog";
 
 describe("AdminDialog", () => {
   it("renders the standard desktop/mobile contract attributes with pinned actions", () => {
@@ -29,7 +33,13 @@ describe("AdminDialog", () => {
     expect(dialog).toHaveAttribute("data-mobile", "sheet");
     expect(dialog).toHaveAttribute("aria-describedby");
     expect(dialog.className).toContain("bottom-0");
+    expect(dialog.className).toContain("inset-x-0");
+    expect(dialog.className).toContain("w-[100dvw]");
+    expect(dialog.className).toContain("max-w-none");
+    expect(dialog.className).not.toContain("max-w-[calc(100vw-1rem)]");
+    expect(dialog.className).toContain("sm:left-1/2");
     expect(dialog.className).toContain("sm:top-1/2");
+    expect(dialog.className).toContain("sm:-translate-x-1/2");
     expect(dialog.className).toContain("sm:-translate-y-1/2");
     expect(
       document.getElementById(dialog.getAttribute("aria-describedby") ?? "")
@@ -38,6 +48,31 @@ describe("AdminDialog", () => {
     expect(screen.getByTestId("admin-dialog-actions")).toContainElement(
       screen.getByRole("button", { name: "Save" })
     );
+  });
+
+  it("uses full-width mobile geometry for flow action dialogs", () => {
+    renderWithProviders(
+      <AdminDialog
+        open
+        onOpenChange={vi.fn()}
+        title="Submit work"
+        variant="flow"
+        size="lg"
+        className={ADMIN_FLOW_DIALOG_CLASS}
+      >
+        <p>Flow body</p>
+      </AdminDialog>
+    );
+
+    const dialog = screen.getByRole("dialog", { name: "Submit work" });
+    expect(dialog).toHaveAttribute("data-variant", "flow");
+    expect(dialog).toHaveAttribute("data-size", "lg");
+    expect(dialog.className).toContain("inset-x-0");
+    expect(dialog.className).toContain("w-[100dvw]");
+    expect(dialog.className).toContain("max-w-none");
+    expect(dialog.className).toContain("sm:-translate-x-1/2");
+    expect(dialog.className).toContain("sm:!max-w-3xl");
+    expect(dialog.className).not.toContain("max-w-[calc(100vw-1rem)]");
   });
 
   it("uses the palette variant for command search surfaces", () => {
@@ -57,6 +92,10 @@ describe("AdminDialog", () => {
     const dialog = screen.getByRole("dialog", { name: "Command palette" });
     expect(dialog).toHaveAttribute("data-variant", "palette");
     expect(dialog).toHaveClass("admin-dialog--palette");
+    expect(dialog.className).toContain("left-1/2");
+    expect(dialog.className).toContain("-translate-x-1/2");
+    expect(dialog.className).toContain("max-w-[calc(100vw-1rem)]");
+    expect(dialog.className).not.toContain("w-[100dvw]");
     expect(screen.getByLabelText("Search commands")).toBeInTheDocument();
   });
 
@@ -99,6 +138,25 @@ describe("AdminConfirmDialog", () => {
     screen.getByRole("button", { name: "Pause" }).click();
 
     expect(onConfirm).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps confirm dialogs on the compact mobile geometry", () => {
+    renderWithProviders(
+      <AdminConfirmDialog
+        isOpen
+        onClose={vi.fn()}
+        onConfirm={vi.fn()}
+        title="Emergency pause"
+        description="Pause this vault?"
+      />
+    );
+
+    const dialog = screen.getByRole("dialog", { name: "Emergency pause" });
+    expect(dialog).toHaveAttribute("data-variant", "confirm");
+    expect(dialog.className).toContain("left-1/2");
+    expect(dialog.className).toContain("-translate-x-1/2");
+    expect(dialog.className).toContain("max-w-[calc(100vw-1rem)]");
+    expect(dialog.className).not.toContain("w-[100dvw]");
   });
 
   it("locks confirmation dialogs while loading", () => {

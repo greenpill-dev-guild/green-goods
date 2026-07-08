@@ -71,7 +71,9 @@ bun run env:check            # validate .env satisfies .env.schema
 | `VITE_DEV_CHAIN_MODE` | Optional local fork marker | Set by the repo-native dev stack for Green Goods fork mode |
 | `VITE_LOCAL_FORK_RPC_URL` | Optional local fork RPC | Set by the repo-native dev stack to `http://127.0.0.1:3009` |
 | `VITE_ENVIO_INDEXER_URL` | Local indexer reads | Generated for local GraphQL; needs the indexer running for live local data |
-| `VITE_PINATA_JWT` | Upload-capable media | Add only when testing uploads |
+| `VITE_API_BASE_URL` | Upload-capable media browser API origin | Generated for the local agent; set to the deployed agent for upload-capable QA |
+| `PINATA_JWT` / `PINATA_JWT_OP_REF` | Server/API Pinata upload authority | Add through `.env.template` / 1Password for upload-capable QA; never embed this in browser bundles |
+| `VITE_PINATA_GATEWAY_URL` | Public Pinata gateway for reading media | Generated from the shared gateway default |
 | `VITE_PIMLICO_API_KEY` | Passkey auth | Add only when testing passkey flows |
 | `VITE_WALLETCONNECT_PROJECT_ID` | Wallet auth | Add only when testing wallet flows |
 | `TELEGRAM_BOT_TOKEN` | Agent service | Add only when running a useful local agent |

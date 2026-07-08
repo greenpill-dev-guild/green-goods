@@ -8,7 +8,7 @@ Loaded when working in `packages/shared/`. Extends CLAUDE.md.
 |---------|---------|
 | `bun run test` | Run tests |
 | `bun lint` | Lint with oxlint |
-| `bun run storybook` | Start Storybook (port 6006) |
+| `bun run storybook` | Start Storybook (port 3004) |
 | `bun run build-storybook` | Build static Storybook |
 
 ## Contents

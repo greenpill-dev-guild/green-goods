@@ -72,6 +72,7 @@ export function useActionsController() {
   const { desktopActions } = useViewActions({
     actions: viewActions,
     isDesktop,
+    blocked: routeState.contentId !== null,
   });
 
   const { filters: urlFilters, setFilter, resetFilters } = useUrlFilters(ACTION_FILTER_DEFAULTS);

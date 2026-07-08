@@ -44,6 +44,13 @@ export default function ManageMembers() {
     funder: operations.removeFunder,
     community: operations.removeCommunity,
   };
+  const handleRemoveMember = async (address: Address, role: GardenRole) => {
+    const result = await removeByRole[role](address);
+    if (!result.success) {
+      manageMembers.scheduleBackgroundRefetch();
+    }
+    return result;
+  };
 
   if (!manageMembers.garden) {
     return (
@@ -82,7 +89,7 @@ export default function ManageMembers() {
         roleMembers={manageMembers.roleMembers}
         canManage={manageMembers.canManage}
         isLoading={operations.isLoading}
-        onRemoveMember={(address, role) => void removeByRole[role](address)}
+        onRemoveMember={handleRemoveMember}
         onAddMembers={() => setAddOpen(true)}
       />
       <AddMembersDialog

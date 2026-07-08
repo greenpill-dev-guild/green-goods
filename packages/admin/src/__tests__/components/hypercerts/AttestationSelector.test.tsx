@@ -206,6 +206,16 @@ describe("components/Hypercerts/AttestationSelector", () => {
       expect(screen.getByText("4 available")).toBeInTheDocument();
     });
 
+    it("explains why hypercert creation cannot proceed without approved attestations", () => {
+      render(createElement(AttestationSelector, { ...defaultProps, attestations: [] }));
+
+      expect(
+        screen.getByText(
+          "No approved, unbundled attestations are available yet. Approve work in Hub before creating a hypercert."
+        )
+      ).toBeInTheDocument();
+    });
+
     it("shows gardener names", () => {
       render(createElement(AttestationSelector, defaultProps));
 

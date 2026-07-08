@@ -70,8 +70,8 @@ import {
   InMemoryPublicRateLimiter,
   isOriginAllowed,
   PUBLIC_RATE_LIMIT_POLICIES,
-  parseAllowedOrigins,
   publicRateLimitKey,
+  resolveAllowedOrigins,
   type TrustedProxyConfig,
 } from "./public-protection";
 
@@ -528,12 +528,21 @@ export async function hasReceiptTokenBody(request: Request): Promise<boolean> {
 }
 
 function getAllowedOrigins(deps: ServerDeps): Set<string> {
+  const configuredOrigins = firstNonEmpty(
+    process.env.AGENT_ALLOWED_ORIGINS,
+    process.env.AGENT_PUBLIC_ALLOWED_ORIGINS
+  );
   return (
     deps.allowedOrigins ??
-    parseAllowedOrigins(
-      process.env.AGENT_ALLOWED_ORIGINS ?? process.env.AGENT_PUBLIC_ALLOWED_ORIGINS
-    )
+    resolveAllowedOrigins(configuredOrigins, {
+      includeDevelopmentDefaults:
+        process.env.NODE_ENV === "development" || process.env.APP_ENV === "development",
+    })
   );
+}
+
+function firstNonEmpty(...values: Array<string | undefined>): string | undefined {
+  return values.find((value) => Boolean(value?.trim()));
 }
 
 function checkOrigin(c: Context, deps: ServerDeps): PublicApiError | undefined {

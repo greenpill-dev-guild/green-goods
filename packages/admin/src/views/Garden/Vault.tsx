@@ -18,9 +18,9 @@ import {
   useUser,
 } from "@green-goods/shared";
 import { RiExternalLinkLine } from "@remixicon/react";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useIntl } from "react-intl";
-import { useLocation, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useReadContract } from "wagmi";
 import { AdminButton } from "@/components/AdminButton";
 import { EnsAddressText } from "@/components/EnsAddressText";
@@ -30,11 +30,9 @@ import {
   CanvasRouteHeader,
 } from "@/components/Layout/CanvasRouteFrame";
 import {
-  DepositModal,
   GardenSupporters,
   PositionCard,
   VaultEventHistory,
-  WithdrawModal,
 } from "@/components/Vault";
 
 type VaultRouteState = {
@@ -49,12 +47,9 @@ interface GardenVaultViewProps {
 export default function GardenVaultView({ layout = "page" }: GardenVaultViewProps = {}) {
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
+  const navigate = useNavigate();
   const { formatMessage } = useIntl();
   const { selectedGarden } = useAdminGardenWorkspaceSelection();
-  const [depositAsset, setDepositAsset] = useState<string | undefined>(undefined);
-  const [withdrawAsset, setWithdrawAsset] = useState<string | undefined>(undefined);
-  const [depositOpen, setDepositOpen] = useState(false);
-  const [withdrawOpen, setWithdrawOpen] = useState(false);
   const routeState = (location.state as VaultRouteState | null) ?? null;
   const resolvedGardenId = id ?? selectedGarden?.id;
 
@@ -250,12 +245,20 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
               canEmergencyPause={canEmergencyPause}
               isModuleOwner={isModuleOwner}
               onDeposit={(assetAddress) => {
-                setDepositAsset(assetAddress);
-                setDepositOpen(true);
+                navigate(
+                  adminRoutes.communityTreasuryVaultDeposit({
+                    ...gardenRouteContext,
+                    item: assetAddress,
+                  })
+                );
               }}
               onWithdraw={(assetAddress) => {
-                setWithdrawAsset(assetAddress);
-                setWithdrawOpen(true);
+                navigate(
+                  adminRoutes.communityTreasuryVaultWithdraw({
+                    ...gardenRouteContext,
+                    item: assetAddress,
+                  })
+                );
               }}
             />
           ))}
@@ -330,32 +333,8 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
     </>
   );
 
-  const modals = (
-    <>
-      <DepositModal
-        isOpen={depositOpen}
-        onClose={() => setDepositOpen(false)}
-        gardenAddress={gardenAddress}
-        vaults={vaults}
-        defaultAsset={depositAsset}
-      />
-      <WithdrawModal
-        isOpen={withdrawOpen}
-        onClose={() => setWithdrawOpen(false)}
-        gardenAddress={gardenAddress}
-        vaults={vaults}
-        defaultAsset={withdrawAsset}
-      />
-    </>
-  );
-
   if (layout === "sheet") {
-    return (
-      <div className="flex flex-col gap-section">
-        {content}
-        {modals}
-      </div>
-    );
+    return <div className="flex flex-col gap-section overflow-x-hidden">{content}</div>;
   }
 
   return (
@@ -374,7 +353,6 @@ export default function GardenVaultView({ layout = "page" }: GardenVaultViewProp
       <CanvasRouteContent maxWidthClassName="max-w-6xl" className="mt-6 flex flex-col gap-section">
         {content}
       </CanvasRouteContent>
-      {modals}
     </CanvasRouteFrame>
   );
 }

@@ -22,7 +22,7 @@ export function MainSheet({ children, className }: MainSheetProps) {
     <div
       className={cn("canvas-area-main relative flex-1 min-h-0 w-full", className)}
       style={{
-        marginBottom: "1rem",
+        marginBottom: "var(--admin-main-sheet-bottom-gap, 1rem)",
       }}
       data-component="MainSheet"
       data-slot="root"

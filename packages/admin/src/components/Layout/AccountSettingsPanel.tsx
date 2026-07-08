@@ -12,6 +12,7 @@ import {
 import { RiComputerLine, RiExternalLinkLine, RiMoonLine, RiSunLine } from "@remixicon/react";
 import type { ReactNode } from "react";
 import { useIntl } from "react-intl";
+import { AdminChoiceGroup } from "../AdminChoiceGroup";
 
 const THEME_OPTIONS = [
   { value: "light" as const, icon: RiSunLine, labelId: "cockpit.settings.lightMode" },
@@ -96,28 +97,17 @@ export function AccountSettingsPanel({ className }: AccountSettingsPanelProps) {
               "Choose the canvas atmosphere that feels best for long review sessions.",
           })}
         />
-        <div className="grid gap-2 sm:grid-cols-3">
-          {THEME_OPTIONS.map(({ value, icon: Icon, labelId }) => {
-            const isActive = theme === value;
-            return (
-              <button
-                key={value}
-                type="button"
-                onClick={() => setTheme(value)}
-                data-state={isActive ? "active" : "inactive"}
-                aria-pressed={isActive}
-                className={cn(
-                  "account-theme-option",
-                  "flex min-h-11 items-center justify-between rounded-[var(--radius-md)] px-4 py-3 text-left transition-[background-color,box-shadow,color] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]",
-                  isActive ? "text-[rgb(var(--tone-accent,37_99_235))]" : "text-text-sub"
-                )}
-              >
-                <span className="text-sm font-medium">{formatMessage({ id: labelId })}</span>
-                <Icon className="h-4 w-4" />
-              </button>
-            );
-          })}
-        </div>
+        <AdminChoiceGroup
+          ariaLabel={formatMessage({ id: "cockpit.settings.theme", defaultMessage: "Theme" })}
+          value={theme}
+          onChange={(nextTheme) => setTheme(nextTheme as typeof theme)}
+          columns={3}
+          options={THEME_OPTIONS.map(({ value, icon: Icon, labelId }) => ({
+            value,
+            label: formatMessage({ id: labelId }),
+            leadingVisual: <Icon className="h-4 w-4" aria-hidden="true" />,
+          }))}
+        />
       </section>
 
       <SheetDivider />
@@ -131,30 +121,17 @@ export function AccountSettingsPanel({ className }: AccountSettingsPanelProps) {
             defaultMessage: "Choose the language for the operator canvas.",
           })}
         />
-        <div className="grid gap-2 sm:grid-cols-3">
-          {availableLocales.map((availableLocale) => {
-            const isActive = locale === availableLocale;
-            return (
-              <button
-                key={availableLocale}
-                type="button"
-                onClick={() => switchLanguage(availableLocale as Locale)}
-                data-state={isActive ? "active" : "inactive"}
-                aria-pressed={isActive}
-                lang={availableLocale}
-                className={cn(
-                  "account-theme-option",
-                  "flex min-h-11 items-center justify-between rounded-[var(--radius-md)] px-4 py-3 text-left transition-[background-color,box-shadow,color] duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]",
-                  isActive ? "text-[rgb(var(--tone-accent,37_99_235))]" : "text-text-sub"
-                )}
-              >
-                <span className="text-sm font-medium">
-                  {LOCALE_LABELS[availableLocale] ?? availableLocale.toUpperCase()}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+        <AdminChoiceGroup
+          ariaLabel={formatMessage({ id: "cockpit.settings.language", defaultMessage: "Language" })}
+          value={locale}
+          onChange={(nextLocale) => switchLanguage(nextLocale as Locale)}
+          columns={3}
+          options={availableLocales.map((availableLocale) => ({
+            value: availableLocale,
+            label: LOCALE_LABELS[availableLocale] ?? availableLocale.toUpperCase(),
+            lang: availableLocale,
+          }))}
+        />
       </section>
 
       <SheetDivider />

@@ -52,29 +52,36 @@ export function PageHeader({
 }: PageHeaderProps) {
   const isCanvas = variant === "canvas";
 
+  const headerStyle = !isCanvas
+    ? {
+        borderBottomColor: "rgb(var(--tone-action, var(--neutral-800)) / 0.06)",
+      }
+    : sticky
+      ? {
+          background: "transparent",
+          backdropFilter: "none",
+          WebkitBackdropFilter: "none",
+        }
+      : undefined;
+
   return (
     <header
       data-component="PageHeader"
       data-surface={variant}
       className={cn(
         isCanvas
-          ? "relative border-b px-0 pt-3 pb-2"
+          ? "relative px-0 pt-3 pb-2"
           : cn(
               "border-b px-4 py-3 sm:px-6 sm:py-4",
               sticky ? "bg-bg-white shadow-regular-sm" : "bg-bg-white"
             ),
         sticky &&
           (isCanvas
-            ? "sticky top-14 z-sticky bg-[rgb(var(--admin-surface-0))]"
+            ? "page-header-canvas-sticky sticky top-14 z-sticky"
             : "sticky top-14 z-sticky"),
         className
       )}
-      // Handoff DESIGN_NOTES § Tone system: page-header bottom hairline tones
-      // to the active view (~18% saturation). Falls back to neutral hairline
-      // when no [data-tone] ancestor.
-      style={{
-        borderBottomColor: "rgb(var(--tone-action, var(--neutral-800)) / 0.10)",
-      }}
+      style={headerStyle}
     >
       <div data-region="route-header-title" className="flex min-w-0 items-start gap-3 sm:gap-4">
         {backLink ? (
@@ -102,7 +109,7 @@ export function PageHeader({
             className={cn(
               "truncate text-text-strong",
               isCanvas
-                ? "text-[1.625rem] font-bold leading-tight tracking-[-0.01em] sm:text-[2rem] lg:text-[2.25rem]"
+                ? "text-[1.625rem] font-bold leading-tight sm:text-[2rem] lg:text-[2.25rem]"
                 : "text-lg font-semibold sm:text-2xl"
             )}
             title={typeof title === "string" ? title : undefined}

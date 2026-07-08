@@ -1,7 +1,8 @@
-import { type Action, Capital, cn } from "@green-goods/shared";
-import { RiCheckLine, RiImageLine } from "@remixicon/react";
+import { type Action, Capital } from "@green-goods/shared";
+import { RiImageLine } from "@remixicon/react";
 import { type KeyboardEvent, useRef, useState } from "react";
 import { useIntl } from "react-intl";
+import { AdminSelectableCard } from "@/components/AdminSelectableCard";
 
 /**
  * Capital → i18n label key. Reuses the action-authoring capital labels so the
@@ -97,78 +98,42 @@ export function ActionChooserGrid({
         const minImages = required ? (action.mediaInfo?.minImageCount ?? 1) : 0;
 
         return (
-          <button
+          <AdminSelectableCard
             key={action.id}
             ref={(el) => {
               buttonRefs.current[index] = el;
             }}
-            type="button"
-            role="radio"
-            aria-checked={selected}
+            selectionRole="radio"
             tabIndex={index === activeIndex ? 0 : -1}
             disabled={disabled}
             onClick={() => onSelect(action.id)}
             onFocus={() => setFocusedIndex(index)}
-            data-component="ActionChooserCard"
-            data-selected={selected}
-            className={cn(
-              "relative flex h-full w-full flex-col gap-1.5 rounded-lg border px-4 py-3.5 text-left",
-              // Spring press feedback (Standard card motion map) — a tactile
-              // confirmation standing in for the client's haptics, restrained
-              // for the cockpit. transition-all + spatial-fast mirrors AdminButton.
-              "transition-all duration-[var(--spring-spatial-fast-duration)] ease-[var(--spring-spatial-fast-easing)]",
-              "active:scale-[0.99]",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[rgb(var(--tone-focus-ring,var(--primary-action)))]",
-              // Selected/hover follow the workspace tone — matches the stepper + CTA.
-              selected
-                ? "border-[rgb(var(--tone-action,var(--primary-action)))] bg-[rgb(var(--tone-action,var(--primary-action))/0.1)]"
-                : "border-stroke-soft bg-bg-white hover:border-[rgb(var(--tone-action,var(--primary-action))/0.24)] hover:bg-bg-weak",
-              disabled && "cursor-not-allowed opacity-60"
-            )}
-          >
-            {selected ? (
-              <RiCheckLine
-                className="absolute right-3 top-3 h-4 w-4 text-[rgb(var(--tone-on-surface-accent,var(--m3-primary)))]"
-                aria-hidden="true"
-              />
-            ) : null}
-
-            <span
-              className={cn(
-                "pr-6 text-sm font-semibold",
-                selected
-                  ? "text-[rgb(var(--tone-on-surface-accent,var(--m3-primary)))]"
-                  : "text-text-strong"
-              )}
-            >
-              {action.title}
-            </span>
-
-            {action.description ? (
-              <span className="line-clamp-2 text-xs text-text-soft">{action.description}</span>
-            ) : null}
-
-            <span className="mt-1 flex flex-wrap items-center gap-1.5">
-              {action.capitals.map((capital) => {
-                const labelKey = CAPITAL_LABEL_KEYS[capital];
-                if (!labelKey) return null;
-                return (
-                  <span key={capital} className={chipClass}>
-                    {formatMessage({ id: labelKey })}
-                  </span>
-                );
-              })}
-              <span className={chipClass}>
-                <RiImageLine className="h-3 w-3" aria-hidden="true" />
-                {required
-                  ? formatMessage(
-                      { id: "app.admin.work.submit.photosRequired" },
-                      { count: minImages }
-                    )
-                  : formatMessage({ id: "app.admin.work.submit.photosOptional" })}
-              </span>
-            </span>
-          </button>
+            selected={selected}
+            title={action.title}
+            description={action.description}
+            meta={
+              <>
+                {action.capitals.map((capital) => {
+                  const labelKey = CAPITAL_LABEL_KEYS[capital];
+                  if (!labelKey) return null;
+                  return (
+                    <span key={capital} className={chipClass}>
+                      {formatMessage({ id: labelKey })}
+                    </span>
+                  );
+                })}
+                <span className={chipClass}>
+                  <RiImageLine className="h-3 w-3" aria-hidden="true" />
+                  {required
+                    ? formatMessage(
+                        { id: "app.admin.work.submit.photosRequired" },
+                        { count: minImages }
+                      )
+                    : formatMessage({ id: "app.admin.work.submit.photosOptional" })}
+                </span>
+              </>
+            }
+          />
         );
       })}
     </div>

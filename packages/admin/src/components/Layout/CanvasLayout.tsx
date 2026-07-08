@@ -367,6 +367,7 @@ export function CanvasLayout() {
         selectedGarden={chipGarden}
         onSelectGarden={handleSelectGarden}
         onCreateGarden={handleCreateGarden}
+        showCreateGardenAction={false}
       />
     ),
     [chipGarden, gardenList, handleCreateGarden, handleSelectGarden]
@@ -483,10 +484,12 @@ export function CanvasLayout() {
                 id="main-content"
                 data-region="main-scroll-area"
                 tabIndex={-1}
-                className="main-scroll-area mx-auto h-full w-full max-w-[1400px] overflow-y-auto px-3 pt-2 sm:px-5 sm:pt-3"
+                className="main-scroll-area mx-auto h-full w-full overflow-y-auto pt-2 sm:pt-3"
                 style={{
                   // Handoff sheet-system.css: floating NavigationBar at bottom: 20px
                   // with 56px height ⇒ ~100px clearance to keep last content row visible.
+                  maxWidth: "var(--admin-main-max-width, 1400px)",
+                  paddingInline: "var(--admin-main-inline-gutter, 1.25rem)",
                   paddingBottom: isDesktop
                     ? "var(--admin-main-bottom-clearance-desktop, 6.25rem)"
                     : "var(--admin-main-bottom-clearance-mobile, calc(env(safe-area-inset-bottom) + 9.5rem))",
@@ -524,14 +527,14 @@ export function CanvasLayout() {
 
             {/* Account / notification inspector — the three global AppBar
                 surfaces (Profile, Settings, Notifications) render as an
-                AdminSideSheet: right-docked on desktop, AdminDialog-identical
-                bottom sheet on mobile (where only the notification bell can
-                open it — Profile/Settings live in the Profile tab there). The
-                same orchestrator contentId drives open/close. Tone is the
-                neutral operator "hub" accent: this is global account chrome,
-                not workspace content, so it should not inherit the active
-                garden's tint, and the sheet portals out of CanvasLayout's
-                [data-tone] scope. */}
+                AdminSideSheet: right-docked within the canvas chrome bounds on
+                desktop, compact inset bottom sheet on mobile (where only the
+                notification bell can open it — Profile/Settings live in the
+                Profile tab there). The same orchestrator contentId drives
+                open/close. Tone is the neutral operator "hub" accent: this is
+                global account chrome, not workspace content, so it should not
+                inherit the active garden's tint, and the sheet portals out of
+                CanvasLayout's [data-tone] scope. */}
             <AdminSideSheet
               open={activeSheet === "right" && rightSheetDescriptor !== null}
               onOpenChange={(next) => {
@@ -702,7 +705,7 @@ FabAwareNavigationBar.displayName = "FabAwareNavigationBar";
 
 /**
  * Reads the left-inspector config from the admin left-sheet channel and renders
- * it as a centered AdminDialog — the left/bottom canvas sheets are retired, so
+ * it as an AdminDialog — the left/bottom canvas sheets are retired, so
  * AdminDialog is the canonical admin overlay (bottom-sheet presentation on
  * mobile is built in). Persistent across route transitions — views declare
  * content via useLeftSheetConfig(). Closing runs `config.onClose`; route-backed

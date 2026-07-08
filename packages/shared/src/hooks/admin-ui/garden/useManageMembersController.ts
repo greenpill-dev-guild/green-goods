@@ -14,7 +14,9 @@ import { useNavigate } from "react-router-dom";
 export function useManageMembersController() {
   const navigate = useNavigate();
   const { activeGardenId } = useAdminGardenContext();
-  const { garden, canManage, roleMembers } = useGardenDetailData(activeGardenId ?? undefined);
+  const { garden, canManage, roleMembers, scheduleBackgroundRefetch } = useGardenDetailData(
+    activeGardenId ?? undefined
+  );
   const gardenRouteContext = useMemo(() => ({ gardenId: garden?.id }), [garden?.id]);
 
   const handleCancel = () => {
@@ -25,6 +27,7 @@ export function useManageMembersController() {
     garden,
     canManage,
     roleMembers,
+    scheduleBackgroundRefetch,
     handleCancel,
   };
 }

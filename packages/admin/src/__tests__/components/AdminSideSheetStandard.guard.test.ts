@@ -10,7 +10,7 @@ import { describe, expect, it } from "vitest";
  * Side sheets exist for exactly the three global AppBar surfaces — Profile,
  * Settings, Notifications — rendered by CanvasLayout through the right-sheet
  * registry. Every workspace action, detail, and creation overlay stays a
- * centered AdminDialog. This guard keeps the carve-out from drifting back
+ * AdminDialog. This guard keeps the carve-out from drifting back
  * into the retired sheets-for-everything era:
  *
  *   1. only CanvasLayout may render `<AdminSideSheet` (views must not adopt
@@ -89,7 +89,7 @@ export function collectViolations(source: string, filePath: string): string[] {
 
     if (!isAllowedConsumer(filePath)) {
       violations.push(
-        `${where} — AdminSideSheet outside CanvasLayout; side sheets are reserved for the three global AppBar surfaces (Profile, Settings, Notifications). Use a centered AdminDialog for workspace action/detail/creation flows.`
+        `${where} — AdminSideSheet outside CanvasLayout; side sheets are reserved for the three global AppBar surfaces (Profile, Settings, Notifications). Use AdminDialog for workspace action/detail/creation flows.`
       );
     }
 

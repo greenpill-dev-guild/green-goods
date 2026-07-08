@@ -21,13 +21,20 @@ vi.mock("react-intl", () => ({
         "nav.actions": "Actions",
         "nav.gardens": "Gardens",
         "cockpit.nav.profile": "Profile",
+        "cockpit.fab.openActions": "Open actions",
+        "actions.submit": "Submit work",
+        "actions.disabled": "Disabled action",
       };
       return messages[id] ?? id;
     },
   }),
 }));
 
-import { NavigationBar, type ToolbarSlot } from "../../components/Canvas/NavigationBar";
+import {
+  NavigationBar,
+  type FabConfig,
+  type ToolbarSlot,
+} from "../../components/Canvas/NavigationBar";
 
 // Stub icon component
 function StubIcon({ className }: { className?: string }) {
@@ -150,6 +157,33 @@ describe("NavigationBar", () => {
     expect(within(navElements[0]!).getByRole("button", { name: /profile/i })).toBeInTheDocument();
   });
 
+  it("pins the mobile nav with inline safe-area positioning for consuming builds", () => {
+    setDesktopViewport(false);
+
+    render(
+      <NavigationBar
+        slots={[
+          ...createSlots(),
+          {
+            id: "profile",
+            label: "Profile",
+            labelId: "cockpit.nav.profile",
+            icon: StubIcon,
+            path: "/profile",
+            visible: true,
+            mobileOnly: true,
+          },
+        ]}
+        activePath="/dashboard"
+        onNavigate={() => {}}
+      />
+    );
+
+    const nav = screen.getByRole("navigation");
+    expect(nav).toHaveStyle({ position: "fixed", left: "0.75rem", right: "0.75rem" });
+    expect(nav.style.zIndex).toBe("var(--z-nav)");
+  });
+
   it("renders all visible slots with labels", () => {
     render(<NavigationBar slots={createSlots()} activePath="/dashboard" onNavigate={() => {}} />);
 
@@ -180,6 +214,14 @@ describe("NavigationBar", () => {
     expect(activeButton).toHaveAttribute("data-slot", "item");
     expect(activeButton).toHaveAttribute("data-state", "active");
     expect(activeButton).toHaveAttribute("data-item-id", "actions");
+  });
+
+  it("exposes desktop item count for equal-width admin nav columns", () => {
+    render(<NavigationBar slots={createSlots()} activePath="/actions" onNavigate={() => {}} />);
+
+    const nav = screen.getByRole("navigation");
+    expect(nav).toHaveAttribute("data-item-count", "3");
+    expect(nav.style.getPropertyValue("--admin-nav-item-count")).toBe("3");
   });
 
   it("does not set aria-current on inactive slots", () => {
@@ -344,5 +386,156 @@ describe("NavigationBar", () => {
     );
 
     expect(screen.queryByRole("navigation")).toBeNull();
+  });
+
+  it("opens multi-action mobile FABs as a launcher and ignores disabled actions", async () => {
+    setDesktopViewport(false);
+    const onAction = vi.fn();
+    const fab: FabConfig = {
+      icon: StubIcon,
+      label: "Actions",
+      actions: [
+        {
+          id: "submit-work",
+          icon: StubIcon,
+          label: "Submit work",
+          labelId: "actions.submit",
+        },
+        {
+          id: "disabled-action",
+          icon: StubIcon,
+          label: "Disabled action",
+          labelId: "actions.disabled",
+          disabled: true,
+        },
+      ],
+      onAction,
+    };
+
+    render(
+      <NavigationBar
+        slots={createSlots()}
+        activePath="/dashboard"
+        onNavigate={() => {}}
+        fab={fab}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: /open actions/i }));
+
+    expect(screen.getByRole("menu", { name: /actions/i })).toBeInTheDocument();
+    const enabledAction = screen.getByRole("menuitem", { name: /submit work/i });
+    const disabledAction = screen.getByRole("menuitem", { name: /disabled action/i });
+    expect(disabledAction).toBeDisabled();
+    expect(enabledAction).toHaveStyle({ maxWidth: "calc(100vw - 2rem)" });
+
+    await user.click(disabledAction);
+    expect(onAction).not.toHaveBeenCalled();
+
+    await user.click(enabledAction);
+    expect(onAction).toHaveBeenCalledWith("submit-work");
+  });
+
+  it("moves focus into the opened FAB launcher and restores it on Escape", async () => {
+    setDesktopViewport(false);
+    const onAction = vi.fn();
+    const fab: FabConfig = {
+      icon: StubIcon,
+      label: "Actions",
+      actions: [
+        {
+          id: "submit-work",
+          icon: StubIcon,
+          label: "Submit work",
+          labelId: "actions.submit",
+        },
+        {
+          id: "disabled-action",
+          icon: StubIcon,
+          label: "Disabled action",
+          labelId: "actions.disabled",
+          disabled: true,
+        },
+      ],
+      onAction,
+    };
+
+    render(
+      <NavigationBar
+        slots={createSlots()}
+        activePath="/dashboard"
+        onNavigate={() => {}}
+        fab={fab}
+      />
+    );
+
+    const trigger = screen.getByRole("button", { name: /open actions/i });
+    await user.click(trigger);
+
+    const enabledAction = screen.getByRole("menuitem", { name: /submit work/i });
+    expect(enabledAction).toHaveFocus();
+
+    await user.keyboard("{ArrowDown}");
+    expect(enabledAction).toHaveFocus();
+
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("menu", { name: /actions/i })).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+  });
+
+  it("bounds the FAB launcher inside the mobile visual viewport", async () => {
+    setDesktopViewport(false);
+    const fab: FabConfig = {
+      icon: StubIcon,
+      label: "Actions",
+      actions: [
+        {
+          id: "submit-work",
+          icon: StubIcon,
+          label: "Submit work",
+          labelId: "actions.submit",
+        },
+      ],
+      onAction: vi.fn(),
+    };
+
+    render(
+      <NavigationBar
+        slots={createSlots()}
+        activePath="/dashboard"
+        onNavigate={() => {}}
+        fab={{
+          ...fab,
+          actions: [
+            ...fab.actions,
+            {
+              id: "disabled-action",
+              icon: StubIcon,
+              label: "Disabled action",
+              labelId: "actions.disabled",
+              disabled: true,
+            },
+          ],
+        }}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: /open actions/i }));
+
+    const launcher = screen.getByRole("menu", { name: /actions/i });
+    expect(launcher).toHaveStyle({
+      position: "absolute",
+      right: "0px",
+      bottom: "100%",
+      marginBottom: "0.5rem",
+      display: "flex",
+      flexDirection: "column-reverse",
+      alignItems: "flex-end",
+      gap: "0.5rem",
+    });
+    expect(launcher.style.maxHeight).toContain("100dvh");
+    expect(launcher.style.maxHeight).toContain("env(safe-area-inset-top)");
+    expect(launcher.style.maxHeight).toContain("env(safe-area-inset-bottom)");
+    expect(launcher.style.maxHeight).toContain("9.5rem");
   });
 });

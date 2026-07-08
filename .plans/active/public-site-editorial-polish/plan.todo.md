@@ -2,7 +2,7 @@
 
 ## Context
 
-Light editorial polish over the Green Goods public/editorial website (client browser presentation mode) so community members and funders can more easily learn, understand, and participate. Not in scope: redesign, restructure, new visual system, sweeping rewrites, new product sections, media production. Copy is already strong after the recent Wave D pass; this pass fixes meaning failures, closes two audience comprehension gaps, and applies the tone rules (warm, direct, no em dashes).
+Light editorial polish over the Green Goods public/editorial website (client browser presentation mode) so community members and funders can more easily learn, understand, and participate. Not in scope: redesign, restructure, new visual system, sweeping rewrites, new product sections, media production. Copy is already strong after the recent Wave D pass; this pass fixes meaning failures, closes two audience comprehension gaps, and applies the tone rules (warm and direct, with punctuation chosen case by case).
 
 **Decisions locked with Afo**:
 1. Evaluators framed as coming from many backgrounds everywhere (loop + persona + glossary aligned together).
@@ -20,7 +20,7 @@ Light editorial polish over the Green Goods public/editorial website (client bro
 - All copy is i18n: `packages/shared/src/i18n/en.json` lines ~3000–3969 (`public.*` keys). Every change needs real es.json + pt.json mirrors (locale-coverage gate rejects missing keys, empties, and multi-word strings identical to English; ICU syntax must stay intact). Components duplicate values in `defaultMessage` props — en.json is what renders (`App.tsx` loads it), but defaultMessages must be kept byte-identical to avoid drift.
 - `bun run lint:vocab` machine-enforces: streak, countdown, leaderboard, FOMO, urgent, limited time, re-engagement, retention hook.
 - Home composition (verified): Hero → Featured Gardens → Proof Band → Record Loop (Assess/Work/Verify/Fund) → Who Tends a Garden (5 personas) → Funding Bridge → Get In Touch → Footer.
-- Product ground truth (verified): 13 live Gardens on Arbitrum. Lifecycle: Assessment (baseline, before work) → Work → Work Approval → Impact Certificate (first public issuance pending). Endow live (principal redeemable "when available", yield to Garden); Donate per-garden gated. Gardeners join open-membership Gardens via the app; operator/evaluator roles are invited. All five persona docs guides exist. Newsletter is single opt-in (verified in `packages/agent/src/services/subscriptions.ts`: contacts subscribed immediately, no confirmation email). `/gardens` search covers name+location+description. Docs glossary evaluator entry doesn't say "domain expert", so the inclusive rewrite creates no docs drift.
+- Product ground truth snapshot (verified for the audit as of 2026-07-06; reverify during the implementation prep before editing copy): 13 live Gardens on Arbitrum. Lifecycle: Assessment (baseline, before work) → Work → Work Approval → Impact Certificate (first public issuance pending). Endow live (principal redeemable "when available", yield to Garden); Donate per-garden gated. Gardeners join open-membership Gardens via the app; operator/evaluator roles are invited. All five persona docs guides exist. Newsletter is single opt-in (verified in `packages/agent/src/services/subscriptions.ts`: contacts subscribed immediately, no confirmation email). `/gardens` search covers name+location+description. Docs glossary evaluator entry doesn't say "domain expert", so the inclusive rewrite creates no docs drift.
 
 ## Page-by-page audit
 
@@ -228,7 +228,7 @@ Kicker rules: verify in `Cookies.tsx` that connect/connected/forYou never render
 2. Run the truth-check (yield-routing sentence) and confirm newsletter cadence.
 3. **Wave 1 — P0** (10 keys): en.json → es/pt mirrors → defaultMessage sync in `PublicProofBand.tsx`, `PublicWhoTendsAGarden.tsx`, `PublicRecordLoop.tsx`, `Glossary.tsx`, and Impact proof markers component.
 4. **Wave 2 — P1** (~20 keys): components: `PublicFundingBridge.tsx`, `PublicRecordLoop.tsx` (assessBody), `PublicWhoTendsAGarden.tsx` (community CTA), `Fund.tsx`, `Gardens.tsx`, `PublicSourceDialog.tsx`, `GardenDialog.tsx`/`GardenDetail.tsx`, `PublicGetInTouch.tsx`, `Impact.tsx`, `Glossary.tsx`. (`Home.tsx` untouched — hero kept per decision 6.)
-5. **Wave 3 — P2** (~28 keys): sweep tables above; es/pt mirrors also drop their copied em dashes.
+5. **Wave 3 — P2** (~28 keys): sweep tables above; es/pt mirrors keep punctuation natural to the locale. Em dashes are not banned by default; remove them only where they make task-page copy less plain or obscure meaning.
 6. **Validation (QA Speed Mode)**: shared locale-coverage test, `bun run lint:vocab`, targeted client tests (`PublicHome`, `PublicGardens`, `PublicActions`, `PublicImpact`, `PublicFundingDialogVocab`, `PublicFooter`, plus any Public component tests that assert changed strings — update fixtures). Rendered spot-check of `/` `/gardens` `/fund` via authenticated Brave when available; otherwise report browser QA blocked (never substitute isolated Playwright).
 7. **Ship**: run the Ship Gate before the PR (`bun format && bun lint && bun run test && bun build` + `lint:vocab`); conventional commit `fix(client,shared): editorial clarity pass on public website copy`; branch + PR to develop (substantive multi-file change → PR per repo policy).
 
@@ -242,7 +242,7 @@ spec is .plans/active/public-site-editorial-polish/plan.todo.md (copy it there f
 ~/.claude/plans/i-want-to-plan-distributed-beacon.md if missing). Stay on the current
 branch until the PR step.
 
-WHAT: Apply the spec's three copy tables (P0, P1, P2 + em-dash sweep + kicker table)
+WHAT: Apply the spec's three copy tables (P0, P1, P2 punctuation review + kicker table)
 exactly. They are final approved strings — do not restyle them.
 
 HARD BOUNDARIES
@@ -252,7 +252,7 @@ HARD BOUNDARIES
 - No component structure, layout, route, or style changes. No new i18n keys. No edits
   outside the listed paths. Do not touch /vaults or /cookies strings beyond the kicker
   table.
-- Voice for es/pt: warm, direct, plain. No em dashes in any locale. Never use: streak,
+- Voice for es/pt: warm, direct, plain. Intentional em dashes are allowed when they preserve the approved meaning or read naturally in the locale; do not churn punctuation by rule alone. Never use: streak,
   countdown, leaderboard, FOMO, urgent, limited time, re-engagement, retention hook.
 - Every changed en string gets a real es and pt translation (the shared locale-coverage
   gate rejects missing keys, empty values, and multi-word strings identical to English).
@@ -295,4 +295,4 @@ not verify.
 - `bun run lint:vocab` green.
 - Targeted client tests green after fixture updates; no weakened assertions.
 - Rendered proof of `/`, `/gardens`, `/fund` via authenticated Brave, or browser QA explicitly reported blocked.
-- Diff review confirms: strings only; defaultMessage ≡ en.json; no em dashes anywhere in changed strings; kicker sequences read 01→06 (home) and 01→03 (fund/impact/actions/cookies).
+- Diff review confirms: strings only; defaultMessage ≡ en.json; intentional punctuation is preserved or simplified case by case; kicker sequences read 01→06 (home) and 01→03 (fund/impact/actions/cookies).

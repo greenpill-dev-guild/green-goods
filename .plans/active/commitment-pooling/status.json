@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-07-03",
-    "updated_at": "2026-07-06"
+    "updated_at": "2026-07-07"
   },
   "links": {
     "corrections_log": "corrections-log.md",
@@ -62,7 +62,7 @@
     "depends_on_features": []
   },
   "notes": [
-    "Commitments are module-native records; EAS gains exactly two schemas (assessment v3, community testimony). No commitment EAS schema.",
+    "Commitments are module-native records; the commitment-pooling release adds exactly two EAS schemas (assessment v3, community testimony). No commitment EAS schema. The separate Needs layer adds four additional EAS schemas in .plans/active/community-interface/ per plan.todo.md addendum #28.",
     "CommitmentPoolingModule + non-transferable ERC-1155-style CommitmentRegister; settlement later wraps register classes on the same poolId (PRD-651, gated).",
     "Clean room: Grassroots Economics paper and public docs only; never the AGPL Sarafu source.",
     "G$ split-state settlement is in scope for August via PRD-686: SettlementModule on Arbitrum, per-garden Celo Safes, operator-executed G$ settlement, multi-chain status reads, and member G$ sends.",
@@ -303,6 +303,10 @@
     {
       "date": "2026-07-06",
       "event": "Linear sync switched to explicit parent_only mode: PRD-650 stays as the single Linear parent mirror, no lane issue updates are emitted, and state_api is manually gated on PRD-673 entity/query contract evidence."
+    },
+    {
+      "date": "2026-07-07",
+      "event": "Qualified the 'exactly two EAS schemas' note as commitment-pooling-only and pointed to the separate Community Needs four-schema addendum."
     }
   ]
 }

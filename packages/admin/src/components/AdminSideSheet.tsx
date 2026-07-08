@@ -50,19 +50,19 @@ const closeButtonClasses = cn(
  * hairline header, absolute close button, tone re-establishment, instant-exit
  * hidden-tab handling) and swaps only the geometry.
  *
- * - ≥640px: right-docked, full height, rounded inner (left) corners, slides
- *   in from the right edge. Width reuses the `--canvas-right-sheet-width`
- *   token (one width for every sheet — per-content widths read as
- *   inconsistent chrome).
- * - <640px: identical presentation to AdminDialog's mobile bottom sheet, so
- *   the notification bell keeps today's glance-and-dismiss behavior.
+ * - ≥640px: right-docked within the canvas chrome bounds (below AppBar, above
+ *   NavigationBar), rounded all around, and slides in from the right edge.
+ *   Width reuses the `--canvas-right-sheet-width` token (one width for every
+ *   sheet — per-content widths read as inconsistent chrome).
+ * - <640px: compact inset bottom sheet, so the notification bell keeps today's
+ *   glance-and-dismiss behavior while workspace AdminDialogs can use full width.
  *
  * Content contract: children own the body — panels compose `SheetBody`
  * (scrolling middle) and optionally `SheetFooter` (pinned bottom bar) inside
  * the sheet's flex column. The sheet itself does not pad or scroll, so panel
  * padding never compounds with shell padding.
  *
- * Scope contract: workspace action/detail/inspection overlays stay centered
+ * Scope contract: workspace action/detail/inspection overlays stay in
  * `AdminDialog`s. Side sheets are reserved for the three global surfaces —
  * enforced by AdminSideSheetStandard.guard.test.ts.
  */
@@ -122,13 +122,13 @@ export function AdminSideSheet({
           data-mobile="sheet"
           data-instant-exit={instantExit || undefined}
           className={cn(
-            // Mobile: bottom sheet (identical geometry to AdminDialog's mobile
-            // presentation). Desktop ≥640px: right-docked full-height panel.
+            // Mobile: compact inset bottom sheet. Desktop ≥640px:
+            // right-docked within the canvas chrome bounds.
             "fixed bottom-0 left-1/2 z-modal flex max-h-[calc(100dvh-1rem)] w-full max-w-[calc(100vw-1rem)] -translate-x-1/2 flex-col",
             "rounded-t-[var(--m3-shape-xl)]",
-            "sm:top-0 sm:right-0 sm:left-auto sm:max-h-none sm:max-w-none sm:translate-x-0",
-            "sm:w-[min(var(--canvas-right-sheet-width,clamp(380px,30vw,560px)),calc(100vw-3rem))]",
-            "sm:rounded-l-[var(--m3-shape-xl)] sm:rounded-tr-none",
+            "sm:top-[var(--admin-sheet-top)] sm:right-[var(--admin-sheet-side-inset)] sm:bottom-[var(--admin-sheet-bottom)] sm:left-auto sm:max-h-none sm:max-w-none sm:translate-x-0",
+            "sm:w-[var(--admin-side-sheet-width)]",
+            "sm:rounded-[var(--m3-shape-xl)]",
             // Solid surface + elevation 3 — dense surfaces stay solid; glass
             // remains Navigation/FAB-only.
             "bg-[rgb(var(--m3-surface-container-high))]",

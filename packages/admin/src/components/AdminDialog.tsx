@@ -91,14 +91,24 @@ const variantClasses: Record<NonNullable<AdminDialogProps["variant"]>, string> =
 };
 
 // Shared sizing for the full-surface action-flow dialogs (Submit Work, Create
-// Assessment, Create Hypercert): a ~90dvh bottom-sheet on mobile, a centered
-// max-w-3xl→5xl card on desktop with a STABLE 85dvh height so async content
+// Assessment, Create Hypercert): a ~90dvh full-width bottom-sheet on mobile, a
+// centered max-w-3xl→5xl card on desktop with a STABLE 85dvh height so async content
 // (e.g. the hypercert attestation list resolving on step 1) can't resize the
 // dialog mid-open — the body scrolls inside and the footer stays pinned, the way
 // ActionFlowShell is designed. Centralized so the three flows can't drift (the
 // literal lives here in admin/src so the Tailwind scan reaches it).
 export const ADMIN_FLOW_DIALOG_CLASS =
   "min-h-[90dvh] sm:min-h-0 sm:h-[85dvh] sm:!max-w-3xl lg:!max-w-5xl";
+
+const compactMobileSheetClasses = cn(
+  "fixed bottom-0 left-1/2 z-modal flex max-h-[calc(100dvh-1rem)] w-full max-w-[calc(100vw-1rem)] -translate-x-1/2 flex-col",
+  "sm:bottom-auto sm:top-1/2 sm:max-h-[calc(100dvh-2rem)] sm:-translate-y-1/2"
+);
+
+const fullWidthMobileSheetClasses = cn(
+  "fixed inset-x-0 bottom-0 z-modal flex max-h-[calc(100dvh-1rem)] w-[100dvw] max-w-none flex-col",
+  "sm:inset-x-auto sm:left-1/2 sm:bottom-auto sm:top-1/2 sm:w-full sm:max-h-[calc(100dvh-2rem)] sm:-translate-x-1/2 sm:-translate-y-1/2"
+);
 
 const closeButtonClasses = cn(
   // Centered on the compact header title row (py-3 + text-lg leading-7).
@@ -182,6 +192,7 @@ export function AdminDialog({
   // structured header (icon/title/description) is suppressed and the title is
   // kept screen-reader-only for the Radix dialog a11y contract.
   const hasStructuredHeader = variant !== "palette" && variant !== "flow";
+  const hasFullWidthMobileSheet = variant === "standard" || variant === "flow";
   const iconNode =
     typeof Icon === "function" ? (
       <Icon className="h-6 w-6 text-[rgb(var(--m3-on-surface-variant))]" />
@@ -218,9 +229,10 @@ export function AdminDialog({
           data-instant-exit={instantExit || undefined}
           role={role}
           className={cn(
-            // Mobile sheet, desktop centered dialog.
-            "fixed bottom-0 left-1/2 z-modal flex max-h-[calc(100dvh-1rem)] w-full max-w-[calc(100vw-1rem)] -translate-x-1/2 flex-col",
-            "rounded-t-[var(--m3-shape-xl)] sm:bottom-auto sm:top-1/2 sm:max-h-[calc(100dvh-2rem)] sm:-translate-y-1/2 sm:rounded-[var(--m3-shape-xl)]",
+            // Mobile: standard + flow are true full-width action sheets; compact
+            // surfaces (confirm + palette) keep the inset sheet. Desktop centers all.
+            hasFullWidthMobileSheet ? fullWidthMobileSheetClasses : compactMobileSheetClasses,
+            "rounded-t-[var(--m3-shape-xl)] sm:rounded-[var(--m3-shape-xl)]",
             // Surface
             "bg-[rgb(var(--m3-surface-container-high))]",
             // Elevation 3
@@ -322,7 +334,7 @@ export function AdminDialog({
                 // correct in contexts that don't load admin index.css (Storybook
                 // renders stories without it — an unset var would fall back to
                 // currentColor and paint a near-black border).
-                "flex shrink-0 flex-col-reverse gap-2 border-t border-[color:var(--hairline,rgb(var(--stroke-soft-200)))] bg-[var(--surface-raised,rgb(var(--bg-white-0)))] px-4 py-3 sm:flex-row sm:items-center sm:justify-end sm:px-6",
+                "flex shrink-0 flex-col-reverse gap-2 border-t border-[color:var(--hairline,rgb(var(--stroke-soft-200)))] bg-[var(--surface-raised,rgb(var(--bg-white-0)))] px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:flex-row sm:items-center sm:justify-end sm:px-6 sm:py-3",
                 actionsClassName
               )}
             >

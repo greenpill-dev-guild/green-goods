@@ -56,7 +56,7 @@ const meta: Meta<typeof ActionFlowShell> = {
     // Height-bounded box at the desktop dialog max width (lg:max-w-5xl) so the
     // pinned footer + the lg step-rail behave as they do inside the centered 2xl
     // AdminDialog (flow variant). Switch the viewport toolbar to Mobile to see the
-    // bottom-sheet width (rail collapses to the header stepper).
+    // full-width bottom-sheet width (rail collapses to the header stepper).
     (Story) => (
       <div className="h-[640px] w-full max-w-3xl overflow-hidden rounded-xl border border-stroke-soft bg-[rgb(var(--m3-surface))] lg:max-w-5xl">
         <Story />
@@ -67,7 +67,7 @@ const meta: Meta<typeof ActionFlowShell> = {
     docs: {
       description: {
         component:
-          'Shared chrome for admin action flows: pinned header (back-arrow + context + title), one scrolling body, and an optional pinned footer. Solid surfaces only — no glass — per the Controlled Chrome boundary. Renders inside a centered AdminDialog (variant="flow", width from ADMIN_FLOW_DIALOG_CLASS), a bottom-sheet on mobile; it is the only title bar in the flow.',
+          'Shared chrome for admin action flows: pinned header (back-arrow + context + title), one scrolling body, and an optional pinned footer. Solid surfaces only — no glass — per the Controlled Chrome boundary. Renders inside AdminDialog (variant="flow", width from ADMIN_FLOW_DIALOG_CLASS), centered on desktop and full-width bottom-sheet on mobile; it is the only title bar in the flow.',
       },
     },
   },
