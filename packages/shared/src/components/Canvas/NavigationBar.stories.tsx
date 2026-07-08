@@ -217,8 +217,8 @@ export const MobileSpeedDial: Story = {
     // Opening the dial reveals each action once (no duplicated primary).
     await userEvent.click(opener);
     await expect(opener).toHaveAttribute("aria-expanded", "true");
-    await canvas.findByRole("button", { name: /submit work/i });
-    await canvas.findByRole("button", { name: /create hypercert/i });
+    await canvas.findByRole("menuitem", { name: /submit work/i });
+    await canvas.findByRole("menuitem", { name: /create hypercert/i });
   },
 };
 
