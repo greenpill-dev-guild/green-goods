@@ -158,13 +158,14 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
   const shortAppVersion = appVersion.slice(0, 12);
   const sentryAuthToken = envValue("SENTRY_AUTH_TOKEN");
   const shouldUploadSentrySourceMaps = command === "build" && Boolean(sentryAuthToken);
+  // The PostHog upload lane (scripts/ops/upload-sourcemaps.js) sets
+  // GG_ENABLE_SOURCEMAPS so a production build emits maps for server-side upload
+  // even when Sentry is not configured — that is the current production path.
+  // Sentry upload keeps emitting them too. Any other build (Vercel deploy, local
+  // prod build) sets neither flag and ships no maps.
   const requestedSourceMaps = process.env.GG_ENABLE_SOURCEMAPS === "true";
-  if (command === "build" && requestedSourceMaps && !shouldUploadSentrySourceMaps) {
-    console.warn(
-      "GG_ENABLE_SOURCEMAPS was ignored because SENTRY_AUTH_TOKEN is missing; production source maps are only emitted for Sentry upload."
-    );
-  }
-  const enableSourceMaps = shouldUploadSentrySourceMaps;
+  const enableSourceMaps =
+    command === "build" && (requestedSourceMaps || shouldUploadSentrySourceMaps);
   const sentryDsn = resolveAdminSentryDsn();
   const sentryEnvironment = resolveSentryEnvironment(mode);
   // Env-parity gate (PRD-567): a production deploy must ship with a resolvable
@@ -267,7 +268,10 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
     envDir: rootDir,
     envPrefix: ["VITE_", "SKIP_"],
     build: {
-      sourcemap: enableSourceMaps,
+      // 'hidden' emits .map files for server-side upload (PostHog / Sentry) but
+      // omits the sourceMappingURL comment, so the maps are never referenced from
+      // — or served to — browsers. The upload lane deletes them after upload.
+      sourcemap: enableSourceMaps ? "hidden" : false,
       chunkSizeWarningLimit: 2000,
       rollupOptions: { output: { manualChunks: splitAdminVendorChunks } },
     },
