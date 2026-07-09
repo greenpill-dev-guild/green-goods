@@ -8,12 +8,11 @@
  * minified React errors like "Minified React error #301" to end users and never
  * reports the exception to PostHog.
  *
- * This is especially nasty on the post-deploy SW-update flow: when the new service
- * worker activates with `skipWaiting + clientsClaim + cleanupOutdatedCaches`, old
- * dynamic-import chunks can 404 while React Router is trying to resolve a `lazy:`
+ * This is especially nasty on the post-deploy SW-update flow: if an old shell asks
+ * for a deleted dynamic-import chunk, React Router is trying to resolve a `lazy:`
  * route. The chunk-load failure throws into Router, Router shows its default screen,
- * the user reports it as an "Unexpected Application Error" that doesn't appear in
- * our telemetry.
+ * and the user reports it as an "Unexpected Application Error" that doesn't appear
+ * in our telemetry.
  *
  * This component mirrors AppErrorBoundary's recovery logic at the route layer:
  *   - chunk-load errors auto-reload once via a sessionStorage one-shot flag

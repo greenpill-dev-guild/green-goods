@@ -33,6 +33,7 @@ describe("PwaRuntime", () => {
     );
 
     expect(screen.getByLabelText("Loading Green Goods")).toBeInTheDocument();
+    expect(screen.getByText("Green Goods is loading.")).toBeVisible();
     expect(screen.getAllByRole("status")[0]).toHaveAttribute("aria-busy", "true");
     expect(screen.queryByText("Home app")).not.toBeInTheDocument();
   });

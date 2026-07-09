@@ -40,7 +40,11 @@ type PasskeyServerEnv = {
 };
 
 export function isPasskeyServerEnabled(env: PasskeyServerEnv = import.meta.env): boolean {
-  return env.VITE_PASSKEY_SERVER_ENABLED === "true";
+  const configured = env.VITE_PASSKEY_SERVER_ENABLED?.trim().toLowerCase();
+  if (configured === "true") return true;
+  if (configured === "false") return false;
+
+  return Boolean(env.PROD);
 }
 
 export type PasskeyRecoveryContext = {

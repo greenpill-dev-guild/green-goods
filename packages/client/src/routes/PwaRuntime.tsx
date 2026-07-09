@@ -7,7 +7,9 @@ const WalletRuntimeProviders = lazy(() => import("./WalletRuntimeProviders"));
 
 export default function PwaRuntime() {
   return (
-    <Suspense fallback={<HydrationFallback appName="Green Goods" />}>
+    <Suspense
+      fallback={<HydrationFallback appName="Green Goods" message="Green Goods is loading." />}
+    >
       <WalletRuntimeProviders>
         <PwaUpdateNotifier />
         <Outlet />

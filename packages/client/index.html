@@ -97,6 +97,159 @@
   </head>
   <body>
     <div id="root"></div>
+    <div
+      id="boot-fallback"
+      role="status"
+      aria-live="polite"
+      style="
+        min-height: 100vh;
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: #fffdf7;
+        color: #1f2a24;
+        font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        text-align: center;
+      "
+    >
+      <div style="width: min(100%, 320px);">
+        <img
+          alt=""
+          src="%BASE_URL%%PWA_BROWSER_ICON%"
+          width="72"
+          height="72"
+          style="width: 72px; height: 72px; margin: 0 auto 20px; display: block;"
+        />
+        <p
+          id="boot-fallback-message"
+          style="margin: 0 0 16px; font-size: 16px; line-height: 1.5; font-weight: 650;"
+        >
+          Green Goods is loading.
+        </p>
+        <button
+          id="boot-fallback-reload"
+          type="button"
+          hidden
+          style="
+            min-height: 44px;
+            border: 0;
+            border-radius: 999px;
+            padding: 0 20px;
+            background: #173f2a;
+            color: #ffffff;
+            font: inherit;
+            font-weight: 700;
+          "
+        >
+          Reload
+        </button>
+      </div>
+    </div>
+    <script>
+      (function () {
+        var root = document.getElementById("root");
+        var fallback = document.getElementById("boot-fallback");
+        var message = document.getElementById("boot-fallback-message");
+        var reload = document.getElementById("boot-fallback-reload");
+        var language = (document.documentElement.lang || navigator.language || "en")
+          .toLowerCase()
+          .slice(0, 2);
+        var copy = {
+          en: {
+            loading: "Green Goods is loading.",
+            update: "Green Goods needs the latest app files.",
+            reload: "Reload",
+          },
+          es: {
+            loading: "Green Goods se esta cargando.",
+            update: "Green Goods necesita los archivos mas recientes.",
+            reload: "Recargar",
+          },
+          pt: {
+            loading: "Green Goods esta carregando.",
+            update: "Green Goods precisa dos arquivos mais recentes.",
+            reload: "Recarregar",
+          },
+        };
+        var labels = copy[language] || copy.en;
+        var timer;
+        var updateTimer;
+        var observer;
+
+        function hasAppContent() {
+          return root && root.children.length > 0;
+        }
+
+        function showFallback(kind) {
+          if (!fallback || hasAppContent()) return;
+          var isUpdate = kind === "update";
+          fallback.hidden = false;
+          fallback.style.display = "flex";
+          if (message) message.textContent = isUpdate ? labels.update : labels.loading;
+          if (reload) {
+            reload.hidden = !isUpdate;
+            reload.textContent = labels.reload;
+          }
+        }
+
+        function clearFallback() {
+          if (!hasAppContent()) return;
+          if (timer) window.clearTimeout(timer);
+          if (updateTimer) window.clearTimeout(updateTimer);
+          if (observer) observer.disconnect();
+          if (fallback) {
+            fallback.hidden = true;
+            fallback.style.display = "none";
+          }
+        }
+
+        function reloadWithCacheBust() {
+          try {
+            var url = new URL(window.location.href);
+            url.searchParams.set("gg_reload", String(Date.now()));
+            window.location.replace(url.toString());
+          } catch (_) {
+            window.location.reload();
+          }
+        }
+
+        window.__GG_CLEAR_BOOT_FALLBACK = clearFallback;
+
+        if (reload) reload.addEventListener("click", reloadWithCacheBust);
+
+        window.addEventListener(
+          "error",
+          function (event) {
+            var target = event && event.target;
+            if (target && target.tagName === "SCRIPT" && target.type === "module") {
+              showFallback("update");
+            }
+          },
+          true
+        );
+
+        document.addEventListener("gg-module-load-failed", function () {
+          showFallback("update");
+        });
+
+        if (root && "MutationObserver" in window) {
+          observer = new MutationObserver(function () {
+            if (hasAppContent()) clearFallback();
+          });
+          observer.observe(root, { childList: true });
+        }
+
+        timer = window.setTimeout(function () {
+          showFallback("loading");
+        }, 1200);
+
+        updateTimer = window.setTimeout(function () {
+          showFallback("update");
+        }, 4500);
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

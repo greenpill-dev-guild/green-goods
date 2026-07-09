@@ -248,7 +248,7 @@
       "destination": "/cookies/index.html"
     },
     {
-      "source": "/(.*)",
+      "source": "/:path((?!assets/).*)",
       "destination": "/index.html"
     }
   ]

@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 import vercelConfig from "../../../vercel.json";
 
 describe("client Vercel public social shell routing", () => {
+  const spaFallbackRewrite = {
+    source: "/:path((?!assets/).*)",
+    destination: "/index.html",
+  };
   const noStoreHeader = {
     key: "Cache-Control",
     value: "no-cache, no-store, must-revalidate",
@@ -9,7 +13,9 @@ describe("client Vercel public social shell routing", () => {
 
   it("serves generated editorial shells before the catch-all SPA rewrite", () => {
     const rewrites = vercelConfig.rewrites;
-    const catchAllIndex = rewrites.findIndex((rewrite) => rewrite.source === "/(.*)");
+    const catchAllIndex = rewrites.findIndex(
+      (rewrite) => rewrite.source === spaFallbackRewrite.source
+    );
 
     expect(catchAllIndex).toBeGreaterThan(0);
     expect(rewrites.slice(0, catchAllIndex)).toEqual([
@@ -27,10 +33,12 @@ describe("client Vercel public social shell routing", () => {
 
     expect(rewriteSources).not.toContain("/home");
     expect(rewriteSources).not.toContain("/home/:path*");
-    expect(vercelConfig.rewrites.at(-1)).toEqual({
-      source: "/(.*)",
-      destination: "/index.html",
-    });
+    expect(vercelConfig.rewrites.at(-1)).toEqual(spaFallbackRewrite);
+  });
+
+  it("does not rewrite missing hashed assets to index.html", () => {
+    expect(vercelConfig.rewrites.at(-1)).toEqual(spaFallbackRewrite);
+    expect(spaFallbackRewrite.source).toContain("(?!assets/)");
   });
 
   it("serves the cookie jar editorial shell without route-level browser caching", () => {

@@ -4,6 +4,7 @@ import {
   buildPasskeyRecoveryContext,
   classifyPasskeyCeremonyContext,
   getPasskeyRpId,
+  isPasskeyServerEnabled,
   normalizePasskeyAccountIdentifier,
 } from "../../config/passkeyServer";
 
@@ -17,6 +18,25 @@ const locationFor = (origin: string): Pick<Location, "hostname" | "origin" | "pr
 };
 
 describe("config/passkeyServer", () => {
+  describe("passkey server enablement", () => {
+    it("defaults the passkey server on in production builds", () => {
+      expect(isPasskeyServerEnabled({ PROD: true })).toBe(true);
+    });
+
+    it("keeps the passkey server off by default outside production", () => {
+      expect(isPasskeyServerEnabled({ DEV: true, PROD: false })).toBe(false);
+    });
+
+    it("honors explicit env overrides", () => {
+      expect(
+        isPasskeyServerEnabled({ PROD: true, VITE_PASSKEY_SERVER_ENABLED: "false" })
+      ).toBe(false);
+      expect(
+        isPasskeyServerEnabled({ DEV: true, PROD: false, VITE_PASSKEY_SERVER_ENABLED: "true" })
+      ).toBe(true);
+    });
+  });
+
   describe("passkey recovery context", () => {
     it("normalizes usernames and ENS handles for lookup", () => {
       expect(normalizePasskeyAccountIdentifier(" @Alice ")).toBe("alice");

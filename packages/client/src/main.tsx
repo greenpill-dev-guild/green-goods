@@ -76,3 +76,9 @@ root.render(
     <Root />
   </StrictMode>
 );
+
+const clearBootFallback = (window as Window & { __GG_CLEAR_BOOT_FALLBACK?: () => void })
+  .__GG_CLEAR_BOOT_FALLBACK;
+if (clearBootFallback) {
+  window.requestAnimationFrame(() => clearBootFallback());
+}

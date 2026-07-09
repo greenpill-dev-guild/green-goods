@@ -1,4 +1,11 @@
 const GREEN_GOODS_SYNC_TAG = "green-goods-sync";
+const STALE_RUNTIME_CACHES = ["js-cache", "indexer-cache", "graphql-cache"];
+
+function normalizePathname(pathname) {
+  const normalized = pathname.replace(/\/+$/, "");
+  return normalized || "/";
+}
+
 const PUBLIC_WEBSITE_PATHS = new Set([
   "/",
   "/actions",
@@ -10,12 +17,6 @@ const PUBLIC_WEBSITE_PATHS = new Set([
   "/landing",
 ]);
 const PUBLIC_WEBSITE_PREFIXES = ["/gardens/"];
-const STALE_RUNTIME_CACHES = ["js-cache", "indexer-cache", "graphql-cache"];
-
-function normalizePathname(pathname) {
-  const normalized = pathname.replace(/\/+$/, "");
-  return normalized || "/";
-}
 
 function isPublicWebsiteUrl(urlString) {
   try {
@@ -28,6 +29,24 @@ function isPublicWebsiteUrl(urlString) {
   } catch {
     return false;
   }
+}
+
+function isJavaScriptAssetRequest(request) {
+  try {
+    const url = new URL(request.url);
+    return (
+      request.method === "GET" &&
+      url.origin === self.location.origin &&
+      url.pathname.startsWith("/assets/") &&
+      url.pathname.endsWith(".js")
+    );
+  } catch {
+    return false;
+  }
+}
+
+function isJavaScriptResponse(response) {
+  return response?.headers?.get("content-type")?.includes("javascript") === true;
 }
 
 function isNavigationRequest(request) {
@@ -66,32 +85,6 @@ async function clearStaleRuntimeCaches() {
   );
 }
 
-async function claimClients() {
-  if (typeof self.clients.claim === "function") {
-    await self.clients.claim();
-  }
-}
-
-async function refreshPublicWebsiteClients() {
-  const windowClients = await self.clients.matchAll({
-    type: "window",
-    includeUncontrolled: true,
-  });
-
-  await Promise.all(
-    windowClients.map((client) => {
-      if (!isPublicWebsiteUrl(client.url)) return Promise.resolve();
-
-      if (typeof client.navigate === "function") {
-        return client.navigate(client.url);
-      }
-
-      client.postMessage?.({ type: "PUBLIC_WEBSITE_CACHE_REFRESH" });
-      return Promise.resolve();
-    })
-  );
-}
-
 async function fetchPublicNavigationFromNetwork(request) {
   try {
     return await fetch(request, { cache: "reload" });
@@ -100,9 +93,30 @@ async function fetchPublicNavigationFromNetwork(request) {
   }
 }
 
+async function fetchJavaScriptAsset(request) {
+  const cached = await caches.match(request);
+  if (isJavaScriptResponse(cached)) return cached;
+
+  try {
+    const response = await fetch(request, { cache: "reload" });
+    if (isJavaScriptResponse(response)) return response;
+  } catch {
+    // Fall through to the reload shim below.
+  }
+
+  return new Response(
+    'try{var k="gg-script-reload-attempt";if(!sessionStorage.getItem(k)){sessionStorage.setItem(k,"1");location.reload();}else{document.dispatchEvent(new CustomEvent("gg-module-load-failed"));}}catch(_){location.reload();}',
+    {
+      headers: {
+        "cache-control": "no-store",
+        "content-type": "application/javascript; charset=utf-8",
+      },
+    }
+  );
+}
+
 async function activateServiceWorker() {
-  await claimClients();
-  await Promise.all([clearStaleRuntimeCaches(), refreshPublicWebsiteClients()]);
+  await clearStaleRuntimeCaches();
 }
 
 // Public website navigations must never be fulfilled from an old app-shell cache.
@@ -113,7 +127,17 @@ self.addEventListener("fetch", (event) => {
   event.stopImmediatePropagation?.();
 });
 
-// Clear stale runtime caches and refresh public website tabs when a new worker activates.
+// If a stale shell requests an old JS asset and Vercel falls through to HTML,
+// return a tiny JS shim that refreshes once instead of caching HTML as a script.
+self.addEventListener("fetch", (event) => {
+  if (!isJavaScriptAssetRequest(event.request)) return;
+
+  event.respondWith(fetchJavaScriptAsset(event.request));
+  event.stopImmediatePropagation?.();
+});
+
+// Clear stale runtime caches when a new worker activates. Activation is controlled
+// by the app update prompt so startup is not interrupted by a forced takeover.
 self.addEventListener("activate", (event) => {
   event.waitUntil(activateServiceWorker());
 });
