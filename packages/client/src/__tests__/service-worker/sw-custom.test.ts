@@ -88,26 +88,18 @@ describe("client public service worker migration", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("skips waiting on install so installed apps move to the fresh worker", async () => {
+  it("waits for an explicit update prompt before activating a fresh worker", async () => {
     const { listeners, self } = await loadServiceWorker();
-    let install: Promise<unknown> | undefined;
 
-    listeners.install[0]({
-      waitUntil: vi.fn((promise: Promise<unknown>) => {
-        install = promise;
-      }),
-    });
+    expect(listeners.install).toBeUndefined();
+    expect(self.skipWaiting).not.toHaveBeenCalled();
 
-    await install;
+    listeners.message?.[0]?.({ data: { type: "SKIP_WAITING" } });
 
     expect(self.skipWaiting).toHaveBeenCalledTimes(1);
-
-    listeners.message[0]({ data: { type: "SKIP_WAITING" } });
-
-    expect(self.skipWaiting).toHaveBeenCalledTimes(2);
   });
 
-  it("refreshes open public website tabs and preserves installed app tabs on activation", async () => {
+  it("clears stale runtime caches without claiming or navigating clients on activation", async () => {
     const { caches, clients, listeners } = await loadServiceWorker();
     const publicClient = {
       navigate: vi.fn().mockResolvedValue(undefined),
@@ -134,13 +126,14 @@ describe("client public service worker migration", () => {
 
     await activation;
 
-    expect(clients.claim).toHaveBeenCalledTimes(1);
+    expect(clients.claim).not.toHaveBeenCalled();
+    expect(clients.matchAll).not.toHaveBeenCalled();
     expect(caches.delete).toHaveBeenCalledWith("js-cache");
     expect(caches.delete).toHaveBeenCalledWith("graphql-cache");
     expect(caches.delete).not.toHaveBeenCalledWith("image-cache");
     expect(caches.delete).not.toHaveBeenCalledWith("workbox-precache");
-    expect(publicClient.navigate).toHaveBeenCalledWith(publicClient.url);
-    expect(publicDetailClient.navigate).toHaveBeenCalledWith(publicDetailClient.url);
+    expect(publicClient.navigate).not.toHaveBeenCalled();
+    expect(publicDetailClient.navigate).not.toHaveBeenCalled();
     expect(pwaClient.navigate).not.toHaveBeenCalled();
   });
 

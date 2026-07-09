@@ -1,4 +1,11 @@
 const GREEN_GOODS_SYNC_TAG = "green-goods-sync";
+const STALE_RUNTIME_CACHES = ["js-cache", "indexer-cache", "graphql-cache"];
+
+function normalizePathname(pathname) {
+  const normalized = pathname.replace(/\/+$/, "");
+  return normalized || "/";
+}
+
 const PUBLIC_WEBSITE_PATHS = new Set([
   "/",
   "/actions",
@@ -10,12 +17,6 @@ const PUBLIC_WEBSITE_PATHS = new Set([
   "/landing",
 ]);
 const PUBLIC_WEBSITE_PREFIXES = ["/gardens/"];
-const STALE_RUNTIME_CACHES = ["js-cache", "indexer-cache", "graphql-cache"];
-
-function normalizePathname(pathname) {
-  const normalized = pathname.replace(/\/+$/, "");
-  return normalized || "/";
-}
 
 function isPublicWebsiteUrl(urlString) {
   try {
@@ -84,32 +85,6 @@ async function clearStaleRuntimeCaches() {
   );
 }
 
-async function claimClients() {
-  if (typeof self.clients.claim === "function") {
-    await self.clients.claim();
-  }
-}
-
-async function refreshPublicWebsiteClients() {
-  const windowClients = await self.clients.matchAll({
-    type: "window",
-    includeUncontrolled: true,
-  });
-
-  await Promise.all(
-    windowClients.map((client) => {
-      if (!isPublicWebsiteUrl(client.url)) return Promise.resolve();
-
-      if (typeof client.navigate === "function") {
-        return client.navigate(client.url);
-      }
-
-      client.postMessage?.({ type: "PUBLIC_WEBSITE_CACHE_REFRESH" });
-      return Promise.resolve();
-    })
-  );
-}
-
 async function fetchPublicNavigationFromNetwork(request) {
   try {
     return await fetch(request, { cache: "reload" });
@@ -141,15 +116,8 @@ async function fetchJavaScriptAsset(request) {
 }
 
 async function activateServiceWorker() {
-  await claimClients();
-  await Promise.all([clearStaleRuntimeCaches(), refreshPublicWebsiteClients()]);
+  await clearStaleRuntimeCaches();
 }
-
-// Activate new app workers immediately. The installed app can otherwise stay
-// on an old cached shell that points at a deleted hashed entry bundle.
-self.addEventListener("install", (event) => {
-  event.waitUntil(self.skipWaiting());
-});
 
 // Public website navigations must never be fulfilled from an old app-shell cache.
 self.addEventListener("fetch", (event) => {
@@ -168,7 +136,8 @@ self.addEventListener("fetch", (event) => {
   event.stopImmediatePropagation?.();
 });
 
-// Clear stale runtime caches and refresh public website tabs when a new worker activates.
+// Clear stale runtime caches when a new worker activates. Activation is controlled
+// by the app update prompt so startup is not interrupted by a forced takeover.
 self.addEventListener("activate", (event) => {
   event.waitUntil(activateServiceWorker());
 });

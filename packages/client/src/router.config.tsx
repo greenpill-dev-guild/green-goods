@@ -49,7 +49,9 @@ export const appRoutes = [
   {
     id: CLIENT_ROUTE_IDS.root,
     lazy: async () => ({ Component: (await import("@/routes/Root")).default }),
-    hydrateFallbackElement: <HydrationFallback appName="Green Goods" />,
+    hydrateFallbackElement: (
+      <HydrationFallback appName="Green Goods" message="Green Goods is loading." />
+    ),
     // Catch loader / lazy-chunk / route-render throws here so users never see
     // React Router's default "Unexpected Application Error!" screen with raw
     // "Minified React error #..." text. RouteErrorBoundary auto-reloads on

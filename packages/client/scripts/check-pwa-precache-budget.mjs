@@ -4,7 +4,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const MAX_PRECACHE_BYTES = Number(process.env.PWA_PRECACHE_MAX_BYTES ?? 5 * 1024 * 1024);
-const MAX_PRECACHE_ENTRIES = Number(process.env.PWA_PRECACHE_MAX_ENTRIES ?? 160);
+const MAX_PRECACHE_ENTRIES = Number(process.env.PWA_PRECACHE_MAX_ENTRIES ?? 40);
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const clientRoot = resolve(scriptDir, "..");

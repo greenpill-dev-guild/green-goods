@@ -299,7 +299,7 @@ export default defineConfig(async ({ command, mode }) => {
         mode: isBunRuntime ? "development" : nodeEnv,
         disableDevLogs: true,
         maximumFileSizeToCacheInBytes: 2 * 1024 * 1024,
-        globPatterns: ["index.html", "assets/*.{js,css}"],
+        globPatterns: ["index.html", "assets/*.css"],
         globIgnores: [
           "**/*.map",
           "assets/Actions-*.js",
@@ -324,8 +324,8 @@ export default defineConfig(async ({ command, mode }) => {
           "landing/index.html",
         ],
         cleanupOutdatedCaches: true,
-        clientsClaim: true,
-        skipWaiting: true,
+        clientsClaim: false,
+        skipWaiting: false,
         // The browser-origin worker is scoped to /home, so the app shell fallback
         // only owns installed-app routes while public/editorial routes stay in the browser.
         navigateFallback: "index.html",
