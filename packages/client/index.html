@@ -101,11 +101,10 @@
       id="boot-fallback"
       role="status"
       aria-live="polite"
-      hidden
       style="
         min-height: 100vh;
         box-sizing: border-box;
-        display: none;
+        display: flex;
         align-items: center;
         justify-content: center;
         padding: 24px;
@@ -196,6 +195,7 @@
         }
 
         function clearFallback() {
+          if (!hasAppContent()) return;
           if (timer) window.clearTimeout(timer);
           if (updateTimer) window.clearTimeout(updateTimer);
           if (observer) observer.disconnect();

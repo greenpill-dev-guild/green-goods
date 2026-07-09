@@ -107,7 +107,7 @@ describe("client public service worker migration", () => {
     expect(self.skipWaiting).toHaveBeenCalledTimes(2);
   });
 
-  it("refreshes open public website and installed app tabs on activation", async () => {
+  it("refreshes open public website tabs and preserves installed app tabs on activation", async () => {
     const { caches, clients, listeners } = await loadServiceWorker();
     const publicClient = {
       navigate: vi.fn().mockResolvedValue(undefined),
@@ -141,7 +141,7 @@ describe("client public service worker migration", () => {
     expect(caches.delete).not.toHaveBeenCalledWith("workbox-precache");
     expect(publicClient.navigate).toHaveBeenCalledWith(publicClient.url);
     expect(publicDetailClient.navigate).toHaveBeenCalledWith(publicDetailClient.url);
-    expect(pwaClient.navigate).toHaveBeenCalledWith(pwaClient.url);
+    expect(pwaClient.navigate).not.toHaveBeenCalled();
   });
 
   it("serves a reload shim when a JS asset resolves to HTML", async () => {

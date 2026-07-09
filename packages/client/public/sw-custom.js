@@ -11,7 +11,6 @@ const PUBLIC_WEBSITE_PATHS = new Set([
 ]);
 const PUBLIC_WEBSITE_PREFIXES = ["/gardens/"];
 const STALE_RUNTIME_CACHES = ["js-cache", "indexer-cache", "graphql-cache"];
-const INSTALLED_APP_PREFIX = "/home";
 
 function normalizePathname(pathname) {
   const normalized = pathname.replace(/\/+$/, "");
@@ -26,16 +25,6 @@ function isPublicWebsiteUrl(urlString) {
       PUBLIC_WEBSITE_PATHS.has(pathname) ||
       PUBLIC_WEBSITE_PREFIXES.some((prefix) => pathname.startsWith(prefix))
     );
-  } catch {
-    return false;
-  }
-}
-
-function isInstalledAppUrl(urlString) {
-  try {
-    const url = new URL(urlString);
-    const pathname = normalizePathname(url.pathname);
-    return pathname === INSTALLED_APP_PREFIX || pathname.startsWith(`${INSTALLED_APP_PREFIX}/`);
   } catch {
     return false;
   }
@@ -121,26 +110,6 @@ async function refreshPublicWebsiteClients() {
   );
 }
 
-async function refreshInstalledAppClients() {
-  const windowClients = await self.clients.matchAll({
-    type: "window",
-    includeUncontrolled: true,
-  });
-
-  await Promise.all(
-    windowClients.map((client) => {
-      if (!isInstalledAppUrl(client.url)) return Promise.resolve();
-
-      if (typeof client.navigate === "function") {
-        return client.navigate(client.url);
-      }
-
-      client.postMessage?.({ type: "INSTALLED_APP_CACHE_REFRESH" });
-      return Promise.resolve();
-    })
-  );
-}
-
 async function fetchPublicNavigationFromNetwork(request) {
   try {
     return await fetch(request, { cache: "reload" });
@@ -173,11 +142,7 @@ async function fetchJavaScriptAsset(request) {
 
 async function activateServiceWorker() {
   await claimClients();
-  await Promise.all([
-    clearStaleRuntimeCaches(),
-    refreshPublicWebsiteClients(),
-    refreshInstalledAppClients(),
-  ]);
+  await Promise.all([clearStaleRuntimeCaches(), refreshPublicWebsiteClients()]);
 }
 
 // Activate new app workers immediately. The installed app can otherwise stay
