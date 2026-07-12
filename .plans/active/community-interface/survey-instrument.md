@@ -25,7 +25,7 @@ Coordination-channel and join-flow observations feed RESR-64 (join-request persi
 
 ## How to field it
 
-**Cohort.** Named focus candidates are Tech and Sun Hub (Awka, Nigeria — English), Greenpill Cape Town (Muizenberg / Deep South Circles — English; UNICEF-funded trash-bin/waste-cleanup program; showcase folded in from canceled RESR-53), and AgroforestDAO / Redemption Hill (Bias Fortes, Brazil — Portuguese), plus a fourth garden — in outreach, named only once participation is confirmed — for the mature MRV-adoption slot selected against the RESR-58 criteria. Naming a candidate does not presume readiness.
+**Cohort.** Named focus candidates (2026-07-10; Garden 4 selected 2026-07-11): Tech and Sun Hub (Awka, Nigeria — English); Greenpill Cape Town (Muizenberg / Deep South Circles — English; UNICEF-funded trash-bin/waste-cleanup program; showcase folded in from canceled RESR-53); AgroforestDAO / Redemption Hill (Bias Fortes, Brazil — Portuguese); and Barichara Regenerativa (Barichara, Santander, Colombia — Spanish; the mature MRV-adoption anchor, selected against the RESR-58 criteria; decision #27 — selection is not participation). Naming a candidate does not presume readiness.
 
 **A garden enters fielding only when all are named:**
 
@@ -68,7 +68,7 @@ This takes about 20 minutes. Nothing here signs your garden up for anything. You
 - **1.1 · Your name** — Short answer · Required
   feeds: call scheduling and follow-up (research notes only)
 - **1.2 · Which garden are you answering for?** — Multiple choice · Required · Other: yes
-  Options: Tech and Sun Hub — Awka, Nigeria · Greenpill Cape Town — Muizenberg, South Africa · AgroforestDAO / Redemption Hill — Bias Fortes, Brazil · Fourth garden — in outreach (named on confirmation) · Other
+  Options: Tech and Sun Hub — Awka, Nigeria · Greenpill Cape Town — Muizenberg, South Africa · AgroforestDAO / Redemption Hill — Bias Fortes, Brazil · Barichara Regenerativa — Barichara, Colombia · Other
   feeds: cohort row; synthesis key
 - **1.3 · Your role in the garden — check all that fit** — Checkboxes · Required · Other: yes
   Options: I coordinate the garden (operator) · I do work in the garden (gardener) · I review or evaluate work (evaluator) · I help fund, host, or support the garden · Other

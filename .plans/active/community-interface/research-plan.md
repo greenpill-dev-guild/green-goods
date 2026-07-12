@@ -20,7 +20,7 @@ Coordination-channel and join-flow observations feed RESR-64 (join-request persi
 
 ## Cohort and readiness
 
-The cohort is not presumed. Named focus candidates are Tech and Sun Hub (Awka, Nigeria — English), Greenpill Cape Town (Muizenberg / Deep South Circles — English; UNICEF-funded trash-bin/waste-cleanup program; showcase folded in from canceled RESR-53), and AgroforestDAO / Redemption Hill (Bias Fortes, Brazil — Portuguese), plus a fourth garden — in outreach, named only once participation is confirmed — for the mature MRV-adoption slot selected against the RESR-58 criteria. Naming a candidate does not presume readiness. RESR-62 owns confirmation with each candidate garden. A garden enters fielding only when all are named:
+The cohort is not presumed. Named focus candidates (2026-07-10; Garden 4 selected 2026-07-11) are Tech and Sun Hub (Awka, Nigeria — English), Greenpill Cape Town (Muizenberg / Deep South Circles — English; UNICEF-funded trash-bin/waste-cleanup program; showcase folded in from canceled RESR-53), AgroforestDAO / Redemption Hill (Bias Fortes, Brazil — Portuguese), and Barichara Regenerativa (Barichara, Santander, Colombia — Spanish; the mature MRV-adoption anchor, selected against the RESR-58 criteria; decision #27 — selection is not participation). Naming a candidate does not presume readiness. RESR-62 owns confirmation with each candidate garden. A garden enters fielding only when all are named:
 
 - operator contact and backup contact;
 - preferred language and accessible interview format;
