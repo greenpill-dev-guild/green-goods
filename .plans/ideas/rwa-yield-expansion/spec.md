@@ -241,7 +241,7 @@ Stays within CLAUDE.md indexer boundary (vault + yield history).
 | `components/Vault/PresetSelectorDialog.tsx` (NEW) | Preset comparison for creation + switching |
 | `components/Vault/PresetDriftBadge.tsx` (NEW) | In-target / drift indicator |
 
-All copy i18n'd per `.claude/skills/ui/i18n.md`.
+All copy i18n'd per `.claude/skills/design/implementation.md` (§ i18n).
 
 ## Shared (`packages/shared`) — new hooks
 

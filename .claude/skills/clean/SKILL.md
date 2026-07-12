@@ -4,19 +4,13 @@ description: Comprehensive codebase cleanup with 8 parallel subagents — dedupl
 argument-hint: "[--dry-run] [--scope package-name] [--agents 1,3,5] [--no-codex]"
 context: worktree
 effort: very-high
-version: "1.2.1"
-status: active
-packages: ["all"]
-dependencies: ["audit", "principles"]
-last_updated: "2026-05-09"
-last_verified: "2026-05-09"
 ---
 
 # Clean Skill
 
-Parallel codebase cleanup: 8 focused agents each research, assess, and implement high-confidence improvements. Unlike `/audit` (read-only) and `/principles` (read-only), `/clean` **transforms code**.
+Parallel codebase cleanup: 8 focused agents each research, assess, and implement high-confidence improvements. Unlike `/audit` (read-only), `/clean` **transforms code**.
 
-**References**: `CLAUDE.md` for invariants. `/audit` for prior findings. `/principles` for design-level context.
+**References**: `CLAUDE.md` and `.claude/context/*.md` for invariants. `/audit` for prior findings.
 
 ---
 
@@ -88,215 +82,39 @@ Every report must include a provenance block:
 - stale_base: yes/no
 ```
 
+Agent missions are short by design — the agents are strong models; give them the lane and the repo-specific rules, not a tutorial. Every agent: respect CLAUDE.md + `.claude/context/*.md` invariants, run `bun run test` in affected packages after implementing.
+
 ### Agent 1: Deduplication & DRY
 
-```
-Scan the codebase for duplicated code patterns. Focus on:
-
-- Duplicated component patterns (similar cards, forms, lists across views)
-- Copy-pasted logic between files or packages
-- Repeated Tailwind class strings that should be extracted to shared utilities
-- Similar utility functions that could be consolidated
-- Duplicated type definitions with minor variations
-
-Tools: Use grep/glob to find similar patterns. Compare files side by side.
-
-Rules:
-- Only consolidate when it REDUCES complexity (3+ duplicates, or 2 that are nearly identical)
-- Respect the hook boundary: consolidated hooks go in @green-goods/shared
-- Respect barrel imports: new shared exports must be added to the package index
-- Don't create premature abstractions for 2 slightly-different things
-- Preserve all existing tests; update imports as needed
-```
+Find and consolidate real duplication (components, logic, utilities, near-identical types). Rules: consolidate only at 3+ duplicates (or 2 nearly identical); consolidated hooks go in `@green-goods/shared`; new shared exports join the barrel; no premature abstractions; preserve existing tests.
 
 ### Agent 2: Type Consolidation
 
-```
-Find all type definitions across the monorepo and consolidate shared types.
-
-Scan for:
-- Types defined in multiple packages that represent the same domain concept
-- Types in client/admin that should live in @green-goods/shared
-- Inline type definitions that duplicate shared types
-- Type aliases that add no value over the original
-- Inconsistent naming for the same concept (e.g., GardenData vs GardenInfo vs Garden)
-
-Rules:
-- Domain types (Garden, Work, Action, Address) MUST live in @green-goods/shared
-- Use Address type (not string) for Ethereum addresses
-- Preserve backward compatibility: update all import sites when moving types
-- Run `bun run test` in affected packages after changes
-- Check that barrel exports in shared/src/index.ts include new types
-```
+Consolidate domain types into shared. Rules: domain types (`Garden`, `Work`, `Action`, `Address`) MUST live in `@green-goods/shared`; `Address` (not `string`) for Ethereum addresses; update all import sites when moving; keep `shared/src/index.ts` barrel exports complete.
 
 ### Agent 3: Dead Code Removal (knip)
 
-```
-Find and remove all unused code using knip and manual verification.
-
-Steps:
-1. Run `bunx knip --reporter compact` to get the full unused report
-2. For each finding, VERIFY it's actually unused:
-   - Check dynamic imports: grep for string-based imports of the export name
-   - Check test files: some exports are only used in tests
-   - Check config files: some are referenced in vite.config, vitest.config, etc.
-   - Check Envio handlers: runtime-imported, not statically analyzable
-   - Check Foundry libs: packages/contracts/lib/ is excluded
-3. Remove confirmed dead code: unused files, exports, types, dependencies
-4. Run `bun run test` after removals to verify nothing breaks
-
-Rules:
-- Trust knip over grep for unused detection (~80% false-positive rate with grep)
-- Never remove from packages/contracts/lib/ (Foundry submodules)
-- Never remove from packages/indexer/generated/ (Envio generated)
-- Double-check test utilities — they may only be used in test files
-- Remove the import AND the file/export, not just one
-```
+Remove unused files/exports/types/deps found by `bunx knip --reporter compact`. Rules: trust knip over grep (~80% grep false-positive rate here); verify each finding against dynamic imports, test-only usage, config references, and Envio runtime-imported handlers; never touch `packages/contracts/lib/` (Foundry submodules) or `packages/indexer/generated/`; remove the import AND the file/export together.
 
 ### Agent 4: Circular Dependency Resolution (madge)
 
-```
-Find and untangle circular dependencies.
-
-Steps:
-1. Install and run madge: `npx madge --circular --extensions ts,tsx packages/`
-2. For each cycle, understand WHY the cycle exists:
-   - Is it a legitimate co-dependency? (rare but possible)
-   - Is it an architectural layer violation? (common)
-   - Is it a type-only import that could use `import type`?
-3. Resolve cycles using these strategies (in order of preference):
-   a. Convert to `import type` if only types are needed
-   b. Extract shared interface to a third module
-   c. Use dependency inversion (depend on abstraction, not concrete)
-   d. Merge modules if they're truly one concern
-4. Verify: `npx madge --circular --extensions ts,tsx packages/` should show zero cycles
-
-Rules:
-- Respect the build order: contracts -> shared -> indexer -> client/admin/agent
-- Never create upward dependencies (client importing from admin, shared importing from client)
-- Preserve the hook boundary: hooks stay in shared
-- Run `bun build` after changes to verify the dependency graph is clean
-```
+Zero out cycles from `npx madge --circular --extensions ts,tsx packages/`. Resolution preference: `import type` → extract shared interface → dependency inversion → merge modules. Rules: respect build order `contracts -> shared -> indexer -> client/admin/agent`; never create upward dependencies; hooks stay in shared; `bun build` must pass after.
 
 ### Agent 5: Type Strengthening
 
-```
-Remove all weak types (any, unknown, type assertions) and replace with proper types.
-
-Scan for:
-- `any` type annotations
-- `unknown` used as a lazy escape (vs legitimate unknown input)
-- Type assertions (`as SomeType`) that bypass the type system
-- `// @ts-ignore` and `// @ts-expect-error` comments
-- Non-null assertions (`!`) used to silence the compiler
-- `Record<string, any>` and similar weak generic patterns
-
-For each finding:
-1. Research what the actual type should be by reading:
-   - The function's callers and call sites
-   - The package's type definitions (e.g., wagmi, viem, EAS SDK types)
-   - Related test files for usage patterns
-2. Replace with the correct strong type
-3. Fix any downstream type errors caused by the strengthening
-
-Rules:
-- `unknown` is CORRECT at system boundaries (user input, external APIs, JSON.parse)
-- `any` in test mocks is acceptable if the mock shape is complex
-- Some libraries export weak types — add a local type wrapper rather than using `any`
-- Run `bun run test` after changes
-- Verify with the TypeScript compiler: no new errors
-```
+Replace weak types (`any`, escape-hatch `unknown`, `as` assertions, `@ts-ignore`, compiler-silencing `!`) with real types researched from call sites and library defs (wagmi/viem/EAS). Rules: `unknown` is CORRECT at system boundaries (user input, external APIs, `JSON.parse`); `any` acceptable in complex test mocks; wrap weak library types locally instead of spreading `any`; no new `tsc` errors.
 
 ### Agent 6: Defensive Code Removal
 
-```
-Remove unnecessary try-catch blocks and defensive programming that hides errors.
-
-Scan for:
-- Empty catch blocks: catch (e) {} or catch { }
-- Catch blocks that only log: catch (e) { console.log(e) }
-- Catch-and-return-default: catch (e) { return null } / catch (e) { return [] }
-- Fallback patterns: value ?? defaultValue where value should never be null
-- Optional chaining abuse: obj?.prop?.nested when obj is always defined
-- Silent error swallowing in mutation handlers
-
-For each finding, classify:
-- KEEP: Handles genuinely unknown/unsanitized input (external APIs, user input, file I/O)
-- KEEP: Uses parseContractError() + USER_FRIENDLY_ERRORS (the project's error pattern)
-- KEEP: Error boundary or explicit error recovery with user feedback
-- REMOVE: Hides errors from developers during debugging
-- REMOVE: Returns fake success when operation actually failed
-- REMOVE: Catches errors just to re-throw them
-- SIMPLIFY: Overly broad catch that should be narrowed to specific error types
-
-Rules:
-- Respect the project's error handling pattern: parseContractError() + USER_FRIENDLY_ERRORS
-- Respect createMutationErrorHandler() in shared mutation hooks
-- Use logger from shared (not console.log) if error logging is needed
-- Never swallow errors in mutation/transaction paths
-- Run `bun run test` after changes
-```
+Remove error handling that hides failures (empty catches, log-only catches, catch-and-return-default, fake-success paths). KEEP: `parseContractError()` + `USER_FRIENDLY_ERRORS`, `createMutationErrorHandler()` in shared mutation hooks, error boundaries with user feedback, genuine boundary input handling. Rules: never swallow errors in mutation/transaction paths; `logger` from shared, not `console.log`.
 
 ### Agent 7: Legacy & Deprecated Code
 
-```
-Find and remove deprecated, legacy, or fallback code paths.
-
-Scan for:
-- @deprecated JSDoc tags
-- TODO/FIXME/HACK comments with stale context
-- Feature flags or conditional paths for features that are now always on/off
-- Commented-out code blocks (more than 2 lines)
-- Migration shims or backward-compatibility wrappers
-- Old API endpoints or contract addresses that are no longer used
-- Import aliases that map old names to new names
-- Fallback code paths for browsers/environments no longer supported
-- Version-gated code (if version >= X) where X is long past
-
-For each finding:
-1. Verify the code is truly obsolete (check git blame for context)
-2. Verify no active code path depends on it
-3. Remove the dead path and simplify the remaining code
-4. Ensure the remaining code path is clean and singular (no unnecessary branching)
-
-Rules:
-- Check git blame before removing — understand WHY it was added
-- If a TODO references a Linear issue identifier or historical issue number, check if the tracked work is still open before removing or preserving it
-- Don't remove legitimate error recovery or graceful degradation
-- Don't remove offline-first fallback paths (they're intentional)
-- Run `bun run test` after changes
-```
+Remove obsolete paths: `@deprecated` tags, stale TODO/FIXME/HACK, dead feature flags, commented-out blocks, migration shims, long-past version gates. Rules: `git blame` first — understand why it was added; if a TODO references a Linear issue, check whether it's still open; never remove offline-first fallback paths (job queue, IndexedDB persistence, service worker are intentional complexity).
 
 ### Agent 8: AI Slop & Comment Cleanup
 
-```
-Find and remove AI-generated artifacts, stubs, and unhelpful comments.
-
-Scan for:
-- Comments that describe what code does rather than WHY (e.g., "// increment counter")
-- Comments referencing in-motion changes: "// replaced X with Y", "// new implementation"
-- Comments about previous implementations: "// old version used...", "// formerly..."
-- Placeholder/stub implementations: functions that just throw or return mock data
-- Overly verbose JSDoc that adds no information beyond the function signature
-- "AI slop" patterns: unnecessary abstractions, over-engineered wrappers, excessive
-  error handling that was generated by AI assistants and not cleaned up
-- Comments like "// TODO: implement", "// placeholder", "// stub"
-- Unnecessary console.log/console.debug statements left from debugging
-- Dead imports (imported but never used in the file)
-
-Rules for comments:
-- REMOVE: Comments that describe what (// set x to 5) — the code speaks for itself
-- REMOVE: Comments about code history (// replaced old auth with new auth)
-- REMOVE: Comments about AI generation (// generated by Claude/GPT/Copilot)
-- KEEP: Comments that explain WHY or document non-obvious business logic
-- EDIT (concisely): Comments that have useful info but are verbose or outdated
-- Any edited comments should be written for a new developer understanding the codebase
-
-Rules for stubs:
-- Remove stub functions that throw NotImplementedError or return hardcoded values
-- If a stub is referenced, either implement it properly or remove the reference too
-- Run `bun run test` after changes
-```
+Remove AI residue: what-comments and code-history comments (keep WHY comments), stub implementations, verbose no-information JSDoc, leftover `console.log` debugging, dead imports, over-engineered single-use wrappers. Edited comments are written for the next developer, not the reviewer.
 
 ---
 
@@ -558,9 +376,7 @@ Combine both: `/clean --scope shared --agents 1,2,5`
 ## Related Skills
 
 - `audit` — Find problems (read-only). Use when you want a report, not fixes.
-- `principles` — Evaluate design soundness (SOLID/DRY/KISS compliance).
 - `review` — Review specific changes. Use when reviewing a PR or recent commits.
-- `testing` — Each agent runs `bun run test` in affected packages after implementing fixes.
 - `plan` (`teams.md` § Part 11) — canonical reference for the `dispatch-codex-lane.sh` pattern that the Codex final review reuses.
 
 Recommended flow: `audit` -> review findings -> `clean --agents N` targeting specific issues -> Codex final review (built in) -> `review` the changes.

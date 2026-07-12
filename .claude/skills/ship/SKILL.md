@@ -3,12 +3,6 @@ name: ship
 user-invocable: false
 description: Pre-merge gate — validates the branch is safe to push/merge. Format + lint + test + build + conventional-commit + branch safety + vocab/design-token lint when applicable. Absorbs verification-before-completion and finishing-a-development-branch — evidence before claims, always.
 argument-hint: "[--dry-run] [--no-commit] [--pr]"
-version: "1.0.0"
-status: active
-packages: ["all"]
-dependencies: []
-last_updated: "2026-04-17"
-last_verified: "2026-04-17"
 ---
 
 # Ship Skill
@@ -124,7 +118,7 @@ Run these only if the changed files match:
 | Changed files under `packages/shared/src/styles/theme.css` or `.claude/skills/design/language.md` | `bun run check:design-tokens` |
 | Changed files include `*.i18n.ts`, `packages/*/locales/*.json`, or `packages/admin/src/**` or `packages/client/src/**` | `bun run lint:vocab` |
 | Changed files under `packages/contracts/src/resolvers/` | Check storage gap via existing PostToolUse hook output |
-| Changed files under `packages/contracts/src/` | Remind to run `bun run test:fork` if protocol behavior changed |
+| Changed files under `packages/contracts/src/` | Remind to run `bun run --filter @green-goods/contracts test:fork` (package-scoped; needs `{CHAIN}_RPC_URL`) if protocol behavior changed |
 
 Gather touched paths with `git diff --name-only origin/main...HEAD` + `git diff --name-only --cached`.
 

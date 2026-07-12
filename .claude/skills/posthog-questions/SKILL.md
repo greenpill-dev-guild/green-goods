@@ -2,12 +2,6 @@
 name: posthog-questions
 user-invocable: false
 description: Canonical curated-question library for PostHog reads across Green Goods routines and skills. Two lenses (product/quality, growth/BD), one privacy boundary, one shared answer per question. Routines reference questions by name; the connector or fallback script resolves them.
-version: "1.2.0"
-status: active
-packages: ["all"]
-dependencies: []
-last_updated: "2026-07-01"
-last_verified: "2026-07-01"
 ---
 
 # PostHog Curated Questions

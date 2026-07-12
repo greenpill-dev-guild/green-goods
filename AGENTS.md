@@ -50,7 +50,7 @@ Linear (workspace `greenpill-dev-guild`) is the durable backlog as of 2026-05-09
 
 When you are dispatched from a Linear issue (delegated/assigned, labeled `agent:codex`), **that issue is your spec.** Read it in full, plus this file and — if the issue references a `.plans/<feature>/` lane — that lane's `status.json` and todo.
 
-- **Codex-ready gate.** Start implementing only if the issue gives all of: clear **acceptance criteria**, a named **surface / `package:*`**, and **validation** (explicit commands, or inferable from the Validation Ladder below). If any is missing, the scope is ambiguous, or it asks for a cross-lane or architecture decision — **stop and comment on the issue with what's missing; do not guess.** A vague issue is a no-op, not a green light. This is the Linear entry to the same audit-then-ship rhythm in `## Codex Workflow`.
+- **Codex-ready gate.** Start implementing only if the issue gives all of: clear **acceptance criteria**, a named **surface / `package:*`**, and **validation** (explicit commands, or inferable from the Validation Ladder below). If any is missing, the scope is ambiguous, or it asks for a cross-lane or architecture decision — **stop and comment on the issue with what's missing; do not guess.** A vague issue is a no-op, not a green light. This is the Linear entry to the same two-phase scope-lock rhythm in `## Codex Workflow`.
 - **Executor, not orchestrator.** Implement only the issue's scoped unit. Cross-lane order and coupling live in `.plans/<feature>/status.json` + the human — do not reorder lanes, pull in sibling lanes, or expand past the acceptance criteria. Coupled-feature order: shared/types + contracts → state/API → UI.
 - **Branch + PR.** Work on the integration branch named in the issue or its lane, not a fresh ad-hoc branch. The PR body must link the issue — `Closes PRD-NNN` (or `Linear: PRD-NNN`); that link is the issue↔PR source of truth. One issue per PR; keep unattended-maintenance PRs as drafts with the right labels (see `## Scope Constraints For Automated Maintenance`); never self-merge. `critical` and `packages/contracts` surfaces get extra human/Claude review.
 - **Before the PR**, run the Ship Gate from `## Validation Intent Ladder` and produce evidence per `## Verify Before Claiming Success`. Honor the privacy boundary above and `## Multi-Agent Repo Safety`.
@@ -62,7 +62,7 @@ When you are dispatched from a Linear issue (delegated/assigned, labeled `agent:
 3. Run the lightest validation loop that still proves the change.
 4. Escalate to cross-package verification when shared contracts, shared types, or public APIs move.
 
-**Two-phase rhythm for ambiguous or multi-issue work**: investigate (read-only) → present numbered findings → wait for explicit scope lock from the human → fix only locked items → run the validation ladder. Canonical spec: `.claude/skills/audit-then-ship/SKILL.md`. The skill text is the source of truth for this rhythm; Codex follows the same phases. Do not invent a parallel Codex-specific protocol.
+**Two-phase rhythm for ambiguous or multi-issue work**: investigate (read-only) → present numbered findings → wait for explicit scope lock from the human → fix only locked items → run the validation ladder. This paragraph is the canonical spec (the former `audit-then-ship` skill folded into it; Claude gets the same gate from plan mode + CLAUDE.md § Scope Discipline). Do not invent a parallel Codex-specific protocol.
 
 ## Research, Plan, Implement
 

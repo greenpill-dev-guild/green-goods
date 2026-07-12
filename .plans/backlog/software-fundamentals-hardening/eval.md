@@ -14,7 +14,7 @@
 
 | ID | Check | Owner | Evidence |
 |---|---|---|---|
-| AC-1 | `check:claude-guidance` and `check:codex-guidance` pass or record an explicit accepted blocker | `state_api` | command output in handoff |
+| AC-1 | `check:codex-guidance` passes or records an explicit accepted blocker (`check:claude-guidance` retired 2026-07-11) | `state_api` | command output in handoff |
 | AC-2 | `.plans` docs and automation prompts no longer point agents at stale plan-hub commands | `state_api` | `rg` output + plan validation |
 | AC-3 | contracts package guidance no longer references removed `GreenGoodsResolver` files or tests | `state_api` | `rg` output + guide diff |
 | AC-4 | ADR-008 and shared package guidance state the current root-barrel/subpath import policy | `state_api` | docs diff + app import spot-check |
@@ -73,7 +73,6 @@ Required report sections:
 - Confirm the trigger branch exists: `claude/qa-pass-1/software-fundamentals-hardening`.
 - Re-run targeted validation:
   - `node scripts/harness/plan-hub.mjs validate`
-  - `bun run check:claude-guidance`
   - `bun run check:codex-guidance`
   - `rg "GreenGoodsResolver|src/resolvers/GreenGoods|GreenGoods\\.sol" packages/contracts/AGENTS.md packages/contracts/src packages/contracts/test`
   - review `reports/knip-vs-fallow-evaluation.md` for a tool decision and proof limits

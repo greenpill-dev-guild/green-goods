@@ -3,12 +3,6 @@ name: qa-triage
 user-invocable: true
 description: Process a build sync QA session (the meeting formerly called product sync) and turn the meeting notes into triaged Linear records + QA-sheet rows. Use this skill whenever the user mentions a QA call, QA sync, build sync, product sync (legacy name), QA session, product review, "triage the QA bugs", "file the bugs from the call", "extract bugs from the sync notes", "update the QA sheet with bugs", processing meeting notes for bugs, or wants to file Linear issues from a recent QA meeting — even if they don't explicitly say "qa-triage". Pulls the latest Gemini notes from Drive (with ~/Downloads fallback), cross-references each item against PostHog telemetry and existing Linear/Sheet records, scope-locks the triage, then writes Linear Customer Needs/Issues with assignees and appends Defects rows to the Green Goods QA Sheet.
 argument-hint: "[<notes-path|slug|qa-sync:YYYY-MM-DD>] [--dry-run] [--no-codex] [--no-sheet] [--fixture]"
-version: "0.2.0"
-status: active
-packages: ["all"]
-dependencies: ["posthog-questions", "doc-feedback", "debug", "audit-then-ship"]
-last_updated: "2026-06-10"
-last_verified: "2026-05-13"
 ---
 
 # QA Triage Skill
@@ -250,7 +244,7 @@ Output: `cross-ref.md`, one block per item:
 
 ## Phase 4 — Triage gate (REQUIRED USER GATE)
 
-Mirror [`audit-then-ship`](../audit-then-ship/SKILL.md) Phase 2 exactly. Present the numbered list (extracted items + derived items) with proposed dispositions and ask, verbatim:
+This is a hard scope-lock gate: numbered findings → explicit user lock → act only on locked items. Present the numbered list (extracted items + derived items) with proposed dispositions and ask, verbatim:
 
 > Which items should I file? Reply with numbers (e.g., `1, 3, 5`), `all`, or `none`. For each, append a tag if you want to override: `1:track-only` (Customer Need + lightweight Backlog tracking Issue), `3:defer` (skip this run), `5:duplicate-of-PRD-1234`. Anything outside the listed numbers is out of scope for this run.
 
@@ -448,7 +442,6 @@ This skill makes **one** explicit exception: the QA Sheet may carry `PostHog Ses
 - [qa-triage-pulse routine](../../docs/routines/qa-triage-pulse.md) — cron'd async sibling routine that pre-stages Customer Needs every Wednesday after the 10am PST Build Sync. The skill's Phase 1 step 0 resumes from those pre-stages when present, cutting interactive triage time to ~5 minutes.
 - [bug-intake routine](../../docs/routines/bug-intake.md) — cron'd async sibling routine for Discord + Telegram + Drive bug-source intake (M/W/F). Shares the Linear protocol and privacy boundary. This skill is the interactive single-source counterpart for QA-sync notes specifically.
 - [`posthog-questions`](../posthog-questions/SKILL.md) — named PostHog questions this skill calls.
-- [`audit-then-ship`](../audit-then-ship/SKILL.md) — source of the Phase 4 scope-lock gate language.
 - [`doc-feedback`](../doc-feedback/SKILL.md) — workspace convention (`.plans/<skill>/<slug>/`) borrowed.
 - [`debug`](../debug/SKILL.md) — User-Facing Bug Triage Protocol; the assistant borrows the "reproduce before forensics" framing for any item the user wants to investigate before filing.
 

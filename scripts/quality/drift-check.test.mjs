@@ -34,7 +34,7 @@ test("warn-only docs audit output becomes a finding", () => {
   assert.equal(report.findings.length, 1);
   assert.equal(report.findings[0].status, "warn");
   assert.equal(report.findings[0].title, "Docs audit drift detected");
-  assert.equal(report.findings[0].recommended_route, "audit-then-ship");
+  assert.equal(report.findings[0].recommended_route, "review");
 });
 
 test("passing checks produce no findings", () => {
@@ -46,7 +46,7 @@ test("passing checks produce no findings", () => {
   });
 
   assert.equal(report.ok, true);
-  assert.equal(report.checks.length, 3);
+  assert.equal(report.checks.length, 1);
   assert.deepEqual(report.findings, []);
 });
 

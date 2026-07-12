@@ -276,7 +276,7 @@ This hub is now mirrored as Research issue `RESR-9` and should be framed around 
 
 - [ ] `PresetSelectorDialog` — Radix dialog, comparison table (Conservative vs Balanced), risk band, target APY
 - [ ] `PresetDriftBadge` — pill showing "In target" / "Minor drift X%" / "Needs rebalance"
-- [ ] Both i18n'd per `.claude/skills/ui/i18n.md`
+- [ ] Both i18n'd per `.claude/skills/design/implementation.md` (§ i18n)
 - [ ] Storybook stories for each
 - [ ] Commit: `feat(admin): add preset selector + drift badge`
 

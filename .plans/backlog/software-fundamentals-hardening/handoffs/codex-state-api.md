@@ -8,7 +8,7 @@ This backlog hub was created from a read-only software-fundamentals audit on 202
 
 Start with repo-truth repair, then do the static-analysis tool evaluation before changing gates:
 
-1. Fix `bun run check:claude-guidance` failures.
+1. (`check:claude-guidance` retired 2026-07-11 with the lean-skills consolidation — validate guidance with `bun run check:codex-guidance` instead.)
 2. Confirm `bun run check:codex-guidance`.
 3. Correct stale `.plans` plan-hub command references or add durable package scripts.
 4. Repair contracts package guidance drift around the removed `GreenGoodsResolver` vocabulary without touching Solidity behavior.

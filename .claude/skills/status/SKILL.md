@@ -3,12 +3,6 @@ name: status
 user-invocable: true
 description: Session resumption and quick orientation for Green Goods. Use when starting work, returning to a branch, or needing a fast lay of the land. Focus on branch state, working tree, continuity artifacts, blockers, recent deltas, and the next 1-3 moves. Not an audit or dashboard.
 argument-hint: "[--quick|--resume]"
-version: "2.0.0"
-status: active
-packages: ["all"]
-dependencies: []
-last_updated: "2026-04-18"
-last_verified: "2026-04-18"
 ---
 
 # Status Skill

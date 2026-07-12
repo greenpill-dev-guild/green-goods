@@ -3,12 +3,6 @@ name: doc-feedback
 user-invocable: true
 description: Process review feedback on any Green Goods Google Doc downloaded as `.docx` — `docs/` drafts, research notes, grant proposals, product feedback. Parses comments and tracked-changes into a triage-able markdown record, then walks through addressing each item with a scope-lock gate between phases and an in-repo or out-of-repo address mode (auto-inferred from doc title/filename). Use when the team has finished reviewing a doc and you have (or can produce) a `.docx` export.
 argument-hint: "[<docx-path>] [--mode in-repo|out-of-repo] [--parse-only|--triage|--address]"
-version: "1.1.1"
-status: active
-packages: ["all"]
-dependencies: []
-last_updated: "2026-05-09"
-last_verified: "2026-05-09"
 ---
 
 # Doc Feedback Skill

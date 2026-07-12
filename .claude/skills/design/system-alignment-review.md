@@ -44,16 +44,15 @@ If prose disagrees with a higher-precedence source, the prose is the drift, not 
 6. **Client PWA surface** — `packages/client/DESIGN.pwa.md`, `packages/client/AGENTS.md`, presentation-mode loaders, installed-PWA shell, `PwaRuntime` / `AppShell`, bottom `AppBar`.
 7. **Client public browser surface** — `packages/client/DESIGN.browser.md`, landing/browser views, `SiteHeader`.
 8. **Docs UI** — `docs/DESIGN.md`, `docs/src/**`, Docusaurus identity, role accents.
-9. **Agentic design-development guidance** — `.claude/skills/design/**`, `.claude/skills/ui/**`, prompt contracts, defect grammar.
+9. **Agentic design-development guidance** — `.claude/skills/design/**`, prompt contracts, defect grammar.
 10. **Claude and Codex repo instructions** — `CLAUDE.md`, `AGENTS.md`, `packages/*/AGENTS.md` — the Design-System / Design-Language sections that agents load by default.
 
 **Out of scope — do not produce findings here:**
 
-- Skill-stack health of non-design skills (`ship`, `plan`, `debug`, `review`, `audit`, `clean`, `principles`, `status`, etc.) — not this review.
-- `.claude/registry/skills.json` shape beyond the `design` + `ui` entries and their aliases/triggers — route to `/audit`.
+- Skill-stack health of non-design skills (`ship`, `plan`, `debug`, `review`, `audit`, `clean`, `status`, etc.) — not this review.
 - Per-component correctness / a11y / i18n bugs — route to [review-checklist.md](./review-checklist.md).
 - General repo-health (dead code, dependency drift, circular imports) — route to `/audit`.
-- Narrow meta-review of `design/` + `ui/` files only — route to [stack-review.md](./stack-review.md).
+- Narrow meta-review of `design/` files only — route to [stack-review.md](./stack-review.md).
 
 If the most broken thing you find is out of scope, say so explicitly and stop — the refusal condition below is the right exit.
 
@@ -127,7 +126,6 @@ Before proposing any fix, surface these as explicit questions — do not resolve
 - Renaming or removing a surface DESIGN.md dialect.
 - Promotion of an aspirational token (e.g., something in `language.md` that has no `theme.css` counterpart) to a runtime token — this can cascade to every consumer.
 - Lint-enforced banned-vocabulary additions or removals — those change `lint:vocab` behavior and block PRs. Prompt-vocabulary lists are guidance-only.
-- Any change to `.claude/registry/skills.json` sub_files, triggers, or aliases beyond the design-system routing this skill adds.
 
 ## Refusal condition
 

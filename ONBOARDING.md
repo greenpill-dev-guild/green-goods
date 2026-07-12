@@ -41,20 +41,22 @@ Top Browser MCP Usage:
 ### Skills to Know About
 Slash-invokable (type the command):
 - [ ] `/status` — Branch-first orientation when you sit down or return to a branch (read-only, ~30-60s). Start here.
-- [ ] `/review [package|PR|file]` — Diff-scoped review before merge. Positional arg scopes the review (`/review admin`, `/review #123`).
+- [ ] `/review [package|PR|file]` — Full change review: regressions, remaining gaps, production quality, verdict (`/review admin`, `/review #123`).
+- [ ] `/audit` — Read-only repo-health audit; `/audit drift` for the quick drift classifier.
 - [ ] `/clean` — 8 parallel cleanup agents after findings are accepted (`--dry-run`, `--scope`, `--agents`).
-- [ ] `/ship` — Pre-merge gate: format, lint, test, build, conventional-commit, vocab/design-token lint.
-- [ ] `/architecture` and `/audit` — Internal lenses. `/architecture` for boundary/placement calls inside planning or review; `/audit` as a follow-up when broader drift shows up.
+- [ ] `/qa-triage` and `/doc-feedback` — Meeting-notes → Linear triage; Google-Doc review processing.
 
 Intent-triggered (no slash — just describe it in plain English):
 - [ ] `plan` — Fires on "plan this", "break down X", "coordinate a team", or cross-package work. Plans land in `.plans/active/<feature-name>/plan.todo.md`.
 - [ ] `debug` — Fires when you describe a bug, paste a stack trace, or report a failing test.
+- [ ] `ship` — Pre-merge gate (format, lint, test, build, conventional-commit, vocab/design-token lint); fires on ship/merge-readiness intent.
 
 Loaded by context (you usually don't pick these manually):
-- [ ] `design` + `ui` — Warm Earth design language, M3 anatomy, Tailwind v4 + Radix + Storybook.
-- [ ] Package skills — `react`, `contracts`, `indexer`, `data-layer`, `testing`, `web3`.
+- [ ] `design` — Warm Earth design language, M3 anatomy, and implementation guidance (`design/implementation.md`).
+- [ ] `posthog-questions` — curated telemetry question library.
+- [ ] Per-package knowledge lives in `.claude/context/*.md` (not skills) — shared, client, admin, contracts, indexer, agent, testing.
 
-(Full skill index: `.claude/skills/index.md`.)
+(The skill directory itself is the index: `ls .claude/skills/`.)
 
 ## Team Tips
 

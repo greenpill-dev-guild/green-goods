@@ -4,14 +4,14 @@ One-page map. Read this first when you need design context — it points to the 
 
 ---
 
-## The two-skill stack
+## The design stack
 
-| Layer | Skill | Owns |
-|-------|-------|------|
-| Direction (what/why) | **`design`** (project) | Paradigms, Warm Earth language, prompt contracts, 4-lens review, spec, stack self-audit |
-| Implementation (how) | **`ui`** (project, depends on design) | Tailwind v4, Radix, Storybook, a11y, i18n, 10-step component runbook |
+| Layer | File | Owns |
+|-------|------|------|
+| Direction (what/why) | **`design/SKILL.md`** + language/prompt-contract files | Paradigms, Warm Earth language, prompt contracts, 4-lens review, spec, stack self-audit |
+| Implementation (how) | **`design/implementation.md`** | Dialogs, Storybook gates, i18n, view transitions, 10-step component runbook |
 
-Dependency chain: `ui → design → root DESIGN.md front matter → generated artifacts → runtime projections`.
+Dependency chain: `implementation.md → SKILL.md → root DESIGN.md front matter → generated artifacts → runtime projections`.
 
 **AI design tools and coding agents** are platform-agnostic consumers of this stack — fed `ai-ui-brief.md` + `DESIGN.md` + the surface-specific prompt contract, their output is mapped back to existing components. No platform-specific skill — see `design/SKILL.md § Working with AI Design Tools` for the contract.
 
@@ -47,27 +47,27 @@ Root `DESIGN.md` front matter is the canonical DesignMD token source. Surface `D
 | Prompt vocabulary for any AI design tool | `design/prompt-contract.md` (admin) or `client-prompt-contract.md` (client) |
 | How to feed an AI design tool the right context | `design/SKILL.md § Working with AI Design Tools` |
 | Decision: which paradigm for this surface? | `design/SKILL.md § Paradigm Selection` |
-| Decision: which component / primitive? | `ui/SKILL.md § New Component Runbook` (10 steps) |
+| Decision: which component / primitive? | `design/implementation.md § New Component Runbook` (10 steps) |
 | Surface-specific brief | `packages/admin/DESIGN.md`, `packages/client/DESIGN.pwa.md`, `packages/client/DESIGN.browser.md`, `docs/DESIGN.md` |
 | PR review (per-change, 4 lenses) | `design/review-checklist.md` — Regenerative → Spatial → Ecosystem → Compliance |
-| Self-audit the design-system skill stack (narrow) | `design/stack-review.md` — meta-review of `design/` + `ui/` infrastructure only |
+| Self-audit the design-system skill stack (narrow) | `design/stack-review.md` — meta-review of `design/` infrastructure only |
 | Full design-system alignment across the repo | `design/system-alignment-review.md` — DesignMD files, Warm Earth, `theme.css`, Storybook, admin, client PWA/browser, docs, agentic guidance, Claude + Codex instructions |
 | Ecosystem / cascade / archetype analysis | `design/ecosystem.md` |
 | Regenerative lens specifics | `design/regenerative.md` |
 | Inspiration / books / designers | `design/SKILL.md § Appendix` |
-| View transitions API | `ui/view-transitions.md` |
+| View transitions API | `design/implementation.md § View Transitions` |
 
 ---
 
 ## Version Coupling
 
-`design/SKILL.md` carries `token_version`. `ui/SKILL.md` carries `design_token_version`. They **must match**. Root DesignMD front matter changes also require regenerating DesignMD artifacts.
+`design/SKILL.md` carries `token_version` — the canonical Warm Earth token spec version, verified by `check:design-tokens`. Root DesignMD front matter changes also require regenerating DesignMD artifacts.
 
-| When you change… | Bump |
-|------------------|------|
-| Root `DESIGN.md` front matter tokens or token implementation aliases | Regenerate artifacts; bump both `token_version` and `design_token_version` if implementation guidance changes |
-| Tokens in `language.md` (radii, springs, materials, color roles) | Both `token_version` and `design_token_version` |
-| Only implementation guidance in `ui/` sub-files | `ui/SKILL.md version` only |
+| When you change… | Do |
+|------------------|-----|
+| Root `DESIGN.md` front matter tokens or token implementation aliases | Regenerate artifacts (`bun run design:generate`); bump `token_version` if the spec changed |
+| Tokens in `language.md` (radii, springs, materials, color roles) | Bump `token_version` |
+| Only implementation guidance in `implementation.md` | Nothing to bump |
 | Only direction in `design/` | `design/SKILL.md version` only |
 
 **Drift detection** (wire into CI + pre-commit):
@@ -101,13 +101,13 @@ Full palettes with file paths live in `prompt-contract.md` and `client-prompt-co
 
 The highest-frequency rules are mirrored in root `CLAUDE.md` and `AGENTS.md` under "Design System" / "Design Language" so trivial edits (padding, copy, a single component touch) don't require a full skill load. The full spec is this file + `language.md` + the prompt contracts.
 
-If you're editing more than one component, changing layout composition, creating a new view, or reviewing a PR → **explicitly load `design` + `ui`**.
+If you're editing more than one component, changing layout composition, creating a new view, or reviewing a PR → **explicitly load `design` (SKILL.md + implementation.md)**.
 
 ---
 
-## Skill registry
+## Skill metadata
 
-`.claude/registry/skills.json` is the source of truth for skill metadata (triggers, dependencies, sub-files, version fields). Keep it in sync when adding or moving files within a skill.
+The filesystem is the registry: `design/SKILL.md` frontmatter (`name`, `description`, `token_version`) is the only metadata. When adding or moving files within the skill, update the routing table in `SKILL.md § Route to another skill when…` and this map.
 
 ## Related
 
@@ -121,4 +121,4 @@ If you're editing more than one component, changing layout composition, creating
 - [prompt-contract.md](./prompt-contract.md) — Admin AI prompt vocabulary + palette
 - [client-prompt-contract.md](./client-prompt-contract.md) — Client AI prompt vocabulary + palette
 - Root `DESIGN.md`, `packages/admin/DESIGN.md`, `packages/client/DESIGN.pwa.md`, `packages/client/DESIGN.browser.md`, `docs/DESIGN.md` — DesignMD source and dialect briefs
-- `../ui/SKILL.md` — implementation skill + runbook
+- [implementation.md](./implementation.md) — implementation guidance + component runbook

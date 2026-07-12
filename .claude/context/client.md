@@ -93,6 +93,14 @@ const handleSubmit = async () => {
 };
 ```
 
+### Draft Persistence
+
+Work/garden drafts persist to the `green-goods-drafts` IndexedDB via shared hooks:
+
+- `useDrafts` — CRUD over work-submission drafts; integrates with `useWorkFlowStore`
+- `useDraftAutoSave` — writes a draft when the user **exits** the flow (explicit exit, not on every change)
+- `useDraftResume` — resumes a draft from URL params; detects "meaningful" drafts to prompt continue
+
 ### Media URL Management (MANDATORY)
 
 **Never create orphan blob URLs:**
@@ -135,6 +143,13 @@ const {
   eoaAddress,         // Wallet mode only
 } = useAuth();
 ```
+
+**Auth stacks** — the two `useAuth()` modes map to different SDKs:
+
+| Mode | Stack | Account | Active address field |
+|------|-------|---------|----------------------|
+| `wallet` | Reown AppKit + Wagmi | EOA | `eoaAddress` |
+| `passkey` | Pimlico | ERC-4337 smart account | `smartAccountAddress` |
 
 ### Auth Mode Branching
 

@@ -1,16 +1,10 @@
 ---
 name: audit
-user-invocable: false
-description: Internal repo-health lens for Green Goods — dead code detection, dependency health, invariant drift, and concrete broken or brittle spots. Prefer this after `/review` or `/status` reveals broader drift beyond a single change.
-argument-hint: "[package-name] [--full] [--team]"
+user-invocable: true
+description: Repo-health audit and drift classifier for Green Goods — dead code, dependency health, invariant drift, stale guidance/plans/docs drift, and concrete broken or brittle spots. Use when the user asks for an audit, a drift check, "is the repo healthy", stale guidance, cleanup readiness, or whether to run clean. Read-only; routes accepted findings to a fix pass, /clean, or Linear.
+argument-hint: "[package|drift] [--full] [--team] [--loop]"
 context: fork
 effort: high
-version: "2.1.1"
-status: active
-packages: ["all"]
-dependencies: ["review", "contracts"]
-last_updated: "2026-05-09"
-last_verified: "2026-05-09"
 ---
 
 # Audit Skill
@@ -19,7 +13,7 @@ Systematic repo-health analysis: dead code detection, dependency health, invaria
 
 Prefer `/review` or `/status` first. This skill is for broader repo-health drift, not for every change or every question.
 
-**References**: See `CLAUDE.md` for codebase patterns. Use `oracle` for deep investigation.
+**References**: See `CLAUDE.md` for codebase patterns and `.claude/context/*.md` for per-package invariants.
 
 **Context mode**: `context: fork` -- read-only subagent. Never edit files during an audit. Report findings and let the user decide.
 
@@ -65,9 +59,21 @@ These are mandatory:
 |---------|--------|
 | `/audit` | Full codebase audit |
 | `/audit [package]` | Targeted package audit |
+| `/audit drift [scope]` | Quick drift classification only (see Drift Mode) |
+| "repo drift", "stale guidance", "should we clean?" | Treat as `/audit drift` |
 | `/audit --full` | Skip scope detection, analyze all packages |
 | `/audit --team` | Parallel agent team |
 | `/audit --loop` | Audit -> fix -> re-audit loop until clean |
+
+## Drift Mode
+
+`/audit drift [scope]` is the fast, read-only classifier (formerly the standalone `drift` skill). It does not run Parts 0-10.
+
+1. Run `bun run drift:check -- --scope <scope>` (scopes: `all`, `guidance`, `plans`, `design`, `docs`, `cleanup`, `quality`; add `--json` for machine output).
+2. Report numbered findings with category, severity, evidence, and recommended route. Treat `WARN` output as a finding; include working-tree context if the checker reports a dirty tree.
+3. Stop for human scope lock before fixing anything.
+
+Routing: guidance/plans/docs drift → a scoped fix pass after the user approves findings by number (plan mode for anything large); design-system drift → `/review --scope design-system`; cleanup-shaped findings → recommend `clean --scope <scope> --dry-run` first, never full `/clean` without approval; anything that looks like a production bug, broken flow, or data/API/indexer failure → `debug`, not cleanup.
 
 ## Progress Tracking (REQUIRED)
 
@@ -192,10 +198,10 @@ Score < 4.0: report as-is. Score 4.0-8.0: escalate one level. Score > 8.0: flag 
 
 ### Security Skill Integration (contracts only)
 
-When auditing `packages/contracts/`, invoke the security skill checklist from `.claude/skills/contracts/security.md`:
-1. Part 2 (OWASP) against modified Solidity files
-2. Part 3 (Access Control) against files with `onlyHatWearer`, `_authorizeUpgrade`, role-check modifiers
-3. Part 4 (UUPS Upgrade Security) if proxy/upgradeable contracts modified
+When auditing `packages/contracts/`, apply the security checklist in `.claude/context/contracts.md`:
+1. Solidity security patterns against modified `.sol` files
+2. Access control against files with `onlyHatWearer`, `_authorizeUpgrade`, role-check modifiers
+3. UUPS upgrade safety (storage gaps, `_authorizeUpgrade`) if proxy/upgradeable contracts modified
 4. Prefix security findings with `SEC-`
 
 ---
@@ -406,7 +412,7 @@ When `--loop` is passed: audit -> fix -> re-audit cycle.
 | Create Linear issues without prompting | Part 9 requires user confirmation |
 | Run full analysis on unchanged packages | Part 0.5 gates analysis to changed packages |
 | Fix more than 3 findings per loop iteration | Prevents context exhaustion |
-| Fix design-level problems via `/audit --loop` | Design fixes belong to `/principles fix` |
+| Fix design-level problems via `/audit --loop` | Design judgment belongs in `/review`'s coherence lens |
 
 ---
 
@@ -420,25 +426,13 @@ When `--loop` is passed: audit -> fix -> re-audit cycle.
 - **Prompt before issues** -- ask user before creating Linear issues
 - **Registry-backed** -- chronic findings live in Known Issues Registry
 
-## Audit vs Principles Boundary
+## Boundary
 
-| `/audit` owns | `/principles` owns |
-|--------------|-------------------|
-| Dead code, unused files/exports/deps | SRP (mixed concerns beyond LOC) |
-| LOC / god-object thresholds | OCP, LSP, ISP, DIP |
-| Type errors, lint, TODO markers | DRY (duplicated logic across packages) |
-| Layer violations (hooks, imports) | KISS, YAGNI |
-| Dependency health (CVEs, EOL) | SOC (concern leakage) |
-| Security (contracts OWASP, AC, UUPS) | EDA, ADR, C4 |
-| Test coverage gaps | ACID, BASE, CAP |
-| Skill & configuration drift | |
-
-If it's about *what's broken, dead, or drifted* -- audit. If it's about *whether the design is sound* -- principles.
+If it's about *what's broken, dead, or drifted* — audit. If it's about *whether one change is sound* — `/review` (its coherence and boundary lenses replaced the retired `principles`/`architecture` skills).
 
 ## Related Skills
 
-- `principles` -- Design-level analysis (SOLID, DRY, KISS, SOC). Audit finds what's broken; principles evaluates design soundness.
-- `architecture` -- Clean Architecture patterns for structural review
-- `react` (performance sub-file) -- Bundle analysis and optimization
-- `contracts` (security sub-file) -- Security audit patterns, **explicitly invoked** during Part 2
-- `testing` -- Coverage analysis and test gap identification
+- `review` — diff-scoped correctness, coherence, and boundary judgment
+- `clean` — broad cleanup after audit findings prove cleanup-shaped
+- `debug` — when a finding is really a runtime/product failure
+- `plan` — stale or inconsistent `.plans` truth
