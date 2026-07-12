@@ -2,19 +2,23 @@
   "version": 1,
   "feature": {
     "slug": "community-interface",
-    "title": "Community Needs Interface",
+    "title": "Community Needs & Signals",
     "kind": "feature",
     "stage": "active"
   },
   "workflow": {
-    "overall_status": "planned",
+    "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-07-04",
-    "updated_at": "2026-07-07"
+    "updated_at": "2026-07-10"
   },
   "links": {
     "corrections_log": "corrections-log.md",
     "spec": "spec.md",
+    "diagrams": "diagrams.md",
+    "wireframes": "wireframes.md",
+    "journeys": "journeys.md",
+    "research_plan": "research-plan.md",
     "plan": "plan.todo.md",
     "companion_hub": "../commitment-pooling/"
   },
@@ -23,7 +27,9 @@
     "project": "Community Needs & Signals",
     "projectId": "7a4f2562-c629-4911-a7d6-947ab3195435",
     "initiative": "Impact Methodologies & Evaluator Flywheel",
-    "researchDocument": "Community Needs Interface — research pass (compass)",
+    "researchDocument": "Community Needs & Signals — Engagement Model",
+    "canonicalSynthesis": "Commitment Pooling × Green Goods — Grassroots Economics Learnings, and the Full Flywheel We're Building",
+    "researchIssues": ["RESR-62", "RESR-64", "PRD-701"],
     "milestones": {
       "needs_substrate": "2026-08-31",
       "september_needs_app": "2026-09-30",
@@ -38,7 +44,8 @@
       "september_needs_app": "PRD-691",
       "hardening": ["PRD-695", "PRD-696"]
     },
-    "lastSyncedAt": "2026-07-05"
+    "lastSyncedAt": "2026-07-10",
+    "lastSyncPreviewAt": "2026-07-10"
   },
   "taxonomy": {
     "initiative": "protocol-readiness",
@@ -50,6 +57,7 @@
       "packages/shared",
       "packages/agent",
       "packages/admin",
+      "packages/community",
       "packages/client",
       "docs/docs",
       ".plans/active/commitment-pooling"
@@ -60,16 +68,24 @@
     "Vocabulary is Need, never problem — code and copy alike (decision #1).",
     "Four EAS schemas (Need, NeedSignal, NeedStatus, FundingAttribution); commitments stay module-native (CP decision-register addendum #28).",
     "EAS is never indexed by Envio: status derivation is an app-side join of easscan reads and Envio commitment entities carrying needUID.",
-    "Operator moderation is NeedStatus states, never EAS revocation (attester-only); Need/NeedSignal revocability grants only self-retraction/un-signal.",
+    "Need moderation (none/acknowledged/merged/hidden/declined) and progress (open/committed/in-progress/addressed) are separate axes; retraction leaves only a content-free lineage tombstone.",
     "The needUID commitment field was amended into the CP contract-spec on 2026-07-04, before the August build, so it ships in the initial deploy.",
+    "NeedKind is Request/Offer/Initiative. NeedStatus domains and commitment domains are optional arrays; DomainImpact commitments require 1-4 unique domain/action pairs.",
+    "Join-request persistence is an open RESR-64 decision due 2026-08-12; the membership-queue slice is manually blocked until controller/auth/retention/deletion/recovery/abuse/cost/operator-handoff evidence is signed.",
+    "FundingAttribution displays once per verified (needUID, chainId, txHash, rail); mergedIntoNeedUID is typed separately from noteCID.",
+    "packages/community is an independent PWA at community.greengoods.app and local port 3010; client and Community consume prerequisite shared runtime/auth/offline/install/update/error/shell foundations but retain separate app identities.",
     "No claim flow, no leaderboards, no funding-ranked boards, no per-need escrow, no push notifications; the gathering is the notification layer.",
     "status.json is authoritative; branch names are automation signals.",
-    ".plans/ is the durable repo truth; the Linear project mirrors this hub 1:1."
+    ".plans/ is the durable lane-level execution truth; Linear is the parent-only roadmap and coordination mirror, not a 1:1 lane mirror.",
+    "Linear was reconciled and live-re-read on 2026-07-10: project/milestones, PRD-687/691/695/696, PRD-682/683, canceled-child supersession notes, and the new RESR-64 engagement-model document all match the parent-only plan contract."
   ],
   "lanes": {
     "contracts": {
       "owner": "codex",
-      "status": "todo",
+      "status": "blocked",
+      "ready_when_dependencies_met": false,
+      "manual_blocked": true,
+      "blocked_reason": "Manual gate: wait only for the Commitment Pooling schema-registration helper/interface freeze. The append-only schemas policy amendment and complete Community contracts handoff are already present.",
       "branch": "codex/contracts/community-interface",
       "depends_on": [],
       "handoff": "handoffs/codex-contracts.md",
@@ -79,13 +95,16 @@
         "status": "pending",
         "red": { "command": "", "evidence": "" },
         "green": { "command": "", "evidence": "" },
-        "note": "Starts after the PRD-671 chain merges (registration conventions)."
+        "note": "Do not dispatch while manual_blocked is true. Reuse the registration conventions frozen in the Commitment Pooling contracts interface; PRD-671 remains historical only."
       },
       "skill_tags": ["contracts"]
     },
     "state_api": {
       "owner": "codex",
-      "status": "todo",
+      "status": "blocked",
+      "ready_when_dependencies_met": false,
+      "manual_blocked": true,
+      "blocked_reason": "Manual aggregate gate: do not auto-ready from contracts alone. Unblock only after Community contracts are GREEN; the indexer event/entity/query contract, codegen, boundary, and build proof are GREEN; shared-foundation client-parity proof is GREEN; state/API RED/GREEN targets are recorded; and the external Pimlico policy/cap/burst evidence is recorded. Dispatch named execution sub-lanes individually.",
       "branch": "codex/state-api/community-interface",
       "depends_on": ["contracts"],
       "handoff": "handoffs/codex-state-api.md",
@@ -95,13 +114,16 @@
         "status": "pending",
         "red": { "command": "", "evidence": "" },
         "green": { "command": "", "evidence": "" },
-        "note": "Machine lane aggregates indexer, shared substrate, agent transcription fallback, and voice feasibility. Also depends on CP PRD-674 interfaces."
+        "note": "Machine lane aggregates indexer, shared-foundation migration, joined reads/funding verification, offline kinds, agent transcription fallback, voice feasibility, and paymaster readiness. Keep the manual blocker until every named execution sub-lane has its required GREEN or external proof."
       },
       "skill_tags": ["react", "tanstack-query", "data-layer", "indexer"]
     },
     "ui": {
       "owner": "claude",
-      "status": "todo",
+      "status": "blocked",
+      "ready_when_dependencies_met": false,
+      "manual_blocked": true,
+      "blocked_reason": "Manual aggregate gate: wait for state_api aggregate GREEN, then dispatch only named UI sub-lanes whose own dependencies are satisfied. Community PWA requires shared-foundation and paymaster proof; docs require Community/admin/funder surfaces; membership queue remains excluded until RESR-64 clears its separate gate.",
       "branch": "claude/ui/community-interface",
       "depends_on": ["state_api"],
       "handoff": "handoffs/claude-ui.md",
@@ -111,7 +133,7 @@
         "status": "pending",
         "red": { "command": "", "evidence": "" },
         "green": { "command": "", "evidence": "" },
-        "note": "Machine lane aggregates admin triage, funder lens, docs-facing UI dependencies, and September app surfaces. Detailed sub-lane proof belongs in execution_sub_lanes handoffs."
+        "note": "Machine lane aggregates Community PWA, admin triage, funder lens, and docs-facing UI work. Detailed sub-lane proof belongs in execution_sub_lanes handoffs; do not clear the aggregate manual blocker from state_api alone."
       },
       "skill_tags": ["ui", "design", "react"]
     },
@@ -143,59 +165,89 @@
     "indexer": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "todo",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
       "branch": "codex/indexer/community-interface",
       "depends_on": ["contracts"],
       "handoff": "handoffs/codex-indexer.md",
       "linear_issues": ["PRD-687"],
-      "acceptance": "needUID + aggregates per spec §4; folds into PRD-673 if that CP lane is unstarted at pickup."
+      "acceptance": "Composite-ID needUID lineage and aggregates per spec §4; EAS remains outside Envio; complete handoff and codegen/event proof required."
+    },
+    "shared_foundation": {
+      "machine_lane": "state_api",
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": false,
+      "manual_blocked": true,
+      "blocked_reason": "Manual critical-surface gate: require explicit Afo dispatch, an approved extraction inventory, a named auth/offline reviewer, and accepted RED characterization targets before moving generic foundations. After dispatch, record the RED output before implementation and client-parity GREEN before Community scaffolding.",
+      "branch": "codex/shared-foundation/community-interface",
+      "depends_on": [],
+      "handoff": "handoffs/codex-shared-foundation.md",
+      "linear_issues": ["PRD-682"],
+      "acceptance": "Shared runtime/auth/passkey/offline/install/update/error/shell foundations with client parity proof; app routes/manifests/service workers/telemetry/copy remain package-owned."
     },
     "state_api": {
       "machine_lane": "state_api",
       "owner": "codex",
-      "status": "todo",
+      "status": "blocked",
       "branch": "codex/state-api/community-interface",
-      "depends_on": ["contracts", "indexer"],
+      "depends_on": ["contracts", "indexer", "shared_foundation"],
       "handoff": "handoffs/codex-state-api.md",
       "linear_issues": ["PRD-687"],
-      "acceptance": "Shared job kinds, hooks, app-side derivation join, voice dictation/transcription, and locale substrate."
+      "acceptance": "Shared need/needSignal/testimony jobs, waiting_for_hat recovery, two-axis joined reads, funding verifier/export, voice dictation/transcription, and locale substrate."
     },
     "ops_paymaster": {
       "machine_lane": "state_api",
       "owner": "human",
-      "status": "todo",
+      "status": "blocked",
+      "ready_when_dependencies_met": false,
+      "manual_blocked": true,
+      "blocked_reason": "Manual external gate: a human owner must configure and export the Pimlico allowlist/caps, record the denial/allow matrix and staged burst evidence, and name monitoring/rollback ownership before sponsored Community writes can proceed.",
       "branch": null,
       "depends_on": ["contracts"],
       "handoff": "handoffs/ops-paymaster.md",
       "linear_issues": ["PRD-687"],
       "acceptance": "Pimlico dashboard policy + burst test; live before the first sponsored community write."
     },
+    "ui_community": {
+      "machine_lane": "ui",
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "claude/ui-community/community-interface",
+      "depends_on": ["shared_foundation", "state_api", "ops_paymaster"],
+      "handoff": "handoffs/claude-ui-community.md",
+      "linear_issues": ["PRD-682", "PRD-691"],
+      "acceptance": "Independent Community PWA at community.greengoods.app/local 3010 with Needs/Create/Profile, isolated app identity and service-worker scope, complete queue/recovery states, and en/es/pt accessibility proof. Membership queue remains excluded until its manual gate clears."
+    },
     "ui_admin": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "todo",
+      "status": "blocked",
       "branch": "claude/ui-admin/community-interface",
       "depends_on": ["state_api"],
       "handoff": "handoffs/claude-ui-admin.md",
       "linear_issues": ["PRD-691"],
-      "acceptance": "Need triage, moderation, batch-mint console, gathering view, and PRD-683 seed-from-signal boundary with CP PRD-676."
+      "acceptance": "Admin /community triage, moderation/reopen, pools, evaluator lineage/export, gathering view, and seed-from-signal. Membership queue is excluded until its manual decision gate clears."
     },
     "funder_lens": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "todo",
+      "status": "blocked",
       "branch": "claude/funder-lens/community-interface",
       "depends_on": ["state_api"],
       "handoff": "handoffs/claude-funder-lens.md",
       "linear_issues": ["PRD-691"],
-      "acceptance": "Client public funder lens, global needs gallery, donate/endowment embed, and FundingAttribution display."
+      "acceptance": "Existing client public surfaces gain Need discovery, funding context, verified/de-duplicated attribution, and explicit pending/failed/retry states."
     },
     "docs": {
       "machine_lane": "ui",
       "owner": "claude",
-      "status": "todo",
+      "status": "blocked",
       "branch": "claude/docs/community-interface",
-      "depends_on": ["ui_admin"],
+      "depends_on": ["ui_community", "ui_admin", "funder_lens"],
       "handoff": "handoffs/claude-docs.md",
       "linear_issues": ["PRD-691"],
       "acceptance": "Community guide, operator triage guide, glossary anchors, docs build, vocab lint, and screenshot readiness once surfaces exist."
@@ -207,10 +259,23 @@
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "claude/qa-dogfood/community-interface",
-      "depends_on": ["ui_admin", "funder_lens", "state_api", "ops_paymaster"],
+      "depends_on": ["ui_community", "ui_admin", "funder_lens", "state_api", "ops_paymaster"],
       "handoff": "handoffs/qa-dogfood-readout.md",
       "linear_issues": ["PRD-691"],
       "acceptance": "TAS pilot run, PostHog metrics readiness, offline proof, authenticated Brave admin proof, and real-device PWA loop."
+    },
+    "membership_queue": {
+      "machine_lane": "ui",
+      "owner": "human",
+      "status": "blocked",
+      "ready_when_dependencies_met": false,
+      "manual_blocked": true,
+      "blocked_reason": "RESR-64 must select and document persistence by 2026-08-12 with controller, auth, retention, deletion, offline/recovery, abuse, cost, incident, and operator-handoff evidence.",
+      "branch": null,
+      "depends_on": ["state_api"],
+      "handoff": "handoffs/membership-queue-decision.md",
+      "linear_issues": ["RESR-64", "PRD-691"],
+      "acceptance": "Signed decision record plus threat/abuse review; public on-chain, Linear-as-queue, and implicit localStorage transports remain excluded."
     }
   },
   "follow_on": {
@@ -218,7 +283,7 @@
       "owner": "human",
       "status": "blocked",
       "manual_blocked": true,
-      "blocked_reason": "Post-pilot only. PRD-695 requires written evidence that off-chain batch-mint policy failed a real garden; PRD-696 requires the PRD-694 readout.",
+      "blocked_reason": "Post-pilot only. PRD-695 requires written evidence that the selected off-chain membership policy failed a real garden; PRD-696 requires the PRD-691 QA/dogfood readout (historical PRD-694 label).",
       "branch": null,
       "depends_on": ["qa_dogfood"],
       "handoff": null,
@@ -238,6 +303,18 @@
     {
       "date": "2026-07-07",
       "event": "Plan-hub sync safety reconciled: parent_only mode now records PRD-687 as the canonical parentIssue so linear-sync updates an existing tracker instead of proposing a new parent; PRD-691 remains tracked in consolidatedTrackers and plan.todo.md as the active September needs app tracker."
+    },
+    {
+      "date": "2026-07-09",
+      "event": "Architecture and experience review: NeedKind locked; optional multi-domain scope and typed merge/de-dup semantics added; diagrams, wireframes, target personas, journeys, service blueprint, and research/onboarding plan authored; workflow activated for plan-hub dispatch; join-request persistence intentionally remains decision-gated. Project, milestones, RESR-62/64, PRD-687/691/695/696 were applied and verified; survey and engagement-model document writes were credit-blocked in this snapshot."
+    },
+    {
+      "date": "2026-07-10",
+      "event": "Readiness corrections completed: exact Community contracts and shared-foundation prerequisites, two-axis moderation/progress, offline waiting behavior, placement decision, handoffs, visual coverage, and public claims were reconciled. Live Linear re-read confirmed projects/milestones, parent-only mirrors, PRD-687 blocking PRD-691, non-dispatchable parked/canceled work, the replaced Garden Mandate Survey, and the new RESR-64 engagement-model document."
+    },
+    {
+      "date": "2026-07-10",
+      "event": "Final plan audit made aggregate state_api and ui gates explicitly manual, recorded the external paymaster blocker, corrected docs/dogfood dependencies, and removed already-satisfied policy/handoff blockers without changing parent_only mode."
     }
   ]
 }
