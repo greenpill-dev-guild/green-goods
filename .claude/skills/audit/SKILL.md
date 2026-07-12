@@ -36,8 +36,7 @@ Linear Issues, not GitHub's issue tracker.
 
 ## What This Skill Does Not Own
 
-- abstract architecture judgment (`architecture`)
-- principles scoring or textbook design critique (`principles`)
+- abstract architecture or design-soundness judgment (`/review`'s boundary + coherence lenses)
 - PR-scoped correctness review (`review`)
 - implementation or refactor orchestration
 
@@ -48,7 +47,7 @@ These are mandatory:
 - only report issues with concrete runtime, correctness, or clear maintenance cost
 - do not recommend new abstractions, patterns, or layers from this skill
 - do not treat file size alone as a finding
-- if a structural concern is mostly about design judgment, route it to `architecture` or `principles` instead of reporting it here
+- if a structural concern is mostly about design judgment, route it to `/review` (boundary/coherence lenses) instead of reporting it here
 - cap medium and low-severity findings to the highest-signal set a human can act on
 
 ---

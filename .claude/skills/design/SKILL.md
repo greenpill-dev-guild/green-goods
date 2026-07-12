@@ -46,7 +46,7 @@ This skill's frontmatter `token_version` reflects the current Warm Earth token s
 | **Interaction** | adaptive density, progressive disclosure, multimodal, hover-to-gaze | [interaction.md](./interaction.md) |
 | **Materials** | glass, material, blur, surface, frosted, translucent | [materials.md](./materials.md) |
 | **Generative UI** | UI atoms, intent-driven composition, agent-generated surfaces | [generative-ui.md](./generative-ui.md) |
-| **View Transitions** | view transition API, entity morphing, spatial navigation | [../ui/view-transitions.md](../ui/view-transitions.md) |
+| **View Transitions** | view transition API, entity morphing, spatial navigation | [implementation.md § View Transitions](./implementation.md) |
 | **Ecosystem** | ecosystem, relational, cascade, multi-user, surrogate, autonomic, archetype | [ecosystem.md](./ecosystem.md) |
 | **Regenerative** | regenerative, regen, degen, mycofi, commons, biomimicry, succession, growth-agnostic, capability | [regenerative.md](./regenerative.md) |
 | **Review Checklist** | review, PR, audit, compliance, checklist, design review, before merging | [review-checklist.md](./review-checklist.md) |
@@ -58,7 +58,7 @@ When invoked:
 1. Establish design paradigm and material metaphor before writing code
 2. Apply Inclusive Design lens — every decision raises or lowers barriers
 3. Apply Ecosystem lens for multi-user surfaces — whose experience composes with whose? ([ecosystem.md](./ecosystem.md))
-4. Defer to `ui` skill for TailwindCSS config, Radix primitives, Storybook, i18n, compliance
+4. Defer to [implementation.md](./implementation.md) for TailwindCSS config, Radix primitives, Storybook, i18n, compliance
 5. Run the unified [review-checklist.md](./review-checklist.md) (4 lenses: Regenerative / Spatial / Ecosystem / Compliance) on new components before merging
 
 ---
@@ -183,7 +183,7 @@ What kind of design work?
 │   ├── Choose material metaphor (Glass / Obsidian / Vellum / Holographic / Carbon)
 │   ├── Apply Inclusive Design lens (who gets excluded? what's the fallback?)
 │   ├── Define disclosure layers (glance → scan → engage → deep dive)
-│   └── Implement with ui skill (Pane pattern + adaptive density)
+│   └── Implement per implementation.md (Pane pattern + adaptive density)
 │
 ├─► New component?
 │   ├── What Z-layer? (ground / surface / floating / overlay) → spatial.md
@@ -204,7 +204,7 @@ What kind of design work?
 │   └── Verify inclusive design checks → § Appendix (below)
 │
 ├─► Animation / spatial motion?
-│   ├── View transitions for navigation morph → ../ui/view-transitions.md
+│   ├── View transitions for navigation morph → ./implementation.md § View Transitions
 │   ├── Scroll-linked depth → spatial.md
 │   └── Respect prefers-reduced-motion (MANDATORY)
 │
@@ -240,16 +240,16 @@ Tier 3: Spatial (headsets, AR, large displays)
 
 **The bridge**: Each tier is additive. Tier 2 includes everything from Tier 1. Tier 3 includes everything from Tier 2. **Nothing is spatial-only** — that's a core rule from Inclusive Design (see Quad Foundation above).
 
-This maps to Green Goods' offline-first architecture: the offline state (service worker, IndexedDB) IS Tier 1. The PWA is Tier 2. The codebase is spatially-prepared via glass panes ([spatial.md](./spatial.md)), container queries ([interaction.md](./interaction.md)), and view transitions ([../ui/view-transitions.md](../ui/view-transitions.md)).
+This maps to Green Goods' offline-first architecture: the offline state (service worker, IndexedDB) IS Tier 1. The PWA is Tier 2. The codebase is spatially-prepared via glass panes ([spatial.md](./spatial.md)), container queries ([interaction.md](./interaction.md)), and view transitions ([implementation.md § View Transitions](./implementation.md)).
 
 ---
 
-## Related Skills
+## Related Surfaces
 
-- `ui` — Implementation tooling: TailwindCSS v4, Radix UI, Storybook, i18n, compliance, animation recipes
-- `react` — Component composition, state management, performance optimization
-- `data-layer` — Offline-first patterns, sync state as ambient UI indicators
-- `architecture` — System boundaries that influence surface decomposition
+- [implementation.md](./implementation.md) — Implementation tooling: dialogs, component runbook, Storybook, i18n, view transitions
+- `.claude/context/shared.md` — Hooks, stores, error utilities behind the components
+- `.claude/context/client.md` — Offline-first patterns, sync state as ambient UI indicators
+- `review` — boundary/coherence judgment when surface decomposition is in question
 
 ---
 
@@ -297,7 +297,7 @@ Folded into this file from the former `references.md` during the 2026-04-17 skil
 | **Rive** | Interactive motion graphics, stateful animations |
 | **Spline** | 3D web experiences, spatial UI prototyping |
 | **Motion** (Framer Motion) | Production React animations, layout gestures |
-| **View Transitions API** | Native morphing navigation — see [../ui/view-transitions.md](../ui/view-transitions.md) |
+| **View Transitions API** | Native morphing navigation — see [implementation.md § View Transitions](./implementation.md) |
 
 ### Research & Frameworks
 

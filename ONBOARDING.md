@@ -33,7 +33,7 @@ Top Browser MCP Usage:
 ### Local Setup
 - [ ] Follow the [Developer Getting Started guide](https://docs.greengoods.app/builders/getting-started) (`npm run setup`, then `bun run dev`).
 - [ ] Read `CLAUDE.md` and `AGENTS.md` at the repo root before pairing with Claude — they encode invariants Claude will assume you know.
-- [ ] Skim `.claude/context/<package>/` for whichever package you'll touch first.
+- [ ] Skim `.claude/context/<package>.md` for whichever package you'll touch first.
 
 ### MCP Servers to Activate
 - [ ] **brave-browser-mcp** — Brave-only browser MCP / extension access that lets Claude read and drive a live Brave tab. Heavy use here for admin UI review: reading rendered `data-component`/`data-region`/`data-workspace` attributes on the running admin app (see `.claude/skills/design/defect-grammar.md` for the workflow). Install the Claude browser extension in Brave, sign in, grant tab access, and use the project `.mcp.json` Brave DevTools MCP entry when live browser debugging is needed. Do not use Google Chrome, Chrome for Testing, Chromium, or Edge for Green Goods browser proof.

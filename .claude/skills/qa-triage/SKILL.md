@@ -9,13 +9,13 @@ argument-hint: "[<notes-path|slug|qa-sync:YYYY-MM-DD>] [--dry-run] [--no-codex] 
 
 Interactive sibling of the `bug-intake` cron'd routine. Pulls the latest **Build Sync** QA notes from Drive (with `~/Downloads` fallback), extracts bugs, ideas, and feedback, cross-references each item against PostHog telemetry and existing Linear + QA-sheet records, gates the triage with an explicit scope lock, then writes Linear records and appends rows to the **Green Goods v1.1 QA** Sheet.
 
-Mirror [`docs/routines/bug-intake.md`](../../docs/routines/bug-intake.md) for the Linear protocol, label scheme, and privacy boundary — this skill is its **interactive, on-demand, single-source** sibling, not a replacement.
+Mirror [`docs/routines/bug-intake.md`](../../../docs/routines/bug-intake.md) for the Linear protocol, label scheme, and privacy boundary — this skill is its **interactive, on-demand, single-source** sibling, not a replacement.
 
 ## Activation
 
 | Trigger | Action |
 |---------|--------|
-| `/qa-triage` | Discover the latest Build Sync notes (Drive → Downloads). If the [`qa-triage-pulse`](../../docs/routines/qa-triage-pulse.md) routine has pre-staged Customer Needs for the latest sync, offer to resume from those instead. |
+| `/qa-triage` | Discover the latest Build Sync notes (Drive → Downloads). If the [`qa-triage-pulse`](../../../docs/routines/qa-triage-pulse.md) routine has pre-staged Customer Needs for the latest sync, offer to resume from those instead. |
 | `/qa-triage <path>` | Use the supplied notes path (absolute, relative, or `~/Downloads/...`) |
 | `/qa-triage <slug>` | Resume against `.plans/qa-triage/<slug>/notes.md` from a prior run |
 | `/qa-triage qa-sync:<YYYY-MM-DD>` | Resume from routine-pre-staged Customer Needs carrying that `qa-sync:*` label. Phases 1-3 are skipped (already done by `qa-triage-pulse`); triage gate fires immediately. |
@@ -31,7 +31,7 @@ Mirror [`docs/routines/bug-intake.md`](../../docs/routines/bug-intake.md) for th
   - App `163591` for client PWA + editorial website
   - Admin `262122` for admin cockpit
   - Agent `262124` — not used by this skill
-  - Always call `switch-project` before any PostHog tool call (see [CLAUDE.md § PostHog](../../CLAUDE.md))
+  - Always call `switch-project` before any PostHog tool call (see [CLAUDE.md § PostHog](../../../CLAUDE.md))
 - **Google Drive MCP** — `search_files`, `read_file_content`, `get_file_metadata`, `get_file_permissions` against the team Drive containing the Gemini-generated notes and the **Green Goods v1.1 QA** Sheet (file id `1IiviDIqwFM7gcD3oV48LwHNW5poCE-HmSCLtsLt3xBo`).
 - **Vercel MCP** — used for deploy correlation in Phase 3a-bis, gated on PostHog matches. Optional but recommended; without it, items lose the "this bug appeared with commit X by author Y" context.
 - **Codex CLI** at `/Applications/Codex.app/Contents/Resources/codex` — automatic background dispatch on every run unless `--no-codex` is set.
@@ -110,7 +110,7 @@ Lookup order, first match wins:
 
    On `resume`: populate `extraction.md` from the linked Customer Need + Backlog tracking-Issue pairs (one item per pair, using the Need's verbatim source and the Issue's summary / safe evidence blocks), skip Phases 2 and 3 (Codex dispatch + PostHog cross-ref already done by the routine), and jump straight to Phase 4 with the pre-staged set as the numbered triage list. On `fresh`: ignore the pre-stage and continue to step 1 below; the Phase 6 confirm step will detect duplicates against the existing Customer Needs.
 
-   The resume path cuts the user's interactive triage to ~5 minutes after a sync. See [`qa-triage-pulse.md`](../../docs/routines/qa-triage-pulse.md) for the routine's contract.
+   The resume path cuts the user's interactive triage to ~5 minutes after a sync. See [`qa-triage-pulse.md`](../../../docs/routines/qa-triage-pulse.md) for the routine's contract.
 
 1. **Explicit argument** — `/qa-triage <path>` resolves the path directly. `/qa-triage <slug>` resolves to `.plans/qa-triage/<slug>/notes.md` if a prior run exists.
 2. **Drive query** —
@@ -357,7 +357,7 @@ Surface vocabulary on the Defects row: `Public Website | PWA iOS | PWA Android |
      [--bootstrap-csv .plans/qa-triage/<slug>/schema-bootstrap.csv]
    ```
 
-   The script POSTs the CSVs as JSON to an **Apps Script Web App** deployed on the QA workbook (URL cached at `~/.config/qa-triage/webhook.txt`, required shared secret at `~/.config/qa-triage/webhook-secret.txt`, optional local-only admin secret at `~/.config/qa-triage/webhook-admin-secret.txt`). The Apps Script runs under your Google identity and writes directly — no Google Cloud Console, no OAuth client, no service account. Canonical Apps Script source + setup steps live at `~/.config/qa-triage/setup.md` (chmod 600, never in git); repo-side pointer + bootstrap recipe at [`scripts/agents/qa-sheet-webhook-setup.md`](../../scripts/agents/qa-sheet-webhook-setup.md).
+   The script POSTs the CSVs as JSON to an **Apps Script Web App** deployed on the QA workbook (URL cached at `~/.config/qa-triage/webhook.txt`, required shared secret at `~/.config/qa-triage/webhook-secret.txt`, optional local-only admin secret at `~/.config/qa-triage/webhook-admin-secret.txt`). The Apps Script runs under your Google identity and writes directly — no Google Cloud Console, no OAuth client, no service account. Canonical Apps Script source + setup steps live at `~/.config/qa-triage/setup.md` (chmod 600, never in git); repo-side pointer + bootstrap recipe at [`scripts/agents/qa-sheet-webhook-setup.md`](../../../scripts/agents/qa-sheet-webhook-setup.md).
 
    **Fallback (guided paste)** — if the webhook isn't yet configured, the POST fails, or the user passes `--no-sheet`:
    1. Surface `sheet-rows.csv` and `sheet-test-backfill.csv` with workspace paths.
@@ -412,7 +412,7 @@ Then run Codex worktree cleanup for the current run only if dispatched (unless `
 
 ## Privacy boundary — one explicit exception
 
-The canonical boundary from [`bug-intake.md`](../../docs/routines/bug-intake.md) and [`posthog-questions/SKILL.md`](../posthog-questions/SKILL.md) keeps replay URLs, session IDs, distinct IDs, wallet addresses, and reporter identifiers out of every shared surface.
+The canonical boundary from [`bug-intake.md`](../../../docs/routines/bug-intake.md) and [`posthog-questions/SKILL.md`](../posthog-questions/SKILL.md) keeps replay URLs, session IDs, distinct IDs, wallet addresses, and reporter identifiers out of every shared surface.
 
 This skill makes **one** explicit exception: the QA Sheet may carry `PostHog Session ID` and `PostHog Replay URL` columns. Conditions:
 
@@ -439,8 +439,8 @@ This skill makes **one** explicit exception: the QA Sheet may carry `PostHog Ses
 
 ## Related Skills
 
-- [qa-triage-pulse routine](../../docs/routines/qa-triage-pulse.md) — cron'd async sibling routine that pre-stages Customer Needs every Wednesday after the 10am PST Build Sync. The skill's Phase 1 step 0 resumes from those pre-stages when present, cutting interactive triage time to ~5 minutes.
-- [bug-intake routine](../../docs/routines/bug-intake.md) — cron'd async sibling routine for Discord + Telegram + Drive bug-source intake (M/W/F). Shares the Linear protocol and privacy boundary. This skill is the interactive single-source counterpart for QA-sync notes specifically.
+- [qa-triage-pulse routine](../../../docs/routines/qa-triage-pulse.md) — cron'd async sibling routine that pre-stages Customer Needs every Wednesday after the 10am PST Build Sync. The skill's Phase 1 step 0 resumes from those pre-stages when present, cutting interactive triage time to ~5 minutes.
+- [bug-intake routine](../../../docs/routines/bug-intake.md) — cron'd async sibling routine for Discord + Telegram + Drive bug-source intake (M/W/F). Shares the Linear protocol and privacy boundary. This skill is the interactive single-source counterpart for QA-sync notes specifically.
 - [`posthog-questions`](../posthog-questions/SKILL.md) — named PostHog questions this skill calls.
 - [`doc-feedback`](../doc-feedback/SKILL.md) — workspace convention (`.plans/<skill>/<slug>/`) borrowed.
 - [`debug`](../debug/SKILL.md) — User-Facing Bug Triage Protocol; the assistant borrows the "reproduce before forensics" framing for any item the user wants to investigate before filing.

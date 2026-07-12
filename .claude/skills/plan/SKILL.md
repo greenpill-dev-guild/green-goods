@@ -49,7 +49,7 @@ Action: run `bash .claude/scripts/check-agent-teams-readiness.sh` → compose te
 - "check progress on [plan]", "what's in flight?", "what plans are still relevant?"
 - `.plans/` feels stale (older than 14 days without updates)
 
-### Cross-package breaking change → ops/migration
+### Cross-package breaking change → dependency-order migration
 
 - "breaking change", schema migrations, deployment-affecting work
 - Create/update the owning feature hub first, then sequence execution in dependency order (contracts → shared → indexer → client/admin → agent) with explicit blast-radius analysis
@@ -392,7 +392,7 @@ This gives Claude and future contributors unambiguous constraints without readin
 | Single-file bug fix with clear root cause | describe the bug → fix → test |
 | Typo or copy changes | Direct edit |
 | Config change (env var, build flag) | Direct edit → verify build |
-| Adding a test for existing behavior | `testing` skill directly |
+| Adding a test for existing behavior | Write it directly — conventions in `.claude/context/testing.md` |
 | Formatting or lint fix | `bun format && bun lint` |
 
 ### Signs a Plan is Needed

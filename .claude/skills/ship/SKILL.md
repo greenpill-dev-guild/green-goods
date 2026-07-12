@@ -223,12 +223,12 @@ Use this exact shape. Tables and short sentences — no prose.
 
 ---
 
-## Related Skills
+## Related Surfaces
 
-- `ops/git-workflow` — branch strategy and commit conventions
-- `ops/ci-cd` — what CI runs after push
+- `CLAUDE.md § Git Workflow` — branch strategy and commit conventions
+- `.claude/context/validation-pipeline.md` — the single definition of the gate commands
 - `review` — pre-merge code review that complements the ship flow
-- `testing` — test discipline referenced by the pipeline
+- `.claude/context/testing.md` — test discipline referenced by the pipeline
 - `clean` — large-scale cleanup before shipping big diffs
 
 ---

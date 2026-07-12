@@ -15,12 +15,12 @@ cd $CLAUDE_PROJECT_DIR && bun run check:codex-guidance 2>&1 | tail -5
 
 ## 2. Stale References
 
-Grep the `.claude/` directory (and `CLAUDE.md`/`AGENTS.md`) for these known-retired names. Report any matches outside of archive/retirement notices:
-- `skills/react`, `skills/testing`, `skills/web3`, `skills/data-layer`, `skills/indexer`, `skills/contracts`, `skills/ops`, `skills/ui` (retired domain skills)
-- `skills/principles`, `skills/architecture`, `skills/audit-then-ship`, `skills/drift` (folded into review/audit)
-- `registry/skills.json`, `skills/index.md`, `check:claude-guidance` (removed meta-infrastructure)
-- `cracked-coder`, `oracle` agent definitions
-- `error-handling-patterns`, `skill-bundles.json`, `hooks.json`
+Grep the `.claude/` directory (and `CLAUDE.md`/`AGENTS.md`/`ONBOARDING.md`) for these known-retired names. Check BOTH the path form (`skills/<name>`) AND the prose forms — backtick names like `` `ui` ``, "<name> skill", "skill `<name>`", and subfile refs like `ops/migration` — the prose forms are how stale references actually survive sweeps. Report any matches outside of archive/retirement notices:
+- Retired domain skills: `react`, `testing`, `web3`, `data-layer`, `indexer`, `contracts`, `ops`, `ui` (as skill references — their content lives in `.claude/context/*.md` and `design/implementation.md`)
+- Folded into review/audit: `principles`, `architecture`, `audit-then-ship`, `drift` (as skill references)
+- Removed meta-infrastructure: `registry/skills.json`, `skills/index.md`, `check:claude-guidance`, `check-skill-frontmatter`
+- Removed agents: `cracked-coder`, `oracle`
+- Older retirements: `error-handling-patterns`, `skill-bundles.json`, `hooks.json`, `skills:sync`
 
 ## 3. Build Health
 ```!
