@@ -2,30 +2,82 @@
 
 ## Status
 
-- Execution sub-lane: `settlement`
-- Machine lane: `contracts`
+- Machine lane: contracts
+- Execution sub-lane: settlement
 - Owner: Codex
-- Branch: `codex/settlement/commitment-pooling`
-- Current state: waits for PRD-672 interface freeze; can run parallel with PRD-673/674 after that gate
-- Tracker context: PRD-686
+- Branch signal: codex/settlement/commitment-pooling
+- Current state: manually blocked
+- Linear context: PRD-686; parent-only mode remains unchanged
 
-## Scope
+## Inputs
 
-- Implement the Arbitrum `SettlementModule` control plane from `settlement-spec.md`.
-- Support one active Celo settlement account per garden, disbursement queue state, executor controls, failure/retry/cancel states, and Celo execution references.
-- Provide the deterministic Celo Safe deploy/register path and admin trigger contract touchpoints without making Safe rollout launch-blocking.
+- settlement-spec.md after its Functions-only interface/event reconciliation
+- acceptance-matrix.md for payout formulas, status copy, and final proof
+- Frozen CommitmentPoolingModule ABI and Fulfilled reward/provider semantics
+- Written GoodDollar token/operating confirmation
+- Celo Safe recovery/Roles/Allowance configuration
+- Chainlink Functions router, subscription, DON, callback gas, source, and secrets-reference decisions
+- Celo AA/paymaster spike evidence for member delivery
+
+## Outputs
+
+- Arbitrum SettlementModule with reward-bound disbursements and only WorkingCapitalToProtocol and ProtocolToGarden funding routes.
+- Immutable batches of 1-24 members, per-member failed-batch recovery, retry/cancel state, and complete event/error contract.
+- Exact request bytes, 160-byte response ABI, bounded result/failure codes, snapshotted expiry, permissioned timeout recovery, and oracle-only Verified transition.
+- Deterministic one-Safe-per-garden deploy/register tooling, persisted sorted pilot 2-of-3 owners + Roles/Allowance configuration, bounded owner/executor rejection, and post-deploy health checks.
+- Contract, script, receipt-fixture, and integration proof.
 
 ## Acceptance
 
-- Written GoodDollar confirmations and the Celo AA verification spike are recorded before the member-receipt leg is treated as GREEN.
-- First base exit proof: G$ disbursement queued on Arbitrum, executed from a garden Celo Safe, `recordSettled` stores the Celo tx hash, and status is visible through the shared/app path.
-- Bridge-executor automation is stretch only and cannot block the operator-executed August base proof.
+- Queue derives reward source, recipient, token, and amount from a Fulfilled commitment; callers cannot override them.
+- Individual reward beneficiary is the stored provider's same-address Celo AA account. Garden reward beneficiary is the registered Safe at `settlementAccounts[providerGarden].account`, never the Arbitrum GardenAccount.
+- Funding routes derive every address and canonical G$ token. HoA-to-working-capital remains upstream context.
+- A Batch stores immutable member IDs and rejects 0 or more than 24 members. A rejected batch remains immutable; each failed member is individually requeued or canceled and requeue clears its prior batch/reference/verification fields.
+- Reporting persists reportedBy and the Celo transaction hash but leaves state Reported.
+- Both unbatched and batched disbursements have an explicit Queued -> Executing function before reporting.
+- A verification request records request ID, time, and expiry. Only the configured Functions callback may set Verified or receipt-invalid Failed; malformed/Functions/RPC/finality errors leave Reported and allow a new request; stale callbacks cannot mutate state.
+- Receipt proof checks chain 42220 and receipt at/before the RPC finalized block, successful Safe/module execution, canonical G$ `Transfer.from == stored Safe`, and exact recipient/amount multiset coverage. It never requires outer `transaction.from == Safe`.
+- verifiedBy records the oracle contract. No manual receipt-verification path exists.
+- Pilot owners are protocol multisig, Dev Guild/working-capital multisig, and named garden recovery delegate, threshold 2. No owner is an executor.
+- If AA/paymaster proof fails, protocol/garden funding may continue but automated member delivery remains disabled.
+- `memberDeliveryEnabled()` and `MemberDeliveryStatusChanged` provide one canonical read model for the indexer and apps.
+- The implementation pins direct `@chainlink/contracts@1.5.0` and imports `FunctionsClient` from `src/v0.8/functions/v1_3_0`; an unpinned `v1_X` or development path is not acceptable.
 
-## Proof Expectations
+## RED / GREEN
 
-- RED/GREEN contract tests for settlement account registration, queue transitions, failure/requeue/cancel, executor gates, and reward-status precedence.
-- Validation from `packages/contracts`: `bun run test`; add package build/lint when deploy or type surfaces move.
+- RED: focused Settlement tests fail for route binding, single/batch execution, batch bounds/recovery, request payload/response ABI, callback authorization, malformed/stale callback, receipt-invalid result, infrastructure/timeout retry, Safe owner/executor separation, generated 20+30 storage layout, pause behavior, and member-delivery gate.
+- GREEN: the same tests pass; script tests and one receipt-fixture integration pass. Live Celo/Functions proof remains an external gate, not something unit tests can substitute.
 
-## Out Of Scope
+## Exact Bun commands
 
-- Bridged G$, any bridge with custody or unbounded value authority, Sarafu integration, transferable voucher activation, indexing raw Celo/G$ transfers, and `CreditRegister` repayment semantics.
+`test/unit/Settlement.t.sol` does not exist yet; it is the intentional to-be-created RED-first test target for this lane.
+
+- bun run --filter @green-goods/contracts test:match -- test/unit/Settlement.t.sol
+- bun run --filter @green-goods/contracts test:script
+- bun run --filter @green-goods/contracts build:full
+- bun run --filter @green-goods/contracts lint:check
+- bun run --filter @green-goods/contracts test
+
+Run the dry-run command from packages/contracts once implemented; the filtered verification targets run from the repository root:
+
+- bun script/deploy.ts settlement --network sepolia --dry-run
+- bun script/deploy.ts settlement-safe --network celo --garden <arbitrumGardenAccount> --dry-run --pure-simulation
+- bun run --filter @green-goods/contracts verify:post-deploy:sepolia
+- bun run --filter @green-goods/contracts verify:post-deploy:indexer:sepolia
+
+## Out of scope
+
+- Any broadcast, bridged G$, bridge custody, manual verification, garden-custody member claims, transferable vouchers, CreditRegister, raw Celo/G$ indexing, or arbitrary Safe execution.
+- Treating an oracle infrastructure error as an invalid receipt.
+
+## Unblock evidence
+
+Before dispatch, record only the external inputs needed to write the first RED PR:
+
+- Frozen pooling ABI plus reconciled Functions-only settlement ABI/events and exact request/response/failure-code contract.
+- GoodDollar canonical-token and operating confirmation.
+- Functions router/subscription/DON/callback gas, pinned `@chainlink/contracts@1.5.0` source/import, secrets reference, and a finalized Celo receipt fixture.
+- Exact per-garden 2-of-3 owner roles plus the scoped Roles/Allowance selectors and caps.
+- The Celo AA/paymaster outcome. A failed outcome is a valid recorded result that keeps only member delivery disabled.
+
+The implementation GREEN produces—rather than presupposes—the generated 20-slot + 30-gap proof, mocked callback tests, deterministic Safe deploy/register dry run, and owner/executor separation checks. Separately authorized broadcast, post-deploy checks, Garden-ID cutover, and the live Celo/Functions exit proof belong to `human-release-ops.md` and cannot block opening the implementation PR once the pre-dispatch inputs above exist.

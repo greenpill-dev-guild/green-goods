@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="2000" viewBox="0 0 1000 1000" font-family="Inter, 'Helvetica Neue', Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 Z" fill="#AC9F87"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1000" height="1000" fill="#FBF8F2"/>
+
+  <!-- title -->
+  <text x="500" y="88" text-anchor="middle" font-size="22" font-weight="700" fill="#2A2722">Funding follows delivered outcomes, not promises</text>
+
+  <!-- Rail 1: Impact certificates -->
+  <rect x="44" y="200" width="310" height="76" rx="12" fill="#DFEBDE" stroke="#4C7A57" stroke-width="2"/>
+  <text x="199" y="226" text-anchor="middle" font-size="13" font-weight="600" fill="#24422E">Impact certificates (Hypercerts)</text>
+  <text x="199" y="246" text-anchor="middle" font-size="10.5" fill="#4C6B54">funders buy fractions of delivered work</text>
+  <text x="199" y="261" text-anchor="middle" font-size="10.5" fill="#4C6B54">marketplace Built · bundling Planned</text>
+  <rect x="252" y="190" width="112" height="20" rx="6" fill="#FFFFFF" stroke="#A19884" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <text x="308" y="204" text-anchor="middle" font-size="10" fill="#6E6857">bundling Planned</text>
+
+  <!-- Rail 2: Supporter vaults -->
+  <rect x="44" y="380" width="310" height="76" rx="12" fill="#DFEBDE" stroke="#4C7A57" stroke-width="2"/>
+  <text x="199" y="406" text-anchor="middle" font-size="13" font-weight="600" fill="#24422E">Supporter vaults (with Octant)</text>
+  <text x="199" y="426" text-anchor="middle" font-size="10.5" fill="#4C6B54">deposit → principal stays yours</text>
+  <text x="199" y="441" text-anchor="middle" font-size="10.5" fill="#4C6B54">yield buys certificate fractions</text>
+
+  <!-- yield loop -->
+  <path d="M 445 379 A 13 13 0 1 1 432 366" fill="none" stroke="#AC9F87" stroke-width="2.25" marker-end="url(#arrow)"/>
+  <text x="454" y="383" font-size="10.5" fill="#8A8578">yield loop</text>
+
+  <!-- Rail 3: Direct support and G$ settlement -->
+  <text x="205" y="560" text-anchor="middle" font-size="13" font-weight="600" fill="#2A2722">Direct support &amp; G$ settlement</text>
+  <rect x="44" y="576" width="120" height="52" rx="12" fill="#DFEBDE" stroke="#4C7A57" stroke-width="2"/>
+  <text x="104" y="606" text-anchor="middle" font-size="13" font-weight="600" fill="#24422E">donations</text>
+  <rect x="176" y="576" width="190" height="52" rx="12" fill="#FFFFFF" stroke="#A19884" stroke-width="2" stroke-dasharray="5 4"/>
+  <text x="271" y="595" text-anchor="middle" font-size="13" font-weight="600" fill="#3B372E">G$ pays members for</text>
+  <text x="271" y="613" text-anchor="middle" font-size="13" font-weight="600" fill="#3B372E">fulfilled commitments</text>
+
+  <!-- converging arrows -->
+  <path d="M 358 238 C 480 238 620 320 718 368" fill="none" stroke="#AC9F87" stroke-width="2.25" marker-end="url(#arrow)"/>
+  <path d="M 358 418 C 480 418 600 410 718 400" fill="none" stroke="#AC9F87" stroke-width="2.25" marker-end="url(#arrow)"/>
+  <path d="M 370 602 C 500 602 630 505 718 440" fill="none" stroke="#AC9F87" stroke-width="2.25" marker-end="url(#arrow)"/>
+
+  <!-- destination node -->
+  <rect x="726" y="330" width="230" height="140" rx="12" fill="#DFEBDE" stroke="#4C7A57" stroke-width="2"/>
+  <text x="841" y="392" text-anchor="middle" font-size="13" font-weight="600" fill="#24422E">Delivered, confirmed</text>
+  <text x="841" y="410" text-anchor="middle" font-size="13" font-weight="600" fill="#24422E">outcomes</text>
+
+  <!-- caption -->
+  <text x="500" y="724" text-anchor="middle" font-size="12" fill="#6E6857">Buying a fraction funds work that already happened and was confirmed.</text>
+
+  <!-- legend -->
+  <g>
+    <rect x="292" y="768" width="26" height="16" rx="4" fill="#DFEBDE" stroke="#4C7A57" stroke-width="2"/>
+    <text x="326" y="781" font-size="12" fill="#2A2722">Built — live today</text>
+
+    <rect x="487" y="768" width="26" height="16" rx="4" fill="#FFFFFF" stroke="#A19884" stroke-width="2" stroke-dasharray="5 4"/>
+    <text x="521" y="781" font-size="12" fill="#2A2722">Planned — August / September</text>
+  </g>
+
+  <text x="500" y="956" text-anchor="middle" font-size="10.5" fill="#8A8578">Green Goods · Commitment Pooling — v1 (2026-07)</text>
+</svg>

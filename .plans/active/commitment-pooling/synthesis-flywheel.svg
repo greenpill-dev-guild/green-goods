@@ -1,0 +1,81 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="2000" viewBox="0 0 1000 1000" font-family="Inter, 'Helvetica Neue', Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 Z" fill="#AC9F87"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1000" height="1000" fill="#FBF8F2"/>
+
+  <text x="500" y="46" text-anchor="middle" font-size="23" font-weight="700" fill="#2A2722">One flywheel, not a bag of features</text>
+
+  <!-- outer gated orbit, open at top for its label -->
+  <path d="M 345 141.2 A 430 390 0 1 0 655 141.2" fill="none" stroke="#A19884" stroke-width="2" stroke-dasharray="6 5"/>
+  <text x="500" y="145" text-anchor="middle" font-size="11.5" fill="#6E6857">borrow-and-repay — designed · evidence-gated</text>
+
+  <!-- center ring: the commitment loop -->
+  <circle cx="500" cy="505" r="120" fill="none" stroke="#4C7A57" stroke-width="2.5"/>
+  <text x="500" y="488" text-anchor="middle" font-size="17" font-weight="700" fill="#24422E">The commitment loop</text>
+  <text x="500" y="512" text-anchor="middle" font-size="10.5" fill="#4C6B54">Need → Promise → Work →</text>
+  <text x="500" y="528" text-anchor="middle" font-size="10.5" fill="#4C6B54">Confirm → Learn → Certificate</text>
+
+  <!-- arrows between rails and ring -->
+  <g fill="none" stroke="#AC9F87" stroke-width="2.25" marker-end="url(#arrow)">
+    <!-- donations in -->
+    <path d="M 374 286 L 435 394"/>
+    <!-- vault yield in -->
+    <path d="M 582 313 L 552 388"/>
+    <!-- small recycling loop beside the vault arrow -->
+    <path d="M 620 319 A 13 13 0 1 1 608.7 338.5"/>
+    <!-- ring out to marketplace -->
+    <path d="M 563 607 L 630 673"/>
+    <!-- marketplace proceeds back in -->
+    <path d="M 662 672 L 589 599"/>
+    <!-- ring out to G$ settlement -->
+    <path d="M 420 601 L 355 679"/>
+  </g>
+
+  <!-- Donations · Built -->
+  <g>
+    <rect x="225" y="215" width="180" height="58" rx="12" fill="#DFEBDE" stroke="#4C7A57" stroke-width="2"/>
+    <text x="315" y="239" text-anchor="middle" font-size="13" font-weight="600" fill="#24422E">Donations</text>
+    <text x="315" y="257" text-anchor="middle" font-size="10.5" fill="#4C6B54">direct support to gardens</text>
+  </g>
+
+  <!-- Vault endowment yield · Built -->
+  <g>
+    <rect x="545" y="215" width="210" height="88" rx="12" fill="#DFEBDE" stroke="#4C7A57" stroke-width="2"/>
+    <text x="650" y="239" text-anchor="middle" font-size="13" font-weight="600" fill="#24422E">Vault endowment yield</text>
+    <text x="650" y="255" text-anchor="middle" font-size="13" font-weight="600" fill="#24422E">(with Octant)</text>
+    <text x="650" y="273" text-anchor="middle" font-size="10.5" fill="#4C6B54">principal stays; yield buys</text>
+    <text x="650" y="287" text-anchor="middle" font-size="10.5" fill="#4C6B54">certificate fractions</text>
+  </g>
+
+  <!-- Impact marketplace · marketplace Built, bundling Planned -->
+  <g>
+    <rect x="575" y="680" width="200" height="88" rx="12" fill="#DFEBDE" stroke="#4C7A57" stroke-width="2" stroke-dasharray="5 4"/>
+    <text x="675" y="704" text-anchor="middle" font-size="13" font-weight="600" fill="#24422E">Impact marketplace</text>
+    <text x="675" y="720" text-anchor="middle" font-size="13" font-weight="600" fill="#24422E">(Hypercerts)</text>
+    <text x="675" y="738" text-anchor="middle" font-size="10.5" fill="#4C6B54">cycle certificates sold as</text>
+    <text x="675" y="752" text-anchor="middle" font-size="10.5" fill="#4C6B54">fractions · bundling Planned</text>
+  </g>
+
+  <!-- G$ settlement on Celo · Planned -->
+  <g>
+    <rect x="215" y="690" width="200" height="72" rx="12" fill="#FFFFFF" stroke="#A19884" stroke-width="2" stroke-dasharray="5 4"/>
+    <text x="315" y="714" text-anchor="middle" font-size="13" font-weight="600" fill="#3B372E">G$ settlement on Celo</text>
+    <text x="315" y="732" text-anchor="middle" font-size="10.5" fill="#6E6857">pays members for fulfilled</text>
+    <text x="315" y="746" text-anchor="middle" font-size="10.5" fill="#6E6857">commitments · August</text>
+  </g>
+
+  <!-- legend -->
+  <g>
+    <rect x="285" y="918" width="26" height="16" rx="4" fill="#DFEBDE" stroke="#4C7A57" stroke-width="2"/>
+    <text x="319" y="931" font-size="12" fill="#2A2722">Built — live today</text>
+
+    <rect x="475" y="918" width="26" height="16" rx="4" fill="#FFFFFF" stroke="#A19884" stroke-width="2" stroke-dasharray="5 4"/>
+    <text x="509" y="931" font-size="12" fill="#2A2722">Planned — August / evidence-gated</text>
+  </g>
+
+  <text x="500" y="972" text-anchor="middle" font-size="10.5" fill="#8A8578">Green Goods · Commitment Pooling — v1 (2026-07)</text>
+</svg>

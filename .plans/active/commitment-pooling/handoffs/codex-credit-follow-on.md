@@ -2,19 +2,56 @@
 
 ## Status
 
-- Follow-on lane: `credit_register`
+- Follow-on lane: credit_register
 - Owner: Codex
-- Branch: `codex/credit/commitment-pooling`
-- Current state: blocked follow-on; not part of August base MVP
+- Branch signal: codex/credit/commitment-pooling
+- Current state: manually blocked; not part of the August base MVP
+- Linear context: no executable Linear child under parent_only mode
 
-## Blocker
+## Inputs
 
-- Requires explicit scope unlock after pooling and settlement interfaces settle.
+Only after explicit user scope unlock:
 
-## Scope When Unblocked
+- credit-spec.md revalidated against shipped pooling and settlement interfaces
+- Written pilot evidence that a credit register is needed
+- Frozen indexer/shared/API integration contract
+- New accepted tracker or explicit parent scope amendment
 
-- `CreditRegister`, credit indexer/shared surfaces, `queryKeys.credit.*`, credit job kind, and admin/PWA credit surfaces from `credit-spec.md`.
+## Outputs
 
-## Out Of Scope Until Unblocked
+When unblocked only:
 
-- Any borrow-and-repay implementation, credit-score UX, repayment settlement semantics, or Linear tracker expansion for this lane.
+- CreditRegister contracts, tests, indexer entities/handlers, shared queryKeys.credit APIs/jobs, and bounded admin/PWA surfaces.
+- Updated handoff with exact evidence-gated behavior and deployment path.
+
+## Acceptance
+
+- No transferable voucher, score, ranking, or debt behavior is inferred from commitment or settlement records.
+- Borrow/repay authorization, caps, failure/recovery, privacy, indexer, shared, and UI contracts are explicit before implementation.
+- The follow-on remains isolated from base Commitment Pooling and settlement completion.
+
+## RED / GREEN
+
+No RED run is authorized while blocked. After explicit unlock, record a failing CreditRegister test before implementation and pass that same test before integration.
+
+## Exact Bun commands
+
+Do not run until scope is explicitly unlocked:
+
+- bun run --filter @green-goods/contracts test:match -- test/unit/CreditRegister.t.sol
+- bun run --filter @green-goods/indexer test -- test/creditRegister.test.ts
+- bun run --filter @green-goods/shared test -- src/__tests__/credit-register.test.ts
+- bun run --filter @green-goods/contracts build:full
+- bun run --filter @green-goods/indexer build
+- bun run --filter @green-goods/shared typecheck
+
+## Out of scope
+
+- Any credit implementation before unlock, credit scores, leaderboards, transferable settlement vouchers, arbitrary borrowing, implicit repayment settlement, or issue proliferation.
+
+## Unblock evidence
+
+- Explicit user scope lock names this follow-on.
+- Pilot evidence and owner/date are recorded.
+- Pooling/settlement interfaces are shipped and revalidated.
+- status.json manual blocker is cleared and the new RED target is recorded before code changes.

@@ -2,18 +2,55 @@
 
 ## Status
 
-- Execution sub-lane: `editorial`
-- Machine lane: `ui`
+- Execution sub-lane: editorial
+- Machine lane: ui
 - Owner: Claude
-- Branch: `claude/editorial/commitment-pooling`
-- Current state: blocked on `state_api`
+- Branch signal: claude/editorial/commitment-pooling
+- Current state: blocked on state_api
+- Linear context: PRD-650 parent-only mirror
 
-## Scope
+## Inputs
 
-- `/gardens/:id` GardenDialog pool story, cycle progress, promises-kept stats, and `/impact` protocol-wide pool aggregates.
+- GREEN aggregate/query selectors with privacy thresholds
+- uiux-spec.md editorial contract and W15/W16
+- external-communications.md claims guardrails
+- acceptance-matrix.md §3 public claims matrix
+- Existing public GardenDialog and /impact composition
+
+## Outputs
+
+- Read-only garden pool story and protocol-wide promise aggregates.
+- Clear labels separating planned, live, reported, and oracle-verified behavior.
+- Privacy-thresholded counts with readiness/empty/error copy.
+- en/es/pt copy and accessible public-browser proof.
 
 ## Acceptance
 
-- Read-only aggregate surfaces only.
-- Render exclusively from indexer aggregates.
-- No per-person listings; keep small-community sensitivity and readiness copy before live numbers.
+- Public views render only indexer-backed aggregates and approved EAS/shared joined reads.
+- No per-person lists, wallet addresses, rankings, funding-ordering, or unsupported percentage claims.
+- Reported settlement never reads as arrived; oracle-verified references are distinguished from community narrative and evaluator conclusions.
+- Pre-launch surfaces use planned/readiness language rather than live counts.
+- Headings, links, status text, focus order, contrast, and reduced motion pass public-browser review.
+
+## RED / GREEN
+
+- RED: focused public component tests fail for thresholding, empty/error, and evidence labels.
+- GREEN: the same tests pass; client build and public-browser proof pass.
+
+## Exact Bun commands
+
+`src/__tests__/commitment-editorial.test.tsx` does not exist yet; it is the intentional to-be-created RED-first deliverable for this lane.
+
+- bun run --filter @green-goods/client test -- src/__tests__/commitment-editorial.test.tsx
+- bun run --filter @green-goods/client build
+- bun run lint:vocab
+
+## Out of scope
+
+- Product writes, personalized lists, rankings, steering, escrow claims, unpublished metrics, manual receipt verification, or changes to public funding rails.
+
+## Unblock evidence
+
+- Indexer/shared aggregate selectors and privacy thresholds are GREEN.
+- `acceptance-matrix.md` §3 is approved and every public claim maps to its required evidence class.
+- GREEN includes targeted tests, client build, and rendered public-browser proof for readiness, live, reported, oracle-verified, empty, and error states.

@@ -1,7 +1,43 @@
 # Commitment Pooling Handoffs
 
-These files are the lane-level dispatch surfaces for `.plans/active/commitment-pooling/`.
+These files are the lane-level dispatch surfaces for .plans/active/commitment-pooling/.
 
-`status.json` remains machine truth. `plan.todo.md`, `contract-spec.md`, `settlement-spec.md`, `uiux-spec.md`, `credit-spec.md`, `diagrams.md`, and `corrections-log.md` remain source specs. Each implementation lane records RED/GREEN proof here first, then records machine proof through `record-tdd` when the lane is ready to turn GREEN.
+## Source order
 
-Linear stays low-noise for this hub: `linear.laneSyncMode = parent_only`, PRD-650 is the single active parent mirror, and lane issue IDs in the plan are historical labels unless Afo explicitly expands the Linear footprint.
+1. status.json is machine truth for owner, lane state, dependencies, and dispatchability. Read `execution_sub_lanes` before trusting a machine-lane status: a ready machine lane can contain a blocked sub-lane (`contracts` ready does not make `settlement` dispatchable) and a blocked machine lane can contain a ready sub-lane (`docs` is dispatchable while `ui` is blocked).
+2. contract-spec.md, settlement-spec.md, uiux-spec.md, credit-spec.md, diagrams.md, wireframes.md, and acceptance-matrix.md define behavior and final copy/state/public-claim proof.
+3. plan.todo.md defines sequencing.
+4. A handoff narrows one lane; it never overrides a blocked status or expands scope.
+5. human-release-ops.md owns separately authorized broadcast, Garden-ID cutover, and live settlement exit evidence; implementation handoffs own only code, tests, artifacts, and dry runs.
+
+## Required handoff contract
+
+Every handoff records:
+
+- Status: lane, owner, branch signal, current gate, and Linear context.
+- Inputs: frozen specifications, upstream artifacts, and dependency evidence.
+- Outputs: concrete deliverables owned by the lane.
+- Acceptance: observable behavior and integration contracts.
+- RED / GREEN: the first failing proof and the same proof passing, or an explicit proof limit for non-behavioral work.
+- Exact Bun commands: runnable from the repository root unless another working directory is named.
+- Out of scope: boundaries that may not be pulled into the lane.
+- Unblock evidence: exact evidence required before status.json may advance.
+
+Detailed proof is written here first and then recorded in status.json with the plan-hub record-tdd command. A handoff is not a branch-creation instruction.
+
+There are fourteen agent execution handoffs plus one human release-operations handoff. The human handoff is an authorization and evidence boundary, not a machine lane.
+
+## Linear boundary
+
+linear.laneSyncMode remains parent_only. PRD-650 is the single plan-hub parent mirror. PRD-686, PRD-682, and historical child IDs provide context only; these handoffs do not create or dispatch Linear children.
+
+## Shared safety rules
+
+- Preserve contract -> indexer -> shared -> client/admin/docs ordering.
+- Use Bun wrappers; never raw forge.
+- Hooks live in @green-goods/shared.
+- Every user-facing string lands in en, es, and pt.
+- Envio indexes Green Goods protocol events only, never EAS or raw Celo token transfers.
+- Visible UI requires authenticated Brave proof; member PWA flows also require a real-device pass.
+- Settlement verification is Functions-only. A reported transaction is not verified until the configured oracle callback succeeds.
+- No bridged G$, garden-held member-claim path, transferable voucher activation, credit scoring, or leaderboard behavior.
