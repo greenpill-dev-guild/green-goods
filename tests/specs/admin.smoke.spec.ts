@@ -158,14 +158,6 @@ async function setupMockOperator(page: Page) {
   return helper;
 }
 
-// Mocked-operator admin smoke tests have been latent-broken for 3+ days
-// behind the indexer webserver gate: with the indexer skipped (28a74a26),
-// they reach the dev server but the `?mockAuth=` / sessionStorage override
-// path doesn't activate DevAuthProvider in the CI Playwright shell, so the
-// page sits on "Checking authentication..." until the goto times out.
-// Tracked for v1.1.1 — see release/1.1.0 audit doc Bundle 2 follow-up.
-// The non-mocked "connect shell" test still runs as a sanity check that
-// the admin app boots and the auth gate renders.
 test.describe.configure({ mode: "serial" });
 test.describe("Admin Cockpit", () => {
   test.use({ baseURL: ADMIN_URL });
@@ -178,20 +170,18 @@ test.describe("Admin Cockpit", () => {
     await expect(page.getByRole("button", { name: /connect wallet/i })).toBeVisible();
   });
 
-  // SKIP: #312 owner:afo expiry:2026-06-01 — mock auth is unstable in headless CI.
-  test.skip("renders the work cockpit for a mocked operator", async ({ page }) => {
+  test("renders the work cockpit for a mocked operator", async ({ page }) => {
     const helper = await setupMockOperator(page);
 
-    await page.goto("/hub");
+    await page.goto(helper.buildMockAuthPath("/hub", "operator"));
     await helper.waitForPageLoad();
 
     await expect(page.getByText("Connect to continue")).toHaveCount(0);
     await expect(page.getByText("Mock Operator Garden", { exact: true })).toBeVisible({
       timeout: 15000,
     });
-    // Hub renders the active stage label (Work/Assess/Certify/History) as the
-    // page heading; default stage is "work" so "Work" is the expected H1.
-    await expect(page.getByRole("heading", { name: "Work" })).toBeVisible();
+    // Hub is the workspace heading; its active pipeline stage appears in the tab rail below.
+    await expect(page.getByRole("heading", { name: "Hub" })).toBeVisible();
     // The Hub tab rail renders pipeline stage tabs filtered by role
     // capability. With mocked operator auth, canManage gates the work tab and
     // history is always visible; canAssess / canCertify depend on hats role
@@ -204,13 +194,10 @@ test.describe("Admin Cockpit", () => {
     await expect(page.getByPlaceholder("Search submissions")).toBeVisible();
   });
 
-  // SKIP: #312 owner:afo expiry:2026-06-01 — mock auth is unstable in headless CI.
-  test.skip("keeps mock auth active across full reloads on other cockpit routes", async ({
-    page,
-  }) => {
+  test("keeps mock auth active across full reloads on other cockpit routes", async ({ page }) => {
     const helper = await setupMockOperator(page);
 
-    await page.goto("/hub");
+    await page.goto(helper.buildMockAuthPath("/hub", "operator"));
     await helper.waitForPageLoad();
 
     await page.goto("/actions");
@@ -228,8 +215,7 @@ test.describe("Admin Cockpit", () => {
     ).toBeVisible({ timeout: 15000 });
   });
 
-  // SKIP: #312 owner:afo expiry:2026-06-01 — mock auth is unstable in headless CI.
-  test.skip("treats mobile profile as a route-backed workspace and keeps settings secondary in-query", async ({
+  test("treats mobile profile as a route-backed workspace and keeps settings secondary in-query", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -239,24 +225,31 @@ test.describe("Admin Cockpit", () => {
     await helper.waitForPageLoad();
 
     // Profile workspace renders an "Account" heading at the canvas root with
-    // tabs for Profile/Settings as secondary navigation.
+    // Account/Settings as secondary navigation.
     await expect(page.getByRole("heading", { name: "Account" })).toBeVisible({ timeout: 15000 });
-    await expect(page.getByRole("tab", { name: "Profile" })).toHaveAttribute(
+    await expect(page.getByRole("tab", { name: "Account" })).toHaveAttribute(
       "aria-selected",
       "true"
     );
 
     await page.getByRole("tab", { name: "Settings" }).click();
-    await expect(page.getByText("Disconnect", { exact: true })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole("tab", { name: "Settings" })).toHaveAttribute(
+      "aria-selected",
+      "true"
+    );
+    await expect(page.getByRole("heading", { name: "Theme" })).toBeVisible({ timeout: 15000 });
     await expect.poll(() => new URL(page.url()).searchParams.get("tab")).toBe("settings");
 
-    await page.getByRole("tab", { name: "Profile" }).click();
-    await expect(page.getByText("Disconnect", { exact: true })).toHaveCount(0);
+    await page.getByRole("tab", { name: "Account" }).click();
+    await expect(page.getByRole("tab", { name: "Account" })).toHaveAttribute(
+      "aria-selected",
+      "true"
+    );
+    await expect(page.getByText("Disconnect", { exact: true })).toBeVisible({ timeout: 15000 });
     await expect.poll(() => new URL(page.url()).searchParams.get("tab")).toBe(null);
   });
 
-  // SKIP: #312 owner:afo expiry:2026-06-01 — mock auth is unstable in headless CI.
-  test.skip("redirects desktop profile deep links back to hub while opening the settings sheet", async ({
+  test("redirects desktop profile deep links back to hub while opening the settings sheet", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
@@ -269,7 +262,9 @@ test.describe("Admin Cockpit", () => {
     await expect
       .poll(() => new URL(page.url()).pathname, { timeout: 15000 })
       .toMatch(/^\/hub(?:\/[a-z]+)?$/);
-    await expect(page.getByText("Disconnect", { exact: true })).toBeVisible({ timeout: 15000 });
+    const settingsDialog = page.getByRole("dialog", { name: "Settings" });
+    await expect(settingsDialog).toBeVisible({ timeout: 15000 });
+    await expect(settingsDialog.getByRole("heading", { name: "Theme" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Profile" })).toHaveCount(0);
   });
 });

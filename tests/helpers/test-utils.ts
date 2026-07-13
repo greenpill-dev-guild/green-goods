@@ -1,4 +1,5 @@
 import { type BrowserContext, expect, type Page } from "@playwright/test";
+import { type MockClientBackendOptions, mockClientBackend } from "./mock-backend";
 import { SELECTORS, TestHelpers, TIMEOUTS } from "./test-config";
 
 // ============================================================================
@@ -498,6 +499,21 @@ export class ClientTestHelper {
         // No spinner is fine
       });
   }
+}
+
+/**
+ * Set up the client CI seam before navigation: persisted dev mock auth plus
+ * schema-correct route mocks for the indexer, EAS, and RPC boundaries.
+ */
+export async function setupAuthenticatedClient(
+  page: Page,
+  role: AdminMockRole = "user",
+  backend?: MockClientBackendOptions
+) {
+  const helper = new ClientTestHelper(page);
+  await helper.enableMockAuth(role);
+  await mockClientBackend(page, backend);
+  return helper;
 }
 
 // ============================================================================

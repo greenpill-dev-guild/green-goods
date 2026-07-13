@@ -10,7 +10,8 @@
  * These tests focus on route-level stability and are safe for CI.
  */
 
-import { expect, test, type Page, type Route } from "@playwright/test";
+import { expect, type Page, type Route, test } from "@playwright/test";
+import { buildRpcResponse } from "../helpers/mock-backend";
 import { AdminTestHelper, TEST_URLS } from "../helpers/test-utils";
 
 const ADMIN_URL = TEST_URLS.admin;
@@ -60,39 +61,6 @@ function getGraphQLQueryText(route: Route): string {
   }
 
   return "";
-}
-
-function encodeAddressResult(address: string) {
-  return `0x${address.replace(/^0x/, "").padStart(64, "0")}`;
-}
-
-function buildRpcResponse(payload: {
-  id?: string | number | null;
-  method?: string;
-  params?: Array<{ data?: string } | string | number | boolean | null>;
-}) {
-  const method = payload.method;
-  const callData =
-    typeof payload.params?.[0] === "object" && payload.params[0] !== null
-      ? String(payload.params[0].data ?? "")
-      : "";
-
-  let result: string | null = "0x1";
-  if (method === "eth_chainId") {
-    result = "0xaa36a7";
-  } else if (method === "eth_blockNumber") {
-    result = "0x1";
-  } else if (method === "eth_call" && callData.startsWith("0x8da5cb5b")) {
-    result = encodeAddressResult(MOCK_DEPLOYER_ADDRESS);
-  } else if (method === "eth_call") {
-    result = "0x0000000000000000000000000000000000000000000000000000000000000001";
-  }
-
-  return {
-    jsonrpc: "2.0",
-    id: payload.id ?? 1,
-    result,
-  };
 }
 
 async function setupAdminRouteBackend(page: Page) {

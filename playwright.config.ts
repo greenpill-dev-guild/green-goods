@@ -129,10 +129,14 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
 
-    // Admin CI - smoke plus production-flow checks owned by the admin lane
+    // Admin CI - deterministic auth, smoke, and production-flow checks owned by the admin lane
     {
       name: "admin-ci",
-      testMatch: [/admin\.smoke\.spec\.ts$/, /admin\.production-flows\.ci\.spec\.ts$/],
+      testMatch: [
+        /admin\.auth\.spec\.ts$/,
+        /admin\.smoke\.spec\.ts$/,
+        /admin\.production-flows\.ci\.spec\.ts$/,
+      ],
       use: { ...devices["Desktop Chrome"] },
     },
 
