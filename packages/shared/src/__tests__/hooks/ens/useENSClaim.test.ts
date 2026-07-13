@@ -28,6 +28,7 @@ const mockSmartAccountClient = {
   sendTransaction: mockSendTransaction,
 };
 let mockSmartAccountClientValue: typeof mockSmartAccountClient | null = mockSmartAccountClient;
+const queryClients = new Set<QueryClient>();
 
 vi.mock("wagmi", () => ({
   useAccount: vi.fn(() => ({
@@ -112,6 +113,7 @@ function createTestWrapper() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
   });
+  queryClients.add(queryClient);
   return {
     queryClient,
     wrapper: ({ children }: { children: ReactNode }) =>
@@ -144,6 +146,8 @@ describe("useENSClaim", () => {
   });
 
   afterEach(() => {
+    queryClients.forEach((queryClient) => queryClient.clear());
+    queryClients.clear();
     vi.restoreAllMocks();
   });
 
