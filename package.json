@@ -30,6 +30,7 @@
     "env:bootstrap": "node scripts/dev/env-bootstrap.js",
     "env:check": "node scripts/dev/env-check.js",
     "env:validate": "node scripts/dev/env-check.js",
+    "test:env-schema": "node scripts/dev/node-cli.js node --test scripts/lib/env-schema.test.mjs",
     "version:bump": "node scripts/ops/bump-version.mjs",
     "check:codex-guidance": "node scripts/quality/check-codex-docs.js",
     "check:claude-guidance": "node .claude/scripts/check-skill-frontmatter.js",

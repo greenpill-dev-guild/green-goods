@@ -5,14 +5,15 @@ import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { existsSync, readdirSync, readFileSync, rmSync } from "fs";
 import { resolve } from "path";
-import { resolveTunnelHmrConfig } from "../../scripts/lib/vite-tunnel-hmr.js";
 import { defineConfig, loadEnv, type Plugin } from "vite";
 import mkcert from "vite-plugin-mkcert";
 import { VitePWA, type VitePWAOptions } from "vite-plugin-pwa";
+import { assertEnvParity, assertSentryDsnResolvable } from "../../scripts/lib/env-parity.mjs";
+import { resolveTunnelHmrConfig } from "../../scripts/lib/vite-tunnel-hmr.js";
 import {
   createPwaManifestBranding,
-  resolvePwaManifestFlavor,
   type PwaManifestBranding,
+  resolvePwaManifestFlavor,
 } from "./src/config/pwa-manifest";
 import { APP_ROUTES, createPwaRoutingConfig } from "./src/config/pwa-routing";
 import { createPublicSocialPreviewPlugin } from "./vite/social-preview";
@@ -218,22 +219,13 @@ export default defineConfig(async ({ command, mode }) => {
     command === "build" && (requestedSourceMaps || shouldUploadSentrySourceMaps);
   const sentryDsn = resolveClientSentryDsn();
   const sentryEnvironment = resolveSentryEnvironment(mode);
-  // Env-parity gate (PRD-567): a production deploy must ship with a resolvable
-  // Sentry DSN, or error tracking silently no-ops — the May Sentry thrash. This
-  // reuses the value resolved above, so it only fires when Sentry would truly be
-  // dead. Fail closed on production; warn on other Vercel builds so staging
-  // surfaces the same gap without blocking non-prod deploys.
-  if (command === "build" && !sentryDsn) {
-    const detail =
-      "Sentry DSN did not resolve from any known alias (VITE_SENTRY_CLIENT_DSN, VITE_SENTRY_DSN, SENTRY_DSN via the Vercel integration, ...); error tracking would be disabled in this build.";
-    if (process.env.VERCEL_ENV === "production") {
-      throw new Error(`[env-parity] ${detail} Refusing to ship a production build without it.`);
-    }
-    if (process.env.VERCEL) {
-      console.warn(
-        `[env-parity] ${detail} Staging should mirror production — set the DSN for this environment.`
-      );
-    }
+  if (command === "build") {
+    assertEnvParity({
+      app: "client",
+      env: process.env,
+      schemaPath: resolve(rootDir, ".env.schema"),
+    });
+    assertSentryDsnResolvable({ app: "client", sentryDsn, env: process.env });
   }
   const sentryRelease = `green-goods-client@${shortAppVersion}`;
   const indexerProxyTarget =
