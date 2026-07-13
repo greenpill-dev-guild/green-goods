@@ -2,12 +2,12 @@
 name: indexer
 user-invocable: false
 description: Envio blockchain indexer development with Docker Compose stack. Use for event handlers, schema.graphql design, Docker workflow, and GraphQL patterns.
-version: "1.0.0"
+version: "1.1.0"
 status: active
 packages: ["indexer"]
 dependencies: ["contracts"]
-last_updated: "2026-03-18"
-last_verified: "2026-02-19"
+last_updated: "2026-07-12"
+last_verified: "2026-07-12"
 ---
 
 # Indexer Skill
@@ -22,6 +22,7 @@ When invoked:
 - Check `packages/indexer/` for existing event handlers and schema patterns.
 - Load `.claude/context/indexer.md` for full package-specific patterns.
 - On macOS, always use Docker-based commands (`dev:docker`).
+- Keep `strict` and `noImplicitAny` enabled for handwritten TypeScript; generated code stays outside the checked `src/` and `test/` boundary.
 
 ## Part 1: Entity Design
 

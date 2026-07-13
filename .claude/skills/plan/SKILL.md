@@ -3,12 +3,12 @@ name: plan
 user-invocable: false
 description: Planning & Execution — fires passively when the user describes planning or orchestration intent. Creates structured implementation plans, checks progress, executes in batches, manages lifecycle, and coordinates mixed Claude+Codex agent teams. Fire when the user says 'plan this', 'break down X', 'orchestrate', 'coordinate a team', 'parallel lanes', 'spawn teammates', 'fire off agents', 'mixed agent team', or describes cross-package / multi-lane implementation work.
 argument-hint: "[feature-name]"
-version: "1.2.3"
+version: "1.3.0"
 status: active
 packages: ["all"]
 dependencies: []
-last_updated: "2026-05-10"
-last_verified: "2026-05-10"
+last_updated: "2026-07-12"
+last_verified: "2026-07-12"
 ---
 
 # Plan Skill
@@ -77,7 +77,8 @@ Use **TodoWrite** for visibility when available. If unavailable, keep a Markdown
 1. **Extract ALL requirements** from issue/task
 2. **Map each requirement** to planned steps
 3. **Audit codebase** — search for existing patterns
-4. **Review CLAUDE.md** for compliance rules
+4. **Read the Implementation Quality Contract** in `.claude/context/values.md`
+5. **Review CLAUDE.md** for compliance rules
 
 ### Phase 2: Plan Structure
 
@@ -128,6 +129,7 @@ Implementation lanes (`ui`, `state_api`, `contracts`) are proof-gated for behavi
 | User can X  | Step 3       | ⏳     |
 
 ## CLAUDE.md Compliance
+- [ ] Implementation Quality Contract applied; no speculative abstractions or mixed abstraction levels
 - [ ] Hooks in shared package
 - [ ] i18n for UI strings
 - [ ] Deployment artifacts for addresses

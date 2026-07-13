@@ -374,9 +374,20 @@ let canonicalCommandNames = new Set();
     }
 
     for (const [id, bundle] of Object.entries(registry.bundles)) {
-      const requiredKeys = ["entrypoint", "default_mode", "skills", "user_facing", "contract_touching"];
+      const requiredKeys = [
+        "entrypoint",
+        "default_mode",
+        "quality_contract",
+        "skills",
+        "user_facing",
+        "contract_touching",
+      ];
       for (const key of requiredKeys) {
         if (!(key in bundle)) fail(`${registryPath}: bundle ${id} missing key: ${key}`);
+      }
+
+      if (bundle.quality_contract !== ".claude/context/values.md#implementation-quality-contract") {
+        fail(`${registryPath}: bundle ${id} must use the canonical implementation quality contract`);
       }
 
       const entryCommand = extractCommandToken(bundle.entrypoint);
@@ -474,6 +485,85 @@ if (!/Only post when PR context exists/i.test(reviewSkill) && !/POST TO GITHUB O
   fail(`.claude/skills/review/SKILL.md: missing conditional GitHub posting guidance`);
 }
 
+const reviewRegistry = JSON.parse(read(registryPath));
+const reviewRecord = (reviewRegistry.skills ?? []).find((record) => record.name === "review");
+const expectedReviewModes = ["readiness", "report_only", "verify_only", "apply_fixes"];
+
+if (!reviewRecord) {
+  fail(`${registryPath}: review skill record is missing`);
+} else {
+  if (reviewRecord.default_mode !== "readiness") {
+    fail(`${registryPath}: review default_mode must be readiness`);
+  }
+  if (JSON.stringify(reviewRecord.modes) !== JSON.stringify(expectedReviewModes)) {
+    fail(`${registryPath}: review modes must be ${expectedReviewModes.join(", ")}`);
+  }
+  if (!(reviewRecord.owned_skills ?? []).includes("design")) {
+    fail(`${registryPath}: review must own the design lens`);
+  }
+  if (!(reviewRecord.dependencies ?? []).includes("design")) {
+    fail(`${registryPath}: review must declare the design dependency`);
+  }
+}
+
+for (const marker of [
+  "## Default Mode and Readiness Boundary",
+  "### 2. Pass One — Regression Safety",
+  "### 3. Pass Two — Gap Closure",
+  "### 4. Pass Three — Production Readiness",
+]) {
+  if (!reviewSkill.includes(marker)) {
+    fail(`.claude/skills/review/SKILL.md: missing production-readiness marker: ${marker}`);
+  }
+}
+
+if (!/both Must-Fix and Should-Fix are empty/i.test(reviewSkill)) {
+  fail(`.claude/skills/review/SKILL.md: APPROVE must require empty Must-Fix and Should-Fix buckets`);
+}
+if (!/report ends `COMMENT_ONLY`, never `APPROVE`/i.test(reviewSkill)) {
+  fail(`.claude/skills/review/SKILL.md: report_only must forbid APPROVE`);
+}
+if (/\biterate\b/.test(reviewSkill)) {
+  fail(`.claude/skills/review/SKILL.md: undocumented iterate mode must stay removed`);
+}
+
+const reviewFiles = [
+  ".claude/skills/review/SKILL.md",
+  ".claude/skills/review/apply-fixes.md",
+  ".claude/skills/review/cross-package-verify.md",
+];
+
+for (const relPath of reviewFiles) {
+  const content = read(relPath);
+  if (!/validation-pipeline\.md/.test(content)) {
+    fail(`${relPath}: missing canonical validation-pipeline.md reference`);
+  }
+
+  const markdownLink = /\[[^\]]+\]\(([^)]+)\)/g;
+  let match;
+  while ((match = markdownLink.exec(content)) !== null) {
+    const target = match[1].trim().split("#")[0];
+    if (!target || target.startsWith("#") || /^[a-z][a-z0-9+.-]*:/i.test(target)) continue;
+
+    const resolved = path.normalize(path.join(path.dirname(relPath), target));
+    if (!exists(resolved)) {
+      fail(`${relPath}: relative Markdown link target does not exist: ${target}`);
+    }
+  }
+}
+
+const validationPipeline = read(".claude/context/validation-pipeline.md");
+for (const marker of [
+  "## Review Readiness Gate (non-mutating)",
+  "bun format:check",
+  "VITE_CHAIN_ID=11155111 bun run build",
+  "authenticated Brave QA profile",
+]) {
+  if (!validationPipeline.includes(marker)) {
+    fail(`.claude/context/validation-pipeline.md: missing review readiness contract: ${marker}`);
+  }
+}
+
 const debugSkill = read(".claude/skills/debug/SKILL.md");
 const forbiddenDebugPatterns = [
   /git checkout \[last-good-commit\] -- \./i,
@@ -505,7 +595,92 @@ if (!/\.claude\/registry\/skills\.json/.test(crackedCoder)) {
   fail(`.claude/agents/cracked-coder.md: missing skills registry reference (bundles are in skills.json)`);
 }
 
-const reviewSurfaces = [".claude/skills/review/SKILL.md"];
+const qualityContractPath = ".claude/context/values.md";
+const qualityContract = read(qualityContractPath);
+for (const marker of [
+  "## Implementation Quality Contract",
+  "KISS",
+  "YAGNI",
+  "DRY",
+  "SLAP",
+  "Separation of concerns",
+  "SOLID",
+  "Pattern discipline",
+  "Clean comments",
+  "Final simplification pass",
+]) {
+  if (!qualityContract.includes(marker)) {
+    fail(`${qualityContractPath}: missing implementation quality marker: ${marker}`);
+  }
+}
+
+for (const marker of [
+  "quality_contract",
+  ".claude/context/values.md#implementation-quality-contract",
+  "declared in `packages/shared/package.json#exports`",
+  "final simplification pass",
+]) {
+  if (!crackedCoder.includes(marker)) {
+    fail(`.claude/agents/cracked-coder.md: missing implementation quality marker: ${marker}`);
+  }
+}
+
+const cleanSkill = read(".claude/skills/clean/SKILL.md");
+for (const pattern of [
+  /git switch -c clean\//,
+  /npx\s+madge/,
+  /Fix all HIGH-CONFIDENCE findings/i,
+]) {
+  if (pattern.test(cleanSkill)) {
+    fail(`.claude/skills/clean/SKILL.md: unsafe pre-scope behavior detected: ${pattern}`);
+  }
+}
+for (const marker of [
+  "context: fork",
+  "SCOPE LOCK",
+  "bun format:check",
+  "Stay on the current branch",
+  "Fix only approved findings",
+  "separate, explicit human approval",
+]) {
+  if (!cleanSkill.includes(marker)) {
+    fail(`.claude/skills/clean/SKILL.md: missing scope-lock safety marker: ${marker}`);
+  }
+}
+
+const auditSkill = read(".claude/skills/audit/SKILL.md");
+const rootPackage = JSON.parse(read("package.json"));
+const rootDependencies = { ...rootPackage.dependencies, ...rootPackage.devDependencies };
+if (!rootDependencies.knip) {
+  fail(`package.json: audit and clean guidance require knip to remain a checked-in dependency`);
+}
+for (const pattern of [/npx\s+--yes\s+npm-check-updates/, /npm audit --omit=dev/]) {
+  if (pattern.test(auditSkill)) {
+    fail(`.claude/skills/audit/SKILL.md: unapproved dependency fallback detected: ${pattern}`);
+  }
+}
+for (const marker of [
+  "Return the report in the response by default",
+  "--write-report",
+  "bun audit --audit-level=high",
+  "never install fallback tooling",
+]) {
+  if (!auditSkill.includes(marker)) {
+    fail(`.claude/skills/audit/SKILL.md: missing read-only audit marker: ${marker}`);
+  }
+}
+
+const contractSecurity = read(".claude/skills/contracts/security.md");
+if (/\brequire\s*\(/.test(contractSecurity)) {
+  fail(`.claude/skills/contracts/security.md: examples must use custom errors, not require strings`);
+}
+for (const marker of ["Checks-Effects-Interactions", "permissionless", "safe exception"]) {
+  if (!contractSecurity.includes(marker)) {
+    fail(`.claude/skills/contracts/security.md: missing scoped security guidance marker: ${marker}`);
+  }
+}
+
+const reviewSurfaces = reviewFiles;
 
 for (const relPath of reviewSurfaces) {
   if (!exists(relPath)) continue;
@@ -521,11 +696,13 @@ for (const relPath of reviewSurfaces) {
   }
 }
 
-for (const relPath of [".claude/skills/review/SKILL.md"]) {
+for (const relPath of reviewFiles) {
   if (!exists(relPath)) continue;
   const content = read(relPath);
   assertInOrder(content, [
     "### Summary",
+    "### Requirements Coverage",
+    "### Regression Coverage",
     "### Severity Mapping",
     "### Must-Fix",
     "### Should-Fix",

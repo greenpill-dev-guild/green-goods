@@ -19,6 +19,22 @@ cast block-number --rpc-url $RPC
 
 > `verify:contracts` runs `scripts/contracts/verify-production.sh` which handles build, lint, unit tests, E2E workflow, and dry runs for Sepolia, Arbitrum, and Celo in one command. Use `bun run verify:contracts:fast` to skip E2E and dry runs for quick iteration.
 
+## Contract Upgrade Quick Reference
+
+Use `script/deploy.ts` for initial deployments and `script/upgrade.ts` for named UUPS upgrade targets.
+Start with a Sepolia preflight and a persisted transaction plan before any broadcast:
+
+```bash
+bun script/upgrade.ts <target> --network sepolia --dry-run
+bun script/upgrade.ts <target> --network sepolia --tx-plan --sender <address>
+bun script/upgrade.ts <target> --network sepolia --broadcast
+```
+
+`all` upgrades standard targets but intentionally excludes the funds-adjacent `greenwill` target;
+run GreenWill only as an explicit target with its own reviewed plan. Arbitrum and Celo broadcasts
+are Sepolia-gated. Do not use `--override-sepolia-gate` without release-owner approval. See the
+[release runbook](../../../docs/docs/builders/deployments/releasing.mdx) for release sequencing.
+
 ---
 
 ## Indexer Deployment
@@ -262,10 +278,15 @@ git checkout -- packages/contracts/deployments/11155111-latest.json
 bun script/deploy.ts core --network sepolia --broadcast
 ```
 
-**For UUPS proxies:** If the implementation is buggy, deploy a new implementation and upgrade:
+**For UUPS proxies:** Do **not** use `deploy.ts --force` as an upgrade or rollback command. Use
+`upgrade.ts` for a named, planned UUPS upgrade. For a verified garden-proxy rollback, the
+reviewer-led manual primitive is `Upgrade.s.sol`'s `upgradeGardenProxy` with the known previous
+implementation. Follow the [release runbook](../../../docs/docs/builders/deployments/releasing.mdx)
+and keep the proxy owner and rollback target under explicit maintainer review.
+
 ```bash
-# The proxy address stays the same -- only the implementation changes
-bun script/deploy.ts core --network sepolia --broadcast --force
+# The proxy address stays the same; only the implementation changes.
+bun script/upgrade.ts <target> --network sepolia --tx-plan --sender <address>
 ```
 
 ### Indexer Rollback

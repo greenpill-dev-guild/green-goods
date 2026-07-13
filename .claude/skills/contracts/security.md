@@ -84,12 +84,17 @@ contracts tooling follow-up rather than running raw `forge inspect` from this sk
 
 ### Reentrancy Protection
 
+Checks-Effects-Interactions (CEI) is the default ordering for state-mutating paths that make external calls. It is not a substitute for authorization, invariant checks, storage safety, or a reentrancy guard where callbacks can cross another vulnerable path. Document any safe exception.
+
 ```solidity
 // ✅ Checks-Effects-Interactions pattern
+error NotGardener(address caller);
+error InactiveAction(bytes32 actionUID);
+
 function submitWork(bytes32 actionUID) external {
     // CHECKS
-    require(isGardener(msg.sender), "NotGardener");
-    require(actions[actionUID].active, "InactiveAction");
+    if (!isGardener(msg.sender)) revert NotGardener(msg.sender);
+    if (!actions[actionUID].active) revert InactiveAction(actionUID);
 
     // EFFECTS (state changes first)
     workCount++;
@@ -129,16 +134,15 @@ Top Hat (DAO)
 
 ```solidity
 // For every external/public function, verify:
-// 1. WHO can call it? (check modifier or require)
+// 1. WHO can call it? (modifier or custom-error guard for privileged paths)
 // 2. WHAT does it modify? (state changes)
 // 3. CAN the role be escalated? (hat transfer/minting)
 
 // ✅ Correct: explicit hat check
+error NotOperator(address caller);
+
 function approveWork(uint256 workId) external {
-    require(
-        hats.isWearerOfHat(msg.sender, operatorHatId),
-        "NotOperator"
-    );
+    if (!hats.isWearerOfHat(msg.sender, operatorHatId)) revert NotOperator(msg.sender);
     // ...
 }
 
@@ -188,13 +192,8 @@ function approveWork(uint256 workId) external {
 // ✅ MANDATORY: Storage gap for future variables
 uint256[50] private __gap;
 
-// ✅ MANDATORY: Restrict upgrade authority
-function _authorizeUpgrade(address newImplementation) internal override {
-    require(
-        hats.isWearerOfHat(msg.sender, topHatId),
-        "OnlyDAO"
-    );
-}
+// ✅ MANDATORY: Restrict upgrade authority using the contract's established owner model
+function _authorizeUpgrade(address) internal override onlyOwner {}
 
 // ❌ NEVER: Allow arbitrary upgrades
 function _authorizeUpgrade(address) internal override {}
@@ -210,7 +209,7 @@ function _authorizeUpgrade(address) internal override {}
 
 - [ ] Storage layout compared (no slot changes for existing vars)
 - [ ] `__gap` reduced by number of new variables added
-- [ ] `_authorizeUpgrade` still requires DAO hat
+- [ ] `_authorizeUpgrade` still enforces the contract's established owner/authority model
 - [ ] Initializer not re-callable (`initializer` modifier)
 - [ ] All tests pass against upgrade scenario
 - [ ] Dry run on testnet fork through an existing Bun deploy/upgrade dry-run wrapper; add a wrapper first if the target operation has no checked-in wrapper.
@@ -223,8 +222,8 @@ function _authorizeUpgrade(address) internal override {}
 
 - [ ] **Production readiness**: `bun run verify:contracts` passes (build → lint → tests → E2E → dry runs on all chains)
 - [ ] **Static analysis**: Slither + Aderyn clean (no HIGH/CRITICAL)
-- [ ] **Access control**: Every external function has hat check
-- [ ] **Reentrancy**: All external calls after state changes
+- [ ] **Access control**: Every privileged state-changing function enforces the correct authority; permissionless and view paths are explicitly understood
+- [ ] **Reentrancy**: State-mutating external-call paths follow CEI or use a documented safe exception/guard
 - [ ] **Upgrade safety**: Storage layout preserved
 - [ ] **Gas limits**: No unbounded loops over user-controlled arrays
 - [ ] **Event emission**: All state changes emit events (for indexer)

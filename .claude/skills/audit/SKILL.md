@@ -2,15 +2,15 @@
 name: audit
 user-invocable: false
 description: Internal repo-health lens for Green Goods — dead code detection, dependency health, invariant drift, and concrete broken or brittle spots. Prefer this after `/review` or `/status` reveals broader drift beyond a single change.
-argument-hint: "[package-name] [--full] [--team]"
+argument-hint: "[package-name] [--full] [--team] [--write-report]"
 context: fork
 effort: high
-version: "2.1.1"
+version: "2.2.0"
 status: active
 packages: ["all"]
 dependencies: ["review", "contracts"]
-last_updated: "2026-05-09"
-last_verified: "2026-05-09"
+last_updated: "2026-07-12"
+last_verified: "2026-07-12"
 ---
 
 # Audit Skill
@@ -21,13 +21,13 @@ Prefer `/review` or `/status` first. This skill is for broader repo-health drift
 
 **References**: See `CLAUDE.md` for codebase patterns. Use `oracle` for deep investigation.
 
-**Context mode**: `context: fork` -- read-only subagent. Never edit files during an audit. Report findings and let the user decide.
+**Context mode**: `context: fork` -- read-only subagent. Never edit files during an audit. Return findings in the response and let the user decide.
 
 ---
 
 ## Scope Lock
 
-This skill is strictly read-only.
+This skill is strictly read-only by default, including report generation.
 
 Audit/report work stays read-only by default. Do not create or mutate Linear records during
 analysis. After the user approves specific findings for tracking, route accepted findings into
@@ -67,7 +67,8 @@ These are mandatory:
 | `/audit [package]` | Targeted package audit |
 | `/audit --full` | Skip scope detection, analyze all packages |
 | `/audit --team` | Parallel agent team |
-| `/audit --loop` | Audit -> fix -> re-audit loop until clean |
+| `/audit --write-report` | After analysis, persist the response as `.plans/audits/[date]-audit.md` |
+| `/audit --loop` | Route to `audit-then-ship`; audit still stops for numbered scope lock before fixes |
 
 ## Progress Tracking (REQUIRED)
 
@@ -79,7 +80,7 @@ Use **TodoWrite** when available, otherwise Markdown checklist. See `CLAUDE.md` 
 
 **REQUIRED before new analysis.** Check whether previous Critical/High findings are still open.
 
-1. Find the most recent audit report: `ls -t .plans/audits/*-audit.md | head -1`
+1. If a prior persisted audit exists, inspect the newest `.plans/audits/*-audit.md`; otherwise record "no prior persisted audit" and continue.
 2. Extract all Critical and High findings with file:line references
 3. Re-verify each finding against the current code. For UNCHANGED packages (per Part 0.5), carry forward with status `CARRY-FORWARD (unchanged)` and spot-check 1-2 representative findings
 4. Count consecutive open cycles per finding
@@ -110,7 +111,7 @@ git diff --name-only <last-audit-commit>..HEAD | grep '^packages/' | cut -d/ -f2
 | shared | CHANGED | 12 | Full analysis (Parts 1-4) |
 | contracts | UNCHANGED | 0 | Carry-forward + spot-check |
 
-5. CHANGED packages get full Parts 1-4. UNCHANGED packages: carry forward findings, spot-check 1-2 high-severity items, run `bunx knip --workspace <pkg>`.
+5. CHANGED packages get full Parts 1-4. UNCHANGED packages: carry forward findings, spot-check 1-2 high-severity items, and run the checked-in `knip` dependency with `bunx knip --workspace <pkg>`.
 6. First audit (no prior baseline): treat all packages as CHANGED.
 
 ---
@@ -135,11 +136,11 @@ grep -rn "TODO\|FIXME\|HACK" --include="*.ts" packages/
 ### Dependency Health
 
 ```bash
-npm audit --omit=dev 2>/dev/null || echo "npm audit unavailable"
-bun outdated 2>/dev/null || npx --yes npm-check-updates --format group
+bun audit --audit-level=high
+bun outdated
 ```
 
-Report: HIGH/CRITICAL CVEs as findings, deps 2+ major behind as LOW, deprecated/EOL as MEDIUM.
+Report: HIGH/CRITICAL CVEs as findings, deps 2+ major behind as LOW, deprecated/EOL as MEDIUM. If registry/network access is unavailable, record the dependency check as blocked; never install fallback tooling during an audit.
 
 ### Test Coverage
 
@@ -258,7 +259,7 @@ In team mode, the lead re-reads every sub-agent finding before synthesis. Unveri
 
 ## Part 6: Report Generation
 
-Create at `.plans/audits/[date]-audit.md`:
+Return the report in the response by default. Only write `.plans/audits/[date]-audit.md` when the user explicitly requests a durable artifact or invokes `--write-report`.
 
 ```markdown
 # Audit Report - [Date]
@@ -354,7 +355,7 @@ After the report, group findings by actionability:
 Prompt user before creating any Linear issues: "Found N findings that are ready to track in
 Linear. Create Product/Research issues for these accepted findings? [y/n]"
 
-Update Known Issues Registry: add findings at 5+ cycles or MONITORED, update dates, move resolved to Resolved table.
+Only after explicit approval to persist tracking, update the Known Issues Registry: add findings at 5+ cycles or MONITORED, update dates, and move resolved entries to the Resolved table.
 
 ### Linear Issue Routing
 
@@ -371,18 +372,9 @@ Audit-specific deltas:
 
 ---
 
-## Part 10: Loop Mode
+## Part 10: Implementation Handoff
 
-When `--loop` is passed: audit -> fix -> re-audit cycle.
-
-1. Run full audit (Parts 0-9)
-2. User decides per finding: Fix / Accept / Defer / Skip
-3. Apply fixes (max 3 per iteration by risk score)
-4. Re-validate with the Ship Gate (see `.claude/context/validation-pipeline.md`) on affected packages
-5. Report delta (fixed, regressions, remaining)
-6. Repeat until: no Critical/High remain, 3 iterations hit, or user stops
-
-**Safety rules**: Always validate after fixes. Max 3 iterations. Show diffs before applying. Create checkpoint branch: `git switch -c audit/loop-$(date +%Y%m%d-%H%M%S)`. Update Known Issues Registry at end of loop, not during.
+When `--loop` is requested, complete the read-only audit first, present numbered findings, and route the approved set through `audit-then-ship`. Do not apply fixes, create branches, write reports, or update registries from the audit phase itself.
 
 ---
 
@@ -398,6 +390,8 @@ When `--loop` is passed: audit -> fix -> re-audit cycle.
 | Use haiku-class models for audit | 95% false-positive rate -- use opus |
 | Include LOW-confidence findings | Self-validation gate drops them |
 | Edit files during an audit | Read-only mode |
+| Write `.plans/audits/` without `--write-report` or an explicit request | Default report delivery is the response |
+| Install fallback dependency tools | Audits must use checked-in tooling or report the check blocked |
 | State cross-package findings as confirmed | Mark "needs cross-package verification" |
 | Skip Previous Findings check | Trend tracking is the audit's most valuable long-term output |
 | Report 24+ god object rows | Top 10 by risk score; rest in Known Issues Registry |
@@ -414,7 +408,7 @@ When `--loop` is passed: audit -> fix -> re-audit cycle.
 
 - **Complete all files** within scope -- never skip
 - **Scope-aware** -- diff detection limits analysis to changed packages
-- **Read-only** -- don't edit during audit
+- **Read-only by default** -- return the report in the response; persist only when explicitly requested
 - **Evidence-based** -- every finding needs file:line and risk score
 - **Risk-weighted** -- escalation uses impact x likelihood x staleness
 - **Prompt before issues** -- ask user before creating Linear issues

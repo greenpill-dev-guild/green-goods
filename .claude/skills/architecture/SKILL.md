@@ -3,12 +3,12 @@ name: architecture
 user-invocable: false
 description: Internal architecture lens for Green Goods. Prefer this inside planning or `/review` flows when boundaries, placement, or structural refactors need focused judgment. Use a dedicated pass only when the user explicitly asks for it.
 effort: high
-version: "3.0.0"
+version: "3.0.1"
 status: active
 packages: ["contracts", "shared", "client", "admin", "agent", "indexer"]
 dependencies: []
-last_updated: "2026-04-18"
-last_verified: "2026-04-18"
+last_updated: "2026-07-12"
+last_verified: "2026-07-12"
 ---
 
 # Architecture Skill
@@ -90,7 +90,7 @@ Prefer a short table:
 Evaluate the structure against actual Green Goods rules, not generic ideals:
 
 - hooks live in `@green-goods/shared`
-- shared imports should prefer the barrel
+- shared imports must use declared public export paths, never source internals
 - addresses come from deployment artifacts, not hardcoded literals
 - chain defaults flow through `getDefaultChain()` or `DEFAULT_CHAIN_ID`
 - package layering respects `contracts -> shared -> indexer -> client/admin/agent`

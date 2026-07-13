@@ -2,12 +2,12 @@
 name: contracts
 user-invocable: false
 description: Solidity smart contract development with Foundry. Use for contract design, testing, gas optimization, UUPS upgrades, deployment via deploy.ts, and security auditing.
-version: "1.0.0"
+version: "1.1.0"
 status: active
 packages: ["contracts"]
 dependencies: []
-last_updated: "2026-03-18"
-last_verified: "2026-02-25"
+last_updated: "2026-07-12"
+last_verified: "2026-07-12"
 ---
 
 # Contracts Skill
@@ -21,7 +21,7 @@ Foundry-based smart contract development guide for the Green Goods protocol.
 When invoked:
 - Check `packages/contracts/` for existing patterns and contract structure.
 - Load `.claude/context/contracts.md` for full package-specific patterns.
-- Never use direct `forge script` for deployment — always use `deploy.ts`.
+- Never use direct `forge script` for deployment: use `deploy.ts` for initial deployments and `upgrade.ts` for UUPS upgrades.
 
 ## Part 1: Foundry Development
 
@@ -139,7 +139,7 @@ Rules: pack storage variables into single slots, always bound loop iterations, u
 
 ## Part 4: Deployment
 
-### MANDATORY: Use deploy.ts
+### Initial deployment: use deploy.ts
 
 ```bash
 # ALWAYS
@@ -150,6 +150,30 @@ bun script/deploy.ts core --network sepolia --broadcast
 ```
 
 **Why:** deploy.ts loads root `.env`, uses Foundry keystore, auto-updates Envio indexer config, handles verification.
+
+### Upgrade execution: use upgrade.ts
+
+Use the named runner for UUPS upgrades; do not repurpose `deploy.ts --force` as an upgrade or rollback command.
+
+```bash
+# Preflight first, then produce a reviewable transaction plan
+bun script/upgrade.ts <target> --network sepolia --dry-run
+bun script/upgrade.ts <target> --network sepolia --tx-plan --sender <address>
+
+# Broadcast only after the plan, authorization, and release gate are approved
+bun script/upgrade.ts <target> --network sepolia --broadcast
+```
+
+Supported targets are `action-registry`, `garden-token`, `yield-resolver`, `gardens-module`,
+`signal-pool-yield-wiring`, `yield-gardens-wiring`, `octant-module`, `karma-gap-module`,
+`work-resolver`, `work-approval-resolver`, `assessment-resolver`, `deployment-registry`,
+`greenwill`, and `all`. `all` intentionally excludes the funds-adjacent `greenwill` target;
+upgrade GreenWill only as its explicit target and review its transaction plan separately.
+
+For an Arbitrum or Celo broadcast, the runner enforces the Sepolia deployment gate. Do not pass
+`--override-sepolia-gate` unless the release owner has explicitly approved that exception. The
+`Upgrade.s.sol` `upgradeGardenProxy` function is the reviewer-led manual path for a verified
+garden-proxy rollback; it is not a reason to run raw Foundry commands or `deploy.ts --force`.
 
 ### Phase-Aware Deployment Artifacts
 
@@ -241,12 +265,13 @@ testE2E_        // Multi-contract flows
 - Core deployer: `script/deploy/core.ts`
 - Schemas: `config/schemas.json` (READ ONLY)
 - Deployments: `deployments/{chainId}-latest.json`
+- Upgrade CLI: `script/upgrade.ts`
 - Full context: `.claude/context/contracts.md`
 
 ## Anti-Patterns
 
 - **Never hardcode schema UIDs** — load from `deployments/{chainId}-latest.json`
-- **Never direct forge script** — always use `deploy.ts`
+- **Never direct forge script** — use `deploy.ts` for initial deployments and `upgrade.ts` for UUPS upgrades
 - **Never skip storage gaps** — breaks upgrades
 - **Never use require strings** — use custom errors
 - **Never implicit visibility** — label everything explicitly

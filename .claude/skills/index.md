@@ -15,7 +15,7 @@ What is the intent?
 │     └→ debug fires PASSIVELY (no slash) — reproduce first, then root-cause.
 │        "production down"/"hotfix" → incident mode · pasted red test → tdd mode
 │
-├─ Judging a specific diff / PR / package ──→ /review [scope]
+├─ Proving a bounded change is production-ready ──→ /review [scope]
 │
 ├─ Scope is ambiguous or multi-issue ("audit X then fix what matters")
 │     └→ /audit-then-ship — explicit + gated: read-only findings →
@@ -45,7 +45,7 @@ pass. The two do not run concurrently on the same surface.
 
 | Skill | Invoke With | Use For |
 |-------|-------------|---------|
-| **review** | `/review [package|PR|file]` | Before merge: inspect the diff, separate must-fix items from human call-outs. Positional arg scopes the review (`/review admin`, `/review #123`, `/review packages/shared/...`) |
+| **review** | `/review [package|PR|file]` | Strict read-only readiness review: prove regression safety, requirement closure, affected-consumer coverage, and fresh validation before `APPROVE`. Use `--mode report_only` for inspection without a readiness verdict. |
 | **drift** | `/drift [check|clean] [scope]` | Read-only drift classifier for guidance, plans, design, docs, cleanup readiness, and quality guardrails. Routes findings to the right skill; gates `/clean` behind dry-run approval. |
 | **audit-then-ship** | `/audit-then-ship [scope]` | The user's default rhythm: investigate (read-only) → explicit scope-lock gate → fix only locked items → ship pipeline. Use when scope is ambiguous or multi-issue. |
 | **status** | `/status` | Resume and orient: branch state, blockers, continuity, and the next 1-3 moves |
@@ -99,12 +99,13 @@ If you are unsure where to start:
 - orchestrating a multi-lane build -> describe orchestration intent ("coordinate a team across contracts + shared + admin")
 - investigating a bug -> describe the bug or paste the error (no slash)
 - checking repo drift -> `/drift check [scope]`
-- judging a change -> `/review [package|PR|file]` (or describe it in words)
+- proving a bounded change is ready -> `/review [package|PR|file]` (or describe it in words)
 - picking up work -> `/status --resume`
 
 Shortcuts that remain useful:
 
 - `/review admin` -> scope review to the admin package
+- `/review admin --mode report_only` -> inspect and report without a production-readiness approval
 - `/review --mode verify_only --scope cross-package` -> cross-package impact pass
 - `/review design-system` (or `/review --mode verify_only --scope design-system`) -> full-repo design-system alignment review (DesignMD + tokens + Storybook + admin/client/docs). Read-only; delegates to `.claude/skills/design/system-alignment-review.md`
 - "this test is failing:" -> routes debug to tdd_bugfix mode

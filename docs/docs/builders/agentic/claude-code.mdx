@@ -4,7 +4,7 @@ sidebar_label: Claude Code
 slug: /builders/agentic/claude-code
 audience: developer
 owner: docs
-last_verified: 2026-04-23
+last_verified: 2026-07-12
 feature_status: Live
 source_of_truth:
   - CLAUDE.md
@@ -22,7 +22,7 @@ import {NextBestAction} from "@site/src/components/docs";
 graph TB
     subgraph Config[".claude/ Directory"]
         Agents["agents/\n2 custom agents"]
-        Skills["skills/\n19 active top-level dirs"]
+        Skills["skills/\n23 active top-level dirs"]
         Rules["rules/\npath-scoped"]
         Context["context/\nper-package"]
     end
@@ -68,7 +68,7 @@ The `.claude/` directory contains all agentic configuration:
 ```
 .claude/
   agents/           # 2 custom agent definitions (.md files)
-  skills/           # 19 active top-level skill dirs plus archived references
+  skills/           # 23 active top-level skill dirs plus archived references
     index.md        # Master skill index
     plan/           # Planning workflows
     debug/          # Debugging workflows

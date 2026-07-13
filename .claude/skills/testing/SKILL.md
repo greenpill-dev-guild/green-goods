@@ -315,6 +315,18 @@ open coverage/index.html         # View HTML report
 
 Keep E2E focused on critical user journeys. Use page objects, role-based selectors, and explicit waits.
 
+### CI authentication seam
+
+Set up auth **before navigation** with `setupAuthenticatedClient` for client CI and the
+established spec-local `setupAuthenticatedAdmin` pattern in admin CI. They use the dev `mockAuth` seam that
+`AuthGate` and `DevAuthProvider` read; the client setup also installs the schema-correct
+`mock-backend` fixtures for the indexer, EAS, and RPC boundaries. Treat these helpers and fixtures
+as the canonical CI auth boundary.
+
+Do not use `injectWalletAuth` for CI authentication. It is a legacy wallet-storage fallback that
+still depends on wagmi accepting a real connector, so it is unreliable in headless CI. Keep it only
+for its narrow platform/auth-path coverage.
+
 See `.claude/skills/testing/references/playwright.md` for the full Playwright guide (pyramid, selectors, network mocking, a11y, debugging).
 
 ---

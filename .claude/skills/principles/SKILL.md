@@ -5,12 +5,12 @@ description: Internal principles lens for Green Goods. Prefer this inside `/revi
 argument-hint: "[package-name] [--focus cohesion|boundaries|simplicity|duplication|reliability|data]"
 context: fork
 effort: high
-version: "2.0.1"
+version: "2.1.0"
 status: active
 packages: ["all"]
 dependencies: ["architecture"]
-last_updated: "2026-05-09"
-last_verified: "2026-05-09"
+last_updated: "2026-07-12"
+last_verified: "2026-07-12"
 ---
 
 # Principles Skill
@@ -97,6 +97,8 @@ Look for:
 - one file serving multiple unrelated responsibilities
 - domain logic mixed with glue code in ways that obscure ownership
 - public surfaces that combine unrelated concepts
+- functions that mix orchestration with low-level parsing, transport, or persistence detail instead
+  of maintaining a single level of abstraction (SLAP)
 
 Do not equate file size with bad cohesion.
 
@@ -116,6 +118,11 @@ Look for:
 - wrappers that add indirection without removing real complexity
 - abstractions that have only one current use and no concrete pressure behind them
 - complexity that makes code harder for both humans and agents to verify
+- comments that narrate code, preserve implementation history, or compensate for unclear names
+
+Use `.claude/context/values.md#implementation-quality-contract` as the canonical implementation
+standard. Do not expand this lens into a generic catalog of SOLID or Gang-of-Four patterns; require
+a concrete simplification, cohesion, or risk-isolation benefit.
 
 #### Duplication
 

@@ -123,8 +123,10 @@ Run these only if the changed files match:
 |-----------|---------|
 | Changed files under `packages/shared/src/styles/theme.css` or `.claude/skills/design/language.md` | `bun run check:design-tokens` |
 | Changed files include `*.i18n.ts`, `packages/*/locales/*.json`, or `packages/admin/src/**` or `packages/client/src/**` | `bun run lint:vocab` |
+| Changed non-test source under `packages/*/src/**` | `bun run check:source-structure` |
 | Changed files under `packages/contracts/src/resolvers/` | Check storage gap via existing PostToolUse hook output |
 | Changed files under `packages/contracts/src/` | Remind to run `bun run test:fork` if protocol behavior changed |
+| Changed E2E specs or auth paths (`AuthGate`, `DevAuthProvider`, or CI auth helpers) | Run the matching Playwright CI project: client changes use `PLAYWRIGHT_APP=client APP_ENV=test bunx playwright test --project=client-ci`; admin changes use `PLAYWRIGHT_APP=admin APP_ENV=test bunx playwright test --project=admin-ci` |
 
 Gather touched paths with `git diff --name-only origin/main...HEAD` + `git diff --name-only --cached`.
 

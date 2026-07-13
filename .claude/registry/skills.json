@@ -151,14 +151,14 @@
       "name": "review",
       "status": "active",
       "listed_in_index": true,
-      "default_mode": "interactive",
+      "default_mode": "readiness",
       "user_invocable": true,
-      "intent": "Primary review entry point for diff-scoped correctness, human-vs-agent callouts, and internal architecture or principles lenses when needed",
+      "intent": "Strict read-only production-readiness review for bounded changes: regression safety, authoritative requirement closure, affected-consumer coverage, and fresh validation before APPROVE",
       "entry_file": ".claude/skills/review/SKILL.md",
-      "owned_skills": ["architecture", "principles", "testing", "audit"],
-      "modes": ["report_only", "apply_fixes", "iterate", "verify_only"],
+      "owned_skills": ["architecture", "principles", "testing", "audit", "design"],
+      "modes": ["readiness", "report_only", "verify_only", "apply_fixes"],
       "triggers": ["/review", "review this PR", "code review"],
-      "dependencies": [],
+      "dependencies": ["architecture", "principles", "testing", "audit", "design"],
       "sub_files": ["apply-fixes.md", "cross-package-verify.md"]
     },
     {
@@ -464,7 +464,7 @@
       "listed_in_index": true,
       "default_mode": "interactive",
       "user_invocable": true,
-      "intent": "Cleanup execution path that dispatches 8 parallel subagents to fix high-confidence dedup, dead code, type strengthening, defensive code, legacy, and AI slop findings, then runs a Codex final review (regression hunt + miss hunt) before summarizing",
+      "intent": "Scope-locked cleanup path that assesses with focused lanes, presents numbered findings, waits for human approval, fixes only approved items, and then runs a Codex regression and gap review",
       "entry_file": ".claude/skills/clean/SKILL.md",
       "owned_skills": [],
       "modes": ["default", "dry-run", "scope", "agents"],
@@ -567,6 +567,7 @@
     "frontend-change": {
       "entrypoint": "/plan",
       "default_mode": "interactive",
+      "quality_contract": ".claude/context/values.md#implementation-quality-contract",
       "skills": ["design", "ui", "react", "testing"],
       "user_facing": true,
       "contract_touching": false
@@ -574,6 +575,7 @@
     "shared-domain-change": {
       "entrypoint": "/plan",
       "default_mode": "interactive",
+      "quality_contract": ".claude/context/values.md#implementation-quality-contract",
       "skills": ["react", "web3", "testing"],
       "user_facing": false,
       "contract_touching": false
@@ -581,6 +583,7 @@
     "contracts-change": {
       "entrypoint": "/plan",
       "default_mode": "interactive",
+      "quality_contract": ".claude/context/values.md#implementation-quality-contract",
       "skills": ["contracts", "ops", "testing"],
       "user_facing": false,
       "contract_touching": true
@@ -588,6 +591,7 @@
     "indexer-change": {
       "entrypoint": "/plan",
       "default_mode": "interactive",
+      "quality_contract": ".claude/context/values.md#implementation-quality-contract",
       "skills": ["indexer", "testing"],
       "user_facing": false,
       "contract_touching": false
@@ -595,6 +599,7 @@
     "agent-change": {
       "entrypoint": "/plan",
       "default_mode": "interactive",
+      "quality_contract": ".claude/context/values.md#implementation-quality-contract",
       "skills": ["ops", "testing"],
       "user_facing": false,
       "contract_touching": false
@@ -602,6 +607,7 @@
     "cross-package-change": {
       "entrypoint": "/review --mode verify_only --scope cross-package",
       "default_mode": "verify_only",
+      "quality_contract": ".claude/context/values.md#implementation-quality-contract",
       "skills": ["review", "testing"],
       "user_facing": false,
       "contract_touching": false
@@ -609,6 +615,7 @@
     "incident-hotfix": {
       "entrypoint": "/debug --mode incident_hotfix",
       "default_mode": "apply_fixes",
+      "quality_contract": ".claude/context/values.md#implementation-quality-contract",
       "skills": ["debug", "testing"],
       "user_facing": false,
       "contract_touching": false
