@@ -1,0 +1,122 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "public-site-editorial-polish",
+    "title": "Public Site Editorial Polish",
+    "kind": "feature",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "active",
+    "priority": "p1",
+    "created_at": "2026-07-03T19:05:43-07:00",
+    "updated_at": "2026-07-12T19:15:17Z"
+  },
+  "links": {
+    "plan": "plan.todo.md"
+  },
+  "linear": {
+    "parentIssue": null,
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "laneSyncMode": "parent_only",
+    "lastSyncedAt": null,
+    "lanes": {}
+  },
+  "taxonomy": {
+    "initiative": "public-experience",
+    "tracks": ["client-browser", "client", "shared"],
+    "work_types": ["implementation", "qa"],
+    "surfaces": [
+      "packages/client/src/components/Public",
+      "packages/client/src/views/Public",
+      "packages/shared/src/i18n",
+      ".plans/active/public-site-editorial-polish"
+    ],
+    "depends_on_features": []
+  },
+  "notes": [
+    "The approved P0, P1, and P2 editorial waves remain substantive execution work with locale, defaultMessage, test, vocabulary, and rendered-proof gates.",
+    "Before P1 implementation, re-check the yield-routing wording and newsletter cadence named in the plan.",
+    "The plan is copy-only: no route, layout, component-structure, or new-key work is in scope."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "ready",
+      "branch": "claude/ui/public-site-editorial-polish",
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": { "command": "", "evidence": "" },
+        "green": { "command": "", "evidence": "" },
+        "note": "Run the approved P0/P1/P2 copy waves with locale and client fixture coverage before rendered proof."
+      },
+      "skill_tags": ["ui", "i18n", "client-browser"]
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "codex/state-api/public-site-editorial-polish",
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": { "command": "", "evidence": "" },
+        "green": { "command": "", "evidence": "" },
+        "note": "The plan explicitly excludes data-model, route, and API changes."
+      },
+      "skill_tags": ["not-applicable"]
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "codex/contracts/public-site-editorial-polish",
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "not_applicable",
+        "status": "pending",
+        "red": { "command": "", "evidence": "" },
+        "green": { "command": "", "evidence": "" },
+        "note": "No contract work is scoped in this copy-only plan."
+      },
+      "skill_tags": ["contracts", "not-applicable"]
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "claude/qa-pass-1/public-site-editorial-polish",
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "i18n", "brave"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "codex/qa-pass-2/public-site-editorial-polish",
+      "branch_trigger": "claude/qa-pass-1/public-site-editorial-polish",
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-07-12T19:15:17Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "status_formalized",
+      "branch": null,
+      "note": "Added execution status for the approved public-site editorial waves; no plan content was changed."
+    }
+  ]
+}
