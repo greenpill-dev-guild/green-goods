@@ -11,6 +11,7 @@ on:
       - "packages/contracts/src/**"
       - "packages/contracts/abis/**"
       - "packages/contracts/deployments/**"
+      - "scripts/quality/check-source-structure.js"
       - ".github/workflows/indexer.yml"
   pull_request:
     branches: [main, develop]
@@ -22,6 +23,7 @@ on:
       - "packages/contracts/src/**"
       - "packages/contracts/abis/**"
       - "packages/contracts/deployments/**"
+      - "scripts/quality/check-source-structure.js"
       - ".github/workflows/indexer.yml"
 
 permissions:
@@ -88,6 +90,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -106,6 +110,10 @@ jobs:
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
+
+      - name: Check source structure
+        if: github.event_name == 'pull_request'
+        run: node scripts/quality/check-source-structure.js --base "origin/${{ github.base_ref }}"
 
       - name: Check indexing boundary
         working-directory: packages/indexer

@@ -69,6 +69,7 @@ jobs:
               "biome.json",
               ".env.schema",
               ".github/workflows/shared.yml",
+              "scripts/quality/check-source-structure.js",
             ]);
             const prefixes = [
               "packages/contracts/abis/",
@@ -148,6 +149,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -161,6 +164,10 @@ jobs:
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
+
+      - name: Check source structure
+        if: github.event_name == 'pull_request'
+        run: node scripts/quality/check-source-structure.js --base "origin/${{ github.base_ref }}"
 
       - name: Run shared lint
         working-directory: packages/shared

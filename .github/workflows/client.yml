@@ -16,6 +16,12 @@ on:
       - "packages/contracts/abis/**"
       - "packages/contracts/deployments/**"
       - "scripts/ops/upload-sourcemaps.js"
+      - "scripts/lib/env-schema.mjs"
+      - "scripts/lib/env-schema.test.mjs"
+      - "scripts/lib/env-parity.mjs"
+      - "scripts/lib/env-parity.d.mts"
+      - "scripts/dev/env-check.js"
+      - "scripts/quality/check-source-structure.js"
       - ".github/workflows/client.yml"
   pull_request:
     branches: [main, develop]
@@ -32,6 +38,12 @@ on:
       - "packages/contracts/abis/**"
       - "packages/contracts/deployments/**"
       - "scripts/ops/upload-sourcemaps.js"
+      - "scripts/lib/env-schema.mjs"
+      - "scripts/lib/env-schema.test.mjs"
+      - "scripts/lib/env-parity.mjs"
+      - "scripts/lib/env-parity.d.mts"
+      - "scripts/dev/env-check.js"
+      - "scripts/quality/check-source-structure.js"
       - ".github/workflows/client.yml"
   workflow_dispatch:
     inputs:
@@ -87,6 +99,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v6
@@ -100,6 +114,17 @@ jobs:
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
+
+      - name: Run env schema parser tests
+        run: bun run test:env-schema
+
+      - name: Check source structure
+        if: github.event_name == 'pull_request'
+        run: node scripts/quality/check-source-structure.js --base "origin/${{ github.base_ref }}"
+
+      - name: Check test quality
+        if: github.event_name == 'pull_request'
+        run: bun run check:test-quality
 
       - name: Run client lint
         working-directory: packages/client
@@ -141,6 +166,23 @@ jobs:
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
+
+      - name: Run env schema parser tests
+        run: bun run test:env-schema
+
+      - name: Check client source map environment
+        run: bun run env:check --profile sourcemaps-client --env-source process
+        env:
+          CI: true
+          POSTHOG_CLI_TOKEN: ${{ secrets.POSTHOG_CLI_TOKEN }}
+          POSTHOG_CLIENT_ENV_ID: ${{ secrets.POSTHOG_CLIENT_ENV_ID }}
+          VITE_USE_HASH_ROUTER: "false"
+          VITE_CHAIN_ID: "42161"
+          VITE_WALLETCONNECT_PROJECT_ID: ${{ secrets.VITE_WALLETCONNECT_PROJECT_ID || 'test' }}
+          VITE_PIMLICO_API_KEY: ${{ secrets.VITE_PIMLICO_API_KEY || 'test' }}
+          VITE_ENVIO_INDEXER_URL: ${{ secrets.VITE_ENVIO_INDEXER_URL || 'http://localhost:3006/v1/graphql' }}
+          VITE_PINATA_GATEWAY_URL: ${{ vars.VITE_PINATA_GATEWAY_URL || 'https://greengoods.mypinata.cloud' }}
+          VITE_PINATA_API_URL: ${{ vars.VITE_PINATA_API_URL || 'https://api.pinata.cloud' }}
 
       - name: Upload client source maps
         run: node scripts/ops/upload-sourcemaps.js --app client --env production --version "${{ github.sha }}"
@@ -203,6 +245,11 @@ jobs:
           VITE_ENVIO_INDEXER_URL: ${{ secrets.VITE_ENVIO_INDEXER_URL || 'http://localhost:3006/v1/graphql' }}
           VITE_PINATA_GATEWAY_URL: ${{ vars.VITE_PINATA_GATEWAY_URL || 'https://greengoods.mypinata.cloud' }}
           VITE_PINATA_API_URL: ${{ vars.VITE_PINATA_API_URL || 'https://api.pinata.cloud' }}
+
+      - name: Report skipped Playwright tests
+        if: always()
+        run: >-
+          node -e 'const fs = require("node:fs"); const path = "tests/test-results/results.json"; if (!fs.existsSync(path)) { console.log("::notice::Playwright results.json was not produced"); process.exit(0); } const results = JSON.parse(fs.readFileSync(path, "utf8")); console.log(`::notice::${results.stats?.skipped ?? 0} Playwright tests skipped`);'
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v7
