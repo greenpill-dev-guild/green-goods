@@ -459,6 +459,26 @@ bun script/upgrade.ts work-resolver --network sepolia --broadcast
 bun script/upgrade.ts assessment-resolver --network sepolia --broadcast
 ```
 
+### GreenWill Upgrade Runbook
+
+GreenWill is funds-adjacent, so it is deliberately excluded from `upgrade all`. Upgrade it only as an explicit target and keep every generated artifact tied to the exact implementation address and run date — for example, `42161-greenwill-0x<implementation>-YYYY-MM-DD-plan.json`. Do not invent a semantic-version filename such as `v1.1.1`. Run this sequence from the repository root.
+
+```bash
+# 1. Exercise the GreenWill Arbitrum fork coverage first.
+bun --cwd packages/contracts run test:fork -- --match-contract ArbitrumGreenWillSupportForkTest
+
+# 2. Run the no-RPC compile and deployment-artifact preflight.
+bun run contracts:upgrade:greenwill:dry:arbitrum
+
+# 3. Generate the non-broadcast transaction plan artifact for review.
+bun --cwd packages/contracts script/upgrade.ts greenwill --network arbitrum --tx-plan --sender 0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6
+
+# 4. After the Sepolia gate passes and the reviewed plan is approved, use the broadcast wrapper.
+bun run contracts:upgrade:greenwill:arbitrum
+```
+
+The transaction-plan artifact records the simulated `CREATE` address for the new `GreenWill` implementation. Record that address with the run date, then confirm the GreenWill proxy points to that implementation before any follow-up activity. Finish with one controlled, low-stakes badge smoke (for example, an eligible non-financial badge claim); do not use a vault deposit, redemption, or other funds flow as the smoke test.
+
 ### Upgrading with Resolver Address Changes
 
 When WorkApprovalResolver or AssessmentResolver contracts are upgraded, a new GardenAccount implementation must be deployed:

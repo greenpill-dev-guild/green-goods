@@ -19,6 +19,7 @@ import { OctantModule } from "../src/modules/Octant.sol";
 import { GardensModule } from "../src/modules/Gardens.sol";
 import { YieldResolver } from "../src/resolvers/Yield.sol";
 import { KarmaGAPModule } from "../src/modules/Karma.sol";
+import { GreenWill } from "../src/registries/GreenWill.sol";
 
 /// @title Upgrade Script for Green Goods Contracts
 /// @notice Handles UUPS proxy upgrades for all upgradeable contracts
@@ -389,6 +390,32 @@ contract Upgrade is Script {
 
         UUPSUpgradeable(proxy).upgradeTo(address(newImpl));
         console.log("KarmaGAPModule upgraded successfully");
+
+        vm.stopBroadcast();
+    }
+
+    /// @notice Upgrade GreenWill
+    /// @dev GreenWill is funds-adjacent and intentionally excluded from upgradeAll.
+    function upgradeGreenWill() public {
+        address proxy = loadProxyAddress("greenWill");
+        console.log("Upgrading GreenWill proxy at:", proxy);
+
+        validateProxy(proxy, "GreenWill");
+
+        bytes32 implementationSlot = bytes32(uint256(keccak256("eip1967.proxy.implementation")) - 1);
+        bytes32 currentImpl = vm.load(proxy, implementationSlot);
+        address currentImplAddr = address(uint160(uint256(currentImpl)));
+        console.log("Current GreenWill implementation:", currentImplAddr);
+
+        vm.startBroadcast();
+
+        GreenWill newImpl = new GreenWill();
+        console.log("New GreenWill implementation:", address(newImpl));
+
+        if (address(newImpl) == currentImplAddr) revert SameImplementation();
+
+        UUPSUpgradeable(proxy).upgradeTo(address(newImpl));
+        console.log("GreenWill upgraded successfully");
 
         vm.stopBroadcast();
     }
