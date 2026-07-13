@@ -2,15 +2,15 @@ import type { Meta, StoryObj } from "@storybook/react";
 import {
   STORYBOOK_ADMIN_DEPLOYER_SEEDS,
   STORYBOOK_PRIMARY_ADMIN_GARDEN,
-} from "../../../../../shared/.storybook/adminFixtures";
+} from "../../../../../../shared/.storybook/adminFixtures";
 import {
   withAdminIdentityRole,
   withCanvasFrame,
   withSeededQueryClient,
   withSelectedAdminGarden,
-} from "../../../../../shared/.storybook/decorators";
+} from "../../../../../../shared/.storybook/decorators";
 import { DEFAULT_CHAIN_ID, queryKeys, type Address } from "@green-goods/shared";
-import { CampaignCookieJarCreateWorkspace, CampaignCookieJarPanel } from "./CampaignCookieJarPanel";
+import { CampaignCookieJarCreateWorkspace, CampaignCookieJarPanel } from "./index";
 
 const EMPTY_CAMPAIGN_PANEL_SEEDS = [
   ...STORYBOOK_ADMIN_DEPLOYER_SEEDS,
