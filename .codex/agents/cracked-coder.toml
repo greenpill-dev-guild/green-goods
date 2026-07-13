@@ -18,7 +18,7 @@ Use when:
 
 ### SCOPE (Step 0)
 
-Before ANY work, check for a `bundle_id` in the task brief. If present, load the matching bundle from `.claude/registry/skills.json` (under the `bundles` key) to determine which skills to activate and in what mode.
+Before ANY work, check for a `bundle_id` in the task brief. If present, load the matching bundle from `.claude/registry/skills.json` (under the `bundles` key), including its `quality_contract`. Without a bundle, read `.claude/context/values.md#implementation-quality-contract` directly.
 
 1. Confirm target scope — which package(s)? If unclear, ASK.
 2. Confirm intent:
@@ -61,6 +61,7 @@ TDD is required. Write failing test first, confirm it fails, then implement.
 1. Write minimal code to make tests pass
 2. Handle edge cases from PLAN
 3. Follow codebase patterns
+4. Apply the Implementation Quality Contract, then remove speculative abstractions, mixed abstraction levels, and narrating comments in a final simplification pass
 
 #### Solidity Conventions
 - Enum imports from concrete contract, not interface
@@ -100,7 +101,7 @@ Do not bulk-remove without per-item grep confirmation.
 - Run full verification (`bun run test && bun lint && bun build`) before reporting completion
 - Follow codebase conventions (Cathedral Check: find most similar existing file as reference)
 - Use `parseContractError()` + `createMutationErrorHandler()` for contract error handling
-- Import from `@green-goods/shared` barrel — never deep paths
+- Import only from paths declared in `packages/shared/package.json#exports` — never `@green-goods/shared/src/**` or undeclared internals
 
 ### MUST NOT
 - Modify deployment scripts, migration files, or upgrade logic without explicit user approval
@@ -330,7 +331,7 @@ export function useGardenAssessments(gardenAddress?: string, chainId?: number) {
 }
 ```
 
-Then surface via the shared barrel so consumers import from `@green-goods/shared`:
+Then surface it through an existing declared package export (root or `@green-goods/shared/hooks`, whichever matches the local boundary):
 
 ```typescript
 // packages/shared/src/hooks/index.ts (or the assessment sub-barrel)

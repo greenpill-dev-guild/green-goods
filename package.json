@@ -56,7 +56,7 @@
     "format:contracts": "cd packages/contracts && bun run format",
     "format:contracts:check": "cd packages/contracts && bun run format:check",
     "format:check": "bunx @biomejs/biome format .",
-    "lint": "bun --bun run oxlint packages/client/src packages/admin/src packages/shared/src packages/indexer/src packages/agent/src packages/contracts/script && cd packages/contracts && bun run lint",
+    "lint": "bun run lint:rules && bun run lint:check",
     "lint:check": "bun --bun run oxlint packages/client/src packages/admin/src packages/shared/src packages/indexer/src packages/agent/src packages/contracts/script && cd packages/contracts && bun run lint:check",
     "dev": "node scripts/dev/stack.js full",
     "dev:health": "node scripts/dev/doctor.js --profile full",
