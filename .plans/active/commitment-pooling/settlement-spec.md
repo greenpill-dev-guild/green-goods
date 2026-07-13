@@ -531,7 +531,7 @@ Exact indexer proof from the repo root: `bun run --filter @green-goods/indexer c
 
 - **W2 commitment detail (PWA)**: reward row gains settlement status — “support on its way” (Queued/Executing), “transfer reported” (Reported without active request), “checking receipt” (Reported with active request), “support arrived” + Celo ref (Verified), “still arranging support — your promise is recorded” (Failed).
 - **W23 WalletDrawer G$ section (settlement delta to W5)**: only after the AA gate, G$ balance section (Celo) + received-support rows; send action → chain-aware transfer flow. When disabled, no balance/send affordance renders and explanatory copy points to the blocked delivery gate.
-- **W21 Garden Pool tab settlement section (delta to W7)**: settlement account card (Safe address, active, allowance snapshot) + disbursement queue section; the batch execution and oracle console is **W22**.
+- **W21 Garden Pool tab settlement section (delta to W7)**: settlement account card (Safe address, active, allowance snapshot, plus a read-only member-delivery gate status row — enabled/disabled · changed by · date · evidence ref; decision #34f, the flip itself stays owner-only ops) + disbursement queue section; the batch execution and oracle console is **W22** (missing executor role renders a visible guard state, decision #34e).
 - **W10 commitment dialog**: "Queue disbursement" replaces/precedes "Record payout" for G$-rewarded commitments; batch actions.
 - **Admin `/community` Pools mode funding view**: WC→GG→garden funding hops, Safe balances, batch console.
 - Editorial/community: no change (aggregates only; settlement is not a public story in August).
