@@ -76,7 +76,13 @@ const config: StorybookConfig = {
         { from: "../../../tmp/storybook-design-assets", to: "/" },
       ],
   typescript: {
-    reactDocgen: "react-docgen-typescript",
+    // TypeScript 7 (native port) dropped the JS compiler-API enums that
+    // react-docgen-typescript reads, so its TS-based parser can't run under TS7. Use
+    // the JS-based react-docgen engine instead. (A companion patch,
+    // patches/react-docgen-typescript@2.4.0.patch, keeps @storybook/react's static
+    // import of that package from crashing at load.) Revert both when
+    // react-docgen-typescript supports TS7-native.
+    reactDocgen: "react-docgen",
   },
   viteFinal: async (config) => {
     const adminSrc = resolve(__dirname, "../../admin/src");

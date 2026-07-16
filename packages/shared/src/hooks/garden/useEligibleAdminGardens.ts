@@ -120,15 +120,14 @@ export function useEligibleAdminGardens(): EligibleAdminGardensResult {
     return { eligibleGardens: merged, hasStaleBaseList: true };
   }, [address, gardens, operatorGardens, chainId]);
 
-  const persistedGardenId = scopeKey ? (lastGardenIdsByScope[scopeKey] ?? null) : null;
+  const persistedGardenId = scopeKey ? lastGardenIdsByScope[scopeKey] : null;
 
   const resolvedDefaultGarden = useMemo(() => {
     if (eligibleGardens.length === 0) return null;
 
-    const persistedGarden =
-      (persistedGardenId
-        ? (eligibleGardens.find((garden) => compareAddresses(garden.id, persistedGardenId)) ?? null)
-        : null) ?? null;
+    const persistedGarden = persistedGardenId
+      ? (eligibleGardens.find((garden) => compareAddresses(garden.id, persistedGardenId)) ?? null)
+      : null;
 
     return persistedGarden ?? eligibleGardens[0] ?? null;
   }, [eligibleGardens, persistedGardenId]);

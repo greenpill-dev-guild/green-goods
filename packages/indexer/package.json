@@ -2,9 +2,9 @@
   "name": "@green-goods/indexer",
   "version": "1.2.0",
   "scripts": {
-    "clean": "tsc --clean",
-    "build": "tsc --build",
-    "watch": "tsc --watch",
+    "clean": "node ../../scripts/dev/node-cli.js tsc --clean",
+    "build": "node ../../scripts/dev/node-cli.js tsc --build",
+    "watch": "node ../../scripts/dev/node-cli.js tsc --watch",
     "mocha": "node ../../scripts/dev/node-cli.js mocha --require tsx \"test/**/*.ts\"",
     "setup-generated": "cd generated && pnpm install && pnpm run build",
     "codegen": "envio codegen",
@@ -35,7 +35,7 @@
     "@types/node": "^24.2.1",
     "c8": "^10.1.3",
     "mocha": "^11.0.0",
-    "typescript": "^5.9.3"
+    "typescript": "~7.0.2"
   },
   "dependencies": {
     "envio": "2.32.3"
