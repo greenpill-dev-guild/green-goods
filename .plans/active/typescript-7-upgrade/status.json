@@ -1,0 +1,72 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "typescript-7-upgrade",
+    "title": "TypeScript 7-only upgrade",
+    "kind": "feature",
+    "stage": "archive"
+  },
+  "workflow": {
+    "overall_status": "done",
+    "priority": "p2",
+    "created_at": "2026-07-14T00:39:12.925Z",
+    "updated_at": "2026-07-19T22:20:00.000Z",
+    "target_date": null,
+    "archived_at": "2026-07-16T03:08:08.066Z",
+    "archive_reason": "Completed and retained as a closed feature record.",
+    "resolution": "completed"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": null,
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": null,
+    "lanes": {}
+  },
+  "taxonomy": {
+    "initiative": "engineering-quality",
+    "tracks": [],
+    "work_types": ["implementation"],
+    "surfaces": [],
+    "depends_on_features": []
+  },
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "n/a"
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "completed"
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a"
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "skipped"
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "completed"
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-07-16T03:08:08.066Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "moved_to_archive",
+      "branch": null,
+      "note": "Moved feature hub from active to archive"
+    }
+  ]
+}
