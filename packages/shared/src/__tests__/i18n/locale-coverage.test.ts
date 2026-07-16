@@ -1,6 +1,8 @@
+import { parse } from "@babel/parser";
+import traverse from "@babel/traverse";
+import type { JSXAttribute, Node, ObjectExpression } from "@babel/types";
 import fs from "node:fs";
 import path from "node:path";
-import * as ts from "typescript";
 import { describe, expect, it } from "vitest";
 
 import en from "../../i18n/en.json";
@@ -178,50 +180,56 @@ function isAllowedIdenticalLocalizedValue(locale: string, key: string, value: st
   );
 }
 
-function propName(name: ts.PropertyName | undefined): string | undefined {
+function propName(name: Node | undefined): string | undefined {
   if (!name) return undefined;
-  if (ts.isIdentifier(name) || ts.isStringLiteral(name) || ts.isNumericLiteral(name)) {
-    return name.text;
+  if (name.type === "Identifier") return name.name;
+  if (name.type === "StringLiteral" || name.type === "NumericLiteral") {
+    return String(name.value);
   }
   return undefined;
 }
 
-function stringLiteral(node: ts.Node | undefined): string | undefined {
+function stringLiteral(node: Node | undefined): string | undefined {
   if (!node) return undefined;
-  if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) return node.text;
+  if (node.type === "StringLiteral") return node.value;
+  if (node.type === "TemplateLiteral" && node.expressions.length === 0) {
+    return node.quasis[0]?.value.cooked ?? node.quasis[0]?.value.raw;
+  }
   return undefined;
 }
 
-function getObjectProp(obj: ts.ObjectLiteralExpression, name: string): ts.Expression | undefined {
+function getObjectProp(obj: ObjectExpression, name: string): Node | undefined {
   for (const property of obj.properties) {
-    if (ts.isPropertyAssignment(property) && propName(property.name) === name) {
-      return property.initializer;
+    if (property.type === "ObjectProperty" && propName(property.key) === name) {
+      return property.value;
     }
   }
   return undefined;
 }
 
-function calleeName(expr: ts.Expression): string | undefined {
-  if (ts.isIdentifier(expr)) return expr.text;
-  if (ts.isPropertyAccessExpression(expr)) return expr.name.text;
+function calleeName(node: Node): string | undefined {
+  if (node.type === "Identifier") return node.name;
+  if (node.type === "MemberExpression" && node.property.type === "Identifier") {
+    return node.property.name;
+  }
   return undefined;
 }
 
-function jsxTagName(name: ts.JsxTagNameExpression): string | undefined {
-  if (ts.isIdentifier(name)) return name.text;
-  if (ts.isPropertyAccessExpression(name)) return name.name.text;
+function jsxTagName(node: Node): string | undefined {
+  if (node.type === "JSXIdentifier") return node.name;
+  if (node.type === "JSXMemberExpression") return node.property.name.name;
   return undefined;
 }
 
-function jsxString(attr: ts.JsxAttribute): string | undefined {
-  if (!attr.initializer) return undefined;
-  if (ts.isStringLiteral(attr.initializer)) return attr.initializer.text;
-  if (ts.isJsxExpression(attr.initializer)) return stringLiteral(attr.initializer.expression);
+function jsxString(attr: JSXAttribute): string | undefined {
+  if (!attr.value) return undefined;
+  if (attr.value.type === "StringLiteral") return attr.value.value;
+  if (attr.value.type === "JSXExpressionContainer") return stringLiteral(attr.value.expression);
   return undefined;
 }
 
-function lineOf(source: ts.SourceFile, node: ts.Node): number {
-  return source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1;
+function lineOf(node: Node): number {
+  return node.loc?.start.line ?? 1;
 }
 
 function walkSourceFiles(dir: string, files: string[] = []): string[] {
@@ -244,81 +252,67 @@ function walkSourceFiles(dir: string, files: string[] = []): string[] {
 function collectSourceMessageRefs(): SourceMessageRef[] {
   const refs = new Map<string, SourceMessageRef>();
 
-  const add = (id: string | undefined, source: ts.SourceFile, node: ts.Node) => {
+  const add = (id: string | undefined, file: string, node: Node) => {
     if (!id?.includes(".")) return;
-    refs.set(`${id}:${source.fileName}:${lineOf(source, node)}`, {
+    const line = lineOf(node);
+    refs.set(`${id}:${file}:${line}`, {
       id,
-      file: path.relative(repoRoot, source.fileName),
-      line: lineOf(source, node),
+      file: path.relative(repoRoot, file),
+      line,
     });
   };
 
   for (const file of sourceRoots.flatMap((root) => walkSourceFiles(root))) {
-    const source = ts.createSourceFile(
-      file,
-      fs.readFileSync(file, "utf8"),
-      ts.ScriptTarget.Latest,
-      true,
-      file.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS
-    );
+    const source = parse(fs.readFileSync(file, "utf8"), {
+      sourceFilename: file,
+      sourceType: "unambiguous",
+      plugins: ["typescript", "jsx"],
+    });
 
-    const visit = (node: ts.Node) => {
-      if (ts.isCallExpression(node)) {
-        const name = calleeName(node.expression);
-        const firstArg = node.arguments[0];
+    traverse(source, {
+      CallExpression(path) {
+        const name = calleeName(path.node.callee);
+        const firstArg = path.node.arguments[0];
         if (
           (name === "formatMessage" || name === "defineMessage") &&
-          firstArg &&
-          ts.isObjectLiteralExpression(firstArg)
+          firstArg?.type === "ObjectExpression"
         ) {
-          add(
-            stringLiteral(getObjectProp(firstArg, "id")),
-            source,
-            getObjectProp(firstArg, "id") ?? firstArg
-          );
+          const id = getObjectProp(firstArg, "id");
+          add(stringLiteral(id), file, id ?? firstArg);
         }
-        if (name === "defineMessages" && firstArg && ts.isObjectLiteralExpression(firstArg)) {
+        if (name === "defineMessages" && firstArg?.type === "ObjectExpression") {
           for (const property of firstArg.properties) {
-            if (
-              ts.isPropertyAssignment(property) &&
-              ts.isObjectLiteralExpression(property.initializer)
-            ) {
-              add(
-                stringLiteral(getObjectProp(property.initializer, "id")),
-                source,
-                getObjectProp(property.initializer, "id") ?? property.initializer
-              );
+            if (property.type !== "ObjectProperty" || property.value.type !== "ObjectExpression") {
+              continue;
             }
+            const id = getObjectProp(property.value, "id");
+            add(stringLiteral(id), file, id ?? property.value);
           }
         }
-      }
+      },
+      ObjectExpression(path) {
+        const id = getObjectProp(path.node, "id");
+        if (stringLiteral(id) && getObjectProp(path.node, "defaultMessage")) {
+          add(stringLiteral(id), file, id ?? path.node);
+        }
 
-      if (ts.isObjectLiteralExpression(node)) {
-        const id = stringLiteral(getObjectProp(node, "id"));
-        if (id && getObjectProp(node, "defaultMessage"))
-          add(id, source, getObjectProp(node, "id") ?? node);
-
-        for (const property of node.properties) {
-          if (!ts.isPropertyAssignment(property)) continue;
-          const name = propName(property.name);
+        for (const property of path.node.properties) {
+          if (property.type !== "ObjectProperty") continue;
+          const name = propName(property.key);
           if (name && descriptorIdPropNames.has(name)) {
-            add(stringLiteral(property.initializer), source, property);
+            add(stringLiteral(property.value), file, property);
           }
         }
-      }
-
-      if (ts.isJsxOpeningLikeElement(node) && jsxTagName(node.tagName) === "FormattedMessage") {
-        for (const property of node.attributes.properties) {
-          if (ts.isJsxAttribute(property) && property.name.text === "id") {
-            add(jsxString(property), source, property);
+      },
+      JSXOpeningElement(path) {
+        if (jsxTagName(path.node.name) !== "FormattedMessage") return;
+        for (const property of path.node.attributes) {
+          if (property.type === "JSXAttribute" && property.name.name === "id") {
+            add(jsxString(property), file, property);
           }
         }
-      }
-
-      ts.forEachChild(node, visit);
-    };
-
-    visit(source);
+      },
+    });
   }
 
   return [...refs.values()].sort(

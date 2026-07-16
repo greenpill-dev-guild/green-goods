@@ -1,0 +1,221 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "typescript-7-upgrade",
+    "title": "TypeScript 7-only upgrade",
+    "kind": "feature",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "active",
+    "priority": "p2",
+    "created_at": "2026-07-14T00:39:12.925Z",
+    "updated_at": "2026-07-15T01:27:24Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": null,
+    "project": null,
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": null,
+    "lanes": {}
+  },
+  "taxonomy": {
+    "initiative": "engineering-quality",
+    "tracks": [],
+    "work_types": ["implementation"],
+    "surfaces": [],
+    "depends_on_features": []
+  },
+  "notes": [
+    "Mark unused lanes as n/a before promoting QA.",
+    "status.json is authoritative; branch names are automation signals.",
+    "Use targeted bun run test or bun run test as the iterative gate for the touched surface; coverage is scheduled or pre-merge evidence.",
+    ".plans/ is the durable repo truth; any tool-local or .claude/agent-memory surface stays environment-local until freshness and ownership rules exist."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "n/a",
+      "branch": "claude/ui/typescript-7-upgrade",
+      "depends_on": [],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": ""
+      },
+      "skill_tags": ["ui", "frontend-design", "react"],
+      "manual_blocked": false
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "completed",
+      "branch": "codex/state-api/typescript-7-upgrade",
+      "depends_on": [],
+      "handoff": "handoffs/codex-state-api.md",
+      "tdd": {
+        "mode": "required",
+        "status": "green_recorded",
+        "red": {
+          "command": "bun run --cwd docs test src/components/docs/RevenueProjectionChart.test.ts",
+          "evidence": "Failed as expected with the historical object-spread order: numeric year values overwrote the Y-prefixed chart labels."
+        },
+        "green": {
+          "command": "bun run --cwd docs test src/components/docs/RevenueProjectionChart.test.ts",
+          "evidence": "Passed after spreading each MonteCarlo band before assigning the Y-prefixed year chart label."
+        },
+        "note": "The TS 7 typecheck RED/GREEN proof remains in the state/API handoff; this record captures the chart regression test added during review remediation."
+      },
+      "skill_tags": ["react", "tanstack-query", "data-layer"],
+      "manual_blocked": false
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "n/a",
+      "branch": "codex/contracts/typescript-7-upgrade",
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": ""
+      },
+      "skill_tags": ["contracts"],
+      "manual_blocked": false
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "ready",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "claude/qa-pass-1/typescript-7-upgrade",
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "completed",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "codex/qa-pass-2/typescript-7-upgrade",
+      "branch_trigger": "claude/qa-pass-1/typescript-7-upgrade",
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-07-14T00:39:12.929Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in active"
+    },
+    {
+      "timestamp": "2026-07-14T00:39:44.023Z",
+      "actor": "codex",
+      "lane": "ui",
+      "status": "n/a",
+      "branch": "claude/ui/typescript-7-upgrade",
+      "note": "No UI behavior changes."
+    },
+    {
+      "timestamp": "2026-07-14T00:39:44.858Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "n/a",
+      "branch": "codex/contracts/typescript-7-upgrade",
+      "note": "No contract surface changes."
+    },
+    {
+      "timestamp": "2026-07-14T00:39:45.774Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "in_progress",
+      "branch": "codex/state-api/typescript-7-upgrade",
+      "note": "TS 7 tooling, peer refresh, config migration, and parser replacement."
+    },
+    {
+      "timestamp": "2026-07-14T01:13:23.839Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "codex/state-api/typescript-7-upgrade",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-07-14T01:13:28.437Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "completed",
+      "branch": "codex/state-api/typescript-7-upgrade",
+      "note": "TS 7-only compiler, peer, parser, and config migration implemented; targeted checks and all package builds passed."
+    },
+    {
+      "timestamp": "2026-07-14T17:28:37.694Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "tdd_recorded",
+      "branch": "codex/state-api/typescript-7-upgrade",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-07-14T17:28:44Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "review_remediation",
+      "branch": "codex/state-api/typescript-7-upgrade",
+      "note": "Recorded the docs chart regression proof. The plan requires this branch name, while the shared worktree remains on develop; Quick Gate remains blocked pending a lockfile-backed WalletConnect resolution fix."
+    },
+    {
+      "timestamp": "2026-07-15T01:27:24Z",
+      "actor": "claude",
+      "lane": "qa_pass_2",
+      "status": "completed",
+      "branch": "develop",
+      "note": "CORRECTION_SUPERSEDED_BY 2026-07-15T21:28:17Z entry. Repair applied: removed root-wide uint8arrays overrides+resolutions (kept direct dependencies.uint8arrays ^5.1.0), regenerated bun.lock via Bun (lockfile-only + frozen-lockfile). Lockfile diff was uint8arrays-scoped: nested uint8arrays@3.1.0/3.1.1 added under 10 WalletConnect subtrees, top-level uint8arrays@5.1.0 retained. Quick Gate PASS (ci-local --quick 'All CI checks passed!'). Full validation green ON THIS MACHINE (WalletConnect materialized to v5 by the postinstall - see the 2026-07-15T21 correction entry): format:check, lint (0 errors), lint:vocab, check:source-structure, CI=true bun run test (shared 3355 / client 637 / admin 538 / agent 230 / indexer 186 / contracts 1533, 0 failures), VITE_CHAIN_ID=11155111 build, plan-hub validate (24 hubs), git diff --check. TS resolves 7.0.2. Caveats: (1) the task from-root probe require('@walletconnect/utils') fails to resolve because a clean Bun install correctly does not hoist the transitive dep to root - not a version signal; bun's linker natively symlinks WalletConnect->uint8arrays@3.1.1 pre-postinstall. (2) FLAGGED (follow-up investigated 2026-07-15, PREMISE INVERTED): scripts/postinstall/fix-multiformats.js fixBunCacheSymlinks materializes WalletConnect's uint8arrays symlink via a version-agnostic last-wins packageSources map; on this machine it lands v5, which IS the validated-green config. The naive fix (follow the symlink's realpathSync target to force v3) was implemented and DISPROVEN: forcing v3 fails 25 shared test files with 'multiformats/basics is not defined by exports' because uint8arrays@3 requires multiformats/basics (removed in multiformats@13; the repo shim patches only the top-level uint8arrays copy, not the materialized WalletConnect copies). So the v5 clobber is LOAD-BEARING, not a pure bug: v5 in WalletConnect -> 285/285 green; v3 -> 260/285. Net: WalletConnect stays on v5 in the installed tree (the same v5 the old root override gave it), so the repair's real effect is on OTHER uint8arrays consumers, not WalletConnect. Residual risk: version selection is non-deterministic (readdir order), so a machine/CI whose readdir picks v3 would hit the 25 failures; a deterministic-green fix must either pin WalletConnect to v5 or extend the multiformats/basics shim to the materialized v3 copies (non-minimal). Follow-up NOT shipped; deferred pending user decision. (3) node tsc bin fails only under the env's node 18 (extensionless-bin ESM); node 22 prints Version 7.0.2. (4) sharp@0.32.6 (agent-only, @xenova/transformers) native build is gated by node-gyp under node 18; not in the build path and agent tests pass. Browser proof for the docs chart label is BLOCKED (non-interactive session; no authenticated Brave)."
+    },
+    {
+      "timestamp": "2026-07-15T21:28:17Z",
+      "actor": "claude",
+      "lane": "qa_pass_2",
+      "status": "completed",
+      "branch": "develop",
+      "note": "SUPERSEDED_BY 2026-07-15T23:15:23Z (uint8arrays change fully reverted; see that entry for the shipped state). Follow-up on the flagged postinstall clobber: investigated, then reverted - premise inverted. Implemented the naive fix (fixBunCacheSymlinks copies fs.realpathSync(depPath) instead of the last-wins packageSources map) so WalletConnect materializes its pinned uint8arrays@3. Result: 25 shared test files FAIL ('multiformats/basics is not defined by exports in multiformats/package.json') because uint8arrays@3 requires multiformats/basics, removed in multiformats@13, and the repo shim patches only the top-level uint8arrays copy. Empirically confirmed both directions on this machine: WalletConnect uint8arrays v3 -> shared 260/285 (25 failed); v5 -> shared 285/285 green. So the v5 clobber is LOAD-BEARING, not a pure bug. Reverted scripts/postinstall/fix-multiformats.js to git-clean original (verified) and restored the local tree to the green v5 config. No source changes shipped by this follow-up. Open decision for the user: (a) accept WalletConnect-on-v5 as the deliberate validated-green config and document that the postinstall version selection is non-deterministic (readdir order; a CI whose readdir picks v3 would go red), or pin WalletConnect to v5 deterministically; or (b) authorize a non-minimal effort to extend the multiformats/basics shim across the materialized v3 copies so WalletConnect can run its pinned v3. The original TS7 upgrade + uint8arrays lockfile repair (package.json + bun.lock) remain unchanged and green on this machine."
+    },
+    {
+      "timestamp": "2026-07-15T23:15:23Z",
+      "actor": "claude",
+      "lane": "qa_pass_2",
+      "status": "completed",
+      "branch": "develop",
+      "note": "FINAL DECISION (user-approved): the uint8arrays override/resolutions REMOVAL was reverted - it was decoupled from TS7 and undone. Rationale: the root override is load-bearing infra, not cruft - the repo's compat strategy forces all uint8arrays to v5 and patches only the top-level v5 copy for multiformats@13's dropped ./basics subpath (patchUint8arrays + the postinstall clobber both assume v5-everywhere). Removing the override bought nothing (WalletConnect ends up on v5 via the clobber regardless; its CJS require is never exercised - tests mock it, Vite bundles ESM) and introduced non-deterministic installs (readdir order -> v3 possible on CI -> 25 shared failures). uint8arrays is unrelated to TypeScript, so the two were decoupled. Implementation: restored overrides.uint8arrays ^5.1.0 + the resolutions block in package.json (now byte-identical to HEAD for that region), regenerated bun.lock via Bun (lockfile-only --ignore-scripts, then frozen-lockfile --ignore-scripts + manual postinstall to skip the sharp gate). Result: bun.lock has 0 uint8arrays@3 references (only the hoisted v5); a truly clean reinstall (rm -rf node_modules) creates NO v3 store dirs; all 16 WalletConnect uint8arrays entries deterministically land v5 on every machine by construction. Net footprint of all uint8arrays work this session = ZERO (package.json + bun.lock uint8arrays topology == HEAD); only the TypeScript-7 changes remain. Validation on the deterministic-v5 tree (node 22 via mise; sharp agent-only build gated, outside build path): ci-local --quick 'All CI checks passed!'; VITE_CHAIN_ID=11155111 build green (client+admin); focused shared locale-coverage 12/12; docs RevenueProjectionChart 1/1. Full test + build were validated green earlier this session on the functionally-identical v5 tree. scripts/postinstall/fix-multiformats.js is git-clean (trial fix reverted)."
+    }
+  ]
+}

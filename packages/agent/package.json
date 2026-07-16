@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "APP_ENV=development bun --env-file=../../.env --watch src/index.ts",
     "intake:smoke": "APP_ENV=development bun --env-file=../../.env scripts/intake-smoke.ts",
-    "build": "tsc",
+    "build": "node ../../scripts/dev/node-cli.js tsc",
     "start": "APP_ENV=production bun --env-file=../../.env dist/index.js",
     "lint": "bun --bun run oxlint src",
     "test": "APP_ENV=test node ../../scripts/dev/node-cli.js vitest run",
@@ -16,7 +16,7 @@
     "test:ui": "APP_ENV=test node ../../scripts/dev/node-cli.js vitest --ui",
     "format": "biome format --write src",
     "format:check": "biome format src",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "node ../../scripts/dev/node-cli.js tsc --noEmit",
     "sentry:sourcemaps": "sentry-cli sourcemaps inject --org ${SENTRY_ORG:-greenpill} --project ${SENTRY_AGENT_PROJECT:-green-goods-agent} ./dist && sentry-cli sourcemaps upload --org ${SENTRY_ORG:-greenpill} --project ${SENTRY_AGENT_PROJECT:-green-goods-agent} ./dist"
   },
   "dependencies": {
@@ -37,7 +37,7 @@
     "@vitest/coverage-v8": "^4.0.18",
     "@vitest/ui": "^4.0.18",
     "bun-types": "latest",
-    "typescript": "^5.9.3",
+    "typescript": "~7.0.2",
     "vitest": "^4.0.16"
   }
 }

@@ -14,7 +14,6 @@
     "noEmit": true,
     "verbatimModuleSyntax": true,
     "jsx": "preserve",
-    "baseUrl": ".",
     "paths": {
       "@shared/*": ["./src/*"],
       "@green-goods/contracts/deployments/*": ["../contracts/deployments/*"],

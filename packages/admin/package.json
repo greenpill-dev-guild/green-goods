@@ -20,7 +20,7 @@
     "format": "biome format --write .",
     "format:check": "biome format .",
     "lint": "bun --bun run oxlint src",
-    "build": "cd ../.. && APP_ENV=production tsc --noEmit -p packages/admin/tsconfig.json && APP_ENV=production node scripts/dev/node-cli.js vite build --config packages/admin/vite.config.ts && node scripts/dev/remove-public-sourcemaps.js packages/admin/dist",
+    "build": "cd ../.. && APP_ENV=production node scripts/dev/node-cli.js tsc --noEmit -p packages/admin/tsconfig.json && APP_ENV=production node scripts/dev/node-cli.js vite build --config packages/admin/vite.config.ts && node scripts/dev/remove-public-sourcemaps.js packages/admin/dist",
     "build:deploy": "bun run build",
     "preview": "cd ../.. && APP_ENV=production bun --bun vite preview --config packages/admin/vite.config.ts"
   },
@@ -45,7 +45,7 @@
     "react-dom": "^19.2.3",
     "react-hook-form": "^7.53.0",
     "react-hot-toast": "^2.4.1",
-    "react-intl": "^8.0.0",
+    "react-intl": "^10.1.15",
     "react-router-dom": "^7.12.0",
     "recharts": "^3.7.0",
     "tailwind-merge": "3.0.2",
@@ -61,7 +61,7 @@
     "@vitejs/plugin-react": "^5.1.2",
     "tailwindcss": "^4.1.11",
     "babel-plugin-react-compiler": "^1.0.0",
-    "typescript": "^5.9.3",
+    "typescript": "~7.0.2",
     "vite": "^7.3.0",
     "vite-plugin-mkcert": "^1.17.8"
   }
