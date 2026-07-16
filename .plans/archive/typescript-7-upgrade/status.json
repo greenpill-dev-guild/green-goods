@@ -4,13 +4,13 @@
     "slug": "typescript-7-upgrade",
     "title": "TypeScript 7-only upgrade",
     "kind": "feature",
-    "stage": "active"
+    "stage": "archive"
   },
   "workflow": {
-    "overall_status": "active",
+    "overall_status": "done",
     "priority": "p2",
     "created_at": "2026-07-14T00:39:12.925Z",
-    "updated_at": "2026-07-15T01:27:24Z"
+    "updated_at": "2026-07-16T03:08:08.066Z"
   },
   "links": {
     "brief": "brief.md",
@@ -108,7 +108,7 @@
     },
     "qa_pass_1": {
       "owner": "claude",
-      "status": "ready",
+      "status": "todo",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "claude/qa-pass-1/typescript-7-upgrade",
@@ -216,6 +216,14 @@
       "status": "completed",
       "branch": "develop",
       "note": "FINAL DECISION (user-approved): the uint8arrays override/resolutions REMOVAL was reverted - it was decoupled from TS7 and undone. Rationale: the root override is load-bearing infra, not cruft - the repo's compat strategy forces all uint8arrays to v5 and patches only the top-level v5 copy for multiformats@13's dropped ./basics subpath (patchUint8arrays + the postinstall clobber both assume v5-everywhere). Removing the override bought nothing (WalletConnect ends up on v5 via the clobber regardless; its CJS require is never exercised - tests mock it, Vite bundles ESM) and introduced non-deterministic installs (readdir order -> v3 possible on CI -> 25 shared failures). uint8arrays is unrelated to TypeScript, so the two were decoupled. Implementation: restored overrides.uint8arrays ^5.1.0 + the resolutions block in package.json (now byte-identical to HEAD for that region), regenerated bun.lock via Bun (lockfile-only --ignore-scripts, then frozen-lockfile --ignore-scripts + manual postinstall to skip the sharp gate). Result: bun.lock has 0 uint8arrays@3 references (only the hoisted v5); a truly clean reinstall (rm -rf node_modules) creates NO v3 store dirs; all 16 WalletConnect uint8arrays entries deterministically land v5 on every machine by construction. Net footprint of all uint8arrays work this session = ZERO (package.json + bun.lock uint8arrays topology == HEAD); only the TypeScript-7 changes remain. Validation on the deterministic-v5 tree (node 22 via mise; sharp agent-only build gated, outside build path): ci-local --quick 'All CI checks passed!'; VITE_CHAIN_ID=11155111 build green (client+admin); focused shared locale-coverage 12/12; docs RevenueProjectionChart 1/1. Full test + build were validated green earlier this session on the functionally-identical v5 tree. scripts/postinstall/fix-multiformats.js is git-clean (trial fix reverted)."
+    },
+    {
+      "timestamp": "2026-07-16T03:08:08.066Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "moved_to_archive",
+      "branch": null,
+      "note": "Moved feature hub from active to archive"
     }
   ]
 }
