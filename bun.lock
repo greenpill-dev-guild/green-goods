@@ -314,6 +314,9 @@
     "sharp",
     "esbuild",
   ],
+  "patchedDependencies": {
+    "react-docgen-typescript@2.4.0": "patches/react-docgen-typescript@2.4.0.patch",
+  },
   "overrides": {
     "basic-ftp": "5.2.0",
     "multiformats": "^13.4.2",
