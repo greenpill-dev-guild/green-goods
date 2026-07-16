@@ -4,7 +4,7 @@
 **Stage**: `active`
 **Status**: `ACTIVE`
 **Created**: `2026-07-16T03:08:08.105Z`
-**Last Updated**: `2026-07-16T07:20:04Z`
+**Last Updated**: `2026-07-16T07:38:15Z`
 
 ## Decision Log
 
@@ -33,7 +33,7 @@
 |---|---|---|---|
 | Security-first supported graph | `state_api` | Waves 0-2 | ✅ |
 | Stable React/offline/application state | `state_api` | Wave 3 | ✅ |
-| Stable UI/PWA behavior | `ui` | Wave 4 | ⏳ |
+| Stable UI/PWA behavior | `ui` | Wave 4 | ✅ |
 | Stable wallet/passkey and telemetry behavior | `state_api` | Wave 5 | ⏳ |
 | Compatible EAS/indexer/runtime maintenance | `contracts`, `state_api` | Wave 6 | ⏳ |
 | Supported non-contract major migrations | `ui`, `state_api` | Waves 7-10 | ⏳ |
@@ -93,6 +93,12 @@ test now covers skipped native View Transitions without changing public or persi
 Wave 3 automated proof is green. React, TanStack, forms, Zod, Zustand, XState, and idb-keyval are
 aligned, and new characterization tests prove the existing IndexedDB hydration and reconnect
 mutation-resume contracts without changing their stored formats or public APIs.
+
+Wave 4 automated proof is green. Tailwind, Radix, tailwind-merge, Remixicon, Recharts, the PWA
+plugin, and Workbox are aligned without source adaptation. Design/token/story gates, 120
+clean-room Storybook browser tests, deterministic app builds, generated service-worker checks,
+docs, and the Repo Quick Gate all pass; the audit improved to 0 critical and 63 transitive high
+findings.
 
 ## Lane Checklists
 
