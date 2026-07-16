@@ -32,7 +32,6 @@
     "viem": "^2.43.4"
   },
   "devDependencies": {
-    "@faker-js/faker": "^10.2.0",
     "@types/node": "^24.2.1",
     "@vitest/coverage-v8": "4.1.10",
     "@vitest/ui": "4.1.10",

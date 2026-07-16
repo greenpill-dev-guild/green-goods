@@ -4,7 +4,7 @@
 **Stage**: `active`
 **Status**: `ACTIVE`
 **Created**: `2026-07-16T03:08:08.105Z`
-**Last Updated**: `2026-07-16T06:19:40Z`
+**Last Updated**: `2026-07-16T06:54:38Z`
 
 ## Decision Log
 
@@ -31,7 +31,7 @@
 
 | Requirement | Lane | Planned Step | Status |
 |---|---|---|---|
-| Security-first supported graph | `state_api` | Waves 0-2 | 🚧 |
+| Security-first supported graph | `state_api` | Waves 0-2 | ✅ |
 | Stable React/offline/application state | `state_api` | Wave 3 | ⏳ |
 | Stable UI/PWA behavior | `ui` | Wave 4 | ⏳ |
 | Stable wallet/passkey and telemetry behavior | `state_api` | Wave 5 | ⏳ |
@@ -85,6 +85,10 @@ Wave 0 is checkpointed at `5ebabc77c`. Wave 1 automated proof is green and audit
 critical findings. On 2026-07-16, Afo explicitly waived authenticated Brave proof for this
 dependency program; preserve that proof limitation and continue using automated route tests,
 production builds, PWA checks, local smoke, and repo gates.
+
+Wave 2 automated proof is green. Bun, the tooling stack, Storybook, and Docusaurus are aligned;
+the audit remains at zero critical and 64 transitive high findings. A Storybook browser regression
+test now covers skipped native View Transitions without changing public or persisted contracts.
 
 ## Lane Checklists
 

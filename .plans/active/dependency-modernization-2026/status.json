@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-07-16T03:08:08.105Z",
-    "updated_at": "2026-07-16T06:19:40Z"
+    "updated_at": "2026-07-16T06:54:38Z"
   },
   "links": {
     "brief": "brief.md",
@@ -51,6 +51,7 @@
     "The complete baseline bun run test passes outside the sandbox, including 1,533 Foundry tests; the prior exit 134 was caused by Foundry's sandboxed macOS system proxy lookup.",
     "Afo explicitly authorized implementation to continue without Linear on 2026-07-16; backfill the parent-only mirror later and keep this hub authoritative.",
     "Wave 1 audit improved to 0 critical and 64 transitive high findings; all named target advisories are removed and automated gates pass.",
+    "Wave 2 aligned Bun, tooling, Storybook, and Docusaurus; audit remains 0 critical and 64 transitive high findings and all automated gates pass.",
     "Afo explicitly waived authenticated Brave proof on 2026-07-16; automated route tests, production builds, PWA checks, local smoke, and repo gates are the accepted substitutes for this program.",
     "Keep multiformats, uint8arrays, overrides/resolutions, and the postinstall shim until supported Wagmi 3 proof says otherwise.",
     "status.json is authoritative; branch names are automation signals.",
@@ -60,22 +61,22 @@
   "lanes": {
     "ui": {
       "owner": "claude",
-      "status": "ready",
+      "status": "in_progress",
       "branch": "claude/ui/dependency-modernization-2026",
       "depends_on": [],
       "handoff": "handoffs/claude-ui.md",
       "tdd": {
         "mode": "required",
-        "status": "pending",
+        "status": "green_recorded",
         "red": {
-          "command": "",
-          "evidence": ""
+          "command": "bun run test -- src/__tests__/components/PageTransition.test.tsx (packages/admin)",
+          "evidence": "Storybook/Playwright 1.60 exposed a skipped native View Transition: the focused test missed onNavigateArrive and reported an unhandled AbortError from rejected transition promises."
         },
         "green": {
-          "command": "",
-          "evidence": ""
+          "command": "bun run test -- src/__tests__/components/PageTransition.test.tsx (packages/admin) && bun run test:stories:ci (packages/shared)",
+          "evidence": "All 19 focused admin tests and 120 Storybook browser tests pass after observing all native transition promises, ignoring only AbortError, and preserving unexpected error propagation."
         },
-        "note": ""
+        "note": "The dependency upgrade exposed a real browser lifecycle edge. The source adaptation is internal, regression-tested, and does not change public APIs or persisted state."
       },
       "skill_tags": ["ui", "frontend-design", "react"]
     },
@@ -191,6 +192,14 @@
       "status": "active",
       "branch": "develop",
       "note": "Afo explicitly waived the mandatory authenticated Brave check and authorized execution to continue using the existing green automated route, build, PWA, and Repo Quick Gate evidence."
+    },
+    {
+      "timestamp": "2026-07-16T06:54:38Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "wave_2_green",
+      "branch": "develop",
+      "note": "Wave 2 passed the Bun 1.3.14 frozen install, unchanged 0-critical audit, formatting, lint, Repo Quick Gate, docs, Storybook, browser, admin test, and admin build gates. Authenticated Brave remains explicitly waived."
     }
   ]
 }

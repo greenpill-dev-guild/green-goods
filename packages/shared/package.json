@@ -118,17 +118,17 @@
     "@chromatic-com/storybook": "5.1.2",
     "@graphql-typed-document-node/core": "^3.2.0",
     "@sentry/react": "^10.53.1",
-    "@storybook/addon-a11y": "10.3.5",
-    "@storybook/addon-docs": "10.3.5",
+    "@storybook/addon-a11y": "10.4.6",
+    "@storybook/addon-docs": "10.4.6",
     "@storybook/addon-mcp": "0.6.0",
-    "@storybook/addon-vitest": "10.3.5",
-    "@storybook/react": "10.3.5",
-    "@storybook/react-vite": "10.3.5",
+    "@storybook/addon-vitest": "10.4.6",
+    "@storybook/react": "10.4.6",
+    "@storybook/react-vite": "10.4.6",
     "@tailwindcss/vite": "^4.1.11",
     "@vitest/browser": "4.1.10",
     "@vitest/browser-playwright": "4.1.10",
     "@vitest/runner": "4.1.10",
     "chromatic": "16.5.0",
-    "storybook": "10.3.5"
+    "storybook": "10.4.6"
   }
 }
