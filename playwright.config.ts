@@ -225,8 +225,9 @@ export default defineConfig({
     {
       name: "anvil-fork",
       testMatch: /.*\.fork\.spec\.ts$/,
+      fullyParallel: false,
       use: { ...devices["Desktop Chrome"] },
-      timeout: 60000, // Longer timeout for blockchain interactions
+      timeout: 120000, // Includes lazy upstream state reads through the Anvil fork
     },
 
     // Passkey Mock - Tests with mocked Pimlico bundler/paymaster
