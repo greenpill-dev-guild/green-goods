@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-07-16T03:08:08.105Z",
-    "updated_at": "2026-07-16T05:18:49Z"
+    "updated_at": "2026-07-16T06:19:40Z"
   },
   "links": {
     "brief": "brief.md",
@@ -50,6 +50,8 @@
     "The Linear parent mirror is deferred by explicit human authorization because this environment exposes no Linear connector or API key.",
     "The complete baseline bun run test passes outside the sandbox, including 1,533 Foundry tests; the prior exit 134 was caused by Foundry's sandboxed macOS system proxy lookup.",
     "Afo explicitly authorized implementation to continue without Linear on 2026-07-16; backfill the parent-only mirror later and keep this hub authoritative.",
+    "Wave 1 audit improved to 0 critical and 64 transitive high findings; all named target advisories are removed and automated gates pass.",
+    "Afo explicitly waived authenticated Brave proof on 2026-07-16; automated route tests, production builds, PWA checks, local smoke, and repo gates are the accepted substitutes for this program.",
     "Keep multiformats, uint8arrays, overrides/resolutions, and the postinstall shim until supported Wagmi 3 proof says otherwise.",
     "status.json is authoritative; branch names are automation signals.",
     "Use targeted bun run test or bun run test as the iterative gate for the touched surface; coverage is scheduled or pre-merge evidence.",
@@ -79,22 +81,22 @@
     },
     "state_api": {
       "owner": "codex",
-      "status": "ready",
+      "status": "in_progress",
       "branch": "codex/state-api/dependency-modernization-2026",
       "depends_on": [],
       "handoff": "handoffs/codex-state-api.md",
       "tdd": {
-        "mode": "required",
-        "status": "pending",
+        "mode": "proof_limit",
+        "status": "green_recorded",
         "red": {
-          "command": "",
-          "evidence": ""
+          "command": "bun run typecheck (packages/agent)",
+          "evidence": "Hono 4.12.30 exposed two TS2345 errors where an untyped Context erased the guaranteed :id route parameter to string | undefined."
         },
         "green": {
-          "command": "",
-          "evidence": ""
+          "command": "bun run typecheck && bun run test -- src/__tests__/public-api.test.ts (packages/agent)",
+          "evidence": "Agent typecheck passed and all 43 funding/public API tests passed after preserving the literal /public/funding-intents/:id context type."
         },
-        "note": ""
+        "note": "Proof limit: this is a compile-time-only helper annotation with no runtime branch or public API change, so the failing typecheck is the RED proof and the existing route-level API suite is the behavioral regression proof."
       },
       "skill_tags": ["react", "tanstack-query", "data-layer"]
     },
@@ -173,6 +175,22 @@
       "status": "wave_0_green",
       "branch": "develop",
       "note": "Wave 0 baseline passed: frozen install, format, lint, full test suite, deterministic app build, agent/docs builds, and plan validation. Audit baseline remains 5 critical and 81 high for Wave 1 remediation."
+    },
+    {
+      "timestamp": "2026-07-16T05:37:16Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "blocked",
+      "branch": "develop",
+      "note": "Stopped before the Wave 1 checkpoint. Audit is 0 critical / 64 high and frozen install, targeted tests/typechecks/builds, PWA proof, and Repo Quick Gate pass. Required authenticated Brave QA cannot run because the Codex extension backend is unavailable; local QA processes were stopped and Wave 1 remains uncommitted."
+    },
+    {
+      "timestamp": "2026-07-16T06:19:40Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "active",
+      "branch": "develop",
+      "note": "Afo explicitly waived the mandatory authenticated Brave check and authorized execution to continue using the existing green automated route, build, PWA, and Repo Quick Gate evidence."
     }
   ]
 }

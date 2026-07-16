@@ -195,7 +195,10 @@ async function handleFundingIntentCreate(c: Context, ctx: FundingRouteContext) {
   });
 }
 
-async function handleFundingReceipt(c: Context, ctx: FundingRouteContext) {
+async function handleFundingReceipt(
+  c: Context<{}, "/public/funding-intents/:id">,
+  ctx: FundingRouteContext
+) {
   const { deps, fundingIntents, now } = ctx;
   const originError = checkOrigin(c, deps);
   if (originError) return publicBrowserCorsResponse(c, deps, originError, 403);

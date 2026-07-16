@@ -4,7 +4,7 @@
 **Stage**: `active`
 **Status**: `ACTIVE`
 **Created**: `2026-07-16T03:08:08.105Z`
-**Last Updated**: `2026-07-16T05:18:49Z`
+**Last Updated**: `2026-07-16T06:19:40Z`
 
 ## Decision Log
 
@@ -17,6 +17,7 @@
 | 5 | Include supported non-contract majors | Vite, Wagmi, Transformers, and smaller majors are in scope when compatibility is proven. |
 | 6 | Exclude contract majors and Envio 3 | They retain dedicated migration and deployment decisions. |
 | 7 | Parent-only Linear mirror | One durable tracker; wave truth remains in this hub and its reports. |
+| 8 | Waive authenticated Brave proof | Afo explicitly accepted automated route tests, builds, PWA checks, local smoke, and repo gates as substitutes for this program. |
 
 ## Research / Plan Gate
 
@@ -79,6 +80,11 @@ mirror and to backfill Linear later. `.plans` remains the execution source of tr
 The baseline aggregate `bun run test` now passes outside the Codex sandbox. The earlier exit 134
 was isolated to Foundry's sandboxed macOS system proxy lookup, not a repository assertion or
 parallel-runner regression. Wave 0 is complete and Wave 1 may begin after its checkpoint commit.
+
+Wave 0 is checkpointed at `5ebabc77c`. Wave 1 automated proof is green and audit improved to zero
+critical findings. On 2026-07-16, Afo explicitly waived authenticated Brave proof for this
+dependency program; preserve that proof limitation and continue using automated route tests,
+production builds, PWA checks, local smoke, and repo gates.
 
 ## Lane Checklists
 

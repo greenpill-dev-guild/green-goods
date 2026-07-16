@@ -32,12 +32,22 @@ Wave 0 evidence is recorded in `baseline.md`.
 Wave 0 is green and ready for its checkpoint. No manifests, lockfile, application source, or
 runtime images changed in this wave.
 
+Wave 1 evidence is recorded in `wave-1-security.md`.
+
+- Audit improved from 5 critical / 81 high to 0 critical / 64 high, and all named target
+  advisories are removed.
+- Frozen install, targeted package tests/typechecks/builds, PWA precache, and Repo Quick Gate pass.
+- Afo explicitly waived authenticated Brave proof on 2026-07-16. Automated route tests,
+  production builds, PWA proof, and Repo Quick Gate are the accepted Wave 1 substitutes.
+
 ## Risks / Rollback
 
 - Revert the complete checkpoint when audit, peer, install, test, build, runtime, browser, persisted
   state, or public-contract proof regresses.
 - Never manually edit the lockfile or force unsupported peer ranges.
 - Keep the prior PostgreSQL volume/image pair for runtime rollback.
+- Preserve the browser-proof waiver as a final certification limitation; do not claim authenticated
+  rendered proof was run.
 
 ## Completion Checklist
 
