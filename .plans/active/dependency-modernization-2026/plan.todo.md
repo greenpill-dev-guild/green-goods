@@ -4,13 +4,13 @@
 **Stage**: `active`
 **Status**: `ACTIVE`
 **Created**: `2026-07-16T03:08:08.105Z`
-**Last Updated**: `2026-07-16T07:38:15Z`
+**Last Updated**: `2026-07-17T22:36:43Z`
 
 ## Decision Log
 
 | # | Decision | Rationale |
 |---|---|---|
-| 1 | Work sequentially on `develop` | User explicitly rejected branch/PR isolation for this program. |
+| 1 | Continue on `chore/dependency-upgrades` | Afo explicitly created the branch and checkpointed Wave 5 there. |
 | 2 | One coherent dependency family per checkpoint commit | Keeps lockfile changes attributable and revertible. |
 | 3 | Continue automatically while green | Stop only on a failed/blocked gate, unexpected scope, or concurrent change. |
 | 4 | Preserve public and persisted contracts | Dependency modernization must not become a product/data migration. |
@@ -34,9 +34,9 @@
 | Security-first supported graph | `state_api` | Waves 0-2 | ✅ |
 | Stable React/offline/application state | `state_api` | Wave 3 | ✅ |
 | Stable UI/PWA behavior | `ui` | Wave 4 | ✅ |
-| Stable wallet/passkey and telemetry behavior | `state_api` | Wave 5 | ⏳ |
-| Compatible EAS/indexer/runtime maintenance | `contracts`, `state_api` | Wave 6 | ⏳ |
-| Supported non-contract major migrations | `ui`, `state_api` | Waves 7-10 | ⏳ |
+| Stable wallet/passkey and telemetry behavior | `state_api` | Wave 5 | ✅ checkpointed; compatible security follow-up applied in Wave 6 |
+| Compatible EAS/indexer/runtime maintenance | `contracts`, `state_api` | Wave 6 | ✅ |
+| Supported non-contract major migrations | `ui`, `state_api` | Waves 7-10 | ⏳ Waves 7-9 audited; Wave 10 safely held for official Reown support |
 | Full functional certification | `qa_pass_1`, `qa_pass_2` | Wave 11 | ⏳ |
 
 ## TDD / Proof Order
@@ -99,6 +99,28 @@ plugin, and Workbox are aligned without source adaptation. Design/token/story ga
 clean-room Storybook browser tests, deterministic app builds, generated service-worker checks,
 docs, and the Repo Quick Gate all pass; the audit improved to 0 critical and 63 transitive high
 findings.
+
+Wave 5 is checkpointed at `7a2c66966` on the human-created `chore/dependency-upgrades` branch.
+The named Web3 and observability families are aligned and fork-helper recovery behavior is covered.
+The supplied 0-critical/43-high audit described the pre-remediation lock; six compatible security
+overrides remove 15 of those advisory instances, and a corrected normal-terminal rerun remains open
+because the registry audit endpoint returns 403 here.
+
+Wave 6 is green. EAS, Envio, Node, and PostgreSQL targets are applied; generated
+config/schema/handler/ABI hashes are unchanged and all targeted plus Repo Quick Gate checks pass.
+The lock is generated from all current workspace manifests, the secured graph passes 4,513 tests
+and all affected builds, and the Docker-backed copied-volume rehearsal applied PostgreSQL 17.10
+with identical database and GraphQL fingerprints. The final Bun 1.3.14 frozen install passes and
+the audit reports 0 critical / 29 transitive high findings. Patched systeminformation 5.31.7 is
+clean; the count remains 29 because the newly reviewed adm-zip advisory is present through EAS and
+Hypercert development parents. Its only patch is a behavior-changing pre-1.0 major, so it is
+documented for compatible parent remediation rather than forced globally.
+
+Compatibility audits for Waves 7-9 are recorded and ready for sequential implementation after the
+Wave 6 checkpoint. Wave 10 is deliberately held with no graph or source changes: Reown adapter
+1.8.22 only publishes minimum peer ranges, while Reown's maintained React and Next.js examples
+remain on Wagmi 2. Per the approved plan, do not force Wagmi 3 and do not remove the compatibility
+shim until a release-age-eligible adapter has explicit official Wagmi 3 proof.
 
 ## Lane Checklists
 

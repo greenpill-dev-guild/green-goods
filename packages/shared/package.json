@@ -88,7 +88,7 @@
     "tailwind-variants": "3.2.2"
   },
   "peerDependencies": {
-    "@ethereum-attestation-service/eas-sdk": "^2.7.0",
+    "@ethereum-attestation-service/eas-sdk": "2.9.0",
     "@hookform/resolvers": "^5.4.0",
     "@radix-ui/react-dialog": "^1.1.19",
     "@radix-ui/react-select": "^2.3.3",

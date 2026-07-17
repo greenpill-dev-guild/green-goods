@@ -19,7 +19,7 @@
     "formatjs": "formatjs extract"
   },
   "dependencies": {
-    "@ethereum-attestation-service/eas-sdk": "2.7.0",
+    "@ethereum-attestation-service/eas-sdk": "2.9.0",
     "@green-goods/shared": "workspace:*",
     "@hookform/resolvers": "5.4.0",
     "@radix-ui/react-accordion": "1.2.16",
