@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p2",
     "created_at": "2026-07-16T03:08:08.105Z",
-    "updated_at": "2026-07-17T22:36:43Z"
+    "updated_at": "2026-07-18T03:45:17Z"
   },
   "links": {
     "brief": "brief.md",
@@ -58,8 +58,17 @@
     "Wave 6 is green on chore/dependency-upgrades: EAS, Envio, Node 22, PostgreSQL 17.10, copied-volume database equivalence, GraphQL equivalence, frozen install, and the corrected audit all pass their required proof.",
     "The final Wave 6 audit reports 0 critical and 29 transitive high findings. Patched systeminformation 5.31.7 is clean; the total remains 29 because the adm-zip advisory was newly reviewed on 2026-07-17 through EAS and Hypercert development parents. Its only patch is a behavior-changing pre-1.0 major, so it is assigned to compatible parent remediation rather than globally forced.",
     "The secured graph passed the preserved multiformats postinstall, 4,513 shared/client/agent/admin/indexer tests, docs/agent/client/admin builds, the PWA precache budget, and a final Bun 1.3.14 frozen install.",
+    "Wave 7 exact targets and source migrations are implemented. A clean Bun 1.3.14 frozen install, 4,425 shared/client/admin/agent/indexer tests, contract script tests/build, Storybook gates, docs and application builds pass. The only open checkpoint proof is the host audit comparison because the Codex audit endpoint returns HTTP 403.",
+    "Wave 8 is automated-green. Vite 8.1.4, plugin-react 6.0.3, explicit Rolldown Babel React Compiler integration, client Oxc configuration, and admin Rolldown chunk groups pass a fresh frozen install, 4,536 client/admin/shared tests, deterministic builds, PWA, Storybook, built-entry, dev-startup, and source-map cleanup proof. A Vite override prevents Bun from retaining Vitest's compatible-but-split Vite 7 resolution. The host audit comparison remains pending because the Codex endpoint returns HTTP 403.",
+    "Wave 9 is automated-green. Hugging Face Transformers 4.2.0 replaces Xenova 2.17.2 with the existing Whisper model, PCM/WAV conversion, lazy singleton, retry, and fallback contracts covered by RED/GREEN tests. Fresh frozen install, 232 agent tests, build, package/runtime imports, and the production ignore-scripts dependency layout pass. The opt-in live model test reached the real fetch path but external download is unavailable because Codex network escalation was rejected for exhausted execution credits.",
     "Afo explicitly waived authenticated Brave proof on 2026-07-16; automated route tests, production builds, PWA checks, local smoke, and repo gates are the accepted substitutes for this program.",
     "Wave 10 is deliberately held: Reown adapter 1.8.22 has minimum-only peers, while current official Reown React and Next.js examples remain on Wagmi 2. Do not force Wagmi 3 or remove the compatibility shim until Reown publishes explicit support.",
+    "Wave 11 implementation and automated certification are green. The final clean Bun 1.3.14 graph passes frozen install, 6,515 tests, deterministic full build, agent/docs/Storybook builds, contract/indexer/design/story/PWA gates, and Envio 2.32.12 codegen under Node 22.",
+    "Wave 11 repaired a real fresh-install indexer defect by promoting Envio's already-resolved exact ReScript 11.1.3 runtime into the indexer manifest. The repair does not expand the resolved package/version set and passes RED/GREEN indexer proof.",
+    "The supplied final host audit passes at 0 critical / 29 transitive high, unchanged from Wave 6. Residual incompatible-major and excluded protocol chains have reachability and remediation owners recorded in reports/wave-11-certification.md.",
+    "The supplied production-backed launch exposed stale install state: @rolldown/plugin-babel 0.2.3 is exact-declared in root, client, admin, and bun.lock but absent from node_modules. A pinned frozen reinstall and runtime smoke remain; Codex package downloads are proxy-blocked with HTTP 403 and the root .env remains policy-protected.",
+    "Review remediation repaired the pre-existing verify:contracts:fast repository-root calculation with a black-box RED/GREEN regression. The production gate now passes full compilation, Forge format, Solhint, and all 1,533 contract tests.",
+    "Waves 7 through 11 will use one consolidated final checkpoint because their certified final lockfile is cumulative. Reconstructing intermediate locks after certification would introduce unverified graph states; Waves 0 through 6 retain their earlier checkpoints.",
     "Keep multiformats, uint8arrays, overrides/resolutions, and the postinstall shim until supported Wagmi 3 proof says otherwise.",
     "status.json is authoritative; branch names are automation signals.",
     "Use targeted bun run test or bun run test as the iterative gate for the touched surface; coverage is scheduled or pre-merge evidence.",
@@ -68,7 +77,7 @@
   "lanes": {
     "ui": {
       "owner": "claude",
-      "status": "in_progress",
+      "status": "completed",
       "branch": "claude/ui/dependency-modernization-2026",
       "depends_on": [],
       "handoff": "handoffs/claude-ui.md",
@@ -89,28 +98,28 @@
     },
     "state_api": {
       "owner": "codex",
-      "status": "in_progress",
+      "status": "completed",
       "branch": "codex/state-api/dependency-modernization-2026",
       "depends_on": [],
       "handoff": "handoffs/codex-state-api.md",
       "tdd": {
-        "mode": "not_applicable",
+        "mode": "required",
         "status": "green_recorded",
         "red": {
-          "command": "",
-          "evidence": ""
+          "command": "Wave 7 target graph: GardenGardeners.test.tsx; locale-coverage.test.ts; docs:audit; VaultManagePositions.test.tsx",
+          "evidence": "React Window 2 removed FixedSizeList; Babel 8 exposed JSX/generic ambiguity in .ts; js-yaml 5 removed the default export; jsdom 29 made the post-animation route update observably asynchronous."
         },
         "green": {
-          "command": "focused persistence/offline/auth/form/machine tests; node scripts/dev/ci-local.js --quick; VITE_CHAIN_ID=11155111 bun run build",
-          "evidence": "IndexedDB hydration, offline defaults, reconnect mutation resume, stores, forms, auth machines, full application tests, and deterministic builds all pass without source adaptation."
+          "command": "focused Wave 7 tests; full shared/client/admin/agent tests; indexer coverage; contract script tests/build; deterministic client/admin/docs builds",
+          "evidence": "The internal migrations preserve public, persisted, route, list, parser, YAML, and CLI contracts. Shared 3,357, client 640, admin 102, agent 230, and indexer 186 tests pass with affected builds and Storybook gates."
         },
-        "note": "Wave 3 is a manifest-only compatibility upgrade. Characterization tests were added for previously untested persistence and reconnect contracts; no application source or persisted format changed, so a RED implementation test is not applicable."
+        "note": "Wave 7 RED/GREEN evidence is detailed in reports/wave-7-small-majors.md. The host security audit comparison remains pending because the Codex endpoint returns HTTP 403."
       },
       "skill_tags": ["react", "tanstack-query", "data-layer"]
     },
     "contracts": {
       "owner": "codex",
-      "status": "in_progress",
+      "status": "completed",
       "branch": "codex/contracts/dependency-modernization-2026",
       "depends_on": [],
       "handoff": "handoffs/codex-contracts.md",
@@ -125,13 +134,13 @@
           "command": "bun run test -- --match-path 'test/unit/*Resolver*' && bun run build",
           "evidence": "EAS contracts 1.9.0 compiled successfully and 95 resolver tests passed with no Green Goods Solidity, ABI, storage, schema, or deployment changes."
         },
-        "note": "Manifest-only compatible EAS upgrade; RED is not applicable. Docker and refreshed audit evidence remain proof limits for the overall wave."
+        "note": "Manifest-only compatible EAS upgrade; RED is not applicable. Contract build/tests and the PostgreSQL 17.10 copied-volume rehearsal pass without ABI, storage, schema, deployment, or broadcast changes."
       },
       "skill_tags": ["contracts"]
     },
     "qa_pass_1": {
       "owner": "claude",
-      "status": "blocked",
+      "status": "passed",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "claude/qa-pass-1/dependency-modernization-2026",
@@ -271,6 +280,62 @@
       "status": "wave_6_green",
       "branch": "chore/dependency-upgrades",
       "note": "Final Bun 1.3.14 frozen install passed. Audit is 0 critical/29 transitive high: systeminformation is fixed, while the newly reviewed adm-zip advisory is documented through EAS/Hypercert parents because its only patch is a behavior-changing pre-1.0 major."
+    },
+    {
+      "timestamp": "2026-07-17T23:31:00Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "wave_7_automated_green_security_rerun_pending",
+      "branch": "chore/dependency-upgrades",
+      "note": "Wave 7 exact targets, lockfile, and internal migrations pass frozen install, RED/GREEN regressions, 4,425 package tests, indexer coverage, contract script/build proof, Storybook gates, and affected production builds. Codex audit remains HTTP 403; the host comparison to the 0-critical/29-high baseline is the only open checkpoint proof."
+    },
+    {
+      "timestamp": "2026-07-18T00:30:00Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "wave_8_automated_green_security_rerun_pending",
+      "branch": "chore/dependency-upgrades",
+      "note": "Wave 8 exact Vite/plugin-react/Rolldown/Oxc targets pass a clean Bun 1.3.14 frozen install, unified Vite 8 lock graph, Compiler transform proof, 4,536 client/admin/shared tests, deterministic client/admin builds, PWA budget, Storybook build and quality gates, built-entry initialization, dev startup, and source-map cleanup. The host audit comparison is the only open checkpoint proof because Codex receives HTTP 403."
+    },
+    {
+      "timestamp": "2026-07-18T00:38:03Z",
+      "actor": "codex",
+      "lane": "state_api",
+      "status": "wave_9_automated_green_external_live_proof_pending",
+      "branch": "chore/dependency-upgrades",
+      "note": "Transformers.js 4.2.0 passes RED/GREEN PCM, retry, and fallback regressions, a fresh frozen install, 232 agent tests, the agent build, Node and Bun package loads, built-agent Bun startup, and production dependency-layout proof. The opt-in live model fetch is the only runtime proof limit; sandbox fetch failed and escalation was rejected because execution credits are exhausted."
+    },
+    {
+      "timestamp": "2026-07-18T01:13:43Z",
+      "actor": "codex",
+      "lane": "qa_pass_1",
+      "status": "passed",
+      "branch": "chore/dependency-upgrades",
+      "note": "The user-approved automated QA substitute passed 6,515 tests, deterministic full build, agent/docs/Storybook builds, PWA output, contract/indexer gates, and design/story checks. Authenticated Brave remains explicitly waived."
+    },
+    {
+      "timestamp": "2026-07-18T01:13:43Z",
+      "actor": "codex",
+      "lane": "qa_pass_2",
+      "status": "wave_11_automated_green_host_proof_pending",
+      "branch": "chore/dependency-upgrades",
+      "note": "Final clean-install certification found and repaired accidental indexer ReScript hoisting. Frozen install, Envio codegen/build/test, lock integrity, full test/build, and supply-chain checks pass. Host audit and runtime smoke remain external proof limits because Codex receives audit HTTP 403, cannot read the protected root .env, and will not kill unknown port occupants."
+    },
+    {
+      "timestamp": "2026-07-18T03:21:00Z",
+      "actor": "codex",
+      "lane": "qa_pass_2",
+      "status": "review_remediation_green_host_proof_pending",
+      "branch": "chore/dependency-upgrades",
+      "note": "Repaired the pre-existing contract verifier path with RED/GREEN black-box coverage; full compilation, Forge format, Solhint, and 1,533 tests pass. Stale TDD and lane checklists are reconciled, and Waves 7-11 use one documented consolidated checkpoint. Current-lock audit and runtime smoke remain host-only: Bun audit returns HTTP 403 and the exact production launcher is denied only at the protected root .env."
+    },
+    {
+      "timestamp": "2026-07-18T03:45:17Z",
+      "actor": "codex",
+      "lane": "qa_pass_2",
+      "status": "security_green_runtime_reinstall_pending",
+      "branch": "chore/dependency-upgrades",
+      "note": "Supplied host Bun 1.3.14 audit is 0 critical/29 transitive high, matching Wave 6. Residual parent chains are classified without unsafe cross-major overrides. Supplied dev:prod startup found stale node_modules missing exact-locked @rolldown/plugin-babel 0.2.3; pinned frozen reinstall and runtime smoke remain."
     }
   ]
 }

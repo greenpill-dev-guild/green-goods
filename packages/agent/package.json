@@ -22,8 +22,8 @@
   "dependencies": {
     "@green-goods/shared": "workspace:*",
     "@sentry/bun": "10.65.0",
-    "@sentry/cli": "^2",
-    "@xenova/transformers": "^2.17.1",
+    "@sentry/cli": "3.6.0",
+    "@huggingface/transformers": "4.2.0",
     "hono": "4.12.30",
     "pino": "10.3.1",
     "pino-pretty": "^13.1.3",

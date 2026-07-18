@@ -3,7 +3,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import yaml from "js-yaml";
+import * as yaml from "js-yaml";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -85,7 +85,7 @@ async function main() {
   const configRaw = await fs.readFile(configPath, "utf8");
   const schemaRaw = await fs.readFile(schemaPath, "utf8");
 
-  const config = yaml.load(configRaw);
+  const config = yaml.load(configRaw, { schema: yaml.CORE_SCHEMA });
 
   const contracts = Array.isArray(config?.contracts) ? config.contracts : [];
   const contractNames = new Set(contracts.map((contract) => String(contract?.name || "")));

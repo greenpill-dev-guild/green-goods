@@ -1,7 +1,8 @@
 /// <reference types="vitest" />
 
 import tailwindcss from "@tailwindcss/vite";
-import react from "@vitejs/plugin-react";
+import babel from "@rolldown/plugin-babel";
+import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { sentryVitePlugin } from "@sentry/vite-plugin";
 import { existsSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
@@ -111,24 +112,11 @@ function deleteSentrySourceMapsPlugin(outDir: string): Plugin {
  * Perf/caching only. This does NOT address the Bun-baseline `SIGILL` seen on
  * some Vercel build VMs — that is a Bun bundler/CPU issue tracked separately.
  */
-function splitAdminVendorChunks(id: string): string | undefined {
-  if (!id.includes("node_modules")) return undefined;
-  // Only carve out the heavy, relatively self-contained clusters. React core
-  // and everything else stay in the default entry chunking — forcing them into
-  // separate manual chunks creates circular inter-chunk imports that fail at
-  // runtime with "Cannot access X before initialization" (TDZ).
-  if (
-    /[\\/]node_modules[\\/](?:wagmi|viem|permissionless|ox|abitype|@wagmi|@walletconnect|@reown|@web3modal|@coinbase)[\\/]/.test(
-      id
-    )
-  ) {
-    return "vendor-web3";
-  }
-  if (/[\\/]node_modules[\\/](?:@sentry|posthog-js)[\\/]/.test(id)) {
-    return "vendor-observability";
-  }
-  return undefined;
-}
+const ADMIN_WEB3_MODULES =
+  /[\\/]node_modules[\\/](?:wagmi|viem|permissionless|ox|abitype|@wagmi|@walletconnect|@reown|@web3modal|@coinbase)[\\/]/;
+const ADMIN_OBSERVABILITY_MODULES = /[\\/]node_modules[\\/](?:@sentry|posthog-js)[\\/]/;
+const ADMIN_REACT_MODULES =
+  /[\\/]node_modules[\\/](?:react|react-dom|react-is|scheduler)[\\/]/;
 
 export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
   const rootDir = resolve(__dirname, "../../");
@@ -217,11 +205,8 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
     // React Compiler: Automatically optimizes components with memoization
     // Eliminates need for manual useMemo/useCallback in most cases
     // @see https://react.dev/learn/react-compiler
-    react({
-      babel: {
-        plugins: [["babel-plugin-react-compiler", {}]],
-      },
-    }),
+    react(),
+    babel({ presets: [reactCompilerPreset()] }),
     ...(shouldUploadSentrySourceMaps
       ? [
           ...sentryVitePlugin({
@@ -267,7 +252,22 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
       // — or served to — browsers. The upload lane deletes them after upload.
       sourcemap: enableSourceMaps ? "hidden" : false,
       chunkSizeWarningLimit: 2000,
-      rollupOptions: { output: { manualChunks: splitAdminVendorChunks } },
+      rolldownOptions: {
+        output: {
+          codeSplitting: {
+            groups: [
+              { name: "vendor-react", test: ADMIN_REACT_MODULES, priority: 20 },
+              { name: "vendor-web3", test: ADMIN_WEB3_MODULES, priority: 10 },
+              {
+                name: "vendor-observability",
+                test: ADMIN_OBSERVABILITY_MODULES,
+                priority: 10,
+              },
+            ],
+          },
+          strictExecutionOrder: true,
+        },
+      },
     },
     define: {
       "import.meta.env.VITE_APP_VERSION": JSON.stringify(shortAppVersion),
@@ -315,51 +315,49 @@ export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
       // new bare import lands in shared, add it here (watch the dev log for
       // "new dependencies optimized" — that line means this list has drifted).
       include: [
+        "@hookform/resolvers/zod",
         "react",
         "react-dom",
+        "react-hook-form",
+        "zod",
         "posthog-js",
         "posthog-js/react",
         "@sentry/react",
         "multiformats",
         // ── @green-goods/shared runtime surface ──
-        "@ethereum-attestation-service/eas-sdk",
-        "@hypercerts-org/contracts",
-        "@hypercerts-org/marketplace-sdk",
-        "@hypercerts-org/sdk",
-        "@radix-ui/react-dropdown-menu",
-        "@radix-ui/react-popover",
+        "@green-goods/shared > @ethereum-attestation-service/eas-sdk",
+        // Vite 8 resolves dependencies installed only under the linked shared
+        // package through its `>` include syntax.
+        "@green-goods/shared > @hypercerts-org/contracts",
+        "@green-goods/shared > @hypercerts-org/marketplace-sdk",
+        "@green-goods/shared > @hypercerts-org/sdk",
+        "@green-goods/shared > @radix-ui/react-popover",
         "@radix-ui/react-select",
-        "@react-spring/web",
-        "@reown/appkit-adapter-wagmi",
+        "@green-goods/shared > @reown/appkit-adapter-wagmi",
         "@reown/appkit/react",
-        "@storacha/client",
-        "@storacha/client/principal/ed25519",
-        "@storacha/client/proof",
-        "@use-gesture/react",
-        "@wagmi/core",
-        "@xstate/react",
-        "browser-image-compression",
-        "clsx",
+        "@green-goods/shared > @use-gesture/react",
+        "@green-goods/shared > @wagmi/core",
+        "@green-goods/shared > @xstate/react",
+        "@green-goods/shared > browser-image-compression",
+        "@green-goods/shared > clsx",
         "ethers",
         "gql.tada",
-        "graphql-request",
-        // heic-to lives only under shared's node_modules (bun isolated
-        // linker), so it needs the linked-package `>` resolution form.
+        "@green-goods/shared > graphql-request",
         "@green-goods/shared > heic-to/csp",
-        "idb",
+        "@green-goods/shared > idb",
         "idb-keyval",
-        "permissionless",
-        "permissionless/accounts",
-        "permissionless/clients/passkeyServer",
-        "permissionless/clients/pimlico",
-        "react-day-picker",
+        "@green-goods/shared > permissionless",
+        "@green-goods/shared > permissionless/accounts",
+        "@green-goods/shared > permissionless/clients/passkeyServer",
+        "@green-goods/shared > permissionless/clients/pimlico",
+        "@green-goods/shared > react-day-picker",
         "react-hot-toast",
-        "react-select",
+        "@green-goods/shared > react-select",
         "tailwind-merge",
         "tailwind-variants",
         "viem/account-abstraction",
         "viem/chains",
-        "xstate",
+        "@green-goods/shared > xstate",
         "zustand",
         "zustand/middleware",
         "zustand/react/shallow",

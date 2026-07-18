@@ -2,9 +2,9 @@
 
 **Feature Slug**: `dependency-modernization-2026`
 **Stage**: `active`
-**Status**: `ACTIVE`
+**Status**: `ACTIVE — IMPLEMENTATION COMPLETE; RUNTIME REINSTALL PROOF PENDING`
 **Created**: `2026-07-16T03:08:08.105Z`
-**Last Updated**: `2026-07-17T22:36:43Z`
+**Last Updated**: `2026-07-18T03:45:17Z`
 
 ## Decision Log
 
@@ -18,6 +18,7 @@
 | 6 | Exclude contract majors and Envio 3 | They retain dedicated migration and deployment decisions. |
 | 7 | Parent-only Linear mirror | One durable tracker; wave truth remains in this hub and its reports. |
 | 8 | Waive authenticated Brave proof | Afo explicitly accepted automated route tests, builds, PWA checks, local smoke, and repo gates as substitutes for this program. |
+| 9 | Consolidate Waves 7–11 into one final checkpoint | Their manifests, source migrations, and cumulative lockfile are already validated as one final graph. Reconstructing intermediate lockfiles now would invalidate current proof and create more rollback risk; Waves 0–6 retain their earlier checkpoints. |
 
 ## Research / Plan Gate
 
@@ -36,18 +37,18 @@
 | Stable UI/PWA behavior | `ui` | Wave 4 | ✅ |
 | Stable wallet/passkey and telemetry behavior | `state_api` | Wave 5 | ✅ checkpointed; compatible security follow-up applied in Wave 6 |
 | Compatible EAS/indexer/runtime maintenance | `contracts`, `state_api` | Wave 6 | ✅ |
-| Supported non-contract major migrations | `ui`, `state_api` | Waves 7-10 | ⏳ Waves 7-9 audited; Wave 10 safely held for official Reown support |
-| Full functional certification | `qa_pass_1`, `qa_pass_2` | Wave 11 | ⏳ |
+| Supported non-contract major migrations | `ui`, `state_api` | Waves 7-10 | ✅ Waves 7-9 automated-green; Wave 10 safely held for official Reown support |
+| Full functional certification | `qa_pass_1`, `qa_pass_2` | Wave 11 | ⚠️ automated green; host audit passed; runtime reinstall proof pending |
 
 ## TDD / Proof Order
 
-- [ ] Identify the behavior boundary for each implementation lane before editing code
-- [ ] Write or select the minimal failing test/proof first
-- [ ] Run the RED command and record evidence in the lane handoff
-- [ ] Implement the smallest change that can satisfy the proof
-- [ ] Run the GREEN command and record evidence in the lane handoff
-- [ ] Record machine-readable proof with `node scripts/harness/plan-hub.mjs record-tdd`
-- [ ] If TDD cannot honestly apply, record `not_applicable` or `proof_limit` with a concrete note in `status.json`
+- [x] Identify the behavior boundary for each implementation lane before editing code
+- [x] Write or select the minimal failing test/proof first
+- [x] Run the RED command and record evidence in the lane handoff
+- [x] Implement the smallest change that can satisfy the proof
+- [x] Run the GREEN command and record evidence in the lane handoff
+- [x] Record machine-readable proof with `node scripts/harness/plan-hub.mjs record-tdd`
+- [x] If TDD cannot honestly apply, record `not_applicable` or `proof_limit` with a concrete note in `status.json`
 
 ## Execution Waves
 
@@ -116,54 +117,108 @@ clean; the count remains 29 because the newly reviewed adm-zip advisory is prese
 Hypercert development parents. Its only patch is a behavior-changing pre-1.0 major, so it is
 documented for compatible parent remediation rather than forced globally.
 
-Compatibility audits for Waves 7-9 are recorded and ready for sequential implementation after the
-Wave 6 checkpoint. Wave 10 is deliberately held with no graph or source changes: Reown adapter
+Wave 7 is implemented. Helmet, React Window, Day Picker, Babel, jsdom, js-yaml, c8, mkcert, and
+Sentry CLI are on the approved exact versions; their RED/GREEN regressions, frozen install, package
+tests, indexer coverage, Storybook checks, contract script/build proof, and affected builds pass.
+The combined lint wrapper has a sandbox-only Bun temporary-file failure, while its Oxlint, Forge
+format, and Solhint checks pass independently. The Codex audit endpoint still returns HTTP 403, so
+the host comparison against the 0-critical/29-high Wave 6 baseline remains the only open Wave 7
+checkpoint proof.
+
+Wave 8 is automated-green. Vite 8.1.4 and plugin-react 6.0.3 are exact-pinned with the official
+Rolldown Babel React Compiler integration, client Oxc configuration, and Rolldown-native admin
+chunk groups. The unified Vite override prevents Vitest from retaining a split Vite 7 transform
+graph. Frozen install, 4,536 client/admin/shared tests, app and Storybook builds, PWA, built-entry,
+dev-startup, and source-map cleanup proof pass. The host audit comparison remains open because the
+Codex endpoint returns HTTP 403; continue to Wave 9 under Afo's instruction not to pause on that
+environment-only proof limit.
+
+Wave 9 is automated-green. Hugging Face Transformers 4.2.0 replaces Xenova 2.17.2 while preserving
+the existing Whisper model, PCM/WAV boundary, lazy singleton, retry behavior, and fallback contract.
+The new behavioral regressions, clean frozen install, agent suite/build, Bun and Node package loads,
+and reproduced production dependency stage pass. The opt-in live model download reached the real
+loading path but external fetch is unavailable in the sandbox and network escalation was rejected
+because the execution account is out of credits; this is retained as an external proof limit rather
+than a source or graph failure.
+
+Wave 10 is deliberately held with no graph or source changes: Reown adapter
 1.8.22 only publishes minimum peer ranges, while Reown's maintained React and Next.js examples
 remain on Wagmi 2. Per the approved plan, do not force Wagmi 3 and do not remove the compatibility
 shim until a release-age-eligible adapter has explicit official Wagmi 3 proof.
+
+Wave 11 implementation and automated certification are green. A fresh-install RED exposed an
+accidental indexer hoisting dependency on ReScript; promoting Envio's existing exact ReScript
+11.1.3 runtime into the indexer manifest repaired it without expanding the resolved version set.
+The final clean lock passes frozen install, Envio codegen, 6,515 tests, deterministic full build,
+agent/docs/Storybook builds, contract and indexer gates, design/story gates, and supply-chain policy.
+The current-lock audit cannot run because the permitted Codex registry path returns HTTP 403 and a
+direct-registry retry is connection-refused. Runtime smoke is also host-only here because the root
+`.env` is policy-protected and unknown processes occupy local indexer ports 3006/3008. These external
+proofs are recorded in `reports/wave-11-certification.md`; no further source migration is required.
+
+Review remediation repaired the pre-existing `verify:contracts:fast` front door. A black-box RED
+test reproduced its incorrect `scripts/packages/contracts` working directory; the one-line root
+resolution fix is GREEN, and the production verifier now passes full compilation, Forge formatting,
+Solhint, and all 1,533 unit/invariant/fuzz tests. Waves 7–11 will use one consolidated final
+checkpoint because their shared final lockfile is cumulative and already certified; recreating
+unverified intermediate locks would weaken rollback safety.
+
+The supplied final host audit is now complete at 0 critical / 29 transitive high findings, exactly
+matching the Wave 6 count. The remaining findings are incompatible-major or excluded-parent chains;
+their reachability and remediation owners are recorded in `reports/wave-11-certification.md`.
+The supplied `dev:prod` proof exposed stale install state: all three relevant manifests and the lock
+exact-pin `@rolldown/plugin-babel@0.2.3`, but the package is absent from client/admin `node_modules`.
+Run the pinned frozen install once more, then repeat production-backed startup and smoke. Do not
+replace the package with a source fallback, untrusted mirror, or manual lock edit.
 
 ## Lane Checklists
 
 ### UI (`claude/ui/dependency-modernization-2026`)
 
-- [ ] UI tasks only
-- [ ] Add i18n for new user-facing strings
-- [ ] Record RED/GREEN proof or a proof-limit note before marking the lane complete
-- [ ] Write `handoffs/claude-ui.md`
+- [x] UI tasks only
+- [x] i18n not applicable — no new user-facing strings
+- [x] Record RED/GREEN proof or a proof-limit note before marking the lane complete
+- [x] Write `handoffs/claude-ui.md`
 
 ### State / API (`codex/state-api/dependency-modernization-2026`)
 
-- [ ] Hooks, stores, query keys, API flows
-- [ ] Keep hooks in shared
-- [ ] Record RED/GREEN proof or a proof-limit note before marking the lane complete
-- [ ] Write `handoffs/codex-state-api.md`
+- [x] Hooks, stores, query keys, API flows
+- [x] Keep hooks in shared
+- [x] Record RED/GREEN proof or a proof-limit note before marking the lane complete
+- [x] Write `handoffs/codex-state-api.md`
 
 ### Contracts (`codex/contracts/dependency-modernization-2026`)
 
-- [ ] Contract logic and tests
-- [ ] Respect deployment ordering and upgrade safety
-- [ ] Record RED/GREEN proof or a proof-limit note before marking the lane complete
-- [ ] Write `handoffs/codex-contracts.md`
+- [x] Contract logic unchanged; compatible manifest migration covered by contract tests
+- [x] Respect deployment ordering and upgrade safety
+- [x] Record RED/GREEN proof or a proof-limit note before marking the lane complete
+- [x] Write `handoffs/codex-contracts.md`
 
 ### QA Pass 1 (`claude/qa-pass-1/dependency-modernization-2026`)
 
-- [ ] Review UI behavior and user flow
-- [ ] Verify acceptance criteria from `eval.md`
-- [ ] Write `handoffs/claude-qa-pass-1.md`
+- [x] Review UI behavior and user flow
+- [x] Verify acceptance criteria from `eval.md`
+- [x] Write `handoffs/claude-qa-pass-1.md`
 
 ### QA Pass 2 (`codex/qa-pass-2/dependency-modernization-2026`)
 
-- [ ] Review regressions and implementation edges
-- [ ] Run targeted validation commands
-- [ ] Write `handoffs/codex-qa-pass-2.md`
+- [x] Review regressions and implementation edges
+- [x] Run targeted validation commands
+- [x] Write `handoffs/codex-qa-pass-2.md`
 
 ## Validation
 
-- [ ] Per wave: `bun install --frozen-lockfile`
-- [ ] Per wave: `bun audit --audit-level=high` with baseline comparison
-- [ ] Cross-package checkpoints: `node scripts/dev/ci-local.js --quick`
-- [ ] `bun format && bun lint`
-- [ ] `bun run test`
-- [ ] `VITE_CHAIN_ID=11155111 bun run build`
-- [ ] `bun run build:agent && bun run build:docs`
-- [ ] Conditional design, story, contract, indexer, runtime, and authenticated Brave proof
+- [x] Per wave: `bun install --frozen-lockfile`
+- [x] Final current-lock `bun audit --audit-level=high` — supplied host Bun 1.3.14 proof is
+  0 critical / 29 transitive high, unchanged from Wave 6; residual chains have recorded owners
+- [x] Cross-package checkpoints: `node scripts/dev/ci-local.js --quick`
+- [x] Biome formatting, Oxlint, Forge formatting, and Solhint
+- [x] `bun run test` — 6,515 passed; two governed skips
+- [x] `VITE_CHAIN_ID=11155111 bun run build`
+- [x] `bun run build:agent` and `bun run build:docs`
+- [x] Conditional design, story, contract, indexer, and PWA proof
+- [x] `bun run verify:contracts:fast` behavior — repaired front door passes build, Forge format,
+  Solhint, and 1,533 tests (E2E and deploy dry-runs intentionally skipped by the fast target)
+- [ ] Production-backed smoke — host reinstall proof pending; the supplied launch found stale
+  `node_modules` missing exact-declared `@rolldown/plugin-babel@0.2.3`, while docs and Storybook pass
+- [x] Authenticated Brave proof explicitly waived by Afo

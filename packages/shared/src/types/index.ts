@@ -28,7 +28,6 @@
  *
  * TYPE DECLARATIONS (*.d.ts):
  *   global.d.ts - JSX intrinsic elements (AppKit web components)
- *   react-window.d.ts - Virtual scrolling types (library ships Flow types)
  *   temporal.d.ts - Temporal API declarations
  */
 

@@ -14,16 +14,16 @@
 #   Only solhint (non-forge) can run truly parallel with forge tasks.
 #
 # Usage:
-#   ./scripts/verify-production.sh            # Full verification
-#   ./scripts/verify-production.sh --skip-e2e # Skip E2E (faster iteration)
-#   ./scripts/verify-production.sh --help     # Show this help
+#   ./scripts/contracts/verify-production.sh            # Full verification
+#   ./scripts/contracts/verify-production.sh --skip-e2e # Skip E2E (faster iteration)
+#   ./scripts/contracts/verify-production.sh --help     # Show this help
 #
 # ═══════════════════════════════════════════════════════════════════════════════
 set -euo pipefail
 
 # ─── Config ───────────────────────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+ROOT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 CONTRACTS_DIR="$ROOT_DIR/packages/contracts"
 
 SKIP_E2E=false

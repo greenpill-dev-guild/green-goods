@@ -266,7 +266,7 @@ function collectSourceMessageRefs(): SourceMessageRef[] {
     const source = parse(fs.readFileSync(file, "utf8"), {
       sourceFilename: file,
       sourceType: "unambiguous",
-      plugins: ["typescript", "jsx"],
+      plugins: file.endsWith(".tsx") ? ["typescript", "jsx"] : ["typescript"],
     });
 
     traverse(source, {

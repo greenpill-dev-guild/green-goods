@@ -55,12 +55,15 @@
     "zustand": "5.0.14"
   },
   "devDependencies": {
+    "@babel/core": "7.29.7",
+    "@rolldown/plugin-babel": "0.2.3",
     "@sentry/vite-plugin": "5.4.0",
-    "@vitejs/plugin-react": "5.2.0",
+    "@types/babel__core": "7.20.5",
+    "@vitejs/plugin-react": "6.0.3",
     "babel-plugin-react-compiler": "^1.0.0",
     "tailwindcss": "4.2.4",
     "typescript": "~7.0.2",
-    "vite": "7.3.6",
-    "vite-plugin-mkcert": "^1.17.8"
+    "vite": "8.1.4",
+    "vite-plugin-mkcert": "2.1.0"
   }
 }

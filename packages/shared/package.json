@@ -82,7 +82,7 @@
     "graphql-request": "^7.1.2",
     "heic-to": "^1.5.2",
     "permissionless": "^0.2.57",
-    "react-day-picker": "^9.13.0",
+    "react-day-picker": "10.0.1",
     "react-router-dom": "7.18.1",
     "tailwind-merge": "3.6.0",
     "tailwind-variants": "3.2.2"
@@ -112,9 +112,9 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
-    "@babel/parser": "^7.29.0",
-    "@babel/traverse": "^7.29.0",
-    "@babel/types": "^7.28.5",
+    "@babel/parser": "8.0.4",
+    "@babel/traverse": "8.0.4",
+    "@babel/types": "8.0.4",
     "@chromatic-com/storybook": "5.1.2",
     "@graphql-typed-document-node/core": "^3.2.0",
     "@sentry/react": "10.65.0",

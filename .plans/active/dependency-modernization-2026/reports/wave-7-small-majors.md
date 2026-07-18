@@ -1,7 +1,7 @@
 # Wave 7 — Small Non-Contract Majors
 
 **Branch**: `chore/dependency-upgrades`
-**Status**: compatibility audit complete; dependency changes wait on Wave 6 host proofs
+**Status**: implementation and automated proof complete; host audit rerun pending
 
 ## Release-age and supply-chain gate
 
@@ -74,6 +74,65 @@ dependencies or alternate registries. No target adds a new `trustedDependencies`
 - A truly clean frozen install could not complete inside Codex because registry requests stalled
   and timed out. The target lock is therefore rehearsal evidence, not the final frozen-install
   checkpoint; the workspace install must be repeated once registry access is healthy.
+
+## Implementation result
+
+- The final Bun 1.3.14 lock contains all nine exact target families and retains patched
+  `systeminformation` 5.31.7. A clean, env-free mirror resolved 3,618 packages and completed
+  `bun install --frozen-lockfile`, including the preserved multiformats/uint8arrays postinstall.
+- The root Node engine floor is now `>=22.19.0 <23`, covering Babel 8, jsdom 29, and mkcert 2.
+- React Window uses the v2 `List`/`rowComponent`/`rowProps` contract. The 40-member threshold,
+  600px viewport, 64px row height, list semantics, selection dialog, public props, and forwarded
+  ref are unchanged. The obsolete v1 ambient declaration was removed.
+- Babel parsing now enables JSX only for `.tsx`, preserving generic-arrow parsing in `.ts` while
+  scanning all 980 source files.
+- `js-yaml` consumers use namespace imports. Envio/indexer parsing uses `CORE_SCHEMA`; docs and
+  DesignMD frontmatter use `YAML11_SCHEMA`; dumping uses `quoteStyle: "double"`; the obsolete
+  external type package is removed.
+- Helmet keeps its provider/component API. The login suite now proves the asynchronous document
+  title update. Day Picker required no source adaptation.
+- jsdom 29 made the route location update after a synthetic exit animation observably async. The
+  existing vault-management regression now waits for the eventual URL cleanup while preserving
+  its stronger contract: the panel remains mounted until exit, `manage=positions` is removed, and
+  unrelated query parameters remain intact.
+
+## RED / GREEN evidence
+
+| Family | RED | GREEN |
+|---|---|---|
+| React Window 2 | The v1 `FixedSizeList` import is undefined under 2.2.7. | `GardenGardeners.test.tsx` passes with virtualization, ARIA position/set size, ref, and selection behavior. |
+| Babel 8 | The old scanner parses `.ts` with JSX enabled and fails at the generic arrow in `useMutationLock.ts`. | Extension-aware parser selection passes 12 locale tests across 980 files. |
+| js-yaml 5 | `docs:audit` fails because v5 has no default export. | Docs audit, protocol status generation, DesignMD parity, Envio boundary checks, and contract script tests pass with explicit schemas. |
+| jsdom 29 | `VaultManagePositions.test.tsx` passes on the pre-upgrade environment and fails under 29.1.1 because the route update completes after the panel unmount. | The test awaits eventual navigation; 13 focused tests and all 640 client tests pass. |
+
+## Validation evidence
+
+- `bun install --frozen-lockfile` — pass under Bun 1.3.14 and Node 22.22.1 in a clean mirror.
+- `bun run format:check` — pass across 1,956 files.
+- Root Oxlint, `forge fmt --check`, and Solhint — pass with the existing warning baseline. The
+  combined root lint wrapper alone cannot complete in this sandbox because inherited Bun runtime
+  mode cannot create its temporary file; the three underlying checks pass independently.
+- Shared typecheck and tests — 286 files, 3,357 passing and 1 skipped.
+- Client tests — 83 files, 640 passing after the jsdom timing repair.
+- Admin hub tests — 13 files, 102 passing.
+- Agent tests — 20 files, 230 passing; agent build passes.
+- Indexer c8 coverage — 186 passing; 99.12% statements/lines, 83.57% branches, 99.08% functions;
+  indexer build and boundary check pass.
+- Contract script tests — 16 passing; adaptive source build passes without contract, ABI, storage,
+  schema, deployment, or broadcast changes.
+- Shared Storybook coverage/quality — 197/197 required surfaces and 169 quality-checked story
+  files pass.
+- Deterministic client and admin production builds pass; client PWA generation reports 21 entries
+  and a 0.44 MiB precache. Docs production build and audit pass without warnings.
+- Sentry CLI reports 3.6.0 and both supported source-map command help paths pass without upload.
+- Authenticated Brave remains explicitly waived for this dependency program.
+
+## Remaining proof limit
+
+`bun audit --audit-level=high` still receives HTTP 403 inside Codex. The last host-certified Wave 6
+baseline is 0 critical / 29 transitive high. Wave 7 is ready for a host audit comparison; do not
+claim its security checkpoint complete until that output confirms no new critical or direct-high
+finding.
 
 ## Primary migration sources
 

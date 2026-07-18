@@ -3,17 +3,23 @@
 ## Lane
 
 - Owner: Claude
-- Branch: `claude/qa-pass-1/dependency-modernization-2026`
-- Status: blocked until dependencies pass
+- Branch signal: `claude/qa-pass-1/dependency-modernization-2026`
+- Status: passed through the user-approved automated QA substitute
 
-## Scope
+## Acceptance proof
 
-- Review user flow, acceptance criteria, and missing test coverage after implementation lanes complete.
+- 6,515 tests passed with two governed skips.
+- Deterministic Sepolia full build, agent/docs/Storybook builds, PWA output, contract/indexer gates,
+  and design/story checks passed.
+- Public APIs, shared hooks, query keys, persisted formats, transaction contracts, GraphQL shapes,
+  ABIs, storage, schemas, and deployment artifacts remain unchanged.
 
-## Validation
+## Proof limit
 
-- Pending QA pass.
+Authenticated Brave was explicitly waived by Afo. No isolated browser proof is relabeled as
+authenticated QA.
 
-## Risks / Blockers
+## Remaining
 
-- Record blockers here before changing `status.json`.
+Host-only audit and runtime smoke are assigned to final QA Pass 2 and documented in
+`reports/wave-11-certification.md`.
