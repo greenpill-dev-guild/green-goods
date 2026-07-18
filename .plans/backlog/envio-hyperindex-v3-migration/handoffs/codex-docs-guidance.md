@@ -14,7 +14,7 @@ Update all durable developer guidance to match the installed Envio v3 runtime.
 - Update environment docs if v3 adds or renames indexer env keys.
 - Update canonical `.claude` indexer context/skill guidance first.
 - Indexer guidance lives in `.claude/context/indexer.md`; the `.agents/skills` symlink shares skills automatically (`skills:sync` retired).
-- Do not hand-edit `.agents/skills` without syncing from `.claude`.
+- Do not hand-edit `.agents/skills` at all — it is a symlink to `.claude/skills`; edit the canonical tree and the symlink reflects it automatically.
 
 ## Validation
 

@@ -2,7 +2,7 @@
 
 Read-only, evidence-first review protocol for checking whether the Green Goods design system is coherent across every surface that consumes it. Starts read-only; does not apply fixes unless the user explicitly asks.
 
-> Different from [stack-review.md](./stack-review.md), which audits only the `design/` + `ui/` skill stack as infrastructure. This file audits the **full repo** alignment — the DesignMD sources, their runtime projections, and every surface (admin, client PWA, client browser, docs, Storybook, agentic guidance, repo instructions) that must stay in sync.
+> Different from [stack-review.md](./stack-review.md), which audits only the `design/` skill stack as infrastructure. This file audits the **full repo** alignment — the DesignMD sources, their runtime projections, and every surface (admin, client PWA, client browser, docs, Storybook, agentic guidance, repo instructions) that must stay in sync.
 >
 > Different from [review-checklist.md](./review-checklist.md), which runs the 4-lens review on a component PR. That is per-change; this is cross-surface.
 
@@ -138,7 +138,7 @@ If nothing in Section 1 meets all constraints, say so. "Design system is aligned
 - [language.md](./language.md) — implementation guide projected from root DesignMD
 - [ai-ui-brief.md](./ai-ui-brief.md) — reusable AI UI/CSS build brief and reference role map
 - [review-checklist.md](./review-checklist.md) — PR-level 4-lens review (different scope)
-- [stack-review.md](./stack-review.md) — narrow `design/` + `ui/` skill stack self-audit (different scope)
+- [stack-review.md](./stack-review.md) — narrow `design/` skill stack self-audit (different scope)
 - [prompt-contract.md](./prompt-contract.md), [client-prompt-contract.md](./client-prompt-contract.md) — AI-tool vocabulary
 - Root `DESIGN.md`, `packages/admin/DESIGN.md`, `packages/client/DESIGN.md`, `packages/client/DESIGN.pwa.md`, `packages/client/DESIGN.browser.md`, `docs/DESIGN.md` — DesignMD sources
 - `packages/shared/src/styles/theme.css`, `design-md.generated.css`, `design-md.generated.json` — runtime projections

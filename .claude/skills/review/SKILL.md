@@ -19,7 +19,7 @@ Resolve scope **before** inspecting code and state it in the Summary so the user
 2. **Natural language** — "review the shared package", "review PR 42".
 3. **Auto-inference** — no scope given: `git diff --name-only` against the merge-base, infer touched packages, print the inferred scope. Nothing modified → ask what to review.
 
-Valid package scopes map to `packages/<name>/**` (contracts, indexer, shared, client, admin, agent) plus `docs` → `docs/**`. Special scopes:
+Valid package scopes map to `packages/<name>/**` (contracts, indexer, shared, client, admin, agent), `docs` → `docs/**`, and `guidance` → `.claude/**` + root `CLAUDE.md`/`AGENTS.md`/`ONBOARDING.md` (agent-guidance changes are reviewable scope like any other). Special scopes:
 
 - `--scope cross-package` — verify blast radius in dependency order (contracts → shared → indexer → apps → agent); only cross-boundary findings.
 - `--scope design-system` — delegate to [`design/system-alignment-review.md`](../design/system-alignment-review.md), read-only; return its sections directly, don't mix into diff findings. Fires only on explicit invocation, on DESIGN.md-dialect + theme/tokens co-changes, or when a change touches ≥2 visual surfaces at once.

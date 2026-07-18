@@ -44,7 +44,7 @@ Slash-invokable (type the command):
 - [ ] `/review [package|PR|file]` — Full change review: regressions, remaining gaps, production quality, verdict (`/review admin`, `/review #123`).
 - [ ] `/audit` — Read-only repo-health audit; `/audit drift` for the quick drift classifier.
 - [ ] `/clean` — 8 parallel cleanup agents after findings are accepted (`--dry-run`, `--scope`, `--agents`).
-- [ ] `/qa-triage` and `/doc-feedback` — Meeting-notes → Linear triage; Google-Doc review processing.
+- [ ] `/qa-triage` and `/doc-feedback` — Build Sync QA notes → Linear records + QA-sheet rows; Google-Doc review feedback processing.
 
 Intent-triggered (no slash — just describe it in plain English):
 - [ ] `plan` — Fires on "plan this", "break down X", "coordinate a team", or cross-package work. Plans land in `.plans/active/<feature-name>/plan.todo.md`.

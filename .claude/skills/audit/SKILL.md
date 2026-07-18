@@ -240,6 +240,7 @@ God objects: include coverage %. Zero-coverage god objects escalate one addition
 grep -rn "^export.*use[A-Z]" packages/client packages/admin    # Hooks outside shared
 find packages -name ".env*" -not -path "*/node_modules/*"       # Package .env files
 grep -rn "0x[a-fA-F0-9]\{40\}" packages/ --include="*.ts" | grep -v __tests__  # Hardcoded addresses
+grep -rn "@green-goods/shared/src" packages/client packages/admin packages/agent packages/indexer --include="*.ts*"  # Undeclared shared internals
 ```
 
 Cap the anti-patterns table at **top 10 by risk score**. Track the rest in Known Issues Registry.

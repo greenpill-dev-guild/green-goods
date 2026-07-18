@@ -12,6 +12,7 @@ import { fileURLToPath } from "node:url";
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
 function walk(dir, out = []) {
+  if (!fs.existsSync(dir)) return out;
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const p = path.join(dir, entry.name);
     if (entry.isDirectory()) {
@@ -47,7 +48,7 @@ for (const p of pkgJsonPaths) {
 
 const failures = [];
 const LINK_RE = /\]\(([^)#\s]+?\.md)(#[^)]*)?\)/g;
-const RUN_RE = /`bun run ([a-z0-9:._-]+)`/g;
+const RUN_RE = /`bun run (?!-)([a-z0-9:._-]+)[^`]*`/g;
 
 for (const file of guidanceFiles) {
   const text = fs.readFileSync(file, "utf8");
