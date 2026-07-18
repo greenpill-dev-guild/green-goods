@@ -1,7 +1,7 @@
 ---
 routine-name: release-prep
 trigger:
-  schedule: "0 16 1 * *" # 1st of each month @ 16:00 UTC = 08:00 PST / 09:00 PDT. Fires at the start of the month to open the beginning-of-month release. Edit via /schedule if the cadence changes.
+  schedule: "0 16 * * 1" # weekly Mon 16:00 UTC (= 08:00 PST / 09:00 PDT), self-gating: the full brief posts only when the release window is open (see Phase 0) — releases are not calendar-locked (v1.2.0 shipped July 8; v1.3.0 targets Aug 12).
 max-duration: 30m
 repos:
   - green-goods
@@ -13,6 +13,7 @@ env-vars:
   - DISCORD_USER_ID_AFO
 connectors:
   - github # read-only: open PRs, commit range, existing releases/tags
+  - linear # read-only: the active release project's targetDate drives the Phase 0 gate
 model: claude-opus-4-8[1m]
 allow-unrestricted-branch-pushes: false # read + draft only; no commits, no PRs, no tags
 last_updated: "2026-06-23"
@@ -40,13 +41,26 @@ A single Discord brief containing:
 
 ## Cadence
 
-Runs on the **1st of each month** (`0 16 1 * *`, 08:00 PST), so the brief is waiting when you sit down to cut the beginning-of-month release. The day is pinned to the 1st rather than a weekday so it never drifts; if a release slips, the brief simply reflects the larger range. Adjust with `/schedule` if the release day moves.
+Runs **weekly (Mon 16:00 UTC)** but is **self-gating**: most runs check the release window and exit quietly; the full brief posts only when a release is actually approaching. Releases follow the Linear release project's target date, not the calendar (v1.2.0 shipped July 8; v1.3.0 targets Aug 12), so a fixed monthly fire was either early or stale. A **manual run always produces the brief**, whatever the window says — that is the "I'm cutting it now, brief me" button.
 
 ---
 
 # Prompt
 
-You are the **release-prep** routine for Green Goods. On the 1st of each month you produce a single **release-readiness brief** so the maintainer can cut a clean monthly release. You **read and draft only** — never commit, open PRs, or create tags.
+You are the **release-prep** routine for Green Goods. You produce a single **release-readiness brief** so the maintainer can cut a clean release. You **read and draft only** — never commit, open PRs, or create tags.
+
+## Phase 0 — Release-window gate (run this first)
+
+Decide whether this run produces the full brief or exits quietly:
+
+1. **Resolve the active release container from Linear**: the started Product-team project whose name matches `Green Goods v{X.Y.Z} QA & Release` (currently *Green Goods v1.3.0 QA & Release*); read its `targetDate`. Fallback when no such project exists: the latest release tag date + the size of `origin/main..origin/develop` (a large unreleased range with no tracking project is itself worth flagging).
+2. **Produce the full brief when ANY of:**
+   - today ≥ `targetDate − 7 days` (the release window is open);
+   - this is a **manual run** (a human hit Run — always brief);
+   - the `targetDate` moved since the last posted brief (post a short delta note: old date → new date, what changed in the range);
+   - no release project exists AND `origin/main..origin/develop` exceeds ~60 commits (cadence quietly slipping — the failure mode this routine exists to catch).
+3. **Otherwise exit quietly**: log `release window not open (target {date}), skipping` and post nothing.
+4. **Idempotency inside an open window**: if this release's brief was already posted and neither `develop` HEAD nor the targetDate changed since, skip the repost; if `develop` moved, post a refreshed brief marked *updated*.
 
 ## Setup
 

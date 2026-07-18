@@ -106,6 +106,15 @@ There is no GitHub MCP in this environment and comments do NOT post themselves. 
 3. **Fail loud, never degrade** — if `GITHUB_TOKEN` is unset or every POST fails, the run has FAILED: exit non-zero with the response bodies in the run log. Never end a run with a prepared-but-unposted review; "prepared but not posted" is the exact silent failure this section exists to prevent.
 4. Verify the POST: a 2xx with a review/comment `id` is posted; anything else is not.
 
+## Linear cross-post + missing-issue catch (after the GitHub review posts)
+
+Per the operating model, accepted work is tracked on Linear and the **PR body is the source of truth** for the issue link (auto-generated branch names embed issue ids and are NOT evidence).
+
+1. **Resolve the Linear reference**: scan the PR body for `(Closes|Fixes|Refs?|Linear:)\s*([A-Z]{2,5}-\d+)` and bare issue ids. Multiple ids: use them all.
+2. **If found** — via the Linear connector, add ONE comment per referenced issue: `PR #{n} reviewed — {verdict}, {N} inline flag(s). <{PR url}>` signed `_— pr-review (automated)_`. Idempotent per PR: skip an issue that already carries a pr-review comment naming this PR number. Never change any issue field.
+3. **If none found** — append to the GitHub summary comment: `⚠️ **No Linear issue referenced.** Accepted work is tracked on Linear (see the operating model). Add "Closes PRD-NNN" to the PR body, or state why this PR needs no issue (docs-only, release chore, routine PR).` Flag only — never create a Linear issue from here, and do not escalate the verdict over this alone.
+4. **Skips**: draft PRs (already filtered), `claude/*` and `profile-refresh/*` branches, dependabot. If the Linear connector is unreachable, note it in the summary comment and continue — the GitHub review itself is the load-bearing output.
+
 ## Summary comment format
 
 At the end, post one summary comment:
