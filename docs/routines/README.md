@@ -9,13 +9,13 @@ Guild-level routines live in [`greenpill-dev-guild/.github/routines/claude/`](ht
 | File | Status | Cadence | Channel | Issue surface |
 |---|---|---|---|---|
 | `bug-intake.md` | active | M/W/F 04:00 | `#bug-report` (per-capture acks for bug-source) + `#product` (idea-source acks + daily summary) | Linear Customer Needs (raw signal); accepted bugs become unprojected Linear Product Issues |
-| `health-watch.md` | active | Daily M-F 07:30 | `#engineering` (red only) | Linear Product Issues for accepted operational health work (unprojected) |
+| `health-watch.md` | active | Mon/Wed/Fri 14:30 UTC (= 07:30 PT; reduced from daily 2026-07-18) | `#engineering` (red only) | Linear Product Issues for accepted operational health work (unprojected) |
 | `growth-pulse.md` | active | Mon 09:00 weekly | `#growth` + `#funding` cross-post | Linear Product Issues for accepted anomalies (unprojected) + weekly digest as a Linear initiative status update (Sustainability & Monetization) |
-| `qa-triage-pulse.md` | active | Wed 21:00 UTC = 13:00 PST / 14:00 PDT (3h after the 10am PST Build Sync start) | `#product` (Discord summary, @mention when there's something to triage) | Linear Customer Needs only (pre-staged, label `source:qa-triage-pulse` + `qa-sync:<date>`); `/qa-triage` promotes them to Issues + QA-sheet rows interactively. Routine id: `trig_01GSagDiEV9Y8QTBzKeZsPSw` |
-| `release-prep.md` | **spec only — not scheduled** | (drafted for monthly release kickoff; no live trigger yet) | `#engineering` (readiness brief; @mention on decision-needed risk) | none — read + draft only; no Linear/GitHub writes |
-| `pr-review.md` | active | event-driven (PR open) | inline on PR | n/a |
+| `qa-triage-pulse.md` | active | Wed 21:00 UTC = 13:00 PST / 14:00 PDT (3h after the 10am PST Build Sync start) | `#product` (Discord summary, @mention when there's something to triage) | Linear Customer Needs only (pre-staged, label `source:qa-triage-pulse` + `qa-sync:<date>`) from Build Sync notes **plus the biweekly Engineering Sync notes** (2026-07-18 extension; off-weeks skip silently); `/qa-triage` promotes them to Issues + QA-sheet rows interactively. Routine id: `trig_01GSagDiEV9Y8QTBzKeZsPSw` |
+| `release-prep.md` | active (2026-07-18) | Weekdays 16:00 UTC, **self-gating**: full brief posts 3 days before the Linear release project's target date (or on target-moved / Monday cadence-slip / any manual run); other runs exit quietly. Routine id: `trig_01FA23vPDQ1aYaBbZwdJ8gb1` | `#engineering` (readiness brief; @mention on decision-needed risk) | none — read + draft only; no Linear/GitHub writes |
+| `pr-review.md` | active | event-driven (PR opened / ready_for_review) | **Linear comment** on the issue(s) referenced in the PR body (OAuth connector, no stored tokens — steward decision 2026-07-18); PRs with **no Linear reference** get one `#engineering` flag line | one idempotent review comment per referenced Linear issue; never writes GitHub |
 
-That's it — four scheduled cadences plus one event-driven, all cloud routines hosted at [claude.ai/code/routines](https://claude.ai/code/routines). (`release-prep.md` is drafted but has no live trigger yet, so it is not counted among the scheduled cadences.) Anything else previously in this folder (engineering-pulse, plan-executor, hotfix, drift-watch, metrics) has been removed: cut from the portfolio or converted to Claude Code skills (`/plan`, `/debug`).
+That's it — five scheduled cadences plus one event-driven, all cloud routines hosted at [claude.ai/code/routines](https://claude.ai/code/routines). Anything else previously in this folder (engineering-pulse, plan-executor, hotfix, drift-watch, metrics) has been removed: cut from the portfolio or converted to Claude Code skills (`/plan`, `/debug`).
 
 ## Connector Matrix
 
@@ -25,8 +25,8 @@ That's it — four scheduled cadences plus one event-driven, all cloud routines 
 | `health-watch` | Google Calendar, Linear, PostHog, Vercel; Sentry-ready when connector/API access exists | Calendar = context that adjusts severity · Linear = accepted operational health Issues (unprojected Product) · PostHog = client-side `$exception` spike detection + error correlation · Sentry = release regression and agent/API crash context · Vercel = deploy/runtime/web-vitals signal feeding `activity:qa` Issues. Also probes the agent's unauthenticated `/health` via `BOT_API_URL` (env var, not a connector). |
 | `growth-pulse` | Google Calendar, Linear, PostHog | Calendar = WoW context · Linear = accepted-anomaly Issue surface (unprojected Product) · PostHog = product/growth metrics via curated questions. Drive and Miro are intentionally not wired here; Vercel is also intentionally not wired because Vercel Web Analytics overlaps with PostHog and would create dual-source drift. |
 | `qa-triage-pulse` | Google Drive, Linear, PostHog, Vercel | Drive = the Wed Build Sync's Gemini notes · Linear = Customer Need pre-stage surface (raw signal, unprojected) · PostHog = per-surface telemetry cross-reference · Vercel = deploy correlation gated on PostHog-matched items only (anchored to `first_seen`, skipped for items without telemetry signal). |
-| `release-prep` | GitHub (read-only) | GitHub = open PRs + commit range (`main..develop`) + existing releases/tags. No Linear/Drive/PostHog — a pure readiness draft; reads the release runbook live from the checkout. |
-| `pr-review` | Vercel | Preview deployment status + Lighthouse delta. Inline review commentary, not a hard invariant. |
+| `release-prep` | GitHub (read-only), Linear (read-only) | GitHub = open PRs + commit range (`main..develop`) + existing releases/tags · Linear = the active release project's targetDate drives the self-gating window (brief posts at target − 3 days). No Drive/PostHog — a pure readiness draft; reads the release runbook live from the checkout. |
+| `pr-review` | Vercel, Linear (OAuth, the posting surface), Sentry | Vercel = preview deployment status + Lighthouse delta (commentary, not an invariant) · Linear = where the review posts (one idempotent comment per issue referenced in the PR body; no stored GitHub token by steward decision) · Sentry = open-issue context on touched surfaces. |
 
 Gmail is intentionally NOT wired on any GG routine (personal-inbox pollution risk).
 
@@ -39,7 +39,7 @@ Gmail is intentionally NOT wired on any GG routine (personal-inbox pollution ris
 | `#growth` (DISCORD_GROWTH_CHANNEL_ID) | growth-pulse (weekly digest highlights) | growth / funnel / retention / action-template pulse |
 | `#engineering` (DISCORD_ENGINEERING_CHANNEL_ID) | health-watch (red only) | operational health status — engineering-focused (indexer / Vercel / contracts / agent uptime / client errors) |
 | `#funding` (DISCORD_FUNDING_CHANNEL_ID) | growth-pulse cross-post (when grant-relevant) | grant relevance only |
-| inline on PR | pr-review | review surface |
+| Linear comment (referenced issue) | pr-review | review surface — one idempotent comment per issue the PR body references; `#engineering` gets a one-line flag when a PR references no Linear issue |
 
 `#engineering` is health-watch's home channel (operational health status — indexer / Vercel / contracts / agent uptime / client errors). Other code-local engineering signals still come from the user reading PRs and Linear, not from a routine.
 
@@ -52,7 +52,7 @@ Routines @mention Afo only when his action is required (via `DISCORD_USER_ID_AFO
 - `growth-pulse` — when an anomaly is opened in Linear OR a setup failure needs attention
 - `qa-triage-pulse` — when ≥1 Customer Need was pre-staged from the Wednesday Build Sync (signal that `/qa-triage` is ready to run) OR a Linear/Drive setup failure needs attention. Silent on quiet weeks.
 
-`pr-review` posts inline on the PR; the GitHub mention surface is already explicit and no Discord ping is needed. Healthy weekly heartbeats with zero anomalies = no @mention.
+`pr-review` posts its review to Linear (the referenced issue), never to GitHub — in-PR commentary is CodeRabbit's and Codex's lane; its only Discord output is the `#engineering` missing-issue flag line. Healthy weekly heartbeats with zero anomalies = no @mention.
 
 ## Conventions
 
