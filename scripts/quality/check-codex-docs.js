@@ -164,6 +164,29 @@ function validateRootGuide() {
   const rootGuide = read("AGENTS.md");
   const rootScripts = parseJson("package.json").scripts ?? {};
 
+  if (!rootGuide.includes(".claude/context/values.md#implementation-quality-contract")) {
+    fail("AGENTS.md: missing canonical Implementation Quality Contract reference");
+  }
+
+  if (rootScripts["lint:rules"] !== "node scripts/quality/check-react-patterns.js") {
+    fail("package.json: lint:rules must execute the high-confidence pattern gate directly");
+  }
+  if (!rootScripts.lint?.includes("bun run lint:rules")) {
+    fail("package.json: root lint must include lint:rules");
+  }
+
+  const patternGate = read("scripts/quality/check-react-patterns.js");
+  for (const marker of [
+    "BLOCKING_RULES",
+    "rule-11-undeclared-shared-import",
+    "includeAdvisory: false",
+    "Default lint ignores this file",
+  ]) {
+    if (!patternGate.includes(marker)) {
+      fail(`scripts/quality/check-react-patterns.js: missing high-signal gate marker: ${marker}`);
+    }
+  }
+
   for (const relPath of [
     "packages/contracts/AGENTS.md",
     "packages/shared/AGENTS.md",
@@ -205,6 +228,34 @@ function validatePackageGuides() {
 
     for (const command of commands) {
       validateCommand(command, scripts, `packages/${packageName}`, agentsRelPath);
+    }
+  }
+
+  const indexerTsconfig = read("packages/indexer/tsconfig.json");
+  for (const marker of ['"strict": true', '"noImplicitAny": true']) {
+    if (!indexerTsconfig.includes(marker)) {
+      fail(`packages/indexer/tsconfig.json: strict handwritten TypeScript marker missing: ${marker}`);
+    }
+  }
+
+  const indexerGuide = read("packages/indexer/AGENTS.md");
+  for (const marker of ["`strict`", "`noImplicitAny`", "do not weaken compiler flags"]) {
+    if (!indexerGuide.includes(marker)) {
+      fail(`packages/indexer/AGENTS.md: missing strict TypeScript guidance: ${marker}`);
+    }
+  }
+}
+
+function validateCodexImplementationAgent() {
+  const agent = read(".codex/agents/cracked-coder.toml");
+  for (const marker of [
+    "quality_contract",
+    ".claude/context/values.md#implementation-quality-contract",
+    "declared in `packages/shared/package.json#exports`",
+    "final simplification pass",
+  ]) {
+    if (!agent.includes(marker)) {
+      fail(`.codex/agents/cracked-coder.toml: missing implementation quality marker: ${marker}`);
     }
   }
 }
@@ -311,6 +362,7 @@ validateRootGuide();
 validatePackageGuides();
 validateGuideReferences();
 validateSkillMirrorSymlink();
+validateCodexImplementationAgent();
 
 if (failures.length > 0) {
   console.error("Codex consistency check failed:");

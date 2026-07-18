@@ -1,18 +1,20 @@
 /// <reference types="vitest" />
 
+import babel from "@rolldown/plugin-babel";
 import { sentryVitePlugin } from "@sentry/vite-plugin";
 import tailwindcss from "@tailwindcss/vite";
-import react from "@vitejs/plugin-react";
+import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import { existsSync, readdirSync, readFileSync, rmSync } from "fs";
 import { resolve } from "path";
-import { resolveTunnelHmrConfig } from "../../scripts/lib/vite-tunnel-hmr.js";
-import { defineConfig, loadEnv, type Plugin } from "vite";
+import { defineConfig, loadEnv, type Plugin, type UserConfig } from "vite";
 import mkcert from "vite-plugin-mkcert";
 import { VitePWA, type VitePWAOptions } from "vite-plugin-pwa";
+import { assertEnvParity, assertSentryDsnResolvable } from "../../scripts/lib/env-parity.mjs";
+import { resolveTunnelHmrConfig } from "../../scripts/lib/vite-tunnel-hmr.js";
 import {
   createPwaManifestBranding,
-  resolvePwaManifestFlavor,
   type PwaManifestBranding,
+  resolvePwaManifestFlavor,
 } from "./src/config/pwa-manifest";
 import { APP_ROUTES, createPwaRoutingConfig } from "./src/config/pwa-routing";
 import { createPublicSocialPreviewPlugin } from "./vite/social-preview";
@@ -146,7 +148,7 @@ function pwaHtmlMetadataPlugin(branding: PwaManifestBranding): Plugin {
   };
 }
 
-export default defineConfig(async ({ command, mode }) => {
+export default defineConfig(async ({ command, mode }): Promise<UserConfig> => {
   const rootDir = resolve(__dirname, "../../");
   // Resolve .env from monorepo root even when this package script runs with a package cwd.
   process.chdir(rootDir);
@@ -218,22 +220,13 @@ export default defineConfig(async ({ command, mode }) => {
     command === "build" && (requestedSourceMaps || shouldUploadSentrySourceMaps);
   const sentryDsn = resolveClientSentryDsn();
   const sentryEnvironment = resolveSentryEnvironment(mode);
-  // Env-parity gate (PRD-567): a production deploy must ship with a resolvable
-  // Sentry DSN, or error tracking silently no-ops — the May Sentry thrash. This
-  // reuses the value resolved above, so it only fires when Sentry would truly be
-  // dead. Fail closed on production; warn on other Vercel builds so staging
-  // surfaces the same gap without blocking non-prod deploys.
-  if (command === "build" && !sentryDsn) {
-    const detail =
-      "Sentry DSN did not resolve from any known alias (VITE_SENTRY_CLIENT_DSN, VITE_SENTRY_DSN, SENTRY_DSN via the Vercel integration, ...); error tracking would be disabled in this build.";
-    if (process.env.VERCEL_ENV === "production") {
-      throw new Error(`[env-parity] ${detail} Refusing to ship a production build without it.`);
-    }
-    if (process.env.VERCEL) {
-      console.warn(
-        `[env-parity] ${detail} Staging should mirror production — set the DSN for this environment.`
-      );
-    }
+  if (command === "build") {
+    assertEnvParity({
+      app: "client",
+      env: process.env,
+      schemaPath: resolve(rootDir, ".env.schema"),
+    });
+    assertSentryDsnResolvable({ app: "client", sentryDsn, env: process.env });
   }
   const sentryRelease = `green-goods-client@${shortAppVersion}`;
   const indexerProxyTarget =
@@ -283,11 +276,8 @@ export default defineConfig(async ({ command, mode }) => {
     // React Compiler: Automatically optimizes components with memoization
     // Eliminates need for manual useMemo/useCallback in most cases
     // @see https://react.dev/learn/react-compiler
-    react({
-      babel: {
-        plugins: [["babel-plugin-react-compiler", {}]],
-      },
-    }),
+    react(),
+    babel({ presets: [reactCompilerPreset()] }),
     createPublicSocialPreviewPlugin(isIPFSBuild),
     VitePWA({
       includeAssets: pwaBranding.includeAssets,
@@ -494,8 +484,10 @@ export default defineConfig(async ({ command, mode }) => {
       "import.meta.env.VITE_SENTRY_ENVIRONMENT": JSON.stringify(sentryEnvironment),
       "process.env.NODE_ENV": JSON.stringify(nodeEnv),
     },
-    esbuild: {
-      jsxDev: command !== "build",
+    oxc: {
+      jsx: {
+        development: command !== "build",
+      },
     },
     plugins,
     // Deduplicate React, PostHog, and Sentry to prevent multiple instances
@@ -540,50 +532,48 @@ export default defineConfig(async ({ command, mode }) => {
       // reloading", a full-page reload that kills in-flight lazy-route
       // navigation. Keep in sync with packages/admin/vite.config.ts.
       include: [
+        "@hookform/resolvers/zod",
         "react",
         "react-dom",
+        "react-hook-form",
+        "zod",
         "posthog-js",
         "posthog-js/react",
         "@sentry/react",
         // ── @green-goods/shared runtime surface ──
         "@ethereum-attestation-service/eas-sdk",
-        "@hypercerts-org/contracts",
-        "@hypercerts-org/marketplace-sdk",
-        "@hypercerts-org/sdk",
-        "@radix-ui/react-dropdown-menu",
-        "@radix-ui/react-popover",
+        // Vite 8 resolves dependencies installed only under the linked shared
+        // package through its `>` include syntax.
+        "@green-goods/shared > @hypercerts-org/contracts",
+        "@green-goods/shared > @hypercerts-org/marketplace-sdk",
+        "@green-goods/shared > @hypercerts-org/sdk",
+        "@green-goods/shared > @radix-ui/react-popover",
         "@radix-ui/react-select",
-        "@react-spring/web",
-        "@reown/appkit-adapter-wagmi",
+        "@green-goods/shared > @reown/appkit-adapter-wagmi",
         "@reown/appkit/react",
-        "@storacha/client",
-        "@storacha/client/principal/ed25519",
-        "@storacha/client/proof",
-        "@use-gesture/react",
-        "@wagmi/core",
-        "@xstate/react",
-        "browser-image-compression",
-        "clsx",
+        "@green-goods/shared > @use-gesture/react",
+        "@green-goods/shared > @wagmi/core",
+        "@green-goods/shared > @xstate/react",
+        "@green-goods/shared > browser-image-compression",
+        "@green-goods/shared > clsx",
         "ethers",
         "gql.tada",
-        "graphql-request",
-        // heic-to lives only under shared's node_modules (bun isolated
-        // linker), so it needs the linked-package `>` resolution form.
+        "@green-goods/shared > graphql-request",
         "@green-goods/shared > heic-to/csp",
         "idb",
         "idb-keyval",
-        "permissionless",
-        "permissionless/accounts",
-        "permissionless/clients/passkeyServer",
-        "permissionless/clients/pimlico",
-        "react-day-picker",
+        "@green-goods/shared > permissionless",
+        "@green-goods/shared > permissionless/accounts",
+        "@green-goods/shared > permissionless/clients/passkeyServer",
+        "@green-goods/shared > permissionless/clients/pimlico",
+        "@green-goods/shared > react-day-picker",
         "react-hot-toast",
-        "react-select",
+        "@green-goods/shared > react-select",
         "tailwind-merge",
         "tailwind-variants",
         "viem/account-abstraction",
         "viem/chains",
-        "xstate",
+        "@green-goods/shared > xstate",
         "zustand",
         "zustand/middleware",
         "zustand/react/shallow",

@@ -2,7 +2,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import yaml from "js-yaml";
+import * as yaml from "js-yaml";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -116,7 +116,7 @@ const loadJson = async (relativePath) => {
 };
 
 const indexerYaml = await fs.readFile(path.resolve(repoRoot, "packages/indexer/config.yaml"), "utf8");
-const indexerConfig = yaml.load(indexerYaml);
+const indexerConfig = yaml.load(indexerYaml, { schema: yaml.CORE_SCHEMA });
 
 const indexerAddress = (chainId, contractName) => {
   const network = indexerConfig.networks?.find((item) => Number(item.id) === Number(chainId));

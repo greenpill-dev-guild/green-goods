@@ -71,7 +71,7 @@
     "Need moderation (none/acknowledged/merged/hidden/declined) and progress (open/committed/in-progress/addressed) are separate axes; retraction leaves only a content-free lineage tombstone.",
     "The needUID commitment field was amended into the CP contract-spec on 2026-07-04, before the August build, so it ships in the initial deploy.",
     "NeedKind is Request/Offer/Initiative. NeedStatus domains and commitment domains are optional arrays; DomainImpact commitments require 1-4 unique domain/action pairs.",
-    "Join-request persistence is an open RESR-64 decision due 2026-08-12; the membership-queue slice is manually blocked until controller/auth/retention/deletion/recovery/abuse/cost/operator-handoff evidence is signed.",
+    "The selected join-request architecture is a minimal encrypted garden-scoped service queue inside the existing Garden Manage Members dialog; the membership-queue slice remains manually blocked until RESR-64 accepts the proposed retention, EIP-6492/auth, encryption/key-owner, recovery, abuse, cost, and operator-handoff record.",
     "FundingAttribution displays once per verified (needUID, chainId, txHash, rail); mergedIntoNeedUID is typed separately from noteCID.",
     "packages/community is an independent PWA at community.greengoods.app and local port 3010; client and Community consume prerequisite shared runtime/auth/offline/install/update/error/shell foundations but retain separate app identities.",
     "No claim flow, no leaderboards, no funding-ranked boards, no per-need escrow, no push notifications; the gathering is the notification layer.",

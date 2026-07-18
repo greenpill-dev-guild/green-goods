@@ -58,9 +58,11 @@ When you are dispatched from a Linear issue (delegated/assigned, labeled `agent:
 ## Codex Workflow
 
 1. Read the nearest `AGENTS.md`.
-2. Keep the change inside the smallest sensible package boundary.
-3. Run the lightest validation loop that still proves the change.
-4. Escalate to cross-package verification when shared contracts, shared types, or public APIs move.
+2. Apply [the Implementation Quality Contract](.claude/context/values.md#implementation-quality-contract)
+   while planning, writing, and reviewing code.
+3. Keep the change inside the smallest sensible package boundary.
+4. Run the lightest validation loop that still proves the change.
+5. Escalate to cross-package verification when shared contracts, shared types, or public APIs move.
 
 **Two-phase rhythm for ambiguous or multi-issue work**: investigate (read-only) → present numbered findings → wait for explicit scope lock from the human → fix only locked items → run the validation ladder. This paragraph is the canonical spec (the former `audit-then-ship` skill folded into it; Claude gets the same gate from plan mode + CLAUDE.md § Scope Discipline). Do not invent a parallel Codex-specific protocol.
 

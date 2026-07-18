@@ -104,6 +104,7 @@ Route `/home/:id/pool` — NET-NEW fourth `GardenTab` on the existing garden det
 - Variants (same frame, swapped bands): **NotReady** = checklist naming the missing charter, qualifying baseline, and/or exposure cap; browse/create disabled. **Paused** = `{Alert}` with steward reason; new commitments, claims, Ready submissions, and confirmations are disabled while evidence/work linkage, cancellation/expiry, and dispute recovery remain available. **Empty open pool** = planted-seed illustration slot + the two CTAs + operator-seeded hint.
 - Cycle variants: **no open Season + open Campaigns** leaves the Campaign list and scoped work fully active while the Season slot says “No open Season”; **one Season + zero Campaigns** omits the empty Campaign list after a quiet “No open Campaigns” line; history stays separate from current scope.
 - Protocol-pool commitments shown in a garden context add, for eligible operators only, a provider-context choice ("take this up as myself" / "take this up for this garden"). The request stores `ClaimType` plus `gardenContext`; acceptance derives `providerGarden`. It does not create token custody or a member-delivery fallback.
+- Membership-wait variant (decision #34c): a new member's queued rows render an amber `··waiting··` chrome — "waiting for your garden membership — no retries used" — and resume when the hat lands. Applies to W1 cards and W5 groups. Drawing: prototypes.md MF-5.
 - Tap card ▸ W2. Offer/Request CTAs ▸ W3 with direction preset.
 
 Approval-gated request variants reuse the same card/detail grammar and survive refresh:
@@ -164,6 +165,8 @@ Route `/home/:id/pool/:commitmentId`.
 - W2a attach sheet (`{DialogShell}` + `{FileUploadField}`): photo / link / note → one `evidence` job per submit; works fully offline.
 - Fulfilled state: hero moment fires once (§5.10), reward row flips to "reward released" when `RewardPaid` lands.
 - Disputed state: banner "under review by stewards", CTAs frozen.
+- Expired state (decision #34d): the confirm block gives way to a calm expired band + `[ Offer again ]` re-entry into W3. Drawing: prototypes.md MF-3.
+- Owner withdraw (decision #34b): while Offered/Requested the creator sees `[ Withdraw this offer… ]` with a required reason (creator path of `cancelCommitment`). Drawing: prototypes.md MF-2a. Steward cancel placement remains open.
 
 ### W3 — Offer / request creation flow (uiux-spec §5.4)
 
@@ -311,6 +314,11 @@ DECLINE A                            ACCEPT B
 ```
 
 Decline never says the commitment “returns” to browse; it was already available to other eligible claimants. Accept uses the selected row’s stored claimant/requestedBy/kind/gardenContext/requestedAt and never editable replacement terms; the accepted result then shows the derived `providerGarden`. Individual rows show claimant=requestedBy. Garden rows show the GardenAccount as claimant and the authenticated operator as requestedBy.
+
+Adopted 2026-07-11 (decision #34; lo-fi drawings in `prototypes.md` pending a redraw pass here):
+- **Pool-card lifecycle actions** (#34a): a Ready pool's primary card action is `[ Open pool ]`; `[ Close pool… ]` appears once the last cycle composts (then Compost/Reopen per uiux-spec §4.1). The open-cycle flow adds only a "pool is Ready — open it now?" guard prompt. Drawing: prototypes.md MF-1.
+- **Lapsed this cycle** (#34d): a queue section below Claims waiting lists Expired seeded promises with `[ Re-seed… ]` into W8. Drawing: prototypes.md MF-4.
+- **Waiting to join** (decision #35): the Garden workspace gains a join-request queue beside ManageMembers — pending / welcomed / declined-with-reason rows executing the existing operator add path; the canonical service design is `../community-interface/join-queue-spec.md`, while this workspace consumes its membership outcome.
 
 ### W8 — Operator seeding console (uiux-spec §6.3)
 
@@ -540,6 +548,8 @@ New `{AdminCard}` on `/garden/pool`, below the cycle console.
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
+- Gate status row (decision #34f): the settlement card adds a read-only line — `member delivery: enabled · changed by 0x9a…4f · Jul 30 · evidence ↗` (or `disabled` + reason). The flip itself stays owner-only ops (`setMemberDeliveryEnabled`); this row only makes the gate legible.
+
 ### W22 — Batch execution and oracle console (inside admin `/community` Pools and per-garden)
 
 `{AdminDialog}` opened from W21 / the Pools workspace funding view.
@@ -562,6 +572,8 @@ New `{AdminCard}` on `/garden/pool`, below the cycle console.
 │                   [ Requeue ] [ Cancel with reason… ]     │  requeue clears old batchId
 └──────────────────────────────────────────────────────────┘
 ```
+
+- Role guard (decision #34e): pilot operators hold the executor role (never a Safe owner, never a recovery owner). An account without the role sees "this account doesn't hold the executor role" on Mark executing / Report — a visible guard state, never a silent failure. No role-split UI.
 
 ### W23 — WalletDrawer: G$ section + member send (delta to W5)
 
@@ -620,3 +632,4 @@ Gate-failed variant (same frame, no substitute custody flow):
 | settlement-spec §7 batch execution console | W22 |
 | settlement-spec §7 wallet G$ + member send | W23 |
 | settlement-spec §5 AA-gate failure | W23 gate-failed variant |
+| 2026-07-11 review adoptions (plan.todo.md #34–#35) | variant notes on W1/W2/W7/W21/W22 here; lo-fi drawings in `prototypes.md` MF-1/2a/3/4/5 |

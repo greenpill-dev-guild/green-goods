@@ -39,7 +39,7 @@ Green Goods ships a **monthly release** at the start of each month (minor bump: 
 
 ### PR gate
 
-Both branches are protected: a pull request with passing CI checks is required to merge. Maintainers keep an admin fast-path for docs/trivial/hotfix changes only. (Required reviewer approval turns on as the contributor base grows; until then, the passing-checks requirement is the gate — it already applies to every PR, including maintainers'.)
+Both branches are protected: the **CI Gate** is the required aggregate check for a pull request to merge, and it passes only after every CI check triggered for that PR succeeds. Maintainers keep an admin fast-path for docs/trivial/hotfix changes only. (Required reviewer approval turns on as the contributor base grows; until then, CI Gate is the required check — it already applies to every PR, including maintainers'.)
 
 ## Funding and Bounties
 
@@ -54,11 +54,16 @@ Run the lightest validation that honestly proves your change. Before opening a n
 ```bash
 bun run format:check
 bun run lint
+bun run check:source-structure
 bun run test
 bun run build
 ```
 
 If formatting fails, run `bun run format`, then rerun `bun run format:check`.
+
+For E2E or authentication changes, run the matching Playwright CI project: client work uses
+`PLAYWRIGHT_APP=client APP_ENV=test bunx playwright test --project=client-ci`; admin work uses
+`PLAYWRIGHT_APP=admin APP_ENV=test bunx playwright test --project=admin-ci`.
 
 ## Repo Rules
 
@@ -69,6 +74,7 @@ If formatting fails, run `bun run format`, then rerun `bun run format:check`.
 - Use shared `logger`, not `console.log`.
 - Add new user-facing app strings to `en`, `es`, and `pt`.
 - Read the nearest `AGENTS.md` before editing a package.
+- Read the relevant workflow guidance in [`.claude/skills/`](.claude/skills/) before cross-cutting work.
 
 ## Community
 

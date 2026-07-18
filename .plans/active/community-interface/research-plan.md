@@ -20,14 +20,14 @@ Coordination-channel and join-flow observations feed RESR-64 (join-request persi
 
 ## Cohort and readiness
 
-The cohort is not presumed. Named focus candidates (2026-07-10; Garden 4 selected 2026-07-11) are Tech and Sun Hub (Awka, Nigeria — English), Greenpill Cape Town (Muizenberg / Deep South Circles — English; UNICEF-funded trash-bin/waste-cleanup program; showcase folded in from canceled RESR-53), AgroforestDAO / Redemption Hill (Bias Fortes, Brazil — Portuguese), and Barichara Regenerativa (Barichara, Santander, Colombia — Spanish; the mature MRV-adoption anchor, selected against the RESR-58 criteria; decision #27 — selection is not participation). Naming a candidate does not presume readiness. RESR-62 owns confirmation with each candidate garden. A garden enters fielding only when all are named:
+The cohort is not presumed. Named focus candidates are Tech and Sun Hub (Awka, Nigeria — English), Greenpill Cape Town (Muizenberg / Deep South Circles — English; UNICEF-funded trash-bin/waste-cleanup program; showcase folded in from canceled RESR-53), and AgroforestDAO / Redemption Hill (Bias Fortes, Brazil — Portuguese), plus a fourth garden — in outreach, named only once participation is confirmed — for the mature MRV-adoption slot selected against the RESR-58 criteria (owner review 2026-07-11 supersedes decision #27: three named for now). Naming a candidate does not presume readiness. RESR-62 owns confirmation with each candidate garden. A garden enters fielding only when all are named:
 
 - operator contact and backup contact;
-- preferred language and accessible interview format;
-- community consent path for notes/audio/photos;
+- preferred language and accessible format (the onboarding call itself runs in English);
+- community consent path for notes and any call recording;
 - likely gathering date or remote session;
 - one plausible need/offer/initiative and one commitment candidate;
-- whether G$ settlement is relevant for this garden now;
+- whether G$ rewards are relevant for this garden now;
 - interviewer, note-taker, and follow-up owner.
 
 ## Instrument: two passes, survey-first
@@ -36,11 +36,11 @@ Pass 1 is a self-serve survey; Pass 2 is an action-oriented onboarding call. The
 
 ### Pass 1 — self-serve survey (`survey-instrument.md`)
 
-A Google Forms build sheet (Linear mirror slug `c9271149e328`): six sections — welcome & garden, needs, promises & capacity & exchange, measurement with UNICEF and methodology branches, working together & consent, close — 45 questions on the main path, ~69% closed with "Other" escapes, 18–24 minutes, English master with PT/ES translation as a per-garden fielding gate. All seven legacy warm-context questions survive (open, or closed with an Other escape). The former garden-specific Pass-1 supplements (Greenpill Cape Town's UNICEF reporting; the MRV-adoption slot's methodology and baseline authorship) are now the 4A/4B conditional branches. Voice stays optional, never required.
+A Google Forms build sheet (Linear mirror slug `c9271149e328`): five sections plus one generalized funder/program branch — welcome & garden (with platform-onboarding basics), needs, commitments & capacity & exchange, measurement, wrapping up — 42 questions on the main path (33 required / 9 optional, ~69% closed with "Other" escapes), 16–22 minutes, English master with Portuguese required for Bias Fortes; the onboarding call runs in English. All seven legacy warm-context questions survive. The former garden-specific supplements are generalized into the single funder-reporting branch (4A), with per-garden specifics handled as facilitator probes in the call guide. Section media use existing assets only: the commitment-loop and roles diagrams, the three-tiers and circular-G$ diagrams, the docs impact-value-cycle and MDR illustrations, product screenshots, and the Loom product walkthrough, plus a Grassroots Economics explainer placeholder.
 
 ### Pass 2 — onboarding call (`onboarding-call.md`)
 
-A facilitator guide (Linear mirror slug `d3690de04864`): pre-call synthesis of survey responses into draft mandate rows sent ahead labeled DRAFT; a timed 45–60 minute action agenda; the mandate confirmation checklist (exact unit and quantity; who provides and who benefits; open or steward-reviewed participation; honest evidence and any baseline/delta requirement; named confirmation group and threshold; due date or cycle boundary; declared reward, source, token, and amount — July is Cookie Jar/treasury only; linked Need and zero or more domains; operator read-back: “Is this what you meant?”); G$ incentive talking points; the first-Season timeline; and post-call steps. The former "Locked implementation prompts" live there as Appendix A.
+A facilitator guide (Linear mirror slug `d3690de04864`): pre-call synthesis of survey responses into draft mandate rows and an onboarding roster, both sent ahead labeled DRAFT; a 60-minute agenda in Goal/Cover/Output subsections, including a dedicated platform-onboarding block (who becomes operator/gardener/evaluator, device reality, passkey setup, app training, the WhatsApp/SMS agent path); the mandate confirmation checklist (exact unit and quantity; who provides and who benefits; open or steward-reviewed participation; honest evidence and any baseline/delta requirement; named confirmation group and threshold; due date or cycle boundary; declared reward, source, token, and amount — July is Cookie Jar/treasury only; linked Need and zero or more domains; operator read-back: “Is this what you meant?”); G$ reward-layer talking points; the first-Season timeline; and post-call steps. The former "Locked implementation prompts" live there as Appendix A. The call runs in English.
 
 The operator receives the mandate artifact and must explicitly correct or confirm it. The team records unresolved interpretation as unresolved; it does not infer certainty.
 
@@ -52,15 +52,15 @@ The operator receives the mandate artifact and must explicitly correct or confir
 - Store only enumerated/boolean research metadata in analytics.
 - Offer a no-recording path and allow participants to retract research notes before synthesis.
 
-## Join-request persistence decision — RESR-64, due 2026-08-12
+## Join-request operating gate — RESR-64, due 2026-08-12
 
-RESR-64's assignee is the accountable decision owner; the Product owner accepts the final operating model. No implementation choice is locked. Evaluate these options with operators before PRD-691 is dispatchable for the membership queue slice. The durable output is the **Community Needs & Signals engagement-model document linked from RESR-64**, then mirrored into the membership-queue handoff and this hub.
+The architecture is selected: a **minimal encrypted, garden-scoped service queue**. A passkey account signs its request; the agent stores only the garden, encrypted account/name/note/reason fields, keyed lookup digests, lifecycle timestamps, and state; an authorized operator reads the queue in the existing Garden Manage Members dialog and uses the existing gardener-add transaction. The canonical product/technical shape — including proposed retention, signature, and abuse defaults — is `join-queue-spec.md`. The Product owner still accepts the operating model before PRD-691 is dispatchable; this is not permission to start storing personal data before the remaining evidence is accepted.
 
-| Option | Strength | Cost/risk | Evidence needed |
-|---|---|---|---|
-| Minimal encrypted service queue, garden-scoped | Shared operator handoff; asynchronous; supports status | New personal-data store, retention/deletion and auth burden | Who operates it, retention period, breach boundary, offline submission behavior |
-| Gathering-session handoff, device-to-operator | Little durable personal data; strong in-person context | Weak for remote/asynchronous joins; session loss risk | Can every pilot join happen with an operator present? How are retries recovered? |
-| Signed request/invitation payload retained by member until redeemed | User custody; portable; less central PII | More complex recovery, expiry, and multi-operator review | Can nontechnical members recover the payload? How does batch review work? |
+| Selected direction | Why it fits the pilot | Operating evidence still required |
+|---|---|---|
+| Minimal encrypted service queue, garden-scoped | Shared operator handoff, asynchronous review, member-visible outcome, and no new on-chain permission surface | Controller/processor, encryption/key owner, retention/deletion, EIP-6492/RPC operator, account recovery, access, abuse controls, cost, incident owner, and support path |
+
+Not selected for v1: gathering-session-only handoff (cannot reliably support remote/asynchronous joins) and member-retained invitation payloads (recovery and multi-operator review add more complexity than the service queue).
 
 Rejected for v1: public on-chain join requests, Linear-as-queue, and implicit localStorage transport. They expose personal intent, cross trust boundaries, or cannot support shared operator handoff and recovery. `waiting_for_hat` may persist the pending Need/Signal/Testimony payload, but never substitutes for the join-request transport.
 

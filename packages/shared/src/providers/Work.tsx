@@ -24,6 +24,7 @@ import { validateWorkSubmissionContext } from "../modules/work/work-submission";
 import { useWorkFlowStore } from "../stores/useWorkFlowStore";
 import { WorkTab } from "../stores/workFlowTypes";
 import type { Action, Domain, Garden, WorkDraft } from "../types/domain";
+import { findActionByUID } from "../utils/action/parsers";
 import { compareAddresses, isAddressInList, normalizeAddress } from "../utils/blockchain/address";
 import { DEBUG_ENABLED, debugError, debugLog, debugWarn } from "../utils/debug";
 
@@ -239,9 +240,14 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
     }))
   );
 
+  const selectedAction = useMemo(
+    () => findActionByUID(actionsData, actionUID),
+    [actionsData, actionUID]
+  );
+
   // Use extracted hooks
   const { images, setImages } = useWorkImages();
-  const workForm = useWorkForm();
+  const workForm = useWorkForm(selectedAction?.inputs ?? []);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
 
   // Work mutation with proper auth branching
@@ -255,10 +261,6 @@ export const WorkProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Compute minimum required images from selected action
   const getMinRequiredImages = () => {
-    if (typeof actionUID !== "number" || !actionsData.length) return 1;
-    const selectedAction = actionsData.find(
-      (a: Action) => Number(a.id.split("-").pop()) === actionUID
-    );
     if (!selectedAction?.mediaInfo?.required) return 0;
     return selectedAction.mediaInfo.minImageCount ?? 1;
   };

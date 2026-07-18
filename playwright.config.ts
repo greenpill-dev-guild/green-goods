@@ -129,10 +129,14 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
 
-    // Admin CI - smoke plus production-flow checks owned by the admin lane
+    // Admin CI - deterministic auth, smoke, and production-flow checks owned by the admin lane
     {
       name: "admin-ci",
-      testMatch: [/admin\.smoke\.spec\.ts$/, /admin\.production-flows\.ci\.spec\.ts$/],
+      testMatch: [
+        /admin\.auth\.spec\.ts$/,
+        /admin\.smoke\.spec\.ts$/,
+        /admin\.production-flows\.ci\.spec\.ts$/,
+      ],
       use: { ...devices["Desktop Chrome"] },
     },
 
@@ -221,8 +225,9 @@ export default defineConfig({
     {
       name: "anvil-fork",
       testMatch: /.*\.fork\.spec\.ts$/,
+      fullyParallel: false,
       use: { ...devices["Desktop Chrome"] },
-      timeout: 60000, // Longer timeout for blockchain interactions
+      timeout: 120000, // Includes lazy upstream state reads through the Anvil fork
     },
 
     // Passkey Mock - Tests with mocked Pimlico bundler/paymaster

@@ -22,6 +22,7 @@ bun run dev:smoke:web        # Check web doctor plus client/admin/docs health
 bun run dev:full             # Start all PM2 services
 bun run dev:stack:stop       # Stop all PM2 services
 bun format && bun lint       # Format and lint workspace
+bun run check:source-structure # Check changed non-test package source structure
 bun run test                 # Run all tests (CRITICAL: not `bun test`)
 bun run test:fast            # Same scope, but cache-aware via Turborepo (skips packages with unchanged inputs)
 bun run test:fast:force      # Same as test:fast but bypasses cache (use when debugging a stale cache hit)
@@ -34,7 +35,7 @@ bun build                    # Build everything (respects dependency order)
 
 Per-package: `bun run test`, `bun build`, `bun lint` (check each package.json for available scripts).
 
-**Contracts** (never use raw `forge` commands): `bun build` (adaptive changed-target compile), `bun build:changed` (changed Solidity only), `bun build:target -- src/...` (single-target compile), `bun build:full` (CI/deploy only), `bun run test:fork` (needs RPC URLs). For Arbitrum deploy/upgrade operations, use the named root `contracts:*` scripts; they set `FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer`, clear unrelated Pinata upload secret resolution, and encode the current proxy-owner sender where required.
+**Contracts** (never use raw `forge` commands): `bun build` (adaptive changed-target compile), `bun build:changed` (changed Solidity only), `bun build:target -- src/...` (single-target compile), `bun build:full` (CI/deploy only), `bun run test:fork` (needs RPC URLs). Use `script/deploy.ts` for initial deployments and `script/upgrade.ts` for named UUPS upgrades; do not use `deploy.ts --force` as an upgrade or rollback path. For Arbitrum deploy/upgrade operations, use the named root `contracts:*` scripts; they set `FOUNDRY_KEYSTORE_ACCOUNT=green-goods-deployer`, clear unrelated Pinata upload secret resolution, and encode the current proxy-owner sender where required.
 
 ## Validation Intent Ladder
 
@@ -111,7 +112,7 @@ Package-specific context files (`.claude/context/*.md`) include additional docum
 
 Linear (workspace `greenpill-dev-guild`) is the durable backlog as of 2026-05-09. GitHub is for PRs and code review only — never open GitHub Issues for backlog work. Routine and label-scheme details: [`docs/routines/README.md`](docs/routines/README.md). Live workspace state (active initiatives, projects, customers, cycle status) — query the Linear MCP at the time you need it; do not hardcode it here, it drifts.
 
-**Teams**: Product (`PRD`) and Research (`RESR`). Their workflow states are asymmetric — Product has `QA` and `Ready` as backlog states (no Triage); Research has a `Triage` state (no QA/Ready). Matters when filtering or transitioning issues.
+**Teams**: five as of 2026-07-14 — Product (`PRD`), Research (`RESR`), Community (`COM`), Growth (`GROW`), Marketing (`MAR`). Green Goods routines and skills write only to **Product**. States: PRD and RESR have `Triage`; COM/GROW/MAR use the standard set without it; the old Product `QA`/`Ready` states are retired (QA proof lives in `In Review` + acceptance rules). The funding pipeline (`funding:*`) lives on GROW; marketing/creative briefs on MAR; cohort/community work on COM. Team charters: [`greenpill-dev-guild/.github` → `docs/teams/`](https://github.com/greenpill-dev-guild/.github/tree/main/docs/teams).
 
 **Records**: `Customer Need` (raw signal, structured body) → `Issue` (accepted work). `.plans/` remains execution truth for agent implementation; Linear mirrors carry the `source:plans` label.
 
@@ -151,6 +152,8 @@ After a build sync QA session (the meeting formerly called product sync), [`/qa-
 
 ## Key Patterns
 
+**Implementation Quality**: Apply [the Implementation Quality Contract](.claude/context/values.md#implementation-quality-contract) before and after production-code edits. It is the canonical DRY/KISS/YAGNI/SLAP, cohesion, pattern-selection, and clean-comment contract; do not duplicate a larger textbook checklist in domain skills.
+
 **Hook Boundary**: ALL hooks in `@green-goods/shared`. Client/admin only have components and views.
 ```typescript
 import { useAuth, useGardens } from '@green-goods/shared'; // correct
@@ -161,13 +164,15 @@ import { useAuth, useGardens } from '@green-goods/shared'; // correct
 import deployment from '../../../contracts/deployments/11155111-latest.json';
 ```
 
-**Barrel Imports**: Always `import { x } from "@green-goods/shared"`, never deep paths.
+**Shared Imports**: Import only from public paths declared in `packages/shared/package.json#exports`. Prefer the narrowest declared public subpath when it avoids unrelated runtime coupling; never import `@green-goods/shared/src/**` or another undeclared internal path.
 
 **Type System**: Domain types (`Garden`, `Work`, `Action`, `Address`) live in `@green-goods/shared`. Use `Address` type (not `string`) for Ethereum addresses.
 
 **Error Handling**: Never swallow errors. Use `parseContractError()` + `USER_FRIENDLY_ERRORS` for contract errors. Use `createMutationErrorHandler()` in shared mutation hooks. Use `logger` from shared (not `console.log`).
 
 **Query Keys**: Use `queryKeys.*` helpers from shared. Serialize objects in query keys.
+
+**CI Mock Auth**: Browser CI uses the dev `mockAuth` seam read by `AuthGate` and `DevAuthProvider`; set it before navigation. `injectWalletAuth` is a legacy fallback, not the CI auth path.
 
 **Feature Availability**: Use `isGreenWillDeployed(chainId?)` from `@green-goods/shared` to detect when a feature contract is undeployed (zero-address) on the active chain. Render a "not available on this network" branch instead of a generic empty state — masking deployment gaps as data gaps wastes debugging cycles.
 

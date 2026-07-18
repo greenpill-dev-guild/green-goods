@@ -1,14 +1,14 @@
 ---
 name: clean
-description: Comprehensive codebase cleanup with 8 parallel subagents — deduplication, type consolidation, dead code removal, circular dependencies, type strengthening, defensive code removal, legacy cleanup, and AI slop removal. Use when the user wants to clean up the codebase, improve code quality at scale, or says 'clean the codebase'.
+description: Scope-locked codebase cleanup with 8 focused assessment lanes — deduplication, type consolidation, dead code removal, circular dependencies, type strengthening, defensive code removal, legacy cleanup, and AI slop removal. Use when the user wants to clean up the codebase or improve code quality at scale.
 argument-hint: "[--dry-run] [--scope package-name] [--agents 1,3,5] [--no-codex]"
-context: worktree
+context: fork
 effort: very-high
 ---
 
 # Clean Skill
 
-Parallel codebase cleanup: 8 focused agents each research, assess, and implement high-confidence improvements. Unlike `/audit` (read-only), `/clean` **transforms code**.
+Codebase cleanup in two explicit phases: 8 focused lanes assess the code read-only, then the human locks a numbered fix scope before any implementation begins. Unlike `/audit` and `/principles`, `/clean` may transform code, but only inside that approved scope.
 
 **References**: `CLAUDE.md` and `.claude/context/*.md` for invariants. `/audit` for prior findings.
 
@@ -18,8 +18,8 @@ Parallel codebase cleanup: 8 focused agents each research, assess, and implement
 
 | Trigger | Action |
 |---------|--------|
-| `/clean` | Full 8-agent cleanup + Codex final review |
-| `/clean --dry-run` | Research + assessment only, no implementation, no Codex review |
+| `/clean` | Full assessment -> numbered scope lock -> approved implementation -> Codex final review |
+| `/clean --dry-run` | Research + assessment only; stop before scope lock or implementation |
 | `/clean --scope shared` | Limit all agents (and Codex review) to one package |
 | `/clean --agents 1,3,5` | Run only specific agents by number; Codex review still runs |
 | `/clean --no-codex` | Skip the Codex final review pass |
@@ -28,23 +28,25 @@ Parallel codebase cleanup: 8 focused agents each research, assess, and implement
 
 ## Pre-Flight
 
-Before dispatching agents:
+Before assessment:
 
-1. **Check for uncommitted work**: `git status` — warn user if dirty
-2. **Run baseline**: `bun format && bun lint && bun run test` — capture pass/fail counts
-3. **Load prior audit**: `ls -t .plans/audits/*-audit.md | head -1` — feed findings to relevant agents
-4. **Create checkpoint branch**: `git switch -c clean/$(date +%Y%m%d-%H%M%S)` from current HEAD
-5. **Record checkpoint SHA**: `CHECKPOINT_SHA="$(git rev-parse HEAD)"` — every agent worktree must be based on this exact checkpoint
+1. **Inspect repository state**: `git status --short --branch`. If unrelated or unknown changes overlap the requested scope, stop and surface them; do not format, stash, branch, or edit around them.
+2. **Run a non-mutating baseline**: `bun format:check`, `bun lint`, and `bun run test` — capture pass/fail counts without rewriting files.
+3. **Load prior audit if present**: inspect the newest `.plans/audits/*-audit.md` without assuming one exists.
+4. **Stay on the current branch**: never create or switch branches during pre-flight.
+5. **Record the assessment base**: `CHECKPOINT_SHA="$(git rev-parse HEAD)"`.
+
+No source, report, branch, worktree, lockfile, or plan mutation is allowed before the human approves the numbered scope lock.
 
 ---
 
 ## The 8 Agents
 
-Dispatch ALL agents in parallel using the Agent tool. Each agent runs in `isolation: "worktree"` to avoid conflicts. Each worktree MUST branch from the checkpoint SHA, not `main`, `origin/main`, or the tool's default branch. Each agent follows the same three-phase protocol:
+Dispatch assessment lanes in parallel only when the user or active agent policy permits subagents. Assessment lanes are read-only and return findings to the lead; they do not create worktrees or report files. After scope lock, implement sequentially on the current branch by default. Isolated worktrees and their branches require separate, explicit human approval; when approved, base them on the checkpoint SHA, never `main`, `origin/main`, or the tool's default branch.
 
 ### Worktree Base Invariant
 
-Before an agent starts implementation, verify its worktree base from the orchestrator:
+When worktrees were explicitly approved, verify each implementation worktree base from the orchestrator:
 
 ```bash
 test "$(git -C "$WORKTREE" merge-base "$CHECKPOINT_SHA" HEAD)" = "$CHECKPOINT_SHA"
@@ -63,34 +65,36 @@ When stale-base salvage is approved, create `.plans/clean/merge-audit.md` and re
 ### Agent Protocol (all agents)
 
 ```
-Phase 1: RESEARCH — Scan the entire codebase for instances of the problem
-Phase 2: ASSESS   — Write a critical assessment with findings categorized:
-                     HIGH-CONFIDENCE (safe to fix), MEDIUM (needs judgment), LOW (risky/unclear)
-Phase 3: IMPLEMENT — Fix all HIGH-CONFIDENCE findings. Skip MEDIUM and LOW.
+Phase 1: RESEARCH — Scan the approved repository scope for instances of the problem
+Phase 2: ASSESS   — Return findings categorized as HIGH / MEDIUM / LOW confidence.
+                     The lead deduplicates them into a numbered scope-lock proposal.
+SCOPE LOCK       — Wait for the human to approve exact finding numbers.
+Phase 3: IMPLEMENT — Fix only approved findings. Do not pull in adjacent cleanup.
 ```
 
-Each agent outputs a report at `.plans/clean/agent-{N}-{name}.md` before implementing. In `--dry-run` mode, agents stop after Phase 2.
+Assessment results stay in the conversation until scope lock. After approval, each implementation lane records its approved finding IDs and provenance at `.plans/clean/agent-{N}-{name}.md`. In `--dry-run` mode, lanes stop after Phase 2 and do not write files.
 
 Every report must include a provenance block:
 
 ```md
 ## Provenance
+- execution_mode: current-branch | authorized-worktree
 - checkpoint_sha:
-- worktree_base_sha:
-- worktree_head_sha:
-- merge_base_with_checkpoint:
-- stale_base: yes/no
+- implementation_base_sha:
+- implementation_head_sha:
+- merge_base_with_checkpoint: (authorized worktree only)
+- stale_base: yes/no/not-applicable
 ```
 
 Agent missions are short by design — the agents are strong models; give them the lane and the repo-specific rules, not a tutorial. Every agent: respect CLAUDE.md + `.claude/context/*.md` invariants, run `bun run test` in affected packages after implementing.
 
 ### Agent 1: Deduplication & DRY
 
-Find and consolidate real duplication (components, logic, utilities, near-identical types). Rules: consolidate only at 3+ duplicates (or 2 nearly identical); consolidated hooks go in `@green-goods/shared`; new shared exports join the barrel; no premature abstractions; preserve existing tests.
+Find and consolidate real duplication (components, logic, utilities, near-identical types). Rules: consolidate only at 3+ duplicates (or 2 nearly identical); consolidated hooks go in `@green-goods/shared`; new shared APIs must be added to a declared root or subpath export in `packages/shared/package.json#exports`; no premature abstractions; preserve existing tests.
 
 ### Agent 2: Type Consolidation
 
-Consolidate domain types into shared. Rules: domain types (`Garden`, `Work`, `Action`, `Address`) MUST live in `@green-goods/shared`; `Address` (not `string`) for Ethereum addresses; update all import sites when moving; keep `shared/src/index.ts` barrel exports complete.
+Consolidate domain types into shared. Rules: domain types (`Garden`, `Work`, `Action`, `Address`) MUST live in `@green-goods/shared`; `Address` (not `string`) for Ethereum addresses; update all import sites when moving; confirm the intended path is declared in `packages/shared/package.json#exports`.
 
 ### Agent 3: Dead Code Removal (knip)
 
@@ -123,10 +127,12 @@ Remove AI residue: what-comments and code-history comments (keep WHY comments), 
 ```dot
 digraph clean_flow {
     rankdir=TB;
-    preflight [label="Pre-flight checks\n(baseline, checkpoint branch)" shape=box];
-    dispatch [label="Dispatch 8 agents\n(parallel, worktree-isolated)" shape=box];
-    reports [label="Collect reports\n(.plans/clean/)" shape=box];
-    merge [label="Merge worktrees\n(resolve conflicts)" shape=box];
+    preflight [label="Non-mutating pre-flight\n(state, baseline, checkpoint SHA)" shape=box];
+    dispatch [label="Run assessment lanes\n(read-only)" shape=box];
+    reports [label="Present numbered findings\n(no file writes)" shape=box];
+    scope [label="Human scope lock\n(approved finding IDs)" shape=diamond];
+    implement [label="Implement approved findings\n(current branch by default)" shape=box];
+    merge [label="Merge approved worktrees\n(if separately authorized)" shape=box];
     validate [label="Validate\nShip Gate\n(validation-pipeline.md)" shape=box];
     codex [label="Codex final review\n(regression + miss hunt,\nparallel lanes)" shape=box];
     triage [label="Triage Codex findings\n(auto-revert regressions,\nuser-confirm misses)" shape=box];
@@ -134,7 +140,9 @@ digraph clean_flow {
 
     preflight -> dispatch;
     dispatch -> reports;
-    reports -> merge [label="--dry-run stops here"];
+    reports -> scope [label="--dry-run stops here"];
+    scope -> implement [label="approved IDs"];
+    implement -> merge;
     merge -> validate;
     validate -> codex [label="--no-codex skips"];
     codex -> triage;
@@ -142,18 +150,24 @@ digraph clean_flow {
 }
 ```
 
-### After agents complete:
+### After assessment:
 
-1. **Collect reports** from `.plans/clean/agent-*.md`
-2. **Verify provenance** — each report must show `stale_base: no`; if not, stop for re-dispatch or explicit stale-base salvage approval
-3. **Merge worktrees** — if conflicts arise, prefer the agent whose concern is more central (e.g., Agent 2's type move over Agent 1's dedup of that same type), but never apply blanket "take ours" / "take theirs" without a recorded reason
-4. **Write merge audit** — if any conflict, stale-base salvage, dropped stash, or no-op cherry-pick occurred, write `.plans/clean/merge-audit.md`
-5. **Full validation**: the Ship Gate (`.claude/context/validation-pipeline.md`)
-6. **Post-merge residue checks**: `git diff --check`, targeted removed-symbol scans, package `bunx tsc --noEmit`, and `bunx knip --reporter compact` for unused export/dependency drift
-7. **Fix regressions** — if tests fail, revert the specific change that broke them
-8. **Codex final review** — dispatch the two Codex lanes (see § Codex Final Review). Skipped under `--dry-run` or `--no-codex`.
-9. **Triage Codex findings** — auto-revert HIGH-confidence regressions; surface miss-hunt findings to the user, do not auto-apply
-10. **Summary** — present to user: files changed, findings per agent, what was skipped (MEDIUM/LOW), Codex callouts, merge-audit callouts
+1. **Deduplicate findings** and validate each against current source.
+2. **Present numbered findings** with evidence, risk, smallest fix, and explicit out-of-scope boundaries.
+3. **Wait for scope lock**. The human must approve exact finding IDs before implementation.
+4. **Stop in dry-run mode** without writing reports or changing repository state.
+
+### After approved implementation:
+
+1. **Collect implementation reports** from `.plans/clean/agent-*.md`, each tied to approved finding IDs.
+2. **Verify provenance when worktrees were authorized** — each report must show `stale_base: no`; if not, stop for re-dispatch or explicit stale-base salvage approval.
+3. **Merge authorized worktrees only** without blanket "take ours" / "take theirs" conflict resolution; skip this step for current-branch execution.
+4. **Write merge audit** if any conflict, stale-base salvage, dropped stash, or no-op cherry-pick occurred.
+5. **Run the non-mutating Review Readiness Gate** from `.claude/context/validation-pipeline.md`. Run the mutating Ship Gate only when the user separately requests ship, PR, commit, merge, or release readiness and its pre-flight passes.
+6. **Run residue checks**: `git diff --check`, targeted removed-symbol scans, package TypeScript checks, and locally installed `knip` for unused export/dependency drift.
+7. **Revert only the specific approved change** if it caused a regression; do not fix unrelated failures.
+8. **Run the Codex final review** unless `--no-codex`; never auto-apply miss-hunt findings.
+9. **Summarize** files changed, approved finding IDs, validation, skipped findings, and merge-audit or review callouts.
 
 ---
 
@@ -186,7 +200,7 @@ For each conflict, inspect the agent diff before resolving. "Ours" is valid only
 
 ### Commit Hygiene
 
-Use source-change subjects only when source changes landed. If an agent's final merged diff is report-only or no-op on the checkpoint branch, use a docs/plans subject such as:
+Use source-change subjects only when source changes landed. If an implementation result is report-only or a no-op at the approved implementation head, use a docs/plans subject such as:
 
 ```text
 docs(plans): record agent-2 type consolidation no-op
@@ -208,13 +222,13 @@ A second-opinion pass after Claude's 8 agents merge and validation passes. Codex
 
 ### Lanes
 
-Both lanes dispatch via `.claude/scripts/dispatch-codex-lane.sh` against the checkpoint branch (`clean/<timestamp>`), with `--phase regression` and `--phase gap`. Run them in parallel as background bash jobs — they don't share state.
+Both lanes dispatch via `.claude/scripts/dispatch-codex-lane.sh` against the approved implementation head, with `--phase regression` and `--phase gap`. Use worktree-backed lanes only when branch/worktree creation was explicitly approved.
 
 **Lane R — Regression hunt (diff-scoped):**
 
 ```
-You are reviewing the merged diff between $BASE_BRANCH and HEAD on the clean/* checkpoint
-branch. Eight cleanup agents just modified this codebase. Your job is to find any change
+You are reviewing the merged diff between $BASE_BRANCH and the approved implementation
+head. Cleanup implementation just modified this codebase. Your job is to find any change
 that alters runtime behavior, NOT to find new cleanup opportunities.
 
 Scan every hunk and classify:
@@ -232,7 +246,7 @@ break, and the smallest revert (specific lines).
 
 Honor these invariants from CLAUDE.md — flag if any agent broke them:
 - Hook boundary (all hooks live in @green-goods/shared)
-- Barrel imports (no deep paths)
+- Shared imports use only declared package export paths; no `shared/src` internals
 - Address type for Ethereum addresses
 - parseContractError() + USER_FRIENDLY_ERRORS for contract errors
 - Offline-first fallbacks are intentional, not legacy
@@ -257,7 +271,7 @@ TAXONOMY      — Inconsistent naming, ambiguous file/folder placement, types/co
 PLACEMENT     — Files in the wrong package (e.g., a hook in client/ that should be in
                 shared/, a domain type in admin/ that should be in shared/).
 SEAM DRIFT    — Public APIs that have grown asymmetric (one helper does X+Y, its sibling
-                only does X), barrel exports that don't match what consumers import.
+                only does X), declared exports that don't match what consumers import.
 DOC/CODE DRIFT — Comments, JSDoc, or .claude/context/*.md that contradict the current code.
 
 For each finding, output: location, category, concrete fix, and confidence
@@ -280,7 +294,7 @@ execution record.
 
 ### Triage rules (Claude reads, decides, acts)
 
-- **REGRESSION-HIGH** → auto-revert the cited lines on the checkpoint branch, then re-run validation. If validation now fails, escalate to user.
+- **REGRESSION-HIGH** → revert only the cited approved lines at the implementation head, then re-run validation. If validation now fails, escalate to user.
 - **REGRESSION-MED / -LOW** → list in summary, do not auto-revert.
 - **Miss-hunt findings (any confidence)** → never auto-apply. Surface in summary, let user pick which to feed into a follow-up `/clean --agents N` or a manual edit.
 - If Codex flags an "agent removed dead code that was actually used" and the test suite still passes, trust the test suite first; surface the finding as REGRESSION-LOW for human review.
@@ -298,15 +312,15 @@ Use `--no-codex` when:
 ## Post-Clean Validation
 
 ```bash
-git diff --check              # Whitespace / conflict marker sanity
-bun format && bun lint          # Style
+git diff --check                # Whitespace / conflict marker sanity
+bun format:check && bun lint    # Non-mutating style gate
 bun run test                    # Correctness
 bun build                       # Build integrity
-npx madge --circular --extensions ts,tsx packages/  # Zero circular deps
-bunx knip --reporter compact    # Reduced dead code
+madge --circular --extensions ts,tsx packages/  # Only when locally installed or explicitly approved
+bunx knip --reporter compact    # Checked-in dependency; reduced dead code
 ```
 
-All must pass or be explicitly documented as a pre-existing/known false-positive before reporting completion. If any fail, fix or revert. Codex regression-revert (above) runs **before** this final validation, so the post-clean numbers reflect the corrected state.
+Required checks must pass or be explicitly documented as a pre-existing failure before reporting completion. Optional tooling that is not installed is `UNAVAILABLE`, not permission to install it. If an approved change causes a failure, fix or revert that change. Codex regression-revert (above) runs **before** this final validation, so the post-clean numbers reflect the corrected state.
 
 For symbol-removal agents (dead code, legacy, type consolidation), add targeted scans for every removed public symbol across `packages/`, `docs/`, `.plans/`, and active agent guidance. Source references must be fixed; docs references must either be updated or recorded as intentionally historical.
 
@@ -314,17 +328,18 @@ For symbol-removal agents (dead code, legacy, type consolidation), add targeted 
 
 ## Safety Rules
 
-- **Checkpoint branch** — always create before any changes
+- **Current branch safety** — never create or switch branches unless the human explicitly requests it
+- **Scope lock** — no source/report/worktree mutation before exact finding IDs are approved
 - **Checkpoint base** — every agent worktree must use the checkpoint SHA as its merge base
-- **Worktree isolation** — each agent works in its own worktree
+- **Worktree authorization** — use isolated worktrees only after explicit human approval; otherwise implement sequentially on the current branch
 - **No stale-base default** — re-dispatch stale worktrees unless the human explicitly approves stale-base salvage
 - **Test after implement** — each agent runs `bun run test` in affected packages
 - **No cross-agent dependencies** — agents don't depend on each other's output
 - **HIGH-confidence only** — agents only implement findings they're confident about
-- **Preserve invariants** — all CLAUDE.md rules apply (hook boundary, barrel imports, Address types, single .env)
+- **Preserve invariants** — all CLAUDE.md rules apply (hook boundary, declared public imports, Address types, single .env)
 - **Conflict audit** — every conflict resolution records agent intent, chosen side, and whether any cleanup insight was dropped
 - **Never remove offline-first code** — the job queue, IndexedDB persistence, and service worker are intentional complexity
-- **Codex reviews the merge, not the worktrees** — dispatch only after merge + validation, so Codex sees the same code the user will ship
+- **Codex reviews the integrated result** — dispatch only after implementation + validation, so Codex sees the same code the user will ship
 - **Codex is read-only by default** — only auto-applies regression-reverts (HIGH); miss-hunt findings always go to the user
 
 ---
@@ -353,7 +368,9 @@ Combine both: `/clean --scope shared --agents 1,2,5`
 
 | Don't | Why |
 |-------|-----|
-| Run without checkpoint branch | No rollback if agents break things |
+| Create or switch branches before explicit approval | Violates shared-tree safety and mutates state before scope lock |
+| Write assessment reports before scope lock | Read-only assessment must not mutate the repository |
+| Install missing audit tools implicitly | Supply-chain changes require explicit approval |
 | Let agent worktrees branch from main/origin/main | Stale diffs can silently drop or obsolete cleanup on develop |
 | Resolve conflicts with blanket "take ours" | Can discard the agent's real cleanup insight without audit |
 | Skip `bun run test` validation | Silent regressions |
@@ -379,4 +396,4 @@ Combine both: `/clean --scope shared --agents 1,2,5`
 - `review` — Review specific changes. Use when reviewing a PR or recent commits.
 - `plan` (`teams.md` § Part 11) — canonical reference for the `dispatch-codex-lane.sh` pattern that the Codex final review reuses.
 
-Recommended flow: `audit` -> review findings -> `clean --agents N` targeting specific issues -> Codex final review (built in) -> `review` the changes.
+Recommended flow: `clean` assessment -> approve numbered finding IDs -> targeted implementation -> Codex final review -> `review` the changes.

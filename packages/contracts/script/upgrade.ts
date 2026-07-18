@@ -24,6 +24,7 @@ type ContractName =
   | "work-approval-resolver"
   | "assessment-resolver"
   | "deployment-registry"
+  | "greenwill"
   | "all";
 
 const CONTRACT_FUNCTIONS: Record<ContractName, string> = {
@@ -39,6 +40,7 @@ const CONTRACT_FUNCTIONS: Record<ContractName, string> = {
   "work-approval-resolver": "upgradeWorkApprovalResolver()",
   "assessment-resolver": "upgradeAssessmentResolver()",
   "deployment-registry": "upgradeDeployment()",
+  greenwill: "upgradeGreenWill()",
   all: "upgradeAll()",
 };
 
@@ -54,6 +56,7 @@ const ALL_CONTRACTS_FOR_UPGRADE_ALL: readonly ContractName[] = [
   "yield-gardens-wiring",
   "octant-module",
   "karma-gap-module",
+  // Intentionally exclude GreenWill: it is funds-adjacent and must be upgraded as an explicit target.
 ];
 
 const DEPLOYMENT_KEYS: Partial<Record<Exclude<ContractName, "all">, string>> = {
@@ -67,6 +70,7 @@ const DEPLOYMENT_KEYS: Partial<Record<Exclude<ContractName, "all">, string>> = {
   "work-approval-resolver": "workApprovalResolver",
   "assessment-resolver": "assessmentResolver",
   "deployment-registry": "deploymentRegistry",
+  greenwill: "greenWill",
 };
 
 interface UpgradeOptions {
@@ -83,6 +87,7 @@ interface UpgradeOptions {
 interface ForgeBroadcastTransaction {
   transactionType?: string;
   contractName?: string | null;
+  contractAddress?: string | null;
   function?: string | null;
   transaction?: {
     from?: string;
@@ -236,7 +241,8 @@ Contracts:
   work-approval-resolver  Upgrade WorkApprovalResolver
   assessment-resolver     Upgrade AssessmentResolver
   deployment-registry     Upgrade Deployment
-  all                     Upgrade all contracts
+  greenwill               Upgrade GreenWill (funds-adjacent; explicit target only)
+  all                     Upgrade all standard contracts (excludes GreenWill)
 
 Options:
   --network <name>        Network to upgrade on (default: localhost)
@@ -368,6 +374,7 @@ function persistTxPlan(options: UpgradeOptions, chainId: number): string {
     index,
     transactionType: entry.transactionType ?? null,
     contractName: entry.contractName ?? null,
+    contractAddress: entry.contractAddress ?? null,
     function: entry.function ?? null,
     from: entry.transaction?.from ?? null,
     to: entry.transaction?.to ?? null,
@@ -392,7 +399,22 @@ function persistTxPlan(options: UpgradeOptions, chainId: number): string {
     transactions,
   };
 
-  const fileName = `${chainId}-${options.contract}-${Date.now()}-plan.json`;
+  const runDate = new Date().toISOString().slice(0, 10);
+  let fileName: string;
+
+  if (options.contract === "greenwill") {
+    const greenWillImplementation = (artifact.transactions ?? []).find(
+      (entry) => entry.transactionType === "CREATE" && entry.contractName === "GreenWill",
+    )?.contractAddress;
+
+    if (!isAddress(greenWillImplementation)) {
+      throw new Error("GreenWill implementation address was not found in the upgrade simulation artifact");
+    }
+
+    fileName = `${chainId}-greenwill-${greenWillImplementation.toLowerCase()}-${runDate}-plan.json`;
+  } else {
+    fileName = `${chainId}-${options.contract}-${Date.now()}-plan.json`;
+  }
   const planPath = path.join(plansDir, fileName);
   fs.writeFileSync(planPath, `${JSON.stringify(plan, null, 2)}\n`, "utf8");
 

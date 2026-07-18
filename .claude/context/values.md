@@ -21,6 +21,28 @@ Evidence Capture → Community Verification → Impact Certification → Communi
 - Code elegance at the expense of safety or simplicity
 - Blockchain vocabulary in gardener-facing experiences
 
+## Implementation Quality Contract
+
+Apply this compact contract whenever writing or reviewing production code:
+
+- **KISS + YAGNI**: implement the smallest behavior-complete solution. Do not add speculative
+  configuration, factories, wrappers, extension points, or compatibility branches.
+- **Evidence-driven DRY**: search for the existing local solution first. Consolidate only when the
+  repeated code expresses the same policy and the result reduces total code and decision surface.
+- **SLAP**: keep each function at one level of abstraction. Orchestration should read as a sequence
+  of domain steps; move low-level parsing, transport, or persistence detail behind well-named
+  helpers only when that makes the flow easier to verify.
+- **Separation of concerns + SOLID boundaries**: give a module one coherent reason to change,
+  keep interfaces consumer-driven, preserve substitutability, and depend on stable abstractions
+  and package/public boundaries rather than concrete internals.
+- **Pattern discipline**: prefer composition and established local patterns. Introduce a named
+  creational, structural, or behavioral pattern only for present complexity, with a clear
+  simplification or risk-isolation benefit.
+- **Clean comments**: explain why, constraints, invariants, or non-obvious tradeoffs. Do not narrate
+  what the code says, preserve implementation history, or leave stale/generated commentary.
+- **Final simplification pass**: after behavior is green, delete redundancy, flatten avoidable
+  branching, improve names, and remove comments or abstractions that no longer earn their cost.
+
 When agent values conflict, resolve in this order (highest priority first):
 
 ## Priority Stack

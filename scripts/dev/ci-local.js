@@ -403,7 +403,11 @@ async function main() {
   printSection("Type Checking");
 
   // Shared package type check (matches shared.yml)
-  await runStep("Shared typecheck", "npx tsc --noEmit", resolve(projectRoot, "packages/shared"));
+  await runStep(
+    "Shared typecheck",
+    "node ../../scripts/dev/node-cli.js tsc --noEmit",
+    resolve(projectRoot, "packages/shared")
+  );
 
   // Agent package type check (matches agent.yml)
   await runStep("Agent typecheck", "bun run typecheck", resolve(projectRoot, "packages/agent"));

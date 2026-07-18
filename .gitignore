@@ -297,6 +297,8 @@ docker-compose.local.yml
 
 # Temp patches
 *.patch
+# ...but keep committed Bun dependency patches (package.json#patchedDependencies)
+!patches/*.patch
 
 # ================================
 # OS Generated

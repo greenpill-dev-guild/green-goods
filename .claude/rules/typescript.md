@@ -43,18 +43,17 @@ import type { Address } from '@green-goods/shared';
 interface Garden { tokenAddress: Address; operators: Address[]; }
 ```
 
-## Rule 11: Barrel Import Enforcement
+## Rule 11: Public Export Enforcement
 
-Always import from `@green-goods/shared` root, never deep paths.
-
-Exception: Internal code within `packages/shared/src/` uses relative imports.
+Import only from public paths declared in `packages/shared/package.json#exports`. Prefer the narrowest declared subpath when it avoids pulling unrelated runtime code. Internal code within `packages/shared/src/` uses relative imports.
 
 ```typescript
-// Bad
-import { useAuth } from "@green-goods/shared/hooks/auth/useAuth";
+// Bad: undeclared source-internal path
+import { useAuth } from "@green-goods/shared/src/hooks/auth/useAuth";
 
-// Good
+// Good: declared package exports
 import { useAuth } from "@green-goods/shared";
+import type { PublicGarden } from "@green-goods/shared/public-contracts";
 ```
 
 ## Rule 12: Console.log Cleanup

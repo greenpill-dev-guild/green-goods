@@ -7,10 +7,10 @@
     "stage": "backlog"
   },
   "workflow": {
-    "overall_status": "backlog",
+    "overall_status": "done",
     "priority": "p2",
     "created_at": "2026-05-31T03:18:31.791Z",
-    "updated_at": "2026-06-26T00:00:00.000Z"
+    "updated_at": "2026-07-12T19:36:52.000Z"
   },
   "links": {
     "brief": "brief.md",
@@ -38,42 +38,52 @@
     "depends_on_features": []
   },
   "notes": [
-    "Backlog-only hub for PRD-563 and child decomposition issues.",
-    "Do not create active lane issues until a slice is explicitly activated.",
-    "PRD-565 remains parked pending the Seasons reframe and campaign-cookie-jar roadmap decision."
+    "Backlog hub for PRD-563 and its completed structure-only decomposition slices.",
+    "This July reconciliation records repository evidence only; it does not create or update Linear issues.",
+    "ADR-020 acceptance authorized the completed Campaign Cookie Jar extraction only; existing campaign vocabulary and public compatibility remain unchanged."
   ],
   "lanes": {
     "ui": {
       "owner": "claude",
-      "status": "blocked",
-      "manual_blocked": true,
+      "status": "completed",
+      "manual_blocked": false,
       "branch": "claude/ui/monolith-decomposition",
       "depends_on": [],
       "handoff": "handoffs/claude-ui.md",
       "tdd": {
         "mode": "not_applicable",
-        "status": "pending",
-        "red": { "command": "", "evidence": "" },
-        "green": { "command": "", "evidence": "" },
-        "note": "UI/admin Cookie Jar extraction is parked until the Seasons reframe is resolved."
+        "status": "green_recorded",
+        "red": {
+          "command": "Not applicable — mechanical extraction only",
+          "evidence": "ADR-020 permits this slice only when existing exports, routes, metadata, behavior, and campaign copy remain unchanged."
+        },
+        "green": {
+          "command": "bun run --cwd packages/admin build; bun run --cwd packages/admin test -- src/views/Cookies/campaignCookieJarPanel.model.test.ts; bun run --filter @green-goods/shared check:stories; bun run --filter @green-goods/shared check:story-quality",
+          "evidence": "Admin production build passed; targeted model test passed 13/13; story coverage passed 196/196; story-quality passed across 168 story files."
+        },
+        "note": "TDD is not applicable: this was ADR-020-authorized mechanical component extraction with preserved behavior and public exports, not a new behavior change."
       },
       "skill_tags": ["ui", "maintenance", "review"]
     },
     "state_api": {
       "owner": "codex",
-      "status": "todo",
+      "status": "completed",
+      "manual_blocked": false,
       "branch": "codex/state-api/monolith-decomposition",
       "depends_on": [],
       "handoff": "handoffs/codex-state-api.md",
       "tdd": {
-        "mode": "proof_limit",
-        "status": "pending",
-        "red": { "command": "", "evidence": "" },
-        "green": {
-          "command": "not run",
-          "evidence": "Backlog formalization only; no decomposition code changed."
+        "mode": "not_applicable",
+        "status": "green_recorded",
+        "red": {
+          "command": "Not applicable — facade-preserving structure-only split",
+          "evidence": "The database facade and createServer() composition root retain their existing caller contracts; no feature behavior was added."
         },
-        "note": "Future behavior-changing slices must record their own RED/GREEN or validation evidence."
+        "green": {
+          "command": "bun run build:agent; bun run test:agent",
+          "evidence": "Agent TypeScript build passed; full agent Vitest suite passed 20 files and 230 tests."
+        },
+        "note": "TDD is not applicable: DB repositories, HTTP/routes, and funding transport were mechanically separated behind the existing facades and route composition."
       },
       "skill_tags": ["agent", "maintenance", "testing"]
     },
@@ -94,7 +104,7 @@
     },
     "qa_pass_1": {
       "owner": "claude",
-      "status": "blocked",
+      "status": "completed",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "claude/qa-pass-1/monolith-decomposition",
@@ -104,7 +114,7 @@
     },
     "qa_pass_2": {
       "owner": "codex",
-      "status": "blocked",
+      "status": "completed",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "codex/qa-pass-2/monolith-decomposition",
@@ -122,6 +132,14 @@
       "status": "formalized_backlog",
       "branch": null,
       "note": "Formalized monolith decomposition as a backlog hub linked to PRD-563."
+    },
+    {
+      "timestamp": "2026-07-12T19:36:52.000Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "completed",
+      "branch": null,
+      "note": "Reconciled completed DB facade, server HTTP/routes, funding transport, and ADR-020-authorized Campaign Cookie Jar extraction. Agent build/test and admin build, targeted model test, and Storybook checks are evidenced; no Linear activity was created."
     }
   ]
 }

@@ -21,6 +21,7 @@ responsible for protocol entities, not for EAS attestations.
 - Every persisted entity needs a `chainId`.
 - Use composite IDs that include `chainId` to avoid cross-chain collisions.
 - When relationships change, update both sides.
+- Keep TypeScript `strict` and `noImplicitAny` enabled for handwritten `src/` and `test/` code; do not weaken compiler flags to accommodate generated types.
 - After schema or config changes, regenerate and rebuild generated code before trusting tests.
 
 ## Codex Notes

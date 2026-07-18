@@ -53,7 +53,7 @@ vi.mock("../../hooks/work/useWorkMutation", () => ({
 }));
 
 vi.mock("../../hooks/work/useWorkForm", () => ({
-  useWorkForm: () => mockUseWorkForm(),
+  useWorkForm: (...args: unknown[]) => mockUseWorkForm(...args),
 }));
 
 vi.mock("../../hooks/work/useWorkImages", () => ({
@@ -361,6 +361,30 @@ describe("providers/WorkProvider", () => {
   });
 
   describe("Submission validation", () => {
+    it("passes the selected action's required inputs to the form validator", () => {
+      const requiredInputs = [
+        {
+          key: "seedlingsPlanted",
+          title: "Seedlings planted",
+          placeholder: "0",
+          type: "number" as const,
+          required: true,
+          options: [],
+        },
+      ];
+      mockWorkFlowStore.actionUID = 1;
+      mockUseActions.mockReturnValue({
+        data: [createMockAction({ id: "11155111-1", inputs: requiredInputs })],
+        isLoading: false,
+      });
+
+      renderHook(() => useWork(), {
+        wrapper: createFullWrapper(),
+      });
+
+      expect(mockUseWorkForm).toHaveBeenCalledWith(requiredInputs);
+    });
+
     it("shows validation error when context is incomplete", async () => {
       const mockValidate = validateWorkSubmissionContext as ReturnType<typeof vi.fn>;
       mockValidate.mockReturnValue(["Please select a garden"]);

@@ -1,7 +1,7 @@
 ---
 routine-name: health-watch
 trigger:
-  schedule: "30 7 * * 1-5"  # 07:30 local, Mon-Fri
+  schedule: "30 14 * * 1,3,5"  # Mon/Wed/Fri 14:30 UTC (= 07:30 PT) — reduced from daily 2026-07-18; red-only posting unchanged, Sentry alerting covers off-days
 repos:
   - green-goods
 environment: green-goods-routines-extended

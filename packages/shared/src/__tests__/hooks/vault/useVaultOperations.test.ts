@@ -7,7 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, renderHook } from "@testing-library/react";
 import { createElement, type ReactNode } from "react";
 import { IntlProvider } from "react-intl";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mock matchMedia before any module imports that touch theme system
 Object.defineProperty(window, "matchMedia", {
@@ -56,6 +56,7 @@ let mockTransactionSender: {
   supportsBatching: boolean;
   authMode: string;
 } | null = null;
+const queryClients = new Set<QueryClient>();
 
 vi.mock("../../../hooks/blockchain/useTransactionSender", () => ({
   useTransactionSender: () => mockTransactionSender,
@@ -104,6 +105,7 @@ const messages = {
 } as const;
 
 function createWrapper(queryClient: QueryClient) {
+  queryClients.add(queryClient);
   return function Wrapper({ children }: { children: ReactNode }) {
     return createElement(
       QueryClientProvider,
@@ -141,6 +143,11 @@ describe("hooks/vault/useVaultOperations", () => {
       supportsBatching: false,
       authMode: "wallet",
     };
+  });
+
+  afterEach(() => {
+    queryClients.forEach((queryClient) => queryClient.clear());
+    queryClients.clear();
   });
 
   it("runs two-step deposit flow (approve -> deposit) when allowance is insufficient", async () => {

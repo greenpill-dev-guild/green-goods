@@ -132,7 +132,7 @@ For this repo, legibility is less about one ideology and more about a few recurr
 
 1. **Stable entry points**
    - shared hooks live in `@green-goods/shared`
-   - shared imports should prefer the barrel
+   - shared imports should use declared public export paths, never source internals
    - chain defaults should flow through `getDefaultChain()` or `DEFAULT_CHAIN_ID`
 
 2. **Visible critical checks**
