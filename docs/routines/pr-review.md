@@ -12,8 +12,12 @@ repos:
   - green-goods
 environment: green-goods-routines
 network-access: trusted
+env-vars:
+  - DISCORD_BOT_TOKEN
+  - DISCORD_ENGINEERING_CHANNEL_ID  # the missing-issue catch + connector-down fallback line
 connectors:
   - vercel
+  - linear  # OAuth connector only, no key — the primary posting surface
 model: claude-opus-4-8[1m]
 ---
 
@@ -24,8 +28,8 @@ You are reviewing a pull request on the Green Goods monorepo. Your job is to lea
 
 ## Cost controls (check FIRST)
 
-1. If the PR has the label `skip-review` or `wip`, post a single comment "Review skipped (labeled `skip-review`/`wip`)" and stop.
-2. If the PR touches more than 50 files, post a single summary comment "Large PR (>50 files); focused line-level review skipped. Please request review on specific files via PR comment." and stop.
+1. If the PR has the label `skip-review` or `wip`, log "Review skipped (labeled)" and stop — post nothing anywhere.
+2. If the PR touches more than 50 files, deliver only a one-line note through the normal posting mechanism ("Large PR (>50 files); focused line-level review skipped") and stop.
 
 ## Invariants to check (from CLAUDE.md / AGENTS.md)
 
@@ -97,9 +101,19 @@ Query `search_issues` with `is:unresolved` (sort `freq`), optionally narrowing b
 
 **Privacy + scope**: this is review commentary, never an invariant -- do NOT `REQUEST_CHANGES` on Sentry state. Sentry **issue** metadata (title, culprit, level, counts, issue URL) is safe to quote; do NOT paste event-level detail (user emails, IPs, request bodies, breadcrumbs) into PR comments. If the Sentry connector is unwired or unreachable, skip this section silently -- like the Vercel section, it is enrichment, never load-bearing.
 
-## Summary comment format
+## Posting mechanism (Linear-first — no GitHub writes, no stored tokens, by design)
 
-At the end, post one summary comment:
+**This environment stores NO GitHub token** (steward decision 2026-07-18, matching the guild's no-stored-key rule). The routine therefore never writes to GitHub — in-PR line commentary is CodeRabbit's and Codex's lane. Claude's review is delivered where the guild tracks work:
+
+1. **Primary — a Linear comment via the OAuth Linear connector** (no key; fail closed if unauthenticated). Resolve the PR's Linear reference from the **PR body** — `(Closes|Fixes|Refs?|Linear:)\s*([A-Z]{2,5}-\d+)` plus bare issue ids; auto-generated branch names embed ids and are NOT evidence. Post ONE comment per referenced issue using the review-summary format below, with the top inline flags folded in as `path:line — finding` one-liners (cap 5; remainder counted). Never change any issue field.
+   **Idempotency:** skip an issue that already carries a pr-review comment for this PR at this head SHA; a new push to the PR = one fresh comment.
+2. **No Linear reference → the missing-issue catch.** Post ONE line to `#engineering` via Discord bot-token REST (`DISCORD_BOT_TOKEN` + `DISCORD_ENGINEERING_CHANNEL_ID`; channel guard: this is the only allowed channel — if unset, log and exit non-zero): `🔍 **PR #{n}** ({title}) has **no Linear issue referenced** — review: {verdict}, {N} flag(s). Add "Closes XXX-NNN" to the PR body or state why none is needed. <{PR url}>`. Flag only — never create a Linear issue from here.
+3. **Fail loud, never degrade.** If the Linear connector is unauthenticated and the PR has a reference, deliver via the `#engineering` line instead, prefixed "⚠️ Linear connector needs re-authorization —". If both surfaces fail, the run has FAILED: exit non-zero with the response bodies in the run log. Never end a run with a prepared-but-unposted review.
+4. **Skips:** draft PRs (already filtered), `claude/*` and `profile-refresh/*` branches, dependabot.
+
+## Review summary format (the Linear comment body)
+
+This format is the body of the Linear comment (or the run-log record when the Discord-only path applies):
 
 ```
 ## Review summary
