@@ -2,7 +2,7 @@
 name: audit
 user-invocable: true
 description: Repo-health audit and drift classifier for Green Goods — dead code, dependency health, invariant drift, stale guidance/plans/docs drift, and concrete broken or brittle spots. Use when the user asks for an audit, a drift check, "is the repo healthy", stale guidance, cleanup readiness, or whether to run clean. Read-only; routes accepted findings to a fix pass, /clean, or Linear.
-argument-hint: "[package|drift] [--full] [--team] [--loop]"
+argument-hint: "[package|drift] [--full] [--team] [--loop] [--write-report]"
 context: fork
 effort: high
 ---
@@ -15,13 +15,13 @@ Prefer `/review` or `/status` first. This skill is for broader repo-health drift
 
 **References**: See `CLAUDE.md` for codebase patterns and `.claude/context/*.md` for per-package invariants.
 
-**Context mode**: `context: fork` -- read-only subagent. Never edit files during an audit. Report findings and let the user decide.
+**Context mode**: `context: fork` -- read-only subagent. Never edit files during an audit. Return findings in the response and let the user decide.
 
 ---
 
 ## Scope Lock
 
-This skill is strictly read-only.
+This skill is strictly read-only by default, including report generation.
 
 Audit/report work stays read-only by default. Do not create or mutate Linear records during
 analysis. After the user approves specific findings for tracking, route accepted findings into
@@ -62,7 +62,8 @@ These are mandatory:
 | "repo drift", "stale guidance", "should we clean?" | Treat as `/audit drift` |
 | `/audit --full` | Skip scope detection, analyze all packages |
 | `/audit --team` | Parallel agent team |
-| `/audit --loop` | Audit -> fix -> re-audit loop until clean |
+| `/audit --write-report` | After analysis, persist the response as `.plans/audits/[date]-audit.md` |
+| `/audit --loop` | Complete the read-only audit, then route approved findings through the scope-lock rhythm (see Part 10) |
 
 ## Drift Mode
 
@@ -84,7 +85,7 @@ Use **TodoWrite** when available, otherwise Markdown checklist. See `CLAUDE.md` 
 
 **REQUIRED before new analysis.** Check whether previous Critical/High findings are still open.
 
-1. Find the most recent audit report: `ls -t .plans/audits/*-audit.md | head -1`
+1. If a prior persisted audit exists, inspect the newest `.plans/audits/*-audit.md`; otherwise record "no prior persisted audit" and continue.
 2. Extract all Critical and High findings with file:line references
 3. Re-verify each finding against the current code. For UNCHANGED packages (per Part 0.5), carry forward with status `CARRY-FORWARD (unchanged)` and spot-check 1-2 representative findings
 4. Count consecutive open cycles per finding
@@ -140,11 +141,11 @@ grep -rn "TODO\|FIXME\|HACK" --include="*.ts" packages/
 ### Dependency Health
 
 ```bash
-npm audit --omit=dev 2>/dev/null || echo "npm audit unavailable"
-bun outdated 2>/dev/null || npx --yes npm-check-updates --format group
+bun audit --audit-level=high
+bun outdated
 ```
 
-Report: HIGH/CRITICAL CVEs as findings, deps 2+ major behind as LOW, deprecated/EOL as MEDIUM.
+Report: HIGH/CRITICAL CVEs as findings, deps 2+ major behind as LOW, deprecated/EOL as MEDIUM. If registry/network access is unavailable, record the dependency check as blocked; never install fallback tooling during an audit.
 
 ### Test Coverage
 
@@ -263,7 +264,7 @@ In team mode, the lead re-reads every sub-agent finding before synthesis. Unveri
 
 ## Part 6: Report Generation
 
-Create at `.plans/audits/[date]-audit.md`:
+Return the report in the response by default. Only write `.plans/audits/[date]-audit.md` when the user explicitly requests a durable artifact or invokes `--write-report`. Report shape:
 
 ```markdown
 # Audit Report - [Date]
@@ -359,7 +360,7 @@ After the report, group findings by actionability:
 Prompt user before creating any Linear issues: "Found N findings that are ready to track in
 Linear. Create Product/Research issues for these accepted findings? [y/n]"
 
-Update Known Issues Registry: add findings at 5+ cycles or MONITORED, update dates, move resolved to Resolved table.
+Only after explicit approval to persist tracking, update the Known Issues Registry: add findings at 5+ cycles or MONITORED, update dates, and move resolved entries to the Resolved table.
 
 ### Linear Issue Routing
 
@@ -376,18 +377,9 @@ Audit-specific deltas:
 
 ---
 
-## Part 10: Loop Mode
+## Part 10: Implementation Handoff
 
-When `--loop` is passed: audit -> fix -> re-audit cycle.
-
-1. Run full audit (Parts 0-9)
-2. User decides per finding: Fix / Accept / Defer / Skip
-3. Apply fixes (max 3 per iteration by risk score)
-4. Re-validate with the Ship Gate (see `.claude/context/validation-pipeline.md`) on affected packages
-5. Report delta (fixed, regressions, remaining)
-6. Repeat until: no Critical/High remain, 3 iterations hit, or user stops
-
-**Safety rules**: Always validate after fixes. Max 3 iterations. Show diffs before applying. Create checkpoint branch: `git switch -c audit/loop-$(date +%Y%m%d-%H%M%S)`. Update Known Issues Registry at end of loop, not during.
+When `--loop` is requested, complete the read-only audit first and present numbered findings. Route the approved set through the scope-lock rhythm (numbered findings → explicit user lock → fix only locked items → re-validate per `.claude/context/validation-pipeline.md`). Do not apply fixes, create branches, write reports, or update registries from the audit phase itself. Fix at most 3 findings per approved iteration, highest risk score first, on the current branch.
 
 ---
 
