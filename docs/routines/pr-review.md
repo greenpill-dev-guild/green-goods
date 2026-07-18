@@ -97,6 +97,15 @@ Query `search_issues` with `is:unresolved` (sort `freq`), optionally narrowing b
 
 **Privacy + scope**: this is review commentary, never an invariant -- do NOT `REQUEST_CHANGES` on Sentry state. Sentry **issue** metadata (title, culprit, level, counts, issue URL) is safe to quote; do NOT paste event-level detail (user emails, IPs, request bodies, breadcrumbs) into PR comments. If the Sentry connector is unwired or unreachable, skip this section silently -- like the Vercel section, it is enrichment, never load-bearing.
 
+## Posting mechanism (explicit — a review that is not posted is a failed run)
+
+There is no GitHub MCP in this environment and comments do NOT post themselves. Post with `gh api` using the `GITHUB_TOKEN` env secret (fine-grained PAT: green-goods repo, pull-requests read/write):
+
+1. **Inline flags + verdict in one call** — `POST /repos/greenpill-dev-guild/green-goods/pulls/{n}/reviews` with `{"event": "COMMENT" | "REQUEST_CHANGES" | "APPROVE", "body": "<summary comment>", "comments": [{"path", "line", "side": "RIGHT", "body"}, ...]}`. One review submission carries everything.
+2. **Fallback** — if the reviews API rejects the batch (stale diff positions), post the summary alone via `POST /repos/greenpill-dev-guild/green-goods/issues/{n}/comments` and fold the inline flags into it as a `path:line` list.
+3. **Fail loud, never degrade** — if `GITHUB_TOKEN` is unset or every POST fails, the run has FAILED: exit non-zero with the response bodies in the run log. Never end a run with a prepared-but-unposted review; "prepared but not posted" is the exact silent failure this section exists to prevent.
+4. Verify the POST: a 2xx with a review/comment `id` is posted; anything else is not.
+
 ## Summary comment format
 
 At the end, post one summary comment:
