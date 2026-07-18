@@ -9,6 +9,8 @@ user-invocable: true
 
 One command for the standing request: **"review this — ensure no regressions, no remaining gaps, and production quality."** Three passes over one resolved scope, then a verdict. Read-only unless `--fix` is explicitly requested.
 
+It answers three questions with fresh evidence: **regression safety** (Pass 1), **requirement closure** (Pass 2), **production readiness** (Pass 3). `APPROVE` is a bounded, evidence-backed readiness verdict for the reviewed scope — not a claim that unrelated repository or production failures are impossible.
+
 ## Scoping
 
 Resolve scope **before** inspecting code and state it in the Summary so the user can redirect.
@@ -22,7 +24,11 @@ Valid package scopes map to `packages/<name>/**` (contracts, indexer, shared, cl
 - `--scope cross-package` — verify blast radius in dependency order (contracts → shared → indexer → apps → agent); only cross-boundary findings.
 - `--scope design-system` — delegate to [`design/system-alignment-review.md`](../design/system-alignment-review.md), read-only; return its sections directly, don't mix into diff findings. Fires only on explicit invocation, on DESIGN.md-dialect + theme/tokens co-changes, or when a change touches ≥2 visual surfaces at once.
 
-If scope resolves to >800 LOC, warn and offer to narrow before continuing. If the branch matches the Linear convention (`<user>/<team-key>-<id>-<slug>`), pull the linked Issue via Linear MCP and use its acceptance criteria as intent input for Pass 2; skip silently if it doesn't parse.
+### Authoritative requirements
+
+After resolving the code scope, establish the requirement baseline in this order: (1) the user's current request and explicit acceptance criteria; (2) the PR description and any linked Linear issue; (3) the Linear issue parsed from a conventional branch name (`<user>/<team-key>-<id>-<slug>` via Linear MCP — skip silently if it doesn't parse); (4) any `.plans/` lane referenced by the request, PR, or issue (`brief.md`, `spec.md`, `plan.todo.md`, `status.json`); (5) directly applicable package documentation those sources reference. Record which sources were available. If no authoritative requirements can be established, continue with useful findings but set the final verdict to `COMMENT_ONLY` — do not claim that no gaps remain.
+
+If scope resolves to >800 LOC, split it into declared review batches and keep a coverage ledger of reviewed vs remaining files; never narrow or imply completeness unless the user explicitly changes the scope.
 
 ## Pass 1 — Regressions
 
@@ -34,21 +40,21 @@ Correctness of what changed. Prioritize high-signal risk areas:
 - retry, trust-boundary, migration, or destructive-operation changes
 - missing or misleading tests on changed behavior (bugfix with no regression test; public API change with no test update)
 
-**Repo invariants** (the durable list lives in CLAUDE.md § Key Patterns and `.claude/context/<pkg>.md` — check the diff against them): hooks only in `@green-goods/shared`; barrel imports; addresses from deployment artifacts; `Address` type; no package-level `.env`; `bun run test` never `bun test`; user-facing strings localized (en/es/pt); `parseContractError` + `createMutationErrorHandler` on mutation paths; `logger` not `console.log`; query keys via `queryKeys.*` helpers.
+**Repo invariants** (the durable list lives in CLAUDE.md § Key Patterns and `.claude/context/<pkg>.md` — check the diff against them): hooks only in `@green-goods/shared`; imports only from declared `packages/shared/package.json#exports` paths (never `shared/src/**` internals); addresses from deployment artifacts; `Address` type; no package-level `.env`; `bun run test` never `bun test`; user-facing strings localized (en/es/pt); `parseContractError` + `createMutationErrorHandler` on mutation paths; `logger` not `console.log`; query keys via `queryKeys.*` helpers.
 
 **Structural lenses** — apply when the diff shows the signal, not ritually:
 
 - *Boundary/placement*: hook or module landing outside its owning package; first-time cross-package import; layering breaks (`contracts → shared → indexer → client/admin/agent`); a public surface becoming a junk drawer. Prefer the smallest structural fix; never prescribe new layers without a deletion story.
-- *Coherence*: new wrapper/abstraction with one call site and no concrete pressure; near-duplicate of adjacent code (flag only when divergence creates real maintenance risk); a function accumulating unrelated concerns. Don't equate size with bad design; confirm harm before reporting.
+- *Coherence*: new wrapper/abstraction with one call site and no concrete pressure; near-duplicate of adjacent code (flag only when divergence creates real maintenance risk); a function accumulating unrelated concerns. Don't equate size with bad design; confirm harm before reporting. The canonical quality bar is [`values.md § Implementation Quality Contract`](../../context/values.md) — judge against it, don't restate textbook principles.
 - *Critical surfaces* (CLAUDE.md § Criticality Matrix): `packages/contracts/src/**` → **contracts-security** lens (access control, UUPS/storage-gap rules, CEI — checklist in `.claude/context/contracts.md`); JobQueue/Work/Auth providers and mutation hooks → **mutation-reliability** lens (no log-only failure handling, offline queue integrity, retry visibility — invariants in `.claude/context/shared.md`). Read every touched line on these surfaces.
 
 For large or critical diffs where an adversarial deep pass is warranted, the built-in `/code-review` (effort levels, verify pass) is the engine of choice — say so and use it rather than hand-rolling depth.
 
 ## Pass 2 — Remaining Gaps
 
-Completeness against intent. Sources of intent, in order: the user's request this session, the active `.plans/active/<feature>/plan.todo.md` if one matches, Linear acceptance criteria from the branch issue, the PR description.
+Completeness against the authoritative requirements established during scoping. Map every requirement to implementation and evidence with an explicit status: `SATISFIED`, `MISSING`, `BLOCKED`, or `OUT_OF_SCOPE`. Any `MISSING` requirement produces `REQUEST_CHANGES`; any `BLOCKED` requirement prevents `APPROVE` and produces `COMMENT_ONLY` unless other findings already require changes.
 
-Map each stated requirement to concrete code. Then sweep for the repo's recurring gap shapes:
+Then sweep for the repo's recurring gap shapes:
 
 - requirement present in intent but absent or half-wired in code (lead with these — never bury a requirement miss under style notes)
 - UI reachable state with no route/entry wired, or wired but dead (feature-availability: undeployed contracts need the `isGreenWillDeployed`-style "not available on this network" branch, not a generic empty state)
@@ -62,7 +68,9 @@ Report gaps in their own section — a gap is not a defect; it's unfinished inte
 
 ## Pass 3 — Production Quality
 
-Pick the lightest honest rung per CLAUDE.md § Validation Intent Ladder and run it — commands are defined once in [`.claude/context/validation-pipeline.md`](../../context/validation-pipeline.md):
+Plain review runs the non-mutating **Review Readiness Gate** defined in [`.claude/context/validation-pipeline.md`](../../context/validation-pipeline.md) (`format:check`, lint, tests, pinned `VITE_CHAIN_ID=11155111` build, plus its scope-conditional additions). Run every required stage fresh in this invocation — never reuse stale evidence. A required stage that fails → `REQUEST_CHANGES`; a required stage that cannot run → `COMMENT_ONLY`, never silently downgraded or substituted.
+
+For narrower explicit intents, pick the lightest honest rung per CLAUDE.md § Validation Intent Ladder:
 
 - isolated fix → targeted package-local test/proof
 - cross-package or shared-surface impact → Repo Quick Gate
@@ -87,7 +95,7 @@ Lead with findings, keep the list actionable:
 3. **Remaining Gaps** — unfinished intent, each with the smallest completing step
 4. **Human Call-Outs** — dependencies, auth/permissions, migrations, contract deploys, trust-boundary changes (never auto-fix these)
 5. **Verification** — what ran, real results, what remains unverified
-6. **Verdict** — `APPROVE` | `REQUEST_CHANGES` | `COMMENT_ONLY`
+6. **Verdict** — `APPROVE` | `REQUEST_CHANGES` | `COMMENT_ONLY`. Rules: any `MISSING` requirement or failed required check → `REQUEST_CHANGES`; any `BLOCKED` requirement/check, or no authoritative requirements available → `COMMENT_ONLY`; `APPROVE` only when every requirement is `SATISFIED`/`OUT_OF_SCOPE` and the readiness gate passed fresh.
 
 Finding format: `[Title] — severity · type · file:line · why it matters · next step`.
 

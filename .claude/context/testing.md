@@ -48,6 +48,12 @@ Auth / work / job-queue / vault / blockchain surfaces are the `critical` tier in
 - Offline: `fake-indexeddb/auto` + `simulateNetworkConditions` / `navigator.onLine` spy; assert job-queue jobs transition pending → completed.
 - E2E (Playwright): critical journeys only, client PWA + admin with platform-specific auth (passkey / wallet-injection / mock-auth). Scope, helpers, runner: `tests/README.md`. Config + fixtures: `docs/docs/builders/testing/playwright.mdx`.
 
+## CI authentication seam
+
+Set up auth **before navigation**: `setupAuthenticatedClient` for client CI and the spec-local `setupAuthenticatedAdmin` pattern for admin CI. Both use the dev `mockAuth` seam read by `AuthGate` and `DevAuthProvider`; the client setup also installs the schema-correct `mock-backend` fixtures for the indexer, EAS, and RPC boundaries. Treat these helpers and fixtures as the canonical CI auth boundary.
+
+Do not use `injectWalletAuth` for CI authentication — it is a legacy wallet-storage fallback that depends on wagmi accepting a real connector and is unreliable in headless CI. Keep it only for its narrow platform/auth-path coverage. Matching Playwright CI projects: `PLAYWRIGHT_APP=client APP_ENV=test bunx playwright test --project=client-ci` / `PLAYWRIGHT_APP=admin … --project=admin-ci`.
+
 ## QA-speed proof substitutes
 
 Under QA Speed Mode (CLAUDE.md § Validation Intent Ladder), a fix may record instead of a new test:

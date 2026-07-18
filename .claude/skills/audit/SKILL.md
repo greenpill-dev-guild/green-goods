@@ -167,7 +167,7 @@ For each file in CHANGED packages, check:
 
 1. **Deprecations** -- outdated patterns, old APIs
 2. **Unfinished work** -- TODO comments with staleness
-3. **Architectural violations** (per CLAUDE.md): hooks in client/admin, package .env files, hardcoded addresses
+3. **Architectural violations** (per CLAUDE.md): hooks in client/admin, package .env files, hardcoded addresses, undeclared `shared/src/**` internal imports
 4. **Type problems** -- `any`, `unknown`, type assertions
 5. **Code smells** -- long functions, deep nesting
 6. **Bare catch blocks** -- classify each:

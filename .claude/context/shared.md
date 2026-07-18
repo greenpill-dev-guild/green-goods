@@ -277,7 +277,7 @@ Beyond `parseContractError` / `USER_FRIENDLY_ERRORS` / `createMutationErrorHandl
 
 ### Contract ABIs
 
-ABIs are barrel exports from `@green-goods/shared` (source: `utils/blockchain/abis.ts`, e.g. `GardenAccountABI`, `GardenTokenABI`). Never import ABI JSON from `contracts/out/*.json`.
+ABIs are public exports of `@green-goods/shared` (source: `utils/blockchain/abis.ts`, e.g. `GardenAccountABI`, `GardenTokenABI`). Never import ABI JSON from `contracts/out/*.json`.
 
 ## Anti-Patterns
 
@@ -324,7 +324,7 @@ export { useNewHook } from "./domain/useNewHook";
 
 | Mistake | Why It Fails | Solution |
 |---------|--------------|----------|
-| Deep imports from shared | Bypasses barrel exports | Import from `@green-goods/shared` root |
+| Deep/internal imports from shared | Bypasses the declared public surface | Import only from paths declared in `packages/shared/package.json#exports`; never `@green-goods/shared/src/**` |
 | Using wallet chainId | Wallet may be on wrong chain | Use `useCurrentChain()` |
 | Polling for updates | Wastes resources, stale data | Use event-driven updates |
 | Creating hooks in client | Violates hook boundary | Move to shared |

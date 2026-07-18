@@ -118,7 +118,7 @@ Remove obsolete paths: `@deprecated` tags, stale TODO/FIXME/HACK, dead feature f
 
 ### Agent 8: AI Slop & Comment Cleanup
 
-Remove AI residue: what-comments and code-history comments (keep WHY comments), stub implementations, verbose no-information JSDoc, leftover `console.log` debugging, dead imports, over-engineered single-use wrappers. Edited comments are written for the next developer, not the reviewer.
+Remove AI residue: what-comments and code-history comments (keep WHY comments), stub implementations, verbose no-information JSDoc, leftover `console.log` debugging, dead imports, over-engineered single-use wrappers. Edited comments are written for the next developer, not the reviewer. Judge over-engineering against [`values.md § Implementation Quality Contract`](../../context/values.md) rather than restating principles.
 
 ---
 

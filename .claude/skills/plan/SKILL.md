@@ -71,7 +71,8 @@ Use **TodoWrite** for visibility when available. If unavailable, keep a Markdown
 1. **Extract ALL requirements** from issue/task
 2. **Map each requirement** to planned steps
 3. **Audit codebase** — search for existing patterns
-4. **Review CLAUDE.md** for compliance rules
+4. **Read the Implementation Quality Contract** in `.claude/context/values.md`
+5. **Review CLAUDE.md** for compliance rules
 
 ### Phase 2: Plan Structure
 
@@ -125,6 +126,7 @@ Implementation lanes (`ui`, `state_api`, `contracts`) are proof-gated for behavi
 - [ ] Hooks in shared package
 - [ ] i18n for UI strings
 - [ ] Deployment artifacts for addresses
+- [ ] Implementation Quality Contract applied; no speculative abstractions or mixed abstraction levels
 
 ## Impact Analysis
 
