@@ -1,7 +1,7 @@
 # Wave 11 — Final Certification
 
 **Branch**: `chore/dependency-upgrades`
-**Status**: implementation and automated certification green; host audit passed; runtime reinstall proof pending
+**Status**: certification complete; all mandatory automated and host runtime proof green
 **Certified**: 2026-07-18
 
 ## Outcome
@@ -23,7 +23,7 @@ the indexer TypeScript build, and the 10-contract/2-network boundary check.
 | Check | Result |
 |---|---|
 | Exact runtime | Bun 1.3.14 (`0d9b296a`) |
-| Frozen install | Pass in a clean mirror after the ReScript repair |
+| Frozen install | Pass in the clean certification mirror and in the final host Bun 1.3.14 reinstall; the host installed 214 packages and materialized `@rolldown/plugin-babel@0.2.3` |
 | Lock reproducibility | Workspace and certified-mirror `bun.lock` SHA-1 both `903789d580ab526c50e9ed0464c6e13a38a2a924` |
 | Lifecycle scripts | Only the known blocked `@posthog/cli@0.7.11` and `msw@2.14.6` scripts; neither was trusted |
 | Trusted dependencies | Unchanged: `esbuild`, `sharp` |
@@ -75,6 +75,28 @@ overrides, while the lock intentionally contains incompatible majors of `minimat
   Solhint, and all 1,533 contract tests. Its incorrect repository-root calculation is protected by
   a new black-box RED/GREEN test.
 
+## PR #642 CI remediation
+
+The first PR run exposed two clean-room assumptions that local dependency certification did not
+exercise:
+
+1. Admin role resolution contacted the public Sepolia Alchemy demo endpoint before rendering the
+   cockpit. The CI job timed out while waiting for `Mock Operator Garden`, and the auth reload test
+   exhausted its 30-second budget across repeated loading waits. A shared `mockSepoliaRpc` fixture
+   now covers the DeploymentRegistry boundary in the smoke, auth, and production-flow suites.
+2. Envio 2.32.12's generated CommonJS output imports `@envio-dev/hypersync-client` even though the
+   generated package declares only the `envio` parent. pnpm's strict CI layout therefore failed
+   with `Cannot find module '@envio-dev/hypersync-client'`. The generated install now applies the
+   narrow `--public-hoist-pattern '@envio-dev/*'` compatibility boundary instead of broad hoisting
+   or an unowned lockfile override.
+
+The remediation changes no resolved dependency version. A local isolated pnpm fixture proved that
+the scoped public-hoist pattern exposes an Envio-scoped transitive runtime to the generated package.
+Biome, admin TypeScript, all 12 Admin CI test registrations, 20 focused role/DeploymentRegistry
+tests, and the Repo Quick Gate pass. The Quick Gate includes 3,357 shared, 640 client, 102 admin-hub,
+and 232 agent tests; its indexer lane is intentionally skipped, so the replacement GitHub Indexer
+job remains the authoritative clean-room proof of Envio codegen and generated installation.
+
 ## Checkpoint policy
 
 Waves 7–11 use one consolidated final checkpoint. Their manifest changes, internal migrations, and
@@ -90,9 +112,9 @@ their existing checkpoints.
   publishes minimum peer ranges rather than an explicit Wagmi 3 compatibility contract. Wagmi 2,
   `multiformats`, `uint8arrays`, and the compatibility shim remain intact.
 
-## External proof limits
+## Accepted proof limits
 
-These are environment/install restrictions, not observed dependency regressions:
+These are accepted proof limits, not observed dependency regressions:
 
 1. The final host audit passed. Codex's own npm/Bun package-download path still receives a proxy
    `blocked-by-allowlist` HTTP 403, including for the exact locked `@rolldown/plugin-babel@0.2.3`
@@ -100,24 +122,20 @@ These are environment/install restrictions, not observed dependency regressions:
 2. The opt-in live Whisper model test reaches the real Hugging Face loading path, but external model
    fetch is unavailable in this sandbox. Mocked PCM/WAV, retry, fallback, Node/Bun import, built
    startup, and production dependency-layout tests pass.
-3. The supplied host `dev:prod` run proved docs and Storybook startup, then client/admin failed
-   because `@rolldown/plugin-babel` is absent from the current `node_modules`. Root, client, admin,
-   and `bun.lock` all exact-pin `0.2.3`; this is stale install state, not a missing manifest or Vite
-   migration. Codex cannot perform the repair because package downloads are proxy-blocked and the
-   root `.env` remains policy-protected. No untrusted mirror or manual lock edit was used.
-4. Authenticated Brave proof was explicitly waived for this program.
+3. Authenticated Brave proof was explicitly waived for this program.
 
-## Remaining operator proof
+## Final host runtime proof
 
-No further source migration is required. From a normal host terminal, repair the stale install and
-refresh runtime proof against this exact lock:
+The final host rerun repaired the stale install without changing the frozen lock and passed the
+production-backed runtime gate:
 
-```sh
-bunx bun@1.3.14 install --frozen-lockfile
-bun run dev:prod
-# in a second terminal
-bun run dev:prod:smoke
-```
+- Bun 1.3.14 resolved and installed the exact Rolldown Babel/Vite 8 graph.
+- Client and admin started on Vite 8.1.4; docs and Storybook 10.4.6 also became ready.
+- All four surfaces were ready in 5.5 seconds.
+- The read-only production smoke passed client, admin, docs, Storybook, Arbitrum chain ID 42161,
+  deployed GardenToken bytecode, production agent health, hosted GraphQL, and indexer lag.
+- The hosted indexer was 40 blocks behind the Arbitrum head, within the 2,000-block threshold.
 
-Do not ship the checkpoint until the frozen install materializes `@rolldown/plugin-babel@0.2.3`
-and client/admin remain available during the production-backed smoke.
+No mandatory dependency-modernization proof remains. The opt-in live Whisper model download is a
+documented confidence follow-up; mocked PCM/WAV, retry/fallback, package loading, agent build, and
+production dependency-layout proof remain green.

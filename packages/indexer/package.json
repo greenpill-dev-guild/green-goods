@@ -6,7 +6,7 @@
     "build": "node ../../scripts/dev/node-cli.js tsc --build",
     "watch": "node ../../scripts/dev/node-cli.js tsc --watch",
     "mocha": "node ../../scripts/dev/node-cli.js mocha --require tsx \"test/**/*.ts\"",
-    "setup-generated": "cd generated && pnpm install && pnpm run build",
+    "setup-generated": "cd generated && pnpm install --public-hoist-pattern '@envio-dev/*' && pnpm run build",
     "codegen": "envio codegen",
     "dev": "./scripts/dev.sh",
     "dev:docker": "docker compose -f docker-compose.indexer.yaml up --build",

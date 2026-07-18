@@ -4,7 +4,7 @@
 
 - Owner: Codex
 - Branch signal: `codex/qa-pass-2/dependency-modernization-2026`
-- Status: automated green; host audit passed; runtime reinstall proof pending
+- Status: passed
 
 ## Certification result
 
@@ -22,20 +22,30 @@
 
 - Final Bun audit: the supplied Bun 1.3.14 run is 0 critical / 29 transitive high, unchanged from
   Wave 6. Residual chains and remediation owners are recorded in the Wave 11 report.
-- Runtime smoke: the supplied host launch exposed stale `node_modules`; client and admin cannot
-  resolve exact-declared `@rolldown/plugin-babel@0.2.3`. Docs and Storybook start successfully.
-- Codex cannot fetch the missing exact tarball because its registry proxy returns
-  `blocked-by-allowlist` HTTP 403. The root `.env` also remains policy-protected. No untrusted
-  registry, manual lock edit, or source fallback was introduced.
+- Frozen reinstall: supplied host Bun 1.3.14 proof installed 214 packages and materialized the
+  exact-declared `@rolldown/plugin-babel@0.2.3` without lock drift.
+- Production runtime: client and admin started on Vite 8.1.4; docs and Storybook also became ready.
+  The stack reported all four services ready in 5.5 seconds.
+- Read-only production smoke: client, admin, docs, Storybook, Arbitrum chain ID and deployed
+  bytecode, production agent health, hosted GraphQL, and indexer lag all passed. The hosted indexer
+  lag was 40 blocks against a 2,000-block threshold.
 - Live Whisper model fetch: external network unavailable; behavioral and runtime-layout proof passes.
 
-## Remaining host commands
+## PR CI repair
 
-```sh
-bunx bun@1.3.14 install --frozen-lockfile
-bun run dev:prod
-# second terminal
-bun run dev:prod:smoke
-```
+- Admin CI: the smoke and auth fixtures now share a deterministic Sepolia JSON-RPC mock, removing
+  the public Alchemy demo endpoint from role-resolution readiness. Admin TypeScript, the 12-test
+  Admin CI discovery pass, and 20 focused DeploymentRegistry/role tests pass.
+- Indexer CI: `setup-generated` now uses pnpm's scoped `@envio-dev/*` public-hoist pattern so Envio
+  2.32.12's generated CommonJS imports resolve under strict pnpm installs. An isolated fixture proves
+  the scoped transitive import without broad hoisting or a new dependency version.
+- Cross-package proof: `node scripts/dev/ci-local.js --quick` passes formatting, lint, type checks,
+  and 4,331 shared/client/admin/agent tests. The replacement GitHub jobs provide the authoritative
+  clean-room browser and generated-indexer proof.
 
-No further source migration is required unless the post-install runtime proof exposes a regression.
+## Closeout
+
+QA Pass 2 is complete and PR #642's two dependency-upgrade CI assumptions are repaired. No mandatory
+source, security, install, build, or runtime proof remains for this modernization program. The
+opt-in live Whisper model test remains a documented confidence follow-up rather than a known
+regression.

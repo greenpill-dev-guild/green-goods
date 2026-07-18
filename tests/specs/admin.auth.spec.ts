@@ -6,12 +6,16 @@
  */
 
 import { expect, test } from "@playwright/test";
+import { mockSepoliaRpc } from "../helpers/mock-backend";
 import { AdminTestHelper, TEST_URLS } from "../helpers/test-utils";
 
 const ADMIN_URL = TEST_URLS.admin;
 
 test.describe("Admin Authentication", () => {
   test.use({ baseURL: ADMIN_URL });
+  test.beforeEach(async ({ context }) => {
+    await mockSepoliaRpc(context);
+  });
 
   test("renders the current hub connect shell without mock auth", async ({ page }) => {
     await page.goto("/hub", { waitUntil: "domcontentloaded", timeout: 45000 });

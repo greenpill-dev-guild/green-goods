@@ -7,10 +7,10 @@
     "stage": "active"
   },
   "workflow": {
-    "overall_status": "active",
+    "overall_status": "done",
     "priority": "p2",
     "created_at": "2026-07-16T03:08:08.105Z",
-    "updated_at": "2026-07-18T03:45:17Z"
+    "updated_at": "2026-07-18T05:41:33Z"
   },
   "links": {
     "brief": "brief.md",
@@ -45,7 +45,7 @@
   },
   "notes": [
     "Linear sync is parent_only; wave execution truth stays in this hub and reports.",
-    "Work moved to the human-created chore/dependency-upgrades branch on 2026-07-16; no PR, push, deployment, or broadcast is authorized.",
+    "Work moved to the human-created chore/dependency-upgrades branch on 2026-07-16. Afo later opened PR #642 and authorized its failing checks to be repaired; deployment and contract broadcast remain unauthorized.",
     "Continue automatically while green and stop on any blocked mandatory gate or concurrent worktree change.",
     "The Linear parent mirror is deferred by explicit human authorization because this environment exposes no Linear connector or API key.",
     "The complete baseline bun run test passes outside the sandbox, including 1,533 Foundry tests; the prior exit 134 was caused by Foundry's sandboxed macOS system proxy lookup.",
@@ -66,8 +66,9 @@
     "Wave 11 implementation and automated certification are green. The final clean Bun 1.3.14 graph passes frozen install, 6,515 tests, deterministic full build, agent/docs/Storybook builds, contract/indexer/design/story/PWA gates, and Envio 2.32.12 codegen under Node 22.",
     "Wave 11 repaired a real fresh-install indexer defect by promoting Envio's already-resolved exact ReScript 11.1.3 runtime into the indexer manifest. The repair does not expand the resolved package/version set and passes RED/GREEN indexer proof.",
     "The supplied final host audit passes at 0 critical / 29 transitive high, unchanged from Wave 6. Residual incompatible-major and excluded protocol chains have reachability and remediation owners recorded in reports/wave-11-certification.md.",
-    "The supplied production-backed launch exposed stale install state: @rolldown/plugin-babel 0.2.3 is exact-declared in root, client, admin, and bun.lock but absent from node_modules. A pinned frozen reinstall and runtime smoke remain; Codex package downloads are proxy-blocked with HTTP 403 and the root .env remains policy-protected.",
+    "The final host Bun 1.3.14 frozen reinstall installed 214 packages and materialized exact-locked @rolldown/plugin-babel 0.2.3 without lock drift. Client/admin Vite 8 startup and the read-only production-backed smoke pass across browser surfaces, Arbitrum chain/bytecode, agent health, GraphQL, and hosted-indexer lag.",
     "Review remediation repaired the pre-existing verify:contracts:fast repository-root calculation with a black-box RED/GREEN regression. The production gate now passes full compilation, Forge format, Solhint, and all 1,533 contract tests.",
+    "PR #642 CI remediation removed the admin tests' live Sepolia RPC dependency and added targeted @envio-dev/* public hoisting for Envio's generated pnpm install. No package version changed; Admin CI discovery, focused role tests, a scoped pnpm fixture, and the Repo Quick Gate pass.",
     "Waves 7 through 11 will use one consolidated final checkpoint because their certified final lockfile is cumulative. Reconstructing intermediate locks after certification would introduce unverified graph states; Waves 0 through 6 retain their earlier checkpoints.",
     "Keep multiformats, uint8arrays, overrides/resolutions, and the postinstall shim until supported Wagmi 3 proof says otherwise.",
     "status.json is authoritative; branch names are automation signals.",
@@ -150,7 +151,7 @@
     },
     "qa_pass_2": {
       "owner": "codex",
-      "status": "blocked",
+      "status": "passed",
       "ready_when_dependencies_met": true,
       "manual_blocked": false,
       "branch": "codex/qa-pass-2/dependency-modernization-2026",
@@ -336,6 +337,22 @@
       "status": "security_green_runtime_reinstall_pending",
       "branch": "chore/dependency-upgrades",
       "note": "Supplied host Bun 1.3.14 audit is 0 critical/29 transitive high, matching Wave 6. Residual parent chains are classified without unsafe cross-major overrides. Supplied dev:prod startup found stale node_modules missing exact-locked @rolldown/plugin-babel 0.2.3; pinned frozen reinstall and runtime smoke remain."
+    },
+    {
+      "timestamp": "2026-07-18T04:55:03Z",
+      "actor": "codex",
+      "lane": "qa_pass_2",
+      "status": "passed",
+      "branch": "chore/dependency-upgrades",
+      "note": "Final host Bun 1.3.14 frozen reinstall materialized @rolldown/plugin-babel 0.2.3 and installed 214 packages without lock drift. Client/admin Vite 8, docs, and Storybook startup passed; read-only production smoke passed browser surfaces, Arbitrum chain/bytecode, production agent health, hosted GraphQL, and 40-block indexer lag within the 2,000-block threshold."
+    },
+    {
+      "timestamp": "2026-07-18T05:41:33Z",
+      "actor": "codex",
+      "lane": "qa_pass_2",
+      "status": "pr_ci_remediation_green",
+      "branch": "chore/dependency-upgrades",
+      "note": "Repaired PR #642 Admin and Indexer CI assumptions: deterministic Sepolia RPC fixtures replace the live demo endpoint, and Envio generated installs use a scoped @envio-dev/* public-hoist pattern. No dependency version changed; focused static/regression checks, a pnpm hoisting fixture, and the Repo Quick Gate pass."
     }
   ]
 }

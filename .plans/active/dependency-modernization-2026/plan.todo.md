@@ -2,9 +2,9 @@
 
 **Feature Slug**: `dependency-modernization-2026`
 **Stage**: `active`
-**Status**: `ACTIVE — IMPLEMENTATION COMPLETE; RUNTIME REINSTALL PROOF PENDING`
+**Status**: `DONE — PR #642`
 **Created**: `2026-07-16T03:08:08.105Z`
-**Last Updated**: `2026-07-18T03:45:17Z`
+**Last Updated**: `2026-07-18T05:41:33Z`
 
 ## Decision Log
 
@@ -38,7 +38,7 @@
 | Stable wallet/passkey and telemetry behavior | `state_api` | Wave 5 | ✅ checkpointed; compatible security follow-up applied in Wave 6 |
 | Compatible EAS/indexer/runtime maintenance | `contracts`, `state_api` | Wave 6 | ✅ |
 | Supported non-contract major migrations | `ui`, `state_api` | Waves 7-10 | ✅ Waves 7-9 automated-green; Wave 10 safely held for official Reown support |
-| Full functional certification | `qa_pass_1`, `qa_pass_2` | Wave 11 | ⚠️ automated green; host audit passed; runtime reinstall proof pending |
+| Full functional certification | `qa_pass_1`, `qa_pass_2` | Wave 11 | ✅ automated certification, host audit, frozen reinstall, and production-backed smoke green |
 
 ## TDD / Proof Order
 
@@ -151,10 +151,9 @@ accidental indexer hoisting dependency on ReScript; promoting Envio's existing e
 11.1.3 runtime into the indexer manifest repaired it without expanding the resolved version set.
 The final clean lock passes frozen install, Envio codegen, 6,515 tests, deterministic full build,
 agent/docs/Storybook builds, contract and indexer gates, design/story gates, and supply-chain policy.
-The current-lock audit cannot run because the permitted Codex registry path returns HTTP 403 and a
-direct-registry retry is connection-refused. Runtime smoke is also host-only here because the root
-`.env` is policy-protected and unknown processes occupy local indexer ports 3006/3008. These external
-proofs are recorded in `reports/wave-11-certification.md`; no further source migration is required.
+The current-lock host audit passes at 0 critical / 29 transitive high findings, unchanged from Wave
+6, with residual parent chains classified in the certification report. The final host frozen
+reinstall and production-backed smoke also pass; no further source migration is required.
 
 Review remediation repaired the pre-existing `verify:contracts:fast` front door. A black-box RED
 test reproduced its incorrect `scripts/packages/contracts` working directory; the one-line root
@@ -166,10 +165,20 @@ unverified intermediate locks would weaken rollback safety.
 The supplied final host audit is now complete at 0 critical / 29 transitive high findings, exactly
 matching the Wave 6 count. The remaining findings are incompatible-major or excluded-parent chains;
 their reachability and remediation owners are recorded in `reports/wave-11-certification.md`.
-The supplied `dev:prod` proof exposed stale install state: all three relevant manifests and the lock
-exact-pin `@rolldown/plugin-babel@0.2.3`, but the package is absent from client/admin `node_modules`.
-Run the pinned frozen install once more, then repeat production-backed startup and smoke. Do not
-replace the package with a source fallback, untrusted mirror, or manual lock edit.
+The final host Bun 1.3.14 frozen reinstall installed 214 packages and materialized the exact
+`@rolldown/plugin-babel@0.2.3` graph without lock drift. Client and admin started on Vite 8.1.4,
+docs and Storybook became ready, and the read-only production smoke passed all browser surfaces,
+Arbitrum chain and deployed-bytecode checks, production agent health, hosted GraphQL, and indexer
+lag. The 40-block hosted-indexer lag was within the 2,000-block threshold.
+
+PR #642 CI remediation is complete. The admin clean-room fixtures now intercept the Sepolia
+DeploymentRegistry RPC boundary instead of allowing role resolution to depend on the public Alchemy
+demo endpoint. The indexer generated-package install now uses a scoped `@envio-dev/*` public-hoist
+pattern so Envio 2.32.12's generated CommonJS runtime can resolve its own transitive runtime imports
+under pnpm's strict layout. The repair introduces no new package, version, trusted dependency,
+lifecycle script, public API, persisted format, or production runtime behavior. Biome, admin
+TypeScript, the 12-test Admin CI discovery pass, 20 focused role/registry tests, a targeted pnpm
+hoisting fixture, and the Repo Quick Gate all pass.
 
 ## Lane Checklists
 
@@ -219,6 +228,8 @@ replace the package with a source fallback, untrusted mirror, or manual lock edi
 - [x] Conditional design, story, contract, indexer, and PWA proof
 - [x] `bun run verify:contracts:fast` behavior — repaired front door passes build, Forge format,
   Solhint, and 1,533 tests (E2E and deploy dry-runs intentionally skipped by the fast target)
-- [ ] Production-backed smoke — host reinstall proof pending; the supplied launch found stale
-  `node_modules` missing exact-declared `@rolldown/plugin-babel@0.2.3`, while docs and Storybook pass
+- [x] Production-backed smoke — final host reinstall materialized the Vite 8 Babel graph; client,
+  admin, docs, Storybook, Arbitrum, agent, GraphQL, and hosted-indexer lag checks pass
+- [x] PR #642 CI remediation — deterministic Sepolia RPC fixtures, targeted Envio public hoisting,
+  Admin CI test discovery, role/registry regressions, and Repo Quick Gate pass
 - [x] Authenticated Brave proof explicitly waived by Afo
