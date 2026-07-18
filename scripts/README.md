@@ -54,6 +54,7 @@ scripts/
 | `check-codex-docs.js` | `bun run check:codex-guidance` | Verify `AGENTS.md` ↔ `.codex/` ↔ `package.json` ↔ `codex.mdx` parity |
 | `drift-check.mjs` | `bun run drift:check` | Read-only drift classifier across guidance, plans, design, docs, cleanup readiness, and quality guardrails |
 | `drift-check.test.mjs` | `node --test scripts/quality/drift-check.test.mjs` | Fixture tests for drift checker warning normalization, routing, and dirty-tree context |
+| `check-guidance-links.mjs` | `bun run drift:check` (guidance scope) | Guidance drift guard: relative md links resolve and `bun run` scripts named in `.claude/**`, CLAUDE.md, AGENTS.md, ONBOARDING.md exist |
 | `check-source-structure.js` | `bun run check:source-structure` | File-size limits + frozen-allowlist policy |
 | `check-test-quality.sh` | `bun run check:test-quality` | Detect tautological `expect(true)`, ungoverned `.skip`, `@ts-nocheck` in tests |
 | `check-story-coverage.ts` | `design.yml` (via `packages/shared` script) | Storybook coverage policy per package |

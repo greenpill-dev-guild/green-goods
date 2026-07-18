@@ -16,6 +16,13 @@ export const scopes = {
       route: "review",
       severity: "medium",
     },
+    {
+      id: "guidance-links",
+      label: "Guidance links & commands",
+      command: ["node", "scripts/quality/check-guidance-links.mjs"],
+      route: "review",
+      severity: "medium",
+    },
   ],
   plans: [
     {

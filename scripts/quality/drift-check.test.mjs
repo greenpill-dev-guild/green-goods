@@ -46,7 +46,7 @@ test("passing checks produce no findings", () => {
   });
 
   assert.equal(report.ok, true);
-  assert.equal(report.checks.length, 1);
+  assert.equal(report.checks.length, 2);
   assert.deepEqual(report.findings, []);
 });
 

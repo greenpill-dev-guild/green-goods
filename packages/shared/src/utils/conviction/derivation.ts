@@ -6,7 +6,7 @@
  * accrual formula depends on the pool's decay rate and pointsPerVoter; the
  * functions here approximate the values the UI needs (0–100 percent + days)
  * from the data the existing hooks expose. Audit finding #2 + #6 from the
- * Tier-5 audit-then-ship pass.
+ * 2026-06 conviction audit.
  *
  * NOTE: the math below is a best-effort approximation. A follow-up should
  * verify each formula against the HypercertSignalPool contract source — the
