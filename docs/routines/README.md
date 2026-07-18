@@ -177,6 +177,8 @@ Active routines are Sentry-ready, not Sentry-dependent: when a Sentry connector/
 
 ## Linear environment
 
+The workspace has five teams as of 2026-07-14 (Product `PRD`, Research `RESR`, Community `COM`, Growth `GROW`, Marketing `MAR`; charters in [`greenpill-dev-guild/.github` → `docs/teams/`](https://github.com/greenpill-dev-guild/.github/tree/main/docs/teams)). **Green Goods routines write only to the Product team** — the funding pipeline lives on Growth (guild grant-scout's turf), marketing briefs on Marketing, cohort work on Community.
+
 Three routines write to Linear:
 
 - `bug-intake` writes **Customer Needs** (raw signal — every validated user/community report) and creates linked **Issues** only when the report is accepted as committed product work.
@@ -192,15 +194,13 @@ Three routines write to Linear:
 
 ### Auth
 
-All three routines share the same auth surface. The cloud routine env exposes Linear access via:
+All routines reach Linear through the **native Linear OAuth connector wired into the cloud routine environment — no `LINEAR_API_KEY` is stored** (standing guild rule as of 2026-07-04; the connector can lapse between runs and is re-authorized by a human, never replaced with a key). If the connector is unauthenticated or unreachable, the routine **fails closed**: it surfaces the failure in its Discord summary and skips Linear writes — it never scans or writes blind.
 
-| Variable / surface | Description |
-|---|---|
-| `LINEAR_API_KEY` | Personal API key with read/write access — fallback when no connector is configured |
-| Linear connector | Native Linear connector wired into the cloud routine environment |
-| Linear MCP | Linear MCP server exposed to the routine |
+The routine resolves team/label/status IDs by name at the start of every run — IDs are never hardcoded in the prompt. If the lookup fails, the routine surfaces the failure in its daily Discord summary instead of skipping records silently.
 
-Whichever surface is wired up, the routine resolves team/label/status IDs by name at the start of every run — IDs are never hardcoded in the prompt. If the lookup fails, the routine surfaces the failure in its daily Discord summary instead of skipping records silently.
+### Output style (all posting routines)
+
+Green Goods routine posts follow the guild house style: bold headers with blank lines between blocks, lead with what needs a human (🔴 first), a thing appears only if it moved or needs attention (never a "quiet" bullet or empty section), metrics folded into the line they describe, one message per channel per run. Cadences in the portfolio table are UTC (the qa-triage-pulse row's "Wed 21:00 UTC" annotation style is the convention).
 
 ## Rebuilding a routine
 

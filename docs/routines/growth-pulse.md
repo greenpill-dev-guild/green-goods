@@ -18,8 +18,7 @@ env-vars:
   - DISCORD_GROWTH_CHANNEL_ID
   - DISCORD_FUNDING_CHANNEL_ID
   - DISCORD_USER_ID_AFO
-  - LINEAR_API_KEY
-  - LINEAR_DIGEST_INITIATIVE_ID  # initiative for the weekly digest status update; falls back to the "Sustainability & Monetization" initiative by name if unset
+  - LINEAR_DIGEST_INITIATIVE_ID  # initiative for the weekly digest status update; falls back to the "Sustainability & Monetization" initiative by name if unset; Linear itself via the OAuth connector only (no API key, guild rule 2026-07-04)
 connectors:
   - posthog
   - linear
@@ -141,6 +140,8 @@ If the PostHog connector is unavailable or the expected project ID env vars are 
 ```
 
 Caps: 3 anomaly bullets, 3 top-garden bullets, 3 conversion-kill bullets. Prose paragraphs forbidden — bulleted only.
+
+**Unchanged-week fold (noise control):** a metrics block (Onboarding funnel / Early retention / Garden engagement / Action templates / Conversion-kill) appears in full ONLY when it moved — a threshold crossed, a WoW delta beyond noise (> 10% relative on its headline number), or it feeds the 🔴 Watch block. Blocks that did not move fold into one combined line — `**Steady** — funnel {headline}, retention {headline}, gardens {A}/{T} active — within normal range` — so a quiet week's post is a few lines, not a dashboard. The Linear status update still carries every full table; Discord carries what changed.
 
 ### Cross-post to `#funding` (only when grant-relevant)
 
