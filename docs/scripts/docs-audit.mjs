@@ -2,7 +2,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import {fileURLToPath} from "node:url";
-import yaml from "js-yaml";
+import * as yaml from "js-yaml";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -223,7 +223,10 @@ const parseFrontmatter = (content) => {
   const raw = content.slice(4, end);
   const body = content.slice(end + 5);
   try {
-    return {frontmatter: yaml.load(raw) ?? {}, body};
+    return {
+      frontmatter: yaml.load(raw, {schema: yaml.YAML11_SCHEMA}) ?? {},
+      body,
+    };
   } catch {
     return {frontmatter: null, body};
   }

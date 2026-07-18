@@ -15,6 +15,28 @@ function getViewKey(pathname: string): string {
   return pathname.split("/")[1] ?? "";
 }
 
+function isAbortError(error: unknown): boolean {
+  return (
+    typeof error === "object" && error !== null && "name" in error && error.name === "AbortError"
+  );
+}
+
+async function waitForViewTransition(transition: ViewTransition): Promise<void> {
+  const settle = async (promise: Promise<void>) => {
+    try {
+      await promise;
+    } catch (error) {
+      if (!isAbortError(error)) throw error;
+    }
+  };
+
+  await Promise.all([
+    settle(transition.ready),
+    settle(transition.updateCallbackDone),
+    settle(transition.finished),
+  ]);
+}
+
 export function PageTransition() {
   const location = useLocation();
   const outlet = useOutlet();
@@ -68,7 +90,10 @@ export function PageTransition() {
       // changes within a view swap instantly for a smoother feel.
       if (isViewChange && document.startViewTransition) {
         const transition = document.startViewTransition(commitRouteArrival);
-        await transition.finished;
+        // Browsers may skip a queued transition when another route change
+        // supersedes it. The route callback has still committed, so finish
+        // arrival bookkeeping while preserving unexpected failures.
+        await waitForViewTransition(transition);
       } else {
         commitRouteArrival();
       }

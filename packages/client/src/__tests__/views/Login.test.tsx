@@ -9,7 +9,7 @@
  * - Shared message zone (info/helper vs error)
  */
 
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createElement } from "react";
 import { HelmetProvider } from "react-helmet-async";
@@ -214,6 +214,11 @@ describe("Login View - New User (two-step create)", () => {
   it("renders splash screen", () => {
     renderWithRouter();
     expect(screen.getByTestId("splash-screen")).toBeInTheDocument();
+  });
+
+  it("sets the login document title", async () => {
+    renderWithRouter();
+    await waitFor(() => expect(document.title).toBe("Sign in | Green Goods"));
   });
 
   it("shows the entry screen without an input: create, wallet, recover", () => {

@@ -81,6 +81,7 @@ scripts/
 | `run-coverage-audit.sh` | `packages/contracts test:audit:coverage` | Run unit + integration coverage and write `output/contracts-test-audit/` reports |
 | `coverage-policy.mjs` | `run-coverage-audit.sh` | Per-file coverage thresholds policy |
 | `verify-production.sh` | `bun run verify:contracts[:fast]` | Pre-deploy contract verification gate |
+| `verify-production.test.mjs` | `bun run test:contracts-verifier` | Black-box regression test for contract verifier path resolution and working directory |
 
 ### `ops/` — chain operations + release artifacts
 | Script | Caller | Purpose |

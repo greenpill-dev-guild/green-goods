@@ -1,4 +1,4 @@
-import type { Page, Route } from "@playwright/test";
+import type { BrowserContext, Page, Route } from "@playwright/test";
 
 export const MOCK_CLIENT_USER_ADDRESS = "0x1234567890123456789012345678901234567890";
 export const MOCK_RPC_OWNER_ADDRESS = "0x2aa64E6d80390F5C017F0313cB908051BE2FD35e";
@@ -87,6 +87,33 @@ export function buildRpcResponse(
   };
 }
 
+/**
+ * Mock the Sepolia JSON-RPC boundary used by deterministic browser tests.
+ *
+ * Admin role resolution reads DeploymentRegistry before the cockpit becomes
+ * ready. Leaving that request on the public Alchemy demo endpoint makes CI
+ * depend on external latency and can hold the loading state until the test
+ * timeout. Keep the route shared so every clean-room browser fixture returns
+ * the same contract-read responses.
+ */
+export async function mockSepoliaRpc(target: BrowserContext | Page) {
+  await target.route("https://eth-sepolia.g.alchemy.com/**", async (route) => {
+    const rawBody = route.request().postData();
+    const payload = rawBody
+      ? (JSON.parse(rawBody) as JsonRpcPayload | JsonRpcPayload[])
+      : { id: 1 };
+    const response = Array.isArray(payload)
+      ? payload.map((entry) => buildRpcResponse(entry))
+      : buildRpcResponse(payload);
+
+    return route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(response),
+    });
+  });
+}
+
 function getGraphQLQueryText(route: Route): string {
   const body = route.request().postData();
   if (!body) return "";
@@ -165,19 +192,5 @@ export async function mockClientBackend(page: Page, options: MockClientBackendOp
     });
   });
 
-  await page.route("https://eth-sepolia.g.alchemy.com/**", async (route) => {
-    const rawBody = route.request().postData();
-    const payload = rawBody
-      ? (JSON.parse(rawBody) as JsonRpcPayload | JsonRpcPayload[])
-      : { id: 1 };
-    const response = Array.isArray(payload)
-      ? payload.map((entry) => buildRpcResponse(entry))
-      : buildRpcResponse(payload);
-
-    return route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify(response),
-    });
-  });
+  await mockSepoliaRpc(page);
 }

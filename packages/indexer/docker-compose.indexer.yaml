@@ -20,7 +20,7 @@
 services:
   # PostgreSQL database
   envio-postgres:
-    image: postgres:17.5
+    image: postgres:17.10
     restart: always
     ports:
       - "${ENVIO_PG_PORT:-3008}:5432"

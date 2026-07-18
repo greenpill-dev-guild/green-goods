@@ -433,7 +433,9 @@ function validateIndexerConfig(chainId: string, deployment: DeploymentRecord, fa
     return;
   }
 
-  const parsed = yaml.load(fs.readFileSync(indexerPath, "utf8")) as IndexerConfig;
+  const parsed = yaml.load(fs.readFileSync(indexerPath, "utf8"), {
+    schema: yaml.CORE_SCHEMA,
+  }) as IndexerConfig;
   const network = parsed.networks.find((item) => item.id.toString() === chainId);
   if (!network) {
     failures.push(`Indexer config missing network id ${chainId}`);

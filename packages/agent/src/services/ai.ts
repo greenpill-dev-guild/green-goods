@@ -161,7 +161,7 @@ class AI {
     this.modelLoading = (async () => {
       log.info("Loading Whisper model (may take a moment on first run)");
       try {
-        const { pipeline } = await import("@xenova/transformers");
+        const { pipeline } = await import("@huggingface/transformers");
         const transcriber = await pipeline(
           "automatic-speech-recognition",
           "Xenova/whisper-tiny.en"

@@ -6,7 +6,7 @@
     "build": "node ../../scripts/dev/node-cli.js tsc --build",
     "watch": "node ../../scripts/dev/node-cli.js tsc --watch",
     "mocha": "node ../../scripts/dev/node-cli.js mocha --require tsx \"test/**/*.ts\"",
-    "setup-generated": "cd generated && pnpm install && pnpm run build",
+    "setup-generated": "cd generated && pnpm install --public-hoist-pattern '@envio-dev/*' && pnpm run build",
     "codegen": "envio codegen",
     "dev": "./scripts/dev.sh",
     "dev:docker": "docker compose -f docker-compose.indexer.yaml up --build",
@@ -33,15 +33,16 @@
   "devDependencies": {
     "@types/mocha": "^10.0.10",
     "@types/node": "^24.2.1",
-    "c8": "^10.1.3",
+    "c8": "11.0.0",
     "mocha": "^11.0.0",
     "typescript": "~7.0.2"
   },
   "dependencies": {
-    "envio": "2.32.3"
+    "envio": "2.32.12",
+    "rescript": "11.1.3"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.12.0 <23"
   },
   "pnpm": {
     "overrides": {

@@ -8,7 +8,8 @@
  * - Mock indexer gardens/actions queries so cockpit routes have stable data
  * - Mock EAS GraphQL with empty attestations so `/hub` renders predictable empty/loading states
  */
-import { expect, test, type Page, type Route } from "@playwright/test";
+import { expect, type Page, type Route, test } from "@playwright/test";
+import { mockSepoliaRpc } from "../helpers/mock-backend";
 import { AdminTestHelper, TEST_URLS } from "../helpers/test-utils";
 
 const ADMIN_URL = TEST_URLS.admin;
@@ -149,6 +150,8 @@ async function mockAdminCockpitBackend(page: Page) {
       }),
     });
   });
+
+  await mockSepoliaRpc(page);
 }
 
 async function setupMockOperator(page: Page) {

@@ -207,6 +207,27 @@ describe("PageTransition", () => {
     });
   });
 
+  it("continues arrival bookkeeping when the browser skips a view transition", async () => {
+    mockStartViewTransition.mockImplementationOnce((callback: () => void) => {
+      callback();
+      const skipped = new DOMException("Transition was skipped", "AbortError");
+      return {
+        ready: Promise.reject(skipped),
+        finished: Promise.reject(skipped),
+        updateCallbackDone: Promise.resolve(),
+      };
+    });
+
+    renderPageTransition();
+    const user = userEvent.setup();
+
+    await user.click(screen.getByTestId("nav-/page-b"));
+
+    await waitFor(() => {
+      expect(mockOrchestrator.onNavigateArrive).toHaveBeenCalledWith("/page-b");
+    });
+  });
+
   it("restores sheet state when onNavigateArrive returns saved state", async () => {
     mockOrchestrator.onNavigateArrive.mockReturnValue({
       sheetOpen: "left",
