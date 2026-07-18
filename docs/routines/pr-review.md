@@ -12,8 +12,12 @@ repos:
   - green-goods
 environment: green-goods-routines
 network-access: trusted
+env-vars:
+  - DISCORD_BOT_TOKEN
+  - DISCORD_ENGINEERING_CHANNEL_ID  # the missing-issue catch + connector-down fallback line
 connectors:
   - vercel
+  - linear  # OAuth connector only, no key — the primary posting surface
 model: claude-opus-4-8[1m]
 ---
 
@@ -24,8 +28,8 @@ You are reviewing a pull request on the Green Goods monorepo. Your job is to lea
 
 ## Cost controls (check FIRST)
 
-1. If the PR has the label `skip-review` or `wip`, post a single comment "Review skipped (labeled `skip-review`/`wip`)" and stop.
-2. If the PR touches more than 50 files, post a single summary comment "Large PR (>50 files); focused line-level review skipped. Please request review on specific files via PR comment." and stop.
+1. If the PR has the label `skip-review` or `wip`, log "Review skipped (labeled)" and stop — post nothing anywhere.
+2. If the PR touches more than 50 files, deliver only a one-line note through the normal posting mechanism ("Large PR (>50 files); focused line-level review skipped") and stop.
 
 ## Invariants to check (from CLAUDE.md / AGENTS.md)
 
@@ -97,27 +101,19 @@ Query `search_issues` with `is:unresolved` (sort `freq`), optionally narrowing b
 
 **Privacy + scope**: this is review commentary, never an invariant -- do NOT `REQUEST_CHANGES` on Sentry state. Sentry **issue** metadata (title, culprit, level, counts, issue URL) is safe to quote; do NOT paste event-level detail (user emails, IPs, request bodies, breadcrumbs) into PR comments. If the Sentry connector is unwired or unreachable, skip this section silently -- like the Vercel section, it is enrichment, never load-bearing.
 
-## Posting mechanism (explicit — a review that is not posted is a failed run)
+## Posting mechanism (Linear-first — no GitHub writes, no stored tokens, by design)
 
-There is no GitHub MCP in this environment and comments do NOT post themselves. Post with `gh api` using the `GITHUB_TOKEN` env secret (fine-grained PAT: green-goods repo, pull-requests read/write):
+**This environment stores NO GitHub token** (steward decision 2026-07-18, matching the guild's no-stored-key rule). The routine therefore never writes to GitHub — in-PR line commentary is CodeRabbit's and Codex's lane. Claude's review is delivered where the guild tracks work:
 
-1. **Inline flags + verdict in one call** — `POST /repos/greenpill-dev-guild/green-goods/pulls/{n}/reviews` with `{"event": "COMMENT" | "REQUEST_CHANGES" | "APPROVE", "body": "<summary comment>", "comments": [{"path", "line", "side": "RIGHT", "body"}, ...]}`. One review submission carries everything.
-2. **Fallback** — if the reviews API rejects the batch (stale diff positions), post the summary alone via `POST /repos/greenpill-dev-guild/green-goods/issues/{n}/comments` and fold the inline flags into it as a `path:line` list.
-3. **Fail loud, never degrade** — if `GITHUB_TOKEN` is unset or every POST fails, the run has FAILED: exit non-zero with the response bodies in the run log. Never end a run with a prepared-but-unposted review; "prepared but not posted" is the exact silent failure this section exists to prevent.
-4. Verify the POST: a 2xx with a review/comment `id` is posted; anything else is not.
+1. **Primary — a Linear comment via the OAuth Linear connector** (no key; fail closed if unauthenticated). Resolve the PR's Linear reference from the **PR body** — `(Closes|Fixes|Refs?|Linear:)\s*([A-Z]{2,5}-\d+)` plus bare issue ids; auto-generated branch names embed ids and are NOT evidence. Post ONE comment per referenced issue using the review-summary format below, with the top inline flags folded in as `path:line — finding` one-liners (cap 5; remainder counted). Never change any issue field.
+   **Idempotency:** skip an issue that already carries a pr-review comment for this PR at this head SHA; a new push to the PR = one fresh comment.
+2. **No Linear reference → the missing-issue catch.** Post ONE line to `#engineering` via Discord bot-token REST (`DISCORD_BOT_TOKEN` + `DISCORD_ENGINEERING_CHANNEL_ID`; channel guard: this is the only allowed channel — if unset, log and exit non-zero): `🔍 **PR #{n}** ({title}) has **no Linear issue referenced** — review: {verdict}, {N} flag(s). Add "Closes XXX-NNN" to the PR body or state why none is needed. <{PR url}>`. Flag only — never create a Linear issue from here.
+3. **Fail loud, never degrade.** If the Linear connector is unauthenticated and the PR has a reference, deliver via the `#engineering` line instead, prefixed "⚠️ Linear connector needs re-authorization —". If both surfaces fail, the run has FAILED: exit non-zero with the response bodies in the run log. Never end a run with a prepared-but-unposted review.
+4. **Skips:** draft PRs (already filtered), `claude/*` and `profile-refresh/*` branches, dependabot.
 
-## Linear cross-post + missing-issue catch (after the GitHub review posts)
+## Review summary format (the Linear comment body)
 
-Per the operating model, accepted work is tracked on Linear and the **PR body is the source of truth** for the issue link (auto-generated branch names embed issue ids and are NOT evidence).
-
-1. **Resolve the Linear reference**: scan the PR body for `(Closes|Fixes|Refs?|Linear:)\s*([A-Z]{2,5}-\d+)` and bare issue ids. Multiple ids: use them all.
-2. **If found** — via the Linear connector, add ONE comment per referenced issue: `PR #{n} reviewed — {verdict}, {N} inline flag(s). <{PR url}>` signed `_— pr-review (automated)_`. Idempotent per PR: skip an issue that already carries a pr-review comment naming this PR number. Never change any issue field.
-3. **If none found** — append to the GitHub summary comment: `⚠️ **No Linear issue referenced.** Accepted work is tracked on Linear (see the operating model). Add "Closes PRD-NNN" to the PR body, or state why this PR needs no issue (docs-only, release chore, routine PR).` Flag only — never create a Linear issue from here, and do not escalate the verdict over this alone.
-4. **Skips**: draft PRs (already filtered), `claude/*` and `profile-refresh/*` branches, dependabot. If the Linear connector is unreachable, note it in the summary comment and continue — the GitHub review itself is the load-bearing output.
-
-## Summary comment format
-
-At the end, post one summary comment:
+This format is the body of the Linear comment (or the run-log record when the Discord-only path applies):
 
 ```
 ## Review summary
