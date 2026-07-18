@@ -10,17 +10,17 @@ const repoRoot = path.resolve(path.dirname(__filename), "../..");
 export const scopes = {
   guidance: [
     {
-      id: "claude-guidance",
-      label: "Claude guidance",
-      command: ["bun", "run", "check:claude-guidance"],
-      route: "audit-then-ship",
-      severity: "medium",
-    },
-    {
       id: "codex-guidance",
       label: "Codex guidance",
       command: ["bun", "run", "check:codex-guidance"],
-      route: "audit-then-ship",
+      route: "review",
+      severity: "medium",
+    },
+    {
+      id: "guidance-links",
+      label: "Guidance links & commands",
+      command: ["node", "scripts/quality/check-guidance-links.mjs"],
+      route: "review",
       severity: "medium",
     },
   ],
@@ -68,7 +68,7 @@ export const scopes = {
       id: "docs-audit",
       label: "Docs audit",
       command: ["bun", "run", "docs:audit:ci"],
-      route: "audit-then-ship",
+      route: "review",
       severity: "medium",
       warningPattern: /docs-audit: [1-9]\d* warning\(s\)\./,
     },

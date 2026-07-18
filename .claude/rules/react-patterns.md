@@ -155,3 +155,5 @@ import {
   useAsyncEffect, useAsyncSetup,                         // Rule 3
 } from '@green-goods/shared';
 ```
+
+> Full package context: [.claude/context/shared.md](../context/shared.md) (hooks, stores, job queue, error utilities) and [.claude/context/testing.md](../context/testing.md) (test-utils, mocks, coverage).

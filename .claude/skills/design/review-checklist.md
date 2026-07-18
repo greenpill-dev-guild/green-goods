@@ -147,7 +147,7 @@ Each lens has a manual review pass. Some lenses also have automation that runs t
 | **2 — Spatial** | Paradigm declared, material thickness matches content density | Chromatic visual regression on paradigm-tagged stories; `@container` coverage lint | **Proposed** |
 | **3 — Ecosystem** | Archetype mapping, cascade visibility, surrogate flows | Playwright role-based flows (gardener / operator / evaluator / funder); vitest surrogate-path tests; indexer archetype-span checks | **Proposed** |
 | **4 — Compliance** | WCAG 2.1 AA, i18n readiness, responsive breakpoints | `@storybook/addon-a11y` (installed, not CI-gating); viewport tests at 320/768/1280; i18n-key coverage lint; `prefers-reduced-motion` vitest matcher | **Partial** — addon installed, no CI gate |
-| **Cross-cutting** | Token consistency across docs and implementation | `bun run check:design-tokens` — spec ↔ `theme.css` + `token_version` coupling across `design/SKILL.md`, `ui/SKILL.md`, registry | **Wired** |
+| **Cross-cutting** | Token consistency across docs and implementation | `bun run check:design-tokens` — spec ↔ `theme.css` + `token_version` declared in `design/SKILL.md` | **Wired** |
 
 ### Quick wiring reference — currently runnable
 
@@ -176,7 +176,7 @@ A checklist agents run once per PR catches what we remember. Automated checks ca
 
 **Implementation notes**:
 - `lint:vocab` runs `scripts/design/check-vocab.sh` against `packages/*/src/i18n/*.json` and reads only `linter_enforced.terms` from `docs/docs/reference/banned-vocabulary.json`. Biome's linter is disabled repo-wide so a shell grep is the practical substitute; wire it into pre-commit + CI.
-- `check:design-tokens` runs `scripts/design/check-tokens.sh`, which verifies every spec'd Warm Earth token (springs, materials, border) exists in `theme.css` AND that `token_version` is in sync across `design/SKILL.md`, `ui/SKILL.md`, and `.claude/registry/skills.json`.
+- `check:design-tokens` runs `scripts/design/check-tokens.sh`, which verifies every spec'd Warm Earth token (springs, materials, border) exists in `theme.css` AND that `token_version` is declared in `design/SKILL.md`.
 
 ---
 
@@ -185,5 +185,5 @@ A checklist agents run once per PR catches what we remember. Automated checks ca
 - Regenerative principles: [regenerative.md](./regenerative.md)
 - Spatial patterns: [spatial.md](./spatial.md)
 - Ecosystem archetypes: [ecosystem.md](./ecosystem.md)
-- Compliance details: [../ui/compliance.md](../ui/compliance.md)
+- Implementation details: [implementation.md](./implementation.md)
 - Green Goods personas: `docs/docs/reference/design-research.md`

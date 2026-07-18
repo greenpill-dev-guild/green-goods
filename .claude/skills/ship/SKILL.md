@@ -3,12 +3,6 @@ name: ship
 user-invocable: false
 description: Pre-merge gate — validates the branch is safe to push/merge. Format + lint + test + build + conventional-commit + branch safety + vocab/design-token lint when applicable. Absorbs verification-before-completion and finishing-a-development-branch — evidence before claims, always.
 argument-hint: "[--dry-run] [--no-commit] [--pr]"
-version: "1.0.0"
-status: active
-packages: ["all"]
-dependencies: []
-last_updated: "2026-04-17"
-last_verified: "2026-04-17"
 ---
 
 # Ship Skill
@@ -123,9 +117,9 @@ Run these only if the changed files match:
 |-----------|---------|
 | Changed files under `packages/shared/src/styles/theme.css` or `.claude/skills/design/language.md` | `bun run check:design-tokens` |
 | Changed files include `*.i18n.ts`, `packages/*/locales/*.json`, or `packages/admin/src/**` or `packages/client/src/**` | `bun run lint:vocab` |
-| Changed non-test source under `packages/*/src/**` | `bun run check:source-structure` |
 | Changed files under `packages/contracts/src/resolvers/` | Check storage gap via existing PostToolUse hook output |
-| Changed files under `packages/contracts/src/` | Remind to run `bun run test:fork` if protocol behavior changed |
+| Changed files under `packages/contracts/src/` | Remind to run `bun run --filter @green-goods/contracts test:fork` (package-scoped; needs `{CHAIN}_RPC_URL`) if protocol behavior changed |
+| Changed non-test source under `packages/*/src/**` | `bun run check:source-structure` |
 | Changed E2E specs or auth paths (`AuthGate`, `DevAuthProvider`, or CI auth helpers) | Run the matching Playwright CI project: client changes use `PLAYWRIGHT_APP=client APP_ENV=test bunx playwright test --project=client-ci`; admin changes use `PLAYWRIGHT_APP=admin APP_ENV=test bunx playwright test --project=admin-ci` |
 
 Gather touched paths with `git diff --name-only origin/main...HEAD` + `git diff --name-only --cached`.
@@ -231,12 +225,12 @@ Use this exact shape. Tables and short sentences — no prose.
 
 ---
 
-## Related Skills
+## Related Surfaces
 
-- `ops/git-workflow` — branch strategy and commit conventions
-- `ops/ci-cd` — what CI runs after push
+- `CLAUDE.md § Git Workflow` — branch strategy and commit conventions
+- `.claude/context/validation-pipeline.md` — the single definition of the gate commands
 - `review` — pre-merge code review that complements the ship flow
-- `testing` — test discipline referenced by the pipeline
+- `.claude/context/testing.md` — test discipline referenced by the pipeline
 - `clean` — large-scale cleanup before shipping big diffs
 
 ---

@@ -2,12 +2,6 @@
 name: posthog-questions
 user-invocable: false
 description: Canonical curated-question library for PostHog reads across Green Goods routines and skills. Two lenses (product/quality, growth/BD), one privacy boundary, one shared answer per question. Routines reference questions by name; the connector or fallback script resolves them.
-version: "1.2.0"
-status: active
-packages: ["all"]
-dependencies: []
-last_updated: "2026-07-01"
-last_verified: "2026-07-01"
 ---
 
 # PostHog Curated Questions
@@ -695,7 +689,7 @@ A routine wiring this library should:
 ## Related Skills
 
 - `debug` uses product-quality questions for bug investigation and reporter/session lookup.
-- `ops` owns routine setup, cloud-run configuration, and validation of automation wiring.
+- Routine setup, cloud-run configuration, and automation wiring live in [`docs/routines/README.md`](../../../docs/routines/README.md).
 - `plan` owns follow-up implementation planning when a new question needs emit-side events or a wrapper script.
 
 ## Versioning

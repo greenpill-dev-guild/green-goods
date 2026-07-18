@@ -42,7 +42,7 @@ interface UseConvictionProposalsForPoolResult {
  * voting power + hypercert metadata into the percent-based ConvictionProposal[]
  * shape that ConvictionMeter / ProposalCardConviction consume.
  *
- * Audit finding #1 from the Tier-5 audit-then-ship pass.
+ * Audit finding #1 from the 2026-06 conviction audit.
  *
  * Indexer-lag handling for downstream mutations is already provided by
  * useAllocateHypercertSupport (uses useProgressiveInvalidation with

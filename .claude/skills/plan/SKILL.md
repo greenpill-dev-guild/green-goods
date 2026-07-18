@@ -3,12 +3,6 @@ name: plan
 user-invocable: false
 description: Planning & Execution — fires passively when the user describes planning or orchestration intent. Creates structured implementation plans, checks progress, executes in batches, manages lifecycle, and coordinates mixed Claude+Codex agent teams. Fire when the user says 'plan this', 'break down X', 'orchestrate', 'coordinate a team', 'parallel lanes', 'spawn teammates', 'fire off agents', 'mixed agent team', or describes cross-package / multi-lane implementation work.
 argument-hint: "[feature-name]"
-version: "1.3.0"
-status: active
-packages: ["all"]
-dependencies: []
-last_updated: "2026-07-12"
-last_verified: "2026-07-12"
 ---
 
 # Plan Skill
@@ -17,7 +11,7 @@ Planning lifecycle for Green Goods: create plans, check progress, execute in bat
 
 **References**: See `CLAUDE.md` for entry points, agent routing, and Green Goods conventions.
 
-This is a primary judgment surface. When placement, boundaries, or deletion questions dominate, pull the architecture lens into planning work rather than bouncing the user to a separate starting command.
+This is a primary judgment surface. When placement, boundaries, or deletion questions dominate, weigh them directly inside the planning work (layering rules live in CLAUDE.md and `.claude/context/*.md`) rather than bouncing the user to a separate command.
 
 ---
 
@@ -55,10 +49,10 @@ Action: run `bash .claude/scripts/check-agent-teams-readiness.sh` → compose te
 - "check progress on [plan]", "what's in flight?", "what plans are still relevant?"
 - `.plans/` feels stale (older than 14 days without updates)
 
-### Cross-package breaking change → ops/migration
+### Cross-package breaking change → dependency-order migration
 
 - "breaking change", schema migrations, deployment-affecting work
-- Create/update the owning feature hub first, then route execution through `ops/migration`
+- Create/update the owning feature hub first, then sequence execution in dependency order (contracts → shared → indexer → client/admin → agent) with explicit blast-radius analysis
 
 ### Legacy slash (deprecated)
 
@@ -97,7 +91,7 @@ Minimum files:
 `status.json` is the machine-readable contract for automations. The Markdown files stay optimized for humans.
 Implementation lanes (`ui`, `state_api`, `contracts`) are proof-gated for behavior-changing work.
 
-- Use the `testing` skill as the RED/GREEN source of truth.
+- Use `.claude/context/testing.md` as the RED/GREEN source of truth.
 - Record detailed RED/GREEN proof in the lane handoff.
 - Record machine-readable proof with `node scripts/harness/plan-hub.mjs record-tdd`.
 - If no behavior changed, set the lane TDD mode to `not_applicable` with a concrete note.
@@ -129,10 +123,10 @@ Implementation lanes (`ui`, `state_api`, `contracts`) are proof-gated for behavi
 | User can X  | Step 3       | ⏳     |
 
 ## CLAUDE.md Compliance
-- [ ] Implementation Quality Contract applied; no speculative abstractions or mixed abstraction levels
 - [ ] Hooks in shared package
 - [ ] i18n for UI strings
 - [ ] Deployment artifacts for addresses
+- [ ] Implementation Quality Contract applied; no speculative abstractions or mixed abstraction levels
 
 ## Impact Analysis
 
@@ -400,7 +394,7 @@ This gives Claude and future contributors unambiguous constraints without readin
 | Single-file bug fix with clear root cause | describe the bug → fix → test |
 | Typo or copy changes | Direct edit |
 | Config change (env var, build flag) | Direct edit → verify build |
-| Adding a test for existing behavior | `testing` skill directly |
+| Adding a test for existing behavior | Write it directly — conventions in `.claude/context/testing.md` |
 | Formatting or lint fix | `bun format && bun lint` |
 
 ### Signs a Plan is Needed
@@ -417,7 +411,7 @@ This gives Claude and future contributors unambiguous constraints without readin
 
 - **Over-planning polish work** — Small UI tweaks don't need 10-step plans
 - **Planning without reading code first** — Always audit existing patterns before writing a plan
-- **Planning what you don't understand** — Use `oracle` agent or describe the bug to investigate first
+- **Planning what you don't understand** — investigate first (describe the bug, or dispatch a research subagent)
 - **Stale plans** — If a plan sits untouched for 14+ days, reassess before executing
 - **Vision creep** — Keep architecture exploration separate from implementation plans; a plan with 60 decisions is a spec, not a plan
 
@@ -429,7 +423,7 @@ This gives Claude and future contributors unambiguous constraints without readin
 - **Plans with vague steps** — "Update the component" is not a plan step; "Add `onSubmit` handler to `WorkForm` that calls `useJobQueue.addJob()`" is
 - **Skipping impact analysis** — A plan without "Files to Modify" will surprise you during execution
 - **Infinite planning** — If the plan exceeds 15 steps, split into multiple plans or incremental PRs
-- **Planning alone when blocked** — If you need information to plan, ask the user directly (or use `oracle`) instead of guessing
+- **Planning alone when blocked** — If you need information to plan, ask the user directly instead of guessing
 - **Ignoring CLAUDE.md compliance** — Plans that skip the compliance checklist produce non-conforming code
 - **Plan proliferation** — Never have 2+ active plans for the same feature. When a new plan supersedes an old one, delete the old one immediately
 - **Missing test strategy** — Every feature plan needs a "Test Strategy" section. Contracts plans always include tests; frontend plans must too
@@ -452,8 +446,6 @@ for QA Speed Mode examples, Repo Quick Gate, and the full Ship Gate live in
 ## Related Skills
 
 - `plan/brainstorm.md` — Pre-plan exploration when requirements are fuzzy
-- `architecture` — Architectural patterns considered during planning
-- `testing` — TDD strategy included in implementation plans
-- `ui` (mermaid sub-file) — Visualizing plan architecture and dependencies
+- `plan/teams.md` — Mixed Claude+Codex agent-team orchestration
 - `debug` — Investigate root cause before planning a fix
-- `ops` (migration sub-file) — Cross-package migration plans need blast radius analysis
+- `review` — Post-implementation review of the executed plan

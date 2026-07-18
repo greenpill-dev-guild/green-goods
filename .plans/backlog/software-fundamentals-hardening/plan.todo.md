@@ -33,7 +33,7 @@
 
 | Requirement | Lane | Planned Step | Status |
 |---|---|---|---|
-| Repair guidance validation | `state_api` | Fix `check:claude-guidance` failures and confirm `check:codex-guidance` remains current | ⏳ |
+| Repair guidance validation | `state_api` | Confirm `check:codex-guidance` remains current (`check:claude-guidance` retired 2026-07-11 with the lean-skills consolidation) | ⏳ |
 | Repair plan command drift | `state_api` | Replace stale `node scripts/plan-hub.mjs` references or add durable package scripts | ⏳ |
 | Repair contracts guidance drift | `state_api` | Update package guidance and stale comments that mention removed `GreenGoodsResolver` architecture | ⏳ |
 | Tighten shared public API policy | `state_api` | Refresh ADR-008 and `packages/shared/AGENTS.md` around root barrel, subpath exports, and public-symbol review | ⏳ |
@@ -50,11 +50,11 @@
 
 ### Slice 1: Repo-Truth Repair
 
-- Fix `node .claude/scripts/check-skill-frontmatter.js` failures.
+- (`check-skill-frontmatter.js` retired 2026-07-11 — no Claude-side structural gate to repair.)
 - Correct stale `.plans` command references or introduce package scripts that hide raw paths.
 - Update `packages/contracts/AGENTS.md` so the resolver/module map names the current files and tests instead of `GreenGoodsResolver`.
 - Clean up stale contract source comments that refer to the removed central resolver if they are documentation-only.
-- Validate with `node scripts/harness/plan-hub.mjs validate`, `bun run check:claude-guidance`, `bun run check:codex-guidance`, and `rg "GreenGoodsResolver|src/resolvers/GreenGoods|GreenGoods\\.sol" packages/contracts/AGENTS.md packages/contracts/src packages/contracts/test`.
+- Validate with `node scripts/harness/plan-hub.mjs validate`, `bun run check:codex-guidance`, and `rg "GreenGoodsResolver|src/resolvers/GreenGoods|GreenGoods\\.sol" packages/contracts/AGENTS.md packages/contracts/src packages/contracts/test`.
 
 ### Slice 2: Shared API Policy And Dead-Code Audit
 
@@ -156,7 +156,6 @@
 ## Validation
 
 - [ ] `node scripts/harness/plan-hub.mjs validate`
-- [ ] `bun run check:claude-guidance`
 - [ ] `bun run check:codex-guidance`
 - [ ] `rg "GreenGoodsResolver|src/resolvers/GreenGoods|GreenGoods\\.sol" packages/contracts/AGENTS.md packages/contracts/src packages/contracts/test`
 - [ ] `reports/knip-vs-fallow-evaluation.md` updated with same-baseline comparison and recommendation

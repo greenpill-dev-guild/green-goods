@@ -88,7 +88,7 @@ if [[ ${#MISSING[@]} -gt 0 ]]; then
   printf '  %s\n' "${MISSING[@]}"
   echo
   echo "Either project the token in theme.css, or update the runtime contract intentionally."
-  echo "Then bump token_version in .claude/skills/design/SKILL.md and design_token_version in .claude/skills/ui/SKILL.md."
+  echo "Then bump token_version in .claude/skills/design/SKILL.md."
   exit 1
 fi
 
@@ -149,22 +149,11 @@ if [[ ${#MISSING_M3_DEFS[@]} -gt 0 ]]; then
   exit 1
 fi
 
-# Version coupling check: design token_version must match ui design_token_version.
+# Version presence check: the design skill declares the canonical token_version.
 DESIGN_VER="$(awk -F': *"?' '/^token_version:/ {gsub(/["[:space:]]/, "", $2); print $2; exit}' .claude/skills/design/SKILL.md)"
-UI_VER="$(awk -F': *"?' '/^design_token_version:/ {gsub(/["[:space:]]/, "", $2); print $2; exit}' .claude/skills/ui/SKILL.md)"
-REG_DESIGN_VER="$(grep -o '"token_version": *"[^"]*"' .claude/registry/skills.json | head -1 | sed 's/.*"\([^"]*\)"$/\1/')"
-REG_UI_VER="$(grep -o '"design_token_version": *"[^"]*"' .claude/registry/skills.json | head -1 | sed 's/.*"\([^"]*\)"$/\1/')"
 
-if [[ "$DESIGN_VER" != "$UI_VER" ]]; then
-  echo "❌ token_version drift: design=${DESIGN_VER} vs ui design_token_version=${UI_VER}"
-  exit 1
-fi
-if [[ "$DESIGN_VER" != "$REG_DESIGN_VER" ]]; then
-  echo "❌ registry drift: design SKILL.md token_version=${DESIGN_VER} vs registry=${REG_DESIGN_VER}"
-  exit 1
-fi
-if [[ "$UI_VER" != "$REG_UI_VER" ]]; then
-  echo "❌ registry drift: ui SKILL.md design_token_version=${UI_VER} vs registry=${REG_UI_VER}"
+if [[ -z "$DESIGN_VER" ]]; then
+  echo "❌ token_version missing from .claude/skills/design/SKILL.md frontmatter"
   exit 1
 fi
 
@@ -474,4 +463,4 @@ echo "✅ no new raw cubic-bezier, duration, color, radius literals, or primitiv
 echo "✅ admin Controlled Chrome guard passed: glass/blur/gradients stay in approved shell CSS."
 echo "✅ admin focus-ring guard passed: focus indicators use --tone-focus-ring."
 echo "✅ action-flow modality guard passed: no retired AdminDialog size=\"fullscreen\" usage."
-echo "✅ token_version coupled across design skill, ui skill, and registry (${DESIGN_VER})."
+echo "✅ token_version declared in design skill (${DESIGN_VER})."
