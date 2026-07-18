@@ -1,7 +1,7 @@
 ---
 routine-name: release-prep
 trigger:
-  schedule: "0 16 * * 1" # weekly Mon 16:00 UTC (= 08:00 PST / 09:00 PDT), self-gating: the full brief posts only when the release window is open (see Phase 0) — releases are not calendar-locked (v1.2.0 shipped July 8; v1.3.0 targets Aug 12).
+  schedule: "0 16 * * 1-5" # weekdays 16:00 UTC (= 08:00 PST / 09:00 PDT), self-gating: most runs are a cheap window check that exits quietly; the full brief posts when today is within 3 days of the release target (see Phase 0). Daily checks are what make "3 days before" land precisely even when the target date moves.
 max-duration: 30m
 repos:
   - green-goods
@@ -41,7 +41,7 @@ A single Discord brief containing:
 
 ## Cadence
 
-Runs **weekly (Mon 16:00 UTC)** but is **self-gating**: most runs check the release window and exit quietly; the full brief posts only when a release is actually approaching. Releases follow the Linear release project's target date, not the calendar (v1.2.0 shipped July 8; v1.3.0 targets Aug 12), so a fixed monthly fire was either early or stale. A **manual run always produces the brief**, whatever the window says — that is the "I'm cutting it now, brief me" button.
+Runs **every weekday (16:00 UTC)** but is **self-gating**: most runs are a one-query window check that exits quietly, and the full brief posts **3 days before the release** — the first weekday run where today ≥ target − 3 days. Releases follow the Linear release project's target date, not the calendar (v1.2.0 shipped July 8; v1.3.0 targets Aug 12), so a fixed monthly fire was either early or stale, and a weekly fire could land on release day itself; the daily check is what makes "3 days before" land precisely even when the target moves. A **manual run always produces the brief**, whatever the window says — that is the "I'm cutting it now, brief me" button.
 
 ---
 
@@ -55,12 +55,12 @@ Decide whether this run produces the full brief or exits quietly:
 
 1. **Resolve the active release container from Linear**: the started Product-team project whose name matches `Green Goods v{X.Y.Z} QA & Release` (currently *Green Goods v1.3.0 QA & Release*); read its `targetDate`. Fallback when no such project exists: the latest release tag date + the size of `origin/main..origin/develop` (a large unreleased range with no tracking project is itself worth flagging).
 2. **Produce the full brief when ANY of:**
-   - today ≥ `targetDate − 7 days` (the release window is open);
+   - today ≥ `targetDate − 3 days` (the release window is open — the brief lands 3 days out);
    - this is a **manual run** (a human hit Run — always brief);
    - the `targetDate` moved since the last posted brief (post a short delta note: old date → new date, what changed in the range);
-   - no release project exists AND `origin/main..origin/develop` exceeds ~60 commits (cadence quietly slipping — the failure mode this routine exists to catch).
+   - it is **Monday** AND no release project exists AND `origin/main..origin/develop` exceeds ~60 commits (cadence quietly slipping — checked weekly, not daily, so it never nags).
 3. **Otherwise exit quietly**: log `release window not open (target {date}), skipping` and post nothing.
-4. **Idempotency inside an open window**: if this release's brief was already posted and neither `develop` HEAD nor the targetDate changed since, skip the repost; if `develop` moved, post a refreshed brief marked *updated*.
+4. **Idempotency inside an open window (this runs daily — do not re-brief daily):** the brief posts ONCE when the window opens. After that, repost only when the `targetDate` moved, or when `develop` HEAD moved AND it has been ≥48h since the last brief (mark it *updated*). A same-state daily run inside the window logs `brief current, skipping` and exits.
 
 ## Setup
 
