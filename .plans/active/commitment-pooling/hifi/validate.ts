@@ -49,7 +49,7 @@ const BANNED_EVERYWHERE: [RegExp, string][] = [
   [/\bretention hooks?\b/i, "retention hook"],
   [/\bdebts?\b/i, "debt"],
   [/\bowes?d?\b/i, "owe/owed"],
-  [/\boperators?\b/i, "operator (steward rule, #28c)"],
+  [/\boperators?\b/i, "operator (steward rule, Decision Log #28c)"],
 ];
 const BANNED_CLIENT_PUBLIC: [RegExp, string][] = [
   [/\bdisputes?d?\b/i, 'dispute ("under review by stewards" is the ceiling)'],

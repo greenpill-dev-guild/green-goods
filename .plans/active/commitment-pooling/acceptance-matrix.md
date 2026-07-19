@@ -46,7 +46,7 @@
 | Settlement proof | Reported / checking / Oracle-verified | Reported = paid/received/verified | `settlement-spec.md` §3.3 |
 | Verification actor | Chainlink Functions callback only | Human verification, operator approval as receipt proof | `settlement-spec.md` |
 | Chain placement | Proof/control on Arbitrum; canonical G$ on Celo | Bridged G$, Arbitrum G$ custody | `settlement-spec.md` |
-| Fourth garden | “Barichara Regenerativa (Barichara, Santander, Colombia) — selected 2026-07-11; selection is not participation” | Any claim that Barichara participates before its corrected mandate is confirmed | `plan.todo.md` decision #27 (supersedes #26) |
+| Fourth garden | “a fourth slot for a mature MRV-adoption anchor — open; candidates under consideration, none selected” | Any named fourth garden in any artifact, or any claim that a fourth garden is selected or participating | `plan.todo.md` Decision Log #29 (supersedes #25 and #27) |
 | Community comparison | Alphabetical/neutral aggregates with small-community suppression | Rankings, leaderboards, credit scores | `uiux-spec.md` §7.2 |
 | Funding | Supports the garden; not per-Need escrow or steering | Funding buys priority/control | Community spec |
 | Credit/vouchers | Design-only/evidence-gated follow-on | August capability or dispatchable work | `credit-spec.md`, PRD-651/697 |
