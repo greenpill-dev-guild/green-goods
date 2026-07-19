@@ -636,7 +636,7 @@ Chain: `contracts` (blocked on CP registration-helper freeze) → `indexer` (nee
 2. **P1-4 / §20**: can `shared_foundation` be dispatched **now** (with an extraction inventory + named auth/offline reviewer), decoupled from the August substrate? This is the single biggest lever on 09-30.
 3. **P1-1**: for the extraction inventory — should i18n runtime, PostHog init, QueryClient/persistence, and the toast system be **extracted to shared** or **owned per-app** (each app already owns telemetry identity + copy)?
 4. **P2-1**: how should admin `/community` compose needs-triage/gathering/seed/evaluator/membership alongside the existing members/coordination/endowment/payouts (+ CP pools) — new tabs, sub-routes, or a mode switch?
-5. **P1-3**: is the fourth garden named (Barichara, #27) or anonymous ("in outreach") for the **survey/onboarding translation prep** — this blocks es/pt (`survey-instrument.md:40`)?
+5. ~~**P1-3**: is the fourth garden named or anonymous for the **survey/onboarding translation prep**?~~ **RESOLVED 2026-07-18 (Decision Log #29)**: the fourth garden is not selected and the slot is open, so no artifact names one. Translation prep covers en + pt only (Bias Fortes); es is not required until a fourth garden is selected and confirmed.
 6. **P2-3**: what is the **date** by which survey outcome #2 must lock the needs vocabulary so the append-only schemas don't need re-registration?
 7. **MF batch**: accept, reject, or defer the nine proposed micro-frames (MF-1/2/3/4/6/7/8/9/10) into `wireframes.md`?
 8. **Testimony scope**: confirm testimony is September-only in **all** external copy (fix `CP-XB:73` "confirm" → add "testify"; `CP-XB:23` isolate testimony as September) per decision #34g.
