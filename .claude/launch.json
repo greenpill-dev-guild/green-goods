@@ -2,6 +2,12 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "proto",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "4601", "--directory", "/tmp/gg-proto"],
+      "port": 4601
+    },
+    {
       "name": "deck",
       "runtimeExecutable": "python3",
       "runtimeArgs": [
