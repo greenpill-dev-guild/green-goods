@@ -2,7 +2,7 @@
 
 **Feature Slug**: `community-interface`
 **Stage**: `active`
-**Updated**: 2026-07-18
+**Updated**: 2026-07-19
 **Owning issues**: COM-7 (renumbered from RESR-62 when it moved to the Community team, 2026-07-19) and PRD-701 for steward coordination
 **Linear mirror**: [Garden Survey (Pass 1)](https://linear.app/greenpill-dev-guild/document/garden-survey-pass-1-needs-commitments-and-methodologies-c9271149e328) (slug `c9271149e328`). This file is the execution source; keep the mirror in lockstep.
 **Companion**: `onboarding-call.md` (Pass 2), whose Appendix B turns submissions into mandate rows.
@@ -52,7 +52,7 @@ Coordination-channel and join-flow observations feed RESR-64 (join-request persi
 - **Media**: upload each section's image as the Forms section-header image or an image item beside the named question. A YouTube link embeds natively as a Forms video item. Loom cannot embed, so the walkthrough link lives in the form description text.
 - **Placeholders to insert before fielding**: the Grassroots Economics explainer URL (Section 3), the public commitment-pooling brief link (form header), the Google Calendar appointment link (5.2), and **the named support contact** — Sections 5 and the privacy notes both tell people to "tell your support contact" to retract answers, and that person is currently unnamed anywhere in the form.
 - **Totals**: 49 items on the main path, +6 if the funder branch triggers. Four of the 49 are domain grids most gardens partly skip. Estimated 20–26 minutes.
-- **Section 2 is about needs only — never about who will help.** Every question there is either about the whole list (2.1, 2.3, 2.4, 2.5, 2.6, 2.7) or about the two or three that matter most (2.2). Nothing narrows to a single need, and nothing asks who would provide or receive help: that is Section 3's job. There are no per-need question blocks and no pre-set need categories, so the capture stays open and the synthesis prompt does the structuring.
+- **Section 2 is about needs only — never about who will help.** Every question there is about the whole list (2.1, 2.3, 2.4, 2.5, 2.6, 2.7), the two or three that matter most (2.2), or the garden's own direction over the next few years (2.8). Nothing narrows to a single need, and nothing asks who would provide or receive help: that is Section 3's job. There are no per-need question blocks and no pre-set need categories, so the capture stays open and the synthesis prompt does the structuring.
 - **Section 2 is also the theory-of-change section**, though it never uses the phrase. Cause (2.5), beneficiary (2.6), outcome and horizon (2.2), how the needs relate (2.3) and aspiration (2.8) are the tiers; the intervention is 3.6 and the indicators are 4.1. None of it is asked as theory — the synthesis prompt assembles it into a statement the facilitator reads back at the call.
 - **Cut ladder** if piloting runs long: 3.14 first, then 3.13, then 1.9, then 2.7. **Never cut**: 2.1, 2.2, 2.5, 2.6 (they are theory-of-change tiers the read-back depends on), 3.6, 3.7, 4.1, 4.4 (named PRD-719 evidence), and the consent questions 5.4 / 5.5. 5.6 is a redaction question rather than a consent flag, but keep it — it is the only place someone can protect a third party.
 
@@ -224,7 +224,7 @@ Not sure
 *feeds: onboarding path per member (app vs WhatsApp/SMS); training plan*
 
 #### 1.9 · How you coordinate today
-`Checkboxes` · Required · Other: on *(fourth on the cut ladder)*
+`Checkboxes` · Required · Other: on *(third on the cut ladder)*
 
 **Question**
 ```
@@ -358,7 +358,7 @@ This helps us understand the problems behind the needs, not just their symptoms.
 
 *feeds: theory-of-change diagnosis; commitment design on the call*
 
-#### 2.6 · Who feels them most *(first on the cut ladder)*
+#### 2.6 · Who feels them most
 `Checkboxes` · Required · Other: on
 
 **Question**
@@ -379,7 +379,7 @@ The garden as an organisation
 
 *feeds: beneficiary mapping; who is well placed to confirm a commitment is kept*
 
-#### 2.7 · How this feels right now
+#### 2.7 · How this feels right now *(fourth on the cut ladder)*
 `Multiple choice` · Required
 
 **Question**
@@ -681,7 +681,7 @@ If it does happen: share one real example of members helping each other.
 
 **Media**: image `.plans/active/commitment-pooling/artifacts/visuals/synthesis-three-tiers.png` (mutual aid → paid work → borrow-and-repay, with honest Built/Planned/gated labels).
 
-#### 3.13 · How help would be counted
+#### 3.13 · How help would be counted *(second on the cut ladder)*
 `Multiple-choice grid (ranking)` · Optional · Limit one response per column
 
 **Question**
@@ -711,7 +711,7 @@ If your community would rather not count this at all, skip this question — tru
 
 *feeds: credit terms (unit/token)*
 
-#### 3.14 · Comfortable limit *(second on the cut ladder)*
+#### 3.14 · Comfortable limit *(first on the cut ladder)*
 `Multiple choice` · Optional · Other: on
 
 **Question**
@@ -826,7 +826,7 @@ Is there anything else you wish you could track, but cannot yet?
 
 *feeds: metric-registry gaps; methodology-anchor decision*
 
-#### 4.4 · Where the information lives *(third on the cut ladder)*
+#### 4.4 · Where the information lives
 `Checkboxes` · Required · Other: on
 
 **Question**
@@ -1194,7 +1194,7 @@ All other sections run linearly (1 → 2 → 3 → 4 → 5). Section 4A's own "A
 
 The runnable prompt that turns one submission into these artifacts is **Appendix B of `onboarding-call.md`**. It produces:
 
-- **Need records** — one per need named in 2.1, enriched from 2.2 for the two or three that matter most (statement + desired outcome + kind). These seed the needs board; the call fills any missing horizon in seconds.
+- **Need records** — one per need named in 2.1, enriched from 2.2 for the two or three that matter most (statement + desired outcome + horizon). A need carries **no kind**: it is something to solve, and direction lives on the commitment that answers it (3.7). These seed the needs board; the call fills any missing outcome or horizon in seconds.
 - **One draft mandate row** from 3.6 (which need it addresses, who/what/for whom/by when) + 3.7 (direction: Request or Offer, which sets who confirms) + 2.2 (that need's outcome and horizon) + 3.1–3.4 (unit candidates) + 3.8 (capacity ceiling) + 4.1/4.7 (evidence, baseline author) + 1.6 (confirmation-group scale). Further rows are built **at the call** from the needs list, not invented from the form.
 - **The garden's theory of change, in its own words** — assembled, never asked: because *[cause, 2.5]*, *[who, 2.6]* face *[the needs, 2.1]*; if *[the commitment, 3.6]* happens then *[outcome, 2.2]*, and we would know because *[indicator, 4.1]*; over *[horizon, 2.2]* this builds toward *[aspiration, 2.8]*, with *[how the needs relate, 2.3]* setting whether that happens in order or in parallel. The facilitator reads it back at the top of the call — a garden hearing its own logic stated cleanly is the clarity moment this instrument exists to create, and "no, that is not why" is the most useful correction we can get.
 - **Onboarding roster** from 1.4/1.6/1.7/1.8 + 3.9 + 4.4: who becomes steward, gardener, or evaluator in the app; who takes the WhatsApp/SMS path; what training is needed.
@@ -1217,3 +1217,4 @@ The runnable prompt that turns one submission into these artifacts is **Appendix
 - 2026-07-19 (theory-of-change pass) — two questions added so the garden's own theory of change and strategy are legible: **2.4 "what depends on what"** turns the needs list into a sequence (their strategy, and the order Cycle 1 seeds in), and **2.10 "where this is heading"** captures the two-to-three-year aspiration the Seasons build toward — the one place in the instrument a steward gets to be ambitious rather than practical. Neither asks for theory in the abstract: the tiers already existed across the section, and the synthesis prompt now assembles them into a statement the facilitator reads back at the top of the call. Main path 48 → 50 items.
 - 2026-07-19 (portfolio-shape fix) — 2.3 stopped implying a sequence: **"which of these should we look at most closely?"** replaces "which would you start with", and it now invites naming two needs together when they are really one piece of work. 2.4 broadened from dependency to **relationship** — sequential, enabling, reinforcing, or independent — because a garden running solar infrastructure and education as mutually reinforcing tracks had no way to say so, and the old wording would have flattened a loop into a line. Both changes came from the Tech and Sun Hub case, where forcing a single pick would have discarded the most informative thing about how the garden's work holds together.
 - 2026-07-19 (needs-are-initiatives fix) — Section 2 stopped asking commitment-shaped questions and stopped narrowing to one need. A need is now framed as **something the community is trying to solve**, and every Section 2 question is about the whole list or the two or three that matter most; the single-need deep dive is gone entirely. Request and Offer moved to Section 3 as **3.7, commitment direction** — help the garden asks for versus help it gives — which is where the distinction actually lives and where it sets who confirms a commitment was kept. 2.2 now carries outcome **and horizon** per need, so the standalone horizon question was dropped. Root cause: `NeedKind` in the community spec carries Request/Offer/Initiative while `CommitmentDirection` in the contract spec carries Offer/Request, so the same vocabulary sat at two layers and the survey inherited the confusion. Main path 50 → 49 items.
+- 2026-07-19 (audit fixes) — a three-way review pass closed defects that would have broken the Form build or misled the builder: all six commitment-pooling image paths corrected to `artifacts/visuals/`; 4.7 made optional (a Required ranking grid with five rows and three columns was literally unsubmittable) and 4.1 made optional (seventeen required rows forced every garden to answer for domains it does not work in); routing arrows moved out of 4.8's pasteable option labels; the `##` section-mapping rule stated correctly; Section 4A's return path made explicit; the named support contact added as a fourth placeholder, since the form twice tells people to contact them to retract answers. A second pass then reconciled the cut-ladder markers with the build-notes order, removed a stale "kind" from the Need-record description, and corrected the Section 2 enumeration to include 2.8.
