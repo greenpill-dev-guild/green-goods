@@ -338,12 +338,12 @@ Per the Validation Intent Ladder: lane work uses targeted proof; the coordinator
 
    | Linear doc | Verdict | What is lost if archived as-is |
    |---|---|---|
-   | Supplemental Deep-Dive — Three Pool Interaction Layers (`cbd5c9a2`) | ✅ **SAFE-TO-ARCHIVE** | Nothing load-bearing. Every locked decision has a live repo cite; its proposed multi-counterparty confirmation already shipped as the N-of-threshold rule. |
-   | Circular G$ Economies (`6c7a2e4e`) | ⚠️ **EXTRACT FIRST — biggest risk** | Recirculation **metric formulas**, one-season targets, and the 5-condition healthy-season test (the synthesis lists only the five metric *words*); the **settled-flow tagging** dependency; redemption-point/sink/merchant design (6 ranked mechanisms); the numeric citation base. See §9c. |
-   | G$ Bridged vs. Split-State Settlement (`657f7233`) | ⚠️ **EXTRACT FIRST** | The entire alternatives-considered analysis behind a locked decision: the buy-pressure criterion that killed Architecture 1, bridge-exploit evidence, G$ market-depth data, the Dec-2023 reserve exploit behind the Celo-primary shift, bridge-mesh addresses, bridging-path options. `settlement-spec.md:7` cites it as **decision basis** but reproduces only the conclusion. |
-   | Architecture 3 Re-Score (`8243d7ef`) | ⚠️ **EXTRACT FIRST** | Same cluster; why Architecture 3 (Sarafu) is an evolution, not a replacement. |
-   | Protocol Architecture and Spec Direction (`41f5ada1`) | ⚠️ **EXTRACT FIRST** | The **2026-07-01 lead-sync provenance** — attendees, the logged "Aligned" decision text, and verbatim protocol-pool-first sequencing rationale. Zero hits anywhere else. Historical record: it cannot be superseded, only lost. (Do **not** re-canonicalize its single-protocol-seeded-pool MVP framing — deliberately overridden by the two-layer MVP.) |
-   | Research Pass 3 (`cca00039`) | ⚠️ **EXTRACT FIRST** | The unresolved G$-for-protocol-services question — **already extracted to §9b**, so this one is now clear to archive. |
+   | ~~Supplemental Deep-Dive (`cbd5c9a2`)~~ | 🗑️ **DELETED 2026-07-19** | Nothing lost — every decision had a live repo cite. |
+   | Circular G$ Economies (`6c7a2e4e`) | ✅ **EXTRACTED — safe to delete** | Metric formulas, the 5-condition healthy-season test, the settled-flow tagging dependency, sink ranking and comparables → `settlement-spec.md` §11. Finding: the doc has **no numeric targets**, only directional hedges. |
+   | G$ Bridged vs. Split-State Settlement (`657f7233`) | ✅ **EXTRACTED — safe to delete** | Buy-pressure argument, bridge-risk evidence, market depth, bridging paths, scored comparison, exact addresses → `settlement-spec.md` §10. |
+   | Architecture 3 Re-Score (`8243d7ef`) | ✅ **EXTRACTED — safe to delete** | Why Sarafu-on-Celo is an evolution not a replacement, plus its four named revisit gates → `settlement-spec.md` §10.3. Its "exit fee is 3% not 10%" correction is itself superseded by GIP-24 — recorded at §10.4. |
+   | Protocol Architecture and Spec Direction (`41f5ada1`) | ⚠️ **ONE ITEM LEFT** | Lead-sync record → §9d, and the G$-on-Arbitrum correction → §9e. **Still unique to it**: a stale-records list (GROW-6/5/8, PRD-473, PRD-649) and the do-not-open instruction for three unaccepted GoodDollar redistribution strategies. Confirm those are captured, then delete. |
+   | ~~Research Pass 3 (`cca00039`)~~ | 🗑️ **DELETED 2026-07-19** | Its unique item (the G$-for-protocol-services question) was extracted to §9b first. |
 
    ⚠️ **Concurrency**: `cca00039` and `41f5ada1` were both modified 2026-07-19 ~03:14–03:17Z by another session — the same window as the survey documents. **Confirm that session is finished before archiving either.**
 

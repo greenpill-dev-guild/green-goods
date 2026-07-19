@@ -112,7 +112,45 @@ Related and also unique to that document: a five-verb relay vocabulary (stream /
 
 `settlement-spec.md` models disbursement state only — `Queued → Executing → Reported → Verified/Failed/Cancelled`. **It never models flow type.** Without that tag, recirculation, leak, reseed, velocity, and hoard are not derivable from anything the settlement module emits; the metric words appear in the canonical synthesis, but the formulas, one-season targets, and the five-condition healthy-season test exist only in that Linear document.
 
-Consequence: the circulation evidence promised for the 2026-09-30 House of Alignment evaluation has **no specced data source**. This is a scope question, not a wording fix — resolve it before the August settlement build freezes, or the first evaluation has nothing to report but volume. The redemption-point / sink / merchant design (six ranked mechanisms) and the numeric citation base for the comparables live in the same document and should be extracted with it.
+**Extraction completed 2026-07-18**: the definitions now live in `settlement-spec.md` §11, and the picture is worse than "no data source". The source document contains **no numeric target for any metric** — every target is a directional hedge ("a majority", "a meaningful, growing share", "minority and falling"). So the healthy-season test cannot be evaluated pass/fail at all until someone sets the numbers. Four of the five metrics also have a numerator or denominator living entirely on Celo, which §6 explicitly excludes from the indexer boundary; and **reseed rate is unmodeled rather than merely untagged** — its numerator needs a return leg above garden Safes, which §9b records as an open external dependency. Eight concrete build implications are listed at `settlement-spec.md` §11.
+
+Consequence: the circulation evidence promised for the 2026-09-30 House of Alignment evaluation has **no specced data source and no thresholds**. This is a scope question, not a wording fix — resolve it before the August settlement build freezes, or the first evaluation has nothing to report but volume. The redemption-point / sink / merchant design (six ranked mechanisms) and the numeric citation base for the comparables live in the same document and should be extracted with it.
+
+## 9d. 2026-07-01 lead-sync record — extracted 2026-07-18
+
+*Rescued from the Linear document "Protocol Architecture and Spec Direction" (`41f5ada1`) before retirement. Almost everything else in that document is superseded — its single-protocol-seeded-pool MVP framing was deliberately overridden by the two-layer MVP. **This meeting record is the exception: historical record cannot be superseded, only lost.***
+
+**Present** (2026-07-01): Afo, Matt Strachman, Nansel Rimsah. Sophie and others absent. The document was written 2026-07-03, two days later; the source is a Gemini transcript.
+
+**Logged as an "Aligned" decision**, verbatim:
+
+> The team will implement commitment pooling within Green Goods to manage work cycles and garden accountability.
+
+Two Q3 outcomes were set: ground impact methodologies with garden operators, and build commitment pooling for seasons and campaigns. First concrete task was a garden survey capturing existing methodologies, owned by Afo.
+
+**Why protocol-pool-first.** The load-bearing sentence:
+
+> the core focus for the first set should be like a green goods pool of commitments that we look for gardens to fulfill
+
+— with gardens creating and backing their own only *"after we've kind of sucked the juice out of that."*
+
+**Flagged open in the sync, never decided**: whether commitments must be re-submitted each cycle (Afo leaned yes), and who sets a commitment's price. Neither is resolved in any current spec.
+
+**Funding context recorded in the same session**: Q2 fundraising fell short; the team moved to a stipend / "cookie jar" model at roughly **400–600 USD per month per contributor**, with commitment pooling the one core feature exempted from stipend-only treatment. The admin dashboard was flagged as under-prioritized.
+
+**Transcript provenance warning**: the Gemini notes render Tech and Sun (TAS) as "Tekken Sun", "task", and "TAZ". Anyone re-reading the raw transcript should expect that.
+
+## 9e. Correction — "G$ on Arbitrum is partner-confirmed" — 2026-07-18
+
+**This claim is not established, and it is carried in live Linear records.** Two independent extraction passes surfaced it from different source documents.
+
+The 2026-07-02 settlement research recorded partner confirmation of G$ on Arbitrum as a **verbal signal only** — no token address, no custody arrangement, and no transfer path were captured — and required written confirmation before any funds moved. The architecture document (`41f5ada1`) states outright that the claim as carried in **PRD-649** and the **Lifecycle And Aggregator Semantics** companion is wrong.
+
+It matters because the settled architecture depends on the opposite being true: **there is no canonical G$ on Arbitrum** (see `settlement-spec.md` §10.6 for the four chain addresses), which is precisely why settlement is split-state. A live record implying an Arbitrum G$ path is available invites exactly the design mistake the split-state decision exists to prevent.
+
+**Action**: correct PRD-649 and the Lifecycle companion in Linear. Not yet applied — the claim lives only in Linear; a repo grep for "partner-confirmed" and "G$ on Arbitrum" returns nothing.
+
+**Also unique to `41f5ada1`, confirm captured before deleting it**: a stale-records correction list keyed to GROW-6, GROW-5, GROW-8, PRD-473 and PRD-649; and an instruction not to open implementation issues for three unaccepted GoodDollar redistribution strategies (Aligned Commons Pool, Impact Bonus, Octant Vault Yield Routing) — that last reads as a record of partner alignment *not* converting, which is a decision record rather than a proposal.
 
 ## 10. Audit-response decisions — 2026-07-18
 
