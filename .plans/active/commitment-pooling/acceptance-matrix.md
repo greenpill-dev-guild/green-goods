@@ -1,7 +1,7 @@
 # Commitment Pooling — Cross-Surface Acceptance Matrix
 
 **Status**: canonical execution companion  
-**Updated**: 2026-07-11  
+**Updated**: 2026-07-18  
 **Sources**: `contract-spec.md`, `settlement-spec.md`, `uiux-spec.md`, `wireframes.md`  
 **Purpose**: one exact target for the handoffs' copy/state matrix, public claim/copy matrix, and final QA acceptance matrix. Specs win if this summary drifts.
 

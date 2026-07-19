@@ -2,7 +2,7 @@
 
 **Feature Slug**: commitment-pooling
 **Stage**: active
-**Updated**: 2026-07-18 (fund topology corrected; three-surface boundary defined; fourth-garden naming brought to Decision Log #27)
+**Updated**: 2026-07-19 (fund topology corrected; three-surface boundary defined; fourth-garden slot reopened per Decision Log #29; GIP-26 provenance restored)
 **Canonical synthesis**: “Commitment Pooling × Green Goods — Grassroots Economics Learnings, and the Full Flywheel We're Building.” This plan defines derivative materials and rollout; it does not replace or compress the synthesis into a new source of truth.
 **Settlement authority**: `settlement-spec.md` owns settlement and verification claims (oracle predicate, funding routes, Safe topology, AA gate). The canonical synthesis is the long-form rationale and is silent on the verification axis by design; derivatives cite the spec for settlement facts, not the synthesis.
 

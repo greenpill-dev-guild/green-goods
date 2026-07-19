@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-07-03",
-    "updated_at": "2026-07-18"
+    "updated_at": "2026-07-19"
   },
   "links": {
     "corrections_log": "corrections-log.md",
@@ -39,7 +39,7 @@
     },
     "syncDirection": "plans_to_linear_visibility",
     "laneSyncMode": "parent_only",
-    "lastSyncedAt": "2026-07-11",
+    "lastSyncedAt": "2026-07-19",
     "lastSyncPreviewAt": "2026-07-11",
     "consolidatedTrackers": {
       "note": "Per-lane children closed 2026-07-05; lanes roll up to these parent trackers. Lane detail = plan.todo.md.",

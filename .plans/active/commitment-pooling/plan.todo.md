@@ -4,7 +4,7 @@
 **Stage**: `active`
 **Status**: `ACTIVE: all readiness findings scope-locked 2026-07-10; core contracts ready to dispatch; settlement and downstream lanes retain named gates`
 **Created**: `2026-07-03`
-**Last Updated**: `2026-07-18`
+**Last Updated**: `2026-07-19`
 
 Linear mirror: project [Commitment Pooling](https://linear.app/greenpill-dev-guild/project/commitment-pooling-4bc53572f354). Milestones: July dry run (2026-07-31), August release (2026-08-31), September community interface (2026-09-30). Product implementation cadence: Q3 July — Commitment Pooling (2026-07-16 through 2026-07-30). Research alignment cadence: Q3 July — Methodologies & Commitments Alignment (through 2026-07-30). **The full document map is the next section.** Community-specific diagrams, wireframes, journeys, and research operations live in `.plans/active/community-interface/`. The 2026-07-10/11 reconciliation, PRD-686/RESR-57 predicate, and null PRD-651/697 dates were live-verified. **Fourth-garden policy (Decision Log #29, 2026-07-18 — supersedes #25 and #27): no fourth garden is selected.** The slot is open, candidates are under consideration, and **no artifact names one**. The three named gardens cover all four action domains on their own. The earlier #25→#26→#27 naming sequence is closed history; do not re-apply it.
 
@@ -330,7 +330,7 @@ Per the Validation Intent Ladder: lane work uses targeted proof; the coordinator
 
 1. **App-wide Operator → Steward rename**: community glossary (`docs/docs/reference/glossary-community.md`), docs site, i18n keys ×3 locales, admin/client UI copy, vocab-lint update. CP specs/visuals already use steward (mapping note: steward = operator/owner Hats).
 2. **PRD-680 docs-promotion appendix refresh**: diagrams.md §Appendix already lists the ship-time docs edits; re-check after the audit-response restructure (D6 acts, D13 matrix, CommitmentRequirement entity).
-3. **Linear re-apply pass**: the applied packs (`linear-update-pack.md`, `linear-apply-pack.md`) mirror live Linear content (PRD-686 context, RESR-57/58, canonical synthesis derivatives) that still carries the working-capital topology and scalar counts — re-apply the corrected wording to Linear.
+3. ~~**Linear re-apply pass**~~ — ✅ **DONE 2026-07-19.** The corrected wording was applied live to PRD-686, the project description, RESR-57, RESR-58 and the Pool Identity companion; the archived packs keep their original text as provenance (they are frozen records of what was applied on 2026-07-11, not current guidance). Still outstanding on the Linear side: the canonical synthesis's two sentence-edits (see #9) and the G$-on-Arbitrum correction to PRD-649 + the Lifecycle companion (`corrections-log.md` §9e).
 4. **Ops confirmation before the first garden Safe deploys**: designate the Dev Guild recovery multisig's concrete Celo address independently of the retired working-capital Safe, and record the HoA stream's receiving-address evidence (GG protocol Safe) in the settlement handoff (milestone M1, settlement-spec §8).
 5. **Optional hi-fi design pass** (Stitch / Claude Design) over the revised client pool surfaces (W1/W2/W25) once these wireframes settle.
 6. **Resolve the G$-for-protocol-services question** with GoodDollar (`corrections-log.md` §9b): may Green Goods charge gardens G$ for protocol services, given the House of Alignment circulation mandate? Open external dependency; the corrected topology has no return leg.
