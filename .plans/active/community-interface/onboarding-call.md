@@ -3,7 +3,7 @@
 **Feature Slug**: `community-interface`
 **Stage**: `active`
 **Updated**: 2026-07-18
-**Owning issues**: COM-7 (renumbered from RESR-62 when it moved to the Community team, 2026-07-19) and PRD-701 for steward coordination
+**Owning issues**: COM-7 (renumbered from RESR-62 when it moved to the Community team, 2026-07-19) and COM-3 (formerly COM-3, renumbered to the Community team) for steward coordination
 **Linear mirror**: [Garden Onboarding Call (Pass 2)](https://linear.app/greenpill-dev-guild/document/garden-onboarding-call-pass-2-mandate-confirmation-and-first-season-d3690de04864) (slug `d3690de04864`). This file is the execution source; keep the mirror in lockstep.
 **Companion**: `survey-instrument.md` (Pass 1). Run the survey first; this call assumes a completed response.
 
@@ -117,7 +117,7 @@ Record unresolved interpretation as unresolved; never infer certainty.
 
 ## First-Season timeline (facilitator one-pager)
 
-- **Through 2026-07-30** — co-design and mandate confirmation (this call; PRD-701 kickoff exit). **Hold the last call on 07-28 at the latest**: the corrected mandate goes back within 48 hours and the steward must explicitly confirm before the 07-31 publication, and silence is not confirmation. A later call publishes unconfirmed, which the readiness matrix then has to say plainly.
+- **Through 2026-07-30** — co-design and mandate confirmation (this call; COM-3 kickoff exit). **Hold the last call on 07-28 at the latest**: the corrected mandate goes back within 48 hours and the steward must explicitly confirm before the 07-31 publication, and silence is not confirmation. A later call publishes unconfirmed, which the readiness matrix then has to say plainly.
 - **2026-07-31** — July dry-run checkpoint. Confirmed mandate artifacts and a readiness matrix published **with explicit gaps**; no launch claim; dry-run rewards via Cookie Jar/treasury only.
 - **Early August** — Cycle 1 opens: steward-curated seeding from the July mandate artifacts, **baselines recorded first**; first oracle-verified G$ settlement where relevant. (The August release milestone closes 2026-08-31.)
 - **Early September** — the community app arrives: members name needs in their own words, signal what matters, and confirm kept commitments. (The September milestone closes 2026-09-30.)

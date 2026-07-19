@@ -86,7 +86,7 @@ The decision record must say why the selected option won, why the other two were
 
 | Linear window | Research/engagement outcome | Product consequence |
 |---|---|---|
-| Product current cycle, through 2026-07-16 | Begin operator outreach, consent script, and facilitation kit; do not claim cohort completion | Outreach underway; PRD-701 kickoff package due 2026-07-30 |
+| Product current cycle, through 2026-07-16 | Begin operator outreach, consent script, and facilitation kit; do not claim cohort completion | Outreach underway; COM-3 kickoff package due 2026-07-30 |
 | Product Commitment Pooling cycle, 2026-07-16 to 2026-07-30; Research alignment cycle through 2026-07-30 | Run the two-pass instrument, return mandate drafts for confirmation, test `NeedKind`/domain language, and evaluate join-request options | Architecture and seed rows can be corrected before the July checkpoint |
 | July dry-run milestone, 2026-07-31 | Publish confirmed mandate artifacts and a readiness matrix with gaps; no garden marked ready without operator confirmation | Go/no-go input for August seeding, not a promise that every garden onboards |
 | August release: Cycle 1 opens **early August**; milestone closes 2026-08-31 | Pair implementation reviews with participating stewards; rehearse one end-to-end commitment and, where relevant, one G$ settlement on Celo | Release evidence and steward runbook |

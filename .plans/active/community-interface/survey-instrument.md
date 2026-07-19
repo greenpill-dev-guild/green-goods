@@ -3,7 +3,7 @@
 **Feature Slug**: `community-interface`
 **Stage**: `active`
 **Updated**: 2026-07-19
-**Owning issues**: COM-7 (renumbered from RESR-62 when it moved to the Community team, 2026-07-19) and PRD-701 for steward coordination
+**Owning issues**: COM-7 (renumbered from RESR-62 when it moved to the Community team, 2026-07-19) and COM-3 (formerly COM-3, renumbered to the Community team) for steward coordination
 **Linear mirror**: [Garden Survey (Pass 1)](https://linear.app/greenpill-dev-guild/document/garden-survey-pass-1-needs-commitments-and-methodologies-c9271149e328) (slug `c9271149e328`). This file is the execution source; keep the mirror in lockstep.
 **Companion**: `onboarding-call.md` (Pass 2), whose Appendix B turns submissions into mandate rows.
 **Privacy**: contact details, wallet addresses, join identities, and statements naming people live in research-notes storage only. Never in Linear, analytics, or public artifacts.
