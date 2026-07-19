@@ -1,0 +1,282 @@
+{
+  "version": 1,
+  "feature": {
+    "slug": "commitment-credit-follow-on",
+    "title": "Commitment Credit — August Companion",
+    "kind": "feature",
+    "stage": "active"
+  },
+  "workflow": {
+    "overall_status": "active",
+    "priority": "p1",
+    "created_at": "2026-07-19T21:59:29.102Z",
+    "updated_at": "2026-08-10T23:46:00.000Z"
+  },
+  "links": {
+    "brief": "brief.md",
+    "spec": "spec.md",
+    "plan": "plan.todo.md",
+    "eval": "eval.md"
+  },
+  "linear": {
+    "parentIssue": "PRD-697",
+    "project": "Commitment Pooling",
+    "initiative": null,
+    "syncDirection": "plans_to_linear_visibility",
+    "lastSyncedAt": "2026-08-01T19:58:33.443Z",
+    "lanes": {
+      "contracts": {
+        "issue": "PRD-785"
+      },
+      "state_api": {
+        "issue": "PRD-786"
+      },
+      "ui": {
+        "issue": "PRD-787"
+      }
+    },
+    "laneSyncMode": "lane_issues"
+  },
+  "taxonomy": {
+    "initiative": "protocol-readiness",
+    "tracks": ["contracts", "indexer", "shared", "admin", "client", "ops"],
+    "work_types": ["implementation", "qa", "research"],
+    "surfaces": [
+      "packages/contracts",
+      "packages/indexer",
+      "packages/shared",
+      "packages/admin",
+      "packages/client"
+    ],
+    "depends_on_features": ["commitment-pooling"]
+  },
+  "notes": [
+    "Explicitly unblocked into the August Commitment Pooling wave on 2026-08-01 (pooling plan register #73). The Credit implementation range after pre-credit head 238e4e218 remains an additive companion with no pooling storage or lifecycle changes. The same integration PR also carries the pre-credit pooling hardening at 238e4e218: AcceptanceLib, ClaimsLib, and ExchangeLib enforce current claim authority, and ICommitmentPoolingModule adds PricedOfferClaimRequiresSteward. Those trust-boundary and ABI changes are an explicit upstream dependency, not unrecorded Credit work.",
+    "All three contracts dispatch gates cleared 2026-08-09: PR #694 merged at c60b38dea, Afo approved the interest-free records-only posture, and spec.md plus coverage-ledger.md freeze the initial ABI against pre-credit HEAD 238e4e218 and the post-review additions at implementation commit 89fffc972.",
+    "Settlement seam locked 2026-08-01: option (a), DisbursementKind.LoanPrincipal on the SettlementModule (settlement-spec 2026-08-01 amendment). The (b) commitmentId==0 path was preferred only when credit was a post-deploy addition; building both modules in one wave makes the explicit kind the cleaner invariant.",
+    "PRD-697 tracks this August companion in Linear; updated 2026-08-01 to Todo with the three dispatch gates in the body (write verified by re-read).",
+    "The Celo G$ repayment verifier is an explicit interface-revalidation item: Chainlink Functions is retired, an unverified human-entered hash cannot count, and the G$ repayment path stays disabled unless a bounded authenticated receipt policy passes the revalidation plus legal/operations gates. Jar/Treasury borrow-and-repay remains the executable baseline.",
+    "Mark unused lanes as n/a before promoting QA.",
+    "status.json is authoritative; branch names are automation signals.",
+    "Use targeted bun run test or bun run test as the iterative gate for the touched surface; coverage is scheduled or pre-merge evidence.",
+    ".plans/ is the durable repo truth; any tool-local or .claude/agent-memory surface stays environment-local until freshness and ownership rules exist.",
+    "Legal/operations review cleared 2026-08-09 (Afo): the interest-free, records-only lending posture is approved.",
+    "Stage 2 owns contracts and their proof only. Deployment targets, artifacts/recovery, courier, Safe/Zodiac and live dependency configuration, post-deploy verification, and broadcast are deferred to stage 3 after merge.",
+    "Frozen settlement selector: queueLoanPrincipal(uint256 loanId) returns (uint256 disbursementId), with a configured CreditRegistry, explicit registry+loan relationship, dedicated event, and dispatch-time revalidation.",
+    "Stage-2 contracts are merge-ready after the independent review's cross-rail double-payment finding and inherited source Safe identity dependency were resolved with focused RED/GREEN proof. The former indexer generated-helper drift is resolved at 1fbb6c1cd with local boundary, lint, 203-test, codegen, and TypeScript-build proof plus a green refreshed remote Indexer job. The root test target was rerun outside the restricted sandbox and passed, so the prior Foundry macOS system-proxy abort is no longer an active whole-branch proof gap.",
+    "Live Linear was re-read at closeout. PRD-785 is In Review and carries the final contracts proof comment."
+  ],
+  "lanes": {
+    "ui": {
+      "owner": "claude",
+      "status": "blocked",
+      "branch": "claude/ui/commitment-credit-follow-on",
+      "depends_on": ["state_api"],
+      "handoff": "handoffs/claude-ui.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": ""
+      },
+      "skill_tags": ["ui", "frontend-design", "react"],
+      "blocked_reason": "Admin credit console + PWA wallet row follow the shared substrate per spec.md section 8 order."
+    },
+    "state_api": {
+      "owner": "codex",
+      "status": "blocked",
+      "branch": "codex/state-api/commitment-credit-follow-on",
+      "depends_on": ["contracts"],
+      "handoff": "handoffs/codex-state-api.md",
+      "tdd": {
+        "mode": "required",
+        "status": "pending",
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
+        "note": ""
+      },
+      "skill_tags": ["react", "tanstack-query", "data-layer"],
+      "blocked_reason": "Follows the contracts lane per spec.md section 8 order."
+    },
+    "contracts": {
+      "owner": "codex",
+      "status": "passed",
+      "branch": "codex/contracts/commitment-credit-follow-on",
+      "execution_branch": "feature/build-commitment-crediting-contracts",
+      "depends_on": [],
+      "handoff": "handoffs/codex-contracts.md",
+      "tdd": {
+        "mode": "required",
+        "status": "green_recorded",
+        "red": {
+          "command": "cd packages/contracts && bun run test:match 'test/unit/CreditRegistry.t.sol'",
+          "evidence": "Initial RED: compilation failed because ICreditRegistry.sol and Credit.sol did not exist. Adversarial REDs later isolated approval authority drift, asynchronous cap races, unsafe settlement cancellation, incorrect per-loan repayment event balances, dependency replacement with approved exposure, three cross-rail settlement-child cases, and three source account authority/identity cases."
+        },
+        "green": {
+          "command": "cd packages/contracts && bun run test:match 'test/unit/CreditRegistry.t.sol'",
+          "evidence": "Fresh 2026-08-10 review proof: CreditRegistry.t.sol passed 31 of 31; the full contracts gate passed 1975 Solidity tests, and the final checker follow-up passed 104 script tests. The follow-up also passed full build, EIP-170 size, linear plus ERC-7201 storage, format, lint, typecheck, and realism gates. The preceding same-day sweep passed CreditSettlement.t.sol 25 of 25, Settlement.t.sol 21 of 21, SettlementSecurity.t.sol 22 of 22, and the read-only settlement fork lane 7 of 7."
+        },
+        "note": "RED preceded implementation and each adversarial behavior fix. GREEN was refreshed with the review fixes present: targeted lifecycle tests, the full contracts and script suites, linear and ERC-7201 namespace storage gates, size and source-structure gates, test realism, agentic checks, and the 7-test read-only fork lane. Coverage percentages remain historical evidence from the earlier audit run and are not restated as fresh proof here."
+      },
+      "skill_tags": ["contracts"],
+      "manual_blocked": false,
+      "note": "Stage-2 contracts increment is merge-ready on feature/build-commitment-crediting-contracts after the independent findings and follow-up dependency guards. The predeploy ABI binds each pool's cap and exposure ledger to one immutable token denomination, rejects borrower self-repayment, refuses retries once the snapshotted executor can no longer acknowledge, releases a commitment link only when its loan becomes Repaid or Cancelled, and freezes the nested LoanPrincipalRelationship schema in the ERC-7201 baseline. The Credit range starts after pre-credit pooling hardening at 238e4e218; the integration PR includes that bounded AcceptanceLib, ClaimsLib, ExchangeLib, and PricedOfferClaimRequiresSteward ABI dependency. Human review and merge remain pending; deployment stays deferred to stage 3."
+    },
+    "qa_pass_1": {
+      "owner": "claude",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "claude/qa-pass-1/commitment-credit-follow-on",
+      "depends_on": ["ui", "state_api", "contracts"],
+      "handoff": "handoffs/claude-qa-pass-1.md",
+      "skill_tags": ["testing", "review"]
+    },
+    "qa_pass_2": {
+      "owner": "codex",
+      "status": "blocked",
+      "ready_when_dependencies_met": true,
+      "manual_blocked": false,
+      "branch": "codex/qa-pass-2/commitment-credit-follow-on",
+      "branch_trigger": "claude/qa-pass-1/commitment-credit-follow-on",
+      "depends_on": ["qa_pass_1"],
+      "handoff": "handoffs/codex-qa-pass-2.md",
+      "skill_tags": ["testing", "review"]
+    }
+  },
+  "history": [
+    {
+      "timestamp": "2026-07-19T21:59:29.104Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "scaffolded",
+      "branch": null,
+      "note": "Scaffolded feature hub in backlog"
+    },
+    {
+      "timestamp": "2026-07-19T22:25:00.000Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "extracted_follow_on",
+      "branch": null,
+      "note": "Extracted the blocked CreditRegister follow-on from the active Commitment Pooling hub into its own backlog feature."
+    },
+    {
+      "timestamp": "2026-08-01T00:00:00.000Z",
+      "actor": "human",
+      "lane": "system",
+      "status": "promoted_to_active",
+      "branch": null,
+      "note": "Promoted backlog -> active into the August Commitment Pooling wave (pooling plan register #73, Grassroots Economics review session). Dispatch gates recorded in notes."
+    },
+    {
+      "timestamp": "2026-08-01T19:58:33.443Z",
+      "actor": "codex",
+      "lane": "system",
+      "status": "linear_recorded",
+      "branch": null,
+      "note": "Recorded Linear parent/lane issue identifiers"
+    },
+    {
+      "timestamp": "2026-08-09T15:40:00.000-07:00",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "in_progress",
+      "branch": "feature/build-commitment-crediting-contracts",
+      "note": "Verified all dispatch gates and froze the exact CreditRegistry and LoanPrincipal settlement interfaces against c60b38dea..238e4e218. Deployment plumbing moved to stage 3."
+    },
+    {
+      "timestamp": "2026-08-10T00:30:18.314Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "tdd_recorded",
+      "branch": "codex/contracts/commitment-credit-follow-on",
+      "note": "RED was recorded before implementation. GREEN includes the exact focused target and fresh full-suite confirmation on 2026-08-09."
+    },
+    {
+      "timestamp": "2026-08-10T02:08:28.836Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "tdd_recorded",
+      "branch": "codex/contracts/commitment-credit-follow-on",
+      "note": "Recorded RED/GREEN TDD proof"
+    },
+    {
+      "timestamp": "2026-08-10T02:08:37.597Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "passed",
+      "branch": "codex/contracts/commitment-credit-follow-on",
+      "note": "Stage-2 contracts increment is merge-ready on feature/build-commitment-crediting-contracts at 1df10469b and 0b50c9205. Fresh contracts proof is green, committed-range review found no unresolved Critical or High issue in scope, and deployment remains deferred to stage 3."
+    },
+    {
+      "timestamp": "2026-08-10T03:31:44.000Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "passed",
+      "branch": "feature/build-commitment-crediting-contracts",
+      "note": "Resolved the independent review's cross-rail double-payment finding and source Safe identity dependency at 89fffc972. Fresh focused, full, coverage, storage, size, lint, and read-only fork evidence is green; deployment remains deferred to stage 3."
+    },
+    {
+      "timestamp": "2026-08-10T17:35:00.000Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "passed",
+      "branch": "feature/build-commitment-crediting-contracts",
+      "note": "Validated and resolved the follow-up review comments on checkout fafd79d20. Fresh proof passed 20 CreditSettlement, 21 CreditRegistry, 21 SettlementSecurity, 1955 Solidity, 100 script, and 7 fork tests, plus build, audit, size, lint, linear storage, and both ERC-7201 namespace layout checks."
+    },
+    {
+      "timestamp": "2026-08-10T19:03:00.000Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "passed",
+      "branch": "feature/build-commitment-crediting-contracts",
+      "note": "Closed the next review sweep with symmetric consecutive peer-rotation guards and storage-check hardening. Fresh proof passed 19 source route, 24 executor security, 1957 Solidity, 100 script, and 7 fork tests; the full root test target also passed outside the restricted sandbox."
+    },
+    {
+      "timestamp": "2026-08-10T22:44:33.000Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "scope_corrected",
+      "branch": "feature/build-commitment-crediting-contracts",
+      "note": "Recorded the integration PR's pre-credit pooling trust-boundary and ABI hardening at 238e4e218 separately from the additive Credit implementation range. Fresh review proof passed 28 CreditRegistry, 25 CreditSettlement, 22 SettlementSecurity, 1970 Solidity, 100 script, and 7 fork tests, plus build, lint, storage, size, and agentic checks."
+    },
+    {
+      "timestamp": "2026-08-10T23:05:00.000Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "passed",
+      "branch": "feature/build-commitment-crediting-contracts",
+      "note": "Closed the late P1 review sweep: retired peers cannot receive unacknowledgeable retries, borrowers cannot record their own repayments even with recorder roles, and every pool's cap, reservations, and outstanding balance share one immutable token denomination. Fresh proof passed 30 CreditRegistry, 25 CreditSettlement, 21 Settlement lifecycle, 22 SettlementSecurity, 1974 Solidity, 100 script, and 7 fork tests, plus build, lint, storage, size, realism, and source-structure gates."
+    },
+    {
+      "timestamp": "2026-08-10T23:29:00.000Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "passed",
+      "branch": "feature/build-commitment-crediting-contracts",
+      "note": "Closed the next P2 review sweep: full repayment now releases the matching live commitment link while partial repayment retains it, and ERC7201Namespaces.json freezes the nested LoanPrincipalRelationship value schema as well as the namespace's top-level members. Fresh proof passed 31 CreditRegistry, 1975 Solidity, and 100 script tests, plus build, typecheck, format, lint, storage, EIP-170 size, and realism gates."
+    },
+    {
+      "timestamp": "2026-08-10T23:46:00.000Z",
+      "actor": "codex",
+      "lane": "contracts",
+      "status": "passed",
+      "branch": "feature/build-commitment-crediting-contracts",
+      "note": "Hardened the ERC-7201 checker after the next review: annotated extraction is declaration-bound, referenced structs are unique, long NatSpec trivia is supported, and manifest sources cannot escape the contracts package lexically or through symlinks. Four new fixtures pass within the 104-test script suite; typecheck, formatting, source structure, and the full storage gate are green."
+    }
+  ]
+}
