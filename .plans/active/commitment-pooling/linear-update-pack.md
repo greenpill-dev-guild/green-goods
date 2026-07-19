@@ -19,10 +19,10 @@
 - Approval-gated claim requests store claimant, kind, provider garden, timestamp, and active state. Acceptance consumes those terms; decline affects one request; the commitment-keyed index marks competing pending requests superseded.
 - A pool may have one open Season plus concurrent Campaigns. Disputes store the previous state and use `RestorePrevious`; an expired commitment cannot become Fulfilled.
 - Every Envio entity carries `chainId` and a composite ID. `Garden.id` migrates to `chainId-address`; generic audit actor is nullable and comes only from an explicit event field.
-- Green Goods models `WorkingCapitalToProtocol` and `ProtocolToGarden`; House of Alignment → working capital remains upstream.
+- Green Goods models `ProtocolToGarden`; House of Alignment → protocol Safe remains upstream.
 - Settlement batches persist 1–24 immutable member IDs. A failed batch is reconciled per member.
 - A report persists `reportedBy` and a Celo transaction hash but is not receipt proof. Chainlink Functions is the only verification path. Infrastructure failures remain `Reported`; a finalized invalid receipt becomes `Failed`; only a valid current request callback becomes `Verified`.
-- Each garden Safe uses exactly 2-of-3 recovery owners: protocol recovery multisig, Dev Guild/working-capital recovery multisig, and one named garden recovery delegate. Executors are bounded Roles members and cannot be owners.
+- Each garden Safe uses exactly 2-of-3 recovery owners: protocol recovery multisig, Dev Guild recovery multisig, and one named garden recovery delegate. Executors are bounded Roles members and cannot be owners.
 - Failure of the Celo AA/paymaster round trip leaves Safe-to-Safe funding available but keeps automated member delivery disabled; there is no substitute member-claim route.
 - Community is an independent PWA at `community.greengoods.app` (local port 3010) after a shared-foundation extraction. Needs/Create/Profile stay there; pools and evaluator tools live in admin `/community`; funder discovery stays in existing client public surfaces.
 - Join-request persistence remains blocked on RESR-64 through 2026-08-12. Public on-chain requests, Linear-as-queue, and implicit localStorage are excluded.

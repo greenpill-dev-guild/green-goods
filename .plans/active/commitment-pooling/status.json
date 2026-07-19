@@ -10,7 +10,7 @@
     "overall_status": "active",
     "priority": "p1",
     "created_at": "2026-07-03",
-    "updated_at": "2026-07-11"
+    "updated_at": "2026-07-18"
   },
   "links": {
     "corrections_log": "corrections-log.md",
@@ -72,9 +72,9 @@
     "CommitmentPoolingModule + non-transferable ERC-1155-style CommitmentRegister; classes stay voucher-shaped, but transferable settlement vouchers remain a separately gated PRD-651 follow-on.",
     "Clean room: Grassroots Economics paper and public docs only; never the AGPL Sarafu source.",
     "G$ split-state settlement is in scope for August via PRD-686 but remains manually blocked: SettlementModule on Arbitrum, immutable 1-24 member batches, per-garden Celo Safes, operator-executed G$ settlement, mandatory Chainlink Functions verification, and AA-gated member delivery.",
-    "Green Goods settles canonical G$ on Celo and never bridges G$ to Arbitrum. The House of Alignment flow funds the Dev Guild working-capital wallet before protocol/garden settlement operations.",
+    "Green Goods settles canonical G$ on Celo and never bridges G$ to Arbitrum. The House of Alignment stream lands directly in the GG protocol Safe on Celo; garden settlement operations draw from it (topology corrected 2026-07-18, corrections-log §9).",
     "Commitment domains are optional arrays; DomainImpact requires 1-4 registered action/domain pairs. Action UID 0 is valid, action existence/domain is checked through ActionRegistry, and claim supersession uses a commitment-keyed companion index rather than an unavailable arbitrary entity scan.",
-    "G$ commitment rewards derive source/beneficiary/token/amount from the Fulfilled commitment. Funding is limited to WorkingCapitalToProtocol and ProtocolToGarden. Reports persist reportedBy; only the active Chainlink Functions callback can produce Verified or receipt-invalid Failed, and infrastructure errors leave Reported for retry. Pilot Safe recovery is exactly 2-of-3 (protocol multisig, Dev Guild/working-capital multisig, named garden delegate); executors are scoped Roles members and never owners.",
+    "G$ commitment rewards derive source/beneficiary/token/amount from the Fulfilled commitment. Funding is limited to ProtocolToGarden. Reports persist reportedBy; only the active Chainlink Functions callback can produce Verified or receipt-invalid Failed, and infrastructure errors leave Reported for retry. Pilot Safe recovery is exactly 2-of-3 (protocol multisig, Dev Guild recovery multisig, named garden delegate); executors are scoped Roles members and never owners.",
     "Linear was reconciled and live-re-read on 2026-07-10: both projects, all active milestones, core and referenced issues, canceled-child supersession notes, the Garden Mandate Survey, RESR-57/58 documents, and the new RESR-64 engagement-model document. PRD-651/697 are Backlog with no cycle or agent dispatch. Resolved 2026-07-11: the staged apply pack (linear-apply-pack.md) was applied and live-verified, the previously credit-blocked PRD-686/RESR-57 Safe/Zodiac wording refinement landed, and the PRD-651/697 due dates were cleared manually in the Linear UI (live-verified null).",
     "Out of scope for all lanes: bridged G$, bridge custody or unbounded value authority, Sarafu integration, transferable settlement vouchers/settlementAdapter activation, indexing Celo/G$ transfers, garden-to-garden federation, leaderboards, and credit scores. Bridge-executor automation is an August stretch only, otherwise post-August.",
     "Borrow-and-repay CreditRegister is a blocked follow-on lane: designed in credit-spec.md, not part of the August base MVP, and not dispatchable without an explicit unblock.",
@@ -105,8 +105,14 @@
       "tdd": {
         "mode": "required",
         "status": "pending",
-        "red": { "command": "", "evidence": "" },
-        "green": { "command": "", "evidence": "" },
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
         "note": ""
       },
       "skill_tags": ["contracts"]
@@ -124,8 +130,14 @@
       "tdd": {
         "mode": "required",
         "status": "pending",
-        "red": { "command": "", "evidence": "" },
-        "green": { "command": "", "evidence": "" },
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
         "note": ""
       },
       "skill_tags": ["indexer", "react", "tanstack-query", "data-layer"]
@@ -144,8 +156,14 @@
       "tdd": {
         "mode": "required",
         "status": "pending",
-        "red": { "command": "", "evidence": "" },
-        "green": { "command": "", "evidence": "" },
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
         "note": ""
       },
       "skill_tags": ["ui", "react", "design"]
@@ -194,7 +212,7 @@
       "depends_on": ["contracts"],
       "handoff": "handoffs/codex-settlement.md",
       "linear_issues": ["PRD-686"],
-      "acceptance": "Pre-broadcast SettlementModule GREEN: Individual rewards use same-address AA; Garden rewards use the registered providerGarden Safe; two funding routes; immutable 1-24 batches; mandatory pinned Functions v1.3 callback; memberDeliveryEnabled getter/event/index model; exact pilot 2-of-3 recovery and scoped executors. Broadcast and the live exit proof are owned by release_ops."
+      "acceptance": "Pre-broadcast SettlementModule GREEN: Individual rewards use same-address AA; Garden rewards use the registered providerGarden Safe; the single derived ProtocolToGarden funding route; immutable 1-24 batches; mandatory pinned Functions v1.3 callback; memberDeliveryEnabled getter/event/index model; exact pilot 2-of-3 recovery and scoped executors. Broadcast and the live exit proof are owned by release_ops."
     },
     "indexer": {
       "machine_lane": "state_api",
@@ -400,6 +418,18 @@
     {
       "date": "2026-07-11",
       "event": "Work committed and pushed to develop in five grouped commits (commitment-pooling hub incl. acceptance-matrix/human-release-ops/audience graphics; community-interface hub; docs-site disambiguation; contracts AGENTS schema policy; codex config) plus a pre-existing format fix that unblocked pre-push. Fourth-garden policy resolved as decision #27: the user's live Linear r4 named-cohort pass stands (selection-is-not-participation guardrail); repo artifacts re-aligned to the named wording; the 'naming regression' classification retracted; RESR-57 issue cohort line and PRD-686 release-ops boundary saved and live-re-read to close convergence."
+    },
+    {
+      "date": "2026-07-18",
+      "event": "Visual-asset audit response: funding topology corrected (HoA stream lands directly in the GG protocol Safe on Celo; working-capital hop, WorkingCapitalToProtocol route, and workingCapitalAccount storage removed across specs, diagrams, SVGs, and external materials — corrections-log §9; Linear re-apply pending). Garden Steward standardized across CP surfaces (steward = operator/owner Hats; app-wide rename is a follow-up). Multi-action per-requirement counts amended into contract-spec. Diagrams/wireframes revised per the 2026-07-18 audit (D6 lifecycle split, D13 permission matrix, W22 → deployer-gated Operations tab, history-as-filters, W6 retired into the WalletDrawer, new W24/W25/W26/W13b frames); both artifacts rebuilt and republished."
+    },
+    {
+      "date": "2026-07-18",
+      "event": "Hi-fi prototype re-plumb (B0, decision #36): prototypes-artifact.build.ts decomposed into hifi/ modules — legacy frames + ascii shim emitting the data-hot/data-mark DOM contract, journeys normalization (match-strings resolve to hotspot ids), validation v2 (state-aware refs, bidirectional hotspot integrity, banned-vocab/steward/quiet-admin/chain-placement scans), single-render-model player with per-screen state switcher plumbing. W6 retired with W6->W5 alias; W24/W25/W26 lo-fi frames folded in from wireframes.md; Reference-tab digit-mangling fixed (89 <code>undefined</code> occurrences in the prior build). Artifact republished at the same URL; hi-fi screen batches B1-B5 follow."
+    },
+    {
+      "date": "2026-07-18",
+      "event": "Hi-fi prototype batches B1-B5 complete (decision #36): all August screens render high-fidelity with per-screen state matrices — client PWA (W1 15 states, W2 19, W2a, W3 6, W4 4, W5 4, W23 4, W25 3, WFLOW; Warm Earth phone frames, hero moments, progressive disclosure per wireframes.md:166), admin (W7-W14, W21, W22, W24, W26, HUBWORK; restrained M3 desktop frames, centered dialogs, quiet checkmarks), editorial (W15 3 states, W16 2; Fraunces-stack serif + mono kickers). 116 states / 133 hotspots / 31 screens; all 14 storyboards state-pinned and revalidated (104 scenes). Lo-fi variants dissolved with forward aliases (W1P/W1S/W7X/W23G/MF1/3/4/5/6/8/9/10/13 + W6->W5); September CI-W frames stay lo-fi previews. Build-time copy lint: banned vocab, steward naming, quiet-admin, chain placement (0 warnings). Artifact republished per batch at the same URL."
     }
   ]
 }

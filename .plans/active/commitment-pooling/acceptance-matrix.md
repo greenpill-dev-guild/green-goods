@@ -22,7 +22,7 @@
 | Verified settlement | “Support arrived” | Oracle evidence + Celo ref | Oracle-verified | Current Functions callback only |
 | Receipt-invalid Failed | Calm failure/recovery | Failure code + per-member retry/cancel | Failed, not merely unverified | Per-member reconciliation |
 | Infrastructure failure | Still Reported; retry copy | Retry request; never invalid receipt | Reported / verification unavailable | Fresh request |
-| Member delivery disabled | No G$ balance/send/delivery CTA | Gate reason; funding routes remain | Explicit delivery-blocked copy | AA/paymaster exit evidence + enabled event |
+| Member delivery disabled | No G$ balance/send/delivery CTA | Gate reason; the funding route remains | Explicit delivery-blocked copy | AA/paymaster exit evidence + enabled event |
 
 ## 2. Identity, permissions, and payout formulas
 

@@ -43,28 +43,23 @@
   <text x="855" y="314" text-anchor="middle" font-size="13" font-weight="600" fill="#24422E">House of Alignment stream</text>
   <text x="855" y="332" text-anchor="middle" font-size="10.5" fill="#4C6B54">upstream — not a Green Goods action</text>
 
-  <path d="M 855 350 L 855 367" fill="none" stroke="#AC9F87" stroke-width="2.25" marker-end="url(#arrow)"/>
+  <path d="M 855 350 L 855 385" fill="none" stroke="#AC9F87" stroke-width="2.25" marker-end="url(#arrow)"/>
+  <text x="867" y="374" font-size="10.5" fill="#8A8578">streams directly</text>
 
-  <rect x="735" y="372" width="240" height="48" rx="12" fill="#DFEBDE" stroke="#4C7A57" stroke-width="2"/>
-  <text x="855" y="401" text-anchor="middle" font-size="13" font-weight="600" fill="#24422E">Dev Guild working capital</text>
+  <rect x="735" y="390" width="240" height="48" rx="12" fill="#DFEBDE" stroke="#4C7A57" stroke-width="2"/>
+  <text x="855" y="419" text-anchor="middle" font-size="13" font-weight="600" fill="#24422E">Green Goods protocol treasury</text>
 
-  <path d="M 855 422 L 855 445" fill="none" stroke="#AC9F87" stroke-width="2.25" marker-end="url(#arrow)"/>
-  <text x="867" y="438" font-size="10.5" fill="#8A8578">route 1</text>
+  <path d="M 855 442 L 855 475" fill="none" stroke="#AC9F87" stroke-width="2.25" marker-end="url(#arrow)"/>
+  <text x="867" y="462" font-size="10.5" fill="#8A8578">the funding route</text>
 
-  <rect x="735" y="450" width="240" height="48" rx="12" fill="#FFFFFF" stroke="#A19884" stroke-width="2" stroke-dasharray="5 4"/>
-  <text x="855" y="479" text-anchor="middle" font-size="13" font-weight="600" fill="#3B372E">protocol treasury</text>
-
-  <path d="M 855 500 L 855 523" fill="none" stroke="#AC9F87" stroke-width="2.25" marker-end="url(#arrow)"/>
-  <text x="867" y="516" font-size="10.5" fill="#8A8578">route 2</text>
-
-  <rect x="735" y="528" width="240" height="48" rx="12" fill="#FFFFFF" stroke="#A19884" stroke-width="2" stroke-dasharray="5 4"/>
-  <text x="855" y="557" text-anchor="middle" font-size="13" font-weight="600" fill="#3B372E">garden accounts</text>
+  <rect x="735" y="480" width="240" height="48" rx="12" fill="#FFFFFF" stroke="#A19884" stroke-width="2" stroke-dasharray="5 4"/>
+  <text x="855" y="509" text-anchor="middle" font-size="13" font-weight="600" fill="#3B372E">garden accounts</text>
 
   <!-- gated last arrow -->
-  <path d="M 855 578 L 855 643" fill="none" stroke="#A19884" stroke-width="2.25" stroke-dasharray="5 4" marker-end="url(#arrowMuted)"/>
-  <text x="867" y="598" font-size="10.5" fill="#6E6857">sponsored-account gate —</text>
-  <text x="867" y="612" font-size="10.5" fill="#6E6857">until it passes, member</text>
-  <text x="867" y="626" font-size="10.5" fill="#6E6857">delivery waits</text>
+  <path d="M 855 528 L 855 643" fill="none" stroke="#A19884" stroke-width="2.25" stroke-dasharray="5 4" marker-end="url(#arrowMuted)"/>
+  <text x="867" y="565" font-size="10.5" fill="#6E6857">sponsored-account gate —</text>
+  <text x="867" y="579" font-size="10.5" fill="#6E6857">until it passes, member</text>
+  <text x="867" y="593" font-size="10.5" fill="#6E6857">delivery waits</text>
 
   <rect x="735" y="648" width="240" height="48" rx="12" fill="#FFFFFF" stroke="#A19884" stroke-width="2" stroke-dasharray="5 4"/>
   <text x="855" y="677" text-anchor="middle" font-size="13" font-weight="600" fill="#3B372E">members</text>
@@ -95,5 +90,5 @@
     <text x="695" y="893" font-size="12" fill="#2A2722">not allowed</text>
   </g>
 
-  <text x="550" y="1056" text-anchor="middle" font-size="10.5" fill="#8A8578">Green Goods · Commitment Pooling — v1 (2026-07)</text>
+  <text x="550" y="1056" text-anchor="middle" font-size="10.5" fill="#8A8578">Green Goods · Commitment Pooling — v1.1 (2026-07)</text>
 </svg>

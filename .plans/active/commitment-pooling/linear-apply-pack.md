@@ -32,7 +32,7 @@ Repo sources: `.plans/active/commitment-pooling/external-communications.md` (rol
 * Commitments are module-native on Arbitrum; EAS is not the commitment state machine.
 * Offer recipient confirms; Request creator confirms; the provider cannot self-confirm.
 * Optional `domains[]` and positional `requiredActionUIDs[]` are registry-validated; UID `0` is valid.
-* G$ stays on Celo. House of Alignment funds the Dev Guild working-capital wallet; Green Goods models only `WorkingCapitalToProtocol` and `ProtocolToGarden`.
+* G$ stays on Celo. House of Alignment funds stream directly to the GG protocol Safe; Green Goods models only `ProtocolToGarden`.
 * A Celo transaction report is not proof. Chainlink Functions verifies one finalized receipt; only a valid current request callback may produce `Verified`. There is no human fallback.
 * Community is a planned independent PWA; operator/evaluator tools live in admin `/community`; funder discovery remains in existing client public surfaces.
 * Funding shown in Need context supports a garden and is not escrow or steering.
@@ -203,8 +203,8 @@ A 24-member batch persists immutable IDs. The executor reports one Celo transact
 
 ### Scenario 9 — Funding routes and AA gate
 
-House of Alignment funds working capital upstream. Green Goods derives WorkingCapitalToProtocol, then ProtocolToGarden. If the Celo AA/paymaster round trip fails, these Safe-to-Safe routes may continue while automated member delivery and member sends stay disabled.
-*Pilot threads*: same rollout as S8; the two funding routes exercise per garden as its Safe deploys.
+House of Alignment funds the protocol Safe upstream. Green Goods derives ProtocolToGarden. If the Celo AA/paymaster round trip fails, this Safe-to-Safe route may continue while automated member delivery and member sends stay disabled.
+*Pilot threads*: same rollout as S8; the funding route exercises per garden as its Safe deploys.
 
 ### Scenario 10 — Community Need through evaluation and funding
 

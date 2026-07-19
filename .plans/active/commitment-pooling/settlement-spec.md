@@ -4,7 +4,7 @@
 **Stage**: `active`
 **Created**: 2026-07-04
 **Companions**: `contract-spec.md` (the pooling module + register this attaches to — **zero changes to those contracts here**), `diagrams.md` D8–D10 (fund-flow topology, settlement sequence, disbursement state machine), `uiux-spec.md` (surface grammar), `corrections-log.md`.
-**Decision basis**: Architecture 2 (split-state) locked in the Linear doc "G$ in Green Goods: Bridged vs. Split-State Settlement", re-affirmed by the Architecture 3 re-score; user decisions through 2026-07-10: settlement enters the **August release**, one Celo Safe per garden (1:1 mapping, deployed on demand), member receipt targets same-address smart accounts, app goes multi-chain this iteration, the House of Alignment flow funds the Dev Guild working-capital wallet, Green Goods settlement uses G$ on Celo without bridging it to Arbitrum, and receipt verification is a mandatory Chainlink Functions oracle path with no manual fallback.
+**Decision basis**: Architecture 2 (split-state) locked in the Linear doc "G$ in Green Goods: Bridged vs. Split-State Settlement", re-affirmed by the Architecture 3 re-score; user decisions through 2026-07-10: settlement enters the **August release**, one Celo Safe per garden (1:1 mapping, deployed on demand), member receipt targets same-address smart accounts, app goes multi-chain this iteration, the House of Alignment stream lands directly in the Green Goods protocol Safe on Celo (topology corrected 2026-07-18; supersedes the 2026-07-10 two-hop topology — see corrections-log §9), Green Goods settlement uses G$ on Celo without bridging it to Arbitrum, and receipt verification is a mandatory Chainlink Functions oracle path with no manual fallback.
 
 **What stays true from the locked register**: no bridged G$, ever. No bridge custodies G$ or holds unbounded value authority. Sarafu integration stays deferred. Transferable settlement vouchers stay gated on [PRD-651](https://linear.app/greenpill-dev-guild/issue/PRD-651). Base August settlement is operator-executed; bridge-executor automation is stretch only. Gardeners never sign cross-chain transactions in the field. If the Celo AA/paymaster spike fails, downstream protocol/garden funding may continue but automated member reward delivery remains blocked; there is no alternate member-claim path.
 
@@ -12,21 +12,20 @@
 
 ## 1. The model in one paragraph
 
-All commitment truth stays on Arbitrum. A NET-NEW **`SettlementModule`** on Arbitrum registers each garden's Celo Safe, derives commitment rewards and the two downstream treasury routes, owns the bounded failure/retry state machine, and sends reported Celo references to **Chainlink Functions** for receipt verification. Authorization happens where Hats lives; execution happens on Celo through Zodiac Roles + Allowance. Executors may report, but only the configured Functions router callback can produce `Verified` or receipt-invalid `Failed`; infrastructure errors leave the record `Reported` for retry. Canonical G$ (`0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A`, Celo) never leaves Celo.
+All commitment truth stays on Arbitrum. A NET-NEW **`SettlementModule`** on Arbitrum registers each garden's Celo Safe, derives commitment rewards and the protocol → garden treasury route, owns the bounded failure/retry state machine, and sends reported Celo references to **Chainlink Functions** for receipt verification. Authorization happens where Hats lives; execution happens on Celo through Zodiac Roles + Allowance. Executors may report, but only the configured Functions router callback can produce `Verified` or receipt-invalid `Failed`; infrastructure errors leave the record `Reported` for retry. Canonical G$ (`0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A`, Celo) never leaves Celo.
 
 ## 2. Fund-flow topology (diagrams.md D8)
 
 ```text
-House of Alignment stream (Celo, G$)
-  → Dev Guild Working Capital Safe (Celo, exists, receiving today)
-    → Green Goods protocol Safe (Celo, exists)              ← settlement account of the PROTOCOL pool (root garden)
-      → Garden Celo Safes (NET-NEW, ONE per garden, 1:1)     ← settlement accounts of garden pools, deployed on demand
-        → Members (same-address smart accounts on Celo)
+GoodDollar House of Alignment stream (Celo, G$)
+  → Green Goods protocol Safe (Celo, exists, receiving the HoA stream today)   ← settlement account of the PROTOCOL pool (root garden)
+    → Garden Celo Safes (NET-NEW, ONE per garden, 1:1)       ← settlement accounts of garden pools, deployed on demand
+      → Members (same-address smart accounts on Celo)
 ```
 
-- Each hop below HoA is a Safe-to-Safe G$ transfer executed by scoped Roles members. HoA → working capital is an upstream funding fact, not a Green Goods queued action. The module models exactly two downstream routes—working capital → protocol and protocol → garden—with derived source, recipient, and canonical G$ token. Every queued hop reports its Celo tx hash and becomes complete only after its Chainlink Functions callback verifies the finalized receipt.
+- Each hop below the protocol Safe is a Safe-to-Safe G$ transfer executed by scoped Roles members. HoA → protocol Safe is an upstream funding fact, not a Green Goods queued action. The module models exactly one downstream route—protocol → garden—with derived source, recipient, and canonical G$ token. Every queued hop reports its Celo tx hash and becomes complete only after its Chainlink Functions callback verifies the finalized receipt.
 - The protocol pool's declared rewards reference the GG protocol Safe as source; garden pool rewards reference that garden's Celo Safe.
-- Top-ups flow down the chain (WC → GG → garden) as **funding transfers** (not commitment-bound); they are recorded as funding events in the module so exposure reporting stays honest.
+- Top-ups flow down the chain (GG → garden) as **funding transfers** (not commitment-bound); they are recorded as funding events in the module so downstream exposure reporting stays honest. Protocol-Safe *inflow* (the HoA stream) is a Celo balance read + external treasury reporting, never a fabricated module event.
 
 ## 3. `SettlementModule` (NET-NEW `packages/contracts/src/modules/Settlement.sol`)
 
@@ -38,30 +37,29 @@ Scaffold conventions copied from `contract-spec.md` §6.1: UUPS + Ownable + Reen
 |---|---|---|
 | 1 | `hatsModule` | `IHatsModule` |
 | 2 | `commitmentPoolingModule` | `ICommitmentPoolingModule` (reads commitment/pool state) |
-| 3 | `workingCapitalAccount` | `address` (Dev Guild Celo working-capital Safe; source of the first GG-controlled hop) |
-| 4 | `protocolGarden` | `address` (root/protocol garden whose settlement account is the GG protocol Safe) |
-| 5 | `gDollarToken` | `address` (canonical Celo G$; configured, never caller supplied) |
-| 6 | `nextDisbursementId` | `uint256` (starts at 1) |
-| 7 | `nextBatchId` | `uint256` |
-| 8 | `settlementAccounts` | `mapping(address garden => SettlementAccount)` |
-| 9 | `executors` | `mapping(address garden => mapping(address => bool))` (back-office Zodiac Roles members; never Safe owners) |
-| 10 | `disbursements` | `mapping(uint256 => Disbursement)` |
-| 11 | `batches` | `mapping(uint256 => Batch)` |
-| 12 | `commitmentDisbursed` | `mapping(uint256 commitmentId => uint256 disbursementId)` (0 = none; one live disbursement per commitment) |
-| 13 | `usedExecutionRefs` | `mapping(bytes32 => bool)` (a Celo tx ref belongs to one subject/attempt) |
-| 14 | `verificationRequests` | `mapping(bytes32 requestId => VerificationSubject)` |
-| 15 | `functionsConfig` | `FunctionsConfig` (subscription, DON, callback gas, pinned source, encrypted secrets ref) |
-| 16 | `memberDeliveryEnabled` | `bool` (false until the Celo AA/paymaster exit gate passes) |
-| 17 | `paused` | `bool` |
+| 3 | `protocolGarden` | `address` (root/protocol garden whose settlement account is the GG protocol Safe) |
+| 4 | `gDollarToken` | `address` (canonical Celo G$; configured, never caller supplied) |
+| 5 | `nextDisbursementId` | `uint256` (starts at 1) |
+| 6 | `nextBatchId` | `uint256` |
+| 7 | `settlementAccounts` | `mapping(address garden => SettlementAccount)` |
+| 8 | `executors` | `mapping(address garden => mapping(address => bool))` (back-office Zodiac Roles members; never Safe owners) |
+| 9 | `disbursements` | `mapping(uint256 => Disbursement)` |
+| 10 | `batches` | `mapping(uint256 => Batch)` |
+| 11 | `commitmentDisbursed` | `mapping(uint256 commitmentId => uint256 disbursementId)` (0 = none; one live disbursement per commitment) |
+| 12 | `usedExecutionRefs` | `mapping(bytes32 => bool)` (a Celo tx ref belongs to one subject/attempt) |
+| 13 | `verificationRequests` | `mapping(bytes32 requestId => VerificationSubject)` |
+| 14 | `functionsConfig` | `FunctionsConfig` (subscription, DON, callback gas, pinned source, encrypted secrets ref) |
+| 15 | `memberDeliveryEnabled` | `bool` (false until the Celo AA/paymaster exit gate passes) |
+| 16 | `paused` | `bool` |
 
-The Functions router is an immutable implementation-constructor argument following `FunctionsClient`; the proxy initializer never accepts a caller-supplied router. Actual slot accounting, not declaration counting, governs the gap: entries 1–14 consume fourteen slots; `FunctionsConfig` consumes five; `memberDeliveryEnabled` and `paused` pack into one; total named storage is twenty slots. Gap: `uint256[30] private __gap;` (20 used + 30 reserved = 50). The generated storage-layout baseline is the acceptance authority.
+The Functions router is an immutable implementation-constructor argument following `FunctionsClient`; the proxy initializer never accepts a caller-supplied router. Actual slot accounting, not declaration counting, governs the gap: entries 1–13 consume thirteen slots; `FunctionsConfig` consumes five; `memberDeliveryEnabled` and `paused` pack into one; total named storage is nineteen slots. Gap: `uint256[31] private __gap;` (19 used + 31 reserved = 50). The generated storage-layout baseline is the acceptance authority.
 
 ### 3.2 Types
 
 ```solidity
 enum DisbursementState { None, Queued, Executing, Reported, Verified, Failed, Cancelled }
 enum DisbursementKind { CommitmentReward, Funding }   // Funding = Safe top-up hop, not commitment-bound
-enum FundingRoute { None, WorkingCapitalToProtocol, ProtocolToGarden }
+enum FundingRoute { None, ProtocolToGarden }
 enum VerificationResult { Valid, ReceiptInvalid, InfrastructureError }
 
 struct SettlementAccount {
@@ -165,13 +163,13 @@ The callback response is exactly `abi.encode(uint8 result, bytes32 failureCode, 
 
 | Function | Authorized caller | Gates |
 |---|---|---|
-| `setFundingConfiguration(workingCapitalAccount, protocolGarden, gDollarToken)` | module owner | all non-zero; protocol garden must be registered before funding is queued; event `FundingConfigurationUpdated` |
+| `setFundingConfiguration(protocolGarden, gDollarToken)` | module owner | all non-zero; protocol garden must be registered before funding is queued; event `FundingConfigurationUpdated` |
 | `registerSettlementAccount(garden, chainId, account, recoveryOwners[3], rolesModifier, allowanceModule)` / `updateSettlementRecovery(garden, recoveryOwners[3], rolesModifier, allowanceModule)` / `setAccountActive(garden, bool)` | steward or module owner | chainId == 42220; account/modules non-zero; owners sorted, unique, non-zero and none is a current executor; threshold is fixed at 2; event `SettlementAccountRegistered` / `SettlementRecoveryUpdated` / `SettlementAccountStatusChanged` |
 | `addExecutor(garden, addr)` / `removeExecutor(garden, addr)` | steward | bounded three-owner check rejects any configured recovery owner; deploy/register tooling separately proves the address is a scoped Zodiac Roles member in the live Celo Safe; event `ExecutorUpdated` |
 | `setFunctionsConfig(subscriptionId, donId, callbackGasLimit, requestTimeoutSeconds, source, encryptedSecretsReference)` | module owner | all fields required; timeout is bounded 5 minutes..24 hours; source is pinned and its hash is emitted; changing configuration does not alter an active request |
-| `setMemberDeliveryEnabled(bool)` | module owner | enabling requires the Celo AA/paymaster exit evidence recorded in the settlement handoff; disabling blocks new commitment-reward queues and member sends but never blocks either funding route |
+| `setMemberDeliveryEnabled(bool)` | module owner | enabling requires the Celo AA/paymaster exit evidence recorded in the settlement handoff; disabling blocks new commitment-reward queues and member sends but never blocks the funding route |
 | `queueDisbursement(commitmentId)` | commitment-pool steward | `memberDeliveryEnabled`; commitment `Fulfilled`; active provider-garden settlement account; no live disbursement; declared reward token equals configured G$. Individual beneficiary = stored provider same-address Celo AA account. Garden beneficiary = `settlementAccounts[providerGarden].account`, never the Arbitrum GardenAccount. Module derives source, beneficiary, token, and amount without caller overrides; event `DisbursementQueued` |
-| `queueFunding(route, garden, amount)` | protocol steward or module owner | route is WorkingCapitalToProtocol or ProtocolToGarden; executorGarden is snapshotted as protocolGarden; source, recipient, and canonical G$ derive from funding config + active settlement accounts; no arbitrary addresses/tokens; event `DisbursementQueued(kind=Funding)` |
+| `queueFunding(garden, amount)` | protocol steward or module owner | the single modeled route is ProtocolToGarden, recorded on the disbursement's immutable `fundingRoute` fact; executorGarden is snapshotted as protocolGarden; source, recipient, and canonical G$ derive from funding config + active settlement accounts; no arbitrary addresses/tokens; event `DisbursementQueued(kind=Funding)` |
 | `createBatch(ids[])` | steward or executor for the immutable executorGarden | 1–24 unique ids, all Queued + same executorGarden, derived source, and token; member ids are persisted and immutable; event `BatchCreated` |
 | `markDisbursementExecuting(id)` / `markBatchExecuting(batchId)` | executor | Queued → Executing for an unbatched disbursement, or for the batch + immutable members; events `DisbursementExecuting` / `BatchExecuting` |
 | `reportExecution(id, executionRef)` / `reportBatchExecution(batchId, executionRef)` | executor for stored immutable `executorGarden` | Executing → Reported; ref mandatory and globally unused; persists `reportedBy = msg.sender`; events `DisbursementExecutionReported` / `BatchExecutionReported`. Reported is not member-visible proof of receipt |
@@ -181,7 +179,7 @@ The callback response is exactly `abi.encode(uint8 result, bytes32 failureCode, 
 | `recordFailed(id, reasonCID)` / `recordBatchFailed(batchId, reasonCID)` | executor or steward | Executing → Failed before a report; batch failure also marks each immutable member Failed; reason mandatory; events `DisbursementFailed` / `BatchFailed` |
 | `requeue(id)` | steward | Failed → Queued, `attempts++`; operates on one member only and clears its `batchId`, execution ref, report, verification, evidence, and failure fields. The global `usedExecutionRefs` replay guard is never cleared. A failed batch itself is immutable and never requeued |
 | `cancelDisbursement(id, reasonCID)` | steward | Queued or Failed → Cancelled; frees `commitmentDisbursed`; event `DisbursementCancelled` |
-| `initialize(owner, hatsModule, commitmentPoolingModule, workingCapitalAccount, protocolGarden, gDollarToken)` | proxy initializer | every address non-zero; `nextDisbursementId` and `nextBatchId` start at 1; member delivery false; owner-only UUPS authorization |
+| `initialize(owner, hatsModule, commitmentPoolingModule, protocolGarden, gDollarToken)` | proxy initializer | every address non-zero; `nextDisbursementId` and `nextBatchId` start at 1; member delivery false; owner-only UUPS authorization |
 | admin setters (`setHatsModule`, `setCommitmentPoolingModule`, `setPaused`) | module owner | pause blocks all mutations except failure recording, per-member cancellation, request expiry, callback completion, and unpause |
 | views (`getDisbursement`, `getBatch`, `settlementAccountOf`, `disbursementOfCommitment`, `isExecutor`, `isVerificationPending`, `memberDeliveryEnabled`) | public | `memberDeliveryEnabled` is the canonical capability read and is also indexed from `MemberDeliveryStatusChanged` |
 
@@ -189,7 +187,6 @@ Canonical event/error contract (the config block in §6 must match these signatu
 
 ```solidity
 event FundingConfigurationUpdated(
-    address indexed workingCapitalAccount,
     address indexed protocolGarden,
     address indexed gDollarToken
 );
@@ -274,7 +271,6 @@ event BatchFailed(uint256 indexed batchId, address indexed actor, string reasonC
 event DisbursementRequeued(uint256 indexed disbursementId, uint32 attempts);
 event DisbursementCancelled(uint256 indexed disbursementId, address indexed actor, string reasonCID);
 
-error InvalidFundingRoute(uint8 route);
 error FundingConfigurationIncomplete();
 error SourceOrTokenMismatch(uint256 disbursementId);
 error UnauthorizedCaller(address caller);
@@ -309,13 +305,11 @@ interface ISettlementModule {
         address owner_,
         address hatsModule_,
         address commitmentPoolingModule_,
-        address workingCapitalAccount_,
         address protocolGarden_,
         address gDollarToken_
     ) external;
 
-    function setFundingConfiguration(address workingCapitalAccount_, address protocolGarden_, address gDollarToken_)
-        external;
+    function setFundingConfiguration(address protocolGarden_, address gDollarToken_) external;
     function registerSettlementAccount(
         address garden,
         uint64 chainId,
@@ -344,9 +338,7 @@ interface ISettlementModule {
     function setMemberDeliveryEnabled(bool enabled) external;
 
     function queueDisbursement(uint256 commitmentId) external returns (uint256 disbursementId);
-    function queueFunding(FundingRoute route, address garden, uint256 amount)
-        external
-        returns (uint256 disbursementId);
+    function queueFunding(address garden, uint256 amount) external returns (uint256 disbursementId);
     function createBatch(uint256[] calldata disbursementIds) external returns (uint256 batchId);
     function markDisbursementExecuting(uint256 disbursementId) external;
     function markBatchExecuting(uint256 batchId) external;
@@ -379,7 +371,7 @@ interface ISettlementModule {
 
 **Commitment reward binding.** Token and amount come from `commitment.reward`; callers supply no source/recipient/token/amount override. Individual claims preserve the unit-provider beneficiary: Offer → creator, Request → accepted counterparty, using the same-address Celo AA route. Garden claims resolve beneficiary to the active registered Celo Safe for `commitment.providerGarden`; the Arbitrum GardenAccount is attribution only and is never a Celo G$ recipient. Source comes from the active provider-garden settlement account and token must equal configured `gDollarToken`. Funding top-ups remain explicit non-commitment disbursements.
 
-**Funding-route binding.** `queueFunding` never accepts source, recipient, or token. `WorkingCapitalToProtocol` stores source = `workingCapitalAccount`, recipient = `settlementAccounts[protocolGarden].account`, garden = `protocolGarden`; `ProtocolToGarden` stores source = the protocol settlement account, recipient = the target garden settlement account, garden = target garden. Both store immutable `executorGarden = protocolGarden`, so a later configuration change cannot alter who may execute an already queued transfer. Both accounts must be active where applicable, amount must be non-zero, and token is always `gDollarToken`. HoA → working capital is recorded in external treasury reporting, not fabricated as a module action Green Goods did not authorize.
+**Funding-route binding.** `queueFunding` never accepts source, recipient, or token. The single modeled route `ProtocolToGarden` stores source = the protocol settlement account, recipient = the target garden settlement account, garden = target garden, and immutable `executorGarden = protocolGarden`, so a later configuration change cannot alter who may execute an already queued transfer. Both accounts must be active, amount must be non-zero, and token is always `gDollarToken`. HoA → protocol Safe is recorded in external treasury reporting, not fabricated as a module action Green Goods did not authorize.
 
 **Verification contract.** There is no manual verification role or manual verification/rejection entrypoint. The pinned Chainlink Functions source resolves `executionRef` on Celo and returns the exact bounded response above for one active request. It must check chain 42220; a successful receipt whose block number/hash is at or behind the RPC `finalized` block; canonical G$ as the emitting token contract; and the multiset of canonical-G$ `Transfer(address,address,uint256)` logs whose `from` equals the stored Safe source and whose `(to, value)` pairs equal the expected recipient/amount multiset. Duplicate recipient/amount pairs are counted with multiplicity. Any additional canonical-G$ Transfer from the stored source in the same transaction is invalid. Safe success is exact: the stored Safe must emit either topic `keccak256("ExecutionSuccess(bytes32,uint256)")` or `keccak256("ExecutionFromModuleSuccess(address)")`; a module-success log must name the stored Roles module, and any `ExecutionFailure(bytes32,uint256)` or `ExecutionFromModuleFailure(address)` from that Safe invalidates the receipt. The outer Celo `transaction.from` is deliberately ignored because a Zodiac/Safe execution is submitted by an executor/module caller, not by the Safe. If the RPC cannot return a finalized block or receipt, the result is infrastructure error, not receipt invalid. A one-member request validates that member; a batch request validates all immutable members as one attempt. `evidenceHash = keccak256(abi.encode(uint64(42220), receiptBlockHash, executionRef, source, token, recipients, amounts))`, with recipients/amounts in immutable batch-member order. The callback stores the immutable Functions router as `verifiedBy`, never the reporter.
 
@@ -401,9 +393,9 @@ It first loads `verificationRequests[requestId]`. Unknown/inactive or non-curren
 ### 3.4 Acceptance criteria
 
 - Full state-machine coverage: unbatched queue → executing → reported → Functions request → verified; queue → batch → executing → reported → request → verified; executing → failed → per-member requeue/cancel; receipt-invalid callback → failed → per-member requeue/cancel; infrastructure callback or permissioned timeout expiry → reported → new request; cancel frees the commitment; duplicate commitment queue, duplicate batch member, batch size 0/25, reused execution ref, malformed response, and stale callback mutation all revert, classify, or are ignored as specified.
-- Binding tests: Individual Offer/Request rewards derive the stored provider same-address AA recipient; Garden claims derive the registered `providerGarden` Celo Safe and never the Arbitrum GardenAccount. Queueing with no reward, zero amount, wrong source/token, inactive account, or non-Fulfilled commitment reverts. Each funding route derives its source/recipient/token; arbitrary routes, addresses, and tokens are impossible.
-- Gating tests: non-steward queue reverts; non-executor execution/reporting reverts; a configured recovery owner cannot become executor; direct callback calls revert unless sent by the immutable Functions router; only eligible callers can request/retry/expire; disabling member delivery blocks commitment-reward queues and member sends but not either funding route.
-- Storage-layout test asserts the generated twenty-slot implementation layout + 30-slot gap and adds the `check-storage-layout.sh` entry, including dynamic batch-member storage and request replay protection.
+- Binding tests: Individual Offer/Request rewards derive the stored provider same-address AA recipient; Garden claims derive the registered `providerGarden` Celo Safe and never the Arbitrum GardenAccount. Queueing with no reward, zero amount, wrong source/token, inactive account, or non-Fulfilled commitment reverts. The funding route derives its source/recipient/token; arbitrary routes, addresses, and tokens are impossible.
+- Gating tests: non-steward queue reverts; non-executor execution/reporting reverts; a configured recovery owner cannot become executor; direct callback calls revert unless sent by the immutable Functions router; only eligible callers can request/retry/expire; disabling member delivery blocks commitment-reward queues and member sends but not the funding route.
+- Storage-layout test asserts the generated nineteen-slot implementation layout + 31-slot gap and adds the `check-storage-layout.sh` entry, including dynamic batch-member storage and request replay protection.
 - Exact contract proof: `bun run --filter @green-goods/contracts test:match -- test/unit/Settlement.t.sol`, `bun run --filter @green-goods/contracts test:script`, `bun run --filter @green-goods/contracts build:full`, `bun run --filter @green-goods/contracts lint:check`, then `bun run --filter @green-goods/contracts test`. The fixture covers queue → finalized Celo receipt → Functions callback against a Fulfilled commitment. The handoff also records subscription funding, router, DON, callback gas, pinned source hash, encrypted-secrets reference, retry window, and post-deployment health evidence.
 - Exact dry-run/post-check path once the target exists: from `packages/contracts`, `bun script/deploy.ts settlement --network sepolia --dry-run`, `bun run verify:post-deploy:sepolia`, and `bun run verify:post-deploy:indexer:sepolia`. Broadcast remains separately authorized.
 
@@ -412,7 +404,7 @@ Deployment artifacts are exact: `deployments/{chainId}-latest.json` gains only t
 ## 4. Celo side (ops + Safe modules, no new GG contracts)
 
 - **Safes — one per garden, 1:1 mapping, every garden eligible**: the existing GG protocol Safe covers the protocol pool; each participating garden gets exactly one Celo Safe attributed to its Arbitrum garden account. Deployment is **on-demand, not launch-blocking**: the exact target is `bun script/deploy.ts settlement-safe --network celo --garden <arbitrumGardenAccount> --dry-run --pure-simulation` (broadcast is the same target with `--broadcast`, separately authorized). The admin “Set up settlement account” composes the same deterministic input; it does not contain a second deployment implementation. A salt `keccak256("GREEN_GOODS_CELO_SAFE_V1", arbitrumGardenAccount)` makes the address deterministic. `registerSettlementAccount` persists the garden↔Safe mapping, sorted owners, Roles/Allowance addresses, fixed threshold, and configuration hash.
-- **Owner set at deployment**: exactly 2-of-3 for the pilot — the protocol recovery multisig, the Dev Guild/working-capital recovery multisig, and one named garden recovery delegate who can sign on Celo. Deployment fails if an owner is duplicated, zero, unnamed in the artifact, or also configured as an executor. The Arbitrum garden account is the canonical attribution and deterministic deployment input, but is **not** inserted as a non-signing owner. The script writes `packages/contracts/deployments/{chainId}-settlement-safes.json` with garden, Safe, sorted owners, threshold, Roles, Allowance, scoped selectors, per-period cap, salt, code hashes, and receipt blocks. Registration recomputes `recoveryConfigHash = keccak256(abi.encode(chainId, safe, sortedOwners, uint8(2), rolesModifier, allowanceModule))`. `addExecutor` performs a bounded three-owner rejection; the post-deploy verifier also reads the live Safe owner set and Roles membership because Arbitrum cannot prove later Celo configuration drift by itself.
+- **Owner set at deployment**: exactly 2-of-3 for the pilot — the protocol recovery multisig, the Dev Guild recovery multisig, and one named garden recovery delegate who can sign on Celo. Deployment fails if an owner is duplicated, zero, unnamed in the artifact, or also configured as an executor. The Arbitrum garden account is the canonical attribution and deterministic deployment input, but is **not** inserted as a non-signing owner. The script writes `packages/contracts/deployments/{chainId}-settlement-safes.json` with garden, Safe, sorted owners, threshold, Roles, Allowance, scoped selectors, per-period cap, salt, code hashes, and receipt blocks. Registration recomputes `recoveryConfigHash = keccak256(abi.encode(chainId, safe, sortedOwners, uint8(2), rolesModifier, allowanceModule))`. `addExecutor` performs a bounded three-owner rejection; the post-deploy verifier also reads the live Safe owner set and Roles membership because Arbitrum cannot prove later Celo configuration drift by itself.
 - **Signer scoping (Zodiac Roles Modifier)**: executor keys are Roles members and may only call the canonical G$ `transfer`/approved multisend path from the Safe — no arbitrary execution. **Allowance module**: per-period caps per Safe. Removing every Roles member still leaves the 2-of-3 recovery owners able to rotate modules safely; compromising one executor cannot bypass the modules through Safe ownership.
 - **Ownership nuance (named honestly)**: an Arbitrum ERC-6551 account cannot sign on Celo today. “Garden-controlled” means the Arbitrum module authorizes the garden mapping and reward, accountable Celo governance signers control recovery, and scoped executors perform the bounded transfer. A future validated cross-chain module may let the garden account trigger its Safe literally; that path is not required for base settlement.
 - **Gas**: executor keys hold CELO; funding source = GG protocol Safe ops budget. Member receipts are pure ERC-20 transfers (no member gas). Member *sends* use sponsored gas (§5).
@@ -422,7 +414,7 @@ Deployment artifacts are exact: `deployments/{chainId}-latest.json` gains only t
 **Decision (#16)**: members receive at **same-address smart accounts on Celo** — the same passkey-owned account address they have on Arbitrum, counterfactually deployable on Celo.
 
 - **Verification spike (first week of the August track, blocking for this leg)**: confirm our AA stack on Celo — account factory deployable at same addresses, bundler + paymaster support (Pimlico or equivalent) on 42220, passkey signature validation parity. Exit: one testnet/mainnet round-trip — receive G$ at the counterfactual address, deploy on first send, sponsored send succeeds.
-- **Failure behavior**: if the spike fails, `memberDeliveryEnabled` remains false. WorkingCapitalToProtocol and ProtocolToGarden settlement may continue, but commitment-reward queueing, automated member delivery, and member G$ sends remain blocked. There is no alternate member-delivery path.
+- **Failure behavior**: if the spike fails, `memberDeliveryEnabled` remains false. ProtocolToGarden settlement may continue, but commitment-reward queueing, automated member delivery, and member G$ sends remain blocked. There is no alternate member-delivery path.
 
 **Multi-chain app (decision #17)** — the Single Chain principle amends to: **primary chain (`VITE_CHAIN_ID`) + settlement chain (Celo, 42220) for value legs**. The CLAUDE.md principle edit rides the implementation PR, not this spec. August scope, all tiers:
 
@@ -441,7 +433,7 @@ Within the existing boundary, Envio indexes the Arbitrum SettlementModule, not C
 ```graphql
 enum DisbursementState { UNKNOWN QUEUED EXECUTING REPORTED VERIFIED FAILED CANCELLED }
 enum DisbursementKind { UNKNOWN COMMITMENT_REWARD FUNDING }
-enum FundingRoute { UNKNOWN NONE WORKING_CAPITAL_TO_PROTOCOL PROTOCOL_TO_GARDEN }
+enum FundingRoute { UNKNOWN NONE PROTOCOL_TO_GARDEN }
 
 type SettlementConfiguration {
   id: ID! # chainId-settlement-config
@@ -496,7 +488,7 @@ Exact Envio contract block for both Arbitrum and Sepolia (addresses remain deplo
 - name: SettlementModule
   handler: src/EventHandlers.ts
   events:
-    - event: FundingConfigurationUpdated(address indexed workingCapitalAccount, address indexed protocolGarden, address indexed gDollarToken)
+    - event: FundingConfigurationUpdated(address indexed protocolGarden, address indexed gDollarToken)
     - event: SettlementAccountRegistered(address indexed garden, uint64 chainId, address indexed account, address[3] recoveryOwners, address rolesModifier, address allowanceModule, bytes32 recoveryConfigHash, uint8 recoveryThreshold)
     - event: SettlementRecoveryUpdated(address indexed garden, address[3] recoveryOwners, bytes32 recoveryConfigHash, address indexed rolesModifier, address indexed allowanceModule)
     - event: SettlementAccountStatusChanged(address indexed garden, bool active)
@@ -529,11 +521,11 @@ Exact indexer proof from the repo root: `bun run --filter @green-goods/indexer c
 
 ## 7. Surface impact (deltas to `uiux-spec.md` / `wireframes.md`; W21/W22/W23 are the settlement frames)
 
-- **W2 commitment detail (PWA)**: reward row gains settlement status — “support on its way” (Queued/Executing), “transfer reported” (Reported without active request), “checking receipt” (Reported with active request), “support arrived” + Celo ref (Verified), “still arranging support — your promise is recorded” (Failed).
+- **W2 commitment detail (PWA)**: reward row gains settlement status — “support on its way” (Queued/Executing), “transfer reported” (Reported without active request), “checking receipt” (Reported with active request), “support arrived” + Celo ref (Verified), “still arranging support — your promise is recorded” (Failed), “this support was withdrawn before it was sent — your promise and its record stay intact” (Cancelled).
 - **W23 WalletDrawer G$ section (settlement delta to W5)**: only after the AA gate, G$ balance section (Celo) + received-support rows; send action → chain-aware transfer flow. When disabled, no balance/send affordance renders and explanatory copy points to the blocked delivery gate.
 - **W21 Garden Pool tab settlement section (delta to W7)**: settlement account card (Safe address, active, allowance snapshot, plus a read-only member-delivery gate status row — enabled/disabled · changed by · date · evidence ref; decision #34f, the flip itself stays owner-only ops) + disbursement queue section; the batch execution and oracle console is **W22** (missing executor role renders a visible guard state, decision #34e).
 - **W10 commitment dialog**: "Queue disbursement" replaces/precedes "Record payout" for G$-rewarded commitments; batch actions.
-- **Admin `/community` Pools mode funding view**: WC→GG→garden funding hops, Safe balances, batch console.
+- **Admin Operations tab funding view (deployer-gated)**: protocol-Safe inflow (HoA stream — Celo balance read), GG→garden funding hops, Safe balances, batch console. (The batch execution and oracle console W22 lives in this Operations workspace.)
 - Editorial/community: no change (aggregates only; settlement is not a public story in August).
 
 i18n families extend `app.pool.*`, `cockpit.garden.pool.*`, `cockpit.community.pools.*` with `settlement.*` keys (en/es/pt, same gate). Banned-vocab rules apply to all new copy.
@@ -542,11 +534,11 @@ i18n families extend `app.pool.*`, `cockpit.garden.pool.*`, `cockpit.community.p
 
 SettlementModule work runs as **PR chain 2.5** — parallel with PRD-673/674 once PRD-672's interfaces freeze (the module only *reads* the pooling module):
 
-1. **Product Commitment Pooling cycle (through PRD-686 due 2026-07-29)**: freeze the reward-binding/event/entity contract; confirm G$ token, Safe operating details, Chainlink subscription/router/DON/callback gas, pinned source and secrets reference; run the AA/paymaster spike; and record the working-capital → protocol → garden authorization/runbook. If the mandatory oracle path is not proven by the due date, settlement remains blocked with no manual fallback.
-2. **August release build (target 2026-08-31)**: `Settlement.sol` + tests + deploy plumbing; derived funding routes; mandatory Functions request/callback; exact event config; complete Disbursement + SettlementBatch indexer entities; deterministic 2-of-3 Safe deploy/register tooling; Zodiac Roles + Allowance configuration; shared chain registry and selectors; admin execution/checking/verified states; PWA reward status and, only after the AA gate, G$ wallet.
-3. **August exit proof**: one real G$ reward derived from a Fulfilled commitment, queued on Arbitrum, executed from the registered garden Safe on Celo, reported, verified by the Functions callback against the finalized receipt, and rendered as “support arrived.” Working-capital funding hops are recorded separately from earned rewards.
+1. **Product Commitment Pooling cycle (through PRD-686 due 2026-07-29)**: freeze the reward-binding/event/entity contract; confirm G$ token, Safe operating details, Chainlink subscription/router/DON/callback gas, pinned source and secrets reference; run the AA/paymaster spike; confirm the HoA stream's receiving address is the GG protocol Safe (receiving-address evidence recorded in the settlement handoff); and record the protocol → garden authorization/runbook. If the mandatory oracle path is not proven by the due date, settlement remains blocked with no manual fallback.
+2. **August release build (target 2026-08-31)**: `Settlement.sol` + tests + deploy plumbing; the derived protocol → garden funding route; mandatory Functions request/callback; exact event config; complete Disbursement + SettlementBatch indexer entities; deterministic 2-of-3 Safe deploy/register tooling; Zodiac Roles + Allowance configuration; shared chain registry and selectors; admin execution/checking/verified states; PWA reward status and, only after the AA gate, G$ wallet.
+3. **August exit proof**: one real G$ reward derived from a Fulfilled commitment, queued on Arbitrum, executed from the registered garden Safe on Celo, reported, verified by the Functions callback against the finalized receipt, and rendered as “support arrived.” Protocol → garden funding hops are recorded separately from earned rewards; the upstream HoA stream stays in external treasury reporting.
 
-**Honest risk note**: this widens the August hard commitment by a contracts sub-lane plus indexer/shared/admin increments. The Chainlink Functions path is mandatory for any Verified state. A failed AA gate blocks commitment-reward delivery and member sends while allowing the two protocol/garden funding routes to continue; it never activates an alternate member-delivery path. Bridge-executor automation remains stretch work and cannot replace the oracle receipt check.
+**Honest risk note**: this widens the August hard commitment by a contracts sub-lane plus indexer/shared/admin increments. The Chainlink Functions path is mandatory for any Verified state. A failed AA gate blocks commitment-reward delivery and member sends while allowing the protocol → garden funding route to continue; it never activates an alternate member-delivery path. Bridge-executor automation remains stretch work and cannot replace the oracle receipt check.
 
 ## 9. Out of scope (base MVP; stretch called out)
 

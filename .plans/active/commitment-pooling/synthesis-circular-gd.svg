@@ -13,15 +13,14 @@
   <text x="450" y="440" text-anchor="middle" font-size="13" font-weight="600" fill="#24422E">value circulates</text>
   <text x="450" y="460" text-anchor="middle" font-size="13" font-weight="600" fill="#24422E">instead of draining out</text>
 
-  <!-- clockwise flow arrows on the orbit (r=240 around 450,455) -->
+  <!-- clockwise flow arrows on the orbit (r=240 around 450,455; five stations) -->
   <g fill="none" stroke="#AC9F87" stroke-width="2.25" marker-end="url(#arrow)">
-    <path d="M 547.6 235.7 A 240 240 0 0 1 597.8 265.9"/>
-    <path d="M 686.4 413.3 A 240 240 0 0 1 686.4 496.7"/>
-    <path d="M 610.6 633.4 A 240 240 0 0 1 547.6 674.3"/>
-    <path d="M 352.4 674.3 A 240 240 0 0 1 289.4 633.4"/>
-    <path d="M 213.6 496.7 A 240 240 0 0 1 213.6 413.3"/>
+    <path d="M 539.9 232.5 A 240 240 0 0 1 633.8 300.7"/>
+    <path d="M 689.4 471.7 A 240 240 0 0 1 653.5 582.2"/>
+    <path d="M 508.1 687.9 A 240 240 0 0 1 391.9 687.9"/>
+    <path d="M 246.5 582.2 A 240 240 0 0 1 210.6 471.7"/>
     <!-- local spend sink closes the loop back into garden accounts -->
-    <path d="M 255 375 Q 290 545 368 685"/>
+    <path d="M 255 420 Q 320 580 512 642"/>
   </g>
 
   <!-- House of Alignment stream · top -->
@@ -30,41 +29,38 @@
     <text x="450" y="210" text-anchor="middle" font-size="13" font-weight="600" fill="#3B372E">House of Alignment</text>
     <text x="450" y="228" text-anchor="middle" font-size="13" font-weight="600" fill="#3B372E">stream (Celo)</text>
   </g>
+  <!-- note on the arrow into the protocol treasury -->
+  <text x="632" y="252" text-anchor="middle" font-size="10" fill="#8A8578">streams directly —</text>
+  <text x="632" y="266" text-anchor="middle" font-size="10" fill="#8A8578">upstream fact</text>
 
-  <!-- Dev Guild working capital · upper right -->
+  <!-- Green Goods protocol treasury · upper right -->
   <g>
-    <rect x="558" y="311" width="200" height="48" rx="12" fill="#FFFFFF" stroke="#A19884" stroke-width="2"/>
-    <text x="658" y="340" text-anchor="middle" font-size="13" font-weight="600" fill="#3B372E">Dev Guild working capital</text>
+    <rect x="578" y="357" width="200" height="48" rx="12" fill="#FFFFFF" stroke="#A19884" stroke-width="2"/>
+    <text x="678" y="386" text-anchor="middle" font-size="13" font-weight="600" fill="#3B372E">GG protocol treasury</text>
   </g>
 
-  <!-- protocol treasury · lower right -->
+  <!-- garden accounts · lower right -->
   <g>
-    <rect x="583" y="551" width="150" height="48" rx="12" fill="#FFFFFF" stroke="#A19884" stroke-width="2"/>
-    <text x="658" y="580" text-anchor="middle" font-size="13" font-weight="600" fill="#3B372E">protocol treasury</text>
-  </g>
-
-  <!-- garden accounts · bottom -->
-  <g>
-    <rect x="377.5" y="671" width="145" height="48" rx="12" fill="#FFFFFF" stroke="#A19884" stroke-width="2"/>
-    <text x="450" y="700" text-anchor="middle" font-size="13" font-weight="600" fill="#3B372E">garden accounts</text>
+    <rect x="518.5" y="625" width="145" height="48" rx="12" fill="#FFFFFF" stroke="#A19884" stroke-width="2"/>
+    <text x="591" y="654" text-anchor="middle" font-size="13" font-weight="600" fill="#3B372E">garden accounts</text>
   </g>
 
   <!-- members · lower left -->
   <g>
-    <rect x="187" y="551" width="110" height="48" rx="12" fill="#FFFFFF" stroke="#A19884" stroke-width="2"/>
-    <text x="242" y="580" text-anchor="middle" font-size="13" font-weight="600" fill="#3B372E">members</text>
+    <rect x="254" y="625" width="110" height="48" rx="12" fill="#FFFFFF" stroke="#A19884" stroke-width="2"/>
+    <text x="309" y="654" text-anchor="middle" font-size="13" font-weight="600" fill="#3B372E">members</text>
   </g>
   <!-- note on the arrow into members -->
-  <text x="295" y="706" text-anchor="middle" font-size="10" fill="#8A8578">sponsored-account</text>
-  <text x="295" y="720" text-anchor="middle" font-size="10" fill="#8A8578">gate applies</text>
+  <text x="450" y="728" text-anchor="middle" font-size="10" fill="#8A8578">sponsored-account</text>
+  <text x="450" y="742" text-anchor="middle" font-size="10" fill="#8A8578">gate applies</text>
 
   <!-- local spend sink · upper left -->
   <g>
-    <rect x="130" y="299" width="225" height="72" rx="12" fill="#FFFFFF" stroke="#A19884" stroke-width="2"/>
-    <text x="242.5" y="323" text-anchor="middle" font-size="13" font-weight="600" fill="#3B372E">local spend sink</text>
-    <text x="242.5" y="341" text-anchor="middle" font-size="10.5" fill="#6E6857">circulation aim &amp; rollout-ordering</text>
-    <text x="242.5" y="355" text-anchor="middle" font-size="10.5" fill="#6E6857">criterion — not a launch gate</text>
+    <rect x="109" y="345" width="225" height="72" rx="12" fill="#FFFFFF" stroke="#A19884" stroke-width="2"/>
+    <text x="222" y="369" text-anchor="middle" font-size="13" font-weight="600" fill="#3B372E">local spend sink</text>
+    <text x="222" y="387" text-anchor="middle" font-size="10.5" fill="#6E6857">circulation aim &amp; rollout-ordering</text>
+    <text x="222" y="401" text-anchor="middle" font-size="10.5" fill="#6E6857">criterion — not a launch gate</text>
   </g>
 
-  <text x="450" y="868" text-anchor="middle" font-size="10.5" fill="#8A8578">Green Goods · Commitment Pooling — v1 (2026-07)</text>
+  <text x="450" y="868" text-anchor="middle" font-size="10.5" fill="#8A8578">Green Goods · Commitment Pooling — v1.1 (2026-07)</text>
 </svg>

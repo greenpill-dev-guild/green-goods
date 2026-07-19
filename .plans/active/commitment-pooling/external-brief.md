@@ -25,6 +25,12 @@ For generations, Kenyan communities have pooled labor through rotational work tr
 
 *Companion graphics (this folder, each with a 2x PNG for upload; index in `visual-assets.md`): `external-brief-loop` — this loop as a labeled circle, placed here; `external-brief-money-map` — the split-state money map, placed in Trust and money; `external-brief-funding-rails` — the three rails, placed in How delivered outcomes attract funding; `external-brief-roles` — the five roles and their actions, placed before An invitation. Include all four in the shareable doc/PDF export.*
 
+## Why the baseline matters
+
+The baseline assessment is not paperwork before the real work — it does three jobs in the loop. It is the **readiness gate**: a garden's pool cannot open for promises until a current baseline exists, so every promise is made against a shared picture of the land as it is. It is the **anchor for proof**: follow-up assessments must reference the baseline they measure against, which is what lets "promise kept" mean *observable change* rather than testimony alone. And it is where **needs surface**: walking the land to record where things stand is usually the moment a community names what is missing — the Needs that offers and requests then answer, with each commitment carrying a reference to the need that motivated it (need → commitment → work → baseline/delta → testimony).
+
+Three tensions from the practice, named honestly: a baseline costs real effort before any value flows, so stewards carry unpaid observational work up front; baselines go stale, which is why each new season re-grounds on the same pool rather than inheriting last year's picture; and authorship is deliberately inclusive — a steward may capture the baseline in analog form, so a credentialed evaluator is never the gate on a community getting started.
+
 ## What this looks like on the ground
 
 **Most promises need no money at all.** For mutual aid, the confirmation *is* the settlement — rewards are the optional layer on top. Two examples from the pilot gardens (behavior **Planned** for August/September; quantities illustrative):
@@ -62,7 +68,7 @@ Commitment pooling closes with proof — and proof is what funders can back. Fun
 
 ## Who funds the settlement pilot
 
-Green Goods is one of four members of GoodDollar’s **House of Alignment** ecosystem-alignment program, alongside Gardens, ReFi DAO, and Textile. After GIP-26 — the proposal to fund the program from the GoodDollar DAO — failed its community vote in June 2026, the **Good Labs Foundation stepped in to fund the pilot directly**: roughly **$800/month in G$** per member via a Flow Splitter on Flow State, with a first evaluation on **2026-09-30**. Funds reach the Dev Guild working-capital wallet upstream. From there, Green Goods models exactly two routes: working capital to the protocol treasury, and protocol treasury to garden accounts. Every focus garden is settlement-capable — each gets its own garden-owned Celo account on demand — with Tech and Sun Hub planned as the first execution. Each garden pairs settlement with a local way to spend G$ back into the pool, so value circulates instead of draining out.
+Green Goods is one of four members of GoodDollar’s **House of Alignment** ecosystem-alignment program, alongside Gardens, ReFi DAO, and Textile. After GIP-26 — the proposal to fund the program from the GoodDollar DAO — failed its community vote in June 2026, the **Good Labs Foundation stepped in to fund the pilot directly**: roughly **$800/month in G$** per member via a Flow Splitter on Flow State, with a first evaluation on **2026-09-30**. Funds stream directly into the Green Goods protocol treasury on Celo. From there, Green Goods models exactly one route: protocol treasury to garden accounts. Every focus garden is settlement-capable — each gets its own garden-owned Celo account on demand — with Tech and Sun Hub planned as the first execution. Each garden pairs settlement with a local way to spend G$ back into the pool, so value circulates instead of draining out.
 
 ## Timeline
 

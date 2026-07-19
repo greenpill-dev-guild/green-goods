@@ -25,7 +25,7 @@
 ## Acceptance
 
 - Commitments are module-native; EAS carries only the named schemas and Envio never indexes EAS.
-- G$ remains on Celo; only the two downstream routes are Green Goods actions.
+- G$ remains on Celo; only the protocol → garden route is a Green Goods action.
 - Reported is an executor assertion; only a successful Functions callback is oracle-verified.
 - Safe recovery owners and Roles executors are described separately.
 - AA failure is documented as blocked member delivery and never creates a garden-held member claim.
