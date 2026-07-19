@@ -73,7 +73,7 @@ Use criticality to choose review depth before optimizing for speed:
   - `packages/shared/src/providers/{Auth,JobQueue,Work}.tsx`
   - `packages/shared/src/modules/job-queue/**`
   - `packages/shared/src/hooks/{auth,work,vault,blockchain}/**`
-  - Required depth: read every touched line, run the matching reviewer flow (`contracts-security` or `mutation-reliability`), and do not treat log-only failure handling as acceptable.
+  - Required depth: read every touched line, apply `/review`'s matching critical-surface lens (`contracts-security` or `mutation-reliability`), and do not treat log-only failure handling as acceptable.
 - **`sensitive`**
   - `packages/agent/src/**`
   - admin workflow state surfaces
@@ -88,7 +88,7 @@ Use criticality to choose review depth before optimizing for speed:
   - Required depth: use the lightest honest check and avoid escalating the review footprint unless runtime behavior changes.
 
 ### Plan Location
-Superpowers plans save to `.plans/active/<feature-name>/plan.todo.md` (not the skill default).
+Feature plans live in `.plans/{ideas|backlog|active|archive}/<feature-slug>/` hubs (`plan.todo.md` + `status.json`); the `plan` skill owns the lifecycle.
 
 ### Build Order
 1. **contracts** -> ABIs for other packages
@@ -112,7 +112,7 @@ Package-specific context files (`.claude/context/*.md`) include additional docum
 
 Linear (workspace `greenpill-dev-guild`) is the durable backlog as of 2026-05-09. GitHub is for PRs and code review only — never open GitHub Issues for backlog work. Routine and label-scheme details: [`docs/routines/README.md`](docs/routines/README.md). Live workspace state (active initiatives, projects, customers, cycle status) — query the Linear MCP at the time you need it; do not hardcode it here, it drifts.
 
-**Teams**: Product (`PRD`) and Research (`RESR`). Their workflow states are asymmetric — Product has `QA` and `Ready` as backlog states (no Triage); Research has a `Triage` state (no QA/Ready). Matters when filtering or transitioning issues.
+**Teams**: five as of 2026-07-14 — Product (`PRD`), Research (`RESR`), Community (`COM`), Growth (`GROW`), Marketing (`MAR`). Green Goods routines and skills write only to **Product**. States: PRD and RESR have `Triage`; COM/GROW/MAR use the standard set without it; the old Product `QA`/`Ready` states are retired (QA proof lives in `In Review` + acceptance rules). The funding pipeline (`funding:*`) lives on GROW; marketing/creative briefs on MAR; cohort/community work on COM. Team charters: [`greenpill-dev-guild/.github` → `docs/teams/`](https://github.com/greenpill-dev-guild/.github/tree/main/docs/teams).
 
 **Records**: `Customer Need` (raw signal, structured body) → `Issue` (accepted work). `.plans/` remains execution truth for agent implementation; Linear mirrors carry the `source:plans` label.
 
@@ -120,7 +120,7 @@ Linear (workspace `greenpill-dev-guild`) is the durable backlog as of 2026-05-09
 
 **Canonical label families** (only these): `protocol:* / package:* / activity:* / source:* / agent:* / funding:*`. Retired and not to be reintroduced: `area:*`, `work:*`, `task:*`, `automation:*`, `health:*`, `grant:*`. The `agent:*` family distinguishes `agent:claude` (interactive Claude Code) from `agent:routine` (cron'd routine writes) — they are not synonymous.
 
-**Cloud routines that write Linear** (cron'd at [claude.ai/code/routines](https://claude.ai/code/routines), per-routine docs in [`docs/routines/`](docs/routines/README.md)): `bug-intake`, `health-watch`, `growth-pulse`. **Local skills aware of Linear**: `/audit`, `/clean`, `/principles`, `/plan`, `/debug`, `/drift` — all prompt before creating Linear records.
+**Cloud routines that write Linear** (cron'd at [claude.ai/code/routines](https://claude.ai/code/routines), per-routine docs in [`docs/routines/`](docs/routines/README.md)): `bug-intake`, `health-watch`, `growth-pulse`. **Local skills aware of Linear**: `/audit`, `/clean`, `/review`, plus the passive `plan` and `debug` skills — all prompt before creating Linear records (shared contract: `.claude/context/linear-routing-rules.md`).
 
 **Linear MCP** is wired into the Claude Code harness globally (~40 tools). No project `.mcp.json` config needed. Use it for read/query, triage/promote, state transitions, and branch-context loading.
 
@@ -186,7 +186,7 @@ import deployment from '../../../contracts/deployments/11155111-latest.json';
 
 **QA Speed Mode**: When the user is actively QAing staging or asks for a small quick fix, prove the narrow behavior first: targeted tests, direct file re-read, and authenticated rendered proof for visible UI. Escalate to Repo Quick Gate or Ship Gate only when the Validation Intent Ladder calls for it. A QA-speed pass is not a merge/release readiness claim.
 
-**User-Observed UI Regression Debugging**: Bug reports trigger the debug skill automatically. When the reported symptom is something the user can see or touch — cannot click, cannot select, missing selected border/state, collapsed or blank cards, invisible content, broken scroll/refresh, visible-but-unusable controls — start from the rendered surface before tracing data flow. First reproduce or simulate the exact visible/clickable symptom with the real component path, inspect DOM geometry and computed styles (bounding rect, width/height, opacity, display, pointer-events, z-index, overflow, disabled state, selected classes, border/ring), verify whether click/tap changes state, trace visible element → card/button/input → wrapper/carousel/sheet/dialog → state setter, and check recent component commits with `git log --follow` or focused `git show`. Only move into providers, query hooks, auth, or indexer/data explanations after proving the rendered surface is intact. If text/data exists in the DOM but the control is collapsed, invisible, untappable, or lacks selected visual state, treat it as a component/CSS regression until browser or DOM evidence proves otherwise.
+**User-Observed UI Regression Debugging**: Bug reports trigger the debug skill automatically. When the reported symptom is something the user can see or touch, start from the rendered surface (DOM geometry, computed styles, interaction state) before tracing providers, queries, auth, or indexer data — full protocol in the `debug` skill (§ User-Observed UI Regression Protocol). If text/data exists in the DOM but the control is collapsed, invisible, or untappable, treat it as a component/CSS regression until browser or DOM evidence proves otherwise.
 
 **Research, Plan, Implement**: For ambiguous, multi-package, or high-risk work, research first, record evidence, plan the smallest implementation path, surface human judgment points, then edit. If the session goes down the wrong path, summarize only the useful findings and restart with clean context instead of carrying contaminated assumptions forward.
 
@@ -194,7 +194,7 @@ import deployment from '../../../contracts/deployments/11155111-latest.json';
 
 ## Design System
 
-Full skills: `design` (direction) + `ui` (implementation). Load explicitly when paradigm, layout composition, new view, tokens, or PR review is at stake. For trivial edits (padding, copy, a single component touch), the rules below are sufficient.
+Full skill: `design` (direction; `design/implementation.md` for build guidance — dialogs, runbook, Storybook, i18n). Load explicitly when paradigm, layout composition, new view, tokens, or PR review is at stake. For trivial edits (padding, copy, a single component touch), the rules below are sufficient.
 
 **Language**: Warm Earth — M3 Expressive × Liquid Glass. Canonical spec: `.claude/skills/design/language.md`. Scannable cheat sheet: `.claude/skills/design/quick-reference.md`. Ecosystem map: `.claude/skills/design/ARCHITECTURE.md`.
 
@@ -216,7 +216,7 @@ Full skills: `design` (direction) + `ui` (implementation). Load explicitly when 
 - Admin: the `Admin*` M3 wrappers (filesystem is the count of record) + `CanvasLayout` / `AppBar` / `MainSheet` / `ActionFlowShell` / `NavigationBar` / `AdminFab`; every workspace overlay is a centered `AdminDialog`; the three global AppBar surfaces (Profile, Settings, Notifications) are `AdminSideSheet`s — desktop right-docked, mobile bottom sheet (bell only; Profile/Settings live in the mobile Profile tab as Account | Settings). Full list: `.claude/skills/design/prompt-contract.md § Canonical Component Palette`.
 - Client: `@green-goods/shared` primitives + presentation-mode loaders / `PublicShell` / `PwaRuntime` / `AppShell` / `SiteHeader` / `AppBar`. Full list: `.claude/skills/design/client-prompt-contract.md § Canonical Component Palette`.
 
-**Validation**: `bun run check:design-md` (root + dialect DesignMD lint) · `bun run check:design-generated` (DesignMD generated artifacts) · `bun run check:design-tokens` (spec ↔ theme.css drift + version coupling) · `bun run lint:vocab` (lint-enforced i18n terms only). When a component, story, or Storybook-covered surface changes, also run `bun run --filter @green-goods/shared check:stories` and `bun run --filter @green-goods/shared check:story-quality`.
+**Validation**: `bun run check:design-md` (root + dialect DesignMD lint) · `bun run check:design-generated` (DesignMD generated artifacts) · `bun run check:design-tokens` (spec ↔ theme.css drift + `token_version` presence) · `bun run lint:vocab` (lint-enforced i18n terms only). When a component, story, or Storybook-covered surface changes, also run `bun run --filter @green-goods/shared check:stories` and `bun run --filter @green-goods/shared check:story-quality`.
 
 **PR review**: 4-lens checklist at `.claude/skills/design/review-checklist.md` — Regenerative → Spatial → Ecosystem → Compliance. Quick pass = Lenses 1 + 4. Full pass (new view) = all four.
 
@@ -335,15 +335,15 @@ Common invocations:
 
 Don't reach for `which codex` or attempt to install it globally — the app-bundled binary is the canonical CLI on this machine. Worktree + dispatch protocol details live in the memory note `feedback_claude_orchestrated_codex.md`.
 
-## Drift Cleanup Ritual
+## Repo Health Ritual
 
 When the working tree is heavy (changes spanning packages, drift across docs/code/tests, "feels off"), don't pile broad sweeps on top of unaudited changes. Run in this order:
 
-1. **`/drift`** — read-only classifier for guidance, plan, design, docs, quality, and cleanup drift. It routes findings before anything mutates.
-2. **`/audit-then-ship`** — surgical pass with a built-in scope-lock gate. Phase 1 picks a lens (audit/review/principles/architecture/design) and produces numbered findings; Phase 2 you pick which to fix; Phase 3 fixes only those; Phase 4 ships. The Phase 2 gate is the pause between investigation and action — that's the feedback checkpoint.
-3. **`/clean`** — broad 8-subagent sweep (dedup, dead code, type strengthening, defensive code, legacy, AI slop). Run only after `/drift` or `/audit-then-ship` proves cleanup is the right tool, because its scope isn't number-pickable and would otherwise muddy a review.
-4. **`/simplify`** — focused refinement of recently changed code. Skip if `/clean` already touched the same surface.
-5. **`/ship`** — final gate. Already runs at the end of `/audit-then-ship`; re-run here only if `/clean` or `/simplify` modified anything afterward.
+1. **`/audit`** (or `/audit drift` for the quick classifier) — read-only, numbered findings with recommended routes.
+2. **Scope lock** — the user picks findings by number; fix only what's approved (plan mode for anything large).
+3. **`/clean`** — broad 8-subagent sweep (dedup, dead code, type strengthening, defensive code, legacy, AI slop). Only after audit proves cleanup is the right tool.
+4. **`/review`** — regressions + remaining gaps + production quality on whatever changed (`/simplify` from the code-simplifier plugin is an optional refinement pass before it).
+5. **`/ship`** — pre-merge gate when the branch should be merge-ready.
 
 Skip the ritual entirely for: single-file edits, doc-only changes, bug fixes with a known fix path. It's earned only by multi-issue, ambiguous-scope, cross-package work.
 

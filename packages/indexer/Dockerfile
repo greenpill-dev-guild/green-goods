@@ -1,7 +1,7 @@
 # Dockerfile for Green Goods Indexer
 # This allows running the indexer in Docker on macOS to avoid system-configuration crate panics
 
-FROM node:20-slim
+FROM node:22-slim
 
 # Install dependencies
 RUN apt-get update && apt-get install -y \
@@ -10,8 +10,8 @@ RUN apt-get update && apt-get install -y \
     netcat-openbsd \
     && rm -rf /var/lib/apt/lists/*
 
-# Keep this pinned to a Node 20-compatible pnpm major. pnpm 11 requires newer
-# Node built-ins such as node:sqlite and breaks this image at build time.
+# Keep pnpm on the validated major used by this image and the generated Envio
+# workspace. Upgrading pnpm is a separate compatibility boundary.
 RUN npm install -g pnpm@10
 
 # Set working directory

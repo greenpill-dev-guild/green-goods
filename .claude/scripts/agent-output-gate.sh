@@ -77,7 +77,7 @@ esac
 if [ -n "$MISSING_SECTIONS" ]; then
   echo "OUTPUT CONTRACT WARNING: Agent output detected as '$OUTPUT_TYPE' but missing required sections:" >&2
   printf '%b' "$MISSING_SECTIONS" >&2
-  echo "   See the owning review, migration, or oracle skill for the required section order." >&2
+  echo "   See the owning skill or dispatch prompt for the required section order." >&2
   echo "   This is advisory — output will be accepted. Fix sections before handoff." >&2
 fi
 

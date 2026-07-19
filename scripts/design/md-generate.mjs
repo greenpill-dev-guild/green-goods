@@ -2,7 +2,7 @@
 import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { extname, join, relative } from "node:path";
 import process from "node:process";
-import yaml from "js-yaml";
+import * as yaml from "js-yaml";
 
 const REPO_ROOT = process.cwd();
 const CHECK_MODE = process.argv.includes("--check");
@@ -38,7 +38,7 @@ function readDesignFrontMatter() {
   if (!match) {
     throw new Error("DESIGN.md must start with YAML front matter.");
   }
-  return yaml.load(match[1]);
+  return yaml.load(match[1], { schema: yaml.YAML11_SCHEMA });
 }
 
 function hexToRgbTriplet(hex) {

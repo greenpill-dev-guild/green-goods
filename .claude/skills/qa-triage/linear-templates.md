@@ -1,6 +1,6 @@
 # Linear Body Templates — `/qa-triage`
 
-These templates mirror [`bug-intake`](../../docs/routines/bug-intake.md) Phase 3's body shape, adapted for the interactive single-source case (no Discord ack, no daily summary — those belong to the routine).
+These templates mirror [`bug-intake`](../../../docs/routines/bug-intake.md) Phase 3's body shape, adapted for the interactive single-source case (no Discord ack, no daily summary — those belong to the routine).
 
 Render every field. Empty fields become `—` rather than the section being dropped; readers should be able to scan the body shape across records and immediately see what's known vs not.
 

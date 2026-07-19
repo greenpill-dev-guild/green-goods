@@ -1,16 +1,10 @@
 ---
 name: audit
-user-invocable: false
-description: Internal repo-health lens for Green Goods — dead code detection, dependency health, invariant drift, and concrete broken or brittle spots. Prefer this after `/review` or `/status` reveals broader drift beyond a single change.
-argument-hint: "[package-name] [--full] [--team] [--write-report]"
+user-invocable: true
+description: Repo-health audit and drift classifier for Green Goods — dead code, dependency health, invariant drift, stale guidance/plans/docs drift, and concrete broken or brittle spots. Use when the user asks for an audit, a drift check, "is the repo healthy", stale guidance, cleanup readiness, or whether to run clean. Read-only; routes accepted findings to a fix pass, /clean, or Linear.
+argument-hint: "[package|drift] [--full] [--team] [--loop] [--write-report]"
 context: fork
 effort: high
-version: "2.2.0"
-status: active
-packages: ["all"]
-dependencies: ["review", "contracts"]
-last_updated: "2026-07-12"
-last_verified: "2026-07-12"
 ---
 
 # Audit Skill
@@ -19,7 +13,7 @@ Systematic repo-health analysis: dead code detection, dependency health, invaria
 
 Prefer `/review` or `/status` first. This skill is for broader repo-health drift, not for every change or every question.
 
-**References**: See `CLAUDE.md` for codebase patterns. Use `oracle` for deep investigation.
+**References**: See `CLAUDE.md` for codebase patterns and `.claude/context/*.md` for per-package invariants.
 
 **Context mode**: `context: fork` -- read-only subagent. Never edit files during an audit. Return findings in the response and let the user decide.
 
@@ -42,8 +36,7 @@ Linear Issues, not GitHub's issue tracker.
 
 ## What This Skill Does Not Own
 
-- abstract architecture judgment (`architecture`)
-- principles scoring or textbook design critique (`principles`)
+- abstract architecture or design-soundness judgment (`/review`'s boundary + coherence lenses)
 - PR-scoped correctness review (`review`)
 - implementation or refactor orchestration
 
@@ -54,7 +47,7 @@ These are mandatory:
 - only report issues with concrete runtime, correctness, or clear maintenance cost
 - do not recommend new abstractions, patterns, or layers from this skill
 - do not treat file size alone as a finding
-- if a structural concern is mostly about design judgment, route it to `architecture` or `principles` instead of reporting it here
+- if a structural concern is mostly about design judgment, route it to `/review` (boundary/coherence lenses) instead of reporting it here
 - cap medium and low-severity findings to the highest-signal set a human can act on
 
 ---
@@ -65,10 +58,22 @@ These are mandatory:
 |---------|--------|
 | `/audit` | Full codebase audit |
 | `/audit [package]` | Targeted package audit |
+| `/audit drift [scope]` | Quick drift classification only (see Drift Mode) |
+| "repo drift", "stale guidance", "should we clean?" | Treat as `/audit drift` |
 | `/audit --full` | Skip scope detection, analyze all packages |
 | `/audit --team` | Parallel agent team |
 | `/audit --write-report` | After analysis, persist the response as `.plans/audits/[date]-audit.md` |
-| `/audit --loop` | Route to `audit-then-ship`; audit still stops for numbered scope lock before fixes |
+| `/audit --loop` | Complete the read-only audit, then route approved findings through the scope-lock rhythm (see Part 10) |
+
+## Drift Mode
+
+`/audit drift [scope]` is the fast, read-only classifier (formerly the standalone `drift` skill). It does not run Parts 0-10.
+
+1. Run `bun run drift:check -- --scope <scope>` (scopes: `all`, `guidance`, `plans`, `design`, `docs`, `cleanup`, `quality`; add `--json` for machine output).
+2. Report numbered findings with category, severity, evidence, and recommended route. Treat `WARN` output as a finding; include working-tree context if the checker reports a dirty tree.
+3. Stop for human scope lock before fixing anything.
+
+Routing: guidance/plans/docs drift → a scoped fix pass after the user approves findings by number (plan mode for anything large); design-system drift → `/review --scope design-system`; cleanup-shaped findings → recommend `clean --scope <scope> --dry-run` first, never full `/clean` without approval; anything that looks like a production bug, broken flow, or data/API/indexer failure → `debug`, not cleanup.
 
 ## Progress Tracking (REQUIRED)
 
@@ -111,7 +116,7 @@ git diff --name-only <last-audit-commit>..HEAD | grep '^packages/' | cut -d/ -f2
 | shared | CHANGED | 12 | Full analysis (Parts 1-4) |
 | contracts | UNCHANGED | 0 | Carry-forward + spot-check |
 
-5. CHANGED packages get full Parts 1-4. UNCHANGED packages: carry forward findings, spot-check 1-2 high-severity items, and run the checked-in `knip` dependency with `bunx knip --workspace <pkg>`.
+5. CHANGED packages get full Parts 1-4. UNCHANGED packages: carry forward findings, spot-check 1-2 high-severity items, run `bunx knip --workspace <pkg>`.
 6. First audit (no prior baseline): treat all packages as CHANGED.
 
 ---
@@ -163,7 +168,7 @@ For each file in CHANGED packages, check:
 
 1. **Deprecations** -- outdated patterns, old APIs
 2. **Unfinished work** -- TODO comments with staleness
-3. **Architectural violations** (per CLAUDE.md): hooks in client/admin, package .env files, hardcoded addresses
+3. **Architectural violations** (per CLAUDE.md): hooks in client/admin, package .env files, hardcoded addresses, undeclared `shared/src/**` internal imports
 4. **Type problems** -- `any`, `unknown`, type assertions
 5. **Code smells** -- long functions, deep nesting
 6. **Bare catch blocks** -- classify each:
@@ -193,10 +198,10 @@ Score < 4.0: report as-is. Score 4.0-8.0: escalate one level. Score > 8.0: flag 
 
 ### Security Skill Integration (contracts only)
 
-When auditing `packages/contracts/`, invoke the security skill checklist from `.claude/skills/contracts/security.md`:
-1. Part 2 (OWASP) against modified Solidity files
-2. Part 3 (Access Control) against files with `onlyHatWearer`, `_authorizeUpgrade`, role-check modifiers
-3. Part 4 (UUPS Upgrade Security) if proxy/upgradeable contracts modified
+When auditing `packages/contracts/`, apply the security checklist in `.claude/context/contracts.md`:
+1. Solidity security patterns against modified `.sol` files
+2. Access control against files with `onlyHatWearer`, `_authorizeUpgrade`, role-check modifiers
+3. UUPS upgrade safety (storage gaps, `_authorizeUpgrade`) if proxy/upgradeable contracts modified
 4. Prefix security findings with `SEC-`
 
 ---
@@ -235,6 +240,7 @@ God objects: include coverage %. Zero-coverage god objects escalate one addition
 grep -rn "^export.*use[A-Z]" packages/client packages/admin    # Hooks outside shared
 find packages -name ".env*" -not -path "*/node_modules/*"       # Package .env files
 grep -rn "0x[a-fA-F0-9]\{40\}" packages/ --include="*.ts" | grep -v __tests__  # Hardcoded addresses
+grep -rn "@green-goods/shared/src" packages/client packages/admin packages/agent packages/indexer --include="*.ts*"  # Undeclared shared internals
 ```
 
 Cap the anti-patterns table at **top 10 by risk score**. Track the rest in Known Issues Registry.
@@ -259,7 +265,7 @@ In team mode, the lead re-reads every sub-agent finding before synthesis. Unveri
 
 ## Part 6: Report Generation
 
-Return the report in the response by default. Only write `.plans/audits/[date]-audit.md` when the user explicitly requests a durable artifact or invokes `--write-report`.
+Return the report in the response by default. Only write `.plans/audits/[date]-audit.md` when the user explicitly requests a durable artifact or invokes `--write-report`. Report shape:
 
 ```markdown
 # Audit Report - [Date]
@@ -374,7 +380,7 @@ Audit-specific deltas:
 
 ## Part 10: Implementation Handoff
 
-When `--loop` is requested, complete the read-only audit first, present numbered findings, and route the approved set through `audit-then-ship`. Do not apply fixes, create branches, write reports, or update registries from the audit phase itself.
+When `--loop` is requested, complete the read-only audit first and present numbered findings. Route the approved set through the scope-lock rhythm (numbered findings → explicit user lock → fix only locked items → re-validate per `.claude/context/validation-pipeline.md`). Do not apply fixes, create branches, write reports, or update registries from the audit phase itself. Fix at most 3 findings per approved iteration, highest risk score first, on the current branch.
 
 ---
 
@@ -390,8 +396,6 @@ When `--loop` is requested, complete the read-only audit first, present numbered
 | Use haiku-class models for audit | 95% false-positive rate -- use opus |
 | Include LOW-confidence findings | Self-validation gate drops them |
 | Edit files during an audit | Read-only mode |
-| Write `.plans/audits/` without `--write-report` or an explicit request | Default report delivery is the response |
-| Install fallback dependency tools | Audits must use checked-in tooling or report the check blocked |
 | State cross-package findings as confirmed | Mark "needs cross-package verification" |
 | Skip Previous Findings check | Trend tracking is the audit's most valuable long-term output |
 | Report 24+ god object rows | Top 10 by risk score; rest in Known Issues Registry |
@@ -400,7 +404,7 @@ When `--loop` is requested, complete the read-only audit first, present numbered
 | Create Linear issues without prompting | Part 9 requires user confirmation |
 | Run full analysis on unchanged packages | Part 0.5 gates analysis to changed packages |
 | Fix more than 3 findings per loop iteration | Prevents context exhaustion |
-| Fix design-level problems via `/audit --loop` | Design fixes belong to `/principles fix` |
+| Fix design-level problems via `/audit --loop` | Design judgment belongs in `/review`'s coherence lens |
 
 ---
 
@@ -408,31 +412,19 @@ When `--loop` is requested, complete the read-only audit first, present numbered
 
 - **Complete all files** within scope -- never skip
 - **Scope-aware** -- diff detection limits analysis to changed packages
-- **Read-only by default** -- return the report in the response; persist only when explicitly requested
+- **Read-only** -- don't edit during audit
 - **Evidence-based** -- every finding needs file:line and risk score
 - **Risk-weighted** -- escalation uses impact x likelihood x staleness
 - **Prompt before issues** -- ask user before creating Linear issues
 - **Registry-backed** -- chronic findings live in Known Issues Registry
 
-## Audit vs Principles Boundary
+## Boundary
 
-| `/audit` owns | `/principles` owns |
-|--------------|-------------------|
-| Dead code, unused files/exports/deps | SRP (mixed concerns beyond LOC) |
-| LOC / god-object thresholds | OCP, LSP, ISP, DIP |
-| Type errors, lint, TODO markers | DRY (duplicated logic across packages) |
-| Layer violations (hooks, imports) | KISS, YAGNI |
-| Dependency health (CVEs, EOL) | SOC (concern leakage) |
-| Security (contracts OWASP, AC, UUPS) | EDA, ADR, C4 |
-| Test coverage gaps | ACID, BASE, CAP |
-| Skill & configuration drift | |
-
-If it's about *what's broken, dead, or drifted* -- audit. If it's about *whether the design is sound* -- principles.
+If it's about *what's broken, dead, or drifted* — audit. If it's about *whether one change is sound* — `/review` (its coherence and boundary lenses replaced the retired `principles`/`architecture` skills).
 
 ## Related Skills
 
-- `principles` -- Design-level analysis (SOLID, DRY, KISS, SOC). Audit finds what's broken; principles evaluates design soundness.
-- `architecture` -- Clean Architecture patterns for structural review
-- `react` (performance sub-file) -- Bundle analysis and optimization
-- `contracts` (security sub-file) -- Security audit patterns, **explicitly invoked** during Part 2
-- `testing` -- Coverage analysis and test gap identification
+- `review` — diff-scoped correctness, coherence, and boundary judgment
+- `clean` — broad cleanup after audit findings prove cleanup-shaped
+- `debug` — when a finding is really a runtime/product failure
+- `plan` — stale or inconsistent `.plans` truth

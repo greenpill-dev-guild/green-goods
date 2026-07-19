@@ -18,7 +18,7 @@ Afo deferred this out of the current active product-development push. Keep it in
 
 `agent-posthog-observability` has been completed and archived as connector-first routine guidance plus fallback script support. Messaging channels no longer depends on an open PostHog feature hub; treat PostHog routine telemetry as completed prerequisite context.
 
-> **For agentic workers:** Use `superpowers:subagent-driven-development` (recommended) or `superpowers:executing-plans` to implement task-by-task. Steps use checkbox (`- [ ]`) syntax.
+> **For agentic workers:** Execute via the `plan` skill's batch flow (`.claude/skills/plan/SKILL.md § Execute Plan`) task-by-task. Steps use checkbox (`- [ ]`) syntax.
 
 ## Decision Log
 
@@ -292,7 +292,7 @@ Afo deferred this out of the current active product-development push. Keep it in
 - [ ] SignSessionKey: show permission summary (targets, selectors, 30d TTL); user signs via passkey
 - [ ] Linked state: show phone, channel, expiry, "Revoke" button (passkey-confirmed)
 - [ ] Errors via `parseContractError()` + `USER_FRIENDLY_ERRORS`
-- [ ] i18n per `.claude/skills/ui/i18n.md`
+- [ ] i18n per `.claude/skills/design/implementation.md` (§ i18n)
 - [ ] Commit: `feat(client): add phone linking UX in Profile`
 
 ## Phase 5 — E2E + Pilot Rollout (2026-06-20 → 2026-06-30)

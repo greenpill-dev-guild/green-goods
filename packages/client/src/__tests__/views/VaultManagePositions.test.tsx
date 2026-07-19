@@ -392,7 +392,9 @@ describe("/vaults?manage=positions", () => {
         document.querySelector('[data-component="VaultManagePositionsPanel"][data-slot="surface"]')
       ).toBeNull();
     });
-    expect(locations[locations.length - 1]).toBe("/vaults?ref=newsletter");
+    await waitFor(() => {
+      expect(locations[locations.length - 1]).toBe("/vaults?ref=newsletter");
+    });
   });
 
   it("renders connected-wallet positions under the Connected wallet source", () => {

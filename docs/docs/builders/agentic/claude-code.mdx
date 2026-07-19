@@ -4,14 +4,14 @@ sidebar_label: Claude Code
 slug: /builders/agentic/claude-code
 audience: developer
 owner: docs
-last_verified: 2026-07-12
+last_verified: 2026-07-11
 feature_status: Live
 source_of_truth:
   - CLAUDE.md
-  - .claude/agents/cracked-coder.md
+  - AGENTS.md
   - .claude/context/shared.md
   - .claude/context/contracts.md
-  - .claude/skills/index.md
+  - .claude/loop.md
 ---
 
 import {NextBestAction} from "@site/src/components/docs";
@@ -21,8 +21,7 @@ import {NextBestAction} from "@site/src/components/docs";
 ```mermaid
 graph TB
     subgraph Config[".claude/ Directory"]
-        Agents["agents/\n2 custom agents"]
-        Skills["skills/\n23 active top-level dirs"]
+        Skills["skills/\n11 skills"]
         Rules["rules/\npath-scoped"]
         Context["context/\nper-package"]
     end
@@ -30,34 +29,36 @@ graph TB
     CLAUDE["CLAUDE.md\nalways loaded"] --> Session["Claude Code\nCLI Session"]
     Config --> Session
 
-    subgraph AgentTypes["Custom Agents"]
-        Oracle["oracle\nresearch"]
-        Cracked["cracked-coder\nTDD impl"]
+    subgraph Subagents["Built-in Subagents"]
+        Explore["Explore\nread-only search"]
+        General["general-purpose\nmulti-step tasks"]
+        PlanAgent["Plan\nimplementation strategy"]
     end
 
-    Session -->|spawn| AgentTypes
+    Session -->|Agent tool| Subagents
 ```
 
-Primary agentic development tool for Green Goods. Claude Code operates as a CLI-based AI assistant with deep project context, custom agents for specialized tasks, and a skill system for repeatable workflows. It is the main development interface for the team.
+Primary agentic development tool for Green Goods. Claude Code operates as a CLI-based AI assistant with deep project context, built-in subagents for parallel and isolated work, and a lean skill system for repeatable workflows. It is the main development interface for the team.
 
 ## How We Use It
 
 - **Daily development** -- feature implementation, bug fixing, refactoring, code review, and documentation via the Claude Code CLI
 - **CLAUDE.md** provides project-wide context that is always loaded: commands, architecture, key patterns, error handling conventions, git workflow, and build order
-- **Custom agents** handle specialized workstreams that benefit from focused prompts and isolated context
-- **Skills** encode common workflows (plan, debug, review, audit) as reusable prompt templates
-- **Multi-agent teams** coordinate parallel work across packages using the `agent-teams` skill and `/teams` entrypoint
+- **Built-in subagents** handle parallel research and isolated workstreams, spawned per-task via the Agent tool
+- **Skills** encode procedural workflows (review, ship, audit, qa-triage) with real orchestration; domain knowledge lives in `.claude/context/*.md` and `docs/` instead
+- **Multi-agent teams** coordinate parallel work across packages through the `plan` skill's team lanes and the `.plans/` hub
 
-### Custom Agents
+### Subagents
 
-Two specialized agents are defined in `.claude/agents/`:
+The repo no longer commits custom agent definitions. Earlier iterations kept `.claude/agents/` files (most recently `cracked-coder` and `oracle`); the lean-skills consolidation retired them on the principle that stronger models need less scaffolding -- a task-scoped prompt to a built-in subagent type does the same job without a second home for guidance to drift in. Claude Code's built-in types cover the same ground:
 
-| Agent | Purpose |
+| Built-in type | Use |
 |-------|---------|
-| **oracle** | Architecture questions, codebase investigation, documentation |
-| **cracked-coder** | Complex implementation with mandatory TDD, three-strike protocol |
+| **Explore** | Read-only fan-out search when only the conclusion matters, not the file dumps |
+| **general-purpose** | Multi-step research or implementation tasks needing isolated context |
+| **Plan** | Implementation-strategy design for a bounded task |
 
-Retired roles such as `code-reviewer`, `migration`, `triage`, and `storybook-author` now live as skill or workflow patterns rather than committed agent files.
+Each dispatch carries its own task-scoped prompt (paths, acceptance criteria, validation commands); durable knowledge stays in `CLAUDE.md`, `.claude/context/*.md`, and `docs/` rather than in per-agent spec files. The three-strike escalation protocol that `cracked-coder` carried now lives in the `debug` skill.
 
 **Model selection matters**: Opus is required for any task requiring judgment (reviews, audits, architecture analysis). Haiku is only appropriate for simple lookups and factual queries -- it produces unacceptable false-positive rates on code review tasks.
 
@@ -67,19 +68,24 @@ The `.claude/` directory contains all agentic configuration:
 
 ```
 .claude/
-  agents/           # 2 custom agent definitions (.md files)
-  skills/           # 23 active top-level skill dirs plus archived references
-    index.md        # Master skill index
-    plan/           # Planning workflows
-    debug/          # Debugging workflows
-    review/         # Code review workflows
-    audit/          # Security and quality audits
-    ops/            # Deployment, CI/CD, git, dependency management
-    ...
+  skills/           # 11 skills -- the filesystem + SKILL.md frontmatter is the registry
+    review/         # Full change review: regressions -> gaps -> production quality -> verdict
+    ship/           # Pre-merge gate (format, lint, test, build, branch safety)
+    status/         # Session resumption and quick orientation
+    plan/           # Planning lifecycle: .plans hub + Codex lanes (passive)
+    debug/          # Debugging workflows, incl. the three-strike protocol (passive)
+    clean/          # 8-subagent codebase cleanup
+    audit/          # Repo-health audit + drift classifier (/audit drift)
+    qa-triage/      # Build sync QA notes -> Linear records + QA-sheet rows
+    doc-feedback/   # Google Doc review feedback processing
+    posthog-questions/  # Curated PostHog question library
+    design/         # Design direction + implementation (design/implementation.md)
   rules/            # Conditional rules loaded by file path
     typescript.md   # TypeScript conventions (error handling, Address type, barrel imports)
-    frontend-design.md  # 16 UI/UX rules for admin dashboard
+    frontend-design.md  # UI/UX rules for admin dashboard
     contracts.md    # Solidity rules (always use bun scripts, never raw forge)
+    react-patterns.md   # Hook and component conventions
+    indexer.md      # Envio handler conventions
   context/          # Per-package context files
     shared.md       # Hook boundary, query keys, module patterns
     client.md       # PWA, offline-first, service worker
@@ -87,10 +93,17 @@ The `.claude/` directory contains all agentic configuration:
     contracts.md    # Deploy scripts, resolver patterns
     indexer.md      # Envio handlers, event mapping
     agent.md        # Bot automation, Telegram integration
-  registry/         # Skill bundles and activation maps
-  specs/            # Detailed feature specifications
+    testing.md      # Test patterns and TDD conventions (absorbed the old testing skill)
+    validation-pipeline.md   # Single definition of the validation gate commands
+    linear-routing-rules.md  # Shared Linear routing contract for all skills
+    ...             # docs.md, intent.md, product.md, values.md
+  scripts/          # Hook helpers and Codex lane dispatch
+  loop.md           # Maintenance loop: guidance consistency, stale references, build health
+  launch.json       # Dev-server launch configs for the browser preview
   settings.json     # Claude Code project settings and tool hooks
 ```
+
+There is no separate skills registry, index file, or per-skill version ceremony -- each skill's `SKILL.md` frontmatter description is what triggers it, and the filesystem is the count of record. Six skills are user-invocable slash commands advertised in the session banner (`/review /status /audit /clean /qa-triage /doc-feedback`); `plan` and `debug` fire passively from intent, and `ship`, `design`, and `posthog-questions` load when their triggers appear. `.agents/skills` is a symlink to `.claude/skills`, so Codex sees the same set. `bun run check:codex-guidance` keeps Codex guidance in parity, and the `.claude/loop.md` maintenance loop greps for stale references to retired surfaces.
 
 **`CLAUDE.md`** (project root) is the primary context file, always loaded into every conversation. It defines:
 - Build commands and package scripts
@@ -123,9 +136,11 @@ Never speculate about code you haven't read. If referencing a specific file, rea
 
 ### Research-plan-implement loop
 
-For ambiguous, multi-package, or high-risk work, use `oracle` or an explicit research phase first, then record evidence and human judgment points in the relevant `.plans/` hub before implementation.
+For ambiguous, multi-package, or high-risk work, run an explicit research phase first -- the built-in Explore and general-purpose subagents fan out well here -- then record evidence and human judgment points in the relevant `.plans/` hub before implementation.
 
-### Three-strike protocol (cracked-coder agent)
+### Three-strike protocol (debug skill)
+
+The `debug` skill codifies the escalation ladder for failed fixes:
 
 1. **Strike 1**: Reassess approach, check assumptions
 2. **Strike 2**: Question architecture, consider alternatives
@@ -133,7 +148,7 @@ For ambiguous, multi-package, or high-risk work, use `oracle` or an explicit res
 
 ### Team coordination
 
-Multi-agent teams use the `agent-teams` skill and `/teams` command to spin up parallel workstreams. Each agent gets a focused task brief, and the team lead coordinates through the task system. Teams are used for large refactors, cross-package migrations, and documentation sprints.
+Multi-agent teams spin up through the `plan` skill, which fires passively when you describe orchestration intent ("parallel lanes", "coordinate a team") and coordinates mixed Claude + Codex lanes through the `.plans/` hub. Each agent gets a focused task brief, and the coordinator runs validation checkpoints. Teams are used for large refactors, cross-package migrations, and documentation sprints.
 
 ## References
 

@@ -11,7 +11,7 @@
  */
 
 import { expect, type Page, type Route, test } from "@playwright/test";
-import { buildRpcResponse } from "../helpers/mock-backend";
+import { mockSepoliaRpc } from "../helpers/mock-backend";
 import { AdminTestHelper, TEST_URLS } from "../helpers/test-utils";
 
 const ADMIN_URL = TEST_URLS.admin;
@@ -134,19 +134,7 @@ async function setupAdminRouteBackend(page: Page) {
     });
   });
 
-  await page.route("https://eth-sepolia.g.alchemy.com/**", async (route) => {
-    const rawBody = route.request().postData();
-    const payload = rawBody ? JSON.parse(rawBody) : { id: 1 };
-    const response = Array.isArray(payload)
-      ? payload.map((entry) => buildRpcResponse(entry))
-      : buildRpcResponse(payload);
-
-    return route.fulfill({
-      status: 200,
-      contentType: "application/json",
-      body: JSON.stringify(response),
-    });
-  });
+  await mockSepoliaRpc(page);
 }
 
 async function setupAuthenticatedAdmin(page: Page) {

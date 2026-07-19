@@ -3,19 +3,13 @@ name: debug
 user-invocable: false
 description: Debugging & Troubleshooting — fires passively when the user describes a bug, pastes an error or stack trace, reports unexpected behavior, mentions failing tests or builds, or signals an incident. Routes to user_bug_triage when an external party (user / gardener / operator / customer / team member / partner) reports broken product behavior, incident_hotfix on urgency signals, tdd_bugfix on red-test signals, default on general bug reports.
 argument-hint: "[error-description]"
-version: "1.1.2"
-status: active
-packages: ["all"]
-dependencies: []
-last_updated: "2026-05-09"
-last_verified: "2026-05-09"
 ---
 
 # Debug Skill
 
 Systematic debugging: find root causes before fixes, verify with evidence before completion.
 
-**References**: See `CLAUDE.md` for codebase patterns. Use `oracle` for complex investigation, `cracked-coder` for fixes.
+**References**: See `CLAUDE.md` for codebase patterns and `.claude/context/*.md` for per-package invariants.
 
 ---
 
@@ -182,65 +176,19 @@ geometry. Start at the failing output and trace backward through the data path.
 
 ### Phase 2: Hypothesis Testing
 
-1. **Form specific hypothesis**
-   - ✅ "Error occurs because X calls Y with null"
-   - ❌ "Something is wrong with the API"
-
-2. **Test minimally** — ONE variable at a time
-
-3. **If 3+ fixes fail: STOP**
-   - Question the architecture
-   - Reassess understanding
-   - Ask for help
+Form one specific hypothesis ("X calls Y with null", not "something is wrong with the API"), test one variable at a time, and after 3 failed fixes STOP — question the architecture and reassess (see Three-Strike Protocol).
 
 ---
 
-## Part 2: Escalation to cracked-coder
+## Part 2: Fix Sizing
 
-| Fix Type | Criteria | Action |
-|----------|----------|--------|
-| **Simple** | <10 lines, single file | Fix directly |
-| **Complex** | >10 lines, multi-file, needs tests | Escalate to cracked-coder |
-| **Architectural** | Pattern change, refactor | cracked-coder + planning |
-
-### Handoff Format
-
-```markdown
-## Debug → cracked-coder Handoff
-
-### Root Cause
-[What you found]
-
-### Location
-[File:line where issue originates]
-
-### Evidence
-[Commands/logs that prove the cause]
-
-### Suggested Fix
-[Your recommendation]
-```
+Simple fixes (<10 lines, single file, root cause proven) apply directly. Complex or architectural fixes (multi-file, pattern change, needs new tests) go through plan mode first — present root cause + evidence + smallest fix, get approval, then implement.
 
 ---
 
 ## Part 3: Verification Before Completion
 
-### Mandatory Verification
-
-| Claim | Command |
-|-------|---------|
-| "Tests pass" | `bun run test` (NOT `bun test` — see CLAUDE.md) |
-| "Build succeeds" | `bun build` |
-| "Linting clean" | `bun lint` |
-| "Types correct" | `bun run tsc --noEmit` |
-
-### Suspicious Language
-
-If you say these, STOP and verify first:
-- "should work"
-- "I think"
-- "probably"
-- "seems to"
+CLAUDE.md § Verify Before Claiming Success is the contract: evidence in the same turn, no "should work / probably / seems to". Standard proofs: `bun run test` (never `bun test`), `bun build`, `bun lint`, `npx tsc --noEmit` in the touched package.
 
 ---
 
@@ -505,7 +453,6 @@ Debug-specific deltas, applied after a bug is reproduced and root-caused:
 
 ## Related Skills
 
-- `react` (error-handling sub-file) — Error categorization and handling strategies
-- `testing` — Writing regression tests after fixing bugs
-- `debug` (monitoring sub-file) — Production diagnostics and error tracking
-- `react` (performance sub-file) — Performance profiling for performance bugs
+- `review` — post-fix review of the change (regressions, gaps, validation)
+- `posthog-questions` — curated telemetry reads when scale/impact context is needed
+- Error-handling and testing invariants live in `.claude/context/shared.md` and `.claude/context/testing.md`

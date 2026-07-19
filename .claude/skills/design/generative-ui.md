@@ -76,4 +76,4 @@ The interface describes **intent** ("show garden health"), not **layout** ("put 
 - [SKILL.md](./SKILL.md) — Paradigm selection, decision tree
 - [interaction.md](./interaction.md) — Progressive disclosure, adaptive density
 - [materials.md](./materials.md) — Material thickness per atom type
-- [../ui/view-transitions.md](../ui/view-transitions.md) — How atoms morph across route changes
+- [implementation.md § View Transitions](./implementation.md) — How atoms morph across route changes

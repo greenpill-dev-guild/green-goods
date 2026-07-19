@@ -154,4 +154,4 @@ On approval, move the brief to `.plans/active/<slug>/brief.md`, then move to pla
 
 ## Transition
 
-The terminal state of brainstorming is the planning skill. Do NOT invoke `ui`, `contracts`, or any other implementation skill directly — planning owns the path from approved brief to execution.
+The terminal state of brainstorming is the planning skill. Do NOT jump straight into implementation — planning owns the path from approved brief to execution.

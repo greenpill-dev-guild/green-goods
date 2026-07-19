@@ -137,15 +137,14 @@
   },
   "dependencies": {
     "@chainlink/contracts-ccip": "^1.6.4",
-    "@ethereum-attestation-service/eas-contracts": "^1.8.0",
+    "@ethereum-attestation-service/eas-contracts": "1.9.0",
     "@openzeppelin/contracts-4.8.3": "npm:@openzeppelin/contracts@4.8.3",
     "@openzeppelin/contracts-5.0.2": "npm:@openzeppelin/contracts@5.0.2",
     "@openzeppelin/contracts-upgradeable": "4.9.6",
     "dotenv": "^16.4.5",
-    "js-yaml": "^4.1.1"
+    "js-yaml": "5.2.1"
   },
   "devDependencies": {
-    "@types/js-yaml": "^4.0.9",
     "bun-types": "latest",
     "solhint": "^6.0.1"
   }

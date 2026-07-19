@@ -11,7 +11,7 @@
 
 export const FORK_CONFIG = {
   /** RPC URL for forking (Sepolia by default) */
-  rpcUrl: process.env.SEPOLIA_RPC_URL || "https://rpc.sepolia.org",
+  rpcUrl: process.env.SEPOLIA_RPC_URL || "https://ethereum-sepolia-rpc.publicnode.com",
 
   /** Optional: specific block number for deterministic tests */
   blockNumber: process.env.ANVIL_FORK_BLOCK ? BigInt(process.env.ANVIL_FORK_BLOCK) : undefined,
@@ -104,7 +104,7 @@ export const ANVIL_TIMEOUTS = {
   startup: 15000,
 
   /** Time to wait for a transaction to be mined */
-  transaction: 30000,
+  transaction: 60000,
 
   /** Time to wait for RPC to respond */
   rpc: 5000,

@@ -16,7 +16,7 @@ Loaded when working in `packages/contracts/`. Extends CLAUDE.md.
 | `bun run test:lite` | ~35 fast tests, excludes heavy/account suites |
 | `bun lint` | Format & lint with forge fmt + solhint |
 | `bun deploy:testnet` | Deploy to Sepolia |
-| `bun upgrade:testnet` | Upgrade existing contracts |
+| `bun upgrade:sepolia` | Upgrade existing contracts on Sepolia (named targets + gates: see § Upgrade CLI below) |
 
 > **Build modes:** Use `build`/`build:changed`/`build:target` for local iteration. Use `build:full` for deployment and CI.
 > **Operator defaults:** Use root/package scripts for deploys and upgrades. Arbitrum `contracts:*`
@@ -310,6 +310,42 @@ bun script/deploy.ts core --network sepolia
 bun script/deploy.ts core --network sepolia --broadcast
 ```
 
+## Deploy CLI — subcommands, networks, gates
+
+`bun script/deploy.ts <subcommand> --network <net> [--broadcast]`. Beyond the `core` deploy documented above:
+
+| Subcommand | Purpose |
+|---|---|
+| `core` | Deploy core contracts (default) |
+| `garden <config>` | Deploy a garden from a config JSON |
+| `hats-tree` | Create/configure the Hats Protocol tree |
+| `status [network]` | Print on-chain deployment status |
+
+Flags: `--broadcast` (send txs), `--update-schemas` (EAS schema metadata only), `--dry-run` (simulate vs live RPC), `--pure-simulation` (compile/preflight, no RPC), `--force` (skip cache).
+
+Accepted `--network`: `localhost` (31337), `sepolia` (11155111), `arbitrum` (42161, prod), `celo` (42220, prod), `mainnet` (1, ENS only). Per-chain RPC via `{CHAIN}_RPC_URL` (e.g. `SEPOLIA_RPC_URL`); artifacts at `deployments/{chainId}-latest.json`.
+
+Production-readiness gate (pre-broadcast, all chains): `bun run verify:contracts` (build → lint → tests → E2E → dry runs) or `bun run verify:contracts:fast` (skips E2E + dry runs). Fork tests: `bun run test:fork` (also `test:fork:protocol`, `test:fork:*:ci` shards) runs under `FOUNDRY_PROFILE=fork`, sources root `.env`, and requires the target chain's `{CHAIN}_RPC_URL`.
+
+## Upgrade CLI — upgrade.ts (UUPS)
+
+`bun script/upgrade.ts <target> --network <net>` is the only upgrade path — never `deploy.ts --force` as an upgrade or rollback command, never raw `forge script`.
+
+Sequence: `--dry-run` (preflight) → `--tx-plan --sender <address>` (persisted, reviewable transaction plan) → `--broadcast` only after the plan, authorization, and release gate are approved.
+
+Named targets: `action-registry`, `garden-token`, `yield-resolver`, `gardens-module`, `signal-pool-yield-wiring`, `yield-gardens-wiring`, `octant-module`, `karma-gap-module`, `work-resolver`, `work-approval-resolver`, `assessment-resolver`, `deployment-registry`, `greenwill`, `all`. **`all` intentionally excludes the funds-adjacent `greenwill` target** — upgrade GreenWill only as its explicit target with its own reviewed tx-plan (root wrappers: `contracts:upgrade:greenwill:dry:arbitrum` / `contracts:upgrade:greenwill:arbitrum`).
+
+Arbitrum and Celo broadcasts enforce the **Sepolia deployment gate**; do not pass `--override-sepolia-gate` without release-owner approval. The reviewer-led manual path for a verified garden-proxy rollback is `Upgrade.s.sol`'s `upgradeGardenProxy` with the known previous implementation — it is not a reason to run raw Foundry commands. Release sequencing: `docs/docs/builders/deployments/releasing.mdx`.
+
+## Access Control (Hats Protocol)
+
+Access is gated via Hats, checked with `IHats.isWearerOfHat` (see `registries/Power`, `registries/GreenWill`, `registries/ENS`).
+
+- **Per-garden hats** — from `HatsModule.getGardenHatIds(garden)` (`src/modules/Hats.sol`): `admin`, `operator`, `gardener`, `community`.
+- **Protocol-level hats** — `communityHatId` / `gardensHatId` / `protocolGardenersHatId`; `ENS` registry gates protocol ops on `protocolHatId` (reverts `NotProtocolMember`).
+- Garden TBA (`src/accounts/Garden.sol`) config setters use `onlyOperator`; `mintGarden` (`src/tokens/Garden.sol`) uses `onlyAuthorizedMinter`, not a hat.
+- **UUPS `_authorizeUpgrade` is `onlyOwner`** (proxy owner `0xFBAf2A9734eAe75497e1695706CC45ddfA346ad6`) across all upgradeable contracts — **not** hat-gated.
+
 ## Reference Files
 
 - Deploy CLI: `script/deploy.ts`
@@ -321,7 +357,7 @@ bun script/deploy.ts core --network sepolia --broadcast
 
 Read these docs pages when you need deployment context or protocol details:
 
-- Deployment runbook (3-chain CLI commands): `docs/docs/developers/operations.mdx`
-- System architecture and contract relationships: `docs/docs/developers/architecture.mdx`
-- Cross-protocol entity matrix: `docs/docs/developers/reference/entity-matrix.mdx`
-- EAS schema reference: `docs/docs/developers/reference/eas-schemas.mdx`
+- Deployment runbook (3-chain CLI commands): `docs/docs/builders/operations.mdx`
+- System architecture and contract relationships: `docs/docs/builders/architecture.mdx`
+- Cross-protocol entity matrix: `docs/docs/builders/integrations/entity-matrix.mdx`
+- EAS integration reference: `docs/docs/builders/integrations/eas.mdx`

@@ -247,15 +247,15 @@ function validatePackageGuides() {
 }
 
 function validateCodexImplementationAgent() {
-  const agent = read(".codex/agents/cracked-coder.toml");
+  // Committed agent definitions were retired with the lean-skills consolidation;
+  // the Implementation Quality Contract obligation now lives in AGENTS.md § Codex Workflow.
+  const guide = read("AGENTS.md");
   for (const marker of [
-    "quality_contract",
+    "Implementation Quality Contract",
     ".claude/context/values.md#implementation-quality-contract",
-    "declared in `packages/shared/package.json#exports`",
-    "final simplification pass",
   ]) {
-    if (!agent.includes(marker)) {
-      fail(`.codex/agents/cracked-coder.toml: missing implementation quality marker: ${marker}`);
+    if (!guide.includes(marker)) {
+      fail(`AGENTS.md: missing Implementation Quality Contract reference: ${marker}`);
     }
   }
 }

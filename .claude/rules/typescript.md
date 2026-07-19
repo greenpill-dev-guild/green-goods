@@ -70,3 +70,5 @@ console.log("Garden loaded", garden);
 import { logger } from "@green-goods/shared";
 logger.info("Garden loaded", { garden });
 ```
+
+> Error-utility surface: [.claude/context/shared.md](../context/shared.md) § Error Utilities; test conventions: [.claude/context/testing.md](../context/testing.md).

@@ -12,7 +12,7 @@ This plan converts the 2026-05-01 software-fundamentals audit into a scoped hard
 
 ## Functional Requirements
 
-1. Repair agent guidance drift so `check:claude-guidance` and `check:codex-guidance` can be trusted as current repo signals.
+1. Repair agent guidance drift so `check:codex-guidance` can be trusted (`check:claude-guidance` retired 2026-07-11) as current repo signals.
 2. Repair `.plans` command drift so canonical docs and automation prompts point at `node scripts/harness/plan-hub.mjs`, or introduce durable package scripts that hide the raw path.
 3. Repair package-level contracts guidance drift where docs still describe the removed `GreenGoodsResolver` fan-out architecture.
 4. Refresh ADR-008 and shared package guidance so the accepted fat-barrel strategy has current import rules, public API review expectations, and explicit subpath exceptions.
@@ -29,7 +29,7 @@ This plan converts the 2026-05-01 software-fundamentals audit into a scoped hard
 - Stable audit baseline: `develop` / `origin/develop` at `f1ce64a0 fix(client,admin,shared): clear CI false positives`
 - Plan hub validation passed: `node scripts/harness/plan-hub.mjs validate` reported `Validated 18 feature hubs.`
 - Hook location validation passed: `bash .claude/scripts/validate-hook-location.sh`
-- Guidance validation failed: `node .claude/scripts/check-skill-frontmatter.js`
+- Guidance validation failed: `node .claude/scripts/check-skill-frontmatter.js` (checker retired 2026-07-11)
 - `.plans/README.md` still documents `node scripts/plan-hub.mjs`, while the real helper is `scripts/harness/plan-hub.mjs`
 - `packages/contracts/AGENTS.md` still references `GreenGoodsResolver`, `src/resolvers/GreenGoods.sol`, and `GreenGoodsResolver.t.sol`; those files are not present in the current resolver/test tree.
 - ADR-008 already accepts the fat explicit shared barrel, but `packages/shared/src/index.ts` is now 1126 lines and the shared hook surface includes 195 `use*.ts(x)` files; the plan should refresh the policy rather than invent a new import architecture.
@@ -44,7 +44,7 @@ This plan converts the 2026-05-01 software-fundamentals audit into a scoped hard
 
 | Pattern | Existing Green Goods Strength | Gap To Close |
 |---|---|---|
-| Shared design concept | `.plans`, audit-then-ship, prompting docs, plan hub | stale command paths and guidance-check drift weaken trust |
+| Shared design concept | `.plans`, the scope-lock rhythm, prompting docs, plan hub | stale command paths and guidance-check drift weaken trust |
 | Ubiquitous language | community glossary, builder glossary, domain types, i18n vocab lint | glossary/domain drift is mostly manually policed |
 | Feedback loops | tests, stories, design gates, hook-location guard, plan validation | some important checks are not consistently part of stable PR/local gates |
 | Deep modules | shared module map, root barrels, domain utilities, typed hooks | several recent flows still land as large orchestration files |

@@ -34,3 +34,5 @@ Use `bun dev:docker` (not `bun dev`) on macOS. The Envio indexer requires Docker
 ## Rule: Run Codegen After Schema Changes
 
 After modifying `schema.graphql` or `config.yaml`, run `bun codegen` before writing handler code. Generated types will be stale otherwise.
+
+> Full package context: [.claude/context/indexer.md](../context/indexer.md) (Envio patterns, EAS boundary, Docker workflow).

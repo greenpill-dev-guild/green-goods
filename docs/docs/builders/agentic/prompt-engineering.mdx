@@ -4,11 +4,9 @@ sidebar_label: Prompt Engineering
 slug: /builders/agentic/prompt-engineering
 audience: developer
 owner: docs
-last_verified: 2026-04-03
+last_verified: 2026-07-11
 feature_status: Live
 source_of_truth:
-  - .claude/agents/cracked-coder.md
-  - .claude/agents/oracle.md
   - .claude/skills/plan/SKILL.md
   - .claude/skills/review/SKILL.md
   - CLAUDE.md
@@ -20,18 +18,18 @@ import {NextBestAction} from "@site/src/components/docs";
 
 ```mermaid
 graph TB
-    subgraph Agents[".claude/agents/"]
-        Spec["Agent Spec\nmodel, tools, skills"]
+    subgraph Dispatch["Agent tool dispatch"]
+        Spec["Task-scoped prompt\nmodel, tools, scope"]
     end
 
     subgraph Skills[".claude/skills/"]
-        S1["testing"]
-        S2["react"]
-        S3["contracts"]
-        S4["ui, ops,\nweb3, data-layer..."]
+        S1["review"]
+        S2["plan"]
+        S3["debug"]
+        S4["ship, clean, audit,\nqa-triage..."]
     end
 
-    Spec -->|loads| Skills
+    Spec -->|invokes| Skills
 
     subgraph Workflow["Phase Gates"]
         SCOPE["SCOPE"] --> GATHER["GATHER"] --> PLAN["PLAN"] --> TEST["TEST"] --> IMPLEMENT["IMPLEMENT"] --> VERIFY["VERIFY"]
@@ -50,40 +48,31 @@ graph TB
 
 How Green Goods structures prompts to get reliable, codebase-aware outputs from AI agents. Prompt engineering here means crafting the instructions that control agent behavior within the development workflow.
 
-## Agent Specifications
+## Subagent Dispatch
 
-Each agent has a specification file in `.claude/agents/` that defines its identity and constraints:
+The repo no longer commits agent specification files. Specialist work is dispatched through the harness's built-in subagent types (read-only exploration, general-purpose implementation, planning) with a task-scoped prompt that carries the same constraints a spec used to:
 
-```yaml
----
-name: cracked-coder
-description: Implements complex features using strict TDD workflow.
-model: opus
-tools: [Read, Glob, Grep, Edit, Write, Bash, Task]
-memory: project
-skills: [testing, react, contracts]
-maxTurns: 50
----
+```text
+You are working in <worktree/path> on branch <branch>. This repo runs
+concurrent agents — touch ONLY the files listed below.
+
+Task: <one bounded unit of work, with acceptance criteria>
+Constraints: repo invariants from CLAUDE.md + .claude/context/<pkg>.md
+Validation: <the exact commands that prove the change>
+Report: <what to return, in what shape>
 ```
 
-The specification includes:
-- **Model selection** -- Which Claude model to use (impacts reasoning quality)
-- **Tool access** -- Which tools the agent can call
-- **Skills** -- Domain-specific instruction sets loaded from `.claude/skills/`
-- **Turn limit** -- Maximum interaction cycles before the agent must checkpoint
+The dispatch prompt controls:
+- **Scope** -- Which paths the agent may touch (concurrent-agent safety)
+- **Tool posture** -- Read-only research vs implementing
+- **Validation** -- The exact proof commands for the lane
+- **Report shape** -- What comes back to the orchestrator
 
 ## Skill System
 
-Skills are modular instruction sets in `.claude/skills/`. Each skill provides domain-specific patterns and constraints. The current repo has 19 active top-level skill directories, plus historical wrappers in `_archived/`, covering areas like:
+Skills are modular instruction sets in `.claude/skills/`. The repo keeps a deliberately lean set of 11 — workflow and integration procedures only (`review`, `ship`, `status`, `plan`, `debug`, `clean`, `audit`, `qa-triage`, `doc-feedback`, `posthog-questions`, `design`). Domain knowledge (React patterns, testing conventions, contract rules, indexer patterns) lives in `.claude/context/*.md` per-package context files and `docs/`, not in skills — one home per fact.
 
-- `testing` -- TDD workflow, test adequacy checklist
-- `react` -- Hook patterns, component conventions
-- `contracts` -- Solidity patterns, deployment scripts
-- `ui` -- Storybook, Radix, Tailwind, accessibility, i18n, Mermaid guidance
-- `ops` -- Deployment pipeline, CI/CD, git workflow, dependency management
-- `data-layer` -- Offline storage, sync, service worker patterns
-
-Skills are activated by listing them in an agent's `skills` array. Multiple skills compose additively.
+Skills activate from their frontmatter descriptions: passively by intent (`plan`, `debug`, `ship`) or by slash command (`/review`, `/audit`, `/clean`, `/qa-triage`).
 
 ## Prompt Patterns
 

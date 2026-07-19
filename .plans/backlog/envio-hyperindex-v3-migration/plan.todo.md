@@ -98,7 +98,7 @@
 - [ ] Update builder docs for indexer package/deployment/CI.
 - [ ] Update environment-management docs if v3 adds or renames indexer env keys.
 - [ ] Update canonical `.claude` indexer context/skill guidance.
-- [ ] Run `bun run skills:sync` and verify `.agents/skills/indexer/*` mirrors the canonical guidance.
+- [ ] Verify `.claude/context/indexer.md` reflects the v3 guidance (the `.agents/skills` symlink shares skills automatically; `skills:sync` retired).
 - [ ] Run `bun run check:skills`.
 - [ ] Run `node scripts/quality/check-codex-docs.js`.
 - [ ] Run `bun run build:docs`.
