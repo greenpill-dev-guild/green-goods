@@ -4,7 +4,7 @@
 **Stage**: `active`
 **Created**: 2026-07-04
 **Companions**: `contract-spec.md` (the pooling module + register this attaches to — **zero changes to those contracts here**), `diagrams.md` D8–D10 (fund-flow topology, settlement sequence, disbursement state machine), `uiux-spec.md` (surface grammar), `corrections-log.md`.
-**Decision basis**: Architecture 2 (split-state) locked in the Linear doc "G$ in Green Goods: Bridged vs. Split-State Settlement", re-affirmed by the Architecture 3 re-score; user decisions through 2026-07-10: settlement enters the **August release**, one Celo Safe per garden (1:1 mapping, deployed on demand), member receipt targets same-address smart accounts, app goes multi-chain this iteration, the House of Alignment stream lands directly in the Green Goods protocol Safe on Celo (topology corrected 2026-07-18; supersedes the 2026-07-10 two-hop topology — see corrections-log §9), Green Goods settlement uses G$ on Celo without bridging it to Arbitrum, and receipt verification is a mandatory Chainlink Functions oracle path with no manual fallback.
+**Decision basis**: Architecture 2 (split-state) locked in the Linear doc "G$ in Green Goods: Bridged vs. Split-State Settlement" (`657f7233-9ba8-4c38-a0f9-e3a4fdc48739`), re-affirmed by the Architecture 3 re-score (`8243d7ef-f880-418e-86a6-f7da75067aa9`) — **their comparative reasoning is preserved in §10**, and both are cleared for deletion; cite the IDs, since a multi-word Linear title search returns nothing even for a live document, and archived documents remain retrievable by ID; user decisions through 2026-07-10: settlement enters the **August release**, one Celo Safe per garden (1:1 mapping, deployed on demand), member receipt targets same-address smart accounts, app goes multi-chain this iteration, the House of Alignment stream lands directly in the Green Goods protocol Safe on Celo (topology corrected 2026-07-18; supersedes the 2026-07-10 two-hop topology — see corrections-log §9), Green Goods settlement uses G$ on Celo without bridging it to Arbitrum, and receipt verification is a mandatory Chainlink Functions oracle path with no manual fallback.
 
 **What stays true from the locked register**: no bridged G$, ever. No bridge custodies G$ or holds unbounded value authority. Sarafu integration stays deferred. Transferable settlement vouchers stay gated on [PRD-651](https://linear.app/greenpill-dev-guild/issue/PRD-651). Base August settlement is operator-executed; bridge-executor automation is stretch only. Gardeners never sign cross-chain transactions in the field. If the Celo AA/paymaster spike fails, downstream protocol/garden funding may continue but automated member reward delivery remains blocked; there is no alternate member-claim path.
 
@@ -545,3 +545,186 @@ SettlementModule work runs as **PR chain 2.5** — parallel with PRD-673/674 onc
 Bridged G$ (never). Bridge custody or unbounded value authority. Bridge-executor automation is an August stretch, else post-August, capped by Safe roles + Allowance and only if operator burden warrants it. Sarafu pool integration (a deferred future hybrid experiment, gated on a Grassroots Economics conversation + an ERC-777 audit; no dated phase is assigned to it). Transferable settlement vouchers and `settlementAdapter` activation (PRD-651, all its hard gates stand). Indexing Celo/G$ transfers. Member settlement controls in the separate September Community PWA.
 
 > **Borrow-and-repay touchpoint (blocked follow-on, `credit-spec.md`).** A companion `CreditRegister` may disburse **G$ micro-loans** as a `SettlementModule` disbursement (the advance down-leg) and record the repayment on Arbitrum — repayment stays **record-only** (no upward disbursement, no bridge). One small seam to resolve when it lands: either add `DisbursementKind.LoanPrincipal` (§3.2) **or** let `queueDisbursement` accept a `commitmentId == 0` credit disbursement (it currently gates on a Fulfilled commitment, §3.3). Out of scope for this spec; flagged so the seam is a conscious choice, not a surprise.
+
+---
+
+## 10. Alternatives considered
+
+*Extracted 2026-07-18 from the two Linear research documents this spec's §Decision-basis cites — "G$ in Green Goods: Bridged vs. Split-State Settlement" (`657f7233`) and "Architecture 3 Re-Score: Sarafu Commitment Pools on Celo" (`8243d7ef`), both dated 2026-07-02. Those documents recorded the only comparison behind the locked choice; this spec previously carried the conclusion alone. Preserved here so they can be retired.*
+
+- **Architecture 1 — bridged G$ on Arbitrum.** Bridge or wrap G$ onto Arbitrum so proof and value share one chain.
+- **Architecture 2 — split-state (ADOPTED).** Commitment truth on Arbitrum; canonical G$ settles on Celo from a garden-controlled Safe via a batched, operator-executed step.
+- **Architecture 3 — Sarafu pools on Celo.** Keep the Arbitrum proof layer, run pooling and settlement on Grassroots Economics' deployed `erc20-pool` stack.
+
+### 10.1 Why Architecture 1 lost
+
+**Buy-pressure fidelity to the GoodDollar reserve — the decisive criterion.** G$ is reserve-backed on an augmented bonding curve: buying against the reserve mints and raises price. Demand for *wrapped* G$ on Arbitrum reaches that reserve only if an arbitrageur buys canonical G$ on Celo, bridges it, then sells into the wrapped pool — a loop that closes only when the Arbitrum price exceeds Celo price + bridge cost + exit friction. At pool-relevant volumes (tens to low hundreds of dollars) fees dwarf the spread on a cent-fraction token, so the arbitrage never runs and buy pressure becomes **cosmetic**. Architecture 2 inverts this: the garden, a patron, or the HoA stream acquires canonical G$ *on Celo*, so demand originates on the reserve chain and no arbitrage is required. **This, not build cost or custody convenience, is why bridging was rejected.** (The "uneconomic at pool sizes" step is the research pass's own inference, labelled as such in the source — not a measured figure.)
+
+**Partner gate.** V4 (GIP-24) recentralized minting and reserve on Celo and made the bridge mesh Celo-primary. There is no canonical Arbitrum G$; creating one asks GoodDollar to bless infrastructure against its own direction. The source concluded Architecture 1 "may not be blessable by GoodDollar at all."
+
+**Bridge risk.** Ronin **$625M** (Mar 2022, validator key compromise), Wormhole **~$325M** (Feb 2022, wETH minted without collateral), Nomad **$190M** (Aug 2022, upgrade accepting the 0x00 root). A wrapper adds unbacked-mint risk, depeg from canonical G$, stuck liquidity mid-settlement, and **no backstop** — GoodDollar will not backstop a wrapper it did not bless.
+
+**Market depth.** G$ trades thin: 24h volume **$11,910.67** total, most active pair USDGLO/$G on Uniswap V3 Celo at **$10,892.52**, Crypto.com **$4,057**, Binance **$48.41** (CoinGecko; undated in source, sampled July 2026). ⚠️ **These do not reconcile** — the three venue figures sum to $14,997.93, above the stated $11,910.67 total, so they mix timestamps or metric definitions. The qualitative point (G$ markets are thin, so an Arbitrum pool would be thinner still) stands; the specific numbers should be re-sampled to one timestamp before being reused as evidence. A thin Arbitrum pool becomes the price oracle that decouples the wrapper from the $0.0001 canonical anchor — exits then fail or execute at punitive rates against the mutual-aid participants the system exists to serve.
+
+**Causal background — the Dec-2023 reserve exploit.** Per the Good Labs Foundation post-mortem, 2023-12-17 saw "the unauthorized withdrawal of 627,328.47 cDAI and the unapproved minting of 14 billion G$ tokens," inflating supply from ~6 billion (~233% per Messari). ~1 billion G$ was liquidated on Celo/Fuse DEXs, price fell ~95%, reserve paused. This drove the V4 consolidation to Celo-primary that makes Arbitrum a dead end for canonical G$.
+
+### 10.2 Bridging and messaging paths evaluated
+
+Two buckets, rejected for different reasons; Hyperlane and LayerZero appear in both.
+
+**Token-bridging (Arch 1).** LayerZero OFT/OFT-Adapter was technically cleanest (burn-and-mint, non-custodial) but **must be deployed and owned by the token issuer** — a Greenpill-deployed OFT is an unblessed synthetic. Axelar ITS, Wormhole NTT and canonical lock-and-mint carry the same constraint. A **Hyperlane warp route** was the one path Greenpill could run alone, and was rejected precisely for that. Extending GoodDollar's official mesh needs a GIP.
+
+**Messaging for the settle-trigger (Arch 2).** Hyperlane and LayerZero fit low-value high-frequency messages; Axelar GMP (~$0.10–$1) and CCIP ($0.20–$5) were heavier than needed. All declined in favour of **operator-executed settlement with read-only indexing**, so no bridge holds settlement authority and the human gate is preserved.
+
+### 10.3 Why Architecture 3 is an evolution, not a replacement
+
+It wins decisively on **build reuse** — pool, limiter, quoter and registry already exist and are permissionlessly deployable (~1 CELO via `ge-publish`). It loses on **third-party protocol dependency**: it binds Green Goods to GE's roadmap and maintenance, **doubles the partnership surface** (GoodDollar *and* GE must agree), and amends the locked "one poolId carries both capabilities" principle to "poolId anchors proof; settlement venue is a referenced external Celo contract." It is also less reversible.
+
+**Named gates to revisit it:** (1) an **ERC-777 reentrancy audit** of the deployed pool version — G$'s ERC-777 superform is a documented vector (Uniswap V1 imBTC, 2020-04-18, ~1,278 ETH; Cream Finance, 2021-08-30, 418,311,571 AMP + 1,308.09 ETH, ~$25M+); (2) a **Grassroots Economics conversation** confirming partnership, roadmap, third-party pool support and `erc20-pool` licence status; (3) GoodDollar confirming HoA G$ may seed a non-GE pool; (4) operator burden of bare-Safe settlement becoming binding. Target end-state if those clear: the **hybrid** — the garden Celo Safe transacts against a Sarafu pool instead of bare Safe-to-Safe transfers.
+
+*Licensing nuance recorded nowhere else:* interacting with **deployed** GE contracts creates no AGPL obligation; only forking or reimplementing triggers copyleft. This is narrower than the clean-room rule (register #17) and needs counsel to confirm. The `erc20-pool` repo had **no LICENSE file** as of 2026-07-02 despite the org's stated AGPL-3.0 policy.
+
+### 10.4 ⚠️ Superseded by GIP-24 — the exit fee
+
+Doc `8243d7ef` asserted a "correction" that the G$ exit contribution is **3%, not 10%**, citing pre-V4 documentation, and treated it as leak containment reducible via the G$X discount token. **That correction is itself superseded.** GIP-24 (V4) is authoritative: **10% decreasing toward a 5% floor** while outflows stay under 20% over two months. Doc `657f7233` was right. The G$X "reducible from 3%" mechanism rides the same pre-V4 source and must not be relied on without re-confirmation. **Not superseded:** V4 outflow limits of **40K cUSD/week and 80K cUSD/month** — both documents agree.
+
+### 10.5 Scored comparison
+
+Doc `657f7233` scored Architecture 2 the winner on **8 of 10** criteria. ⚠️ **Only the discriminating rows were carried across below — three of the ten are not reproduced here.** Before `657f7233` is deleted, either copy the full ten-row table or restate this as "the majority of criteria"; as written, the 8-of-10 result cannot be reconstructed from the repo, which defeats the preservation goal. Architecture 1's only genuine advantages were single-chain custody simplicity and lower build cost *if* a blessed Arbitrum OFT existed — which it does not.
+
+| Criterion | Arch 1 | Arch 2 | Arch 3 |
+|---|---|---|---|
+| Buy-pressure fidelity to canonical reserve | Poor | **Best** | Good |
+| Trust assumptions / attack surface | Poor | **Good** | Fair |
+| Reversibility if wrong | Fair | **Best** | Fair |
+| Third-party protocol dependency | Low | Low | **High** |
+| Build reuse | Low | Low | **High** |
+| Custody complexity | **Best** | Fair | Fair/Poor |
+| Counsel / partner gates | GoodDollar | GoodDollar | GoodDollar **+ GE** |
+
+### 10.6 Facts preserved verbatim
+
+- **G$ token addresses** — Celo `0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A` (18 dec, canonical) · Fuse `0x495d133B938596C9984d462F007B676bDc57eCEC` (2 dec) · Ethereum `0x67C5870b4A41D4Ebef24d2456547A03F1f3e094B` · XDC `0xEC2136843a983885AebF2feB3931F73A8eBEe50c`. **Not natively on Arbitrum.** GOOD is a separate non-transferable governance token, out of scope.
+- **Official bridge mesh** — spender `0xa3247276DbCC76Dd7705273f766eB3E8a5ecF4a5` (same on all chains); Axelar = bridge id 0, LayerZero = bridge id 1; 300M G$ max per bridge; fee estimator at `goodserver.gooddollar.org`; Fuse/XDC are LayerZero-only. V4 shut the legacy Ethereum–Fuse bridge and reversed direction so Celo is source of truth.
+- **V4 reserve** — Mento Broker + Mento Expansion Controller (G$/cUSD), replacing Ethereum's GoodReserveCDai. G$ initial value $0.0001 under V4.
+- **Sarafu scale — report as a range; sources conflict ~6× on users, both "as of 2025-07-20".** GE's 2025 Network Survey: 55 pools, 561 vouchers, 4,476 users, 251,449 P2P exchanges, 1,803 pool swaps, 899 impact reports. Cosmo-Local Credit white paper citing Dune: 26,367 users, 285,197 P2P exchanges, 188 active pools, 745 vouchers, $320,692 pool swap volume. Sept-2024 baseline: 33 pools, 239 vouchers, 3,149 MAU.
+- **Unresolved at time of writing** — no deployed Sarafu pool was found holding G$, and no GoodDollar × GE collaboration exists. This is "no evidence found", **not** on-chain proof: sarafu.network and Celoscan pool pages were bot-blocked during the research pass.
+
+---
+
+## 11. Circulation measurement (extracted 2026-07-18)
+
+Source: Linear doc `6c7a2e4e-c96a-4b8a-985d-3b9ac262087a`, "Circular G$ Economies Inside Green Goods Garden Commitment Pools" (2026-07-02). Metrics attach to the existing indexed stats `promiseKeptRate`, `fulfilledUnits`, `openExposureUnits`, `cycleCompletionRate`.
+
+### Metric definitions
+
+Reproduced as written. The document states **no excluded states** for any metric. Windows are the doc's where stated (velocity, hoard share); the rest are inferred from its pervasive one-season framing.
+
+| Metric | Formula (numerator / denominator) | Observation window |
+|---|---|---|
+| Recirculation rate | in-pool G$ spend / total G$ paid out — ⚠️ **must be cohort-based and non-duplicative**, see note below | season |
+| Reseed rate | G$ returning to the next season pool / G$ that entered this season | season boundary |
+| Velocity | total in-pool G$ transaction volume / average pool G$ balance over the season | over the season |
+| Leak rate | G$ cashed out or DEX-exited / total G$ entered | season, compared across seasons |
+| Hoard share | G$ idle in member wallets at season end / total distributed | at season end |
+| promiseKeptRate | existing indexed stat, carried unchanged | season |
+
+Plus a **per-season cohort view** — "track each season's seed cohort separately (how far did *this* season's G$ travel before leaving)."
+
+**⚠️ Recirculation must be defined non-duplicatively.** If "in-pool G$ spend" is implemented by summing transfers, the same payout spent twice inside a garden contributes twice while the denominator stays fixed — the rate can exceed 100% and degenerates into transaction volume, which is exactly what the reporting promise rejects. The healthy-season test asks whether settled G$ *circulated at least once*, so the numerator must be cohort-based: the share of a season's distributed G$ that was spent in-pool at least once, counted per unit, not per transfer. Settle this before the metric drives the 2026-09-30 evaluation.
+
+### One-season targets
+
+**The document states no numeric target for any metric.** Every target is a directional hedge, carried verbatim:
+
+- **Recirculation rate** — "a majority of settled G$ is spent inside the pool at least once before any cash-out."
+- **Reseed rate** — "a meaningful, growing share (avoid treasury hoarding while proving retention)."
+- **Velocity** — "Watch the trend, not an absolute; rising velocity with stable promiseKeptRate is the healthy signal."
+- **Leak rate** — "minority, and falling across seasons."
+- **Hoard share** — no target stated; "High hoard means the sink is missing."
+- **promiseKeptRate** — "keep high; a healthy loop does not trade circulation for broken promises."
+
+Only recirculation ("majority") and leak ("minority") imply a threshold at all, and the document never writes the number. Any numeric gate is a decision still to be made, not an extraction.
+
+### Healthy-season test
+
+All five conditions, as stated. "One season is 'healthy' if:"
+
+1. most settled G$ recirculated at least once in-pool before cash-out;
+2. leak rate is a minority and trending down;
+3. promiseKeptRate held high;
+4. at least one merchant or sink absorbed repeat spend; and
+5. stewards were not the only nodes keeping it alive.
+
+(Section F's experiment "done condition" is a separate, experiment-scoped test — not this.)
+
+### Settled-flow tagging dependency
+
+The document names this **"the one hard dependency"**: the metrics "require the settlement/read model to tag G$ flows by type (in-pool spend vs cash-out)."
+
+- **What must be tagged** — each settled G$ flow, by type: in-pool spend versus cash-out.
+- **Where** — in the settlement/read model, on the settled flow itself. The doc asks whether "the split-state settlement path [can] tag in-pool spend vs cash-out for measurement," and asks GoodDollar to "confirm settled-flow tagging is possible for reporting."
+- **What becomes uncomputable without it** — "recirculation rate, leak rate, and reseed rate." Stated twice: "If it cannot be tagged, the loop cannot be called healthy with evidence, and HoA reporting will be narrative-only."
+
+HoA reporting must carry "G$ seeded, G$ recirculated in-pool, reseed rate, leak rate, promises kept, and a short promises-kept narrative with evidence" — answering GoodDAO's requirement that members "must distribute their funds in a way that increases G$ circulation, while promoting their own growth and growth of the GoodDollar reserve."
+
+### Redemption points, sinks, and merchant design
+
+*Green Goods design proposal, not observed precedent.* Six mechanisms in the document's own ranking order:
+
+1. **In-pool service sink / garden store** (highest fit) — confirmed promise pays the gardener in G$; gardener buys seeds, tools, food, or workshop access from a garden-run store priced in G$; store revenue reseeds the pool. Needs only settlement payout plus a simple G$ point-of-sale.
+2. **Local merchant acceptance loop** (high fit, high friction) — gardener pays a participating kiosk/vendor; merchant re-spends or cashes out. Leaks at the merchant's cash-out.
+3. **Seasonal cycle with soft spend-by** (high fit, culturally native) — demurrage reframed as seasonal rhythm, on the existing cycle state machine (Draft → Seeded → Open → InProgress → Reviewing → Reconciled → Composted).
+4. **Re-seeding / compost loop** (medium-high fit) — at season close, a share of pool revenue and unspent G$ is composted into the next season's seed.
+5. **Mutual-aid commitment exchange without settlement** (medium fit, proof-only) — offers and requests matched and confirmed with no G$ moving.
+6. **Patron top-up matching** (medium fit, growth-oriented) — "Keeps circulating only if paired with sinks; otherwise it just enlarges the amount available to cash out."
+
+Ranking rationale, verbatim: "sinks and merchant loops create the *reason* to hold G$; seasonal and compost loops create the *rhythm* and structurally retain funds; proof-only and patronage are enablers. Without a sink (mechanism 1), everything else just accelerates the trip to the exit."
+
+Named sinks: garden store; seed/tool bank, equipment hire, water/solar service fees; season fees (workshop, learning circle, market stall); re-seeding the next cycle's pool. Named leaks: cash-out to fiat via local off-ramp; sell to reserve or DEX swap; hoarding.
+
+### Comparables (external precedent, not Green Goods design)
+
+| Precedent | Figures exactly as given | Evidence quality |
+|---|---|---|
+| **Sarafu** | Jan 2020–Jun 2021; "over 400,000 transactions totaling 293.7 million Sarafu among approximately 40,000 users"; five largest geographic modules "capture 99.7% of the total transaction volume"; flow dominated by cycles of length 2 and 3 | Peer-reviewed — Mattsson, Criscione & Takes, *Scientific Reports* 13, Art. 5864 (2023) |
+| **Banco Palmas** (Conjunto Palmeiras, Fortaleza) | "80% of [Palmeira] inhabitants' purchases were made outside the community" (1997) → "93% were made in the district" (2011); merchant discounts of 5–10% for paying in social currency | Hedged in-doc as "a single secondary estimate," via *People Money* |
+| **Chiemgauer** | Demurrage scrip of 3% of note value every six months; velocity 10.6 in 2009 vs roughly 3.5 for the former Deutsche Mark ("three times greater than that of the Euro"); businesses "exchange 100 Chiemgauer for €95 minus VAT" (5% reconversion fee); 3% of each euro-to-Chiemgauer exchange routed to a local nonprofit chosen by the buyer; scale stayed roughly 2,500 users | Founder-authored (Gelleri, IJCCR); 10.6 hedged as "a 2009 author estimate" |
+| **Sardex / WIR** | No figures given. "Golden rule": spend only what you expect to earn back; no interest on positive balances, penalties on stale negative balances; transaction cycles increase in prevalence over time | Cited without numbers |
+| **GoodMarket** (2020–21 beta) | 212 items, ~G$5,981, 50+ trades, among only 500 eToro employees; four-week snapshot averaged "23 users making 53 transactions" | Self-reported; storefront now dormant; current community site "not an official product of GoodDollar" |
+| **GoodCollective — DeTrash + Silvi** | DeTrash (Neduc, Coroadinho, Brazil): "48 women" recycled "2,000 kg of waste", received "$USD 700". Silvi (near Kakamega Forest, Kenya): "onboarded 39 people", compensated "at least two farmers". Combined: "over $USD 700 was automatically distributed to 50 pilot participants" | Oct 2024 case study, Serota; self-reported pilot. Blockers verbatim: "additional training required to establish web3 wallets, dependency on local off-ramps, and currency volatility" |
+
+**Exit fee as a recirculation lever (GIP-24).** "10% no exception (to be gradually decreased to 5%)," replacing V3's 3% exit contribution; passed unanimously via Snapshot, late March 2025. "If the reserve experiences a net outflow of less than 20% over a two-month period, the guardians will reduce the fee by 1% incrementally until it reaches a minimum of 5%." The Celo Reserve (with Mento Labs) was funded with 200k cUSD, net-outflow limits of 40K cUSD per week and 80K cUSD per month, 1 G$ set at $0.0001. In-pool spend is the fee-free path; cash-out is the taxed path.
+
+### Conflicts with current truth
+
+- **SUPERSEDED** — the doc's entry point 1, "HoA stream into a garden-controlled account." Current topology: the HoA stream lands directly in the **Green Goods protocol Safe on Celo** as an upstream fact the module never queues; `ProtocolToGarden` is the only modeled queued route onward to a garden Celo Safe (`corrections-log.md` §9). No working-capital hop.
+- **UNMODELED (not superseded)** — the entry points "patron top-ups / matching into a season pool" and "gardener's own claimed UBI G$ brought into the pool," and the loop "store/merchant revenue in G$ reseeds the next season's pool." None has a modeled route; there is no return leg above garden Safes.
+- **CONFIRMED** — the exit fee (GIP-24, 10% decreasing to a 5% floor) matches current truth, resolving the doc's own caveat to "confirm the current value before quoting it to gardeners." GIP-24 (exit fee) is distinct from GIP-26 (the House of Alignment distribution stream).
+
+---
+
+**Build implications**
+
+1. **A flow-type tag on settled flows.** Nothing in `settlement-spec.md` carries one. `DisbursementKind {CommitmentReward, Funding}` and `FundingRoute {None, ProtocolToGarden}` exist but tag the *purpose of an outbound disbursement*, not recirculation vs leak — neither is a substitute.
+2. **Celo-side observation, which the indexer boundary currently excludes.** `settlement-spec.md` §Indexer: "Envio indexes the Arbitrum SettlementModule, not Celo token events." Every in-pool spend, merchant payment, cash-out, DEX swap, and idle balance is a Celo G$ fact. Four of the five metrics have a numerator or denominator living entirely on Celo. Either the boundary extends to canonical G$ (`0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A`) transfers for registered Safes and member AA accounts, or an off-chain attested read model supplies them — the current spec produces neither.
+3. **Reseed rate needs Celo-side observation and season attribution — not a new funding route.** Its numerator is "G$ returning to the next season pool." A garden carrying store revenue or retained G$ into its next season does so **inside its own persistent Celo Safe** (§2), which is already the garden pool's settlement account — the funds never travel above it, so this is independent of the open Garden→protocol question in `corrections-log.md` §9b. What it does require is observing Celo-side balances and attributing them to a season cohort. Do not add an upward funding route to scope on this metric's account.
+4. **A pool-balance time series.** Velocity divides by "average pool G$ balance over the season," which needs sampled balances over time for the pool's Celo Safe. The admin Operations funding view currently plans a point-in-time Celo balance *read*, not a series.
+5. **A registry of in-pool counterparties per garden per season.** "In-pool spend" is only decidable against a known set (garden store, seed/tool bank, participating merchant, steward accounts). Without an allowlist, every transfer out of a member wallet is indistinguishable from a cash-out.
+6. **Season cohort identity carried through settlement,** so "this season's G$" is separable for the per-season cohort view.
+7. **Denominator risk from `memberDeliveryEnabled`.** Individual member delivery is gated on the Celo AA/paymaster spike; if it fails, `memberDeliveryEnabled` stays false and commitment-reward queueing plus member G$ sends are blocked while `ProtocolToGarden` continues. If member delivery is off in season one, "total G$ paid out" — the recirculation denominator — is near-empty and no circulation metric has a meaningful base.
+8. **Numeric thresholds are an open decision.** "Majority" and "minority" are not implementable gates. The numbers must be set before any healthy-season check can be automated or reported as pass/fail.
+
+### 11.9 Why this section exists
+
+The GoodDollar-facing plan commits Green Goods to reporting *"how much G$ recirculates inside a garden versus leaves it — real circulation, not just transaction volume."* That commitment had **no specced data source**: §3.2 models disbursement state only, and §6 explicitly scopes the indexer to "the Arbitrum SettlementModule, not Celo token events."
+
+The definitions above were the only written record of how those metrics are computed, and they lived in a Linear document with no spec home. They are preserved here so the document can be retired — **not** because the measurement is designed. Items 1–8 in "Build implications" are open scope, and item 8 (nobody has set the numeric thresholds) means the healthy-season test cannot currently be evaluated pass/fail at all.
+
+Resolve before the August settlement build freezes, or the 2026-09-30 House of Alignment evaluation has nothing to report but volume. Tracked at `corrections-log.md` §9c.
+
+### 11.10 One conflict carried across deliberately
+
+The source document's Recommendation 1 treats a working sink as a **proceed-gate**: *"Do not scale HoA distributions or add gardens until at least one garden has a working service sink."* The repo rule in `visual-assets.md` and `external-communications.md` says the local spend sink is *"a circulation aim / ordering criterion, never a launch gate."*
+
+Both are live, and they are reconcilable but not identical: settlement **capability** is not sink-gated, while scaling the G$ **distribution** into a garden does follow sink readiness — which is also what the GoodDollar-facing July plan commits to ("build the place to spend before widening the flow"). Recorded so the tension is visible rather than silently resolved in one direction.

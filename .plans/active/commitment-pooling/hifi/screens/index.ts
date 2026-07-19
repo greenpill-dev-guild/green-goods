@@ -14,7 +14,7 @@ import { SETTLEMENT_DEFS } from "./settlement";
 import { CLIENT_DEFS } from "./client";
 import { WALLET_DEFS } from "./client-wallet";
 
-// W6 retired (decision #28f): summary line moved into the W5 drawer header.
+// W6 retired (Decision Log #28f): summary line moved into the W5 drawer header.
 const RETIRED = new Set(["W6"]);
 // Lo-fi variant frames absorbed into hi-fi parent states (see ALIASES).
 const DISSOLVED = new Set(["W1P", "W1S", "MF3", "MF5", "MF6", "MF10", "W23G", "MF8", "W7X", "MF1", "MF4", "MF13", "MF9"]);

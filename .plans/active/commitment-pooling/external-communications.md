@@ -2,7 +2,7 @@
 
 **Feature Slug**: commitment-pooling
 **Stage**: active
-**Updated**: 2026-07-11
+**Updated**: 2026-07-19 (fund topology corrected; three-surface boundary defined; fourth-garden slot reopened per Decision Log #29; GIP-26 provenance restored)
 **Canonical synthesis**: “Commitment Pooling × Green Goods — Grassroots Economics Learnings, and the Full Flywheel We're Building.” This plan defines derivative materials and rollout; it does not replace or compress the synthesis into a new source of truth.
 **Settlement authority**: `settlement-spec.md` owns settlement and verification claims (oracle predicate, funding routes, Safe topology, AA gate). The canonical synthesis is the long-form rationale and is silent on the verification axis by design; derivatives cite the spec for settlement facts, not the synthesis.
 
@@ -32,25 +32,41 @@ Grassroots Economics provides important design learnings. Green Goods uses the p
 
 ## Pilot focus cohort
 
-Operational rollout anchors on a named 3+1 cohort (2026-07-10): **Tech and Sun Hub** (Awka, Nigeria — solar hub development + educational programs), **Greenpill Cape Town** (Muizenberg / Deep South Circles — UNICEF-funded waste-management program, partner off-platform), and **AgroforestDAO / Redemption Hill** (Bias Fortes, Brazil — agroforestry + farm-school education) — together covering all four action domains — plus **a fourth garden in outreach** (the mature MRV-adoption slot; selection criteria live in the RESR-58 scenario document), named only once participation is confirmed. Naming a candidate never presumes readiness: RESR-62 records confirmed/incomplete/unavailable per garden, and mandate artifacts gate August seeding. Gardens named in the canonical synthesis beyond this set remain narrative context and later waves. July dry-run rewards are Cookie Jar/treasury only. In August every confirmed focus garden is G$-settlement-capable (one Celo Safe per garden, deployed on demand); Tech and Sun Hub is the first-execution hypothesis, and Pass-2 evidence (steward, local relevance, in-pool spend sink) orders the rollout.
+Operational rollout anchors on three named candidate gardens (2026-07-10): **Tech and Sun Hub** (Awka, Nigeria — solar hub development + educational programs), **Greenpill Cape Town** (Muizenberg / Deep South Circles — UNICEF-funded waste-management program, partner off-platform), and **AgroforestDAO / Redemption Hill** (Bias Fortes, Brazil — agroforestry + farm-school education) — together covering all four action domains — plus **an open fourth slot** for a mature MRV-adoption anchor — candidates are under consideration, none selected (Decision Log #29; selection criteria live in the RESR-58 scenario document). The three named gardens cover all four action domains on their own. Naming a candidate never presumes readiness: RESR-62 records confirmed/incomplete/unavailable per garden, and mandate artifacts gate August seeding. Gardens named in the canonical synthesis beyond this set remain narrative context and later waves. July dry-run rewards are Cookie Jar/treasury only. In August every confirmed focus garden is G$-settlement-capable (one Celo Safe per garden, deployed on demand); Tech and Sun Hub is the first-execution hypothesis, and Pass-2 evidence (steward, local relevance, in-pool spend sink) orders the rollout. Per the GoodDollar-facing July plan, **the starting communities are picked jointly with GoodDollar**, deferring to on-the-ground judgment about which gardens fit first.
 
 ## Audience map
 
 | Audience | Primary question | Required proof | Call to action |
 |---|---|---|---|
-| Garden operator | “What changes in my weekly work?” | Mandate example, admin /community triage/seeding flow, roles, time/capacity expectation, support path | Confirm a research/onboarding session and correct the mandate |
+| Garden Steward | “What changes in my weekly work?” | Mandate example, admin /community triage/seeding flow, roles, time/capacity expectation, support path | Confirm a research/onboarding session and correct the mandate |
 | Gardener/community member | “Can I take part without learning crypto?” | Independent Community PWA, voice/offline flow, passkey, authorship, confirmation, clear waiting and recovery states | Name a Request, Offer, or Initiative or take up a promise |
 | Garden evaluator | “Can I trace claims and preserve methodology integrity?” | Need → commitment → work → baseline/delta → testimony lineage, optional domain/action pairs, CSV/JSON export | Review evidence and domain/methodology mapping |
 | Funder | “What did support enable, and what is verified?” | Aggregate progress, assessment provenance, receipt-checked FundingAttribution, reported versus oracle-verified settlement disclosure | Support the garden through direct donation/endowment or collaborate on a cohort |
 | Collaborator/protocol steward | “Where can we add value without fragmenting the system?” | Architecture and permission boundaries, open questions, research needs, implementation gates | Join a bounded research, evaluation, settlement, or documentation lane |
 
+## The three surfaces
+
+Commitment-pooling documentation lives on exactly three surfaces. Each owns a different kind of truth, and **a claim has exactly one home** — the other two link to it rather than restating it.
+
+| Surface | Owns | Audience |
+|---|---|---|
+| **Repo plan hub** (`.plans/active/commitment-pooling/`) | **Execution truth.** Specs, state machines, wireframes, acceptance targets, corrections log. The contract-layer and settlement-layer sources of truth. | Implementers and agents |
+| **Linear** | **Internal records.** Trackers, issue state, the canonical synthesis, and the PRD-649 build companions. | The team |
+| **[Google Doc](https://docs.google.com/document/d/16LNXMr5voQUgWC3iyULbL4iEhRrFo4DezZZLgNtA4hc/edit)** | **External canonical.** The shareable narrative, in tabs. This is what goes to partners, funders, and gardens for feedback. | Everyone outside the team |
+
+Google Doc tabs, in order: **00 Start Here** · **01 External Brief** · **02 GE Learnings & Full Flywheel** · **03 Use Cases & Scenarios** · **04 External Doc & Rollout Plan** · **05 Sources & Citations**.
+
+Tab sources: 00, 03 and 05 are authored in the Google Doc and have no upstream copy — it *is* their home. 01 mirrors `external-brief.md`; 04 mirrors this file; 02 mirrors the Linear canonical synthesis. For a mirrored tab, correct the **source** and re-mirror; never hand-edit the tab alone.
+
+**Direction of truth**: repo → Linear → Google Doc. When a spec changes, the correction flows outward in that order; never edit a Google Doc tab in place when the Linear or repo source is the thing that moved, or the two drift apart again. Tabs that mirror a Linear document are re-mirrored from the corrected source, not hand-patched.
+
 ## Documentation set
 
 Each artifact names its owning record. Brief production is English-first and shareable as doc/PDF through the July 31 dry run (docs-site publication later), with partner factual review before external distribution.
 
-1. **Canonical synthesis** (standalone Linear document) — long-form rationale, learnings, and full flywheel.
-2. **External brief** (RESR-57; draft at `external-brief.md` in this hub, with four companion graphics per `visual-assets.md` shipping in the doc/PDF export) — two pages: why now, how the loop works, what is built versus planned, trust and settlement boundaries, invitation.
-3. **Use-case pack** (RESR-58) — anchored in Tech and Sun Hub, Greenpill Cape Town, AgroforestDAO / Redemption Hill, plus an anonymous fourth-garden MRV-adoption slot pending first contact: Request, Offer, and Initiative examples across optional domains; positional action pairs where DomainImpact requires them; analog and digital participation; non-G$ and G$ reward paths per the garden reward-path matrix.
+1. **Canonical synthesis** (standalone Linear document; mirrored as the Google Doc *GE Learnings & Full Flywheel* tab) — long-form rationale, learnings, and full flywheel.
+2. **External brief** (RESR-57; draft at `external-brief.md` in this hub, mirrored as the Google Doc *External Brief* tab, with four companion graphics per `visual-assets.md`) — two pages: why now, how the loop works, what is built versus planned, trust and settlement boundaries, invitation.
+3. **Use-case pack** (RESR-58; migrated to the Google Doc *Use Cases & Domain Scenarios* tab — Parts A–C; the Part D acceptance mapping stays in Linear as build truth) — anchored in Tech and Sun Hub, Greenpill Cape Town, AgroforestDAO / Redemption Hill, plus an open fourth slot with no garden named: Request, Offer, and Initiative examples across optional domains; positional action pairs where DomainImpact requires them; analog and digital participation; non-G$ and G$ reward paths per the garden reward-path matrix.
 4. **Operator onboarding guide** (PRD-701) — research session, mandate artifact, roles, seeding, gathering, support, and issue escalation.
 5. **Evaluator architecture note** (PRD-649 / docs lane) — ERD, sequences, event/indexer contract, evidence lineage, and CSV/JSON export boundaries.
 6. **Funder/collaborator note** (RESR-57 audience notes) — capital flow, reported versus oracle-verified facts, funding attribution, no ranking/no escrow, ways to participate.
@@ -68,7 +84,7 @@ Visual assets for the brief, this plan, and the synthesis are indexed in `visual
 | Through 2026-07-16 | Operator outreach begins; facilitation-kit review | Outreach started; unanswered questions logged |
 | 2026-07-16 to 2026-07-30 | Co-design sessions and mandate confirmation (PRD-701 kickoff package due 2026-07-30 with RESR-62) | Contacts, session slots, consent path; corrected mandates, language findings, join-request decision evidence |
 | 2026-07-31 dry-run checkpoint | Share “what we heard / what changes” back to gardens | Readiness matrix with explicit gaps; no inflated launch claim |
-| 2026-08-31 release checkpoint | Operator walkthrough and one bounded end-to-end proof where every external gate passes | Tested runbook, architecture evidence, and oracle-verified Celo settlement proof where relevant |
+| 2026-08-31 release checkpoint | Steward walkthrough and one bounded end-to-end proof where every external gate passes | Tested runbook, architecture evidence, and oracle-verified Celo settlement proof where relevant |
 | 2026-09-30 Community checkpoint | Independent-PWA and gathering usability sessions | Observed task completion, recovery-path evidence, and qualitative understanding |
 | 2026-12-31 hardening review | Publish pilot learnings and decisions | Evidence-backed promote/defer decisions for hardening |
 
@@ -76,7 +92,7 @@ Visual assets for the brief, this plan, and the synthesis are indexed in `visual
 
 This is a trust-building rollout, not a feature-launch countdown.
 
-- **Owned**: Green Goods docs, garden pages, short captioned walkthrough, operator office hours, release notes.
+- **Owned**: Green Goods docs, garden pages, short captioned walkthrough, steward office hours, release notes.
 - **Partner**: participating gardens, Greenpill chapters, House of Alignment, GoodDollar, and methodology collaborators after factual review.
 - **Community**: gathering-ready one-pager/QR, recorded demos with transcripts, local-language summaries where operators request them.
 - **Earned**: a post-pilot case study only after the garden approves its story and evidence.
@@ -104,7 +120,7 @@ Also report:
 
 - operator sessions confirmed/completed and mandate corrections returned;
 - comprehension for Request/Offer/Initiative, two-axis Need state, confirmation, and settlement status;
-- share of seeded commitments linked to operator-confirmed Needs;
+- share of seeded commitments linked to steward-confirmed Needs;
 - operator time to triage and seed;
 - research questions closed or consciously deferred;
 - external-brief comprehension and collaborator follow-through;
@@ -115,14 +131,14 @@ Also report:
 - Say “informed by Grassroots Economics” and “clean-room implementation,” not “Sarafu integration” or “copy.”
 - Say “G$ remains and settles on Celo”; never imply G$ bridges to Arbitrum.
 - State that GoodDollar also operates beyond this settlement context only when the statement is sourced and relevant; Green Goods’ selected settlement venue remains Celo.
-- Say House of Alignment funds stream directly to the Green Goods protocol Safe on Celo. Green Goods models only ProtocolToGarden onward; do not describe an unconfirmed automatic allocation. When provenance is stated, state it precisely: GIP-26 failed its DAO vote (June 2026), so the Good Labs Foundation funds the pilot directly — roughly $800/month in G$ per member via a Flow Splitter on Flow State, first evaluation 2026-09-30.
+- Say House of Alignment funds stream directly to the Green Goods protocol Safe on Celo. Green Goods models only ProtocolToGarden onward; do not describe an unconfirmed automatic allocation. When provenance is stated, state **both halves together**: Green Goods is one of four inaugural House of Alignment members (with Gardens, ReFi DAO, Textile); [GIP-26](https://discourse.gooddollar.org/t/gip-26-begin-distributions-to-house-of-alignment/8890) — which would have re-routed reserve distributions to a House of Alignment pool — **failed its community vote**; and the **Good Labs Foundation funds the initial season directly** at roughly $800/month in G$ per member via a Flow Splitter on Flow State, first evaluation 2026-09-30. Never state the failed vote without the foundation funding, or the pilot reads as dead; never state the funding without the failed vote, or the mechanism reads as protocol-level when it is not.
 - Describe borrow-and-repay only as design-only (`credit-spec.md`): records-only, interest-free, never a per-person credit score, and not part of the August release. Do not present it as available or scheduled.
 - Source external evidence claims only from the canonical synthesis Sources section (re-verified 2026-07-05). Never reintroduce “Ruddick 2021” as the RCT attribution, “300,000 transactions”, the WFP 95%/90% food figures, or the unsourceable ~284 pools / ~5,591 swaps / ~$320,692 Celo figures.
 - Distinguish Queued/Executing, Reported/checking, receipt-invalid Failed, infrastructure retry, and Oracle-verified. Only the configured Chainlink Functions callback may produce Oracle-verified settlement.
-- Do not describe August settlement as limited to a single garden or as gated "sink-first": every focus garden is settlement-capable (one Celo Safe per garden, deployed on demand), Tech and Sun Hub is the planned first execution, and Pass-2 evidence orders the rollout. An in-pool spend sink is an ordering criterion and a circulation aim, not a launch gate. Say "settlement-capable," never "will settle," while the 2026-07-29 settlement gates remain open.
+- **Keep two things apart: settlement *capability* and distribution *scaling*.** Every focus garden is settlement-capable in August (one Celo Safe per garden, deployed on demand) — capability is not gated on a spend sink, and August settlement is never described as limited to a single garden. But *scaling the G$ distribution into* a garden does follow sink readiness: the GoodDollar-facing plan commits to standing up at least one real way to spend G$ in a garden before widening the flow into it, with season one as a deliberate test at a few committed gardens rather than a broad rollout. Say "settlement-capable," never "will settle," while the 2026-07-29 settlement gates remain open. Tech and Sun Hub is the planned first execution and onboarding evidence orders the rest.
 - If the Celo AA/paymaster gate fails, say “member delivery is blocked”; do not imply garden custody, a member claim, or successful delivery.
 - Funding in Need context supports the garden; it is not per-Need escrow and does not direct yield.
 - Need kinds are Request, Offer, and Initiative. Moderation is none, acknowledged, merged, hidden, or declined; progress is open, committed, in-progress, or addressed. Do not collapse the two axes into a single ranked score.
 - Domains are optional arrays. DomainImpact action UIDs are positional arrays, and UID 0 is valid.
 - Do not rank communities, gardens, Needs, or people.
-- The fourth pilot garden remains described as "in outreach" and is named publicly only once participation is confirmed (owner review 2026-07-11 supersedes decision #27; selection criteria live in the RESR-58 scenario document).
+- **The fourth pilot garden slot is open — never name one.** No garden has been selected for it; candidates are under consideration and at least one is of uncertain status. Describe it as an open slot with its selection criteria, never as a named or pending participant. The three named gardens cover all four action domains, so the four-domain claim needs no fourth name. (Decision Log #29 supersedes #25 and #27.)

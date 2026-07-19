@@ -98,6 +98,60 @@ Two-layer MVP (protocol pool + garden pools, August), counterpartyPoolId as post
 
 The GoodDollar / House of Alignment G$ stream now lands directly in the Green Goods protocol Safe on Celo; the Dev Guild working-capital Safe is out of the Green Goods funding model entirely (user decision 2026-07-18, superseding the 2026-07-10 working-capital confirmation in decision #15 and the prior settlement-spec §2 topology). Canonical topology: HoA stream → GG protocol Safe → garden Celo Safes → members. Applied consequences: `FundingRoute` drops `WorkingCapitalToProtocol` — `ProtocolToGarden` is the only queued route, `queueFunding` simplifies to `(garden, amount)`, and HoA → protocol Safe is an upstream funding fact recorded in external treasury reporting (exactly the treatment HoA → working capital had before); `workingCapitalAccount` is removed from SettlementModule storage/initialize/configuration/events with a clean renumber to 19 named slots + a 31-slot gap (safe: no Settlement.sol was ever written, verified 2026-07-18); the recovery owner formerly named "Dev Guild/working-capital recovery multisig" is renamed "Dev Guild recovery multisig" (same role, same 2-of-3 structure — its concrete Celo address must be designated independently of the retired hop before the first garden Safe deploys); D1/D8/D12, both money SVGs (+ PNG re-exports), and all derivative external materials now draw HoA → protocol directly. Not a scope change: no new route, custody, or authority is introduced; the module still queues exactly one derived Safe-to-Safe funding route, and protocol-Safe inflow moves from module funding events to a Celo balance read + external treasury reporting (the admin Operations funding view compensates). Linear mirrors (PRD-686 context, applied packs, canonical synthesis derivatives) still carry the old wording — a follow-up Linear apply pass is required.
 
+## 9b. Open question extracted before archiving — 2026-07-18
+
+**Can Green Goods charge gardens G$ for protocol services, given the House of Alignment circulation mandate?** Raised in the Linear "Research Pass 3" document and flagged there to a named GoodDollar governance contact. It was never resolved and never recorded anywhere else — a pre-archive confirmation pass grep-proved it appears in no spec, no other Linear document, and no docs-site page.
+
+It matters because the corrected funding topology (§9) drops what that document called the **"return" leg**: value flows HoA → protocol Safe → garden Safes → members, with no modelled path back up to the protocol. Whether a return leg *should* exist — and whether charging for protocol services is compatible with a circulation mandate — is an open external dependency on GoodDollar, not a settled design.
+
+Related and also unique to that document: a five-verb relay vocabulary (stream / seed / earn / reseed / return). `uiux-spec.md:369` and `wireframes.md:537` cite "Document B relay vocabulary" **by name**, but both inline the terms they actually use, so those are soft citations rather than dangling dependencies. The vocabulary itself needs no extraction — its topology is superseded by §9.
+
+## 9c. Spec gap found during the pre-archive pass — settled-flow tagging — 2026-07-18
+
+**We promise GoodDollar a measurement we have not specced.** The GoodDollar-facing plan commits to reporting *"how much G$ recirculates inside a garden versus leaves it… real circulation, not just transaction volume."* The Linear "Circular G$ Economies" document names the hard dependency that makes that computable: **settled flows must be tagged by type — in-pool spend versus cash-out.**
+
+`settlement-spec.md` models disbursement state only — `Queued → Executing → Reported → Verified/Failed/Cancelled`. **It never models flow type.** Without that tag, recirculation, leak, reseed, velocity, and hoard are not derivable from anything the settlement module emits; the metric words appear in the canonical synthesis, but the formulas, one-season targets, and the five-condition healthy-season test exist only in that Linear document.
+
+**Extraction completed 2026-07-18**: the definitions now live in `settlement-spec.md` §11, and the picture is worse than "no data source". The source document contains **no numeric target for any metric** — every target is a directional hedge ("a majority", "a meaningful, growing share", "minority and falling"). So the healthy-season test cannot be evaluated pass/fail at all until someone sets the numbers. Four of the five metrics also have a numerator or denominator living entirely on Celo, which §6 explicitly excludes from the indexer boundary; and **reseed rate is unmodeled rather than merely untagged** — its numerator needs a return leg above garden Safes, which §9b records as an open external dependency. Eight concrete build implications are listed at `settlement-spec.md` §11.
+
+Consequence: the circulation evidence promised for the 2026-09-30 House of Alignment evaluation has **no specced data source and no thresholds**. This is a scope question, not a wording fix — resolve it before the August settlement build freezes, or the first evaluation has nothing to report but volume. The redemption-point / sink / merchant design (six ranked mechanisms) and the numeric citation base for the comparables live in the same document and should be extracted with it.
+
+## 9d. 2026-07-01 lead-sync record — extracted 2026-07-18
+
+*Rescued from the Linear document "Protocol Architecture and Spec Direction" (`41f5ada1`) before retirement. Almost everything else in that document is superseded — its single-protocol-seeded-pool MVP framing was deliberately overridden by the two-layer MVP. **This meeting record is the exception: historical record cannot be superseded, only lost.***
+
+**Present** (2026-07-01): Afo, Matt Strachman, Nansel Rimsah. Sophie and others absent. The document was written 2026-07-03, two days later; the source is a Gemini transcript.
+
+**Logged as an "Aligned" decision**, verbatim:
+
+> The team will implement commitment pooling within Green Goods to manage work cycles and garden accountability.
+
+Two Q3 outcomes were set: ground impact methodologies with garden operators, and build commitment pooling for seasons and campaigns. First concrete task was a garden survey capturing existing methodologies, owned by Afo.
+
+**Why protocol-pool-first.** The load-bearing sentence:
+
+> the core focus for the first set should be like a green goods pool of commitments that we look for gardens to fulfill
+
+— with gardens creating and backing their own only *"after we've kind of sucked the juice out of that."*
+
+**Flagged open in the sync, never decided**: whether commitments must be re-submitted each cycle (Afo leaned yes), and who sets a commitment's price. Neither is resolved in any current spec.
+
+**Funding context recorded in the same session**: Q2 fundraising fell short; the team moved to a stipend / "cookie jar" model at roughly **400–600 USD per month per contributor**, with commitment pooling the one core feature exempted from stipend-only treatment. The admin dashboard was flagged as under-prioritized.
+
+**Transcript provenance warning**: the Gemini notes render Tech and Sun (TAS) as "Tekken Sun", "task", and "TAZ". Anyone re-reading the raw transcript should expect that.
+
+## 9e. Correction — "G$ on Arbitrum is partner-confirmed" — 2026-07-18
+
+**This claim is not established, and it is carried in live Linear records.** Two independent extraction passes surfaced it from different source documents.
+
+The 2026-07-02 settlement research recorded partner confirmation of G$ on Arbitrum as a **verbal signal only** — no token address, no custody arrangement, and no transfer path were captured — and required written confirmation before any funds moved. The architecture document (`41f5ada1`) states outright that the claim as carried in **PRD-649** and the **Lifecycle And Aggregator Semantics** companion is wrong.
+
+It matters because the settled architecture depends on the opposite being true: **there is no canonical G$ on Arbitrum** (see `settlement-spec.md` §10.6 for the four chain addresses), which is precisely why settlement is split-state. A live record implying an Arbitrum G$ path is available invites exactly the design mistake the split-state decision exists to prevent.
+
+**Action**: correct PRD-649 and the Lifecycle companion in Linear. Not yet applied — the claim lives only in Linear; a repo grep for "partner-confirmed" and "G$ on Arbitrum" returns nothing.
+
+**Checked 2026-07-19 — `41f5ada1` is now fully drained.** Its stale-records list (GROW-6, GROW-5, GROW-8, PRD-473, PRD-649) was **already applied**, not pending: GROW-6 carries the correction dated 2026-07-03. The instruction not to open implementation issues for three unaccepted GoodDollar redistribution strategies (Aligned Commons Pool, Impact Bonus, Octant Vault Yield Routing) is preserved here — it records partner alignment that did *not* convert, which is a decision, not a proposal. The document is safe to delete.
+
 ## 10. Audit-response decisions — 2026-07-18
 
 From the user's full visual-asset audit (three AskUserQuestion rounds): (a) **Garden Steward** is the standardized role name across every commitment-pooling surface — diagrams, wireframes, specs, briefs — with the mapping note "steward = holder of operator/owner Hats"; the app-wide rename (community glossary, docs site, i18n ×3, admin/client copy) is a recorded follow-up, so "Operator" remains correct in shipped-app contexts until that lands. (b) **Multi-action per-requirement counts**: commitments gain per-action required approved-work counts (`requiredApprovedWorkCounts[]` positional with `requiredActionUIDs[]`) — contract-spec amendment dated 2026-07-18; the single scalar count treatment is superseded. (c) **W22 batch execution + oracle console** moves to a new deployer-gated admin **Operations** workspace (same gating as Actions); admin `/community` pools mode rescopes to "your garden's pools + the protocol pool" with no cross-garden browsing. (d) **History** in pool surfaces is per-view segmented chips (Open | Confirmed | Past), not a separate stage. (e) **W6 home summary card is retired**; the WalletDrawer Commitments-tab header is the only promises summary. (f) **D13** is replaced by a role × capability matrix + prohibitions callout; **D6** splits into lifecycle-phase sub-machines. Considered and rejected: an `UPSTREAM_TO_PROTOCOL` FundingRoute member (an enum value that can never be queued is dead surface); a Home promises strip (client minimalism won).

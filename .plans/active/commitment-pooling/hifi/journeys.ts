@@ -132,7 +132,7 @@ export const SBS: SB[] = [
   { f: "W21@failed-recovery", hot: { h: "w21.requeue", l: "Requeue a failed member" }, ev: "requeue clears the old batchId, attempts++ · or cancel with reason", cite: "SS:182-183" },
 ]},
 { id: "sb13", n: 13, title: "Cross-garden protocol claim", persona: "Garden Operator (Leila)", scen: "S14", surface: "PWA + Admin", steps: [
-  { f: "W1", hot: { h: "w1.ask-take-up" }, who: "Leila", ev: "protocol commitment in garden context — steward-reviewed default (#19)", cite: "UX:129" },
+  { f: "W1", hot: { h: "w1.ask-take-up" }, who: "Leila", ev: "protocol commitment in garden context — steward-reviewed default (register #19)", cite: "UX:129" },
   { f: "W25@context-chooser", hot: { h: "w25.continue", l: "for Awka Hub → Continue" }, ev: "Garden claim: claimant = GardenAccount · requestedBy = Leila", cite: "CS:577-589", mf: true },
   { f: "W1@claim-pending", hot: null, st: "Pending", ev: "canonical claimant + requested-by + provider context shown", cite: "UX:99" },
   { f: "W12", hot: { h: "w12.accept", l: "protocol steward: Accept" }, who: "protocol steward", ev: "accept consumes the stored terms → providerGarden derived · other pending rows Superseded", cite: "CS:733" },
