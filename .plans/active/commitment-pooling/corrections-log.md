@@ -150,7 +150,7 @@ It matters because the settled architecture depends on the opposite being true: 
 
 **Action**: correct PRD-649 and the Lifecycle companion in Linear. Not yet applied — the claim lives only in Linear; a repo grep for "partner-confirmed" and "G$ on Arbitrum" returns nothing.
 
-**Also unique to `41f5ada1`, confirm captured before deleting it**: a stale-records correction list keyed to GROW-6, GROW-5, GROW-8, PRD-473 and PRD-649; and an instruction not to open implementation issues for three unaccepted GoodDollar redistribution strategies (Aligned Commons Pool, Impact Bonus, Octant Vault Yield Routing) — that last reads as a record of partner alignment *not* converting, which is a decision record rather than a proposal.
+**Checked 2026-07-19 — `41f5ada1` is now fully drained.** Its stale-records list (GROW-6, GROW-5, GROW-8, PRD-473, PRD-649) was **already applied**, not pending: GROW-6 carries the correction dated 2026-07-03. The instruction not to open implementation issues for three unaccepted GoodDollar redistribution strategies (Aligned Commons Pool, Impact Bonus, Octant Vault Yield Routing) is preserved here — it records partner alignment that did *not* convert, which is a decision, not a proposal. The document is safe to delete.
 
 ## 10. Audit-response decisions — 2026-07-18
 
