@@ -564,7 +564,7 @@ Bridged G$ (never). Bridge custody or unbounded value authority. Bridge-executor
 
 **Bridge risk.** Ronin **$625M** (Mar 2022, validator key compromise), Wormhole **~$325M** (Feb 2022, wETH minted without collateral), Nomad **$190M** (Aug 2022, upgrade accepting the 0x00 root). A wrapper adds unbacked-mint risk, depeg from canonical G$, stuck liquidity mid-settlement, and **no backstop** — GoodDollar will not backstop a wrapper it did not bless.
 
-**Market depth.** G$ trades thin: 24h volume **$11,910.67** total, most active pair USDGLO/$G on Uniswap V3 Celo at **$10,892.52**, Crypto.com **$4,057**, Binance **$48.41** (CoinGecko; undated in source, sampled July 2026). A thin Arbitrum pool becomes the price oracle that decouples the wrapper from the $0.0001 canonical anchor — exits then fail or execute at punitive rates against the mutual-aid participants the system exists to serve.
+**Market depth.** G$ trades thin: 24h volume **$11,910.67** total, most active pair USDGLO/$G on Uniswap V3 Celo at **$10,892.52**, Crypto.com **$4,057**, Binance **$48.41** (CoinGecko; undated in source, sampled July 2026). ⚠️ **These do not reconcile** — the three venue figures sum to $14,997.93, above the stated $11,910.67 total, so they mix timestamps or metric definitions. The qualitative point (G$ markets are thin, so an Arbitrum pool would be thinner still) stands; the specific numbers should be re-sampled to one timestamp before being reused as evidence. A thin Arbitrum pool becomes the price oracle that decouples the wrapper from the $0.0001 canonical anchor — exits then fail or execute at punitive rates against the mutual-aid participants the system exists to serve.
 
 **Causal background — the Dec-2023 reserve exploit.** Per the Good Labs Foundation post-mortem, 2023-12-17 saw "the unauthorized withdrawal of 627,328.47 cDAI and the unapproved minting of 14 billion G$ tokens," inflating supply from ~6 billion (~233% per Messari). ~1 billion G$ was liquidated on Celo/Fuse DEXs, price fell ~95%, reserve paused. This drove the V4 consolidation to Celo-primary that makes Arbitrum a dead end for canonical G$.
 
@@ -590,7 +590,7 @@ Doc `8243d7ef` asserted a "correction" that the G$ exit contribution is **3%, no
 
 ### 10.5 Scored comparison
 
-Doc `657f7233` scored Architecture 2 the winner on **8 of 10** criteria. Architecture 1's only genuine advantages were single-chain custody simplicity and lower build cost *if* a blessed Arbitrum OFT existed — which it does not.
+Doc `657f7233` scored Architecture 2 the winner on **8 of 10** criteria. ⚠️ **Only the discriminating rows were carried across below — three of the ten are not reproduced here.** Before `657f7233` is deleted, either copy the full ten-row table or restate this as "the majority of criteria"; as written, the 8-of-10 result cannot be reconstructed from the repo, which defeats the preservation goal. Architecture 1's only genuine advantages were single-chain custody simplicity and lower build cost *if* a blessed Arbitrum OFT existed — which it does not.
 
 | Criterion | Arch 1 | Arch 2 | Arch 3 |
 |---|---|---|---|
@@ -622,7 +622,7 @@ Reproduced as written. The document states **no excluded states** for any metric
 
 | Metric | Formula (numerator / denominator) | Observation window |
 |---|---|---|
-| Recirculation rate | in-pool G$ spend / total G$ paid out | season |
+| Recirculation rate | in-pool G$ spend / total G$ paid out — ⚠️ **must be cohort-based and non-duplicative**, see note below | season |
 | Reseed rate | G$ returning to the next season pool / G$ that entered this season | season boundary |
 | Velocity | total in-pool G$ transaction volume / average pool G$ balance over the season | over the season |
 | Leak rate | G$ cashed out or DEX-exited / total G$ entered | season, compared across seasons |
@@ -630,6 +630,8 @@ Reproduced as written. The document states **no excluded states** for any metric
 | promiseKeptRate | existing indexed stat, carried unchanged | season |
 
 Plus a **per-season cohort view** — "track each season's seed cohort separately (how far did *this* season's G$ travel before leaving)."
+
+**⚠️ Recirculation must be defined non-duplicatively.** If "in-pool G$ spend" is implemented by summing transfers, the same payout spent twice inside a garden contributes twice while the denominator stays fixed — the rate can exceed 100% and degenerates into transaction volume, which is exactly what the reporting promise rejects. The healthy-season test asks whether settled G$ *circulated at least once*, so the numerator must be cohort-based: the share of a season's distributed G$ that was spent in-pool at least once, counted per unit, not per transfer. Settle this before the metric drives the 2026-09-30 evaluation.
 
 ### One-season targets
 
@@ -706,7 +708,7 @@ Named sinks: garden store; seed/tool bank, equipment hire, water/solar service f
 
 1. **A flow-type tag on settled flows.** Nothing in `settlement-spec.md` carries one. `DisbursementKind {CommitmentReward, Funding}` and `FundingRoute {None, ProtocolToGarden}` exist but tag the *purpose of an outbound disbursement*, not recirculation vs leak — neither is a substitute.
 2. **Celo-side observation, which the indexer boundary currently excludes.** `settlement-spec.md` §Indexer: "Envio indexes the Arbitrum SettlementModule, not Celo token events." Every in-pool spend, merchant payment, cash-out, DEX swap, and idle balance is a Celo G$ fact. Four of the five metrics have a numerator or denominator living entirely on Celo. Either the boundary extends to canonical G$ (`0x62B8B11039FcfE5aB0C56E502b1C372A3d2a9c7A`) transfers for registered Safes and member AA accounts, or an off-chain attested read model supplies them — the current spec produces neither.
-3. **Reseed rate is unmodeled, not merely untagged.** Its numerator is "G$ returning to the next season pool." No inbound route to a garden or pool exists other than `ProtocolToGarden` from the protocol Safe, and there is no return leg above garden Safes (`corrections-log.md` §9b, an open external dependency on GoodDollar). No tagging quality makes it computable until a route exists.
+3. **Reseed rate needs Celo-side observation and season attribution — not a new funding route.** Its numerator is "G$ returning to the next season pool." A garden carrying store revenue or retained G$ into its next season does so **inside its own persistent Celo Safe** (§2), which is already the garden pool's settlement account — the funds never travel above it, so this is independent of the open Garden→protocol question in `corrections-log.md` §9b. What it does require is observing Celo-side balances and attributing them to a season cohort. Do not add an upward funding route to scope on this metric's account.
 4. **A pool-balance time series.** Velocity divides by "average pool G$ balance over the season," which needs sampled balances over time for the pool's Celo Safe. The admin Operations funding view currently plans a point-in-time Celo balance *read*, not a series.
 5. **A registry of in-pool counterparties per garden per season.** "In-pool spend" is only decidable against a known set (garden store, seed/tool bank, participating merchant, steward accounts). Without an allowlist, every transfer out of a member wallet is indistinguishable from a cash-out.
 6. **Season cohort identity carried through settlement,** so "this season's G$" is separable for the per-season cohort view.

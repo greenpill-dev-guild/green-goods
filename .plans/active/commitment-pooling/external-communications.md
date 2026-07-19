@@ -38,7 +38,7 @@ Operational rollout anchors on three named candidate gardens (2026-07-10): **Tec
 
 | Audience | Primary question | Required proof | Call to action |
 |---|---|---|---|
-| Garden operator | “What changes in my weekly work?” | Mandate example, admin /community triage/seeding flow, roles, time/capacity expectation, support path | Confirm a research/onboarding session and correct the mandate |
+| Garden Steward | “What changes in my weekly work?” | Mandate example, admin /community triage/seeding flow, roles, time/capacity expectation, support path | Confirm a research/onboarding session and correct the mandate |
 | Gardener/community member | “Can I take part without learning crypto?” | Independent Community PWA, voice/offline flow, passkey, authorship, confirmation, clear waiting and recovery states | Name a Request, Offer, or Initiative or take up a promise |
 | Garden evaluator | “Can I trace claims and preserve methodology integrity?” | Need → commitment → work → baseline/delta → testimony lineage, optional domain/action pairs, CSV/JSON export | Review evidence and domain/methodology mapping |
 | Funder | “What did support enable, and what is verified?” | Aggregate progress, assessment provenance, receipt-checked FundingAttribution, reported versus oracle-verified settlement disclosure | Support the garden through direct donation/endowment or collaborate on a cohort |
@@ -84,7 +84,7 @@ Visual assets for the brief, this plan, and the synthesis are indexed in `visual
 | Through 2026-07-16 | Operator outreach begins; facilitation-kit review | Outreach started; unanswered questions logged |
 | 2026-07-16 to 2026-07-30 | Co-design sessions and mandate confirmation (PRD-701 kickoff package due 2026-07-30 with RESR-62) | Contacts, session slots, consent path; corrected mandates, language findings, join-request decision evidence |
 | 2026-07-31 dry-run checkpoint | Share “what we heard / what changes” back to gardens | Readiness matrix with explicit gaps; no inflated launch claim |
-| 2026-08-31 release checkpoint | Operator walkthrough and one bounded end-to-end proof where every external gate passes | Tested runbook, architecture evidence, and oracle-verified Celo settlement proof where relevant |
+| 2026-08-31 release checkpoint | Steward walkthrough and one bounded end-to-end proof where every external gate passes | Tested runbook, architecture evidence, and oracle-verified Celo settlement proof where relevant |
 | 2026-09-30 Community checkpoint | Independent-PWA and gathering usability sessions | Observed task completion, recovery-path evidence, and qualitative understanding |
 | 2026-12-31 hardening review | Publish pilot learnings and decisions | Evidence-backed promote/defer decisions for hardening |
 
@@ -92,7 +92,7 @@ Visual assets for the brief, this plan, and the synthesis are indexed in `visual
 
 This is a trust-building rollout, not a feature-launch countdown.
 
-- **Owned**: Green Goods docs, garden pages, short captioned walkthrough, operator office hours, release notes.
+- **Owned**: Green Goods docs, garden pages, short captioned walkthrough, steward office hours, release notes.
 - **Partner**: participating gardens, Greenpill chapters, House of Alignment, GoodDollar, and methodology collaborators after factual review.
 - **Community**: gathering-ready one-pager/QR, recorded demos with transcripts, local-language summaries where operators request them.
 - **Earned**: a post-pilot case study only after the garden approves its story and evidence.
@@ -120,7 +120,7 @@ Also report:
 
 - operator sessions confirmed/completed and mandate corrections returned;
 - comprehension for Request/Offer/Initiative, two-axis Need state, confirmation, and settlement status;
-- share of seeded commitments linked to operator-confirmed Needs;
+- share of seeded commitments linked to steward-confirmed Needs;
 - operator time to triage and seed;
 - research questions closed or consciously deferred;
 - external-brief comprehension and collaborator follow-through;

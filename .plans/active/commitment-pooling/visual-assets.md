@@ -1,7 +1,7 @@
 # Commitment Pooling — Visual Asset Index
 
 **Updated**: 2026-07-18 (fund topology corrected; square-canvas + non-square exception techniques verified; gallery artifact recorded)
-**Gallery**: all assets rendered with three audience tabs — [Commitment Pooling — Visual Asset Gallery](https://claude.ai/code/artifact/007ef090-9e26-4b1d-898c-615155304d9d), built by `visual-assets-artifact.build.ts` in this folder.
+**Gallery**: [Commitment Pooling — Visual Asset Gallery](https://claude.ai/code/artifact/007ef090-9e26-4b1d-898c-615155304d9d), built by `visual-assets-artifact.build.ts` in this folder. ⚠️ **It currently renders only three of the eleven assets** — `external-brief-loop`, `external-brief-money-map`, and `synthesis-circular-gd`. The roles and funding-rails graphics, all three rollout graphics, and three synthesis graphics are absent, so the gallery link is not a complete review surface. Either extend the builder to load all eleven pairs or link the folder directly.
 **Pipeline**: every asset is a hand-crafted, self-contained SVG (Warm-Earth palette, explicit 2x `width`/`height` so Linear sizes it correctly) with a 2x PNG companion for Linear upload. Linear docs cannot be written with embedded images over MCP — **uploads are manual** (drag the PNG into the doc at the placement below). The SVG is the print/PDF source; the PNG is the Linear-upload source.
 
 ## Style contract
