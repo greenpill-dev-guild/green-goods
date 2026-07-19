@@ -71,13 +71,13 @@ These complement (not duplicate) `CLAUDE.md` — they're things that aren't alre
 
 ## Working with agents here
 
-Green Goods runs at agentic velocity; these few habits keep that safe. They were validated over the May AI-native-workflow pilot (templates in `.plans/archive/ai-native-dev-workflow/`) and complement — not duplicate — `CLAUDE.md`.
+Green Goods runs at agentic velocity; these few habits keep that safe and complement — not duplicate — `CLAUDE.md`.
 
 - **Run `bun run drift:check` before broad or parallel agent dispatch.** It repeatedly caught skill-mirror / docs / README / lint drift before it compounded. Don't fan out agents while guidance drift is unresolved.
 - **Scope-lock before runtime edits.** For audits and cleanups, agree the exact change set with a human first and preserve unrelated dirty work — this prevents over-broad redesigns.
 - **Get an adversarial review before you commit to an approach,** not after. A second, stronger perspective catches theater and wrong assumptions more cheaply than a passing self-test.
 - **Evidence, not assertion.** Record copy-runnable validation commands and explicit proof limits. "Should work" is not proof.
-- **Fill a data-contract map** when a change touches schemas / public contracts / persistent stores / shared types / API shapes, and a **route/access matrix** when it touches routes / auth / role gates / shells (templates in the archived hub). Skip both when the change touches neither — don't add ceremony.
+- **Record affected data contracts** when a change touches schemas, public contracts, persistent stores, shared types, or API shapes; record route and access changes when it touches routes, auth, role gates, or shells. Keep that evidence in the current plan/spec or handoff. Skip both when the change touches neither.
 - **Match process to scope.** Broad or parallel agent work earns the pre-agent checklist; single-file, sequential work just proceeds (see `CLAUDE.md` § Subagent Discipline).
 
 ## Get Started

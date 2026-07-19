@@ -43,6 +43,19 @@ function withFixture(work) {
   }
 }
 
+test("validate rejects unsupported plan-hub root entries", () =>
+  withFixture((root) => {
+    mkdirSync(join(root, ".plans", "reviews"), { recursive: true });
+
+    const rejected = runPlanHub(root, ["validate"]);
+    assert.notEqual(rejected.status, 0);
+    assert.match(rejected.stderr, /reviews: unsupported plan-hub root entry/);
+
+    rmSync(join(root, ".plans", "reviews"), { recursive: true });
+    const accepted = runPlanHub(root, ["validate"]);
+    assert.equal(accepted.status, 0, accepted.stderr);
+  }));
+
 test("scaffolded hubs include TDD metadata on implementation lanes", () =>
   withFixture((root) => {
     const scaffold = runPlanHub(root, ["scaffold", "tdd-fixture", "--stage", "active"]);
@@ -61,6 +74,20 @@ test("scaffolded hubs include TDD metadata on implementation lanes", () =>
 
     assert.equal(status.lanes.qa_pass_1.tdd, undefined);
     assert.equal(status.lanes.qa_pass_2.tdd, undefined);
+  }));
+
+test("backlog scaffolds defer handoff files until activation", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "deferred-handoffs", "--stage", "backlog"]).status, 0);
+    assert.equal(existsSync(join(root, ".plans", "backlog", "deferred-handoffs", "handoffs")), false);
+
+    const moved = runPlanHub(root, ["move", "--feature", "deferred-handoffs", "--to", "active"]);
+    assert.equal(moved.status, 0, moved.stderr);
+    assert.equal(
+      existsSync(join(root, ".plans", "active", "deferred-handoffs", "handoffs", "codex-state-api.md")),
+      true,
+    );
+    assert.equal(runPlanHub(root, ["validate"]).status, 0);
   }));
 
 test("terminal implementation lanes require recorded RED and GREEN evidence", () =>
@@ -286,24 +313,29 @@ test("summary preserves stage status for research-only hubs with no implementati
     assert.equal(item.overall_status, "backlog");
   }));
 
-test("archive hubs do not require taxonomy", () =>
+test("archive hubs retain taxonomy for closed-work discovery", () =>
   withFixture((root) => {
     assert.equal(runPlanHub(root, ["scaffold", "archived-hub", "--stage", "active"]).status, 0);
-    mkdirSync(join(root, ".plans", "archive"), { recursive: true });
-    cpSync(join(root, ".plans", "active", "archived-hub"), join(root, ".plans", "archive", "archived-hub"), {
-      recursive: true,
-    });
-    rmSync(join(root, ".plans", "active", "archived-hub"), { recursive: true, force: true });
+    const moved = runPlanHub(root, [
+      "move",
+      "--feature",
+      "archived-hub",
+      "--to",
+      "archive",
+      "--resolution",
+      "closed",
+      "--reason",
+      "Fixture closeout.",
+    ]);
+    assert.equal(moved.status, 0, moved.stderr);
 
-    const status = JSON.parse(readFileSync(join(root, ".plans", "archive", "archived-hub", "status.json"), "utf8"));
-    status.feature.stage = "archive";
+    const status = readStatus(root, "archive", "archived-hub");
     delete status.taxonomy;
-    writeFileSync(
-      join(root, ".plans", "archive", "archived-hub", "status.json"),
-      `${JSON.stringify(status, null, 2)}\n`,
-    );
+    writeStatus(root, "archive", "archived-hub", status);
 
-    assert.equal(runPlanHub(root, ["validate"]).status, 0);
+    const result = runPlanHub(root, ["validate"]);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /taxonomy is required/);
   }));
 
 test("linear-sync manifest keeps backlog hubs parent-only", () =>
@@ -647,6 +679,125 @@ test("validate fails when a referenced lane handoff file is missing", () =>
     const result = runPlanHub(root, ["validate"]);
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /lane "contracts" handoff file is missing: handoffs\/codex-contracts.md/);
+  }));
+
+test("validate rejects loose files and directories without status metadata", () =>
+  withFixture((root) => {
+    mkdirSync(join(root, ".plans", "ideas", "untracked-idea"), { recursive: true });
+    writeFileSync(join(root, ".plans", "ideas", "untracked-idea", "brief.md"), "# Untracked idea\n");
+    mkdirSync(join(root, ".plans", "backlog"), { recursive: true });
+    writeFileSync(join(root, ".plans", "backlog", "loose-plan.md"), "# Loose plan\n");
+
+    const result = runPlanHub(root, ["validate"]);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /untracked-idea: missing status\.json/);
+    assert.match(result.stderr, /loose-plan\.md: unsupported loose file/);
+  }));
+
+test("validate requires the four canonical plan document roles", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "missing-core-role", "--stage", "backlog"]).status, 0);
+    const status = readStatus(root, "backlog", "missing-core-role");
+    delete status.links.eval;
+    writeStatus(root, "backlog", "missing-core-role", status);
+
+    const result = runPlanHub(root, ["validate"]);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /links\.eval is required/);
+  }));
+
+test("archive moves record explicit closeout metadata and remain valid", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "closed-fixture", "--stage", "active"]).status, 0);
+
+    const moved = runPlanHub(root, [
+      "move",
+      "--feature",
+      "closed-fixture",
+      "--to",
+      "archive",
+      "--resolution",
+      "closed_stale",
+      "--reason",
+      "No remaining live scope.",
+    ]);
+    assert.equal(moved.status, 0, moved.stderr);
+
+    const status = readStatus(root, "archive", "closed-fixture");
+    assert.equal(status.feature.stage, "archive");
+    assert.equal(status.workflow.overall_status, "done");
+    assert.equal(status.workflow.resolution, "closed_stale");
+    assert.equal(status.workflow.archive_reason, "No remaining live scope.");
+    assert.ok(!Number.isNaN(Date.parse(status.workflow.archived_at)));
+    assert.deepEqual(Object.keys(status.lanes.ui).sort(), ["owner", "status"]);
+    assert.equal(status.history.length, 1);
+    assert.equal(status.notes, undefined);
+    assert.equal(existsSync(join(root, ".plans", "archive", "closed-fixture", "handoffs")), false);
+    assert.match(
+      readFileSync(join(root, ".plans", "archive", "closed-fixture", "brief.md"), "utf8"),
+      /> \*\*Archived record:\*\* implementation is closed\./,
+    );
+    assert.equal(runPlanHub(root, ["validate"]).status, 0);
+  }));
+
+test("archive moves reject completed resolution until every lane is terminal", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "incomplete-fixture", "--stage", "active"]).status, 0);
+
+    const rejected = runPlanHub(root, [
+      "move",
+      "--feature",
+      "incomplete-fixture",
+      "--to",
+      "archive",
+      "--resolution",
+      "completed",
+      "--reason",
+      "Claimed complete.",
+    ]);
+
+    assert.notEqual(rejected.status, 0);
+    assert.match(rejected.stderr, /archive resolution completed requires every lane to be terminal/);
+    assert.equal(existsSync(join(root, ".plans", "active", "incomplete-fixture", "status.json")), true);
+    assert.equal(existsSync(join(root, ".plans", "archive", "incomplete-fixture")), false);
+    assert.equal(readStatus(root, "active", "incomplete-fixture").feature.stage, "active");
+  }));
+
+test("validate rejects noncanonical files inside archived hubs", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "archive-residue", "--stage", "backlog"]).status, 0);
+    assert.equal(
+      runPlanHub(root, [
+        "move",
+        "--feature",
+        "archive-residue",
+        "--to",
+        "archive",
+        "--resolution",
+        "closed",
+      ]).status,
+      0,
+    );
+    writeFileSync(join(root, ".plans", "archive", "archive-residue", "legacy-report.md"), "# Old report\n");
+
+    const result = runPlanHub(root, ["validate"]);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /legacy-report\.md: archived hubs retain only status\.json/);
+  }));
+
+test("stale reports live hubs whose status has not been refreshed", () =>
+  withFixture((root) => {
+    assert.equal(runPlanHub(root, ["scaffold", "old-fixture", "--stage", "backlog"]).status, 0);
+    assert.equal(runPlanHub(root, ["scaffold", "fresh-fixture", "--stage", "backlog"]).status, 0);
+    const oldStatus = readStatus(root, "backlog", "old-fixture");
+    oldStatus.workflow.updated_at = "2020-01-01T00:00:00.000Z";
+    writeStatus(root, "backlog", "old-fixture", oldStatus);
+
+    const result = runPlanHub(root, ["stale", "--days", "14", "--json"]);
+    assert.equal(result.status, 0, result.stderr);
+    const records = JSON.parse(result.stdout);
+    assert.deepEqual(records.map((record) => record.slug), ["old-fixture"]);
+    assert.ok(records[0].age_days > 14);
   }));
 
 test("record-linear writes parent and lane issue ids into status.json", () =>

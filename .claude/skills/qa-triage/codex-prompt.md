@@ -2,7 +2,7 @@
 
 The skill renders this template into the Codex worktree at `/tmp/gg-codex-qa-<slug>/qa-prompt.md`. Substitute `{notes_path}`, `{meeting_title}`, `{meeting_date}`, and `{slug}` before dispatch.
 
-When Codex auto-dispatch fails or `--no-codex` is set, the skill copies this rendered prompt to `.plans/qa-triage/<slug>/codex-prompt.md` and surfaces the path for manual copy-paste.
+When Codex auto-dispatch fails or `--no-codex` is set, the skill copies this rendered prompt to `tmp/qa-triage/<slug>/codex-prompt.md` and surfaces the path for manual copy-paste.
 
 ---
 

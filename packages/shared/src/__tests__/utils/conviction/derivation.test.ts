@@ -5,8 +5,6 @@
  * ConvictionMeter / ProposalCardConviction. The formulas are placeholders
  * until pool-config reads land — these tests lock the documented behavior so
  * a future formula swap can't silently regress.
- *
- * Cleanup item A2 from .plans/active/admin-design-revamp/handoffs/claude-cleanup.md.
  */
 
 import { describe, expect, it } from "vitest";

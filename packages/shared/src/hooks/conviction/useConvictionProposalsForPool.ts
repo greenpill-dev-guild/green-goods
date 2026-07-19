@@ -144,9 +144,7 @@ export function useConvictionProposalsForPool(
 /**
  * Conservative defaults — produces sensible numbers in solo gardens but
  * inflates conviction percent in multi-member ones (denominator =
- * pointsPerVoter * memberCount). See cleanup B1 in
- * .plans/active/admin-design-revamp/handoffs/claude-cleanup.md for the
- * concrete blocker analysis.
+ * pointsPerVoter * memberCount).
  *
  * Status of each field on the live HypercertSignalPool contract:
  * - decayRate     → readable via HYPERCERT_SIGNAL_POOL_ABI `decay()` view.

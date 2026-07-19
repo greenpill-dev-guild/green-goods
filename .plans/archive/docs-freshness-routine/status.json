@@ -10,7 +10,11 @@
     "overall_status": "done",
     "priority": "p2",
     "created_at": "2026-04-25T08:53:00.019Z",
-    "updated_at": "2026-07-08T21:30:02.482Z"
+    "updated_at": "2026-07-19T22:20:00.000Z",
+    "target_date": null,
+    "archived_at": "2026-07-08T21:30:02.482Z",
+    "archive_reason": "Paused media-refresh routine retained as historical design; no active execution commitment remains.",
+    "resolution": "paused"
   },
   "links": {
     "brief": "brief.md",
@@ -18,174 +22,29 @@
     "plan": "plan.todo.md",
     "eval": "eval.md"
   },
-  "notes": [
-    "Promoted from ideas on 2026-04-25.",
-    "Routine covers screenshots, social cards, MDX compatibility checks, and stale docs metadata.",
-    "Pick one docs freshness family per run; do not bundle broad docs redesign or translation work.",
-    "Generated visual assets must come from real docs/client/admin surfaces.",
-    "2026-05-01 update: community docs copy remediation is complete; next concrete work is a targeted media refresh after active UI updates stabilize.",
-    "Known refresh candidates: admin-create-garden.png, admin-work-queue.png, admin-work-detail.png, admin-garden-impact.png, client-work-dashboard.png, and a distinct Donate social image.",
-    "Do not touch app UI/i18n/contracts/shared/indexer surfaces from this hub unless the user explicitly starts a separate UI alignment pass.",
-    "client-pwa-gardener-audit prerequisite completed and archived; docs refresh is now active for post-release media/doc accuracy.",
-    "2026-05-10 direction: do CSS maintainability first, then run a deeper docs freshness pass once current UI surfaces are stable enough for screenshots."
-  ],
   "lanes": {
     "ui": {
       "owner": "claude",
-      "status": "n/a",
-      "branch": "claude/ui/docs-freshness-routine",
-      "depends_on": [],
-      "handoff": "handoffs/claude-ui.md",
-      "handoff_note": "Docs component UI is out of scope unless a rendered docs layout regression appears.",
-      "skill_tags": ["docs", "review"],
-      "tdd": {
-        "mode": "not_applicable",
-        "status": "pending",
-        "red": {
-          "command": "",
-          "evidence": ""
-        },
-        "green": {
-          "command": "",
-          "evidence": ""
-        },
-        "note": "Docs component UI is out of scope unless a rendered docs layout regression appears."
-      }
+      "status": "n/a"
     },
     "state_api": {
       "owner": "codex",
-      "status": "blocked",
-      "branch": "codex/state-api/docs-freshness-routine",
-      "depends_on": [],
-      "handoff": "handoffs/codex-state-api.md",
-      "handoff_note": "Concrete next lane: after CSS maintainability and UI stabilization, run a deep docs freshness pass, replace scoped docs screenshots/social assets, update MDX references/alt text, and run docs audit/build/vocab plus rendered desktop/mobile checks.",
-      "skill_tags": ["docs", "tooling", "testing", "visual-qa"],
-      "tdd": {
-        "mode": "proof_limit",
-        "status": "pending",
-        "red": {
-          "command": "",
-          "evidence": ""
-        },
-        "green": {
-          "command": "bun run docs:audit && bun run build:docs && bun run lint:vocab",
-          "evidence": "Docs/media refresh work has no behavior-level RED test. Fallback proof is docs audit/build/vocab plus scoped rendered desktop/mobile review recorded in the lane handoff."
-        },
-        "note": "Docs/media-only lane gated on UI readiness; TDD cannot honestly apply until concrete rendered docs/media changes exist."
-      },
-      "manual_blocked": true
+      "status": "blocked"
     },
     "contracts": {
       "owner": "codex",
-      "status": "n/a",
-      "branch": "codex/contracts/docs-freshness-routine",
-      "depends_on": [],
-      "handoff": "handoffs/codex-contracts.md",
-      "handoff_note": "No contract work. Keep this lane n/a.",
-      "skill_tags": ["review"],
-      "tdd": {
-        "mode": "not_applicable",
-        "status": "pending",
-        "red": {
-          "command": "",
-          "evidence": ""
-        },
-        "green": {
-          "command": "",
-          "evidence": ""
-        },
-        "note": "No contract lane is planned for docs freshness work."
-      }
+      "status": "n/a"
     },
     "qa_pass_1": {
       "owner": "claude",
-      "status": "blocked",
-      "ready_when_dependencies_met": true,
-      "manual_blocked": false,
-      "branch": "claude/qa-pass-1/docs-freshness-routine",
-      "depends_on": ["state_api"],
-      "handoff": "handoffs/claude-qa-pass-1.md",
-      "handoff_note": "Visual QA after media replacement: check screenshot relevance, legibility, Donate/Endow distinction, and desktop/mobile docs render.",
-      "skill_tags": ["testing", "review", "visual-qa"]
+      "status": "blocked"
     },
     "qa_pass_2": {
       "owner": "codex",
-      "status": "blocked",
-      "ready_when_dependencies_met": true,
-      "manual_blocked": false,
-      "branch": "codex/qa-pass-2/docs-freshness-routine",
-      "branch_trigger": "claude/qa-pass-1/docs-freshness-routine",
-      "depends_on": ["qa_pass_1"],
-      "handoff": "handoffs/codex-qa-pass-2.md",
-      "handoff_note": "Regression QA after visual review: re-run docs gates, generated-page scans, and status/handoff consistency checks.",
-      "skill_tags": ["testing", "review", "docs"]
+      "status": "blocked"
     }
   },
   "history": [
-    {
-      "timestamp": "2026-04-25T08:53:00.042Z",
-      "actor": "human",
-      "lane": "system",
-      "status": "scaffolded",
-      "branch": null,
-      "note": "Scaffolded feature hub in backlog"
-    },
-    {
-      "timestamp": "2026-04-25T08:55:00.000Z",
-      "actor": "codex",
-      "lane": "system",
-      "status": "promoted_from_idea",
-      "branch": null,
-      "note": "Converted docs freshness idea note into this backlog hub and deleted the old idea note to avoid duplicate truth."
-    },
-    {
-      "timestamp": "2026-05-01T00:00:00.000Z",
-      "actor": "codex",
-      "lane": "system",
-      "status": "community_docs_media_plan_added",
-      "branch": null,
-      "note": "Expanded hub with the post-Matt-review community docs media refresh plan: preserve completed copy pass, wait for UI stabilization, then refresh stale admin screenshots, Work Dashboard screenshot, and Donate social image."
-    },
-    {
-      "timestamp": "2026-05-07T20:55:47.010Z",
-      "actor": "human",
-      "lane": "system",
-      "status": "moved_to_active",
-      "branch": null,
-      "note": "Moved feature hub from backlog to active"
-    },
-    {
-      "timestamp": "2026-05-07T20:56:24.558Z",
-      "branch": null,
-      "actor": "codex",
-      "lane": "system",
-      "status": "prerequisite_archived",
-      "note": "client-pwa-gardener-audit completed and moved to archive; removed taxonomy dependency and added active-lane TDD metadata."
-    },
-    {
-      "timestamp": "2026-05-10T22:34:34.860Z",
-      "actor": "codex",
-      "lane": "system",
-      "status": "linear_recorded",
-      "branch": null,
-      "note": "Recorded Linear parent/lane issue identifiers"
-    },
-    {
-      "timestamp": "2026-05-10T23:13:14.000Z",
-      "actor": "codex",
-      "lane": "system",
-      "status": "plan_refreshed",
-      "branch": "main",
-      "note": "Updated docs freshness to run after CSS maintainability/current UI stabilization; state_api is blocked until that readiness gate clears."
-    },
-    {
-      "timestamp": "2026-07-07T05:04:07.000Z",
-      "actor": "codex",
-      "lane": "state_api",
-      "status": "proof_limit_recorded",
-      "branch": "develop",
-      "note": "Kept the lane blocked but changed TDD metadata to proof_limit with docs/media fallback proof commands instead of empty required RED/GREEN fields."
-    },
     {
       "timestamp": "2026-07-08T21:30:02.482Z",
       "actor": "human",

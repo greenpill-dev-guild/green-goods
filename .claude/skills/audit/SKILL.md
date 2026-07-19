@@ -2,7 +2,7 @@
 name: audit
 user-invocable: true
 description: Repo-health audit and drift classifier for Green Goods — dead code, dependency health, invariant drift, stale guidance/plans/docs drift, and concrete broken or brittle spots. Use when the user asks for an audit, a drift check, "is the repo healthy", stale guidance, cleanup readiness, or whether to run clean. Read-only; routes accepted findings to a fix pass, /clean, or Linear.
-argument-hint: "[package|drift] [--full] [--team] [--loop] [--write-report]"
+argument-hint: "[package|drift] [--full] [--team] [--loop]"
 context: fork
 effort: high
 ---
@@ -62,7 +62,6 @@ These are mandatory:
 | "repo drift", "stale guidance", "should we clean?" | Treat as `/audit drift` |
 | `/audit --full` | Skip scope detection, analyze all packages |
 | `/audit --team` | Parallel agent team |
-| `/audit --write-report` | After analysis, persist the response as `.plans/audits/[date]-audit.md` |
 | `/audit --loop` | Complete the read-only audit, then route approved findings through the scope-lock rhythm (see Part 10) |
 
 ## Drift Mode
@@ -83,17 +82,21 @@ Use **TodoWrite** when available, otherwise Markdown checklist. See `CLAUDE.md` 
 
 ## Part 0: Previous Findings Verification
 
-**REQUIRED before new analysis.** Check whether previous Critical/High findings are still open.
+**REQUIRED before new analysis.** Check current accepted tracking before claiming a
+finding is new or chronic.
 
-1. If a prior persisted audit exists, inspect the newest `.plans/audits/*-audit.md`; otherwise record "no prior persisted audit" and continue.
-2. Extract all Critical and High findings with file:line references
-3. Re-verify each finding against the current code. For UNCHANGED packages (per Part 0.5), carry forward with status `CARRY-FORWARD (unchanged)` and spot-check 1-2 representative findings
-4. Count consecutive open cycles per finding
-5. Cross-reference the Known Issues Registry (`.plans/audits/known-issues.md`) -- apply ACCEPTED/DEFERRED/MONITORED decisions from prior cycles
-6. Apply escalation: findings open 3+ cycles get a severity bump (see Part 2 escalation)
-7. Carry forward the Previous Findings Status table with updated statuses
+1. If the user requests a follow-up or trend comparison, query current Linear issues in
+   the approved scope. Otherwise record "no prior live comparison requested" and continue.
+2. Re-verify relevant Critical/High tracked findings against current code.
+3. For unchanged packages (per Part 0.5), carry forward only findings that still have a
+   current Linear owner; spot-check 1-2 representative findings.
+4. Use the Linear decision and issue age as context. Do not synthesize review cycles from
+   deleted report files or revive resolved findings from Git history.
+5. Include a Previous Findings Status table only when current tracked findings exist.
 
-**Finding statuses**: `STILL OPEN` | `FIXED` | `PARTIALLY FIXED` | `ACCEPTED` (stops escalation) | `DEFERRED` (stops escalation, include rationale) | `MONITORED` (resets staleness, re-verify each cycle) | `CARRY-FORWARD (unchanged)` | `Downgraded to [severity]`
+**Finding statuses**: `STILL OPEN` | `FIXED` | `PARTIALLY FIXED` |
+`ACCEPTED` | `DEFERRED` | `MONITORED` | `CARRY-FORWARD (unchanged)` |
+`Downgraded to [severity]`
 
 ---
 
@@ -103,7 +106,8 @@ Gates the expensive Parts 1-4 to only run on packages that actually changed.
 
 > **Override**: `/audit --full` skips scope detection.
 
-1. Read the `Baseline` commit from the most recent audit report
+1. Resolve a comparison base from the user's requested ref or the current PR base. If
+   neither exists, treat all packages in scope as changed rather than inventing a baseline.
 2. Compute changed packages:
 ```bash
 git diff --name-only <last-audit-commit>..HEAD | grep '^packages/' | cut -d/ -f2 | sort -u
@@ -184,17 +188,18 @@ For each file in CHANGED packages, check:
 - **MEDIUM**: Tech debt, maintainability
 - **LOW**: Style, minor improvements
 
-### Severity Escalation
+### Risk Prioritization
 
-Findings open 3+ cycles get a severity bump using **risk score = Impact x Likelihood x Staleness**.
+Use **risk score = Impact x Likelihood**. Issue age from current Linear tracking may
+be noted separately, but does not mechanically change severity.
 
 | Factor | Values |
 |--------|--------|
 | Impact | 4=Critical, 3=High, 2=Medium, 1=Low |
 | Likelihood | 3=Certain, 2=Likely, 1=Unlikely |
-| Staleness | 1.0 (cycles 1-2), 1.5 (cycles 3-4), 2.0 (cycles 5+) |
-
-Score < 4.0: report as-is. Score 4.0-8.0: escalate one level. Score > 8.0: flag in Executive Summary as chronic. Escalation does NOT apply to ACCEPTED, DEFERRED, or MONITORED findings.
+Score < 4: report as-is. Score 4-8: prioritize for review. Score > 8: flag in
+the Executive Summary. ACCEPTED, DEFERRED, and MONITORED findings retain their
+current Linear decision unless the user explicitly reopens it.
 
 ### Security Skill Integration (contracts only)
 
@@ -243,7 +248,8 @@ grep -rn "0x[a-fA-F0-9]\{40\}" packages/ --include="*.ts" | grep -v __tests__  #
 grep -rn "@green-goods/shared/src" packages/client packages/admin packages/agent packages/indexer --include="*.ts*"  # Undeclared shared internals
 ```
 
-Cap the anti-patterns table at **top 10 by risk score**. Track the rest in Known Issues Registry.
+Cap the anti-patterns table at **top 10 by risk score**. Do not create a local
+overflow registry; offer the remaining accepted findings for Linear tracking.
 
 ---
 
@@ -265,7 +271,9 @@ In team mode, the lead re-reads every sub-agent finding before synthesis. Unveri
 
 ## Part 6: Report Generation
 
-Return the report in the response by default. Only write `.plans/audits/[date]-audit.md` when the user explicitly requests a durable artifact or invokes `--write-report`. Report shape:
+Return the report in the response. If the user explicitly requests a durable artifact,
+use an existing feature hub report when the audit is feature-specific; otherwise route
+accepted work to Linear rather than creating a generic audit folder. Report shape:
 
 ```markdown
 # Audit Report - [Date]
@@ -278,9 +286,9 @@ Return the report in the response by default. Only write `.plans/audits/[date]-a
 - **Tests**: [pass counts] | **Coverage**: shared N% / client N% / admin N%
 - **Dependency health**: N vulnerabilities (H/C), N outdated (2+ major)
 
-### Chronic findings (risk score > 8.0)
-### Executive Delta (since last audit)
-- Packages changed/unchanged, findings opened/closed/net, risk score trend, key changes
+### Highest-risk findings (risk score > 8)
+### Executive Delta (when a live comparison was requested)
+- Packages changed/unchanged, tracked findings opened/closed/net, and key changes
 
 ---
 
@@ -299,13 +307,13 @@ Return the report in the response by default. Only write `.plans/audits/[date]-a
 | Reference | Location | Status |
 
 ## Architectural Anti-Patterns (top 10 by risk score)
-| Anti-Pattern | Location | Lines | Coverage | Risk Score | Cycles Open | Severity |
+| Anti-Pattern | Location | Lines | Coverage | Risk Score | Severity |
 
 ## Dependency Health
 | Category | Count | Details |
 
-## Trend (last N audits)
-| Metric | [prev dates] | [current] |
+## Tracked-finding delta (when current Linear history exists)
+| Metric | Previous live state | Current |
 
 ## Recommendations (Priority Order)
 1. **[Action]** -- (Severity, finding ID, risk score)
@@ -355,13 +363,14 @@ After the report, group findings by actionability:
 |----------|----------|--------|
 | **Fix Now** | Critical/High, risk > 8.0 | Individual Linear issue per accepted finding |
 | **Fix Soon** | Medium, risk 4.0-8.0 | Batch into 1 Linear issue per package when accepted |
-| **Track** | Low or MONITORED | Update Known Issues Registry only |
+| **Track** | Low or MONITORED | Keep in response; offer Linear tracking after approval |
 | **Accept** | ACCEPTED/DEFERRED | No action |
 
 Prompt user before creating any Linear issues: "Found N findings that are ready to track in
 Linear. Create Product/Research issues for these accepted findings? [y/n]"
 
-Only after explicit approval to persist tracking, update the Known Issues Registry: add findings at 5+ cycles or MONITORED, update dates, and move resolved entries to the Resolved table.
+Only after explicit approval should accepted findings be persisted to current Linear
+issues. Do not create or update a parallel repository registry.
 
 ### Linear Issue Routing
 
@@ -374,7 +383,7 @@ Audit-specific deltas:
 - Issue bodies include the relevant Greenpill template sections: Outcome or Research question,
   Protocol context, Scope boundary or Evidence to gather, Acceptance criteria or Expected output,
   Validation or Routing recommendation, Privacy note when applicable, and Links.
-- Mirrored findings come from `.plans/audits/`.
+- Findings originate in the current audit response; accepted tracking lives in Linear.
 
 ---
 
@@ -397,8 +406,8 @@ When `--loop` is requested, complete the read-only audit first and present numbe
 | Include LOW-confidence findings | Self-validation gate drops them |
 | Edit files during an audit | Read-only mode |
 | State cross-package findings as confirmed | Mark "needs cross-package verification" |
-| Skip Previous Findings check | Trend tracking is the audit's most valuable long-term output |
-| Report 24+ god object rows | Top 10 by risk score; rest in Known Issues Registry |
+| Skip current tracked-findings check when trend was requested | A stale local report is not a substitute for live tracking |
+| Report 24+ god object rows | Keep the response to the top 10; offer accepted overflow findings for Linear |
 | Count intentional catch-with-fallback as bare catch | Classify per Part 2; only report dangerous ones |
 | Skip security skill for contracts | Part 2 requires explicit security invocation |
 | Create Linear issues without prompting | Part 9 requires user confirmation |
@@ -414,9 +423,9 @@ When `--loop` is requested, complete the read-only audit first and present numbe
 - **Scope-aware** -- diff detection limits analysis to changed packages
 - **Read-only** -- don't edit during audit
 - **Evidence-based** -- every finding needs file:line and risk score
-- **Risk-weighted** -- escalation uses impact x likelihood x staleness
+- **Risk-weighted** -- prioritization uses impact x likelihood
 - **Prompt before issues** -- ask user before creating Linear issues
-- **Registry-backed** -- chronic findings live in Known Issues Registry
+- **Live-tracked** -- accepted findings live in current Linear issues, not local report folders
 
 ## Boundary
 

@@ -1,8 +1,10 @@
 # Client PWA Native Feel Remediation
 
+> **Archived record:** implementation is closed. Operational handoffs, reports, artifacts, and lane files were removed; any such references below describe historical execution, not live work.
+
 **Feature Slug**: `client-pwa-audit`
-**Stage**: `active`
-**Status**: `ACTIVE`
+**Stage**: `archive`
+**Status**: `ARCHIVED - SUPERSEDED`
 **Created**: `2026-05-07`
 **Last Updated**: `2026-05-07`
 **Target**: unset; choose a target date before implementation starts and update this file plus `status.json.workflow.target_date`.
@@ -24,7 +26,7 @@ This hub is now the source of truth for the next locked remediation slice: make 
 
 | # | Decision | Rationale |
 |---|---|---|
-| 1 | Reuse `.plans/active/client-pwa-audit` instead of creating a new hub | The existing findings and lane files are still the audit source of truth. A new hub would duplicate context and make status harder to track. |
+| 1 | Close the broad audit after bounded follow-up ownership was established | Later UI and PWA work owns any remaining implementation; this record is historical context only. |
 | 2 | Plan-hub-only update first | Afo explicitly chose to align the hub and handoffs before implementation. |
 | 3 | Use stacked implementation slices later | Toast i18n, sheet primitives, dialog migration, and motion proof are easier to review and revert as smaller slices. |
 | 4 | Move PWA drawer behavior toward one shared gesture-capable sheet contract | The repo already has shared sheet behavior with drag and reduced-motion patterns; the PWA should not keep separate click-only drawer implementations. |

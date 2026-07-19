@@ -1,5 +1,7 @@
 # Hypercert Marketplace Arbitrum Readiness Spec
 
+> **Archived record:** implementation is closed. Operational handoffs, reports, artifacts, and lane files were removed; any such references below describe historical execution, not live work.
+
 ## Summary
 
 Make Arbitrum Hypercert marketplace readiness explicit from backend to frontend. The current deployment is post-migration but not marketplace-ready: the adapter and module are live, wired, unpaused, and owned by the deployer, but their external Hypercert minter/exchange fields are zero. This plan turns the readiness gap into a TDD-governed active hub that starts with contracts/operator verification, then moves through shared fail-closed state and full admin UX proof.

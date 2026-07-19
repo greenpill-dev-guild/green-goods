@@ -1,8 +1,10 @@
 # TypeScript 7-only upgrade Plan
 
+> **Archived record:** implementation is closed. Operational handoffs, reports, artifacts, and lane files were removed; any such references below describe historical execution, not live work.
+
 **Feature Slug**: `typescript-7-upgrade`
-**Stage**: `active`
-**Status**: `ACTIVE`
+**Stage**: `archive`
+**Status**: `ARCHIVED - COMPLETED`
 **Created**: `2026-07-14T00:39:12.925Z`
 **Last Updated**: `2026-07-14T00:39:12.925Z`
 

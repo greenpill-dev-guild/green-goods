@@ -1,7 +1,9 @@
 # Animation & Interaction Polish — Editorial Browser + Garden Detail
 
+> **Archived record:** implementation is closed. Operational handoffs, reports, artifacts, and lane files were removed; any such references below describe historical execution, not live work.
+
 **Slug**: `animation-polish-editorial-browser`
-**Stage**: `backlog`
+**Stage**: `archive`
 **Priority**: `p2`
 **Created**: `2026-05-03`
 

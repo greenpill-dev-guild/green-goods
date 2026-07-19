@@ -49,7 +49,7 @@
 | Fourth garden | “a fourth slot for a mature MRV-adoption anchor — open; candidates under consideration, none selected” | Any named fourth garden in any artifact, or any claim that a fourth garden is selected or participating | `plan.todo.md` Decision Log #29 (supersedes #25 and #27) |
 | Community comparison | Alphabetical/neutral aggregates with small-community suppression | Rankings, leaderboards, credit scores | `uiux-spec.md` §7.2 |
 | Funding | Supports the garden; not per-Need escrow or steering | Funding buys priority/control | Community spec |
-| Credit/vouchers | Design-only/evidence-gated follow-on | August capability or dispatchable work | `credit-spec.md`, PRD-651/697 |
+| Credit/vouchers | Design-only/evidence-gated follow-on | August capability or dispatchable work | `../../backlog/commitment-credit-follow-on/spec.md`, PRD-651/697 |
 
 ## 4. Final role / route / state proof
 

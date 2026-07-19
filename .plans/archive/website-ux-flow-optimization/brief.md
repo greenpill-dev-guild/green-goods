@@ -1,7 +1,9 @@
 # Website UX Flow Optimization
 
+> **Archived record:** implementation is closed. Operational handoffs, reports, artifacts, and lane files were removed; any such references below describe historical execution, not live work.
+
 **Slug**: `website-ux-flow-optimization`
-**Stage**: `active`
+**Stage**: `archive`
 **Priority**: `p1`
 **Created**: `2026-05-08`
 

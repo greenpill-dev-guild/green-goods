@@ -1,5 +1,7 @@
 # Sentry Stack Observability Spec
 
+> **Archived record:** implementation is closed. Operational handoffs, reports, artifacts, and lane files were removed; any such references below describe historical execution, not live work.
+
 ## Architecture
 
 Browser apps initialize Sentry from `@green-goods/shared/sentry`, a subpath export that is not part of the shared root barrel. The shared `trackError()` funnel sends structured errors to PostHog and also forwards categorized non-global errors to registered external reporters. Sentry's native handlers own `window.onerror` and `unhandledrejection`; the shared reporter bridges React error boundaries and categorized app errors.

@@ -1,8 +1,10 @@
 # Hypercert Marketplace Arbitrum Readiness Plan
 
+> **Archived record:** implementation is closed. Operational handoffs, reports, artifacts, and lane files were removed; any such references below describe historical execution, not live work.
+
 **Feature Slug**: `hypercert-marketplace-arbitrum-readiness`
-**Stage**: `active`
-**Status**: `ACTIVE`
+**Stage**: `archive`
+**Status**: `ARCHIVED - COMPLETED`
 **Created**: `2026-05-02`
 **Last Updated**: `2026-05-10`
 **Linked follow-up**: `signal-pool-yield-wiring`
@@ -73,7 +75,7 @@
 - [x] Do not touch `YieldSplitter.setHypercertMarketplace`; current on-chain state already points at the adapter.
 - [x] If canonical address confirmation or broadcast approval stalls, do not mark contracts complete. Choose one fallback and record it in this hub: configure now, pause/disable with operator approval, or add a blocker naming the accepted live risk and decision owner.
 - [x] Harden `contracts:verify:post-deploy:arbitrum`.
-- [x] Implement the indexer verifier policy for this hub: narrow checks to contracts currently defined/indexed by Envio. If full deployed-module expansion is required, create/link `.plans/backlog/indexer-deployed-modules-expansion/` before contracts completion.
+- [x] Implement the indexer verifier policy for this hub: narrow checks to contracts currently defined/indexed by Envio. Any later full deployed-module expansion requires a separately approved formal plan.
 - [x] Write `handoffs/codex-contracts.md`.
 
 ### State / API (`codex/state-api/hypercert-marketplace-arbitrum-readiness`)

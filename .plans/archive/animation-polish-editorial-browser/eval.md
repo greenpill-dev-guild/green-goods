@@ -1,5 +1,7 @@
 # Evaluation
 
+> **Archived record:** implementation is closed. Operational handoffs, reports, artifacts, and lane files were removed; any such references below describe historical execution, not live work.
+
 ## Acceptance Checks
 
 - **Dialog open boundary**: from `/` and `/gardens`, clicking a featured garden card

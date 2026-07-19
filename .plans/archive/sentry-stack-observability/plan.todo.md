@@ -1,5 +1,7 @@
 # Sentry Stack Observability Plan
 
+> **Archived record:** implementation is closed. Operational handoffs, reports, artifacts, and lane files were removed; any such references below describe historical execution, not live work.
+
 - [x] Remove unsafe partial agent Sentry middleware/debug route.
 - [x] Add shared browser Sentry subpath and PII redaction.
 - [x] Forward React boundary/categorized errors from the existing shared error funnel.

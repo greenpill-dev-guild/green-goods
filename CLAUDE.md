@@ -370,7 +370,7 @@ A script earns a place in `scripts/` only if it has a durable caller:
 1. Wired into root `package.json` (a `bun run X` someone will type), or
 2. Called by a `.github/workflows/*.yml`, or
 3. Referenced by `ecosystem.config.cjs` (PM2), or
-4. Invoked by a Claude skill or planning harness (`.claude/**`, `.plans/_automation/**`).
+4. Invoked by a Claude skill or planning harness (`.claude/**`, `scripts/harness/**`).
 
 If a new script doesn't fit any of those, it doesn't belong here.
 

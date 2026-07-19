@@ -5,8 +5,6 @@
  * Round-trip coverage for the optimistic-state container that drives the
  * WeightAllocator: mirroring server state, debouncing saves, computing signed
  * deltas, and force-flushing on close.
- *
- * Cleanup item A3 from .plans/active/admin-design-revamp/handoffs/claude-cleanup.md.
  */
 
 import { act, renderHook } from "@testing-library/react";

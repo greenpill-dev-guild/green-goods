@@ -5,8 +5,6 @@
  * helpers are pure data-shapers around `formatMessage`; rendering coverage
  * lives at the view layer (Chrome MCP / data-component selectors) per the
  * cleanup proof_limit policy for visual changes.
- *
- * Cleanup item A6 from .plans/active/admin-design-revamp/handoffs/claude-cleanup.md.
  */
 
 import { describe, expect, it, vi } from "vitest";

@@ -108,7 +108,7 @@ Keep the output scannable. Use short bullets and tables where helpful.
 
 ## Continuity
 - Session state: present
-- Matching plan: `.plans/active/example/plan.todo.md`
+- Matching plan: `.plans/active/<feature-slug>/plan.todo.md`
 - Next unchecked item: tighten shared exports
 
 ## Blockers

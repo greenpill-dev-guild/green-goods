@@ -1,5 +1,7 @@
 # Agent PostHog Observability Evaluation
 
+> **Archived record:** implementation is closed. Operational handoffs, reports, artifacts, and lane files were removed; any such references below describe historical execution, not live work.
+
 | Acceptance Check | Lane | Evidence |
 |---|---|---|
 | Bug-intake guidance uses Claude Code PostHog + Linear connectors as the primary path | `state_api` | Routine diff |

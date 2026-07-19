@@ -4,7 +4,7 @@
 
 1. Correctness: repo guidance, plan commands, and validation scripts match the live checkout.
 2. Agent usability: a new agent can find the current plan command, current guidance checks, and current module targets without chat-only context.
-3. Guidance fidelity: package guides and ADRs describe the current architecture, including contracts resolvers and shared import policy.
+3. Guidance fidelity: package guides and module maps describe the current architecture, including contracts resolvers and shared import policy.
 4. Feedback reliability: Knip and Fallow are compared on the same baseline, then the chosen dead-code/static-health checks can run as cleanup evidence before becoming gates.
 5. Regression safety: Campaign Cookie Jar and agent API behavior remain covered while internals move behind deeper boundaries.
 6. Evidence quality: every activated slice records command output, test evidence, and proof limits in handoffs or reports.
@@ -15,9 +15,9 @@
 | ID | Check | Owner | Evidence |
 |---|---|---|---|
 | AC-1 | `check:codex-guidance` passes or records an explicit accepted blocker (`check:claude-guidance` retired 2026-07-11) | `state_api` | command output in handoff |
-| AC-2 | `.plans` docs and automation prompts no longer point agents at stale plan-hub commands | `state_api` | `rg` output + plan validation |
+| AC-2 | `.plans` docs and skill callers no longer point agents at stale plan-hub commands | `state_api` | search output + plan validation |
 | AC-3 | contracts package guidance no longer references removed `GreenGoodsResolver` files or tests | `state_api` | `rg` output + guide diff |
-| AC-4 | ADR-008 and shared package guidance state the current root-barrel/subpath import policy | `state_api` | docs diff + app import spot-check |
+| AC-4 | Shared package guidance and module map state the current root-barrel/subpath import policy | `state_api` | docs diff + app import spot-check |
 | AC-5 | Knip vs Fallow report compares same-baseline output, false positives, true positives, runtime, secret coupling, duplication/health coverage, and agent usability | `state_api` | `reports/knip-vs-fallow-evaluation.md` |
 | AC-6 | The selected dead-code/static-health path runs without Varlock/1Password failure and records triage output | `state_api` | `bun run check:dead-code` or chosen command output |
 | AC-7 | source-structure baseline report identifies stable oversized files, stale allowlist entries, and next cleanup targets | `state_api` | report under this hub |

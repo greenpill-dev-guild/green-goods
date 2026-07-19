@@ -354,7 +354,9 @@ BLOCKED → ACTIVE        (dependency resolved)
 
 6. **No meeting notes in `.plans/`**: Raw transcripts and meeting notes go in `notes/`, Customer Needs, or safe comments on linked Linear/PR records, not `.plans/`. Plans must be actionable specs.
 
-7. **No audit reports in implementation hubs**: Point-in-time audit findings go in `.plans/audits/` or accepted Linear records after approval, not mixed with feature implementation plans.
+7. **No generic audit storage in the plan hub**: Point-in-time audit findings stay
+   in the response; accepted findings go to Linear after approval. A report belongs
+   in an existing feature hub only when it is direct evidence for that feature.
 
 ### Scope Discipline
 

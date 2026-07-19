@@ -13,9 +13,9 @@ Green Goods has strong foundations for AI-assisted development: `.plans`, domain
 - `node scripts/harness/plan-hub.mjs validate` passed with `Validated 18 feature hubs.`
 - `bash .claude/scripts/validate-hook-location.sh` passed.
 - `node .claude/scripts/check-skill-frontmatter.js` failed on `doc-feedback`, `audit-then-ship`, and `doc-feedback` registry/canonical-command drift.
-- `.plans/README.md` documents `node scripts/plan-hub.mjs`, while the real helper path is `scripts/harness/plan-hub.mjs`.
+- `.plans/README.md` documents `node scripts/harness/plan-hub.mjs`, while the real helper path is `scripts/harness/plan-hub.mjs`.
 - `packages/contracts/AGENTS.md` still references `GreenGoodsResolver`, `src/resolvers/GreenGoods.sol`, and `GreenGoodsResolver.t.sol`, while the current tree contains separate resolver files/tests such as `Work.sol`, `Assessment.sol`, and `WorkApproval.sol`.
-- ADR-008 already accepts the explicit fat shared barrel, but the current root barrel is 1126 lines and the hook surface includes 195 shared `use*.ts(x)` files; the issue is policy freshness, not replacing the import strategy.
+- The shared package guide and module map document an explicit fat root barrel, but the current barrel is 1126 lines and the hook surface includes 195 shared `use*.ts(x)` files; the issue is policy freshness, not replacing the import strategy.
 - `bunx knip --include files --reporter compact` failed before producing dead-code output because Knip imported client/admin Vite config and triggered Varlock/1Password resolution for `PINATA_JWT`.
 - `scripts/quality/check-source-structure.js` exists, but stable `HEAD` still has several large files and stale allowlist paths.
 - Campaign Cookie Jar code spans large admin and shared surfaces in the current tree (`useCampaignCookieJar.ts` 723 lines; admin `CampaignCookieJarPanel.tsx` 872 lines), with pure helpers tested but deeper read/mutation boundary tests still needing explicit coverage.
@@ -33,7 +33,7 @@ Green Goods has strong foundations for AI-assisted development: `.plans`, domain
 1. Guidance validation is red and not currently a trusted always-green signal.
 2. Plan-hub command docs are stale in the canonical plan README.
 3. Contracts package guidance has current-architecture drift even though Contracts behavior itself is not in scope.
-4. Shared API guidance needs a refreshed public-interface policy around ADR-008, root barrel growth, and documented subpath exports.
+4. Shared API guidance needs a refreshed public-interface policy around root barrel growth and documented subpath exports.
 5. Dead-code audit tooling is installed but not yet a reliable cleanup feedback loop in this local context.
 6. Source-structure checks are differential and do not fully reflect stable baseline complexity.
 7. Campaign Cookie Jar has tests around helpers and UI, but needs a deeper behavior boundary.

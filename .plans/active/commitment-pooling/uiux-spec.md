@@ -3,7 +3,7 @@
 **Feature Slug**: `commitment-pooling`
 **Stage**: `active`
 **Created**: 2026-07-03
-**Scope**: PR-openable UI/UX specification for the August release (client PWA, admin, editorial website) plus the September community interface at wireframe depth. Builds on `corrections-log.md` (verified IA facts) and the 27 locked decisions from the 2026-07-03 alignment session. Contract-facing names (events, fields, module functions) defer to `contract-spec.md` in this folder; where this spec names a module concept it is a reference, not a definition.
+**Scope**: PR-openable UI/UX specification for the August release (client PWA, admin, editorial website) plus the September community interface at wireframe depth. Builds on `reports/corrections-log.md` (verified IA facts) and the 27 locked decisions from the 2026-07-03 alignment session. Contract-facing names (events, fields, module functions) defer to `contract-spec.md` in this folder; where this spec names a module concept it is a reference, not a definition.
 **Grounding rule**: every claim about existing UI carries a repo file path. Everything else is marked NET-NEW.
 
 ---

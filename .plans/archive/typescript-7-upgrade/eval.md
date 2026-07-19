@@ -1,5 +1,7 @@
 # TypeScript 7-only upgrade Evaluation Plan
 
+> **Archived record:** implementation is closed. Operational handoffs, reports, artifacts, and lane files were removed; any such references below describe historical execution, not live work.
+
 ## Release Gates
 
 1. Correctness: all `tsc` invocations resolve 7.0.2 and accept migrated tsconfigs.

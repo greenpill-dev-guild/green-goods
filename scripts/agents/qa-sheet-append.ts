@@ -27,9 +27,9 @@
  *
  * Invocation:
  *   bun scripts/agents/qa-sheet-append.ts \
- *     --defects-csv .plans/qa-triage/<slug>/sheet-rows.csv \
- *     --test-backfill-csv .plans/qa-triage/<slug>/sheet-test-backfill.csv \
- *     [--bootstrap-csv .plans/qa-triage/<slug>/schema-bootstrap.csv] \
+ *     --defects-csv tmp/qa-triage/<slug>/sheet-rows.csv \
+ *     --test-backfill-csv tmp/qa-triage/<slug>/sheet-test-backfill.csv \
+ *     [--bootstrap-csv tmp/qa-triage/<slug>/schema-bootstrap.csv] \
  *     [--dry-run]
  *
  * Flags:

@@ -1,6 +1,6 @@
 # Plan Hub
 
-`.plans/` is the canonical workspace for feature ideas, implementation plans, evaluations, lane handoffs, and automation prompts.
+`.plans/` is the canonical workspace for actionable feature ideas, implementation plans, evaluations, and lane handoffs.
 
 ## Canonical Layout
 
@@ -10,11 +10,13 @@
   backlog/            # approved but not yet active
   active/             # active feature hubs that automations scan
   archive/            # shipped, superseded, or paused work
-  audits/             # point-in-time audits (existing convention)
-  reviews/            # recurring review outputs (docs, QA sweeps, report-only checks)
   _templates/         # scaffold source for new feature hubs
-  _automation/        # automation prompt files and scheduling guidance
 ```
+
+No other top-level entries are supported. Architecture belongs in current package
+guides or `docs/`; point-in-time audit and cleanup results stay in the session until
+accepted into Linear; operational scratch belongs in ignored `tmp/`; release history
+belongs in Git tags, releases, and the relevant archived feature hub.
 
 ## Feature Hub Contract
 
@@ -32,7 +34,16 @@ Every new feature or polish effort should live in a dedicated folder:
   artifacts/
 ```
 
-`status.json` is the machine-readable source of truth for explicit lane state. Queue readiness is computed by `node scripts/plan-hub.mjs list` from `status.json` plus any required branch trigger.
+Ideas and backlog hubs keep the four canonical documents plus `status.json`.
+Lane handoff files are created when the hub moves to `active`; `reports/` and
+`artifacts/` are added only when they contain real evidence.
+
+`status.json` is the machine-readable source of truth for explicit lane state. Queue readiness is computed by `node scripts/harness/plan-hub.mjs list` from `status.json` plus any required branch trigger.
+
+Every direct child of `ideas/`, `backlog/`, `active/`, and `archive/` must be a
+feature directory with `status.json`. Loose files and invisible status-less
+directories fail validation. `links.brief`, `links.spec`, `links.plan`, and
+`links.eval` are required and must resolve.
 
 The Markdown files are the human-readable context:
 
@@ -48,7 +59,7 @@ The Markdown files are the human-readable context:
 
 ### Repo Truth and Memory
 
-`.plans/` is the durable repo-truth surface for feature state, handoffs, evaluations, and automation context.
+`.plans/` is the durable repo-truth surface for feature state, handoffs, and evaluations.
 Tool-local memory stores and local checkpoints can help an agent resume work, but they do not outrank the
 active feature hub.
 
@@ -61,10 +72,10 @@ active feature hub.
 
 Use the fastest honest validation loop for the touched surface:
 
-- `node scripts/plan-hub.mjs validate` for hub and lane-state changes
+- `node scripts/harness/plan-hub.mjs validate` for hub and lane-state changes
 - targeted `bun run test -- <file>` while shaping a bounded code change
 - `bun run test` when the changed surface needs a package or repo-level iterative gate
-- `bash scripts/check-test-quality.sh` when touching test governance
+- `bash scripts/quality/check-test-quality.sh` when touching test governance
 
 Coverage is a scheduled or pre-merge floor, not the default inner loop.
 
@@ -98,13 +109,10 @@ The actual recurring jobs do **not** live in git:
 - Codex schedules live in the Codex app automation store
 - Claude schedules live in Claude cron / automation config
 
-This repo stores the **versioned prompt source-of-truth** and workflow contract:
-
-- prompt files in `.plans/_automation/`
-- plan and handoff state in `.plans/active/<feature-slug>/`
-- recurring review outputs in `.plans/reviews/`
-
-That split keeps scheduling platform-specific while keeping instructions, branches, and artifacts reviewable in the repo.
+Versioned automation instructions belong with their durable caller in `.claude/`,
+`docs/routines/`, or the planning harness. Feature state and handoffs stay in
+`.plans/active/<feature-slug>/`; automation telemetry stays in the scheduler rather
+than creating a second plan-history surface.
 
 ## Lifecycle
 
@@ -113,15 +121,27 @@ That split keeps scheduling platform-specific while keeping instructions, branch
 3. Move the hub to `.plans/active/<feature-slug>/` when it is ready for automation
 4. Mark unused lanes as `n/a` in `status.json`
 5. Let lane automations claim work from `.plans/active/`
-6. Archive the hub when QA pass 2 is complete and the work is merged or intentionally paused
+6. Archive the hub when the work is completed, superseded, closed, cancelled,
+   or intentionally paused. Record `workflow.archived_at`,
+   `workflow.archive_reason`, and `workflow.resolution`; do not label unfinished
+   stale work as completed.
+
+Archive records keep the final plan/spec/eval and a compact status history.
+Intermediate chronology remains available in Git history. Do not create parallel
+audit, review, cleanup, ADR, or meeting-note folders under `.plans/`.
+The archive command removes operational handoffs, reports, scripts, artifacts,
+and lane files after validating the requested resolution. Archived documents are
+marked as historical records so old checklist language cannot be mistaken for live work.
 
 ## Backlog Quality Bar
 
 Backlog is for execution candidates, not general storage.
 
 - Keep only work that is realistic for the next execution cycle or two
-- Move strategic research to `.plans/ideas/` or `.plans/adr/`
-- Move prompt packs, team prompts, and implementation wrappers to `.plans/_automation/` or `.plans/archive/`
+- Move strategic research that could become work to `.plans/ideas/`; keep durable
+  architecture in current package guides or `docs/`
+- Keep agent instructions beside their active caller in `.claude/`; archive only
+  feature implementation records, not generic prompt packs
 - Archive broad legacy hubs once the remaining work can be expressed as a smaller follow-up hub
 
 Every hub that remains in `.plans/active/` or `.plans/backlog/` must include real `brief.md`, `spec.md`, `plan.todo.md`, and `eval.md` content. Migration placeholder text is not allowed in the live queue.
@@ -131,11 +151,15 @@ Every hub that remains in `.plans/active/` or `.plans/backlog/` must include rea
 Use the repo helper script for scaffolding, lane discovery, and status transitions:
 
 ```bash
-node scripts/plan-hub.mjs scaffold my-feature --title "My Feature"
-node scripts/plan-hub.mjs move --feature my-feature --to active
-node scripts/plan-hub.mjs list --agent claude --lane ui
-node scripts/plan-hub.mjs set-lane --feature my-feature --lane ui --status in_progress --actor claude
-node scripts/plan-hub.mjs validate
+node scripts/harness/plan-hub.mjs scaffold my-feature --title "My Feature"
+node scripts/harness/plan-hub.mjs move --feature my-feature --to active
+node scripts/harness/plan-hub.mjs list --agent claude --lane ui
+node scripts/harness/plan-hub.mjs summary --json
+node scripts/harness/plan-hub.mjs stale --days 14 --json
+node scripts/harness/plan-hub.mjs compact-archive
+node scripts/harness/plan-hub.mjs set-lane --feature my-feature --lane ui --status in_progress --actor claude
+node scripts/harness/plan-hub.mjs move --feature my-feature --to archive --resolution completed --reason "Merged and verified."
+node scripts/harness/plan-hub.mjs validate
 ```
 
 ## Legacy Compatibility

@@ -44,8 +44,7 @@ const BLOCKS_PER_DAY = 7_200n;
 // computes threshold from minThresholdPoints + maxRatio + decay; either
 // extend HYPERCERT_SIGNAL_POOL_ABI to surface those reads or port the formula
 // once the vendor source is consumed inside the repo. Until then the UI
-// renders a fixed 75% so it can ship without silently regressing. See B3 in
-// .plans/active/admin-design-revamp/handoffs/claude-cleanup.md.
+// renders a fixed 75% so it can ship without silently regressing.
 const DEFAULT_THRESHOLD_PERCENT = 75;
 
 /**

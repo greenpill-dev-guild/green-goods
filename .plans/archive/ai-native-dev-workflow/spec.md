@@ -1,5 +1,7 @@
 # AI-Native Developer Workflow Spec
 
+> **Archived record:** implementation is closed. Operational handoffs, reports, artifacts, and lane files were removed; any such references below describe historical execution, not live work.
+
 ## Summary
 
 Create a repo-native operating layer for AI-era development in Green Goods. This hub improves the existing `.plans` workflow instead of replacing it. Runtime code, product behavior, and package contracts remain untouched until a lane explicitly scopes them.

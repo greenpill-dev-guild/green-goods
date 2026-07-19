@@ -6,7 +6,7 @@
 
 ## Purpose
 
-Green Goods already has Knip installed and prior `.plans/clean` evidence from a dead-code pass.
+Green Goods already has Knip installed and repo-specific configuration from earlier dead-code work.
 The Syntax transcript points to Fallow as a broader anti-slop tool because it combines dead-code,
 duplication, health, changed-file audit, baselines, CI output, and dry-run autofix. This report is
 the required comparison surface before the repo adopts, replaces, or gates on either tool.
@@ -28,7 +28,6 @@ actual Green Goods signal.
 ## Source Notes
 
 - Knip is already in `package.json` and configured by `knip.ts`.
-- Prior cleanup report: `.plans/clean/agent-3-dead-code.md`
 - Fallow docs reference: https://docs.rs/crate/fallow-core/2.34.0
 
 ## Commands To Run

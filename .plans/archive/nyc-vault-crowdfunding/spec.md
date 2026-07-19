@@ -1,5 +1,7 @@
 # NYC Vault Crowdfunding Spec
 
+> **Archived record:** implementation is closed. Operational handoffs, reports, artifacts, and lane files were removed; any such references below describe historical execution, not live work.
+
 ## Summary
 
 Build a staged public `/vaults` route for Octant V2 Ethereum vault crowdfunding, starting with
