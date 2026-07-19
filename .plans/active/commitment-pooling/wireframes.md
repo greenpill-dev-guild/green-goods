@@ -6,6 +6,7 @@
 **Companions**: `uiux-spec.md` (canonical flows — every frame here implements a section of it, referenced per frame), `contract-spec.md` (module vocabulary), `settlement-spec.md` (settlement surfaces, §6 deltas here), `diagrams.md` (state machines these screens render).
 **Fidelity**: deliberately low. Boxes, labels, and navigation only — structure and flow, not visual design. Warm Earth expression, spacing, and component polish happen at implementation time per the `design`/`ui` skills; admin frames stay restrained per the prompt contract. All copy shown is placeholder English; every string ships as en/es/pt keys per uiux-spec §10.
 **Grounding rule**: component names in `{braces}` are canonical (shared primitives, `Admin*` wrappers, or NET-NEW primitives flagged in uiux-spec §9). Routes are the NET-NEW routes uiux-spec §5.1/§6.1 defines. Nothing here invents a component, route, or term the specs don't already carry.
+**Role vocabulary (decision 2026-07-18)**: member-facing and steward-facing copy says **steward** (= holder of the garden's operator/owner Hats); the shipped app still says "Operator" until the recorded app-wide rename lands.
 
 ## 0. Legend
 
@@ -19,34 +20,33 @@
 
 ## 1. Cross-surface flow map
 
-How one Need and its resulting commitment travels across the deliberately separate surfaces. The Community PWA is **not** a new route inside the client shell: it owns its own manifest, service-worker scope, telemetry identity, routes, and copy while consuming extracted shared foundations.
+How one Need and its resulting commitment travels across the deliberately separate surfaces. Nodes stay thin (≤2 lines); each surface's detail lives in the list below the map, not inside the boxes.
 
 ```mermaid
 flowchart LR
-  COM["Independent Community PWA
-  community.greengoods.app
-  Needs · Create · Profile
-  offline need/signal/testimony"]
-  ADM["Existing admin /community
-  operator triage · pools · seeding
-  evaluator lineage + CSV/JSON"]
-  PWA["Existing client adaptive shell
-  commitment claim · work · evidence
-  confirmation · member settlement status"]
-  PUB["Existing client public surfaces
-  garden · impact · funding
-  funder discovery without ranking"]
-  READ["Shared foundations + joined reads
-  auth/passkey · offline status · install/update
-  EAS Needs + Envio protocol progress"]
+  classDef planned stroke-dasharray: 6 4
+  COM["Community PWA (Sept)<br/>needs · signals · testimony"]
+  ADM["Admin<br/>steward pools · Operations"]
+  PWA["Client — installed PWA<br/>promises · work · wallet"]
+  PUB["Client — editorial website<br/>garden + impact stories"]
+  READ["Shared read model<br/>Envio + EAS joined reads"]
 
   COM -->|"Need selected for gathering"| ADM
-  ADM -->|"needUID seeds commitment"| PWA
-  PWA -->|"fulfilled work + oracle-verified settlement"| READ
-  READ --> COM
-  READ --> ADM
-  READ --> PUB
+  ADM -->|"needUID seeds a commitment"| PWA
+  PWA -->|"work · confirmation · verified settlement"| READ
+  READ -->|"progress on Needs"| COM
+  READ -->|"queues + consoles"| ADM
+  READ -->|"aggregate stories"| PUB
+  class COM planned
 ```
+
+What each surface owns:
+
+- **Community PWA** (independent app at `community.greengoods.app` — own manifest, service-worker scope, telemetry, routes): Needs · Create · Profile; offline need/signal/testimony.
+- **Admin**: steward triage, pool/cycle consoles, seeding, evaluator lineage + CSV/JSON export, and the deployer-gated Operations workspace (W24).
+- **Client installed PWA**: commitment claim, work, evidence, confirmation, member settlement status, WalletDrawer.
+- **Client editorial website**: garden and impact stories, funder discovery — aggregates only, never rankings.
+- **Shared read model**: auth/passkey, offline status, install/update, EAS Needs + Envio protocol progress joined in shared query composition.
 
 ---
 
@@ -91,19 +91,15 @@ Route `/home/:id/pool` — NET-NEW fourth `GardenTab` on the existing garden det
 │ │ stewards review who takes this up        │ │
 │ │                 [ Ask to take this up ]  │ │  ApprovalGated → "waiting" chip
 │ └──────────────────────────────────────────┘ │
-│                                              │
-│ My commitments                            ▸  │  horizontal strip → W2
-│ ┌──────────┐ ┌──────────┐ ┌──────────┐       │
-│ │(Offered) │ │(Accepted)│ │··queued··│       │  queued badge = §5.11 chrome
-│ └──────────┘ └──────────┘ └──────────┘       │
 ├──────────────────────────────────────────────┤
 │    Home         Garden         Profile       │  {AppBar} (unchanged)
 └──────────────────────────────────────────────┘
 ```
 
-- Variants (same frame, swapped bands): **NotReady** = checklist naming the missing charter, qualifying baseline, and/or exposure cap; browse/create disabled. **Paused** = `{Alert}` with steward reason; new commitments, claims, Ready submissions, and confirmations are disabled while evidence/work linkage, cancellation/expiry, and dispute recovery remain available. **Empty open pool** = planted-seed illustration slot + the two CTAs + operator-seeded hint.
+- Variants (same frame, swapped bands): **NotReady** = checklist naming the missing charter, qualifying baseline, and/or exposure cap; browse/create disabled. **Paused** = `{Alert}` with steward reason; new commitments, claims, Ready submissions, and confirmations are disabled while evidence/work linkage, cancellation/expiry, and dispute recovery remain available. **Empty open pool** = planted-seed illustration slot + the two CTAs + steward-seeded hint.
 - Cycle variants: **no open Season + open Campaigns** leaves the Campaign list and scoped work fully active while the Season slot says “No open Season”; **one Season + zero Campaigns** omits the empty Campaign list after a quiet “No open Campaigns” line; history stays separate from current scope.
-- Protocol-pool commitments shown in a garden context add, for eligible operators only, a provider-context choice ("take this up as myself" / "take this up for this garden"). The request stores `ClaimType` plus `gardenContext`; acceptance derives `providerGarden`. It does not create token custody or a member-delivery fallback.
+- Protocol-pool commitments shown in a garden context add, for eligible stewards only, a provider-context choice ("take this up as myself" / "take this up for this garden"). The request stores `ClaimType` plus `gardenContext`; acceptance derives `providerGarden`. It does not create token custody or a member-delivery fallback. Full protocol-pool claim journey: W25.
+- **No "My commitments" strip on this tab** (trimmed 2026-07-18 for client minimalism): the WalletDrawer Commitments tab (W5) is the single cross-garden "mine" surface. The `(Mine)` filter chip stays for in-garden browsing.
 - Membership-wait variant (decision #34c): a new member's queued rows render an amber `··waiting··` chrome — "waiting for your garden membership — no retries used" — and resume when the hat lands. Applies to W1 cards and W5 groups. Drawing: prototypes.md MF-5.
 - Tap card ▸ W2. Offer/Request CTAs ▸ W3 with direction preset.
 
@@ -119,13 +115,13 @@ PENDING                              DECLINED
 
 SUPERSEDED                           ACCEPTED
 ┌──────────────────────────────┐     ┌────────────────────────────────┐
-│ No longer available          │     │ Your request was accepted      │
-│ This is not a sync failure.  │     │ Provider garden: Rocinha       │
+│ Taken up by someone else     │     │ Your request was accepted      │
+│ Nothing you did went wrong.  │     │ Provider garden: Rocinha       │
 │ [Back to browse]             │     │ [Open commitment]              │
 └──────────────────────────────┘     └────────────────────────────────┘
 ```
 
-Declined creates no automatic retry: “Ask again” creates a fresh request only while the commitment remains claimable. Superseded names whether another request was accepted or the commitment was cancelled/expired and never shows a failed-job Retry. The frozen interface has no claimant-cancel control for a Pending request.
+Declined creates no automatic retry: “Ask again” creates a fresh request only while the commitment remains claimable. Superseded copy names, in plain words, whether another request was accepted ("Taken up by someone else") or the commitment was cancelled/expired ("This one was closed before a match") — driven by `resolutionCode` — and never shows a failed-job Retry or any sync/technical language. The frozen interface has no claimant-cancel control for a Pending request.
 
 ### W2 — Commitment detail (uiux-spec §5.3)
 
@@ -136,7 +132,7 @@ Route `/home/:id/pool/:commitmentId`.
 │ ←  Prune the north beds                      │
 │ (Offer)(AGRO)(Accepted)  6 hours · due Aug 12│  chips + units + due
 │ anyone in this garden may take this up       │  claim-mode helper line
-│ (recorded by your operator on your behalf)   │  OperatorCaptured chip only
+│ (recorded by your steward on your behalf)    │  OperatorCaptured chip only
 ├──────────────────────────────────────────────┤
 │ Timeline                                     │  {StateTimeline} NET-NEW
 │ ● Offered      — Maria · Jul 2               │
@@ -167,6 +163,7 @@ Route `/home/:id/pool/:commitmentId`.
 - Disputed state: banner "under review by stewards", CTAs frozen.
 - Expired state (decision #34d): the confirm block gives way to a calm expired band + `[ Offer again ]` re-entry into W3. Drawing: prototypes.md MF-3.
 - Owner withdraw (decision #34b): while Offered/Requested the creator sees `[ Withdraw this offer… ]` with a required reason (creator path of `cancelCommitment`). Drawing: prototypes.md MF-2a. Steward cancel placement remains open.
+- Hi-fi guidance (audit 2026-07-18): this is a gardener-facing surface — keep the visible viewport to state + next action. Timeline, Evidence, and Work bands collapse behind progressive disclosure (accordion / carousel / sheet) so all five bands never stack at once, and technical identifiers (UIDs, addresses, chain names) live behind a single "Details" disclosure. No dispute/legal vocabulary in primary copy — "under review by stewards" is the ceiling.
 
 ### W3 — Offer / request creation flow (uiux-spec §5.4)
 
@@ -185,20 +182,22 @@ Route `/home/:id/pool/new?direction=offer|request`. Full-screen (AppBar hidden),
 │ cycle scope [Season: First Rains ▾]          │   │                        │
 │   Season · each open Campaign · no cycle     │   │                        │
 │ title  [ Prune the north beds            ]   │   └────────────────────────┘
-│ note   [ optional                        ]   │   Step 3 — Anchors
+│ note   [ optional                        ]   │   Step 3 — What this needs
 ├──────────────────────────────────────────────┤   (DomainImpact only)
 │                        [ Continue ]          │   ┌────────────────────────┐
-└──────────────────────────────────────────────┘   │ which garden action(s) │
-                                                   │ does this fulfill?     │
-Step 4 — Review and promise                        │ ┌──────┐ ┌──────┐      │
-┌──────────────────────────────────────────────┐   │ │◉Prune│ │○Plant│ ...  │
-│ summary card (all fields)                    │   │ └──────┘ └──────┘      │
-│ [ Make this offer ]                          │   │ action-card rail from  │
-│  → enqueues `commitment` job, returns to W1  │   │ the work-flow intro    │
+└──────────────────────────────────────────────┘   │ This promise needs:    │
+                                                   │ ≡ Prune  × [ 2 ]  ✕    │
+Step 4 — Review and promise                        │ ≡ Plant  × [ 1 ]  ✕    │
+┌──────────────────────────────────────────────┐   │ [ + Add an action ]    │
+│ summary card (all fields, incl. the line     │   │ action-card picker from│
+│  "needs: Prune × 2 · Plant × 1")             │   │ the work-flow intro;   │
+│ [ Make this offer ]                          │   │ each row = one action  │
+│  → enqueues `commitment` job, returns to W1  │   │ × approved-work count  │
 │    with optimistic card + queued badge       │   └────────────────────────┘
 └──────────────────────────────────────────────┘
 ```
 
+- Step 3 is the **requirements builder** (amendment 2026-07-18): each row binds one registered action to a per-action approved-work count — `requiredActionUIDs[]` × `requiredApprovedWorkCounts[]`, max 4 rows, every count ≥ 1, running summary chip in the header. The review step reads the whole requirement in one line ("needs: Prune × 2 · Plant × 1").
 - SupportService skips step 3 entirely (evidence + confirmation is its proof).
 - Draft persists in IndexedDB (`WorkDraftRecord` semantics); re-entry offers resume via the existing `DraftDialog` pattern.
 
@@ -224,17 +223,33 @@ Step 4 — Review and promise                        │ ┌──────�
 └──────────────────────────────────────────────┘
 ```
 
+Evidence band variants — the two delivery styles read differently (audit 2026-07-18):
+
+```text
+DomainImpact — the approved work IS the evidence   SupportService / OperatorCaptured
+┌──────────────────────────────────────────────┐   ┌──────────────────────────────┐
+│ Delivery so far                              │   │ Evidence                     │
+│ ≡ Pruning session   (Approved ✓)             │   │ ≡ photo — after the workshop │
+│ ≡ Planting day      (Approved ✓)             │   │ ≡ note — "met on Saturday"   │
+│ every needed action met — Prune 2/2 ·        │   │ No separate approval step —  │
+│ Plant 1/1 · approved by your steward         │   │ your confirmation closes it. │
+└──────────────────────────────────────────────┘   └──────────────────────────────┘
+```
+
+- The two paths compose, they don't compete: DomainImpact reaches this sheet only after every per-action approved-work count is met (the approved-work chips carry that proof into the confirmation moment); no-work-requirement kinds reach it on evidence alone, and here the confirmation IS the review (decision #10/#20).
 - For a Request, the helper instead reads “claimant provides · request creator confirms.” Named groups never include the accepted provider; an acceptance that would make `N` unreachable fails before any units commit.
 - Optimistic tick on the meter; if this was the Nth confirmation, Fulfilled hero fires on **sync completion**, not enqueue.
 
 ### W5 — WalletDrawer pools panel (uiux-spec §5.8)
 
-Existing `{ModalDrawer}` from the Home header; third tab already reserved (`app.wallet.tab.commitments`), replaces `ComingSoonStub`.
+Existing `{ModalDrawer}` from the Home header — the real drawer's three tabs are **Cookies | Tokens | Commitments**; this fills the reserved Commitments stub (`app.wallet.tab.commitments`, replaces `ComingSoonStub`). This tab is the **single cross-garden promises surface** — it absorbed the former W6 home card as its header summary (decision 2026-07-18).
 
 ```text
 ┌──────────────────────────────────────────────┐
-│ Wallet            ○ jar  ○ vault  ◉ pools +2 │  tab badge = pending count
+│ Wallet   ○ cookies  ○ tokens  ◉ commitments+2│  tab badge = pending count
 ├──────────────────────────────────────────────┤
+│ Promises kept this cycle: 7 of 9 due         │  header summary (absorbed W6);
+├──────────────────────────────────────────────┤  absolute numbers only
 │ Waiting on you                               │  inbox, cross-garden
 │ ≡ Maria — Prune the north beds   (Rocinha) ▸ │  ▸ W4
 │ ≡ TAS Hub — Field survey ride    (Awka)    ▸ │
@@ -248,16 +263,9 @@ Existing `{ModalDrawer}` from the Home header; third tab already reserved (`app.
 └──────────────────────────────────────────────┘
 ```
 
-### W6 — Home summary card (uiux-spec §5.9)
+### W6 — Home summary card — RETIRED (decision 2026-07-18)
 
-At most one card on `/home`, above `{GardenList}`; only when a member garden has a live cycle.
-
-```text
-┌──────────────────────────────────────────────┐
-│ Promises kept this cycle                     │
-│ 7 of 9 due across your gardens            ▸  │  absolute numbers below the
-└──────────────────────────────────────────────┘  small-community threshold
-```
+Removed by user decision during the visual-asset audit: Home stays garden-first with **no** promises card above `{GardenList}`. The cross-garden promises summary lives solely as the header line of the WalletDrawer Commitments tab (W5). uiux-spec §5.9 carries the same retirement note; the frame number is kept so older references resolve to this tombstone instead of dangling.
 
 ---
 
@@ -275,21 +283,21 @@ Route `/garden/pool` on the existing Garden `{AdminTabRail}`.
 ├────────────────────────────────────────────────────────────────────────┤
 │ ┌─ Pool ─────────────────────────────────────────────────────────────┐ │
 │ │ (Open) charter ✓ baseline ✓ cap 24     [ Pause… ] [ Edit charter ] │ │  {AdminCard}
+│ │ 3 awaiting confirmation · 2 claims waiting · 1 failed payout  ▸jump│ │  above-the-fold summary row
 │ └────────────────────────────────────────────────────────────────────┘ │
 │ ┌─ Cycles console ───────────────────────────────────────────────────┐ │
 │ │ SEASON · First Rains · Open                                        │ │  exactly one open Season
 │ │ Seeded ─ ◉Open ─ InProgress ─ Reviewing ─ Reconciled ─ Composted   │ │
-│ │ [ Close Season ] [ Cancel… ]  [ Open Season disabled: one exists ]│ │
+│ │ [ Close Season ▸ W26 ] [ Cancel… ] [ Open Season disabled: one ]  │ │
 │ │ CAMPAIGNS (2 open)                                  [ New Campaign ]│ │  concurrent rows
 │ │ ≡ Market rides · Open · 6/16                [ Close ] [ Cancel… ] │ │
 │ │ ≡ Tool library · Reviewing · 8/8            [ Review ] [ Cancel… ]│ │
-│ │ History: ≡ Winter campaign (Reconciled) — scoped report ▸          │ │
 │ └────────────────────────────────────────────────────────────────────┘ │
 │ ┌─ Commitments ──────────────────────────────────────────────────────┐ │
-│ │ [search………] (state ▾)(type ▾)(direction ▾)  sort: newest ▾         │ │  {AdminSearchToolbar}
+│ │ [search………] (◉Open)(Confirmed)(Past) (type ▾)(direction ▾) newest ▾│ │  segmented state chips
 │ │ ≡ Prune the north beds   (Offer)(Accepted)   6h    Maria         ▸ │ │  {AdminFilterChip}
 │ │ ≡ Market ride            (Request)(Ready)    1     João          ▸ │ │  {AdminSortSelect}
-│ │ ≡ Compost workshop       (Offer)(Disputed)   3h    Ana           ▸ │ │  row ▸ W10
+│ │ ≡ Compost workshop       (Offer)(Disputed)   3h    Ana           ▸ │ │  row ▸ W10 (left inspector)
 │ └────────────────────────────────────────────────────────────────────┘ │
 │ ┌─ Claims waiting (approval-gated) ──────────────────────────────────┐ │
 │ │ Field survey · request terms                                       │ │
@@ -313,14 +321,16 @@ DECLINE A                            ACCEPT B
                                      └────────────────────────────────┘
 ```
 
-Decline never says the commitment “returns” to browse; it was already available to other eligible claimants. Accept uses the selected row’s stored claimant/requestedBy/kind/gardenContext/requestedAt and never editable replacement terms; the accepted result then shows the derived `providerGarden`. Individual rows show claimant=requestedBy. Garden rows show the GardenAccount as claimant and the authenticated operator as requestedBy.
+Decline never says the commitment “returns” to browse; it was already available to other eligible claimants. Accept uses the selected row’s stored claimant/requestedBy/kind/gardenContext/requestedAt and never editable replacement terms; the accepted result then shows the derived `providerGarden`. Individual rows show claimant=requestedBy. Garden rows show the GardenAccount as claimant and the authenticated steward as requestedBy.
+
+Layout decisions (audit 2026-07-18): the pool card gains an **above-the-fold summary row** (counts + jump links) so the most actionable queues are visible without scrolling a flat list; **history is not a sub-view** — composted cycles and settled records appear under the `(Past)` segmented chip in place (Garden `OverviewTab` chip precedent), and the old "History:" console row is retired; commitment rows open in the **left inspector** (`{AdminDialog}` via the Garden sheet descriptor) like every other garden workspace detail — the right sheet remains account chrome only.
 
 Adopted 2026-07-11 (decision #34; lo-fi drawings in `prototypes.md` pending a redraw pass here):
 - **Pool-card lifecycle actions** (#34a): a Ready pool's primary card action is `[ Open pool ]`; `[ Close pool… ]` appears once the last cycle composts (then Compost/Reopen per uiux-spec §4.1). The open-cycle flow adds only a "pool is Ready — open it now?" guard prompt. Drawing: prototypes.md MF-1.
 - **Lapsed this cycle** (#34d): a queue section below Claims waiting lists Expired seeded promises with `[ Re-seed… ]` into W8. Drawing: prototypes.md MF-4.
 - **Waiting to join** (decision #35): the Garden workspace gains a join-request queue beside ManageMembers — pending / welcomed / declined-with-reason rows executing the existing operator add path; the canonical service design is `../community-interface/join-queue-spec.md`, while this workspace consumes its membership outcome.
 
-### W8 — Operator seeding console (uiux-spec §6.3)
+### W8 — Steward seeding console (uiux-spec §6.3)
 
 Flow `{AdminDialog variant="flow"}` + `{ActionFlowShell}`, route `/garden/pool/seed`.
 
@@ -334,8 +344,11 @@ Flow `{AdminDialog variant="flow"}` + `{ActionFlowShell}`, route `/garden/pool/s
 │ title  [                              ]  note [        ] │
 ├──────────────────────────────────────────────────────────┤
 │ Step 2 — Requirements                                    │
-│ unit [ hours ▾ ]  target [ 12 ]  approved works [ 2 ]    │
-│ domains/actions rows (impact: 1–4; other kinds optional) │
+│ unit [ hours ▾ ]  target [ 12 ]                          │
+│ This promise needs:            (impact: 1–4 rows)        │
+│ ≡ Prune the north beds   × [ 2 ]  ✕                      │
+│ ≡ Plant native seedlings × [ 1 ]  ✕                      │
+│ [ + Add an action ]     (per-action approved-work counts)│
 │ assessment required  ○ yes ◉ no   due [ cycle deadline ] │
 ├──────────────────────────────────────────────────────────┤
 │ Step 3 — Confirmation rule and reward                    │
@@ -356,7 +369,7 @@ Flow `{AdminDialog}` at `/garden/pool/capture`. Steps 2–4 reuse W8's; the diff
 
 ```text
 ┌── Record on a member's behalf ───────────────────────────┐
-│ "Recorded by {operator} on your behalf.                  │  fixed non-custodial
+│ "Recorded by {steward} on your behalf.                   │  fixed non-custodial
 │  The promise stays yours."                               │  phrasing (§13 Q2)
 ├──────────────────────────────────────────────────────────┤
 │ Step 0 — Who and what kind                               │
@@ -391,45 +404,48 @@ Centered `{AdminDialog}` with workspace `tone`; opened from W7/W12/W13 rows.
 └──────────────────────────────────────────────────────────┘
 ```
 
+- Review additions (audit 2026-07-18): for steward-reviewed (approval-gated) commitments the dialog shows the pending-claims queue inline with per-row Accept / Decline (the W7 grammar), so triage never requires leaving the dialog; the requirement rows render per-action progress ("Prune 2/2 · Plant 0/1"); the reward row follows settlement-record-first precedence (settlement-spec §3.3) and shows the confirmation threshold with named-confirmer status.
+
 ### W11 — Open-cycle allocation step (uiux-spec §6.10)
 
 One step inside the open-cycle flow launched from W7's cycle console.
 
 ```text
 ┌── Open cycle: allocation policy ─────────────────────────┐
+│ Who shares in this cycle's impact certificate            │  plain-language framing
 │ preset  ◉ Garden-led (default)  ○ Balanced  ○ Custom     │
-│ gardeners [6000] treasury [1500] operator [1000]         │  bps fields, all
-│ evaluator [ 500] community [ 500] funder   [ 500]        │  editable after preset
-│ sum: 10000 ✓                                             │  hard rule: must equal 10000
-│ ⚠ shows if treasury < 1500 bps (guidance floor)          │  soft warning only
+│ gardeners [ 60% ] treasury [ 15% ] steward [ 10% ]       │  % fields, all editable
+│ evaluator [  5% ] community [  5% ] funder  [  5% ]      │  after a preset
+│ sum: 100% ✓        stored on-chain as basis points (×100)│  hard rule: must equal 100%
+│ ⚠ shows if treasury < 15% (garden-regeneration floor)    │  soft warning only
+│ At close these shares become the certificate allowlist   │  → W26 wizard
 │                          [ Open cycle ]                  │  snapshot emitted on-chain
 └──────────────────────────────────────────────────────────┘
 ```
 
+- Display unit is **percent**; "bps" appears only in the stored-as helper line (10000 bps = 100%) — the audit found bare "allocation BPS" labels unreadable.
+
 ### W12 — Pools mode inside admin `/community` (uiux-spec §6.8)
 
-Pools view inside the existing admin `/community` workspace, deployer-gated and reached through that workspace's tab rail/command palette. It is not a top-level `/pools` shell and does not add a fifth global navigation destination.
+Pools view inside the existing admin `/community` workspace, reached through that workspace's tab rail/command palette. **Rescoped 2026-07-18**: the admin stays garden-focused — this mode shows exactly **your garden's pools + the Protocol pool**, never other gardens' pools. (The cross-garden oversight table that used to sit here moved to the deployer-gated Operations workspace, W24.) The Protocol pool is visible to garden stewards because their gardeners claim and fulfill its commitments — surveys, community activations, methodology work.
 
 ```text
 ┌────────────────────────────────────────────────────────────────────────┐
-│ Community ▸ Pools        ◉ Protocol pool · ○ Gardens                   │  `/community` workspace tab
+│ Community ▸ Pools        ◉ Protocol pool · ○ This garden               │  `/community` workspace tab
 ├────────────────────────────────────────────────────────────────────────┤
 │ PROTOCOL POOL (root garden)                                            │
-│ ┌─ same section grammar as W7: status · cycle console · commitments ─┐ │
-│ │   · claims queue — plus:                                           │ │
-│ ├─ Funding view ─────────────────────────────────────────────────────┤ │
-│ │ ≡ 20 DAI · protocol treasury → Field survey (co-funded w/ Awka)    │ │  reward references
-│ ├─ Claims across gardens ────────────────────────────────────────────┤ │
-│ │ ≡ Awka Hub (garden claim) → Methodology survey                     │ │  claimant-kind column
-│ ├─ Confirmations queue ──────────────────────────────────────────────┤ │
+│ ┌─ claimable by your gardeners ──────────────────────────────────────┐ │
+│ │ ≡ Methodology survey   (Request)(steward-reviewed)   1 survey    ▸ │ │  what your people can
+│ │ ≡ Community activation (Request)(open)               3 events    ▸ │ │  take up — ▸ W25 flow
+│ ├─ your garden's involvement ────────────────────────────────────────┤ │
+│ │ ≡ Awka Hub (garden claim) → Methodology survey (Accepted)          │ │  claimant-kind column
 │ │ ≡ Field survey — 1 of 2 confirmed                              ▸   │ │  ▸ W10
+│ ├─ Funding view (references only) ───────────────────────────────────┤ │
+│ │ ≡ 20 DAI · protocol treasury → Field survey (co-funded w/ Awka)    │ │  reward references
 │ └────────────────────────────────────────────────────────────────────┘ │
 │                                                                        │
-│ GARDENS tab: one row per garden — alphabetical, never ranked           │
-│ ≡ Awka Hub   Season: InProgress · 2 campaigns   kept 8/9  exposure 14  │
-│ ≡ Muizenberg Season: Reviewing  · 0 campaigns   kept 5/6  exposure  3  │
-│ ≡ Rocinha    No open Season     · 1 campaign    —         exposure  2  │
-│   sort: alphabetical ▾ (alphabetical · recently active only)           │  no rank column ever
+│ THIS GARDEN tab: the same W7 pool console, one tap away                │
+│ (state chips Open · Confirmed · Past — no separate history view)       │
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -446,6 +462,20 @@ NET-NEW stage on the existing Hub pipeline rail, route `/hub/confirm`.
 │ ≡ TAS — Field survey ride        (Awka)      ░░░░░ 0 of 1          ▸   │  row ▸ W10
 └────────────────────────────────────────────────────────────────────────┘
 ```
+
+### W13b — Commitment-context chip on Hub work cards (delta to the existing work stage)
+
+Where steward approval intersects promises — the D2 touchpoint the sequence diagram annotates — without any new surface:
+
+```text
+┌────────────────────────────────────────────────────────────────────────┐
+│ Hub ▸ work                                                             │
+│ ≡ Pruning session — Maria          (⚘ promise: Prune 1/2)          ▸   │  chip only when the work
+│   approving this work advances the linked promise                      │  is linked to a commitment
+└────────────────────────────────────────────────────────────────────────┘
+```
+
+- The chip names the matched requirement's per-action progress (approved/required) and deep-links to W10. Approval itself is untouched — the existing WorkApproval flow simply becomes legible as promise progress.
 
 ### W14 — Assessment v3 additions to Create Assessment (uiux-spec §6.6)
 
@@ -479,7 +509,9 @@ Inserted **after `FieldNotesSection`, before Impact Certificates** in the existi
 │ ▓▓▓▓▓▓▓▓▓░░░░  runs through Aug 30           │  one thin progress band
 │ 9 promises made, 7 kept so far               │  counts-only sentence below the
 │                                              │  threshold (≥5 due, ≥3 promisers
-│                                              │  → percentages may render)
+│ Recently kept: a pruning session ·           │  → percentages may render)
+│ market rides · a tool library                │  fulfillment montage — outcome
+│                                              │  titles only, never member names
 │ Fulfilled promises from this cycle are       │  tie-in line down to the
 │ anchored in the certificates below.          │  certificates section
 ├──────────────────────────────────────────────┤
@@ -491,20 +523,24 @@ Inserted **after `FieldNotesSection`, before Impact Certificates** in the existi
 
 ### W16 — /impact promises section (uiux-spec §7.3)
 
-One NET-NEW editorial section using the page's existing kicker/heading/reveal grammar.
+One NET-NEW editorial band using the page's existing kicker/heading/reveal grammar, placed **between §01 proof markers and §02 "The cycle"** (decision 2026-07-18: promises get their own section AND the cycle pipeline learns the new stages).
 
 ```text
 ├──────────────────────────────────────────────┤
-│ PROMISES                                     │  EditorialKicker
-│ Work that starts as a promise kept           │  EditorialHeading
-│ 11 gardens with live pools · 43 promises     │  protocol totals (thresholded
-│ fulfilled this season                        │  rates per §7.2, else counts)
+│ PROMISES                                     │  EditorialKicker — own band,
+│ Work that starts as a promise kept           │  EditorialHeading  §01.5
+│ ┌────────────┐ ┌────────────┐ ┌────────────┐ │
+│ │ 43 promises│ │ 11 gardens │ │ G$ support │ │  stat tiles in the §01
+│ │ fulfilled  │ │ live pools │ │ verified ✓ │ │  proof-marker grammar
+│ └────────────┘ └────────────┘ └────────────┘ │  (thresholded per §7.2)
 │ A promise is offered, taken up, worked,      │  one lifecycle sentence in
 │ witnessed, and confirmed by the person it    │  relay vocabulary
 │ was made to.                                 │
 │ [ See the gardens ▸ ]                        │  → /gardens; no per-garden
 └──────────────────────────────────────────────┘  table on this page, ever
 ```
+
+- **§02 pipeline delta**: `PublicEvidencePipeline` gains the promise stages — Assessment → **Promise** → Work → **Confirmation** → Impact Certificate — so "The cycle" tells the whole story the band introduces. G$ tiles render only oracle-verified totals.
 
 ---
 
@@ -550,9 +586,9 @@ New `{AdminCard}` on `/garden/pool`, below the cycle console.
 
 - Gate status row (decision #34f): the settlement card adds a read-only line — `member delivery: enabled · changed by 0x9a…4f · Jul 30 · evidence ↗` (or `disabled` + reason). The flip itself stays owner-only ops (`setMemberDeliveryEnabled`); this row only makes the gate legible.
 
-### W22 — Batch execution and oracle console (inside admin `/community` Pools and per-garden)
+### W22 — Batch execution and oracle console (Operations workspace + per-garden)
 
-`{AdminDialog}` opened from W21 / the Pools workspace funding view.
+`{AdminDialog}` opened from W21 and from the NEW deployer-gated **Operations** workspace (W24) — relocated out of `/community` Pools by decision 2026-07-18.
 
 ```text
 ┌── Execute batch #12 — Rocinha ───────────────────────────┐
@@ -604,6 +640,79 @@ Gate-failed variant (same frame, no substitute custody flow):
 └──────────────────────────────────────────────┘
 ```
 
+### W24 — Operations workspace (NET-NEW, deployer-gated)
+
+New admin workspace tab gated exactly like Actions (`showOperations: isDeployer` nav slot + `RequireRole ["deployer"]` route branch). Stage rail: **Queue · Oracle · Flows**. This is the protocol-admin execution home — everything cross-garden and cross-chain lives here, keeping the garden workspaces garden-focused.
+
+```text
+┌────────────────────────────────────────────────────────────────────────┐
+│ Operations        ◉ queue (4) · oracle · flows                         │  deployer-gated tab
+├────────────────────────────────────────────────────────────────────────┤
+│ QUEUE — all gardens                                                    │
+│ ≡ Rocinha  batch #12 · 2 members · 35 G$    (Queued)    [ Execute ▸ ]  │  ▸ W22
+│ ≡ Awka     Maria — 20 G$                    (Failed ▸)  [ Requeue ]    │
+│ ≡ protocol funding → Muizenberg · 200 G$    (Queued)    [ Execute ▸ ]  │  queueFunding rows too
+├────────────────────────────────────────────────────────────────────────┤
+│ ORACLE — verification health                                           │
+│ subscription funded ✓ · DON ok ✓ · last callback 4m · 0 stale ignored  │
+│ ≡ batch #11 · Reported · checking receipt · request 0x71…c2        ▸   │
+├────────────────────────────────────────────────────────────────────────┤
+│ FLOWS — cross-chain funds board                                        │
+│ GoodDollar pool → GG protocol Safe    balance 4,120 G$  (Celo read)    │
+│ GG protocol Safe → garden Safes       3 hops verified · 1 reported     │
+│ garden Safes → members                42 verified · 2 failed           │
+│ Gardens: ≡ Awka kept 8/9 · ≡ Muizenberg kept 5/6   (alphabetical)      │  oversight rows moved
+└────────────────────────────────────────────────────────────────────────┘  from old W12; never ranked
+```
+
+- The **Flows board** is where protocol-Safe *inflow* (the HoA stream) becomes legible — a Celo balance read, since the module no longer records an upstream hop (corrections-log §9). Every downstream figure distinguishes Reported from oracle-Verified.
+- Executor-role guard (decision #34e) applies to every execute/report control here, same as W22.
+
+### W25 — Protocol-pool claim flow (client PWA)
+
+The gardener journey the protocol pool exists for: claiming and fulfilling a protocol-seeded commitment (a survey, a community activation) from the client. Entry: the protocol-pool card surfaced in W1's garden context, or the WalletDrawer (W5).
+
+```text
+┌──────────────────────────────────────────────┐
+│ (Protocol)(Request)  Methodology survey      │  (Protocol) chip is the only
+│ 1 survey · stewards review who takes this up │  new mark on the W1 card
+│ take this up as   ◉ myself   ○ this garden   │  garden option: eligible
+│ [ Ask to take this up ]                      │  stewards only
+├──────────────────────────────────────────────┤
+│ → (waiting for review) chip                  │  W1 pending/declined/superseded
+│ → accepted: deliver like any promise         │  grammar applies unchanged
+│   work + evidence anchor to YOUR garden      │  providerGarden = your garden
+│ → confirm via W4 when ready                  │
+└──────────────────────────────────────────────┘
+```
+
+- No new grammar: the protocol pool reuses W1's cards and wait states, W2's delivery, W4's confirmation. Only the `(Protocol)` chip and the provider-context choice are new — and Work/assessments anchor to the claiming garden even though the commitment lives in the root pool (D2's providerGarden rule).
+
+### W26 — Cycle close → allocation → certificate wizard (admin)
+
+`{ActionFlowShell}` flow launched from W7's cycle console `[ Close Season ]` — makes the previously undefined cycle→hypercert linkage concrete by sequencing three things the specs already define: `closeCycle` (the reconcile act), the six-role allocation snapshot (W11 set it at open), and the commitment-bundled certificate cut-over (contract-spec §9).
+
+```text
+┌── Close cycle: Season of First Rains ── ● ● ● ○ ─────────┐
+│ Step 1 — Review        9 promises · 7 kept · 62% units   │
+│   unresolved first: 1 expired [ Re-seed… ]               │
+│                     1 disputed [ Resolve… ]              │
+│ Step 2 — Shares (read-only; locked at open, W11)         │
+│   gardeners 60% · treasury 15% · steward 10%             │
+│   evaluator 5% · community 5% · funder 5%                │
+│ Step 3 — Impact certificate                              │
+│   bundle: 7 fulfilled promises + their work, evidence,   │
+│   and need lineage → allowlist from the shares above     │
+│   [ Mint impact certificate ]   (existing Hypercert      │
+│   pipeline; the garden account holds the certificate)    │
+│ Step 4 — Rest the cycle    [ Reconcile + compost ]       │
+│   aggregates roll into pool history; the next season     │
+│   seeds fresh on this pool (D5)                          │
+└──────────────────────────────────────────────────────────┘
+```
+
+- The wizard invents no contract surface — it choreographs `closeCycle` → certificate mint → `compostCycle` so stewards experience cycle close as one coherent ritual instead of three consoles.
+
 ## 7. Coverage check
 
 | uiux-spec section | Frame |
@@ -613,17 +722,20 @@ Gate-failed variant (same frame, no substitute custody flow):
 | §5.4 creation flow | W3 |
 | §5.5 evidence capture | W2a (inside W2) |
 | §5.6 confirmation flow | W4 |
-| §5.8 wallet panel | W5 |
-| §5.9 home summary | W6 |
+| §5.8 wallet panel | W5 (incl. the absorbed cross-garden summary header) |
+| §5.9 home summary | W6 — RETIRED 2026-07-18 (summary lives in W5) |
 | §5.10 hero moments | noted on W2/W4 (motion, not a screen) |
 | §6.2 garden pool tab | W7 |
 | §6.3 seeding console | W8 |
 | §6.5 analog capture | W9 |
 | §6.2.3/§6.7 commitment dialog, disputes, rewardPaid | W10 |
 | §6.10 allocation step | W11 |
-| §6.8 Pools view inside admin `/community` | W12 |
-| §6.9 Hub confirm stage | W13 |
+| §6.8 Pools view inside admin `/community` | W12 (rescoped 2026-07-18: your garden + protocol pool) |
+| §6.9 Hub confirm stage | W13 + W13b commitment-context chip |
 | §6.6 assessment v3 | W14 |
+| Operations workspace (NET-NEW, deployer-gated) | W24 |
+| Protocol-pool claim journey (client) | W25 |
+| Cycle close → allocation → certificate | W26 |
 | §7.1 garden pool story | W15 |
 | §7.3 /impact section | W16 |
 | Community member/public/admin/evaluator/funder views | canonical Community `wireframes.md` |
