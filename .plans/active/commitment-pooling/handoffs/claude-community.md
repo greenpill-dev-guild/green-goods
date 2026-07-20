@@ -7,7 +7,7 @@
 - Owner: Claude
 - Branch signal: claude/community/commitment-pooling
 - Current state: September follow-up; blocked on August substrate and the Community hub gates
-- Linear context: PRD-682; no child creation under parent_only mode
+- Linear context: PRD-682 (Community substrate); lane issues now exist per register #37
 
 ## Inputs
 

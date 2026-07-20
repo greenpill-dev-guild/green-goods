@@ -7,7 +7,7 @@
 - Owner: Codex
 - Branch signal: codex/settlement/commitment-pooling
 - Current state: manually blocked
-- Linear context: PRD-686; parent-only mode remains unchanged
+- Linear context: PRD-686 (settlement implementation), retitled by register #37 now that release ops tracks separately as PRD-731
 
 ## Inputs
 

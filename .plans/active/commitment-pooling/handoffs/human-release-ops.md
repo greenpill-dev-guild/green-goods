@@ -6,7 +6,7 @@
 - Machine lane: none; human authorization surface
 - Accountable owner: Afolabi Aiyeloja (Commitment Pooling project lead and PRD-686 assignee)
 - Current state: blocked until implementation GREEN and external gates are evidenced
-- Linear context: PRD-686; parent-only mode remains unchanged
+- Linear context: PRD-731 (release ops; no parent, sits on the Release milestone). Settlement implementation stays PRD-686.
 
 ## Inputs
 

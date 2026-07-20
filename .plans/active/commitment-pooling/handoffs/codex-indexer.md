@@ -7,7 +7,7 @@
 - Owner: Codex
 - Branch signal: codex/indexer/commitment-pooling
 - Current state: two-phase — core pooling is blocked only on frozen pooling events; settlement indexing waits for frozen settlement events
-- Linear context: PRD-650 parent-only mirror; PRD-673 is historical context
+- Linear context: PRD-722 (indexer lane) under parent PRD-650; PRD-673 is historical context
 
 ## Inputs
 

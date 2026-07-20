@@ -7,7 +7,7 @@
 - Owner: Claude
 - Branch signal: claude/ui-client/commitment-pooling
 - Current state: blocked on state_api
-- Linear context: PRD-650 parent-only mirror
+- Linear context: PRD-724 (client UI lane) under parent PRD-650
 
 ## Inputs
 

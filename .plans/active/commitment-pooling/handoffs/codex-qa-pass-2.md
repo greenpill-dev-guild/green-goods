@@ -7,7 +7,7 @@
 - Branch signal: codex/qa-pass-2/commitment-pooling
 - Branch trigger: claude/qa-pass-1/commitment-pooling
 - Current state: blocked on qa_pass_1
-- Linear context: parent_only; no QA child issue is created
+- Linear context: PRD-730 (QA pass 2 lane) under parent PRD-650. Register #37 reversed the earlier no-QA-child rule.
 
 ## Inputs
 
@@ -35,7 +35,7 @@
 ## RED / GREEN or proof limit
 
 - RED: a fixed QA1 defect still reproduces, any boundary/signature/dispatch invariant differs, or an exact regression command fails.
-- GREEN: every accepted QA1 fix is re-proven, all exact commands pass, and status/dispatch/parent-only evidence agrees with the final artifacts.
+- GREEN: every accepted QA1 fix is re-proven, all exact commands pass, and status/dispatch/lane-issue evidence agrees with the final artifacts.
 - Proof limit: QA Pass 2 introduces no behavior. If an external path cannot be rerun, preserve the earlier evidence and record staleness; do not substitute isolated browser or test-only proof or call the path GREEN.
 
 ## Exact Bun commands

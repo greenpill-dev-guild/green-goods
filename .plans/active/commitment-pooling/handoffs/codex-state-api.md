@@ -7,7 +7,7 @@
 - Owner: Codex
 - Branch signal: codex/state-api/commitment-pooling
 - Current state: two-phase — core waits for core indexer GREEN; settlement selectors wait for settlement indexer GREEN
-- Linear context: PRD-650 parent-only mirror
+- Linear context: PRD-723 (state/API lane) under parent PRD-650
 
 ## Inputs
 

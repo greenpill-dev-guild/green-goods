@@ -29,7 +29,7 @@ There are thirteen agent execution handoffs plus one human release-operations ha
 
 ## Linear boundary
 
-linear.laneSyncMode remains parent_only. PRD-650 is the single plan-hub parent mirror. PRD-686, PRD-682, and historical child IDs provide context only; these handoffs do not create or dispatch Linear children.
+linear.laneSyncMode is lane_issues (register #37, 2026-07-20, superseding register #31 and Decision Log #20). Each execution sub-lane carries a thin Linear issue: PRD-721 contracts · PRD-722 indexer · PRD-723 state/API · PRD-724 client UI · PRD-725 admin UI · PRD-726 editorial · PRD-727 docs · PRD-728 docs-guides · PRD-729 QA pass 1 · PRD-730 QA pass 2 · PRD-731 release ops. PRD-650 is the parent of all of them except PRD-731, which sits on the Release milestone; PRD-686 tracks settlement implementation and PRD-682 the Community substrate. Linear owns status, dates, assignee, and dependencies; these handoffs own content, and a lane issue body must never restate handoff scope. Historical child IDs (PRD-671–681) remain labels, not dispatch targets. Handoffs still never create or dispatch Linear issues themselves — Afo does.
 
 ## Shared safety rules
 

@@ -7,7 +7,7 @@
 - Owner: Claude
 - Branch signal: claude/ui-admin/commitment-pooling
 - Current state: two-phase — core admin waits for core state_api; settlement controls wait for settlement selectors
-- Linear context: PRD-650/PRD-682 context under parent_only mode
+- Linear context: PRD-725 (admin UI lane) under parent PRD-650; PRD-682 is Community context
 
 ## Inputs
 

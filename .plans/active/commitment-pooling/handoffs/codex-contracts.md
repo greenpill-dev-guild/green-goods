@@ -7,7 +7,7 @@
 - Owner: Codex
 - Branch signal: codex/contracts/commitment-pooling
 - Current state: follow status.json; this handoff does not self-dispatch
-- Linear context: PRD-650 parent-only mirror; PRD-671/672 are historical labels
+- Linear context: PRD-721 (contracts lane) under parent PRD-650; PRD-671/672 are historical labels
 
 ## Inputs
 

@@ -6,7 +6,7 @@
 - Owner: Claude
 - Branch signal: claude/ui/commitment-pooling
 - Current state: blocked on state_api
-- Linear context: PRD-650/PRD-682 are context under parent_only mode
+- Linear context: this is the machine-lane `ui` handoff and owns no lane issue of its own. It aggregates the sub-lane issues PRD-724 (client UI), PRD-725 (admin UI), PRD-726 (editorial), PRD-727 (docs), PRD-728 (docs-guides) under parent PRD-650; PRD-682 is September Community context. Each per-surface handoff carries its own lane issue.
 
 ## Inputs
 
