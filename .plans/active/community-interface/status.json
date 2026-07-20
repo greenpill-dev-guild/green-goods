@@ -53,7 +53,8 @@
       "hardening": ["PRD-695", "PRD-696"]
     },
     "lastSyncedAt": "2026-07-10",
-    "lastSyncPreviewAt": "2026-07-10"
+    "lastSyncPreviewAt": "2026-07-10",
+    "instrumentDocumentsAreCanonical": true
   },
   "taxonomy": {
     "initiative": "protocol-readiness",
@@ -101,8 +102,14 @@
       "tdd": {
         "mode": "required",
         "status": "pending",
-        "red": { "command": "", "evidence": "" },
-        "green": { "command": "", "evidence": "" },
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
         "note": "Do not dispatch while manual_blocked is true. Reuse the registration conventions frozen in the Commitment Pooling contracts interface; PRD-671 remains historical only."
       },
       "skill_tags": ["contracts"]
@@ -120,8 +127,14 @@
       "tdd": {
         "mode": "required",
         "status": "pending",
-        "red": { "command": "", "evidence": "" },
-        "green": { "command": "", "evidence": "" },
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
         "note": "Machine lane aggregates indexer, shared-foundation migration, joined reads/funding verification, offline kinds, agent transcription fallback, voice feasibility, and paymaster readiness. Keep the manual blocker until every named execution sub-lane has its required GREEN or external proof."
       },
       "skill_tags": ["react", "tanstack-query", "data-layer", "indexer"]
@@ -139,8 +152,14 @@
       "tdd": {
         "mode": "required",
         "status": "pending",
-        "red": { "command": "", "evidence": "" },
-        "green": { "command": "", "evidence": "" },
+        "red": {
+          "command": "",
+          "evidence": ""
+        },
+        "green": {
+          "command": "",
+          "evidence": ""
+        },
         "note": "Machine lane aggregates Community PWA, admin triage, funder lens, and docs-facing UI work. Detailed sub-lane proof belongs in execution_sub_lanes handoffs; do not clear the aggregate manual blocker from state_api alone."
       },
       "skill_tags": ["ui", "design", "react"]
@@ -327,6 +346,10 @@
     {
       "date": "2026-07-19",
       "event": "Index drift closed (prototypes.md P2-5): survey-instrument.md and onboarding-call.md are now registered in links with their Linear document slugs in linear.instrumentDocuments, having been the declared execution source since the 07-11 survey-first restructure while remaining invisible to machine state. researchIssues renumbered for the Community-team move (RESR-62 to COM-7, PRD-701 to COM-3; RESR-64 keeps its prefix as a deliberate scoping record). Same pass: onboarding-call.md restructured for legibility and the instrument mirror rule made explicitly one-way, replacing 'keep the mirror in lockstep', which read bidirectionally and had already produced drift."
+    },
+    {
+      "date": "2026-07-19",
+      "event": "Both research instruments moved to Linear as canonical. survey-instrument.md and onboarding-call.md are now pointers carrying purpose, owning issues, the Linear link, and the routing contract for call outputs; the bodies live in Linear documents c9271149e328 and d3690de04864. Driven by the repository being public plus a mirror rule that had no automation and had already drifted. research-plan.md's direction-of-truth rule inverted to match. Prior versions remain in git history."
     }
   ]
 }
