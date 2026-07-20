@@ -1,5 +1,16 @@
 # ARCHIVE — Commitment Pooling Apply Pack (fully applied and reconciled 2026-07-11)
 
+> **Archive status — read nothing here as current.** This pack records what was applied to Linear
+> on 2026-07-11, when a fourth garden had been **recorded as selected** (Decision Log `#25`). That
+> was reversed: **Decision Log `#29` (2026-07-18) establishes that no fourth garden is or was
+> selected** — the slot is open with its criteria retained. Every selection statement below is
+> superseded and non-canonical, preserved only as the record of what was written at the time.
+>
+> **Redaction note (2026-07-19)**: this record originally named the candidate. The name was
+> scrubbed under Decision Log `#29` — no artifact names a fourth garden, and this repository is
+> public. The applied Linear state is unchanged; only the identity is withheld. It lives in
+> research-notes storage.
+
 **Prepared**: 2026-07-10 (RESR-57 external-brief wave) · **amended 2026-07-11** (pilot-alignment wave, decision #24)
 **Why this exists**: historical audit trail for the writes applied on 2026-07-11. **Do not execute or re-apply any payload below.** Current execution truth is the repo source set plus the live Linear re-read summarized in the reconciliation addendum.
 **Historical apply order**: 1 → 6, then the manual step, then the verification checklist. This is retained for provenance only.
@@ -36,7 +47,7 @@ Repo sources: `.plans/active/commitment-pooling/external-communications.md` (rol
 * A Celo transaction report is not proof. Chainlink Functions verifies one finalized receipt; only a valid current request callback may produce `Verified`. There is no human fallback.
 * Community is a planned independent PWA; operator/evaluator tools live in admin `/community`; funder discovery remains in existing client public surfaces.
 * Funding shown in Need context supports a garden and is not escrow or steering.
-* The pilot anchors on the named focus cohort (2026-07-10; Garden 4 selected 2026-07-11): Tech and Sun Hub (Awka, Nigeria), Greenpill Cape Town (Muizenberg / Deep South Circles; UNICEF-funded program, partner stays off-platform), AgroforestDAO / Redemption Hill (Bias Fortes, Brazil), and Barichara Regenerativa (Barichara, Santander, Colombia — the mature MRV-adoption anchor). Naming never presumes readiness; gardens are never ranked. July rewards are Cookie Jar/treasury only; in August every focus garden is G$-settlement-capable, with Tech and Sun Hub as the first-execution hypothesis and Pass-2 evidence ordering the rollout.
+* The pilot anchors on the named focus cohort (2026-07-10; a fourth garden was recorded as selected 2026-07-11 — since reversed, see the archive status above): Tech and Sun Hub (Awka, Nigeria), Greenpill Cape Town (Muizenberg / Deep South Circles; UNICEF-funded program, partner stays off-platform), AgroforestDAO / Redemption Hill (Bias Fortes, Brazil), and a fourth slot then recorded as filled (the mature MRV-adoption anchor; never named here — Decision Log `#29`, which reopened the slot). Naming never presumes readiness; gardens are never ranked. July rewards are Cookie Jar/treasury only; in August every focus garden is G$-settlement-capable, with Tech and Sun Hub as the first-execution hypothesis and Pass-2 evidence ordering the rollout.
 * The `CommitmentRegister` is non-transferable in v1 — no swaps, exchange rates, or tradeable vouchers; transferable settlement vouchers are the evidence-gated follow-on (PRD-651).
 * No custody anywhere: the module never holds rewards; August settlement is operator-executed from garden Safes (automation is a stretch goal, else September).
 * Borrow-and-repay is design-only (`../../backlog/commitment-credit-follow-on/spec.md`): records-only, interest-free, never a per-person credit score, and not in the August release.
@@ -73,7 +84,7 @@ Carries the B1–B3 worked examples (decision #24 constraints: quantities illust
 
 **2026-07-11 hold (decision #26)**: the Garden-4 name is withheld pending first contact — a later same-day pass anonymized every presentation-facing and operational surface to "a fourth garden — in outreach, named only once participation is confirmed." This applied-result below remains the accurate record of what was applied at 03:06–03:10Z.
 
-**2026-07-11 late amendment (decision #25)**: Garden 4 was selected during application — apply §§5–6 with every "Garden 4 — TBD" occurrence replaced by **Barichara Regenerativa** (Barichara, Santander, Colombia; AGRO; the es locale proof rides B4; Part A intro reads "Named candidates (2026-07-10; Garden 4 selected 2026-07-11)"; the criteria paragraph reads as selection rationale with Pass 1 verifying each criterion; the domains sentence counts four candidates; the matrix July column reads "Cookie Jar / treasury only (from onboarding)"; B4 retitles to "Barichara Regenerativa — mature-organization MRV adoption" with the es note and Pass-1/2 open questions; S12's pilot thread reads "B4 (Barichara Regenerativa)"). The applied-result section records the final content as written.
+**2026-07-11 late amendment (decision #25 — superseded by Decision Log `#29`)**: Garden 4 was recorded as selected during application — apply §§5–6 with every "Garden 4 — TBD" occurrence replaced by **the fourth-garden candidate** (AGRO; the es locale proof rides B4; Part A intro reads "Named candidates (2026-07-10; Garden 4 selected 2026-07-11)"; the criteria paragraph reads as selection rationale with Pass 1 verifying each criterion; the domains sentence counts four candidates; the matrix July column reads "Cookie Jar / treasury only (from onboarding)"; B4 retitles to the candidate name plus "mature-organization MRV adoption" with the es note and Pass-1/2 open questions; S12's pilot thread reads "B4 (the candidate)"). The applied-result section records the final content as written.
 
 ```
 # Commitment Pooling — Use Cases & Domain Scenarios
@@ -254,18 +265,18 @@ At apply time, the then-connected `save_issue` schema could not express a null d
 
 ## Applied result (2026-07-11)
 
-Applied in order §1→§6 with the Barichara Regenerativa substitutions from the late amendment (Garden 4 selected by Afo mid-application: Barichara Regenerativa, Barichara, Santander, Colombia — agroforestry, the mature MRV-adoption anchor), after a pre-write drift check (the five most-recently-updated project issues and both project documents showed only this pipeline's own 2026-07-11T01:49–01:52Z writes; no manual edits to reconcile):
+Applied in order §1→§6 with the Garden-4 substitutions from the late amendment (a fourth garden recorded as selected mid-application: the candidate — agroforestry, the mature MRV-adoption anchor; superseded by Decision Log `#29`), after a pre-write drift check (the five most-recently-updated project issues and both project documents showed only this pipeline's own 2026-07-11T01:49–01:52Z writes; no manual edits to reconcile):
 
-- **§1** — memo document retitled to "Commitment Pooling — External Documentation & Rollout Plan" and re-mirrored from `external-communications.md` (which by application time also carried the UNICEF-funded wording, the Barichara cohort line, and the new anti-single-garden claims guardrail), with the synthesis hyperlink transform. Applied 03:06Z.
+- **§1** — memo document retitled to "Commitment Pooling — External Documentation & Rollout Plan" and re-mirrored from `external-communications.md` (which by application time also carried the UNICEF-funded wording, the Garden 4 cohort line, and the new anti-single-garden claims guardrail), with the synthesis hyperlink transform. Applied 03:06Z.
 - **§2** — RESR-57 description replaced with the reconciled payload: twelve required facts including the full four-garden cohort with all-gardens settlement capability, decoupled 07-16 interim target pointing sessions at PRD-701 (due 2026-07-30). Applied 03:06Z.
 - **§3** — PRD-686 receipt predicate corrected: successful Safe/module execution, `Transfer.from` = stored Safe, exact recipient/amount multiset, outer `transaction.from` may be the scoped Zodiac executor; "stored Safe sender" removed. Applied 03:06Z.
-- **§4** — new document "Commitment Pooling — External Brief (v1 draft, English)" created and attached to RESR-57, mirroring `external-brief.md` **after** its three stale single-garden spots (lines 29/45/52) were corrected and Barichara added to its cohort. Applied 03:06Z.
-- **§5** — RESR-58 scenario document replaced: Last aligned 2026-07-11, four-garden Part A with reward-path matrix, B1–B3 worked examples, B4 Barichara journey (es locale proof), S1–S12 with updated pilot threads. Applied 03:08Z.
-- **§6** — RESR-58 issue (cohort + bullets), PRD-701 (dueDate 2026-07-30 + "Kickoff exit (due 2026-07-30)" + session-scheduling note), RESR-62 (UNICEF-funded + Barichara + Pass-1 supplements), Garden Mandate Survey document (same + schedule row re-point), and the July tracking doc (Barichara rows 4/8, all rows Open). Applied 03:08–03:10Z.
+- **§4** — new document "Commitment Pooling — External Brief (v1 draft, English)" created and attached to RESR-57, mirroring `external-brief.md` **after** its three stale single-garden spots (lines 29/45/52) were corrected and Garden 4 added to its cohort. Applied 03:06Z.
+- **§5** — RESR-58 scenario document replaced: Last aligned 2026-07-11, four-garden Part A with reward-path matrix, B1–B3 worked examples, B4 Garden 4 journey (es locale proof), S1–S12 with updated pilot threads. Applied 03:08Z.
+- **§6** — RESR-58 issue (cohort + bullets), PRD-701 (dueDate 2026-07-30 + "Kickoff exit (due 2026-07-30)" + session-scheduling note), RESR-62 (UNICEF-funded + Garden 4 + Pass-1 supplements), Garden Mandate Survey document (same + schedule row re-point), and the July tracking doc (Garden 4 rows 4/8, all rows Open). Applied 03:08–03:10Z.
 
 Every write's returned payload was inspected as the live re-read; no write was rejected and no credit limit was hit. **Historical state at 03:16Z**: the stale 2026-07-29 due dates on PRD-651 and PRD-697 still required a manual UI clear. The reconciliation addendum below records their later verified `null` state.
 
-**Convergence addendum (03:08–03:16Z)**: a second session applied the same pack concurrently — its §§1–3 landed 03:08Z and §§5–6 at 03:11–03:12Z, layered over the 03:06–03:10Z application above with identical pack payloads plus the `external-communications.md` documentation-set item-3 Barichara fix (03:07Z), which the live memo mirror therefore carries. Two first-application refinements were briefly overwritten and re-applied at 03:15–03:16Z: RESR-62's Pass-1 Barichara criterion-verification supplement, and the survey document's kickoff schedule row re-point to the PRD-701 2026-07-30 kickoff exit plus its Last-aligned bump to 2026-07-11. As of 03:16Z the memo, brief document, RESR-57, PRD-686, RESR-58 issue/document, PRD-701, RESR-62, and the survey document all carry the union state; treat that as final and do not re-apply earlier payloads over it.
+**Convergence addendum (03:08–03:16Z)**: a second session applied the same pack concurrently — its §§1–3 landed 03:08Z and §§5–6 at 03:11–03:12Z, layered over the 03:06–03:10Z application above with identical pack payloads plus the `external-communications.md` documentation-set item-3 Garden 4 fix (03:07Z), which the live memo mirror therefore carries. Two first-application refinements were briefly overwritten and re-applied at 03:15–03:16Z: RESR-62's Pass-1 Garden 4 criterion-verification supplement, and the survey document's kickoff schedule row re-point to the PRD-701 2026-07-30 kickoff exit plus its Last-aligned bump to 2026-07-11. As of 03:16Z the memo, brief document, RESR-57, PRD-686, RESR-58 issue/document, PRD-701, RESR-62, and the survey document all carry the union state; treat that as final and do not re-apply earlier payloads over it.
 
 ## Reconciliation addendum (2026-07-11 ~20:45Z, post-apply deep-review pass)
 
