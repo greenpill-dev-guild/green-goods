@@ -21,7 +21,7 @@ the zero-address sentinel:
 
 | Artifact key | Current label |
 | --- | --- |
-| `ensReceiver` | Intentional (L1/CCIP as [ADR-015](../../../.plans/adr/ADR-015-self-call-pattern.md)). |
+| `ensReceiver` | Intentional L1/CCIP receiver; see `../src/registries/ENSReceiver.sol` and the current contracts builder docs. |
 | `gardenerRegistry` | Pending deployment. |
 | `gardenerAccountLogic` | Pending deployment. |
 

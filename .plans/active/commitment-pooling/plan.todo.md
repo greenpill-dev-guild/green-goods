@@ -19,18 +19,18 @@ Every file in this hub, by role. **This list is the index — if you add a docum
 | `plan.todo.md` | **This file.** Decisions, tracks, lane checklists, follow-ups. The hub entry point. | Lane-level execution truth |
 | `contract-spec.md` | Pooling module + register: state machines, events, §6.1 permission matrix | **Contract-layer source of truth** |
 | `settlement-spec.md` | G$ split-state settlement: SettlementModule, Celo Safes, oracle, AA gate | **Settlement + verification source of truth** |
-| `credit-spec.md` | Borrow-and-repay `CreditRegister` | Design only — **blocked follow-on**, not dispatchable |
+| `../../backlog/commitment-credit-follow-on/spec.md` | Borrow-and-repay `CreditRegister` | Design only — **blocked follow-on**, not dispatchable |
 | `uiux-spec.md` | Canonical cross-surface flows + §4 state tables + job kinds | UI/UX contract |
 | `wireframes.md` | W1–W26 frames across four surfaces | **Lo-fi structural truth** |
 | `diagrams.md` | D1–D13 mermaid execution reference (ERD, sequences, state machines, topology) | Flow truth |
 | `prototypes.md` | 14 storyboards (SB-1–14) + missing-frame index + action inventory | Fidelity-neutral walks — **adds no design authority** |
 | `visual-assets.md` | Index of the audience graphics (SVG + 2x PNG) + style contract + regeneration | Asset index |
 | `acceptance-matrix.md` | Exact copy / state / public-claim targets for handoffs and QA | Acceptance targets |
-| `corrections-log.md` | Claim-by-claim verification ledger (VERIFIED / CORRECTED / UNVERIFIABLE / SUPERSEDED) | **Correction record — §9 owns the fund-topology correction** |
+| `reports/corrections-log.md` | Claim-by-claim verification ledger (VERIFIED / CORRECTED / UNVERIFIABLE / SUPERSEDED) | **Correction record — §9 owns the fund-topology correction** |
 | `external-communications.md` | Rollout plan: evidence vocabulary, audiences, documentation set, GTM, claims guardrails | External-comms contract |
 | `external-brief.md` | The two-page shareable external brief | Draft — mirrors to the Google Doc |
-| `linear-apply-pack.md` | Record of writes applied to Linear on 2026-07-11 | **ARCHIVE — do not execute or re-apply** |
-| `linear-update-pack.md` | Earlier reconciliation pack, superseded | **ARCHIVE — do not execute or re-apply** |
+| `reports/linear/linear-apply-pack.md` | Record of writes applied to Linear on 2026-07-11 | **ARCHIVE — do not execute or re-apply** |
+| `reports/linear/linear-update-pack.md` | Earlier reconciliation pack, superseded | **ARCHIVE — do not execute or re-apply** |
 | `status.json` | Machine state for the plan harness | Machine lanes |
 | `handoffs/` | 17 lane dispatch files; `README.md` is the index, `human-release-ops.md` owns broadcast/cutover authorization | Per-lane dispatch |
 
@@ -81,7 +81,7 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
 | 15 | Fund topology: HoA stream → GG protocol Safe (Celo) → garden Celo Safes → members. One deterministic Safe mapping per garden, deployed on demand. Pilot recovery is exactly 2-of-3: protocol multisig, Dev Guild recovery multisig, and named garden recovery delegate; no owner is an executor. Green Goods queues only the derived ProtocolToGarden funding route; HoA → protocol Safe remains upstream context. | User-confirmed topology and settlement trust review through 2026-07-10; working-capital hop removed by user decision 2026-07-18 (corrections-log §9). |
 | 16 | Members receive G$ at same-address smart accounts on Celo only after the AA/bundler/paymaster gate passes. If it fails, automated member delivery and member sends remain blocked while ProtocolToGarden funding may continue; no alternate member-claim path ships. | User decision 2026-07-10; settlement-spec §5. |
 | 17 | The app becomes multi-chain this iteration: primary chain (`VITE_CHAIN_ID`) + settlement chain (Celo 42220). Status reads from the indexer and Safe balances use a second viem client; member balance/send surfaces ship only after `memberDeliveryEnabled` records the AA/paymaster gate. | User decisions through 2026-07-10; settlement-spec §5. |
-| 18 | Borrow-and-repay becomes a blocked follow-on lane: `CreditRegister` is designed in `credit-spec.md`, but it is not part of the August base MVP and is not dispatchable without an explicit unblock | User decision 2026-07-06; keeps GE mutual-credit design visible without expanding the hard August commitment. |
+| 18 | Borrow-and-repay becomes a blocked follow-on lane: `CreditRegister` is designed in `../../backlog/commitment-credit-follow-on/spec.md`, but it is not part of the August base MVP and is not dispatchable without an explicit unblock | User decision 2026-07-06; keeps GE mutual-credit design visible without expanding the hard August commitment. |
 | 19 | `status.json` uses only plan-hub canonical machine lanes (`contracts`, `state_api`, `ui`, `qa_pass_1`, `qa_pass_2`); detailed workstreams remain as `execution_sub_lanes` and this checklist | Keeps `node scripts/harness/plan-hub.mjs validate`, `list`, and `record-tdd` usable without losing the Codex/Claude sub-lane breakdown. |
 | 20 | Linear sync is explicit parent-only for this hub (`linear.laneSyncMode = parent_only`) | Preserves the low-noise Linear footprint and avoids using PRD-650 as fake lane issue IDs; lane-level execution truth stays in `.plans` and handoffs. |
 | 21 | Commitment domain scope is optional and multi-valued. `domains[]` + positional `requiredActionUIDs[]` replace singular domain/action fields; DomainImpact alone requires 1–4 registered action/domain pairs. UID `0` is valid; array presence is the binding signal. `CommitmentCreated` emits all immutable creation facts, and approval-gated claims use a commitment-keyed companion index for deterministic decline/accept/supersede handling. | User alignment + regression review 2026-07-09; aligns the spec with the live ActionRegistry allocator and Envio's current ID-first handler API. |
@@ -140,7 +140,7 @@ Known mis-resolutions fixed in place: `contract-spec.md` §Grassroots-Economics-
 
 ## Research / Plan Gate
 
-- [x] Research evidence recorded: `corrections-log.md` (every Document A repo claim verified, corrected, or superseded, with file paths)
+- [x] Research evidence recorded: `reports/corrections-log.md` (every Document A repo claim verified, corrected, or superseded, with file paths)
 - [x] Existing repo patterns identified: CookieJar.sol module template, badge-schemas standalone registration, greenWill/hypercerts handler patterns, SubmitWork analog capture, WalletDrawer pools tab
 - [x] Human judgment points surfaced and decided: 27 alignment decisions (2026-07-03), approved Linear change set (2026-07-04), and all 22 readiness findings scope-locked (2026-07-10)
 - [x] Out of scope defined: no bridged G$, bridge custody/unbounded value authority, Sarafu integration, transferable settlement vouchers, indexed Celo/G$ transfers, garden-to-garden federation, leaderboards, or public credit scores; no commitment EAS schema; no claim flow in the community interface v1
@@ -265,10 +265,10 @@ Machine-lane ownership mirrors `status.json`: Codex owns `contracts`, `state_api
 
 ### Credit Follow-on (`codex/credit/commitment-pooling`): blocked, no tracker yet
 
-- [ ] Do not implement without an explicit unblock; `credit-spec.md` is design truth only
+- [ ] Do not implement without an explicit unblock; `../../backlog/commitment-credit-follow-on/spec.md` is design truth only
 - [ ] Depends on PRD-672/686 interface stability and the settlement-side loan-disbursement seam
 - [ ] When unblocked: `CreditRegister` + indexer + shared `queryKeys.credit.*` + `credit` job kind + admin/PWA credit surfaces
-- [ ] Write `handoffs/codex-credit-follow-on.md`
+- [ ] Write `../../backlog/commitment-credit-follow-on/handoffs/codex-contracts.md`
 
 ### UI Client (`claude/ui-client/commitment-pooling`): PRD-675
 
@@ -330,10 +330,10 @@ Per the Validation Intent Ladder: lane work uses targeted proof; the coordinator
 
 1. **App-wide Operator → Steward rename**: community glossary (`docs/docs/reference/glossary-community.md`), docs site, i18n keys ×3 locales, admin/client UI copy, vocab-lint update. CP specs/visuals already use steward (mapping note: steward = operator/owner Hats).
 2. **PRD-680 docs-promotion appendix refresh**: diagrams.md §Appendix already lists the ship-time docs edits; re-check after the audit-response restructure (D6 acts, D13 matrix, CommitmentRequirement entity).
-3. ~~**Linear re-apply pass**~~ — ✅ **DONE 2026-07-19.** The corrected wording was applied live to PRD-686, the project description, RESR-57, RESR-58 and the Pool Identity companion; the archived packs keep their original text as provenance (they are frozen records of what was applied on 2026-07-11, not current guidance). Still outstanding on the Linear side: the canonical synthesis's two sentence-edits (see #9) and the G$-on-Arbitrum correction to PRD-649 + the Lifecycle companion (`corrections-log.md` §9e).
+3. ~~**Linear re-apply pass**~~ — ✅ **DONE 2026-07-19.** The corrected wording was applied live to PRD-686, the project description, RESR-57, RESR-58 and the Pool Identity companion; the archived packs keep their original text as provenance (they are frozen records of what was applied on 2026-07-11, not current guidance). Still outstanding on the Linear side: the canonical synthesis's two sentence-edits (see #9) and the G$-on-Arbitrum correction to PRD-649 + the Lifecycle companion (`reports/corrections-log.md` §9e).
 4. **Ops confirmation before the first garden Safe deploys**: designate the Dev Guild recovery multisig's concrete Celo address independently of the retired working-capital Safe, and record the HoA stream's receiving-address evidence (GG protocol Safe) in the settlement handoff (milestone M1, settlement-spec §8).
 5. **Optional hi-fi design pass** (Stitch / Claude Design) over the revised client pool surfaces (W1/W2/W25) once these wireframes settle.
-6. **Resolve the G$-for-protocol-services question** with GoodDollar (`corrections-log.md` §9b): may Green Goods charge gardens G$ for protocol services, given the House of Alignment circulation mandate? Open external dependency; the corrected topology has no return leg.
+6. **Resolve the G$-for-protocol-services question** with GoodDollar (`reports/corrections-log.md` §9b): may Green Goods charge gardens G$ for protocol services, given the House of Alignment circulation mandate? Open external dependency; the corrected topology has no return leg.
 7. **Linear archive candidates — only ONE of six is clean.** A 2026-07-18 pre-archive confirmation pass grep-proved each candidate against every repo spec and the canonical synthesis. **The specs carry the WHAT; these docs carry the WHY, and the WHY is almost never reproduced.**
 
    | Linear doc | Verdict | What is lost if archived as-is |
@@ -352,7 +352,7 @@ Per the Validation Intent Ladder: lane work uses targeted proof; the coordinator
 8. **Add Linear document URLs/IDs to every citing spec.** `settlement-spec.md:7` cites its decision basis by **bare multi-word title**, and no repo spec contains a single `linear.app/…/document/…` URL. Proved fragile today, independent of archiving: a multi-word Linear title search returns **empty even for a live document** ("Architecture 3 Re-Score Sarafu" → 0 results; "Sarafu" → found). Archived docs stay retrievable by stable ID, so citing the ID/URL fixes both problems at once.
 9. **Linear docs 1, 2, 9, 10 still need their corrections applied.** Docs 1 and 10 carry **embedded Linear-hosted images** that a wholesale content replacement would delete — now that their Google Doc tabs exist, stub them instead. Doc 9 must keep Part D. **Doc 2 (canonical synthesis, 72k chars) needs exactly two edits**, and the same two apply to Google Doc tab 02:
    - **§2.7, rail 4** — replace `down through a Dev-Guild working-capital Safe and the GG protocol Safe to each garden's Safe` with `directly into the GG protocol Safe and from there to each garden's Safe`.
-   - **Change Log, Pass-4 row V** — do **not** rewrite it (it is accurate as history). Append to the end of the row: `**Superseded 2026-07-18**: the working-capital hop was retired — the House of Alignment stream now lands directly in the GG protocol Safe. See corrections-log.md §9.`
+   - **Change Log, Pass-4 row V** — do **not** rewrite it (it is accurate as history). Append to the end of the row: `**Superseded 2026-07-18**: the working-capital hop was retired — the House of Alignment stream now lands directly in the GG protocol Safe. See reports/corrections-log.md §9.`
 
    These are hand edits by design: a 72k-character document cannot be safely regenerated through the MCP write path, and a two-sentence change in an editor carries none of that risk.
 

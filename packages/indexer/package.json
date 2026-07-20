@@ -3,6 +3,7 @@
   "version": "1.2.0",
   "scripts": {
     "clean": "node ../../scripts/dev/node-cli.js tsc --clean",
+    "prebuild": "[ -f generated/src/Handlers.res.js ] || bun run test:setup",
     "build": "node ../../scripts/dev/node-cli.js tsc --build",
     "watch": "node ../../scripts/dev/node-cli.js tsc --watch",
     "mocha": "node ../../scripts/dev/node-cli.js mocha --require tsx \"test/**/*.ts\"",
@@ -23,7 +24,7 @@
     "db:down": "cd generated && docker compose down",
     "db:logs": "cd generated && docker compose logs -f",
     "test:setup": "bun run codegen && bun run setup-generated",
-    "pretest": "[ -d generated/src ] || bun run test:setup",
+    "pretest": "[ -f generated/src/Handlers.res.js ] || bun run test:setup",
     "test": "bun run mocha",
     "test:coverage": "c8 bun run mocha",
     "test:full": "bun run test:setup && bun run mocha",

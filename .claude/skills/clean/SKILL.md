@@ -32,7 +32,7 @@ Before assessment:
 
 1. **Inspect repository state**: `git status --short --branch`. If unrelated or unknown changes overlap the requested scope, stop and surface them; do not format, stash, branch, or edit around them.
 2. **Run a non-mutating baseline**: `bun format:check`, `bun lint`, and `bun run test` — capture pass/fail counts without rewriting files.
-3. **Load prior audit if present**: inspect the newest `.plans/audits/*-audit.md` without assuming one exists.
+3. **Load prior accepted findings when requested**: query current Linear issues in the approved scope; do not treat old repo-local reports as a registry.
 4. **Stay on the current branch**: never create or switch branches during pre-flight.
 5. **Record the assessment base**: `CHECKPOINT_SHA="$(git rev-parse HEAD)"`.
 
@@ -60,7 +60,9 @@ Salvage is allowed only when the human explicitly approves a stale-base salvage 
 - affected file list
 - planned validation and conflict audit steps
 
-When stale-base salvage is approved, create `.plans/clean/merge-audit.md` and record every conflict and every dropped/ported agent insight.
+When stale-base salvage is approved, record every conflict and every dropped/ported
+agent insight in the conversation or, for plan-backed work, in the existing feature
+hub's `reports/merge-audit.md`.
 
 ### Agent Protocol (all agents)
 
@@ -72,7 +74,11 @@ SCOPE LOCK       — Wait for the human to approve exact finding numbers.
 Phase 3: IMPLEMENT — Fix only approved findings. Do not pull in adjacent cleanup.
 ```
 
-Assessment results stay in the conversation until scope lock. After approval, each implementation lane records its approved finding IDs and provenance at `.plans/clean/agent-{N}-{name}.md`. In `--dry-run` mode, lanes stop after Phase 2 and do not write files.
+Assessment results stay in the conversation until scope lock. After approval, each
+implementation lane returns its approved finding IDs and provenance to the lead. For
+plan-backed work, the lead may add a compact result to the existing feature hub's
+handoff or report; do not create a generic cleanup-report directory. In `--dry-run`
+mode, lanes stop after Phase 2 and do not write files.
 
 Every report must include a provenance block:
 
@@ -159,7 +165,7 @@ digraph clean_flow {
 
 ### After approved implementation:
 
-1. **Collect implementation reports** from `.plans/clean/agent-*.md`, each tied to approved finding IDs.
+1. **Collect implementation results** from the lanes/session, each tied to approved finding IDs.
 2. **Verify provenance when worktrees were authorized** — each report must show `stale_base: no`; if not, stop for re-dispatch or explicit stale-base salvage approval.
 3. **Merge authorized worktrees only** without blanket "take ours" / "take theirs" conflict resolution; skip this step for current-branch execution.
 4. **Write merge audit** if any conflict, stale-base salvage, dropped stash, or no-op cherry-pick occurred.
@@ -173,7 +179,9 @@ digraph clean_flow {
 
 ### Merge Audit Format
 
-Use this format in `.plans/clean/merge-audit.md` whenever a merge is not a clean fast-forward/cherry-pick with no conflicts:
+Use this format in the conversation, or in the existing feature hub's
+`reports/merge-audit.md`, whenever a merge is not a clean
+fast-forward/cherry-pick with no conflicts:
 
 ```md
 # Clean Merge Audit
@@ -200,11 +208,8 @@ For each conflict, inspect the agent diff before resolving. "Ours" is valid only
 
 ### Commit Hygiene
 
-Use source-change subjects only when source changes landed. If an implementation result is report-only or a no-op at the approved implementation head, use a docs/plans subject such as:
-
-```text
-docs(plans): record agent-2 type consolidation no-op
-```
+Use source-change subjects only when source changes landed. A report-only or no-op
+lane is summarized to the user and does not earn a repository commit.
 
 Avoid `--no-verify`. If a hook is broken or irrelevant for a docs-only commit, run the equivalent manual checks first (`git diff --check` at minimum), record the reason in the commit body, and prefer a normal verified commit whenever possible.
 
@@ -256,11 +261,11 @@ Honor these invariants from CLAUDE.md — flag if any agent broke them:
 **Lane G — Miss hunt (codebase-wide):**
 
 ```
-The 8 cleanup agents have just finished. Their reports are at .plans/clean/agent-*.md.
-Your job is to find cleanup opportunities they MISSED, especially issues that don't
-fit neatly into a single agent's lane.
+The 8 cleanup lanes have just finished. Their integrated summaries are included in
+this review context. Your job is to find cleanup opportunities they MISSED,
+especially issues that don't fit neatly into a single lane.
 
-Read each agent's report first to understand what was already covered. Then scan for:
+Read each lane summary first to understand what was already covered. Then scan for:
 
 CROSS-CUTTING — Issues spanning two or more agent domains (e.g., a duplicated type that
                 is also dead, a defensive catch around legacy code).
@@ -280,17 +285,18 @@ For each finding, output: location, category, concrete fix, and confidence
 
 ### Outputs
 
-Each lane writes its `codex-result.md` (per `.codex/output-schema.json`) inside its worktree. After dispatch returns, copy both into `.plans/clean/`:
-
-- `.plans/clean/codex-regression.md`
-- `.plans/clean/codex-gap.md`
+Each lane writes its `codex-result.md` (per `.codex/output-schema.json`) inside its
+temporary worktree. Read those results into the session after dispatch; do not copy
+them into the repository. Remove the temporary worktrees after the result has been
+integrated, unless the user asked to preserve them for debugging.
 
 ### Linear follow-up routing
 
 All routing (team, `.plans`/`source:plans`, projects, labels, privacy, prompt-before-create)
 follows the shared core: [`.claude/context/linear-routing-rules.md`](../../context/linear-routing-rules.md).
-Cleanup-specific delta: mirrored findings come from `.plans/clean/`, which remains the cleanup
-execution record.
+Cleanup-specific delta: accepted findings are tracked in Linear after user approval;
+Git/PR history is the implementation record. Do not create a parallel cleanup registry
+under `.plans/`.
 
 ### Triage rules (Claude reads, decides, acts)
 

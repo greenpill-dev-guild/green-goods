@@ -1,8 +1,10 @@
 # CSS Maintainability Polish Plan
 
+> **Archived record:** implementation is closed. Operational handoffs, reports, artifacts, and lane files were removed; any such references below describe historical execution, not live work.
+
 **Feature Slug**: `css-maintainability-polish`
-**Stage**: `active`
-**Status**: `ACTIVE — state_api completed; revamped ui completed; qa_pass_1 ready`
+**Stage**: `archive`
+**Status**: `ARCHIVED - COMPLETED`
 **Created**: `2026-04-28`
 **Last Updated**: `2026-05-24`
 

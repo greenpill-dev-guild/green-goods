@@ -1,5 +1,7 @@
 # Resend Email Signup Migration Spec
 
+> **Archived record:** implementation is closed. Operational handoffs, reports, artifacts, and lane files were removed; any such references below describe historical execution, not live work.
+
 ## Summary
 
 Replace the public email subscriber provider from Luma to Resend while preserving the existing

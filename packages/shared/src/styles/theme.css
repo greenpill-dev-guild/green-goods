@@ -1452,8 +1452,7 @@
    * suffixed forms above (e.g. `bg-bg-white-0`). Kept for back-compat with
    * admin consumers; will be removed in the next theme rev. Audit
    * 2026-05-05 found that mixing dialects in the same file made review
-   * noise high without changing pixels — see
-   * `.plans/active/client-pwa-audit/lanes/03-color-palette.md` C1. */
+   * noise high without changing pixels. */
   --color-bg-strong: var(--color-bg-strong-950);
   --color-bg-surface: var(--color-bg-surface-800);
   --color-bg-sub: var(--color-bg-sub-300);

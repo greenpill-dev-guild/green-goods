@@ -6,6 +6,11 @@
 **Created**: `2026-05-01`
 **Source Audit**: `reports/software-fundamentals-audit-2026-05-01.md`
 
+> **Canonical quality program (2026-07-19):** this hub replaces the removed
+> `cleanup-loop-v1` and `harness-hardening-wave-1` queues. Re-audit any useful
+> candidate against current source here before activation; no historical automation
+> prompt remains dispatchable.
+
 ## Problem
 
 Green Goods already has many of the foundations that make AI-assisted development work: `.plans`, domain glossaries, shared module maps, typed domain primitives, Storybook-backed UI surfaces, and validation scripts. The current risk is that these foundations are not consistently enforced against the latest stable code. That creates the same failure mode described in the software-fundamentals talk: agents can keep producing code that passes local checks while the system becomes harder to understand, test, and change.
@@ -14,7 +19,7 @@ The audit found seven main entropy leaks:
 
 - agent guidance and plan commands drift from the real repo surface
 - package-level contract guidance still describes resolver shapes that no longer exist
-- shared's accepted fat-barrel interface has grown past the ADR snapshot and needs a sharper API policy
+- shared's intentional fat-barrel interface needs a sharper current API policy in the package guide and module map
 - dead-code scanning exists as a dependency but is not currently runnable in the local audit path because Knip imports Vite/Varlock config
 - Knip has prior repo evidence and known false positives, but Fallow has not yet been evaluated on this codebase as a possible broader dead-code / duplication / health / boundary signal
 - source-structure guardrails are differential and do not describe stable baseline complexity
@@ -23,7 +28,7 @@ The audit found seven main entropy leaks:
 ## Desired Outcome
 
 - Agents can rely on current repo instructions, plan-hub commands, and guidance checks without chat-only correction.
-- Package guides and ADRs reflect the current architecture rather than remembered architecture.
+- Package guides and module maps reflect the current architecture rather than remembered architecture.
 - Dead-code and source-structure feedback loops can run without local secret-manager coupling.
 - The repo has a written Knip-vs-Fallow recommendation based on Green Goods output, false-positive cost, CI fit, and agent usability.
 - New work is shaped around small, explicit, testable module interfaces before UI or hook implementation grows.
@@ -36,7 +41,7 @@ The audit found seven main entropy leaks:
 - In scope:
   - guidance and plan-hub command drift
   - contracts package guidance drift, limited to docs/comments and current resolver vocabulary
-  - shared API / barrel policy refresh around the existing ADR-008 decision
+  - shared API / barrel policy refresh in `packages/shared/AGENTS.md` and `packages/shared/src/MODULES.md`
   - Knip vs Fallow evaluation before choosing the recurring static-analysis toolchain
   - env-safe dead-code audit path for Knip/file-level cleanup checks
   - source-structure baseline reconciliation

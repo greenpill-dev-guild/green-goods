@@ -1,8 +1,10 @@
 # Docs Freshness Routine Plan
 
+> **Archived record:** implementation is closed. Operational handoffs, reports, artifacts, and lane files were removed; any such references below describe historical execution, not live work.
+
 **Feature Slug**: `docs-freshness-routine`
-**Stage**: `active`
-**Status**: `ACTIVE — state_api BLOCKED pending CSS/UI readiness`
+**Stage**: `archive`
+**Status**: `ARCHIVED - PAUSED`
 **Created**: `2026-04-25`
 **Last Updated**: `2026-05-10`
 

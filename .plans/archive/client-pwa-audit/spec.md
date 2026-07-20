@@ -1,5 +1,7 @@
 # Client PWA Native Feel Remediation Spec
 
+> **Archived record:** implementation is closed. Operational handoffs, reports, artifacts, and lane files were removed; any such references below describe historical execution, not live work.
+
 ## Current State
 
 Wave 1 mechanical cleanup is complete. The remaining high-leverage work is structural:

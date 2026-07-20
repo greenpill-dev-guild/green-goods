@@ -1,5 +1,7 @@
 # Hypercert Marketplace Arbitrum Readiness Evaluation Plan
 
+> **Archived record:** implementation is closed. Operational handoffs, reports, artifacts, and lane files were removed; any such references below describe historical execution, not live work.
+
 ## Release Gates
 
 1. Correctness: adapter, module, exchange, minter, transfer manager, strategy, paused state, owner state, and authorized module state are verified against deployment artifacts after operator-approved configuration.
@@ -18,7 +20,7 @@
 | AC-1 | On-chain marketplace readiness | Status script reads adapter/module/owner/authorized module/exchange/minter without broadcast | `contracts` | `handoffs/codex-contracts.md` |
 | AC-2 | Operator configuration | Dry-run script prints exact required owner calls, follows the root varlock/`green-goods-deployer` Arbitrum wrapper pattern, and blocks unsafe address/config mismatches | `contracts` | `handoffs/codex-contracts.md` |
 | AC-3 | Post-deploy verifier | `contracts:verify:post-deploy:arbitrum` verifies adapter/module/exchange/minter/transfer manager/strategy, paused state, owner state, and authorized module state after approved transaction | `contracts` | `handoffs/codex-contracts.md` |
-| AC-4 | Indexer drift policy | Verifier scope is narrowed to contracts currently defined/indexed by Envio; if full expansion is needed, `.plans/backlog/indexer-deployed-modules-expansion/` is created or linked before contracts completion | `contracts` | `handoffs/codex-contracts.md` |
+| AC-4 | Indexer drift policy | Verifier scope is narrowed to contracts currently defined/indexed by Envio; any later full expansion requires a separately approved formal plan | `contracts` | Historical execution evidence is available in Git history |
 | AC-4a | Enable-now fallback | If address confirmation or broadcast approval stalls, contracts lane records configure-now, operator-approved pause/disable, or an accepted-risk blocker before status can complete | `contracts` | `handoffs/codex-contracts.md` |
 | AC-5 | Shared contract mapping | Arbitrum marketplace fields resolve from deployment artifact and missing fields fail closed | `state_api` | `handoffs/codex-state-api.md` |
 | AC-6 | Listing/approval hooks | Hooks refuse to sign/list/approve when readiness is incomplete and invalidate marketplace queries after success | `state_api` | `handoffs/codex-state-api.md` |

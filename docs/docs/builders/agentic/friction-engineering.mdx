@@ -181,7 +181,7 @@ That is where local correctness is least predictive of global correctness.
 Green Goods already has several pieces that match this model:
 
 - `docs/routines/gg-pr-review.md` already separates judgment-heavy review from automatic transformation
-- `.plans/backlog/harness-hardening-wave-1/` already scopes deterministic guardrails, split advisory reviewers, source-structure ratchets, and explicit criticality
+- `scripts/harness/plan-hub.mjs` and its black-box tests enforce deterministic plan structure, lifecycle transitions, and closeout metadata
 - `docs/docs/builders/quality/agentic-eval.mdx` already treats benchmark packs as secondary to targeted tests, acceptance cases, and review
 
 The remaining work is mostly consistency work: keep the harness honest, keep judgment surfaces explicit, and avoid calling every bit of friction a process failure.

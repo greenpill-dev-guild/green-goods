@@ -16,7 +16,7 @@
 | 4 | Treat source-structure work as a ratchet reconciliation, not cap inflation | The point is to reduce entropy, not mark every large stable file as acceptable |
 | 5 | Require test-first boundary evidence for large behavior changes | The audit found tests around surfaces, but not always around the main behavior boundary |
 | 6 | Keep Contracts behavior out of scope while repairing Contracts guidance drift | The package guide references removed resolver files; fixing that is repo-truth work, not Solidity work |
-| 7 | Preserve ADR-008's fat-barrel decision while tightening the public API policy | The shared barrel is intentional, but current scale needs clearer review and subpath rules |
+| 7 | Preserve the documented fat-barrel policy while tightening the public API contract | The shared barrel is intentional, but current scale needs clearer review and subpath rules |
 | 8 | Add dead-code audit reliability as a first-class feedback loop | Repeated cleanup requires Knip/file-level checks that do not fail before analysis on Varlock/1Password setup |
 | 9 | Compare Knip and Fallow before choosing the recurring static-analysis tool | The transcript points to Fallow's broader dead-code/dupes/health/audit surface, but Green Goods already has Knip evidence and false-positive lessons |
 
@@ -34,9 +34,9 @@
 | Requirement | Lane | Planned Step | Status |
 |---|---|---|---|
 | Repair guidance validation | `state_api` | Confirm `check:codex-guidance` remains current (`check:claude-guidance` retired 2026-07-11 with the lean-skills consolidation) | ⏳ |
-| Repair plan command drift | `state_api` | Replace stale `node scripts/plan-hub.mjs` references or add durable package scripts | ⏳ |
+| Repair plan command drift | `state_api` | Remove retired `node scripts/plan-hub.mjs` references and keep `node scripts/harness/plan-hub.mjs` canonical | ⏳ |
 | Repair contracts guidance drift | `state_api` | Update package guidance and stale comments that mention removed `GreenGoodsResolver` architecture | ⏳ |
-| Tighten shared public API policy | `state_api` | Refresh ADR-008 and `packages/shared/AGENTS.md` around root barrel, subpath exports, and public-symbol review | ⏳ |
+| Tighten shared public API policy | `state_api` | Refresh `packages/shared/AGENTS.md` and `packages/shared/src/MODULES.md` around root barrel, subpath exports, and public-symbol review | ⏳ |
 | Review Knip vs Fallow | `state_api` | Run both tools on the same baseline, compare signal quality, and record a recommendation before adding gates | ⏳ |
 | Make dead-code audit runnable | `state_api` | Implement the chosen env-safe dead-code command so file-level audit does not import Varlock-backed Vite configs | ⏳ |
 | Reconcile source-structure baseline | `state_api` | Audit stable oversized files, stale allowlist entries, and CI/local gate placement | ⏳ |
@@ -58,8 +58,8 @@
 
 ### Slice 2: Shared API Policy And Dead-Code Audit
 
-- Refresh `.plans/adr/ADR-008-barrel-exports.md` with the current barrel size, accepted tradeoff, and when app packages may use documented subpath exports.
-- Add the same practical rule to `packages/shared/AGENTS.md`: app packages default to `@green-goods/shared`; internal `src` deep imports stay banned; new public exports require explicit barrel review.
+- Refresh `packages/shared/AGENTS.md` and `packages/shared/src/MODULES.md` with the current barrel size, accepted tradeoff, and when app packages may use documented subpath exports.
+- Keep the practical rule explicit: app packages default to `@green-goods/shared`; internal `src` deep imports stay banned; new public exports require explicit barrel review.
 - Run the Knip vs Fallow evaluation before changing package scripts:
   - `bunx knip --include files --reporter compact`
   - `bunx knip --reporter compact`
@@ -72,7 +72,7 @@
 - Choose one outcome:
   - keep Knip as dead-code source and add Fallow only for duplication/health/advisory audit
   - replace Knip with Fallow for recurring static analysis
-  - defer both as gates and keep manual `.plans/clean` triage until config reliability improves
+  - defer both as gates and keep cleanup assessment scope-locked until config reliability improves
 - Implement only the chosen env-safe command as `bun run check:dead-code` or `bun run check:static-health` after the report is reviewed.
 - Treat tool output as triage evidence first; do not delete files or enforce a gate until false positives are classified.
 
@@ -122,9 +122,9 @@
 ### State / API (`codex/state-api/software-fundamentals-hardening`)
 
 - [ ] Fix guidance validation failures
-- [ ] Fix or abstract stale plan-hub command references
+- [ ] Remove retired plan-hub command references and preserve the canonical helper path
 - [ ] Update contracts package guidance and stale resolver vocabulary without touching Solidity behavior
-- [ ] Refresh ADR-008 and shared package API guidance
+- [ ] Refresh shared package API guidance and module map
 - [ ] Compare Knip and Fallow on the same baseline and write the recommendation report
 - [ ] Make the chosen file-level dead-code audit runnable without Varlock-backed Vite config imports
 - [ ] Reconcile source-structure baseline and stale allowlist entries

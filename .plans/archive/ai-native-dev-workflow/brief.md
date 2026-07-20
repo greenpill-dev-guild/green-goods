@@ -1,5 +1,7 @@
 # AI-Native Developer Workflow Brief
 
+> **Archived record:** implementation is closed. Operational handoffs, reports, artifacts, and lane files were removed; any such references below describe historical execution, not live work.
+
 ## Goal
 
 Raise Green Goods's AI-assisted workflow into a consistently provable AI-native development system over six weeks. The operating target is reliable delegation with less cognitive debt: every active feature has explicit intent, assigned agent roles, verification evidence, human judgment callouts, a run ledger, a workflow scorecard, adversarial review, and a closeout gate.

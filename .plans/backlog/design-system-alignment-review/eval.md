@@ -12,7 +12,7 @@
 
 ## Regression Checks
 
-- `node scripts/plan-hub.mjs validate`
+- `node scripts/harness/plan-hub.mjs validate`
 - The validator set listed in `spec.md`, if the review lane reaches implementation.
 
 ## Exit Rule

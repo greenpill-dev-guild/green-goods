@@ -1,10 +1,9 @@
 # Public Supporters / Partnerships Section
 
 **Slug**: `public-supporters-band`
-**Stage**: `backlog` (state: `investigate-further`)
+**Stage**: `ideas` (state: `investigate-further`)
 **Priority**: `p2`
 **Created**: `2026-04-28`
-**Sibling plan**: `.plans/active/public-read-side-journal/`
 
 ## Problem
 

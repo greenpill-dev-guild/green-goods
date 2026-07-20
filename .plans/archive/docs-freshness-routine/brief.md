@@ -1,7 +1,9 @@
 # Docs Freshness Routine
 
+> **Archived record:** implementation is closed. Operational handoffs, reports, artifacts, and lane files were removed; any such references below describe historical execution, not live work.
+
 **Slug**: `docs-freshness-routine`
-**Stage**: `active`
+**Stage**: `archive`
 **Priority**: `p2`
 **Created**: `2026-04-25`
 **Last Updated**: `2026-05-10`

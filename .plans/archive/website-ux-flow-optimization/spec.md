@@ -1,5 +1,7 @@
 # Website UX Flow Optimization Spec
 
+> **Archived record:** implementation is closed. Operational handoffs, reports, artifacts, and lane files were removed; any such references below describe historical execution, not live work.
+
 ## Visitor Flows
 
 The plan tracks seven public-browser flows:

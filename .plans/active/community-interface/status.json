@@ -13,6 +13,7 @@
     "updated_at": "2026-07-10"
   },
   "links": {
+    "brief": "brief.md",
     "corrections_log": "corrections-log.md",
     "spec": "spec.md",
     "diagrams": "diagrams.md",
@@ -20,6 +21,7 @@
     "journeys": "journeys.md",
     "research_plan": "research-plan.md",
     "plan": "plan.todo.md",
+    "eval": "eval.md",
     "companion_hub": "../commitment-pooling/"
   },
   "linear": {

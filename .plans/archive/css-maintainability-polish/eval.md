@@ -1,5 +1,7 @@
 # CSS Maintainability Polish Evaluation Plan
 
+> **Archived record:** implementation is closed. Operational handoffs, reports, artifacts, and lane files were removed; any such references below describe historical execution, not live work.
+
 ## Release Gates
 
 1. Plan integrity: this hub remains active, scoped to CSS architecture polish, and does not expand

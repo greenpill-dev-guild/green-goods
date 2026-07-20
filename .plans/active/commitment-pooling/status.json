@@ -13,18 +13,21 @@
     "updated_at": "2026-07-19"
   },
   "links": {
-    "corrections_log": "corrections-log.md",
+    "brief": "external-brief.md",
+    "spec": "contract-spec.md",
+    "corrections_log": "reports/corrections-log.md",
     "contract_spec": "contract-spec.md",
     "uiux_spec": "uiux-spec.md",
     "settlement_spec": "settlement-spec.md",
-    "credit_spec": "credit-spec.md",
+    "credit_spec": "../../backlog/commitment-credit-follow-on/spec.md",
     "diagrams": "diagrams.md",
     "wireframes": "wireframes.md",
     "acceptance_matrix": "acceptance-matrix.md",
     "external_communications": "external-communications.md",
     "release_ops_handoff": "handoffs/human-release-ops.md",
-    "linear_update_pack": "linear-update-pack.md",
-    "plan": "plan.todo.md"
+    "linear_update_pack": "reports/linear/linear-update-pack.md",
+    "plan": "plan.todo.md",
+    "eval": "acceptance-matrix.md"
   },
   "linear": {
     "parentIssue": "PRD-650",
@@ -75,9 +78,9 @@
     "Green Goods settles canonical G$ on Celo and never bridges G$ to Arbitrum. The House of Alignment stream lands directly in the GG protocol Safe on Celo; garden settlement operations draw from it (topology corrected 2026-07-18, corrections-log §9).",
     "Commitment domains are optional arrays; DomainImpact requires 1-4 registered action/domain pairs. Action UID 0 is valid, action existence/domain is checked through ActionRegistry, and claim supersession uses a commitment-keyed companion index rather than an unavailable arbitrary entity scan.",
     "G$ commitment rewards derive source/beneficiary/token/amount from the Fulfilled commitment. Funding is limited to ProtocolToGarden. Reports persist reportedBy; only the active Chainlink Functions callback can produce Verified or receipt-invalid Failed, and infrastructure errors leave Reported for retry. Pilot Safe recovery is exactly 2-of-3 (protocol multisig, Dev Guild recovery multisig, named garden delegate); executors are scoped Roles members and never owners.",
-    "Linear was reconciled and live-re-read on 2026-07-10: both projects, all active milestones, core and referenced issues, canceled-child supersession notes, the Garden Mandate Survey, RESR-57/58 documents, and the new RESR-64 engagement-model document. PRD-651/697 are Backlog with no cycle or agent dispatch. Resolved 2026-07-11: the staged apply pack (linear-apply-pack.md) was applied and live-verified, the previously credit-blocked PRD-686/RESR-57 Safe/Zodiac wording refinement landed, and the PRD-651/697 due dates were cleared manually in the Linear UI (live-verified null).",
+    "Linear was reconciled and live-re-read on 2026-07-10: both projects, all active milestones, core and referenced issues, canceled-child supersession notes, the Garden Mandate Survey, RESR-57/58 documents, and the new RESR-64 engagement-model document. PRD-651/697 are Backlog with no cycle or agent dispatch. Resolved 2026-07-11: the staged apply pack (reports/linear/linear-apply-pack.md) was applied and live-verified, the previously credit-blocked PRD-686/RESR-57 Safe/Zodiac wording refinement landed, and the PRD-651/697 due dates were cleared manually in the Linear UI (live-verified null).",
     "Out of scope for all lanes: bridged G$, bridge custody or unbounded value authority, Sarafu integration, transferable settlement vouchers/settlementAdapter activation, indexing Celo/G$ transfers, garden-to-garden federation, leaderboards, and credit scores. Bridge-executor automation is an August stretch only, otherwise post-August.",
-    "Borrow-and-repay CreditRegister is a blocked follow-on lane: designed in credit-spec.md, not part of the August base MVP, and not dispatchable without an explicit unblock.",
+    "Borrow-and-repay CreditRegister is a blocked follow-on lane: designed in ../../backlog/commitment-credit-follow-on/spec.md, not part of the August base MVP, and not dispatchable without an explicit unblock.",
     "Plan-hub machine lanes are intentionally canonical: contracts, state_api, ui, qa_pass_1, qa_pass_2. Detailed execution sub-lanes live in execution_sub_lanes and plan.todo.md; do not add custom keys to lanes unless plan-hub supports them.",
     "linear.laneSyncMode is parent_only to preserve the low-noise Linear footprint: PRD-650 remains the single parent mirror, while PRD-686 and PRD-682 context stays in consolidatedTrackers and execution_sub_lanes.",
     "Dependency order is contracts -> indexer/shared -> client/admin/docs. state_api dispatch is manually gated until the implemented pooling ABI and the agreed PRD-673 indexer entity/query contract exist. Final GREEN requires indexer codegen/build evidence and PRD-674 shared substrate proof; settlement may run in parallel but its selectors remain gated on the Functions interface.",
@@ -91,7 +94,7 @@
     "Historical snapshot (early 2026-07-11; superseded): the alignment wave staged PRD-701 re-dating, all-garden settlement capability, TAS/UNICEF clarifications, RESR-58 examples, and fourth-slot selection research. The later reconciliation notes below are current.",
     "Historical selection record (decisions #25/#26, superseded by #27): the fourth-garden target was selected (#25), briefly named, then held anonymous per #26. Decision #27 (2026-07-11, user-confirmed) resolves the policy: naming stands. PRD-651/697 due dates were cleared and live-re-read as null.",
     "Current fourth-garden execution state (Decision Log #29, 2026-07-18, supersedes #25 and #27): the fourth garden is NOT selected. Barichara Regenerativa was never a selection, only one option among candidates, and its organisational status is uncertain. The slot is open, its selection criteria retained, and no artifact — repo, Linear, Google Doc, graphics, or presentation prose — names a fourth garden. The three confirmed candidates cover all four action domains on their own, so the four-domain claim stands without a fourth name. Never re-introduce a fourth-garden name without an explicit new selection decision; this has been reversed twice.",
-    "Hub/Linear reconciliation pass 2026-07-11 (pre-build deep review): hub headers and notes refreshed to the applied Linear state; RESR-53 removed from july_dry_run.linear_issues; cohort note aligned to decisions #25/#26. On Linear: PRD-651/697 obsolete 'clear it manually' sentences removed (due dates already null), and the five pre-spec-session companion documents (pool identity architecture, lifecycle/aggregator, UX brief, proof capability, settlement vouchers) rewritten in place as current-state concise mirrors stamped 'Last aligned: 2026-07-11', each live-re-read. Repo: docs-site v1-0.mdx Domain-5 commitment-pooling mentions disambiguated from the 2026 feature; external-brief-loop.svg wired into the brief documentation set; settlement-spec section 7 wireframe pointers corrected to W21/W22/W23; codex-contracts handoff annotates its to-be-created command targets; handoffs README warns that sub-lane readiness overrides machine-lane status; claude-ui-client records the narrowed core-pool-views dispatch option."
+    "Hub/Linear reconciliation pass 2026-07-11 (pre-build deep review): hub headers and notes refreshed to the applied Linear state; RESR-53 removed from july_dry_run.linear_issues; cohort note aligned to decisions #25/#26. On Linear: PRD-651/697 obsolete 'clear it manually' sentences removed (due dates already null), and the five pre-spec-session companion documents (pool identity architecture, lifecycle/aggregator, UX brief, proof capability, settlement vouchers) rewritten in place as current-state concise mirrors stamped 'Last aligned: 2026-07-11', each live-re-read. Repo: docs-site v1-0.mdx Domain-5 commitment-pooling mentions disambiguated from the 2026 feature; artifacts/visuals/external-brief-loop.svg wired into the brief documentation set; settlement-spec section 7 wireframe pointers corrected to W21/W22/W23; codex-contracts handoff annotates its to-be-created command targets; handoffs README warns that sub-lane readiness overrides machine-lane status; claude-ui-client records the narrowed core-pool-views dispatch option."
   ],
   "lanes": {
     "contracts": {
@@ -340,20 +343,15 @@
   "follow_on": {
     "credit_register": {
       "owner": "codex",
-      "status": "blocked",
-      "manual_blocked": true,
-      "blocked_reason": "Follow-on only. CreditRegister is designed in credit-spec.md but is not part of the August base MVP; requires explicit scope unlock after pooling/settlement interfaces settle.",
-      "branch": "codex/credit/commitment-pooling",
-      "depends_on": ["contracts", "settlement"],
-      "handoff": "handoffs/codex-credit-follow-on.md",
-      "linear_issues": [],
-      "acceptance_when_unblocked": "CreditRegister + indexer + shared queryKeys.credit.* + credit job kind + admin/PWA credit surfaces."
+      "status": "moved_to_backlog",
+      "hub": "../../backlog/commitment-credit-follow-on/",
+      "note": "The blocked CreditRegister design is now an independent backlog hub and is not part of the active Commitment Pooling MVP."
     }
   },
   "history": [
     {
       "date": "2026-07-03",
-      "event": "Verification, alignment (27 decisions), and specs authored (corrections-log.md, contract-spec.md, uiux-spec.md)."
+      "event": "Verification, alignment (27 decisions), and specs authored (reports/corrections-log.md, contract-spec.md, uiux-spec.md)."
     },
     {
       "date": "2026-07-04",
@@ -397,7 +395,7 @@
     },
     {
       "date": "2026-07-11",
-      "event": "Alignment wave (decision #24): PRD-701 re-dated to 2026-07-30; all focus gardens G$-settlement-capable in August with TAS first-execution hypothesis (supersedes single-garden sink-first derivative wording); TAS single Awka hub; UNICEF funded program (off-platform). B1-B3 worked examples drafted into the RESR-58 doc payload; Linear connector down, wave staged in linear-apply-pack.md §5-6 with reconciliation amendments to the RESR-57 payload (cohort fact restored, interim 07-16 target decoupled from session timing)."
+      "event": "Alignment wave (decision #24): PRD-701 re-dated to 2026-07-30; all focus gardens G$-settlement-capable in August with TAS first-execution hypothesis (supersedes single-garden sink-first derivative wording); TAS single Awka hub; UNICEF funded program (off-platform). B1-B3 worked examples drafted into the RESR-58 doc payload; Linear connector down, wave staged in reports/linear/linear-apply-pack.md §5-6 with reconciliation amendments to the RESR-57 payload (cohort fact restored, interim 07-16 target decoupled from session timing)."
     },
     {
       "date": "2026-07-11",
@@ -413,7 +411,7 @@
     },
     {
       "date": "2026-07-11",
-      "event": "Pre-build deep review + reconciliation: verified the hub build-ready (all four specs implementer-grade, 14 conformant handoffs with zero TBDs, every cross-reference resolves, all 16 mermaid blocks parse, live RESR-58 Part D asset codes resolve). Fixed staleness: hub headers/notes refreshed to the applied Linear state; RESR-53 removed from july_dry_run.linear_issues; PRD-651/697 residue sentences removed on Linear; the five pre-spec-session Linear companion docs rewritten in place (banners removed, Last aligned 2026-07-11, live-re-read); docs-site v1-0.mdx Domain-5 mentions disambiguated from the 2026 feature; external-brief-loop.svg wired into the brief set; settlement-spec section 7 W-pointers corrected; codex-contracts to-be-created targets annotated; sub-lane-readiness-overrides note added to handoffs README; narrowed core-pool-views dispatch option recorded in claude-ui-client."
+      "event": "Pre-build deep review + reconciliation: verified the hub build-ready (all four specs implementer-grade, 14 conformant handoffs with zero TBDs, every cross-reference resolves, all 16 mermaid blocks parse, live RESR-58 Part D asset codes resolve). Fixed staleness: hub headers/notes refreshed to the applied Linear state; RESR-53 removed from july_dry_run.linear_issues; PRD-651/697 residue sentences removed on Linear; the five pre-spec-session Linear companion docs rewritten in place (banners removed, Last aligned 2026-07-11, live-re-read); docs-site v1-0.mdx Domain-5 mentions disambiguated from the 2026 feature; artifacts/visuals/external-brief-loop.svg wired into the brief set; settlement-spec section 7 W-pointers corrected; codex-contracts to-be-created targets annotated; sub-lane-readiness-overrides note added to handoffs README; narrowed core-pool-views dispatch option recorded in claude-ui-client."
     },
     {
       "date": "2026-07-11",
@@ -430,6 +428,10 @@
     {
       "date": "2026-07-18",
       "event": "Hi-fi prototype batches B1-B5 complete (decision #36): all August screens render high-fidelity with per-screen state matrices — client PWA (W1 15 states, W2 19, W2a, W3 6, W4 4, W5 4, W23 4, W25 3, WFLOW; Warm Earth phone frames, hero moments, progressive disclosure per wireframes.md:166), admin (W7-W14, W21, W22, W24, W26, HUBWORK; restrained M3 desktop frames, centered dialogs, quiet checkmarks), editorial (W15 3 states, W16 2; Fraunces-stack serif + mono kickers). 116 states / 133 hotspots / 31 screens; all 14 storyboards state-pinned and revalidated (104 scenes). Lo-fi variants dissolved with forward aliases (W1P/W1S/W7X/W23G/MF1/3/4/5/6/8/9/10/13 + W6->W5); September CI-W frames stay lo-fi previews. Build-time copy lint: banned vocab, steward naming, quiet-admin, chain placement (0 warnings). Artifact republished per batch at the same URL."
+    },
+    {
+      "date": "2026-07-19",
+      "event": "Plan-hub cleanup extracted the blocked CreditRegister design and handoff into .plans/backlog/commitment-credit-follow-on; the active hub retains only a dependency pointer."
     }
   ]
 }

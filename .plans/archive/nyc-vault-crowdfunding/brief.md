@@ -1,7 +1,9 @@
 # NYC Vault Crowdfunding
 
+> **Archived record:** implementation is closed. Operational handoffs, reports, artifacts, and lane files were removed; any such references below describe historical execution, not live work.
+
 **Slug**: `nyc-vault-crowdfunding`
-**Stage**: `active`
+**Stage**: `archive`
 **Priority**: `p0`
 **Created**: `2026-05-09T21:35:46.781Z`
 **Last Updated**: `2026-06-05T00:09:43Z`

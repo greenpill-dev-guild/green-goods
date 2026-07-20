@@ -1,5 +1,7 @@
 # NYC Vault Crowdfunding Plan
 
+> **Archived record:** implementation is closed. Operational handoffs, reports, artifacts, and lane files were removed; any such references below describe historical execution, not live work.
+
 **Feature Slug**: `nyc-vault-crowdfunding`
 **Stage**: `archive`
 **Status**: `DONE — /vaults Wallet Endow shipped; card-funded Card Endow remains parked for a future explicit fast-chain effort.`

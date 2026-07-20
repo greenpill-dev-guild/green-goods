@@ -653,4 +653,4 @@ Decisions made during the Warm Earth synthesis (2026-04-07):
 - [ecosystem.md](./ecosystem.md) — 15 user archetypes, cascade awareness
 - [SKILL.md § Appendix](./SKILL.md#appendix--inspiration--frameworks) — Inspiration library, books, designers, studios
 - [review-checklist.md](./review-checklist.md) — Unified 4-lens PR review (Regenerative + Spatial + Ecosystem + Compliance)
-- `.plans/active/admin-ui-revamp/artifacts/spatial-architecture.md` — Three-body system applying Warm Earth
+- [`DESIGN.md`](../../../DESIGN.md) — canonical Warm Earth tokens and surface-dialect routing

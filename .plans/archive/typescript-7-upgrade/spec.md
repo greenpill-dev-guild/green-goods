@@ -1,5 +1,7 @@
 # TypeScript 7-only upgrade Spec
 
+> **Archived record:** implementation is closed. Operational handoffs, reports, artifacts, and lane files were removed; any such references below describe historical execution, not live work.
+
 ## Summary
 
 Upgrade the monorepo to TypeScript 7.0.2 only. Replace the one direct compiler API consumer with
