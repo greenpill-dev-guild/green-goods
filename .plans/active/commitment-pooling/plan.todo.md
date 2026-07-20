@@ -167,11 +167,11 @@ The **Lane** column below names execution sub-lanes for planning clarity. The ha
 | G$ split-state settlement: SettlementModule + Celo Safes + multi-chain app | `settlement` | [PRD-686](https://linear.app/greenpill-dev-guild/issue/PRD-686) | ⏳ |
 | Docs: glossary + architecture freshness | `docs` | [PRD-680](https://linear.app/greenpill-dev-guild/issue/PRD-680) | ⏳ |
 | Docs: operator seeding guide + gardener promises guide | `docs_guides` | [PRD-681](https://linear.app/greenpill-dev-guild/issue/PRD-681) | ⏳ |
-| External brief, audience notes, GTM/community rollout, and factual review | `docs` + `july_dry_run` | [RESR-57](https://linear.app/greenpill-dev-guild/issue/RESR-57), [RESR-58](https://linear.app/greenpill-dev-guild/issue/RESR-58), [PRD-701](https://linear.app/greenpill-dev-guild/issue/PRD-701) | ⏳ |
+| External brief, audience notes, GTM/community rollout, and factual review | `docs` + `july_dry_run` | [RESR-57](https://linear.app/greenpill-dev-guild/issue/RESR-57), [RESR-58](https://linear.app/greenpill-dev-guild/issue/RESR-58), [COM-3](https://linear.app/greenpill-dev-guild/issue/COM-3) | ⏳ |
 | July: methodology/metrics pulse (proto-commitment #1; RESR-53 canceled 2026-07-06, folded into the unified instrument) | `july_dry_run` | [RESR-62](https://linear.app/greenpill-dev-guild/issue/RESR-62) | ⏳ |
 | July: commitment-scoping surveys + mandate artifacts (gates August seeding) | `july_dry_run` | [RESR-62](https://linear.app/greenpill-dev-guild/issue/RESR-62) | ⏳ |
 | July: activations + proto-commitment loops (TAS) | `july_dry_run` | [RESR-62](https://linear.app/greenpill-dev-guild/issue/RESR-62) (historical label: canceled RESR-63) | ⏳ |
-| July: pilot cohort readiness | `july_dry_run` | [RESR-62](https://linear.app/greenpill-dev-guild/issue/RESR-62) + [PRD-701](https://linear.app/greenpill-dev-guild/issue/PRD-701) (historical label: canceled RESR-13) | ⏳ |
+| July: pilot cohort readiness | `july_dry_run` | [COM-7](https://linear.app/greenpill-dev-guild/issue/COM-7) + [COM-3](https://linear.app/greenpill-dev-guild/issue/COM-3) (historical labels: RESR-62, PRD-701; canceled RESR-13) | ⏳ |
 | September: independent packages/community PWA after shared-foundation extraction | `community` | [PRD-682](https://linear.app/greenpill-dev-guild/issue/PRD-682) | ⏳ |
 | September: Community Need intake into the commitment-seeding gate | `ui_admin` | [PRD-691](https://linear.app/greenpill-dev-guild/issue/PRD-691) + Community admin handoff (historical label: canceled PRD-683) | ⏳ |
 | Follow-on: borrow-and-repay `CreditRegister` + credit indexer/shared/admin/PWA surfaces | `credit_follow_on` | no tracker yet | 🚧 blocked |
@@ -189,7 +189,7 @@ Runs entirely in parallel with Track B. Tracks (a) methodology and (c) activatio
 Focus cohort (Decision Log #23, named 2026-07-10; readiness stays evidence-gated per the garden survey): Tech and Sun Hub (Awka, Nigeria), Greenpill Cape Town (Muizenberg / Deep South Circles), AgroforestDAO / Redemption Hill (Bias Fortes, Brazil), plus an **open fourth slot** for a mature MRV-adoption anchor — candidates under consideration, none selected (Decision Log #29, which supersedes #25 and #27). The three named gardens cover all four action domains on their own.
 
 - [ ] (a) Methodology/metrics pulse fielded inside the unified RESR-62 two-pass instrument (RESR-53 canceled 2026-07-06 and folded in; the protocol-pool proto-commitment framing and the Cape Town UNICEF waste showcase carry over)
-- [ ] (b) Scoping surveys and cohort-readiness evidence per focus garden; one mandate artifact each under RESR-62 with PRD-701 operator coordination (canceled RESR-13 is historical only)
+- [ ] (b) Scoping surveys and cohort-readiness evidence per focus garden; one mandate artifact each under COM-7 with COM-3 operator coordination (canceled RESR-13 is historical only)
 - [ ] (c) Activations defined and run under RESR-62; at least one full proto-commitment loop per focus garden (canceled RESR-63 is historical only)
 - [ ] Tracking table maintained in the Linear project doc "July dry run: proto-commitment tracking" with one row set per focus garden plus a Garden-4 placeholder; rewards via Cookie Jar or treasury only (no G$ in the dry run)
 
