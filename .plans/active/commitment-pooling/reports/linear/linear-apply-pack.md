@@ -1,9 +1,15 @@
 # ARCHIVE — Commitment Pooling Apply Pack (fully applied and reconciled 2026-07-11)
 
-> **Redaction note (2026-07-19)**: this record originally named the fourth-garden candidate.
-> The name was scrubbed under Decision Log #29 — no artifact names a fourth garden, and this
-> repository is public. The applied Linear state at the time is unchanged; only the identity is
-> withheld here. It lives in research-notes storage.
+> **Archive status — read nothing here as current.** This pack records what was applied to Linear
+> on 2026-07-11, when a fourth garden had been **recorded as selected** (Decision Log `#25`). That
+> was reversed: **Decision Log `#29` (2026-07-18) establishes that no fourth garden is or was
+> selected** — the slot is open with its criteria retained. Every selection statement below is
+> superseded and non-canonical, preserved only as the record of what was written at the time.
+>
+> **Redaction note (2026-07-19)**: this record originally named the candidate. The name was
+> scrubbed under Decision Log `#29` — no artifact names a fourth garden, and this repository is
+> public. The applied Linear state is unchanged; only the identity is withheld. It lives in
+> research-notes storage.
 
 **Prepared**: 2026-07-10 (RESR-57 external-brief wave) · **amended 2026-07-11** (pilot-alignment wave, decision #24)
 **Why this exists**: historical audit trail for the writes applied on 2026-07-11. **Do not execute or re-apply any payload below.** Current execution truth is the repo source set plus the live Linear re-read summarized in the reconciliation addendum.
@@ -41,7 +47,7 @@ Repo sources: `.plans/active/commitment-pooling/external-communications.md` (rol
 * A Celo transaction report is not proof. Chainlink Functions verifies one finalized receipt; only a valid current request callback may produce `Verified`. There is no human fallback.
 * Community is a planned independent PWA; operator/evaluator tools live in admin `/community`; funder discovery remains in existing client public surfaces.
 * Funding shown in Need context supports a garden and is not escrow or steering.
-* The pilot anchors on the named focus cohort (2026-07-10; Garden 4 selected 2026-07-11): Tech and Sun Hub (Awka, Nigeria), Greenpill Cape Town (Muizenberg / Deep South Circles; UNICEF-funded program, partner stays off-platform), AgroforestDAO / Redemption Hill (Bias Fortes, Brazil), and a fourth candidate (the mature MRV-adoption anchor; deliberately not named — Decision Log #29). Naming never presumes readiness; gardens are never ranked. July rewards are Cookie Jar/treasury only; in August every focus garden is G$-settlement-capable, with Tech and Sun Hub as the first-execution hypothesis and Pass-2 evidence ordering the rollout.
+* The pilot anchors on the named focus cohort (2026-07-10; a fourth garden was recorded as selected 2026-07-11 — since reversed, see the archive status above): Tech and Sun Hub (Awka, Nigeria), Greenpill Cape Town (Muizenberg / Deep South Circles; UNICEF-funded program, partner stays off-platform), AgroforestDAO / Redemption Hill (Bias Fortes, Brazil), and a fourth slot then recorded as filled (the mature MRV-adoption anchor; never named here — Decision Log `#29`, which reopened the slot). Naming never presumes readiness; gardens are never ranked. July rewards are Cookie Jar/treasury only; in August every focus garden is G$-settlement-capable, with Tech and Sun Hub as the first-execution hypothesis and Pass-2 evidence ordering the rollout.
 * The `CommitmentRegister` is non-transferable in v1 — no swaps, exchange rates, or tradeable vouchers; transferable settlement vouchers are the evidence-gated follow-on (PRD-651).
 * No custody anywhere: the module never holds rewards; August settlement is operator-executed from garden Safes (automation is a stretch goal, else September).
 * Borrow-and-repay is design-only (`../../backlog/commitment-credit-follow-on/spec.md`): records-only, interest-free, never a per-person credit score, and not in the August release.
@@ -78,7 +84,7 @@ Carries the B1–B3 worked examples (decision #24 constraints: quantities illust
 
 **2026-07-11 hold (decision #26)**: the Garden-4 name is withheld pending first contact — a later same-day pass anonymized every presentation-facing and operational surface to "a fourth garden — in outreach, named only once participation is confirmed." This applied-result below remains the accurate record of what was applied at 03:06–03:10Z.
 
-**2026-07-11 late amendment (decision #25)**: Garden 4 was selected during application — apply §§5–6 with every "Garden 4 — TBD" occurrence replaced by **the fourth-garden candidate** (AGRO; the es locale proof rides B4; Part A intro reads "Named candidates (2026-07-10; Garden 4 selected 2026-07-11)"; the criteria paragraph reads as selection rationale with Pass 1 verifying each criterion; the domains sentence counts four candidates; the matrix July column reads "Cookie Jar / treasury only (from onboarding)"; B4 retitles to the candidate name plus "mature-organization MRV adoption" with the es note and Pass-1/2 open questions; S12's pilot thread reads "B4 (the candidate)"). The applied-result section records the final content as written.
+**2026-07-11 late amendment (decision #25 — superseded by Decision Log `#29`)**: Garden 4 was recorded as selected during application — apply §§5–6 with every "Garden 4 — TBD" occurrence replaced by **the fourth-garden candidate** (AGRO; the es locale proof rides B4; Part A intro reads "Named candidates (2026-07-10; Garden 4 selected 2026-07-11)"; the criteria paragraph reads as selection rationale with Pass 1 verifying each criterion; the domains sentence counts four candidates; the matrix July column reads "Cookie Jar / treasury only (from onboarding)"; B4 retitles to the candidate name plus "mature-organization MRV adoption" with the es note and Pass-1/2 open questions; S12's pilot thread reads "B4 (the candidate)"). The applied-result section records the final content as written.
 
 ```
 # Commitment Pooling — Use Cases & Domain Scenarios
@@ -259,7 +265,7 @@ At apply time, the then-connected `save_issue` schema could not express a null d
 
 ## Applied result (2026-07-11)
 
-Applied in order §1→§6 with the Garden-4 substitutions from the late amendment (Garden 4 selected mid-application: the candidate — agroforestry, the mature MRV-adoption anchor), after a pre-write drift check (the five most-recently-updated project issues and both project documents showed only this pipeline's own 2026-07-11T01:49–01:52Z writes; no manual edits to reconcile):
+Applied in order §1→§6 with the Garden-4 substitutions from the late amendment (a fourth garden recorded as selected mid-application: the candidate — agroforestry, the mature MRV-adoption anchor; superseded by Decision Log `#29`), after a pre-write drift check (the five most-recently-updated project issues and both project documents showed only this pipeline's own 2026-07-11T01:49–01:52Z writes; no manual edits to reconcile):
 
 - **§1** — memo document retitled to "Commitment Pooling — External Documentation & Rollout Plan" and re-mirrored from `external-communications.md` (which by application time also carried the UNICEF-funded wording, the Garden 4 cohort line, and the new anti-single-garden claims guardrail), with the synthesis hyperlink transform. Applied 03:06Z.
 - **§2** — RESR-57 description replaced with the reconciled payload: twelve required facts including the full four-garden cohort with all-gardens settlement capability, decoupled 07-16 interim target pointing sessions at PRD-701 (due 2026-07-30). Applied 03:06Z.
