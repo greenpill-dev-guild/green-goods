@@ -172,6 +172,7 @@
       "skill_tags": ["ui", "react", "design"]
     },
     "qa_pass_1": {
+      "linear_issues": ["PRD-729"],
       "owner": "claude",
       "status": "blocked",
       "ready_when_dependencies_met": true,
@@ -183,6 +184,7 @@
       "skill_tags": ["testing", "review"]
     },
     "qa_pass_2": {
+      "linear_issues": ["PRD-730"],
       "owner": "codex",
       "status": "blocked",
       "ready_when_dependencies_met": true,
@@ -201,7 +203,7 @@
       "status": "ready",
       "branch": "codex/contracts/commitment-pooling",
       "handoff": "handoffs/codex-contracts.md",
-      "linear_issues": ["PRD-650"],
+      "linear_issues": ["PRD-721", "PRD-650"],
       "acceptance": "Canonical claimant/requestedBy identity and immutable claim type; cycle/pool/accepting checks; direction-aware confirmer defaults with provider exclusion; charter/baseline/exposure-cap readiness; DomainImpact non-zero Work plus assessment gates; exact pause/cancel/link permissions; pre-dispute restoration; bounded Season/Campaign checks; exact unit accounting; append-only standalone schema registration; exact ABI/events/errors/storage; upgrade safety; isolated dry-run artifact path."
     },
     "settlement": {
@@ -227,7 +229,7 @@
       "branch": "codex/indexer/commitment-pooling",
       "depends_on": ["contracts"],
       "handoff": "handoffs/codex-indexer.md",
-      "linear_issues": ["PRD-650"],
+      "linear_issues": ["PRD-722", "PRD-650"],
       "acceptance": "Two-phase core/full event/entity coverage; claimant plus requestedBy, pause reason, SettlementConfiguration.memberDeliveryEnabled, and Hypercert relationship outputs; Envio updater and boundary allowlist preserve the new blocks; Garden.id full replay rehearsal to chainId-address with named snapshot/switch/rollback evidence; nullable explicit-event-only audit actor; chain-composite relationships; create-if-absent/idempotent handlers; entity/query freeze for shared; codegen, setup-generated, build, and indexed event-sequence proof."
     },
     "state_api": {
@@ -240,7 +242,7 @@
       "branch": "codex/state-api/commitment-pooling",
       "depends_on": ["contracts", "indexer"],
       "handoff": "handoffs/codex-state-api.md",
-      "linear_issues": ["PRD-650"],
+      "linear_issues": ["PRD-723", "PRD-650"],
       "acceptance": "Two-phase core/full shared types, query keys, hooks, missing-evidence/readiness outputs, canonical claimant/requestedBy identity, five complete-ABI offline job payloads, online accept/decline/assessment/Ready/override mutations, positive-only confirmation plus online raiseDispute, Hypercert metadata/allocation selectors, AA-gated online wallet transfer, Reported/checking/Verified settlement selectors, memberDeliveryEnabled read model, composite-ID queries, and mutation invalidation flow."
     },
     "ui_client": {
@@ -253,7 +255,7 @@
       "branch": "claude/ui-client/commitment-pooling",
       "depends_on": ["state_api"],
       "handoff": "handoffs/claude-ui-client.md",
-      "linear_issues": ["PRD-650"],
+      "linear_issues": ["PRD-724", "PRD-650"],
       "acceptance": "Garden pool routes, direction-aware eligible confirmation, Not yet -> online raiseDispute, domains[]/requiredActionUIDs[] creation payload, offline recovery states, and Reported/checking/Verified reward rows with member delivery hidden when disabled."
     },
     "ui_admin": {
@@ -266,7 +268,7 @@
       "branch": "claude/ui-admin/commitment-pooling",
       "depends_on": ["state_api"],
       "handoff": "handoffs/claude-ui-admin.md",
-      "linear_issues": ["PRD-650", "PRD-682"],
+      "linear_issues": ["PRD-725", "PRD-650", "PRD-682"],
       "acceptance": "Garden Pool operations, /community/pools protocol and cross-garden mode, stored claim acceptance/decline/supersession, dispute restoration, immutable-batch per-member reconciliation, and Functions request/checking/failure/retry controls."
     },
     "editorial": {
@@ -279,7 +281,7 @@
       "branch": "claude/editorial/commitment-pooling",
       "depends_on": ["state_api"],
       "handoff": "handoffs/claude-editorial.md",
-      "linear_issues": ["PRD-650"]
+      "linear_issues": ["PRD-726", "PRD-650"]
     },
     "docs": {
       "machine_lane": "ui",
@@ -288,7 +290,7 @@
       "branch": "claude/docs/commitment-pooling",
       "depends_on": [],
       "handoff": "handoffs/claude-docs.md",
-      "linear_issues": ["PRD-650"],
+      "linear_issues": ["PRD-727", "PRD-650"],
       "acceptance": "Glossary and architecture freshness with docs build, vocab lint, and anchor checks."
     },
     "docs_guides": {
@@ -300,7 +302,7 @@
       "branch": "claude/docs-guides/commitment-pooling",
       "depends_on": ["ui_client", "ui_admin", "settlement"],
       "handoff": "handoffs/claude-docs-guides.md",
-      "linear_issues": ["PRD-650"],
+      "linear_issues": ["PRD-728", "PRD-650"],
       "blocked_reason": "Screenshot-dependent operator/gardener guides wait for shipped client/admin settlement surfaces."
     },
     "july_dry_run": {
@@ -310,8 +312,8 @@
       "branch": null,
       "depends_on": [],
       "handoff": null,
-      "linear_issues": ["RESR-62"],
-      "acceptance": "Operational track on existing rails; tracked in the Linear project doc 'July dry run: proto-commitment tracking'. RESR-53 was canceled 2026-07-06 and folded into RESR-62."
+      "linear_issues": ["COM-7", "COM-3"],
+      "acceptance": "Operational track on existing rails; the proto-commitment loop table lives in COM-7 \u00a7 Proto-commitment rehearsal (folded in from the retired 'July dry run \u2014 proto-commitment tracking' project doc, 2026-07-20). RESR-53 was canceled 2026-07-06 and folded into COM-7 (formerly RESR-62)."
     },
     "release_ops": {
       "machine_lane": null,
@@ -323,7 +325,7 @@
       "branch": null,
       "depends_on": ["contracts", "settlement", "indexer"],
       "handoff": "handoffs/human-release-ops.md",
-      "linear_issues": ["PRD-686"],
+      "linear_issues": ["PRD-731"],
       "acceptance": "Separately authorized broadcasts, post-deploy checks, Garden-ID replay/cutover, and one oracle-verified Celo G$ exit proof with named evidence owners."
     },
     "community": {

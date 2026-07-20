@@ -25,7 +25,7 @@ Every handoff records:
 
 Detailed proof is written here first and then recorded in status.json with the plan-hub record-tdd command. A handoff is not a branch-creation instruction.
 
-There are fourteen agent execution handoffs plus one human release-operations handoff. The human handoff is an authorization and evidence boundary, not a machine lane.
+There are thirteen agent execution handoffs plus one human release-operations handoff. The human handoff is an authorization and evidence boundary, not a machine lane.
 
 ## Linear boundary
 
