@@ -67,7 +67,7 @@ Each artifact names its owning record. Brief production is English-first and sha
 1. **Canonical synthesis** (standalone Linear document; mirrored as the Google Doc *GE Learnings & Full Flywheel* tab) — long-form rationale, learnings, and full flywheel.
 2. **External brief** (RESR-57; draft at `external-brief.md` in this hub, mirrored as the Google Doc *External Brief* tab, with four companion graphics per `visual-assets.md`) — two pages: why now, how the loop works, what is built versus planned, trust and settlement boundaries, invitation.
 3. **Use-case pack** (RESR-58; migrated to the Google Doc *Use Cases & Domain Scenarios* tab — Parts A–C; the Part D acceptance mapping stays in Linear as build truth) — anchored in Tech and Sun Hub, Greenpill Cape Town, AgroforestDAO / Redemption Hill, plus an open fourth slot with no garden named: Request, Offer, and Initiative examples across optional domains; positional action pairs where DomainImpact requires them; analog and digital participation; non-G$ and G$ reward paths per the garden reward-path matrix.
-4. **Operator onboarding guide** (PRD-701) — research session, mandate artifact, roles, seeding, gathering, support, and issue escalation.
+4. **Operator onboarding guide** (COM-3) — research session, mandate artifact, roles, seeding, gathering, support, and issue escalation.
 5. **Evaluator architecture note** (PRD-649 / docs lane) — ERD, sequences, event/indexer contract, evidence lineage, and CSV/JSON export boundaries.
 6. **Funder/collaborator note** (RESR-57 audience notes) — capital flow, reported versus oracle-verified facts, funding attribution, no ranking/no escrow, ways to participate.
 7. **FAQ and glossary** (RESR-57) — plain-language vocabulary plus exact technical appendix.
@@ -82,7 +82,7 @@ Visual assets for the brief, this plan, and the synthesis are indexed in `visual
 | Linear checkpoint | Planned engagement | Exit evidence |
 |---|---|---|
 | Through 2026-07-16 | Operator outreach begins; facilitation-kit review | Outreach started; unanswered questions logged |
-| 2026-07-16 to 2026-07-30 | Co-design sessions and mandate confirmation (PRD-701 kickoff package due 2026-07-30 with RESR-62) | Contacts, session slots, consent path; corrected mandates, language findings, join-request decision evidence |
+| 2026-07-16 to 2026-07-30 | Co-design sessions and mandate confirmation (COM-3 kickoff package due 2026-07-30 with COM-7) | Contacts, session slots, consent path; corrected mandates, language findings, join-request decision evidence |
 | 2026-07-31 dry-run checkpoint | Share “what we heard / what changes” back to gardens | Readiness matrix with explicit gaps; no inflated launch claim |
 | 2026-08-31 release checkpoint | Steward walkthrough and one bounded end-to-end proof where every external gate passes | Tested runbook, architecture evidence, and oracle-verified Celo settlement proof where relevant |
 | 2026-09-30 Community checkpoint | Independent-PWA and gathering usability sessions | Observed task completion, recovery-path evidence, and qualitative understanding |

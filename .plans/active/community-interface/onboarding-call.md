@@ -2,104 +2,225 @@
 
 **Feature Slug**: `community-interface`
 **Stage**: `active`
-**Updated**: 2026-07-18
-**Owning issues**: COM-7 (renumbered from RESR-62 when it moved to the Community team, 2026-07-19) and COM-3 (formerly COM-3, renumbered to the Community team) for steward coordination
-**Linear mirror**: [Garden Onboarding Call (Pass 2)](https://linear.app/greenpill-dev-guild/document/garden-onboarding-call-pass-2-mandate-confirmation-and-first-season-d3690de04864) (slug `d3690de04864`). This file is the execution source; keep the mirror in lockstep.
+**Updated**: 2026-07-19
+**Owning issues**: COM-7 (renumbered from RESR-62 when it moved to the Community team, 2026-07-19) and COM-3 (formerly PRD-701, renumbered to the Community team) for steward coordination
+**Linear mirror**: [Garden Onboarding Call (Pass 2)](https://linear.app/greenpill-dev-guild/document/garden-onboarding-call-pass-2-mandate-confirmation-and-first-season-d3690de04864) (slug `d3690de04864`). This file is the execution source: correct it here, then re-mirror. Never hand-edit the mirror on its own.
 **Companion**: `survey-instrument.md` (Pass 1). Run the survey first; this call assumes a completed response.
+**Privacy**: contact details, wallet addresses, join identities, and statements naming people live in research-notes storage only. Never in Linear, analytics, or public artifacts.
 
-This is the facilitator guide for Pass 2. The survey already did the discovery. This call turns it into action: correct and confirm the garden's mandate, agree how change will be measured, plan who gets onboarded onto Green Goods and how, walk the first-Season timeline, and name support. The steward should leave knowing exactly what happens next and why it is worth it.
+## At a glance
 
-The call runs in English; stewards are welcome to bring a community translator. Nothing here presumes readiness: "not ready" is a respected answer and is recorded as such. Keep contact details, wallet addresses, join identities, and statements naming people out of Linear, analytics, and public artifacts.
+The survey already did the discovery. This call turns it into action, and it has **one output**: a mandate the garden recognises as its own plan, plus a dated plan for getting its people onto Green Goods.
 
-**Vocabulary**: this guide says **steward** for the person who runs a garden, glossed "(operator in the app today)" on first use with a garden — matching the in-progress rename in the external brief.
+| # | Block | Min | What you leave with |
+|---|---|---|---|
+| 1 | Welcome and read-back | 5 | A warm start, and corrections already surfacing |
+| 2 | Confirm the mandate rows | 15 | Two or three commitment rows, corrected by the steward |
+| 3 | Measurement agreement | 8 | Evidence plan per row; baseline author named |
+| 4 | Platform onboarding | 10 | A roster with names, a setup session, a training plan |
+| 5 | First-Season timeline | 5 | Agreed next touchpoints |
+| 6 | Rewards and G$ | 7 | Where the garden thinks value should go |
+| 7 | Support and logistics | 5 | A named support contact |
+| 8 | Read-back and close | 5 | Explicit confirmation and a dated follow-up |
 
-## Facilitator media kit
+Those blocks sum to exactly 60 minutes, which leaves no slack at all. **Book 75 and let the overrun land in blocks 2 and 4** — those two carry the call. If something has to give, it is block 6, not block 2.
+
+The call runs in English; stewards are welcome to bring a community translator. Nothing here presumes readiness: **"not ready" is a respected answer** and is recorded as such.
+
+**Vocabulary**: this guide says **steward** for the person who runs a garden, glossed "(operator in the app today)" on first use with a garden — matching the in-progress rename in the external brief. Say **Season** for the live pacing unit: usually about three months, though Season One has run longer.
+
+## Before the call (~45 minutes per garden)
+
+Work in this order. Almost everything here is *reviewing and correcting* what the synthesis prompt produced, not starting from a blank page.
+
+**1 · Check the retraction window before you write anything.**
+The window closes the moment you run the synthesis prompt, because that is the "synthesis" the survey promised they could retract before. If the form has been sitting a while, send a one-line note first: *"about to write this up — anything you would like to pull?"*
+
+**2 · Read the full survey response, honouring consent first.**
+Check 5.4 (may we keep written notes) and 5.5 (may we quote you) before excerpting anything, and read 5.6 — the garden's own redaction list — before writing anything down.
+
+> **If 5.4 is "No", stop and re-plan.** That question is about keeping *written notes*, not recording. A "No" means the synthesis pack, readiness row, and gap log cannot be produced at all. Run the agenda from memory, confirm the mandate verbally, and ask on the call whether they would consent to notes for the mandate artifact alone. Record nothing until they say yes.
+
+**3 · Run the synthesis prompt (Appendix B) over the submission.**
+It produces the needs board, the garden's theory of change in its own words, one draft mandate row, the onboarding roster, the readiness row, gap-log entries, and open questions.
+
+**4 · Verify what the prompt drafted.** It drafts; you verify.
+- Does the quantity respect the capacity ceiling from 3.8 (time available)?
+- Does the need it names match what they actually wrote in 2.1 (their list of needs)?
+
+**5 · Read the needs board and pick two more.**
+Choose the two worth turning into commitments alongside the drafted one. Note which needs are missing an outcome or a horizon — those are quick asks on the call, not discussion.
+
+**6 · Read the roster shape — it arrives as counts and roles, never names.**
+1.4 is the respondent's own hats, 1.6 and 1.7 are membership bands, and 1.8 is an aggregate device mix. No survey question identifies individuals. Names are collected live in block 4, so bring the counts and the device split, not a list.
+
+**7 · Note per-garden probes** for anything the funder-reporting branch (4A) left unclear. Greenpill Cape Town: UNICEF's exact cadence, deadline, and fund path. Any methodology-anchored garden: the methodology name and who authors its baseline.
+
+**8 · Confirm attendees.** 5.3 (who else should join) is optional — if blank, ask on the call. The garden booked its own slot through the calendar link, so no scheduling is needed here.
+
+**9 · Send the draft ahead, labelled "DRAFT: yours to correct".**
+Send the needs board, the theory-of-change paragraph, and the draft mandate row. Seeing their own needs written back is the strongest signal that we listened.
+
+**10 · Queue the media kit**, the timeline one-pager, the G$ talking points, and the guardrails.
+
+### Media kit
 
 Have these open or printed; share each as its block lands.
 
-- `.plans/active/commitment-pooling/artifacts/visuals/external-brief-loop.png` — the commitment loop, the same image the survey opened with
-- `.plans/active/commitment-pooling/artifacts/visuals/external-brief-roles.png` — one loop, five roles; the confirmation rule in one glance
-- `.plans/active/commitment-pooling/artifacts/visuals/rollout-timeline-band.png` — the dated checkpoints
-- `.plans/active/commitment-pooling/artifacts/visuals/synthesis-circular-gd.png` — how value circulates rather than draining out
-- `.plans/active/commitment-pooling/artifacts/visuals/external-brief-money-map.png` — Arbitrum proof, Celo G$, the boundaries
-- `docs/static/img/screenshots/client-passkey-login.png` and the `client-work-*` series — what members will actually see
-- Product walkthrough, shared before the call: https://www.loom.com/share/e09225ec813147a6aacd4dc8816ce8be?sid=985a42f4-574b-499d-9dc8-03051b797f3d
+| Asset | Shows | Use in |
+|---|---|---|
+| `.plans/active/commitment-pooling/artifacts/visuals/external-brief-loop.png` | The commitment loop — the same image the survey opened with | Block 1 |
+| `.plans/active/commitment-pooling/artifacts/visuals/external-brief-roles.png` | One loop, five roles; the confirmation rule in one glance | Block 2 |
+| `.plans/active/commitment-pooling/artifacts/visuals/rollout-timeline-band.png` | The dated checkpoints | Block 5 |
+| `.plans/active/commitment-pooling/artifacts/visuals/synthesis-circular-gd.png` | How value circulates rather than draining out | Block 6 |
+| `.plans/active/commitment-pooling/artifacts/visuals/external-brief-money-map.png` | Arbitrum proof, Celo G$, the boundaries | Block 6 |
+| `docs/static/img/screenshots/client-passkey-login.png` and the `client-work-*` series | What members will actually see | Block 4 |
 
-## Pre-call prep (facilitator, ~45 minutes per garden)
+Product walkthrough, shared before the call: https://www.loom.com/share/e09225ec813147a6aacd4dc8816ce8be?sid=985a42f4-574b-499d-9dc8-03051b797f3d
 
-- [ ] Read the full survey response. Honour the consent flags (5.4 written notes, 5.5 quotations) before excerpting anything, and read 5.6 — the garden's own redaction list — before writing anything down.
-- [ ] **The retraction window closes when you run the synthesis prompt**, because that is the "synthesis" the survey promised they could retract before. If the form has been sitting a while, send a one-line note first: "about to write this up — anything you would like to pull?"
-- [ ] **Run the synthesis prompt (Appendix B)** over the submission. It produces the garden's needs board, its theory of change in its own words, one draft mandate row, the onboarding roster, readiness row, gap-log entries, and open questions. Everything below is reviewing and correcting its output, not starting from a blank page.
-- [ ] Sanity-check the draft mandate row against the source answers — the prompt drafts, you verify. Especially: does its quantity respect the capacity ceiling from 3.8, and does the need it names match what they actually wrote?
-- [ ] Read the needs board and pick the two worth turning into commitments alongside the drafted one. Note which needs are missing an outcome or a horizon — those are quick asks, not discussion.
-- [ ] Read the roster shape. It arrives as **counts and roles, never names** — 1.4 is the respondent's own hats, 1.6/1.7 are bands, and 1.8 is an aggregate device mix, so no survey question identifies individuals. Names are collected live in block 4; bring the counts and the device split, not a list.
-- [ ] Note per-garden probes for anything 4A left unclear. Greenpill Cape Town: UNICEF's exact cadence, deadline, and fund path. Any methodology-anchored garden: the methodology name and who authors its baseline.
-- [ ] Confirm attendees (5.3 is optional — if blank, ask on the call). The garden booked its own slot through the calendar link, so no scheduling is needed here.
-- [ ] **If 5.4 is "No", stop and re-plan.** That question is about keeping *written notes*, not recording — a "No" means the synthesis pack, readiness row, and gap log cannot be produced at all. Run the agenda from memory, confirm the mandate verbally, and ask on the call whether they would consent to notes for the mandate artifact alone. Record nothing until they say yes.
-- [ ] **Send the needs board, the theory-of-change paragraph, and the draft mandate row to the steward ahead of the call, labelled DRAFT: yours to correct.** Seeing their own needs written back is the strongest signal that we listened.
-- [ ] Queue the media kit, the timeline one-pager, the G$ talking points, and Appendix A.
+## Guardrails — read before every call
 
-## Agenda (60-minute budget)
+These bind blocks 2, 6, and 8. Use plain language in conversation, then map confirmed answers after read-back.
+
+**The one rule that matters most**
+
+A **need** is something the community is trying to solve. A **commitment** is how it gets met, and it is either a **Request** (help asked for) or an **Offer** (help given). Never label a need as a request or an offer — that conflation is what the survey was rebuilt to remove.
+
+**Who confirms a commitment was kept**
+
+The provider never confirms their own work, including through steward fallback. For an **Offer**, the accepted recipient confirms delivery. For a **Request**, the creator confirms. This single rule appears again in the mandate checklist and in Appendix B; it is the same rule each time.
+
+**What we do not do**
+
+- No rankings, scores, or cross-garden comparisons — in conversation or in notes.
+- No promises about G$ amounts or dates.
+- No launch claims. Frame needs, commitments, pooling, and G$ as what we are building, never as shipped.
+- We do not ask for photos, audio, or video. If media arrives anyway it stays in research notes, never shared or published.
+- No names of third parties, wallet addresses, join identities, or grievances naming people in Linear, analytics, or public artifacts.
+- Record unresolved interpretation as unresolved. Never infer certainty, and never infer readiness — silence is not agreement.
+
+**Settlement language, said precisely**
+
+G$ stays on **Celo**; coordination and proof live on Arbitrum. A **reported** transaction is not **oracle-verified**: only the automated Chainlink Functions receipt check upgrades that label, with no human override. If the Celo sponsored-account gate fails, automated member delivery stays unavailable even though protocol-to-garden funding may continue.
+
+<details>
+<summary><strong>Protocol semantics</strong> — the exact terms behind the plain-language rules above. You do not need these on the call; they are here so a mapped answer can be checked against the contract.</summary>
+
+- For steward-reviewed participation, capture claimant kind and provider garden; the eventual contract stores those terms before acceptance.
+- A DomainImpact commitment may use one or more optional domains, with one registered action per positional domain. Action UID `0` is valid. Support and service work may remain unclassified.
+- Individual Work must come from the accepted counterparty. A garden provider's Work must come from a gardener or steward of that garden. In the protocol pool, Work and assessment recipients are the provider garden.
+
+</details>
+
+## The call
 
 ### 1 · Welcome and read-back — 5 min
 
 **Goal**: the steward hears their own survey back and trusts the frame.
-**Cover**: read back the **theory of change** the synthesis pack assembled from their own answers, then their needs list (2.1). A garden hearing its own logic stated cleanly is the fastest way to earn the next fifty-five — and "no, that is not why" is the most useful thing they can say. State today's single output: a corrected mandate plus an onboarding plan.
+
+**Cover**
+- Read back the **theory of change** the synthesis pack assembled from their own answers.
+- Then their needs list (2.1).
+- State today's single output: a corrected mandate plus an onboarding plan.
+
+A garden hearing its own logic stated cleanly is the fastest way to earn the next fifty-five minutes — and *"no, that is not why"* is the most useful thing they can say.
+
 **Prompts**: "Have we understood why this matters to you?" · "Is that how these actually fit together for you?"
+
 **Output**: warm start; corrections already surfacing.
 
 ### 2 · Confirm the mandate rows — 15 min
 
-**Goal**: two or three commitment rows the garden recognises as its own plan. The survey supplies **one** draft; one or two more are built here, live, from the needs board. Three is the honest ceiling for fifteen minutes against a nine-point checklist, and one solid row beats three rushed ones.
-**Cover**: walk the DRAFT row through the confirmation checklist below and edit it live. Then work down the needs board in the shape their own answer to 2.3 implies — in order if they described a sequence, in parallel if two tracks feed each other: which other needs are ready to carry a commitment this Season? Show the roles image when confirmation rules come up.
+**Goal**: two or three commitment rows the garden recognises as its own plan.
+
+The survey supplies **one** draft; one or two more are built here, live, from the needs board. Three is the honest ceiling for fifteen minutes against a nine-point checklist, and one solid row beats three rushed ones.
+
+**Cover**
+- Walk the DRAFT row through the mandate checklist below and edit it live.
+- Then work down the needs board in the shape their own answer to 2.3 (how the needs relate) implies — in order if they described a sequence, in parallel if two tracks feed each other.
+- Ask which other needs are ready to carry a commitment this Season.
+- Show the roles image when confirmation rules come up.
+
 **Prompts**: "Is this the work you would actually commit to first?" · "Who benefits, and who confirms it happened?" · "What quantity feels honest for one Season?"
-**If the pack is thin** — a short response, or one that skipped Section 2 — do not push through the checklist. Fall back to discovery for this block and build one row from the conversation. A garden that could not fill the form is telling you something about its capacity; record that in the readiness row rather than treating the call as failed.
+
+> **If the pack is thin** — a short response, or one that skipped Section 2 — do not push through the checklist. Fall back to discovery for this block and build one row from the conversation. A garden that could not fill the form is telling you something about its capacity; record that in the readiness row rather than treating the call as failed.
+
 **Output**: corrected rows; unresolved items marked unresolved, never inferred.
 
 ### 3 · Measurement agreement — 8 min
 
 **Goal**: each row has evidence and a starting point the garden can actually record.
-**Cover**: baseline and delta per row; who records the baseline (their 4.7 ranking is the starting point); named confirmation group and threshold; how what they already track (4.1) maps into assessments; funder-report needs (4A) folded in so one recording effort serves both.
+
+**Cover**
+- Baseline and delta per row.
+- Who records the baseline — their 4.7 ranking (who should record the starting point) is where to start.
+- Named confirmation group and threshold.
+- How what they already track (4.1) maps into assessments.
+- Funder-report needs from the 4A branch, folded in so one recording effort serves both.
+
 **Output**: evidence plan per row; baseline author named.
 
 ### 4 · Platform onboarding — 10 min
 
 **Goal**: a named roster of who gets onboarded onto Green Goods, how, and when.
-**Cover**: confirm the roster (from 1.4, 1.6, 1.7) — who becomes steward, gardener, evaluator; device reality from 1.8 and what it means, passkey sign-in for smartphone holders (show `client-passkey-login.png`), the WhatsApp/SMS agent path for feature-phone and shared-device members; who approves work when the steward is away; what "training on the app" (3.9) becomes concretely; where their current records live (4.4) and what moves across. Walk one work submission on screen using the `client-work-*` screenshots or the walkthrough.
+
+**Cover**
+- **Confirm the roster** from 1.4 (their own roles), 1.6 (active members) and 1.7 (expected app users) — who becomes steward, gardener, evaluator.
+- **Device reality** from 1.8 (phones members have), and what it means in practice:
+  - smartphone holders → passkey sign-in (show `client-passkey-login.png`)
+  - feature-phone and shared-device members → the WhatsApp/SMS agent path
+- **Cover for absence**: who approves work when the steward is away.
+- **Training**: what "training on the app" (3.9, support needed) becomes concretely.
+- **Records**: where their current records live (4.4) and what moves across.
+- **Show one work submission on screen**, using the `client-work-*` screenshots or the walkthrough.
+
 **Prompts**: "Who are your first three gardeners in the app?" · "Who approves work when you are away?" · "Which members would use WhatsApp instead of the app?"
+
 **Output**: onboarding roster with names and roles, a scheduled setup session, and a training plan.
 
 ### 5 · First-Season timeline — 5 min
 
 **Goal**: the steward can say the dates back.
-**Cover**: the sequence below with the timeline image up. No launch claims.
+
+**Cover**: the timeline one-pager below, with the timeline image up. No launch claims.
+
 **Output**: agreed next touchpoints.
 
 ### 6 · Rewards and G$ — 7 min
 
 **Goal**: the steward understands the reward layer and what it needs from the garden.
-**Cover**: talking points below, anchored to their 5.1 answer about where G$ should go. Circular-G$ image for the story, money-map for the boundaries.
+
+**Cover**: the talking points below, anchored to their 5.1 answer (where G$ should go). Circular-G$ image for the story, money-map for the boundaries.
+
 **Output**: G$ relevance and circulation path recorded for the readiness row.
 
 ### 7 · Support and logistics — 5 min
 
 **Goal**: the garden knows exactly who to reach and what happens if things stall.
-**Cover**: the named support contact, how fast they answer, and when office hours run — **[INSERT SUPPORT CONTACT, RESPONSE TIME, AND OFFICE HOURS before the first call]**. This is also the person the survey told them to contact to retract answers, so it must be a real name. Then the honest off-ramp: "not ready" is a fine answer, is recorded as such, and closes nothing off.
+
+**Cover**
+- The named support contact, how fast they answer, and when office hours run — **[INSERT SUPPORT CONTACT, RESPONSE TIME, AND OFFICE HOURS before the first call]**. This is also the person the survey told them to contact to retract answers, so it must be a real name.
+- The honest off-ramp: "not ready" is a fine answer, is recorded as such, and closes nothing off.
+
 **Output**: support contact confirmed.
 
 ### 8 · Read-back and close — 5 min
 
 **Goal**: explicit confirmation, not silence.
+
 **Cover**: "Is this what you meant?" per row; onboarding roster read back; next touchpoint dated.
+
 **Output**: confirmed or explicitly corrected mandate; dated follow-up.
 
-## Mandate confirmation checklist (per commitment row)
+## Reference cards
+
+### Mandate confirmation checklist (per commitment row)
 
 - exact unit and quantity;
 - who provides and who benefits;
 - open or steward-reviewed participation;
 - honest evidence and any baseline/delta requirement;
-- named confirmation group and threshold — the worker never confirms their own commitment;
+- named confirmation group and threshold — the provider never confirms their own commitment;
 - due date or cycle boundary;
 - declared reward with source, token, and amount. **July: Cookie Jar / garden-treasury rails only; no G$ moves in the dry run**;
 - linked Need and zero or more domains (empty is valid);
@@ -107,15 +228,14 @@ Have these open or printed; share each as its block lands.
 
 Record unresolved interpretation as unresolved; never infer certainty.
 
-## Rewards and G$ — talking points
+### Rewards and G$ — talking points
 
 - **The reward layer**: commitments your garden keeps can be backed with G$. We are building this with GoodDollar; Green Goods is one of four members of GoodDollar's House of Alignment. After GIP-26 failed its community vote in June 2026, the Good Labs Foundation funds the pilot directly — roughly $800/month in G$ per member via a Flow Splitter on Flow State, first evaluation 2026-09-30. The funding itself is evidence-gated: **never promise amounts or dates to members.**
-- G$ stays on **Celo**; coordination and proof live on Arbitrum. Each garden gets a Celo Safe on demand; settlement is **steward-executed**, starting in August.
-- "Reported" is not "Oracle-verified": only the automated Chainlink Functions receipt check upgrades the label, with no human override. If the Celo sponsored-account gate fails, automated member delivery stays unavailable even though protocol-to-garden funding may continue.
+- Each garden gets a Celo Safe on demand; settlement is **steward-executed**, starting in August. (For the Celo/Arbitrum split and the reported-vs-verified distinction, see Guardrails above.)
 - Every focus garden becomes settlement-capable in August; **Tech and Sun Hub is the first-execution hypothesis**, and this call's evidence orders the rollout.
-- Start from their 5.1 answer and take it at face value. If they said pay members directly, that is a legitimate answer and circulation is simply an open question — do not steer them toward the pool or the treasury because it suits our story. What this block needs is an honest read on where value would go, not agreement.
+- **Start from their 5.1 answer and take it at face value.** If they said pay members directly, that is a legitimate answer and circulation is simply an open question — do not steer them toward the pool or the treasury because it suits our story. What this block needs is an honest read on where value would go, not agreement.
 
-## First-Season timeline (facilitator one-pager)
+### First-Season timeline (facilitator one-pager)
 
 - **Through 2026-07-30** — co-design and mandate confirmation (this call; COM-3 kickoff exit). **Hold the last call on 07-28 at the latest**: the corrected mandate goes back within 48 hours and the steward must explicitly confirm before the 07-31 publication, and silence is not confirmation. A later call publishes unconfirmed, which the readiness matrix then has to say plainly.
 - **2026-07-31** — July dry-run checkpoint. Confirmed mandate artifacts and a readiness matrix published **with explicit gaps**; no launch claim; dry-run rewards via Cookie Jar/treasury only.
@@ -123,21 +243,19 @@ Record unresolved interpretation as unresolved; never infer certainty.
 - **Early September** — the community app arrives: members name needs in their own words, signal what matters, and confirm kept commitments. (The September milestone closes 2026-09-30.)
 - **2026-12-31** — hardening review; "what we heard / what changed" returned to every garden.
 
-## Appendix A — Facilitator guardrails
+## After the call
 
-Read before every call; these bind agenda blocks 2, 6, and 8. Use plain language in conversation, then map confirmed answers after read-back:
-
-- A **need** is something the community is trying to solve. A **commitment** is how it gets met, and it is either a Request (help asked for) or an Offer (help given). Never label a need as a request or an offer — that conflation is what the survey was rebuilt to remove.
-- For an Offer, the accepted recipient confirms delivery. For a Request, the creator confirms delivery. The provider cannot confirm their own work, including through steward fallback.
-- For steward-reviewed participation, capture claimant kind and provider garden; the eventual contract stores those terms before acceptance.
-- A DomainImpact commitment may use one or more optional domains, with one registered action per positional domain. Action UID `0` is valid. Support and service work may remain unclassified.
-- Individual Work must come from the accepted counterparty. A garden provider's Work must come from a gardener or steward of that garden. In the protocol pool, Work and assessment recipients are the provider garden.
-- Ask whether G$ is relevant and where it should go; do not promise delivery. Green Goods keeps G$ on Celo. A reported transaction is not verified; the planned settlement path requires a finalised Chainlink Functions receipt result.
-- If the Celo sponsored-account gate fails, automated member delivery stays unavailable even though protocol-to-garden funding may continue.
-- No rankings, scores, or cross-garden comparisons, in conversation or in notes.
-- Say **Season** for the live pacing unit — usually about three months, though Season One has run longer. Frame needs, commitments, pooling, and G$ as what we are building, never as shipped.
-- The call runs in English; a community translator is welcome. We do not ask for photos, audio, or video; if media arrives anyway it stays in research notes, never shared or published.
-- Privacy: no names of third parties, wallet addresses, join identities, or grievances naming people in Linear, analytics, or public artifacts. Record unresolved as unresolved.
+- **Return the corrected mandate artifact within 48 hours**, labelled "yours to correct: silence is not confirmation". The steward must explicitly confirm or correct it.
+- **Update the garden's readiness row**: participation · need examples · commitment rows (confirmed vs draft) · domains · evidence and confirmation · G$ rewards · circulation path · **onboarding roster and setup-session date** · open decisions with owner and next review point.
+- **Schedule** the passkey setup session and the app training agreed in block 4; note who takes the WhatsApp/SMS path.
+- **Record outputs where they belong**:
+  - readiness row → the field table in `research-plan.md` § Synthesis format
+  - corrections → `corrections-log.md` in this folder
+  - gap-log items → architecture review, before August seeding
+  - anything from 4.6 (what they cannot show yet) → PRD-719
+  - coordination-channel and join-flow observations → RESR-64 (no PII)
+- **Append** every change research forced on the product plan to the corrections log.
+- **Date the next touchpoint**: the readiness matrix publishes 2026-07-31.
 
 ## Appendix B — Submission synthesis prompt
 
@@ -226,7 +344,8 @@ Produce these seven artifacts.
      plausible.
      The facilitator reads this back at the top of the call; being corrected is the point.
 
-  2. DRAFT MANDATE ROW. One block, from 3.6 and 3.7, using the mapped fields. Quantities must respect 3.7. Label it DRAFT. Produce exactly one from the
+  2. DRAFT MANDATE ROW. One block, from 3.6 and 3.7, using the mapped fields. Quantities
+     must respect the capacity ceiling in 3.8. Label it DRAFT. Produce exactly one from the
      survey — additional rows are built with the steward on the call, from the needs
      board above. Do not manufacture rows the form cannot support.
 
@@ -265,24 +384,16 @@ RULES
 - If the response is thin, say so and produce less. A short honest pack beats a padded one.
 ````
 
-## Post-call steps
-
-- Return the corrected mandate artifact within **48 hours**, labelled "yours to correct: silence is not confirmation". The steward must explicitly confirm or correct it.
-- Update the garden's readiness row: participation · need examples · commitment rows (confirmed vs draft) · domains · evidence and confirmation · G$ rewards · circulation path · **onboarding roster and setup-session date** · open decisions with owner and next review point.
-- Schedule the passkey setup session and the app training agreed in block 4; note who takes the WhatsApp/SMS path.
-- Record outputs where they belong: the readiness row uses the field table in `research-plan.md` § Synthesis format; corrections go to `corrections-log.md` in this folder; gap-log items go to architecture review, and anything from 4.6 goes to PRD-719. Append every change research forced on the product plan to the corrections log.
-- Route gap-log items to architecture review before August seeding; forward coordination-channel and join-flow observations to RESR-64 (no PII).
-- Date the next touchpoint: the readiness matrix publishes 2026-07-31.
-
 ---
 
-**Change log**
+**Change log** — entries preserve the survey numbering in force on their date, and are not retro-edited. Where an entry cites a question number that no longer resolves, the entry is the historical record and the body of this document is current.
 
 - 2026-07-11 — created as the Pass 2 companion to the survey; absorbed the former "Locked implementation prompts" as Appendix A.
 - 2026-07-11 (final pass) — agenda expanded into Goal/Cover/Prompts/Output subsections; platform-onboarding block added; media kit added; G$ reframed as the reward layer; English-only call noted.
-- 2026-07-18 (transposition pass) — added **Appendix B**, the runnable submission-synthesis prompt that produces the draft mandate rows, onboarding roster, readiness row, gap log, and call questions; pre-call prep now reviews its output rather than starting blank. Timeline corrected to early August (Cycle 1) and early September (community app), with milestone closing dates retained. Survey references renumbered to the 48-item build sheet. Steward vocabulary adopted. Scheduling moved to the booking link in the survey.
-- 2026-07-19 (multi-need pass) — Appendix B rebuilt for multiple needs: Phase 1 splits the needs list into individually numbered needs in the garden's own words, Phase 2 builds a **Need record per need** (statement, outcome, kind, horizon) before mapping the single mandate row, and Phase 3 leads with **the needs board** as artifact 0. The prompt now produces **one** draft mandate row rather than pretending the form supports three; further rows are built live in agenda block 2 from the needs board. Gap log now treats an unclassifiable need as the most valuable output in the pack.
-- 2026-07-19 (theory-of-change pass) — Appendix B gains **artifact 1: the garden's theory of change in its own words**, assembled from cause, beneficiary, outcome, indicator, horizon and aspiration rather than asked as theory, with gaps left visible instead of filled. Agenda block 1 now opens by reading it back. Survey references renumbered for the two new Section 2 questions (2.4 sequencing, 2.10 aspiration).
-- 2026-07-19 (portfolio-shape fix) — Phase 1 now notes when a garden named two needs together, and Phase 3's theory-of-change artifact carries the portfolio's actual shape: sequential, enabling, or a reinforcing loop, with an explicit instruction not to flatten a loop into a line. Agenda blocks 1 and 2 follow the same shape rather than assuming an order.
-- 2026-07-19 (needs-are-initiatives fix) — Appendix B rebuilt to match: Need records carry statement, outcome and horizon but **no kind**, since a need is a thing to solve rather than a direction of help; the mandate row now takes its direction from 3.7 (Request or Offer), which is what sets who confirms. Phase 1, Phase 2, the theory-of-change artifact, the gap log, and every agenda reference renumbered for the new Section 2 (8 questions, no single-need focus) and Section 3 (15 questions, direction added at 3.7). Appendix A's first guardrail now states the need/commitment distinction explicitly.
-- 2026-07-19 (audit fixes) — closed defects found in a full review pass. Media paths corrected to `artifacts/visuals/`. 5.4 identified as **written-notes** consent rather than recording consent, with a stop-and-re-plan procedure when it is "No", since that answer makes the whole pack unproducible. The roster downgraded from "names and roles" to counts and roles, because no survey question collects names. Phase 1 extended to extract everything Phases 2-4 consume, and to route 4.6 to PRD-719 rather than leaving it orphaned. "Not ready" given a home in the readiness row. The theory-of-change indicator restricted to metrics the garden actually tracks. The G$ block stopped steering gardens toward circulation. Added: the retraction window, a thin-response fallback, the redaction list, output destinations, and a 07-28 last-call date so the 48-hour confirmation loop can close before publication.
+- 2026-07-18 (transposition pass) — added **Appendix B**, the runnable submission-synthesis prompt that produces the draft mandate rows, onboarding roster, readiness row, gap log, and call questions; pre-call prep now reviews its output rather than starting blank. Timeline corrected to early August (Cycle 1) and early September (community app), with milestone closing dates retained. Survey references renumbered to the then-48-item build sheet. Steward vocabulary adopted. Scheduling moved to the booking link in the survey.
+- 2026-07-19 (multi-need pass) — Appendix B rebuilt for multiple needs: Phase 1 splits the needs list into individually numbered needs in the garden's own words, Phase 2 builds a **Need record per need** before mapping the single mandate row, and Phase 3 leads with **the needs board** as artifact 0. The prompt now produces **one** draft mandate row rather than pretending the form supports three; further rows are built live in block 2 from the needs board. Gap log now treats an unclassifiable need as the most valuable output in the pack.
+- 2026-07-19 (theory-of-change pass) — Appendix B gains **artifact 1: the garden's theory of change in its own words**, assembled from cause, beneficiary, outcome, indicator, horizon and aspiration rather than asked as theory, with gaps left visible instead of filled. Block 1 now opens by reading it back.
+- 2026-07-19 (portfolio-shape fix) — the theory-of-change artifact now carries the portfolio's actual shape: sequential, enabling, or a reinforcing loop, with an explicit instruction not to flatten a loop into a line. Blocks 1 and 2 follow the same shape rather than assuming an order.
+- 2026-07-19 (needs-are-initiatives fix) — Need records carry statement, outcome and horizon but **no kind**, since a need is a thing to solve rather than a direction of help; the mandate row takes its direction from 3.7 (Request or Offer), which is what sets who confirms. Renumbered for the current Section 2 (8 questions) and Section 3 (15 questions, direction at 3.7). The need/commitment distinction became the first guardrail.
+- 2026-07-19 (audit fixes) — closed defects found in a full review pass. Media paths corrected to `artifacts/visuals/`. 5.4 identified as **written-notes** consent rather than recording consent, with a stop-and-re-plan procedure when it is "No". The roster downgraded from "names and roles" to counts and roles, because no survey question collects names. Phase 1 extended to extract everything Phases 2-4 consume, and to route 4.6 to PRD-719. "Not ready" given a home in the readiness row. The theory-of-change indicator restricted to metrics the garden actually tracks. The G$ block stopped steering gardens toward circulation. Added: the retraction window, a thin-response fallback, the redaction list, output destinations, and a 07-28 last-call date.
+- 2026-07-19 (legibility pass) — restructured to follow the order of use: **At a glance** summary table added; guardrails moved above the agenda, where "read before every call" actually lands; pre-call prep reordered so the synthesis prompt is step 3 and the retraction check is step 1; agenda `Cover` run-ons broken into bullets; **survey question numbers glossed inline** throughout, so the guide can be used without the survey open; media kit turned into a table mapping each asset to its block; protocol semantics folded into a collapsed block, separating engineering terms from facilitator language. Deduplicated the Celo sponsored-account sentence and the who-confirms rule, and standardised on "provider" for the latter. Timing stated honestly: the eight blocks sum to exactly 60, so book 75. **Fixed**: Appendix B artifact 2 said quantities must respect 3.7 (direction) where 3.8 (capacity) is meant; owning-issue line read "COM-3 (formerly COM-3)" where PRD-701 was meant; `Updated` header lagged the change log.

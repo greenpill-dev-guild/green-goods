@@ -3,8 +3,8 @@
 **Feature Slug**: `community-interface`
 **Stage**: `active`
 **Updated**: 2026-07-19
-**Owning issues**: COM-7 (renumbered from RESR-62 when it moved to the Community team, 2026-07-19) and COM-3 (formerly COM-3, renumbered to the Community team) for steward coordination
-**Linear mirror**: [Garden Survey (Pass 1)](https://linear.app/greenpill-dev-guild/document/garden-survey-pass-1-needs-commitments-and-methodologies-c9271149e328) (slug `c9271149e328`). This file is the execution source; keep the mirror in lockstep.
+**Owning issues**: COM-7 (renumbered from RESR-62 when it moved to the Community team, 2026-07-19) and COM-3 (formerly PRD-701, renumbered to the Community team) for steward coordination
+**Linear mirror**: [Garden Survey (Pass 1)](https://linear.app/greenpill-dev-guild/document/garden-survey-pass-1-needs-commitments-and-methodologies-c9271149e328) (slug `c9271149e328`). This file is the execution source: correct it here, then re-mirror. Never hand-edit the mirror on its own.
 **Companion**: `onboarding-call.md` (Pass 2), whose Appendix B turns submissions into mandate rows.
 **Privacy**: contact details, wallet addresses, join identities, and statements naming people live in research-notes storage only. Never in Linear, analytics, or public artifacts.
 
@@ -1198,7 +1198,7 @@ The runnable prompt that turns one submission into these artifacts is **Appendix
 - **One draft mandate row** from 3.6 (which need it addresses, who/what/for whom/by when) + 3.7 (direction: Request or Offer, which sets who confirms) + 2.2 (that need's outcome and horizon) + 3.1–3.4 (unit candidates) + 3.8 (capacity ceiling) + 4.1/4.7 (evidence, baseline author) + 1.6 (confirmation-group scale). Further rows are built **at the call** from the needs list, not invented from the form.
 - **The garden's theory of change, in its own words** — assembled, never asked: because *[cause, 2.5]*, *[who, 2.6]* face *[the needs, 2.1]*; if *[the commitment, 3.6]* happens then *[outcome, 2.2]*, and we would know because *[indicator, 4.1]*; over *[horizon, 2.2]* this builds toward *[aspiration, 2.8]*, with *[how the needs relate, 2.3]* setting whether that happens in order or in parallel. The facilitator reads it back at the top of the call — a garden hearing its own logic stated cleanly is the clarity moment this instrument exists to create, and "no, that is not why" is the most useful correction we can get.
 - **Onboarding roster** from 1.4/1.6/1.7/1.8 + 3.9 + 4.4: who becomes steward, gardener, or evaluator in the app; who takes the WhatsApp/SMS path; what training is needed.
-- **Per-garden readiness row**: Participation (confirmed / invited / unavailable, never inferred) · Need examples · Commitment rows (confirmed vs draft) · Domains · Evidence and confirmation · G$ rewards · Circulation path · Open decisions with owner.
+- **Per-garden readiness row**: Participation (confirmed / invited / not ready / unavailable, never inferred — "not ready" is a respected outcome and belongs here whenever the garden says it) · Need examples · Commitment rows (confirmed vs draft) · Domains · Evidence and confirmation · G$ rewards · Circulation path · Open decisions with owner.
 - **Open questions for the call** — the five most useful things to ask, ordered so the ones that unblock a commitment come first.
 - **Gap log** — the architecture-gap instrument: any item in 2.1 that resists being framed as something to solve, any need whose horizon in 2.2 does not fit week / month / Season / years, "Not sure yet" on 3.7 (commitment direction), off-registry work (3.5), and 5.8 answers — routed to architecture review before August seeding. Prose that refuses our categories is stronger vocabulary evidence than a radio button ever was.
 

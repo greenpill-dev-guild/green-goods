@@ -32,7 +32,9 @@ The cohort is not presumed. Three confirmed candidate gardens: Tech and Sun Hub 
 
 ## Instrument: two passes, survey-first
 
-Pass 1 is a self-serve survey; Pass 2 is an action-oriented onboarding call. The instrument files in this folder are the execution source; the Linear documents mirror them 1:1.
+Pass 1 is a self-serve survey; Pass 2 is an action-oriented onboarding call.
+
+**Direction of truth**: the instrument files in this folder are the execution source; the Linear documents mirror them. The flow is one-way — correct the file here, then re-mirror, and never hand-edit a mirror on its own, or the two drift apart again. Each mirror carries a `Last aligned` date so drift is visible rather than assumed. (This follows the pattern set in `commitment-pooling/external-communications.md` § The three surfaces. It replaces an earlier "keep the mirror in lockstep" wording, which read bidirectionally and produced exactly the drift it was meant to prevent.)
 
 ### Pass 1 — self-serve survey (`survey-instrument.md`)
 
@@ -46,7 +48,7 @@ Section 3's work grids are generated from the **live action registry** (`package
 
 A facilitator guide (Linear mirror slug `d3690de04864`): **Appendix B is a runnable synthesis prompt** producing seven artifacts — the needs board, the garden's theory of change in its own words, **one** draft mandate row (not three; the form cannot honestly source more), the onboarding roster as counts and roles, the readiness row, the gap log, and the call's open questions. Pre-call prep reviews that output rather than starting from a blank page, and the needs board, theory-of-change paragraph, and draft row go to the steward ahead of the call labelled DRAFT.
 
-A 60-minute agenda in Goal/Cover/Output blocks includes a dedicated platform-onboarding block. The mandate confirmation checklist, G$ reward-layer talking points, the first-Season timeline, and post-call steps follow. The former "Locked implementation prompts" live there as Appendix A. Calls run in English; gardens book their own slot through a calendar link in the survey, and the last call is held 07-28 so the 48-hour confirmation loop closes before the 07-31 publication.
+The guide is ordered by when each part is used: an at-a-glance summary, pre-call prep, the guardrails (the former "Locked implementation prompts", read before every call), the eight-block agenda in Goal/Cover/Prompts/Output form including a dedicated platform-onboarding block, then the reference cards a facilitator reaches for mid-call — mandate confirmation checklist, G$ reward-layer talking points, first-Season timeline — and post-call steps. Survey question numbers are glossed inline so the guide can be run without the survey open. The eight blocks sum to exactly 60 minutes, so the guide tells facilitators to book 75. Calls run in English; gardens book their own slot through a calendar link in the survey, and the last call is held 07-28 so the 48-hour confirmation loop closes before the 07-31 publication.
 
 The operator receives the mandate artifact and must explicitly correct or confirm it. The team records unresolved interpretation as unresolved; it does not infer certainty.
 

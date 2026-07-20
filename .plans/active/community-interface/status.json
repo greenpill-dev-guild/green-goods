@@ -20,6 +20,8 @@
     "wireframes": "wireframes.md",
     "journeys": "journeys.md",
     "research_plan": "research-plan.md",
+    "survey_instrument": "survey-instrument.md",
+    "onboarding_call": "onboarding-call.md",
     "plan": "plan.todo.md",
     "eval": "eval.md",
     "companion_hub": "../commitment-pooling/"
@@ -31,7 +33,11 @@
     "initiative": "Impact Methodologies & Evaluator Flywheel",
     "researchDocument": "Community Needs & Signals — Engagement Model",
     "canonicalSynthesis": "Commitment Pooling × Green Goods — Grassroots Economics Learnings, and the Full Flywheel We're Building",
-    "researchIssues": ["RESR-62", "RESR-64", "PRD-701"],
+    "researchIssues": ["COM-7", "RESR-64", "COM-3"],
+    "instrumentDocuments": {
+      "survey-instrument.md": "c9271149e328",
+      "onboarding-call.md": "d3690de04864"
+    },
     "milestones": {
       "needs_substrate": "2026-08-31",
       "september_needs_app": "2026-09-30",
@@ -317,6 +323,10 @@
     {
       "date": "2026-07-10",
       "event": "Final plan audit made aggregate state_api and ui gates explicitly manual, recorded the external paymaster blocker, corrected docs/dogfood dependencies, and removed already-satisfied policy/handoff blockers without changing parent_only mode."
+    },
+    {
+      "date": "2026-07-19",
+      "event": "Index drift closed (prototypes.md P2-5): survey-instrument.md and onboarding-call.md are now registered in links with their Linear document slugs in linear.instrumentDocuments, having been the declared execution source since the 07-11 survey-first restructure while remaining invisible to machine state. researchIssues renumbered for the Community-team move (RESR-62 to COM-7, PRD-701 to COM-3; RESR-64 keeps its prefix as a deliberate scoping record). Same pass: onboarding-call.md restructured for legibility and the instrument mirror rule made explicitly one-way, replacing 'keep the mirror in lockstep', which read bidirectionally and had already produced drift."
     }
   ]
 }
