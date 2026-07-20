@@ -21,7 +21,7 @@ Reference implementation: `artifacts/visuals/external-brief-loop.svg`. Paper `#F
 | `artifacts/visuals/external-brief-money-map.svg/.png` | **01 External Brief** | in "Trust and money" | Arbitrum proof ∥ Celo G$, routes, oracle check, no-bridge |
 | `artifacts/visuals/external-brief-funding-rails.svg/.png` | **01 External Brief** | in "How delivered outcomes attract funding" | Three rails converging on delivered outcomes |
 | `artifacts/visuals/rollout-timeline-band.svg/.png` | **04 External Doc & Rollout Plan** | at "Sequence" | Six checkpoints with engagement + exit evidence |
-| `artifacts/visuals/rollout-ownership-map.svg/.png` | **04 External Doc & Rollout Plan** | at "The documentation set" — ⚠️ stale, see above | Eight artifacts → owning records |
+| `artifacts/visuals/rollout-ownership-map.svg/.png` | **04 External Doc & Rollout Plan** | at "The documentation set" | Eight artifacts → the surface that owns each |
 | `artifacts/visuals/rollout-settlement-states.svg/.png` | **04 External Doc & Rollout Plan** | at "The words we use for evidence" | Queued→…→Oracle-verified/Failed state machine, no human path |
 | `external-brief-loop` + `external-brief-roles` (reuse) | **04 External Doc & Rollout Plan** | at "One grounded story" | Same assets as the brief — visual consistency |
 | `artifacts/visuals/synthesis-flywheel.svg/.png` | **02 GE Learnings & Full Flywheel** | at TL;DR or §2.0 | Loop at center, four funding rails, gated borrow-repay ring |
@@ -31,7 +31,7 @@ Reference implementation: `artifacts/visuals/external-brief-loop.svg`. Paper `#F
 
 ### Known asset issues (2026-07-18)
 
-- ⚠️ **`rollout-ownership-map` is stale.** It draws *eight artifacts → owning Linear records*, from when the documentation set lived across Linear issues. The set is now nine rows whose homes are Google Doc tabs. Redraw against the current set or drop it — do not place it as-is.
+- ✅ **`rollout-ownership-map` redrawn 2026-07-19.** It previously mapped *eight artifacts → owning Linear records*, from when the documentation set lived across Linear issues. It now maps the same eight artifacts to the **surface that owns each** — repo plan hub, Linear, or Google Doc — which is what § The three surfaces actually asserts, and it carries the direction-of-truth rule in its caption. (The earlier warning said the set had grown to nine rows; § Documentation set has eight, so that count was itself wrong. The owner column was the real defect.) **One scheduled change**: the operator onboarding guide is drawn as repo-homed, which is true today; if the community-interface instruments move to Linear as canonical after the 07-31 checkpoint, that one connector moves with them.
 - ⚠️ **`synthesis-ge-protocol` may under-describe its source.** It renders GE's protocol as a four-part quadrant (curation / valuation / limitation / exchange). Ruddick's June 2026 paper ([Regenerative Bonds](https://arxiv.org/html/2606.23922), lead author) describes **six**, adding *route* and *repair*. Both appear in our §1.7 clearing text, so the prose is not wrong — but the graphic is narrower than the paper. Redraw is a judgement call.
 - **No asset exists for the Use Cases tab.** Nothing carries the Part B garden-journey story. Zero-cost option: reuse `external-brief-roles` after "Terms used here" and `rollout-settlement-states` at scenario S8. Better: author a three-column garden-journey strip (garden names in column headers only, so it survives a cohort change).
 
